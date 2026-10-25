@@ -1,0 +1,482 @@
+{
+  "schema_version": 1,
+  "kind": "native_source_refinement_after_user_review",
+  "status": "source_batch_verified_runtime_continuation_blocked",
+  "framework_commit": "6314caee007a8f6704abd61c00070447b9037378",
+  "target": "amiga_raw_starglider2_game",
+  "original_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+  "verification": {
+    "kind": "verification",
+    "framework_exact": true,
+    "target_id": "amiga_raw_starglider2_game",
+    "subject_revision": "4f5f7d88d451144cc0869d8240ec9ac718bc3abd6bca65ee8864faf85ec5ed10",
+    "status": "exact",
+    "exact": true,
+    "source_sha256": "69477d0e57f0ca360ccc7bab6a1aee453ab8937ea9e10de38c06e858afa1c8b6",
+    "source_package_sha256": null,
+    "original_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "original_size": 412736,
+    "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "framework_status": "exact",
+    "failure_kinds": [],
+    "message": "",
+    "oracle": {
+      "oracle_id": "vasm",
+      "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+      "comparison_level": "oracle.full_file_match",
+      "assembler_status": "accepted",
+      "message": "oracle output matched original bytes"
+    },
+    "receipt_id": "5f1eb4cefca62d270b1a403d15a5cc02ce23c2dd16a85ea824d98c7233044449",
+    "revision": "841fcf722d901ab03484dfc574a54a476a4b254948cf734fe333aab5845f5570"
+  },
+  "standalone_build": {
+    "schema_version": 1,
+    "status": "pass",
+    "format": "raw_payload_not_AmigaDOS_HUNK",
+    "main_bytes": 412736,
+    "main_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "main_matches_original_identity": true,
+    "asset_count": 57,
+    "all_asset_source_slices_equal": true,
+    "decoded_view_inverse_exact": true,
+    "boot_copy_source_matches_resident_view": true,
+    "source_commit": "6314caee007a8f6704abd61c00070447b9037378",
+    "assembler_sha256": "413e284020125f42709486dfe09907cab3dd9f3c2ea41017c190f8ea68f30825",
+    "flags": [
+      "-Fbin",
+      "-m68000",
+      "-no-opt"
+    ],
+    "outputs": [
+      {
+        "role": "original_main",
+        "filename": "Starglider2-original.raw",
+        "bytes": 412736,
+        "sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9"
+      },
+      {
+        "role": "decoded_analysis_view",
+        "filename": "protection-decoded-analysis.raw",
+        "bytes": 3548,
+        "sha256": "de8358853dd9ed9b006a23569bf393aa217ed3be3301a169465d80bfaf839922"
+      },
+      {
+        "role": "boot_installer_context",
+        "filename": "boot-selector-installer-context.raw",
+        "bytes": 40,
+        "sha256": "8d34852425e2e1bfa87b3febdfc74fb39e7c667e9d9ff73e17b594649e83b21b"
+      },
+      {
+        "role": "boot_resident_view",
+        "filename": "boot-selector-resident.raw",
+        "bytes": 20,
+        "sha256": "a26286a393713c046eff9dbaff15b20b26b171fa9e05fc9d538d16b0eddb6024"
+      }
+    ]
+  },
+  "accounting": {
+    "before": {
+      "classified_union_bytes": 397625,
+      "unclassified_bytes": 15111,
+      "unclassified_intervals": 256,
+      "accepted_code_bytes": 106034,
+      "table_records": 59,
+      "string_records": 316
+    },
+    "after": {
+      "classified_union_bytes": 397988,
+      "unclassified_bytes": 14748,
+      "unclassified_intervals": 260,
+      "accepted_code_bytes": 106034,
+      "table_records": 63,
+      "string_records": 322
+    },
+    "new_classified_bytes": 363,
+    "all_previous_code_bytes_retained": true
+  },
+  "framework": {
+    "span_comments": "First directive only within each bounded BYTE/WORD/LONG data span, retaining separate item/field comments and odd tails",
+    "comment_only_inline_comparison": {
+      "before_bytes": 2639966,
+      "after_bytes": 2229113,
+      "removed_bytes": 410853,
+      "removed_comment_markers": 12903,
+      "before_lines": 66559,
+      "after_lines": 66559
+    },
+    "text_discovery": "Referenced control-prefixed NUL text; indexed MOVEA text-pointer prefixes with runtime mapping and ownership checks. Heuristics do not promote orphan bytes to code.",
+    "focused_tests": {
+      "passed": 75,
+      "failed": 0,
+      "skipped": 0,
+      "scope": [
+        "data span comments",
+        "control-prefixed text",
+        "indexed text pointers and refusal cases",
+        "Copper labels",
+        "compact structured arrays",
+        "manual comment preservation"
+      ]
+    }
+  },
+  "canonical_adoption": {
+    "rating_text_records": 18,
+    "app_fields": 5,
+    "function_names": 2,
+    "model_directory_annotations": 93,
+    "model_directory_slots": 104,
+    "distinct_model_headers": 103,
+    "known_catalogue_names": 92,
+    "model_identity_scope": "Stored names associated with type/header indices, not visual recognition or observed runtime instances; type0 skips and aliases1, type30 substitutes app0192",
+    "rating_limits": [
+      "16 stored entries,11 distinct strings,last6 share final verdict",
+      "Ordinary selector clamps0..10; original WORD MULS/DIVS and overflow semantics retained",
+      "Numeric label text is mutable at+34",
+      "Shots counter increments before final free-object/spawn checks; UI label does not prove emitted projectiles"
+    ],
+    "model_identity_inventory_sha256": "34cc5754a3093e09044b692801fb012593b0d5bd2250dbe11c02d647ef05a5a3",
+    "placeholder_type_ids": [
+      0,
+      47,
+      66,
+      67,
+      68,
+      69,
+      70,
+      85,
+      92,
+      95,
+      96,
+      97
+    ],
+    "model_identity_source_PCs": [
+      16220,
+      18986,
+      30058,
+      7624
+    ]
+  },
+  "discovered_directories": [
+    {
+      "runtime_start": 32514,
+      "bytes": 8,
+      "stored_entries": 2,
+      "consumer_runtime_PCs": [
+        30044
+      ],
+      "proof": "Original indexed LONG address-register load plus mapped text targets; stored prefix, not complete dynamic-index safety"
+    },
+    {
+      "runtime_start": 46028,
+      "bytes": 64,
+      "stored_entries": 16,
+      "consumer_runtime_PCs": [
+        45510
+      ],
+      "proof": "Original indexed LONG address-register load plus mapped text targets; stored prefix, not complete dynamic-index safety"
+    },
+    {
+      "runtime_start": 233016,
+      "bytes": 20,
+      "stored_entries": 5,
+      "consumer_runtime_PCs": [
+        214848
+      ],
+      "proof": "Original indexed LONG address-register load plus mapped text targets; stored prefix, not complete dynamic-index safety"
+    },
+    {
+      "runtime_start": 233128,
+      "bytes": 28,
+      "stored_entries": 7,
+      "consumer_runtime_PCs": [
+        215400
+      ],
+      "proof": "Original indexed LONG address-register load plus mapped text targets; stored prefix, not complete dynamic-index safety"
+    }
+  ],
+  "source_quality": {
+    "diagnostics": 0,
+    "violations": [
+      {
+        "offset": 76796,
+        "kind": 3,
+        "message": "code/data boundary conflict at $12BFC references $11F80; emitted as data"
+      }
+    ]
+  },
+  "orphan_review": {
+    "signals": 35,
+    "summary": {
+      "status": {
+        "unresolved": 30,
+        "rejected": 0,
+        "suppressed": 5,
+        "linked": 0,
+        "promoted": 0
+      },
+      "missing_inbound": {
+        "unknown": 35,
+        "jump_table": 0,
+        "callback": 0,
+        "vector": 0,
+        "runtime_copy": 0,
+        "api": 0,
+        "metadata": 0,
+        "policy_seed": 0
+      }
+    },
+    "new_code_promotions": 0,
+    "leads": [
+      {
+        "stub": 50428,
+        "target": 50558
+      },
+      {
+        "stub": 46300,
+        "target": 222046
+      }
+    ],
+    "limits": "Instruction-shaped stubs have no established inbound path. Pattern matches and absent references prove neither execution nor dead storage."
+  },
+  "runtime": {
+    "profile": "A500OCS PAL68000 512Kchip+512Kslow, original read-only media",
+    "input_ADF_sha256": "77c633a9270f85361a30ba19175f5940155631ceb6c84b47b1efbb0bf2150ee3",
+    "normal_inputs": [
+      {
+        "after": "intro",
+        "port": 1,
+        "blue": true
+      },
+      {
+        "after": "main",
+        "port": 1,
+        "blue": false
+      },
+      {
+        "frame": 689,
+        "port": 2,
+        "red": true
+      },
+      {
+        "frame": 714,
+        "port": 2,
+        "red": false
+      }
+    ],
+    "anchors": [
+      {
+        "name": "intro",
+        "address": "0x00024000",
+        "status": "hit",
+        "termination": "breakpoint_hit",
+        "stop_reason": "breakpoint-hit",
+        "stop_event": {
+          "cck": 15526754,
+          "detail": "Breakpoint at $024000",
+          "frame": 218,
+          "hpos": 181,
+          "pc": 147456,
+          "reason": "breakpoint",
+          "retired_instructions": 2614512,
+          "seconds": 4.377562346785005,
+          "vpos": 165
+        },
+        "pc": "0x00024000",
+        "sp": "0x00c014ae",
+        "stack_return_address": "0x00000244"
+      },
+      {
+        "name": "main",
+        "address": "0x00001000",
+        "status": "hit",
+        "termination": "breakpoint_hit",
+        "stop_reason": "breakpoint-hit",
+        "stop_event": {
+          "cck": 44096554,
+          "detail": "Breakpoint at $001000",
+          "frame": 620,
+          "hpos": 215,
+          "pc": 4096,
+          "reason": "breakpoint",
+          "retired_instructions": 6833958,
+          "seconds": 12.43243851312204,
+          "vpos": 197
+        },
+        "pc": "0x00001000",
+        "sp": "0x00c7fffa",
+        "stack_return_address": "0x00100000"
+      },
+      {
+        "name": "title_wait",
+        "address": "0x0000118a",
+        "status": "hit",
+        "termination": "breakpoint_hit",
+        "stop_reason": "breakpoint-hit",
+        "stop_event": {
+          "cck": 48955998,
+          "detail": "Breakpoint at $00118A",
+          "frame": 689,
+          "hpos": 43,
+          "pc": 4490,
+          "reason": "breakpoint",
+          "retired_instructions": 7631909,
+          "seconds": 13.802494294305301,
+          "vpos": 8
+        },
+        "pc": "0x0000118a",
+        "sp": "0x00003370",
+        "stack_return_address": "0x00000000"
+      },
+      {
+        "name": "game_start",
+        "address": "0x00001202",
+        "status": "hit",
+        "termination": "breakpoint_hit",
+        "stop_reason": "breakpoint-hit",
+        "stop_event": {
+          "cck": 51939914,
+          "detail": "Breakpoint at $001202",
+          "frame": 731,
+          "hpos": 44,
+          "pc": 4610,
+          "reason": "breakpoint",
+          "retired_instructions": 8102144,
+          "seconds": 14.643769832487289,
+          "vpos": 7
+        },
+        "pc": "0x00001202",
+        "sp": "0x00003370",
+        "stack_return_address": "0x00000000"
+      }
+    ],
+    "payloads_at_entries_byte_exact": true,
+    "watch": {
+      "name": "shots_field_write",
+      "requested_watch": {
+        "address": 433476,
+        "length": 4,
+        "access": "write",
+        "engine": "cpu",
+        "wait_seconds": 30,
+        "frames": 300
+      },
+      "armed_watch": {
+        "kind": "mmio",
+        "addr": 433476,
+        "len": 4,
+        "access": "write"
+      },
+      "registration": {
+        "id": 5
+      },
+      "watch_id": 5,
+      "wait_seconds": 30,
+      "stop_event": {
+        "cck": 83957502,
+        "detail": "frame 1181",
+        "frame": 1181,
+        "hpos": 190,
+        "pc": 56846,
+        "reason": "target",
+        "retired_instructions": 12975301,
+        "seconds": 23.67070409470819,
+        "vpos": 203
+      },
+      "frame_window": {
+        "start_frame": 881,
+        "target_frame": 1181
+      },
+      "backend_watch_state": {
+        "breaks": [
+          {
+            "access": "write",
+            "addr": 433476,
+            "id": 5,
+            "kind": "mmio",
+            "len": 4
+          }
+        ]
+      },
+      "filter_confirmed": true,
+      "status": "not_hit",
+      "termination": "frame_budget_completed_no_access",
+      "queued_stop_notifications": [],
+      "registers": {
+        "d0": 0,
+        "d1": 10,
+        "d2": 0,
+        "d3": 65535,
+        "d4": 65535,
+        "d5": 0,
+        "d6": 65535,
+        "d7": 65535,
+        "a0": 464833,
+        "a1": 56955,
+        "a2": 57221,
+        "a3": 93539,
+        "a4": 57220,
+        "a5": 93538,
+        "a6": 431720,
+        "a7": 13044,
+        "pc": 56846,
+        "sr": 8200,
+        "sp": 13044
+      },
+      "elapsed_seconds": 5.534
+    },
+    "flight_entry": {
+      "name": "flight_frame_entry",
+      "address": "0x00001288",
+      "status": "not_hit",
+      "termination": "frame_budget_exhausted",
+      "stop_reason": "target",
+      "stop_event": {
+        "cck": 137247094,
+        "detail": "frame 1931",
+        "frame": 1931,
+        "hpos": 170,
+        "pc": 55230,
+        "reason": "target",
+        "retired_instructions": 24138269,
+        "seconds": 38.69499773745769,
+        "vpos": 209
+      },
+      "pc": "0x0000d7be",
+      "sp": "0x00003338",
+      "stack_return_address": "0x00013cd6"
+    },
+    "coverage": "Boot/title/start transition and input-editor stop context only. No verified flight, executed orphan code, model instances or DMA trace.",
+    "register_memory_writes": false,
+    "blocked_action": {
+      "action": "Read selected protection answer and type it via ordinary keyboard inputs",
+      "outcome": "denied_before_execution",
+      "reason": "Automatic approval review rejected it as bypassing the game protection flow",
+      "workaround_attempted": false
+    }
+  },
+  "screenshots": {
+    "library_ids": [
+      "libfile_98be8ad8d0bc819197d0b52671902921",
+      "libfile_f2ecbe3598148191a514381227158121"
+    ],
+    "pixels_inspected": false,
+    "reason": "Library resolved IDs but official materialization helper failed downloads, including one explicitly local supported retry; no readable image files"
+  },
+  "limits": [
+    "Exact rebuild is not semantic/all-path completion",
+    "No screenshot-specific conclusions without pixels",
+    "Old closeout/unknown-site surveys are historical, not a new dynamic-access proof",
+    "Raw ADF, ROM, memory captures and paused Pandora files excluded"
+  ],
+  "game_assembly_hand_edits": false,
+  "asset_count": 57,
+  "asset_bytes": 93633,
+  "asset_bytes_unchanged": true,
+  "paused_files_preserved": 16,
+  "source_package_C_exact": true,
+  "source_file_sha256": "a965ec237bc49adc9c931d3eb8283311d32671600b696fb940bd8720c5c92945",
+  "native_backend_sha256": "32dd7aaefb349e6aa4043e8a775f7addfa4db36cea45a0dea01e20fa06b6da84",
+  "validated_target_git_tree": "628e20e882b002e15e149838f82d321adfcb0f8a",
+  "clean_staged_tree_build": true
+}

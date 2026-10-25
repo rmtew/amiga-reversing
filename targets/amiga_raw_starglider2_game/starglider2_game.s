@@ -264,12 +264,12 @@ free_object_stack_cursor RS.L 1
 app_06D8 RS.W 1
 app_06DA RS.B 1
     RS.B 1
-app_06DC RS.L 1
+pilot_shots_fired RS.L 1
 app_06E0 RS.L 1
-app_06E4 RS.L 1
+pilot_hits_scored RS.L 1
 app_06E8 RS.L 1
-app_06EC RS.L 1
-app_06F0 RS.L 1
+weapon_energy_overflow_bonus_count RS.L 1
+icarus_hits_received RS.L 1
 app_06F4 RS.L 1
 app_06F8 RS.L 1
 horizontal_world_wrap_mask RS.L 1
@@ -330,7 +330,7 @@ app_0794 RS.W 1
 app_0796 RS.W 1
 world_layout_index RS.W 1
 app_079A RS.W 1
-app_079C RS.W 1
+pilot_hit_accuracy_word RS.W 1
     RS.B 4
 rotation_2_control_accumulator RS.W 1
 rotation_0_control_accumulator RS.W 1
@@ -1337,7 +1337,7 @@ abs_0_000014B6:
 	lea.l object_contact_bcd_awards.l,a1
 	move.w $0(a1,d0.w),d1
 	add.w d1,pending_bcd_score_addend(a6)
-	addq.l #1,app_06F0(a6)
+	addq.l #1,icarus_hits_received(a6)
 	tst.b inside_structure_flag(a6)
 	bne.b abs_0_000014F0
 	move.l d0,-(a7)
@@ -2147,14 +2147,14 @@ abs_0_00002000:
 	move.w #$1,app_07AC(a6)
 	clr.w $017C(a6)
 	clr.w weapon_action_cooldown(a6)
-	clr.l app_06DC(a6)
-	clr.l app_06E4(a6)
+	clr.l pilot_shots_fired(a6)
+	clr.l pilot_hits_scored(a6)
 	clr.l app_06E0(a6)
 	clr.l app_06E8(a6)
 	clr.l app_06F8(a6)
 	clr.l app_06F4(a6)
-	clr.l app_06F0(a6)
-	clr.l app_06EC(a6)
+	clr.l icarus_hits_received(a6)
+	clr.l weapon_energy_overflow_bonus_count(a6)
 	clr.w app_0792(a6)
 	move.w $019C(a6),app_0766(a6)
 	move.w $019E(a6),app_0768(a6)
@@ -3192,7 +3192,7 @@ refresh_counted_model_population:
 abs_0_000033AA:
 	jmp abs_0_0003BD66.l
 abs_0_000033B0:
-	jmp abs_0_0000B0C2.l
+	jmp display_pilot_rating_results.l
 print_cursor_text_bridge:
 	jmp print_cursor_text.l
 abs_0_000033BC:
@@ -8218,7 +8218,7 @@ abs_0_00007256:
 	st.b abs_0_0004DE39.l
 	move.w app_0766(a6),app_076E(a6)
 	move.w app_0768(a6),app_0770(a6)
-	addq.l #1,app_06DC(a6)
+	addq.l #1,pilot_shots_fired(a6)
 	move.w #$100,d1
 	cmpi.w #84,selected_projectile_type.l
 	bne.b abs_0_0000728C
@@ -8921,14 +8921,17 @@ projectile_spawn_side_sign:
 	dc.w $0400
 	dc.b $00,$00,$20,$20,$20,$20,$00,$00,$00,$00,$00,$00
 abs_0_00007F02:
-	dc.b $00,$00,$7F,$1E,$00,$00,$7F,$39
+	dc.l abs_0_00007F1E	; pointer_table
+	dc.l abs_0_00007F39
 weapon_action_dispatch_targets:
 	dc.l try_spawn_type84_projectile	; pointer_table
 	dc.l try_spawn_type103_projectile
 	dc.l scan_or_fire_homing_missile
 	dc.l try_launch_bouncing_bomb
 	dc.l try_launch_carried_neutron_bomb
+abs_0_00007F1E:
 	dc.b "Computer Visual Analysis -",$00
+abs_0_00007F39:
 	dc.b "Homing Missile Launched.",$00
 abs_0_00007F52:
 	dc.b "Neutron Bomb not launched!",$00
@@ -10137,7 +10140,7 @@ abs_0_00008E02:
 	clr.w d0
 abs_0_00008E2A:
 	move.w d0,app_0776(a6)
-	addq.l #1,app_06F0(a6)
+	addq.l #1,icarus_hits_received(a6)
 	bra.b abs_0_00008DF8
 abs_0_00008E34:
 	lea.l abs_0_00008E40(pc),a1
@@ -12470,39 +12473,40 @@ abs_0_0000B0BA:
 	neg.w d1
 	addi.w #4096,d1
 	rts
-abs_0_0000B0C2:
+    ; Results labels contain writable nine-digit slots at text+34. Accuracy uses signed WORD MULS/DIVS and masks to255; original zero-shot path prints the hint.
+display_pilot_rating_results:
 	bsr.w clear_text_framebuffer_and_cursor
 	move.b #$F,text_colour_plane_mask.l
-	lea.l abs_0_0000B1E2(pc),a1
+	lea.l pilot_rating_heading(pc),a1
 	bsr.w print_cursor_text
-	move.l app_06DC(a6),d0
-	lea.l abs_0_0000B208(pc),a1
-	bsr.w abs_0_0000B40C
-	move.l app_06E4(a6),d0
-	lea.l abs_0_0000B236(pc),a1
-	bsr.w abs_0_0000B40C
-	move.l app_06F0(a6),d0
-	lea.l abs_0_0000B264(pc),a1
-	bsr.w abs_0_0000B40C
-	move.l app_06DC(a6),d1
-	move.l app_06E4(a6),d0
+	move.l pilot_shots_fired(a6),d0
+	lea.l pilot_rating_shots_fired_label(pc),a1
+	bsr.w format_and_print_rating_label
+	move.l pilot_hits_scored(a6),d0
+	lea.l pilot_rating_hits_scored_label(pc),a1
+	bsr.w format_and_print_rating_label
+	move.l icarus_hits_received(a6),d0
+	lea.l pilot_rating_icarus_hits_label(pc),a1
+	bsr.w format_and_print_rating_label
+	move.l pilot_shots_fired(a6),d1
+	move.l pilot_hits_scored(a6),d0
 	lea.l abs_0_0000B292(pc),a1
 	bsr.w print_cursor_text
 	muls.w #$64,d0
 	tst.w d1
 	bne.b abs_0_0000B11E
-	lea.l abs_0_0000B3AA(pc),a1
+	lea.l pilot_rating_no_shots_hint(pc),a1
 	bsr.w print_cursor_text
 	bra.w abs_0_0000B1CE
 abs_0_0000B11E:
 	divs.w d1,d0
 	andi.l #255,d0
-	move.w d0,app_079C(a6)
-	lea.l abs_0_0000B296(pc),a1
-	bsr.w abs_0_0000B40C
-	lea.l abs_0_0000B2C4(pc),a1
+	move.w d0,pilot_hit_accuracy_word(a6)
+	lea.l pilot_rating_hit_accuracy_label(pc),a1
+	bsr.w format_and_print_rating_label
+	lea.l pilot_rating_verdict_label(pc),a1
 	bsr.w print_cursor_text
-	move.w app_079C(a6),d0
+	move.w pilot_hit_accuracy_word(a6),d0
 	divs.w #$A,d0
 	bpl.w abs_0_0000B14A
 	clr.w d0
@@ -12512,7 +12516,7 @@ abs_0_0000B14A:
 	bmi.b abs_0_0000B154
 	move.w #$8,d0
 abs_0_0000B154:
-	move.l app_06EC(a6),d1
+	move.l weapon_energy_overflow_bonus_count(a6),d1
 	subi.l #1,d1
 	bmi.b abs_0_0000B180
 	addq.w #1,d0
@@ -12526,7 +12530,7 @@ abs_0_0000B154:
 	bmi.b abs_0_0000B180
 	addq.w #1,d0
 abs_0_0000B180:
-	move.l app_06F0(a6),d1
+	move.l icarus_hits_received(a6),d1
 	subi.l #600,d1
 	bmi.b abs_0_0000B1AC
 	subq.w #1,d0
@@ -12549,6 +12553,7 @@ abs_0_0000B1B6:
 	tst.w d0
 	bpl.b abs_0_0000B1BC
 	clr.w d0
+    ; Sixteen stored LONG text pointers; ordinary clamped selector0..10 uses eleven distinct verdicts. Entries10..15 share final text, not six additional strings.
 abs_0_0000B1BC:
 	add.w d0,d0
 	add.w d0,d0
@@ -12561,60 +12566,80 @@ abs_0_0000B1CE:
 	clr.b pending_key_scancode(a6)
 	bsr.w abs_0_0000B518
 	rts
-abs_0_0000B1E2:
+pilot_rating_heading:
 	dc.b $0D,$0A,$0A
-	dcb.b $A,$20
-	dc.b $49,$43,$41,$52,$55,$53,$20,$50,$49,$4C,$4F,$54,$20,$52,$41,$54
-	dc.b $49,$4E,$47,$0D,$0A,$0A,$0A,$00,$00
-abs_0_0000B208:
-	dc.b $0D,$0A,$0A,$20,$20,$20,$20,$20,$4E,$55,$4D,$42,$45,$52,$20,$4F
-	dc.b $46,$20,$53,$48,$4F,$54,$53,$20,$46,$49,$52,$45,$44
-	dcb.b $F,$20
-	dc.b $00,$00
-abs_0_0000B236:
-	dc.b $0D,$0A,$0A,$20,$20,$20,$20,$20,$4E,$55,$4D,$42,$45,$52,$20,$4F
-	dc.b $46,$20,$48,$49,$54,$53,$20,$53,$43,$4F,$52,$45,$44
-	dcb.b $F,$20
-	dc.b $00,$00
-abs_0_0000B264:
-	dc.b $0D,$0A,$0A,$20,$20,$20,$20,$20,$4E,$55,$4D,$42,$45,$52,$20,$4F
-	dc.b $46,$20,$48,$49,$54,$53,$20,$4F,$4E,$20,$49,$43,$41,$52,$55,$53
-	dcb.b $C,$20
-	dc.b $00,$00
+	dc.b "          ICARUS PILOT RATING",$0D,$0A,$0A,$0A
+	dc.b $00
+	dc.b $00
+pilot_rating_shots_fired_label:
+	dc.b $0D,$0A,$0A
+	dc.b "     NUMBER OF SHOTS FIRED               ",$00
+	dc.b $00
+pilot_rating_hits_scored_label:
+	dc.b $0D,$0A,$0A
+	dc.b "     NUMBER OF HITS SCORED               ",$00
+	dc.b $00
+pilot_rating_icarus_hits_label:
+	dc.b $0D,$0A,$0A
+	dc.b "     NUMBER OF HITS ON ICARUS            ",$00
+	dc.b $00
 abs_0_0000B292:
 	dc.b $0D,$0A,$00,$00
-abs_0_0000B296:
-	dc.b $0D,$0A,$0A,$20,$20,$20,$20,$20,$48,$49,$54,$20,$41,$43,$43,$55
-	dc.b $52,$41,$43,$59,$20,$50,$45,$52,$43,$45,$4E,$54,$41,$47,$45
-	dcb.b $D,$20
-	dc.b $00,$00
-abs_0_0000B2C4:
-	dc.b $0A,$0A,$0D,$0A,$0A,$20,$20,$20,$20,$20,$52,$41,$54,$49,$4E,$47
-	dc.b $2C,$20,$00,$00
+pilot_rating_hit_accuracy_label:
+	dc.b $0D,$0A,$0A
+	dc.b "     HIT ACCURACY PERCENTAGE             ",$00
+	dc.b $00
+pilot_rating_verdict_label:
+	dc.b $0A,$0A,$0D,$0A,$0A
+	dc.b "     RATING, ",$00
+	dc.b $00
+pilot_rating_dead_so_soon:
 	dc.b "DEAD SO SOON?",$00
+pilot_rating_try_the_fire_button:
 	dc.b "TRY THE FIRE BUTTON",$00
+pilot_rating_souvenir_hunter:
 	dc.b "SOUVENIR HUNTER!",$00
 	dc.b $00
+pilot_rating_look_ma_no_hands:
 	dc.b "LOOK MA, NO HANDS!",$00
 	dc.b $00
+pilot_rating_good_good:
 	dc.b "GOOD, GOOD!",$00
+pilot_rating_mostly_harmful:
 	dc.b "MOSTLY HARMFUL!",$00
+pilot_rating_use_the_forslook:
 	dc.b "USE THE FORSLOOK!",$00
+pilot_rating_you_ve_played_before:
 	dc.b "YOU'VE PLAYED BEFORE",$00
 	dc.b $00
+pilot_rating_egron_ronay_approved:
 	dc.b "EGRON RONAY APPROVED",$00
 	dc.b $00
+pilot_rating_the_schwartz_is_with_you:
 	dc.b "THE SCHWARTZ IS WITH YOU!",$00
+pilot_rating_smug_but_still_dead:
 	dc.b "SMUG, BUT STILL DEAD!",$00
-abs_0_0000B3AA:
-	dc.b $0D,$0A,$20,$20,$20,$20,$20
-	dc.b "HINT: TRY SHOOTING EGRONS!",$00
+pilot_rating_no_shots_hint:
+	dc.b $0D,$0A
+	dc.b "     HINT: TRY SHOOTING EGRONS!",$00
 abs_0_0000B3CC:
-	dc.b $00,$00,$B2,$D8,$00,$00,$B2,$E6,$00,$00,$B2,$FA,$00,$00,$B3,$0C
-	dc.b $00,$00,$B3,$20,$00,$00,$B3,$2C,$00,$00,$B3,$3C,$00,$00,$B3,$4E
-	dc.b $00,$00,$B3,$64,$00,$00,$B3,$7A,$00,$00,$B3,$94,$00,$00,$B3,$94
-	dc.b $00,$00,$B3,$94,$00,$00,$B3,$94,$00,$00,$B3,$94,$00,$00,$B3,$94
-abs_0_0000B40C:
+	dc.l pilot_rating_dead_so_soon	; pointer_table
+	dc.l pilot_rating_try_the_fire_button
+	dc.l pilot_rating_souvenir_hunter
+	dc.l pilot_rating_look_ma_no_hands
+	dc.l pilot_rating_good_good
+	dc.l pilot_rating_mostly_harmful
+	dc.l pilot_rating_use_the_forslook
+	dc.l pilot_rating_you_ve_played_before
+	dc.l pilot_rating_egron_ronay_approved
+	dc.l pilot_rating_the_schwartz_is_with_you
+	dc.l pilot_rating_smug_but_still_dead
+	dc.l pilot_rating_smug_but_still_dead
+	dc.l pilot_rating_smug_but_still_dead
+	dc.l pilot_rating_smug_but_still_dead
+	dc.l pilot_rating_smug_but_still_dead
+	dc.l pilot_rating_smug_but_still_dead
+format_and_print_rating_label:
 	move.l a1,-(a7)
 	adda.w #$22,a1
 	bsr.w abs_0_0000B4A0
@@ -12879,7 +12904,7 @@ abs_0_0000B72E:
 	beq.w abs_0_0000B7D2
 	movem.l d0/a1/a6,-(a7)
 	movea.l game_workspace_base.l,a6
-	addq.l #1,app_06E4(a6)
+	addq.l #1,pilot_hits_scored(a6)
 	lea.l model_type_target_selection_tags_prefix(a6),a1
 	move.w (a0),d0
 abs_0_0000B758:
@@ -12915,7 +12940,7 @@ abs_0_0000B7A4:
 	add.w d0,d0
 	move.w $0(a1,d0.w),d0
 	add.w d0,pending_bcd_score_addend(a6)
-	addq.l #1,app_06E4(a6)
+	addq.l #1,pilot_hits_scored(a6)
 	movem.l (a7)+,d0/a1/a6
 	bra.b abs_0_0000B7C6
 abs_0_0000B7C0:
@@ -12973,7 +12998,7 @@ abs_0_0000B852:
 	beq.w abs_0_0000B8F4
 	movem.l d0/a1/a6,-(a7)
 	movea.l game_workspace_base.l,a6
-	addq.l #1,app_06E4(a6)
+	addq.l #1,pilot_hits_scored(a6)
 	lea.l model_type_target_selection_tags_prefix(a6),a1
 	move.w (a2),d0
 abs_0_0000B87C:
@@ -13009,7 +13034,7 @@ abs_0_0000B8C6:
 	add.w d0,d0
 	move.w $0(a1,d0.w),d0
 	add.w d0,pending_bcd_score_addend(a6)
-	addq.l #1,app_06E4(a6)
+	addq.l #1,pilot_hits_scored(a6)
 	movem.l (a7)+,d0/a1/a6
 	bra.b abs_0_0000B8E8
 abs_0_0000B8E2:
@@ -13082,7 +13107,7 @@ abs_0_0000B9A2:
 	cmpi.w #30,(a0)
 	bne.b abs_0_0000B9F6
 abs_0_0000B9A8:
-	addq.l #1,app_06F0(a6)
+	addq.l #1,icarus_hits_received(a6)
 	move.w (a2),d0
 	move.w d0,app_06D8(a6)
 	tst.b $001C(a2)
@@ -13870,9 +13895,10 @@ abs_0_0000C3FE:
 	bcs.b abs_0_0000C416
 	move.w d0,app_0794(a6)
 	bra.w abs_0_0000B9C2
+    ; Incremented only after weapon-energy addition carries and saturates to $FFFF. Rating uses this counter for bonuses; it is not a kill counter.
 abs_0_0000C416:
 	move.w #$FFFF,app_0794(a6)
-	addq.l #1,app_06EC(a6)
+	addq.l #1,weapon_energy_overflow_bonus_count(a6)
 	bra.w abs_0_0000B9C2
 abs_0_0000C424:
 	cmpi.w #30,(a0)
@@ -14603,7 +14629,7 @@ amiga_copper_list_c_effect_colours:
 	dc.w $FFFF,$FFFE
 amiga_boot_palette_words:
 	dc.w $0000,$0FFF,$0FFF,$0FFF,$0FFF,$0FFF,$0FFF,$0FFF	; palette
-	dc.w $0FFF,$0FFF,$0FFF,$0FFF,$0FFF,$0FFF,$0FFF,$0FFF	; palette
+	dc.w $0FFF,$0FFF,$0FFF,$0FFF,$0FFF,$0FFF,$0FFF,$0FFF
 	dc.b $0F,$FF,$0F,$FF,$0F,$FF,$0F,$FF,$0F,$FF,$0F,$FF,$0F,$FF,$0F,$FF
 	dc.b $0F,$FF,$0F,$FF,$0F,$FF,$0F,$FF,$0F,$FF,$0F,$FF,$0F,$FF,$0F,$FF
 	dc.b $0F,$FF,$0F,$FF,$0F,$FF,$0F,$FF,$0F,$FF,$0F,$FF,$0F,$FF,$0F,$FF
@@ -16155,7 +16181,7 @@ mouse_scale_input_prefix:
 	dcb.b $9,$00
 options_menu_palette:
 	dc.w $0000,$0007,$0070,$0077,$0700,$0707,$0770,$0777	; palette
-	dc.w $0444,$000F,$00F0,$00FF,$0F00,$0F0F,$0FF0,$0FFF	; palette
+	dc.w $0444,$000F,$00F0,$00FF,$0F00,$0F0F,$0FF0,$0FFF
 	dc.w $0000
 abs_0_0000E9B4:
 	jmp advance_shared_random_state.l
@@ -22515,42 +22541,42 @@ model_default_scale_shifts:
     ; 148 original type-indexed scalar LONG distance limits. Used for XYZ visibility/wrap culling, not source pointers despite numeric address coincidences.
 object_type_distance_limits:
 	dc.l $00003000,$00003A00,$00003A00,$00003A00	; Original type-indexed XYZ visibility/wrap distance limits; literal scalar LONGs
-	dc.l $00003FFF,$00005FFF,$00003000,$00003000	; Original type-indexed XYZ visibility/wrap distance limits; literal scalar LONGs
-	dc.l $00003000,$00003000,$00003000,$00003000	; Original type-indexed XYZ visibility/wrap distance limits; literal scalar LONGs
-	dc.l $00004FFF,$00003000,$00003000,$00003B00	; Original type-indexed XYZ visibility/wrap distance limits; literal scalar LONGs
-	dc.l $00003000,$00003000,$00003000,$00003000	; Original type-indexed XYZ visibility/wrap distance limits; literal scalar LONGs
-	dc.l $00003000,$00003000,$00003000,$00003000	; Original type-indexed XYZ visibility/wrap distance limits; literal scalar LONGs
-	dc.l $00003000,$00003A00,$00003F00,$00003000	; Original type-indexed XYZ visibility/wrap distance limits; literal scalar LONGs
-	dc.l $00003000,$00003000,$00003000,$00003F00	; Original type-indexed XYZ visibility/wrap distance limits; literal scalar LONGs
-	dc.l $00003F00,$00003F00,$00003F00,$00003000	; Original type-indexed XYZ visibility/wrap distance limits; literal scalar LONGs
-	dc.l $00003000,$00004FFF,$00003000,$00003000	; Original type-indexed XYZ visibility/wrap distance limits; literal scalar LONGs
-	dc.l $00003000,$00003000,$00003000,$00003FFF	; Original type-indexed XYZ visibility/wrap distance limits; literal scalar LONGs
-	dc.l $00003000,$00003F00,$00004FFF,$00003000	; Original type-indexed XYZ visibility/wrap distance limits; literal scalar LONGs
-	dc.l $00004FFF,$00003FFF,$00003000,$00003000	; Original type-indexed XYZ visibility/wrap distance limits; literal scalar LONGs
-	dc.l $00003FFF,$00003FFF,$00003000,$00003000	; Original type-indexed XYZ visibility/wrap distance limits; literal scalar LONGs
-	dc.l $00003000,$00003000,$00003000,$00004FFF	; Original type-indexed XYZ visibility/wrap distance limits; literal scalar LONGs
-	dc.l $00003000,$00003FFF,$00003FFF,$00003000	; Original type-indexed XYZ visibility/wrap distance limits; literal scalar LONGs
-	dc.l $00003000,$00003000,$00002FFF,$00002FFF	; Original type-indexed XYZ visibility/wrap distance limits; literal scalar LONGs
-	dc.l $00002FFF,$00002FFF,$00002FFF,$00003000	; Original type-indexed XYZ visibility/wrap distance limits; literal scalar LONGs
-	dc.l $00003C00,$00002000,$00002000,$00003F00	; Original type-indexed XYZ visibility/wrap distance limits; literal scalar LONGs
-	dc.l $00003000,$00003000,$00003000,$00003000	; Original type-indexed XYZ visibility/wrap distance limits; literal scalar LONGs
-	dc.l $00003F00,$00003000,$00003000,$00003000	; Original type-indexed XYZ visibility/wrap distance limits; literal scalar LONGs
-	dc.l $00004FFF,$00002FFF,$00003000,$00003000	; Original type-indexed XYZ visibility/wrap distance limits; literal scalar LONGs
-	dc.l $00003FFF,$00003000,$00003F00,$00004FFF	; Original type-indexed XYZ visibility/wrap distance limits; literal scalar LONGs
-	dc.l $00002FFF,$00003E00,$00003000,$00004FFF	; Original type-indexed XYZ visibility/wrap distance limits; literal scalar LONGs
-	dc.l $00003FFF,$00003F00,$00004FFF,$00004FFF	; Original type-indexed XYZ visibility/wrap distance limits; literal scalar LONGs
-	dc.l $00003000,$00003000,$00003000,$00003000	; Original type-indexed XYZ visibility/wrap distance limits; literal scalar LONGs
-	dc.l $00002000,$00003000,$00002000,$00002000	; Original type-indexed XYZ visibility/wrap distance limits; literal scalar LONGs
-	dc.l $00002000,$00002000,$00003000,$00002000	; Original type-indexed XYZ visibility/wrap distance limits; literal scalar LONGs
-	dc.l $00002000,$00002000,$00002000,$00003000	; Original type-indexed XYZ visibility/wrap distance limits; literal scalar LONGs
-	dc.l $00002000,$00002000,$00002000,$00002000	; Original type-indexed XYZ visibility/wrap distance limits; literal scalar LONGs
-	dc.l $00003000,$00002000,$00003000,$00002000	; Original type-indexed XYZ visibility/wrap distance limits; literal scalar LONGs
-	dc.l $00002000,$00003000,$00003000,$00003000	; Original type-indexed XYZ visibility/wrap distance limits; literal scalar LONGs
-	dc.l $08000000,$08000000,$08000000,$08000000	; Original type-indexed XYZ visibility/wrap distance limits; literal scalar LONGs
-	dc.l $08000000,$08000000,$08000000,$08000000	; Original type-indexed XYZ visibility/wrap distance limits; literal scalar LONGs
-	dc.l $08000000,$08000000,$08000000,$08000000	; Original type-indexed XYZ visibility/wrap distance limits; literal scalar LONGs
-	dc.l $08000000,$08000000,$08000000,$08000000	; Original type-indexed XYZ visibility/wrap distance limits; literal scalar LONGs
-	dc.l $08000000,$08000000,$00007FFF,$08000000	; Original type-indexed XYZ visibility/wrap distance limits; literal scalar LONGs
+	dc.l $00003FFF,$00005FFF,$00003000,$00003000
+	dc.l $00003000,$00003000,$00003000,$00003000
+	dc.l $00004FFF,$00003000,$00003000,$00003B00
+	dc.l $00003000,$00003000,$00003000,$00003000
+	dc.l $00003000,$00003000,$00003000,$00003000
+	dc.l $00003000,$00003A00,$00003F00,$00003000
+	dc.l $00003000,$00003000,$00003000,$00003F00
+	dc.l $00003F00,$00003F00,$00003F00,$00003000
+	dc.l $00003000,$00004FFF,$00003000,$00003000
+	dc.l $00003000,$00003000,$00003000,$00003FFF
+	dc.l $00003000,$00003F00,$00004FFF,$00003000
+	dc.l $00004FFF,$00003FFF,$00003000,$00003000
+	dc.l $00003FFF,$00003FFF,$00003000,$00003000
+	dc.l $00003000,$00003000,$00003000,$00004FFF
+	dc.l $00003000,$00003FFF,$00003FFF,$00003000
+	dc.l $00003000,$00003000,$00002FFF,$00002FFF
+	dc.l $00002FFF,$00002FFF,$00002FFF,$00003000
+	dc.l $00003C00,$00002000,$00002000,$00003F00
+	dc.l $00003000,$00003000,$00003000,$00003000
+	dc.l $00003F00,$00003000,$00003000,$00003000
+	dc.l $00004FFF,$00002FFF,$00003000,$00003000
+	dc.l $00003FFF,$00003000,$00003F00,$00004FFF
+	dc.l $00002FFF,$00003E00,$00003000,$00004FFF
+	dc.l $00003FFF,$00003F00,$00004FFF,$00004FFF
+	dc.l $00003000,$00003000,$00003000,$00003000
+	dc.l $00002000,$00003000,$00002000,$00002000
+	dc.l $00002000,$00002000,$00003000,$00002000
+	dc.l $00002000,$00002000,$00002000,$00003000
+	dc.l $00002000,$00002000,$00002000,$00002000
+	dc.l $00003000,$00002000,$00003000,$00002000
+	dc.l $00002000,$00003000,$00003000,$00003000
+	dc.l $08000000,$08000000,$08000000,$08000000
+	dc.l $08000000,$08000000,$08000000,$08000000
+	dc.l $08000000,$08000000,$08000000,$08000000
+	dc.l $08000000,$08000000,$08000000,$08000000
+	dc.l $08000000,$08000000,$00007FFF,$08000000
 object_retirement_phase_limits:
 	dc.b $00,$30,$30,$30,$30,$30,$14,$14,$30,$14,$30,$30,$01,$14,$30,$30
 	dc.b $14,$30,$30,$30,$30,$14,$05,$30,$0A,$01,$30,$30,$0A,$0A,$3F,$14
@@ -22567,16 +22593,16 @@ object_retirement_phase_limits:
     ; 20 LONG base radii indexed by type-128, for original types128..147. Object LONG22/36 meanings differ from low-type record overlays.
 nonmodel_object_base_radii:
 	dc.l $00100000,$00020000,$00020000,$00040000	; Types128..147 default LONG copied into type-dependent object22/36; not universal low-type field
-	dc.l $00080000,$00012000,$00010000,$00012000	; Types128..147 default LONG copied into type-dependent object22/36; not universal low-type field
-	dc.l $00008000,$00008000,$00008000,$00008000	; Types128..147 default LONG copied into type-dependent object22/36; not universal low-type field
-	dc.l $00008000,$00008000,$00008000,$00010000	; Types128..147 default LONG copied into type-dependent object22/36; not universal low-type field
-	dc.l $00002000,$00001E00,$00000064,$00040000	; Types128..147 default LONG copied into type-dependent object22/36; not universal low-type field
+	dc.l $00080000,$00012000,$00010000,$00012000
+	dc.l $00008000,$00008000,$00008000,$00008000
+	dc.l $00008000,$00008000,$00008000,$00010000
+	dc.l $00002000,$00001E00,$00000064,$00040000
     ; 16 signed world-reference Y levels. Surface initializer adds200; selected object placement adds1024+random. Not proven terrain floor/atmosphere height.
 world_reference_y_coordinates:
 	dc.l $FFFE0000,$FFFFC000,$FFFFC000,$FFFF8000	; Signed world-reference Y LONGs used by surface initialization and selected object placements; n
-	dc.l $FFFF0000,$FFFFC000,$FFFFC000,$FFFFC000	; Signed world-reference Y LONGs used by surface initialization and selected object placements; n
-	dc.l $FFFFC000,$FFFFC000,$FFFFC000,$FFFFC000	; Signed world-reference Y LONGs used by surface initialization and selected object placements; n
-	dc.l $FFFFC000,$FFFFC000,$FFFFC000,$FFFFC000	; Signed world-reference Y LONGs used by surface initialization and selected object placements; n
+	dc.l $FFFF0000,$FFFFC000,$FFFFC000,$FFFFC000
+	dc.l $FFFFC000,$FFFFC000,$FFFFC000,$FFFFC000
+	dc.l $FFFFC000,$FFFFC000,$FFFFC000,$FFFFC000
     ; 16 nonzero HUD divisors for10*max(abs(playerY)-20,0). Surface-only branch; hide if quotient>43. No invented units or all-selector bounds proof.
 world_altitude_meter_divisors:
 	dc.w $6AAA,$0D55,$0D55,$1AAA,$3555,$0D55,$0D55,$0D55
@@ -22584,9 +22610,9 @@ world_altitude_meter_divisors:
     ; 16 mask LONGs used by both surface world index and mapped interior index. Each is2^n-1; preserve original wrap and conditional selector assumptions.
 world_horizontal_wrap_masks:
 	dc.l $7FFFFFFF,$0001FFFF,$0001FFFF,$0001FFFF	; World-layout horizontal wrap masks shared by surface and interior paths; preserve conditional s
-	dc.l $000FFFFF,$0001FFFF,$0000FFFF,$0000FFFF	; World-layout horizontal wrap masks shared by surface and interior paths; preserve conditional s
-	dc.l $0000FFFF,$0000FFFF,$0000FFFF,$0000FFFF	; World-layout horizontal wrap masks shared by surface and interior paths; preserve conditional s
-	dc.l $0000FFFF,$0000FFFF,$0000FFFF,$0001FFFF	; World-layout horizontal wrap masks shared by surface and interior paths; preserve conditional s
+	dc.l $000FFFFF,$0001FFFF,$0000FFFF,$0000FFFF
+	dc.l $0000FFFF,$0000FFFF,$0000FFFF,$0000FFFF
+	dc.l $0000FFFF,$0000FFFF,$0000FFFF,$0001FFFF
 object_collision_damage_values:
 	dc.w $0000,$0BB8,$04B0,$0384,$13EC,$2AF8,$08FC,$07D0
 	dc.w $0898,$0B54,$09C4,$07D0,$0FA0,$0ED8,$0834,$0C1C
@@ -23547,6 +23573,7 @@ abs_0_00018968:
 	jmp advance_shared_random_state.l
 abs_0_0001896E:
 	jmp build_motion_vector_from_angles.l
+    ; Type 0: No records found. Shares header with type1; zero is skipped in visible-object drawing.
 model_header_pointers:
 	dc.l model_headers	; 104 model pointers; entries 0 and 1 intentionally alias the same header
 	dc.l model_headers
@@ -24556,49 +24583,49 @@ model_header_run_32:
 	dc.l model_103_auxiliary_faces	; auxiliary_face_commands
 model_000_faces:
 	dc.w $030C,$0000,$0008,$0010,$030B,$0000,$0018,$0008	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $030B,$0000,$0010,$0020,$030C,$0000,$0028,$0018	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $030C,$0000,$0020,$0028,$040E,$0010,$0008,$0030	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0038,$040D,$0008,$0018,$0040,$0030,$040D,$0020	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0010,$0038,$0048,$030D,$0018,$0028,$0058,$030D	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0028,$0020,$0060,$0500,$0038,$0030,$0040,$0050	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0048,$030C,$0050,$0058,$0028,$030D,$0050,$0028	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0060,$0302,$0018,$0068,$0040,$0308,$0018,$0070	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0068,$0309,$0018,$0058,$0070,$0302,$0020,$0048	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0078,$0308,$0020,$0078,$0080,$0309,$0020,$0080	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0060,$0309,$0040,$0068,$0050,$030A,$0068,$0070	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0050,$030A,$0050,$0070,$0058,$0309,$0048,$0050	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0078,$0308,$0050,$0080,$0078,$030A,$0050,$0060	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0080,$8308,$0068,$0070,$0088,$8308,$0078,$0080	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0090,$8300,$0088,$0098,$00A0,$8300,$0090,$00A8	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $00B0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $030B,$0000,$0010,$0020,$030C,$0000,$0028,$0018
+	dc.w $030C,$0000,$0020,$0028,$040E,$0010,$0008,$0030
+	dc.w $0038,$040D,$0008,$0018,$0040,$0030,$040D,$0020
+	dc.w $0010,$0038,$0048,$030D,$0018,$0028,$0058,$030D
+	dc.w $0028,$0020,$0060,$0500,$0038,$0030,$0040,$0050
+	dc.w $0048,$030C,$0050,$0058,$0028,$030D,$0050,$0028
+	dc.w $0060,$0302,$0018,$0068,$0040,$0308,$0018,$0070
+	dc.w $0068,$0309,$0018,$0058,$0070,$0302,$0020,$0048
+	dc.w $0078,$0308,$0020,$0078,$0080,$0309,$0020,$0080
+	dc.w $0060,$0309,$0040,$0068,$0050,$030A,$0068,$0070
+	dc.w $0050,$030A,$0050,$0070,$0058,$0309,$0048,$0050
+	dc.w $0078,$0308,$0050,$0080,$0078,$030A,$0050,$0060
+	dc.w $0080,$8308,$0068,$0070,$0088,$8308,$0078,$0080
+	dc.w $0090,$8300,$0088,$0098,$00A0,$8300,$0090,$00A8
+	dc.w $00B0
 model_000_auxiliary_faces:
 	dc.w $8500,$0008,$0010,$0020,$0028,$0018	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
 model_000_coordinates:
 	dc.w $0000,$12A0,$0190,$0230,$1020,$0690,$0320,$0DF0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $04B0,$0C60,$0410,$01E0,$0280,$0638,$0248,$0030	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0210,$03A0,$00A0,$0118,$0078,$0500,$12B0,$1030	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0E00,$0C70,$0668,$02E0,$0060,$01A0,$00D8,$02F0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0018,$0138,$0128,$0440,$0698,$0370,$00F0,$0630	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0110,$0168,$0220,$0228,$00F8,$0140,$01F8,$0360	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $1290,$1010,$0DE0,$0C50,$06A8,$03E8,$0620,$0090	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $01E8,$01F0,$0130,$02C8,$0270,$1268,$0FE8,$0DB8	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0C28,$0438,$01B8,$05F8,$1228,$0FA8,$0D78,$0BE8	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0680,$0468,$05C8,$0010,$0398,$00A8,$0460,$00C0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $11D8,$0F58,$0D28,$0B98,$0640,$0470,$0580,$0008	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0288,$0088,$00B0,$0050,$0510,$11A0,$0F20,$0CF0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0B60,$05F0,$0458,$01D8,$0538,$0268,$04A8,$0590	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0048,$11E8,$0F68,$0D38,$0BA8,$0618,$0578,$0058	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0178,$04D8,$05D8,$0628,$03B0,$05B0,$00C8,$01B0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0188,$04C0,$05E8,$0330,$0158,$0120,$05B8,$0298	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $00E8,$03F0,$0548,$0028,$0650,$0040,$0348,$04A0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0290,$03D0,$06A0,$0170,$01C8,$02E8,$0260,$1280	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $1000,$0DD0,$0C40,$0610,$06B0,$0258,$0100,$0200	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0338,$1248,$0FC8,$0D98,$0C08,$05E0,$0400,$1200	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0F80,$0D50,$0BC0,$05A0,$00D0,$0068,$0080,$04B8	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $11B0,$0F30,$0D00,$0B70,$0550,$0478,$0038,$11C0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0F40,$0D10,$0B80,$0558,$0608,$04C8,$0070,$1208	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0F88,$0D58,$0BC8,$04D0,$0020,$0600,$01D0,$0430	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0588	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $04B0,$0C60,$0410,$01E0,$0280,$0638,$0248,$0030
+	dc.w $0210,$03A0,$00A0,$0118,$0078,$0500,$12B0,$1030
+	dc.w $0E00,$0C70,$0668,$02E0,$0060,$01A0,$00D8,$02F0
+	dc.w $0018,$0138,$0128,$0440,$0698,$0370,$00F0,$0630
+	dc.w $0110,$0168,$0220,$0228,$00F8,$0140,$01F8,$0360
+	dc.w $1290,$1010,$0DE0,$0C50,$06A8,$03E8,$0620,$0090
+	dc.w $01E8,$01F0,$0130,$02C8,$0270,$1268,$0FE8,$0DB8
+	dc.w $0C28,$0438,$01B8,$05F8,$1228,$0FA8,$0D78,$0BE8
+	dc.w $0680,$0468,$05C8,$0010,$0398,$00A8,$0460,$00C0
+	dc.w $11D8,$0F58,$0D28,$0B98,$0640,$0470,$0580,$0008
+	dc.w $0288,$0088,$00B0,$0050,$0510,$11A0,$0F20,$0CF0
+	dc.w $0B60,$05F0,$0458,$01D8,$0538,$0268,$04A8,$0590
+	dc.w $0048,$11E8,$0F68,$0D38,$0BA8,$0618,$0578,$0058
+	dc.w $0178,$04D8,$05D8,$0628,$03B0,$05B0,$00C8,$01B0
+	dc.w $0188,$04C0,$05E8,$0330,$0158,$0120,$05B8,$0298
+	dc.w $00E8,$03F0,$0548,$0028,$0650,$0040,$0348,$04A0
+	dc.w $0290,$03D0,$06A0,$0170,$01C8,$02E8,$0260,$1280
+	dc.w $1000,$0DD0,$0C40,$0610,$06B0,$0258,$0100,$0200
+	dc.w $0338,$1248,$0FC8,$0D98,$0C08,$05E0,$0400,$1200
+	dc.w $0F80,$0D50,$0BC0,$05A0,$00D0,$0068,$0080,$04B8
+	dc.w $11B0,$0F30,$0D00,$0B70,$0550,$0478,$0038,$11C0
+	dc.w $0F40,$0D10,$0B80,$0558,$0608,$04C8,$0070,$1208
+	dc.w $0F88,$0D58,$0BC8,$04D0,$0020,$0600,$01D0,$0430
+	dc.w $0588
 model_000_vertices:
 	dc.w $0000	; x_coordinate_ref
 	dc.w $8002	; y_coordinate_ref
@@ -24694,258 +24721,258 @@ model_000_vertices:
 	dc.w $00B0	; variant_offset_or_negative
 model_001_variant_words:
 	dc.w $0000,$802C,$0004,$0000,$8006,$802E,$800A,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0006,$802E,$800A,$0000,$800C,$802E,$0000,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $000C,$802E,$0000,$0000,$0000,$8030,$0010,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8004,$8032,$8014,$0000,$0004,$8032,$8014,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8016,$8032,$8016,$0000,$0016,$8032,$8016,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$8032,$0000,$0000,$8016,$8032,$0016,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0016,$8032,$0016,$0000,$8018,$8034,$8036,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8018,$8034,$8038,$0000,$0018,$801A,$803A,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0018,$801A,$003C,$0000,$8018,$8006,$003E,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0018,$0000,$0040,$0000,$800C,$8042,$8044,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8004,$8042,$8044,$0000,$0004,$0000,$8046,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $000C,$0000,$8046,$0000,$0000,$802C,$0004,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8006,$802E,$800A,$0000,$0006,$802E,$800A,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $800C,$802E,$0000,$0000,$000C,$802E,$0000,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$8030,$0010,$0000,$8004,$8032,$8014,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0004,$8032,$8014,$0000,$8016,$8032,$8016,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0016,$8032,$8016,$0000,$0000,$8032,$0000,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8016,$8032,$0016,$0000,$0016,$8032,$0016,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8018,$8048,$804A,$0000,$8018,$8048,$804C,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0018,$804E,$8050,$0000,$0018,$804E,$0052,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8018,$8054,$0056,$0000,$0018,$0000,$0058,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $800C,$805A,$805C,$0000,$8004,$805A,$805C,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0004,$0000,$805E,$0000,$000C,$0000,$805E,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$8060,$0004,$0000,$8006,$8062,$800A,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0006,$8062,$800A,$0000,$800C,$8062,$0000,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $000C,$8062,$0000,$0000,$0000,$8064,$0010,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8004,$8066,$8014,$0000,$0004,$8066,$8014,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8016,$8066,$8016,$0000,$0016,$8066,$8016,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$8066,$0000,$0000,$8016,$8066,$0016,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0016,$8066,$0016,$0000,$8018,$8068,$806A,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8018,$8068,$8052,$0000,$0018,$806C,$806E,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0018,$806C,$0070,$0000,$8018,$8072,$0052,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0018,$0000,$0070,$0000,$800C,$8074,$8076,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8004,$8074,$8076,$0000,$0004,$0000,$8078,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $000C,$0000,$8078,$0000,$0000,$807A,$0004,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8006,$807C,$800A,$0000,$0006,$807C,$800A,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $800C,$807C,$0000,$0000,$000C,$807C,$0000,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$807E,$0010,$0000,$8004,$8080,$8014,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0004,$8080,$8014,$0000,$8016,$8080,$8016,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0016,$8080,$8016,$0000,$0000,$8080,$0000,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8016,$8080,$0016,$0000,$0016,$8080,$0016,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8018,$8068,$8082,$0000,$8018,$8068,$8084,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0018,$8086,$801E,$0000,$0018,$8086,$001C,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8018,$8004,$0024,$0000,$0018,$0000,$0076,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $800C,$8058,$8022,$0000,$8004,$8058,$8022,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0004,$0000,$8004,$0000,$000C,$0000,$8004,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$8088,$0004,$0000,$8006,$808A,$800A,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0006,$808A,$800A,$0000,$800C,$808A,$0000,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $000C,$808A,$0000,$0000,$0000,$808C,$0010,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8004,$808E,$8014,$0000,$0004,$808E,$8014,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8016,$808E,$8016,$0000,$0016,$808E,$8016,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$808E,$0000,$0000,$8016,$808E,$0016,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0016,$808E,$0016,$0000,$8018,$8090,$8092,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8018,$8090,$8070,$0000,$0018,$8094,$0000,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0018,$8094,$0018,$0000,$8018,$8026,$8096,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0018,$0000,$0098,$0000,$800C,$809A,$809C,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8004,$809A,$809C,$0000,$0004,$0000,$809E,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $000C,$0000,$809E,$0000,$0000,$80A0,$0004,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8006,$80A2,$800A,$0000,$0006,$80A2,$800A,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $800C,$80A2,$0000,$0000,$000C,$80A2,$0000,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$80A4,$0010,$0000,$8004,$80A6,$8014,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0004,$80A6,$8014,$0000,$8016,$80A6,$8016,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0016,$80A6,$8016,$0000,$0000,$80A6,$0000,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8016,$80A6,$0016,$0000,$0016,$80A6,$0016,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8018,$80A8,$80AA,$0000,$8018,$80A8,$8072,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0018,$80AC,$00AE,$0000,$0018,$80AC,$00B0,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8018,$80B2,$80B4,$0000,$0018,$0000,$0046,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $800C,$80B6,$80B8,$0000,$8004,$80B6,$80B8,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0004,$0000,$8040,$0000,$000C,$0000,$8040,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$80BA,$0004,$0000,$8006,$80BC,$800A,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0006,$80BC,$800A,$0000,$800C,$80BC,$0000,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $000C,$80BC,$0000,$0000,$0000,$80BE,$0010,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8004,$80C0,$8014,$0000,$0004,$80C0,$8014,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8016,$80C0,$8016,$0000,$0016,$80C0,$8016,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$80C0,$0000,$0000,$8016,$80C0,$0016,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0016,$80C0,$0016,$0000,$8018,$80C2,$80C4,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8018,$80C2,$80C6,$0000,$0018,$80C8,$8096,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0018,$80C8,$00CA,$0000,$8018,$0000,$8074,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0018,$8096,$00CC,$0000,$800C,$0000,$80CE,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8004,$0000,$80CE,$0000,$0004,$0000,$00D0,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $000C,$0000,$00D0,$0000,$0000,$80D2,$0004,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8006,$80D4,$800A,$0000,$0006,$80D4,$800A,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $800C,$80D4,$0000,$0000,$000C,$80D4,$0000,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$80D6,$0010,$0000,$8004,$80D8,$8014,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0004,$80D8,$8014,$0000,$8016,$80D8,$8016,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0016,$80D8,$8016,$0000,$0000,$80D8,$0000,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8016,$80D8,$0016,$0000,$0016,$80D8,$0016,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8018,$80DA,$8014,$0000,$8018,$80DA,$8004,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0018,$80DC,$80DE,$0000,$0018,$80DC,$0054,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8018,$0000,$80E0,$0000,$0018,$8024,$00E2,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $800C,$0000,$80E4,$0000,$8004,$0000,$80E4,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0004,$0000,$006E,$0000,$000C,$0000,$006E,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$8088,$0004,$0000,$8006,$808A,$800A,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0006,$808A,$800A,$0000,$800C,$808A,$0000,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $000C,$808A,$0000,$0000,$0000,$808C,$0010,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8004,$808E,$8014,$0000,$0004,$808E,$8014,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8016,$808E,$8016,$0000,$0016,$808E,$8016,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$808E,$0000,$0000,$8016,$808E,$0016,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0016,$808E,$0016,$0000,$8018,$80E6,$80E8,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8018,$80E6,$8074,$0000,$0018,$80EA,$80EC,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0018,$80EA,$00EE,$0000,$8018,$0000,$80F0,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0018,$8074,$00F2,$0000,$800C,$0000,$80F4,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8004,$0000,$80F4,$0000,$0004,$80B6,$006E,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $000C,$80B6,$006E,$0000,$0000,$807A,$0004,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8006,$807C,$800A,$0000,$0006,$807C,$800A,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $800C,$807C,$0000,$0000,$000C,$807C,$0000,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$807E,$0010,$0000,$8004,$8080,$8014,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0004,$8080,$8014,$0000,$8016,$8080,$8016,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0016,$8080,$8016,$0000,$0000,$8080,$0000,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8016,$8080,$0016,$0000,$0016,$8080,$0016,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8018,$801A,$80F6,$0000,$8018,$801A,$80B4,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0018,$80F4,$80F8,$0000,$0018,$80F4,$00FA,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8018,$0000,$80F8,$0000,$0018,$803A,$00AA,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $800C,$0000,$80FC,$0000,$8004,$0000,$80FC,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0004,$80B4,$00B6,$0000,$000C,$80B4,$00B6,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$8060,$0004,$0000,$8006,$8062,$800A,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0006,$8062,$800A,$0000,$800C,$8062,$0000,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $000C,$8062,$0000,$0000,$0000,$8064,$0010,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8004,$8066,$8014,$0000,$0004,$8066,$8014,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8016,$8066,$8016,$0000,$0016,$8066,$8016,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$8066,$0000,$0000,$8016,$8066,$0016,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0016,$8066,$0016,$0000,$8018,$801A,$80FE,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8018,$801A,$8040,$0000,$0018,$806C,$8072,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0018,$806C,$00B2,$0000,$8018,$0000,$8100,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0018,$8072,$0102,$0000,$800C,$0000,$8104,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8004,$0000,$8104,$0000,$0004,$8058,$8106,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $000C,$8058,$8106,$0000,$0000,$802C,$0004,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8006,$802E,$800A,$0000,$0006,$802E,$800A,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $800C,$802E,$0000,$0000,$000C,$802E,$0000,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$8030,$0010,$0000,$8004,$8032,$8014,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0004,$8032,$8014,$0000,$8016,$8032,$8016,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0016,$8032,$8016,$0000,$0000,$8032,$0000,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8016,$8032,$0016,$0000,$0016,$8032,$0016,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8018,$801A,$8072,$0000,$8018,$801A,$00B2,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0018,$8108,$80FE,$0000,$0018,$8108,$8040,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8018,$0000,$810A,$0000,$0018,$8054,$010C,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $800C,$0000,$810E,$0000,$8004,$0000,$810E,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0004,$8074,$80EC,$0000,$000C,$8074,$80EC,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$802C,$0004,$0000,$8006,$802E,$800A,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0006,$802E,$800A,$0000,$800C,$802E,$0000,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $000C,$802E,$0000,$0000,$0000,$8030,$0010,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8004,$8032,$8014,$0000,$0004,$8032,$8014,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8016,$8032,$8016,$0000,$0016,$8032,$8016,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$8032,$0000,$0000,$8016,$8032,$0016,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0016,$8032,$0016,$0000,$8018,$804E,$80F8,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8018,$804E,$00FA,$0000,$0018,$8090,$80F6,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0018,$8090,$80B4,$0000,$8018,$0000,$00B2,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0018,$8006,$0110,$0000,$800C,$0000,$8112,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8004,$0000,$8112,$0000,$0004,$805A,$8004,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $000C,$805A,$8004,$0000,$0000,$8002,$0004,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8006,$8008,$800A,$0000,$0006,$8008,$800A,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $800C,$8008,$0000,$0000,$000C,$8008,$0000,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$800E,$0010,$0000,$8004,$8012,$8014,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0004,$8012,$8014,$0000,$8016,$8012,$8016,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0016,$8012,$8016,$0000,$0000,$8012,$0000,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8016,$8012,$0016,$0000,$0016,$8012,$0016,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8018,$80E6,$80EC,$0000,$8018,$80E6,$00EE,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0018,$8114,$80E8,$0000,$0018,$8114,$8074,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8018,$0000,$0116,$0000,$0018,$8020,$0118,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $800C,$0000,$811A,$0000,$8004,$0000,$811A,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0004,$805A,$811C,$0000,$000C,$805A,$811C,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$811E,$0004,$0000,$8006,$8120,$800A,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0006,$8120,$800A,$0000,$800C,$8120,$0000,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $000C,$8120,$0000,$0000,$0000,$8122,$0010,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8004,$8124,$8014,$0000,$0004,$8124,$8014,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8016,$8124,$8016,$0000,$0016,$8124,$8016,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$8124,$0000,$0000,$8016,$8124,$0016,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0016,$8124,$0016,$0000,$8018,$8126,$80DE,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8018,$8126,$0054,$0000,$0018,$8128,$8014,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0018,$8128,$8004,$0000,$8018,$0000,$012A,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0018,$8118,$012C,$0000,$800C,$0000,$812E,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8004,$0000,$812E,$0000,$0004,$8026,$8130,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $000C,$8026,$8130,$0000,$0000,$8132,$0004,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8006,$8134,$800A,$0000,$0006,$8134,$800A,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $800C,$8134,$0000,$0000,$000C,$8134,$0000,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$8136,$0010,$0000,$8004,$8138,$8014,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0004,$8138,$8014,$0000,$8016,$8138,$8016,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0016,$8138,$8016,$0000,$0000,$8138,$0000,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8016,$8138,$0016,$0000,$0016,$8138,$0016,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8018,$813A,$8096,$0000,$8018,$813A,$00CA,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0018,$8048,$80C4,$0000,$0018,$8048,$80C6,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8018,$0000,$0130,$0000,$0018,$80F8,$010A,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $800C,$0000,$80FA,$0000,$8004,$0000,$80FA,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0004,$803C,$813C,$0000,$000C,$803C,$813C,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$813E,$0004,$0000,$8006,$8140,$800A,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0006,$8140,$800A,$0000,$800C,$8140,$0000,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $000C,$8140,$0000,$0000,$0000,$8142,$0010,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8004,$8144,$8014,$0000,$0004,$8144,$8014,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8016,$8144,$8016,$0000,$0016,$8144,$8016,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$8144,$0000,$0000,$8016,$8144,$0016,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0016,$8144,$0016,$0000,$8018,$8146,$00AE,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8018,$8146,$00B0,$0000,$0018,$8034,$80AA,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0018,$8034,$8072,$0000,$8018,$0000,$0102,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0018,$8148,$8038,$0000,$800C,$0000,$814A,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8004,$0000,$814A,$0000,$0004,$814C,$814E,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $000C,$814C,$814E,$0000,$0000,$8150,$0004,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8006,$8152,$800A,$0000,$0006,$8152,$800A,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $800C,$8152,$0000,$0000,$000C,$8152,$0000,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$8154,$0010,$0000,$8004,$8156,$8014,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0004,$8156,$8014,$0000,$8016,$8156,$8016,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0016,$8156,$8016,$0000,$0000,$8156,$0000,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8016,$8156,$0016,$0000,$0016,$8156,$0016,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8018,$8158,$0000,$0000,$8018,$8158,$0018,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0018,$8126,$8092,$0000,$0018,$8126,$8070,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8018,$0000,$015A,$0000,$0018,$815C,$804C,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $800C,$0000,$0040,$0000,$8004,$0000,$0040,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0004,$8040,$8158,$0000,$000C,$8040,$8158,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$815E,$0004,$0000,$8006,$8160,$800A,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0006,$8160,$800A,$0000,$800C,$8160,$0000,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $000C,$8160,$0000,$0000,$0000,$8162,$0010,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8004,$8164,$8014,$0000,$0004,$8164,$8014,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8016,$8164,$8016,$0000,$0016,$8164,$8016,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$8164,$0000,$0000,$8016,$8164,$0016,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0016,$8164,$0016,$0000,$8018,$8166,$801E,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8018,$8166,$001C,$0000,$0018,$8168,$8082,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0018,$8168,$8084,$0000,$8018,$80DE,$016A,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0018,$0000,$80F8,$0000,$800C,$0000,$016C,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8004,$0000,$016C,$0000,$0004,$0000,$80FC,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $000C,$0000,$80FC,$0000,$0000,$816E,$0004,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8006,$8170,$800A,$0000,$0006,$8170,$800A,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $800C,$8170,$0000,$0000,$000C,$8170,$0000,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$8172,$0010,$0000,$8004,$8174,$8014,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0004,$8174,$8014,$0000,$8016,$8174,$8016,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0016,$8174,$8016,$0000,$0000,$8174,$0000,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8016,$8174,$0016,$0000,$0016,$8174,$0016,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8018,$80CE,$806E,$0000,$8018,$80CE,$0070,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0018,$806C,$806A,$0000,$0018,$806C,$8052,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8018,$8100,$0176,$0000,$0018,$0000,$80F0,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $800C,$8178,$0024,$0000,$8004,$8178,$0024,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0004,$0000,$80F4,$0000,$000C,$0000,$80F4,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$8132,$0004,$0000,$8006,$8134,$800A,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0006,$8134,$800A,$0000,$800C,$8134,$0000,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $000C,$8134,$0000,$0000,$0000,$8136,$0010,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8004,$8138,$8014,$0000,$0004,$8138,$8014,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8016,$8138,$8016,$0000,$0016,$8138,$8016,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$8138,$0000,$0000,$8016,$8138,$0016,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0016,$8138,$0016,$0000,$8018,$8094,$8050,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8018,$8094,$0052,$0000,$0018,$804E,$804A,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0018,$804E,$804C,$0000,$8018,$8052,$010E,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0018,$0000,$80E0,$0000,$800C,$814C,$0028,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8004,$814C,$0028,$0000,$0004,$0000,$80E4,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $000C,$0000,$80E4,$0000,$0000,$811E,$0004,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8006,$8120,$800A,$0000,$0006,$8120,$800A,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $800C,$8120,$0000,$0000,$000C,$8120,$0000,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$8122,$0010,$0000,$8004,$8124,$8014,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0004,$8124,$8014,$0000,$8016,$8124,$8016,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0016,$8124,$8016,$0000,$0000,$8124,$0000,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8016,$8124,$0016,$0000,$0016,$8124,$0016,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8018,$817A,$803A,$0000,$8018,$817A,$003C,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0018,$801A,$8036,$0000,$0018,$801A,$8038,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8018,$817C,$017E,$0000,$0018,$0000,$8044,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $800C,$803C,$0040,$0000,$8004,$803C,$0040,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0004,$0000,$8180,$0000,$000C,$0000,$8180,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
+	dc.w $0006,$802E,$800A,$0000,$800C,$802E,$0000,$0000
+	dc.w $000C,$802E,$0000,$0000,$0000,$8030,$0010,$0000
+	dc.w $8004,$8032,$8014,$0000,$0004,$8032,$8014,$0000
+	dc.w $8016,$8032,$8016,$0000,$0016,$8032,$8016,$0000
+	dc.w $0000,$8032,$0000,$0000,$8016,$8032,$0016,$0000
+	dc.w $0016,$8032,$0016,$0000,$8018,$8034,$8036,$0000
+	dc.w $8018,$8034,$8038,$0000,$0018,$801A,$803A,$0000
+	dc.w $0018,$801A,$003C,$0000,$8018,$8006,$003E,$0000
+	dc.w $0018,$0000,$0040,$0000,$800C,$8042,$8044,$0000
+	dc.w $8004,$8042,$8044,$0000,$0004,$0000,$8046,$0000
+	dc.w $000C,$0000,$8046,$0000,$0000,$802C,$0004,$0000
+	dc.w $8006,$802E,$800A,$0000,$0006,$802E,$800A,$0000
+	dc.w $800C,$802E,$0000,$0000,$000C,$802E,$0000,$0000
+	dc.w $0000,$8030,$0010,$0000,$8004,$8032,$8014,$0000
+	dc.w $0004,$8032,$8014,$0000,$8016,$8032,$8016,$0000
+	dc.w $0016,$8032,$8016,$0000,$0000,$8032,$0000,$0000
+	dc.w $8016,$8032,$0016,$0000,$0016,$8032,$0016,$0000
+	dc.w $8018,$8048,$804A,$0000,$8018,$8048,$804C,$0000
+	dc.w $0018,$804E,$8050,$0000,$0018,$804E,$0052,$0000
+	dc.w $8018,$8054,$0056,$0000,$0018,$0000,$0058,$0000
+	dc.w $800C,$805A,$805C,$0000,$8004,$805A,$805C,$0000
+	dc.w $0004,$0000,$805E,$0000,$000C,$0000,$805E,$0000
+	dc.w $0000,$8060,$0004,$0000,$8006,$8062,$800A,$0000
+	dc.w $0006,$8062,$800A,$0000,$800C,$8062,$0000,$0000
+	dc.w $000C,$8062,$0000,$0000,$0000,$8064,$0010,$0000
+	dc.w $8004,$8066,$8014,$0000,$0004,$8066,$8014,$0000
+	dc.w $8016,$8066,$8016,$0000,$0016,$8066,$8016,$0000
+	dc.w $0000,$8066,$0000,$0000,$8016,$8066,$0016,$0000
+	dc.w $0016,$8066,$0016,$0000,$8018,$8068,$806A,$0000
+	dc.w $8018,$8068,$8052,$0000,$0018,$806C,$806E,$0000
+	dc.w $0018,$806C,$0070,$0000,$8018,$8072,$0052,$0000
+	dc.w $0018,$0000,$0070,$0000,$800C,$8074,$8076,$0000
+	dc.w $8004,$8074,$8076,$0000,$0004,$0000,$8078,$0000
+	dc.w $000C,$0000,$8078,$0000,$0000,$807A,$0004,$0000
+	dc.w $8006,$807C,$800A,$0000,$0006,$807C,$800A,$0000
+	dc.w $800C,$807C,$0000,$0000,$000C,$807C,$0000,$0000
+	dc.w $0000,$807E,$0010,$0000,$8004,$8080,$8014,$0000
+	dc.w $0004,$8080,$8014,$0000,$8016,$8080,$8016,$0000
+	dc.w $0016,$8080,$8016,$0000,$0000,$8080,$0000,$0000
+	dc.w $8016,$8080,$0016,$0000,$0016,$8080,$0016,$0000
+	dc.w $8018,$8068,$8082,$0000,$8018,$8068,$8084,$0000
+	dc.w $0018,$8086,$801E,$0000,$0018,$8086,$001C,$0000
+	dc.w $8018,$8004,$0024,$0000,$0018,$0000,$0076,$0000
+	dc.w $800C,$8058,$8022,$0000,$8004,$8058,$8022,$0000
+	dc.w $0004,$0000,$8004,$0000,$000C,$0000,$8004,$0000
+	dc.w $0000,$8088,$0004,$0000,$8006,$808A,$800A,$0000
+	dc.w $0006,$808A,$800A,$0000,$800C,$808A,$0000,$0000
+	dc.w $000C,$808A,$0000,$0000,$0000,$808C,$0010,$0000
+	dc.w $8004,$808E,$8014,$0000,$0004,$808E,$8014,$0000
+	dc.w $8016,$808E,$8016,$0000,$0016,$808E,$8016,$0000
+	dc.w $0000,$808E,$0000,$0000,$8016,$808E,$0016,$0000
+	dc.w $0016,$808E,$0016,$0000,$8018,$8090,$8092,$0000
+	dc.w $8018,$8090,$8070,$0000,$0018,$8094,$0000,$0000
+	dc.w $0018,$8094,$0018,$0000,$8018,$8026,$8096,$0000
+	dc.w $0018,$0000,$0098,$0000,$800C,$809A,$809C,$0000
+	dc.w $8004,$809A,$809C,$0000,$0004,$0000,$809E,$0000
+	dc.w $000C,$0000,$809E,$0000,$0000,$80A0,$0004,$0000
+	dc.w $8006,$80A2,$800A,$0000,$0006,$80A2,$800A,$0000
+	dc.w $800C,$80A2,$0000,$0000,$000C,$80A2,$0000,$0000
+	dc.w $0000,$80A4,$0010,$0000,$8004,$80A6,$8014,$0000
+	dc.w $0004,$80A6,$8014,$0000,$8016,$80A6,$8016,$0000
+	dc.w $0016,$80A6,$8016,$0000,$0000,$80A6,$0000,$0000
+	dc.w $8016,$80A6,$0016,$0000,$0016,$80A6,$0016,$0000
+	dc.w $8018,$80A8,$80AA,$0000,$8018,$80A8,$8072,$0000
+	dc.w $0018,$80AC,$00AE,$0000,$0018,$80AC,$00B0,$0000
+	dc.w $8018,$80B2,$80B4,$0000,$0018,$0000,$0046,$0000
+	dc.w $800C,$80B6,$80B8,$0000,$8004,$80B6,$80B8,$0000
+	dc.w $0004,$0000,$8040,$0000,$000C,$0000,$8040,$0000
+	dc.w $0000,$80BA,$0004,$0000,$8006,$80BC,$800A,$0000
+	dc.w $0006,$80BC,$800A,$0000,$800C,$80BC,$0000,$0000
+	dc.w $000C,$80BC,$0000,$0000,$0000,$80BE,$0010,$0000
+	dc.w $8004,$80C0,$8014,$0000,$0004,$80C0,$8014,$0000
+	dc.w $8016,$80C0,$8016,$0000,$0016,$80C0,$8016,$0000
+	dc.w $0000,$80C0,$0000,$0000,$8016,$80C0,$0016,$0000
+	dc.w $0016,$80C0,$0016,$0000,$8018,$80C2,$80C4,$0000
+	dc.w $8018,$80C2,$80C6,$0000,$0018,$80C8,$8096,$0000
+	dc.w $0018,$80C8,$00CA,$0000,$8018,$0000,$8074,$0000
+	dc.w $0018,$8096,$00CC,$0000,$800C,$0000,$80CE,$0000
+	dc.w $8004,$0000,$80CE,$0000,$0004,$0000,$00D0,$0000
+	dc.w $000C,$0000,$00D0,$0000,$0000,$80D2,$0004,$0000
+	dc.w $8006,$80D4,$800A,$0000,$0006,$80D4,$800A,$0000
+	dc.w $800C,$80D4,$0000,$0000,$000C,$80D4,$0000,$0000
+	dc.w $0000,$80D6,$0010,$0000,$8004,$80D8,$8014,$0000
+	dc.w $0004,$80D8,$8014,$0000,$8016,$80D8,$8016,$0000
+	dc.w $0016,$80D8,$8016,$0000,$0000,$80D8,$0000,$0000
+	dc.w $8016,$80D8,$0016,$0000,$0016,$80D8,$0016,$0000
+	dc.w $8018,$80DA,$8014,$0000,$8018,$80DA,$8004,$0000
+	dc.w $0018,$80DC,$80DE,$0000,$0018,$80DC,$0054,$0000
+	dc.w $8018,$0000,$80E0,$0000,$0018,$8024,$00E2,$0000
+	dc.w $800C,$0000,$80E4,$0000,$8004,$0000,$80E4,$0000
+	dc.w $0004,$0000,$006E,$0000,$000C,$0000,$006E,$0000
+	dc.w $0000,$8088,$0004,$0000,$8006,$808A,$800A,$0000
+	dc.w $0006,$808A,$800A,$0000,$800C,$808A,$0000,$0000
+	dc.w $000C,$808A,$0000,$0000,$0000,$808C,$0010,$0000
+	dc.w $8004,$808E,$8014,$0000,$0004,$808E,$8014,$0000
+	dc.w $8016,$808E,$8016,$0000,$0016,$808E,$8016,$0000
+	dc.w $0000,$808E,$0000,$0000,$8016,$808E,$0016,$0000
+	dc.w $0016,$808E,$0016,$0000,$8018,$80E6,$80E8,$0000
+	dc.w $8018,$80E6,$8074,$0000,$0018,$80EA,$80EC,$0000
+	dc.w $0018,$80EA,$00EE,$0000,$8018,$0000,$80F0,$0000
+	dc.w $0018,$8074,$00F2,$0000,$800C,$0000,$80F4,$0000
+	dc.w $8004,$0000,$80F4,$0000,$0004,$80B6,$006E,$0000
+	dc.w $000C,$80B6,$006E,$0000,$0000,$807A,$0004,$0000
+	dc.w $8006,$807C,$800A,$0000,$0006,$807C,$800A,$0000
+	dc.w $800C,$807C,$0000,$0000,$000C,$807C,$0000,$0000
+	dc.w $0000,$807E,$0010,$0000,$8004,$8080,$8014,$0000
+	dc.w $0004,$8080,$8014,$0000,$8016,$8080,$8016,$0000
+	dc.w $0016,$8080,$8016,$0000,$0000,$8080,$0000,$0000
+	dc.w $8016,$8080,$0016,$0000,$0016,$8080,$0016,$0000
+	dc.w $8018,$801A,$80F6,$0000,$8018,$801A,$80B4,$0000
+	dc.w $0018,$80F4,$80F8,$0000,$0018,$80F4,$00FA,$0000
+	dc.w $8018,$0000,$80F8,$0000,$0018,$803A,$00AA,$0000
+	dc.w $800C,$0000,$80FC,$0000,$8004,$0000,$80FC,$0000
+	dc.w $0004,$80B4,$00B6,$0000,$000C,$80B4,$00B6,$0000
+	dc.w $0000,$8060,$0004,$0000,$8006,$8062,$800A,$0000
+	dc.w $0006,$8062,$800A,$0000,$800C,$8062,$0000,$0000
+	dc.w $000C,$8062,$0000,$0000,$0000,$8064,$0010,$0000
+	dc.w $8004,$8066,$8014,$0000,$0004,$8066,$8014,$0000
+	dc.w $8016,$8066,$8016,$0000,$0016,$8066,$8016,$0000
+	dc.w $0000,$8066,$0000,$0000,$8016,$8066,$0016,$0000
+	dc.w $0016,$8066,$0016,$0000,$8018,$801A,$80FE,$0000
+	dc.w $8018,$801A,$8040,$0000,$0018,$806C,$8072,$0000
+	dc.w $0018,$806C,$00B2,$0000,$8018,$0000,$8100,$0000
+	dc.w $0018,$8072,$0102,$0000,$800C,$0000,$8104,$0000
+	dc.w $8004,$0000,$8104,$0000,$0004,$8058,$8106,$0000
+	dc.w $000C,$8058,$8106,$0000,$0000,$802C,$0004,$0000
+	dc.w $8006,$802E,$800A,$0000,$0006,$802E,$800A,$0000
+	dc.w $800C,$802E,$0000,$0000,$000C,$802E,$0000,$0000
+	dc.w $0000,$8030,$0010,$0000,$8004,$8032,$8014,$0000
+	dc.w $0004,$8032,$8014,$0000,$8016,$8032,$8016,$0000
+	dc.w $0016,$8032,$8016,$0000,$0000,$8032,$0000,$0000
+	dc.w $8016,$8032,$0016,$0000,$0016,$8032,$0016,$0000
+	dc.w $8018,$801A,$8072,$0000,$8018,$801A,$00B2,$0000
+	dc.w $0018,$8108,$80FE,$0000,$0018,$8108,$8040,$0000
+	dc.w $8018,$0000,$810A,$0000,$0018,$8054,$010C,$0000
+	dc.w $800C,$0000,$810E,$0000,$8004,$0000,$810E,$0000
+	dc.w $0004,$8074,$80EC,$0000,$000C,$8074,$80EC,$0000
+	dc.w $0000,$802C,$0004,$0000,$8006,$802E,$800A,$0000
+	dc.w $0006,$802E,$800A,$0000,$800C,$802E,$0000,$0000
+	dc.w $000C,$802E,$0000,$0000,$0000,$8030,$0010,$0000
+	dc.w $8004,$8032,$8014,$0000,$0004,$8032,$8014,$0000
+	dc.w $8016,$8032,$8016,$0000,$0016,$8032,$8016,$0000
+	dc.w $0000,$8032,$0000,$0000,$8016,$8032,$0016,$0000
+	dc.w $0016,$8032,$0016,$0000,$8018,$804E,$80F8,$0000
+	dc.w $8018,$804E,$00FA,$0000,$0018,$8090,$80F6,$0000
+	dc.w $0018,$8090,$80B4,$0000,$8018,$0000,$00B2,$0000
+	dc.w $0018,$8006,$0110,$0000,$800C,$0000,$8112,$0000
+	dc.w $8004,$0000,$8112,$0000,$0004,$805A,$8004,$0000
+	dc.w $000C,$805A,$8004,$0000,$0000,$8002,$0004,$0000
+	dc.w $8006,$8008,$800A,$0000,$0006,$8008,$800A,$0000
+	dc.w $800C,$8008,$0000,$0000,$000C,$8008,$0000,$0000
+	dc.w $0000,$800E,$0010,$0000,$8004,$8012,$8014,$0000
+	dc.w $0004,$8012,$8014,$0000,$8016,$8012,$8016,$0000
+	dc.w $0016,$8012,$8016,$0000,$0000,$8012,$0000,$0000
+	dc.w $8016,$8012,$0016,$0000,$0016,$8012,$0016,$0000
+	dc.w $8018,$80E6,$80EC,$0000,$8018,$80E6,$00EE,$0000
+	dc.w $0018,$8114,$80E8,$0000,$0018,$8114,$8074,$0000
+	dc.w $8018,$0000,$0116,$0000,$0018,$8020,$0118,$0000
+	dc.w $800C,$0000,$811A,$0000,$8004,$0000,$811A,$0000
+	dc.w $0004,$805A,$811C,$0000,$000C,$805A,$811C,$0000
+	dc.w $0000,$811E,$0004,$0000,$8006,$8120,$800A,$0000
+	dc.w $0006,$8120,$800A,$0000,$800C,$8120,$0000,$0000
+	dc.w $000C,$8120,$0000,$0000,$0000,$8122,$0010,$0000
+	dc.w $8004,$8124,$8014,$0000,$0004,$8124,$8014,$0000
+	dc.w $8016,$8124,$8016,$0000,$0016,$8124,$8016,$0000
+	dc.w $0000,$8124,$0000,$0000,$8016,$8124,$0016,$0000
+	dc.w $0016,$8124,$0016,$0000,$8018,$8126,$80DE,$0000
+	dc.w $8018,$8126,$0054,$0000,$0018,$8128,$8014,$0000
+	dc.w $0018,$8128,$8004,$0000,$8018,$0000,$012A,$0000
+	dc.w $0018,$8118,$012C,$0000,$800C,$0000,$812E,$0000
+	dc.w $8004,$0000,$812E,$0000,$0004,$8026,$8130,$0000
+	dc.w $000C,$8026,$8130,$0000,$0000,$8132,$0004,$0000
+	dc.w $8006,$8134,$800A,$0000,$0006,$8134,$800A,$0000
+	dc.w $800C,$8134,$0000,$0000,$000C,$8134,$0000,$0000
+	dc.w $0000,$8136,$0010,$0000,$8004,$8138,$8014,$0000
+	dc.w $0004,$8138,$8014,$0000,$8016,$8138,$8016,$0000
+	dc.w $0016,$8138,$8016,$0000,$0000,$8138,$0000,$0000
+	dc.w $8016,$8138,$0016,$0000,$0016,$8138,$0016,$0000
+	dc.w $8018,$813A,$8096,$0000,$8018,$813A,$00CA,$0000
+	dc.w $0018,$8048,$80C4,$0000,$0018,$8048,$80C6,$0000
+	dc.w $8018,$0000,$0130,$0000,$0018,$80F8,$010A,$0000
+	dc.w $800C,$0000,$80FA,$0000,$8004,$0000,$80FA,$0000
+	dc.w $0004,$803C,$813C,$0000,$000C,$803C,$813C,$0000
+	dc.w $0000,$813E,$0004,$0000,$8006,$8140,$800A,$0000
+	dc.w $0006,$8140,$800A,$0000,$800C,$8140,$0000,$0000
+	dc.w $000C,$8140,$0000,$0000,$0000,$8142,$0010,$0000
+	dc.w $8004,$8144,$8014,$0000,$0004,$8144,$8014,$0000
+	dc.w $8016,$8144,$8016,$0000,$0016,$8144,$8016,$0000
+	dc.w $0000,$8144,$0000,$0000,$8016,$8144,$0016,$0000
+	dc.w $0016,$8144,$0016,$0000,$8018,$8146,$00AE,$0000
+	dc.w $8018,$8146,$00B0,$0000,$0018,$8034,$80AA,$0000
+	dc.w $0018,$8034,$8072,$0000,$8018,$0000,$0102,$0000
+	dc.w $0018,$8148,$8038,$0000,$800C,$0000,$814A,$0000
+	dc.w $8004,$0000,$814A,$0000,$0004,$814C,$814E,$0000
+	dc.w $000C,$814C,$814E,$0000,$0000,$8150,$0004,$0000
+	dc.w $8006,$8152,$800A,$0000,$0006,$8152,$800A,$0000
+	dc.w $800C,$8152,$0000,$0000,$000C,$8152,$0000,$0000
+	dc.w $0000,$8154,$0010,$0000,$8004,$8156,$8014,$0000
+	dc.w $0004,$8156,$8014,$0000,$8016,$8156,$8016,$0000
+	dc.w $0016,$8156,$8016,$0000,$0000,$8156,$0000,$0000
+	dc.w $8016,$8156,$0016,$0000,$0016,$8156,$0016,$0000
+	dc.w $8018,$8158,$0000,$0000,$8018,$8158,$0018,$0000
+	dc.w $0018,$8126,$8092,$0000,$0018,$8126,$8070,$0000
+	dc.w $8018,$0000,$015A,$0000,$0018,$815C,$804C,$0000
+	dc.w $800C,$0000,$0040,$0000,$8004,$0000,$0040,$0000
+	dc.w $0004,$8040,$8158,$0000,$000C,$8040,$8158,$0000
+	dc.w $0000,$815E,$0004,$0000,$8006,$8160,$800A,$0000
+	dc.w $0006,$8160,$800A,$0000,$800C,$8160,$0000,$0000
+	dc.w $000C,$8160,$0000,$0000,$0000,$8162,$0010,$0000
+	dc.w $8004,$8164,$8014,$0000,$0004,$8164,$8014,$0000
+	dc.w $8016,$8164,$8016,$0000,$0016,$8164,$8016,$0000
+	dc.w $0000,$8164,$0000,$0000,$8016,$8164,$0016,$0000
+	dc.w $0016,$8164,$0016,$0000,$8018,$8166,$801E,$0000
+	dc.w $8018,$8166,$001C,$0000,$0018,$8168,$8082,$0000
+	dc.w $0018,$8168,$8084,$0000,$8018,$80DE,$016A,$0000
+	dc.w $0018,$0000,$80F8,$0000,$800C,$0000,$016C,$0000
+	dc.w $8004,$0000,$016C,$0000,$0004,$0000,$80FC,$0000
+	dc.w $000C,$0000,$80FC,$0000,$0000,$816E,$0004,$0000
+	dc.w $8006,$8170,$800A,$0000,$0006,$8170,$800A,$0000
+	dc.w $800C,$8170,$0000,$0000,$000C,$8170,$0000,$0000
+	dc.w $0000,$8172,$0010,$0000,$8004,$8174,$8014,$0000
+	dc.w $0004,$8174,$8014,$0000,$8016,$8174,$8016,$0000
+	dc.w $0016,$8174,$8016,$0000,$0000,$8174,$0000,$0000
+	dc.w $8016,$8174,$0016,$0000,$0016,$8174,$0016,$0000
+	dc.w $8018,$80CE,$806E,$0000,$8018,$80CE,$0070,$0000
+	dc.w $0018,$806C,$806A,$0000,$0018,$806C,$8052,$0000
+	dc.w $8018,$8100,$0176,$0000,$0018,$0000,$80F0,$0000
+	dc.w $800C,$8178,$0024,$0000,$8004,$8178,$0024,$0000
+	dc.w $0004,$0000,$80F4,$0000,$000C,$0000,$80F4,$0000
+	dc.w $0000,$8132,$0004,$0000,$8006,$8134,$800A,$0000
+	dc.w $0006,$8134,$800A,$0000,$800C,$8134,$0000,$0000
+	dc.w $000C,$8134,$0000,$0000,$0000,$8136,$0010,$0000
+	dc.w $8004,$8138,$8014,$0000,$0004,$8138,$8014,$0000
+	dc.w $8016,$8138,$8016,$0000,$0016,$8138,$8016,$0000
+	dc.w $0000,$8138,$0000,$0000,$8016,$8138,$0016,$0000
+	dc.w $0016,$8138,$0016,$0000,$8018,$8094,$8050,$0000
+	dc.w $8018,$8094,$0052,$0000,$0018,$804E,$804A,$0000
+	dc.w $0018,$804E,$804C,$0000,$8018,$8052,$010E,$0000
+	dc.w $0018,$0000,$80E0,$0000,$800C,$814C,$0028,$0000
+	dc.w $8004,$814C,$0028,$0000,$0004,$0000,$80E4,$0000
+	dc.w $000C,$0000,$80E4,$0000,$0000,$811E,$0004,$0000
+	dc.w $8006,$8120,$800A,$0000,$0006,$8120,$800A,$0000
+	dc.w $800C,$8120,$0000,$0000,$000C,$8120,$0000,$0000
+	dc.w $0000,$8122,$0010,$0000,$8004,$8124,$8014,$0000
+	dc.w $0004,$8124,$8014,$0000,$8016,$8124,$8016,$0000
+	dc.w $0016,$8124,$8016,$0000,$0000,$8124,$0000,$0000
+	dc.w $8016,$8124,$0016,$0000,$0016,$8124,$0016,$0000
+	dc.w $8018,$817A,$803A,$0000,$8018,$817A,$003C,$0000
+	dc.w $0018,$801A,$8036,$0000,$0018,$801A,$8038,$0000
+	dc.w $8018,$817C,$017E,$0000,$0018,$0000,$8044,$0000
+	dc.w $800C,$803C,$0040,$0000,$8004,$803C,$0040,$0000
+	dc.w $0004,$0000,$8180,$0000,$000C,$0000,$8180,$0000
 model_001_variant_frames:
 	dc.l model_001_variant_words	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
 	dc.l model_001_variant_words+$B8
@@ -24971,25 +24998,25 @@ model_001_variant_frames:
 	dc.l model_001_variant_words+$F18
 model_002_faces:
 	dc.w $0301,$0000,$0010,$0020,$0301,$0018,$0008,$0028	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0305,$0000,$0020,$0030,$0305,$0028,$0008,$0038	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0301,$0000,$0030,$0040,$0301,$0038,$0008,$0048	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0305,$0000,$0040,$0050,$0305,$0048,$0008,$0058	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0301,$0000,$0050,$0060,$0301,$0058,$0008,$0068	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0305,$0000,$0060,$0010,$0305,$0068,$0008,$0018	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0404,$0020,$0028,$0038,$0030,$0404,$0040,$0048	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0058,$0050,$0404,$0060,$0068,$0018,$0010,$0305	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0010,$0070,$0020,$0305,$0018,$0028,$0070,$0305	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0040,$0030,$0078,$0305,$0038,$0048,$0078,$0305	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0060,$0050,$0080,$0305,$0058,$0068,$0080,$0301	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0010,$0018,$0070,$0301,$0028,$0020,$0070,$0301	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0030,$0038,$0078,$0301,$0048,$0040,$0078,$0301	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0050,$0058,$0080,$0301,$0068,$0060,$0080	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0305,$0000,$0020,$0030,$0305,$0028,$0008,$0038
+	dc.w $0301,$0000,$0030,$0040,$0301,$0038,$0008,$0048
+	dc.w $0305,$0000,$0040,$0050,$0305,$0048,$0008,$0058
+	dc.w $0301,$0000,$0050,$0060,$0301,$0058,$0008,$0068
+	dc.w $0305,$0000,$0060,$0010,$0305,$0068,$0008,$0018
+	dc.w $0404,$0020,$0028,$0038,$0030,$0404,$0040,$0048
+	dc.w $0058,$0050,$0404,$0060,$0068,$0018,$0010,$0305
+	dc.w $0010,$0070,$0020,$0305,$0018,$0028,$0070,$0305
+	dc.w $0040,$0030,$0078,$0305,$0038,$0048,$0078,$0305
+	dc.w $0060,$0050,$0080,$0305,$0058,$0068,$0080,$0301
+	dc.w $0010,$0018,$0070,$0301,$0028,$0020,$0070,$0301
+	dc.w $0030,$0038,$0078,$0301,$0048,$0040,$0078,$0301
+	dc.w $0050,$0058,$0080,$0301,$0068,$0060,$0080
 model_002_auxiliary_faces:
 	dc.w $8300,$0070,$0030,$0000,$8300,$0078,$0050,$0000	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $8300,$0080,$0010,$0000	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $8300,$0080,$0010,$0000
 model_002_coordinates:
 	dc.w $0000,$0280,$0190,$0320,$02B0,$00A0,$0B40,$0A28	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $04D8,$0960,$0640	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $04D8,$0960,$0640
 model_002_vertices:
 	dc.w $0000	; x_coordinate_ref
 	dc.w $8002	; y_coordinate_ref
@@ -25061,22 +25088,22 @@ model_002_vertices:
 	dc.w $FFFF	; variant_offset_or_negative
 model_003_faces:
 	dc.w $0401,$0000,$0030,$0038,$0008,$0402,$0008,$0038	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0040,$0010,$0401,$0010,$0040,$0048,$0018,$0402	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0018,$0048,$0050,$0020,$0401,$0020,$0050,$0058	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0028,$0402,$0028,$0058,$0030,$0000,$0406,$0030	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0060,$0068,$0038,$0408,$0038,$0068,$0070,$0040	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0406,$0040,$0070,$0078,$0048,$0408,$0048,$0078	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0080,$0050,$0406,$0050,$0080,$0088,$0058,$0408	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0058,$0088,$0060,$0030,$0305,$0060,$0090,$0068	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0309,$0068,$0090,$0070,$0305,$0070,$0090,$0078	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0309,$0078,$0090,$0080,$0305,$0080,$0090,$0088	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0309,$0088,$0090,$0060,$0606,$0000,$0008,$0010	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0018,$0020,$0028	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0040,$0010,$0401,$0010,$0040,$0048,$0018,$0402
+	dc.w $0018,$0048,$0050,$0020,$0401,$0020,$0050,$0058
+	dc.w $0028,$0402,$0028,$0058,$0030,$0000,$0406,$0030
+	dc.w $0060,$0068,$0038,$0408,$0038,$0068,$0070,$0040
+	dc.w $0406,$0040,$0070,$0078,$0048,$0408,$0048,$0078
+	dc.w $0080,$0050,$0406,$0050,$0080,$0088,$0058,$0408
+	dc.w $0058,$0088,$0060,$0030,$0305,$0060,$0090,$0068
+	dc.w $0309,$0068,$0090,$0070,$0305,$0070,$0090,$0078
+	dc.w $0309,$0078,$0090,$0080,$0305,$0080,$0090,$0088
+	dc.w $0309,$0088,$0090,$0060,$0606,$0000,$0008,$0010
+	dc.w $0018,$0020,$0028
 model_003_auxiliary_faces:
 	dc.w $8600,$0028,$0020,$0018,$0010,$0008,$0000	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
 model_003_coordinates:
 	dc.w $0000,$12C0,$1040,$0960,$0320,$0FA0,$0D88,$07D0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0640,$02B8,$0190,$15E0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0640,$02B8,$0190,$15E0
 model_003_vertices:
 	dc.w $0000	; x_coordinate_ref
 	dc.w $0000	; y_coordinate_ref
@@ -25156,34 +25183,34 @@ model_003_vertices:
 	dc.w $FFFF	; variant_offset_or_negative
 model_004_faces:
 	dc.w $0401,$0000,$0020,$0028,$0008,$0406,$0008,$0028	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0030,$0010,$0401,$0010,$0030,$0038,$0018,$0406	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0000,$0018,$0038,$0020,$0408,$0020,$0040,$0048	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0028,$0409,$0028,$0048,$0050,$0030,$0408,$0030	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0050,$0058,$0038,$0409,$0038,$0058,$0040,$0020	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $8406,$0040,$0060,$0068,$0048,$8405,$0048,$0068	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0070,$0050,$8406,$0050,$0070,$0078,$0058,$8405	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0058,$0078,$0060,$0040,$8401,$0060,$0080,$0088	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0068,$8406,$0068,$0088,$0090,$0070,$8401,$0070	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0090,$0098,$0078,$8406,$0078,$0098,$0080,$0060	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0402,$00A0,$00B8,$00B0,$00A8,$0408,$0040,$00A0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $00A8,$0048,$0409,$0048,$00A8,$00B0,$0050,$0408	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0050,$00B0,$00B8,$0058,$0409,$0058,$00B8,$00A0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0040	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0030,$0010,$0401,$0010,$0030,$0038,$0018,$0406
+	dc.w $0000,$0018,$0038,$0020,$0408,$0020,$0040,$0048
+	dc.w $0028,$0409,$0028,$0048,$0050,$0030,$0408,$0030
+	dc.w $0050,$0058,$0038,$0409,$0038,$0058,$0040,$0020
+	dc.w $8406,$0040,$0060,$0068,$0048,$8405,$0048,$0068
+	dc.w $0070,$0050,$8406,$0050,$0070,$0078,$0058,$8405
+	dc.w $0058,$0078,$0060,$0040,$8401,$0060,$0080,$0088
+	dc.w $0068,$8406,$0068,$0088,$0090,$0070,$8401,$0070
+	dc.w $0090,$0098,$0078,$8406,$0078,$0098,$0080,$0060
+	dc.w $0402,$00A0,$00B8,$00B0,$00A8,$0408,$0040,$00A0
+	dc.w $00A8,$0048,$0409,$0048,$00A8,$00B0,$0050,$0408
+	dc.w $0050,$00B0,$00B8,$0058,$0409,$0058,$00B8,$00A0
+	dc.w $0040
 model_004_auxiliary_faces:
 	dc.w $8400,$0060,$0068,$0070,$0078,$8400,$0080,$0088	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0090,$0098	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0090,$0098
 model_004_coordinates:
 	dc.w $0000,$0960,$0320,$0640,$0FA0,$0AA0,$0460,$0680	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0AE0,$0FE0,$0750,$0BB0,$10B0,$08A0,$0D00,$1200	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0A60,$0EC0,$13C0,$0C80,$10E0,$15E0,$0EE0,$1340	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $1840,$1170,$15D0,$1AD0,$1408,$1868,$1D68,$1698	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $1AF8,$1FF8,$1900,$1D60,$2260,$1B18,$1F78,$2478	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $1CD8,$2138,$2638,$1E28,$2288,$2788,$1EF8,$2358	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $2858,$1F40,$23A0,$2898,$28A0,$0480,$28E0,$04E8	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $29B0,$05B0,$2AE8,$06F8,$2C60,$08D0,$2DE0,$0B30	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $2F18,$0DF0,$2FD0,$10D8,$2FD8,$13A0,$2F40,$1608	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $2E18,$17F0,$2CB0,$1940,$2B40,$1A18,$2A10,$1A88	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $2948,$1AB0,$2900	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0AE0,$0FE0,$0750,$0BB0,$10B0,$08A0,$0D00,$1200
+	dc.w $0A60,$0EC0,$13C0,$0C80,$10E0,$15E0,$0EE0,$1340
+	dc.w $1840,$1170,$15D0,$1AD0,$1408,$1868,$1D68,$1698
+	dc.w $1AF8,$1FF8,$1900,$1D60,$2260,$1B18,$1F78,$2478
+	dc.w $1CD8,$2138,$2638,$1E28,$2288,$2788,$1EF8,$2358
+	dc.w $2858,$1F40,$23A0,$2898,$28A0,$0480,$28E0,$04E8
+	dc.w $29B0,$05B0,$2AE8,$06F8,$2C60,$08D0,$2DE0,$0B30
+	dc.w $2F18,$0DF0,$2FD0,$10D8,$2FD8,$13A0,$2F40,$1608
+	dc.w $2E18,$17F0,$2CB0,$1940,$2B40,$1A18,$2A10,$1A88
+	dc.w $2948,$1AB0,$2900
 model_004_vertices:
 	dc.w $0002	; x_coordinate_ref
 	dc.w $0000	; y_coordinate_ref
@@ -25283,245 +25310,245 @@ model_004_vertices:
 	dc.w $0078	; variant_offset_or_negative
 model_004_variant_words:
 	dc.w $0004,$800E,$8004,$0000,$8004,$800E,$8004,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8004,$800E,$0004,$0000,$0004,$800E,$0004,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0008,$8010,$8008,$0000,$8008,$8010,$8008,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8008,$8010,$0008,$0000,$0008,$8010,$0008,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $000C,$8012,$800C,$0000,$800C,$8012,$800C,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $800C,$8012,$000C,$0000,$000C,$8012,$000C,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $000C,$8012,$800C,$0000,$800C,$8012,$800C,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $800C,$8012,$000C,$0000,$000C,$8012,$000C,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0004,$8014,$8004,$0000,$8004,$8014,$8004,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8004,$8014,$0004,$0000,$0004,$8014,$0004,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0008,$8016,$8008,$0000,$8008,$8016,$8008,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8008,$8016,$0008,$0000,$0008,$8016,$0008,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $000C,$8018,$800C,$0000,$800C,$8018,$800C,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $800C,$8018,$000C,$0000,$000C,$8018,$000C,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $000C,$8018,$800C,$0000,$800C,$8018,$800C,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $800C,$8018,$000C,$0000,$000C,$8018,$000C,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0004,$801A,$8004,$0000,$8004,$801A,$8004,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8004,$801A,$0004,$0000,$0004,$801A,$0004,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0008,$801C,$8008,$0000,$8008,$801C,$8008,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8008,$801C,$0008,$0000,$0008,$801C,$0008,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $000C,$801E,$800C,$0000,$800C,$801E,$800C,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $800C,$801E,$000C,$0000,$000C,$801E,$000C,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $000C,$801E,$800C,$0000,$800C,$801E,$800C,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $800C,$801E,$000C,$0000,$000C,$801E,$000C,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0004,$8020,$8004,$0000,$8004,$8020,$8004,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8004,$8020,$0004,$0000,$0004,$8020,$0004,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0008,$8022,$8008,$0000,$8008,$8022,$8008,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8008,$8022,$0008,$0000,$0008,$8022,$0008,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $000C,$8024,$800C,$0000,$800C,$8024,$800C,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $800C,$8024,$000C,$0000,$000C,$8024,$000C,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $000C,$8024,$800C,$0000,$800C,$8024,$800C,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $800C,$8024,$000C,$0000,$000C,$8024,$000C,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0004,$8026,$8004,$0000,$8004,$8026,$8004,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8004,$8026,$0004,$0000,$0004,$8026,$0004,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0008,$8028,$8008,$0000,$8008,$8028,$8008,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8008,$8028,$0008,$0000,$0008,$8028,$0008,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $000C,$802A,$800C,$0000,$800C,$802A,$800C,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $800C,$802A,$000C,$0000,$000C,$802A,$000C,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $000C,$802A,$800C,$0000,$800C,$802A,$800C,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $800C,$802A,$000C,$0000,$000C,$802A,$000C,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0004,$802C,$8004,$0000,$8004,$802C,$8004,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8004,$802C,$0004,$0000,$0004,$802C,$0004,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0008,$802E,$8008,$0000,$8008,$802E,$8008,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8008,$802E,$0008,$0000,$0008,$802E,$0008,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $000C,$8030,$800C,$0000,$800C,$8030,$800C,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $800C,$8030,$000C,$0000,$000C,$8030,$000C,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $000C,$8030,$800C,$0000,$800C,$8030,$800C,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $800C,$8030,$000C,$0000,$000C,$8030,$000C,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0004,$8032,$8004,$0000,$8004,$8032,$8004,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8004,$8032,$0004,$0000,$0004,$8032,$0004,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0008,$8034,$8008,$0000,$8008,$8034,$8008,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8008,$8034,$0008,$0000,$0008,$8034,$0008,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $000C,$8036,$800C,$0000,$800C,$8036,$800C,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $800C,$8036,$000C,$0000,$000C,$8036,$000C,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $000C,$8036,$800C,$0000,$800C,$8036,$800C,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $800C,$8036,$000C,$0000,$000C,$8036,$000C,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0004,$8038,$8004,$0000,$8004,$8038,$8004,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8004,$8038,$0004,$0000,$0004,$8038,$0004,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0008,$803A,$8008,$0000,$8008,$803A,$8008,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8008,$803A,$0008,$0000,$0008,$803A,$0008,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $000C,$803C,$800C,$0000,$800C,$803C,$800C,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $800C,$803C,$000C,$0000,$000C,$803C,$000C,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $000C,$803C,$800C,$0000,$800C,$803C,$800C,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $800C,$803C,$000C,$0000,$000C,$803C,$000C,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0004,$803E,$8004,$0000,$8004,$803E,$8004,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8004,$803E,$0004,$0000,$0004,$803E,$0004,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0008,$8040,$8008,$0000,$8008,$8040,$8008,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8008,$8040,$0008,$0000,$0008,$8040,$0008,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $000C,$8042,$800C,$0000,$800C,$8042,$800C,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $800C,$8042,$000C,$0000,$000C,$8042,$000C,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $000C,$8042,$800C,$0000,$800C,$8042,$800C,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $800C,$8042,$000C,$0000,$000C,$8042,$000C,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0004,$8044,$8004,$0000,$8004,$8044,$8004,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8004,$8044,$0004,$0000,$0004,$8044,$0004,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0008,$8046,$8008,$0000,$8008,$8046,$8008,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8008,$8046,$0008,$0000,$0008,$8046,$0008,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $000C,$8048,$800C,$0000,$800C,$8048,$800C,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $800C,$8048,$000C,$0000,$000C,$8048,$000C,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $000C,$8048,$800C,$0000,$800C,$8048,$800C,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $800C,$8048,$000C,$0000,$000C,$8048,$000C,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0004,$804A,$8004,$0000,$8004,$804A,$8004,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8004,$804A,$0004,$0000,$0004,$804A,$0004,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0008,$804C,$8008,$0000,$8008,$804C,$8008,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8008,$804C,$0008,$0000,$0008,$804C,$0008,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $000C,$804E,$800C,$0000,$800C,$804E,$800C,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $800C,$804E,$000C,$0000,$000C,$804E,$000C,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $000C,$804E,$800C,$0000,$800C,$804E,$800C,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $800C,$804E,$000C,$0000,$000C,$804E,$000C,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0004,$8050,$8004,$0000,$8004,$8050,$8004,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8004,$8050,$0004,$0000,$0004,$8050,$0004,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0008,$8052,$8008,$0000,$8008,$8052,$8008,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8008,$8052,$0008,$0000,$0008,$8052,$0008,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $000C,$8054,$800C,$0000,$800C,$8054,$800C,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $800C,$8054,$000C,$0000,$000C,$8054,$000C,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $000C,$8054,$800C,$0000,$800C,$8054,$800C,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $800C,$8054,$000C,$0000,$000C,$8054,$000C,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0004,$8056,$8004,$0000,$8004,$8056,$8004,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8004,$8056,$0004,$0000,$0004,$8056,$0004,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0008,$8058,$8008,$0000,$8008,$8058,$8008,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8008,$8058,$0008,$0000,$0008,$8058,$0008,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $000C,$805A,$800C,$0000,$800C,$805A,$800C,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $800C,$805A,$000C,$0000,$000C,$805A,$000C,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $000C,$805A,$800C,$0000,$800C,$805A,$800C,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $800C,$805A,$000C,$0000,$000C,$805A,$000C,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0004,$805C,$8004,$0000,$8004,$805C,$8004,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8004,$805C,$0004,$0000,$0004,$805C,$0004,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0008,$805E,$8008,$0000,$8008,$805E,$8008,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8008,$805E,$0008,$0000,$0008,$805E,$0008,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $000C,$8060,$800C,$0000,$800C,$8060,$800C,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $800C,$8060,$000C,$0000,$000C,$8060,$000C,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $000C,$8060,$800C,$0000,$800C,$8060,$800C,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $800C,$8060,$000C,$0000,$000C,$8060,$000C,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0004,$8062,$8004,$0000,$8004,$8062,$8004,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8004,$8062,$0004,$0000,$0004,$8062,$0004,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0008,$8064,$8008,$0000,$8008,$8064,$8008,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8008,$8064,$0008,$0000,$0008,$8064,$0008,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $000C,$8066,$800C,$0000,$800C,$8066,$800C,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $800C,$8066,$000C,$0000,$000C,$8066,$000C,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $000C,$8068,$800C,$0000,$800C,$8068,$800C,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $800C,$8068,$000C,$0000,$000C,$8068,$000C,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0004,$8062,$8004,$0000,$8004,$8062,$8004,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8004,$8062,$0004,$0000,$0004,$8062,$0004,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0008,$8064,$8008,$0000,$8008,$8064,$8008,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8008,$8064,$0008,$0000,$0008,$8064,$0008,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $006A,$806C,$806A,$0000,$806A,$806C,$806A,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $806A,$806C,$006A,$0000,$006A,$806C,$006A,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $000C,$8068,$800C,$0000,$800C,$8068,$800C,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $800C,$8068,$000C,$0000,$000C,$8068,$000C,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0004,$8062,$8004,$0000,$8004,$8062,$8004,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8004,$8062,$0004,$0000,$0004,$8062,$0004,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0008,$8064,$8008,$0000,$8008,$8064,$8008,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8008,$8064,$0008,$0000,$0008,$8064,$0008,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $006E,$8070,$806E,$0000,$806E,$8070,$806E,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $806E,$8070,$006E,$0000,$006E,$8070,$006E,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $000C,$8068,$800C,$0000,$800C,$8068,$800C,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $800C,$8068,$000C,$0000,$000C,$8068,$000C,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0004,$8062,$8004,$0000,$8004,$8062,$8004,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8004,$8062,$0004,$0000,$0004,$8062,$0004,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0008,$8064,$8008,$0000,$8008,$8064,$8008,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8008,$8064,$0008,$0000,$0008,$8064,$0008,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0072,$8074,$8072,$0000,$8072,$8074,$8072,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8072,$8074,$0072,$0000,$0072,$8074,$0072,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $000C,$8068,$800C,$0000,$800C,$8068,$800C,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $800C,$8068,$000C,$0000,$000C,$8068,$000C,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0004,$8062,$8004,$0000,$8004,$8062,$8004,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8004,$8062,$0004,$0000,$0004,$8062,$0004,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0008,$8064,$8008,$0000,$8008,$8064,$8008,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8008,$8064,$0008,$0000,$0008,$8064,$0008,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0076,$8078,$8076,$0000,$8076,$8078,$8076,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8076,$8078,$0076,$0000,$0076,$8078,$0076,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $000C,$8068,$800C,$0000,$800C,$8068,$800C,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $800C,$8068,$000C,$0000,$000C,$8068,$000C,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0004,$8062,$8004,$0000,$8004,$8062,$8004,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8004,$8062,$0004,$0000,$0004,$8062,$0004,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0008,$8064,$8008,$0000,$8008,$8064,$8008,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8008,$8064,$0008,$0000,$0008,$8064,$0008,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $007A,$807C,$807A,$0000,$807A,$807C,$807A,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $807A,$807C,$007A,$0000,$007A,$807C,$007A,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $000C,$8068,$800C,$0000,$800C,$8068,$800C,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $800C,$8068,$000C,$0000,$000C,$8068,$000C,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0004,$8062,$8004,$0000,$8004,$8062,$8004,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8004,$8062,$0004,$0000,$0004,$8062,$0004,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0008,$8064,$8008,$0000,$8008,$8064,$8008,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8008,$8064,$0008,$0000,$0008,$8064,$0008,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $007E,$8080,$807E,$0000,$807E,$8080,$807E,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $807E,$8080,$007E,$0000,$007E,$8080,$007E,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $000C,$8068,$800C,$0000,$800C,$8068,$800C,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $800C,$8068,$000C,$0000,$000C,$8068,$000C,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0004,$8062,$8004,$0000,$8004,$8062,$8004,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8004,$8062,$0004,$0000,$0004,$8062,$0004,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0008,$8064,$8008,$0000,$8008,$8064,$8008,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8008,$8064,$0008,$0000,$0008,$8064,$0008,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0082,$8084,$8082,$0000,$8082,$8084,$8082,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8082,$8084,$0082,$0000,$0082,$8084,$0082,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $000C,$8068,$800C,$0000,$800C,$8068,$800C,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $800C,$8068,$000C,$0000,$000C,$8068,$000C,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0004,$8062,$8004,$0000,$8004,$8062,$8004,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8004,$8062,$0004,$0000,$0004,$8062,$0004,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0008,$8064,$8008,$0000,$8008,$8064,$8008,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8008,$8064,$0008,$0000,$0008,$8064,$0008,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0086,$8088,$8086,$0000,$8086,$8088,$8086,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8086,$8088,$0086,$0000,$0086,$8088,$0086,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $000C,$8068,$800C,$0000,$800C,$8068,$800C,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $800C,$8068,$000C,$0000,$000C,$8068,$000C,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0004,$8062,$8004,$0000,$8004,$8062,$8004,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8004,$8062,$0004,$0000,$0004,$8062,$0004,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0008,$8064,$8008,$0000,$8008,$8064,$8008,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8008,$8064,$0008,$0000,$0008,$8064,$0008,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $008A,$808C,$808A,$0000,$808A,$808C,$808A,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $808A,$808C,$008A,$0000,$008A,$808C,$008A,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $000C,$8068,$800C,$0000,$800C,$8068,$800C,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $800C,$8068,$000C,$0000,$000C,$8068,$000C,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0004,$8062,$8004,$0000,$8004,$8062,$8004,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8004,$8062,$0004,$0000,$0004,$8062,$0004,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0008,$8064,$8008,$0000,$8008,$8064,$8008,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8008,$8064,$0008,$0000,$0008,$8064,$0008,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $008E,$8090,$808E,$0000,$808E,$8090,$808E,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $808E,$8090,$008E,$0000,$008E,$8090,$008E,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $000C,$8068,$800C,$0000,$800C,$8068,$800C,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $800C,$8068,$000C,$0000,$000C,$8068,$000C,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0004,$8062,$8004,$0000,$8004,$8062,$8004,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8004,$8062,$0004,$0000,$0004,$8062,$0004,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0008,$8064,$8008,$0000,$8008,$8064,$8008,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8008,$8064,$0008,$0000,$0008,$8064,$0008,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0092,$8094,$8092,$0000,$8092,$8094,$8092,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8092,$8094,$0092,$0000,$0092,$8094,$0092,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $000C,$8068,$800C,$0000,$800C,$8068,$800C,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $800C,$8068,$000C,$0000,$000C,$8068,$000C,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0004,$8062,$8004,$0000,$8004,$8062,$8004,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8004,$8062,$0004,$0000,$0004,$8062,$0004,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0008,$8064,$8008,$0000,$8008,$8064,$8008,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8008,$8064,$0008,$0000,$0008,$8064,$0008,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0096,$8098,$8096,$0000,$8096,$8098,$8096,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8096,$8098,$0096,$0000,$0096,$8098,$0096,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $000C,$8068,$800C,$0000,$800C,$8068,$800C,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $800C,$8068,$000C,$0000,$000C,$8068,$000C,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0004,$8062,$8004,$0000,$8004,$8062,$8004,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8004,$8062,$0004,$0000,$0004,$8062,$0004,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0008,$8064,$8008,$0000,$8008,$8064,$8008,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8008,$8064,$0008,$0000,$0008,$8064,$0008,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $009A,$809C,$809A,$0000,$809A,$809C,$809A,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $809A,$809C,$009A,$0000,$009A,$809C,$009A,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $000C,$8068,$800C,$0000,$800C,$8068,$800C,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $800C,$8068,$000C,$0000,$000C,$8068,$000C,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0004,$8062,$8004,$0000,$8004,$8062,$8004,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8004,$8062,$0004,$0000,$0004,$8062,$0004,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0008,$8064,$8008,$0000,$8008,$8064,$8008,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8008,$8064,$0008,$0000,$0008,$8064,$0008,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $009E,$80A0,$809E,$0000,$809E,$80A0,$809E,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $809E,$80A0,$009E,$0000,$009E,$80A0,$009E,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $000C,$8068,$800C,$0000,$800C,$8068,$800C,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $800C,$8068,$000C,$0000,$000C,$8068,$000C,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0004,$8062,$8004,$0000,$8004,$8062,$8004,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8004,$8062,$0004,$0000,$0004,$8062,$0004,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0008,$8064,$8008,$0000,$8008,$8064,$8008,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8008,$8064,$0008,$0000,$0008,$8064,$0008,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $00A2,$80A4,$80A2,$0000,$80A2,$80A4,$80A2,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $80A2,$80A4,$00A2,$0000,$00A2,$80A4,$00A2,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $000C,$8068,$800C,$0000,$800C,$8068,$800C,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $800C,$8068,$000C,$0000,$000C,$8068,$000C,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
+	dc.w $8004,$800E,$0004,$0000,$0004,$800E,$0004,$0000
+	dc.w $0008,$8010,$8008,$0000,$8008,$8010,$8008,$0000
+	dc.w $8008,$8010,$0008,$0000,$0008,$8010,$0008,$0000
+	dc.w $000C,$8012,$800C,$0000,$800C,$8012,$800C,$0000
+	dc.w $800C,$8012,$000C,$0000,$000C,$8012,$000C,$0000
+	dc.w $000C,$8012,$800C,$0000,$800C,$8012,$800C,$0000
+	dc.w $800C,$8012,$000C,$0000,$000C,$8012,$000C,$0000
+	dc.w $0004,$8014,$8004,$0000,$8004,$8014,$8004,$0000
+	dc.w $8004,$8014,$0004,$0000,$0004,$8014,$0004,$0000
+	dc.w $0008,$8016,$8008,$0000,$8008,$8016,$8008,$0000
+	dc.w $8008,$8016,$0008,$0000,$0008,$8016,$0008,$0000
+	dc.w $000C,$8018,$800C,$0000,$800C,$8018,$800C,$0000
+	dc.w $800C,$8018,$000C,$0000,$000C,$8018,$000C,$0000
+	dc.w $000C,$8018,$800C,$0000,$800C,$8018,$800C,$0000
+	dc.w $800C,$8018,$000C,$0000,$000C,$8018,$000C,$0000
+	dc.w $0004,$801A,$8004,$0000,$8004,$801A,$8004,$0000
+	dc.w $8004,$801A,$0004,$0000,$0004,$801A,$0004,$0000
+	dc.w $0008,$801C,$8008,$0000,$8008,$801C,$8008,$0000
+	dc.w $8008,$801C,$0008,$0000,$0008,$801C,$0008,$0000
+	dc.w $000C,$801E,$800C,$0000,$800C,$801E,$800C,$0000
+	dc.w $800C,$801E,$000C,$0000,$000C,$801E,$000C,$0000
+	dc.w $000C,$801E,$800C,$0000,$800C,$801E,$800C,$0000
+	dc.w $800C,$801E,$000C,$0000,$000C,$801E,$000C,$0000
+	dc.w $0004,$8020,$8004,$0000,$8004,$8020,$8004,$0000
+	dc.w $8004,$8020,$0004,$0000,$0004,$8020,$0004,$0000
+	dc.w $0008,$8022,$8008,$0000,$8008,$8022,$8008,$0000
+	dc.w $8008,$8022,$0008,$0000,$0008,$8022,$0008,$0000
+	dc.w $000C,$8024,$800C,$0000,$800C,$8024,$800C,$0000
+	dc.w $800C,$8024,$000C,$0000,$000C,$8024,$000C,$0000
+	dc.w $000C,$8024,$800C,$0000,$800C,$8024,$800C,$0000
+	dc.w $800C,$8024,$000C,$0000,$000C,$8024,$000C,$0000
+	dc.w $0004,$8026,$8004,$0000,$8004,$8026,$8004,$0000
+	dc.w $8004,$8026,$0004,$0000,$0004,$8026,$0004,$0000
+	dc.w $0008,$8028,$8008,$0000,$8008,$8028,$8008,$0000
+	dc.w $8008,$8028,$0008,$0000,$0008,$8028,$0008,$0000
+	dc.w $000C,$802A,$800C,$0000,$800C,$802A,$800C,$0000
+	dc.w $800C,$802A,$000C,$0000,$000C,$802A,$000C,$0000
+	dc.w $000C,$802A,$800C,$0000,$800C,$802A,$800C,$0000
+	dc.w $800C,$802A,$000C,$0000,$000C,$802A,$000C,$0000
+	dc.w $0004,$802C,$8004,$0000,$8004,$802C,$8004,$0000
+	dc.w $8004,$802C,$0004,$0000,$0004,$802C,$0004,$0000
+	dc.w $0008,$802E,$8008,$0000,$8008,$802E,$8008,$0000
+	dc.w $8008,$802E,$0008,$0000,$0008,$802E,$0008,$0000
+	dc.w $000C,$8030,$800C,$0000,$800C,$8030,$800C,$0000
+	dc.w $800C,$8030,$000C,$0000,$000C,$8030,$000C,$0000
+	dc.w $000C,$8030,$800C,$0000,$800C,$8030,$800C,$0000
+	dc.w $800C,$8030,$000C,$0000,$000C,$8030,$000C,$0000
+	dc.w $0004,$8032,$8004,$0000,$8004,$8032,$8004,$0000
+	dc.w $8004,$8032,$0004,$0000,$0004,$8032,$0004,$0000
+	dc.w $0008,$8034,$8008,$0000,$8008,$8034,$8008,$0000
+	dc.w $8008,$8034,$0008,$0000,$0008,$8034,$0008,$0000
+	dc.w $000C,$8036,$800C,$0000,$800C,$8036,$800C,$0000
+	dc.w $800C,$8036,$000C,$0000,$000C,$8036,$000C,$0000
+	dc.w $000C,$8036,$800C,$0000,$800C,$8036,$800C,$0000
+	dc.w $800C,$8036,$000C,$0000,$000C,$8036,$000C,$0000
+	dc.w $0004,$8038,$8004,$0000,$8004,$8038,$8004,$0000
+	dc.w $8004,$8038,$0004,$0000,$0004,$8038,$0004,$0000
+	dc.w $0008,$803A,$8008,$0000,$8008,$803A,$8008,$0000
+	dc.w $8008,$803A,$0008,$0000,$0008,$803A,$0008,$0000
+	dc.w $000C,$803C,$800C,$0000,$800C,$803C,$800C,$0000
+	dc.w $800C,$803C,$000C,$0000,$000C,$803C,$000C,$0000
+	dc.w $000C,$803C,$800C,$0000,$800C,$803C,$800C,$0000
+	dc.w $800C,$803C,$000C,$0000,$000C,$803C,$000C,$0000
+	dc.w $0004,$803E,$8004,$0000,$8004,$803E,$8004,$0000
+	dc.w $8004,$803E,$0004,$0000,$0004,$803E,$0004,$0000
+	dc.w $0008,$8040,$8008,$0000,$8008,$8040,$8008,$0000
+	dc.w $8008,$8040,$0008,$0000,$0008,$8040,$0008,$0000
+	dc.w $000C,$8042,$800C,$0000,$800C,$8042,$800C,$0000
+	dc.w $800C,$8042,$000C,$0000,$000C,$8042,$000C,$0000
+	dc.w $000C,$8042,$800C,$0000,$800C,$8042,$800C,$0000
+	dc.w $800C,$8042,$000C,$0000,$000C,$8042,$000C,$0000
+	dc.w $0004,$8044,$8004,$0000,$8004,$8044,$8004,$0000
+	dc.w $8004,$8044,$0004,$0000,$0004,$8044,$0004,$0000
+	dc.w $0008,$8046,$8008,$0000,$8008,$8046,$8008,$0000
+	dc.w $8008,$8046,$0008,$0000,$0008,$8046,$0008,$0000
+	dc.w $000C,$8048,$800C,$0000,$800C,$8048,$800C,$0000
+	dc.w $800C,$8048,$000C,$0000,$000C,$8048,$000C,$0000
+	dc.w $000C,$8048,$800C,$0000,$800C,$8048,$800C,$0000
+	dc.w $800C,$8048,$000C,$0000,$000C,$8048,$000C,$0000
+	dc.w $0004,$804A,$8004,$0000,$8004,$804A,$8004,$0000
+	dc.w $8004,$804A,$0004,$0000,$0004,$804A,$0004,$0000
+	dc.w $0008,$804C,$8008,$0000,$8008,$804C,$8008,$0000
+	dc.w $8008,$804C,$0008,$0000,$0008,$804C,$0008,$0000
+	dc.w $000C,$804E,$800C,$0000,$800C,$804E,$800C,$0000
+	dc.w $800C,$804E,$000C,$0000,$000C,$804E,$000C,$0000
+	dc.w $000C,$804E,$800C,$0000,$800C,$804E,$800C,$0000
+	dc.w $800C,$804E,$000C,$0000,$000C,$804E,$000C,$0000
+	dc.w $0004,$8050,$8004,$0000,$8004,$8050,$8004,$0000
+	dc.w $8004,$8050,$0004,$0000,$0004,$8050,$0004,$0000
+	dc.w $0008,$8052,$8008,$0000,$8008,$8052,$8008,$0000
+	dc.w $8008,$8052,$0008,$0000,$0008,$8052,$0008,$0000
+	dc.w $000C,$8054,$800C,$0000,$800C,$8054,$800C,$0000
+	dc.w $800C,$8054,$000C,$0000,$000C,$8054,$000C,$0000
+	dc.w $000C,$8054,$800C,$0000,$800C,$8054,$800C,$0000
+	dc.w $800C,$8054,$000C,$0000,$000C,$8054,$000C,$0000
+	dc.w $0004,$8056,$8004,$0000,$8004,$8056,$8004,$0000
+	dc.w $8004,$8056,$0004,$0000,$0004,$8056,$0004,$0000
+	dc.w $0008,$8058,$8008,$0000,$8008,$8058,$8008,$0000
+	dc.w $8008,$8058,$0008,$0000,$0008,$8058,$0008,$0000
+	dc.w $000C,$805A,$800C,$0000,$800C,$805A,$800C,$0000
+	dc.w $800C,$805A,$000C,$0000,$000C,$805A,$000C,$0000
+	dc.w $000C,$805A,$800C,$0000,$800C,$805A,$800C,$0000
+	dc.w $800C,$805A,$000C,$0000,$000C,$805A,$000C,$0000
+	dc.w $0004,$805C,$8004,$0000,$8004,$805C,$8004,$0000
+	dc.w $8004,$805C,$0004,$0000,$0004,$805C,$0004,$0000
+	dc.w $0008,$805E,$8008,$0000,$8008,$805E,$8008,$0000
+	dc.w $8008,$805E,$0008,$0000,$0008,$805E,$0008,$0000
+	dc.w $000C,$8060,$800C,$0000,$800C,$8060,$800C,$0000
+	dc.w $800C,$8060,$000C,$0000,$000C,$8060,$000C,$0000
+	dc.w $000C,$8060,$800C,$0000,$800C,$8060,$800C,$0000
+	dc.w $800C,$8060,$000C,$0000,$000C,$8060,$000C,$0000
+	dc.w $0004,$8062,$8004,$0000,$8004,$8062,$8004,$0000
+	dc.w $8004,$8062,$0004,$0000,$0004,$8062,$0004,$0000
+	dc.w $0008,$8064,$8008,$0000,$8008,$8064,$8008,$0000
+	dc.w $8008,$8064,$0008,$0000,$0008,$8064,$0008,$0000
+	dc.w $000C,$8066,$800C,$0000,$800C,$8066,$800C,$0000
+	dc.w $800C,$8066,$000C,$0000,$000C,$8066,$000C,$0000
+	dc.w $000C,$8068,$800C,$0000,$800C,$8068,$800C,$0000
+	dc.w $800C,$8068,$000C,$0000,$000C,$8068,$000C,$0000
+	dc.w $0004,$8062,$8004,$0000,$8004,$8062,$8004,$0000
+	dc.w $8004,$8062,$0004,$0000,$0004,$8062,$0004,$0000
+	dc.w $0008,$8064,$8008,$0000,$8008,$8064,$8008,$0000
+	dc.w $8008,$8064,$0008,$0000,$0008,$8064,$0008,$0000
+	dc.w $006A,$806C,$806A,$0000,$806A,$806C,$806A,$0000
+	dc.w $806A,$806C,$006A,$0000,$006A,$806C,$006A,$0000
+	dc.w $000C,$8068,$800C,$0000,$800C,$8068,$800C,$0000
+	dc.w $800C,$8068,$000C,$0000,$000C,$8068,$000C,$0000
+	dc.w $0004,$8062,$8004,$0000,$8004,$8062,$8004,$0000
+	dc.w $8004,$8062,$0004,$0000,$0004,$8062,$0004,$0000
+	dc.w $0008,$8064,$8008,$0000,$8008,$8064,$8008,$0000
+	dc.w $8008,$8064,$0008,$0000,$0008,$8064,$0008,$0000
+	dc.w $006E,$8070,$806E,$0000,$806E,$8070,$806E,$0000
+	dc.w $806E,$8070,$006E,$0000,$006E,$8070,$006E,$0000
+	dc.w $000C,$8068,$800C,$0000,$800C,$8068,$800C,$0000
+	dc.w $800C,$8068,$000C,$0000,$000C,$8068,$000C,$0000
+	dc.w $0004,$8062,$8004,$0000,$8004,$8062,$8004,$0000
+	dc.w $8004,$8062,$0004,$0000,$0004,$8062,$0004,$0000
+	dc.w $0008,$8064,$8008,$0000,$8008,$8064,$8008,$0000
+	dc.w $8008,$8064,$0008,$0000,$0008,$8064,$0008,$0000
+	dc.w $0072,$8074,$8072,$0000,$8072,$8074,$8072,$0000
+	dc.w $8072,$8074,$0072,$0000,$0072,$8074,$0072,$0000
+	dc.w $000C,$8068,$800C,$0000,$800C,$8068,$800C,$0000
+	dc.w $800C,$8068,$000C,$0000,$000C,$8068,$000C,$0000
+	dc.w $0004,$8062,$8004,$0000,$8004,$8062,$8004,$0000
+	dc.w $8004,$8062,$0004,$0000,$0004,$8062,$0004,$0000
+	dc.w $0008,$8064,$8008,$0000,$8008,$8064,$8008,$0000
+	dc.w $8008,$8064,$0008,$0000,$0008,$8064,$0008,$0000
+	dc.w $0076,$8078,$8076,$0000,$8076,$8078,$8076,$0000
+	dc.w $8076,$8078,$0076,$0000,$0076,$8078,$0076,$0000
+	dc.w $000C,$8068,$800C,$0000,$800C,$8068,$800C,$0000
+	dc.w $800C,$8068,$000C,$0000,$000C,$8068,$000C,$0000
+	dc.w $0004,$8062,$8004,$0000,$8004,$8062,$8004,$0000
+	dc.w $8004,$8062,$0004,$0000,$0004,$8062,$0004,$0000
+	dc.w $0008,$8064,$8008,$0000,$8008,$8064,$8008,$0000
+	dc.w $8008,$8064,$0008,$0000,$0008,$8064,$0008,$0000
+	dc.w $007A,$807C,$807A,$0000,$807A,$807C,$807A,$0000
+	dc.w $807A,$807C,$007A,$0000,$007A,$807C,$007A,$0000
+	dc.w $000C,$8068,$800C,$0000,$800C,$8068,$800C,$0000
+	dc.w $800C,$8068,$000C,$0000,$000C,$8068,$000C,$0000
+	dc.w $0004,$8062,$8004,$0000,$8004,$8062,$8004,$0000
+	dc.w $8004,$8062,$0004,$0000,$0004,$8062,$0004,$0000
+	dc.w $0008,$8064,$8008,$0000,$8008,$8064,$8008,$0000
+	dc.w $8008,$8064,$0008,$0000,$0008,$8064,$0008,$0000
+	dc.w $007E,$8080,$807E,$0000,$807E,$8080,$807E,$0000
+	dc.w $807E,$8080,$007E,$0000,$007E,$8080,$007E,$0000
+	dc.w $000C,$8068,$800C,$0000,$800C,$8068,$800C,$0000
+	dc.w $800C,$8068,$000C,$0000,$000C,$8068,$000C,$0000
+	dc.w $0004,$8062,$8004,$0000,$8004,$8062,$8004,$0000
+	dc.w $8004,$8062,$0004,$0000,$0004,$8062,$0004,$0000
+	dc.w $0008,$8064,$8008,$0000,$8008,$8064,$8008,$0000
+	dc.w $8008,$8064,$0008,$0000,$0008,$8064,$0008,$0000
+	dc.w $0082,$8084,$8082,$0000,$8082,$8084,$8082,$0000
+	dc.w $8082,$8084,$0082,$0000,$0082,$8084,$0082,$0000
+	dc.w $000C,$8068,$800C,$0000,$800C,$8068,$800C,$0000
+	dc.w $800C,$8068,$000C,$0000,$000C,$8068,$000C,$0000
+	dc.w $0004,$8062,$8004,$0000,$8004,$8062,$8004,$0000
+	dc.w $8004,$8062,$0004,$0000,$0004,$8062,$0004,$0000
+	dc.w $0008,$8064,$8008,$0000,$8008,$8064,$8008,$0000
+	dc.w $8008,$8064,$0008,$0000,$0008,$8064,$0008,$0000
+	dc.w $0086,$8088,$8086,$0000,$8086,$8088,$8086,$0000
+	dc.w $8086,$8088,$0086,$0000,$0086,$8088,$0086,$0000
+	dc.w $000C,$8068,$800C,$0000,$800C,$8068,$800C,$0000
+	dc.w $800C,$8068,$000C,$0000,$000C,$8068,$000C,$0000
+	dc.w $0004,$8062,$8004,$0000,$8004,$8062,$8004,$0000
+	dc.w $8004,$8062,$0004,$0000,$0004,$8062,$0004,$0000
+	dc.w $0008,$8064,$8008,$0000,$8008,$8064,$8008,$0000
+	dc.w $8008,$8064,$0008,$0000,$0008,$8064,$0008,$0000
+	dc.w $008A,$808C,$808A,$0000,$808A,$808C,$808A,$0000
+	dc.w $808A,$808C,$008A,$0000,$008A,$808C,$008A,$0000
+	dc.w $000C,$8068,$800C,$0000,$800C,$8068,$800C,$0000
+	dc.w $800C,$8068,$000C,$0000,$000C,$8068,$000C,$0000
+	dc.w $0004,$8062,$8004,$0000,$8004,$8062,$8004,$0000
+	dc.w $8004,$8062,$0004,$0000,$0004,$8062,$0004,$0000
+	dc.w $0008,$8064,$8008,$0000,$8008,$8064,$8008,$0000
+	dc.w $8008,$8064,$0008,$0000,$0008,$8064,$0008,$0000
+	dc.w $008E,$8090,$808E,$0000,$808E,$8090,$808E,$0000
+	dc.w $808E,$8090,$008E,$0000,$008E,$8090,$008E,$0000
+	dc.w $000C,$8068,$800C,$0000,$800C,$8068,$800C,$0000
+	dc.w $800C,$8068,$000C,$0000,$000C,$8068,$000C,$0000
+	dc.w $0004,$8062,$8004,$0000,$8004,$8062,$8004,$0000
+	dc.w $8004,$8062,$0004,$0000,$0004,$8062,$0004,$0000
+	dc.w $0008,$8064,$8008,$0000,$8008,$8064,$8008,$0000
+	dc.w $8008,$8064,$0008,$0000,$0008,$8064,$0008,$0000
+	dc.w $0092,$8094,$8092,$0000,$8092,$8094,$8092,$0000
+	dc.w $8092,$8094,$0092,$0000,$0092,$8094,$0092,$0000
+	dc.w $000C,$8068,$800C,$0000,$800C,$8068,$800C,$0000
+	dc.w $800C,$8068,$000C,$0000,$000C,$8068,$000C,$0000
+	dc.w $0004,$8062,$8004,$0000,$8004,$8062,$8004,$0000
+	dc.w $8004,$8062,$0004,$0000,$0004,$8062,$0004,$0000
+	dc.w $0008,$8064,$8008,$0000,$8008,$8064,$8008,$0000
+	dc.w $8008,$8064,$0008,$0000,$0008,$8064,$0008,$0000
+	dc.w $0096,$8098,$8096,$0000,$8096,$8098,$8096,$0000
+	dc.w $8096,$8098,$0096,$0000,$0096,$8098,$0096,$0000
+	dc.w $000C,$8068,$800C,$0000,$800C,$8068,$800C,$0000
+	dc.w $800C,$8068,$000C,$0000,$000C,$8068,$000C,$0000
+	dc.w $0004,$8062,$8004,$0000,$8004,$8062,$8004,$0000
+	dc.w $8004,$8062,$0004,$0000,$0004,$8062,$0004,$0000
+	dc.w $0008,$8064,$8008,$0000,$8008,$8064,$8008,$0000
+	dc.w $8008,$8064,$0008,$0000,$0008,$8064,$0008,$0000
+	dc.w $009A,$809C,$809A,$0000,$809A,$809C,$809A,$0000
+	dc.w $809A,$809C,$009A,$0000,$009A,$809C,$009A,$0000
+	dc.w $000C,$8068,$800C,$0000,$800C,$8068,$800C,$0000
+	dc.w $800C,$8068,$000C,$0000,$000C,$8068,$000C,$0000
+	dc.w $0004,$8062,$8004,$0000,$8004,$8062,$8004,$0000
+	dc.w $8004,$8062,$0004,$0000,$0004,$8062,$0004,$0000
+	dc.w $0008,$8064,$8008,$0000,$8008,$8064,$8008,$0000
+	dc.w $8008,$8064,$0008,$0000,$0008,$8064,$0008,$0000
+	dc.w $009E,$80A0,$809E,$0000,$809E,$80A0,$809E,$0000
+	dc.w $809E,$80A0,$009E,$0000,$009E,$80A0,$009E,$0000
+	dc.w $000C,$8068,$800C,$0000,$800C,$8068,$800C,$0000
+	dc.w $800C,$8068,$000C,$0000,$000C,$8068,$000C,$0000
+	dc.w $0004,$8062,$8004,$0000,$8004,$8062,$8004,$0000
+	dc.w $8004,$8062,$0004,$0000,$0004,$8062,$0004,$0000
+	dc.w $0008,$8064,$8008,$0000,$8008,$8064,$8008,$0000
+	dc.w $8008,$8064,$0008,$0000,$0008,$8064,$0008,$0000
+	dc.w $00A2,$80A4,$80A2,$0000,$80A2,$80A4,$80A2,$0000
+	dc.w $80A2,$80A4,$00A2,$0000,$00A2,$80A4,$00A2,$0000
+	dc.w $000C,$8068,$800C,$0000,$800C,$8068,$800C,$0000
+	dc.w $800C,$8068,$000C,$0000,$000C,$8068,$000C,$0000
 model_004_variant_frames:
 	dc.l model_004_variant_words	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
 	dc.l model_004_variant_words+$80
@@ -25555,27 +25582,27 @@ model_004_variant_frames:
 	dc.l model_004_variant_words+$E80
 model_005_faces:
 	dc.w $0600,$0028,$0020,$0018,$0010,$0008,$0000,$0301	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0030,$0038,$0060,$0301,$0040,$0048,$0068,$0301	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0050,$0058,$0070,$0306,$0000,$0030,$0060,$0306	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0008,$0060,$0038,$0306,$0010,$0040,$0068,$0306	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0048,$0018,$0068,$0306,$0020,$0050,$0070,$0306	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0058,$0028,$0070,$0401,$0000,$0008,$0038,$0030	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $8405,$0008,$0038,$0040,$0010,$0401,$0010,$0018	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0048,$0040,$8405,$0020,$0018,$0048,$0050,$0401	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0020,$0028,$0058,$0050,$8405,$0000,$0028,$0058	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0030,$0309,$0038,$0030,$0078,$0309,$0040,$0038	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0080,$0309,$0048,$0040,$0088,$0309,$0050,$0048	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0090,$0309,$0058,$0050,$0098,$0309,$0030,$0058	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $00A0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0030,$0038,$0060,$0301,$0040,$0048,$0068,$0301
+	dc.w $0050,$0058,$0070,$0306,$0000,$0030,$0060,$0306
+	dc.w $0008,$0060,$0038,$0306,$0010,$0040,$0068,$0306
+	dc.w $0048,$0018,$0068,$0306,$0020,$0050,$0070,$0306
+	dc.w $0058,$0028,$0070,$0401,$0000,$0008,$0038,$0030
+	dc.w $8405,$0008,$0038,$0040,$0010,$0401,$0010,$0018
+	dc.w $0048,$0040,$8405,$0020,$0018,$0048,$0050,$0401
+	dc.w $0020,$0028,$0058,$0050,$8405,$0000,$0028,$0058
+	dc.w $0030,$0309,$0038,$0030,$0078,$0309,$0040,$0038
+	dc.w $0080,$0309,$0048,$0040,$0088,$0309,$0050,$0048
+	dc.w $0090,$0309,$0058,$0050,$0098,$0309,$0030,$0058
+	dc.w $00A0
 model_005_coordinates:
 	dc.w $0000,$1770,$1446,$0BB8,$1194,$0F3C,$08CA,$1D4C	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $32BE,$3A98,$000F,$001E,$0069,$003C,$0078,$00E1	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0087,$010E,$0195,$01D1,$0267,$0168,$00D2,$02D0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0366,$01EF,$03ED,$0483,$0294,$0537,$05BE,$0348	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $069F,$06F9,$03FC,$0807,$0834,$04BF,$097E,$096F	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0573,$0AE6,$0AAA,$0627,$0C4E,$06CC,$0D98,$0CB7	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0753,$0EB5,$07DA,$0FB4,$0E4C,$1077,$0EC4,$087F	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $110D,$0F1E,$08AC,$1167,$0F2D	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $32BE,$3A98,$000F,$001E,$0069,$003C,$0078,$00E1
+	dc.w $0087,$010E,$0195,$01D1,$0267,$0168,$00D2,$02D0
+	dc.w $0366,$01EF,$03ED,$0483,$0294,$0537,$05BE,$0348
+	dc.w $069F,$06F9,$03FC,$0807,$0834,$04BF,$097E,$096F
+	dc.w $0573,$0AE6,$0AAA,$0627,$0C4E,$06CC,$0D98,$0CB7
+	dc.w $0753,$0EB5,$07DA,$0FB4,$0E4C,$1077,$0EC4,$087F
+	dc.w $110D,$0F1E,$08AC,$1167,$0F2D
 model_005_vertices:
 	dc.w $0000	; x_coordinate_ref
 	dc.w $0000	; y_coordinate_ref
@@ -25663,62 +25690,62 @@ model_005_vertices:
 	dc.w $0028	; variant_offset_or_negative
 model_005_variant_words:
 	dc.w $8014,$8006,$8014,$0000,$8014,$8006,$0014,$0000	; 19 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0000,$8006,$0016,$0000,$0014,$8006,$0014,$0000	; 19 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0014,$8006,$8014,$0000,$0000,$8006,$8016,$0000	; 19 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8018,$8006,$801A,$0000,$8018,$8006,$001A,$0000	; 19 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0000,$8006,$001C,$0000,$0018,$8006,$001A,$0000	; 19 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0018,$8006,$801A,$0000,$0000,$8006,$801C,$0000	; 19 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $801E,$8006,$8020,$0000,$801E,$8006,$0020,$0000	; 19 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0000,$8006,$0022,$0000,$001E,$8006,$0020,$0000	; 19 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $001E,$8006,$8020,$0000,$0000,$8006,$8022,$0000	; 19 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8024,$8006,$801E,$0000,$8024,$8006,$001E,$0000	; 19 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0000,$8006,$0026,$0000,$0024,$8006,$001E,$0000	; 19 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0024,$8006,$801E,$0000,$0000,$8006,$8026,$0000	; 19 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8028,$8006,$802A,$0000,$802C,$8006,$002A,$0000	; 19 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0000,$8006,$002E,$0000,$0028,$8006,$002A,$0000	; 19 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0028,$8006,$802A,$0000,$0000,$8006,$802E,$0000	; 19 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8030,$8006,$8032,$0000,$8030,$8006,$0032,$0000	; 19 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0000,$8006,$0034,$0000,$0030,$8006,$0032,$0000	; 19 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0030,$8006,$8032,$0000,$0000,$8006,$8034,$0000	; 19 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8036,$8006,$8038,$0000,$8036,$8006,$0038,$0000	; 19 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0000,$8006,$003A,$0000,$0036,$8006,$0038,$0000	; 19 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0036,$8006,$8038,$0000,$0000,$8006,$803A,$0000	; 19 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $803C,$8006,$803E,$0000,$803C,$8006,$003E,$0000	; 19 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0000,$8006,$0040,$0000,$003C,$8006,$003E,$0000	; 19 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $003C,$8006,$803E,$0000,$0000,$8006,$8040,$0000	; 19 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8042,$8006,$8044,$0000,$8042,$8006,$0044,$0000	; 19 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0000,$8006,$0046,$0000,$0042,$8006,$0044,$0000	; 19 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0042,$8006,$8044,$0000,$0000,$8006,$8046,$0000	; 19 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8048,$8006,$804A,$0000,$8048,$8006,$004A,$0000	; 19 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0000,$8006,$004C,$0000,$0048,$8006,$004A,$0000	; 19 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0048,$8006,$804A,$0000,$0000,$8006,$804C,$0000	; 19 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $804E,$8006,$8050,$0000,$804E,$8006,$0050,$0000	; 19 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0000,$8006,$0052,$0000,$004E,$8006,$0050,$0000	; 19 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $004E,$8006,$8050,$0000,$0000,$8006,$8052,$0000	; 19 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8054,$8006,$8056,$0000,$8054,$8006,$0056,$0000	; 19 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0000,$8006,$0058,$0000,$0054,$8006,$0056,$0000	; 19 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0054,$8006,$8056,$0000,$0000,$8006,$8058,$0000	; 19 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8006,$8006,$805A,$0000,$8006,$8006,$005A,$0000	; 19 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0000,$8006,$005C,$0000,$0006,$8006,$005A,$0000	; 19 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0006,$8006,$805A,$0000,$0000,$8006,$805C,$0000	; 19 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $805E,$8006,$8060,$0000,$805E,$8006,$0060,$0000	; 19 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0000,$8006,$0062,$0000,$005E,$8006,$0060,$0000	; 19 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $005E,$8006,$8060,$0000,$0000,$8006,$8062,$0000	; 19 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $805C,$8006,$8064,$0000,$805C,$8006,$0064,$0000	; 19 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0000,$8006,$0066,$0000,$005C,$8006,$0064,$0000	; 19 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $005C,$8006,$8064,$0000,$0000,$8006,$8066,$0000	; 19 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8068,$8006,$8048,$0000,$8068,$8006,$0048,$0000	; 19 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0000,$8006,$006A,$0000,$0068,$8006,$0048,$0000	; 19 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0068,$8006,$8048,$0000,$0000,$8006,$806A,$0000	; 19 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $806C,$8006,$806E,$0000,$806C,$8006,$006E,$0000	; 19 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0000,$8006,$0070,$0000,$006C,$8006,$006E,$0000	; 19 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $006C,$8006,$806E,$0000,$0000,$8006,$8070,$0000	; 19 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8072,$8006,$8074,$0000,$8072,$8006,$0074,$0000	; 19 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0000,$8006,$0076,$0000,$0072,$8006,$0074,$0000	; 19 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0072,$8006,$8074,$0000,$0000,$8006,$8076,$0000	; 19 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8078,$8006,$800C,$0000,$8078,$8006,$000C,$0000	; 19 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0000,$8006,$0008,$0000,$0078,$8006,$000C,$0000	; 19 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0078,$8006,$800C,$0000,$0000,$8006,$8008,$0000	; 19 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
+	dc.w $0000,$8006,$0016,$0000,$0014,$8006,$0014,$0000
+	dc.w $0014,$8006,$8014,$0000,$0000,$8006,$8016,$0000
+	dc.w $8018,$8006,$801A,$0000,$8018,$8006,$001A,$0000
+	dc.w $0000,$8006,$001C,$0000,$0018,$8006,$001A,$0000
+	dc.w $0018,$8006,$801A,$0000,$0000,$8006,$801C,$0000
+	dc.w $801E,$8006,$8020,$0000,$801E,$8006,$0020,$0000
+	dc.w $0000,$8006,$0022,$0000,$001E,$8006,$0020,$0000
+	dc.w $001E,$8006,$8020,$0000,$0000,$8006,$8022,$0000
+	dc.w $8024,$8006,$801E,$0000,$8024,$8006,$001E,$0000
+	dc.w $0000,$8006,$0026,$0000,$0024,$8006,$001E,$0000
+	dc.w $0024,$8006,$801E,$0000,$0000,$8006,$8026,$0000
+	dc.w $8028,$8006,$802A,$0000,$802C,$8006,$002A,$0000
+	dc.w $0000,$8006,$002E,$0000,$0028,$8006,$002A,$0000
+	dc.w $0028,$8006,$802A,$0000,$0000,$8006,$802E,$0000
+	dc.w $8030,$8006,$8032,$0000,$8030,$8006,$0032,$0000
+	dc.w $0000,$8006,$0034,$0000,$0030,$8006,$0032,$0000
+	dc.w $0030,$8006,$8032,$0000,$0000,$8006,$8034,$0000
+	dc.w $8036,$8006,$8038,$0000,$8036,$8006,$0038,$0000
+	dc.w $0000,$8006,$003A,$0000,$0036,$8006,$0038,$0000
+	dc.w $0036,$8006,$8038,$0000,$0000,$8006,$803A,$0000
+	dc.w $803C,$8006,$803E,$0000,$803C,$8006,$003E,$0000
+	dc.w $0000,$8006,$0040,$0000,$003C,$8006,$003E,$0000
+	dc.w $003C,$8006,$803E,$0000,$0000,$8006,$8040,$0000
+	dc.w $8042,$8006,$8044,$0000,$8042,$8006,$0044,$0000
+	dc.w $0000,$8006,$0046,$0000,$0042,$8006,$0044,$0000
+	dc.w $0042,$8006,$8044,$0000,$0000,$8006,$8046,$0000
+	dc.w $8048,$8006,$804A,$0000,$8048,$8006,$004A,$0000
+	dc.w $0000,$8006,$004C,$0000,$0048,$8006,$004A,$0000
+	dc.w $0048,$8006,$804A,$0000,$0000,$8006,$804C,$0000
+	dc.w $804E,$8006,$8050,$0000,$804E,$8006,$0050,$0000
+	dc.w $0000,$8006,$0052,$0000,$004E,$8006,$0050,$0000
+	dc.w $004E,$8006,$8050,$0000,$0000,$8006,$8052,$0000
+	dc.w $8054,$8006,$8056,$0000,$8054,$8006,$0056,$0000
+	dc.w $0000,$8006,$0058,$0000,$0054,$8006,$0056,$0000
+	dc.w $0054,$8006,$8056,$0000,$0000,$8006,$8058,$0000
+	dc.w $8006,$8006,$805A,$0000,$8006,$8006,$005A,$0000
+	dc.w $0000,$8006,$005C,$0000,$0006,$8006,$005A,$0000
+	dc.w $0006,$8006,$805A,$0000,$0000,$8006,$805C,$0000
+	dc.w $805E,$8006,$8060,$0000,$805E,$8006,$0060,$0000
+	dc.w $0000,$8006,$0062,$0000,$005E,$8006,$0060,$0000
+	dc.w $005E,$8006,$8060,$0000,$0000,$8006,$8062,$0000
+	dc.w $805C,$8006,$8064,$0000,$805C,$8006,$0064,$0000
+	dc.w $0000,$8006,$0066,$0000,$005C,$8006,$0064,$0000
+	dc.w $005C,$8006,$8064,$0000,$0000,$8006,$8066,$0000
+	dc.w $8068,$8006,$8048,$0000,$8068,$8006,$0048,$0000
+	dc.w $0000,$8006,$006A,$0000,$0068,$8006,$0048,$0000
+	dc.w $0068,$8006,$8048,$0000,$0000,$8006,$806A,$0000
+	dc.w $806C,$8006,$806E,$0000,$806C,$8006,$006E,$0000
+	dc.w $0000,$8006,$0070,$0000,$006C,$8006,$006E,$0000
+	dc.w $006C,$8006,$806E,$0000,$0000,$8006,$8070,$0000
+	dc.w $8072,$8006,$8074,$0000,$8072,$8006,$0074,$0000
+	dc.w $0000,$8006,$0076,$0000,$0072,$8006,$0074,$0000
+	dc.w $0072,$8006,$8074,$0000,$0000,$8006,$8076,$0000
+	dc.w $8078,$8006,$800C,$0000,$8078,$8006,$000C,$0000
+	dc.w $0000,$8006,$0008,$0000,$0078,$8006,$000C,$0000
+	dc.w $0078,$8006,$800C,$0000,$0000,$8006,$8008,$0000
 model_005_variant_frames:
 	dc.l model_005_variant_words	; 19 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
 	dc.l model_005_variant_words+$30
@@ -25741,22 +25768,22 @@ model_005_variant_frames:
 	dc.l model_005_variant_words+$360
 model_006_faces:
 	dc.w $040E,$0000,$0018,$0010,$0008,$040E,$00A0,$00A8	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $00B0,$00B8,$040C,$0000,$0008,$0028,$0020,$040C	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $00A0,$0060,$0068,$00A8,$040C,$0010,$0018,$0048	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0040,$040C,$00B8,$00B0,$0080,$0088,$040C,$0008	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0010,$0038,$0030,$040C,$0070,$0078,$00B0,$00A8	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $040C,$0000,$0058,$0050,$0018,$040C,$0098,$00A0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $00B8,$0090,$030B,$0008,$0030,$0028,$030B,$0068	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0070,$00A8,$030B,$0010,$0040,$0038,$030B,$0078	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0080,$00B0,$030B,$0018,$0050,$0048,$030B,$0088	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0090,$00B8,$030B,$0000,$0020,$0058,$030B,$0060	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $00A0,$0098,$040E,$0020,$0028,$0068,$0060,$040E	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0040,$0048,$0088,$0080,$040E,$0050,$0058,$0098	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0090,$040E,$0030,$0038,$0078,$0070,$040C,$0030	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0070,$0068,$0028,$040C,$0038,$0040,$0080,$0078	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $040C,$0020,$0060,$0098,$0058,$040C,$0048,$0050	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0090,$0088,$0400,$00C0,$00C8,$00D0,$00D8,$0400	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $00E0,$00F8,$00F0,$00E8	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $00B0,$00B8,$040C,$0000,$0008,$0028,$0020,$040C
+	dc.w $00A0,$0060,$0068,$00A8,$040C,$0010,$0018,$0048
+	dc.w $0040,$040C,$00B8,$00B0,$0080,$0088,$040C,$0008
+	dc.w $0010,$0038,$0030,$040C,$0070,$0078,$00B0,$00A8
+	dc.w $040C,$0000,$0058,$0050,$0018,$040C,$0098,$00A0
+	dc.w $00B8,$0090,$030B,$0008,$0030,$0028,$030B,$0068
+	dc.w $0070,$00A8,$030B,$0010,$0040,$0038,$030B,$0078
+	dc.w $0080,$00B0,$030B,$0018,$0050,$0048,$030B,$0088
+	dc.w $0090,$00B8,$030B,$0000,$0020,$0058,$030B,$0060
+	dc.w $00A0,$0098,$040E,$0020,$0028,$0068,$0060,$040E
+	dc.w $0040,$0048,$0088,$0080,$040E,$0050,$0058,$0098
+	dc.w $0090,$040E,$0030,$0038,$0078,$0070,$040C,$0030
+	dc.w $0070,$0068,$0028,$040C,$0038,$0040,$0080,$0078
+	dc.w $040C,$0020,$0060,$0098,$0058,$040C,$0048,$0050
+	dc.w $0090,$0088,$0400,$00C0,$00C8,$00D0,$00D8,$0400
+	dc.w $00E0,$00F8,$00F0,$00E8
 model_006_coordinates:
 	dc.w $0000,$0640,$0AA0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
 model_006_vertices:
@@ -25890,32 +25917,32 @@ model_006_vertices:
 	dc.w $FFFF	; variant_offset_or_negative
 model_007_faces:
 	dc.w $0301,$0000,$0008,$0010,$0306,$0000,$0018,$0008	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0306,$0000,$0010,$0020,$0301,$0000,$0020,$0018	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0306,$0008,$0028,$0010,$0301,$0008,$0018,$0028	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0301,$0020,$0010,$0028,$0306,$0020,$0028,$0018	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0301,$0028,$0040,$0030,$0306,$0028,$0038,$0040	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0306,$0030,$0040,$0048,$0305,$0038,$0050,$0040	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0305,$0040,$0058,$0048,$0304,$0040,$0050,$0058	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0306,$0028,$0030,$0060,$0301,$0038,$0028,$0060	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0305,$0030,$0048,$0060,$0306,$0038,$0060,$0050	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0304,$0048,$0058,$0060,$0305,$0050,$0060,$0058	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $8408,$0030,$0068,$0088,$0048,$8408,$0038,$0078	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0090,$0050,$8307,$0068,$0070,$0088,$8307,$0078	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0080,$0090	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0306,$0000,$0010,$0020,$0301,$0000,$0020,$0018
+	dc.w $0306,$0008,$0028,$0010,$0301,$0008,$0018,$0028
+	dc.w $0301,$0020,$0010,$0028,$0306,$0020,$0028,$0018
+	dc.w $0301,$0028,$0040,$0030,$0306,$0028,$0038,$0040
+	dc.w $0306,$0030,$0040,$0048,$0305,$0038,$0050,$0040
+	dc.w $0305,$0040,$0058,$0048,$0304,$0040,$0050,$0058
+	dc.w $0306,$0028,$0030,$0060,$0301,$0038,$0028,$0060
+	dc.w $0305,$0030,$0048,$0060,$0306,$0038,$0060,$0050
+	dc.w $0304,$0048,$0058,$0060,$0305,$0050,$0060,$0058
+	dc.w $8408,$0030,$0068,$0088,$0048,$8408,$0038,$0078
+	dc.w $0090,$0050,$8307,$0068,$0070,$0088,$8307,$0078
+	dc.w $0080,$0090
 model_007_auxiliary_faces:
 	dc.w $8400,$0000,$0018,$0058,$0010,$8400,$0038,$0078	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0080,$0040,$8400,$0068,$0030,$0040,$0070	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0080,$0040,$8400,$0068,$0030,$0040,$0070
 model_007_coordinates:
 	dc.w $0000,$0AF0,$01E0,$0730,$0230,$04B0,$0190,$0320	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0960,$00F0,$07D0,$0640,$0B88,$02D0,$0530,$07C0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $00C0,$0200,$0528,$0080,$0790,$0170,$0B80,$0110	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0508,$0758,$0020,$04E0,$0150,$0718,$0270,$0B78	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $00D0,$04B8,$01A0,$06F0,$02B0,$01C0,$04A0,$01C8	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $06D8,$0298,$0490,$06E0,$02C8,$0358,$01D8,$0700	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $03D8,$04A8,$01B8,$0738,$0240,$0420,$04D0,$0180	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0778,$0410,$04F8,$0120,$07A8,$0118,$03C0,$0518	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $00B8,$07C8,$0060,$0330,$0040,$00A0,$0058,$0300	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0398,$0408,$03F0,$0380	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0960,$00F0,$07D0,$0640,$0B88,$02D0,$0530,$07C0
+	dc.w $00C0,$0200,$0528,$0080,$0790,$0170,$0B80,$0110
+	dc.w $0508,$0758,$0020,$04E0,$0150,$0718,$0270,$0B78
+	dc.w $00D0,$04B8,$01A0,$06F0,$02B0,$01C0,$04A0,$01C8
+	dc.w $06D8,$0298,$0490,$06E0,$02C8,$0358,$01D8,$0700
+	dc.w $03D8,$04A8,$01B8,$0738,$0240,$0420,$04D0,$0180
+	dc.w $0778,$0410,$04F8,$0120,$07A8,$0118,$03C0,$0518
+	dc.w $00B8,$07C8,$0060,$0330,$0040,$00A0,$0058,$0300
+	dc.w $0398,$0408,$03F0,$0380
 model_007_vertices:
 	dc.w $0000	; x_coordinate_ref
 	dc.w $0000	; y_coordinate_ref
@@ -25995,77 +26022,77 @@ model_007_vertices:
 	dc.w $0028	; variant_offset_or_negative
 model_007_variant_words:
 	dc.w $801E,$0020,$8016,$0000,$8018,$8022,$0014,$0000	; 24 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $001E,$0020,$8016,$0000,$0018,$8022,$0014,$0000	; 24 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8024,$0026,$000C,$0000,$0024,$0026,$000C,$0000	; 24 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8028,$002A,$8016,$0000,$802C,$802E,$0014,$0000	; 24 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0028,$002A,$8016,$0000,$002C,$802E,$0014,$0000	; 24 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8030,$0012,$000C,$0000,$0030,$0012,$000C,$0000	; 24 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8032,$0022,$8016,$0000,$802C,$8034,$0014,$0000	; 24 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0032,$0022,$8016,$0000,$002C,$8034,$0014,$0000	; 24 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8036,$0038,$000C,$0000,$0036,$0038,$000C,$0000	; 24 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $803A,$003C,$8016,$0000,$803E,$0040,$0014,$0000	; 24 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $003A,$003C,$8016,$0000,$003E,$0040,$0014,$0000	; 24 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8042,$0044,$000C,$0000,$0042,$0044,$000C,$0000	; 24 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8046,$0048,$8016,$0000,$802C,$004A,$0014,$0000	; 24 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0046,$0048,$8016,$0000,$002C,$004A,$0014,$0000	; 24 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $804C,$004E,$000C,$0000,$004C,$004E,$000C,$0000	; 24 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8050,$001A,$8016,$0000,$802C,$0052,$0014,$0000	; 24 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0050,$001A,$8016,$0000,$002C,$0052,$0014,$0000	; 24 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8054,$0004,$000C,$0000,$0054,$0004,$000C,$0000	; 24 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8056,$0058,$8016,$0000,$802C,$005A,$0014,$0000	; 24 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0056,$0058,$8016,$0000,$002C,$005A,$0014,$0000	; 24 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8054,$005C,$000C,$0000,$0054,$005C,$000C,$0000	; 24 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $805E,$0052,$8016,$0000,$802C,$0060,$0014,$0000	; 24 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $005E,$0052,$8016,$0000,$002C,$0060,$0014,$0000	; 24 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8062,$0064,$000C,$0000,$0062,$0064,$000C,$0000	; 24 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8066,$0068,$8016,$0000,$802C,$006A,$0014,$0000	; 24 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0066,$0068,$8016,$0000,$002C,$006A,$0014,$0000	; 24 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $806C,$006E,$000C,$0000,$006C,$006E,$000C,$0000	; 24 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8070,$0064,$8016,$0000,$802C,$0072,$0014,$0000	; 24 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0070,$0064,$8016,$0000,$002C,$0072,$0014,$0000	; 24 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8074,$0076,$000C,$0000,$0074,$0076,$000C,$0000	; 24 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8078,$007A,$8016,$0000,$802C,$007C,$0014,$0000	; 24 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0078,$007A,$8016,$0000,$002C,$007C,$0014,$0000	; 24 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $807E,$0080,$000C,$0000,$007E,$0080,$000C,$0000	; 24 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8082,$0084,$8016,$0000,$802C,$0086,$0014,$0000	; 24 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0082,$0084,$8016,$0000,$002C,$0086,$0014,$0000	; 24 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $801C,$0088,$000C,$0000,$001C,$0088,$000C,$0000	; 24 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8082,$8084,$8016,$0000,$802C,$003C,$0014,$0000	; 24 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0082,$8084,$8016,$0000,$002C,$003C,$0014,$0000	; 24 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $801C,$8088,$000C,$0000,$001C,$8088,$000C,$0000	; 24 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8078,$807A,$8016,$0000,$802C,$000C,$0014,$0000	; 24 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0078,$807A,$8016,$0000,$002C,$000C,$0014,$0000	; 24 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $807E,$8080,$000C,$0000,$007E,$8080,$000C,$0000	; 24 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8070,$8064,$8016,$0000,$802C,$008A,$0014,$0000	; 24 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0070,$8064,$8016,$0000,$002C,$008A,$0014,$0000	; 24 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8074,$8076,$000C,$0000,$0074,$8076,$000C,$0000	; 24 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8066,$8068,$8016,$0000,$802C,$808C,$0014,$0000	; 24 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0066,$8068,$8016,$0000,$002C,$808C,$0014,$0000	; 24 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $806C,$806E,$000C,$0000,$006C,$806E,$000C,$0000	; 24 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $805E,$8052,$8016,$0000,$802C,$8038,$0014,$0000	; 24 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $005E,$8052,$8016,$0000,$002C,$8038,$0014,$0000	; 24 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8062,$8064,$000C,$0000,$0062,$8064,$000C,$0000	; 24 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8056,$8058,$8016,$0000,$802C,$8008,$0014,$0000	; 24 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0056,$8058,$8016,$0000,$002C,$8008,$0014,$0000	; 24 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8054,$805C,$000C,$0000,$0054,$805C,$000C,$0000	; 24 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8050,$801A,$8016,$0000,$802C,$808E,$0014,$0000	; 24 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0050,$801A,$8016,$0000,$002C,$808E,$0014,$0000	; 24 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8054,$8004,$000C,$0000,$0054,$8004,$000C,$0000	; 24 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8046,$8048,$8016,$0000,$802C,$8090,$0014,$0000	; 24 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0046,$8048,$8016,$0000,$002C,$8090,$0014,$0000	; 24 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $804C,$804E,$000C,$0000,$004C,$804E,$000C,$0000	; 24 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $803A,$803C,$8016,$0000,$803E,$8092,$0014,$0000	; 24 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $003A,$803C,$8016,$0000,$003E,$8092,$0014,$0000	; 24 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8042,$8044,$000C,$0000,$0042,$8044,$000C,$0000	; 24 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8032,$8022,$8016,$0000,$802C,$806A,$0014,$0000	; 24 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0032,$8022,$8016,$0000,$002C,$806A,$0014,$0000	; 24 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8036,$8038,$000C,$0000,$0036,$8038,$000C,$0000	; 24 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8028,$802A,$8016,$0000,$802C,$8094,$0014,$0000	; 24 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0028,$802A,$8016,$0000,$002C,$8094,$0014,$0000	; 24 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8030,$8012,$000C,$0000,$0030,$8012,$000C,$0000	; 24 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $801E,$8020,$8016,$0000,$8018,$8096,$0014,$0000	; 24 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $001E,$8020,$8016,$0000,$0018,$8096,$0014,$0000	; 24 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8024,$8026,$000C,$0000,$0024,$8026,$000C,$0000	; 24 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
+	dc.w $001E,$0020,$8016,$0000,$0018,$8022,$0014,$0000
+	dc.w $8024,$0026,$000C,$0000,$0024,$0026,$000C,$0000
+	dc.w $8028,$002A,$8016,$0000,$802C,$802E,$0014,$0000
+	dc.w $0028,$002A,$8016,$0000,$002C,$802E,$0014,$0000
+	dc.w $8030,$0012,$000C,$0000,$0030,$0012,$000C,$0000
+	dc.w $8032,$0022,$8016,$0000,$802C,$8034,$0014,$0000
+	dc.w $0032,$0022,$8016,$0000,$002C,$8034,$0014,$0000
+	dc.w $8036,$0038,$000C,$0000,$0036,$0038,$000C,$0000
+	dc.w $803A,$003C,$8016,$0000,$803E,$0040,$0014,$0000
+	dc.w $003A,$003C,$8016,$0000,$003E,$0040,$0014,$0000
+	dc.w $8042,$0044,$000C,$0000,$0042,$0044,$000C,$0000
+	dc.w $8046,$0048,$8016,$0000,$802C,$004A,$0014,$0000
+	dc.w $0046,$0048,$8016,$0000,$002C,$004A,$0014,$0000
+	dc.w $804C,$004E,$000C,$0000,$004C,$004E,$000C,$0000
+	dc.w $8050,$001A,$8016,$0000,$802C,$0052,$0014,$0000
+	dc.w $0050,$001A,$8016,$0000,$002C,$0052,$0014,$0000
+	dc.w $8054,$0004,$000C,$0000,$0054,$0004,$000C,$0000
+	dc.w $8056,$0058,$8016,$0000,$802C,$005A,$0014,$0000
+	dc.w $0056,$0058,$8016,$0000,$002C,$005A,$0014,$0000
+	dc.w $8054,$005C,$000C,$0000,$0054,$005C,$000C,$0000
+	dc.w $805E,$0052,$8016,$0000,$802C,$0060,$0014,$0000
+	dc.w $005E,$0052,$8016,$0000,$002C,$0060,$0014,$0000
+	dc.w $8062,$0064,$000C,$0000,$0062,$0064,$000C,$0000
+	dc.w $8066,$0068,$8016,$0000,$802C,$006A,$0014,$0000
+	dc.w $0066,$0068,$8016,$0000,$002C,$006A,$0014,$0000
+	dc.w $806C,$006E,$000C,$0000,$006C,$006E,$000C,$0000
+	dc.w $8070,$0064,$8016,$0000,$802C,$0072,$0014,$0000
+	dc.w $0070,$0064,$8016,$0000,$002C,$0072,$0014,$0000
+	dc.w $8074,$0076,$000C,$0000,$0074,$0076,$000C,$0000
+	dc.w $8078,$007A,$8016,$0000,$802C,$007C,$0014,$0000
+	dc.w $0078,$007A,$8016,$0000,$002C,$007C,$0014,$0000
+	dc.w $807E,$0080,$000C,$0000,$007E,$0080,$000C,$0000
+	dc.w $8082,$0084,$8016,$0000,$802C,$0086,$0014,$0000
+	dc.w $0082,$0084,$8016,$0000,$002C,$0086,$0014,$0000
+	dc.w $801C,$0088,$000C,$0000,$001C,$0088,$000C,$0000
+	dc.w $8082,$8084,$8016,$0000,$802C,$003C,$0014,$0000
+	dc.w $0082,$8084,$8016,$0000,$002C,$003C,$0014,$0000
+	dc.w $801C,$8088,$000C,$0000,$001C,$8088,$000C,$0000
+	dc.w $8078,$807A,$8016,$0000,$802C,$000C,$0014,$0000
+	dc.w $0078,$807A,$8016,$0000,$002C,$000C,$0014,$0000
+	dc.w $807E,$8080,$000C,$0000,$007E,$8080,$000C,$0000
+	dc.w $8070,$8064,$8016,$0000,$802C,$008A,$0014,$0000
+	dc.w $0070,$8064,$8016,$0000,$002C,$008A,$0014,$0000
+	dc.w $8074,$8076,$000C,$0000,$0074,$8076,$000C,$0000
+	dc.w $8066,$8068,$8016,$0000,$802C,$808C,$0014,$0000
+	dc.w $0066,$8068,$8016,$0000,$002C,$808C,$0014,$0000
+	dc.w $806C,$806E,$000C,$0000,$006C,$806E,$000C,$0000
+	dc.w $805E,$8052,$8016,$0000,$802C,$8038,$0014,$0000
+	dc.w $005E,$8052,$8016,$0000,$002C,$8038,$0014,$0000
+	dc.w $8062,$8064,$000C,$0000,$0062,$8064,$000C,$0000
+	dc.w $8056,$8058,$8016,$0000,$802C,$8008,$0014,$0000
+	dc.w $0056,$8058,$8016,$0000,$002C,$8008,$0014,$0000
+	dc.w $8054,$805C,$000C,$0000,$0054,$805C,$000C,$0000
+	dc.w $8050,$801A,$8016,$0000,$802C,$808E,$0014,$0000
+	dc.w $0050,$801A,$8016,$0000,$002C,$808E,$0014,$0000
+	dc.w $8054,$8004,$000C,$0000,$0054,$8004,$000C,$0000
+	dc.w $8046,$8048,$8016,$0000,$802C,$8090,$0014,$0000
+	dc.w $0046,$8048,$8016,$0000,$002C,$8090,$0014,$0000
+	dc.w $804C,$804E,$000C,$0000,$004C,$804E,$000C,$0000
+	dc.w $803A,$803C,$8016,$0000,$803E,$8092,$0014,$0000
+	dc.w $003A,$803C,$8016,$0000,$003E,$8092,$0014,$0000
+	dc.w $8042,$8044,$000C,$0000,$0042,$8044,$000C,$0000
+	dc.w $8032,$8022,$8016,$0000,$802C,$806A,$0014,$0000
+	dc.w $0032,$8022,$8016,$0000,$002C,$806A,$0014,$0000
+	dc.w $8036,$8038,$000C,$0000,$0036,$8038,$000C,$0000
+	dc.w $8028,$802A,$8016,$0000,$802C,$8094,$0014,$0000
+	dc.w $0028,$802A,$8016,$0000,$002C,$8094,$0014,$0000
+	dc.w $8030,$8012,$000C,$0000,$0030,$8012,$000C,$0000
+	dc.w $801E,$8020,$8016,$0000,$8018,$8096,$0014,$0000
+	dc.w $001E,$8020,$8016,$0000,$0018,$8096,$0014,$0000
+	dc.w $8024,$8026,$000C,$0000,$0024,$8026,$000C,$0000
 model_007_variant_frames:
 	dc.l model_007_variant_words	; 24 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
 	dc.l model_007_variant_words+$30
@@ -26093,27 +26120,27 @@ model_007_variant_frames:
 	dc.l model_007_variant_words+$450
 model_008_faces:
 	dc.w $0401,$0008,$0000,$0020,$0028,$040E,$0028,$0020	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0030,$0038,$0401,$0030,$0040,$0048,$0038,$040B	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0040,$0050,$0058,$0048,$0404,$0058,$0050,$0080	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0088,$040C,$0028,$0038,$0048,$0058,$040C,$0020	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0050,$0040,$0030,$0306,$0000,$0010,$0020,$0306	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0008,$0028,$0018,$0401,$0020,$0010,$0060,$0050	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0401,$0028,$0058,$0068,$0018,$0406,$0050,$0060	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0070,$0080,$0406,$0058,$0088,$0078,$0068,$0305	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0000,$0090,$0010,$0305,$0008,$0018,$0098,$0404	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0010,$0090,$00A0,$0060,$0404,$0018,$0068,$00A8	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0098,$0300,$0060,$00A0,$0070,$0300,$0068,$0078	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $00A8,$0400,$0000,$0008,$0098,$0090,$0401,$0080	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0070,$0078,$0088,$0405,$0070,$00A0,$00A8,$0078	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0407,$0090,$0098,$00A8,$00A0,$8401,$00B0,$00B8	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $00C8,$00C0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0030,$0038,$0401,$0030,$0040,$0048,$0038,$040B
+	dc.w $0040,$0050,$0058,$0048,$0404,$0058,$0050,$0080
+	dc.w $0088,$040C,$0028,$0038,$0048,$0058,$040C,$0020
+	dc.w $0050,$0040,$0030,$0306,$0000,$0010,$0020,$0306
+	dc.w $0008,$0028,$0018,$0401,$0020,$0010,$0060,$0050
+	dc.w $0401,$0028,$0058,$0068,$0018,$0406,$0050,$0060
+	dc.w $0070,$0080,$0406,$0058,$0088,$0078,$0068,$0305
+	dc.w $0000,$0090,$0010,$0305,$0008,$0018,$0098,$0404
+	dc.w $0010,$0090,$00A0,$0060,$0404,$0018,$0068,$00A8
+	dc.w $0098,$0300,$0060,$00A0,$0070,$0300,$0068,$0078
+	dc.w $00A8,$0400,$0000,$0008,$0098,$0090,$0401,$0080
+	dc.w $0070,$0078,$0088,$0405,$0070,$00A0,$00A8,$0078
+	dc.w $0407,$0090,$0098,$00A8,$00A0,$8401,$00B0,$00B8
+	dc.w $00C8,$00C0
 model_008_auxiliary_faces:
 	dc.w $8800,$0000,$0020,$0050,$0080,$0088,$0058,$0028	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0008	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0008
 model_008_coordinates:
 	dc.w $0000,$0640,$01E0,$15E0,$0960,$08C0,$05A0,$0500	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0320,$06E0,$07C8,$0E50,$0780,$0FA0,$12C0,$0820	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0DC0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0320,$06E0,$07C8,$0E50,$0780,$0FA0,$12C0,$0820
+	dc.w $0DC0
 model_008_vertices:
 	dc.w $0002	; x_coordinate_ref
 	dc.w $8004	; y_coordinate_ref
@@ -26221,20 +26248,20 @@ model_008_vertices:
 	dc.w $FFFF	; variant_offset_or_negative
 model_009_faces:
 	dc.w $040E,$0000,$0008,$0028,$0020,$040D,$0008,$0000	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0030,$0038,$030D,$0000,$0020,$0010,$030C,$0000	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0010,$0030,$030D,$0008,$0018,$0028,$030C,$0008	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0038,$0018,$030C,$0020,$0040,$0010,$030B,$0010	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0040,$0030,$030C,$0018,$0040,$0028,$030B,$0018	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0038,$0040,$030D,$0020,$0028,$0040,$030C,$0030	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0040,$0038,$8405,$0070,$0078,$0068,$0048,$0301	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0048,$0060,$0050,$0306,$0048,$0050,$0068,$0306	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0048,$0058,$0060,$0301,$0048,$0068,$0058,$0405	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0050,$0060,$0058,$0068	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0030,$0038,$030D,$0000,$0020,$0010,$030C,$0000
+	dc.w $0010,$0030,$030D,$0008,$0018,$0028,$030C,$0008
+	dc.w $0038,$0018,$030C,$0020,$0040,$0010,$030B,$0010
+	dc.w $0040,$0030,$030C,$0018,$0040,$0028,$030B,$0018
+	dc.w $0038,$0040,$030D,$0020,$0028,$0040,$030C,$0030
+	dc.w $0040,$0038,$8405,$0070,$0078,$0068,$0048,$0301
+	dc.w $0048,$0060,$0050,$0306,$0048,$0050,$0068,$0306
+	dc.w $0048,$0058,$0060,$0301,$0048,$0068,$0058,$0405
+	dc.w $0050,$0060,$0058,$0068
 model_009_auxiliary_faces:
 	dc.w $8500,$0000,$0008,$0018,$0040,$0010	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
 model_009_coordinates:
 	dc.w $0000,$0640,$0FA0,$0A00,$0820,$0500,$0B40,$0460	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0320,$0780,$05A0,$0428,$0290,$04B8,$0508	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0320,$0780,$05A0,$0428,$0290,$04B8,$0508
 model_009_vertices:
 	dc.w $8002	; x_coordinate_ref
 	dc.w $0000	; y_coordinate_ref
@@ -26302,31 +26329,31 @@ model_009_vertices:
 	dc.w $FFFF	; variant_offset_or_negative
 model_010_faces:
 	dc.w $040E,$0000,$0008,$0048,$0040,$030D,$0000,$0040	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0010,$030D,$0008,$0018,$0048,$0402,$0008,$0000	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0050,$0058,$0308,$0000,$0010,$0050,$0308,$0008	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0058,$0018,$040D,$0040,$0048,$0068,$0060,$040C	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0010,$0040,$0060,$0020,$040C,$0018,$0028,$0068	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0048,$0408,$0050,$0070,$0078,$0058,$0409,$0010	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0020,$0070,$0050,$0409,$0058,$0078,$0028,$0018	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $040C,$0038,$0030,$0060,$0068,$030B,$0030,$0020	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0060,$030B,$0028,$0038,$0068,$0409,$0030,$0038	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0078,$0070,$030A,$0020,$0030,$0070,$030A,$0038	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0028,$0078,$8406,$0030,$0038,$00B0,$00A8,$8306	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0080,$0090,$0088,$8306,$0010,$0020,$0098,$8306	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0018,$0028,$00A0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0010,$030D,$0008,$0018,$0048,$0402,$0008,$0000
+	dc.w $0050,$0058,$0308,$0000,$0010,$0050,$0308,$0008
+	dc.w $0058,$0018,$040D,$0040,$0048,$0068,$0060,$040C
+	dc.w $0010,$0040,$0060,$0020,$040C,$0018,$0028,$0068
+	dc.w $0048,$0408,$0050,$0070,$0078,$0058,$0409,$0010
+	dc.w $0020,$0070,$0050,$0409,$0058,$0078,$0028,$0018
+	dc.w $040C,$0038,$0030,$0060,$0068,$030B,$0030,$0020
+	dc.w $0060,$030B,$0028,$0038,$0068,$0409,$0030,$0038
+	dc.w $0078,$0070,$030A,$0020,$0030,$0070,$030A,$0038
+	dc.w $0028,$0078,$8406,$0030,$0038,$00B0,$00A8,$8306
+	dc.w $0080,$0090,$0088,$8306,$0010,$0020,$0098,$8306
+	dc.w $0018,$0028,$00A0
 model_010_auxiliary_faces:
 	dc.w $8800,$0000,$0010,$0020,$0030,$0038,$0028,$0018	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0008,$8400,$0010,$00A8,$0030,$0038	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0008,$8400,$0010,$00A8,$0030,$0038
 model_010_coordinates:
 	dc.w $0000,$01E0,$1900,$0780,$0C80,$0140,$06A0,$1230	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $03C0,$0500,$0460,$0320,$08C0,$0B40,$0640,$0700	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $17C8,$0648,$1250,$0770,$17D0,$0550,$1298,$0720	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $17E8,$0458,$12E0,$06B8,$17F8,$02B0,$1328,$1818	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $00A8,$1358,$0378,$1830,$0100,$01A0,$1848,$0300	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $1320,$0098,$1838,$04A8,$12C8,$02D0,$05A8,$1280	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0478,$1800,$12A0,$05E0,$0718,$0788,$0790,$05B8	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $1808,$03D0,$0210,$1840,$0038,$0268,$1828,$0408	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $1810,$05C8	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $03C0,$0500,$0460,$0320,$08C0,$0B40,$0640,$0700
+	dc.w $17C8,$0648,$1250,$0770,$17D0,$0550,$1298,$0720
+	dc.w $17E8,$0458,$12E0,$06B8,$17F8,$02B0,$1328,$1818
+	dc.w $00A8,$1358,$0378,$1830,$0100,$01A0,$1848,$0300
+	dc.w $1320,$0098,$1838,$04A8,$12C8,$02D0,$05A8,$1280
+	dc.w $0478,$1800,$12A0,$05E0,$0718,$0788,$0790,$05B8
+	dc.w $1808,$03D0,$0210,$1840,$0038,$0268,$1828,$0408
+	dc.w $1810,$05C8
 model_010_vertices:
 	dc.w $8002	; x_coordinate_ref
 	dc.w $0000	; y_coordinate_ref
@@ -26422,47 +26449,47 @@ model_010_vertices:
 	dc.w $0018	; variant_offset_or_negative
 model_010_variant_words:
 	dc.w $800A,$0022,$0024,$0000,$000A,$0022,$0024,$0000	; 21 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $801C,$0026,$0028,$0000,$001C,$0026,$0028,$0000	; 21 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $800A,$002A,$002C,$0000,$000A,$002A,$002C,$0000	; 21 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $801C,$002E,$0030,$0000,$001C,$002E,$0030,$0000	; 21 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $800A,$0032,$0034,$0000,$000A,$0032,$0034,$0000	; 21 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $801C,$0036,$0038,$0000,$001C,$0036,$0038,$0000	; 21 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $800A,$003A,$003C,$0000,$000A,$003A,$003C,$0000	; 21 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $801C,$002A,$003E,$0000,$001C,$002A,$003E,$0000	; 21 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $800A,$0040,$0042,$0000,$000A,$0040,$0042,$0000	; 21 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $801C,$0044,$0046,$0000,$001C,$0044,$0046,$0000	; 21 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $800A,$8048,$0042,$0000,$000A,$8048,$0042,$0000	; 21 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $801C,$004A,$004C,$0000,$001C,$004A,$004C,$0000	; 21 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $800A,$804E,$0050,$0000,$000A,$804E,$0050,$0000	; 21 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $801C,$8052,$0054,$0000,$001C,$8052,$0054,$0000	; 21 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $800A,$8056,$0058,$0000,$000A,$8056,$0058,$0000	; 21 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $801C,$805A,$003E,$0000,$001C,$805A,$003E,$0000	; 21 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $800A,$805C,$005E,$0000,$000A,$805C,$005E,$0000	; 21 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $801C,$8060,$0062,$0000,$001C,$8060,$0062,$0000	; 21 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $800A,$8022,$0064,$0000,$000A,$8022,$0024,$0000	; 21 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $801C,$8066,$0030,$0000,$001C,$8066,$0030,$0000	; 21 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $800A,$800C,$000E,$0000,$000A,$800C,$000E,$0000	; 21 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $801C,$8068,$0020,$0000,$001C,$8068,$0020,$0000	; 21 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $800A,$8022,$0024,$0000,$000A,$8022,$0024,$0000	; 21 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $801C,$806A,$0020,$0000,$001C,$806A,$0020,$0000	; 21 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $800A,$805C,$005E,$0000,$000A,$805C,$005E,$0000	; 21 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $801C,$806C,$0020,$0000,$001C,$806C,$0020,$0000	; 21 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $800A,$8056,$0058,$0000,$000A,$8056,$0058,$0000	; 21 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $801C,$8068,$0028,$0000,$001C,$8068,$0028,$0000	; 21 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $800A,$804E,$0050,$0000,$000A,$804E,$0050,$0000	; 21 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $801C,$806E,$0070,$0000,$001C,$806E,$0070,$0000	; 21 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $800A,$8048,$0042,$0000,$000A,$8048,$0042,$0000	; 21 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $801C,$8072,$0046,$0000,$001C,$8072,$0046,$0000	; 21 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $800A,$0040,$0042,$0000,$000A,$0040,$0042,$0000	; 21 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $801C,$8074,$0076,$0000,$001C,$8074,$0076,$0000	; 21 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $800A,$003A,$003C,$0000,$000A,$003A,$003C,$0000	; 21 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $801C,$0078,$0046,$0000,$001C,$0078,$0046,$0000	; 21 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $800A,$0032,$0034,$0000,$000A,$0032,$0034,$0000	; 21 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $801C,$007A,$007C,$0000,$001C,$007A,$007C,$0000	; 21 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $800A,$002A,$002C,$0000,$000A,$002A,$002C,$0000	; 21 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $801C,$007E,$0080,$0000,$001C,$007E,$0080,$0000	; 21 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $800A,$0022,$0024,$0000,$000A,$0022,$0024,$0000	; 21 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $801C,$0082,$0030,$0000,$001C,$0082,$0030,$0000	; 21 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with uninte
+	dc.w $801C,$0026,$0028,$0000,$001C,$0026,$0028,$0000
+	dc.w $800A,$002A,$002C,$0000,$000A,$002A,$002C,$0000
+	dc.w $801C,$002E,$0030,$0000,$001C,$002E,$0030,$0000
+	dc.w $800A,$0032,$0034,$0000,$000A,$0032,$0034,$0000
+	dc.w $801C,$0036,$0038,$0000,$001C,$0036,$0038,$0000
+	dc.w $800A,$003A,$003C,$0000,$000A,$003A,$003C,$0000
+	dc.w $801C,$002A,$003E,$0000,$001C,$002A,$003E,$0000
+	dc.w $800A,$0040,$0042,$0000,$000A,$0040,$0042,$0000
+	dc.w $801C,$0044,$0046,$0000,$001C,$0044,$0046,$0000
+	dc.w $800A,$8048,$0042,$0000,$000A,$8048,$0042,$0000
+	dc.w $801C,$004A,$004C,$0000,$001C,$004A,$004C,$0000
+	dc.w $800A,$804E,$0050,$0000,$000A,$804E,$0050,$0000
+	dc.w $801C,$8052,$0054,$0000,$001C,$8052,$0054,$0000
+	dc.w $800A,$8056,$0058,$0000,$000A,$8056,$0058,$0000
+	dc.w $801C,$805A,$003E,$0000,$001C,$805A,$003E,$0000
+	dc.w $800A,$805C,$005E,$0000,$000A,$805C,$005E,$0000
+	dc.w $801C,$8060,$0062,$0000,$001C,$8060,$0062,$0000
+	dc.w $800A,$8022,$0064,$0000,$000A,$8022,$0024,$0000
+	dc.w $801C,$8066,$0030,$0000,$001C,$8066,$0030,$0000
+	dc.w $800A,$800C,$000E,$0000,$000A,$800C,$000E,$0000
+	dc.w $801C,$8068,$0020,$0000,$001C,$8068,$0020,$0000
+	dc.w $800A,$8022,$0024,$0000,$000A,$8022,$0024,$0000
+	dc.w $801C,$806A,$0020,$0000,$001C,$806A,$0020,$0000
+	dc.w $800A,$805C,$005E,$0000,$000A,$805C,$005E,$0000
+	dc.w $801C,$806C,$0020,$0000,$001C,$806C,$0020,$0000
+	dc.w $800A,$8056,$0058,$0000,$000A,$8056,$0058,$0000
+	dc.w $801C,$8068,$0028,$0000,$001C,$8068,$0028,$0000
+	dc.w $800A,$804E,$0050,$0000,$000A,$804E,$0050,$0000
+	dc.w $801C,$806E,$0070,$0000,$001C,$806E,$0070,$0000
+	dc.w $800A,$8048,$0042,$0000,$000A,$8048,$0042,$0000
+	dc.w $801C,$8072,$0046,$0000,$001C,$8072,$0046,$0000
+	dc.w $800A,$0040,$0042,$0000,$000A,$0040,$0042,$0000
+	dc.w $801C,$8074,$0076,$0000,$001C,$8074,$0076,$0000
+	dc.w $800A,$003A,$003C,$0000,$000A,$003A,$003C,$0000
+	dc.w $801C,$0078,$0046,$0000,$001C,$0078,$0046,$0000
+	dc.w $800A,$0032,$0034,$0000,$000A,$0032,$0034,$0000
+	dc.w $801C,$007A,$007C,$0000,$001C,$007A,$007C,$0000
+	dc.w $800A,$002A,$002C,$0000,$000A,$002A,$002C,$0000
+	dc.w $801C,$007E,$0080,$0000,$001C,$007E,$0080,$0000
+	dc.w $800A,$0022,$0024,$0000,$000A,$0022,$0024,$0000
+	dc.w $801C,$0082,$0030,$0000,$001C,$0082,$0030,$0000
 model_010_variant_frames:
 	dc.l model_010_variant_words	; 21 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with uninte
 	dc.l model_010_variant_words+$20
@@ -26487,19 +26514,19 @@ model_010_variant_frames:
 	dc.l model_010_variant_words+$280
 model_011_faces:
 	dc.w $0308,$0000,$0038,$0008,$0309,$0008,$0038,$0010	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $030A,$0010,$0038,$0018,$0407,$0038,$0020,$0060	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0018,$030A,$0020,$0038,$0028,$0309,$0028,$0038	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0030,$0302,$0030,$0038,$0000,$0308,$0000,$0040	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0058,$0409,$0040,$0048,$0050,$0058,$050A,$0050	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0048,$0018,$0060,$0020,$0309,$0000,$0008,$0040	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0309,$0030,$0000,$0058,$040A,$0040,$0008,$0010	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0048,$040A,$0028,$0030,$0058,$0050,$0302,$0010	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0018,$0048,$0302,$0020,$0028,$0050,$840E,$0018	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0060,$0070,$0068,$840E,$0060,$0020,$0080,$0078	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $030A,$0010,$0038,$0018,$0407,$0038,$0020,$0060
+	dc.w $0018,$030A,$0020,$0038,$0028,$0309,$0028,$0038
+	dc.w $0030,$0302,$0030,$0038,$0000,$0308,$0000,$0040
+	dc.w $0058,$0409,$0040,$0048,$0050,$0058,$050A,$0050
+	dc.w $0048,$0018,$0060,$0020,$0309,$0000,$0008,$0040
+	dc.w $0309,$0030,$0000,$0058,$040A,$0040,$0008,$0010
+	dc.w $0048,$040A,$0028,$0030,$0058,$0050,$0302,$0010
+	dc.w $0018,$0048,$0302,$0020,$0028,$0050,$840E,$0018
+	dc.w $0060,$0070,$0068,$840E,$0060,$0020,$0080,$0078
 model_011_coordinates:
 	dc.w $0000,$0FA0,$0960,$01E0,$0640,$0500,$0AA0,$0460	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0320,$0780,$14A0,$00A0,$03F0,$1508,$02B8,$1558	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $00F8,$1590	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0320,$0780,$14A0,$00A0,$03F0,$1508,$02B8,$1558
+	dc.w $00F8,$1590
 model_011_vertices:
 	dc.w $0000	; x_coordinate_ref
 	dc.w $0000	; y_coordinate_ref
@@ -26571,19 +26598,19 @@ model_011_vertices:
 	dc.w $0018	; variant_offset_or_negative
 model_011_variant_words:
 	dc.w $8012,$8018,$001A,$0000,$8016,$8018,$001A,$0000	; 7 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $0016,$0018,$001A,$0000,$0012,$0018,$001A,$0000	; 7 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $8012,$801C,$001E,$0000,$8016,$801C,$001E,$0000	; 7 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $0016,$001C,$001E,$0000,$0012,$001C,$001E,$0000	; 7 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $8012,$8020,$0022,$0000,$8016,$8020,$0022,$0000	; 7 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $0016,$0020,$0022,$0000,$0012,$0020,$0022,$0000	; 7 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $8012,$0020,$0022,$0000,$8016,$0020,$0022,$0000	; 7 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $0016,$8020,$0022,$0000,$0012,$8020,$0022,$0000	; 7 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $8012,$001C,$001E,$0000,$8016,$001C,$001E,$0000	; 7 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $0016,$801C,$001E,$0000,$0012,$801C,$001E,$0000	; 7 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $8012,$0018,$001A,$0000,$8016,$0018,$001A,$0000	; 7 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $0016,$8018,$001A,$0000,$0012,$8018,$001A,$0000	; 7 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $8012,$000E,$0014,$0000,$8016,$000E,$0014,$0000	; 7 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $0016,$800E,$0014,$0000,$0012,$800E,$0014,$0000	; 7 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with uninter
+	dc.w $0016,$0018,$001A,$0000,$0012,$0018,$001A,$0000
+	dc.w $8012,$801C,$001E,$0000,$8016,$801C,$001E,$0000
+	dc.w $0016,$001C,$001E,$0000,$0012,$001C,$001E,$0000
+	dc.w $8012,$8020,$0022,$0000,$8016,$8020,$0022,$0000
+	dc.w $0016,$0020,$0022,$0000,$0012,$0020,$0022,$0000
+	dc.w $8012,$0020,$0022,$0000,$8016,$0020,$0022,$0000
+	dc.w $0016,$8020,$0022,$0000,$0012,$8020,$0022,$0000
+	dc.w $8012,$001C,$001E,$0000,$8016,$001C,$001E,$0000
+	dc.w $0016,$801C,$001E,$0000,$0012,$801C,$001E,$0000
+	dc.w $8012,$0018,$001A,$0000,$8016,$0018,$001A,$0000
+	dc.w $0016,$8018,$001A,$0000,$0012,$8018,$001A,$0000
+	dc.w $8012,$000E,$0014,$0000,$8016,$000E,$0014,$0000
+	dc.w $0016,$800E,$0014,$0000,$0012,$800E,$0014,$0000
 model_011_variant_frames:
 	dc.l model_011_variant_words	; 7 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with uninter
 	dc.l model_011_variant_words+$20
@@ -26594,17 +26621,17 @@ model_011_variant_frames:
 	dc.l model_011_variant_words+$C0
 model_012_faces:
 	dc.w $0302,$0000,$0008,$0010,$0308,$0000,$0010,$0018	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0309,$0000,$0018,$0008,$8301,$0000,$0008,$0020	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $8301,$0000,$0010,$0028,$8301,$0000,$0018,$0030	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0302,$0008,$0018,$0010	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0309,$0000,$0018,$0008,$8301,$0000,$0008,$0020
+	dc.w $8301,$0000,$0010,$0028,$8301,$0000,$0018,$0030
+	dc.w $0302,$0008,$0018,$0010
 model_012_auxiliary_faces:
 	dc.w $8300,$0000,$0020,$0028,$8300,$0000,$0028,$0030	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
 model_012_coordinates:
 	dc.w $0000,$00A0,$0640,$01E0,$0320,$01A0,$00F0,$03C0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $04B0,$0340,$0098,$0030,$01C8,$0090,$0060,$01D0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0160,$0140,$0390,$0128,$00C0,$03A8,$02C8,$0280	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0058,$0080,$0118,$0180,$01D8,$01B0,$0230,$0308	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $03B8,$0368	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $04B0,$0340,$0098,$0030,$01C8,$0090,$0060,$01D0
+	dc.w $0160,$0140,$0390,$0128,$00C0,$03A8,$02C8,$0280
+	dc.w $0058,$0080,$0118,$0180,$01D8,$01B0,$0230,$0308
+	dc.w $03B8,$0368
 model_012_vertices:
 	dc.w $0000	; x_coordinate_ref
 	dc.w $0002	; y_coordinate_ref
@@ -26636,19 +26663,19 @@ model_012_vertices:
 	dc.w $0030	; variant_offset_or_negative
 model_012_variant_words:
 	dc.w $0014,$0016,$8004,$0000,$0018,$001A,$0008,$0000	; 4 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $801C,$801E,$0008,$0000,$8020,$0022,$0008,$0000	; 4 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $0024,$0026,$0010,$0000,$8028,$802A,$0010,$0000	; 4 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $802C,$002E,$0010,$0000,$0030,$8032,$8004,$0000	; 4 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $0034,$8036,$0008,$0000,$8038,$8016,$0008,$0000	; 4 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $0028,$003A,$0008,$0000,$003C,$803E,$0010,$0000	; 4 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $8040,$801C,$0010,$0000,$0036,$0042,$0010,$0000	; 4 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $8030,$8032,$8004,$0000,$8034,$8036,$0008,$0000	; 4 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $8028,$003A,$0008,$0000,$0038,$8016,$0008,$0000	; 4 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $803C,$803E,$0010,$0000,$8036,$0042,$0010,$0000	; 4 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $0040,$801C,$0010,$0000,$8014,$0016,$8004,$0000	; 4 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $8018,$001A,$0008,$0000,$0020,$0022,$0008,$0000	; 4 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $001C,$801E,$0008,$0000,$8024,$0026,$0010,$0000	; 4 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $002C,$002E,$0010,$0000,$0028,$802A,$0010,$0000	; 4 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninter
+	dc.w $801C,$801E,$0008,$0000,$8020,$0022,$0008,$0000
+	dc.w $0024,$0026,$0010,$0000,$8028,$802A,$0010,$0000
+	dc.w $802C,$002E,$0010,$0000,$0030,$8032,$8004,$0000
+	dc.w $0034,$8036,$0008,$0000,$8038,$8016,$0008,$0000
+	dc.w $0028,$003A,$0008,$0000,$003C,$803E,$0010,$0000
+	dc.w $8040,$801C,$0010,$0000,$0036,$0042,$0010,$0000
+	dc.w $8030,$8032,$8004,$0000,$8034,$8036,$0008,$0000
+	dc.w $8028,$003A,$0008,$0000,$0038,$8016,$0008,$0000
+	dc.w $803C,$803E,$0010,$0000,$8036,$0042,$0010,$0000
+	dc.w $0040,$801C,$0010,$0000,$8014,$0016,$8004,$0000
+	dc.w $8018,$001A,$0008,$0000,$0020,$0022,$0008,$0000
+	dc.w $001C,$801E,$0008,$0000,$8024,$0026,$0010,$0000
+	dc.w $002C,$002E,$0010,$0000,$0028,$802A,$0010,$0000
 model_012_variant_frames:
 	dc.l model_012_variant_words	; 4 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninter
 	dc.l model_012_variant_words+$38
@@ -26656,17 +26683,17 @@ model_012_variant_frames:
 	dc.l model_012_variant_words+$A8
 model_013_faces:
 	dc.w $0401,$0000,$0028,$0068,$0060,$0306,$0000,$0060	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0008,$0306,$0028,$0020,$0068,$0305,$0010,$0008	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0060,$0404,$0018,$0010,$0060,$0068,$0305,$0020	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0018,$0068,$0301,$0058,$0030,$0070,$0306,$0030	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0038,$0070,$0306,$0050,$0058,$0070,$0305,$0038	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0040,$0070,$0304,$0040,$0048,$0070,$0305,$0048	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0050,$0070,$0400,$0000,$0030,$0058,$0028,$0405	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0000,$0008,$0038,$0030,$0404,$0008,$0010,$0040	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0038,$0400,$0010,$0018,$0048,$0040,$0404,$0018	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0020,$0050,$0048,$0405,$0020,$0028,$0058,$0050	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $8400,$0008,$0078,$0038,$0088,$8400,$0020,$0080	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0050,$0090	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0008,$0306,$0028,$0020,$0068,$0305,$0010,$0008
+	dc.w $0060,$0404,$0018,$0010,$0060,$0068,$0305,$0020
+	dc.w $0018,$0068,$0301,$0058,$0030,$0070,$0306,$0030
+	dc.w $0038,$0070,$0306,$0050,$0058,$0070,$0305,$0038
+	dc.w $0040,$0070,$0304,$0040,$0048,$0070,$0305,$0048
+	dc.w $0050,$0070,$0400,$0000,$0030,$0058,$0028,$0405
+	dc.w $0000,$0008,$0038,$0030,$0404,$0008,$0010,$0040
+	dc.w $0038,$0400,$0010,$0018,$0048,$0040,$0404,$0018
+	dc.w $0020,$0050,$0048,$0405,$0020,$0028,$0058,$0050
+	dc.w $8400,$0008,$0078,$0038,$0088,$8400,$0020,$0080
+	dc.w $0050,$0090
 model_013_auxiliary_faces:
 	dc.w $8600,$0028,$0020,$0018,$0010,$0008,$0000	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
 model_013_coordinates:
@@ -26750,15 +26777,15 @@ model_013_vertices:
 	dc.w $FFFF	; variant_offset_or_negative
 model_014_faces:
 	dc.w $030B,$0000,$0010,$0008,$030C,$0000,$0018,$0010	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $030B,$0000,$0020,$0018,$030C,$0000,$0028,$0020	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $030B,$0000,$0030,$0028,$030C,$0000,$0008,$0030	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $040D,$0008,$0010,$0040,$0038,$040E,$0010,$0018	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0048,$0040,$040D,$0018,$0020,$0050,$0048,$040E	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0050,$0020,$0028,$0058,$040D,$0028,$0030,$0060	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0058,$040E,$0030,$0008,$0038,$0060,$030B,$0068	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0038,$0040,$030C,$0068,$0040,$0048,$030B,$0068	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0048,$0050,$030C,$0068,$0050,$0058,$030B,$0068	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0058,$0060,$030C,$0068,$0060,$0038	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $030B,$0000,$0020,$0018,$030C,$0000,$0028,$0020
+	dc.w $030B,$0000,$0030,$0028,$030C,$0000,$0008,$0030
+	dc.w $040D,$0008,$0010,$0040,$0038,$040E,$0010,$0018
+	dc.w $0048,$0040,$040D,$0018,$0020,$0050,$0048,$040E
+	dc.w $0050,$0020,$0028,$0058,$040D,$0028,$0030,$0060
+	dc.w $0058,$040E,$0030,$0008,$0038,$0060,$030B,$0068
+	dc.w $0038,$0040,$030C,$0068,$0040,$0048,$030B,$0068
+	dc.w $0048,$0050,$030C,$0068,$0050,$0058,$030B,$0068
+	dc.w $0058,$0060,$030C,$0068,$0060,$0038
 model_014_auxiliary_faces:
 	dc.w $8600,$0030,$0028,$0020,$0018,$0010,$0008	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
 model_014_coordinates:
@@ -26822,61 +26849,61 @@ model_014_vertices:
 	dc.w $FFFF	; variant_offset_or_negative
 model_015_faces:
 	dc.w $0400,$0018,$0010,$0008,$0000,$0401,$0000,$0008	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0028,$0020,$0406,$0008,$0010,$0030,$0028,$0401	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0010,$0018,$0038,$0030,$0406,$0018,$0000,$0020	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0038,$0306,$0020,$0028,$0040,$0305,$0028,$0030	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0040,$0306,$0030,$0038,$0040,$0305,$0038,$0020	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0040,$0301,$0038,$0048,$0050,$0306,$0028,$0068	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0070,$0305,$0028,$0070,$0060,$0301,$0028,$0060	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0068,$0305,$0038,$0050,$0058,$0306,$0038,$0058	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0048,$0306,$0050,$0048,$0078,$0305,$0068,$0080	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0070,$0304,$0060,$0070,$0080,$0306,$0060,$0080	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0068,$0304,$0050,$0078,$0058,$0305,$0048,$0058	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0078,$0309,$0078,$0088,$0090,$0307,$0078,$0090	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0098,$030A,$0078,$0098,$0088,$0300,$0088,$0098	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0090,$0309,$0080,$00A0,$00A8,$030A,$0080,$00A8	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $00B0,$0307,$0080,$00B0,$00A0,$0300,$00B0,$00A8	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $00A0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0028,$0020,$0406,$0008,$0010,$0030,$0028,$0401
+	dc.w $0010,$0018,$0038,$0030,$0406,$0018,$0000,$0020
+	dc.w $0038,$0306,$0020,$0028,$0040,$0305,$0028,$0030
+	dc.w $0040,$0306,$0030,$0038,$0040,$0305,$0038,$0020
+	dc.w $0040,$0301,$0038,$0048,$0050,$0306,$0028,$0068
+	dc.w $0070,$0305,$0028,$0070,$0060,$0301,$0028,$0060
+	dc.w $0068,$0305,$0038,$0050,$0058,$0306,$0038,$0058
+	dc.w $0048,$0306,$0050,$0048,$0078,$0305,$0068,$0080
+	dc.w $0070,$0304,$0060,$0070,$0080,$0306,$0060,$0080
+	dc.w $0068,$0304,$0050,$0078,$0058,$0305,$0048,$0058
+	dc.w $0078,$0309,$0078,$0088,$0090,$0307,$0078,$0090
+	dc.w $0098,$030A,$0078,$0098,$0088,$0300,$0088,$0098
+	dc.w $0090,$0309,$0080,$00A0,$00A8,$030A,$0080,$00A8
+	dc.w $00B0,$0307,$0080,$00B0,$00A0,$0300,$00B0,$00A8
+	dc.w $00A0
 model_015_auxiliary_faces:
 	dc.w $8500,$0008,$0028,$0040,$0038,$0018,$8300,$00A0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $00A8,$00B0,$8300,$0088,$0090,$0098	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $00A8,$00B0,$8300,$0088,$0090,$0098
 model_015_coordinates:
 	dc.w $0000,$0F90,$0730,$00F0,$0EA0,$0780,$0DB0,$07D0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0E00,$00A0,$01E0,$0C20,$0A40,$0AE0,$03C0,$02D0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0720,$02C0,$0090,$0520,$0370,$0190,$0110,$0390	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0138,$0050,$0500,$05C0,$0078,$0FC8,$0ED8,$0DE8	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0E38,$0C58,$0A78,$0B18,$07D8,$0718,$01A8,$0080	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $05B8,$0260,$0030,$0428,$0248,$03F0,$0478,$01C0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0FC0,$0ED0,$0DE0,$0E30,$0C50,$0A70,$0B10,$0870	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0490,$0700,$0188,$05E8,$0160,$01A0,$0458,$0348	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $02F0,$0308,$0330,$0F70,$0E80,$0D90,$0C00,$0A20	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0AC0,$08C0,$06D0,$0028,$0258,$05A8,$0310,$0418	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0210,$0198,$04A0,$0EF8,$0E08,$0D18,$0D68,$0B88	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $09A8,$0A48,$08B8,$0570,$0340,$0680,$00B8,$02E8	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0048,$04F8,$0140,$0E68,$0D78,$0C88,$0CD8,$0AF8	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0918,$09B8,$0860,$0590,$0360,$0600,$0320,$0408	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0550,$0278,$06E0,$0DD0,$0CE0,$0BF0,$0C40,$0A60	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0880,$0920,$07B8,$0588,$0358,$0568,$00E0,$02E0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0150,$0670,$0778,$0D50,$0C60,$0B70,$0BC0,$09E0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0800,$08A0,$04C0,$02A8,$0608,$0018,$06F8,$0158	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0798,$0DF8,$0D08,$0C18,$0C68,$0A88,$08A8,$0948	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $04E0,$02B0,$0548,$01F8,$05B0,$0728,$00E8,$0118	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0100,$0740,$0EB8,$0DC8,$0D28,$0B48,$0968,$0A08	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0430,$0200,$05F8,$0120,$0108,$0240,$03C8,$06F0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $00B0,$0238,$0688,$0F50,$0E60,$0D70,$0DC0,$0BE0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0A00,$0AA0,$06B8,$0230,$03F8,$0640,$0FB8,$0EC8	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0DD8,$0E28,$0C48,$0A68,$0B08,$0578,$0528,$03E8	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $01C8,$0470,$0FD0,$0EE0,$0DF0,$0E40,$0A80,$0B20	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0710,$0830,$05D8,$01D8,$0270,$0448,$0368,$0FA0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0EB0,$0E10,$0C30,$0A50,$0AF0,$05D0,$0250,$0440	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0F38,$0E48,$0D58,$0DA8,$0BC8,$09E8,$06A8,$08C8	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $03B8,$0560,$0010,$03D0,$0498,$0CD0,$0D20,$0B40	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0960,$0898,$0488,$02F8,$00D8,$0E20,$0D30,$0C90	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0AB0,$08D0,$0970,$0818,$0378,$0168,$00F8,$0738	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $01E8,$0618,$0020,$0CA0,$0BB0,$0840,$08E0,$0510	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0750,$0208,$0D98,$0CA8,$0BB8,$0C08,$0A28,$0848	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $08E8,$06E8,$0C80,$0910,$09B0,$05A0,$0708,$0338	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0F10,$0D80,$0BA0,$09C0,$0658,$02B8,$0068	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0E00,$00A0,$01E0,$0C20,$0A40,$0AE0,$03C0,$02D0
+	dc.w $0720,$02C0,$0090,$0520,$0370,$0190,$0110,$0390
+	dc.w $0138,$0050,$0500,$05C0,$0078,$0FC8,$0ED8,$0DE8
+	dc.w $0E38,$0C58,$0A78,$0B18,$07D8,$0718,$01A8,$0080
+	dc.w $05B8,$0260,$0030,$0428,$0248,$03F0,$0478,$01C0
+	dc.w $0FC0,$0ED0,$0DE0,$0E30,$0C50,$0A70,$0B10,$0870
+	dc.w $0490,$0700,$0188,$05E8,$0160,$01A0,$0458,$0348
+	dc.w $02F0,$0308,$0330,$0F70,$0E80,$0D90,$0C00,$0A20
+	dc.w $0AC0,$08C0,$06D0,$0028,$0258,$05A8,$0310,$0418
+	dc.w $0210,$0198,$04A0,$0EF8,$0E08,$0D18,$0D68,$0B88
+	dc.w $09A8,$0A48,$08B8,$0570,$0340,$0680,$00B8,$02E8
+	dc.w $0048,$04F8,$0140,$0E68,$0D78,$0C88,$0CD8,$0AF8
+	dc.w $0918,$09B8,$0860,$0590,$0360,$0600,$0320,$0408
+	dc.w $0550,$0278,$06E0,$0DD0,$0CE0,$0BF0,$0C40,$0A60
+	dc.w $0880,$0920,$07B8,$0588,$0358,$0568,$00E0,$02E0
+	dc.w $0150,$0670,$0778,$0D50,$0C60,$0B70,$0BC0,$09E0
+	dc.w $0800,$08A0,$04C0,$02A8,$0608,$0018,$06F8,$0158
+	dc.w $0798,$0DF8,$0D08,$0C18,$0C68,$0A88,$08A8,$0948
+	dc.w $04E0,$02B0,$0548,$01F8,$05B0,$0728,$00E8,$0118
+	dc.w $0100,$0740,$0EB8,$0DC8,$0D28,$0B48,$0968,$0A08
+	dc.w $0430,$0200,$05F8,$0120,$0108,$0240,$03C8,$06F0
+	dc.w $00B0,$0238,$0688,$0F50,$0E60,$0D70,$0DC0,$0BE0
+	dc.w $0A00,$0AA0,$06B8,$0230,$03F8,$0640,$0FB8,$0EC8
+	dc.w $0DD8,$0E28,$0C48,$0A68,$0B08,$0578,$0528,$03E8
+	dc.w $01C8,$0470,$0FD0,$0EE0,$0DF0,$0E40,$0A80,$0B20
+	dc.w $0710,$0830,$05D8,$01D8,$0270,$0448,$0368,$0FA0
+	dc.w $0EB0,$0E10,$0C30,$0A50,$0AF0,$05D0,$0250,$0440
+	dc.w $0F38,$0E48,$0D58,$0DA8,$0BC8,$09E8,$06A8,$08C8
+	dc.w $03B8,$0560,$0010,$03D0,$0498,$0CD0,$0D20,$0B40
+	dc.w $0960,$0898,$0488,$02F8,$00D8,$0E20,$0D30,$0C90
+	dc.w $0AB0,$08D0,$0970,$0818,$0378,$0168,$00F8,$0738
+	dc.w $01E8,$0618,$0020,$0CA0,$0BB0,$0840,$08E0,$0510
+	dc.w $0750,$0208,$0D98,$0CA8,$0BB8,$0C08,$0A28,$0848
+	dc.w $08E8,$06E8,$0C80,$0910,$09B0,$05A0,$0708,$0338
+	dc.w $0F10,$0D80,$0BA0,$09C0,$0658,$02B8,$0068
 model_015_vertices:
 	dc.w $0000	; x_coordinate_ref
 	dc.w $8002	; y_coordinate_ref
@@ -26972,235 +26999,235 @@ model_015_vertices:
 	dc.w $00B0	; variant_offset_or_negative
 model_015_variant_words:
 	dc.w $0000,$803A,$8004,$0000,$0006,$803C,$800A,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$803E,$800E,$0000,$8006,$803C,$800A,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$8040,$0012,$0000,$0014,$8042,$0000,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$8044,$8012,$0000,$8014,$8042,$0000,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$8046,$001C,$0000,$801E,$8048,$801C,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8006,$8048,$801C,$0000,$8014,$8048,$802A,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0006,$804A,$804C,$0000,$001E,$804A,$804C,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0014,$804A,$004E,$0000,$8014,$8050,$0052,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0014,$802A,$0054,$0000,$8028,$8056,$8058,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8032,$8056,$8058,$0000,$8014,$8056,$005A,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0032,$0000,$805C,$0000,$0028,$0000,$805C,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0014,$0000,$005E,$0000,$0000,$8060,$8004,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0006,$8062,$800A,$0000,$0000,$8064,$800E,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8006,$8062,$800A,$0000,$0000,$8066,$0012,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0014,$8068,$0000,$0000,$0000,$806A,$8012,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8014,$8068,$0000,$0000,$0000,$806C,$001C,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $801E,$806E,$8070,$0000,$8006,$806E,$8070,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8014,$806E,$8052,$0000,$0006,$8072,$8012,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $001E,$8072,$8012,$0000,$0014,$8072,$0074,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8014,$8076,$0078,$0000,$0014,$802A,$007A,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8028,$807C,$807E,$0000,$8032,$807C,$807E,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8014,$807C,$0080,$0000,$0032,$0000,$8082,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0028,$0000,$8082,$0000,$0014,$0000,$0084,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$8086,$8004,$0000,$0006,$8088,$800A,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$808A,$800E,$0000,$8006,$8088,$800A,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$8064,$0012,$0000,$0014,$808C,$0000,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$808E,$8012,$0000,$8014,$808C,$0000,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$8090,$001C,$0000,$801E,$8092,$8026,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8006,$8092,$8026,$0000,$8014,$8092,$8080,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0006,$8094,$0096,$0000,$001E,$8094,$0096,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0014,$8094,$0098,$0000,$8014,$809A,$004E,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0014,$802A,$009C,$0000,$8028,$809E,$8056,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8032,$809E,$8056,$0000,$8014,$809E,$00A0,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0032,$0000,$80A2,$0000,$0028,$0000,$80A2,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0014,$0000,$00A4,$0000,$0000,$80A6,$8004,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0006,$80A8,$800A,$0000,$0000,$80AA,$800E,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8006,$80A8,$800A,$0000,$0000,$80AC,$0012,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0014,$80AE,$0000,$0000,$0000,$80B0,$8012,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8014,$80AE,$0000,$0000,$0000,$80B2,$001C,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $801E,$80B4,$80B6,$0000,$8006,$80B4,$80B6,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8014,$80B4,$80B8,$0000,$0006,$80BA,$00BC,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $001E,$80BA,$00BC,$0000,$0014,$80BA,$00BE,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8014,$8034,$80C0,$0000,$0014,$802A,$007C,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8028,$8028,$80C2,$0000,$8032,$8028,$80C2,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8014,$8028,$00C4,$0000,$0032,$0000,$8032,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0028,$0000,$8032,$0000,$0014,$0000,$0076,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$80C6,$8004,$0000,$0006,$80C8,$800A,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$80CA,$800E,$0000,$8006,$80C8,$800A,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$80CC,$0012,$0000,$0014,$80CE,$0000,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$80D0,$8012,$0000,$8014,$80CE,$0000,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$80D2,$001C,$0000,$801E,$80D4,$80D6,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8006,$80D4,$80D6,$0000,$8014,$80D4,$80D8,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0006,$80DA,$0006,$0000,$001E,$80DA,$0006,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0014,$80DA,$00DC,$0000,$8014,$80DE,$802C,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0014,$802A,$00E0,$0000,$8028,$80E2,$8036,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8032,$80E2,$8036,$0000,$8014,$80E2,$0038,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0032,$0000,$0012,$0000,$0028,$0000,$0012,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0014,$0000,$00E4,$0000,$0000,$80E6,$8004,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0006,$80E8,$800A,$0000,$0000,$80EA,$800E,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8006,$80E8,$800A,$0000,$0000,$80EC,$0012,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0014,$80EE,$0000,$0000,$0000,$80F0,$8012,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8014,$80EE,$0000,$0000,$0000,$80F2,$001C,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $801E,$80F4,$80F6,$0000,$8006,$80F4,$80F6,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8014,$80F4,$80F8,$0000,$0006,$80FA,$00FC,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $001E,$80FA,$00FC,$0000,$0014,$80FA,$009C,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8014,$80FE,$805E,$0000,$0014,$802A,$0076,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8028,$8100,$8102,$0000,$8032,$8100,$8102,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8014,$8100,$8054,$0000,$0032,$0000,$0030,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0028,$0000,$0030,$0000,$0014,$0000,$0104,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$8106,$8004,$0000,$0006,$8108,$800A,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$810A,$800E,$0000,$8006,$8108,$800A,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$810C,$0012,$0000,$0014,$810E,$0000,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$8110,$8012,$0000,$8014,$810E,$0000,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$8112,$001C,$0000,$801E,$80E4,$80E0,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8006,$80E4,$80E0,$0000,$8014,$80E4,$80DC,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0006,$8114,$0038,$0000,$001E,$8114,$0038,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0014,$8114,$0116,$0000,$8014,$804C,$8058,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0014,$802A,$0118,$0000,$8028,$811A,$811C,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8032,$811A,$811C,$0000,$8014,$811A,$80BC,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0032,$0000,$011E,$0000,$0028,$0000,$011E,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0014,$0000,$0120,$0000,$0000,$8122,$8004,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0006,$8124,$800A,$0000,$0000,$8126,$800E,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8006,$8124,$800A,$0000,$0000,$8128,$0012,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0014,$812A,$0000,$0000,$0000,$812C,$8012,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8014,$812A,$0000,$0000,$0000,$812E,$001C,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $801E,$811C,$8130,$0000,$8006,$811C,$8130,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8014,$811C,$8132,$0000,$0006,$8134,$8054,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $001E,$8134,$8054,$0000,$0014,$8134,$0136,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8014,$802A,$80E2,$0000,$0014,$8116,$0138,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8028,$0000,$813A,$0000,$8032,$0000,$813A,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8014,$0000,$813C,$0000,$0032,$813E,$0140,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0028,$813E,$0140,$0000,$0014,$813E,$0142,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$8144,$8004,$0000,$0006,$8146,$800A,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$80CC,$800E,$0000,$8006,$8146,$800A,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$8148,$0012,$0000,$0014,$814A,$0000,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$814C,$8012,$0000,$8014,$814A,$0000,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$814E,$001C,$0000,$801E,$804A,$8150,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8006,$804A,$8150,$0000,$8014,$804A,$8152,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0006,$8154,$8156,$0000,$001E,$8154,$8156,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0014,$8154,$0158,$0000,$8014,$802A,$815A,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0014,$815C,$00C2,$0000,$8028,$0000,$815E,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8032,$0000,$815E,$0000,$8014,$0000,$8160,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0032,$8162,$00C0,$0000,$0028,$8162,$00C0,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0014,$8162,$0164,$0000,$0000,$8166,$8004,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0006,$8168,$800A,$0000,$0000,$816A,$800E,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8006,$8168,$800A,$0000,$0000,$816C,$0012,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0014,$816E,$0000,$0000,$0000,$8170,$8012,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8014,$816E,$0000,$0000,$0000,$8172,$001C,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $801E,$8020,$80B8,$0000,$8006,$8020,$80B8,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8014,$8020,$802C,$0000,$0006,$8174,$8176,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $001E,$8174,$8176,$0000,$0014,$8174,$0000,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8014,$802A,$802A,$0000,$0014,$8114,$0178,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8028,$0000,$817A,$0000,$8032,$0000,$817A,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8014,$0000,$0000,$0000,$0032,$8084,$8160,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0028,$8084,$8160,$0000,$0014,$8084,$00F6,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$817C,$8004,$0000,$0006,$817E,$800A,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$8180,$800E,$0000,$8006,$817E,$800A,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$8182,$0012,$0000,$0014,$8184,$0000,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$8186,$8012,$0000,$8014,$8184,$0000,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$8188,$001C,$0000,$801E,$8020,$8176,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8006,$8020,$8176,$0000,$8014,$8020,$0000,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0006,$800A,$80B8,$0000,$001E,$800A,$80B8,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0014,$800A,$802C,$0000,$8014,$802A,$8038,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0014,$818A,$00FE,$0000,$8028,$0000,$818C,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8032,$0000,$818C,$0000,$8014,$0000,$002C,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0032,$818E,$8190,$0000,$0028,$818E,$8190,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0014,$818E,$0192,$0000,$0000,$8194,$8004,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0006,$8196,$800A,$0000,$0000,$8198,$800E,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8006,$8196,$800A,$0000,$0000,$819A,$0012,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0014,$8108,$0000,$0000,$0000,$819C,$8012,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8014,$8108,$0000,$0000,$0000,$819E,$001C,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $801E,$81A0,$8156,$0000,$8006,$81A0,$8156,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8014,$81A0,$0158,$0000,$0006,$81A2,$8150,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $001E,$81A2,$8150,$0000,$0014,$81A2,$8152,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8014,$802A,$00FC,$0000,$0014,$81A4,$01A6,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8028,$0000,$815C,$0000,$8032,$0000,$815C,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8014,$0000,$01A8,$0000,$0032,$81AA,$801E,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0028,$81AA,$801E,$0000,$0014,$81AA,$01AC,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$81AE,$8004,$0000,$0006,$81B0,$800A,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$816C,$800E,$0000,$8006,$81B0,$800A,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$81B2,$0012,$0000,$0014,$81B4,$0000,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$81B6,$8012,$0000,$8014,$81B4,$0000,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$81B8,$001C,$0000,$801E,$815E,$8054,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8006,$815E,$8054,$0000,$8014,$815E,$0136,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0006,$8112,$8130,$0000,$001E,$8112,$8130,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0014,$8112,$8132,$0000,$8014,$802A,$0098,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0014,$81BA,$013C,$0000,$8028,$0000,$81BC,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8032,$0000,$81BC,$0000,$8014,$0000,$018E,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0032,$81BE,$801C,$0000,$0028,$81BE,$801C,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0014,$81BE,$00E2,$0000,$0000,$81C0,$8004,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0006,$81C2,$800A,$0000,$0000,$81C4,$800E,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8006,$81C2,$800A,$0000,$0000,$81C6,$0012,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0014,$81C8,$0000,$0000,$0000,$81CA,$8012,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8014,$81C8,$0000,$0000,$0000,$812A,$001C,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $801E,$81CC,$0038,$0000,$8006,$81CC,$0038,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8014,$81CC,$0116,$0000,$0006,$81CE,$80E0,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $001E,$81CE,$80E0,$0000,$0014,$81CE,$80DC,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8014,$802A,$01D0,$0000,$0014,$81D2,$01D4,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8028,$0000,$8006,$0000,$8032,$0000,$8006,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8014,$0000,$0134,$0000,$0032,$81D6,$81D8,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0028,$81D6,$81D8,$0000,$0014,$81D6,$007A,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$81B0,$8004,$0000,$0006,$816C,$800A,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$81DA,$800E,$0000,$8006,$816C,$800A,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$81DC,$0012,$0000,$0014,$81DE,$0000,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$81E0,$8012,$0000,$8014,$81DE,$0000,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$8170,$001C,$0000,$801E,$817A,$00FC,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8006,$817A,$00FC,$0000,$8014,$817A,$009C,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0006,$81E2,$80F6,$0000,$001E,$81E2,$80F6,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0014,$81E2,$80F8,$0000,$8014,$802A,$0130,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0014,$81E4,$8160,$0000,$8028,$0000,$0054,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8032,$0000,$0054,$0000,$8014,$0000,$0102,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0032,$81E6,$81D2,$0000,$0028,$81E6,$81D2,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0014,$81E6,$01E8,$0000,$0000,$81EA,$8004,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0006,$81EC,$800A,$0000,$0000,$80EC,$800E,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8006,$81EC,$800A,$0000,$0000,$81EE,$0012,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0014,$81F0,$0000,$0000,$0000,$81F2,$8012,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8014,$81F0,$0000,$0000,$0000,$81F4,$001C,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $801E,$8050,$0006,$0000,$8006,$8050,$0006,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8014,$8050,$00DC,$0000,$0006,$81F6,$80D6,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $001E,$81F6,$80D6,$0000,$0014,$81F6,$80D8,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8014,$802A,$009A,$0000,$0014,$81F8,$81FA,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8028,$0000,$01FC,$0000,$8032,$0000,$01FC,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8014,$0000,$01FE,$0000,$0032,$8200,$8202,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0028,$8200,$8202,$0000,$0014,$8200,$0204,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$808A,$8004,$0000,$0006,$8206,$800A,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$8208,$800E,$0000,$8006,$8206,$800A,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$808C,$0012,$0000,$0014,$808E,$0000,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$820A,$8012,$0000,$8014,$808E,$0000,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$820C,$001C,$0000,$801E,$820E,$00BC,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8006,$820E,$00BC,$0000,$8014,$820E,$00BE,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0006,$8210,$80B6,$0000,$001E,$8210,$80B6,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0014,$8210,$80B8,$0000,$8014,$802A,$0118,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0014,$815A,$8212,$0000,$8028,$0000,$011E,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8032,$0000,$011E,$0000,$8014,$0000,$0120,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0032,$8160,$8174,$0000,$0028,$8160,$8174,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0014,$8160,$8038,$0000,$0000,$8214,$8004,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0006,$8216,$800A,$0000,$0000,$8218,$800E,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8006,$8216,$800A,$0000,$0000,$821A,$0012,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0014,$821C,$0000,$0000,$0000,$821E,$8012,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8014,$821C,$0000,$0000,$0000,$8220,$001C,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $801E,$80C2,$0096,$0000,$8006,$80C2,$0096,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8014,$80C2,$0098,$0000,$0006,$8222,$8026,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $001E,$8222,$8026,$0000,$0014,$8222,$8080,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8014,$80A0,$0076,$0000,$0014,$802A,$81A8,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8028,$804E,$0030,$0000,$8032,$804E,$0030,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8014,$804E,$0104,$0000,$0032,$0000,$8020,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0028,$0000,$8020,$0000,$0014,$0000,$80FC,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$8168,$8004,$0000,$0006,$816A,$800A,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$8224,$800E,$0000,$8006,$816A,$800A,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$81DA,$0012,$0000,$0014,$81B8,$0000,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$8226,$8012,$0000,$8014,$81B8,$0000,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$8228,$001C,$0000,$801E,$822A,$8012,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8006,$822A,$8012,$0000,$8014,$822A,$0074,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0006,$822C,$8070,$0000,$001E,$822C,$8070,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0014,$822C,$8052,$0000,$8014,$822E,$01D2,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0014,$802A,$81A8,$0000,$8028,$804C,$0160,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8032,$804C,$0160,$0000,$8014,$804C,$015E,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0032,$0000,$8020,$0000,$0028,$0000,$8020,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0014,$0000,$80FC,$0000,$0000,$8230,$8004,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0006,$81EA,$800A,$0000,$0000,$81EC,$800E,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8006,$81EA,$800A,$0000,$0000,$8232,$0012,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0014,$8234,$0000,$0000,$0000,$8236,$8012,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8014,$8234,$0000,$0000,$0000,$80EE,$001C,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $801E,$8238,$804C,$0000,$8006,$8238,$804C,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8014,$8238,$004E,$0000,$0006,$804A,$801C,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $001E,$804A,$801C,$0000,$0014,$804A,$802A,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8014,$81AA,$005C,$0000,$0014,$802A,$8136,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8028,$823A,$8054,$0000,$8032,$823A,$8054,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8014,$823A,$0118,$0000,$0032,$0000,$81CC,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0028,$0000,$81CC,$0000,$0014,$0000,$823C,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
+	dc.w $0000,$803E,$800E,$0000,$8006,$803C,$800A,$0000
+	dc.w $0000,$8040,$0012,$0000,$0014,$8042,$0000,$0000
+	dc.w $0000,$8044,$8012,$0000,$8014,$8042,$0000,$0000
+	dc.w $0000,$8046,$001C,$0000,$801E,$8048,$801C,$0000
+	dc.w $8006,$8048,$801C,$0000,$8014,$8048,$802A,$0000
+	dc.w $0006,$804A,$804C,$0000,$001E,$804A,$804C,$0000
+	dc.w $0014,$804A,$004E,$0000,$8014,$8050,$0052,$0000
+	dc.w $0014,$802A,$0054,$0000,$8028,$8056,$8058,$0000
+	dc.w $8032,$8056,$8058,$0000,$8014,$8056,$005A,$0000
+	dc.w $0032,$0000,$805C,$0000,$0028,$0000,$805C,$0000
+	dc.w $0014,$0000,$005E,$0000,$0000,$8060,$8004,$0000
+	dc.w $0006,$8062,$800A,$0000,$0000,$8064,$800E,$0000
+	dc.w $8006,$8062,$800A,$0000,$0000,$8066,$0012,$0000
+	dc.w $0014,$8068,$0000,$0000,$0000,$806A,$8012,$0000
+	dc.w $8014,$8068,$0000,$0000,$0000,$806C,$001C,$0000
+	dc.w $801E,$806E,$8070,$0000,$8006,$806E,$8070,$0000
+	dc.w $8014,$806E,$8052,$0000,$0006,$8072,$8012,$0000
+	dc.w $001E,$8072,$8012,$0000,$0014,$8072,$0074,$0000
+	dc.w $8014,$8076,$0078,$0000,$0014,$802A,$007A,$0000
+	dc.w $8028,$807C,$807E,$0000,$8032,$807C,$807E,$0000
+	dc.w $8014,$807C,$0080,$0000,$0032,$0000,$8082,$0000
+	dc.w $0028,$0000,$8082,$0000,$0014,$0000,$0084,$0000
+	dc.w $0000,$8086,$8004,$0000,$0006,$8088,$800A,$0000
+	dc.w $0000,$808A,$800E,$0000,$8006,$8088,$800A,$0000
+	dc.w $0000,$8064,$0012,$0000,$0014,$808C,$0000,$0000
+	dc.w $0000,$808E,$8012,$0000,$8014,$808C,$0000,$0000
+	dc.w $0000,$8090,$001C,$0000,$801E,$8092,$8026,$0000
+	dc.w $8006,$8092,$8026,$0000,$8014,$8092,$8080,$0000
+	dc.w $0006,$8094,$0096,$0000,$001E,$8094,$0096,$0000
+	dc.w $0014,$8094,$0098,$0000,$8014,$809A,$004E,$0000
+	dc.w $0014,$802A,$009C,$0000,$8028,$809E,$8056,$0000
+	dc.w $8032,$809E,$8056,$0000,$8014,$809E,$00A0,$0000
+	dc.w $0032,$0000,$80A2,$0000,$0028,$0000,$80A2,$0000
+	dc.w $0014,$0000,$00A4,$0000,$0000,$80A6,$8004,$0000
+	dc.w $0006,$80A8,$800A,$0000,$0000,$80AA,$800E,$0000
+	dc.w $8006,$80A8,$800A,$0000,$0000,$80AC,$0012,$0000
+	dc.w $0014,$80AE,$0000,$0000,$0000,$80B0,$8012,$0000
+	dc.w $8014,$80AE,$0000,$0000,$0000,$80B2,$001C,$0000
+	dc.w $801E,$80B4,$80B6,$0000,$8006,$80B4,$80B6,$0000
+	dc.w $8014,$80B4,$80B8,$0000,$0006,$80BA,$00BC,$0000
+	dc.w $001E,$80BA,$00BC,$0000,$0014,$80BA,$00BE,$0000
+	dc.w $8014,$8034,$80C0,$0000,$0014,$802A,$007C,$0000
+	dc.w $8028,$8028,$80C2,$0000,$8032,$8028,$80C2,$0000
+	dc.w $8014,$8028,$00C4,$0000,$0032,$0000,$8032,$0000
+	dc.w $0028,$0000,$8032,$0000,$0014,$0000,$0076,$0000
+	dc.w $0000,$80C6,$8004,$0000,$0006,$80C8,$800A,$0000
+	dc.w $0000,$80CA,$800E,$0000,$8006,$80C8,$800A,$0000
+	dc.w $0000,$80CC,$0012,$0000,$0014,$80CE,$0000,$0000
+	dc.w $0000,$80D0,$8012,$0000,$8014,$80CE,$0000,$0000
+	dc.w $0000,$80D2,$001C,$0000,$801E,$80D4,$80D6,$0000
+	dc.w $8006,$80D4,$80D6,$0000,$8014,$80D4,$80D8,$0000
+	dc.w $0006,$80DA,$0006,$0000,$001E,$80DA,$0006,$0000
+	dc.w $0014,$80DA,$00DC,$0000,$8014,$80DE,$802C,$0000
+	dc.w $0014,$802A,$00E0,$0000,$8028,$80E2,$8036,$0000
+	dc.w $8032,$80E2,$8036,$0000,$8014,$80E2,$0038,$0000
+	dc.w $0032,$0000,$0012,$0000,$0028,$0000,$0012,$0000
+	dc.w $0014,$0000,$00E4,$0000,$0000,$80E6,$8004,$0000
+	dc.w $0006,$80E8,$800A,$0000,$0000,$80EA,$800E,$0000
+	dc.w $8006,$80E8,$800A,$0000,$0000,$80EC,$0012,$0000
+	dc.w $0014,$80EE,$0000,$0000,$0000,$80F0,$8012,$0000
+	dc.w $8014,$80EE,$0000,$0000,$0000,$80F2,$001C,$0000
+	dc.w $801E,$80F4,$80F6,$0000,$8006,$80F4,$80F6,$0000
+	dc.w $8014,$80F4,$80F8,$0000,$0006,$80FA,$00FC,$0000
+	dc.w $001E,$80FA,$00FC,$0000,$0014,$80FA,$009C,$0000
+	dc.w $8014,$80FE,$805E,$0000,$0014,$802A,$0076,$0000
+	dc.w $8028,$8100,$8102,$0000,$8032,$8100,$8102,$0000
+	dc.w $8014,$8100,$8054,$0000,$0032,$0000,$0030,$0000
+	dc.w $0028,$0000,$0030,$0000,$0014,$0000,$0104,$0000
+	dc.w $0000,$8106,$8004,$0000,$0006,$8108,$800A,$0000
+	dc.w $0000,$810A,$800E,$0000,$8006,$8108,$800A,$0000
+	dc.w $0000,$810C,$0012,$0000,$0014,$810E,$0000,$0000
+	dc.w $0000,$8110,$8012,$0000,$8014,$810E,$0000,$0000
+	dc.w $0000,$8112,$001C,$0000,$801E,$80E4,$80E0,$0000
+	dc.w $8006,$80E4,$80E0,$0000,$8014,$80E4,$80DC,$0000
+	dc.w $0006,$8114,$0038,$0000,$001E,$8114,$0038,$0000
+	dc.w $0014,$8114,$0116,$0000,$8014,$804C,$8058,$0000
+	dc.w $0014,$802A,$0118,$0000,$8028,$811A,$811C,$0000
+	dc.w $8032,$811A,$811C,$0000,$8014,$811A,$80BC,$0000
+	dc.w $0032,$0000,$011E,$0000,$0028,$0000,$011E,$0000
+	dc.w $0014,$0000,$0120,$0000,$0000,$8122,$8004,$0000
+	dc.w $0006,$8124,$800A,$0000,$0000,$8126,$800E,$0000
+	dc.w $8006,$8124,$800A,$0000,$0000,$8128,$0012,$0000
+	dc.w $0014,$812A,$0000,$0000,$0000,$812C,$8012,$0000
+	dc.w $8014,$812A,$0000,$0000,$0000,$812E,$001C,$0000
+	dc.w $801E,$811C,$8130,$0000,$8006,$811C,$8130,$0000
+	dc.w $8014,$811C,$8132,$0000,$0006,$8134,$8054,$0000
+	dc.w $001E,$8134,$8054,$0000,$0014,$8134,$0136,$0000
+	dc.w $8014,$802A,$80E2,$0000,$0014,$8116,$0138,$0000
+	dc.w $8028,$0000,$813A,$0000,$8032,$0000,$813A,$0000
+	dc.w $8014,$0000,$813C,$0000,$0032,$813E,$0140,$0000
+	dc.w $0028,$813E,$0140,$0000,$0014,$813E,$0142,$0000
+	dc.w $0000,$8144,$8004,$0000,$0006,$8146,$800A,$0000
+	dc.w $0000,$80CC,$800E,$0000,$8006,$8146,$800A,$0000
+	dc.w $0000,$8148,$0012,$0000,$0014,$814A,$0000,$0000
+	dc.w $0000,$814C,$8012,$0000,$8014,$814A,$0000,$0000
+	dc.w $0000,$814E,$001C,$0000,$801E,$804A,$8150,$0000
+	dc.w $8006,$804A,$8150,$0000,$8014,$804A,$8152,$0000
+	dc.w $0006,$8154,$8156,$0000,$001E,$8154,$8156,$0000
+	dc.w $0014,$8154,$0158,$0000,$8014,$802A,$815A,$0000
+	dc.w $0014,$815C,$00C2,$0000,$8028,$0000,$815E,$0000
+	dc.w $8032,$0000,$815E,$0000,$8014,$0000,$8160,$0000
+	dc.w $0032,$8162,$00C0,$0000,$0028,$8162,$00C0,$0000
+	dc.w $0014,$8162,$0164,$0000,$0000,$8166,$8004,$0000
+	dc.w $0006,$8168,$800A,$0000,$0000,$816A,$800E,$0000
+	dc.w $8006,$8168,$800A,$0000,$0000,$816C,$0012,$0000
+	dc.w $0014,$816E,$0000,$0000,$0000,$8170,$8012,$0000
+	dc.w $8014,$816E,$0000,$0000,$0000,$8172,$001C,$0000
+	dc.w $801E,$8020,$80B8,$0000,$8006,$8020,$80B8,$0000
+	dc.w $8014,$8020,$802C,$0000,$0006,$8174,$8176,$0000
+	dc.w $001E,$8174,$8176,$0000,$0014,$8174,$0000,$0000
+	dc.w $8014,$802A,$802A,$0000,$0014,$8114,$0178,$0000
+	dc.w $8028,$0000,$817A,$0000,$8032,$0000,$817A,$0000
+	dc.w $8014,$0000,$0000,$0000,$0032,$8084,$8160,$0000
+	dc.w $0028,$8084,$8160,$0000,$0014,$8084,$00F6,$0000
+	dc.w $0000,$817C,$8004,$0000,$0006,$817E,$800A,$0000
+	dc.w $0000,$8180,$800E,$0000,$8006,$817E,$800A,$0000
+	dc.w $0000,$8182,$0012,$0000,$0014,$8184,$0000,$0000
+	dc.w $0000,$8186,$8012,$0000,$8014,$8184,$0000,$0000
+	dc.w $0000,$8188,$001C,$0000,$801E,$8020,$8176,$0000
+	dc.w $8006,$8020,$8176,$0000,$8014,$8020,$0000,$0000
+	dc.w $0006,$800A,$80B8,$0000,$001E,$800A,$80B8,$0000
+	dc.w $0014,$800A,$802C,$0000,$8014,$802A,$8038,$0000
+	dc.w $0014,$818A,$00FE,$0000,$8028,$0000,$818C,$0000
+	dc.w $8032,$0000,$818C,$0000,$8014,$0000,$002C,$0000
+	dc.w $0032,$818E,$8190,$0000,$0028,$818E,$8190,$0000
+	dc.w $0014,$818E,$0192,$0000,$0000,$8194,$8004,$0000
+	dc.w $0006,$8196,$800A,$0000,$0000,$8198,$800E,$0000
+	dc.w $8006,$8196,$800A,$0000,$0000,$819A,$0012,$0000
+	dc.w $0014,$8108,$0000,$0000,$0000,$819C,$8012,$0000
+	dc.w $8014,$8108,$0000,$0000,$0000,$819E,$001C,$0000
+	dc.w $801E,$81A0,$8156,$0000,$8006,$81A0,$8156,$0000
+	dc.w $8014,$81A0,$0158,$0000,$0006,$81A2,$8150,$0000
+	dc.w $001E,$81A2,$8150,$0000,$0014,$81A2,$8152,$0000
+	dc.w $8014,$802A,$00FC,$0000,$0014,$81A4,$01A6,$0000
+	dc.w $8028,$0000,$815C,$0000,$8032,$0000,$815C,$0000
+	dc.w $8014,$0000,$01A8,$0000,$0032,$81AA,$801E,$0000
+	dc.w $0028,$81AA,$801E,$0000,$0014,$81AA,$01AC,$0000
+	dc.w $0000,$81AE,$8004,$0000,$0006,$81B0,$800A,$0000
+	dc.w $0000,$816C,$800E,$0000,$8006,$81B0,$800A,$0000
+	dc.w $0000,$81B2,$0012,$0000,$0014,$81B4,$0000,$0000
+	dc.w $0000,$81B6,$8012,$0000,$8014,$81B4,$0000,$0000
+	dc.w $0000,$81B8,$001C,$0000,$801E,$815E,$8054,$0000
+	dc.w $8006,$815E,$8054,$0000,$8014,$815E,$0136,$0000
+	dc.w $0006,$8112,$8130,$0000,$001E,$8112,$8130,$0000
+	dc.w $0014,$8112,$8132,$0000,$8014,$802A,$0098,$0000
+	dc.w $0014,$81BA,$013C,$0000,$8028,$0000,$81BC,$0000
+	dc.w $8032,$0000,$81BC,$0000,$8014,$0000,$018E,$0000
+	dc.w $0032,$81BE,$801C,$0000,$0028,$81BE,$801C,$0000
+	dc.w $0014,$81BE,$00E2,$0000,$0000,$81C0,$8004,$0000
+	dc.w $0006,$81C2,$800A,$0000,$0000,$81C4,$800E,$0000
+	dc.w $8006,$81C2,$800A,$0000,$0000,$81C6,$0012,$0000
+	dc.w $0014,$81C8,$0000,$0000,$0000,$81CA,$8012,$0000
+	dc.w $8014,$81C8,$0000,$0000,$0000,$812A,$001C,$0000
+	dc.w $801E,$81CC,$0038,$0000,$8006,$81CC,$0038,$0000
+	dc.w $8014,$81CC,$0116,$0000,$0006,$81CE,$80E0,$0000
+	dc.w $001E,$81CE,$80E0,$0000,$0014,$81CE,$80DC,$0000
+	dc.w $8014,$802A,$01D0,$0000,$0014,$81D2,$01D4,$0000
+	dc.w $8028,$0000,$8006,$0000,$8032,$0000,$8006,$0000
+	dc.w $8014,$0000,$0134,$0000,$0032,$81D6,$81D8,$0000
+	dc.w $0028,$81D6,$81D8,$0000,$0014,$81D6,$007A,$0000
+	dc.w $0000,$81B0,$8004,$0000,$0006,$816C,$800A,$0000
+	dc.w $0000,$81DA,$800E,$0000,$8006,$816C,$800A,$0000
+	dc.w $0000,$81DC,$0012,$0000,$0014,$81DE,$0000,$0000
+	dc.w $0000,$81E0,$8012,$0000,$8014,$81DE,$0000,$0000
+	dc.w $0000,$8170,$001C,$0000,$801E,$817A,$00FC,$0000
+	dc.w $8006,$817A,$00FC,$0000,$8014,$817A,$009C,$0000
+	dc.w $0006,$81E2,$80F6,$0000,$001E,$81E2,$80F6,$0000
+	dc.w $0014,$81E2,$80F8,$0000,$8014,$802A,$0130,$0000
+	dc.w $0014,$81E4,$8160,$0000,$8028,$0000,$0054,$0000
+	dc.w $8032,$0000,$0054,$0000,$8014,$0000,$0102,$0000
+	dc.w $0032,$81E6,$81D2,$0000,$0028,$81E6,$81D2,$0000
+	dc.w $0014,$81E6,$01E8,$0000,$0000,$81EA,$8004,$0000
+	dc.w $0006,$81EC,$800A,$0000,$0000,$80EC,$800E,$0000
+	dc.w $8006,$81EC,$800A,$0000,$0000,$81EE,$0012,$0000
+	dc.w $0014,$81F0,$0000,$0000,$0000,$81F2,$8012,$0000
+	dc.w $8014,$81F0,$0000,$0000,$0000,$81F4,$001C,$0000
+	dc.w $801E,$8050,$0006,$0000,$8006,$8050,$0006,$0000
+	dc.w $8014,$8050,$00DC,$0000,$0006,$81F6,$80D6,$0000
+	dc.w $001E,$81F6,$80D6,$0000,$0014,$81F6,$80D8,$0000
+	dc.w $8014,$802A,$009A,$0000,$0014,$81F8,$81FA,$0000
+	dc.w $8028,$0000,$01FC,$0000,$8032,$0000,$01FC,$0000
+	dc.w $8014,$0000,$01FE,$0000,$0032,$8200,$8202,$0000
+	dc.w $0028,$8200,$8202,$0000,$0014,$8200,$0204,$0000
+	dc.w $0000,$808A,$8004,$0000,$0006,$8206,$800A,$0000
+	dc.w $0000,$8208,$800E,$0000,$8006,$8206,$800A,$0000
+	dc.w $0000,$808C,$0012,$0000,$0014,$808E,$0000,$0000
+	dc.w $0000,$820A,$8012,$0000,$8014,$808E,$0000,$0000
+	dc.w $0000,$820C,$001C,$0000,$801E,$820E,$00BC,$0000
+	dc.w $8006,$820E,$00BC,$0000,$8014,$820E,$00BE,$0000
+	dc.w $0006,$8210,$80B6,$0000,$001E,$8210,$80B6,$0000
+	dc.w $0014,$8210,$80B8,$0000,$8014,$802A,$0118,$0000
+	dc.w $0014,$815A,$8212,$0000,$8028,$0000,$011E,$0000
+	dc.w $8032,$0000,$011E,$0000,$8014,$0000,$0120,$0000
+	dc.w $0032,$8160,$8174,$0000,$0028,$8160,$8174,$0000
+	dc.w $0014,$8160,$8038,$0000,$0000,$8214,$8004,$0000
+	dc.w $0006,$8216,$800A,$0000,$0000,$8218,$800E,$0000
+	dc.w $8006,$8216,$800A,$0000,$0000,$821A,$0012,$0000
+	dc.w $0014,$821C,$0000,$0000,$0000,$821E,$8012,$0000
+	dc.w $8014,$821C,$0000,$0000,$0000,$8220,$001C,$0000
+	dc.w $801E,$80C2,$0096,$0000,$8006,$80C2,$0096,$0000
+	dc.w $8014,$80C2,$0098,$0000,$0006,$8222,$8026,$0000
+	dc.w $001E,$8222,$8026,$0000,$0014,$8222,$8080,$0000
+	dc.w $8014,$80A0,$0076,$0000,$0014,$802A,$81A8,$0000
+	dc.w $8028,$804E,$0030,$0000,$8032,$804E,$0030,$0000
+	dc.w $8014,$804E,$0104,$0000,$0032,$0000,$8020,$0000
+	dc.w $0028,$0000,$8020,$0000,$0014,$0000,$80FC,$0000
+	dc.w $0000,$8168,$8004,$0000,$0006,$816A,$800A,$0000
+	dc.w $0000,$8224,$800E,$0000,$8006,$816A,$800A,$0000
+	dc.w $0000,$81DA,$0012,$0000,$0014,$81B8,$0000,$0000
+	dc.w $0000,$8226,$8012,$0000,$8014,$81B8,$0000,$0000
+	dc.w $0000,$8228,$001C,$0000,$801E,$822A,$8012,$0000
+	dc.w $8006,$822A,$8012,$0000,$8014,$822A,$0074,$0000
+	dc.w $0006,$822C,$8070,$0000,$001E,$822C,$8070,$0000
+	dc.w $0014,$822C,$8052,$0000,$8014,$822E,$01D2,$0000
+	dc.w $0014,$802A,$81A8,$0000,$8028,$804C,$0160,$0000
+	dc.w $8032,$804C,$0160,$0000,$8014,$804C,$015E,$0000
+	dc.w $0032,$0000,$8020,$0000,$0028,$0000,$8020,$0000
+	dc.w $0014,$0000,$80FC,$0000,$0000,$8230,$8004,$0000
+	dc.w $0006,$81EA,$800A,$0000,$0000,$81EC,$800E,$0000
+	dc.w $8006,$81EA,$800A,$0000,$0000,$8232,$0012,$0000
+	dc.w $0014,$8234,$0000,$0000,$0000,$8236,$8012,$0000
+	dc.w $8014,$8234,$0000,$0000,$0000,$80EE,$001C,$0000
+	dc.w $801E,$8238,$804C,$0000,$8006,$8238,$804C,$0000
+	dc.w $8014,$8238,$004E,$0000,$0006,$804A,$801C,$0000
+	dc.w $001E,$804A,$801C,$0000,$0014,$804A,$802A,$0000
+	dc.w $8014,$81AA,$005C,$0000,$0014,$802A,$8136,$0000
+	dc.w $8028,$823A,$8054,$0000,$8032,$823A,$8054,$0000
+	dc.w $8014,$823A,$0118,$0000,$0032,$0000,$81CC,$0000
+	dc.w $0028,$0000,$81CC,$0000,$0014,$0000,$823C,$0000
 model_015_variant_frames:
 	dc.l model_015_variant_words	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
 	dc.l model_015_variant_words+$B8
@@ -27224,16 +27251,16 @@ model_015_variant_frames:
 	dc.l model_015_variant_words+$DA8
 model_016_faces:
 	dc.w $0309,$0000,$0010,$0048,$0305,$0048,$0010,$0008	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $030B,$0010,$0000,$0018,$0304,$0008,$0010,$0018	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $030B,$0000,$0020,$0018,$030C,$0008,$0018,$0020	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $030C,$0020,$0000,$0028,$030D,$0028,$0008,$0020	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $030E,$0030,$0028,$0000,$030D,$0008,$0028,$0030	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $030D,$0038,$0030,$0000,$030C,$0030,$0038,$0008	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $030C,$0038,$0000,$0040,$030B,$0038,$0040,$0008	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $030B,$0040,$0000,$0048,$0304,$0040,$0048,$0008	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $030B,$0010,$0000,$0018,$0304,$0008,$0010,$0018
+	dc.w $030B,$0000,$0020,$0018,$030C,$0008,$0018,$0020
+	dc.w $030C,$0020,$0000,$0028,$030D,$0028,$0008,$0020
+	dc.w $030E,$0030,$0028,$0000,$030D,$0008,$0028,$0030
+	dc.w $030D,$0038,$0030,$0000,$030C,$0030,$0038,$0008
+	dc.w $030C,$0038,$0000,$0040,$030B,$0038,$0040,$0008
+	dc.w $030B,$0040,$0000,$0048,$0304,$0040,$0048,$0008
 model_016_auxiliary_faces:
 	dc.w $8500,$0018,$0038,$0030,$0028,$0020,$8300,$0018	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0038,$0020	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0038,$0020
 model_016_coordinates:
 	dc.w $0000,$0190,$00A0,$00F0,$04B0,$03C0,$0410	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
 model_016_vertices:
@@ -27279,24 +27306,24 @@ model_016_vertices:
 	dc.w $FFFF	; variant_offset_or_negative
 model_017_faces:
 	dc.w $0302,$0000,$0008,$0010,$0309,$0000,$0018,$0008	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0309,$0000,$0010,$0020,$0302,$0000,$0020,$0018	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0309,$0008,$0028,$0010,$0302,$0008,$0018,$0028	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0302,$0010,$0028,$0020,$0309,$0020,$0028,$0018	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0308,$0028,$0030,$0038,$0309,$0028,$0040,$0030	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0309,$0028,$0038,$0048,$0308,$0028,$0048,$0040	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0309,$0030,$0050,$0038,$0308,$0030,$0040,$0050	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0308,$0038,$0050,$0048,$0309,$0048,$0050,$0040	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0308,$0050,$0060,$0058,$0302,$0050,$0068,$0060	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0309,$0050,$0058,$0068,$030A,$0058,$0060,$0068	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0309,$0000,$0010,$0020,$0302,$0000,$0020,$0018
+	dc.w $0309,$0008,$0028,$0010,$0302,$0008,$0018,$0028
+	dc.w $0302,$0010,$0028,$0020,$0309,$0020,$0028,$0018
+	dc.w $0308,$0028,$0030,$0038,$0309,$0028,$0040,$0030
+	dc.w $0309,$0028,$0038,$0048,$0308,$0028,$0048,$0040
+	dc.w $0309,$0030,$0050,$0038,$0308,$0030,$0040,$0050
+	dc.w $0308,$0038,$0050,$0048,$0309,$0048,$0050,$0040
+	dc.w $0308,$0050,$0060,$0058,$0302,$0050,$0068,$0060
+	dc.w $0309,$0050,$0058,$0068,$030A,$0058,$0060,$0068
 model_017_auxiliary_faces:
 	dc.w $8400,$0000,$0018,$0028,$0010,$8400,$0028,$0040	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0050,$0038,$8300,$0060,$0058,$0050	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0050,$0038,$8300,$0060,$0058,$0050
 model_017_coordinates:
 	dc.w $0000,$07D0,$0230,$0320,$0140,$04B0,$0960,$01B8	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $00E0,$0A50,$0220,$0478,$08F0,$09E0,$03E0,$07B8	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $08A8,$0300,$05F8,$06E8,$0200,$0408,$04F8,$0120	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0248,$0338,$0088,$0110,$0050,$00A0,$0190,$0168	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $02D0,$03C0,$0398,$0730,$0820	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $00E0,$0A50,$0220,$0478,$08F0,$09E0,$03E0,$07B8
+	dc.w $08A8,$0300,$05F8,$06E8,$0200,$0408,$04F8,$0120
+	dc.w $0248,$0338,$0088,$0110,$0050,$00A0,$0190,$0168
+	dc.w $02D0,$03C0,$0398,$0730,$0820
 model_017_vertices:
 	dc.w $0000	; x_coordinate_ref
 	dc.w $0000	; y_coordinate_ref
@@ -27356,41 +27383,41 @@ model_017_vertices:
 	dc.w $0038	; variant_offset_or_negative
 model_017_variant_words:
 	dc.w $0000,$8008,$0016,$0000,$8008,$0000,$0016,$0000	; 9 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $0008,$0000,$0016,$0000,$0000,$0008,$0016,$0000	; 9 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $0000,$0000,$0018,$0000,$800E,$8010,$001A,$0000	; 9 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $000E,$8010,$001A,$0000,$0000,$0014,$001A,$0000	; 9 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $0000,$8008,$001C,$0000,$8008,$0000,$001C,$0000	; 9 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $0008,$0000,$001C,$0000,$0000,$0008,$001C,$0000	; 9 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $0000,$0000,$001E,$0000,$800E,$8010,$0020,$0000	; 9 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $000E,$8010,$0020,$0000,$0000,$0014,$0020,$0000	; 9 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $0000,$8008,$0022,$0000,$8008,$0000,$0022,$0000	; 9 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $0008,$0000,$0022,$0000,$0000,$0008,$0022,$0000	; 9 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $0000,$0000,$0024,$0000,$800E,$8010,$0026,$0000	; 9 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $000E,$8010,$0026,$0000,$0000,$0014,$0026,$0000	; 9 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $0000,$8008,$0028,$0000,$8008,$0000,$0028,$0000	; 9 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $0008,$0000,$0028,$0000,$0000,$0008,$0028,$0000	; 9 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $0000,$0000,$002A,$0000,$800E,$8010,$002C,$0000	; 9 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $000E,$8010,$002C,$0000,$0000,$0014,$002C,$0000	; 9 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $0000,$8008,$002E,$0000,$8008,$0000,$002E,$0000	; 9 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $0008,$0000,$002E,$0000,$0000,$0008,$002E,$0000	; 9 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $0000,$0000,$0030,$0000,$800E,$8010,$0032,$0000	; 9 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $000E,$8010,$0032,$0000,$0000,$0014,$0032,$0000	; 9 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $0000,$8008,$0034,$0000,$8008,$0000,$0034,$0000	; 9 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $0008,$0000,$0034,$0000,$0000,$0008,$0034,$0000	; 9 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $0000,$0000,$0036,$0000,$800E,$8010,$0028,$0000	; 9 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $000E,$8010,$0028,$0000,$0000,$0014,$0028,$0000	; 9 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $0000,$8008,$0038,$0000,$8008,$0000,$0038,$0000	; 9 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $0008,$0000,$0038,$0000,$0000,$0008,$0038,$0000	; 9 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $0000,$0000,$003A,$0000,$800E,$8010,$003C,$0000	; 9 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $000E,$8010,$003C,$0000,$0000,$0014,$003C,$0000	; 9 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $0000,$8008,$003E,$0000,$8008,$0000,$003E,$0000	; 9 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $0008,$0000,$003E,$0000,$0000,$0008,$003E,$0000	; 9 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $0000,$0000,$0040,$0000,$800E,$8010,$0042,$0000	; 9 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $000E,$8010,$0042,$0000,$0000,$0014,$0042,$0000	; 9 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $0000,$8008,$0044,$0000,$8008,$0000,$0044,$0000	; 9 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $0008,$0000,$0044,$0000,$0000,$0008,$0044,$0000	; 9 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $0000,$0000,$0046,$0000,$800E,$8010,$0048,$0000	; 9 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $000E,$8010,$0048,$0000,$0000,$0014,$0048,$0000	; 9 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninter
+	dc.w $0008,$0000,$0016,$0000,$0000,$0008,$0016,$0000
+	dc.w $0000,$0000,$0018,$0000,$800E,$8010,$001A,$0000
+	dc.w $000E,$8010,$001A,$0000,$0000,$0014,$001A,$0000
+	dc.w $0000,$8008,$001C,$0000,$8008,$0000,$001C,$0000
+	dc.w $0008,$0000,$001C,$0000,$0000,$0008,$001C,$0000
+	dc.w $0000,$0000,$001E,$0000,$800E,$8010,$0020,$0000
+	dc.w $000E,$8010,$0020,$0000,$0000,$0014,$0020,$0000
+	dc.w $0000,$8008,$0022,$0000,$8008,$0000,$0022,$0000
+	dc.w $0008,$0000,$0022,$0000,$0000,$0008,$0022,$0000
+	dc.w $0000,$0000,$0024,$0000,$800E,$8010,$0026,$0000
+	dc.w $000E,$8010,$0026,$0000,$0000,$0014,$0026,$0000
+	dc.w $0000,$8008,$0028,$0000,$8008,$0000,$0028,$0000
+	dc.w $0008,$0000,$0028,$0000,$0000,$0008,$0028,$0000
+	dc.w $0000,$0000,$002A,$0000,$800E,$8010,$002C,$0000
+	dc.w $000E,$8010,$002C,$0000,$0000,$0014,$002C,$0000
+	dc.w $0000,$8008,$002E,$0000,$8008,$0000,$002E,$0000
+	dc.w $0008,$0000,$002E,$0000,$0000,$0008,$002E,$0000
+	dc.w $0000,$0000,$0030,$0000,$800E,$8010,$0032,$0000
+	dc.w $000E,$8010,$0032,$0000,$0000,$0014,$0032,$0000
+	dc.w $0000,$8008,$0034,$0000,$8008,$0000,$0034,$0000
+	dc.w $0008,$0000,$0034,$0000,$0000,$0008,$0034,$0000
+	dc.w $0000,$0000,$0036,$0000,$800E,$8010,$0028,$0000
+	dc.w $000E,$8010,$0028,$0000,$0000,$0014,$0028,$0000
+	dc.w $0000,$8008,$0038,$0000,$8008,$0000,$0038,$0000
+	dc.w $0008,$0000,$0038,$0000,$0000,$0008,$0038,$0000
+	dc.w $0000,$0000,$003A,$0000,$800E,$8010,$003C,$0000
+	dc.w $000E,$8010,$003C,$0000,$0000,$0014,$003C,$0000
+	dc.w $0000,$8008,$003E,$0000,$8008,$0000,$003E,$0000
+	dc.w $0008,$0000,$003E,$0000,$0000,$0008,$003E,$0000
+	dc.w $0000,$0000,$0040,$0000,$800E,$8010,$0042,$0000
+	dc.w $000E,$8010,$0042,$0000,$0000,$0014,$0042,$0000
+	dc.w $0000,$8008,$0044,$0000,$8008,$0000,$0044,$0000
+	dc.w $0008,$0000,$0044,$0000,$0000,$0008,$0044,$0000
+	dc.w $0000,$0000,$0046,$0000,$800E,$8010,$0048,$0000
+	dc.w $000E,$8010,$0048,$0000,$0000,$0014,$0048,$0000
 model_017_variant_frames:
 	dc.l model_017_variant_words	; 9 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninter
 	dc.l model_017_variant_words+$40
@@ -27403,27 +27430,27 @@ model_017_variant_frames:
 	dc.l model_017_variant_words+$200
 model_018_faces:
 	dc.w $030E,$0000,$0028,$0060,$030B,$0008,$0000,$0060	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $030B,$0028,$0020,$0060,$030C,$0010,$0008,$0060	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $030C,$0020,$0018,$0060,$0304,$0018,$0010,$0060	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0407,$0030,$0038,$0050,$0058,$040A,$0038,$0040	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0048,$0050,$0409,$0000,$0030,$0058,$0028,$0307	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0000,$0008,$0038,$0307,$0020,$0028,$0050,$030A	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0030,$0000,$0038,$030A,$0050,$0028,$0058,$0409	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0008,$0010,$0040,$0038,$0409,$0048,$0018,$0020	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0050,$0405,$0010,$0018,$0048,$0040,$8405,$0008	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0010,$0070,$0068,$8405,$0018,$0020,$0078,$0080	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $8201,$0088,$0090	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $030B,$0028,$0020,$0060,$030C,$0010,$0008,$0060
+	dc.w $030C,$0020,$0018,$0060,$0304,$0018,$0010,$0060
+	dc.w $0407,$0030,$0038,$0050,$0058,$040A,$0038,$0040
+	dc.w $0048,$0050,$0409,$0000,$0030,$0058,$0028,$0307
+	dc.w $0000,$0008,$0038,$0307,$0020,$0028,$0050,$030A
+	dc.w $0030,$0000,$0038,$030A,$0050,$0028,$0058,$0409
+	dc.w $0008,$0010,$0040,$0038,$0409,$0048,$0018,$0020
+	dc.w $0050,$0405,$0010,$0018,$0048,$0040,$8405,$0008
+	dc.w $0010,$0070,$0068,$8405,$0018,$0020,$0078,$0080
+	dc.w $8201,$0088,$0090
 model_018_auxiliary_faces:
 	dc.w $8600,$0028,$0020,$0018,$0010,$0008,$0000,$8400	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0078,$0080,$0018,$0020,$8400,$0070,$0068,$0008	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0010	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0078,$0080,$0018,$0020,$8400,$0070,$0068,$0008
+	dc.w $0010
 model_018_coordinates:
 	dc.w $0000,$0140,$00A0,$0FA0,$0460,$0320,$0C80,$0E60	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0370,$0960,$03C0,$0AA0,$0640,$1400,$0158,$0178	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0A98,$01C8,$0A90,$0238,$0A70,$02C0,$0A48,$0348	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0A08,$03E8,$09C8,$0970,$04F0,$0918,$0558,$08B8	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $05C0,$0868,$0608,$0820,$0810,$0650,$07F8,$0660	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0878,$05F8,$09B0,$0490,$0A20,$03B0,$01E8	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0370,$0960,$03C0,$0AA0,$0640,$1400,$0158,$0178
+	dc.w $0A98,$01C8,$0A90,$0238,$0A70,$02C0,$0A48,$0348
+	dc.w $0A08,$03E8,$09C8,$0970,$04F0,$0918,$0558,$08B8
+	dc.w $05C0,$0868,$0608,$0820,$0810,$0650,$07F8,$0660
+	dc.w $0878,$05F8,$09B0,$0490,$0A20,$03B0,$01E8
 model_018_vertices:
 	dc.w $8002	; x_coordinate_ref
 	dc.w $8004	; y_coordinate_ref
@@ -27503,51 +27530,51 @@ model_018_vertices:
 	dc.w $FFFF	; variant_offset_or_negative
 model_018_variant_words:
 	dc.w $8016,$801C,$0018,$0000,$8016,$801C,$0006,$0000	; 23 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0016,$801C,$0018,$0000,$0016,$801C,$0006,$0000	; 23 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8016,$801E,$0018,$0000,$8016,$801E,$0006,$0000	; 23 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0016,$801E,$0018,$0000,$0016,$801E,$0006,$0000	; 23 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8020,$8022,$0018,$0000,$8020,$8022,$0006,$0000	; 23 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0020,$8022,$0018,$0000,$0020,$8022,$0006,$0000	; 23 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8024,$8026,$0018,$0000,$8024,$8026,$0006,$0000	; 23 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0024,$8026,$0018,$0000,$0024,$8026,$0006,$0000	; 23 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8028,$802A,$0018,$0000,$8028,$802A,$0006,$0000	; 23 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0028,$802A,$0018,$0000,$0028,$802A,$0006,$0000	; 23 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $802C,$802E,$0018,$0000,$802C,$802E,$0006,$0000	; 23 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $002C,$802E,$0018,$0000,$002C,$802E,$0006,$0000	; 23 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8030,$8032,$0018,$0000,$8030,$8032,$0006,$0000	; 23 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0030,$8032,$0018,$0000,$0030,$8032,$0006,$0000	; 23 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8034,$8008,$0018,$0000,$8034,$8008,$0006,$0000	; 23 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0034,$8008,$0018,$0000,$0034,$8008,$0006,$0000	; 23 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8036,$8038,$0018,$0000,$8036,$8038,$0006,$0000	; 23 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0036,$8038,$0018,$0000,$0036,$8038,$0006,$0000	; 23 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $803A,$803C,$0018,$0000,$803A,$803C,$0006,$0000	; 23 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $003A,$803C,$0018,$0000,$003A,$803C,$0006,$0000	; 23 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $803E,$8040,$0018,$0000,$803E,$8040,$0006,$0000	; 23 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $003E,$8040,$0018,$0000,$003E,$8040,$0006,$0000	; 23 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8042,$8044,$0018,$0000,$8042,$8044,$0006,$0000	; 23 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0042,$8044,$0018,$0000,$0042,$8044,$0006,$0000	; 23 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8046,$8018,$0018,$0000,$8046,$8018,$0006,$0000	; 23 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0046,$8018,$0018,$0000,$0046,$8018,$0006,$0000	; 23 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8048,$804A,$0018,$0000,$8048,$804A,$0006,$0000	; 23 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0048,$804A,$0018,$0000,$0048,$804A,$0006,$0000	; 23 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $804C,$804E,$0018,$0000,$804C,$804E,$0006,$0000	; 23 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $004C,$804E,$0018,$0000,$004C,$804E,$0006,$0000	; 23 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8046,$8018,$0018,$0000,$8046,$8018,$0006,$0000	; 23 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0046,$8018,$0018,$0000,$0046,$8018,$0006,$0000	; 23 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8050,$8052,$0018,$0000,$8050,$8052,$0006,$0000	; 23 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0050,$8052,$0018,$0000,$0050,$8052,$0006,$0000	; 23 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $803A,$803C,$0018,$0000,$803A,$803C,$0006,$0000	; 23 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $003A,$803C,$0018,$0000,$003A,$803C,$0006,$0000	; 23 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8054,$8056,$0018,$0000,$8054,$8056,$0006,$0000	; 23 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0054,$8056,$0018,$0000,$0054,$8056,$0006,$0000	; 23 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8058,$805A,$0018,$0000,$8058,$805A,$0006,$0000	; 23 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0058,$805A,$0018,$0000,$0058,$805A,$0006,$0000	; 23 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8028,$802A,$0018,$0000,$8028,$802A,$0006,$0000	; 23 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0028,$802A,$0018,$0000,$0028,$802A,$0006,$0000	; 23 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8020,$805C,$0018,$0000,$8020,$805C,$0006,$0000	; 23 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0020,$805C,$0018,$0000,$0020,$805C,$0006,$0000	; 23 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8016,$801E,$0018,$0000,$8016,$801E,$0006,$0000	; 23 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0016,$801E,$0018,$0000,$0016,$801E,$0006,$0000	; 23 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with uninte
+	dc.w $0016,$801C,$0018,$0000,$0016,$801C,$0006,$0000
+	dc.w $8016,$801E,$0018,$0000,$8016,$801E,$0006,$0000
+	dc.w $0016,$801E,$0018,$0000,$0016,$801E,$0006,$0000
+	dc.w $8020,$8022,$0018,$0000,$8020,$8022,$0006,$0000
+	dc.w $0020,$8022,$0018,$0000,$0020,$8022,$0006,$0000
+	dc.w $8024,$8026,$0018,$0000,$8024,$8026,$0006,$0000
+	dc.w $0024,$8026,$0018,$0000,$0024,$8026,$0006,$0000
+	dc.w $8028,$802A,$0018,$0000,$8028,$802A,$0006,$0000
+	dc.w $0028,$802A,$0018,$0000,$0028,$802A,$0006,$0000
+	dc.w $802C,$802E,$0018,$0000,$802C,$802E,$0006,$0000
+	dc.w $002C,$802E,$0018,$0000,$002C,$802E,$0006,$0000
+	dc.w $8030,$8032,$0018,$0000,$8030,$8032,$0006,$0000
+	dc.w $0030,$8032,$0018,$0000,$0030,$8032,$0006,$0000
+	dc.w $8034,$8008,$0018,$0000,$8034,$8008,$0006,$0000
+	dc.w $0034,$8008,$0018,$0000,$0034,$8008,$0006,$0000
+	dc.w $8036,$8038,$0018,$0000,$8036,$8038,$0006,$0000
+	dc.w $0036,$8038,$0018,$0000,$0036,$8038,$0006,$0000
+	dc.w $803A,$803C,$0018,$0000,$803A,$803C,$0006,$0000
+	dc.w $003A,$803C,$0018,$0000,$003A,$803C,$0006,$0000
+	dc.w $803E,$8040,$0018,$0000,$803E,$8040,$0006,$0000
+	dc.w $003E,$8040,$0018,$0000,$003E,$8040,$0006,$0000
+	dc.w $8042,$8044,$0018,$0000,$8042,$8044,$0006,$0000
+	dc.w $0042,$8044,$0018,$0000,$0042,$8044,$0006,$0000
+	dc.w $8046,$8018,$0018,$0000,$8046,$8018,$0006,$0000
+	dc.w $0046,$8018,$0018,$0000,$0046,$8018,$0006,$0000
+	dc.w $8048,$804A,$0018,$0000,$8048,$804A,$0006,$0000
+	dc.w $0048,$804A,$0018,$0000,$0048,$804A,$0006,$0000
+	dc.w $804C,$804E,$0018,$0000,$804C,$804E,$0006,$0000
+	dc.w $004C,$804E,$0018,$0000,$004C,$804E,$0006,$0000
+	dc.w $8046,$8018,$0018,$0000,$8046,$8018,$0006,$0000
+	dc.w $0046,$8018,$0018,$0000,$0046,$8018,$0006,$0000
+	dc.w $8050,$8052,$0018,$0000,$8050,$8052,$0006,$0000
+	dc.w $0050,$8052,$0018,$0000,$0050,$8052,$0006,$0000
+	dc.w $803A,$803C,$0018,$0000,$803A,$803C,$0006,$0000
+	dc.w $003A,$803C,$0018,$0000,$003A,$803C,$0006,$0000
+	dc.w $8054,$8056,$0018,$0000,$8054,$8056,$0006,$0000
+	dc.w $0054,$8056,$0018,$0000,$0054,$8056,$0006,$0000
+	dc.w $8058,$805A,$0018,$0000,$8058,$805A,$0006,$0000
+	dc.w $0058,$805A,$0018,$0000,$0058,$805A,$0006,$0000
+	dc.w $8028,$802A,$0018,$0000,$8028,$802A,$0006,$0000
+	dc.w $0028,$802A,$0018,$0000,$0028,$802A,$0006,$0000
+	dc.w $8020,$805C,$0018,$0000,$8020,$805C,$0006,$0000
+	dc.w $0020,$805C,$0018,$0000,$0020,$805C,$0006,$0000
+	dc.w $8016,$801E,$0018,$0000,$8016,$801E,$0006,$0000
+	dc.w $0016,$801E,$0018,$0000,$0016,$801E,$0006,$0000
 model_018_variant_frames:
 	dc.l model_018_variant_words	; 23 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with uninte
 	dc.l model_018_variant_words+$20
@@ -27574,18 +27601,18 @@ model_018_variant_frames:
 	dc.l model_018_variant_words+$2C0
 model_019_faces:
 	dc.w $0302,$0000,$0018,$0010,$0309,$0018,$0000,$0020	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0302,$0020,$0000,$0008,$0309,$0010,$0008,$0000	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0302,$0020,$0040,$0028,$0309,$0028,$0040,$0030	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0302,$0030,$0040,$0038,$0309,$0038,$0040,$0020	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0408,$0008,$0010,$0018,$0020,$0408,$0020,$0028	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0030,$0038	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0302,$0020,$0000,$0008,$0309,$0010,$0008,$0000
+	dc.w $0302,$0020,$0040,$0028,$0309,$0028,$0040,$0030
+	dc.w $0302,$0030,$0040,$0038,$0309,$0038,$0040,$0020
+	dc.w $0408,$0008,$0010,$0018,$0020,$0408,$0020,$0028
+	dc.w $0030,$0038
 model_019_coordinates:
 	dc.w $0000,$0C80,$0320,$0FA0,$0960,$0C68,$0340,$0C60	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0928,$0338,$0C20,$0388,$0C18,$0890,$0380,$0BA0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0408,$0B98,$0790,$0400,$0AF8,$04B0,$0AF0,$0640	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $04A8,$0A28,$0578,$0948,$0660,$0940,$02E0,$0658	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0850,$0758,$0848,$00F8,$0750,$0100,$02E8,$0648	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0798,$0898,$0930	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0928,$0338,$0C20,$0388,$0C18,$0890,$0380,$0BA0
+	dc.w $0408,$0B98,$0790,$0400,$0AF8,$04B0,$0AF0,$0640
+	dc.w $04A8,$0A28,$0578,$0948,$0660,$0940,$02E0,$0658
+	dc.w $0850,$0758,$0848,$00F8,$0750,$0100,$02E8,$0648
+	dc.w $0798,$0898,$0930
 model_019_vertices:
 	dc.w $0000	; x_coordinate_ref
 	dc.w $8002	; y_coordinate_ref
@@ -27625,58 +27652,58 @@ model_019_vertices:
 	dc.w $0030	; variant_offset_or_negative
 model_019_variant_words:
 	dc.w $0000,$800A,$800C,$0000,$000E,$0000,$800C,$0000	; 15 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $800A,$0000,$800C,$0000,$0000,$0000,$0010,$0000	; 15 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $800C,$0000,$000E,$0000,$0012,$0000,$000E,$0000	; 15 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0000,$800C,$000E,$0000,$0000,$8014,$8016,$0000	; 15 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0018,$0000,$8016,$0000,$8014,$0000,$8016,$0000	; 15 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0000,$0000,$001A,$0000,$8016,$0000,$0018,$0000	; 15 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $001C,$0000,$0018,$0000,$0000,$8016,$0018,$0000	; 15 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0000,$801E,$8020,$0000,$0022,$0000,$8020,$0000	; 15 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $801E,$0000,$8020,$0000,$0000,$0000,$0024,$0000	; 15 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8020,$0000,$0022,$0000,$0026,$0000,$0022,$0000	; 15 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0000,$8020,$0022,$0000,$0000,$8028,$802A,$0000	; 15 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $002C,$0000,$802A,$0000,$8028,$0000,$802A,$0000	; 15 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0000,$0000,$002E,$0000,$802A,$0000,$002C,$0000	; 15 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0030,$0000,$002C,$0000,$0000,$802A,$002C,$0000	; 15 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0000,$8032,$8034,$0000,$0032,$0000,$8034,$0000	; 15 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8032,$0000,$8034,$0000,$0000,$0000,$002A,$0000	; 15 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8034,$0000,$0032,$0000,$0034,$0000,$0032,$0000	; 15 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0000,$8034,$0032,$0000,$0000,$8036,$8038,$0000	; 15 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $003A,$0000,$8038,$0000,$8036,$0000,$8038,$0000	; 15 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0000,$0000,$003C,$0000,$8038,$0000,$003A,$0000	; 15 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $003E,$0000,$003A,$0000,$0000,$8038,$003A,$0000	; 15 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0000,$8040,$8042,$0000,$0044,$0000,$8042,$0000	; 15 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8040,$0000,$8042,$0000,$0000,$0000,$0046,$0000	; 15 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8042,$0000,$0044,$0000,$0048,$0000,$0044,$0000	; 15 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0000,$8042,$0044,$0000,$0000,$8042,$8040,$0000	; 15 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0048,$0000,$8040,$0000,$8042,$0000,$8040,$0000	; 15 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0000,$0000,$804A,$0000,$8040,$0000,$0048,$0000	; 15 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0044,$0000,$0048,$0000,$0000,$8040,$0048,$0000	; 15 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0000,$8038,$8036,$0000,$003E,$0000,$8036,$0000	; 15 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8038,$0000,$8036,$0000,$0000,$0000,$804C,$0000	; 15 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8036,$0000,$003E,$0000,$003A,$0000,$003E,$0000	; 15 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0000,$8036,$003E,$0000,$0000,$8034,$8032,$0000	; 15 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0034,$0000,$8032,$0000,$8034,$0000,$8032,$0000	; 15 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0000,$0000,$802A,$0000,$8032,$0000,$0034,$0000	; 15 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0032,$0000,$0034,$0000,$0000,$8032,$0034,$0000	; 15 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0000,$802A,$8028,$0000,$0030,$0000,$8028,$0000	; 15 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $802A,$0000,$8028,$0000,$0000,$0000,$804E,$0000	; 15 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8028,$0000,$0030,$0000,$002C,$0000,$0030,$0000	; 15 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0000,$8028,$0030,$0000,$0000,$8020,$801E,$0000	; 15 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0026,$0000,$801E,$0000,$8020,$0000,$801E,$0000	; 15 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0000,$0000,$8050,$0000,$801E,$0000,$0026,$0000	; 15 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0022,$0000,$0026,$0000,$0000,$801E,$0026,$0000	; 15 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0000,$8016,$8014,$0000,$001C,$0000,$8014,$0000	; 15 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8016,$0000,$8014,$0000,$0000,$0000,$8052,$0000	; 15 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8014,$0000,$001C,$0000,$0018,$0000,$001C,$0000	; 15 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0000,$8014,$001C,$0000,$0000,$800C,$800A,$0000	; 15 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0012,$0000,$800A,$0000,$800C,$0000,$800A,$0000	; 15 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0000,$0000,$8054,$0000,$800A,$0000,$0012,$0000	; 15 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $000E,$0000,$0012,$0000,$0000,$800A,$0012,$0000	; 15 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0000,$8004,$8002,$0000,$0004,$0000,$8002,$0000	; 15 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8004,$0000,$8002,$0000,$0000,$0000,$8008,$0000	; 15 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8002,$0000,$0004,$0000,$0002,$0000,$0004,$0000	; 15 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0000,$8002,$0004,$0000	; 15 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
+	dc.w $800A,$0000,$800C,$0000,$0000,$0000,$0010,$0000
+	dc.w $800C,$0000,$000E,$0000,$0012,$0000,$000E,$0000
+	dc.w $0000,$800C,$000E,$0000,$0000,$8014,$8016,$0000
+	dc.w $0018,$0000,$8016,$0000,$8014,$0000,$8016,$0000
+	dc.w $0000,$0000,$001A,$0000,$8016,$0000,$0018,$0000
+	dc.w $001C,$0000,$0018,$0000,$0000,$8016,$0018,$0000
+	dc.w $0000,$801E,$8020,$0000,$0022,$0000,$8020,$0000
+	dc.w $801E,$0000,$8020,$0000,$0000,$0000,$0024,$0000
+	dc.w $8020,$0000,$0022,$0000,$0026,$0000,$0022,$0000
+	dc.w $0000,$8020,$0022,$0000,$0000,$8028,$802A,$0000
+	dc.w $002C,$0000,$802A,$0000,$8028,$0000,$802A,$0000
+	dc.w $0000,$0000,$002E,$0000,$802A,$0000,$002C,$0000
+	dc.w $0030,$0000,$002C,$0000,$0000,$802A,$002C,$0000
+	dc.w $0000,$8032,$8034,$0000,$0032,$0000,$8034,$0000
+	dc.w $8032,$0000,$8034,$0000,$0000,$0000,$002A,$0000
+	dc.w $8034,$0000,$0032,$0000,$0034,$0000,$0032,$0000
+	dc.w $0000,$8034,$0032,$0000,$0000,$8036,$8038,$0000
+	dc.w $003A,$0000,$8038,$0000,$8036,$0000,$8038,$0000
+	dc.w $0000,$0000,$003C,$0000,$8038,$0000,$003A,$0000
+	dc.w $003E,$0000,$003A,$0000,$0000,$8038,$003A,$0000
+	dc.w $0000,$8040,$8042,$0000,$0044,$0000,$8042,$0000
+	dc.w $8040,$0000,$8042,$0000,$0000,$0000,$0046,$0000
+	dc.w $8042,$0000,$0044,$0000,$0048,$0000,$0044,$0000
+	dc.w $0000,$8042,$0044,$0000,$0000,$8042,$8040,$0000
+	dc.w $0048,$0000,$8040,$0000,$8042,$0000,$8040,$0000
+	dc.w $0000,$0000,$804A,$0000,$8040,$0000,$0048,$0000
+	dc.w $0044,$0000,$0048,$0000,$0000,$8040,$0048,$0000
+	dc.w $0000,$8038,$8036,$0000,$003E,$0000,$8036,$0000
+	dc.w $8038,$0000,$8036,$0000,$0000,$0000,$804C,$0000
+	dc.w $8036,$0000,$003E,$0000,$003A,$0000,$003E,$0000
+	dc.w $0000,$8036,$003E,$0000,$0000,$8034,$8032,$0000
+	dc.w $0034,$0000,$8032,$0000,$8034,$0000,$8032,$0000
+	dc.w $0000,$0000,$802A,$0000,$8032,$0000,$0034,$0000
+	dc.w $0032,$0000,$0034,$0000,$0000,$8032,$0034,$0000
+	dc.w $0000,$802A,$8028,$0000,$0030,$0000,$8028,$0000
+	dc.w $802A,$0000,$8028,$0000,$0000,$0000,$804E,$0000
+	dc.w $8028,$0000,$0030,$0000,$002C,$0000,$0030,$0000
+	dc.w $0000,$8028,$0030,$0000,$0000,$8020,$801E,$0000
+	dc.w $0026,$0000,$801E,$0000,$8020,$0000,$801E,$0000
+	dc.w $0000,$0000,$8050,$0000,$801E,$0000,$0026,$0000
+	dc.w $0022,$0000,$0026,$0000,$0000,$801E,$0026,$0000
+	dc.w $0000,$8016,$8014,$0000,$001C,$0000,$8014,$0000
+	dc.w $8016,$0000,$8014,$0000,$0000,$0000,$8052,$0000
+	dc.w $8014,$0000,$001C,$0000,$0018,$0000,$001C,$0000
+	dc.w $0000,$8014,$001C,$0000,$0000,$800C,$800A,$0000
+	dc.w $0012,$0000,$800A,$0000,$800C,$0000,$800A,$0000
+	dc.w $0000,$0000,$8054,$0000,$800A,$0000,$0012,$0000
+	dc.w $000E,$0000,$0012,$0000,$0000,$800A,$0012,$0000
+	dc.w $0000,$8004,$8002,$0000,$0004,$0000,$8002,$0000
+	dc.w $8004,$0000,$8002,$0000,$0000,$0000,$8008,$0000
+	dc.w $8002,$0000,$0004,$0000,$0002,$0000,$0004,$0000
+	dc.w $0000,$8002,$0004,$0000
 model_019_variant_frames:
 	dc.l model_019_variant_words	; 15 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
 	dc.l model_019_variant_words+$38
@@ -27695,17 +27722,17 @@ model_019_variant_frames:
 	dc.l model_019_variant_words+$310
 model_020_faces:
 	dc.w $0301,$0000,$0040,$0010,$0306,$0000,$0018,$0040	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0305,$0000,$0048,$0018,$0304,$0000,$0020,$0048	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0305,$0000,$0050,$0020,$0306,$0000,$0028,$0050	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0301,$0000,$0058,$0028,$0306,$0000,$0030,$0058	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0305,$0000,$0060,$0030,$0304,$0000,$0038,$0060	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0305,$0000,$0068,$0038,$0306,$0000,$0010,$0068	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0306,$0008,$0010,$0040,$0305,$0008,$0040,$0018	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0304,$0008,$0018,$0048,$0305,$0008,$0048,$0020	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0306,$0008,$0020,$0050,$0301,$0008,$0050,$0028	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0306,$0008,$0028,$0058,$0305,$0008,$0058,$0030	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0304,$0008,$0030,$0060,$0305,$0008,$0060,$0038	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0306,$0008,$0038,$0068,$0301,$0008,$0068,$0010	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0305,$0000,$0048,$0018,$0304,$0000,$0020,$0048
+	dc.w $0305,$0000,$0050,$0020,$0306,$0000,$0028,$0050
+	dc.w $0301,$0000,$0058,$0028,$0306,$0000,$0030,$0058
+	dc.w $0305,$0000,$0060,$0030,$0304,$0000,$0038,$0060
+	dc.w $0305,$0000,$0068,$0038,$0306,$0000,$0010,$0068
+	dc.w $0306,$0008,$0010,$0040,$0305,$0008,$0040,$0018
+	dc.w $0304,$0008,$0018,$0048,$0305,$0008,$0048,$0020
+	dc.w $0306,$0008,$0020,$0050,$0301,$0008,$0050,$0028
+	dc.w $0306,$0008,$0028,$0058,$0305,$0008,$0058,$0030
+	dc.w $0304,$0008,$0030,$0060,$0305,$0008,$0060,$0038
+	dc.w $0306,$0008,$0038,$0068,$0301,$0008,$0068,$0010
 model_020_auxiliary_faces:
 	dc.w $8300,$0030,$0020,$0010,$8300,$0038,$0028,$0018	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
 model_020_coordinates:
@@ -27769,18 +27796,18 @@ model_020_vertices:
 	dc.w $FFFF	; variant_offset_or_negative
 model_021_faces:
 	dc.w $0304,$0000,$0020,$0008,$030D,$0018,$0020,$0000	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $030D,$0008,$0020,$0010,$030E,$0010,$0020,$0018	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $030D,$0000,$0008,$0028,$030E,$0018,$0000,$0028	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $030E,$0008,$0010,$0028,$030D,$0010,$0018,$0028	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $840B,$0008,$0010,$0038,$0030,$840B,$0018,$0040	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0048,$0010,$8204,$0060,$0068,$8204,$0050,$0030	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $8204,$0070,$0078,$8204,$0058,$0040	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $030D,$0008,$0020,$0010,$030E,$0010,$0020,$0018
+	dc.w $030D,$0000,$0008,$0028,$030E,$0018,$0000,$0028
+	dc.w $030E,$0008,$0010,$0028,$030D,$0010,$0018,$0028
+	dc.w $840B,$0008,$0010,$0038,$0030,$840B,$0018,$0040
+	dc.w $0048,$0010,$8204,$0060,$0068,$8204,$0050,$0030
+	dc.w $8204,$0070,$0078,$8204,$0058,$0040
 model_021_auxiliary_faces:
 	dc.w $8400,$0018,$0010,$0008,$0000,$8400,$0040,$0048	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0010,$0018,$8400,$0008,$0010,$0038,$0030	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0010,$0018,$8400,$0008,$0010,$0038,$0030
 model_021_coordinates:
 	dc.w $0000,$1900,$0320,$0960,$0280,$0460,$0B40,$0780	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0FA0,$03C0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0FA0,$03C0
 model_021_vertices:
 	dc.w $0000	; x_coordinate_ref
 	dc.w $0000	; y_coordinate_ref
@@ -27848,18 +27875,18 @@ model_021_vertices:
 	dc.w $FFFF	; variant_offset_or_negative
 model_022_faces:
 	dc.w $030E,$0000,$0008,$0050,$030D,$0000,$0050,$0010	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $030D,$0008,$0018,$0050,$030C,$0010,$0050,$0020	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $030C,$0018,$0028,$0050,$030E,$0020,$0050,$0028	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0300,$0000,$0010,$0030,$0300,$0008,$0038,$0018	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $040D,$0010,$0020,$0040,$0030,$040D,$0018,$0038	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0048,$0028,$0401,$0020,$0028,$0048,$0040,$040B	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0000,$0030,$0038,$0008,$040C,$0030,$0040,$0048	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0038	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $030D,$0008,$0018,$0050,$030C,$0010,$0050,$0020
+	dc.w $030C,$0018,$0028,$0050,$030E,$0020,$0050,$0028
+	dc.w $0300,$0000,$0010,$0030,$0300,$0008,$0038,$0018
+	dc.w $040D,$0010,$0020,$0040,$0030,$040D,$0018,$0038
+	dc.w $0048,$0028,$0401,$0020,$0028,$0048,$0040,$040B
+	dc.w $0000,$0030,$0038,$0008,$040C,$0030,$0040,$0048
+	dc.w $0038
 model_022_auxiliary_faces:
 	dc.w $8600,$0008,$0018,$0028,$0020,$0010,$0000	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
 model_022_coordinates:
 	dc.w $0000,$0280,$0C80,$0640,$0320,$0960,$04B0,$0190	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $07D0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $07D0
 model_022_vertices:
 	dc.w $8002	; x_coordinate_ref
 	dc.w $8002	; y_coordinate_ref
@@ -27907,18 +27934,18 @@ model_022_vertices:
 	dc.w $FFFF	; variant_offset_or_negative
 model_023_faces:
 	dc.w $040A,$0000,$0008,$0038,$0030,$040E,$0028,$0020	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0050,$0058,$0409,$0010,$0000,$0030,$0040,$0408	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0020,$0010,$0040,$0050,$0409,$0008,$0018,$0048	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0038,$0408,$0018,$0028,$0058,$0048,$0407,$0030	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0038,$0068,$0060,$0408,$0058,$0050,$0080,$0088	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $030A,$0030,$0060,$0070,$030A,$0038,$0078,$0068	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0308,$0040,$0030,$0070,$0308,$0038,$0048,$0078	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0309,$0050,$0040,$0070,$0309,$0048,$0058,$0078	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0308,$0050,$0070,$0080,$0308,$0058,$0088,$0078	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0602,$0060,$0068,$0078,$0088,$0080,$0070	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0050,$0058,$0409,$0010,$0000,$0030,$0040,$0408
+	dc.w $0020,$0010,$0040,$0050,$0409,$0008,$0018,$0048
+	dc.w $0038,$0408,$0018,$0028,$0058,$0048,$0407,$0030
+	dc.w $0038,$0068,$0060,$0408,$0058,$0050,$0080,$0088
+	dc.w $030A,$0030,$0060,$0070,$030A,$0038,$0078,$0068
+	dc.w $0308,$0040,$0030,$0070,$0308,$0038,$0048,$0078
+	dc.w $0309,$0050,$0040,$0070,$0309,$0048,$0058,$0078
+	dc.w $0308,$0050,$0070,$0080,$0308,$0058,$0088,$0078
+	dc.w $0602,$0060,$0068,$0078,$0088,$0080,$0070
 model_023_coordinates:
 	dc.w $0000,$0320,$0568,$0640,$0190,$02B8,$04B0,$0C80	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $07D0,$0960	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $07D0,$0960
 model_023_vertices:
 	dc.w $8002	; x_coordinate_ref
 	dc.w $0000	; y_coordinate_ref
@@ -27994,19 +28021,19 @@ model_023_vertices:
 	dc.w $FFFF	; variant_offset_or_negative
 model_024_faces:
 	dc.w $0308,$0000,$0010,$0008,$0309,$0000,$0018,$0010	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0308,$0000,$0020,$0018,$0309,$0000,$0028,$0020	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0308,$0000,$0030,$0028,$0309,$0000,$0008,$0030	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $8306,$0000,$0008,$0038,$8304,$0000,$0010,$0040	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $8306,$0000,$0018,$0048,$8304,$0000,$0020,$0050	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $8306,$0000,$0028,$0058,$8304,$0000,$0030,$0060	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0409,$0008,$0010,$0070,$0068,$040A,$0010,$0018	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0078,$0070,$0409,$0018,$0020,$0080,$0078,$040A	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0020,$0028,$0088,$0080,$0409,$0028,$0030,$0090	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0088,$040A,$0030,$0008,$0068,$0090,$0605,$0068	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0070,$0078,$0080,$0088,$0090	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0308,$0000,$0020,$0018,$0309,$0000,$0028,$0020
+	dc.w $0308,$0000,$0030,$0028,$0309,$0000,$0008,$0030
+	dc.w $8306,$0000,$0008,$0038,$8304,$0000,$0010,$0040
+	dc.w $8306,$0000,$0018,$0048,$8304,$0000,$0020,$0050
+	dc.w $8306,$0000,$0028,$0058,$8304,$0000,$0030,$0060
+	dc.w $0409,$0008,$0010,$0070,$0068,$040A,$0010,$0018
+	dc.w $0078,$0070,$0409,$0018,$0020,$0080,$0078,$040A
+	dc.w $0020,$0028,$0088,$0080,$0409,$0028,$0030,$0090
+	dc.w $0088,$040A,$0030,$0008,$0068,$0090,$0605,$0068
+	dc.w $0070,$0078,$0080,$0088,$0090
 model_024_coordinates:
 	dc.w $0000,$0FA0,$0460,$0230,$03C8,$0960,$0320,$04B0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0820,$01E0,$12C0,$00F0,$01A0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0820,$01E0,$12C0,$00F0,$01A0
 model_024_vertices:
 	dc.w $0000	; x_coordinate_ref
 	dc.w $0000	; y_coordinate_ref
@@ -28086,7 +28113,7 @@ model_024_vertices:
 	dc.w $FFFF	; variant_offset_or_negative
 model_025_faces:
 	dc.w $0306,$0000,$0010,$0008,$0305,$0000,$0018,$0010	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0304,$0000,$0008,$0018,$0300,$0008,$0010,$0018	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0304,$0000,$0008,$0018,$0300,$0008,$0010,$0018
 model_025_auxiliary_faces:
 	dc.w $8300,$0000,$0010,$0008	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
 model_025_coordinates:
@@ -28110,31 +28137,31 @@ model_025_vertices:
 	dc.w $FFFF	; variant_offset_or_negative
 model_026_faces:
 	dc.w $0304,$0000,$0028,$0008,$0305,$0000,$0010,$0028	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0304,$0000,$0030,$0010,$0305,$0000,$0018,$0030	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0304,$0000,$0020,$0018,$0305,$0000,$0008,$0020	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0301,$0008,$0028,$0020,$0301,$0010,$0030,$0028	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0301,$0018,$0020,$0030,$0405,$0020,$0028,$0040	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0038,$0304,$0028,$0048,$0040,$0405,$0028,$0030	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0050,$0048,$0304,$0030,$0058,$0050,$0405,$0030	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0020,$0060,$0058,$0304,$0020,$0038,$0060,$0406	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0038,$0040,$0070,$0068,$0305,$0070,$0040,$0048	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0406,$0048,$0050,$0078,$0070,$0305,$0078,$0050	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0058,$0406,$0058,$0060,$0068,$0078,$0305,$0068	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0060,$0038,$0301,$0068,$0070,$0078	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0304,$0000,$0030,$0010,$0305,$0000,$0018,$0030
+	dc.w $0304,$0000,$0020,$0018,$0305,$0000,$0008,$0020
+	dc.w $0301,$0008,$0028,$0020,$0301,$0010,$0030,$0028
+	dc.w $0301,$0018,$0020,$0030,$0405,$0020,$0028,$0040
+	dc.w $0038,$0304,$0028,$0048,$0040,$0405,$0028,$0030
+	dc.w $0050,$0048,$0304,$0030,$0058,$0050,$0405,$0030
+	dc.w $0020,$0060,$0058,$0304,$0020,$0038,$0060,$0406
+	dc.w $0038,$0040,$0070,$0068,$0305,$0070,$0040,$0048
+	dc.w $0406,$0048,$0050,$0078,$0070,$0305,$0078,$0050
+	dc.w $0058,$0406,$0058,$0060,$0068,$0078,$0305,$0068
+	dc.w $0060,$0038,$0301,$0068,$0070,$0078
 model_026_coordinates:
 	dc.w $0000,$0960,$0410,$0AF0,$0258,$04B0,$0F00,$0578	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $06B8,$00C8,$02B8,$0640,$1310,$0958,$0020,$0018	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0010,$0AE8,$0EF8,$1308,$0088,$0078,$0040,$0948	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0130,$0108,$0098,$0AD8,$0EE8,$12F8,$0928,$0208	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $01C0,$0100,$0AB8,$0EC8,$12D8,$08F0,$0308,$02A0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0180,$0A80,$0E90,$12A0,$0890,$0418,$0388,$0A20	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0E30,$1240,$0810,$0520,$0470,$0290,$09A0,$0DB0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $11C0,$0780,$0618,$0540,$0910,$0D20,$1130,$06E8	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $05F8,$0370,$0878,$0C88,$1098,$0650,$0788,$0688	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $03C0,$07E0,$0BF0,$1000,$05E0,$0800,$06F0,$0400	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0770,$0B80,$0F90,$0590,$0848,$0728,$0420,$0720	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0B30,$0F40,$0570,$0860,$0740,$0430,$0700,$0B10	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0F20	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $06B8,$00C8,$02B8,$0640,$1310,$0958,$0020,$0018
+	dc.w $0010,$0AE8,$0EF8,$1308,$0088,$0078,$0040,$0948
+	dc.w $0130,$0108,$0098,$0AD8,$0EE8,$12F8,$0928,$0208
+	dc.w $01C0,$0100,$0AB8,$0EC8,$12D8,$08F0,$0308,$02A0
+	dc.w $0180,$0A80,$0E90,$12A0,$0890,$0418,$0388,$0A20
+	dc.w $0E30,$1240,$0810,$0520,$0470,$0290,$09A0,$0DB0
+	dc.w $11C0,$0780,$0618,$0540,$0910,$0D20,$1130,$06E8
+	dc.w $05F8,$0370,$0878,$0C88,$1098,$0650,$0788,$0688
+	dc.w $03C0,$07E0,$0BF0,$1000,$05E0,$0800,$06F0,$0400
+	dc.w $0770,$0B80,$0F90,$0590,$0848,$0728,$0420,$0720
+	dc.w $0B30,$0F40,$0570,$0860,$0740,$0430,$0700,$0B10
+	dc.w $0F20
 model_026_vertices:
 	dc.w $0000	; x_coordinate_ref
 	dc.w $8002	; y_coordinate_ref
@@ -28202,109 +28229,109 @@ model_026_vertices:
 	dc.w $0078	; variant_offset_or_negative
 model_026_variant_words:
 	dc.w $0000,$801A,$0000,$0000,$0000,$0000,$801C,$0000	; 13 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $001E,$0000,$0020,$0000,$801E,$0000,$0020,$0000	; 13 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8004,$8022,$8008,$0000,$0004,$8022,$8008,$0000	; 13 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$8022,$000A,$0000,$8004,$8024,$800E,$0000	; 13 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0004,$8024,$800E,$0000,$0010,$8024,$8012,$0000	; 13 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0014,$8024,$0016,$0000,$8014,$8024,$0016,$0000	; 13 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8010,$8024,$8012,$0000,$8004,$8026,$8008,$0000	; 13 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0004,$8026,$8008,$0000,$0000,$8026,$000A,$0000	; 13 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$801A,$0000,$0000,$0000,$0000,$8028,$0000	; 13 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $002A,$0000,$002C,$0000,$802A,$0000,$002C,$0000	; 13 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8004,$8022,$8008,$0000,$0004,$8022,$8008,$0000	; 13 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$8022,$000A,$0000,$8004,$8024,$800E,$0000	; 13 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0004,$8024,$800E,$0000,$0010,$8024,$8012,$0000	; 13 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0014,$8024,$0016,$0000,$8014,$8024,$0016,$0000	; 13 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8010,$8024,$8012,$0000,$8004,$8026,$8008,$0000	; 13 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0004,$8026,$8008,$0000,$0000,$8026,$000A,$0000	; 13 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$802E,$0000,$0000,$0000,$0000,$8030,$0000	; 13 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0032,$0000,$0034,$0000,$8032,$0000,$0034,$0000	; 13 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8004,$8036,$8008,$0000,$0004,$8036,$8008,$0000	; 13 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$8036,$000A,$0000,$8004,$8038,$800E,$0000	; 13 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0004,$8038,$800E,$0000,$0010,$8038,$8012,$0000	; 13 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0014,$8038,$0016,$0000,$8014,$8038,$0016,$0000	; 13 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8010,$8038,$8012,$0000,$8004,$803A,$8008,$0000	; 13 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0004,$803A,$8008,$0000,$0000,$803A,$000A,$0000	; 13 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$803C,$0000,$0000,$0000,$0000,$803E,$0000	; 13 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0040,$0000,$0042,$0000,$8040,$0000,$0042,$0000	; 13 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8004,$8044,$8008,$0000,$0004,$8044,$8008,$0000	; 13 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$8044,$000A,$0000,$8004,$8046,$800E,$0000	; 13 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0004,$8046,$800E,$0000,$0010,$8046,$8012,$0000	; 13 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0014,$8046,$0016,$0000,$8014,$8046,$0016,$0000	; 13 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8010,$8046,$8012,$0000,$8004,$8048,$8008,$0000	; 13 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0004,$8048,$8008,$0000,$0000,$8048,$000A,$0000	; 13 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$804A,$0000,$0000,$0000,$0000,$804C,$0000	; 13 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $004E,$0000,$0050,$0000,$804E,$0000,$0050,$0000	; 13 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8004,$8052,$8008,$0000,$0004,$8052,$8008,$0000	; 13 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$8052,$000A,$0000,$8004,$8054,$800E,$0000	; 13 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0004,$8054,$800E,$0000,$0010,$8054,$8012,$0000	; 13 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0014,$8054,$0016,$0000,$8014,$8054,$0016,$0000	; 13 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8010,$8054,$8012,$0000,$8004,$8056,$8008,$0000	; 13 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0004,$8056,$8008,$0000,$0000,$8056,$000A,$0000	; 13 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$8058,$0000,$0000,$0000,$0000,$805A,$0000	; 13 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $005C,$0000,$003E,$0000,$805C,$0000,$003E,$0000	; 13 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8004,$805E,$8008,$0000,$0004,$805E,$8008,$0000	; 13 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$805E,$000A,$0000,$8004,$8060,$800E,$0000	; 13 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0004,$8060,$800E,$0000,$0010,$8060,$8012,$0000	; 13 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0014,$8060,$0016,$0000,$8014,$8060,$0016,$0000	; 13 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8010,$8060,$8012,$0000,$8004,$8062,$8008,$0000	; 13 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0004,$8062,$8008,$0000,$0000,$8062,$000A,$0000	; 13 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$8064,$0000,$0000,$0000,$0000,$8066,$0000	; 13 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0068,$0000,$006A,$0000,$8068,$0000,$006A,$0000	; 13 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8004,$806C,$8008,$0000,$0004,$806C,$8008,$0000	; 13 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$806C,$000A,$0000,$8004,$806E,$800E,$0000	; 13 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0004,$806E,$800E,$0000,$0010,$806E,$8012,$0000	; 13 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0014,$806E,$0016,$0000,$8014,$806E,$0016,$0000	; 13 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8010,$806E,$8012,$0000,$8004,$8070,$8008,$0000	; 13 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0004,$8070,$8008,$0000,$0000,$8070,$000A,$0000	; 13 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$8072,$0000,$0000,$0000,$0000,$8074,$0000	; 13 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0076,$0000,$004C,$0000,$8076,$0000,$004C,$0000	; 13 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8004,$8078,$8008,$0000,$0004,$8078,$8008,$0000	; 13 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$8078,$000A,$0000,$8004,$807A,$800E,$0000	; 13 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0004,$807A,$800E,$0000,$0010,$807A,$8012,$0000	; 13 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0014,$807A,$0016,$0000,$8014,$807A,$0016,$0000	; 13 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8010,$807A,$8012,$0000,$8004,$807C,$8008,$0000	; 13 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0004,$807C,$8008,$0000,$0000,$807C,$000A,$0000	; 13 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$807E,$0000,$0000,$0000,$0000,$807E,$0000	; 13 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0080,$0000,$0082,$0000,$8080,$0000,$0082,$0000	; 13 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8004,$8084,$8008,$0000,$0004,$8084,$8008,$0000	; 13 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$8084,$000A,$0000,$8004,$8086,$800E,$0000	; 13 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0004,$8086,$800E,$0000,$0010,$8086,$8012,$0000	; 13 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0014,$8086,$0016,$0000,$8014,$8086,$0016,$0000	; 13 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8010,$8086,$8012,$0000,$8004,$8088,$8008,$0000	; 13 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0004,$8088,$8008,$0000,$0000,$8088,$000A,$0000	; 13 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$808A,$0000,$0000,$0000,$0000,$808C,$0000	; 13 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $008E,$0000,$0090,$0000,$808E,$0000,$0090,$0000	; 13 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8004,$8092,$8008,$0000,$0004,$8092,$8008,$0000	; 13 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$8092,$000A,$0000,$8004,$8094,$800E,$0000	; 13 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0004,$8094,$800E,$0000,$0010,$8094,$8012,$0000	; 13 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0014,$8094,$0016,$0000,$8014,$8094,$0016,$0000	; 13 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8010,$8094,$8012,$0000,$8004,$8096,$8008,$0000	; 13 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0004,$8096,$8008,$0000,$0000,$8096,$000A,$0000	; 13 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$8098,$0000,$0000,$0000,$0000,$809A,$0000	; 13 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $009C,$0000,$009E,$0000,$809C,$0000,$009E,$0000	; 13 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8004,$80A0,$8008,$0000,$0004,$80A0,$8008,$0000	; 13 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$80A0,$000A,$0000,$8004,$80A2,$800E,$0000	; 13 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0004,$80A2,$800E,$0000,$0010,$80A2,$8012,$0000	; 13 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0014,$80A2,$0016,$0000,$8014,$80A2,$0016,$0000	; 13 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8010,$80A2,$8012,$0000,$8004,$80A4,$8008,$0000	; 13 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0004,$80A4,$8008,$0000,$0000,$80A4,$000A,$0000	; 13 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$80A6,$0000,$0000,$0000,$0000,$80A8,$0000	; 13 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $00AA,$0000,$00AC,$0000,$80AA,$0000,$00AC,$0000	; 13 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8004,$80AE,$8008,$0000,$0004,$80AE,$8008,$0000	; 13 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$80AE,$000A,$0000,$8004,$80B0,$800E,$0000	; 13 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0004,$80B0,$800E,$0000,$0010,$80B0,$8012,$0000	; 13 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0014,$80B0,$0016,$0000,$8014,$80B0,$0016,$0000	; 13 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8010,$80B0,$8012,$0000,$8004,$80B2,$8008,$0000	; 13 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0004,$80B2,$8008,$0000,$0000,$80B2,$000A,$0000	; 13 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$80B4,$0000,$0000,$0000,$0000,$80B6,$0000	; 13 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $00B8,$0000,$00BA,$0000,$80B8,$0000,$00BA,$0000	; 13 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8004,$80BC,$8008,$0000,$0004,$80BC,$8008,$0000	; 13 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$80BC,$000A,$0000,$8004,$80BE,$800E,$0000	; 13 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0004,$80BE,$800E,$0000,$0010,$80BE,$8012,$0000	; 13 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0014,$80BE,$0016,$0000,$8014,$80BE,$0016,$0000	; 13 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8010,$80BE,$8012,$0000,$8004,$80C0,$8008,$0000	; 13 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0004,$80C0,$8008,$0000,$0000,$80C0,$000A,$0000	; 13 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
+	dc.w $001E,$0000,$0020,$0000,$801E,$0000,$0020,$0000
+	dc.w $8004,$8022,$8008,$0000,$0004,$8022,$8008,$0000
+	dc.w $0000,$8022,$000A,$0000,$8004,$8024,$800E,$0000
+	dc.w $0004,$8024,$800E,$0000,$0010,$8024,$8012,$0000
+	dc.w $0014,$8024,$0016,$0000,$8014,$8024,$0016,$0000
+	dc.w $8010,$8024,$8012,$0000,$8004,$8026,$8008,$0000
+	dc.w $0004,$8026,$8008,$0000,$0000,$8026,$000A,$0000
+	dc.w $0000,$801A,$0000,$0000,$0000,$0000,$8028,$0000
+	dc.w $002A,$0000,$002C,$0000,$802A,$0000,$002C,$0000
+	dc.w $8004,$8022,$8008,$0000,$0004,$8022,$8008,$0000
+	dc.w $0000,$8022,$000A,$0000,$8004,$8024,$800E,$0000
+	dc.w $0004,$8024,$800E,$0000,$0010,$8024,$8012,$0000
+	dc.w $0014,$8024,$0016,$0000,$8014,$8024,$0016,$0000
+	dc.w $8010,$8024,$8012,$0000,$8004,$8026,$8008,$0000
+	dc.w $0004,$8026,$8008,$0000,$0000,$8026,$000A,$0000
+	dc.w $0000,$802E,$0000,$0000,$0000,$0000,$8030,$0000
+	dc.w $0032,$0000,$0034,$0000,$8032,$0000,$0034,$0000
+	dc.w $8004,$8036,$8008,$0000,$0004,$8036,$8008,$0000
+	dc.w $0000,$8036,$000A,$0000,$8004,$8038,$800E,$0000
+	dc.w $0004,$8038,$800E,$0000,$0010,$8038,$8012,$0000
+	dc.w $0014,$8038,$0016,$0000,$8014,$8038,$0016,$0000
+	dc.w $8010,$8038,$8012,$0000,$8004,$803A,$8008,$0000
+	dc.w $0004,$803A,$8008,$0000,$0000,$803A,$000A,$0000
+	dc.w $0000,$803C,$0000,$0000,$0000,$0000,$803E,$0000
+	dc.w $0040,$0000,$0042,$0000,$8040,$0000,$0042,$0000
+	dc.w $8004,$8044,$8008,$0000,$0004,$8044,$8008,$0000
+	dc.w $0000,$8044,$000A,$0000,$8004,$8046,$800E,$0000
+	dc.w $0004,$8046,$800E,$0000,$0010,$8046,$8012,$0000
+	dc.w $0014,$8046,$0016,$0000,$8014,$8046,$0016,$0000
+	dc.w $8010,$8046,$8012,$0000,$8004,$8048,$8008,$0000
+	dc.w $0004,$8048,$8008,$0000,$0000,$8048,$000A,$0000
+	dc.w $0000,$804A,$0000,$0000,$0000,$0000,$804C,$0000
+	dc.w $004E,$0000,$0050,$0000,$804E,$0000,$0050,$0000
+	dc.w $8004,$8052,$8008,$0000,$0004,$8052,$8008,$0000
+	dc.w $0000,$8052,$000A,$0000,$8004,$8054,$800E,$0000
+	dc.w $0004,$8054,$800E,$0000,$0010,$8054,$8012,$0000
+	dc.w $0014,$8054,$0016,$0000,$8014,$8054,$0016,$0000
+	dc.w $8010,$8054,$8012,$0000,$8004,$8056,$8008,$0000
+	dc.w $0004,$8056,$8008,$0000,$0000,$8056,$000A,$0000
+	dc.w $0000,$8058,$0000,$0000,$0000,$0000,$805A,$0000
+	dc.w $005C,$0000,$003E,$0000,$805C,$0000,$003E,$0000
+	dc.w $8004,$805E,$8008,$0000,$0004,$805E,$8008,$0000
+	dc.w $0000,$805E,$000A,$0000,$8004,$8060,$800E,$0000
+	dc.w $0004,$8060,$800E,$0000,$0010,$8060,$8012,$0000
+	dc.w $0014,$8060,$0016,$0000,$8014,$8060,$0016,$0000
+	dc.w $8010,$8060,$8012,$0000,$8004,$8062,$8008,$0000
+	dc.w $0004,$8062,$8008,$0000,$0000,$8062,$000A,$0000
+	dc.w $0000,$8064,$0000,$0000,$0000,$0000,$8066,$0000
+	dc.w $0068,$0000,$006A,$0000,$8068,$0000,$006A,$0000
+	dc.w $8004,$806C,$8008,$0000,$0004,$806C,$8008,$0000
+	dc.w $0000,$806C,$000A,$0000,$8004,$806E,$800E,$0000
+	dc.w $0004,$806E,$800E,$0000,$0010,$806E,$8012,$0000
+	dc.w $0014,$806E,$0016,$0000,$8014,$806E,$0016,$0000
+	dc.w $8010,$806E,$8012,$0000,$8004,$8070,$8008,$0000
+	dc.w $0004,$8070,$8008,$0000,$0000,$8070,$000A,$0000
+	dc.w $0000,$8072,$0000,$0000,$0000,$0000,$8074,$0000
+	dc.w $0076,$0000,$004C,$0000,$8076,$0000,$004C,$0000
+	dc.w $8004,$8078,$8008,$0000,$0004,$8078,$8008,$0000
+	dc.w $0000,$8078,$000A,$0000,$8004,$807A,$800E,$0000
+	dc.w $0004,$807A,$800E,$0000,$0010,$807A,$8012,$0000
+	dc.w $0014,$807A,$0016,$0000,$8014,$807A,$0016,$0000
+	dc.w $8010,$807A,$8012,$0000,$8004,$807C,$8008,$0000
+	dc.w $0004,$807C,$8008,$0000,$0000,$807C,$000A,$0000
+	dc.w $0000,$807E,$0000,$0000,$0000,$0000,$807E,$0000
+	dc.w $0080,$0000,$0082,$0000,$8080,$0000,$0082,$0000
+	dc.w $8004,$8084,$8008,$0000,$0004,$8084,$8008,$0000
+	dc.w $0000,$8084,$000A,$0000,$8004,$8086,$800E,$0000
+	dc.w $0004,$8086,$800E,$0000,$0010,$8086,$8012,$0000
+	dc.w $0014,$8086,$0016,$0000,$8014,$8086,$0016,$0000
+	dc.w $8010,$8086,$8012,$0000,$8004,$8088,$8008,$0000
+	dc.w $0004,$8088,$8008,$0000,$0000,$8088,$000A,$0000
+	dc.w $0000,$808A,$0000,$0000,$0000,$0000,$808C,$0000
+	dc.w $008E,$0000,$0090,$0000,$808E,$0000,$0090,$0000
+	dc.w $8004,$8092,$8008,$0000,$0004,$8092,$8008,$0000
+	dc.w $0000,$8092,$000A,$0000,$8004,$8094,$800E,$0000
+	dc.w $0004,$8094,$800E,$0000,$0010,$8094,$8012,$0000
+	dc.w $0014,$8094,$0016,$0000,$8014,$8094,$0016,$0000
+	dc.w $8010,$8094,$8012,$0000,$8004,$8096,$8008,$0000
+	dc.w $0004,$8096,$8008,$0000,$0000,$8096,$000A,$0000
+	dc.w $0000,$8098,$0000,$0000,$0000,$0000,$809A,$0000
+	dc.w $009C,$0000,$009E,$0000,$809C,$0000,$009E,$0000
+	dc.w $8004,$80A0,$8008,$0000,$0004,$80A0,$8008,$0000
+	dc.w $0000,$80A0,$000A,$0000,$8004,$80A2,$800E,$0000
+	dc.w $0004,$80A2,$800E,$0000,$0010,$80A2,$8012,$0000
+	dc.w $0014,$80A2,$0016,$0000,$8014,$80A2,$0016,$0000
+	dc.w $8010,$80A2,$8012,$0000,$8004,$80A4,$8008,$0000
+	dc.w $0004,$80A4,$8008,$0000,$0000,$80A4,$000A,$0000
+	dc.w $0000,$80A6,$0000,$0000,$0000,$0000,$80A8,$0000
+	dc.w $00AA,$0000,$00AC,$0000,$80AA,$0000,$00AC,$0000
+	dc.w $8004,$80AE,$8008,$0000,$0004,$80AE,$8008,$0000
+	dc.w $0000,$80AE,$000A,$0000,$8004,$80B0,$800E,$0000
+	dc.w $0004,$80B0,$800E,$0000,$0010,$80B0,$8012,$0000
+	dc.w $0014,$80B0,$0016,$0000,$8014,$80B0,$0016,$0000
+	dc.w $8010,$80B0,$8012,$0000,$8004,$80B2,$8008,$0000
+	dc.w $0004,$80B2,$8008,$0000,$0000,$80B2,$000A,$0000
+	dc.w $0000,$80B4,$0000,$0000,$0000,$0000,$80B6,$0000
+	dc.w $00B8,$0000,$00BA,$0000,$80B8,$0000,$00BA,$0000
+	dc.w $8004,$80BC,$8008,$0000,$0004,$80BC,$8008,$0000
+	dc.w $0000,$80BC,$000A,$0000,$8004,$80BE,$800E,$0000
+	dc.w $0004,$80BE,$800E,$0000,$0010,$80BE,$8012,$0000
+	dc.w $0014,$80BE,$0016,$0000,$8014,$80BE,$0016,$0000
+	dc.w $8010,$80BE,$8012,$0000,$8004,$80C0,$8008,$0000
+	dc.w $0004,$80C0,$8008,$0000,$0000,$80C0,$000A,$0000
 model_026_variant_frames:
 	dc.l model_026_variant_words	; 13 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
 	dc.l model_026_variant_words+$80
@@ -28321,38 +28348,38 @@ model_026_variant_frames:
 	dc.l model_026_variant_words+$600
 model_027_faces:
 	dc.w $030C,$0000,$0010,$0008,$0304,$0000,$0018,$0010	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $030C,$0000,$0020,$0018,$030E,$0000,$0028,$0020	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0304,$0000,$0030,$0028,$030E,$0000,$0008,$0030	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $040C,$0010,$0018,$0048,$0040,$030B,$0020,$0028	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0050,$030D,$0028,$0058,$0050,$030E,$0028,$0030	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0058,$030D,$0030,$0038,$0058,$030B,$0030,$0008	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0038,$030C,$0038,$0040,$0060,$040D,$0040,$0048	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0068,$0060,$030C,$0048,$0050,$0068,$030B,$0050	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0058,$0068,$0304,$0058,$0060,$0068,$030B,$0058	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0038,$0060,$040D,$0010,$0040,$0080,$0070,$040D	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0048,$0018,$0078,$0088,$840C,$0070,$0080,$00A0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0090,$840C,$0078,$0088,$00A8,$0098,$040D,$0008	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0070,$0080,$0038,$040D,$0020,$0050,$0088,$0078	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0304,$0008,$0010,$0070,$0304,$0018,$0020,$0078	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0304,$0040,$0038,$0080,$0304,$0050,$0048,$0088	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $030C,$0000,$0020,$0018,$030E,$0000,$0028,$0020
+	dc.w $0304,$0000,$0030,$0028,$030E,$0000,$0008,$0030
+	dc.w $040C,$0010,$0018,$0048,$0040,$030B,$0020,$0028
+	dc.w $0050,$030D,$0028,$0058,$0050,$030E,$0028,$0030
+	dc.w $0058,$030D,$0030,$0038,$0058,$030B,$0030,$0008
+	dc.w $0038,$030C,$0038,$0040,$0060,$040D,$0040,$0048
+	dc.w $0068,$0060,$030C,$0048,$0050,$0068,$030B,$0050
+	dc.w $0058,$0068,$0304,$0058,$0060,$0068,$030B,$0058
+	dc.w $0038,$0060,$040D,$0010,$0040,$0080,$0070,$040D
+	dc.w $0048,$0018,$0078,$0088,$840C,$0070,$0080,$00A0
+	dc.w $0090,$840C,$0078,$0088,$00A8,$0098,$040D,$0008
+	dc.w $0070,$0080,$0038,$040D,$0020,$0050,$0088,$0078
+	dc.w $0304,$0008,$0010,$0070,$0304,$0018,$0020,$0078
+	dc.w $0304,$0040,$0038,$0080,$0304,$0050,$0048,$0088
 model_027_auxiliary_faces:
 	dc.w $8700,$0000,$0020,$0050,$0068,$0060,$0038,$0008	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $8500,$0018,$0078,$0098,$00A8,$0050,$8500,$0010	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0038,$00A0,$0090,$0070	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $8500,$0018,$0078,$0098,$00A8,$0050,$8500,$0010
+	dc.w $0038,$00A0,$0090,$0070
 model_027_coordinates:
 	dc.w $0000,$0190,$0FA0,$01E0,$00A0,$0320,$00F0,$04B0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0960,$0640,$0870,$0050,$0AF0,$0F58,$0698,$11D0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0950,$00A8,$0F50,$05A0,$0928,$0030,$0F48,$04A0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $08F0,$00F8,$0390,$08A8,$01B0,$0F40,$0270,$0860	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0248,$0158,$0810,$02C0,$0040,$07D0,$00D0,$07A0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0360,$01D8,$0780,$0388,$02D8,$03C8,$0790,$0378	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0488,$07B8,$0348,$0530,$07F0,$02F8,$0838,$0288	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $05E0,$0888,$0200,$05E8,$08D0,$05B0,$0910,$0098	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0F90,$0548,$0940,$0038,$0958,$0118,$03E8,$0300	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $02E0,$0208,$03B8,$0478,$0018,$0520,$0130,$05A8	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0618,$0368,$0668,$0580,$06B0,$0670,$06A8,$0750	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0680,$0800,$08E0,$0568,$0908,$04D0,$0418,$08A0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0350,$0820,$0768	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0960,$0640,$0870,$0050,$0AF0,$0F58,$0698,$11D0
+	dc.w $0950,$00A8,$0F50,$05A0,$0928,$0030,$0F48,$04A0
+	dc.w $08F0,$00F8,$0390,$08A8,$01B0,$0F40,$0270,$0860
+	dc.w $0248,$0158,$0810,$02C0,$0040,$07D0,$00D0,$07A0
+	dc.w $0360,$01D8,$0780,$0388,$02D8,$03C8,$0790,$0378
+	dc.w $0488,$07B8,$0348,$0530,$07F0,$02F8,$0838,$0288
+	dc.w $05E0,$0888,$0200,$05E8,$08D0,$05B0,$0910,$0098
+	dc.w $0F90,$0548,$0940,$0038,$0958,$0118,$03E8,$0300
+	dc.w $02E0,$0208,$03B8,$0478,$0018,$0520,$0130,$05A8
+	dc.w $0618,$0368,$0668,$0580,$06B0,$0670,$06A8,$0750
+	dc.w $0680,$0800,$08E0,$0568,$0908,$04D0,$0418,$08A0
+	dc.w $0350,$0820,$0768
 model_027_vertices:
 	dc.w $0000	; x_coordinate_ref
 	dc.w $0002	; y_coordinate_ref
@@ -28444,161 +28471,161 @@ model_027_vertices:
 	dc.w $0038	; variant_offset_or_negative
 model_027_variant_words:
 	dc.w $8020,$8022,$0000,$0000,$0020,$8022,$0000,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8020,$8022,$0018,$0000,$0020,$8022,$0018,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8024,$8026,$0018,$0000,$0024,$8026,$0018,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8024,$8026,$001E,$0000,$0024,$8026,$001E,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8028,$002A,$0000,$0000,$0028,$002A,$0000,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8028,$002A,$0018,$0000,$0028,$002A,$0018,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $802C,$802E,$0018,$0000,$002C,$802E,$0018,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $802C,$802E,$001E,$0000,$002C,$802E,$001E,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8030,$0032,$0000,$0000,$0030,$0032,$0000,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8030,$0032,$0018,$0000,$0030,$0032,$0018,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $802C,$8034,$0018,$0000,$002C,$8034,$0018,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $802C,$8034,$001E,$0000,$002C,$8034,$001E,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8036,$0038,$0000,$0000,$0036,$0038,$0000,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8036,$0038,$0018,$0000,$0036,$0038,$0018,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $803A,$803C,$0018,$0000,$003A,$803C,$0018,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $803A,$803C,$001E,$0000,$003A,$803C,$001E,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $803E,$0040,$0000,$0000,$003E,$0040,$0000,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $803E,$0040,$0018,$0000,$003E,$0040,$0018,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $802C,$8042,$0018,$0000,$002C,$8042,$0018,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $802C,$8042,$001E,$0000,$002C,$8042,$001E,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8044,$0046,$0000,$0000,$0044,$0046,$0000,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8044,$0046,$0018,$0000,$0044,$0046,$0018,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $803A,$8048,$0018,$0000,$003A,$8048,$0018,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $803A,$8048,$001E,$0000,$003A,$8048,$001E,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $804A,$000A,$0000,$0000,$004A,$000A,$0000,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $804A,$000A,$0018,$0000,$004A,$000A,$0018,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $803A,$004C,$0018,$0000,$003A,$004C,$0018,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $803A,$004C,$001E,$0000,$003A,$004C,$001E,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $804E,$0050,$0000,$0000,$004E,$0050,$0000,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $804E,$0050,$0018,$0000,$004E,$0050,$0018,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $802C,$0052,$0018,$0000,$002C,$0052,$0018,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $802C,$0052,$001E,$0000,$002C,$0052,$001E,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8054,$0056,$0000,$0000,$0054,$0056,$0000,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8054,$0056,$0018,$0000,$0054,$0056,$0018,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $802C,$0058,$0018,$0000,$002C,$0058,$0018,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $802C,$0058,$001E,$0000,$002C,$0058,$001E,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8054,$0034,$0000,$0000,$0054,$0034,$0000,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8054,$0034,$0018,$0000,$0054,$0034,$0018,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $802C,$005A,$0018,$0000,$002C,$005A,$0018,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $802C,$005A,$001E,$0000,$002C,$005A,$001E,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $805C,$005E,$0000,$0000,$005C,$005E,$0000,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $805C,$005E,$0018,$0000,$005C,$005E,$0018,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $802C,$0060,$0018,$0000,$002C,$0060,$0018,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $802C,$0060,$001E,$0000,$002C,$0060,$001E,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8062,$0064,$0000,$0000,$0062,$0064,$0000,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8062,$0064,$0018,$0000,$0062,$0064,$0018,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $802C,$0066,$0018,$0000,$002C,$0066,$0018,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $802C,$0066,$001E,$0000,$002C,$0066,$001E,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8068,$006A,$0000,$0000,$0068,$006A,$0000,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8068,$006A,$0018,$0000,$0068,$006A,$0018,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $803A,$0026,$0018,$0000,$003A,$0026,$0018,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $803A,$0026,$001E,$0000,$003A,$0026,$001E,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $806C,$006E,$0000,$0000,$006C,$006E,$0000,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $806C,$006E,$0018,$0000,$006C,$006E,$0018,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $803A,$0070,$0018,$0000,$003A,$0070,$0018,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $803A,$0070,$001E,$0000,$003A,$0070,$001E,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8072,$0074,$0000,$0000,$0072,$0074,$0000,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8072,$0074,$0018,$0000,$0072,$0074,$0018,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $802C,$0076,$0018,$0000,$002C,$0076,$0018,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $802C,$0076,$001E,$0000,$002C,$0076,$001E,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8078,$0042,$0000,$0000,$0078,$0042,$0000,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8078,$0042,$0018,$0000,$0078,$0042,$0018,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $802C,$007A,$0018,$0000,$002C,$007A,$0018,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $802C,$007A,$001E,$0000,$002C,$007A,$001E,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $807C,$007E,$0000,$0000,$007C,$007E,$0000,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $807C,$007E,$0018,$0000,$007C,$007E,$0018,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8080,$0082,$0018,$0000,$0080,$0082,$0018,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8080,$0082,$001E,$0000,$0080,$0082,$001E,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8084,$8086,$0000,$0000,$0084,$8086,$0000,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8084,$8086,$0018,$0000,$0084,$8086,$0018,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8024,$000E,$0018,$0000,$0024,$000E,$0018,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8024,$000E,$001E,$0000,$0024,$000E,$001E,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8088,$808A,$0000,$0000,$0088,$808A,$0000,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8088,$808A,$0018,$0000,$0088,$808A,$0018,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8024,$008C,$0018,$0000,$0024,$008C,$0018,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8024,$008C,$001E,$0000,$0024,$008C,$001E,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8088,$8074,$0000,$0000,$0088,$8074,$0000,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8088,$8074,$0018,$0000,$0088,$8074,$0018,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8024,$008E,$0018,$0000,$0024,$008E,$0018,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8024,$008E,$001E,$0000,$0024,$008E,$001E,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8084,$8090,$0000,$0000,$0084,$8090,$0000,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8084,$8090,$0018,$0000,$0084,$8090,$0018,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8024,$0092,$0018,$0000,$0024,$0092,$0018,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8024,$0092,$001E,$0000,$0024,$0092,$001E,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $807C,$8094,$0000,$0000,$007C,$8094,$0000,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $807C,$8094,$0018,$0000,$007C,$8094,$0018,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $802C,$0032,$0018,$0000,$002C,$0032,$0018,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $802C,$0032,$001E,$0000,$002C,$0032,$001E,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8078,$8096,$0000,$0000,$0078,$8096,$0000,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8078,$8096,$0018,$0000,$0078,$8096,$0018,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $802C,$8098,$0018,$0000,$002C,$8098,$0018,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $802C,$8098,$001E,$0000,$002C,$8098,$001E,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8072,$809A,$0000,$0000,$0072,$809A,$0000,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8072,$809A,$0018,$0000,$0072,$809A,$0018,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $802C,$809C,$0018,$0000,$002C,$809C,$0018,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $802C,$809C,$001E,$0000,$002C,$809C,$001E,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $806C,$809E,$0000,$0000,$006C,$809E,$0000,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $806C,$809E,$0018,$0000,$006C,$809E,$0018,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $803A,$8040,$0018,$0000,$003A,$8040,$0018,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $803A,$8040,$001E,$0000,$003A,$8040,$001E,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8068,$80A0,$0000,$0000,$0068,$80A0,$0000,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8068,$80A0,$0018,$0000,$0068,$80A0,$0018,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $803A,$80A2,$0018,$0000,$003A,$80A2,$0018,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $803A,$80A2,$001E,$0000,$003A,$80A2,$001E,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8062,$80A4,$0000,$0000,$0062,$80A4,$0000,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8062,$80A4,$0018,$0000,$0062,$80A4,$0018,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $802C,$8096,$0018,$0000,$002C,$8096,$0018,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $802C,$8096,$001E,$0000,$002C,$8096,$001E,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $805C,$801C,$0000,$0000,$005C,$801C,$0000,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $805C,$801C,$0018,$0000,$005C,$801C,$0018,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $802C,$80A6,$0018,$0000,$002C,$80A6,$0018,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $802C,$80A6,$001E,$0000,$002C,$80A6,$001E,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8054,$80A8,$0000,$0000,$0054,$80A8,$0000,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8054,$80A8,$0018,$0000,$0054,$80A8,$0018,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $802C,$80AA,$0018,$0000,$002C,$80AA,$0018,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $802C,$80AA,$001E,$0000,$002C,$80AA,$001E,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8054,$80AC,$0000,$0000,$0054,$80AC,$0000,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8054,$80AC,$0018,$0000,$0054,$80AC,$0018,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $802C,$80AE,$0018,$0000,$002C,$80AE,$0018,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $802C,$80AE,$001E,$0000,$002C,$80AE,$001E,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $804E,$80B0,$0000,$0000,$004E,$80B0,$0000,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $804E,$80B0,$0018,$0000,$004E,$80B0,$0018,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $802C,$80B2,$0018,$0000,$002C,$80B2,$0018,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $802C,$80B2,$001E,$0000,$002C,$80B2,$001E,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $804A,$8012,$0000,$0000,$004A,$8012,$0000,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $804A,$8012,$0018,$0000,$004A,$8012,$0018,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $803A,$8072,$0018,$0000,$003A,$8072,$0018,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $803A,$8072,$001E,$0000,$003A,$8072,$001E,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8044,$8070,$0000,$0000,$0044,$8070,$0000,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8044,$8070,$0018,$0000,$0044,$8070,$0018,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $803A,$80B4,$0018,$0000,$003A,$80B4,$0018,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $803A,$80B4,$001E,$0000,$003A,$80B4,$001E,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $803E,$80B6,$0000,$0000,$003E,$80B6,$0000,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $803E,$80B6,$0018,$0000,$003E,$80B6,$0018,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $802C,$80B8,$0018,$0000,$002C,$80B8,$0018,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $802C,$80B8,$001E,$0000,$002C,$80B8,$001E,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8036,$80BA,$0000,$0000,$0036,$80BA,$0000,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8036,$80BA,$0018,$0000,$0036,$80BA,$0018,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $803A,$8030,$0018,$0000,$003A,$8030,$0018,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $803A,$8030,$001E,$0000,$003A,$8030,$001E,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8030,$80BC,$0000,$0000,$0030,$80BC,$0000,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8030,$80BC,$0018,$0000,$0030,$80BC,$0018,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $802C,$80BE,$0018,$0000,$002C,$80BE,$0018,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $802C,$80BE,$001E,$0000,$002C,$80BE,$001E,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8028,$80C0,$0000,$0000,$0028,$80C0,$0000,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8028,$80C0,$0018,$0000,$0028,$80C0,$0018,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $802C,$80C2,$0018,$0000,$002C,$80C2,$0018,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $802C,$80C2,$001E,$0000,$002C,$80C2,$001E,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8020,$803C,$0000,$0000,$0020,$803C,$0000,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8020,$803C,$0018,$0000,$0020,$803C,$0018,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8024,$80C4,$0018,$0000,$0024,$80C4,$0018,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8024,$80C4,$001E,$0000,$0024,$80C4,$001E,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8010,$8002,$0000,$0000,$0010,$8002,$0000,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8010,$8002,$0018,$0000,$0010,$8002,$0018,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $801A,$801C,$0018,$0000,$001A,$801C,$0018,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $801A,$801C,$001E,$0000,$001A,$801C,$001E,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
+	dc.w $8020,$8022,$0018,$0000,$0020,$8022,$0018,$0000
+	dc.w $8024,$8026,$0018,$0000,$0024,$8026,$0018,$0000
+	dc.w $8024,$8026,$001E,$0000,$0024,$8026,$001E,$0000
+	dc.w $8028,$002A,$0000,$0000,$0028,$002A,$0000,$0000
+	dc.w $8028,$002A,$0018,$0000,$0028,$002A,$0018,$0000
+	dc.w $802C,$802E,$0018,$0000,$002C,$802E,$0018,$0000
+	dc.w $802C,$802E,$001E,$0000,$002C,$802E,$001E,$0000
+	dc.w $8030,$0032,$0000,$0000,$0030,$0032,$0000,$0000
+	dc.w $8030,$0032,$0018,$0000,$0030,$0032,$0018,$0000
+	dc.w $802C,$8034,$0018,$0000,$002C,$8034,$0018,$0000
+	dc.w $802C,$8034,$001E,$0000,$002C,$8034,$001E,$0000
+	dc.w $8036,$0038,$0000,$0000,$0036,$0038,$0000,$0000
+	dc.w $8036,$0038,$0018,$0000,$0036,$0038,$0018,$0000
+	dc.w $803A,$803C,$0018,$0000,$003A,$803C,$0018,$0000
+	dc.w $803A,$803C,$001E,$0000,$003A,$803C,$001E,$0000
+	dc.w $803E,$0040,$0000,$0000,$003E,$0040,$0000,$0000
+	dc.w $803E,$0040,$0018,$0000,$003E,$0040,$0018,$0000
+	dc.w $802C,$8042,$0018,$0000,$002C,$8042,$0018,$0000
+	dc.w $802C,$8042,$001E,$0000,$002C,$8042,$001E,$0000
+	dc.w $8044,$0046,$0000,$0000,$0044,$0046,$0000,$0000
+	dc.w $8044,$0046,$0018,$0000,$0044,$0046,$0018,$0000
+	dc.w $803A,$8048,$0018,$0000,$003A,$8048,$0018,$0000
+	dc.w $803A,$8048,$001E,$0000,$003A,$8048,$001E,$0000
+	dc.w $804A,$000A,$0000,$0000,$004A,$000A,$0000,$0000
+	dc.w $804A,$000A,$0018,$0000,$004A,$000A,$0018,$0000
+	dc.w $803A,$004C,$0018,$0000,$003A,$004C,$0018,$0000
+	dc.w $803A,$004C,$001E,$0000,$003A,$004C,$001E,$0000
+	dc.w $804E,$0050,$0000,$0000,$004E,$0050,$0000,$0000
+	dc.w $804E,$0050,$0018,$0000,$004E,$0050,$0018,$0000
+	dc.w $802C,$0052,$0018,$0000,$002C,$0052,$0018,$0000
+	dc.w $802C,$0052,$001E,$0000,$002C,$0052,$001E,$0000
+	dc.w $8054,$0056,$0000,$0000,$0054,$0056,$0000,$0000
+	dc.w $8054,$0056,$0018,$0000,$0054,$0056,$0018,$0000
+	dc.w $802C,$0058,$0018,$0000,$002C,$0058,$0018,$0000
+	dc.w $802C,$0058,$001E,$0000,$002C,$0058,$001E,$0000
+	dc.w $8054,$0034,$0000,$0000,$0054,$0034,$0000,$0000
+	dc.w $8054,$0034,$0018,$0000,$0054,$0034,$0018,$0000
+	dc.w $802C,$005A,$0018,$0000,$002C,$005A,$0018,$0000
+	dc.w $802C,$005A,$001E,$0000,$002C,$005A,$001E,$0000
+	dc.w $805C,$005E,$0000,$0000,$005C,$005E,$0000,$0000
+	dc.w $805C,$005E,$0018,$0000,$005C,$005E,$0018,$0000
+	dc.w $802C,$0060,$0018,$0000,$002C,$0060,$0018,$0000
+	dc.w $802C,$0060,$001E,$0000,$002C,$0060,$001E,$0000
+	dc.w $8062,$0064,$0000,$0000,$0062,$0064,$0000,$0000
+	dc.w $8062,$0064,$0018,$0000,$0062,$0064,$0018,$0000
+	dc.w $802C,$0066,$0018,$0000,$002C,$0066,$0018,$0000
+	dc.w $802C,$0066,$001E,$0000,$002C,$0066,$001E,$0000
+	dc.w $8068,$006A,$0000,$0000,$0068,$006A,$0000,$0000
+	dc.w $8068,$006A,$0018,$0000,$0068,$006A,$0018,$0000
+	dc.w $803A,$0026,$0018,$0000,$003A,$0026,$0018,$0000
+	dc.w $803A,$0026,$001E,$0000,$003A,$0026,$001E,$0000
+	dc.w $806C,$006E,$0000,$0000,$006C,$006E,$0000,$0000
+	dc.w $806C,$006E,$0018,$0000,$006C,$006E,$0018,$0000
+	dc.w $803A,$0070,$0018,$0000,$003A,$0070,$0018,$0000
+	dc.w $803A,$0070,$001E,$0000,$003A,$0070,$001E,$0000
+	dc.w $8072,$0074,$0000,$0000,$0072,$0074,$0000,$0000
+	dc.w $8072,$0074,$0018,$0000,$0072,$0074,$0018,$0000
+	dc.w $802C,$0076,$0018,$0000,$002C,$0076,$0018,$0000
+	dc.w $802C,$0076,$001E,$0000,$002C,$0076,$001E,$0000
+	dc.w $8078,$0042,$0000,$0000,$0078,$0042,$0000,$0000
+	dc.w $8078,$0042,$0018,$0000,$0078,$0042,$0018,$0000
+	dc.w $802C,$007A,$0018,$0000,$002C,$007A,$0018,$0000
+	dc.w $802C,$007A,$001E,$0000,$002C,$007A,$001E,$0000
+	dc.w $807C,$007E,$0000,$0000,$007C,$007E,$0000,$0000
+	dc.w $807C,$007E,$0018,$0000,$007C,$007E,$0018,$0000
+	dc.w $8080,$0082,$0018,$0000,$0080,$0082,$0018,$0000
+	dc.w $8080,$0082,$001E,$0000,$0080,$0082,$001E,$0000
+	dc.w $8084,$8086,$0000,$0000,$0084,$8086,$0000,$0000
+	dc.w $8084,$8086,$0018,$0000,$0084,$8086,$0018,$0000
+	dc.w $8024,$000E,$0018,$0000,$0024,$000E,$0018,$0000
+	dc.w $8024,$000E,$001E,$0000,$0024,$000E,$001E,$0000
+	dc.w $8088,$808A,$0000,$0000,$0088,$808A,$0000,$0000
+	dc.w $8088,$808A,$0018,$0000,$0088,$808A,$0018,$0000
+	dc.w $8024,$008C,$0018,$0000,$0024,$008C,$0018,$0000
+	dc.w $8024,$008C,$001E,$0000,$0024,$008C,$001E,$0000
+	dc.w $8088,$8074,$0000,$0000,$0088,$8074,$0000,$0000
+	dc.w $8088,$8074,$0018,$0000,$0088,$8074,$0018,$0000
+	dc.w $8024,$008E,$0018,$0000,$0024,$008E,$0018,$0000
+	dc.w $8024,$008E,$001E,$0000,$0024,$008E,$001E,$0000
+	dc.w $8084,$8090,$0000,$0000,$0084,$8090,$0000,$0000
+	dc.w $8084,$8090,$0018,$0000,$0084,$8090,$0018,$0000
+	dc.w $8024,$0092,$0018,$0000,$0024,$0092,$0018,$0000
+	dc.w $8024,$0092,$001E,$0000,$0024,$0092,$001E,$0000
+	dc.w $807C,$8094,$0000,$0000,$007C,$8094,$0000,$0000
+	dc.w $807C,$8094,$0018,$0000,$007C,$8094,$0018,$0000
+	dc.w $802C,$0032,$0018,$0000,$002C,$0032,$0018,$0000
+	dc.w $802C,$0032,$001E,$0000,$002C,$0032,$001E,$0000
+	dc.w $8078,$8096,$0000,$0000,$0078,$8096,$0000,$0000
+	dc.w $8078,$8096,$0018,$0000,$0078,$8096,$0018,$0000
+	dc.w $802C,$8098,$0018,$0000,$002C,$8098,$0018,$0000
+	dc.w $802C,$8098,$001E,$0000,$002C,$8098,$001E,$0000
+	dc.w $8072,$809A,$0000,$0000,$0072,$809A,$0000,$0000
+	dc.w $8072,$809A,$0018,$0000,$0072,$809A,$0018,$0000
+	dc.w $802C,$809C,$0018,$0000,$002C,$809C,$0018,$0000
+	dc.w $802C,$809C,$001E,$0000,$002C,$809C,$001E,$0000
+	dc.w $806C,$809E,$0000,$0000,$006C,$809E,$0000,$0000
+	dc.w $806C,$809E,$0018,$0000,$006C,$809E,$0018,$0000
+	dc.w $803A,$8040,$0018,$0000,$003A,$8040,$0018,$0000
+	dc.w $803A,$8040,$001E,$0000,$003A,$8040,$001E,$0000
+	dc.w $8068,$80A0,$0000,$0000,$0068,$80A0,$0000,$0000
+	dc.w $8068,$80A0,$0018,$0000,$0068,$80A0,$0018,$0000
+	dc.w $803A,$80A2,$0018,$0000,$003A,$80A2,$0018,$0000
+	dc.w $803A,$80A2,$001E,$0000,$003A,$80A2,$001E,$0000
+	dc.w $8062,$80A4,$0000,$0000,$0062,$80A4,$0000,$0000
+	dc.w $8062,$80A4,$0018,$0000,$0062,$80A4,$0018,$0000
+	dc.w $802C,$8096,$0018,$0000,$002C,$8096,$0018,$0000
+	dc.w $802C,$8096,$001E,$0000,$002C,$8096,$001E,$0000
+	dc.w $805C,$801C,$0000,$0000,$005C,$801C,$0000,$0000
+	dc.w $805C,$801C,$0018,$0000,$005C,$801C,$0018,$0000
+	dc.w $802C,$80A6,$0018,$0000,$002C,$80A6,$0018,$0000
+	dc.w $802C,$80A6,$001E,$0000,$002C,$80A6,$001E,$0000
+	dc.w $8054,$80A8,$0000,$0000,$0054,$80A8,$0000,$0000
+	dc.w $8054,$80A8,$0018,$0000,$0054,$80A8,$0018,$0000
+	dc.w $802C,$80AA,$0018,$0000,$002C,$80AA,$0018,$0000
+	dc.w $802C,$80AA,$001E,$0000,$002C,$80AA,$001E,$0000
+	dc.w $8054,$80AC,$0000,$0000,$0054,$80AC,$0000,$0000
+	dc.w $8054,$80AC,$0018,$0000,$0054,$80AC,$0018,$0000
+	dc.w $802C,$80AE,$0018,$0000,$002C,$80AE,$0018,$0000
+	dc.w $802C,$80AE,$001E,$0000,$002C,$80AE,$001E,$0000
+	dc.w $804E,$80B0,$0000,$0000,$004E,$80B0,$0000,$0000
+	dc.w $804E,$80B0,$0018,$0000,$004E,$80B0,$0018,$0000
+	dc.w $802C,$80B2,$0018,$0000,$002C,$80B2,$0018,$0000
+	dc.w $802C,$80B2,$001E,$0000,$002C,$80B2,$001E,$0000
+	dc.w $804A,$8012,$0000,$0000,$004A,$8012,$0000,$0000
+	dc.w $804A,$8012,$0018,$0000,$004A,$8012,$0018,$0000
+	dc.w $803A,$8072,$0018,$0000,$003A,$8072,$0018,$0000
+	dc.w $803A,$8072,$001E,$0000,$003A,$8072,$001E,$0000
+	dc.w $8044,$8070,$0000,$0000,$0044,$8070,$0000,$0000
+	dc.w $8044,$8070,$0018,$0000,$0044,$8070,$0018,$0000
+	dc.w $803A,$80B4,$0018,$0000,$003A,$80B4,$0018,$0000
+	dc.w $803A,$80B4,$001E,$0000,$003A,$80B4,$001E,$0000
+	dc.w $803E,$80B6,$0000,$0000,$003E,$80B6,$0000,$0000
+	dc.w $803E,$80B6,$0018,$0000,$003E,$80B6,$0018,$0000
+	dc.w $802C,$80B8,$0018,$0000,$002C,$80B8,$0018,$0000
+	dc.w $802C,$80B8,$001E,$0000,$002C,$80B8,$001E,$0000
+	dc.w $8036,$80BA,$0000,$0000,$0036,$80BA,$0000,$0000
+	dc.w $8036,$80BA,$0018,$0000,$0036,$80BA,$0018,$0000
+	dc.w $803A,$8030,$0018,$0000,$003A,$8030,$0018,$0000
+	dc.w $803A,$8030,$001E,$0000,$003A,$8030,$001E,$0000
+	dc.w $8030,$80BC,$0000,$0000,$0030,$80BC,$0000,$0000
+	dc.w $8030,$80BC,$0018,$0000,$0030,$80BC,$0018,$0000
+	dc.w $802C,$80BE,$0018,$0000,$002C,$80BE,$0018,$0000
+	dc.w $802C,$80BE,$001E,$0000,$002C,$80BE,$001E,$0000
+	dc.w $8028,$80C0,$0000,$0000,$0028,$80C0,$0000,$0000
+	dc.w $8028,$80C0,$0018,$0000,$0028,$80C0,$0018,$0000
+	dc.w $802C,$80C2,$0018,$0000,$002C,$80C2,$0018,$0000
+	dc.w $802C,$80C2,$001E,$0000,$002C,$80C2,$001E,$0000
+	dc.w $8020,$803C,$0000,$0000,$0020,$803C,$0000,$0000
+	dc.w $8020,$803C,$0018,$0000,$0020,$803C,$0018,$0000
+	dc.w $8024,$80C4,$0018,$0000,$0024,$80C4,$0018,$0000
+	dc.w $8024,$80C4,$001E,$0000,$0024,$80C4,$001E,$0000
+	dc.w $8010,$8002,$0000,$0000,$0010,$8002,$0000,$0000
+	dc.w $8010,$8002,$0018,$0000,$0010,$8002,$0018,$0000
+	dc.w $801A,$801C,$0018,$0000,$001A,$801C,$0018,$0000
+	dc.w $801A,$801C,$001E,$0000,$001A,$801C,$001E,$0000
 model_027_variant_frames:
 	dc.l model_027_variant_words	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
 	dc.l model_027_variant_words+$40
@@ -28641,19 +28668,19 @@ model_027_variant_frames:
 	dc.l model_027_variant_words+$980
 model_028_faces:
 	dc.w $030E,$0000,$0010,$0008,$030D,$0000,$0018,$0010	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $030E,$0000,$0020,$0018,$030D,$0000,$0008,$0020	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $040D,$0008,$0010,$0030,$0028,$040C,$0010,$0018	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0038,$0030,$040D,$0018,$0020,$0040,$0038,$040C	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0008,$0028,$0040,$0020,$040C,$0028,$0030,$0050	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0048,$040B,$0030,$0038,$0058,$0050,$040C,$0038	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0040,$0060,$0058,$040B,$0040,$0028,$0048,$0060	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $040D,$0048,$0050,$0058,$0060	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $030E,$0000,$0020,$0018,$030D,$0000,$0008,$0020
+	dc.w $040D,$0008,$0010,$0030,$0028,$040C,$0010,$0018
+	dc.w $0038,$0030,$040D,$0018,$0020,$0040,$0038,$040C
+	dc.w $0008,$0028,$0040,$0020,$040C,$0028,$0030,$0050
+	dc.w $0048,$040B,$0030,$0038,$0058,$0050,$040C,$0038
+	dc.w $0040,$0060,$0058,$040B,$0040,$0028,$0048,$0060
+	dc.w $040D,$0048,$0050,$0058,$0060
 model_028_auxiliary_faces:
 	dc.w $8500,$0000,$0010,$0030,$0040,$0020,$8400,$0030	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0050,$0060,$0040	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0050,$0060,$0040
 model_028_coordinates:
 	dc.w $0000,$0960,$02D0,$0320,$03C0,$00F0,$0190,$0140	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0640	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0640
 model_028_vertices:
 	dc.w $0000	; x_coordinate_ref
 	dc.w $0000	; y_coordinate_ref
@@ -28709,23 +28736,23 @@ model_028_vertices:
 	dc.w $FFFF	; variant_offset_or_negative
 model_029_faces:
 	dc.w $030E,$0000,$0010,$0008,$030D,$0000,$0018,$0010	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $030C,$0000,$0020,$0018,$030B,$0000,$0028,$0020	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $030C,$0000,$0030,$0028,$030D,$0000,$0008,$0030	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0301,$0098,$0038,$0040,$0306,$0098,$0040,$0048	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0305,$0098,$0048,$0050,$0304,$0098,$0050,$0058	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0305,$0098,$0058,$0060,$0306,$0098,$0060,$0038	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0402,$0008,$0010,$0040,$0038,$0408,$0010,$0018	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0048,$0040,$0409,$0018,$0020,$0050,$0048,$040A	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0020,$0028,$0058,$0050,$0409,$0028,$0030,$0060	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0058,$0408,$0030,$0008,$0038,$0060,$8301,$0008	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0038,$0068,$8301,$0010,$0040,$0070,$8306,$0018	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0048,$0078,$8305,$0020,$0050,$0080,$8305,$0028	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0058,$0088,$8306,$0030,$0060,$0090	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $030C,$0000,$0020,$0018,$030B,$0000,$0028,$0020
+	dc.w $030C,$0000,$0030,$0028,$030D,$0000,$0008,$0030
+	dc.w $0301,$0098,$0038,$0040,$0306,$0098,$0040,$0048
+	dc.w $0305,$0098,$0048,$0050,$0304,$0098,$0050,$0058
+	dc.w $0305,$0098,$0058,$0060,$0306,$0098,$0060,$0038
+	dc.w $0402,$0008,$0010,$0040,$0038,$0408,$0010,$0018
+	dc.w $0048,$0040,$0409,$0018,$0020,$0050,$0048,$040A
+	dc.w $0020,$0028,$0058,$0050,$0409,$0028,$0030,$0060
+	dc.w $0058,$0408,$0030,$0008,$0038,$0060,$8301,$0008
+	dc.w $0038,$0068,$8301,$0010,$0040,$0070,$8306,$0018
+	dc.w $0048,$0078,$8305,$0020,$0050,$0080,$8305,$0028
+	dc.w $0058,$0088,$8306,$0030,$0060,$0090
 model_029_auxiliary_faces:
 	dc.w $8600,$0060,$0058,$0050,$0048,$0040,$0038	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
 model_029_coordinates:
 	dc.w $0000,$44C0,$2580,$0640,$0568,$0320,$0FA0,$0D88	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $07D0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $07D0
 model_029_vertices:
 	dc.w $0000	; x_coordinate_ref
 	dc.w $8002	; y_coordinate_ref
@@ -28836,11 +28863,11 @@ abs_0_00021BBA:
 	dc.b $03,$05,$00,$50,$00,$B0,$00,$30
 model_030_auxiliary_faces:
 	dc.w $8700,$0000,$0010,$0020,$0030,$0028,$0018,$0008	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $8500,$0030,$0020,$0040,$0050,$0060,$8500,$0018	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0028,$0058,$0048,$0038	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $8500,$0030,$0020,$0040,$0050,$0060,$8500,$0018
+	dc.w $0028,$0058,$0048,$0038
 model_030_coordinates:
 	dc.w $0000,$12C0,$06E0,$0E60,$08C0,$0640,$0820,$0DC0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0320,$0FA0,$0960,$0C80,$0280,$03C0,$0A00,$01E0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0320,$0FA0,$0960,$0C80,$0280,$03C0,$0A00,$01E0
 model_030_vertices:
 	dc.w $0000	; x_coordinate_ref
 	dc.w $0000	; y_coordinate_ref
@@ -28936,22 +28963,22 @@ model_030_vertices:
 	dc.w $FFFF	; variant_offset_or_negative
 model_031_faces:
 	dc.w $0302,$0000,$0050,$0048,$0308,$0000,$0048,$0008	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0308,$0040,$0050,$0000,$0309,$0008,$0048,$0010	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0309,$0038,$0050,$0040,$030A,$0010,$0048,$0018	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $030A,$0038,$0030,$0050,$0304,$0018,$0048,$0020	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0405,$0028,$0020,$0048,$0050,$0304,$0030,$0028	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0050,$0308,$0000,$0058,$0060,$0309,$0000,$0008	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0058,$0309,$0040,$0000,$0060,$030A,$0008,$0010	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0058,$030A,$0038,$0040,$0060,$0307,$0010,$0018	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0058,$0307,$0030,$0038,$0060,$0305,$0018,$0020	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0058,$0404,$0060,$0058,$0020,$0028,$0305,$0028	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0030,$0060,$8201,$0008,$0068,$8201,$0040,$0070	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0308,$0040,$0050,$0000,$0309,$0008,$0048,$0010
+	dc.w $0309,$0038,$0050,$0040,$030A,$0010,$0048,$0018
+	dc.w $030A,$0038,$0030,$0050,$0304,$0018,$0048,$0020
+	dc.w $0405,$0028,$0020,$0048,$0050,$0304,$0030,$0028
+	dc.w $0050,$0308,$0000,$0058,$0060,$0309,$0000,$0008
+	dc.w $0058,$0309,$0040,$0000,$0060,$030A,$0008,$0010
+	dc.w $0058,$030A,$0038,$0040,$0060,$0307,$0010,$0018
+	dc.w $0058,$0307,$0030,$0038,$0060,$0305,$0018,$0020
+	dc.w $0058,$0404,$0060,$0058,$0020,$0028,$0305,$0028
+	dc.w $0030,$0060,$8201,$0008,$0068,$8201,$0040,$0070
 model_031_auxiliary_faces:
 	dc.w $8400,$0000,$0038,$0030,$0028,$8400,$0000,$0020	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0018,$0010,$8300,$0000,$0028,$0020	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0018,$0010,$8300,$0000,$0028,$0020
 model_031_coordinates:
 	dc.w $0000,$12C0,$0960,$0640,$0C80,$0AA0,$01E0,$03C0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0320,$0FA0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0320,$0FA0
 model_031_vertices:
 	dc.w $0000	; x_coordinate_ref
 	dc.w $0000	; y_coordinate_ref
@@ -29015,18 +29042,18 @@ model_031_vertices:
 	dc.w $FFFF	; variant_offset_or_negative
 model_032_faces:
 	dc.w $0400,$0000,$0028,$0038,$0030,$040E,$0018,$0010	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0030,$0038,$030C,$0000,$0030,$0008,$030C,$0028	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0020,$0038,$030D,$0008,$0030,$0010,$030D,$0020	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0018,$0038,$040C,$0028,$0000,$0040,$0048,$040D	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0010,$0018,$0048,$0040,$030B,$0000,$0008,$0040	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $030B,$0020,$0028,$0048,$030C,$0008,$0010,$0040	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $030C,$0018,$0020,$0048,$8201,$0008,$0050,$8201	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0020,$0058	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0030,$0038,$030C,$0000,$0030,$0008,$030C,$0028
+	dc.w $0020,$0038,$030D,$0008,$0030,$0010,$030D,$0020
+	dc.w $0018,$0038,$040C,$0028,$0000,$0040,$0048,$040D
+	dc.w $0010,$0018,$0048,$0040,$030B,$0000,$0008,$0040
+	dc.w $030B,$0020,$0028,$0048,$030C,$0008,$0010,$0040
+	dc.w $030C,$0018,$0020,$0048,$8201,$0008,$0050,$8201
+	dc.w $0020,$0058
 model_032_auxiliary_faces:
 	dc.w $8600,$0028,$0020,$0018,$0010,$0008,$0000	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
 model_032_coordinates:
 	dc.w $0000,$0500,$0C80,$0280,$0FA0,$0320,$0398,$00C0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0B18,$0440,$0488	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0B18,$0440,$0488
 model_032_vertices:
 	dc.w $8002	; x_coordinate_ref
 	dc.w $0000	; y_coordinate_ref
@@ -29094,23 +29121,23 @@ model_032_vertices:
 	dc.w $FFFF	; variant_offset_or_negative
 model_033_faces:
 	dc.w $0301,$0000,$0048,$0030,$030E,$0000,$0030,$0008	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $030E,$0000,$0028,$0048,$0406,$0030,$0048,$0040	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0038,$040D,$0008,$0030,$0038,$0010,$040D,$0048	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0028,$0020,$0040,$0305,$0018,$0038,$0040,$030C	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0018,$0010,$0038,$030C,$0018,$0040,$0020,$030E	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0000,$0050,$0068,$0306,$0000,$0008,$0050,$0306	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0028,$0000,$0068,$040D,$0050,$0058,$0060,$0068	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0405,$0008,$0010,$0058,$0050,$0405,$0020,$0028	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0068,$0060,$030C,$0018,$0060,$0058,$0304,$0010	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0018,$0058,$0304,$0018,$0020,$0060,$8404,$0010	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0008,$0070,$0078,$8404,$0020,$0028,$0080,$0088	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $8204,$0070,$0090,$8204,$0080,$0098	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $030E,$0000,$0028,$0048,$0406,$0030,$0048,$0040
+	dc.w $0038,$040D,$0008,$0030,$0038,$0010,$040D,$0048
+	dc.w $0028,$0020,$0040,$0305,$0018,$0038,$0040,$030C
+	dc.w $0018,$0010,$0038,$030C,$0018,$0040,$0020,$030E
+	dc.w $0000,$0050,$0068,$0306,$0000,$0008,$0050,$0306
+	dc.w $0028,$0000,$0068,$040D,$0050,$0058,$0060,$0068
+	dc.w $0405,$0008,$0010,$0058,$0050,$0405,$0020,$0028
+	dc.w $0068,$0060,$030C,$0018,$0060,$0058,$0304,$0010
+	dc.w $0018,$0058,$0304,$0018,$0020,$0060,$8404,$0010
+	dc.w $0008,$0070,$0078,$8404,$0020,$0028,$0080,$0088
+	dc.w $8204,$0070,$0090,$8204,$0080,$0098
 model_033_auxiliary_faces:
 	dc.w $8300,$0000,$0028,$0008,$8700,$0008,$0028,$0080	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0088,$0018,$0078,$0070	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0088,$0018,$0078,$0070
 model_033_coordinates:
 	dc.w $0000,$15E0,$0640,$0500,$0FA0,$12C0,$0320,$0460	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0140,$0C80	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0140,$0C80
 model_033_vertices:
 	dc.w $0000	; x_coordinate_ref
 	dc.w $0000	; y_coordinate_ref
@@ -29194,22 +29221,22 @@ model_033_vertices:
 	dc.w $FFFF	; variant_offset_or_negative
 model_034_faces:
 	dc.w $0609,$0028,$0020,$0018,$0010,$0008,$0000,$040E	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0000,$0008,$0038,$0030,$040D,$0008,$0010,$0040	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0038,$040C,$0010,$0018,$0048,$0040,$040B,$0018	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0020,$0050,$0048,$040C,$0020,$0028,$0058,$0050	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $040D,$0028,$0000,$0030,$0058,$0408,$0030,$0038	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0068,$0060,$0409,$0038,$0040,$0070,$0068,$040A	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0040,$0048,$0078,$0070,$0407,$0048,$0050,$0080	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0078,$040A,$0050,$0058,$0088,$0080,$0409,$0058	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0030,$0060,$0088,$030E,$0090,$0060,$0068,$030D	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0090,$0068,$0070,$030C,$0070,$0078,$0090,$030B	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0078,$0080,$0090,$030C,$0080,$0088,$0090,$030D	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0088,$0060,$0090	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0000,$0008,$0038,$0030,$040D,$0008,$0010,$0040
+	dc.w $0038,$040C,$0010,$0018,$0048,$0040,$040B,$0018
+	dc.w $0020,$0050,$0048,$040C,$0020,$0028,$0058,$0050
+	dc.w $040D,$0028,$0000,$0030,$0058,$0408,$0030,$0038
+	dc.w $0068,$0060,$0409,$0038,$0040,$0070,$0068,$040A
+	dc.w $0040,$0048,$0078,$0070,$0407,$0048,$0050,$0080
+	dc.w $0078,$040A,$0050,$0058,$0088,$0080,$0409,$0058
+	dc.w $0030,$0060,$0088,$030E,$0090,$0060,$0068,$030D
+	dc.w $0090,$0068,$0070,$030C,$0070,$0078,$0090,$030B
+	dc.w $0078,$0080,$0090,$030C,$0080,$0088,$0090,$030D
+	dc.w $0088,$0060,$0090
 model_034_auxiliary_faces:
 	dc.w $8600,$0058,$0050,$0048,$0040,$0038,$0030	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
 model_034_coordinates:
 	dc.w $0000,$0500,$0320,$02B8,$0190,$0C80,$0AD0,$0640	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0960,$0820,$04B0,$05A0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0960,$0820,$04B0,$05A0
 model_034_vertices:
 	dc.w $0000	; x_coordinate_ref
 	dc.w $8002	; y_coordinate_ref
@@ -29289,33 +29316,33 @@ model_034_vertices:
 	dc.w $FFFF	; variant_offset_or_negative
 model_035_faces:
 	dc.w $0301,$0000,$0010,$0008,$0306,$0000,$0018,$0010	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0301,$0000,$0020,$0018,$0306,$0000,$0008,$0020	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0405,$0008,$0010,$0030,$0028,$0404,$0010,$0018	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0038,$0030,$0405,$0018,$0020,$0040,$0038,$0404	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0020,$0008,$0028,$0040,$0402,$0028,$0030,$0050	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0048,$0408,$0030,$0038,$0058,$0050,$0402,$0038	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0040,$0060,$0058,$0408,$0040,$0028,$0048,$0060	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0308,$0048,$0050,$0068,$0309,$0050,$0058,$0068	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0308,$0058,$0060,$0068,$0309,$0060,$0048,$0068	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $8409,$0028,$0070,$0080,$0048,$8409,$0038,$0088	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0098,$0058,$8306,$0070,$0080,$0078,$8306,$0088	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0090,$0098	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0301,$0000,$0020,$0018,$0306,$0000,$0008,$0020
+	dc.w $0405,$0008,$0010,$0030,$0028,$0404,$0010,$0018
+	dc.w $0038,$0030,$0405,$0018,$0020,$0040,$0038,$0404
+	dc.w $0020,$0008,$0028,$0040,$0402,$0028,$0030,$0050
+	dc.w $0048,$0408,$0030,$0038,$0058,$0050,$0402,$0038
+	dc.w $0040,$0060,$0058,$0408,$0040,$0028,$0048,$0060
+	dc.w $0308,$0048,$0050,$0068,$0309,$0050,$0058,$0068
+	dc.w $0308,$0058,$0060,$0068,$0309,$0060,$0048,$0068
+	dc.w $8409,$0028,$0070,$0080,$0048,$8409,$0038,$0088
+	dc.w $0098,$0058,$8306,$0070,$0080,$0078,$8306,$0088
+	dc.w $0090,$0098
 model_035_auxiliary_faces:
 	dc.w $8500,$0028,$0050,$0080,$0078,$0070,$8500,$0038	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0088,$0090,$0098,$0050,$8400,$0000,$0018,$0068	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0008	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0088,$0090,$0098,$0050,$8400,$0000,$0018,$0068
+	dc.w $0008
 model_035_coordinates:
 	dc.w $0000,$12C0,$05A0,$0960,$0480,$0320,$0640,$0280	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0E60,$0140,$13E8,$0568,$09C0,$0DC0,$0E50,$0608	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0150,$1448,$0688,$0938,$0DD0,$0E20,$0180,$1488	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0740,$08E0,$0E08,$0468,$01D0,$14A0,$0780,$08C0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0E68,$0D70,$0230,$0ED8,$0D00,$01A0,$02A0,$0F60	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0C80,$0FF0,$0C00,$03A0,$1360,$03E8,$0A78,$1080	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0B90,$0410,$12C8,$0B50,$1108,$0B30,$0470,$1220	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0050,$0C30,$1178,$0AE0,$04C0,$0190,$0D10,$11D8	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $04F0,$0AB0,$10E0,$0348,$0DE8,$1210,$0AA0,$0500	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $1058,$04C8,$0EA0,$0FF8,$05E8,$0F28,$0FB8,$06A0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0F80,$0FA0,$06E0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0E60,$0140,$13E8,$0568,$09C0,$0DC0,$0E50,$0608
+	dc.w $0150,$1448,$0688,$0938,$0DD0,$0E20,$0180,$1488
+	dc.w $0740,$08E0,$0E08,$0468,$01D0,$14A0,$0780,$08C0
+	dc.w $0E68,$0D70,$0230,$0ED8,$0D00,$01A0,$02A0,$0F60
+	dc.w $0C80,$0FF0,$0C00,$03A0,$1360,$03E8,$0A78,$1080
+	dc.w $0B90,$0410,$12C8,$0B50,$1108,$0B30,$0470,$1220
+	dc.w $0050,$0C30,$1178,$0AE0,$04C0,$0190,$0D10,$11D8
+	dc.w $04F0,$0AB0,$10E0,$0348,$0DE8,$1210,$0AA0,$0500
+	dc.w $1058,$04C8,$0EA0,$0FF8,$05E8,$0F28,$0FB8,$06A0
+	dc.w $0F80,$0FA0,$06E0
 model_035_vertices:
 	dc.w $0000	; x_coordinate_ref
 	dc.w $0000	; y_coordinate_ref
@@ -29399,74 +29426,74 @@ model_035_vertices:
 	dc.w $0028	; variant_offset_or_negative
 model_035_variant_words:
 	dc.w $801C,$801E,$0020,$0000,$8022,$8024,$0026,$0000	; 23 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $801C,$801E,$0028,$0000,$001C,$801E,$0020,$0000	; 23 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0022,$8024,$0026,$0000,$001C,$801E,$0028,$0000	; 23 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $802A,$8016,$002C,$0000,$802E,$8030,$0032,$0000	; 23 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $802A,$8016,$0034,$0000,$002A,$8016,$002C,$0000	; 23 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $002E,$8030,$0032,$0000,$002A,$8016,$0034,$0000	; 23 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8028,$8036,$0038,$0000,$803A,$803C,$003E,$0000	; 23 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8028,$8036,$0040,$0000,$0028,$8036,$0038,$0000	; 23 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $003A,$803C,$003E,$0000,$0028,$8036,$0040,$0000	; 23 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8042,$800A,$0044,$0000,$802E,$8030,$0032,$0000	; 23 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8042,$800A,$0046,$0000,$0042,$800A,$0044,$0000	; 23 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $002E,$8030,$0032,$0000,$0042,$800A,$0046,$0000	; 23 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8048,$804A,$004C,$0000,$8022,$8024,$0026,$0000	; 23 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8048,$804A,$004E,$0000,$0048,$804A,$004C,$0000	; 23 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0022,$8024,$0026,$0000,$0048,$804A,$004E,$0000	; 23 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8050,$0000,$000A,$0000,$8014,$8016,$0018,$0000	; 23 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8050,$0000,$0052,$0000,$0050,$0000,$000A,$0000	; 23 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0014,$8016,$0018,$0000,$0050,$0000,$0052,$0000	; 23 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8054,$004A,$0056,$0000,$8058,$805A,$005C,$0000	; 23 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8054,$004A,$005E,$0000,$0054,$004A,$0056,$0000	; 23 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0058,$805A,$005C,$0000,$0054,$004A,$005E,$0000	; 23 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8060,$000A,$0062,$0000,$8064,$8044,$0066,$0000	; 23 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8060,$000A,$0068,$0000,$0060,$000A,$0062,$0000	; 23 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0064,$8044,$0066,$0000,$0060,$000A,$0068,$0000	; 23 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $806A,$0036,$006C,$0000,$806E,$0070,$0072,$0000	; 23 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $806A,$0036,$0074,$0000,$006A,$0036,$006C,$0000	; 23 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $006E,$0070,$0072,$0000,$006A,$0036,$0074,$0000	; 23 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8076,$0016,$0078,$0000,$8074,$007A,$007C,$0000	; 23 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8076,$0016,$007E,$0000,$0076,$0016,$0080,$0000	; 23 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0074,$007A,$007C,$0000,$0076,$0016,$007E,$0000	; 23 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8082,$001E,$0080,$0000,$8084,$0086,$0088,$0000	; 23 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8082,$001E,$008A,$0000,$008C,$000C,$008E,$0000	; 23 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0084,$0086,$0088,$0000,$0082,$001E,$008A,$0000	; 23 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $808C,$000C,$008E,$0000,$8090,$0092,$0094,$0000	; 23 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $808C,$000C,$006E,$0000,$0082,$001E,$0080,$0000	; 23 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0090,$0092,$0094,$0000,$008C,$000C,$006E,$0000	; 23 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8082,$001E,$0080,$0000,$8096,$0098,$009A,$0000	; 23 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8082,$001E,$008A,$0000,$0076,$0016,$0078,$0000	; 23 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0096,$0098,$009A,$0000,$0082,$001E,$008A,$0000	; 23 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8076,$0016,$0078,$0000,$809C,$009E,$00A0,$0000	; 23 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8076,$0016,$007E,$0000,$006A,$0036,$006C,$0000	; 23 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $009C,$009E,$00A0,$0000,$0076,$0016,$007E,$0000	; 23 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $806A,$0036,$006C,$0000,$80A2,$00A4,$00A2,$0000	; 23 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $806A,$0036,$0074,$0000,$0060,$000A,$0062,$0000	; 23 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $00A2,$00A4,$00A2,$0000,$006A,$0036,$0074,$0000	; 23 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8060,$000A,$0062,$0000,$809C,$009E,$00A0,$0000	; 23 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8060,$000A,$0068,$0000,$0054,$004A,$0056,$0000	; 23 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $009C,$009E,$00A0,$0000,$0060,$000A,$0068,$0000	; 23 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8054,$004A,$0056,$0000,$8096,$0098,$009A,$0000	; 23 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8054,$004A,$005E,$0000,$0050,$0000,$000A,$0000	; 23 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0096,$0098,$009A,$0000,$0054,$004A,$005E,$0000	; 23 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8050,$0000,$000A,$0000,$8090,$0092,$0094,$0000	; 23 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8050,$0000,$0052,$0000,$0048,$804A,$004C,$0000	; 23 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0090,$0092,$0094,$0000,$0050,$0000,$0052,$0000	; 23 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8048,$804A,$004C,$0000,$8084,$0086,$0088,$0000	; 23 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8048,$804A,$004E,$0000,$0042,$800A,$0044,$0000	; 23 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0084,$0086,$0088,$0000,$0048,$804A,$004E,$0000	; 23 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8042,$800A,$0044,$0000,$8074,$007A,$007C,$0000	; 23 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8042,$800A,$0046,$0000,$0028,$8036,$0038,$0000	; 23 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0074,$007A,$007C,$0000,$0042,$800A,$0046,$0000	; 23 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8028,$8036,$0038,$0000,$806E,$0070,$0072,$0000	; 23 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8028,$8036,$0040,$0000,$002A,$8016,$002C,$0000	; 23 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $006E,$0070,$0072,$0000,$0028,$8036,$0040,$0000	; 23 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $802A,$8016,$002C,$0000,$8064,$8044,$0066,$0000	; 23 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $802A,$8016,$0034,$0000,$001C,$801E,$0020,$0000	; 23 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0064,$8044,$0066,$0000,$002A,$8016,$0034,$0000	; 23 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $801C,$801E,$0020,$0000,$8058,$805A,$005C,$0000	; 23 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $801C,$801E,$0028,$0000,$0010,$800C,$0012,$0000	; 23 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0058,$805A,$005C,$0000,$001C,$801E,$0028,$0000	; 23 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
+	dc.w $801C,$801E,$0028,$0000,$001C,$801E,$0020,$0000
+	dc.w $0022,$8024,$0026,$0000,$001C,$801E,$0028,$0000
+	dc.w $802A,$8016,$002C,$0000,$802E,$8030,$0032,$0000
+	dc.w $802A,$8016,$0034,$0000,$002A,$8016,$002C,$0000
+	dc.w $002E,$8030,$0032,$0000,$002A,$8016,$0034,$0000
+	dc.w $8028,$8036,$0038,$0000,$803A,$803C,$003E,$0000
+	dc.w $8028,$8036,$0040,$0000,$0028,$8036,$0038,$0000
+	dc.w $003A,$803C,$003E,$0000,$0028,$8036,$0040,$0000
+	dc.w $8042,$800A,$0044,$0000,$802E,$8030,$0032,$0000
+	dc.w $8042,$800A,$0046,$0000,$0042,$800A,$0044,$0000
+	dc.w $002E,$8030,$0032,$0000,$0042,$800A,$0046,$0000
+	dc.w $8048,$804A,$004C,$0000,$8022,$8024,$0026,$0000
+	dc.w $8048,$804A,$004E,$0000,$0048,$804A,$004C,$0000
+	dc.w $0022,$8024,$0026,$0000,$0048,$804A,$004E,$0000
+	dc.w $8050,$0000,$000A,$0000,$8014,$8016,$0018,$0000
+	dc.w $8050,$0000,$0052,$0000,$0050,$0000,$000A,$0000
+	dc.w $0014,$8016,$0018,$0000,$0050,$0000,$0052,$0000
+	dc.w $8054,$004A,$0056,$0000,$8058,$805A,$005C,$0000
+	dc.w $8054,$004A,$005E,$0000,$0054,$004A,$0056,$0000
+	dc.w $0058,$805A,$005C,$0000,$0054,$004A,$005E,$0000
+	dc.w $8060,$000A,$0062,$0000,$8064,$8044,$0066,$0000
+	dc.w $8060,$000A,$0068,$0000,$0060,$000A,$0062,$0000
+	dc.w $0064,$8044,$0066,$0000,$0060,$000A,$0068,$0000
+	dc.w $806A,$0036,$006C,$0000,$806E,$0070,$0072,$0000
+	dc.w $806A,$0036,$0074,$0000,$006A,$0036,$006C,$0000
+	dc.w $006E,$0070,$0072,$0000,$006A,$0036,$0074,$0000
+	dc.w $8076,$0016,$0078,$0000,$8074,$007A,$007C,$0000
+	dc.w $8076,$0016,$007E,$0000,$0076,$0016,$0080,$0000
+	dc.w $0074,$007A,$007C,$0000,$0076,$0016,$007E,$0000
+	dc.w $8082,$001E,$0080,$0000,$8084,$0086,$0088,$0000
+	dc.w $8082,$001E,$008A,$0000,$008C,$000C,$008E,$0000
+	dc.w $0084,$0086,$0088,$0000,$0082,$001E,$008A,$0000
+	dc.w $808C,$000C,$008E,$0000,$8090,$0092,$0094,$0000
+	dc.w $808C,$000C,$006E,$0000,$0082,$001E,$0080,$0000
+	dc.w $0090,$0092,$0094,$0000,$008C,$000C,$006E,$0000
+	dc.w $8082,$001E,$0080,$0000,$8096,$0098,$009A,$0000
+	dc.w $8082,$001E,$008A,$0000,$0076,$0016,$0078,$0000
+	dc.w $0096,$0098,$009A,$0000,$0082,$001E,$008A,$0000
+	dc.w $8076,$0016,$0078,$0000,$809C,$009E,$00A0,$0000
+	dc.w $8076,$0016,$007E,$0000,$006A,$0036,$006C,$0000
+	dc.w $009C,$009E,$00A0,$0000,$0076,$0016,$007E,$0000
+	dc.w $806A,$0036,$006C,$0000,$80A2,$00A4,$00A2,$0000
+	dc.w $806A,$0036,$0074,$0000,$0060,$000A,$0062,$0000
+	dc.w $00A2,$00A4,$00A2,$0000,$006A,$0036,$0074,$0000
+	dc.w $8060,$000A,$0062,$0000,$809C,$009E,$00A0,$0000
+	dc.w $8060,$000A,$0068,$0000,$0054,$004A,$0056,$0000
+	dc.w $009C,$009E,$00A0,$0000,$0060,$000A,$0068,$0000
+	dc.w $8054,$004A,$0056,$0000,$8096,$0098,$009A,$0000
+	dc.w $8054,$004A,$005E,$0000,$0050,$0000,$000A,$0000
+	dc.w $0096,$0098,$009A,$0000,$0054,$004A,$005E,$0000
+	dc.w $8050,$0000,$000A,$0000,$8090,$0092,$0094,$0000
+	dc.w $8050,$0000,$0052,$0000,$0048,$804A,$004C,$0000
+	dc.w $0090,$0092,$0094,$0000,$0050,$0000,$0052,$0000
+	dc.w $8048,$804A,$004C,$0000,$8084,$0086,$0088,$0000
+	dc.w $8048,$804A,$004E,$0000,$0042,$800A,$0044,$0000
+	dc.w $0084,$0086,$0088,$0000,$0048,$804A,$004E,$0000
+	dc.w $8042,$800A,$0044,$0000,$8074,$007A,$007C,$0000
+	dc.w $8042,$800A,$0046,$0000,$0028,$8036,$0038,$0000
+	dc.w $0074,$007A,$007C,$0000,$0042,$800A,$0046,$0000
+	dc.w $8028,$8036,$0038,$0000,$806E,$0070,$0072,$0000
+	dc.w $8028,$8036,$0040,$0000,$002A,$8016,$002C,$0000
+	dc.w $006E,$0070,$0072,$0000,$0028,$8036,$0040,$0000
+	dc.w $802A,$8016,$002C,$0000,$8064,$8044,$0066,$0000
+	dc.w $802A,$8016,$0034,$0000,$001C,$801E,$0020,$0000
+	dc.w $0064,$8044,$0066,$0000,$002A,$8016,$0034,$0000
+	dc.w $801C,$801E,$0020,$0000,$8058,$805A,$005C,$0000
+	dc.w $801C,$801E,$0028,$0000,$0010,$800C,$0012,$0000
+	dc.w $0058,$805A,$005C,$0000,$001C,$801E,$0028,$0000
 model_035_variant_frames:
 	dc.l model_035_variant_words	; 23 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
 	dc.l model_035_variant_words+$30
@@ -29493,40 +29520,40 @@ model_035_variant_frames:
 	dc.l model_035_variant_words+$420
 model_036_faces:
 	dc.w $0301,$0000,$0008,$0078,$0304,$0080,$0088,$0018	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0306,$0000,$0010,$0008,$0306,$0078,$0008,$0020	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0305,$0080,$0018,$0010,$0305,$0088,$0020,$0018	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0404,$0000,$0078,$0020,$0010,$0406,$0088,$0080	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0010,$0020,$0305,$0008,$0010,$0028,$0304,$0010	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0018,$0028,$0306,$0018,$0020,$0028,$0304,$0020	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0008,$0028,$0306,$0028,$0038,$0030,$0304,$0028	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0040,$0038,$0305,$0028,$0048,$0040,$0301,$0028	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0030,$0048,$0301,$0030,$0038,$0050,$0305,$0038	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0040,$0050,$0304,$0040,$0048,$0050,$0306,$0048	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0030,$0050,$0301,$0050,$0060,$0058,$0306,$0050	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0068,$0060,$0301,$0050,$0070,$0068,$0306,$0050	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0058,$0070,$0400,$0058,$0060,$0068,$0070	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0306,$0000,$0010,$0008,$0306,$0078,$0008,$0020
+	dc.w $0305,$0080,$0018,$0010,$0305,$0088,$0020,$0018
+	dc.w $0404,$0000,$0078,$0020,$0010,$0406,$0088,$0080
+	dc.w $0010,$0020,$0305,$0008,$0010,$0028,$0304,$0010
+	dc.w $0018,$0028,$0306,$0018,$0020,$0028,$0304,$0020
+	dc.w $0008,$0028,$0306,$0028,$0038,$0030,$0304,$0028
+	dc.w $0040,$0038,$0305,$0028,$0048,$0040,$0301,$0028
+	dc.w $0030,$0048,$0301,$0030,$0038,$0050,$0305,$0038
+	dc.w $0040,$0050,$0304,$0040,$0048,$0050,$0306,$0048
+	dc.w $0030,$0050,$0301,$0050,$0060,$0058,$0306,$0050
+	dc.w $0068,$0060,$0301,$0050,$0070,$0068,$0306,$0050
+	dc.w $0058,$0070,$0400,$0058,$0060,$0068,$0070
 model_036_auxiliary_faces:
 	dc.w $8500,$0000,$0010,$0028,$0020,$0078,$8400,$0028	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0038,$0050,$0048,$8300,$0050,$0060,$0070	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0038,$0050,$0048,$8300,$0050,$0060,$0070
 model_036_coordinates:
 	dc.w $0000,$0280,$03C0,$12C0,$0780,$0C80,$0960,$06E0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0640,$0320,$00A0,$15E0,$1A40,$03E8,$0708,$0628	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $00C8,$15B0,$1A10,$0398,$0460,$12B8,$0788,$05E0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0468,$0148,$1518,$1978,$0500,$12B0,$0850,$0568	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0530,$0210,$1428,$1888,$05A0,$12A0,$0958,$04C8	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0638,$0318,$12F0,$1750,$01E0,$0618,$1288,$0A98	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0408,$0778,$0458,$1170,$15D0,$0168,$1270,$0BF8	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0338,$08D8,$05B8,$0FD0,$1430,$0140,$0D70,$0258	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0A50,$0730,$0E10,$0EE8,$0178,$0BC8,$08A8,$0C50	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $10B0,$1048,$00A8,$0D28,$0A08,$0AB0,$0F10,$1188	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0018,$0E68,$0B48,$0930,$0D90,$1290,$00B8,$0F70	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $07F8,$0C58,$1358,$0130,$1038,$0D18,$0B68,$13D8	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $10B8,$0D98,$0670,$0AD0,$1400,$0190,$10E0,$0DC0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0AA0,$0F90,$0C70,$07D0,$0C30,$1160,$0E40,$0B20	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $1010,$0CF0,$09D0,$0AF0,$0F50,$0EC0,$0BA0,$0880	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0C20,$0900,$0FA0,$07B0,$0490,$1130,$1590,$0980	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $04B0,$0660,$0340,$1720,$0830,$0578,$0510,$01F0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $1450,$18B0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0640,$0320,$00A0,$15E0,$1A40,$03E8,$0708,$0628
+	dc.w $00C8,$15B0,$1A10,$0398,$0460,$12B8,$0788,$05E0
+	dc.w $0468,$0148,$1518,$1978,$0500,$12B0,$0850,$0568
+	dc.w $0530,$0210,$1428,$1888,$05A0,$12A0,$0958,$04C8
+	dc.w $0638,$0318,$12F0,$1750,$01E0,$0618,$1288,$0A98
+	dc.w $0408,$0778,$0458,$1170,$15D0,$0168,$1270,$0BF8
+	dc.w $0338,$08D8,$05B8,$0FD0,$1430,$0140,$0D70,$0258
+	dc.w $0A50,$0730,$0E10,$0EE8,$0178,$0BC8,$08A8,$0C50
+	dc.w $10B0,$1048,$00A8,$0D28,$0A08,$0AB0,$0F10,$1188
+	dc.w $0018,$0E68,$0B48,$0930,$0D90,$1290,$00B8,$0F70
+	dc.w $07F8,$0C58,$1358,$0130,$1038,$0D18,$0B68,$13D8
+	dc.w $10B8,$0D98,$0670,$0AD0,$1400,$0190,$10E0,$0DC0
+	dc.w $0AA0,$0F90,$0C70,$07D0,$0C30,$1160,$0E40,$0B20
+	dc.w $1010,$0CF0,$09D0,$0AF0,$0F50,$0EC0,$0BA0,$0880
+	dc.w $0C20,$0900,$0FA0,$07B0,$0490,$1130,$1590,$0980
+	dc.w $04B0,$0660,$0340,$1720,$0830,$0578,$0510,$01F0
+	dc.w $1450,$18B0
 model_036_vertices:
 	dc.w $0002	; x_coordinate_ref
 	dc.w $8004	; y_coordinate_ref
@@ -29602,155 +29629,155 @@ model_036_vertices:
 	dc.w $0060	; variant_offset_or_negative
 model_036_variant_words:
 	dc.w $0002,$801A,$8006,$0000,$0000,$801C,$001E,$0000	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0012,$801A,$001E,$0000,$0000,$8020,$001E,$0000	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8012,$801A,$001E,$0000,$0000,$8004,$0022,$0000	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$8008,$0024,$0000,$0004,$8004,$0024,$0000	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$0000,$0024,$0000,$8004,$8004,$0024,$0000	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8002,$801A,$8006,$0000,$0002,$8026,$8006,$0000	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8002,$8026,$8006,$0000,$0002,$8028,$802A,$0000	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$802C,$002E,$0000,$0012,$8030,$002E,$0000	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$8032,$002E,$0000,$8012,$8030,$002E,$0000	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$8004,$0034,$0000,$0000,$8008,$0036,$0000	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0004,$8004,$0036,$0000,$0000,$0000,$0036,$0000	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8004,$8004,$0036,$0000,$8002,$8028,$802A,$0000	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0002,$8012,$802A,$0000,$8002,$8012,$802A,$0000	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0002,$8038,$803A,$0000,$0000,$803C,$003E,$0000	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0012,$8040,$003E,$0000,$0000,$8042,$003E,$0000	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8012,$8040,$003E,$0000,$0000,$8004,$0044,$0000	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$8008,$0046,$0000,$0004,$8004,$0046,$0000	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$0000,$0046,$0000,$8004,$8004,$0046,$0000	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8002,$8038,$803A,$0000,$0002,$8002,$803A,$0000	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8002,$8002,$803A,$0000,$0002,$8048,$804A,$0000	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$804C,$004E,$0000,$0012,$8050,$004E,$0000	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$8052,$004E,$0000,$8012,$8050,$004E,$0000	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$8004,$0054,$0000,$0000,$8008,$0056,$0000	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0004,$8004,$0056,$0000,$0000,$0000,$0056,$0000	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8004,$8004,$0056,$0000,$8002,$8048,$803A,$0000	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0002,$8058,$804A,$0000,$8002,$8058,$804A,$0000	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0002,$805A,$805C,$0000,$0000,$805E,$0060,$0000	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0012,$8062,$0060,$0000,$0000,$8064,$0060,$0000	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8012,$8062,$0060,$0000,$0000,$8004,$0066,$0000	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$8008,$0068,$0000,$0004,$8004,$0068,$0000	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$0000,$0068,$0000,$8004,$8004,$0068,$0000	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8002,$805A,$805C,$0000,$0002,$806A,$805C,$0000	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8002,$806A,$805C,$0000,$0002,$8010,$806C,$0000	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$806E,$0070,$0000,$0012,$8072,$0070,$0000	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$8074,$0070,$0000,$8012,$8072,$0070,$0000	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$8004,$0076,$0000,$0000,$8008,$0078,$0000	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0004,$8004,$0078,$0000,$0000,$0000,$0078,$0000	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8004,$8004,$0078,$0000,$8002,$8010,$806C,$0000	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0002,$807A,$806C,$0000,$8002,$807A,$806C,$0000	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0002,$805A,$805C,$0000,$0000,$807C,$007E,$0000	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0012,$8080,$007E,$0000,$0000,$8082,$007E,$0000	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8012,$8080,$007E,$0000,$0000,$8004,$0084,$0000	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$8008,$006C,$0000,$0004,$8004,$006C,$0000	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$0000,$006C,$0000,$8004,$8004,$006C,$0000	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8002,$805A,$805C,$0000,$0002,$806A,$805C,$0000	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8002,$806A,$805C,$0000,$0002,$8048,$804A,$0000	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$8086,$0088,$0000,$0012,$808A,$0088,$0000	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$808C,$0088,$0000,$8012,$808A,$0088,$0000	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$8004,$008E,$0000,$0000,$8008,$0090,$0000	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0004,$8004,$0090,$0000,$0000,$0000,$0090,$0000	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8004,$8004,$0090,$0000,$8002,$8048,$804A,$0000	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0002,$8058,$804A,$0000,$8002,$8058,$804A,$0000	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0002,$8038,$803A,$0000,$0000,$8092,$0094,$0000	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0012,$8096,$0094,$0000,$0000,$8098,$0094,$0000	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8012,$8096,$0094,$0000,$0000,$8004,$009A,$0000	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$8008,$009C,$0000,$0004,$8004,$009C,$0000	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$0000,$009C,$0000,$8004,$8004,$009C,$0000	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8002,$8038,$803A,$0000,$0002,$8002,$803A,$0000	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8002,$8002,$803A,$0000,$0002,$8028,$802A,$0000	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$809E,$80A0,$0000,$0012,$80A2,$80A0,$0000	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$80A4,$80A0,$0000,$8012,$80A2,$80A0,$0000	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$8004,$00A6,$0000,$0000,$8008,$00A8,$0000	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0004,$8004,$00A8,$0000,$0000,$0000,$00A8,$0000	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8004,$8004,$00A8,$0000,$8002,$8028,$802A,$0000	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0002,$8012,$802A,$0000,$8002,$8012,$802A,$0000	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0002,$801A,$8006,$0000,$0000,$80AA,$80AC,$0000	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0012,$80AE,$80AC,$0000,$0000,$808E,$80AC,$0000	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8012,$80AE,$80AC,$0000,$0000,$8004,$00B0,$0000	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$8008,$00B2,$0000,$0004,$8004,$00B2,$0000	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$0000,$00B2,$0000,$8004,$8004,$00B2,$0000	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8002,$801A,$8006,$0000,$0002,$8026,$8006,$0000	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8002,$8026,$8006,$0000,$0002,$8004,$8006,$0000	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$80B4,$80B6,$0000,$0012,$80B8,$80B6,$0000	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$80BA,$80B6,$0000,$8012,$80B8,$80B6,$0000	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$8004,$001C,$0000,$0000,$8008,$00BC,$0000	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0004,$8004,$00BC,$0000,$0000,$0000,$00BC,$0000	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8004,$8004,$00BC,$0000,$8002,$8004,$8006,$0000	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0002,$8004,$8006,$0000,$8002,$8004,$8006,$0000	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0002,$801A,$8006,$0000,$0000,$80BE,$8088,$0000	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0012,$80C0,$8088,$0000,$0000,$80C2,$8088,$0000	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8012,$80C0,$8088,$0000,$0000,$8004,$00C4,$0000	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$8008,$00C6,$0000,$0004,$8004,$00C6,$0000	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$0000,$00BC,$0000,$8004,$8004,$00C6,$0000	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8002,$801A,$8006,$0000,$0002,$8026,$8006,$0000	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8002,$8026,$8006,$0000,$0002,$8028,$802A,$0000	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$80C8,$80CA,$0000,$0012,$80CC,$80CA,$0000	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$80CE,$80CA,$0000,$8012,$80CC,$80CA,$0000	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$8004,$0010,$0000,$0000,$8008,$00D0,$0000	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0004,$8004,$00D0,$0000,$0000,$0000,$00D0,$0000	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8004,$8004,$00D0,$0000,$8002,$8028,$802A,$0000	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0002,$8012,$802A,$0000,$8002,$8012,$802A,$0000	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0002,$8038,$803A,$0000,$0000,$803A,$8020,$0000	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0012,$80D2,$8020,$0000,$0000,$80D4,$8020,$0000	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8012,$80D2,$8020,$0000,$0000,$8004,$00D6,$0000	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$8008,$00D8,$0000,$0004,$8004,$00D8,$0000	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$0000,$00D8,$0000,$8004,$8004,$00D8,$0000	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8002,$8038,$803A,$0000,$0002,$8002,$803A,$0000	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8002,$8002,$803A,$0000,$0002,$8048,$804A,$0000	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$80DA,$0000,$0000,$0012,$80DC,$0000,$0000	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$80DE,$0000,$0000,$8012,$80DC,$0000,$0000	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$8004,$000C,$0000,$0000,$8008,$00CE,$0000	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0004,$8004,$00CE,$0000,$0000,$0000,$00CE,$0000	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8004,$8004,$00CE,$0000,$8002,$8048,$804A,$0000	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0002,$8058,$804A,$0000,$8002,$8058,$804A,$0000	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0002,$805A,$805C,$0000,$0000,$80E0,$0020,$0000	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0012,$80E2,$0020,$0000,$0000,$80E4,$0020,$0000	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8012,$80E2,$0020,$0000,$0000,$8004,$00E6,$0000	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$8008,$00E8,$0000,$0004,$8004,$00E8,$0000	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$0000,$00E8,$0000,$8004,$8004,$00E8,$0000	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8002,$805A,$805C,$0000,$0002,$806A,$805C,$0000	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8002,$806A,$805C,$0000,$0002,$8010,$806C,$0000	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$80EA,$00CA,$0000,$0012,$80EC,$00CA,$0000	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$80EE,$00CA,$0000,$8012,$80EC,$00CA,$0000	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$8004,$000A,$0000,$0000,$8008,$00CC,$0000	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0004,$8004,$00CC,$0000,$0000,$0000,$00CC,$0000	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8004,$8004,$00CC,$0000,$8002,$8010,$806C,$0000	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0002,$807A,$806C,$0000,$8002,$807A,$806C,$0000	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0002,$805A,$805C,$0000,$0000,$807C,$007E,$0000	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0012,$8080,$007E,$0000,$0000,$8082,$007E,$0000	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8012,$8080,$007E,$0000,$0000,$8004,$0084,$0000	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$8008,$006C,$0000,$0004,$8004,$006C,$0000	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$0000,$006C,$0000,$8004,$8004,$006C,$0000	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8002,$805A,$805C,$0000,$0002,$806A,$805C,$0000	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8002,$806A,$805C,$0000,$0002,$8048,$804A,$0000	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$80F0,$0012,$0000,$0012,$80F2,$0012,$0000	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$802E,$0012,$0000,$8012,$80F2,$0012,$0000	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$8004,$00F4,$0000,$0000,$8008,$00C8,$0000	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0004,$8004,$00C8,$0000,$0000,$0000,$00C8,$0000	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8004,$8004,$00C8,$0000,$8002,$8048,$804A,$0000	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0002,$8058,$804A,$0000,$8002,$8058,$804A,$0000	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0002,$8038,$803A,$0000,$0000,$80C6,$001A,$0000	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0012,$80F6,$001A,$0000,$0000,$80F8,$001A,$0000	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8012,$80F6,$001A,$0000,$0000,$8004,$00FA,$0000	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$8008,$00FC,$0000,$0004,$8004,$00FC,$0000	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$0000,$00FC,$0000,$8004,$8004,$00FC,$0000	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8002,$8038,$803A,$0000,$0002,$8002,$803A,$0000	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8002,$8002,$803A,$0000,$0002,$8028,$802A,$0000	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$80FE,$0100,$0000,$0012,$8102,$0100,$0000	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$8104,$0100,$0000,$8012,$8102,$0100,$0000	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$8004,$0006,$0000,$0000,$8008,$0106,$0000	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0004,$8004,$0106,$0000,$0000,$0000,$0106,$0000	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8004,$8004,$0106,$0000,$8002,$8028,$802A,$0000	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0002,$8012,$802A,$0000,$8002,$8012,$802A,$0000	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0002,$801A,$8006,$0000,$0000,$8108,$010A,$0000	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0012,$810C,$010A,$0000,$0000,$810E,$010A,$0000	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8012,$810C,$010A,$0000,$0000,$8004,$0110,$0000	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$8008,$0112,$0000,$0004,$8004,$0112,$0000	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$0000,$0112,$0000,$8004,$8004,$0112,$0000	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8002,$801A,$8006,$0000,$0002,$8026,$8006,$0000	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8002,$8026,$8006,$0000	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
+	dc.w $0012,$801A,$001E,$0000,$0000,$8020,$001E,$0000
+	dc.w $8012,$801A,$001E,$0000,$0000,$8004,$0022,$0000
+	dc.w $0000,$8008,$0024,$0000,$0004,$8004,$0024,$0000
+	dc.w $0000,$0000,$0024,$0000,$8004,$8004,$0024,$0000
+	dc.w $8002,$801A,$8006,$0000,$0002,$8026,$8006,$0000
+	dc.w $8002,$8026,$8006,$0000,$0002,$8028,$802A,$0000
+	dc.w $0000,$802C,$002E,$0000,$0012,$8030,$002E,$0000
+	dc.w $0000,$8032,$002E,$0000,$8012,$8030,$002E,$0000
+	dc.w $0000,$8004,$0034,$0000,$0000,$8008,$0036,$0000
+	dc.w $0004,$8004,$0036,$0000,$0000,$0000,$0036,$0000
+	dc.w $8004,$8004,$0036,$0000,$8002,$8028,$802A,$0000
+	dc.w $0002,$8012,$802A,$0000,$8002,$8012,$802A,$0000
+	dc.w $0002,$8038,$803A,$0000,$0000,$803C,$003E,$0000
+	dc.w $0012,$8040,$003E,$0000,$0000,$8042,$003E,$0000
+	dc.w $8012,$8040,$003E,$0000,$0000,$8004,$0044,$0000
+	dc.w $0000,$8008,$0046,$0000,$0004,$8004,$0046,$0000
+	dc.w $0000,$0000,$0046,$0000,$8004,$8004,$0046,$0000
+	dc.w $8002,$8038,$803A,$0000,$0002,$8002,$803A,$0000
+	dc.w $8002,$8002,$803A,$0000,$0002,$8048,$804A,$0000
+	dc.w $0000,$804C,$004E,$0000,$0012,$8050,$004E,$0000
+	dc.w $0000,$8052,$004E,$0000,$8012,$8050,$004E,$0000
+	dc.w $0000,$8004,$0054,$0000,$0000,$8008,$0056,$0000
+	dc.w $0004,$8004,$0056,$0000,$0000,$0000,$0056,$0000
+	dc.w $8004,$8004,$0056,$0000,$8002,$8048,$803A,$0000
+	dc.w $0002,$8058,$804A,$0000,$8002,$8058,$804A,$0000
+	dc.w $0002,$805A,$805C,$0000,$0000,$805E,$0060,$0000
+	dc.w $0012,$8062,$0060,$0000,$0000,$8064,$0060,$0000
+	dc.w $8012,$8062,$0060,$0000,$0000,$8004,$0066,$0000
+	dc.w $0000,$8008,$0068,$0000,$0004,$8004,$0068,$0000
+	dc.w $0000,$0000,$0068,$0000,$8004,$8004,$0068,$0000
+	dc.w $8002,$805A,$805C,$0000,$0002,$806A,$805C,$0000
+	dc.w $8002,$806A,$805C,$0000,$0002,$8010,$806C,$0000
+	dc.w $0000,$806E,$0070,$0000,$0012,$8072,$0070,$0000
+	dc.w $0000,$8074,$0070,$0000,$8012,$8072,$0070,$0000
+	dc.w $0000,$8004,$0076,$0000,$0000,$8008,$0078,$0000
+	dc.w $0004,$8004,$0078,$0000,$0000,$0000,$0078,$0000
+	dc.w $8004,$8004,$0078,$0000,$8002,$8010,$806C,$0000
+	dc.w $0002,$807A,$806C,$0000,$8002,$807A,$806C,$0000
+	dc.w $0002,$805A,$805C,$0000,$0000,$807C,$007E,$0000
+	dc.w $0012,$8080,$007E,$0000,$0000,$8082,$007E,$0000
+	dc.w $8012,$8080,$007E,$0000,$0000,$8004,$0084,$0000
+	dc.w $0000,$8008,$006C,$0000,$0004,$8004,$006C,$0000
+	dc.w $0000,$0000,$006C,$0000,$8004,$8004,$006C,$0000
+	dc.w $8002,$805A,$805C,$0000,$0002,$806A,$805C,$0000
+	dc.w $8002,$806A,$805C,$0000,$0002,$8048,$804A,$0000
+	dc.w $0000,$8086,$0088,$0000,$0012,$808A,$0088,$0000
+	dc.w $0000,$808C,$0088,$0000,$8012,$808A,$0088,$0000
+	dc.w $0000,$8004,$008E,$0000,$0000,$8008,$0090,$0000
+	dc.w $0004,$8004,$0090,$0000,$0000,$0000,$0090,$0000
+	dc.w $8004,$8004,$0090,$0000,$8002,$8048,$804A,$0000
+	dc.w $0002,$8058,$804A,$0000,$8002,$8058,$804A,$0000
+	dc.w $0002,$8038,$803A,$0000,$0000,$8092,$0094,$0000
+	dc.w $0012,$8096,$0094,$0000,$0000,$8098,$0094,$0000
+	dc.w $8012,$8096,$0094,$0000,$0000,$8004,$009A,$0000
+	dc.w $0000,$8008,$009C,$0000,$0004,$8004,$009C,$0000
+	dc.w $0000,$0000,$009C,$0000,$8004,$8004,$009C,$0000
+	dc.w $8002,$8038,$803A,$0000,$0002,$8002,$803A,$0000
+	dc.w $8002,$8002,$803A,$0000,$0002,$8028,$802A,$0000
+	dc.w $0000,$809E,$80A0,$0000,$0012,$80A2,$80A0,$0000
+	dc.w $0000,$80A4,$80A0,$0000,$8012,$80A2,$80A0,$0000
+	dc.w $0000,$8004,$00A6,$0000,$0000,$8008,$00A8,$0000
+	dc.w $0004,$8004,$00A8,$0000,$0000,$0000,$00A8,$0000
+	dc.w $8004,$8004,$00A8,$0000,$8002,$8028,$802A,$0000
+	dc.w $0002,$8012,$802A,$0000,$8002,$8012,$802A,$0000
+	dc.w $0002,$801A,$8006,$0000,$0000,$80AA,$80AC,$0000
+	dc.w $0012,$80AE,$80AC,$0000,$0000,$808E,$80AC,$0000
+	dc.w $8012,$80AE,$80AC,$0000,$0000,$8004,$00B0,$0000
+	dc.w $0000,$8008,$00B2,$0000,$0004,$8004,$00B2,$0000
+	dc.w $0000,$0000,$00B2,$0000,$8004,$8004,$00B2,$0000
+	dc.w $8002,$801A,$8006,$0000,$0002,$8026,$8006,$0000
+	dc.w $8002,$8026,$8006,$0000,$0002,$8004,$8006,$0000
+	dc.w $0000,$80B4,$80B6,$0000,$0012,$80B8,$80B6,$0000
+	dc.w $0000,$80BA,$80B6,$0000,$8012,$80B8,$80B6,$0000
+	dc.w $0000,$8004,$001C,$0000,$0000,$8008,$00BC,$0000
+	dc.w $0004,$8004,$00BC,$0000,$0000,$0000,$00BC,$0000
+	dc.w $8004,$8004,$00BC,$0000,$8002,$8004,$8006,$0000
+	dc.w $0002,$8004,$8006,$0000,$8002,$8004,$8006,$0000
+	dc.w $0002,$801A,$8006,$0000,$0000,$80BE,$8088,$0000
+	dc.w $0012,$80C0,$8088,$0000,$0000,$80C2,$8088,$0000
+	dc.w $8012,$80C0,$8088,$0000,$0000,$8004,$00C4,$0000
+	dc.w $0000,$8008,$00C6,$0000,$0004,$8004,$00C6,$0000
+	dc.w $0000,$0000,$00BC,$0000,$8004,$8004,$00C6,$0000
+	dc.w $8002,$801A,$8006,$0000,$0002,$8026,$8006,$0000
+	dc.w $8002,$8026,$8006,$0000,$0002,$8028,$802A,$0000
+	dc.w $0000,$80C8,$80CA,$0000,$0012,$80CC,$80CA,$0000
+	dc.w $0000,$80CE,$80CA,$0000,$8012,$80CC,$80CA,$0000
+	dc.w $0000,$8004,$0010,$0000,$0000,$8008,$00D0,$0000
+	dc.w $0004,$8004,$00D0,$0000,$0000,$0000,$00D0,$0000
+	dc.w $8004,$8004,$00D0,$0000,$8002,$8028,$802A,$0000
+	dc.w $0002,$8012,$802A,$0000,$8002,$8012,$802A,$0000
+	dc.w $0002,$8038,$803A,$0000,$0000,$803A,$8020,$0000
+	dc.w $0012,$80D2,$8020,$0000,$0000,$80D4,$8020,$0000
+	dc.w $8012,$80D2,$8020,$0000,$0000,$8004,$00D6,$0000
+	dc.w $0000,$8008,$00D8,$0000,$0004,$8004,$00D8,$0000
+	dc.w $0000,$0000,$00D8,$0000,$8004,$8004,$00D8,$0000
+	dc.w $8002,$8038,$803A,$0000,$0002,$8002,$803A,$0000
+	dc.w $8002,$8002,$803A,$0000,$0002,$8048,$804A,$0000
+	dc.w $0000,$80DA,$0000,$0000,$0012,$80DC,$0000,$0000
+	dc.w $0000,$80DE,$0000,$0000,$8012,$80DC,$0000,$0000
+	dc.w $0000,$8004,$000C,$0000,$0000,$8008,$00CE,$0000
+	dc.w $0004,$8004,$00CE,$0000,$0000,$0000,$00CE,$0000
+	dc.w $8004,$8004,$00CE,$0000,$8002,$8048,$804A,$0000
+	dc.w $0002,$8058,$804A,$0000,$8002,$8058,$804A,$0000
+	dc.w $0002,$805A,$805C,$0000,$0000,$80E0,$0020,$0000
+	dc.w $0012,$80E2,$0020,$0000,$0000,$80E4,$0020,$0000
+	dc.w $8012,$80E2,$0020,$0000,$0000,$8004,$00E6,$0000
+	dc.w $0000,$8008,$00E8,$0000,$0004,$8004,$00E8,$0000
+	dc.w $0000,$0000,$00E8,$0000,$8004,$8004,$00E8,$0000
+	dc.w $8002,$805A,$805C,$0000,$0002,$806A,$805C,$0000
+	dc.w $8002,$806A,$805C,$0000,$0002,$8010,$806C,$0000
+	dc.w $0000,$80EA,$00CA,$0000,$0012,$80EC,$00CA,$0000
+	dc.w $0000,$80EE,$00CA,$0000,$8012,$80EC,$00CA,$0000
+	dc.w $0000,$8004,$000A,$0000,$0000,$8008,$00CC,$0000
+	dc.w $0004,$8004,$00CC,$0000,$0000,$0000,$00CC,$0000
+	dc.w $8004,$8004,$00CC,$0000,$8002,$8010,$806C,$0000
+	dc.w $0002,$807A,$806C,$0000,$8002,$807A,$806C,$0000
+	dc.w $0002,$805A,$805C,$0000,$0000,$807C,$007E,$0000
+	dc.w $0012,$8080,$007E,$0000,$0000,$8082,$007E,$0000
+	dc.w $8012,$8080,$007E,$0000,$0000,$8004,$0084,$0000
+	dc.w $0000,$8008,$006C,$0000,$0004,$8004,$006C,$0000
+	dc.w $0000,$0000,$006C,$0000,$8004,$8004,$006C,$0000
+	dc.w $8002,$805A,$805C,$0000,$0002,$806A,$805C,$0000
+	dc.w $8002,$806A,$805C,$0000,$0002,$8048,$804A,$0000
+	dc.w $0000,$80F0,$0012,$0000,$0012,$80F2,$0012,$0000
+	dc.w $0000,$802E,$0012,$0000,$8012,$80F2,$0012,$0000
+	dc.w $0000,$8004,$00F4,$0000,$0000,$8008,$00C8,$0000
+	dc.w $0004,$8004,$00C8,$0000,$0000,$0000,$00C8,$0000
+	dc.w $8004,$8004,$00C8,$0000,$8002,$8048,$804A,$0000
+	dc.w $0002,$8058,$804A,$0000,$8002,$8058,$804A,$0000
+	dc.w $0002,$8038,$803A,$0000,$0000,$80C6,$001A,$0000
+	dc.w $0012,$80F6,$001A,$0000,$0000,$80F8,$001A,$0000
+	dc.w $8012,$80F6,$001A,$0000,$0000,$8004,$00FA,$0000
+	dc.w $0000,$8008,$00FC,$0000,$0004,$8004,$00FC,$0000
+	dc.w $0000,$0000,$00FC,$0000,$8004,$8004,$00FC,$0000
+	dc.w $8002,$8038,$803A,$0000,$0002,$8002,$803A,$0000
+	dc.w $8002,$8002,$803A,$0000,$0002,$8028,$802A,$0000
+	dc.w $0000,$80FE,$0100,$0000,$0012,$8102,$0100,$0000
+	dc.w $0000,$8104,$0100,$0000,$8012,$8102,$0100,$0000
+	dc.w $0000,$8004,$0006,$0000,$0000,$8008,$0106,$0000
+	dc.w $0004,$8004,$0106,$0000,$0000,$0000,$0106,$0000
+	dc.w $8004,$8004,$0106,$0000,$8002,$8028,$802A,$0000
+	dc.w $0002,$8012,$802A,$0000,$8002,$8012,$802A,$0000
+	dc.w $0002,$801A,$8006,$0000,$0000,$8108,$010A,$0000
+	dc.w $0012,$810C,$010A,$0000,$0000,$810E,$010A,$0000
+	dc.w $8012,$810C,$010A,$0000,$0000,$8004,$0110,$0000
+	dc.w $0000,$8008,$0112,$0000,$0004,$8004,$0112,$0000
+	dc.w $0000,$0000,$0112,$0000,$8004,$8004,$0112,$0000
+	dc.w $8002,$801A,$8006,$0000,$0002,$8026,$8006,$0000
+	dc.w $8002,$8026,$8006,$0000
 model_036_variant_frames:
 	dc.l model_036_variant_words	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
 	dc.l model_036_variant_words+$68
@@ -29777,17 +29804,17 @@ model_036_variant_frames:
 	dc.l model_036_variant_words+$8F0
 model_037_faces:
 	dc.w $0302,$0000,$0050,$0020,$0308,$0000,$0020,$0048	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0301,$0000,$0040,$0018,$0306,$0000,$0018,$0038	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $030E,$0000,$0028,$0010,$030D,$0000,$0010,$0030	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0308,$0008,$0020,$0050,$0302,$0008,$0048,$0020	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0306,$0008,$0018,$0040,$0301,$0008,$0038,$0018	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $030D,$0008,$0010,$0028,$030E,$0008,$0030,$0010	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0308,$0000,$0048,$0050,$0302,$0008,$0050,$0048	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0301,$0000,$0038,$0040,$0306,$0008,$0040,$0038	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $030E,$0000,$0030,$0028,$030D,$0008,$0028,$0030	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0301,$0000,$0040,$0018,$0306,$0000,$0018,$0038
+	dc.w $030E,$0000,$0028,$0010,$030D,$0000,$0010,$0030
+	dc.w $0308,$0008,$0020,$0050,$0302,$0008,$0048,$0020
+	dc.w $0306,$0008,$0018,$0040,$0301,$0008,$0038,$0018
+	dc.w $030D,$0008,$0010,$0028,$030E,$0008,$0030,$0010
+	dc.w $0308,$0000,$0048,$0050,$0302,$0008,$0050,$0048
+	dc.w $0301,$0000,$0038,$0040,$0306,$0008,$0040,$0038
+	dc.w $030E,$0000,$0030,$0028,$030D,$0008,$0028,$0030
 model_037_coordinates:
 	dc.w $0000,$0640,$04B0,$0410,$0250,$0190,$0320,$0380	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0028,$01E0,$02D0,$0230	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0028,$01E0,$02D0,$0230
 model_037_vertices:
 	dc.w $0000	; x_coordinate_ref
 	dc.w $0000	; y_coordinate_ref
@@ -29835,11 +29862,11 @@ model_037_vertices:
 	dc.w $FFFF	; variant_offset_or_negative
 model_038_faces:
 	dc.w $0302,$0000,$0018,$0010,$0308,$0000,$0020,$0018	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0302,$0000,$0028,$0020,$0308,$0000,$0030,$0028	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0302,$0000,$0038,$0030,$0308,$0000,$0010,$0038	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0308,$0008,$0010,$0018,$0302,$0008,$0018,$0020	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0308,$0008,$0020,$0028,$0302,$0008,$0028,$0030	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0308,$0008,$0030,$0038,$0302,$0008,$0038,$0010	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0302,$0000,$0028,$0020,$0308,$0000,$0030,$0028
+	dc.w $0302,$0000,$0038,$0030,$0308,$0000,$0010,$0038
+	dc.w $0308,$0008,$0010,$0018,$0302,$0008,$0018,$0020
+	dc.w $0308,$0008,$0020,$0028,$0302,$0008,$0028,$0030
+	dc.w $0308,$0008,$0030,$0038,$0302,$0008,$0038,$0010
 model_038_auxiliary_faces:
 	dc.w $8600,$0038,$0030,$0028,$0020,$0018,$0010	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
 model_038_coordinates:
@@ -29879,18 +29906,18 @@ model_038_vertices:
 	dc.w $FFFF	; variant_offset_or_negative
 model_039_faces:
 	dc.w $040E,$0000,$0008,$0028,$0020,$030D,$0000,$0020	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0010,$040B,$0020,$0028,$0018,$0010,$030D,$0018	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0028,$0008,$0400,$0008,$0000,$0030,$0038,$040B	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0030,$0040,$0048,$0038,$040C,$0000,$0010,$0040	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0030,$0406,$0010,$0018,$0048,$0040,$040B,$0018	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0008,$0038,$0048,$8401,$0050,$0058,$0060,$0010	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $8401,$0068,$0070,$0078,$0018	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0010,$040B,$0020,$0028,$0018,$0010,$030D,$0018
+	dc.w $0028,$0008,$0400,$0008,$0000,$0030,$0038,$040B
+	dc.w $0030,$0040,$0048,$0038,$040C,$0000,$0010,$0040
+	dc.w $0030,$0406,$0010,$0018,$0048,$0040,$040B,$0018
+	dc.w $0008,$0038,$0048,$8401,$0050,$0058,$0060,$0010
+	dc.w $8401,$0068,$0070,$0078,$0018
 model_039_auxiliary_faces:
 	dc.w $8400,$0000,$0008,$0018,$0010,$8400,$0050,$0010	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0060,$0058,$8400,$0068,$0070,$0078,$0018	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0060,$0058,$8400,$0068,$0070,$0078,$0018
 model_039_coordinates:
 	dc.w $0000,$0640,$0C80,$0500,$03C0,$0320,$01E0,$0AA0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0960	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0960
 model_039_vertices:
 	dc.w $8002	; x_coordinate_ref
 	dc.w $0000	; y_coordinate_ref
@@ -29958,24 +29985,24 @@ model_039_vertices:
 	dc.w $FFFF	; variant_offset_or_negative
 model_040_faces:
 	dc.w $0301,$0008,$0038,$0010,$0306,$0010,$0038,$0018	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0306,$0000,$0038,$0008,$0405,$0020,$0018,$0038	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0040,$0404,$0030,$0040,$0038,$0000,$0304,$0020	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0040,$0028,$0305,$0028,$0040,$0030,$0304,$0008	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0010,$0048,$0301,$0010,$0018,$0048,$0301,$0000	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0008,$0048,$0406,$0018,$0020,$0050,$0048,$0404	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0030,$0000,$0048,$0050,$0305,$0020,$0028,$0050	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0301,$0028,$0030,$0050,$0301,$0068,$0060,$0098	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0306,$0068,$0098,$0070,$0306,$0060,$0058,$0098	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0404,$0078,$0070,$0098,$00A0,$0405,$0058,$0090	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $00A0,$0098,$0305,$0078,$00A0,$0080,$0304,$0080	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $00A0,$0090,$0304,$0060,$0068,$00A8,$0301,$0068	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0070,$00A8,$0301,$0058,$0060,$00A8,$0404,$0070	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0078,$00B0,$00A8,$0406,$0090,$0058,$00A8,$00B0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0301,$0078,$0080,$00B0,$0305,$0080,$0090,$00B0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $8408,$0000,$0070,$0078,$0030	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0306,$0000,$0038,$0008,$0405,$0020,$0018,$0038
+	dc.w $0040,$0404,$0030,$0040,$0038,$0000,$0304,$0020
+	dc.w $0040,$0028,$0305,$0028,$0040,$0030,$0304,$0008
+	dc.w $0010,$0048,$0301,$0010,$0018,$0048,$0301,$0000
+	dc.w $0008,$0048,$0406,$0018,$0020,$0050,$0048,$0404
+	dc.w $0030,$0000,$0048,$0050,$0305,$0020,$0028,$0050
+	dc.w $0301,$0028,$0030,$0050,$0301,$0068,$0060,$0098
+	dc.w $0306,$0068,$0098,$0070,$0306,$0060,$0058,$0098
+	dc.w $0404,$0078,$0070,$0098,$00A0,$0405,$0058,$0090
+	dc.w $00A0,$0098,$0305,$0078,$00A0,$0080,$0304,$0080
+	dc.w $00A0,$0090,$0304,$0060,$0068,$00A8,$0301,$0068
+	dc.w $0070,$00A8,$0301,$0058,$0060,$00A8,$0404,$0070
+	dc.w $0078,$00B0,$00A8,$0406,$0090,$0058,$00A8,$00B0
+	dc.w $0301,$0078,$0080,$00B0,$0305,$0080,$0090,$00B0
+	dc.w $8408,$0000,$0070,$0078,$0030
 model_040_coordinates:
 	dc.w $0000,$0320,$05A0,$0AA0,$0A00,$0C80,$07D0,$1900	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $03C0,$0500,$0280	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $03C0,$0500,$0280
 model_040_vertices:
 	dc.w $8002	; x_coordinate_ref
 	dc.w $0000	; y_coordinate_ref
@@ -30071,28 +30098,28 @@ model_040_vertices:
 	dc.w $FFFF	; variant_offset_or_negative
 model_041_faces:
 	dc.w $030D,$0000,$0010,$0008,$030E,$0000,$0018,$0010	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $030D,$0000,$0020,$0018,$030C,$0000,$0028,$0020	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $030B,$0000,$0030,$0028,$030C,$0000,$0008,$0030	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $030E,$0008,$0010,$0038,$030D,$0010,$0040,$0038	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $030C,$0010,$0018,$0040,$030D,$0018,$0048,$0040	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $030E,$0018,$0020,$0048,$030E,$0020,$0028,$0048	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $030D,$0028,$0050,$0048,$030E,$0028,$0030,$0050	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $030D,$0030,$0038,$0050,$030E,$0030,$0008,$0038	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $030E,$0038,$0040,$0058,$030C,$0040,$0048,$0058	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $030E,$0048,$0050,$0058,$030C,$0050,$0038,$0058	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $830B,$0000,$0008,$0060,$830C,$0008,$0038,$0060	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $830B,$0038,$0060,$0068,$830C,$0038,$0068,$0070	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $830B,$0000,$0020,$0078,$830C,$0020,$0048,$0078	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $830B,$0048,$0078,$0080,$830C,$0048,$0080,$0088	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $030D,$0000,$0020,$0018,$030C,$0000,$0028,$0020
+	dc.w $030B,$0000,$0030,$0028,$030C,$0000,$0008,$0030
+	dc.w $030E,$0008,$0010,$0038,$030D,$0010,$0040,$0038
+	dc.w $030C,$0010,$0018,$0040,$030D,$0018,$0048,$0040
+	dc.w $030E,$0018,$0020,$0048,$030E,$0020,$0028,$0048
+	dc.w $030D,$0028,$0050,$0048,$030E,$0028,$0030,$0050
+	dc.w $030D,$0030,$0038,$0050,$030E,$0030,$0008,$0038
+	dc.w $030E,$0038,$0040,$0058,$030C,$0040,$0048,$0058
+	dc.w $030E,$0048,$0050,$0058,$030C,$0050,$0038,$0058
+	dc.w $830B,$0000,$0008,$0060,$830C,$0008,$0038,$0060
+	dc.w $830B,$0038,$0060,$0068,$830C,$0038,$0068,$0070
+	dc.w $830B,$0000,$0020,$0078,$830C,$0020,$0048,$0078
+	dc.w $830B,$0048,$0078,$0080,$830C,$0048,$0080,$0088
 model_041_auxiliary_faces:
 	dc.w $8500,$0000,$0040,$0070,$0068,$0060,$8500,$0000	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0078,$0080,$0088,$0040	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0078,$0080,$0088,$0040
 model_041_coordinates:
 	dc.w $0000,$12C0,$0320,$0190,$03C0,$01E0,$0C80,$0140	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0FA0,$0B40,$0640,$0398,$00C8,$01C8,$0310,$0180	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0238,$0208,$0118,$0130,$0268,$0090,$0280,$0128	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0098,$0230,$0120,$0308,$0188,$0390,$01D0,$00C0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0178,$0200,$0260	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0FA0,$0B40,$0640,$0398,$00C8,$01C8,$0310,$0180
+	dc.w $0238,$0208,$0118,$0130,$0268,$0090,$0280,$0128
+	dc.w $0098,$0230,$0120,$0308,$0188,$0390,$01D0,$00C0
+	dc.w $0178,$0200,$0260
 model_041_vertices:
 	dc.w $0000	; x_coordinate_ref
 	dc.w $0000	; y_coordinate_ref
@@ -30168,62 +30195,62 @@ model_041_vertices:
 	dc.w $0028	; variant_offset_or_negative
 model_041_variant_words:
 	dc.w $800C,$8016,$0000,$0000,$8012,$8018,$000C,$0000	; 19 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8014,$001A,$0002,$0000,$000C,$8016,$0000,$0000	; 19 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0012,$8018,$000C,$0000,$0014,$001A,$0002,$0000	; 19 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $800C,$801C,$0000,$0000,$8012,$801E,$000C,$0000	; 19 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8014,$001E,$0002,$0000,$000C,$801C,$0000,$0000	; 19 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0012,$801E,$000C,$0000,$0014,$001E,$0002,$0000	; 19 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $800C,$8020,$0000,$0000,$8012,$8022,$000C,$0000	; 19 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8014,$0024,$0002,$0000,$000C,$8020,$0000,$0000	; 19 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0012,$8022,$000C,$0000,$0014,$0024,$0002,$0000	; 19 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $800C,$8026,$0000,$0000,$8012,$8028,$000C,$0000	; 19 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8014,$002A,$0002,$0000,$000C,$8026,$0000,$0000	; 19 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0012,$8028,$000C,$0000,$0014,$002A,$0002,$0000	; 19 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $800C,$0000,$0000,$0000,$8012,$802C,$000C,$0000	; 19 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8014,$0000,$0002,$0000,$000C,$0000,$0000,$0000	; 19 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0012,$802C,$000C,$0000,$0014,$0000,$0002,$0000	; 19 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $800C,$002E,$0000,$0000,$8012,$8028,$000C,$0000	; 19 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8014,$8030,$0002,$0000,$000C,$002E,$0000,$0000	; 19 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0012,$8028,$000C,$0000,$0014,$8030,$0002,$0000	; 19 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $800C,$0032,$0000,$0000,$8012,$8022,$000C,$0000	; 19 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8014,$8034,$0002,$0000,$000C,$0032,$0000,$0000	; 19 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0012,$8022,$000C,$0000,$0014,$8034,$0002,$0000	; 19 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $800C,$0036,$0000,$0000,$8012,$801E,$000C,$0000	; 19 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8014,$8038,$0002,$0000,$000C,$0036,$0000,$0000	; 19 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0012,$801E,$000C,$0000,$0014,$8038,$0002,$0000	; 19 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $800C,$003A,$0000,$0000,$8012,$8018,$000C,$0000	; 19 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8014,$803C,$0002,$0000,$000C,$003A,$0000,$0000	; 19 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0012,$8018,$000C,$0000,$0014,$803C,$0002,$0000	; 19 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $800C,$0008,$0000,$0000,$8012,$0000,$000C,$0000	; 19 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8014,$800A,$0002,$0000,$000C,$0008,$0000,$0000	; 19 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0012,$0000,$000C,$0000,$0014,$800A,$0002,$0000	; 19 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $800C,$003A,$0000,$0000,$8012,$003E,$000C,$0000	; 19 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8014,$803C,$0002,$0000,$000C,$003A,$0000,$0000	; 19 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0012,$003E,$000C,$0000,$0014,$803C,$0002,$0000	; 19 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $800C,$001C,$0000,$0000,$8012,$0040,$000C,$0000	; 19 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8014,$8038,$0002,$0000,$000C,$0036,$0000,$0000	; 19 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0012,$0040,$000C,$0000,$0014,$8038,$0002,$0000	; 19 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $800C,$0032,$0000,$0000,$8012,$0042,$000C,$0000	; 19 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8014,$8034,$0002,$0000,$000C,$0032,$0000,$0000	; 19 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0012,$0042,$000C,$0000,$0014,$8034,$0002,$0000	; 19 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $800C,$002E,$0000,$0000,$8012,$0044,$000C,$0000	; 19 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8014,$8030,$0002,$0000,$000C,$002E,$0000,$0000	; 19 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0012,$0044,$000C,$0000,$0014,$8030,$0002,$0000	; 19 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $800C,$0000,$0000,$0000,$8012,$002C,$000C,$0000	; 19 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8014,$0000,$0002,$0000,$000C,$0000,$0000,$0000	; 19 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0012,$002C,$000C,$0000,$0014,$0000,$0002,$0000	; 19 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $800C,$8026,$0000,$0000,$8012,$0044,$000C,$0000	; 19 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8014,$002A,$0002,$0000,$000C,$8026,$0000,$0000	; 19 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0012,$0044,$000C,$0000,$0014,$002A,$0002,$0000	; 19 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $800C,$8020,$0000,$0000,$8012,$0042,$000C,$0000	; 19 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8014,$0024,$0002,$0000,$000C,$8020,$0000,$0000	; 19 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0012,$0042,$000C,$0000,$0014,$0024,$0002,$0000	; 19 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $800C,$801C,$0000,$0000,$8012,$0040,$000C,$0000	; 19 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8014,$001E,$0002,$0000,$000C,$801C,$0000,$0000	; 19 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0012,$0040,$000C,$0000,$0014,$001E,$0002,$0000	; 19 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $800C,$8016,$0000,$0000,$8012,$003E,$000C,$0000	; 19 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8014,$001A,$0002,$0000,$000C,$8016,$0000,$0000	; 19 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0012,$003E,$000C,$0000,$0014,$001A,$0002,$0000	; 19 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
+	dc.w $8014,$001A,$0002,$0000,$000C,$8016,$0000,$0000
+	dc.w $0012,$8018,$000C,$0000,$0014,$001A,$0002,$0000
+	dc.w $800C,$801C,$0000,$0000,$8012,$801E,$000C,$0000
+	dc.w $8014,$001E,$0002,$0000,$000C,$801C,$0000,$0000
+	dc.w $0012,$801E,$000C,$0000,$0014,$001E,$0002,$0000
+	dc.w $800C,$8020,$0000,$0000,$8012,$8022,$000C,$0000
+	dc.w $8014,$0024,$0002,$0000,$000C,$8020,$0000,$0000
+	dc.w $0012,$8022,$000C,$0000,$0014,$0024,$0002,$0000
+	dc.w $800C,$8026,$0000,$0000,$8012,$8028,$000C,$0000
+	dc.w $8014,$002A,$0002,$0000,$000C,$8026,$0000,$0000
+	dc.w $0012,$8028,$000C,$0000,$0014,$002A,$0002,$0000
+	dc.w $800C,$0000,$0000,$0000,$8012,$802C,$000C,$0000
+	dc.w $8014,$0000,$0002,$0000,$000C,$0000,$0000,$0000
+	dc.w $0012,$802C,$000C,$0000,$0014,$0000,$0002,$0000
+	dc.w $800C,$002E,$0000,$0000,$8012,$8028,$000C,$0000
+	dc.w $8014,$8030,$0002,$0000,$000C,$002E,$0000,$0000
+	dc.w $0012,$8028,$000C,$0000,$0014,$8030,$0002,$0000
+	dc.w $800C,$0032,$0000,$0000,$8012,$8022,$000C,$0000
+	dc.w $8014,$8034,$0002,$0000,$000C,$0032,$0000,$0000
+	dc.w $0012,$8022,$000C,$0000,$0014,$8034,$0002,$0000
+	dc.w $800C,$0036,$0000,$0000,$8012,$801E,$000C,$0000
+	dc.w $8014,$8038,$0002,$0000,$000C,$0036,$0000,$0000
+	dc.w $0012,$801E,$000C,$0000,$0014,$8038,$0002,$0000
+	dc.w $800C,$003A,$0000,$0000,$8012,$8018,$000C,$0000
+	dc.w $8014,$803C,$0002,$0000,$000C,$003A,$0000,$0000
+	dc.w $0012,$8018,$000C,$0000,$0014,$803C,$0002,$0000
+	dc.w $800C,$0008,$0000,$0000,$8012,$0000,$000C,$0000
+	dc.w $8014,$800A,$0002,$0000,$000C,$0008,$0000,$0000
+	dc.w $0012,$0000,$000C,$0000,$0014,$800A,$0002,$0000
+	dc.w $800C,$003A,$0000,$0000,$8012,$003E,$000C,$0000
+	dc.w $8014,$803C,$0002,$0000,$000C,$003A,$0000,$0000
+	dc.w $0012,$003E,$000C,$0000,$0014,$803C,$0002,$0000
+	dc.w $800C,$001C,$0000,$0000,$8012,$0040,$000C,$0000
+	dc.w $8014,$8038,$0002,$0000,$000C,$0036,$0000,$0000
+	dc.w $0012,$0040,$000C,$0000,$0014,$8038,$0002,$0000
+	dc.w $800C,$0032,$0000,$0000,$8012,$0042,$000C,$0000
+	dc.w $8014,$8034,$0002,$0000,$000C,$0032,$0000,$0000
+	dc.w $0012,$0042,$000C,$0000,$0014,$8034,$0002,$0000
+	dc.w $800C,$002E,$0000,$0000,$8012,$0044,$000C,$0000
+	dc.w $8014,$8030,$0002,$0000,$000C,$002E,$0000,$0000
+	dc.w $0012,$0044,$000C,$0000,$0014,$8030,$0002,$0000
+	dc.w $800C,$0000,$0000,$0000,$8012,$002C,$000C,$0000
+	dc.w $8014,$0000,$0002,$0000,$000C,$0000,$0000,$0000
+	dc.w $0012,$002C,$000C,$0000,$0014,$0000,$0002,$0000
+	dc.w $800C,$8026,$0000,$0000,$8012,$0044,$000C,$0000
+	dc.w $8014,$002A,$0002,$0000,$000C,$8026,$0000,$0000
+	dc.w $0012,$0044,$000C,$0000,$0014,$002A,$0002,$0000
+	dc.w $800C,$8020,$0000,$0000,$8012,$0042,$000C,$0000
+	dc.w $8014,$0024,$0002,$0000,$000C,$8020,$0000,$0000
+	dc.w $0012,$0042,$000C,$0000,$0014,$0024,$0002,$0000
+	dc.w $800C,$801C,$0000,$0000,$8012,$0040,$000C,$0000
+	dc.w $8014,$001E,$0002,$0000,$000C,$801C,$0000,$0000
+	dc.w $0012,$0040,$000C,$0000,$0014,$001E,$0002,$0000
+	dc.w $800C,$8016,$0000,$0000,$8012,$003E,$000C,$0000
+	dc.w $8014,$001A,$0002,$0000,$000C,$8016,$0000,$0000
+	dc.w $0012,$003E,$000C,$0000,$0014,$001A,$0002,$0000
 model_041_variant_frames:
 	dc.l model_041_variant_words	; 19 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
 	dc.l model_041_variant_words+$30
@@ -30246,14 +30273,14 @@ model_041_variant_frames:
 	dc.l model_041_variant_words+$360
 model_042_faces:
 	dc.w $8309,$0008,$0018,$0010,$8308,$0008,$0020,$0018	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $8302,$0008,$0028,$0020,$8308,$0008,$0030,$0028	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $8309,$0008,$0038,$0030,$830A,$0008,$0010,$0038	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $8201,$0008,$0040,$8201,$0000,$0008	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $8302,$0008,$0028,$0020,$8308,$0008,$0030,$0028
+	dc.w $8309,$0008,$0038,$0030,$830A,$0008,$0010,$0038
+	dc.w $8201,$0008,$0040,$8201,$0000,$0008
 model_042_auxiliary_faces:
 	dc.w $8600,$0038,$0030,$0028,$0020,$0018,$0010	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
 model_042_coordinates:
 	dc.w $0000,$0640,$0320,$04A0,$05F0,$0878,$0238,$0C48	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $01A0,$0608,$09C8,$0388	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $01A0,$0608,$09C8,$0388
 model_042_vertices:
 	dc.w $0000	; x_coordinate_ref
 	dc.w $0000	; y_coordinate_ref
@@ -30293,17 +30320,17 @@ model_042_vertices:
 	dc.w $FFFF	; variant_offset_or_negative
 model_043_faces:
 	dc.w $050E,$0020,$0018,$0010,$0008,$0000,$050D,$0008	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0038,$0030,$0028,$0000,$050B,$0010,$0048,$0040	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0038,$0008,$050C,$0018,$0058,$0050,$0048,$0010	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $050D,$0020,$0068,$0060,$0058,$0018,$050C,$0000	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0028,$0070,$0068,$0020,$050B,$0078,$0098,$0070	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0028,$0030,$050C,$0080,$0078,$0030,$0038,$0040	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $050E,$0088,$0080,$0040,$0048,$0050,$050B,$0090	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0088,$0050,$0058,$0060,$050E,$0098,$0090,$0060	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0068,$0070,$050D,$0078,$0080,$0088,$0090,$0098	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0038,$0030,$0028,$0000,$050B,$0010,$0048,$0040
+	dc.w $0038,$0008,$050C,$0018,$0058,$0050,$0048,$0010
+	dc.w $050D,$0020,$0068,$0060,$0058,$0018,$050C,$0000
+	dc.w $0028,$0070,$0068,$0020,$050B,$0078,$0098,$0070
+	dc.w $0028,$0030,$050C,$0080,$0078,$0030,$0038,$0040
+	dc.w $050E,$0088,$0080,$0040,$0048,$0050,$050B,$0090
+	dc.w $0088,$0050,$0058,$0060,$050E,$0098,$0090,$0060
+	dc.w $0068,$0070,$050D,$0078,$0080,$0088,$0090,$0098
 model_043_coordinates:
 	dc.w $0000,$0F28,$13D8,$04B0,$0E68,$0C40,$08E8,$1888	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0790,$1758	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0790,$1758
 model_043_vertices:
 	dc.w $0002	; x_coordinate_ref
 	dc.w $8004	; y_coordinate_ref
@@ -30387,13 +30414,13 @@ model_043_vertices:
 	dc.w $FFFF	; variant_offset_or_negative
 model_044_faces:
 	dc.w $0308,$0000,$0008,$0030,$0309,$0000,$0030,$0010	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0309,$0008,$0018,$0030,$0308,$0010,$0030,$0038	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0308,$0018,$0038,$0030,$0302,$0010,$0038,$0020	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0302,$0018,$0028,$0038,$030A,$0020,$0038,$0028	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0309,$0000,$0040,$0008,$030A,$0000,$0010,$0040	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $030A,$0008,$0040,$0018,$0309,$0010,$0020,$0040	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0309,$0018,$0040,$0028,$0308,$0020,$0028,$0040	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $8202,$0000,$0048,$8202,$0008,$0050	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0309,$0008,$0018,$0030,$0308,$0010,$0030,$0038
+	dc.w $0308,$0018,$0038,$0030,$0302,$0010,$0038,$0020
+	dc.w $0302,$0018,$0028,$0038,$030A,$0020,$0038,$0028
+	dc.w $0309,$0000,$0040,$0008,$030A,$0000,$0010,$0040
+	dc.w $030A,$0008,$0040,$0018,$0309,$0010,$0020,$0040
+	dc.w $0309,$0018,$0040,$0028,$0308,$0020,$0028,$0040
+	dc.w $8202,$0000,$0048,$8202,$0008,$0050
 model_044_auxiliary_faces:
 	dc.w $8600,$0008,$0018,$0028,$0020,$0010,$0000	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
 model_044_coordinates:
@@ -30445,24 +30472,24 @@ model_044_vertices:
 	dc.w $FFFF	; variant_offset_or_negative
 model_045_faces:
 	dc.w $040E,$0000,$0008,$0048,$0040,$030D,$0000,$0040	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0010,$030D,$0008,$0018,$0048,$040C,$0040,$0048	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0058,$0050,$030B,$0010,$0040,$0050,$030B,$0048	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0018,$0058,$030E,$0010,$0050,$0020,$030E,$0018	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0028,$0058,$040D,$0050,$0058,$0068,$0060,$030C	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0030,$0050,$0060,$030C,$0058,$0038,$0068,$030B	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0020,$0050,$0030,$030B,$0058,$0028,$0038,$0300	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0008,$0000,$0088,$030D,$0000,$0010,$0088,$030D	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0008,$0088,$0018,$030B,$0010,$0018,$0088,$030C	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0018,$0010,$0070,$030D,$0010,$0020,$0070,$030D	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0028,$0018,$0070,$030B,$0070,$0030,$0038,$030C	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0020,$0030,$0070,$030C,$0028,$0070,$0038,$0401	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0038,$0030,$0060,$0068,$8201,$0020,$0078,$8201	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0028,$0080	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0010,$030D,$0008,$0018,$0048,$040C,$0040,$0048
+	dc.w $0058,$0050,$030B,$0010,$0040,$0050,$030B,$0048
+	dc.w $0018,$0058,$030E,$0010,$0050,$0020,$030E,$0018
+	dc.w $0028,$0058,$040D,$0050,$0058,$0068,$0060,$030C
+	dc.w $0030,$0050,$0060,$030C,$0058,$0038,$0068,$030B
+	dc.w $0020,$0050,$0030,$030B,$0058,$0028,$0038,$0300
+	dc.w $0008,$0000,$0088,$030D,$0000,$0010,$0088,$030D
+	dc.w $0008,$0088,$0018,$030B,$0010,$0018,$0088,$030C
+	dc.w $0018,$0010,$0070,$030D,$0010,$0020,$0070,$030D
+	dc.w $0028,$0018,$0070,$030B,$0070,$0030,$0038,$030C
+	dc.w $0020,$0030,$0070,$030C,$0028,$0070,$0038,$0401
+	dc.w $0038,$0030,$0060,$0068,$8201,$0020,$0078,$8201
+	dc.w $0028,$0080
 model_045_auxiliary_faces:
 	dc.w $8600,$0008,$0028,$0038,$0030,$0020,$0000	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
 model_045_coordinates:
 	dc.w $0000,$0320,$1900,$0640,$0B90,$0C80,$0460,$0280	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0960,$0190,$0FA0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0960,$0190,$0FA0
 model_045_vertices:
 	dc.w $8002	; x_coordinate_ref
 	dc.w $0000	; y_coordinate_ref
@@ -30538,27 +30565,27 @@ model_045_vertices:
 	dc.w $FFFF	; variant_offset_or_negative
 model_046_faces:
 	dc.w $8402,$0008,$0038,$0030,$0000,$8408,$0010,$0040	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0038,$0008,$0409,$0018,$0048,$0040,$0010,$040A	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0020,$0050,$00A0,$0098,$8409,$0028,$0058,$0050	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0020,$8408,$0028,$0000,$0030,$0058,$840E,$0038	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0068,$0060,$0030,$840D,$0040,$0070,$0068,$0038	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $040C,$0048,$0078,$0070,$0040,$040B,$0050,$0080	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $00A8,$00A0,$840C,$0058,$0088,$0080,$0050,$840D	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0030,$0060,$0088,$0058,$8301,$0068,$0090,$0060	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $8306,$0070,$0090,$0068,$0305,$0078,$0090,$0070	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0304,$0080,$0090,$00A8,$8305,$0088,$0090,$0080	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $8306,$0088,$0060,$0090	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0038,$0008,$0409,$0018,$0048,$0040,$0010,$040A
+	dc.w $0020,$0050,$00A0,$0098,$8409,$0028,$0058,$0050
+	dc.w $0020,$8408,$0028,$0000,$0030,$0058,$840E,$0038
+	dc.w $0068,$0060,$0030,$840D,$0040,$0070,$0068,$0038
+	dc.w $040C,$0048,$0078,$0070,$0040,$040B,$0050,$0080
+	dc.w $00A8,$00A0,$840C,$0058,$0088,$0080,$0050,$840D
+	dc.w $0030,$0060,$0088,$0058,$8301,$0068,$0090,$0060
+	dc.w $8306,$0070,$0090,$0068,$0305,$0078,$0090,$0070
+	dc.w $0304,$0080,$0090,$00A8,$8305,$0088,$0090,$0080
+	dc.w $8306,$0088,$0060,$0090
 model_046_coordinates:
 	dc.w $0000,$1770,$0BB8,$1446,$13EC,$09F6,$113A,$05DC	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0A23,$1707,$00A5,$1392,$0087,$0B7C,$005A,$0096	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0078,$004B,$1608,$0267,$12C0,$020D,$0B04,$013B	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0258,$01FE,$012C,$1482,$0519,$1167,$0456,$0A41	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0294,$050A,$0447,$0285,$1293,$0861,$0FC3,$0726	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0942,$0438,$0852,$0717,$0429,$1086,$0BF4,$0E10	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0843,$05FA,$0BE5,$0A14,$05EB,$0EA6,$0F3C,$0C6C	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0CF3,$0753,$079E,$0F2D,$0CE4,$078F,$0D11,$11EE	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0B13,$0681,$08F7,$11DF,$08E8,$0C12,$13B0,$10C2	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0609,$09D8,$13A1,$10B3,$09C9	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0A23,$1707,$00A5,$1392,$0087,$0B7C,$005A,$0096
+	dc.w $0078,$004B,$1608,$0267,$12C0,$020D,$0B04,$013B
+	dc.w $0258,$01FE,$012C,$1482,$0519,$1167,$0456,$0A41
+	dc.w $0294,$050A,$0447,$0285,$1293,$0861,$0FC3,$0726
+	dc.w $0942,$0438,$0852,$0717,$0429,$1086,$0BF4,$0E10
+	dc.w $0843,$05FA,$0BE5,$0A14,$05EB,$0EA6,$0F3C,$0C6C
+	dc.w $0CF3,$0753,$079E,$0F2D,$0CE4,$078F,$0D11,$11EE
+	dc.w $0B13,$0681,$08F7,$11DF,$08E8,$0C12,$13B0,$10C2
+	dc.w $0609,$09D8,$13A1,$10B3,$09C9
 model_046_vertices:
 	dc.w $8002	; x_coordinate_ref
 	dc.w $0000	; y_coordinate_ref
@@ -30650,32 +30677,32 @@ model_046_vertices:
 	dc.w $0028	; variant_offset_or_negative
 model_046_variant_words:
 	dc.w $0012,$0000,$8014,$0000,$0016,$8004,$8018,$0000	; 9 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $001A,$8008,$801C,$0000,$0012,$0000,$001E,$0000	; 9 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $0016,$8004,$0020,$0000,$001A,$8008,$0022,$0000	; 9 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $0024,$0000,$8026,$0000,$0028,$8004,$802A,$0000	; 9 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $002C,$8008,$802E,$0000,$0024,$0000,$0030,$0000	; 9 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $0028,$8004,$0032,$0000,$002C,$8008,$0034,$0000	; 9 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $0036,$0000,$8038,$0000,$003A,$8004,$803C,$0000	; 9 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $003E,$8008,$8040,$0000,$0036,$0000,$0042,$0000	; 9 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $003A,$8004,$0044,$0000,$003E,$8008,$0046,$0000	; 9 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $0048,$0000,$804A,$0000,$004C,$8004,$804E,$0000	; 9 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $0050,$8008,$8052,$0000,$0048,$0000,$0054,$0000	; 9 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $004C,$8004,$0056,$0000,$0050,$8008,$0058,$0000	; 9 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $005A,$0000,$805C,$0000,$005E,$8004,$8010,$0000	; 9 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $0060,$8008,$8062,$0000,$005A,$0000,$0064,$0000	; 9 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $005E,$8004,$0066,$0000,$0060,$8008,$0068,$0000	; 9 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $006A,$0000,$806C,$0000,$006E,$8004,$8070,$0000	; 9 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $0072,$8008,$8074,$0000,$006A,$0000,$0076,$0000	; 9 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $006E,$8004,$0078,$0000,$0072,$8008,$007A,$0000	; 9 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $007C,$0000,$807E,$0000,$0080,$8004,$806C,$0000	; 9 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $0082,$8008,$8084,$0000,$007C,$0000,$0086,$0000	; 9 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $0080,$8004,$0076,$0000,$0082,$8008,$0088,$0000	; 9 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $008A,$0000,$808C,$0000,$003E,$8004,$808E,$0000	; 9 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $0090,$8008,$8092,$0000,$008A,$0000,$0094,$0000	; 9 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $003E,$8004,$0096,$0000,$0090,$8008,$0098,$0000	; 9 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $0004,$0000,$8006,$0000,$000A,$8004,$800C,$0000	; 9 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $000E,$8008,$8010,$0000,$0004,$0000,$0006,$0000	; 9 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $000A,$8004,$000C,$0000,$000E,$8008,$0010,$0000	; 9 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninter
+	dc.w $001A,$8008,$801C,$0000,$0012,$0000,$001E,$0000
+	dc.w $0016,$8004,$0020,$0000,$001A,$8008,$0022,$0000
+	dc.w $0024,$0000,$8026,$0000,$0028,$8004,$802A,$0000
+	dc.w $002C,$8008,$802E,$0000,$0024,$0000,$0030,$0000
+	dc.w $0028,$8004,$0032,$0000,$002C,$8008,$0034,$0000
+	dc.w $0036,$0000,$8038,$0000,$003A,$8004,$803C,$0000
+	dc.w $003E,$8008,$8040,$0000,$0036,$0000,$0042,$0000
+	dc.w $003A,$8004,$0044,$0000,$003E,$8008,$0046,$0000
+	dc.w $0048,$0000,$804A,$0000,$004C,$8004,$804E,$0000
+	dc.w $0050,$8008,$8052,$0000,$0048,$0000,$0054,$0000
+	dc.w $004C,$8004,$0056,$0000,$0050,$8008,$0058,$0000
+	dc.w $005A,$0000,$805C,$0000,$005E,$8004,$8010,$0000
+	dc.w $0060,$8008,$8062,$0000,$005A,$0000,$0064,$0000
+	dc.w $005E,$8004,$0066,$0000,$0060,$8008,$0068,$0000
+	dc.w $006A,$0000,$806C,$0000,$006E,$8004,$8070,$0000
+	dc.w $0072,$8008,$8074,$0000,$006A,$0000,$0076,$0000
+	dc.w $006E,$8004,$0078,$0000,$0072,$8008,$007A,$0000
+	dc.w $007C,$0000,$807E,$0000,$0080,$8004,$806C,$0000
+	dc.w $0082,$8008,$8084,$0000,$007C,$0000,$0086,$0000
+	dc.w $0080,$8004,$0076,$0000,$0082,$8008,$0088,$0000
+	dc.w $008A,$0000,$808C,$0000,$003E,$8004,$808E,$0000
+	dc.w $0090,$8008,$8092,$0000,$008A,$0000,$0094,$0000
+	dc.w $003E,$8004,$0096,$0000,$0090,$8008,$0098,$0000
+	dc.w $0004,$0000,$8006,$0000,$000A,$8004,$800C,$0000
+	dc.w $000E,$8008,$8010,$0000,$0004,$0000,$0006,$0000
+	dc.w $000A,$8004,$000C,$0000,$000E,$8008,$0010,$0000
 model_046_variant_frames:
 	dc.l model_046_variant_words	; 9 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninter
 	dc.l model_046_variant_words+$30
@@ -30688,15 +30715,15 @@ model_046_variant_frames:
 	dc.l model_046_variant_words+$180
 model_047_faces:
 	dc.w $0306,$0000,$0008,$0010,$0304,$0000,$0010,$0018	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0306,$0000,$0018,$0020,$0304,$0000,$0020,$0028	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0306,$0000,$0028,$0008,$0304,$0008,$0030,$0010	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0306,$0010,$0038,$0018,$0304,$0018,$0040,$0020	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0306,$0020,$0048,$0028,$0304,$0028,$0050,$0008	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0306,$0030,$0038,$0010,$0304,$0038,$0040,$0018	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0306,$0040,$0048,$0020,$0304,$0048,$0050,$0028	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0306,$0050,$0030,$0008,$0304,$0030,$0058,$0038	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0306,$0038,$0058,$0040,$0304,$0040,$0058,$0048	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0306,$0048,$0058,$0050,$0304,$0050,$0058,$0030	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0306,$0000,$0018,$0020,$0304,$0000,$0020,$0028
+	dc.w $0306,$0000,$0028,$0008,$0304,$0008,$0030,$0010
+	dc.w $0306,$0010,$0038,$0018,$0304,$0018,$0040,$0020
+	dc.w $0306,$0020,$0048,$0028,$0304,$0028,$0050,$0008
+	dc.w $0306,$0030,$0038,$0010,$0304,$0038,$0040,$0018
+	dc.w $0306,$0040,$0048,$0020,$0304,$0048,$0050,$0028
+	dc.w $0306,$0050,$0030,$0008,$0304,$0030,$0058,$0038
+	dc.w $0306,$0038,$0058,$0040,$0304,$0040,$0058,$0048
+	dc.w $0306,$0048,$0058,$0050,$0304,$0050,$0058,$0030
 model_047_coordinates:
 	dc.w $0000,$0BE0,$0550,$0AA0,$0A20,$0348,$0640,$0898	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
 model_047_vertices:
@@ -30750,21 +30777,21 @@ model_047_vertices:
 	dc.w $FFFF	; variant_offset_or_negative
 model_048_faces:
 	dc.w $040B,$0000,$0030,$0038,$0008,$040C,$0008,$0038	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0040,$0010,$040D,$0010,$0040,$0048,$0018,$040E	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0018,$0048,$0050,$0020,$040D,$0020,$0050,$0058	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0028,$040C,$0028,$0058,$0030,$0000,$040A,$0030	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0060,$0068,$0038,$0409,$0038,$0068,$0070,$0040	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0408,$0040,$0070,$0078,$0048,$0402,$0048,$0078	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0080,$0050,$0408,$0050,$0080,$0088,$0058,$0409	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0058,$0088,$0060,$0030,$0409,$0060,$0090,$0098	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0068,$040A,$0068,$0098,$00A0,$0070,$0409,$0070	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $00A0,$00A8,$0078,$0408,$0078,$00A8,$00B0,$0080	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0402,$0080,$00B0,$00B8,$0088,$0408,$0088,$00B8	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0090,$0060,$0600,$00B8,$00B0,$00A8,$00A0,$0098	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0090	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0040,$0010,$040D,$0010,$0040,$0048,$0018,$040E
+	dc.w $0018,$0048,$0050,$0020,$040D,$0020,$0050,$0058
+	dc.w $0028,$040C,$0028,$0058,$0030,$0000,$040A,$0030
+	dc.w $0060,$0068,$0038,$0409,$0038,$0068,$0070,$0040
+	dc.w $0408,$0040,$0070,$0078,$0048,$0402,$0048,$0078
+	dc.w $0080,$0050,$0408,$0050,$0080,$0088,$0058,$0409
+	dc.w $0058,$0088,$0060,$0030,$0409,$0060,$0090,$0098
+	dc.w $0068,$040A,$0068,$0098,$00A0,$0070,$0409,$0070
+	dc.w $00A0,$00A8,$0078,$0408,$0078,$00A8,$00B0,$0080
+	dc.w $0402,$0080,$00B0,$00B8,$0088,$0408,$0088,$00B8
+	dc.w $0090,$0060,$0600,$00B8,$00B0,$00A8,$00A0,$0098
+	dc.w $0090
 model_048_coordinates:
 	dc.w $0000,$3200,$2B50,$1900,$12C0,$2580,$2080,$15A0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0C80	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0C80
 model_048_vertices:
 	dc.w $0000	; x_coordinate_ref
 	dc.w $0000	; y_coordinate_ref
@@ -30864,24 +30891,24 @@ model_048_vertices:
 	dc.w $FFFF	; variant_offset_or_negative
 model_049_faces:
 	dc.w $030E,$0000,$0010,$0008,$030D,$0000,$0018,$0010	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $030E,$0000,$0020,$0018,$030D,$0000,$0028,$0020	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $030E,$0000,$0030,$0028,$030D,$0000,$0008,$0030	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $040C,$0008,$0010,$0040,$0038,$040B,$0010,$0018	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0048,$0040,$040C,$0018,$0020,$0050,$0048,$040B	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0020,$0028,$0058,$0050,$040C,$0028,$0030,$0060	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0058,$040B,$0030,$0008,$0038,$0060,$060E,$0038	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0040,$0048,$0050,$0058,$0060,$040E,$0068,$0070	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $00A0,$0098,$040D,$0070,$0078,$00A8,$00A0,$040E	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0078,$0080,$00B0,$00A8,$040D,$0080,$0088,$00B8	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $00B0,$040E,$0088,$0090,$00C0,$00B8,$040D,$0090	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0068,$0098,$00C0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $030E,$0000,$0020,$0018,$030D,$0000,$0028,$0020
+	dc.w $030E,$0000,$0030,$0028,$030D,$0000,$0008,$0030
+	dc.w $040C,$0008,$0010,$0040,$0038,$040B,$0010,$0018
+	dc.w $0048,$0040,$040C,$0018,$0020,$0050,$0048,$040B
+	dc.w $0020,$0028,$0058,$0050,$040C,$0028,$0030,$0060
+	dc.w $0058,$040B,$0030,$0008,$0038,$0060,$060E,$0038
+	dc.w $0040,$0048,$0050,$0058,$0060,$040E,$0068,$0070
+	dc.w $00A0,$0098,$040D,$0070,$0078,$00A8,$00A0,$040E
+	dc.w $0078,$0080,$00B0,$00A8,$040D,$0080,$0088,$00B8
+	dc.w $00B0,$040E,$0088,$0090,$00C0,$00B8,$040D,$0090
+	dc.w $0068,$0098,$00C0
 model_049_auxiliary_faces:
 	dc.w $8600,$0030,$0028,$0020,$0018,$0010,$0008	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
 model_049_coordinates:
 	dc.w $0000,$2300,$1DB0,$0C80,$0AD0,$0640,$1900,$0568	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0320,$02B8,$0190,$0228,$0C48,$0BB8,$0440,$0990	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0808,$0110,$0620,$05D8,$0220,$04C8,$0400,$0800	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0C78,$0638,$0318	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0320,$02B8,$0190,$0228,$0C48,$0BB8,$0440,$0990
+	dc.w $0808,$0110,$0620,$05D8,$0220,$04C8,$0400,$0800
+	dc.w $0C78,$0638,$0318
 model_049_vertices:
 	dc.w $0000	; x_coordinate_ref
 	dc.w $8002	; y_coordinate_ref
@@ -30985,71 +31012,71 @@ model_049_vertices:
 	dc.w $FFFF	; variant_offset_or_negative
 model_049_variant_words:
 	dc.w $8016,$8004,$8018,$0000,$801A,$8004,$801C,$0000	; 11 viewer-indexed variant frames, 12 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $801E,$8004,$0020,$0000,$0016,$8004,$0018,$0000	; 11 viewer-indexed variant frames, 12 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $001A,$8004,$001C,$0000,$001E,$8004,$8020,$0000	; 11 viewer-indexed variant frames, 12 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8022,$800C,$8024,$0000,$8026,$800C,$8028,$0000	; 11 viewer-indexed variant frames, 12 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $802A,$800C,$002C,$0000,$0022,$800C,$0024,$0000	; 11 viewer-indexed variant frames, 12 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0026,$800C,$0028,$0000,$002A,$800C,$802C,$0000	; 11 viewer-indexed variant frames, 12 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $801C,$8004,$801A,$0000,$8018,$8004,$8016,$0000	; 11 viewer-indexed variant frames, 12 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $802E,$8004,$001E,$0000,$001C,$8004,$001A,$0000	; 11 viewer-indexed variant frames, 12 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0018,$8004,$0016,$0000,$002E,$8004,$801E,$0000	; 11 viewer-indexed variant frames, 12 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8028,$800C,$8026,$0000,$8024,$800C,$8022,$0000	; 11 viewer-indexed variant frames, 12 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $802C,$800C,$002A,$0000,$0028,$800C,$0026,$0000	; 11 viewer-indexed variant frames, 12 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0024,$800C,$0022,$0000,$002C,$800C,$802A,$0000	; 11 viewer-indexed variant frames, 12 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $800A,$8004,$8008,$0000,$8030,$8004,$0000,$0000	; 11 viewer-indexed variant frames, 12 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8032,$8004,$0008,$0000,$000A,$8004,$0008,$0000	; 11 viewer-indexed variant frames, 12 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0030,$8004,$0000,$0000,$0032,$8004,$8008,$0000	; 11 viewer-indexed variant frames, 12 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8010,$800C,$800E,$0000,$8032,$800C,$0000,$0000	; 11 viewer-indexed variant frames, 12 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8034,$800C,$000E,$0000,$0010,$800C,$000E,$0000	; 11 viewer-indexed variant frames, 12 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0032,$800C,$0000,$0000,$0034,$800C,$800E,$0000	; 11 viewer-indexed variant frames, 12 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8020,$8004,$801E,$0000,$8018,$8004,$0016,$0000	; 11 viewer-indexed variant frames, 12 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $801C,$8004,$001A,$0000,$0020,$8004,$001E,$0000	; 11 viewer-indexed variant frames, 12 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0018,$8004,$8016,$0000,$001C,$8004,$801A,$0000	; 11 viewer-indexed variant frames, 12 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $802C,$800C,$802A,$0000,$8024,$800C,$0022,$0000	; 11 viewer-indexed variant frames, 12 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8028,$800C,$0026,$0000,$002C,$800C,$002A,$0000	; 11 viewer-indexed variant frames, 12 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0024,$800C,$8022,$0000,$0028,$800C,$8026,$0000	; 11 viewer-indexed variant frames, 12 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $801E,$8004,$8020,$0000,$801A,$8004,$001C,$0000	; 11 viewer-indexed variant frames, 12 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8016,$8004,$0018,$0000,$001E,$8004,$0020,$0000	; 11 viewer-indexed variant frames, 12 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $001A,$8004,$801C,$0000,$0016,$8004,$8018,$0000	; 11 viewer-indexed variant frames, 12 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $802A,$800C,$802C,$0000,$8026,$800C,$0028,$0000	; 11 viewer-indexed variant frames, 12 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8022,$800C,$0024,$0000,$002A,$800C,$002C,$0000	; 11 viewer-indexed variant frames, 12 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0026,$800C,$8028,$0000,$0022,$800C,$8024,$0000	; 11 viewer-indexed variant frames, 12 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8008,$8004,$8032,$0000,$8008,$8004,$0032,$0000	; 11 viewer-indexed variant frames, 12 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$8004,$0030,$0000,$0008,$8004,$0032,$0000	; 11 viewer-indexed variant frames, 12 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0008,$8004,$8032,$0000,$0000,$8004,$8030,$0000	; 11 viewer-indexed variant frames, 12 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $800E,$800C,$8034,$0000,$800E,$800C,$0034,$0000	; 11 viewer-indexed variant frames, 12 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0000,$800C,$0032,$0000,$000E,$800C,$0034,$0000	; 11 viewer-indexed variant frames, 12 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $000E,$800C,$8034,$0000,$0000,$800C,$8032,$0000	; 11 viewer-indexed variant frames, 12 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $801A,$8004,$801C,$0000,$801E,$8004,$002E,$0000	; 11 viewer-indexed variant frames, 12 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0016,$8004,$0018,$0000,$001A,$8004,$001C,$0000	; 11 viewer-indexed variant frames, 12 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $001E,$8004,$802E,$0000,$8016,$8004,$8018,$0000	; 11 viewer-indexed variant frames, 12 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8026,$800C,$8028,$0000,$802A,$800C,$002C,$0000	; 11 viewer-indexed variant frames, 12 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0022,$800C,$0024,$0000,$0026,$800C,$0028,$0000	; 11 viewer-indexed variant frames, 12 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $002A,$800C,$802C,$0000,$8022,$800C,$8024,$0000	; 11 viewer-indexed variant frames, 12 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8018,$8004,$8016,$0000,$8020,$8004,$001E,$0000	; 11 viewer-indexed variant frames, 12 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $001C,$8004,$001A,$0000,$0018,$8004,$0016,$0000	; 11 viewer-indexed variant frames, 12 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0020,$8004,$801E,$0000,$801C,$8004,$801A,$0000	; 11 viewer-indexed variant frames, 12 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8024,$800C,$8022,$0000,$802C,$800C,$002A,$0000	; 11 viewer-indexed variant frames, 12 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0028,$800C,$0026,$0000,$0024,$800C,$0022,$0000	; 11 viewer-indexed variant frames, 12 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $002C,$800C,$802A,$0000,$8028,$800C,$8026,$0000	; 11 viewer-indexed variant frames, 12 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8006,$8004,$0000,$0000,$8032,$8004,$0008,$0000	; 11 viewer-indexed variant frames, 12 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $000A,$8004,$0008,$0000,$0006,$8004,$0000,$0000	; 11 viewer-indexed variant frames, 12 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0032,$8004,$8008,$0000,$800A,$8004,$8008,$0000	; 11 viewer-indexed variant frames, 12 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $800A,$800C,$0000,$0000,$8034,$800C,$000E,$0000	; 11 viewer-indexed variant frames, 12 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0010,$800C,$000E,$0000,$000A,$800C,$0000,$0000	; 11 viewer-indexed variant frames, 12 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0034,$800C,$800E,$0000,$8010,$800C,$800E,$0000	; 11 viewer-indexed variant frames, 12 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8018,$8004,$0016,$0000,$801C,$8004,$001A,$0000	; 11 viewer-indexed variant frames, 12 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0020,$8004,$001E,$0000,$0018,$8004,$8016,$0000	; 11 viewer-indexed variant frames, 12 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $001C,$8004,$801A,$0000,$8020,$8004,$801E,$0000	; 11 viewer-indexed variant frames, 12 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8024,$800C,$0022,$0000,$8028,$800C,$0026,$0000	; 11 viewer-indexed variant frames, 12 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $002C,$800C,$002A,$0000,$0024,$800C,$8022,$0000	; 11 viewer-indexed variant frames, 12 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0028,$800C,$8026,$0000,$802C,$800C,$802A,$0000	; 11 viewer-indexed variant frames, 12 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $801A,$8004,$001C,$0000,$8016,$8004,$0018,$0000	; 11 viewer-indexed variant frames, 12 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $001E,$8004,$002E,$0000,$001A,$8004,$801C,$0000	; 11 viewer-indexed variant frames, 12 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0016,$8004,$8018,$0000,$801E,$8004,$802E,$0000	; 11 viewer-indexed variant frames, 12 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8026,$800C,$0028,$0000,$8022,$800C,$0024,$0000	; 11 viewer-indexed variant frames, 12 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $002A,$800C,$002C,$0000,$0026,$800C,$8028,$0000	; 11 viewer-indexed variant frames, 12 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0022,$800C,$8024,$0000,$802A,$800C,$802C,$0000	; 11 viewer-indexed variant frames, 12 encoded vertex records per frame; 8-byte stride with unint
+	dc.w $801E,$8004,$0020,$0000,$0016,$8004,$0018,$0000
+	dc.w $001A,$8004,$001C,$0000,$001E,$8004,$8020,$0000
+	dc.w $8022,$800C,$8024,$0000,$8026,$800C,$8028,$0000
+	dc.w $802A,$800C,$002C,$0000,$0022,$800C,$0024,$0000
+	dc.w $0026,$800C,$0028,$0000,$002A,$800C,$802C,$0000
+	dc.w $801C,$8004,$801A,$0000,$8018,$8004,$8016,$0000
+	dc.w $802E,$8004,$001E,$0000,$001C,$8004,$001A,$0000
+	dc.w $0018,$8004,$0016,$0000,$002E,$8004,$801E,$0000
+	dc.w $8028,$800C,$8026,$0000,$8024,$800C,$8022,$0000
+	dc.w $802C,$800C,$002A,$0000,$0028,$800C,$0026,$0000
+	dc.w $0024,$800C,$0022,$0000,$002C,$800C,$802A,$0000
+	dc.w $800A,$8004,$8008,$0000,$8030,$8004,$0000,$0000
+	dc.w $8032,$8004,$0008,$0000,$000A,$8004,$0008,$0000
+	dc.w $0030,$8004,$0000,$0000,$0032,$8004,$8008,$0000
+	dc.w $8010,$800C,$800E,$0000,$8032,$800C,$0000,$0000
+	dc.w $8034,$800C,$000E,$0000,$0010,$800C,$000E,$0000
+	dc.w $0032,$800C,$0000,$0000,$0034,$800C,$800E,$0000
+	dc.w $8020,$8004,$801E,$0000,$8018,$8004,$0016,$0000
+	dc.w $801C,$8004,$001A,$0000,$0020,$8004,$001E,$0000
+	dc.w $0018,$8004,$8016,$0000,$001C,$8004,$801A,$0000
+	dc.w $802C,$800C,$802A,$0000,$8024,$800C,$0022,$0000
+	dc.w $8028,$800C,$0026,$0000,$002C,$800C,$002A,$0000
+	dc.w $0024,$800C,$8022,$0000,$0028,$800C,$8026,$0000
+	dc.w $801E,$8004,$8020,$0000,$801A,$8004,$001C,$0000
+	dc.w $8016,$8004,$0018,$0000,$001E,$8004,$0020,$0000
+	dc.w $001A,$8004,$801C,$0000,$0016,$8004,$8018,$0000
+	dc.w $802A,$800C,$802C,$0000,$8026,$800C,$0028,$0000
+	dc.w $8022,$800C,$0024,$0000,$002A,$800C,$002C,$0000
+	dc.w $0026,$800C,$8028,$0000,$0022,$800C,$8024,$0000
+	dc.w $8008,$8004,$8032,$0000,$8008,$8004,$0032,$0000
+	dc.w $0000,$8004,$0030,$0000,$0008,$8004,$0032,$0000
+	dc.w $0008,$8004,$8032,$0000,$0000,$8004,$8030,$0000
+	dc.w $800E,$800C,$8034,$0000,$800E,$800C,$0034,$0000
+	dc.w $0000,$800C,$0032,$0000,$000E,$800C,$0034,$0000
+	dc.w $000E,$800C,$8034,$0000,$0000,$800C,$8032,$0000
+	dc.w $801A,$8004,$801C,$0000,$801E,$8004,$002E,$0000
+	dc.w $0016,$8004,$0018,$0000,$001A,$8004,$001C,$0000
+	dc.w $001E,$8004,$802E,$0000,$8016,$8004,$8018,$0000
+	dc.w $8026,$800C,$8028,$0000,$802A,$800C,$002C,$0000
+	dc.w $0022,$800C,$0024,$0000,$0026,$800C,$0028,$0000
+	dc.w $002A,$800C,$802C,$0000,$8022,$800C,$8024,$0000
+	dc.w $8018,$8004,$8016,$0000,$8020,$8004,$001E,$0000
+	dc.w $001C,$8004,$001A,$0000,$0018,$8004,$0016,$0000
+	dc.w $0020,$8004,$801E,$0000,$801C,$8004,$801A,$0000
+	dc.w $8024,$800C,$8022,$0000,$802C,$800C,$002A,$0000
+	dc.w $0028,$800C,$0026,$0000,$0024,$800C,$0022,$0000
+	dc.w $002C,$800C,$802A,$0000,$8028,$800C,$8026,$0000
+	dc.w $8006,$8004,$0000,$0000,$8032,$8004,$0008,$0000
+	dc.w $000A,$8004,$0008,$0000,$0006,$8004,$0000,$0000
+	dc.w $0032,$8004,$8008,$0000,$800A,$8004,$8008,$0000
+	dc.w $800A,$800C,$0000,$0000,$8034,$800C,$000E,$0000
+	dc.w $0010,$800C,$000E,$0000,$000A,$800C,$0000,$0000
+	dc.w $0034,$800C,$800E,$0000,$8010,$800C,$800E,$0000
+	dc.w $8018,$8004,$0016,$0000,$801C,$8004,$001A,$0000
+	dc.w $0020,$8004,$001E,$0000,$0018,$8004,$8016,$0000
+	dc.w $001C,$8004,$801A,$0000,$8020,$8004,$801E,$0000
+	dc.w $8024,$800C,$0022,$0000,$8028,$800C,$0026,$0000
+	dc.w $002C,$800C,$002A,$0000,$0024,$800C,$8022,$0000
+	dc.w $0028,$800C,$8026,$0000,$802C,$800C,$802A,$0000
+	dc.w $801A,$8004,$001C,$0000,$8016,$8004,$0018,$0000
+	dc.w $001E,$8004,$002E,$0000,$001A,$8004,$801C,$0000
+	dc.w $0016,$8004,$8018,$0000,$801E,$8004,$802E,$0000
+	dc.w $8026,$800C,$0028,$0000,$8022,$800C,$0024,$0000
+	dc.w $002A,$800C,$002C,$0000,$0026,$800C,$8028,$0000
+	dc.w $0022,$800C,$8024,$0000,$802A,$800C,$802C,$0000
 model_049_variant_frames:
 	dc.l model_049_variant_words	; 11 viewer-indexed variant frames, 12 encoded vertex records per frame; 8-byte stride with unint
 	dc.l model_049_variant_words+$60
@@ -31064,30 +31091,30 @@ model_049_variant_frames:
 	dc.l model_049_variant_words+$3C0
 model_050_faces:
 	dc.w $0400,$0088,$0080,$0078,$0070,$0401,$0070,$0078	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0098,$0090,$0406,$0078,$0080,$00A0,$0098,$0405	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0080,$0088,$00A8,$00A0,$0406,$0088,$0070,$0090	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $00A8,$0306,$0090,$0098,$00B0,$0305,$0098,$00A0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $00B0,$0304,$00A0,$00A8,$00B0,$0305,$00A8,$0090	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $00B0,$0402,$0008,$0000,$0018,$0020,$0408,$0010	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0008,$0020,$0028,$0308,$0020,$0018,$0030,$0309	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0028,$0020,$0030,$050A,$0028,$0030,$0018,$0000	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0010,$0402,$0038,$0040,$0058,$0050,$0408,$0040	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0048,$0060,$0058,$0308,$0050,$0058,$0068,$0309	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0058,$0060,$0068,$050A,$0048,$0038,$0050,$0068	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0060	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0098,$0090,$0406,$0078,$0080,$00A0,$0098,$0405
+	dc.w $0080,$0088,$00A8,$00A0,$0406,$0088,$0070,$0090
+	dc.w $00A8,$0306,$0090,$0098,$00B0,$0305,$0098,$00A0
+	dc.w $00B0,$0304,$00A0,$00A8,$00B0,$0305,$00A8,$0090
+	dc.w $00B0,$0402,$0008,$0000,$0018,$0020,$0408,$0010
+	dc.w $0008,$0020,$0028,$0308,$0020,$0018,$0030,$0309
+	dc.w $0028,$0020,$0030,$050A,$0028,$0030,$0018,$0000
+	dc.w $0010,$0402,$0038,$0040,$0058,$0050,$0408,$0040
+	dc.w $0048,$0060,$0058,$0308,$0050,$0058,$0068,$0309
+	dc.w $0058,$0060,$0068,$050A,$0048,$0038,$0050,$0068
+	dc.w $0060
 model_050_auxiliary_faces:
 	dc.w $8500,$0088,$0080,$0098,$00B0,$0090	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
 model_050_coordinates:
 	dc.w $0000,$01E0,$0410,$05A0,$04B0,$0280,$06E0,$00F0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0A00,$03C0,$0690,$02D0,$0370,$0758,$09A8,$0580	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0688,$0050,$0360,$08F8,$0910,$0738,$09B0,$0670	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $00A0,$02E8,$0380,$0338,$0A78,$0830,$08E0,$0920	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0648,$0310,$02F8,$0BD0,$0708,$0A60,$0840,$0618	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0130,$0340,$0278,$02A0,$0CF0,$05B0,$0BB8,$0720	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $05E0,$0168,$0378,$0208,$0230,$0DD0,$0430,$0CE0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $05C8,$0198,$01B0,$0E60,$0288,$0DC0,$0448,$0550	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $01C0,$0408,$0170,$0128,$0EB0,$00D0,$0E58,$02A8	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0500,$01D8,$0458,$0148,$0098,$00E8,$0140	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0A00,$03C0,$0690,$02D0,$0370,$0758,$09A8,$0580
+	dc.w $0688,$0050,$0360,$08F8,$0910,$0738,$09B0,$0670
+	dc.w $00A0,$02E8,$0380,$0338,$0A78,$0830,$08E0,$0920
+	dc.w $0648,$0310,$02F8,$0BD0,$0708,$0A60,$0840,$0618
+	dc.w $0130,$0340,$0278,$02A0,$0CF0,$05B0,$0BB8,$0720
+	dc.w $05E0,$0168,$0378,$0208,$0230,$0DD0,$0430,$0CE0
+	dc.w $05C8,$0198,$01B0,$0E60,$0288,$0DC0,$0448,$0550
+	dc.w $01C0,$0408,$0170,$0128,$0EB0,$00D0,$0E58,$02A8
+	dc.w $0500,$01D8,$0458,$0148,$0098,$00E8,$0140
 model_050_vertices:
 	dc.w $8002	; x_coordinate_ref
 	dc.w $0000	; y_coordinate_ref
@@ -31183,46 +31210,46 @@ model_050_vertices:
 	dc.w $0040	; variant_offset_or_negative
 model_050_variant_words:
 	dc.w $800E,$801A,$801C,$0000,$000E,$801A,$801C,$0000	; 9 viewer-indexed variant frames, 9 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $000E,$801E,$8010,$0000,$800E,$801E,$8010,$0000	; 9 viewer-indexed variant frames, 9 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $8002,$8020,$0022,$0000,$0002,$8020,$0022,$0000	; 9 viewer-indexed variant frames, 9 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $0002,$8016,$8022,$0000,$8002,$8016,$8022,$0000	; 9 viewer-indexed variant frames, 9 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $0000,$8004,$0024,$0000,$800E,$8026,$8028,$0000	; 9 viewer-indexed variant frames, 9 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $000E,$8026,$8028,$0000,$000E,$802A,$802C,$0000	; 9 viewer-indexed variant frames, 9 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $800E,$802A,$802C,$0000,$8002,$802E,$0030,$0000	; 9 viewer-indexed variant frames, 9 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $0002,$802E,$0030,$0000,$0002,$8032,$8030,$0000	; 9 viewer-indexed variant frames, 9 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $8002,$8032,$8030,$0000,$0000,$8034,$0036,$0000	; 9 viewer-indexed variant frames, 9 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $800E,$8038,$803A,$0000,$000E,$8038,$803A,$0000	; 9 viewer-indexed variant frames, 9 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $000E,$803C,$803E,$0000,$800E,$803C,$803E,$0000	; 9 viewer-indexed variant frames, 9 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $8002,$8040,$000E,$0000,$0002,$8040,$000E,$0000	; 9 viewer-indexed variant frames, 9 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $0002,$8042,$800E,$0000,$8002,$8042,$800E,$0000	; 9 viewer-indexed variant frames, 9 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $0000,$8044,$0044,$0000,$800E,$8046,$8048,$0000	; 9 viewer-indexed variant frames, 9 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $000E,$8046,$8048,$0000,$000E,$804A,$804C,$0000	; 9 viewer-indexed variant frames, 9 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $800E,$804A,$804C,$0000,$8002,$804E,$0050,$0000	; 9 viewer-indexed variant frames, 9 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $0002,$804E,$0050,$0000,$0002,$8052,$8050,$0000	; 9 viewer-indexed variant frames, 9 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $8002,$8052,$8050,$0000,$0000,$8054,$0056,$0000	; 9 viewer-indexed variant frames, 9 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $800E,$8058,$8006,$0000,$000E,$8058,$805A,$0000	; 9 viewer-indexed variant frames, 9 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $000E,$805C,$805E,$0000,$800E,$805C,$805E,$0000	; 9 viewer-indexed variant frames, 9 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $8002,$8060,$0062,$0000,$0002,$8060,$0062,$0000	; 9 viewer-indexed variant frames, 9 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $0002,$8064,$8062,$0000,$8002,$8064,$8062,$0000	; 9 viewer-indexed variant frames, 9 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $0000,$8066,$0068,$0000,$800E,$806A,$806C,$0000	; 9 viewer-indexed variant frames, 9 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $000E,$806A,$806C,$0000,$000E,$806E,$8070,$0000	; 9 viewer-indexed variant frames, 9 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $800E,$806E,$8070,$0000,$8002,$8006,$0072,$0000	; 9 viewer-indexed variant frames, 9 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $0002,$8006,$0072,$0000,$0002,$8012,$8072,$0000	; 9 viewer-indexed variant frames, 9 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $8002,$8012,$8072,$0000,$0000,$8074,$0074,$0000	; 9 viewer-indexed variant frames, 9 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $800E,$8076,$8078,$0000,$000E,$8076,$8078,$0000	; 9 viewer-indexed variant frames, 9 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $000E,$807A,$807C,$0000,$800E,$807A,$807C,$0000	; 9 viewer-indexed variant frames, 9 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $8002,$807E,$0080,$0000,$0002,$807E,$0080,$0000	; 9 viewer-indexed variant frames, 9 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $0002,$8082,$8080,$0000,$8002,$8082,$8080,$0000	; 9 viewer-indexed variant frames, 9 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $0000,$8084,$0086,$0000,$800E,$8088,$808A,$0000	; 9 viewer-indexed variant frames, 9 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $000E,$8088,$808A,$0000,$000E,$808C,$808E,$0000	; 9 viewer-indexed variant frames, 9 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $800E,$808C,$808E,$0000,$8002,$8090,$0092,$0000	; 9 viewer-indexed variant frames, 9 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $0002,$8090,$0092,$0000,$0002,$8094,$8092,$0000	; 9 viewer-indexed variant frames, 9 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $8002,$8094,$8092,$0000,$0000,$8096,$0098,$0000	; 9 viewer-indexed variant frames, 9 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $800E,$8088,$000E,$0000,$000E,$8088,$000E,$0000	; 9 viewer-indexed variant frames, 9 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $000E,$8088,$809A,$0000,$800E,$8088,$809A,$0000	; 9 viewer-indexed variant frames, 9 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $8002,$8008,$0002,$0000,$0002,$8008,$0002,$0000	; 9 viewer-indexed variant frames, 9 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $0002,$8008,$8002,$0000,$8002,$8008,$8002,$0000	; 9 viewer-indexed variant frames, 9 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $0000,$809C,$0000,$0000	; 9 viewer-indexed variant frames, 9 encoded vertex records per frame; 8-byte stride with uninter
+	dc.w $000E,$801E,$8010,$0000,$800E,$801E,$8010,$0000
+	dc.w $8002,$8020,$0022,$0000,$0002,$8020,$0022,$0000
+	dc.w $0002,$8016,$8022,$0000,$8002,$8016,$8022,$0000
+	dc.w $0000,$8004,$0024,$0000,$800E,$8026,$8028,$0000
+	dc.w $000E,$8026,$8028,$0000,$000E,$802A,$802C,$0000
+	dc.w $800E,$802A,$802C,$0000,$8002,$802E,$0030,$0000
+	dc.w $0002,$802E,$0030,$0000,$0002,$8032,$8030,$0000
+	dc.w $8002,$8032,$8030,$0000,$0000,$8034,$0036,$0000
+	dc.w $800E,$8038,$803A,$0000,$000E,$8038,$803A,$0000
+	dc.w $000E,$803C,$803E,$0000,$800E,$803C,$803E,$0000
+	dc.w $8002,$8040,$000E,$0000,$0002,$8040,$000E,$0000
+	dc.w $0002,$8042,$800E,$0000,$8002,$8042,$800E,$0000
+	dc.w $0000,$8044,$0044,$0000,$800E,$8046,$8048,$0000
+	dc.w $000E,$8046,$8048,$0000,$000E,$804A,$804C,$0000
+	dc.w $800E,$804A,$804C,$0000,$8002,$804E,$0050,$0000
+	dc.w $0002,$804E,$0050,$0000,$0002,$8052,$8050,$0000
+	dc.w $8002,$8052,$8050,$0000,$0000,$8054,$0056,$0000
+	dc.w $800E,$8058,$8006,$0000,$000E,$8058,$805A,$0000
+	dc.w $000E,$805C,$805E,$0000,$800E,$805C,$805E,$0000
+	dc.w $8002,$8060,$0062,$0000,$0002,$8060,$0062,$0000
+	dc.w $0002,$8064,$8062,$0000,$8002,$8064,$8062,$0000
+	dc.w $0000,$8066,$0068,$0000,$800E,$806A,$806C,$0000
+	dc.w $000E,$806A,$806C,$0000,$000E,$806E,$8070,$0000
+	dc.w $800E,$806E,$8070,$0000,$8002,$8006,$0072,$0000
+	dc.w $0002,$8006,$0072,$0000,$0002,$8012,$8072,$0000
+	dc.w $8002,$8012,$8072,$0000,$0000,$8074,$0074,$0000
+	dc.w $800E,$8076,$8078,$0000,$000E,$8076,$8078,$0000
+	dc.w $000E,$807A,$807C,$0000,$800E,$807A,$807C,$0000
+	dc.w $8002,$807E,$0080,$0000,$0002,$807E,$0080,$0000
+	dc.w $0002,$8082,$8080,$0000,$8002,$8082,$8080,$0000
+	dc.w $0000,$8084,$0086,$0000,$800E,$8088,$808A,$0000
+	dc.w $000E,$8088,$808A,$0000,$000E,$808C,$808E,$0000
+	dc.w $800E,$808C,$808E,$0000,$8002,$8090,$0092,$0000
+	dc.w $0002,$8090,$0092,$0000,$0002,$8094,$8092,$0000
+	dc.w $8002,$8094,$8092,$0000,$0000,$8096,$0098,$0000
+	dc.w $800E,$8088,$000E,$0000,$000E,$8088,$000E,$0000
+	dc.w $000E,$8088,$809A,$0000,$800E,$8088,$809A,$0000
+	dc.w $8002,$8008,$0002,$0000,$0002,$8008,$0002,$0000
+	dc.w $0002,$8008,$8002,$0000,$8002,$8008,$8002,$0000
+	dc.w $0000,$809C,$0000,$0000
 model_050_variant_frames:
 	dc.l model_050_variant_words	; 9 viewer-indexed variant frames, 9 encoded vertex records per frame; 8-byte stride with uninter
 	dc.l model_050_variant_words+$48
@@ -31235,9 +31262,9 @@ model_050_variant_frames:
 	dc.l model_050_variant_words+$240
 model_051_faces:
 	dc.w $830E,$0000,$0008,$0010,$830D,$0000,$0008,$0018	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $830C,$0000,$0008,$0020,$030B,$0008,$0010,$0018	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $030B,$0008,$0018,$0020,$030B,$0008,$0020,$0010	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $8300,$0020,$0028,$0018	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $830C,$0000,$0008,$0020,$030B,$0008,$0010,$0018
+	dc.w $030B,$0008,$0018,$0020,$030B,$0008,$0020,$0010
+	dc.w $8300,$0020,$0028,$0018
 model_051_coordinates:
 	dc.w $0000,$12C0,$0960,$04B0,$0820,$0AF0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
 model_051_vertices:
@@ -31267,15 +31294,15 @@ model_051_vertices:
 	dc.w $FFFF	; variant_offset_or_negative
 model_052_faces:
 	dc.w $0701,$0000,$0008,$0010,$0018,$0020,$0028,$0030	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0402,$0008,$0000,$0038,$0040,$0408,$0010,$0008	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0040,$0048,$040A,$0018,$0010,$0048,$0050,$0407	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0020,$0018,$0050,$0058,$040A,$0028,$0020,$0058	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0060,$0409,$0030,$0028,$0060,$0068,$0408,$0000	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0030,$0068,$0038,$8300,$0018,$0020,$0028,$8400	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0070,$0078,$0050,$0048	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0402,$0008,$0000,$0038,$0040,$0408,$0010,$0008
+	dc.w $0040,$0048,$040A,$0018,$0010,$0048,$0050,$0407
+	dc.w $0020,$0018,$0050,$0058,$040A,$0028,$0020,$0058
+	dc.w $0060,$0409,$0030,$0028,$0060,$0068,$0408,$0000
+	dc.w $0030,$0068,$0038,$8300,$0018,$0020,$0028,$8400
+	dc.w $0070,$0078,$0050,$0048
 model_052_coordinates:
 	dc.w $0000,$1C20,$03C0,$0280,$0640,$0320,$0230,$00F0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0960,$06E0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0960,$06E0
 model_052_vertices:
 	dc.w $0000	; x_coordinate_ref
 	dc.w $8002	; y_coordinate_ref
@@ -31355,9 +31382,9 @@ model_052_vertices:
 	dc.w $FFFF	; variant_offset_or_negative
 model_053_faces:
 	dc.w $030D,$0000,$0010,$0018,$040E,$0008,$0000,$0018	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0020,$030D,$0008,$0020,$0028,$030C,$0008,$0028	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0030,$040D,$0000,$0008,$0030,$0038,$030C,$0000	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0038,$0010,$8400,$0010,$0040,$0048,$0028	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0020,$030D,$0008,$0020,$0028,$030C,$0008,$0028
+	dc.w $0030,$040D,$0000,$0008,$0030,$0038,$030C,$0000
+	dc.w $0038,$0010,$8400,$0010,$0040,$0048,$0028
 model_053_coordinates:
 	dc.w $0000,$1C20,$0230,$0730,$03C0,$0320,$06E0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
 model_053_vertices:
@@ -31403,7 +31430,7 @@ model_053_vertices:
 	dc.w $FFFF	; variant_offset_or_negative
 model_054_faces:
 	dc.w $0301,$0000,$0008,$0010,$0305,$0000,$0010,$0018	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0306,$0000,$0018,$0008	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0306,$0000,$0018,$0008
 model_054_auxiliary_faces:
 	dc.w $8300,$0018,$0010,$0000	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
 model_054_coordinates:
@@ -31427,32 +31454,32 @@ model_054_vertices:
 	dc.w $FFFF	; variant_offset_or_negative
 model_055_faces:
 	dc.w $0301,$0000,$0008,$0010,$0302,$0000,$0010,$0018	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0301,$0000,$0018,$0020,$0302,$0000,$0020,$0028	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0301,$0000,$0028,$0030,$0302,$0000,$0030,$0008	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0402,$0008,$0038,$0040,$0010,$0401,$0010,$0040	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0048,$0018,$0402,$0018,$0048,$0050,$0020,$0401	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0020,$0050,$0058,$0028,$0402,$0028,$0058,$0060	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0030,$0401,$0030,$0060,$0038,$0008,$0401,$0038	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $00A0,$00A8,$0040,$0402,$0040,$00A8,$00B0,$0048	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0401,$0048,$00B0,$00B8,$0050,$0402,$0050,$00B8	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $00C0,$0058,$0401,$0058,$00C0,$00C8,$0060,$0402	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0060,$00C8,$00A0,$0038,$0402,$0070,$0078,$00A8	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $00A0,$0401,$0078,$0080,$00B0,$00A8,$0402,$0080	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0088,$00B8,$00B0,$0401,$0088,$0090,$00C0,$00B8	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0402,$0090,$0098,$00C8,$00C0,$0401,$0098,$0070	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $00A0,$00C8,$0301,$0068,$0078,$0070,$0302,$0068	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0080,$0078,$0301,$0068,$0088,$0080,$0302,$0068	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0090,$0088,$0301,$0068,$0098,$0090,$0302,$0068	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0070,$0098	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0301,$0000,$0018,$0020,$0302,$0000,$0020,$0028
+	dc.w $0301,$0000,$0028,$0030,$0302,$0000,$0030,$0008
+	dc.w $0402,$0008,$0038,$0040,$0010,$0401,$0010,$0040
+	dc.w $0048,$0018,$0402,$0018,$0048,$0050,$0020,$0401
+	dc.w $0020,$0050,$0058,$0028,$0402,$0028,$0058,$0060
+	dc.w $0030,$0401,$0030,$0060,$0038,$0008,$0401,$0038
+	dc.w $00A0,$00A8,$0040,$0402,$0040,$00A8,$00B0,$0048
+	dc.w $0401,$0048,$00B0,$00B8,$0050,$0402,$0050,$00B8
+	dc.w $00C0,$0058,$0401,$0058,$00C0,$00C8,$0060,$0402
+	dc.w $0060,$00C8,$00A0,$0038,$0402,$0070,$0078,$00A8
+	dc.w $00A0,$0401,$0078,$0080,$00B0,$00A8,$0402,$0080
+	dc.w $0088,$00B8,$00B0,$0401,$0088,$0090,$00C0,$00B8
+	dc.w $0402,$0090,$0098,$00C8,$00C0,$0401,$0098,$0070
+	dc.w $00A0,$00C8,$0301,$0068,$0078,$0070,$0302,$0068
+	dc.w $0080,$0078,$0301,$0068,$0088,$0080,$0302,$0068
+	dc.w $0090,$0088,$0301,$0068,$0098,$0090,$0302,$0068
+	dc.w $0070,$0098
 model_055_auxiliary_faces:
 	dc.w $8600,$0038,$0040,$0048,$0050,$0058,$0060	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
 model_055_coordinates:
 	dc.w $0000,$1F40,$0928,$1C40,$0490,$07F0,$0ED8,$1470	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0768,$0CD8,$0300,$0AD0,$1A00,$0A08,$1788,$0500	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $08B0,$1040,$1100,$0820,$0E18,$0278,$0900,$14D0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0B38,$12D0,$0598,$09B8,$1230,$0DA0,$0918,$0FC0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0200,$0730,$0FA0,$0CF8,$0E20,$0678,$1500,$0A38	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0A80,$0180,$0568	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0768,$0CD8,$0300,$0AD0,$1A00,$0A08,$1788,$0500
+	dc.w $08B0,$1040,$1100,$0820,$0E18,$0278,$0900,$14D0
+	dc.w $0B38,$12D0,$0598,$09B8,$1230,$0DA0,$0918,$0FC0
+	dc.w $0200,$0730,$0FA0,$0CF8,$0E20,$0678,$1500,$0A38
+	dc.w $0A80,$0180,$0568
 model_055_vertices:
 	dc.w $0000	; x_coordinate_ref
 	dc.w $8002	; y_coordinate_ref
@@ -31560,50 +31587,50 @@ model_055_vertices:
 	dc.w $00C0	; variant_offset_or_negative
 model_055_variant_words:
 	dc.w $0000,$8018,$0000,$0000,$001A,$801C,$0000,$0000	; 3 viewer-indexed variant frames, 25 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $001E,$801C,$0020,$0000,$801E,$801C,$0020,$0000	; 3 viewer-indexed variant frames, 25 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $801A,$801C,$0000,$0000,$801E,$801C,$8020,$0000	; 3 viewer-indexed variant frames, 25 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $001E,$801C,$8020,$0000,$0022,$8024,$0000,$0000	; 3 viewer-indexed variant frames, 25 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0026,$8024,$0028,$0000,$8026,$8024,$0028,$0000	; 3 viewer-indexed variant frames, 25 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8022,$8024,$0000,$0000,$8026,$8024,$8028,$0000	; 3 viewer-indexed variant frames, 25 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0026,$8024,$8028,$0000,$001A,$802A,$0000,$0000	; 3 viewer-indexed variant frames, 25 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $001E,$802A,$0020,$0000,$801E,$802A,$0020,$0000	; 3 viewer-indexed variant frames, 25 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $801A,$802A,$0000,$0000,$801E,$802A,$8020,$0000	; 3 viewer-indexed variant frames, 25 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $001E,$802A,$8020,$0000,$0022,$802C,$0000,$0000	; 3 viewer-indexed variant frames, 25 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0026,$802C,$0028,$0000,$8026,$802C,$0028,$0000	; 3 viewer-indexed variant frames, 25 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8022,$802C,$0000,$0000,$8026,$802C,$8028,$0000	; 3 viewer-indexed variant frames, 25 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0026,$802C,$8028,$0000,$0000,$802E,$0000,$0000	; 3 viewer-indexed variant frames, 25 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0030,$8032,$0000,$0000,$0034,$8032,$0036,$0000	; 3 viewer-indexed variant frames, 25 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8034,$8032,$0036,$0000,$8030,$8032,$0000,$0000	; 3 viewer-indexed variant frames, 25 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8034,$8032,$8036,$0000,$0034,$8032,$8036,$0000	; 3 viewer-indexed variant frames, 25 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0038,$803A,$0000,$0000,$003C,$803A,$003E,$0000	; 3 viewer-indexed variant frames, 25 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $803C,$803A,$003E,$0000,$8038,$803A,$0000,$0000	; 3 viewer-indexed variant frames, 25 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $803C,$803A,$803E,$0000,$003C,$803A,$803E,$0000	; 3 viewer-indexed variant frames, 25 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0030,$8040,$0000,$0000,$0034,$8040,$0036,$0000	; 3 viewer-indexed variant frames, 25 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8034,$8040,$0036,$0000,$8030,$8040,$0000,$0000	; 3 viewer-indexed variant frames, 25 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8034,$8040,$8036,$0000,$0034,$8040,$8036,$0000	; 3 viewer-indexed variant frames, 25 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0038,$8042,$0000,$0000,$003C,$8042,$003E,$0000	; 3 viewer-indexed variant frames, 25 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $803C,$8042,$003E,$0000,$8038,$8042,$0000,$0000	; 3 viewer-indexed variant frames, 25 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $803C,$8042,$803E,$0000,$003C,$8042,$803E,$0000	; 3 viewer-indexed variant frames, 25 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0000,$8044,$0000,$0000,$0046,$8048,$0000,$0000	; 3 viewer-indexed variant frames, 25 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $004A,$8048,$0030,$0000,$804A,$8048,$0030,$0000	; 3 viewer-indexed variant frames, 25 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8046,$8048,$0000,$0000,$804A,$8048,$8030,$0000	; 3 viewer-indexed variant frames, 25 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $004A,$8048,$8030,$0000,$004C,$804E,$0000,$0000	; 3 viewer-indexed variant frames, 25 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0050,$804E,$0038,$0000,$8050,$804E,$0038,$0000	; 3 viewer-indexed variant frames, 25 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $804C,$804E,$0000,$0000,$8050,$804E,$8038,$0000	; 3 viewer-indexed variant frames, 25 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0050,$804E,$8038,$0000,$0046,$8052,$0000,$0000	; 3 viewer-indexed variant frames, 25 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $004A,$8052,$0030,$0000,$804A,$8052,$0030,$0000	; 3 viewer-indexed variant frames, 25 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8046,$8052,$0000,$0000,$804A,$8052,$8030,$0000	; 3 viewer-indexed variant frames, 25 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $004A,$8052,$8030,$0000,$004C,$8054,$0000,$0000	; 3 viewer-indexed variant frames, 25 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0050,$8054,$0038,$0000,$8050,$8054,$0038,$0000	; 3 viewer-indexed variant frames, 25 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $804C,$8054,$0000,$0000,$8050,$8054,$8038,$0000	; 3 viewer-indexed variant frames, 25 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0050,$8054,$8038,$0000	; 3 viewer-indexed variant frames, 25 encoded vertex records per frame; 8-byte stride with uninte
+	dc.w $001E,$801C,$0020,$0000,$801E,$801C,$0020,$0000
+	dc.w $801A,$801C,$0000,$0000,$801E,$801C,$8020,$0000
+	dc.w $001E,$801C,$8020,$0000,$0022,$8024,$0000,$0000
+	dc.w $0026,$8024,$0028,$0000,$8026,$8024,$0028,$0000
+	dc.w $8022,$8024,$0000,$0000,$8026,$8024,$8028,$0000
+	dc.w $0026,$8024,$8028,$0000,$001A,$802A,$0000,$0000
+	dc.w $001E,$802A,$0020,$0000,$801E,$802A,$0020,$0000
+	dc.w $801A,$802A,$0000,$0000,$801E,$802A,$8020,$0000
+	dc.w $001E,$802A,$8020,$0000,$0022,$802C,$0000,$0000
+	dc.w $0026,$802C,$0028,$0000,$8026,$802C,$0028,$0000
+	dc.w $8022,$802C,$0000,$0000,$8026,$802C,$8028,$0000
+	dc.w $0026,$802C,$8028,$0000,$0000,$802E,$0000,$0000
+	dc.w $0030,$8032,$0000,$0000,$0034,$8032,$0036,$0000
+	dc.w $8034,$8032,$0036,$0000,$8030,$8032,$0000,$0000
+	dc.w $8034,$8032,$8036,$0000,$0034,$8032,$8036,$0000
+	dc.w $0038,$803A,$0000,$0000,$003C,$803A,$003E,$0000
+	dc.w $803C,$803A,$003E,$0000,$8038,$803A,$0000,$0000
+	dc.w $803C,$803A,$803E,$0000,$003C,$803A,$803E,$0000
+	dc.w $0030,$8040,$0000,$0000,$0034,$8040,$0036,$0000
+	dc.w $8034,$8040,$0036,$0000,$8030,$8040,$0000,$0000
+	dc.w $8034,$8040,$8036,$0000,$0034,$8040,$8036,$0000
+	dc.w $0038,$8042,$0000,$0000,$003C,$8042,$003E,$0000
+	dc.w $803C,$8042,$003E,$0000,$8038,$8042,$0000,$0000
+	dc.w $803C,$8042,$803E,$0000,$003C,$8042,$803E,$0000
+	dc.w $0000,$8044,$0000,$0000,$0046,$8048,$0000,$0000
+	dc.w $004A,$8048,$0030,$0000,$804A,$8048,$0030,$0000
+	dc.w $8046,$8048,$0000,$0000,$804A,$8048,$8030,$0000
+	dc.w $004A,$8048,$8030,$0000,$004C,$804E,$0000,$0000
+	dc.w $0050,$804E,$0038,$0000,$8050,$804E,$0038,$0000
+	dc.w $804C,$804E,$0000,$0000,$8050,$804E,$8038,$0000
+	dc.w $0050,$804E,$8038,$0000,$0046,$8052,$0000,$0000
+	dc.w $004A,$8052,$0030,$0000,$804A,$8052,$0030,$0000
+	dc.w $8046,$8052,$0000,$0000,$804A,$8052,$8030,$0000
+	dc.w $004A,$8052,$8030,$0000,$004C,$8054,$0000,$0000
+	dc.w $0050,$8054,$0038,$0000,$8050,$8054,$0038,$0000
+	dc.w $804C,$8054,$0000,$0000,$8050,$8054,$8038,$0000
+	dc.w $0050,$8054,$8038,$0000
 model_055_variant_frames:
 	dc.l model_055_variant_words	; 3 viewer-indexed variant frames, 25 encoded vertex records per frame; 8-byte stride with uninte
 	dc.l model_055_variant_words+$C8
 	dc.l model_055_variant_words+$190
 model_056_faces:
 	dc.w $830C,$0000,$0008,$0028,$840E,$0008,$0010,$0020	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0028,$830C,$0010,$0018,$0020	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0028,$830C,$0010,$0018,$0020
 model_056_coordinates:
 	dc.w $0000,$1900,$08C0,$0C80,$15A0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
 model_056_vertices:
@@ -31633,12 +31660,12 @@ model_056_vertices:
 	dc.w $FFFF	; variant_offset_or_negative
 model_057_faces:
 	dc.w $8401,$0000,$0008,$0010,$0018,$840E,$0020,$0028	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0030,$0038,$8401,$0040,$0048,$0050,$0058,$840E	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0060,$0068,$0070,$0078,$8401,$0080,$0088,$0090	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0098,$840E,$00A0,$00A8,$00B0,$00B8	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0030,$0038,$8401,$0040,$0048,$0050,$0058,$840E
+	dc.w $0060,$0068,$0070,$0078,$8401,$0080,$0088,$0090
+	dc.w $0098,$840E,$00A0,$00A8,$00B0,$00B8
 model_057_coordinates:
 	dc.w $0000,$0800,$1760,$05A0,$0440,$0DA0,$1200,$13E0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0730,$0370,$0E40,$13A0,$1160,$17A0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0730,$0370,$0E40,$13A0,$1160,$17A0
 model_057_vertices:
 	dc.w $8002	; x_coordinate_ref
 	dc.w $8004	; y_coordinate_ref
@@ -31738,13 +31765,13 @@ model_057_vertices:
 	dc.w $FFFF	; variant_offset_or_negative
 model_058_faces:
 	dc.w $8201,$0000,$0008,$8206,$0010,$0018,$820D,$0020	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0028,$820E,$0030,$0038,$820D,$0040,$0048,$8206	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0050,$0058,$8201,$0060,$0068,$8206,$0070,$0078	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $820D,$0080,$0088,$820E,$0090,$0098,$820D,$00A0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $00A8,$8206,$00B0,$00B8	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0028,$820E,$0030,$0038,$820D,$0040,$0048,$8206
+	dc.w $0050,$0058,$8201,$0060,$0068,$8206,$0070,$0078
+	dc.w $820D,$0080,$0088,$820E,$0090,$0098,$820D,$00A0
+	dc.w $00A8,$8206,$00B0,$00B8
 model_058_coordinates:
 	dc.w $0000,$0800,$1760,$12C0,$0440,$0DA0,$1200,$13E0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0730,$0370,$0E40,$13A0,$1160,$17A0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0730,$0370,$0E40,$13A0,$1160,$17A0
 model_058_vertices:
 	dc.w $8002	; x_coordinate_ref
 	dc.w $8004	; y_coordinate_ref
@@ -31844,10 +31871,10 @@ model_058_vertices:
 	dc.w $FFFF	; variant_offset_or_negative
 model_059_faces:
 	dc.w $0401,$0000,$0008,$0020,$0018,$0304,$0010,$0000	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0018,$0304,$0008,$0010,$0020,$0305,$0010,$0018	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0028,$0305,$0010,$0030,$0020,$0306,$0010,$0028	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0038,$0306,$0010,$0038,$0030,$0500,$0018,$0020	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0030,$0038,$0028	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0018,$0304,$0008,$0010,$0020,$0305,$0010,$0018
+	dc.w $0028,$0305,$0010,$0030,$0020,$0306,$0010,$0028
+	dc.w $0038,$0306,$0010,$0038,$0030,$0500,$0018,$0020
+	dc.w $0030,$0038,$0028
 model_059_coordinates:
 	dc.w $0000,$12C0,$0FA0,$03C0,$0640,$0500,$0B40,$0F00	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
 model_059_vertices:
@@ -31885,8 +31912,8 @@ model_059_vertices:
 	dc.w $FFFF	; variant_offset_or_negative
 model_060_faces:
 	dc.w $830E,$0000,$0008,$0010,$830D,$0000,$0010,$0018	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $830C,$0000,$0018,$0020,$8309,$0000,$0020,$0028	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $830C,$0000,$0028,$0030,$830D,$0000,$0030,$0008	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $830C,$0000,$0018,$0020,$8309,$0000,$0020,$0028
+	dc.w $830C,$0000,$0028,$0030,$830D,$0000,$0030,$0008
 model_060_coordinates:
 	dc.w $0000,$0A00,$0640,$12C0,$0FA0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
 model_060_vertices:
@@ -31920,8 +31947,8 @@ model_060_vertices:
 	dc.w $FFFF	; variant_offset_or_negative
 model_061_faces:
 	dc.w $820B,$0000,$0008,$820C,$0010,$0018,$820D,$0020	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0028,$820E,$0030,$0038,$820E,$0040,$0048,$820D	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0050,$0058,$820C,$0060,$0068,$820B,$0070,$0078	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0028,$820E,$0030,$0038,$820E,$0040,$0048,$820D
+	dc.w $0050,$0058,$820C,$0060,$0068,$820B,$0070,$0078
 model_061_coordinates:
 	dc.w $0000,$0C80,$1180,$0780,$0280	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
 model_061_vertices:
@@ -31991,11 +32018,11 @@ model_061_vertices:
 	dc.w $FFFF	; variant_offset_or_negative
 model_062_faces:
 	dc.w $820B,$0000,$0008,$820C,$0010,$0018,$820D,$0020	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0028,$820E,$0030,$0038,$820E,$0040,$0048,$820D	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0050,$0058,$820C,$0060,$0068,$820B,$0070,$0078	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0028,$820E,$0030,$0038,$820E,$0040,$0048,$820D
+	dc.w $0050,$0058,$820C,$0060,$0068,$820B,$0070,$0078
 model_062_coordinates:
 	dc.w $0000,$0180,$1180,$04B0,$0C80,$07E0,$0780,$0B10	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0280	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0280
 model_062_vertices:
 	dc.w $8002	; x_coordinate_ref
 	dc.w $0000	; y_coordinate_ref
@@ -32063,14 +32090,14 @@ model_062_vertices:
 	dc.w $FFFF	; variant_offset_or_negative
 model_063_faces:
 	dc.w $8308,$0000,$0008,$0030,$8302,$0008,$0010,$0038	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $8308,$0010,$0018,$0040,$8309,$0018,$0020,$0048	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $830A,$0020,$0028,$0050,$8309,$0028,$0000,$0058	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $8308,$0010,$0018,$0040,$8309,$0018,$0020,$0048
+	dc.w $830A,$0020,$0028,$0050,$8309,$0028,$0000,$0058
 model_063_coordinates:
 	dc.w $0000,$1900,$0C80,$15A0,$0960,$0060,$0030,$09A0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0070,$01B0,$00F0,$0A68,$01F0,$03E0,$0230,$0B70	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0470,$06C0,$0C88,$07D0,$0A20,$05D0,$0D68,$0BB0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0D70,$07C0,$0DF8,$0F80,$1030,$0E38,$12C0,$1210	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0A70,$0E48,$14E0,$12B0,$0AD0,$0E50	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0070,$01B0,$00F0,$0A68,$01F0,$03E0,$0230,$0B70
+	dc.w $0470,$06C0,$0C88,$07D0,$0A20,$05D0,$0D68,$0BB0
+	dc.w $0D70,$07C0,$0DF8,$0F80,$1030,$0E38,$12C0,$1210
+	dc.w $0A70,$0E48,$14E0,$12B0,$0AD0,$0E50
 model_063_vertices:
 	dc.w $8002	; x_coordinate_ref
 	dc.w $0000	; y_coordinate_ref
@@ -32122,32 +32149,32 @@ model_063_vertices:
 	dc.w $0028	; variant_offset_or_negative
 model_063_variant_words:
 	dc.w $800A,$000C,$000E,$0000,$0000,$0010,$000E,$0000	; 9 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $000A,$000C,$000E,$0000,$000A,$800C,$000E,$0000	; 9 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $0000,$8010,$000E,$0000,$800A,$800C,$000E,$0000	; 9 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $8012,$0014,$0016,$0000,$0000,$0018,$0016,$0000	; 9 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $0012,$0014,$0016,$0000,$0012,$8014,$0016,$0000	; 9 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $0000,$8018,$0016,$0000,$8012,$8014,$0016,$0000	; 9 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $801A,$001C,$001E,$0000,$0000,$0020,$001E,$0000	; 9 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $001A,$001C,$001E,$0000,$001A,$801C,$001E,$0000	; 9 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $0000,$8020,$001E,$0000,$801A,$801C,$001E,$0000	; 9 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $8022,$001A,$0024,$0000,$0000,$0026,$0024,$0000	; 9 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $0022,$001A,$0024,$0000,$0022,$801A,$0024,$0000	; 9 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $0000,$8026,$0024,$0000,$8022,$801A,$0024,$0000	; 9 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $8028,$002A,$002C,$0000,$0000,$002E,$002C,$0000	; 9 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $0028,$002A,$002C,$0000,$0028,$802A,$002C,$0000	; 9 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $0000,$802E,$002C,$0000,$8028,$802A,$002C,$0000	; 9 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $8030,$0032,$0034,$0000,$0000,$0036,$0034,$0000	; 9 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $0030,$0032,$0034,$0000,$0030,$8032,$0034,$0000	; 9 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $0000,$8036,$0034,$0000,$8030,$8032,$0034,$0000	; 9 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $8038,$0008,$003A,$0000,$0000,$003C,$003A,$0000	; 9 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $0038,$0008,$003A,$0000,$0038,$8008,$003A,$0000	; 9 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $0000,$803C,$003A,$0000,$8038,$8008,$003A,$0000	; 9 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $803E,$0040,$0042,$0000,$0000,$0044,$0042,$0000	; 9 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $003E,$0040,$0042,$0000,$003E,$8040,$0042,$0000	; 9 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $0000,$8044,$0042,$0000,$803E,$8040,$0042,$0000	; 9 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $8046,$0048,$004A,$0000,$0000,$0006,$004A,$0000	; 9 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $0046,$0048,$004A,$0000,$0046,$8048,$004A,$0000	; 9 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $0000,$8006,$004A,$0000,$8046,$8048,$004A,$0000	; 9 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninter
+	dc.w $000A,$000C,$000E,$0000,$000A,$800C,$000E,$0000
+	dc.w $0000,$8010,$000E,$0000,$800A,$800C,$000E,$0000
+	dc.w $8012,$0014,$0016,$0000,$0000,$0018,$0016,$0000
+	dc.w $0012,$0014,$0016,$0000,$0012,$8014,$0016,$0000
+	dc.w $0000,$8018,$0016,$0000,$8012,$8014,$0016,$0000
+	dc.w $801A,$001C,$001E,$0000,$0000,$0020,$001E,$0000
+	dc.w $001A,$001C,$001E,$0000,$001A,$801C,$001E,$0000
+	dc.w $0000,$8020,$001E,$0000,$801A,$801C,$001E,$0000
+	dc.w $8022,$001A,$0024,$0000,$0000,$0026,$0024,$0000
+	dc.w $0022,$001A,$0024,$0000,$0022,$801A,$0024,$0000
+	dc.w $0000,$8026,$0024,$0000,$8022,$801A,$0024,$0000
+	dc.w $8028,$002A,$002C,$0000,$0000,$002E,$002C,$0000
+	dc.w $0028,$002A,$002C,$0000,$0028,$802A,$002C,$0000
+	dc.w $0000,$802E,$002C,$0000,$8028,$802A,$002C,$0000
+	dc.w $8030,$0032,$0034,$0000,$0000,$0036,$0034,$0000
+	dc.w $0030,$0032,$0034,$0000,$0030,$8032,$0034,$0000
+	dc.w $0000,$8036,$0034,$0000,$8030,$8032,$0034,$0000
+	dc.w $8038,$0008,$003A,$0000,$0000,$003C,$003A,$0000
+	dc.w $0038,$0008,$003A,$0000,$0038,$8008,$003A,$0000
+	dc.w $0000,$803C,$003A,$0000,$8038,$8008,$003A,$0000
+	dc.w $803E,$0040,$0042,$0000,$0000,$0044,$0042,$0000
+	dc.w $003E,$0040,$0042,$0000,$003E,$8040,$0042,$0000
+	dc.w $0000,$8044,$0042,$0000,$803E,$8040,$0042,$0000
+	dc.w $8046,$0048,$004A,$0000,$0000,$0006,$004A,$0000
+	dc.w $0046,$0048,$004A,$0000,$0046,$8048,$004A,$0000
+	dc.w $0000,$8006,$004A,$0000,$8046,$8048,$004A,$0000
 model_063_variant_frames:
 	dc.l model_063_variant_words	; 9 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninter
 	dc.l model_063_variant_words+$30
@@ -32160,18 +32187,18 @@ model_063_variant_frames:
 	dc.l model_063_variant_words+$180
 model_064_faces:
 	dc.w $830E,$0000,$0020,$0028,$840D,$0000,$0008,$0030	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0028,$830E,$0008,$0030,$0038,$840D,$0008,$0010	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0040,$0038,$830E,$0010,$0040,$0048,$840D,$0010	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0018,$0050,$0048,$830E,$0018,$0050,$0058,$840D	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0018,$0000,$0020,$0058,$8405,$0000,$0008,$0010	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0018	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0028,$830E,$0008,$0030,$0038,$840D,$0008,$0010
+	dc.w $0040,$0038,$830E,$0010,$0040,$0048,$840D,$0010
+	dc.w $0018,$0050,$0048,$830E,$0018,$0050,$0058,$840D
+	dc.w $0018,$0000,$0020,$0058,$8405,$0000,$0008,$0010
+	dc.w $0018
 model_064_coordinates:
 	dc.w $0000,$0C80,$1900,$0640,$0780,$0F00,$0320,$0680	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0760,$0EB0,$0758,$0EC0,$0700,$0DF0,$06F8,$0E00	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $07D0,$0668,$0CD0,$08E0,$05B8,$0B60,$05B0,$0B70	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $09F0,$04F0,$09D0,$04E8,$09E0,$0AF0,$0438,$0870	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0BD0,$03A8,$0740,$03A0,$0750,$0C50,$0348,$0340	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0690	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0760,$0EB0,$0758,$0EC0,$0700,$0DF0,$06F8,$0E00
+	dc.w $07D0,$0668,$0CD0,$08E0,$05B8,$0B60,$05B0,$0B70
+	dc.w $09F0,$04F0,$09D0,$04E8,$09E0,$0AF0,$0438,$0870
+	dc.w $0BD0,$03A8,$0740,$03A0,$0750,$0C50,$0348,$0340
+	dc.w $0690
 model_064_vertices:
 	dc.w $0000	; x_coordinate_ref
 	dc.w $0000	; y_coordinate_ref
@@ -32223,41 +32250,41 @@ model_064_vertices:
 	dc.w $0038	; variant_offset_or_negative
 model_064_variant_words:
 	dc.w $8006,$800E,$8010,$0000,$0006,$800E,$8010,$0000	; 9 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $0012,$800E,$800C,$0000,$0012,$800E,$000C,$0000	; 9 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $0006,$800E,$0014,$0000,$8006,$800E,$0014,$0000	; 9 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $8016,$800E,$000C,$0000,$8016,$800E,$800C,$0000	; 9 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $8006,$8018,$8018,$0000,$0006,$8018,$8018,$0000	; 9 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $001A,$8018,$800C,$0000,$001A,$8018,$000C,$0000	; 9 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $0006,$8018,$001C,$0000,$8006,$8018,$001C,$0000	; 9 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $801E,$8018,$000C,$0000,$801E,$8018,$800C,$0000	; 9 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $8006,$8020,$8022,$0000,$0006,$8020,$8022,$0000	; 9 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $0024,$8020,$800C,$0000,$0024,$8020,$000C,$0000	; 9 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $0006,$8020,$0022,$0000,$8006,$8020,$0022,$0000	; 9 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $8024,$8020,$000C,$0000,$8024,$8020,$800C,$0000	; 9 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $8006,$8026,$8028,$0000,$0006,$8026,$8028,$0000	; 9 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $002A,$8026,$800C,$0000,$002A,$8026,$000C,$0000	; 9 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $0006,$8026,$002C,$0000,$8006,$8026,$002C,$0000	; 9 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $802E,$8026,$000C,$0000,$802E,$8026,$800C,$0000	; 9 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $8006,$8030,$8032,$0000,$0006,$8030,$8032,$0000	; 9 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $0034,$8030,$800C,$0000,$0034,$8030,$000C,$0000	; 9 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $0006,$8030,$0036,$0000,$8006,$8030,$0036,$0000	; 9 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $8038,$8030,$000C,$0000,$8038,$8030,$800C,$0000	; 9 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $8006,$803A,$803C,$0000,$0006,$803A,$803C,$0000	; 9 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $003E,$803A,$800C,$0000,$003E,$803A,$000C,$0000	; 9 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $0006,$803A,$003C,$0000,$8006,$803A,$003C,$0000	; 9 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $803E,$803A,$000C,$0000,$803E,$803A,$800C,$0000	; 9 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $8006,$8040,$8042,$0000,$0006,$8040,$8042,$0000	; 9 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $0044,$8040,$800C,$0000,$0044,$8040,$000C,$0000	; 9 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $0006,$8040,$0046,$0000,$8006,$8040,$0046,$0000	; 9 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $8048,$8040,$000C,$0000,$8048,$8040,$800C,$0000	; 9 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $8006,$804A,$804C,$0000,$0006,$804A,$800C,$0000	; 9 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $000E,$804A,$800C,$0000,$000E,$804A,$000C,$0000	; 9 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $0006,$804A,$004E,$0000,$8006,$804A,$004E,$0000	; 9 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $8050,$804A,$000C,$0000,$8050,$804A,$800C,$0000	; 9 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $8006,$8002,$800C,$0000,$0006,$8002,$800C,$0000	; 9 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $0006,$8002,$800C,$0000,$0006,$8002,$000C,$0000	; 9 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $0006,$8002,$000C,$0000,$8006,$8002,$000C,$0000	; 9 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $8006,$8002,$000C,$0000,$8006,$8002,$800C,$0000	; 9 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninter
+	dc.w $0012,$800E,$800C,$0000,$0012,$800E,$000C,$0000
+	dc.w $0006,$800E,$0014,$0000,$8006,$800E,$0014,$0000
+	dc.w $8016,$800E,$000C,$0000,$8016,$800E,$800C,$0000
+	dc.w $8006,$8018,$8018,$0000,$0006,$8018,$8018,$0000
+	dc.w $001A,$8018,$800C,$0000,$001A,$8018,$000C,$0000
+	dc.w $0006,$8018,$001C,$0000,$8006,$8018,$001C,$0000
+	dc.w $801E,$8018,$000C,$0000,$801E,$8018,$800C,$0000
+	dc.w $8006,$8020,$8022,$0000,$0006,$8020,$8022,$0000
+	dc.w $0024,$8020,$800C,$0000,$0024,$8020,$000C,$0000
+	dc.w $0006,$8020,$0022,$0000,$8006,$8020,$0022,$0000
+	dc.w $8024,$8020,$000C,$0000,$8024,$8020,$800C,$0000
+	dc.w $8006,$8026,$8028,$0000,$0006,$8026,$8028,$0000
+	dc.w $002A,$8026,$800C,$0000,$002A,$8026,$000C,$0000
+	dc.w $0006,$8026,$002C,$0000,$8006,$8026,$002C,$0000
+	dc.w $802E,$8026,$000C,$0000,$802E,$8026,$800C,$0000
+	dc.w $8006,$8030,$8032,$0000,$0006,$8030,$8032,$0000
+	dc.w $0034,$8030,$800C,$0000,$0034,$8030,$000C,$0000
+	dc.w $0006,$8030,$0036,$0000,$8006,$8030,$0036,$0000
+	dc.w $8038,$8030,$000C,$0000,$8038,$8030,$800C,$0000
+	dc.w $8006,$803A,$803C,$0000,$0006,$803A,$803C,$0000
+	dc.w $003E,$803A,$800C,$0000,$003E,$803A,$000C,$0000
+	dc.w $0006,$803A,$003C,$0000,$8006,$803A,$003C,$0000
+	dc.w $803E,$803A,$000C,$0000,$803E,$803A,$800C,$0000
+	dc.w $8006,$8040,$8042,$0000,$0006,$8040,$8042,$0000
+	dc.w $0044,$8040,$800C,$0000,$0044,$8040,$000C,$0000
+	dc.w $0006,$8040,$0046,$0000,$8006,$8040,$0046,$0000
+	dc.w $8048,$8040,$000C,$0000,$8048,$8040,$800C,$0000
+	dc.w $8006,$804A,$804C,$0000,$0006,$804A,$800C,$0000
+	dc.w $000E,$804A,$800C,$0000,$000E,$804A,$000C,$0000
+	dc.w $0006,$804A,$004E,$0000,$8006,$804A,$004E,$0000
+	dc.w $8050,$804A,$000C,$0000,$8050,$804A,$800C,$0000
+	dc.w $8006,$8002,$800C,$0000,$0006,$8002,$800C,$0000
+	dc.w $0006,$8002,$800C,$0000,$0006,$8002,$000C,$0000
+	dc.w $0006,$8002,$000C,$0000,$8006,$8002,$000C,$0000
+	dc.w $8006,$8002,$000C,$0000,$8006,$8002,$800C,$0000
 model_064_variant_frames:
 	dc.l model_064_variant_words	; 9 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninter
 	dc.l model_064_variant_words+$40
@@ -32270,16 +32297,16 @@ model_064_variant_frames:
 	dc.l model_064_variant_words+$200
 model_065_faces:
 	dc.w $0301,$0000,$0020,$0010,$0301,$0008,$0018,$0028	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0301,$0030,$0040,$0050,$0301,$0038,$0058,$0048	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0406,$0000,$0008,$0028,$0020,$0406,$0030,$0050	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0058,$0038,$0405,$0020,$0028,$0018,$0010,$0405	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0050,$0040,$0048,$0058,$0404,$0000,$0010,$0018	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0008,$0404,$0030,$0038,$0048,$0040,$820E,$0060	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0068,$820D,$0070,$0078,$820C,$0080,$0088,$820B	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0090,$0098,$8207,$00A0,$00A8	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0301,$0030,$0040,$0050,$0301,$0038,$0058,$0048
+	dc.w $0406,$0000,$0008,$0028,$0020,$0406,$0030,$0050
+	dc.w $0058,$0038,$0405,$0020,$0028,$0018,$0010,$0405
+	dc.w $0050,$0040,$0048,$0058,$0404,$0000,$0010,$0018
+	dc.w $0008,$0404,$0030,$0038,$0048,$0040,$820E,$0060
+	dc.w $0068,$820D,$0070,$0078,$820C,$0080,$0088,$820B
+	dc.w $0090,$0098,$8207,$00A0,$00A8
 model_065_coordinates:
 	dc.w $0000,$12C0,$0AD0,$0230,$0AA0,$1900,$07D0,$04B0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0190,$10E0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0190,$10E0
 model_065_vertices:
 	dc.w $8002	; x_coordinate_ref
 	dc.w $8004	; y_coordinate_ref
@@ -32371,35 +32398,35 @@ model_065_vertices:
 	dc.w $0048	; variant_offset_or_negative
 model_065_variant_words:
 	dc.w $8002,$800E,$0000,$0000,$0002,$800E,$0000,$0000	; 6 viewer-indexed variant frames, 10 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8002,$8010,$0000,$0000,$0002,$8010,$0000,$0000	; 6 viewer-indexed variant frames, 10 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8002,$0010,$0000,$0000,$0002,$0010,$0000,$0000	; 6 viewer-indexed variant frames, 10 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8002,$000E,$0000,$0000,$0002,$000E,$0000,$0000	; 6 viewer-indexed variant frames, 10 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8002,$000C,$0000,$0000,$0002,$000C,$0000,$0000	; 6 viewer-indexed variant frames, 10 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8002,$8010,$0000,$0000,$0002,$8010,$0000,$0000	; 6 viewer-indexed variant frames, 10 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8002,$0010,$0000,$0000,$0002,$0010,$0000,$0000	; 6 viewer-indexed variant frames, 10 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8002,$000E,$0000,$0000,$0002,$000E,$0000,$0000	; 6 viewer-indexed variant frames, 10 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8002,$000C,$0000,$0000,$0002,$000C,$0000,$0000	; 6 viewer-indexed variant frames, 10 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8002,$800C,$0000,$0000,$0002,$800C,$0000,$0000	; 6 viewer-indexed variant frames, 10 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8002,$0010,$0000,$0000,$0002,$0010,$0000,$0000	; 6 viewer-indexed variant frames, 10 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8002,$000E,$0000,$0000,$0002,$000E,$0000,$0000	; 6 viewer-indexed variant frames, 10 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8002,$000C,$0000,$0000,$0002,$000C,$0000,$0000	; 6 viewer-indexed variant frames, 10 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8002,$800C,$0000,$0000,$0002,$800C,$0000,$0000	; 6 viewer-indexed variant frames, 10 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8002,$800E,$0000,$0000,$0002,$800E,$0000,$0000	; 6 viewer-indexed variant frames, 10 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8002,$000E,$0000,$0000,$0002,$000E,$0000,$0000	; 6 viewer-indexed variant frames, 10 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8002,$000C,$0000,$0000,$0002,$000C,$0000,$0000	; 6 viewer-indexed variant frames, 10 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8002,$800C,$0000,$0000,$0002,$800C,$0000,$0000	; 6 viewer-indexed variant frames, 10 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8002,$800E,$0000,$0000,$0002,$800E,$0000,$0000	; 6 viewer-indexed variant frames, 10 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8002,$8010,$0000,$0000,$0002,$8010,$0000,$0000	; 6 viewer-indexed variant frames, 10 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8002,$000C,$0000,$0000,$0002,$000C,$0000,$0000	; 6 viewer-indexed variant frames, 10 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8002,$800C,$0000,$0000,$0002,$800C,$0000,$0000	; 6 viewer-indexed variant frames, 10 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8002,$800E,$0000,$0000,$0002,$800E,$0000,$0000	; 6 viewer-indexed variant frames, 10 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8002,$8010,$0000,$0000,$0002,$8010,$0000,$0000	; 6 viewer-indexed variant frames, 10 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8002,$0010,$0000,$0000,$0002,$0010,$0000,$0000	; 6 viewer-indexed variant frames, 10 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8002,$800E,$0000,$0000,$8012,$800E,$0000,$0000	; 6 viewer-indexed variant frames, 10 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0012,$8010,$0000,$0000,$0002,$8010,$0000,$0000	; 6 viewer-indexed variant frames, 10 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8002,$0010,$0000,$0000,$8012,$0010,$0000,$0000	; 6 viewer-indexed variant frames, 10 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0012,$000E,$0000,$0000,$0002,$000E,$0000,$0000	; 6 viewer-indexed variant frames, 10 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0012,$000E,$0000,$0000,$0002,$000E,$0000,$0000	; 6 viewer-indexed variant frames, 10 encoded vertex records per frame; 8-byte stride with uninte
+	dc.w $8002,$8010,$0000,$0000,$0002,$8010,$0000,$0000
+	dc.w $8002,$0010,$0000,$0000,$0002,$0010,$0000,$0000
+	dc.w $8002,$000E,$0000,$0000,$0002,$000E,$0000,$0000
+	dc.w $8002,$000C,$0000,$0000,$0002,$000C,$0000,$0000
+	dc.w $8002,$8010,$0000,$0000,$0002,$8010,$0000,$0000
+	dc.w $8002,$0010,$0000,$0000,$0002,$0010,$0000,$0000
+	dc.w $8002,$000E,$0000,$0000,$0002,$000E,$0000,$0000
+	dc.w $8002,$000C,$0000,$0000,$0002,$000C,$0000,$0000
+	dc.w $8002,$800C,$0000,$0000,$0002,$800C,$0000,$0000
+	dc.w $8002,$0010,$0000,$0000,$0002,$0010,$0000,$0000
+	dc.w $8002,$000E,$0000,$0000,$0002,$000E,$0000,$0000
+	dc.w $8002,$000C,$0000,$0000,$0002,$000C,$0000,$0000
+	dc.w $8002,$800C,$0000,$0000,$0002,$800C,$0000,$0000
+	dc.w $8002,$800E,$0000,$0000,$0002,$800E,$0000,$0000
+	dc.w $8002,$000E,$0000,$0000,$0002,$000E,$0000,$0000
+	dc.w $8002,$000C,$0000,$0000,$0002,$000C,$0000,$0000
+	dc.w $8002,$800C,$0000,$0000,$0002,$800C,$0000,$0000
+	dc.w $8002,$800E,$0000,$0000,$0002,$800E,$0000,$0000
+	dc.w $8002,$8010,$0000,$0000,$0002,$8010,$0000,$0000
+	dc.w $8002,$000C,$0000,$0000,$0002,$000C,$0000,$0000
+	dc.w $8002,$800C,$0000,$0000,$0002,$800C,$0000,$0000
+	dc.w $8002,$800E,$0000,$0000,$0002,$800E,$0000,$0000
+	dc.w $8002,$8010,$0000,$0000,$0002,$8010,$0000,$0000
+	dc.w $8002,$0010,$0000,$0000,$0002,$0010,$0000,$0000
+	dc.w $8002,$800E,$0000,$0000,$8012,$800E,$0000,$0000
+	dc.w $0012,$8010,$0000,$0000,$0002,$8010,$0000,$0000
+	dc.w $8002,$0010,$0000,$0000,$8012,$0010,$0000,$0000
+	dc.w $0012,$000E,$0000,$0000,$0002,$000E,$0000,$0000
+	dc.w $0012,$000E,$0000,$0000,$0002,$000E,$0000,$0000
 model_065_variant_frames:
 	dc.l model_065_variant_words	; 6 viewer-indexed variant frames, 10 encoded vertex records per frame; 8-byte stride with uninte
 	dc.l model_065_variant_words+$50
@@ -32409,9 +32436,9 @@ model_065_variant_frames:
 	dc.l model_065_variant_words+$190
 model_066_faces:
 	dc.w $8409,$0000,$0008,$0038,$0030,$840A,$0008,$0010	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0040,$0038,$8409,$0010,$0018,$0048,$0040,$8408	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0018,$0020,$0050,$0048,$8402,$0020,$0028,$0058	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0050,$8408,$0028,$0000,$0030,$0058	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0040,$0038,$8409,$0010,$0018,$0048,$0040,$8408
+	dc.w $0018,$0020,$0050,$0048,$8402,$0020,$0028,$0058
+	dc.w $0050,$8408,$0028,$0000,$0030,$0058
 model_066_coordinates:
 	dc.w $0000,$1900,$1F40,$0C80,$15A8	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
 model_066_vertices:
@@ -32465,12 +32492,12 @@ model_066_vertices:
 	dc.w $FFFF	; variant_offset_or_negative
 model_067_faces:
 	dc.w $840A,$0000,$0008,$0038,$0030,$8409,$0008,$0010	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0040,$0038,$8408,$0010,$0018,$0048,$0040,$8402	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0018,$0020,$0050,$0048,$8408,$0020,$0028,$0058	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0050,$8409,$0028,$0000,$0030,$0058	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0040,$0038,$8408,$0010,$0018,$0048,$0040,$8402
+	dc.w $0018,$0020,$0050,$0048,$8408,$0020,$0028,$0058
+	dc.w $0050,$8409,$0028,$0000,$0030,$0058
 model_067_coordinates:
 	dc.w $0000,$1900,$12C0,$0C80,$15A8,$1970,$1618,$0F68	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0C10	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0C10
 model_067_vertices:
 	dc.w $8002	; x_coordinate_ref
 	dc.w $0000	; y_coordinate_ref
@@ -32522,12 +32549,12 @@ model_067_vertices:
 	dc.w $FFFF	; variant_offset_or_negative
 model_068_faces:
 	dc.w $8409,$0000,$0008,$0038,$0030,$8407,$0008,$0010	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0040,$0038,$8402,$0010,$0018,$0048,$0040,$8408	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0018,$0020,$0050,$0048,$8409,$0020,$0028,$0058	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0050,$840A,$0028,$0000,$0030,$0058	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0040,$0038,$8402,$0010,$0018,$0048,$0040,$8408
+	dc.w $0018,$0020,$0050,$0048,$8409,$0020,$0028,$0058
+	dc.w $0050,$840A,$0028,$0000,$0030,$0058
 model_068_coordinates:
 	dc.w $0000,$1900,$1970,$0C80,$15A8,$1618,$0F68,$0C10	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $12C0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $12C0
 model_068_vertices:
 	dc.w $8002	; x_coordinate_ref
 	dc.w $0000	; y_coordinate_ref
@@ -32579,12 +32606,12 @@ model_068_vertices:
 	dc.w $FFFF	; variant_offset_or_negative
 model_069_faces:
 	dc.w $8408,$0000,$0008,$0038,$0030,$8402,$0008,$0010	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0040,$0038,$8408,$0010,$0018,$0048,$0040,$8409	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0018,$0020,$0050,$0048,$840A,$0020,$0028,$0058	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0050,$8409,$0028,$0000,$0030,$0058	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0040,$0038,$8408,$0010,$0018,$0048,$0040,$8409
+	dc.w $0018,$0020,$0050,$0048,$840A,$0020,$0028,$0058
+	dc.w $0050,$8409,$0028,$0000,$0030,$0058
 model_069_coordinates:
 	dc.w $0000,$1900,$12C0,$0C80,$15A8,$0C10,$0F68,$1618	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $1970	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $1970
 model_069_vertices:
 	dc.w $8002	; x_coordinate_ref
 	dc.w $0000	; y_coordinate_ref
@@ -32636,12 +32663,12 @@ model_069_vertices:
 	dc.w $FFFF	; variant_offset_or_negative
 model_070_faces:
 	dc.w $8402,$0000,$0008,$0038,$0030,$8408,$0008,$0010	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0040,$0038,$8409,$0010,$0018,$0048,$0040,$840A	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0018,$0020,$0050,$0048,$8409,$0020,$0028,$0058	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0050,$8408,$0028,$0000,$0030,$0058	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0040,$0038,$8409,$0010,$0018,$0048,$0040,$840A
+	dc.w $0018,$0020,$0050,$0048,$8409,$0020,$0028,$0058
+	dc.w $0050,$8408,$0028,$0000,$0030,$0058
 model_070_coordinates:
 	dc.w $0000,$1900,$0C10,$0C80,$15A8,$0F68,$1618,$1970	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $12C0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $12C0
 model_070_vertices:
 	dc.w $8002	; x_coordinate_ref
 	dc.w $0000	; y_coordinate_ref
@@ -32693,24 +32720,24 @@ model_070_vertices:
 	dc.w $FFFF	; variant_offset_or_negative
 model_071_faces:
 	dc.w $8202,$0000,$0030,$8202,$0000,$0008,$8202,$0000	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0010,$8202,$0000,$0018,$8202,$0000,$0020,$8202	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0000,$0028,$0404,$0038,$0040,$0050,$0048,$0405	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0048,$0050,$0070,$0068,$0606,$0068,$0070,$00A0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $00E0,$00D8,$0098,$0405,$00E0,$00F0,$00E8,$00D8	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0604,$00E8,$00F0,$00B0,$0060,$0058,$00A8,$0409	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0058,$0060,$0040,$0038,$0404,$0078,$0058,$00A8	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0088,$0404,$0080,$0090,$00B0,$0060,$0405,$00D8	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $00E8,$00A8,$0098,$0405,$00E0,$00A0,$00B0,$00F0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0404,$0038,$0048,$0068,$0058,$0404,$0040,$0060	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0070,$0050,$0405,$0088,$00A8,$00C8,$00B8,$0405	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0090,$00C0,$00D0,$00B0,$0404,$0058,$0078,$00B8	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $00C8,$0404,$0060,$00D0,$00C0,$0080,$0305,$0088	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $00B8,$0078,$0305,$0090,$0080,$00C0,$0304,$00A8	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0058,$00C8,$0304,$00B0,$00D0,$0060	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0010,$8202,$0000,$0018,$8202,$0000,$0020,$8202
+	dc.w $0000,$0028,$0404,$0038,$0040,$0050,$0048,$0405
+	dc.w $0048,$0050,$0070,$0068,$0606,$0068,$0070,$00A0
+	dc.w $00E0,$00D8,$0098,$0405,$00E0,$00F0,$00E8,$00D8
+	dc.w $0604,$00E8,$00F0,$00B0,$0060,$0058,$00A8,$0409
+	dc.w $0058,$0060,$0040,$0038,$0404,$0078,$0058,$00A8
+	dc.w $0088,$0404,$0080,$0090,$00B0,$0060,$0405,$00D8
+	dc.w $00E8,$00A8,$0098,$0405,$00E0,$00A0,$00B0,$00F0
+	dc.w $0404,$0038,$0048,$0068,$0058,$0404,$0040,$0060
+	dc.w $0070,$0050,$0405,$0088,$00A8,$00C8,$00B8,$0405
+	dc.w $0090,$00C0,$00D0,$00B0,$0404,$0058,$0078,$00B8
+	dc.w $00C8,$0404,$0060,$00D0,$00C0,$0080,$0305,$0088
+	dc.w $00B8,$0078,$0305,$0090,$0080,$00C0,$0304,$00A8
+	dc.w $0058,$00C8,$0304,$00B0,$00D0,$0060
 model_071_coordinates:
 	dc.w $0000,$0140,$03C0,$0500,$05F0,$01E0,$0640,$0460	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0780,$06E0,$02D0,$04C8,$05A0,$0A00,$08E0,$08C0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0820,$1270,$1220	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0780,$06E0,$02D0,$04C8,$05A0,$0A00,$08E0,$08C0
+	dc.w $0820,$1270,$1220
 model_071_vertices:
 	dc.w $0000	; x_coordinate_ref
 	dc.w $8002	; y_coordinate_ref
@@ -32865,18 +32892,18 @@ model_072_variant_frames:
 	dc.l model_072_variant_words	; 1 viewer-indexed variant frames, 2 encoded vertex records per frame; 8-byte stride with uninter
 model_073_faces:
 	dc.w $040B,$0028,$0030,$0038,$0040,$040D,$0020,$0000	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0028,$0040,$030C,$0000,$0008,$0028,$030D,$0008	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0030,$0028,$030C,$0008,$0010,$0030,$030D,$0010	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0038,$0030,$030C,$0010,$0018,$0038,$030D,$0018	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0040,$0038,$030C,$0018,$0020,$0040,$030E,$0020	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0048,$0000,$030C,$0000,$0048,$0050,$030D,$0000	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0050,$0008,$030C,$0008,$0050,$0058,$030B,$0008	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0058,$0010,$030D,$0010,$0058,$0018,$030C,$0018	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0058,$0060,$030D,$0018,$0060,$0020,$030C,$0020	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0060,$0048,$040E,$0048,$0060,$0058,$0050	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0028,$0040,$030C,$0000,$0008,$0028,$030D,$0008
+	dc.w $0030,$0028,$030C,$0008,$0010,$0030,$030D,$0010
+	dc.w $0038,$0030,$030C,$0010,$0018,$0038,$030D,$0018
+	dc.w $0040,$0038,$030C,$0018,$0020,$0040,$030E,$0020
+	dc.w $0048,$0000,$030C,$0000,$0048,$0050,$030D,$0000
+	dc.w $0050,$0008,$030C,$0008,$0050,$0058,$030B,$0008
+	dc.w $0058,$0010,$030D,$0010,$0058,$0018,$030C,$0018
+	dc.w $0058,$0060,$030D,$0018,$0060,$0020,$030C,$0020
+	dc.w $0060,$0048,$040E,$0048,$0060,$0058,$0050
 model_073_coordinates:
 	dc.w $0000,$0B08,$01E0,$0F28,$11E0,$05C0,$12C0,$0780	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0E60,$0AA0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0E60,$0AA0
 model_073_vertices:
 	dc.w $0002	; x_coordinate_ref
 	dc.w $8004	; y_coordinate_ref
@@ -32932,15 +32959,15 @@ model_073_vertices:
 	dc.w $FFFF	; variant_offset_or_negative
 model_074_faces:
 	dc.w $030C,$0000,$0008,$0028,$030E,$0008,$0030,$0028	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $030C,$0008,$0010,$0030,$030D,$0010,$0018,$0030	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $030E,$0018,$0020,$0030,$030B,$0020,$0028,$0030	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $030D,$0020,$0000,$0028,$030D,$0000,$0038,$0040	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $030B,$0000,$0040,$0008,$030D,$0008,$0040,$0010	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $030C,$0010,$0040,$0018,$030B,$0018,$0040,$0038	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $030D,$0018,$0038,$0020,$030C,$0020,$0038,$0000	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $030C,$0008,$0010,$0030,$030D,$0010,$0018,$0030
+	dc.w $030E,$0018,$0020,$0030,$030B,$0020,$0028,$0030
+	dc.w $030D,$0020,$0000,$0028,$030D,$0000,$0038,$0040
+	dc.w $030B,$0000,$0040,$0008,$030D,$0008,$0040,$0010
+	dc.w $030C,$0010,$0040,$0018,$030B,$0018,$0040,$0038
+	dc.w $030D,$0018,$0038,$0020,$030C,$0020,$0038,$0000
 model_074_coordinates:
 	dc.w $0000,$0640,$0140,$0AA0,$0820,$0280,$01E0,$08C0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $03C0,$0780,$0960,$0320	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $03C0,$0780,$0960,$0320
 model_074_vertices:
 	dc.w $0002	; x_coordinate_ref
 	dc.w $0004	; y_coordinate_ref
@@ -32980,9 +33007,9 @@ model_074_vertices:
 	dc.w $FFFF	; variant_offset_or_negative
 model_075_faces:
 	dc.w $040E,$0000,$0008,$0028,$0020,$040D,$0008,$0010	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0030,$0028,$040C,$0010,$0018,$0038,$0030,$040D	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0018,$0000,$0020,$0038,$0400,$0020,$0028,$0030	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0038	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0030,$0028,$040C,$0010,$0018,$0038,$0030,$040D
+	dc.w $0018,$0000,$0020,$0038,$0400,$0020,$0028,$0030
+	dc.w $0038
 model_075_coordinates:
 	dc.w $0000,$1F40,$2BC0,$0960,$0780	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
 model_075_vertices:
@@ -33020,9 +33047,9 @@ model_075_vertices:
 	dc.w $FFFF	; variant_offset_or_negative
 model_076_faces:
 	dc.w $040D,$0000,$0008,$0028,$0020,$040C,$0008,$0010	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0030,$0028,$040B,$0010,$0018,$0038,$0030,$040C	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0018,$0000,$0020,$0038,$0400,$0020,$0028,$0030	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0038	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0030,$0028,$040B,$0010,$0018,$0038,$0030,$040C
+	dc.w $0018,$0000,$0020,$0038,$0400,$0020,$0028,$0030
+	dc.w $0038
 model_076_coordinates:
 	dc.w $0000,$0960,$0780,$0C80,$0DC0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
 model_076_vertices:
@@ -33060,11 +33087,11 @@ model_076_vertices:
 	dc.w $FFFF	; variant_offset_or_negative
 model_077_faces:
 	dc.w $8301,$0000,$0008,$0020,$8306,$0008,$0010,$0028	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $8305,$0010,$0018,$0030,$8306,$0018,$0000,$0038	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $8305,$0010,$0018,$0030,$8306,$0018,$0000,$0038
 model_077_coordinates:
 	dc.w $0000,$0C80,$0DC0,$18F8,$19D0,$00C8,$1BD8,$0350	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $1DE8,$07D8,$1E80,$0DE8,$1CB8,$1428,$1900,$14D8	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $1BB8,$11C0,$1CD0,$10A8,$1D08	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $1DE8,$07D8,$1E80,$0DE8,$1CB8,$1428,$1900,$14D8
+	dc.w $1BB8,$11C0,$1CD0,$10A8,$1D08
 model_077_vertices:
 	dc.w $8002	; x_coordinate_ref
 	dc.w $8004	; y_coordinate_ref
@@ -33100,23 +33127,23 @@ model_077_vertices:
 	dc.w $0018	; variant_offset_or_negative
 model_077_variant_words:
 	dc.w $0000,$8008,$800A,$0000,$000A,$8008,$0000,$0000	; 9 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $0000,$8008,$000A,$0000,$800A,$8008,$0000,$0000	; 9 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $0000,$800C,$800E,$0000,$000E,$800C,$0000,$0000	; 9 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $0000,$800C,$000E,$0000,$800E,$800C,$0000,$0000	; 9 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $0000,$8010,$8012,$0000,$0012,$8010,$0000,$0000	; 9 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $0000,$8010,$0012,$0000,$8012,$8010,$0000,$0000	; 9 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $0000,$8014,$8016,$0000,$0016,$8014,$0000,$0000	; 9 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $0000,$8014,$0016,$0000,$8016,$8014,$0000,$0000	; 9 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $0000,$8018,$801A,$0000,$001A,$8018,$0000,$0000	; 9 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $0000,$8018,$001A,$0000,$801A,$8018,$0000,$0000	; 9 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $0000,$801C,$8006,$0000,$0006,$801C,$0000,$0000	; 9 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $0000,$801C,$0006,$0000,$8006,$801C,$0000,$0000	; 9 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $0000,$801E,$8020,$0000,$0020,$801E,$0000,$0000	; 9 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $0000,$801E,$0020,$0000,$8020,$801E,$0000,$0000	; 9 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $0000,$8022,$8024,$0000,$0024,$8022,$0000,$0000	; 9 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $0000,$8022,$0024,$0000,$8024,$8022,$0000,$0000	; 9 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $0000,$8026,$8028,$0000,$0028,$8026,$0000,$0000	; 9 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $0000,$8026,$0028,$0000,$8028,$8026,$0000,$0000	; 9 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with uninter
+	dc.w $0000,$8008,$000A,$0000,$800A,$8008,$0000,$0000
+	dc.w $0000,$800C,$800E,$0000,$000E,$800C,$0000,$0000
+	dc.w $0000,$800C,$000E,$0000,$800E,$800C,$0000,$0000
+	dc.w $0000,$8010,$8012,$0000,$0012,$8010,$0000,$0000
+	dc.w $0000,$8010,$0012,$0000,$8012,$8010,$0000,$0000
+	dc.w $0000,$8014,$8016,$0000,$0016,$8014,$0000,$0000
+	dc.w $0000,$8014,$0016,$0000,$8016,$8014,$0000,$0000
+	dc.w $0000,$8018,$801A,$0000,$001A,$8018,$0000,$0000
+	dc.w $0000,$8018,$001A,$0000,$801A,$8018,$0000,$0000
+	dc.w $0000,$801C,$8006,$0000,$0006,$801C,$0000,$0000
+	dc.w $0000,$801C,$0006,$0000,$8006,$801C,$0000,$0000
+	dc.w $0000,$801E,$8020,$0000,$0020,$801E,$0000,$0000
+	dc.w $0000,$801E,$0020,$0000,$8020,$801E,$0000,$0000
+	dc.w $0000,$8022,$8024,$0000,$0024,$8022,$0000,$0000
+	dc.w $0000,$8022,$0024,$0000,$8024,$8022,$0000,$0000
+	dc.w $0000,$8026,$8028,$0000,$0028,$8026,$0000,$0000
+	dc.w $0000,$8026,$0028,$0000,$8028,$8026,$0000,$0000
 model_077_variant_frames:
 	dc.l model_077_variant_words	; 9 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with uninter
 	dc.l model_077_variant_words+$20
@@ -33129,21 +33156,21 @@ model_077_variant_frames:
 	dc.l model_077_variant_words+$100
 model_078_faces:
 	dc.w $0305,$0000,$0010,$0008,$0306,$0000,$0018,$0010	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0301,$0000,$0020,$0018,$0306,$0000,$0008,$0020	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0409,$0008,$0010,$0030,$0028,$0408,$0010,$0018	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0038,$0030,$0402,$0018,$0020,$0040,$0038,$0408	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0020,$0008,$0028,$0040,$0400,$0028,$0030,$0038	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0040	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0301,$0000,$0020,$0018,$0306,$0000,$0008,$0020
+	dc.w $0409,$0008,$0010,$0030,$0028,$0408,$0010,$0018
+	dc.w $0038,$0030,$0402,$0018,$0020,$0040,$0038,$0408
+	dc.w $0020,$0008,$0028,$0040,$0400,$0028,$0030,$0038
+	dc.w $0040
 model_078_coordinates:
 	dc.w $0000,$0280,$03F0,$0140,$0500,$1220,$06E0,$01F8	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $12C0,$1360,$0320,$01C8,$0308,$0448,$1528,$15C8	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $1668,$0238,$04B8,$05F8,$0738,$1818,$18B8,$1958	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0780,$08C0,$0A00,$1AE0,$1B80,$1C20,$0778,$09F8	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0B38,$0C78,$1D58,$1DF8,$1E98,$09A0,$0C20,$0D60	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0EA0,$1F80,$2020,$20C0,$0B60,$0DE0,$0F20,$1060	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $2140,$21E0,$2280,$0CB0,$0F30,$1070,$11B0,$2290	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $2330,$23D0,$0D78,$0FF8,$1138,$1278,$2358,$23F8	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $2498,$0DC0,$1040,$1180,$23A0,$2440,$24E0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $12C0,$1360,$0320,$01C8,$0308,$0448,$1528,$15C8
+	dc.w $1668,$0238,$04B8,$05F8,$0738,$1818,$18B8,$1958
+	dc.w $0780,$08C0,$0A00,$1AE0,$1B80,$1C20,$0778,$09F8
+	dc.w $0B38,$0C78,$1D58,$1DF8,$1E98,$09A0,$0C20,$0D60
+	dc.w $0EA0,$1F80,$2020,$20C0,$0B60,$0DE0,$0F20,$1060
+	dc.w $2140,$21E0,$2280,$0CB0,$0F30,$1070,$11B0,$2290
+	dc.w $2330,$23D0,$0D78,$0FF8,$1138,$1278,$2358,$23F8
+	dc.w $2498,$0DC0,$1040,$1180,$23A0,$2440,$24E0
 model_078_vertices:
 	dc.w $0000	; x_coordinate_ref
 	dc.w $0000	; y_coordinate_ref
@@ -33183,46 +33210,46 @@ model_078_vertices:
 	dc.w $0040	; variant_offset_or_negative
 model_078_variant_words:
 	dc.w $0000,$0000,$0002,$0000,$0000,$8016,$8002,$0000	; 9 viewer-indexed variant frames, 9 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $0004,$8018,$0006,$0000,$0000,$801A,$0008,$0000	; 9 viewer-indexed variant frames, 9 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $8004,$8018,$0006,$0000,$0000,$801C,$800C,$0000	; 9 viewer-indexed variant frames, 9 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $000E,$801E,$8008,$0000,$0000,$8020,$8014,$0000	; 9 viewer-indexed variant frames, 9 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $800E,$801E,$8008,$0000,$0000,$8022,$0002,$0000	; 9 viewer-indexed variant frames, 9 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $0000,$8024,$8002,$0000,$0004,$8026,$0006,$0000	; 9 viewer-indexed variant frames, 9 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $0000,$8028,$0008,$0000,$8004,$8026,$0006,$0000	; 9 viewer-indexed variant frames, 9 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $0000,$802A,$800C,$0000,$000E,$802C,$8008,$0000	; 9 viewer-indexed variant frames, 9 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $0000,$802E,$8014,$0000,$800E,$802C,$8008,$0000	; 9 viewer-indexed variant frames, 9 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $0000,$8008,$0002,$0000,$0000,$8030,$8002,$0000	; 9 viewer-indexed variant frames, 9 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $0004,$8032,$0006,$0000,$0000,$8034,$0008,$0000	; 9 viewer-indexed variant frames, 9 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $8004,$8032,$0006,$0000,$0000,$8036,$800C,$0000	; 9 viewer-indexed variant frames, 9 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $000E,$8038,$8008,$0000,$0000,$803A,$8014,$0000	; 9 viewer-indexed variant frames, 9 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $800E,$8038,$8008,$0000,$0000,$803C,$0002,$0000	; 9 viewer-indexed variant frames, 9 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $0000,$803E,$8002,$0000,$0004,$8040,$0006,$0000	; 9 viewer-indexed variant frames, 9 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $0000,$8042,$0008,$0000,$8004,$8040,$0006,$0000	; 9 viewer-indexed variant frames, 9 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $0000,$8044,$800C,$0000,$000E,$8046,$8008,$0000	; 9 viewer-indexed variant frames, 9 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $0000,$8048,$8014,$0000,$800E,$8046,$8008,$0000	; 9 viewer-indexed variant frames, 9 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $0000,$804A,$0002,$0000,$0000,$804C,$8002,$0000	; 9 viewer-indexed variant frames, 9 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $0004,$804E,$0006,$0000,$0000,$8050,$0008,$0000	; 9 viewer-indexed variant frames, 9 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $8004,$804E,$0006,$0000,$0000,$8052,$800C,$0000	; 9 viewer-indexed variant frames, 9 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $000E,$8054,$8008,$0000,$0000,$8056,$8014,$0000	; 9 viewer-indexed variant frames, 9 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $800E,$8054,$8008,$0000,$0000,$8058,$0002,$0000	; 9 viewer-indexed variant frames, 9 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $0000,$805A,$8002,$0000,$0004,$805C,$0006,$0000	; 9 viewer-indexed variant frames, 9 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $0000,$805E,$0008,$0000,$8004,$805C,$0006,$0000	; 9 viewer-indexed variant frames, 9 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $0000,$8060,$800C,$0000,$000E,$8062,$8008,$0000	; 9 viewer-indexed variant frames, 9 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $0000,$8064,$8014,$0000,$800E,$8062,$8008,$0000	; 9 viewer-indexed variant frames, 9 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $0000,$8066,$0002,$0000,$0000,$8068,$8002,$0000	; 9 viewer-indexed variant frames, 9 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $0004,$806A,$0006,$0000,$0000,$806C,$0008,$0000	; 9 viewer-indexed variant frames, 9 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $8004,$806A,$0006,$0000,$0000,$806E,$800C,$0000	; 9 viewer-indexed variant frames, 9 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $000E,$8070,$8008,$0000,$0000,$8072,$8014,$0000	; 9 viewer-indexed variant frames, 9 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $800E,$8070,$8008,$0000,$0000,$8074,$0002,$0000	; 9 viewer-indexed variant frames, 9 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $0000,$8076,$8002,$0000,$0004,$8078,$0006,$0000	; 9 viewer-indexed variant frames, 9 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $0000,$807A,$0008,$0000,$8004,$8078,$0006,$0000	; 9 viewer-indexed variant frames, 9 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $0000,$807C,$800C,$0000,$000E,$807E,$8008,$0000	; 9 viewer-indexed variant frames, 9 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $0000,$8080,$8014,$0000,$800E,$807E,$8008,$0000	; 9 viewer-indexed variant frames, 9 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $0000,$8082,$0002,$0000,$0000,$8084,$8002,$0000	; 9 viewer-indexed variant frames, 9 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $0004,$8086,$0006,$0000,$0000,$8010,$0008,$0000	; 9 viewer-indexed variant frames, 9 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $8004,$8086,$0006,$0000,$0000,$8088,$800C,$0000	; 9 viewer-indexed variant frames, 9 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $000E,$808A,$8008,$0000,$0000,$808C,$8014,$0000	; 9 viewer-indexed variant frames, 9 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $800E,$808A,$8008,$0000	; 9 viewer-indexed variant frames, 9 encoded vertex records per frame; 8-byte stride with uninter
+	dc.w $0004,$8018,$0006,$0000,$0000,$801A,$0008,$0000
+	dc.w $8004,$8018,$0006,$0000,$0000,$801C,$800C,$0000
+	dc.w $000E,$801E,$8008,$0000,$0000,$8020,$8014,$0000
+	dc.w $800E,$801E,$8008,$0000,$0000,$8022,$0002,$0000
+	dc.w $0000,$8024,$8002,$0000,$0004,$8026,$0006,$0000
+	dc.w $0000,$8028,$0008,$0000,$8004,$8026,$0006,$0000
+	dc.w $0000,$802A,$800C,$0000,$000E,$802C,$8008,$0000
+	dc.w $0000,$802E,$8014,$0000,$800E,$802C,$8008,$0000
+	dc.w $0000,$8008,$0002,$0000,$0000,$8030,$8002,$0000
+	dc.w $0004,$8032,$0006,$0000,$0000,$8034,$0008,$0000
+	dc.w $8004,$8032,$0006,$0000,$0000,$8036,$800C,$0000
+	dc.w $000E,$8038,$8008,$0000,$0000,$803A,$8014,$0000
+	dc.w $800E,$8038,$8008,$0000,$0000,$803C,$0002,$0000
+	dc.w $0000,$803E,$8002,$0000,$0004,$8040,$0006,$0000
+	dc.w $0000,$8042,$0008,$0000,$8004,$8040,$0006,$0000
+	dc.w $0000,$8044,$800C,$0000,$000E,$8046,$8008,$0000
+	dc.w $0000,$8048,$8014,$0000,$800E,$8046,$8008,$0000
+	dc.w $0000,$804A,$0002,$0000,$0000,$804C,$8002,$0000
+	dc.w $0004,$804E,$0006,$0000,$0000,$8050,$0008,$0000
+	dc.w $8004,$804E,$0006,$0000,$0000,$8052,$800C,$0000
+	dc.w $000E,$8054,$8008,$0000,$0000,$8056,$8014,$0000
+	dc.w $800E,$8054,$8008,$0000,$0000,$8058,$0002,$0000
+	dc.w $0000,$805A,$8002,$0000,$0004,$805C,$0006,$0000
+	dc.w $0000,$805E,$0008,$0000,$8004,$805C,$0006,$0000
+	dc.w $0000,$8060,$800C,$0000,$000E,$8062,$8008,$0000
+	dc.w $0000,$8064,$8014,$0000,$800E,$8062,$8008,$0000
+	dc.w $0000,$8066,$0002,$0000,$0000,$8068,$8002,$0000
+	dc.w $0004,$806A,$0006,$0000,$0000,$806C,$0008,$0000
+	dc.w $8004,$806A,$0006,$0000,$0000,$806E,$800C,$0000
+	dc.w $000E,$8070,$8008,$0000,$0000,$8072,$8014,$0000
+	dc.w $800E,$8070,$8008,$0000,$0000,$8074,$0002,$0000
+	dc.w $0000,$8076,$8002,$0000,$0004,$8078,$0006,$0000
+	dc.w $0000,$807A,$0008,$0000,$8004,$8078,$0006,$0000
+	dc.w $0000,$807C,$800C,$0000,$000E,$807E,$8008,$0000
+	dc.w $0000,$8080,$8014,$0000,$800E,$807E,$8008,$0000
+	dc.w $0000,$8082,$0002,$0000,$0000,$8084,$8002,$0000
+	dc.w $0004,$8086,$0006,$0000,$0000,$8010,$0008,$0000
+	dc.w $8004,$8086,$0006,$0000,$0000,$8088,$800C,$0000
+	dc.w $000E,$808A,$8008,$0000,$0000,$808C,$8014,$0000
+	dc.w $800E,$808A,$8008,$0000
 model_078_variant_frames:
 	dc.l model_078_variant_words	; 9 viewer-indexed variant frames, 9 encoded vertex records per frame; 8-byte stride with uninter
 	dc.l model_078_variant_words+$48
@@ -33235,12 +33262,12 @@ model_078_variant_frames:
 	dc.l model_078_variant_words+$240
 model_079_faces:
 	dc.w $0301,$0000,$0010,$0008,$0302,$0000,$0018,$0010	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $030E,$0000,$0008,$0018,$040E,$0008,$0010,$0028	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0020,$0401,$0010,$0018,$0030,$0028,$0402,$0018	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0008,$0020,$0030,$0305,$0020,$0028,$0030	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $030E,$0000,$0008,$0018,$040E,$0008,$0010,$0028
+	dc.w $0020,$0401,$0010,$0018,$0030,$0028,$0402,$0018
+	dc.w $0008,$0020,$0030,$0305,$0020,$0028,$0030
 model_079_coordinates:
 	dc.w $0000,$0780,$0500,$03C0,$0678,$08C0,$01E0,$0338	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0738,$01F0,$0548,$0398,$00F8,$02A0,$03B8,$01D8	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0738,$01F0,$0548,$0398,$00F8,$02A0,$03B8,$01D8
 model_079_vertices:
 	dc.w $0000	; x_coordinate_ref
 	dc.w $0000	; y_coordinate_ref
@@ -33272,26 +33299,26 @@ model_079_vertices:
 	dc.w $0028	; variant_offset_or_negative
 model_079_variant_words:
 	dc.w $8010,$8004,$8012,$0000,$0014,$8004,$8014,$0000	; 7 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $0012,$8004,$0010,$0000,$8016,$800A,$8018,$0000	; 7 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $001A,$800A,$801A,$0000,$0018,$800A,$0016,$0000	; 7 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $8008,$8004,$8006,$0000,$0008,$8004,$8006,$0000	; 7 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $0000,$8004,$0002,$0000,$800E,$800A,$800C,$0000	; 7 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $000E,$800A,$800C,$0000,$0000,$800A,$0006,$0000	; 7 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $8014,$8004,$8014,$0000,$0010,$8004,$8012,$0000	; 7 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $8012,$8004,$0010,$0000,$801A,$800A,$801A,$0000	; 7 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $0016,$800A,$8018,$0000,$8018,$800A,$0016,$0000	; 7 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $801C,$8004,$8008,$0000,$0002,$8004,$0000,$0000	; 7 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $8006,$8004,$0008,$0000,$801E,$800A,$800E,$0000	; 7 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $0006,$800A,$0000,$0000,$800C,$800A,$000E,$0000	; 7 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $8012,$8004,$8010,$0000,$0010,$8004,$0012,$0000	; 7 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $8014,$8004,$0014,$0000,$8018,$800A,$8016,$0000	; 7 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $0016,$800A,$0018,$0000,$801A,$800A,$001A,$0000	; 7 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $0000,$8004,$8002,$0000,$0008,$8004,$0006,$0000	; 7 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $8008,$8004,$001C,$0000,$0000,$800A,$8006,$0000	; 7 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $000E,$800A,$000C,$0000,$800E,$800A,$001E,$0000	; 7 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $0012,$8004,$8010,$0000,$0014,$8004,$0014,$0000	; 7 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $8010,$8004,$0012,$0000,$0018,$800A,$8016,$0000	; 7 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $001A,$800A,$001A,$0000,$8016,$800A,$0018,$0000	; 7 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninter
+	dc.w $0012,$8004,$0010,$0000,$8016,$800A,$8018,$0000
+	dc.w $001A,$800A,$801A,$0000,$0018,$800A,$0016,$0000
+	dc.w $8008,$8004,$8006,$0000,$0008,$8004,$8006,$0000
+	dc.w $0000,$8004,$0002,$0000,$800E,$800A,$800C,$0000
+	dc.w $000E,$800A,$800C,$0000,$0000,$800A,$0006,$0000
+	dc.w $8014,$8004,$8014,$0000,$0010,$8004,$8012,$0000
+	dc.w $8012,$8004,$0010,$0000,$801A,$800A,$801A,$0000
+	dc.w $0016,$800A,$8018,$0000,$8018,$800A,$0016,$0000
+	dc.w $801C,$8004,$8008,$0000,$0002,$8004,$0000,$0000
+	dc.w $8006,$8004,$0008,$0000,$801E,$800A,$800E,$0000
+	dc.w $0006,$800A,$0000,$0000,$800C,$800A,$000E,$0000
+	dc.w $8012,$8004,$8010,$0000,$0010,$8004,$0012,$0000
+	dc.w $8014,$8004,$0014,$0000,$8018,$800A,$8016,$0000
+	dc.w $0016,$800A,$0018,$0000,$801A,$800A,$001A,$0000
+	dc.w $0000,$8004,$8002,$0000,$0008,$8004,$0006,$0000
+	dc.w $8008,$8004,$001C,$0000,$0000,$800A,$8006,$0000
+	dc.w $000E,$800A,$000C,$0000,$800E,$800A,$001E,$0000
+	dc.w $0012,$8004,$8010,$0000,$0014,$8004,$0014,$0000
+	dc.w $8010,$8004,$0012,$0000,$0018,$800A,$8016,$0000
+	dc.w $001A,$800A,$001A,$0000,$8016,$800A,$0018,$0000
 model_079_variant_frames:
 	dc.l model_079_variant_words	; 7 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninter
 	dc.l model_079_variant_words+$30
@@ -33302,19 +33329,19 @@ model_079_variant_frames:
 	dc.l model_079_variant_words+$120
 model_080_faces:
 	dc.w $040C,$0000,$0008,$0028,$0020,$030D,$0000,$0020	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0010,$030D,$0008,$0018,$0028,$0406,$0010,$0020	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0028,$0018,$8400,$0020,$0028,$0038,$0030,$0406	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0030,$0040,$0048,$0038,$040E,$0040,$0050,$0058	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0048,$030D,$0030,$0050,$0040,$030D,$0038,$0048	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0058,$040B,$0030,$0038,$0058,$0050	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0010,$030D,$0008,$0018,$0028,$0406,$0010,$0020
+	dc.w $0028,$0018,$8400,$0020,$0028,$0038,$0030,$0406
+	dc.w $0030,$0040,$0048,$0038,$040E,$0040,$0050,$0058
+	dc.w $0048,$030D,$0030,$0050,$0040,$030D,$0038,$0048
+	dc.w $0058,$040B,$0030,$0038,$0058,$0050
 model_080_coordinates:
 	dc.w $0000,$1900,$0C80,$0A00,$0640,$0280,$0460,$0DC0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0780,$0A70,$0208,$0E30,$0070,$06B0,$07F0,$0BC0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $00B8,$0F80,$01C0,$0800,$0940,$0140,$1180,$03C0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0B40,$1030,$03B0,$13F0,$0630,$0C70,$0DB0,$12C8	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0648,$1688,$08C8,$0F08,$1048,$1540,$08C0,$12C0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $1738,$0AB8,$1AF8,$0D38,$1378,$14B8,$1888,$0C08	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $1C48,$0E88,$14C8,$1608,$1CC0,$0F00,$1680	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0780,$0A70,$0208,$0E30,$0070,$06B0,$07F0,$0BC0
+	dc.w $00B8,$0F80,$01C0,$0800,$0940,$0140,$1180,$03C0
+	dc.w $0B40,$1030,$03B0,$13F0,$0630,$0C70,$0DB0,$12C8
+	dc.w $0648,$1688,$08C8,$0F08,$1048,$1540,$08C0,$12C0
+	dc.w $1738,$0AB8,$1AF8,$0D38,$1378,$14B8,$1888,$0C08
+	dc.w $1C48,$0E88,$14C8,$1608,$1CC0,$0F00,$1680
 model_080_vertices:
 	dc.w $8002	; x_coordinate_ref
 	dc.w $0000	; y_coordinate_ref
@@ -33366,32 +33393,32 @@ model_080_vertices:
 	dc.w $0028	; variant_offset_or_negative
 model_080_variant_words:
 	dc.w $8004,$8012,$0014,$0000,$0004,$8012,$0014,$0000	; 9 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $800C,$8016,$8018,$0000,$000C,$8016,$8018,$0000	; 9 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $8008,$801A,$801C,$0000,$0008,$801A,$801C,$0000	; 9 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $8004,$801E,$0020,$0000,$0004,$801E,$0020,$0000	; 9 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $800C,$8022,$8024,$0000,$000C,$8022,$8024,$0000	; 9 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $8008,$8026,$8028,$0000,$0008,$8026,$8028,$0000	; 9 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $8004,$800E,$802A,$0000,$0004,$800E,$802A,$0000	; 9 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $800C,$802C,$802E,$0000,$000C,$802C,$802E,$0000	; 9 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $8008,$8006,$8030,$0000,$0008,$8006,$8030,$0000	; 9 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $8004,$8032,$8034,$0000,$0004,$8032,$8034,$0000	; 9 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $800C,$8036,$8038,$0000,$000C,$8036,$8038,$0000	; 9 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $8008,$803A,$803C,$0000,$0008,$803A,$803C,$0000	; 9 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $8004,$803E,$8040,$0000,$0004,$803E,$8040,$0000	; 9 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $800C,$8042,$8044,$0000,$000C,$8042,$8044,$0000	; 9 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $8008,$8046,$8048,$0000,$0008,$8046,$8048,$0000	; 9 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $8004,$804A,$804C,$0000,$0004,$804A,$804C,$0000	; 9 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $800C,$8002,$8030,$0000,$000C,$8002,$8030,$0000	; 9 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $8008,$802C,$804E,$0000,$0008,$802C,$804E,$0000	; 9 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $8004,$8050,$8052,$0000,$0004,$8050,$8052,$0000	; 9 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $800C,$8054,$8056,$0000,$000C,$8054,$8056,$0000	; 9 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $8008,$8058,$805A,$0000,$0008,$8058,$805A,$0000	; 9 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $8004,$805C,$805E,$0000,$0004,$805C,$805E,$0000	; 9 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $800C,$8060,$8062,$0000,$000C,$8060,$8062,$0000	; 9 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $8008,$8064,$8066,$0000,$0008,$8064,$8066,$0000	; 9 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $8004,$8002,$8004,$0000,$0004,$8002,$8004,$0000	; 9 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $800C,$8068,$806A,$0000,$000C,$8068,$806A,$0000	; 9 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninter
-	dc.w $8008,$804A,$806C,$0000,$0008,$804A,$806C,$0000	; 9 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninter
+	dc.w $800C,$8016,$8018,$0000,$000C,$8016,$8018,$0000
+	dc.w $8008,$801A,$801C,$0000,$0008,$801A,$801C,$0000
+	dc.w $8004,$801E,$0020,$0000,$0004,$801E,$0020,$0000
+	dc.w $800C,$8022,$8024,$0000,$000C,$8022,$8024,$0000
+	dc.w $8008,$8026,$8028,$0000,$0008,$8026,$8028,$0000
+	dc.w $8004,$800E,$802A,$0000,$0004,$800E,$802A,$0000
+	dc.w $800C,$802C,$802E,$0000,$000C,$802C,$802E,$0000
+	dc.w $8008,$8006,$8030,$0000,$0008,$8006,$8030,$0000
+	dc.w $8004,$8032,$8034,$0000,$0004,$8032,$8034,$0000
+	dc.w $800C,$8036,$8038,$0000,$000C,$8036,$8038,$0000
+	dc.w $8008,$803A,$803C,$0000,$0008,$803A,$803C,$0000
+	dc.w $8004,$803E,$8040,$0000,$0004,$803E,$8040,$0000
+	dc.w $800C,$8042,$8044,$0000,$000C,$8042,$8044,$0000
+	dc.w $8008,$8046,$8048,$0000,$0008,$8046,$8048,$0000
+	dc.w $8004,$804A,$804C,$0000,$0004,$804A,$804C,$0000
+	dc.w $800C,$8002,$8030,$0000,$000C,$8002,$8030,$0000
+	dc.w $8008,$802C,$804E,$0000,$0008,$802C,$804E,$0000
+	dc.w $8004,$8050,$8052,$0000,$0004,$8050,$8052,$0000
+	dc.w $800C,$8054,$8056,$0000,$000C,$8054,$8056,$0000
+	dc.w $8008,$8058,$805A,$0000,$0008,$8058,$805A,$0000
+	dc.w $8004,$805C,$805E,$0000,$0004,$805C,$805E,$0000
+	dc.w $800C,$8060,$8062,$0000,$000C,$8060,$8062,$0000
+	dc.w $8008,$8064,$8066,$0000,$0008,$8064,$8066,$0000
+	dc.w $8004,$8002,$8004,$0000,$0004,$8002,$8004,$0000
+	dc.w $800C,$8068,$806A,$0000,$000C,$8068,$806A,$0000
+	dc.w $8008,$804A,$806C,$0000,$0008,$804A,$806C,$0000
 model_080_variant_frames:
 	dc.l model_080_variant_words	; 9 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninter
 	dc.l model_080_variant_words+$30
@@ -33404,11 +33431,11 @@ model_080_variant_frames:
 	dc.l model_080_variant_words+$180
 model_081_faces:
 	dc.w $0302,$0000,$0008,$0010,$0308,$0000,$0010,$0018	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0309,$0000,$0018,$0020,$030A,$0000,$0020,$0028	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0307,$0000,$0028,$0008	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0309,$0000,$0018,$0020,$030A,$0000,$0020,$0028
+	dc.w $0307,$0000,$0028,$0008
 model_081_coordinates:
 	dc.w $0000,$03C0,$02C0,$03D0,$0470,$0178,$04B0,$0460	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0480	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0480
 model_081_vertices:
 	dc.w $0000	; x_coordinate_ref
 	dc.w $8002	; y_coordinate_ref
@@ -33436,9 +33463,9 @@ model_081_vertices:
 	dc.w $FFFF	; variant_offset_or_negative
 model_082_faces:
 	dc.w $030C,$0000,$0010,$0008,$030B,$0000,$0018,$0010	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $030C,$0000,$0020,$0018,$030D,$0000,$0008,$0020	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $030D,$0008,$0010,$0028,$030C,$0010,$0018,$0028	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $030D,$0018,$0020,$0028,$030B,$0020,$0008,$0028	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $030C,$0000,$0020,$0018,$030D,$0000,$0008,$0020
+	dc.w $030D,$0008,$0010,$0028,$030C,$0010,$0018,$0028
+	dc.w $030D,$0018,$0020,$0028,$030B,$0020,$0008,$0028
 model_082_auxiliary_faces:
 	dc.w $8400,$0008,$0010,$0018,$0020	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
 model_082_coordinates:
@@ -33470,9 +33497,9 @@ model_082_vertices:
 	dc.w $FFFF	; variant_offset_or_negative
 model_083_faces:
 	dc.w $0404,$0018,$0010,$0008,$0000,$0406,$0000,$0008	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0028,$0020,$0405,$0008,$0010,$0030,$0028,$0406	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0010,$0018,$0038,$0030,$0405,$0018,$0000,$0020	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0038,$0401,$0020,$0028,$0030,$0038	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0028,$0020,$0405,$0008,$0010,$0030,$0028,$0406
+	dc.w $0010,$0018,$0038,$0030,$0405,$0018,$0000,$0020
+	dc.w $0038,$0401,$0020,$0028,$0030,$0038
 model_083_coordinates:
 	dc.w $0000,$0320,$0190,$04B0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
 model_083_vertices:
@@ -33510,9 +33537,9 @@ model_083_vertices:
 	dc.w $FFFF	; variant_offset_or_negative
 model_084_faces:
 	dc.w $0409,$0000,$0018,$0010,$0008,$0402,$0020,$0028	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0030,$0038,$0401,$0000,$0020,$0038,$0018,$0409	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0018,$0038,$0030,$0010,$0402,$0010,$0030,$0028	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0008,$0401,$0000,$0008,$0028,$0020	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0030,$0038,$0401,$0000,$0020,$0038,$0018,$0409
+	dc.w $0018,$0038,$0030,$0010,$0402,$0010,$0030,$0028
+	dc.w $0008,$0401,$0000,$0008,$0028,$0020
 model_084_auxiliary_faces:
 	dc.w $8400,$0000,$0008,$0030,$0038	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
 model_084_coordinates:
@@ -33552,16 +33579,16 @@ model_084_vertices:
 	dc.w $FFFF	; variant_offset_or_negative
 model_085_faces:
 	dc.w $8409,$0000,$0008,$0038,$0030,$840A,$0008,$0010	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0040,$0038,$8409,$0010,$0018,$0048,$0040,$8408	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0018,$0020,$0050,$0048,$8402,$0020,$0028,$0058	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0050,$8408,$0028,$0000,$0030,$0058,$8309,$0000	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0008,$0060,$840A,$0008,$0010,$0068,$0060,$8309	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0010,$0018,$0068,$8308,$0018,$0020,$0070,$8402	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0020,$0028,$0078,$0070,$8308,$0028,$0000,$0078	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $8309,$0030,$0038,$0080,$840A,$0038,$0040,$0088	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0080,$8309,$0040,$0048,$0088,$8308,$0048,$0050	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0090,$8402,$0050,$0058,$0098,$0090,$8308,$0058	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0030,$0098	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0040,$0038,$8409,$0010,$0018,$0048,$0040,$8408
+	dc.w $0018,$0020,$0050,$0048,$8402,$0020,$0028,$0058
+	dc.w $0050,$8408,$0028,$0000,$0030,$0058,$8309,$0000
+	dc.w $0008,$0060,$840A,$0008,$0010,$0068,$0060,$8309
+	dc.w $0010,$0018,$0068,$8308,$0018,$0020,$0070,$8402
+	dc.w $0020,$0028,$0078,$0070,$8308,$0028,$0000,$0078
+	dc.w $8309,$0030,$0038,$0080,$840A,$0038,$0040,$0088
+	dc.w $0080,$8309,$0040,$0048,$0088,$8308,$0048,$0050
+	dc.w $0090,$8402,$0050,$0058,$0098,$0090,$8308,$0058
+	dc.w $0030,$0098
 model_085_coordinates:
 	dc.w $0000,$1900,$1F40,$0C80,$15A8	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
 model_085_vertices:
@@ -33647,13 +33674,13 @@ model_085_vertices:
 	dc.w $FFFF	; variant_offset_or_negative
 model_086_faces:
 	dc.w $0307,$0000,$0008,$0030,$030A,$0008,$0010,$0030	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0309,$0010,$0018,$0030,$0308,$0018,$0020,$0030	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0309,$0020,$0028,$0030,$030A,$0028,$0000,$0030	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $8201,$0038,$0040,$820E,$0048,$0050,$8202,$0030	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0058	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0309,$0010,$0018,$0030,$0308,$0018,$0020,$0030
+	dc.w $0309,$0020,$0028,$0030,$030A,$0028,$0000,$0030
+	dc.w $8201,$0038,$0040,$820E,$0048,$0050,$8202,$0030
+	dc.w $0058
 model_086_coordinates:
 	dc.w $0000,$0640,$06E0,$0C80,$0BE0,$08C0,$0DC0,$0280	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $1040,$0B40,$12C0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $1040,$0B40,$12C0
 model_086_vertices:
 	dc.w $8002	; x_coordinate_ref
 	dc.w $0000	; y_coordinate_ref
@@ -33705,18 +33732,18 @@ model_086_vertices:
 	dc.w $FFFF	; variant_offset_or_negative
 model_087_faces:
 	dc.w $0301,$0000,$0038,$0030,$0305,$0000,$0048,$0038	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0306,$0000,$0030,$0048,$0302,$0008,$0050,$0038	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0309,$0008,$0048,$0050,$0308,$0008,$0038,$0048	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $030C,$0028,$0048,$0030,$030D,$0028,$0040,$0048	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $030E,$0028,$0030,$0040,$0308,$0010,$0058,$0048	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0302,$0010,$0040,$0058,$0309,$0010,$0048,$0040	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0306,$0018,$0050,$0048,$0305,$0018,$0058,$0050	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0301,$0018,$0048,$0058,$030E,$0020,$0060,$0050	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $030D,$0020,$0058,$0060,$030C,$0020,$0050,$0058	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0306,$0000,$0030,$0048,$0302,$0008,$0050,$0038
+	dc.w $0309,$0008,$0048,$0050,$0308,$0008,$0038,$0048
+	dc.w $030C,$0028,$0048,$0030,$030D,$0028,$0040,$0048
+	dc.w $030E,$0028,$0030,$0040,$0308,$0010,$0058,$0048
+	dc.w $0302,$0010,$0040,$0058,$0309,$0010,$0048,$0040
+	dc.w $0306,$0018,$0050,$0048,$0305,$0018,$0058,$0050
+	dc.w $0301,$0018,$0048,$0058,$030E,$0020,$0060,$0050
+	dc.w $030D,$0020,$0058,$0060,$030C,$0020,$0050,$0058
 model_087_coordinates:
 	dc.w $0000,$01E0,$0DC0,$0AA0,$0500,$1360,$0460,$05A0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0280,$1900,$0140,$15E0,$0780,$1540,$0960,$0320	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0FA0,$0A00,$0640,$0C80	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0280,$1900,$0140,$15E0,$0780,$1540,$0960,$0320
+	dc.w $0FA0,$0A00,$0640,$0C80
 model_087_vertices:
 	dc.w $8002	; x_coordinate_ref
 	dc.w $8004	; y_coordinate_ref
@@ -33791,8 +33818,8 @@ abs_0_00028374:
 	dc.b $00,$00,$00,$88,$83,$00,$00,$18,$00,$28,$00,$90
 model_088_coordinates:
 	dc.w $0000,$3C00,$4880,$6400,$0500,$2F80,$1E00,$5F00	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0780,$3200,$5280,$3700,$0A00,$5780,$0DC0,$1480	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $1340,$1180,$0280,$07D0,$0F00,$7580	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0780,$3200,$5280,$3700,$0A00,$5780,$0DC0,$1480
+	dc.w $1340,$1180,$0280,$07D0,$0F00,$7580
 model_088_vertices:
 	dc.w $8002	; x_coordinate_ref
 	dc.w $0000	; y_coordinate_ref
@@ -33872,28 +33899,28 @@ model_088_vertices:
 	dc.w $FFFF	; variant_offset_or_negative
 model_089_faces:
 	dc.w $0302,$0000,$0010,$0008,$0308,$0000,$0018,$0010	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0302,$0000,$0020,$0018,$0308,$0000,$0008,$0020	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0308,$0008,$0010,$0028,$0302,$0010,$0018,$0028	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0308,$0018,$0020,$0028,$0302,$0020,$0008,$0028	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0302,$0028,$0038,$0030,$0308,$0028,$0040,$0038	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0309,$0028,$0030,$0040,$0408,$0030,$0038,$0050	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0048,$0402,$0038,$0040,$0058,$0050,$040A,$0040	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0030,$0048,$0058,$0302,$0048,$0050,$0060,$0308	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0050,$0058,$0060,$0309,$0058,$0048,$0060	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0302,$0000,$0020,$0018,$0308,$0000,$0008,$0020
+	dc.w $0308,$0008,$0010,$0028,$0302,$0010,$0018,$0028
+	dc.w $0308,$0018,$0020,$0028,$0302,$0020,$0008,$0028
+	dc.w $0302,$0028,$0038,$0030,$0308,$0028,$0040,$0038
+	dc.w $0309,$0028,$0030,$0040,$0408,$0030,$0038,$0050
+	dc.w $0048,$0402,$0038,$0040,$0058,$0050,$040A,$0040
+	dc.w $0030,$0048,$0058,$0302,$0048,$0050,$0060,$0308
+	dc.w $0050,$0058,$0060,$0309,$0058,$0048,$0060
 model_089_auxiliary_faces:
 	dc.w $8400,$0000,$0018,$0028,$0008,$8300,$0028,$0040	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0030,$8400,$0030,$0040,$0058,$0048,$8300,$0048	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0058,$0060	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0030,$8400,$0030,$0040,$0058,$0048,$8300,$0048
+	dc.w $0058,$0060
 model_089_coordinates:
 	dc.w $0000,$0C80,$0320,$0640,$0280,$0118,$00A0,$06E0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0140,$03B8,$0C98,$04D0,$05E8,$15F8,$0290,$06B0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0178,$0060,$0208,$0438,$0520,$15C0,$03D0,$0648	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $02B8,$01A0,$0030,$0148,$0260,$0500,$1530,$04C0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $05C8,$03A8,$01C0,$0CA8,$00A8,$0070,$0458,$1490	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0550,$0568,$03B0,$0CB8,$0298,$0180,$0328,$1418	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0580,$0540,$0468,$0350,$0CC0,$0198,$13E8,$06E8	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $05D0,$04B8,$0008,$07B8,$06A0,$0588,$07D0,$06B8	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $05A0,$02F8,$0728,$0610,$04F8,$0408	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0140,$03B8,$0C98,$04D0,$05E8,$15F8,$0290,$06B0
+	dc.w $0178,$0060,$0208,$0438,$0520,$15C0,$03D0,$0648
+	dc.w $02B8,$01A0,$0030,$0148,$0260,$0500,$1530,$04C0
+	dc.w $05C8,$03A8,$01C0,$0CA8,$00A8,$0070,$0458,$1490
+	dc.w $0550,$0568,$03B0,$0CB8,$0298,$0180,$0328,$1418
+	dc.w $0580,$0540,$0468,$0350,$0CC0,$0198,$13E8,$06E8
+	dc.w $05D0,$04B8,$0008,$07B8,$06A0,$0588,$07D0,$06B8
+	dc.w $05A0,$02F8,$0728,$0610,$04F8,$0408
 model_089_vertices:
 	dc.w $0000	; x_coordinate_ref
 	dc.w $0000	; y_coordinate_ref
@@ -33949,72 +33976,72 @@ model_089_vertices:
 	dc.w $0030	; variant_offset_or_negative
 model_089_variant_words:
 	dc.w $801C,$000C,$001E,$0000,$8020,$8010,$001E,$0000	; 19 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8022,$000C,$001E,$0000,$0024,$000C,$0014,$0000	; 19 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0004,$8010,$0014,$0000,$0026,$000C,$0014,$0000	; 19 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0028,$0000,$002A,$0000,$802C,$000C,$002E,$0000	; 19 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8030,$8010,$002E,$0000,$8032,$000C,$002E,$0000	; 19 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0034,$000C,$0014,$0000,$0036,$8010,$0014,$0000	; 19 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0038,$000C,$0014,$0000,$003A,$0000,$003C,$0000	; 19 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $803E,$000C,$0040,$0000,$8042,$8010,$0040,$0000	; 19 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $801C,$000C,$0040,$0000,$8044,$000C,$0046,$0000	; 19 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8048,$8010,$0046,$0000,$004A,$000C,$0046,$0000	; 19 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $004C,$0000,$004E,$0000,$8050,$000C,$0052,$0000	; 19 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8026,$8010,$0052,$0000,$8004,$000C,$0052,$0000	; 19 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8054,$000C,$0056,$0000,$8058,$8010,$0056,$0000	; 19 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $805A,$000C,$0056,$0000,$005C,$0000,$005E,$0000	; 19 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8060,$000C,$0062,$0000,$8064,$8010,$0062,$0000	; 19 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8066,$000C,$0062,$0000,$8060,$000C,$0068,$0000	; 19 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8064,$8010,$0068,$0000,$8066,$000C,$0068,$0000	; 19 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $006A,$0000,$006C,$0000,$8050,$000C,$0052,$0000	; 19 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8026,$8010,$0052,$0000,$8004,$000C,$0052,$0000	; 19 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $806E,$000C,$0056,$0000,$8070,$8010,$0056,$0000	; 19 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8072,$000C,$0056,$0000,$8074,$0000,$005E,$0000	; 19 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $803E,$000C,$0040,$0000,$8042,$8010,$0040,$0000	; 19 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $801C,$000C,$0040,$0000,$8076,$000C,$0046,$0000	; 19 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8078,$8010,$0046,$0000,$807A,$000C,$0046,$0000	; 19 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $806A,$0000,$004E,$0000,$802C,$000C,$002E,$0000	; 19 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8030,$8010,$002E,$0000,$8032,$000C,$002E,$0000	; 19 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $807C,$000C,$0014,$0000,$807E,$8010,$0014,$0000	; 19 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8080,$000C,$0014,$0000,$8082,$0000,$003C,$0000	; 19 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $801C,$000C,$001E,$0000,$8020,$8010,$001E,$0000	; 19 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8022,$000C,$001E,$0000,$8084,$000C,$0014,$0000	; 19 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8086,$8010,$0014,$0000,$8088,$000C,$0014,$0000	; 19 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $808A,$0000,$002A,$0000,$800A,$000C,$000E,$0000	; 19 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0000,$8010,$000E,$0000,$000A,$000C,$000E,$0000	; 19 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8018,$000C,$0014,$0000,$8016,$8010,$0014,$0000	; 19 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8012,$000C,$0014,$0000,$8016,$0000,$001A,$0000	; 19 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0022,$000C,$001E,$0000,$0020,$8010,$001E,$0000	; 19 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $001C,$000C,$001E,$0000,$8026,$000C,$0014,$0000	; 19 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8004,$8010,$0014,$0000,$8024,$000C,$0014,$0000	; 19 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8028,$0000,$002A,$0000,$0032,$000C,$002E,$0000	; 19 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0030,$8010,$002E,$0000,$002C,$000C,$002E,$0000	; 19 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8038,$000C,$0014,$0000,$8036,$8010,$0014,$0000	; 19 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8034,$000C,$0014,$0000,$803A,$0000,$003C,$0000	; 19 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $001C,$000C,$0040,$0000,$0042,$8010,$0040,$0000	; 19 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $003E,$000C,$0040,$0000,$804A,$000C,$0046,$0000	; 19 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0048,$8010,$0046,$0000,$0044,$000C,$0046,$0000	; 19 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $804C,$0000,$004E,$0000,$0004,$000C,$0052,$0000	; 19 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0026,$8010,$0052,$0000,$0050,$000C,$0052,$0000	; 19 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $005A,$000C,$0056,$0000,$0058,$8010,$0056,$0000	; 19 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0054,$000C,$0056,$0000,$805C,$0000,$005E,$0000	; 19 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0066,$000C,$0062,$0000,$0064,$8010,$0062,$0000	; 19 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0060,$000C,$0062,$0000,$0066,$000C,$0068,$0000	; 19 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0064,$8010,$0068,$0000,$0060,$000C,$0068,$0000	; 19 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $806A,$0000,$006C,$0000,$0004,$000C,$0052,$0000	; 19 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0026,$8010,$0052,$0000,$0050,$000C,$0052,$0000	; 19 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0072,$000C,$0056,$0000,$0070,$8010,$0056,$0000	; 19 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $006E,$000C,$0056,$0000,$0074,$0000,$005E,$0000	; 19 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $001C,$000C,$0040,$0000,$0042,$8010,$0040,$0000	; 19 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $003E,$000C,$0040,$0000,$007A,$000C,$0046,$0000	; 19 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0078,$8010,$0046,$0000,$0076,$000C,$0046,$0000	; 19 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $006A,$0000,$004E,$0000,$0032,$000C,$002E,$0000	; 19 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0030,$8010,$002E,$0000,$002C,$000C,$002E,$0000	; 19 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0080,$000C,$0014,$0000,$007E,$8010,$0014,$0000	; 19 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $007C,$000C,$0014,$0000,$0082,$0000,$003C,$0000	; 19 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0022,$000C,$001E,$0000,$0020,$8010,$001E,$0000	; 19 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $001C,$000C,$001E,$0000,$0088,$000C,$0014,$0000	; 19 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0086,$8010,$0014,$0000,$0084,$000C,$0014,$0000	; 19 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $008A,$0000,$002A,$0000	; 19 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
+	dc.w $8022,$000C,$001E,$0000,$0024,$000C,$0014,$0000
+	dc.w $0004,$8010,$0014,$0000,$0026,$000C,$0014,$0000
+	dc.w $0028,$0000,$002A,$0000,$802C,$000C,$002E,$0000
+	dc.w $8030,$8010,$002E,$0000,$8032,$000C,$002E,$0000
+	dc.w $0034,$000C,$0014,$0000,$0036,$8010,$0014,$0000
+	dc.w $0038,$000C,$0014,$0000,$003A,$0000,$003C,$0000
+	dc.w $803E,$000C,$0040,$0000,$8042,$8010,$0040,$0000
+	dc.w $801C,$000C,$0040,$0000,$8044,$000C,$0046,$0000
+	dc.w $8048,$8010,$0046,$0000,$004A,$000C,$0046,$0000
+	dc.w $004C,$0000,$004E,$0000,$8050,$000C,$0052,$0000
+	dc.w $8026,$8010,$0052,$0000,$8004,$000C,$0052,$0000
+	dc.w $8054,$000C,$0056,$0000,$8058,$8010,$0056,$0000
+	dc.w $805A,$000C,$0056,$0000,$005C,$0000,$005E,$0000
+	dc.w $8060,$000C,$0062,$0000,$8064,$8010,$0062,$0000
+	dc.w $8066,$000C,$0062,$0000,$8060,$000C,$0068,$0000
+	dc.w $8064,$8010,$0068,$0000,$8066,$000C,$0068,$0000
+	dc.w $006A,$0000,$006C,$0000,$8050,$000C,$0052,$0000
+	dc.w $8026,$8010,$0052,$0000,$8004,$000C,$0052,$0000
+	dc.w $806E,$000C,$0056,$0000,$8070,$8010,$0056,$0000
+	dc.w $8072,$000C,$0056,$0000,$8074,$0000,$005E,$0000
+	dc.w $803E,$000C,$0040,$0000,$8042,$8010,$0040,$0000
+	dc.w $801C,$000C,$0040,$0000,$8076,$000C,$0046,$0000
+	dc.w $8078,$8010,$0046,$0000,$807A,$000C,$0046,$0000
+	dc.w $806A,$0000,$004E,$0000,$802C,$000C,$002E,$0000
+	dc.w $8030,$8010,$002E,$0000,$8032,$000C,$002E,$0000
+	dc.w $807C,$000C,$0014,$0000,$807E,$8010,$0014,$0000
+	dc.w $8080,$000C,$0014,$0000,$8082,$0000,$003C,$0000
+	dc.w $801C,$000C,$001E,$0000,$8020,$8010,$001E,$0000
+	dc.w $8022,$000C,$001E,$0000,$8084,$000C,$0014,$0000
+	dc.w $8086,$8010,$0014,$0000,$8088,$000C,$0014,$0000
+	dc.w $808A,$0000,$002A,$0000,$800A,$000C,$000E,$0000
+	dc.w $0000,$8010,$000E,$0000,$000A,$000C,$000E,$0000
+	dc.w $8018,$000C,$0014,$0000,$8016,$8010,$0014,$0000
+	dc.w $8012,$000C,$0014,$0000,$8016,$0000,$001A,$0000
+	dc.w $0022,$000C,$001E,$0000,$0020,$8010,$001E,$0000
+	dc.w $001C,$000C,$001E,$0000,$8026,$000C,$0014,$0000
+	dc.w $8004,$8010,$0014,$0000,$8024,$000C,$0014,$0000
+	dc.w $8028,$0000,$002A,$0000,$0032,$000C,$002E,$0000
+	dc.w $0030,$8010,$002E,$0000,$002C,$000C,$002E,$0000
+	dc.w $8038,$000C,$0014,$0000,$8036,$8010,$0014,$0000
+	dc.w $8034,$000C,$0014,$0000,$803A,$0000,$003C,$0000
+	dc.w $001C,$000C,$0040,$0000,$0042,$8010,$0040,$0000
+	dc.w $003E,$000C,$0040,$0000,$804A,$000C,$0046,$0000
+	dc.w $0048,$8010,$0046,$0000,$0044,$000C,$0046,$0000
+	dc.w $804C,$0000,$004E,$0000,$0004,$000C,$0052,$0000
+	dc.w $0026,$8010,$0052,$0000,$0050,$000C,$0052,$0000
+	dc.w $005A,$000C,$0056,$0000,$0058,$8010,$0056,$0000
+	dc.w $0054,$000C,$0056,$0000,$805C,$0000,$005E,$0000
+	dc.w $0066,$000C,$0062,$0000,$0064,$8010,$0062,$0000
+	dc.w $0060,$000C,$0062,$0000,$0066,$000C,$0068,$0000
+	dc.w $0064,$8010,$0068,$0000,$0060,$000C,$0068,$0000
+	dc.w $806A,$0000,$006C,$0000,$0004,$000C,$0052,$0000
+	dc.w $0026,$8010,$0052,$0000,$0050,$000C,$0052,$0000
+	dc.w $0072,$000C,$0056,$0000,$0070,$8010,$0056,$0000
+	dc.w $006E,$000C,$0056,$0000,$0074,$0000,$005E,$0000
+	dc.w $001C,$000C,$0040,$0000,$0042,$8010,$0040,$0000
+	dc.w $003E,$000C,$0040,$0000,$007A,$000C,$0046,$0000
+	dc.w $0078,$8010,$0046,$0000,$0076,$000C,$0046,$0000
+	dc.w $006A,$0000,$004E,$0000,$0032,$000C,$002E,$0000
+	dc.w $0030,$8010,$002E,$0000,$002C,$000C,$002E,$0000
+	dc.w $0080,$000C,$0014,$0000,$007E,$8010,$0014,$0000
+	dc.w $007C,$000C,$0014,$0000,$0082,$0000,$003C,$0000
+	dc.w $0022,$000C,$001E,$0000,$0020,$8010,$001E,$0000
+	dc.w $001C,$000C,$001E,$0000,$0088,$000C,$0014,$0000
+	dc.w $0086,$8010,$0014,$0000,$0084,$000C,$0014,$0000
+	dc.w $008A,$0000,$002A,$0000
 model_089_variant_frames:
 	dc.l model_089_variant_words	; 19 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
 	dc.l model_089_variant_words+$38
@@ -34037,43 +34064,43 @@ model_089_variant_frames:
 	dc.l model_089_variant_words+$3F0
 model_090_faces:
 	dc.w $820B,$0000,$0008,$820C,$0008,$0010,$820D,$0010	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0018,$820E,$0018,$0020,$820D,$0020,$0028,$820C	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0028,$0030,$820B,$0030,$0038,$820B,$0038,$0040	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0301,$0000,$0048,$0050,$0306,$0000,$0050,$0058	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0304,$0000,$0058,$0060,$0305,$0000,$0060,$0048	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0018,$820E,$0018,$0020,$820D,$0020,$0028,$820C
+	dc.w $0028,$0030,$820B,$0030,$0038,$820B,$0038,$0040
+	dc.w $0301,$0000,$0048,$0050,$0306,$0000,$0050,$0058
+	dc.w $0304,$0000,$0058,$0060,$0305,$0000,$0060,$0048
 model_090_coordinates:
 	dc.w $0000,$1900,$3E80,$0160,$1828,$2EE0,$0550,$13F0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $1F40,$0600,$0BA0,$0FA0,$0150,$15B8,$09F0,$0D80	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0368,$1498,$0178,$1590,$41A0,$0320,$3B60,$0098	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $1BB0,$0338,$1518,$0CF8,$1930,$0B28,$20C8,$0620	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $1AE8,$01D0,$1830,$0020,$1550,$0208,$1CC8,$0078	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $17C8,$0668,$0CC0,$0CE0,$0810,$13C8,$0120,$1A58	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0148,$1CB0,$00C0,$15A8,$0418,$12A8,$0088,$0EE8	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $09F8,$0CB8,$03E0,$16D0,$0030,$15E8,$19C0,$17A8	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0768,$1288,$0670,$0EC8,$0220,$0E18,$07D8,$1990	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0408,$1BD0,$01A0,$1B28,$01C0,$1A38,$05A0,$1E38	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0548,$2258,$0180,$2178,$0568,$25E8,$00F0,$1FD0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $03A0,$1C90,$03C0,$1920,$02B8,$1E88,$0420,$15C8	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0A18,$0F20,$15F0,$0080,$1A78,$0190,$18B8,$0390	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $17C0,$10F0,$0158,$1360,$08D8,$1910,$1B98,$0460	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0238,$16B0,$1908,$05B0,$1838,$01E8,$1DC8,$03C8	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $1280,$00F8,$19F8,$0090,$1558,$0330,$1BE8,$09A0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $1938,$1030,$0F30,$1848,$17E8,$0300,$1820,$1768	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $1C88,$0400,$2070,$0008,$1B68,$0F50,$2268,$1F90	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $17F0,$03D0,$1560,$0108,$1748,$0598,$1EC0,$0040	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $2010,$0958,$22E8,$0070,$1D40,$04E0,$0388,$1798	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $1568,$1190,$07B0,$06A8,$08A8,$00B0,$12B8,$02D8	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $1980,$1640,$0298,$1690,$0050,$1DF8,$0580,$27A8	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0498,$1C10,$0028,$1C60,$0058,$1988,$0260,$1C30	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0700,$0758,$1C20,$20D0,$04B0,$1F60,$02C8,$1B08	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $01A8,$1C40,$03F0,$2038,$0B60,$1850,$0358,$1680	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $02E8,$1F48,$0590,$1FC8,$0250,$1C48,$1BB8,$0A40	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $1CA0,$0110,$1EF0,$1788,$1868,$0140,$1488,$00A0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $01D8,$1B88,$05C0,$1A30,$1440,$20F8,$0518,$1CC0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0060,$18F0,$00B8,$1C80,$0380,$19D0,$2068,$2A68	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0290,$1CD0,$0650,$1D10,$0470,$1CE0,$18F8,$0218	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $18E0,$13B8,$0C70,$0AA8,$1AE0,$0398,$13D8,$03F8	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $1678,$1548	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $1F40,$0600,$0BA0,$0FA0,$0150,$15B8,$09F0,$0D80
+	dc.w $0368,$1498,$0178,$1590,$41A0,$0320,$3B60,$0098
+	dc.w $1BB0,$0338,$1518,$0CF8,$1930,$0B28,$20C8,$0620
+	dc.w $1AE8,$01D0,$1830,$0020,$1550,$0208,$1CC8,$0078
+	dc.w $17C8,$0668,$0CC0,$0CE0,$0810,$13C8,$0120,$1A58
+	dc.w $0148,$1CB0,$00C0,$15A8,$0418,$12A8,$0088,$0EE8
+	dc.w $09F8,$0CB8,$03E0,$16D0,$0030,$15E8,$19C0,$17A8
+	dc.w $0768,$1288,$0670,$0EC8,$0220,$0E18,$07D8,$1990
+	dc.w $0408,$1BD0,$01A0,$1B28,$01C0,$1A38,$05A0,$1E38
+	dc.w $0548,$2258,$0180,$2178,$0568,$25E8,$00F0,$1FD0
+	dc.w $03A0,$1C90,$03C0,$1920,$02B8,$1E88,$0420,$15C8
+	dc.w $0A18,$0F20,$15F0,$0080,$1A78,$0190,$18B8,$0390
+	dc.w $17C0,$10F0,$0158,$1360,$08D8,$1910,$1B98,$0460
+	dc.w $0238,$16B0,$1908,$05B0,$1838,$01E8,$1DC8,$03C8
+	dc.w $1280,$00F8,$19F8,$0090,$1558,$0330,$1BE8,$09A0
+	dc.w $1938,$1030,$0F30,$1848,$17E8,$0300,$1820,$1768
+	dc.w $1C88,$0400,$2070,$0008,$1B68,$0F50,$2268,$1F90
+	dc.w $17F0,$03D0,$1560,$0108,$1748,$0598,$1EC0,$0040
+	dc.w $2010,$0958,$22E8,$0070,$1D40,$04E0,$0388,$1798
+	dc.w $1568,$1190,$07B0,$06A8,$08A8,$00B0,$12B8,$02D8
+	dc.w $1980,$1640,$0298,$1690,$0050,$1DF8,$0580,$27A8
+	dc.w $0498,$1C10,$0028,$1C60,$0058,$1988,$0260,$1C30
+	dc.w $0700,$0758,$1C20,$20D0,$04B0,$1F60,$02C8,$1B08
+	dc.w $01A8,$1C40,$03F0,$2038,$0B60,$1850,$0358,$1680
+	dc.w $02E8,$1F48,$0590,$1FC8,$0250,$1C48,$1BB8,$0A40
+	dc.w $1CA0,$0110,$1EF0,$1788,$1868,$0140,$1488,$00A0
+	dc.w $01D8,$1B88,$05C0,$1A30,$1440,$20F8,$0518,$1CC0
+	dc.w $0060,$18F0,$00B8,$1C80,$0380,$19D0,$2068,$2A68
+	dc.w $0290,$1CD0,$0650,$1D10,$0470,$1CE0,$18F8,$0218
+	dc.w $18E0,$13B8,$0C70,$0AA8,$1AE0,$0398,$13D8,$03F8
+	dc.w $1678,$1548
 model_090_vertices:
 	dc.w $0000	; x_coordinate_ref
 	dc.w $8002	; y_coordinate_ref
@@ -34129,72 +34156,72 @@ model_090_vertices:
 	dc.w $FFFF	; variant_offset_or_negative
 model_090_variant_words:
 	dc.w $002E,$8030,$800A,$0000,$8032,$8034,$8010,$0000	; 19 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8036,$8038,$8016,$0000,$803A,$803C,$0000,$0000	; 19 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $803E,$8040,$0016,$0000,$8042,$8044,$0010,$0000	; 19 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0046,$8048,$000A,$0000,$804A,$804C,$800A,$0000	; 19 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $804E,$8050,$8010,$0000,$0052,$8054,$8016,$0000	; 19 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0018,$8056,$0000,$0000,$0058,$805A,$0016,$0000	; 19 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $005C,$805E,$0010,$0000,$0060,$8062,$000A,$0000	; 19 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8064,$8066,$800A,$0000,$8068,$806A,$8010,$0000	; 19 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $806C,$806E,$8016,$0000,$8070,$8072,$0000,$0000	; 19 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8074,$8076,$0016,$0000,$8078,$807A,$0010,$0000	; 19 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0064,$807C,$000A,$0000,$0078,$807E,$800A,$0000	; 19 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8080,$8082,$8010,$0000,$8084,$8086,$8016,$0000	; 19 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0088,$808A,$0000,$0000,$808C,$808E,$0016,$0000	; 19 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8090,$8092,$0010,$0000,$8094,$8096,$000A,$0000	; 19 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8098,$809A,$800A,$0000,$809C,$809E,$8010,$0000	; 19 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $00A0,$80A2,$8016,$0000,$80A4,$80A6,$0000,$0000	; 19 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $00A8,$80AA,$0016,$0000,$00AC,$80AE,$0010,$0000	; 19 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $00B0,$80B2,$000A,$0000,$00B4,$80B6,$800A,$0000	; 19 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $80B8,$80BA,$8010,$0000,$00BC,$80BE,$8016,$0000	; 19 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $80C0,$80C2,$0000,$0000,$8032,$80C4,$0016,$0000	; 19 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $00C6,$80C8,$0010,$0000,$80CA,$80CC,$000A,$0000	; 19 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $80CE,$80D0,$800A,$0000,$8012,$80D2,$8010,$0000	; 19 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $80D4,$80D6,$8016,$0000,$00D8,$80DA,$0000,$0000	; 19 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $80C6,$80DC,$0016,$0000,$00DE,$8008,$0010,$0000	; 19 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $00E0,$80E2,$000A,$0000,$8042,$80E4,$800A,$0000	; 19 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $00E6,$80E8,$8010,$0000,$00EA,$80EC,$8016,$0000	; 19 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $00EE,$80F0,$0000,$0000,$80F2,$80F4,$0016,$0000	; 19 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $802A,$80E8,$0010,$0000,$00F6,$80F8,$000A,$0000	; 19 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $00FA,$80FC,$800A,$0000,$00FE,$8100,$8010,$0000	; 19 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0102,$8104,$8016,$0000,$00F6,$8106,$0000,$0000	; 19 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $802E,$8108,$0016,$0000,$010A,$810C,$0010,$0000	; 19 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $00FA,$810E,$000A,$0000,$0060,$8110,$800A,$0000	; 19 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0112,$8114,$8010,$0000,$8116,$8118,$8016,$0000	; 19 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $011A,$811C,$0000,$0000,$00A8,$811E,$0016,$0000	; 19 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $00DE,$8120,$0010,$0000,$0122,$8124,$000A,$0000	; 19 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8126,$8128,$800A,$0000,$012A,$812C,$8010,$0000	; 19 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $012E,$8130,$8016,$0000,$0132,$8134,$0000,$0000	; 19 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0136,$8138,$0016,$0000,$013A,$80BE,$0010,$0000	; 19 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $013C,$813E,$000A,$0000,$0020,$8140,$800A,$0000	; 19 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $806C,$8142,$8010,$0000,$0144,$8146,$8016,$0000	; 19 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $805C,$8148,$0000,$0000,$014A,$814C,$0016,$0000	; 19 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $014E,$8150,$0010,$0000,$80C6,$8152,$000A,$0000	; 19 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8154,$8156,$800A,$0000,$8158,$815A,$8010,$0000	; 19 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $015C,$815E,$8016,$0000,$0160,$8162,$0000,$0000	; 19 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0164,$8166,$0016,$0000,$8168,$8030,$0010,$0000	; 19 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8018,$816A,$000A,$0000,$016C,$816E,$800A,$0000	; 19 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0170,$804C,$8010,$0000,$0172,$8174,$8016,$0000	; 19 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $016C,$8176,$0000,$0000,$0178,$817A,$0016,$0000	; 19 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $017C,$817E,$0010,$0000,$00EA,$80E8,$000A,$0000	; 19 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0180,$8182,$800A,$0000,$8184,$8186,$8010,$0000	; 19 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8188,$818A,$8016,$0000,$818C,$818E,$0000,$0000	; 19 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8190,$8192,$0016,$0000,$8194,$8196,$0010,$0000	; 19 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8198,$819A,$000A,$0000,$00B4,$819C,$800A,$0000	; 19 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $019E,$81A0,$8010,$0000,$81A2,$81A4,$8016,$0000	; 19 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $005C,$81A6,$0000,$0000,$00B0,$81A8,$0016,$0000	; 19 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $01AA,$81AC,$0010,$0000,$01AE,$8026,$000A,$0000	; 19 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $81B0,$81B2,$800A,$0000,$01B4,$81B6,$8010,$0000	; 19 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8112,$81B8,$8016,$0000,$016C,$81BA,$0000,$0000	; 19 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $01BC,$81BE,$0016,$0000,$81C0,$81C2,$0010,$0000	; 19 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $01C4,$81C6,$000A,$0000,$81C8,$81CA,$800A,$0000	; 19 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0000,$81CC,$8010,$0000,$0070,$81CE,$8016,$0000	; 19 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $01D0,$81D2,$0000,$0000,$01D4,$81D6,$0016,$0000	; 19 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $01D8,$81DA,$0010,$0000,$00F2,$81DC,$000A,$0000	; 19 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $81DE,$81E0,$800A,$0000,$8160,$81E2,$8010,$0000	; 19 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $80E0,$81E4,$8016,$0000,$01E6,$81E8,$0000,$0000	; 19 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $01EA,$81EC,$0016,$0000,$81EE,$81F0,$0010,$0000	; 19 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $80F6,$81F2,$000A,$0000	; 19 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
+	dc.w $8036,$8038,$8016,$0000,$803A,$803C,$0000,$0000
+	dc.w $803E,$8040,$0016,$0000,$8042,$8044,$0010,$0000
+	dc.w $0046,$8048,$000A,$0000,$804A,$804C,$800A,$0000
+	dc.w $804E,$8050,$8010,$0000,$0052,$8054,$8016,$0000
+	dc.w $0018,$8056,$0000,$0000,$0058,$805A,$0016,$0000
+	dc.w $005C,$805E,$0010,$0000,$0060,$8062,$000A,$0000
+	dc.w $8064,$8066,$800A,$0000,$8068,$806A,$8010,$0000
+	dc.w $806C,$806E,$8016,$0000,$8070,$8072,$0000,$0000
+	dc.w $8074,$8076,$0016,$0000,$8078,$807A,$0010,$0000
+	dc.w $0064,$807C,$000A,$0000,$0078,$807E,$800A,$0000
+	dc.w $8080,$8082,$8010,$0000,$8084,$8086,$8016,$0000
+	dc.w $0088,$808A,$0000,$0000,$808C,$808E,$0016,$0000
+	dc.w $8090,$8092,$0010,$0000,$8094,$8096,$000A,$0000
+	dc.w $8098,$809A,$800A,$0000,$809C,$809E,$8010,$0000
+	dc.w $00A0,$80A2,$8016,$0000,$80A4,$80A6,$0000,$0000
+	dc.w $00A8,$80AA,$0016,$0000,$00AC,$80AE,$0010,$0000
+	dc.w $00B0,$80B2,$000A,$0000,$00B4,$80B6,$800A,$0000
+	dc.w $80B8,$80BA,$8010,$0000,$00BC,$80BE,$8016,$0000
+	dc.w $80C0,$80C2,$0000,$0000,$8032,$80C4,$0016,$0000
+	dc.w $00C6,$80C8,$0010,$0000,$80CA,$80CC,$000A,$0000
+	dc.w $80CE,$80D0,$800A,$0000,$8012,$80D2,$8010,$0000
+	dc.w $80D4,$80D6,$8016,$0000,$00D8,$80DA,$0000,$0000
+	dc.w $80C6,$80DC,$0016,$0000,$00DE,$8008,$0010,$0000
+	dc.w $00E0,$80E2,$000A,$0000,$8042,$80E4,$800A,$0000
+	dc.w $00E6,$80E8,$8010,$0000,$00EA,$80EC,$8016,$0000
+	dc.w $00EE,$80F0,$0000,$0000,$80F2,$80F4,$0016,$0000
+	dc.w $802A,$80E8,$0010,$0000,$00F6,$80F8,$000A,$0000
+	dc.w $00FA,$80FC,$800A,$0000,$00FE,$8100,$8010,$0000
+	dc.w $0102,$8104,$8016,$0000,$00F6,$8106,$0000,$0000
+	dc.w $802E,$8108,$0016,$0000,$010A,$810C,$0010,$0000
+	dc.w $00FA,$810E,$000A,$0000,$0060,$8110,$800A,$0000
+	dc.w $0112,$8114,$8010,$0000,$8116,$8118,$8016,$0000
+	dc.w $011A,$811C,$0000,$0000,$00A8,$811E,$0016,$0000
+	dc.w $00DE,$8120,$0010,$0000,$0122,$8124,$000A,$0000
+	dc.w $8126,$8128,$800A,$0000,$012A,$812C,$8010,$0000
+	dc.w $012E,$8130,$8016,$0000,$0132,$8134,$0000,$0000
+	dc.w $0136,$8138,$0016,$0000,$013A,$80BE,$0010,$0000
+	dc.w $013C,$813E,$000A,$0000,$0020,$8140,$800A,$0000
+	dc.w $806C,$8142,$8010,$0000,$0144,$8146,$8016,$0000
+	dc.w $805C,$8148,$0000,$0000,$014A,$814C,$0016,$0000
+	dc.w $014E,$8150,$0010,$0000,$80C6,$8152,$000A,$0000
+	dc.w $8154,$8156,$800A,$0000,$8158,$815A,$8010,$0000
+	dc.w $015C,$815E,$8016,$0000,$0160,$8162,$0000,$0000
+	dc.w $0164,$8166,$0016,$0000,$8168,$8030,$0010,$0000
+	dc.w $8018,$816A,$000A,$0000,$016C,$816E,$800A,$0000
+	dc.w $0170,$804C,$8010,$0000,$0172,$8174,$8016,$0000
+	dc.w $016C,$8176,$0000,$0000,$0178,$817A,$0016,$0000
+	dc.w $017C,$817E,$0010,$0000,$00EA,$80E8,$000A,$0000
+	dc.w $0180,$8182,$800A,$0000,$8184,$8186,$8010,$0000
+	dc.w $8188,$818A,$8016,$0000,$818C,$818E,$0000,$0000
+	dc.w $8190,$8192,$0016,$0000,$8194,$8196,$0010,$0000
+	dc.w $8198,$819A,$000A,$0000,$00B4,$819C,$800A,$0000
+	dc.w $019E,$81A0,$8010,$0000,$81A2,$81A4,$8016,$0000
+	dc.w $005C,$81A6,$0000,$0000,$00B0,$81A8,$0016,$0000
+	dc.w $01AA,$81AC,$0010,$0000,$01AE,$8026,$000A,$0000
+	dc.w $81B0,$81B2,$800A,$0000,$01B4,$81B6,$8010,$0000
+	dc.w $8112,$81B8,$8016,$0000,$016C,$81BA,$0000,$0000
+	dc.w $01BC,$81BE,$0016,$0000,$81C0,$81C2,$0010,$0000
+	dc.w $01C4,$81C6,$000A,$0000,$81C8,$81CA,$800A,$0000
+	dc.w $0000,$81CC,$8010,$0000,$0070,$81CE,$8016,$0000
+	dc.w $01D0,$81D2,$0000,$0000,$01D4,$81D6,$0016,$0000
+	dc.w $01D8,$81DA,$0010,$0000,$00F2,$81DC,$000A,$0000
+	dc.w $81DE,$81E0,$800A,$0000,$8160,$81E2,$8010,$0000
+	dc.w $80E0,$81E4,$8016,$0000,$01E6,$81E8,$0000,$0000
+	dc.w $01EA,$81EC,$0016,$0000,$81EE,$81F0,$0010,$0000
+	dc.w $80F6,$81F2,$000A,$0000
 model_090_variant_frames:
 	dc.l model_090_variant_words	; 19 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
 	dc.l model_090_variant_words+$38
@@ -34217,28 +34244,28 @@ model_090_variant_frames:
 	dc.l model_090_variant_words+$3F0
 model_091_faces:
 	dc.w $0400,$0000,$0008,$0038,$0030,$0403,$0008,$0010	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0040,$0038,$0400,$0010,$0018,$0048,$0040,$0403	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0018,$0020,$0050,$0048,$0400,$0020,$0028,$0058	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0050,$0403,$0028,$0000,$0030,$0058,$0401,$0030	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0038,$0068,$0060,$0400,$0038,$0040,$0070,$0068	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0401,$0040,$0048,$0078,$0070,$0400,$0048,$0050	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0080,$0078,$0401,$0050,$0058,$0088,$0080,$0400	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0058,$0030,$0060,$0088,$0400,$0060,$0068,$0098	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0090,$0403,$0068,$0070,$00A0,$0098,$0400,$0070	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0078,$00A8,$00A0,$0403,$0078,$0080,$00B0,$00A8	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0400,$0080,$0088,$00B8,$00B0,$0403,$0088,$0060	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0090,$00B8,$0600,$0000,$0028,$0020,$0018,$0010	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0008,$0600,$0090,$0098,$00A0,$00A8,$00B0,$00B8	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0040,$0038,$0400,$0010,$0018,$0048,$0040,$0403
+	dc.w $0018,$0020,$0050,$0048,$0400,$0020,$0028,$0058
+	dc.w $0050,$0403,$0028,$0000,$0030,$0058,$0401,$0030
+	dc.w $0038,$0068,$0060,$0400,$0038,$0040,$0070,$0068
+	dc.w $0401,$0040,$0048,$0078,$0070,$0400,$0048,$0050
+	dc.w $0080,$0078,$0401,$0050,$0058,$0088,$0080,$0400
+	dc.w $0058,$0030,$0060,$0088,$0400,$0060,$0068,$0098
+	dc.w $0090,$0403,$0068,$0070,$00A0,$0098,$0400,$0070
+	dc.w $0078,$00A8,$00A0,$0403,$0078,$0080,$00B0,$00A8
+	dc.w $0400,$0080,$0088,$00B8,$00B0,$0403,$0088,$0060
+	dc.w $0090,$00B8,$0600,$0000,$0028,$0020,$0018,$0010
+	dc.w $0008,$0600,$0090,$0098,$00A0,$00A8,$00B0,$00B8
 model_091_auxiliary_faces:
 	dc.w $8800,$0000,$0018,$0048,$0078,$00A8,$0090,$0060	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0030,$8800,$0008,$0020,$0050,$0080,$00B0,$0098	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0068,$0038,$8800,$0010,$0028,$0058,$0088,$00B8	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $00A0,$0070,$0040	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0030,$8800,$0008,$0020,$0050,$0080,$00B0,$0098
+	dc.w $0068,$0038,$8800,$0010,$0028,$0058,$0088,$00B8
+	dc.w $00A0,$0070,$0040
 model_091_coordinates:
 	dc.w $0000,$06E0,$0140,$00A0,$0118,$04B0,$0320,$0190	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $02B8,$0138,$0030,$00C8,$00F0,$0068,$0128,$0310	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0088,$0200,$0260,$0110,$02F0,$00D0,$02E8,$02B0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0038,$0098,$0188	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $02B8,$0138,$0030,$00C8,$00F0,$0068,$0128,$0310
+	dc.w $0088,$0200,$0260,$0110,$02F0,$00D0,$02E8,$02B0
+	dc.w $0038,$0098,$0188
 model_091_vertices:
 	dc.w $8002	; x_coordinate_ref
 	dc.w $8004	; y_coordinate_ref
@@ -34338,137 +34365,137 @@ model_091_vertices:
 	dc.w $00B8	; variant_offset_or_negative
 model_091_variant_words:
 	dc.w $8002,$8012,$0014,$0000,$8002,$8016,$8018,$0000	; 11 viewer-indexed variant frames, 24 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8002,$001A,$801C,$0000,$8002,$0012,$8014,$0000	; 11 viewer-indexed variant frames, 24 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8002,$0016,$0018,$0000,$8002,$801A,$001C,$0000	; 11 viewer-indexed variant frames, 24 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $800A,$801E,$0020,$0000,$800A,$8022,$8024,$0000	; 11 viewer-indexed variant frames, 24 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $800A,$0026,$8028,$0000,$800A,$001E,$8020,$0000	; 11 viewer-indexed variant frames, 24 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $800A,$0022,$0024,$0000,$800A,$8026,$0028,$0000	; 11 viewer-indexed variant frames, 24 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $000A,$801E,$0020,$0000,$000A,$8022,$8024,$0000	; 11 viewer-indexed variant frames, 24 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $000A,$0026,$8028,$0000,$000A,$001E,$8020,$0000	; 11 viewer-indexed variant frames, 24 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $000A,$0022,$0024,$0000,$000A,$8026,$0028,$0000	; 11 viewer-indexed variant frames, 24 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0002,$8012,$0014,$0000,$0002,$8016,$8018,$0000	; 11 viewer-indexed variant frames, 24 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0002,$001A,$801C,$0000,$0002,$0012,$8014,$0000	; 11 viewer-indexed variant frames, 24 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0002,$0016,$0018,$0000,$0002,$801A,$001C,$0000	; 11 viewer-indexed variant frames, 24 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8002,$801C,$001A,$0000,$8002,$8018,$802A,$0000	; 11 viewer-indexed variant frames, 24 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8002,$0014,$8012,$0000,$8002,$001C,$801A,$0000	; 11 viewer-indexed variant frames, 24 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8002,$0018,$002A,$0000,$8002,$8014,$0012,$0000	; 11 viewer-indexed variant frames, 24 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $800A,$802C,$0026,$0000,$800A,$8024,$8022,$0000	; 11 viewer-indexed variant frames, 24 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $800A,$0020,$801E,$0000,$800A,$002C,$8026,$0000	; 11 viewer-indexed variant frames, 24 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $800A,$0024,$0022,$0000,$800A,$8020,$001E,$0000	; 11 viewer-indexed variant frames, 24 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $000A,$802C,$0026,$0000,$000A,$8024,$8022,$0000	; 11 viewer-indexed variant frames, 24 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $000A,$0020,$801E,$0000,$000A,$002C,$8026,$0000	; 11 viewer-indexed variant frames, 24 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $000A,$0024,$0022,$0000,$000A,$8020,$001E,$0000	; 11 viewer-indexed variant frames, 24 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0002,$801C,$001A,$0000,$0002,$8018,$802A,$0000	; 11 viewer-indexed variant frames, 24 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0002,$0014,$8012,$0000,$0002,$001C,$801A,$0000	; 11 viewer-indexed variant frames, 24 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0002,$0018,$002A,$0000,$0002,$8014,$0012,$0000	; 11 viewer-indexed variant frames, 24 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8002,$8026,$0006,$0000,$8002,$8026,$8006,$0000	; 11 viewer-indexed variant frames, 24 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8002,$0000,$8004,$0000,$8002,$0026,$8006,$0000	; 11 viewer-indexed variant frames, 24 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8002,$0026,$0006,$0000,$8002,$0000,$0004,$0000	; 11 viewer-indexed variant frames, 24 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $800A,$802E,$000E,$0000,$800A,$802E,$800E,$0000	; 11 viewer-indexed variant frames, 24 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $800A,$0000,$800C,$0000,$800A,$002E,$800E,$0000	; 11 viewer-indexed variant frames, 24 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $800A,$002E,$000E,$0000,$800A,$0000,$000C,$0000	; 11 viewer-indexed variant frames, 24 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $000A,$802E,$000E,$0000,$000A,$802E,$800E,$0000	; 11 viewer-indexed variant frames, 24 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $000A,$0000,$800C,$0000,$000A,$002E,$800E,$0000	; 11 viewer-indexed variant frames, 24 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $000A,$002E,$000E,$0000,$000A,$0000,$000C,$0000	; 11 viewer-indexed variant frames, 24 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0002,$8026,$0006,$0000,$0002,$8026,$8006,$0000	; 11 viewer-indexed variant frames, 24 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0002,$0000,$8004,$0000,$0002,$0026,$8006,$0000	; 11 viewer-indexed variant frames, 24 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0002,$0026,$0006,$0000,$0002,$0000,$0004,$0000	; 11 viewer-indexed variant frames, 24 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8002,$8018,$0016,$0000,$8002,$801C,$801A,$0000	; 11 viewer-indexed variant frames, 24 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8002,$8030,$8012,$0000,$8002,$0018,$8016,$0000	; 11 viewer-indexed variant frames, 24 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8002,$001C,$001A,$0000,$8002,$0030,$0012,$0000	; 11 viewer-indexed variant frames, 24 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $800A,$8024,$0022,$0000,$800A,$8028,$8026,$0000	; 11 viewer-indexed variant frames, 24 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $800A,$8020,$801E,$0000,$800A,$0024,$8022,$0000	; 11 viewer-indexed variant frames, 24 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $800A,$0028,$0026,$0000,$800A,$0020,$001E,$0000	; 11 viewer-indexed variant frames, 24 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $000A,$8024,$0022,$0000,$000A,$8028,$8026,$0000	; 11 viewer-indexed variant frames, 24 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $000A,$8020,$801E,$0000,$000A,$0024,$8022,$0000	; 11 viewer-indexed variant frames, 24 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $000A,$0028,$0026,$0000,$000A,$0020,$001E,$0000	; 11 viewer-indexed variant frames, 24 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0002,$8018,$0016,$0000,$0002,$801C,$801A,$0000	; 11 viewer-indexed variant frames, 24 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0002,$8030,$8012,$0000,$0002,$0018,$8016,$0000	; 11 viewer-indexed variant frames, 24 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0002,$001C,$001A,$0000,$0002,$0030,$0012,$0000	; 11 viewer-indexed variant frames, 24 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8002,$8016,$0018,$0000,$8002,$8012,$8030,$0000	; 11 viewer-indexed variant frames, 24 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8002,$801A,$801C,$0000,$8002,$0016,$8018,$0000	; 11 viewer-indexed variant frames, 24 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8002,$0012,$0030,$0000,$8002,$001A,$001C,$0000	; 11 viewer-indexed variant frames, 24 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $800A,$8022,$0024,$0000,$800A,$801E,$8020,$0000	; 11 viewer-indexed variant frames, 24 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $800A,$8026,$8028,$0000,$800A,$0022,$8024,$0000	; 11 viewer-indexed variant frames, 24 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $800A,$001E,$0020,$0000,$800A,$0026,$0028,$0000	; 11 viewer-indexed variant frames, 24 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $000A,$8022,$0024,$0000,$000A,$801E,$8020,$0000	; 11 viewer-indexed variant frames, 24 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $000A,$8026,$8028,$0000,$000A,$0022,$8024,$0000	; 11 viewer-indexed variant frames, 24 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $000A,$001E,$0020,$0000,$000A,$0026,$0028,$0000	; 11 viewer-indexed variant frames, 24 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0002,$8016,$0018,$0000,$0002,$8012,$8030,$0000	; 11 viewer-indexed variant frames, 24 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0002,$801A,$801C,$0000,$0002,$0016,$8018,$0000	; 11 viewer-indexed variant frames, 24 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0002,$0012,$0030,$0000,$0002,$001A,$001C,$0000	; 11 viewer-indexed variant frames, 24 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8002,$8032,$0026,$0000,$8002,$8004,$0000,$0000	; 11 viewer-indexed variant frames, 24 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8002,$8006,$8026,$0000,$8002,$0032,$8026,$0000	; 11 viewer-indexed variant frames, 24 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8002,$0004,$0000,$0000,$8002,$0006,$0026,$0000	; 11 viewer-indexed variant frames, 24 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $800A,$8034,$002E,$0000,$800A,$800C,$0000,$0000	; 11 viewer-indexed variant frames, 24 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $800A,$800E,$802E,$0000,$800A,$0034,$802E,$0000	; 11 viewer-indexed variant frames, 24 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $800A,$000C,$0000,$0000,$800A,$000E,$002E,$0000	; 11 viewer-indexed variant frames, 24 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $000A,$8034,$002E,$0000,$000A,$800C,$0000,$0000	; 11 viewer-indexed variant frames, 24 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $000A,$800E,$802E,$0000,$000A,$0034,$802E,$0000	; 11 viewer-indexed variant frames, 24 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $000A,$000C,$0000,$0000,$000A,$000E,$002E,$0000	; 11 viewer-indexed variant frames, 24 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0002,$8032,$0026,$0000,$0002,$8004,$0000,$0000	; 11 viewer-indexed variant frames, 24 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0002,$8006,$8026,$0000,$0002,$0032,$8026,$0000	; 11 viewer-indexed variant frames, 24 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0002,$0004,$0000,$0000,$0002,$0006,$0026,$0000	; 11 viewer-indexed variant frames, 24 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8002,$801A,$001C,$0000,$8002,$8012,$0014,$0000	; 11 viewer-indexed variant frames, 24 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8002,$802A,$8018,$0000,$8002,$001A,$801C,$0000	; 11 viewer-indexed variant frames, 24 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8002,$0012,$8014,$0000,$8002,$002A,$0018,$0000	; 11 viewer-indexed variant frames, 24 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $800A,$8026,$002C,$0000,$800A,$801E,$0020,$0000	; 11 viewer-indexed variant frames, 24 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $800A,$8022,$8024,$0000,$800A,$0026,$802C,$0000	; 11 viewer-indexed variant frames, 24 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $800A,$001E,$8020,$0000,$800A,$0022,$0024,$0000	; 11 viewer-indexed variant frames, 24 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $000A,$8026,$002C,$0000,$000A,$801E,$0020,$0000	; 11 viewer-indexed variant frames, 24 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $000A,$8022,$8024,$0000,$000A,$0026,$802C,$0000	; 11 viewer-indexed variant frames, 24 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $000A,$001E,$8020,$0000,$000A,$0022,$0024,$0000	; 11 viewer-indexed variant frames, 24 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0002,$801A,$001C,$0000,$0002,$8012,$0014,$0000	; 11 viewer-indexed variant frames, 24 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0002,$802A,$8018,$0000,$0002,$001A,$801C,$0000	; 11 viewer-indexed variant frames, 24 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0002,$0012,$8014,$0000,$0002,$002A,$0018,$0000	; 11 viewer-indexed variant frames, 24 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8002,$8014,$0012,$0000,$8002,$801C,$001A,$0000	; 11 viewer-indexed variant frames, 24 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8002,$8018,$8016,$0000,$8002,$0014,$8012,$0000	; 11 viewer-indexed variant frames, 24 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8002,$001C,$801A,$0000,$8002,$0018,$0016,$0000	; 11 viewer-indexed variant frames, 24 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $800A,$8020,$001E,$0000,$800A,$8028,$0026,$0000	; 11 viewer-indexed variant frames, 24 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $800A,$8024,$8022,$0000,$800A,$0020,$801E,$0000	; 11 viewer-indexed variant frames, 24 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $800A,$0028,$8026,$0000,$800A,$0024,$0022,$0000	; 11 viewer-indexed variant frames, 24 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $000A,$8020,$001E,$0000,$000A,$8028,$0026,$0000	; 11 viewer-indexed variant frames, 24 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $000A,$8024,$8022,$0000,$000A,$0020,$801E,$0000	; 11 viewer-indexed variant frames, 24 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $000A,$0028,$8026,$0000,$000A,$0024,$0022,$0000	; 11 viewer-indexed variant frames, 24 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0002,$8014,$0012,$0000,$0002,$801C,$001A,$0000	; 11 viewer-indexed variant frames, 24 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0002,$8018,$8016,$0000,$0002,$0014,$8012,$0000	; 11 viewer-indexed variant frames, 24 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0002,$001C,$801A,$0000,$0002,$0018,$0016,$0000	; 11 viewer-indexed variant frames, 24 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8002,$0000,$0004,$0000,$8002,$8008,$0006,$0000	; 11 viewer-indexed variant frames, 24 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8002,$8008,$8032,$0000,$8002,$0000,$8004,$0000	; 11 viewer-indexed variant frames, 24 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8002,$0008,$8006,$0000,$8002,$0008,$0032,$0000	; 11 viewer-indexed variant frames, 24 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $800A,$0000,$000C,$0000,$800A,$8010,$000E,$0000	; 11 viewer-indexed variant frames, 24 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $800A,$8010,$8034,$0000,$800A,$0000,$800C,$0000	; 11 viewer-indexed variant frames, 24 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $800A,$0010,$800E,$0000,$800A,$0010,$0034,$0000	; 11 viewer-indexed variant frames, 24 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $000A,$0000,$000C,$0000,$000A,$8010,$000E,$0000	; 11 viewer-indexed variant frames, 24 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $000A,$8010,$8034,$0000,$000A,$0000,$800C,$0000	; 11 viewer-indexed variant frames, 24 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $000A,$0010,$800E,$0000,$000A,$0010,$0034,$0000	; 11 viewer-indexed variant frames, 24 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0002,$0000,$0004,$0000,$0002,$8008,$0006,$0000	; 11 viewer-indexed variant frames, 24 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0002,$8008,$8032,$0000,$0002,$0000,$8004,$0000	; 11 viewer-indexed variant frames, 24 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0002,$0008,$8006,$0000,$0002,$0008,$0032,$0000	; 11 viewer-indexed variant frames, 24 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8002,$0014,$0012,$0000,$8002,$8018,$0016,$0000	; 11 viewer-indexed variant frames, 24 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8002,$801C,$801A,$0000,$8002,$8014,$8012,$0000	; 11 viewer-indexed variant frames, 24 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8002,$0018,$8016,$0000,$8002,$001C,$001A,$0000	; 11 viewer-indexed variant frames, 24 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $800A,$0020,$001E,$0000,$800A,$8024,$0022,$0000	; 11 viewer-indexed variant frames, 24 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $800A,$8028,$8026,$0000,$800A,$8020,$801E,$0000	; 11 viewer-indexed variant frames, 24 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $800A,$0024,$8022,$0000,$800A,$0028,$0026,$0000	; 11 viewer-indexed variant frames, 24 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $000A,$0020,$001E,$0000,$000A,$8024,$0022,$0000	; 11 viewer-indexed variant frames, 24 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $000A,$8028,$8026,$0000,$000A,$8020,$801E,$0000	; 11 viewer-indexed variant frames, 24 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $000A,$0024,$8022,$0000,$000A,$0028,$0026,$0000	; 11 viewer-indexed variant frames, 24 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0002,$0014,$0012,$0000,$0002,$8018,$0016,$0000	; 11 viewer-indexed variant frames, 24 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0002,$801C,$801A,$0000,$0002,$8014,$8012,$0000	; 11 viewer-indexed variant frames, 24 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0002,$0018,$8016,$0000,$0002,$001C,$001A,$0000	; 11 viewer-indexed variant frames, 24 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8002,$001A,$001C,$0000,$8002,$802A,$0018,$0000	; 11 viewer-indexed variant frames, 24 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8002,$8012,$8014,$0000,$8002,$801A,$801C,$0000	; 11 viewer-indexed variant frames, 24 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $8002,$002A,$8018,$0000,$8002,$0012,$0014,$0000	; 11 viewer-indexed variant frames, 24 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $800A,$0026,$002C,$0000,$800A,$8022,$0024,$0000	; 11 viewer-indexed variant frames, 24 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $800A,$801E,$8020,$0000,$800A,$8026,$802C,$0000	; 11 viewer-indexed variant frames, 24 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $800A,$0022,$8024,$0000,$800A,$001E,$0020,$0000	; 11 viewer-indexed variant frames, 24 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $000A,$0026,$002C,$0000,$000A,$8022,$0024,$0000	; 11 viewer-indexed variant frames, 24 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $000A,$801E,$8020,$0000,$000A,$8026,$802C,$0000	; 11 viewer-indexed variant frames, 24 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $000A,$0022,$8024,$0000,$000A,$001E,$0020,$0000	; 11 viewer-indexed variant frames, 24 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0002,$001A,$001C,$0000,$0002,$802A,$0018,$0000	; 11 viewer-indexed variant frames, 24 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0002,$8012,$8014,$0000,$0002,$801A,$801C,$0000	; 11 viewer-indexed variant frames, 24 encoded vertex records per frame; 8-byte stride with unint
-	dc.w $0002,$002A,$8018,$0000,$0002,$0012,$0014,$0000	; 11 viewer-indexed variant frames, 24 encoded vertex records per frame; 8-byte stride with unint
+	dc.w $8002,$001A,$801C,$0000,$8002,$0012,$8014,$0000
+	dc.w $8002,$0016,$0018,$0000,$8002,$801A,$001C,$0000
+	dc.w $800A,$801E,$0020,$0000,$800A,$8022,$8024,$0000
+	dc.w $800A,$0026,$8028,$0000,$800A,$001E,$8020,$0000
+	dc.w $800A,$0022,$0024,$0000,$800A,$8026,$0028,$0000
+	dc.w $000A,$801E,$0020,$0000,$000A,$8022,$8024,$0000
+	dc.w $000A,$0026,$8028,$0000,$000A,$001E,$8020,$0000
+	dc.w $000A,$0022,$0024,$0000,$000A,$8026,$0028,$0000
+	dc.w $0002,$8012,$0014,$0000,$0002,$8016,$8018,$0000
+	dc.w $0002,$001A,$801C,$0000,$0002,$0012,$8014,$0000
+	dc.w $0002,$0016,$0018,$0000,$0002,$801A,$001C,$0000
+	dc.w $8002,$801C,$001A,$0000,$8002,$8018,$802A,$0000
+	dc.w $8002,$0014,$8012,$0000,$8002,$001C,$801A,$0000
+	dc.w $8002,$0018,$002A,$0000,$8002,$8014,$0012,$0000
+	dc.w $800A,$802C,$0026,$0000,$800A,$8024,$8022,$0000
+	dc.w $800A,$0020,$801E,$0000,$800A,$002C,$8026,$0000
+	dc.w $800A,$0024,$0022,$0000,$800A,$8020,$001E,$0000
+	dc.w $000A,$802C,$0026,$0000,$000A,$8024,$8022,$0000
+	dc.w $000A,$0020,$801E,$0000,$000A,$002C,$8026,$0000
+	dc.w $000A,$0024,$0022,$0000,$000A,$8020,$001E,$0000
+	dc.w $0002,$801C,$001A,$0000,$0002,$8018,$802A,$0000
+	dc.w $0002,$0014,$8012,$0000,$0002,$001C,$801A,$0000
+	dc.w $0002,$0018,$002A,$0000,$0002,$8014,$0012,$0000
+	dc.w $8002,$8026,$0006,$0000,$8002,$8026,$8006,$0000
+	dc.w $8002,$0000,$8004,$0000,$8002,$0026,$8006,$0000
+	dc.w $8002,$0026,$0006,$0000,$8002,$0000,$0004,$0000
+	dc.w $800A,$802E,$000E,$0000,$800A,$802E,$800E,$0000
+	dc.w $800A,$0000,$800C,$0000,$800A,$002E,$800E,$0000
+	dc.w $800A,$002E,$000E,$0000,$800A,$0000,$000C,$0000
+	dc.w $000A,$802E,$000E,$0000,$000A,$802E,$800E,$0000
+	dc.w $000A,$0000,$800C,$0000,$000A,$002E,$800E,$0000
+	dc.w $000A,$002E,$000E,$0000,$000A,$0000,$000C,$0000
+	dc.w $0002,$8026,$0006,$0000,$0002,$8026,$8006,$0000
+	dc.w $0002,$0000,$8004,$0000,$0002,$0026,$8006,$0000
+	dc.w $0002,$0026,$0006,$0000,$0002,$0000,$0004,$0000
+	dc.w $8002,$8018,$0016,$0000,$8002,$801C,$801A,$0000
+	dc.w $8002,$8030,$8012,$0000,$8002,$0018,$8016,$0000
+	dc.w $8002,$001C,$001A,$0000,$8002,$0030,$0012,$0000
+	dc.w $800A,$8024,$0022,$0000,$800A,$8028,$8026,$0000
+	dc.w $800A,$8020,$801E,$0000,$800A,$0024,$8022,$0000
+	dc.w $800A,$0028,$0026,$0000,$800A,$0020,$001E,$0000
+	dc.w $000A,$8024,$0022,$0000,$000A,$8028,$8026,$0000
+	dc.w $000A,$8020,$801E,$0000,$000A,$0024,$8022,$0000
+	dc.w $000A,$0028,$0026,$0000,$000A,$0020,$001E,$0000
+	dc.w $0002,$8018,$0016,$0000,$0002,$801C,$801A,$0000
+	dc.w $0002,$8030,$8012,$0000,$0002,$0018,$8016,$0000
+	dc.w $0002,$001C,$001A,$0000,$0002,$0030,$0012,$0000
+	dc.w $8002,$8016,$0018,$0000,$8002,$8012,$8030,$0000
+	dc.w $8002,$801A,$801C,$0000,$8002,$0016,$8018,$0000
+	dc.w $8002,$0012,$0030,$0000,$8002,$001A,$001C,$0000
+	dc.w $800A,$8022,$0024,$0000,$800A,$801E,$8020,$0000
+	dc.w $800A,$8026,$8028,$0000,$800A,$0022,$8024,$0000
+	dc.w $800A,$001E,$0020,$0000,$800A,$0026,$0028,$0000
+	dc.w $000A,$8022,$0024,$0000,$000A,$801E,$8020,$0000
+	dc.w $000A,$8026,$8028,$0000,$000A,$0022,$8024,$0000
+	dc.w $000A,$001E,$0020,$0000,$000A,$0026,$0028,$0000
+	dc.w $0002,$8016,$0018,$0000,$0002,$8012,$8030,$0000
+	dc.w $0002,$801A,$801C,$0000,$0002,$0016,$8018,$0000
+	dc.w $0002,$0012,$0030,$0000,$0002,$001A,$001C,$0000
+	dc.w $8002,$8032,$0026,$0000,$8002,$8004,$0000,$0000
+	dc.w $8002,$8006,$8026,$0000,$8002,$0032,$8026,$0000
+	dc.w $8002,$0004,$0000,$0000,$8002,$0006,$0026,$0000
+	dc.w $800A,$8034,$002E,$0000,$800A,$800C,$0000,$0000
+	dc.w $800A,$800E,$802E,$0000,$800A,$0034,$802E,$0000
+	dc.w $800A,$000C,$0000,$0000,$800A,$000E,$002E,$0000
+	dc.w $000A,$8034,$002E,$0000,$000A,$800C,$0000,$0000
+	dc.w $000A,$800E,$802E,$0000,$000A,$0034,$802E,$0000
+	dc.w $000A,$000C,$0000,$0000,$000A,$000E,$002E,$0000
+	dc.w $0002,$8032,$0026,$0000,$0002,$8004,$0000,$0000
+	dc.w $0002,$8006,$8026,$0000,$0002,$0032,$8026,$0000
+	dc.w $0002,$0004,$0000,$0000,$0002,$0006,$0026,$0000
+	dc.w $8002,$801A,$001C,$0000,$8002,$8012,$0014,$0000
+	dc.w $8002,$802A,$8018,$0000,$8002,$001A,$801C,$0000
+	dc.w $8002,$0012,$8014,$0000,$8002,$002A,$0018,$0000
+	dc.w $800A,$8026,$002C,$0000,$800A,$801E,$0020,$0000
+	dc.w $800A,$8022,$8024,$0000,$800A,$0026,$802C,$0000
+	dc.w $800A,$001E,$8020,$0000,$800A,$0022,$0024,$0000
+	dc.w $000A,$8026,$002C,$0000,$000A,$801E,$0020,$0000
+	dc.w $000A,$8022,$8024,$0000,$000A,$0026,$802C,$0000
+	dc.w $000A,$001E,$8020,$0000,$000A,$0022,$0024,$0000
+	dc.w $0002,$801A,$001C,$0000,$0002,$8012,$0014,$0000
+	dc.w $0002,$802A,$8018,$0000,$0002,$001A,$801C,$0000
+	dc.w $0002,$0012,$8014,$0000,$0002,$002A,$0018,$0000
+	dc.w $8002,$8014,$0012,$0000,$8002,$801C,$001A,$0000
+	dc.w $8002,$8018,$8016,$0000,$8002,$0014,$8012,$0000
+	dc.w $8002,$001C,$801A,$0000,$8002,$0018,$0016,$0000
+	dc.w $800A,$8020,$001E,$0000,$800A,$8028,$0026,$0000
+	dc.w $800A,$8024,$8022,$0000,$800A,$0020,$801E,$0000
+	dc.w $800A,$0028,$8026,$0000,$800A,$0024,$0022,$0000
+	dc.w $000A,$8020,$001E,$0000,$000A,$8028,$0026,$0000
+	dc.w $000A,$8024,$8022,$0000,$000A,$0020,$801E,$0000
+	dc.w $000A,$0028,$8026,$0000,$000A,$0024,$0022,$0000
+	dc.w $0002,$8014,$0012,$0000,$0002,$801C,$001A,$0000
+	dc.w $0002,$8018,$8016,$0000,$0002,$0014,$8012,$0000
+	dc.w $0002,$001C,$801A,$0000,$0002,$0018,$0016,$0000
+	dc.w $8002,$0000,$0004,$0000,$8002,$8008,$0006,$0000
+	dc.w $8002,$8008,$8032,$0000,$8002,$0000,$8004,$0000
+	dc.w $8002,$0008,$8006,$0000,$8002,$0008,$0032,$0000
+	dc.w $800A,$0000,$000C,$0000,$800A,$8010,$000E,$0000
+	dc.w $800A,$8010,$8034,$0000,$800A,$0000,$800C,$0000
+	dc.w $800A,$0010,$800E,$0000,$800A,$0010,$0034,$0000
+	dc.w $000A,$0000,$000C,$0000,$000A,$8010,$000E,$0000
+	dc.w $000A,$8010,$8034,$0000,$000A,$0000,$800C,$0000
+	dc.w $000A,$0010,$800E,$0000,$000A,$0010,$0034,$0000
+	dc.w $0002,$0000,$0004,$0000,$0002,$8008,$0006,$0000
+	dc.w $0002,$8008,$8032,$0000,$0002,$0000,$8004,$0000
+	dc.w $0002,$0008,$8006,$0000,$0002,$0008,$0032,$0000
+	dc.w $8002,$0014,$0012,$0000,$8002,$8018,$0016,$0000
+	dc.w $8002,$801C,$801A,$0000,$8002,$8014,$8012,$0000
+	dc.w $8002,$0018,$8016,$0000,$8002,$001C,$001A,$0000
+	dc.w $800A,$0020,$001E,$0000,$800A,$8024,$0022,$0000
+	dc.w $800A,$8028,$8026,$0000,$800A,$8020,$801E,$0000
+	dc.w $800A,$0024,$8022,$0000,$800A,$0028,$0026,$0000
+	dc.w $000A,$0020,$001E,$0000,$000A,$8024,$0022,$0000
+	dc.w $000A,$8028,$8026,$0000,$000A,$8020,$801E,$0000
+	dc.w $000A,$0024,$8022,$0000,$000A,$0028,$0026,$0000
+	dc.w $0002,$0014,$0012,$0000,$0002,$8018,$0016,$0000
+	dc.w $0002,$801C,$801A,$0000,$0002,$8014,$8012,$0000
+	dc.w $0002,$0018,$8016,$0000,$0002,$001C,$001A,$0000
+	dc.w $8002,$001A,$001C,$0000,$8002,$802A,$0018,$0000
+	dc.w $8002,$8012,$8014,$0000,$8002,$801A,$801C,$0000
+	dc.w $8002,$002A,$8018,$0000,$8002,$0012,$0014,$0000
+	dc.w $800A,$0026,$002C,$0000,$800A,$8022,$0024,$0000
+	dc.w $800A,$801E,$8020,$0000,$800A,$8026,$802C,$0000
+	dc.w $800A,$0022,$8024,$0000,$800A,$001E,$0020,$0000
+	dc.w $000A,$0026,$002C,$0000,$000A,$8022,$0024,$0000
+	dc.w $000A,$801E,$8020,$0000,$000A,$8026,$802C,$0000
+	dc.w $000A,$0022,$8024,$0000,$000A,$001E,$0020,$0000
+	dc.w $0002,$001A,$001C,$0000,$0002,$802A,$0018,$0000
+	dc.w $0002,$8012,$8014,$0000,$0002,$801A,$801C,$0000
+	dc.w $0002,$002A,$8018,$0000,$0002,$0012,$0014,$0000
 model_091_variant_frames:
 	dc.l model_091_variant_words	; 11 viewer-indexed variant frames, 24 encoded vertex records per frame; 8-byte stride with unint
 	dc.l model_091_variant_words+$C0
@@ -34483,15 +34510,15 @@ model_091_variant_frames:
 	dc.l model_091_variant_words+$780
 model_092_faces:
 	dc.w $840A,$0000,$0008,$0038,$0030,$8409,$0008,$0010	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0040,$0038,$830A,$0040,$0048,$0088,$830A,$0048	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0060,$0088,$8409,$0060,$0068,$0010,$0088,$840A	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0010,$0018,$0070,$0068,$8409,$0018,$0020,$0078	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0070,$8408,$0078,$0080,$0090,$0020,$830A,$0080	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0048,$0090,$830A,$0048,$0050,$0090,$8408,$0020	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0028,$0058,$0050,$8409,$0028,$0000,$0030,$0058	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0040,$0038,$830A,$0040,$0048,$0088,$830A,$0048
+	dc.w $0060,$0088,$8409,$0060,$0068,$0010,$0088,$840A
+	dc.w $0010,$0018,$0070,$0068,$8409,$0018,$0020,$0078
+	dc.w $0070,$8408,$0078,$0080,$0090,$0020,$830A,$0080
+	dc.w $0048,$0090,$830A,$0048,$0050,$0090,$8408,$0020
+	dc.w $0028,$0058,$0050,$8409,$0028,$0000,$0030,$0058
 model_092_coordinates:
 	dc.w $0000,$1900,$30C0,$0C80,$15A8,$3200,$2370,$2580	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $26B0,$2D60,$01B0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $26B0,$2D60,$01B0
 model_092_vertices:
 	dc.w $8002	; x_coordinate_ref
 	dc.w $0000	; y_coordinate_ref
@@ -34571,7 +34598,7 @@ model_092_vertices:
 	dc.w $FFFF	; variant_offset_or_negative
 model_093_faces:
 	dc.w $0301,$0000,$0008,$0010,$0306,$0000,$0010,$0018	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0304,$0000,$0018,$0020,$0305,$0000,$0020,$0008	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0304,$0000,$0018,$0020,$0305,$0000,$0020,$0008
 model_093_coordinates:
 	dc.w $0000,$1900,$3E80,$3B60,$0320,$41A0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
 model_093_vertices:
@@ -34597,11 +34624,11 @@ model_093_vertices:
 	dc.w $FFFF	; variant_offset_or_negative
 model_094_faces:
 	dc.w $830A,$0000,$0008,$0030,$830A,$0010,$0018,$0038	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $830A,$0018,$0020,$0040,$830A,$0028,$0048,$0000	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $8409,$0030,$0038,$0058,$0050,$8408,$0038,$0040	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0060,$0058,$8409,$0040,$0048,$0068,$0060,$8408	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0048,$0030,$0050,$0068,$840A,$0050,$0058,$0060	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0068	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $830A,$0018,$0020,$0040,$830A,$0028,$0048,$0000
+	dc.w $8409,$0030,$0038,$0058,$0050,$8408,$0038,$0040
+	dc.w $0060,$0058,$8409,$0040,$0048,$0068,$0060,$8408
+	dc.w $0048,$0030,$0050,$0068,$840A,$0050,$0058,$0060
+	dc.w $0068
 model_094_coordinates:
 	dc.w $0000,$1900,$1F40,$0C80,$15A8	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
 model_094_vertices:
@@ -34663,29 +34690,29 @@ model_094_vertices:
 	dc.w $FFFF	; variant_offset_or_negative
 model_095_faces:
 	dc.w $820E,$0000,$0008,$820E,$0008,$0010,$820E,$0010	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0018,$820E,$0018,$0020,$820E,$0020,$0028,$820E	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0028,$0030,$820E,$0030,$0038,$820E,$0038,$0000	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0018,$820E,$0018,$0020,$820E,$0020,$0028,$820E
+	dc.w $0028,$0030,$820E,$0030,$0038,$820E,$0038,$0000
 model_095_coordinates:
 	dc.w $0000,$0240,$1130,$0C00,$0170,$1460,$0280,$0B38	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0030,$00A0,$10B0,$0F00,$02B0,$00F0,$0B88,$0140	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0210,$11E0,$0ED8,$0200,$11F0,$0E58,$0120,$0190	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $1320,$0E00,$1270,$0100,$0EF0,$01D0,$1090,$0BA8	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0FD0,$0160,$0C58,$00E0,$11A0,$0E08,$0010,$1010	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $01E0,$0C50,$02F0,$0080,$11C0,$0B78,$0290,$12B0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0E90,$0060,$1170,$0EE0,$1070,$0130,$0EA8,$1420	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0DB0,$1230,$0D98,$00B0,$0C38,$1530,$0220,$0B90	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0260,$0D10,$0040,$1280,$01F0,$0B98,$1560,$0F38	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $13F0,$0EB0,$12E0,$0E68,$1030,$0050,$1370,$0CA8	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0310,$0E18,$0230,$11B0,$15E0,$0C18,$0090,$0150	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $1470,$0F70,$1210,$0D60,$0FF0,$0DE0,$0250,$10C0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $10A0,$0070,$15D0,$0F50,$12D0,$01A0,$0020,$1350	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $01B0,$1220,$0DF0,$0DD0,$0270,$1510,$0E28,$00C0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $10E0,$0EC8,$0D48,$1140,$0D40,$02C0,$1050,$1590	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0F30,$02E0,$00D0,$1410,$0300,$0110,$1110,$12C0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0F10,$0DA0,$10F0,$0D80,$0D30,$1520,$1290,$0BB0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $15C0,$02D0,$0BC0,$1300,$0F60,$1080,$0C88,$15B0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0B10,$14D0,$0180,$1550,$1330,$0F28,$1400,$14B0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $1340,$0E38,$0E40,$0DE8,$0320,$13A0,$0EA0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0030,$00A0,$10B0,$0F00,$02B0,$00F0,$0B88,$0140
+	dc.w $0210,$11E0,$0ED8,$0200,$11F0,$0E58,$0120,$0190
+	dc.w $1320,$0E00,$1270,$0100,$0EF0,$01D0,$1090,$0BA8
+	dc.w $0FD0,$0160,$0C58,$00E0,$11A0,$0E08,$0010,$1010
+	dc.w $01E0,$0C50,$02F0,$0080,$11C0,$0B78,$0290,$12B0
+	dc.w $0E90,$0060,$1170,$0EE0,$1070,$0130,$0EA8,$1420
+	dc.w $0DB0,$1230,$0D98,$00B0,$0C38,$1530,$0220,$0B90
+	dc.w $0260,$0D10,$0040,$1280,$01F0,$0B98,$1560,$0F38
+	dc.w $13F0,$0EB0,$12E0,$0E68,$1030,$0050,$1370,$0CA8
+	dc.w $0310,$0E18,$0230,$11B0,$15E0,$0C18,$0090,$0150
+	dc.w $1470,$0F70,$1210,$0D60,$0FF0,$0DE0,$0250,$10C0
+	dc.w $10A0,$0070,$15D0,$0F50,$12D0,$01A0,$0020,$1350
+	dc.w $01B0,$1220,$0DF0,$0DD0,$0270,$1510,$0E28,$00C0
+	dc.w $10E0,$0EC8,$0D48,$1140,$0D40,$02C0,$1050,$1590
+	dc.w $0F30,$02E0,$00D0,$1410,$0300,$0110,$1110,$12C0
+	dc.w $0F10,$0DA0,$10F0,$0D80,$0D30,$1520,$1290,$0BB0
+	dc.w $15C0,$02D0,$0BC0,$1300,$0F60,$1080,$0C88,$15B0
+	dc.w $0B10,$14D0,$0180,$1550,$1330,$0F28,$1400,$14B0
+	dc.w $1340,$0E38,$0E40,$0DE8,$0320,$13A0,$0EA0
 model_095_vertices:
 	dc.w $0000	; x_coordinate_ref
 	dc.w $8002	; y_coordinate_ref
@@ -34721,81 +34748,81 @@ model_095_vertices:
 	dc.w $0038	; variant_offset_or_negative
 model_095_variant_words:
 	dc.w $0000,$0020,$8022,$0000,$0024,$8026,$8024,$0000	; 19 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0028,$8012,$0000,$0000,$002A,$802C,$002A,$0000	; 19 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0000,$002E,$0030,$0000,$8032,$0012,$0032,$0000	; 19 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8034,$8036,$0000,$0000,$8038,$802C,$8038,$0000	; 19 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0000,$803A,$803C,$0000,$003E,$801A,$803E,$0000	; 19 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0040,$8042,$0000,$0000,$0044,$802E,$0044,$0000	; 19 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0000,$8046,$0048,$0000,$804A,$804C,$004A,$0000	; 19 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $804E,$8050,$0000,$0000,$8052,$8054,$8052,$0000	; 19 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0000,$0056,$8058,$0000,$005A,$005C,$805A,$0000	; 19 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $005E,$800C,$0000,$0000,$0060,$0062,$0060,$0000	; 19 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0000,$8056,$0064,$0000,$8066,$800C,$0066,$0000	; 19 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8068,$806A,$0000,$0000,$806C,$8056,$806C,$0000	; 19 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0000,$802E,$806E,$0000,$0070,$802E,$8070,$0000	; 19 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0072,$806A,$0000,$0000,$0074,$8076,$0074,$0000	; 19 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0000,$8062,$0014,$0000,$8078,$8042,$0078,$0000	; 19 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $807A,$007C,$0000,$0000,$807E,$8080,$807E,$0000	; 19 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0000,$805C,$8040,$0000,$0082,$0084,$8082,$0000	; 19 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0086,$8088,$0000,$0000,$008A,$0062,$008A,$0000	; 19 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0000,$8076,$008C,$0000,$808E,$8008,$008E,$0000	; 19 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8090,$0012,$0000,$0000,$8092,$001E,$8092,$0000	; 19 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0000,$8080,$8094,$0000,$0096,$8036,$8096,$0000	; 19 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0098,$8080,$0000,$0000,$003E,$809A,$003E,$0000	; 19 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0000,$8026,$009C,$0000,$809E,$8054,$009E,$0000	; 19 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8030,$00A0,$0000,$0000,$80A2,$00A4,$80A2,$0000	; 19 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0000,$802E,$80A6,$0000,$000E,$8012,$800E,$0000	; 19 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $00A8,$8056,$0000,$0000,$00AA,$80AC,$00AA,$0000	; 19 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0000,$00AE,$00B0,$0000,$80B2,$002E,$00B2,$0000	; 19 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $80B4,$006A,$0000,$0000,$80B6,$0076,$80B6,$0000	; 19 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0000,$809A,$80B8,$0000,$00BA,$005C,$80BA,$0000	; 19 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $00B4,$800C,$0000,$0000,$0060,$00BC,$0060,$0000	; 19 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0000,$00AE,$0072,$0000,$8074,$00A4,$0074,$0000	; 19 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $80BE,$009A,$0000,$0000,$8060,$802C,$8060,$0000	; 19 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0000,$0036,$80C0,$0000,$0078,$80C2,$8078,$0000	; 19 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $00C4,$004C,$0000,$0000,$0006,$80BC,$0006,$0000	; 19 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0000,$8050,$00C0,$0000,$80C6,$00A0,$00C6,$0000	; 19 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $80C8,$80CA,$0000,$0000,$80AA,$80CC,$80AA,$0000	; 19 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0000,$8018,$80CE,$0000,$0070,$8012,$8070,$0000	; 19 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0014,$80D0,$0000,$0000,$00BA,$001A,$00BA,$0000	; 19 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0000,$006A,$00D2,$0000,$80D4,$80C2,$00D4,$0000	; 19 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8072,$002E,$0000,$0000,$80D6,$00D8,$80D6,$0000	; 19 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0000,$8088,$80DA,$0000,$00DC,$80DE,$80DC,$0000	; 19 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $00E0,$00CA,$0000,$0000,$00E2,$00CC,$00E2,$0000	; 19 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0000,$001E,$0040,$0000,$80E4,$003A,$00E4,$0000	; 19 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $80E6,$8054,$0000,$0000,$80E8,$80EA,$80E8,$0000	; 19 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0000,$8008,$80EC,$0000,$00E4,$0012,$80E4,$0000	; 19 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $00EE,$0084,$0000,$0000,$00F0,$80F2,$00F0,$0000	; 19 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0000,$8084,$0094,$0000,$803E,$80F4,$003E,$0000	; 19 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $80F6,$00F8,$0000,$0000,$80C6,$00FA,$80C6,$0000	; 19 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0000,$00FA,$80FC,$0000,$00E8,$801E,$80E8,$0000	; 19 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $00FE,$8008,$0000,$0000,$00C6,$0046,$00C6,$0000	; 19 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0000,$00BC,$00BE,$0000,$8100,$00CA,$0100,$0000	; 19 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $80BE,$8020,$0000,$0000,$8102,$8062,$8102,$0000	; 19 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0000,$80D8,$8104,$0000,$0106,$00D0,$8106,$0000	; 19 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0034,$0012,$0000,$0000,$0024,$0084,$0024,$0000	; 19 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0000,$80F4,$0072,$0000,$8038,$804C,$0038,$0000	; 19 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $80E6,$80D8,$0000,$0000,$8108,$0036,$8108,$0000	; 19 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0000,$80F4,$810A,$0000,$00A2,$80F8,$80A2,$0000	; 19 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $00E0,$00FA,$0000,$0000,$00BA,$009A,$00BA,$0000	; 19 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0000,$0076,$010C,$0000,$810E,$0042,$010E,$0000	; 19 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8110,$0084,$0000,$0000,$8016,$8112,$8016,$0000	; 19 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0000,$0000,$80DA,$0000,$00AA,$8088,$80AA,$0000	; 19 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $00FC,$8018,$0000,$0000,$0114,$0080,$0114,$0000	; 19 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0000,$00BC,$0116,$0000,$8118,$00CC,$0118,$0000	; 19 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $810C,$00F4,$0000,$0000,$8078,$0042,$8078,$0000	; 19 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0000,$004C,$80A6,$0000,$0100,$000C,$8100,$0000	; 19 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $011A,$8080,$0000,$0000,$011C,$802E,$011C,$0000	; 19 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0000,$8112,$011E,$0000,$8120,$00F4,$0120,$0000	; 19 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $8122,$0018,$0000,$0000,$80A2,$80AE,$80A2,$0000	; 19 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0000,$0124,$8126,$0000,$0082,$00D0,$8082,$0000	; 19 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0128,$8080,$0000,$0000,$012A,$0012,$012A,$0000	; 19 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0000,$8050,$012C,$0000,$812A,$800C,$012A,$0000	; 19 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $812E,$00CA,$0000,$0000,$8038,$0042,$8038,$0000	; 19 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0000,$8050,$8130,$0000,$0132,$0076,$8132,$0000	; 19 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0028,$0026,$0000,$0000,$0134,$80A4,$0134,$0000	; 19 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $0000,$0054,$0072,$0000,$8136,$0138,$0136,$0000	; 19 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
-	dc.w $813A,$8008,$0000,$0000,$813C,$80BC,$813C,$0000	; 19 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
+	dc.w $0028,$8012,$0000,$0000,$002A,$802C,$002A,$0000
+	dc.w $0000,$002E,$0030,$0000,$8032,$0012,$0032,$0000
+	dc.w $8034,$8036,$0000,$0000,$8038,$802C,$8038,$0000
+	dc.w $0000,$803A,$803C,$0000,$003E,$801A,$803E,$0000
+	dc.w $0040,$8042,$0000,$0000,$0044,$802E,$0044,$0000
+	dc.w $0000,$8046,$0048,$0000,$804A,$804C,$004A,$0000
+	dc.w $804E,$8050,$0000,$0000,$8052,$8054,$8052,$0000
+	dc.w $0000,$0056,$8058,$0000,$005A,$005C,$805A,$0000
+	dc.w $005E,$800C,$0000,$0000,$0060,$0062,$0060,$0000
+	dc.w $0000,$8056,$0064,$0000,$8066,$800C,$0066,$0000
+	dc.w $8068,$806A,$0000,$0000,$806C,$8056,$806C,$0000
+	dc.w $0000,$802E,$806E,$0000,$0070,$802E,$8070,$0000
+	dc.w $0072,$806A,$0000,$0000,$0074,$8076,$0074,$0000
+	dc.w $0000,$8062,$0014,$0000,$8078,$8042,$0078,$0000
+	dc.w $807A,$007C,$0000,$0000,$807E,$8080,$807E,$0000
+	dc.w $0000,$805C,$8040,$0000,$0082,$0084,$8082,$0000
+	dc.w $0086,$8088,$0000,$0000,$008A,$0062,$008A,$0000
+	dc.w $0000,$8076,$008C,$0000,$808E,$8008,$008E,$0000
+	dc.w $8090,$0012,$0000,$0000,$8092,$001E,$8092,$0000
+	dc.w $0000,$8080,$8094,$0000,$0096,$8036,$8096,$0000
+	dc.w $0098,$8080,$0000,$0000,$003E,$809A,$003E,$0000
+	dc.w $0000,$8026,$009C,$0000,$809E,$8054,$009E,$0000
+	dc.w $8030,$00A0,$0000,$0000,$80A2,$00A4,$80A2,$0000
+	dc.w $0000,$802E,$80A6,$0000,$000E,$8012,$800E,$0000
+	dc.w $00A8,$8056,$0000,$0000,$00AA,$80AC,$00AA,$0000
+	dc.w $0000,$00AE,$00B0,$0000,$80B2,$002E,$00B2,$0000
+	dc.w $80B4,$006A,$0000,$0000,$80B6,$0076,$80B6,$0000
+	dc.w $0000,$809A,$80B8,$0000,$00BA,$005C,$80BA,$0000
+	dc.w $00B4,$800C,$0000,$0000,$0060,$00BC,$0060,$0000
+	dc.w $0000,$00AE,$0072,$0000,$8074,$00A4,$0074,$0000
+	dc.w $80BE,$009A,$0000,$0000,$8060,$802C,$8060,$0000
+	dc.w $0000,$0036,$80C0,$0000,$0078,$80C2,$8078,$0000
+	dc.w $00C4,$004C,$0000,$0000,$0006,$80BC,$0006,$0000
+	dc.w $0000,$8050,$00C0,$0000,$80C6,$00A0,$00C6,$0000
+	dc.w $80C8,$80CA,$0000,$0000,$80AA,$80CC,$80AA,$0000
+	dc.w $0000,$8018,$80CE,$0000,$0070,$8012,$8070,$0000
+	dc.w $0014,$80D0,$0000,$0000,$00BA,$001A,$00BA,$0000
+	dc.w $0000,$006A,$00D2,$0000,$80D4,$80C2,$00D4,$0000
+	dc.w $8072,$002E,$0000,$0000,$80D6,$00D8,$80D6,$0000
+	dc.w $0000,$8088,$80DA,$0000,$00DC,$80DE,$80DC,$0000
+	dc.w $00E0,$00CA,$0000,$0000,$00E2,$00CC,$00E2,$0000
+	dc.w $0000,$001E,$0040,$0000,$80E4,$003A,$00E4,$0000
+	dc.w $80E6,$8054,$0000,$0000,$80E8,$80EA,$80E8,$0000
+	dc.w $0000,$8008,$80EC,$0000,$00E4,$0012,$80E4,$0000
+	dc.w $00EE,$0084,$0000,$0000,$00F0,$80F2,$00F0,$0000
+	dc.w $0000,$8084,$0094,$0000,$803E,$80F4,$003E,$0000
+	dc.w $80F6,$00F8,$0000,$0000,$80C6,$00FA,$80C6,$0000
+	dc.w $0000,$00FA,$80FC,$0000,$00E8,$801E,$80E8,$0000
+	dc.w $00FE,$8008,$0000,$0000,$00C6,$0046,$00C6,$0000
+	dc.w $0000,$00BC,$00BE,$0000,$8100,$00CA,$0100,$0000
+	dc.w $80BE,$8020,$0000,$0000,$8102,$8062,$8102,$0000
+	dc.w $0000,$80D8,$8104,$0000,$0106,$00D0,$8106,$0000
+	dc.w $0034,$0012,$0000,$0000,$0024,$0084,$0024,$0000
+	dc.w $0000,$80F4,$0072,$0000,$8038,$804C,$0038,$0000
+	dc.w $80E6,$80D8,$0000,$0000,$8108,$0036,$8108,$0000
+	dc.w $0000,$80F4,$810A,$0000,$00A2,$80F8,$80A2,$0000
+	dc.w $00E0,$00FA,$0000,$0000,$00BA,$009A,$00BA,$0000
+	dc.w $0000,$0076,$010C,$0000,$810E,$0042,$010E,$0000
+	dc.w $8110,$0084,$0000,$0000,$8016,$8112,$8016,$0000
+	dc.w $0000,$0000,$80DA,$0000,$00AA,$8088,$80AA,$0000
+	dc.w $00FC,$8018,$0000,$0000,$0114,$0080,$0114,$0000
+	dc.w $0000,$00BC,$0116,$0000,$8118,$00CC,$0118,$0000
+	dc.w $810C,$00F4,$0000,$0000,$8078,$0042,$8078,$0000
+	dc.w $0000,$004C,$80A6,$0000,$0100,$000C,$8100,$0000
+	dc.w $011A,$8080,$0000,$0000,$011C,$802E,$011C,$0000
+	dc.w $0000,$8112,$011E,$0000,$8120,$00F4,$0120,$0000
+	dc.w $8122,$0018,$0000,$0000,$80A2,$80AE,$80A2,$0000
+	dc.w $0000,$0124,$8126,$0000,$0082,$00D0,$8082,$0000
+	dc.w $0128,$8080,$0000,$0000,$012A,$0012,$012A,$0000
+	dc.w $0000,$8050,$012C,$0000,$812A,$800C,$012A,$0000
+	dc.w $812E,$00CA,$0000,$0000,$8038,$0042,$8038,$0000
+	dc.w $0000,$8050,$8130,$0000,$0132,$0076,$8132,$0000
+	dc.w $0028,$0026,$0000,$0000,$0134,$80A4,$0134,$0000
+	dc.w $0000,$0054,$0072,$0000,$8136,$0138,$0136,$0000
+	dc.w $813A,$8008,$0000,$0000,$813C,$80BC,$813C,$0000
 model_095_variant_frames:
 	dc.l model_095_variant_words	; 19 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
 	dc.l model_095_variant_words+$40
@@ -34818,10 +34845,10 @@ model_095_variant_frames:
 	dc.l model_095_variant_words+$480
 model_096_faces:
 	dc.w $0401,$0000,$0008,$0028,$0020,$0406,$0008,$0010	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0030,$0028,$0405,$0010,$0018,$0038,$0030,$0406	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0018,$0000,$0020,$0038,$030E,$0020,$0028,$0040	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $030D,$0028,$0030,$0040,$030C,$0030,$0038,$0040	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $030D,$0038,$0020,$0040,$830E,$0048,$0050,$0058	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0030,$0028,$0405,$0010,$0018,$0038,$0030,$0406
+	dc.w $0018,$0000,$0020,$0038,$030E,$0020,$0028,$0040
+	dc.w $030D,$0028,$0030,$0040,$030C,$0030,$0038,$0040
+	dc.w $030D,$0038,$0020,$0040,$830E,$0048,$0050,$0058
 model_096_coordinates:
 	dc.w $0000,$15E0,$0320,$0960,$1900,$2580,$0140,$1DB0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
 model_096_vertices:
@@ -34875,18 +34902,18 @@ model_096_vertices:
 	dc.w $FFFF	; variant_offset_or_negative
 model_097_faces:
 	dc.w $0305,$0008,$0010,$0018,$0306,$0008,$0018,$0020	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0301,$0008,$0020,$0010,$0304,$0010,$0028,$0018	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0305,$0018,$0028,$0020,$0306,$0020,$0028,$0010	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $030C,$0028,$0030,$0038,$030D,$0028,$0038,$0040	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $030E,$0028,$0040,$0030,$030B,$0030,$0048,$0038	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $030C,$0038,$0048,$0040,$030D,$0040,$0048,$0030	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0305,$0048,$0050,$0058,$0306,$0048,$0058,$0060	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0301,$0048,$0060,$0050,$0304,$0050,$0068,$0058	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0305,$0058,$0068,$0060,$0306,$0060,$0068,$0050	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $820E,$0000,$0008	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0301,$0008,$0020,$0010,$0304,$0010,$0028,$0018
+	dc.w $0305,$0018,$0028,$0020,$0306,$0020,$0028,$0010
+	dc.w $030C,$0028,$0030,$0038,$030D,$0028,$0038,$0040
+	dc.w $030E,$0028,$0040,$0030,$030B,$0030,$0048,$0038
+	dc.w $030C,$0038,$0048,$0040,$030D,$0040,$0048,$0030
+	dc.w $0305,$0048,$0050,$0058,$0306,$0048,$0058,$0060
+	dc.w $0301,$0048,$0060,$0050,$0304,$0050,$0068,$0058
+	dc.w $0305,$0058,$0068,$0060,$0306,$0060,$0068,$0050
+	dc.w $820E,$0000,$0008
 model_097_coordinates:
 	dc.w $0000,$1900,$12C0,$0790,$0FA0,$0460,$08C0,$0C80	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0960,$0640,$0320	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0960,$0640,$0320
 model_097_vertices:
 	dc.w $0000	; x_coordinate_ref
 	dc.w $8002	; y_coordinate_ref
@@ -34946,21 +34973,21 @@ model_097_vertices:
 	dc.w $FFFF	; variant_offset_or_negative
 model_098_faces:
 	dc.w $030E,$0000,$0010,$0008,$0301,$0000,$0018,$0010	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $030E,$0000,$0020,$0018,$0301,$0000,$0028,$0020	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $030E,$0000,$0030,$0028,$0301,$0000,$0008,$0030	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $040D,$0008,$0010,$0040,$0038,$0406,$0010,$0018	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0048,$0040,$040D,$0018,$0020,$0050,$0048,$0406	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0020,$0028,$0058,$0050,$040D,$0028,$0030,$0060	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0058,$0406,$0030,$0008,$0038,$0060,$030C,$0038	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0040,$0068,$0305,$0040,$0048,$0068,$030C,$0048	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0050,$0068,$0305,$0050,$0058,$0068,$030C,$0058	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0060,$0068,$0305,$0060,$0038,$0068,$8401,$0070	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0078,$0098,$0090,$8406,$0078,$0080,$00A0,$0098	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $8401,$0080,$0088,$00A8,$00A0,$8406,$0088,$0070	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0090,$00A8	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $030E,$0000,$0020,$0018,$0301,$0000,$0028,$0020
+	dc.w $030E,$0000,$0030,$0028,$0301,$0000,$0008,$0030
+	dc.w $040D,$0008,$0010,$0040,$0038,$0406,$0010,$0018
+	dc.w $0048,$0040,$040D,$0018,$0020,$0050,$0048,$0406
+	dc.w $0020,$0028,$0058,$0050,$040D,$0028,$0030,$0060
+	dc.w $0058,$0406,$0030,$0008,$0038,$0060,$030C,$0038
+	dc.w $0040,$0068,$0305,$0040,$0048,$0068,$030C,$0048
+	dc.w $0050,$0068,$0305,$0050,$0058,$0068,$030C,$0058
+	dc.w $0060,$0068,$0305,$0060,$0038,$0068,$8401,$0070
+	dc.w $0078,$0098,$0090,$8406,$0078,$0080,$00A0,$0098
+	dc.w $8401,$0080,$0088,$00A8,$00A0,$8406,$0088,$0070
+	dc.w $0090,$00A8
 model_098_coordinates:
 	dc.w $0000,$06E0,$0320,$04B0,$0190,$02B0,$0640,$0410	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0820	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0820
 model_098_vertices:
 	dc.w $0000	; x_coordinate_ref
 	dc.w $0000	; y_coordinate_ref
@@ -35052,41 +35079,41 @@ model_098_vertices:
 	dc.w $FFFF	; variant_offset_or_negative
 model_099_faces:
 	dc.w $8404,$0000,$0008,$0028,$0020,$8405,$0008,$0010	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0030,$0028,$8401,$0010,$0018,$0038,$0030,$8405	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0018,$0000,$0020,$0038,$8401,$0008,$0000,$0040	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0048,$8406,$0010,$0008,$0048,$0050,$8405,$0018	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0010,$0050,$0058,$8406,$0000,$0018,$0058,$0040	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $8401,$0020,$0028,$0068,$0060,$8406,$0028,$0030	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0070,$0068,$8405,$0030,$0038,$0078,$0070,$8406	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0038,$0020,$0060,$0078,$8406,$0048,$0040,$0060	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0068,$8405,$0050,$0048,$0068,$0070,$8404,$0058	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0050,$0070,$0078,$8405,$0040,$0058,$0078,$0060	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $840E,$0060,$0040,$0080,$00C0,$840E,$0068,$0048	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0090,$00D0,$840E,$0070,$0050,$00A0,$00E0,$840E	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0078,$0058,$00B0,$00F0,$840A,$0080,$0088,$00C8	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $00C0,$8407,$0088,$0090,$00D0,$00C8,$840A,$0090	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0098,$00D8,$00D0,$8409,$0098,$00A0,$00E0,$00D8	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $8408,$00A0,$00A8,$00E8,$00E0,$8402,$00A8,$00B0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $00F0,$00E8,$8408,$00B0,$00B8,$00F8,$00F0,$8409	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $00B8,$0080,$00C0,$00F8,$8402,$0088,$0080,$0100	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0108,$8408,$0090,$0088,$0108,$0110,$8409,$0098	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0090,$0110,$0118,$840A,$00A0,$0098,$0118,$0120	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $8407,$00A8,$00A0,$0120,$0128,$840A,$00B0,$00A8	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0128,$0130,$8409,$00B8,$00B0,$0130,$0138,$8408	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0080,$00B8,$0138,$0100,$8402,$00C0,$00C8,$0148	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0140,$8408,$00C8,$00D0,$0150,$0148,$8409,$00D0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $00D8,$0158,$0150,$840A,$00D8,$00E0,$0160,$0158	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $8407,$00E0,$00E8,$0168,$0160,$840A,$00E8,$00F0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0170,$0168,$8409,$00F0,$00F8,$0178,$0170,$8408	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $00F8,$00C0,$0140,$0178,$8408,$0108,$0100,$0140	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0148,$8402,$0110,$0108,$0148,$0150,$8408,$0118	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0110,$0150,$0158,$8409,$0120,$0118,$0158,$0160	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $840A,$0128,$0120,$0160,$0168,$8407,$0130,$0128	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0168,$0170,$840A,$0138,$0130,$0170,$0178,$8409	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0100,$0138,$0178,$0140	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0030,$0028,$8401,$0010,$0018,$0038,$0030,$8405
+	dc.w $0018,$0000,$0020,$0038,$8401,$0008,$0000,$0040
+	dc.w $0048,$8406,$0010,$0008,$0048,$0050,$8405,$0018
+	dc.w $0010,$0050,$0058,$8406,$0000,$0018,$0058,$0040
+	dc.w $8401,$0020,$0028,$0068,$0060,$8406,$0028,$0030
+	dc.w $0070,$0068,$8405,$0030,$0038,$0078,$0070,$8406
+	dc.w $0038,$0020,$0060,$0078,$8406,$0048,$0040,$0060
+	dc.w $0068,$8405,$0050,$0048,$0068,$0070,$8404,$0058
+	dc.w $0050,$0070,$0078,$8405,$0040,$0058,$0078,$0060
+	dc.w $840E,$0060,$0040,$0080,$00C0,$840E,$0068,$0048
+	dc.w $0090,$00D0,$840E,$0070,$0050,$00A0,$00E0,$840E
+	dc.w $0078,$0058,$00B0,$00F0,$840A,$0080,$0088,$00C8
+	dc.w $00C0,$8407,$0088,$0090,$00D0,$00C8,$840A,$0090
+	dc.w $0098,$00D8,$00D0,$8409,$0098,$00A0,$00E0,$00D8
+	dc.w $8408,$00A0,$00A8,$00E8,$00E0,$8402,$00A8,$00B0
+	dc.w $00F0,$00E8,$8408,$00B0,$00B8,$00F8,$00F0,$8409
+	dc.w $00B8,$0080,$00C0,$00F8,$8402,$0088,$0080,$0100
+	dc.w $0108,$8408,$0090,$0088,$0108,$0110,$8409,$0098
+	dc.w $0090,$0110,$0118,$840A,$00A0,$0098,$0118,$0120
+	dc.w $8407,$00A8,$00A0,$0120,$0128,$840A,$00B0,$00A8
+	dc.w $0128,$0130,$8409,$00B8,$00B0,$0130,$0138,$8408
+	dc.w $0080,$00B8,$0138,$0100,$8402,$00C0,$00C8,$0148
+	dc.w $0140,$8408,$00C8,$00D0,$0150,$0148,$8409,$00D0
+	dc.w $00D8,$0158,$0150,$840A,$00D8,$00E0,$0160,$0158
+	dc.w $8407,$00E0,$00E8,$0168,$0160,$840A,$00E8,$00F0
+	dc.w $0170,$0168,$8409,$00F0,$00F8,$0178,$0170,$8408
+	dc.w $00F8,$00C0,$0140,$0178,$8408,$0108,$0100,$0140
+	dc.w $0148,$8402,$0110,$0108,$0148,$0150,$8408,$0118
+	dc.w $0110,$0150,$0158,$8409,$0120,$0118,$0158,$0160
+	dc.w $840A,$0128,$0120,$0160,$0168,$8407,$0130,$0128
+	dc.w $0168,$0170,$840A,$0138,$0130,$0170,$0178,$8409
+	dc.w $0100,$0138,$0178,$0140
 model_099_coordinates:
 	dc.w $0000,$0C80,$0AF0,$1C20,$0640,$4248,$0FA0,$5DC0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $5860,$1900,$7D00	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $5860,$1900,$7D00
 model_099_vertices:
 	dc.w $0002	; x_coordinate_ref
 	dc.w $8004	; y_coordinate_ref
@@ -35282,11 +35309,11 @@ model_099_vertices:
 	dc.w $FFFF	; variant_offset_or_negative
 model_100_faces:
 	dc.w $0402,$0018,$0010,$0008,$0000,$0309,$0000,$0008	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0020,$0408,$0018,$0000,$0020,$0028,$0309,$0010	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0018,$0028,$040A,$0008,$0010,$0028,$0020,$0309	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0020,$0038,$0030,$0408,$0020,$0030,$0048,$0028	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0309,$0028,$0048,$0040,$040A,$0020,$0028,$0040	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0038,$0402,$0030,$0038,$0040,$0048	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0020,$0408,$0018,$0000,$0020,$0028,$0309,$0010
+	dc.w $0018,$0028,$040A,$0008,$0010,$0028,$0020,$0309
+	dc.w $0020,$0038,$0030,$0408,$0020,$0030,$0048,$0028
+	dc.w $0309,$0028,$0048,$0040,$040A,$0020,$0028,$0040
+	dc.w $0038,$0402,$0030,$0038,$0040,$0048
 model_100_coordinates:
 	dc.w $0000,$0230,$0190,$03C0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
 model_100_vertices:
@@ -35332,9 +35359,9 @@ model_100_vertices:
 	dc.w $FFFF	; variant_offset_or_negative
 model_101_faces:
 	dc.w $0301,$0000,$0008,$0010,$0304,$0000,$0018,$0008	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0305,$0008,$0018,$0010,$0306,$0010,$0018,$0000	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0304,$0018,$0020,$0028,$0305,$0018,$0028,$0030	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0306,$0018,$0030,$0020,$0301,$0020,$0030,$0028	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0305,$0008,$0018,$0010,$0306,$0010,$0018,$0000
+	dc.w $0304,$0018,$0020,$0028,$0305,$0018,$0028,$0030
+	dc.w $0306,$0018,$0030,$0020,$0301,$0020,$0030,$0028
 model_101_coordinates:
 	dc.w $0000,$02B0,$0190,$0320	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
 model_101_vertices:
@@ -35368,9 +35395,9 @@ model_101_vertices:
 	dc.w $FFFF	; variant_offset_or_negative
 model_102_faces:
 	dc.w $040B,$0018,$0010,$0008,$0000,$040C,$0000,$0008	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0028,$0020,$040D,$0008,$0010,$0030,$0028,$040C	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0010,$0018,$0038,$0030,$040D,$0018,$0000,$0020	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
-	dc.w $0038,$040E,$0020,$0028,$0030,$0038	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0028,$0020,$040D,$0008,$0010,$0030,$0028,$040C
+	dc.w $0010,$0018,$0038,$0030,$040D,$0018,$0000,$0020
+	dc.w $0038,$040E,$0020,$0028,$0030,$0038
 model_102_coordinates:
 	dc.w $0000,$0320,$0230,$0410,$0190	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
 model_102_vertices:
@@ -36306,104 +36333,104 @@ hud_meter_full_sprite_07:
 ; bitmap
 hud_altitude_indicator_sprite:
 	dc.w $00B8,$0000,$FFF2,$0000,$7FF2,$2FE0,$7FFA,$2FF0	; bitmap
-	dc.w $3FFE,$0FF8,$3FFE,$0FF8,$1FFE,$0000,$0000,$0000	; bitmap
+	dc.w $3FFE,$0FF8,$3FFE,$0FF8,$1FFE,$0000,$0000,$0000
 hud_conversion_sprite_09:
 	dc.w $0000,$0000,$0FFF,$0000,$1D55,$0554,$2AAB,$0AA8	; bitmap
-	dc.w $5D55,$1550,$AAAB,$2AA2,$FFF5,$0004,$AABB,$2AAA	; bitmap
-	dc.w $DD55,$5544,$AFFF,$2AAA,$D555,$5544,$AABA,$2AA8	; bitmap
-	dc.w $D554,$5540,$AAB8,$2AA0,$FFF0,$0000	; bitmap
+	dc.w $5D55,$1550,$AAAB,$2AA2,$FFF5,$0004,$AABB,$2AAA
+	dc.w $DD55,$5544,$AFFF,$2AAA,$D555,$5544,$AABA,$2AA8
+	dc.w $D554,$5540,$AAB8,$2AA0,$FFF0,$0000
 hud_conversion_sprite_10:
 	dc.w $DB70,$E100,$3FFC,$FFFC,$2AAC,$F554,$5558,$EAA8	; bitmap
-	dc.w $6AA8,$D558,$D550,$AAB0,$FFF0,$FFF0,$0000,$0000	; bitmap
+	dc.w $6AA8,$D558,$D550,$AAB0,$FFF0,$FFF0,$0000,$0000
 hud_conversion_sprite_11:
 	dc.w $DA70,$E000,$3FFC,$3FFC,$3554,$E004,$6AA8,$D558	; bitmap
-	dc.w $5558,$EAA8,$AAB0,$D550,$FFF0,$FFF0,$0000,$0000	; bitmap
+	dc.w $5558,$EAA8,$AAB0,$D550,$FFF0,$FFF0,$0000,$0000
 hud_conversion_sprite_12:
 	dc.w $D970,$DF00,$3FFC,$3FFC,$2AAC,$2004,$555C,$C00C	; bitmap
-	dc.w $6AAC,$D55C,$D550,$AAB0,$FFF0,$FFF0,$0000,$0000	; bitmap
+	dc.w $6AAC,$D55C,$D550,$AAB0,$FFF0,$FFF0,$0000,$0000
 hud_conversion_sprite_13:
 	dc.w $D870,$DE00,$3FFC,$3FFC,$3554,$2004,$6AAC,$400C	; bitmap
-	dc.w $555C,$C00C,$AABC,$D554,$FFF0,$FFF0,$0000,$0000	; bitmap
+	dc.w $555C,$C00C,$AABC,$D554,$FFF0,$FFF0,$0000,$0000
 hud_conversion_sprite_14:
 	dc.w $D770,$DD00,$3FFC,$3FFC,$2AAC,$2004,$555C,$400C	; bitmap
-	dc.w $6AAC,$400C,$D554,$8014,$FFFC,$FFF4,$0000,$0000	; bitmap
+	dc.w $6AAC,$400C,$D554,$8014,$FFFC,$FFF4,$0000,$0000
 hud_conversion_sprite_15:
 	dc.w $D670,$DC00,$3FFC,$3FFC,$3554,$2004,$6AAC,$400C	; bitmap
-	dc.w $555C,$400C,$AABC,$8014,$FFF4,$FFF4,$0000,$0000	; bitmap
+	dc.w $555C,$400C,$AABC,$8014,$FFF4,$FFF4,$0000,$0000
 hud_conversion_sprite_16:
 	dc.w $DB68,$E100,$0FFE,$FFFE,$1AAA,$F556,$3554,$EAAC	; bitmap
-	dc.w $2AAC,$F554,$5558,$EAA8,$FFF0,$FFF0,$0000,$0000	; bitmap
+	dc.w $2AAC,$F554,$5558,$EAA8,$FFF0,$FFF0,$0000,$0000
 hud_conversion_sprite_17:
 	dc.w $DA68,$E000,$0FFE,$0FFE,$1556,$F002,$2AAE,$F556	; bitmap
-	dc.w $3554,$EAAC,$6AA8,$D558,$FFF0,$FFF0,$0000,$0000	; bitmap
+	dc.w $3554,$EAAC,$6AA8,$D558,$FFF0,$FFF0,$0000,$0000
 hud_conversion_sprite_18:
 	dc.w $D968,$DF00,$0FFE,$0FFE,$1556,$1002,$2AAE,$E006	; bitmap
-	dc.w $2AAC,$F554,$5558,$EAA8,$FFF0,$FFF0,$0000,$0000	; bitmap
+	dc.w $2AAC,$F554,$5558,$EAA8,$FFF0,$FFF0,$0000,$0000
 hud_conversion_sprite_19:
 	dc.w $D868,$DE00,$0FFE,$0FFE,$1AAA,$1002,$3556,$2006	; bitmap
-	dc.w $2AAE,$E006,$5558,$EAA8,$FFF0,$FFF0,$0000,$0000	; bitmap
+	dc.w $2AAE,$E006,$5558,$EAA8,$FFF0,$FFF0,$0000,$0000
 hud_conversion_sprite_20:
 	dc.w $D768,$DD00,$0FFE,$0FFE,$1556,$1002,$2AAE,$2006	; bitmap
-	dc.w $3556,$2006,$6AAA,$C00A,$FFF0,$FFF0,$0000,$0000	; bitmap
+	dc.w $3556,$2006,$6AAA,$C00A,$FFF0,$FFF0,$0000,$0000
 hud_conversion_sprite_21:
 	dc.w $D668,$DC00,$0FFE,$0FFE,$1AAA,$1002,$3556,$2006	; bitmap
-	dc.w $2AAE,$2006,$555E,$400A,$FFFA,$FFF2,$0000,$0000	; bitmap
+	dc.w $2AAE,$2006,$555E,$400A,$FFFA,$FFF2,$0000,$0000
 hud_conversion_sprite_22:
 	dc.w $DB60,$E100,$07FF,$FFFF,$0AAB,$FD55,$1556,$FAAA	; bitmap
-	dc.w $2AAC,$F554,$5558,$EAA8,$FFF0,$FFF0,$0000,$0000	; bitmap
+	dc.w $2AAC,$F554,$5558,$EAA8,$FFF0,$FFF0,$0000,$0000
 hud_conversion_sprite_23:
 	dc.w $DA60,$E000,$07FF,$07FF,$0D55,$F801,$1AAB,$F557	; bitmap
-	dc.w $3554,$EAAC,$6AA8,$D558,$FFF0,$FFF0,$0000,$0000	; bitmap
+	dc.w $3554,$EAAC,$6AA8,$D558,$FFF0,$FFF0,$0000,$0000
 hud_conversion_sprite_24:
 	dc.w $D960,$DF00,$07FF,$07FF,$0AAB,$0801,$1557,$F003	; bitmap
-	dc.w $2AAF,$F555,$5558,$EAA8,$FFF0,$FFF0,$0000,$0000	; bitmap
+	dc.w $2AAF,$F555,$5558,$EAA8,$FFF0,$FFF0,$0000,$0000
 hud_conversion_sprite_25:
 	dc.w $D860,$DE00,$07FF,$07FF,$0D55,$0801,$1AAB,$1003	; bitmap
-	dc.w $3555,$E005,$6AAB,$D55D,$FFF0,$FFF0,$0000,$0000	; bitmap
+	dc.w $3555,$E005,$6AAB,$D55D,$FFF0,$FFF0,$0000,$0000
 hud_conversion_sprite_26:
 	dc.w $D760,$DD00,$07FF,$07FF,$0AAB,$0801,$1557,$1003	; bitmap
-	dc.w $2AAF,$2005,$555D,$C009,$FFFB,$FFF1,$0000,$0000	; bitmap
+	dc.w $2AAF,$2005,$555D,$C009,$FFFB,$FFF1,$0000,$0000
 hud_conversion_sprite_27:
 	dc.w $D660,$DC00,$07FF,$07FF,$0D55,$0801,$1AAB,$1003	; bitmap
-	dc.w $3555,$2005,$6AAB,$4009,$FFF5,$FFF1,$0000,$0000	; bitmap
+	dc.w $3555,$2005,$6AAB,$4009,$FFF5,$FFF1,$0000,$0000
 hud_conversion_sprite_28:
 	dc.w $DBB0,$E100,$FFF8,$FFFF,$6AAC,$5557,$5554,$6AAF	; bitmap
-	dc.w $2AAA,$3557,$3555,$2AAB,$1FFF,$1FFF,$0000,$0000	; bitmap
+	dc.w $2AAA,$3557,$3555,$2AAB,$1FFF,$1FFF,$0000,$0000
 hud_conversion_sprite_29:
 	dc.w $DAB0,$E000,$FFF8,$FFF8,$5554,$6AAF,$6AAC,$5557	; bitmap
-	dc.w $3556,$2AAB,$2AAB,$3555,$1FFF,$1FFF,$0000,$0000	; bitmap
+	dc.w $3556,$2AAB,$2AAB,$3555,$1FFF,$1FFF,$0000,$0000
 hud_conversion_sprite_30:
 	dc.w $D9B0,$DF00,$FFF8,$FFF8,$EAAC,$C004,$5554,$6AAF	; bitmap
-	dc.w $2AAA,$3557,$3555,$2AAB,$1FFF,$1FFF,$1555,$1001	; bitmap
-	dc.w $0000,$0000	; bitmap
+	dc.w $2AAA,$3557,$3555,$2AAB,$1FFF,$1FFF,$1555,$1001
+	dc.w $0000,$0000
 hud_conversion_sprite_31:
 	dc.w $D8B0,$DE00,$FFF8,$FFF8,$EAAC,$C004,$D554,$C004	; bitmap
-	dc.w $AAAA,$A003,$3555,$2AAB,$1FFF,$1FFF,$0000,$0000	; bitmap
+	dc.w $AAAA,$A003,$3555,$2AAB,$1FFF,$1FFF,$0000,$0000
 hud_conversion_sprite_32:
 	dc.w $D7B0,$DD00,$FFF8,$FFF8,$D554,$C004,$EAAC,$C004	; bitmap
-	dc.w $F556,$A002,$AAAB,$A001,$1FFF,$1FFF,$0000,$0000	; bitmap
+	dc.w $F556,$A002,$AAAB,$A001,$1FFF,$1FFF,$0000,$0000
 hud_conversion_sprite_33:
 	dc.w $D6B0,$DC00,$FFF8,$FFF8,$EAAC,$C004,$D554,$C004	; bitmap
-	dc.w $AAAA,$A002,$F555,$A001,$BFFF,$9FFF,$0000,$0000	; bitmap
+	dc.w $AAAA,$A002,$F555,$A001,$BFFF,$9FFF,$0000,$0000
 hud_conversion_sprite_34:
 	dc.w $D5B0,$DC00,$FFF8,$FFF8,$EAAC,$C004,$D554,$C004	; bitmap
-	dc.w $AAAA,$A002,$F555,$A001,$BFFF,$9FFF,$D555,$9001	; bitmap
-	dc.w $0000,$0000	; bitmap
+	dc.w $AAAA,$A002,$F555,$A001,$BFFF,$9FFF,$D555,$9001
+	dc.w $0000,$0000
 hud_conversion_sprite_35:
 	dc.w $B2B8,$B800,$FFF0,$0000,$7FF0,$2000,$7FF8,$2FF0	; bitmap
-	dc.w $3FFE,$0FF8,$3FFE,$0FF8,$1FFE,$0000,$0000,$0000	; bitmap
+	dc.w $3FFE,$0FF8,$3FFE,$0FF8,$1FFE,$0000,$0000,$0000
 hud_conversion_sprite_36:
 	dc.w $B1B8,$B700,$FFF0,$0000,$7FF0,$3FE0,$7FFA,$2000	; bitmap
-	dc.w $3FFE,$0FF8,$3FFE,$0FF8,$1FFE,$0000,$0000,$0000	; bitmap
+	dc.w $3FFE,$0FF8,$3FFE,$0FF8,$1FFE,$0000,$0000,$0000
 hud_conversion_sprite_37:
 	dc.w $B0B8,$B600,$FFF0,$0000,$7FF0,$1FE0,$7FF8,$2FF0	; bitmap
-	dc.w $3FFE,$0000,$3FFE,$0FF8,$1FFE,$0000,$0000,$0000	; bitmap
+	dc.w $3FFE,$0000,$3FFE,$0FF8,$1FFE,$0000,$0000,$0000
 hud_conversion_sprite_38:
 	dc.w $AFB8,$B500,$FFF0,$0000,$7FF0,$3FE0,$7FF8,$3FF0	; bitmap
-	dc.w $3FFC,$1FF8,$3FFE,$0000,$1FFE,$0000,$0000,$0000	; bitmap
+	dc.w $3FFC,$1FF8,$3FFE,$0000,$1FFE,$0000,$0000,$0000
 hud_conversion_sprite_39:
 	dc.w $AEB8,$B400,$FFF0,$0000,$7FF0,$3FE0,$7FF8,$3FF0	; bitmap
-	dc.w $3FFC,$1FF8,$3FFC,$1FF8,$1FFE,$0000,$0000,$0000	; bitmap
+	dc.w $3FFC,$1FF8,$3FFC,$1FF8,$1FFE,$0000,$0000,$0000
 hud_default_reticle_sprite:
 	INCBIN "assets/hud_default_reticle_sprite.bin"
 ; bitmap
@@ -47093,9 +47120,9 @@ body_orbit_delta_shifts:
 	dc.b $00,$00,$00
 body_orbit_radius_precision_shifts:
 	dc.l $00000000,$00000007,$00000007,$00000008	; 15 scalar LONG shifts for known body-index prefix0..14
-	dc.l $00000009,$00000009,$00000004,$00000005	; 15 scalar LONG shifts for known body-index prefix0..14
-	dc.l $00000005,$00000005,$00000005,$00000005	; 15 scalar LONG shifts for known body-index prefix0..14
-	dc.l $00000005,$00000005,$00000005	; 15 scalar LONG shifts for known body-index prefix0..14
+	dc.l $00000009,$00000009,$00000004,$00000005
+	dc.l $00000005,$00000005,$00000005,$00000005
+	dc.l $00000005,$00000005,$00000005
 	dc.b $00,$00,$00,$04,$00,$00,$00,$02
 initial_cached_body_states:
 	dc.l $01312D00	; world_x
@@ -47173,9 +47200,9 @@ initial_body_orbit_angles:
     ; Known orbital parameter prefix0..14 only. Literal LONG radii, not pointers. Following300000/100000 LONGs remain separate; physical adjacency alone does not expand observed consumer domain.
 body_orbit_radii:
 	dc.l $00000000,$002DC6C0,$003D0900,$007A1200	; 15 scalar LONG radii for known body-index prefix0..14; next two LONGs remain separately unassig
-	dc.l $00B71B00,$00F42400,$0007A120,$000AAE60	; 15 scalar LONG radii for known body-index prefix0..14; next two LONGs remain separately unassig
-	dc.l $000F4240,$000F4240,$000F4240,$000F4240	; 15 scalar LONG radii for known body-index prefix0..14; next two LONGs remain separately unassig
-	dc.l $000F4240,$000F4240,$000F4240	; 15 scalar LONG radii for known body-index prefix0..14; next two LONGs remain separately unassig
+	dc.l $00B71B00,$00F42400,$0007A120,$000AAE60
+	dc.l $000F4240,$000F4240,$000F4240,$000F4240
+	dc.l $000F4240,$000F4240,$000F4240
 	dc.b $00,$04,$93,$E0,$00,$01,$86,$A0
 projector_part_placement_templates:
 	dc.w $004B	; object_type
@@ -47746,8 +47773,12 @@ depot_text_thankyou_for_the:
 depot_text_you_now_have_a:
 	dc.b "You now have a...",$00
 abs_0_00038E38:
-	dc.b $00,$03,$8E,$C8,$00,$03,$88,$60,$00,$03,$8E,$DF,$00,$03,$8E,$F9
-	dc.b $00,$03,$8F,$15,$FF,$FF,$FF,$FF
+	dc.l abs_0_00038EC8	; pointer_table
+	dc.l depot_text_jaysan_katra_and_agro
+	dc.l abs_0_00038EDF
+	dc.l abs_0_00038EF9
+	dc.l abs_0_00038F15
+	dc.b $FF,$FF,$FF,$FF
 abs_0_00038E50:
 	dc.b $00,$03,$8E,$C8,$00,$03,$88,$60,$00,$03,$8E,$DF,$00,$03,$8E,$F9
 	dc.b $00,$03,$8F,$30,$00,$03,$8F,$4C,$FF,$FF,$FF,$FF
@@ -47759,11 +47790,21 @@ abs_0_00038E94:
 	dc.b $00,$03,$8E,$C8,$00,$03,$88,$60,$00,$03,$8F,$FD,$00,$03,$90,$16
 	dc.b $FF,$FF,$FF,$FF
 abs_0_00038EA8:
-	dc.b $00,$03,$90,$31,$00,$03,$90,$4C,$00,$03,$90,$65,$00,$03,$90,$7E
-	dc.b $00,$03,$90,$95,$00,$03,$90,$AB,$00,$03,$90,$C5,$FF,$FF,$FF,$FF
+	dc.l abs_0_00039031	; pointer_table
+	dc.l abs_0_0003904C
+	dc.l abs_0_00039065
+	dc.l abs_0_0003907E
+	dc.l abs_0_00039095
+	dc.l abs_0_000390AB
+	dc.l abs_0_000390C5
+	dc.b $FF,$FF,$FF,$FF
+abs_0_00038EC8:
 	dc.b "Welcome to Broadway...",$00
+abs_0_00038EDF:
 	dc.b "If you are looking for...",$00
+abs_0_00038EF9:
 	dc.b "..Professor Halsen Taymar..",$00
+abs_0_00038F15:
 	dc.b "...you took him to Apogee.",$00
 	dc.b ".he is out burning rubber..",$00
 	dc.b "..in his souped up Emma 2.",$00
@@ -47776,14 +47817,22 @@ abs_0_00038EA8:
 	dc.b "..a useful gift for you.",$00
 	dc.b "..we see that you have..",$00
 	dc.b "..Professor Taymar aboard.",$00
+abs_0_00039031:
 	dc.b "Welcome to Wackfunk Depot.",$00
+abs_0_0003904C:
 	dc.b "We offer Ship Repairs...",$00
+abs_0_00039065:
 	dc.b "..in exchange for goods.",$00
+abs_0_0003907E:
 	dc.b $20,$20,$20,$55,$73,$65,$20,$74,$68,$65,$20,$49,$20,$4B,$65,$79
-	dc.b $20,$74,$6F,$2E,$2E,$2E,$00,$20,$2E,$2E,$2E,$73,$65,$65,$20,$74
-	dc.b $68,$65,$20,$49,$4E,$56,$45,$4E,$54,$4F,$52,$59,$00,$20,$74,$68
-	dc.b $65,$20,$47,$20,$4B,$65,$79,$20,$74,$6F,$20,$47,$49,$56,$45,$20
-	dc.b $74,$6F,$20,$75,$73,$2C,$00
+	dc.b $20,$74,$6F,$2E,$2E,$2E,$00
+abs_0_00039095:
+	dc.b $20,$2E,$2E,$2E,$73,$65,$65,$20,$74,$68,$65,$20,$49,$4E,$56,$45
+	dc.b $4E,$54,$4F,$52,$59,$00
+abs_0_000390AB:
+	dc.b $20,$74,$68,$65,$20,$47,$20,$4B,$65,$79,$20,$74,$6F,$20,$47,$49
+	dc.b $56,$45,$20,$74,$6F,$20,$75,$73,$2C,$00
+abs_0_000390C5:
 	dc.b "and the E key to EXIT.",$00
 abs_0_000390DC:
 	dc.b $18,$37,$33,$47,$0A,$49,$0B,$03,$18
@@ -50786,10 +50835,10 @@ abs_0_0003BE44:
 	dc.b $00,$03,$C3,$D4,$00,$03,$C5,$94
 alternate_meter_framebuffer_offsets_mode0:
 	dc.l $00005160,$00005168,$00005170,$000051B0	; Five literal BYTE offsets; consumer adds fixed framebuffer base$68000, not source pointers
-	dc.l $000051B8	; Five literal BYTE offsets; consumer adds fixed framebuffer base$68000, not source pointers
+	dc.l $000051B8
 alternate_meter_framebuffer_offsets_mode1:
 	dc.l $00005150,$00005154,$00005158,$00005178	; Five literal BYTE offsets; consumer adds fixed framebuffer base$68000, not source pointers
-	dc.l $0000517C	; Five literal BYTE offsets; consumer adds fixed framebuffer base$68000, not source pointers
+	dc.l $0000517C
 abs_0_0003BE80:
 	dc.l abs_0_0003CA4A	; pointer_table
 	dc.l abs_0_0003CA26
@@ -52575,28 +52624,28 @@ drawing_dispatch_offsets:
 	dc.w draw_planar_span_color_15-drawing_dispatch_offsets
 span_prefix_masks_32:
 	dc.l $00000000,$80000000,$C0000000,$E0000000	; 32 constant masks; prefix; producer of generated outside-span masks and indexed drawing consume
-	dc.l $F0000000,$F8000000,$FC000000,$FE000000	; 32 constant masks; prefix; producer of generated outside-span masks and indexed drawing consume
-	dc.l $FF000000,$FF800000,$FFC00000,$FFE00000	; 32 constant masks; prefix; producer of generated outside-span masks and indexed drawing consume
-	dc.l $FFF00000,$FFF80000,$FFFC0000,$FFFE0000	; 32 constant masks; prefix; producer of generated outside-span masks and indexed drawing consume
-	dc.l $FFFF0000,$FFFF8000,$FFFFC000,$FFFFE000	; 32 constant masks; prefix; producer of generated outside-span masks and indexed drawing consume
-	dc.l $FFFFF000,$FFFFF800,$FFFFFC00,$FFFFFE00	; 32 constant masks; prefix; producer of generated outside-span masks and indexed drawing consume
-	dc.l $FFFFFF00,$FFFFFF80,$FFFFFFC0,$FFFFFFE0	; 32 constant masks; prefix; producer of generated outside-span masks and indexed drawing consume
-	dc.l $FFFFFFF0,$FFFFFFF8,$FFFFFFFC,$FFFFFFFE	; 32 constant masks; prefix; producer of generated outside-span masks and indexed drawing consume
+	dc.l $F0000000,$F8000000,$FC000000,$FE000000
+	dc.l $FF000000,$FF800000,$FFC00000,$FFE00000
+	dc.l $FFF00000,$FFF80000,$FFFC0000,$FFFE0000
+	dc.l $FFFF0000,$FFFF8000,$FFFFC000,$FFFFE000
+	dc.l $FFFFF000,$FFFFF800,$FFFFFC00,$FFFFFE00
+	dc.l $FFFFFF00,$FFFFFF80,$FFFFFFC0,$FFFFFFE0
+	dc.l $FFFFFFF0,$FFFFFFF8,$FFFFFFFC,$FFFFFFFE
 span_suffix_masks_32:
 	dc.l $7FFFFFFF,$3FFFFFFF,$1FFFFFFF,$0FFFFFFF	; 32 constant masks; suffix; producer of generated outside-span masks and indexed drawing consume
-	dc.l $07FFFFFF,$03FFFFFF,$01FFFFFF,$00FFFFFF	; 32 constant masks; suffix; producer of generated outside-span masks and indexed drawing consume
-	dc.l $007FFFFF,$003FFFFF,$001FFFFF,$000FFFFF	; 32 constant masks; suffix; producer of generated outside-span masks and indexed drawing consume
-	dc.l $0007FFFF,$0003FFFF,$0001FFFF,$0000FFFF	; 32 constant masks; suffix; producer of generated outside-span masks and indexed drawing consume
-	dc.l $00007FFF,$00003FFF,$00001FFF,$00000FFF	; 32 constant masks; suffix; producer of generated outside-span masks and indexed drawing consume
-	dc.l $000007FF,$000003FF,$000001FF,$000000FF	; 32 constant masks; suffix; producer of generated outside-span masks and indexed drawing consume
-	dc.l $0000007F,$0000003F,$0000001F,$0000000F	; 32 constant masks; suffix; producer of generated outside-span masks and indexed drawing consume
-	dc.l $00000007,$00000003,$00000001,$00000000	; 32 constant masks; suffix; producer of generated outside-span masks and indexed drawing consume
+	dc.l $07FFFFFF,$03FFFFFF,$01FFFFFF,$00FFFFFF
+	dc.l $007FFFFF,$003FFFFF,$001FFFFF,$000FFFFF
+	dc.l $0007FFFF,$0003FFFF,$0001FFFF,$0000FFFF
+	dc.l $00007FFF,$00003FFF,$00001FFF,$00000FFF
+	dc.l $000007FF,$000003FF,$000001FF,$000000FF
+	dc.l $0000007F,$0000003F,$0000001F,$0000000F
+	dc.l $00000007,$00000003,$00000001,$00000000
 span_prefix_masks_16:
 	dc.w $0000,$8000,$C000,$E000,$F000,$F800,$FC00,$FE00	; 16 constant masks; prefix; producer of generated outside-span masks and indexed drawing consume
-	dc.w $FF00,$FF80,$FFC0,$FFE0,$FFF0,$FFF8,$FFFC,$FFFE	; 16 constant masks; prefix; producer of generated outside-span masks and indexed drawing consume
+	dc.w $FF00,$FF80,$FFC0,$FFE0,$FFF0,$FFF8,$FFFC,$FFFE
 span_suffix_masks_16:
 	dc.w $7FFF,$3FFF,$1FFF,$0FFF,$07FF,$03FF,$01FF,$00FF	; 16 constant masks; suffix; producer of generated outside-span masks and indexed drawing consume
-	dc.w $007F,$003F,$001F,$000F,$0007,$0003,$0001,$0000	; 16 constant masks; suffix; producer of generated outside-span masks and indexed drawing consume
+	dc.w $007F,$003F,$001F,$000F,$0007,$0003,$0001,$0000
 draw_planar_span_color_0:
 	bpl.b abs_0_0003DF0C
 	or.l d4,d5
@@ -53950,7 +53999,7 @@ abs_0_0003EA84:
 	jmp abs_0_0003EA92(pc,a5.w)
 abs_0_0003EA92:
 	dc.w $0020,$004E,$007C,$00AA,$00D8,$0106,$0134,$0162	; lookup_table
-	dc.w $0190,$01BE,$01EC,$021A,$0248,$0276,$02A4,$02D2	; lookup_table
+	dc.w $0190,$01BE,$01EC,$021A,$0248,$0276,$02A4,$02D2
 abs_0_0003EAB2:
 	bra.b abs_0_0003EAB6
 abs_0_0003EAB4:
@@ -54307,7 +54356,7 @@ abs_0_0003ED92:
 	jmp abs_0_0003EDC4(pc,a5.w)
 abs_0_0003EDC4:
 	dc.w $0020,$004A,$0074,$009E,$00C8,$00F2,$011C,$0146	; lookup_table
-	dc.w $0170,$019A,$01C4,$01EE,$0218,$0242,$026C,$0296	; lookup_table
+	dc.w $0170,$019A,$01C4,$01EE,$0218,$0242,$026C,$0296
 abs_0_0003EDE4:
 	move.w (a0)+,d3
 	and.w d4,d2
@@ -54655,14 +54704,14 @@ drawing_dispatch_masked_offsets:
 	dc.w abs_0_0003FE78-drawing_dispatch_masked_offsets
 abs_0_0003F132:
 	dc.l $80008000,$C000C000,$E000E000,$F000F000	; lookup_table
-	dc.l $F800F800,$FC00FC00,$FE00FE00,$FF00FF00	; lookup_table
-	dc.l $FF80FF80,$FFC0FFC0,$FFE0FFE0,$FFF0FFF0	; lookup_table
-	dc.l $FFF8FFF8,$FFFCFFFC,$FFFEFFFE,$FFFFFFFF	; lookup_table
+	dc.l $F800F800,$FC00FC00,$FE00FE00,$FF00FF00
+	dc.l $FF80FF80,$FFC0FFC0,$FFE0FFE0,$FFF0FFF0
+	dc.l $FFF8FFF8,$FFFCFFFC,$FFFEFFFE,$FFFFFFFF
 abs_0_0003F172:
 	dc.l $FFFFFFFF,$7FFF7FFF,$3FFF3FFF,$1FFF1FFF	; lookup_table
-	dc.l $0FFF0FFF,$07FF07FF,$03FF03FF,$01FF01FF	; lookup_table
-	dc.l $00FF00FF,$007F007F,$003F003F,$001F001F	; lookup_table
-	dc.l $000F000F,$00070007,$00030003,$00010001	; lookup_table
+	dc.l $0FFF0FFF,$07FF07FF,$03FF03FF,$01FF01FF
+	dc.l $00FF00FF,$007F007F,$003F003F,$001F001F
+	dc.l $000F000F,$00070007,$00030003,$00010001
 abs_0_0003F1B2:
 	subq.w #8,d3
 	bpl.b abs_0_0003F1D0
@@ -56353,7 +56402,7 @@ abs_0_0003FF2C:
 	rts
 abs_0_0003FF42:
 	dc.w $1278,$128E,$12A6,$12C0,$12D6,$12F0,$130C,$1326	; lookup_table
-	dc.w $133E,$1358,$1372,$138E,$13A8,$13C0,$13DA,$13F4	; lookup_table
+	dc.w $133E,$1358,$1372,$138E,$13A8,$13C0,$13DA,$13F4
 abs_0_0003FF62:
 	move.w #$98,d6
 	add.w d2,d2
@@ -56667,9 +56716,9 @@ abs_0_000413D6:
 	rts
 abs_0_0004146E:
 	dc.l $00000000,$C0000000,$F0000000,$FC000000	; lookup_table
-	dc.l $FF000000,$FFC00000,$FFF00000,$FFFC0000	; lookup_table
-	dc.l $FFFF0000,$FFFFC000,$FFFFF000,$FFFFFC00	; lookup_table
-	dc.l $FFFFFF00,$FFFFFFC0,$FFFFFFF0,$FFFFFFFC	; lookup_table
+	dc.l $FF000000,$FFC00000,$FFF00000,$FFFC0000
+	dc.l $FFFF0000,$FFFFC000,$FFFFF000,$FFFFFC00
+	dc.l $FFFFFF00,$FFFFFFC0,$FFFFFFF0,$FFFFFFFC
 abs_0_000414AE:
 	and.l d4,(a6)
 	and.l d4,(a4)
@@ -56845,30 +56894,30 @@ abs_0_000416A8:
 	dc.b $00,$07,$80,$00,$00,$07,$A0,$00,$00,$07,$C0,$00,$00,$07,$E0,$00
 raster_row_byte_offsets:
 	dc.w $0000,$00A0,$0140,$01E0,$0280,$0320,$03C0,$0460	; 200 WORD byte offsets. Amiga startup initializes 0,40,...7960; renderer indexes by doubled row 
-	dc.w $0500,$05A0,$0640,$06E0,$0780,$0820,$08C0,$0960	; 200 WORD byte offsets. Amiga startup initializes 0,40,...7960; renderer indexes by doubled row 
-	dc.w $0A00,$0AA0,$0B40,$0BE0,$0C80,$0D20,$0DC0,$0E60	; 200 WORD byte offsets. Amiga startup initializes 0,40,...7960; renderer indexes by doubled row 
-	dc.w $0F00,$0FA0,$1040,$10E0,$1180,$1220,$12C0,$1360	; 200 WORD byte offsets. Amiga startup initializes 0,40,...7960; renderer indexes by doubled row 
-	dc.w $1400,$14A0,$1540,$15E0,$1680,$1720,$17C0,$1860	; 200 WORD byte offsets. Amiga startup initializes 0,40,...7960; renderer indexes by doubled row 
-	dc.w $1900,$19A0,$1A40,$1AE0,$1B80,$1C20,$1CC0,$1D60	; 200 WORD byte offsets. Amiga startup initializes 0,40,...7960; renderer indexes by doubled row 
-	dc.w $1E00,$1EA0,$1F40,$1FE0,$2080,$2120,$21C0,$2260	; 200 WORD byte offsets. Amiga startup initializes 0,40,...7960; renderer indexes by doubled row 
-	dc.w $2300,$23A0,$2440,$24E0,$2580,$2620,$26C0,$2760	; 200 WORD byte offsets. Amiga startup initializes 0,40,...7960; renderer indexes by doubled row 
-	dc.w $2800,$28A0,$2940,$29E0,$2A80,$2B20,$2BC0,$2C60	; 200 WORD byte offsets. Amiga startup initializes 0,40,...7960; renderer indexes by doubled row 
-	dc.w $2D00,$2DA0,$2E40,$2EE0,$2F80,$3020,$30C0,$3160	; 200 WORD byte offsets. Amiga startup initializes 0,40,...7960; renderer indexes by doubled row 
-	dc.w $3200,$32A0,$3340,$33E0,$3480,$3520,$35C0,$3660	; 200 WORD byte offsets. Amiga startup initializes 0,40,...7960; renderer indexes by doubled row 
-	dc.w $3700,$37A0,$3840,$38E0,$3980,$3A20,$3AC0,$3B60	; 200 WORD byte offsets. Amiga startup initializes 0,40,...7960; renderer indexes by doubled row 
-	dc.w $3C00,$3CA0,$3D40,$3DE0,$3E80,$3F20,$3FC0,$4060	; 200 WORD byte offsets. Amiga startup initializes 0,40,...7960; renderer indexes by doubled row 
-	dc.w $4100,$41A0,$4240,$42E0,$4380,$4420,$44C0,$4560	; 200 WORD byte offsets. Amiga startup initializes 0,40,...7960; renderer indexes by doubled row 
-	dc.w $4600,$46A0,$4740,$47E0,$4880,$4920,$49C0,$4A60	; 200 WORD byte offsets. Amiga startup initializes 0,40,...7960; renderer indexes by doubled row 
-	dc.w $4B00,$4BA0,$4C40,$4CE0,$4D80,$4E20,$4EC0,$4F60	; 200 WORD byte offsets. Amiga startup initializes 0,40,...7960; renderer indexes by doubled row 
-	dc.w $5000,$50A0,$5140,$51E0,$5280,$5320,$53C0,$5460	; 200 WORD byte offsets. Amiga startup initializes 0,40,...7960; renderer indexes by doubled row 
-	dc.w $5500,$55A0,$5640,$56E0,$5780,$5820,$58C0,$5960	; 200 WORD byte offsets. Amiga startup initializes 0,40,...7960; renderer indexes by doubled row 
-	dc.w $5A00,$5AA0,$5B40,$5BE0,$5C80,$5D20,$5DC0,$5E60	; 200 WORD byte offsets. Amiga startup initializes 0,40,...7960; renderer indexes by doubled row 
-	dc.w $5F00,$5FA0,$6040,$60E0,$6180,$6220,$62C0,$6360	; 200 WORD byte offsets. Amiga startup initializes 0,40,...7960; renderer indexes by doubled row 
-	dc.w $6400,$64A0,$6540,$65E0,$6680,$6720,$67C0,$6860	; 200 WORD byte offsets. Amiga startup initializes 0,40,...7960; renderer indexes by doubled row 
-	dc.w $6900,$69A0,$6A40,$6AE0,$6B80,$6C20,$6CC0,$6D60	; 200 WORD byte offsets. Amiga startup initializes 0,40,...7960; renderer indexes by doubled row 
-	dc.w $6E00,$6EA0,$6F40,$6FE0,$7080,$7120,$71C0,$7260	; 200 WORD byte offsets. Amiga startup initializes 0,40,...7960; renderer indexes by doubled row 
-	dc.w $7300,$73A0,$7440,$74E0,$7580,$7620,$76C0,$7760	; 200 WORD byte offsets. Amiga startup initializes 0,40,...7960; renderer indexes by doubled row 
-	dc.w $7800,$78A0,$7940,$79E0,$7A80,$7B20,$7BC0,$7C60	; 200 WORD byte offsets. Amiga startup initializes 0,40,...7960; renderer indexes by doubled row 
+	dc.w $0500,$05A0,$0640,$06E0,$0780,$0820,$08C0,$0960
+	dc.w $0A00,$0AA0,$0B40,$0BE0,$0C80,$0D20,$0DC0,$0E60
+	dc.w $0F00,$0FA0,$1040,$10E0,$1180,$1220,$12C0,$1360
+	dc.w $1400,$14A0,$1540,$15E0,$1680,$1720,$17C0,$1860
+	dc.w $1900,$19A0,$1A40,$1AE0,$1B80,$1C20,$1CC0,$1D60
+	dc.w $1E00,$1EA0,$1F40,$1FE0,$2080,$2120,$21C0,$2260
+	dc.w $2300,$23A0,$2440,$24E0,$2580,$2620,$26C0,$2760
+	dc.w $2800,$28A0,$2940,$29E0,$2A80,$2B20,$2BC0,$2C60
+	dc.w $2D00,$2DA0,$2E40,$2EE0,$2F80,$3020,$30C0,$3160
+	dc.w $3200,$32A0,$3340,$33E0,$3480,$3520,$35C0,$3660
+	dc.w $3700,$37A0,$3840,$38E0,$3980,$3A20,$3AC0,$3B60
+	dc.w $3C00,$3CA0,$3D40,$3DE0,$3E80,$3F20,$3FC0,$4060
+	dc.w $4100,$41A0,$4240,$42E0,$4380,$4420,$44C0,$4560
+	dc.w $4600,$46A0,$4740,$47E0,$4880,$4920,$49C0,$4A60
+	dc.w $4B00,$4BA0,$4C40,$4CE0,$4D80,$4E20,$4EC0,$4F60
+	dc.w $5000,$50A0,$5140,$51E0,$5280,$5320,$53C0,$5460
+	dc.w $5500,$55A0,$5640,$56E0,$5780,$5820,$58C0,$5960
+	dc.w $5A00,$5AA0,$5B40,$5BE0,$5C80,$5D20,$5DC0,$5E60
+	dc.w $5F00,$5FA0,$6040,$60E0,$6180,$6220,$62C0,$6360
+	dc.w $6400,$64A0,$6540,$65E0,$6680,$6720,$67C0,$6860
+	dc.w $6900,$69A0,$6A40,$6AE0,$6B80,$6C20,$6CC0,$6D60
+	dc.w $6E00,$6EA0,$6F40,$6FE0,$7080,$7120,$71C0,$7260
+	dc.w $7300,$73A0,$7440,$74E0,$7580,$7620,$76C0,$7760
+	dc.w $7800,$78A0,$7940,$79E0,$7A80,$7B20,$7BC0,$7C60
 shared_workspace_prefix:
 	dcb.b $3E80,$00
 abs_0_000456C8:
@@ -58608,8 +58657,8 @@ paula_initial_channel3_silence:
 	dcb.b $28,$00
 paula_descriptor_sample_fragment_00:
 	dc.b $00,$27,$4B,$67,$79,$7F,$79,$67,$4B,$27,$00,$00,$7F,$81,$3F,$C1	; sound_sample
-	dc.b $1F,$E1,$0F,$F1,$08,$D9,$B5,$99,$87,$81,$87,$99,$B5,$D9,$00,$7F	; sound_sample
-	dc.b $81,$3F,$C1,$1F,$E1,$0F,$F1,$08,$00,$27,$4B,$67,$79,$7F	; sound_sample
+	dc.b $1F,$E1,$0F,$F1,$08,$D9,$B5,$99,$87,$81,$87,$99,$B5,$D9,$00,$7F
+	dc.b $81,$3F,$C1,$1F,$E1,$0F,$F1,$08,$00,$27,$4B,$67,$79,$7F
 	dc.b $79,$67,$4B,$27,$00,$D9,$B5,$99,$87,$81,$87,$99,$B5,$D9
 object_type5_sound_volume_ramp:
 	dc.w $0000
@@ -60406,32 +60455,32 @@ panel_animation_frame_03:
 	dc.b $5E,$B2,$00,$04,$50,$03,$04,$80,$7B,$35,$00,$04,$40,$00,$20,$04	; bitmap
 panel_animation_frame_04:
 	dc.b $0B,$FF,$06,$03,$03,$F7,$05,$F4,$15,$EC,$0D,$C7,$07,$FC,$08,$3B	; bitmap
-	dc.b $0F,$F8,$FB,$6E,$0F,$38,$F5,$56,$FF,$F0,$F1,$FC,$FF,$D0,$0E,$2C	; bitmap
-	dc.b $FF,$E1,$00,$39,$FF,$E1,$FF,$D9	; bitmap
+	dc.b $0F,$F8,$FB,$6E,$0F,$38,$F5,$56,$FF,$F0,$F1,$FC,$FF,$D0,$0E,$2C
+	dc.b $FF,$E1,$00,$39,$FF,$E1,$FF,$D9
 panel_animation_frame_05:
 	dc.b $23,$F7,$06,$0B,$03,$F7,$05,$F4,$17,$F4,$0F,$C7,$05,$FC,$0A,$3B	; bitmap
-	dc.b $8E,$F9,$7A,$AF,$0F,$B9,$F4,$97,$FF,$F1,$F1,$DD,$FF,$D1,$0E,$0D	; bitmap
-	dc.b $FF,$E1,$00,$39,$FF,$E1,$FF,$D9	; bitmap
+	dc.b $8E,$F9,$7A,$AF,$0F,$B9,$F4,$97,$FF,$F1,$F1,$DD,$FF,$D1,$0E,$0D
+	dc.b $FF,$E1,$00,$39,$FF,$E1,$FF,$D9
 panel_animation_frame_06:
 	dc.b $23,$F7,$06,$03,$03,$FF,$05,$F4,$47,$EC,$0D,$C7,$05,$FC,$08,$3B	; bitmap
-	dc.b $8F,$78,$7B,$6E,$0E,$F8,$F5,$56,$FF,$F2,$F1,$FE,$FF,$F2,$0E,$2E	; bitmap
-	dc.b $FF,$E1,$00,$39,$FF,$E1,$FF,$D9	; bitmap
+	dc.b $8F,$78,$7B,$6E,$0E,$F8,$F5,$56,$FF,$F2,$F1,$FE,$FF,$F2,$0E,$2E
+	dc.b $FF,$E1,$00,$39,$FF,$E1,$FF,$D9
 panel_animation_frame_07:
 	dc.b $83,$EF,$06,$0B,$03,$F7,$05,$FC,$47,$FC,$0F,$C7,$07,$FC,$0A,$3B	; bitmap
-	dc.b $8F,$B8,$7A,$AE,$0E,$78,$F4,$96,$FF,$D0,$F1,$DC,$FF,$F0,$0E,$0C	; bitmap
-	dc.b $FF,$E7,$00,$3F,$FF,$E7,$FF,$DF	; bitmap
+	dc.b $8F,$B8,$7A,$AE,$0E,$78,$F4,$96,$FF,$D0,$F1,$DC,$FF,$F0,$0E,$0C
+	dc.b $FF,$E7,$00,$3F,$FF,$E7,$FF,$DF
 panel_animation_frame_08:
 	dc.b $43,$C3,$10,$C0,$00,$30,$60,$C0,$C3,$C2,$C0,$C0,$30,$31,$C0,$C0	; bitmap
-	dc.b $F1,$E1,$C0,$60,$00,$18,$F8,$60,$E1,$E1,$60,$60,$18,$18,$60,$60	; bitmap
+	dc.b $F1,$E1,$C0,$60,$00,$18,$F8,$60,$E1,$E1,$60,$60,$18,$18,$60,$60
 panel_animation_frame_09:
 	dc.b $40,$F0,$10,$30,$0C,$0C,$60,$30,$F0,$F0,$30,$30,$0C,$0D,$30,$30	; bitmap
-	dc.b $F0,$78,$C0,$18,$06,$06,$F8,$18,$78,$78,$18,$18,$06,$06,$18,$18	; bitmap
+	dc.b $F0,$78,$C0,$18,$06,$06,$F8,$18,$78,$78,$18,$18,$06,$06,$18,$18
 panel_animation_frame_10:
 	dc.b $4C,$3C,$1C,$0C,$03,$03,$6C,$0C,$3C,$3C,$0C,$0C,$03,$03,$0C,$0C	; bitmap
-	dc.b $F6,$1E,$C6,$06,$01,$81,$FE,$06,$1E,$1E,$06,$06,$81,$81,$06,$06	; bitmap
+	dc.b $F6,$1E,$C6,$06,$01,$81,$FE,$06,$1E,$1E,$06,$06,$81,$81,$06,$06
 panel_animation_frame_11:
 	dc.b $4F,$0F,$13,$03,$00,$C0,$63,$03,$0F,$0E,$03,$02,$C0,$C1,$03,$02	; bitmap
-	dc.b $F7,$87,$C1,$81,$00,$60,$F9,$81,$87,$87,$81,$81,$60,$60,$81,$81	; bitmap
+	dc.b $F7,$87,$C1,$81,$00,$60,$F9,$81,$87,$87,$81,$81,$60,$60,$81,$81
 panel_animation_frame_12:
 	INCBIN "assets/panel_animation_frame_12.bin"
 ; bitmap
@@ -60452,36 +60501,36 @@ panel_animation_frame_17:
 ; bitmap
 panel_animation_frame_18:
 	dc.b $00,$00,$E0,$3F,$00,$0F,$9F,$CF,$22,$27,$92,$48,$05,$07,$77,$77	; bitmap
-	dc.b $25,$40,$A5,$48,$20,$47,$05,$07,$22,$27,$92,$48,$05,$07,$77,$77	; bitmap
-	dc.b $00,$00,$E0,$3F,$80,$0F,$9F,$CF	; bitmap
+	dc.b $25,$40,$A5,$48,$20,$47,$05,$07,$22,$27,$92,$48,$05,$07,$77,$77
+	dc.b $00,$00,$E0,$3F,$80,$0F,$9F,$CF
 panel_animation_frame_19:
 	dc.b $00,$00,$F8,$FF,$00,$0F,$87,$0F,$12,$47,$C2,$18,$05,$07,$37,$67	; bitmap
-	dc.b $25,$40,$A5,$48,$20,$47,$45,$17,$12,$47,$C2,$18,$05,$07,$37,$67	; bitmap
-	dc.b $00,$00,$F8,$FF,$80,$0F,$87,$0F	; bitmap
+	dc.b $25,$40,$A5,$48,$20,$47,$45,$17,$12,$47,$C2,$18,$05,$07,$37,$67
+	dc.b $00,$00,$F8,$FF,$80,$0F,$87,$0F
 panel_animation_frame_20:
 	dc.b $00,$00,$F0,$7F,$00,$0F,$8F,$8F,$0F,$87,$C0,$18,$00,$07,$3F,$E7	; bitmap
-	dc.b $25,$40,$A5,$48,$20,$47,$45,$17,$0F,$87,$C0,$18,$00,$07,$3F,$E7	; bitmap
-	dc.b $00,$00,$F0,$7F,$80,$0F,$8F,$8F	; bitmap
+	dc.b $25,$40,$A5,$48,$20,$47,$45,$17,$0F,$87,$C0,$18,$00,$07,$3F,$E7
+	dc.b $00,$00,$F0,$7F,$80,$0F,$8F,$8F
 panel_animation_frame_21:
 	dc.b $00,$00,$F0,$7F,$00,$0F,$8F,$8F,$00,$07,$C0,$18,$00,$07,$3F,$E7	; bitmap
-	dc.b $00,$00,$80,$08,$00,$07,$7F,$F7,$00,$07,$C0,$18,$00,$07,$3F,$E7	; bitmap
-	dc.b $00,$00,$F0,$7F,$80,$0F,$8F,$8F	; bitmap
+	dc.b $00,$00,$80,$08,$00,$07,$7F,$F7,$00,$07,$C0,$18,$00,$07,$3F,$E7
+	dc.b $00,$00,$F0,$7F,$80,$0F,$8F,$8F
 panel_animation_frame_22:
 	dc.b $08,$00,$E8,$3F,$14,$0F,$9C,$4F,$14,$07,$94,$08,$00,$07,$54,$17	; bitmap
-	dc.b $28,$50,$A8,$48,$34,$47,$1C,$17,$20,$27,$90,$48,$00,$07,$70,$77	; bitmap
-	dc.b $00,$00,$E0,$3F,$80,$0F,$9F,$CF	; bitmap
+	dc.b $28,$50,$A8,$48,$34,$47,$1C,$17,$20,$27,$90,$48,$00,$07,$70,$77
+	dc.b $00,$00,$E0,$3F,$80,$0F,$9F,$CF
 panel_animation_frame_23:
 	dc.b $00,$80,$E0,$BF,$01,$4F,$91,$CF,$01,$47,$81,$48,$00,$07,$41,$57	; bitmap
-	dc.b $60,$80,$A0,$88,$21,$47,$41,$C7,$20,$27,$90,$48,$00,$07,$70,$77	; bitmap
-	dc.b $00,$00,$E0,$3F,$80,$0F,$9F,$CF	; bitmap
+	dc.b $60,$80,$A0,$88,$21,$47,$41,$C7,$20,$27,$90,$48,$00,$07,$70,$77
+	dc.b $00,$00,$E0,$3F,$80,$0F,$9F,$CF
 panel_animation_frame_24:
 	dc.b $00,$00,$E0,$3F,$00,$0F,$9F,$CF,$20,$27,$90,$48,$00,$07,$70,$77	; bitmap
-	dc.b $60,$80,$A0,$88,$21,$47,$41,$C7,$01,$67,$81,$48,$00,$07,$41,$77	; bitmap
-	dc.b $00,$80,$E0,$BF,$81,$4F,$91,$CF	; bitmap
+	dc.b $60,$80,$A0,$88,$21,$47,$41,$C7,$01,$67,$81,$48,$00,$07,$41,$77
+	dc.b $00,$80,$E0,$BF,$81,$4F,$91,$CF
 panel_animation_frame_25:
 	dc.b $00,$00,$E0,$3F,$00,$0F,$9F,$CF,$20,$27,$90,$48,$00,$07,$70,$77	; bitmap
-	dc.b $28,$50,$A8,$48,$34,$47,$1C,$17,$14,$07,$94,$08,$00,$07,$54,$17	; bitmap
-	dc.b $08,$00,$E8,$3F,$94,$0F,$9C,$4F	; bitmap
+	dc.b $28,$50,$A8,$48,$34,$47,$1C,$17,$14,$07,$94,$08,$00,$07,$54,$17
+	dc.b $08,$00,$E8,$3F,$94,$0F,$9C,$4F
 panel_animation_frame_26:
 	INCBIN "assets/panel_animation_frame_26.bin"
 ; bitmap
@@ -60556,22 +60605,22 @@ panel_animation_frame_49:
 ; bitmap
 panel_animation_frame_50:
 	dc.b $AE,$57,$83,$02,$7C,$FD,$68,$75,$55,$E7,$D0,$50,$2F,$AF,$27,$AD	; bitmap
-	dc.b $29,$D6,$30,$10,$CF,$EF,$4D,$46,$45,$3F,$00,$0C,$FF,$F3,$EF,$33	; bitmap
+	dc.b $29,$D6,$30,$10,$CF,$EF,$4D,$46,$45,$3F,$00,$0C,$FF,$F3,$EF,$33
 panel_animation_frame_51:
 	dc.b $FF,$EF,$20,$50,$FF,$FF,$FD,$FB,$FF,$FF,$82,$08,$EF,$7D,$B7,$FF	; bitmap
-	dc.b $FB,$FF,$14,$20,$BD,$F7,$FF,$BF,$FF,$FF,$01,$01,$FF,$FF,$DF,$EF	; bitmap
+	dc.b $FB,$FF,$14,$20,$BD,$F7,$FF,$BF,$FF,$FF,$01,$01,$FF,$FF,$DF,$EF
 panel_animation_frame_52:
 	dc.b $B9,$CF,$44,$00,$F7,$DE,$F7,$FE,$EF,$F9,$10,$06,$AA,$B2,$AF,$B3	; bitmap
-	dc.b $D6,$57,$08,$20,$6C,$F9,$7D,$FD,$BF,$FF,$40,$00,$AB,$5F,$AF,$DF	; bitmap
+	dc.b $D6,$57,$08,$20,$6C,$F9,$7D,$FD,$BF,$FF,$40,$00,$AB,$5F,$AF,$DF
 panel_animation_frame_53:
 	dc.b $AF,$FF,$A3,$06,$58,$F9,$6C,$FD,$5D,$FF,$54,$00,$AA,$AE,$A7,$DF	; bitmap
-	dc.b $7B,$DE,$60,$9A,$97,$65,$4D,$CE,$55,$7F,$10,$46,$EF,$B1,$EF,$7B	; bitmap
+	dc.b $7B,$DE,$60,$9A,$97,$65,$4D,$CE,$55,$7F,$10,$46,$EF,$B1,$EF,$7B
 abs_0_0005341A:
 	dc.w $0000
     ; Cockpit palette/control WORDs; first WORD mutable. Four RLE streams follow. Original plane writes7999,8000,7999,7999bytes; unwritten byte retains prior memory.
 cockpit_picture_palette:
 	dc.w $0111,$0F00,$0AAF,$0345,$0E60,$0F65,$0004,$0223	; 16 original palette/control WORDs; first WORD is mutable and gates protection
-	dc.w $088C,$0669,$0446,$009F,$006A,$0037,$0015,$0EEE	; 16 original palette/control WORDs; first WORD is mutable and gates protection
+	dc.w $088C,$0669,$0446,$009F,$006A,$0037,$0015,$0EEE
 cockpit_picture_rle_data:
 	INCBIN "assets/cockpit_picture_rle_data.bin"
 ; bitmap
@@ -60579,7 +60628,7 @@ cockpit_picture_rle_data:
     ; Argonaut splash palette/control WORDs; first WORD mutable. Four RLE streams each write7999bytes. Underfill and following3-byte unclaimed gap preserved.
 argonaut_splash_picture_palette:
 	dc.w $0000,$0204,$0428,$064A,$0466,$0026,$0046,$0268	; 16 original palette/control WORDs; first WORD is mutable and gates protection
-	dc.w $048A,$06AC,$0A04,$0C46,$0688,$08AA,$0ACC,$0EEE	; 16 original palette/control WORDs; first WORD is mutable and gates protection
+	dc.w $048A,$06AC,$0A04,$0C46,$0688,$08AA,$0ACC,$0EEE
 argonaut_splash_picture_rle_data:
 	INCBIN "assets/argonaut_splash_picture_rle_data.bin"
 ; bitmap
@@ -60605,7 +60654,7 @@ paula_initial_channel2_sample:
 ; sound_sample
 paula_descriptor_sample_fragment_01:
 	dc.b $1E,$09,$FF,$00,$09,$19,$27,$30,$34,$30,$25,$14,$01,$ED,$E0,$D8	; sound_sample
-	dc.b $D5,$D2,$D1,$D2,$D9,$E8,$F6,$00	; sound_sample
+	dc.b $D5,$D2,$D1,$D2,$D9,$E8,$F6,$00
 	dc.b $00,$00,$08,$A0,$27,$10
 paula_descriptor_sample_fragment_02:
 	INCBIN "assets/paula_descriptor_sample_fragment_02.bin"

@@ -1,8 +1,9 @@
 # Starglider 2: buildable original-layout rendered source
 
-This directory contains the final native rendered export, published at the
-user's explicit request. Canonical analysis facts remain alongside it unchanged.
-The game assembly and assets are copied byte-for-byte from the verified export;
+This directory contains the current native rendered export, published at the
+user's explicit request. Canonical analysis facts and append-only histories live
+alongside it. The game assembly is regenerated from those facts; unchanged assets
+are retained byte-for-byte from their verified original slices;
 the build script and README are packaging support, not hand-edited game code.
 
 ## Build
@@ -50,7 +51,7 @@ ADF, full input `binary.bin`, captures or assembler executable is committed here
 ## Scope and analysis views
 
 This is the reviewed original absolute-address restoration with explicit
-unknowns: 106034 code bytes are accepted; 15111 bytes in 256 intervals remain
+unknowns: 106034 code bytes are accepted; 14748 bytes in 260 intervals remain
 unclassified. It is not full semantic/all-path restoration or a completed
 walkthrough. The source and assets preserve every original output byte.
 
@@ -80,3 +81,22 @@ See [the restoration plan](../../docs/targets/starglider2-restoration-plan.md)
 and the [residual interval review](../../runtime/observations/starglider2-original-unknown-intervals.json).
 The private final ZIP remains an earlier delivery; this committed tree now also
 contains its actual rendered source and required dependencies.
+
+## Refinement after source review
+
+The native renderer now emits a span annotation once, preserving separate field
+comments. Native indexed address-register loads can discover text-pointer
+directories, with runtime-address mapping, text shape and ownership checks;
+referenced control-prefixed NUL text is retained as text rather than losing its
+control bytes. These inferences do not prove complete dynamic index domains.
+
+Pilot-rating strings, writable numeric slots, counter producers and the
+16-entry verdict directory are documented through canonical facts. Model-header
+pointer entries carry original catalogue identities, including shared-header
+and type30 selector exceptions. This is not visual identification or a runtime
+proof of every model. See the current refinement receipt under
+`runtime/observations/starglider2-refinement-text-models.json` in the repository.
+
+The normal-disk probe reached the protection input path, not verified flight.
+No protection answer was supplied and no game state was modified. The old
+private ZIP is historical; this committed source is the refined export.

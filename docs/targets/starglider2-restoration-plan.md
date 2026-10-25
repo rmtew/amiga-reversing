@@ -1,19 +1,53 @@
 # Starglider 2: original source restoration
 
-Status: **original-layout source review closed with explicit unknowns**.
-Canonical generated source preserves all 412736 main-payload bytes in C/vasm;
-106034 bytes are accepted code. The normal INCBIN export contains 57 assets /
-93633 bytes, each identical to its source slice, and also passes the native C
-assembler. The final ZIP has passed a clean extracted standalone rebuild and
-was delivered privately to the user. The bounded original-layout deliverable
-is complete; unresolved meanings remain explicit below.
+Status: **refinement active after the user's source review**. The earlier
+original-layout reviewed closeout and ZIP are historical milestones, not a claim
+that further analysis is exhausted. Current source remains byte exact: all
+412736 original bytes rebuild through C/vasm and a clean standalone export,
+with all 106034 accepted code bytes retained. No generated assembly was edited
+by hand and no interim archive was produced.
 
-This is not full semantic or all-path restoration: 15111 bytes in 256 intervals
-remain explicitly unclassified. No instruction or asset was replaced to make
-an assertion pass, and the assembly is not hand-polished. Source facts, names,
-structures and comments belong to the canonical catalogue/MAL/DJ. All batch
-results below are historical; the closeout and residual evidence govern the
-current disposition. No interim archive is delivered.
+The current ownership union leaves 14748 bytes in
+260 intervals unclassified. This is classification accounting,
+not a semantic completion percentage. Earlier interval/site counts below belong
+to their recorded closeout revision. See the current
+[refinement receipt](../../runtime/observations/starglider2-refinement-text-models.json).
+
+## Current refinement and next evidence
+
+The shared renderer now writes each data-span comment once: on identical facts
+this removes 12,903 duplicate trailing comments and 410,853 source bytes, with no
+directive/instruction line changes. Separate field annotations remain. Native
+text discovery handles referenced control-prefixed NUL strings and indexed
+LONG text-pointer prefixes; runtime mapping, code/typed-owner conflicts and
+weak repeated-only/numeric cases are checked. Four original indexed directories
+now render symbolically, including the 16-entry rating table. The other three
+are prefixes of 2, 5 and 7 text pointers, not proven complete index domains.
+
+Canonical facts now explain 18 rating texts, five app fields and two routines.
+Writable decimal slots and original arithmetic remain explicit. The energy
+overflow bonus is not a kill count; the shot counter precedes final spawn/pool
+checks. 93 model-directory annotations join 92 original names plus the type 0/1
+alias. Type 30's substituted selector and eleven other placeholder-name entries
+remain explicit. These are catalogue associations, not visual identification or
+a runtime instance census. 75 focused tests pass; source quality has zero
+diagnostics and retains the known encoded-entry boundary conflict.
+
+The normal-media probe verified intro/main payload bytes, entered title/start
+state, completed a CPU-only write-watch window at frames 881–1181 without a hit,
+and bounded the flight-entry search to frame 1931. It stopped in text input at
+$D7BE with a stacked return $13CD6; actual flight was not observed. A follow-up
+that would read and enter the selected protection answer was rejected before
+execution by automatic approval review. That dependent runtime action awaits
+explicit approval; no workaround was attempted. Screenshot materialization also
+failed, so no pixel-specific conclusion is claimed.
+
+Next, resolve those concrete input/image prerequisites, then trace actual flight
+and model/field instances. 30 orphan signals retain unresolved inbound paths;
+two instruction-shaped trampolines are leads only, not executable-code proof.
+Do not infer dead storage from a no-hit window or promote code from appearance.
+The public probe is `amiga_reversing/tools/starglider2_refinement_probe.py`;
+private original inputs and ROM must be supplied explicitly.
 
 Scope: the UA/WOW Amiga disk already imported in this repository. Restore readable
 original absolute-address assembly, extracted assets and exact raw payloads. No
@@ -25,8 +59,8 @@ The user explicitly requested the final rendered source and dependencies in Git.
 They now live in [`targets/amiga_raw_starglider2_game`](../../targets/amiga_raw_starglider2_game/README.md):
 `starglider2_game.s`, all 57 INCBIN files under `assets/`, nine headers under
 `includes/`, related source under `analysis_views/`, and standalone `build.py`.
-The main assembly and dependency bytes are unchanged from the verified final
-native export. Canonical facts remain intact. Python 3.9+ and an external
+The main assembly is regenerated from the current canonical facts; all 57 asset
+slices remain unchanged. Histories are preserved append-only. Python 3.9+ and an external
 `vasmm68k_mot` are required; no private reference binary or analysis DLL is used
 by the standalone build. Outputs go to the ignored target `bin/rebuilt/`.
 The original ZIP delivery remains private, but rendered source/assets are now
