@@ -1,0 +1,161 @@
+{
+  "schema_version": 1,
+  "kind": "startup_selected_text_and_message_services",
+  "binary_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+  "canonical_actions": 53,
+  "new_code_entries": 13,
+  "entry_evidence": {
+    "setup": [
+      242886,
+      242974
+    ],
+    "stubs": [
+      50404,
+      50410,
+      50416,
+      50422,
+      50428,
+      50434,
+      50440,
+      50446,
+      50452,
+      50458
+    ],
+    "profiles": [
+      [
+        244178,
+        243996,
+        250052,
+        243088,
+        243078,
+        248562,
+        249634,
+        249158,
+        243078,
+        243078
+      ],
+      [
+        243670,
+        243578,
+        251322,
+        243088,
+        243078,
+        250756,
+        251260,
+        250896,
+        243078,
+        243078
+      ]
+    ],
+    "new_entries": [
+      243088,
+      243578,
+      243670,
+      243996,
+      244178,
+      248562,
+      249158,
+      249634,
+      250052,
+      250756,
+      250896,
+      251260,
+      251322
+    ]
+  },
+  "service_roles": [
+    "cursor and positioned text",
+    "packed-BCD addition and digit drawing",
+    "four coordinate digits",
+    "heading strip",
+    "message-line continuations",
+    "conditional hardware probe/reset"
+  ],
+  "calling_contract": {
+    "message_callers": [
+      56052,
+      56066
+    ],
+    "common_saved_registers": "D0-D1/A0-A3, 24 bytes",
+    "selected_continuations": [
+      250052,
+      251322
+    ],
+    "preceding_raw_movem_prefixes": [
+      250048,
+      251318
+    ],
+    "mode1_extra_saved_register": "A4",
+    "note": "Continuation consumes caller save frame; no arbitrary-stack callable ABI or equality of preservation across implementations"
+  },
+  "cursor": {
+    "logical_columns": 40,
+    "logical_rows": 25,
+    "mode0_inverse_bytes": 8,
+    "mode1_inverse_bytes": 16,
+    "glyph_stride": 8,
+    "mode1_last_printable_glyph": 94288,
+    "mode1_inverse_write_end": 94304,
+    "stored_font_end": 94296,
+    "normal_return_restores": true,
+    "mode1_row_wrap_absolute_long_read": 4,
+    "limits": "Temporary inverse footprint includes following glyph/model bytes; retain original conditional profile and pointer assumptions"
+  },
+  "pixel_expansion": {
+    "nibble_table": [
+      251244,
+      251260
+    ],
+    "nibble_entries": 16,
+    "nibble_width": 1,
+    "byte_table": [
+      251842,
+      252354
+    ],
+    "byte_entries": 256,
+    "byte_width": 2,
+    "identity": "Every original entry duplicates each source bit horizontally; all272 entries independently checked",
+    "consumers": [
+      244750,
+      251160,
+      251430
+    ]
+  },
+  "conditional_reset": {
+    "entry": 243088,
+    "hardware_byte": 4294935050,
+    "bit": 1,
+    "clear": "return",
+    "set": "A7=LONG[0], A0=LONG[4], JMP(A0)",
+    "indirect_jump_site": 243120,
+    "status": "external continuation unresolved; not observed in supplied Amiga profile"
+  },
+  "verification": {
+    "receipt_id": "f625b54c321d33707451d5a5463cc744febb24d00e060a4828dcc85aeeef95ff",
+    "exact": true,
+    "source_sha256": "505ac6f10e3be96ef518643558c766d0b074118068b79a9fded6f9b0fe55d106",
+    "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "original_size": 412736
+  },
+  "accounting": {
+    "before_range_union_bytes": 347158,
+    "after_range_union_bytes": 351236,
+    "before_unclassified_bytes": 65578,
+    "after_unclassified_bytes": 61500,
+    "new_classified_bytes": 4078,
+    "before_accepted_code_bytes": 96162,
+    "after_accepted_code_bytes": 99720,
+    "new_accepted_code_bytes": 3558,
+    "range_violations": 0,
+    "source_quality_diagnostics": 0
+  },
+  "limits": [
+    "Original stored target/caller/source evidence, not new alternate-profile execution",
+    "No frame/PCM/hardware-timing/ABI equivalence or arbitrary-index safety claim",
+    "Unselected prologue bytes stay raw; no entry inferred from opcode shape",
+    "External vectors0/4 remain external, no ROM target invented",
+    "Font/lookup bytes unchanged; original temporary mutation and absolute4 load preserved",
+    "No archive/upload; private assets and original payload remain unpublished",
+    "Readable restoration incomplete; classification counts are not semantic completion"
+  ]
+}

@@ -4,7 +4,7 @@ Status: normal-media loader entries/bytes verified. Published source batches cov
 startup, drawing masks, Paula sample assets, span dispatches, model/variant data,
 secondary object updates, names, shared audio/render storage, frame/view and flight
 state, projected discs and HUD sprites. Complete C/vasm
-byte equality is preserved; 65578 bytes remain unclassified and substantial
+byte equality is preserved; 61500 bytes remain unclassified and substantial
 function/field meaning remains unresolved. Panel-animation images export as
 identified assets and projection scales are documented. The startup-transformed
 novella-check region now has a separate reversible,
@@ -880,3 +880,37 @@ the native source and its 52 INCBIN assets (74871 bytes) matches all 412736
 original bytes, with every asset identical to its source slice. Font data stays
 inline, as reported above. See `runtime/observations/starglider2-pixel-text.json`.
 No new runtime qualification, archive or upload accompanies this batch.
+
+
+## Startup-selected text and message implementations
+
+The original setup at `$3B4C6/$3B51E` stores ten implementation addresses into
+the existing six-byte `JMP abs.L` slots at `$C4E4..$C51A`. Both stored profiles
+and original callers now recover 13 missing code entries and name the connected
+cursor/positioned text, BCD digit, coordinate, heading and message services.
+The shared API names expose conditional dispatch rather than pretending every
+profile has identical register preservation or rendered output.
+
+Message targets `$3D0C4/$3D5BA` are continuations: callers `$DAF4/$DB02` save
+D0-D1/A0-A3 first, and the selected implementation consumes that frame. Raw
+MOVEM bytes immediately before those targets do not establish extra entries.
+Mode1 additionally saves/restores A4. Both cursor implementations use logical
+40-column/25-row bounds. Mode1 expands glyph pixels using 256 WORD entries;
+its heading writer uses a separate 16-BYTE nibble expansion. Every stored entry
+matches exact horizontal bit duplication, without replacing the original data.
+
+Mode1 inverse text temporarily NOTs 16 bytes at an eight-byte glyph stride.
+The final stored printable glyph therefore also touches eight bytes following
+the font, restoring them on normal return. Its row-wrap path reads absolute
+LONG address 4, not `4(A6)`. These original footprint/pointer assumptions remain
+visible rather than silently repaired. The platform probe at `$3B590` returns
+when hardware BYTE `$FFFF820A` bit1 is clear; otherwise it reloads A7 from vector0
+and jumps through vector4. That external reset continuation is unresolved and
+was not observed in the supplied Amiga boot profile.
+
+This batch records 53 canonical actions. Full C/vasm reconstruction matches
+all 412736 original bytes with zero range/source-quality diagnostics. Accepted
+code grows by 3558 bytes; accepted-range coverage grows by 4078, leaving
+61500 bytes unclassified. These counts do not measure semantic completion.
+No new runtime output/ABI qualification or archive accompanies this static
+restoration. See `runtime/observations/starglider2-text-services.json`.
