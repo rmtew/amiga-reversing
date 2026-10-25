@@ -18,6 +18,16 @@ the command does not discover strings or establish that every caller is safe.
 Use it for already evidenced text extents when selecting many listing rows would
 add unnecessary materialization overhead. Ordinary seed removal/undo applies.
 
+## Listing range commands
+
+A range resolves its locators against one current projection. For an owned native
+artifact it uses the existing source-coordinate lookup instead of normalizing the
+whole listing for every selected row. Suppression annotations share one metadata
+snapshot per range; the next request reads fresh metadata. The materialized-row
+fallback remains available. Per-locator target/identity checks, unique stale
+identity recovery and ambiguous/duplicate refusals are unchanged. This does not
+introduce a cross-request metadata cache or relax command revision checks.
+
 ## Retained bootstrap layout contracts
 
 `target.bootstrap.add` appends a versioned `retained_prefix_copy` contract through

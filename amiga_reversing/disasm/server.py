@@ -2305,31 +2305,40 @@ def _resolve_command_range_locators(
     project_name: str,
     locators: list[object],
 ) -> tuple[list[dict[str, object]], str]:
-    """Resolve a range against one materialized listing snapshot.
+    """Resolve a range against one current listing snapshot.
 
-    Range commands commonly select every row of a table.  Loading the whole
-    artifact per locator turns that normal operation into quadratic work.
-    Keep the same per-locator identity checks while sharing the snapshot.
+    Prefer the owned artifact's indexed lookup. Resolving each locator against
+    all rows normalizes the whole listing repeatedly, even if it was loaded
+    once. Keep the materialized fallback for non-artifact projections.
     """
     try:
         projection_hash = _LISTING_PROJECTION_SERVICE.projection_hash(
             project_id=project_name,
             current_cache_key=_project_listing_cache_key(project_name),
         )
-        all_rows = _all_listing_rows(project_name)
+        artifact = _valid_c_listing_artifact(project_name)
+        all_rows = _all_listing_rows(project_name) if artifact is None else None
     except ListingLocatorError as exc:
         code = "stale_locator" if exc.code == "missing_locator" else exc.code
         raise _command_contract_error(code, str(exc)) from exc
     rows: list[dict[str, object]] = []
     row_keys: set[str] = set()
+    # Suppression annotations belong to the same range snapshot, too. Reloading
+    # the target history per row makes large asset selections needlessly costly.
+    suppressible_seeded_items = _target_suppressible_seeded_items(project_name)
     for locator in locators:
         try:
-            row = _LISTING_PROJECTION_SERVICE.resolve_locator(
-                target_id=project_name,
-                projection_hash=projection_hash,
-                rows=all_rows,
-                locator_payload=locator,
-            )
+            if artifact is not None:
+                row = _LISTING_PROJECTION_SERVICE.resolve_locator_from_artifact(
+                    target_id=project_name, projection_hash=projection_hash,
+                    artifact=artifact, locator_payload=locator,
+                )
+            else:
+                assert all_rows is not None
+                row = _LISTING_PROJECTION_SERVICE.resolve_locator(
+                    target_id=project_name, projection_hash=projection_hash,
+                    rows=all_rows, locator_payload=locator,
+                )
         except ListingLocatorError as exc:
             code = "stale_locator" if exc.code == "missing_locator" and _locator_has_required_identity(locator) else exc.code
             raise _command_contract_error(code, str(exc)) from exc
@@ -2341,7 +2350,7 @@ def _resolve_command_range_locators(
         row["stable_key"] = row.get("row_key")
         row["stableKey"] = row.get("row_key")
         row["row_id"] = row.get("row_key")
-        _annotate_suppressible_seeded_items(row, _target_suppressible_seeded_items(project_name))
+        _annotate_suppressible_seeded_items(row, suppressible_seeded_items)
         rows.append(row)
     return rows, projection_hash
 
