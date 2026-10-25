@@ -1,0 +1,280 @@
+{
+  "schema_version": 1,
+  "kind": "sound_display_controls_and_preserved_endpoint_alias",
+  "binary_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+  "canonical_actions": 26,
+  "mutable_fields": [
+    [
+      236757,
+      1,
+      "audio_output_enable_sign_flag",
+      "byte"
+    ],
+    [
+      236766,
+      2,
+      "shared_grayscale_effect_countdown",
+      "word"
+    ],
+    [
+      236740,
+      2,
+      "nearby_effect_or_override_present_word",
+      "word"
+    ],
+    [
+      315498,
+      2,
+      "paula_speed_sound_volume",
+      "word"
+    ],
+    [
+      315500,
+      2,
+      "paula_speed_sound_base_period",
+      "word"
+    ],
+    [
+      315502,
+      2,
+      "paula_idle_volume_decay_polarity",
+      "word"
+    ],
+    [
+      315504,
+      2,
+      "paula_channel2_effect_volume",
+      "word"
+    ],
+    [
+      315508,
+      2,
+      "paula_channel2_effect_base_period",
+      "word"
+    ],
+    [
+      318892,
+      2,
+      "psg_object_sound_volume_word",
+      "word"
+    ],
+    [
+      318894,
+      2,
+      "psg_object_sound_period_word",
+      "word"
+    ],
+    [
+      318992,
+      2,
+      "psg_type10_active_countdown",
+      "word"
+    ],
+    [
+      318994,
+      2,
+      "psg_type10_pause_countdown",
+      "word"
+    ],
+    [
+      318996,
+      1,
+      "psg_type10_amplitude",
+      "byte"
+    ],
+    [
+      318997,
+      1,
+      "psg_type10_period_offset_polarity",
+      "byte"
+    ]
+  ],
+  "audio_gate": {
+    "runtime_address": 236757,
+    "initializer": 226372,
+    "initial_value": 255,
+    "input_token": 151,
+    "negate_site": 6276,
+    "rule": "negative allows output, nonnegative mutes; NEG.B toggles FF/01, not nonzero boolean"
+  },
+  "paula_controls": {
+    "volume_word": 315498,
+    "base_period_word": 315500,
+    "idle_decay_polarity_word": 315502,
+    "channel2_volume_period": [
+      315504,
+      315508
+    ],
+    "scope": "Speed, nearby/override and boost branches retain exact signed arithmetic, clamps and phase modulation; not PCM sample data"
+  },
+  "alternate_type10": {
+    "dispatch": 317212,
+    "amplitude_span": [
+      318896,
+      318928
+    ],
+    "amplitude_bytes": 32,
+    "period_span": [
+      318928,
+      318992
+    ],
+    "period_words": 32,
+    "period_values": [
+      1000,
+      1010,
+      1020,
+      1030,
+      1040,
+      1050,
+      1060,
+      1070,
+      1090,
+      1110,
+      1130,
+      1150,
+      1170,
+      1190,
+      1210,
+      1230,
+      1260,
+      1290,
+      1320,
+      1350,
+      1380,
+      1410,
+      1440,
+      1470,
+      1510,
+      1550,
+      1590,
+      1630,
+      1670,
+      1710,
+      1750,
+      1790
+    ],
+    "active_countdown": 318992,
+    "pause_countdown": 318994,
+    "normal_amplitude_indices": "active counts127..0 shifted right2 yield31..0",
+    "period_endpoint_alias": {
+      "active_count": 0,
+      "byte_index": 64,
+      "target": 318992,
+      "value_at_read": 0
+    },
+    "alias_disposition": "Preserved original read of following mutable countdown at phase0; not a33rd constant, table enlargement or bounds correction",
+    "high_byte_compare": {
+      "address": 318892,
+      "instruction": "CMP.B through WORD volume base; high byte, not low byte"
+    },
+    "hardware": "FF8800 selects register; FF8802 writes data. Object tone volume register10, period registers4/5. Alternate PSG, not Paula DMA"
+  },
+  "grayscale": {
+    "shared_countdown": 236766,
+    "initializer15": 213026,
+    "teardown_minus1": 226950,
+    "alternate_consumed_prefix": [
+      318844,
+      318874
+    ],
+    "classified_words": 15,
+    "following_zero_word_not_promoted": [
+      318874,
+      318876
+    ],
+    "normal_indices": "Both backend updates predecrement15 before reading; ordinary active indices14..0. Existing16-WORD Amiga physical curve does not establish final-coefficient access here",
+    "purpose": "Display colour curve, not audio samples"
+  },
+  "verification": {
+    "receipt_id": "2136ebefbb57412416c2dbe173358b1a9fe1e52bf65cb3812bde9957826527a5",
+    "exact": true,
+    "source_sha256": "6fac052467f1fd4aa515cef483d05a91f02c151b104dc73df03194803bdef47b",
+    "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "original_size": 412736
+  },
+  "accounting": {
+    "before_range_union_bytes": 397414,
+    "after_range_union_bytes": 397565,
+    "before_unclassified_bytes": 15322,
+    "after_unclassified_bytes": 15171,
+    "new_classified_original_bytes": 151,
+    "accepted_code_bytes": 106034,
+    "prior_code_lost_bytes": 0,
+    "range_violations": 1,
+    "known_diagnostic": {
+      "offset": 76796,
+      "kind": 3,
+      "message": "code/data boundary conflict at $12BFC references $11F80; emitted as data"
+    },
+    "source_quality_diagnostics": 0,
+    "unclassified_intervals": 256
+  },
+  "limits": [
+    "Static producer/consumer contracts, not new sound playback or alternate-platform runtime evidence",
+    "Original counters, endpoint alias and BYTE/WORD semantics retained, not repaired or normalized",
+    "Physical prefixes and ordinary count ranges are not arbitrary-input safety guarantees",
+    "One original encoded-entry code/data conflict remains; no semantic completion percentage or interim archive"
+  ],
+  "largest_remaining_intervals": [
+    [
+      400428,
+      402578,
+      2150
+    ],
+    [
+      308446,
+      309662,
+      1216
+    ],
+    [
+      12144,
+      13172,
+      1028
+    ],
+    [
+      25918,
+      26612,
+      694
+    ],
+    [
+      237752,
+      238292,
+      540
+    ],
+    [
+      235926,
+      236412,
+      486
+    ],
+    [
+      51640,
+      52096,
+      456
+    ],
+    [
+      204198,
+      204632,
+      434
+    ],
+    [
+      24298,
+      24710,
+      412
+    ],
+    [
+      193828,
+      194116,
+      288
+    ],
+    [
+      307784,
+      308062,
+      278
+    ],
+    [
+      23016,
+      23282,
+      266
+    ]
+  ]
+}

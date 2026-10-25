@@ -5,7 +5,7 @@ startup, drawing masks, Paula sample assets, span dispatches, model/variant data
 secondary object updates, names, shared audio/render storage, frame/view and flight
 state, projected discs, HUD sprites, text/input, contact lists and polygon
 edge lookup/scratch contracts. Complete C/vasm
-byte equality is preserved; 15322 bytes remain unclassified and substantial
+byte equality is preserved; 15171 bytes remain unclassified and substantial
 function/field meaning remains unresolved. Panel-animation images export as
 identified assets and projection scales are documented. The startup-transformed
 novella-check region now has a separate reversible,
@@ -20,8 +20,8 @@ relocation, C conversion or replacement OS loader is part of this project.
 
 ## Current remaining-work inventory
 
-After the unchanged protection-bridge batch, native ownership leaves
-251 intervals / 15322 bytes unclassified. This is classification accounting,
+After the sound/control alias batch, native ownership leaves
+256 intervals / 15171 bytes unclassified. This is classification accounting,
 not semantic completion; function/field completeness has no measured denominator.
 The largest interval is now `$61C2C..$62492` (2150 bytes). Original encoded
 storage is explicitly data, and its separate decoded view is not added again
@@ -38,6 +38,14 @@ object-record views retain explicit conditional index/alias assumptions, rather
 than arbitrary input-safety proofs. The planetfall pointer prefix at `$38504..$38544`, its text and the
 16 departure-message flags now have explicit source contracts. Conditional
 higher-selector aliases remain qualified; these are not universal domain proofs.
+
+Concrete next producer/consumer leads are the remaining world/effect cells at
+`$39C24..$39CE0`, render/flight state at `$48D8..$49B0`, `$5894..$5918`,
+`$2EFF4..$2F018` and `$2F524..$2F644`, and conditional alternate-backend
+state at `$3A0B8..$3A2D4` and `$3CAE4..$3CAF2`. The unentered UI/bridge
+span `$2F70..$3374` and arithmetic-looking bytes `$653E..$67F4` need original
+entry evidence, not opcode-pattern classification. These are finite source
+leads, not a measured function-completeness denominator.
 
 Conditional external continuations remain distinct: the decoded protection
 entry/provider at `$380`, reset through vector4, intro low-memory patches, and
@@ -1653,3 +1661,34 @@ Classification gains 82 bytes, of which
 unclassified. Source-quality diagnostics remain zero, with the one known
 code/data conflict retained. See
 `runtime/observations/starglider2-protection-bridges.json`.
+
+
+## Sound controls, alternate type-10 phase and preserved alias
+
+The shared sound gate is a sign flag: initialization writes FF, input token
+`$97` applies NEG.B, and output guards test negative versus nonnegative.
+The FF/01 toggle must not become an ordinary nonzero boolean. Named Paula
+control words now connect speed/idle decay, channel-2 effects and later period
+modulation to their actual hardware writes. Shared nearby/override and
+grayscale countdown state retain their display consumers as well.
+
+The alternate sound/display updater programs the PSG ports, not Paula DMA.
+Its type-10 phase uses 32 amplitude bytes and 32 stored period WORDs. At active
+count zero, the computed period byte index is 64 and reads the following
+mutable active-countdown WORD, then zero. That original endpoint alias is
+preserved explicitly; no extra constant, table enlargement or safety repair
+is invented. Its BYTE comparison through the volume WORD address reads the
+high byte, which also remains unchanged.
+
+The alternate grayscale consumer is display data. Its original initializer
+writes 15, then the update decrements before indexing, giving normal indices
+14..0. Only that 15-WORD consumed prefix is newly classified; the following
+zero WORD remains outside the claim. The existing 16-WORD Amiga physical curve
+is not evidence of a last-coefficient read by this ordinary path.
+
+All 26 actions preserve all 412736 bytes in C/vasm and retain every prior
+accepted code byte. Classification gains 151 bytes, leaving
+15171 in 256 intervals. Code remains 106034 bytes, source-quality
+diagnostics remain zero, and the known encoded-entry conflict remains one.
+See `runtime/observations/starglider2-sound-controls.json`. This is source
+understanding, not new playback/all-state proof or a completed restoration.
