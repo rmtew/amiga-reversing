@@ -1,0 +1,81 @@
+{
+  "schema_version": 1,
+  "kind": "remaining_forwarded_object_handlers",
+  "binary_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+  "canonical_actions": 55,
+  "code_entry_targets": [
+    220376,
+    220492,
+    224698,
+    220586,
+    220820,
+    224618,
+    224688,
+    221108,
+    221128,
+    220032,
+    223978,
+    219878,
+    220026,
+    223746,
+    223974,
+    221940
+  ],
+  "handler_count": 16,
+  "semantic_groups": [
+    "mini-sentinel patrol",
+    "pirate motion",
+    "skim launcher drone and missile lifetime",
+    "asteroid movement and splitting",
+    "volcano animation and model-colour writes",
+    "Solice player-relative display state",
+    "energy spheroid growth"
+  ],
+  "qualified_identities": {
+    "47": "Original UI placeholder; observed falling motion and distant retirement only",
+    "95": "Original UI placeholder; selected-object-relative motion and scale/animation only"
+  },
+  "provenance": "All original table offsets, optional diagnostic/BRA and absolute-JMP chains checked; original nearby/distant A0 record inputs. Low-model and celestial views remain separate",
+  "volcano_colour_banks": {
+    "spans": [
+      [
+        235902,
+        235914
+      ],
+      [
+        235914,
+        235926
+      ]
+    ],
+    "pairs_per_bank": 6,
+    "bytes_per_pair": 2,
+    "selector": "original object WORD26 & 1",
+    "effect": "Writes colour bytes in six original model commands; assets are mutable"
+  },
+  "verification": {
+    "receipt_id": "4760d1273a9f2f21d72c01be8a359847f551809b90f49bedf018efcb9b24efd5",
+    "exact": true,
+    "source_sha256": "d17bcd807504fc00df060df2f2d467070dafb6d7e8eb8ef8f060e3b9d08a1f0e",
+    "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "original_size": 412736
+  },
+  "accounting": {
+    "before_range_union_bytes": 361585,
+    "after_range_union_bytes": 364893,
+    "before_unclassified_bytes": 51151,
+    "after_unclassified_bytes": 47843,
+    "new_classified_bytes": 3308,
+    "before_code_bytes": 102522,
+    "accepted_code_bytes": 105806,
+    "new_code_bytes": 3284,
+    "range_violations": 0,
+    "source_quality_diagnostics": 0
+  },
+  "limits": [
+    "Original static entry and producer/consumer contracts, no new runtime qualification",
+    "Types47/95 remain unidentified beyond evidenced motion/state effects",
+    "Original allocation/count, arithmetic, timer and shared-continuation behavior preserved without speculative fixes",
+    "Symbolic field propagation remains bounded by native register/call context; no all-caller ABI proof",
+    "No interim archive or relocation"
+  ]
+}

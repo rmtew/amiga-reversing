@@ -5,7 +5,7 @@ startup, drawing masks, Paula sample assets, span dispatches, model/variant data
 secondary object updates, names, shared audio/render storage, frame/view and flight
 state, projected discs, HUD sprites, text/input, contact lists and polygon
 edge lookup/scratch contracts. Complete C/vasm
-byte equality is preserved; 51151 bytes remain unclassified and substantial
+byte equality is preserved; 47843 bytes remain unclassified and substantial
 function/field meaning remains unresolved. Panel-animation images export as
 identified assets and projection scales are documented. The startup-transformed
 novella-check region now has a separate reversible,
@@ -1291,3 +1291,30 @@ with zero range/source-quality diagnostics. Accepted code gains
 `runtime/observations/starglider2-body-state.json`. Other handlers and mission
 contracts remain open; no interim archive or new runtime campaign accompanies
 this source-restoration batch.
+
+
+## Remaining forwarded object handlers
+
+Sixteen original nearby/distant handler targets now render as code with checked
+type-table, branch and JMP provenance. They expose mini-sentinel patrol, pirate
+motion, skim-drone and missile state, asteroid splitting, volcano animation,
+Solice display state and energy-spheroid growth. Low-model fields and celestial
+LONG fields retain their separate views. Shared helper inputs are explicit where
+normal call propagation stops. Original allocation/count, timer and arithmetic
+behavior is preserved; no speculative game fixes accompany the names.
+
+The original UI gives only placeholders for types47 and95. Their observed
+falling/retirement and selected-object-relative scale/animation operations are
+recorded without inventing game identities. Volcano colour selectors use two
+banks of six BYTE pairs and modify six original model-command colour bytes,
+so those assets are explicitly mutable. This remains static source restoration,
+not new gameplay or all-caller ABI qualification.
+
+The 55 canonical actions retain full C/vasm equality for all 412736 bytes and
+zero range/source-quality diagnostics. Accepted code gains
+3284 bytes; total classification gains
+3308, leaving 47843 unclassified. See
+`runtime/observations/starglider2-forwarded-handlers.json`. The next concrete
+source lead is the Paula descriptor family and its consumers, including
+source-backed sample spans in the previously opaque tail. No interim archive
+is being created.
