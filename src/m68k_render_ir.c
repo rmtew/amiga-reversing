@@ -5393,12 +5393,28 @@ static int plan_rendered_copper_equate_expressions(M68kRenderIRPreview *preview,
           decode_section->size - use->offset < 4U ||
           m68k_render_plan_find_label(&preview->asm_source_plan, (uint32_t)decode_section->section_index,
             use->offset + 2U) != NULL) continue;
-      if (!lookup_range_ownership_covering_offset(lookup, decode_section->section_index, use->offset,
-            &ownership)) continue;
-      item = ownership.structured_item;
-      if (item == NULL || !structured_data_item_is_copper_list(item) ||
-          !structured_data_item_is_render_candidate(lookup, decode_section, accepted_bytes[decode_index],
-            render_section_extent(decode_section), item->offset, item, &preview->asm_source_plan)) continue;
+      /* A broad raw backing range can contain a later Copper leaf. The
+       * first covering range need not be the item emitted by the body walk.
+       * Require that leaf's exact-start arbitration and normal boundaries. */
+      {
+        size_t range_index;
+        item = NULL;
+        for (range_index = 0U; range_index < lookup->range_ownership_count; ++range_index) {
+          const M68kAnalysisStructuredDataItem *candidate;
+          const M68kRenderRangeOwnershipView *span = &lookup->range_ownerships[range_index];
+          if (span->section_index != decode_section->section_index ||
+              use->offset < span->start_offset || use->offset >= span->end_offset ||
+              !lookup_range_ownership_at_index(lookup, range_index, &ownership)) continue;
+          candidate = ownership.structured_item;
+          if (candidate == NULL || !structured_data_item_is_copper_list(candidate) ||
+              !structured_data_item_is_render_candidate(lookup, decode_section, accepted_bytes[decode_index],
+                render_section_extent(decode_section), candidate->offset, candidate,
+                &preview->asm_source_plan)) continue;
+          item = candidate;
+          break;
+        }
+        if (item == NULL) continue;
+      }
       symbol[0] = '\0';
       if (!format_copper_semantic_operand_expr_for_render(preview, source_analysis, decode_section->section_index,
             use->offset, symbol, sizeof(symbol))) return -1;
