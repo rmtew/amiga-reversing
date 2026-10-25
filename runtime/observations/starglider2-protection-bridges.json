@@ -1,0 +1,180 @@
+{
+  "schema_version": 1,
+  "kind": "unchanged_original_protection_bridges",
+  "canonical_actions": 27,
+  "binary_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+  "evidence": {
+    "retained_view_receipt": "runtime/observations/starglider2-protected-code.json",
+    "derived_view_sha256": "de8358853dd9ed9b006a23569bf393aa217ed3be3301a169465d80bfaf839922",
+    "derived_source_sha256": "abcce583e06d12f652728009d35376ef3a8469e74bcaba1e3e773171f5e2d89a",
+    "method": "Reproduced existing reversible transform and inverse; unchanged 64-byte context matches original input; retained decoded BSRs target all seven unchanged JMP helpers"
+  },
+  "bridges": {
+    "span": [
+      81190,
+      81232
+    ],
+    "bytes": 42,
+    "targets": [
+      13532,
+      10036,
+      55256,
+      896,
+      9560,
+      13482,
+      55210
+    ],
+    "external_provider_380": "implementation, ABI and execution remain unresolved"
+  },
+  "text_helper": {
+    "span": [
+      10036,
+      10066
+    ],
+    "via_bridge": 81196,
+    "services": [
+      "frame handoff34DC",
+      "clear text buffer33E0",
+      "print cursor text33B6/C4E4",
+      "fade in selected options palette34A4"
+    ],
+    "normal_return_continuations": [
+      10046,
+      10050,
+      10056
+    ],
+    "additional_shim": [
+      13238,
+      13244
+    ],
+    "scope": "Exact original instruction path, conditional on existing decoded entry and normal returning services; no newly observed execution"
+  },
+  "input_limit_pointer": {
+    "span": [
+      81232,
+      81236
+    ],
+    "value": 55556,
+    "decoded_consumer": 81014,
+    "write": "WORD16 through pointed input limit; no inferred input-buffer capacity"
+  },
+  "opaque_context_preserved": [
+    [
+      81180,
+      81190
+    ],
+    [
+      81236,
+      81244
+    ]
+  ],
+  "verification": {
+    "receipt_id": "56ffe0ff6ffd03f15648257ca30ddf6337271679b89422106ef15956a53bb971",
+    "exact": true,
+    "source_sha256": "8d6b917d8fb2dced3cfb58546f3cc7f971f6d990d74f185828c2efb0e9d9a54c",
+    "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "original_size": 412736
+  },
+  "accounting": {
+    "before_range_union_bytes": 397332,
+    "after_range_union_bytes": 397414,
+    "before_unclassified_bytes": 15404,
+    "after_unclassified_bytes": 15322,
+    "new_classified_original_bytes": 82,
+    "before_code_bytes": 105956,
+    "accepted_code_bytes": 106034,
+    "new_code_bytes": 78,
+    "range_violations": 1,
+    "known_diagnostic": {
+      "offset": 76796,
+      "kind": 3,
+      "message": "code/data boundary conflict at $12BFC references $11F80; emitted as data"
+    },
+    "source_quality_diagnostics": 0,
+    "unclassified_intervals": 251
+  },
+  "initial_projection_failure": {
+    "exact_bytes": true,
+    "previously_accepted_code_lost_bytes": 170,
+    "lost_spans": [
+      [
+        14574,
+        14626
+      ],
+      [
+        14662,
+        14780
+      ]
+    ],
+    "disposition": "Refused publication of initial source regression despite byte equality; original JMP targets34BC->38EE and34A4->3946 now have explicit canonical code entry facts",
+    "final_old_code_lost_bytes": 0
+  },
+  "limits": [
+    "No protection bypass, guest state injection or instruction change",
+    "No observed protected-entry execution or new external service contract",
+    "Unentered suffix not classified by opcode appearance; unchanged context distinct from encoded owner",
+    "No interim archive or semantic completion claim"
+  ],
+  "largest_remaining_intervals": [
+    [
+      400428,
+      402578,
+      2150
+    ],
+    [
+      308446,
+      309662,
+      1216
+    ],
+    [
+      12144,
+      13172,
+      1028
+    ],
+    [
+      25918,
+      26612,
+      694
+    ],
+    [
+      237752,
+      238292,
+      540
+    ],
+    [
+      235926,
+      236412,
+      486
+    ],
+    [
+      51640,
+      52096,
+      456
+    ],
+    [
+      204198,
+      204632,
+      434
+    ],
+    [
+      24298,
+      24710,
+      412
+    ],
+    [
+      193828,
+      194116,
+      288
+    ],
+    [
+      307784,
+      308062,
+      278
+    ],
+    [
+      23016,
+      23282,
+      266
+    ]
+  ]
+}

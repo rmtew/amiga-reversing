@@ -5,7 +5,7 @@ startup, drawing masks, Paula sample assets, span dispatches, model/variant data
 secondary object updates, names, shared audio/render storage, frame/view and flight
 state, projected discs, HUD sprites, text/input, contact lists and polygon
 edge lookup/scratch contracts. Complete C/vasm
-byte equality is preserved; 15404 bytes remain unclassified and substantial
+byte equality is preserved; 15322 bytes remain unclassified and substantial
 function/field meaning remains unresolved. Panel-animation images export as
 identified assets and projection scales are documented. The startup-transformed
 novella-check region now has a separate reversible,
@@ -20,8 +20,8 @@ relocation, C conversion or replacement OS loader is part of this project.
 
 ## Current remaining-work inventory
 
-After the planetfall/shared-message batch, native ownership leaves
-251 intervals / 15404 bytes unclassified. This is classification accounting,
+After the unchanged protection-bridge batch, native ownership leaves
+251 intervals / 15322 bytes unclassified. This is classification accounting,
 not semantic completion; function/field completeness has no measured denominator.
 The largest interval is now `$61C2C..$62492` (2150 bytes). Original encoded
 storage is explicitly data, and its separate decoded view is not added again
@@ -30,8 +30,8 @@ to the original coverage count.
 The weapon/HUD family at `$719C..$7F1E` and the three rotating Copper lists
 now have producer/consumer-backed source contracts, as does the settings/UI
 stream at `$E706..$E9B4` (bounded backing exceptions remain explicit below).
-Remaining work includes the unchanged protection-context helpers and
-sound/scratch backing extents such as `$4B4DE..$4B99E`, `$4DD7C..$4DED4` and
+The seven unchanged protection-context bridges and text-screen helper now
+have conditional source contracts. Remaining work includes sound/scratch backing extents such as `$4B4DE..$4B99E`, `$4DD7C..$4DED4` and
 `$61C2C..$62492`. Boundaries and meanings require actual consumers; adjacency or
 absent direct xrefs alone cannot establish a role or deadness. World/body and
 object-record views retain explicit conditional index/alias assumptions, rather
@@ -1621,3 +1621,35 @@ The largest opaque spans still need producer/consumer evidence rather than
 pattern classification. Completion remains a connected source-quality and
 residual-interval disposition review followed by one clean standalone exact
 source/asset build; classification alone is not that gate.
+
+
+## Unchanged protection bridges and text screen
+
+The existing reversible decoded view contains real BSRs to seven unchanged
+JMP helpers at `$13D26..$13D50`. Their exact original targets now render as
+conditional code, including frame handoff, text-screen preparation, editable
+input, signed-WORD formatting, palette fade-out and key polling. The bridge
+to external `$380` remains an unresolved provider contract. No path was forced
+or newly observed executing.
+
+The helper at `$2734..$2752` clears the display-table offset BYTE and
+preserves A1 across frame/clear services, prints
+the restored text pointer through `$33B6`, selects the existing options palette
+and tailcalls fade-in. Return continuations retain the original normal-return
+assumptions. The LONG at `$13D50` points to the input-limit WORD at `$D904`;
+the decoded caller writes 16 through it. This does not establish a buffer size.
+The initial projection after adding these annotations lost 170 bytes in existing
+display rotation/fade-in to fall back to raw data despite exact rebuilding.
+Explicit entry facts for the original JMP targets preserve both established
+code paths; the final projection loses no prior accepted code. This failure
+and correction are retained in the receipt.
+The first ten context bytes and final eight unentered bridge-shaped bytes
+remain outside code admission. The encoded window remains literal original
+data with its known transformed-entry diagnostic.
+
+The 27 canonical actions preserve all 412736 original bytes in C/vasm.
+Classification gains 82 bytes, of which
+78 are original code; 15322 bytes remain
+unclassified. Source-quality diagnostics remain zero, with the one known
+code/data conflict retained. See
+`runtime/observations/starglider2-protection-bridges.json`.
