@@ -1,0 +1,116 @@
+{
+  "schema_version": 1,
+  "kind": "projected_disc_queue_and_drawing_restoration",
+  "binary_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+  "canonical_actions": 26,
+  "functions": {
+    "producer": 26612,
+    "append_reference": 27404,
+    "sort_and_draw": 25288,
+    "clipped_disc_spans": 25382
+  },
+  "command_layout": {
+    "size": 10,
+    "fields": [
+      {
+        "offset": 0,
+        "name": "sort_depth",
+        "type": "WORD"
+      },
+      {
+        "offset": 2,
+        "name": "radius",
+        "type": "WORD"
+      },
+      {
+        "offset": 4,
+        "name": "colour_index",
+        "type": "UWORD"
+      },
+      {
+        "offset": 6,
+        "name": "centre_x",
+        "type": "WORD"
+      },
+      {
+        "offset": 8,
+        "name": "centre_y",
+        "type": "WORD"
+      }
+    ]
+  },
+  "storage": {
+    "records": [
+      27736,
+      28676
+    ],
+    "record_count": 94,
+    "references": [
+      28696,
+      29072
+    ],
+    "reference_slots": 94,
+    "linked_records": 93,
+    "sentinel": "negative pointer, written by caller",
+    "attempt_count_workspace_offset": 2040,
+    "original_seed": "zero bytes retained"
+  },
+  "append_contract": "Count increments before CMP.W #94/BPL; first93 references link, the94th record is unlinked writable scratch. Statement assumes original zero reset and no count wrap; no arbitrary-input proof.",
+  "colour_tables": {
+    "primary": [
+      27618,
+      27658
+    ],
+    "secondary": [
+      27658,
+      27698
+    ],
+    "entries_each": 20,
+    "layer_colours": [
+      27698,
+      27706
+    ],
+    "stored_layer_words": 4,
+    "domain": "original type-128, conditional original type range; no arbitrary index safety"
+  },
+  "projection_result": {
+    "flags": [
+      27706,
+      27726
+    ],
+    "count": 20,
+    "accepted": "SF",
+    "rejected": "ST",
+    "accepted_does_not_imply": "linked or drawn after queue cap"
+  },
+  "drawing": {
+    "sort": "descending signed first WORD",
+    "colour": "low4 bits",
+    "circle": "original clipped integer span generation, then shared four-plane span consumer",
+    "shared_workspace": "existing audio/render backing, lifetime exclusion not established"
+  },
+  "verification": {
+    "receipt_id": "ad6407a5ef6e1c49a6f100a0f1d1ada7af8de4b8e637e4567185e8b9bc12646b",
+    "exact": true,
+    "source_sha256": "1bcae9adf0361c9df3dcd9376be11ad3cc260d3b26860042a6422f9f7b552878",
+    "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "original_size": 412736
+  },
+  "accounting": {
+    "before_range_union_bytes": 336539,
+    "after_range_union_bytes": 337964,
+    "before_unclassified_bytes": 76197,
+    "after_unclassified_bytes": 74772,
+    "new_classified_bytes": 1425,
+    "range_violations": 0,
+    "source_quality_diagnostics": 0
+  },
+  "limits": [
+    "Static original consumers and catalogue, not new runtime evidence",
+    "High-type names include star/planets/moons and energy spheroid; no universal purpose inferred for all record overlays",
+    "Original signed count/index behavior, truncation and clipping preserved",
+    "20 bytes after declared records,8 after reference slots,10 after flags and3 after direction BYTE remain unclaimed",
+    "No exclusive lifetime, all-caller bounds, or original-versus-output graphics claim",
+    "Restoration incomplete; no archive or upload"
+  ]
+}

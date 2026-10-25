@@ -3,7 +3,7 @@
 Status: normal-media loader entries/bytes verified. Published source batches cover
 startup, drawing masks, Paula sample assets, span dispatches, model/variant data,
 secondary object updates, names and shared audio/render storage. Complete C/vasm
-byte equality is preserved; 76197 bytes remain unclassified and substantial
+byte equality is preserved; 74772 bytes remain unclassified and substantial
 function/field meaning remains unresolved. Panel-animation images export as
 identified assets and projection scales are documented. The startup-transformed
 novella-check region now has a separate reversible,
@@ -726,3 +726,35 @@ C/vasm equality, zero range violations and zero source-quality diagnostics are
 retained. See `runtime/observations/starglider2-player-motion.json`. This is
 static source understanding, not new runtime or arbitrary-input safety evidence.
 No new archive or upload was produced.
+
+
+## Projected discs and the sorted drawing queue
+
+High-numbered object types take `$67F4` rather than the polygon-model path.
+Their original names include the star/planet/moon family and energy spheroid.
+The producer projects a centre/radius and writes a five-WORD command: signed
+sort depth, radius, colour and screen X/Y. `$62C8` sorts command pointers by
+descending signed depth and calls the original integer circle-span builder
+`$6326`, then the existing four-plane span drawer. Colour uses its low four bits.
+Special cases can alter depth or draw multiple layers; the fields are not
+presented as universal world-object parameters.
+
+The actual append guard matters: attempt count increments before CMP.W #94/BPL,
+so the first 93 references link, and the next record remains writable unlinked
+scratch. Repeated rejected attempts reuse that slot while the counter does not
+wrap. The restored storage declares 94 ten-byte records and 94 LONG reference
+slots including the final negative sentinel. It does not invent a 96-record
+capacity from physical adjacency. Twenty following record-area bytes and eight
+following reference-area bytes remain unknown. Original zero seeds are retained.
+
+Two 20-WORD colour tables, four stored layer colours and 20 per-type projection
+flags now have names. A cleared projection flag means projection accepted, not
+that the queue cap admitted or displayed the disc. Ten bytes after the flag
+array and three after the offset-direction BYTE remain unclaimed. Arbitrary
+indices/counter wrap and exclusive shared-workspace lifetimes are not proved.
+
+Twenty-six canonical actions restore this producer/storage/consumer chain.
+Full original C/vasm equality is exact with zero structural/source-quality
+diagnostics; 1425 bytes gain range classification, leaving 74772 unclassified.
+See `runtime/observations/starglider2-disc-queue.json`. No new runtime/output
+qualification, archive or upload accompanies this batch.
