@@ -1,0 +1,185 @@
+{
+  "schema_version": 1,
+  "kind": "startup_selected_display_and_frame_effect_services",
+  "binary_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+  "canonical_actions": 51,
+  "new_seeded_code_entries": 10,
+  "entry_evidence": {
+    "setup_entries": [
+      238462,
+      238596
+    ],
+    "stubs": {
+      "0x34a4": {
+        "original_target": 14662,
+        "stored_alternatives": [
+          239952,
+          238912
+        ]
+      },
+      "0x34aa": {
+        "original_target": 14856,
+        "stored_alternatives": [
+          240064,
+          238912
+        ]
+      },
+      "0x34b0": {
+        "original_target": 13560,
+        "stored_alternatives": [
+          239456,
+          239658
+        ]
+      },
+      "0x34b6": {
+        "original_target": 13548,
+        "stored_alternatives": [
+          239446,
+          239648
+        ]
+      },
+      "0x34bc": {
+        "original_target": 14574,
+        "stored_alternatives": [
+          239856
+        ]
+      },
+      "0x34c2": {
+        "original_target": 17796,
+        "stored_alternatives": [
+          240130
+        ]
+      },
+      "0x34ce": {
+        "original_target": 310272,
+        "stored_alternatives": [
+          316256
+        ]
+      },
+      "0x34d4": {
+        "original_target": 319196,
+        "stored_alternatives": [
+          319374
+        ]
+      }
+    },
+    "original_stub_opcode": "JMP abs.L, encoded4EF9",
+    "binding": "original LONG stores at the eight opcode-extension positions; selected original profile/graphics conditions",
+    "previously_accepted_alternative": 238912,
+    "note": "Stored addresses and original direct callers establish conditional entry contracts, not runtime observation"
+  },
+  "palettes": {
+    "amiga_in": 14662,
+    "amiga_out": 14856,
+    "amiga_steps": 16,
+    "alternate_in": 239952,
+    "alternate_out": 240064,
+    "alternate_steps": 8,
+    "words_per_step": 16,
+    "amiga_cached_span": [
+      14780,
+      14812
+    ],
+    "disabled_shared_rts": 238912
+  },
+  "display_rotation": {
+    "amiga_entry": 14574,
+    "alternate_entry": 239856,
+    "workspace_byte_offset": 519,
+    "original_progression": [
+      0,
+      4,
+      8
+    ],
+    "wrap": 12,
+    "alternate_display_bases": [
+      458752,
+      491520,
+      425984
+    ],
+    "alternate_draw_bases": [
+      491520,
+      425984,
+      458752
+    ],
+    "register_bytes": [
+      239940,
+      239952
+    ],
+    "register_bytes_kind": "high/middle address BYTEs plus two other stored bytes per slot; not LONG pointers"
+  },
+  "services": {
+    "alternate_viewport_modes": [
+      239446,
+      239648
+    ],
+    "alternate_horizon_modes": [
+      239456,
+      239658
+    ],
+    "amiga_contact_panel": 17796,
+    "alternate_contact_panel": 240130,
+    "amiga_frame_effects": 310272,
+    "alternate_frame_effects": 316256,
+    "alternate_sound_control_init": 319374
+  },
+  "framebuffer_offsets": {
+    "mode0": [
+      245336,
+      245356
+    ],
+    "mode1": [
+      245356,
+      245376
+    ],
+    "entries_each": 5,
+    "base_added_by_consumer": 425984,
+    "encoding": "literal ULONG byte offsets, not direct source/code pointers",
+    "capture_entry": 245170,
+    "background_storage": [
+      245396,
+      247636
+    ],
+    "captures": 5,
+    "rows_each": 56,
+    "bytes_per_row": 8,
+    "original_seed": "2240 zero bytes",
+    "initial_false_pointer_refusal_receipt": "ab8e4cbbe016b380f957bc6f57f2f0eb26d5b757dee30d6ce52658fefc69b26d"
+  },
+  "contact_masks": {
+    "span": [
+      240608,
+      240624
+    ],
+    "words": 8,
+    "selector": "pixel coordinate AND14"
+  },
+  "verification": {
+    "receipt_id": "2662ca4552c45e88bdb671cdd1d6d3d7084d8c4f36765810bfc93445115c19bb",
+    "exact": true,
+    "source_sha256": "eb0b422312cfb5cd461f06701df8681dd1862a50e7e1506540e412f52027124c",
+    "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "original_size": 412736
+  },
+  "accounting": {
+    "before_range_union_bytes": 341404,
+    "after_range_union_bytes": 345194,
+    "before_unclassified_bytes": 71332,
+    "after_unclassified_bytes": 67542,
+    "new_classified_bytes": 3790,
+    "before_accepted_code_bytes": 92300,
+    "after_accepted_code_bytes": 96162,
+    "new_accepted_code_bytes": 3862,
+    "range_violations": 0,
+    "source_quality_diagnostics": 0
+  },
+  "limits": [
+    "Alternate profiles were not executed in a new runtime qualification; this is original stored-code/source evidence",
+    "No arbitrary input/index safety, hardware lifecycle equivalence, PCM or frame equality claim",
+    "Frame effects include sound and palette flashes, not merely audio",
+    "16 actual upload WORDs are distinct from the hardware32-slot capacity; cached palette tail is not assigned this loop purpose",
+    "Packed hardware register bytes are not guessed pointers; original fixed workspace buffers stay fixed",
+    "Latest standalone INCBIN build remains dated HUD batch; no new asset boundaries in this batch",
+    "Readable restoration remains incomplete; no archive or upload"
+  ]
+}

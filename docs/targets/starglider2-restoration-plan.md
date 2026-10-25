@@ -4,7 +4,7 @@ Status: normal-media loader entries/bytes verified. Published source batches cov
 startup, drawing masks, Paula sample assets, span dispatches, model/variant data,
 secondary object updates, names, shared audio/render storage, frame/view and flight
 state, projected discs and HUD sprites. Complete C/vasm
-byte equality is preserved; 71332 bytes remain unclassified and substantial
+byte equality is preserved; 67542 bytes remain unclassified and substantial
 function/field meaning remains unresolved. Panel-animation images export as
 identified assets and projection scales are documented. The startup-transformed
 novella-check region now has a separate reversible,
@@ -796,3 +796,45 @@ original source slice and the complete 412736-byte output equals the original.
 This includes 17 HUD sprite assets selected by the 64-byte extraction threshold;
 smaller resources stay inline. See `runtime/observations/starglider2-hud-sprites.json`.
 No new archive or upload was produced; readable restoration remains incomplete.
+
+
+## Startup-selected display and frame-effect services
+
+Startup `$3A37E/$3A404` writes exact LONG entry addresses into eight existing
+`JMP abs.L` stubs. Those stores and original direct callers justify ten code
+origins missing from the accepted graph; this is not a scan for address-looking
+constants. The shared `$3A540` RTS was already accepted and intentionally disables
+both fades in one selected profile. Original branch/profile conditions and
+normal-return assumptions remain explicit; no new alternate-profile execution
+is claimed.
+
+Recovered services now name viewport/horizon fills, paired palette fades,
+three-slot display rotation, cockpit contact plotting and frame effects. The
+Amiga fades use 16 steps over 16 WORDs; the alternate fades use eight steps over
+16 WORDs. First 32 cached palette bytes belong to the Amiga loops; following
+zeros are not assigned that purpose. The actual loop count is distinct from
+the hardware's 32-colour capacity. Sound effects and palette flashes share the
+frame-effect services, so they are not described as audio-only.
+
+Display selection advances a byte offset through 0/4/8 and wraps at 12. Three
+display bases and three drawing bases are separately named. The alternate
+hardware table is packed high/middle address bytes plus two other stored bytes
+per slot, not three LONG pointers. Contact plotting consumes relative object
+X/Z and has an eight-WORD mask table selected with AND14. Original culling,
+selectors, fixed buffer addresses and arithmetic remain unchanged.
+
+Two additional five-LONG tables are framebuffer BYTE offsets: their readers
+add fixed `$68000` before use. A numeric match such as `$5154` to code was a
+false pointer inference; the first assembly check refused an undefined symbol.
+Explicit literal arrays correct that domain through canonical facts. The same
+reader captures five 56-row by 8-byte backgrounds into 2240 original zero bytes;
+mutable storage and profile/lifetime restrictions remain explicit.
+
+Fifty-one canonical actions restore these code/data/consumer relationships.
+Full original C/vasm equality remains exact, with zero structural/source-quality
+diagnostics. Accepted code grows by 3862 bytes; total accepted-range coverage
+grows by 3790, leaving 67542 bytes unclassified. These are accounting figures,
+not an overall semantic completion percentage. See
+`runtime/observations/starglider2-alternate-services.json`. The preceding HUD
+section remains the dated standalone native INCBIN receipt; assets are unchanged.
+No new runtime/output qualification, archive or upload accompanies this batch.
