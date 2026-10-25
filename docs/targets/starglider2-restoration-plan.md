@@ -1,9 +1,11 @@
 # Starglider 2: original source restoration
 
 Status: normal-media loader entries/bytes verified. Published source batches cover
-startup, drawing masks, Paula sample assets, span dispatches and the model
-header catalogue. Complete C/vasm byte equality is preserved; semantic restoration
-and substantial data classification remain in progress. No interim archives.
+startup, drawing masks, Paula sample assets, span dispatches, model/variant data,
+secondary object updates, names and shared audio/render storage. Complete C/vasm
+byte equality is preserved; 163275 bytes remain unclassified and substantial
+function/field meaning remains unresolved. Next is the panel image family.
+No interim archives.
 Scope: the UA/WOW Amiga disk already imported in this repository. Restore readable
 original absolute-address assembly, extracted assets and exact raw payloads. No
 relocation, C conversion or replacement OS loader is part of this project.
@@ -371,3 +373,29 @@ this is not 22 newly discovered semantic mysteries, nor is the native counter a
 claim of complete control-flow recovery. The external restart value also remains
 unknown. No broad CFG-engine redesign is required to preserve the readable,
 byte-exact original source just recovered.
+
+## Shared audio/render workspace
+
+[Shared-workspace receipt](../../runtime/observations/starglider2-shared-workspace.json):
+17 new interpretations describe `$41848..$4B248` as shared mutable storage,
+not an exclusive sound sample or unused zero padding. `$10286` initializes seven
+pointer slots spaced `$1600` bytes apart; the level-four audio service at `$104E2`
+advances a four-byte index modulo 28 and programs AUD0/AUD2 lengths of `$B00`
+WORDs (5632 bytes). All seven original pointer values alias the first buffer;
+those bytes are preserved, while the source loop documents later runtime values.
+
+Within that same storage, the vertex transform uses three banks at `$47862`,
+`$48B22` and `$49DE2`. Each has positive/negative contribution halves `$960` bytes
+apart and eight-byte record strides. The original models use at most 287
+coordinate WORDs; clearing at most 288 entries fits the 300-entry halves.
+Six named WORD arrays expose these cache views. Other scratch uses and complete
+lifetime exclusion remain unresolved; overlapping views are not separate owners.
+The ring control record names the index, block count and notification while
+retaining opaque adjacent fields.
+
+All 39424 seed bytes are zero. Complete C and vasm reconstruction remains exact.
+Together with the 28-byte pointer table and ten-byte control record, this adds
+39462 classified bytes: range ownership is 249461, code remains 89702, and the
+unclassified complement is 163275. This describes static storage/consumers, not
+observed runtime access coverage. Next: the bounded panel animation records,
+frame-pointer aliases and 18848-byte image bank identified by their copy loop.

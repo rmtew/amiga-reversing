@@ -1,0 +1,83 @@
+{
+  "schema_version": 1,
+  "target": "amiga_raw_starglider2_game",
+  "status": "shared_audio_render_workspace_views_source_restored_C_vasm_exact",
+  "original_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+  "original_size": 412736,
+  "source_sha256": "7f4e1a3e38093dabece1177412361c5f8f6e697c175ca02fcd647415c8184d15",
+  "manual_actions": 644,
+  "accepted_interpretations": 608,
+  "manual_actions_sha256": "8fd7c47811759cca50c5322d9167665f41bdd3f0786ffc9f09add367ad81d20d",
+  "decision_journal_sha256": "b63c40f8ef503e00a37783c02f6d830865925c16eb9e186190ed5232f13f4b34",
+  "verification": {
+    "receipt_id": "e5a4e2723f490c0d7e8393318c6be265da96bb22036741bcba10680693595fb7",
+    "subject_revision": "b5514b5e1a3653240dbb60f12e3cd6e0859fb063f946f6acfbf4954711cc64f7",
+    "exact": true,
+    "framework_exact": true,
+    "framework_status": "exact",
+    "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "oracle": {
+      "oracle_id": "vasm",
+      "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+      "comparison_level": "oracle.full_file_match",
+      "assembler_status": "accepted",
+      "message": "oracle output matched original bytes"
+    }
+  },
+  "workspace": {
+    "start": 268360,
+    "end": 307784,
+    "size": 39424,
+    "original_zero_seed": true,
+    "zero_seed_sha256": "87e0ae0d3dfded1149ef5a27f13677e82bd9066899102820a1b1e438b53c6df5",
+    "audio_buffers": 7,
+    "audio_buffer_bytes": 5632,
+    "constructor_slot_stride": 5632,
+    "original_pointer_aliases": 7,
+    "constructor_site": 66182,
+    "interrupt_entry": 66786,
+    "read_index_byte_offsets": [
+      0,
+      4,
+      8,
+      12,
+      16,
+      20,
+      24
+    ],
+    "audio_channels": [
+      0,
+      2
+    ],
+    "audio_length_WORDs": 2816,
+    "cache_start": 292962,
+    "cache_end": 307362,
+    "cache_input_axes": 3,
+    "axis_stride": 4800,
+    "sign_half_stride": 2400,
+    "entry_stride": 8,
+    "half_capacity": 300,
+    "original_max_coordinate_WORDs": 287,
+    "original_max_clear_entries": 288,
+    "overlapping_storage_views": true,
+    "exclusive_lifetime_proved": false
+  },
+  "accounting": {
+    "before_range_union_bytes": 209999,
+    "after_range_union_bytes": 249461,
+    "before_unclassified_bytes": 202737,
+    "after_unclassified_bytes": 163275,
+    "new_classified_bytes": 39462,
+    "code_bytes": 89702,
+    "range_violations": 0,
+    "source_quality_diagnostics": 0
+  },
+  "limits": [
+    "Static source-backed shared storage, not exclusive ownership or full alias/lifetime closure",
+    "Original zero seed is not a prerecorded sound asset or evidence of unused storage",
+    "Computed runtime slot values not substituted for original pointer aliases",
+    "Opaque control bytes and other rendering/decode uses preserved",
+    "Original-model cache bounds do not validate arbitrary replacement records",
+    "No new runtime or DMA capture, graphics/audio equivalence, archive or relocation work"
+  ]
+}
