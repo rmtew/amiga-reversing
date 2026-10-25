@@ -62,7 +62,7 @@ typedef struct M68kRenderPolicy {
 /* Nonfatal: authoritative source-analysis arena items exceed the policy mirror. */
 #define M68K_ANALYSIS_STORAGE_STRUCTURED_MIRROR_INCOMPLETE 3U
 #define M68K_ANALYSIS_STORAGE_CAPACITY_MANUAL_DATA_REFERENCES 4U
-#define M68K_ANALYSIS_RSSET_LAYOUT_REGION_LIMIT 128U
+#define M68K_ANALYSIS_RSSET_LAYOUT_REGION_LIMIT 256U
 #define M68K_ANALYSIS_ABSOLUTE_STORAGE_SLOT_LIMIT 128U
 #define M68K_ANALYSIS_RSSET_USE_SITE_BINDING_LIMIT 128U
 /* Source restoration retains annotations across many subsystems. Keep this

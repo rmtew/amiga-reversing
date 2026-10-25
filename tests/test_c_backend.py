@@ -1676,7 +1676,7 @@ class _M68kAnalysisPolicy(ctypes.Structure):
         ("entry_comments", _M68kAnalysisEntryComment * 512),
         ("runtime_ranges", _M68kAnalysisRuntimeRange * 64),
         ("runtime_entry_points", _M68kAnalysisRuntimeEntryPoint * 64),
-        ("rsset_layout_regions", _M68kAnalysisRssetLayoutRegion * 128),
+        ("rsset_layout_regions", _M68kAnalysisRssetLayoutRegion * 256),
         ("absolute_storage_slots", _M68kAnalysisAbsoluteStorageSlot * 128),
         ("rsset_use_site_bindings", _M68kAnalysisRssetUseSiteBinding * 128),
         ("manual_representations_inline", _M68kAnalysisManualRepresentation * 4),

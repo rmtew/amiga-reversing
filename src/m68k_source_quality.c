@@ -8156,8 +8156,13 @@ static uint32_t source_quality_scan_indexed_word_dispatch_table_span(
       stopped_at_boundary = 1U;
       break;
     }
-    if (displacement < -M68K_SOURCE_QUALITY_WORD_DISPATCH_LOCAL_LIMIT ||
-        displacement > M68K_SOURCE_QUALITY_WORD_DISPATCH_LOCAL_LIMIT) break;
+    /* The local window is a discovery heuristic, not a signed-WORD ISA
+     * restriction. Already accepted instruction entries supply independent
+     * target evidence beyond it; never extend far unaccepted/data targets. */
+    if ((displacement < -M68K_SOURCE_QUALITY_WORD_DISPATCH_LOCAL_LIMIT ||
+         displacement > M68K_SOURCE_QUALITY_WORD_DISPATCH_LOCAL_LIMIT) &&
+        (target64 < 0 || target64 >= (int64_t)(uint64_t)base_section->size ||
+         !accepted_start[base_section_index][(uint32_t)target64])) break;
     if (displacement < -M68K_SOURCE_QUALITY_WORD_DISPATCH_FAR_BOUNDARY_MIN ||
         displacement > M68K_SOURCE_QUALITY_WORD_DISPATCH_FAR_BOUNDARY_MIN) {
       saw_far_displacement = 1U;

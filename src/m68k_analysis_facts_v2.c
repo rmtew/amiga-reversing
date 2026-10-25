@@ -3713,8 +3713,7 @@ static uint32_t scan_word_relative_control_target_table(const M68kDecodeSectionI
         cursor + 4U <= section->size && m68k_read_u16be(section->data + cursor + 2U) == 0U) {
       break;
     }
-    if (displacement < -M68K_FACTS_V2_WORD_DISPATCH_LOCAL_LIMIT ||
-        displacement > M68K_FACTS_V2_WORD_DISPATCH_LOCAL_LIMIT) break;
+
     if (displacement < -M68K_FACTS_V2_WORD_DISPATCH_FAR_BOUNDARY_MIN ||
         displacement > M68K_FACTS_V2_WORD_DISPATCH_FAR_BOUNDARY_MIN) {
       saw_far_displacement = 1U;
@@ -3729,6 +3728,11 @@ static uint32_t scan_word_relative_control_target_table(const M68kDecodeSectionI
      * In particular a following mask/padding zero must not add the table base
      * as a fictitious target. A distinct code base with a zero entry is valid. */
     if (target_offset >= table_offset && target_offset < cursor + 2U) break;
+    /* Keep scan and enqueue admission identical: far WORD displacements
+     * require independent accepted-entry evidence, never an opcode guess. */
+    if ((displacement < -M68K_FACTS_V2_WORD_DISPATCH_LOCAL_LIMIT ||
+         displacement > M68K_FACTS_V2_WORD_DISPATCH_LOCAL_LIMIT) &&
+        (accepted_start == NULL || accepted_start[target_offset] == 0U)) break;
     if (control_target_starts_in_zero_padding(section, target_offset)) break;
     if (accepted_offset_is_interior(section, accepted_start, accepted_bytes, target_offset)) break;
     if (targets != NULL) {
@@ -6355,8 +6359,7 @@ static int enqueue_word_relative_table_targets_for_indirect_site(M68kDecodeIR *d
         cursor + 4U <= section->size && m68k_read_u16be(section->data + cursor + 2U) == 0U) {
       break;
     }
-    if (displacement < -M68K_FACTS_V2_WORD_DISPATCH_LOCAL_LIMIT ||
-        displacement > M68K_FACTS_V2_WORD_DISPATCH_LOCAL_LIMIT) break;
+
     if (displacement < -M68K_FACTS_V2_WORD_DISPATCH_FAR_BOUNDARY_MIN ||
         displacement > M68K_FACTS_V2_WORD_DISPATCH_FAR_BOUNDARY_MIN) {
       saw_far_displacement = 1U;
@@ -6367,6 +6370,11 @@ static int enqueue_word_relative_table_targets_for_indirect_site(M68kDecodeIR *d
         section->section_index, section->size, target_address, &target_offset)) {
       break;
     }
+    /* Keep scan and enqueue admission identical: far WORD displacements
+     * require independent accepted-entry evidence, never an opcode guess. */
+    if ((displacement < -M68K_FACTS_V2_WORD_DISPATCH_LOCAL_LIMIT ||
+         displacement > M68K_FACTS_V2_WORD_DISPATCH_LOCAL_LIMIT) &&
+        (accepted_start[section_index] == NULL || accepted_start[section_index][target_offset] == 0U)) break;
     if (control_target_starts_in_zero_padding(section, target_offset)) break;
     if (accepted_offset_is_interior(section, accepted_start[section_index], accepted_bytes[section_index],
         target_offset))

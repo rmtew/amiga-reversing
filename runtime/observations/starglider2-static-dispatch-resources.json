@@ -1,0 +1,436 @@
+{
+  "schema_version": 1,
+  "kind": "static_dispatch_recovery_and_resource_sound_contracts",
+  "target": "amiga_raw_starglider2_game",
+  "publication_base_commit": "cab398e5276c66dafafc3c8d22ced9b3024db1a1",
+  "status": "static_batch_verified_runtime_continuation_blocked",
+  "verification": {
+    "kind": "verification",
+    "framework_exact": true,
+    "target_id": "amiga_raw_starglider2_game",
+    "subject_revision": "5e225c8261258b1abebfea47c66f79e603d60efcbe9577051515415baa69b383",
+    "status": "exact",
+    "exact": true,
+    "source_sha256": "d894decfc7384af2d298b8b979260ecb298824715ada3821e4f7b1377a9248bb",
+    "source_path": "/workspace/pandora-original-delivery/stable-d15c2cf8/.runtime-state/restoration/eb04f545fb97451725a1c91ab5abf6f2e097614c45880db6edfb4ea5c3f6e2c2/d894decfc7384af2d298b8b979260ecb298824715ada3821e4f7b1377a9248bb.s",
+    "source_package_sha256": null,
+    "original_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "original_size": 412736,
+    "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "rebuilt_path": "/workspace/pandora-original-delivery/stable-d15c2cf8/.runtime-state/restoration/eb04f545fb97451725a1c91ab5abf6f2e097614c45880db6edfb4ea5c3f6e2c2/662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9.bin",
+    "framework_status": "exact",
+    "failure_kinds": [],
+    "message": "",
+    "oracle": {
+      "oracle_id": "vasm",
+      "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+      "comparison_level": "oracle.full_file_match",
+      "assembler_status": "accepted",
+      "message": "oracle output matched original bytes"
+    },
+    "receipt_id": "6eee3873c169760518929680ef221254e6e1a3a974e0590d8f956c4b549fbbab",
+    "revision": "c8cbbcd128c2a85d4a4cd2f1699eef6a23c02180a75327b14603afce53469696"
+  },
+  "standalone_build": {
+    "schema_version": 1,
+    "status": "pass",
+    "format": "raw_payload_not_AmigaDOS_HUNK",
+    "main_bytes": 412736,
+    "main_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "main_matches_original_identity": true,
+    "asset_count": 57,
+    "all_asset_source_slices_equal": true,
+    "decoded_view_inverse_exact": true,
+    "boot_copy_source_matches_resident_view": true,
+    "source_commit": "cab398e5276c66dafafc3c8d22ced9b3024db1a1",
+    "assembler_sha256": "413e284020125f42709486dfe09907cab3dd9f3c2ea41017c190f8ea68f30825",
+    "flags": [
+      "-Fbin",
+      "-m68000",
+      "-no-opt"
+    ],
+    "outputs": [
+      {
+        "role": "original_main",
+        "filename": "Starglider2-original.raw",
+        "bytes": 412736,
+        "sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9"
+      },
+      {
+        "role": "decoded_analysis_view",
+        "filename": "protection-decoded-analysis.raw",
+        "bytes": 3548,
+        "sha256": "de8358853dd9ed9b006a23569bf393aa217ed3be3301a169465d80bfaf839922"
+      },
+      {
+        "role": "boot_installer_context",
+        "filename": "boot-selector-installer-context.raw",
+        "bytes": 40,
+        "sha256": "8d34852425e2e1bfa87b3febdfc74fb39e7c667e9d9ff73e17b594649e83b21b"
+      },
+      {
+        "role": "boot_resident_view",
+        "filename": "boot-selector-resident.raw",
+        "bytes": 20,
+        "sha256": "a26286a393713c046eff9dbaff15b20b26b171fa9e05fc9d538d16b0eddb6024"
+      }
+    ]
+  },
+  "accounting": {
+    "before": {
+      "classified_union_bytes": 397988,
+      "unclassified_bytes": 14748,
+      "unclassified_intervals": 260,
+      "accepted_code_bytes": 106034,
+      "table_records": 63,
+      "string_records": 322
+    },
+    "after": {
+      "classified_union_bytes": 397988,
+      "unclassified_bytes": 14748,
+      "unclassified_intervals": 260,
+      "accepted_code_bytes": 106034,
+      "table_records": 64,
+      "string_records": 322
+    },
+    "new_classified_bytes": 0,
+    "all_previous_code_bytes_retained": true
+  },
+  "dispatch": {
+    "mechanism": "The local 8KiB relative-WORD heuristic now admits farther mapped targets only when independently accepted instruction starts. Early CFG and source-quality scans retain identical mapping/interior/data/bounds guards.",
+    "before_status_counts": {
+      "jump_table": 14,
+      "unresolved": 3
+    },
+    "after_status_counts": {
+      "jump_table": 15,
+      "unresolved": 2
+    },
+    "sites": [
+      {
+        "runtime_pc": 32806,
+        "table": 32810,
+        "stored_entries": 148,
+        "before_distinct_targets": 27,
+        "after_distinct_targets": 77
+      },
+      {
+        "runtime_pc": 33304,
+        "table": 33308,
+        "stored_entries": 148,
+        "before_status": "unresolved",
+        "after_status": "jump_table",
+        "after_distinct_targets": 24
+      }
+    ],
+    "new_code_bytes": 0,
+    "unresolved": [
+      {
+        "runtime_pc": 50910,
+        "contract": "Reload SP/PC from absolute0/4 in RAM-corruption restart; Amiga initialization at CEAE stores FC0000 to vector4, but mutable vectors and entry-order assumptions remain conditional."
+      },
+      {
+        "runtime_pc": 243120,
+        "contract": "Alternate-mode reset reloads SP/PC from absolute0/4; external continuation, no normal-return or executed-profile claim."
+      }
+    ]
+  },
+  "canonical_adoption": {
+    "action_start": 2532,
+    "actions": 19,
+    "reason": "Original $144C subtracts speed-derived WORD demand from app+$774; underflow at $1510 clears it and stores end reason1. $1EA8 maps reason1 to POWER DRAINAGE TOO GREAT, otherwise ICARUS DESTROYED; reset stores0 and shield depletion stores2. $33A16 follows shield WORD+$776 subtraction and queues original Shields Damaged directory entry64. Projectile gate $7256 tests/debits WORD+$794; unavailable type103 laser routes to original no Laser Energy entry67. The three alternate meter stages read those same reserve words. No fuel identity, percentage scale, saturation rewrite or arbitrary-state safety inferred. Bouncing-bomb producer $3692A sets BYTE+$AE1 and copies object WORD+$1A to WORD+$860. Paula consumes bounce then generic BYTE+$BB6 requests (generic wins if both); alternate handles bounce then branches over generic, deferring its pending flag. Both use sign-bit flags and retain distinct WORD arithmetic/scales; no assertion that sound outputs or priorities are equivalent. Generic request producers span contacts, hazards and detonation, so it is not labelled explosion-only. Static producer/consumer contract only; no new runtime or injected input.",
+    "fields": [
+      {
+        "offset": 1858,
+        "width": 2,
+        "symbol": "icarus_game_over_reason",
+        "accesses": {
+          "read": 2,
+          "write": 3
+        },
+        "source_sites": [
+          5090,
+          5382,
+          5396,
+          7848,
+          8198
+        ]
+      },
+      {
+        "offset": 1908,
+        "width": 2,
+        "symbol": "icarus_power_reserve",
+        "accesses": {
+          "read": 10,
+          "write": 16,
+          "read-write": 1
+        },
+        "source_sites": [
+          5032,
+          5040,
+          5132,
+          5178,
+          5196,
+          5226,
+          5392,
+          7744,
+          8352,
+          50116,
+          50130,
+          50138,
+          50220,
+          50228,
+          54350,
+          209912,
+          209920,
+          212352,
+          212366,
+          212372,
+          218414,
+          218428,
+          218434,
+          224256,
+          224272,
+          224278,
+          247636
+        ]
+      },
+      {
+        "offset": 1910,
+        "width": 2,
+        "symbol": "icarus_shield_strength",
+        "accesses": {
+          "read": 11,
+          "write": 20,
+          "read-write": 5
+        },
+        "source_sites": [
+          5020,
+          5028,
+          5106,
+          5150,
+          5184,
+          5248,
+          5270,
+          5370,
+          5378,
+          7748,
+          8348,
+          36382,
+          36394,
+          50144,
+          50160,
+          50168,
+          54432,
+          209802,
+          209810,
+          210082,
+          210090,
+          210100,
+          211418,
+          211464,
+          211474,
+          212404,
+          212418,
+          212424,
+          218466,
+          218480,
+          218486,
+          223338,
+          224312,
+          224328,
+          224334,
+          247754
+        ]
+      },
+      {
+        "offset": 1940,
+        "width": 2,
+        "symbol": "weapon_energy_reserve",
+        "accesses": {
+          "read": 9,
+          "write": 13
+        },
+        "source_sites": [
+          5044,
+          5052,
+          5190,
+          7752,
+          8356,
+          29270,
+          29324,
+          29334,
+          50174,
+          50190,
+          50198,
+          54510,
+          212378,
+          212392,
+          212398,
+          218440,
+          218454,
+          218460,
+          224284,
+          224300,
+          224306,
+          247872
+        ]
+      },
+      {
+        "offset": 2144,
+        "width": 2,
+        "symbol": "bomb_bounce_sound_argument",
+        "accesses": {
+          "write": 1,
+          "read": 2
+        },
+        "source_sites": [
+          223534,
+          310572,
+          316360
+        ]
+      },
+      {
+        "offset": 2785,
+        "width": 1,
+        "symbol": "pending_bomb_bounce_sound",
+        "accesses": {
+          "write": 3,
+          "read": 3
+        },
+        "source_sites": [
+          223530,
+          310558,
+          310584,
+          310656,
+          316346,
+          316364
+        ]
+      },
+      {
+        "offset": 2998,
+        "width": 1,
+        "symbol": "pending_transient_event_sound",
+        "accesses": {
+          "write": 16,
+          "read": 2
+        },
+        "source_sites": [
+          5780,
+          51084,
+          212078,
+          212342,
+          213034,
+          217542,
+          220408,
+          220812,
+          221986,
+          223342,
+          224604,
+          225510,
+          226784,
+          242162,
+          310588,
+          310614,
+          316370,
+          316388
+        ]
+      }
+    ],
+    "anchors": [
+      5196,
+      5378,
+      5392,
+      7848,
+      29270,
+      211478,
+      223530,
+      310558,
+      316346,
+      247636
+    ]
+  },
+  "sound_contract": "Paula consumes bounce then generic requests: generic wins if both pending and both clear. Alternate bounce branch defers generic flag. Flags are sign tests, argument remains opaque WORD; no invented common sound/distance ABI.",
+  "capacity": {
+    "before": 128,
+    "after": 256,
+    "explicit_target_fields_before": 127,
+    "explicit_target_fields_after": 134,
+    "atomic_preflight": "RSSET-only add/remove batches now validate native policy before append; 257-entry overflow leaves metadata/MAL/DJ unchanged."
+  },
+  "tests": {
+    "final_focused_runs": {
+      "passed": 91,
+      "failed": 0,
+      "skipped": 0,
+      "invocations": [
+        "78 renderer/text/dispatch/capacity cases",
+        "13 comment-write contract cases"
+      ]
+    },
+    "new_focused": {
+      "passed": 14,
+      "failed": 0,
+      "skipped": 0,
+      "command": "pytest -q tests/test_far_word_dispatch.py tests/test_rsset_capacity.py"
+    },
+    "combined_prior_run": {
+      "passed": 89,
+      "failed": 0,
+      "skipped": 0,
+      "scope": "77 existing renderer/text tests, eight dispatch cases and four initial capacity cases; two manual-capacity positive cases subsequently added and included in final14"
+    },
+    "broader_backend_selection": {
+      "passed": 2,
+      "skipped": 1,
+      "failed": 3,
+      "scope": "tests/test_c_backend.py -k 'dispatch or indirect'",
+      "failures": [
+        "Two imported corpus fixtures unavailable in the stable mirror",
+        "Existing LONG-dispatch literal-format expectation fails identically with cab398e5 baseline C sources; no new WORD regression"
+      ],
+      "baseline_control": "Separate process-only backend override; active backend not replaced"
+    }
+  },
+  "orphan_review": {
+    "stubs": [
+      {
+        "runtime_pc": 50428,
+        "target": 50558
+      },
+      {
+        "runtime_pc": 46300,
+        "target": 222046
+      }
+    ],
+    "status": "No established incoming edge; code-shaped bytes neither promoted nor called dead."
+  },
+  "source_quality_diagnostics": 0,
+  "runtime": "No new run; previously denied protection answer read/keyboard step remains unexecuted pending approval. No flight, callback or DMA coverage gained.",
+  "screenshots": "Previously failed supported materialization; pixels still unavailable, no screenshot-specific conclusion.",
+  "assets": {
+    "count": 57,
+    "bytes": 93633,
+    "unchanged": true
+  },
+  "game_assembly_hand_edits": false,
+  "paused_files": {
+    "count": 16,
+    "working_bytes_unchanged": true,
+    "index_only_baseline_hunks": [
+      "src/m68k_ir.h: RSSET capacity128 to256",
+      "tests/test_c_backend.py: matching ctypes capacity128 to256"
+    ],
+    "reconciliation": "Paused A2 working copies retain old128 capacity and must incorporate these capacity-only baseline changes when resumed; no unpublished A2/B07 content committed."
+  },
+  "limits": [
+    "Byte-exact build is not full semantic completion",
+    "117 catalogued field references are explicit app-base references, not exhaustive indirect alias coverage",
+    "Two new internal meter labels are fallthrough blocks, not standalone callable ABI claims",
+    "No runtime-protection retry, new capture or archive"
+  ],
+  "source_package_C_exact": true,
+  "source_file_sha256": "f5469ab5d1bdaf108d7c5c0a148f00aad018c9ad475dd257d851ebf9c8cf92ba",
+  "validated_target_git_tree": "683bbf7f3ca369cb291575541f2b118b0b2f7a52",
+  "clean_staged_tree_build": true
+}

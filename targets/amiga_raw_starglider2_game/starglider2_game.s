@@ -284,7 +284,7 @@ player_score_bcd RS.L 1
 app_0720 RS.L 1
     RS.B 28
 mouse_input_scale_shift RS.W 1
-app_0742 RS.W 1
+icarus_game_over_reason RS.W 1
 player_rotation_0 RS.W 1
 player_rotation_1 RS.W 1
 player_rotation_2 RS.W 1
@@ -309,8 +309,8 @@ app_076C RS.W 1
 app_076E RS.W 1
 app_0770 RS.W 1
 free_object_count RS.W 1
-app_0774 RS.W 1
-app_0776 RS.W 1
+icarus_power_reserve RS.W 1
+icarus_shield_strength RS.W 1
 app_0778 RS.W 1
 app_077A RS.W 1
 inside_structure_flag RS.B 1
@@ -326,7 +326,7 @@ bouncing_bomb_hud_icon_count RS.W 1
 app_078E RS.W 1
     RS.B 2
 app_0792 RS.W 1
-app_0794 RS.W 1
+weapon_energy_reserve RS.W 1
 app_0796 RS.W 1
 world_layout_index RS.W 1
 app_079A RS.W 1
@@ -405,7 +405,7 @@ app_0856 RS.W 1
 projector_rebuild_cursor RS.W 1
 growing_projector_part_reference RS.L 1
 growing_projector_part_type RS.W 1
-app_0860 RS.W 1
+bomb_bounce_sound_argument RS.W 1
 solice_display_phase_angle RS.W 1
 solice_display_radius RS.L 1
 station_construction_steps_remaining RS.W 1
@@ -471,14 +471,14 @@ app_0AA5 RS.B 1
 projector_network_complete_flag RS.B 1
 app_0AA8 RS.B 1
 projector_part_presence_flags RS.B 56
-app_0AE1 RS.B 1
+pending_bomb_bounce_sound RS.B 1
 app_0AE2 RS.B 1
 neutron_bomb_spawn_request RS.B 1
 neutron_bomb_retract_request RS.B 1
 model_type_population_counts RS.B 104
 taymar_delivered_model_counts_prefix RS.B 104
 app_0BB5 RS.B 1
-app_0BB6 RS.B 1
+pending_transient_event_sound RS.B 1
 app_0BB7 RS.B 1
     RS.B 1
 app_0BB9 RS.B 1
@@ -1248,15 +1248,15 @@ abs_0_0000137E:
 	bset.b #7,app_020A(a6)
 	tst.w app_0752(a6)
 	beq.b abs_0_000013D0
-	move.w app_0776(a6),d0
+	move.w icarus_shield_strength(a6),d0
 	addi.w #4000,d0
-	move.w d0,app_0776(a6)
-	move.w app_0774(a6),d0
+	move.w d0,icarus_shield_strength(a6)
+	move.w icarus_power_reserve(a6),d0
 	addi.w #4000,d0
-	move.w d0,app_0774(a6)
-	move.w app_0794(a6),d0
+	move.w d0,icarus_power_reserve(a6)
+	move.w weapon_energy_reserve(a6),d0
 	addi.w #4000,d0
-	move.w d0,app_0794(a6)
+	move.w d0,weapon_energy_reserve(a6)
 	subq.w #1,app_0752(a6)
 	bne.b abs_0_000013D0
 	lea.l planetfall_message_apogee.l,a1
@@ -1266,11 +1266,11 @@ abs_0_000013D0:
 	bmi.w abs_0_0000151E
 	tst.b app_07EE(a6)
 	bne.w abs_0_0000123E
-	tst.w app_0742(a6)
+	tst.w icarus_game_over_reason(a6)
 	bne.w abs_0_00001560
 	tst.b app_0206(a6)
 	bne.w abs_0_00001560
-	cmpi.w #12000,app_0776(a6)
+	cmpi.w #12000,icarus_shield_strength(a6)
 	bcc.b abs_0_0000140C
 	move.w app_0756(a6),d1
 	andi.w #127,d1
@@ -1278,13 +1278,13 @@ abs_0_000013D0:
 	tst.b app_0205(a6)
 	bne.w abs_0_00001560
 abs_0_0000140C:
-	cmpi.w #12000,app_0774(a6)
+	cmpi.w #12000,icarus_power_reserve(a6)
 	bcc.b abs_0_0000141E
 	move.w app_0756(a6),d1
 	andi.w #127,d1
 	nop
 abs_0_0000141E:
-	tst.w app_0776(a6)
+	tst.w icarus_shield_strength(a6)
 	beq.w abs_0_00001502
 	tst.w app_0796(a6)
 	bne.b abs_0_00001434
@@ -1293,11 +1293,12 @@ abs_0_0000141E:
 abs_0_00001434:
 	tst.b app_01F6(a6)
 	beq.b abs_0_0000144C
-	move.w #$55F0,app_0774(a6)
-	move.w #$9C40,app_0776(a6)
-	move.w #$7530,app_0794(a6)
+	move.w #$55F0,icarus_power_reserve(a6)
+	move.w #$9C40,icarus_shield_strength(a6)
+	move.w #$7530,weapon_energy_reserve(a6)
+    ; Power drain uses original WORD subtraction and carry tests; boost adds a second debit. Underflow selects reason1 and the original power-drainage text, not an inferred fuel label.
 abs_0_0000144C:
-	move.w app_0774(a6),d0
+	move.w icarus_power_reserve(a6),d0
 	move.w player_speed_target(a6),d1
 	lsr.w #6,d1
 	sub.w d1,d0
@@ -1308,19 +1309,19 @@ abs_0_0000144C:
 	sub.w d1,d0
 abs_0_00001466:
 	bcs.w abs_0_00001510
-	move.w d0,app_0774(a6)
+	move.w d0,icarus_power_reserve(a6)
 	tst.b inside_structure_flag(a6)
 	bne.b abs_0_000014B2
 	tst.w player_speed_target(a6)
 	beq.b abs_0_000014B2
 	tst.b app_07E7(a6)
 	bne.b abs_0_000014B2
-	move.w app_0776(a6),d0
+	move.w icarus_shield_strength(a6),d0
 	cmpi.l #4294967176,player_world_y(a6)
 	blt.b abs_0_000014B2
 	subi.w #300,d0
 	bcs.w abs_0_00001502
-	move.w d0,app_0776(a6)
+	move.w d0,icarus_shield_strength(a6)
 	movem.l d0-d7/a0-a5,-(a7)
 	bsr.w advance_shared_random_state
 	andi.w #62,d0
@@ -1349,15 +1350,16 @@ abs_0_000014B6:
 abs_0_000014F0:
 	lea.l object_collision_damage_values.l,a1
 	move.w $0(a1,d0.w),d0
-	sub.w d0,app_0776(a6)
+	sub.w d0,icarus_shield_strength(a6)
 	bcc.w abs_0_00001434
+    ; Shield depletion selects reason2. The original environment-damage path also debits this WORD and queues Shields Damaged; preserve original zero/carry behavior.
 abs_0_00001502:
-	clr.w app_0776(a6)
-	move.w #$2,app_0742(a6)
+	clr.w icarus_shield_strength(a6)
+	move.w #$2,icarus_game_over_reason(a6)
 	bra.w gameplay_frame_loop
 abs_0_00001510:
-	clr.w app_0774(a6)
-	move.w #$1,app_0742(a6)
+	clr.w icarus_power_reserve(a6)
+	move.w #$1,icarus_game_over_reason(a6)
 	bra.w gameplay_frame_loop
 abs_0_0000151E:
 	sf.b app_0BBB(a6)
@@ -1383,7 +1385,7 @@ abs_0_00001542:
 abs_0_00001560:
 	move.b #$78,diagnostic_stage_step_word.l
 	clr.b diagnostic_step_byte.l
-	bsr.w abs_0_00001EA8
+	bsr.w enqueue_game_over_reason_message
 	sf.b app_0BBB(a6)
 	movea.l player_object_reference(a6),a0
 	cmpi.w #200,abs_0_00039B7A.l
@@ -1446,7 +1448,7 @@ abs_0_0000164C:
 	bsr.w advance_shared_random_state
 	andi.w #7,d0
 	bne.b abs_0_00001698
-	st.b app_0BB6(a6)
+	st.b pending_transient_event_sound(a6)
 abs_0_00001698:
 	subq.w #1,abs_0_00039B7A.l
 	bpl.w gameplay_frame_loop
@@ -1494,9 +1496,9 @@ abs_0_0000172C:
 	bpl.b abs_0_0000172C
 abs_0_00001748:
 	rts
-abs_0_0000174A:
+game_over_power_drainage_message:
 	dc.b " POWER DRAINAGE TOO GREAT! ",$00
-abs_0_00001766:
+game_over_icarus_destroyed_message:
 	dc.b "     ICARUS DESTROYED!",$00
 	dc.b $00
 abs_0_0000177E:
@@ -2012,9 +2014,9 @@ abs_0_00001E2A:
 	bne.b abs_0_00001E50
 	bsr.w abs_0_00001E76
 	moveq.l #-1,d0
-	move.w d0,app_0774(a6)
-	move.w d0,app_0776(a6)
-	move.w d0,app_0794(a6)
+	move.w d0,icarus_power_reserve(a6)
+	move.w d0,icarus_shield_strength(a6)
+	move.w d0,weapon_energy_reserve(a6)
 	not.b app_01F6(a6)
 abs_0_00001E50:
 	bsr.w abs_0_00003404
@@ -2034,13 +2036,13 @@ abs_0_00001E76:
 	bra.w abs_0_000049DA
 	dc.b $46,$2E,$01,$55,$10,$2E,$01,$F4,$02,$00,$00,$FE,$1D,$40,$01,$F4
 	dc.b $4E,$75,$00,$2E,$00,$01,$01,$F4,$4E,$75,$46,$2E,$02,$04,$4E,$75
-abs_0_00001EA8:
-	cmpi.w #1,app_0742(a6)
+enqueue_game_over_reason_message:
+	cmpi.w #1,icarus_game_over_reason(a6)
 	bne.w abs_0_00001EBA
-	lea.l abs_0_0000174A(pc),a1
+	lea.l game_over_power_drainage_message(pc),a1
 	bra.w abs_0_000049DA
 abs_0_00001EBA:
-	lea.l abs_0_00001766(pc),a1
+	lea.l game_over_icarus_destroyed_message(pc),a1
 	bra.w abs_0_000049DA
 abs_0_00001EC2:
 	st.b $0154(a6)
@@ -2133,7 +2135,7 @@ abs_0_00001FF2:
 	bra.b abs_0_00001FC2
 abs_0_00002000:
 	move.w #$32,app_0754(a6)
-	move.w #$0,app_0742(a6)
+	move.w #$0,icarus_game_over_reason(a6)
 	move.w #$FFFF,app_07C6(a6)
 	move.w #$4,$01AA(a6)
 	move.w #$3,world_layout_index(a6)
@@ -2166,9 +2168,9 @@ abs_0_00002000:
 	clr.w negative_speed_control_accumulator(a6)
 	move.w #$FF74,negative_speed_control_accumulator(a6)
 	moveq.l #0,d0
-	move.w d0,app_0776(a6)
-	move.w d0,app_0774(a6)
-	move.w d0,app_0794(a6)
+	move.w d0,icarus_shield_strength(a6)
+	move.w d0,icarus_power_reserve(a6)
+	move.w d0,weapon_energy_reserve(a6)
 	move.w d0,player_speed_target(a6)
 	move.w #$10,app_0752(a6)
 	move.w #$0,app_0796(a6)
@@ -8212,7 +8214,7 @@ load_projectile_profile_and_try_spawn:
 	tst.b $0054(a1)
 	beq.w abs_0_000073DA
 abs_0_00007256:
-	tst.w app_0794(a6)
+	tst.w weapon_energy_reserve(a6)
 	beq.w abs_0_000073DA
 	move.w selected_projectile_action_cooldown.l,weapon_action_cooldown(a6)
 	st.b abs_0_0004DE39.l
@@ -8224,12 +8226,12 @@ abs_0_00007256:
 	bne.b abs_0_0000728C
 	add.w d1,d1
 abs_0_0000728C:
-	move.w app_0794(a6),d0
+	move.w weapon_energy_reserve(a6),d0
 	sub.w d1,d0
 	bcc.b abs_0_00007296
 	moveq.l #0,d0
 abs_0_00007296:
-	move.w d0,app_0794(a6)
+	move.w d0,weapon_energy_reserve(a6)
 	cmpi.w #2,free_object_count(a6)
 	bls.w abs_0_000075B0
 	movea.l free_object_stack_cursor(a6),a1
@@ -10134,12 +10136,12 @@ abs_0_00008E02:
 	andi.w #62,d0
 	subi.w #32,d0
 	add.w d0,app_078E(a6)
-	move.w app_0776(a6),d0
+	move.w icarus_shield_strength(a6),d0
 	subi.w #1500,d0
 	bcc.b abs_0_00008E2A
 	clr.w d0
 abs_0_00008E2A:
-	move.w d0,app_0776(a6)
+	move.w d0,icarus_shield_strength(a6)
 	addq.l #1,icarus_hits_received(a6)
 	bra.b abs_0_00008DF8
 abs_0_00008E34:
@@ -13868,44 +13870,44 @@ abs_0_0000C3B2:
 	bne.w abs_0_0000B9C2
 	move.w player_speed_smoothed(a6),d1
 	add.w d1,d1
-	move.w app_0774(a6),d0
+	move.w icarus_power_reserve(a6),d0
 	cmp.w #$FFFF,d0
 	beq.b abs_0_0000C3E0
 	add.w d1,d0
 	bcs.b abs_0_0000C3DA
-	move.w d0,app_0774(a6)
+	move.w d0,icarus_power_reserve(a6)
 	bra.w abs_0_0000B9C2
 abs_0_0000C3DA:
-	move.w #$FFFF,app_0774(a6)
+	move.w #$FFFF,icarus_power_reserve(a6)
 abs_0_0000C3E0:
-	move.w app_0776(a6),d0
+	move.w icarus_shield_strength(a6),d0
 	cmp.w #$FFFF,d0
 	beq.w abs_0_0000C3FE
 	add.w d1,d0
 	bcs.b abs_0_0000C3F8
-	move.w d0,app_0776(a6)
+	move.w d0,icarus_shield_strength(a6)
 	bra.w abs_0_0000B9C2
 abs_0_0000C3F8:
-	move.w #$FFFF,app_0776(a6)
+	move.w #$FFFF,icarus_shield_strength(a6)
 abs_0_0000C3FE:
-	move.w app_0794(a6),d0
+	move.w weapon_energy_reserve(a6),d0
 	cmp.w #$FFFF,d0
 	beq.w abs_0_0000B9C2
 	add.w d1,d0
 	bcs.b abs_0_0000C416
-	move.w d0,app_0794(a6)
+	move.w d0,weapon_energy_reserve(a6)
 	bra.w abs_0_0000B9C2
     ; Incremented only after weapon-energy addition carries and saturates to $FFFF. Rating uses this counter for bonuses; it is not a kill counter.
 abs_0_0000C416:
-	move.w #$FFFF,app_0794(a6)
+	move.w #$FFFF,weapon_energy_reserve(a6)
 	addq.l #1,weapon_energy_overflow_bonus_count(a6)
 	bra.w abs_0_0000B9C2
 abs_0_0000C424:
 	cmpi.w #30,(a0)
 	bne.w abs_0_0000B9C2
-	move.w app_0774(a6),d0
+	move.w icarus_power_reserve(a6),d0
 	addi.w #400,d0
-	move.w d0,app_0774(a6)
+	move.w d0,icarus_power_reserve(a6)
 	bra.w abs_0_0000B9C2
 abs_0_0000C43C:
 	dc.b $00,$00,$00,$00,$FF,$FF,$FC,$18,$00,$00,$03,$E8,$FF,$FF,$F9,$3C
@@ -14107,7 +14109,7 @@ abs_0_0000C770:
 	beq.b abs_0_0000C7C6
 	tst.b inside_structure_flag(a6)
 	bne.b abs_0_0000C7AE
-	st.b app_0BB6(a6)
+	st.b pending_transient_event_sound(a6)
 	movem.w player_motion_x(a6),d0-d2
 	sub.l d0,player_world_x(a6)
 	sub.l d1,player_world_y(a6)
@@ -14888,7 +14890,7 @@ abs_0_0000D444:
 	bne.b abs_0_0000D44E
 	rts
 abs_0_0000D44E:
-	move.w app_0774(a6),d0
+	move.w icarus_power_reserve(a6),d0
 	lsr.w #8,d0
 	lsr.w #3,d0
 	move.w d0,d1
@@ -14915,7 +14917,7 @@ abs_0_0000D48E:
 	add.w d0,d0
 	move.l $0(a1,d0.w),_custom+sprpt+$14.l	; sprite pointer
 abs_0_0000D4A0:
-	move.w app_0776(a6),d0
+	move.w icarus_shield_strength(a6),d0
 	lsr.w #8,d0
 	lsr.w #3,d0
 	move.w d0,d1
@@ -14941,7 +14943,7 @@ abs_0_0000D4DC:
 	add.w d0,d0
 	move.l $0(a1,d0.w),_custom+sprpt+$0C.l	; sprite pointer
 abs_0_0000D4EE:
-	move.w app_0794(a6),d0
+	move.w weapon_energy_reserve(a6),d0
 	lsr.w #8,d0
 	lsr.w #3,d0
 	move.w d0,d1
@@ -42208,11 +42210,11 @@ abs_0_0003333C:
 	sub.w d0,d2
 	add.w d2,d2
 	add.w d2,d2
-	sub.w d2,app_0776(a6)
+	sub.w d2,icarus_shield_strength(a6)
 	bcs.b abs_0_00033392
 	bra.b abs_0_000333F2
 abs_0_00033392:
-	clr.w app_0776(a6)
+	clr.w icarus_shield_strength(a6)
 	clr.w pending_message_count(a6)
 	move.w #$1,message_display_countdown(a6)
 	lea.l event_message_pointers.l,a1
@@ -42241,11 +42243,11 @@ abs_0_000333EC:
 abs_0_000333F2:
 	move.w #$5C,d2
 	sub.w d3,d2
-	add.w d2,app_0774(a6)
+	add.w d2,icarus_power_reserve(a6)
 	bcs.b abs_0_00033400
 	bra.b abs_0_00033406
 abs_0_00033400:
-	move.w #$FFFF,app_0774(a6)
+	move.w #$FFFF,icarus_power_reserve(a6)
 abs_0_00033406:
 	subq.w #1,abs_0_00039652.l
 	bpl.b abs_0_00033434
@@ -42284,15 +42286,15 @@ abs_0_0003345C:
 	move.w $0(a1,d0.w),app_09CC(a6)
 	cmpi.l #900000,app_09BC(a6)
 	bpl.w abs_0_000334AA
-	subi.w #2048,app_0776(a6)
+	subi.w #2048,icarus_shield_strength(a6)
 	bra.b abs_0_000334B0
 abs_0_000334AA:
-	subi.w #512,app_0776(a6)
+	subi.w #512,icarus_shield_strength(a6)
 abs_0_000334B0:
 	bcs.b abs_0_000334B4
 	bra.b abs_0_000334DA
 abs_0_000334B4:
-	clr.w app_0776(a6)
+	clr.w icarus_shield_strength(a6)
 	clr.w pending_message_count(a6)
 	move.w #$1,message_display_countdown(a6)
 	lea.l event_message_pointers.l,a1
@@ -42655,7 +42657,7 @@ abs_0_000339D0:
 	bpl.b abs_0_000339E4
 	tst.w selected_celestial_body_index(a6)
 	bne.b abs_0_000339E0
-	clr.w app_0776(a6)
+	clr.w icarus_shield_strength(a6)
 	bra.b abs_0_000339E4
 abs_0_000339E0:
 	sf.b space_environment_flag(a6)
@@ -42669,11 +42671,11 @@ abs_0_000339E4:
 	bpl.b abs_0_00033A3A
 	cmpi.w #11904,app_0A74(a6)
 	bmi.b abs_0_00033A3A
-	subi.w #4096,app_0776(a6)
+	subi.w #4096,icarus_shield_strength(a6)
 	bcs.b abs_0_00033A12
 	bra.b abs_0_00033A16
 abs_0_00033A12:
-	clr.w app_0776(a6)
+	clr.w icarus_shield_strength(a6)
 abs_0_00033A16:
 	lea.l event_message_pointers.l,a1
 	move.w #$FC,d0
@@ -42830,7 +42832,7 @@ abs_0_00033C66:
 	cmpi.w #20,app_06D8(a6)
 	bne.b abs_0_00033C9A
 abs_0_00033C6E:
-	st.b app_0BB6(a6)
+	st.b pending_transient_event_sound(a6)
 	clr.w pending_message_count(a6)
 	move.w #$1,message_display_countdown(a6)
 	move.w #$40,abs_0_00039CDA.l
@@ -42905,40 +42907,40 @@ abs_0_00033D64:
 	lsr.w #5,d3
 	cmp.w #$20,d3
 	bmi.b abs_0_00033D7A
-	st.b app_0BB6(a6)
+	st.b pending_transient_event_sound(a6)
 abs_0_00033D7A:
 	bsr.w abs_0_00033D80
 	bra.b abs_0_00033DD0
 abs_0_00033D80:
-	move.w app_0774(a6),d0
+	move.w icarus_power_reserve(a6),d0
 	cmp.w #$FFFF,d0
 	beq.b abs_0_00033D9A
 	add.w d3,d0
 	bcs.b abs_0_00033D94
-	move.w d0,app_0774(a6)
+	move.w d0,icarus_power_reserve(a6)
 	bra.b abs_0_00033D9A
 abs_0_00033D94:
-	move.w #$FFFF,app_0774(a6)
+	move.w #$FFFF,icarus_power_reserve(a6)
 abs_0_00033D9A:
-	move.w app_0794(a6),d0
+	move.w weapon_energy_reserve(a6),d0
 	cmp.w #$FFFF,d0
 	beq.b abs_0_00033DB4
 	add.w d3,d0
 	bcs.b abs_0_00033DAE
-	move.w d0,app_0794(a6)
+	move.w d0,weapon_energy_reserve(a6)
 	bra.b abs_0_00033DB4
 abs_0_00033DAE:
-	move.w #$FFFF,app_0794(a6)
+	move.w #$FFFF,weapon_energy_reserve(a6)
 abs_0_00033DB4:
-	move.w app_0776(a6),d0
+	move.w icarus_shield_strength(a6),d0
 	cmp.w #$FFFF,d0
 	beq.b abs_0_00033DCE
 	add.w d3,d0
 	bcs.b abs_0_00033DC8
-	move.w d0,app_0776(a6)
+	move.w d0,icarus_shield_strength(a6)
 	bra.b abs_0_00033DCE
 abs_0_00033DC8:
-	move.w #$FFFF,app_0776(a6)
+	move.w #$FFFF,icarus_shield_strength(a6)
 abs_0_00033DCE:
 	rts
 abs_0_00033DD0:
@@ -43101,7 +43103,7 @@ abs_0_00033FF8:
 	bmi.b abs_0_00034030
 	sf.b app_0A9D(a6)
 	move.w #$F,shared_grayscale_effect_countdown.l
-	st.b app_0BB6(a6)
+	st.b pending_transient_event_sound(a6)
 	bra.b abs_0_00034034
 abs_0_00034030:
 	st.b app_0A9D(a6)
@@ -44388,7 +44390,7 @@ abs_0_000351B4:
 	sf.b $0(a0,d7.w)
 abs_0_000351C2:
 	dbf.w d7,abs_0_000351B4
-	st.b app_0BB6(a6)
+	st.b pending_transient_event_sound(a6)
 	cmpi.w #3,free_object_count(a6)
 	bls.w abs_0_000352EA
 	move.l #$1,d2
@@ -44640,35 +44642,35 @@ abs_0_00035522:
 	move.w $0024(a0),d1
 	add.w d1,d1
 	add.w d1,d1
-	move.w app_0774(a6),d0
+	move.w icarus_power_reserve(a6),d0
 	cmp.w #$FFFF,d0
 	beq.b abs_0_00035548
 	add.w d1,d0
 	bcs.b abs_0_00035542
-	move.w d0,app_0774(a6)
+	move.w d0,icarus_power_reserve(a6)
 	bra.b abs_0_00035548
 abs_0_00035542:
-	move.w #$FFFF,app_0774(a6)
+	move.w #$FFFF,icarus_power_reserve(a6)
 abs_0_00035548:
-	move.w app_0794(a6),d0
+	move.w weapon_energy_reserve(a6),d0
 	cmp.w #$FFFF,d0
 	beq.b abs_0_00035562
 	add.w d1,d0
 	bcs.b abs_0_0003555C
-	move.w d0,app_0794(a6)
+	move.w d0,weapon_energy_reserve(a6)
 	bra.b abs_0_00035562
 abs_0_0003555C:
-	move.w #$FFFF,app_0794(a6)
+	move.w #$FFFF,weapon_energy_reserve(a6)
 abs_0_00035562:
-	move.w app_0776(a6),d0
+	move.w icarus_shield_strength(a6),d0
 	cmp.w #$FFFF,d0
 	beq.b abs_0_0003557C
 	add.w d1,d0
 	bcs.b abs_0_00035576
-	move.w d0,app_0776(a6)
+	move.w d0,icarus_shield_strength(a6)
 	bra.b abs_0_0003557C
 abs_0_00035576:
-	move.w #$FFFF,app_0776(a6)
+	move.w #$FFFF,icarus_shield_strength(a6)
 abs_0_0003557C:
 	move.w d7,d0
 	lea.l object_collect_exclusion_flags.l,a1
@@ -45219,7 +45221,7 @@ update_nearby_mini_sentinel:
 	bne.b abs_0_00035D1A
 	clr.w pending_message_count(a6)
 	move.w #$1,message_display_countdown(a6)
-	st.b app_0BB6(a6)
+	st.b pending_transient_event_sound(a6)
 	move.w #$40,abs_0_00039CDA.l
 	move.w #$E0,d0
 	lea.l event_message_pointers.l,a1
@@ -45325,7 +45327,7 @@ abs_0_00035DF4:
 	move.w d0,$0026(a0)
 	sf.b abs_0_00039CD2.l
 	clr.l abs_0_00039CD6.l
-	st.b app_0BB6(a6)
+	st.b pending_transient_event_sound(a6)
 abs_0_00035E90:
 	bra.w abs_0_00039D56
 finish_distant_skim_launcher_drone_update:
@@ -45666,7 +45668,7 @@ abs_0_00036318:
 	bsr.w abs_0_00039D20
 	andi.b #7,d0
 	bne.b abs_0_00036326
-	st.b app_0BB6(a6)
+	st.b pending_transient_event_sound(a6)
 abs_0_00036326:
 	move.w #$FFFF,$0012(a0)
 	addi.l #100,$0036(a0)
@@ -46065,8 +46067,8 @@ handle_neutron_bomb_detonation:
 	move.w #$154,d0
 	movea.l $0(a1,d0.w),a1
 	bsr.w enqueue_event_message
-	clr.w app_0776(a6)
-	st.b app_0BB6(a6)
+	clr.w icarus_shield_strength(a6)
+	st.b pending_transient_event_sound(a6)
 	lea.l world_object_pool(a6),a0
 	move.w #$F9,d0
 abs_0_0003687A:
@@ -46121,8 +46123,9 @@ abs_0_0003691A:
 	bsr.w abs_0_00037264
 	move.w d4,$002C(a0)
 	move.w d6,$0030(a0)
-	st.b app_0AE1(a6)
-	move.w $001A(a0),app_0860(a6)
+    ; Bouncing-bomb update copies object WORD+$1A as the sound argument and sets a sign-bit pending BYTE. The two audio backends interpret the argument differently; no generic distance ABI claimed.
+	st.b pending_bomb_bounce_sound(a6)
+	move.w $001A(a0),bomb_bounce_sound_argument(a6)
 abs_0_00036934:
 	move.w $002C(a0),d3
 	ext.l d3
@@ -46286,35 +46289,35 @@ abs_0_00036BE0:
 abs_0_00036BF4:
 	st.b app_0209(a6)
 	subi.l #5,player_world_y(a6)
-	move.w app_0774(a6),d0
+	move.w icarus_power_reserve(a6),d0
 	cmp.w #$FFFF,d0
 	beq.b abs_0_00036C1C
 	addi.w #128,d0
 	bcs.b abs_0_00036C16
-	move.w d0,app_0774(a6)
+	move.w d0,icarus_power_reserve(a6)
 	bra.b abs_0_00036C1C
 abs_0_00036C16:
-	move.w #$FFFF,app_0774(a6)
+	move.w #$FFFF,icarus_power_reserve(a6)
 abs_0_00036C1C:
-	move.w app_0794(a6),d0
+	move.w weapon_energy_reserve(a6),d0
 	cmp.w #$FFFF,d0
 	beq.b abs_0_00036C38
 	addi.w #64,d0
 	bcs.b abs_0_00036C32
-	move.w d0,app_0794(a6)
+	move.w d0,weapon_energy_reserve(a6)
 	bra.b abs_0_00036C38
 abs_0_00036C32:
-	move.w #$FFFF,app_0794(a6)
+	move.w #$FFFF,weapon_energy_reserve(a6)
 abs_0_00036C38:
-	move.w app_0776(a6),d0
+	move.w icarus_shield_strength(a6),d0
 	cmp.w #$FFFF,d0
 	beq.b abs_0_00036C54
 	addi.w #64,d0
 	bcs.b abs_0_00036C4E
-	move.w d0,app_0776(a6)
+	move.w d0,icarus_shield_strength(a6)
 	bra.b abs_0_00036C54
 abs_0_00036C4E:
-	move.w #$FFFF,app_0776(a6)
+	move.w #$FFFF,icarus_shield_strength(a6)
 abs_0_00036C54:
 	addq.w #1,$0024(a0)
 	andi.w #3,$0024(a0)
@@ -46383,7 +46386,7 @@ abs_0_00036D32:
 	add.l d2,d1
 	move.b #$A,d3
 	lsr.l d3,d1
-	st.b app_0BB6(a6)
+	st.b pending_transient_event_sound(a6)
 	move.b d1,abs_0_00039B76.l
 abs_0_00036D66:
 	bra.w abs_0_00039D56
@@ -46623,7 +46626,7 @@ abs_0_0003704C:
 	bclr.b #2,$0002(a0)
 	bclr.b #3,$0002(a0)
 	clr.b $001C(a0)
-	st.b app_0BB6(a6)
+	st.b pending_transient_event_sound(a6)
 	lea.l object_destruction_bcd_awards.l,a1
 	move.w (a0),d0
 	add.w d0,d0
@@ -46980,7 +46983,7 @@ abs_0_00037586:
 	clr.w app_0840(a6)
 	sf.b app_0AA4(a6)
 	sf.b app_0AA2(a6)
-	sf.b app_0BB6(a6)
+	sf.b pending_transient_event_sound(a6)
 	sf.b space_station_nearby_flag(a6)
 	move.w #$3,app_09C8(a6)
 	move.w #$0,app_09CA(a6)
@@ -49654,7 +49657,7 @@ abs_0_0003ACFC:
 	beq.b abs_0_0003AD0C
 	bsr.w abs_0_0003B0CE
 abs_0_0003AD0C:
-	bsr.w abs_0_0003C754
+	bsr.w update_alternate_resource_meters
 	rts
 abs_0_0003AD12:
 	move.l d0,(a0)+
@@ -50097,7 +50100,7 @@ abs_0_0003B1D2:
 	beq.b abs_0_0003B230
 	tst.b inside_structure_flag(a6)
 	bne.b abs_0_0003B21A
-	st.b app_0BB6(a6)
+	st.b pending_transient_event_sound(a6)
 	movem.w player_motion_x(a6),d0-d2
 	tst.l d1
 	bpl.b abs_0_0003B202
@@ -50943,8 +50946,9 @@ abs_0_0003C054:
 	dcb.b $1C0,$00
 abs_0_0003C214:
 	dcb.b $540,$00
-abs_0_0003C754:
-	move.w app_0774(a6),d0
+    ; Sequential alternate meter stages read power, shield and weapon-energy WORDs. Internal step labels are fallthrough regions, not independent callable ABI contracts.
+update_alternate_resource_meters:
+	move.w icarus_power_reserve(a6),d0
 	lsr.w #8,d0
 	lsr.w #3,d0
 	move.w d0,d1
@@ -50953,7 +50957,7 @@ abs_0_0003C754:
 	cmp.w abs_0_0003CAE4.l,d0
 	bne.b abs_0_0003C77A
 	tst.w abs_0_0003C7B0.l
-	beq.b abs_0_0003C7CA
+	beq.b alternate_shield_meter_step
 	subq.w #1,abs_0_0003C7B0.l
 	bra.b abs_0_0003C788
 abs_0_0003C77A:
@@ -50984,8 +50988,8 @@ abs_0_0003C7B2:
 	addq.w #1,d0
 abs_0_0003C7C6:
 	bsr.w abs_0_0003C9BC
-abs_0_0003C7CA:
-	move.w app_0776(a6),d0
+alternate_shield_meter_step:
+	move.w icarus_shield_strength(a6),d0
 	lsr.w #8,d0
 	lsr.w #3,d0
 	move.w d0,d1
@@ -50994,7 +50998,7 @@ abs_0_0003C7CA:
 	cmp.w abs_0_0003CAE6.l,d0
 	bne.b abs_0_0003C7F0
 	tst.w abs_0_0003C826.l
-	beq.b abs_0_0003C840
+	beq.b alternate_weapon_energy_meter_step
 	subq.w #1,abs_0_0003C826.l
 	bra.b abs_0_0003C7FE
 abs_0_0003C7F0:
@@ -51025,8 +51029,8 @@ abs_0_0003C828:
 	moveq.l #5,d4
 abs_0_0003C83C:
 	bsr.w abs_0_0003C9BC
-abs_0_0003C840:
-	move.w app_0794(a6),d0
+alternate_weapon_energy_meter_step:
+	move.w weapon_energy_reserve(a6),d0
 	lsr.w #8,d0
 	lsr.w #3,d0
 	move.w d0,d1
@@ -57155,20 +57159,21 @@ abs_0_0004BD0A:
 	move.w #$40,paula_channel2_effect_volume.l
 	move.w #$186,paula_channel2_effect_base_period.l
 	bra.w abs_0_0004BDA4
+    ; Paula: consume bounce request/argument, then consume generic event request. If both are pending, generic wins and both flags clear. This differs from the alternate backend.
 abs_0_0004BD1E:
-	tst.b app_0AE1(a6)
+	tst.b pending_bomb_bounce_sound(a6)
 	bpl.b abs_0_0004BD3C
 	move.w #$1,nearby_effect_or_override_present_word.l
-	move.w app_0860(a6),d1
+	move.w bomb_bounce_sound_argument(a6),d1
 	move.w #$166,paula_channel2_effect_base_period.l
-	sf.b app_0AE1(a6)
+	sf.b pending_bomb_bounce_sound(a6)
 abs_0_0004BD3C:
-	tst.b app_0BB6(a6)
+	tst.b pending_transient_event_sound(a6)
 	bpl.b abs_0_0004BD5A
 	move.w #$1,nearby_effect_or_override_present_word.l
 	move.w #$1,d1
 	move.w #$166,paula_channel2_effect_base_period.l
-	sf.b app_0BB6(a6)
+	sf.b pending_transient_event_sound(a6)
 abs_0_0004BD5A:
 	tst.w nearby_effect_or_override_present_word.l
 	beq.b abs_0_0004BDA4
@@ -57184,7 +57189,7 @@ abs_0_0004BD68:
 	bmi.b abs_0_0004BD80
 	move.w d1,paula_channel2_effect_volume.l
 abs_0_0004BD80:
-	tst.b app_0AE1(a6)
+	tst.b pending_bomb_bounce_sound(a6)
 	bmi.b abs_0_0004BDA4
 	lsr.w #4,d2
 	addi.w #124,d2
@@ -58844,18 +58849,19 @@ abs_0_0004D3A8:
 abs_0_0004D3AE:
 	dbf.w d0,abs_0_0004D38E
 	move.b #$92,diagnostic_step_byte.l
-	tst.b app_0AE1(a6)
+    ; Alternate: consume bounce request first and branch past generic request. With both pending, generic remains for a later update; preserve this backend-specific priority.
+	tst.b pending_bomb_bounce_sound(a6)
 	bpl.b abs_0_0004D3D2
 	move.w #$1,abs_0_0004DDA0.l
-	move.w app_0860(a6),d1
-	sf.b app_0AE1(a6)
+	move.w bomb_bounce_sound_argument(a6),d1
+	sf.b pending_bomb_bounce_sound(a6)
 	bra.b abs_0_0004D3E8
 abs_0_0004D3D2:
-	tst.b app_0BB6(a6)
+	tst.b pending_transient_event_sound(a6)
 	bpl.b abs_0_0004D3E8
 	move.w #$1,abs_0_0004DDA0.l
 	move.w #$1F4,d1
-	sf.b app_0BB6(a6)
+	sf.b pending_transient_event_sound(a6)
 abs_0_0004D3E8:
 	tst.w abs_0_0004DDA0.l
 	beq.b abs_0_0004D416

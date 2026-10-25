@@ -1799,3 +1799,40 @@ request; the ZIP itself remains a separate private delivery. The seven paused A2
 nine B07 files remain unchanged and are excluded. This delivery closes the
 reviewed original-layout restoration; the explicit unknowns above remain
 limits rather than an automatically continuing implementation programme.
+
+
+## Static dispatch and resource/sound refinement
+
+The native relative-WORD dispatch scan rejected distant entries even when their
+targets were independently accepted instruction starts. The early CFG and
+source-quality scans now agree on a guarded exception to the local 8KiB
+heuristic. At $8026, recovered distinct targets increase from 27 to 77; $8218 now
+resolves 24. Both stored tables were already understood as 148 entries. No
+pattern-only code promotion is involved. The remaining native unresolved
+transfers at $C6DE and $3B5B0 reload restart vectors 0/4, with external continuation
+and mutable-vector/entry-order caveats rather than an invented local target.
+
+Nineteen canonical actions connect seven app fields and 117 explicit references
+to power, shield, weapon-energy, game-over text and sound-event producers and
+consumers. Four labels include two internal fallthrough meter stages. Paula
+processes bounce then generic requests; the alternate backend defers generic
+when bounce is pending. The different priorities, sign flags and opaque WORD
+argument are preserved. Two previously known game-over strings have exact
+consumer-backed names. Readability gains are separate from classification.
+
+Native explicit-field capacity is 256 rather than 128, with matching ctypes and
+atomic manual-action preflight even for RSSET-only batches. Fourteen new
+positive/refusal tests pass, including forward/backward distant dispatch,
+unseeded/data/interior rejection, capacity boundaries and unchanged overflow
+logs. Broader backend selection also encountered two missing corpus fixtures
+and an independently reproduced pre-existing LONG rendering expectation;
+it is not reported as a clean full-suite pass.
+
+The regenerated original export and clean standalone build remain byte-exact.
+See `runtime/observations/starglider2-static-dispatch-resources.json` for current
+accounting and evidence identities. The raw trampolines at $C4FC/$B4DC retain
+unresolved incoming paths. No new runtime run or screenshot claim is made;
+protection-step approval remains pending. The historical closeout above was
+reopened by the user's source review, and does not describe current semantic
+completeness. All 16 paused working files remain byte-for-byte unchanged; only
+the two clean baseline capacity hunks are integrated separately.

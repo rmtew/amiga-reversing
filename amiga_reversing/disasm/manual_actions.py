@@ -2559,10 +2559,11 @@ def _validate_candidate_equate_capacity(
             artifact.close()
 
 
-# These actions can change native structured-item or named-label expansion.
+# These actions can change bounded native policy collections or item/label expansion.
 # Presentation, EQU-only, and register-contract edits do not need this codec pass.
 _POLICY_STORAGE_ACTION_KINDS = frozenset({
     ManualActionKind.CREATE_MANUAL_MEMORY_REGION, ManualActionKind.REMOVE_MANUAL_MEMORY_REGION,
+    ManualActionKind.CREATE_MANUAL_RSSET_LAYOUT_REGION, ManualActionKind.REMOVE_MANUAL_RSSET_LAYOUT_REGION,
     ManualActionKind.CREATE_MANUAL_SEED, ManualActionKind.REMOVE_MANUAL_SEED,
     ManualActionKind.RENAME_DATA_SYMBOL, ManualActionKind.SUPPRESS_SEEDED_ITEM,
     ManualActionKind.CREATE_MANUAL_LABEL, ManualActionKind.REMOVE_MANUAL_LABEL,
