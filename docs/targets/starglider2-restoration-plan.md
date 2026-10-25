@@ -5,7 +5,7 @@ startup, drawing masks, Paula sample assets, span dispatches, model/variant data
 secondary object updates, names, shared audio/render storage, frame/view and flight
 state, projected discs, HUD sprites, text/input, contact lists and polygon
 edge lookup/scratch contracts. Complete C/vasm
-byte equality is preserved; 54298 bytes remain unclassified and substantial
+byte equality is preserved; 53432 bytes remain unclassified and substantial
 function/field meaning remains unresolved. Panel-animation images export as
 identified assets and projection scales are documented. The startup-transformed
 novella-check region now has a separate reversible,
@@ -1187,3 +1187,37 @@ accounting gains 2491 bytes, leaving 54298
 unclassified. See `runtime/observations/starglider2-object-parameters.json`.
 These are source-understanding gains, not an overall completion percentage.
 No new runtime campaign, relocation or interim archive accompanies the batch.
+
+
+## Bomb handlers and space-station mission state
+
+Six previously raw handler entries now render as code through the original
+encoded dispatch chains: nearby/distant bouncing bomb (type91), neutron bomb
+(type98) and Egron space station (type99). Table offsets, intermediate BRA stubs
+and absolute JMP operands were checked against the original payload. The
+original list dispatch supplies A0, and the intervening stubs preserve it.
+Entry contexts render known object fields without assigning universal meaning
+to neighboring type-specific storage. This is stronger than recognizing
+opcode-shaped bytes, but remains conditional on original records/control flow.
+
+The neutron-bomb state connects its carried reference, spawn/retraction requests
+and player-relative Y offset with launch and detonation consumers. The offset
+changes by2 within20..120, with launch requiring at least70. Original guard
+messages distinguish projector protection and mini-sentinels. The carried
+reference is cleared on launch; save-state serialization temporarily changes
+its representation. Original failed allocation, record reuse and shared cooldown
+behavior is preserved. No natural launch or ending has been exercised here.
+
+The station's nearby/distant handlers set/clear its current reference/flag. Its
+spawn request scans the250-record pool before creating or retrying type99. The
+mini-sentinel count starts8, limits placement and is decremented by original
+homing-missile/type37 contacts with zero clamp; this does not certify all-path
+count consistency. Detonation and retirement retain their original broad record
+effects and subsequent mission sequence. Other event/record meanings remain open.
+
+Thirty-nine canonical actions preserve exact full C/vasm reconstruction of all
+412736 bytes with zero range/source-quality diagnostics. The batch identifies
+862 additional code bytes and
+866 total bytes, leaving 53432 unclassified.
+See `runtime/observations/starglider2-bomb-station.json`. No interim archive,
+new emulator campaign or relocation accompanies the batch.

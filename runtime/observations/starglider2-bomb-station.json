@@ -1,0 +1,110 @@
+{
+  "schema_version": 1,
+  "kind": "bomb_and_station_original_dispatch_and_mission_state",
+  "binary_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+  "canonical_actions": 39,
+  "entry_chains": [
+    {
+      "type": 91,
+      "list": "nearby",
+      "table": 32810,
+      "low_handler": 34280,
+      "jmp_stub": 46372,
+      "target": 223374
+    },
+    {
+      "type": 91,
+      "list": "distant",
+      "table": 33308,
+      "low_handler": 34292,
+      "jmp_stub": 46288,
+      "target": 223390
+    },
+    {
+      "type": 98,
+      "list": "nearby",
+      "table": 32810,
+      "low_handler": 34304,
+      "jmp_stub": 46156,
+      "target": 222952
+    },
+    {
+      "type": 98,
+      "list": "distant",
+      "table": 33308,
+      "low_handler": 34316,
+      "jmp_stub": 46192,
+      "target": 222968
+    },
+    {
+      "type": 99,
+      "list": "nearby",
+      "table": 32810,
+      "low_handler": 34232,
+      "jmp_stub": 46180,
+      "target": 221718
+    },
+    {
+      "type": 99,
+      "list": "distant",
+      "table": 33308,
+      "low_handler": 34244,
+      "jmp_stub": 46342,
+      "target": 221734
+    }
+  ],
+  "entry_provenance": "All six original table WORD offsets, diagnostic-preserving BRA stubs and absolute JMP operands checked; A0 supplied by original nearby/distant record lists. Not arbitrary external entry proof",
+  "neutron_bomb": {
+    "type": 98,
+    "carried_reference_app_offset": 2678,
+    "spawn_request": 2787,
+    "retract_request": 2788,
+    "carry_y_offset_long": 233762,
+    "carry_offset_range": [
+      20,
+      120
+    ],
+    "carry_step": 2,
+    "launch_minimum_offset": 70,
+    "launch_service": 31144,
+    "detonation_service": 223292,
+    "limits": "Launch clears carried reference and inventory count; request retry/reuse, mixed record state, original saved-reference serialization and shared cooldown retained. This is not successful gameplay observation"
+  },
+  "station": {
+    "type": 99,
+    "nearby_reference": 2480,
+    "nearby_flag": 2686,
+    "spawn_request": 2685,
+    "spawn_scan_records": 250,
+    "mini_sentinel_type": 37,
+    "mini_sentinel_count": 2682,
+    "initial_count": 8,
+    "count_updates": "Placement limit and original homing-missile/type37 contacts, zero-clamped decrement; all-path count consistency not established",
+    "limits": "Nearby/distant handlers set/clear current station state; original station/list assumptions, fallback object reuse and mission sequencing preserved"
+  },
+  "verification": {
+    "receipt_id": "35fdb1c07973bae26fd60b07b4b09bc5fce78b996bf65f0a3a11cdfff88553ac",
+    "exact": true,
+    "source_sha256": "8d60b38716ba061f2d641e4450ba9db91da22f5c8bd40ddfdfdb805d5bf669d8",
+    "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "original_size": 412736
+  },
+  "accounting": {
+    "before_range_union_bytes": 358438,
+    "after_range_union_bytes": 359304,
+    "before_unclassified_bytes": 54298,
+    "after_unclassified_bytes": 53432,
+    "new_classified_bytes": 866,
+    "before_code_bytes": 100856,
+    "accepted_code_bytes": 101718,
+    "new_code_bytes": 862,
+    "range_violations": 0,
+    "source_quality_diagnostics": 0
+  },
+  "limits": [
+    "Static original encoded-entry and producer/consumer contracts; no new runtime or ending qualification",
+    "Other type handlers and mission state remain unresolved",
+    "Record overlays retain opaque/type-specific fields; no universal ownership or flag definitions invented",
+    "No interim archive or relocation work"
+  ]
+}
