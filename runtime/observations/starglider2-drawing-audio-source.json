@@ -1,0 +1,83 @@
+{
+  "schema_version": 1,
+  "target": "amiga_raw_starglider2_game",
+  "status": "C_inline_and_vasm_native_INCBIN_package_full_image_exact",
+  "original_size": 412736,
+  "original_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+  "source_sha256": "aa45c8996f00d4823c8f49c385c632b5501568fd1a201ba9c9596f03e6b6a99f",
+  "package_source_sha256": "65cc0dc95edb6bb55ae09109ae39a4a93390498b96e4597497d307d5a8d7f28e",
+  "manual_actions_sha256": "e74be1a591740835e7c571eb268fbfae6c6307dd76ad62a84fe676e945b38018",
+  "manual_action_count": 36,
+  "assets": [
+    {
+      "asset_id": "section-0000-offset-00058f34-size-000042d0",
+      "name": "paula_initial_channel0_sample",
+      "name_is_generated": false,
+      "path": "assets/paula_initial_channel0_sample.bin",
+      "source_section_index": 0,
+      "source_offset": 364340,
+      "size": 17104,
+      "classification": "sound_sample",
+      "data_class_flags": 64,
+      "source_row_id": 40564,
+      "source_row_count": 1069
+    },
+    {
+      "asset_id": "section-0000-offset-0005d220-size-000003b4",
+      "name": "paula_initial_channel1_sample",
+      "name_is_generated": false,
+      "path": "assets/paula_initial_channel1_sample.bin",
+      "source_section_index": 0,
+      "source_offset": 381472,
+      "size": 948,
+      "classification": "sound_sample",
+      "data_class_flags": 64,
+      "source_row_id": 41638,
+      "source_row_count": 60
+    },
+    {
+      "asset_id": "section-0000-offset-0005d5f0-size-00002424",
+      "name": "paula_initial_channel2_sample",
+      "name_is_generated": false,
+      "path": "assets/paula_initial_channel2_sample.bin",
+      "source_section_index": 0,
+      "source_offset": 382448,
+      "size": 9252,
+      "classification": "sound_sample",
+      "data_class_flags": 64,
+      "source_row_id": 41703,
+      "source_row_count": 580
+    }
+  ],
+  "asset_bytes": 27304,
+  "builds": {
+    "C_inline": {
+      "exact": true,
+      "size": 412736,
+      "sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9"
+    },
+    "vasm_package": {
+      "exact": true,
+      "size": 412736,
+      "sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9"
+    }
+  },
+  "source_quality_diagnostics": [],
+  "native_unclassified_bytes": {
+    "before": 311652,
+    "after": 283594,
+    "denominator": 412736,
+    "method": "complement of union of native range_ownership intervals"
+  },
+  "tests": {
+    "passed": 81,
+    "scope": "layout-role projection, hardware-mask/abs.W rendering, data-seed catalogue, extraction"
+  },
+  "limits": [
+    "No audio playback identity or output equality claim",
+    "Conditional generated-mask initialization; original seeds preserved",
+    "No all-path semantic or indirect-access closure claim",
+    "Other raw assets remain embedded in private source",
+    "Ordinary catalogue facts remain unassessed in Decision Journal"
+  ]
+}

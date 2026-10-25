@@ -102,3 +102,46 @@ anonymous, no assets are yet independently typed for INCBIN export, and there
 is no semantic completion percentage. Next: restore the connected drawing-mask
 tables and their initializer/consumers, then choose the next evidence-backed
 subsystem from the native gap inventory.
+
+## Drawing masks and first Paula assets
+
+Four constant tables at runtime `$3DDAE`, `$3DE2E`, `$3DEAE`, `$3DECE`
+contain 32 LONG prefix masks, 32 LONG suffix masks, 16 WORD prefix masks and
+16 WORD suffix masks. Every value was checked: prefix `all_bits ^
+(all_bits >> index)`, suffix `(1 << (bits-1-index))-1`. Startup at `$3E96E`
+combines the prefix at the smaller index with the suffix at the larger index.
+The Amiga arm writes all 32x32 LONG entries at `$3FFBA` and all 16x16 WORD
+entries at `$40FBA`; the alternate platform arm writes only the first 1024 bytes
+of the former. Original seed bytes remain preserved, not promoted into meaningful
+precomputed values. The 200 row-offset WORDs and the four constants now have
+array elements, not merely owner labels.
+
+The routine at `$4DEDC`, now `initialize_paula_sample_channels`, configures four
+channels and enables audio DMA. Three retained sample spans are fixed directly
+by its address arithmetic and AUDxLEN WORD counts:
+
+| Runtime data span | Length | Native private INCBIN |
+|---|---:|---|
+| `$59F34..$5E204` | 17104 | `paula_initial_channel0_sample.bin` |
+| `$5E220..$5E5D4` | 948 | `paula_initial_channel1_sample.bin` |
+| `$5E5F0..$60A14` | 9252 | `paula_initial_channel2_sample.bin` |
+
+Channel 0 starts at volume 24; channels 1 and 2 start at volume zero. This is
+source-backed Paula data classification, not identification of the audible
+effects, playback reachability, or an audio-output comparison. Their preceding
+record headers, inter-record gaps and fourth channel's zero-filled buffer have
+not been included in these asset spans. None has a current native code-entry
+reference; this alone is not proof that no indirect caller can ever reach them.
+
+The native binary-assets source package has three assets (27304 bytes) and
+rebuilds all 412736 original bytes with vasm; the inline source independently
+rebuilds with C. A small projection correction keeps descriptive layout roles
+as comments instead of invalid native subtype names, preserving explicit media
+types. The focused suite passes 81 tests. The append-only catalogue contains
+36 actions, without claiming Decision Journal semantic acceptance.
+
+Across the initial/raw analysis and these source batches, the union of native
+range ownership grows from 101084 to 129142 bytes; the complement within the
+412736-byte payload falls from 311652 to 283594. Overlapping ownership is counted
+once. These are classification counts, not purpose or semantic completeness.
+See [drawing/audio source receipt](../../runtime/observations/starglider2-drawing-audio-source.json).

@@ -1558,7 +1558,15 @@ def _data_block_element_entity(
     # subtype to retain the pointee type through table loads; using a
     # target-specific role here drops that semantic contract at the metadata
     # boundary.
-    subtype = "pointer_table" if pointer_struct is not None else layout.role
+    # `role` also permits prose describing purpose. Preserve that as the
+    # comment above, but only project native classification names as subtypes.
+    # This is the seeded-entity subtype vocabulary in platform_file_lib.c,
+    # METADATA_SEEDED_ENTITY_SUBTYPE_NAMES; arbitrary prose is not an enum value.
+    native_subtypes = {"copper_list", "palette", "pointer_table", "lookup_table",
+        "scalar_table", "length_prefixed_string", "bitmap", "sound_sample",
+        "opaque_data", "string", "audio_table", "sprite", "string_control_stream"}
+    subtype = "pointer_table" if pointer_struct is not None else (
+        layout.role if layout.role in native_subtypes else None)
     return SeededEntityMetadata(
         addr=addr,
         end=end,
