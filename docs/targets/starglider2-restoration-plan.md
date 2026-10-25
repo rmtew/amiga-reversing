@@ -5,7 +5,7 @@ startup, drawing masks, Paula sample assets, span dispatches, model/variant data
 secondary object updates, names, shared audio/render storage, frame/view and flight
 state, projected discs, HUD sprites, text/input, contact lists and polygon
 edge lookup/scratch contracts. Complete C/vasm
-byte equality is preserved; 53432 bytes remain unclassified and substantial
+byte equality is preserved; 52320 bytes remain unclassified and substantial
 function/field meaning remains unresolved. Panel-animation images export as
 identified assets and projection scales are documented. The startup-transformed
 novella-check region now has a separate reversible,
@@ -1221,3 +1221,35 @@ Thirty-nine canonical actions preserve exact full C/vasm reconstruction of all
 866 total bytes, leaving 53432 unclassified.
 See `runtime/observations/starglider2-bomb-station.json`. No interim archive,
 new emulator campaign or relocation accompanies the batch.
+
+
+## Projector network and rebuilding contracts
+
+The eight original projector-part handlers (types75..82) now render as code with
+consumer-backed names through verified dispatch/BRA/JMP chains. Their original
+nearby-list A0 contexts expose known record fields, while animation BYTE3/1F
+remain type-specific. The sentinel's orbit state and the turret's saved X/Z
+coordinates have separate workspace names. No renderer output was hand-edited.
+
+The presence matrix contains56 BYTEs: eight parts for each original body index
+8..14, in reverse body order. Its index is `(14-body)*8+(type-75)`. The network
+flag becomes1 only when every presence byte is nonzero; a missing entry enters
+rebuilding and clears it. This is not a requirement to destroy every projector.
+The original cadence, delayed flag propagation and differing sign/nonzero tests
+are preserved. A250-record helper copies the network state only into types75..82.
+
+Two56-entry WORD tables identify each rebuilding slot's part/body. Two matching
+LONG directories hold112 pointers with eight part-message and seven body-message
+aliases. The15 contiguous NUL-terminated texts now render as quoted ASCII. The
+fixed eight-record placement template is typed as WORD object type plus LONG
+X/Z; no terminator or adjacent fields are invented. Rebuild and surface-spawn
+consumers use the same template. Free-stack checks, failed allocation and original
+cursor/body assumptions remain explicit. This establishes static mission source
+structure, not a played or completed mission.
+
+The 63 canonical actions preserve exact C/vasm rebuilding of all 412736 bytes,
+with zero range/source-quality diagnostics. Accepted code grows by
+360 bytes; total supported classification grows
+by 1112, leaving 52320 unclassified. See
+`runtime/observations/starglider2-projector-network.json`. No interim archive or
+new runtime campaign accompanies the batch; remaining source semantics stay open.

@@ -1,0 +1,154 @@
+{
+  "schema_version": 1,
+  "kind": "projector_network_presence_rebuilding_and_type_handlers",
+  "binary_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+  "canonical_actions": 63,
+  "part_handlers": [
+    {
+      "type": 75,
+      "target": 222406,
+      "jmp_stub": 46324
+    },
+    {
+      "type": 76,
+      "target": 222410,
+      "jmp_stub": 46348
+    },
+    {
+      "type": 77,
+      "target": 222414,
+      "jmp_stub": 46204
+    },
+    {
+      "type": 78,
+      "target": 222466,
+      "jmp_stub": 46282
+    },
+    {
+      "type": 79,
+      "target": 222518,
+      "jmp_stub": 46216
+    },
+    {
+      "type": 80,
+      "target": 222538,
+      "jmp_stub": 46252
+    },
+    {
+      "type": 81,
+      "target": 222590,
+      "jmp_stub": 46336
+    },
+    {
+      "type": 82,
+      "target": 222612,
+      "jmp_stub": 46210
+    }
+  ],
+  "entry_provenance": "Eight exact primary dispatch WORD, diagnostic/BRA and absolute-JMP chains; original nearby list supplies A0. Conditional original object input, not arbitrary entry proof",
+  "presence": {
+    "workspace_offset": 2729,
+    "byte_count": 56,
+    "body_indices": [
+      8,
+      14
+    ],
+    "part_type_ids": [
+      75,
+      82
+    ],
+    "index_expression": "(14-selected_body_index)*8+(type-75)",
+    "reset": "56 bytes cleared; original construction sets FF and destruction clears selected entries",
+    "network_flag": 2727,
+    "network_scan": 215808,
+    "complete_condition": "All56 presence bytes nonzero; any missing part enters rebuilding and clears flag",
+    "limits": "Original delayed update cadence and sign/nonzero tests retained; this is not an all-projectors-destroyed condition"
+  },
+  "rebuild": {
+    "cursor_workspace_offset": 2136,
+    "original_cursor_domain": [
+      0,
+      55
+    ],
+    "part_WORD_table": [
+      233774,
+      233886
+    ],
+    "body_WORD_table": [
+      233886,
+      233998
+    ],
+    "selector_values_checked": "part=75+i%8, body=14-i//8 for all56 entries",
+    "part_message_table": [
+      233998,
+      234222
+    ],
+    "body_message_table": [
+      234222,
+      234446
+    ],
+    "stored_LONG_pointers": 112,
+    "distinct_part_messages": 8,
+    "distinct_body_messages": 7,
+    "text_span": [
+      234446,
+      234805
+    ],
+    "strings": 15,
+    "aliases_preserved": true
+  },
+  "placements": {
+    "span": [
+      228086,
+      228166
+    ],
+    "records": 8,
+    "stride": 10,
+    "type": "SG2ProjectorPlacement",
+    "fields": [
+      "UWORD object_type",
+      "LONG world_x",
+      "LONG world_z"
+    ],
+    "no_terminator": true,
+    "consumers": [
+      222766,
+      216546
+    ]
+  },
+  "propagation": {
+    "entry": 216804,
+    "scan_records": 250,
+    "type_domain": [
+      75,
+      82
+    ],
+    "destination": "type-dependent object BYTE1F",
+    "limits": "Other record types untouched; no universal field meaning or normalized boolean semantics"
+  },
+  "verification": {
+    "receipt_id": "775a0eae891c8228e0ecf60dcd236bfaa40741debdf58ed2bdf5fc03567dfd12",
+    "exact": true,
+    "source_sha256": "d1766c318c8f04805940e4c342448e79bb6601beded1d4629604860f39479379",
+    "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "original_size": 412736
+  },
+  "accounting": {
+    "before_range_union_bytes": 359304,
+    "after_range_union_bytes": 360416,
+    "before_unclassified_bytes": 53432,
+    "after_unclassified_bytes": 52320,
+    "new_classified_bytes": 1112,
+    "before_code_bytes": 101718,
+    "accepted_code_bytes": 102078,
+    "new_code_bytes": 360,
+    "range_violations": 0,
+    "source_quality_diagnostics": 0
+  },
+  "limits": [
+    "Static original producer/consumer and encoded-entry contracts; no gameplay or full-mission qualification",
+    "Original allocation checks, fallback/retry, cursor assumptions and byte arithmetic preserved",
+    "Type-dependent animation fields remain explicit raw offsets rather than universal object fields",
+    "No interim archive, relocation or generic validation expansion"
+  ]
+}
