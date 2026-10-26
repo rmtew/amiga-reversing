@@ -49280,7 +49280,7 @@ abs_0_0003A48C:
 	lea.l hud_sprite_conversion_directory.l,a0
 	movea.l (a0),a5	; operand 1: SG2SpriteControlReference_control_words at (a0)
 	move.l a1,(a0)+	; operand 2: SG2SpriteControlReference_control_words at (a0)+
-	move.l (a0),d0
+	move.l (a0),d0	; operand 1: SG2SpriteControlReference_control_words at (a0)
     ; For each of 40 directory intervals: skip 4 bytes, then DBF consumes span/4 rows, including next header. 648 rows produce 7776 bytes at $59F2C..$5BD8C; original alias retained.
 abs_0_0003A4BA:
 	movea.l d0,a2
@@ -51520,7 +51520,7 @@ abs_0_0003C968:
 	cmp.w #$2B,d0
 	bgt.b abs_0_0003C992
 	lea.l hud_sprite_conversion_directory.l,a2
-	movea.l $0020(a2),a1
+	movea.l SG2SpriteControlReference_control_words+8*SG2SpriteControlReference_SIZEOF(a2),a1
 	st.b abs_0_0003CAEE.l
 	bra.b abs_0_0003C9BC
 abs_0_0003C990:

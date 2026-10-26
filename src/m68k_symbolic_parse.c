@@ -138,7 +138,8 @@ static int rewrite_base_relative_symbol_operand(const M68kSymbolicParseContext *
   const char *paren = NULL;
   M68kSourceConstantResult symbol_value;
   size_t prefix_len;
-  char prefix[M68K_INSTRUCTION_SPEC_MAX_LABEL_NAME];
+  /* An expression may contain several individually valid symbol names. */
+  char prefix[256];
   uint8_t force_word_displacement = 0U;
   if (context == NULL || operand == NULL || out_rewritten == NULL || out_symbolic_name == NULL || out_addend == NULL)
     return 0;
@@ -250,7 +251,7 @@ int m68k_parse_instruction_with_symbol_fallback_spec(const M68kSymbolicParseCont
   char *space = NULL;
   char *operand_text = NULL;
   char *operands[M68K_INSTRUCTION_SPEC_MAX_OPERANDS] = {NULL, NULL, NULL, NULL};
-  char rewritten_operands[M68K_INSTRUCTION_SPEC_MAX_OPERANDS][64];
+  char rewritten_operands[M68K_INSTRUCTION_SPEC_MAX_OPERANDS][sizeof(line)];
   char symbolic_names[M68K_INSTRUCTION_SPEC_MAX_OPERANDS][M68K_INSTRUCTION_SPEC_MAX_LABEL_NAME];
   int32_t symbolic_addends[M68K_INSTRUCTION_SPEC_MAX_OPERANDS] = {0, 0, 0, 0};
   uint8_t symbolic_ref_kinds[M68K_INSTRUCTION_SPEC_MAX_OPERANDS] = {0, 0, 0, 0};
@@ -261,6 +262,7 @@ int m68k_parse_instruction_with_symbol_fallback_spec(const M68kSymbolicParseCont
   int parse_ok = 0;
   if (out_fallback_line != NULL && out_fallback_line_size != 0U) out_fallback_line[0] = '\0';
   if (context == NULL || line_text == NULL || out_instruction == NULL) return 0;
+  if (strlen(line_text) >= sizeof(line)) return 0;
   snprintf(line, sizeof(line), "%s", line_text);
   m68k_strip_comment_in_place(line);
   strcpy(line, m68k_trim_in_place(line));
@@ -332,6 +334,9 @@ int m68k_parse_instruction_with_symbol_fallback_spec(const M68kSymbolicParseCont
     rebuilt[offset++] = ' ';
     rebuilt[offset] = '\0';
     for (operand_index = 0; operand_index < operand_count; ++operand_index) {
+      size_t needed = strlen(rebuilt) + strlen(rewritten_operands[operand_index]) +
+        (operand_index != 0U ? 1U : 0U);
+      if (needed >= sizeof(rebuilt)) return 0;
       if (operand_index != 0U) strcat(rebuilt, ",");
       strcat(rebuilt, rewritten_operands[operand_index]);
     }

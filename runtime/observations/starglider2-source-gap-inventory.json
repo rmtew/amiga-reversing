@@ -5820,14 +5820,13 @@
       "scalar": 14
     },
     "interior_reference_records": 524,
-    "unresolved_typed_accesses": 355,
+    "unresolved_typed_accesses": 352,
     "unresolved_mechanisms": {
       "indexed_dynamic": 139,
-      "type_conflict": 1,
       "declared_field_hole": 208,
       "auto_update_cursor": 1,
       "address_formation_or_unknown_width": 1,
-      "outside_declared_record": 5
+      "outside_declared_record": 3
     },
     "orphan_signal_statuses": {
       "unresolved": 30,
@@ -6212,30 +6211,6 @@
         }
       ],
       "name": "SG2CopperListReference",
-      "review_status": "seeded",
-      "seed_origin": "manual_analysis",
-      "size": 4,
-      "source": "manual_action_log"
-    },
-    "SG2DecimalPlaceValue": {
-      "available_since": "1.0",
-      "base_offset": 0,
-      "base_struct": null,
-      "citation": "manual_action_log:SG2DecimalPlaceValue",
-      "fields": [
-        {
-          "available_since": "1.0",
-          "name": "decimal_divisor",
-          "named_base": null,
-          "offset": 0,
-          "pointer_struct": null,
-          "size": 4,
-          "struct": null,
-          "type": "ULONG",
-          "value_kind": "scalar"
-        }
-      ],
-      "name": "SG2DecimalPlaceValue",
       "review_status": "seeded",
       "seed_origin": "manual_analysis",
       "size": 4,
@@ -30441,26 +30416,6 @@
     },
     {
       "section_index": 0,
-      "mechanism": "type_conflict",
-      "offset": 5522,
-      "operand_index": 0,
-      "base_register": "A0",
-      "displacement": -4,
-      "struct_size": 4,
-      "access_size": 4,
-      "root_struct_name": "SG2DecimalPlaceValue",
-      "classification_id": 3,
-      "classification": "type_conflict",
-      "container_candidate_count": 1,
-      "container_struct_name": null,
-      "container_field_expr": null,
-      "refinement_applied": 0,
-      "refined_struct_name": null,
-      "type_provenance_kind_id": 0,
-      "type_provenance_kind": "unknown"
-    },
-    {
-      "section_index": 0,
       "mechanism": "declared_field_hole",
       "offset": 12694,
       "operand_index": 0,
@@ -37677,28 +37632,6 @@
     },
     {
       "section_index": 0,
-      "mechanism": "outside_declared_record",
-      "offset": 234680,
-      "operand_index": 0,
-      "base_register": "A0",
-      "displacement": 4,
-      "struct_size": 4,
-      "access_size": 4,
-      "root_struct_name": "SG2SpriteControlReference",
-      "classification_id": 0,
-      "classification": "field_gap",
-      "container_candidate_count": 0,
-      "container_struct_name": null,
-      "container_field_expr": null,
-      "refinement_applied": 0,
-      "refined_struct_name": null,
-      "type_provenance_kind_id": 12,
-      "type_provenance_kind": "static_data",
-      "type_provenance_section": 0,
-      "type_provenance_offset": 184016
-    },
-    {
-      "section_index": 0,
       "mechanism": "indexed_dynamic",
       "offset": 236572,
       "operand_index": 0,
@@ -37894,28 +37827,6 @@
       "type_provenance_kind": "static_data",
       "type_provenance_section": 0,
       "type_provenance_offset": 184128
-    },
-    {
-      "section_index": 0,
-      "mechanism": "outside_declared_record",
-      "offset": 244100,
-      "operand_index": 0,
-      "base_register": "A2",
-      "displacement": 32,
-      "struct_size": 4,
-      "access_size": 4,
-      "root_struct_name": "SG2SpriteControlReference",
-      "classification_id": 0,
-      "classification": "field_gap",
-      "container_candidate_count": 0,
-      "container_struct_name": null,
-      "container_field_expr": null,
-      "refinement_applied": 0,
-      "refined_struct_name": null,
-      "type_provenance_kind_id": 12,
-      "type_provenance_kind": "static_data",
-      "type_provenance_section": 0,
-      "type_provenance_offset": 184016
     },
     {
       "section_index": 0,
@@ -39541,196 +39452,9 @@
     "Native rendered accesses describe the inline export. exported_definition checks the selected source; INCBIN packaging may intentionally hide internal boundaries."
   ],
   "input_sha256": {
-    "analysis": "7d4982a923b4bd06e847ef876b7db5d07463d9c3d553a563307c26e4b8edd31c",
+    "analysis": "6b6cc37a88ba9dd91bd5bb026e421ccb9c47f53fd16961acce6fc04e2c6f1668",
     "metadata": "abbb82000e9f0220b647ad3c44dc0cef810e11de175eb38a1faa451c51508bde",
-    "source": "3b847152c8063d1fe6ebdf85a773be36a8dcd787ba0f2d07f71a6218c7db747c"
+    "source": "cb9c8b42b2424d3c19610b006e679e9205a75e07ee527b0212db5fd8778fca6d"
   },
-  "input_binding": "Caller supplies matching retained artifacts. Hashes identify inputs; discovery is not an independent correspondence/admission proof.",
-  "publication_base_commit": "f7c2fee59bcc48cba801fde8354b06381f4ed4c2",
-  "input_qualification": "Analysis/metadata hashes match the string-pool qualification receipt; selected source hash matches its clean-built rendered manifest. Canonical fact files are unchanged from the before-dispatch/string comparisons.",
-  "rescan": {
-    "before_commit": "329d48716c838d1369fc348a39d4c40c968889a6",
-    "before_input_sha256": {
-      "analysis": "c8d58a228702f9defce2be2b173126965f748afe4e80d17fbfbe4896b2e5ffbb",
-      "metadata": "abbb82000e9f0220b647ad3c44dc0cef810e11de175eb38a1faa451c51508bde",
-      "source": "016d8c061bfc225848b59b52cf375099b205b44466c8470fab77f9670f64438c"
-    },
-    "before_summary": {
-      "suffix_names": 66,
-      "suffix_dispositions": {
-        "code_name_signal": 5,
-        "named_source_storage": 48,
-        "named_base_layout_storage": 11,
-        "named_absolute_storage": 1,
-        "text_name_signal": 1
-      },
-      "lookup_contracts": 22,
-      "lookup_kinds": {
-        "relative_code_dispatch": 8,
-        "scalar": 14
-      },
-      "interior_reference_records": 635,
-      "unresolved_typed_accesses": 355,
-      "unresolved_mechanisms": {
-        "indexed_dynamic": 139,
-        "type_conflict": 1,
-        "declared_field_hole": 208,
-        "auto_update_cursor": 1,
-        "address_formation_or_unknown_width": 1,
-        "outside_declared_record": 5
-      },
-      "orphan_signal_statuses": {
-        "unresolved": 30,
-        "suppressed": 5
-      },
-      "generic_base_layout_fields": 48,
-      "generic_base_symbols": 48,
-      "homogeneous_pointer_record_arrays": 10,
-      "array_projection_mechanisms": {
-        "canonical_array_projected_as_leaves": 10
-      }
-    },
-    "after_summary": {
-      "suffix_names": 66,
-      "suffix_dispositions": {
-        "code_name_signal": 5,
-        "named_source_storage": 48,
-        "named_base_layout_storage": 11,
-        "named_absolute_storage": 1,
-        "text_name_signal": 1
-      },
-      "lookup_contracts": 22,
-      "lookup_kinds": {
-        "relative_code_dispatch": 8,
-        "scalar": 14
-      },
-      "interior_reference_records": 524,
-      "unresolved_typed_accesses": 355,
-      "unresolved_mechanisms": {
-        "indexed_dynamic": 139,
-        "type_conflict": 1,
-        "declared_field_hole": 208,
-        "auto_update_cursor": 1,
-        "address_formation_or_unknown_width": 1,
-        "outside_declared_record": 5
-      },
-      "orphan_signal_statuses": {
-        "unresolved": 30,
-        "suppressed": 5
-      },
-      "generic_base_layout_fields": 48,
-      "generic_base_symbols": 48,
-      "homogeneous_pointer_record_arrays": 10,
-      "array_projection_mechanisms": {
-        "canonical_array_projected_as_leaves": 10
-      }
-    },
-    "measured_change": "String subentities replace111 parent/addend references:635\u2192524. Suffix signals stay66; no cosmetic count reduction or global semantic percentage."
-  },
-  "method": {
-    "tool": "amiga_reversing.tools.source_gap_inventory",
-    "tool_sha256": "d532ceb44f24878a012b28aaff68182118d79483e6fa1bb05ddea050d57464ae",
-    "tests": "tests/test_source_gap_inventory.py:5 passed",
-    "scope": "Offline joins over retained current native/canonical facts; no new analysis generation, byte test, game run or fact promotion. Exact-suffix-only preliminary census was63; including numeric adjacent variants yields66.",
-    "serialization": "Shared canonical layouts, policy items and address values are indexed once; per-candidate references retain exact input-record identities."
-  },
-  "prioritized_experiments": [
-    {
-      "priority": 1,
-      "group": "canonical_array_projected_as_leaves",
-      "count": 10,
-      "blocks": "Complete collection/type-cursor view and homogeneous pointer-record presentation; parent storage ownership itself already survives.",
-      "evidence": "Canonical one-field4-byte record arrays, native scalar leaf declarations and missing complete collection descriptors. Existing source_owner_span is retained on the first leaf; lookup_policy_struct_id_for_static_data_target only derives array count in its no-field-name branch.",
-      "next": "Build a minimal declared pointer-record array with owner span, LEA/constant cursor movement and repeated field reads. Reuse the existing typed array count/cursor representation; validate every member/domain and alias rather than guessing from adjacency.",
-      "deferred_reason": null
-    },
-    {
-      "priority": 2,
-      "group": "indexed_dynamic",
-      "count": 139,
-      "blocks": "Conditional member/pointee interpretation for unknown-index accesses;98 are SG2SourceTextReference,16 sprite-reference,11 object-name,8 audio-ring and6 other records.",
-      "next": "After preserving collection extent, test known stride/index expressions against the existing value/CFG and footprint machinery. Keep structural range and runtime selector proof separate.",
-      "deferred_reason": "A leaf type alone supplies neither collection extent nor selector domain. Restore the existing canonical extent first; no arbitrary caps or guessed bounds."
-    },
-    {
-      "priority": 3,
-      "group": "declared_field_hole",
-      "count": 208,
-      "blocks": "Semantic meaning of original record fields, mainly polymorphic SG2WorldObject slots.",
-      "next": "Bulk-trace readers/writers/constructor contexts for object WORD offsets16,18,20 and their transform/trigonometric consumers; these account for70 unresolved accesses before wider fields. Add common or conditional roles only when original consumers support them.",
-      "deferred_reason": "These are actual undeclared holes, not automatically lost projection. Phase/type aliases prevent universal field naming from a local initializer alone; independent restoration remains authorized."
-    },
-    {
-      "priority": 3,
-      "group": "generic_base_fields",
-      "count": 48,
-      "blocks": "Meaning/producer-consumer contracts of remaining generic app fields.",
-      "next": "Rank native read/write sites and producer contracts, separating A6 fallback and encoded/decoded runtime contexts. Use targeted original-input traces only for a specific unresolved producer/consumer question.",
-      "deferred_reason": "Names alone and fallback attribution do not certify a live app base or purpose. This48-field denominator is app-specific, separate from355 unresolved record accesses."
-    },
-    {
-      "priority": 4,
-      "group": "outside_declared_record",
-      "count": 5,
-      "blocks": "Array cursor versus genuinely different owner/record extent.",
-      "next": "Exercise the two sprite-reference +4/+32 cases with the owner-span array probe; inspect the other template accesses against their actual backing owner.",
-      "deferred_reason": "Do not widen record sizes based on access alone. Collection evidence is the immediate prerequisite."
-    },
-    {
-      "priority": 4,
-      "group": "address_formation_or_unknown_width",
-      "count": 1,
-      "blocks": "Truthful catalogue distinction between address formation and unknown memory field.",
-      "next": "Decode the retained site with existing instruction metadata and test address-only typed projection, keeping zero-width address calculation separate from a memory access.",
-      "deferred_reason": "Lower count and independent of the bulk collection loss; no semantic field promotion is justified merely by recategorizing this one record."
-    },
-    {
-      "priority": 4,
-      "group": "type_conflict",
-      "count": 1,
-      "blocks": "A unique pointee interpretation at a conflicting join.",
-      "next": "Inspect the recorded producer/context and competing incoming typed values; retain a conservative conflict if original paths carry different types.",
-      "deferred_reason": "Selecting the first type or suppressing a conflict would be unsound; a concrete original-path distinction is needed."
-    },
-    {
-      "priority": 4,
-      "group": "auto_update_cursor",
-      "count": 1,
-      "blocks": "An exact cursor member after update.",
-      "next": "Use the site-specific decoded pre/post update and existing shared instruction footprint to distinguish cursor movement from owner change.",
-      "deferred_reason": "A separate recorded mechanism, not a reason to block collection or field restoration."
-    },
-    {
-      "priority": 5,
-      "group": "remaining_interior_references",
-      "count": 524,
-      "blocks": "Potentially hidden substructure, mixed with legitimate aliases, table interiors and bitmap/source offsets.",
-      "next": "Rank missing target layouts and dropped member identities using canonical_layout_id/target_policy_item_ids and original consumer coordinates. Preserve valid suffix/stride references rather than invent a label per addend.",
-      "deferred_reason": "An addend is not itself a defect;111 actual text-entity failures have already been removed by the shared string mechanism."
-    },
-    {
-      "priority": 5,
-      "group": "lookup_contracts",
-      "count": 22,
-      "blocks": "Potential missing purpose or dispatch identity among generic comments.",
-      "next": "Review the14 scalar families by their canonical readers and roles. The8 relative families already have control-use proofs and symbolic entries; numeric appearance alone must not promote a scalar.",
-      "deferred_reason": "Generic classification text is not proof of incomplete control analysis. Preserve meaningful scalar data and conditional bounds."
-    },
-    {
-      "priority": 6,
-      "group": "orphan_code_signals",
-      "count": 30,
-      "blocks": "Unresolved original inbound ownership of plausible code candidates.",
-      "next": "Use recovered collection/producer evidence to search concrete callbacks and computed targets; run a bounded normal-input trace only where it can distinguish a named candidate.",
-      "deferred_reason": "Opcode appearance without original inbound evidence is insufficient. Five suppressed signals retain separate negative evidence."
-    },
-    {
-      "priority": 6,
-      "group": "unresolved_indirect_sites",
-      "count": 2,
-      "blocks": "External low-vector continuation identity at0xC6DE/0x3B5B0.",
-      "next": "Observe original platform low-memory vector state if reset/error-exit behavior becomes a required runtime question.",
-      "deferred_reason": "These load SP/PC from0/4 then jump; they are not remaining WORD dispatch tables. No all-platform reset success or unused-code claim is made."
-    }
-  ]
+  "input_binding": "Caller supplies matching retained artifacts. Hashes identify inputs; discovery is not an independent correspondence/admission proof."
 }

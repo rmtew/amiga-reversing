@@ -2305,6 +2305,146 @@ static int lookup_policy_static_data_field_offset(const M68kAnalysisPolicy *poli
   return 1;
 }
 
+typedef struct M68kStaticArrayCandidate {
+  const M68kAnalysisStructuredDataItem *owner;
+  uint16_t struct_id;
+} M68kStaticArrayCandidate;
+
+static int static_data_item_coordinate_compare(const void *left, const void *right) {
+  const M68kAnalysisStructuredDataItem *a = *(const M68kAnalysisStructuredDataItem *const *)left;
+  const M68kAnalysisStructuredDataItem *b = *(const M68kAnalysisStructuredDataItem *const *)right;
+  if (a->section_index != b->section_index) return a->section_index < b->section_index ? -1 : 1;
+  return a->offset < b->offset ? -1 : a->offset != b->offset;
+}
+
+static int static_array_candidate_compare(const void *left, const void *right) {
+  const M68kStaticArrayCandidate *a = left, *b = right;
+  int order = static_data_item_coordinate_compare(&a->owner, &b->owner);
+  if (order) return order;
+  if (a->owner->source_owner_size != b->owner->source_owner_size)
+    return a->owner->source_owner_size < b->owner->source_owner_size ? -1 : 1;
+  return a->struct_id < b->struct_id ? -1 : a->struct_id != b->struct_id;
+}
+
+static int static_array_leaf_matches(const M68kAnalysisPolicy *policy,
+    const M68kAnalysisStructuredDataItem *root, uint16_t struct_id,
+    const M68kAnalysisStructuredDataItem *leaf) {
+  uint32_t field_offset = UINT32_MAX;
+  uint16_t leaf_id = leaf->struct_id != AMIGA_OS_STRUCT_ID_NONE ? leaf->struct_id :
+    lookup_policy_struct_id_by_name(policy, leaf->struct_name);
+  return !leaf->table_conflicted && leaf_id == struct_id && leaf->size == root->size &&
+    leaf->kind == root->kind && leaf->is_pointer == root->is_pointer &&
+    leaf->pointer_address_domain == root->pointer_address_domain &&
+    !strcmp(leaf->pointer_struct, root->pointer_struct) &&
+    !strcmp(leaf->pointer_symbol_group, root->pointer_symbol_group) &&
+    !strcmp(leaf->field_name, root->field_name) &&
+    lookup_policy_static_data_field_offset(policy, struct_id, leaf, (uint16_t)root->size, &field_offset) &&
+    field_offset == 0U;
+}
+
+/* One source-ordered pointer index and sparse derived views per immutable
+ * lookup. No per-node slot arrays, repeated policy replay or new transfer
+ * engine: the existing typed array count/index/cursor carries the result. */
+static int render_lookup_build_static_record_arrays(M68kRenderLookup *lookup) {
+  const M68kAnalysisPolicy *policy = lookup->policy;
+  const M68kAnalysisStructuredDataItem **items = NULL;
+  M68kStaticArrayCandidate *candidates = NULL;
+  uint64_t *prefix_end = NULL;
+  size_t n, item_count = 0U, candidate_count = 0U, i;
+  size_t member_visits = 0U;
+  int result = -1;
+  if (!policy || !lookup->object || !policy->structured_data_item_count) return 0;
+  n = policy->structured_data_item_count;
+  items = malloc(n * sizeof(*items));
+  candidates = malloc(n * sizeof(*candidates));
+  prefix_end = malloc(n * sizeof(*prefix_end));
+  if (!items || !candidates || !prefix_end) goto cleanup;
+  for (i = 0U; i < n; ++i) {
+    const M68kAnalysisStructuredDataItem *item = &policy->structured_data_items[i];
+    const M68kAnalysisCustomStruct *record;
+    uint16_t struct_id;
+    if (!item->has_section_index || !item->size) continue;
+    items[item_count++] = item;
+    if (!item->has_source_owner_span || item->source_owner_start != item->offset ||
+        (item->size != 1U && item->size != 2U && item->size != 4U) ||
+        item->source_owner_size <= item->size || item->source_owner_size % item->size ||
+        item->source_owner_size / item->size > UINT16_MAX ||
+        item->section_index >= lookup->object->section_count ||
+        item->offset > lookup->object->sections[item->section_index].size ||
+        item->source_owner_size > lookup->object->sections[item->section_index].size - item->offset) continue;
+    struct_id = item->struct_id != AMIGA_OS_STRUCT_ID_NONE ? item->struct_id :
+      lookup_policy_struct_id_by_name(policy, item->struct_name);
+    record = lookup_policy_custom_struct_by_id(policy, struct_id);
+    if (!record || record->size != item->size || record->field_count != 1U ||
+        record->fields[0].struct_name[0] || !strcmp(record->fields[0].type_name, "STRUCT") ||
+        item->is_pointer != (record->fields[0].value_kind != M68K_ANALYSIS_STRUCT_FIELD_VALUE_SCALAR) ||
+        item->pointer_address_domain != record->fields[0].pointer_address_domain ||
+        strcmp(item->pointer_struct, record->fields[0].pointer_struct) ||
+        strcmp(item->pointer_symbol_group, record->fields[0].pointer_symbol_group) ||
+        !static_array_leaf_matches(policy, item, struct_id, item)) continue;
+    candidates[candidate_count].owner = item;
+    candidates[candidate_count++].struct_id = struct_id;
+  }
+  qsort(items, item_count, sizeof(*items), static_data_item_coordinate_compare);
+  qsort(candidates, candidate_count, sizeof(*candidates), static_array_candidate_compare);
+  for (i = 0U; i < item_count; ++i) {
+    const M68kAnalysisStructuredDataItem *item = items[i];
+    uint64_t end = (uint64_t)item->offset + item->size;
+    if (item->kind == M68K_ANALYSIS_STRUCTURED_DATA_BYTES && !item->semantic_role_flags &&
+        !item->source_pattern_id && !item->struct_name[0]) end = 0U;
+    prefix_end[i] = i && items[i - 1U]->section_index == item->section_index && prefix_end[i - 1U] > end ?
+      prefix_end[i - 1U] : end;
+  }
+  lookup->static_record_array_count = 0U;
+  if (candidate_count) {
+    lookup->static_record_arrays = render_lookup_calloc(lookup, candidate_count, sizeof(*lookup->static_record_arrays));
+    if (!lookup->static_record_arrays) goto cleanup;
+  }
+  for (i = 0U; i < candidate_count; ++i) {
+    const M68kStaticArrayCandidate *candidate = &candidates[i];
+    const M68kAnalysisStructuredDataItem *root = candidate->owner;
+    uint32_t expected = root->offset, previous = UINT32_MAX;
+    uint32_t end = root->offset + root->source_owner_size;
+    size_t lo = 0U, hi = item_count, j;
+    int valid = 1;
+    if (i && !static_array_candidate_compare(&candidates[i - 1U], candidate)) continue;
+    while (lo < hi) {
+      size_t mid = lo + (hi - lo) / 2U;
+      if (static_data_item_coordinate_compare(&items[mid], &root) < 0) lo = mid + 1U;
+      else hi = mid;
+    }
+    /* A declaration starting before the owner may still cross its first
+     * member. Looking only at starts inside the span would miss that conflict. */
+    if (lo && items[lo - 1U]->section_index == root->section_index && prefix_end[lo - 1U] > root->offset)
+      continue;
+    for (j = lo; j < item_count; ++j) {
+      const M68kAnalysisStructuredDataItem *leaf = items[j];
+      if (leaf->section_index != root->section_index || leaf->offset >= end) break;
+      ++member_visits;
+      if (leaf->kind == M68K_ANALYSIS_STRUCTURED_DATA_BYTES && !leaf->semantic_role_flags &&
+          !leaf->source_pattern_id && !leaf->struct_name[0]) continue;
+      if (!static_array_leaf_matches(policy, root, candidate->struct_id, leaf) ||
+          (leaf->offset != expected && leaf->offset != previous)) { valid = 0; break; }
+      if (leaf->offset == previous) continue; /* compatible physical alias */
+      previous = expected;
+      expected += root->size;
+    }
+    if (valid && expected == end) {
+      M68kRenderStaticRecordArray *view = &lookup->static_record_arrays[lookup->static_record_array_count++];
+      view->section_index = root->section_index; view->offset = root->offset; view->size = root->source_owner_size;
+      view->struct_id = candidate->struct_id; view->element_count = (uint16_t)(view->size / root->size);
+    }
+  }
+  if (getenv("AMIGA_REVERSING_PROFILE_TYPED_SOURCE_ARRAYS"))
+    fprintf(stderr, "typed_source_arrays policy=%zu candidates=%zu admitted=%zu members=%zu temporary_index_bytes=%zu\n",
+      n, candidate_count, lookup->static_record_array_count, member_visits,
+      n * (sizeof(*items) + sizeof(*candidates) + sizeof(*prefix_end)));
+  result = 0;
+cleanup:
+  free(items); free(candidates); free(prefix_end);
+  return result;
+}
+
 static int typed_operand_is_runtime_only(const M68kRenderLookup *lookup,
     size_t section_index, uint32_t offset, uint32_t operand_index) {
   const M68kAnalysisManualRepresentation *representation =
@@ -2321,9 +2461,10 @@ static int typed_operand_is_runtime_only(const M68kRenderLookup *lookup,
 /* A structured-data item can describe an object whose address is materialised
    at either its start or a proven interior byte. The cursor records that
    interior position relative to the root object for later field resolution. */
-static uint16_t lookup_policy_struct_id_for_static_data_target(const M68kAnalysisPolicy *policy,
+static uint16_t lookup_policy_struct_id_for_static_data_target(const M68kRenderLookup *lookup,
     size_t section_index, uint32_t offset, uint16_t *out_array_element_count,
     uint16_t *out_array_element_index, int32_t *out_byte_cursor, uint16_t *out_conflict_struct_id) {
+  const M68kAnalysisPolicy *policy = lookup != NULL ? lookup->policy : NULL;
   size_t index;
   uint16_t resolved_struct_id = AMIGA_OS_STRUCT_ID_NONE;
   uint16_t resolved_array_element_count = 0U, resolved_array_element_index = 0U;
@@ -2372,6 +2513,25 @@ static uint16_t lookup_policy_struct_id_for_static_data_target(const M68kAnalysi
     resolved_array_element_count = array_element_count;
     resolved_array_element_index = array_element_index;
     resolved_byte_cursor = byte_cursor;
+  }
+  if (resolved_struct_id != AMIGA_OS_STRUCT_ID_NONE && resolved_array_element_count == 0U) {
+    const M68kRenderStaticRecordArray *match = NULL;
+    int ambiguous = 0;
+    for (index = 0U; index < lookup->static_record_array_count; ++index) {
+      const M68kRenderStaticRecordArray *view = &lookup->static_record_arrays[index];
+      if (view->section_index != section_index || view->struct_id != resolved_struct_id ||
+          offset < view->offset || offset - view->offset >= view->size) continue;
+      if (match && (match->offset != view->offset || match->size != view->size)) { ambiguous = 1; break; }
+      match = view;
+    }
+    if (match && !ambiguous) {
+      uint32_t stride = match->size / match->element_count;
+      uint32_t relative = offset - match->offset;
+      if (resolved_byte_cursor == (int32_t)(relative % stride)) {
+        resolved_array_element_count = match->element_count;
+        resolved_array_element_index = (uint16_t)(relative / stride);
+      }
+    }
   }
   if (out_array_element_count != NULL) *out_array_element_count = resolved_array_element_count;
   if (out_array_element_index != NULL) *out_array_element_index = resolved_array_element_index;
@@ -7907,7 +8067,7 @@ static void typed_state_update_after_instruction(M68kRenderTypedState *state, M6
         uint16_t static_array_element_count = 0U, static_array_element_index = 0U;
         uint16_t static_conflict_struct_id = AMIGA_OS_STRUCT_ID_NONE;
         int32_t static_byte_cursor = 0;
-        source_struct_id = lookup_policy_struct_id_for_static_data_target(lookup != NULL ? lookup->policy : NULL,
+        source_struct_id = lookup_policy_struct_id_for_static_data_target(lookup,
           target_section_index, target_offset, &static_array_element_count, &static_array_element_index,
           &static_byte_cursor, &static_conflict_struct_id);
         if (static_conflict_struct_id != AMIGA_OS_STRUCT_ID_NONE) {
@@ -16141,6 +16301,7 @@ int m68k_analysis_render_lookup_run_platform_passes(M68kRenderLookup *lookup, co
   memset(&typed_flow_workflow, 0, sizeof(typed_flow_workflow));
   pass_start = clock();
   lookup->app_slot_ref_index = NULL;
+  if (render_lookup_build_static_record_arrays(lookup) != 0) return -1;
   if (stats != NULL) memset(stats, 0, sizeof(*stats));
   start = clock();
   if (render_lookup_seed_policy_rsset_layout_regions(lookup) != 0) return -1;

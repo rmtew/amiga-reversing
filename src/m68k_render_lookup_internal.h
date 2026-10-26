@@ -745,7 +745,19 @@ typedef enum M68kRenderBoundaryFlag {
   M68K_RENDER_BOUNDARY_LONG_TABLE_TARGET = 1U << 7
 } M68kRenderBoundaryFlag;
 
+/* A validated view of existing scalar leaf declarations under one canonical
+ * source owner. Values keep using the shared array/cursor state below. */
+typedef struct M68kRenderStaticRecordArray {
+  size_t section_index;
+  uint32_t offset;
+  uint32_t size;
+  uint16_t struct_id;
+  uint16_t element_count;
+} M68kRenderStaticRecordArray;
+
 struct M68kRenderLookup {
+  M68kRenderStaticRecordArray *static_record_arrays;
+  size_t static_record_array_count;
   Arena *arena;
   struct M68kAffineEntryContext *affine_entry_context;
   uint8_t suppress_address_value_observations; /* Intermediate CFG states are non-admitting. */

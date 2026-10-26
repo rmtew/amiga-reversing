@@ -21,21 +21,33 @@ The [current systematic gap inventory](../../runtime/observations/starglider2-so
 joins native identities/accesses with canonical layouts and actual rendered
 boundaries. It records 66 suffix signals (including numeric adjacent variants),
 22 lookup contracts, 524 remaining interior references, 48 generic app fields
-and 355 unresolved record accesses. These are different denominators. Five
+and 352 unresolved record accesses. These are different denominators. Five
 suffixes name routines and one names text; neither is a pointer defect.
-The active next probe is **ten homogeneous pointer-record collections** whose
-storage owners survive but whose native collection/cursor view is absent.
-Reuse existing owner spans, array state and pointer domains. Dynamic-index
-contracts follow; then connected field/constructor semantics and incoming/orphan
-leads. Each group has a concrete experiment, what it blocks and a reason for any
-deferral. The inventory does not admit facts, rename symbols or replace native
+The [record-array extent repair](../../runtime/observations/starglider2-source-owner-array-extents.json)
+now carries validated canonical owner spans through existing typed cursors:
+**316 → 318 typed accesses; 355 → 352 unresolved diagnostics**. Two sprite
+accesses are recovered; the third removed diagnostic was a decimal-array boundary
+conflict, not a new semantic field. Nine record-array views are admitted from
+13 candidates. The ten pointer-record collections still lack full catalogue
+projection: this separate group remains open rather than being declared solved
+by the cursor gain. Next test that projection with exact target/domain/alias
+preservation, then bounded dynamic-index consumers, connected field/constructor
+semantics and incoming/orphan leads. Each group has a concrete experiment, what
+it blocks and an evidence-based deferral in the receipt.
+The inventory does not admit facts, rename symbols or replace native
 analysis. Reproduce it using `python -m amiga_reversing.tools.source_gap_inventory
 --analysis <retained-native-analysis.json> --metadata <effective-metadata.json>
 --source <rendered-source.s> --output <inventory.json>`; all input hashes are
 bound to the qualification receipts. No additional native generation was used
 for this accounting.
 
-Latest: the [subordinate string-record recovery](../../runtime/observations/starglider2-string-pool-subentities.json)
+Latest native suite: **827 tests, zero failures**. A newly exposed long symbolic
+displacement reproduced and fixed a native assembler truncation defect. The
+same retained native source now rebuilds all original bytes with C and vasm;
+parser-only reassembly did not repeat analysis. Source quality/ownership and
+unknown-byte counts remain unchanged. No new runtime coverage is claimed.
+
+Preceding: the [subordinate string-record recovery](../../runtime/observations/starglider2-string-pool-subentities.json)
 preserves the authored 1923-byte character pool and exposes all 112 NUL records.
 The 148 typed directory pointers cover 111 distinct records: 110 new string labels
 are emitted, while the authored pool label remains on its first record. The

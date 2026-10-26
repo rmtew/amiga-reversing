@@ -1,0 +1,302 @@
+{
+  "schema_version": 1,
+  "kind": "canonical_source_owner_extent_into_shared_typed_arrays",
+  "publication_base_commit": "7210255a7509b9f0b816596db9cca572313908fb",
+  "analysis_sha256": "6b6cc37a88ba9dd91bd5bb026e421ccb9c47f53fd16961acce6fc04e2c6f1668",
+  "analysis_backend_sha256": "3b10e76e2cf0946e1a77ad13ff299e6c161e54561039fede23c3bbff31f12ca7",
+  "effective_metadata_sha256": "abbb82000e9f0220b647ad3c44dc0cef810e11de175eb38a1faa451c51508bde",
+  "cause": "Expanded single-field record arrays retain their canonical source_owner_span on a leaf, but static typed target resolution treated each field as one isolated record. Interior cursor arithmetic lost the original array extent despite complete homogeneous member declarations.",
+  "implementation": [
+    "Validate source-owner bounds, exact packed record stride, all scalar field leaves, declared pointer domains and compatible aliases. Missing, conflicting, mixed-domain or partial spans do not produce an array view. Crossing declarations are checked, including starts before the owner.",
+    "Build one temporary source-coordinate index and sparse derived views per immutable native lookup. Carry admitted extents through existing typed array/index/cursor, stack, call and join machinery. No target constants, guessed pointers, new per-node arrays or transfer recognizer.",
+    "The newly exposed field-plus-size expression also reproduced a separate assembler defect: symbolic base-relative expressions used a single-label-sized prefix and a64-byte rewritten operand. Preserve complete expression text within the existing256-byte line bound; reject oversize input/reconstruction rather than silently truncate."
+  ],
+  "native_operation_counts": {
+    "policy_items": 16543,
+    "candidate_owner_spans": 13,
+    "admitted_record_arrays": 9,
+    "member_visits": 332,
+    "temporary_index_bytes": 529376,
+    "complexity": "O(N log N + K log N + visited members), with sorted candidate deduplication; N policy items, K candidate owners. Sparse views reuse existing typed values; no dense per-instruction storage."
+  },
+  "before_after": {
+    "typed_accesses": [
+      316,
+      318
+    ],
+    "unresolved_record_accesses": [
+      355,
+      352
+    ],
+    "app_refs": [
+      3316,
+      3316
+    ],
+    "generic_app_fields": [
+      48,
+      48
+    ],
+    "unknown_bytes": [
+      14068,
+      14068
+    ],
+    "unknown_intervals": [
+      262,
+      262
+    ],
+    "table_descriptors": [
+      64,
+      64
+    ],
+    "table_consumers": [
+      40,
+      40
+    ],
+    "relative_dispatch_contracts": [
+      8,
+      8
+    ],
+    "rendered_instruction_changes": 1,
+    "new_instruction_annotations": 1,
+    "source_bytes": [
+      2278342,
+      2278472
+    ]
+  },
+  "new_accesses": [
+    {
+      "offset": 234680,
+      "operand_index": 0,
+      "base_register": "A0",
+      "displacement": 0,
+      "base_cursor": 0,
+      "field_offset": 0,
+      "struct_size": 4,
+      "field_size": 4,
+      "root_struct_name": "SG2SpriteControlReference",
+      "owner_struct_name": "SG2SpriteControlReference",
+      "field_name": "control_words",
+      "field_expr": "SG2SpriteControlReference_control_words",
+      "inherited": 0,
+      "nested": 0,
+      "type_provenance_kind_id": 12,
+      "type_provenance_kind": "static_data",
+      "type_provenance_section": 0,
+      "type_provenance_offset": 184016,
+      "type_provenance_operand_index": 0
+    },
+    {
+      "offset": 244100,
+      "operand_index": 0,
+      "base_register": "A2",
+      "displacement": 32,
+      "base_cursor": 0,
+      "field_offset": 0,
+      "struct_size": 4,
+      "field_size": 4,
+      "root_struct_name": "SG2SpriteControlReference",
+      "owner_struct_name": "SG2SpriteControlReference",
+      "field_name": "control_words",
+      "field_expr": "SG2SpriteControlReference_control_words",
+      "inherited": 0,
+      "nested": 0,
+      "type_provenance_kind_id": 12,
+      "type_provenance_kind": "static_data",
+      "type_provenance_section": 0,
+      "type_provenance_offset": 184016,
+      "type_provenance_operand_index": 0
+    }
+  ],
+  "removed_diagnostics": [
+    {
+      "offset": 5522,
+      "operand_index": 0,
+      "base_register": "A0",
+      "displacement": -4,
+      "struct_size": 4,
+      "access_size": 4,
+      "root_struct_name": "SG2DecimalPlaceValue",
+      "classification_id": 3,
+      "classification": "type_conflict",
+      "container_candidate_count": 1,
+      "container_struct_name": null,
+      "container_field_expr": null,
+      "refinement_applied": 0,
+      "refined_struct_name": null,
+      "type_provenance_kind_id": 0,
+      "type_provenance_kind": "unknown"
+    },
+    {
+      "offset": 234680,
+      "operand_index": 0,
+      "base_register": "A0",
+      "displacement": 4,
+      "struct_size": 4,
+      "access_size": 4,
+      "root_struct_name": "SG2SpriteControlReference",
+      "classification_id": 0,
+      "classification": "field_gap",
+      "container_candidate_count": 0,
+      "container_struct_name": null,
+      "container_field_expr": null,
+      "refinement_applied": 0,
+      "refined_struct_name": null,
+      "type_provenance_kind_id": 12,
+      "type_provenance_kind": "static_data",
+      "type_provenance_section": 0,
+      "type_provenance_offset": 184016
+    },
+    {
+      "offset": 244100,
+      "operand_index": 0,
+      "base_register": "A2",
+      "displacement": 32,
+      "struct_size": 4,
+      "access_size": 4,
+      "root_struct_name": "SG2SpriteControlReference",
+      "classification_id": 0,
+      "classification": "field_gap",
+      "container_candidate_count": 0,
+      "container_struct_name": null,
+      "container_field_expr": null,
+      "refinement_applied": 0,
+      "refined_struct_name": null,
+      "type_provenance_kind_id": 12,
+      "type_provenance_kind": "static_data",
+      "type_provenance_section": 0,
+      "type_provenance_offset": 184016
+    }
+  ],
+  "diagnostic_disposition": "Two sprite-directory field gaps become typed accesses. The former decimal-place-value type conflict disappears when the finite array boundary is carried correctly; it is not counted as a third recovered field or proven consumer.",
+  "validation": {
+    "full_native_tests": 827,
+    "failures": 0,
+    "test_log_sha256": "e8b73786a12540542ea1f2667019cbe628805e7296708c45c76fab8fb98ffec6",
+    "array_fixture_variants": 11,
+    "array_fixture": "Leaf expansion matches packed declaration; missing member, pointer-domain mismatch, invalid field, non-integral/overrun spans refuse; duplicate aliases, subarray ownership and declaration reordering survive. Past-end cursor loses identity. Code-crossing declaration fails source admission.",
+    "parser_fixture": "Two individually valid long symbols in a greater-than64-character base displacement, implicit and explicit word displacement, assemble to expected226A0020 bytes.",
+    "native_and_vasm": {
+      "kind": "retained_native_source_reassembly",
+      "exact": true,
+      "subject_revision": "5aa99eff2b5cbcccd8b257523f2611af60a9efd5cc874f6a8079f23750a4d083",
+      "source_sha256": "13f458255001a427426154b32585b5bb09d51e124326d0979f0cac156f25fb22",
+      "original_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+      "original_size": 412736,
+      "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+      "analysis_backend_sha256": "3b10e76e2cf0946e1a77ad13ff299e6c161e54561039fede23c3bbff31f12ca7",
+      "verification_backend_sha256": "0b573b8f1d08de99959e66df45b4c21804e1c19bb1e9fdcc751bb352a7c7eaf0",
+      "native_assembler_profile": {
+        "assemble_c_api": true,
+        "parse_layout_seconds": 0.529009,
+        "emit_object_seconds": 0.027997,
+        "platform_finalize_seconds": 0.0,
+        "write_buffer_seconds": 0.00013,
+        "write_file_seconds": 0.0,
+        "read_output_seconds": 0.0,
+        "total_seconds": 0.56236,
+        "source_bytes": 2278472,
+        "rebuilt_bytes": 412736
+      },
+      "native_assembler_wall_seconds": 0.6345931510441005,
+      "oracle": {
+        "oracle_id": "vasm",
+        "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+        "comparison_level": "oracle.full_file_match",
+        "assembler_status": "accepted",
+        "message": "oracle output matched original bytes"
+      },
+      "initial_failure_receipt": "25aa10bff1269a23c1114a0f62cc057456cfc0d2b3eeeba6087550fddda47dbd",
+      "scope": "Retained identical native source reassembled after symbolic-parser repair only. No repeated native analysis. The initial failed standard verification and exact vasm result remain retained.",
+      "receipt_id": "cbe92f0a1215a2a419b3e51879deb76cb1571acebf1000954993360ebe1bea89"
+    },
+    "assets_unchanged": 57,
+    "required_headers_unchanged": 14,
+    "generation_wall_seconds": 135.87003114895197,
+    "process_usage": {
+      "wall_seconds": 152.1239027659758,
+      "user_seconds": 141.194863,
+      "system_seconds": 10.328845,
+      "max_rss_kib": 2698896
+    },
+    "performance_scope": "One necessary changed-analysis qualification, not a controlled speed benchmark. No performance improvement claimed. Parser-only reassembly reused identical retained source and took less than one second; no second analysis generation."
+  },
+  "remaining": [
+    {
+      "group": "Homogeneous pointer-record collection catalogue",
+      "blocks": "The ten canonical directory arrays still serialize as leaf storage rather than full collection descriptors; the shared typed cursor gain does not close this separate projection issue.",
+      "experiment": "Project a validated owner view into the existing collection descriptor path, preserving per-element resolved targets, mapped source domain, nulls, aliases and original parent ownership; compare a minimal expanded record fixture with the aggregate declaration.",
+      "deferral": "Current batch repairs typed transport only. A descriptor cannot be inferred from typed reference count or fabricated from rendered text."
+    },
+    {
+      "group": "139 indexed dynamic accesses",
+      "blocks": "Unknown dynamic indices prevent exact member/range attribution; most are source text reference arrays.",
+      "experiment": "Use a bounded masked-index array fixture and an unbounded/conflicting negative through shared index value/range facts; inspect corresponding original consumers before promoting bounds.",
+      "deferral": "An array structural extent does not prove that every original index is in bounds; no unconditional access claims introduced."
+    },
+    {
+      "group": "208 declared field holes and48 generic app fields",
+      "blocks": "Consumer role and polymorphic record context, rather than lack of a printable name.",
+      "experiment": "Group original producers/consumers using the current inventory, connect constructors and known text/model/input/render contracts; select connected high-value families.",
+      "deferral": "Name suffixes and valid typed storage do not establish pointee purpose."
+    },
+    {
+      "group": "30 unresolved orphan incoming paths",
+      "blocks": "Reachability/caller context remains unresolved.",
+      "experiment": "Use newly recovered indirect/cursor evidence for specific incoming paths; normal-input tracing only for an actual static lead.",
+      "deferral": "No code promoted from plausible bytes and no dead-code conclusion from absent hits."
+    }
+  ],
+  "limits": [
+    "No new runtime capture or new semantic field names in this shared projection batch.",
+    "Nine admitted record spans are not nine closed pointer-directory contracts, and the ten catalogue candidates remain explicitly open.",
+    "Original layout only; no relocation or Pandora resumption.",
+    "All16 recoverable Pandora temporary backups remain verified intact by the staged standalone check."
+  ],
+  "validated_target_git_tree": "86b15b62b6f2a721b83bb24701e4417b32020b08",
+  "clean_staged_tree_build": true,
+  "standalone_build": {
+    "schema_version": 1,
+    "status": "pass",
+    "format": "raw_payload_not_AmigaDOS_HUNK",
+    "main_bytes": 412736,
+    "main_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "main_matches_original_identity": true,
+    "asset_count": 57,
+    "all_asset_source_slices_equal": true,
+    "decoded_view_inverse_exact": true,
+    "boot_copy_source_matches_resident_view": true,
+    "source_commit": "7210255a7509b9f0b816596db9cca572313908fb",
+    "assembler_sha256": "413e284020125f42709486dfe09907cab3dd9f3c2ea41017c190f8ea68f30825",
+    "flags": [
+      "-Fbin",
+      "-m68000",
+      "-no-opt"
+    ],
+    "outputs": [
+      {
+        "role": "original_main",
+        "filename": "Starglider2-original.raw",
+        "bytes": 412736,
+        "sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9"
+      },
+      {
+        "role": "decoded_analysis_view",
+        "filename": "protection-decoded-analysis.raw",
+        "bytes": 3548,
+        "sha256": "de8358853dd9ed9b006a23569bf393aa217ed3be3301a169465d80bfaf839922"
+      },
+      {
+        "role": "boot_installer_context",
+        "filename": "boot-selector-installer-context.raw",
+        "bytes": 40,
+        "sha256": "8d34852425e2e1bfa87b3febdfc74fb39e7c667e9d9ff73e17b594649e83b21b"
+      },
+      {
+        "role": "boot_resident_view",
+        "filename": "boot-selector-resident.raw",
+        "bytes": 20,
+        "sha256": "a26286a393713c046eff9dbaff15b20b26b171fa9e05fc9d538d16b0eddb6024"
+      }
+    ]
+  }
+}

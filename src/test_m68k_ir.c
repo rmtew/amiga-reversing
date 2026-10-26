@@ -1952,6 +1952,27 @@ static int test_source_dcb_preserves_large_repeat_without_expanding_items(void) 
   return 0;
 }
 
+static int test_source_long_base_relative_constant_expression(void) {
+  const char *source_text =
+    "SECTION section_0,code\n"
+    "record_with_a_long_type_name_member_offset EQU 0\n"
+    "record_with_a_long_type_name_SIZEOF EQU 4\n"
+    "movea.l record_with_a_long_type_name_member_offset+8*record_with_a_long_type_name_SIZEOF(a2),a1\n"
+    "movea.l record_with_a_long_type_name_member_offset+8*record_with_a_long_type_name_SIZEOF.w(a2),a1\n";
+  const uint8_t expected[] = {0x22,0x6A,0x00,0x20,0x22,0x6A,0x00,0x20};
+  unsigned char *rebuilt = NULL;
+  size_t rebuilt_size = 0U;
+  char *profile = NULL, *error = NULL;
+  M68K_C_ASSERT_INT(0, platform_file_assemble_source_text_bytes_profile_alloc("amiga-raw", "",
+    source_text, "68000", &rebuilt, &rebuilt_size, &profile, &error));
+  M68K_C_ASSERT_U32(sizeof(expected), rebuilt_size);
+  M68K_C_ASSERT(memcmp(rebuilt, expected, sizeof(expected)) == 0);
+  platform_file_free_bytes(rebuilt);
+  platform_file_free_text(profile);
+  platform_file_free_text(error);
+  return 0;
+}
+
 static int test_source_symbolic_absolute_after_dcb_does_not_leak_to_register_move(void) {
   AsmSourceFile source;
   M68kObject object;
@@ -28626,6 +28647,72 @@ static int test_facts_v2_render_asm_source_tracks_bounded_custom_struct_array_st
   return 0;
 }
 
+/* LEA rows; derive interior cursors, read members, then step past the end.
+ * Independently assembled as 68000 instructions; the last twelve bytes are rows. */
+static const uint8_t source_owner_array_bytes[] = {0x41, 0xFA, 0x00, 0x18, 0x43, 0xE8, 0x00, 0x04, 0x20, 0x11, 0x22, 0x28, 0x00, 0x04, 0x45, 0xE8, 0x00, 0x08, 0x24, 0x12, 0x58, 0x8A, 0x26, 0x12, 0x4E, 0x75, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+
+static int test_facts_v2_source_owner_leaf_array_extent(void) {
+  for (unsigned mode = 0; mode < 11; ++mode) {
+    M68kObject object;
+    M68kSection section = {0};
+    M68kAnalysisPolicy policy;
+    M68kFactsV2Profile profile;
+    M68kSourceAnalysisIR a = {0};
+    char *source = NULL;
+    M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+    object.platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
+    object.platform_file_kind = M68K_PLATFORM_FILE_EXECUTABLE;
+    section.kind = M68K_SECTION_CODE;
+    section.size = section.data_size = sizeof(source_owner_array_bytes);
+    section.data = (uint8_t *)source_owner_array_bytes;
+    M68K_C_ASSERT(m68k_object_add_section(&object, &section).ok);
+  m68k_analysis_policy_init_default(&policy);policy.custom_struct_count=policy.custom_struct_capacity=1;
+  policy.custom_struct_owner=1;policy.custom_structs=calloc(1,sizeof(*policy.custom_structs));
+  M68K_C_ASSERT(policy.custom_structs != NULL);
+  M68kAnalysisCustomStruct*st=&policy.custom_structs[0];strcpy(st->name,"Row");st->size=4;st->field_count=1;
+  strcpy(st->fields[0].name,"member");strcpy(st->fields[0].type_name,"APTR");st->fields[0].size=4;
+  st->fields[0].value_kind=M68K_ANALYSIS_STRUCT_FIELD_VALUE_TARGET_POINTER;st->fields[0].pointer_address_domain=M68K_ANALYSIS_POINTER_DOMAIN_MAPPED_SOURCE;
+  policy.structured_data_item_count=mode==1?1:3;
+  for(unsigned i=0;i<policy.structured_data_item_count;i++){
+   M68kAnalysisStructuredDataItem*item=&policy.structured_data_items[i];item->has_section_index=1;item->section_index=0;
+   item->offset=26+i*4;item->size=mode==1?12:4;item->kind=M68K_ANALYSIS_STRUCTURED_DATA_LONGS;
+   strcpy(item->struct_name,"Row");if(mode!=1){strcpy(item->field_name,"member");strcpy(item->field_type,"APTR");item->is_pointer=1;item->pointer_address_domain=M68K_ANALYSIS_POINTER_DOMAIN_MAPPED_SOURCE;}
+   if(!i){item->has_source_owner_span=1;item->source_owner_start=26;item->source_owner_size=12;}
+  }
+  if(mode==2) policy.structured_data_item_count=2;
+  if(mode==3) policy.structured_data_items[1].pointer_address_domain=M68K_ANALYSIS_POINTER_DOMAIN_RUNTIME_ONLY;
+  if(mode==4) strcpy(policy.structured_data_items[1].field_name,"wrong");
+  if(mode==5) policy.structured_data_items[0].source_owner_size=14;
+  if(mode==6) policy.structured_data_items[0].source_owner_size=16;
+  if(mode==7) {policy.structured_data_items[3]=policy.structured_data_items[1];policy.structured_data_item_count=4;}
+  if(mode==8) {policy.structured_data_items[3]=policy.structured_data_items[1];policy.structured_data_items[3].offset=24;policy.structured_data_item_count=4;}
+  if(mode==9) {policy.structured_data_items[1].has_source_owner_span=1;policy.structured_data_items[1].source_owner_start=30;policy.structured_data_items[1].source_owner_size=8;}
+  if(mode==10) { M68kAnalysisStructuredDataItem tmp=policy.structured_data_items[0];
+    policy.structured_data_items[0]=policy.structured_data_items[2];policy.structured_data_items[2]=tmp; }
+  int result=m68k_facts_v2_render_asm_source_analysis_profile_alloc(&object,&policy,&source,&profile,&a,1,m68k_diag_sink(NULL));
+  if(mode==8) {
+    /* This conflicting declaration also crosses accepted code. Source admission
+     * refuses it; no partial typed view may escape on that path. */
+    M68K_C_ASSERT(result != 0);
+  } else {
+    M68K_C_ASSERT_INT(0,result); M68K_C_ASSERT(a.section_count == 1U);
+    int admitted = mode==0 || mode==1 || mode==7 || mode==9 || mode==10;
+    M68K_C_ASSERT_U32(admitted ? 5U : 0U,a.sections[0].recovered_platform_typed_access_count);
+    if(admitted) {
+      M68K_C_ASSERT(strstr(source,"Row_member+Row_SIZEOF(a0)") != NULL);
+      M68K_C_ASSERT(test_source_has_annotated_instruction(source,"\tmove.l (a2),d2","operand 1: Row_member at (a2)"));
+      /* Advancing past the third element must drop the bounded identity. */
+      M68K_C_ASSERT(!test_source_has_annotated_instruction(source,"\tmove.l (a2),d3","operand 1: Row_member at (a2)"));
+    }
+  }
+    m68k_facts_v2_free_text(source);
+    m68k_ir_source_analysis_destroy(&a);
+    m68k_analysis_policy_destroy(&policy);
+    m68k_object_destroy(&object);
+ }
+ return 0;
+}
+
 static int test_facts_v2_render_asm_source_propagates_custom_field_pointer_type(void) {
   M68kObject object;
   M68kSection section;
@@ -39751,6 +39838,7 @@ int m68k_c_ir_tests(void) {
       test_source_fpu_zero_disables_fpu_alias_instruction},
     {"source_dcb_preserves_large_repeat_without_expanding_items",
       test_source_dcb_preserves_large_repeat_without_expanding_items},
+    {"source_long_base_relative_constant_expression", test_source_long_base_relative_constant_expression},
     {"source_symbolic_absolute_after_dcb_does_not_leak_to_register_move",
       test_source_symbolic_absolute_after_dcb_does_not_leak_to_register_move},
     {"source_org_sets_logical_pc_without_padding", test_source_org_sets_logical_pc_without_padding},
@@ -40541,6 +40629,7 @@ int m68k_c_ir_tests(void) {
       test_facts_v2_render_asm_source_renders_zero_offset_custom_struct_field},
     {"facts_v2_render_asm_source_tracks_bounded_custom_struct_array_stride",
       test_facts_v2_render_asm_source_tracks_bounded_custom_struct_array_stride},
+    {"facts_v2_source_owner_leaf_array_extent", test_facts_v2_source_owner_leaf_array_extent},
     {"facts_v2_render_asm_source_propagates_custom_field_pointer_type",
       test_facts_v2_render_asm_source_propagates_custom_field_pointer_type},
     {"facts_v2_analysis_propagates_generic_pointer_store_through_typed_field_reload",
