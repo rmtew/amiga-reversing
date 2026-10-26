@@ -1367,6 +1367,9 @@ static size_t lookup_inferred_direct_function_summary_index(const M68kRenderLook
   size_t section_index, uint32_t entry_offset);
 static const M68kAnalysisFunctionSummary *lookup_inferred_callback_table_function_summary(
   const M68kRenderLookup *lookup, size_t section_index, uint32_t table_offset);
+static int instruction_may_update_stack_pointer_from_metadata(const M68kInstructionIR *);
+static int typed_state_addr_alias_equal(const M68kRenderTypedState *, uint8_t, uint8_t);
+static void typed_reg_forget_interpretation(M68kRenderTypedRegValue *);
 static void typed_state_apply_function_summary_effects(M68kRenderTypedState *state,
     const M68kAnalysisFunctionSummary *summary);
 static int generated_platform_call_summary(uint8_t platform_kind, const AmigaOsLibraryVectorInfo *vector,
@@ -1746,18 +1749,19 @@ static void typed_state_invalidate_memory_derived_reg(M68kRenderTypedState *stat
   M68kRenderTypedRegValue *value = kind == M68K_ANALYSIS_REGISTER_DATA ?
     &state->data_regs[reg] : &state->addr_regs[reg];
   M68kRenderTypedRegValue before = *value;
+  M68kRenderTypedProvenance provenance = before.provenance;
   M68kRenderTypedAppAddressValue app = kind == M68K_ANALYSIS_REGISTER_DATA ?
     state->data_app_addr_regs[reg] : state->app_addr_regs[reg];
+  uint32_t aliases = state->addr_reg_alias_known;
+  uint8_t alias_sources[8];
+  memcpy(alias_sources, state->addr_reg_alias_source, sizeof(alias_sources));
+  typed_reg_forget_interpretation(&before);
   typed_state_clear_reg(state, kind, reg);
-  value->layout_base_id = before.layout_base_id;
-  value->entry_value_id = before.entry_value_id;
-  value->raw_long_value_known = before.raw_long_value_known;
-  value->raw_long_candidate_count = before.raw_long_candidate_count;
-  value->raw_long_value = before.raw_long_value;
-  memcpy(value->raw_long_candidates, before.raw_long_candidates, sizeof(value->raw_long_candidates));
-  value->address_value_candidate_overflow = before.address_value_candidate_overflow;
-  value->known = value->layout_base_id || value->raw_long_value_known;
-  if (value->known || app.known) value->provenance = before.provenance;
+  *value = before;
+  /* A memory effect cannot change equality of already held CPU values. */
+  state->addr_reg_alias_known = aliases;
+  memcpy(state->addr_reg_alias_source, alias_sources, sizeof(alias_sources));
+  if (app.known) value->provenance = provenance;
   if (kind == M68K_ANALYSIS_REGISTER_DATA) state->data_app_addr_regs[reg] = app;
   else state->app_addr_regs[reg] = app;
 }
@@ -1809,8 +1813,7 @@ static void typed_state_invalidate_input_subject(M68kRenderTypedState *state,
      * be preserved while values cached through either spelling become stale. */
     for (candidate = 0U; candidate < 8U; ++candidate) {
       if (candidate == base_reg ||
-          (m68k_bitset_u32_has(state->addr_reg_alias_known, candidate) &&
-           state->addr_reg_alias_source[candidate] == base_reg)) {
+          typed_state_addr_alias_equal(state, candidate, base_reg)) {
         uint8_t reg;
         /* A value loaded from a field/base cache is not a direct alias of the
          * input pointer.  It is nevertheless stale after a write through that
@@ -1825,8 +1828,7 @@ static void typed_state_invalidate_input_subject(M68kRenderTypedState *state,
           }
           if (address_origin->kind == M68K_RENDER_TYPED_ORIGIN_BASE_SLOT &&
               address_origin->base_reg == candidate && reg != candidate &&
-              !(m68k_bitset_u32_has(state->addr_reg_alias_known, reg) &&
-                state->addr_reg_alias_source[reg] == candidate)) {
+              !typed_state_addr_alias_equal(state, reg, candidate)) {
             typed_state_invalidate_memory_derived_reg(state, M68K_ANALYSIS_REGISTER_ADDRESS, reg);
           }
         }
@@ -1868,6 +1870,22 @@ static void typed_reg_value_clear(M68kRenderTypedRegValue *value) {
   if (value == NULL) return;
   memset(value, 0, sizeof(*value));
   value->struct_id = AMIGA_OS_STRUCT_ID_NONE;
+}
+
+/* Type/cache interpretation can be forgotten without changing the held
+ * value. CPU assignments still use the full register-write path. */
+static void typed_reg_forget_interpretation(M68kRenderTypedRegValue *value) {
+  M68kRenderTypedRegValue before = *value;
+  typed_reg_value_clear(value);
+  value->layout_base_id = before.layout_base_id;
+  value->entry_value_id = before.entry_value_id;
+  value->raw_long_value_known = before.raw_long_value_known;
+  value->raw_long_candidate_count = before.raw_long_candidate_count;
+  value->raw_long_value = before.raw_long_value;
+  memcpy(value->raw_long_candidates, before.raw_long_candidates, sizeof(value->raw_long_candidates));
+  value->address_value_candidate_overflow = before.address_value_candidate_overflow;
+  value->known = value->layout_base_id || value->raw_long_value_known;
+  if (value->known || value->entry_value_id) value->provenance = before.provenance;
 }
 
 static void typed_stored_value_clear(M68kRenderTypedStoredValue *value) {
@@ -2049,29 +2067,11 @@ static int typed_provenances_equal(const M68kRenderTypedProvenance *left,
     memcmp(left->transfers, right->transfers, sizeof(left->transfers)) == 0;
 }
 
-static void typed_state_clear_addr_alias_for_reg(M68kRenderTypedState *state, uint8_t reg_index) {
-  uint8_t index;
-  if (state == NULL || reg_index >= 8U) return;
-  m68k_bitset_u32_clear(&state->addr_reg_alias_known, reg_index);
-  state->addr_reg_alias_source[reg_index] = 0U;
-  for (index = 0U; index < 8U; ++index) {
-    if (m68k_bitset_u32_has(state->addr_reg_alias_known, index) &&
-        state->addr_reg_alias_source[index] == reg_index) {
-      m68k_bitset_u32_clear(&state->addr_reg_alias_known, index);
-      state->addr_reg_alias_source[index] = 0U;
-    }
-  }
-}
+#include "m68k_address_register_alias.inc"
 
 static void typed_state_clear_io_request_setup(M68kRenderTypedState *state, uint8_t reg_index) {
   if (state == NULL || reg_index >= 8U) return;
   memset(&state->io_request_setups[reg_index], 0, sizeof(state->io_request_setups[reg_index]));
-}
-
-static void typed_state_set_addr_alias(M68kRenderTypedState *state, uint8_t dest_reg, uint8_t source_reg) {
-  if (state == NULL || dest_reg >= 8U || source_reg >= 8U || dest_reg == source_reg) return;
-  m68k_bitset_u32_set(&state->addr_reg_alias_known, dest_reg);
-  state->addr_reg_alias_source[dest_reg] = source_reg;
 }
 
 static void typed_state_clear_reg(M68kRenderTypedState *state, uint8_t reg_kind, uint8_t reg_index) {
@@ -5043,36 +5043,31 @@ static int render_lookup_add_bootblock_runtime_copy(M68kRenderLookup *lookup, si
 static void typed_flow_apply_call_input_alias_type(const M68kAnalysisFunctionSummary *summary,
     size_t section_index, uint32_t offset, M68kRenderTypedState *state,
     const M68kAnalysisFunctionSummaryInput *input, uint16_t input_struct_id, int *io_changed) {
-  uint8_t source_reg;
-  uint8_t preserved_address;
-  M68kRenderTypedProvenance provenance;
-  if (summary == NULL || state == NULL || input == NULL || input_struct_id == AMIGA_OS_STRUCT_ID_NONE ||
+  if (!summary || !state || !input || input_struct_id == AMIGA_OS_STRUCT_ID_NONE ||
       input->location.kind != M68K_FUNCTION_SUMMARY_ABI_LOCATION_REGISTER ||
       input->location.register_count != 1U ||
       input->location.registers[0].register_kind != AMIGA_OS_REGISTER_ADDRESS ||
-      input->location.registers[0].register_index >= 8U ||
-      !m68k_bitset_u32_has(state->addr_reg_alias_known, input->location.registers[0].register_index)) {
-    return;
-  }
-  source_reg = state->addr_reg_alias_source[input->location.registers[0].register_index];
-  if (source_reg >= 8U) return;
-  preserved_address = function_summary_register_effect(summary, M68K_ANALYSIS_REGISTER_ADDRESS, source_reg) ==
-    M68K_FUNCTION_SUMMARY_LOCATION_PRESERVED ? (uint8_t)(1U << source_reg) : 0U;
-  if ((preserved_address & (uint8_t)(1U << source_reg)) == 0U) return;
-  provenance = typed_provenance_make(M68K_PLATFORM_TYPE_PROVENANCE_API_INPUT, section_index, offset);
-  if (state->addr_regs[source_reg].known == 0U) {
-    typed_state_set_reg_struct_id(state, AMIGA_OS_REGISTER_ADDRESS, source_reg, input_struct_id, &provenance);
-    if (io_changed != NULL) *io_changed = 1;
-  } else if (state->addr_regs[source_reg].struct_id != input_struct_id) {
-    int conflict = 0;
-    uint16_t merged_struct_id = typed_struct_id_refined_merge(state->addr_regs[source_reg].struct_id,
-      input_struct_id, &conflict);
-    if (conflict == 0U && merged_struct_id != AMIGA_OS_STRUCT_ID_NONE &&
-        merged_struct_id != state->addr_regs[source_reg].struct_id) {
-      state->addr_regs[source_reg].struct_id = merged_struct_id;
-      state->addr_regs[source_reg].output = NULL;
-      state->addr_regs[source_reg].provenance = provenance;
-      if (io_changed != NULL) *io_changed = 1;
+      input->location.registers[0].register_index >= 8U) return;
+  uint8_t argument = input->location.registers[0].register_index;
+  for (uint8_t reg = 0U; reg < 8U; ++reg) {
+    if (reg == argument || !typed_state_addr_alias_equal(state, reg, argument) ||
+        function_summary_register_effect(summary, M68K_ANALYSIS_REGISTER_ADDRESS, reg) !=
+          M68K_FUNCTION_SUMMARY_LOCATION_PRESERVED) continue;
+    M68kRenderTypedProvenance provenance = typed_provenance_make(M68K_PLATFORM_TYPE_PROVENANCE_API_INPUT,
+      section_index, offset);
+    M68kRenderTypedRegValue *value = &state->addr_regs[reg];
+    if (!value->known) {
+      /* This is a precondition interpretation, never a CPU write. */
+      typed_reg_forget_interpretation(value);
+      value->known = 1U; value->struct_id = input_struct_id; value->provenance = provenance;
+      if (io_changed) *io_changed = 1;
+    } else if (value->struct_id != input_struct_id) {
+      int conflict = 0;
+      uint16_t merged = typed_struct_id_refined_merge(value->struct_id, input_struct_id, &conflict);
+      if (!conflict && merged != AMIGA_OS_STRUCT_ID_NONE && merged != value->struct_id) {
+        value->struct_id = merged; value->output = NULL; value->provenance = provenance;
+        if (io_changed) *io_changed = 1;
+      }
     }
   }
 }
@@ -7421,7 +7416,6 @@ static void typed_state_update_after_instruction(M68kRenderTypedState *state, M6
   uint8_t dest_reg = 0U, bit;
   uint8_t source_addr_reg = 0U;
   uint8_t source_data_reg = 0U;
-  uint8_t source_alias_reg = 0U;
   uint8_t table_load_dest_reg = 0U;
   uint16_t source_array_element_count = 0U;
   uint16_t source_array_element_index = 0U;
@@ -7431,15 +7425,15 @@ static void typed_state_update_after_instruction(M68kRenderTypedState *state, M6
   uint8_t source_app_base_evidence_kind = M68K_APP_SLOT_BASE_UNSPECIFIED;
   int source_is_app_address = 0;
   int source_has_memory_base = 0;
-  int source_is_direct_addr_reg = 0;
-  int source_tracks_plain_addr_alias = 0;
   int recognized_stack_update = 0;
   uint8_t app_update_reg = 0U, app_update_width = 0U;
   M68kRenderTypedAppAddressValue app_after_update = {0};
   M68kStackRegisterTransfer stack_transfer = {0};
   int has_stack_transfer;
   uint32_t entry_values_before[16] = {0};
+  uint8_t alias_roots_before[8];
   if (state == NULL || instruction == NULL) return;
+  typed_addr_alias_roots(state, alias_roots_before);
   if (lookup != NULL && lookup->affine_entry_context != NULL) for (uint8_t reg = 0U; reg < 8U; ++reg) {
     entry_values_before[reg] = state->data_regs[reg].entry_value_id;
     entry_values_before[reg + 8U] = state->addr_regs[reg].entry_value_id;
@@ -7699,17 +7693,6 @@ static void typed_state_update_after_instruction(M68kRenderTypedState *state, M6
       stored_value.entry_value_id = 0U;
       typed_stored_value_forget_concrete_long(&stored_value);
     }
-    source_is_direct_addr_reg = operand_address_register_index_local(source_operand, &source_addr_reg);
-    source_alias_reg = source_addr_reg;
-    if (source_is_direct_addr_reg && source_addr_reg < 8U &&
-        m68k_bitset_u32_has(state->addr_reg_alias_known, source_addr_reg)) {
-      source_alias_reg = state->addr_reg_alias_source[source_addr_reg];
-    }
-    source_tracks_plain_addr_alias =
-      source_is_direct_addr_reg && source_alias_reg < 8U && source_output == NULL &&
-      source_struct_id == AMIGA_OS_STRUCT_ID_NONE && source_is_app_address == 0 && source_has_memory_base == 0 &&
-      !state->addr_regs[source_addr_reg].known && !state->app_addr_regs[source_addr_reg].known &&
-      !state->memory_base_regs[source_addr_reg].known;
     /* Retain the lossless transfer path with the value itself.  It remains
      * transient until a typed pointer consumer promotes it to a durable
      * address-value fact. */
@@ -7797,8 +7780,6 @@ static void typed_state_update_after_instruction(M68kRenderTypedState *state, M6
       if (stored_value.pointer_value_known || stored_value.raw_long_value_known)
         state->addr_regs[dest_reg].provenance = stored_value.provenance;
       typed_state_set_reg_origin(state, 2U, dest_reg, &source_origin);
-      if (source_tracks_plain_addr_alias && dest_reg != source_alias_reg)
-        typed_state_set_addr_alias(state, dest_reg, source_alias_reg);
     }
     if (instruction->size_suffix == 'l' && operand_is_predec_a7_local(dest_operand)) {
       typed_state_rebase_stack_slots(state, 4);
@@ -7932,14 +7913,6 @@ static void typed_state_update_after_instruction(M68kRenderTypedState *state, M6
           state->memory_base_regs[dest_reg] = derived_base;
           typed_memory_base_bind_pointer_table(&state->memory_base_regs[dest_reg], lookup);
         }
-      } else if (operand_is_address_memory_local(&instruction->operands[0], &source_base_reg,
-          &source_displacement) && source_base_reg < 8U && source_displacement == 0 &&
-          !state->addr_regs[source_base_reg].known && !state->app_addr_regs[source_base_reg].known &&
-          !state->memory_base_regs[source_base_reg].known) {
-        source_alias_reg = m68k_bitset_u32_has(state->addr_reg_alias_known, source_base_reg) ?
-          state->addr_reg_alias_source[source_base_reg] : source_base_reg;
-        if (source_alias_reg < 8U && dest_reg != source_alias_reg)
-          typed_state_set_addr_alias(state, dest_reg, source_alias_reg);
       }
       /* An explicit absolute LEA outside mapped source is still an exact
        * runtime number. Keep raw bits only; no source pointer/type is guessed. */
@@ -8135,6 +8108,7 @@ static void typed_state_update_after_instruction(M68kRenderTypedState *state, M6
       typed_state_rebase_stack_slots(state, (int16_t)adjustment);
     } else typed_state_clear_stack_slots(state);
   }
+  typed_addr_alias_transfer(state, instruction, alias_roots_before);
   affine_entry_transfer_after(state, lookup, instruction, entry_values_before, &stack_transfer,
     has_stack_transfer);
 }
@@ -8337,6 +8311,23 @@ static void typed_stored_value_mark_address_value_candidate_overflow(M68kRenderT
   typed_table_origin_clear(&value->table_origin);
 }
 
+/* Pointer origin and current object position are different components.
+ * A join cannot retain an exact source pointer while choosing one incoming
+ * cursor. Both register and stored packets use this same position rule. */
+static int typed_pointer_position_disagrees(uint16_t left_count, uint16_t left_index, int32_t left_cursor,
+    uint16_t right_count, uint16_t right_index, int32_t right_cursor) {
+  return left_index != right_index || left_cursor != right_cursor ||
+    (left_count != right_count && (left_index != 0U || right_index != 0U));
+}
+
+#define TYPED_FORGET_CURRENT_SOURCE_POINTER(value) do { \
+  (value)->pointer_value_known = (value)->pointer_candidate_count = (value)->pointer_target_known = 0U; \
+  (value)->pointer_value = (value)->pointer_target_offset = 0U; \
+  (value)->pointer_target_section_index = 0U; \
+  memset((value)->pointer_candidates, 0, sizeof((value)->pointer_candidates)); \
+  typed_table_origin_clear(&(value)->table_origin); \
+} while (0)
+
 static int typed_reg_merge_payload(M68kRenderTypedRegValue *dest, const M68kRenderTypedRegValue *source) {
   M68kRenderTypedRegValue old_value;
   if (dest == NULL || source == NULL) return 0;
@@ -8388,6 +8379,32 @@ static int typed_reg_merge_payload(M68kRenderTypedRegValue *dest, const M68kRend
     typed_provenance_merge(&dest->provenance, &source->provenance);
     return !typed_reg_values_equal(dest, &old_value);
   }
+  if (typed_pointer_position_disagrees(dest->array_element_count, dest->array_element_index, dest->byte_cursor,
+      source->array_element_count, source->array_element_index, source->byte_cursor) ||
+      (dest->array_element_index != 0U &&
+       (dest->struct_id != source->struct_id || dest->output != source->output))) {
+    int same_cursor = dest->byte_cursor == source->byte_cursor;
+    dest->struct_id = same_cursor ? typed_struct_id_common_merge(dest->struct_id, source->struct_id) : AMIGA_OS_STRUCT_ID_NONE;
+    if (!same_cursor || dest->output != source->output) dest->output = NULL;
+    dest->array_element_count = dest->array_element_index = 0U;
+    if (!same_cursor) dest->byte_cursor = 0;
+    TYPED_FORGET_CURRENT_SOURCE_POINTER(dest);
+    if (typed_must_candidates_merge(&dest->raw_long_value_known, &dest->raw_long_candidate_count,
+        &dest->raw_long_value, dest->raw_long_candidates, source->raw_long_value_known,
+        source->raw_long_candidate_count, source->raw_long_value, source->raw_long_candidates) ==
+        M68K_RENDER_POINTER_CANDIDATE_MERGE_OVERFLOW) typed_reg_value_mark_address_value_candidate_overflow(dest);
+    typed_origin_clear(&dest->origin);
+    typed_provenance_merge(&dest->provenance, &source->provenance);
+    dest->known = dest->layout_base_id || dest->output || dest->struct_id != AMIGA_OS_STRUCT_ID_NONE ||
+      dest->raw_long_value_known || dest->address_value_candidate_overflow;
+    if (!dest->known) typed_reg_value_clear(dest);
+    return !typed_reg_values_equal(dest, &old_value);
+  }
+  /* A bounds disagreement at element zero loses the array extent, not
+   * an otherwise identical current pointer/subobject coordinate. */
+  if (dest->array_element_count != source->array_element_count) {
+    dest->array_element_count = dest->array_element_index = 0U;
+  }
   if (dest->output == NULL && source->output == NULL &&
       dest->struct_id == AMIGA_OS_STRUCT_ID_NONE && source->struct_id == AMIGA_OS_STRUCT_ID_NONE &&
       dest->address_value_candidate_overflow == 0U && source->address_value_candidate_overflow == 0U) {
@@ -8416,7 +8433,8 @@ static int typed_reg_merge_payload(M68kRenderTypedRegValue *dest, const M68kRend
   if (dest->output == source->output && dest->struct_id == source->struct_id &&
       dest->pointer_value_known == source->pointer_value_known && dest->pointer_value == source->pointer_value &&
       dest->raw_long_value_known == source->raw_long_value_known && dest->raw_long_value == source->raw_long_value &&
-      dest->array_element_count == source->array_element_count &&
+      (dest->array_element_count == source->array_element_count ||
+       (dest->array_element_index == 0U && source->array_element_index == 0U)) &&
       dest->array_element_index == source->array_element_index && dest->byte_cursor == source->byte_cursor) {
     if (!typed_origins_equal(&dest->origin, &source->origin)) typed_origin_clear(&dest->origin);
     typed_provenance_merge(&dest->provenance, &source->provenance);
@@ -8427,9 +8445,9 @@ static int typed_reg_merge_payload(M68kRenderTypedRegValue *dest, const M68kRend
     if (common_struct_id != AMIGA_OS_STRUCT_ID_NONE) {
       dest->struct_id = common_struct_id;
       dest->output = NULL;
+      if (dest->array_element_index != 0U) TYPED_FORGET_CURRENT_SOURCE_POINTER(dest);
       dest->array_element_count = 0U;
       dest->array_element_index = 0U;
-      dest->byte_cursor = 0;
       if (typed_must_candidates_merge(&dest->pointer_value_known, &dest->pointer_candidate_count,
           &dest->pointer_value, dest->pointer_candidates, source->pointer_value_known,
           source->pointer_candidate_count, source->pointer_value, source->pointer_candidates) ==
@@ -8458,9 +8476,9 @@ static int typed_reg_merge_payload(M68kRenderTypedRegValue *dest, const M68kRend
   }
   if (dest->struct_id != AMIGA_OS_STRUCT_ID_NONE && dest->struct_id == source->struct_id) {
     dest->output = NULL;
+    if (dest->array_element_index != 0U) TYPED_FORGET_CURRENT_SOURCE_POINTER(dest);
     dest->array_element_count = 0U;
     dest->array_element_index = 0U;
-    dest->byte_cursor = 0;
     if (typed_must_candidates_merge(&dest->pointer_value_known, &dest->pointer_candidate_count,
         &dest->pointer_value, dest->pointer_candidates, source->pointer_value_known,
         source->pointer_candidate_count, source->pointer_value, source->pointer_candidates) ==
@@ -8539,15 +8557,33 @@ static int typed_stored_value_merge_payload(M68kRenderTypedStoredValue *dest,
   } else if (dest->app_base_evidence_kind != source->app_base_evidence_kind) {
     dest->app_base_evidence_kind = M68K_APP_SLOT_BASE_UNSPECIFIED;
   }
+  if (typed_pointer_position_disagrees(dest->array_element_count, dest->array_element_index, dest->byte_cursor,
+      source->array_element_count, source->array_element_index, source->byte_cursor) ||
+      (dest->array_element_index != 0U &&
+       (dest->struct_id != source->struct_id || dest->output != source->output))) {
+    int same_cursor = dest->byte_cursor == source->byte_cursor;
+    dest->struct_id = same_cursor ? typed_struct_id_common_merge(dest->struct_id, source->struct_id) : AMIGA_OS_STRUCT_ID_NONE;
+    if (!same_cursor || dest->output != source->output) dest->output = NULL;
+    dest->array_element_count = dest->array_element_index = 0U;
+    if (!same_cursor) dest->byte_cursor = 0;
+    TYPED_FORGET_CURRENT_SOURCE_POINTER(dest);
+    dest->address_value_candidate_overflow |= source->address_value_candidate_overflow;
+    if (typed_must_candidates_merge(&dest->raw_long_value_known, &dest->raw_long_candidate_count,
+        &dest->raw_long_value, dest->raw_long_candidates, source->raw_long_value_known,
+        source->raw_long_candidate_count, source->raw_long_value, source->raw_long_candidates) ==
+        M68K_RENDER_POINTER_CANDIDATE_MERGE_OVERFLOW) typed_stored_value_mark_address_value_candidate_overflow(dest);
+    typed_provenance_merge(&dest->provenance, &source->provenance);
+    typed_stored_value_update_known(dest);
+    if (!dest->known && !dest->address_value_candidate_overflow) typed_stored_value_clear(dest);
+    return !typed_stored_values_equal(dest, &old_value);
+  }
   if (dest->output != source->output) dest->output = NULL;
   dest->address_value_candidate_overflow |= source->address_value_candidate_overflow;
   typed_provenance_merge(&dest->provenance, &source->provenance);
   dest->struct_id = typed_struct_id_common_merge(dest->struct_id, source->struct_id);
-  if (dest->array_element_count != source->array_element_count ||
-      dest->array_element_index != source->array_element_index || dest->byte_cursor != source->byte_cursor) {
-    dest->array_element_count = 0U;
-    dest->array_element_index = 0U;
-    dest->byte_cursor = 0;
+  if (dest->struct_id != old_value.struct_id || dest->struct_id != source->struct_id ||
+      dest->array_element_count != source->array_element_count) {
+    dest->array_element_count = dest->array_element_index = 0U;
   }
   if (typed_must_candidates_merge(&dest->pointer_value_known, &dest->pointer_candidate_count,
       &dest->pointer_value, dest->pointer_candidates, source->pointer_value_known,
@@ -8590,6 +8626,8 @@ static int typed_stored_value_merge(M68kRenderTypedStoredValue *dest, const M68k
   dest->entry_value_id = id;
   return !typed_stored_values_equal(dest, &old);
 }
+
+#undef TYPED_FORGET_CURRENT_SOURCE_POINTER
 
 static int typed_state_merge_stack_slots(M68kRenderTypedState *dest, const M68kRenderTypedState *source) {
   size_t dest_index;
@@ -8687,8 +8725,6 @@ static int typed_state_merge_into(M68kRenderTypedState *dest, const M68kRenderTy
     M68kRenderTypedMemoryBaseValue old_data_memory_base = dest->data_memory_base_regs[index];
     M68kRenderTypedMemoryBaseValue old_memory_base = dest->memory_base_regs[index];
     M68kRenderIoRequestSetup old_io_request_setup = dest->io_request_setups[index];
-    int old_alias_known = m68k_bitset_u32_has(dest->addr_reg_alias_known, (uint8_t)index);
-    uint8_t old_alias_source = dest->addr_reg_alias_source[index];
     changed |= typed_reg_merge(&dest->data_regs[index], &source->data_regs[index]);
     changed |= typed_reg_merge(&dest->addr_regs[index], &source->addr_regs[index]);
     if (dest->data_app_addr_regs[index].known == 0U || source->data_app_addr_regs[index].known == 0U ||
@@ -8766,18 +8802,8 @@ static int typed_state_merge_into(M68kRenderTypedState *dest, const M68kRenderTy
       memset(&dest->io_request_setups[index], 0, sizeof(dest->io_request_setups[index]));
     }
     if (!typed_io_request_setups_equal(&old_io_request_setup, &dest->io_request_setups[index])) changed = 1;
-    if (!m68k_bitset_u32_has(dest->addr_reg_alias_known, (uint8_t)index) ||
-        !m68k_bitset_u32_has(source->addr_reg_alias_known, (uint8_t)index) ||
-        dest->addr_reg_alias_source[index] != source->addr_reg_alias_source[index]) {
-      m68k_bitset_u32_clear(&dest->addr_reg_alias_known, (uint8_t)index);
-      dest->addr_reg_alias_source[index] = 0U;
-    }
-    if (old_alias_known != m68k_bitset_u32_has(dest->addr_reg_alias_known, (uint8_t)index) ||
-        (m68k_bitset_u32_has(dest->addr_reg_alias_known, (uint8_t)index) &&
-          old_alias_source != dest->addr_reg_alias_source[index])) {
-      changed = 1;
-    }
   }
+  changed |= typed_addr_alias_meet(dest, source);
   if (typed_state_merge_stack_slots(dest, source)) changed = 1;
   if (typed_state_merge_base_slots(dest, source)) changed = 1;
   if (typed_state_merge_field_slots(dest, source)) changed = 1;
@@ -9508,6 +9534,28 @@ static void typed_state_import_layout_roots(M68kRenderTypedState *typed, const M
   }
 }
 
+/* Normalize exact raw address bits through the generated fixed-hardware map.
+ * This transient result is not persisted as a second cursor domain. */
+static int typed_raw_hardware_value(const M68kRenderTypedRegValue *value,
+    M68kHardwareRelativeBase *out) {
+  memset(out, 0, sizeof(*out));
+  if (!value->known || !value->raw_long_value_known || value->pointer_value_known ||
+      value->type_conflicted || value->address_value_candidate_overflow || value->layout_base_id ||
+      value->output || value->struct_id != AMIGA_OS_STRUCT_ID_NONE || value->raw_long_candidate_count > 4U)
+    return 0;
+  size_t count = value->raw_long_candidate_count ? value->raw_long_candidate_count : 1U;
+  for (size_t i = 0U; i < count; ++i) {
+    uint16_t base; uint32_t offset;
+    uint32_t raw = count == 1U ? value->raw_long_value : value->raw_long_candidates[i];
+    if (!platform_facts_v2_hardware_base_offset_for_address(M68K_PLATFORM_BACKEND_AMIGA_HUNK,
+          raw, &base, &offset) || base == PLATFORM_FACTS_V2_HARDWARE_BASE_ID_NONE ||
+        offset > INT16_MAX || (i && base != out->base_id)) return 0;
+    out->base_id = base;
+    if (!hardware_word_set_add(&out->offsets, (uint16_t)offset)) return 0;
+  }
+  return 1;
+}
+
 static void typed_state_project_layout_roots(const M68kRenderTypedState *typed, const M68kRenderLookup *lookup,
     M68kRenderPlatformState *platform) {
   uint8_t kind, reg;
@@ -9516,12 +9564,38 @@ static void typed_state_project_layout_roots(const M68kRenderTypedState *typed, 
       const M68kRenderTypedRegValue *value = kind == M68K_ANALYSIS_REGISTER_DATA ?
         &typed->data_regs[reg] : &typed->addr_regs[reg];
       const char *symbol;
+      /* Exact base-zero roots use the existing named-base lifecycle, whose
+       * decoded register-write invalidation also covers auto-updates. Interior
+       * addresses must not masquerade as an unadjusted hardware base. */
+      M68kHardwareRelativeBase hardware;
+      if (kind == M68K_ANALYSIS_REGISTER_ADDRESS && !typed->app_addr_regs[reg].known &&
+          typed_raw_hardware_value(value, &hardware) && hardware.offsets.count == 1U &&
+          hardware.offsets.values[0] == 0U) {
+        m68k_bitset_u32_set(&platform->address_hardware_base_known, reg);
+        platform->address_hardware_base_id[reg] = hardware.base_id;
+      }
       if (!value->known || value->type_conflicted || value->address_value_candidate_overflow ||
           value->layout_base_id == 0U) continue;
       symbol = typed_layout_base_symbol(lookup, value->layout_base_id);
       if (symbol != NULL) (void)platform_state_set_named_base_value(platform, lookup->policy, kind, reg, symbol);
     }
   }
+}
+
+/* The instruction-entry contract is shared by ordinary transfer and call
+ * edges. It runs before call effects, never from a post-call output state. */
+static void typed_flow_instruction_input(const M68kRenderLookup *lookup,
+    const M68kDecodeSectionIR *section, const M68kRenderTypedFlowNode *node,
+    M68kRenderTypedState *typed, M68kRenderPlatformState *platform) {
+  *typed = node->typed_in;
+  *platform = node->platform_in;
+  typed_state_apply_policy_register_seeds(typed, lookup->policy, section->section_index,
+    node->candidate->offset);
+  typed_state_apply_function_summaries(typed, lookup, section->section_index, node->candidate->offset);
+  platform_state_apply_policy_register_seeds(platform, lookup->policy, section->section_index,
+    node->candidate->offset);
+  typed_state_import_layout_roots(typed, lookup, platform, section->section_index,
+    node->candidate->offset);
 }
 
 static int typed_flow_process_node_impl(M68kRenderLookup *lookup, const M68kDecodeIR *decode, uint8_t **accepted_start,
@@ -9548,15 +9622,7 @@ static int typed_flow_process_node_impl(M68kRenderLookup *lookup, const M68kDeco
       out_typed_state == NULL || out_platform_state == NULL || node->candidate == NULL) {
     return -1;
   }
-  *out_typed_state = node->typed_in;
-  *out_platform_state = node->platform_in;
-  typed_state_apply_policy_register_seeds(out_typed_state, lookup->policy, section->section_index,
-    node->candidate->offset);
-  typed_state_apply_function_summaries(out_typed_state, lookup, section->section_index, node->candidate->offset);
-  platform_state_apply_policy_register_seeds(out_platform_state, lookup->policy, section->section_index,
-    node->candidate->offset);
-  typed_state_import_layout_roots(out_typed_state, lookup, out_platform_state, section->section_index,
-    node->candidate->offset);
+  typed_flow_instruction_input(lookup, section, node, out_typed_state, out_platform_state);
   if (m68k_decode_candidate_to_instruction(node->candidate, &instruction) != 0) return -1;
   attach_known_instruction_relocations(lookup, section->section_index, node->candidate, &instruction);
   typed_stored_value_clear(&direct_table_value);
@@ -9860,6 +9926,10 @@ typedef struct M68kRenderTypedFlowGraph {
   size_t *predecessor_offsets;
   size_t *predecessors;
   size_t predecessor_count;
+  size_t *call_predecessor_offsets;
+  size_t *call_predecessors;
+  uint8_t call_inputs_enabled;
+  uint8_t *call_independent_entries;
 } M68kRenderTypedFlowGraph;
 
 static void typed_flow_graph_destroy(M68kRenderTypedFlowGraph *graph);
@@ -10079,7 +10149,10 @@ static int hardware_relative_refine_dbf_edge(const M68kRenderTypedFlowNode *pred
   return 1;
 }
 
-static int typed_flow_recompute_node_input(M68kRenderTypedFlowGraph *graph, size_t node_index) {
+#include "m68k_call_entry_inputs.inc"
+
+static int typed_flow_recompute_node_input(M68kRenderTypedFlowGraph *graph, size_t node_index,
+    const M68kRenderLookup *lookup, const M68kDecodeSectionIR *section) {
   M68kRenderTypedFlowNode *node;
   M68kRenderTypedState typed_input;
   M68kRenderPlatformState platform_input;
@@ -10102,6 +10175,19 @@ static int typed_flow_recompute_node_input(M68kRenderTypedFlowGraph *graph, size
     } else {
       (void)typed_state_merge_into(&typed_input, &predecessor->typed_out);
       (void)platform_state_merge_into(&platform_input, &predecessor->platform_out);
+    }
+  }
+  if (graph->call_inputs_enabled && graph->call_predecessor_offsets) {
+    for (size_t p = graph->call_predecessor_offsets[node_index];
+        p < graph->call_predecessor_offsets[node_index + 1U]; ++p) {
+      const M68kRenderTypedFlowNode *caller = &graph->nodes[graph->call_predecessors[p]];
+      M68kRenderTypedState entry;
+      M68kRenderPlatformState platform;
+      if (!caller->has_in) continue;
+      typed_flow_call_entry_input(lookup, section, caller, &entry, &platform);
+      if (!has_input) { typed_input = entry; platform_input = platform; has_input = 1; }
+      else { (void)typed_state_merge_into(&typed_input, &entry);
+        (void)platform_state_merge_into(&platform_input, &platform); }
     }
   }
   if ((node->has_in != 0U) == has_input && (!has_input ||
@@ -10142,7 +10228,7 @@ static int hardware_relative_analyze_graph(M68kRenderLookup *lookup, const M68kD
   queue = arena_alloc(arena, graph->node_count * sizeof(*queue));
   if (inputs == NULL || outputs == NULL || has_in == NULL || has_out == NULL || queued == NULL || queue == NULL)
     goto done;
-  for (index = 0U; index < graph->node_count; ++index) if (graph->nodes[index].is_root) {
+  for (index = 0U; index < graph->node_count; ++index) if (typed_flow_hardware_root(graph, index)) {
     has_in[index] = 1U;
     if (typed_flow_enqueue_node(queue, queued, graph->node_count, &head, &count, index) != 0) goto done;
   }
@@ -10179,7 +10265,7 @@ static int hardware_relative_analyze_graph(M68kRenderLookup *lookup, const M68kD
     for (successor_index = 0U; successor_index < node->successor_count; ++successor_index) {
       size_t successor = node->successors[successor_index], predecessor_index;
       M68kRenderPlatformState input;
-      int found = graph->nodes[successor].is_root != 0U;
+      int found = typed_flow_hardware_root(graph, successor);
       memset(&input, 0, sizeof(input));
       for (predecessor_index = graph->predecessor_offsets[successor];
            predecessor_index < graph->predecessor_offsets[successor + 1U]; ++predecessor_index) {
@@ -10338,6 +10424,10 @@ static int render_lookup_analyze_amiga_typed_refs_for_section(M68kRenderLookup *
         trace_node->platform_first_changed_byte = byte_index;
       }
     }
+    if (graph->call_inputs_enabled && node->call_target < graph->node_count &&
+        typed_flow_recompute_node_input(graph, node->call_target, lookup, section) &&
+        typed_flow_enqueue_node(queue, queued, graph->node_count, &queue_head, &queue_count,
+          node->call_target) != 0) goto cleanup;
     if (node->has_out == 0U || !typed_state_equal(&node->typed_out, &next_typed_state) ||
         !platform_states_equal(&node->platform_out, &next_platform_state)) {
       node->typed_out = next_typed_state;
@@ -10346,7 +10436,7 @@ static int render_lookup_analyze_amiga_typed_refs_for_section(M68kRenderLookup *
       for (successor_index = 0U; successor_index < node->successor_count; ++successor_index) {
         size_t successor = node->successors[successor_index];
         if (successor >= graph->node_count) continue;
-        if (typed_flow_recompute_node_input(graph, successor)) {
+        if (typed_flow_recompute_node_input(graph, successor, lookup, section)) {
           if (typed_flow_enqueue_node(queue, queued, graph->node_count, &queue_head, &queue_count, successor) != 0)
             goto cleanup;
         }
@@ -10564,6 +10654,87 @@ static int render_lookup_analyze_amiga_typed_refs(M68kRenderLookup *lookup,
 
 cleanup:
   return result;
+}
+
+/* Only changed entry contexts need another solve, not discovery/policy replay.
+ * There is one existing CFG worklist and one converged recording epoch. */
+static int typed_flow_solve_call_inputs(M68kRenderLookup *lookup, const M68kDecodeIR *decode,
+    uint8_t **accepted, M68kRenderTypedFlowWorkflow *workflow) {
+  if (!workflow->graphs) return 0;
+  int any = 0;
+  for (size_t i = 0U; i < workflow->section_count; ++i) any |= workflow->graphs[i].call_inputs_enabled;
+  if (!any) return 0;
+  size_t epochs = 0U;
+  int exposed;
+  do {
+    lookup->address_value_consumer_count = lookup->typed_access_count = 0U;
+    lookup->hardware_address_use_count = lookup->affine_address_use_count = 0U;
+    lookup->layout_field_use_count = 0U;
+    /* Earlier recording epochs cannot certify a changed entry context. Keep
+     * explicit bindings and qualified fallback interpretations; re-project
+     * inferred register identities from the final shared state below. */
+    size_t kept = 0U;
+    for (size_t i = 0U; i < lookup->app_slot_ref_count; ++i) {
+      const M68kRenderAppSlotRef *ref = &lookup->app_slot_refs[i];
+      if (ref->ref.base_evidence_kind != M68K_APP_SLOT_BASE_USE_SITE_BINDING &&
+          (ref->ref.base_evidence_kind == M68K_APP_SLOT_BASE_REGISTER_STATE || ref->ref.has_derived_base)) continue;
+      if (kept != i) lookup->app_slot_refs[kept] = *ref;
+      if (lookup->app_slot_refs[kept].ref.symbol_name)
+        lookup->app_slot_refs[kept].ref.symbol_name = lookup->app_slot_refs[kept].symbol_name;
+      ++kept;
+    }
+    lookup->app_slot_ref_count = kept;
+    for (size_t i = 0U; i < workflow->section_count; ++i) {
+      if (render_lookup_analyze_amiga_typed_refs_for_section(lookup, decode, accepted,
+          &decode->sections[i], &workflow->graphs[i], 1, NULL, workflow->arena) != 0) return -1;
+    }
+    ++epochs;
+    exposed = typed_flow_retain_new_call_exposures(lookup, workflow);
+  } while (exposed);
+  const char *trace = getenv("AMIGA_REVERSING_PROFILE_CALL_INPUTS");
+  if (trace && !strcmp(trace, "1")) fprintf(stderr,"call_input_epochs=%zu\n",epochs);
+  return 0;
+}
+
+/* One indexed lookup per existing access, not an instruction x reference
+ * scan. Qualified fallbacks remain when the base is unknown; a proved
+ * hardware/library/other-layout value contradicts an app interpretation. */
+static void typed_flow_filter_nonapp_fallbacks(M68kRenderLookup *lookup, const M68kDecodeIR *decode,
+    const M68kRenderTypedFlowWorkflow *workflow) {
+  if (!workflow->graphs) return;
+  size_t kept = 0U;
+  for (size_t i = 0U; i < lookup->app_slot_ref_count; ++i) {
+    const M68kRenderAppSlotRef *ref = &lookup->app_slot_refs[i];
+    int contradicted = 0;
+    if (ref->ref.base_evidence_kind != M68K_APP_SLOT_BASE_USE_SITE_BINDING &&
+        ref->section_index < workflow->section_count && ref->ref.base_reg < 8U) {
+      const M68kRenderTypedFlowGraph *graph = &workflow->graphs[ref->section_index];
+      if (ref->ref.offset < graph->node_by_offset_count &&
+          graph->node_by_offset[ref->ref.offset] != SIZE_MAX) {
+        const M68kRenderTypedFlowNode *node = &graph->nodes[graph->node_by_offset[ref->ref.offset]];
+        if (node->has_in && graph->call_inputs_enabled) {
+          M68kRenderTypedState typed;
+          M68kRenderPlatformState platform;
+          uint8_t reg = ref->ref.base_reg;
+          typed_flow_instruction_input(lookup, &decode->sections[ref->section_index], node, &typed, &platform);
+          M68kHardwareRelativeBase hardware;
+          int raw_hardware = !typed.app_addr_regs[reg].known &&
+            typed_raw_hardware_value(&typed.addr_regs[reg], &hardware);
+          contradicted = !m68k_bitset_u32_has(platform.address_app_base_known, reg) &&
+            (raw_hardware || platform.relative_hardware[reg].offsets.count != 0U ||
+             m68k_bitset_u32_has(platform.address_hardware_base_known, reg) ||
+             m68k_bitset_u32_has(platform.address_base_known, reg) ||
+             m68k_bitset_u32_has(platform.address_layout_base_known, reg));
+        }
+      }
+    }
+    if (contradicted) continue;
+    if (kept != i) lookup->app_slot_refs[kept] = *ref;
+    if (lookup->app_slot_refs[kept].ref.symbol_name)
+      lookup->app_slot_refs[kept].ref.symbol_name = lookup->app_slot_refs[kept].symbol_name;
+    ++kept;
+  }
+  lookup->app_slot_ref_count = kept;
 }
 
 #include "m68k_counter_relative_loop.inc"
@@ -15984,9 +16155,14 @@ int m68k_analysis_render_lookup_run_platform_passes(M68kRenderLookup *lookup, co
       goto typed_flow_fail;
     }
   }
+  if (typed_flow_enable_call_inputs(lookup, decode, accepted_start, &typed_flow_workflow) != 0 ||
+      typed_flow_solve_call_inputs(lookup, decode, accepted_start, &typed_flow_workflow) != 0)
+    goto typed_flow_fail;
+  if (render_lookup_record_typed_app_slot_pointer_accesses(lookup, decode, accepted_start) != 0) goto typed_flow_fail;
+  typed_flow_filter_nonapp_fallbacks(lookup, decode, &typed_flow_workflow);
+  /* Loop proof deliberately borrows node value storage after projection. */
   if (typed_flow_record_app_loop_ranges(lookup, decode, accepted_start, &typed_flow_workflow) != 0) goto typed_flow_fail;
   typed_flow_workflow_destroy(&typed_flow_workflow);
-  if (render_lookup_record_typed_app_slot_pointer_accesses(lookup, decode, accepted_start) != 0) return -1;
   end = clock();
   if (stats != NULL) stats->typed_ref_seconds = elapsed_seconds_local(start, end);
   if (stats != NULL) stats->typed_callback_seconds = elapsed_seconds_local(typed_stage_start, end);

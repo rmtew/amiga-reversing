@@ -185,19 +185,23 @@
     RSSET 0
 draw_buffer_base RS.L 1
 display_buffer_base RS.L 1
-    RS.B 45
+    RS.B 44
+app_0034 RS.B 1
 app_0035 RS.B 1
-    RS.B 1
+app_0036 RS.B 1
 app_0037 RS.B 1
-    RS.B 1
+app_0038 RS.B 1
 app_0039 RS.B 1
-    RS.B 10
+    RS.B 2
+app_003C RS.L 1
+    RS.B 4
 sine_lookup_pointer RS.L 1
 cosine_lookup_pointer RS.L 1
     RS.B 16
 pending_bcd_score_addend RS.W 1
-    RS.B 9
-app_0067 RS.B 1
+    RS.B 2
+app_0060 RS.L 1
+app_0064 RS.L 1
     RS.B 4
 app_006C RS.L 1
     RS.B 4
@@ -248,7 +252,10 @@ reticle_neutral_screen_y RS.W 1
 point_field_plane_byte_stride RS.W 1
     RS.B 6
 active_model_scale_shift RS.W 1
-    RS.B 44
+    RS.B 4
+app_01B0 RS.B 1
+app_01B1 RS.B 1
+    RS.B 38
 app_01D8 RS.W 1
 app_01DA RS.W 1
     RS.B 17
@@ -538,6 +545,10 @@ app_223C RS.L 1
     RS.B 236
 app_232C RS.L 1
 world_object_pool RS.B 17000
+    RSSET $0062
+app_0062 RS.B 1
+    RSSET $0067
+app_0067 RS.B 1
     RSSET $00F6
 app_00F6 RS.W 1
     RSSET $00F8
@@ -3411,11 +3422,11 @@ abs_0_0000359C:
 abs_0_000035A6:
 	adda.w #reset_gameplay_state_and_input_defaults,a0
 abs_0_000035AA:
-	btst.b #6,$0002(a5)
+	btst.b #DMAB_BLITTER,dmaconr(a5)
 	bne.b abs_0_000035AA
-	move.l a0,$0054(a5)
-	move.w d7,$0074(a5)
-	move.w d6,$0058(a5)
+	move.l a0,bltdpt(a5)	; blitter_destination pointer
+	move.w d7,bltadat(a5)
+	move.w d6,bltsize(a5)
 	rts
 abs_0_000035C0:
 	moveq.l #0,d7
@@ -3425,11 +3436,11 @@ abs_0_000035C0:
 abs_0_000035CA:
 	adda.w #reset_gameplay_state_and_input_defaults,a0
 abs_0_000035CE:
-	btst.b #6,$0002(a5)
+	btst.b #DMAB_BLITTER,dmaconr(a5)
 	bne.b abs_0_000035CE
-	move.l a0,$0054(a5)
-	move.w d7,$0074(a5)
-	move.w d6,$0058(a5)
+	move.l a0,bltdpt(a5)	; blitter_destination pointer
+	move.w d7,bltadat(a5)
+	move.w d6,bltsize(a5)
 	rts
 abs_0_000035E4:
 	moveq.l #0,d7
@@ -14349,7 +14360,7 @@ abs_0_0000C972:
 	btst #4,d3
 	bne.w abs_0_0000C9B4
 abs_0_0000C99A:
-	move.w #$8,$009C(a5)
+	move.w #INTF_PORTS,intreq(a5)
 abs_0_0000C9A0:
 	movem.l abs_0_0000E0BC.l,d0-d7/a0-a6
 	move.l #abs_0_0000C8C4,m68k_vector_level_2_interrupt_autovector.l
@@ -17562,7 +17573,7 @@ insert_qualifying_pilot_rating:
 	moveq.l #14,d0
 	move.l player_score_bcd(a6),d1
 abs_0_0000FDE4:
-	cmp.l (a3)+,d1	; operand 1: SG2PilotRatingScore_packed_bcd_score at (a3)+
+	cmp.l (a3)+,d1
 	bgt.b abs_0_0000FDEE
 	dbf.w d0,abs_0_0000FDE4
 	rts
@@ -17576,7 +17587,7 @@ abs_0_0000FDEE:
 	move.w (a7)+,d0
 	move.l d0,d2
 abs_0_0000FE08:
-	move.l (a1),$0004(a1)	; operand 1: SG2PilotRatingScore_packed_bcd_score at (a1)
+	move.l (a1),$0004(a1)
 	subq.l #4,a1
 	dbf.w d2,abs_0_0000FE08
 	move.l player_score_bcd(a6),-(a3)
@@ -17910,7 +17921,7 @@ load_and_stream_music:
 	lea.l shared_workspace_prefix.l,a0
 	lea.l audio_ring_buffer_pointers(pc),a1
 initialize_audio_ring_slot_pointers:
-	move.l a0,(a1)+	; operand 2: SG2AudioRingBufferReference_buffer at (a1)+
+	move.l a0,(a1)+
 	lea.l $1600(a0),a0
 	dbf.w d1,initialize_audio_ring_slot_pointers
 	move.w #$6,disk_service_state_expected_sector_count.l
@@ -19097,13 +19108,13 @@ abs_0_0001128C:
 	lea.l mfm_id_template(pc),a1
 	lea.l runtime_code_0007E000.l,a2
 	move.w disk_service_state_current_cylinder.l,d0
-	move.b #$F5,$000C(a1)
-	move.b #$F5,$000D(a1)
-	move.b #$F5,$000E(a1)
+	move.b #$F5,SG2MfmIdTemplate_sync_mark_bytes(a1)
+	move.b #$F5,SG2MfmIdTemplate_sync_mark_bytes+1(a1)
+	move.b #$F5,SG2MfmIdTemplate_sync_mark_bytes+2(a1)
 	move.b #$F5,$0036(a1)
 	move.b #$F5,$0037(a1)
 	move.b #$F5,$0038(a1)
-	move.b d0,$0010(a1)
+	move.b d0,SG2MfmIdTemplate_cylinder(a1)
 	adda.w #$3C,a0
 	move.w #$A,disk_service_state_sector_work_index.l
 abs_0_000112E0:
@@ -19111,7 +19122,7 @@ abs_0_000112E0:
 	move.w disk_service_state_sector_work_index.l,d0
 	lea.l disk_sector_interleave_order(pc),a3
 	move.b $0(a3,d0.w),d0
-	move.b d0,$0012(a1)
+	move.b d0,SG2MfmIdTemplate_sector_id(a1)
 	moveq.l #19,d1
 abs_0_000112F8:
 	move.b (a1)+,(a0)+
@@ -44209,7 +44220,7 @@ abs_0_00034D88:
 	move.w #$7,d7
     ; Eight10-byte templates. Presence index=(14-body)*8+(type-75), conditional original bodies8..14/types75..82. Retain free-stack checks and original failed-allocation behavior.
 spawn_rebuilt_projector_part_loop:
-	move.w (a1)+,d1	; operand 1: SG2ProjectorPlacement_object_type at (a1)+
+	move.w (a1)+,d1
 	cmp.w d1,d6
 	bne.w abs_0_00034E72
 	move.w d1,d4
@@ -44222,8 +44233,8 @@ spawn_rebuilt_projector_part_loop:
 	move.l a3,free_object_stack_cursor(a6)
 	subq.w #1,free_object_count(a6)
 	move.w d4,(a4)
-	move.l (a1)+,$0004(a4)	; operand 1: SG2ProjectorPlacement_world_x at (a1)+
-	move.l (a1)+,$000C(a4)	; operand 1: SG2ProjectorPlacement_world_z at (a1)+
+	move.l (a1)+,$0004(a4)
+	move.l (a1)+,$000C(a4)
 	move.l #$0,$0008(a4)
 	move.b #$FF,$001E(a4)
 	bset.b #7,$001C(a4)
@@ -46021,7 +46032,7 @@ spawn_selected_body_projector_parts:
 	sub.w d1,d0
 	asl.w #3,d0
 abs_0_0003664E:
-	move.w (a1)+,d1	; operand 1: SG2ProjectorPlacement_object_type at (a1)+
+	move.w (a1)+,d1
 	move.w d1,d4
 	subi.w #75,d1
 	add.w d0,d1
@@ -46034,8 +46045,8 @@ abs_0_0003664E:
 	move.l a3,free_object_stack_cursor(a6)
 	subq.w #1,free_object_count(a6)
 	move.w d4,(a4)
-	move.l (a1)+,$0004(a4)	; operand 1: SG2ProjectorPlacement_world_x at (a1)+
-	move.l (a1)+,$000C(a4)	; operand 1: SG2ProjectorPlacement_world_z at (a1)+
+	move.l (a1)+,$0004(a4)
+	move.l (a1)+,$000C(a4)
 	move.l #$0,$0008(a4)
 	move.b #$FF,$001E(a4)
 	bset.b #7,$001C(a4)
@@ -46747,20 +46758,20 @@ abs_0_00037114:
 	dc.b $2C,$06
 abs_0_0003713A:
 	bsr.w abs_0_0003715E
-	sub.l d0,$0004(a0)
-	sub.l d1,$0008(a0)
-	sub.l d2,$000C(a0)
+	sub.l d0,SG2WorldObject_world_x(a0)
+	sub.l d1,SG2WorldObject_world_y(a0)
+	sub.l d2,SG2WorldObject_world_z(a0)
 	rts
 abs_0_0003714C:
 	bsr.w abs_0_0003715E
-	add.l d0,$0004(a0)
-	add.l d1,$0008(a0)
-	add.l d2,$000C(a0)
+	add.l d0,SG2WorldObject_world_x(a0)
+	add.l d1,SG2WorldObject_world_y(a0)
+	add.l d2,SG2WorldObject_world_z(a0)
 	rts
 abs_0_0003715E:
-	move.l $0004(a0),d0
-	move.l $0008(a0),d1
-	move.l $000C(a0),d2
+	move.l SG2WorldObject_world_x(a0),d0
+	move.l SG2WorldObject_world_y(a0),d1
+	move.l SG2WorldObject_world_z(a0),d2
 	sub.l player_world_x(a6),d0
 	sub.l player_world_y(a6),d1
 	sub.l player_world_z(a6),d2
@@ -46783,24 +46794,24 @@ abs_0_00037198:
 	beq.b abs_0_000371D4
 	tst.b d4
 	bmi.b abs_0_000371D4
-	move.w d4,(a0)+	; operand 2: SG2SavedNearbyObject_object_type at (a0)+
+	move.w d4,(a0)+
 	move.l $0004(a2),d1
 	move.l $0008(a2),d2
 	move.l $000C(a2),d3
 	sub.l player_world_x(a6),d1
 	sub.l player_world_y(a6),d2
 	sub.l player_world_z(a6),d3
-	move.w d1,(a0)+	; operand 2: SG2SavedNearbyObject_relative_x at (a0)+
-	move.w d2,(a0)+	; operand 2: SG2SavedNearbyObject_relative_y at (a0)+
-	move.w d3,(a0)+	; operand 2: SG2SavedNearbyObject_relative_z at (a0)+
+	move.w d1,(a0)+
+	move.w d2,(a0)+
+	move.w d3,(a0)+
 	subq.w #1,nearby_state_capture_countdown.l
 	bpl.b abs_0_000371D4
 abs_0_000371CE:
-	move.w #$FFFF,(a0)	; operand 2: SG2SavedNearbyObject_object_type at (a0)
+	move.w #$FFFF,(a0)
 	bra.b abs_0_000371DC
 abs_0_000371D4:
 	dbf.w d0,abs_0_00037198
-	move.w #$FFFF,(a0)	; operand 2: SG2SavedNearbyObject_object_type at (a0)
+	move.w #$FFFF,(a0)
 abs_0_000371DC:
 	rts
     ; Stop on negative type, neutron type98 or free count<=1. Original computed X/Y/Z all write object+4 successively; preserve these stores, not an invented XYZ round-trip fix.
@@ -46809,7 +46820,7 @@ recreate_saved_nearby_objects:
 abs_0_000371E4:
 	cmpi.w #1,free_object_count(a6)
 	bls.w abs_0_00037256
-	move.w (a0)+,d0	; operand 1: SG2SavedNearbyObject_object_type at (a0)+
+	move.w (a0)+,d0
 	bmi.b abs_0_00037256
 	cmp.w #$62,d0
 	beq.b abs_0_00037256
@@ -46818,9 +46829,9 @@ abs_0_000371E4:
 	move.l a3,free_object_stack_cursor(a6)
 	subq.w #1,free_object_count(a6)
 	move.w d0,(a4)
-	move.w (a0)+,d1	; operand 1: SG2SavedNearbyObject_relative_x at (a0)+
-	move.w (a0)+,d2	; operand 1: SG2SavedNearbyObject_relative_y at (a0)+
-	move.w (a0)+,d3	; operand 1: SG2SavedNearbyObject_relative_z at (a0)+
+	move.w (a0)+,d1
+	move.w (a0)+,d2
+	move.w (a0)+,d3
 	ext.l d1
 	ext.l d2
 	ext.l d3

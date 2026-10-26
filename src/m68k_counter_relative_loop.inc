@@ -114,7 +114,9 @@ static int counter_loop_prove(M68kRenderLookup *lookup, const M68kDecodeIR *deco
     M68kInstructionIR instruction;
     const M68kSimFormMetadata *metadata;
     if (node_index == candidate->tail) continue;
-    if ((node->is_root && node_index != candidate->header) ||
+    if ((graph->call_inputs_enabled && graph->call_predecessor_offsets &&
+         graph->call_predecessor_offsets[node_index] != graph->call_predecessor_offsets[node_index + 1U]) ||
+        (node->is_root && node_index != candidate->header) ||
         m68k_decode_candidate_to_instruction(node->candidate, &instruction) != 0 ||
         !(metadata = m68k_sim_metadata_for_instruction(&instruction))) { reason = "extra_or_invalid_entry"; goto cleanup; }
     if (!node->successor_count || metadata->flow_kind == M68K_SIM_FLOW_RETURN ||

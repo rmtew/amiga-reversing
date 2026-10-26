@@ -63,7 +63,7 @@ Scope: the UA/WOW Amiga disk already imported in this repository. Restore readab
 original absolute-address assembly, extracted assets and exact raw payloads. No
 relocation, C conversion or replacement OS loader is part of this project.
 
-## Current producer and address-observation correction
+## Previous producer and address-observation correction
 
 The shared numeric producer now retains explicit external LEA values through LONG
 address arithmetic, without inventing source pointers or renderable expressions.
@@ -83,17 +83,59 @@ receipt is reused. App references remain 3,237 with zero attribution changes;
 producer appears. This is corrected provenance, not new semantic field naming.
 See the [producer receipt](../../runtime/observations/starglider2-runtime-address-constants.json).
 
-The cache cursor at `$4E5C0` remains blocked by physical base provenance at callee
-entries, not by the now-correct numeric producer. Next is a bounded shared
-caller-input propagation experiment, including conflicting callers and independent
-entries. The earlier receipt's `workspace_bytes=0x6998` names the base subtraction,
-not a proven clear extent: the original clear loop covers `$6598` bytes. Neither
-proves all byte purposes or an unconditional renderer-entry address.
+The initializer's `$6998` is the base subtraction/reservation, not a proven
+clear extent: the original clear loop covers `$6598` bytes. Neither proves all
+byte purposes or an unconditional renderer-entry address.
+
+## Current direct-call input and convergence result
+
+The [caller-input receipt](../../runtime/observations/starglider2-direct-call-entry-inputs.json)
+records 267 passing focused checks and a converged exact C/vasm export. The shared
+CFG now transports pre-call registers across 948 known direct edges, keeping
+caller stack/cells private and retaining independent callback/address-taken/code
+entries. No target-address recognizer or second transfer engine was added.
+Current-pointer joins now discard inconsistent exact positions; current An
+must-equality joins intersect canonical equivalence classes in the existing eight
+slots. Neither an opaque memory effect nor an ABI type refinement changes a held
+CPU value. These fix two observed non-converging mechanisms without raising caps.
+
+App references change 3,237 → 3,249: 13 recovered initializer/random-state sites,
+one ExecBase misattribution removed, and 108 existing sites upgraded to
+register-state evidence (93 from A6 fallback, 15 from declared-layout fallback).
+All 135 bounded loop patterns remain, including the 17 world-pool writes at
+source `$16DC4`. A register annotation is not a new control-flow ingress; a
+regression preserves that distinction and still refuses explicit unknown entries.
+There are now 423 register-state references and 2,826 fallback references.
+
+Typed field accesses change 320 → 315 (14 added, 19 retracted), with 355 unresolved
+records. Retractions cover rating/audio and saved-nearby/projector iterators where
+the converged state no longer supports the previous field interpretation; this
+is not a claim that each old semantic fact was false. The receipt retains every
+changed site for focused follow-up. Canonical type definitions and histories,
+all 106,034 accepted code bytes, ownership, and all 57 asset files are unchanged.
+Nine newly surfaced generic field records raise the generic count 95 → 104;
+that count is discovery accounting, not a semantic completion score.
+
+One final native generation took 226.71 seconds; the complete process took
+256.47 seconds and peaked at 2,678,692 KiB. Earlier development runs exposed
+non-convergence and a lost-loop precision bug and were rejected before source
+adoption. These timings are workflow measurements, not an isolated speed claim.
+The changed normal source package receives a clean staged standalone rebuild.
+
+The next system experiment is full-width An → Dn → An transport followed by an
+input-memory write and cached read, contrasting a partial overwrite. It tests a
+specific alias/invalidation boundary before extending the representation. The
+secondary cache holder `$4E5C0` still needs a reaching producer/alias/call and loop
+relation; caller propagation is progress toward that, not physical every-entry
+A6 proof. Afterwards use recovered contexts for current orphan/shared-buffer
+leads. The retracted native app interpretation at source `$BC3A` also exposes a
+historical `app_0127` rendered binding over an ExecBase access; source bindings
+are preserved pending an evidence-backed canonical correction.
 
 ## Active priorities after cursor-span qualification
 
-The current source has 3,237 app references, 135 bounded loop-pattern records,
-305 app field records, 95 generic names and 14,728
+The current source has 3,249 app references, 135 bounded loop-pattern records,
+314 app field records, 104 generic names and 14,728
 unclassified bytes in 260 intervals. These measure different kinds of work,
 not overall completion. The current residual index is recomputed from retained
 native facts without another generation; the 15,111-byte/256-interval review
@@ -111,8 +153,8 @@ The useful next opportunities, in order of demonstrated missing links, are:
    Its cache cursor across mutable absolute cell $4E5C0 still has no bounded range;
    investigate that concrete producer/alias/call chain next. Do not infer it from storage capacity or claim arbitrary loops safe.
 2. **App-base contexts and downstream consumers.** New matrix/control cursor
-   references retain their A6 fallback labels. Trace concrete entry/caller and
-   register-borrowing paths where they can change attribution; do not turn all
+   references retain their A6 fallback labels. 948 direct-call edges now carry converged pre-call inputs; trace remaining concrete
+   entry/callback and register-borrowing paths where they can change attribution; do not turn all
    fallback references into proof or demand universal hostile-input closure.
 3. **Orphan inbound paths.** Current native signals contain 30 unresolved and
    five suppressed candidates. Inspect concrete missing callback/table/return
@@ -134,7 +176,7 @@ For those priorities the immediate acceptance questions and dependencies are:
 | Limitation | What it currently blocks | Next bounded experiment | Why it is sequenced here |
 | --- | --- | --- | --- |
 | Branchy point-field loop and mutable absolute cursor cell | Renderer read/update spans for world/cache triplets; initialization is bounded | Eight probes distinguish the failures: straight DBF has one range, retry/rollback has none; absolute cursor store/load works until +6 arithmetic. Local absolute store/update/alias invalidation now passes 21 cases. Sparse graph now admits all 435 direct summaries; absolute-JMP transfer and the per-PC body proof now complete clipping. Shared counter-relative affine values now pass equal-stride diamond and saved-cell/stack/call rollback probes, while unbounded retry refuses. The real renderer gains four world-position patterns; next isolate the secondary cache-cell producer and write/call invalidations | Actual renderer $4E0AC..$4E332 retries at $4E350 without decrementing D7; cache pointer crosses absolute cell $4E5C0. Whole-root stack transport is fixed but changes no target facts. Global writer-summary storage is not a per-program-point memory value. No target-shaped loop recognizer or dense extra per-node slot array is justified. |
-| Remaining conditional app bases | Explicit provenance for 2,934 fallback records (2,427 A6 and 507 declared-layout), alongside 302 register-state and one library-extension record | Group remaining sites by actual entry/call and base producer/borrow; select one concrete lost or conflicting transfer | The holder contract covers its 28 direct loads, not unknown callbacks or callees without a preservation contract. |
+| Remaining conditional app bases | Explicit provenance for 2,826 fallback records (2,334 A6 and 492 declared-layout), alongside 423 register-state records | Group remaining sites by actual entry/call and base producer/borrow; select one concrete lost or conflicting transfer | The holder contract covers its 28 direct loads, not unknown callbacks or callees without a preservation contract. |
 | Orphan incoming path | Deciding whether a specific decoded island belongs in accepted code | Rank current unresolved signals against recovered pointer/table/return edges; choose one with a concrete inbound lead and, only if static evidence remains insufficient, observe that original normal-input condition | Follow recovered access/base evidence to avoid repeatedly scanning instruction-shaped bytes without an entry hypothesis. |
 | Shared buffer phase | Distinguishing producers/consumers of aliased scratch cells and safe source type views | Join the current vertex/cache/polygon writers and readers by original phase/entry; test one suspected overwrite-before-use or cross-phase consumer | Depends on accurate cursor/base associations; physical adjacency or storage capacity alone cannot identify ownership/lifetime. |
 | Model selector ambiguity | Attaching actual selector/variant meaning or an object identity to unresolved names | Join existing header/name/callback records with a selected original runtime instance or direct consumer; retain a counterexample for the type-30 substitution | After access/base work, unless an independent exact table consumer settles a case cheaply. No visual identity is inferred from a name-directory row. |

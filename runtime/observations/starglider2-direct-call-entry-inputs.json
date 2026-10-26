@@ -1,0 +1,3316 @@
+{
+  "schema_version": 1,
+  "kind": "shared_direct_call_entry_inputs_and_convergent_current_values",
+  "publication_base_commit": "3a1d38c80467ba892a6d21fe7eefba0c219515f3",
+  "backend_sha256": "01be2268a6c6a46a0648a3045537ca592e7fc13cb1272bd8fa17110e1080a82a",
+  "analysis_sha256": "89d9003f40ab853ea3b1619ce29a7bc36e8b06c291e87c538e4616022d4c9749",
+  "verification": {
+    "kind": "verification",
+    "framework_exact": true,
+    "target_id": "amiga_raw_starglider2_game",
+    "subject_revision": "4328d15ac2b20756128f7190a35f4b0d22ea7794075fb82eaa6822ce8fad08fd",
+    "status": "exact",
+    "exact": true,
+    "source_sha256": "5e7eff79987f38f381cfa3aa8f776833874c51617f5380fd3260af8304fe0b13",
+    "source_path": "/workspace/pandora-original-delivery/stable-d15c2cf8/.runtime-state/restoration/eb04f545fb97451725a1c91ab5abf6f2e097614c45880db6edfb4ea5c3f6e2c2/5e7eff79987f38f381cfa3aa8f776833874c51617f5380fd3260af8304fe0b13.s",
+    "source_package_sha256": null,
+    "original_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "original_size": 412736,
+    "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "rebuilt_path": "/workspace/pandora-original-delivery/stable-d15c2cf8/.runtime-state/restoration/eb04f545fb97451725a1c91ab5abf6f2e097614c45880db6edfb4ea5c3f6e2c2/662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9.bin",
+    "framework_status": "exact",
+    "failure_kinds": [],
+    "message": "",
+    "oracle": {
+      "oracle_id": "vasm",
+      "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+      "comparison_level": "oracle.full_file_match",
+      "assembler_status": "accepted",
+      "message": "oracle output matched original bytes"
+    },
+    "receipt_id": "41cf85c0fd8b182d6ff0c7a57f2cc95aed67875d06858826c61bea2e85c37e77",
+    "revision": "8b98efca70935299d18d8fd4374db84dc7f686c5e09cca46d75df82b0505c9a9"
+  },
+  "profile": {
+    "api_wall_seconds": 226.71385146101238,
+    "native_profile": {
+      "generation": "facts_v2_listing_artifact_summary",
+      "backend": "amiga-raw",
+      "analysis_backend": "facts_v2",
+      "path": "/workspace/starglider2-private/main-copy.bin",
+      "facts_v2": {
+        "decode_seconds": 6e-06,
+        "seed_seconds": 0.007106,
+        "fixed_point_seconds": 15.040576,
+        "fixed_point_reachable_seconds": 13.329278,
+        "fixed_point_reachable_decode_seconds": 0.0,
+        "fixed_point_reachable_validate_seconds": 0.0,
+        "fixed_point_reachable_accept_seconds": 0.0,
+        "fixed_point_reachable_target_seconds": 0.0,
+        "fixed_point_reachable_relocation_seconds": 0.0,
+        "fixed_point_reachable_fallthrough_seconds": 0.0,
+        "fixed_point_index_seconds": 0.00074,
+        "fixed_point_required_label_conflict_seconds": 5.3e-05,
+        "fixed_point_opcode_relocation_conflict_seconds": 0.000294,
+        "fixed_point_rebuild_accepted_seconds": 0.013917,
+        "fixed_point_relocation_anchor_seconds": 0.000213,
+        "fixed_point_materialize_labels_seconds": 1.69586,
+        "fixed_point_runtime_address_ref_seconds": 1.585811,
+        "fixed_point_required_label_materialize_seconds": 0.110049,
+        "fixed_point_data_span_seconds": 0.000221,
+        "fixed_point_invariant_seconds": 3e-05,
+        "render_ir_seconds": 34.485688,
+        "render_ir_lookup_seconds": 0.443016,
+        "platform_analysis_pass_seconds": 84.466082,
+        "platform_analysis_base_slot_seconds": 0.08548,
+        "platform_analysis_call_summary_seconds": 0.138449,
+        "platform_analysis_typed_ref_seconds": 66.061651,
+        "platform_analysis_typed_summary_seconds": 0.121804,
+        "platform_analysis_typed_graph_seconds": 5.794584,
+        "platform_analysis_typed_flow_seconds": 8.567907,
+        "platform_analysis_typed_callback_seconds": 51.577351,
+        "source_analysis_typed_target_seconds": 0.000303,
+        "source_analysis_build_seconds": 17.110071,
+        "source_analysis_finalize_seconds": 69.813741,
+        "platform_analysis_call_comment_seconds": 1e-06,
+        "platform_analysis_app_slot_seconds": 18.177796,
+        "platform_analysis_runtime_data_seconds": 1e-06,
+        "platform_analysis_hardware_data_seconds": 0.0,
+        "platform_analysis_generic_data_seconds": 0.0,
+        "render_ir_header_seconds": 22.37695,
+        "render_ir_walk_seconds": 9.928129,
+        "render_ir_footer_seconds": 2.179746,
+        "source_render_seconds": 0.0,
+        "decoded_candidates": 29938,
+        "accepted_instructions": 29665,
+        "data_spans": 172,
+        "labels_created": 19873,
+        "labels_referenced": 13059,
+        "unresolved_labels": 0,
+        "interior_conflicts": 0,
+        "interior_conflicts_resolved_by_demote": 0,
+        "interior_conflicts_unresolved": 0,
+        "relocation_failures": 0,
+        "first_relocation_failure_reason": "",
+        "first_relocation_failure_section": 0,
+        "first_relocation_failure_offset": 0,
+        "first_relocation_failure_target_section": 0,
+        "first_relocation_failure_width": 0,
+        "first_relocation_failure_raw_value": 0,
+        "first_relocation_failure_computed_target": 0,
+        "relocation_anchors": 0,
+        "first_relocation_anchor_kind": "",
+        "first_relocation_anchor_section": 0,
+        "first_relocation_anchor_offset": 0,
+        "first_relocation_anchor_target_section": 0,
+        "first_relocation_anchor_width": 0,
+        "first_relocation_anchor_platform_record_kind": "",
+        "first_relocation_anchor_raw_value": 0,
+        "first_relocation_anchor_addend": 0,
+        "relocation_anchor_instruction_bytes": 0,
+        "relocation_anchor_data_payloads": 0,
+        "relocation_anchor_unknown_contexts": 0,
+        "unassemblable_hunk_data_relocations": 0,
+        "unassemblable_hunk_base_register_relocations": 0,
+        "first_relocation_anchor_context": "",
+        "first_relocation_anchor_instruction_offset": 0,
+        "code_start_facts": 41982,
+        "code_start_section_entries": 0,
+        "code_start_policy_entry_offsets": 0,
+        "code_start_policy_entry_points": 165,
+        "code_start_control_targets": 10294,
+        "code_start_fallthroughs": 31523,
+        "code_start_inline_resumes": 0,
+        "code_start_linkage_api_entries": 0,
+        "code_start_platform_loadseg_entries": 0,
+        "code_start_stack_continuations": 0,
+        "code_start_boundary_api_entries": 0,
+        "platform_loadseg_segment_link_accesses": 0,
+        "platform_loadseg_segment_link_bptr_loads": 0,
+        "platform_loadseg_segment_link_resolved_targets": 0,
+        "first_platform_loadseg_segment_link_section": 0,
+        "first_platform_loadseg_segment_link_offset": 0,
+        "first_platform_loadseg_segment_link_target_section": 0,
+        "runtime_address_ranges": 5,
+        "runtime_address_range_conflicts": 0,
+        "table_target_set_limit_hits": 0,
+        "first_table_target_set_limit_section": 0,
+        "first_table_target_set_limit_offset": 0,
+        "first_table_target_set_limit_capacity": 0,
+        "source_quality_diagnostics": 0,
+        "source_quality_blockers": 0,
+        "first_source_quality_diagnostic_kind": "unknown",
+        "first_source_quality_diagnostic_section": 0,
+        "first_source_quality_diagnostic_offset": 0,
+        "runtime_address_view_starts": 41818,
+        "required_instruction_failures": 0,
+        "unsupported_instruction_demotes": 0,
+        "first_required_instruction_failure_section": 0,
+        "first_required_instruction_failure_offset": 0,
+        "first_required_instruction_failure_reason": "",
+        "first_required_instruction_failure_source_section": 0,
+        "first_required_instruction_failure_source_offset": 0,
+        "first_unsupported_instruction_demote_section": 0,
+        "first_unsupported_instruction_demote_offset": 0,
+        "first_unsupported_instruction_demote_reason": "",
+        "first_unsupported_instruction_demote_source_section": 0,
+        "first_unsupported_instruction_demote_source_offset": 0,
+        "opcode_relocation_conflicts_resolved_by_demote": 0,
+        "first_opcode_relocation_conflict_section": 0,
+        "first_opcode_relocation_conflict_offset": 0,
+        "first_opcode_relocation_conflict_aux_offset": 0,
+        "queue_iterations": 34581,
+        "workflow_arena_peak_used": 7466760,
+        "workflow_arena_total_blocks": 39,
+        "render_ir_statements": 51671,
+        "render_ir_labels": 5154,
+        "render_ir_instructions": 29665,
+        "render_ir_data_spans": 16852,
+        "render_ir_hash": "4d20a8f51fe8c56f",
+        "preview_source_enabled": false,
+        "preview_source_bytes": 0,
+        "preview_source_hash": "14650fb0739d0383",
+        "asm_source_enabled": true,
+        "asm_source_refused": false,
+        "asm_source_bytes": 2264028,
+        "asm_source_lines": 66822,
+        "asm_source_plan_rows": 65890,
+        "asm_source_plan_lines": 66822,
+        "asm_source_plan_bytes": 2264028,
+        "asm_source_relocation_exprs": 0,
+        "asm_source_symbolic_instructions": 29665,
+        "asm_source_numeric_runtime_refs": 0,
+        "asm_source_first_numeric_runtime_ref_section": 0,
+        "asm_source_first_numeric_runtime_ref_offset": 0,
+        "asm_source_first_numeric_runtime_ref_target_section": 0,
+        "asm_source_first_numeric_runtime_ref_target_offset": 0,
+        "asm_source_first_numeric_runtime_ref_runtime_address": 0,
+        "platform_base_slot_count": 314,
+        "platform_call_count": 1,
+        "platform_effect_count": 1,
+        "asm_source_lossy_numeric_hunk_relocations": 0,
+        "asm_source_instruction_render_failures": 0,
+        "asm_source_instruction_byte_mismatches": 0,
+        "asm_source_instruction_relocation_failures": 0,
+        "asm_source_relocation_anchor_refusals": 0,
+        "asm_source_unassemblable_hunk_data_relocation_refusals": 0,
+        "asm_source_unassemblable_hunk_base_register_relocation_refusals": 0,
+        "asm_source_first_failure_kind": "",
+        "asm_source_first_failure_section": 0,
+        "asm_source_first_failure_offset": 0,
+        "asm_source_first_failure_aux_offset": 0,
+        "asm_source_hash": "09b20e6158b16743"
+      },
+      "timing": {
+        "source_seconds": 221.91619,
+        "summary_json_seconds": 0.000171,
+        "total_seconds": 0.000171
+      }
+    }
+  },
+  "process_usage": {
+    "wall_seconds": 256.4685232389893,
+    "user_seconds": 241.672202,
+    "system_seconds": 13.55541,
+    "max_rss_kib": 2678692
+  },
+  "tests": {
+    "passed": 267,
+    "seconds": 34.2,
+    "files": [
+      "tests/test_direct_call_entry_inputs.py",
+      "tests/test_pointer_cursor_join.py",
+      "tests/test_address_register_value_alias.py"
+    ],
+    "suite": "Includes runtime constants, typed joins, absolute layout/cells, stack transport, app cursors/spans/counted and counter-relative loops, affine values, hardware summaries/relative tracking, and direct-call graph scaling."
+  },
+  "implementation": [
+    "Known same-section direct CALL edges transport the pre-call register/platform packet through existing shared instruction-entry transfer and joins. Caller-private stack/cells and A7 are not imported. Existing summaries still own return effects.",
+    "Sparse CALL predecessor CSR and one call_target per existing node; no second transfer engine or dense per-node slot arrays. Unknown/indirect/cross-section calls are not guessed.",
+    "Explicit code/runtime entries, address-taken pointers, declared/inferred callback tables, direct function contracts and newly discovered pointer escapes retain unknown independent entry inputs. Exposures are monotone across converged epochs.",
+    "A pointee/register annotation constrains the instruction state; it does not invent a control-flow ingress. Native failing-before/passing-after regression separates that from explicit code entry. Target pool header source0x16DC4 retains17 rows,250 iterations,stride68.",
+    "Current source-pointer position joins lose inconsistent exact coordinates independently of whole-value layout/raw/entry identities. Backedge-first and reversed-order fixtures converge without raising visit limits.",
+    "Current An must-equality uses canonical equivalence classes in the existing eight slots; joins intersect relations. Physical writes split the destination; WORD copies do not equate full values; opaque memory effects preserve held CPU equality. ABI interpretation refinement does not simulate a register write.",
+    "Final inferred app references are rebuilt from converged call states. Explicit use-site bindings are retained; contradicted hardware/library/other-layout fallback interpretations are filtered before the loop engine borrows node storage."
+  ],
+  "index": {
+    "nodes": 29665,
+    "direct_call_edges": 948,
+    "contextual_entries": 290,
+    "changed_roots": 225,
+    "call_input_epochs": 1,
+    "call_csr_bytes": 244912,
+    "node_bytes_before": 74704,
+    "node_bytes_after": 74712,
+    "typed_state_bytes": 32616,
+    "loop_snapshot_bytes": 6607056
+  },
+  "before": {
+    "app_references": 3237,
+    "app_evidence": {
+      "register_state": 302,
+      "a6_fallback": 2427,
+      "declared_layout_a6_fallback": 507,
+      "library_extension": 1
+    },
+    "loop_patterns": 135,
+    "typed_accesses": 320,
+    "unresolved_typed_accesses": 348,
+    "app_fields": 305,
+    "generic_app_symbols": 95
+  },
+  "after": {
+    "app_references": 3249,
+    "app_evidence": {
+      "a6_fallback": 2334,
+      "declared_layout_a6_fallback": 492,
+      "register_state": 423
+    },
+    "loop_patterns": 135,
+    "typed_accesses": 315,
+    "unresolved_typed_accesses": 355,
+    "app_fields": 314,
+    "generic_app_symbols": 104
+  },
+  "app_delta": {
+    "before": 3237,
+    "after": 3249,
+    "added": [
+      {
+        "offset": 5658,
+        "displacement": 96,
+        "base_register": "A6",
+        "operand_index": 1,
+        "access": "write",
+        "base_evidence": "register_state",
+        "symbol_name": "app_0060"
+      },
+      {
+        "offset": 5666,
+        "displacement": 100,
+        "base_register": "A6",
+        "operand_index": 1,
+        "access": "write",
+        "base_evidence": "register_state",
+        "symbol_name": "app_0064"
+      },
+      {
+        "offset": 5674,
+        "displacement": 432,
+        "base_register": "A6",
+        "operand_index": 0,
+        "access": "read",
+        "base_evidence": "register_state",
+        "symbol_name": "app_01B0"
+      },
+      {
+        "offset": 5674,
+        "displacement": 52,
+        "base_register": "A6",
+        "operand_index": 1,
+        "access": "write",
+        "base_evidence": "register_state",
+        "symbol_name": "app_0034"
+      },
+      {
+        "offset": 5680,
+        "displacement": 433,
+        "base_register": "A6",
+        "operand_index": 0,
+        "access": "read",
+        "base_evidence": "register_state",
+        "symbol_name": "app_01B1"
+      },
+      {
+        "offset": 5684,
+        "displacement": 54,
+        "base_register": "A6",
+        "operand_index": 1,
+        "access": "write",
+        "base_evidence": "register_state",
+        "symbol_name": "app_0036"
+      },
+      {
+        "offset": 5688,
+        "displacement": 52,
+        "base_register": "A6",
+        "operand_index": 0,
+        "access": "read",
+        "base_evidence": "register_state",
+        "symbol_name": "app_0034"
+      },
+      {
+        "offset": 5704,
+        "displacement": 433,
+        "base_register": "A6",
+        "operand_index": 0,
+        "access": "read",
+        "base_evidence": "register_state",
+        "symbol_name": "app_01B1"
+      },
+      {
+        "offset": 5710,
+        "displacement": 56,
+        "base_register": "A6",
+        "operand_index": 1,
+        "access": "write",
+        "base_evidence": "register_state",
+        "symbol_name": "app_0038"
+      },
+      {
+        "offset": 5720,
+        "displacement": 60,
+        "base_register": "A6",
+        "operand_index": 1,
+        "access": "write",
+        "base_evidence": "register_state",
+        "symbol_name": "app_003C"
+      },
+      {
+        "offset": 10450,
+        "displacement": 98,
+        "base_register": "A6",
+        "operand_index": 1,
+        "access": "read-write",
+        "base_evidence": "register_state",
+        "symbol_name": "app_0062"
+      },
+      {
+        "offset": 10462,
+        "displacement": 96,
+        "base_register": "A6",
+        "operand_index": 1,
+        "access": "read-write",
+        "base_evidence": "register_state",
+        "symbol_name": "app_0060"
+      },
+      {
+        "offset": 10466,
+        "displacement": 100,
+        "base_register": "A6",
+        "operand_index": 1,
+        "access": "read-write",
+        "base_evidence": "register_state",
+        "symbol_name": "app_0064"
+      }
+    ],
+    "removed": [
+      {
+        "offset": 48186,
+        "displacement": 295,
+        "base_register": "A6",
+        "operand_index": 1,
+        "access": "read-write",
+        "base_evidence": "library_extension",
+        "symbol_name": "app_0127"
+      }
+    ],
+    "attribution_changes": [
+      {
+        "before": {
+          "offset": 5694,
+          "displacement": 53,
+          "base_register": "A6",
+          "operand_index": 1,
+          "access": "write",
+          "base_evidence": "a6_fallback",
+          "symbol_name": "app_0035"
+        },
+        "after": {
+          "offset": 5694,
+          "displacement": 53,
+          "base_register": "A6",
+          "operand_index": 1,
+          "access": "write",
+          "base_evidence": "register_state",
+          "symbol_name": "app_0035"
+        }
+      },
+      {
+        "before": {
+          "offset": 5700,
+          "displacement": 55,
+          "base_register": "A6",
+          "operand_index": 1,
+          "access": "write",
+          "base_evidence": "a6_fallback",
+          "symbol_name": "app_0037"
+        },
+        "after": {
+          "offset": 5700,
+          "displacement": 55,
+          "base_register": "A6",
+          "operand_index": 1,
+          "access": "write",
+          "base_evidence": "register_state",
+          "symbol_name": "app_0037"
+        }
+      },
+      {
+        "before": {
+          "offset": 5716,
+          "displacement": 57,
+          "base_register": "A6",
+          "operand_index": 1,
+          "access": "write",
+          "base_evidence": "a6_fallback",
+          "symbol_name": "app_0039"
+        },
+        "after": {
+          "offset": 5716,
+          "displacement": 57,
+          "base_register": "A6",
+          "operand_index": 1,
+          "access": "write",
+          "base_evidence": "register_state",
+          "symbol_name": "app_0039"
+        }
+      },
+      {
+        "before": {
+          "offset": 10440,
+          "displacement": 380,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "read",
+          "base_evidence": "declared_layout_a6_fallback",
+          "symbol_name": "app_017C"
+        },
+        "after": {
+          "offset": 10440,
+          "displacement": 380,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "read",
+          "base_evidence": "register_state",
+          "symbol_name": "app_017C"
+        }
+      },
+      {
+        "before": {
+          "offset": 10446,
+          "displacement": 511,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "read",
+          "base_evidence": "a6_fallback",
+          "symbol_name": "app_01FF"
+        },
+        "after": {
+          "offset": 10446,
+          "displacement": 511,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "read",
+          "base_evidence": "register_state",
+          "symbol_name": "app_01FF"
+        }
+      },
+      {
+        "before": {
+          "offset": 10454,
+          "displacement": 512,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "read",
+          "base_evidence": "a6_fallback",
+          "symbol_name": "app_0200"
+        },
+        "after": {
+          "offset": 10454,
+          "displacement": 512,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "read",
+          "base_evidence": "register_state",
+          "symbol_name": "app_0200"
+        }
+      },
+      {
+        "before": {
+          "offset": 10458,
+          "displacement": 103,
+          "base_register": "A6",
+          "operand_index": 1,
+          "access": "read-write",
+          "base_evidence": "a6_fallback",
+          "symbol_name": "app_0067"
+        },
+        "after": {
+          "offset": 10458,
+          "displacement": 103,
+          "base_register": "A6",
+          "operand_index": 1,
+          "access": "read-write",
+          "base_evidence": "register_state",
+          "symbol_name": "app_0067"
+        }
+      },
+      {
+        "before": {
+          "offset": 10470,
+          "displacement": 380,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "read",
+          "base_evidence": "declared_layout_a6_fallback",
+          "symbol_name": "app_017C"
+        },
+        "after": {
+          "offset": 10470,
+          "displacement": 380,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "read",
+          "base_evidence": "register_state",
+          "symbol_name": "app_017C"
+        }
+      },
+      {
+        "before": {
+          "offset": 11328,
+          "displacement": 1792,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "read",
+          "base_evidence": "a6_fallback",
+          "symbol_name": "app_0700"
+        },
+        "after": {
+          "offset": 11328,
+          "displacement": 1792,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "read",
+          "base_evidence": "register_state",
+          "symbol_name": "app_0700"
+        }
+      },
+      {
+        "before": {
+          "offset": 11334,
+          "displacement": 2027,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "read",
+          "base_evidence": "a6_fallback",
+          "symbol_name": "app_07EB"
+        },
+        "after": {
+          "offset": 11334,
+          "displacement": 2027,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "read",
+          "base_evidence": "register_state",
+          "symbol_name": "app_07EB"
+        }
+      },
+      {
+        "before": {
+          "offset": 49538,
+          "displacement": 513,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "write",
+          "base_evidence": "a6_fallback",
+          "symbol_name": "app_0201"
+        },
+        "after": {
+          "offset": 49538,
+          "displacement": 513,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "write",
+          "base_evidence": "register_state",
+          "symbol_name": "app_0201"
+        }
+      },
+      {
+        "before": {
+          "offset": 49546,
+          "displacement": 509,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "write",
+          "base_evidence": "a6_fallback",
+          "symbol_name": "app_01FD"
+        },
+        "after": {
+          "offset": 49546,
+          "displacement": 509,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "write",
+          "base_evidence": "register_state",
+          "symbol_name": "app_01FD"
+        }
+      },
+      {
+        "before": {
+          "offset": 49558,
+          "displacement": 514,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "write",
+          "base_evidence": "a6_fallback",
+          "symbol_name": "app_0202"
+        },
+        "after": {
+          "offset": 49558,
+          "displacement": 514,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "write",
+          "base_evidence": "register_state",
+          "symbol_name": "app_0202"
+        }
+      },
+      {
+        "before": {
+          "offset": 49612,
+          "displacement": 348,
+          "base_register": "A6",
+          "operand_index": 1,
+          "access": "write",
+          "base_evidence": "declared_layout_a6_fallback",
+          "symbol_name": "app_015C"
+        },
+        "after": {
+          "offset": 49612,
+          "displacement": 348,
+          "base_register": "A6",
+          "operand_index": 1,
+          "access": "write",
+          "base_evidence": "register_state",
+          "symbol_name": "app_015C"
+        }
+      },
+      {
+        "before": {
+          "offset": 49628,
+          "displacement": 511,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "read",
+          "base_evidence": "a6_fallback",
+          "symbol_name": "app_01FF"
+        },
+        "after": {
+          "offset": 49628,
+          "displacement": 511,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "read",
+          "base_evidence": "register_state",
+          "symbol_name": "app_01FF"
+        }
+      },
+      {
+        "before": {
+          "offset": 49632,
+          "displacement": 511,
+          "base_register": "A6",
+          "operand_index": 1,
+          "access": "write",
+          "base_evidence": "a6_fallback",
+          "symbol_name": "app_01FF"
+        },
+        "after": {
+          "offset": 49632,
+          "displacement": 511,
+          "base_register": "A6",
+          "operand_index": 1,
+          "access": "write",
+          "base_evidence": "register_state",
+          "symbol_name": "app_01FF"
+        }
+      },
+      {
+        "before": {
+          "offset": 49672,
+          "displacement": 512,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "read",
+          "base_evidence": "a6_fallback",
+          "symbol_name": "app_0200"
+        },
+        "after": {
+          "offset": 49672,
+          "displacement": 512,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "read",
+          "base_evidence": "register_state",
+          "symbol_name": "app_0200"
+        }
+      },
+      {
+        "before": {
+          "offset": 49676,
+          "displacement": 512,
+          "base_register": "A6",
+          "operand_index": 1,
+          "access": "write",
+          "base_evidence": "a6_fallback",
+          "symbol_name": "app_0200"
+        },
+        "after": {
+          "offset": 49676,
+          "displacement": 512,
+          "base_register": "A6",
+          "operand_index": 1,
+          "access": "write",
+          "base_evidence": "register_state",
+          "symbol_name": "app_0200"
+        }
+      },
+      {
+        "before": {
+          "offset": 49704,
+          "displacement": 1856,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "read",
+          "base_evidence": "a6_fallback",
+          "symbol_name": "app_0740"
+        },
+        "after": {
+          "offset": 49704,
+          "displacement": 1856,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "read",
+          "base_evidence": "register_state",
+          "symbol_name": "app_0740"
+        }
+      },
+      {
+        "before": {
+          "offset": 49708,
+          "displacement": 3001,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "read",
+          "base_evidence": "a6_fallback",
+          "symbol_name": "app_0BB9"
+        },
+        "after": {
+          "offset": 49708,
+          "displacement": 3001,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "read",
+          "base_evidence": "register_state",
+          "symbol_name": "app_0BB9"
+        }
+      },
+      {
+        "before": {
+          "offset": 49714,
+          "displacement": 3002,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "read",
+          "base_evidence": "a6_fallback",
+          "symbol_name": "app_0BBA"
+        },
+        "after": {
+          "offset": 49714,
+          "displacement": 3002,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "read",
+          "base_evidence": "register_state",
+          "symbol_name": "app_0BBA"
+        }
+      },
+      {
+        "before": {
+          "offset": 49720,
+          "displacement": 514,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "read",
+          "base_evidence": "a6_fallback",
+          "symbol_name": "app_0202"
+        },
+        "after": {
+          "offset": 49720,
+          "displacement": 514,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "read",
+          "base_evidence": "register_state",
+          "symbol_name": "app_0202"
+        }
+      },
+      {
+        "before": {
+          "offset": 49726,
+          "displacement": 1960,
+          "base_register": "A6",
+          "operand_index": 1,
+          "access": "read-write",
+          "base_evidence": "a6_fallback",
+          "symbol_name": "app_07A8"
+        },
+        "after": {
+          "offset": 49726,
+          "displacement": 1960,
+          "base_register": "A6",
+          "operand_index": 1,
+          "access": "read-write",
+          "base_evidence": "register_state",
+          "symbol_name": "app_07A8"
+        }
+      },
+      {
+        "before": {
+          "offset": 49734,
+          "displacement": 1956,
+          "base_register": "A6",
+          "operand_index": 1,
+          "access": "read-write",
+          "base_evidence": "a6_fallback",
+          "symbol_name": "app_07A4"
+        },
+        "after": {
+          "offset": 49734,
+          "displacement": 1956,
+          "base_register": "A6",
+          "operand_index": 1,
+          "access": "read-write",
+          "base_evidence": "register_state",
+          "symbol_name": "app_07A4"
+        }
+      },
+      {
+        "before": {
+          "offset": 49744,
+          "displacement": 1917,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "read",
+          "base_evidence": "a6_fallback",
+          "symbol_name": "app_077D"
+        },
+        "after": {
+          "offset": 49744,
+          "displacement": 1917,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "read",
+          "base_evidence": "register_state",
+          "symbol_name": "app_077D"
+        }
+      },
+      {
+        "before": {
+          "offset": 49752,
+          "displacement": 1954,
+          "base_register": "A6",
+          "operand_index": 1,
+          "access": "read-write",
+          "base_evidence": "a6_fallback",
+          "symbol_name": "app_07A2"
+        },
+        "after": {
+          "offset": 49752,
+          "displacement": 1954,
+          "base_register": "A6",
+          "operand_index": 1,
+          "access": "read-write",
+          "base_evidence": "register_state",
+          "symbol_name": "app_07A2"
+        }
+      },
+      {
+        "before": {
+          "offset": 49812,
+          "displacement": 522,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "read",
+          "base_evidence": "a6_fallback",
+          "symbol_name": "app_020A"
+        },
+        "after": {
+          "offset": 49812,
+          "displacement": 522,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "read",
+          "base_evidence": "register_state",
+          "symbol_name": "app_020A"
+        }
+      },
+      {
+        "before": {
+          "offset": 49820,
+          "displacement": 522,
+          "base_register": "A6",
+          "operand_index": 1,
+          "access": "read",
+          "base_evidence": "a6_fallback",
+          "symbol_name": "app_020A"
+        },
+        "after": {
+          "offset": 49820,
+          "displacement": 522,
+          "base_register": "A6",
+          "operand_index": 1,
+          "access": "read",
+          "base_evidence": "register_state",
+          "symbol_name": "app_020A"
+        }
+      },
+      {
+        "before": {
+          "offset": 49836,
+          "displacement": 2026,
+          "base_register": "A6",
+          "operand_index": 1,
+          "access": "read",
+          "base_evidence": "a6_fallback",
+          "symbol_name": "app_07EA"
+        },
+        "after": {
+          "offset": 49836,
+          "displacement": 2026,
+          "base_register": "A6",
+          "operand_index": 1,
+          "access": "read",
+          "base_evidence": "register_state",
+          "symbol_name": "app_07EA"
+        }
+      },
+      {
+        "before": {
+          "offset": 49846,
+          "displacement": 1872,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "read",
+          "base_evidence": "a6_fallback",
+          "symbol_name": "app_0750"
+        },
+        "after": {
+          "offset": 49846,
+          "displacement": 1872,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "read",
+          "base_evidence": "register_state",
+          "symbol_name": "app_0750"
+        }
+      },
+      {
+        "before": {
+          "offset": 49860,
+          "displacement": 1872,
+          "base_register": "A6",
+          "operand_index": 1,
+          "access": "write",
+          "base_evidence": "a6_fallback",
+          "symbol_name": "app_0750"
+        },
+        "after": {
+          "offset": 49860,
+          "displacement": 1872,
+          "base_register": "A6",
+          "operand_index": 1,
+          "access": "write",
+          "base_evidence": "register_state",
+          "symbol_name": "app_0750"
+        }
+      },
+      {
+        "before": {
+          "offset": 49886,
+          "displacement": 2000,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "read",
+          "base_evidence": "a6_fallback",
+          "symbol_name": "app_07D0"
+        },
+        "after": {
+          "offset": 49886,
+          "displacement": 2000,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "read",
+          "base_evidence": "register_state",
+          "symbol_name": "app_07D0"
+        }
+      },
+      {
+        "before": {
+          "offset": 49890,
+          "displacement": 2002,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "read",
+          "base_evidence": "a6_fallback",
+          "symbol_name": "app_07D2"
+        },
+        "after": {
+          "offset": 49890,
+          "displacement": 2002,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "read",
+          "base_evidence": "register_state",
+          "symbol_name": "app_07D2"
+        }
+      },
+      {
+        "before": {
+          "offset": 49894,
+          "displacement": 232,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "read",
+          "base_evidence": "declared_layout_a6_fallback",
+          "symbol_name": "app_00E8"
+        },
+        "after": {
+          "offset": 49894,
+          "displacement": 232,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "read",
+          "base_evidence": "register_state",
+          "symbol_name": "app_00E8"
+        }
+      },
+      {
+        "before": {
+          "offset": 49904,
+          "displacement": 234,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "read",
+          "base_evidence": "declared_layout_a6_fallback",
+          "symbol_name": "app_00EA"
+        },
+        "after": {
+          "offset": 49904,
+          "displacement": 234,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "read",
+          "base_evidence": "register_state",
+          "symbol_name": "app_00EA"
+        }
+      },
+      {
+        "before": {
+          "offset": 49914,
+          "displacement": 228,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "read",
+          "base_evidence": "declared_layout_a6_fallback",
+          "symbol_name": "app_00E4"
+        },
+        "after": {
+          "offset": 49914,
+          "displacement": 228,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "read",
+          "base_evidence": "register_state",
+          "symbol_name": "app_00E4"
+        }
+      },
+      {
+        "before": {
+          "offset": 49924,
+          "displacement": 230,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "read",
+          "base_evidence": "declared_layout_a6_fallback",
+          "symbol_name": "app_00E6"
+        },
+        "after": {
+          "offset": 49924,
+          "displacement": 230,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "read",
+          "base_evidence": "register_state",
+          "symbol_name": "app_00E6"
+        }
+      },
+      {
+        "before": {
+          "offset": 49984,
+          "displacement": 2026,
+          "base_register": "A6",
+          "operand_index": 1,
+          "access": "write",
+          "base_evidence": "a6_fallback",
+          "symbol_name": "app_07EA"
+        },
+        "after": {
+          "offset": 49984,
+          "displacement": 2026,
+          "base_register": "A6",
+          "operand_index": 1,
+          "access": "write",
+          "base_evidence": "register_state",
+          "symbol_name": "app_07EA"
+        }
+      },
+      {
+        "before": {
+          "offset": 49990,
+          "displacement": 1872,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "write",
+          "base_evidence": "a6_fallback",
+          "symbol_name": "app_0750"
+        },
+        "after": {
+          "offset": 49990,
+          "displacement": 1872,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "write",
+          "base_evidence": "register_state",
+          "symbol_name": "app_0750"
+        }
+      },
+      {
+        "before": {
+          "offset": 50022,
+          "displacement": 2022,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "read",
+          "base_evidence": "a6_fallback",
+          "symbol_name": "app_07E6"
+        },
+        "after": {
+          "offset": 50022,
+          "displacement": 2022,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "read",
+          "base_evidence": "register_state",
+          "symbol_name": "app_07E6"
+        }
+      },
+      {
+        "before": {
+          "offset": 50030,
+          "displacement": 1954,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "read",
+          "base_evidence": "a6_fallback",
+          "symbol_name": "app_07A2"
+        },
+        "after": {
+          "offset": 50030,
+          "displacement": 1954,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "read",
+          "base_evidence": "register_state",
+          "symbol_name": "app_07A2"
+        }
+      },
+      {
+        "before": {
+          "offset": 50088,
+          "displacement": 1898,
+          "base_register": "A6",
+          "operand_index": 1,
+          "access": "write",
+          "base_evidence": "a6_fallback",
+          "symbol_name": "app_076A"
+        },
+        "after": {
+          "offset": 50088,
+          "displacement": 1898,
+          "base_register": "A6",
+          "operand_index": 1,
+          "access": "write",
+          "base_evidence": "register_state",
+          "symbol_name": "app_076A"
+        }
+      },
+      {
+        "before": {
+          "offset": 50092,
+          "displacement": 412,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "read",
+          "base_evidence": "declared_layout_a6_fallback",
+          "symbol_name": "app_019C"
+        },
+        "after": {
+          "offset": 50092,
+          "displacement": 412,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "read",
+          "base_evidence": "register_state",
+          "symbol_name": "app_019C"
+        }
+      },
+      {
+        "before": {
+          "offset": 50096,
+          "displacement": 1894,
+          "base_register": "A6",
+          "operand_index": 1,
+          "access": "write",
+          "base_evidence": "a6_fallback",
+          "symbol_name": "app_0766"
+        },
+        "after": {
+          "offset": 50096,
+          "displacement": 1894,
+          "base_register": "A6",
+          "operand_index": 1,
+          "access": "write",
+          "base_evidence": "register_state",
+          "symbol_name": "app_0766"
+        }
+      },
+      {
+        "before": {
+          "offset": 50100,
+          "displacement": 1956,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "read",
+          "base_evidence": "a6_fallback",
+          "symbol_name": "app_07A4"
+        },
+        "after": {
+          "offset": 50100,
+          "displacement": 1956,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "read",
+          "base_evidence": "register_state",
+          "symbol_name": "app_07A4"
+        }
+      },
+      {
+        "before": {
+          "offset": 50108,
+          "displacement": 1900,
+          "base_register": "A6",
+          "operand_index": 1,
+          "access": "write",
+          "base_evidence": "a6_fallback",
+          "symbol_name": "app_076C"
+        },
+        "after": {
+          "offset": 50108,
+          "displacement": 1900,
+          "base_register": "A6",
+          "operand_index": 1,
+          "access": "write",
+          "base_evidence": "register_state",
+          "symbol_name": "app_076C"
+        }
+      },
+      {
+        "before": {
+          "offset": 50112,
+          "displacement": 414,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "read",
+          "base_evidence": "declared_layout_a6_fallback",
+          "symbol_name": "app_019E"
+        },
+        "after": {
+          "offset": 50112,
+          "displacement": 414,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "read",
+          "base_evidence": "register_state",
+          "symbol_name": "app_019E"
+        }
+      },
+      {
+        "before": {
+          "offset": 50116,
+          "displacement": 1896,
+          "base_register": "A6",
+          "operand_index": 1,
+          "access": "write",
+          "base_evidence": "a6_fallback",
+          "symbol_name": "app_0768"
+        },
+        "after": {
+          "offset": 50116,
+          "displacement": 1896,
+          "base_register": "A6",
+          "operand_index": 1,
+          "access": "write",
+          "base_evidence": "register_state",
+          "symbol_name": "app_0768"
+        }
+      },
+      {
+        "before": {
+          "offset": 50122,
+          "displacement": 1900,
+          "base_register": "A6",
+          "operand_index": 1,
+          "access": "write",
+          "base_evidence": "a6_fallback",
+          "symbol_name": "app_076C"
+        },
+        "after": {
+          "offset": 50122,
+          "displacement": 1900,
+          "base_register": "A6",
+          "operand_index": 1,
+          "access": "write",
+          "base_evidence": "register_state",
+          "symbol_name": "app_076C"
+        }
+      },
+      {
+        "before": {
+          "offset": 50128,
+          "displacement": 1898,
+          "base_register": "A6",
+          "operand_index": 1,
+          "access": "write",
+          "base_evidence": "a6_fallback",
+          "symbol_name": "app_076A"
+        },
+        "after": {
+          "offset": 50128,
+          "displacement": 1898,
+          "base_register": "A6",
+          "operand_index": 1,
+          "access": "write",
+          "base_evidence": "register_state",
+          "symbol_name": "app_076A"
+        }
+      },
+      {
+        "before": {
+          "offset": 50134,
+          "displacement": 412,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "read",
+          "base_evidence": "declared_layout_a6_fallback",
+          "symbol_name": "app_019C"
+        },
+        "after": {
+          "offset": 50134,
+          "displacement": 412,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "read",
+          "base_evidence": "register_state",
+          "symbol_name": "app_019C"
+        }
+      },
+      {
+        "before": {
+          "offset": 50134,
+          "displacement": 1894,
+          "base_register": "A6",
+          "operand_index": 1,
+          "access": "write",
+          "base_evidence": "a6_fallback",
+          "symbol_name": "app_0766"
+        },
+        "after": {
+          "offset": 50134,
+          "displacement": 1894,
+          "base_register": "A6",
+          "operand_index": 1,
+          "access": "write",
+          "base_evidence": "register_state",
+          "symbol_name": "app_0766"
+        }
+      },
+      {
+        "before": {
+          "offset": 50140,
+          "displacement": 414,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "read",
+          "base_evidence": "declared_layout_a6_fallback",
+          "symbol_name": "app_019E"
+        },
+        "after": {
+          "offset": 50140,
+          "displacement": 414,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "read",
+          "base_evidence": "register_state",
+          "symbol_name": "app_019E"
+        }
+      },
+      {
+        "before": {
+          "offset": 50140,
+          "displacement": 1896,
+          "base_register": "A6",
+          "operand_index": 1,
+          "access": "write",
+          "base_evidence": "a6_fallback",
+          "symbol_name": "app_0768"
+        },
+        "after": {
+          "offset": 50140,
+          "displacement": 1896,
+          "base_register": "A6",
+          "operand_index": 1,
+          "access": "write",
+          "base_evidence": "register_state",
+          "symbol_name": "app_0768"
+        }
+      },
+      {
+        "before": {
+          "offset": 50146,
+          "displacement": 1894,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "read",
+          "base_evidence": "a6_fallback",
+          "symbol_name": "app_0766"
+        },
+        "after": {
+          "offset": 50146,
+          "displacement": 1894,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "read",
+          "base_evidence": "register_state",
+          "symbol_name": "app_0766"
+        }
+      },
+      {
+        "before": {
+          "offset": 50150,
+          "displacement": 1896,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "read",
+          "base_evidence": "a6_fallback",
+          "symbol_name": "app_0768"
+        },
+        "after": {
+          "offset": 50150,
+          "displacement": 1896,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "read",
+          "base_evidence": "register_state",
+          "symbol_name": "app_0768"
+        }
+      },
+      {
+        "before": {
+          "offset": 50154,
+          "displacement": 232,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "read",
+          "base_evidence": "declared_layout_a6_fallback",
+          "symbol_name": "app_00E8"
+        },
+        "after": {
+          "offset": 50154,
+          "displacement": 232,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "read",
+          "base_evidence": "register_state",
+          "symbol_name": "app_00E8"
+        }
+      },
+      {
+        "before": {
+          "offset": 50166,
+          "displacement": 234,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "read",
+          "base_evidence": "declared_layout_a6_fallback",
+          "symbol_name": "app_00EA"
+        },
+        "after": {
+          "offset": 50166,
+          "displacement": 234,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "read",
+          "base_evidence": "register_state",
+          "symbol_name": "app_00EA"
+        }
+      },
+      {
+        "before": {
+          "offset": 50178,
+          "displacement": 228,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "read",
+          "base_evidence": "declared_layout_a6_fallback",
+          "symbol_name": "app_00E4"
+        },
+        "after": {
+          "offset": 50178,
+          "displacement": 228,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "read",
+          "base_evidence": "register_state",
+          "symbol_name": "app_00E4"
+        }
+      },
+      {
+        "before": {
+          "offset": 50190,
+          "displacement": 230,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "read",
+          "base_evidence": "declared_layout_a6_fallback",
+          "symbol_name": "app_00E6"
+        },
+        "after": {
+          "offset": 50190,
+          "displacement": 230,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "read",
+          "base_evidence": "register_state",
+          "symbol_name": "app_00E6"
+        }
+      },
+      {
+        "before": {
+          "offset": 50244,
+          "displacement": 522,
+          "base_register": "A6",
+          "operand_index": 1,
+          "access": "read",
+          "base_evidence": "a6_fallback",
+          "symbol_name": "app_020A"
+        },
+        "after": {
+          "offset": 50244,
+          "displacement": 522,
+          "base_register": "A6",
+          "operand_index": 1,
+          "access": "read",
+          "base_evidence": "register_state",
+          "symbol_name": "app_020A"
+        }
+      },
+      {
+        "before": {
+          "offset": 50254,
+          "displacement": 1908,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "read",
+          "base_evidence": "a6_fallback",
+          "symbol_name": "app_0774"
+        },
+        "after": {
+          "offset": 50254,
+          "displacement": 1908,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "read",
+          "base_evidence": "register_state",
+          "symbol_name": "app_0774"
+        }
+      },
+      {
+        "before": {
+          "offset": 50336,
+          "displacement": 1910,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "read",
+          "base_evidence": "a6_fallback",
+          "symbol_name": "app_0776"
+        },
+        "after": {
+          "offset": 50336,
+          "displacement": 1910,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "read",
+          "base_evidence": "register_state",
+          "symbol_name": "app_0776"
+        }
+      },
+      {
+        "before": {
+          "offset": 50414,
+          "displacement": 1940,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "read",
+          "base_evidence": "a6_fallback",
+          "symbol_name": "app_0794"
+        },
+        "after": {
+          "offset": 50414,
+          "displacement": 1940,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "read",
+          "base_evidence": "register_state",
+          "symbol_name": "app_0794"
+        }
+      },
+      {
+        "before": {
+          "offset": 50492,
+          "displacement": 1880,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "read",
+          "base_evidence": "a6_fallback",
+          "symbol_name": "app_0758"
+        },
+        "after": {
+          "offset": 50492,
+          "displacement": 1880,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "read",
+          "base_evidence": "register_state",
+          "symbol_name": "app_0758"
+        }
+      },
+      {
+        "before": {
+          "offset": 50574,
+          "displacement": 1917,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "read",
+          "base_evidence": "a6_fallback",
+          "symbol_name": "app_077D"
+        },
+        "after": {
+          "offset": 50574,
+          "displacement": 1917,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "read",
+          "base_evidence": "register_state",
+          "symbol_name": "app_077D"
+        }
+      },
+      {
+        "before": {
+          "offset": 50580,
+          "displacement": 1800,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "read",
+          "base_evidence": "a6_fallback",
+          "symbol_name": "app_0708"
+        },
+        "after": {
+          "offset": 50580,
+          "displacement": 1800,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "read",
+          "base_evidence": "register_state",
+          "symbol_name": "app_0708"
+        }
+      },
+      {
+        "before": {
+          "offset": 50608,
+          "displacement": 2096,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "read",
+          "base_evidence": "a6_fallback",
+          "symbol_name": "app_0830"
+        },
+        "after": {
+          "offset": 50608,
+          "displacement": 2096,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "read",
+          "base_evidence": "register_state",
+          "symbol_name": "app_0830"
+        }
+      },
+      {
+        "before": {
+          "offset": 50860,
+          "displacement": 1964,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "address",
+          "base_evidence": "a6_fallback",
+          "symbol_name": "app_07AC"
+        },
+        "after": {
+          "offset": 50860,
+          "displacement": 1964,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "address",
+          "base_evidence": "register_state",
+          "symbol_name": "app_07AC"
+        }
+      },
+      {
+        "before": {
+          "offset": 50876,
+          "displacement": 1964,
+          "base_register": "A6",
+          "operand_index": 1,
+          "access": "write",
+          "base_evidence": "a6_fallback",
+          "symbol_name": "app_07AC"
+        },
+        "after": {
+          "offset": 50876,
+          "displacement": 1964,
+          "base_register": "A6",
+          "operand_index": 1,
+          "access": "write",
+          "base_evidence": "register_state",
+          "symbol_name": "app_07AC"
+        }
+      },
+      {
+        "before": {
+          "offset": 50882,
+          "displacement": 522,
+          "base_register": "A6",
+          "operand_index": 1,
+          "access": "read",
+          "base_evidence": "a6_fallback",
+          "symbol_name": "app_020A"
+        },
+        "after": {
+          "offset": 50882,
+          "displacement": 522,
+          "base_register": "A6",
+          "operand_index": 1,
+          "access": "read",
+          "base_evidence": "register_state",
+          "symbol_name": "app_020A"
+        }
+      },
+      {
+        "before": {
+          "offset": 244990,
+          "displacement": 498,
+          "base_register": "A6",
+          "operand_index": 1,
+          "access": "read",
+          "base_evidence": "a6_fallback",
+          "symbol_name": "app_01F2"
+        },
+        "after": {
+          "offset": 244990,
+          "displacement": 498,
+          "base_register": "A6",
+          "operand_index": 1,
+          "access": "read",
+          "base_evidence": "register_state",
+          "symbol_name": "app_01F2"
+        }
+      },
+      {
+        "before": {
+          "offset": 245000,
+          "displacement": 1964,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "address",
+          "base_evidence": "a6_fallback",
+          "symbol_name": "app_07AC"
+        },
+        "after": {
+          "offset": 245000,
+          "displacement": 1964,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "address",
+          "base_evidence": "register_state",
+          "symbol_name": "app_07AC"
+        }
+      },
+      {
+        "before": {
+          "offset": 245020,
+          "displacement": 1964,
+          "base_register": "A6",
+          "operand_index": 1,
+          "access": "write",
+          "base_evidence": "a6_fallback",
+          "symbol_name": "app_07AC"
+        },
+        "after": {
+          "offset": 245020,
+          "displacement": 1964,
+          "base_register": "A6",
+          "operand_index": 1,
+          "access": "write",
+          "base_evidence": "register_state",
+          "symbol_name": "app_07AC"
+        }
+      },
+      {
+        "before": {
+          "offset": 245026,
+          "displacement": 522,
+          "base_register": "A6",
+          "operand_index": 1,
+          "access": "read",
+          "base_evidence": "a6_fallback",
+          "symbol_name": "app_020A"
+        },
+        "after": {
+          "offset": 245026,
+          "displacement": 522,
+          "base_register": "A6",
+          "operand_index": 1,
+          "access": "read",
+          "base_evidence": "register_state",
+          "symbol_name": "app_020A"
+        }
+      },
+      {
+        "before": {
+          "offset": 246738,
+          "displacement": 1964,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "address",
+          "base_evidence": "a6_fallback",
+          "symbol_name": "app_07AC"
+        },
+        "after": {
+          "offset": 246738,
+          "displacement": 1964,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "address",
+          "base_evidence": "register_state",
+          "symbol_name": "app_07AC"
+        }
+      },
+      {
+        "before": {
+          "offset": 246758,
+          "displacement": 1964,
+          "base_register": "A6",
+          "operand_index": 1,
+          "access": "read-write",
+          "base_evidence": "a6_fallback",
+          "symbol_name": "app_07AC"
+        },
+        "after": {
+          "offset": 246758,
+          "displacement": 1964,
+          "base_register": "A6",
+          "operand_index": 1,
+          "access": "read-write",
+          "base_evidence": "register_state",
+          "symbol_name": "app_07AC"
+        }
+      },
+      {
+        "before": {
+          "offset": 246764,
+          "displacement": 522,
+          "base_register": "A6",
+          "operand_index": 1,
+          "access": "read",
+          "base_evidence": "a6_fallback",
+          "symbol_name": "app_020A"
+        },
+        "after": {
+          "offset": 246764,
+          "displacement": 522,
+          "base_register": "A6",
+          "operand_index": 1,
+          "access": "read",
+          "base_evidence": "register_state",
+          "symbol_name": "app_020A"
+        }
+      },
+      {
+        "before": {
+          "offset": 308854,
+          "displacement": 1754,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "read",
+          "base_evidence": "a6_fallback",
+          "symbol_name": "app_06DA"
+        },
+        "after": {
+          "offset": 308854,
+          "displacement": 1754,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "read",
+          "base_evidence": "register_state",
+          "symbol_name": "app_06DA"
+        }
+      },
+      {
+        "before": {
+          "offset": 309098,
+          "displacement": 1754,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "read",
+          "base_evidence": "a6_fallback",
+          "symbol_name": "app_06DA"
+        },
+        "after": {
+          "offset": 309098,
+          "displacement": 1754,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "read",
+          "base_evidence": "register_state",
+          "symbol_name": "app_06DA"
+        }
+      },
+      {
+        "before": {
+          "offset": 309164,
+          "displacement": 1916,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "read",
+          "base_evidence": "a6_fallback",
+          "symbol_name": "app_077C"
+        },
+        "after": {
+          "offset": 309164,
+          "displacement": 1916,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "read",
+          "base_evidence": "register_state",
+          "symbol_name": "app_077C"
+        }
+      },
+      {
+        "before": {
+          "offset": 309182,
+          "displacement": 1917,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "read",
+          "base_evidence": "a6_fallback",
+          "symbol_name": "app_077D"
+        },
+        "after": {
+          "offset": 309182,
+          "displacement": 1917,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "read",
+          "base_evidence": "register_state",
+          "symbol_name": "app_077D"
+        }
+      },
+      {
+        "before": {
+          "offset": 309200,
+          "displacement": 1800,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "read",
+          "base_evidence": "a6_fallback",
+          "symbol_name": "app_0708"
+        },
+        "after": {
+          "offset": 309200,
+          "displacement": 1800,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "read",
+          "base_evidence": "register_state",
+          "symbol_name": "app_0708"
+        }
+      },
+      {
+        "before": {
+          "offset": 309212,
+          "displacement": 2096,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "read",
+          "base_evidence": "a6_fallback",
+          "symbol_name": "app_0830"
+        },
+        "after": {
+          "offset": 309212,
+          "displacement": 2096,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "read",
+          "base_evidence": "register_state",
+          "symbol_name": "app_0830"
+        }
+      },
+      {
+        "before": {
+          "offset": 309230,
+          "displacement": 2096,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "read",
+          "base_evidence": "a6_fallback",
+          "symbol_name": "app_0830"
+        },
+        "after": {
+          "offset": 309230,
+          "displacement": 2096,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "read",
+          "base_evidence": "register_state",
+          "symbol_name": "app_0830"
+        }
+      },
+      {
+        "before": {
+          "offset": 309342,
+          "displacement": 1800,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "read",
+          "base_evidence": "a6_fallback",
+          "symbol_name": "app_0708"
+        },
+        "after": {
+          "offset": 309342,
+          "displacement": 1800,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "read",
+          "base_evidence": "register_state",
+          "symbol_name": "app_0708"
+        }
+      },
+      {
+        "before": {
+          "offset": 309354,
+          "displacement": 2096,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "read",
+          "base_evidence": "a6_fallback",
+          "symbol_name": "app_0830"
+        },
+        "after": {
+          "offset": 309354,
+          "displacement": 2096,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "read",
+          "base_evidence": "register_state",
+          "symbol_name": "app_0830"
+        }
+      },
+      {
+        "before": {
+          "offset": 310004,
+          "displacement": 1754,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "read",
+          "base_evidence": "a6_fallback",
+          "symbol_name": "app_06DA"
+        },
+        "after": {
+          "offset": 310004,
+          "displacement": 1754,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "read",
+          "base_evidence": "register_state",
+          "symbol_name": "app_06DA"
+        }
+      },
+      {
+        "before": {
+          "offset": 310156,
+          "displacement": 2478,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "read",
+          "base_evidence": "a6_fallback",
+          "symbol_name": "app_09AE"
+        },
+        "after": {
+          "offset": 310156,
+          "displacement": 2478,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "read",
+          "base_evidence": "register_state",
+          "symbol_name": "app_09AE"
+        }
+      },
+      {
+        "before": {
+          "offset": 312784,
+          "displacement": 2478,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "read",
+          "base_evidence": "a6_fallback",
+          "symbol_name": "app_09AE"
+        },
+        "after": {
+          "offset": 312784,
+          "displacement": 2478,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "read",
+          "base_evidence": "register_state",
+          "symbol_name": "app_09AE"
+        }
+      },
+      {
+        "before": {
+          "offset": 312800,
+          "displacement": 2676,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "read",
+          "base_evidence": "a6_fallback",
+          "symbol_name": "app_0A74"
+        },
+        "after": {
+          "offset": 312800,
+          "displacement": 2676,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "read",
+          "base_evidence": "register_state",
+          "symbol_name": "app_0A74"
+        }
+      },
+      {
+        "before": {
+          "offset": 312816,
+          "displacement": 2676,
+          "base_register": "A6",
+          "operand_index": 1,
+          "access": "read",
+          "base_evidence": "a6_fallback",
+          "symbol_name": "app_0A74"
+        },
+        "after": {
+          "offset": 312816,
+          "displacement": 2676,
+          "base_register": "A6",
+          "operand_index": 1,
+          "access": "read",
+          "base_evidence": "register_state",
+          "symbol_name": "app_0A74"
+        }
+      },
+      {
+        "before": {
+          "offset": 313070,
+          "displacement": 1882,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "read",
+          "base_evidence": "a6_fallback",
+          "symbol_name": "app_075A"
+        },
+        "after": {
+          "offset": 313070,
+          "displacement": 1882,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "read",
+          "base_evidence": "register_state",
+          "symbol_name": "app_075A"
+        }
+      },
+      {
+        "before": {
+          "offset": 313102,
+          "displacement": 1882,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "read",
+          "base_evidence": "a6_fallback",
+          "symbol_name": "app_075A"
+        },
+        "after": {
+          "offset": 313102,
+          "displacement": 1882,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "read",
+          "base_evidence": "register_state",
+          "symbol_name": "app_075A"
+        }
+      },
+      {
+        "before": {
+          "offset": 313688,
+          "displacement": 1882,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "read",
+          "base_evidence": "a6_fallback",
+          "symbol_name": "app_075A"
+        },
+        "after": {
+          "offset": 313688,
+          "displacement": 1882,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "read",
+          "base_evidence": "register_state",
+          "symbol_name": "app_075A"
+        }
+      },
+      {
+        "before": {
+          "offset": 313696,
+          "displacement": 2478,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "read",
+          "base_evidence": "a6_fallback",
+          "symbol_name": "app_09AE"
+        },
+        "after": {
+          "offset": 313696,
+          "displacement": 2478,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "read",
+          "base_evidence": "register_state",
+          "symbol_name": "app_09AE"
+        }
+      },
+      {
+        "before": {
+          "offset": 313850,
+          "displacement": 1754,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "read",
+          "base_evidence": "a6_fallback",
+          "symbol_name": "app_06DA"
+        },
+        "after": {
+          "offset": 313850,
+          "displacement": 1754,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "read",
+          "base_evidence": "register_state",
+          "symbol_name": "app_06DA"
+        }
+      },
+      {
+        "before": {
+          "offset": 313940,
+          "displacement": 1754,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "read",
+          "base_evidence": "a6_fallback",
+          "symbol_name": "app_06DA"
+        },
+        "after": {
+          "offset": 313940,
+          "displacement": 1754,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "read",
+          "base_evidence": "register_state",
+          "symbol_name": "app_06DA"
+        }
+      },
+      {
+        "before": {
+          "offset": 313998,
+          "displacement": 2478,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "read",
+          "base_evidence": "a6_fallback",
+          "symbol_name": "app_09AE"
+        },
+        "after": {
+          "offset": 313998,
+          "displacement": 2478,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "read",
+          "base_evidence": "register_state",
+          "symbol_name": "app_09AE"
+        }
+      },
+      {
+        "before": {
+          "offset": 314042,
+          "displacement": 1754,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "read",
+          "base_evidence": "a6_fallback",
+          "symbol_name": "app_06DA"
+        },
+        "after": {
+          "offset": 314042,
+          "displacement": 1754,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "read",
+          "base_evidence": "register_state",
+          "symbol_name": "app_06DA"
+        }
+      },
+      {
+        "before": {
+          "offset": 314072,
+          "displacement": 2478,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "read",
+          "base_evidence": "a6_fallback",
+          "symbol_name": "app_09AE"
+        },
+        "after": {
+          "offset": 314072,
+          "displacement": 2478,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "read",
+          "base_evidence": "register_state",
+          "symbol_name": "app_09AE"
+        }
+      },
+      {
+        "before": {
+          "offset": 314184,
+          "displacement": 1916,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "read",
+          "base_evidence": "a6_fallback",
+          "symbol_name": "app_077C"
+        },
+        "after": {
+          "offset": 314184,
+          "displacement": 1916,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "read",
+          "base_evidence": "register_state",
+          "symbol_name": "app_077C"
+        }
+      },
+      {
+        "before": {
+          "offset": 314202,
+          "displacement": 1917,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "read",
+          "base_evidence": "a6_fallback",
+          "symbol_name": "app_077D"
+        },
+        "after": {
+          "offset": 314202,
+          "displacement": 1917,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "read",
+          "base_evidence": "register_state",
+          "symbol_name": "app_077D"
+        }
+      },
+      {
+        "before": {
+          "offset": 314220,
+          "displacement": 1800,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "read",
+          "base_evidence": "a6_fallback",
+          "symbol_name": "app_0708"
+        },
+        "after": {
+          "offset": 314220,
+          "displacement": 1800,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "read",
+          "base_evidence": "register_state",
+          "symbol_name": "app_0708"
+        }
+      },
+      {
+        "before": {
+          "offset": 314232,
+          "displacement": 2096,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "read",
+          "base_evidence": "a6_fallback",
+          "symbol_name": "app_0830"
+        },
+        "after": {
+          "offset": 314232,
+          "displacement": 2096,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "read",
+          "base_evidence": "register_state",
+          "symbol_name": "app_0830"
+        }
+      },
+      {
+        "before": {
+          "offset": 314250,
+          "displacement": 2096,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "read",
+          "base_evidence": "a6_fallback",
+          "symbol_name": "app_0830"
+        },
+        "after": {
+          "offset": 314250,
+          "displacement": 2096,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "read",
+          "base_evidence": "register_state",
+          "symbol_name": "app_0830"
+        }
+      },
+      {
+        "before": {
+          "offset": 314340,
+          "displacement": 1800,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "read",
+          "base_evidence": "a6_fallback",
+          "symbol_name": "app_0708"
+        },
+        "after": {
+          "offset": 314340,
+          "displacement": 1800,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "read",
+          "base_evidence": "register_state",
+          "symbol_name": "app_0708"
+        }
+      },
+      {
+        "before": {
+          "offset": 314352,
+          "displacement": 2096,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "read",
+          "base_evidence": "a6_fallback",
+          "symbol_name": "app_0830"
+        },
+        "after": {
+          "offset": 314352,
+          "displacement": 2096,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "read",
+          "base_evidence": "register_state",
+          "symbol_name": "app_0830"
+        }
+      }
+    ]
+  },
+  "typed_delta": {
+    "added": [
+      {
+        "offset": 66220,
+        "operand_index": 1,
+        "base_register": "A1",
+        "displacement": 12,
+        "base_cursor": 0,
+        "field_offset": 12,
+        "struct_size": 20,
+        "field_size": 3,
+        "root_struct_name": "SG2MfmIdTemplate",
+        "owner_struct_name": "SG2MfmIdTemplate",
+        "field_name": "sync_mark_bytes",
+        "field_expr": "SG2MfmIdTemplate_sync_mark_bytes",
+        "inherited": 0,
+        "nested": 0,
+        "type_provenance_kind_id": 12,
+        "type_provenance_kind": "static_data",
+        "type_provenance_section": 0,
+        "type_provenance_offset": 70100,
+        "type_provenance_operand_index": 0
+      },
+      {
+        "offset": 66226,
+        "operand_index": 1,
+        "base_register": "A1",
+        "displacement": 13,
+        "base_cursor": 0,
+        "field_offset": 12,
+        "struct_size": 20,
+        "field_size": 3,
+        "root_struct_name": "SG2MfmIdTemplate",
+        "owner_struct_name": "SG2MfmIdTemplate",
+        "field_name": "sync_mark_bytes",
+        "field_expr": "SG2MfmIdTemplate_sync_mark_bytes",
+        "inherited": 0,
+        "nested": 0,
+        "type_provenance_kind_id": 12,
+        "type_provenance_kind": "static_data",
+        "type_provenance_section": 0,
+        "type_provenance_offset": 70100,
+        "type_provenance_operand_index": 0
+      },
+      {
+        "offset": 66232,
+        "operand_index": 1,
+        "base_register": "A1",
+        "displacement": 14,
+        "base_cursor": 0,
+        "field_offset": 12,
+        "struct_size": 20,
+        "field_size": 3,
+        "root_struct_name": "SG2MfmIdTemplate",
+        "owner_struct_name": "SG2MfmIdTemplate",
+        "field_name": "sync_mark_bytes",
+        "field_expr": "SG2MfmIdTemplate_sync_mark_bytes",
+        "inherited": 0,
+        "nested": 0,
+        "type_provenance_kind_id": 12,
+        "type_provenance_kind": "static_data",
+        "type_provenance_section": 0,
+        "type_provenance_offset": 70100,
+        "type_provenance_operand_index": 0
+      },
+      {
+        "offset": 66256,
+        "operand_index": 1,
+        "base_register": "A1",
+        "displacement": 16,
+        "base_cursor": 0,
+        "field_offset": 16,
+        "struct_size": 20,
+        "field_size": 1,
+        "root_struct_name": "SG2MfmIdTemplate",
+        "owner_struct_name": "SG2MfmIdTemplate",
+        "field_name": "cylinder",
+        "field_expr": "SG2MfmIdTemplate_cylinder",
+        "inherited": 0,
+        "nested": 0,
+        "type_provenance_kind_id": 12,
+        "type_provenance_kind": "static_data",
+        "type_provenance_section": 0,
+        "type_provenance_offset": 70100,
+        "type_provenance_operand_index": 0
+      },
+      {
+        "offset": 66290,
+        "operand_index": 1,
+        "base_register": "A1",
+        "displacement": 18,
+        "base_cursor": 0,
+        "field_offset": 18,
+        "struct_size": 20,
+        "field_size": 1,
+        "root_struct_name": "SG2MfmIdTemplate",
+        "owner_struct_name": "SG2MfmIdTemplate",
+        "field_name": "sector_id",
+        "field_expr": "SG2MfmIdTemplate_sector_id",
+        "inherited": 0,
+        "nested": 0,
+        "type_provenance_kind_id": 12,
+        "type_provenance_kind": "static_data",
+        "type_provenance_section": 0,
+        "type_provenance_offset": 70100,
+        "type_provenance_operand_index": 0
+      },
+      {
+        "offset": 221502,
+        "operand_index": 1,
+        "base_register": "A0",
+        "displacement": 4,
+        "base_cursor": 0,
+        "field_offset": 4,
+        "struct_size": 68,
+        "field_size": 4,
+        "root_struct_name": "SG2WorldObject",
+        "owner_struct_name": "SG2WorldObject",
+        "field_name": "world_x",
+        "field_expr": "SG2WorldObject_world_x",
+        "inherited": 0,
+        "nested": 0,
+        "type_provenance_kind_id": 0,
+        "type_provenance_kind": "unknown"
+      },
+      {
+        "offset": 221506,
+        "operand_index": 1,
+        "base_register": "A0",
+        "displacement": 8,
+        "base_cursor": 0,
+        "field_offset": 8,
+        "struct_size": 68,
+        "field_size": 4,
+        "root_struct_name": "SG2WorldObject",
+        "owner_struct_name": "SG2WorldObject",
+        "field_name": "world_y",
+        "field_expr": "SG2WorldObject_world_y",
+        "inherited": 0,
+        "nested": 0,
+        "type_provenance_kind_id": 0,
+        "type_provenance_kind": "unknown"
+      },
+      {
+        "offset": 221510,
+        "operand_index": 1,
+        "base_register": "A0",
+        "displacement": 12,
+        "base_cursor": 0,
+        "field_offset": 12,
+        "struct_size": 68,
+        "field_size": 4,
+        "root_struct_name": "SG2WorldObject",
+        "owner_struct_name": "SG2WorldObject",
+        "field_name": "world_z",
+        "field_expr": "SG2WorldObject_world_z",
+        "inherited": 0,
+        "nested": 0,
+        "type_provenance_kind_id": 0,
+        "type_provenance_kind": "unknown"
+      },
+      {
+        "offset": 221520,
+        "operand_index": 1,
+        "base_register": "A0",
+        "displacement": 4,
+        "base_cursor": 0,
+        "field_offset": 4,
+        "struct_size": 68,
+        "field_size": 4,
+        "root_struct_name": "SG2WorldObject",
+        "owner_struct_name": "SG2WorldObject",
+        "field_name": "world_x",
+        "field_expr": "SG2WorldObject_world_x",
+        "inherited": 0,
+        "nested": 0,
+        "type_provenance_kind_id": 0,
+        "type_provenance_kind": "unknown"
+      },
+      {
+        "offset": 221524,
+        "operand_index": 1,
+        "base_register": "A0",
+        "displacement": 8,
+        "base_cursor": 0,
+        "field_offset": 8,
+        "struct_size": 68,
+        "field_size": 4,
+        "root_struct_name": "SG2WorldObject",
+        "owner_struct_name": "SG2WorldObject",
+        "field_name": "world_y",
+        "field_expr": "SG2WorldObject_world_y",
+        "inherited": 0,
+        "nested": 0,
+        "type_provenance_kind_id": 0,
+        "type_provenance_kind": "unknown"
+      },
+      {
+        "offset": 221528,
+        "operand_index": 1,
+        "base_register": "A0",
+        "displacement": 12,
+        "base_cursor": 0,
+        "field_offset": 12,
+        "struct_size": 68,
+        "field_size": 4,
+        "root_struct_name": "SG2WorldObject",
+        "owner_struct_name": "SG2WorldObject",
+        "field_name": "world_z",
+        "field_expr": "SG2WorldObject_world_z",
+        "inherited": 0,
+        "nested": 0,
+        "type_provenance_kind_id": 0,
+        "type_provenance_kind": "unknown"
+      },
+      {
+        "offset": 221534,
+        "operand_index": 0,
+        "base_register": "A0",
+        "displacement": 4,
+        "base_cursor": 0,
+        "field_offset": 4,
+        "struct_size": 68,
+        "field_size": 4,
+        "root_struct_name": "SG2WorldObject",
+        "owner_struct_name": "SG2WorldObject",
+        "field_name": "world_x",
+        "field_expr": "SG2WorldObject_world_x",
+        "inherited": 0,
+        "nested": 0,
+        "type_provenance_kind_id": 0,
+        "type_provenance_kind": "unknown"
+      },
+      {
+        "offset": 221538,
+        "operand_index": 0,
+        "base_register": "A0",
+        "displacement": 8,
+        "base_cursor": 0,
+        "field_offset": 8,
+        "struct_size": 68,
+        "field_size": 4,
+        "root_struct_name": "SG2WorldObject",
+        "owner_struct_name": "SG2WorldObject",
+        "field_name": "world_y",
+        "field_expr": "SG2WorldObject_world_y",
+        "inherited": 0,
+        "nested": 0,
+        "type_provenance_kind_id": 0,
+        "type_provenance_kind": "unknown"
+      },
+      {
+        "offset": 221542,
+        "operand_index": 0,
+        "base_register": "A0",
+        "displacement": 12,
+        "base_cursor": 0,
+        "field_offset": 12,
+        "struct_size": 68,
+        "field_size": 4,
+        "root_struct_name": "SG2WorldObject",
+        "owner_struct_name": "SG2WorldObject",
+        "field_name": "world_z",
+        "field_expr": "SG2WorldObject_world_z",
+        "inherited": 0,
+        "nested": 0,
+        "type_provenance_kind_id": 0,
+        "type_provenance_kind": "unknown"
+      }
+    ],
+    "retracted": [
+      {
+        "offset": 60900,
+        "operand_index": 0,
+        "base_register": "A3",
+        "displacement": 0,
+        "base_cursor": 0,
+        "field_offset": 0,
+        "struct_size": 4,
+        "field_size": 4,
+        "root_struct_name": "SG2PilotRatingScore",
+        "owner_struct_name": "SG2PilotRatingScore",
+        "field_name": "packed_bcd_score",
+        "field_expr": "SG2PilotRatingScore_packed_bcd_score",
+        "inherited": 0,
+        "nested": 0,
+        "type_provenance_kind_id": 12,
+        "type_provenance_kind": "static_data",
+        "type_provenance_section": 0,
+        "type_provenance_offset": 73066,
+        "type_provenance_operand_index": 0
+      },
+      {
+        "offset": 60936,
+        "operand_index": 0,
+        "base_register": "A1",
+        "displacement": 0,
+        "base_cursor": 0,
+        "field_offset": 0,
+        "struct_size": 4,
+        "field_size": 4,
+        "root_struct_name": "SG2PilotRatingScore",
+        "owner_struct_name": "SG2PilotRatingScore",
+        "field_name": "packed_bcd_score",
+        "field_expr": "SG2PilotRatingScore_packed_bcd_score",
+        "inherited": 0,
+        "nested": 0,
+        "type_provenance_kind_id": 12,
+        "type_provenance_kind": "static_data",
+        "type_provenance_section": 0,
+        "type_provenance_offset": 73122,
+        "type_provenance_operand_index": 0
+      },
+      {
+        "offset": 62086,
+        "operand_index": 1,
+        "base_register": "A1",
+        "displacement": 0,
+        "base_cursor": 0,
+        "field_offset": 0,
+        "struct_size": 4,
+        "field_size": 4,
+        "root_struct_name": "SG2AudioRingBufferReference",
+        "owner_struct_name": "SG2AudioRingBufferReference",
+        "field_name": "buffer",
+        "field_expr": "SG2AudioRingBufferReference_buffer",
+        "inherited": 0,
+        "nested": 0,
+        "type_provenance_kind_id": 12,
+        "type_provenance_kind": "static_data",
+        "type_provenance_section": 0,
+        "type_provenance_offset": 62662,
+        "type_provenance_operand_index": 0
+      },
+      {
+        "offset": 212450,
+        "operand_index": 0,
+        "base_register": "A1",
+        "displacement": 0,
+        "base_cursor": 0,
+        "field_offset": 0,
+        "struct_size": 10,
+        "field_size": 2,
+        "root_struct_name": "SG2ProjectorPlacement",
+        "owner_struct_name": "SG2ProjectorPlacement",
+        "field_name": "object_type",
+        "field_expr": "SG2ProjectorPlacement_object_type",
+        "inherited": 0,
+        "nested": 0,
+        "type_provenance_kind_id": 12,
+        "type_provenance_kind": "static_data",
+        "type_provenance_section": 0,
+        "type_provenance_offset": 223990,
+        "type_provenance_operand_index": 0
+      },
+      {
+        "offset": 212490,
+        "operand_index": 0,
+        "base_register": "A1",
+        "displacement": 0,
+        "base_cursor": 2,
+        "field_offset": 2,
+        "struct_size": 10,
+        "field_size": 4,
+        "root_struct_name": "SG2ProjectorPlacement",
+        "owner_struct_name": "SG2ProjectorPlacement",
+        "field_name": "world_x",
+        "field_expr": "SG2ProjectorPlacement_world_x",
+        "inherited": 0,
+        "nested": 0,
+        "type_provenance_kind_id": 12,
+        "type_provenance_kind": "static_data",
+        "type_provenance_section": 0,
+        "type_provenance_offset": 223990,
+        "type_provenance_operand_index": 0
+      },
+      {
+        "offset": 212494,
+        "operand_index": 0,
+        "base_register": "A1",
+        "displacement": 0,
+        "base_cursor": 6,
+        "field_offset": 6,
+        "struct_size": 10,
+        "field_size": 4,
+        "root_struct_name": "SG2ProjectorPlacement",
+        "owner_struct_name": "SG2ProjectorPlacement",
+        "field_name": "world_z",
+        "field_expr": "SG2ProjectorPlacement_world_z",
+        "inherited": 0,
+        "nested": 0,
+        "type_provenance_kind_id": 12,
+        "type_provenance_kind": "static_data",
+        "type_provenance_section": 0,
+        "type_provenance_offset": 223990,
+        "type_provenance_operand_index": 0
+      },
+      {
+        "offset": 218702,
+        "operand_index": 0,
+        "base_register": "A1",
+        "displacement": 0,
+        "base_cursor": 0,
+        "field_offset": 0,
+        "struct_size": 10,
+        "field_size": 2,
+        "root_struct_name": "SG2ProjectorPlacement",
+        "owner_struct_name": "SG2ProjectorPlacement",
+        "field_name": "object_type",
+        "field_expr": "SG2ProjectorPlacement_object_type",
+        "inherited": 0,
+        "nested": 0,
+        "type_provenance_kind_id": 12,
+        "type_provenance_kind": "static_data",
+        "type_provenance_section": 0,
+        "type_provenance_offset": 223990,
+        "type_provenance_operand_index": 0
+      },
+      {
+        "offset": 218746,
+        "operand_index": 0,
+        "base_register": "A1",
+        "displacement": 0,
+        "base_cursor": 2,
+        "field_offset": 2,
+        "struct_size": 10,
+        "field_size": 4,
+        "root_struct_name": "SG2ProjectorPlacement",
+        "owner_struct_name": "SG2ProjectorPlacement",
+        "field_name": "world_x",
+        "field_expr": "SG2ProjectorPlacement_world_x",
+        "inherited": 0,
+        "nested": 0,
+        "type_provenance_kind_id": 12,
+        "type_provenance_kind": "static_data",
+        "type_provenance_section": 0,
+        "type_provenance_offset": 223990,
+        "type_provenance_operand_index": 0
+      },
+      {
+        "offset": 218750,
+        "operand_index": 0,
+        "base_register": "A1",
+        "displacement": 0,
+        "base_cursor": 6,
+        "field_offset": 6,
+        "struct_size": 10,
+        "field_size": 4,
+        "root_struct_name": "SG2ProjectorPlacement",
+        "owner_struct_name": "SG2ProjectorPlacement",
+        "field_name": "world_z",
+        "field_expr": "SG2ProjectorPlacement_world_z",
+        "inherited": 0,
+        "nested": 0,
+        "type_provenance_kind_id": 12,
+        "type_provenance_kind": "static_data",
+        "type_provenance_section": 0,
+        "type_provenance_offset": 223990,
+        "type_provenance_operand_index": 0
+      },
+      {
+        "offset": 221606,
+        "operand_index": 1,
+        "base_register": "A0",
+        "displacement": 0,
+        "base_cursor": 0,
+        "field_offset": 0,
+        "struct_size": 8,
+        "field_size": 2,
+        "root_struct_name": "SG2SavedNearbyObject",
+        "owner_struct_name": "SG2SavedNearbyObject",
+        "field_name": "object_type",
+        "field_expr": "SG2SavedNearbyObject_object_type",
+        "inherited": 0,
+        "nested": 0,
+        "type_provenance_kind_id": 12,
+        "type_provenance_kind": "static_data",
+        "type_provenance_section": 0,
+        "type_provenance_offset": 232322,
+        "type_provenance_operand_index": 0
+      },
+      {
+        "offset": 221632,
+        "operand_index": 1,
+        "base_register": "A0",
+        "displacement": 0,
+        "base_cursor": 2,
+        "field_offset": 2,
+        "struct_size": 8,
+        "field_size": 2,
+        "root_struct_name": "SG2SavedNearbyObject",
+        "owner_struct_name": "SG2SavedNearbyObject",
+        "field_name": "relative_x",
+        "field_expr": "SG2SavedNearbyObject_relative_x",
+        "inherited": 0,
+        "nested": 0,
+        "type_provenance_kind_id": 12,
+        "type_provenance_kind": "static_data",
+        "type_provenance_section": 0,
+        "type_provenance_offset": 232322,
+        "type_provenance_operand_index": 0
+      },
+      {
+        "offset": 221634,
+        "operand_index": 1,
+        "base_register": "A0",
+        "displacement": 0,
+        "base_cursor": 4,
+        "field_offset": 4,
+        "struct_size": 8,
+        "field_size": 2,
+        "root_struct_name": "SG2SavedNearbyObject",
+        "owner_struct_name": "SG2SavedNearbyObject",
+        "field_name": "relative_y",
+        "field_expr": "SG2SavedNearbyObject_relative_y",
+        "inherited": 0,
+        "nested": 0,
+        "type_provenance_kind_id": 12,
+        "type_provenance_kind": "static_data",
+        "type_provenance_section": 0,
+        "type_provenance_offset": 232322,
+        "type_provenance_operand_index": 0
+      },
+      {
+        "offset": 221636,
+        "operand_index": 1,
+        "base_register": "A0",
+        "displacement": 0,
+        "base_cursor": 6,
+        "field_offset": 6,
+        "struct_size": 8,
+        "field_size": 2,
+        "root_struct_name": "SG2SavedNearbyObject",
+        "owner_struct_name": "SG2SavedNearbyObject",
+        "field_name": "relative_z",
+        "field_expr": "SG2SavedNearbyObject_relative_z",
+        "inherited": 0,
+        "nested": 0,
+        "type_provenance_kind_id": 12,
+        "type_provenance_kind": "static_data",
+        "type_provenance_section": 0,
+        "type_provenance_offset": 232322,
+        "type_provenance_operand_index": 0
+      },
+      {
+        "offset": 221646,
+        "operand_index": 1,
+        "base_register": "A0",
+        "displacement": 0,
+        "base_cursor": 0,
+        "field_offset": 0,
+        "struct_size": 8,
+        "field_size": 2,
+        "root_struct_name": "SG2SavedNearbyObject",
+        "owner_struct_name": "SG2SavedNearbyObject",
+        "field_name": "object_type",
+        "field_expr": "SG2SavedNearbyObject_object_type",
+        "inherited": 0,
+        "nested": 0,
+        "type_provenance_kind_id": 12,
+        "type_provenance_kind": "static_data",
+        "type_provenance_section": 0,
+        "type_provenance_offset": 232322,
+        "type_provenance_operand_index": 0
+      },
+      {
+        "offset": 221656,
+        "operand_index": 1,
+        "base_register": "A0",
+        "displacement": 0,
+        "base_cursor": 0,
+        "field_offset": 0,
+        "struct_size": 8,
+        "field_size": 2,
+        "root_struct_name": "SG2SavedNearbyObject",
+        "owner_struct_name": "SG2SavedNearbyObject",
+        "field_name": "object_type",
+        "field_expr": "SG2SavedNearbyObject_object_type",
+        "inherited": 0,
+        "nested": 0,
+        "type_provenance_kind_id": 12,
+        "type_provenance_kind": "static_data",
+        "type_provenance_section": 0,
+        "type_provenance_offset": 232322,
+        "type_provenance_operand_index": 0
+      },
+      {
+        "offset": 221678,
+        "operand_index": 0,
+        "base_register": "A0",
+        "displacement": 0,
+        "base_cursor": 0,
+        "field_offset": 0,
+        "struct_size": 8,
+        "field_size": 2,
+        "root_struct_name": "SG2SavedNearbyObject",
+        "owner_struct_name": "SG2SavedNearbyObject",
+        "field_name": "object_type",
+        "field_expr": "SG2SavedNearbyObject_object_type",
+        "inherited": 0,
+        "nested": 0,
+        "type_provenance_kind_id": 12,
+        "type_provenance_kind": "static_data",
+        "type_provenance_section": 0,
+        "type_provenance_offset": 232322,
+        "type_provenance_operand_index": 0
+      },
+      {
+        "offset": 221704,
+        "operand_index": 0,
+        "base_register": "A0",
+        "displacement": 0,
+        "base_cursor": 2,
+        "field_offset": 2,
+        "struct_size": 8,
+        "field_size": 2,
+        "root_struct_name": "SG2SavedNearbyObject",
+        "owner_struct_name": "SG2SavedNearbyObject",
+        "field_name": "relative_x",
+        "field_expr": "SG2SavedNearbyObject_relative_x",
+        "inherited": 0,
+        "nested": 0,
+        "type_provenance_kind_id": 12,
+        "type_provenance_kind": "static_data",
+        "type_provenance_section": 0,
+        "type_provenance_offset": 232322,
+        "type_provenance_operand_index": 0
+      },
+      {
+        "offset": 221706,
+        "operand_index": 0,
+        "base_register": "A0",
+        "displacement": 0,
+        "base_cursor": 4,
+        "field_offset": 4,
+        "struct_size": 8,
+        "field_size": 2,
+        "root_struct_name": "SG2SavedNearbyObject",
+        "owner_struct_name": "SG2SavedNearbyObject",
+        "field_name": "relative_y",
+        "field_expr": "SG2SavedNearbyObject_relative_y",
+        "inherited": 0,
+        "nested": 0,
+        "type_provenance_kind_id": 12,
+        "type_provenance_kind": "static_data",
+        "type_provenance_section": 0,
+        "type_provenance_offset": 232322,
+        "type_provenance_operand_index": 0
+      },
+      {
+        "offset": 221708,
+        "operand_index": 0,
+        "base_register": "A0",
+        "displacement": 0,
+        "base_cursor": 6,
+        "field_offset": 6,
+        "struct_size": 8,
+        "field_size": 2,
+        "root_struct_name": "SG2SavedNearbyObject",
+        "owner_struct_name": "SG2SavedNearbyObject",
+        "field_name": "relative_z",
+        "field_expr": "SG2SavedNearbyObject_relative_z",
+        "inherited": 0,
+        "nested": 0,
+        "type_provenance_kind_id": 12,
+        "type_provenance_kind": "static_data",
+        "type_provenance_section": 0,
+        "type_provenance_offset": 232322,
+        "type_provenance_operand_index": 0
+      }
+    ],
+    "interpretation": "14 added and19 retracted sites, net-5. Retractions group rating-score/audio/reference record iterators and saved-nearby/projector placement consumers. They are no longer inferred fields at the converged state; do not call each old fact false or each loss semantic completion. Canonical record definitions remain intact."
+  },
+  "qualification": {
+    "accepted_code_unchanged": true,
+    "range_ownership_unchanged": true,
+    "unclassified_bytes": 14728,
+    "unclassified_intervals": 260,
+    "assets": 57,
+    "asset_bytes_unchanged": true,
+    "incomplete_analysis": [],
+    "source_quality_diagnostics": 0,
+    "canonical_histories_unchanged": true,
+    "new_runtime_evidence": false
+  },
+  "development_findings": [
+    "First call-input run reached1898560 visits with5pending; rejected before build/source adoption. Current-position byte_cursor join caused repeated advancing pointer preference at source0x52F0.",
+    "After pointer join repair the same cap remained in polygon interpolation; trace isolated directional copy-ancestry churn. Canonical must-equality intersection removes that order-dependent component. No visit cap was raised.",
+    "Initial converged target run lost17 pool loop rows due to treating a register seed as an independent flow root. Regression and control/type separation restore all135 loop patterns before publication."
+  ],
+  "performance_scope": "Final native generation226.71s and process256.47s/2678692KiB. Prior converged candidate172.87s had a precision defect; not a fair speed baseline. These are observed workflow costs, not an isolated performance claim.",
+  "remaining": [
+    "Logical app provenance is not an unconditional physical A6/base proof. The secondary cache holder runtime0x4E5C0 still needs its exact reaching producer/alias/call and loop relation.",
+    "An equality is not general Dn/memory alias tracking. Absence of a must-equality relation never proves disjointness. Next focused experiment: full-width An-to-Dn-to-An transport followed by an input-memory write/cache read, contrasting partial overwrite.",
+    "19 retracted typed sites require current-coordinate/record-stride evidence before re-promotion, not unconditional type seeds or restoring old first-predecessor behavior.",
+    "Canonical rendered symbol bindings are not erased merely because a native app interpretation is retracted. The historical app_0127 operand at source0xBC3A is an ExecBase use and remains an explicitly identified source-quality follow-up.",
+    "Known original CFG inputs only; no claim for arbitrary callbacks/replacement code, all generic names, all orphan islands or every gameplay path. No new emulator run or interim archive."
+  ],
+  "validated_target_git_tree": "a0b308e90012d54dbd56a8ec8027e8d9ce78486d",
+  "clean_staged_tree_build": true,
+  "standalone_build": {
+    "schema_version": 1,
+    "status": "pass",
+    "format": "raw_payload_not_AmigaDOS_HUNK",
+    "main_bytes": 412736,
+    "main_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "main_matches_original_identity": true,
+    "asset_count": 57,
+    "all_asset_source_slices_equal": true,
+    "decoded_view_inverse_exact": true,
+    "boot_copy_source_matches_resident_view": true,
+    "source_commit": "3a1d38c80467ba892a6d21fe7eefba0c219515f3",
+    "assembler_sha256": "413e284020125f42709486dfe09907cab3dd9f3c2ea41017c190f8ea68f30825",
+    "flags": [
+      "-Fbin",
+      "-m68000",
+      "-no-opt"
+    ],
+    "outputs": [
+      {
+        "role": "original_main",
+        "filename": "Starglider2-original.raw",
+        "bytes": 412736,
+        "sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9"
+      },
+      {
+        "role": "decoded_analysis_view",
+        "filename": "protection-decoded-analysis.raw",
+        "bytes": 3548,
+        "sha256": "de8358853dd9ed9b006a23569bf393aa217ed3be3301a169465d80bfaf839922"
+      },
+      {
+        "role": "boot_installer_context",
+        "filename": "boot-selector-installer-context.raw",
+        "bytes": 40,
+        "sha256": "8d34852425e2e1bfa87b3febdfc74fb39e7c667e9d9ff73e17b594649e83b21b"
+      },
+      {
+        "role": "boot_resident_view",
+        "filename": "boot-selector-resident.raw",
+        "bytes": 20,
+        "sha256": "a26286a393713c046eff9dbaff15b20b26b171fa9e05fc9d538d16b0eddb6024"
+      }
+    ]
+  }
+}

@@ -520,6 +520,7 @@ typedef struct M68kRenderTypedState {
   M68kRenderTypedMemoryBaseValue data_memory_base_regs[8];
   M68kRenderTypedMemoryBaseValue memory_base_regs[8];
   M68kRenderIoRequestSetup io_request_setups[8];
+  /* Must-equal current An values: non-root members name the least member. */
   uint32_t addr_reg_alias_known;
   uint8_t addr_reg_alias_source[8];
   /* A local write/call prevents resurrecting a global writer-summary value.
@@ -540,6 +541,7 @@ typedef struct M68kRenderTypedFlowNode {
   M68kRenderPlatformState platform_in;
   M68kRenderPlatformState platform_out;
   size_t successors[5];
+  size_t call_target; /* Sparse CALL edge; SIZE_MAX when absent. */
   uint8_t successor_count;
   uint8_t is_root;
   uint8_t has_in;
