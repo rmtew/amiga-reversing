@@ -48,6 +48,23 @@ def _same_operand(records, index):
     return [r for r in records if r['operand_index'] == index]
 
 
+def _native_derived_span_width(refs, operand_width):
+    """Use the native full transfer span; never infer MOVEM size in Python."""
+    if not refs:
+        return None
+    spans = set()
+    for ref in refs:
+        width, element, count = (ref.get(k) for k in
+            ('data_access_size', 'element_width', 'transfer_count'))
+        if (ref.get('derived') is not True or ref.get('access') not in {'read', 'write', 'read-write'}
+                or any(type(n) is not int for n in (width, element, count))
+                or element not in (1, 2, 4) or element != operand_width
+                or not 1 <= count <= 16 or width != element * count or width > 64):
+            return None
+        spans.add(width)
+    return next(iter(spans)) if len(spans) == 1 else None
+
+
 def _gaps(fields, envelope):
     covered = set()
     for field in fields:
@@ -92,6 +109,7 @@ def build_app_access_audit(instructions, layout_fields, *, app_base, identity):
             if op['absolute_address'] is not None:
                 addresses.add(op['absolute_address'])
             width = op['width_bytes']
+            derived_span = _native_derived_span_width(refs, width)
             address_use = op['access'] in {'address', 'branch_target'}
             concrete_overlap = [a - app_base for a in sorted(addresses)
                                 if a < app_base + envelope and a + (width or 1) > app_base]
@@ -120,7 +138,12 @@ def build_app_access_audit(instructions, layout_fields, *, app_base, identity):
                 domain = 'other_address'
             relative = sorted({r['displacement'] for r in refs} | set(concrete_overlap))
             conditional = [op['displacement']] if domain == 'unresolved_A6' and op['displacement_known'] else []
-            footprint_known = bool(width and not op['indexed'] and not op['bulk_transfer'] and not address_use)
+            footprint_source = 'native_form_operand'
+            if derived_span is not None and not conflict and not op['indexed'] and not address_use:
+                width = derived_span
+                footprint_source = 'native_derived_span'
+            footprint_known = bool(width and not op['indexed'] and not address_use and
+                                   (not op['bulk_transfer'] or footprint_source == 'native_derived_span'))
             overlaps, gap_hits, conditional_overlaps, conditional_gap_hits = [], [], [], []
             if footprint_known:
                 for start in relative:
@@ -147,6 +170,8 @@ def build_app_access_audit(instructions, layout_fields, *, app_base, identity):
                               role=(refs[0]['access'] if len(refs) == 1 else op['access']),
                               role_basis=('native_app_ref' if len(refs) == 1 else 'native_form_operand'),
                               address_only=address_use, footprint_known=footprint_known,
+                              footprint_width_bytes=width if footprint_known else None,
+                              footprint_source=footprint_source,
                               overlapping_declarations=sorted(set(overlaps)), undeclared_intersections=gap_hits))
     domains = Counter(s['domain'] for s in sites)
     app_sites = [s for s in sites if s['app_attributions'] or s['domain'] == 'physical_app_envelope_alias']

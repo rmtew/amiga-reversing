@@ -1347,6 +1347,8 @@ typedef struct M68kAppSlotRefIR {
   int16_t operand_displacement;
   uint8_t has_derived_base;
   uint8_t access_size;
+  uint8_t element_width;
+  uint8_t transfer_count;
 } M68kAppSlotRefIR;
 
 typedef struct M68kRecoveredPlatformTypedAccessIR {

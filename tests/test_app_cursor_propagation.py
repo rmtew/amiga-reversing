@@ -77,6 +77,16 @@ int main(void) {
   memset(&other, 0, sizeof(other));
   typed_state_merge_into(&state, &other);
   assert(!state.app_addr_regs[4].known);
+  /* Multi-transfer affine cursors must not silently advance by one WORD. */
+  memset(&state, 0, sizeof(state));
+  state.memory_base_regs[0].known = 1;
+  state.memory_base_regs[0].offset = 100;
+  {
+    M68kInstructionIR multi = m68k_plain_parse_instruction_to_ir(
+      "movem.w (a0)+,d0-d2", M68K_ASM_CPU_68000, m68k_diag_sink(NULL));
+    typed_state_update_after_instruction(&state, &lookup, &platform, 0, &multi, NULL, NULL, 0, 0);
+    assert(!state.memory_base_regs[0].known);
+  }
   return 0;
 }
 ''')
@@ -169,7 +179,7 @@ def test_self_and_full_register_copy_retain_untyped_app_address(tmp_path, tail):
 
 
 @pytest.mark.parametrize('case', ['unknown', 'hardware', 'loaded', 'call', 'word_copy',
-                                 'numeric', 'overflow', 'overrun', 'multi', 'striped', 'postincrement'])
+                                 'numeric', 'overflow', 'overrun', 'striped'])
 def test_unsupported_or_unproved_cursor_use_is_not_a_scalar_app_access(tmp_path, case):
     prefix = 'lea.l $BC6(a6),a4\n'
     tail = 'lea.l $78(a4),a5\n move.l (a5),d0'
@@ -181,9 +191,7 @@ def test_unsupported_or_unproved_cursor_use_is_not_a_scalar_app_access(tmp_path,
     elif case == 'numeric': prefix = 'movea.l #$BC6,a4\n'
     elif case == 'overflow': tail = 'lea.l $7FFF(a4),a5\n move.l (a5),d0'
     elif case == 'overrun': tail = 'lea.l $78(a4),a5\n move.l 118(a5),d0'
-    elif case == 'multi': tail = 'lea.l $78(a4),a5\n movem.w (a5),d0-d2'
     elif case == 'striped': tail = 'lea.l $78(a4),a5\n movep.l 0(a5),d0'
-    elif case == 'postincrement': tail = 'lea.l $78(a4),a5\n move.l (a5)+,d0\n move.l (a5),d0'
     artifact, _ = cursor_artifact(tmp_path, prefix + tail)
     try:
         assert not [r for r in derived_refs(artifact) if r['access'] != 'address']

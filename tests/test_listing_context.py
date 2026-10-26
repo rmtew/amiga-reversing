@@ -36,12 +36,13 @@ def test_app_cursor_context_keeps_logical_and_operand_coordinates_separate():
                start_offset=6, end_offset=10, addr=6, app_slot_refs=[dict(
                    symbol='previous_view_points', displacement=0xC3E, base_register='A4',
                    operand_index=0, access='address', derived=True, base_displacement=0xBC6,
-                   operand_displacement=0x78, data_access_size=0, base_evidence='a6_fallback')])
+                   operand_displacement=0x78, data_access_size=0, element_width=0, transfer_count=0, base_evidence='a6_fallback')])
     context, = [c for c in listing_element_contexts(row) if c['element_kind'] == 'app_slot']
     assert context['displacement'] == 0xC3E
     assert context['base_displacement'] == 0xBC6
     assert context['operand_displacement'] == 0x78
     assert context['data_access_size'] == 0
+    assert context['element_width'] == 0 and context['transfer_count'] == 0
     assert context['base_evidence'] == 'a6_fallback'
     assert context['derived'] is True
 

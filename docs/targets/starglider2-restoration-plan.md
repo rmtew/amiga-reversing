@@ -7,11 +7,12 @@ that further analysis is exhausted. Current source remains byte exact: all
 with all 106034 accepted code bytes retained. No generated assembly was edited
 by hand and no interim archive was produced.
 
-The current ownership union leaves 14748 bytes in
+The current ownership union leaves 14728 bytes in
 260 intervals unclassified. This is classification accounting,
 not a semantic completion percentage. Earlier interval/site counts below belong
 to their recorded closeout revision. See the current
-[native catalogue consistency receipt](../../runtime/observations/starglider2-app-catalogue-consistency.json) and
+[native memory-span receipt](../../runtime/observations/starglider2-app-memory-spans.json),
+[current residual index](../../runtime/observations/starglider2-current-unknown-intervals.json) and
 [current flight evidence](../../runtime/observations/starglider2-flight-input-evidence.json).
 
 ## Current refinement and next evidence
@@ -25,15 +26,16 @@ weak repeated-only/numeric cases are checked. Four original indexed directories
 now render symbolically, including the 16-entry rating table. The other three
 are prefixes of 2, 5 and 7 text pointers, not proven complete index domains.
 
-The recent source-refinement batches explain 18 rating texts, 15 app fields,
+The early source-refinement batches explained 18 rating texts, 15 app fields,
 five routines and two internal meter-stage labels.
 Writable decimal slots and original arithmetic remain explicit. The energy
 overflow bonus is not a kill count; the shot counter precedes final spawn/pool
 checks. 93 model-directory annotations join 92 original names plus the type 0/1
 alias. Type 30's substituted selector and eleven other placeholder-name entries
 remain explicit. These are catalogue associations, not visual identification or
-an all-path runtime instance census. The latest catalogue/hardware suite passes
-125 cases; earlier text/renderer checks retain their separate receipts. Source
+an all-path runtime instance census. That early catalogue/hardware suite passed 125 cases; the current focused
+cursor/provenance/integration suite passes 299. Earlier text/renderer checks
+retain their separate receipts. Source
 quality has zero diagnostics and retains the known encoded-entry boundary conflict.
 
 A second generic renderer defect hid interior pointer-table annotations.
@@ -61,6 +63,58 @@ Scope: the UA/WOW Amiga disk already imported in this repository. Restore readab
 original absolute-address assembly, extracted assets and exact raw payloads. No
 relocation, C conversion or replacement OS loader is part of this project.
 
+## Active priorities after cursor-span qualification
+
+The current source has 299 app field records, 93 generic names and 14,728
+unclassified bytes in 260 intervals. These measure different kinds of work,
+not overall completion. The current residual index is recomputed from retained
+native facts without another generation; the 15,111-byte/256-interval review
+below remains historical. Its enriched static-site counts must not be presented
+as current or directly compared to the new index's resolved-reference records.
+
+The useful next opportunities, in order of demonstrated missing links, are:
+
+1. **Changing cursors across loops/saved slots.** Exact single-instruction
+   postincrement/immediate updates and full MOVEM spans are implemented and
+   fixture-qualified below. The actual 20-point cache still has only two
+   address-formation records: joins erase its changing A4/saved-cursor positions.
+   Establish the finite original loop/owner/stride contract before admitting a
+   range. Do not infer it from storage capacity or claim arbitrary loops safe.
+2. **App-base contexts and downstream consumers.** New matrix/control cursor
+   references retain their A6 fallback labels. Trace concrete entry/caller and
+   register-borrowing paths where they can change attribution; do not turn all
+   fallback references into proof or demand universal hostile-input closure.
+3. **Orphan inbound paths.** Current native signals contain 30 unresolved and
+   five suppressed candidates. Inspect concrete missing callback/table/return
+   edges or use targeted normal-input observation. Appearance alone is neither
+   code promotion nor evidence of dead code; solved dispatch/solver issues are
+   not reopened without a new failing example.
+4. **Shared workspace phases.** View/projected-vertex types now distinguish
+   actual producers and flag-byte conventions. Extend only connected phase or
+   alias contracts supported by those consumers, preserving opaque tails and
+   original unchecked domains rather than allocating meanings from adjacency.
+5. **Model selectors and identities.** Join the existing model/name directories,
+   callback variants and observed original instances where they constrain an
+   identity or selector domain. Catalogue association is not visual identity;
+   the eleven placeholder-name cases and substituted type-30 selector remain
+   hypotheses until stronger consumer/runtime evidence is available.
+
+For those priorities the immediate acceptance questions and dependencies are:
+
+| Limitation | What it currently blocks | Next bounded experiment | Why it is sequenced here |
+| --- | --- | --- | --- |
+| Point-field loop and saved cursor | Complete native access spans for world/cache triplets, despite two known address formations | Reproduce the DBF-20 loop and saved-slot increment in small fixtures; compare preheader, join and storage states, then admit only a range justified by original counter/stride/owner facts | Exact instruction spans must be qualified first; that replacement is now complete. A single exact address cannot stand in for a changing loop position. |
+| Conditional app base | Stronger attribution for fallback matrix, input and object-workspace references | Trace producers of `game_workspace_base`, its A6 loads, register copies/borrows and concrete entry/callback edges; reproduce any dropped propagation with a native fixture | Next after the range fixture; current declarations identify relative fields but do not establish their runtime register origin. |
+| Orphan incoming path | Deciding whether a specific decoded island belongs in accepted code | Rank current unresolved signals against recovered pointer/table/return edges; choose one with a concrete inbound lead and, only if static evidence remains insufficient, observe that original normal-input condition | Follow recovered access/base evidence to avoid repeatedly scanning instruction-shaped bytes without an entry hypothesis. |
+| Shared buffer phase | Distinguishing producers/consumers of aliased scratch cells and safe source type views | Join the current vertex/cache/polygon writers and readers by original phase/entry; test one suspected overwrite-before-use or cross-phase consumer | Depends on accurate cursor/base associations; physical adjacency or storage capacity alone cannot identify ownership/lifetime. |
+| Model selector ambiguity | Attaching actual selector/variant meaning or an object identity to unresolved names | Join existing header/name/callback records with a selected original runtime instance or direct consumer; retain a counterexample for the type-30 substitution | After access/base work, unless an independent exact table consumer settles a case cheaply. No visual identity is inferred from a name-directory row. |
+| Stale residual accounting | Choosing work from obsolete intervals or falsely stopping at an old closeout | Recompute the ownership complement and current resolved-reference associations from the retained current native analysis | Completed in this batch without another build; the older enriched survey remains dated evidence, not a live stop condition. |
+
+Residual-index freshness is maintenance of this evidence, not a reason to run
+more gameplay or generate source. All-path, arbitrary-model/index, timing and
+unused-storage caveats remain honest limits; they are not automatically bugs or
+mandatory proof programmes. No new runtime campaign is part of this cursor pass.
+
 ## Committed buildable rendered output
 
 The user explicitly requested the final rendered source and dependencies in Git.
@@ -79,10 +133,10 @@ See `runtime/observations/starglider2-rendered-publication.json` for the clean
 committed-layout rebuild. The older archive receipt records its original
 private-delivery stage; it is not the current source-publication policy.
 
-## Reviewed closeout and remaining limits
+## Historical reviewed closeout and retained evidence
 
-The bounded residual review accounts for every unclassified interval from the
-current native ownership union. Of 256 intervals, 58 have resolved static
+At its recorded closeout revision, the bounded residual review accounted for
+15,111 unclassified bytes in 256 intervals. Of those intervals, 58 had resolved static
 operand sites and 198 do not. There is no current native code-start fact inside
 that complement. This does not prove absence of indirect/implicit entries,
 cursor aliases or later writes, and no interval is called unused or dead.
@@ -96,8 +150,8 @@ such as `$2F70..$3374` and `$653E..$67F4`, and detailed mutable render/world/
 alternate-backend state. Their source uses and exact intervals are recorded in
 `runtime/observations/starglider2-original-unknown-intervals.json`. No whole-span
 scratch reservation, arbitrary-index safety, all-callers lifetime or missing
-reader proof is manufactured. Deeper semantic refinement is optional future
-work, not hidden completion of those meanings.
+reader proof is manufactured. That historical disposition did not establish those meanings. Substantive
+semantic refinement is now active under the later user instruction.
 
 The original bootblock's `$24..$38` installer copies five LONGs from its `$38`
 source to `$380`. Its resident shim recognizes stacked return address `$13C06`
@@ -115,17 +169,18 @@ Reset/intro low-memory dependencies and the 448-byte uncopied loader suffix
 remain qualified. There is no all-path/game-completion or new output-equivalence
 claim for this source review.
 
-The last active residual lead was the nearby-sound analysis routine: it now has
+The last residual lead in that closeout batch was the nearby-sound analysis routine: it now has
 named heading/suffix text and its actual two-slot pointer prefix, around the
 existing object-name directory, plus a gated modulo512 notice phase. Two
 following zero bytes remain unclassified. All prior accepted code is retained.
 See `runtime/observations/starglider2-original-closeout.json`.
 
-The useful source completion gate has been met with explicit unknowns. The
+That bounded source-review gate was met with explicit unknowns at the time. The
 normal source/INCBIN export and clean extracted standalone build are exact.
 `Starglider2-original-restored-ed496d68.zip` was delivered privately. The archive
-is not an AmigaDOS executable or a reconstructed boot disk. No relocation, C
-conversion or further naming queue is active. The immutable source-review
+is not an AmigaDOS executable or a reconstructed boot disk. No relocation or C conversion is active. The earlier stop on naming work is
+superseded: evidence-backed source reconstruction and analysis-gap repair are
+active; exact rebuilding alone does not close that work. The immutable source-review
 receipt predates packaging; `runtime/observations/starglider2-original-release.json`
 closes its delivery gate.
 
@@ -2336,3 +2391,50 @@ quality diagnostics. Native C/vasm, the INCBIN-source C check and a clean staged
 standalone build reproduce the original 412,736 bytes; all 57 assets remain
 unchanged. The 14,728 unclassified bytes/260 intervals and accepted code are
 unchanged. See `runtime/observations/starglider2-vertex-record-state.json`.
+
+## Exact moving cursors and grouped memory footprints
+
+The next native fix retains exact app addresses through postincrement and
+admitted immediate ADD/SUB updates, and calculates contiguous MOVEM WORD/LONG
+spans from generated instruction metadata and the decoded register mask. JSON
+keeps element width, transfer count and full data width separately, alongside
+logical target, encoded displacement and inherited base evidence. The existing
+app-access audit consumes that native full span; Python does not independently
+infer instruction semantics or upgrade a fallback to a base-address proof.
+
+Five positive fixtures reproduced the prior omission. The final 299 focused
+cases pass, including native source/listing/audit integration, encoded-source
+reassembly, whole-owner containment and conservative alias/unknown-update
+refusals. A separate fixture checks that an unsupported MOVEM source-affine
+cursor is cleared rather than silently advanced by one WORD. Predecrement,
+striped/indexed/dual updates, overwritten EA registers and unproved loop ranges
+remain refused. No iteration cap was raised. These are instruction footprints,
+not automatically lifetime, loop-trip or arbitrary-index proofs.
+
+On Starglider, all 3,096 previous app references remain and 49 are added, for
+3,145 total: 45 matrix WORD reads plus four other accesses. Forty-five additions
+retain declared-layout A6 fallback and four retain ordinary A6 fallback. No new
+grouped target footprint is claimed: the MOVEM capability is fixture-evidenced,
+while the real point-cache loop still has only its two address formations.
+Different cursor positions at the loop join and saved-slot updates prevent an
+exact address; a finite range contract is the next concrete missing link.
+
+The first full candidate conservatively lost three legitimate scalar records
+because its alias filter conflated Dn and An sharing a register number. This was
+caught before publication, fixed and covered with same-number register tests.
+The corrected target run retains every old record, converges without quality
+diagnostics and takes 74.10 seconds. Inline source and the entire 57-asset
+INCBIN package are byte-for-byte equal to the prior qualified build; current
+native C/vasm still reproduces the complete original payload. An unchanged
+standalone package was not rebuilt again solely for another receipt. Canonical
+facts, accepted code, ownership and the 299 fields/93 generic names are unchanged.
+
+The refreshed native residual index binds the current analysis/source/backend:
+14,728 bytes in 260 intervals, 57 intervals with 702 resolved native reference
+records and zero code-start facts inside the complement. This is not the older
+enriched operand-site survey and does not repeat its 58/714 counts as current.
+The historical 15,111-byte/256-interval review is preserved unchanged with overlap
+links. Current orphan signals are 30 unresolved and five suppressed candidates,
+not 35 newly proved code entries. See
+`runtime/observations/starglider2-app-memory-spans.json` and
+`runtime/observations/starglider2-current-unknown-intervals.json`.

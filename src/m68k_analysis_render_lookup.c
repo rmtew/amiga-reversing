@@ -1291,6 +1291,10 @@ static void typed_state_clear_reg(M68kRenderTypedState *state, uint8_t reg_kind,
 static void typed_memory_base_clear(M68kRenderTypedMemoryBaseValue *value);
 static int typed_memory_base_offset_add(uint32_t base_offset, int32_t displacement, uint32_t *out_offset);
 static void typed_memory_base_clear_pointer_table_if_offset_outside(M68kRenderTypedMemoryBaseValue *value);
+static int typed_app_memory_span(const M68kRenderLookup *lookup, const M68kRenderTypedState *state,
+    const M68kInstructionIR *instruction, size_t operand_index, uint8_t *out_reg,
+    int16_t *out_displacement, uint8_t *out_access, uint8_t *out_width,
+    uint8_t *out_element_width, uint8_t *out_count);
 static int render_lookup_record_derived_app_accesses(M68kRenderLookup *lookup, size_t section_index,
     const M68kRenderTypedState *state, const M68kInstructionIR *instruction, uint32_t offset);
 static int render_lookup_record_affine_address_uses(M68kRenderLookup *lookup, size_t section_index,
@@ -7140,7 +7144,21 @@ static void typed_state_update_after_instruction(M68kRenderTypedState *state, M6
   int source_is_direct_addr_reg = 0;
   int source_tracks_plain_addr_alias = 0;
   int recognized_stack_update = 0;
+  uint8_t app_update_reg = 0U, app_update_width = 0U;
+  M68kRenderTypedAppAddressValue app_after_update = {0};
   if (state == NULL || instruction == NULL) return;
+  for (operand_index = 0U; operand_index < instruction->operand_count && operand_index < 4U; ++operand_index) {
+    const M68kOperandIR *operand = &instruction->operands[operand_index];
+    uint8_t access, element_width, count;
+    int16_t displacement;
+    if (m68k_instruction_operand_decoded_ea_shape(operand) != M68K_SIM_EA_SHAPE_POSTINCREMENT ||
+        !typed_app_memory_span(lookup, state, instruction, operand_index, &app_update_reg,
+          &displacement, &access, &app_update_width, &element_width, &count)) continue;
+    if ((int32_t)state->app_addr_regs[app_update_reg].displacement + app_update_width <= INT16_MAX) {
+      app_after_update = state->app_addr_regs[app_update_reg];
+      app_after_update.displacement = (int16_t)(app_after_update.displacement + app_update_width);
+    }
+  }
   typed_origin_clear(&source_origin);
   typed_provenance_clear(&source_provenance);
   typed_memory_base_clear(&source_memory_base);
@@ -7643,6 +7661,7 @@ static void typed_state_update_after_instruction(M68kRenderTypedState *state, M6
              instruction->operand_count == 2U &&
              m68k_ir_operand_immediate_value(&instruction->operands[0], &immediate_value) &&
              operand_address_register_index_local(&instruction->operands[1], &dest_reg) && dest_reg < 8U) {
+    M68kRenderTypedAppAddressValue previous_app = state->app_addr_regs[dest_reg];
     M68kRenderTypedRegValue *value = &state->addr_regs[dest_reg];
     int32_t delta = (instruction->mnemonic_id == M68K_ASM_MNEMONIC_SUB ||
       instruction->mnemonic_id == M68K_ASM_MNEMONIC_SUBA ||
@@ -7684,6 +7703,16 @@ static void typed_state_update_after_instruction(M68kRenderTypedState *state, M6
         }
       }
     }
+    /* Retain only exactly represented arithmetic. Signed WORD immediates
+     * outside the nonnegative range need a separate signed decode contract. */
+    if (previous_app.known && immediate_value <= INT32_MAX &&
+        (instruction->size_suffix != 'w' || immediate_value <= INT16_MAX)) {
+      int64_t next = (int64_t)previous_app.displacement + delta;
+      if (next >= INT16_MIN && next <= INT16_MAX) {
+        state->app_addr_regs[dest_reg] = previous_app;
+        state->app_addr_regs[dest_reg].displacement = (int16_t)next;
+      }
+    }
   } else if (instruction->operand_count != 0U) {
     for (operand_index = 0U; operand_index < instruction->operand_count; ++operand_index) {
       const M68kOperandIR *operand = &instruction->operands[operand_index];
@@ -7718,6 +7747,12 @@ static void typed_state_update_after_instruction(M68kRenderTypedState *state, M6
         int32_t access_size = (int32_t)instruction_size_suffix_bytes_local(instruction->size_suffix);
         int32_t delta = operand->value.ea_mode == 3U ? access_size :
           (operand->value.ea_mode == 4U ? -access_size : 0);
+        if (metadata->multi_transfer_direction != M68K_SIM_MULTI_NONE) {
+          /* Multi-transfer source-affine retention is not this lane. Clearing
+           * is preferable to silently advancing by one element. */
+          typed_memory_base_clear(&memory_base);
+          delta = 0;
+        }
         typed_state_clear_reg(state, M68K_ANALYSIS_REGISTER_ADDRESS, operand->value.ea_reg);
         if (preserve_cursor) {
           uint16_t struct_size = lookup_policy_struct_size_by_id(lookup->policy, previous.struct_id);
@@ -7748,6 +7783,7 @@ static void typed_state_update_after_instruction(M68kRenderTypedState *state, M6
       }
     }
   }
+  if (app_after_update.known) state->app_addr_regs[app_update_reg] = app_after_update;
   if (instruction_may_update_stack_pointer_from_metadata(instruction) && !recognized_stack_update &&
       !instruction_has_call_flow_local(instruction))
     typed_state_clear_stack_slots(state);
@@ -11397,30 +11433,92 @@ static int policy_declared_app_extent_covers(const M68kAnalysisPolicy *policy, i
   return 0;
 }
 
+/* One exact instruction footprint, never a loop-trip or cursor-range proof.
+ * Predecrement/striped/indexed and shared update bases remain refused. */
+static int typed_app_memory_span(const M68kRenderLookup *lookup, const M68kRenderTypedState *state,
+    const M68kInstructionIR *instruction, size_t operand_index, uint8_t *out_reg,
+    int16_t *out_displacement, uint8_t *out_access, uint8_t *out_width,
+    uint8_t *out_element_width, uint8_t *out_count) {
+  const M68kSimFormMetadata *metadata = m68k_sim_metadata_for_instruction(instruction);
+  const M68kOperandIR *operand;
+  uint8_t reg, access, width, count = 1U, shape;
+  int16_t displacement = 0;
+  int32_t target;
+  size_t index;
+  if (lookup == NULL || state == NULL || metadata == NULL || operand_index >= instruction->operand_count ||
+      operand_index >= 4U || metadata->striped_direction != M68K_SIM_STRIPED_NONE) return 0;
+  operand = &instruction->operands[operand_index];
+  shape = m68k_instruction_operand_decoded_ea_shape(operand);
+  if (shape == M68K_SIM_EA_SHAPE_POSTINCREMENT && operand->kind == M68K_ASM_OPERAND_EA) {
+    reg = operand->value.ea_reg;
+  } else if (!operand_is_address_memory_local(operand, &reg, &displacement)) return 0;
+  if (reg >= 7U || !state->app_addr_regs[reg].known ||
+      state->app_addr_regs[reg].base_evidence_kind == M68K_APP_SLOT_BASE_UNSPECIFIED) return 0;
+  if (metadata->multi_transfer_direction != M68K_SIM_MULTI_NONE) {
+    uint8_t reglist_index = metadata->reglist_operand_index;
+    uint16_t mask;
+    if (metadata->operation_type != M68K_SIM_OP_MOVE_MULTIPLE ||
+        metadata->address_operand_index != operand_index || reglist_index >= instruction->operand_count ||
+        instruction->operands[reglist_index].kind != M68K_ASM_OPERAND_REGLIST ||
+        (shape != M68K_SIM_EA_SHAPE_INDIRECT && shape != M68K_SIM_EA_SHAPE_DISPLACEMENT &&
+         shape != M68K_SIM_EA_SHAPE_POSTINCREMENT)) return 0;
+    mask = (uint16_t)instruction->operands[reglist_index].value.value;
+    /* Loading the EA register changes its value independently of memory
+     * cursor motion. Do not resurrect its old app identity afterwards. */
+    if ((mask & (1U << (8U + reg))) != 0U) return 0;
+    count = 0U;
+    for (index = 0U; index < 16U; ++index) if ((mask & (1U << index)) != 0U) ++count;
+    width = (uint8_t)instruction_size_suffix_bytes_local(instruction->size_suffix);
+    if (count == 0U || (width != 2U && width != 4U)) return 0;
+    access = metadata->multi_transfer_direction == M68K_SIM_MULTI_MEMORY_TO_REGISTER
+      ? M68K_APP_SLOT_ACCESS_READ : M68K_APP_SLOT_ACCESS_WRITE;
+  } else {
+    access = app_slot_access_kind_from_instruction(instruction, operand_index);
+    if (access == M68K_APP_SLOT_ACCESS_NONE) return 0;
+    width = access == M68K_APP_SLOT_ACCESS_ADDRESS ? 0U :
+      m68k_sim_operand_width_bytes(instruction, (uint8_t)operand_index);
+    if (access != M68K_APP_SLOT_ACCESS_ADDRESS && width != 1U && width != 2U && width != 4U) return 0;
+    if (access == M68K_APP_SLOT_ACCESS_ADDRESS && shape == M68K_SIM_EA_SHAPE_POSTINCREMENT) return 0;
+    for (index = 0U; index < instruction->operand_count; ++index) {
+      uint8_t other_reg, other_shape;
+      const M68kOperandIR *other = &instruction->operands[index];
+      if (index == operand_index) continue;
+      if (operand_address_register_index_local(other, &other_reg) && other_reg == reg) return 0;
+      other_shape = m68k_instruction_operand_decoded_ea_shape(other);
+      if (other_shape == M68K_SIM_EA_SHAPE_POSTINCREMENT || other_shape == M68K_SIM_EA_SHAPE_PREDECREMENT)
+        return 0;
+      if ((other->kind == M68K_ASM_OPERAND_EA || other->kind == M68K_ASM_OPERAND_BF_EA) &&
+          other->value.ea_reg == reg &&
+          (other_shape == M68K_SIM_EA_SHAPE_INDIRECT || other_shape == M68K_SIM_EA_SHAPE_DISPLACEMENT ||
+           other_shape == M68K_SIM_EA_SHAPE_INDEX)) return 0;
+      if (other_shape == M68K_SIM_EA_SHAPE_INDEX && other->value.index_is_address &&
+          other->value.index_reg == reg) return 0;
+    }
+  }
+  target = (int32_t)state->app_addr_regs[reg].displacement + displacement;
+  if (target < INT16_MIN || target > INT16_MAX ||
+      !policy_declared_app_extent_covers(lookup->policy, (int16_t)target, (uint8_t)(width * count))) return 0;
+  *out_reg = reg; *out_displacement = displacement; *out_access = access;
+  *out_width = (uint8_t)(width * count); *out_element_width = width;
+  *out_count = access == M68K_APP_SLOT_ACCESS_ADDRESS ? 0U : count;
+  return 1;
+}
+
 /* Reuse the converged app-address domain; a pointee type is not required.
  * This is catalogue projection, not a new preservation or runtime proof. */
 static int render_lookup_record_derived_app_accesses(M68kRenderLookup *lookup, size_t section_index,
     const M68kRenderTypedState *state, const M68kInstructionIR *instruction, uint32_t offset) {
-  const M68kSimFormMetadata *metadata;
   size_t operand_index, index;
   if (lookup == NULL || state == NULL || instruction == NULL || lookup->typed_flow_incomplete_count != 0U)
     return 0;
-  metadata = m68k_sim_metadata_for_instruction(instruction);
-  if (metadata == NULL || metadata->multi_transfer_direction != M68K_SIM_MULTI_NONE ||
-      metadata->striped_direction != M68K_SIM_STRIPED_NONE) return 0;
   for (operand_index = 0U; operand_index < instruction->operand_count && operand_index < 4U; ++operand_index) {
-    uint8_t base_reg, access, width;
+    uint8_t base_reg, access, width, element_width, count;
     int16_t operand_displacement;
     int32_t target;
     const M68kRenderTypedAppAddressValue *base;
-    if (!operand_is_address_memory_local(&instruction->operands[operand_index], &base_reg,
-        &operand_displacement) || base_reg >= 8U) continue;
+    if (!typed_app_memory_span(lookup, state, instruction, operand_index, &base_reg,
+        &operand_displacement, &access, &width, &element_width, &count)) continue;
     base = &state->app_addr_regs[base_reg];
-    if (!base->known || base->base_evidence_kind == M68K_APP_SLOT_BASE_UNSPECIFIED) continue;
-    access = app_slot_access_kind_from_instruction(instruction, operand_index);
-    if (access == M68K_APP_SLOT_ACCESS_NONE) continue;
-    width = app_slot_access_size_from_instruction(instruction, access);
-    if (access != M68K_APP_SLOT_ACCESS_ADDRESS && (width == 0U || width > 4U)) continue;
     target = (int32_t)base->displacement + operand_displacement;
     if (target < INT16_MIN || target > INT16_MAX ||
         !policy_declared_app_extent_covers(lookup->policy, (int16_t)target, width)) continue;
@@ -11435,6 +11533,8 @@ static int render_lookup_record_derived_app_accesses(M68kRenderLookup *lookup, s
         ref->ref.operand_displacement = operand_displacement;
         ref->ref.has_derived_base = 1U;
         ref->ref.access_size = access == M68K_APP_SLOT_ACCESS_ADDRESS ? 0U : width;
+        ref->ref.element_width = element_width;
+        ref->ref.transfer_count = count;
         break;
       }
     }

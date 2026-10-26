@@ -6612,8 +6612,8 @@ static const char *app_slot_access_kind_name(uint8_t access_kind) {
 static int append_app_slot_derived_json(JsonBuilder *builder, const M68kAppSlotRefIR *ref) {
   if (ref == NULL || !ref->has_derived_base) return 0;
   return json_builder_appendf(builder,
-    ",\"derived\":true,\"base_displacement\":%d,\"operand_displacement\":%d,\"data_access_size\":%u",
-    (int)ref->base_displacement, (int)ref->operand_displacement, (unsigned)ref->access_size);
+    ",\"derived\":true,\"base_displacement\":%d,\"operand_displacement\":%d,\"data_access_size\":%u,\"element_width\":%u,\"transfer_count\":%u",
+    (int)ref->base_displacement, (int)ref->operand_displacement, (unsigned)ref->access_size, (unsigned)ref->element_width, (unsigned)ref->transfer_count);
 }
 
 static const char *app_slot_base_evidence_kind_name(uint8_t kind) {

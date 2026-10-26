@@ -133,3 +133,30 @@ def test_public_report_has_bound_site_file_and_no_original_instruction_bytes(tmp
     assert summary['site_details']['records'] == 1
     assert 'sites' not in summary
     assert 'bytes' not in json.loads(details.read_text())
+
+
+def test_native_grouped_span_drives_footprint_without_upgrading_base_evidence():
+    r = row(base_register='A5', bulk_transfer=True, width_bytes=2)
+    r['app_slot_refs'] = [dict(operand_index=0, displacement=4, symbol='counter', access='read',
+        derived=True, base_displacement=4, operand_displacement=0, data_access_size=4,
+        element_width=2, transfer_count=2, base_evidence='a6_fallback')]
+    site = audit(r)['sites'][0]
+    assert site['domain'] == 'native_app_attribution'
+    assert site['width_bytes'] == 2 and site['footprint_width_bytes'] == 4
+    assert site['footprint_known'] and site['footprint_source'] == 'native_derived_span'
+    assert site['overlapping_declarations'] == ['counter', 'counter_low']
+    assert site['app_attributions'][0]['base_evidence'] == 'a6_fallback'
+
+
+@pytest.mark.parametrize('mutation', [dict(data_access_size=6), dict(element_width=4),
+    dict(transfer_count=0), dict(transfer_count=True), dict(derived=False), dict(access='address')])
+def test_malformed_or_unbound_grouped_span_remains_unknown(mutation):
+    r = row(base_register='A5', bulk_transfer=True, width_bytes=2)
+    ref = dict(operand_index=0, displacement=4, symbol='counter', access='read', derived=True,
+        data_access_size=4, element_width=2, transfer_count=2, base_evidence='a6_fallback')
+    ref.update(mutation)
+    r['app_slot_refs'] = [ref]
+    site = audit(r)['sites'][0]
+    assert not site['footprint_known']
+    assert site['footprint_width_bytes'] is None
+    assert not site['overlapping_declarations']
