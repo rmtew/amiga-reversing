@@ -188,6 +188,17 @@ typedef struct M68kRenderBaseFieldSlot {
   uint8_t conflicted;
 } M68kRenderBaseFieldSlot;
 
+/* A CFG-proved use of an existing canonical RSSET field. This is render
+ * projection, not a new owner, policy input, or address-value domain. */
+typedef struct M68kRenderLayoutFieldUse {
+  size_t section_index;
+  uint32_t offset;
+  uint16_t region_index;
+  uint8_t operand_index;
+  uint8_t base_reg;
+  int16_t displacement;
+} M68kRenderLayoutFieldUse;
+
 #define M68K_APP_LAYOUT_NAME "app"
 
 #define M68K_RENDER_BASE_FIELD_SLOT_LIBRARY_BASE 0U
@@ -368,6 +379,9 @@ typedef struct M68kRenderTypedRegValue {
   uint16_t array_element_count;
   uint16_t array_element_index;
   int32_t byte_cursor;
+  /* Exact unmodified runtime layout base. 0 unknown, 1 app, otherwise the
+   * canonical RSSET region index + 2; artifact-local, never a guest address. */
+  uint16_t layout_base_id;
   M68kRenderTypedStorageOrigin origin;
   M68kAddressValueTableOriginIR table_origin;
   size_t pointer_target_section_index;
@@ -427,6 +441,7 @@ typedef struct M68kRenderTypedStoredValue {
   uint16_t struct_id;
   uint16_t array_element_count;
   uint16_t array_element_index;
+  uint16_t layout_base_id;
   int32_t byte_cursor;
   uint8_t app_address_known;
   int16_t app_displacement;
@@ -762,6 +777,9 @@ struct M68kRenderLookup {
   M68kRenderAppSlotRef *app_slot_refs;
   size_t app_slot_ref_count;
   size_t app_slot_ref_capacity;
+  M68kRenderLayoutFieldUse *layout_field_uses;
+  size_t layout_field_use_count;
+  size_t layout_field_use_capacity;
   M68kRenderDeviceInstance *device_instances;
   size_t device_instance_count;
   size_t device_instance_capacity;
@@ -950,6 +968,8 @@ void render_asm_sync_logical_pc(M68kRenderIRPreview *preview, const M68kRenderLo
   size_t section_index, uint32_t source_offset, uint32_t *io_logical_pc);
 void platform_state_clear_data_lvo(M68kRenderPlatformState *state, uint8_t reg_index);
 int platform_state_name_is_app_base(const char *name);
+int platform_state_set_named_base_value(M68kRenderPlatformState *state, const M68kAnalysisPolicy *policy,
+    uint8_t register_kind, uint8_t register_index, const char *base_symbol);
 void platform_state_set_register_library(M68kRenderPlatformState *state, uint8_t reg_index,
   const char *library_name);
 int operand_is_address_displacement_local(const M68kOperandIR *operand, uint8_t *out_reg,

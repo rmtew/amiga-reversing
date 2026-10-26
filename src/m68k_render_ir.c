@@ -1792,6 +1792,19 @@ static void platform_state_set_register_layout_base(M68kRenderPlatformState *sta
   }
 }
 
+int platform_state_set_named_base_value(M68kRenderPlatformState *state, const M68kAnalysisPolicy *policy,
+    uint8_t register_kind, uint8_t register_index, const char *base_symbol) {
+  if (register_index >= 8U || (register_kind != M68K_ANALYSIS_REGISTER_DATA &&
+      register_kind != M68K_ANALYSIS_REGISTER_ADDRESS)) return 0;
+  if (platform_state_name_is_app_base(base_symbol)) {
+    platform_state_set_register_app_base(state, register_kind, register_index);
+    return 1;
+  }
+  if (!policy_has_layout_base_symbol(policy, base_symbol)) return 0;
+  platform_state_set_register_layout_base(state, register_kind, register_index, base_symbol);
+  return 1;
+}
+
 static int platform_state_set_register_hardware_base(M68kRenderPlatformState *state, uint8_t reg_index,
     const char *base_symbol) {
   uint16_t base_id;
@@ -8915,6 +8928,28 @@ static int lookup_rsset_use_site_binding_symbol_name(const M68kRenderLookup *loo
       snprintf(found_symbol, sizeof(found_symbol), "%s", region->symbol);
       found_addend = candidate_addend;
       found = 1;
+    }
+  }
+  if (found == 0) {
+    size_t lo = 0U, hi = lookup->layout_field_use_count;
+    while (lo < hi) {
+      size_t mid = lo + (hi - lo) / 2U;
+      const M68kRenderLayoutFieldUse *use = &lookup->layout_field_uses[mid];
+      if (use->section_index < section_index ||
+          (use->section_index == section_index && use->offset < offset)) lo = mid + 1U;
+      else hi = mid;
+    }
+    for (; lo < lookup->layout_field_use_count; ++lo) {
+      const M68kRenderLayoutFieldUse *use = &lookup->layout_field_uses[lo];
+      const M68kAnalysisRssetLayoutRegion *region;
+      if (use->section_index != section_index || use->offset != offset) break;
+      if (use->operand_index != operand_index || use->base_reg != base_reg ||
+          use->displacement != displacement || use->region_index >= policy->rsset_layout_region_count) continue;
+      region = &policy->rsset_layout_regions[use->region_index];
+      snprintf(found_symbol, sizeof(found_symbol), "%s", region->symbol);
+      found_addend = displacement - (int32_t)region->offset;
+      found = 1;
+      break;
     }
   }
   if (found == 0 || symbol_name == NULL || symbol_name_size == 0U) return found;

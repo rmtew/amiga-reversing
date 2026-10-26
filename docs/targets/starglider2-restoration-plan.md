@@ -34,7 +34,7 @@ checks. 93 model-directory annotations join 92 original names plus the type 0/1
 alias. Type 30's substituted selector and eleven other placeholder-name entries
 remain explicit. These are catalogue associations, not visual identification or
 an all-path runtime instance census. That early catalogue/hardware suite passed 125 cases; the current focused
-cursor/provenance/integration suite passes 363. Earlier text/renderer checks
+cursor/provenance/integration suite passes 391. Earlier text/renderer checks
 retain their separate receipts. Source
 quality has zero diagnostics and retains the known encoded-entry boundary conflict.
 
@@ -74,12 +74,14 @@ as current or directly compared to the new index's resolved-reference records.
 
 The useful next opportunities, in order of demonstrated missing links, are:
 
-1. **Changing cursors across loops/saved slots.** Exact single-instruction
+1. **Changing cursors across loops/mutable cells.** Exact single-instruction
    postincrement/immediate updates and full MOVEM spans are implemented and
    fixture-qualified below. The 20-point initializer now has five
-   proved strided write patterns. The branchy draw/readback path still loses its
-   changing A4/saved-cursor positions at joins/retries. Establish its counter-
-   relative invariant and saved-slot contract before admitting that range. Do not infer it from storage capacity or claim arbitrary loops safe.
+   proved strided write patterns. Whole-root stack transport is now fixture-qualified through the shared typed
+   value, including mixed Dn/An saves and existing call effects. The branchy
+   draw/readback path still loses its changing A4 position at retries and its
+   cache cursor across mutable absolute cell $4E5C0. Establish a flow-sensitive
+   cell contract and counter-relative invariant before admitting that range. Do not infer it from storage capacity or claim arbitrary loops safe.
 2. **App-base contexts and downstream consumers.** New matrix/control cursor
    references retain their A6 fallback labels. Trace concrete entry/caller and
    register-borrowing paths where they can change attribution; do not turn all
@@ -103,8 +105,8 @@ For those priorities the immediate acceptance questions and dependencies are:
 
 | Limitation | What it currently blocks | Next bounded experiment | Why it is sequenced here |
 | --- | --- | --- | --- |
-| Branchy point-field loop and saved cursor | Renderer read/update spans for world/cache triplets; initialization is now bounded | Extend the retry/DBF fixture with the original saved-slot increment and rollback, checking cursor=base+6*(initial-counter) | Single-entry straight-line DBF ranges are qualified. The actual renderer can retry without decrementing the counter, so a constant-stride body summary is insufficient. |
-| Remaining conditional app bases | Explicit provenance for 2,995 fallback records after 179 existing records acquire declared-holder register-state attribution | Group remaining sites by actual entry/call and base producer/borrow; select one concrete lost or conflicting transfer | The holder contract covers its 28 direct loads, not unknown callbacks or callees without a preservation contract. |
+| Branchy point-field loop and mutable absolute cursor cell | Renderer read/update spans for world/cache triplets; initialization is bounded | Eight probes distinguish the failures: straight DBF has one range, retry/rollback has none; absolute cursor store/load works until +6 arithmetic. Trace local memory versions/alias invalidation, then check cursor=base+6*(initial-counter) on every retry edge | Actual renderer $4E0AC..$4E332 retries at $4E350 without decrementing D7; cache pointer crosses absolute cell $4E5C0. Whole-root stack transport is fixed but changes no target facts. Global writer-summary storage is not a per-program-point memory value. No target-shaped loop recognizer or dense extra per-node slot array is justified. |
+| Remaining conditional app bases | Explicit provenance for 3,022 fallback records (2,503 A6 and 519 declared-layout), alongside 184 register-state and one library-extension record | Group remaining sites by actual entry/call and base producer/borrow; select one concrete lost or conflicting transfer | The holder contract covers its 28 direct loads, not unknown callbacks or callees without a preservation contract. |
 | Orphan incoming path | Deciding whether a specific decoded island belongs in accepted code | Rank current unresolved signals against recovered pointer/table/return edges; choose one with a concrete inbound lead and, only if static evidence remains insufficient, observe that original normal-input condition | Follow recovered access/base evidence to avoid repeatedly scanning instruction-shaped bytes without an entry hypothesis. |
 | Shared buffer phase | Distinguishing producers/consumers of aliased scratch cells and safe source type views | Join the current vertex/cache/polygon writers and readers by original phase/entry; test one suspected overwrite-before-use or cross-phase consumer | Depends on accurate cursor/base associations; physical adjacency or storage capacity alone cannot identify ownership/lifetime. |
 | Model selector ambiguity | Attaching actual selector/variant meaning or an object identity to unresolved names | Join existing header/name/callback records with a selected original runtime instance or direct consumer; retain a counterexample for the type-30 substitution | After access/base work, unless an independent exact table consumer settles a case cheaply. No visual identity is inferred from a name-directory row. |
@@ -114,6 +116,31 @@ Residual-index freshness is maintenance of this evidence, not a reason to run
 more gameplay or generate source. All-path, arbitrary-model/index, timing and
 unused-storage caveats remain honest limits; they are not automatically bugs or
 mandatory proof programmes. No new runtime campaign is part of this cursor pass.
+
+## Whole-base transport: current system-first result
+
+The [shared-value receipt](../../runtime/observations/starglider2-layout-base-value-transport.json)
+records 391 passing focused checks. App and other declared layout roots now use
+ordinary typed value packets across LONG copies, mixed-register MOVEM stack
+frames and inferred/declared call preservation. Partial writes, arithmetic,
+conflicting joins, unresolved calls and incomplete analysis do not fabricate a
+base. Named-layout uses reach normal native reference/render projection; explicit
+use-site bindings retain priority and overlapping ambiguous layouts stay unnamed.
+The ID occupies existing padding: register/stored/state/CFG-node sizes remain
+272/248/32488/74448 bytes on this build. No target addresses or special routine
+names were added to shared analysis.
+
+All target analysis facts, source and package bytes are identical to b93df319:
+3,207 app references, 248 typed accesses, 303 fields and 14,728 unknown bytes.
+C and vasm rebuild all 412,736 bytes exactly. This is a regression-backed shared
+mechanism repair, **not** a claim of new Starglider semantic understanding.
+One generation measured 129.51 seconds versus the previous 102.11-second sample;
+several phases varied, so no isolated causal performance claim is made.
+
+The next system-first work remains mutable memory/cursor provenance and the
+retry SCC experiment in the table above, followed by concrete fallback contexts
+and orphan inbound leads. No naming detour, runtime campaign or interim package
+was started for this batch.
 
 ## Committed buildable rendered output
 
