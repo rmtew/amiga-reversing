@@ -1384,10 +1384,10 @@ static M68kPlatformContractCompositionState function_summary_compose_platform_co
 
 #define M68K_RENDER_TYPED_FLOW_DEFAULT_NODE_VISIT_LIMIT 2000000U
 #define M68K_RENDER_TYPED_FLOW_DEFAULT_ITERATION_LIMIT 64U
-#define M68K_RENDER_TYPED_FLOW_LOCAL_CALLEE_INSTRUCTION_LIMIT 256U
 
 static int instruction_stack_delta_for_comment(const M68kInstructionIR *instruction, int32_t *out_delta) {
   size_t operand_index;
+  uint8_t dest_reg = 0U;
   if (out_delta != NULL) *out_delta = 0;
   if (instruction == NULL || out_delta == NULL) return 0;
   if (instruction->mnemonic_id == M68K_ASM_MNEMONIC_PEA && instruction->operand_count == 1U) {
@@ -1418,7 +1418,7 @@ static int instruction_stack_delta_for_comment(const M68kInstructionIR *instruct
     }
   }
   if (instruction->mnemonic_id == M68K_ASM_MNEMONIC_LEA && instruction->operand_count == 2U &&
-      operand_is_address_register_local(&instruction->operands[1], 7U)) {
+      (operand_address_register_index_local(&instruction->operands[1], &dest_reg) && dest_reg == 7U)) {
     int16_t displacement = 0;
     if (!operand_is_stack_displacement_local(&instruction->operands[0], &displacement)) return 0;
     *out_delta = -(int32_t)displacement;
@@ -1432,7 +1432,7 @@ static int instruction_stack_delta_for_comment(const M68kInstructionIR *instruct
        instruction->mnemonic_id == M68K_ASM_MNEMONIC_SUBA ||
        instruction->mnemonic_id == M68K_ASM_MNEMONIC_SUBI ||
        instruction->mnemonic_id == M68K_ASM_MNEMONIC_SUBQ) &&
-      instruction->operand_count == 2U && operand_is_address_register_local(&instruction->operands[1], 7U)) {
+      instruction->operand_count == 2U && (operand_address_register_index_local(&instruction->operands[1], &dest_reg) && dest_reg == 7U)) {
     uint32_t value = 0U;
     if (!m68k_ir_operand_immediate_value(&instruction->operands[0], &value) || value > INT16_MAX) return 0;
     *out_delta = (instruction->mnemonic_id == M68K_ASM_MNEMONIC_SUB ||
@@ -1450,7 +1450,7 @@ static int instruction_stack_delta_for_comment(const M68kInstructionIR *instruct
     }
   }
   if (instruction->operand_count > 0U &&
-      operand_is_address_register_local(&instruction->operands[instruction->operand_count - 1U], 7U)) {
+      (operand_address_register_index_local(&instruction->operands[instruction->operand_count - 1U], &dest_reg) && dest_reg == 7U)) {
     return 0;
   }
   return 1;
@@ -5170,11 +5170,7 @@ static int instruction_may_update_stack_pointer_from_metadata(const M68kInstruct
   if (metadata == NULL) return 1;
   if (metadata->sp_effect_count != 0U) return 1;
   for (operand_index = 0U; operand_index < instruction->operand_count && operand_index < 4U; ++operand_index) {
-    uint8_t reg = 0U;
-    if (metadata->operand_access_kinds[operand_index] == M68K_SIM_ACCESS_REGISTER_WRITE &&
-        operand_address_register_index_local(&instruction->operands[operand_index], &reg) && reg == 7U) {
-      return 1;
-    }
+    if (platform_operand_register_write_mask(instruction, operand_index) & UINT16_C(0x8000)) return 1;
     if (metadata->operand_ea_register_updates[operand_index] != M68K_SIM_EA_UPDATE_NONE &&
         (operand_is_predec_a7_local(&instruction->operands[operand_index]) ||
          operand_is_postinc_a7_local(&instruction->operands[operand_index]))) {
@@ -5996,43 +5992,14 @@ static int typed_stored_value_bind_callback_table_origin(M68kRenderTypedStoredVa
   return 1;
 }
 
-static uint8_t typed_flow_movem_address_mask(const M68kOperandIR *operand) {
-  uint8_t reg;
-  uint8_t mask = 0U;
-  for (reg = 0U; reg < 8U; ++reg) {
-    if (reglist_contains_address_register_local(operand, reg)) mask |= (uint8_t)(1U << reg);
-  }
-  return mask;
-}
-
 static uint8_t typed_flow_instruction_written_unsaved_address_mask(const M68kInstructionIR *instruction,
     uint8_t requested_mask, uint8_t saved_mask) {
-  const M68kSimFormMetadata *metadata;
-  size_t operand_index;
-  uint8_t written_mask = 0U;
-  if (instruction == NULL) return requested_mask & (uint8_t)~saved_mask;
-  metadata = m68k_sim_metadata_for_instruction(instruction);
-  if (metadata == NULL) return requested_mask & (uint8_t)~saved_mask;
-  for (operand_index = 0U; operand_index < instruction->operand_count && operand_index < 4U; ++operand_index) {
-    uint8_t reg = 0U;
-    if (metadata->operand_access_kinds[operand_index] == M68K_SIM_ACCESS_REGISTER_WRITE &&
-        operand_address_register_index_local(&instruction->operands[operand_index], &reg) && reg < 8U &&
-        (requested_mask & (uint8_t)(1U << reg)) != 0U && (saved_mask & (uint8_t)(1U << reg)) == 0U) {
-      written_mask |= (uint8_t)(1U << reg);
-    }
-    if (metadata->operand_access_kinds[operand_index] == M68K_SIM_ACCESS_REGISTER_LIST_WRITE) {
-      uint8_t written = typed_flow_movem_address_mask(&instruction->operands[operand_index]);
-      written_mask |= written & requested_mask & (uint8_t)~saved_mask;
-    }
-    if (metadata->operand_ea_register_updates[operand_index] != M68K_SIM_EA_UPDATE_NONE &&
-        instruction->operands[operand_index].kind == M68K_ASM_OPERAND_EA &&
-        instruction->operands[operand_index].value.ea_reg < 8U) {
-      reg = instruction->operands[operand_index].value.ea_reg;
-      if ((requested_mask & (uint8_t)(1U << reg)) != 0U && (saved_mask & (uint8_t)(1U << reg)) == 0U)
-        written_mask |= (uint8_t)(1U << reg);
-    }
-  }
-  return written_mask;
+  uint16_t writes = 0U;
+  if (instruction == NULL || m68k_sim_metadata_for_instruction(instruction) == NULL)
+    return requested_mask & (uint8_t)~saved_mask;
+  for (size_t i = 0U; i < instruction->operand_count && i < 4U; ++i)
+    writes |= platform_operand_register_write_mask(instruction, i);
+  return (uint8_t)(writes >> 8U) & requested_mask & (uint8_t)~saved_mask;
 }
 
 static int typed_flow_local_absolute_jump_target(const M68kRenderLookup *lookup,
@@ -6209,82 +6176,81 @@ static uint8_t typed_flow_entry_origin_ordinal(uint8_t origin) {
   return kind == M68K_ANALYSIS_REGISTER_DATA ? (uint8_t)(8U + index) : index;
 }
 
+#include "m68k_direct_body_worklist.inc"
+
 static int typed_flow_local_callee_effect_summary(const M68kRenderLookup *lookup,
     const M68kDecodeIR *decode, uint8_t **accepted_start, size_t section_index, uint32_t target_offset,
     M68kAnalysisFunctionSummary *out_summary, uint8_t *out_limit_hit) {
-  typedef struct M68kTypedLocalCalleeState {
-    uint32_t offset;
-    uint8_t saved_mask;
-    uint8_t preserved_mask;
-    /* A direct body may name a caller argument only while A7 still has its
-     * entry value. Frame setup, cleanup, or auto-indexing ends that proof. */
-    uint8_t stack_entry_stable;
-    /* Each address register either still denotes one entry ABI register, or
-     * has been written by the callee.  This is deliberately identity-only:
-     * it never guesses that a locally-created address is a caller input. */
-    uint8_t entry_origin[8];
-    /* A data register can carry one lossless longword copy of an entry pointer
-     * value. It is otherwise unknown, so scalar Dn values never manufacture
-     * pointer ABI inputs. */
-    uint8_t data_origin[8];
-    M68kLocalHardwareValues hardware;
-  } M68kTypedLocalCalleeState;
-  M68kTypedLocalCalleeState worklist[128];
-  M68kTypedLocalCalleeState visited[128];
+  M68kTypedLocalCalleeState *worklist = NULL, initial = {0};
+  M68kLocalCalleeInputs inputs = {0};
+  size_t work_count = 0U, work_capacity = 0U, peak_pending = 0U;
+  int result = 0, frame_conflict = 0;
   const M68kDecodeSectionIR *section;
-  uint8_t work_count = 0U, visited_count = 0U, returned = 0U, returned_mask = 0U;
+  uint8_t returned = 0U, returned_mask = 0U;
   uint16_t input_origin_mask = 0U;
   uint8_t returned_origin[8], returned_data_origin[8];
   M68kLocalHardwareValues returned_hardware;
-  M68kFunctionSummaryMemoryEffectIR static_writes[M68K_ANALYSIS_FUNCTION_SUMMARY_MEMORY_EFFECT_LIMIT];
-  M68kFunctionSummaryEscapeIR escapes[M68K_ANALYSIS_FUNCTION_SUMMARY_ESCAPE_LIMIT];
+  M68kFunctionSummaryMemoryEffectIR static_writes[M68K_ANALYSIS_FUNCTION_SUMMARY_MEMORY_EFFECT_LIMIT] = {0};
+  M68kFunctionSummaryEscapeIR escapes[M68K_ANALYSIS_FUNCTION_SUMMARY_ESCAPE_LIMIT] = {0};
   uint8_t static_write_count = 0U;
   uint8_t escape_count = 0U;
   uint8_t memory_effects_unknown = 0U, escape_effects_unknown = 0U;
   const uint8_t requested_mask = 0xffU;
   if (out_limit_hit != NULL) *out_limit_hit = 0U;
   if (out_summary == NULL || lookup == NULL || decode == NULL || accepted_start == NULL ||
-      section_index >= decode->section_count || accepted_start[section_index] == NULL) return 0;
+      section_index >= decode->section_count || accepted_start[section_index] == NULL) goto cleanup;
   section = &decode->sections[section_index];
-  if (target_offset >= section->size || accepted_start[section_index][target_offset] == 0U) return 0;
-  memset(&worklist[0], 0, sizeof(worklist[0]));
+  if (target_offset >= section->size || accepted_start[section_index][target_offset] == 0U) goto cleanup;
   memset(&returned_hardware, 0, sizeof(returned_hardware));
-  worklist[work_count].offset = target_offset;
-  worklist[work_count++].saved_mask = 0U;
-  worklist[0].preserved_mask = requested_mask;
-  worklist[0].stack_entry_stable = 1U;
+  initial.offset = target_offset;
+  initial.preserved_mask = requested_mask;
+  initial.stack_entry_stable = 1U;
   for (uint8_t reg = 0U; reg < 8U; ++reg) {
-    worklist[0].entry_origin[reg] = reg;
-    worklist[0].data_origin[reg] = typed_flow_entry_origin_make(M68K_ANALYSIS_REGISTER_DATA, reg);
+    initial.entry_origin[reg] = reg;
+    initial.data_origin[reg] = typed_flow_entry_origin_make(M68K_ANALYSIS_REGISTER_DATA, reg);
   }
+  if (local_callee_push(&worklist, &work_count, &work_capacity, &initial) != 0) goto resource_limit;
   while (work_count != 0U) {
     M68kTypedLocalCalleeState state = worklist[--work_count];
-      uint16_t step;
-    for (step = 0U; step < M68K_RENDER_TYPED_FLOW_LOCAL_CALLEE_INSTRUCTION_LIMIT; ++step) {
+    for (;;) {
       const M68kDecodeCandidate *candidate;
       M68kInstructionIR instruction;
       const M68kSimFormMetadata *metadata;
       uint32_t branch_target = 0U;
-      uint8_t index;
-      for (index = 0U; index < visited_count; ++index) {
-        if (visited[index].offset == state.offset && visited[index].saved_mask == state.saved_mask &&
-            visited[index].preserved_mask == state.preserved_mask &&
-            visited[index].stack_entry_stable == state.stack_entry_stable &&
-            memcmp(visited[index].entry_origin, state.entry_origin, sizeof(state.entry_origin)) == 0 &&
-            memcmp(visited[index].data_origin, state.data_origin, sizeof(state.data_origin)) == 0 &&
-            memcmp(&visited[index].hardware, &state.hardware, sizeof(state.hardware)) == 0) break;
-      }
-      if (index != visited_count) break;
-      if (visited_count >= (uint8_t)(sizeof(visited) / sizeof(visited[0]))) {
-        if (out_limit_hit != NULL) *out_limit_hit = 1U;
-        return 0U;
-      }
-      visited[visited_count++] = state;
+      uint8_t index, before_origins[16];
+      M68kStackRegisterTransfer stack_transfer = {0};
+      int has_stack_transfer;
+      int visit = local_callee_input_visit(&inputs, &state);
+      if (visit == 0) break;
+      if (visit == -2) goto resource_limit;
+      if (visit < 0) { frame_conflict = 1; goto cleanup; }
       candidate = m68k_decode_ir_find_candidate_at_offset(section, state.offset);
-      if (candidate == NULL || candidate->byte_count == 0U || accepted_start[section_index][state.offset] == 0U ||
-          m68k_decode_candidate_to_instruction(candidate, &instruction) != 0) return 0U;
+      if (state.offset >= section->size || candidate == NULL || candidate->byte_count == 0U ||
+          accepted_start[section_index][state.offset] == 0U ||
+          m68k_decode_candidate_to_instruction(candidate, &instruction) != 0) goto cleanup;
       metadata = m68k_sim_metadata_for_instruction(&instruction);
-      if (metadata == NULL) return 0U;
+      if (metadata == NULL) goto cleanup;
+      has_stack_transfer = platform_instruction_stack_register_transfer(&instruction, &stack_transfer);
+      for (uint8_t reg = 0U; reg < 8U; ++reg) {
+        before_origins[reg] = state.data_origin[reg];
+        before_origins[reg + 8U] = state.entry_origin[reg];
+      }
+      /* A private save-frame address must not escape this bounded ownership
+       * proof. Such routines retain an explicit unsupported contract. */
+      for (size_t operand_index = 0U; operand_index < instruction.operand_count; ++operand_index) {
+        const M68kOperandIR *operand = &instruction.operands[operand_index];
+        if (metadata->operand_access_kinds[operand_index] == M68K_SIM_ACCESS_COMPUTE_ADDRESS &&
+            (operand->kind == M68K_ASM_OPERAND_EA || operand->kind == M68K_ASM_OPERAND_BF_EA) &&
+            operand->value.ea_mode != 7U && operand->value.ea_reg == 7U) {
+          uint8_t dest_reg;
+          int32_t delta;
+          if (!(instruction.mnemonic_id == M68K_ASM_MNEMONIC_LEA && instruction.operand_count == 2U &&
+                operand_address_register_index_local(&instruction.operands[1], &dest_reg) && dest_reg == 7U &&
+                instruction_stack_delta_for_comment(&instruction, &delta))) goto cleanup;
+        }
+        if (metadata->operation_type == M68K_SIM_OP_MOVE && operand_index == metadata->source_operand_index &&
+            operand_address_register_index_local(operand, &index) && index == 7U) goto cleanup;
+      }
       /* Exact data targets give a durable static-storage subject.  Other
        * writes have no caller identity at this layer, so remain unknown. */
       for (uint8_t operand_index = 0U; operand_index < instruction.operand_count && operand_index < 4U;
@@ -6505,48 +6471,24 @@ static int typed_flow_local_callee_effect_summary(const M68kRenderLookup *lookup
           }
         }
       }
-      /* Propagate an entry pointer identity only through a direct longword
-       * register copy. Every other register writer is callee-local. */
-      if (instruction.mnemonic_id == M68K_ASM_MNEMONIC_MOVEA && instruction.size_suffix == 'l' &&
-          instruction.operand_count == 2U) {
-        uint8_t source_reg = 0U, dest_reg = 0U;
-        if (operand_address_register_index_local(&instruction.operands[0], &source_reg) &&
-            operand_address_register_index_local(&instruction.operands[1], &dest_reg) && dest_reg < 8U)
-          state.entry_origin[dest_reg] = state.entry_origin[source_reg];
-        else if (operand_is_data_register_local(&instruction.operands[0], &source_reg) &&
-                 operand_address_register_index_local(&instruction.operands[1], &dest_reg) && dest_reg < 8U)
-          state.entry_origin[dest_reg] = state.data_origin[source_reg];
-        else if (operand_address_register_index_local(&instruction.operands[1], &dest_reg) && dest_reg < 8U)
-          state.entry_origin[dest_reg] = 0xffU;
-      } else {
-        for (uint8_t operand_index = 0U; operand_index < instruction.operand_count && operand_index < 4U; ++operand_index) {
-          uint8_t dest_reg = 0U;
-          if (metadata->operand_access_kinds[operand_index] == M68K_SIM_ACCESS_REGISTER_WRITE &&
-              !operand_is_address_memory_local(&instruction.operands[operand_index], NULL, NULL) &&
-              operand_address_register_index_local(&instruction.operands[operand_index], &dest_reg) && dest_reg < 8U)
-            state.entry_origin[dest_reg] = 0xffU;
+      /* The decoded write footprint is shared with typed values and platform
+       * bases. Only lossless LONG direct-register copies retain identity. */
+      for (size_t i = 0U; i < instruction.operand_count && i < 4U; ++i) {
+        uint16_t writes = platform_operand_register_write_mask(&instruction, i);
+        for (uint8_t reg = 0U; reg < 8U; ++reg) {
+          if (writes & (1U << reg)) state.data_origin[reg] = 0xffU;
+          if (writes & (1U << (reg + 8U))) state.entry_origin[reg] = 0xffU;
         }
       }
-      /* A longword register-to-data copy preserves the ABI pointer bit
-       * pattern, but no other Dn write is an identity proof. */
-      if (instruction.mnemonic_id == M68K_ASM_MNEMONIC_MOVE && instruction.size_suffix == 'l' &&
+      if (metadata->operation_type == M68K_SIM_OP_MOVE && instruction.size_suffix == 'l' &&
           instruction.operand_count == 2U) {
-        uint8_t source_reg = 0U, dest_reg = 0U;
-        if (operand_address_register_index_local(&instruction.operands[0], &source_reg) && source_reg < 8U &&
-            operand_is_data_register_local(&instruction.operands[1], &dest_reg) && dest_reg < 8U)
-          state.data_origin[dest_reg] = state.entry_origin[source_reg];
-        else if (operand_is_data_register_local(&instruction.operands[0], &source_reg) && source_reg < 8U &&
-                 operand_is_data_register_local(&instruction.operands[1], &dest_reg) && dest_reg < 8U)
-          state.data_origin[dest_reg] = state.data_origin[source_reg];
-        else if (operand_is_data_register_local(&instruction.operands[1], &dest_reg) && dest_reg < 8U)
-          state.data_origin[dest_reg] = 0xffU;
-      } else {
-        for (uint8_t operand_index = 0U; operand_index < instruction.operand_count && operand_index < 4U;
-             ++operand_index) {
-          uint8_t dest_reg = 0U;
-          if (metadata->operand_access_kinds[operand_index] == M68K_SIM_ACCESS_REGISTER_WRITE &&
-              operand_is_data_register_local(&instruction.operands[operand_index], &dest_reg) && dest_reg < 8U)
-            state.data_origin[dest_reg] = 0xffU;
+        uint8_t source_kind, source_reg, dest_kind, dest_reg;
+        if (m68k_instruction_operand_direct_register(&instruction.operands[0], &source_kind, &source_reg) &&
+            m68k_instruction_operand_direct_register(&instruction.operands[1], &dest_kind, &dest_reg) &&
+            source_reg < 8U && dest_reg < 8U) {
+          uint8_t origin = before_origins[source_reg + (source_kind ? 8U : 0U)];
+          if (dest_kind) state.entry_origin[dest_reg] = origin;
+          else state.data_origin[dest_reg] = origin;
         }
       }
       if (instruction.mnemonic_id == M68K_ASM_MNEMONIC_LINK || instruction.mnemonic_id == M68K_ASM_MNEMONIC_UNLK)
@@ -6558,32 +6500,49 @@ static int typed_flow_local_callee_effect_summary(const M68kRenderLookup *lookup
             operand_address_register_index_local(&instruction.operands[operand_index], &written_reg) && written_reg == 7U)
           state.stack_entry_stable = 0U;
       }
-      if (instruction.mnemonic_id == M68K_ASM_MNEMONIC_MOVEM && instruction.operand_count == 2U &&
-          instruction.operands[0].kind == M68K_ASM_OPERAND_REGLIST &&
-          operand_is_predec_a7_local(&instruction.operands[1])) {
-        state.saved_mask |= typed_flow_movem_address_mask(&instruction.operands[0]) & requested_mask;
-      } else if (instruction.mnemonic_id == M68K_ASM_MNEMONIC_MOVE && instruction.size_suffix == 'l' &&
-                 instruction.operand_count == 2U && operand_is_predec_a7_local(&instruction.operands[1])) {
-        uint8_t saved_reg = 0U;
-        if (operand_address_register_index_local(&instruction.operands[0], &saved_reg) && saved_reg < 8U)
-          state.saved_mask |= (uint8_t)(1U << saved_reg) & requested_mask;
-      } else if (instruction.mnemonic_id == M68K_ASM_MNEMONIC_MOVEM && instruction.operand_count == 2U &&
-                 operand_is_postinc_a7_local(&instruction.operands[0]) &&
-                 instruction.operands[1].kind == M68K_ASM_OPERAND_REGLIST) {
-        uint8_t restored = typed_flow_movem_address_mask(&instruction.operands[1]) & requested_mask;
-        state.preserved_mask &= (uint8_t)~(restored & (uint8_t)~state.saved_mask);
-        state.saved_mask &= (uint8_t)~restored;
-      } else if (instruction.mnemonic_id == M68K_ASM_MNEMONIC_MOVEA && instruction.size_suffix == 'l' &&
-                 instruction.operand_count == 2U && operand_is_postinc_a7_local(&instruction.operands[0])) {
-        uint8_t restored_reg = 0U;
-        if (operand_address_register_index_local(&instruction.operands[1], &restored_reg) && restored_reg < 8U) {
-          uint8_t restored = (uint8_t)(1U << restored_reg) & requested_mask;
-          state.preserved_mask &= (uint8_t)~(restored & (uint8_t)~state.saved_mask);
-          state.saved_mask &= (uint8_t)~restored;
-        }
+      if (has_stack_transfer) {
+        int frame_result = local_callee_stack_transfer(&inputs, &state, &stack_transfer, before_origins);
+        if (frame_result == -2) goto resource_limit;
+        if (frame_result < 0) goto cleanup;
       } else {
         state.preserved_mask &= (uint8_t)~typed_flow_instruction_written_unsaved_address_mask(&instruction,
           requested_mask, state.saved_mask);
+        if (metadata->flow_kind != M68K_SIM_FLOW_CALL && metadata->flow_kind != M68K_SIM_FLOW_RETURN &&
+            instruction_may_update_stack_pointer_from_metadata(&instruction)) {
+          int32_t delta;
+          uint8_t discarded;
+          if (!instruction_stack_delta_for_comment(&instruction, &delta)) goto cleanup;
+          if (delta > 0) {
+            state.frame_id = local_callee_frame_intern(&inputs, state.frame_id, (uint32_t)delta, 0xffU);
+            if (!state.frame_id) goto resource_limit;
+          } else if (delta < 0) {
+            int frame_result = local_callee_frame_pop(&inputs, &state.frame_id, (uint32_t)-(int64_t)delta, &discarded);
+            if (frame_result == -2) goto resource_limit;
+            if (frame_result < 0) goto cleanup;
+          } else goto cleanup;
+          local_callee_frame_saved_mask(&inputs, &state);
+        }
+        for (size_t operand_index = 0U; state.frame_id && operand_index < instruction.operand_count; ++operand_index) {
+          int16_t displacement;
+          uint8_t width = 0U;
+          if (metadata->operand_access_kinds[operand_index] == M68K_SIM_ACCESS_MEMORY_WRITE) {
+            const M68kOperandIR *operand = &instruction.operands[operand_index];
+            if (operand_is_stack_displacement_local(operand, &displacement)) {
+              (void)platform_operand_memory_span(&instruction, operand_index, NULL, NULL, &width);
+              if (local_callee_frame_write(&inputs, &state, displacement, width) != 0) goto resource_limit;
+            } else if ((operand->kind == M68K_ASM_OPERAND_EA || operand->kind == M68K_ASM_OPERAND_BF_EA) &&
+                operand->value.ea_mode >= 2U && operand->value.ea_mode <= 6U &&
+                operand->value.ea_reg == 7U) {
+              if (local_callee_frame_write(&inputs, &state, 0, 0U) != 0) goto resource_limit;
+            }
+          }
+        }
+      }
+      /* Every admitted SP update is represented by this owned frame. A
+       * balanced frame restores entry A7 independently of instruction form. */
+      if (metadata->flow_kind != M68K_SIM_FLOW_CALL && metadata->flow_kind != M68K_SIM_FLOW_RETURN) {
+        state.entry_origin[7] = state.frame_id ? 0xffU : 7U;
+        if (!state.frame_id) state.preserved_mask |= UINT8_C(0x80);
       }
       if (metadata->flow_kind != M68K_SIM_FLOW_CALL && metadata->flow_kind != M68K_SIM_FLOW_RETURN &&
           metadata->flow_kind != M68K_SIM_FLOW_JUMP) {
@@ -6610,12 +6569,22 @@ static int typed_flow_local_callee_effect_summary(const M68kRenderLookup *lookup
           memory_effects_unknown = 1U;
           escape_effects_unknown = 1U;
         }
+        if (state.frame_id && function_summary_register_effect(callee_summary,
+            M68K_ANALYSIS_REGISTER_ADDRESS, 7U) != M68K_FUNCTION_SUMMARY_LOCATION_PRESERVED) goto cleanup;
         local_hardware_apply_call(&state.hardware, callee_summary);
+        /* A nested callee preserves only identities covered by its register
+         * contract. Saved frame values are separate and may restore them. */
+        for (uint8_t reg = 0U; reg < 8U; ++reg) {
+          if (function_summary_register_effect(callee_summary, M68K_ANALYSIS_REGISTER_ADDRESS, reg) !=
+              M68K_FUNCTION_SUMMARY_LOCATION_PRESERVED) state.entry_origin[reg] = 0xffU;
+          if (function_summary_register_effect(callee_summary, M68K_ANALYSIS_REGISTER_DATA, reg) !=
+              M68K_FUNCTION_SUMMARY_LOCATION_PRESERVED) state.data_origin[reg] = 0xffU;
+        }
         if (live_mask != 0U) {
           uint8_t callee_preserved = 0U;
           uint8_t reg;
-          if (!has_local_callee) return 0;
-          if (callee_summary == NULL || callee_summary->effects_invalid != 0U) return 0;
+          if (!has_local_callee) goto cleanup;
+          if (callee_summary == NULL || callee_summary->effects_invalid != 0U) goto cleanup;
           for (reg = 0U; reg < 8U; ++reg) {
             if (function_summary_register_effect(callee_summary, M68K_ANALYSIS_REGISTER_ADDRESS, reg) ==
                 M68K_FUNCTION_SUMMARY_LOCATION_PRESERVED)
@@ -6625,7 +6594,9 @@ static int typed_flow_local_callee_effect_summary(const M68kRenderLookup *lookup
         }
       }
       if (metadata->flow_kind == M68K_SIM_FLOW_RETURN) {
-        if (state.saved_mask != 0U) return 0U;
+        if (state.frame_id != 0U) goto cleanup;
+        for (uint8_t reg = 0U; reg < 8U; ++reg)
+          if (state.entry_origin[reg] != reg) state.preserved_mask &= (uint8_t)~(1U << reg);
         if (returned == 0U) returned_hardware = state.hardware;
         else for (uint8_t kind = 0U; kind < 2U; ++kind) {
           returned_hardware.known[kind] &= state.hardware.known[kind];
@@ -6652,29 +6623,21 @@ static int typed_flow_local_callee_effect_summary(const M68kRenderLookup *lookup
           state.offset = branch_target;
           continue;
         }
-        if (work_count >= (uint8_t)(sizeof(worklist) / sizeof(worklist[0]))) {
-          if (out_limit_hit != NULL) *out_limit_hit = 1U;
-          return 0;
+        {
+          M68kTypedLocalCalleeState branch = state;
+          branch.offset = branch_target;
+          if (local_callee_push(&worklist, &work_count, &work_capacity, &branch) != 0) goto resource_limit;
+          if (work_count > peak_pending) peak_pending = work_count;
         }
-        worklist[work_count].hardware = state.hardware;
-        worklist[work_count].offset = branch_target;
-        worklist[work_count++].saved_mask = state.saved_mask;
-        worklist[work_count - 1U].preserved_mask = state.preserved_mask;
-        worklist[work_count - 1U].stack_entry_stable = state.stack_entry_stable;
-        memcpy(worklist[work_count - 1U].entry_origin, state.entry_origin, sizeof(state.entry_origin));
-        memcpy(worklist[work_count - 1U].data_origin, state.data_origin, sizeof(state.data_origin));
       }
-      if (metadata->flow_kind == M68K_SIM_FLOW_JUMP || metadata->flow_kind == M68K_SIM_FLOW_TRAP) return 0;
+      if (metadata->flow_kind == M68K_SIM_FLOW_JUMP || metadata->flow_kind == M68K_SIM_FLOW_TRAP) goto cleanup;
       if ((metadata->flow_kind == M68K_SIM_FLOW_BRANCH && metadata->flow_conditional == 0U) ||
-          candidate->byte_count > section->size - state.offset) return 0;
+          candidate->byte_count > section->size - state.offset) goto cleanup;
       state.offset += candidate->byte_count;
     }
-    if (step == M68K_RENDER_TYPED_FLOW_LOCAL_CALLEE_INSTRUCTION_LIMIT) {
-      if (out_limit_hit != NULL) *out_limit_hit = 1U;
-      return 0;
-    }
+
   }
-  if (returned == 0U) return 0;
+  if (returned == 0U) goto cleanup;
   memset(out_summary, 0, sizeof(*out_summary));
   /* An untouched entry register is not, by itself, a callable input.  Admit
    * it only when a body effect consumed it or when it is the source of a
@@ -6798,7 +6761,24 @@ static int typed_flow_local_callee_effect_summary(const M68kRenderLookup *lookup
     memcpy(out_summary->escapes, escapes, sizeof(escapes));
     out_summary->escape_count = escape_count;
   }
-  return 1;
+  result = 1;
+  goto cleanup;
+resource_limit:
+  if (out_limit_hit != NULL) *out_limit_hit = 1U;
+cleanup:
+  {
+    const char *trace = getenv("AMIGA_REVERSING_DIRECT_BODY_TRACE");
+    if (trace != NULL && (strcmp(trace, "*") == 0 || strtoul(trace, NULL, 0) == target_offset))
+      fprintf(stderr, "direct-body section=%zu entry=%X result=%d pcs=%zu transfers=%zu peak_pending=%zu frame_conflict=%d state_bytes=%zu\n",
+        section_index, target_offset, result, inputs.count, inputs.transfers, peak_pending, frame_conflict,
+        inputs.capacity * sizeof(*inputs.states) + inputs.index_capacity * sizeof(*inputs.index) +
+        work_capacity * sizeof(*worklist) + inputs.frame_capacity * sizeof(*inputs.frames) +
+        inputs.frame_index_capacity * sizeof(*inputs.frame_index) +
+        inputs.frame_scratch_capacity * sizeof(*inputs.frame_scratch));
+  }
+  free(worklist); free(inputs.states); free(inputs.index);
+  free(inputs.frames); free(inputs.frame_index); free(inputs.frame_scratch);
+  return result;
 }
 
 static const M68kAnalysisFunctionSummary *lookup_inferred_direct_function_summary(
@@ -7249,7 +7229,10 @@ static void typed_state_update_after_instruction(M68kRenderTypedState *state, M6
   int recognized_stack_update = 0;
   uint8_t app_update_reg = 0U, app_update_width = 0U;
   M68kRenderTypedAppAddressValue app_after_update = {0};
+  M68kStackRegisterTransfer stack_transfer = {0};
+  int has_stack_transfer;
   if (state == NULL || instruction == NULL) return;
+  has_stack_transfer = platform_instruction_stack_register_transfer(instruction, &stack_transfer);
   for (operand_index = 0U; operand_index < instruction->operand_count && operand_index < 4U; ++operand_index) {
     const M68kOperandIR *operand = &instruction->operands[operand_index];
     uint8_t access, element_width, count;
@@ -7285,11 +7268,9 @@ static void typed_state_update_after_instruction(M68kRenderTypedState *state, M6
        * callee into an unsound affine transfer. */
       typed_state_apply_function_summary_effects(state, NULL);
     }
-  } else if (instruction->mnemonic_id == M68K_ASM_MNEMONIC_MOVEM && instruction->size_suffix == 'l' &&
-      instruction->operand_count == 2U && instruction->operands[0].kind == M68K_ASM_OPERAND_REGLIST &&
-      (instruction->operands[0].value.value & (1UL << 15U)) == 0U &&
-      operand_is_predec_a7_local(&instruction->operands[1])) {
-    uint32_t mask = instruction->operands[0].value.value;
+  } else if (has_stack_transfer && stack_transfer.multiple && stack_transfer.width == 4U &&
+      stack_transfer.direction == M68K_STACK_TRANSFER_PUSH) {
+    uint32_t mask = stack_transfer.register_mask;
     int16_t displacement = 0;
     for (bit = 0U; bit < 16U; ++bit) if ((mask & (1UL << bit)) != 0U) ++displacement;
     typed_state_rebase_stack_slots(state, (int16_t)(displacement * 4));
@@ -7309,11 +7290,9 @@ static void typed_state_update_after_instruction(M68kRenderTypedState *state, M6
       }
       displacement = (int16_t)(displacement + 4);
     }
-  } else if (instruction->mnemonic_id == M68K_ASM_MNEMONIC_MOVEM && instruction->size_suffix == 'l' &&
-      instruction->operand_count == 2U && operand_is_postinc_a7_local(&instruction->operands[0]) &&
-      instruction->operands[1].kind == M68K_ASM_OPERAND_REGLIST &&
-      (instruction->operands[1].value.value & (1UL << 15U)) == 0U) {
-    uint32_t mask = instruction->operands[1].value.value;
+  } else if (has_stack_transfer && stack_transfer.multiple && stack_transfer.width == 4U &&
+      stack_transfer.direction == M68K_STACK_TRANSFER_POP) {
+    uint32_t mask = stack_transfer.register_mask;
     int16_t displacement = 0;
     for (bit = 0U; bit < 16U; ++bit) {
       const M68kRenderTypedStoredValue *saved;

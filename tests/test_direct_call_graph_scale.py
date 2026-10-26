@@ -34,7 +34,7 @@ def test_existing_native_direct_summary_refusals_and_recursion(tmp_path):
     root=Path(__file__).resolve().parents[1]
     compiler=shutil.which('cc');backend=Path(os.environ.get('AMIGA_TEST_BACKEND',root/'src/build/libamiga_backend.so'))
     if compiler is None or not backend.exists():pytest.skip('host compiler and native backend required')
-    names=['direct_summary_body_limit_is_terminal','direct_summary_unknown_nested_call_is_terminal',
+    names=['direct_summary_large_body_is_solved','direct_summary_unknown_nested_call_is_terminal',
         'direct_summary_deep_chain_is_topologically_solved','direct_summary_graph_admits_all_reachable_targets',
         'self_recursive_direct_summary_is_conservative','mutually_recursive_direct_summaries_are_conservative',
         'recursive_scc_with_unknown_callee_is_terminal']

@@ -29119,7 +29119,7 @@ static int test_facts_v2_direct_static_write_summary_has_static_subject(void) {
   return 0;
 }
 
-static int test_facts_v2_direct_summary_body_limit_is_terminal(void) {
+static int test_facts_v2_direct_summary_large_body_is_solved(void) {
   M68kObject object;
   M68kSection section;
   M68kAnalysisPolicy policy;
@@ -29129,8 +29129,8 @@ static int test_facts_v2_direct_summary_body_limit_is_terminal(void) {
   size_t offset;
   memset(&section, 0, sizeof(section));
   memset(&analysis, 0, sizeof(analysis));
-  /* bsr.s callee; rts; alignment; 257 nops; callee rts. The body is valid,
-   * but exceeds the current finite direct-body traversal limit. */
+  /* A long, finite body exceeds both old path/instruction budgets.
+   * Input-sized per-PC joins prove it without increasing a visit cap. */
   bytes[0] = 0x61u; bytes[1] = 0x04u;
   bytes[2] = 0x4eu; bytes[3] = 0x75u;
   bytes[4] = 0x4eu; bytes[5] = 0x71u;
@@ -29153,9 +29153,9 @@ static int test_facts_v2_direct_summary_body_limit_is_terminal(void) {
   M68K_C_ASSERT_INT(0, m68k_facts_v2_collect_source_analysis_profile(&object, &policy, &profile,
     &analysis, m68k_diag_sink(NULL)));
   M68K_C_ASSERT_U32(1U, (uint32_t)analysis.sections[0].function_summary_count);
-  M68K_C_ASSERT_U32(M68K_FUNCTION_SUMMARY_TERMINAL_DIRECT_BODY_LIMIT,
+  M68K_C_ASSERT_U32(M68K_FUNCTION_SUMMARY_TERMINAL_NONE,
     analysis.sections[0].function_summaries[0].terminal_reason);
-  M68K_C_ASSERT_U32(1U, analysis.sections[0].function_summaries[0].effects_invalid);
+  M68K_C_ASSERT_U32(0U, analysis.sections[0].function_summaries[0].effects_invalid);
   m68k_ir_source_analysis_destroy(&analysis);
   m68k_analysis_policy_destroy(&policy);
   m68k_object_destroy(&object);
@@ -40122,8 +40122,8 @@ int m68k_c_ir_tests(void) {
       test_facts_v2_direct_no_write_no_escape_summary_is_explicit},
     {"facts_v2_direct_static_write_summary_has_static_subject",
       test_facts_v2_direct_static_write_summary_has_static_subject},
-    {"facts_v2_direct_summary_body_limit_is_terminal",
-      test_facts_v2_direct_summary_body_limit_is_terminal},
+    {"facts_v2_direct_summary_large_body_is_solved",
+      test_facts_v2_direct_summary_large_body_is_solved},
     {"facts_v2_direct_summary_unknown_nested_call_is_terminal",
       test_facts_v2_direct_summary_unknown_nested_call_is_terminal},
     {"facts_v2_direct_summary_deep_chain_is_topologically_solved",

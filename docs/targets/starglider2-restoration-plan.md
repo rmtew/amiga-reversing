@@ -34,7 +34,7 @@ checks. 93 model-directory annotations join 92 original names plus the type 0/1
 alias. Type 30's substituted selector and eleven other placeholder-name entries
 remain explicit. These are catalogue associations, not visual identification or
 an all-path runtime instance census. That early catalogue/hardware suite passed 125 cases; the current focused
-cursor/provenance/integration checks pass 440. Earlier text/renderer checks
+cursor/provenance/integration checks pass 349 for the current body-worklist batch (the preceding JMP batch separately passed 440). Earlier text/renderer checks
 retain their separate receipts. Source
 quality has zero diagnostics and retains the known encoded-entry boundary conflict.
 
@@ -65,7 +65,7 @@ relocation, C conversion or replacement OS loader is part of this project.
 
 ## Active priorities after cursor-span qualification
 
-The current source has 304 app field records, 94 generic names and 14,728
+The current source has 305 app field records, 95 generic names and 14,728
 unclassified bytes in 260 intervals. These measure different kinds of work,
 not overall completion. The current residual index is recomputed from retained
 native facts without another generation; the 15,111-byte/256-interval review
@@ -106,7 +106,7 @@ For those priorities the immediate acceptance questions and dependencies are:
 | Limitation | What it currently blocks | Next bounded experiment | Why it is sequenced here |
 | --- | --- | --- | --- |
 | Branchy point-field loop and mutable absolute cursor cell | Renderer read/update spans for world/cache triplets; initialization is bounded | Eight probes distinguish the failures: straight DBF has one range, retry/rollback has none; absolute cursor store/load works until +6 arithmetic. Local absolute store/update/alias invalidation now passes 21 cases. Sparse graph now admits all 435 direct summaries; absolute-JMP transfer now consumes the known source edge. Diagnose the clipping body-state limit, then check cursor=base+6*(initial-counter) across setup/retry and saved-register paths | Actual renderer $4E0AC..$4E332 retries at $4E350 without decrementing D7; cache pointer crosses absolute cell $4E5C0. Whole-root stack transport is fixed but changes no target facts. Global writer-summary storage is not a per-program-point memory value. No target-shaped loop recognizer or dense extra per-node slot array is justified. |
-| Remaining conditional app bases | Explicit provenance for 2,998 fallback records (2,486 A6 and 512 declared-layout), alongside 210 register-state and one library-extension record | Group remaining sites by actual entry/call and base producer/borrow; select one concrete lost or conflicting transfer | The holder contract covers its 28 direct loads, not unknown callbacks or callees without a preservation contract. |
+| Remaining conditional app bases | Explicit provenance for 2,908 fallback records (2,401 A6 and 507 declared-layout), alongside 302 register-state and one library-extension record | Group remaining sites by actual entry/call and base producer/borrow; select one concrete lost or conflicting transfer | The holder contract covers its 28 direct loads, not unknown callbacks or callees without a preservation contract. |
 | Orphan incoming path | Deciding whether a specific decoded island belongs in accepted code | Rank current unresolved signals against recovered pointer/table/return edges; choose one with a concrete inbound lead and, only if static evidence remains insufficient, observe that original normal-input condition | Follow recovered access/base evidence to avoid repeatedly scanning instruction-shaped bytes without an entry hypothesis. |
 | Shared buffer phase | Distinguishing producers/consumers of aliased scratch cells and safe source type views | Join the current vertex/cache/polygon writers and readers by original phase/entry; test one suspected overwrite-before-use or cross-phase consumer | Depends on accurate cursor/base associations; physical adjacency or storage capacity alone cannot identify ownership/lifetime. |
 | Model selector ambiguity | Attaching actual selector/variant meaning or an object identity to unresolved names | Join existing header/name/callback records with a selected original runtime instance or direct consumer; retain a counterexample for the type-30 substitution | After access/base work, unless an independent exact table consumer settles a case cheaply. No visual identity is inferred from a name-directory row. |
@@ -214,7 +214,7 @@ edge `$4E5C4 -> $5AF2`. The helper then reaches the existing body resource limit
 its effects are still not proved. The 83-block, three-setup-entry renderer saves
 D7/A4 across clipping. Those transfer contracts precede a retry-envelope claim.
 
-## Absolute-JMP transfer: current source gain
+## Absolute-JMP transfer: preceding batch
 
 The [JMP receipt](../../runtime/observations/starglider2-absolute-jump-flow.json)
 records 30 additional typed consumers with none removed: 27 world-object,
@@ -235,10 +235,59 @@ fixtures. C/vasm and the clean staged standalone build remain exact for all
 unchanged; unclassified ownership remains 14,728 bytes/260 intervals.
 
 The clipping trampoline now reaches `$5AF2` and reports `direct_body_limit`.
-The next experiment must distinguish path-state explosion from a genuinely
-large body and use shared CFG/value joins rather than raise a cap. Retry ranges,
+At that checkpoint the next experiment was to distinguish path-state explosion
+from a large body and use shared CFG/value joins rather than raise a cap; the
+current result below completes that experiment. Retry ranges,
 caller-entry base transport and orphan/shared-buffer interpretation remain open;
 this batch does not stand in for those contracts or for new runtime coverage.
+
+## Per-PC direct-body proof: current result and next work
+
+The [body-worklist receipt](../../runtime/observations/starglider2-direct-body-worklist.json)
+records the causal result: the original clipping body contains 389 accepted
+instructions. The old proof stopped after 128 path states with 21 pending.
+The sparse per-PC must join now completes in 397 transfers with 75 peak pending
+states and 51,712 bytes of scratch storage. Its trampoline adds one PC/transfer.
+No path or instruction cap was raised. Shared decoded stack transports and
+ordered interned frame identities prevent word saves, wrong-order restores,
+partial/overlapping writes or differing frame shapes from inventing preservation.
+Nested call clobbers and generic EA register writes invalidate old identities.
+
+Target totals change from 314 to 320 typed accesses: eight world-object consumers
+are recovered and two MFM-template claims are withdrawn. Those two consumers at
+original PCs $10842/$1084C follow `encode_mfm_bytes` ($10D8A), whose `(A1)+` reads
+advance A1. Its previous preserved-A1 contract incorrectly retained the original
+template origin. The corrected proof drops it; affine callee results remain a
+separate next experiment. App accesses rise from 3,209 to 3,211 with none removed;
+90 old records move from qualified fallback to register-state evidence. There
+are now 305 fields, 95 generically named. These are propagation and correctness
+results, not invented meanings or reduced unknown-byte classification.
+
+All 435 direct entries are input-sized: 258 contracts complete, 170 refuse an
+unsupported body/frame/call contract and seven belong to recursive SCCs. None
+ends at `direct_body_limit`. The 349 focused/integration tests include convergence,
+conflicting frames, all 30 Dn/An scalar WORD/LONG transport pairs and the prior
+native recursion/refusal cases. Original C/vasm and the clean staged standalone
+build remain exact for all 412,736 bytes; canonical histories, 57 assets, accepted
+code and the 14,728-byte/260-interval residual ownership are unchanged.
+
+The final generation took 139.29 seconds; sparse graph collection, SCC and body
+proof together took about 0.076 seconds. This is not a same-input whole-pipeline
+speed benchmark. Two earlier completed target runs and one stopped, invalidated
+30-second run were diagnostic workflow cost; they are retained privately rather
+than concealed as one run. No new emulator capture or interim archive was made.
+
+The next bounded experiment is the remaining counter-relative retry invariant.
+The retained minimal probes give zero loop patterns for both an equal-cursor
+branch diamond and a saved-absolute-cell rollback retry; an unbounded retry
+without rollback also correctly has none. The current collector explicitly
+requires one sequential predecessor/successor through a DBF body. Extend shared
+CFG/value scheduling to prove equal path potentials and retain rollback storage
+identity; do not turn that refusal into a game-specific recognizer. Clipping's
+body budget is no longer a dependency. Nested identity-result composition and
+caller-scoped base inputs follow, then concrete orphan/shared-buffer leads.
+Private-frame/normal-return contracts, unresolved callers, current orphan counts
+and A6 fallback assumptions remain explicit; this is not all-path completeness.
 
 ## Committed buildable rendered output
 

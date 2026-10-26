@@ -250,7 +250,8 @@ point_field_plane_byte_stride RS.W 1
 active_model_scale_shift RS.W 1
     RS.B 44
 app_01D8 RS.W 1
-    RS.B 19
+app_01DA RS.W 1
+    RS.B 17
 polygon_clip_plane_mask RS.B 1
     RS.B 1
 app_01EF RS.B 1
@@ -14265,9 +14266,9 @@ integrate_selected_object_velocities:
 	and.l d3,SG2WorldObject_world_z(a0)
 	dbf.w d0,integrate_selected_object_velocities
 abs_0_0000C876:
-	move.w $001E(a5),d0
+	move.w intreqr(a5),d0	; interrupt request state
 	andi.w #32767,d0
-	move.w #$20,$009C(a5)
+	move.w #INTF_VERTB,intreq(a5)
 	movem.l (a7)+,d0-d7/a0-a6
 	rte
 abs_0_0000C88A:
@@ -18311,9 +18312,9 @@ abs_0_00010818:
 	lea.l disk_sector_interleave_order(pc),a3
 	move.b $0(a3,d0.w),d0
 	move.b d0,disk_service_state_current_sector_id.l
-	move.b d0,SG2MfmIdTemplate_sync_zero_seed+6(a1)
+	move.b d0,$0006(a1)
 	move.w disk_service_state_current_cylinder.l,d0
-	move.b d0,SG2MfmIdTemplate_sync_zero_seed+4(a1)
+	move.b d0,$0004(a1)
 	moveq.l #7,d2
 	bsr.w update_crc16_1021_bytes
 	move.b d6,disk_service_state_crc_high.l
@@ -45373,26 +45374,26 @@ advance_mini_sentinel_orbit:
     ; KNOWN: type A0=Target code-entry register seed:SG2WorldObject
 update_nearby_skim_launcher_drone:
 	bsr.w advance_skim_launcher_drone_state
-	cmpi.l #4294963200,$0008(a0)
+	cmpi.l #4294963200,SG2WorldObject_world_y(a0)
 	bmi.b abs_0_00035DC0
-	move.l #$FFFFF000,$0008(a0)
+	move.l #$FFFFF000,SG2WorldObject_world_y(a0)
 abs_0_00035DC0:
 	tst.w $0024(a0)
 	bmi.w abs_0_00035E90
-	move.w $001A(a0),d0
+	move.w SG2WorldObject_relative_z(a0),d0
 	bpl.b abs_0_00035DD4
 	bra.w abs_0_00035E90
 	dc.b $44,$40
 abs_0_00035DD4:
 	cmp.w #$640,d0
 	bpl.w abs_0_00035E90
-	move.w $0018(a0),d0
+	move.w SG2WorldObject_relative_y(a0),d0
 	bpl.b abs_0_00035DE4
 	neg.w d0
 abs_0_00035DE4:
 	cmp.w #$640,d0
 	bpl.w abs_0_00035E90
-	move.w $0016(a0),d0
+	move.w SG2WorldObject_relative_x(a0),d0
 	bpl.b abs_0_00035DF4
 	neg.w d0
 abs_0_00035DF4:
@@ -45405,9 +45406,9 @@ abs_0_00035DF4:
 	move.l a1,free_object_stack_cursor(a6)
 	subq.w #1,free_object_count(a6)
 	move.w #$3C,(a2)
-	move.l $0004(a0),$0004(a2)
-	move.l $0008(a0),$0008(a2)
-	move.l $000C(a0),$000C(a2)
+	move.l SG2WorldObject_world_x(a0),$0004(a2)
+	move.l SG2WorldObject_world_y(a0),$0008(a2)
+	move.l SG2WorldObject_world_z(a0),$000C(a2)
 	clr.w $0010(a2)
 	clr.w $0012(a2)
 	ori.w #1,$0010(a2)

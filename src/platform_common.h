@@ -37,6 +37,14 @@ int platform_instruction_has_normal_fallthrough(const struct M68kInstructionIR *
 int platform_instruction_has_terminal_state_flow(const struct M68kInstructionIR *instruction);
 int platform_operand_updates_address_register(const struct M68kInstructionIR *instruction, size_t operand_index);
 uint16_t platform_operand_register_write_mask(const struct M68kInstructionIR *instruction, size_t operand_index);
+typedef struct M68kStackRegisterTransfer {
+  uint16_t register_mask; /* Canonical IR bits D0..D7,A0..A7;0 means an opaque scalar. */
+  uint8_t width, count, direction, multiple;
+} M68kStackRegisterTransfer;
+#define M68K_STACK_TRANSFER_PUSH 1U
+#define M68K_STACK_TRANSFER_POP 2U
+int platform_instruction_stack_register_transfer(const struct M68kInstructionIR *instruction,
+  M68kStackRegisterTransfer *out);
 int platform_operand_memory_span(const struct M68kInstructionIR *instruction, size_t operand_index,
   uint8_t *element_width, uint8_t *transfer_count, uint8_t *span_bytes);
 void platform_format_runtime_address_symbol_name(const char *role, uint32_t address, const char *suffix,

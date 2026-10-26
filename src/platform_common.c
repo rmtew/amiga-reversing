@@ -250,6 +250,56 @@ int platform_operand_memory_span(const M68kInstructionIR *instruction, size_t op
   return 1;
 }
 
+/* Normalize supported stack value transports once for typed values and
+ * callable entry identities. Width/order come from decoded generated metadata. */
+int platform_instruction_stack_register_transfer(const M68kInstructionIR *instruction,
+    M68kStackRegisterTransfer *out) {
+  const M68kSimFormMetadata *metadata;
+  size_t memory, reg_operand;
+  uint8_t shape, reg, address, span;
+  const M68kOperandIR *operand;
+  if (!instruction || !out || !(metadata = m68k_sim_metadata_for_instruction(instruction))) return 0;
+  memset(out, 0, sizeof(*out));
+  if (metadata->operation_type == M68K_SIM_OP_MOVE_MULTIPLE) {
+    memory = metadata->address_operand_index; reg_operand = metadata->reglist_operand_index;
+    if (reg_operand >= instruction->operand_count ||
+        instruction->operands[reg_operand].kind != M68K_ASM_OPERAND_REGLIST) return 0;
+    out->register_mask = (uint16_t)instruction->operands[reg_operand].value.value;
+    out->multiple = 1U;
+  } else if (metadata->operation_type == M68K_SIM_OP_MOVE) {
+    size_t source = metadata->source_operand_index, dest = metadata->dest_operand_index;
+    if (source >= instruction->operand_count || dest >= instruction->operand_count) return 0;
+    /* Generic MOVE EA forms label a direct Dn destination as a potential
+     * memory write. Choose the actual decoded memory side, not that role alone. */
+    if (m68k_instruction_operand_decoded_ea_shape(&instruction->operands[dest]) ==
+          M68K_SIM_EA_SHAPE_PREDECREMENT &&
+        metadata->operand_access_kinds[dest] == M68K_SIM_ACCESS_MEMORY_WRITE) {
+      memory = dest; reg_operand = source;
+    } else if (m68k_instruction_operand_decoded_ea_shape(&instruction->operands[source]) ==
+          M68K_SIM_EA_SHAPE_POSTINCREMENT &&
+        metadata->operand_access_kinds[source] == M68K_SIM_ACCESS_MEMORY_READ) {
+      memory = source; reg_operand = dest;
+    } else return 0;
+    if (m68k_instruction_operand_direct_register(&instruction->operands[reg_operand], &address, &reg) && reg < 8U)
+      out->register_mask = (uint16_t)(1U << (reg + (address ? 8U : 0U)));
+  } else return 0;
+  if (memory >= instruction->operand_count || (out->register_mask & (1U << 15U))) return 0;
+  operand = &instruction->operands[memory];
+  shape = m68k_instruction_operand_decoded_ea_shape(operand);
+  reg = operand->kind == M68K_ASM_OPERAND_PREDEC || operand->kind == M68K_ASM_OPERAND_POSTINC
+    ? operand->value.reg : operand->value.ea_reg;
+  if (reg != 7U || !platform_operand_memory_span(instruction, memory, &out->width, &out->count, &span) ||
+      (out->width != 2U && out->width != 4U)) return 0;
+  if (shape == M68K_SIM_EA_SHAPE_PREDECREMENT &&
+      metadata->operand_access_kinds[memory] == M68K_SIM_ACCESS_MEMORY_WRITE)
+    out->direction = M68K_STACK_TRANSFER_PUSH;
+  else if (shape == M68K_SIM_EA_SHAPE_POSTINCREMENT &&
+      metadata->operand_access_kinds[memory] == M68K_SIM_ACCESS_MEMORY_READ)
+    out->direction = M68K_STACK_TRANSFER_POP;
+  else return 0;
+  return 1;
+}
+
 void platform_format_runtime_address_symbol_name(const char *role, uint32_t address, const char *suffix,
     char *buf, size_t buf_size) {
   char prefix[40];
