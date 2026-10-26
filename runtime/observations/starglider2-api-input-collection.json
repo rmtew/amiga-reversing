@@ -1,0 +1,103 @@
+{
+  "schema_version": 1,
+  "kind": "final_platform_api_input_consumer_collection_and_fixture_context_diagnosis",
+  "publication_base_commit": "149331c77dda63dbe74295f2e410e20e4a9e20b1",
+  "backend_sha256": "4c2c378c839057f01abc4cc8db96ffd19fd0b18b3d15e5dad4d6db2e7f7c5851",
+  "analysis_sha256": "c9e11b07755ae57d91c63e0323a90d30e34be21d510febbdc2df89746600293b",
+  "production_change": "Always collect stable platform API inputs at the final typed-access pass, using record_only to avoid reapplying precondition/type inference. No state/value/CFG model, platform contract or target-specific recognizer added.",
+  "causal_evidence": {
+    "correctly_linked_probe_needed_sha256": {
+      "baseline": "aa9ffb9d5daa43f4eed313c7ff9d1935c2dd82dc7230bb97aea46807d24af92b",
+      "diagnostic": "6a0811e5bb74ebfd81ff86360b3b7c67ed431c50572d53226d7a1a8f40d4cb21"
+    },
+    "correctly_linked_probe_log_sha256": {
+      "baseline": "4d00d7d7f0e6381242b780bfb2c6eb1852439fe6e5a6a44ac3c695f8db99136e",
+      "diagnostic": "e784611a121c388adf77262a9cff6811bcd6ceccd00159ce3dfd5877b7c2bf12"
+    },
+    "observed": "Known A1 raw288 is present at OpenDevice, but baseline final address-consumer vector is empty. Explicitly linked diagnostic records exactly one consumer and passes the unchanged original test.",
+    "invalid_experiment": "Earlier LD_LIBRARY_PATH probes did not replace the absolute DT_NEEDED library and are not causal evidence. Explicit readelf binding and separately linked executables replace that experiment."
+  },
+  "fixture_diagnoses": [
+    {
+      "test": "facts_v2_analysis_reports_lookup_storage_write_site_provenance",
+      "cause": "Full-value propagation retains latest CreateMsgPort origin10, matching existing typed storage tests; the latest global write is a separate durable effect14. Old test conflated those coordinates.",
+      "stronger_acceptance": "Assert API origin10, exactly one MP global-slot write at14/address256; a stale first value/store fails."
+    },
+    {
+      "test": "facts_v2_analysis_distinguishes_field_pointer_base_context_and_clobber",
+      "cause": "Old positive stored through A6+100 while A6 is seeded ExecBase. Its legacy library_extension type hint does not establish cached app identity. The same original store/load through stable A4 preserves field origin6 on the pre-fix backend.",
+      "contrast_log_sha256": "14b9963c73e9050d40fee2a71231f778c51c0509059c85f6ba4cd9d5cee9e09f",
+      "stronger_acceptance": "Stable A4 keeps field-pointer origin6; original A6 retains NONE origin and two explicit library_extension access records; partial A4 slot overwrite must not retain the old field-pointer origin. No speculative field-pointer framework change retained."
+    }
+  ],
+  "tests": {
+    "native_passed": 823,
+    "native_failed": 0,
+    "log_sha256": "fbc31ef068eb3cf655a0737522be43e6b90da48b4ea1824199c985b60907bbc5",
+    "new_api_alias_case": "An\u2192Dn\u2192An retains the actual input address; unknown Dn overwrite removes the consumer while OpenDevice itself stays recognized.",
+    "scope": "One production defect fixed and two stale/incorrect-context fixture expectations replaced with stronger distinct assertions. This is not three production bug fixes or all-path game correctness."
+  },
+  "target": {
+    "vectors_unchanged": {
+      "accepted_code_runs": true,
+      "range_ownerships": true,
+      "app_slot_refs": true,
+      "recovered_platform_typed_accesses": true,
+      "recovered_platform_unresolved_typed_accesses": true,
+      "recovered_indirect_sites": true,
+      "table_consumers": true,
+      "address_expressions": true
+    },
+    "address_values_before": 11,
+    "address_values_after": 11,
+    "address_consumers_before": 62,
+    "address_consumers_after": 62,
+    "rendered_inline_equal": true,
+    "rendered_incbins_source_equal": true,
+    "assets_equal": 57,
+    "original_bytes": 412736,
+    "unclassified_bytes": 14164,
+    "unclassified_intervals": 262,
+    "generic_fields": 50,
+    "source_quality_diagnostics": 0,
+    "incomplete_analysis": []
+  },
+  "verification": {
+    "kind": "verification",
+    "framework_exact": true,
+    "target_id": "amiga_raw_starglider2_game",
+    "subject_revision": "c5d94c7aa321b15cfa1ecf4ba30fe7a76d75cd411962a6965ef437bfafa7ab84",
+    "status": "exact",
+    "exact": true,
+    "source_sha256": "9f0c908157f055a6461a297af22e40450675518fc4e166d20e00a1fba33de255",
+    "source_path": "/workspace/pandora-original-delivery/stable-d15c2cf8/.runtime-state/restoration/eb04f545fb97451725a1c91ab5abf6f2e097614c45880db6edfb4ea5c3f6e2c2/9f0c908157f055a6461a297af22e40450675518fc4e166d20e00a1fba33de255.s",
+    "source_package_sha256": null,
+    "original_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "original_size": 412736,
+    "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "rebuilt_path": "/workspace/pandora-original-delivery/stable-d15c2cf8/.runtime-state/restoration/eb04f545fb97451725a1c91ab5abf6f2e097614c45880db6edfb4ea5c3f6e2c2/662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9.bin",
+    "framework_status": "exact",
+    "failure_kinds": [],
+    "message": "",
+    "oracle": {
+      "oracle_id": "vasm",
+      "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+      "comparison_level": "oracle.full_file_match",
+      "assembler_status": "accepted",
+      "message": "oracle output matched original bytes"
+    },
+    "receipt_id": "cb5f957ad4294edeb01f9350ccf527188d2d19bf521a54f49d21a26c8c39c618",
+    "revision": "aef1b9853d480e07b8db1d4748aab829383c47a13e116f19a3efe5de81d81526"
+  },
+  "standalone": {
+    "reused_verified_tree": "c14bcca3e46210a77993b1c622a0dc5010ea9efd",
+    "receipt": "runtime/observations/starglider2-periodic-bcd.json",
+    "scope": "No target input changed; new exporter emits identical source/assets and new C/vasm verification is exact. The existing clean standalone tree rebuild remains applicable."
+  },
+  "generation_wall_seconds": 172.74102512700483,
+  "limits": [
+    "No guest execution or new runtime coverage; the normal-media flight/zero-latch receipt remains separate.",
+    "Target vectors/source unchanged, so this is a reusable consumer collection repair, not an invented Starglider classification gain.",
+    "Remaining generic fields, conditional bases, model identities and orphan inbound signals remain active restoration work."
+  ]
+}

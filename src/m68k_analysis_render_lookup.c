@@ -5121,7 +5121,7 @@ static M68kRenderTypedStoredValue typed_stored_value_for_address_register(
 
 static int typed_flow_apply_call_input_type_refs(M68kRenderLookup *lookup, size_t section_index,
     uint32_t offset, M68kRenderTypedState *state, const M68kAnalysisFunctionSummary *summary,
-    int allow_lookup_storage, int *io_changed) {
+    int record_only, int allow_lookup_storage, int *io_changed) {
   uint8_t index;
   if (lookup == NULL || state == NULL || summary == NULL) return 0;
   for (index = 0U; index < summary->input_count; ++index) {
@@ -5144,6 +5144,9 @@ static int typed_flow_apply_call_input_type_refs(M68kRenderLookup *lookup, size_
           input->struct_name, NULL, NULL, UINT32_MAX, 0U, input, state, NULL) != 0) {
       return -1;
     }
+    /* Final collection observes the already stable input value. Reapplying
+     * precondition inference here could mutate the fixed-point interpretation. */
+    if (record_only) continue;
     if (allow_lookup_storage && state->app_addr_regs[reg_index].known) {
       if (render_lookup_add_typed_app_slot_region(lookup, state->app_addr_regs[reg_index].displacement,
           input_struct_id, section_index, offset, &added) != 0) {
@@ -9806,9 +9809,9 @@ static int typed_flow_process_node_impl(M68kRenderLookup *lookup, const M68kDeco
       generated_platform_contract_selected = 1U;
     }
   }
-  if (!record_typed_accesses && generated_platform_contract_selected != 0U &&
+  if (generated_platform_contract_selected != 0U &&
       typed_flow_apply_call_input_type_refs(lookup, section->section_index, node->candidate->offset,
-        out_typed_state, selected_local_effects, allow_lookup_storage, io_changed) != 0) {
+        out_typed_state, selected_local_effects, record_typed_accesses, allow_lookup_storage, io_changed) != 0) {
     return -1;
   }
   if ((instruction_has_call_flow_local(&instruction) || generated_platform_contract_selected != 0U) &&

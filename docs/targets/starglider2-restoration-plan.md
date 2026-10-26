@@ -17,6 +17,14 @@ to their recorded closeout revision. See the current
 
 ## Current refinement and next evidence
 
+The [final API-input collection fix](../../runtime/observations/starglider2-api-input-collection.json)
+now passes the full native suite: **823 tests, zero failures**. One final-pass
+consumer omission was fixed. Two old fixture expectations now distinguish
+value origin from write location and stable storage from a library-extension
+hint, with clobber negatives. Earlier nine-/three-failure receipts remain dated
+history; they are not the current suite status. Target source/ownership/access
+vectors remain unchanged and C/vasm is exact on the updated backend.
+
 Latest: the [periodic BCD display batch](../../runtime/observations/starglider2-periodic-bcd.json)
 explains the two-byte packed-BCD counter, its separate service countdown and
 three graphics-dependent updater entries. Four displayed digits do not make
@@ -45,9 +53,10 @@ overflow bonus is not a kill count; the shot counter precedes final spawn/pool
 checks. 93 model-directory annotations join 92 original names plus the type 0/1
 alias. Type 30's substituted selector and eleven other placeholder-name entries
 remain explicit. These are catalogue associations, not visual identification or
-an all-path runtime instance census. That early catalogue/hardware suite passed 125 cases; the current focused
-cursor/provenance/integration checks pass 349 for the current body-worklist batch (the preceding JMP batch separately passed 440). Earlier text/renderer checks
-retain their separate receipts. The current affine/counter-relative batch passes 365 focused cases. Source
+an all-path runtime instance census. The early catalogue/hardware suite passed 125 cases; the body-worklist batch
+passed 349 focused cases, the JMP batch 440 and the affine/counter-relative batch
+365. These are historical focused results, separate from the full current native
+suite above. Earlier text/renderer checks retain their own receipts. Source
 quality has zero diagnostics and retains the known encoded-entry boundary conflict.
 
 A second generic renderer defect hid interior pointer-table annotations.
