@@ -132,6 +132,32 @@ leads. The retracted native app interpretation at source `$BC3A` also exposes a
 historical `app_0127` rendered binding over an ExecBase access; source bindings
 are preserved pending an evidence-backed canonical correction.
 
+## Pre-call input-effect follow-up
+
+The next minimal alias probe reproduced a separate call-effect ordering bug:
+`MOVEA.L A0,A1`, a cached field through A0, then a call writing through input A1
+while clobbering A1 left the cache stale. INPUT effects describe pre-call values.
+The fix selects alias bases from the already retained pre-call snapshot while
+invalidating current output caches; it does not restore clobbered registers.
+Write/escape/no-effect and preserved/clobbered contrasts pass, alongside 94
+focused checks. No per-node storage or new identity domain is introduced.
+
+The [input-effect receipt](../../runtime/observations/starglider2-pre-call-input-effects.json)
+confirms identical complete native sections, app fields and source package.
+The published exact C/vasm and clean staged standalone result above therefore
+applies to the identical output; no unchanged rebuild was repeated. This is a
+fixture-backed shared correctness repair with no additional target fact gain.
+The An → Dn → An identity experiment remains next; this repair alone is not
+general register/memory alias closure.
+
+One target qualification took 364.61 seconds (375.72 seconds for the complete
+process, 2,668,548 KiB peak). Source finalization took 213.15 seconds versus
+69.81 in the preceding qualification; typed analysis took 54.65 versus 66.06.
+The final facts/package are identical. These measurements localize the extra
+cost but do not establish its cause. Do not run another unchanged pipeline merely
+for timing: collect operation counts within that phase alongside the next
+necessary qualification before attributing the cost to scheduling or repeated work.
+
 ## Active priorities after cursor-span qualification
 
 The current source has 3,249 app references, 135 bounded loop-pattern records,

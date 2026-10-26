@@ -1796,10 +1796,11 @@ static void typed_state_invalidate_static_storage_subject(M68kRenderTypedState *
 }
 
 static void typed_state_invalidate_input_subject(M68kRenderTypedState *state,
-    const M68kAnalysisFunctionSummary *summary, uint8_t input_index) {
+    const M68kAnalysisFunctionSummary *summary, uint8_t input_index,
+    const M68kRenderTypedState *input_state) {
   const M68kAnalysisFunctionSummaryInput *input;
   uint8_t member_index;
-  if (state == NULL || summary == NULL || input_index >= summary->input_count) return;
+  if (state == NULL || input_state == NULL || summary == NULL || input_index >= summary->input_count) return;
   input = &summary->inputs[input_index];
   if (input->location.kind != M68K_FUNCTION_SUMMARY_ABI_LOCATION_REGISTER &&
       input->location.kind != M68K_FUNCTION_SUMMARY_ABI_LOCATION_REGISTER_TUPLE) return;
@@ -1808,12 +1809,12 @@ static void typed_state_invalidate_input_subject(M68kRenderTypedState *state,
     uint8_t candidate;
     if (input->location.registers[member_index].register_kind != M68K_ANALYSIS_REGISTER_ADDRESS || base_reg >= 8U)
       continue;
-    /* Field/base slots are indexed by the physical base register.  Include
-     * directly tracked aliases of the ABI input; the underlying pointer can
-     * be preserved while values cached through either spelling become stale. */
+    /* An INPUT effect names the pre-call argument value. The ABI can clobber
+     * its register before this effect is applied; use the retained input
+     * snapshot for aliases, while invalidating only current output caches. */
     for (candidate = 0U; candidate < 8U; ++candidate) {
       if (candidate == base_reg ||
-          typed_state_addr_alias_equal(state, candidate, base_reg)) {
+          typed_state_addr_alias_equal(input_state, candidate, base_reg)) {
         uint8_t reg;
         /* A value loaded from a field/base cache is not a direct alias of the
          * input pointer.  It is nevertheless stale after a write through that
@@ -14305,7 +14306,7 @@ static void typed_state_apply_function_summary_effects(M68kRenderTypedState *sta
         typed_state_invalidate_static_storage_subject(state, subject);
       } else if (subject->kind == M68K_FUNCTION_SUMMARY_EFFECT_SUBJECT_INPUT &&
           subject->input_index < summary->input_count) {
-        typed_state_invalidate_input_subject(state, summary, subject->input_index);
+        typed_state_invalidate_input_subject(state, summary, subject->input_index, &old_state);
       } else if (subject->kind == M68K_FUNCTION_SUMMARY_EFFECT_SUBJECT_STACK) {
         typed_state_invalidate_stack_subject(state, subject);
       } else {
@@ -14325,7 +14326,7 @@ static void typed_state_apply_function_summary_effects(M68kRenderTypedState *sta
       typed_state_invalidate_static_storage_subject(state, sink);
     } else if (sink->kind == M68K_FUNCTION_SUMMARY_EFFECT_SUBJECT_INPUT &&
         sink->input_index < summary->input_count) {
-      typed_state_invalidate_input_subject(state, summary, sink->input_index);
+      typed_state_invalidate_input_subject(state, summary, sink->input_index, &old_state);
     } else if (sink->kind == M68K_FUNCTION_SUMMARY_EFFECT_SUBJECT_STACK) {
       typed_state_invalidate_stack_subject(state, sink);
     } else {
