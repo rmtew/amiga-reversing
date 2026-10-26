@@ -263,3 +263,44 @@ static int local_callee_stack_transfer(M68kLocalCalleeInputs *inputs, M68kTypedL
   }
   local_callee_frame_saved_mask(inputs, state); return 0;
 }
+
+/* Compact entry identities consume the same admitted register ABI/result
+ * contract as typed values. They do not infer types, stack/tuple bindings or
+ * values from a numeric address. Result sources always use the precall state. */
+static int local_callee_identity_location(const M68kFunctionSummaryAbiLocation *location,
+    uint8_t *ordinal) {
+  uint8_t kind, reg;
+  if (location->kind != M68K_FUNCTION_SUMMARY_ABI_LOCATION_REGISTER ||
+      location->width != 4U || location->register_count != 1U) return 0;
+  kind = location->registers[0].register_kind;
+  reg = location->registers[0].register_index;
+  if (reg >= 8U || (kind != M68K_ANALYSIS_REGISTER_ADDRESS && kind != M68K_ANALYSIS_REGISTER_DATA)) return 0;
+  *ordinal = reg + (kind == M68K_ANALYSIS_REGISTER_ADDRESS ? 8U : 0U);
+  return 1;
+}
+
+static void local_callee_identity_call(M68kTypedLocalCalleeState *state,
+    const M68kAnalysisFunctionSummary *summary, const uint8_t before[16]) {
+  for (uint8_t reg = 0U; reg < 8U; ++reg) {
+    if (function_summary_register_effect(summary, M68K_ANALYSIS_REGISTER_ADDRESS, reg) !=
+        M68K_FUNCTION_SUMMARY_LOCATION_PRESERVED) state->entry_origin[reg] = 0xffU;
+    if (function_summary_register_effect(summary, M68K_ANALYSIS_REGISTER_DATA, reg) !=
+        M68K_FUNCTION_SUMMARY_LOCATION_PRESERVED) state->data_origin[reg] = 0xffU;
+  }
+  if (!summary || summary->effects_invalid || summary->result_contract_invalid) return;
+  for (size_t i = 0U; i < summary->result_count; ++i) {
+    const M68kAnalysisFunctionSummaryResult *result = &summary->results[i];
+    const M68kAnalysisFunctionSummaryInput *input;
+    uint8_t source, dest;
+    if (result->kind != M68K_ANALYSIS_FUNCTION_SUMMARY_RESULT_IDENTITY_INPUT ||
+        result->input_index >= summary->input_count) continue;
+    input = &summary->inputs[result->input_index];
+    /* A conditional struct-typed input needs the full typed caller check;
+     * this compact bit-identity adapter admits only untyped ABI identity. */
+    if (input->seed_kind != M68K_ANALYSIS_REGISTER_SEED_ABI_POINTER ||
+        !local_callee_identity_location(&input->location, &source) ||
+        !local_callee_identity_location(&result->location, &dest)) continue;
+    if (dest < 8U) state->data_origin[dest] = before[source];
+    else state->entry_origin[dest - 8U] = before[source];
+  }
+}

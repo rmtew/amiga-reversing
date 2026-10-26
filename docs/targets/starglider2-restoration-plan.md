@@ -105,7 +105,7 @@ For those priorities the immediate acceptance questions and dependencies are:
 
 | Limitation | What it currently blocks | Next bounded experiment | Why it is sequenced here |
 | --- | --- | --- | --- |
-| Branchy point-field loop and mutable absolute cursor cell | Renderer read/update spans for world/cache triplets; initialization is bounded | Eight probes distinguish the failures: straight DBF has one range, retry/rollback has none; absolute cursor store/load works until +6 arithmetic. Local absolute store/update/alias invalidation now passes 21 cases. Sparse graph now admits all 435 direct summaries; absolute-JMP transfer now consumes the known source edge. Diagnose the clipping body-state limit, then check cursor=base+6*(initial-counter) across setup/retry and saved-register paths | Actual renderer $4E0AC..$4E332 retries at $4E350 without decrementing D7; cache pointer crosses absolute cell $4E5C0. Whole-root stack transport is fixed but changes no target facts. Global writer-summary storage is not a per-program-point memory value. No target-shaped loop recognizer or dense extra per-node slot array is justified. |
+| Branchy point-field loop and mutable absolute cursor cell | Renderer read/update spans for world/cache triplets; initialization is bounded | Eight probes distinguish the failures: straight DBF has one range, retry/rollback has none; absolute cursor store/load works until +6 arithmetic. Local absolute store/update/alias invalidation now passes 21 cases. Sparse graph now admits all 435 direct summaries; absolute-JMP transfer and the per-PC body proof now complete clipping. The current three minimal probes reproduce equal-cursor branch, rollback retry and unbounded-retry cases; each still has no range summary. Add a shared counter-relative affine value and test cursor+6*counter invariance across setup/retry and saved-register paths | Actual renderer $4E0AC..$4E332 retries at $4E350 without decrementing D7; cache pointer crosses absolute cell $4E5C0. Whole-root stack transport is fixed but changes no target facts. Global writer-summary storage is not a per-program-point memory value. No target-shaped loop recognizer or dense extra per-node slot array is justified. |
 | Remaining conditional app bases | Explicit provenance for 2,908 fallback records (2,401 A6 and 507 declared-layout), alongside 302 register-state and one library-extension record | Group remaining sites by actual entry/call and base producer/borrow; select one concrete lost or conflicting transfer | The holder contract covers its 28 direct loads, not unknown callbacks or callees without a preservation contract. |
 | Orphan incoming path | Deciding whether a specific decoded island belongs in accepted code | Rank current unresolved signals against recovered pointer/table/return edges; choose one with a concrete inbound lead and, only if static evidence remains insufficient, observe that original normal-input condition | Follow recovered access/base evidence to avoid repeatedly scanning instruction-shaped bytes without an entry hypothesis. |
 | Shared buffer phase | Distinguishing producers/consumers of aliased scratch cells and safe source type views | Join the current vertex/cache/polygon writers and readers by original phase/entry; test one suspected overwrite-before-use or cross-phase consumer | Depends on accurate cursor/base associations; physical adjacency or storage capacity alone cannot identify ownership/lifetime. |
@@ -288,6 +288,40 @@ body budget is no longer a dependency. Nested identity-result composition and
 caller-scoped base inputs follow, then concrete orphan/shared-buffer leads.
 Private-frame/normal-return contracts, unresolved callers, current orphan counts
 and A6 fallback assumptions remain explicit; this is not all-path completeness.
+
+## Nested call identity: current contract precision
+
+The [call-identity receipt](../../runtime/observations/starglider2-direct-call-identity.json)
+records 356 passing checks and four reproduced positive failures corrected.
+Compact direct bodies now consume the existing full-LONG single-register ABI
+identity-result contract using precall origins. Callee clobbers still clear
+unreturned identities. Full returned Dn identities establish preservation via
+the existing register partition, including normal scalar/MOVEM saves. Explicit
+direct contracts take precedence, and every nested call must preserve A7 even
+with an empty owned frame. Stack/tuple/partial results and conditional struct
+inputs are not guessed by the compact adapter.
+
+The target gains 1,297 preserved-Dn contracts, previously always reported as
+clobbered. Its 13 identity results, 320 typed accesses, 3,211 app records, source
+and complete source package remain identical. This is shared analysis precision,
+not new semantic names, classification or runtime evidence. C/vasm verification
+is exact; the byte-identical package retains the previous clean standalone
+build/tree receipt rather than repeating that build. One changed-backend target
+generation took 125.72 seconds; no global speed comparison is claimed.
+
+The retry limitation now has a specific model boundary, not a clipping or
+capacity excuse. `M68kRenderTypedAppAddressValue` is an exact four-byte
+known/evidence/displacement packet. The separate finite low-WORD sets do not
+retain a cursor/counter relation through joins. Allowing branch edges alone,
+raising a cap or sampling a few iterations cannot prove the requested range.
+The next shared-value slice needs a counter-relative affine identity carried
+through existing register/store/restore/merge paths, with equal-potential joins.
+Its acceptance fixtures are an equal-stride diamond and saved-cell rollback;
+unequal stride, missing rollback, unknown alias writes, conflicting entry seeds,
+callee clobber and partial restores must refuse. Keep that expression in shared
+value ownership rather than append an app-only transfer engine or dense extra
+per-node slot arrays. Only then use the improved evidence for original renderer,
+caller-entry, orphan inbound and shared-buffer interpretation.
 
 ## Committed buildable rendered output
 

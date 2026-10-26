@@ -6558,9 +6558,9 @@ static int typed_flow_local_callee_effect_summary(const M68kRenderLookup *lookup
         int has_local_callee = typed_flow_local_call_target(lookup, candidate, &callee_section, &callee_offset);
         const M68kAnalysisFunctionSummary *callee_summary = NULL;
         if (has_local_callee) {
-          callee_summary = lookup_inferred_direct_function_summary(lookup, callee_section, callee_offset);
+          callee_summary = lookup_configured_direct_function_summary(lookup, callee_section, callee_offset);
           if (callee_summary == NULL)
-            callee_summary = lookup_configured_direct_function_summary(lookup, callee_section, callee_offset);
+            callee_summary = lookup_inferred_direct_function_summary(lookup, callee_section, callee_offset);
         }
         if (callee_summary == NULL || callee_summary->effects_invalid != 0U ||
             callee_summary->memory_effect_state != M68K_FUNCTION_SUMMARY_EFFECT_COMPONENT_EXPLICIT ||
@@ -6569,17 +6569,10 @@ static int typed_flow_local_callee_effect_summary(const M68kRenderLookup *lookup
           memory_effects_unknown = 1U;
           escape_effects_unknown = 1U;
         }
-        if (state.frame_id && function_summary_register_effect(callee_summary,
+        if (function_summary_register_effect(callee_summary,
             M68K_ANALYSIS_REGISTER_ADDRESS, 7U) != M68K_FUNCTION_SUMMARY_LOCATION_PRESERVED) goto cleanup;
         local_hardware_apply_call(&state.hardware, callee_summary);
-        /* A nested callee preserves only identities covered by its register
-         * contract. Saved frame values are separate and may restore them. */
-        for (uint8_t reg = 0U; reg < 8U; ++reg) {
-          if (function_summary_register_effect(callee_summary, M68K_ANALYSIS_REGISTER_ADDRESS, reg) !=
-              M68K_FUNCTION_SUMMARY_LOCATION_PRESERVED) state.entry_origin[reg] = 0xffU;
-          if (function_summary_register_effect(callee_summary, M68K_ANALYSIS_REGISTER_DATA, reg) !=
-              M68K_FUNCTION_SUMMARY_LOCATION_PRESERVED) state.data_origin[reg] = 0xffU;
-        }
+        local_callee_identity_call(&state, callee_summary, before_origins);
         if (live_mask != 0U) {
           uint8_t callee_preserved = 0U;
           uint8_t reg;
@@ -6595,8 +6588,9 @@ static int typed_flow_local_callee_effect_summary(const M68kRenderLookup *lookup
       }
       if (metadata->flow_kind == M68K_SIM_FLOW_RETURN) {
         if (state.frame_id != 0U) goto cleanup;
+        state.preserved_mask = 0U;
         for (uint8_t reg = 0U; reg < 8U; ++reg)
-          if (state.entry_origin[reg] != reg) state.preserved_mask &= (uint8_t)~(1U << reg);
+          if (state.entry_origin[reg] == reg) state.preserved_mask |= (uint8_t)(1U << reg);
         if (returned == 0U) returned_hardware = state.hardware;
         else for (uint8_t kind = 0U; kind < 2U; ++kind) {
           returned_hardware.known[kind] &= state.hardware.known[kind];
@@ -6743,7 +6737,13 @@ static int typed_flow_local_callee_effect_summary(const M68kRenderLookup *lookup
       result->location.registers[0].register_index = reg;
     }
   }
-  function_summary_set_register_partition(out_summary, 0U, returned_mask);
+  {
+    uint8_t preserved_data = 0U;
+    for (uint8_t reg = 0U; reg < 8U; ++reg)
+      if (returned_data_origin[reg] == typed_flow_entry_origin_make(M68K_ANALYSIS_REGISTER_DATA, reg))
+        preserved_data |= (uint8_t)(1U << reg);
+    function_summary_set_register_partition(out_summary, preserved_data, returned_mask);
+  }
   if (memory_effects_unknown == 0U) {
     memcpy(out_summary->memory_effects, static_writes, sizeof(static_writes));
     out_summary->memory_effect_count = static_write_count;
