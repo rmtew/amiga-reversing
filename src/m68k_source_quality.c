@@ -7683,10 +7683,23 @@ static int append_multiline_string_items_for_section(M68kSourceAnalysisIR *sourc
     const M68kDecodeSectionIR *section, M68kSectionAnalysisIR *section_analysis, const M68kFactIR *facts,
     const uint8_t *accepted_bytes) {
   uint32_t offset = 0U;
+  size_t visited = 0U, rejected_starts = 0U, owner_lookups = 0U, promoted = 0U;
+  const char *trace = getenv("AMIGA_REVERSING_PROFILE_SOURCE_QUALITY");
   if (source_analysis == NULL || section == NULL || section_analysis == NULL || section->data == NULL)
     return 0;
   while (offset < section->size) {
     uint32_t span;
+    ++visited;
+    /* Necessary, constant-cost predicates from the unchanged span resolver.
+     * Reject before the linear first-owner lookup. Do not pre-run its
+     * whitespace scan or union overlapping owners: declaration precedence,
+     * weak strings and placeholder starts retain their existing semantics. */
+    if ((section->data[offset] != 0x0dU &&
+         !m68k_ir_byte_is_quoted_string_safe(section->data[offset])) ||
+        source_quality_auto_string_range_has_code_byte(section, accepted_bytes, offset, 1U)) {
+      ++rejected_starts; ++offset; continue;
+    }
+    ++owner_lookups;
     const M68kAnalysisStructuredDataItem *covering_item =
       source_quality_structured_data_item_covering_offset(source_analysis, (uint32_t)section->section_index,
         offset);
@@ -7704,11 +7717,16 @@ static int append_multiline_string_items_for_section(M68kSourceAnalysisIR *sourc
           offset, span) != 0) {
         return -1;
       }
+      ++promoted;
       offset += span;
       continue;
     }
     ++offset;
   }
+  if (trace != NULL && strcmp(trace, "1") == 0)
+    fprintf(stderr, "source_quality_multiline section=%zu visited=%zu rejected_starts=%zu owner_lookups=%zu promoted=%zu items=%zu\n",
+      section->section_index, visited, rejected_starts, owner_lookups, promoted,
+      source_analysis->structured_data_item_count);
   return 0;
 }
 

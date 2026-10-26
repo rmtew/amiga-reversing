@@ -1752,15 +1752,15 @@ static void typed_state_invalidate_memory_derived_reg(M68kRenderTypedState *stat
   M68kRenderTypedProvenance provenance = before.provenance;
   M68kRenderTypedAppAddressValue app = kind == M68K_ANALYSIS_REGISTER_DATA ?
     state->data_app_addr_regs[reg] : state->app_addr_regs[reg];
-  uint32_t aliases = state->addr_reg_alias_known;
+  uint32_t aliases = state->register_alias_known;
   uint8_t alias_sources[8];
-  memcpy(alias_sources, state->addr_reg_alias_source, sizeof(alias_sources));
+  memcpy(alias_sources, state->register_alias_sources, sizeof(alias_sources));
   typed_reg_forget_interpretation(&before);
   typed_state_clear_reg(state, kind, reg);
   *value = before;
   /* A memory effect cannot change equality of already held CPU values. */
-  state->addr_reg_alias_known = aliases;
-  memcpy(state->addr_reg_alias_source, alias_sources, sizeof(alias_sources));
+  state->register_alias_known = aliases;
+  memcpy(state->register_alias_sources, alias_sources, sizeof(alias_sources));
   if (app.known) value->provenance = provenance;
   if (kind == M68K_ANALYSIS_REGISTER_DATA) state->data_app_addr_regs[reg] = app;
   else state->app_addr_regs[reg] = app;
@@ -2068,7 +2068,7 @@ static int typed_provenances_equal(const M68kRenderTypedProvenance *left,
     memcmp(left->transfers, right->transfers, sizeof(left->transfers)) == 0;
 }
 
-#include "m68k_address_register_alias.inc"
+#include "m68k_register_value_alias.inc"
 
 static void typed_state_clear_io_request_setup(M68kRenderTypedState *state, uint8_t reg_index) {
   if (state == NULL || reg_index >= 8U) return;
@@ -2083,6 +2083,7 @@ static void typed_state_clear_reg(M68kRenderTypedState *state, uint8_t reg_kind,
     state->data_app_addr_regs[reg_index].displacement = 0;
     state->data_app_addr_regs[reg_index].base_evidence_kind = M68K_APP_SLOT_BASE_UNSPECIFIED;
     typed_memory_base_clear(&state->data_memory_base_regs[reg_index]);
+    typed_state_clear_register_alias(state, reg_index);
   } else if (reg_kind == 2U) {
     typed_reg_value_clear(&state->addr_regs[reg_index]);
     state->app_addr_regs[reg_index].known = 0U;
@@ -2113,6 +2114,7 @@ static void typed_state_set_reg(M68kRenderTypedState *state, uint8_t reg_kind, u
     state->data_app_addr_regs[reg_index].displacement = 0;
     state->data_app_addr_regs[reg_index].base_evidence_kind = M68K_APP_SLOT_BASE_UNSPECIFIED;
     typed_memory_base_clear(&state->data_memory_base_regs[reg_index]);
+    typed_state_clear_register_alias(state, reg_index);
   } else if (reg_kind == 2U) {
     state->addr_regs[reg_index].known = 1U;
     state->addr_regs[reg_index].type_conflicted = 0U;
@@ -2165,7 +2167,6 @@ static void typed_state_set_reg_struct_id(M68kRenderTypedState *state, uint8_t r
     state->app_addr_regs[reg_index].displacement = 0;
     state->app_addr_regs[reg_index].base_evidence_kind = M68K_APP_SLOT_BASE_UNSPECIFIED;
     typed_memory_base_clear(&state->memory_base_regs[reg_index]);
-    typed_state_clear_addr_alias_for_reg(state, reg_index);
   }
 }
 
@@ -7432,9 +7433,9 @@ static void typed_state_update_after_instruction(M68kRenderTypedState *state, M6
   M68kStackRegisterTransfer stack_transfer = {0};
   int has_stack_transfer;
   uint32_t entry_values_before[16] = {0};
-  uint8_t alias_roots_before[8];
+  uint8_t alias_roots_before[16];
   if (state == NULL || instruction == NULL) return;
-  typed_addr_alias_roots(state, alias_roots_before);
+  typed_register_alias_roots(state, alias_roots_before);
   if (lookup != NULL && lookup->affine_entry_context != NULL) for (uint8_t reg = 0U; reg < 8U; ++reg) {
     entry_values_before[reg] = state->data_regs[reg].entry_value_id;
     entry_values_before[reg + 8U] = state->addr_regs[reg].entry_value_id;
@@ -8109,7 +8110,7 @@ static void typed_state_update_after_instruction(M68kRenderTypedState *state, M6
       typed_state_rebase_stack_slots(state, (int16_t)adjustment);
     } else typed_state_clear_stack_slots(state);
   }
-  typed_addr_alias_transfer(state, instruction, alias_roots_before);
+  typed_register_alias_transfer(state, instruction, alias_roots_before);
   affine_entry_transfer_after(state, lookup, instruction, entry_values_before, &stack_transfer,
     has_stack_transfer);
 }
@@ -8260,15 +8261,11 @@ static int typed_state_equal(const M68kRenderTypedState *left, const M68kRenderT
       return 0;
     if (!typed_memory_bases_equal(&left->memory_base_regs[index], &right->memory_base_regs[index])) return 0;
     if (!typed_io_request_setups_equal(&left->io_request_setups[index], &right->io_request_setups[index])) return 0;
-    if (m68k_bitset_u32_has(left->addr_reg_alias_known, (uint8_t)index) !=
-        m68k_bitset_u32_has(right->addr_reg_alias_known, (uint8_t)index)) {
-      return 0;
-    }
-    if (m68k_bitset_u32_has(left->addr_reg_alias_known, (uint8_t)index) &&
-        left->addr_reg_alias_source[index] != right->addr_reg_alias_source[index]) {
-      return 0;
-    }
+
   }
+  if (left->register_alias_known != right->register_alias_known ||
+      memcmp(left->register_alias_sources, right->register_alias_sources,
+        sizeof(left->register_alias_sources)) != 0) return 0;
   for (index = 0U; index < left->stack_slot_count; ++index) {
     if (!typed_stack_slots_equal(&left->stack_slots[index], &right->stack_slots[index])) return 0;
   }
@@ -8804,7 +8801,7 @@ static int typed_state_merge_into(M68kRenderTypedState *dest, const M68kRenderTy
     }
     if (!typed_io_request_setups_equal(&old_io_request_setup, &dest->io_request_setups[index])) changed = 1;
   }
-  changed |= typed_addr_alias_meet(dest, source);
+  changed |= typed_register_alias_meet(dest, source);
   if (typed_state_merge_stack_slots(dest, source)) changed = 1;
   if (typed_state_merge_base_slots(dest, source)) changed = 1;
   if (typed_state_merge_field_slots(dest, source)) changed = 1;

@@ -6,9 +6,10 @@ from pathlib import Path
 import pytest
 
 
+@pytest.mark.parametrize('transport', ['address', 'data'])
 @pytest.mark.parametrize('clobber_input', [False, True])
 @pytest.mark.parametrize('effect', ['none', 'write', 'escape'])
-def test_input_write_uses_pre_call_identity(tmp_path, clobber_input, effect):
+def test_input_write_uses_pre_call_identity(tmp_path, clobber_input, effect, transport):
     root = Path(__file__).resolve().parents[1]
     cc = shutil.which('cc')
     backend = Path(os.environ.get('AMIGA_TEST_BACKEND', root/'src/build/libamiga_backend.so'))
@@ -19,8 +20,11 @@ def test_input_write_uses_pre_call_identity(tmp_path, clobber_input, effect):
 #include <assert.h>
 int main(void) {
  M68kRenderTypedState state={0};M68kRenderLookup lookup={0};M68kRenderPlatformState platform={0};
- M68kInstructionIR copy=m68k_plain_parse_instruction_to_ir("movea.l a0,a1",M68K_ASM_CPU_68000,m68k_diag_sink(NULL));
- typed_state_update_after_instruction(&state,&lookup,&platform,0,&copy,NULL,NULL,0,0);
+ const char *copies[]={COPY_SETUP};
+ for(size_t i=0;i<sizeof(copies)/sizeof(*copies);++i) {
+  M68kInstructionIR copy=m68k_plain_parse_instruction_to_ir(copies[i],M68K_ASM_CPU_68000,m68k_diag_sink(NULL));
+  typed_state_update_after_instruction(&state,&lookup,&platform,0,&copy,NULL,NULL,0,0);
+ }
  assert(typed_state_addr_alias_equal(&state,0,1));
  state.base_slot_count=1;state.base_slots[0].known=1;state.base_slots[0].base_reg=0;
  state.base_slots[0].value.known=1;state.base_slots[0].value.struct_id=AMIGA_OS_STRUCT_ID_LIB;
@@ -47,7 +51,7 @@ int main(void) {
  assert(state.addr_regs[2].entry_value_id==41);
  assert(typed_state_addr_alias_equal(&state,0,1)==(PRESERVED==255));
  return 0;
-}'''.replace('PRESERVED', str(253 if clobber_input else 255)).replace('HAS_WRITE', str(int(effect=='write'))).replace('HAS_ESCAPE', str(int(effect=='escape'))).replace('MEMORY_CHANGED', str(int(effect!='none'))))
+}'''.replace('COPY_SETUP', '"movea.l a0,a1"' if transport=='address' else '"move.l a0,d0","movea.l d0,a1"').replace('PRESERVED', str(253 if clobber_input else 255)).replace('HAS_WRITE', str(int(effect=='write'))).replace('HAS_ESCAPE', str(int(effect=='escape'))).replace('MEMORY_CHANGED', str(int(effect!='none'))))
     executable=tmp_path/'input-write'
     built=subprocess.run([cc,'-Isrc','-D_POSIX_C_SOURCE=200809L','-std=c11','-O0',str(source),str(backend),
         f'-Wl,-rpath,{backend.parent}','-o',str(executable)],cwd=root,capture_output=True,text=True,timeout=60)

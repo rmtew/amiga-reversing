@@ -122,9 +122,8 @@ non-convergence and a lost-loop precision bug and were rejected before source
 adoption. These timings are workflow measurements, not an isolated speed claim.
 The changed normal source package receives a clean staged standalone rebuild.
 
-The next system experiment is full-width An → Dn → An transport followed by an
-input-memory write and cached read, contrasting a partial overwrite. It tests a
-specific alias/invalidation boundary before extending the representation. The
+The subsequent full-width An → Dn → An experiment is now completed below,
+including input-memory effects, partial overwrite and conflicting joins. The
 secondary cache holder `$4E5C0` still needs a reaching producer/alias/call and loop
 relation; caller propagation is progress toward that, not physical every-entry
 A6 proof. Afterwards use recovered contexts for current orphan/shared-buffer
@@ -147,8 +146,8 @@ confirms identical complete native sections, app fields and source package.
 The published exact C/vasm and clean staged standalone result above therefore
 applies to the identical output; no unchanged rebuild was repeated. This is a
 fixture-backed shared correctness repair with no additional target fact gain.
-The An → Dn → An identity experiment remains next; this repair alone is not
-general register/memory alias closure.
+The An → Dn → An identity experiment is now completed below; this repair alone
+is not general register/memory alias closure.
 
 One target qualification took 364.61 seconds (375.72 seconds for the complete
 process, 2,668,548 KiB peak). Source finalization took 213.15 seconds versus
@@ -157,6 +156,51 @@ The final facts/package are identical. These measurements localize the extra
 cost but do not establish its cause. Do not run another unchanged pipeline merely
 for timing: collect operation counts within that phase alongside the next
 necessary qualification before attributing the cost to scheduling or repeated work.
+
+## Current register bridge, cache boundary and regeneration cost
+
+The [register/text-cost receipt](../../runtime/observations/starglider2-register-bridge-text-cost.json)
+records the next system slice: 279 register/call/cursor checks, 14 text/trace checks
+and five cache/retry cases pass. Full-width An → Dn → An transport now retains
+must-equality. All sixteen CPU registers share one packed canonical relation in
+the previous eight bytes; partial writes/clobbers split it and joins intersect
+it. The old An-only implementation is removed. Type assertions do not assign a
+new CPU value. No extra per-node slot arrays or target-specific logic is added.
+
+The complete native sections, app fields and rendered package remain identical
+to the qualified source, so existing exact/standalone build evidence is reused.
+This fixes a reproduced shared mechanism without inventing target-fact gains.
+
+Multiline discovery previously scanned the first-owner catalogue before testing
+necessary text/code predicates at each visited byte. The new constant-cost gate
+preserves that resolver's ownership precedence and admission rules. A synthetic
+legacy-order oracle retains exact facts while reducing roughly 65,000 ownership
+queries to 0–56. On this target it avoids 357,877 queries, leaving 54,266 over
+16,389 structured items; multiline analysis takes 3.20 seconds. One necessary
+qualification takes 119.03 seconds, with 25.80 seconds in finalization, versus
+364.61/213.15 previously. Other unchanged stages also vary, so the entire timing
+difference is not attributed to this filter. The counter reduction is the causal
+local result; the older run lacks enough trace to explain every second of variance.
+No full timing-only replay or permanent second scan engine was added.
+
+The secondary cache question is now bounded by a positive/negative experiment.
+The shared engine handles a twenty-iteration, six-byte cache-read stride with
+`ADDQ.W` on an address register, absolute-cell rollback, a disjoint literal write
+and a pure helper call. An unresolved physical A6-relative write or opaque call
+correctly drops the cell. In the original producer, the branch-specific stores
+to app `$1A2` at source `$4D092/$4D09E/$4D0A6` follow the holder initialization and
+precede the header. Logical app identity does not prove those physical stores
+cannot overlap absolute holder `$4E5C0`; a numeric/source-backed entry range or an
+evidenced non-overlap contract is the missing fact. No cache range is promoted.
+This is an explicit restriction, not a prerequisite for independent restoration.
+
+Concrete restoration is now the main next work: correct the historical
+ExecBase/app binding, then follow the exposed random-state fields, specific
+orphan incoming paths, shared buffer phases and model consumers. New framework
+work must arise from a reproduced restoration case, not universal fallback or
+arbitrary-loop closure. The generated KB resolves ExecBase `$127` as `TDNestCnt`;
+its library-to-base-type association is currently absent and must not be guessed
+from the old `app_0127` name.
 
 ## Active priorities after cursor-span qualification
 
@@ -201,7 +245,7 @@ For those priorities the immediate acceptance questions and dependencies are:
 
 | Limitation | What it currently blocks | Next bounded experiment | Why it is sequenced here |
 | --- | --- | --- | --- |
-| Branchy point-field loop and mutable absolute cursor cell | Renderer read/update spans for world/cache triplets; initialization is bounded | Eight probes distinguish the failures: straight DBF has one range, retry/rollback has none; absolute cursor store/load works until +6 arithmetic. Local absolute store/update/alias invalidation now passes 21 cases. Sparse graph now admits all 435 direct summaries; absolute-JMP transfer and the per-PC body proof now complete clipping. Shared counter-relative affine values now pass equal-stride diamond and saved-cell/stack/call rollback probes, while unbounded retry refuses. The real renderer gains four world-position patterns; next isolate the secondary cache-cell producer and write/call invalidations | Actual renderer $4E0AC..$4E332 retries at $4E350 without decrementing D7; cache pointer crosses absolute cell $4E5C0. Whole-root stack transport is fixed but changes no target facts. Global writer-summary storage is not a per-program-point memory value. No target-shaped loop recognizer or dense extra per-node slot array is justified. |
+| Branchy point-field loop and mutable absolute cursor cell | Renderer read/update spans for world/cache triplets; initialization is bounded | Eight probes distinguish the failures: straight DBF has one range, retry/rollback has none; absolute cursor store/load works until +6 arithmetic. Local absolute store/update/alias invalidation now passes 21 cases. Sparse graph now admits all 435 direct summaries; absolute-JMP transfer and the per-PC body proof now complete clipping. Shared counter-relative affine values now pass equal-stride diamond and saved-cell/stack/call rollback probes, while unbounded retry refuses. The real renderer gains four world-position patterns; the secondary cache/call/retry experiment now isolates unresolved physical A6 writes as the barrier; retain that restriction while progressing independent restoration | Actual renderer $4E0AC..$4E332 retries at $4E350 without decrementing D7; cache pointer crosses absolute cell $4E5C0. Whole-root stack transport is fixed but changes no target facts. Global writer-summary storage is not a per-program-point memory value. No target-shaped loop recognizer or dense extra per-node slot array is justified. |
 | Remaining conditional app bases | Explicit provenance for 2,826 fallback records (2,334 A6 and 492 declared-layout), alongside 423 register-state records | Group remaining sites by actual entry/call and base producer/borrow; select one concrete lost or conflicting transfer | The holder contract covers its 28 direct loads, not unknown callbacks or callees without a preservation contract. |
 | Orphan incoming path | Deciding whether a specific decoded island belongs in accepted code | Rank current unresolved signals against recovered pointer/table/return edges; choose one with a concrete inbound lead and, only if static evidence remains insufficient, observe that original normal-input condition | Follow recovered access/base evidence to avoid repeatedly scanning instruction-shaped bytes without an entry hypothesis. |
 | Shared buffer phase | Distinguishing producers/consumers of aliased scratch cells and safe source type views | Join the current vertex/cache/polygon writers and readers by original phase/entry; test one suspected overwrite-before-use or cross-phase consumer | Depends on accurate cursor/base associations; physical adjacency or storage capacity alone cannot identify ownership/lifetime. |

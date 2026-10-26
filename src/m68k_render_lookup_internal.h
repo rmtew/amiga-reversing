@@ -520,9 +520,9 @@ typedef struct M68kRenderTypedState {
   M68kRenderTypedMemoryBaseValue data_memory_base_regs[8];
   M68kRenderTypedMemoryBaseValue memory_base_regs[8];
   M68kRenderIoRequestSetup io_request_setups[8];
-  /* Must-equal current An values: non-root members name the least member. */
-  uint32_t addr_reg_alias_known;
-  uint8_t addr_reg_alias_source[8];
+  /* Must-equal full Dn/An values: packed four-bit least-member representatives. */
+  uint32_t register_alias_known;
+  uint8_t register_alias_sources[8];
   /* A local write/call prevents resurrecting a global writer-summary value.
    * Exact local reaching stores may still supply their own value. */
   uint8_t absolute_memory_written;

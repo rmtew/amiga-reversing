@@ -27,8 +27,8 @@ int main(void) {
  known.addr_regs[5].raw_long_value=known.addr_regs[5].raw_long_candidates[0]=0x12345678;
  step(&unknown,"movea.l a5,a1");step(&known,"movea.l a5,a1");
  assert(typed_state_addr_alias_equal(&unknown,1,5) && typed_state_addr_alias_equal(&known,1,5));
- assert(unknown.addr_reg_alias_known==known.addr_reg_alias_known);
- assert(!memcmp(unknown.addr_reg_alias_source,known.addr_reg_alias_source,8));
+ assert(unknown.register_alias_known==known.register_alias_known);
+ assert(!memcmp(unknown.register_alias_sources,known.register_alias_sources,8));
  /* MOVEA.W sign-extends the low word; it is not a full-register identity. */
  unknown=(M68kRenderTypedState){0};step(&unknown,"movea.w a2,a5");
  assert(!typed_state_addr_alias_equal(&unknown,2,5));
@@ -37,9 +37,9 @@ int main(void) {
  step(&right,"movea.l a1,a2");
  a=left;b=right;typed_state_merge_into(&a,&right);typed_state_merge_into(&b,&left);
  assert(typed_state_addr_alias_equal(&a,1,2) && !typed_state_addr_alias_equal(&a,0,1));
- assert(a.addr_reg_alias_known==b.addr_reg_alias_known && !memcmp(a.addr_reg_alias_source,b.addr_reg_alias_source,8));
+ assert(a.register_alias_known==b.register_alias_known && !memcmp(a.register_alias_sources,b.register_alias_sources,8));
  M68kRenderTypedState top={0};typed_state_merge_into(&a,&top);typed_state_merge_into(&a,&right);
- assert(!a.addr_reg_alias_known); /* An unknown path remains unknown. */
+ assert(!a.register_alias_known); /* An unknown path remains unknown. */
  step(&left,"movea.l (a3),a0");
  assert(typed_state_addr_alias_equal(&left,1,2) && !typed_state_addr_alias_equal(&left,0,1));
  step(&left,"exg.l a0,a2");
@@ -78,6 +78,34 @@ int main(void) {
  step(&right,"pea.l (a1)");assert(!typed_state_addr_alias_equal(&right,0,7));
  right=(M68kRenderTypedState){0};step(&right,"movea.l a7,a0");
  step(&right,"link.w a6,#0");assert(!typed_state_addr_alias_equal(&right,0,7));
+ /* Full-width transport through data registers shares the same relation.
+  * Overwriting an intermediate register does not rewrite held copies. */
+ right=(M68kRenderTypedState){0};
+ step(&right,"move.l a0,d0");step(&right,"move.l d0,d7");step(&right,"movea.l d7,a1");
+ assert(typed_state_addr_alias_equal(&right,0,1));
+ assert(typed_register_alias_root(&right,0)==typed_register_alias_root(&right,8));
+ step(&right,"moveq.l #0,d0");
+ assert(typed_state_addr_alias_equal(&right,0,1));
+ assert(typed_register_alias_root(&right,0)!=typed_register_alias_root(&right,8));
+ step(&right,"move.w #0,d7");assert(typed_state_addr_alias_equal(&right,0,1));
+ step(&right,"addq.l #1,a1");assert(!typed_state_addr_alias_equal(&right,0,1));
+ right=(M68kRenderTypedState){0};step(&right,"move.l a0,d0");
+ step(&right,"move.w #0,d0");step(&right,"movea.l d0,a1");
+ assert(!typed_state_addr_alias_equal(&right,0,1));
+ right=(M68kRenderTypedState){0};step(&right,"move.l a0,d0");
+ step(&right,"exg.l d0,a1");assert(typed_state_addr_alias_equal(&right,0,1));
+ assert(typed_register_alias_root(&right,0)!=typed_register_alias_root(&right,8));
+ /* Type assertions are not CPU assignments to either register kind. */
+ right=(M68kRenderTypedState){0};step(&right,"move.l a0,d0");
+ typed_state_set_reg_struct_id(&right,M68K_ANALYSIS_REGISTER_DATA,0,AMIGA_OS_STRUCT_ID_LIB,NULL);
+ typed_state_set_reg_struct_id(&right,M68K_ANALYSIS_REGISTER_ADDRESS,0,AMIGA_OS_STRUCT_ID_LIB,NULL);
+ assert(typed_register_alias_root(&right,0)==typed_register_alias_root(&right,8));
+ left=(M68kRenderTypedState){0};step(&left,"move.l a0,d0");step(&left,"move.l d0,d1");
+ right=(M68kRenderTypedState){0};step(&right,"move.l d0,d1");
+ a=left;b=right;typed_state_merge_into(&a,&right);typed_state_merge_into(&b,&left);
+ assert(a.register_alias_known==b.register_alias_known && !memcmp(a.register_alias_sources,b.register_alias_sources,8));
+ assert(typed_register_alias_root(&a,0)==typed_register_alias_root(&a,1));
+ assert(typed_register_alias_root(&a,0)!=typed_register_alias_root(&a,8));
  assert(sizeof(M68kRenderTypedState)==32616);
  return 0;
 }''')
