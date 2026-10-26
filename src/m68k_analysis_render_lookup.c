@@ -8696,6 +8696,17 @@ static void hardware_relative_transfer(M68kRenderPlatformState *state, const M68
         (instruction->mnemonic_id == M68K_ASM_MNEMONIC_MOVE &&
          (instruction->size_suffix == 'w' || instruction->size_suffix == 'l'))) {
       state->word_values[dest] = source;
+    } else if ((meta->operation_type == M68K_SIM_OP_ADD || meta->operation_type == M68K_SIM_OP_SUB) &&
+        (instruction->size_suffix == 'w' || instruction->size_suffix == 'l')) {
+      if (!source.count) return;
+      for (i = 0U; i < before->word_values[dest].count; ++i)
+        for (uint8_t j = 0U; j < source.count; ++j) {
+          uint16_t value = meta->operation_type == M68K_SIM_OP_ADD
+            ? (uint16_t)(before->word_values[dest].values[i] + source.values[j])
+            : (uint16_t)(before->word_values[dest].values[i] - source.values[j]);
+          if (!hardware_word_set_add(&result, value)) return;
+        }
+      state->word_values[dest] = result;
     } else if ((instruction->mnemonic_id == M68K_ASM_MNEMONIC_LSL ||
                 instruction->mnemonic_id == M68K_ASM_MNEMONIC_MULU) &&
         instruction->size_suffix == 'w' && source.count == 1U) {
@@ -9815,8 +9826,11 @@ static int typed_flow_recompute_node_input(M68kRenderTypedFlowGraph *graph, size
 
 /* Hardware bounds have a separate fixed point. Unrelated typed memory/cursor
  * churn cannot either suppress these proofs or certify an unfinished set. */
+static int typed_flow_note_incomplete(M68kRenderLookup *lookup, size_t section_index,
+    uint32_t offset, size_t visit_limit, size_t pending);
+
 static int hardware_relative_analyze_graph(M68kRenderLookup *lookup, const M68kDecodeSectionIR *section,
-    const M68kRenderTypedFlowGraph *graph, Arena *arena) {
+    M68kRenderTypedFlowGraph *graph, Arena *arena) {
   M68kRenderPlatformState *inputs, *outputs;
   uint8_t *has_in, *has_out, *queued;
   size_t *queue, head = 0U, count = 0U, visits = 0U, index;
@@ -9825,6 +9839,10 @@ static int hardware_relative_analyze_graph(M68kRenderLookup *lookup, const M68kD
   ArenaMark mark;
   int result = -1;
   if (graph->node_count == 0U) return 0;
+  /* Reuse existing node storage, not a second retained scalar-state array.
+   * Failed/incomplete solves leave unknown values, never a stale proof. */
+  for (index = 0U; index < graph->node_count; ++index)
+    memset(graph->nodes[index].platform_out.word_values, 0, sizeof(graph->nodes[index].platform_out.word_values));
   mark = arena_mark(arena);
   inputs = arena_calloc(arena, graph->node_count, sizeof(*inputs));
   outputs = arena_calloc(arena, graph->node_count, sizeof(*outputs));
@@ -9890,7 +9908,13 @@ static int hardware_relative_analyze_graph(M68kRenderLookup *lookup, const M68kD
       if (found && typed_flow_enqueue_node(queue, queued, graph->node_count, &head, &count, successor) != 0) goto done;
     }
   }
+  if (count != 0U && typed_flow_note_incomplete(lookup, section->section_index,
+      graph->nodes[queue[head]].candidate->offset, limit, count) != 0) goto done;
   if (count == 0U) for (index = 0U; index < graph->node_count; ++index) if (has_in[index]) {
+    /* Publish only the converged post-instruction scalar proof. Counter users
+     * still reject unknown or input-contract-dependent values. */
+    memcpy(graph->nodes[index].platform_out.word_values, outputs[index].word_values,
+      sizeof(outputs[index].word_values));
     M68kRenderPlatformState proof = inputs[index];
     M68kInstructionIR instruction;
     uint8_t reg;
@@ -10253,42 +10277,8 @@ cleanup:
 
 /* A narrow counted-loop summary reuses CFG identity, the existing immediate
  * word domain and ordinary app-address transfers. It does not widen the main
- * fixed point or execute/unroll iterations. Branchy/cross-entry loops refuse. */
-static int typed_app_loop_counter(const M68kRenderTypedFlowGraph *graph, size_t preheader,
-    uint8_t counter, uint32_t *out_iterations) {
-  size_t remaining = graph->node_count;
-  while (remaining-- != 0U) {
-    const M68kRenderTypedFlowNode *node = &graph->nodes[preheader];
-    M68kInstructionIR instruction;
-    const M68kSimFormMetadata *metadata;
-    size_t operand;
-    if (m68k_decode_candidate_to_instruction(node->candidate, &instruction) != 0 ||
-        (metadata = m68k_sim_metadata_for_instruction(&instruction)) == NULL ||
-        metadata->flow_kind != M68K_SIM_FLOW_SEQUENTIAL) return 0;
-    for (operand = 0U; operand < instruction.operand_count; ++operand) {
-      uint8_t reg;
-      int writes_counter = instruction_operand_writes_register_from_metadata(&instruction, operand) &&
-        operand_is_data_register_local(&instruction.operands[operand], &reg) && reg == counter;
-      if (metadata->multi_transfer_direction == M68K_SIM_MULTI_MEMORY_TO_REGISTER &&
-          metadata->reglist_operand_index == operand &&
-          instruction.operands[operand].kind == M68K_ASM_OPERAND_REGLIST &&
-          (instruction.operands[operand].value.value & (1U << counter))) writes_counter = 1;
-      if (writes_counter) {
-        M68kRenderPlatformState before = {0}, after = {0};
-        hardware_relative_transfer(&after, &before, &instruction);
-        if (after.word_values[counter].count != 1U || after.word_values[counter].requires_input_contract)
-          return 0;
-        *out_iterations = (uint32_t)after.word_values[counter].values[0] + 1U;
-        return 1;
-      }
-    }
-    if (node->is_root || graph->predecessor_offsets[preheader + 1U] -
-        graph->predecessor_offsets[preheader] != 1U) return 0;
-    preheader = graph->predecessors[graph->predecessor_offsets[preheader]];
-  }
-  return 0;
-}
-
+ * fixed point or execute/unroll iterations. Branchy bodies still refuse; external
+ * entries must agree on converged counter and cursor values. */
 static int typed_app_loop_step(const M68kRenderLookup *lookup, M68kRenderTypedState *state,
     const M68kRenderPlatformState *platform, size_t section_index,
     const M68kDecodeCandidate *candidate, uint8_t counter) {
@@ -10343,11 +10333,12 @@ static int typed_flow_record_app_loop_ranges(M68kRenderLookup *lookup, const M68
     for (tail = 0U; tail < graph->node_count; ++tail) {
       const M68kRenderTypedFlowNode *end = &graph->nodes[tail];
       M68kInstructionIR dbf;
-      M68kRenderTypedState state;
+      M68kRenderTypedState state, entry_state;
+      M68kRenderPlatformState entry_platform;
       M68kRenderTypedAppAddressValue initial[8];
       int32_t stride[8];
       size_t header = SIZE_MAX, preheader = SIZE_MAX, pred, current, previous;
-      uint32_t iterations;
+      uint32_t iterations = 0U;
       uint8_t counter, reg;
       int valid = 1, pass;
       if (end->candidate->mnemonic_id != M68K_ASM_MNEMONIC_DBF || end->successor_count != 2U ||
@@ -10358,16 +10349,31 @@ static int typed_flow_record_app_loop_ranges(M68kRenderLookup *lookup, const M68
         if (graph->nodes[target].candidate->offset < end->candidate->offset) header = target;
       }
       if (header == SIZE_MAX || graph->nodes[header].is_root ||
-          graph->predecessor_offsets[header + 1U] - graph->predecessor_offsets[header] != 2U) continue;
-      for (pred = graph->predecessor_offsets[header]; pred < graph->predecessor_offsets[header + 1U]; ++pred)
-        if (graph->predecessors[pred] != tail) preheader = graph->predecessors[pred];
-      if (preheader == SIZE_MAX || !graph->nodes[preheader].has_out ||
-          graph->nodes[preheader].candidate->offset >= graph->nodes[header].candidate->offset ||
-          graph->nodes[preheader].successor_count != 1U || graph->nodes[preheader].successors[0] != header ||
-          !typed_app_loop_counter(graph, preheader, counter, &iterations)) continue;
-      memcpy(initial, graph->nodes[preheader].typed_out.app_addr_regs, sizeof(initial));
+          graph->predecessor_offsets[header + 1U] - graph->predecessor_offsets[header] < 2U) continue;
+      for (pred = graph->predecessor_offsets[header]; pred < graph->predecessor_offsets[header + 1U]; ++pred) {
+        size_t entry = graph->predecessors[pred];
+        const M68kRenderTypedFlowNode *node = &graph->nodes[entry];
+        const M68kHardwareWordSet *count = &node->platform_out.word_values[counter];
+        uint32_t trips;
+        if (entry == tail) continue;
+        if (!node->has_out || node->candidate->offset >= graph->nodes[header].candidate->offset ||
+            count->count != 1U || count->requires_input_contract) { valid = 0; break; }
+        trips = (uint32_t)count->values[0] + 1U;
+        if (preheader == SIZE_MAX) {
+          entry_state = node->typed_out;
+          entry_platform = node->platform_out;
+          iterations = trips;
+          preheader = entry;
+        } else {
+          if (trips != iterations) { valid = 0; break; }
+          (void)typed_state_merge_into(&entry_state, &node->typed_out);
+          (void)platform_state_merge_into(&entry_platform, &node->platform_out);
+        }
+      }
+      if (!valid || preheader == SIZE_MAX) continue;
+      memcpy(initial, entry_state.app_addr_regs, sizeof(initial));
       /* Validate body/counter/cursor invariants first; collect no partial facts. */
-      state = graph->nodes[preheader].typed_out;
+      state = entry_state;
       current = header; previous = preheader;
       while (current != tail) {
         const M68kRenderTypedFlowNode *node = &graph->nodes[current];
@@ -10378,7 +10384,7 @@ static int typed_flow_record_app_loop_ranges(M68kRenderLookup *lookup, const M68
             node->candidate->offset >= end->candidate->offset || node->successor_count != 1U ||
             next_offset >= graph->node_by_offset_count || graph->node_by_offset[next_offset] == SIZE_MAX ||
             node->successors[0] != graph->node_by_offset[next_offset] ||
-            !typed_app_loop_step(lookup, &state, &graph->nodes[preheader].platform_out,
+            !typed_app_loop_step(lookup, &state, &entry_platform,
               decode->sections[section_index].section_index, node->candidate, counter)) { valid = 0; break; }
         previous = current; current = node->successors[0];
       }
@@ -10390,7 +10396,7 @@ static int typed_flow_record_app_loop_ranges(M68kRenderLookup *lookup, const M68
       /* Two linear body walks: check every full envelope, then record patterns.
        * No work proportional to the 16-bit counter or per-node state growth. */
       for (pass = 0; pass < 2 && valid; ++pass) {
-        state = graph->nodes[preheader].typed_out; current = header;
+        state = entry_state; current = header;
         while (current != tail && valid) {
           const M68kRenderTypedFlowNode *node = &graph->nodes[current];
           M68kInstructionIR instruction;
@@ -10427,7 +10433,7 @@ static int typed_flow_record_app_loop_ranges(M68kRenderLookup *lookup, const M68
               }
             }
           }
-          if (!typed_app_loop_step(lookup, &state, &graph->nodes[preheader].platform_out,
+          if (!typed_app_loop_step(lookup, &state, &entry_platform,
               decode->sections[section_index].section_index, node->candidate, counter)) return -1;
           current = node->successors[0];
         }
@@ -10448,7 +10454,7 @@ static int typed_flow_record_final_accesses(M68kRenderLookup *lookup, const M68k
   lookup->affine_address_use_count = 0U;
   for (section_index = 0U; section_index < decode->section_count; ++section_index) {
     const M68kDecodeSectionIR *section = &decode->sections[section_index];
-    const M68kRenderTypedFlowGraph *graph = &workflow->graphs[section_index];
+    M68kRenderTypedFlowGraph *graph = &workflow->graphs[section_index];
     size_t node_index;
     for (node_index = 0U; node_index < graph->node_count; ++node_index) {
       M68kRenderTypedState ignored_typed_state;
@@ -10459,6 +10465,7 @@ static int typed_flow_record_final_accesses(M68kRenderLookup *lookup, const M68k
         return -1;
       }
     }
+    if (hardware_relative_analyze_graph(lookup, section, graph, workflow->arena) != 0) return -1;
   }
   return 0;
 }

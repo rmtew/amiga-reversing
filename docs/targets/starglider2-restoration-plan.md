@@ -323,6 +323,33 @@ value ownership rather than append an app-only transfer engine or dense extra
 per-node slot arrays. Only then use the improved evidence for original renderer,
 caller-entry, orphan inbound and shared-buffer interpretation.
 
+## Shared loop-entry proof: current prerequisite
+
+The [loop-entry receipt](../../runtime/observations/starglider2-loop-entry-proof.json)
+records 369 passing checks. Equal external count/cursor setups now use the
+converged scalar CFG output. The duplicate backward sequential counter scan is
+removed. Differing or unknown incoming values still refuse, as do interior
+entries and branchy bodies. Plain ADD/SUB use generated operation metadata in
+the existing low-WORD domain, including modulo-65536 bounds; partial/carry cases
+remain unknown. Both finalization paths now run the same scalar proof.
+
+Converged words occupy existing node storage. Interrupted scalar solves clear
+old words and report incompleteness; no new retained per-node state array or
+node-size increase was introduced. The target's full analysis and complete source
+package are unchanged: 320 typed accesses, 3,211 app records, 30 existing loop
+patterns, 305 fields and the same residual ownership. C/vasm verification is
+exact; the unchanged package reuses the previous clean standalone receipt.
+Generation took 122.19 seconds, one same-input sample after the prior 125.72-second
+run, with no isolated or general speed claim.
+
+Clipping admission and agreeing external counts are now available prerequisites.
+Full branch/retry range proof remains unimplemented. Its next design must carry
+an explicit induction-relative offset through the existing shared value and
+saved-cell/merge paths. A plain branch allowance or a few simulated iterations
+would be unsound. Do not implement that as another app-only transfer engine,
+a guessed source-address root or a dense extra per-node slot array. Keep the
+positive rollback/equal-potential and negative alias/stride/callee cases together.
+
 ## Committed buildable rendered output
 
 The user explicitly requested the final rendered source and dependencies in Git.
