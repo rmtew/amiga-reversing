@@ -1,0 +1,884 @@
+{
+  "schema_version": 1,
+  "kind": "model_viewer_rotation_animation_and_control_restoration",
+  "publication_base_commit": "4d0b7908868c000144c4aa1521bf2fcb091a42ff",
+  "backend_sha256": "14d35d56179d4884402a3f7bca3f3e5afe0e5a72b5c165b09d72531f86da6aec",
+  "analysis_sha256": "e014b7f77ac120106d64b35db0f84ca7766128914907e00a434faf0669ab3874",
+  "canonical_actions": [
+    {
+      "record": "manual_action",
+      "action_id": "manual-987c83b823e94eca92e3b37cf60eda11",
+      "sequence": 2727,
+      "created_at": "2026-10-26T17:18:44.924701+00:00",
+      "kind": "create_manual_rsset_layout_region",
+      "rsset_layout_region": {
+        "rsset_layout_region_id": "catalog-rsset-region-app-017E",
+        "offset": 382,
+        "symbol": "model_viewer_rotation_step_0",
+        "size": 2,
+        "layout_name": "app",
+        "storage_kind": "scalar"
+      },
+      "interpretation": {
+        "evidence_refs": [
+          "s0:0000DA6C:instruction",
+          "s0:0000DA9C:instruction",
+          "s0:0000DAA0:instruction",
+          "s0:0000E1EA:instruction",
+          "s0:0000E1F8:instruction"
+        ],
+        "reason": "Original model-viewer setup clears app+17E; its loop loads this WORD then adds it to model_rotation_0 each iteration. X/S, Y/T and Z/A handlers adjust the respective step by4 under signed +/-128 comparisons (comparison occurs before increment, so this is not a claimed strict clamped range). P stops all three steps; R also clears the rotations. Preserve numeric axis0/1/2, not guessed world-axis orientation. These are viewer-phase scalar controls, not every-entry numeric A6 proof.",
+        "source_evidence_status": "hypothesis",
+        "confidence": "high",
+        "subject_revision": "b8bd52273751b8e23adf2672b7a31b1894517eb9fb7cad7c83de18274ea21a90"
+      }
+    },
+    {
+      "record": "manual_action",
+      "action_id": "manual-fd48d4408c8b4e2b97a23205c7affcf3",
+      "sequence": 2728,
+      "created_at": "2026-10-26T17:18:56.825967+00:00",
+      "kind": "create_manual_rsset_layout_region",
+      "rsset_layout_region": {
+        "rsset_layout_region_id": "catalog-rsset-region-app-0180",
+        "offset": 384,
+        "symbol": "model_viewer_rotation_step_1",
+        "size": 2,
+        "layout_name": "app",
+        "storage_kind": "scalar"
+      },
+      "interpretation": {
+        "evidence_refs": [
+          "s0:0000DA70:instruction",
+          "s0:0000DAA4:instruction",
+          "s0:0000DAA8:instruction",
+          "s0:0000E1EE:instruction",
+          "s0:0000E1FC:instruction"
+        ],
+        "reason": "Original model-viewer setup clears app+180; its loop loads this WORD then adds it to model_rotation_1 each iteration. X/S, Y/T and Z/A handlers adjust the respective step by4 under signed +/-128 comparisons (comparison occurs before increment, so this is not a claimed strict clamped range). P stops all three steps; R also clears the rotations. Preserve numeric axis0/1/2, not guessed world-axis orientation. These are viewer-phase scalar controls, not every-entry numeric A6 proof.",
+        "source_evidence_status": "hypothesis",
+        "confidence": "high",
+        "subject_revision": "46d5a0b38933b8ee39ea805f0087e13a3ffab43068fcb50b7b9ee66e63574582"
+      }
+    },
+    {
+      "record": "manual_action",
+      "action_id": "manual-6db36a7c32094762a12f4f727031fc30",
+      "sequence": 2729,
+      "created_at": "2026-10-26T17:19:21.690768+00:00",
+      "kind": "create_manual_rsset_layout_region",
+      "rsset_layout_region": {
+        "rsset_layout_region_id": "catalog-rsset-region-app-0182",
+        "offset": 386,
+        "symbol": "model_viewer_rotation_step_2",
+        "size": 2,
+        "layout_name": "app",
+        "storage_kind": "scalar"
+      },
+      "interpretation": {
+        "evidence_refs": [
+          "s0:0000DA74:instruction",
+          "s0:0000DAAC:instruction",
+          "s0:0000DAB0:instruction",
+          "s0:0000E1F2:instruction",
+          "s0:0000E200:instruction"
+        ],
+        "reason": "Original model-viewer setup clears app+182; its loop loads this WORD then adds it to model_rotation_2 each iteration. X/S, Y/T and Z/A handlers adjust the respective step by4 under signed +/-128 comparisons (comparison occurs before increment, so this is not a claimed strict clamped range). P stops all three steps; R also clears the rotations. Preserve numeric axis0/1/2, not guessed world-axis orientation. These are viewer-phase scalar controls, not every-entry numeric A6 proof.",
+        "source_evidence_status": "hypothesis",
+        "confidence": "high",
+        "subject_revision": "bb45b2ae207fb994d97ea950a0a47cf73652fa32c86ad6cf072ea558fc31f7bb"
+      }
+    },
+    {
+      "record": "manual_action",
+      "action_id": "manual-42292c1443034df19713fb866c85b323",
+      "sequence": 2730,
+      "created_at": "2026-10-26T17:19:35.283343+00:00",
+      "kind": "create_manual_rsset_layout_region",
+      "rsset_layout_region": {
+        "rsset_layout_region_id": "catalog-rsset-region-app-07E7",
+        "offset": 2023,
+        "symbol": "model_viewer_animation_state",
+        "size": 1,
+        "layout_name": "app",
+        "storage_kind": "scalar"
+      },
+      "interpretation": {
+        "evidence_refs": [
+          "s0:0000DA8C:instruction",
+          "s0:0000DF08:instruction",
+          "s0:0000E010:instruction",
+          "s0:0000E02C:instruction",
+          "s0:0000E034:instruction",
+          "s0:0000E0AA:instruction",
+          "s0:0000047A:instruction",
+          "s0:0002E6C6:instruction"
+        ],
+        "reason": "Original viewer setup sets1. The control dispatcher uses0=disabled,1=advance-toward-end,FF=advance-toward-start,80=hold/manual-step; model selection resets it based on model_viewer_animation_bounds. This BYTE also gates ground-contact shield damage when nonzero and is cleared by a zero-speed flight path. The name describes its viewer role, not exclusive storage ownership or a universal boolean; preserve these shared gameplay consumers.",
+        "source_evidence_status": "hypothesis",
+        "confidence": "high",
+        "subject_revision": "a7e716f88e2df384daab821201f5ce396cc038fa7a0dc75254dff345e454da5d"
+      }
+    },
+    {
+      "record": "manual_action",
+      "action_id": "manual-147ec9c963734b038d8bc8a4c2a1eb0f",
+      "sequence": 2731,
+      "created_at": "2026-10-26T17:19:51.921773+00:00",
+      "kind": "create_manual_rsset_layout_region",
+      "rsset_layout_region": {
+        "rsset_layout_region_id": "catalog-rsset-region-app-07E8",
+        "offset": 2024,
+        "symbol": "model_viewer_bounds_pair_offset",
+        "size": 1,
+        "layout_name": "app",
+        "storage_kind": "scalar"
+      },
+      "interpretation": {
+        "evidence_refs": [
+          "s0:0000DA92:instruction",
+          "s0:0000DF56:instruction",
+          "s0:0000DF7A:instruction",
+          "s0:0000DF88:instruction",
+          "s0:0000DFB4:instruction",
+          "s0:0000DFD8:instruction",
+          "s0:0000DFE6:instruction",
+          "s0:0000E0A6:instruction",
+          "s0:0000E0EA:instruction"
+        ],
+        "reason": "Original viewer setup/selection clears this BYTE. Both variant-step routines compute active_model_type_index*4 into model_viewer_animation_bounds then load this byte as index0 or2, selecting start/end bytes of the first or second bounds pair. Endpoint transitions assign2 or clear0 and use negative second-start as disabled. This is a byte offset into the four-byte record, not a model ID or frame number. Preserve original stepping direction/endpoint comparisons.",
+        "source_evidence_status": "hypothesis",
+        "confidence": "high",
+        "subject_revision": "f7c0d41d9518a46951bd0ebb9bfe16fb03c47219130bc61e79898d69ae261848"
+      }
+    },
+    {
+      "record": "manual_action",
+      "action_id": "manual-ed077bd67d45474e8d9efe8d780e7d08",
+      "sequence": 2732,
+      "created_at": "2026-10-26T17:20:26.334796+00:00",
+      "kind": "create_manual_label",
+      "label": {
+        "label_id": "catalog-code-label-h0-0000D9E0",
+        "name": "enter_model_viewer",
+        "scope": "global",
+        "address_domain": "source",
+        "hunk": 0,
+        "addr": 55776
+      },
+      "interpretation": {
+        "evidence_refs": [
+          "s0:0000D9E0:instruction",
+          "s0:0000DA6C:instruction",
+          "s0:0000DA9C:instruction",
+          "s0:0000E008:instruction"
+        ],
+        "reason": "Original painting-menu path calls this entry after resetting gameplay/input state; it initializes viewer model/pose/animation, then repeatedly services controls and redraws. Q/Escape removes the nested control-service return address before returning to the menu caller. This label names the existing accepted entry, not a new runtime reachability claim.",
+        "source_evidence_status": "hypothesis",
+        "confidence": "high",
+        "subject_revision": "3a43646b82ce8913954ce1374889a2de7b1ff9ac8290a2ea8f18606e307499a2"
+      }
+    },
+    {
+      "record": "manual_action",
+      "action_id": "manual-0f215edf933040f09eaf636d548ffcea",
+      "sequence": 2733,
+      "created_at": "2026-10-26T17:20:37.878340+00:00",
+      "kind": "create_manual_label",
+      "label": {
+        "label_id": "catalog-code-label-h0-0000DE42",
+        "name": "service_model_viewer_controls",
+        "scope": "global",
+        "address_domain": "source",
+        "hunk": 0,
+        "addr": 56898
+      },
+      "interpretation": {
+        "evidence_refs": [
+          "s0:0000DE42:instruction",
+          "s0:0000DE66:instruction",
+          "s0:0000DE6A:instruction",
+          "s0:0000DF08:instruction",
+          "s0:0000E008:instruction"
+        ],
+        "reason": "Existing viewer loop calls this entry each iteration. It copies control accumulators to model origin, waits or polls translated input according to the original flag, then dispatches model selection, scale, variant-animation and rotation-step keys. It is not always nonblocking, and no arbitrary input-domain safety is asserted.",
+        "source_evidence_status": "hypothesis",
+        "confidence": "high",
+        "subject_revision": "aaaad13b3326507bc74ad0c469a43888ccfba0ae94f27ac0c0ac50ea3de37715"
+      }
+    },
+    {
+      "record": "manual_action",
+      "action_id": "manual-471eb275b3f04e8db11d52638de7bfd9",
+      "sequence": 2736,
+      "created_at": "2026-10-26T17:21:41.149006+00:00",
+      "kind": "create_manual_label",
+      "label": {
+        "label_id": "catalog-code-label-h0-0000E1EA",
+        "name": "stop_model_viewer_rotation",
+        "scope": "global",
+        "address_domain": "source",
+        "hunk": 0,
+        "addr": 57834
+      },
+      "interpretation": {
+        "evidence_refs": [
+          "s0:0000DECA:instruction",
+          "s0:0000DECE:instruction",
+          "s0:0000E1EA:instruction",
+          "s0:0000E1EE:instruction",
+          "s0:0000E1F2:instruction"
+        ],
+        "reason": "The original P-key branch clears all three model-viewer rotation-step WORDs and returns, retaining current model rotations. Existing accepted branch destination only. Replaces the rejected provisional operand-interior citation with byte-checked original instruction starts.",
+        "source_evidence_status": "hypothesis",
+        "confidence": "high",
+        "subject_revision": "907a404f6cfbb137cc56fa4ad7893795da18d7936f1e9b72a1d26fd3301133af"
+      }
+    },
+    {
+      "record": "manual_action",
+      "action_id": "manual-c0796d1eaa974917bbdc3163ac0a3b85",
+      "sequence": 2737,
+      "created_at": "2026-10-26T17:21:56.298581+00:00",
+      "kind": "create_manual_label",
+      "label": {
+        "label_id": "catalog-code-label-h0-0000E1F8",
+        "name": "reset_model_viewer_rotation",
+        "scope": "global",
+        "address_domain": "source",
+        "hunk": 0,
+        "addr": 57848
+      },
+      "interpretation": {
+        "evidence_refs": [
+          "s0:0000DED2:instruction",
+          "s0:0000DED6:instruction",
+          "s0:0000E1F8:instruction",
+          "s0:0000E1FC:instruction",
+          "s0:0000E200:instruction",
+          "s0:0000E204:instruction"
+        ],
+        "reason": "The original R-key branch clears all three model-viewer rotation-step WORDs and current model rotation components before returning. Distinct from P stopping motion in the current pose; existing accepted branch destination only. Replaces the rejected provisional operand-interior citation with byte-checked original instruction starts.",
+        "source_evidence_status": "hypothesis",
+        "confidence": "high",
+        "subject_revision": "b823a5bb9a030b746636d610a45efd52390ac5b9fcd0fc806053a885125e2222"
+      }
+    }
+  ],
+  "review": {
+    "decisions": [
+      {
+        "action_id": "manual-987c83b823e94eca92e3b37cf60eda11",
+        "decision_id": "restoration-eccaab57f5d04063a3d47c3583bf9626",
+        "action": "accept_fact"
+      },
+      {
+        "action_id": "manual-fd48d4408c8b4e2b97a23205c7affcf3",
+        "decision_id": "restoration-0bff2b3b6c094226ad6fa52c0adaaab6",
+        "action": "accept_fact"
+      },
+      {
+        "action_id": "manual-6db36a7c32094762a12f4f727031fc30",
+        "decision_id": "restoration-7f7715b908f44cdd9fcb2737c8177f98",
+        "action": "accept_fact"
+      },
+      {
+        "action_id": "manual-42292c1443034df19713fb866c85b323",
+        "decision_id": "restoration-0585248661824893b243a7a5e80c06cf",
+        "action": "accept_fact"
+      },
+      {
+        "action_id": "manual-147ec9c963734b038d8bc8a4c2a1eb0f",
+        "decision_id": "restoration-6cf1ec268add401daf8685fb28dee8db",
+        "action": "accept_fact"
+      },
+      {
+        "action_id": "manual-ed077bd67d45474e8d9efe8d780e7d08",
+        "decision_id": "restoration-3dd9ca48a466440c87f0da187cfa5ffa",
+        "action": "accept_fact"
+      },
+      {
+        "action_id": "manual-0f215edf933040f09eaf636d548ffcea",
+        "decision_id": "restoration-2dcf77a930f34f0191561a9c3321ba4c",
+        "action": "accept_fact"
+      },
+      {
+        "action_id": "manual-471eb275b3f04e8db11d52638de7bfd9",
+        "decision_id": "restoration-cdfc6025cc3440d69342c6bf2acefe06",
+        "action": "accept_fact"
+      },
+      {
+        "action_id": "manual-c0796d1eaa974917bbdc3163ac0a3b85",
+        "decision_id": "restoration-48aff83786674cf1a39187bc20f9fdaa",
+        "action": "accept_fact"
+      }
+    ],
+    "verification": {
+      "receipt_id": "951200987c5b6a8cf85d2db45d01ce75e2c567127119a38251de0e5025620ee1",
+      "kind": "verification",
+      "subject_revision": "fb11af0c453d4e4ddc62be73fe184754f9d2b7321ea1a7095e78711de6f42331",
+      "exact": true
+    },
+    "probe": null,
+    "subject_revision": "fb11af0c453d4e4ddc62be73fe184754f9d2b7321ea1a7095e78711de6f42331",
+    "revision": "1329a5482ea6eb020a8514f78d07906f236b28cdd0e6ff67dbd66f57395651c2"
+  },
+  "rejected_provisional_evidence": {
+    "decisions": [
+      {
+        "action_id": "manual-6770a853469d4f25965eacf5e8bbd54e",
+        "decision_id": "restoration-ae06bbdb21e54d2fa8a51586e3458cae",
+        "action": "reject_fact"
+      },
+      {
+        "action_id": "manual-32667d7884c64ca4b43a13b21a7eb931",
+        "decision_id": "restoration-311c4301daf24bf7944bb29ba5c88f85",
+        "action": "reject_fact"
+      }
+    ],
+    "verification": null,
+    "probe": null,
+    "subject_revision": "907a404f6cfbb137cc56fa4ad7893795da18d7936f1e9b72a1d26fd3301133af",
+    "revision": "9c343e852c4b308cc0c201ce09efae0d9f5ea0647c03d9325b5e13ef785e3ccb"
+  },
+  "correction_note": "Two provisional label actions cited comparison immediate operands at DECC/DED4 rather than instruction starts. They were rejected before acceptance and replaced by same-identity label actions citing byte-checked DECA/DECE and DED2/DED6. Histories are append-only; neither provisional action is accepted.",
+  "facts": [
+    "App+17E/+180/+182 are per-viewer-loop WORD increments added to existing model_rotation_0/1/2. X/S, Y/T, Z/A adjust them by4; P stops steps; R stops and resets pose. Numeric axes remain0/1/2; pre-update comparisons are not strict clamping guarantees.",
+    "App+7E7 is model_viewer_animation_state:0 disabled,1 toward end,FF toward start,80 hold/manual stepping. Its nonzero shield/ground-contact gate and zero-speed flight clear remain explicit shared gameplay uses, not exclusive ownership.",
+    "App+7E8 selects bounds-pair byte offset0/2 in the original four-byte model_viewer_animation_bounds record. It is not a model ID, frame number or inferred shape identity.",
+    "Existing accepted viewer entry, control service and P/R paths now have descriptive code labels. Q/Escape removes one nested return address before exiting; input service may wait as well as poll. No orphan code is promoted."
+  ],
+  "before": {
+    "app_references": 3281,
+    "app_fields": 297,
+    "generic_symbols": 85,
+    "typed_accesses": 316,
+    "loop_patterns": 159
+  },
+  "after": {
+    "app_references": 3305,
+    "app_fields": 300,
+    "generic_symbols": 83,
+    "typed_accesses": 316,
+    "loop_patterns": 159
+  },
+  "app_added": [
+    {
+      "offset": 55916,
+      "displacement": 382,
+      "base_register": "A6",
+      "operand_index": 0,
+      "access": "write",
+      "base_evidence": "declared_layout_a6_fallback",
+      "symbol_name": "app_017E"
+    },
+    {
+      "offset": 55920,
+      "displacement": 384,
+      "base_register": "A6",
+      "operand_index": 0,
+      "access": "write",
+      "base_evidence": "declared_layout_a6_fallback",
+      "symbol_name": "app_0180"
+    },
+    {
+      "offset": 55924,
+      "displacement": 386,
+      "base_register": "A6",
+      "operand_index": 0,
+      "access": "write",
+      "base_evidence": "declared_layout_a6_fallback",
+      "symbol_name": "app_0182"
+    },
+    {
+      "offset": 55964,
+      "displacement": 382,
+      "base_register": "A6",
+      "operand_index": 0,
+      "access": "read",
+      "base_evidence": "declared_layout_a6_fallback",
+      "symbol_name": "app_017E"
+    },
+    {
+      "offset": 55972,
+      "displacement": 384,
+      "base_register": "A6",
+      "operand_index": 0,
+      "access": "read",
+      "base_evidence": "declared_layout_a6_fallback",
+      "symbol_name": "app_0180"
+    },
+    {
+      "offset": 55980,
+      "displacement": 386,
+      "base_register": "A6",
+      "operand_index": 0,
+      "access": "read",
+      "base_evidence": "declared_layout_a6_fallback",
+      "symbol_name": "app_0182"
+    },
+    {
+      "offset": 57618,
+      "displacement": 382,
+      "base_register": "A6",
+      "operand_index": 0,
+      "access": "read",
+      "base_evidence": "declared_layout_a6_fallback",
+      "symbol_name": "app_017E"
+    },
+    {
+      "offset": 57630,
+      "displacement": 382,
+      "base_register": "A6",
+      "operand_index": 1,
+      "access": "read-write",
+      "base_evidence": "declared_layout_a6_fallback",
+      "symbol_name": "app_017E"
+    },
+    {
+      "offset": 57636,
+      "displacement": 382,
+      "base_register": "A6",
+      "operand_index": 0,
+      "access": "read",
+      "base_evidence": "declared_layout_a6_fallback",
+      "symbol_name": "app_017E"
+    },
+    {
+      "offset": 57648,
+      "displacement": 382,
+      "base_register": "A6",
+      "operand_index": 1,
+      "access": "read-write",
+      "base_evidence": "declared_layout_a6_fallback",
+      "symbol_name": "app_017E"
+    },
+    {
+      "offset": 57654,
+      "displacement": 384,
+      "base_register": "A6",
+      "operand_index": 0,
+      "access": "read",
+      "base_evidence": "declared_layout_a6_fallback",
+      "symbol_name": "app_0180"
+    },
+    {
+      "offset": 57666,
+      "displacement": 384,
+      "base_register": "A6",
+      "operand_index": 1,
+      "access": "read-write",
+      "base_evidence": "declared_layout_a6_fallback",
+      "symbol_name": "app_0180"
+    },
+    {
+      "offset": 57672,
+      "displacement": 384,
+      "base_register": "A6",
+      "operand_index": 0,
+      "access": "read",
+      "base_evidence": "declared_layout_a6_fallback",
+      "symbol_name": "app_0180"
+    },
+    {
+      "offset": 57684,
+      "displacement": 384,
+      "base_register": "A6",
+      "operand_index": 1,
+      "access": "read-write",
+      "base_evidence": "declared_layout_a6_fallback",
+      "symbol_name": "app_0180"
+    },
+    {
+      "offset": 57690,
+      "displacement": 386,
+      "base_register": "A6",
+      "operand_index": 0,
+      "access": "read",
+      "base_evidence": "declared_layout_a6_fallback",
+      "symbol_name": "app_0182"
+    },
+    {
+      "offset": 57702,
+      "displacement": 386,
+      "base_register": "A6",
+      "operand_index": 1,
+      "access": "read-write",
+      "base_evidence": "declared_layout_a6_fallback",
+      "symbol_name": "app_0182"
+    },
+    {
+      "offset": 57708,
+      "displacement": 386,
+      "base_register": "A6",
+      "operand_index": 0,
+      "access": "read",
+      "base_evidence": "declared_layout_a6_fallback",
+      "symbol_name": "app_0182"
+    },
+    {
+      "offset": 57720,
+      "displacement": 386,
+      "base_register": "A6",
+      "operand_index": 1,
+      "access": "read-write",
+      "base_evidence": "declared_layout_a6_fallback",
+      "symbol_name": "app_0182"
+    },
+    {
+      "offset": 57834,
+      "displacement": 382,
+      "base_register": "A6",
+      "operand_index": 0,
+      "access": "write",
+      "base_evidence": "declared_layout_a6_fallback",
+      "symbol_name": "app_017E"
+    },
+    {
+      "offset": 57838,
+      "displacement": 384,
+      "base_register": "A6",
+      "operand_index": 0,
+      "access": "write",
+      "base_evidence": "declared_layout_a6_fallback",
+      "symbol_name": "app_0180"
+    },
+    {
+      "offset": 57842,
+      "displacement": 386,
+      "base_register": "A6",
+      "operand_index": 0,
+      "access": "write",
+      "base_evidence": "declared_layout_a6_fallback",
+      "symbol_name": "app_0182"
+    },
+    {
+      "offset": 57848,
+      "displacement": 382,
+      "base_register": "A6",
+      "operand_index": 0,
+      "access": "write",
+      "base_evidence": "declared_layout_a6_fallback",
+      "symbol_name": "app_017E"
+    },
+    {
+      "offset": 57852,
+      "displacement": 384,
+      "base_register": "A6",
+      "operand_index": 0,
+      "access": "write",
+      "base_evidence": "declared_layout_a6_fallback",
+      "symbol_name": "app_0180"
+    },
+    {
+      "offset": 57856,
+      "displacement": 386,
+      "base_register": "A6",
+      "operand_index": 0,
+      "access": "write",
+      "base_evidence": "declared_layout_a6_fallback",
+      "symbol_name": "app_0182"
+    }
+  ],
+  "app_removed": [],
+  "verification": {
+    "kind": "verification",
+    "framework_exact": true,
+    "target_id": "amiga_raw_starglider2_game",
+    "subject_revision": "fb11af0c453d4e4ddc62be73fe184754f9d2b7321ea1a7095e78711de6f42331",
+    "status": "exact",
+    "exact": true,
+    "source_sha256": "dcad900ab92bd0471152ee2149a718862ba2610a19d314bbb00cde5dddea4a17",
+    "source_path": "/workspace/pandora-original-delivery/stable-d15c2cf8/.runtime-state/restoration/eb04f545fb97451725a1c91ab5abf6f2e097614c45880db6edfb4ea5c3f6e2c2/dcad900ab92bd0471152ee2149a718862ba2610a19d314bbb00cde5dddea4a17.s",
+    "source_package_sha256": null,
+    "original_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "original_size": 412736,
+    "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "rebuilt_path": "/workspace/pandora-original-delivery/stable-d15c2cf8/.runtime-state/restoration/eb04f545fb97451725a1c91ab5abf6f2e097614c45880db6edfb4ea5c3f6e2c2/662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9.bin",
+    "framework_status": "exact",
+    "failure_kinds": [],
+    "message": "",
+    "oracle": {
+      "oracle_id": "vasm",
+      "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+      "comparison_level": "oracle.full_file_match",
+      "assembler_status": "accepted",
+      "message": "oracle output matched original bytes"
+    },
+    "receipt_id": "951200987c5b6a8cf85d2db45d01ce75e2c567127119a38251de0e5025620ee1",
+    "revision": "a39372c0ad084bb1942014cd9e607c0e0bf70c3cf48dea7c798fb6c21b9784cd"
+  },
+  "validation": {
+    "new_framework_code": false,
+    "unchanged_framework_suite": "The 120 focused cases in starglider2-inline-record-fields.json apply to the identical backend; no duplicate broad test run.",
+    "full_source_c_and_vasm_exact": true,
+    "source_quality_diagnostics": 0,
+    "incomplete_analysis": []
+  },
+  "preservation": {
+    "accepted_code_unchanged": true,
+    "range_ownership_unchanged": true,
+    "typed_accesses_unchanged": true,
+    "assets_unchanged": 57,
+    "unclassified_bytes": 14728,
+    "unclassified_intervals": 260,
+    "canonical_history_append_only": true,
+    "new_runtime_run": false
+  },
+  "dependencies": {
+    "headers": [
+      "exec/exec_lib.i",
+      "exec/execbase.i",
+      "exec/interrupts.i",
+      "exec/libraries.i",
+      "exec/lists.i",
+      "exec/nodes.i",
+      "exec/types.i",
+      "graphics/copper.i",
+      "hardware/adkbits.i",
+      "hardware/blit.i",
+      "hardware/cia.i",
+      "hardware/custom.i",
+      "hardware/dmabits.i",
+      "hardware/intbits.i"
+    ],
+    "header_count": 14,
+    "assets_unchanged": 57
+  },
+  "profile": {
+    "api_wall_seconds": 134.5328593099839,
+    "native_profile": {
+      "generation": "facts_v2_listing_artifact_summary",
+      "backend": "amiga-raw",
+      "analysis_backend": "facts_v2",
+      "path": "/workspace/starglider2-private/main-copy.bin",
+      "facts_v2": {
+        "decode_seconds": 4e-06,
+        "seed_seconds": 0.01201,
+        "fixed_point_seconds": 13.369946,
+        "fixed_point_reachable_seconds": 11.448105,
+        "fixed_point_reachable_decode_seconds": 0.0,
+        "fixed_point_reachable_validate_seconds": 0.0,
+        "fixed_point_reachable_accept_seconds": 0.0,
+        "fixed_point_reachable_target_seconds": 0.0,
+        "fixed_point_reachable_relocation_seconds": 0.0,
+        "fixed_point_reachable_fallthrough_seconds": 0.0,
+        "fixed_point_index_seconds": 0.0007,
+        "fixed_point_required_label_conflict_seconds": 3.3e-05,
+        "fixed_point_opcode_relocation_conflict_seconds": 0.000261,
+        "fixed_point_rebuild_accepted_seconds": 0.015902,
+        "fixed_point_relocation_anchor_seconds": 0.000211,
+        "fixed_point_materialize_labels_seconds": 1.904509,
+        "fixed_point_runtime_address_ref_seconds": 1.741694,
+        "fixed_point_required_label_materialize_seconds": 0.162815,
+        "fixed_point_data_span_seconds": 0.000225,
+        "fixed_point_invariant_seconds": 3.6e-05,
+        "render_ir_seconds": 25.36796,
+        "render_ir_lookup_seconds": 0.359902,
+        "platform_analysis_pass_seconds": 52.987389,
+        "platform_analysis_base_slot_seconds": 0.052914,
+        "platform_analysis_call_summary_seconds": 0.084487,
+        "platform_analysis_typed_ref_seconds": 40.105212,
+        "platform_analysis_typed_summary_seconds": 0.062887,
+        "platform_analysis_typed_graph_seconds": 2.514123,
+        "platform_analysis_typed_flow_seconds": 5.887108,
+        "platform_analysis_typed_callback_seconds": 31.64109,
+        "source_analysis_typed_target_seconds": 5.6e-05,
+        "source_analysis_build_seconds": 7.548033,
+        "source_analysis_finalize_seconds": 26.796545,
+        "platform_analysis_call_comment_seconds": 1e-06,
+        "platform_analysis_app_slot_seconds": 12.74391,
+        "platform_analysis_runtime_data_seconds": 0.0,
+        "platform_analysis_hardware_data_seconds": 0.0,
+        "platform_analysis_generic_data_seconds": 0.0,
+        "render_ir_header_seconds": 16.97494,
+        "render_ir_walk_seconds": 7.319713,
+        "render_ir_footer_seconds": 1.072929,
+        "source_render_seconds": 0.0,
+        "decoded_candidates": 29938,
+        "accepted_instructions": 29665,
+        "data_spans": 172,
+        "labels_created": 19873,
+        "labels_referenced": 13059,
+        "unresolved_labels": 0,
+        "interior_conflicts": 0,
+        "interior_conflicts_resolved_by_demote": 0,
+        "interior_conflicts_unresolved": 0,
+        "relocation_failures": 0,
+        "first_relocation_failure_reason": "",
+        "first_relocation_failure_section": 0,
+        "first_relocation_failure_offset": 0,
+        "first_relocation_failure_target_section": 0,
+        "first_relocation_failure_width": 0,
+        "first_relocation_failure_raw_value": 0,
+        "first_relocation_failure_computed_target": 0,
+        "relocation_anchors": 0,
+        "first_relocation_anchor_kind": "",
+        "first_relocation_anchor_section": 0,
+        "first_relocation_anchor_offset": 0,
+        "first_relocation_anchor_target_section": 0,
+        "first_relocation_anchor_width": 0,
+        "first_relocation_anchor_platform_record_kind": "",
+        "first_relocation_anchor_raw_value": 0,
+        "first_relocation_anchor_addend": 0,
+        "relocation_anchor_instruction_bytes": 0,
+        "relocation_anchor_data_payloads": 0,
+        "relocation_anchor_unknown_contexts": 0,
+        "unassemblable_hunk_data_relocations": 0,
+        "unassemblable_hunk_base_register_relocations": 0,
+        "first_relocation_anchor_context": "",
+        "first_relocation_anchor_instruction_offset": 0,
+        "code_start_facts": 41982,
+        "code_start_section_entries": 0,
+        "code_start_policy_entry_offsets": 0,
+        "code_start_policy_entry_points": 165,
+        "code_start_control_targets": 10294,
+        "code_start_fallthroughs": 31523,
+        "code_start_inline_resumes": 0,
+        "code_start_linkage_api_entries": 0,
+        "code_start_platform_loadseg_entries": 0,
+        "code_start_stack_continuations": 0,
+        "code_start_boundary_api_entries": 0,
+        "platform_loadseg_segment_link_accesses": 0,
+        "platform_loadseg_segment_link_bptr_loads": 0,
+        "platform_loadseg_segment_link_resolved_targets": 0,
+        "first_platform_loadseg_segment_link_section": 0,
+        "first_platform_loadseg_segment_link_offset": 0,
+        "first_platform_loadseg_segment_link_target_section": 0,
+        "runtime_address_ranges": 5,
+        "runtime_address_range_conflicts": 0,
+        "table_target_set_limit_hits": 0,
+        "first_table_target_set_limit_section": 0,
+        "first_table_target_set_limit_offset": 0,
+        "first_table_target_set_limit_capacity": 0,
+        "source_quality_diagnostics": 0,
+        "source_quality_blockers": 0,
+        "first_source_quality_diagnostic_kind": "unknown",
+        "first_source_quality_diagnostic_section": 0,
+        "first_source_quality_diagnostic_offset": 0,
+        "runtime_address_view_starts": 41818,
+        "required_instruction_failures": 0,
+        "unsupported_instruction_demotes": 0,
+        "first_required_instruction_failure_section": 0,
+        "first_required_instruction_failure_offset": 0,
+        "first_required_instruction_failure_reason": "",
+        "first_required_instruction_failure_source_section": 0,
+        "first_required_instruction_failure_source_offset": 0,
+        "first_unsupported_instruction_demote_section": 0,
+        "first_unsupported_instruction_demote_offset": 0,
+        "first_unsupported_instruction_demote_reason": "",
+        "first_unsupported_instruction_demote_source_section": 0,
+        "first_unsupported_instruction_demote_source_offset": 0,
+        "opcode_relocation_conflicts_resolved_by_demote": 0,
+        "first_opcode_relocation_conflict_section": 0,
+        "first_opcode_relocation_conflict_offset": 0,
+        "first_opcode_relocation_conflict_aux_offset": 0,
+        "queue_iterations": 34581,
+        "workflow_arena_peak_used": 7466760,
+        "workflow_arena_total_blocks": 39,
+        "render_ir_statements": 51671,
+        "render_ir_labels": 5154,
+        "render_ir_instructions": 29665,
+        "render_ir_data_spans": 16852,
+        "render_ir_hash": "4d20a8f51fe8c56f",
+        "preview_source_enabled": false,
+        "preview_source_bytes": 0,
+        "preview_source_hash": "14650fb0739d0383",
+        "asm_source_enabled": true,
+        "asm_source_refused": false,
+        "asm_source_bytes": 2266792,
+        "asm_source_lines": 66793,
+        "asm_source_plan_rows": 65892,
+        "asm_source_plan_lines": 66793,
+        "asm_source_plan_bytes": 2266792,
+        "asm_source_relocation_exprs": 0,
+        "asm_source_symbolic_instructions": 29665,
+        "asm_source_numeric_runtime_refs": 0,
+        "asm_source_first_numeric_runtime_ref_section": 0,
+        "asm_source_first_numeric_runtime_ref_offset": 0,
+        "asm_source_first_numeric_runtime_ref_target_section": 0,
+        "asm_source_first_numeric_runtime_ref_target_offset": 0,
+        "asm_source_first_numeric_runtime_ref_runtime_address": 0,
+        "platform_base_slot_count": 316,
+        "platform_call_count": 1,
+        "platform_effect_count": 1,
+        "asm_source_lossy_numeric_hunk_relocations": 0,
+        "asm_source_instruction_render_failures": 0,
+        "asm_source_instruction_byte_mismatches": 0,
+        "asm_source_instruction_relocation_failures": 0,
+        "asm_source_relocation_anchor_refusals": 0,
+        "asm_source_unassemblable_hunk_data_relocation_refusals": 0,
+        "asm_source_unassemblable_hunk_base_register_relocation_refusals": 0,
+        "asm_source_first_failure_kind": "",
+        "asm_source_first_failure_section": 0,
+        "asm_source_first_failure_offset": 0,
+        "asm_source_first_failure_aux_offset": 0,
+        "asm_source_hash": "f944c8623dddb08f"
+      },
+      "timing": {
+        "source_seconds": 126.876895,
+        "summary_json_seconds": 6.9e-05,
+        "total_seconds": 6.9e-05
+      }
+    }
+  },
+  "process_usage": {
+    "wall_seconds": 169.84361373700085,
+    "user_seconds": 163.567577,
+    "system_seconds": 6.464887,
+    "max_rss_kib": 2681872
+  },
+  "limits": [
+    "The24 added accesses are declaration-based A6 fallback contexts, not runtime observations or numeric every-entry A6 proof.",
+    "The model catalogue/name associations do not prove visual identities or all animation states; no new gameplay/input coverage is claimed.",
+    "83 generic field symbols,355 unresolved typed sites and30 unresolved orphan signals remain. Counts are not semantic completion percentages."
+  ],
+  "next": "Investigate the existing type-indexed world-object initialization directory, its no-op/mini-sentinel roles and app+6C chain producers/consumers. Derive names from original dispatch and fields; retain type-dependent record unions and unchecked selector-domain limits.",
+  "validated_target_git_tree": "22b16153935f91db7f6165f330996162a05ac834",
+  "clean_staged_tree_build": true,
+  "standalone_build": {
+    "schema_version": 1,
+    "status": "pass",
+    "format": "raw_payload_not_AmigaDOS_HUNK",
+    "main_bytes": 412736,
+    "main_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "main_matches_original_identity": true,
+    "asset_count": 57,
+    "all_asset_source_slices_equal": true,
+    "decoded_view_inverse_exact": true,
+    "boot_copy_source_matches_resident_view": true,
+    "source_commit": "4d0b7908868c000144c4aa1521bf2fcb091a42ff",
+    "assembler_sha256": "413e284020125f42709486dfe09907cab3dd9f3c2ea41017c190f8ea68f30825",
+    "flags": [
+      "-Fbin",
+      "-m68000",
+      "-no-opt"
+    ],
+    "outputs": [
+      {
+        "role": "original_main",
+        "filename": "Starglider2-original.raw",
+        "bytes": 412736,
+        "sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9"
+      },
+      {
+        "role": "decoded_analysis_view",
+        "filename": "protection-decoded-analysis.raw",
+        "bytes": 3548,
+        "sha256": "de8358853dd9ed9b006a23569bf393aa217ed3be3301a169465d80bfaf839922"
+      },
+      {
+        "role": "boot_installer_context",
+        "filename": "boot-selector-installer-context.raw",
+        "bytes": 40,
+        "sha256": "8d34852425e2e1bfa87b3febdfc74fb39e7c667e9d9ff73e17b594649e83b21b"
+      },
+      {
+        "role": "boot_resident_view",
+        "filename": "boot-selector-resident.raw",
+        "bytes": 20,
+        "sha256": "a26286a393713c046eff9dbaff15b20b26b171fa9e05fc9d538d16b0eddb6024"
+      }
+    ]
+  }
+}

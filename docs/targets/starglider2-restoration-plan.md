@@ -3132,3 +3132,36 @@ standalone build. Canonical facts and append-only histories are unchanged; no
 runtime experiment or archive was needed. Concrete restoration continues with
 the model-viewer animation producers/consumers and their shared gameplay state,
 then specific remaining object/shared-buffer/incoming-path leads.
+
+## Current model-viewer controls restoration
+
+The [viewer-control receipt](../../runtime/observations/starglider2-model-viewer-controls.json)
+records five scalar fields and four routine names through the normal canonical
+API and accepted Decision Journal review. Three WORDs are the per-iteration
+steps for model rotations 0/1/2. The original X/S, Y/T and Z/A keys change them by 4;
+P stops movement and R also resets pose. Signed +/-128 comparisons happen before
+the update, so they are not described as a strict clamped range. The viewer entry
+and wait-or-poll control service now have names reflecting their actual roles.
+
+The animation-state BYTE distinguishes disabled, forward, reverse and manual
+step/hold values. Its shared flight zero-speed clear and ground-contact shield
+damage gate remain explicit in the canonical reason/receipt. The adjacent BYTE
+selects bounds-pair byte offset 0/2 in the existing four-byte per-model record; it
+is not a frame number or model ID. Original numeric axis ordering is preserved.
+Two provisional label citations pointed inside comparison operands; review
+rejected them and append-only replacements cite checked instruction starts.
+They are not part of the nine accepted actions.
+
+The declarations expose 24 existing rotation-step sites as
+`declared_layout_a6_fallback`: app access records 3,281 -> 3,305, field records 297
+-> 300 and generic symbols 85 -> 83. These are explicit original-layout contracts,
+not runtime observations or every-entry A6 proofs. Typed accesses remain 316,
+unresolved typed records 355; accepted code, ownership, 57 assets and the
+14,728-byte/260-interval complement are unchanged. All 412,736 bytes rebuild
+exactly with C and vasm and through the clean standalone tree. No framework
+implementation changed or unchanged broad tests were repeated.
+
+The next connected review follows the existing world-type initialization
+directory and its app+6C chain cursor. Use original selector/initializer and
+model-name evidence, preserving record union roles and unchecked index limits;
+do not guess visual object identities or promote orphan code from appearance.

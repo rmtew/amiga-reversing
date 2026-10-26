@@ -239,7 +239,10 @@ world_object_slot_count RS.W 1
 model_last_vertex_index RS.W 1
     RS.B 6
 vblank_tick_counter RS.W 1
-    RS.B 18
+model_viewer_rotation_step_0 RS.W 1
+model_viewer_rotation_step_1 RS.W 1
+model_viewer_rotation_step_2 RS.W 1
+    RS.B 12
 active_model_type_index RS.W 1
 type30_render_model_index RS.W 1
 projection_screen_origin_x RS.W 1
@@ -397,8 +400,8 @@ scan_target_screen_y RS.W 1
 app_07E4 RS.B 1
     RS.B 1
 fixed_sight_mode_flag RS.B 1
-app_07E7 RS.B 1
-app_07E8 RS.B 1
+model_viewer_animation_state RS.B 1
+model_viewer_bounds_pair_offset RS.B 1
 app_07E9 RS.B 1
 weapon_selection_and_status RS.B 1
 view_mode RS.B 1
@@ -1358,7 +1361,7 @@ abs_0_00001466:
 	bne.b abs_0_000014B2
 	tst.w player_speed_target(a6)
 	beq.b abs_0_000014B2
-	tst.b app_07E7(a6)
+	tst.b model_viewer_animation_state(a6)
 	bne.b abs_0_000014B2
 	move.w icarus_shield_strength(a6),d0
 	cmpi.l #4294967176,player_world_y(a6)
@@ -15941,7 +15944,7 @@ handle_painting_menu_choice:
 	bsr.w abs_0_0000E9D8
 	bsr.w abs_0_0000E9D2
 	st.b display_and_frame_service_flags(a6)
-	bsr.w abs_0_0000E9E0
+	bsr.w enter_model_viewer
 	bsr.w abs_0_00012F7A
 	bsr.w clear_text_framebuffer_and_cursor
 	bra.w abs_0_0000E256
@@ -16271,7 +16274,7 @@ abs_0_0000E9D2:
 abs_0_0000E9D8:
 	jmp abs_0_0000217A.l
 	dc.w $0000
-abs_0_0000E9E0:
+enter_model_viewer:
 	sf.b interrupted_game_available_flag(a6)
 	move.b #$E,display_and_frame_service_flags(a6)
 	clr.b display_buffer_table_byte_offset(a6)
@@ -16302,24 +16305,24 @@ abs_0_0000E9E0:
 	asr.w #8,d0
 	move.b d0,amiga_mouse_previous_y_counter(a6)
 	move.w #$4,active_model_scale_shift(a6)
-	clr.w $017E(a6)
-	clr.w $0180(a6)
-	clr.w $0182(a6)
+	clr.w model_viewer_rotation_step_0(a6)
+	clr.w model_viewer_rotation_step_1(a6)
+	clr.w model_viewer_rotation_step_2(a6)
 	move.w #$1,active_model_type_index(a6)
 	clr.b app_01F0(a6)
 	lea.l world_object_pool(a6),a4
 	move.b #$0,$0003(a4)
-	move.b #$1,app_07E7(a6)
-	move.b #$0,app_07E8(a6)
+	move.b #$1,model_viewer_animation_state(a6)
+	move.b #$0,model_viewer_bounds_pair_offset(a6)
 	bsr.w display_model_viewer_name
 abs_0_0000EA9C:
-	move.w $017E(a6),d0
+	move.w model_viewer_rotation_step_0(a6),d0
 	add.w d0,model_rotation_0(a6)
-	move.w $0180(a6),d0
+	move.w model_viewer_rotation_step_1(a6),d0
 	add.w d0,model_rotation_1(a6)
-	move.w $0182(a6),d0
+	move.w model_viewer_rotation_step_2(a6),d0
 	add.w d0,model_rotation_2(a6)
-	bsr.w abs_0_0000EE42
+	bsr.w service_model_viewer_controls
 	bsr.w abs_0_0000EACC
 	bsr.w abs_0_0000FD88
 	bra.b abs_0_0000EA9C
@@ -16861,7 +16864,7 @@ model_viewer_animation_bounds:
 	dc.b $01	; first_end
 	dc.b $FF	; second_start_or_disabled
 	dc.b $FF	; second_end
-abs_0_0000EE42:
+service_model_viewer_controls:
 	move.w rotation_2_control_accumulator(a6),d0
 	move.w d0,model_origin_delta_x(a6)
 	move.w rotation_0_control_accumulator(a6),d0
@@ -16900,9 +16903,9 @@ abs_0_0000EE6A:
 	cmp.b #$41,d0
 	beq.w abs_0_0000F16C
 	cmp.b #$50,d0
-	beq.w abs_0_0000F1EA
+	beq.w stop_model_viewer_rotation
 	cmp.b #$52,d0
-	beq.w abs_0_0000F1F8
+	beq.w reset_model_viewer_rotation
 	tst.b app_01F6(a6)
 	beq.w abs_0_0000EEEA
 	cmp.b #$48,d0
@@ -16917,7 +16920,7 @@ abs_0_0000EEEA:
 	move.w d0,active_model_scale_shift(a6)
 	rts
 abs_0_0000EF08:
-	move.b app_07E7(a6),d3
+	move.b model_viewer_animation_state(a6),d3
 	beq.w abs_0_0000F00E
 	lea.l world_object_pool(a6),a4
 	cmp.b #$45,d0
@@ -16939,7 +16942,7 @@ step_model_variant_toward_start:
 	moveq.l #0,d1
 	move.w active_model_type_index(a6),d0
 	lsl.w #2,d0
-	move.b app_07E8(a6),d1
+	move.b model_viewer_bounds_pair_offset(a6),d1
 	lea.l model_viewer_animation_bounds.l,a0
 	lea.l $0(a0,d0.w),a0
 	move.b $0(a0,d1.w),d2
@@ -16949,12 +16952,12 @@ step_model_variant_toward_start:
 	beq.b abs_0_0000EF80
 abs_0_0000EF74:
 	move.b $0001(a0),$0003(a4)
-	clr.b app_07E8(a6)
+	clr.b model_viewer_bounds_pair_offset(a6)
 	rts
 abs_0_0000EF80:
 	tst.b $0002(a0)
 	bmi.w abs_0_0000EF74
-	move.b #$2,app_07E8(a6)
+	move.b #$2,model_viewer_bounds_pair_offset(a6)
 	move.b $0003(a0),$0003(a4)
 	rts
 abs_0_0000EF96:
@@ -16970,7 +16973,7 @@ step_model_variant_toward_end:
 	moveq.l #0,d1
 	move.w active_model_type_index(a6),d0
 	lsl.w #2,d0
-	move.b app_07E8(a6),d1
+	move.b model_viewer_bounds_pair_offset(a6),d1
 	lea.l model_viewer_animation_bounds.l,a0
 	lea.l $0(a0,d0.w),a0
 	move.b $1(a0,d1.w),d2
@@ -16980,12 +16983,12 @@ step_model_variant_toward_end:
 	beq.w abs_0_0000EFDE
 abs_0_0000EFD4:
 	move.b (a0),$0003(a4)
-	clr.b app_07E8(a6)
+	clr.b model_viewer_bounds_pair_offset(a6)
 	rts
 abs_0_0000EFDE:
 	tst.b $0002(a0)
 	bmi.w abs_0_0000EFD4
-	move.b #$2,app_07E8(a6)
+	move.b #$2,model_viewer_bounds_pair_offset(a6)
 	move.b $0002(a0),$0003(a4)
 	rts
 abs_0_0000EFF4:
@@ -17003,19 +17006,19 @@ abs_0_0000F008:
 abs_0_0000F00E:
 	rts
 abs_0_0000F010:
-	move.b #$80,app_07E7(a6)
+	move.b #$80,model_viewer_animation_state(a6)
 	rts
 abs_0_0000F018:
-	move.b #$80,app_07E7(a6)
+	move.b #$80,model_viewer_animation_state(a6)
 	bra.w step_model_variant_toward_end
 abs_0_0000F022:
-	move.b #$80,app_07E7(a6)
+	move.b #$80,model_viewer_animation_state(a6)
 	bra.w step_model_variant_toward_start
 abs_0_0000F02C:
-	move.b #$FF,app_07E7(a6)
+	move.b #$FF,model_viewer_animation_state(a6)
 	rts
 abs_0_0000F034:
-	move.b #$1,app_07E7(a6)
+	move.b #$1,model_viewer_animation_state(a6)
 	rts
 abs_0_0000F03C:
 	rts
@@ -17050,15 +17053,15 @@ abs_0_0000F092:
 reset_model_viewer_variant_selection:
 	moveq.l #0,d0
 	move.w active_model_type_index(a6),d0
-	clr.b app_07E8(a6)
-	clr.b app_07E7(a6)
+	clr.b model_viewer_bounds_pair_offset(a6)
+	clr.b model_viewer_animation_state(a6)
 	lea.l world_object_pool(a6),a4
 	clr.b $0003(a4)
 	lsl.w #2,d0
 	lea.l model_viewer_animation_bounds.l,a0
 	tst.b $0(a0,d0.w)
 	bmi.w abs_0_0000F0CC
-	move.b #$1,app_07E7(a6)
+	move.b #$1,model_viewer_animation_state(a6)
 abs_0_0000F0CC:
 	bra.w display_model_viewer_name
 abs_0_0000F0D0:
@@ -17069,51 +17072,51 @@ abs_0_0000F0D0:
 	moveq.l #0,d0
 	lea.l world_object_pool(a6),a4
 	clr.b $0003(a4)
-	move.b #$0,app_07E8(a6)
+	move.b #$0,model_viewer_bounds_pair_offset(a6)
 	move.w active_model_type_index(a6),d0
-	clr.b app_07E7(a6)
+	clr.b model_viewer_animation_state(a6)
 	lsl.w #2,d0
 	lea.l model_viewer_animation_bounds.l,a0
 	tst.b $0(a0,d0.w)
 	bmi.w abs_0_0000F10E
-	move.b #$1,app_07E7(a6)
+	move.b #$1,model_viewer_animation_state(a6)
 abs_0_0000F10E:
 	bra.w display_model_viewer_name
 abs_0_0000F112:
-	move.w $017E(a6),d0
+	move.w model_viewer_rotation_step_0(a6),d0
 	cmp.w #$80,d0
 	bgt.w abs_0_0000F17C
-	addq.w #4,$017E(a6)
+	addq.w #4,model_viewer_rotation_step_0(a6)
 	rts
 abs_0_0000F124:
-	move.w $017E(a6),d0
+	move.w model_viewer_rotation_step_0(a6),d0
 	cmp.w #$FF80,d0
 	blt.w abs_0_0000F17C
-	subq.w #4,$017E(a6)
+	subq.w #4,model_viewer_rotation_step_0(a6)
 	rts
 abs_0_0000F136:
-	move.w $0180(a6),d0
+	move.w model_viewer_rotation_step_1(a6),d0
 	cmp.w #$80,d0
 	bgt.w abs_0_0000F17C
-	addq.w #4,$0180(a6)
+	addq.w #4,model_viewer_rotation_step_1(a6)
 	rts
 abs_0_0000F148:
-	move.w $0180(a6),d0
+	move.w model_viewer_rotation_step_1(a6),d0
 	cmp.w #$FF80,d0
 	blt.w abs_0_0000F17C
-	subq.w #4,$0180(a6)
+	subq.w #4,model_viewer_rotation_step_1(a6)
 	rts
 abs_0_0000F15A:
-	move.w $0182(a6),d0
+	move.w model_viewer_rotation_step_2(a6),d0
 	cmp.w #$80,d0
 	bgt.w abs_0_0000F17C
-	addq.w #4,$0182(a6)
+	addq.w #4,model_viewer_rotation_step_2(a6)
 	rts
 abs_0_0000F16C:
-	move.w $0182(a6),d0
+	move.w model_viewer_rotation_step_2(a6),d0
 	cmp.w #$FF80,d0
 	blt.w abs_0_0000F17C
-	subq.w #4,$0182(a6)
+	subq.w #4,model_viewer_rotation_step_2(a6)
 abs_0_0000F17C:
 	rts
 	dc.b $30,$2E,$01,$36,$B0,$7C,$1F,$40,$6E,$06,$06,$6E,$00,$28,$01,$36
@@ -17123,15 +17126,15 @@ abs_0_0000F17C:
 	dc.b $04,$6E,$00,$04,$01,$32,$4E,$75,$30,$2E,$01,$34,$B0,$7C,$00,$C8
 	dc.b $6E,$BE,$06,$6E,$00,$04,$01,$34,$4E,$75,$30,$2E,$01,$34,$B0,$7C
 	dc.b $FF,$38,$6D,$AC,$04,$6E,$00,$04,$01,$34,$4E,$75
-abs_0_0000F1EA:
-	clr.w $017E(a6)
-	clr.w $0180(a6)
-	clr.w $0182(a6)
+stop_model_viewer_rotation:
+	clr.w model_viewer_rotation_step_0(a6)
+	clr.w model_viewer_rotation_step_1(a6)
+	clr.w model_viewer_rotation_step_2(a6)
 	rts
-abs_0_0000F1F8:
-	clr.w $017E(a6)
-	clr.w $0180(a6)
-	clr.w $0182(a6)
+reset_model_viewer_rotation:
+	clr.w model_viewer_rotation_step_0(a6)
+	clr.w model_viewer_rotation_step_1(a6)
+	clr.w model_viewer_rotation_step_2(a6)
 	clr.w model_rotation_1(a6)
 	clr.w model_rotation_2(a6)
 	clr.w model_rotation_0(a6)
@@ -37423,7 +37426,7 @@ abs_0_0002F6A6:
 	bpl.w advance_player_rotation2_spin_continuation
 	tst.w player_speed_smoothed(a6)
 	bne.b abs_0_0002F6CA
-	sf.b app_07E7(a6)
+	sf.b model_viewer_animation_state(a6)
 abs_0_0002F6CA:
 	move.w player_speed_target(a6),d3
 	cmp.w player_speed_smoothed(a6),d3
