@@ -362,7 +362,7 @@ app_0786 RS.B 1
 integrating_object_count RS.W 1
 homing_missile_hud_icon_count RS.W 1
 bouncing_bomb_hud_icon_count RS.W 1
-app_078E RS.W 1
+player_rotation2_damage_impulse RS.W 1
     RS.B 2
 app_0792 RS.W 1
 weapon_energy_reserve RS.W 1
@@ -397,7 +397,7 @@ player_collision_response_steps RS.B 1
 scan_target_screen_x RS.W 1
 scan_target_screen_y RS.W 1
     RS.B 16
-app_07E4 RS.B 1
+player_structure_clamp_flag RS.B 1
     RS.B 1
 fixed_sight_mode_flag RS.B 1
 model_viewer_animation_state RS.B 1
@@ -1373,7 +1373,7 @@ abs_0_00001466:
 	bsr.w advance_shared_random_state
 	andi.w #62,d0
 	subi.w #32,d0
-	add.w d0,app_078E(a6)
+	add.w d0,player_rotation2_damage_impulse(a6)
 	movem.l (a7)+,d0-d7/a0-a5
 abs_0_000014B2:
 	bra.w gameplay_frame_loop
@@ -1392,7 +1392,7 @@ abs_0_000014B6:
 	bsr.w advance_shared_random_state
 	andi.w #62,d0
 	subi.w #32,d0
-	add.w d0,app_078E(a6)
+	add.w d0,player_rotation2_damage_impulse(a6)
 	move.l (a7)+,d0
 abs_0_000014F0:
 	lea.l object_collision_damage_values.l,a1
@@ -2225,7 +2225,7 @@ reset_gameplay_state_and_input_defaults:
 	move.w d0,player_speed_target(a6)
 	move.w #$10,initial_resource_charge_steps(a6)
 	move.w #$0,app_0796(a6)
-	move.w #$0,app_078E(a6)
+	move.w #$0,player_rotation2_damage_impulse(a6)
 	moveq.l #0,d0
 	move.w d0,player_rotation_0(a6)
 	move.w d0,player_rotation_1(a6)
@@ -2253,7 +2253,7 @@ reset_gameplay_state_and_input_defaults:
 	st.b app_07E9(a6)
 	sf.b app_01F6(a6)
 	sf.b inside_structure_flag(a6)
-	sf.b app_07E4(a6)
+	sf.b player_structure_clamp_flag(a6)
 	sf.b space_environment_flag(a6)
 	sf.b player_collision_response_flag(a6)
 	sf.b player_collision_response_steps(a6)
@@ -10201,7 +10201,7 @@ abs_0_00008E02:
 	bsr.w advance_shared_random_state
 	andi.w #62,d0
 	subi.w #32,d0
-	add.w d0,app_078E(a6)
+	add.w d0,player_rotation2_damage_impulse(a6)
 	move.w icarus_shield_strength(a6),d0
 	subi.w #1500,d0
 	bcc.b abs_0_00008E2A
@@ -12813,7 +12813,7 @@ process_object_contact_pairs:
 	clr.w current_structure_service_id(a6)
 	clr.b structure_contact_pose_mode(a6)
 	clr.w last_player_contact_type(a6)
-	tst.b app_07E4(a6)
+	tst.b player_structure_clamp_flag(a6)
 	beq.b abs_0_0000B574
 	move.w #$42,last_player_contact_type(a6)
 abs_0_0000B574:
@@ -13130,9 +13130,9 @@ abs_0_0000B914:
 	sf.b player_collision_response_flag(a6)
 abs_0_0000B918:
 	tst.b inside_structure_flag(a6)
-	bne.w abs_0_0000BA14
+	bne.w constrain_player_to_structure_contacts
 abs_0_0000B920:
-	sf.b app_07E4(a6)
+	sf.b player_structure_clamp_flag(a6)
 abs_0_0000B924:
 	rts
 abs_0_0000B926:
@@ -13185,7 +13185,7 @@ abs_0_0000B9A8:
 	clr.b $001E(a2)
 	bclr.b #3,$0002(a2)
 abs_0_0000B9C2:
-	sf.b app_07E4(a6)
+	sf.b player_structure_clamp_flag(a6)
 	movem.l (a7)+,d0-d7/a0-a6
 	bra.w abs_0_0000B8F8
 abs_0_0000B9CE:
@@ -13212,7 +13212,7 @@ abs_0_0000BA06:
 	bclr.b #3,$0002(a2)
 	clr.b $001E(a0)
 	bra.w abs_0_0000B9C2
-abs_0_0000BA14:
+constrain_player_to_structure_contacts:
 	move.w contact_object_count(a6),d3
 	beq.w abs_0_0000B924
 	subq.w #1,d3
@@ -13351,12 +13351,12 @@ abs_0_0000BB98:
 	blt.b abs_0_0000BC18
 	addi.l #4294966796,d2
 	move.l d2,player_world_x(a6)
-	st.b app_07E4(a6)
+	st.b player_structure_clamp_flag(a6)
 	bra.b abs_0_0000BC18
 abs_0_0000BBB0:
 	addi.l #500,d2
 	move.l d2,player_world_x(a6)
-	st.b app_07E4(a6)
+	st.b player_structure_clamp_flag(a6)
 	bra.b abs_0_0000BC18
 abs_0_0000BBC0:
 	cmp.w #$4,d1
@@ -13383,12 +13383,12 @@ abs_0_0000BBF2:
 	blt.b abs_0_0000BC18
 	addi.l #4294966796,d3
 	move.l d3,player_world_z(a6)
-	st.b app_07E4(a6)
+	st.b player_structure_clamp_flag(a6)
 	bra.b abs_0_0000BC18
 abs_0_0000BC0A:
 	addi.l #500,d3
 	move.l d3,player_world_z(a6)
-	st.b app_07E4(a6)
+	st.b player_structure_clamp_flag(a6)
 abs_0_0000BC18:
 	move.l player_world_y(a6),d1
 	cmp.l #$FFFFFDB2,d1
@@ -13398,11 +13398,11 @@ abs_0_0000BC18:
 	rts
 abs_0_0000BC2E:
 	move.l #$FFFFFDB3,player_world_y(a6)
-	st.b app_07E4(a6)
+	st.b player_structure_clamp_flag(a6)
 	rts
 abs_0_0000BC3C:
 	move.l #$FFFFFE65,player_world_y(a6)
-	st.b app_07E4(a6)
+	st.b player_structure_clamp_flag(a6)
 	rts
 abs_0_0000BC4A:
 	tst.b player_collision_response_flag(a6)
@@ -13459,7 +13459,7 @@ abs_0_0000BCC8:
 	blt.w abs_0_0000BC18
 	addi.l #4294966796,d1
 	move.l d1,player_world_x(a6)
-	st.b app_07E4(a6)
+	st.b player_structure_clamp_flag(a6)
 	bra.w abs_0_0000BC18
     ; This structure path widens object BYTE+$26 into current_structure_service_id. Meaning is variant-specific; it does not establish a universal field for every object type.
 abs_0_0000BD02:
@@ -37511,7 +37511,7 @@ abs_0_0002F7A2:
 abs_0_0002F7C0:
 	clr.b app_0786(a6)
 abs_0_0002F7C4:
-	tst.b app_07E4(a6)
+	tst.b player_structure_clamp_flag(a6)
 	bne.b abs_0_0002F7D2
 	tst.w abs_0_00039CC6.l
 	beq.b abs_0_0002F7E6
@@ -37548,15 +37548,15 @@ abs_0_0002F800:
 	ext.l d1
 	add.l d1,player_world_y(a6)
 abs_0_0002F82E:
-	move.w app_078E(a6),d0
+	move.w player_rotation2_damage_impulse(a6),d0
 	add.w d0,player_rotation_2(a6)
-	tst.w app_078E(a6)
+	tst.w player_rotation2_damage_impulse(a6)
 	beq.b abs_0_0002F848
 	bpl.b abs_0_0002F844
-	addq.w #2,app_078E(a6)
+	addq.w #2,player_rotation2_damage_impulse(a6)
 	bra.b abs_0_0002F848
 abs_0_0002F844:
-	subq.w #2,app_078E(a6)
+	subq.w #2,player_rotation2_damage_impulse(a6)
 abs_0_0002F848:
 	move.w rotation_0_control_accumulator(a6),d0
 	asr.w #1,d0

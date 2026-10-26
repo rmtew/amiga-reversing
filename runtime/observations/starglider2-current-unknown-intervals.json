@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
   "kind": "current_native_residual_interval_index_not_input_facts",
-  "publication_base_commit": "25fd347a015ae994f78cc5a189cb1c3c1ca4b078",
+  "publication_base_commit": "270b8af9618390ac317f05267e94fae94f49bee5",
   "binary_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
-  "source_sha256": "b0e24439d97f67e859bf55003fdeaf81c41820ea264a016fc2ed1e0de843c8d4",
-  "analysis_sha256": "821ce15f95fbbb759064b5337dad158fdbd5aeb9dafbd6e96b54192cfae132a5",
+  "source_sha256": "d5c1800e939fdf7aeee713b3d21aac312c0e3135e12cdd2ad70fc7f515d206bc",
+  "analysis_sha256": "6b5c3af73ea1a8281c2df328fa8b837def07a04f941d88ee9c7aacd2bc3690c8",
   "backend_sha256": "46291b1f30c40929991dab7c7aa2a69b19f2b3abcfd3b54acaa01e56f298384c",
   "unclassified_bytes": 14728,
   "interval_count": 260,

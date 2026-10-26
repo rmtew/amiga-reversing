@@ -1625,7 +1625,7 @@ indices120..127 read the first eight lookup bytes. Those original aliases and
 clear extents remain explicit rather than becoming independent invented arrays.
 
 Packet deltas, Amiga input and keyboard controls feed the same three flight
-accumulators. The original flight consumer negates `$7A2` into numbered rotation2,
+accumulators. The original flight consumer negates `$7A2` into numbered rotation 2,
 arithmetic-shifts `$7A4` into rotation0, and negates `$7A8` toward requested speed,
 retaining clamps, exceptional branches and later corrections. Canonical names
 connect those producers and consumers without inventing world-axis conventions.
@@ -3216,3 +3216,32 @@ Next: the concrete app+$7E4 structure-boundary clamp producers and contact/braki
 consumers. The 14,728-byte/260-interval complement and 30 unresolved orphan signals
 remain honest unknowns. Older timer/call test expectations do not justify an
 unbounded framework detour or a false all-path completion claim.
+
+## Current structure-clamp and damage response restoration
+
+The [contact-response receipt](../../runtime/observations/starglider2-contact-response.json)
+records two scalar names and one existing internal continuation. App+$7E4 is
+`player_structure_clamp_flag`: position corrections set it, contact processing
+uses it for the type 66 result and flight control uses it for braking. It is not
+the general collision-response or inside-structure flag. The continuation at
+source $AA14 selects qualified structure contacts by summed absolute cached
+relative coordinates and applies the original shape/orientation constraints.
+
+App+$78E is `player_rotation2_damage_impulse`. Original environment, object-contact
+and mine damage paths add an even signed random contribution. Controls apply it
+to numbered rotation 2 then move it toward zero by two per service call. Neither
+world-axis naming, physical-frame units, strict clamping nor arbitrary-input
+damping is inferred. Native access offsets and decoder widths/base/displacements
+were checked before the three canonical API mutations and exact-bound review.
+
+Generic field symbols are 82 -> 80. All 3,305 app references, 316 typed accesses,
+40 table consumers, 189 address expressions, code and ownership remain identical.
+C/vasm and the clean standalone tree reproduce all 412,736 original bytes; all
+57 assets and fourteen headers remain unchanged. No framework implementation
+changed, no unchanged tests or runtime route were repeated, and the six older
+C-suite failures remain visible in the preceding receipt. The necessary native
+generation takes 166.71 seconds; timing variance is not a performance claim.
+
+Next: the celestial parent-coordinate caches and their weighted X/Z distance
+consumers, using original body-index and planetfall-name evidence. Unexplained
+seed-only storage remains unknown rather than being called unused.

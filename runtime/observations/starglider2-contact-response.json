@@ -1,0 +1,282 @@
+{
+  "schema_version": 1,
+  "kind": "structure_clamp_and_rotation2_damage_response_restoration",
+  "publication_base_commit": "270b8af9618390ac317f05267e94fae94f49bee5",
+  "backend_sha256": "46291b1f30c40929991dab7c7aa2a69b19f2b3abcfd3b54acaa01e56f298384c",
+  "analysis_sha256": "6b5c3af73ea1a8281c2df328fa8b837def07a04f941d88ee9c7aacd2bc3690c8",
+  "canonical_actions": [
+    {
+      "action_id": "manual-9094724f024d4168b43c4fb11517f42b",
+      "command_id": "target.rsset_region.add",
+      "interpretation": {
+        "evidence_refs": [
+          "s0:00001140:instruction",
+          "s0:0000A568:instruction",
+          "s0:0000A920:instruction",
+          "s0:0000A9C2:instruction",
+          "s0:0000ABAA:instruction",
+          "s0:0000ABBA:instruction",
+          "s0:0000AC04:instruction",
+          "s0:0000AC14:instruction",
+          "s0:0000AC36:instruction",
+          "s0:0000AC44:instruction",
+          "s0:0000ACFA:instruction",
+          "s0:0002E7C4:instruction"
+        ],
+        "reason": "Original structure constraint paths set this BYTE when they correct player X/Z strip or diagonal bounds or Y limits. Contact service carries nonzero into last_player_contact_type=66, clears it on the original outside/response paths, and free-flight control uses it to reduce requested speed and relax the negative speed accumulator. Setup clears it. This is the clamp/contact result flag shared by those producers/consumers, not a general inside-structure or collision-damage Boolean, and no unknown indirect writer closure is asserted.",
+        "source_evidence_status": "hypothesis",
+        "confidence": "high",
+        "subject_revision": "a7b39946d1e70d62f295e7141f55c8cbd0191dd190a457136098c707246cc7ab"
+      }
+    },
+    {
+      "action_id": "manual-581a15611b2246a4a692c87ae6026069",
+      "command_id": "target.rsset_region.add",
+      "interpretation": {
+        "evidence_refs": [
+          "s0:000004AA:instruction",
+          "s0:000004EA:instruction",
+          "s0:000010B8:instruction",
+          "s0:00007E1A:instruction",
+          "s0:0002E82E:instruction",
+          "s0:0002E836:instruction",
+          "s0:0002E83E:instruction",
+          "s0:0002E844:instruction"
+        ],
+        "reason": "Original ground/environment shield damage, object-contact damage and mine-hit paths add (random &62)-32 to this WORD. Setup clears it. Normal flight control adds the current value to player_rotation_2, then moves the stored signed value toward zero by2 per control-service call. Numbered rotation2 is preserved rather than guessed roll/yaw; the separate rotation2 spin countdown is not conflated. Observed producers preserve even parity; no arbitrary-input clamp, physical-frame unit or no-overflow guarantee is added.",
+        "source_evidence_status": "hypothesis",
+        "confidence": "high",
+        "subject_revision": "d219208395aa053949b7f8ad6e0a3661d890f6b385bc204c9f837b80eb6a6b66"
+      }
+    },
+    {
+      "action_id": "manual-71e2de47a0d742ed87ce2a5a59f0c649",
+      "command_id": "target.code_label.add",
+      "interpretation": {
+        "evidence_refs": [
+          "s0:0000AA14:instruction",
+          "s0:0000ABAA:instruction",
+          "s0:0000ABBA:instruction",
+          "s0:0000AC04:instruction",
+          "s0:0000AC14:instruction",
+          "s0:0000AC36:instruction",
+          "s0:0000AC44:instruction",
+          "s0:0000ACFA:instruction"
+        ],
+        "reason": "Existing internal continuation of process_object_contact_pairs when inside_structure_flag is set. It scans qualified structure/tunnel contact types, chooses the minimum sum of absolute cached relative X/Y/Z distances, dispatches original shape/orientation-specific constraints and sets the clamp flag on position corrections. This names an already accepted CFG continuation, not a new callable ABI, Euclidean-nearest proof, code promotion or universal interpretation of the object union fields.",
+        "source_evidence_status": "hypothesis",
+        "confidence": "high",
+        "subject_revision": "0a49454db9e1881fbf0bd631939185f17ed4250dfda3c5a19bae63cffc65d0cd"
+      }
+    }
+  ],
+  "review": {
+    "decisions": [
+      {
+        "action_id": "manual-9094724f024d4168b43c4fb11517f42b",
+        "decision_id": "restoration-36218bc681084151adb9cced4df7b1f8",
+        "action": "accept_fact"
+      },
+      {
+        "action_id": "manual-581a15611b2246a4a692c87ae6026069",
+        "decision_id": "restoration-d713e586f3264ac7862f590f7dfbf599",
+        "action": "accept_fact"
+      },
+      {
+        "action_id": "manual-71e2de47a0d742ed87ce2a5a59f0c649",
+        "decision_id": "restoration-3d091d07e5694e709badb1f9946e81e4",
+        "action": "accept_fact"
+      }
+    ],
+    "verification": {
+      "receipt_id": "636c9b3a026844f7b0f36e20212d53e4fc74156e55ad521bc74151be1d49a83b",
+      "kind": "verification",
+      "subject_revision": "f89025ed189256f90899f38ce8425bcc8fca5334091e0bdb498b75ba6218c720",
+      "exact": true
+    },
+    "probe": null,
+    "subject_revision": "f89025ed189256f90899f38ce8425bcc8fca5334091e0bdb498b75ba6218c720",
+    "revision": "b48c5558baa7dc9c11b4c3054e0e69d34a6f25990a2fc5c70c8d57a2dd2f5e08"
+  },
+  "instruction_binding": {
+    "method": "Before mutation, existing native per-access offsets were decoded using the exact shared native serializer and checked for memory A6, expected displacement and width. The named continuation is an existing accepted CFG block start.",
+    "sha256": "63f6a7336e7e636ba56795b932f3aadc27feb8d10a8dde4033ffe9efcfef38ad"
+  },
+  "fields": [
+    {
+      "layout_name": "app",
+      "base_symbol": "__amiga_app_base__",
+      "sizeof_symbol": "app_SIZEOF",
+      "symbol": "player_rotation2_damage_impulse",
+      "owner_struct_name": null,
+      "offset": 1934,
+      "size": 2,
+      "alias": false,
+      "layout_kind": 1,
+      "source_kind": 1,
+      "source_kind_name": "app_slot_access",
+      "value_kind": 2,
+      "confidence": 2,
+      "conflicted": false,
+      "conflict_reason": null,
+      "alias_of_symbol": null,
+      "alias_of_offset": null,
+      "source_section_index": 0,
+      "source_offset": 1194
+    },
+    {
+      "layout_name": "app",
+      "base_symbol": "__amiga_app_base__",
+      "sizeof_symbol": "app_SIZEOF",
+      "symbol": "player_structure_clamp_flag",
+      "owner_struct_name": null,
+      "offset": 2020,
+      "size": 1,
+      "alias": false,
+      "layout_kind": 1,
+      "source_kind": 1,
+      "source_kind_name": "app_slot_access",
+      "value_kind": 2,
+      "confidence": 2,
+      "conflicted": false,
+      "conflict_reason": null,
+      "alias_of_symbol": null,
+      "alias_of_offset": null,
+      "source_section_index": 0,
+      "source_offset": 4416
+    }
+  ],
+  "meanings": [
+    "App+7E4 is set when original structure-strip/diagonal/Y bounds correct player position; contact processing carries it into last-contact type66 and the speed-control path uses it for braking. It is not inside_structure_flag or the general collision response Boolean.",
+    "App+78E receives the even signed random damage contribution (random&62)-32 in environment/contact/mine paths. Normal controls add it to numbered rotation2, then move it toward zero by2 per service call. Preserve word wrapping/parity, no guessed roll/yaw, physical-frame units or arbitrary-input damping guarantee.",
+    "SourceAA14 is an existing internal contact-service continuation: it selects qualified structures by sum of absolute cached relative X/Y/Z values, then applies original shape/orientation-specific position constraints. This is not a new callable ABI or Euclidean-distance claim."
+  ],
+  "before": {
+    "app_fields": 300,
+    "generic_symbols": 82
+  },
+  "after": {
+    "app_fields": 300,
+    "generic_symbols": 80
+  },
+  "native_vectors_unchanged": {
+    "app_slot_refs": true,
+    "accepted_code_runs": true,
+    "range_ownerships": true,
+    "recovered_platform_typed_accesses": true,
+    "recovered_indirect_sites": true,
+    "table_consumers": true,
+    "address_expressions": true
+  },
+  "preservation": {
+    "original_bytes": 412736,
+    "assets_unchanged": 57,
+    "headers_unchanged": 14,
+    "app_references": 3305,
+    "typed_accesses": 316,
+    "unresolved_typed_accesses": 355,
+    "table_consumers": 40,
+    "address_expressions": 189,
+    "unclassified_bytes": 14728,
+    "unclassified_intervals": 260,
+    "source_quality_diagnostics": 0,
+    "incomplete_analysis": [],
+    "canonical_histories_append_only": true,
+    "new_runtime_run": false
+  },
+  "verification": {
+    "kind": "verification",
+    "framework_exact": true,
+    "target_id": "amiga_raw_starglider2_game",
+    "subject_revision": "f89025ed189256f90899f38ce8425bcc8fca5334091e0bdb498b75ba6218c720",
+    "status": "exact",
+    "exact": true,
+    "source_sha256": "d5c1800e939fdf7aeee713b3d21aac312c0e3135e12cdd2ad70fc7f515d206bc",
+    "source_path": "/workspace/pandora-original-delivery/stable-d15c2cf8/.runtime-state/restoration/eb04f545fb97451725a1c91ab5abf6f2e097614c45880db6edfb4ea5c3f6e2c2/d5c1800e939fdf7aeee713b3d21aac312c0e3135e12cdd2ad70fc7f515d206bc.s",
+    "source_package_sha256": null,
+    "original_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "original_size": 412736,
+    "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "rebuilt_path": "/workspace/pandora-original-delivery/stable-d15c2cf8/.runtime-state/restoration/eb04f545fb97451725a1c91ab5abf6f2e097614c45880db6edfb4ea5c3f6e2c2/662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9.bin",
+    "framework_status": "exact",
+    "failure_kinds": [],
+    "message": "",
+    "oracle": {
+      "oracle_id": "vasm",
+      "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+      "comparison_level": "oracle.full_file_match",
+      "assembler_status": "accepted",
+      "message": "oracle output matched original bytes"
+    },
+    "receipt_id": "636c9b3a026844f7b0f36e20212d53e4fc74156e55ad521bc74151be1d49a83b",
+    "revision": "513b1c80c35ba5400379b5a6752785f7ced073713ec076438604e524ae5abaec"
+  },
+  "framework_validation": {
+    "new_framework_code": false,
+    "reused_receipt": "runtime/observations/starglider2-object-initializers.json",
+    "python_passed": 104,
+    "native_passed": 812,
+    "native_failed": 6,
+    "scope": "Identical backend; no unchanged test rerun. Six pre-existing C failures remain explicit in the referenced controlled baseline, not an all-tests-pass claim."
+  },
+  "measured_generation_wall_seconds": 166.7090455169673,
+  "process_usage": {
+    "wall_seconds": 194.57496428396553,
+    "user_seconds": 186.691121,
+    "system_seconds": 7.903389,
+    "max_rss_kib": 2678748
+  },
+  "limits": [
+    "Names interpret original static producers/consumers; unchanged A6 attribution is not every-entry numeric or unknown-indirect-writer proof.",
+    "No new runtime/contact route or visual model identity is claimed.",
+    "No new code/data classification or overall semantic completion percentage follows."
+  ],
+  "next": "Follow celestial parent-coordinate and distance-metric producers/consumers. Original body index3/4 and planetfall text identify Apogee/Millway; keep the weighted X/Z metric distinct from Euclidean distance and retain unexplained seed-only storage instead of declaring it dead.",
+  "validated_target_git_tree": "492abd33a08be03041f490cc32bb20ba01c97c32",
+  "clean_staged_tree_build": true,
+  "standalone_build": {
+    "schema_version": 1,
+    "status": "pass",
+    "format": "raw_payload_not_AmigaDOS_HUNK",
+    "main_bytes": 412736,
+    "main_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "main_matches_original_identity": true,
+    "asset_count": 57,
+    "all_asset_source_slices_equal": true,
+    "decoded_view_inverse_exact": true,
+    "boot_copy_source_matches_resident_view": true,
+    "source_commit": "270b8af9618390ac317f05267e94fae94f49bee5",
+    "assembler_sha256": "413e284020125f42709486dfe09907cab3dd9f3c2ea41017c190f8ea68f30825",
+    "flags": [
+      "-Fbin",
+      "-m68000",
+      "-no-opt"
+    ],
+    "outputs": [
+      {
+        "role": "original_main",
+        "filename": "Starglider2-original.raw",
+        "bytes": 412736,
+        "sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9"
+      },
+      {
+        "role": "decoded_analysis_view",
+        "filename": "protection-decoded-analysis.raw",
+        "bytes": 3548,
+        "sha256": "de8358853dd9ed9b006a23569bf393aa217ed3be3301a169465d80bfaf839922"
+      },
+      {
+        "role": "boot_installer_context",
+        "filename": "boot-selector-installer-context.raw",
+        "bytes": 40,
+        "sha256": "8d34852425e2e1bfa87b3febdfc74fb39e7c667e9d9ff73e17b594649e83b21b"
+      },
+      {
+        "role": "boot_resident_view",
+        "filename": "boot-selector-resident.raw",
+        "bytes": 20,
+        "sha256": "a26286a393713c046eff9dbaff15b20b26b171fa9e05fc9d538d16b0eddb6024"
+      }
+    ]
+  }
+}

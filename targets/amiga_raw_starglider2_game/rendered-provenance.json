@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
   "kind": "committed_native_rendered_original_export",
-  "canonical_source_commit": "25fd347a015ae994f78cc5a189cb1c3c1ca4b078",
-  "publication_base_commit": "25fd347a015ae994f78cc5a189cb1c3c1ca4b078",
+  "canonical_source_commit": "270b8af9618390ac317f05267e94fae94f49bee5",
+  "publication_base_commit": "270b8af9618390ac317f05267e94fae94f49bee5",
   "native_export": "CListingArtifact.source_package_payload(64)",
-  "main_source_sha256": "9fc5c7f33308144d8c666cbaf34c8ff542d8cc851f34a4df633dcd59aa2cedc1",
+  "main_source_sha256": "a6388bf2eeee4f94683d4ba07cd342b40627098ba080f9584a1ce8901e9344e1",
   "asset_count": 57,
   "asset_bytes": 93633,
   "game_assembly_hand_edits": false,
@@ -25,13 +25,13 @@
     "paused Pandora work"
   ],
   "canonical_source_commit_role": "publication base; reviewed canonical facts in this batch bound by canonical_fact_sha256",
-  "canonical_source_subject_revision": "a7b39946d1e70d62f295e7141f55c8cbd0191dd190a457136098c707246cc7ab",
+  "canonical_source_subject_revision": "f89025ed189256f90899f38ce8425bcc8fca5334091e0bdb498b75ba6218c720",
   "canonical_fact_sha256": {
     "source_binary.json": "42d4a5758b3e8236af7f912aee85e9ee5323bcd0961faa338c4f864080a0a7d9",
     "target_metadata.json": "e7540b68c118c56aba8815b6722eefa067517cc865fe9841d6c01ce96551389c",
-    "manual_actions.jsonl": "9377cdb7fb24019e2bae1be73d1e9290c1cd98b5ef82116bbb4b50a875d59d0c",
-    "decision_journal.jsonl": "914115ccf5096663e027e616ba8c2d7e7fea35f926945e6f98b6b9edc053a7de"
+    "manual_actions.jsonl": "6faebc603064a591d78c1a5c607776f914e931415c117bfd623edd6cb13e90cf",
+    "decision_journal.jsonl": "cca3fa86a332e3ccdb571f45d45cb1c9d67fe1170df3d4cac3be9f5348eea164"
   },
-  "refinement_receipt": "runtime/observations/starglider2-object-initializers.json",
+  "refinement_receipt": "runtime/observations/starglider2-contact-response.json",
   "headers": "14 unmodified required include files collected by source_package.collect_package_includes from ext/amiga_includes/ndk_2.0/include; header notices retained"
 }
