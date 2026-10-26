@@ -1,0 +1,821 @@
+{
+  "schema_version": 1,
+  "kind": "connected_modal_inventory_stardrive_frame_service_reconstruction",
+  "status": "verified",
+  "target": "amiga_raw_starglider2_game",
+  "publication_base_commit": "63c4ae153e3724fcb1cee24651167ab213540b16",
+  "canonical_actions": 43,
+  "fields": [
+    {
+      "offset": 1754,
+      "size": 1,
+      "symbol": "modal_command_input_flag",
+      "storage_kind": "scalar",
+      "accesses": {
+        "write": 5,
+        "read": 18
+      },
+      "runtime_sites": [
+        6932,
+        7670,
+        7772,
+        8636,
+        51008,
+        51056,
+        51244,
+        226320,
+        242100,
+        242134,
+        242370,
+        310352,
+        310828,
+        312006,
+        312220,
+        312608,
+        312748,
+        312950,
+        313194,
+        314100,
+        317946,
+        318036,
+        318138
+      ]
+    },
+    {
+      "offset": 1730,
+      "size": 2,
+      "symbol": "current_structure_service_id",
+      "storage_kind": "scalar",
+      "accesses": {
+        "read": 15,
+        "write": 2
+      },
+      "runtime_sites": [
+        6176,
+        6182,
+        6190,
+        6990,
+        6996,
+        7004,
+        46428,
+        48392,
+        208516,
+        213370,
+        213444,
+        213528,
+        213552,
+        213602,
+        213848,
+        214770,
+        214884
+      ]
+    },
+    {
+      "offset": 2672,
+      "size": 2,
+      "symbol": "inventory_list_item_index",
+      "storage_kind": "scalar",
+      "accesses": {
+        "write": 13,
+        "read-write": 2,
+        "read": 6
+      },
+      "runtime_sites": [
+        6242,
+        7060,
+        7086,
+        7116,
+        7228,
+        7248,
+        7258,
+        7312,
+        7666,
+        7768,
+        213586,
+        214966,
+        214992,
+        215022,
+        215134,
+        215154,
+        215164,
+        215200,
+        215258,
+        215350,
+        226462
+      ]
+    },
+    {
+      "offset": 2632,
+      "size": 10,
+      "symbol": "inventory_list_quantity_prefix",
+      "storage_kind": "byte_array",
+      "accesses": {
+        "address": 7
+      },
+      "runtime_sites": [
+        7094,
+        7316,
+        7602,
+        215000,
+        215204,
+        215440,
+        215504
+      ]
+    },
+    {
+      "offset": 2645,
+      "size": 10,
+      "symbol": "inventory_quantity_decimal_prefix",
+      "storage_kind": "byte_array",
+      "accesses": {
+        "address": 5
+      },
+      "runtime_sites": [
+        7156,
+        7170,
+        215062,
+        215076,
+        215500
+      ]
+    },
+    {
+      "offset": 2658,
+      "size": 10,
+      "symbol": "inventory_list_model_type_prefix",
+      "storage_kind": "byte_array",
+      "accesses": {
+        "address": 5
+      },
+      "runtime_sites": [
+        7254,
+        7610,
+        215160,
+        215448,
+        215508
+      ]
+    },
+    {
+      "offset": 2602,
+      "size": 1,
+      "symbol": "inventory_line_text_start",
+      "storage_kind": "byte_array",
+      "accesses": {
+        "address": 4
+      },
+      "runtime_sites": [
+        7124,
+        7186,
+        215030,
+        215092
+      ]
+    },
+    {
+      "offset": 2478,
+      "size": 2,
+      "symbol": "stardrive_enabled_word",
+      "storage_kind": "scalar",
+      "accesses": {
+        "read": 15,
+        "write": 7
+      },
+      "runtime_sites": [
+        5212,
+        194952,
+        194958,
+        194986,
+        195012,
+        208804,
+        208860,
+        209406,
+        210314,
+        211450,
+        211514,
+        212956,
+        213050,
+        226940,
+        227324,
+        227352,
+        310740,
+        314252,
+        316880,
+        317792,
+        318094,
+        318168
+      ]
+    },
+    {
+      "offset": 1874,
+      "size": 2,
+      "symbol": "initial_resource_charge_steps",
+      "storage_kind": "scalar",
+      "accesses": {
+        "read": 1,
+        "read-write": 1,
+        "write": 1
+      },
+      "runtime_sites": [
+        5014,
+        5056,
+        8364
+      ]
+    },
+    {
+      "offset": 1876,
+      "size": 2,
+      "symbol": "title_idle_rate_windows_remaining",
+      "storage_kind": "scalar",
+      "accesses": {
+        "write": 2,
+        "read": 1,
+        "read-write": 2
+      },
+      "runtime_sites": [
+        4478,
+        4512,
+        8192,
+        50982,
+        242074
+      ]
+    },
+    {
+      "offset": 1878,
+      "size": 2,
+      "symbol": "frame_handoff_counter",
+      "storage_kind": "scalar",
+      "accesses": {
+        "read": 4,
+        "write": 1,
+        "read-write": 1
+      },
+      "runtime_sites": [
+        5114,
+        5140,
+        13350,
+        13532,
+        19370,
+        60514
+      ]
+    },
+    {
+      "offset": 352,
+      "size": 2,
+      "symbol": "frame_service_ticks_in_window",
+      "storage_kind": "scalar",
+      "accesses": {},
+      "runtime_sites": []
+    },
+    {
+      "offset": 354,
+      "size": 2,
+      "symbol": "frame_handoffs_in_window",
+      "storage_kind": "scalar",
+      "accesses": {},
+      "runtime_sites": []
+    },
+    {
+      "offset": 350,
+      "size": 2,
+      "symbol": "frame_rate_display_sample",
+      "storage_kind": "scalar",
+      "accesses": {},
+      "runtime_sites": []
+    },
+    {
+      "offset": 380,
+      "size": 2,
+      "symbol": "vblank_tick_counter",
+      "storage_kind": "scalar",
+      "accesses": {},
+      "runtime_sites": []
+    }
+  ],
+  "named_code_entries": [
+    [
+      6152,
+      "process_frame_input_commands"
+    ],
+    [
+      6932,
+      "modal_inventory_command_loop"
+    ],
+    [
+      7044,
+      "cycle_inventory_status_line"
+    ],
+    [
+      7236,
+      "jettison_inventory_selection"
+    ],
+    [
+      7598,
+      "build_inventory_status_lists"
+    ],
+    [
+      215436,
+      "build_depot_inventory_status_lists"
+    ],
+    [
+      215496,
+      "reset_shared_inventory_scratch_prefixes"
+    ],
+    [
+      194924,
+      "try_toggle_stardrive"
+    ],
+    [
+      227316,
+      "clear_stardrive_below_speed_threshold"
+    ],
+    [
+      52210,
+      "poll_translated_command_key"
+    ],
+    [
+      13532,
+      "count_and_present_frame_handoff"
+    ],
+    [
+      6014,
+      "display_frame_rate_if_enabled"
+    ],
+    [
+      50926,
+      "amiga_vertical_blank_game_service"
+    ],
+    [
+      241954,
+      "alternate_vertical_blank_game_service"
+    ]
+  ],
+  "evidence": "Connected original producer/consumer reconstruction, corroborated by private normal-input modal probe. Backspace enters inventory;1B14 sets6DA,1DF6 clears it. IRQ C6EE/3B122 retain ticks/message service while gating selected motion/control; not a global pause. BD02 widens object BYTE26 into structure service WORD6C2;0/1/2 and10 select distinct command/depot paths, not a universal object-field type.1DAE/3498C build shared name pointers, quantity bytes and model IDs from104 count bytes;349C8 initializes ten pointer slots and ten bytes at each scratch prefix. Ten is initialized prefix, not proved list capacity; unchecked original cardinality and sentinel stores retained.1B84 formats names/counts atA2A; its capacity is unknown. Shared9CE is overwritten by inventory/depot/Taymar dialogue. Stardrive2F96C toggles0/FFFF only in space at speed>=64, rejection clears,377F4 clears below threshold; original events identify activation/deactivation.144C adds two extra speed-derived power debits when enabled (three total).752 starts16 resource-charge steps.754 counts title rate windows,756 counts presentation handoffs,160 counts IRQ service ticks,162 counts window handoffs,17C ticks each IRQ.15E is dual-use: IRQ window count, Amiga FPS path overwrites computed display value. No global boolean, all-input safety, exact physical-frame update rate, or arbitrary list bound inferred. Runtime used normal keys only; no guest register/memory writes; empty inventory did not establish nonempty formatting execution.",
+  "annotation_corrections": 5,
+  "tests": {
+    "passed": 82,
+    "failed": 0,
+    "skipped": 0,
+    "scope": "Manual action catalogue;24 new storage-kind admission cases",
+    "log_sha256": "99f25a7bc844160b590a047a204322ea74f5a06adfba2ad70502a7293ece4b62"
+  },
+  "inventory": {
+    "before": {
+      "app_fields": 284,
+      "generic_app_names": 147,
+      "direct_call_entries": 351,
+      "unnamed_direct_call_entries": 227,
+      "unnamed_single_instruction_forwarders": 79,
+      "unnamed_forwarders_with_known_role": 50
+    },
+    "after_app_fields": 288,
+    "after_generic_app_names": 136,
+    "direct_call_denominator_note": "Entry count includes internal bridges, not an exhaustive independent-function/semantic-completion denominator"
+  },
+  "runtime": {
+    "status": "bounded_modal_inventory_observation_complete",
+    "receipt_sha256": "5233893de4395a3adc0bf3a164e700ceaccec03d1fd335cf6c8188b2ffcae6ce",
+    "watch_results": [
+      {
+        "name": "modal_flag_set",
+        "status": "hit",
+        "engine": "cpu",
+        "access": "write",
+        "address": 433474,
+        "width": 1,
+        "value": 255,
+        "triggering_pc": 6932,
+        "frame": 1016,
+        "a6": 431720,
+        "stopped_pc": 6936
+      },
+      {
+        "name": "modal_flag_clear",
+        "status": "hit",
+        "engine": "cpu",
+        "access": "write",
+        "address": 433474,
+        "width": 1,
+        "value": 0,
+        "triggering_pc": 7670,
+        "frame": 1079,
+        "a6": 431720,
+        "stopped_pc": 7674
+      }
+    ],
+    "field_snapshots": {
+      "normal_before": {
+        "0x6da": "00",
+        "0x6c2": "0000",
+        "0x7c2": "0001",
+        "0x17c": "00fb",
+        "0x756": "0028",
+        "0x752": "0000",
+        "0xa70": "0000",
+        "0xa48": "00000000000000000000",
+        "0xa55": "00000000000000000000",
+        "0xa62": "00000000000000000000",
+        "0x774": "f9beee480000"
+      },
+      "normal_after_30": {
+        "0x6da": "00",
+        "0x6c2": "0000",
+        "0x7c2": "0000",
+        "0x17c": "0119",
+        "0x756": "002e",
+        "0x752": "0000",
+        "0xa70": "0000",
+        "0xa48": "00000000000000000000",
+        "0xa55": "00000000000000000000",
+        "0xa62": "00000000000000000000",
+        "0x774": "f9b2ee480000"
+      },
+      "modal_at_set": {
+        "0x6da": "ff",
+        "0x6c2": "0000",
+        "0x7c2": "0004",
+        "0x17c": "011d",
+        "0x756": "002f",
+        "0x752": "0000",
+        "0xa70": "0000",
+        "0xa48": "ffffffffffffffffffff",
+        "0xa55": "ffffffffffffffffffff",
+        "0xa62": "ffffffffffffffffffff",
+        "0x774": "f9b0ee480000"
+      },
+      "modal_after_30": {
+        "0x6da": "ff",
+        "0x6c2": "0000",
+        "0x7c2": "0004",
+        "0x17c": "013b",
+        "0x756": "002f",
+        "0x752": "0000",
+        "0xa70": "0000",
+        "0xa48": "ffffffffffffffffffff",
+        "0xa55": "ffffffffffffffffffff",
+        "0xa62": "ffffffffffffffffffff",
+        "0x774": "f9b0ee480000"
+      },
+      "modal_after_inventory_I": {
+        "0x6da": "ff",
+        "0x6c2": "0000",
+        "0x7c2": "0004",
+        "0x17c": "015c",
+        "0x756": "002f",
+        "0x752": "0000",
+        "0xa70": "0000",
+        "0xa48": "ffffffffffffffffffff",
+        "0xa55": "ffffffffffffffffffff",
+        "0xa62": "ffffffffffffffffffff",
+        "0x774": "f9b0ee480000"
+      },
+      "modal_at_clear": {
+        "0x6da": "00",
+        "0x6c2": "0000",
+        "0x7c2": "0004",
+        "0x17c": "015c",
+        "0x756": "002f",
+        "0x752": "0000",
+        "0xa70": "0000",
+        "0xa48": "ffffffffffffffffffff",
+        "0xa55": "ffffffffffffffffffff",
+        "0xa62": "ffffffffffffffffffff",
+        "0x774": "f9b0ee480000"
+      },
+      "resumed_after_30": {
+        "0x6da": "00",
+        "0x6c2": "0000",
+        "0x7c2": "0001",
+        "0x17c": "017a",
+        "0x756": "0036",
+        "0x752": "0000",
+        "0xa70": "0000",
+        "0xa48": "ffffffffffffffffffff",
+        "0xa55": "ffffffffffffffffffff",
+        "0xa62": "ffffffffffffffffffff",
+        "0x774": "f9a2ee480000"
+      }
+    },
+    "normal_inputs": "Backspace, I, X with explicit releases after the approved original protection workflow; no guest memory/register writes",
+    "coverage": "One empty-inventory normal-media route; CPU modal-flag watches plus snapshots, no DMA or nonempty list formatting claim"
+  },
+  "verification": {
+    "kind": "verification",
+    "framework_exact": true,
+    "target_id": "amiga_raw_starglider2_game",
+    "subject_revision": "e5ec4aec3003744f004ab2cbbb5b4f64c10f37a07bf55b3140b36ee7a67d860c",
+    "status": "exact",
+    "exact": true,
+    "source_sha256": "51e6c4f3fa6fdd2c2e0860a90c77aa99795103b9258f1876f238ff969c1af714",
+    "source_path": "/workspace/pandora-original-delivery/stable-d15c2cf8/.runtime-state/restoration/eb04f545fb97451725a1c91ab5abf6f2e097614c45880db6edfb4ea5c3f6e2c2/51e6c4f3fa6fdd2c2e0860a90c77aa99795103b9258f1876f238ff969c1af714.s",
+    "source_package_sha256": null,
+    "original_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "original_size": 412736,
+    "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "rebuilt_path": "/workspace/pandora-original-delivery/stable-d15c2cf8/.runtime-state/restoration/eb04f545fb97451725a1c91ab5abf6f2e097614c45880db6edfb4ea5c3f6e2c2/662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9.bin",
+    "framework_status": "exact",
+    "failure_kinds": [],
+    "message": "",
+    "oracle": {
+      "oracle_id": "vasm",
+      "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+      "comparison_level": "oracle.full_file_match",
+      "assembler_status": "accepted",
+      "message": "oracle output matched original bytes"
+    },
+    "receipt_id": "2dd2d2dc1231b4d0e4cad08ee114c6e2ff0527e5f3e8e0c58965817ea02c108f",
+    "revision": "f2aba2df5b3b8598e27bab5f660546db733bdb0db80186cb119ad17e8b8d8d4e"
+  },
+  "standalone_build": {
+    "schema_version": 1,
+    "status": "pass",
+    "format": "raw_payload_not_AmigaDOS_HUNK",
+    "main_bytes": 412736,
+    "main_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "main_matches_original_identity": true,
+    "asset_count": 57,
+    "all_asset_source_slices_equal": true,
+    "decoded_view_inverse_exact": true,
+    "boot_copy_source_matches_resident_view": true,
+    "source_commit": "63c4ae153e3724fcb1cee24651167ab213540b16",
+    "assembler_sha256": "413e284020125f42709486dfe09907cab3dd9f3c2ea41017c190f8ea68f30825",
+    "flags": [
+      "-Fbin",
+      "-m68000",
+      "-no-opt"
+    ],
+    "outputs": [
+      {
+        "role": "original_main",
+        "filename": "Starglider2-original.raw",
+        "bytes": 412736,
+        "sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9"
+      },
+      {
+        "role": "decoded_analysis_view",
+        "filename": "protection-decoded-analysis.raw",
+        "bytes": 3548,
+        "sha256": "de8358853dd9ed9b006a23569bf393aa217ed3be3301a169465d80bfaf839922"
+      },
+      {
+        "role": "boot_installer_context",
+        "filename": "boot-selector-installer-context.raw",
+        "bytes": 40,
+        "sha256": "8d34852425e2e1bfa87b3febdfc74fb39e7c667e9d9ff73e17b594649e83b21b"
+      },
+      {
+        "role": "boot_resident_view",
+        "filename": "boot-selector-resident.raw",
+        "bytes": 20,
+        "sha256": "a26286a393713c046eff9dbaff15b20b26b171fa9e05fc9d538d16b0eddb6024"
+      }
+    ]
+  },
+  "assets": {
+    "count": 57,
+    "unchanged": true
+  },
+  "source": {
+    "hand_edited": false,
+    "sha256": "d288b2bfc17363c44d27b75b7303d5799274daec6025a71f54cd7b4c17a716cf",
+    "accepted_code_bytes": 106034,
+    "code_byte_union_unchanged": true,
+    "unclassified_bytes": 14748,
+    "unknown_intervals": 260,
+    "diagnostics": 0
+  },
+  "cleanup": {
+    "status": "16 identified Pandora-only temporary files recoverably removed from working trees",
+    "backup": "/workspace/starglider2-private/pandora-paused-recovery-20261026",
+    "committed_pandora_unchanged": true
+  },
+  "limits": [
+    "A6 fallback evidence retains its explicit assumptions; semantic reconstruction does not prove every base context",
+    "Ten initialized scratch bytes and ten pointer slots are not proved inventory capacity; unchecked original builder scans104 model counts",
+    "Inventory text output start is named, complete capacity remains unknown",
+    "Structure service comes from a variant-specific object BYTE26, not a universal object field",
+    "Stardrive and alternate-platform paths are statically reconstructed, not newly exercised",
+    "Frame handoffs, IRQ ticks and displayed rate samples have distinct lifetimes/representations",
+    "Reticle/scan-target/stardrive semantics are static; no new missile-lock/tractor/stardrive runtime coverage",
+    "No new code promotion, complete game walkthrough, all-model recognition or semantic completion claim"
+  ],
+  "source_package_C_exact": true,
+  "source_file_sha256": "d288b2bfc17363c44d27b75b7303d5799274daec6025a71f54cd7b4c17a716cf",
+  "regeneration_measurements": {
+    "build_wall_seconds": [
+      331.57,
+      306.36
+    ],
+    "builds": "Two target builds in this batch: initial adoption and necessary storage-kind correction; no profile-only target build",
+    "native_profile": {
+      "generation": "facts_v2_listing_artifact_summary",
+      "backend": "amiga-raw",
+      "analysis_backend": "facts_v2",
+      "path": "/workspace/starglider2-private/main-copy.bin",
+      "facts_v2": {
+        "decode_seconds": 4e-06,
+        "seed_seconds": 0.003644,
+        "fixed_point_seconds": 7.660008,
+        "fixed_point_reachable_seconds": 6.347662,
+        "fixed_point_reachable_decode_seconds": 0.0,
+        "fixed_point_reachable_validate_seconds": 0.0,
+        "fixed_point_reachable_accept_seconds": 0.0,
+        "fixed_point_reachable_target_seconds": 0.0,
+        "fixed_point_reachable_relocation_seconds": 0.0,
+        "fixed_point_reachable_fallthrough_seconds": 0.0,
+        "fixed_point_index_seconds": 0.000803,
+        "fixed_point_required_label_conflict_seconds": 2.5e-05,
+        "fixed_point_opcode_relocation_conflict_seconds": 0.000363,
+        "fixed_point_rebuild_accepted_seconds": 0.01011,
+        "fixed_point_relocation_anchor_seconds": 0.000296,
+        "fixed_point_materialize_labels_seconds": 1.300446,
+        "fixed_point_runtime_address_ref_seconds": 1.208406,
+        "fixed_point_required_label_materialize_seconds": 0.09204,
+        "fixed_point_data_span_seconds": 0.000303,
+        "fixed_point_invariant_seconds": 2.7e-05,
+        "render_ir_seconds": 27.646785,
+        "render_ir_lookup_seconds": 0.284261,
+        "platform_analysis_pass_seconds": 110.419324,
+        "platform_analysis_base_slot_seconds": 0.039987,
+        "platform_analysis_call_summary_seconds": 0.052868,
+        "platform_analysis_typed_ref_seconds": 110.298597,
+        "platform_analysis_call_comment_seconds": 7e-05,
+        "platform_analysis_app_slot_seconds": 0.023501,
+        "platform_analysis_runtime_data_seconds": 0.0,
+        "platform_analysis_hardware_data_seconds": 1e-06,
+        "platform_analysis_generic_data_seconds": 0.0,
+        "render_ir_header_seconds": 16.736341,
+        "render_ir_walk_seconds": 8.953284,
+        "render_ir_footer_seconds": 1.956664,
+        "source_render_seconds": 0.0,
+        "decoded_candidates": 29938,
+        "accepted_instructions": 29665,
+        "data_spans": 172,
+        "labels_created": 19873,
+        "labels_referenced": 13059,
+        "unresolved_labels": 0,
+        "interior_conflicts": 0,
+        "interior_conflicts_resolved_by_demote": 0,
+        "interior_conflicts_unresolved": 0,
+        "relocation_failures": 0,
+        "first_relocation_failure_reason": "",
+        "first_relocation_failure_section": 0,
+        "first_relocation_failure_offset": 0,
+        "first_relocation_failure_target_section": 0,
+        "first_relocation_failure_width": 0,
+        "first_relocation_failure_raw_value": 0,
+        "first_relocation_failure_computed_target": 0,
+        "relocation_anchors": 0,
+        "first_relocation_anchor_kind": "",
+        "first_relocation_anchor_section": 0,
+        "first_relocation_anchor_offset": 0,
+        "first_relocation_anchor_target_section": 0,
+        "first_relocation_anchor_width": 0,
+        "first_relocation_anchor_platform_record_kind": "",
+        "first_relocation_anchor_raw_value": 0,
+        "first_relocation_anchor_addend": 0,
+        "relocation_anchor_instruction_bytes": 0,
+        "relocation_anchor_data_payloads": 0,
+        "relocation_anchor_unknown_contexts": 0,
+        "unassemblable_hunk_data_relocations": 0,
+        "unassemblable_hunk_base_register_relocations": 0,
+        "first_relocation_anchor_context": "",
+        "first_relocation_anchor_instruction_offset": 0,
+        "code_start_facts": 41982,
+        "code_start_section_entries": 0,
+        "code_start_policy_entry_offsets": 0,
+        "code_start_policy_entry_points": 165,
+        "code_start_control_targets": 10294,
+        "code_start_fallthroughs": 31523,
+        "code_start_inline_resumes": 0,
+        "code_start_linkage_api_entries": 0,
+        "code_start_platform_loadseg_entries": 0,
+        "code_start_stack_continuations": 0,
+        "code_start_boundary_api_entries": 0,
+        "platform_loadseg_segment_link_accesses": 0,
+        "platform_loadseg_segment_link_bptr_loads": 0,
+        "platform_loadseg_segment_link_resolved_targets": 0,
+        "first_platform_loadseg_segment_link_section": 0,
+        "first_platform_loadseg_segment_link_offset": 0,
+        "first_platform_loadseg_segment_link_target_section": 0,
+        "runtime_address_ranges": 5,
+        "runtime_address_range_conflicts": 0,
+        "table_target_set_limit_hits": 0,
+        "first_table_target_set_limit_section": 0,
+        "first_table_target_set_limit_offset": 0,
+        "first_table_target_set_limit_capacity": 0,
+        "source_quality_diagnostics": 0,
+        "source_quality_blockers": 0,
+        "first_source_quality_diagnostic_kind": "unknown",
+        "first_source_quality_diagnostic_section": 0,
+        "first_source_quality_diagnostic_offset": 0,
+        "runtime_address_view_starts": 41818,
+        "required_instruction_failures": 0,
+        "unsupported_instruction_demotes": 0,
+        "first_required_instruction_failure_section": 0,
+        "first_required_instruction_failure_offset": 0,
+        "first_required_instruction_failure_reason": "",
+        "first_required_instruction_failure_source_section": 0,
+        "first_required_instruction_failure_source_offset": 0,
+        "first_unsupported_instruction_demote_section": 0,
+        "first_unsupported_instruction_demote_offset": 0,
+        "first_unsupported_instruction_demote_reason": "",
+        "first_unsupported_instruction_demote_source_section": 0,
+        "first_unsupported_instruction_demote_source_offset": 0,
+        "opcode_relocation_conflicts_resolved_by_demote": 0,
+        "first_opcode_relocation_conflict_section": 0,
+        "first_opcode_relocation_conflict_offset": 0,
+        "first_opcode_relocation_conflict_aux_offset": 0,
+        "queue_iterations": 34581,
+        "workflow_arena_peak_used": 7466760,
+        "workflow_arena_total_blocks": 39,
+        "render_ir_statements": 51671,
+        "render_ir_labels": 5154,
+        "render_ir_instructions": 29665,
+        "render_ir_data_spans": 16852,
+        "render_ir_hash": "0ae85983f1f15f49",
+        "preview_source_enabled": false,
+        "preview_source_bytes": 0,
+        "preview_source_hash": "14650fb0739d0383",
+        "asm_source_enabled": true,
+        "asm_source_refused": false,
+        "asm_source_bytes": 2243644,
+        "asm_source_lines": 66742,
+        "asm_source_plan_rows": 65864,
+        "asm_source_plan_lines": 66742,
+        "asm_source_plan_bytes": 2243644,
+        "asm_source_relocation_exprs": 0,
+        "asm_source_symbolic_instructions": 29665,
+        "asm_source_numeric_runtime_refs": 0,
+        "asm_source_first_numeric_runtime_ref_section": 0,
+        "asm_source_first_numeric_runtime_ref_offset": 0,
+        "asm_source_first_numeric_runtime_ref_target_section": 0,
+        "asm_source_first_numeric_runtime_ref_target_offset": 0,
+        "asm_source_first_numeric_runtime_ref_runtime_address": 0,
+        "platform_base_slot_count": 288,
+        "platform_call_count": 1,
+        "platform_effect_count": 1,
+        "asm_source_lossy_numeric_hunk_relocations": 0,
+        "asm_source_instruction_render_failures": 0,
+        "asm_source_instruction_byte_mismatches": 0,
+        "asm_source_instruction_relocation_failures": 0,
+        "asm_source_relocation_anchor_refusals": 0,
+        "asm_source_unassemblable_hunk_data_relocation_refusals": 0,
+        "asm_source_unassemblable_hunk_base_register_relocation_refusals": 0,
+        "asm_source_first_failure_kind": "",
+        "asm_source_first_failure_section": 0,
+        "asm_source_first_failure_offset": 0,
+        "asm_source_first_failure_aux_offset": 0,
+        "asm_source_hash": "7d2dd67d2efc2220"
+      },
+      "timing": {
+        "source_seconds": 301.253759,
+        "summary_json_seconds": 3.2e-05,
+        "total_seconds": 3.2e-05
+      }
+    },
+    "retained_calls": [
+      {
+        "stage": "retained_summary_payload",
+        "wall_seconds": 0.00013743501040153205,
+        "cpu_seconds": 0.00012413099989316834
+      },
+      {
+        "stage": "retained_analysis_json_and_python_decode",
+        "wall_seconds": 4.571644786017714,
+        "cpu_seconds": 4.565336085999888
+      },
+      {
+        "stage": "retained_inline_source_first",
+        "wall_seconds": 0.002997267001774162,
+        "cpu_seconds": 0.0029990110001563153
+      },
+      {
+        "stage": "retained_inline_source_repeat",
+        "wall_seconds": 0.0018498400168027729,
+        "cpu_seconds": 0.001851706000024933
+      },
+      {
+        "stage": "retained_source_projection_persisted_policy",
+        "wall_seconds": 0.001632943021832034,
+        "cpu_seconds": 0.001633686000104717
+      },
+      {
+        "stage": "retained_source_package_64",
+        "wall_seconds": 3.5186420359823387,
+        "cpu_seconds": 3.5179441880000013
+      }
+    ],
+    "projection_inline_calls_seconds": [
+      0.0016234600043389946
+    ],
+    "package_inline_calls_seconds": [
+      0.0015582789783366024
+    ],
+    "persisted_source_output_mode": "inline",
+    "analysis_json_bytes": 45160447,
+    "input_bytes": 412736,
+    "clock_notes": "Native *_seconds use C clock/process CPU. Retained stage measures include ctypes transport and Python decode; wall and process CPU measured separately. Existing build aggregate is wall time; source_seconds excludes listing-index construction. No new build or analysis-creation call in this diagnostic.",
+    "unattributed_native_source_cpu_seconds": 155.239733,
+    "limit": "Existing timings do not yet isolate source-analysis construction/finalization; do not attribute the remainder speculatively. Retained inline replay is milliseconds and not the five-minute cause."
+  },
+  "validated_target_git_tree": "bfa62f997f8a93f294e6a5c2622e861fff2cba41",
+  "clean_staged_tree_build": true
+}

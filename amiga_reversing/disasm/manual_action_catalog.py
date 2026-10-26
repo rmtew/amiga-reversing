@@ -2768,6 +2768,14 @@ def _rsset_layout_region_payload(params: Mapping[str, object]) -> dict[str, obje
         raise ValueError("create_manual_rsset_layout_region size must be 1..32767")
     if not isinstance(symbol, str) or not symbol.strip():
         raise ValueError("create_manual_rsset_layout_region requires parameter symbol")
+    storage_kind = params.get("storage_kind")
+    if storage_kind is not None and (
+        not isinstance(storage_kind, str)
+        or storage_kind.strip() not in {
+            "scalar", "pointer", "pointer_table", "struct_instance", "struct_pointer", "byte_array",
+        }
+    ):
+        raise ValueError("create_manual_rsset_layout_region has unsupported storage_kind")
     layout_name = str(params.get("layout_name") or "app").strip() or "app"
     region: dict[str, object] = {
         "rsset_layout_region_id": f"catalog-rsset-region-{layout_name}-{offset:04X}",

@@ -2028,3 +2028,24 @@ def test_target_rsset_layout_region_remove_command_payload() -> None:
             "base_symbol": "__game_work_base__",
         }
     }
+
+
+@pytest.mark.parametrize("command", ["add", "edit", "rename"])
+@pytest.mark.parametrize("storage_kind", ["reserved", "byte-array", "", "   ", 1, []])
+def test_rsset_region_refuses_unsupported_storage_kind(command, storage_kind):
+    with pytest.raises(ValueError, match="unsupported storage_kind"):
+        target_catalog_manual_payload("target.rsset_region." + command, {
+            "offset": 0x248, "size": 10, "symbol": "inventory_prefix",
+            "storage_kind": storage_kind,
+        })
+
+
+@pytest.mark.parametrize("storage_kind", [
+    "scalar", "pointer", "pointer_table", "struct_instance", "struct_pointer", "byte_array",
+])
+def test_rsset_region_retains_supported_storage_kind(storage_kind):
+    _, payload = target_catalog_manual_payload("target.rsset_region.add", {
+        "offset": 0x248, "size": 10, "symbol": "inventory_prefix",
+        "storage_kind": storage_kind,
+    })
+    assert payload["rsset_layout_region"]["storage_kind"] == storage_kind

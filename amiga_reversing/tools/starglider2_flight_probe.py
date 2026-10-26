@@ -11,6 +11,63 @@ from pathlib import Path
 from amiga_reversing.tools.copperline_control import CopperlineProcess
 from amiga_reversing.tools.copperline_runtime import wait_for_pc
 
+def observe_modal_inventory(client, flight_entry, workspace_base, translation, stage, inputs):
+    """Bounded empty-inventory modal observation, using normal keys only.
+
+    Snapshots establish state, not per-byte attribution. The two CPU watches
+    attribute only the modal flag writes. Nonempty-list formatting is not covered.
+    """
+    from amiga_reversing.tools.copperline_runtime import wait_for_memory_access
+
+    def state(label):
+        fields = {hex(offset): client.read_memory(workspace_base + offset, size).hex()
+                  for offset, size in [(0x6DA, 1), (0x6C2, 2), (0x7C2, 2),
+                      (0x17C, 2), (0x756, 2), (0x752, 2), (0xA70, 2),
+                      (0xA48, 10), (0xA55, 10), (0xA62, 10), (0x774, 6)]}
+        stage(label, dict(workspace_base=workspace_base, fields=fields))
+
+    def key(token, pressed, frame):
+        raw = next(i for i, value in enumerate(translation) if value == token)
+        client.key(raw, pressed=pressed)
+        inputs.append(dict(frame=frame, rawkey=raw, pressed=pressed))
+        return raw
+
+    event = client.run_until({'frame': flight_entry['stop_event']['frame'] + 120}, timeout=30)
+    state('normal_before')
+    event = client.run_until({'frame': event['frame'] + 30}, timeout=30)
+    state('normal_after_30')
+    for token, expected, label in [(8, b'\xff', 'modal_flag_set'), (88, b'\x00', 'modal_flag_clear')]:
+        raw = key(token, True, event['frame'])
+        try:
+            observed = wait_for_memory_access(client, dict(address=workspace_base + 0x6DA,
+                length=1, access='write', engine='cpu', wait_seconds=30, frames=180),
+                start_event=event)
+            stage(label, observed)
+        finally:
+            client.key(raw, pressed=False)
+            inputs.append(dict(rawkey=raw, pressed=False, release_after_watch=True))
+        assert observed['status'] == 'hit'
+        assert client.read_memory(workspace_base + 0x6DA, 1) == expected
+        event = observed['stop_event']
+        state('modal_at_set' if token == 8 else 'modal_at_clear')
+        if token == 8:
+            event = client.run_until({'frame': event['frame'] + 30}, timeout=30)
+            state('modal_after_30')
+            raw = key(73, True, event['frame'])
+            try:
+                event = client.run_until({'frame': event['frame'] + 3}, timeout=10)
+            finally:
+                client.key(raw, pressed=False)
+                inputs.append(dict(rawkey=raw, pressed=False, release_after_run=True))
+            event = client.run_until({'frame': event['frame'] + 30}, timeout=30)
+            state('modal_after_inventory_I')
+    returned = wait_for_pc(client, 0x1288, 30, frame_limit=event['frame'] + 120)
+    stage('returned_to_flight', returned)
+    assert returned['status'] == 'hit'
+    client.run_until({'frame': returned['stop_event']['frame'] + 30}, timeout=30)
+    state('resumed_after_30')
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--inputs', type=Path, required=True)
@@ -20,7 +77,11 @@ def main(argv=None):
     parser.add_argument('--answer-selected-protection-request', action='store_true', help='Explicit opt-in to read the selected original record and type its answer')
     parser.add_argument('--observe-model-paths', action='store_true',
                         help='Observe bounded model/disc entries after flight, then stop')
+    parser.add_argument('--observe-modal-inventory', action='store_true',
+                        help='Observe bounded Backspace/I/X inventory modal state, then stop')
     args = parser.parse_args(argv)
+    if args.observe_model_paths and args.observe_modal_inventory:
+        parser.error('Choose only one bounded observation route')
     if not args.answer_selected_protection_request:
         parser.error('This probe requires explicit protection-input opt-in')
     p = args.inputs.resolve()
@@ -93,6 +154,11 @@ def main(argv=None):
                 regs = c.registers()
                 base = regs['a6']
                 stage('flight_state', dict(registers=regs, player_pointer=c.read_memory(base + 0x700, 4).hex(), resources=c.read_memory(base + 0x774, 34).hex()))
+                if args.observe_modal_inventory:
+                    observe_modal_inventory(c, w, base, translation, stage, r['inputs'])
+                    r['status'] = 'bounded_modal_inventory_observation_complete'
+                    save()
+                    return
                 if args.observe_model_paths:
                     for label, pc in [('model_projection', 0x4A2A),
                                       ('nonmodel_disc_projection', 0x67F4)]:

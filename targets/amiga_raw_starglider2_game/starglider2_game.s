@@ -218,10 +218,15 @@ model_origin_delta_y RS.W 1
 model_origin_delta_z RS.W 1
     RS.B 36
 joystick_direction_bits RS.W 1
-    RS.B 20
+frame_rate_display_sample RS.W 1
+frame_service_ticks_in_window RS.W 1
+frame_handoffs_in_window RS.W 1
+    RS.B 14
 world_object_slot_count RS.W 1
 model_last_vertex_index RS.W 1
-    RS.B 26
+    RS.B 6
+vblank_tick_counter RS.W 1
+    RS.B 18
 active_model_type_index RS.W 1
 type30_render_model_index RS.W 1
     RS.B 89
@@ -258,14 +263,14 @@ app_06B4 RS.L 1
 distant_objects_cursor RS.L 1
 integrating_objects_cursor RS.L 1
 object_update_dbf_index RS.W 1
-app_06C2 RS.W 1
+current_structure_service_id RS.W 1
 object_update_cursor RS.L 1
 nearby_objects_cursor RS.L 1
 visible_objects_cursor RS.L 1
 contact_objects_cursor RS.L 1
 free_object_stack_cursor RS.L 1
 app_06D8 RS.W 1
-app_06DA RS.B 1
+modal_command_input_flag RS.B 1
     RS.B 1
 pilot_shots_fired RS.L 1
 app_06E0 RS.L 1
@@ -295,9 +300,9 @@ player_motion_x RS.W 1
 player_motion_y RS.W 1
 player_motion_z RS.W 1
 object_scan_sprite_countdown RS.W 1
-app_0752 RS.W 1
-app_0754 RS.W 1
-app_0756 RS.W 1
+initial_resource_charge_steps RS.W 1
+title_idle_rate_windows_remaining RS.W 1
+frame_handoff_counter RS.W 1
 player_speed_target RS.W 1
 player_speed_smoothed RS.W 1
 distant_object_count RS.W 1
@@ -419,7 +424,7 @@ projector_turret_world_z RS.L 1
 projector_sentinel_orbit_angle RS.W 1
 cached_body_state_prefix RS.B 272
 body_orbit_angle_words RS.B 34
-app_09AE RS.W 1
+stardrive_enabled_word RS.W 1
 nearby_space_station_reference RS.L 1
 app_09B4 RS.L 1
 app_09B8 RS.L 1
@@ -431,19 +436,19 @@ station_firing_steps_remaining RS.W 1
 app_09C8 RS.W 1
 app_09CA RS.W 1
 app_09CC RS.W 1
-taymar_missing_ingredient_messages RS.B 40
+shared_inventory_depot_message_pointers RS.B 40
     RS.B 12
 app_0A02 RS.L 1
     RS.B 36
-app_0A2A RS.L 1
-    RS.B 26
-app_0A48 RS.L 1
-    RS.B 9
-app_0A55 RS.B 1
-    RS.B 12
-app_0A62 RS.L 1
-    RS.B 10
-app_0A70 RS.W 1
+inventory_line_text_start RS.B 1
+    RS.B 29
+inventory_list_quantity_prefix RS.B 10
+    RS.B 3
+inventory_quantity_decimal_prefix RS.B 10
+    RS.B 3
+inventory_list_model_type_prefix RS.B 10
+    RS.B 4
+inventory_list_item_index RS.W 1
 station_sequence_index RS.W 1
 app_0A74 RS.W 1
 carried_neutron_bomb_reference RS.L 1
@@ -1130,7 +1135,7 @@ clear_game_workspace_loop:
 	clr.b pending_key_scancode(a6)
 	move.b #$5,diagnostic_step_byte.l
 	clr.b display_buffer_table_byte_offset(a6)
-	bsr.w abs_0_000034DC
+	bsr.w count_and_present_frame_handoff
 	jsr clear_text_framebuffer_and_cursor.l
 	move.b #$6,diagnostic_step_byte.l
 	jsr abs_0_000038C8.l
@@ -1146,7 +1151,7 @@ abs_0_0000116A:
 	bsr.w abs_0_0000227C
 abs_0_0000117A:
 	addq.w #1,$01D8(a6)
-	move.w #$14,app_0754(a6)
+	move.w #$14,title_idle_rate_windows_remaining(a6)
 	jsr load_and_stream_music.l
 abs_0_0000118A:
 	bsr.w advance_shared_random_state
@@ -1156,7 +1161,7 @@ abs_0_0000118A:
 	bne.b abs_0_000011EE
 	tst.b primary_fire_flag(a6)
 	bne.b abs_0_000011EE
-	tst.w app_0754(a6)
+	tst.w title_idle_rate_windows_remaining(a6)
 	bpl.b abs_0_0000118A
 	move.w $01D8(a6),d6
 	andi.w #1,d6
@@ -1224,7 +1229,7 @@ gameplay_frame_loop:
 	bsr.w abs_0_000033DA
 	move.b #$C,diagnostic_stage_step_word.l
 	clr.b diagnostic_step_byte.l
-	bsr.w abs_0_00001808
+	bsr.w process_frame_input_commands
 	move.b #$3,diagnostic_stage_step_word.l
 	clr.b diagnostic_step_byte.l
 	bsr.w abs_0_000033F8
@@ -1252,7 +1257,7 @@ abs_0_00001344:
 	sub.w $000E(a0),d0
 	move.w d0,$000E(a0)
 	movem.l (a7)+,d0/a0
-	bsr.w abs_0_0000177E
+	bsr.w display_frame_rate_if_enabled
 	bsr.w abs_0_0000337A
 	movem.l d0/a0,-(a7)
 	tst.w platform_entry_flags.l
@@ -1265,9 +1270,9 @@ abs_0_0000137E:
 	lea.l abs_0_000027AC.l,a0
 	move.w d0,$000E(a0)
 	movem.l (a7)+,d0/a0
-	bsr.w abs_0_000034DC
+	bsr.w count_and_present_frame_handoff
 	bset.b #7,app_020A(a6)
-	tst.w app_0752(a6)
+	tst.w initial_resource_charge_steps(a6)
 	beq.b abs_0_000013D0
 	move.w icarus_shield_strength(a6),d0
 	addi.w #4000,d0
@@ -1278,7 +1283,7 @@ abs_0_0000137E:
 	move.w weapon_energy_reserve(a6),d0
 	addi.w #4000,d0
 	move.w d0,weapon_energy_reserve(a6)
-	subq.w #1,app_0752(a6)
+	subq.w #1,initial_resource_charge_steps(a6)
 	bne.b abs_0_000013D0
 	lea.l planetfall_message_apogee.l,a1
 	bsr.w abs_0_000049DA
@@ -1293,7 +1298,7 @@ abs_0_000013D0:
 	bne.w abs_0_00001560
 	cmpi.w #12000,icarus_shield_strength(a6)
 	bcc.b abs_0_0000140C
-	move.w app_0756(a6),d1
+	move.w frame_handoff_counter(a6),d1
 	andi.w #127,d1
 	bne.b abs_0_0000140C
 	tst.b app_0205(a6)
@@ -1301,7 +1306,7 @@ abs_0_000013D0:
 abs_0_0000140C:
 	cmpi.w #12000,icarus_power_reserve(a6)
 	bcc.b abs_0_0000141E
-	move.w app_0756(a6),d1
+	move.w frame_handoff_counter(a6),d1
 	andi.w #127,d1
 	nop
 abs_0_0000141E:
@@ -1324,7 +1329,7 @@ abs_0_0000144C:
 	lsr.w #6,d1
 	sub.w d1,d0
 	bcs.w abs_0_00001510
-	tst.w app_09AE(a6)
+	tst.w stardrive_enabled_word(a6)
 	beq.b abs_0_00001466
 	add.w d1,d1
 	sub.w d1,d0
@@ -1386,20 +1391,20 @@ abs_0_0000151E:
 	sf.b app_0BBB(a6)
 	move.b #$80,app_020A(a6)
 	clr.b display_buffer_table_byte_offset(a6)
-	bsr.w abs_0_000034DC
+	bsr.w count_and_present_frame_handoff
 	move.w #$2EE,d1
 abs_0_00001534:
 	move.w d1,-(a7)
 	bsr.w abs_0_0000365C
 	move.w (a7)+,d1
-	move.w $017C(a6),d0
+	move.w vblank_tick_counter(a6),d0
 	addq.w #1,d0
 abs_0_00001542:
 	tst.b pending_key_scancode(a6)
 	bne.w abs_0_000016B0
 	tst.b app_0202(a6)
 	bne.w abs_0_000016B0
-	cmp.w $017C(a6),d0
+	cmp.w vblank_tick_counter(a6),d0
 	bne.b abs_0_00001542
 	dbf.w d1,abs_0_00001534
 	bra.w abs_0_000016B0
@@ -1503,17 +1508,17 @@ abs_0_0000171C:
 	clr.w $01D8(a6)
 	bra.w abs_0_00001202
 abs_0_00001724:
-	move.w $017C(a6),d7
+	move.w vblank_tick_counter(a6),d7
 	addi.w #300,d7
 abs_0_0000172C:
-	jsr abs_0_0000CBF2.l
+	jsr poll_translated_command_key.l
 	tst.b d0
 	bne.b abs_0_00001748
 	tst.b app_0201(a6)
 	bne.b abs_0_00001748
 	tst.b primary_fire_flag(a6)
 	bne.b abs_0_00001748
-	cmp.w $017C(a6),d7
+	cmp.w vblank_tick_counter(a6),d7
 	bpl.b abs_0_0000172C
 abs_0_00001748:
 	rts
@@ -1522,7 +1527,8 @@ game_over_power_drainage_message:
 game_over_icarus_destroyed_message:
 	dc.b "     ICARUS DESTROYED!",$00
 	dc.b $00
-abs_0_0000177E:
+    ; The IRQ writes a handoff-window count to the sample. Amiga display path overwrites it with DIVU-derived display value; alternate path scales in D1. Not a universal FPS/tenths field.
+display_frame_rate_if_enabled:
 	tst.b abs_0_000018BA.l
 	beq.w abs_0_000017EA
 	move.b #$F,text_colour_plane_mask.l
@@ -1530,10 +1536,10 @@ abs_0_0000177E:
 	bpl.b abs_0_000017AA
 	move.l #$2625A,d1
 	divu.w abs_0_000027BA.l,d1
-	move.w d1,$015E(a6)
+	move.w d1,frame_rate_display_sample(a6)
 	bra.b abs_0_000017B2
 abs_0_000017AA:
-	move.w $015E(a6),d1
+	move.w frame_rate_display_sample(a6),d1
 	mulu.w #$A,d1
 abs_0_000017B2:
 	lea.l abs_0_000017F0(pc),a1
@@ -1556,7 +1562,7 @@ abs_0_000017EC:
 abs_0_000017F0:
 	dc.b $20,$20,$20,$20,$20,$20,$20,$00,$00,$00,$00,$00,$00,$00,$30,$3C
 	dc.b $D0,$00,$51,$C8,$FF,$FE,$4E,$75
-abs_0_00001808:
+process_frame_input_commands:
 	cmpi.w #199,abs_0_00039B7A.l
 	ble.b abs_0_00001816
 	bsr.w abs_0_00002C20
@@ -1564,13 +1570,13 @@ abs_0_00001816:
 	bsr.w abs_0_000033EC
 	cmp.b #$8,d0
 	bne.b abs_0_0000186A
-	tst.w app_06C2(a6)
+	tst.w current_structure_service_id(a6)
 	beq.b abs_0_0000183A
-	cmpi.w #1,app_06C2(a6)
+	cmpi.w #1,current_structure_service_id(a6)
 	beq.b abs_0_0000183A
-	cmpi.w #2,app_06C2(a6)
+	cmpi.w #2,current_structure_service_id(a6)
 	beq.b abs_0_0000183A
-	bra.w abs_0_00001B14
+	bra.w modal_inventory_command_loop
 abs_0_0000183A:
 	clr.w pending_message_count(a6)
 	move.w #$1,message_display_countdown(a6)
@@ -1579,10 +1585,10 @@ abs_0_0000183A:
 	movea.l $0(a1,d0.w),a1
 	bsr.w abs_0_000033C2
 	bsr.w abs_0_000033FE
-	bsr.w abs_0_00001DAE
+	bsr.w build_inventory_status_lists
 	clr.w depot_line_pointer_offset(a6)
-	clr.w app_0A70(a6)
-	bra.w abs_0_00001B14
+	clr.w inventory_list_item_index(a6)
+	bra.w modal_inventory_command_loop
 abs_0_0000186A:
 	tst.b abs_0_00039B78.l
 	bpl.b abs_0_0000187E
@@ -1796,8 +1802,9 @@ abs_0_00001AE8:
 	dc.b $4A,$2E,$01,$F6,$67,$04,$46,$2E,$01,$F0,$4E,$75,$4A,$2E,$01,$F6
 	dc.b $67,$F8,$3D,$7C,$00,$19,$01,$72,$4E,$75,$46,$39,$00,$00,$C4,$E2
 	dc.b $4E,$75
-abs_0_00001B14:
-	st.b app_06DA(a6)
+    ; Modal command continuation, not a standalone routine. Selected IRQ motion/control pauses, but VBL ticks and message service continue. Normal Backspace entry and X exit observed.
+modal_inventory_command_loop:
+	st.b modal_command_input_flag(a6)
 	btst.b #15,platform_entry_flags.l
 	beq.b abs_0_00001B42
 	move.w #$0,_custom+aud0+ac_vol.l	; audio volume 0
@@ -1808,42 +1815,43 @@ abs_0_00001B42:
 	bsr.w abs_0_000033BC
 	cmp.b #$57,d0
 	beq.w abs_0_00001E06
-	tst.w app_06C2(a6)
+	tst.w current_structure_service_id(a6)
 	beq.b abs_0_00001B68
-	cmpi.w #1,app_06C2(a6)
+	cmpi.w #1,current_structure_service_id(a6)
 	beq.b abs_0_00001B68
-	cmpi.w #2,app_06C2(a6)
+	cmpi.w #2,current_structure_service_id(a6)
 	beq.b abs_0_00001B68
 	bra.w abs_0_00001DEA
 abs_0_00001B68:
 	cmp.b #$49,d0
-	beq.w abs_0_00001B84
+	beq.w cycle_inventory_status_line
 	cmp.b #$4A,d0
-	beq.w abs_0_00001C44
+	beq.w jettison_inventory_selection
 	cmp.b #$56,d0
 	beq.w abs_0_00001E76
 	bra.w abs_0_00001DEA
-abs_0_00001B84:
+    ; Internal inventory-line continuation. Copies name, optional plural and decimal quantity into text-start scratch; complete output capacity remains unproved.
+cycle_inventory_status_line:
 	move.b #$71,diagnostic_step_byte.l
-	lea.l taymar_missing_ingredient_messages(a6),a0
+	lea.l shared_inventory_depot_message_pointers(a6),a0
 	addq.w #4,depot_line_pointer_offset(a6)
-	addq.w #1,app_0A70(a6)
+	addq.w #1,inventory_list_item_index(a6)
 	move.w depot_line_pointer_offset(a6),d0
 	movea.l $0(a0,d0.w),a1
 	cmpa.l #$FFFFFFFF,a1
 	bne.w abs_0_00001BB2
 	clr.w depot_line_pointer_offset(a6)
-	clr.w app_0A70(a6)
+	clr.w inventory_list_item_index(a6)
 abs_0_00001BB2:
-	lea.l taymar_missing_ingredient_messages(a6),a0
-	lea.l app_0A48(a6),a2
+	lea.l shared_inventory_depot_message_pointers(a6),a0
+	lea.l inventory_list_quantity_prefix(a6),a2
 	move.w depot_line_pointer_offset(a6),d0
 	movea.l $0(a0,d0.w),a1
 	cmpa.l #$FFFFFFFF,a1
 	beq.w abs_0_00001C1E
-	move.w app_0A70(a6),d0
+	move.w inventory_list_item_index(a6),d0
 	move.b $0(a2,d0.w),d0
-	lea.l app_0A2A(a6),a3
+	lea.l inventory_line_text_start(a6),a3
 abs_0_00001BD8:
 	move.b (a1)+,d1
 	beq.b abs_0_00001BE0
@@ -1856,10 +1864,10 @@ abs_0_00001BE0:
 abs_0_00001BEC:
 	move.b #$3A,(a3)+
 	move.b #$20,(a3)+
-	lea.l app_0A55(a6),a1
+	lea.l inventory_quantity_decimal_prefix(a6),a1
 	andi.w #255,d0
 	jsr format_signed_word_decimal_text.l
-	lea.l app_0A55(a6),a1
+	lea.l inventory_quantity_decimal_prefix(a6),a1
 abs_0_00001C06:
 	move.b (a1)+,d0
 	beq.b abs_0_00001C0E
@@ -1867,9 +1875,9 @@ abs_0_00001C06:
 	bra.b abs_0_00001C06
 abs_0_00001C0E:
 	move.b #$0,(a3)+
-	lea.l app_0A2A(a6),a1
+	lea.l inventory_line_text_start(a6),a1
 	bsr.w abs_0_000033C2
-	bra.w abs_0_00001B14
+	bra.w modal_inventory_command_loop
 abs_0_00001C1E:
 	move.b #$74,diagnostic_step_byte.l
 	lea.l event_message_pointers.l,a1
@@ -1877,18 +1885,18 @@ abs_0_00001C1E:
 	movea.l $0(a1,d0.w),a1
 	bsr.w abs_0_000033C2
 	clr.w depot_line_pointer_offset(a6)
-	clr.w app_0A70(a6)
-	bra.w abs_0_00001B14
-abs_0_00001C44:
+	clr.w inventory_list_item_index(a6)
+	bra.w modal_inventory_command_loop
+jettison_inventory_selection:
 	bsr.w refresh_counted_model_population
 	tst.w d7
 	bne.b abs_0_00001C56
 	clr.w depot_line_pointer_offset(a6)
-	clr.w app_0A70(a6)
+	clr.w inventory_list_item_index(a6)
 	bra.b abs_0_00001C1E
 abs_0_00001C56:
-	lea.l app_0A62(a6),a1
-	move.w app_0A70(a6),d0
+	lea.l inventory_list_model_type_prefix(a6),a1
+	move.w inventory_list_item_index(a6),d0
 	move.b $0(a1,d0.w),d0
 	andi.w #255,d0
 	cmpi.w #1,free_object_count(a6)
@@ -1901,8 +1909,8 @@ abs_0_00001C56:
 	beq.w abs_0_00001DA6
 	cmp.w #$54,d0
 	beq.w abs_0_00001DA6
-	move.w app_0A70(a6),d1
-	lea.l app_0A48(a6),a1
+	move.w inventory_list_item_index(a6),d1
+	lea.l inventory_list_quantity_prefix(a6),a1
 	subq.b #1,$0(a1,d1.w)
 	bpl.b abs_0_00001CA2
 	clr.b $0(a1,d1.w)
@@ -1984,11 +1992,12 @@ abs_0_00001D9C:
 abs_0_00001DA6:
 	bsr.w refresh_counted_model_population
 	bra.w abs_0_00001BB2
-abs_0_00001DAE:
-	lea.l taymar_missing_ingredient_messages(a6),a0
-	lea.l app_0A48(a6),a2
+    ; Overwrites the shared depot message list with inventory names/counts/types. Original loop scans104 types; ten initialized slots do not prove a safe maximum. Preserve sentinel writes.
+build_inventory_status_lists:
+	lea.l shared_inventory_depot_message_pointers(a6),a0
+	lea.l inventory_list_quantity_prefix(a6),a2
 	lea.l model_type_population_counts(a6),a1
-	lea.l app_0A62(a6),a3
+	lea.l inventory_list_model_type_prefix(a6),a3
 	lea.l object_name_pointers.l,a4
 	move.w #$67,d0
 abs_0_00001DC8:
@@ -2007,8 +2016,8 @@ abs_0_00001DDA:
 abs_0_00001DEA:
 	bsr.w abs_0_00003404
 	clr.w depot_line_pointer_offset(a6)
-	clr.w app_0A70(a6)
-	sf.b app_06DA(a6)
+	clr.w inventory_list_item_index(a6)
+	sf.b modal_command_input_flag(a6)
 	rts
 abs_0_00001DFC:
 	bsr.w abs_0_000033BC
@@ -2042,8 +2051,8 @@ abs_0_00001E2A:
 abs_0_00001E50:
 	bsr.w abs_0_00003404
 	clr.w depot_line_pointer_offset(a6)
-	clr.w app_0A70(a6)
-	sf.b app_06DA(a6)
+	clr.w inventory_list_item_index(a6)
+	sf.b modal_command_input_flag(a6)
 	rts
 	dc.b $46,$2E,$07,$E9,$4E,$75
 abs_0_00001E68:
@@ -2155,7 +2164,7 @@ abs_0_00001FF2:
 	jsr capture_alternate_meter_backgrounds.l
 	bra.b abs_0_00001FC2
 reset_gameplay_state_and_input_defaults:
-	move.w #$32,app_0754(a6)
+	move.w #$32,title_idle_rate_windows_remaining(a6)
 	move.w #$0,icarus_game_over_reason(a6)
 	move.w #$FFFF,app_07C6(a6)
 	move.w #$4,$01AA(a6)
@@ -2168,7 +2177,7 @@ reset_gameplay_state_and_input_defaults:
 	clr.b app_01FE(a6)
 	move.w #$9999,app_07AA(a6)
 	move.w #$1,app_07AC(a6)
-	clr.w $017C(a6)
+	clr.w vblank_tick_counter(a6)
 	clr.w weapon_action_cooldown(a6)
 	clr.l pilot_shots_fired(a6)
 	clr.l pilot_hits_scored(a6)
@@ -2193,7 +2202,7 @@ reset_gameplay_state_and_input_defaults:
 	move.w d0,icarus_power_reserve(a6)
 	move.w d0,weapon_energy_reserve(a6)
 	move.w d0,player_speed_target(a6)
-	move.w #$10,app_0752(a6)
+	move.w #$10,initial_resource_charge_steps(a6)
 	move.w #$0,app_0796(a6)
 	move.w #$0,app_078E(a6)
 	moveq.l #0,d0
@@ -2238,7 +2247,7 @@ reset_gameplay_state_and_input_defaults:
 abs_0_0000217A:
 	bsr.w abs_0_00001F24
 	clr.b display_buffer_table_byte_offset(a6)
-	bsr.w abs_0_000034DC
+	bsr.w count_and_present_frame_handoff
     ; Replace all three first Copper end markers with4A01/FF00 WAIT, exposing original continuation blocks. Final end markers remain unchanged.
 enable_midframe_copper_blocks_continuation:
 	move.l #$4A01FF00,amiga_copper_list_c_mode_gate.l
@@ -2249,7 +2258,7 @@ enable_midframe_copper_blocks_continuation:
 	clr.w pending_message_count(a6)
 	clr.w abs_0_0000499E.l
 	bsr.w install_sine_cosine_pointers
-	sf.b app_06DA(a6)
+	sf.b modal_command_input_flag(a6)
 	move.w station_construction_steps_remaining(a6),d0
 	bpl.b abs_0_000021C8
 	clr.w d0
@@ -2529,12 +2538,12 @@ abs_0_0000271A:
 abs_0_00002726:
 	bsr.w abs_0_000034AA
 	clr.b display_buffer_table_byte_offset(a6)
-	bsr.w abs_0_000034DC
+	bsr.w count_and_present_frame_handoff
 	rts
 prepare_and_print_protection_text:
 	move.l a1,-(a7)
 	clr.b display_buffer_table_byte_offset(a6)
-	bsr.w abs_0_000034DC
+	bsr.w count_and_present_frame_handoff
 protection_text_clear_continuation:
 	bsr.w abs_0_000033E0
 protection_text_restore_pointer_continuation:
@@ -3203,7 +3212,7 @@ abs_0_00003380:
 abs_0_00003386:
 	jmp abs_0_00035788.l
 abs_0_0000338C:
-	jmp abs_0_0002F96C.l
+	jmp try_toggle_stardrive.l
 abs_0_00003392:
 	jmp abs_0_00037410.l
 abs_0_00003398:
@@ -3235,13 +3244,13 @@ abs_0_000033E0:
 abs_0_000033E6:
 	jmp save_game_to_disk.l
 abs_0_000033EC:
-	jmp abs_0_0000CBF2.l
+	jmp poll_translated_command_key.l
 abs_0_000033F2:
 	jmp probe_platform_display_mode.l
 abs_0_000033F8:
 	jmp update_player_flight_controls.l
 abs_0_000033FE:
-	jmp abs_0_000349C8.l
+	jmp reset_shared_inventory_scratch_prefixes.l
 abs_0_00003404:
 	jmp display_blank_event_message_line.l
 	dc.b $74,$73,$0A,$0A,$09,$65
@@ -3249,8 +3258,8 @@ abs_0_00003410:
 	move.w #$1357,$01B0(a6)
 	move.l #$77B50,$0000(a6)
 	move.l #$77B50,$0004(a6)
-	move.w #$0,app_0756(a6)
-	move.w #$0,$017C(a6)
+	move.w #$0,frame_handoff_counter(a6)
+	move.w #$0,vblank_tick_counter(a6)
 	move.w #$1,$01A0(a6)
 	move.w #$10,$00E4(a6)
 	move.w #$12F,$00E6(a6)
@@ -3289,9 +3298,10 @@ abs_0_000034CE:
 abs_0_000034D4:
 	jmp initialize_paula_sample_channels.l
 	dc.b $4E,$75
-abs_0_000034DC:
-	addq.w #1,app_0756(a6)
-	addq.w #1,$0162(a6)
+    ; Counts calls to the presentation handoff helper, then rotates buffers. This is not proof that each count is one physical frame or one gameplay update.
+count_and_present_frame_handoff:
+	addq.w #1,frame_handoff_counter(a6)
+	addq.w #1,frame_handoffs_in_window(a6)
 	bsr.w abs_0_000034BC
 	rts
 abs_0_000034EA:
@@ -3682,18 +3692,18 @@ abs_0_000038A0:
 	move.l d7,$0064(a6)
 	rts
 abs_0_000038B2:
-	move.w $017C(a6),d0
+	move.w vblank_tick_counter(a6),d0
 abs_0_000038B6:
 	move.l d0,-(a7)
 	bsr.w advance_shared_random_state
 	move.l (a7)+,d0
-	cmp.w $017C(a6),d0
+	cmp.w vblank_tick_counter(a6),d0
 	beq.b abs_0_000038B6
 	rts
 abs_0_000038C6:
 	bra.b abs_0_000038B2
 abs_0_000038C8:
-	move.w $017C(a6),d0
+	move.w vblank_tick_counter(a6),d0
 	addq.w #2,d0
 abs_0_000038CE:
 	move.b app_01FF(a6),d1
@@ -3702,7 +3712,7 @@ abs_0_000038CE:
 	add.b d1,app_0067(a6)
 	subq.l #7,$0060(a6)
 	addq.l #5,$0064(a6)
-	cmp.w $017C(a6),d0
+	cmp.w vblank_tick_counter(a6),d0
 	bne.b abs_0_000038CE
 	rts
 rotate_amiga_display_buffers:
@@ -3812,7 +3822,7 @@ decode_column_rle_picture:
 	bne.w abs_0_0000364E
 abs_0_00003A58:
 	move.b #$0,display_buffer_table_byte_offset(a6)
-	bsr.w abs_0_000034DC
+	bsr.w count_and_present_frame_handoff
 	movea.l (a7),a0
 	adda.w #$20,a0
 	movea.l #$70000,a1
@@ -5140,7 +5150,7 @@ abs_0_00004B80:
 	bmi.w abs_0_00004C4E
 	tst.w abs_0_000058A4.l
 	bmi.b abs_0_00004BC2
-	move.w app_0756(a6),d1
+	move.w frame_handoff_counter(a6),d1
 	andi.w #3,d1
 	beq.b abs_0_00004BC2
 	move.l $007C(a6),d1
@@ -12766,7 +12776,7 @@ abs_0_0000B554:
 	dc.w $0000
     ; Pairwise contact service. A6 is borrowed as positive-Y extent table after app state reads; do not interpret all following A6 displacements as workspace fields.
 process_object_contact_pairs:
-	clr.w app_06C2(a6)
+	clr.w current_structure_service_id(a6)
 	clr.b app_0BBA(a6)
 	clr.w app_06D8(a6)
 	tst.b app_07E4(a6)
@@ -13416,10 +13426,11 @@ abs_0_0000BCC8:
 	move.l d1,player_world_x(a6)
 	st.b app_07E4(a6)
 	bra.w abs_0_0000BC18
+    ; This structure path widens object BYTE+$26 into current_structure_service_id. Meaning is variant-specific; it does not establish a universal field for every object type.
 abs_0_0000BD02:
 	clr.w d6
 	move.b $0026(a2),d6
-	move.w d6,app_06C2(a6)
+	move.w d6,current_structure_service_id(a6)
 	tst.w $0028(a2)
 	bne.w abs_0_0000BD46
 	move.l player_world_z(a6),d0
@@ -14084,29 +14095,29 @@ abs_0_0000C6C6:
 abs_0_0000C6E4:
 	move.w #$F0F,_custom+color.l
 	rte
-abs_0_0000C6EE:
+amiga_vertical_blank_game_service:
 	movem.l d0-d7/a0-a6,-(a7)
 	lea.l _custom.l,a5
 	movea.l game_workspace_base.l,a6
-	addq.w #1,$0160(a6)
-	addq.w #1,$017C(a6)
+	addq.w #1,frame_service_ticks_in_window(a6)
+	addq.w #1,vblank_tick_counter(a6)
 	subq.w #1,weapon_action_cooldown(a6)
 	bpl.b abs_0_0000C712
 	move.w #$0,weapon_action_cooldown(a6)
 abs_0_0000C712:
 	bsr.w abs_0_0000D170
 	bsr.w update_amiga_hud_sprites
-	move.w $0160(a6),d0
+	move.w frame_service_ticks_in_window(a6),d0
 	cmp.w abs_0_0000C4E0.l,d0
 	bcs.b abs_0_0000C738
-	subq.w #1,app_0754(a6)
-	move.w $0162(a6),$015E(a6)
-	clr.w $0162(a6)
-	clr.w $0160(a6)
+	subq.w #1,title_idle_rate_windows_remaining(a6)
+	move.w frame_handoffs_in_window(a6),frame_rate_display_sample(a6)
+	clr.w frame_handoffs_in_window(a6)
+	clr.w frame_service_ticks_in_window(a6)
 abs_0_0000C738:
 	tst.b app_020A(a6)
 	bpl.w abs_0_0000C876
-	tst.b app_06DA(a6)
+	tst.b modal_command_input_flag(a6)
 	bne.b abs_0_0000C754
 	addq.w #1,app_07C2(a6)
 	subq.w #1,app_07AC(a6)
@@ -14124,7 +14135,7 @@ abs_0_0000C764:
 	bmi.b abs_0_0000C770
 	bsr.w advance_message_queue
 abs_0_0000C770:
-	tst.b app_06DA(a6)
+	tst.b modal_command_input_flag(a6)
 	bne.w abs_0_0000C814
 	tst.b space_environment_flag(a6)
 	bmi.w abs_0_0000C814
@@ -14175,7 +14186,7 @@ abs_0_0000C814:
 	bpl.b abs_0_0000C82C
 	move.w #$5,abs_0_0000C4DE.l
 abs_0_0000C82C:
-	tst.b app_06DA(a6)
+	tst.b modal_command_input_flag(a6)
 	bne.b abs_0_0000C876
 	tst.b abs_0_000049AA.l
 	bne.b abs_0_0000C876
@@ -14337,7 +14348,7 @@ abs_0_0000CBE0:
 	move.w #INTF_DSKBLK,_custom+intreq.l
 	move.w #$FFFF,disk_service_state_disk_dma_completed.l
 	rte
-abs_0_0000CBF2:
+poll_translated_command_key:
 	move.l a0,-(a7)
 	moveq.l #0,d0
 	move.b pending_key_scancode(a6),d0
@@ -14461,7 +14472,7 @@ abs_0_0000CDE4:
 	st.b music_cache_flags.l
 	move.l #abs_0_0000CBE0,m68k_vector_level_1_interrupt_autovector.w
 	move.l #abs_0_0000C8C4,m68k_vector_level_2_interrupt_autovector.w
-	move.l #abs_0_0000C6EE,m68k_vector_level_3_interrupt_autovector.w
+	move.l #amiga_vertical_blank_game_service,m68k_vector_level_3_interrupt_autovector.w
 	move.l #service_audio_ring_interrupt,m68k_vector_level_4_interrupt_autovector.w
 	move.l #abs_0_0000CBC4,m68k_vector_level_5_interrupt_autovector.w
 	move.l #abs_0_0000C88A,m68k_vector_level_6_interrupt_autovector.w
@@ -16380,7 +16391,7 @@ abs_0_0000EC46:
 	bsr.w abs_0_0000FD8E
 	lea.l absolute_slot_00070000.l,a0
 	adda.w #$7D4,a0
-	move.w app_0756(a6),d0
+	move.w frame_handoff_counter(a6),d0
 	andi.w #3,d0
 	nop
 	move.w #$1E,abs_0_0002F010.l
@@ -16825,7 +16836,7 @@ abs_0_0000EE42:
 	bsr.w wait_for_translated_key
 	bra.b abs_0_0000EE6A
 abs_0_0000EE66:
-	bsr.w abs_0_0000CBF2
+	bsr.w poll_translated_command_key
 abs_0_0000EE6A:
 	cmp.b #$2C,d0
 	beq.w abs_0_0000F092
@@ -17461,11 +17472,11 @@ abs_0_0000FD7C:
 abs_0_0000FD82:
 	jmp abs_0_0003D9DA.l
 abs_0_0000FD88:
-	jmp abs_0_000034DC.l
+	jmp count_and_present_frame_handoff.l
 abs_0_0000FD8E:
 	jmp abs_0_000025D4.l
 abs_0_0000FD94:
-	jmp abs_0_0000177E.l
+	jmp display_frame_rate_if_enabled.l
 abs_0_0000FD9A:
 	jmp abs_0_000034B6.l
 select_disk_surface_a:
@@ -21655,7 +21666,7 @@ abs_0_00013C9A:
 abs_0_00013D1E:
 	dcb.b $8,$00
 protection_frame_handoff_bridge:
-	jmp abs_0_000034DC.l
+	jmp count_and_present_frame_handoff.l
 protection_text_screen_bridge:
 	jmp prepare_and_print_protection_text.l
 protection_text_input_bridge:
@@ -37590,7 +37601,8 @@ abs_0_0002F954:
 	clr.w player_rotation_2(a6)
 	move.w #$800,player_rotation_1(a6)
 	rts
-abs_0_0002F96C:
+    ; Stardrive toggle: space flag and signed WORD speed gate64. Original activation/deactivation/unavailable texts bind this role. Enabled power path has three speed-derived debits total.
+try_toggle_stardrive:
 	movem.l a0-a1,-(a7)
 	clr.w pending_message_count(a6)
 	move.w #$1,message_display_countdown(a6)
@@ -37598,9 +37610,9 @@ abs_0_0002F96C:
 	bpl.b abs_0_0002F9C4
 	cmpi.w #64,player_speed_smoothed(a6)
 	bmi.b abs_0_0002F9C4
-	tst.w app_09AE(a6)
+	tst.w stardrive_enabled_word(a6)
 	beq.b abs_0_0002F9AA
-	move.w #$0,app_09AE(a6)
+	move.w #$0,stardrive_enabled_word(a6)
 	lea.l event_message_pointers.l,a0
 	move.w #$1,d0
 	asl.w #2,d0
@@ -37608,14 +37620,14 @@ abs_0_0002F96C:
 	bsr.w abs_0_0002F9EE
 	bra.b abs_0_0002F9DE
 abs_0_0002F9AA:
-	move.w #$FFFF,app_09AE(a6)
+	move.w #$FFFF,stardrive_enabled_word(a6)
 	lea.l event_message_pointers.l,a0
 	move.w #$0,d0
 	movea.l $0(a0,d0.w),a1
 	bsr.w abs_0_0002F9EE
 	bra.b abs_0_0002F9DE
 abs_0_0002F9C4:
-	move.w #$0,app_09AE(a6)
+	move.w #$0,stardrive_enabled_word(a6)
 	lea.l event_message_pointers.l,a0
 	move.w #$35,d0
 	asl.w #2,d0
@@ -41877,7 +41889,7 @@ update_world_and_mission_events:
 	move.b #$77,diagnostic_step_byte.l
 	tst.b professor_taymar_aboard_flag(a6)
 	bpl.w abs_0_00032F12
-	tst.w app_06C2(a6)
+	tst.w current_structure_service_id(a6)
 	bne.w abs_0_00032F12
     ; Gated professor-aboard notice phase increments modulo512. This counts original qualifying updates, not guaranteed frames or seconds; population/message guards remain intact.
 	addq.w #1,taymar_aboard_notice_phase.l
@@ -41950,11 +41962,11 @@ abs_0_00032F86:
 	bpl.b abs_0_00032F9E
 	bsr.w abs_0_00037690
 	bsr.w abs_0_000376C4
-	bsr.w abs_0_000377F4
+	bsr.w clear_stardrive_below_speed_threshold
 abs_0_00032F9E:
 	tst.w app_06D8(a6)
 	beq.b abs_0_00032FE0
-	tst.w app_09AE(a6)
+	tst.w stardrive_enabled_word(a6)
 	bpl.b abs_0_00032FDC
 	clr.w pending_message_count(a6)
 	move.w #$1,message_display_countdown(a6)
@@ -41968,7 +41980,7 @@ abs_0_00032F9E:
 	bsr.w enqueue_event_message
 	bsr.w enqueue_blank_event_message_line
 abs_0_00032FDC:
-	clr.w app_09AE(a6)
+	clr.w stardrive_enabled_word(a6)
 abs_0_00032FE0:
 	tst.l carried_neutron_bomb_reference(a6)
 	beq.b abs_0_0003303A
@@ -42131,7 +42143,7 @@ abs_0_000331E4:
 	move.w #$0,abs_0_00039B5A.l
 	bra.b abs_0_0003326A
 abs_0_000331FE:
-	tst.w app_09AE(a6)
+	tst.w stardrive_enabled_word(a6)
 	bmi.b abs_0_00033238
 	move.w #$1,abs_0_00039B58.l
 	cmp.w #$C8,d0
@@ -42370,7 +42382,7 @@ abs_0_00033528:
 abs_0_00033584:
 	move.w player_speed_target(a6),d1
 	lsr.w #6,d1
-	tst.w app_09AE(a6)
+	tst.w stardrive_enabled_word(a6)
 	bpl.b abs_0_00033598
 	lea.l abs_0_00039B6D.l,a0
 	bra.b abs_0_0003359E
@@ -42690,7 +42702,7 @@ abs_0_000339E4:
 	beq.w abs_0_00033FF8
 	clr.w pending_message_count(a6)
 	move.w #$1,message_display_countdown(a6)
-	tst.w app_09AE(a6)
+	tst.w stardrive_enabled_word(a6)
 	bpl.b abs_0_00033A3A
 	cmpi.w #11904,app_0A74(a6)
 	bmi.b abs_0_00033A3A
@@ -42709,7 +42721,7 @@ abs_0_00033A16:
 	movea.l $0(a1,d0.w),a1
 	bsr.w enqueue_event_message
 abs_0_00033A3A:
-	clr.w app_09AE(a6)
+	clr.w stardrive_enabled_word(a6)
 	clr.w app_0A74(a6)
 	sf.b space_station_nearby_flag(a6)
 	movea.l player_object_reference(a6),a4
@@ -43105,8 +43117,8 @@ abs_0_00033FAE:
 	st.b neutron_bomb_spawn_request(a6)
 	move.l #$78,carried_neutron_bomb_y_offset.l
 abs_0_00033FD8:
-	bsr.w abs_0_000377F4
-	tst.w app_09AE(a6)
+	bsr.w clear_stardrive_below_speed_threshold
+	tst.w stardrive_enabled_word(a6)
 	bpl.b abs_0_00033FF4
 	lea.l event_message_pointers.l,a0
 	move.w #$0,d0
@@ -43133,7 +43145,7 @@ abs_0_00034030:
 abs_0_00034034:
 	tst.w player_speed_smoothed(a6)
 	beq.b abs_0_00034040
-	tst.w app_09AE(a6)
+	tst.w stardrive_enabled_word(a6)
 	bne.b abs_0_00034056
 abs_0_00034040:
 	st.b app_0A9D(a6)
@@ -43224,7 +43236,7 @@ abs_0_00034166:
 abs_0_00034172:
 	tst.b inside_structure_flag(a6)
 	bpl.w advance_projector_station_cycle_continuation
-	move.w app_06C2(a6),d0
+	move.w current_structure_service_id(a6),d0
 	tst.w d0
 	bne.b abs_0_0003419A
 	tst.b abs_0_00039CD4.l
@@ -43242,7 +43254,7 @@ abs_0_0003419A:
 	st.b $0(a1,d0.w)
 	clr.w depot_line_pointer_offset(a6)
 	move.b #$52,diagnostic_step_byte.l
-	cmpi.w #1,app_06C2(a6)
+	cmpi.w #1,current_structure_service_id(a6)
 	bne.b abs_0_00034218
 	move.b #$53,diagnostic_step_byte.l
 	st.b taymar_dialogue_list_sign.l
@@ -43266,26 +43278,26 @@ abs_0_00034210:
 	dbf.w d0,abs_0_000341EC
 	bra.w advance_taymar_depot_dialogue_continuation
 abs_0_00034218:
-	cmpi.w #2,app_06C2(a6)
+	cmpi.w #2,current_structure_service_id(a6)
 	bne.b abs_0_00034230
 	move.b #$54,diagnostic_step_byte.l
 	clr.w depot_line_pointer_offset(a6)
 	bra.w advance_taymar_depot_dialogue_continuation
 abs_0_00034230:
-	cmpi.w #10,app_06C2(a6)
+	cmpi.w #10,current_structure_service_id(a6)
 	bne.b abs_0_0003425A
 	move.b #$55,diagnostic_step_byte.l
 	sf.b abs_0_00039CCF.l
-	bsr.w abs_0_000349C8
-	bsr.w abs_0_0003498C
+	bsr.w reset_shared_inventory_scratch_prefixes
+	bsr.w build_depot_inventory_status_lists
 	clr.w depot_line_pointer_offset(a6)
-	clr.w app_0A70(a6)
+	clr.w inventory_list_item_index(a6)
 	bra.w advance_taymar_depot_dialogue_continuation
 abs_0_0003425A:
 	move.b #$56,diagnostic_step_byte.l
-	move.w app_06C2(a6),d0
+	move.w current_structure_service_id(a6),d0
 	subq.w #3,d0
-	lea.l taymar_missing_ingredient_messages(a6),a1
+	lea.l shared_inventory_depot_message_pointers(a6),a1
 	lea.l abs_0_000390DC.l,a2
 	lea.l abs_0_000390E5.l,a3
 	lea.l object_name_pointers.l,a4
@@ -43362,7 +43374,7 @@ abs_0_0003432E:
 	rts
     ; With bomb order active, depot1 transfers aboard Taymar to delivered state. Eight nonzero ingredient counts determine completion and four-state dialogue; no automatic playthrough claim.
 advance_taymar_depot_dialogue_continuation:
-	cmpi.w #1,app_06C2(a6)
+	cmpi.w #1,current_structure_service_id(a6)
 	bne.w abs_0_000346F2
 	move.b #$57,diagnostic_step_byte.l
 	tst.b neutron_bomb_order_requested_flag(a6)
@@ -43375,7 +43387,7 @@ abs_0_00034380:
 	lea.l model_type_population_counts(a6),a0
 	lea.l taymar_delivered_model_counts_prefix(a6),a1
 	lea.l neutron_bomb_ingredient_model_types.l,a2
-	lea.l taymar_missing_ingredient_messages(a6),a3
+	lea.l shared_inventory_depot_message_pointers(a6),a3
 	lea.l neutron_bomb_ingredient_name_pointers.l,a4
 	move.l #depot_text_we_still_require_these,(a3)+
 	move.w #$7,d0
@@ -43462,7 +43474,7 @@ abs_0_0003449E:
 abs_0_000344A6:
 	bra.w advance_projector_station_cycle_continuation
 abs_0_000344AA:
-	lea.l taymar_missing_ingredient_messages(a6),a1
+	lea.l shared_inventory_depot_message_pointers(a6),a1
 	move.w depot_line_pointer_offset(a6),d0
 	movea.l $0(a1,d0.w),a1
 	cmpa.l #$FFFFFFFF,a1
@@ -43513,7 +43525,7 @@ abs_0_0003454A:
 abs_0_00034552:
 	bra.w advance_projector_station_cycle_continuation
 abs_0_00034556:
-	lea.l taymar_missing_ingredient_messages(a6),a1
+	lea.l shared_inventory_depot_message_pointers(a6),a1
 	move.w depot_line_pointer_offset(a6),d0
 	movea.l $0(a1,d0.w),a1
 	cmpa.l #$FFFFFFFF,a1
@@ -43628,7 +43640,7 @@ abs_0_000346D0:
 	move.w #$7,depot_dialogue_pause_countdown.l
 	bra.w advance_projector_station_cycle_continuation
 abs_0_000346F2:
-	cmpi.w #2,app_06C2(a6)
+	cmpi.w #2,current_structure_service_id(a6)
 	bne.b abs_0_00034764
 	addq.w #1,depot_dialogue_tick.l
 	andi.w #31,depot_dialogue_tick.l
@@ -43663,7 +43675,7 @@ abs_0_00034758:
 abs_0_00034760:
 	bra.w advance_projector_station_cycle_continuation
 abs_0_00034764:
-	cmpi.w #10,app_06C2(a6)
+	cmpi.w #10,current_structure_service_id(a6)
 	bne.w abs_0_000349F4
 	move.b #$70,diagnostic_step_byte.l
 	tst.b abs_0_00039CCF.l
@@ -43681,25 +43693,25 @@ abs_0_0003478C:
 	bra.w advance_projector_station_cycle_continuation
 abs_0_000347A6:
 	move.b #$71,diagnostic_step_byte.l
-	lea.l taymar_missing_ingredient_messages(a6),a0
+	lea.l shared_inventory_depot_message_pointers(a6),a0
 	addq.w #4,depot_line_pointer_offset(a6)
-	addq.w #1,app_0A70(a6)
+	addq.w #1,inventory_list_item_index(a6)
 	move.w depot_line_pointer_offset(a6),d0
 	movea.l $0(a0,d0.w),a1
 	cmpa.l #$FFFFFFFF,a1
 	bne.w abs_0_000347D4
 	clr.w depot_line_pointer_offset(a6)
-	clr.w app_0A70(a6)
+	clr.w inventory_list_item_index(a6)
 abs_0_000347D4:
-	lea.l taymar_missing_ingredient_messages(a6),a0
-	lea.l app_0A48(a6),a2
+	lea.l shared_inventory_depot_message_pointers(a6),a0
+	lea.l inventory_list_quantity_prefix(a6),a2
 	move.w depot_line_pointer_offset(a6),d0
 	movea.l $0(a0,d0.w),a1
 	cmpa.l #$FFFFFFFF,a1
 	beq.w abs_0_00034840
-	move.w app_0A70(a6),d0
+	move.w inventory_list_item_index(a6),d0
 	move.b $0(a2,d0.w),d0
-	lea.l app_0A2A(a6),a3
+	lea.l inventory_line_text_start(a6),a3
 abs_0_000347FA:
 	move.b (a1)+,d1
 	beq.b abs_0_00034802
@@ -43712,10 +43724,10 @@ abs_0_00034802:
 abs_0_0003480E:
 	move.b #$3A,(a3)+
 	move.b #$20,(a3)+
-	lea.l app_0A55(a6),a1
+	lea.l inventory_quantity_decimal_prefix(a6),a1
 	andi.w #255,d0
 	jsr format_signed_word_decimal_text.l
-	lea.l app_0A55(a6),a1
+	lea.l inventory_quantity_decimal_prefix(a6),a1
 abs_0_00034828:
 	move.b (a1)+,d0
 	beq.b abs_0_00034830
@@ -43723,7 +43735,7 @@ abs_0_00034828:
 	bra.b abs_0_00034828
 abs_0_00034830:
 	move.b #$0,(a3)+
-	lea.l app_0A2A(a6),a1
+	lea.l inventory_line_text_start(a6),a1
 	bsr.w display_event_message_line
 	bra.w advance_projector_station_cycle_continuation
 abs_0_00034840:
@@ -43733,18 +43745,18 @@ abs_0_00034840:
 	movea.l $0(a1,d0.w),a1
 	bsr.w display_event_message_line
 	clr.w depot_line_pointer_offset(a6)
-	clr.w app_0A70(a6)
+	clr.w inventory_list_item_index(a6)
 	bra.w advance_projector_station_cycle_continuation
 abs_0_00034866:
 	bsr.w recompute_counted_model_population
 	tst.w d7
 	bne.b abs_0_00034878
 	clr.w depot_line_pointer_offset(a6)
-	clr.w app_0A70(a6)
+	clr.w inventory_list_item_index(a6)
 	bra.b abs_0_00034840
 abs_0_00034878:
-	lea.l app_0A62(a6),a1
-	move.w app_0A70(a6),d0
+	lea.l inventory_list_model_type_prefix(a6),a1
+	move.w inventory_list_item_index(a6),d0
 	move.b $0(a1,d0.w),d0
 	andi.w #255,d0
 	cmp.w #$C,d0
@@ -43755,8 +43767,8 @@ abs_0_00034878:
 	beq.b abs_0_000348C8
 	cmp.w #$54,d0
 	beq.b abs_0_000348C8
-	move.w app_0A70(a6),d1
-	lea.l app_0A48(a6),a1
+	move.w inventory_list_item_index(a6),d1
+	lea.l inventory_list_quantity_prefix(a6),a1
 	subq.b #1,$0(a1,d1.w)
 	bpl.b abs_0_000348B2
 	clr.b $0(a1,d1.w)
@@ -43774,7 +43786,7 @@ abs_0_000348C8:
 abs_0_000348D0:
 	sf.b abs_0_00039CCF.l
 	clr.w depot_line_pointer_offset(a6)
-	clr.w app_0A70(a6)
+	clr.w inventory_list_item_index(a6)
 	bra.w advance_projector_station_cycle_continuation
 abs_0_000348E2:
 	move.b #$72,diagnostic_step_byte.l
@@ -43803,7 +43815,7 @@ abs_0_0003492C:
 	cmp.b #$49,d0
 	bne.b abs_0_00034944
 	clr.w depot_line_pointer_offset(a6)
-	clr.w app_0A70(a6)
+	clr.w inventory_list_item_index(a6)
 	st.b abs_0_00039CCF.l
 	bra.w abs_0_000347A6
 abs_0_00034944:
@@ -43824,11 +43836,11 @@ abs_0_00034980:
 	addq.w #4,depot_line_pointer_offset(a6)
 abs_0_00034988:
 	bra.w advance_projector_station_cycle_continuation
-abs_0_0003498C:
-	lea.l taymar_missing_ingredient_messages(a6),a0
-	lea.l app_0A48(a6),a2
+build_depot_inventory_status_lists:
+	lea.l shared_inventory_depot_message_pointers(a6),a0
+	lea.l inventory_list_quantity_prefix(a6),a2
 	lea.l model_type_population_counts(a6),a1
-	lea.l app_0A62(a6),a3
+	lea.l inventory_list_model_type_prefix(a6),a3
 	lea.l object_name_pointers.l,a4
 	move.w #$67,d0
 abs_0_000349A6:
@@ -43844,11 +43856,12 @@ abs_0_000349B8:
 	move.b #$FF,(a2)
 	move.l #$FFFFFFFF,(a0)
 	rts
-abs_0_000349C8:
-	lea.l taymar_missing_ingredient_messages(a6),a0
-	lea.l app_0A55(a6),a1
-	lea.l app_0A48(a6),a2
-	lea.l app_0A62(a6),a3
+    ; Initializes ten LONG message slots and ten BYTEs at each scratch prefix to all ones. These are observed initialization extents, not inferred full buffer capacities.
+reset_shared_inventory_scratch_prefixes:
+	lea.l shared_inventory_depot_message_pointers(a6),a0
+	lea.l inventory_quantity_decimal_prefix(a6),a1
+	lea.l inventory_list_quantity_prefix(a6),a2
+	lea.l inventory_list_model_type_prefix(a6),a3
 	move.w #$9,d0
 abs_0_000349DC:
 	move.l #$FFFFFFFF,(a0)+
@@ -43861,7 +43874,7 @@ abs_0_000349F4:
 	addq.w #1,depot_dialogue_tick.l
 	andi.w #31,depot_dialogue_tick.l
 	bne.b advance_projector_station_cycle_continuation
-	lea.l taymar_missing_ingredient_messages(a6),a1
+	lea.l shared_inventory_depot_message_pointers(a6),a1
 	move.w depot_line_pointer_offset(a6),d0
 	movea.l $0(a1,d0.w),a1
 	cmpa.l #$FFFFFFFF,a1
@@ -46901,7 +46914,7 @@ abs_0_00037406:
 	movem.l (a7)+,a0-a5
 	rts
 abs_0_00037410:
-	sf.b app_06DA(a6)
+	sf.b modal_command_input_flag(a6)
 	move.w #$3,app_09CC(a6)
 	move.w #$8,station_mini_sentinel_count(a6)
 	lea.l app_0A02(a6),a0
@@ -46933,7 +46946,7 @@ abs_0_0003748A:
 	lea.l app_0A91(a6),a0
 	lea.l app_0A85(a6),a1
 	clr.w depot_line_pointer_offset(a6)
-	clr.w app_0A70(a6)
+	clr.w inventory_list_item_index(a6)
 	move.w #$B,d0
 abs_0_000374A6:
 	sf.b $0(a0,d0.w)
@@ -47031,7 +47044,7 @@ abs_0_00037586:
 	move.b #$FF,abs_0_00039CD1.l
 	sf.b abs_0_00039CD3.l
 	clr.w app_0A74(a6)
-	clr.w app_09AE(a6)
+	clr.w stardrive_enabled_word(a6)
 	sf.b abs_0_00039CD4.l
 	move.w #$FFFF,shared_grayscale_effect_countdown.l
 	rts
@@ -47160,10 +47173,10 @@ abs_0_000377DA:
 	move.w d6,counted_model_population_times32.l
 	movem.l (a7)+,d0-d1/a1
 	rts
-abs_0_000377F4:
+clear_stardrive_below_speed_threshold:
 	cmpi.w #64,player_speed_smoothed(a6)
 	bpl.b abs_0_0003781C
-	tst.w app_09AE(a6)
+	tst.w stardrive_enabled_word(a6)
 	bpl.b abs_0_00037818
 	lea.l event_message_pointers.l,a1
 	move.w #$4,d0
@@ -47171,7 +47184,7 @@ abs_0_000377F4:
 	bsr.w enqueue_event_message
 	bsr.w enqueue_blank_event_message_line
 abs_0_00037818:
-	clr.w app_09AE(a6)
+	clr.w stardrive_enabled_word(a6)
 abs_0_0003781C:
 	rts
     ; On nearby-record type match, queue heading + selected object name + suffix. Saves D0/A4 only; original selector bounds and other register effects remain conditional.
@@ -48419,11 +48432,11 @@ abs_0_00039D38:
 abs_0_00039D3E:
 	jmp abs_0_0000839C.l
 abs_0_00039D44:
-	jmp abs_0_0000CBF2.l
+	jmp poll_translated_command_key.l
 abs_0_00039D4A:
 	jmp initialize_launched_bomb_header.l
 abs_0_00039D50:
-	jmp abs_0_00001B14.l
+	jmp modal_inventory_command_loop.l
 abs_0_00039D56:
 	jmp abs_0_000081D2.l
 abs_0_00039D5C:
@@ -50068,7 +50081,7 @@ abs_0_0003B0CE:
 	dc.b $00,$00,$01,$7C,$3D,$7C,$00,$01,$01,$A0,$42,$2E,$01,$EF,$10,$38
 	dc.b $82,$60,$08,$00,$00,$01,$66,$0E,$61,$00,$28,$BC,$42,$00,$11,$C0
 	dc.b $82,$60,$50,$EE,$01,$EF,$1D,$40,$01,$F2,$4E,$75,$4E,$73
-abs_0_0003B122:
+alternate_vertical_blank_game_service:
 	movem.l d0-d7/a0-a6,-(a7)
 	movea.l game_workspace_base.l,a6
 	cmpi.b #7,disk_service_state_drive_port_bits.l
@@ -50087,23 +50100,23 @@ abs_0_0003B122:
 	move.b disk_service_state_drive_port_bits.l,$FFFF8802.w
 	move.b #$FF,disk_service_state_drive_port_bits.l
 abs_0_0003B17C:
-	addq.w #1,$017C(a6)
-	addq.w #1,$0160(a6)
+	addq.w #1,vblank_tick_counter(a6)
+	addq.w #1,frame_service_ticks_in_window(a6)
 	subq.w #1,weapon_action_cooldown(a6)
 	bpl.b abs_0_0003B190
 	move.w #$0,weapon_action_cooldown(a6)
 abs_0_0003B190:
-	move.w $0160(a6),d0
+	move.w frame_service_ticks_in_window(a6),d0
 	cmp.w #$32,d0
 	bcs.b abs_0_0003B1AC
-	subq.w #1,app_0754(a6)
-	move.w $0162(a6),$015E(a6)
-	clr.w $0162(a6)
-	clr.w $0160(a6)
+	subq.w #1,title_idle_rate_windows_remaining(a6)
+	move.w frame_handoffs_in_window(a6),frame_rate_display_sample(a6)
+	clr.w frame_handoffs_in_window(a6)
+	clr.w frame_service_ticks_in_window(a6)
 abs_0_0003B1AC:
 	tst.b app_020A(a6)
 	bpl.w abs_0_0003B28C
-	tst.b app_06DA(a6)
+	tst.b modal_command_input_flag(a6)
 	bne.b abs_0_0003B1C8
 	addq.w #1,app_07C2(a6)
 	subq.w #1,app_07AC(a6)
@@ -50115,7 +50128,7 @@ abs_0_0003B1C8:
 	subq.w #1,message_display_countdown(a6)
 abs_0_0003B1D2:
 	bsr.w abs_0_0003D9D0
-	tst.b app_06DA(a6)
+	tst.b modal_command_input_flag(a6)
 	bne.w abs_0_0003B28C
 	tst.b space_environment_flag(a6)
 	bmi.w abs_0_0003B28C
@@ -50176,7 +50189,7 @@ abs_0_0003B28C:
 	move.b #$64,$FFFFFA21.w
 	clr.b abs_0_0003BD4A.l
 	move.l #$3BCD2,$00000120.l
-	tst.b app_06DA(a6)
+	tst.b modal_command_input_flag(a6)
 	bne.b abs_0_0003B30C
 	tst.b abs_0_000049AA.l
 	bne.b abs_0_0003B30C
@@ -50252,7 +50265,7 @@ abs_0_0003B3B0:
 	move.l #bus_error_diagnostic_handler,m68k_vector_bus_error.w
 	move.l #report_ram_corruption_and_reboot,m68k_vector_illegal_instruction.w
 	movea.l game_workspace_base.l,a6
-	move.l #abs_0_0003B122,m68k_vector_level_4_interrupt_autovector.w
+	move.l #alternate_vertical_blank_game_service,m68k_vector_level_4_interrupt_autovector.w
 	moveq.l #20,d2
 abs_0_0003B3D8:
 	move.b $FFFFFC02.w,d0
@@ -57124,7 +57137,7 @@ abs_0_0004BC38:
 	bpl.b abs_0_0004BC50
 	move.w #$0,paula_speed_sound_volume.l
 abs_0_0004BC50:
-	tst.b app_06DA(a6)
+	tst.b modal_command_input_flag(a6)
 	bmi.b abs_0_0004BC6A
 	tst.b audio_output_enable_sign_flag.l
 	bpl.b abs_0_0004BC6A
@@ -57235,7 +57248,7 @@ abs_0_0004BDB4:
 abs_0_0004BDCE:
 	tst.b space_environment_flag(a6)
 	bpl.b abs_0_0004BE2C
-	tst.w app_09AE(a6)
+	tst.w stardrive_enabled_word(a6)
 	beq.b abs_0_0004BE2C
 	tst.b app_0A9D(a6)
 	bpl.b abs_0_0004BE2C
@@ -57258,7 +57271,7 @@ abs_0_0004BDF8:
 	move.w #$20,paula_speed_sound_volume.l
 	move.w #$12C,paula_channel2_effect_base_period.l
 abs_0_0004BE2C:
-	tst.b app_06DA(a6)
+	tst.b modal_command_input_flag(a6)
 	bmi.b abs_0_0004BE46
 	tst.b audio_output_enable_sign_flag.l
 	bpl.b abs_0_0004BE46
@@ -57611,7 +57624,7 @@ abs_0_0004C2AC:
 	move.w #$0,object_type5_sound_volume_ramp.l
 abs_0_0004C2BC:
 	move.w object_type5_sound_volume_ramp.l,paula_object_sound_current_volume.l
-	tst.b app_06DA(a6)
+	tst.b modal_command_input_flag(a6)
 	bmi.b abs_0_0004C2D6
 	tst.b audio_output_enable_sign_flag.l
 	bpl.b abs_0_0004C2D6
@@ -57667,7 +57680,7 @@ abs_0_0004C37A:
 	move.w #$28E,abs_0_0004D0BC.l
 abs_0_0004C392:
 	move.w abs_0_0004D0BC.l,_custom+aud3+ac_per.l	; audio period
-	tst.b app_06DA(a6)
+	tst.b modal_command_input_flag(a6)
 	bmi.b abs_0_0004C3AC
 	tst.b audio_output_enable_sign_flag.l
 	bpl.b abs_0_0004C3AC
@@ -57769,7 +57782,7 @@ abs_0_0004C510:
 	bpl.b abs_0_0004C520
 	move.w #$0,abs_0_0004D0B4.l
 abs_0_0004C520:
-	tst.b app_06DA(a6)
+	tst.b modal_command_input_flag(a6)
 	bmi.b abs_0_0004C530
 	tst.b audio_output_enable_sign_flag.l
 	bpl.b abs_0_0004C530
@@ -57810,7 +57823,7 @@ abs_0_0004C59C:
 abs_0_0004C5A6:
 	move.w d0,_custom+aud3+ac_per.l	; audio period
 abs_0_0004C5AC:
-	tst.b app_06DA(a6)
+	tst.b modal_command_input_flag(a6)
 	bmi.b abs_0_0004C5BC
 	tst.b audio_output_enable_sign_flag.l
 	bpl.b abs_0_0004C5BC
@@ -57851,7 +57864,7 @@ abs_0_0004C65C:
 	move.w $0(a0,d0.w),d0
 	move.w paula_object_sound_current_volume.l,d1
 	lsr.w d0,d1
-	tst.b app_06DA(a6)
+	tst.b modal_command_input_flag(a6)
 	bmi.b abs_0_0004C686
 	tst.b audio_output_enable_sign_flag.l
 	bpl.b abs_0_0004C686
@@ -57905,7 +57918,7 @@ abs_0_0004C75C:
 	move.w paula_object_sound_base_period.l,d1
 	add.w d0,d1
 	move.w d1,_custom+aud3+ac_per.l	; audio period
-	tst.b app_06DA(a6)
+	tst.b modal_command_input_flag(a6)
 	bmi.b abs_0_0004C77A
 	tst.b audio_output_enable_sign_flag.l
 	bpl.b abs_0_0004C77A
@@ -58147,7 +58160,7 @@ abs_0_0004CADA:
 	bne.b abs_0_0004CAF4
 	move.w #$12C,paula_projectile_effect_period.l
 abs_0_0004CAF4:
-	tst.b app_06DA(a6)
+	tst.b modal_command_input_flag(a6)
 	bmi.b abs_0_0004CB0E
 	tst.b audio_output_enable_sign_flag.l
 	bpl.b abs_0_0004CB0E
@@ -58186,7 +58199,7 @@ abs_0_0004CB7E:
 	move.w paula_speed_sound_base_period.l,d1
 	add.w d0,d1
 	move.w d1,_custom+aud0+ac_per.l	; audio period
-	tst.w app_09AE(a6)
+	tst.w stardrive_enabled_word(a6)
 	beq.b abs_0_0004CBD2
 	addq.w #8,abs_0_0004D276.l
 	andi.w #255,abs_0_0004D276.l
@@ -59022,7 +59035,7 @@ abs_0_0004D5AC:
 	add.w d0,d1
 	add.w abs_0_0004DE2E.l,d1
 	move.w d1,abs_0_0004DE24.l
-	tst.w app_09AE(a6)
+	tst.w stardrive_enabled_word(a6)
 	bmi.b abs_0_0004D5E0
 	tst.w abs_0_0004DD9C.l
 	bne.b abs_0_0004D5E0
@@ -59265,7 +59278,7 @@ abs_0_0004D952:
 	move.w player_speed_smoothed(a6),d0
 	asr.w #3,d0
 	add.w d0,d1
-	tst.w app_09AE(a6)
+	tst.w stardrive_enabled_word(a6)
 	bmi.b abs_0_0004D9BC
 	st.b abs_0_0004DE36.l
 	move.b #$6,$00FF8800.l
@@ -59306,7 +59319,7 @@ abs_0_0004D9EC:
 	move.w psg_object_sound_volume_word.l,d0
 write_psg_object_sound_volume_and_period:
 	move.b #$A,$00FF8800.l
-	tst.b app_06DA(a6)
+	tst.b modal_command_input_flag(a6)
 	bmi.b abs_0_0004DA08
 	tst.b audio_output_enable_sign_flag.l
 	bmi.b abs_0_0004DA0C
@@ -59327,7 +59340,7 @@ abs_0_0004DA1C:
 	move.b d1,$00FF8802.l
 	move.w alternate_projectile_effect_volume.l,d0
 	move.b #$8,$00FF8800.l
-	tst.b app_06DA(a6)
+	tst.b modal_command_input_flag(a6)
 	bmi.b abs_0_0004DA62
 	tst.b audio_output_enable_sign_flag.l
 	bmi.b abs_0_0004DA64
@@ -59341,7 +59354,7 @@ abs_0_0004DA64:
 	move.b #$1,$00FF8800.l
 	lsr.w #8,d1
 	move.b d1,$00FF8802.l
-	tst.w app_09AE(a6)
+	tst.w stardrive_enabled_word(a6)
 	bmi.b abs_0_0004DAA4
 	tst.w abs_0_0004DD9C.l
 	bne.b abs_0_0004DAA4
@@ -59357,7 +59370,7 @@ abs_0_0004DAAC:
 	bpl.b abs_0_0004DABA
 	clr.b d0
 abs_0_0004DABA:
-	tst.b app_06DA(a6)
+	tst.b modal_command_input_flag(a6)
 	bmi.b abs_0_0004DAC8
 	tst.b audio_output_enable_sign_flag.l
 	bmi.b abs_0_0004DACA
@@ -59366,7 +59379,7 @@ abs_0_0004DAC8:
 abs_0_0004DACA:
 	move.b #$9,$00FF8800.l
 	move.b d0,$00FF8802.l
-	tst.w app_09AE(a6)
+	tst.w stardrive_enabled_word(a6)
 	bmi.b abs_0_0004DB1E
 	tst.b abs_0_0004DE36.l
 	bmi.b abs_0_0004DB1E

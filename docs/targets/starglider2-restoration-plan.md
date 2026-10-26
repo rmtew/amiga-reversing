@@ -1932,3 +1932,50 @@ original byte and all 57 assets. No runtime replay was needed for unchanged byte
 The earlier catalogue gap above is historical; its field references are now
 present with explicit fallback provenance. Broader base/alias completeness is
 still not claimed. See `runtime/observations/starglider2-app-catalogue-consistency.json`.
+
+## Connected modal input, inventory/depot and frame service reconstruction
+
+The reopened pass starts from a native inventory of 284 app-field records,
+147 generic app names and 351 direct-call entries. Of 227 unnamed entries,
+79 are single-instruction forwarders and 50 lead to an already named role.
+These are discovery denominators, not a percentage of semantic completion.
+
+The connected reconstruction names the modal command flag, structure service
+selector, inventory quantity/type scratch prefixes, list index, text output
+start, stardrive word and frame-service counters. The message pointer storage
+at app+$9CE is now named for its shared inventory/depot lifetime: it is also
+reused by Taymar dialogue. Original producer/consumer paths, not physical
+adjacency, establish these roles. The ten-byte scratch initialization is an
+observed prefix, not a proved maximum inventory capacity; the original builder
+still scans 104 model counts. The text output start has no inferred capacity.
+
+Normal-media Backspace/I/X input observed the modal flag's CPU writes at
+$1B14/frame1016 and $1DF6/frame1079. Thirty modal frames advance the VBL tick
+counter by30 while the presentation-handoff count stays fixed; selected IRQ
+motion/control pauses but message/tick service continues. Empty inventory
+leaves nonempty formatting unexercised. Reproduce with the existing flight
+probe's `--observe-modal-inventory` and explicit private input/output/ROM paths;
+the protection-input opt-in remains required. Snapshots do not attribute every
+scratch write to a PC, and this probe makes no DMA claim.
+
+Stardrive interpretation is static: space/speed gating, activation/deactivation
+messages and the extra speed contribution are distinct from generic propulsion.
+Frame handoffs are helper calls, not a guaranteed physical-frame count.
+`frame_rate_display_sample` deliberately retains the two platform-dependent
+representations. The interrupt entries remain interrupt handlers, and named
+modal continuations do not acquire a fictitious standalone calling convention.
+Verification and native before/after accounting are recorded in
+`runtime/observations/starglider2-modal-inventory-stardrive.json`.
+
+The user subsequently released preservation of the 16 uncommitted Pandora
+prototypes. They were hash-checked and backed up with patches before tracked
+files were restored to the current committed baseline and untracked prototypes
+moved into private recovery storage. This supersedes the earlier working-tree
+preservation obligation; committed Pandora material and history remain intact.
+
+Source review caught five initially accepted annotations using unsupported
+`reserved` storage. Append-only corrections use the existing `byte_array` and
+`pointer_table` kinds. Catalogue admission now rejects unsupported explicit
+storage kinds for add/edit/rename; 24 new cases and all 82 catalogue tests pass.
+Exact binary rebuilding alone did not catch the absent names, so final review
+also asserts the requested named scratch-prefix declarations in native output.
