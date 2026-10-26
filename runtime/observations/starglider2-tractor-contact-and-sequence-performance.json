@@ -1,0 +1,1103 @@
+{
+  "schema_version": 1,
+  "kind": "tractor_contact_AI_reconstruction_and_string_sequence_performance",
+  "status": "verified_with_explicit_typed_flow_limit",
+  "publication_base_commit": "a14e80c212b8d989f43161586c7caba6d9a8ff9c",
+  "canonical_actions": 29,
+  "fields": [
+    {
+      "offset": 2102,
+      "size": 2,
+      "symbol": "tractor_command_toggle_word",
+      "storage_kind": "scalar",
+      "accesses": {
+        "read-write": 2,
+        "read": 1,
+        "write": 1
+      },
+      "runtime_sites": [
+        219034,
+        219038,
+        219222,
+        226762
+      ]
+    },
+    {
+      "offset": 2104,
+      "size": 4,
+      "symbol": "tractor_target_reference",
+      "storage_kind": "scalar",
+      "accesses": {
+        "write": 9,
+        "read-write": 2,
+        "read": 8
+      },
+      "runtime_sites": [
+        8686,
+        67060,
+        67290,
+        217842,
+        218316,
+        218338,
+        218386,
+        218586,
+        219054,
+        219090,
+        219096,
+        219124,
+        219208,
+        219216,
+        219246,
+        219400,
+        219852,
+        219898,
+        226768
+      ]
+    },
+    {
+      "offset": 2108,
+      "size": 4,
+      "symbol": "previous_tractor_target_reference",
+      "storage_kind": "scalar",
+      "accesses": {
+        "write": 2,
+        "read-write": 2,
+        "read": 1
+      },
+      "runtime_sites": [
+        8690,
+        67064,
+        67294,
+        219090,
+        219250
+      ]
+    },
+    {
+      "offset": 2120,
+      "size": 4,
+      "symbol": "tractor_marker_lower_y_offset",
+      "storage_kind": "scalar",
+      "accesses": {
+        "write": 2,
+        "read": 1
+      },
+      "runtime_sites": [
+        219558,
+        219688,
+        219924
+      ]
+    },
+    {
+      "offset": 2124,
+      "size": 2,
+      "symbol": "tractor_target_rotation_step",
+      "storage_kind": "scalar",
+      "accesses": {
+        "read": 2,
+        "read-write": 4,
+        "write": 2
+      },
+      "runtime_sites": [
+        218108,
+        218200,
+        218206,
+        218212,
+        218514,
+        218526,
+        219104,
+        219132
+      ]
+    },
+    {
+      "offset": 2126,
+      "size": 2,
+      "symbol": "tractor_attraction_shift",
+      "storage_kind": "scalar",
+      "accesses": {
+        "read": 2,
+        "read-write": 1,
+        "write": 3
+      },
+      "runtime_sites": [
+        218146,
+        218538,
+        218544,
+        218558,
+        218574,
+        219108
+      ]
+    },
+    {
+      "offset": 2128,
+      "size": 2,
+      "symbol": "tractor_velocity_decay_phase",
+      "storage_kind": "scalar",
+      "accesses": {
+        "read-write": 2
+      },
+      "runtime_sites": [
+        218216,
+        218220
+      ]
+    },
+    {
+      "offset": 2719,
+      "size": 1,
+      "symbol": "tractor_markers_shrinking_flag",
+      "storage_kind": "scalar",
+      "accesses": {
+        "write": 2,
+        "read": 1
+      },
+      "runtime_sites": [
+        218956,
+        219480,
+        219878
+      ]
+    },
+    {
+      "offset": 2720,
+      "size": 1,
+      "symbol": "tractor_marker_shrink_countdown",
+      "storage_kind": "scalar",
+      "accesses": {
+        "write": 2,
+        "read-write": 1
+      },
+      "runtime_sites": [
+        218960,
+        219484,
+        219884
+      ]
+    },
+    {
+      "offset": 2722,
+      "size": 1,
+      "symbol": "tractor_input_override_flag",
+      "storage_kind": "scalar",
+      "accesses": {
+        "read": 2,
+        "write": 5
+      },
+      "runtime_sites": [
+        6546,
+        215322,
+        218104,
+        218394,
+        219114,
+        219120,
+        226780
+      ]
+    },
+    {
+      "offset": 2724,
+      "size": 1,
+      "symbol": "reuse_tractor_markers_flag",
+      "storage_kind": "scalar",
+      "accesses": {
+        "write": 3,
+        "read": 1
+      },
+      "runtime_sites": [
+        219242,
+        219286,
+        219462,
+        226776
+      ]
+    },
+    {
+      "offset": 2029,
+      "size": 1,
+      "symbol": "ai_type12_projectile_request",
+      "storage_kind": "scalar",
+      "accesses": {
+        "write": 14,
+        "read": 1
+      },
+      "runtime_sites": [
+        33234,
+        33692,
+        35044,
+        35056,
+        35116,
+        35128,
+        35600,
+        35612,
+        35664,
+        35676,
+        38858,
+        39890,
+        39950,
+        39962,
+        40180
+      ]
+    },
+    {
+      "offset": 1752,
+      "size": 2,
+      "symbol": "last_player_contact_type",
+      "storage_kind": "scalar",
+      "accesses": {
+        "read": 4,
+        "write": 6
+      },
+      "runtime_sites": [
+        5164,
+        5310,
+        46436,
+        46446,
+        47534,
+        48444,
+        48518,
+        48548,
+        208798,
+        212070
+      ]
+    },
+    {
+      "offset": 1998,
+      "size": 1,
+      "symbol": "player_collision_response_flag",
+      "storage_kind": "scalar",
+      "accesses": {
+        "write": 7,
+        "read": 6
+      },
+      "runtime_sites": [
+        8520,
+        47380,
+        47584,
+        47866,
+        48202,
+        48434,
+        48484,
+        48508,
+        48538,
+        48558,
+        51072,
+        213112,
+        242150
+      ]
+    },
+    {
+      "offset": 1999,
+      "size": 1,
+      "symbol": "player_collision_response_steps",
+      "storage_kind": "scalar",
+      "accesses": {
+        "write": 6,
+        "read": 4,
+        "read-write": 1
+      },
+      "runtime_sites": [
+        8524,
+        47366,
+        47372,
+        47578,
+        47588,
+        48438,
+        48488,
+        48512,
+        48542,
+        51118,
+        242202
+      ]
+    }
+  ],
+  "code_entries": [
+    [
+      217834,
+      "update_tractor_target_continuation"
+    ],
+    [
+      218338,
+      "process_tractor_target_keys"
+    ],
+    [
+      219016,
+      "handle_tractor_toggle_command"
+    ],
+    [
+      219050,
+      "toggle_tractor_target_lock"
+    ],
+    [
+      219878,
+      "update_nearby_tractor_beam_marker"
+    ],
+    [
+      220026,
+      "remove_distant_tractor_beam_marker"
+    ],
+    [
+      38758,
+      "try_ai_projectile_attack_if_aligned"
+    ],
+    [
+      38788,
+      "spawn_ai_projectile_continuation"
+    ],
+    [
+      44944,
+      "heading_with_player_as_reference"
+    ]
+  ],
+  "evidence": "Original producer/consumer and message-bound reconstruction.352EA..354D4 updates app838 selected tractor target; lock messages2/3, movement/immovable messages6/7 and source37894 WORD95 bind the role.357AA copies released target to83C; reuse requires same target plus a nearby type95 marker.836 is command-negation phase, not a reliable lock boolean.84C adds to target heading and decays by4 with original0/-4 oscillation;84E is ASR attraction shift adjusted0..10.850 is a conditional modulo16 velocity-halving phase, not universal frames.848 stores scaled model lower-Y extent for marker positioning on planets.353F8 sets AA2 input override, release paths clear; preserve original stale/gated behavior rather than asserting target validity.Collect3574C setsA9F andAA0=10; type95 updates share this countdown while increasing scale shift until retirement. These markers follow the selected target with one-eighth deltas and are cleared on the distant path; directory entry95 merely says No records found, so role comes from actual producer/consumer, not guessed appearance.7ED is transient AI selection:9766/9784 chooses type12 versus25 projectile; scheduler masks and outer-loop clear define its scratch lifetime. AF90 loads the player into A4 then falls through existing stored-XZ heading body.6D8 records player contact type from A2 and specific structure constants;7CE/7CF gate collision response for original3/4 update steps, including IRQ reversal and speed clear at1. No all-type object field, inventory capacity, all-path ownership, hardware timing, arbitrary-input safety or new runtime encounter is inferred. Original code and control rules retained.",
+  "semantic_limits": [
+    "Contact type is cleared each contact pass and can be seeded with synthetic type66 from geometry contact; it is not an unqualified identity of the last world record",
+    "Tractor key continuation retains original CCR assumptions, including BEQ after MOVEA; names do not establish null safety",
+    "Type95 role comes from the constructor, target-follow/shrink consumer and Tractor Beam Locked text; stored name is No records found, not visual-model recognition",
+    "No new successful tractor/AI/contact runtime encounter is claimed; this batch is statically reconstructed",
+    "The three collision-response counts are update steps, not certified physical frames"
+  ],
+  "accounting": {
+    "before_app_fields": 292,
+    "after_app_fields": 292,
+    "before_generic_names": 124,
+    "after_generic_names": 109,
+    "accepted_code_bytes": 106034,
+    "code_union_unchanged": true,
+    "unclassified_bytes": 14748,
+    "unclassified_intervals": 260,
+    "source_quality_diagnostics": 0
+  },
+  "optimization": {
+    "cause": "Whole-image sequence pass repeatedly searched structured ownership at covered/code/noncandidate bytes",
+    "mechanism": "Phase-local merged coverage and declared-start bitmap rejects impossible automatic candidates; unchanged resolver handles eligible positions, including masked aliases. Rebuild after each promoted group to handle shrinking/replaced ownership.",
+    "complexity": "O((groups+1)*(section_bytes+items*log(items))) prefilter construction; legacy resolver only for eligible outer positions and inner spans. Temporary O(section_bytes+items) storage; no persistent cache/parallel model.",
+    "rules_limits_and_owner_resolver_unchanged": true,
+    "operation_counts": {
+      "visited_positions": 404898,
+      "rejected_positions": 403248,
+      "resolver_positions": 1650,
+      "prefilter_builds": 24
+    },
+    "string_sequence_cpu_before": 115.504848,
+    "string_sequence_cpu_after": 0.873825,
+    "full_API_wall_before": 332.8676944480103,
+    "full_API_wall_after": 251.294143703999,
+    "baseline_stages": [
+      {
+        "stage": "effective_metadata_replay_serialize_and_tempfile",
+        "wall_seconds": 0.9331747690157499,
+        "cpu_seconds": 0.93315293,
+        "bytes": 15505730
+      },
+      {
+        "stage": "native_artifact_create_including_policy_parse_analysis_plan_and_listing_index",
+        "wall_seconds": 331.75596618899726,
+        "cpu_seconds": 331.701766392
+      },
+      {
+        "stage": "complete_standard_build_api",
+        "wall_seconds": 332.8676944480103,
+        "cpu_seconds": 332.813085904,
+        "rows": 66758
+      },
+      {
+        "stage": "native_analysis_JSON_and_Python_decode",
+        "wall_seconds": 4.7028812450007536
+      },
+      {
+        "stage": "inline_emit",
+        "wall_seconds": 0.0035449329880066216
+      },
+      {
+        "stage": "canonical_C_and_vasm_verification_with_retained_artifact",
+        "wall_seconds": 7.013818063976942
+      },
+      {
+        "stage": "native_INCBIN_package_emit_with_retained_artifact",
+        "wall_seconds": 2.935707386001013
+      }
+    ],
+    "optimized_stages": [
+      {
+        "stage": "effective_metadata_replay_serialize_and_tempfile",
+        "wall_seconds": 1.0983905390021391,
+        "cpu_seconds": 1.09842611,
+        "bytes": 15505730
+      },
+      {
+        "stage": "native_artifact_create_including_policy_parse_analysis_plan_and_listing_index",
+        "wall_seconds": 250.0285919859889,
+        "cpu_seconds": 249.921037716
+      },
+      {
+        "stage": "complete_standard_build_api",
+        "wall_seconds": 251.294143703999,
+        "cpu_seconds": 251.186547091,
+        "rows": 66758
+      },
+      {
+        "stage": "native_analysis_JSON_and_Python_decode",
+        "wall_seconds": 5.0856067950080615
+      },
+      {
+        "stage": "inline_emit",
+        "wall_seconds": 0.01213574199937284
+      },
+      {
+        "stage": "canonical_C_and_vasm_verification_with_retained_artifact",
+        "wall_seconds": 7.979476537002483
+      },
+      {
+        "stage": "native_INCBIN_package_emit_with_retained_artifact",
+        "wall_seconds": 4.150851156999124
+      }
+    ],
+    "baseline_quality_stages": [
+      {
+        "stage": "infer_hardware_base_seeds",
+        "cpu_seconds": 0.42921
+      },
+      {
+        "stage": "append_code_origins_for_section",
+        "cpu_seconds": 0.008424
+      },
+      {
+        "stage": "append_address_observations_for_section",
+        "cpu_seconds": 0.004393
+      },
+      {
+        "stage": "append_platform_address_uses_for_section",
+        "cpu_seconds": 0.000171
+      },
+      {
+        "stage": "append_accepted_runs_for_section",
+        "cpu_seconds": 0.029493
+      },
+      {
+        "stage": "append_accepted_code_range_ownerships_for_section",
+        "cpu_seconds": 0.000238
+      },
+      {
+        "stage": "append_orphan_conflict_ranges_for_section",
+        "cpu_seconds": 2e-06
+      },
+      {
+        "stage": "append_expected_intrinsic_branch_symbol_accesses",
+        "cpu_seconds": 4.440672
+      },
+      {
+        "stage": "append_expected_data_operand_symbol_accesses",
+        "cpu_seconds": 0.004595
+      },
+      {
+        "stage": "append_expected_pc_relative_storage_symbol_accesses",
+        "cpu_seconds": 0.002698
+      },
+      {
+        "stage": "append_expected_manual_equate_symbol_accesses",
+        "cpu_seconds": 3.4e-05
+      },
+      {
+        "stage": "append_expected_runtime_ref_symbol_accesses",
+        "cpu_seconds": 3.1e-05
+      },
+      {
+        "stage": "append_platform_runtime_structured_data_items",
+        "cpu_seconds": 0.037594
+      },
+      {
+        "stage": "append_bitmap_memory_runtime_refs",
+        "cpu_seconds": 0.015441
+      },
+      {
+        "stage": "append_expected_copper_runtime_pointer_word_symbol_accesses",
+        "cpu_seconds": 1.5e-05
+      },
+      {
+        "stage": "append_expected_hardware_register_value_domain_symbol_accesses",
+        "cpu_seconds": 0.002212
+      },
+      {
+        "stage": "append_expected_register_derived_hardware_value_domain_symbol_accesses",
+        "cpu_seconds": 0.010871
+      },
+      {
+        "stage": "append_hardware_base_platform_address_uses",
+        "cpu_seconds": 0.007164
+      },
+      {
+        "stage": "append_palette_upload_structured_data_items",
+        "cpu_seconds": 0.420649
+      },
+      {
+        "stage": "append_relocation_pointer_table_items",
+        "cpu_seconds": 0.000201
+      },
+      {
+        "stage": "append_indexed_word_dispatch_table_items",
+        "cpu_seconds": 0.057519
+      },
+      {
+        "stage": "append_indexed_local_pointer_table_items",
+        "cpu_seconds": 3.012732
+      },
+      {
+        "stage": "append_indexed_local_scalar_table_items",
+        "cpu_seconds": 0.009489
+      },
+      {
+        "stage": "append_pc_relative_lookup_table_items",
+        "cpu_seconds": 0.326082
+      },
+      {
+        "stage": "append_platform_call_input_string_structured_data_items",
+        "cpu_seconds": 0.294373
+      },
+      {
+        "stage": "append_macos_symbol_string_items",
+        "cpu_seconds": 1e-06
+      },
+      {
+        "stage": "append_generic_string_items",
+        "cpu_seconds": 4.764019
+      },
+      {
+        "stage": "append_multiline_string_items",
+        "cpu_seconds": 19.448017
+      },
+      {
+        "stage": "append_string_table_sequence_items",
+        "cpu_seconds": 115.504848
+      },
+      {
+        "stage": "append_structured_data_range_ownerships",
+        "cpu_seconds": 0.007742
+      },
+      {
+        "stage": "append_pointer_table_target_strings",
+        "cpu_seconds": 0.031227
+      },
+      {
+        "stage": "append_manual_mid_instruction_diagnostics",
+        "cpu_seconds": 0.000332
+      },
+      {
+        "stage": "append_manual_noncode_overlap_diagnostics",
+        "cpu_seconds": 0.01867
+      },
+      {
+        "stage": "append_accepted_run_noncode_fallthrough_diagnostics",
+        "cpu_seconds": 0.000155
+      },
+      {
+        "stage": "append_unterminated_accepted_gap_diagnostics",
+        "cpu_seconds": 2e-06
+      },
+      {
+        "stage": "append_structured_data_platform_semantic_uses",
+        "cpu_seconds": 0.000639
+      },
+      {
+        "stage": "append_structured_copper_row_platform_semantic_uses",
+        "cpu_seconds": 0.009871
+      },
+      {
+        "stage": "append_copper_display_setup_platform_semantic_uses",
+        "cpu_seconds": 0.000365
+      },
+      {
+        "stage": "append_runtime_ref_platform_semantic_uses",
+        "cpu_seconds": 2.6e-05
+      },
+      {
+        "stage": "append_bitmap_memory_platform_semantic_uses",
+        "cpu_seconds": 1.2e-05
+      },
+      {
+        "stage": "append_platform_call_input_semantic_uses",
+        "cpu_seconds": 0.027849
+      },
+      {
+        "stage": "append_platform_stack_cleanup_semantic_uses",
+        "cpu_seconds": 1e-06
+      },
+      {
+        "stage": "append_audio_source_platform_semantic_uses",
+        "cpu_seconds": 0.010199
+      },
+      {
+        "stage": "append_runtime_sink_pointer_semantic_uses",
+        "cpu_seconds": 0.000107
+      },
+      {
+        "stage": "append_runtime_sink_pointer_hardware_base_semantic_uses",
+        "cpu_seconds": 0.006817
+      },
+      {
+        "stage": "append_runtime_sink_operand_expr_semantic_uses",
+        "cpu_seconds": 0.070368
+      },
+      {
+        "stage": "append_hardware_address_use_notes_for_source",
+        "cpu_seconds": 0.001182
+      },
+      {
+        "stage": "append_hardware_note_platform_semantic_uses",
+        "cpu_seconds": 6.5e-05
+      },
+      {
+        "stage": "append_hardware_base_note_platform_semantic_uses",
+        "cpu_seconds": 0.007453
+      },
+      {
+        "stage": "append_structured_data_table_descriptors",
+        "cpu_seconds": 0.000483
+      },
+      {
+        "stage": "append_indexed_table_address_expressions",
+        "cpu_seconds": 1.3e-05
+      },
+      {
+        "stage": "append_static_interior_address_expressions",
+        "cpu_seconds": 0.007827
+      },
+      {
+        "stage": "append_affine_static_interior_address_expressions",
+        "cpu_seconds": 0.005801
+      },
+      {
+        "stage": "append_structured_data_table_entries",
+        "cpu_seconds": 0.319317
+      },
+      {
+        "stage": "append_immediate_text_tokens",
+        "cpu_seconds": 0.005612
+      },
+      {
+        "stage": "append_address_identities_and_ranges",
+        "cpu_seconds": 0.006612
+      },
+      {
+        "stage": "append_expected_address_observation_symbol_accesses",
+        "cpu_seconds": 0.1047
+      },
+      {
+        "stage": "append_expected_materialized_code_patch_symbol_accesses",
+        "cpu_seconds": 0.002819
+      },
+      {
+        "stage": "append_expected_platform_symbol_operand_accesses",
+        "cpu_seconds": 0.001288
+      }
+    ],
+    "optimized_quality_stages": [
+      {
+        "stage": "infer_hardware_base_seeds",
+        "cpu_seconds": 0.470837
+      },
+      {
+        "stage": "append_code_origins_for_section",
+        "cpu_seconds": 0.010357
+      },
+      {
+        "stage": "append_address_observations_for_section",
+        "cpu_seconds": 0.007263
+      },
+      {
+        "stage": "append_platform_address_uses_for_section",
+        "cpu_seconds": 0.000322
+      },
+      {
+        "stage": "append_accepted_runs_for_section",
+        "cpu_seconds": 0.031523
+      },
+      {
+        "stage": "append_accepted_code_range_ownerships_for_section",
+        "cpu_seconds": 0.00046
+      },
+      {
+        "stage": "append_orphan_conflict_ranges_for_section",
+        "cpu_seconds": 1e-06
+      },
+      {
+        "stage": "append_expected_intrinsic_branch_symbol_accesses",
+        "cpu_seconds": 3.914094
+      },
+      {
+        "stage": "append_expected_data_operand_symbol_accesses",
+        "cpu_seconds": 0.005818
+      },
+      {
+        "stage": "append_expected_pc_relative_storage_symbol_accesses",
+        "cpu_seconds": 0.002827
+      },
+      {
+        "stage": "append_expected_manual_equate_symbol_accesses",
+        "cpu_seconds": 3e-06
+      },
+      {
+        "stage": "append_expected_runtime_ref_symbol_accesses",
+        "cpu_seconds": 6.9e-05
+      },
+      {
+        "stage": "append_platform_runtime_structured_data_items",
+        "cpu_seconds": 0.047142
+      },
+      {
+        "stage": "append_bitmap_memory_runtime_refs",
+        "cpu_seconds": 0.017848
+      },
+      {
+        "stage": "append_expected_copper_runtime_pointer_word_symbol_accesses",
+        "cpu_seconds": 1.3e-05
+      },
+      {
+        "stage": "append_expected_hardware_register_value_domain_symbol_accesses",
+        "cpu_seconds": 0.002327
+      },
+      {
+        "stage": "append_expected_register_derived_hardware_value_domain_symbol_accesses",
+        "cpu_seconds": 0.009817
+      },
+      {
+        "stage": "append_hardware_base_platform_address_uses",
+        "cpu_seconds": 0.009033
+      },
+      {
+        "stage": "append_palette_upload_structured_data_items",
+        "cpu_seconds": 0.45126
+      },
+      {
+        "stage": "append_relocation_pointer_table_items",
+        "cpu_seconds": 0.000235
+      },
+      {
+        "stage": "append_indexed_word_dispatch_table_items",
+        "cpu_seconds": 0.065564
+      },
+      {
+        "stage": "append_indexed_local_pointer_table_items",
+        "cpu_seconds": 3.389907
+      },
+      {
+        "stage": "append_indexed_local_scalar_table_items",
+        "cpu_seconds": 0.012181
+      },
+      {
+        "stage": "append_pc_relative_lookup_table_items",
+        "cpu_seconds": 0.374311
+      },
+      {
+        "stage": "append_platform_call_input_string_structured_data_items",
+        "cpu_seconds": 0.27183
+      },
+      {
+        "stage": "append_macos_symbol_string_items",
+        "cpu_seconds": 1e-06
+      },
+      {
+        "stage": "append_generic_string_items",
+        "cpu_seconds": 5.48447
+      },
+      {
+        "stage": "append_multiline_string_items",
+        "cpu_seconds": 18.649372
+      },
+      {
+        "stage": "append_string_table_sequence_items",
+        "cpu_seconds": 0.873825
+      },
+      {
+        "stage": "append_structured_data_range_ownerships",
+        "cpu_seconds": 0.003363
+      },
+      {
+        "stage": "append_pointer_table_target_strings",
+        "cpu_seconds": 0.019382
+      },
+      {
+        "stage": "append_manual_mid_instruction_diagnostics",
+        "cpu_seconds": 4.6e-05
+      },
+      {
+        "stage": "append_manual_noncode_overlap_diagnostics",
+        "cpu_seconds": 0.012657
+      },
+      {
+        "stage": "append_accepted_run_noncode_fallthrough_diagnostics",
+        "cpu_seconds": 6e-05
+      },
+      {
+        "stage": "append_unterminated_accepted_gap_diagnostics",
+        "cpu_seconds": 1e-06
+      },
+      {
+        "stage": "append_structured_data_platform_semantic_uses",
+        "cpu_seconds": 0.0003
+      },
+      {
+        "stage": "append_structured_copper_row_platform_semantic_uses",
+        "cpu_seconds": 0.010422
+      },
+      {
+        "stage": "append_copper_display_setup_platform_semantic_uses",
+        "cpu_seconds": 8.3e-05
+      },
+      {
+        "stage": "append_runtime_ref_platform_semantic_uses",
+        "cpu_seconds": 2.6e-05
+      },
+      {
+        "stage": "append_bitmap_memory_platform_semantic_uses",
+        "cpu_seconds": 2e-06
+      },
+      {
+        "stage": "append_platform_call_input_semantic_uses",
+        "cpu_seconds": 0.017117
+      },
+      {
+        "stage": "append_platform_stack_cleanup_semantic_uses",
+        "cpu_seconds": 1e-06
+      },
+      {
+        "stage": "append_audio_source_platform_semantic_uses",
+        "cpu_seconds": 0.009577
+      },
+      {
+        "stage": "append_runtime_sink_pointer_semantic_uses",
+        "cpu_seconds": 8.5e-05
+      },
+      {
+        "stage": "append_runtime_sink_pointer_hardware_base_semantic_uses",
+        "cpu_seconds": 0.006658
+      },
+      {
+        "stage": "append_runtime_sink_operand_expr_semantic_uses",
+        "cpu_seconds": 0.063743
+      },
+      {
+        "stage": "append_hardware_address_use_notes_for_source",
+        "cpu_seconds": 0.001052
+      },
+      {
+        "stage": "append_hardware_note_platform_semantic_uses",
+        "cpu_seconds": 6.7e-05
+      },
+      {
+        "stage": "append_hardware_base_note_platform_semantic_uses",
+        "cpu_seconds": 0.007718
+      },
+      {
+        "stage": "append_structured_data_table_descriptors",
+        "cpu_seconds": 0.00018
+      },
+      {
+        "stage": "append_indexed_table_address_expressions",
+        "cpu_seconds": 1e-05
+      },
+      {
+        "stage": "append_static_interior_address_expressions",
+        "cpu_seconds": 0.006169
+      },
+      {
+        "stage": "append_affine_static_interior_address_expressions",
+        "cpu_seconds": 0.00614
+      },
+      {
+        "stage": "append_structured_data_table_entries",
+        "cpu_seconds": 0.298374
+      },
+      {
+        "stage": "append_immediate_text_tokens",
+        "cpu_seconds": 0.00419
+      },
+      {
+        "stage": "append_address_identities_and_ranges",
+        "cpu_seconds": 0.006219
+      },
+      {
+        "stage": "append_expected_address_observation_symbol_accesses",
+        "cpu_seconds": 0.095425
+      },
+      {
+        "stage": "append_expected_materialized_code_patch_symbol_accesses",
+        "cpu_seconds": 0.001688
+      },
+      {
+        "stage": "append_expected_platform_symbol_operand_accesses",
+        "cpu_seconds": 0.001054
+      }
+    ],
+    "full_native_analysis_equal": true,
+    "full_inline_source_equal": true,
+    "full_INCBIN_package_equal": true,
+    "profiling_only_full_runs": "No repeated profile-only target loop. Baseline belongs to the29-action semantic batch; optimized full build validates changed native algorithm against it."
+  },
+  "typed_flow": {
+    "worklists": [
+      {
+        "section": 0,
+        "final": 0,
+        "nodes": 29665,
+        "visits": 1898560,
+        "pending": 82,
+        "budget": 1898560,
+        "typed_state_bytes": 32488,
+        "platform_state_bytes": 4708
+      },
+      {
+        "section": 0,
+        "final": 0,
+        "nodes": 29665,
+        "visits": 1898560,
+        "pending": 80,
+        "budget": 1898560,
+        "typed_state_bytes": 32488,
+        "platform_state_bytes": 4708
+      },
+      {
+        "section": 0,
+        "final": 0,
+        "nodes": 29665,
+        "visits": 1898560,
+        "pending": 77,
+        "budget": 1898560,
+        "typed_state_bytes": 32488,
+        "platform_state_bytes": 4708
+      }
+    ],
+    "total_visits": 5695680,
+    "converged": false,
+    "interpretation": "Three recorded worklists hit their existing1,898,560 visit limit with82/80/77 pending nodes. No cap or rules changed. Preserved baseline facts are not proof of complete/converged typed analysis.",
+    "flow_node_bytes": 74448,
+    "node_storage_bytes": 2208499920,
+    "size_scope": "Measured this host C layout; not universal ABI/RAM traffic claim",
+    "next_question": "Localize the unfinished loop/join and reproduce it in a bounded fixture; do not raise or weaken convergence caps to claim completion"
+  },
+  "verification": {
+    "kind": "verification",
+    "framework_exact": true,
+    "target_id": "amiga_raw_starglider2_game",
+    "subject_revision": "32435bf96c6938d6181723e4f1682decfe6e7a42dd05d6dc2594cc90a37517d3",
+    "status": "exact",
+    "exact": true,
+    "source_sha256": "ec0327be03e730a9be1f25e2db440f1d4d8e2c4f69a7282ac347790600914396",
+    "source_path": "/workspace/pandora-original-delivery/stable-d15c2cf8/.runtime-state/restoration/eb04f545fb97451725a1c91ab5abf6f2e097614c45880db6edfb4ea5c3f6e2c2/ec0327be03e730a9be1f25e2db440f1d4d8e2c4f69a7282ac347790600914396.s",
+    "source_package_sha256": null,
+    "original_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "original_size": 412736,
+    "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "rebuilt_path": "/workspace/pandora-original-delivery/stable-d15c2cf8/.runtime-state/restoration/eb04f545fb97451725a1c91ab5abf6f2e097614c45880db6edfb4ea5c3f6e2c2/662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9.bin",
+    "framework_status": "exact",
+    "failure_kinds": [],
+    "message": "",
+    "oracle": {
+      "oracle_id": "vasm",
+      "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+      "comparison_level": "oracle.full_file_match",
+      "assembler_status": "accepted",
+      "message": "oracle output matched original bytes"
+    },
+    "receipt_id": "4f1cb4b80b0cb54a7a2b4e5eccbf1226d57d70a8d139de3359916bb32aad435d",
+    "revision": "831a1b46269e331d516edeaddbb36a7618879209333490344b5651b638093536"
+  },
+  "baseline_verification": {
+    "kind": "verification",
+    "framework_exact": true,
+    "target_id": "amiga_raw_starglider2_game",
+    "subject_revision": "076430d37592f84cd9024ae5b6eeccfd331413e9389644a043bb6e0ba867b000",
+    "status": "exact",
+    "exact": true,
+    "source_sha256": "ec0327be03e730a9be1f25e2db440f1d4d8e2c4f69a7282ac347790600914396",
+    "source_path": "/workspace/pandora-original-delivery/stable-d15c2cf8/.runtime-state/restoration/eb04f545fb97451725a1c91ab5abf6f2e097614c45880db6edfb4ea5c3f6e2c2/ec0327be03e730a9be1f25e2db440f1d4d8e2c4f69a7282ac347790600914396.s",
+    "source_package_sha256": null,
+    "original_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "original_size": 412736,
+    "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "rebuilt_path": "/workspace/pandora-original-delivery/stable-d15c2cf8/.runtime-state/restoration/eb04f545fb97451725a1c91ab5abf6f2e097614c45880db6edfb4ea5c3f6e2c2/662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9.bin",
+    "framework_status": "exact",
+    "failure_kinds": [],
+    "message": "",
+    "oracle": {
+      "oracle_id": "vasm",
+      "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+      "comparison_level": "oracle.full_file_match",
+      "assembler_status": "accepted",
+      "message": "oracle output matched original bytes"
+    },
+    "receipt_id": "a8d4b23aec60f95d344a533c6993289997ed65f739bcbfeef409d5ae54c300ce",
+    "revision": "ae03b22c174e543c622462c695ff6093f7a0dbf5218888a18f22d357f5f526b7"
+  },
+  "standalone_build": {
+    "schema_version": 1,
+    "status": "pass",
+    "format": "raw_payload_not_AmigaDOS_HUNK",
+    "main_bytes": 412736,
+    "main_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "main_matches_original_identity": true,
+    "asset_count": 57,
+    "all_asset_source_slices_equal": true,
+    "decoded_view_inverse_exact": true,
+    "boot_copy_source_matches_resident_view": true,
+    "source_commit": "a14e80c212b8d989f43161586c7caba6d9a8ff9c",
+    "assembler_sha256": "413e284020125f42709486dfe09907cab3dd9f3c2ea41017c190f8ea68f30825",
+    "flags": [
+      "-Fbin",
+      "-m68000",
+      "-no-opt"
+    ],
+    "outputs": [
+      {
+        "role": "original_main",
+        "filename": "Starglider2-original.raw",
+        "bytes": 412736,
+        "sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9"
+      },
+      {
+        "role": "decoded_analysis_view",
+        "filename": "protection-decoded-analysis.raw",
+        "bytes": 3548,
+        "sha256": "de8358853dd9ed9b006a23569bf393aa217ed3be3301a169465d80bfaf839922"
+      },
+      {
+        "role": "boot_installer_context",
+        "filename": "boot-selector-installer-context.raw",
+        "bytes": 40,
+        "sha256": "8d34852425e2e1bfa87b3febdfc74fb39e7c667e9d9ff73e17b594649e83b21b"
+      },
+      {
+        "role": "boot_resident_view",
+        "filename": "boot-selector-resident.raw",
+        "bytes": 20,
+        "sha256": "a26286a393713c046eff9dbaff15b20b26b171fa9e05fc9d538d16b0eddb6024"
+      }
+    ]
+  },
+  "assets": {
+    "count": 57,
+    "unchanged": true
+  },
+  "source": {
+    "hand_edited": false,
+    "sha256": "57a454948aa3bdba80756c33878d32871142f4aa6e052281b2cba5dd13d2ac63"
+  },
+  "tests": {
+    "final_distinct_passed": 22,
+    "scope": [
+      "7 sequence admission cases: threshold,protected ownership,control and punctuation declarations,overlap aliases,multiple groups",
+      "Existing control-prefixed/pointer-table guards and optional stage-trace equality:15 pass"
+    ],
+    "initial_failures": "7 new test cases initially used the wrong flat-analysis envelope and were corrected without changing production acceptance. One earlier optional-trace run used the stale main-checkout DLL and failed to observe its new log; it passed against the rebuilt backend.",
+    "logs_sha256": {
+      "sequence-optimization-tests.log": "d8c9aa18e2879a9af92da49fad74823f8d17f579f65825eff4c932dc6815c5fc",
+      "sequence-optimization-tests-corrected.log": "42317fada6dcccf66125f116d742efc2b7f7fa15372a60582b23352bdc60c64e",
+      "stage-trace-fixture-current-backend.log": "b55e3964fe4f7284de74686d27b00bb12462ea7b499eabe3caf7613fc3e5f418"
+    }
+  },
+  "native_backend_sha256": "a0a132db1131506dae079542fedd82be866add6741fdca65ba951dc40c88e5b1",
+  "limits": [
+    "Exact bytes,unchanged facts and faster discovery do not establish full semantic correctness",
+    "Typed propagation remains budget-limited; no convergence or all-alias claim",
+    "Multiline scan and other stages remain unoptimized",
+    "No new emulator run was required for this static semantic/performance batch",
+    "Original raw payload format and private media boundaries remain unchanged"
+  ],
+  "source_package_C_exact": true,
+  "source_file_sha256": "57a454948aa3bdba80756c33878d32871142f4aa6e052281b2cba5dd13d2ac63",
+  "validated_target_git_tree": "4b67629a244a413f29220ee688d9244c4bbdd86e",
+  "clean_staged_tree_build": true
+}

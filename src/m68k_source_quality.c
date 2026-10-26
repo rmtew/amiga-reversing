@@ -9,6 +9,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 static uint8_t code_origin_class_from_reason(uint32_t reason) {
   switch (reason) {
@@ -7292,20 +7293,99 @@ static int append_source_quality_string_table_sequence_item(M68kSourceAnalysisIR
   return m68k_ir_source_analysis_append_structured_data_item(source_analysis, &item);
 }
 
+/* A phase-local rejection filter, not an ownership resolver. Preserve the
+ * original first-owner/policy-alias queries for every eligible position. */
+enum { SOURCE_QUALITY_SEQUENCE_COVERED = 1U, SOURCE_QUALITY_SEQUENCE_STRING_START = 2U };
+typedef struct SourceQualitySequenceRange { uint32_t start, end; } SourceQualitySequenceRange;
+
+static int source_quality_sequence_range_compare(const void *left, const void *right) {
+  const SourceQualitySequenceRange *a = left, *b = right;
+  if (a->start != b->start) return a->start < b->start ? -1 : 1;
+  return a->end < b->end ? -1 : a->end != b->end;
+}
+
+static int source_quality_build_sequence_prefilter(const M68kSourceAnalysisIR *analysis,
+    const M68kDecodeSectionIR *section, uint8_t **out_flags) {
+  size_t policy_count = analysis->policy.structured_data_item_count;
+  size_t capacity, count = 0U, index;
+  SourceQualitySequenceRange *ranges = NULL;
+  uint8_t *flags = NULL;
+  *out_flags = NULL;
+  if (policy_count > M68K_ANALYSIS_STRUCTURED_DATA_ITEM_LIMIT) return -1;
+  if (analysis->structured_data_item_count > SIZE_MAX - policy_count) return -1;
+  capacity = analysis->structured_data_item_count + policy_count;
+  if (capacity > SIZE_MAX / sizeof(*ranges)) return -1;
+  flags = calloc(section->size != 0U ? section->size : 1U, 1U);
+  if (flags == NULL) return -1;
+  if (capacity != 0U) {
+    ranges = malloc(capacity * sizeof(*ranges));
+    if (ranges == NULL) { free(flags); return -1; }
+  }
+  for (index = 0U; index < capacity; ++index) {
+    const M68kAnalysisStructuredDataItem *item = index < analysis->structured_data_item_count
+      ? &analysis->structured_data_items[index]
+      : &analysis->policy.structured_data_items[index - analysis->structured_data_item_count];
+    uint32_t end;
+    if (!item->has_section_index || item->section_index != section->section_index ||
+        item->offset >= section->size || item->size == 0U) continue;
+    /* Mark every compatible declaration, even if a preceding owner masks it.
+     * The unchanged resolver decides whether it really is usable. */
+    if (item->kind == M68K_ANALYSIS_STRUCTURED_DATA_STRING &&
+        (item->semantic_role_flags & M68K_ANALYSIS_STRUCTURED_DATA_ROLE_STRING) != 0U &&
+        source_quality_string_table_sequence_compatible_pattern(item->source_pattern_id))
+      flags[item->offset] |= SOURCE_QUALITY_SEQUENCE_STRING_START;
+    if (item->offset > UINT32_MAX - item->size) continue;
+    end = item->offset + item->size;
+    if (end > section->size) end = section->size;
+    ranges[count++] = (SourceQualitySequenceRange){item->offset, end};
+  }
+  if (count > 1U) qsort(ranges, count, sizeof(*ranges), source_quality_sequence_range_compare);
+  for (index = 0U; index < count;) {
+    uint32_t start = ranges[index].start, end = ranges[index++].end, cursor;
+    while (index < count && ranges[index].start <= end) {
+      if (ranges[index].end > end) end = ranges[index].end;
+      ++index;
+    }
+    for (cursor = start; cursor < end; ++cursor) flags[cursor] |= SOURCE_QUALITY_SEQUENCE_COVERED;
+  }
+  free(ranges);
+  *out_flags = flags;
+  return 0;
+}
+
 static int append_string_table_sequence_items_for_section(M68kSourceAnalysisIR *source_analysis,
     const M68kDecodeSectionIR *section, M68kSectionAnalysisIR *section_analysis,
     const uint8_t *accepted_bytes) {
   uint32_t offset = 0U;
+  uint8_t *prefilter = NULL;
+  size_t visited_offsets = 0U, rejected_offsets = 0U, prefilter_builds = 0U;
+  int result = -1;
+  const char *trace = getenv("AMIGA_REVERSING_PROFILE_SOURCE_QUALITY");
   if (source_analysis == NULL || section == NULL || section_analysis == NULL || section->data == NULL)
     return 0;
+  if (source_quality_build_sequence_prefilter(source_analysis, section, &prefilter) != 0) return -1;
+  ++prefilter_builds;
   while (offset < section->size) {
     uint32_t offsets[32];
     uint32_t spans[32];
     uint32_t cursor = offset;
     uint32_t count = 0U;
     uint32_t index;
-    const M68kAnalysisStructuredDataItem *existing =
-      source_quality_compatible_string_item_starting_at(source_analysis, (uint32_t)section->section_index,
+    const M68kAnalysisStructuredDataItem *existing;
+    ++visited_offsets;
+    /* Every declared string start remains eligible, regardless of code or
+     * aliases. Rebuild after promotions: replacing a weaker overlapping item
+     * can shrink its ownership beyond the current cursor. */
+    if ((prefilter[offset] & SOURCE_QUALITY_SEQUENCE_STRING_START) == 0U &&
+        ((prefilter[offset] & SOURCE_QUALITY_SEQUENCE_COVERED) != 0U ||
+         source_quality_auto_string_range_has_code_byte(section, accepted_bytes, offset, 1U) ||
+         !m68k_ir_byte_is_quoted_string_safe(section->data[offset]) ||
+         !source_quality_auto_string_start_byte(section->data[offset]))) {
+      ++rejected_offsets;
+      ++offset;
+      continue;
+    }
+    existing = source_quality_compatible_string_item_starting_at(source_analysis, (uint32_t)section->section_index,
         offset);
     if (existing == NULL &&
         source_quality_structured_data_item_covers_offset(source_analysis, (uint32_t)section->section_index,
@@ -7340,15 +7420,25 @@ static int append_string_table_sequence_items_for_section(M68kSourceAnalysisIR *
       for (index = 0U; index < count; ++index) {
         if (append_source_quality_string_table_sequence_item(source_analysis, (uint32_t)section->section_index,
             offsets[index], spans[index]) != 0) {
-          return -1;
+          goto done;
         }
       }
+      free(prefilter);
+      prefilter = NULL;
+      if (source_quality_build_sequence_prefilter(source_analysis, section, &prefilter) != 0) goto done;
+      ++prefilter_builds;
       offset = cursor;
       continue;
     }
     ++offset;
   }
-  return 0;
+  result = 0;
+done:
+  if (trace != NULL && strcmp(trace, "1") == 0)
+    fprintf(stderr, "source_quality_sequence_prefilter visited=%zu rejected=%zu resolver_positions=%zu rebuilds=%zu\n",
+      visited_offsets, rejected_offsets, visited_offsets - rejected_offsets, prefilter_builds);
+  free(prefilter);
+  return result;
 }
 
 static int append_string_table_sequence_items(M68kSourceAnalysisIR *source_analysis,
@@ -13532,6 +13622,9 @@ int m68k_source_quality_analyze_with_policy_and_hardware_base_seeds(M68kSourceAn
   size_t effective_seed_count = 0U;
   size_t section_index;
   int result = 0;
+  const char *stage_trace = getenv("AMIGA_REVERSING_PROFILE_SOURCE_QUALITY");
+  int trace_stages = stage_trace != NULL && strcmp(stage_trace, "1") == 0;
+  clock_t trace_started = trace_stages ? clock() : 0;
   if (source_analysis == NULL) return -1;
   memset(&effective_hardware_base_seeds, 0, sizeof(effective_hardware_base_seeds));
   if (source_quality_hardware_base_seed_list_append_existing(&effective_hardware_base_seeds,
@@ -13546,8 +13639,14 @@ int m68k_source_quality_analyze_with_policy_and_hardware_base_seeds(M68kSourceAn
   }
   effective_seed_items = effective_hardware_base_seeds.items;
   effective_seed_count = effective_hardware_base_seeds.count;
+  if (trace_stages) fprintf(stderr, "source_quality_stage infer_hardware_base_seeds %.6f\n",
+    (double)(clock() - trace_started) / CLOCKS_PER_SEC);
 #define SOURCE_QUALITY_CHECK_OK(call_) do { \
-    if ((call_) != 0) { \
+    clock_t stage_started_ = trace_stages ? clock() : 0; \
+    int stage_result_ = (call_); \
+    if (trace_stages) fprintf(stderr, "source_quality_stage %.*s %.6f\n", \
+      (int)strcspn(#call_, "("), #call_, (double)(clock() - stage_started_) / CLOCKS_PER_SEC); \
+    if (stage_result_ != 0) { \
       result = -1; \
       goto done; \
     } \
@@ -13644,6 +13743,8 @@ int m68k_source_quality_analyze_with_policy_and_hardware_base_seeds(M68kSourceAn
   SOURCE_QUALITY_CHECK_OK(append_expected_platform_symbol_operand_accesses(source_analysis, decode, accepted_start));
 done:
 #undef SOURCE_QUALITY_CHECK_OK
+  if (trace_stages) fprintf(stderr, "source_quality_total %.6f\n",
+    (double)(clock() - trace_started) / CLOCKS_PER_SEC);
   source_quality_hardware_base_seed_list_destroy(&effective_hardware_base_seeds);
   return result;
 }

@@ -9589,7 +9589,7 @@ static int render_lookup_analyze_amiga_typed_refs_for_section(M68kRenderLookup *
     M68K_RENDER_TYPED_FLOW_DEFAULT_ITERATION_LIMIT);
   size_t node_visit_limit = typed_flow_limit_from_env("AMIGA_REVERSING_TYPED_FLOW_MAX_NODE_VISITS",
     M68K_RENDER_TYPED_FLOW_DEFAULT_NODE_VISIT_LIMIT);
-  size_t max_visits, node_visit_count = 0U, queue_head = 0U, queue_count = 0U, node_index;
+  size_t max_visits = 0U, node_visit_count = 0U, queue_head = 0U, queue_count = 0U, node_index;
   size_t *queue = NULL;
   uint8_t *queued = NULL;
   ArenaMark mark;
@@ -9654,6 +9654,13 @@ static int render_lookup_analyze_amiga_typed_refs_for_section(M68kRenderLookup *
   result = 0;
 
 cleanup:
+  {
+    const char *trace = getenv("AMIGA_REVERSING_PROFILE_TYPED_FLOW");
+    if (trace != NULL && strcmp(trace, "1") == 0)
+      fprintf(stderr, "typed_flow_worklist section=%zu final=%d nodes=%zu visits=%zu pending=%zu max=%zu typed_state_bytes=%zu platform_state_bytes=%zu\n",
+        (size_t)section->section_index, final_pass, graph->node_count, node_visit_count, queue_count, max_visits,
+        sizeof(M68kRenderTypedState), sizeof(M68kRenderPlatformState));
+  }
   arena_rewind(arena, mark);
   return result;
 }

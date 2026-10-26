@@ -274,7 +274,7 @@ nearby_objects_cursor RS.L 1
 visible_objects_cursor RS.L 1
 contact_objects_cursor RS.L 1
 free_object_stack_cursor RS.L 1
-app_06D8 RS.W 1
+last_player_contact_type RS.W 1
 modal_command_input_flag RS.B 1
     RS.B 1
 pilot_shots_fired RS.L 1
@@ -366,8 +366,8 @@ weapon_action_cooldown RS.W 1
 app_07C6 RS.W 1
     RS.B 2
 app_07CA RS.L 1
-app_07CE RS.B 1
-app_07CF RS.B 1
+player_collision_response_flag RS.B 1
+player_collision_response_steps RS.B 1
 scan_target_screen_x RS.W 1
 scan_target_screen_y RS.W 1
     RS.B 16
@@ -380,7 +380,7 @@ app_07E9 RS.B 1
 weapon_selection_and_status RS.B 1
 view_mode RS.B 1
 app_07EC RS.B 1
-app_07ED RS.B 1
+ai_type12_projectile_request RS.B 1
 app_07EE RS.B 1
 joystick_control_enabled_flag RS.B 1
 crosshair_autocentre_mode RS.B 1
@@ -402,16 +402,16 @@ app_080E RS.L 1
 station_event_cadence_mask RS.W 1
 selected_celestial_body_index RS.W 1
 selected_celestial_body_reference RS.L 1
-app_0836 RS.W 1
-app_0838 RS.L 1
-app_083C RS.L 1
+tractor_command_toggle_word RS.W 1
+tractor_target_reference RS.L 1
+previous_tractor_target_reference RS.L 1
 scan_target_type RS.W 1
     RS.B 4
 scan_target_depth_limit RS.W 1
-app_0848 RS.L 1
-app_084C RS.W 1
-app_084E RS.W 1
-app_0850 RS.W 1
+tractor_marker_lower_y_offset RS.L 1
+tractor_target_rotation_step RS.W 1
+tractor_attraction_shift RS.W 1
+tractor_velocity_decay_phase RS.W 1
 station_event_tick_counter RS.W 1
 station_space_half_rate_toggle RS.W 1
 app_0856 RS.W 1
@@ -473,12 +473,12 @@ app_0A91 RS.B 1
     RS.B 11
 app_0A9D RS.B 1
     RS.B 1
-app_0A9F RS.B 1
-app_0AA0 RS.B 1
+tractor_markers_shrinking_flag RS.B 1
+tractor_marker_shrink_countdown RS.B 1
     RS.B 1
-app_0AA2 RS.B 1
+tractor_input_override_flag RS.B 1
     RS.B 1
-app_0AA4 RS.B 1
+reuse_tractor_markers_flag RS.B 1
 app_0AA5 RS.B 1
     RS.B 1
 projector_network_complete_flag RS.B 1
@@ -1319,7 +1319,7 @@ abs_0_0000141E:
 	beq.w abs_0_00001502
 	tst.w app_0796(a6)
 	bne.b abs_0_00001434
-	tst.w app_06D8(a6)
+	tst.w last_player_contact_type(a6)
 	bne.w abs_0_000014B6
 abs_0_00001434:
 	tst.b app_01F6(a6)
@@ -1364,7 +1364,7 @@ abs_0_000014B2:
 abs_0_000014B6:
 	tst.b app_0206(a6)
 	bne.w abs_0_00001560
-	move.w app_06D8(a6),d0
+	move.w last_player_contact_type(a6),d0
 	add.w d0,d0
 	lea.l object_contact_bcd_awards.l,a1
 	move.w $0(a1,d0.w),d1
@@ -1685,7 +1685,7 @@ abs_0_00001964:
 	bsr.w abs_0_00003386
 	move.w (a7)+,d0
 abs_0_00001992:
-	tst.b app_0AA2(a6)
+	tst.b tractor_input_override_flag(a6)
 	bpl.b abs_0_000019A4
 	movem.l d0-d7/a0-a6,-(a7)
 	bsr.w abs_0_000033C8
@@ -2239,8 +2239,8 @@ reset_gameplay_state_and_input_defaults:
 	sf.b inside_structure_flag(a6)
 	sf.b app_07E4(a6)
 	sf.b space_environment_flag(a6)
-	sf.b app_07CE(a6)
-	sf.b app_07CF(a6)
+	sf.b player_collision_response_flag(a6)
+	sf.b player_collision_response_steps(a6)
 	sf.b app_0BBA(a6)
 	move.w #$3,selected_celestial_body_index(a6)
 	move.b #$3,app_07F6(a6)
@@ -2277,8 +2277,8 @@ abs_0_000021C8:
 	move.w d2,$0002(a0)
 	move.w #$C8,abs_0_00039B7A.l
 	clr.l carried_neutron_bomb_reference(a6)
-	clr.l app_0838(a6)
-	clr.l app_083C(a6)
+	clr.l tractor_target_reference(a6)
+	clr.l previous_tractor_target_reference(a6)
 	clr.l growing_projector_part_reference(a6)
 	clr.l nearby_space_station_reference(a6)
 	clr.l station_report_primary_message(a6)
@@ -3215,7 +3215,7 @@ abs_0_0000337A:
 abs_0_00003380:
 	jmp initialize_model_type_target_tags.l
 abs_0_00003386:
-	jmp abs_0_00035788.l
+	jmp handle_tractor_toggle_command.l
 abs_0_0000338C:
 	jmp try_toggle_stardrive.l
 abs_0_00003392:
@@ -3237,7 +3237,7 @@ abs_0_000033BC:
 abs_0_000033C2:
 	jmp display_timed_message_line.l
 abs_0_000033C8:
-	jmp abs_0_000354E2.l
+	jmp process_tractor_target_keys.l
 abs_0_000033CE:
 	jmp process_object_contact_pairs.l
 enqueue_nearby_sound_analysis_bridge:
@@ -9216,7 +9216,7 @@ clear_and_release_world_object:
 	move.l a0,(a1)+
 	move.l a1,free_object_stack_cursor(a6)
 abs_0_000081D2:
-	sf.b app_07ED(a6)
+	sf.b ai_type12_projectile_request(a6)
 	move.w object_update_dbf_index(a6),d6
 	dbf.w d6,abs_0_00007FE0
 abs_0_000081DE:
@@ -9424,7 +9424,7 @@ abs_0_0000835C:
 	move.l d0,(a0)+
 	movea.l (a7)+,a0
 abs_0_0000839C:
-	sf.b app_07ED(a6)
+	sf.b ai_type12_projectile_request(a6)
 	move.w object_update_dbf_index(a6),d6
 	dbf.w d6,secondary_object_update_loop
 abs_0_000083A8:
@@ -9775,14 +9775,14 @@ abs_0_000088BC:
 	move.l horizontal_world_wrap_mask(a6),d3
 	and.l d3,$0004(a0)
 	and.l d3,$000C(a0)
-	bsr.w abs_0_0000AF90
+	bsr.w heading_with_player_as_reference
 	move.w $0024(a0),d0
-	st.b app_07ED(a6)
+	st.b ai_type12_projectile_request(a6)
 	andi.b #31,d0
-	beq.w abs_0_00009766
-	sf.b app_07ED(a6)
+	beq.w try_ai_projectile_attack_if_aligned
+	sf.b ai_type12_projectile_request(a6)
 	andi.b #15,d0
-	beq.w abs_0_00009766
+	beq.w try_ai_projectile_attack_if_aligned
 	andi.b #7,d0
 	beq.w abs_0_00009F02
 	bra.w abs_0_000081D2
@@ -9797,10 +9797,10 @@ abs_0_00008908:
 	and.l d3,$0004(a0)
 	and.l d3,$000C(a0)
 	move.w $0024(a0),d0
-	st.b app_07ED(a6)
+	st.b ai_type12_projectile_request(a6)
 	andi.b #63,d0
 	beq.w abs_0_00009248
-	sf.b app_07ED(a6)
+	sf.b ai_type12_projectile_request(a6)
 	andi.b #31,d0
 	beq.w abs_0_00009248
 	andi.b #15,d0
@@ -9828,11 +9828,11 @@ abs_0_0000897A:
 	bra.w abs_0_0000ACA8
 abs_0_00008984:
 	move.w #$32,$0026(a0)
-	bsr.w abs_0_0000AF90
+	bsr.w heading_with_player_as_reference
 	addi.w #1024,d1
 	bra.w abs_0_0000ACB0
 abs_0_00008996:
-	bsr.w abs_0_0000AF90
+	bsr.w heading_with_player_as_reference
 	bra.w abs_0_0000ACB0
 abs_0_0000899E:
 	cmpi.b #1,$001C(a0)
@@ -9936,14 +9936,14 @@ abs_0_00008AE8:
 	move.l horizontal_world_wrap_mask(a6),d3
 	and.l d3,$0004(a0)
 	and.l d3,$000C(a0)
-	bsr.w abs_0_0000AF90
+	bsr.w heading_with_player_as_reference
 	move.w $0024(a0),d0
-	st.b app_07ED(a6)
+	st.b ai_type12_projectile_request(a6)
 	andi.b #15,d0
-	beq.w abs_0_00009784
-	sf.b app_07ED(a6)
+	beq.w spawn_ai_projectile_continuation
+	sf.b ai_type12_projectile_request(a6)
 	andi.b #7,d0
-	beq.w abs_0_00009766
+	beq.w try_ai_projectile_attack_if_aligned
 	bra.w abs_0_000081D2
 abs_0_00008B2C:
 	move.w $002C(a0),d3
@@ -9956,10 +9956,10 @@ abs_0_00008B2C:
 	and.l d3,$0004(a0)
 	and.l d3,$000C(a0)
 	move.w $0024(a0),d0
-	st.b app_07ED(a6)
+	st.b ai_type12_projectile_request(a6)
 	andi.b #31,d0
 	beq.w abs_0_00009248
-	sf.b app_07ED(a6)
+	sf.b ai_type12_projectile_request(a6)
 	andi.b #15,d0
 	beq.w abs_0_00009248
 	tst.w $0026(a0)
@@ -9985,11 +9985,11 @@ abs_0_00008B96:
 	bra.w abs_0_0000ACA8
 abs_0_00008BA0:
 	move.w #$3C,$0026(a0)
-	bsr.w abs_0_0000AF90
+	bsr.w heading_with_player_as_reference
 	addi.w #600,d1
 	bra.w abs_0_0000ACB0
 abs_0_00008BB2:
-	bsr.w abs_0_0000AF90
+	bsr.w heading_with_player_as_reference
 	bra.w abs_0_0000ACB0
 abs_0_00008BBA:
 	addq.b #1,$0003(a0)
@@ -10118,7 +10118,7 @@ abs_0_00008D62:
 	clr.b $001E(a0)
 	bra.w abs_0_000081D2
 abs_0_00008D6A:
-	bsr.w abs_0_0000AF90
+	bsr.w heading_with_player_as_reference
 	addi.w #2000,d1
 	bra.w abs_0_0000AD00
 increase_object_y_velocity_continuation:
@@ -10416,7 +10416,7 @@ abs_0_00009182:
 	bra.w abs_0_000081D2
 abs_0_000091B4:
 	addq.w #4,$002E(a0)
-	bsr.w abs_0_0000AF90
+	bsr.w heading_with_player_as_reference
 	addi.w #200,d1
 	andi.w #4095,d1
 	bra.w abs_0_0000AD00
@@ -10448,10 +10448,10 @@ abs_0_000091C8:
 	bra.w abs_0_000081D2
 abs_0_00009248:
 	move.b #$15,diagnostic_step_byte.l
-	bsr.w abs_0_0000AF90
+	bsr.w heading_with_player_as_reference
 	addi.w #2048,d1
 	andi.w #4095,d1
-	bra.w abs_0_00009766
+	bra.w try_ai_projectile_attack_if_aligned
 abs_0_00009260:
 	addq.w #1,$002E(a0)
 	cmpi.w #10,$002E(a0)
@@ -10623,7 +10623,7 @@ abs_0_000094A8:
 	move.b d2,$0003(a0)
 	bne.w abs_0_000081D2
 	move.w #$FFC2,$002E(a0)
-	bsr.w abs_0_0000AF90
+	bsr.w heading_with_player_as_reference
 	bra.w abs_0_0000AD7A
 abs_0_000094C6:
 	tst.b $0028(a0)
@@ -10680,7 +10680,7 @@ abs_0_00009558:
 	beq.b abs_0_00009570
 	bra.w abs_0_000081D2
 abs_0_00009570:
-	bsr.w abs_0_0000AF90
+	bsr.w heading_with_player_as_reference
 	subq.w #1,$0024(a0)
 	move.w $0024(a0),d0
 	andi.b #31,d0
@@ -10690,7 +10690,7 @@ abs_0_00009570:
 abs_0_0000958A:
 	move.w #$32,$0026(a0)
 abs_0_00009590:
-	bsr.w abs_0_0000AF90
+	bsr.w heading_with_player_as_reference
 	addi.w #1024,d1
 	bra.w abs_0_0000ACB0
 abs_0_0000959C:
@@ -10784,7 +10784,7 @@ abs_0_00009694:
 	ble.b abs_0_000096F8
 	cmpi.l #4294965596,$0008(a0)
 	bmi.b abs_0_000096F8
-	bsr.w abs_0_0000AF90
+	bsr.w heading_with_player_as_reference
 	addi.w #2048,d1
 	andi.w #4095,d1
 	move.w d1,$0012(a0)
@@ -10819,7 +10819,7 @@ abs_0_00009748:
 	andi.w #4095,d1
 	move.w d1,$0012(a0)
 	bra.w abs_0_0000ADBA
-abs_0_00009766:
+try_ai_projectile_attack_if_aligned:
 	move.b #$1E,diagnostic_step_byte.l
 	move.w $0012(a0),d0
 	andi.w #4095,d0
@@ -10829,7 +10829,8 @@ abs_0_00009766:
 abs_0_0000977C:
 	cmp.w #$2D,d1
 	bpl.w abs_0_000081D2
-abs_0_00009784:
+    ; Internal AI spawn continuation. Transient request selects type12 versus25; schedulers set/clear it and outer object loops reset it. It is not a collision or persistent per-object flag.
+spawn_ai_projectile_continuation:
 	move.b #$1F,diagnostic_step_byte.l
 	move.w (a0),d3
 	lea.l model_type_target_selection_tags_prefix(a6),a1
@@ -10848,7 +10849,7 @@ abs_0_00009784:
 	ext.l d2
 	move.b $001D(a0),d0
 	asr.l d0,d2
-	tst.b app_07ED(a6)
+	tst.b ai_type12_projectile_request(a6)
 	beq.b abs_0_000097E2
 	move.w #$C,(a2)
 	move.b $0001(a0),$002A(a2)
@@ -11116,11 +11117,11 @@ abs_0_00009BAA:
 	move.l horizontal_world_wrap_mask(a6),d3
 	and.l d3,$0004(a0)
 	and.l d3,$000C(a0)
-	bsr.w abs_0_0000AF90
+	bsr.w heading_with_player_as_reference
 	move.w $0024(a0),d0
-	sf.b app_07ED(a6)
+	sf.b ai_type12_projectile_request(a6)
 	andi.b #15,d0
-	beq.w abs_0_00009766
+	beq.w try_ai_projectile_attack_if_aligned
 	andi.b #7,d0
 	beq.w abs_0_00009F02
 	bra.w abs_0_000081D2
@@ -11135,10 +11136,10 @@ abs_0_00009BEA:
 	and.l d3,$0004(a0)
 	and.l d3,$000C(a0)
 	move.w $0024(a0),d0
-	st.b app_07ED(a6)
+	st.b ai_type12_projectile_request(a6)
 	andi.b #31,d0
 	beq.w abs_0_00009248
-	sf.b app_07ED(a6)
+	sf.b ai_type12_projectile_request(a6)
 	andi.b #15,d0
 	beq.w abs_0_00009248
 	andi.b #7,d0
@@ -11166,15 +11167,15 @@ abs_0_00009C5C:
 	bra.w abs_0_0000ACA8
 abs_0_00009C66:
 	move.w #$32,$0026(a0)
-	bsr.w abs_0_0000AF90
+	bsr.w heading_with_player_as_reference
 	addi.w #1024,d1
 	bra.w abs_0_0000ACB0
 abs_0_00009C78:
-	bsr.w abs_0_0000AF90
+	bsr.w heading_with_player_as_reference
 	bra.w abs_0_0000ACB0
 abs_0_00009C80:
 	move.b #$24,diagnostic_step_byte.l
-	bsr.w abs_0_0000AF90
+	bsr.w heading_with_player_as_reference
 	addi.w #2048,d1
 	andi.w #4095,d1
 	move.w $0012(a0),d0
@@ -11211,11 +11212,11 @@ abs_0_00009CD2:
 	subq.w #1,$0024(a0)
 	bne.w abs_0_000081D2
 	move.w #$F,$0024(a0)
-	sf.b app_07ED(a6)
-	bra.w abs_0_00009766
+	sf.b ai_type12_projectile_request(a6)
+	bra.w try_ai_projectile_attack_if_aligned
 abs_0_00009CFC:
 	move.b #$25,diagnostic_step_byte.l
-	bsr.w abs_0_0000AF90
+	bsr.w heading_with_player_as_reference
 	andi.w #4095,d1
 	move.w $0012(a0),d0
 	andi.w #4095,d0
@@ -11360,7 +11361,7 @@ abs_0_00009EF8:
 	bra.w abs_0_000081D2
 abs_0_00009F02:
 	move.b #$28,diagnostic_step_byte.l
-	bsr.w abs_0_0000AF90
+	bsr.w heading_with_player_as_reference
 	addi.w #2048,d1
 	andi.w #4095,d1
 	move.w (a0),d3
@@ -11456,7 +11457,7 @@ abs_0_0000A004:
 	move.b #$1,$002B(a2)
 	move.w #$1,$0014(a2)
 	move.b #$64,$0029(a2)
-	bsr.w abs_0_0000AF90
+	bsr.w heading_with_player_as_reference
 	move.w d1,$0012(a2)
 	move.l #$FFFFFFEC,$0008(a2)
 	move.b #$FF,$001E(a2)
@@ -11511,7 +11512,7 @@ abs_0_0000A136:
 	move.l #$FFFFFFC4,$0008(a2)
 	move.b #$FF,$001E(a2)
 	clr.w $0010(a2)
-	bsr.w abs_0_0000AF90
+	bsr.w heading_with_player_as_reference
 	move.w d1,$0012(a2)
 	clr.w $0014(a2)
 	move.l a0,$003C(a2)
@@ -11718,21 +11719,21 @@ abs_0_0000A4A6:
 abs_0_0000A4B8:
 	cmp.w #$258,d2
 	ble.b abs_0_0000A4CA
-	bsr.w abs_0_0000AF90
+	bsr.w heading_with_player_as_reference
 	addi.w #2010,d1
 	bra.w abs_0_0000AD7A
 abs_0_0000A4CA:
 	move.w #$32,$0026(a0)
-	bsr.w abs_0_0000AF90
+	bsr.w heading_with_player_as_reference
 	addi.w #800,d1
 	addi.w #32,$0012(a0)
 	bra.w abs_0_0000AD7A
 abs_0_0000A4E2:
-	bsr.w abs_0_0000AF90
+	bsr.w heading_with_player_as_reference
 	addi.w #800,d1
 	bra.w abs_0_0000AD7A
 abs_0_0000A4EE:
-	bsr.w abs_0_0000AF90
+	bsr.w heading_with_player_as_reference
 	addi.w #2048,d1
 	bra.w abs_0_0000AD7A
     ; D0 desired type tag; return first different visible object in A4, or player on no match. Callers complement own mutable tag; no nearest-target or universal faction claim.
@@ -12208,7 +12209,7 @@ abs_0_0000AC64:
 	move.w d4,$0030(a0)
 	bra.w abs_0_0000839C
 abs_0_0000ACA8:
-	bsr.w abs_0_0000AF90
+	bsr.w heading_with_player_as_reference
 	addi.w #2048,d1
 abs_0_0000ACB0:
 	andi.w #4095,d1
@@ -12238,7 +12239,7 @@ abs_0_0000ACE6:
 	move.w d0,$0012(a0)
 	bra.w abs_0_0000AD6E
 abs_0_0000ACFC:
-	bsr.w abs_0_0000AF90
+	bsr.w heading_with_player_as_reference
 abs_0_0000AD00:
 	andi.w #4095,d1
 	move.w $0012(a0),d0
@@ -12393,7 +12394,7 @@ abs_0_0000AF82:
 	bpl.b abs_0_0000AFF6
 	neg.l d1
 	bra.b abs_0_0000AFF6
-abs_0_0000AF90:
+heading_with_player_as_reference:
 	move.b #$3D,diagnostic_step_byte.l
 	movea.l player_object_reference(a6),a4
     ; Quadrant-aware XZ heading from stored A0/A4+$32,$36 pairs; WORD D1 uses4096 units/turn. Masked table bounds do not prove all DIVS/absolute-value inputs safe.
@@ -12767,13 +12768,13 @@ abs_0_0000B51E:
 abs_0_0000B524:
 	jmp update_nearby_bouncing_bomb.l
 abs_0_0000B52A:
-	jmp remove_distant_type95.l
+	jmp remove_distant_tractor_beam_marker.l
 	dc.b $4E,$F9,$00,$03,$60,$8A
 abs_0_0000B536:
 	jmp update_nearby_volcano.l
 	dc.b $00,$00,$00,$00,$00,$00
 abs_0_0000B542:
-	jmp update_nearby_unidentified_type95.l
+	jmp update_nearby_tractor_beam_marker.l
 abs_0_0000B548:
 	jmp update_distant_planetary_bodies.l
 abs_0_0000B54E:
@@ -12785,10 +12786,10 @@ abs_0_0000B554:
 process_object_contact_pairs:
 	clr.w current_structure_service_id(a6)
 	clr.b app_0BBA(a6)
-	clr.w app_06D8(a6)
+	clr.w last_player_contact_type(a6)
 	tst.b app_07E4(a6)
 	beq.b abs_0_0000B574
-	move.w #$42,app_06D8(a6)
+	move.w #$42,last_player_contact_type(a6)
 abs_0_0000B574:
 	move.w contact_object_count(a6),d7
 	subq.w #2,d7
@@ -13090,16 +13091,17 @@ abs_0_0000B8F4:
 	clr.b $001E(a2)
 abs_0_0000B8F8:
 	dbf.w d6,abs_0_0000B5D0
+    ; Collision response decrements in this update pass, not proved physical frames. IRQ response reverses motion and clears speed at step1; preserve the original3/4-step producers.
 abs_0_0000B8FC:
 	dbf.w d7,abs_0_0000B594
 	movea.l game_workspace_base.l,a6
-	tst.b app_07CF(a6)
+	tst.b player_collision_response_steps(a6)
 	beq.b abs_0_0000B914
-	subq.b #1,app_07CF(a6)
+	subq.b #1,player_collision_response_steps(a6)
 	bmi.b abs_0_0000B914
 	bne.b abs_0_0000B918
 abs_0_0000B914:
-	sf.b app_07CE(a6)
+	sf.b player_collision_response_flag(a6)
 abs_0_0000B918:
 	tst.b inside_structure_flag(a6)
 	bne.w abs_0_0000BA14
@@ -13151,7 +13153,7 @@ abs_0_0000B9A2:
 abs_0_0000B9A8:
 	addq.l #1,icarus_hits_received(a6)
 	move.w (a2),d0
-	move.w d0,app_06D8(a6)
+	move.w d0,last_player_contact_type(a6)
 	tst.b $001C(a2)
 	bmi.b abs_0_0000B9CE
 	clr.b $001E(a2)
@@ -13165,10 +13167,10 @@ abs_0_0000B9CE:
 	bne.b abs_0_0000B9C2
 	tst.b space_environment_flag(a6)
 	bne.b abs_0_0000B9C2
-	tst.b app_07CF(a6)
+	tst.b player_collision_response_steps(a6)
 	bne.b abs_0_0000B9C2
-	st.b app_07CE(a6)
-	move.b #$4,app_07CF(a6)
+	st.b player_collision_response_flag(a6)
+	move.b #$4,player_collision_response_steps(a6)
 	bra.b abs_0_0000B9C2
 abs_0_0000B9EC:
 	tst.b $0022(a2)
@@ -13265,7 +13267,7 @@ abs_0_0000BAEE:
 	lea.l abs_0_0000C46C.l,a1
 	lea.l abs_0_0000C484.l,a3
 abs_0_0000BAFA:
-	tst.b app_07CE(a6)
+	tst.b player_collision_response_flag(a6)
 	beq.b abs_0_0000BB26
 	movem.w player_motion_x(a6),d0-d2
 	add.l d0,d0
@@ -13377,7 +13379,7 @@ abs_0_0000BC3C:
 	st.b app_07E4(a6)
 	rts
 abs_0_0000BC4A:
-	tst.b app_07CE(a6)
+	tst.b player_collision_response_flag(a6)
 	beq.b abs_0_0000BC76
 	movem.w player_motion_x(a6),d0-d2
 	add.l d0,d0
@@ -13447,9 +13449,9 @@ abs_0_0000BD02:
 	move.l $000C(a2),d0
 	addi.l #570,d0
 	move.l d0,player_world_z(a6)
-	st.b app_07CE(a6)
-	move.b #$3,app_07CF(a6)
-	move.w #$3F,app_06D8(a6)
+	st.b player_collision_response_flag(a6)
+	move.b #$3,player_collision_response_steps(a6)
+	move.w #$3F,last_player_contact_type(a6)
 	bra.w abs_0_0000BAE0
 abs_0_0000BD46:
 	move.l $000C(a2),d0
@@ -13459,25 +13461,25 @@ abs_0_0000BD46:
 	move.l $000C(a2),d0
 	addi.l #570,d0
 	move.l d0,player_world_z(a6)
-	st.b app_07CE(a6)
-	move.b #$3,app_07CF(a6)
+	st.b player_collision_response_flag(a6)
+	move.b #$3,player_collision_response_steps(a6)
 	bra.w abs_0_0000BAE0
 abs_0_0000BD72:
 	cmpi.b #6,$0003(a2)
 	beq.w abs_0_0000B9C2
-	st.b app_07CE(a6)
-	move.b #$3,app_07CF(a6)
-	move.w #$41,app_06D8(a6)
+	st.b player_collision_response_flag(a6)
+	move.b #$3,player_collision_response_steps(a6)
+	move.w #$41,last_player_contact_type(a6)
 	bra.w abs_0_0000B9A2
 abs_0_0000BD90:
 	cmpi.b #9,$0003(a2)
 	beq.w abs_0_0000B9C2
-	st.b app_07CE(a6)
-	move.b #$3,app_07CF(a6)
-	move.w #$3F,app_06D8(a6)
+	st.b player_collision_response_flag(a6)
+	move.b #$3,player_collision_response_steps(a6)
+	move.w #$3F,last_player_contact_type(a6)
 	bra.w abs_0_0000B9A2
 abs_0_0000BDAE:
-	tst.b app_07CE(a6)
+	tst.b player_collision_response_flag(a6)
 	beq.b abs_0_0000BDDA
 	movem.w player_motion_x(a6),d0-d2
 	add.l d0,d0
@@ -14146,7 +14148,7 @@ abs_0_0000C770:
 	bne.w abs_0_0000C814
 	tst.b space_environment_flag(a6)
 	bmi.w abs_0_0000C814
-	tst.b app_07CE(a6)
+	tst.b player_collision_response_flag(a6)
 	beq.b abs_0_0000C7C6
 	tst.b inside_structure_flag(a6)
 	bne.b abs_0_0000C7AE
@@ -14159,7 +14161,7 @@ abs_0_0000C770:
 	and.l d2,player_world_x(a6)
 	and.l d2,player_world_z(a6)
 abs_0_0000C7AE:
-	cmpi.b #1,app_07CF(a6)
+	cmpi.b #1,player_collision_response_steps(a6)
 	bne.b abs_0_0000C814
 	clr.w negative_speed_control_accumulator(a6)
 	clr.w player_speed_target(a6)
@@ -18079,8 +18081,8 @@ serialize_workspace_pointers_relative:
 	sub.l d0,player_object_reference(a6)
 	sub.l d0,carried_neutron_bomb_reference(a6)
 	sub.l d0,selected_celestial_body_reference(a6)
-	sub.l d0,app_0838(a6)
-	sub.l d0,app_083C(a6)
+	sub.l d0,tractor_target_reference(a6)
+	sub.l d0,previous_tractor_target_reference(a6)
 	sub.l d0,growing_projector_part_reference(a6)
 	sub.l d0,nearby_space_station_reference(a6)
 	move.w #$9,d1
@@ -18154,8 +18156,8 @@ restore_workspace_pointers_absolute:
 	add.l d0,player_object_reference(a6)
 	add.l d0,carried_neutron_bomb_reference(a6)
 	add.l d0,selected_celestial_body_reference(a6)
-	add.l d0,app_0838(a6)
-	add.l d0,app_083C(a6)
+	add.l d0,tractor_target_reference(a6)
+	add.l d0,previous_tractor_target_reference(a6)
 	add.l d0,growing_projector_part_reference(a6)
 	add.l d0,nearby_space_station_reference(a6)
 	move.w #$9,d1
@@ -41972,7 +41974,7 @@ abs_0_00032F86:
 	bsr.w abs_0_000376C4
 	bsr.w clear_stardrive_below_speed_threshold
 abs_0_00032F9E:
-	tst.w app_06D8(a6)
+	tst.w last_player_contact_type(a6)
 	beq.b abs_0_00032FE0
 	tst.w stardrive_enabled_word(a6)
 	bpl.b abs_0_00032FDC
@@ -42872,7 +42874,7 @@ abs_0_00033C4C:
 	bne.b abs_0_00033C66
 	bra.b abs_0_00033C6E
 abs_0_00033C66:
-	cmpi.w #20,app_06D8(a6)
+	cmpi.w #20,last_player_contact_type(a6)
 	bne.b abs_0_00033C9A
 abs_0_00033C6E:
 	st.b pending_transient_event_sound(a6)
@@ -43179,7 +43181,7 @@ abs_0_0003406C:
 	add.l d0,d0
 	add.l d1,d1
 	add.l d2,d2
-	tst.b app_07CE(a6)
+	tst.b player_collision_response_flag(a6)
 	bmi.b abs_0_0003408C
 	add.l d0,player_world_x(a6)
 	add.l d1,player_world_y(a6)
@@ -43812,13 +43814,13 @@ abs_0_00034908:
 	cmp.b #$54,d0
 	bne.b abs_0_0003491A
 	movem.l d0-d7/a0-a6,-(a7)
-	bsr.w abs_0_00035788
+	bsr.w handle_tractor_toggle_command
 	movem.l (a7)+,d0-d7/a0-a6
 abs_0_0003491A:
-	tst.b app_0AA2(a6)
+	tst.b tractor_input_override_flag(a6)
 	bpl.b abs_0_0003492C
 	movem.l d0-d7/a0-a6,-(a7)
-	bsr.w abs_0_000354E2
+	bsr.w process_tractor_target_keys
 	movem.l (a7)+,d0-d7/a0-a6
 abs_0_0003492C:
 	cmp.b #$49,d0
@@ -44258,7 +44260,7 @@ abs_0_00034F3C:
 abs_0_00034F3E:
 	move.b #$64,diagnostic_step_byte.l
 	tst.w nearby_object_count(a6)
-	beq.w abs_0_000352EA
+	beq.w update_tractor_target_continuation
 	addq.b #1,app_0AE2(a6)
 	andi.b #31,app_0AE2(a6)
 	bne.w abs_0_00035034
@@ -44341,18 +44343,18 @@ abs_0_00035010:
 abs_0_00035034:
 	move.b #$67,diagnostic_step_byte.l
 	tst.b space_environment_flag(a6)
-	bpl.w abs_0_000352EA
+	bpl.w update_tractor_target_continuation
 	lea.l object_retirement_phase_limits.l,a2
 	move.b $0063(a2),d1
 	subi.b #1,d1
 	tst.l nearby_space_station_reference(a6)
-	beq.w abs_0_000352EA
+	beq.w update_tractor_target_continuation
 	movea.l nearby_space_station_reference(a6),a1
 	cmp.b $001E(a1),d1
 	beq.w abs_0_00035276
 	cmpi.b #1,$001E(a1)
 	beq.b abs_0_00035072
-	bra.w abs_0_000352EA
+	bra.w update_tractor_target_continuation
 abs_0_00035072:
 	clr.w pending_message_count(a6)
 	move.w #$1,message_display_countdown(a6)
@@ -44437,14 +44439,14 @@ abs_0_000351C2:
 	dbf.w d7,abs_0_000351B4
 	st.b pending_transient_event_sound(a6)
 	cmpi.w #3,free_object_count(a6)
-	bls.w abs_0_000352EA
+	bls.w update_tractor_target_continuation
 	move.l #$1,d2
 	moveq.l #2,d7
 	movea.l nearby_space_station_reference(a6),a0
-	beq.w abs_0_000352EA
-	bmi.w abs_0_000352EA
+	beq.w update_tractor_target_continuation
+	bmi.w update_tractor_target_continuation
 	cmpi.w #1,free_object_count(a6)
-	bls.w abs_0_000352EA
+	bls.w update_tractor_target_continuation
 	movea.l free_object_stack_cursor(a6),a3
 	movea.l -(a3),a4
 	move.l a3,free_object_stack_cursor(a6)
@@ -44477,7 +44479,7 @@ abs_0_00035256:
 	move.b #$FF,$001E(a4)
 	bset.b #7,$001C(a4)
 	clr.b $0003(a4)
-	bra.b abs_0_000352EA
+	bra.b update_tractor_target_continuation
     ; Retirement resets construction/charge/fire to 52/4/2 and advances sequence. Negative table sentinel rolls index back and uses mask $3F; preserve fallback and existing object retirement.
 abs_0_00035276:
 	move.w nearby_object_count(a6),d0
@@ -44514,9 +44516,10 @@ abs_0_000352DE:
 	subq.w #1,station_sequence_index(a6)
 abs_0_000352E6:
 	move.w d0,station_event_cadence_mask(a6)
-abs_0_000352EA:
+    ; Internal tractor update continuation, not an independent ABI. Distance checks are per axis; input override retains original stale-state behavior. No universal pointer-validity contract.
+update_tractor_target_continuation:
 	move.b #$65,diagnostic_step_byte.l
-	movea.l app_0838(a6),a0
+	movea.l tractor_target_reference(a6),a0
 	cmpa.l #$0,a0
 	beq.w abs_0_000354CC
 	move.w (a0),d0
@@ -44593,8 +44596,8 @@ abs_0_000353E0:
 	bsr.w enqueue_message_if_outside_structure
 	bra.w abs_0_000354CC
 abs_0_000353F8:
-	st.b app_0AA2(a6)
-	move.w app_084C(a6),d0
+	st.b tractor_input_override_flag(a6)
+	move.w tractor_target_rotation_step(a6),d0
 	add.w d0,$0012(a0)
 	andi.w #4095,$0012(a0)
 	move.l player_world_x(a6),d0
@@ -44603,7 +44606,7 @@ abs_0_000353F8:
 	sub.l $0004(a0),d0
 	sub.l $0008(a0),d1
 	sub.l $000C(a0),d2
-	move.w app_084E(a6),d3
+	move.w tractor_attraction_shift(a6),d3
 	asr.l d3,d0
 	asr.l d3,d1
 	asr.l d3,d2
@@ -44621,15 +44624,16 @@ abs_0_0003544A:
 	sub.l d1,player_world_y(a6)
 	sub.l d2,player_world_z(a6)
 	bra.b abs_0_000354D4
+    ; Original rotation-step damping is not saturating: zero becomes-4, then returns to zero. The velocity-halving phase advances only on the nonnegative branch; preserve that cadence.
 abs_0_00035458:
-	tst.w app_084C(a6)
+	tst.w tractor_target_rotation_step(a6)
 	bpl.b abs_0_00035464
-	addq.w #4,app_084C(a6)
+	addq.w #4,tractor_target_rotation_step(a6)
 	bra.b abs_0_0003549C
 abs_0_00035464:
-	subq.w #4,app_084C(a6)
-	addq.w #1,app_0850(a6)
-	andi.w #15,app_0850(a6)
+	subq.w #4,tractor_target_rotation_step(a6)
+	addq.w #1,tractor_velocity_decay_phase(a6)
+	andi.w #15,tractor_velocity_decay_phase(a6)
 	bne.b abs_0_0003549C
 	move.w $002C(a0),d0
 	move.w $002E(a0),d1
@@ -44657,7 +44661,7 @@ abs_0_000354B0:
 	move.w #$1,message_display_countdown(a6)
 	bsr.w enqueue_event_message
 abs_0_000354CC:
-	clr.l app_0838(a6)
+	clr.l tractor_target_reference(a6)
 	clr.w scan_target_type(a6)
 abs_0_000354D4:
 	movem.l (a7)+,d0-d7/a0-a6
@@ -44665,8 +44669,8 @@ abs_0_000354D4:
 abs_0_000354DA:
 	movem.l (a7)+,d0-d7/a0-a6
 	bra.w abs_0_00039D38
-abs_0_000354E2:
-	movea.l app_0838(a6),a0
+process_tractor_target_keys:
+	movea.l tractor_target_reference(a6),a0
 	beq.w abs_0_00035782
 	move.w d0,d7
 	cmpi.w #73,(a0)
@@ -44678,9 +44682,9 @@ abs_0_000354E2:
 	bclr.b #2,$0002(a0)
 	bclr.b #3,$0002(a0)
 	clr.b $001C(a0)
-	clr.l app_0838(a6)
+	clr.l tractor_target_reference(a6)
 	clr.w scan_target_type(a6)
-	sf.b app_0AA2(a6)
+	sf.b tractor_input_override_flag(a6)
 	bra.w abs_0_00035782
 abs_0_00035522:
 	st.b app_0209(a6)
@@ -44724,32 +44728,32 @@ abs_0_0003557C:
 	bmi.b abs_0_000355A4
 	cmp.b #$2E,d0
 	bne.b abs_0_00035598
-	addi.w #16,app_084C(a6)
+	addi.w #16,tractor_target_rotation_step(a6)
 abs_0_00035598:
 	cmp.b #$2C,d0
 	bne.b abs_0_000355A4
-	subi.w #16,app_084C(a6)
+	subi.w #16,tractor_target_rotation_step(a6)
 abs_0_000355A4:
 	cmp.b #$4D,d0
 	bne.b abs_0_000355B8
-	subq.w #1,app_084E(a6)
+	subq.w #1,tractor_attraction_shift(a6)
 	bpl.b abs_0_000355B8
-	move.w #$0,app_084E(a6)
+	move.w #$0,tractor_attraction_shift(a6)
 	bra.b abs_0_000355D2
 abs_0_000355B8:
 	cmp.b #$9E,d0
 	bne.b abs_0_000355D2
-	move.w app_084E(a6),d1
+	move.w tractor_attraction_shift(a6),d1
 	addq.w #1,d1
 	cmp.w #$A,d1
 	bmi.b abs_0_000355CE
 	move.w #$A,d1
 abs_0_000355CE:
-	move.w d1,app_084E(a6)
+	move.w d1,tractor_attraction_shift(a6)
 abs_0_000355D2:
 	cmp.b #$43,d0
 	bne.w abs_0_00035782
-	movea.l app_0838(a6),a0
+	movea.l tractor_target_reference(a6),a0
 	cmpa.l #$0,a0
 	beq.w abs_0_00035782
 	move.l $0004(a0),d0
@@ -44868,8 +44872,8 @@ abs_0_00035748:
 abs_0_0003574A:
 	bra.b abs_0_0003576E
 abs_0_0003574C:
-	st.b app_0A9F(a6)
-	move.b #$A,app_0AA0(a6)
+	st.b tractor_markers_shrinking_flag(a6)
+	move.b #$A,tractor_marker_shrink_countdown(a6)
 	clr.w (a0)
 	lea.l event_message_pointers.l,a1
 	move.w #$C,d0
@@ -44886,19 +44890,19 @@ abs_0_00035778:
 abs_0_00035782:
 	bsr.w enqueue_blank_event_message_line
 	rts
-abs_0_00035788:
+handle_tractor_toggle_command:
 	move.b #$57,diagnostic_step_byte.l
 	clr.w pending_message_count(a6)
 	move.w #$1,message_display_countdown(a6)
-	neg.w app_0836(a6)
-	tst.w app_0836(a6)
+	neg.w tractor_command_toggle_word(a6)
+	tst.w tractor_command_toggle_word(a6)
 	bpl.b abs_0_000357A8
-	bsr.w abs_0_000357AA
+	bsr.w toggle_tractor_target_lock
 abs_0_000357A8:
 	rts
-abs_0_000357AA:
+toggle_tractor_target_lock:
 	movem.l d0-d7/a0-a5,-(a7)
-	movea.l app_0838(a6),a0
+	movea.l tractor_target_reference(a6),a0
 	cmpa.l #$0,a0
 	bne.b abs_0_000357F0
 	lea.l app_0A02(a6),a1
@@ -44912,18 +44916,18 @@ abs_0_000357C2:
 abs_0_000357CE:
 	clr.l -$0004(a1)
 abs_0_000357D2:
-	move.l app_0838(a6),app_083C(a6)
-	clr.l app_0838(a6)
+	move.l tractor_target_reference(a6),previous_tractor_target_reference(a6)
+	clr.l tractor_target_reference(a6)
 	clr.w scan_target_type(a6)
-	clr.w app_084C(a6)
-	move.w #$A,app_084E(a6)
-	sf.b app_0AA2(a6)
+	clr.w tractor_target_rotation_step(a6)
+	move.w #$A,tractor_attraction_shift(a6)
+	sf.b tractor_input_override_flag(a6)
 	bra.b abs_0_00035816
 abs_0_000357F0:
-	sf.b app_0AA2(a6)
-	clr.l app_0838(a6)
+	sf.b tractor_input_override_flag(a6)
+	clr.l tractor_target_reference(a6)
 	clr.w scan_target_type(a6)
-	clr.w app_084C(a6)
+	clr.w tractor_target_rotation_step(a6)
 	lea.l event_message_pointers.l,a1
 	move.w #$F8,d0
 	movea.l $0(a1,d0.w),a1
@@ -44947,17 +44951,17 @@ abs_0_0003583C:
 	move.w visible_object_count(a6),d7
 	beq.w abs_0_00035A6C
 	clr.w scan_target_type(a6)
-	clr.l app_0838(a6)
+	clr.l tractor_target_reference(a6)
 	bsr.w select_visible_scan_target
-	move.l scan_target_reference(a6),app_0838(a6)
-	neg.w app_0836(a6)
+	move.l scan_target_reference(a6),tractor_target_reference(a6)
+	neg.w tractor_command_toggle_word(a6)
 	move.w scan_target_type(a6),d0
 	beq.w abs_0_00035A6C
 	cmp.w #$1E,d0
 	beq.w abs_0_00035A6C
-	sf.b app_0AA4(a6)
-	movea.l app_0838(a6),a0
-	movea.l app_083C(a6),a1
+	sf.b reuse_tractor_markers_flag(a6)
+	movea.l tractor_target_reference(a6),a0
+	movea.l previous_tractor_target_reference(a6),a1
 	cmpa.l a0,a1
 	bne.b abs_0_0003589A
 	move.w nearby_object_count(a6),d0
@@ -44972,7 +44976,7 @@ abs_0_0003588A:
 	dbf.w d0,abs_0_0003588A
 	bra.b abs_0_0003589A
 abs_0_00035896:
-	st.b app_0AA4(a6)
+	st.b reuse_tractor_markers_flag(a6)
 abs_0_0003589A:
 	btst.b #6,$0002(a0)
 	bne.b abs_0_000358E0
@@ -45009,7 +45013,7 @@ abs_0_000358E0:
 	asl.w #2,d0
 	movea.l $0(a1,d0.w),a1
 	bsr.w enqueue_event_message
-	clr.l app_0838(a6)
+	clr.l tractor_target_reference(a6)
 	clr.w scan_target_type(a6)
 	bra.w abs_0_00035A94
 abs_0_00035914:
@@ -45029,12 +45033,12 @@ abs_0_00035938:
 	movea.l $0(a1,d0.w),a1
 	bsr.w enqueue_event_message
 abs_0_00035946:
-	tst.b app_0AA4(a6)
+	tst.b reuse_tractor_markers_flag(a6)
 	bmi.w abs_0_00035A68
 	cmpi.w #10,free_object_count(a6)
 	bls.w abs_0_00035A6C
-	sf.b app_0A9F(a6)
-	move.b #$FF,app_0AA0(a6)
+	sf.b tractor_markers_shrinking_flag(a6)
+	move.b #$FF,tractor_marker_shrink_countdown(a6)
 	movea.l free_object_stack_cursor(a6),a1
 	movea.l -(a1),a2
 	move.l a1,free_object_stack_cursor(a6)
@@ -45052,7 +45056,7 @@ abs_0_00035946:
 	move.w $0(a1,d0.w),d0
 	lsr.w d3,d0
 	ext.l d0
-	move.l d0,app_0848(a6)
+	move.l d0,tractor_marker_lower_y_offset(a6)
 	move.l player_world_x(a6),$0004(a2)
 	move.l player_world_y(a6),$0008(a2)
 	move.l player_world_z(a6),$000C(a2)
@@ -45080,7 +45084,7 @@ abs_0_00035946:
 	move.w $0(a1,d0.w),d0
 	lsr.w d3,d0
 	ext.l d0
-	move.l d0,app_0848(a6)
+	move.l d0,tractor_marker_lower_y_offset(a6)
 	move.l player_world_x(a6),$0004(a2)
 	move.l player_world_y(a6),$0008(a2)
 	move.l player_world_z(a6),$000C(a2)
@@ -45120,7 +45124,7 @@ abs_0_00035A9E:
 	movea.l $0(a0,d0.w),a1
 	bsr.w enqueue_event_message
 	lea.l object_name_pointers.l,a0
-	movea.l app_0838(a6),a2
+	movea.l tractor_target_reference(a6),a2
 	move.w (a2),d0
 	asl.w #2,d0
 	movea.l $0(a0,d0.w),a1
@@ -45128,23 +45132,24 @@ abs_0_00035A9E:
 	bsr.w enqueue_blank_event_message_line
 	movem.l (a7)+,d0-d7/a0-a5
 	rts
+    ; Type95 is constructed after Tractor Beam Locked. It follows the target or shrinks after collection using a shared countdown. Catalogue95 is No records found; role is not visual recognition.
     ; KNOWN: type A0=Target code-entry register seed:SG2WorldObject
-update_nearby_unidentified_type95:
-	tst.b app_0A9F(a6)
+update_nearby_tractor_beam_marker:
+	tst.b tractor_markers_shrinking_flag(a6)
 	beq.b abs_0_00035AFA
-	subq.b #1,app_0AA0(a6)
+	subq.b #1,tractor_marker_shrink_countdown(a6)
 	bmi.w abs_0_00035B62
 	addq.b #1,SG2WorldObject_model_scale_shift(a0)
 	bra.b abs_0_00035B40
 abs_0_00035AFA:
-	movea.l app_0838(a6),a3
+	movea.l tractor_target_reference(a6),a3
 	cmpa.l #$0,a3
 	beq.b abs_0_00035B62
 	move.l $0004(a3),d0
 	move.l $0008(a3),d1
 	tst.b space_environment_flag(a6)
 	bmi.b abs_0_00035B1A
-	move.l app_0848(a6),d2
+	move.l tractor_marker_lower_y_offset(a6),d2
 	sub.l d2,d1
 abs_0_00035B1A:
 	move.l $000C(a3),d2
@@ -45170,7 +45175,7 @@ abs_0_00035B62:
 	bra.w abs_0_00039D56
 	dc.b $11,$7C,$00,$04,$00,$1D,$11,$7C,$00,$00,$00,$1E,$60,$00,$41,$DE
     ; KNOWN: type A0=Target code-entry register seed:SG2WorldObject
-remove_distant_type95:
+remove_distant_tractor_beam_marker:
 	clr.w (a0)	; operand 1: SG2WorldObject_object_type at (a0)
 	bra.w abs_0_00039D3E
     ; KNOWN: type A0=Target code-entry register seed:SG2WorldObject
@@ -47024,11 +47029,11 @@ abs_0_00037586:
 	move.l #$7A1200,app_09B8(a6)
 	move.l #$3D0900,app_09BC(a6)
 	move.b #$FF,app_0BB9(a6)
-	move.w #$1,app_0836(a6)
-	clr.l app_0838(a6)
+	move.w #$1,tractor_command_toggle_word(a6)
+	clr.l tractor_target_reference(a6)
 	clr.w scan_target_type(a6)
-	sf.b app_0AA4(a6)
-	sf.b app_0AA2(a6)
+	sf.b reuse_tractor_markers_flag(a6)
+	sf.b tractor_input_override_flag(a6)
 	sf.b pending_transient_event_sound(a6)
 	sf.b space_station_nearby_flag(a6)
 	move.w #$3,app_09C8(a6)
@@ -50142,7 +50147,7 @@ abs_0_0003B1D2:
 	bne.w abs_0_0003B28C
 	tst.b space_environment_flag(a6)
 	bmi.w abs_0_0003B28C
-	tst.b app_07CE(a6)
+	tst.b player_collision_response_flag(a6)
 	beq.b abs_0_0003B230
 	tst.b inside_structure_flag(a6)
 	bne.b abs_0_0003B21A
@@ -50159,7 +50164,7 @@ abs_0_0003B202:
 	and.l d2,player_world_x(a6)
 	and.l d2,player_world_z(a6)
 abs_0_0003B21A:
-	cmpi.b #1,app_07CF(a6)
+	cmpi.b #1,player_collision_response_steps(a6)
 	bne.b abs_0_0003B28C
 	clr.w negative_speed_control_accumulator(a6)
 	clr.w player_speed_target(a6)

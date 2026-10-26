@@ -2048,3 +2048,53 @@ or analysis rule was changed merely to obtain a faster number. Seven native
 phase timers expose this distinction. Four focused profile/API tests pass;
 two stale Python mocks initially failed against the existing API and were
 updated to its current projection/observation arguments before that final run.
+
+## Tractor/contact reconstruction and sequence-discovery optimization
+
+The next29 canonical actions restore15 fields, nine entries and five comments:
+tractor lock/collection state and type95 marker lifetime, AI type12/type25
+projectile selection, and player contact-response state. Generic names fall124
+to109; there are still292 field records and no byte-classification change.
+Type95's catalogue says `No records found`: the constructor's literal95 and
+follow/shrink consumer establish the marker role, without visual recognition.
+The contact word is reset per pass and can receive synthetic66 from geometry.
+Tractor key handling retains original CCR assumptions, including BEQ after
+MOVEA; names do not establish null safety. Rotation-step zero/-4 oscillation,
+shared marker countdown and3/4 collision-update steps remain original behavior.
+There is no new successful tractor/contact/AI runtime claim.
+
+Fine native tracing during that necessary source build localized115.505 CPU
+seconds to string-sequence discovery and19.448s to multiline discovery. The
+sequence pass queried structured ownership at essentially every byte. A
+section-local merged coverage/declared-start filter now rejects impossible
+automatic positions before those linear queries. Eligible positions retain
+the original resolver/rules, including overlapping policy aliases and explicit
+control/punctuation-leading strings. The filter rebuilds after every promoted
+group because replacing a weaker item can shrink ownership ahead. It uses
+O(section bytes + items) temporary memory and
+O((groups+1)*(section bytes + items*log(items))) construction, with no persistent
+cache, duplicate engine, acceptance-rule or convergence-limit change.
+
+Measured outer resolver starts fall404,898 to1,650 after403,248 rejections;
+24 builds include initial construction and23 promotions. Sequence time falls
+115.505 to0.874s; same-input total API wall time falls332.868 to251.294s.
+Typed-flow time varied upward, so this is not a constant whole-build speedup.
+The entire native analysis, inline source and INCBIN package are identical to
+the pre-optimization baseline. New-backend C/vasm and clean standalone builds
+remain exact; all57 assets are unchanged and22 distinct focused cases pass.
+Initial failures in seven new tests were a flat-JSON-envelope mistake, fixed
+without relaxing production checks. See
+`runtime/observations/starglider2-tractor-contact-and-sequence-performance.json`.
+
+Optional `AMIGA_REVERSING_PROFILE_SOURCE_QUALITY=1` traces native substages/counts;
+`AMIGA_REVERSING_PROFILE_TYPED_FLOW=1` traces unchanged solver worklists.
+The latter exposes three29,665-node passes, each exhausting1,898,560 visits,
+with82/80/77 pending nodes:5,695,680 visits. **Typed analysis is not converged.**
+Preserved baseline facts are not all-path contract proof. Current-host sizes
+are32,488bytes typed state,4,708bytes platform state,74,448bytes graph node;
+29,665 nodes alone occupy2,208,499,920bytes. This is not a portable ABI or measured
+memory-bus traffic claim. Next: localize the unfinished join/loop, reproduce it
+in a bounded fixture and fix the mechanism if supported; do not raise caps to
+claim completion. Multiline discovery is an unmodified secondary cost.
+Presentation-only work must retain the existing presentation path; ownership,
+type and extent changes must continue invalidating native facts.
