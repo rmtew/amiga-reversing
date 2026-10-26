@@ -85,6 +85,23 @@ int main(void) {
     assert(instruction_operand_writes_register_from_metadata(&direct, 1));
     assert(!instruction_operand_writes_register_from_metadata(&indirect, 1));
   }
+  {
+    M68kInstructionIR store = m68k_plain_parse_instruction_to_ir(
+      "movem.l d0-d1,0(a7)", M68K_ASM_CPU_68000, m68k_diag_sink(NULL));
+    M68kInstructionIR load = m68k_plain_parse_instruction_to_ir(
+      "movem.w (a5)+,a4-a5", M68K_ASM_CPU_68000, m68k_diag_sink(NULL));
+    M68kInstructionIR address = m68k_plain_parse_instruction_to_ir(
+      "lea.l 4(a0),a1", M68K_ASM_CPU_68000, m68k_diag_sink(NULL));
+    uint8_t width = 0U, count = 0U, span = 0U;
+    assert(platform_operand_memory_span(&store, 1U, &width, &count, &span));
+    assert(width == 4U && count == 2U && span == 8U);
+    assert(platform_operand_memory_span(&load, 0U, &width, &count, &span));
+    assert(width == 2U && count == 2U && span == 4U);
+    assert(platform_operand_register_write_mask(&load, 1U) == 0x3000U);
+    assert(platform_operand_register_write_mask(&load, 0U) == 0x2000U);
+    assert(platform_operand_register_write_mask(&store, 1U) == 0U);
+    assert(!platform_operand_memory_span(&address, 0U, &width, &count, &span));
+  }
   /* Multi-transfer affine cursors must not silently advance by one WORD. */
   memset(&state, 0, sizeof(state));
   state.memory_base_regs[0].known = 1;
@@ -107,7 +124,7 @@ int main(void) {
     assert result.returncode == 0, result.stdout + result.stderr
 
 
-def cursor_artifact(tmp_path, body, *, source_reg='a6', regions=True, seeded=False):
+def cursor_artifact(tmp_path, body, *, source_reg='a6', regions=True, seeded=False, metadata_extra=None):
     import json
     from amiga_reversing.disasm import c_backend
     from amiga_reversing.disasm.binary_source import BinarySourceKind, RawAddressModel, RawBinarySource
@@ -121,9 +138,11 @@ def cursor_artifact(tmp_path, body, *, source_reg='a6', regions=True, seeded=Fal
     metadata = tmp_path / 'metadata.json'
     owners = [dict(layout_name='app', offset=offset, size=120, storage_kind='byte_array', symbol=symbol)
               for offset, symbol in [(0xBC6, 'world_points'), (0xC3E, 'previous_view_points')]]
-    metadata.write_text(json.dumps(dict(rsset_layout_regions=owners if regions else [],
+    payload = dict(rsset_layout_regions=owners if regions else [],
         entry_register_seeds=[dict(hunk=0, entry_offset=0, register=source_reg.upper(),
-            kind='library_base', library_name='__amiga_app_base__')] if seeded else [])))
+            kind='library_base', library_name='__amiga_app_base__')] if seeded else [])
+    payload.update(metadata_extra or {})
+    metadata.write_text(json.dumps(payload))
     artifact = c_backend.build_listing_artifact_profile_from_binary_source(source, metadata_path=metadata)[2]
     return artifact, original
 

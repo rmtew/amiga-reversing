@@ -36,6 +36,9 @@ int platform_amiga_hardware_register_custom_immediate_expr(
 int platform_instruction_has_normal_fallthrough(const struct M68kInstructionIR *instruction);
 int platform_instruction_has_terminal_state_flow(const struct M68kInstructionIR *instruction);
 int platform_operand_updates_address_register(const struct M68kInstructionIR *instruction, size_t operand_index);
+uint16_t platform_operand_register_write_mask(const struct M68kInstructionIR *instruction, size_t operand_index);
+int platform_operand_memory_span(const struct M68kInstructionIR *instruction, size_t operand_index,
+  uint8_t *element_width, uint8_t *transfer_count, uint8_t *span_bytes);
 void platform_format_runtime_address_symbol_name(const char *role, uint32_t address, const char *suffix,
   char *buf, size_t buf_size);
 

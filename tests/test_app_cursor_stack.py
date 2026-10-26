@@ -55,3 +55,37 @@ def test_stack_pointer_in_save_mask_is_not_a_cursor_frame(tmp_path):
         assert not [r for r in derived_refs(artifact) if r['access'] == 'read']
     finally:
         artifact.close()
+
+
+def test_bulk_stack_write_invalidates_every_overwritten_saved_cursor(tmp_path):
+    body='''lea.l $BC6(a6),a4
+ lea.l $78(a4),a5
+ movem.l a4-a5,-(a7)
+ movea.l #0,a4
+ movea.l #0,a5
+ movem.l d0-d1,0(a7)
+ movem.l (a7)+,a4-a5
+ move.w (a4),d0
+ move.w (a5),d1'''
+    artifact,_=cursor_artifact(tmp_path,body)
+    try:
+        assert not [r for r in derived_refs(artifact) if r['access']=='read']
+    finally:
+        artifact.close()
+
+
+def test_short_bulk_write_preserves_nonoverlapping_saved_cursor(tmp_path):
+    body='''lea.l $BC6(a6),a4
+ lea.l $78(a4),a5
+ movem.l a4-a5,-(a7)
+ movea.l #0,a4
+ movea.l #0,a5
+ movem.w d0-d1,0(a7)
+ movem.l (a7)+,a4-a5
+ move.w (a4),d0
+ move.w (a5),d1'''
+    artifact,_=cursor_artifact(tmp_path,body)
+    try:
+        assert [r['displacement']for r in derived_refs(artifact)if r['access']=='read']==[0xC3E]
+    finally:
+        artifact.close()

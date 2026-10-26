@@ -2851,6 +2851,12 @@ def _absolute_storage_slot_payload(params: Mapping[str, object]) -> dict[str, ob
         value = params.get(field_name)
         if isinstance(value, str) and value.strip():
             slot[field_name] = value.strip()
+    semantic_type = str(slot.get("semantic_type", ""))
+    if semantic_type.startswith("layout_base:"):
+        base = semantic_type.removeprefix("layout_base:")
+        if (size != 4 or storage_kind != "pointer" or slot.get("pointer_struct")
+                or not re.fullmatch(r"[A-Za-z_.][A-Za-z0-9_.]*", base)):
+            raise ValueError("layout_base requires a four-byte pointer and a declared base symbol")
     return slot
 
 

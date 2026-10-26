@@ -183,7 +183,9 @@
     INCLUDE "hardware/intbits.i"
 
     RSSET 0
-    RS.B 53
+app_0000 RS.L 1
+app_0004 RS.L 1
+    RS.B 45
 app_0035 RS.B 1
     RS.B 1
 app_0037 RS.B 1
@@ -221,7 +223,10 @@ app_0127 RS.B 1
 model_origin_delta_x RS.W 1
 model_origin_delta_y RS.W 1
 model_origin_delta_z RS.W 1
-    RS.B 36
+app_0138 RS.B 1
+    RS.B 1
+app_013A RS.B 1
+    RS.B 33
 joystick_direction_bits RS.W 1
 frame_rate_display_sample RS.W 1
 frame_service_ticks_in_window RS.W 1
@@ -14305,10 +14310,10 @@ abs_0_0000C906:
 	ror.b #1,d0
 	btst #7,d0
 	bne.b abs_0_0000C936
-	move.b d0,$0138(a6)
+	move.b d0,app_0138(a6)
 	bra.b abs_0_0000C93A
 abs_0_0000C936:
-	move.b d0,$013A(a6)
+	move.b d0,app_013A(a6)
 abs_0_0000C93A:
 	moveq.l #0,d1
 	btst #7,d0
@@ -14453,7 +14458,7 @@ abs_0_0000CCE4:
 	dbf.w d0,abs_0_0000CCE4
 	move.w #$4200,abs_0_0000C4DC.l
 	lea.l _custom.l,a5
-	move.l #$78000,$0000(a6)
+	move.l #$78000,app_0000.w(a6)
 	move.w #$2C81,diwstrt(a5)	; display window start v=$2C h=$81
 	move.w #$F4C1,diwstop(a5)	; display window stop v=$F4 h=$C1
 	move.w #$38,ddfstrt(a5)	; display fetch start $38
@@ -50549,7 +50554,7 @@ print_alternate_positioned_text_mode1:
 	movea.l game_workspace_base.l,a6
 	mulu.w #$A0,d1
 	add.w d0,d0
-	movea.l $0004(a6),a0
+	movea.l app_0004(a6),a0
 	andi.l #32766,d1
 	add.l d0,d1
 	lea.l $0(a0,d1.w),a0
@@ -50674,7 +50679,7 @@ print_alternate_positioned_text_mode0:
 	lea.l abs_0_0003BCAA.l,a0
 	move.b $0(a0,d0.w),d0
 	andi.l #255,d0
-	movea.l $0004(a6),a0
+	movea.l app_0004(a6),a0
 	andi.l #32766,d1
 	add.l d0,d1
 	lea.l $0(a0,d1.w),a0

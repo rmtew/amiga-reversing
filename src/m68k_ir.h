@@ -602,9 +602,14 @@ typedef enum M68kAnalysisRssetLayoutStorageKind {
   M68K_ANALYSIS_RSSET_LAYOUT_STORAGE_POINTER_TABLE = 6U
 } M68kAnalysisRssetLayoutStorageKind;
 
+#define M68K_APP_BASE_SYMBOL "__amiga_app_base__"
+#define M68K_LAYOUT_BASE_SEMANTIC_PREFIX "layout_base:"
+
 /* A named RAM location with a durable storage contract.  Unlike an RSSET
  * region this has no application-base dependency, so it can describe the
- * absolute globals used by games and resident code. */
+ * absolute globals used by games and resident code.  A four-byte pointer may
+ * declare semantic_type="layout_base:<declared RSSET base symbol>". Its value
+ * is a runtime base contract, not a source pointer inferred from stored bytes. */
 typedef struct M68kAnalysisAbsoluteStorageSlot {
   uint32_t address;
   uint8_t size;

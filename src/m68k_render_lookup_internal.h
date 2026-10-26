@@ -188,7 +188,6 @@ typedef struct M68kRenderBaseFieldSlot {
   uint8_t conflicted;
 } M68kRenderBaseFieldSlot;
 
-#define M68K_APP_BASE_SYMBOL "__amiga_app_base__"
 #define M68K_APP_LAYOUT_NAME "app"
 
 #define M68K_RENDER_BASE_FIELD_SLOT_LIBRARY_BASE 0U

@@ -1,6 +1,7 @@
 #include "platform_common.h"
 
 #include "m68k_simulator.h"
+#include "m68k_instruction_spec.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -191,6 +192,62 @@ int platform_operand_updates_address_register(const M68kInstructionIR *instructi
   return operand->kind == M68K_ASM_OPERAND_POSTINC || operand->kind == M68K_ASM_OPERAND_PREDEC ||
     ((operand->kind == M68K_ASM_OPERAND_EA || operand->kind == M68K_ASM_OPERAND_BF_EA) &&
      (operand->value.ea_mode == 3U || operand->value.ea_mode == 4U));
+}
+
+/* Register masks use normalized IR order: D0..D7, A0..A7. Generated access
+ * roles are interpreted through the decoded operand, never its printed text. */
+uint16_t platform_operand_register_write_mask(const M68kInstructionIR *instruction, size_t operand_index) {
+  const M68kSimFormMetadata *metadata;
+  const M68kOperandIR *operand;
+  uint8_t address = 0U, reg = 0U, access;
+  uint16_t mask = 0U;
+  if (instruction == NULL || operand_index >= instruction->operand_count || operand_index >= 4U) return 0U;
+  operand = &instruction->operands[operand_index];
+  metadata = m68k_sim_metadata_for_instruction(instruction);
+  access = metadata != NULL ? metadata->operand_access_kinds[operand_index] : M68K_SIM_ACCESS_REGISTER_WRITE;
+  if (access == M68K_SIM_ACCESS_REGISTER_WRITE || access == M68K_SIM_ACCESS_MEMORY_WRITE ||
+      access == M68K_SIM_ACCESS_REGISTER_LIST_WRITE) {
+    if (operand->kind == M68K_ASM_OPERAND_REGLIST) mask = (uint16_t)operand->value.value;
+    else if (m68k_instruction_operand_direct_register(operand, &address, &reg) && reg < 8U)
+      mask = (uint16_t)(1U << (reg + (address ? 8U : 0U)));
+  }
+  if (platform_operand_updates_address_register(instruction, operand_index) && operand->value.ea_reg < 8U)
+    mask |= (uint16_t)(1U << (8U + operand->value.ea_reg));
+  return mask;
+}
+
+/* A contiguous memory footprint, not an EA auto-update delta or a loop range.
+ * Unknown/striped forms refuse so callers invalidate conservatively. */
+int platform_operand_memory_span(const M68kInstructionIR *instruction, size_t operand_index,
+    uint8_t *element_width, uint8_t *transfer_count, uint8_t *span_bytes) {
+  const M68kSimFormMetadata *metadata;
+  uint8_t width, count = 1U, access;
+  if (instruction == NULL || operand_index >= instruction->operand_count || operand_index >= 4U) return 0;
+  metadata = m68k_sim_metadata_for_instruction(instruction);
+  if (metadata == NULL || metadata->striped_direction != M68K_SIM_STRIPED_NONE) return 0;
+  if (m68k_instruction_operand_decoded_ea_shape(&instruction->operands[operand_index]) ==
+      M68K_SIM_EA_SHAPE_NONE) return 0;
+  width = m68k_sim_operand_width_bytes(instruction, (uint8_t)operand_index);
+  if (metadata->multi_transfer_direction != M68K_SIM_MULTI_NONE) {
+    uint8_t reglist = metadata->reglist_operand_index, bit;
+    uint16_t mask;
+    if (metadata->operation_type != M68K_SIM_OP_MOVE_MULTIPLE ||
+        metadata->address_operand_index != operand_index || reglist >= instruction->operand_count ||
+        instruction->operands[reglist].kind != M68K_ASM_OPERAND_REGLIST ||
+        (width != 2U && width != 4U)) return 0;
+    mask = (uint16_t)instruction->operands[reglist].value.value;
+    count = 0U;
+    for (bit = 0U; bit < 16U; ++bit) if ((mask & (1U << bit)) != 0U) ++count;
+    if (count == 0U) return 0;
+  } else {
+    access = metadata->operand_access_kinds[operand_index];
+    if ((access != M68K_SIM_ACCESS_MEMORY_READ && access != M68K_SIM_ACCESS_MEMORY_WRITE) ||
+        width == 0U || (unsigned int)width * count > UINT8_MAX) return 0;
+  }
+  if (element_width != NULL) *element_width = width;
+  if (transfer_count != NULL) *transfer_count = count;
+  if (span_bytes != NULL) *span_bytes = (uint8_t)(width * count);
+  return 1;
 }
 
 void platform_format_runtime_address_symbol_name(const char *role, uint32_t address, const char *suffix,

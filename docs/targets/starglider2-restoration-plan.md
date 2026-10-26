@@ -34,7 +34,7 @@ checks. 93 model-directory annotations join 92 original names plus the type 0/1
 alias. Type 30's substituted selector and eleven other placeholder-name entries
 remain explicit. These are catalogue associations, not visual identification or
 an all-path runtime instance census. That early catalogue/hardware suite passed 125 cases; the current focused
-cursor/provenance/integration suite passes 331. Earlier text/renderer checks
+cursor/provenance/integration suite passes 363. Earlier text/renderer checks
 retain their separate receipts. Source
 quality has zero diagnostics and retains the known encoded-entry boundary conflict.
 
@@ -65,7 +65,7 @@ relocation, C conversion or replacement OS loader is part of this project.
 
 ## Active priorities after cursor-span qualification
 
-The current source has 299 app field records, 93 generic names and 14,728
+The current source has 303 app field records, 97 generic names and 14,728
 unclassified bytes in 260 intervals. These measure different kinds of work,
 not overall completion. The current residual index is recomputed from retained
 native facts without another generation; the 15,111-byte/256-interval review
@@ -104,7 +104,7 @@ For those priorities the immediate acceptance questions and dependencies are:
 | Limitation | What it currently blocks | Next bounded experiment | Why it is sequenced here |
 | --- | --- | --- | --- |
 | Branchy point-field loop and saved cursor | Renderer read/update spans for world/cache triplets; initialization is now bounded | Extend the retry/DBF fixture with the original saved-slot increment and rollback, checking cursor=base+6*(initial-counter) | Single-entry straight-line DBF ranges are qualified. The actual renderer can retry without decrementing the counter, so a constant-stride body summary is insufficient. |
-| Conditional app base | Stronger attribution for fallback matrix, input and object-workspace references | Trace producers of `game_workspace_base`, its A6 loads, register copies/borrows and concrete entry/callback edges; reproduce any dropped propagation with a native fixture | Next after the range fixture; current declarations identify relative fields but do not establish their runtime register origin. |
+| Remaining conditional app bases | Explicit provenance for 2,995 fallback records after 179 existing records acquire declared-holder register-state attribution | Group remaining sites by actual entry/call and base producer/borrow; select one concrete lost or conflicting transfer | The holder contract covers its 28 direct loads, not unknown callbacks or callees without a preservation contract. |
 | Orphan incoming path | Deciding whether a specific decoded island belongs in accepted code | Rank current unresolved signals against recovered pointer/table/return edges; choose one with a concrete inbound lead and, only if static evidence remains insufficient, observe that original normal-input condition | Follow recovered access/base evidence to avoid repeatedly scanning instruction-shaped bytes without an entry hypothesis. |
 | Shared buffer phase | Distinguishing producers/consumers of aliased scratch cells and safe source type views | Join the current vertex/cache/polygon writers and readers by original phase/entry; test one suspected overwrite-before-use or cross-phase consumer | Depends on accurate cursor/base associations; physical adjacency or storage capacity alone cannot identify ownership/lifetime. |
 | Model selector ambiguity | Attaching actual selector/variant meaning or an object identity to unresolved names | Join existing header/name/callback records with a selected original runtime instance or direct consumer; retain a counterexample for the type-30 substitution | After access/base work, unless an independent exact table consumer settles a case cheaply. No visual identity is inferred from a name-directory row. |
@@ -2532,3 +2532,61 @@ OS libraries. Next is an explicit app/layout role in the existing absolute
 storage contract, with full-value/source-identity and malformed-role fixtures;
 no base will be inferred from the initial $3300 value or symbol spelling. See
 `runtime/observations/starglider2-named-base-write-invalidation.json`.
+
+
+## Runtime workspace holder and shared instruction footprints
+
+The canonical absolute storage fact at $27A8 declares the original workspace
+base role once, using `layout_base:__amiga_app_base__`. Native evidence enumerates
+one direct startup write and 28 LONG loads (one A0 clear cursor and 27 A6 reloads).
+The original $3300 seed and calculated $61668/$69668 alternatives are runtime
+workspace values, not source pointers inferred from numeric equality. Existing
+RSSET and native register state consume the declaration; invalid/unknown roles,
+partial/address-of loads and conflicting slots refuse. A non-app named-layout
+fixture keeps this separate from OS libraries and target-specific recognition.
+The role remains an original-use contract, not a proof of every unknown writer.
+
+Focused tests found two further missing links before publication. Named bases
+survived calls without a preservation contract; the direct app catalogue also
+used a separate linear scan instead of the solver's state. Sequential app/layout
+identities now clear at calls, and the existing CFG/callable-effects boundary
+retains only preserved registers. One common recorder consumes the converged
+CFG for explicit base evidence. The legacy linear pass retains its conditional
+fallback interpretations only; a conflicting join cannot become register-state
+proof, and an old fallback site is not dropped merely because linear order saw
+a holder load. The earlier 13-new/261-attribution candidate is superseded, not an
+accepted result or a published milestone.
+
+The final result is 3,175 -> 3,180 app sites: five added, none removed, and 179
+existing records upgraded from fallback to declared-base CFG register state.
+There are 184 register-state records, 2,995 fallback records and one library-
+extension record. Four missing generic fields (0/4 and $138/$13A) become visible:
+the inventory expands from 299 fields/93 generic to 303/97. No semantic names
+are invented and the 14,728-byte/260-interval payload complement is unchanged.
+The title $1D8/$1DA sites remain numeric where preservation is unproved. Accepted
+code, source ownership and 248 recovered platform typed accesses are unchanged.
+
+Independent review reproduced the bulk stack-write omission: MOVEM.L D0-D1,
+0(A7) invalidated one scalar element after saving A4/A5. Shared native
+`platform_operand_memory_span` now supplies scalar/grouped widths and counts to
+both stack invalidation and app spans. The LONG write clears both identities;
+a WORD-prefix write preserves the untouched second slot. Shared
+`platform_operand_register_write_mask` owns decoded register writes, lists and
+auto-updates across lookup and app/layout/hardware invalidation. Generated
+metadata and decoded IR remain the instruction authority, with no target
+addresses or separate handwritten transfer engine. All 363 focused tests pass.
+Current C/vasm reproduces every original byte; all 57 asset slices are unchanged.
+
+The final generation took 114.86 seconds. Fresh evidence and changed-backend
+qualification added measured work as the review/CFG defects were found. This is
+an observed sample, not a controlled speed claim; no iteration cap changed.
+The rolling residual index reuses the final native analysis; the historical
+survey is unchanged. No gameplay or repeated interim archive was needed.
+
+Next, join the recovered input/display producers and consumers to name their
+actual roles and phase aliases. Then rank concrete orphan incoming paths against
+these references. The branchy renderer still needs its counter/retry/rollback
+relation rather than a target-shaped recognizer. App/layout identity domains,
+app-only range facts, stack-restored named-base provenance and the large render-
+lookup module remain explicit architectural limits. Each next obligation and
+experiment is in `runtime/observations/starglider2-workspace-base-propagation.json`.

@@ -1297,6 +1297,9 @@ static int typed_app_memory_span(const M68kRenderLookup *lookup, const M68kRende
     const M68kInstructionIR *instruction, size_t operand_index, uint8_t *out_reg,
     int16_t *out_displacement, uint8_t *out_access, uint8_t *out_width,
     uint8_t *out_element_width, uint8_t *out_count);
+static int render_lookup_record_base_app_accesses(M68kRenderLookup *lookup, size_t section_index,
+    const M68kRenderPlatformState *state, const M68kInstructionIR *instruction, uint32_t offset,
+    int legacy_fallbacks);
 static int render_lookup_record_derived_app_accesses(M68kRenderLookup *lookup, size_t section_index,
     const M68kRenderTypedState *state, const M68kInstructionIR *instruction, uint32_t offset);
 static int render_lookup_record_affine_address_uses(M68kRenderLookup *lookup, size_t section_index,
@@ -4968,23 +4971,7 @@ static int typed_flow_record_callback_input_consumers(M68kRenderLookup *lookup, 
 
 int instruction_operand_writes_register_from_metadata(const M68kInstructionIR *instruction,
     size_t operand_index) {
-  const M68kSimFormMetadata *metadata;
-  uint8_t access_kind;
-  if (instruction == NULL || operand_index >= instruction->operand_count) return 0;
-  metadata = m68k_sim_metadata_for_instruction(instruction);
-  if (metadata == NULL) return operand_index + 1U == instruction->operand_count;
-  access_kind = metadata->operand_access_kinds[operand_index];
-  if (access_kind == M68K_SIM_ACCESS_REGISTER_WRITE ||
-      access_kind == M68K_SIM_ACCESS_REGISTER_LIST_WRITE) return 1;
-  /* Generic EA forms label the destination as a memory write even when the
-   * decoded EA selects Dn/An. Resolve the actual shape before deciding which
-   * abstract register value is killed; memory-indirect remains a memory write. */
-  if (access_kind == M68K_SIM_ACCESS_MEMORY_WRITE) {
-    uint8_t reg;
-    return operand_is_data_register_local(&instruction->operands[operand_index], &reg) ||
-      operand_address_register_index_local(&instruction->operands[operand_index], &reg);
-  }
-  return 0;
+  return platform_operand_register_write_mask(instruction, operand_index) != 0U;
 }
 
 static int instruction_move_operand_indices_from_metadata(const M68kInstructionIR *instruction,
@@ -5595,8 +5582,9 @@ static int render_lookup_record_untyped_memory_writes(M68kRenderLookup *lookup, 
     int added = 0;
     if (metadata->operand_access_kinds[operand_index] != M68K_SIM_ACCESS_MEMORY_WRITE) continue;
     if (operand_is_stack_displacement_local(operand, &stack_displacement)) {
-      typed_state_clear_stack_write(state, stack_displacement,
-        m68k_sim_operand_width_bytes(instruction, (uint8_t)operand_index));
+      uint8_t span = 0U;
+      (void)platform_operand_memory_span(instruction, operand_index, NULL, NULL, &span);
+      typed_state_clear_stack_write(state, stack_displacement, span);
     }
     if (operand_is_address_memory_local(operand, &base_reg, &base_displacement) && base_reg < 8U &&
         base_reg != 7U && !render_state_operand_uses_app_base(platform_state, base_reg, base_displacement)) {
@@ -9153,6 +9141,8 @@ static int typed_flow_process_node(M68kRenderLookup *lookup, const M68kDecodeIR 
        * callback-body walk is permitted as a compatibility transfer path. */
     }
   }
+  if (record_typed_accesses && render_lookup_record_base_app_accesses(lookup, section->section_index,
+      out_platform_state, &instruction, node->candidate->offset, 0) != 0) return -1;
   if (record_typed_accesses && render_lookup_record_derived_app_accesses(lookup, section->section_index,
       out_typed_state, &instruction, node->candidate->offset) != 0) return -1;
   if (record_typed_accesses && render_lookup_record_affine_address_uses(lookup, section->section_index,
@@ -9289,6 +9279,11 @@ static int typed_flow_process_node(M68kRenderLookup *lookup, const M68kDecodeIR 
           (metadata->flow_kind == M68K_SIM_FLOW_CALL &&
            function_summary_register_effect(selected_local_effects, M68K_ANALYSIS_REGISTER_ADDRESS, reg) ==
              M68K_FUNCTION_SUMMARY_LOCATION_PRESERVED)) {
+        out_platform_state->address_app_base_known |= before.address_app_base_known & bit;
+        out_platform_state->address_layout_base_known |= before.address_layout_base_known & bit;
+        if ((before.address_layout_base_known & bit) != 0U)
+          memcpy(out_platform_state->address_layout_base_symbol[reg], before.address_layout_base_symbol[reg],
+            sizeof(out_platform_state->address_layout_base_symbol[reg]));
         out_platform_state->address_hardware_base_known |= before.address_hardware_base_known & bit;
         out_platform_state->address_hardware_base_id[reg] = before.address_hardware_base_id[reg];
       }
@@ -9296,6 +9291,11 @@ static int typed_flow_process_node(M68kRenderLookup *lookup, const M68kDecodeIR 
           (metadata->flow_kind == M68K_SIM_FLOW_CALL &&
            function_summary_register_effect(selected_local_effects, M68K_ANALYSIS_REGISTER_DATA, reg) ==
              M68K_FUNCTION_SUMMARY_LOCATION_PRESERVED)) {
+        out_platform_state->data_app_base_known |= before.data_app_base_known & bit;
+        out_platform_state->data_layout_base_known |= before.data_layout_base_known & bit;
+        if ((before.data_layout_base_known & bit) != 0U)
+          memcpy(out_platform_state->data_layout_base_symbol[reg], before.data_layout_base_symbol[reg],
+            sizeof(out_platform_state->data_layout_base_symbol[reg]));
         out_platform_state->data_hardware_base_known |= before.data_hardware_base_known & bit;
         out_platform_state->data_hardware_base_id[reg] = before.data_hardware_base_id[reg];
       }
@@ -11532,7 +11532,10 @@ static int render_lookup_add_app_access_ref(M68kRenderLookup *lookup, size_t sec
         existing->ref.displacement == displacement && existing->ref.base_reg == base_reg &&
         existing->ref.operand_index == operand_index && existing->ref.access_kind == access_kind) {
       if (existing->ref.base_evidence_kind == M68K_APP_SLOT_BASE_UNSPECIFIED ||
-          base_evidence_kind == M68K_APP_SLOT_BASE_USE_SITE_BINDING)
+          base_evidence_kind == M68K_APP_SLOT_BASE_USE_SITE_BINDING ||
+          (base_evidence_kind == M68K_APP_SLOT_BASE_REGISTER_STATE &&
+           (existing->ref.base_evidence_kind == M68K_APP_SLOT_BASE_A6_FALLBACK ||
+            existing->ref.base_evidence_kind == M68K_APP_SLOT_BASE_DECLARED_LAYOUT_A6_FALLBACK)))
         existing->ref.base_evidence_kind = base_evidence_kind;
       return 0;
     }
@@ -11692,17 +11695,15 @@ static int typed_app_memory_span(const M68kRenderLookup *lookup, const M68kRende
     /* Loading the EA register changes its value independently of memory
      * cursor motion. Do not resurrect its old app identity afterwards. */
     if ((mask & (1U << (8U + reg))) != 0U) return 0;
-    count = 0U;
-    for (index = 0U; index < 16U; ++index) if ((mask & (1U << index)) != 0U) ++count;
-    width = (uint8_t)instruction_size_suffix_bytes_local(instruction->size_suffix);
-    if (count == 0U || (width != 2U && width != 4U)) return 0;
+    if (!platform_operand_memory_span(instruction, operand_index, &width, &count, NULL)) return 0;
     access = metadata->multi_transfer_direction == M68K_SIM_MULTI_MEMORY_TO_REGISTER
       ? M68K_APP_SLOT_ACCESS_READ : M68K_APP_SLOT_ACCESS_WRITE;
   } else {
     access = app_slot_access_kind_from_instruction(instruction, operand_index);
     if (access == M68K_APP_SLOT_ACCESS_NONE) return 0;
-    width = access == M68K_APP_SLOT_ACCESS_ADDRESS ? 0U :
-      m68k_sim_operand_width_bytes(instruction, (uint8_t)operand_index);
+    width = 0U;
+    if (access != M68K_APP_SLOT_ACCESS_ADDRESS &&
+        !platform_operand_memory_span(instruction, operand_index, &width, &count, NULL)) return 0;
     if (access != M68K_APP_SLOT_ACCESS_ADDRESS && width != 1U && width != 2U && width != 4U) return 0;
     if (access == M68K_APP_SLOT_ACCESS_ADDRESS && shape == M68K_SIM_EA_SHAPE_POSTINCREMENT) return 0;
     for (index = 0U; index < instruction->operand_count; ++index) {
@@ -15021,17 +15022,48 @@ uint8_t render_app_base_evidence_kind(const M68kRenderLookup *lookup,
     ? M68K_APP_SLOT_BASE_DECLARED_LAYOUT_A6_FALLBACK : M68K_APP_SLOT_BASE_UNSPECIFIED;
 }
 
+/* Explicit base identity comes from the converged CFG. The old linear lane
+ * contributes only its qualified fallback/library-extension interpretations. */
+static int render_lookup_record_base_app_accesses(M68kRenderLookup *lookup, size_t section_index,
+    const M68kRenderPlatformState *state, const M68kInstructionIR *instruction, uint32_t offset,
+    int legacy_fallbacks) {
+  int32_t minimum = 0;
+  size_t operand_index;
+  if (lookup == NULL || lookup->object == NULL ||
+      lookup->object->platform_backend_kind != M68K_PLATFORM_BACKEND_AMIGA_HUNK) return 0;
+  if (lookup_has_amiga_resident_library_context(lookup) &&
+      !render_amiga_constant_value_by_symbol_id(AMIGA_OS_SYMBOL_ID_LIB_SIZE, &minimum)) return 0;
+  for (operand_index = 0U; operand_index < instruction->operand_count && operand_index < 4U; ++operand_index) {
+    uint8_t base_reg = 0U, access, evidence, width;
+    int16_t displacement = 0;
+    if (!operand_is_address_displacement_local(&instruction->operands[operand_index], &base_reg,
+        &displacement) || (int32_t)displacement < minimum) continue;
+    access = app_slot_access_kind_from_instruction(instruction, operand_index);
+    if (access == M68K_APP_SLOT_ACCESS_NONE) continue;
+    width = app_slot_access_size_from_instruction(instruction, access);
+    evidence = render_app_base_evidence_kind(lookup, state, base_reg, displacement, width);
+    if (legacy_fallbacks && evidence == M68K_APP_SLOT_BASE_REGISTER_STATE) {
+      static const M68kRenderPlatformState unattributed = {0};
+      /* A linear identity is not CFG provenance. Retain only the same A6
+       * fallback interpretation available without that identity; never drop
+       * an old conditional site merely because the linear scan saw a load. */
+      evidence = render_app_base_evidence_kind(lookup, &unattributed, base_reg, displacement, width);
+    }
+    if (evidence == M68K_APP_SLOT_BASE_UNSPECIFIED ||
+        (legacy_fallbacks ? evidence == M68K_APP_SLOT_BASE_REGISTER_STATE :
+          evidence != M68K_APP_SLOT_BASE_REGISTER_STATE)) continue;
+    if (render_lookup_add_app_access_ref(lookup, section_index, offset, base_reg, displacement,
+        (uint8_t)operand_index, access, width, 1, evidence) != 0) return -1;
+  }
+  return 0;
+}
+
 static int render_lookup_analyze_amiga_app_state_slots(M68kRenderLookup *lookup, const M68kDecodeIR *decode,
     uint8_t **accepted_start) {
   size_t section_index;
-  int32_t min_app_displacement = 0;
   if (lookup == NULL || decode == NULL || accepted_start == NULL) return -1;
   if (lookup->object == NULL || lookup->object->platform_backend_kind != M68K_PLATFORM_BACKEND_AMIGA_HUNK)
     return 0;
-  if (lookup_has_amiga_resident_library_context(lookup) &&
-      !render_amiga_constant_value_by_symbol_id(AMIGA_OS_SYMBOL_ID_LIB_SIZE, &min_app_displacement)) {
-    return 0;
-  }
   for (section_index = 0U; section_index < decode->section_count; ++section_index) {
     const M68kDecodeSectionIR *section = &decode->sections[section_index];
     M68kRenderPlatformState state;
@@ -15040,32 +15072,12 @@ static int render_lookup_analyze_amiga_app_state_slots(M68kRenderLookup *lookup,
     for (candidate_index = 0U; candidate_index < section->candidate_count; ++candidate_index) {
       const M68kDecodeCandidate *candidate = &section->candidates[candidate_index];
       M68kInstructionIR instruction;
-      size_t operand_index;
       if (!candidate_is_accepted_start(section, accepted_start[section_index], candidate)) continue;
       platform_state_apply_policy_register_seeds(&state, lookup->policy, section->section_index,
         candidate->offset);
       if (m68k_decode_candidate_to_instruction(candidate, &instruction) != 0) continue;
-      for (operand_index = 0U; operand_index < instruction.operand_count && operand_index < 4U; ++operand_index) {
-        uint8_t base_reg = 0U;
-        int16_t displacement = 0;
-        uint8_t access_kind;
-        uint8_t base_evidence_kind;
-        if (!operand_is_address_displacement_local(&instruction.operands[operand_index], &base_reg,
-            &displacement)) {
-          continue;
-        }
-        if ((int32_t)displacement < min_app_displacement) continue;
-        access_kind = app_slot_access_kind_from_instruction(&instruction, operand_index);
-        if (access_kind == M68K_APP_SLOT_ACCESS_NONE) continue;
-        base_evidence_kind = render_app_base_evidence_kind(lookup, &state, base_reg, displacement,
-          app_slot_access_size_from_instruction(&instruction, access_kind));
-        if (base_evidence_kind == M68K_APP_SLOT_BASE_UNSPECIFIED) continue;
-        if (render_lookup_add_app_access_ref(lookup, section->section_index, candidate->offset, base_reg,
-            displacement, (uint8_t)operand_index, access_kind,
-            app_slot_access_size_from_instruction(&instruction, access_kind), 1, base_evidence_kind) != 0) {
-          return -1;
-        }
-      }
+      if (render_lookup_record_base_app_accesses(lookup, section->section_index, &state,
+          &instruction, candidate->offset, 1) != 0) return -1;
       {
         M68kRenderPlatformState before = state;
         platform_state_update_after_instruction(&state, lookup, &instruction);

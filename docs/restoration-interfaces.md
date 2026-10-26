@@ -18,6 +18,25 @@ the command does not discover strings or establish that every caller is safe.
 Use it for already evidenced text extents when selecting many listing rows would
 add unnecessary materialization overhead. Ordinary seed removal/undo applies.
 
+## Absolute runtime layout-base holders
+
+`target.absolute_storage_slot.add` can declare an evidenced four-byte `pointer`
+with `semantic_type: "layout_base:<base symbol>"`. The base symbol must belong to
+an existing RSSET layout (the app default is `__amiga_app_base__`), and
+`pointer_struct` must be empty. This reuses the ordinary revision-checked
+storage fact, MAL persistence and native platform-state propagation; it is not
+an OS library, a source pointer or a relocation request.
+
+A full LONG memory load from that exact runtime slot establishes the declared
+base identity. Partial loads, LEA/address-of/immediate expressions, other slots,
+unknown layouts and conflicting declarations do not. Subsequent register writes
+and automatic address updates invalidate unchanged-base identity. Stored numeric
+contents do not establish a base, and the annotation does not prove unknown
+indirect writers or arbitrary replacement inputs obey its original-use contract.
+Inspect original producers/consumers before declaring the role. Provenance remains
+a declared canonical contract propagated through register state, not a new runtime
+observation or universal entry-path proof.
+
 ## Listing range commands
 
 A range resolves its locators against one current projection. For an owned native

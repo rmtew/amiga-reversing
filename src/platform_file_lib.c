@@ -1810,10 +1810,24 @@ static int policy_add_absolute_storage_slot_local(M68kAnalysisPolicy *policy, ui
       policy->absolute_storage_slot_count >= M68K_ANALYSIS_ABSOLUTE_STORAGE_SLOT_LIMIT) {
     return 0;
   }
+  if (semantic_type != NULL && strncmp(semantic_type, M68K_LAYOUT_BASE_SEMANTIC_PREFIX,
+      sizeof(M68K_LAYOUT_BASE_SEMANTIC_PREFIX) - 1U) == 0) {
+    const char *base = semantic_type + sizeof(M68K_LAYOUT_BASE_SEMANTIC_PREFIX) - 1U;
+    int declared = 0;
+    if (size != 4U || storage_kind_id != M68K_ANALYSIS_RSSET_LAYOUT_STORAGE_POINTER ||
+        (pointer_struct != NULL && pointer_struct[0] != '\0') || !asm_symbol_name_is_safe_local(base)) return 0;
+    for (index = 0U; index < policy->rsset_layout_region_count; ++index) {
+      const M68kAnalysisRssetLayoutRegion *region = &policy->rsset_layout_regions[index];
+      if (strcmp(base, region->base_symbol[0] ? region->base_symbol : M68K_APP_BASE_SYMBOL) == 0) declared = 1;
+    }
+    if (!declared) return 0;
+  }
   for (index = 0U; index < policy->absolute_storage_slot_count; ++index) {
     const M68kAnalysisAbsoluteStorageSlot *existing = &policy->absolute_storage_slots[index];
     if (existing->address == address) return strcmp(existing->symbol, symbol) == 0 &&
-      existing->storage_kind_id == storage_kind_id;
+      existing->storage_kind_id == storage_kind_id && existing->size == size &&
+      strcmp(existing->semantic_type, semantic_type != NULL ? semantic_type : "") == 0 &&
+      strcmp(existing->pointer_struct, pointer_struct != NULL ? pointer_struct : "") == 0;
   }
   slot = &policy->absolute_storage_slots[policy->absolute_storage_slot_count];
   memset(slot, 0, sizeof(*slot));

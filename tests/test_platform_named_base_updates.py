@@ -21,9 +21,9 @@ static void apply(M68kRenderPlatformState *state, const char *text) {
   platform_state_update_after_instruction(state, &lookup, &i);
 }
 int main(void) {
-  const char *changes[] = {"addq.l #2,a0", "movea.w a6,a0", "clr.l d0", "move.w a6,d0", "move.w (a0)+,d1", "move.l d1,-(a0)"};
+  const char *changes[] = {"addq.l #2,a0", "movea.w a6,a0", "clr.l d0", "move.w a6,d0", "move.w (a0)+,d1", "move.l d1,-(a0)", "movem.w (a0)+,d1-d2", "movem.l d1-d2,-(a0)"};
   unsigned int k, layout;
-  for(layout=0;layout<2;++layout) for(k=0;k<6;++k) {
+  for(layout=0;layout<2;++layout) for(k=0;k<8;++k) {
     M68kRenderPlatformState state = {0};
     if(layout) platform_state_set_register_layout_base(&state, M68K_ANALYSIS_REGISTER_ADDRESS, 6, "workspace");
     else platform_state_set_register_app_base(&state, M68K_ANALYSIS_REGISTER_ADDRESS, 6);
@@ -43,6 +43,13 @@ int main(void) {
       assert(!m68k_bitset_u32_has(state.data_app_base_known,0));
       assert(!m68k_bitset_u32_has(state.data_layout_base_known,0));
     }
+  }
+  {
+    M68kRenderPlatformState state = {0};
+    platform_state_set_register_app_base(&state, M68K_ANALYSIS_REGISTER_ADDRESS, 0);
+    platform_state_set_register_layout_base(&state, M68K_ANALYSIS_REGISTER_DATA, 1, "workspace");
+    apply(&state, "jsr $2000.l");
+    assert(!state.address_app_base_known && !state.data_layout_base_known);
   }
   return 0;
 }
