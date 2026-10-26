@@ -957,6 +957,11 @@ int operand_is_postinc_a7_local(const M68kOperandIR *operand);
 int operand_is_data_register_local(const M68kOperandIR *operand, uint8_t *out_reg);
 int operand_address_register_index_local(const M68kOperandIR *operand, uint8_t *out_reg);
 uint8_t app_slot_access_kind_from_instruction(const M68kInstructionIR *instruction, size_t operand_index);
+uint8_t app_slot_access_size_from_instruction(const M68kInstructionIR *instruction, uint8_t access_kind);
+uint8_t render_app_base_evidence_kind(const M68kRenderLookup *lookup,
+  const M68kRenderPlatformState *state, uint8_t base_reg, int16_t displacement, uint8_t access_size);
+void hardware_relative_transfer_linear(M68kRenderPlatformState *state, const M68kRenderPlatformState *before,
+  const M68kInstructionIR *instruction);
 int render_state_operand_uses_app_base(const M68kRenderPlatformState *state, uint8_t base_reg,
   int16_t displacement);
 int candidate_lea_known_amiga_name_to_address_reg(const M68kRenderLookup *lookup,

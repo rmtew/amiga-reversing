@@ -191,7 +191,18 @@ displacement, index, generated width and operand role), `app_slot_refs`, typed a
 unresolved typed accesses, address observations and platform address uses. These
 are structured analysis evidence, not parsed instruction text or runtime events.
 App attribution can use the analyzer's A6 fallback; it does not establish an
-all-path base value. Hardware families retain their offset set and input-contract
+all-path base value. Analysis and listing `app_slot_refs` expose `base_evidence`:
+`register_state` (tracked state, including declared inputs), `use_site_binding`
+(an explicit operand contract), `library_extension` (the existing library-private
+slot convention), `a6_fallback`, `declared_layout_a6_fallback`, or `unspecified`.
+The two fallbacks are assumptions, not proved effective addresses. A declared
+app region can disambiguate an unknown A6's numeric custom-register offset only
+when it covers the decoded data width (or one byte for an address-only use);
+this is not a complete bulk/sparse footprint proof. Unrelated registers/layouts, partial
+extents and known hardware bases do not gain app references via this fallback. Such a fallback
+does not create the `base_evidence_id` needed for automatic binding admission.
+A named operand in a different layout also need not be an app access.
+Hardware families retain their offset set and input-contract
 flag with no invented concrete address. MOVEM widths are per element; the
 `bulk_transfer` flag prevents treating them as a complete footprint. Form roles
 alone do not independently enumerate every read side of read-modify-write uses.

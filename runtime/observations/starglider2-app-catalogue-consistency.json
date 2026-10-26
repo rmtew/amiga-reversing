@@ -1,0 +1,581 @@
+{
+  "schema_version": 1,
+  "kind": "native_app_reference_catalogue_and_renderer_consistency",
+  "status": "verified",
+  "target": "amiga_raw_starglider2_game",
+  "publication_base_commit": "e31b1eab9a73d8a8a5f9067234ed18dae68b26a3",
+  "cause": "Collector unknown-A6 fallback excluded numeric custom-register offsets; renderer could name those same operands from declared app regions. Native low-field references were omitted. Partial extents and hardware-relative inputs could also be misleadingly named.",
+  "implementation": {
+    "shared_admission": "Known register/layout state, known hardware exclusions and explicitly labelled A6/layout fallbacks; decode-native operands/roles, no source-text reverse parsing.",
+    "full_width_scope": "Canonical app region must cover decoded data width (or1byte for address-only use) to disambiguate a custom-offset collision. This is not a complete bulk/sparse footprint proof.",
+    "hardware_transfer": "Reuse existing bounded low-WORD relative hardware domain in linear collector/render walks; KB-resolved full LEA/immediate hardware addresses retain base+offset. Reads, overwrites, calls and terminal linear flow do not manufacture a base.",
+    "evidence_field": "Analysis and listing app_slot_refs.base_evidence distinguish register_state/use_site_binding/library_extension/a6_fallback/declared_layout_a6_fallback/unspecified. Fallbacks remain assumptions, not independently proved addresses or binding evidence IDs.",
+    "scope": "Amiga lookup pass; no target-specific offsets in admission or instruction-size transformations."
+  },
+  "reference_accounting": {
+    "before": 2593,
+    "after": 2741,
+    "added": 148,
+    "removed": 0,
+    "added_displacements": 23,
+    "by_displacement": [
+      {
+        "displacement": 68,
+        "added_references": 19,
+        "accesses": {
+          "write": 1,
+          "read": 18
+        },
+        "source_sites": [
+          7956,
+          10328,
+          39012,
+          40876,
+          42478,
+          44138,
+          44416,
+          44492,
+          44584,
+          98674,
+          192346,
+          192378,
+          194122,
+          220516,
+          221450,
+          222632,
+          223770,
+          225932,
+          320400
+        ]
+      },
+      {
+        "displacement": 72,
+        "added_references": 20,
+        "accesses": {
+          "write": 1,
+          "read": 19
+        },
+        "source_sites": [
+          7966,
+          10332,
+          39022,
+          40886,
+          42488,
+          44148,
+          44426,
+          44502,
+          44594,
+          98678,
+          192356,
+          192388,
+          192648,
+          194126,
+          220520,
+          221454,
+          222636,
+          223774,
+          225936,
+          320410
+        ]
+      },
+      {
+        "displacement": 92,
+        "added_references": 7,
+        "accesses": {
+          "read-write": 5,
+          "write": 1,
+          "read": 1
+        },
+        "source_sites": [
+          5326,
+          8240,
+          16102,
+          47026,
+          47316,
+          217132,
+          225528
+        ]
+      },
+      {
+        "displacement": 116,
+        "added_references": 6,
+        "accesses": {
+          "write": 1,
+          "read": 4,
+          "read-write": 1
+        },
+        "source_sites": [
+          16174,
+          26768,
+          27090,
+          27186,
+          27420,
+          27424
+        ]
+      },
+      {
+        "displacement": 244,
+        "added_references": 4,
+        "accesses": {
+          "write": 1,
+          "address": 2,
+          "read": 1
+        },
+        "source_sites": [
+          10808,
+          11150,
+          11160,
+          22298
+        ]
+      },
+      {
+        "displacement": 246,
+        "added_references": 2,
+        "accesses": {
+          "write": 1,
+          "read": 1
+        },
+        "source_sites": [
+          10896,
+          22370
+        ]
+      },
+      {
+        "displacement": 256,
+        "added_references": 2,
+        "accesses": {
+          "write": 1,
+          "read": 1
+        },
+        "source_sites": [
+          10856,
+          22336
+        ]
+      },
+      {
+        "displacement": 258,
+        "added_references": 2,
+        "accesses": {
+          "write": 1,
+          "read": 1
+        },
+        "source_sites": [
+          10944,
+          22408
+        ]
+      },
+      {
+        "displacement": 260,
+        "added_references": 2,
+        "accesses": {
+          "write": 1,
+          "read": 1
+        },
+        "source_sites": [
+          11032,
+          22480
+        ]
+      },
+      {
+        "displacement": 262,
+        "added_references": 9,
+        "accesses": {
+          "address": 7,
+          "read": 2
+        },
+        "source_sites": [
+          10214,
+          10784,
+          10872,
+          10960,
+          11130,
+          11156,
+          17308,
+          192572,
+          319738
+        ]
+      },
+      {
+        "displacement": 264,
+        "added_references": 3,
+        "accesses": {
+          "read": 3
+        },
+        "source_sites": [
+          20488,
+          20930,
+          319748
+        ]
+      },
+      {
+        "displacement": 266,
+        "added_references": 2,
+        "accesses": {
+          "read": 2
+        },
+        "source_sites": [
+          192604,
+          319760
+        ]
+      },
+      {
+        "displacement": 268,
+        "added_references": 2,
+        "accesses": {
+          "read": 2
+        },
+        "source_sites": [
+          192578,
+          319784
+        ]
+      },
+      {
+        "displacement": 270,
+        "added_references": 3,
+        "accesses": {
+          "read": 3
+        },
+        "source_sites": [
+          20502,
+          20942,
+          319794
+        ]
+      },
+      {
+        "displacement": 272,
+        "added_references": 2,
+        "accesses": {
+          "read": 2
+        },
+        "source_sites": [
+          192610,
+          319806
+        ]
+      },
+      {
+        "displacement": 306,
+        "added_references": 6,
+        "accesses": {
+          "write": 4,
+          "read": 2
+        },
+        "source_sites": [
+          16276,
+          20530,
+          22570,
+          59946,
+          59982,
+          60998
+        ]
+      },
+      {
+        "displacement": 308,
+        "added_references": 7,
+        "accesses": {
+          "write": 4,
+          "read": 3
+        },
+        "source_sites": [
+          16282,
+          20534,
+          21798,
+          22574,
+          59952,
+          59988,
+          61006
+        ]
+      },
+      {
+        "displacement": 310,
+        "added_references": 5,
+        "accesses": {
+          "write": 3,
+          "read": 2
+        },
+        "source_sites": [
+          16288,
+          20538,
+          22578,
+          59958,
+          61014
+        ]
+      },
+      {
+        "displacement": 348,
+        "added_references": 11,
+        "accesses": {
+          "read": 9,
+          "write": 2
+        },
+        "source_sites": [
+          6586,
+          6620,
+          6632,
+          6644,
+          6656,
+          6668,
+          6680,
+          29132,
+          30144,
+          53708,
+          243542
+        ]
+      },
+      {
+        "displacement": 370,
+        "added_references": 2,
+        "accesses": {
+          "read": 1,
+          "write": 1
+        },
+        "source_sites": [
+          16728,
+          98016
+        ]
+      },
+      {
+        "displacement": 372,
+        "added_references": 8,
+        "accesses": {
+          "write": 4,
+          "read": 4
+        },
+        "source_sites": [
+          18930,
+          19026,
+          19140,
+          19600,
+          19676,
+          21352,
+          21456,
+          21520
+        ]
+      },
+      {
+        "displacement": 400,
+        "added_references": 22,
+        "accesses": {
+          "read": 17,
+          "write": 3,
+          "read-write": 2
+        },
+        "source_sites": [
+          10702,
+          18996,
+          19168,
+          19296,
+          20442,
+          20452,
+          20606,
+          60024,
+          60222,
+          60372,
+          60412,
+          60430,
+          61264,
+          61358,
+          61524,
+          61580,
+          61586,
+          61596,
+          61602,
+          61648,
+          61660,
+          61680
+        ]
+      },
+      {
+        "displacement": 402,
+        "added_references": 2,
+        "accesses": {
+          "write": 1,
+          "read": 1
+        },
+        "source_sites": [
+          8558,
+          16232
+        ]
+      }
+    ],
+    "all_recorded_evidence": {
+      "a6_fallback": 2592,
+      "declared_layout_a6_fallback": 148,
+      "library_extension": 1
+    },
+    "named_model_fields": [
+      {
+        "offset": 400,
+        "before": 0,
+        "after": 22
+      },
+      {
+        "offset": 402,
+        "before": 0,
+        "after": 2
+      }
+    ],
+    "listing_native_projection_agreement": 148,
+    "added_native_operation_types": {
+      "add": 13,
+      "move": 113,
+      "test": 1,
+      "clear": 1,
+      "not_serialized": 9,
+      "compare": 5,
+      "sub": 2,
+      "multiply": 4
+    }
+  },
+  "source_accounting": {
+    "before_base_layout_fields": 275,
+    "after_base_layout_fields": 284,
+    "new_subfield_aliases": 9,
+    "accepted_code_bytes": 106034,
+    "all_previous_code_bytes_retained": true,
+    "classified_byte_union_unchanged": true,
+    "unclassified_bytes": 14748,
+    "partial_width_exception": "Original CLR.L begins at pending_bcd_score_addend WORD+$5C but spans4bytes beyond that2byte declaration. With unknownA6/custom-offset collision it now remains numeric; no guessed field enlargement or base proof.",
+    "hand_edited_assembly": false,
+    "old_source_sha256": "7981b7205c1f5a167d09ec396cf49d50760a76e49eb56404007b1189273b73c8",
+    "new_source_sha256": "b095aa45be42d20e0592a8b7f9ddd4d3fe9b1fa451dfc226fe90781b6954c169"
+  },
+  "verification": {
+    "kind": "verification",
+    "framework_exact": true,
+    "target_id": "amiga_raw_starglider2_game",
+    "subject_revision": "b86c7ff3346eb799be62ddcedf3ddcb8bf0a6a41fe49ac01ecc1eb3b520c594b",
+    "status": "exact",
+    "exact": true,
+    "source_sha256": "f7052384bd54e284f40945fa9cb22e051cd6c9242ee85766ae3f0eb04992457b",
+    "source_path": "/workspace/pandora-original-delivery/stable-d15c2cf8/.runtime-state/restoration/eb04f545fb97451725a1c91ab5abf6f2e097614c45880db6edfb4ea5c3f6e2c2/f7052384bd54e284f40945fa9cb22e051cd6c9242ee85766ae3f0eb04992457b.s",
+    "source_package_sha256": null,
+    "original_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "original_size": 412736,
+    "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "rebuilt_path": "/workspace/pandora-original-delivery/stable-d15c2cf8/.runtime-state/restoration/eb04f545fb97451725a1c91ab5abf6f2e097614c45880db6edfb4ea5c3f6e2c2/662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9.bin",
+    "framework_status": "exact",
+    "failure_kinds": [],
+    "message": "",
+    "oracle": {
+      "oracle_id": "vasm",
+      "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+      "comparison_level": "oracle.full_file_match",
+      "assembler_status": "accepted",
+      "message": "oracle output matched original bytes"
+    },
+    "receipt_id": "c55363e65a94926f67ff3e7e6cade2d8640abbbba1828be204f30a5f779d53a9",
+    "revision": "308dc074d2fc9d27e768f7b127f9595de6db571dd8d448d74d50d0f7b019549d"
+  },
+  "standalone_build": {
+    "schema_version": 1,
+    "status": "pass",
+    "format": "raw_payload_not_AmigaDOS_HUNK",
+    "main_bytes": 412736,
+    "main_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "main_matches_original_identity": true,
+    "asset_count": 57,
+    "all_asset_source_slices_equal": true,
+    "decoded_view_inverse_exact": true,
+    "boot_copy_source_matches_resident_view": true,
+    "source_commit": "e31b1eab9a73d8a8a5f9067234ed18dae68b26a3",
+    "assembler_sha256": "413e284020125f42709486dfe09907cab3dd9f3c2ea41017c190f8ea68f30825",
+    "flags": [
+      "-Fbin",
+      "-m68000",
+      "-no-opt"
+    ],
+    "outputs": [
+      {
+        "role": "original_main",
+        "filename": "Starglider2-original.raw",
+        "bytes": 412736,
+        "sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9"
+      },
+      {
+        "role": "decoded_analysis_view",
+        "filename": "protection-decoded-analysis.raw",
+        "bytes": 3548,
+        "sha256": "de8358853dd9ed9b006a23569bf393aa217ed3be3301a169465d80bfaf839922"
+      },
+      {
+        "role": "boot_installer_context",
+        "filename": "boot-selector-installer-context.raw",
+        "bytes": 40,
+        "sha256": "8d34852425e2e1bfa87b3febdfc74fb39e7c667e9d9ff73e17b594649e83b21b"
+      },
+      {
+        "role": "boot_resident_view",
+        "filename": "boot-selector-resident.raw",
+        "bytes": 20,
+        "sha256": "a26286a393713c046eff9dbaff15b20b26b171fa9e05fc9d538d16b0eddb6024"
+      }
+    ]
+  },
+  "tests": {
+    "final_run": {
+      "passed": 125,
+      "failed": 0,
+      "skipped": 0,
+      "log_sha256": "4aabe9684576f44f3e9e538ad1b56cb9a65395caf0002e4feed6641fd440c444"
+    },
+    "new_cases": 23,
+    "scope": [
+      "Declared190/192; read/write/read-write/address",
+      "Valid suboffset and overrun/partial refusal",
+      "Unrelated register/layout and known hardware rejection",
+      "Absolute/interior/adjusted hardware bases; loaded data and stale-state clearing",
+      "Explicit app inputs on A6/A5, stale hardware/WORD reset at input transitions, other layout/hardware inputs",
+      "Analysis/listing evidence parity, exact source roundtrip",
+      "Existing hardware families/exchange/call-results/masks/RSSET extents/capacity and three explicit bindings"
+    ],
+    "contract_update": "Existing exact-dict binding expectation now includes use_site_binding; no paused working test edits.",
+    "host_app_ref_layout": {
+      "before": "size24; old member offsets8/12/14/15/16",
+      "after": "size24; old member offsets8/12/14/15/16",
+      "scope": "Measured current64bit host; no universal binary ABI promise"
+    }
+  },
+  "framework_source_sha256": {
+    "src/m68k_analysis_render_lookup.c": "58b703978b9cd5035d371fb61f4c1e89d02919d90c3fce0148b43a7013c903a6",
+    "src/m68k_render_ir.c": "09755a6c6ddbf51664ea773f5b2a965eb02385a2255791be02338191d473de93",
+    "src/m68k_render_lookup_internal.h": "b0e6053718bd73da3fabb2313f9585c07863229a53ffaea7108bb69acb30f832",
+    "src/platform_file_json.c": "910814a0f9436a0ae8403f35aace09afe8feb693992b362d494a28c49f3d37ef",
+    "src/m68k_ir.h": "9ab6cb0136c072b14343c71dc1b1135cfa6abae53b25dd394d155ff63db8e251"
+  },
+  "native_backend_sha256": "037074a6a5ad6fb1e7a23555f1ff41a16a9e5012405545df6231cbdbdec177ae",
+  "target_quality": {
+    "diagnostics": 0,
+    "known_violations": [
+      {
+        "offset": 76796,
+        "kind": 3,
+        "message": "code/data boundary conflict at $12BFC references $11F80; emitted as data"
+      }
+    ]
+  },
+  "runtime": "No new emulator run. Original payload remains byte-identical; prior normal-input flight evidence is unchanged.",
+  "assets": {
+    "count": 57,
+    "unchanged": true
+  },
+  "paused_files": {
+    "count": 16,
+    "working_bytes_unchanged": true,
+    "staged_baseline_only": [
+      "src/m68k_ir.h enum/field",
+      "tests/test_c_backend.py binding JSON expectation"
+    ],
+    "reconciliation": "Paused copies retain their earlier baseline; integrate these clean committed hunks when resuming A2, without losing held edits."
+  },
+  "limits": [
+    "Access catalogue is not complete effective-address/all-alias coverage",
+    "Tracked register state can depend on declared inputs; fallback records never prove A6 value",
+    "Names in non-app layouts need not be app references; explicit use-site bindings retain their separate scope",
+    "Decoded data widths do not enumerate bulk/sparse footprints; preserve operand-facts limitations",
+    "No new code promotion, semantic byte-purpose claim, runtime path or all-model certification"
+  ],
+  "source_package_C_exact": true,
+  "source_file_sha256": "b095aa45be42d20e0592a8b7f9ddd4d3fe9b1fa451dfc226fe90781b6954c169",
+  "validated_target_git_tree": "460de3a6476f617615509fb4ca9fc8ec620a2e39",
+  "clean_staged_tree_build": true
+}

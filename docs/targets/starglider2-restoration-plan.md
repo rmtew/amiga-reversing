@@ -11,7 +11,7 @@ The current ownership union leaves 14748 bytes in
 260 intervals unclassified. This is classification accounting,
 not a semantic completion percentage. Earlier interval/site counts below belong
 to their recorded closeout revision. See the current
-[static refinement receipt](../../runtime/observations/starglider2-static-dispatch-resources.json) and
+[native catalogue consistency receipt](../../runtime/observations/starglider2-app-catalogue-consistency.json) and
 [current flight evidence](../../runtime/observations/starglider2-flight-input-evidence.json).
 
 ## Current refinement and next evidence
@@ -32,8 +32,9 @@ overflow bonus is not a kill count; the shot counter precedes final spawn/pool
 checks. 93 model-directory annotations join 92 original names plus the type 0/1
 alias. Type 30's substituted selector and eleven other placeholder-name entries
 remain explicit. These are catalogue associations, not visual identification or
-an all-path runtime instance census. 91 focused tests pass; source quality has zero
-diagnostics and retains the known encoded-entry boundary conflict.
+an all-path runtime instance census. The latest catalogue/hardware suite passes
+125 cases; earlier text/renderer checks retain their separate receipts. Source
+quality has zero diagnostics and retains the known encoded-entry boundary conflict.
 
 A second generic renderer defect hid interior pointer-table annotations.
 Both inferred and declared table fixtures reproduce it; each entry note now
@@ -1898,9 +1899,36 @@ Full generated C/vasm and clean standalone rebuild remain exact. See
 source/runtime identities and remaining limits. No new runtime campaign or
 unchanged generic-suite repetition is part of this batch.
 
-The access catalogue still omits per-instruction `app_slot_refs` for declared
-model fields $190/$192, despite 23/3 generated symbol mentions. This is an
-explicit remaining provenance/projection limitation, not full app-access
-recovery. The new source facts do not depend on treating absent xrefs as absent
-uses. Reproduce the two bounded live entries with the flight probe's
+At e31b1eab, the access catalogue omitted per-instruction `app_slot_refs` for
+declared model fields $190/$192 despite 23/3 generated symbol mentions. The
+subsequent consistency fix below resolves that projection omission, while
+retaining explicit base assumptions rather than claiming full app-access
+recovery. The source facts never treated absent xrefs as absent uses. Reproduce the two bounded live entries with the flight probe's
 `--observe-model-paths` option; no guest-state change is involved.
+
+
+## Native app-reference consistency fix
+
+The $190/$192 omission was a shared collector/renderer mismatch: their numeric
+offsets are also custom-register offsets, so the unknown-A6 discovery heuristic
+excluded them while declared app fields still supplied rendered names. Native
+admission now shares the relevant guards with rendering and exposes the kind of
+base evidence. Known hardware and unrelated layouts remain excluded; decoded
+width must fit a declared app region before using it to disambiguate a collision.
+A `declared_layout_a6_fallback` remains an assumption, not a proved A6 value.
+
+Starglider's catalogue gains 148 operand references across 23 displacements,
+2593 to 2741, with no removals. The two model fields now have 22 and two native
+references, and all 148 additions agree with listing records. Nine subfield
+aliases now render from existing region ownership. One original LONG clear
+crosses the two-byte pending-score declaration; its unresolved-base operand
+remains numeric rather than silently enlarging the field. No byte ownership,
+code acceptance or unclassified-byte accounting changed.
+
+All 125 focused tests pass, including 23 new provenance/admission cases, explicit
+binding contracts, existing hardware flow and RSSET guards. A fresh final-backend
+target generation, C/vasm verification and clean standalone build preserve every
+original byte and all 57 assets. No runtime replay was needed for unchanged bytes.
+The earlier catalogue gap above is historical; its field references are now
+present with explicit fallback provenance. Broader base/alias completeness is
+still not claimed. See `runtime/observations/starglider2-app-catalogue-consistency.json`.

@@ -1323,6 +1323,16 @@ typedef enum M68kAppSlotAccessKind {
   M68K_APP_SLOT_ACCESS_ADDRESS = 4
 } M68kAppSlotAccessKind;
 
+/* App access records expose assumptions separately from accepted instruction facts. */
+typedef enum M68kAppSlotBaseEvidenceKind {
+  M68K_APP_SLOT_BASE_UNSPECIFIED = 0,
+  M68K_APP_SLOT_BASE_REGISTER_STATE = 1,
+  M68K_APP_SLOT_BASE_USE_SITE_BINDING = 2,
+  M68K_APP_SLOT_BASE_A6_FALLBACK = 3,
+  M68K_APP_SLOT_BASE_DECLARED_LAYOUT_A6_FALLBACK = 4,
+  M68K_APP_SLOT_BASE_LIBRARY_EXTENSION = 5
+} M68kAppSlotBaseEvidenceKind;
+
 typedef struct M68kAppSlotRefIR {
   char *symbol_name;
   uint32_t offset;
@@ -1330,6 +1340,7 @@ typedef struct M68kAppSlotRefIR {
   uint8_t base_reg;
   uint8_t operand_index;
   uint8_t access_kind;
+  uint8_t base_evidence_kind;
 } M68kAppSlotRefIR;
 
 typedef struct M68kRecoveredPlatformTypedAccessIR {

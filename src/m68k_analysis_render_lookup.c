@@ -8420,6 +8420,25 @@ static void hardware_relative_transfer(M68kRenderPlatformState *state, const M68
     return;
   }
   if (instruction->operand_count < 2U) return;
+  /* Full address construction is distinct from reading a hardware register.
+   * Retain an interior hardware address as base+offset, never as base zero. */
+  if (operand_address_register_index_local(&instruction->operands[1], &dest)) {
+    uint32_t address = 0U, hardware_offset = 0U;
+    uint16_t base_id = PLATFORM_FACTS_V2_HARDWARE_BASE_ID_NONE;
+    int address_value =
+      (meta->operand_access_kinds[0] == M68K_SIM_ACCESS_COMPUTE_ADDRESS &&
+       operand_absolute_offset_local(&instruction->operands[0], &address)) ||
+      (instruction->size_suffix == 'l' &&
+       m68k_ir_operand_immediate_value(&instruction->operands[0], &address));
+    if (address_value && platform_facts_v2_hardware_base_offset_for_address(
+        M68K_PLATFORM_BACKEND_AMIGA_HUNK, address, &base_id, &hardware_offset) &&
+        base_id != PLATFORM_FACTS_V2_HARDWARE_BASE_ID_NONE && hardware_offset <= INT16_MAX) {
+      state->relative_hardware[dest].base_id = base_id;
+      state->relative_hardware[dest].offsets.count = 1U;
+      state->relative_hardware[dest].offsets.values[0] = (uint16_t)hardware_offset;
+      return;
+    }
+  }
   source = hardware_operand_word_values(before, &instruction->operands[0]);
   if (instruction->mnemonic_id == M68K_ASM_MNEMONIC_ADDA && instruction->size_suffix == 'w' &&
       operand_address_register_index_local(&instruction->operands[1], &dest)) {
@@ -8462,6 +8481,18 @@ static void hardware_relative_transfer(M68kRenderPlatformState *state, const M68
   for (reg = 0U; reg < 8U; ++reg)
     if (state->relative_hardware[reg].offsets.count == 0U)
       state->relative_hardware[reg] = hardware_relative_register(state, reg);
+}
+
+void hardware_relative_transfer_linear(M68kRenderPlatformState *state,
+    const M68kRenderPlatformState *before, const M68kInstructionIR *instruction) {
+  const M68kSimFormMetadata *meta = m68k_sim_metadata_for_instruction(instruction);
+  if (platform_instruction_has_terminal_state_flow(instruction) ||
+      (meta != NULL && meta->flow_kind == M68K_SIM_FLOW_BRANCH && !meta->flow_conditional)) {
+    memset(state->word_values, 0, sizeof(state->word_values));
+    memset(state->relative_hardware, 0, sizeof(state->relative_hardware));
+    return;
+  }
+  hardware_relative_transfer(state, before, instruction);
 }
 
 static void hardware_relative_apply_policy_inputs(M68kRenderPlatformState *state,
@@ -11059,7 +11090,7 @@ static int format_generated_app_slot_ref_symbol_name(int16_t displacement, char 
 
 static int render_lookup_add_app_access_ref(M68kRenderLookup *lookup, size_t section_index, uint32_t offset,
     uint8_t base_reg, int16_t displacement, uint8_t operand_index, uint8_t access_kind,
-    uint8_t observed_access_size, int add_renderable_slot) {
+    uint8_t observed_access_size, int add_renderable_slot, uint8_t base_evidence_kind) {
   size_t index;
   M68kRenderAppSlotRef *grown;
   size_t next_capacity;
@@ -11071,10 +11102,13 @@ static int render_lookup_add_app_access_ref(M68kRenderLookup *lookup, size_t sec
       render_lookup_add_app_access_slot(lookup, displacement, observed_access_size, section_index, offset) != 0)
     return -1;
   for (index = 0U; index < lookup->app_slot_ref_count; ++index) {
-    const M68kRenderAppSlotRef *existing = &lookup->app_slot_refs[index];
+    M68kRenderAppSlotRef *existing = &lookup->app_slot_refs[index];
     if (existing->section_index == section_index && existing->ref.offset == offset &&
         existing->ref.displacement == displacement && existing->ref.base_reg == base_reg &&
         existing->ref.operand_index == operand_index && existing->ref.access_kind == access_kind) {
+      if (existing->ref.base_evidence_kind == M68K_APP_SLOT_BASE_UNSPECIFIED ||
+          base_evidence_kind == M68K_APP_SLOT_BASE_USE_SITE_BINDING)
+        existing->ref.base_evidence_kind = base_evidence_kind;
       return 0;
     }
   }
@@ -11094,6 +11128,7 @@ static int render_lookup_add_app_access_ref(M68kRenderLookup *lookup, size_t sec
   lookup->app_slot_refs[lookup->app_slot_ref_count].ref.base_reg = base_reg;
   lookup->app_slot_refs[lookup->app_slot_ref_count].ref.operand_index = operand_index;
   lookup->app_slot_refs[lookup->app_slot_ref_count].ref.access_kind = access_kind;
+  lookup->app_slot_refs[lookup->app_slot_ref_count].ref.base_evidence_kind = base_evidence_kind;
   if (format_generated_app_slot_ref_symbol_name(displacement,
       lookup->app_slot_refs[lookup->app_slot_ref_count].symbol_name,
       sizeof(lookup->app_slot_refs[lookup->app_slot_ref_count].symbol_name))) {
@@ -14327,7 +14362,7 @@ uint8_t app_slot_access_kind_from_instruction(const M68kInstructionIR *instructi
   return M68K_APP_SLOT_ACCESS_NONE;
 }
 
-static uint8_t app_slot_access_size_from_instruction(const M68kInstructionIR *instruction, uint8_t access_kind) {
+uint8_t app_slot_access_size_from_instruction(const M68kInstructionIR *instruction, uint8_t access_kind) {
   if (access_kind == M68K_APP_SLOT_ACCESS_ADDRESS) return 0U;
   if (instruction == NULL) return 0U;
   if (instruction->size_suffix == 'b') return 1U;
@@ -14376,7 +14411,8 @@ static int render_lookup_seed_policy_rsset_use_site_app_refs(M68kRenderLookup *l
         access_kind = app_slot_access_kind_from_instruction(&instruction, binding->operand_index);
         if (render_lookup_add_app_access_ref(lookup, section->section_index, candidate->offset, base_reg,
             displacement, binding->operand_index, access_kind,
-            app_slot_access_size_from_instruction(&instruction, access_kind), 0) != 0) {
+            app_slot_access_size_from_instruction(&instruction, access_kind), 0,
+            M68K_APP_SLOT_BASE_USE_SITE_BINDING) != 0) {
           return -1;
         }
       }
@@ -14402,6 +14438,44 @@ int render_state_operand_uses_app_base(const M68kRenderPlatformState *state, uin
   if (m68k_bitset_u32_has(state->address_base_known, base_reg))
     return library_base_can_use_app_extension_slot(state->address_base_library[base_reg], displacement);
   return base_reg == 6U && !displacement_is_custom_hardware_offset(displacement);
+}
+
+uint8_t render_app_base_evidence_kind(const M68kRenderLookup *lookup,
+    const M68kRenderPlatformState *state, uint8_t base_reg, int16_t displacement, uint8_t access_size) {
+  const M68kAnalysisPolicy *policy = lookup != NULL ? lookup->policy : NULL;
+  uint16_t index;
+  uint32_t width = access_size != 0U ? access_size : 1U;
+  uint32_t field_offset;
+  if (state == NULL || base_reg >= 8U || state->relative_hardware[base_reg].offsets.count != 0U ||
+      m68k_bitset_u32_has(state->address_hardware_base_known, base_reg))
+    return M68K_APP_SLOT_BASE_UNSPECIFIED;
+  if (m68k_bitset_u32_has(state->address_app_base_known, base_reg))
+    return M68K_APP_SLOT_BASE_REGISTER_STATE;
+  if (m68k_bitset_u32_has(state->address_base_known, base_reg))
+    return library_base_can_use_app_extension_slot(state->address_base_library[base_reg], displacement)
+      ? M68K_APP_SLOT_BASE_LIBRARY_EXTENSION : M68K_APP_SLOT_BASE_UNSPECIFIED;
+  if (m68k_bitset_u32_has(state->address_layout_base_known, base_reg))
+    return strcmp(state->address_layout_base_symbol[base_reg], M68K_APP_BASE_SYMBOL) == 0
+      ? M68K_APP_SLOT_BASE_REGISTER_STATE : M68K_APP_SLOT_BASE_UNSPECIFIED;
+  if (base_reg != 6U) return M68K_APP_SLOT_BASE_UNSPECIFIED;
+  if (!displacement_is_custom_hardware_offset(displacement)) return M68K_APP_SLOT_BASE_A6_FALLBACK;
+  /* A declared app field can disambiguate a numeric hardware-offset collision,
+   * but does not prove an unknown A6 value. Retain that distinction in the IR.
+   * Require the whole access, not just its start, inside the canonical owner. */
+  if (policy == NULL || displacement < 0) return M68K_APP_SLOT_BASE_UNSPECIFIED;
+  field_offset = (uint32_t)(uint16_t)displacement;
+  for (index = 0U; index < policy->rsset_layout_region_count &&
+       index < M68K_ANALYSIS_RSSET_LAYOUT_REGION_LIMIT; ++index) {
+    const M68kAnalysisRssetLayoutRegion *region = &policy->rsset_layout_regions[index];
+    if ((region->layout_name[0] != '\0' && strcmp(region->layout_name, "app") != 0) ||
+        (region->base_symbol[0] != '\0' && strcmp(region->base_symbol, M68K_APP_BASE_SYMBOL) != 0) ||
+        region->size == 0U || field_offset < region->offset)
+      continue;
+    if (field_offset - region->offset <= region->size &&
+        width <= region->size - (field_offset - region->offset))
+      return M68K_APP_SLOT_BASE_DECLARED_LAYOUT_A6_FALLBACK;
+  }
+  return M68K_APP_SLOT_BASE_UNSPECIFIED;
 }
 
 static int render_lookup_analyze_amiga_app_state_slots(M68kRenderLookup *lookup, const M68kDecodeIR *decode,
@@ -14432,21 +14506,28 @@ static int render_lookup_analyze_amiga_app_state_slots(M68kRenderLookup *lookup,
         uint8_t base_reg = 0U;
         int16_t displacement = 0;
         uint8_t access_kind;
+        uint8_t base_evidence_kind;
         if (!operand_is_address_displacement_local(&instruction.operands[operand_index], &base_reg,
             &displacement)) {
           continue;
         }
         if ((int32_t)displacement < min_app_displacement) continue;
-        if (!render_state_operand_uses_app_base(&state, base_reg, displacement)) continue;
         access_kind = app_slot_access_kind_from_instruction(&instruction, operand_index);
         if (access_kind == M68K_APP_SLOT_ACCESS_NONE) continue;
+        base_evidence_kind = render_app_base_evidence_kind(lookup, &state, base_reg, displacement,
+          app_slot_access_size_from_instruction(&instruction, access_kind));
+        if (base_evidence_kind == M68K_APP_SLOT_BASE_UNSPECIFIED) continue;
         if (render_lookup_add_app_access_ref(lookup, section->section_index, candidate->offset, base_reg,
             displacement, (uint8_t)operand_index, access_kind,
-            app_slot_access_size_from_instruction(&instruction, access_kind), 1) != 0) {
+            app_slot_access_size_from_instruction(&instruction, access_kind), 1, base_evidence_kind) != 0) {
           return -1;
         }
       }
-      platform_state_update_after_instruction(&state, lookup, &instruction);
+      {
+        M68kRenderPlatformState before = state;
+        platform_state_update_after_instruction(&state, lookup, &instruction);
+        hardware_relative_transfer_linear(&state, &before, &instruction);
+      }
     }
   }
   return 0;

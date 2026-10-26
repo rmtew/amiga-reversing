@@ -10661,7 +10661,7 @@ def test_real_dll_manual_rsset_use_site_binding_projects_missing_field_as_ref_on
     refs_by_text = {str(row["text"]).strip(): row["app_slot_refs"] for row in rows if row.get("app_slot_refs")}
     assert refs_by_text == {
         "move.w d0,$0004(a2)": [
-            {"symbol": "app_0004", "displacement": 4, "base_register": "A2", "operand_index": 1, "access": "write"}
+            {"symbol": "app_0004", "displacement": 4, "base_register": "A2", "operand_index": 1, "access": "write", "base_evidence": "use_site_binding"}
         ]
     }
     app_slot_analysis = profile["app_slot_analysis"]

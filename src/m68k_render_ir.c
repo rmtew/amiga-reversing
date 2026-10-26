@@ -1813,9 +1813,12 @@ void platform_state_apply_policy_register_seeds(M68kRenderPlatformState *state,
      * leaving the old identity alive would mislabel its fields as registers. */
     if (seed->reg_kind == M68K_ANALYSIS_REGISTER_ADDRESS) {
       platform_state_clear_register(state, seed->reg_index);
+      memset(&state->relative_hardware[seed->reg_index], 0,
+        sizeof(state->relative_hardware[seed->reg_index]));
     } else if (seed->reg_kind == M68K_ANALYSIS_REGISTER_DATA) {
       platform_state_clear_data_library(state, seed->reg_index);
       platform_state_clear_data_app_base(state, seed->reg_index);
+      memset(&state->word_values[seed->reg_index], 0, sizeof(state->word_values[seed->reg_index]));
     }
     if (platform_state_name_is_app_base(seed->name)) {
       platform_state_set_register_app_base(state, seed->reg_kind, seed->reg_index);
@@ -6118,6 +6121,11 @@ static int attach_amiga_app_base_slot_symbols(const M68kRenderLookup *lookup,
         continue;
       }
     } else if (base_reg == 6U) {
+      uint8_t access_kind = app_slot_access_kind_from_instruction(instruction, operand_index);
+      if (lookup->object != NULL && lookup->object->platform_backend_kind == M68K_PLATFORM_BACKEND_AMIGA_HUNK &&
+          render_app_base_evidence_kind(lookup, state, base_reg, displacement,
+            app_slot_access_size_from_instruction(instruction, access_kind)) == M68K_APP_SLOT_BASE_UNSPECIFIED)
+        continue;
       if (!lookup_typed_app_slot_field_symbol_name(lookup, displacement, symbol_name, sizeof(symbol_name),
           field_expr, sizeof(field_expr), &field_offset) &&
           !lookup_app_base_field_slot_symbol_name(lookup, displacement, symbol_name, sizeof(symbol_name))) {
@@ -11183,8 +11191,13 @@ static int plan_rendered_instruction_expressions(M68kRenderIRPreview *preview, M
              record_planned_instruction_symbol_accesses(preview, planned_instruction.source_section_index,
                &planned_instruction) != 0)) return -1;
       }
-      platform_state_update_data_lvo_after_instruction(&platform_state, &instruction);
-      platform_state_update_after_instruction(&platform_state, lookup, &instruction);
+      {
+        M68kRenderPlatformState before = platform_state;
+        platform_state_update_data_lvo_after_instruction(&platform_state, &instruction);
+        platform_state_update_after_instruction(&platform_state, lookup, &instruction);
+        if (lookup->object != NULL && lookup->object->platform_backend_kind == M68K_PLATFORM_BACKEND_AMIGA_HUNK)
+          hardware_relative_transfer_linear(&platform_state, &before, &instruction);
+      }
       platform_state_update_known_library_load_after_candidate(&platform_state, lookup, section, candidate);
       if (instruction_has_call_flow(&instruction))
         platform_state_note_call_result_after_instruction(&platform_state, &instruction, vector_resolution.chosen_vector);
