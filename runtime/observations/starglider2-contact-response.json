@@ -216,8 +216,8 @@
     "reused_receipt": "runtime/observations/starglider2-object-initializers.json",
     "python_passed": 104,
     "native_passed": 812,
-    "native_failed": 6,
-    "scope": "Identical backend; no unchanged test rerun. Six pre-existing C failures remain explicit in the referenced controlled baseline, not an all-tests-pass claim."
+    "native_failed": 9,
+    "scope": "Identical backend; no unchanged test rerun. The reused object-initializer receipt was corrected from6 to9 failures after recounting retained full logs; three expected/got failures had been omitted. This was never an all-tests-pass claim. See starglider2-celestial-render-projection.json for follow-up diagnosis."
   },
   "measured_generation_wall_seconds": 166.7090455169673,
   "process_usage": {

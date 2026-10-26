@@ -17,6 +17,10 @@ to their recorded closeout revision. See the current
 
 ## Current refinement and next evidence
 
+Latest: the [converged app-rendering/celestial batch](#current-converged-app-rendering-and-celestial-parent-caches)
+recovers eleven rendered accesses, identifies five fields, and corrects the
+historical C-suite failure count. Current generic field symbols: 75.
+
 The shared renderer now writes each data-span comment once: on identical facts
 this removes 12,903 duplicate trailing comments and 410,853 source bytes, with no
 directive/instruction line changes. Separate field annotations remain. Native
@@ -3202,10 +3206,12 @@ Accepted code and indirect targets are unchanged. Only the directory's ownership
 evidence changes from discovery to declaration, preserving its exact span.
 
 All 104 focused/integration Python checks pass. The full C run has 812 passes
-and six failures, identical to a controlled pre-change build of committed
-25fd347a using the same unit objects: five timer-device rendering expectations
-and one storage-derived-call expectation. This is **not** an all-C-tests pass;
-these older follow-ups remain explicit rather than hidden by changed assertions.
+and nine failures, identical to a controlled pre-change build of committed
+25fd347a using the same unit objects. The original summary incorrectly reported
+six by omitting three expected/got failures; the retained full logs establish
+the corrected count. Five timer-device rendering expectations, one local-call
+expectation and three provenance/API-consumer expectations were affected. This
+was **not** an all-C-tests pass; the follow-up diagnosis is recorded below.
 C and vasm rebuild all 412,736 original bytes. The source package is identical
 before/after the consumer fix, all 57 assets and fourteen headers are unchanged,
 and the final committed layout receives a clean standalone build. No runtime
@@ -3238,10 +3244,65 @@ Generic field symbols are 82 -> 80. All 3,305 app references, 316 typed accesses
 40 table consumers, 189 address expressions, code and ownership remain identical.
 C/vasm and the clean standalone tree reproduce all 412,736 original bytes; all
 57 assets and fourteen headers remain unchanged. No framework implementation
-changed, no unchanged tests or runtime route were repeated, and the six older
-C-suite failures remain visible in the preceding receipt. The necessary native
+changed, no unchanged tests or runtime route were repeated, and the nine older
+C-suite failures remain visible in the corrected preceding receipt. The necessary native
 generation takes 166.71 seconds; timing variance is not a performance claim.
 
 Next: the celestial parent-coordinate caches and their weighted X/Z distance
 consumers, using original body-index and planetfall-name evidence. Unexplained
 seed-only storage remains unknown rather than being called unused.
+
+## Current converged app rendering and celestial parent caches
+
+The [projection/celestial receipt](../../runtime/observations/starglider2-celestial-render-projection.json)
+closes an actual renderer gap: a linear call-state reset discarded identities
+already retained by the native CFG. Two timer fixtures and eleven current game
+operands reproduce it. Rendering now consults a source-ordered index of existing
+converged per-access facts, with exact operand/register/displacement identity.
+It does not infer a base from a nearby name or preserve arbitrary calls. Derived
+cursors require zero origin and exact width/delta; loop footprints and fallback
+attributions do not become proofs. Explicit use-site and typed-field choices
+remain authoritative. The sparse index is built after collectors finish,
+preserves canonical fact order and costs O(R log R) construction and O(log R +
+colocated facts) lookup; its 3,305 pointers occupy 26,440 bytes on the measured
+64-bit host. No dense per-instruction state or separate ABI engine was added.
+
+Five canonical fields identify Apogee/Millway orbit-parent X/Z caches and
+`millway_proximity_metric`; the existing metric routine is named too. Original
+pointer entries 3/4 bind the planetfall names, while decoded LONG producers and
+consumers establish the cache roles. The metric is the original weighted planar
+`dx + dz + 2*max(dx,dz)`, with separate Y checks, not Euclidean distance.
+Refresh occurs before orbit recomputation, so all-instruction position freshness
+is not asserted. Original branches/arithmetic and unexplained app+$9B8 remain.
+Generic field symbols fall from 80 to 75; classification and native access
+vectors are unchanged. One necessary generation took 146.07 seconds, not a
+controlled whole-pipeline speedup claim. Full C/vasm and clean standalone builds
+remain exact, with 57 assets and fourteen headers unchanged.
+
+The prior C-suite summary had a counting error: both retained pre-change logs
+contain **nine**, not six failures; three expected/got lines were omitted by the
+summary parser. The receipts above are corrected. The six originally identified
+cases are now resolved with behavioral contrasts: explicit versus absent entry
+base; known read-only versus A5-clobbering helper. Thirty-six unique focused
+Python cases pass. The full C suite has **819 passes and three failures**:
+
+- `facts_v2_analysis_reports_lookup_storage_write_site_provenance`: the newest
+  API-output origin at source 10 survives store/reload; the old test expects a
+  storage-origin replacement at 14. Next compare both writer origins against
+  slot-effect records before changing the provenance expectation.
+- `facts_v2_analysis_records_platform_api_address_value_consumer`: OpenDevice
+  and A1 input are recognized, but a mapped MOVEA-immediate pointer has no
+  consumer row. Next contrast immediate/LEA values at call admission and an
+  unmapped negative; do not manufacture a consumer from its numeric value.
+- `facts_v2_analysis_propagates_direct_field_pointer_store_through_app_slot`:
+  MP_SIGBIT is correctly typed after storage, but field-pointer provenance is
+  unknown. Its fixture uses an ExecBase displacement as an app-like slot.
+  Next contrast a separately declared A4 app owner and a clobber before deciding
+  whether the missing provenance is a real transport defect or a stale premise.
+
+All three also reproduce with the pre-change backend. Their precise diagnostics
+are retained; the current game typed/reference vectors remain identical. They
+are not a blanket reason to stop independent restoration or claim all tests
+pass. Continue connected environment consumers and original orphan/shared-buffer
+leads, retaining explicit unknowns instead of assigning seed-only storage a
+purpose. No new runtime replay or archive was made in this batch.

@@ -1,0 +1,908 @@
+{
+  "schema_version": 1,
+  "kind": "converged_app_render_projection_and_celestial_parent_restoration",
+  "publication_base_commit": "d6ef4168de15d5fcaf645ab7ac904cce5cf17391",
+  "backend_sha256": "033d818cde45a2bcb405d3bcd34fe0efa543c028c2b32ac2da3745842c0d5ef0",
+  "analysis_sha256": "1f4833f9138a66596343595c8a6731ac317ac23d4d6626818bda259c51f376e2",
+  "framework": {
+    "cause": "Renderer linear platform state clears bases on calls even where converged CFG facts retain explicit app identity. This hid TIMEVAL fields in two timer fixtures and11 target operands.",
+    "repair": "Source-ordered pointer index over the existing frozen per-access facts. Exact source section/PC/operand/base/displacement and register_state evidence are required; derived cursors additionally require zero origin, exact operand delta/width; range-only loops are refused. Explicit manual bindings and resolved typed fields retain priority. No new ABI or duplicate call-transfer engine.",
+    "lifetime": "Built after platform collectors/compaction, reset before repeat passes and owned by the lookup arena. Canonical vector order is unchanged.",
+    "cost": {
+      "build": "O(R log R)",
+      "query": "O(log R + colocated facts)",
+      "reference_count": 3305,
+      "index_pointer_bytes_64bit": 26440,
+      "dense_per_node_state_added": false
+    },
+    "target_projection": {
+      "strong_zero_base_count": 423,
+      "previously_missing": 11,
+      "resolved": 11,
+      "rows": [
+        {
+          "before": {
+            "offset": 284,
+            "displacement": 472,
+            "base_register": "A6",
+            "operand_index": 1,
+            "access": "write",
+            "base_evidence": "register_state",
+            "symbol_name": "app_01D8"
+          },
+          "after": [
+            {
+              "offset": 284,
+              "symbol_name": "app_01D8",
+              "access_kind_id": 3,
+              "access_kind": "operand",
+              "target_section_index": null,
+              "target_offset": null,
+              "operand_index": 1,
+              "comment_only": false
+            }
+          ]
+        },
+        {
+          "before": {
+            "offset": 5674,
+            "displacement": 432,
+            "base_register": "A6",
+            "operand_index": 0,
+            "access": "read",
+            "base_evidence": "register_state",
+            "symbol_name": "app_01B0"
+          },
+          "after": [
+            {
+              "offset": 5674,
+              "symbol_name": "app_01B0",
+              "access_kind_id": 3,
+              "access_kind": "operand",
+              "target_section_index": null,
+              "target_offset": null,
+              "operand_index": 0,
+              "comment_only": false
+            }
+          ]
+        },
+        {
+          "before": {
+            "offset": 5674,
+            "displacement": 52,
+            "base_register": "A6",
+            "operand_index": 1,
+            "access": "write",
+            "base_evidence": "register_state",
+            "symbol_name": "app_0034"
+          },
+          "after": [
+            {
+              "offset": 5674,
+              "symbol_name": "app_0034",
+              "access_kind_id": 3,
+              "access_kind": "operand",
+              "target_section_index": null,
+              "target_offset": null,
+              "operand_index": 1,
+              "comment_only": false
+            }
+          ]
+        },
+        {
+          "before": {
+            "offset": 5680,
+            "displacement": 433,
+            "base_register": "A6",
+            "operand_index": 0,
+            "access": "read",
+            "base_evidence": "register_state",
+            "symbol_name": "app_01B1"
+          },
+          "after": [
+            {
+              "offset": 5680,
+              "symbol_name": "app_01B1",
+              "access_kind_id": 3,
+              "access_kind": "operand",
+              "target_section_index": null,
+              "target_offset": null,
+              "operand_index": 0,
+              "comment_only": false
+            }
+          ]
+        },
+        {
+          "before": {
+            "offset": 5684,
+            "displacement": 54,
+            "base_register": "A6",
+            "operand_index": 1,
+            "access": "write",
+            "base_evidence": "register_state",
+            "symbol_name": "app_0036"
+          },
+          "after": [
+            {
+              "offset": 5684,
+              "symbol_name": "app_0036",
+              "access_kind_id": 3,
+              "access_kind": "operand",
+              "target_section_index": null,
+              "target_offset": null,
+              "operand_index": 1,
+              "comment_only": false
+            }
+          ]
+        },
+        {
+          "before": {
+            "offset": 5688,
+            "displacement": 52,
+            "base_register": "A6",
+            "operand_index": 0,
+            "access": "read",
+            "base_evidence": "register_state",
+            "symbol_name": "app_0034"
+          },
+          "after": [
+            {
+              "offset": 5688,
+              "symbol_name": "app_0034",
+              "access_kind_id": 3,
+              "access_kind": "operand",
+              "target_section_index": null,
+              "target_offset": null,
+              "operand_index": 0,
+              "comment_only": false
+            }
+          ]
+        },
+        {
+          "before": {
+            "offset": 5704,
+            "displacement": 433,
+            "base_register": "A6",
+            "operand_index": 0,
+            "access": "read",
+            "base_evidence": "register_state",
+            "symbol_name": "app_01B1"
+          },
+          "after": [
+            {
+              "offset": 5704,
+              "symbol_name": "app_01B1",
+              "access_kind_id": 3,
+              "access_kind": "operand",
+              "target_section_index": null,
+              "target_offset": null,
+              "operand_index": 0,
+              "comment_only": false
+            }
+          ]
+        },
+        {
+          "before": {
+            "offset": 5710,
+            "displacement": 56,
+            "base_register": "A6",
+            "operand_index": 1,
+            "access": "write",
+            "base_evidence": "register_state",
+            "symbol_name": "app_0038"
+          },
+          "after": [
+            {
+              "offset": 5710,
+              "symbol_name": "app_0038",
+              "access_kind_id": 3,
+              "access_kind": "operand",
+              "target_section_index": null,
+              "target_offset": null,
+              "operand_index": 1,
+              "comment_only": false
+            }
+          ]
+        },
+        {
+          "before": {
+            "offset": 5720,
+            "displacement": 60,
+            "base_register": "A6",
+            "operand_index": 1,
+            "access": "write",
+            "base_evidence": "register_state",
+            "symbol_name": "app_003C"
+          },
+          "after": [
+            {
+              "offset": 5720,
+              "symbol_name": "app_003C",
+              "access_kind_id": 3,
+              "access_kind": "operand",
+              "target_section_index": null,
+              "target_offset": null,
+              "operand_index": 1,
+              "comment_only": false
+            }
+          ]
+        },
+        {
+          "before": {
+            "offset": 238370,
+            "displacement": 474,
+            "base_register": "A6",
+            "operand_index": 0,
+            "access": "read",
+            "base_evidence": "register_state",
+            "symbol_name": "app_01DA"
+          },
+          "after": [
+            {
+              "offset": 238370,
+              "symbol_name": "app_01DA",
+              "access_kind_id": 3,
+              "access_kind": "operand",
+              "target_section_index": null,
+              "target_offset": null,
+              "operand_index": 0,
+              "comment_only": false
+            }
+          ]
+        },
+        {
+          "before": {
+            "offset": 238376,
+            "displacement": 474,
+            "base_register": "A6",
+            "operand_index": 1,
+            "access": "read-write",
+            "base_evidence": "register_state",
+            "symbol_name": "app_01DA"
+          },
+          "after": [
+            {
+              "offset": 238376,
+              "symbol_name": "app_01DA",
+              "access_kind_id": 3,
+              "access_kind": "operand",
+              "target_section_index": null,
+              "target_offset": null,
+              "operand_index": 1,
+              "comment_only": false
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "canonical_actions": [
+    {
+      "action_id": "manual-57528e556d4c487497d3c81a2cadfe9c",
+      "command_id": "target.rsset_region.add",
+      "interpretation": {
+        "evidence_refs": [
+          "s0:000350B4:instruction",
+          "s0:00035202:instruction",
+          "s0:0003658C:instruction"
+        ],
+        "reason": "Original advance_celestial_orbit_state subtracts128 from object_type and refreshes this LONG from the X/Z coordinate of index3. The existing indexed planetfall/name table identifies index3 as Apogee; add_celestial_orbit_parent_offset uses the cached pair for original types134/135 (Enos/Castron). Setup seeds the pair. This is the orbit parent coordinate cache, refreshed before the same service recomputes the body, not a guarantee of current-position equality at every instruction or an object pointer.",
+        "source_evidence_status": "hypothesis",
+        "confidence": "high",
+        "subject_revision": "ce55ed9d680bf688b39fb5b5a0f0fb0fc91ecdff73c0c373d1ab8cdd98f5f23a"
+      }
+    },
+    {
+      "action_id": "manual-4ba595845de0414ab452d046a9e9c8f8",
+      "command_id": "target.rsset_region.add",
+      "interpretation": {
+        "evidence_refs": [
+          "s0:000350BA:instruction",
+          "s0:00035206:instruction",
+          "s0:00036594:instruction"
+        ],
+        "reason": "Original advance_celestial_orbit_state subtracts128 from object_type and refreshes this LONG from the X/Z coordinate of index3. The existing indexed planetfall/name table identifies index3 as Apogee; add_celestial_orbit_parent_offset uses the cached pair for original types134/135 (Enos/Castron). Setup seeds the pair. This is the orbit parent coordinate cache, refreshed before the same service recomputes the body, not a guarantee of current-position equality at every instruction or an object pointer.",
+        "source_evidence_status": "hypothesis",
+        "confidence": "high",
+        "subject_revision": "eca5416e4e09f45824d6317cbee1029011ddb3c357da150245e9bd59821aee27"
+      }
+    },
+    {
+      "action_id": "manual-cdea4da33533431282052199a62d07ef",
+      "command_id": "target.rsset_region.add",
+      "interpretation": {
+        "evidence_refs": [
+          "s0:000350CA:instruction",
+          "s0:0003520C:instruction",
+          "s0:0003659C:instruction",
+          "s0:000366C4:instruction"
+        ],
+        "reason": "Original advance_celestial_orbit_state subtracts128 from object_type and refreshes this LONG from X/Z at index4; the original indexed planetfall/name table identifies index4 as Millway. The parent-offset helper uses this pair for remaining original moon types, and the Millway proximity routine uses it as center. Setup seeds the pair. Preserve both original consecutive conditional branches after compare4; no game fix or all-entry coordinate freshness claim.",
+        "source_evidence_status": "hypothesis",
+        "confidence": "high",
+        "subject_revision": "42321fb3d03caf86e00b22c7c5d0b8fb1d61fe020478e2731e2437904617df5b"
+      }
+    },
+    {
+      "action_id": "manual-28e83f8765a84cd9976ea1c954ff3a2b",
+      "command_id": "target.rsset_region.add",
+      "interpretation": {
+        "evidence_refs": [
+          "s0:000350D0:instruction",
+          "s0:00035210:instruction",
+          "s0:000365A4:instruction",
+          "s0:000366CC:instruction"
+        ],
+        "reason": "Original advance_celestial_orbit_state subtracts128 from object_type and refreshes this LONG from X/Z at index4; the original indexed planetfall/name table identifies index4 as Millway. The parent-offset helper uses this pair for remaining original moon types, and the Millway proximity routine uses it as center. Setup seeds the pair. Preserve both original consecutive conditional branches after compare4; no game fix or all-entry coordinate freshness claim.",
+        "source_evidence_status": "hypothesis",
+        "confidence": "high",
+        "subject_revision": "070193620feb88c16ceaaa24348764f29540353c19fbe369d2ba6fe8abea7e1a"
+      }
+    },
+    {
+      "action_id": "manual-f3c4a36205074ffa81e4b119fdf945c4",
+      "command_id": "target.rsset_region.add",
+      "interpretation": {
+        "evidence_refs": [
+          "s0:00032440:instruction",
+          "s0:00032496:instruction",
+          "s0:000365BC:instruction",
+          "s0:000366F2:instruction"
+        ],
+        "reason": "Original routine at runtime376C4 subtracts cached Millway parent X/Z from player X/Z, takes original signed absolute differences and stores dx+dz+2*max(dx,dz) in this LONG. Atmospheric shield-response code compares this metric against900000/1200000 with a separate Y test; original depot text warns of Millway pressure. It is the original weighted planar proximity metric, not Euclidean distance, physical units or arbitrary-overflow-safe geometry. Adjacent9B8 remains unassigned; no absent-reader/dead-storage claim.",
+        "source_evidence_status": "hypothesis",
+        "confidence": "high",
+        "subject_revision": "1ddc8f76c0369713227d52794c31466c53abdf72283176f1c5bbd1bb1f335786"
+      }
+    },
+    {
+      "action_id": "manual-fd7e3106e1ca44779fdb6a64a68a3585",
+      "command_id": "target.code_label.add",
+      "interpretation": {
+        "evidence_refs": [
+          "s0:000366C4:instruction",
+          "s0:000366F2:instruction"
+        ],
+        "reason": "Name the accepted original routine computing the weighted X/Z proximity metric about cached Millway coordinates. Original name/type-index correlation plus producers and atmospheric consumers support the meaning; no new callable ABI or code promotion.",
+        "source_evidence_status": "hypothesis",
+        "confidence": "high",
+        "subject_revision": "fb854a8584fd8dee056d4052bc6f28a17673c69b785e435842904511d9900fae"
+      }
+    }
+  ],
+  "review": {
+    "decisions": [
+      {
+        "action_id": "manual-57528e556d4c487497d3c81a2cadfe9c",
+        "decision_id": "restoration-2f9273a431b44044b31ac9861bd09506",
+        "action": "accept_fact"
+      },
+      {
+        "action_id": "manual-4ba595845de0414ab452d046a9e9c8f8",
+        "decision_id": "restoration-d1daa6aa9c4a4760aa359bb3ae99b5e8",
+        "action": "accept_fact"
+      },
+      {
+        "action_id": "manual-cdea4da33533431282052199a62d07ef",
+        "decision_id": "restoration-a5c56f28f50d4916b1b59ee25856c5a0",
+        "action": "accept_fact"
+      },
+      {
+        "action_id": "manual-28e83f8765a84cd9976ea1c954ff3a2b",
+        "decision_id": "restoration-cc653514221c4a3baf9a9d774826eede",
+        "action": "accept_fact"
+      },
+      {
+        "action_id": "manual-f3c4a36205074ffa81e4b119fdf945c4",
+        "decision_id": "restoration-219af20dc7f049768b7442d28595c6c8",
+        "action": "accept_fact"
+      },
+      {
+        "action_id": "manual-fd7e3106e1ca44779fdb6a64a68a3585",
+        "decision_id": "restoration-01c20e711c014cdd86074e6c3d2267f7",
+        "action": "accept_fact"
+      }
+    ],
+    "verification": {
+      "receipt_id": "bcb45ceeaaec5839ab93af16423bef2afe8ea1590dd149753f021a94825ed0a5",
+      "kind": "verification",
+      "subject_revision": "f308398b8e8be843b943afcfaf1b8a6e777d748d90f7ec8c4652e5889928ff4e",
+      "exact": true
+    },
+    "probe": null,
+    "subject_revision": "f308398b8e8be843b943afcfaf1b8a6e777d748d90f7ec8c4652e5889928ff4e",
+    "revision": "3ec1b7a643d368dd1a432c6fef11fbf92a439eb488d499695a0cdf08ac4f1e6d"
+  },
+  "fields": [
+    {
+      "layout_name": "app",
+      "base_symbol": "__amiga_app_base__",
+      "sizeof_symbol": "app_SIZEOF",
+      "symbol": "apogee_orbit_parent_x",
+      "owner_struct_name": null,
+      "offset": 2050,
+      "size": 4,
+      "alias": false,
+      "layout_kind": 1,
+      "source_kind": 1,
+      "source_kind_name": "app_slot_access",
+      "value_kind": 2,
+      "confidence": 2,
+      "conflicted": false,
+      "conflict_reason": null,
+      "alias_of_symbol": null,
+      "alias_of_offset": null,
+      "source_section_index": 0,
+      "source_offset": 217268
+    },
+    {
+      "layout_name": "app",
+      "base_symbol": "__amiga_app_base__",
+      "sizeof_symbol": "app_SIZEOF",
+      "symbol": "apogee_orbit_parent_z",
+      "owner_struct_name": null,
+      "offset": 2054,
+      "size": 4,
+      "alias": false,
+      "layout_kind": 1,
+      "source_kind": 1,
+      "source_kind_name": "app_slot_access",
+      "value_kind": 2,
+      "confidence": 2,
+      "conflicted": false,
+      "conflict_reason": null,
+      "alias_of_symbol": null,
+      "alias_of_offset": null,
+      "source_section_index": 0,
+      "source_offset": 217274
+    },
+    {
+      "layout_name": "app",
+      "base_symbol": "__amiga_app_base__",
+      "sizeof_symbol": "app_SIZEOF",
+      "symbol": "millway_orbit_parent_x",
+      "owner_struct_name": null,
+      "offset": 2058,
+      "size": 4,
+      "alias": false,
+      "layout_kind": 1,
+      "source_kind": 1,
+      "source_kind_name": "app_slot_access",
+      "value_kind": 2,
+      "confidence": 2,
+      "conflicted": false,
+      "conflict_reason": null,
+      "alias_of_symbol": null,
+      "alias_of_offset": null,
+      "source_section_index": 0,
+      "source_offset": 217290
+    },
+    {
+      "layout_name": "app",
+      "base_symbol": "__amiga_app_base__",
+      "sizeof_symbol": "app_SIZEOF",
+      "symbol": "millway_orbit_parent_z",
+      "owner_struct_name": null,
+      "offset": 2062,
+      "size": 4,
+      "alias": false,
+      "layout_kind": 1,
+      "source_kind": 1,
+      "source_kind_name": "app_slot_access",
+      "value_kind": 2,
+      "confidence": 2,
+      "conflicted": false,
+      "conflict_reason": null,
+      "alias_of_symbol": null,
+      "alias_of_offset": null,
+      "source_section_index": 0,
+      "source_offset": 217296
+    },
+    {
+      "layout_name": "app",
+      "base_symbol": "__amiga_app_base__",
+      "sizeof_symbol": "app_SIZEOF",
+      "symbol": "millway_proximity_metric",
+      "owner_struct_name": null,
+      "offset": 2492,
+      "size": 4,
+      "alias": false,
+      "layout_kind": 1,
+      "source_kind": 1,
+      "source_kind_name": "app_slot_access",
+      "value_kind": 2,
+      "confidence": 2,
+      "conflicted": false,
+      "conflict_reason": null,
+      "alias_of_symbol": null,
+      "alias_of_offset": null,
+      "source_section_index": 0,
+      "source_offset": 205888
+    }
+  ],
+  "body_name_binding": {
+    "original_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "table_source_offset": 226564,
+    "rows": [
+      {
+        "index": 3,
+        "table_source_offset": 226576,
+        "encoded_pointer": 231125,
+        "text_source_offset": 227029,
+        "text": " -: Planetfall - Apogee :-"
+      },
+      {
+        "index": 4,
+        "table_source_offset": 226580,
+        "encoded_pointer": 231152,
+        "text_source_offset": 227056,
+        "text": " -: Planetfall - Millway :-"
+      }
+    ],
+    "restriction": "Original selected-body indexed text association, not a visual model-instance census or complete selector-domain proof."
+  },
+  "instruction_evidence_sha256": "c6ff8ac9fbcf69bab18abd02e04a3def10bfce038f122a1a6619ad543e0098e1",
+  "semantic_meanings": [
+    "Original body indexes3/4 identify Apogee/Millway through the preserved planetfall pointer table. Cached X/Z refresh before orbit recomputation and serve the original parent-offset branches; current-coordinate equality at every instruction is not claimed.",
+    "App9BC is the original signed weighted planar metric dx+dz+2*max(dx,dz) about cached Millway X/Z, with separate Y checks in atmospheric response. It is not Euclidean distance or physical units.",
+    "Original repeated branches and arithmetic are preserved. Adjacent seed-only9B8 remains unknown; no absent-reader or dead-storage proof."
+  ],
+  "before": {
+    "generic_symbols": 80,
+    "native_app_fields": 300
+  },
+  "after": {
+    "generic_symbols": 75,
+    "native_app_fields": 300
+  },
+  "native_vectors_unchanged": {
+    "app_slot_refs": true,
+    "accepted_code_runs": true,
+    "range_ownerships": true,
+    "recovered_platform_typed_accesses": true,
+    "recovered_indirect_sites": true,
+    "table_consumers": true,
+    "address_expressions": true
+  },
+  "tests": {
+    "python_unique_passed": 36,
+    "runs": [
+      {
+        "passed": 35,
+        "seconds": 2.66,
+        "scope": "New library-call/conflict/partial-write/interior tests plus custom-inline/app-cursor suites"
+      },
+      {
+        "passed": 7,
+        "seconds": 6.18,
+        "scope": "Six overlapping integration cases plus new native frozen-index source-domain/origin/width/fallback/loop guards"
+      }
+    ],
+    "c_native_passed": 819,
+    "c_native_failed": 3,
+    "c_failed_names": [
+      "facts_v2_analysis_reports_lookup_storage_write_site_provenance",
+      "facts_v2_analysis_records_platform_api_address_value_consumer",
+      "facts_v2_analysis_propagates_direct_field_pointer_store_through_app_slot"
+    ],
+    "c_log_sha256": "d2f9fe8b1a214b535a6df294a486e43bce6131fa60a7d0864afb19c984e94878",
+    "historical_count_correction": "Retained pre-change and object-initializer logs have812 passes and9 failures. Earlier summaries counted only six assertion-failed lines and omitted three expected/got failures. Historical receipts corrected, not an earlier all-green claim.",
+    "resolved_original_six": [
+      {
+        "tests": [
+          "facts_v2_render_asm_source_infers_opendevice_base_field_slot",
+          "facts_v2_render_asm_source_renders_typed_app_slot_field_region",
+          "facts_v2_render_asm_source_keeps_typed_app_slot_interior_out_of_flat_rsset",
+          "facts_v2_render_asm_source_propagates_typed_base_through_stack_slot",
+          "facts_v2_render_asm_source_propagates_typed_base_through_absolute_slot"
+        ],
+        "cause": "Two lose converged A4 identity after known timer call: fixed renderer. Three OpenDevice/stack/absolute fixtures omit explicit incoming app A6 contract: now test numeric unseeded contrast and declared positive. No implicit provenance rule relaxed."
+      },
+      {
+        "test": "facts_v2_render_asm_source_drops_storage_derived_type_across_unmodeled_local_call",
+        "cause": "Helper is now demonstrably read-only with empty memory/escape and preserved A5. Replaced stale unknown-helper expectation with retained source6 field provenance and distinct A5-clobber negative; no preservation across arbitrary calls."
+      }
+    ],
+    "remaining_bounded_diagnoses": [
+      {
+        "test": "facts_v2_analysis_reports_lookup_storage_write_site_provenance",
+        "observed": "The second CreateMsgPort result retains api_output provenance at source10 through store14/reload20. The old expectation requests lookup_storage at14; no typed payload is lost and the first call result is not substituted.",
+        "next_experiment": "Keep API value origin and storage-write provenance distinct; add a two-writer contrast and inspect existing slot-effect/access records before deciding whether the old expectation should move to that record.",
+        "target_impact": "No changed Starglider typed/access vector; this OS fixture concerns provenance attribution, not current field rendering."
+      },
+      {
+        "test": "facts_v2_analysis_records_platform_api_address_value_consumer",
+        "observed": "OpenDevice at6 is recognized with its original A1 IORequest input, but address_value_consumers is empty for MOVEA.L #$120,A1 despite a source mapping of$100..$122.",
+        "next_experiment": "Probe shared address-value state immediately after MOVEA immediate and at the call, contrasting LEA and missing mapping, to distinguish producer transport from consumer admission. No guessed consumer is added.",
+        "target_impact": "No changed target address expressions/consumers; Starglider uses original raw startup, not this OS call fixture."
+      },
+      {
+        "test": "facts_v2_analysis_propagates_direct_field_pointer_store_through_app_slot",
+        "observed": "MN_REPLYPORT loads through API-returned Message and later MP_SIGBIT is correctly typed, but its original direct field-pointer provenance is unknown after the app-like$100(A6) storage path; A6 is explicitly exec.library in this fixture.",
+        "next_experiment": "Contrast a separately seeded app A4 store/reload with this ExecBase extension and a clobber. Determine legitimate owner and provenance transfer before changing either expectation or shared semantics.",
+        "target_impact": "No changed Starglider typed vector; do not infer correct app ownership merely from a library-base displacement."
+      }
+    ]
+  },
+  "verification": {
+    "kind": "verification",
+    "framework_exact": true,
+    "target_id": "amiga_raw_starglider2_game",
+    "subject_revision": "f308398b8e8be843b943afcfaf1b8a6e777d748d90f7ec8c4652e5889928ff4e",
+    "status": "exact",
+    "exact": true,
+    "source_sha256": "e5c4951aec4adc08daee172a7fcfd542669ff839d228ddaab136146083be9129",
+    "source_path": "/workspace/pandora-original-delivery/stable-d15c2cf8/.runtime-state/restoration/eb04f545fb97451725a1c91ab5abf6f2e097614c45880db6edfb4ea5c3f6e2c2/e5c4951aec4adc08daee172a7fcfd542669ff839d228ddaab136146083be9129.s",
+    "source_package_sha256": null,
+    "original_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "original_size": 412736,
+    "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "rebuilt_path": "/workspace/pandora-original-delivery/stable-d15c2cf8/.runtime-state/restoration/eb04f545fb97451725a1c91ab5abf6f2e097614c45880db6edfb4ea5c3f6e2c2/662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9.bin",
+    "framework_status": "exact",
+    "failure_kinds": [],
+    "message": "",
+    "oracle": {
+      "oracle_id": "vasm",
+      "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+      "comparison_level": "oracle.full_file_match",
+      "assembler_status": "accepted",
+      "message": "oracle output matched original bytes"
+    },
+    "receipt_id": "bcb45ceeaaec5839ab93af16423bef2afe8ea1590dd149753f021a94825ed0a5",
+    "revision": "cdf14f165f161ee231f5684da672098be233deca28af180aa2ba1e681591d741"
+  },
+  "preservation": {
+    "original_bytes": 412736,
+    "assets_unchanged": 57,
+    "headers_unchanged": 14,
+    "accepted_code_bytes": 106034,
+    "app_references": 3305,
+    "typed_accesses": 316,
+    "unresolved_typed_accesses": 355,
+    "table_consumers": 40,
+    "address_expressions": 189,
+    "unclassified_bytes": 14728,
+    "unclassified_intervals": 260,
+    "source_quality_diagnostics": 0,
+    "incomplete_analysis": [],
+    "canonical_histories_append_only": true,
+    "new_runtime_run": false,
+    "generated_source_hand_edited": false
+  },
+  "generation": {
+    "api_wall_seconds": 146.06640966801206,
+    "native_profile": {
+      "generation": "facts_v2_listing_artifact_summary",
+      "backend": "amiga-raw",
+      "analysis_backend": "facts_v2",
+      "path": "/workspace/starglider2-private/main-copy.bin",
+      "facts_v2": {
+        "decode_seconds": 6e-06,
+        "seed_seconds": 0.008899,
+        "fixed_point_seconds": 14.093894,
+        "fixed_point_reachable_seconds": 11.705598,
+        "fixed_point_reachable_decode_seconds": 0.0,
+        "fixed_point_reachable_validate_seconds": 0.0,
+        "fixed_point_reachable_accept_seconds": 0.0,
+        "fixed_point_reachable_target_seconds": 0.0,
+        "fixed_point_reachable_relocation_seconds": 0.0,
+        "fixed_point_reachable_fallthrough_seconds": 0.0,
+        "fixed_point_index_seconds": 0.006986,
+        "fixed_point_required_label_conflict_seconds": 7.7e-05,
+        "fixed_point_opcode_relocation_conflict_seconds": 0.000207,
+        "fixed_point_rebuild_accepted_seconds": 0.012301,
+        "fixed_point_relocation_anchor_seconds": 0.000192,
+        "fixed_point_materialize_labels_seconds": 2.36815,
+        "fixed_point_runtime_address_ref_seconds": 2.222084,
+        "fixed_point_required_label_materialize_seconds": 0.146066,
+        "fixed_point_data_span_seconds": 0.000383,
+        "fixed_point_invariant_seconds": 4.3e-05,
+        "render_ir_seconds": 25.141517,
+        "render_ir_lookup_seconds": 0.333644,
+        "platform_analysis_pass_seconds": 59.823075,
+        "platform_analysis_base_slot_seconds": 0.046805,
+        "platform_analysis_call_summary_seconds": 0.072804,
+        "platform_analysis_typed_ref_seconds": 47.542592,
+        "platform_analysis_typed_summary_seconds": 0.114359,
+        "platform_analysis_typed_graph_seconds": 6.962112,
+        "platform_analysis_typed_flow_seconds": 5.765405,
+        "platform_analysis_typed_callback_seconds": 34.700711,
+        "source_analysis_typed_target_seconds": 4.5e-05,
+        "source_analysis_build_seconds": 7.948782,
+        "source_analysis_finalize_seconds": 27.516835,
+        "platform_analysis_call_comment_seconds": 1e-06,
+        "platform_analysis_app_slot_seconds": 12.159768,
+        "platform_analysis_runtime_data_seconds": 0.0,
+        "platform_analysis_hardware_data_seconds": 0.0,
+        "platform_analysis_generic_data_seconds": 1e-06,
+        "render_ir_header_seconds": 16.00039,
+        "render_ir_walk_seconds": 7.758146,
+        "render_ir_footer_seconds": 1.381842,
+        "source_render_seconds": 0.0,
+        "decoded_candidates": 29938,
+        "accepted_instructions": 29665,
+        "data_spans": 172,
+        "labels_created": 19873,
+        "labels_referenced": 13059,
+        "unresolved_labels": 0,
+        "interior_conflicts": 0,
+        "interior_conflicts_resolved_by_demote": 0,
+        "interior_conflicts_unresolved": 0,
+        "relocation_failures": 0,
+        "first_relocation_failure_reason": "",
+        "first_relocation_failure_section": 0,
+        "first_relocation_failure_offset": 0,
+        "first_relocation_failure_target_section": 0,
+        "first_relocation_failure_width": 0,
+        "first_relocation_failure_raw_value": 0,
+        "first_relocation_failure_computed_target": 0,
+        "relocation_anchors": 0,
+        "first_relocation_anchor_kind": "",
+        "first_relocation_anchor_section": 0,
+        "first_relocation_anchor_offset": 0,
+        "first_relocation_anchor_target_section": 0,
+        "first_relocation_anchor_width": 0,
+        "first_relocation_anchor_platform_record_kind": "",
+        "first_relocation_anchor_raw_value": 0,
+        "first_relocation_anchor_addend": 0,
+        "relocation_anchor_instruction_bytes": 0,
+        "relocation_anchor_data_payloads": 0,
+        "relocation_anchor_unknown_contexts": 0,
+        "unassemblable_hunk_data_relocations": 0,
+        "unassemblable_hunk_base_register_relocations": 0,
+        "first_relocation_anchor_context": "",
+        "first_relocation_anchor_instruction_offset": 0,
+        "code_start_facts": 41982,
+        "code_start_section_entries": 0,
+        "code_start_policy_entry_offsets": 0,
+        "code_start_policy_entry_points": 165,
+        "code_start_control_targets": 10294,
+        "code_start_fallthroughs": 31523,
+        "code_start_inline_resumes": 0,
+        "code_start_linkage_api_entries": 0,
+        "code_start_platform_loadseg_entries": 0,
+        "code_start_stack_continuations": 0,
+        "code_start_boundary_api_entries": 0,
+        "platform_loadseg_segment_link_accesses": 0,
+        "platform_loadseg_segment_link_bptr_loads": 0,
+        "platform_loadseg_segment_link_resolved_targets": 0,
+        "first_platform_loadseg_segment_link_section": 0,
+        "first_platform_loadseg_segment_link_offset": 0,
+        "first_platform_loadseg_segment_link_target_section": 0,
+        "runtime_address_ranges": 5,
+        "runtime_address_range_conflicts": 0,
+        "table_target_set_limit_hits": 0,
+        "first_table_target_set_limit_section": 0,
+        "first_table_target_set_limit_offset": 0,
+        "first_table_target_set_limit_capacity": 0,
+        "source_quality_diagnostics": 0,
+        "source_quality_blockers": 0,
+        "first_source_quality_diagnostic_kind": "unknown",
+        "first_source_quality_diagnostic_section": 0,
+        "first_source_quality_diagnostic_offset": 0,
+        "runtime_address_view_starts": 41818,
+        "required_instruction_failures": 0,
+        "unsupported_instruction_demotes": 0,
+        "first_required_instruction_failure_section": 0,
+        "first_required_instruction_failure_offset": 0,
+        "first_required_instruction_failure_reason": "",
+        "first_required_instruction_failure_source_section": 0,
+        "first_required_instruction_failure_source_offset": 0,
+        "first_unsupported_instruction_demote_section": 0,
+        "first_unsupported_instruction_demote_offset": 0,
+        "first_unsupported_instruction_demote_reason": "",
+        "first_unsupported_instruction_demote_source_section": 0,
+        "first_unsupported_instruction_demote_source_offset": 0,
+        "opcode_relocation_conflicts_resolved_by_demote": 0,
+        "first_opcode_relocation_conflict_section": 0,
+        "first_opcode_relocation_conflict_offset": 0,
+        "first_opcode_relocation_conflict_aux_offset": 0,
+        "queue_iterations": 34581,
+        "workflow_arena_peak_used": 7466760,
+        "workflow_arena_total_blocks": 39,
+        "render_ir_statements": 51671,
+        "render_ir_labels": 5154,
+        "render_ir_instructions": 29665,
+        "render_ir_data_spans": 16852,
+        "render_ir_hash": "4d20a8f51fe8c56f",
+        "preview_source_enabled": false,
+        "preview_source_bytes": 0,
+        "preview_source_hash": "14650fb0739d0383",
+        "asm_source_enabled": true,
+        "asm_source_refused": false,
+        "asm_source_bytes": 2269304,
+        "asm_source_lines": 66793,
+        "asm_source_plan_rows": 65892,
+        "asm_source_plan_lines": 66793,
+        "asm_source_plan_bytes": 2269304,
+        "asm_source_relocation_exprs": 0,
+        "asm_source_symbolic_instructions": 29665,
+        "asm_source_numeric_runtime_refs": 0,
+        "asm_source_first_numeric_runtime_ref_section": 0,
+        "asm_source_first_numeric_runtime_ref_offset": 0,
+        "asm_source_first_numeric_runtime_ref_target_section": 0,
+        "asm_source_first_numeric_runtime_ref_target_offset": 0,
+        "asm_source_first_numeric_runtime_ref_runtime_address": 0,
+        "platform_base_slot_count": 316,
+        "platform_call_count": 1,
+        "platform_effect_count": 1,
+        "asm_source_lossy_numeric_hunk_relocations": 0,
+        "asm_source_instruction_render_failures": 0,
+        "asm_source_instruction_byte_mismatches": 0,
+        "asm_source_instruction_relocation_failures": 0,
+        "asm_source_relocation_anchor_refusals": 0,
+        "asm_source_unassemblable_hunk_data_relocation_refusals": 0,
+        "asm_source_unassemblable_hunk_base_register_relocation_refusals": 0,
+        "asm_source_first_failure_kind": "",
+        "asm_source_first_failure_section": 0,
+        "asm_source_first_failure_offset": 0,
+        "asm_source_first_failure_aux_offset": 0,
+        "asm_source_hash": "263b4ee4cd5a0fe0"
+      },
+      "timing": {
+        "source_seconds": 135.361888,
+        "summary_json_seconds": 0.000122,
+        "total_seconds": 0.000122
+      }
+    }
+  },
+  "process_usage": {
+    "wall_seconds": 183.52807235595537,
+    "user_seconds": 171.192184,
+    "system_seconds": 11.864241,
+    "max_rss_kib": 2678632
+  },
+  "limits": [
+    "The per-site app identity is existing static native evidence, not new physical-base or all-entry/runtime proof. Fallback-only aliases are not upgraded.",
+    "All three remaining C failures reproduce using the retained pre-change backend; no unsupported assertion or provenance facts are forced to pass.",
+    "No new unknown-byte or orphan closure, all-model identification, runtime coverage or semantic completion percentage is claimed."
+  ],
+  "next": "Continue connected celestial/environment consumers and specific original orphan/shared-buffer leads; the three OS provenance fixtures have finite contrasts above and do not justify stopping independent source reconstruction.",
+  "validated_target_git_tree": "0366caea6375b1bf6f5ec5f361fd02fe12d83920",
+  "clean_staged_tree_build": true,
+  "standalone_build": {
+    "schema_version": 1,
+    "status": "pass",
+    "format": "raw_payload_not_AmigaDOS_HUNK",
+    "main_bytes": 412736,
+    "main_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "main_matches_original_identity": true,
+    "asset_count": 57,
+    "all_asset_source_slices_equal": true,
+    "decoded_view_inverse_exact": true,
+    "boot_copy_source_matches_resident_view": true,
+    "source_commit": "d6ef4168de15d5fcaf645ab7ac904cce5cf17391",
+    "assembler_sha256": "413e284020125f42709486dfe09907cab3dd9f3c2ea41017c190f8ea68f30825",
+    "flags": [
+      "-Fbin",
+      "-m68000",
+      "-no-opt"
+    ],
+    "outputs": [
+      {
+        "role": "original_main",
+        "filename": "Starglider2-original.raw",
+        "bytes": 412736,
+        "sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9"
+      },
+      {
+        "role": "decoded_analysis_view",
+        "filename": "protection-decoded-analysis.raw",
+        "bytes": 3548,
+        "sha256": "de8358853dd9ed9b006a23569bf393aa217ed3be3301a169465d80bfaf839922"
+      },
+      {
+        "role": "boot_installer_context",
+        "filename": "boot-selector-installer-context.raw",
+        "bytes": 40,
+        "sha256": "8d34852425e2e1bfa87b3febdfc74fb39e7c667e9d9ff73e17b594649e83b21b"
+      },
+      {
+        "role": "boot_resident_view",
+        "filename": "boot-selector-resident.raw",
+        "bytes": 20,
+        "sha256": "a26286a393713c046eff9dbaff15b20b26b171fa9e05fc9d538d16b0eddb6024"
+      }
+    ]
+  }
+}

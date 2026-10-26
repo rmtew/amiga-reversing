@@ -16137,6 +16137,7 @@ int m68k_analysis_render_lookup_run_platform_passes(M68kRenderLookup *lookup, co
   (void)accepted_bytes;
   memset(&typed_flow_workflow, 0, sizeof(typed_flow_workflow));
   pass_start = clock();
+  lookup->app_slot_ref_index = NULL;
   if (stats != NULL) memset(stats, 0, sizeof(*stats));
   start = clock();
   if (render_lookup_seed_policy_rsset_layout_regions(lookup) != 0) return -1;
@@ -16213,7 +16214,7 @@ int m68k_analysis_render_lookup_run_platform_passes(M68kRenderLookup *lookup, co
     stats->generic_data_seconds = elapsed_seconds_local(start, end);
     stats->pass_seconds = elapsed_seconds_local(pass_start, end);
   }
-  return 0;
+  return render_lookup_index_app_accesses(lookup);
 
 typed_flow_fail:
   typed_flow_workflow_destroy(&typed_flow_workflow);

@@ -818,14 +818,25 @@
     },
     "native_current": {
       "passed": 812,
-      "failed": 6,
-      "failures": [
+      "failed": 9,
+      "assertion_messages_only": [
         "src/test_m68k_ir.c:25251: assertion failed: strstr(source, \"\\tlea.l app_timer_device_iorequest(a6),a1\\n\") != NULL",
         "src/test_m68k_ir.c:25319: assertion failed: timer_include != NULL",
         "src/test_m68k_ir.c:25404: assertion failed: strstr(source, \"\\tmove.w app_0100+TV_SECS+2(a4),d0\\n\") != NULL",
         "src/test_m68k_ir.c:25524: assertion failed: strstr(source, \"\\tmovea.l app_TimerBase(a6),a0\\n\") != NULL",
         "src/test_m68k_ir.c:25570: assertion failed: strstr(source, \"\\tmovea.l app_TimerBase(a6),a0\\n\") != NULL",
         "src/test_m68k_ir.c:31059: assertion failed: typed == NULL"
+      ],
+      "failed_test_names": [
+        "facts_v2_render_asm_source_infers_opendevice_base_field_slot",
+        "facts_v2_render_asm_source_renders_typed_app_slot_field_region",
+        "facts_v2_render_asm_source_keeps_typed_app_slot_interior_out_of_flat_rsset",
+        "facts_v2_render_asm_source_propagates_typed_base_through_stack_slot",
+        "facts_v2_render_asm_source_propagates_typed_base_through_absolute_slot",
+        "facts_v2_analysis_reports_lookup_storage_write_site_provenance",
+        "facts_v2_analysis_records_platform_api_address_value_consumer",
+        "facts_v2_render_asm_source_drops_storage_derived_type_across_unmodeled_local_call",
+        "facts_v2_analysis_propagates_direct_field_pointer_store_through_app_slot"
       ]
     },
     "native_pre_change_baseline": {
@@ -838,7 +849,9 @@
       "method": "Recompile committed pre-change IR and source-quality against identical remaining stable objects; run identical current C unit objects. No target analysis or original binary changed.",
       "exit_code": 1,
       "passed": 812,
-      "failures": [
+      "wall_seconds": 31.193193465995137,
+      "failed": 9,
+      "assertion_messages_only": [
         "src/test_m68k_ir.c:25251: assertion failed: strstr(source, \"\\tlea.l app_timer_device_iorequest(a6),a1\\n\") != NULL",
         "src/test_m68k_ir.c:25319: assertion failed: timer_include != NULL",
         "src/test_m68k_ir.c:25404: assertion failed: strstr(source, \"\\tmove.w app_0100+TV_SECS+2(a4),d0\\n\") != NULL",
@@ -846,9 +859,26 @@
         "src/test_m68k_ir.c:25570: assertion failed: strstr(source, \"\\tmovea.l app_TimerBase(a6),a0\\n\") != NULL",
         "src/test_m68k_ir.c:31059: assertion failed: typed == NULL"
       ],
-      "wall_seconds": 31.193193465995137
+      "failed_test_names": [
+        "facts_v2_render_asm_source_infers_opendevice_base_field_slot",
+        "facts_v2_render_asm_source_renders_typed_app_slot_field_region",
+        "facts_v2_render_asm_source_keeps_typed_app_slot_interior_out_of_flat_rsset",
+        "facts_v2_render_asm_source_propagates_typed_base_through_stack_slot",
+        "facts_v2_render_asm_source_propagates_typed_base_through_absolute_slot",
+        "facts_v2_analysis_reports_lookup_storage_write_site_provenance",
+        "facts_v2_analysis_records_platform_api_address_value_consumer",
+        "facts_v2_render_asm_source_drops_storage_derived_type_across_unmodeled_local_call",
+        "facts_v2_analysis_propagates_direct_field_pointer_store_through_app_slot"
+      ]
     },
-    "native_verdict": "No new C unit failure relative to the controlled pre-change build. The full C suite is NOT green: five timer-device rendering expectations and one storage-derived-call expectation fail identically on committed25fd347a. These remain explicit pre-existing follow-ups, not silently changed tests."
+    "native_verdict": "No new C unit failure relative to the controlled pre-change build. Full logs contain812 passes and9 failures, not the initially reported6: the earlier parser omitted three expected/got failures. Five timer rendering expectations, one local-call expectation and three provenance/API-consumer expectations fail identically on the pre-change backend. Later diagnosis/repair is recorded in starglider2-celestial-render-projection.json.",
+    "count_correction": {
+      "reason": "Original summary selected only assertion-failed lines; expected/got failures were omitted. Recount FAIL markers, retaining the six original assertion messages as a subset.",
+      "baseline_log_sha256": "7ebacd33f223c57f3c04706bbd17a4f55ff94867b40314ca92b6def93da49ffa",
+      "current_log_sha256": "7ebacd33f223c57f3c04706bbd17a4f55ff94867b40314ca92b6def93da49ffa",
+      "originally_reported_failed": 6,
+      "corrected_failed": 9
+    }
   },
   "verification": {
     "kind": "verification",

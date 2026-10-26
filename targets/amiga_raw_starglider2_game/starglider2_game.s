@@ -420,10 +420,10 @@ app_07F6 RS.B 1
 disc_queue_attempt_count RS.W 1
 disc_primary_colour_cursor RS.L 1
 disc_secondary_colour_cursor RS.L 1
-app_0802 RS.L 1
-app_0806 RS.L 1
-app_080A RS.L 1
-app_080E RS.L 1
+apogee_orbit_parent_x RS.L 1
+apogee_orbit_parent_z RS.L 1
+millway_orbit_parent_x RS.L 1
+millway_orbit_parent_z RS.L 1
     RS.B 28
 station_event_cadence_mask RS.W 1
 selected_celestial_body_index RS.W 1
@@ -459,7 +459,7 @@ stardrive_enabled_word RS.W 1
 nearby_space_station_reference RS.L 1
 app_09B4 RS.L 1
 app_09B8 RS.L 1
-app_09BC RS.L 1
+millway_proximity_metric RS.L 1
 depot_line_pointer_offset RS.W 1
 neutron_bomb_spawn_countdown RS.W 1
 station_charge_steps_remaining RS.W 1
@@ -1152,7 +1152,7 @@ clear_game_workspace_loop:
 	lea.l abs_0_00003370.l,a7
 	bsr.w abs_0_000034AA
 	jsr abs_0_0000261A.l
-	move.w #$0,$01D8(a6)
+	move.w #$0,app_01D8(a6)
 	clr.b pending_key_scancode(a6)
 	move.b #$5,diagnostic_step_byte.l
 	clr.b display_buffer_table_byte_offset(a6)
@@ -2487,20 +2487,20 @@ abs_0_000025FE:
 abs_0_0000261A:
 	move.l #$95901143,shared_random_state_a(a6)
 	move.l #$28731549,shared_random_state_b(a6)
-	move.b $01B0(a6),$0034(a6)
-	move.b $01B1(a6),d0
-	move.b d0,$0036(a6)
-	move.b $0034(a6),d1
+	move.b app_01B0(a6),app_0034(a6)
+	move.b app_01B1(a6),d0
+	move.b d0,app_0036(a6)
+	move.b app_0034(a6),d1
 	addx.b d1,d0
 	move.b d0,app_0035(a6)
 	lsl.b #1,d0
 	move.b d0,app_0037(a6)
-	move.b $01B1(a6),d1
+	move.b app_01B1(a6),d1
 	addx.b d1,d0
-	move.b d0,$0038(a6)
+	move.b d0,app_0038(a6)
 	lsr.b #1,d0
 	move.b d0,app_0039(a6)
-	move.l #$314159,$003C(a6)
+	move.l #$314159,app_003C(a6)
 	rts
     ; Shared PRNG: ROL.L 3, SUBQ.W 7, EOR.L; updates A6+$60/$64, preserves D1, returns D0. Original $380 shim and $4DED4 bridge forward here; byte perturbations remain aliases.
 advance_shared_random_state:
@@ -42004,7 +42004,7 @@ abs_0_00032F86:
 	tst.b space_environment_flag(a6)
 	bpl.b abs_0_00032F9E
 	bsr.w abs_0_00037690
-	bsr.w abs_0_000376C4
+	bsr.w update_millway_proximity_metric
 	bsr.w clear_stardrive_below_speed_threshold
 abs_0_00032F9E:
 	tst.w last_player_contact_type(a6)
@@ -42341,7 +42341,7 @@ abs_0_00033434:
 	bra.w abs_0_00033528
 	dc.b $13,$FC,$00,$45,$00,$00,$E1,$03
 abs_0_00033440:
-	move.l app_09BC(a6),d0
+	move.l millway_proximity_metric(a6),d0
 	cmp.l #$124F80,d0
 	bpl.w abs_0_0003350C
 	move.l player_world_y(a6),d1
@@ -42362,7 +42362,7 @@ abs_0_0003345C:
 	add.w d0,d0
 	lea.l abs_0_00039688.l,a1
 	move.w $0(a1,d0.w),app_09CC(a6)
-	cmpi.l #900000,app_09BC(a6)
+	cmpi.l #900000,millway_proximity_metric(a6)
 	bpl.w abs_0_000334AA
 	subi.w #2048,icarus_shield_strength(a6)
 	bra.b abs_0_000334B0
@@ -45562,15 +45562,15 @@ advance_celestial_orbit_state:
 	subi.w #128,d0
 	cmp.w #$3,d0
 	bne.b abs_0_000360C2
-	move.l SG2CelestialObject_world_x(a0),app_0802(a6)
-	move.l SG2CelestialObject_world_z(a0),app_0806(a6)
+	move.l SG2CelestialObject_world_x(a0),apogee_orbit_parent_x(a6)
+	move.l SG2CelestialObject_world_z(a0),apogee_orbit_parent_z(a6)
 	bra.b abs_0_000360E0
 abs_0_000360C2:
 	cmp.w #$4,d0
 	bne.b abs_0_000360D8
 	bne.b abs_0_000360E0
-	move.l SG2CelestialObject_world_x(a0),app_080A(a6)
-	move.l SG2CelestialObject_world_z(a0),app_080E(a6)
+	move.l SG2CelestialObject_world_x(a0),millway_orbit_parent_x(a6)
+	move.l SG2CelestialObject_world_z(a0),millway_orbit_parent_z(a6)
 	bra.b abs_0_000360E0
 abs_0_000360D8:
 	cmp.w #$5,d0
@@ -45668,12 +45668,12 @@ abs_0_000361FC:
 	cmpi.w #135,(a0)	; operand 2: SG2CelestialObject_object_type at (a0)
 	bne.b abs_0_0003620C
 abs_0_00036202:
-	add.l app_0802(a6),d3
-	add.l app_0806(a6),d4
+	add.l apogee_orbit_parent_x(a6),d3
+	add.l apogee_orbit_parent_z(a6),d4
 	bra.b abs_0_00036214
 abs_0_0003620C:
-	add.l app_080A(a6),d3
-	add.l app_080E(a6),d4
+	add.l millway_orbit_parent_x(a6),d3
+	add.l millway_orbit_parent_z(a6),d4
 abs_0_00036214:
 	rts
     ; KNOWN: type A0=Target code-entry register seed:SG2WorldObject
@@ -47055,13 +47055,13 @@ abs_0_00037574:
 abs_0_00037586:
 	move.w (a1)+,(a0)+
 	dbf.w d0,abs_0_00037586
-	move.l #$1AB3F00,app_0802(a6)
-	move.l #$1312D00,app_0806(a6)
-	move.l #$1E84800,app_080A(a6)
-	move.l #$1312D00,app_080E(a6)
+	move.l #$1AB3F00,apogee_orbit_parent_x(a6)
+	move.l #$1312D00,apogee_orbit_parent_z(a6)
+	move.l #$1E84800,millway_orbit_parent_x(a6)
+	move.l #$1312D00,millway_orbit_parent_z(a6)
 	move.l #$7A1200,app_09B4(a6)
 	move.l #$7A1200,app_09B8(a6)
-	move.l #$3D0900,app_09BC(a6)
+	move.l #$3D0900,millway_proximity_metric(a6)
 	move.b #$FF,free_flight_controls_enabled_flag(a6)
 	move.w #$1,tractor_command_toggle_word(a6)
 	clr.l tractor_target_reference(a6)
@@ -47123,10 +47123,10 @@ abs_0_000376BC:
 	add.l d0,d3
 	move.l d3,app_09B4(a6)
 	rts
-abs_0_000376C4:
-	move.l app_080A(a6),d0
+update_millway_proximity_metric:
+	move.l millway_orbit_parent_x(a6),d0
 	move.l player_world_x(a6),d2
-	move.l app_080E(a6),d1
+	move.l millway_orbit_parent_z(a6),d1
 	move.l player_world_z(a6),d3
 	sub.l d0,d2
 	bpl.b abs_0_000376DA
@@ -47147,7 +47147,7 @@ abs_0_000376EE:
 	add.l d3,d3
 abs_0_000376F0:
 	add.l d0,d3
-	move.l d3,app_09BC(a6)
+	move.l d3,millway_proximity_metric(a6)
 	rts
 abs_0_000376F8:
 	subq.w #1,abs_0_00039CC8.l
@@ -50268,9 +50268,9 @@ abs_0_0003B30C:
 	bpl.b abs_0_0003B322
 	move.l #$FFFFFF92,player_world_y(a6)
 abs_0_0003B322:
-	tst.w $01DA(a6)
+	tst.w app_01DA(a6)
 	beq.b abs_0_0003B32C
-	subq.w #1,$01DA(a6)
+	subq.w #1,app_01DA(a6)
 abs_0_0003B32C:
 	move.b weapon_selection_and_status(a6),d0
 	beq.b abs_0_0003B350

@@ -25242,6 +25242,21 @@ static int test_facts_v2_render_asm_source_infers_opendevice_base_field_slot(voi
   added = m68k_object_add_section(&object, &section);
   M68K_C_ASSERT(added.ok);
   m68k_analysis_policy_init_default(&policy);
+  /* Without an entry contract, an unknown incoming A6 must not acquire an
+   * app identity merely because later OpenDevice effects describe a slot. */
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
+    m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(strstr(source, "\tmovea.l app_TimerBase(a6),a0\n") == NULL);
+  M68K_C_ASSERT(strstr(source, "\tmovea.l $0054(a6),a0\n") != NULL);
+  m68k_facts_v2_free_text(source);
+  source = NULL;
+  policy.register_seed_count = 1U;
+  policy.register_seeds[0].kind = M68K_ANALYSIS_REGISTER_SEED_LIBRARY_BASE;
+  policy.register_seeds[0].reg_kind = M68K_ANALYSIS_REGISTER_ADDRESS;
+  policy.register_seeds[0].reg_index = 6U;
+  policy.register_seeds[0].has_entry_offset = 1U;
+  policy.register_seeds[0].has_section_index = 1U;
+  snprintf(policy.register_seeds[0].name, sizeof(policy.register_seeds[0].name), "__amiga_app_base__");
   M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
     m68k_diag_sink(NULL)));
   M68K_C_ASSERT(source != NULL);
@@ -25517,6 +25532,21 @@ static int test_facts_v2_render_asm_source_propagates_typed_base_through_stack_s
   added = m68k_object_add_section(&object, &section);
   M68K_C_ASSERT(added.ok);
   m68k_analysis_policy_init_default(&policy);
+  /* Without an entry contract, an unknown incoming A6 must not acquire an
+   * app identity merely because later OpenDevice effects describe a slot. */
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
+    m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(strstr(source, "\tmovea.l app_TimerBase(a6),a0\n") == NULL);
+  M68K_C_ASSERT(strstr(source, "\tmovea.l $0054(a6),a0\n") != NULL);
+  m68k_facts_v2_free_text(source);
+  source = NULL;
+  policy.register_seed_count = 1U;
+  policy.register_seeds[0].kind = M68K_ANALYSIS_REGISTER_SEED_LIBRARY_BASE;
+  policy.register_seeds[0].reg_kind = M68K_ANALYSIS_REGISTER_ADDRESS;
+  policy.register_seeds[0].reg_index = 6U;
+  policy.register_seeds[0].has_entry_offset = 1U;
+  policy.register_seeds[0].has_section_index = 1U;
+  snprintf(policy.register_seeds[0].name, sizeof(policy.register_seeds[0].name), "__amiga_app_base__");
   M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
     m68k_diag_sink(NULL)));
   M68K_C_ASSERT(source != NULL);
@@ -25563,6 +25593,21 @@ static int test_facts_v2_render_asm_source_propagates_typed_base_through_absolut
   added = m68k_object_add_section(&object, &section);
   M68K_C_ASSERT(added.ok);
   m68k_analysis_policy_init_default(&policy);
+  /* Without an entry contract, an unknown incoming A6 must not acquire an
+   * app identity merely because later OpenDevice effects describe a slot. */
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
+    m68k_diag_sink(NULL)));
+  M68K_C_ASSERT(strstr(source, "\tmovea.l app_TimerBase(a6),a0\n") == NULL);
+  M68K_C_ASSERT(strstr(source, "\tmovea.l $0054(a6),a0\n") != NULL);
+  m68k_facts_v2_free_text(source);
+  source = NULL;
+  policy.register_seed_count = 1U;
+  policy.register_seeds[0].kind = M68K_ANALYSIS_REGISTER_SEED_LIBRARY_BASE;
+  policy.register_seeds[0].reg_kind = M68K_ANALYSIS_REGISTER_ADDRESS;
+  policy.register_seeds[0].reg_index = 6U;
+  policy.register_seeds[0].has_entry_offset = 1U;
+  policy.register_seeds[0].has_section_index = 1U;
+  snprintf(policy.register_seeds[0].name, sizeof(policy.register_seeds[0].name), "__amiga_app_base__");
   M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
     m68k_diag_sink(NULL)));
   M68K_C_ASSERT(source != NULL);
@@ -30965,7 +31010,7 @@ static int test_facts_v2_analysis_does_not_record_untyped_unknown_call_consumer(
   return 0;
 }
 
-static int test_facts_v2_render_asm_source_drops_storage_derived_type_across_unmodeled_local_call(void) {
+static int check_storage_derived_type_across_local_call(unsigned clobber) {
   M68kObject object;
   M68kSection section;
   M68kObjectAddResult added;
@@ -30991,6 +31036,11 @@ static int test_facts_v2_render_asm_source_drops_storage_derived_type_across_unm
     0x4eu, 0x75u,
     0x4eu, 0x75u
   };
+  if (clobber) {
+    /* A materially different helper overwrites the held register. */
+    bytes[34] = 0x2aU; bytes[35] = 0x40U; /* movea.l d0,a5 */
+    bytes[36] = 0x4eU; bytes[37] = 0x75U; /* rts */
+  }
   memset(&section, 0, sizeof(section));
   M68K_C_ASSERT_INT(0, m68k_object_create(&object));
   object.platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
@@ -31053,22 +31103,37 @@ static int test_facts_v2_render_asm_source_drops_storage_derived_type_across_unm
       adjacent_typed = candidate;
     }
   }
-  /* The helper body has no memory/escape proof.  Its independently preserved
-   * A5 register is not enough to retain a value loaded through mutable
-   * storage before the call. */
-  M68K_C_ASSERT(typed == NULL);
-  M68K_C_ASSERT(adjacent_typed == NULL);
+  /* The read-only helper now has an inferred empty memory/escape summary.
+   * It retains the held field address, whose original provenance is source6;
+   * the clobbering variant must still lose that identity. */
+  if (clobber) {
+    M68K_C_ASSERT(typed == NULL);
+    M68K_C_ASSERT(adjacent_typed == NULL);
+  } else {
+    M68K_C_ASSERT(typed != NULL && adjacent_typed != NULL);
+    M68K_C_ASSERT_U32(6U, typed->type_provenance_offset);
+    M68K_C_ASSERT(strcmp(typed->field_name, "world_x") == 0);
+    M68K_C_ASSERT(strcmp(adjacent_typed->field_name, "world_y") == 0);
+  }
   m68k_ir_source_analysis_destroy(&analysis);
   M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
     m68k_diag_sink(NULL)));
   M68K_C_ASSERT(source != NULL);
-  M68K_C_ASSERT(strstr(source, "world_object_shared_prefix_world_x-48(a5)") == NULL);
-  M68K_C_ASSERT(strstr(source, "world_object_shared_prefix_world_y-48(a5)") == NULL);
+  M68K_C_ASSERT((strstr(source, "operand 1: world_object_shared_prefix_world_x at (a5)") != NULL) == !clobber);
+  M68K_C_ASSERT((strstr(source, "world_object_shared_prefix_world_y-48(a5)") != NULL) == !clobber);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
   m68k_facts_v2_free_text(source);
   m68k_analysis_policy_destroy(&policy);
   m68k_object_destroy(&object);
   return 0;
+}
+
+static int test_facts_v2_render_asm_source_keeps_storage_derived_type_across_readonly_local_call(void) {
+  return check_storage_derived_type_across_local_call(0U);
+}
+
+static int test_facts_v2_render_asm_source_drops_storage_derived_type_across_clobbering_local_call(void) {
+  return check_storage_derived_type_across_local_call(1U);
 }
 
 static int test_facts_v2_render_asm_source_honors_explicit_typed_field_labels(void) {
@@ -40170,8 +40235,10 @@ int m68k_c_ir_tests(void) {
       test_facts_v2_analysis_records_callback_address_value_consumer},
     {"facts_v2_analysis_does_not_record_untyped_unknown_call_consumer",
       test_facts_v2_analysis_does_not_record_untyped_unknown_call_consumer},
-    {"facts_v2_render_asm_source_drops_storage_derived_type_across_unmodeled_local_call",
-      test_facts_v2_render_asm_source_drops_storage_derived_type_across_unmodeled_local_call},
+    {"facts_v2_render_asm_source_keeps_storage_derived_type_across_readonly_local_call",
+      test_facts_v2_render_asm_source_keeps_storage_derived_type_across_readonly_local_call},
+    {"facts_v2_render_asm_source_drops_storage_derived_type_across_clobbering_local_call",
+      test_facts_v2_render_asm_source_drops_storage_derived_type_across_clobbering_local_call},
     {"facts_v2_render_asm_source_honors_explicit_typed_field_labels",
       test_facts_v2_render_asm_source_honors_explicit_typed_field_labels},
     {"facts_v2_address_register_seed_replaces_table_origin",

@@ -6100,6 +6100,61 @@ static int lookup_rsset_use_site_binding_symbol_name(const M68kRenderLookup *loo
 static const M68kRenderTypedAccess *lookup_typed_access_for_operand(const M68kRenderLookup *lookup,
     size_t section_index, uint32_t offset, uint8_t operand_index);
 
+static int compare_app_slot_ref_source(const void *left, const void *right) {
+  const M68kRenderAppSlotRef *a = *(const M68kRenderAppSlotRef *const *)left;
+  const M68kRenderAppSlotRef *b = *(const M68kRenderAppSlotRef *const *)right;
+  if (a->section_index != b->section_index) return a->section_index < b->section_index ? -1 : 1;
+  if (a->ref.offset != b->ref.offset) return a->ref.offset < b->ref.offset ? -1 : 1;
+  return 0;
+}
+
+int render_lookup_index_app_accesses(M68kRenderLookup *lookup) {
+  /* All collectors/compaction are finished. No pointer into the growable fact
+   * vector is retained until this freeze point; the arena owns both vectors. */
+  if (lookup->app_slot_ref_count != 0U) {
+    lookup->app_slot_ref_index = render_lookup_calloc(lookup, lookup->app_slot_ref_count,
+      sizeof(*lookup->app_slot_ref_index));
+    if (lookup->app_slot_ref_index == NULL) return -1;
+    for (size_t i = 0U; i < lookup->app_slot_ref_count; ++i)
+      lookup->app_slot_ref_index[i] = &lookup->app_slot_refs[i];
+    qsort(lookup->app_slot_ref_index, lookup->app_slot_ref_count,
+      sizeof(*lookup->app_slot_ref_index), compare_app_slot_ref_source);
+  }
+  return 0;
+}
+
+/* Project the converged CFG result, not the renderer's linear call state. Only
+ * exact zero-origin register identities qualify: a cursor-relative operand or
+ * a loop footprint cannot be rendered as an app-base displacement. */
+static int lookup_proven_app_base_access(const M68kRenderLookup *lookup, size_t section_index,
+    uint32_t offset, uint8_t operand_index, uint8_t base_reg, int16_t displacement,
+    uint8_t access_kind, uint8_t access_size) {
+  size_t lo = 0U, hi = lookup->app_slot_ref_count;
+  int found = 0;
+  if (lookup->app_slot_ref_index == NULL) return 0;
+  while (lo < hi) {
+    size_t mid = lo + (hi - lo) / 2U;
+    const M68kRenderAppSlotRef *row = lookup->app_slot_ref_index[mid];
+    if (row->section_index < section_index ||
+        (row->section_index == section_index && row->ref.offset < offset)) lo = mid + 1U;
+    else hi = mid;
+  }
+  for (; lo < lookup->app_slot_ref_count; ++lo) {
+    const M68kRenderAppSlotRef *row = lookup->app_slot_ref_index[lo];
+    const M68kAppSlotRefIR *ref = &row->ref;
+    if (row->section_index != section_index || ref->offset != offset) break;
+    if (ref->operand_index != operand_index) continue;
+    if (ref->base_reg != base_reg || ref->displacement != displacement ||
+        ref->base_evidence_kind != M68K_APP_SLOT_BASE_REGISTER_STATE ||
+        ref->access_kind != access_kind ||
+        ref->loop_iteration_count != 0U ||
+        (ref->has_derived_base && (ref->access_size != access_size || ref->base_displacement != 0 ||
+          ref->operand_displacement != displacement))) return 0;
+    found = 1;
+  }
+  return found;
+}
+
 static int attach_amiga_app_base_slot_symbols(const M68kRenderLookup *lookup,
     const M68kRenderPlatformState *state, size_t section_index, uint32_t offset,
     M68kInstructionIR *instruction) {
@@ -6133,8 +6188,12 @@ static int attach_amiga_app_base_slot_symbols(const M68kRenderLookup *lookup,
     const M68kRenderTypedAccess *typed = lookup_typed_access_for_operand(lookup, section_index, offset,
       (uint8_t)operand_index);
     if (typed != NULL && typed->field_expr[0] != '\0') continue;
-    if (m68k_bitset_u32_has(state->address_hardware_base_known, base_reg)) continue;
-    if (m68k_bitset_u32_has(state->address_app_base_known, base_reg)) {
+    uint8_t access_kind = app_slot_access_kind_from_instruction(instruction, operand_index);
+    int proven_app = lookup_proven_app_base_access(lookup, section_index, offset,
+      (uint8_t)operand_index, base_reg, displacement, access_kind,
+      app_slot_access_size_from_instruction(instruction, access_kind));
+    if (!proven_app && m68k_bitset_u32_has(state->address_hardware_base_known, base_reg)) continue;
+    if (proven_app || m68k_bitset_u32_has(state->address_app_base_known, base_reg)) {
       if (!lookup_typed_app_slot_field_symbol_name(lookup, displacement, symbol_name, sizeof(symbol_name),
           field_expr, sizeof(field_expr), &field_offset) &&
           !lookup_app_base_field_slot_symbol_name(lookup, displacement, symbol_name, sizeof(symbol_name))) {

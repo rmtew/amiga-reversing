@@ -789,6 +789,8 @@ struct M68kRenderLookup {
   M68kRenderAppSlotRef *app_slot_refs;
   size_t app_slot_ref_count;
   size_t app_slot_ref_capacity;
+  /* Frozen, source-ordered view of converged access facts; canonical order is unchanged. */
+  const M68kRenderAppSlotRef **app_slot_ref_index;
   M68kRenderLayoutFieldUse *layout_field_uses;
   size_t layout_field_use_count;
   size_t layout_field_use_capacity;
@@ -1208,4 +1210,7 @@ int m68k_analysis_render_lookup_append_section(M68kRenderLookup *lookup, const M
   M68kSectionAnalysisIR *section_analysis);
 int instruction_operand_writes_register_from_metadata(const M68kInstructionIR *instruction,
   size_t operand_index);
+/* Rebuild only after the platform collectors have completed. */
+int render_lookup_index_app_accesses(M68kRenderLookup *lookup);
+
 #endif
