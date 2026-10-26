@@ -1919,8 +1919,8 @@ typedef struct M68kFunctionSummaryIR {
    * zero because they are not graph-solver nodes. */
   uint32_t direct_scc_anchor_section_index;
   uint32_t direct_scc_anchor_entry_offset;
-  uint8_t direct_scc_size;
-  uint8_t direct_scc_ordinal;
+  uint32_t direct_scc_size;
+  uint32_t direct_scc_ordinal;
   M68kAnalysisFunctionSummaryInput inputs[M68K_ANALYSIS_FUNCTION_SUMMARY_INPUT_LIMIT];
   M68kFunctionSummaryResultIR results[M68K_ANALYSIS_FUNCTION_SUMMARY_RESULT_LIMIT];
   M68kFunctionSummaryLocationEffectIR location_effects[M68K_ANALYSIS_FUNCTION_SUMMARY_LOCATION_EFFECT_LIMIT];

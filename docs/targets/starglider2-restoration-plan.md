@@ -34,7 +34,7 @@ checks. 93 model-directory annotations join 92 original names plus the type 0/1
 alias. Type 30's substituted selector and eleven other placeholder-name entries
 remain explicit. These are catalogue associations, not visual identification or
 an all-path runtime instance census. That early catalogue/hardware suite passed 125 cases; the current focused
-cursor/provenance/integration checks pass 429. Earlier text/renderer checks
+cursor/provenance/integration checks pass 432. Earlier text/renderer checks
 retain their separate receipts. Source
 quality has zero diagnostics and retains the known encoded-entry boundary conflict.
 
@@ -105,8 +105,8 @@ For those priorities the immediate acceptance questions and dependencies are:
 
 | Limitation | What it currently blocks | Next bounded experiment | Why it is sequenced here |
 | --- | --- | --- | --- |
-| Branchy point-field loop and mutable absolute cursor cell | Renderer read/update spans for world/cache triplets; initialization is bounded | Eight probes distinguish the failures: straight DBF has one range, retry/rollback has none; absolute cursor store/load works until +6 arithmetic. Local absolute store/update/alias invalidation now passes21 cases. Next replace the direct-call graph capacity bottleneck, then check cursor=base+6*(initial-counter) on all retry/setup edges | Actual renderer $4E0AC..$4E332 retries at $4E350 without decrementing D7; cache pointer crosses absolute cell $4E5C0. Whole-root stack transport is fixed but changes no target facts. Global writer-summary storage is not a per-program-point memory value. No target-shaped loop recognizer or dense extra per-node slot array is justified. |
-| Remaining conditional app bases | Explicit provenance for 3,022 fallback records (2,503 A6 and 519 declared-layout), alongside 184 register-state and one library-extension record | Group remaining sites by actual entry/call and base producer/borrow; select one concrete lost or conflicting transfer | The holder contract covers its 28 direct loads, not unknown callbacks or callees without a preservation contract. |
+| Branchy point-field loop and mutable absolute cursor cell | Renderer read/update spans for world/cache triplets; initialization is bounded | Eight probes distinguish the failures: straight DBF has one range, retry/rollback has none; absolute cursor store/load works until +6 arithmetic. Local absolute store/update/alias invalidation now passes 21 cases. Sparse graph now admits all 435 direct summaries; compare absolute-JMP typed successors with the known source edge, then check cursor=base+6*(initial-counter) across setup/retry and saved-register paths | Actual renderer $4E0AC..$4E332 retries at $4E350 without decrementing D7; cache pointer crosses absolute cell $4E5C0. Whole-root stack transport is fixed but changes no target facts. Global writer-summary storage is not a per-program-point memory value. No target-shaped loop recognizer or dense extra per-node slot array is justified. |
+| Remaining conditional app bases | Explicit provenance for 3,020 fallback records (2,501 A6 and 519 declared-layout), alongside 186 register-state and one library-extension record | Group remaining sites by actual entry/call and base producer/borrow; select one concrete lost or conflicting transfer | The holder contract covers its 28 direct loads, not unknown callbacks or callees without a preservation contract. |
 | Orphan incoming path | Deciding whether a specific decoded island belongs in accepted code | Rank current unresolved signals against recovered pointer/table/return edges; choose one with a concrete inbound lead and, only if static evidence remains insufficient, observe that original normal-input condition | Follow recovered access/base evidence to avoid repeatedly scanning instruction-shaped bytes without an entry hypothesis. |
 | Shared buffer phase | Distinguishing producers/consumers of aliased scratch cells and safe source type views | Join the current vertex/cache/polygon writers and readers by original phase/entry; test one suspected overwrite-before-use or cross-phase consumer | Depends on accurate cursor/base associations; physical adjacency or storage capacity alone cannot identify ownership/lifetime. |
 | Model selector ambiguity | Attaching actual selector/variant meaning or an object identity to unresolved names | Join existing header/name/callback records with a selected original runtime instance or direct consumer; retain a counterexample for the type-30 substitution | After access/base work, unless an independent exact table consumer settles a case cheaply. No visual identity is inferred from a name-directory row. |
@@ -177,14 +177,44 @@ was introduced. The formerly failing absolute `+6` probe recovers its consumer.
 The final target pass remains C/vasm byte exact and its entire native analysis,
 source and package are identical. No new Starglider semantic coverage is claimed.
 The real renderer probe identifies 83 body blocks, three setup entries and a
-clipping call at `$4E4AE` through `$4E5C4`. That call is currently refused by the
-128-node direct-call graph capacity: 307 distinct targets/842 callsite records
-are refused in current facts. This is a concrete prerequisite for the retry and
-saved-register path, not merely an assertion that the loop is unproved. The next
-bounded implementation is input-sized sparse call-graph/SCC processing, retaining
-body, recursion and incomplete-analysis refusals, followed by the multi-entry
-retry invariant. Raising a convergence cap or adding a renderer-shaped shortcut
-is not the proposed repair. Caller-to-callee base input propagation remains next.
+clipping call at `$4E4AE` through `$4E5C4`. At that revision the call was refused by the 128-node direct-call graph capacity
+(307 distinct targets/842 callsites). The sparse-graph batch below removes that
+prerequisite without raising a convergence cap. The helper now reports
+`direct_body_unsupported`; retry/saved-register and caller-input contracts remain
+open, rather than being asserted from successful graph admission.
+
+## Sparse direct-call graph: current source gain
+
+The [graph receipt](../../runtime/observations/starglider2-sparse-direct-graph.json)
+records 435 admitted direct summaries, replacing the 128-node closure-matrix gate.
+Sparse iterative SCC discovery and callee-first proof replace the old dense
+transitive closure/repeated whole-graph schedule. Body bounds are unchanged;
+5 recursive nodes remain terminal, 55 hit body limits and 248 remain unsupported.
+127 have a nonterminal contract. These are callable-effect results, not a count
+of completely understood/named functions. SCC size/ordinal integers retain exact
+values beyond 255; a 300-node recursive fixture remains conservative.
+
+This recovers 36 typed consumers with no removals: 28 world-object, 7 celestial-object
+and 1 view-vertex access. Their existing canonical field names now appear in the
+rendered source. Two app uses gain register-state attribution; total app records
+remain 3,207. Canonical facts/histories and 57 assets are unchanged. C/vasm rebuild
+all 412,736 original bytes exactly. Focused checks pass 432 cases, including 7 embedded
+native recursion/refusal tests. The staged standalone build is recorded in the
+receipt. Unknown ownership remains 14,728 bytes/260 intervals; no new runtime
+coverage or unknown-byte reduction is claimed.
+
+Measured graph work uses 435 nodes/511 edges, 22,813 CFG visits and 2,044 SCC edge visits;
+collection/SCC/body CPU times are 0.008391/0.000085/0.007561 seconds. The section
+index uses 3,667,284 bytes. Full native generation remains 136.25 seconds, so this is
+not a whole-pipeline speed claim. The dense graph engine has been replaced,
+not retained as a competing path.
+
+The clipping helper is still unsupported. Source CFG already contains its
+absolute-JMP edge `$4E5C4 -> $5AF2`; the next focused experiment checks whether
+typed-flow/body resolution is failing to consume that canonical mapping. The
+83-block, three-setup-entry renderer also saves/restores D7/A4 across clipping.
+Those exact transfer contracts precede any retry-envelope claim. No target-shaped
+recognizer or speculative code promotion was added.
 
 ## Committed buildable rendered output
 

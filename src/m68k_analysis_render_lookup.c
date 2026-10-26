@@ -1354,7 +1354,7 @@ static const M68kAnalysisAbstractRegion *lookup_abstract_region_for_source_range
 
 static int typed_flow_local_callee_effect_summary(const M68kRenderLookup *lookup,
     const M68kDecodeIR *decode, uint8_t **accepted_start, size_t section_index, uint32_t target_offset,
-    M68kAnalysisFunctionSummary *out_summary, uint8_t *out_direct_callees, uint8_t *out_limit_hit);
+    M68kAnalysisFunctionSummary *out_summary, uint8_t *out_limit_hit);
 static const M68kAnalysisAbstractRegion *lookup_abstract_region_for_source_range(
     const M68kRenderLookup *lookup, size_t section_index, uint32_t offset, uint32_t size);
 static const M68kAnalysisFunctionSummary *lookup_inferred_direct_function_summary(
@@ -1384,10 +1384,6 @@ static M68kPlatformContractCompositionState function_summary_compose_platform_co
 
 #define M68K_RENDER_TYPED_FLOW_DEFAULT_NODE_VISIT_LIMIT 2000000U
 #define M68K_RENDER_TYPED_FLOW_DEFAULT_ITERATION_LIMIT 64U
-/* The direct-summary graph is quadratic during its SCC proof.  Keep this
- * finite at the graph boundary; over-capacity calls receive a durable terminal
- * use rather than silently extending the work set. */
-#define M68K_RENDER_TYPED_DIRECT_GRAPH_NODE_LIMIT 128U
 #define M68K_RENDER_TYPED_FLOW_LOCAL_CALLEE_INSTRUCTION_LIMIT 256U
 
 static int instruction_stack_delta_for_comment(const M68kInstructionIR *instruction, int32_t *out_delta) {
@@ -6179,7 +6175,7 @@ static uint8_t typed_flow_entry_origin_ordinal(uint8_t origin) {
 
 static int typed_flow_local_callee_effect_summary(const M68kRenderLookup *lookup,
     const M68kDecodeIR *decode, uint8_t **accepted_start, size_t section_index, uint32_t target_offset,
-    M68kAnalysisFunctionSummary *out_summary, uint8_t *out_direct_callees, uint8_t *out_limit_hit) {
+    M68kAnalysisFunctionSummary *out_summary, uint8_t *out_limit_hit) {
   typedef struct M68kTypedLocalCalleeState {
     uint32_t offset;
     uint8_t saved_mask;
@@ -6564,12 +6560,9 @@ static int typed_flow_local_callee_effect_summary(const M68kRenderLookup *lookup
         size_t callee_section = 0U;
         uint32_t callee_offset = 0U;
         uint8_t live_mask = state.preserved_mask & (uint8_t)~state.saved_mask;
-        size_t callee_index;
         int has_local_callee = typed_flow_local_call_target(lookup, candidate, &callee_section, &callee_offset);
         const M68kAnalysisFunctionSummary *callee_summary = NULL;
         if (has_local_callee) {
-          callee_index = lookup_inferred_direct_function_summary_index(lookup, callee_section, callee_offset);
-          if (out_direct_callees != NULL && callee_index != SIZE_MAX) out_direct_callees[callee_index] = 1U;
           callee_summary = lookup_inferred_direct_function_summary(lookup, callee_section, callee_offset);
           if (callee_summary == NULL)
             callee_summary = lookup_configured_direct_function_summary(lookup, callee_section, callee_offset);
@@ -6965,18 +6958,6 @@ static int render_lookup_collect_inferred_direct_function_summaries(M68kRenderLo
           accepted_start[section_index][candidate->offset] == 0U ||
           !typed_flow_local_call_target(lookup, candidate, &target_section_index, &target_offset)) continue;
       if (lookup_configured_direct_function_summary(lookup, target_section_index, target_offset) == NULL) {
-        if (lookup_inferred_direct_function_summary(lookup, target_section_index, target_offset) == NULL &&
-            lookup->inferred_function_summary_count >= M68K_RENDER_TYPED_DIRECT_GRAPH_NODE_LIMIT) {
-          memset(&use, 0, sizeof(use));
-          snprintf(use.function_summary_id, sizeof(use.function_summary_id), "direct_graph_capacity_s%u_o%08X",
-            (unsigned)target_section_index, (unsigned)target_offset);
-          use.caller_section_index = (uint32_t)section_index;
-          use.caller_offset = candidate->offset;
-          use.kind = M68K_FUNCTION_SUMMARY_USE_CALL;
-          use.terminal_reason = M68K_FUNCTION_SUMMARY_TERMINAL_DIRECT_GRAPH_CAPACITY;
-          if (render_lookup_add_function_summary_use(lookup, &use) != 0) return -1;
-          continue;
-        }
         if (render_lookup_append_inferred_direct_function_summary(lookup,
               target_section_index, target_offset) != 0) return -1;
       }
@@ -6992,145 +6973,16 @@ static int render_lookup_collect_inferred_direct_function_summaries(M68kRenderLo
   return 0;
 }
 
-/* All direct nodes exist before this runs. A local call therefore reads the
- * current graph fact instead of recursively re-entering body analysis. The
- * conservative seed permits only body-proven preservation to enter a summary;
- * unresolved recursive components consequently transfer no value. */
+static int typed_flow_successors_for_candidate(const M68kDecodeSectionIR *section, const uint8_t *accepted_start,
+    const size_t *node_by_offset, uint32_t node_by_offset_count, const M68kDecodeCandidate *candidate,
+    size_t *out_successors, size_t successor_capacity);
+
+#include "m68k_direct_call_graph.inc"
+
 static int render_lookup_solve_inferred_direct_function_summaries(M68kRenderLookup *lookup,
     const M68kDecodeIR *decode, uint8_t **accepted_start) {
-  uint8_t iteration;
-  size_t summary_count;
-  uint8_t *edges;
   if (lookup == NULL || decode == NULL || accepted_start == NULL) return -1;
-  summary_count = lookup->inferred_function_summary_count;
-  if (summary_count == 0U) return 0;
-  if (summary_count > SIZE_MAX / summary_count) return -1;
-  edges = (uint8_t *)calloc(summary_count * summary_count, sizeof(*edges));
-  if (edges == NULL) return -1;
-  /* Build edges from each entry's reachable body, rather than from an
-   * incidental section-wide scan.  This is the graph proof used to classify
-   * recursion; configured callees remain opaque authoritative leaves. */
-  for (size_t index = 0U; index < summary_count; ++index) {
-    M68kRenderInferredFunctionSummary *record = &lookup->inferred_function_summaries[index];
-    M68kAnalysisFunctionSummary ignored;
-    uint8_t limit_hit = 0U;
-    if (record->summary.callable_kind != M68K_ANALYSIS_FUNCTION_SUMMARY_CALLABLE_DIRECT) continue;
-    if (!typed_flow_local_callee_effect_summary(lookup, decode, accepted_start,
-          record->summary.section_index, record->summary.entry_offset, &ignored,
-          &edges[index * summary_count], &limit_hit)) {
-      record->summary.effects_invalid = 1U;
-      record->summary.register_effect_state = M68K_FUNCTION_SUMMARY_EFFECT_COMPONENT_INVALID;
-      record->summary.memory_effect_state = M68K_FUNCTION_SUMMARY_EFFECT_COMPONENT_INVALID;
-      record->summary.escape_effect_state = M68K_FUNCTION_SUMMARY_EFFECT_COMPONENT_INVALID;
-      record->terminal_reason = limit_hit != 0U ? M68K_FUNCTION_SUMMARY_TERMINAL_DIRECT_BODY_LIMIT :
-        M68K_FUNCTION_SUMMARY_TERMINAL_DIRECT_BODY_UNSUPPORTED;
-    }
-  }
-  /* Transitive closure gives a compact SCC proof: two nodes share an SCC iff
-   * each reaches the other.  Every member of a cyclic SCC is terminal, so no
-   * recursive edge can be mistaken for a converged callable contract. */
-  for (size_t via = 0U; via < summary_count; ++via) {
-    for (size_t from = 0U; from < summary_count; ++from) {
-      if (edges[from * summary_count + via] == 0U) continue;
-      for (size_t to = 0U; to < summary_count; ++to) {
-        if (edges[via * summary_count + to] != 0U) edges[from * summary_count + to] = 1U;
-      }
-    }
-  }
-  for (size_t index = 0U; index < summary_count; ++index) {
-    M68kRenderInferredFunctionSummary *record = &lookup->inferred_function_summaries[index];
-    size_t member_count = 0U;
-    size_t ordinal = 0U;
-    size_t member;
-    size_t anchor_member = SIZE_MAX;
-    if (record->summary.callable_kind != M68K_ANALYSIS_FUNCTION_SUMMARY_CALLABLE_DIRECT) continue;
-    for (member = 0U; member < summary_count; ++member) {
-      if (member == index || (edges[index * summary_count + member] != 0U &&
-          edges[member * summary_count + index] != 0U)) {
-        if (member != index &&
-            (lookup->inferred_function_summaries[member].summary.section_index <
-               record->summary.section_index ||
-             (lookup->inferred_function_summaries[member].summary.section_index ==
-                record->summary.section_index &&
-              lookup->inferred_function_summaries[member].summary.entry_offset <
-                record->summary.entry_offset))) {
-          ++ordinal;
-        }
-        if (anchor_member == SIZE_MAX ||
-            lookup->inferred_function_summaries[member].summary.section_index <
-              lookup->inferred_function_summaries[anchor_member].summary.section_index ||
-            (lookup->inferred_function_summaries[member].summary.section_index ==
-               lookup->inferred_function_summaries[anchor_member].summary.section_index &&
-             lookup->inferred_function_summaries[member].summary.entry_offset <
-               lookup->inferred_function_summaries[anchor_member].summary.entry_offset)) {
-          anchor_member = member;
-        }
-        ++member_count;
-      }
-    }
-    if (anchor_member != SIZE_MAX) {
-      record->direct_scc_anchor_section_index =
-        lookup->inferred_function_summaries[anchor_member].summary.section_index;
-      record->direct_scc_anchor_entry_offset =
-        lookup->inferred_function_summaries[anchor_member].summary.entry_offset;
-    }
-    record->direct_scc_size = member_count <= UINT8_MAX ? (uint8_t)member_count : UINT8_MAX;
-    record->direct_scc_ordinal = ordinal <= UINT8_MAX ? (uint8_t)ordinal : UINT8_MAX;
-    if (edges[index * summary_count + index] == 0U) continue;
-    record->summary.effects_invalid = 1U;
-    record->summary.register_effect_state = M68K_FUNCTION_SUMMARY_EFFECT_COMPONENT_INVALID;
-    record->summary.memory_effect_state = M68K_FUNCTION_SUMMARY_EFFECT_COMPONENT_INVALID;
-    record->summary.escape_effect_state = M68K_FUNCTION_SUMMARY_EFFECT_COMPONENT_INVALID;
-    record->terminal_reason = M68K_FUNCTION_SUMMARY_TERMINAL_RECURSIVE_DIRECT_GRAPH;
-  }
-  free(edges);
-  for (iteration = 0U; iteration < M68K_RENDER_TYPED_FLOW_DEFAULT_ITERATION_LIMIT; ++iteration) {
-    size_t index;
-    int changed = 0;
-    for (index = 0U; index < lookup->inferred_function_summary_count; ++index) {
-      M68kRenderInferredFunctionSummary *record = &lookup->inferred_function_summaries[index];
-      M68kAnalysisFunctionSummary next;
-      uint8_t limit_hit = 0U;
-      if (record->summary.callable_kind != M68K_ANALYSIS_FUNCTION_SUMMARY_CALLABLE_DIRECT) continue;
-      if (record->summary.effects_invalid != 0U) continue;
-      if (!typed_flow_local_callee_effect_summary(lookup, decode, accepted_start,
-            record->summary.section_index, record->summary.entry_offset, &next, NULL, &limit_hit)) {
-        if (record->summary.effects_invalid == 0U) {
-          record->summary.effects_invalid = 1U;
-          record->summary.register_effect_state = M68K_FUNCTION_SUMMARY_EFFECT_COMPONENT_INVALID;
-          record->summary.memory_effect_state = M68K_FUNCTION_SUMMARY_EFFECT_COMPONENT_INVALID;
-          record->summary.escape_effect_state = M68K_FUNCTION_SUMMARY_EFFECT_COMPONENT_INVALID;
-          record->terminal_reason = limit_hit != 0U ? M68K_FUNCTION_SUMMARY_TERMINAL_DIRECT_BODY_LIMIT :
-            M68K_FUNCTION_SUMMARY_TERMINAL_DIRECT_BODY_UNSUPPORTED;
-          changed = 1;
-        }
-        continue;
-      }
-      next.callable_kind = record->summary.callable_kind;
-      next.has_section_index = record->summary.has_section_index;
-      next.section_index = record->summary.section_index;
-      next.entry_offset = record->summary.entry_offset;
-      snprintf(next.function_summary_id, sizeof(next.function_summary_id), "%s",
-        record->summary.function_summary_id);
-      if (memcmp(&next, &record->summary, sizeof(next)) != 0) {
-        record->summary = next;
-        changed = 1;
-      }
-    }
-    if (!changed) return 0;
-  }
-  /* A finite lattice should converge.  A limit is terminal, never a partial
-   * callable contract. */
-  for (size_t index = 0U; index < lookup->inferred_function_summary_count; ++index) {
-    M68kRenderInferredFunctionSummary *record = &lookup->inferred_function_summaries[index];
-    if (record->summary.callable_kind != M68K_ANALYSIS_FUNCTION_SUMMARY_CALLABLE_DIRECT) continue;
-    record->summary.effects_invalid = 1U;
-    record->summary.register_effect_state = M68K_FUNCTION_SUMMARY_EFFECT_COMPONENT_INVALID;
-    record->summary.memory_effect_state = M68K_FUNCTION_SUMMARY_EFFECT_COMPONENT_INVALID;
-    record->summary.escape_effect_state = M68K_FUNCTION_SUMMARY_EFFECT_COMPONENT_INVALID;
-    record->terminal_reason = M68K_FUNCTION_SUMMARY_TERMINAL_SOLVER_ITERATION_LIMIT;
-  }
-  return 0;
+  return direct_call_graph_prove(lookup, decode, accepted_start);
 }
 
 /* Resolve the callback table backing an indirect dispatch from the common

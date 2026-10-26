@@ -29211,7 +29211,7 @@ static int test_facts_v2_direct_summary_unknown_nested_call_is_terminal(void) {
   return 0;
 }
 
-static int test_facts_v2_direct_summary_iteration_limit_is_terminal(void) {
+static int test_facts_v2_direct_summary_deep_chain_is_topologically_solved(void) {
   enum { chain_count = 65, first_entry = 6, bytes_size = first_entry + 4 * (chain_count - 1) + 2 };
   M68kObject object;
   M68kSection section;
@@ -29223,9 +29223,8 @@ static int test_facts_v2_direct_summary_iteration_limit_is_terminal(void) {
   memset(bytes, 0, sizeof(bytes));
   memset(&section, 0, sizeof(section));
   memset(&analysis, 0, sizeof(analysis));
-  /* Each helper calls its successor then returns. Discovery order is caller
-   * first, so preservation propagates only one edge per solver pass. The last
-   * helper returns directly; 65 nodes require a 65th convergence check. */
+  /* Caller-first discovery previously needed 65 whole-graph convergence
+   * checks. Callee-first condensation order proves each acyclic node once. */
   bytes[0] = 0x61u; bytes[1] = 0x04u;
   bytes[2] = 0x4eu; bytes[3] = 0x75u;
   bytes[4] = 0x4eu; bytes[5] = 0x71u;
@@ -29252,9 +29251,9 @@ static int test_facts_v2_direct_summary_iteration_limit_is_terminal(void) {
     &analysis, m68k_diag_sink(NULL)));
   M68K_C_ASSERT_U32(chain_count, (uint32_t)analysis.sections[0].function_summary_count);
   for (index = 0U; index < chain_count; ++index) {
-    M68K_C_ASSERT_U32(M68K_FUNCTION_SUMMARY_TERMINAL_SOLVER_ITERATION_LIMIT,
+    M68K_C_ASSERT_U32(M68K_FUNCTION_SUMMARY_TERMINAL_NONE,
       analysis.sections[0].function_summaries[index].terminal_reason);
-    M68K_C_ASSERT_U32(1U, analysis.sections[0].function_summaries[index].effects_invalid);
+    M68K_C_ASSERT_U32(0U, analysis.sections[0].function_summaries[index].effects_invalid);
   }
   m68k_ir_source_analysis_destroy(&analysis);
   m68k_analysis_policy_destroy(&policy);
@@ -29262,10 +29261,9 @@ static int test_facts_v2_direct_summary_iteration_limit_is_terminal(void) {
   return 0;
 }
 
-/* The SCC proof is bounded at the graph boundary.  The 129th independently
- * reachable direct callee must remain a terminal call use, rather than
- * growing the graph or exposing a partially solved summary. */
-static int test_facts_v2_direct_summary_graph_capacity_is_terminal(void) {
+/* Sparse graph admission is sized from the input, not the old 128-node
+ * closure matrix. All 129 independently reachable callees are proved. */
+static int test_facts_v2_direct_summary_graph_admits_all_reachable_targets(void) {
   enum { direct_count = 129, caller_size = direct_count * 4, total_size = caller_size + direct_count * 2 };
   M68kObject object;
   M68kSection section;
@@ -29301,7 +29299,7 @@ static int test_facts_v2_direct_summary_graph_capacity_is_terminal(void) {
   policy.runtime_ranges[0].runtime_address = 0x100U;
   M68K_C_ASSERT_INT(0, m68k_facts_v2_collect_source_analysis_profile(&object, &policy, &profile,
     &analysis, m68k_diag_sink(NULL)));
-  M68K_C_ASSERT_U32(128U, (uint32_t)analysis.sections[0].function_summary_count);
+  M68K_C_ASSERT_U32(direct_count, (uint32_t)analysis.sections[0].function_summary_count);
   for (index = 0U; index < analysis.sections[0].function_summary_use_count; ++index) {
     const M68kFunctionSummaryUseIR *use = &analysis.sections[0].function_summary_uses[index];
     if (use->caller_offset == (direct_count - 1U) * 4U &&
@@ -29310,7 +29308,9 @@ static int test_facts_v2_direct_summary_graph_capacity_is_terminal(void) {
       break;
     }
   }
-  M68K_C_ASSERT(terminal_found);
+  M68K_C_ASSERT(!terminal_found);
+  for (index = 0U; index < direct_count; ++index)
+    M68K_C_ASSERT_U32(M68K_FUNCTION_SUMMARY_TERMINAL_NONE, analysis.sections[0].function_summaries[index].terminal_reason);
   m68k_ir_source_analysis_destroy(&analysis);
   m68k_analysis_policy_destroy(&policy);
   m68k_object_destroy(&object);
@@ -40126,10 +40126,10 @@ int m68k_c_ir_tests(void) {
       test_facts_v2_direct_summary_body_limit_is_terminal},
     {"facts_v2_direct_summary_unknown_nested_call_is_terminal",
       test_facts_v2_direct_summary_unknown_nested_call_is_terminal},
-    {"facts_v2_direct_summary_iteration_limit_is_terminal",
-      test_facts_v2_direct_summary_iteration_limit_is_terminal},
-    {"facts_v2_direct_summary_graph_capacity_is_terminal",
-      test_facts_v2_direct_summary_graph_capacity_is_terminal},
+    {"facts_v2_direct_summary_deep_chain_is_topologically_solved",
+      test_facts_v2_direct_summary_deep_chain_is_topologically_solved},
+    {"facts_v2_direct_summary_graph_admits_all_reachable_targets",
+      test_facts_v2_direct_summary_graph_admits_all_reachable_targets},
     {"facts_v2_callback_register_disagreement_intersects_to_clobber",
       test_facts_v2_callback_register_disagreement_intersects_to_clobber},
     {"facts_v2_self_recursive_direct_summary_is_conservative",

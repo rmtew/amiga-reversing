@@ -5304,7 +5304,7 @@ abs_0_00004CB8:
 	movem.w (a4),d1-d3
 abs_0_00004CBC:
 	bsr.w transform_encoded_vertex_coordinates
-	movem.w d1-d3,(a3)
+	movem.w d1-d3,(a3)	; operand 2: SG2ViewVertex_view_x at (a3)
 abs_0_00004CC4:
 	addq.l #8,a3
 	addq.l #8,a4
@@ -45491,18 +45491,18 @@ abs_0_00035F20:
 	add.l player_world_x(a6),d4
 	add.l player_world_y(a6),d5
 	add.l player_world_z(a6),d6
-	move.l $0004(a0),d0
-	move.l $0008(a0),d1
-	move.l $000C(a0),d2
+	move.l SG2WorldObject_world_x(a0),d0
+	move.l SG2WorldObject_world_y(a0),d1
+	move.l SG2WorldObject_world_z(a0),d2
 	sub.l d4,d0
 	sub.l d5,d1
 	sub.l d6,d2
 	asr.l #3,d0
 	asr.l #3,d1
 	asr.l #3,d2
-	sub.l d0,$0004(a0)
-	sub.l d1,$0008(a0)
-	sub.l d2,$000C(a0)
+	sub.l d0,SG2WorldObject_world_x(a0)
+	sub.l d1,SG2WorldObject_world_y(a0)
+	sub.l d2,SG2WorldObject_world_z(a0)
 	addi.w #16,$0010(a0)
 	andi.w #4095,$0010(a0)
 	addi.w #16,$0014(a0)
@@ -45531,9 +45531,9 @@ abs_0_00035FE0:
 	bsr.w abs_0_0003713A
 	subq.w #1,$0026(a0)
 	bpl.b abs_0_00036006
-	clr.b $001E(a0)
-	bclr.b #2,$0002(a0)
-	bclr.b #3,$0002(a0)
+	clr.b SG2WorldObject_retirement_phase_or_negative(a0)
+	bclr.b #2,SG2WorldObject_flags(a0)
+	bclr.b #3,SG2WorldObject_flags(a0)
 	clr.b $001C(a0)
 abs_0_00036006:
 	rts
@@ -45634,8 +45634,8 @@ abs_0_0003610A:
 	asl.l d6,d3
 	asl.l d6,d4
 	bsr.w add_celestial_orbit_parent_offset
-	move.l d3,$0004(a0)
-	move.l d4,$000C(a0)
+	move.l d3,SG2CelestialObject_world_x(a0)
+	move.l d4,SG2CelestialObject_world_z(a0)
 	lea.l body_orbit_radii.l,a3
 	move.l $0(a3,d0.w),d3
 	lea.l body_orbit_radius_precision_shifts.l,a4
@@ -45656,16 +45656,16 @@ abs_0_0003610A:
 	asl.l d6,d3
 	asl.l d6,d4
 	bsr.w add_celestial_orbit_parent_offset
-	sub.l $0004(a0),d3
-	sub.l $000C(a0),d4
+	sub.l SG2CelestialObject_world_x(a0),d3
+	sub.l SG2CelestialObject_world_z(a0),d4
 	lea.l body_orbit_delta_shifts.l,a4
-	move.w (a0),d6
+	move.w (a0),d6	; operand 1: SG2CelestialObject_object_type at (a0)
 	subi.w #128,d6
 	move.b $0(a4,d6.w),d6
 	asr.l d6,d3
 	asr.l d6,d4
-	move.l d3,$002E(a0)
-	move.l d4,$0032(a0)
+	move.l d3,SG2CelestialObject_delta_world_x(a0)
+	move.l d4,SG2CelestialObject_delta_world_z(a0)
 abs_0_000361DE:
 	rts
     ; KNOWN: type A0=Target code-entry register seed:SG2CelestialObject
@@ -46219,27 +46219,27 @@ advance_bouncing_bomb_state:
 abs_0_0003691A:
 	move.w $0020(a0),d3
 	bsr.w abs_0_00037264
-	move.w d4,$002C(a0)
-	move.w d6,$0030(a0)
+	move.w d4,SG2WorldObject_velocity_x(a0)
+	move.w d6,SG2WorldObject_velocity_z(a0)
     ; Bouncing-bomb update copies object WORD+$1A as the sound argument and sets a sign-bit pending BYTE. The two audio backends interpret the argument differently; no generic distance ABI claimed.
 	st.b pending_bomb_bounce_sound(a6)
-	move.w $001A(a0),bomb_bounce_sound_argument(a6)
+	move.w SG2WorldObject_relative_z(a0),bomb_bounce_sound_argument(a6)
 abs_0_00036934:
-	move.w $002C(a0),d3
+	move.w SG2WorldObject_velocity_x(a0),d3
 	ext.l d3
-	add.l d3,$0004(a0)
-	move.w $0030(a0),d3
+	add.l d3,SG2WorldObject_world_x(a0)
+	move.w SG2WorldObject_velocity_z(a0),d3
 	ext.l d3
-	add.l d3,$000C(a0)
+	add.l d3,SG2WorldObject_world_z(a0)
 	move.l horizontal_world_wrap_mask(a6),d3
-	and.l d3,$0004(a0)
-	and.l d3,$000C(a0)
+	and.l d3,SG2WorldObject_world_x(a0)
+	and.l d3,SG2WorldObject_world_z(a0)
 	tst.w $0020(a0)
 	bne.b abs_0_00036974
-	cmpi.l #4294967271,$0008(a0)
+	cmpi.l #4294967271,SG2WorldObject_world_y(a0)
 	bmi.b abs_0_00036974
-	move.l #$FFFFFFE7,$0008(a0)
-	move.b #$0,$001E(a0)
+	move.l #$FFFFFFE7,SG2WorldObject_world_y(a0)
+	move.b #$0,SG2WorldObject_retirement_phase_or_negative(a0)
 	rts
 abs_0_00036974:
 	subq.w #1,$0024(a0)
@@ -46254,7 +46254,7 @@ abs_0_00036974:
 abs_0_00036996:
 	rts
 abs_0_00036998:
-	move.b #$0,$001E(a0)
+	move.b #$0,SG2WorldObject_retirement_phase_or_negative(a0)
 	rts
 	dc.b $30,$28,$00,$2C,$48,$C0,$D1,$A8,$00,$04,$30,$28,$00,$30,$48,$C0
 	dc.b $D1,$A8,$00,$0C,$20,$2E,$06,$FC,$46,$80,$22,$28,$00,$04,$24,$28
@@ -46532,9 +46532,9 @@ update_nearby_pirate_ship:
 	and.l d3,SG2WorldObject_world_z(a0)
 	move.w $0020(a0),d3
 	bsr.w abs_0_00037264
-	move.w d4,$002C(a0)
-	move.w d5,$002E(a0)
-	move.w d6,$0030(a0)
+	move.w d4,SG2WorldObject_velocity_x(a0)
+	move.w d5,SG2WorldObject_velocity_y(a0)
+	move.w d6,SG2WorldObject_velocity_z(a0)
 	move.w $0028(a0),d1
 	add.w d1,$0012(a0)
 	andi.w #4095,$0012(a0)
@@ -46547,17 +46547,17 @@ update_nearby_pirate_ship:
 	bsr.w abs_0_0003714C
 	bra.w abs_0_00039D56
 abs_0_00036E34:
-	move.l $0004(a0),d0
+	move.l SG2WorldObject_world_x(a0),d0
 	sub.l player_world_x(a6),d0
 	bpl.b abs_0_00036E40
 	neg.l d0
 abs_0_00036E40:
-	move.l $0008(a0),d1
+	move.l SG2WorldObject_world_y(a0),d1
 	sub.l player_world_y(a6),d1
 	bpl.b abs_0_00036E4C
 	neg.l d1
 abs_0_00036E4C:
-	move.l $000C(a0),d2
+	move.l SG2WorldObject_world_z(a0),d2
 	sub.l player_world_z(a6),d2
 	bpl.b abs_0_00036E58
 	neg.l d2
