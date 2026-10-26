@@ -34,7 +34,7 @@ checks. 93 model-directory annotations join 92 original names plus the type 0/1
 alias. Type 30's substituted selector and eleven other placeholder-name entries
 remain explicit. These are catalogue associations, not visual identification or
 an all-path runtime instance census. That early catalogue/hardware suite passed 125 cases; the current focused
-cursor/provenance/integration suite passes 330. Earlier text/renderer checks
+cursor/provenance/integration suite passes 331. Earlier text/renderer checks
 retain their separate receipts. Source
 quality has zero diagnostics and retains the known encoded-entry boundary conflict.
 
@@ -2512,3 +2512,23 @@ is asserted. The branchy renderer still needs its counter/retry/rollback
 relation. Next is app-base propagation from the mutable global holder, preceded
 by focused tests for stale identities after arithmetic and partial copies. See
 `runtime/observations/starglider2-app-cursor-stack.json`.
+
+
+## Named base identity invalidation
+
+A focused native fixture reproduced stale app-base identity after changing A0
+with ADDQ.L. The same transfer code also accepted partial register copies. App
+and named-layout identities now clear on metadata-owned decoded register writes
+and automatic address updates, and propagate only through complete LONG copies.
+Source identity is captured before destination/library clearing, so self copies
+remain valid. Indirect memory reads neither change the base nor load its identity.
+The 331 focused cases pass; target analysis and complete source package remain
+identical, with current exact C/vasm verification (83.55-second native sample).
+This is a soundness prerequisite rather than new target semantics.
+
+The workspace holder has one direct startup write and 28 full LONG loads in the
+current native cross-reference inventory. Existing global-base slots only admit
+OS libraries. Next is an explicit app/layout role in the existing absolute
+storage contract, with full-value/source-identity and malformed-role fixtures;
+no base will be inferred from the initial $3300 value or symbol spelling. See
+`runtime/observations/starglider2-named-base-write-invalidation.json`.

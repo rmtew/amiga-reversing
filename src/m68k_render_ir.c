@@ -4771,10 +4771,35 @@ static void platform_state_update_hardware_base_after_instruction(M68kRenderPlat
   }
 }
 
+/* Named layout/app identities denote an unchanged complete address.  Kill
+ * decoded register writes and auto-updates before admitting a full-LONG copy. */
+static void platform_state_clear_named_base_writes(M68kRenderPlatformState *state,
+    const M68kInstructionIR *instruction, int layout) {
+  const M68kSimFormMetadata *metadata = m68k_sim_metadata_for_instruction(instruction);
+  size_t index;
+  for (index = 0U; index < instruction->operand_count && index < 4U; ++index) {
+    const M68kOperandIR *operand = &instruction->operands[index];
+    uint8_t reg = 0U;
+    if (metadata == NULL || metadata->operand_access_kinds[index] == M68K_SIM_ACCESS_REGISTER_WRITE ||
+        metadata->operand_access_kinds[index] == M68K_SIM_ACCESS_MEMORY_WRITE) {
+      if (operand_is_data_register_local(operand, &reg)) {
+        if (layout) platform_state_clear_data_layout_base(state, reg);
+        else platform_state_clear_data_app_base(state, reg);
+      } else if (operand_address_register_index_local(operand, &reg)) {
+        if (layout) platform_state_clear_address_layout_base(state, reg);
+        else platform_state_clear_address_app_base(state, reg);
+      }
+    }
+    if (platform_operand_updates_address_register(instruction, index) && operand->value.ea_reg < 8U) {
+      if (layout) platform_state_clear_address_layout_base(state, operand->value.ea_reg);
+      else platform_state_clear_address_app_base(state, operand->value.ea_reg);
+    }
+  }
+}
+
 static void platform_state_update_app_base_after_instruction(M68kRenderPlatformState *state,
-    const M68kInstructionIR *instruction) {
+    const M68kInstructionIR *instruction, int source_is_app_base) {
   uint8_t dest_reg = 0U;
-  int source_is_app_base;
   if (state == NULL || instruction == NULL) return;
   if (platform_instruction_has_terminal_state_flow(instruction)) {
     platform_state_clear_all_app_bases(state);
@@ -4791,8 +4816,9 @@ static void platform_state_update_app_base_after_instruction(M68kRenderPlatformS
     }
     return;
   }
+  platform_state_clear_named_base_writes(state, instruction, 0);
   if (instruction->operand_count < 2U) return;
-  source_is_app_base = platform_state_operand_is_app_base(state, &instruction->operands[0]);
+  if (instruction->size_suffix != 'l') source_is_app_base = 0;
   if (instruction->mnemonic_id == M68K_ASM_MNEMONIC_MOVE ||
       instruction->mnemonic_id == M68K_ASM_MNEMONIC_MOVEA) {
     const M68kOperandIR *dest = &instruction->operands[instruction->operand_count - 1U];
@@ -4813,9 +4839,8 @@ static void platform_state_update_app_base_after_instruction(M68kRenderPlatformS
 }
 
 static void platform_state_update_layout_base_after_instruction(M68kRenderPlatformState *state,
-    const M68kInstructionIR *instruction) {
+    const M68kInstructionIR *instruction, const char *source_layout_base) {
   uint8_t dest_reg = 0U;
-  const char *source_layout_base;
   if (state == NULL || instruction == NULL) return;
   if (platform_instruction_has_terminal_state_flow(instruction)) {
     platform_state_clear_all_layout_bases(state);
@@ -4832,8 +4857,9 @@ static void platform_state_update_layout_base_after_instruction(M68kRenderPlatfo
     }
     return;
   }
+  platform_state_clear_named_base_writes(state, instruction, 1);
   if (instruction->operand_count < 2U) return;
-  source_layout_base = platform_state_operand_layout_base_symbol(state, &instruction->operands[0]);
+  if (instruction->size_suffix != 'l') source_layout_base = NULL;
   if (instruction->mnemonic_id == M68K_ASM_MNEMONIC_MOVE ||
       instruction->mnemonic_id == M68K_ASM_MNEMONIC_MOVEA) {
     const M68kOperandIR *dest = &instruction->operands[instruction->operand_count - 1U];
@@ -4941,6 +4967,9 @@ void platform_state_update_after_instruction(M68kRenderPlatformState *state, con
     const M68kInstructionIR *instruction) {
   const M68kSimFormMetadata *metadata;
   const char *hardware_source;
+  int app_source;
+  char layout_source[64] = {0};
+  const char *layout_symbol;
   if (state == NULL || instruction == NULL) return;
   metadata = m68k_sim_metadata_for_instruction(instruction);
   if (metadata != NULL && metadata->operation_type == M68K_SIM_OP_SWAP && instruction->operand_count == 2U) {
@@ -4949,6 +4978,11 @@ void platform_state_update_after_instruction(M68kRenderPlatformState *state, con
     platform_state_copy_exchanged_register(state, &previous, &instruction->operands[1], &instruction->operands[0]);
     return;
   }
+  app_source = instruction->operand_count != 0U &&
+    platform_state_operand_is_app_base(state, &instruction->operands[0]);
+  layout_symbol = instruction->operand_count != 0U
+    ? platform_state_operand_layout_base_symbol(state, &instruction->operands[0]) : NULL;
+  if (layout_symbol != NULL) snprintf(layout_source, sizeof(layout_source), "%s", layout_symbol);
   hardware_source = instruction->operand_count != 0U
     ? platform_state_operand_hardware_base_symbol(state, &instruction->operands[0]) : NULL;
   if (platform_instruction_has_terminal_state_flow(instruction)) {
@@ -4956,8 +4990,8 @@ void platform_state_update_after_instruction(M68kRenderPlatformState *state, con
     platform_state_clear_all_data_libraries(state);
     platform_state_clear_all_local_base_slots(state);
     platform_state_update_hardware_base_after_instruction(state, instruction, hardware_source);
-    platform_state_update_app_base_after_instruction(state, instruction);
-    platform_state_update_layout_base_after_instruction(state, instruction);
+    platform_state_update_app_base_after_instruction(state, instruction, app_source);
+    platform_state_update_layout_base_after_instruction(state, instruction, layout_source[0] ? layout_source : NULL);
     return;
   }
   if (instruction->mnemonic_id == M68K_ASM_MNEMONIC_MOVEM) {
@@ -4973,8 +5007,8 @@ void platform_state_update_after_instruction(M68kRenderPlatformState *state, con
       }
     }
     platform_state_update_hardware_base_after_instruction(state, instruction, hardware_source);
-    platform_state_update_app_base_after_instruction(state, instruction);
-    platform_state_update_layout_base_after_instruction(state, instruction);
+    platform_state_update_app_base_after_instruction(state, instruction, app_source);
+    platform_state_update_layout_base_after_instruction(state, instruction, layout_source[0] ? layout_source : NULL);
     return;
   }
   platform_state_update_library_slots_after_instruction(state, instruction);
@@ -5027,8 +5061,8 @@ void platform_state_update_after_instruction(M68kRenderPlatformState *state, con
     }
   }
   platform_state_update_hardware_base_after_instruction(state, instruction, hardware_source);
-  platform_state_update_app_base_after_instruction(state, instruction);
-  platform_state_update_layout_base_after_instruction(state, instruction);
+  platform_state_update_app_base_after_instruction(state, instruction, app_source);
+  platform_state_update_layout_base_after_instruction(state, instruction, layout_source[0] ? layout_source : NULL);
 }
 
 void platform_state_note_call_result_after_instruction(M68kRenderPlatformState *state,
