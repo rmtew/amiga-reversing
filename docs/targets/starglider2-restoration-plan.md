@@ -34,7 +34,7 @@ checks. 93 model-directory annotations join 92 original names plus the type 0/1
 alias. Type 30's substituted selector and eleven other placeholder-name entries
 remain explicit. These are catalogue associations, not visual identification or
 an all-path runtime instance census. That early catalogue/hardware suite passed 125 cases; the current focused
-cursor/provenance/integration suite passes 391. Earlier text/renderer checks
+cursor/provenance/integration checks pass 408. Earlier text/renderer checks
 retain their separate receipts. Source
 quality has zero diagnostics and retains the known encoded-entry boundary conflict.
 
@@ -141,6 +141,27 @@ The next system-first work remains mutable memory/cursor provenance and the
 retry SCC experiment in the table above, followed by concrete fallback contexts
 and orphan inbound leads. No naming detour, runtime campaign or interim package
 was started for this batch.
+
+## Local pointer-cell overlap: follow-on correctness repair
+
+The [local-cell receipt](../../runtime/observations/starglider2-local-cell-overlap.json)
+records a reproduced native bug, not a new target naming pass: a LONG base saved
+at `4(A1)` survived a byte write at `5(A1)` or a multi-register MOVEM write starting
+at `0(A1)`. Start-offset equality missed the overlap. The shared instruction
+footprint now invalidates overlapping whole-value packets in local cells and
+typed fields, using the same range predicate as saved stack values. Exact
+non-overlap boundaries preserve the value. The combined focused checks pass
+408 cases; C/vasm remains exact and every target analysis/source/package byte is
+unchanged. No additional per-node storage or target-specific rule was added.
+
+Three bounded caller/entry probes distinguish the next base-provenance gap:
+loading the holder in a caller does not seed a callee's runtime-layout root;
+loading it inside the callee does. The A6 case remains a qualified fallback,
+and A0 has no app reference. Existing call preservation is not callee input
+propagation. Any next implementation must retain caller context or an evidenced
+incoming-path contract rather than infer an unconditional entry fact from one
+caller. Mutable absolute-cell arithmetic and retry SCCs remain the other
+concretely reproduced blockers above; this overlap repair does not solve them.
 
 ## Committed buildable rendered output
 

@@ -3390,6 +3390,12 @@ static void typed_state_clear_stack_slot(M68kRenderTypedState *state, int16_t di
   }
 }
 
+/* The stored packet denotes a whole LONG pointer/cursor value. Any byte
+ * overlap destroys that identity; an unknown footprint cannot preserve it. */
+static int typed_long_cell_overlaps_write(int64_t cell, int64_t start, uint8_t width) {
+  return width == 0U || (cell < start + width && start < cell + 4);
+}
+
 /* Stack facts describe full LONG values.  A write into any byte of one
  * invalidates it, including an unaligned partial overwrite of a saved cursor. */
 static void typed_state_clear_stack_write(M68kRenderTypedState *state, int16_t displacement,
@@ -3399,7 +3405,7 @@ static void typed_state_clear_stack_write(M68kRenderTypedState *state, int16_t d
   if (width == 0U) { typed_state_clear_stack_slots(state); return; }
   while (index < state->stack_slot_count) {
     int32_t start = state->stack_slots[index].displacement;
-    if (start < (int32_t)displacement + width && (int32_t)displacement < start + 4) {
+    if (typed_long_cell_overlaps_write(start, displacement, width)) {
       state->stack_slots[index] = state->stack_slots[--state->stack_slot_count];
     } else ++index;
   }
@@ -3530,17 +3536,29 @@ static M68kRenderTypedBaseSlot *typed_state_mutable_base_slot_entry(M68kRenderTy
   return NULL;
 }
 
-static void typed_state_clear_base_slot(M68kRenderTypedState *state, uint8_t base_reg, int16_t displacement) {
-  size_t index;
+/* Local register-relative cells and typed fields share the instruction's
+ * decoded full write footprint, including every MOVEM element. Base identity
+ * and field byte-cursor semantics are unchanged. */
+static void typed_state_clear_base_write(M68kRenderTypedState *state, uint8_t base_reg,
+    int16_t displacement, uint8_t width) {
+  size_t index = 0U;
+  int64_t field_start;
   if (state == NULL || base_reg >= 8U) return;
-  for (index = 0U; index < state->base_slot_count; ++index) {
-    if (state->base_slots[index].known == 0U || state->base_slots[index].base_reg != base_reg ||
-        state->base_slots[index].displacement != displacement) {
-      continue;
-    }
-    state->base_slots[index] = state->base_slots[state->base_slot_count - 1U];
-    --state->base_slot_count;
-    return;
+  while (index < state->base_slot_count) {
+    M68kRenderTypedBaseSlot *slot = &state->base_slots[index];
+    if (slot->known && slot->base_reg == base_reg &&
+        typed_long_cell_overlaps_write(slot->displacement, displacement, width)) {
+      *slot = state->base_slots[--state->base_slot_count];
+    } else ++index;
+  }
+  field_start = (int64_t)state->addr_regs[base_reg].byte_cursor + displacement;
+  index = 0U;
+  while (index < state->field_slot_count) {
+    M68kRenderTypedFieldSlot *slot = &state->field_slots[index];
+    if (slot->known && slot->base_reg == base_reg &&
+        typed_long_cell_overlaps_write(slot->displacement, field_start, width)) {
+      *slot = state->field_slots[--state->field_slot_count];
+    } else ++index;
   }
 }
 
@@ -5516,6 +5534,9 @@ static int render_lookup_record_typed_storage_store(M68kRenderLookup *lookup, M6
   }
   if (operand_is_address_memory_local(dest_operand, &base_reg, &base_displacement) && base_reg < 8U &&
       base_reg != 7U && !render_state_operand_uses_app_base(platform_state, base_reg, base_displacement)) {
+    uint8_t span = 0U;
+    (void)platform_operand_memory_span(instruction, dest_index, NULL, NULL, &span);
+    typed_state_clear_base_write(state, base_reg, base_displacement, span);
     if (destination_requires_address && state->addr_regs[base_reg].known &&
         state->addr_regs[base_reg].struct_id != AMIGA_OS_STRUCT_ID_NONE &&
         typed_stored_value_has_useful_info(&value)) {
@@ -5524,7 +5545,6 @@ static int render_lookup_record_typed_storage_store(M68kRenderLookup *lookup, M6
     }
     if (typed_stored_value_has_useful_info(&value)) typed_state_set_base_slot(state, base_reg, base_displacement,
       &value);
-    else typed_state_clear_base_slot(state, base_reg, base_displacement);
     if (!allow_lookup_storage || !state->memory_base_regs[base_reg].known) return 0;
   }
   if (!allow_lookup_storage) return 0;
@@ -5616,7 +5636,9 @@ static int render_lookup_record_untyped_memory_writes(M68kRenderLookup *lookup, 
     }
     if (operand_is_address_memory_local(operand, &base_reg, &base_displacement) && base_reg < 8U &&
         base_reg != 7U && !render_state_operand_uses_app_base(platform_state, base_reg, base_displacement)) {
-      typed_state_clear_base_slot(state, base_reg, base_displacement);
+      uint8_t span = 0U;
+      (void)platform_operand_memory_span(instruction, operand_index, NULL, NULL, &span);
+      typed_state_clear_base_write(state, base_reg, base_displacement, span);
     }
     if (!allow_lookup_storage) continue;
     if (!typed_storage_key_for_lookup_memory_operand(lookup, state, platform_state, section_index, operand,
