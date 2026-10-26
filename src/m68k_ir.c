@@ -439,6 +439,8 @@ const char *m68k_incomplete_analysis_source_kind_name(uint8_t source_kind) {
   switch (source_kind) {
     case M68K_INCOMPLETE_ANALYSIS_SOURCE_TABLE_TARGET_SET:
       return "table_target_set";
+    case M68K_INCOMPLETE_ANALYSIS_SOURCE_TYPED_FLOW_WORKLIST:
+      return "typed_flow_worklist";
     default:
       return NULL;
   }

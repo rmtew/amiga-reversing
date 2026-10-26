@@ -1964,13 +1964,19 @@ static void typed_provenance_merge(M68kRenderTypedProvenance *dest,
   uint8_t source_rank;
   if (dest == NULL || source == NULL) return;
   if (typed_provenances_equal(dest, source)) return;
-  if (dest->kind == M68K_PLATFORM_TYPE_PROVENANCE_NONE) return;
+  if (dest->kind == M68K_PLATFORM_TYPE_PROVENANCE_NONE ||
+      source->kind == M68K_PLATFORM_TYPE_PROVENANCE_NONE) {
+    typed_provenance_clear(dest);
+    dest->merge_conflicted = 1U;
+    return;
+  }
   dest_rank = typed_provenance_rank(dest->kind);
   source_rank = typed_provenance_rank(source->kind);
   if (source_rank > dest_rank) {
     *dest = *source;
   } else if (source_rank == dest_rank) {
     typed_provenance_clear(dest);
+    dest->merge_conflicted = 1U;
   }
 }
 
@@ -1988,6 +1994,7 @@ static int typed_provenances_equal(const M68kRenderTypedProvenance *left,
   return left->kind == right->kind && left->section_index == right->section_index &&
     left->offset == right->offset && left->producer_operand_index == right->producer_operand_index &&
     left->transfer_count == right->transfer_count && left->transfer_truncated == right->transfer_truncated &&
+    left->merge_conflicted == right->merge_conflicted &&
     memcmp(left->transfers, right->transfers, sizeof(left->transfers)) == 0;
 }
 
@@ -4007,7 +4014,8 @@ static int typed_value_for_memory_read_operand(const M68kRenderLookup *lookup, c
     value = typed_state_stack_slot_value(state, 0);
     if (value != NULL) {
       *out_value = *value;
-      if (out_value->provenance.kind == M68K_PLATFORM_TYPE_PROVENANCE_NONE)
+      if (out_value->provenance.kind == M68K_PLATFORM_TYPE_PROVENANCE_NONE &&
+          !out_value->provenance.merge_conflicted)
         out_value->provenance = typed_provenance_make(M68K_PLATFORM_TYPE_PROVENANCE_STACK_SLOT,
           current_section_index, 0U);
       if (out_origin != NULL) {
@@ -4021,7 +4029,8 @@ static int typed_value_for_memory_read_operand(const M68kRenderLookup *lookup, c
     value = typed_state_stack_slot_value(state, stack_displacement);
     if (value != NULL) {
       *out_value = *value;
-      if (out_value->provenance.kind == M68K_PLATFORM_TYPE_PROVENANCE_NONE)
+      if (out_value->provenance.kind == M68K_PLATFORM_TYPE_PROVENANCE_NONE &&
+          !out_value->provenance.merge_conflicted)
         out_value->provenance = typed_provenance_make(M68K_PLATFORM_TYPE_PROVENANCE_STACK_SLOT, current_section_index, 0U);
       if (out_origin != NULL) {
         out_origin->kind = M68K_RENDER_TYPED_ORIGIN_STACK_SLOT;
@@ -4049,7 +4058,8 @@ static int typed_value_for_memory_read_operand(const M68kRenderLookup *lookup, c
     value = typed_state_base_slot_value(state, base_reg, base_displacement);
     if (value != NULL) {
       *out_value = *value;
-      if (out_value->provenance.kind == M68K_PLATFORM_TYPE_PROVENANCE_NONE)
+      if (out_value->provenance.kind == M68K_PLATFORM_TYPE_PROVENANCE_NONE &&
+          !out_value->provenance.merge_conflicted)
         out_value->provenance = typed_provenance_make(M68K_PLATFORM_TYPE_PROVENANCE_BASE_SLOT, current_section_index, 0U);
       if (out_origin != NULL) {
         out_origin->kind = M68K_RENDER_TYPED_ORIGIN_BASE_SLOT;
@@ -4069,7 +4079,8 @@ static int typed_value_for_memory_read_operand(const M68kRenderLookup *lookup, c
   }
   if (value == NULL) return 0;
   *out_value = *value;
-  if (out_value->provenance.kind == M68K_PLATFORM_TYPE_PROVENANCE_NONE)
+  if (out_value->provenance.kind == M68K_PLATFORM_TYPE_PROVENANCE_NONE &&
+      !out_value->provenance.merge_conflicted)
     out_value->provenance = typed_provenance_make(M68K_PLATFORM_TYPE_PROVENANCE_LOOKUP_STORAGE,
       slot != NULL ? slot->source_section_index : current_section_index,
       slot != NULL ? slot->source_offset : 0U);
@@ -7401,8 +7412,7 @@ static void typed_state_update_after_instruction(M68kRenderTypedState *state, M6
         memcpy(state->data_regs[dest_reg].raw_long_candidates, stored_value.raw_long_candidates,
           sizeof(state->data_regs[dest_reg].raw_long_candidates));
       }
-      if ((stored_value.pointer_value_known || stored_value.raw_long_value_known) &&
-          stored_value.provenance.kind != M68K_PLATFORM_TYPE_PROVENANCE_NONE)
+      if (stored_value.pointer_value_known || stored_value.raw_long_value_known)
         state->data_regs[dest_reg].provenance = stored_value.provenance;
       typed_state_set_reg_origin(state, 1U, dest_reg, &source_origin);
     } else if (operand_address_register_index_local(dest_operand, &dest_reg)) {
@@ -7440,8 +7450,7 @@ static void typed_state_update_after_instruction(M68kRenderTypedState *state, M6
         memcpy(state->addr_regs[dest_reg].raw_long_candidates, stored_value.raw_long_candidates,
           sizeof(state->addr_regs[dest_reg].raw_long_candidates));
       }
-      if ((stored_value.pointer_value_known || stored_value.raw_long_value_known) &&
-          stored_value.provenance.kind != M68K_PLATFORM_TYPE_PROVENANCE_NONE)
+      if (stored_value.pointer_value_known || stored_value.raw_long_value_known)
         state->addr_regs[dest_reg].provenance = stored_value.provenance;
       typed_state_set_reg_origin(state, 2U, dest_reg, &source_origin);
       if (source_tracks_plain_addr_alias && dest_reg != source_alias_reg)
@@ -7720,7 +7729,17 @@ static int typed_reg_values_equal(const M68kRenderTypedRegValue *left,
     left->array_element_count == right->array_element_count && left->array_element_index == right->array_element_index &&
     left->byte_cursor == right->byte_cursor &&
     typed_origins_equal(&left->origin, &right->origin) &&
-    typed_provenances_equal(&left->provenance, &right->provenance);
+    /* A provenance marker without any value cannot justify a consumer or a
+     * new transfer. Do not schedule a loop merely because this dead marker
+     * was cleared by a register overwrite. Conflicts and real values retain
+     * their full provenance comparison. */
+    ((!left->known && !right->known && !left->type_conflicted && !right->type_conflicted &&
+      !left->pointer_value_known && !right->pointer_value_known &&
+      !left->raw_long_value_known && !right->raw_long_value_known &&
+      !left->address_value_candidate_overflow && !right->address_value_candidate_overflow &&
+      left->struct_id == AMIGA_OS_STRUCT_ID_NONE && right->struct_id == AMIGA_OS_STRUCT_ID_NONE &&
+      !left->table_origin.has_origin && !right->table_origin.has_origin) ||
+      typed_provenances_equal(&left->provenance, &right->provenance));
 }
 
 static int typed_stored_values_equal(const M68kRenderTypedStoredValue *left,
@@ -7910,11 +7929,9 @@ static int typed_reg_merge(M68kRenderTypedRegValue *dest, const M68kRenderTypedR
     typed_provenance_merge(&dest->provenance, &source->provenance);
     return !typed_reg_values_equal(dest, &old_value);
   }
-  /* The first predecessor initializes this node's input state. */
-  if (dest->known == 0U && (source->pointer_value_known != 0U || source->raw_long_value_known != 0U)) {
-    *dest = *source;
-    return !typed_reg_values_equal(dest, &old_value);
-  }
+  /* The caller copies the first reachable predecessor before merging. An
+   * unknown value here is therefore a real incoming path, not an empty
+   * accumulator. It must absorb later pointer/scalar facts in either order. */
   if (dest->known == 0U || source->known == 0U) {
     typed_reg_value_clear(dest);
     return !typed_reg_values_equal(dest, &old_value);
@@ -9582,6 +9599,46 @@ done:
   return result;
 }
 
+/* Persist a bounded, per-section warning even when optional tracing is off.
+ * Any exhausted pass may already have contributed discovery facts; a later
+ * pass must not erase that limitation. capacity is visits, hit_count pending. */
+static int typed_flow_note_incomplete(M68kRenderLookup *lookup, size_t section_index,
+    uint32_t offset, size_t visit_limit, size_t pending) {
+  M68kIncompleteAnalysisIR *item;
+  size_t index;
+  for (index = 0U; index < lookup->typed_flow_incomplete_count; ++index) {
+    item = &lookup->typed_flow_incomplete[index];
+    if (item->section_index == section_index) {
+      if (item->hit_count < pending) item->hit_count = pending > UINT32_MAX ? UINT32_MAX : (uint32_t)pending;
+      return 0;
+    }
+  }
+  if (lookup->typed_flow_incomplete_count == lookup->typed_flow_incomplete_capacity) {
+    size_t next_capacity = lookup->typed_flow_incomplete_capacity == 0U ? 4U :
+      lookup->typed_flow_incomplete_capacity * 2U;
+    M68kIncompleteAnalysisIR *grown = render_lookup_grow_array(lookup, lookup->typed_flow_incomplete,
+      lookup->typed_flow_incomplete_count, sizeof(*grown), next_capacity);
+    if (grown == NULL) return -1;
+    lookup->typed_flow_incomplete = grown;
+    lookup->typed_flow_incomplete_capacity = next_capacity;
+  }
+  item = &lookup->typed_flow_incomplete[lookup->typed_flow_incomplete_count++];
+  memset(item, 0, sizeof(*item));
+  item->kind = M68K_INCOMPLETE_ANALYSIS_CAPACITY_EXHAUSTED;
+  item->source_kind = M68K_INCOMPLETE_ANALYSIS_SOURCE_TYPED_FLOW_WORKLIST;
+  item->section_index = (uint32_t)section_index;
+  item->offset = offset;
+  item->capacity = visit_limit > UINT32_MAX ? UINT32_MAX : (uint32_t)visit_limit;
+  item->hit_count = pending > UINT32_MAX ? UINT32_MAX : (uint32_t)pending;
+  return 0;
+}
+
+/* Optional bounded worklist diagnostics; no analysis decisions depend on these. */
+typedef struct TypedFlowVisitTrace {
+  size_t visits, typed_changes, platform_changes;
+  size_t platform_first_changed_byte, typed_first_changed_byte;
+} TypedFlowVisitTrace;
+
 static int render_lookup_analyze_amiga_typed_refs_for_section(M68kRenderLookup *lookup, const M68kDecodeIR *decode,
     uint8_t **accepted_start, const M68kDecodeSectionIR *section, M68kRenderTypedFlowGraph *graph,
     int final_pass, int *io_changed, Arena *arena) {
@@ -9592,6 +9649,9 @@ static int render_lookup_analyze_amiga_typed_refs_for_section(M68kRenderLookup *
   size_t max_visits = 0U, node_visit_count = 0U, queue_head = 0U, queue_count = 0U, node_index;
   size_t *queue = NULL;
   uint8_t *queued = NULL;
+  const char *trace_env = getenv("AMIGA_REVERSING_PROFILE_TYPED_FLOW");
+  TypedFlowVisitTrace *trace_nodes = NULL;
+  int trace_enabled = trace_env != NULL && strcmp(trace_env, "1") == 0;
   ArenaMark mark;
   int result = -1;
   if (graph == NULL || arena == NULL) return -1;
@@ -9601,6 +9661,10 @@ static int render_lookup_analyze_amiga_typed_refs_for_section(M68kRenderLookup *
   queue = (size_t *)arena_alloc(arena, graph->node_count * sizeof(*queue));
   queued = (uint8_t *)arena_calloc(arena, graph->node_count, sizeof(*queued));
   if (queue == NULL || queued == NULL) goto cleanup;
+  if (trace_enabled) {
+    trace_nodes = arena_calloc(arena, graph->node_count, sizeof(*trace_nodes));
+    if (trace_nodes == NULL) goto cleanup;
+  }
   max_visits = typed_flow_visit_limit(graph->node_count, iteration_limit, node_visit_limit);
   for (node_index = 0U; node_index < graph->node_count; ++node_index) {
     if (graph->nodes[node_index].has_in != 0U &&
@@ -9624,6 +9688,28 @@ static int render_lookup_analyze_amiga_typed_refs_for_section(M68kRenderLookup *
         0, &next_typed_state, &next_platform_state, io_changed) != 0) {
       goto cleanup;
     }
+    if (trace_nodes != NULL) {
+      TypedFlowVisitTrace *trace_node = &trace_nodes[node_index];
+      ++trace_node->visits;
+      if (!typed_state_equal(&node->typed_out, &next_typed_state)) {
+        const unsigned char *old_bytes = (const unsigned char *)&node->typed_out;
+        const unsigned char *new_bytes = (const unsigned char *)&next_typed_state;
+        size_t byte_index;
+        ++trace_node->typed_changes;
+        for (byte_index = 0U; byte_index < sizeof(next_typed_state); ++byte_index)
+          if (old_bytes[byte_index] != new_bytes[byte_index]) break;
+        trace_node->typed_first_changed_byte = byte_index;
+      }
+      if (!platform_states_equal(&node->platform_out, &next_platform_state)) {
+        const unsigned char *old_bytes = (const unsigned char *)&node->platform_out;
+        const unsigned char *new_bytes = (const unsigned char *)&next_platform_state;
+        size_t byte_index;
+        ++trace_node->platform_changes;
+        for (byte_index = 0U; byte_index < sizeof(next_platform_state); ++byte_index)
+          if (old_bytes[byte_index] != new_bytes[byte_index]) break;
+        trace_node->platform_first_changed_byte = byte_index;
+      }
+    }
     if (node->has_out == 0U || !typed_state_equal(&node->typed_out, &next_typed_state) ||
         !platform_states_equal(&node->platform_out, &next_platform_state)) {
       node->typed_out = next_typed_state;
@@ -9639,6 +9725,8 @@ static int render_lookup_analyze_amiga_typed_refs_for_section(M68kRenderLookup *
       }
     }
   }
+  if (queue_count != 0U && typed_flow_note_incomplete(lookup, section->section_index,
+      graph->nodes[queue[queue_head]].candidate->offset, max_visits, queue_count) != 0) goto cleanup;
   if (final_pass) {
     for (node_index = 0U; node_index < graph->node_count; ++node_index) {
       M68kRenderTypedState ignored_typed_state;
@@ -9660,6 +9748,21 @@ cleanup:
       fprintf(stderr, "typed_flow_worklist section=%zu final=%d nodes=%zu visits=%zu pending=%zu max=%zu typed_state_bytes=%zu platform_state_bytes=%zu\n",
         (size_t)section->section_index, final_pass, graph->node_count, node_visit_count, queue_count, max_visits,
         sizeof(M68kRenderTypedState), sizeof(M68kRenderPlatformState));
+  }
+  if (trace_nodes != NULL) {
+    size_t rank;
+    for (rank = 0U; rank < 12U && rank < graph->node_count; ++rank) {
+      size_t hottest = 0U;
+      for (node_index = 1U; node_index < graph->node_count; ++node_index)
+        if (trace_nodes[node_index].visits > trace_nodes[hottest].visits) hottest = node_index;
+      if (trace_nodes[hottest].visits == 0U) break;
+      fprintf(stderr, "typed_flow_hot section=%zu final=%d offset=%u visits=%zu typed_changes=%zu platform_changes=%zu platform_first_changed_byte=%zu typed_first_changed_byte=%zu pending=%u\n",
+        (size_t)section->section_index, final_pass, graph->nodes[hottest].candidate->offset,
+        trace_nodes[hottest].visits, trace_nodes[hottest].typed_changes,
+        trace_nodes[hottest].platform_changes, trace_nodes[hottest].platform_first_changed_byte,
+        trace_nodes[hottest].typed_first_changed_byte, (unsigned)queued[hottest]);
+      trace_nodes[hottest].visits = 0U;
+    }
   }
   arena_rewind(arena, mark);
   return result;
@@ -15706,6 +15809,9 @@ int m68k_analysis_render_lookup_build_source_analysis(M68kRenderLookup *lookup,
   if (scratch_arena == NULL) return -1;
   if (m68k_analysis_render_lookup_append_base_layout_fields(scratch_arena, lookup, decode, source_analysis) != 0)
     goto fail;
+  for (section_index = 0U; section_index < lookup->typed_flow_incomplete_count; ++section_index)
+    if (m68k_ir_source_analysis_append_incomplete_analysis(source_analysis,
+        &lookup->typed_flow_incomplete[section_index]) != 0) goto fail;
   for (section_index = 0U; section_index < decode->section_count; ++section_index) {
     const M68kDecodeSectionIR *section = &decode->sections[section_index];
     if (m68k_ir_section_analysis_create(&section_analysis, source_analysis->arena) != 0) goto fail;

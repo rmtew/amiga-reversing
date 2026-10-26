@@ -2503,7 +2503,8 @@ typedef enum M68kIncompleteAnalysisKind {
 
 typedef enum M68kIncompleteAnalysisSourceKind {
   M68K_INCOMPLETE_ANALYSIS_SOURCE_UNKNOWN = 0,
-  M68K_INCOMPLETE_ANALYSIS_SOURCE_TABLE_TARGET_SET = 1
+  M68K_INCOMPLETE_ANALYSIS_SOURCE_TABLE_TARGET_SET = 1,
+  M68K_INCOMPLETE_ANALYSIS_SOURCE_TYPED_FLOW_WORKLIST = 2
 } M68kIncompleteAnalysisSourceKind;
 
 typedef struct M68kIncompleteAnalysisIR {

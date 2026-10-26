@@ -2089,7 +2089,8 @@ without relaxing production checks. See
 Optional `AMIGA_REVERSING_PROFILE_SOURCE_QUALITY=1` traces native substages/counts;
 `AMIGA_REVERSING_PROFILE_TYPED_FLOW=1` traces unchanged solver worklists.
 The latter exposes three29,665-node passes, each exhausting1,898,560 visits,
-with82/80/77 pending nodes:5,695,680 visits. **Typed analysis is not converged.**
+with82/80/77 pending nodes:5,695,680 visits. **That baseline was not converged;
+the current solver result is recorded below.**
 Preserved baseline facts are not all-path contract proof. Current-host sizes
 are32,488bytes typed state,4,708bytes platform state,74,448bytes graph node;
 29,665 nodes alone occupy2,208,499,920bytes. This is not a portable ABI or measured
@@ -2098,3 +2099,56 @@ in a bounded fixture and fix the mechanism if supported; do not raise caps to
 claim completion. Multiline discovery is an unmodified secondary cost.
 Presentation-only work must retain the existing presentation path; ownership,
 type and extent changes must continue invalidating native facts.
+
+
+## Typed-flow convergence correction
+
+The unfinished worklists were real changing-state loops, not merely slow queue
+handling. Bounded native fixtures expose two invalid joins: an unknown register
+could acquire a later predecessor's pointer/raw value, and provenance merging
+could retain a known origin in one order while losing it in the reverse order.
+The first predecessor is already copied before merging, so unknown is an actual
+incoming path, not an uninitialized accumulator. Correcting that rule removes
+the D3 churn around original `$3A046..$3A0A8`.
+
+An eight-instruction caller save/call/restore loop reproduces the saved-origin
+problem with 128 visits and two queued nodes. A transient join-conflict marker
+now preserves the loss of an origin across stack, base-slot and global-storage
+reads and register transfers. A genuinely unannotated single source still gets
+its storage witness; a merged-away origin cannot be manufactured again. Empty
+registers cannot advance analysis solely because a dead origin marker was
+cleared. Actual typed values, conflicts, overflow and memory-base state retain
+their comparisons. No visit budget or propagation rule was weakened for speed.
+
+All three target passes now converge under the unchanged 1,898,560-visit budget:
+37,834, 37,822 and 37,756 visits, with zero queued nodes. Total visits fall from
+5,695,680 to 113,412 (about 50.2 times fewer). On the same canonical target,
+full API wall time falls from 251.29 to 103.25 seconds; native typed-flow CPU
+time falls from 160.65 to 4.69 seconds. These are individual measured samples,
+not a universal speedup. Finalization still costs 50.98 CPU seconds and rendering
+23.26 seconds. The 2.21 GB graph representation remains unchanged; the fix
+removes useless processing/copying rather than claiming a sparse-state rewrite.
+
+Native JSON now records `capacity_exhausted` / `typed_flow_worklist` in
+`incomplete_analysis` whenever a pass exhausts its budget, independent of
+optional tracing. `capacity` is the visit budget and `hit_count` is the worst
+pending-node count for that section. A later pass cannot erase an earlier
+exhaustion. Current target output has no incomplete-analysis records. This is
+solver convergence within the admitted model, not all-path or all-alias proof.
+
+The final 123 focused tests pass. Current-backend C/vasm verification remains
+exact for all 412,736 original bytes. Inline source and the complete 57-asset
+INCBIN package are identical to the committed target, so no generated-source
+churn or redundant standalone rebuild is needed. Accepted code, ownership and
+all 292 declared fields remain unchanged. One decimal-access conflict loses an
+unjustified static origin; one indexed sprite access loses an unsupported input
+type (268 to 267 unresolved typed records overall). These conservative fact
+corrections do not classify new bytes or resolve new game semantics. See
+`runtime/observations/starglider2-typed-flow-convergence.json`.
+
+Presentation-dirty listing reads retain the existing artifact. A dedicated
+native re-projection path for changed naming/comment policy is still absent;
+this batch does not pretend that every canonical source export can skip
+analysis. Type, extent and ownership changes continue invalidating native facts.
+The next source-restoration batch is the connected view/clip geometry and
+alternate-graphics mode, using its actual producers and consumers.

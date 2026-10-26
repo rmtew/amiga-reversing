@@ -1,0 +1,242 @@
+{
+  "schema_version": 1,
+  "kind": "native_typed_flow_join_correctness_and_worklist_convergence",
+  "status": "verified_scoped",
+  "publication_base_commit": "3886c4d4ae6a0969e574d42d1cabe80a8944a6bd",
+  "target": "amiga_raw_starglider2_game",
+  "mechanisms": [
+    "Unknown incoming register values absorb later known raw/pointer values; the first predecessor is already copied by the caller.",
+    "Unknown provenance absorbs in either order. Join-erased origins carry a transient conflict marker through saved values, preventing stack/base/global reads from fabricating a replacement origin.",
+    "Empty non-conflicted registers do not schedule successors solely for dead provenance markers; actual value/conflict/overflow and memory-base state remain compared.",
+    "Normal native analysis JSON persists capacity_exhausted/typed_flow_worklist with visit capacity and worst pending-node count per section, even when optional tracing is off. A later pass does not erase an earlier exhausted pass."
+  ],
+  "diagnosis": {
+    "original_hot_runtime_range": [
+      "0x3A046",
+      "0x3A0A8"
+    ],
+    "register": "D3",
+    "original_hottest_node_visits": 18538,
+    "second_hot_runtime_range": [
+      "0x114EE",
+      "0x11594"
+    ],
+    "second_component": "saved-value provenance",
+    "final_empty_marker_range": [
+      "0x47EE",
+      "0x488A"
+    ],
+    "final_component": "empty A4 provenance marker",
+    "bounded_regressions": [
+      "Direct production native merge: pointer/raw unknown absorption, both orders, three-way joins, positive known unions/idempotence.",
+      "Eight-instruction caller save/call/restore DBF loop reproduced exhausted128visits/pending2 before correction; both scalar and raw-address forms now converge.",
+      "Join-erased saved origin survives a stack read without a fabricated witness, while a genuinely unannotated single source retains its storage witness.",
+      "Actual values still distinguish discarded origins; empty-register markers do not create false progress.",
+      "One-visit budget emits normal incomplete_analysis without optional tracing; normal fixture converges; optional trace preserves complete facts."
+    ]
+  },
+  "performance": {
+    "baseline_api_wall_seconds": 251.294143704,
+    "after_api_wall_seconds": 103.24685282100108,
+    "baseline_total_visits": 5695680,
+    "after_total_visits": 113412,
+    "visit_reduction_ratio": 50.22114062004021,
+    "unchanged_visit_limit": 1898560,
+    "worklists": [
+      {
+        "section": 0,
+        "final": 0,
+        "nodes": 29665,
+        "visits": 37834,
+        "pending": 0,
+        "limit": 1898560,
+        "typed_state_bytes": 32488,
+        "platform_state_bytes": 4708
+      },
+      {
+        "section": 0,
+        "final": 0,
+        "nodes": 29665,
+        "visits": 37822,
+        "pending": 0,
+        "limit": 1898560,
+        "typed_state_bytes": 32488,
+        "platform_state_bytes": 4708
+      },
+      {
+        "section": 0,
+        "final": 0,
+        "nodes": 29665,
+        "visits": 37756,
+        "pending": 0,
+        "limit": 1898560,
+        "typed_state_bytes": 32488,
+        "platform_state_bytes": 4708
+      }
+    ],
+    "phase_process_cpu_seconds": {
+      "platform_analysis_typed_flow_seconds": {
+        "before": 160.65296,
+        "after": 4.694375
+      },
+      "source_analysis_finalize_seconds": {
+        "before": 40.791504,
+        "after": 50.983488
+      },
+      "render_ir_seconds": {
+        "before": 22.720407,
+        "after": 23.262302
+      },
+      "source_analysis_build_seconds": {
+        "before": 8.812021,
+        "after": 9.392571
+      },
+      "platform_analysis_typed_graph_seconds": {
+        "before": 3.20218,
+        "after": 1.495964
+      }
+    },
+    "measurement_limits": "Single current-target samples, nested native CPU timers and process wall time; not a universal constant speedup. Source finalization/rendering and oversized graph storage remain real costs.",
+    "graph_storage": {
+      "node_count": 29665,
+      "node_bytes": 74448,
+      "total_node_bytes": 2208499920,
+      "reduced": false,
+      "scope": "Current host C sizes; processing/copy churn reduced, resident graph representation not redesigned. New transient marker fits existing padding on this host."
+    }
+  },
+  "analysis_delta": {
+    "incomplete": [],
+    "accepted_code_runs_unchanged": true,
+    "range_ownerships_unchanged": true,
+    "declared_fields_unchanged": true,
+    "unresolved_typed_access_before": 268,
+    "unresolved_typed_access_after": 267,
+    "removed_records": [
+      {
+        "offset": 5522,
+        "operand_index": 0,
+        "base_register": "A0",
+        "displacement": -4,
+        "struct_size": 4,
+        "access_size": 4,
+        "root_struct_name": "SG2DecimalPlaceValue",
+        "classification_id": 3,
+        "classification": "type_conflict",
+        "container_candidate_count": 1,
+        "container_struct_name": null,
+        "container_field_expr": null,
+        "refinement_applied": 0,
+        "refined_struct_name": null,
+        "type_provenance_kind_id": 12,
+        "type_provenance_kind": "static_data",
+        "type_provenance_section": 0,
+        "type_provenance_offset": 5444
+      },
+      {
+        "offset": 50406,
+        "operand_index": 0,
+        "base_register": "A1",
+        "displacement": 0,
+        "struct_size": 4,
+        "access_size": 4,
+        "root_struct_name": "SG2SpriteControlReference",
+        "classification_id": 4,
+        "classification": "indexed_dynamic",
+        "container_candidate_count": 0,
+        "container_struct_name": null,
+        "container_field_expr": null,
+        "refinement_applied": 0,
+        "refined_struct_name": null,
+        "type_provenance_kind_id": 12,
+        "type_provenance_kind": "static_data",
+        "type_provenance_section": 0,
+        "type_provenance_offset": 184080
+      }
+    ],
+    "added_records": [
+      {
+        "offset": 5522,
+        "operand_index": 0,
+        "base_register": "A0",
+        "displacement": -4,
+        "struct_size": 4,
+        "access_size": 4,
+        "root_struct_name": "SG2DecimalPlaceValue",
+        "classification_id": 3,
+        "classification": "type_conflict",
+        "container_candidate_count": 1,
+        "container_struct_name": null,
+        "container_field_expr": null,
+        "refinement_applied": 0,
+        "refined_struct_name": null,
+        "type_provenance_kind_id": 0,
+        "type_provenance_kind": "unknown"
+      }
+    ],
+    "interpretation": "The decimal -4 conflict remains but loses an unjustified static origin; the indexed sprite-control record loses unsupported input type. These are conservative fact corrections, not newly classified code/data."
+  },
+  "source": {
+    "inline_identical_to_previous": true,
+    "incbin_package_identical_to_previous": true,
+    "committed_main_source_sha256": "57a454948aa3bdba80756c33878d32871142f4aa6e052281b2cba5dd13d2ac63",
+    "assets": 57,
+    "canonical_histories_unchanged": true,
+    "hand_edited": false
+  },
+  "verification": {
+    "kind": "verification",
+    "framework_exact": true,
+    "target_id": "amiga_raw_starglider2_game",
+    "subject_revision": "e1728661c0587ba0a897a7931aadffecf13e86f20d0ea3f20c6843188aac0877",
+    "status": "exact",
+    "exact": true,
+    "source_sha256": "ec0327be03e730a9be1f25e2db440f1d4d8e2c4f69a7282ac347790600914396",
+    "source_path": "/workspace/pandora-original-delivery/stable-d15c2cf8/.runtime-state/restoration/eb04f545fb97451725a1c91ab5abf6f2e097614c45880db6edfb4ea5c3f6e2c2/ec0327be03e730a9be1f25e2db440f1d4d8e2c4f69a7282ac347790600914396.s",
+    "source_package_sha256": null,
+    "original_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "original_size": 412736,
+    "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "rebuilt_path": "/workspace/pandora-original-delivery/stable-d15c2cf8/.runtime-state/restoration/eb04f545fb97451725a1c91ab5abf6f2e097614c45880db6edfb4ea5c3f6e2c2/662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9.bin",
+    "framework_status": "exact",
+    "failure_kinds": [],
+    "message": "",
+    "oracle": {
+      "oracle_id": "vasm",
+      "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+      "comparison_level": "oracle.full_file_match",
+      "assembler_status": "accepted",
+      "message": "oracle output matched original bytes"
+    },
+    "receipt_id": "8bb4981238409dcb15280e8ff96a65c879555b3976b57186791af30000252315",
+    "revision": "40fb3c76d73de6152380b3ab47992075553d52c8c3c649fb8cfd17de5222eea4"
+  },
+  "tests": {
+    "passed": 123,
+    "failed": 0,
+    "skipped": 0,
+    "log_sha256": "bde2d8c48b565ba8bd5a0fea78a4526ce5d0efe45c476fbc21433bef50eb993c",
+    "scope": [
+      "Native join fixture",
+      "Typed postincrement cursors/pointer domains",
+      "Function-summary effects/callback slots",
+      "Hardware relative bounds and incomplete fixed-point refusal"
+    ],
+    "negative_reproduction": "Original production merge failed unknown-absorption regression. The eight-instruction save/restore loop exhausted its unchanged budget. An intermediate test invocation before relink finished used the stale backend; the final123 run above used the completed current build."
+  },
+  "framework_source_sha256": {
+    "src/m68k_analysis_render_lookup.c": "c9a6eea409fddebe936ae588f17d476ebd7f293daf2b102df9cc7df97067be86",
+    "src/m68k_render_lookup_internal.h": "763b32d53cd9ce3ba1278577f761567340e7c27af877407a55d321e6b20c8684",
+    "src/m68k_ir.c": "974578263475a487d3abd0bac91b20c5dd76ef05790519bb9102e29ddf2b6d48",
+    "src/m68k_ir.h": "672841f76c6e15e8aabf1a2c554b2d91c589c734004f6694b8af28b4a8e7f635",
+    "tests/test_typed_flow_join.py": "50b49682632f3fa8f3926fda1019c601578a3475c2e72da8aa11753a8c404909"
+  },
+  "native_backend_sha256": "03ad752d6bf16c57e0888d1f6edf9bf730cfeaef057ba8ccfb9d948eb51927c4",
+  "limits": [
+    "Solver convergence is not complete semantic, alias, caller-context or runtime-path coverage.",
+    "No new emulator run or model identity claim.",
+    "Full graph storage remains about2.21GB on this host; no speculative sparse-state rewrite in this correction.",
+    "Presentation-dirty listing reads already reuse native facts; fresh canonical export after changed name/comment policy still lacks a dedicated re-projection API. Type/extent/ownership edits continue requiring fresh analysis.",
+    "Existing original exact export and prior normal-input runtime scope remain unchanged."
+  ]
+}

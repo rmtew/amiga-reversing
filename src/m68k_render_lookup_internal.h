@@ -342,6 +342,9 @@ typedef struct M68kRenderTypedProvenance {
   uint8_t producer_operand_index;
   uint8_t transfer_count;
   uint8_t transfer_truncated;
+  /* A join erased the origin. A later stack/base read must not manufacture a
+   * fresh origin for this same value and restart provenance propagation. */
+  uint8_t merge_conflicted;
   size_t section_index;
   uint32_t offset;
   M68kAddressValueTransferIR transfers[8];
@@ -719,6 +722,9 @@ typedef enum M68kRenderBoundaryFlag {
 
 struct M68kRenderLookup {
   Arena *arena;
+  M68kIncompleteAnalysisIR *typed_flow_incomplete;
+  size_t typed_flow_incomplete_count;
+  size_t typed_flow_incomplete_capacity;
   /* Rendering-only bootstrap replacement. Original analysis views stay intact;
    * helper bytes are emitted in their containing image/storage view. */
   const M68kBootstrapContractIR *render_in_place_helper_contract;
