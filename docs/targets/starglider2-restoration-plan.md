@@ -17,6 +17,24 @@ to their recorded closeout revision. See the current
 
 ## Current refinement and next evidence
 
+The [current systematic gap inventory](../../runtime/observations/starglider2-source-gap-inventory.json)
+joins native identities/accesses with canonical layouts and actual rendered
+boundaries. It records 66 suffix signals (including numeric adjacent variants),
+22 lookup contracts, 524 remaining interior references, 48 generic app fields
+and 355 unresolved record accesses. These are different denominators. Five
+suffixes name routines and one names text; neither is a pointer defect.
+The active next probe is **ten homogeneous pointer-record collections** whose
+storage owners survive but whose native collection/cursor view is absent.
+Reuse existing owner spans, array state and pointer domains. Dynamic-index
+contracts follow; then connected field/constructor semantics and incoming/orphan
+leads. Each group has a concrete experiment, what it blocks and a reason for any
+deferral. The inventory does not admit facts, rename symbols or replace native
+analysis. Reproduce it using `python -m amiga_reversing.tools.source_gap_inventory
+--analysis <retained-native-analysis.json> --metadata <effective-metadata.json>
+--source <rendered-source.s> --output <inventory.json>`; all input hashes are
+bound to the qualification receipts. No additional native generation was used
+for this accounting.
+
 Latest: the [subordinate string-record recovery](../../runtime/observations/starglider2-string-pool-subentities.json)
 preserves the authored 1923-byte character pool and exposes all 112 NUL records.
 The 148 typed directory pointers cover 111 distinct records: 110 new string labels
