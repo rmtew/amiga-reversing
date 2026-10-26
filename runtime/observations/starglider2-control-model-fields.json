@@ -1,0 +1,268 @@
+{
+  "schema_version": 1,
+  "kind": "runtime_informed_control_and_model_source_contracts",
+  "target": "amiga_raw_starglider2_game",
+  "publication_base_commit": "e1db24c64cfe3f4a10648122023d8362227652d1",
+  "status": "canonical_source_verified",
+  "canonical_actions": 6,
+  "canonical_fields": [
+    {
+      "offset": 400,
+      "symbol": "active_model_type_index",
+      "rendered_mentions": 23,
+      "before_native_app_slot_references": 0,
+      "after_native_app_slot_references": 0
+    },
+    {
+      "offset": 402,
+      "symbol": "type30_render_model_index",
+      "rendered_mentions": 3,
+      "before_native_app_slot_references": 0,
+      "after_native_app_slot_references": 0
+    },
+    {
+      "offset": 2034,
+      "symbol": "fire_key_scancode",
+      "rendered_mentions": 5,
+      "before_native_app_slot_references": 4,
+      "after_native_app_slot_references": 4
+    }
+  ],
+  "interpretation": "Original source and normal-media runtime agree:2000 initializes BYTE app7F2 to40 (Space);71DE tests app201 or keyboard_down_flags[app7F2], while primary_fire applies only through one-hand branch. Configured-key runtime hit original7278 atframe989; prior joystick-only window987..1287 completed with no counter write. App190 is WORD shared between model renderer4A2A and model viewer: renderer stores original model selector before scaling index4; viewer initializes1 and handles previous/next/direct selections and name lookup. Natural frame866 enters4A2A with objecttype50,D0=50,A4=6CD84,header1903C, then frame869 enters disc renderer67F4 with type145,D0=145,A4=6B9DC,return3F82; app190 has50. Original3F6C tests lowBYTE sign after substituting app192 for storedtype30;145 goes separate disc path, not model directory. App192 initialized30 and is a type30 render override, not a universal object-ID field. Keep unsigned stored WORD, signed-lowBYTE branch, zero skip, viewer/render lifetime and existing index assumptions; no visual identity or all-type proof. Runtime register/memory writes absent. Canonical source reconstruction only.",
+  "verification": {
+    "kind": "verification",
+    "framework_exact": true,
+    "target_id": "amiga_raw_starglider2_game",
+    "subject_revision": "d2b57b043157dac263b0cb43ac0dd0065129bc28503c36b02483762db45264e5",
+    "status": "exact",
+    "exact": true,
+    "source_sha256": "30a33ea6b7b839aed378b736430af5256d85514e01d712843d2519077486a9e1",
+    "source_path": "/workspace/pandora-original-delivery/stable-d15c2cf8/.runtime-state/restoration/eb04f545fb97451725a1c91ab5abf6f2e097614c45880db6edfb4ea5c3f6e2c2/30a33ea6b7b839aed378b736430af5256d85514e01d712843d2519077486a9e1.s",
+    "source_package_sha256": null,
+    "original_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "original_size": 412736,
+    "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "rebuilt_path": "/workspace/pandora-original-delivery/stable-d15c2cf8/.runtime-state/restoration/eb04f545fb97451725a1c91ab5abf6f2e097614c45880db6edfb4ea5c3f6e2c2/662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9.bin",
+    "framework_status": "exact",
+    "failure_kinds": [],
+    "message": "",
+    "oracle": {
+      "oracle_id": "vasm",
+      "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+      "comparison_level": "oracle.full_file_match",
+      "assembler_status": "accepted",
+      "message": "oracle output matched original bytes"
+    },
+    "receipt_id": "64855973d0ad80f17bd45108fb9540fdd9ac16ab789987bcd300b2521935d44d",
+    "revision": "a2c3c3373a667827a71f489584993deccbcf6ef10e90d9781a95482792eee5cd"
+  },
+  "standalone_build": {
+    "schema_version": 1,
+    "status": "pass",
+    "format": "raw_payload_not_AmigaDOS_HUNK",
+    "main_bytes": 412736,
+    "main_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "main_matches_original_identity": true,
+    "asset_count": 57,
+    "all_asset_source_slices_equal": true,
+    "decoded_view_inverse_exact": true,
+    "boot_copy_source_matches_resident_view": true,
+    "source_commit": "e1db24c64cfe3f4a10648122023d8362227652d1",
+    "assembler_sha256": "413e284020125f42709486dfe09907cab3dd9f3c2ea41017c190f8ea68f30825",
+    "flags": [
+      "-Fbin",
+      "-m68000",
+      "-no-opt"
+    ],
+    "outputs": [
+      {
+        "role": "original_main",
+        "filename": "Starglider2-original.raw",
+        "bytes": 412736,
+        "sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9"
+      },
+      {
+        "role": "decoded_analysis_view",
+        "filename": "protection-decoded-analysis.raw",
+        "bytes": 3548,
+        "sha256": "de8358853dd9ed9b006a23569bf393aa217ed3be3301a169465d80bfaf839922"
+      },
+      {
+        "role": "boot_installer_context",
+        "filename": "boot-selector-installer-context.raw",
+        "bytes": 40,
+        "sha256": "8d34852425e2e1bfa87b3febdfc74fb39e7c667e9d9ff73e17b594649e83b21b"
+      },
+      {
+        "role": "boot_resident_view",
+        "filename": "boot-selector-resident.raw",
+        "bytes": 20,
+        "sha256": "a26286a393713c046eff9dbaff15b20b26b171fa9e05fc9d538d16b0eddb6024"
+      }
+    ]
+  },
+  "accounting": {
+    "before": {
+      "accepted_code_bytes": 106034,
+      "unclassified_bytes": 14748,
+      "native_base_layout_fields": 273
+    },
+    "after": {
+      "accepted_code_bytes": 106034,
+      "unclassified_bytes": 14748,
+      "native_base_layout_fields": 275
+    },
+    "new_code_promotions": 0,
+    "new_classified_bytes": 0,
+    "all_previous_code_bytes_retained": true,
+    "classified_byte_union_unchanged": true
+  },
+  "runtime": {
+    "model_entry": {
+      "name": "model_projection",
+      "address": "0x00004a2a",
+      "status": "hit",
+      "termination": "breakpoint_hit",
+      "stop_reason": "breakpoint-hit",
+      "stop_event": {
+        "cck": 61544416,
+        "detail": "Breakpoint at $004A2A",
+        "frame": 866,
+        "hpos": 176,
+        "pc": 18986,
+        "reason": "breakpoint",
+        "retired_instructions": 9699789,
+        "seconds": 17.351631779345034,
+        "vpos": 62
+      },
+      "pc": "0x00004a2a",
+      "sp": "0x00003360",
+      "stack_return_address": "0x00003fce"
+    },
+    "model_context": {
+      "name": "model_projection_context",
+      "registers": {
+        "d0": 50,
+        "d1": 0,
+        "d2": 0,
+        "d3": 0,
+        "d4": 0,
+        "d5": 36864,
+        "d6": 12288,
+        "d7": 4294901760,
+        "a0": 95032,
+        "a1": 436008,
+        "a2": 440408,
+        "a3": 438472,
+        "a4": 445828,
+        "a5": 439476,
+        "a6": 431720,
+        "a7": 13152,
+        "pc": 18986,
+        "sr": 8200,
+        "sp": 13152
+      },
+      "object_pointer": 445828,
+      "stored_object_type": 50,
+      "type30_render_selector": 30,
+      "active_model_index": 0,
+      "model_selector": 50,
+      "header_pointer": 102460
+    },
+    "model_pool_record": 75,
+    "catalogue_name": "GBML with Cannon",
+    "model_header_matches_original_catalogue": true,
+    "disc_entry": {
+      "name": "nonmodel_disc_projection",
+      "address": "0x000067f4",
+      "status": "hit",
+      "termination": "breakpoint_hit",
+      "stop_reason": "breakpoint-hit",
+      "stop_event": {
+        "cck": 61771465,
+        "detail": "Breakpoint at $0067F4",
+        "frame": 869,
+        "hpos": 225,
+        "pc": 26612,
+        "reason": "breakpoint",
+        "retired_instructions": 9738458,
+        "seconds": 17.415645233366085,
+        "vpos": 123
+      },
+      "pc": "0x000067f4",
+      "sp": "0x00003368",
+      "stack_return_address": "0x00003f82"
+    },
+    "disc_context": {
+      "name": "nonmodel_disc_projection_context",
+      "registers": {
+        "d0": 145,
+        "d1": 0,
+        "d2": 0,
+        "d3": 0,
+        "d4": 0,
+        "d5": 36864,
+        "d6": 12288,
+        "d7": 4294901761,
+        "a0": 95032,
+        "a1": 436004,
+        "a2": 440408,
+        "a3": 438472,
+        "a4": 440796,
+        "a5": 439472,
+        "a6": 431720,
+        "a7": 13160,
+        "pc": 26612,
+        "sr": 8196,
+        "sp": 13160
+      },
+      "object_pointer": 440796,
+      "stored_object_type": 145,
+      "type30_render_selector": 30,
+      "active_model_index": 50
+    },
+    "disc_pool_record": 1,
+    "source_branch": "3F6C tests lowBYTE sign after type30 substitution;145 dispatches67F4 instead of104-entry model directory",
+    "game_register_memory_writes": false,
+    "private_receipt_sha256": "0477c37e1369d8bef73f3dc5d10501465a88ef0cd7c0510bd1667cf501d7c6b5"
+  },
+  "ownership_crosscheck": {
+    "source_receipt": "runtime/observations/starglider2-flight-input-evidence.json",
+    "app_bus_transfers": 225,
+    "contained_in_existing_native_field_extents": 225,
+    "uncovered_observed_extents": [],
+    "player_record_transfers_separate": 80,
+    "interpretation": "Observed transfers do not expose missing field extents. Native ownership/declared layout and semantic meaning remain separate."
+  },
+  "framework": {
+    "code_changes": false,
+    "assessment": "Existing canonical RSSET/label/comment APIs suffice. No missing runtime edge or new native algorithm justified by this bounded observation; earlier guarded far-dispatch fix remains separate.",
+    "validation": "No unchanged framework-suite rerun; full changed-source C/vasm plus clean standalone build and native field projection checks",
+    "remaining_access_catalogue_gap": "Explicit low-offset app fields0190/0192 now render23/3 mentions and native base-layout facts, but app_slot_refs remains0 for both. Source naming is not a claim of automatic per-access app provenance recovery; causal framework fix remains unimplemented."
+  },
+  "source_file_sha256": "7981b7205c1f5a167d09ec396cf49d50760a76e49eb56404007b1189273b73c8",
+  "source_assembly_hand_edits": false,
+  "assets": {
+    "count": 57,
+    "unchanged": true
+  },
+  "limits": [
+    "Named catalogue association is not visual model recognition",
+    "Type30 render override observed as30 but no claim of exercising all replacement selectors",
+    "active_model_type_index is shared by viewer and draw, not immutable object identity or all-callers lifetime proof",
+    "Reset label describes original state/input-default writes; no new-game-only/all-state ABI promise",
+    "Original signed-lowBYTE behavior and WORD indices retained; no bounds safety repair",
+    "No new orphan execution evidence or classification gain",
+    "Raw disk/ROM/captures stay private; all16 paused files preserved"
+  ],
+  "source_package_C_exact": true,
+  "reproduction": {
+    "command": "python -m amiga_reversing.tools.starglider2_flight_probe --observe-model-paths --answer-selected-protection-request --inputs PRIVATE --rom PRIVATE --copperline LOCAL --output PRIVATE_NEW_DIRECTORY",
+    "private_executed_script_sha256": "2ccc41b3fe98c32b34a83694ecd146125a0fb6e94f75dc0e2015d2d02afe67b8",
+    "published_probe_sha256": "ae605b494529b86be4f119187e9c5fd5f08d816393cebd87ead12165bf86f76d",
+    "published_cli_live_replay": false,
+    "scope": "Live evidence uses original fixed-path development script; published option preserves the same two waits/observations and adds CLI paths/input-identity admission. No broad CLI replay claim."
+  },
+  "validated_target_git_tree": "0b05ff1bade8c647b93d7970a167ee552cbc5c95",
+  "clean_staged_tree_build": true
+}

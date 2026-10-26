@@ -18,6 +18,8 @@ def main(argv=None):
     parser.add_argument('--copperline', type=Path, required=True)
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--answer-selected-protection-request', action='store_true', help='Explicit opt-in to read the selected original record and type its answer')
+    parser.add_argument('--observe-model-paths', action='store_true',
+                        help='Observe bounded model/disc entries after flight, then stop')
     args = parser.parse_args(argv)
     if not args.answer_selected_protection_request:
         parser.error('This probe requires explicit protection-input opt-in')
@@ -91,6 +93,28 @@ def main(argv=None):
                 regs = c.registers()
                 base = regs['a6']
                 stage('flight_state', dict(registers=regs, player_pointer=c.read_memory(base + 0x700, 4).hex(), resources=c.read_memory(base + 0x774, 34).hex()))
+                if args.observe_model_paths:
+                    for label, pc in [('model_projection', 0x4A2A),
+                                      ('nonmodel_disc_projection', 0x67F4)]:
+                        observed = wait_for_pc(c, pc, 30,
+                            frame_limit=w['stop_event']['frame'] + 180)
+                        stage(label, observed)
+                        if observed['status'] == 'hit':
+                            context = c.registers()
+                            record = c.read_memory(context['a4'], 68)
+                            selector = context['d0'] & 0xFFFF
+                            state = dict(registers=context,
+                                object_pointer=context['a4'],
+                                stored_object_type=int.from_bytes(record[:2], 'big'),
+                                type30_render_selector=int.from_bytes(c.read_memory(base + 0x192, 2), 'big'),
+                                active_model_index=int.from_bytes(c.read_memory(base + 0x190, 2), 'big'))
+                            if label == 'model_projection' and selector < 104:
+                                state.update(model_selector=selector,
+                                    header_pointer=int.from_bytes(c.read_memory(0x18974 + 4 * selector, 4), 'big'))
+                            stage(label + '_context', state)
+                    r['status'] = 'bounded_model_path_observation_complete'
+                    save()
+                    return
                 from amiga_reversing.tools.copperline_bus_trace import capture_bus_trace
                 from amiga_reversing.tools.copperline_runtime import wait_for_memory_access
 

@@ -221,7 +221,10 @@ joystick_direction_bits RS.W 1
     RS.B 20
 world_object_slot_count RS.W 1
 model_last_vertex_index RS.W 1
-    RS.B 119
+    RS.B 26
+active_model_type_index RS.W 1
+type30_render_model_index RS.W 1
+    RS.B 89
 app_01ED RS.B 1
     RS.B 1
 app_01EF RS.B 1
@@ -372,7 +375,7 @@ app_07EE RS.B 1
 joystick_control_enabled_flag RS.B 1
 crosshair_autocentre_mode RS.B 1
 one_hand_control_flag RS.B 1
-app_07F2 RS.B 1
+fire_key_scancode RS.B 1
     RS.B 1
 app_07F4 RS.B 1
     RS.B 1
@@ -1166,7 +1169,7 @@ abs_0_00001202:
 	move.b #$14,diagnostic_stage_step_word.l
 	clr.b diagnostic_step_byte.l
 	sf.b app_0204(a6)
-	bsr.w abs_0_00002000
+	bsr.w reset_gameplay_state_and_input_defaults
 	move.b #$2,diagnostic_step_byte.l
 	bsr.w abs_0_00003392
 	bsr.w abs_0_0000217A
@@ -1470,7 +1473,7 @@ abs_0_000016B0:
 	clr.b diagnostic_step_byte.l
 	jsr insert_qualifying_pilot_rating.l
 	clr.l d0
-	move.b app_07F2(a6),d0
+	move.b fire_key_scancode(a6),d0
 	cmp.b pending_key_scancode(a6),d0
 	beq.w abs_0_0000171C
 	tst.b app_0201(a6)
@@ -2133,7 +2136,7 @@ abs_0_00001FF2:
 	dbf.w d1,abs_0_00001FF2
 	jsr capture_alternate_meter_backgrounds.l
 	bra.b abs_0_00001FC2
-abs_0_00002000:
+reset_gameplay_state_and_input_defaults:
 	move.w #$32,app_0754(a6)
 	move.w #$0,icarus_game_over_reason(a6)
 	move.w #$FFFF,app_07C6(a6)
@@ -2142,7 +2145,7 @@ abs_0_00002000:
 	move.w #$32,app_079A(a6)
 	lea.l player_score_bcd(a6),a0
 	clr.l (a0)+
-	move.b #$40,app_07F2(a6)
+	move.b #$40,fire_key_scancode(a6)
 	clr.w pending_bcd_score_addend(a6)
 	clr.b app_01FE(a6)
 	move.w #$9999,app_07AA(a6)
@@ -2211,7 +2214,7 @@ abs_0_00002000:
 	move.b #$3,app_07F6(a6)
 	move.b #$FF,app_0BB9(a6)
 	move.l #$1FFFF,horizontal_world_wrap_mask(a6)
-	move.w #$1E,$0192(a6)
+	move.w #$1E,type30_render_model_index(a6)
 	bsr.w abs_0_000033F2
 	rts
 abs_0_0000217A:
@@ -2726,7 +2729,7 @@ abs_0_000029BA:
 	move.w d1,d0
 	or.w d3,d0
 	bne.b abs_0_000029F4
-	cmpi.w #30,$0190(a6)
+	cmpi.w #30,active_model_type_index(a6)
 	beq.b abs_0_000029F4
 	tst.w d2
 	beq.w abs_0_00002B94
@@ -3335,7 +3338,7 @@ abs_0_0000359C:
 	beq.b abs_0_000035A6
 	moveq.l #-1,d7
 abs_0_000035A6:
-	adda.w #abs_0_00002000,a0
+	adda.w #reset_gameplay_state_and_input_defaults,a0
 abs_0_000035AA:
 	btst.b #6,$0002(a5)
 	bne.b abs_0_000035AA
@@ -3349,7 +3352,7 @@ abs_0_000035C0:
 	beq.b abs_0_000035CA
 	moveq.l #-1,d7
 abs_0_000035CA:
-	adda.w #abs_0_00002000,a0
+	adda.w #reset_gameplay_state_and_input_defaults,a0
 abs_0_000035CE:
 	btst.b #6,$0002(a5)
 	bne.b abs_0_000035CE
@@ -3363,7 +3366,7 @@ abs_0_000035E4:
 	beq.b abs_0_000035EE
 	moveq.l #-1,d7
 abs_0_000035EE:
-	adda.w #abs_0_00002000,a0
+	adda.w #reset_gameplay_state_and_input_defaults,a0
 abs_0_000035F2:
 	btst.b #DMAB_BLITTER,dmaconr(a5)
 	bne.b abs_0_000035F2
@@ -3846,7 +3849,7 @@ abs_0_00003ADE:
 	bra.w abs_0_00003A84
 advance_picture_plane:
 	addq.b #1,d4
-	adda.l #abs_0_00002000,a4
+	adda.l #reset_gameplay_state_and_input_defaults,a4
 	movea.l a4,a1
 	cmp.w #$4,d4
 	bne.w decode_picture_plane
@@ -4175,7 +4178,8 @@ abs_0_00003F50:
 	beq.b abs_0_00003FD2
 	cmp.w #$1E,d0
 	bne.b abs_0_00003F6C
-	move.w $0192(a6),d0
+	move.w type30_render_model_index(a6),d0
+    ; Low-BYTE sign selects disc versus model after type30 override. Natural type145 reached disc entry67F4; it is not an invalid 104-entry model index. Do not mask it into a model ID.
 abs_0_00003F6C:
 	tst.b d0
 	bpl.b abs_0_00003F94
@@ -5006,7 +5010,7 @@ abs_0_00004A28:
 project_model_to_draw_records:
 	cmpi.w #145,abs_0_000049A8.l
 	bgt.b abs_0_00004A28
-	move.w d0,$0190(a6)
+	move.w d0,active_model_type_index(a6)
 	lea.l model_header_pointers.l,a0
 	add.w d0,d0
 	add.w d0,d0
@@ -5060,7 +5064,7 @@ abs_0_00004AC8:
 	move.l (a1),$007C(a6)
 	move.l a1,-(a7)
 	clr.w abs_0_000058A4.l
-	move.w $0190(a6),d0
+	move.w active_model_type_index(a6),d0
 	cmp.w #$31,d0
 	bne.b abs_0_00004AF2
 	move.w #$FFFF,abs_0_000058A4.l
@@ -5098,7 +5102,7 @@ abs_0_00004B54:
 	move.w d2,d1
 	ext.w d1
 	move.w d1,$01A0(a6)
-	cmpi.w #47,$0190(a6)
+	cmpi.w #47,active_model_type_index(a6)
 	bne.b abs_0_00004B80
 	move.l a0,-(a7)
 	lea.l abs_0_00005894.l,a0
@@ -5520,9 +5524,9 @@ abs_0_00004FAC:
 	bmi.w abs_0_000052AC
 	tst.b inside_structure_flag(a6)
 	bmi.w abs_0_000052AC
-	cmpi.w #72,$0190(a6)
+	cmpi.w #72,active_model_type_index(a6)
 	beq.w abs_0_000052AC
-	cmpi.w #103,$0190(a6)
+	cmpi.w #103,active_model_type_index(a6)
 	beq.w abs_0_000052AC
 	move.w $01E2(a6),d4
 	cmp.w #$D120,d4
@@ -5572,7 +5576,7 @@ abs_0_00005074:
 	add.w $0194(a6),d1
 	add.w $0196(a6),d2
 	moveq.l #0,d0
-	move.w $0190(a6),d0
+	move.w active_model_type_index(a6),d0
 	lea.l model_maximum_signed_coordinates.l,a0
 	add.w d0,d0
 	move.w $0(a0,d0.w),d0
@@ -8178,12 +8182,13 @@ abs_0_000071AE:
 	bne.w abs_0_000075B0
 	tst.b primary_fire_flag(a6)
 	bne.b abs_0_000071F8
+    ; With one-hand mode off, port2 primary fire does not directly satisfy this gate. Original port1/shared action flag or configured keyboard scancode does; Space reached counter increment7278.
 abs_0_000071DE:
 	tst.b app_0201(a6)
 	bne.b abs_0_000071F8
 	lea.l keyboard_down_flags(pc),a0
 	clr.l d0
-	move.b app_07F2(a6),d0
+	move.b fire_key_scancode(a6),d0
 	tst.b $0(a0,d0.w)
 	bne.b abs_0_000071F8
 	bra.w abs_0_000075B0
@@ -8471,7 +8476,7 @@ abs_0_000075CC:
 	bne.b try_launch_homing_missile_after_input
 	lea.l keyboard_down_flags(pc),a0
 	clr.l d0
-	move.b app_07F2(a6),d0
+	move.b fire_key_scancode(a6),d0
 	tst.b $0(a0,d0.w)
 	beq.w abs_0_000076D4
 try_launch_homing_missile_after_input:
@@ -16196,7 +16201,7 @@ abs_0_0000E9C6:
 abs_0_0000E9CC:
 	jmp abs_0_000034A4.l
 abs_0_0000E9D2:
-	jmp abs_0_00002000.l
+	jmp reset_gameplay_state_and_input_defaults.l
 abs_0_0000E9D8:
 	jmp abs_0_0000217A.l
 	dc.w $0000
@@ -16234,7 +16239,7 @@ abs_0_0000E9E0:
 	clr.w $017E(a6)
 	clr.w $0180(a6)
 	clr.w $0182(a6)
-	move.w #$1,$0190(a6)
+	move.w #$1,active_model_type_index(a6)
 	clr.b app_01F0(a6)
 	lea.l world_object_pool(a6),a4
 	move.b #$0,$0003(a4)
@@ -16282,7 +16287,7 @@ abs_0_0000EB28:
 	movem.l (a7)+,d0/a0
 	tst.b app_01F6(a6)
 	beq.w abs_0_0000EBFC
-	move.w $0190(a6),d0
+	move.w active_model_type_index(a6),d0
 	lea.l abs_0_0000EAC2(pc),a1
 	bsr.w abs_0_00012F68
 	moveq.l #12,d1
@@ -16323,7 +16328,7 @@ abs_0_0000EB28:
 	moveq.l #0,d1
 	moveq.l #8,d0
 	bsr.w print_positioned_text
-	move.w $0190(a6),d0
+	move.w active_model_type_index(a6),d0
 	lea.l model_header_pointers.l,a0
 	add.w d0,d0
 	add.w d0,d0
@@ -16335,12 +16340,12 @@ abs_0_0000EB28:
 	moveq.l #16,d0
 	bsr.w print_positioned_text
 abs_0_0000EBFC:
-	move.w $0190(a6),d0
+	move.w active_model_type_index(a6),d0
 	beq.b abs_0_0000EC46
 	lea.l world_object_pool(a6),a4
 	move.w $01AA(a6),d0
 	move.b d0,$001D(a4)
-	move.w $0190(a6),d0
+	move.w active_model_type_index(a6),d0
 	beq.b abs_0_0000EC46
 	movea.l #abs_0_0004760A,a0
 	move.l #$4666A,abs_0_00003C30.l
@@ -16866,7 +16871,7 @@ abs_0_0000EF08:
 step_model_variant_toward_start:
 	moveq.l #0,d0
 	moveq.l #0,d1
-	move.w $0190(a6),d0
+	move.w active_model_type_index(a6),d0
 	lsl.w #2,d0
 	move.b app_07E8(a6),d1
 	lea.l model_viewer_animation_bounds.l,a0
@@ -16897,7 +16902,7 @@ abs_0_0000EFA4:
 step_model_variant_toward_end:
 	moveq.l #0,d0
 	moveq.l #0,d1
-	move.w $0190(a6),d0
+	move.w active_model_type_index(a6),d0
 	lsl.w #2,d0
 	move.b app_07E8(a6),d1
 	lea.l model_viewer_animation_bounds.l,a0
@@ -16954,7 +16959,7 @@ abs_0_0000F046:
 	rts
 	dc.b $46,$2E,$02,$08,$4E,$75
 display_model_viewer_name:
-	move.w $0190(a6),d0
+	move.w active_model_type_index(a6),d0
 	lsl.w #2,d0
 	lea.l object_name_pointers.l,a0
 	movea.l $0(a0,d0.w),a1
@@ -16970,15 +16975,15 @@ abs_0_0000F068:
 	bls.b abs_0_0000F08C
 	move.w #$67,d4
 abs_0_0000F08C:
-	move.w d4,$0190(a6)
+	move.w d4,active_model_type_index(a6)
 	bra.b reset_model_viewer_variant_selection
 abs_0_0000F092:
-	cmpi.w #1,$0190(a6)
+	cmpi.w #1,active_model_type_index(a6)
 	beq.w abs_0_0000F03C
-	subq.w #1,$0190(a6)
+	subq.w #1,active_model_type_index(a6)
 reset_model_viewer_variant_selection:
 	moveq.l #0,d0
-	move.w $0190(a6),d0
+	move.w active_model_type_index(a6),d0
 	clr.b app_07E8(a6)
 	clr.b app_07E7(a6)
 	lea.l world_object_pool(a6),a4
@@ -16991,15 +16996,15 @@ reset_model_viewer_variant_selection:
 abs_0_0000F0CC:
 	bra.w display_model_viewer_name
 abs_0_0000F0D0:
-	move.w $0190(a6),d0
+	move.w active_model_type_index(a6),d0
 	cmp.w #$67,d0
 	bpl.w abs_0_0000F03C
-	addq.w #1,$0190(a6)
+	addq.w #1,active_model_type_index(a6)
 	moveq.l #0,d0
 	lea.l world_object_pool(a6),a4
 	clr.b $0003(a4)
 	move.b #$0,app_07E8(a6)
-	move.w $0190(a6),d0
+	move.w active_model_type_index(a6),d0
 	clr.b app_07E7(a6)
 	lsl.w #2,d0
 	lea.l model_viewer_animation_bounds.l,a0

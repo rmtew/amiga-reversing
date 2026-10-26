@@ -25,8 +25,8 @@ weak repeated-only/numeric cases are checked. Four original indexed directories
 now render symbolically, including the 16-entry rating table. The other three
 are prefixes of 2, 5 and 7 text pointers, not proven complete index domains.
 
-The recent source-refinement batches explain 18 rating texts, 12 app fields,
-four routines and two internal meter-stage labels.
+The recent source-refinement batches explain 18 rating texts, 15 app fields,
+five routines and two internal meter-stage labels.
 Writable decimal slots and original arithmetic remain explicit. The energy
 overflow bonus is not a kill count; the shot counter precedes final spawn/pool
 checks. 93 model-directory annotations join 92 original names plus the type 0/1
@@ -1853,7 +1853,7 @@ transfers across the requested resource words, sound flags and player record,
 with zero dropped or omitted records. Frame PC samples were already accepted
 code; they are not per-access instruction attribution. Snapshot type WORDs
 from all 250 original 68-byte records can now be joined with stored names;
-zero/free, type30's render substitution and out-of-catalogue type145 remain
+zero/free, type30's render substitution and out-of-catalogue type 145 remain
 explicit. This is not visual model recognition or all-callback proof.
 
 Joystick port2 fire held across frames987..1287 produced no counter write.
@@ -1871,3 +1871,36 @@ and explicit private `--inputs`, `--rom`, `--copperline`, `--output` paths plus
 permission for its control server. The probe uses fixed bounded inputs and
 explicit releases; raw answer, memory snapshots and bus sidecars remain private.
 See `runtime/observations/starglider2-flight-input-evidence.json`.
+
+
+## Runtime-informed input and model selector contracts
+
+Six canonical actions restore three fields and the state/default initializer
+through the normal exporter. `fire_key_scancode` links original Space default
+to the observed keyboard-fire gate. `active_model_type_index` is shared by
+model projection and viewer selection/name lookup, not permanent object identity.
+`type30_render_model_index` is the initialized override consumed when a visible
+record stores type 30. The source retains original sizes and mixed-width tests.
+
+A normal-input run observed object-pool record 75/type 50 at model entry $4A2A
+(frame 866), selector 50/header$1903C: the stored catalogue says GBML with Cannon.
+Record 1/type 145 entered disc renderer$67F4 (frame 869), returning to $3F82.
+The original low-BYTE sign branch selects this non-model path; type 145 is not
+an erroneous index into 104 model pointers. Neither association proves pixels.
+
+Programmatic comparison found all 225 earlier app-workspace bus transfers
+inside existing native field extents; 80 player-record transfers remain separate.
+There is no uncovered observed interval, new code or byte-classification gain.
+Existing canonical APIs already represent the six changes, so this evidence
+does not justify another speculative native algorithm or report-only facility.
+Full generated C/vasm and clean standalone rebuild remain exact. See
+`runtime/observations/starglider2-control-model-fields.json` for field projections,
+source/runtime identities and remaining limits. No new runtime campaign or
+unchanged generic-suite repetition is part of this batch.
+
+The access catalogue still omits per-instruction `app_slot_refs` for declared
+model fields $190/$192, despite 23/3 generated symbol mentions. This is an
+explicit remaining provenance/projection limitation, not full app-access
+recovery. The new source facts do not depend on treating absent xrefs as absent
+uses. Reproduce the two bounded live entries with the flight probe's
+`--observe-model-paths` option; no guest-state change is involved.
