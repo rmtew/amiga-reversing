@@ -1,0 +1,489 @@
+{
+  "schema_version": 1,
+  "kind": "flight_environment_lifecycle_state_reconstruction",
+  "status": "exact_static_restoration",
+  "publication_base_commit": "c87c40c7991643e2f8e940b282dd2b788debaa30",
+  "canonical_actions": 15,
+  "fields": [
+    {
+      "offset": 2997,
+      "size": 1,
+      "symbol": "solice_drift_quarter_rate_counter",
+      "storage_kind": "scalar",
+      "before_accesses": {
+        "write": 2,
+        "read-write": 2
+      },
+      "before_runtime_sites": [
+        211896,
+        223810,
+        223816,
+        226646
+      ],
+      "after_accesses": {
+        "write": 2,
+        "read-write": 2
+      },
+      "after_runtime_sites": [
+        211896,
+        223810,
+        223816,
+        226646
+      ]
+    },
+    {
+      "offset": 2999,
+      "size": 1,
+      "symbol": "atmosphere_detected_flag",
+      "storage_kind": "scalar",
+      "before_accesses": {
+        "read": 1,
+        "write": 3
+      },
+      "before_runtime_sites": [
+        27052,
+        211992,
+        212002,
+        226652
+      ],
+      "after_accesses": {
+        "read": 1,
+        "write": 3
+      },
+      "after_runtime_sites": [
+        27052,
+        211992,
+        212002,
+        226652
+      ]
+    },
+    {
+      "offset": 3001,
+      "size": 1,
+      "symbol": "free_flight_controls_enabled_flag",
+      "storage_kind": "scalar",
+      "before_accesses": {
+        "write": 4,
+        "read": 2
+      },
+      "before_runtime_sites": [
+        8544,
+        53804,
+        194214,
+        194834,
+        211660,
+        226756
+      ],
+      "after_accesses": {
+        "write": 4,
+        "read": 2
+      },
+      "after_runtime_sites": [
+        8544,
+        53804,
+        194214,
+        194834,
+        211660,
+        226756
+      ]
+    },
+    {
+      "offset": 3002,
+      "size": 1,
+      "symbol": "structure_contact_pose_mode",
+      "storage_kind": "scalar",
+      "before_accesses": {
+        "write": 5,
+        "read": 4
+      },
+      "before_runtime_sites": [
+        8528,
+        46432,
+        48710,
+        48960,
+        48976,
+        53810,
+        194222,
+        194848,
+        194856
+      ],
+      "after_accesses": {
+        "write": 5,
+        "read": 4
+      },
+      "after_runtime_sites": [
+        8528,
+        46432,
+        48710,
+        48960,
+        48976,
+        53810,
+        194222,
+        194848,
+        194856
+      ]
+    },
+    {
+      "offset": 3003,
+      "size": 1,
+      "symbol": "interrupted_game_available_flag",
+      "storage_kind": "scalar",
+      "before_accesses": {
+        "write": 7,
+        "read": 1
+      },
+      "before_runtime_sites": [
+        4740,
+        5406,
+        5490,
+        5820,
+        58342,
+        59872,
+        65314,
+        65438
+      ],
+      "after_accesses": {
+        "write": 7,
+        "read": 1
+      },
+      "after_runtime_sites": [
+        4740,
+        5406,
+        5490,
+        5820,
+        58342,
+        59872,
+        65314,
+        65438
+      ]
+    }
+  ],
+  "labels": [
+    [
+      194716,
+      "advance_player_rotation2_spin_continuation"
+    ],
+    [
+      194760,
+      "settle_player_flight_controls_continuation"
+    ],
+    [
+      194848,
+      "apply_structure_contact_pose_continuation"
+    ]
+  ],
+  "data": [
+    [
+      228184,
+      16,
+      "world_atmosphere_presence_flags",
+      "byte",
+      "Sixteen stored BYTE selectors; sign chooses Atmosphere Detected versus No Atmosphere Detected and suppresses the surface type145 disc overlay. Higher original selectors remain conditional."
+    ],
+    [
+      236762,
+      2,
+      "player_rotation2_spin_steps",
+      "word",
+      "Signed WORD counter:64 on event spin, negative inactive, expiry restores saved angle; counts service calls, not certified physical frames."
+    ],
+    [
+      236764,
+      2,
+      "player_rotation2_after_spin",
+      "word",
+      "WORD restored to player rotation2 on spin expiry; original seedzero and write set retained, no universal orientation-unit claim."
+    ]
+  ],
+  "semantic_contract": "Connected original flight/environment/lifecycle contracts. BYTEBB9 is FF for normal control but 1 after celestial-body transfer; nonnegative state halves speed/control accumulators and steps rotation0 by6 modulo4096 untilzero, then writesFF. BYTEBBA is cleared by contact collection each frame, receives2 on structure exit or FF/FE on orientation-dependent entry; mouse/player control consumers bypass free flight and force original poses. BYTEBBB enables resuming interruptedgame: gameplay start and successful load set, gameover/viewer/loadstart clear; E3D4 tests it before resuming. Not a pointer-serialization flag. BYTEBB5 is modulo4 divider used solely by nearby Solice update to decrement angle once per4calls, initialized3 on world/newgame. BYTEBB7 is world atmosphere flag: indexed16-byte table37B58 selects FF/0 and eventmessages11/10 say Atmosphere/NoAtmosphere Detected; surface type145 disc overlay also checks it. Unknown higher selector domains and original sideeffects retained. Rotation2 event spin uses signed WORD39CDA (64steps, negativeinactive) and restore WORD39CDC; expiry restores angle and writesFFFF. These static contracts explain original byte states, not new runtime scenarios, universal physical time or all-entry validity.",
+  "field_count": {
+    "before": 299,
+    "after": 299,
+    "generic_before": 107,
+    "generic_after": 102
+  },
+  "access_records": {
+    "before": 3096,
+    "after": 3096
+  },
+  "unclassified": {
+    "before": {
+      "bytes": 14748,
+      "intervals": 260
+    },
+    "after": {
+      "bytes": 14728,
+      "intervals": 260
+    }
+  },
+  "verification": {
+    "kind": "verification",
+    "framework_exact": true,
+    "target_id": "amiga_raw_starglider2_game",
+    "subject_revision": "d78efab1ecee35d9fbbaa48cbc444772a12252987425f84b684a261b4e36168a",
+    "status": "exact",
+    "exact": true,
+    "source_sha256": "a66755f03d0ccdc54d53e275ce65e917ea93993d94db2cf1818d83d4dd86347d",
+    "source_path": "/workspace/pandora-original-delivery/stable-d15c2cf8/.runtime-state/restoration/eb04f545fb97451725a1c91ab5abf6f2e097614c45880db6edfb4ea5c3f6e2c2/a66755f03d0ccdc54d53e275ce65e917ea93993d94db2cf1818d83d4dd86347d.s",
+    "source_package_sha256": null,
+    "original_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "original_size": 412736,
+    "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "rebuilt_path": "/workspace/pandora-original-delivery/stable-d15c2cf8/.runtime-state/restoration/eb04f545fb97451725a1c91ab5abf6f2e097614c45880db6edfb4ea5c3f6e2c2/662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9.bin",
+    "framework_status": "exact",
+    "failure_kinds": [],
+    "message": "",
+    "oracle": {
+      "oracle_id": "vasm",
+      "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+      "comparison_level": "oracle.full_file_match",
+      "assembler_status": "accepted",
+      "message": "oracle output matched original bytes"
+    },
+    "receipt_id": "26d0d3139b92b71f5cd974ef548c47fde192eabb36b406d2e9fdb8e890f5aa6d",
+    "revision": "0b1acc74a9c80c98b3a387e3a9e08ef0bd2787d5ecfc0a3a12433e95e0debc97"
+  },
+  "native_profile": {
+    "api_wall_seconds": 83.27786878298502,
+    "native_profile": {
+      "generation": "facts_v2_listing_artifact_summary",
+      "backend": "amiga-raw",
+      "analysis_backend": "facts_v2",
+      "path": "/workspace/starglider2-private/main-copy.bin",
+      "facts_v2": {
+        "decode_seconds": 4e-06,
+        "seed_seconds": 0.001034,
+        "fixed_point_seconds": 8.634831,
+        "fixed_point_reachable_seconds": 7.179913,
+        "fixed_point_reachable_decode_seconds": 0.0,
+        "fixed_point_reachable_validate_seconds": 0.0,
+        "fixed_point_reachable_accept_seconds": 0.0,
+        "fixed_point_reachable_target_seconds": 0.0,
+        "fixed_point_reachable_relocation_seconds": 0.0,
+        "fixed_point_reachable_fallthrough_seconds": 0.0,
+        "fixed_point_index_seconds": 0.000823,
+        "fixed_point_required_label_conflict_seconds": 2.9e-05,
+        "fixed_point_opcode_relocation_conflict_seconds": 0.000246,
+        "fixed_point_rebuild_accepted_seconds": 0.009086,
+        "fixed_point_relocation_anchor_seconds": 0.000239,
+        "fixed_point_materialize_labels_seconds": 1.444323,
+        "fixed_point_runtime_address_ref_seconds": 1.345768,
+        "fixed_point_required_label_materialize_seconds": 0.098555,
+        "fixed_point_data_span_seconds": 0.000172,
+        "fixed_point_invariant_seconds": 3e-05,
+        "render_ir_seconds": 23.774558,
+        "render_ir_lookup_seconds": 0.315054,
+        "platform_analysis_pass_seconds": 6.678022,
+        "platform_analysis_base_slot_seconds": 0.044132,
+        "platform_analysis_call_summary_seconds": 0.051156,
+        "platform_analysis_typed_ref_seconds": 6.557818,
+        "platform_analysis_typed_summary_seconds": 0.007253,
+        "platform_analysis_typed_graph_seconds": 2.447388,
+        "platform_analysis_typed_flow_seconds": 3.683372,
+        "platform_analysis_typed_callback_seconds": 0.4198,
+        "source_analysis_typed_target_seconds": 3.1e-05,
+        "source_analysis_build_seconds": 7.165433,
+        "source_analysis_finalize_seconds": 33.652624,
+        "platform_analysis_call_comment_seconds": 1e-06,
+        "platform_analysis_app_slot_seconds": 0.024414,
+        "platform_analysis_runtime_data_seconds": 0.0,
+        "platform_analysis_hardware_data_seconds": 0.0,
+        "platform_analysis_generic_data_seconds": 1e-06,
+        "render_ir_header_seconds": 15.012322,
+        "render_ir_walk_seconds": 7.670401,
+        "render_ir_footer_seconds": 1.09137,
+        "source_render_seconds": 0.0,
+        "decoded_candidates": 29938,
+        "accepted_instructions": 29665,
+        "data_spans": 172,
+        "labels_created": 19873,
+        "labels_referenced": 13059,
+        "unresolved_labels": 0,
+        "interior_conflicts": 0,
+        "interior_conflicts_resolved_by_demote": 0,
+        "interior_conflicts_unresolved": 0,
+        "relocation_failures": 0,
+        "first_relocation_failure_reason": "",
+        "first_relocation_failure_section": 0,
+        "first_relocation_failure_offset": 0,
+        "first_relocation_failure_target_section": 0,
+        "first_relocation_failure_width": 0,
+        "first_relocation_failure_raw_value": 0,
+        "first_relocation_failure_computed_target": 0,
+        "relocation_anchors": 0,
+        "first_relocation_anchor_kind": "",
+        "first_relocation_anchor_section": 0,
+        "first_relocation_anchor_offset": 0,
+        "first_relocation_anchor_target_section": 0,
+        "first_relocation_anchor_width": 0,
+        "first_relocation_anchor_platform_record_kind": "",
+        "first_relocation_anchor_raw_value": 0,
+        "first_relocation_anchor_addend": 0,
+        "relocation_anchor_instruction_bytes": 0,
+        "relocation_anchor_data_payloads": 0,
+        "relocation_anchor_unknown_contexts": 0,
+        "unassemblable_hunk_data_relocations": 0,
+        "unassemblable_hunk_base_register_relocations": 0,
+        "first_relocation_anchor_context": "",
+        "first_relocation_anchor_instruction_offset": 0,
+        "code_start_facts": 41982,
+        "code_start_section_entries": 0,
+        "code_start_policy_entry_offsets": 0,
+        "code_start_policy_entry_points": 165,
+        "code_start_control_targets": 10294,
+        "code_start_fallthroughs": 31523,
+        "code_start_inline_resumes": 0,
+        "code_start_linkage_api_entries": 0,
+        "code_start_platform_loadseg_entries": 0,
+        "code_start_stack_continuations": 0,
+        "code_start_boundary_api_entries": 0,
+        "platform_loadseg_segment_link_accesses": 0,
+        "platform_loadseg_segment_link_bptr_loads": 0,
+        "platform_loadseg_segment_link_resolved_targets": 0,
+        "first_platform_loadseg_segment_link_section": 0,
+        "first_platform_loadseg_segment_link_offset": 0,
+        "first_platform_loadseg_segment_link_target_section": 0,
+        "runtime_address_ranges": 5,
+        "runtime_address_range_conflicts": 0,
+        "table_target_set_limit_hits": 0,
+        "first_table_target_set_limit_section": 0,
+        "first_table_target_set_limit_offset": 0,
+        "first_table_target_set_limit_capacity": 0,
+        "source_quality_diagnostics": 0,
+        "source_quality_blockers": 0,
+        "first_source_quality_diagnostic_kind": "unknown",
+        "first_source_quality_diagnostic_section": 0,
+        "first_source_quality_diagnostic_offset": 0,
+        "runtime_address_view_starts": 41818,
+        "required_instruction_failures": 0,
+        "unsupported_instruction_demotes": 0,
+        "first_required_instruction_failure_section": 0,
+        "first_required_instruction_failure_offset": 0,
+        "first_required_instruction_failure_reason": "",
+        "first_required_instruction_failure_source_section": 0,
+        "first_required_instruction_failure_source_offset": 0,
+        "first_unsupported_instruction_demote_section": 0,
+        "first_unsupported_instruction_demote_offset": 0,
+        "first_unsupported_instruction_demote_reason": "",
+        "first_unsupported_instruction_demote_source_section": 0,
+        "first_unsupported_instruction_demote_source_offset": 0,
+        "opcode_relocation_conflicts_resolved_by_demote": 0,
+        "first_opcode_relocation_conflict_section": 0,
+        "first_opcode_relocation_conflict_offset": 0,
+        "first_opcode_relocation_conflict_aux_offset": 0,
+        "queue_iterations": 34581,
+        "workflow_arena_peak_used": 7466760,
+        "workflow_arena_total_blocks": 39,
+        "render_ir_statements": 51671,
+        "render_ir_labels": 5154,
+        "render_ir_instructions": 29665,
+        "render_ir_data_spans": 16852,
+        "render_ir_hash": "4d20a8f51fe8c56f",
+        "preview_source_enabled": false,
+        "preview_source_bytes": 0,
+        "preview_source_hash": "14650fb0739d0383",
+        "asm_source_enabled": true,
+        "asm_source_refused": false,
+        "asm_source_bytes": 2258264,
+        "asm_source_lines": 66776,
+        "asm_source_plan_rows": 65882,
+        "asm_source_plan_lines": 66776,
+        "asm_source_plan_bytes": 2258264,
+        "asm_source_relocation_exprs": 0,
+        "asm_source_symbolic_instructions": 29665,
+        "asm_source_numeric_runtime_refs": 0,
+        "asm_source_first_numeric_runtime_ref_section": 0,
+        "asm_source_first_numeric_runtime_ref_offset": 0,
+        "asm_source_first_numeric_runtime_ref_target_section": 0,
+        "asm_source_first_numeric_runtime_ref_target_offset": 0,
+        "asm_source_first_numeric_runtime_ref_runtime_address": 0,
+        "platform_base_slot_count": 299,
+        "platform_call_count": 1,
+        "platform_effect_count": 1,
+        "asm_source_lossy_numeric_hunk_relocations": 0,
+        "asm_source_instruction_render_failures": 0,
+        "asm_source_instruction_byte_mismatches": 0,
+        "asm_source_instruction_relocation_failures": 0,
+        "asm_source_relocation_anchor_refusals": 0,
+        "asm_source_unassemblable_hunk_data_relocation_refusals": 0,
+        "asm_source_unassemblable_hunk_base_register_relocation_refusals": 0,
+        "asm_source_first_failure_kind": "",
+        "asm_source_first_failure_section": 0,
+        "asm_source_first_failure_offset": 0,
+        "asm_source_first_failure_aux_offset": 0,
+        "asm_source_hash": "4903055291e1366b"
+      },
+      "timing": {
+        "source_seconds": 80.565396,
+        "summary_json_seconds": 9.8e-05,
+        "total_seconds": 9.8e-05
+      }
+    }
+  },
+  "source": {
+    "hand_edited": false,
+    "canonical_histories_append_only": true,
+    "assets_unchanged": 57,
+    "main_source_sha256": "f6946203c6e2175f7c371f19d5ef0b79488edf3214836fe3a08c6c184c0a3490"
+  },
+  "quality": {
+    "source_diagnostics": 0,
+    "incomplete_analysis": []
+  },
+  "source_package_C_exact": true,
+  "clean_staged_tree_build": true,
+  "limits": [
+    "Static original control/state contracts; no new runtime route or atmosphere scenario.",
+    "Sixteen stored atmosphere selectors do not prove every original dynamic index is bounded.",
+    "Internal continuation labels retain caller/control-state preconditions.",
+    "Quarter-rate and spin counters measure service calls, not universal physical frames.",
+    "Generic-field count is not semantic completion."
+  ],
+  "source_file_sha256": "f6946203c6e2175f7c371f19d5ef0b79488edf3214836fe3a08c6c184c0a3490",
+  "validated_target_git_tree": "59375686a30687f0a2cbcc602290c9a99d06afff",
+  "standalone_build": {
+    "schema_version": 1,
+    "status": "pass",
+    "format": "raw_payload_not_AmigaDOS_HUNK",
+    "main_bytes": 412736,
+    "main_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "main_matches_original_identity": true,
+    "asset_count": 57,
+    "all_asset_source_slices_equal": true,
+    "decoded_view_inverse_exact": true,
+    "boot_copy_source_matches_resident_view": true,
+    "source_commit": "c87c40c7991643e2f8e940b282dd2b788debaa30",
+    "assembler_sha256": "413e284020125f42709486dfe09907cab3dd9f3c2ea41017c190f8ea68f30825",
+    "flags": [
+      "-Fbin",
+      "-m68000",
+      "-no-opt"
+    ],
+    "outputs": [
+      {
+        "role": "original_main",
+        "filename": "Starglider2-original.raw",
+        "bytes": 412736,
+        "sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9"
+      },
+      {
+        "role": "decoded_analysis_view",
+        "filename": "protection-decoded-analysis.raw",
+        "bytes": 3548,
+        "sha256": "de8358853dd9ed9b006a23569bf393aa217ed3be3301a169465d80bfaf839922"
+      },
+      {
+        "role": "boot_installer_context",
+        "filename": "boot-selector-installer-context.raw",
+        "bytes": 40,
+        "sha256": "8d34852425e2e1bfa87b3febdfc74fb39e7c667e9d9ff73e17b594649e83b21b"
+      },
+      {
+        "role": "boot_resident_view",
+        "filename": "boot-selector-resident.raw",
+        "bytes": 20,
+        "sha256": "a26286a393713c046eff9dbaff15b20b26b171fa9e05fc9d538d16b0eddb6024"
+      }
+    ]
+  }
+}

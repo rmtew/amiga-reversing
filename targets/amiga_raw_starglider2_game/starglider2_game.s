@@ -499,13 +499,13 @@ neutron_bomb_spawn_request RS.B 1
 neutron_bomb_retract_request RS.B 1
 model_type_population_counts RS.B 104
 taymar_delivered_model_counts_prefix RS.B 104
-app_0BB5 RS.B 1
+solice_drift_quarter_rate_counter RS.B 1
 pending_transient_event_sound RS.B 1
-app_0BB7 RS.B 1
+atmosphere_detected_flag RS.B 1
     RS.B 1
-app_0BB9 RS.B 1
-app_0BBA RS.B 1
-app_0BBB RS.B 1
+free_flight_controls_enabled_flag RS.B 1
+structure_contact_pose_mode RS.B 1
+interrupted_game_available_flag RS.B 1
     RS.B 10
 point_field_world_positions RS.B 120
 point_field_previous_view_positions RS.B 120
@@ -1229,7 +1229,7 @@ abs_0_00001256:
 	move.b #$7F,app_020A(a6)
 	move.l #$70000,$0000(a6)
 	clr.w weapon_action_cooldown(a6)
-	st.b app_0BBB(a6)
+	st.b interrupted_game_available_flag(a6)
     ; Main gameplay frame path: render view, draw/update services, update objects, then frame/display handoff. Diagnostic writes are original instrumentation, not new trace code.
 gameplay_frame_loop:
 	movea.l game_workspace_base.l,a6
@@ -1403,7 +1403,7 @@ abs_0_00001510:
 	move.w #$1,icarus_game_over_reason(a6)
 	bra.w gameplay_frame_loop
 abs_0_0000151E:
-	sf.b app_0BBB(a6)
+	sf.b interrupted_game_available_flag(a6)
 	move.b #$80,app_020A(a6)
 	clr.b display_buffer_table_byte_offset(a6)
 	bsr.w count_and_present_frame_handoff
@@ -1427,7 +1427,7 @@ abs_0_00001560:
 	move.b #$78,diagnostic_stage_step_word.l
 	clr.b diagnostic_step_byte.l
 	bsr.w enqueue_game_over_reason_message
-	sf.b app_0BBB(a6)
+	sf.b interrupted_game_available_flag(a6)
 	movea.l player_object_reference(a6),a0
 	cmpi.w #200,abs_0_00039B7A.l
 	bne.b abs_0_000015AA
@@ -1498,7 +1498,7 @@ abs_0_00001698:
 abs_0_000016B0:
 	sf.b abs_0_00039CD0.l
 	move.b #$0,app_020A(a6)
-	sf.b app_0BBB(a6)
+	sf.b interrupted_game_available_flag(a6)
 	clr.w player_motion_x(a6)
 	clr.w player_motion_y(a6)
 	clr.w player_motion_z(a6)
@@ -2251,10 +2251,10 @@ reset_gameplay_state_and_input_defaults:
 	sf.b space_environment_flag(a6)
 	sf.b player_collision_response_flag(a6)
 	sf.b player_collision_response_steps(a6)
-	sf.b app_0BBA(a6)
+	sf.b structure_contact_pose_mode(a6)
 	move.w #$3,selected_celestial_body_index(a6)
 	move.b #$3,app_07F6(a6)
-	move.b #$FF,app_0BB9(a6)
+	move.b #$FF,free_flight_controls_enabled_flag(a6)
 	move.l #$1FFFF,horizontal_world_wrap_mask(a6)
 	move.w #$1E,type30_render_model_index(a6)
 	bsr.w abs_0_000033F2
@@ -7409,7 +7409,7 @@ abs_0_00006994:
 	bne.b abs_0_000069BA
 	tst.w app_09CA(a6)
 	bne.w abs_0_00006AE0
-	tst.b app_0BB7(a6)
+	tst.b atmosphere_detected_flag(a6)
 	bmi.w abs_0_00006AE0
 	move.w #$1,d7
 	bra.b abs_0_000069D2
@@ -12798,7 +12798,7 @@ abs_0_0000B554:
     ; Pairwise contact service. A6 is borrowed as positive-Y extent table after app state reads; do not interpret all following A6 displacements as workspace fields.
 process_object_contact_pairs:
 	clr.w current_structure_service_id(a6)
-	clr.b app_0BBA(a6)
+	clr.b structure_contact_pose_mode(a6)
 	clr.w last_player_contact_type(a6)
 	tst.b app_07E4(a6)
 	beq.b abs_0_0000B574
@@ -13532,7 +13532,7 @@ return_to_surface_layout:
 	move.l $000C(a2),$000C(a1)
 	move.l #$FFFFFB50,player_world_y(a6)
 	move.l #$FFFFFB50,$0008(a1)
-	move.b #$2,app_0BBA(a6)
+	move.b #$2,structure_contact_pose_mode(a6)
 	move.b #$66,app_0786(a6)
 	move.w #$3FF,player_rotation_0(a6)
 	move.w #$3FF,$0010(a1)
@@ -13598,11 +13598,11 @@ abs_0_0000BEFC:
 	move.l #$FFFFFA98,player_world_y(a6)
 	tst.b $0024(a2)
 	bne.b abs_0_0000BF50
-	move.b #$FF,app_0BBA(a6)
+	move.b #$FF,structure_contact_pose_mode(a6)
 	addi.l #1600,player_world_z(a6)
 	bra.b select_structure_interior_layout
 abs_0_0000BF50:
-	move.b #$FE,app_0BBA(a6)
+	move.b #$FE,structure_contact_pose_mode(a6)
 	subi.l #500,player_world_z(a6)
 select_structure_interior_layout:
 	addi.w #16,world_layout_index(a6)
@@ -14759,9 +14759,9 @@ abs_0_0000D21E:
 	addi.w #255,d0
 abs_0_0000D228:
 	move.w mouse_input_scale_shift(a6),d1
-	tst.b app_0BB9(a6)
+	tst.b free_flight_controls_enabled_flag(a6)
 	bpl.b abs_0_0000D25C
-	tst.b app_0BBA(a6)
+	tst.b structure_contact_pose_mode(a6)
 	bne.b abs_0_0000D25C
 	tst.b app_0202(a6)
 	beq.b abs_0_0000D244
@@ -15969,7 +15969,7 @@ handle_restart_menu_choice:
 	bsr.w redraw_options_text_at_origin
 	move.b #$2,options_resume_game_choice.l
 	bsr.w abs_0_00012F6E
-	tst.b app_0BBB(a6)
+	tst.b interrupted_game_available_flag(a6)
 	beq.b abs_0_0000E3F2
 	move.l (a7)+,d1
 	bra.w abs_0_00012F74
@@ -16258,7 +16258,7 @@ abs_0_0000E9D8:
 	jmp abs_0_0000217A.l
 	dc.w $0000
 abs_0_0000E9E0:
-	sf.b app_0BBB(a6)
+	sf.b interrupted_game_available_flag(a6)
 	move.b #$E,app_020A(a6)
 	clr.b display_buffer_table_byte_offset(a6)
 	bsr.w abs_0_0000FD88
@@ -17634,7 +17634,7 @@ abs_0_0000FF1C:
 	rts
 	dc.b $4E,$75
 load_game_from_disk:
-	sf.b app_0BBB(a6)
+	sf.b interrupted_game_available_flag(a6)
 	move.w #$A,disk_service_state_expected_sector_count.l
 	move.w #$1,disk_service_state_first_sector_id.l
 	move.l #$7E000,disk_service_state_transfer_buffer_pointer.l
@@ -17661,7 +17661,7 @@ abs_0_0000FF6C:
 abs_0_0000FF98:
 	move.l (a1)+,(a0)+
 	dbf.w d1,abs_0_0000FF98
-	st.b app_0BBB(a6)
+	st.b interrupted_game_available_flag(a6)
 	bsr.w restore_workspace_pointers_absolute
 	bra.w deselect_disk_backend
 abs_0_0000FFAA:
@@ -37401,12 +37401,12 @@ update_player_flight_controls:
 	bpl.b abs_0_0002F6A6
 	rts
 abs_0_0002F6A6:
-	tst.b app_0BB9(a6)
-	bpl.w abs_0_0002F8C8
-	tst.b app_0BBA(a6)
-	bne.w abs_0_0002F920
-	tst.w abs_0_00039CDA.l
-	bpl.w abs_0_0002F89C
+	tst.b free_flight_controls_enabled_flag(a6)
+	bpl.w settle_player_flight_controls_continuation
+	tst.b structure_contact_pose_mode(a6)
+	bne.w apply_structure_contact_pose_continuation
+	tst.w player_rotation2_spin_steps.l
+	bpl.w advance_player_rotation2_spin_continuation
 	tst.w player_speed_smoothed(a6)
 	bne.b abs_0_0002F6CA
 	sf.b app_07E7(a6)
@@ -37564,11 +37564,12 @@ abs_0_0002F882:
 	move.w reticle_neutral_screen_x(a6),aim_reticle_screen_x(a6)
 	move.w reticle_neutral_screen_y(a6),aim_reticle_screen_y(a6)
 	rts
-abs_0_0002F89C:
-	subq.w #1,abs_0_00039CDA.l
+    ; Signed spin countdown: negative selects normal controls. Expiry restores rotation 2 and writes -1; otherwise add 64 modulo 4096. Counter units are service calls, not proven frames.
+advance_player_rotation2_spin_continuation:
+	subq.w #1,player_rotation2_spin_steps.l
 	bpl.b abs_0_0002F8B6
-	move.w abs_0_00039CDC.l,player_rotation_2(a6)
-	move.w #$FFFF,abs_0_00039CDA.l
+	move.w player_rotation2_after_spin.l,player_rotation_2(a6)
+	move.w #$FFFF,player_rotation2_spin_steps.l
 	rts
 abs_0_0002F8B6:
 	move.w player_rotation_2(a6),d0
@@ -37576,7 +37577,8 @@ abs_0_0002F8B6:
 	andi.w #4095,d0
 	move.w d0,player_rotation_2(a6)
 	rts
-abs_0_0002F8C8:
+    ; Settling continuation: halve control and speed WORDs; add 6 to rotation 0 modulo 4096. Only when it reaches zero write $FF to enable free flight. Original entry pose matters.
+settle_player_flight_controls_continuation:
 	move.w rotation_2_control_accumulator(a6),d0
 	asr.w #1,d0
 	move.w d0,rotation_2_control_accumulator(a6)
@@ -37598,14 +37600,15 @@ abs_0_0002F8C8:
 	addi.w #6,player_rotation_0(a6)
 	andi.w #4095,player_rotation_0(a6)
 	bne.b abs_0_0002F91E
-	move.b #$FF,app_0BB9(a6)
+	move.b #$FF,free_flight_controls_enabled_flag(a6)
 	move.w #$0,player_rotation_0(a6)
 abs_0_0002F91E:
 	rts
-abs_0_0002F920:
-	cmpi.b #255,app_0BBA(a6)
+    ; Contact-pose continuation: $FF clears rotations 0/1/2; $FE clears 0/2 and sets rotation 1=$800. Other nonzero modes force rotation 0=$3FC. Contact collection clears the mode each frame.
+apply_structure_contact_pose_continuation:
+	cmpi.b #255,structure_contact_pose_mode(a6)
 	beq.b abs_0_0002F93E
-	cmpi.b #254,app_0BBA(a6)
+	cmpi.b #254,structure_contact_pose_mode(a6)
 	beq.b abs_0_0002F954
 	move.w #$3FC,rotation_0_control_accumulator(a6)
 	move.w #$3FC,player_rotation_0(a6)
@@ -42777,7 +42780,7 @@ abs_0_00033A3A:
 	addi.l #200,d0
 	move.l d0,player_world_y(a6)
 	move.l d0,$0008(a4)
-	move.b #$1,app_0BB9(a6)
+	move.b #$1,free_flight_controls_enabled_flag(a6)
 	move.w #$F0A,player_rotation_0(a6)
 	move.w #$0,player_rotation_1(a6)
 	move.w #$0,player_rotation_2(a6)
@@ -42838,7 +42841,7 @@ abs_0_00033B7C:
 	move.w selected_celestial_body_index(a6),d0
 	asl.w #2,d0
 	move.l $0(a0,d0.w),solice_display_radius(a6)
-	move.b #$3,app_0BB5(a6)
+	move.b #$3,solice_drift_quarter_rate_counter(a6)
 	move.b #$7,diagnostic_step_byte.l
 	lea.l abs_0_00037B46.l,a0
 	move.w selected_celestial_body_index(a6),d0
@@ -42856,16 +42859,16 @@ enqueue_selected_body_planetfall_message:
 	movea.l $0(a1,d0.w),a1
 	bsr.w enqueue_event_message
 	lea.l event_message_pointers.l,a1
-	lea.l abs_0_00037B58.l,a0
+	lea.l world_atmosphere_presence_flags.l,a0
 	move.w selected_celestial_body_index(a6),d0
 	tst.b $0(a0,d0.w)
 	bpl.b abs_0_00033C1E
 	move.w #$B,d0
-	st.b app_0BB7(a6)
+	st.b atmosphere_detected_flag(a6)
 	bra.b abs_0_00033C26
 abs_0_00033C1E:
 	move.w #$A,d0
-	sf.b app_0BB7(a6)
+	sf.b atmosphere_detected_flag(a6)
 abs_0_00033C26:
 	asl.w #2,d0
 	movea.l $0(a1,d0.w),a1
@@ -42893,7 +42896,7 @@ abs_0_00033C6E:
 	st.b pending_transient_event_sound(a6)
 	clr.w pending_message_count(a6)
 	move.w #$1,message_display_countdown(a6)
-	move.w #$40,abs_0_00039CDA.l
+	move.w #$40,player_rotation2_spin_steps.l
 	move.w #$E0,d0
 	lea.l event_message_pointers.l,a1
 	movea.l $0(a1,d0.w),a1
@@ -45277,7 +45280,7 @@ abs_0_00035CD4:
     ; KNOWN: type A0=Target code-entry register seed:SG2WorldObject
 update_nearby_mini_sentinel:
 	bsr.w advance_mini_sentinel_orbit
-	tst.w abs_0_00039CDA.l
+	tst.w player_rotation2_spin_steps.l
 	bpl.b abs_0_00035D1A
 	bsr.w abs_0_00039D20
 	andi.w #4095,d0
@@ -45285,7 +45288,7 @@ update_nearby_mini_sentinel:
 	clr.w pending_message_count(a6)
 	move.w #$1,message_display_countdown(a6)
 	st.b pending_transient_event_sound(a6)
-	move.w #$40,abs_0_00039CDA.l
+	move.w #$40,player_rotation2_spin_steps.l
 	move.w #$E0,d0
 	lea.l event_message_pointers.l,a1
 	movea.l $0(a1,d0.w),a1
@@ -46246,9 +46249,10 @@ update_nearby_solice_display:
 	asr.w #5,d0
 	add.w d0,solice_display_phase_angle(a6)
 	andi.w #4095,solice_display_phase_angle(a6)
+    ; Quarter-rate Solice drift: increment BYTE modulo 4; decrement phase only at zero. Called within the nearby Solice updater, so this is not a universal physical-frame clock.
 abs_0_00036A42:
-	addi.b #1,app_0BB5(a6)
-	andi.b #3,app_0BB5(a6)
+	addi.b #1,solice_drift_quarter_rate_counter(a6)
+	andi.b #3,solice_drift_quarter_rate_counter(a6)
 	bne.w abs_0_00036A56
 	subq.w #1,solice_display_phase_angle(a6)
 abs_0_00036A56:
@@ -47018,8 +47022,8 @@ abs_0_000374F0:
 	movea.l $0(a0,d1.w),a0
 	clr.w $0002(a0)
 	move.w #$200,solice_display_phase_angle(a6)
-	move.b #$3,app_0BB5(a6)
-	st.b app_0BB7(a6)
+	move.b #$3,solice_drift_quarter_rate_counter(a6)
+	st.b atmosphere_detected_flag(a6)
 	move.l #$1E00,solice_display_radius(a6)
 	lea.l cached_body_state_prefix(a6),a0
 	lea.l initial_cached_body_states.l,a1
@@ -47041,7 +47045,7 @@ abs_0_00037586:
 	move.l #$7A1200,app_09B4(a6)
 	move.l #$7A1200,app_09B8(a6)
 	move.l #$3D0900,app_09BC(a6)
-	move.b #$FF,app_0BB9(a6)
+	move.b #$FF,free_flight_controls_enabled_flag(a6)
 	move.w #$1,tractor_command_toggle_word(a6)
 	clr.l tractor_target_reference(a6)
 	clr.w scan_target_type(a6)
@@ -47067,8 +47071,8 @@ abs_0_00037586:
 	sf.b abs_0_00039CD0.l
 	sf.b abs_0_00039CD2.l
 	clr.l abs_0_00039CD6.l
-	move.w #$FFFF,abs_0_00039CDA.l
-	clr.w abs_0_00039CDC.l
+	move.w #$FFFF,player_rotation2_spin_steps.l
+	clr.w player_rotation2_after_spin.l
 	move.b #$FF,abs_0_00039CD1.l
 	sf.b abs_0_00039CD3.l
 	clr.w stardrive_speed_addend(a6)
@@ -47393,7 +47397,7 @@ abs_0_00037B46:
 	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00
 abs_0_00037B57:
 	dc.b $00
-abs_0_00037B58:
+world_atmosphere_presence_flags:
 	dc.b $FF,$FF,$FF,$FF,$00,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$00
     ; 87 original LONG text pointers, table ends at first NUL-text span. Direct offset$158 selects final entry86; dynamic selectors retain original bounds assumptions.
 event_message_pointers:
@@ -48430,9 +48434,9 @@ audio_output_enable_sign_flag:
 	dc.b $00
 abs_0_00039CD6:
 	dc.b $00,$00,$00,$00
-abs_0_00039CDA:
+player_rotation2_spin_steps:
 	dc.w $0000
-abs_0_00039CDC:
+player_rotation2_after_spin:
 	dc.w $0000
 shared_grayscale_effect_countdown:
 	dc.w $0000
@@ -57961,7 +57965,7 @@ abs_0_0004C78E:
 	bpl.w abs_0_0004CA26
 	tst.b abs_0_00039CD1.l
 	bpl.w abs_0_0004C9EC
-	tst.w abs_0_00039CDA.l
+	tst.w player_rotation2_spin_steps.l
 	bpl.w abs_0_0004CA6C
 	tst.b inside_structure_flag(a6)
 	bne.w abs_0_0004C93A
@@ -59434,7 +59438,7 @@ abs_0_0004DB1E:
 	bpl.w abs_0_0004DD0E
 	tst.b abs_0_00039CD1.l
 	bpl.w abs_0_0004DCF0
-	tst.w abs_0_00039CDA.l
+	tst.w player_rotation2_spin_steps.l
 	bpl.w abs_0_0004DCDE
 	tst.b inside_structure_flag(a6)
 	bne.w abs_0_0004DC7E

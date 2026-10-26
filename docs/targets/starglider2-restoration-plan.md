@@ -2240,3 +2240,34 @@ unchanged. Three canonical comments clarify the already-established view and
 point-field contract, including the $2000 (8,192-byte) plane stride. The receipt
 `runtime/observations/starglider2-derived-app-cursors.json` records exact
 coordinates, evidence limits and the clean staged-tree standalone build.
+
+## Flight settling, structure pose and atmosphere
+
+A connected 15-action source batch now names five original BYTE states and
+three control continuations, the 16-byte atmosphere lookup and two spin WORDs.
+Generic app names fall from 107 to 102; declared app fields remain 299.
+The atmosphere lookup selects the original “Atmosphere Detected” / “No
+Atmosphere Detected” messages and the surface type-145 disc-overlay behavior.
+Its sixteen stored entries do not establish every later dynamic selector bound.
+
+Free flight requires the sign bit of its enable flag. A body transfer writes 1,
+then the settling path halves controls/speeds and increments rotation 0 by six
+modulo 4096 until zero before writing $FF. This is not a generic Boolean with
+all nonzero values equivalent. Structure contact separately clears a pose mode
+each collection pass, then supplies 2 on exit or $FF/$FE on entry; the control
+consumer applies the corresponding fixed pose. The interrupted-game flag
+connects gameplay/load success, game-over/viewer clearing and the resume-menu
+gate; it is not inferred from physical adjacency or pointer serialization.
+
+The Solice drift BYTE divides calls to its nearby updater by four. The signed
+rotation-2 spin counter is initialized to 64 for the event, restores the saved
+WORD on expiry and uses negative values as inactive. Neither counter is claimed
+to measure universal physical frames. New names expose original transitions;
+the continuation labels retain their original caller/state requirements.
+
+Native generation took 83.28 seconds with converged worklists and no quality
+diagnostics. C/vasm and the clean standalone source build remain exact, with all
+57 assets unchanged. The explicit data extents account for 20 previously
+unclassified bytes (14,748 to 14,728; still 260 residual intervals). No code is
+newly promoted and no new runtime path is claimed. See
+`runtime/observations/starglider2-flight-environment-state.json`.
