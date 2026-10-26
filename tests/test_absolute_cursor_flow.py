@@ -42,3 +42,15 @@ def test_existing_callee_memory_contract_controls_local_cells(tmp_path,callee,pr
     try:
         assert bool([r for r in derived_refs(a)if r['access']=='read'])==preserved
     finally:a.close()
+
+@pytest.mark.parametrize('middle,preserved',[
+    ('move.w (a4),d0',True),('move.w #0,d0',True),('addq.w #1,d0',True),
+    ('movea.l #0,a2',True),('move.w #0,(a4)',False),
+])
+def test_decoded_register_roles_do_not_invalidate_memory_cells(tmp_path,middle,preserved):
+    a,_=cursor_artifact(tmp_path,'lea.l $C3E(a6),a0\n move.l a0,$1800.l\n '+middle+
+        '\n movea.l $1800.l,a1\n move.w (a1),d1')
+    try:
+        reads=[r for r in derived_refs(a)if r['base_register']=='A1'and r['access']=='read']
+        assert bool(reads)==preserved
+    finally:a.close()

@@ -6,6 +6,8 @@
 #include <stdlib.h>
 #include <time.h>
 
+#include "m68k_affine_entry_value.inc"
+
 /* Shared platform/source-analysis enrichment for M68kRenderLookup. */
 uint32_t render_section_extent(const M68kDecodeSectionIR *section) {
   if (section == NULL) return 0U;
@@ -1302,6 +1304,8 @@ static int render_lookup_record_layout_field_uses(M68kRenderLookup *lookup, size
 static int render_lookup_record_base_app_accesses(M68kRenderLookup *lookup, size_t section_index,
     const M68kRenderPlatformState *state, const M68kInstructionIR *instruction, uint32_t offset,
     int legacy_fallbacks);
+static int render_lookup_record_derived_app_operand(M68kRenderLookup *lookup, size_t section_index,
+    const M68kRenderTypedState *state, const M68kInstructionIR *instruction, uint32_t offset, size_t operand_index);
 static int render_lookup_record_derived_app_accesses(M68kRenderLookup *lookup, size_t section_index,
     const M68kRenderTypedState *state, const M68kInstructionIR *instruction, uint32_t offset);
 static int render_lookup_record_affine_address_uses(M68kRenderLookup *lookup, size_t section_index,
@@ -3270,7 +3274,8 @@ static void typed_state_set_reg_origin(M68kRenderTypedState *state, uint8_t reg_
 }
 
 static int typed_stored_value_has_useful_info(const M68kRenderTypedStoredValue *value) {
-  return value != NULL && value->known != 0U && typed_stored_value_has_payload(value);
+  return value != NULL && (value->entry_value_id != 0U ||
+    (value->known != 0U && typed_stored_value_has_payload(value)));
 }
 
 static M68kRenderTypedStoredValue typed_stored_value_for_operand(const M68kRenderTypedState *state,
@@ -3283,6 +3288,7 @@ static M68kRenderTypedStoredValue typed_stored_value_for_operand(const M68kRende
   value.output = typed_state_output_for_operand(state, operand, NULL, NULL);
   if (state != NULL && operand_is_data_register_local(operand, &reg)) {
     value.layout_base_id = state->data_regs[reg].layout_base_id;
+    value.entry_value_id = state->data_regs[reg].entry_value_id;
     value.provenance = state->data_regs[reg].provenance;
     value.array_element_count = state->data_regs[reg].array_element_count;
     value.array_element_index = state->data_regs[reg].array_element_index;
@@ -3302,6 +3308,7 @@ static M68kRenderTypedStoredValue typed_stored_value_for_operand(const M68kRende
     value.pointer_target_offset = state->data_regs[reg].pointer_target_offset;
   } else if (state != NULL && operand_address_register_index_local(operand, &reg)) {
     value.layout_base_id = state->addr_regs[reg].layout_base_id;
+    value.entry_value_id = state->addr_regs[reg].entry_value_id;
     value.provenance = state->addr_regs[reg].provenance;
     value.array_element_count = state->addr_regs[reg].array_element_count;
     value.array_element_index = state->addr_regs[reg].array_element_index;
@@ -3336,7 +3343,7 @@ static void typed_state_restore_stored_register(M68kRenderTypedState *state, uin
   typed_state_clear_reg(state, kind, reg);
   target = kind == M68K_ANALYSIS_REGISTER_DATA ? &state->data_regs[reg] : &state->addr_regs[reg];
   app = kind == M68K_ANALYSIS_REGISTER_DATA ? &state->data_app_addr_regs[reg] : &state->app_addr_regs[reg];
-  if (value != NULL && value->known) {
+  if (value != NULL && (value->known || value->entry_value_id)) {
     target->known = value->known;
     target->output = value->output;
     target->struct_id = value->struct_id;
@@ -3344,6 +3351,7 @@ static void typed_state_restore_stored_register(M68kRenderTypedState *state, uin
     target->array_element_index = value->array_element_index;
     target->byte_cursor = value->byte_cursor;
     target->layout_base_id = value->layout_base_id;
+    target->entry_value_id = value->entry_value_id;
     target->pointer_value_known = value->pointer_value_known;
     target->pointer_candidate_count = value->pointer_candidate_count;
     target->pointer_value = value->pointer_value;
@@ -5301,6 +5309,7 @@ static int render_lookup_add_typed_address_consumer(M68kRenderLookup *lookup, si
 int render_lookup_add_function_summary_use(M68kRenderLookup *lookup, const M68kFunctionSummaryUseIR *use) {
   M68kFunctionSummaryUseIR *grown;
   size_t index, next_capacity;
+  if (lookup != NULL && lookup->affine_entry_context != NULL) return 0;
   if (lookup == NULL || use == NULL || use->function_summary_id[0] == '\0' ||
       (use->kind != M68K_FUNCTION_SUMMARY_USE_CALL && use->kind != M68K_FUNCTION_SUMMARY_USE_INPUT)) return -1;
   for (index = 0U; index < lookup->function_summary_use_count; ++index) {
@@ -5333,6 +5342,7 @@ static int render_lookup_add_platform_call_thunk(M68kRenderLookup *lookup,
     const M68kPlatformCallThunkIR *thunk) {
   M68kPlatformCallThunkIR *grown;
   size_t index, next_capacity;
+  if (lookup != NULL && lookup->affine_entry_context != NULL) return 0;
   if (lookup == NULL || thunk == NULL ||
       thunk->relation_kind != M68K_PLATFORM_CALL_THUNK_RELATION_PLATFORM_CALL_THUNK) return -1;
   for (index = 0U; index < lookup->platform_call_thunk_count; ++index) {
@@ -5484,6 +5494,7 @@ static int render_lookup_record_typed_address_store(M68kRenderLookup *lookup,
   uint16_t policy_index;
   M68kPointerStoreIR fact;
   M68kAddressValueConsumerIR consumer;
+  if (lookup != NULL && lookup->affine_entry_context != NULL) return 0;
   if (lookup == NULL || state == NULL || instruction == NULL || value == NULL ||
       source_index >= instruction->operand_count || dest_index >= instruction->operand_count ||
       instruction->size_suffix != 'l') {
@@ -5568,7 +5579,8 @@ static int render_lookup_record_typed_storage_store(M68kRenderLookup *lookup, M6
   if (lookup == NULL || state == NULL || instruction == NULL) return 0;
   if (!instruction_move_operand_indices_from_metadata(instruction, &source_index, &dest_index, &metadata))
     return 0;
-  if (metadata == NULL || metadata->operand_access_kinds[dest_index] != M68K_SIM_ACCESS_MEMORY_WRITE) return 0;
+  if (metadata == NULL || platform_operand_memory_access(instruction, dest_index) != M68K_SIM_ACCESS_MEMORY_WRITE)
+    return 0;
     const M68kOperandIR *source_operand = &instruction->operands[source_index];
     const M68kOperandIR *dest_operand = &instruction->operands[dest_index];
     M68kRenderTypedStoredValue value = typed_stored_value_for_operand(state, source_operand);
@@ -5607,6 +5619,7 @@ static int render_lookup_record_typed_storage_store(M68kRenderLookup *lookup, M6
   }
   if (instruction->size_suffix != 'l') {
     value.layout_base_id = 0U;
+    value.entry_value_id = 0U;
     value.app_address_known = 0U;
     value.app_displacement = 0;
     value.app_base_evidence_kind = M68K_APP_SLOT_BASE_UNSPECIFIED;
@@ -5636,7 +5649,9 @@ static int render_lookup_record_typed_storage_store(M68kRenderLookup *lookup, M6
   if (!destination_requires_address && value.raw_long_value_known != 0U &&
       value.pointer_value_known == 0U && value.output == NULL &&
       value.struct_id == AMIGA_OS_STRUCT_ID_NONE && value.app_address_known == 0U) {
+    uint32_t entry_value_id = value.entry_value_id;
     typed_stored_value_clear(&value);
+    value.entry_value_id = entry_value_id;
   }
   if (operand_is_address_memory_local(dest_operand, &base_reg, &base_displacement) && base_reg < 8U &&
       base_reg != 7U && !render_state_operand_uses_app_base(platform_state, base_reg, base_displacement)) {
@@ -5740,7 +5755,7 @@ static int render_lookup_record_untyped_memory_writes(M68kRenderLookup *lookup, 
     int32_t storage_displacement = 0;
     uint32_t storage_address = 0U;
     int added = 0;
-    if (metadata->operand_access_kinds[operand_index] != M68K_SIM_ACCESS_MEMORY_WRITE) continue;
+    if (platform_operand_memory_access(instruction, operand_index) != M68K_SIM_ACCESS_MEMORY_WRITE) continue;
     {
       M68kRenderTypedStoredValue updated;
       uint8_t span = 0U;
@@ -5754,6 +5769,9 @@ static int render_lookup_record_untyped_memory_writes(M68kRenderLookup *lookup, 
         const M68kRenderTypedBaseSlot *cell;
         id = typed_absolute_storage_id(lookup, owner_section, address);
         cell = typed_state_absolute_cell(state, id);
+        if (cell != NULL && cell->value.entry_value_id)
+          updated.entry_value_id = affine_entry_adjust(lookup->affine_entry_context,
+            cell->value.entry_value_id, delta);
         if (cell != NULL && cell->value.app_address_known) {
           int64_t next = (int64_t)cell->value.app_displacement + delta;
           if (next >= INT16_MIN && next <= INT16_MAX) {
@@ -6261,7 +6279,7 @@ static int typed_flow_local_callee_effect_summary(const M68kRenderLookup *lookup
         size_t move_source_index = 0U, move_dest_index = 0U;
         uint8_t source_reg = 0U;
         uint8_t source_origin = 0xffU;
-        if (metadata->operand_access_kinds[operand_index] != M68K_SIM_ACCESS_MEMORY_WRITE) continue;
+        if (platform_operand_memory_access(&instruction, operand_index) != M68K_SIM_ACCESS_MEMORY_WRITE) continue;
         if (operand_is_predec_a7_local(&instruction.operands[operand_index]) ||
             operand_is_postinc_a7_local(&instruction.operands[operand_index])) {
           state.stack_entry_stable = 0U;
@@ -7056,6 +7074,7 @@ static int render_lookup_record_observed_callback_table(M68kRenderLookup *lookup
   M68kRenderObservedCallbackTable *grown;
   size_t index;
   size_t next_capacity;
+  if (lookup != NULL && lookup->affine_entry_context != NULL) return 0;
   if (lookup == NULL) return -1;
   for (index = 0U; index < lookup->observed_callback_table_count; ++index) {
     const M68kRenderObservedCallbackTable *observed = &lookup->observed_callback_tables[index];
@@ -7199,6 +7218,75 @@ static int render_lookup_collect_inferred_callback_table_function_summaries(M68k
   return 0;
 }
 
+/* Affine entry identity is an orthogonal shared value component. MOVE,
+ * storage, stack and callable paths transport it with the existing packet;
+ * only the arithmetic offset operations need this component-specific rule. */
+static void affine_entry_transfer_after(M68kRenderTypedState *state, const M68kRenderLookup *lookup,
+    const M68kInstructionIR *instruction, const uint32_t before[16],
+    const M68kStackRegisterTransfer *stack, int has_stack) {
+  M68kAffineEntryContext *context = lookup ? lookup->affine_entry_context : NULL;
+  const M68kSimFormMetadata *metadata;
+  uint8_t address, reg;
+  int64_t delta;
+  if (!context || !(metadata = m68k_sim_metadata_for_instruction(instruction))) return;
+  if (instruction->operand_count == 2U &&
+      m68k_instruction_operand_direct_register(&instruction->operands[1], &address, &reg) && reg < 8U) {
+    const M68kAffineEntryValue *input = affine_entry_value(context, before[reg + (address ? 8U : 0U)]);
+    if (input && (instruction->size_suffix == 'l' ||
+        (instruction->size_suffix == 'w' && (address || input->width == 2U))) &&
+        typed_app_cursor_immediate_delta(instruction, &delta)) {
+      uint32_t id = affine_entry_adjust(context, before[reg + (address ? 8U : 0U)], delta);
+      if (address) state->addr_regs[reg].entry_value_id = id;
+      else state->data_regs[reg].entry_value_id = id;
+    }
+    if (metadata->operation_class == M68K_SIM_CLASS_LOAD_EFFECTIVE_ADDRESS && address) {
+      uint8_t base;
+      int16_t displacement;
+      if (operand_is_address_memory_local(&instruction->operands[0], &base, &displacement)) {
+        input = affine_entry_value(context, before[base + 8U]);
+        if (input && input->width == 4U)
+          state->addr_regs[reg].entry_value_id = affine_entry_adjust(context, before[base + 8U], displacement);
+      }
+    }
+  }
+  for (size_t i = 0U; i < instruction->operand_count; ++i) {
+    const M68kOperandIR *operand = &instruction->operands[i];
+    uint8_t shape = m68k_instruction_operand_decoded_ea_shape(operand), span = 0U;
+    uint8_t explicit_address = 0U, explicit_reg = 0U, updates = 0U;
+    if (shape != M68K_SIM_EA_SHAPE_POSTINCREMENT && shape != M68K_SIM_EA_SHAPE_PREDECREMENT) continue;
+    reg = operand->kind == M68K_ASM_OPERAND_PREDEC || operand->kind == M68K_ASM_OPERAND_POSTINC
+      ? operand->value.reg : operand->value.ea_reg;
+    if (reg >= 7U) continue; /* A7 has its normalized stack rule below. */
+    for (size_t j = 0U; j < instruction->operand_count; ++j) {
+      const M68kOperandIR *other = &instruction->operands[j];
+      uint8_t other_shape = m68k_instruction_operand_decoded_ea_shape(other);
+      if ((other_shape == M68K_SIM_EA_SHAPE_POSTINCREMENT || other_shape == M68K_SIM_EA_SHAPE_PREDECREMENT) &&
+          ((other->kind == M68K_ASM_OPERAND_PREDEC || other->kind == M68K_ASM_OPERAND_POSTINC)
+            ? other->value.reg : other->value.ea_reg) == reg) ++updates;
+      if (j != i && instruction_operand_writes_register_from_metadata(instruction, j) &&
+          m68k_instruction_operand_direct_register(other, &explicit_address, &explicit_reg) &&
+          explicit_address && explicit_reg == reg) updates = 2U;
+    }
+    const M68kAffineEntryValue *input = affine_entry_value(context, before[reg + 8U]);
+    state->addr_regs[reg].entry_value_id = 0U;
+    if (updates == 1U && input && input->width == 4U &&
+        platform_operand_memory_span(instruction, i, NULL, NULL, &span))
+      state->addr_regs[reg].entry_value_id = affine_entry_adjust(context, before[reg + 8U],
+        shape == M68K_SIM_EA_SHAPE_PREDECREMENT ? -(int64_t)span : span);
+  }
+  if (metadata->flow_kind != M68K_SIM_FLOW_CALL && instruction_may_update_stack_pointer_from_metadata(instruction)) {
+    int32_t stack_delta;
+    state->addr_regs[7].entry_value_id = 0U;
+    if (has_stack) {
+      stack_delta = (int32_t)stack->width * stack->count;
+      if (stack->direction == M68K_STACK_TRANSFER_POP) stack_delta = -stack_delta;
+      state->addr_regs[7].entry_value_id = affine_entry_adjust(context, before[15], -(int64_t)stack_delta);
+    } else if (instruction_stack_delta_for_comment(instruction, &stack_delta)) {
+      state->addr_regs[7].entry_value_id = affine_entry_adjust(context, before[15], -(int64_t)stack_delta);
+    }
+  }
+}
+
 static void typed_state_update_after_instruction(M68kRenderTypedState *state, M68kRenderLookup *lookup,
     const M68kRenderPlatformState *platform_state, size_t section_index, const M68kInstructionIR *instruction,
     const M68kDecodeCandidate *candidate, const M68kAnalysisFunctionSummary *local_effects, uint32_t offset,
@@ -7231,7 +7319,12 @@ static void typed_state_update_after_instruction(M68kRenderTypedState *state, M6
   M68kRenderTypedAppAddressValue app_after_update = {0};
   M68kStackRegisterTransfer stack_transfer = {0};
   int has_stack_transfer;
+  uint32_t entry_values_before[16] = {0};
   if (state == NULL || instruction == NULL) return;
+  if (lookup != NULL && lookup->affine_entry_context != NULL) for (uint8_t reg = 0U; reg < 8U; ++reg) {
+    entry_values_before[reg] = state->data_regs[reg].entry_value_id;
+    entry_values_before[reg + 8U] = state->addr_regs[reg].entry_value_id;
+  }
   has_stack_transfer = platform_instruction_stack_register_transfer(instruction, &stack_transfer);
   for (operand_index = 0U; operand_index < instruction->operand_count && operand_index < 4U; ++operand_index) {
     const M68kOperandIR *operand = &instruction->operands[operand_index];
@@ -7484,6 +7577,7 @@ static void typed_state_update_after_instruction(M68kRenderTypedState *state, M6
     if (instruction->size_suffix != 'l') {
       source_is_app_address = 0;
       stored_value.layout_base_id = 0U;
+      stored_value.entry_value_id = 0U;
     }
     source_is_direct_addr_reg = operand_address_register_index_local(source_operand, &source_addr_reg);
     source_alias_reg = source_addr_reg;
@@ -7523,6 +7617,7 @@ static void typed_state_update_after_instruction(M68kRenderTypedState *state, M6
           sizeof(state->data_regs[dest_reg].pointer_candidates));
       }
       state->data_regs[dest_reg].layout_base_id = stored_value.layout_base_id;
+      state->data_regs[dest_reg].entry_value_id = stored_value.entry_value_id;
       if (stored_value.layout_base_id != 0U) state->data_regs[dest_reg].known = 1U;
       state->data_regs[dest_reg].table_origin = stored_value.table_origin;
       state->data_regs[dest_reg].pointer_target_known = stored_value.pointer_target_known;
@@ -7563,6 +7658,7 @@ static void typed_state_update_after_instruction(M68kRenderTypedState *state, M6
           sizeof(state->addr_regs[dest_reg].pointer_candidates));
       }
       state->addr_regs[dest_reg].layout_base_id = stored_value.layout_base_id;
+      state->addr_regs[dest_reg].entry_value_id = stored_value.entry_value_id;
       if (stored_value.layout_base_id != 0U) state->addr_regs[dest_reg].known = 1U;
       state->addr_regs[dest_reg].table_origin = stored_value.table_origin;
       state->addr_regs[dest_reg].pointer_target_known = stored_value.pointer_target_known;
@@ -7877,8 +7973,14 @@ static void typed_state_update_after_instruction(M68kRenderTypedState *state, M6
       uint16_t writes = platform_operand_register_write_mask(instruction, operand_index);
       uint8_t reg;
       for (reg = 0U; reg < 8U; ++reg) {
-        if ((writes & (1U << reg)) != 0U) state->data_regs[reg].layout_base_id = 0U;
-        if ((writes & (1U << (8U + reg))) != 0U) state->addr_regs[reg].layout_base_id = 0U;
+        if ((writes & (1U << reg)) != 0U) {
+          state->data_regs[reg].layout_base_id = 0U;
+          state->data_regs[reg].entry_value_id = 0U;
+        }
+        if ((writes & (1U << (8U + reg))) != 0U) {
+          state->addr_regs[reg].layout_base_id = 0U;
+          state->addr_regs[reg].entry_value_id = 0U;
+        }
       }
     }
   }
@@ -7889,8 +7991,19 @@ static void typed_state_update_after_instruction(M68kRenderTypedState *state, M6
   }
   if (app_after_update.known) state->app_addr_regs[app_update_reg] = app_after_update;
   if (instruction_may_update_stack_pointer_from_metadata(instruction) && !recognized_stack_update &&
-      !instruction_has_call_flow_local(instruction))
-    typed_state_clear_stack_slots(state);
+      !instruction_has_call_flow_local(instruction)) {
+    int32_t adjustment;
+    if (has_stack_transfer && stack_transfer.width == 2U) {
+      adjustment = (int32_t)stack_transfer.width * stack_transfer.count;
+      if (stack_transfer.direction == M68K_STACK_TRANSFER_POP) adjustment = -adjustment;
+      typed_state_rebase_stack_slots(state, (int16_t)adjustment);
+    } else if (instruction_stack_delta_for_comment(instruction, &adjustment) &&
+        adjustment >= INT16_MIN && adjustment <= INT16_MAX) {
+      typed_state_rebase_stack_slots(state, (int16_t)adjustment);
+    } else typed_state_clear_stack_slots(state);
+  }
+  affine_entry_transfer_after(state, lookup, instruction, entry_values_before, &stack_transfer,
+    has_stack_transfer);
 }
 
 static int typed_reg_values_equal(const M68kRenderTypedRegValue *left,
@@ -7908,6 +8021,7 @@ static int typed_reg_values_equal(const M68kRenderTypedRegValue *left,
     left->conflict_struct_id == right->conflict_struct_id &&
     left->array_element_count == right->array_element_count && left->array_element_index == right->array_element_index &&
     left->byte_cursor == right->byte_cursor && left->layout_base_id == right->layout_base_id &&
+    left->entry_value_id == right->entry_value_id &&
     typed_origins_equal(&left->origin, &right->origin) &&
     /* A provenance marker without any value cannot justify a consumer or a
      * new transfer. Do not schedule a loop merely because this dead marker
@@ -7926,7 +8040,7 @@ static int typed_stored_values_equal(const M68kRenderTypedStoredValue *left,
     const M68kRenderTypedStoredValue *right) {
   if (left == NULL || right == NULL) return 0;
   return left->known == right->known && left->output == right->output && left->struct_id == right->struct_id &&
-    left->layout_base_id == right->layout_base_id &&
+    left->layout_base_id == right->layout_base_id && left->entry_value_id == right->entry_value_id &&
     left->pointer_value_known == right->pointer_value_known && left->pointer_value == right->pointer_value &&
     left->pointer_candidate_count == right->pointer_candidate_count &&
     left->address_value_candidate_overflow == right->address_value_candidate_overflow &&
@@ -8090,7 +8204,7 @@ static void typed_stored_value_mark_address_value_candidate_overflow(M68kRenderT
   typed_table_origin_clear(&value->table_origin);
 }
 
-static int typed_reg_merge(M68kRenderTypedRegValue *dest, const M68kRenderTypedRegValue *source) {
+static int typed_reg_merge_payload(M68kRenderTypedRegValue *dest, const M68kRenderTypedRegValue *source) {
   M68kRenderTypedRegValue old_value;
   if (dest == NULL || source == NULL) return 0;
   old_value = *dest;
@@ -8257,7 +8371,20 @@ static int typed_reg_merge(M68kRenderTypedRegValue *dest, const M68kRenderTypedR
   return !typed_reg_values_equal(dest, &old_value);
 }
 
-static int typed_stored_value_merge(M68kRenderTypedStoredValue *dest,
+static int typed_reg_merge(M68kRenderTypedRegValue *dest, const M68kRenderTypedRegValue *source) {
+  M68kRenderTypedRegValue old, payload;
+  uint32_t id;
+  if (!dest || !source) return 0;
+  if (!dest->entry_value_id && !source->entry_value_id) return typed_reg_merge_payload(dest, source);
+  old = *dest; payload = *source;
+  id = dest->entry_value_id == source->entry_value_id ? dest->entry_value_id : 0U;
+  dest->entry_value_id = payload.entry_value_id = 0U;
+  (void)typed_reg_merge_payload(dest, &payload);
+  dest->entry_value_id = id;
+  return !typed_reg_values_equal(dest, &old);
+}
+
+static int typed_stored_value_merge_payload(M68kRenderTypedStoredValue *dest,
     const M68kRenderTypedStoredValue *source) {
   M68kRenderTypedStoredValue old_value;
   if (dest == NULL || source == NULL) return 0;
@@ -8316,6 +8443,19 @@ static int typed_stored_value_merge(M68kRenderTypedStoredValue *dest,
   }
   typed_stored_value_update_known(dest);
   return !typed_stored_values_equal(dest, &old_value);
+}
+
+static int typed_stored_value_merge(M68kRenderTypedStoredValue *dest, const M68kRenderTypedStoredValue *source) {
+  M68kRenderTypedStoredValue old, payload;
+  uint32_t id;
+  if (!dest || !source) return 0;
+  if (!dest->entry_value_id && !source->entry_value_id) return typed_stored_value_merge_payload(dest, source);
+  old = *dest; payload = *source;
+  id = dest->entry_value_id == source->entry_value_id ? dest->entry_value_id : 0U;
+  dest->entry_value_id = payload.entry_value_id = 0U;
+  (void)typed_stored_value_merge_payload(dest, &payload);
+  dest->entry_value_id = id;
+  return !typed_stored_values_equal(dest, &old);
 }
 
 static int typed_state_merge_stack_slots(M68kRenderTypedState *dest, const M68kRenderTypedState *source) {
@@ -8399,6 +8539,7 @@ static int typed_state_merge_field_slots(M68kRenderTypedState *dest, const M68kR
   }
   return changed;
 }
+
 
 static int typed_state_merge_into(M68kRenderTypedState *dest, const M68kRenderTypedState *source) {
   size_t index;
@@ -9348,12 +9489,12 @@ static int typed_flow_process_node(M68kRenderLookup *lookup, const M68kDecodeIR 
       out_typed_state, chosen_vector) != 0) {
     return -1;
   }
-  if (!record_typed_accesses && instruction_has_call_flow_local(&instruction) && local_call_target_known != 0U &&
+  if (!record_typed_accesses && lookup->affine_entry_context == NULL && instruction_has_call_flow_local(&instruction) && local_call_target_known != 0U &&
       typed_flow_record_local_call_input_consumers(lookup, section->section_index, node->candidate->offset,
         target_section_index, target_offset, out_typed_state) != 0) {
     return -1;
   }
-  if (!record_typed_accesses && instruction_has_call_flow_local(&instruction) &&
+  if (!record_typed_accesses && lookup->affine_entry_context == NULL && instruction_has_call_flow_local(&instruction) &&
       typed_flow_record_callback_input_consumers(lookup, section->section_index, node->candidate->offset,
         section, node->candidate, &instruction, out_typed_state,
         direct_table_value_known != 0U ? &direct_table_value : NULL) != 0) {
@@ -9448,7 +9589,8 @@ static int typed_flow_process_node(M68kRenderLookup *lookup, const M68kDecodeIR 
     call_has_result_summary = 1U;
   }
   typed_state_update_after_instruction(out_typed_state, lookup, out_platform_state, section->section_index,
-    &instruction, node->candidate, selected_local_effects, node->candidate->offset, 1);
+    &instruction, node->candidate, selected_local_effects, node->candidate->offset,
+    lookup->affine_entry_context == NULL);
   if (call_has_result_summary != 0U)
     typed_state_apply_function_summary_results(out_typed_state, &call_input_state, lookup, result_summary,
       section->section_index, node->candidate->offset);
@@ -10275,173 +10417,7 @@ cleanup:
   return result;
 }
 
-/* A narrow counted-loop summary reuses CFG identity, the existing immediate
- * word domain and ordinary app-address transfers. It does not widen the main
- * fixed point or execute/unroll iterations. Branchy bodies still refuse; external
- * entries must agree on converged counter and cursor values. */
-static int typed_app_loop_step(const M68kRenderLookup *lookup, M68kRenderTypedState *state,
-    const M68kRenderPlatformState *platform, size_t section_index,
-    const M68kDecodeCandidate *candidate, uint8_t counter) {
-  M68kInstructionIR instruction;
-  const M68kSimFormMetadata *metadata;
-  M68kRenderTypedAppAddressValue before[8];
-  size_t operand;
-  uint8_t reg;
-  if (m68k_decode_candidate_to_instruction(candidate, &instruction) != 0 ||
-      (metadata = m68k_sim_metadata_for_instruction(&instruction)) == NULL ||
-      metadata->flow_kind != M68K_SIM_FLOW_SEQUENTIAL) return 0;
-  for (operand = 0U; operand < instruction.operand_count; ++operand) {
-    uint8_t written;
-    if (instruction_operand_writes_register_from_metadata(&instruction, operand) &&
-        operand_is_data_register_local(&instruction.operands[operand], &written) && written == counter) return 0;
-    if (metadata->multi_transfer_direction == M68K_SIM_MULTI_MEMORY_TO_REGISTER &&
-        metadata->reglist_operand_index == operand &&
-        instruction.operands[operand].kind == M68K_ASM_OPERAND_REGLIST &&
-        (instruction.operands[operand].value.value & (1U << counter))) return 0;
-    if (!instruction_operand_writes_register_from_metadata(&instruction, operand) ||
-        !operand_address_register_index_local(&instruction.operands[operand], &written) ||
-        !state->app_addr_regs[written].known) continue;
-    /* Constant arithmetic on the old cursor is affine. Pointer reassignment,
-     * even from another app cursor with the same first value, is not. */
-    {
-      uint32_t immediate;
-      if (operand != 1U || !m68k_ir_operand_immediate_value(&instruction.operands[0], &immediate) ||
-          (instruction.mnemonic_id != M68K_ASM_MNEMONIC_ADDA &&
-           instruction.mnemonic_id != M68K_ASM_MNEMONIC_ADDQ &&
-           instruction.mnemonic_id != M68K_ASM_MNEMONIC_SUBA &&
-           instruction.mnemonic_id != M68K_ASM_MNEMONIC_SUBQ)) return 0;
-    }
-  }
-  memcpy(before, state->app_addr_regs, sizeof(before));
-  typed_state_update_after_instruction(state, (M68kRenderLookup *)lookup, platform, section_index,
-    &instruction, candidate, NULL, candidate->offset, 0);
-  for (reg = 0U; reg < 8U; ++reg) {
-    if (before[reg].known != state->app_addr_regs[reg].known ||
-        (before[reg].known && before[reg].base_evidence_kind != state->app_addr_regs[reg].base_evidence_kind))
-      return 0;
-  }
-  return 1;
-}
-
-static int typed_flow_record_app_loop_ranges(M68kRenderLookup *lookup, const M68kDecodeIR *decode,
-    const M68kRenderTypedFlowWorkflow *workflow) {
-  size_t section_index;
-  if (lookup->typed_flow_incomplete_count != 0U) return 0;
-  for (section_index = 0U; section_index < workflow->section_count; ++section_index) {
-    const M68kRenderTypedFlowGraph *graph = &workflow->graphs[section_index];
-    size_t tail;
-    for (tail = 0U; tail < graph->node_count; ++tail) {
-      const M68kRenderTypedFlowNode *end = &graph->nodes[tail];
-      M68kInstructionIR dbf;
-      M68kRenderTypedState state, entry_state;
-      M68kRenderPlatformState entry_platform;
-      M68kRenderTypedAppAddressValue initial[8];
-      int32_t stride[8];
-      size_t header = SIZE_MAX, preheader = SIZE_MAX, pred, current, previous;
-      uint32_t iterations = 0U;
-      uint8_t counter, reg;
-      int valid = 1, pass;
-      if (end->candidate->mnemonic_id != M68K_ASM_MNEMONIC_DBF || end->successor_count != 2U ||
-          m68k_decode_candidate_to_instruction(end->candidate, &dbf) != 0 ||
-          !operand_is_data_register_local(&dbf.operands[0], &counter)) continue;
-      for (pred = 0U; pred < end->successor_count; ++pred) {
-        size_t target = end->successors[pred];
-        if (graph->nodes[target].candidate->offset < end->candidate->offset) header = target;
-      }
-      if (header == SIZE_MAX || graph->nodes[header].is_root ||
-          graph->predecessor_offsets[header + 1U] - graph->predecessor_offsets[header] < 2U) continue;
-      for (pred = graph->predecessor_offsets[header]; pred < graph->predecessor_offsets[header + 1U]; ++pred) {
-        size_t entry = graph->predecessors[pred];
-        const M68kRenderTypedFlowNode *node = &graph->nodes[entry];
-        const M68kHardwareWordSet *count = &node->platform_out.word_values[counter];
-        uint32_t trips;
-        if (entry == tail) continue;
-        if (!node->has_out || node->candidate->offset >= graph->nodes[header].candidate->offset ||
-            count->count != 1U || count->requires_input_contract) { valid = 0; break; }
-        trips = (uint32_t)count->values[0] + 1U;
-        if (preheader == SIZE_MAX) {
-          entry_state = node->typed_out;
-          entry_platform = node->platform_out;
-          iterations = trips;
-          preheader = entry;
-        } else {
-          if (trips != iterations) { valid = 0; break; }
-          (void)typed_state_merge_into(&entry_state, &node->typed_out);
-          (void)platform_state_merge_into(&entry_platform, &node->platform_out);
-        }
-      }
-      if (!valid || preheader == SIZE_MAX) continue;
-      memcpy(initial, entry_state.app_addr_regs, sizeof(initial));
-      /* Validate body/counter/cursor invariants first; collect no partial facts. */
-      state = entry_state;
-      current = header; previous = preheader;
-      while (current != tail) {
-        const M68kRenderTypedFlowNode *node = &graph->nodes[current];
-        uint32_t next_offset = node->candidate->offset + node->candidate->byte_count;
-        if ((current != header && (node->is_root || graph->predecessor_offsets[current + 1U] -
-            graph->predecessor_offsets[current] != 1U ||
-            graph->predecessors[graph->predecessor_offsets[current]] != previous)) ||
-            node->candidate->offset >= end->candidate->offset || node->successor_count != 1U ||
-            next_offset >= graph->node_by_offset_count || graph->node_by_offset[next_offset] == SIZE_MAX ||
-            node->successors[0] != graph->node_by_offset[next_offset] ||
-            !typed_app_loop_step(lookup, &state, &entry_platform,
-              decode->sections[section_index].section_index, node->candidate, counter)) { valid = 0; break; }
-        previous = current; current = node->successors[0];
-      }
-      if (!valid || end->is_root || graph->predecessor_offsets[tail + 1U] -
-          graph->predecessor_offsets[tail] != 1U ||
-          graph->predecessors[graph->predecessor_offsets[tail]] != previous) continue;
-      for (reg = 0U; reg < 8U; ++reg)
-        stride[reg] = initial[reg].known ? (int32_t)state.app_addr_regs[reg].displacement - initial[reg].displacement : 0;
-      /* Two linear body walks: check every full envelope, then record patterns.
-       * No work proportional to the 16-bit counter or per-node state growth. */
-      for (pass = 0; pass < 2 && valid; ++pass) {
-        state = entry_state; current = header;
-        while (current != tail && valid) {
-          const M68kRenderTypedFlowNode *node = &graph->nodes[current];
-          M68kInstructionIR instruction;
-          size_t operand;
-          if (m68k_decode_candidate_to_instruction(node->candidate, &instruction) != 0) return -1;
-          for (operand = 0U; operand < instruction.operand_count; ++operand) {
-            uint8_t base_reg, access, width, element, count;
-            int16_t displacement;
-            int64_t first, last, lo, hi;
-            size_t index;
-            if (!typed_app_memory_span(lookup, &state, &instruction, operand, &base_reg,
-                &displacement, &access, &width, &element, &count) || access == M68K_APP_SLOT_ACCESS_ADDRESS) continue;
-            first = (int32_t)state.app_addr_regs[base_reg].displacement + displacement;
-            last = first + (int64_t)stride[base_reg] * (iterations - 1U);
-            lo = first < last ? first : last; hi = (first > last ? first : last) + width;
-            if (lo < 0 || last > INT16_MAX || first > INT16_MAX || hi - lo > UINT32_MAX ||
-                !policy_declared_app_extent_covers(lookup->policy, (int16_t)lo, (uint32_t)(hi - lo))) {
-              valid = 0; break;
-            }
-            if (pass == 0) continue;
-            if (render_lookup_record_derived_app_accesses(lookup, decode->sections[section_index].section_index,
-                &state, &instruction, node->candidate->offset) != 0) return -1;
-            for (index = 0U; index < lookup->app_slot_ref_count; ++index) {
-              M68kRenderAppSlotRef *ref = &lookup->app_slot_refs[index];
-              if (ref->section_index == decode->sections[section_index].section_index &&
-                  ref->ref.offset == node->candidate->offset && ref->ref.operand_index == operand &&
-                  ref->ref.base_reg == base_reg && ref->ref.displacement == first && ref->ref.access_kind == access) {
-                ref->ref.loop_iteration_count = iterations;
-                ref->ref.loop_iteration_stride = stride[base_reg];
-                ref->ref.loop_header_offset = graph->nodes[header].candidate->offset;
-                ref->ref.loop_tail_offset = end->candidate->offset;
-                ref->ref.loop_counter_register = counter;
-                break;
-              }
-            }
-          }
-          if (!typed_app_loop_step(lookup, &state, &entry_platform,
-              decode->sections[section_index].section_index, node->candidate, counter)) return -1;
-          current = node->successors[0];
-        }
-      }
-    }
-  }
-  return 0;
-}
+#include "m68k_counter_relative_loop.inc"
 
 static int typed_flow_record_final_accesses(M68kRenderLookup *lookup, const M68kDecodeIR *decode,
     uint8_t **accepted_start, const M68kRenderTypedFlowWorkflow *workflow) {
@@ -11926,22 +11902,21 @@ static int typed_app_memory_span(const M68kRenderLookup *lookup, const M68kRende
 
 /* Reuse the converged app-address domain; a pointee type is not required.
  * This is catalogue projection, not a new preservation or runtime proof. */
-static int render_lookup_record_derived_app_accesses(M68kRenderLookup *lookup, size_t section_index,
-    const M68kRenderTypedState *state, const M68kInstructionIR *instruction, uint32_t offset) {
-  size_t operand_index, index;
+static int render_lookup_record_derived_app_operand(M68kRenderLookup *lookup, size_t section_index,
+    const M68kRenderTypedState *state, const M68kInstructionIR *instruction, uint32_t offset, size_t operand_index) {
+  size_t index;
   if (lookup == NULL || state == NULL || instruction == NULL || lookup->typed_flow_incomplete_count != 0U)
     return 0;
-  for (operand_index = 0U; operand_index < instruction->operand_count && operand_index < 4U; ++operand_index) {
     uint8_t base_reg, access, width, element_width, count;
     int16_t operand_displacement;
     int32_t target;
     const M68kRenderTypedAppAddressValue *base;
     if (!typed_app_memory_span(lookup, state, instruction, operand_index, &base_reg,
-        &operand_displacement, &access, &width, &element_width, &count)) continue;
+        &operand_displacement, &access, &width, &element_width, &count)) return 0;
     base = &state->app_addr_regs[base_reg];
     target = (int32_t)base->displacement + operand_displacement;
     if (target < INT16_MIN || target > INT16_MAX ||
-        !policy_declared_app_extent_covers(lookup->policy, (int16_t)target, width)) continue;
+        !policy_declared_app_extent_covers(lookup->policy, (int16_t)target, width)) return 0;
     if (render_lookup_add_app_access_ref(lookup, section_index, offset, base_reg, (int16_t)target,
         (uint8_t)operand_index, access, width, 0, base->base_evidence_kind) != 0) return -1;
     for (index = 0U; index < lookup->app_slot_ref_count; ++index) {
@@ -11958,7 +11933,15 @@ static int render_lookup_record_derived_app_accesses(M68kRenderLookup *lookup, s
         break;
       }
     }
-  }
+  return 0;
+}
+
+static int render_lookup_record_derived_app_accesses(M68kRenderLookup *lookup, size_t section_index,
+    const M68kRenderTypedState *state, const M68kInstructionIR *instruction, uint32_t offset) {
+  if (!instruction) return 0;
+  for (size_t operand = 0U; operand < instruction->operand_count && operand < 4U; ++operand)
+    if (render_lookup_record_derived_app_operand(lookup, section_index, state, instruction, offset, operand) != 0)
+      return -1;
   return 0;
 }
 
@@ -13962,6 +13945,29 @@ static void typed_state_apply_function_summary_effects(M68kRenderTypedState *sta
         M68K_FUNCTION_SUMMARY_LOCATION_PRESERVED)
       typed_state_clear_reg(state, M68K_ANALYSIS_REGISTER_ADDRESS, reg);
   }
+  /* Register location entries do not clobber the caller's private saves.
+   * Positive stack-write/escape facts can alias those physical bytes even
+   * under a different ABI role. Subjects lack a byte extent, so conservatively
+   * drop all private saves rather than assert an unproved disjoint range. */
+  {
+    int private_stack_write = 0;
+    for (size_t i = 0U; i < summary->memory_effect_count; ++i)
+      if (summary->memory_effects[i].kind == M68K_FUNCTION_SUMMARY_MEMORY_WRITE &&
+          summary->memory_effects[i].subject.kind == M68K_FUNCTION_SUMMARY_EFFECT_SUBJECT_STACK)
+        private_stack_write = 1;
+    for (size_t i = 0U; i < summary->escape_count; ++i)
+      if (summary->escapes[i].sink_subject.kind == M68K_FUNCTION_SUMMARY_EFFECT_SUBJECT_STACK)
+        private_stack_write = 1;
+    for (size_t i = 0U; i < summary->location_effect_count; ++i)
+      if (summary->location_effects[i].location.kind == M68K_FUNCTION_SUMMARY_ABI_LOCATION_STACK &&
+          summary->location_effects[i].effect == M68K_FUNCTION_SUMMARY_LOCATION_CLOBBERED)
+        private_stack_write = 1;
+    if (private_stack_write) for (size_t i = 0U; i < state->stack_slot_count;) {
+      if (state->stack_slots[i].caller_save_temporary)
+        state->stack_slots[i] = state->stack_slots[--state->stack_slot_count];
+      else ++i;
+    }
+  }
   if (summary->memory_effect_state != M68K_FUNCTION_SUMMARY_EFFECT_COMPONENT_EXPLICIT ||
       summary->escape_effect_state != M68K_FUNCTION_SUMMARY_EFFECT_COMPONENT_EXPLICIT) {
     typed_state_invalidate_opaque_memory_effects(state);
@@ -14010,7 +14016,8 @@ static void typed_state_apply_function_summary_effects(M68kRenderTypedState *sta
   } else {
     for (reg = 0U; reg < state->stack_slot_count;) {
       M68kRenderTypedStackSlot *slot = &state->stack_slots[reg];
-      uint8_t effect = M68K_FUNCTION_SUMMARY_LOCATION_CLOBBERED;
+      uint8_t effect = slot->caller_save_temporary ? M68K_FUNCTION_SUMMARY_LOCATION_PRESERVED :
+        M68K_FUNCTION_SUMMARY_LOCATION_CLOBBERED;
       uint8_t effect_index;
       for (effect_index = 0U; effect_index < summary->location_effect_count; ++effect_index) {
         const M68kFunctionSummaryLocationEffectIR *location_effect = &summary->location_effects[effect_index];
@@ -15815,7 +15822,7 @@ int m68k_analysis_render_lookup_run_platform_passes(M68kRenderLookup *lookup, co
       goto typed_flow_fail;
     }
   }
-  if (typed_flow_record_app_loop_ranges(lookup, decode, &typed_flow_workflow) != 0) goto typed_flow_fail;
+  if (typed_flow_record_app_loop_ranges(lookup, decode, accepted_start, &typed_flow_workflow) != 0) goto typed_flow_fail;
   typed_flow_workflow_destroy(&typed_flow_workflow);
   if (render_lookup_record_typed_app_slot_pointer_accesses(lookup, decode, accepted_start) != 0) return -1;
   end = clock();

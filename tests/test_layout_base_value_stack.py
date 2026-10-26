@@ -146,3 +146,15 @@ def test_incomplete_cfg_does_not_publish_new_layout_binding(tmp_path,monkeypatch
         assert a.analysis_payload()[0]['incomplete_analysis']
         assert not a.query_payload('references',symbol='other_points',limit=20)['items']
     finally:a.close()
+
+@pytest.mark.parametrize('callee,preserved',[
+    ('rts',True),('movea.l #0,a0\n rts',True),('move.l #0,4(a7)\n rts',False),
+])
+def test_known_register_partition_preserves_private_saves_unless_stack_written(tmp_path,callee,preserved):
+    a,_=cursor_artifact(tmp_path,'lea.l $C3E(a6),a0\n movem.l a0,-(a7)\n '+
+        'move.w d1,-(a7)\n addq.l #2,a7\n bsr.w helper\n movem.l (a7)+,a0\n '+
+        'move.w (a0),d0\n rts\nhelper:\n '+callee)
+    try:
+        refs=a.analysis_payload()[0]['sections'][0]['app_slot_refs']
+        assert bool([r for r in refs if r['base_register']=='A0'and r['access']=='read'])==preserved
+    finally:a.close()

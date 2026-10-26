@@ -382,6 +382,7 @@ typedef struct M68kRenderTypedRegValue {
   /* Exact unmodified runtime layout base. 0 unknown, 1 app, otherwise the
    * canonical RSSET region index + 2; artifact-local, never a guest address. */
   uint16_t layout_base_id;
+  uint32_t entry_value_id; /* Orthogonal affine entry identity; never a guest address. */
   M68kRenderTypedStorageOrigin origin;
   M68kAddressValueTableOriginIR table_origin;
   size_t pointer_target_section_index;
@@ -443,6 +444,7 @@ typedef struct M68kRenderTypedStoredValue {
   uint16_t array_element_index;
   uint16_t layout_base_id;
   int32_t byte_cursor;
+  uint32_t entry_value_id;
   uint8_t app_address_known;
   int16_t app_displacement;
   M68kAddressValueTableOriginIR table_origin;
@@ -743,6 +745,7 @@ typedef enum M68kRenderBoundaryFlag {
 
 struct M68kRenderLookup {
   Arena *arena;
+  struct M68kAffineEntryContext *affine_entry_context;
   M68kIncompleteAnalysisIR *typed_flow_incomplete;
   size_t typed_flow_incomplete_count;
   size_t typed_flow_incomplete_capacity;

@@ -216,6 +216,20 @@ uint16_t platform_operand_register_write_mask(const M68kInstructionIR *instructi
   return mask;
 }
 
+/* Generic EA roles include direct Dn/An encodings. Resolve the decoded
+ * location before treating a read/write role as an actual memory access. */
+uint8_t platform_operand_memory_access(const M68kInstructionIR *instruction, size_t operand_index) {
+  const M68kSimFormMetadata *metadata;
+  uint8_t address, reg, access;
+  if (!instruction || operand_index >= instruction->operand_count || operand_index >= 4U ||
+      !(metadata = m68k_sim_metadata_for_instruction(instruction))) return M68K_SIM_ACCESS_NONE;
+  if (m68k_instruction_operand_direct_register(&instruction->operands[operand_index], &address, &reg))
+    return M68K_SIM_ACCESS_NONE;
+  access = metadata->operand_access_kinds[operand_index];
+  return access == M68K_SIM_ACCESS_MEMORY_READ || access == M68K_SIM_ACCESS_MEMORY_WRITE
+    ? access : M68K_SIM_ACCESS_NONE;
+}
+
 /* A contiguous memory footprint, not an EA auto-update delta or a loop range.
  * Unknown/striped forms refuse so callers invalidate conservatively. */
 int platform_operand_memory_span(const M68kInstructionIR *instruction, size_t operand_index,

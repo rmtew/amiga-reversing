@@ -35,7 +35,7 @@ alias. Type 30's substituted selector and eleven other placeholder-name entries
 remain explicit. These are catalogue associations, not visual identification or
 an all-path runtime instance census. That early catalogue/hardware suite passed 125 cases; the current focused
 cursor/provenance/integration checks pass 349 for the current body-worklist batch (the preceding JMP batch separately passed 440). Earlier text/renderer checks
-retain their separate receipts. Source
+retain their separate receipts. The current affine/counter-relative batch passes 365 focused cases. Source
 quality has zero diagnostics and retains the known encoded-entry boundary conflict.
 
 A second generic renderer defect hid interior pointer-table annotations.
@@ -65,7 +65,8 @@ relocation, C conversion or replacement OS loader is part of this project.
 
 ## Active priorities after cursor-span qualification
 
-The current source has 305 app field records, 95 generic names and 14,728
+The current source has 3,237 app references, 135 bounded loop-pattern records,
+305 app field records, 95 generic names and 14,728
 unclassified bytes in 260 intervals. These measure different kinds of work,
 not overall completion. The current residual index is recomputed from retained
 native facts without another generation; the 15,111-byte/256-interval review
@@ -79,9 +80,9 @@ The useful next opportunities, in order of demonstrated missing links, are:
    fixture-qualified below. The 20-point initializer now has five
    proved strided write patterns. Whole-root stack transport is now fixture-qualified through the shared typed
    value, including mixed Dn/An saves and existing call effects. The branchy
-   draw/readback path still loses its changing A4 position at retries and its
-   cache cursor across mutable absolute cell $4E5C0. Establish a flow-sensitive
-   cell contract and counter-relative invariant before admitting that range. Do not infer it from storage capacity or claim arbitrary loops safe.
+   draw/readback path now has four counter-relative world-position access patterns across retries.
+   Its cache cursor across mutable absolute cell $4E5C0 still has no bounded range;
+   investigate that concrete producer/alias/call chain next. Do not infer it from storage capacity or claim arbitrary loops safe.
 2. **App-base contexts and downstream consumers.** New matrix/control cursor
    references retain their A6 fallback labels. Trace concrete entry/caller and
    register-borrowing paths where they can change attribution; do not turn all
@@ -105,8 +106,8 @@ For those priorities the immediate acceptance questions and dependencies are:
 
 | Limitation | What it currently blocks | Next bounded experiment | Why it is sequenced here |
 | --- | --- | --- | --- |
-| Branchy point-field loop and mutable absolute cursor cell | Renderer read/update spans for world/cache triplets; initialization is bounded | Eight probes distinguish the failures: straight DBF has one range, retry/rollback has none; absolute cursor store/load works until +6 arithmetic. Local absolute store/update/alias invalidation now passes 21 cases. Sparse graph now admits all 435 direct summaries; absolute-JMP transfer and the per-PC body proof now complete clipping. The current three minimal probes reproduce equal-cursor branch, rollback retry and unbounded-retry cases; each still has no range summary. Add a shared counter-relative affine value and test cursor+6*counter invariance across setup/retry and saved-register paths | Actual renderer $4E0AC..$4E332 retries at $4E350 without decrementing D7; cache pointer crosses absolute cell $4E5C0. Whole-root stack transport is fixed but changes no target facts. Global writer-summary storage is not a per-program-point memory value. No target-shaped loop recognizer or dense extra per-node slot array is justified. |
-| Remaining conditional app bases | Explicit provenance for 2,908 fallback records (2,401 A6 and 507 declared-layout), alongside 302 register-state and one library-extension record | Group remaining sites by actual entry/call and base producer/borrow; select one concrete lost or conflicting transfer | The holder contract covers its 28 direct loads, not unknown callbacks or callees without a preservation contract. |
+| Branchy point-field loop and mutable absolute cursor cell | Renderer read/update spans for world/cache triplets; initialization is bounded | Eight probes distinguish the failures: straight DBF has one range, retry/rollback has none; absolute cursor store/load works until +6 arithmetic. Local absolute store/update/alias invalidation now passes 21 cases. Sparse graph now admits all 435 direct summaries; absolute-JMP transfer and the per-PC body proof now complete clipping. Shared counter-relative affine values now pass equal-stride diamond and saved-cell/stack/call rollback probes, while unbounded retry refuses. The real renderer gains four world-position patterns; next isolate the secondary cache-cell producer and write/call invalidations | Actual renderer $4E0AC..$4E332 retries at $4E350 without decrementing D7; cache pointer crosses absolute cell $4E5C0. Whole-root stack transport is fixed but changes no target facts. Global writer-summary storage is not a per-program-point memory value. No target-shaped loop recognizer or dense extra per-node slot array is justified. |
+| Remaining conditional app bases | Explicit provenance for 2,934 fallback records (2,427 A6 and 507 declared-layout), alongside 302 register-state and one library-extension record | Group remaining sites by actual entry/call and base producer/borrow; select one concrete lost or conflicting transfer | The holder contract covers its 28 direct loads, not unknown callbacks or callees without a preservation contract. |
 | Orphan incoming path | Deciding whether a specific decoded island belongs in accepted code | Rank current unresolved signals against recovered pointer/table/return edges; choose one with a concrete inbound lead and, only if static evidence remains insufficient, observe that original normal-input condition | Follow recovered access/base evidence to avoid repeatedly scanning instruction-shaped bytes without an entry hypothesis. |
 | Shared buffer phase | Distinguishing producers/consumers of aliased scratch cells and safe source type views | Join the current vertex/cache/polygon writers and readers by original phase/entry; test one suspected overwrite-before-use or cross-phase consumer | Depends on accurate cursor/base associations; physical adjacency or storage capacity alone cannot identify ownership/lifetime. |
 | Model selector ambiguity | Attaching actual selector/variant meaning or an object identity to unresolved names | Join existing header/name/callback records with a selected original runtime instance or direct consumer; retain a counterexample for the type-30 substitution | After access/base work, unless an independent exact table consumer settles a case cheaply. No visual identity is inferred from a name-directory row. |
@@ -343,12 +344,51 @@ Generation took 122.19 seconds, one same-input sample after the prior 125.72-sec
 run, with no isolated or general speed claim.
 
 Clipping admission and agreeing external counts are now available prerequisites.
-Full branch/retry range proof remains unimplemented. Its next design must carry
+At that prerequisite revision, full branch/retry range proof was unimplemented.
+The shared affine-entry result below now implements it. The design must carry
 an explicit induction-relative offset through the existing shared value and
 saved-cell/merge paths. A plain branch allowance or a few simulated iterations
 would be unsound. Do not implement that as another app-only transfer engine,
 a guessed source-address root or a dense extra per-node slot array. Keep the
 positive rollback/equal-potential and negative alias/stride/callee cases together.
+
+## Shared counter-relative values: current system-first result
+
+The [counter-relative receipt](../../runtime/observations/starglider2-counter-relative-ranges.json)
+records 365 focused passing tests. Entry-root plus offset is an orthogonal
+component of the existing shared register/stored-value packet. It travels through
+registers, absolute cells, stack/MOVEM saves, callable results and conservative
+joins; it neither invents pointer types nor equates roots from numeric values.
+The old straight-line range engine is replaced by a per-PC invariant proof using
+the existing CFG storage after normal facts are projected. No path-cap increase,
+iteration sampling, extra dense per-node arrays or game-specific recognizer was
+added. Unequal branch strides, rollback loss, partial saves, unknown aliases and
+calls, changed counters/SP and out-of-owner ranges refuse.
+
+The real `$4E0AC` renderer proof converges over 337 nodes in 338 transfers,
+with four carried roots and a peak of nine queued nodes. Four A4 memory patterns
+now cover the 20 world-position triplets at stride six; 58 fixed A6 accesses also
+carry the counter envelope. This is not an exact retry execution count. The
+secondary cache cursor through `$4E5C0` is **not** covered by that result and
+remains the next concrete alias/call investigation.
+
+App records increase from 3,211 to 3,237 with no removals; bounded loop-pattern
+records increase from 30 to 135, across 14 headers. All 26 new records retain
+qualified A6-fallback attribution. Typed accesses remain 320, fields 305/95
+generic, and unknown ownership 14,728 bytes/260 intervals. No names or code were
+promoted to manufacture progress. Two ordinary shared bugs exposed by these
+fixtures are fixed: generic direct-register memory roles no longer erase saved
+cells, and register-only callee effects no longer erase private caller saves.
+Actual callee stack writes/escapes still invalidate those saves.
+
+The value component grows a typed state by 128 bytes and a CFG node by 256 bytes
+(about 0.34%); stored packets stay 248 bytes through existing padding. The real
+proof's interned expressions use 448 bytes; sparse section entry snapshots use
+6,196,448 bytes. Generation measured 131.24 seconds (previous one-sample run
+122.19 seconds), without an isolated speed claim. Full C/vasm reconstruction
+remains exact. The complete generated source package and all assets are identical,
+so the preceding clean standalone source-tree receipt is reused instead of
+repeating the same build. No emulator run or interim package was needed.
 
 ## Committed buildable rendered output
 
