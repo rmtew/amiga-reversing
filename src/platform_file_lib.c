@@ -11319,6 +11319,13 @@ static int json_builder_append_facts_v2_profile(JsonBuilder *builder, const M68k
     "\"platform_analysis_base_slot_seconds\":%.6f,"
     "\"platform_analysis_call_summary_seconds\":%.6f,"
     "\"platform_analysis_typed_ref_seconds\":%.6f,"
+    "\"platform_analysis_typed_summary_seconds\":%.6f,"
+    "\"platform_analysis_typed_graph_seconds\":%.6f,"
+    "\"platform_analysis_typed_flow_seconds\":%.6f,"
+    "\"platform_analysis_typed_callback_seconds\":%.6f,"
+    "\"source_analysis_typed_target_seconds\":%.6f,"
+    "\"source_analysis_build_seconds\":%.6f,"
+    "\"source_analysis_finalize_seconds\":%.6f,"
     "\"platform_analysis_call_comment_seconds\":%.6f,"
     "\"platform_analysis_app_slot_seconds\":%.6f,"
     "\"platform_analysis_runtime_data_seconds\":%.6f,"
@@ -11474,6 +11481,13 @@ static int json_builder_append_facts_v2_profile(JsonBuilder *builder, const M68k
     profile->platform_analysis_base_slot_seconds,
     profile->platform_analysis_call_summary_seconds,
     profile->platform_analysis_typed_ref_seconds,
+    profile->platform_analysis_typed_summary_seconds,
+    profile->platform_analysis_typed_graph_seconds,
+    profile->platform_analysis_typed_flow_seconds,
+    profile->platform_analysis_typed_callback_seconds,
+    profile->source_analysis_typed_target_seconds,
+    profile->source_analysis_build_seconds,
+    profile->source_analysis_finalize_seconds,
     profile->platform_analysis_call_comment_seconds,
     profile->platform_analysis_app_slot_seconds,
     profile->platform_analysis_runtime_data_seconds,

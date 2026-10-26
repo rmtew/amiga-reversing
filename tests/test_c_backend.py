@@ -3016,6 +3016,9 @@ class _FakeSourceArtifact:
     def source_text_with_profile(self) -> tuple[str, dict[str, object]]:
         return self.source_text_value, self.profile
 
+    def source_projection_with_profile(self, *, use_persisted_policy=True):
+        return self.source_text_value, self.profile, None
+
     def close(self) -> None:
         self.closed = True
 
@@ -7762,7 +7765,7 @@ def test_project_listing_artifact_skips_analysis_json_when_no_platform_calls(
     monkeypatch.setattr(
         c_backend.CListingArtifact,
         "create",
-        classmethod(lambda cls, source_file, *, metadata_text, include_dir, project_root: artifact),
+        classmethod(lambda cls, source_file, *, metadata_text, include_dir, project_root, runtime_observation_views=(), runtime_data_ranges=(): artifact),
     )
 
     total_rows, profile, returned_artifact = c_backend.build_project_listing_artifact_profile(
@@ -7891,7 +7894,7 @@ def test_project_listing_artifact_build_uses_summary_only_with_platform_calls(
     monkeypatch.setattr(
         c_backend.CListingArtifact,
         "create",
-        classmethod(lambda cls, source_file, *, metadata_text, include_dir, project_root: artifact),
+        classmethod(lambda cls, source_file, *, metadata_text, include_dir, project_root, runtime_observation_views=(), runtime_data_ranges=(): artifact),
     )
 
     total_rows, profile, returned_artifact = c_backend.build_project_listing_artifact_profile(
@@ -8761,6 +8764,14 @@ def test_real_dll_analysis_api_exposes_source_free_render_index_profile(tmp_path
     assert facts_v2["asm_source_bytes"] == 0
     assert facts_v2["render_ir_statements"] >= 3
     assert facts_v2["accepted_instructions"] >= 2
+    for key in (
+        "platform_analysis_typed_summary_seconds", "platform_analysis_typed_graph_seconds",
+        "platform_analysis_typed_flow_seconds", "platform_analysis_typed_callback_seconds",
+        "source_analysis_typed_target_seconds", "source_analysis_build_seconds",
+        "source_analysis_finalize_seconds",
+    ):
+        assert isinstance(facts_v2[key], float)
+        assert facts_v2[key] >= 0
 
 
 def test_c_metadata_reader_accepts_identity_result_origin_escape(tmp_path: Path) -> None:

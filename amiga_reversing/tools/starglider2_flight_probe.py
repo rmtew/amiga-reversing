@@ -68,6 +68,49 @@ def observe_modal_inventory(client, flight_entry, workspace_base, translation, s
     state('resumed_after_30')
 
 
+def observe_reticle_target(client, flight_entry, workspace_base, translation, stage, inputs):
+    """Observe actual reticle production and normal I-command scan, including no-target."""
+    def state(label):
+        stage(label, dict(registers=client.registers(), fields={
+            hex(offset): client.read_memory(workspace_base + offset, size).hex()
+            for offset, size in [(0x194, 2), (0x196, 2), (0x19C, 2), (0x19E, 2),
+                (0x766, 2), (0x768, 2), (0x76A, 2), (0x76C, 2), (0x6B0, 4),
+                (0x840, 2), (0x846, 2), (0x7D0, 2), (0x7D2, 2)]}))
+
+    event = wait_for_pc(client, 0xD3E2, 30,
+                        frame_limit=flight_entry['stop_event']['frame'] + 180)
+    stage('reticle_coordinates_ready', event)
+    assert event['status'] == 'hit'
+    state('reticle_state')
+    raw = next(i for i, value in enumerate(translation) if value == 73)
+    client.key(raw, pressed=True)
+    inputs.append(dict(frame=event['stop_event']['frame'], rawkey=raw, pressed=True))
+    try:
+        event = wait_for_pc(client, 0x753C, 30,
+                            frame_limit=event['stop_event']['frame'] + 180)
+        stage('identify_command_entry', event)
+    finally:
+        client.key(raw, pressed=False)
+        inputs.append(dict(rawkey=raw, pressed=False, release_after_watch=True))
+    assert event['status'] == 'hit'
+    for label, pc in [('target_scan_setup', 0x73FC), ('target_scan_return', 0x74FE)]:
+        event = wait_for_pc(client, pc, 30,
+                            frame_limit=event['stop_event']['frame'] + 120)
+        stage(label, event)
+        assert event['status'] == 'hit'
+        state(label + '_state')
+    # Zero type means no candidate, even if another shared field is stale.
+    kind = int.from_bytes(client.read_memory(workspace_base + 0x840, 2), 'big')
+    if kind:
+        target = int.from_bytes(client.read_memory(workspace_base + 0x6B0, 4), 'big')
+        pool = workspace_base + 0x2330
+        assert pool <= target < pool + 17000 and (target - pool) % 68 == 0
+        record = client.read_memory(target, 68)
+        assert int.from_bytes(record[:2], 'big') == kind
+        stage('target_record', dict(address=target, pool_record=(target - pool) // 68,
+            stored_type=kind, sha256=hashlib.sha256(record).hexdigest()))
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--inputs', type=Path, required=True)
@@ -79,8 +122,10 @@ def main(argv=None):
                         help='Observe bounded model/disc entries after flight, then stop')
     parser.add_argument('--observe-modal-inventory', action='store_true',
                         help='Observe bounded Backspace/I/X inventory modal state, then stop')
+    parser.add_argument('--observe-reticle-target', action='store_true',
+                        help='Observe reticle production and normal I-key target scan, then stop')
     args = parser.parse_args(argv)
-    if args.observe_model_paths and args.observe_modal_inventory:
+    if sum([args.observe_model_paths, args.observe_modal_inventory, args.observe_reticle_target]) > 1:
         parser.error('Choose only one bounded observation route')
     if not args.answer_selected_protection_request:
         parser.error('This probe requires explicit protection-input opt-in')
@@ -154,6 +199,11 @@ def main(argv=None):
                 regs = c.registers()
                 base = regs['a6']
                 stage('flight_state', dict(registers=regs, player_pointer=c.read_memory(base + 0x700, 4).hex(), resources=c.read_memory(base + 0x774, 34).hex()))
+                if args.observe_reticle_target:
+                    observe_reticle_target(c, w, base, translation, stage, r['inputs'])
+                    r['status'] = 'bounded_reticle_target_observation_complete'
+                    save()
+                    return
                 if args.observe_modal_inventory:
                     observe_modal_inventory(c, w, base, translation, stage, r['inputs'])
                     r['status'] = 'bounded_modal_inventory_observation_complete'

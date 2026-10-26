@@ -229,7 +229,12 @@ vblank_tick_counter RS.W 1
     RS.B 18
 active_model_type_index RS.W 1
 type30_render_model_index RS.W 1
-    RS.B 89
+projection_screen_origin_x RS.W 1
+projection_screen_origin_y RS.W 1
+    RS.B 4
+reticle_neutral_screen_x RS.W 1
+reticle_neutral_screen_y RS.W 1
+    RS.B 77
 app_01ED RS.B 1
     RS.B 1
 app_01EF RS.B 1
@@ -258,7 +263,7 @@ app_020A RS.B 1
     RS.B 19
 app_021E RS.L 1
     RS.B 1166
-app_06B0 RS.L 1
+scan_target_reference RS.L 1
 app_06B4 RS.L 1
 distant_objects_cursor RS.L 1
 integrating_objects_cursor RS.L 1
@@ -310,12 +315,12 @@ nearby_object_count RS.W 1
 visible_object_count RS.W 1
 contact_object_count RS.W 1
 app_0764 RS.W 1
-app_0766 RS.W 1
-app_0768 RS.W 1
-app_076A RS.W 1
-app_076C RS.W 1
-app_076E RS.W 1
-app_0770 RS.W 1
+aim_reticle_screen_x RS.W 1
+aim_reticle_screen_y RS.W 1
+aim_reticle_offset_x RS.W 1
+aim_reticle_offset_y RS.W 1
+last_projectile_reticle_x RS.W 1
+last_projectile_reticle_y RS.W 1
 free_object_count RS.W 1
 icarus_power_reserve RS.W 1
 icarus_shield_strength RS.W 1
@@ -363,8 +368,8 @@ app_07C6 RS.W 1
 app_07CA RS.L 1
 app_07CE RS.B 1
 app_07CF RS.B 1
-app_07D0 RS.W 1
-app_07D2 RS.W 1
+scan_target_screen_x RS.W 1
+scan_target_screen_y RS.W 1
     RS.B 16
 app_07E4 RS.B 1
     RS.B 1
@@ -400,9 +405,9 @@ selected_celestial_body_reference RS.L 1
 app_0836 RS.W 1
 app_0838 RS.L 1
 app_083C RS.L 1
-app_0840 RS.W 1
+scan_target_type RS.W 1
     RS.B 4
-app_0846 RS.W 1
+scan_target_depth_limit RS.W 1
 app_0848 RS.L 1
 app_084C RS.W 1
 app_084E RS.W 1
@@ -450,7 +455,7 @@ inventory_list_model_type_prefix RS.B 10
     RS.B 4
 inventory_list_item_index RS.W 1
 station_sequence_index RS.W 1
-app_0A74 RS.W 1
+stardrive_speed_addend RS.W 1
 carried_neutron_bomb_reference RS.L 1
 station_mini_sentinel_count RS.W 1
 station_cycle_enabled_flag RS.B 1
@@ -1669,7 +1674,7 @@ abs_0_00001964:
 	cmp.b #$46,d0
 	beq.w abs_0_00001E68
 	cmp.b #$49,d0
-	beq.w abs_0_0000753C
+	beq.w enqueue_reticle_target_identity
 	cmp.b #$44,d0
 	beq.w abs_0_0000338C
 	tst.b abs_0_00039B78.l
@@ -2188,10 +2193,10 @@ reset_gameplay_state_and_input_defaults:
 	clr.l icarus_hits_received(a6)
 	clr.l weapon_energy_overflow_bonus_count(a6)
 	clr.w app_0792(a6)
-	move.w $019C(a6),app_0766(a6)
-	move.w $019E(a6),app_0768(a6)
-	clr.w app_076A(a6)
-	clr.w app_076C(a6)
+	move.w reticle_neutral_screen_x(a6),aim_reticle_screen_x(a6)
+	move.w reticle_neutral_screen_y(a6),aim_reticle_screen_y(a6)
+	clr.w aim_reticle_offset_x(a6)
+	clr.w aim_reticle_offset_y(a6)
 	clr.w rotation_2_control_accumulator(a6)
 	clr.w rotation_0_control_accumulator(a6)
 	clr.w app_07A6(a6)
@@ -3266,11 +3271,11 @@ abs_0_00003410:
 	move.w #$1E,$00E8(a6)
 	move.w #$80,$00EA(a6)
 	move.w #$8F,$0198(a6)
-	move.w #$9F,$0194(a6)
+	move.w #$9F,projection_screen_origin_x(a6)
 	move.w #$4F,$019A(a6)
-	move.w #$4F,$0196(a6)
-	move.w #$A0,$019C(a6)
-	move.w #$4F,$019E(a6)
+	move.w #$4F,projection_screen_origin_y(a6)
+	move.w #$A0,reticle_neutral_screen_x(a6)
+	move.w #$4F,reticle_neutral_screen_y(a6)
 	move.w #$7,$01AA(a6)
 	move.w #$0,pending_message_count(a6)
 	move.w #$0,message_display_countdown(a6)
@@ -4655,8 +4660,8 @@ project_xy_with_scale_lookup:
 	swap.w d1
 	swap.w d2
 abs_0_000044C4:
-	add.w $0194(a6),d1
-	add.w $0196(a6),d2
+	add.w projection_screen_origin_x(a6),d1
+	add.w projection_screen_origin_y(a6),d2
 	moveq.l #0,d0
 	move.w $01CA(a6),d0
 	lea.l model_maximum_signed_coordinates.l,a0
@@ -5275,8 +5280,8 @@ abs_0_00004CC4:
 	move.w $00E6(a6),d5
 	move.w $00E8(a6),d6
 	move.w $00EA(a6),d7
-	movea.w $0194(a6),a1
-	movea.w $0196(a6),a5
+	movea.w projection_screen_origin_x(a6),a1
+	movea.w projection_screen_origin_y(a6),a5
     ; Project X/Y/depth into8-byte destination slots; clipBYTE7 belongs to source app vertices here. Supplied model headers max last-index47, not proof for arbitrary replacement models.
 project_model_vertex_screen_loop:
 	tst.b $0006(a3)
@@ -5477,8 +5482,8 @@ abs_0_00004EEC:
 	beq.w abs_0_00004FA0
 	divs.w d3,d1
 	divs.w d3,d2
-	add.w $0194(a6),d1
-	add.w $0196(a6),d2
+	add.w projection_screen_origin_x(a6),d1
+	add.w projection_screen_origin_y(a6),d2
 	cmp.w $00E4(a6),d1
 	bpl.b abs_0_00004F1E
 	move.w $00E4(a6),d1
@@ -5601,8 +5606,8 @@ abs_0_0000505A:
 	swap.w d1
 	swap.w d2
 abs_0_00005074:
-	add.w $0194(a6),d1
-	add.w $0196(a6),d2
+	add.w projection_screen_origin_x(a6),d1
+	add.w projection_screen_origin_y(a6),d2
 	moveq.l #0,d0
 	move.w active_model_type_index(a6),d0
 	lea.l model_maximum_signed_coordinates.l,a0
@@ -5753,8 +5758,8 @@ abs_0_0000521C:
 	swap.w d1
 	swap.w d2
 abs_0_00005236:
-	add.w $0194(a6),d1
-	add.w $0196(a6),d2
+	add.w projection_screen_origin_x(a6),d1
+	add.w projection_screen_origin_y(a6),d2
 	cmp.w $00E4(a6),d1
 	bge.b abs_0_00005248
 	move.w $00E4(a6),d1
@@ -6004,8 +6009,8 @@ abs_0_000055BA:
 	swap.w d1
 	swap.w d2
 abs_0_000055CE:
-	add.w $0194(a6),d1
-	add.w $0196(a6),d2
+	add.w projection_screen_origin_x(a6),d1
+	add.w projection_screen_origin_y(a6),d2
 	cmp.w $00E4(a6),d1
 	bpl.b abs_0_000055E2
 	move.w $00E4(a6),d1
@@ -7349,8 +7354,8 @@ abs_0_000068E2:
 	move.w d1,$0026(a4)
 	move.w d2,$0028(a4)
 abs_0_00006926:
-	add.w $0194(a6),d1
-	add.w $0196(a6),d2
+	add.w projection_screen_origin_x(a6),d1
+	add.w projection_screen_origin_y(a6),d2
 	move.w d1,$0006(a1)
 	move.w d2,$0008(a1)
 	move.w $0016(a4),d0
@@ -7422,8 +7427,8 @@ abs_0_000069EC:
 	move.w d3,$0002(a1)
 	move.w $0026(a4),d1
 	move.w $0028(a4),d2
-	add.w $0194(a6),d1
-	add.w $0196(a6),d2
+	add.w projection_screen_origin_x(a6),d1
+	add.w projection_screen_origin_y(a6),d2
 	move.w d1,$0006(a1)
 	move.w d2,$0008(a1)
 	lea.l disc_layer_colours.l,a3
@@ -7451,7 +7456,7 @@ abs_0_00006A30:
 	bmi.b abs_0_00006A60
 	neg.l d3
 abs_0_00006A60:
-	add.w $0194(a6),d1
+	add.w projection_screen_origin_x(a6),d1
 	add.w d3,d1
 	move.w $002A(a4),d3
 	move.w $0028(a4),d2
@@ -7462,7 +7467,7 @@ abs_0_00006A60:
 	bmi.b abs_0_00006A7E
 	neg.l d3
 abs_0_00006A7E:
-	add.w $0196(a6),d2
+	add.w projection_screen_origin_y(a6),d2
 	add.w d3,d2
 	move.w d1,$0006(a1)
 	move.w d2,$0008(a1)
@@ -7486,9 +7491,9 @@ abs_0_00006AB8:
 	move.w d0,$0004(a1)
 abs_0_00006AC4:
 	move.w $0026(a4),d1
-	add.w $0194(a6),d1
+	add.w projection_screen_origin_x(a6),d1
 	move.w $0028(a4),d2
-	add.w $0196(a6),d2
+	add.w projection_screen_origin_y(a6),d2
 	move.w d1,$0006(a1)
 	move.w d2,$0008(a1)
 	bsr.w append_disc_queue_reference
@@ -8246,13 +8251,14 @@ load_projectile_profile_and_try_spawn:
 	lea.l model_type_population_counts(a6),a1
 	tst.b $0054(a1)
 	beq.w abs_0_000073DA
+    ; Reticle coordinates are sampled before resource/object-allocation checks finish. A changed snapshot is not proof a projectile was spawned, nor proof its trajectory follows that screen point.
 abs_0_00007256:
 	tst.w weapon_energy_reserve(a6)
 	beq.w abs_0_000073DA
 	move.w selected_projectile_action_cooldown.l,weapon_action_cooldown(a6)
 	st.b abs_0_0004DE39.l
-	move.w app_0766(a6),app_076E(a6)
-	move.w app_0768(a6),app_0770(a6)
+	move.w aim_reticle_screen_x(a6),last_projectile_reticle_x(a6)
+	move.w aim_reticle_screen_y(a6),last_projectile_reticle_y(a6)
 	addq.l #1,pilot_shots_fired(a6)
 	move.w #$100,d1
 	cmpi.w #84,selected_projectile_type.l
@@ -8299,7 +8305,7 @@ abs_0_0000730A:
 	move.w player_rotation_1(a6),$0012(a2)
 	move.w player_rotation_2(a6),$0014(a2)
 	move.w player_speed_smoothed(a6),d4
-	add.w app_0A74(a6),d4
+	add.w stardrive_speed_addend(a6),d4
 	add.w selected_projectile_forward_speed_addend.l,d4
 	move.w d4,$0020(a2)
 	move.w $0020(a2),d3
@@ -8354,12 +8360,13 @@ abs_0_000073EE:
 select_reticle_target_candidate:
 	subq.w #1,d7
 	movea.l visible_objects_cursor(a6),a5
+    ; Scan shares pointer/type/depth with identification, missile lock and tractor selection. Zero type is the no-target sentinel; pointer/coordinates can retain older values.
 	lea.l model_horizontal_contact_extents.l,a2
 	lea.l model_negative_y_contact_extents.l,a3
 	lea.l projection_scale_lookup.l,a0
-	move.w #$7FFF,app_0846(a6)
-	clr.w app_0840(a6)
-	clr.l app_06B0(a6)
+	move.w #$7FFF,scan_target_depth_limit(a6)
+	clr.w scan_target_type(a6)
+	clr.l scan_target_reference(a6)
 abs_0_0000741C:
 	movea.l (a5)+,a4
 	btst.b #6,$0002(a4)
@@ -8384,15 +8391,15 @@ abs_0_0000741C:
 	move.w $0018(a4),d2
 	move.w $001A(a4),d3
 	ble.w abs_0_000074FA
-	cmp.w app_0846(a6),d3
+	cmp.w scan_target_depth_limit(a6),d3
 	bgt.w abs_0_000074FA
 	andi.w #65534,d3
 	ext.l d1
 	muls.w $0(a0,d3.w),d1
 	add.l d1,d1
 	swap.w d1
-	add.w $0194(a6),d1
-	move.w app_0766(a6),d4
+	add.w projection_screen_origin_x(a6),d1
+	move.w aim_reticle_screen_x(a6),d4
 	sub.w d1,d4
 	btst #8,d0
 	bne.b abs_0_00007500
@@ -8412,8 +8419,8 @@ abs_0_0000741C:
 	muls.w $0(a0,d3.w),d2
 	add.l d2,d2
 	swap.w d2
-	add.w $0196(a6),d2
-	move.w app_0768(a6),d4
+	add.w projection_screen_origin_y(a6),d2
+	move.w aim_reticle_screen_y(a6),d4
 	sub.w d2,d4
 	move.w $0(a3,d0.w),d6
 	ext.l d6
@@ -8427,19 +8434,19 @@ abs_0_0000741C:
 	cmp.w d6,d4
 	bpl.b abs_0_000074FA
 abs_0_000074E6:
-	move.w d3,app_0846(a6)
-	move.w (a4),app_0840(a6)
-	move.l a4,app_06B0(a6)
-	move.w d1,app_07D0(a6)
-	move.w d2,app_07D2(a6)
+	move.w d3,scan_target_depth_limit(a6)
+	move.w (a4),scan_target_type(a6)
+	move.l a4,scan_target_reference(a6)
+	move.w d1,scan_target_screen_x(a6)
+	move.w d2,scan_target_screen_y(a6)
 abs_0_000074FA:
 	dbf.w d7,abs_0_0000741C
 	rts
 abs_0_00007500:
 	lea.l nonmodel_object_base_radii.l,a1
 	move.w $0026(a4),d1
-	add.w $0194(a6),d1
-	move.w app_0766(a6),d4
+	add.w projection_screen_origin_x(a6),d1
+	move.w aim_reticle_screen_x(a6),d4
 	sub.w d1,d4
 	move.w $002A(a4),d6
 	cmp.w d6,d4
@@ -8448,8 +8455,8 @@ abs_0_00007500:
 	cmp.w d6,d4
 	bpl.b abs_0_000074FA
 	move.w $0028(a4),d2
-	add.w $0196(a6),d2
-	move.w app_0768(a6),d4
+	add.w projection_screen_origin_y(a6),d2
+	move.w aim_reticle_screen_y(a6),d4
 	sub.w d2,d4
 	cmp.w d6,d4
 	bpl.b abs_0_000074FA
@@ -8457,7 +8464,7 @@ abs_0_00007500:
 	cmp.w d6,d4
 	bpl.b abs_0_000074FA
 	bra.b abs_0_000074E6
-abs_0_0000753C:
+enqueue_reticle_target_identity:
 	clr.w pending_message_count(a6)
 	move.w #$1,message_display_countdown(a6)
 	move.w visible_object_count(a6),d7
@@ -8467,7 +8474,7 @@ abs_0_0000753C:
 	move.w #$0,d0
 	movea.l $0(a1,d0.w),a1
 	bsr.w enqueue_unique_message_pointer
-	move.w app_0840(a6),d0
+	move.w scan_target_type(a6),d0
 	lsl.w #2,d0
 	lea.l object_name_pointers.l,a1
 	movea.l $0(a1,d0.w),a1
@@ -8480,7 +8487,7 @@ scan_or_fire_homing_missile:
 	tst.w object_scan_sprite_countdown(a6)
 	bne.w abs_0_000075B2
 	bsr.w abs_0_00007FBA
-	move.w app_0840(a6),d0
+	move.w scan_target_type(a6),d0
 	beq.w abs_0_000075B0
 	lsl.w #2,d0
 	lea.l object_name_pointers.l,a1
@@ -8491,12 +8498,12 @@ abs_0_000075B0:
 	rts
 abs_0_000075B2:
 	tst.w weapon_action_cooldown(a6)
-	bne.w abs_0_000076D4
+	bne.w update_locked_scan_target_projection
 	tst.b one_hand_control_flag(a6)
 	beq.b abs_0_000075CC
 	move.w joystick_direction_bits(a6),d0
 	andi.w #3,d0
-	bne.w abs_0_000076D4
+	bne.w update_locked_scan_target_projection
 abs_0_000075CC:
 	tst.b app_0201(a6)
 	bne.b try_launch_homing_missile_after_input
@@ -8506,7 +8513,7 @@ abs_0_000075CC:
 	clr.l d0
 	move.b fire_key_scancode(a6),d0
 	tst.b $0(a0,d0.w)
-	beq.w abs_0_000076D4
+	beq.w update_locked_scan_target_projection
 try_launch_homing_missile_after_input:
 	move.w homing_missile_hud_icon_count(a6),d0
 	beq.w abs_0_000076D2
@@ -8534,7 +8541,7 @@ abs_0_00007626:
 	bset.b #7,$001C(a2)
 	move.b #$FF,$001E(a2)
 	move.w #$190,$0024(a2)
-	move.l app_06B0(a6),$003C(a2)
+	move.l scan_target_reference(a6),$003C(a2)
 	move.l player_world_x(a6),$0004(a2)
 	move.l player_world_y(a6),$0008(a2)
 	move.l player_world_z(a6),$000C(a2)
@@ -8565,8 +8572,8 @@ abs_0_00007626:
 	move.w #$64,weapon_action_cooldown(a6)
 abs_0_000076D2:
 	rts
-abs_0_000076D4:
-	movea.l app_06B0(a6),a4
+update_locked_scan_target_projection:
+	movea.l scan_target_reference(a6),a4
 	move.w (a4),d0
 	add.w d0,d0
 	lea.l projection_scale_lookup.l,a0
@@ -8579,14 +8586,14 @@ abs_0_000076D4:
 	muls.w $0(a0,d3.w),d1
 	add.l d1,d1
 	swap.w d1
-	add.w $0194(a6),d1
+	add.w projection_screen_origin_x(a6),d1
 	ext.l d2
 	muls.w $0(a0,d3.w),d2
 	add.l d2,d2
 	swap.w d2
-	add.w $0196(a6),d2
-	move.w d1,app_07D0(a6)
-	move.w d2,app_07D2(a6)
+	add.w projection_screen_origin_y(a6),d2
+	move.w d1,scan_target_screen_x(a6)
+	move.w d2,scan_target_screen_y(a6)
 	rts
 add_bouncing_bomb_hud_icon:
 	cmpi.w #4,bouncing_bomb_hud_icon_count(a6)
@@ -14789,8 +14796,8 @@ abs_0_0000D29C:
 	lea.l object_scan_sprite_pointers.l,a0
 	movea.l $0(a0,d0.w),a0
 	move.l a0,_custom+sprpt.l	; sprite pointer
-	move.w app_07D0(a6),d1
-	move.w app_07D2(a6),d2
+	move.w scan_target_screen_x(a6),d1
+	move.w scan_target_screen_y(a6),d2
 	move.w $00E8(a6),d4
 	addq.w #8,d4
 	cmp.w d4,d2
@@ -14833,6 +14840,7 @@ abs_0_0000D340:
 	move.l null_sprite_seed.l,_custom+sprpt.l	; sprite pointer
 abs_0_0000D354:
 	lea.l hud_scan_reticle_sprite.l,a0
+    ; Derive reticle offsets from control angles, add neutral screen position, then clamp drawing registers separately. Stored aim coordinates retain their original unclipped values.
 abs_0_0000D35A:
 	move.l a0,_custom+sprpt+$04.l	; sprite pointer
 	clr.l d1
@@ -14860,24 +14868,24 @@ abs_0_0000D39E:
 	neg.w d6
 	asl.w #4,d6
 	asr.w #7,d6
-	move.w d6,app_076A(a6)
-	add.w $019C(a6),d6
-	move.w d6,app_0766(a6)
+	move.w d6,aim_reticle_offset_x(a6)
+	add.w reticle_neutral_screen_x(a6),d6
+	move.w d6,aim_reticle_screen_x(a6)
 	move.w rotation_0_control_accumulator(a6),d7
 	asr.w #4,d7
 	neg.w d7
-	move.w d7,app_076C(a6)
-	add.w $019E(a6),d7
-	move.w d7,app_0768(a6)
+	move.w d7,aim_reticle_offset_y(a6)
+	add.w reticle_neutral_screen_y(a6),d7
+	move.w d7,aim_reticle_screen_y(a6)
 	bra.b abs_0_0000D3E2
 abs_0_0000D3CA:
-	move.w #$0,app_076C(a6)
-	move.w #$0,app_076A(a6)
-	move.w $019C(a6),app_0766(a6)
-	move.w $019E(a6),app_0768(a6)
+	move.w #$0,aim_reticle_offset_y(a6)
+	move.w #$0,aim_reticle_offset_x(a6)
+	move.w reticle_neutral_screen_x(a6),aim_reticle_screen_x(a6)
+	move.w reticle_neutral_screen_y(a6),aim_reticle_screen_y(a6)
 abs_0_0000D3E2:
-	move.w app_0766(a6),d1
-	move.w app_0768(a6),d2
+	move.w aim_reticle_screen_x(a6),d1
+	move.w aim_reticle_screen_y(a6),d2
 	move.w $00E8(a6),d4
 	addq.w #8,d4
 	cmp.w d4,d2
@@ -36799,10 +36807,10 @@ abs_0_0002EF02:
 	move.w d5,d7
 	move.w d1,d4
 	move.w d2,d5
-	add.w $0194(a6),d4
-	add.w $0194(a6),d6
-	add.w $0196(a6),d5
-	add.w $0196(a6),d7
+	add.w projection_screen_origin_x(a6),d4
+	add.w projection_screen_origin_x(a6),d6
+	add.w projection_screen_origin_y(a6),d5
+	add.w projection_screen_origin_y(a6),d7
 	bra.w abs_0_0002F68A
 abs_0_0002EF4C:
 	movem.l d4-d6,-(a7)
@@ -37041,8 +37049,8 @@ abs_0_0002F218:
 	move.w $00E6(a6),d5
 	move.w $00E8(a6),d6
 	move.w $00EA(a6),d7
-	movea.w $0194(a6),a1
-	movea.w $0196(a6),a5
+	movea.w projection_screen_origin_x(a6),a1
+	movea.w projection_screen_origin_y(a6),a5
 project_special_mesh_screen_loop:
 	movem.w (a3),d1-d3
 	cmp.w #$80,d3
@@ -37255,8 +37263,8 @@ abs_0_0002F482:
 	ble.w abs_0_0002F4EC
 	divs.w d3,d1
 	divs.w d3,d2
-	add.w $0194(a6),d1
-	add.w $0196(a6),d2
+	add.w projection_screen_origin_x(a6),d1
+	add.w projection_screen_origin_y(a6),d2
 	cmp.w $00E4(a6),d1
 	bpl.b abs_0_0002F4AA
 	move.w $00E4(a6),d1
@@ -37409,7 +37417,7 @@ abs_0_0002F6F4:
     ; Input accumulators feed numbered rotations and speed, not universal world axes. Rotation2 negates7A2; rotation0 arithmetic-shifts7A4; negative7A8 feeds requested speed after original clamps.
 abs_0_0002F700:
 	move.w player_speed_smoothed(a6),d3
-	add.w app_0A74(a6),d3
+	add.w stardrive_speed_addend(a6),d3
 	bsr.w build_player_motion_vector
 	move.w $016C(a6),d1
 	move.w d4,player_motion_x(a6)
@@ -37525,21 +37533,21 @@ abs_0_0002F848:
 	bne.w abs_0_0002F882
 	move.w rotation_2_control_accumulator(a6),d6
 	asr.w #2,d6
-	move.w d6,app_076A(a6)
-	add.w $019C(a6),d6
-	move.w d6,app_0766(a6)
+	move.w d6,aim_reticle_offset_x(a6)
+	add.w reticle_neutral_screen_x(a6),d6
+	move.w d6,aim_reticle_screen_x(a6)
 	move.w rotation_0_control_accumulator(a6),d7
 	neg.w d7
 	asr.w #3,d7
-	move.w d7,app_076C(a6)
-	add.w $019E(a6),d7
-	move.w d7,app_0768(a6)
+	move.w d7,aim_reticle_offset_y(a6)
+	add.w reticle_neutral_screen_y(a6),d7
+	move.w d7,aim_reticle_screen_y(a6)
 	rts
 abs_0_0002F882:
-	move.w #$0,app_076C(a6)
-	move.w #$0,app_076A(a6)
-	move.w $019C(a6),app_0766(a6)
-	move.w $019E(a6),app_0768(a6)
+	move.w #$0,aim_reticle_offset_y(a6)
+	move.w #$0,aim_reticle_offset_x(a6)
+	move.w reticle_neutral_screen_x(a6),aim_reticle_screen_x(a6)
+	move.w reticle_neutral_screen_y(a6),aim_reticle_screen_y(a6)
 	rts
 abs_0_0002F89C:
 	subq.w #1,abs_0_00039CDA.l
@@ -42704,7 +42712,7 @@ abs_0_000339E4:
 	move.w #$1,message_display_countdown(a6)
 	tst.w stardrive_enabled_word(a6)
 	bpl.b abs_0_00033A3A
-	cmpi.w #11904,app_0A74(a6)
+	cmpi.w #11904,stardrive_speed_addend(a6)
 	bmi.b abs_0_00033A3A
 	subi.w #4096,icarus_shield_strength(a6)
 	bcs.b abs_0_00033A12
@@ -42722,7 +42730,7 @@ abs_0_00033A16:
 	bsr.w enqueue_event_message
 abs_0_00033A3A:
 	clr.w stardrive_enabled_word(a6)
-	clr.w app_0A74(a6)
+	clr.w stardrive_speed_addend(a6)
 	sf.b space_station_nearby_flag(a6)
 	movea.l player_object_reference(a6),a4
 	move.w #$0,player_motion_x(a6)
@@ -43132,7 +43140,7 @@ abs_0_00033FF8:
 	bpl.w advance_taymar_bomb_ready_timer_continuation
 	tst.b app_0A9D(a6)
 	bpl.b abs_0_00034034
-	cmpi.w #16000,app_0A74(a6)
+	cmpi.w #16000,stardrive_speed_addend(a6)
 	bmi.b abs_0_00034030
 	cmpi.w #300,player_speed_smoothed(a6)
 	bmi.b abs_0_00034030
@@ -43142,6 +43150,7 @@ abs_0_00033FF8:
 	bra.b abs_0_00034034
 abs_0_00034030:
 	st.b app_0A9D(a6)
+    ; In space: add100 up to16000 with stardrive/speed active; otherwise subtract300 down to zero. Also contributes to projectile speed and event thresholds; no unit conversion claimed.
 abs_0_00034034:
 	tst.w player_speed_smoothed(a6)
 	beq.b abs_0_00034040
@@ -43149,21 +43158,21 @@ abs_0_00034034:
 	bne.b abs_0_00034056
 abs_0_00034040:
 	st.b app_0A9D(a6)
-	move.w app_0A74(a6),d3
+	move.w stardrive_speed_addend(a6),d3
 	subi.w #300,d3
 	bpl.b abs_0_00034050
 	clr.w d3
 abs_0_00034050:
-	move.w d3,app_0A74(a6)
+	move.w d3,stardrive_speed_addend(a6)
 	bra.b abs_0_0003406C
 abs_0_00034056:
-	move.w app_0A74(a6),d3
+	move.w stardrive_speed_addend(a6),d3
 	addi.w #100,d3
 	cmp.w #$3E80,d3
 	bmi.b abs_0_00034068
 	move.w #$3E80,d3
 abs_0_00034068:
-	move.w d3,app_0A74(a6)
+	move.w d3,stardrive_speed_addend(a6)
     ; MOVEM.W sign-extends the three player-motion WORDs; each is doubled before original add/subtract integration. The original horizontal mask is applied to X/Z.
 abs_0_0003406C:
 	movem.w player_motion_x(a6),d0-d2
@@ -44649,7 +44658,7 @@ abs_0_000354B0:
 	bsr.w enqueue_event_message
 abs_0_000354CC:
 	clr.l app_0838(a6)
-	clr.w app_0840(a6)
+	clr.w scan_target_type(a6)
 abs_0_000354D4:
 	movem.l (a7)+,d0-d7/a0-a6
 	rts
@@ -44670,7 +44679,7 @@ abs_0_000354E2:
 	bclr.b #3,$0002(a0)
 	clr.b $001C(a0)
 	clr.l app_0838(a6)
-	clr.w app_0840(a6)
+	clr.w scan_target_type(a6)
 	sf.b app_0AA2(a6)
 	bra.w abs_0_00035782
 abs_0_00035522:
@@ -44905,7 +44914,7 @@ abs_0_000357CE:
 abs_0_000357D2:
 	move.l app_0838(a6),app_083C(a6)
 	clr.l app_0838(a6)
-	clr.w app_0840(a6)
+	clr.w scan_target_type(a6)
 	clr.w app_084C(a6)
 	move.w #$A,app_084E(a6)
 	sf.b app_0AA2(a6)
@@ -44913,7 +44922,7 @@ abs_0_000357D2:
 abs_0_000357F0:
 	sf.b app_0AA2(a6)
 	clr.l app_0838(a6)
-	clr.w app_0840(a6)
+	clr.w scan_target_type(a6)
 	clr.w app_084C(a6)
 	lea.l event_message_pointers.l,a1
 	move.w #$F8,d0
@@ -44937,12 +44946,12 @@ abs_0_00035838:
 abs_0_0003583C:
 	move.w visible_object_count(a6),d7
 	beq.w abs_0_00035A6C
-	clr.w app_0840(a6)
+	clr.w scan_target_type(a6)
 	clr.l app_0838(a6)
 	bsr.w select_visible_scan_target
-	move.l app_06B0(a6),app_0838(a6)
+	move.l scan_target_reference(a6),app_0838(a6)
 	neg.w app_0836(a6)
-	move.w app_0840(a6),d0
+	move.w scan_target_type(a6),d0
 	beq.w abs_0_00035A6C
 	cmp.w #$1E,d0
 	beq.w abs_0_00035A6C
@@ -45001,7 +45010,7 @@ abs_0_000358E0:
 	movea.l $0(a1,d0.w),a1
 	bsr.w enqueue_event_message
 	clr.l app_0838(a6)
-	clr.w app_0840(a6)
+	clr.w scan_target_type(a6)
 	bra.w abs_0_00035A94
 abs_0_00035914:
 	lea.l event_message_pointers.l,a1
@@ -45037,7 +45046,7 @@ abs_0_00035946:
 	clr.b $0003(a2)
 	move.b #$FF,$001E(a2)
 	bset.b #7,$001C(a2)
-	move.w app_0840(a6),d0
+	move.w scan_target_type(a6),d0
 	add.w d0,d0
 	lea.l model_negative_y_contact_extents.l,a1
 	move.w $0(a1,d0.w),d0
@@ -45065,7 +45074,7 @@ abs_0_00035946:
 	clr.b $0003(a2)
 	move.b #$FF,$001E(a2)
 	bset.b #7,$001C(a2)
-	move.w app_0840(a6),d0
+	move.w scan_target_type(a6),d0
 	add.w d0,d0
 	lea.l model_negative_y_contact_extents.l,a1
 	move.w $0(a1,d0.w),d0
@@ -46831,10 +46840,11 @@ select_visible_scan_target:
 	movem.l a0-a5,-(a7)
 	subq.w #1,d7
 	movea.l visible_objects_cursor(a6),a5
+    ; Distinct scan variant: preserves A0-A5, filters type12 by its flag, uses logical WORD extent shifts and rejects zero depth. Do not merge its rules with the earlier signed-shift scan.
 	lea.l model_horizontal_contact_extents.l,a2
 	lea.l model_negative_y_contact_extents.l,a3
 	lea.l projection_scale_lookup.l,a0
-	move.w #$7FFF,app_0846(a6)
+	move.w #$7FFF,scan_target_depth_limit(a6)
 abs_0_0003731A:
 	movea.l (a5)+,a4
 	tst.b $001E(a4)
@@ -46864,15 +46874,15 @@ abs_0_0003736A:
 	move.w $0018(a4),d2
 	move.w $001A(a4),d3
 	beq.w abs_0_00037406
-	cmp.w app_0846(a6),d3
+	cmp.w scan_target_depth_limit(a6),d3
 	bgt.w abs_0_00037406
 	andi.w #65534,d3
 	ext.l d1
 	muls.w $0(a0,d3.w),d1
 	add.l d1,d1
 	swap.w d1
-	add.w $0194(a6),d1
-	move.w app_0766(a6),d4
+	add.w projection_screen_origin_x(a6),d1
+	move.w aim_reticle_screen_x(a6),d4
 	sub.w d1,d4
 	move.w $0(a2,d0.w),d6
 	move.b $001D(a4),d5
@@ -46890,8 +46900,8 @@ abs_0_0003736A:
 	muls.w $0(a0,d3.w),d2
 	add.l d2,d2
 	swap.w d2
-	add.w $0196(a6),d2
-	move.w app_0768(a6),d4
+	add.w projection_screen_origin_y(a6),d2
+	move.w aim_reticle_screen_y(a6),d4
 	sub.w d2,d4
 	move.w $0(a3,d0.w),d6
 	ext.l d6
@@ -46904,11 +46914,11 @@ abs_0_0003736A:
 	neg.w d4
 	cmp.w d6,d4
 	bpl.w abs_0_00037406
-	move.w d3,app_0846(a6)
-	move.w (a4),app_0840(a6)
-	move.l a4,app_06B0(a6)
-	move.w d1,app_07D0(a6)
-	move.w d2,app_07D2(a6)
+	move.w d3,scan_target_depth_limit(a6)
+	move.w (a4),scan_target_type(a6)
+	move.l a4,scan_target_reference(a6)
+	move.w d1,scan_target_screen_x(a6)
+	move.w d2,scan_target_screen_y(a6)
 abs_0_00037406:
 	dbf.w d7,abs_0_0003731A
 	movem.l (a7)+,a0-a5
@@ -47016,7 +47026,7 @@ abs_0_00037586:
 	move.b #$FF,app_0BB9(a6)
 	move.w #$1,app_0836(a6)
 	clr.l app_0838(a6)
-	clr.w app_0840(a6)
+	clr.w scan_target_type(a6)
 	sf.b app_0AA4(a6)
 	sf.b app_0AA2(a6)
 	sf.b pending_transient_event_sound(a6)
@@ -47043,7 +47053,7 @@ abs_0_00037586:
 	clr.w abs_0_00039CDC.l
 	move.b #$FF,abs_0_00039CD1.l
 	sf.b abs_0_00039CD3.l
-	clr.w app_0A74(a6)
+	clr.w stardrive_speed_addend(a6)
 	clr.w stardrive_enabled_word(a6)
 	sf.b abs_0_00039CD4.l
 	move.w #$FFFF,shared_grayscale_effect_countdown.l
@@ -49611,8 +49621,8 @@ abs_0_0003ABF0:
 	lea.l object_scan_sprite_pointers.l,a0
 	movea.l $0(a0,d0.w),a0
 	addq.l #4,a0
-	move.w app_07D0(a6),d1
-	move.w app_07D2(a6),d2
+	move.w scan_target_screen_x(a6),d1
+	move.w scan_target_screen_y(a6),d2
 	move.w $00E8(a6),d4
 	addq.w #8,d4
 	cmp.w d4,d2
@@ -49667,24 +49677,24 @@ abs_0_0003ACAC:
 	neg.w d6
 	asl.w #4,d6
 	asr.w #7,d6
-	move.w d6,app_076A(a6)
-	add.w $019C(a6),d6
-	move.w d6,app_0766(a6)
+	move.w d6,aim_reticle_offset_x(a6)
+	add.w reticle_neutral_screen_x(a6),d6
+	move.w d6,aim_reticle_screen_x(a6)
 	move.w rotation_0_control_accumulator(a6),d7
 	neg.w d7
 	asr.w #4,d7
-	move.w d7,app_076C(a6)
-	add.w $019E(a6),d7
-	move.w d7,app_0768(a6)
+	move.w d7,aim_reticle_offset_y(a6)
+	add.w reticle_neutral_screen_y(a6),d7
+	move.w d7,aim_reticle_screen_y(a6)
 	bra.b abs_0_0003ACF0
 abs_0_0003ACD8:
-	move.w #$0,app_076C(a6)
-	move.w #$0,app_076A(a6)
-	move.w $019C(a6),app_0766(a6)
-	move.w $019E(a6),app_0768(a6)
+	move.w #$0,aim_reticle_offset_y(a6)
+	move.w #$0,aim_reticle_offset_x(a6)
+	move.w reticle_neutral_screen_x(a6),aim_reticle_screen_x(a6)
+	move.w reticle_neutral_screen_y(a6),aim_reticle_screen_y(a6)
 abs_0_0003ACF0:
-	move.w app_0766(a6),d1
-	move.w app_0768(a6),d2
+	move.w aim_reticle_screen_x(a6),d1
+	move.w aim_reticle_screen_y(a6),d2
 	bsr.w abs_0_0003A542
 abs_0_0003ACFC:
 	tst.w message_display_countdown(a6)
@@ -59041,13 +59051,13 @@ abs_0_0004D5AC:
 	bne.b abs_0_0004D5E0
 	bra.b abs_0_0004D624
 abs_0_0004D5E0:
-	move.w app_0A74(a6),d1
+	move.w stardrive_speed_addend(a6),d1
 	beq.b abs_0_0004D624
 	moveq.l #9,d2
 	asr.w d2,d1
 	neg.w d1
 	addi.w #31,d1
-	cmpi.w #16000,app_0A74(a6)
+	cmpi.w #16000,stardrive_speed_addend(a6)
 	beq.b abs_0_0004D60C
 	bsr.w advance_shared_random_state_effects_bridge
 	andi.w #3,d0
@@ -59862,7 +59872,7 @@ abs_0_0004E0AC:
 	ext.l d3
 	tst.w d4
 	beq.w abs_0_0004E298
-	cmpi.w #500,app_0A74(a6)
+	cmpi.w #500,stardrive_speed_addend(a6)
 	bmi.w abs_0_0004E298
 	movem.w d4-d6,-(a7)
 	cmp.w #$80,d3
@@ -59875,8 +59885,8 @@ abs_0_0004E0AC:
 	divs.w d3,d1
 	divs.w d3,d2
 abs_0_0004E1A4:
-	add.w $0194(a6),d1
-	add.w $0196(a6),d2
+	add.w projection_screen_origin_x(a6),d1
+	add.w projection_screen_origin_y(a6),d2
 	clr.b d3
 	cmp.w $00E4(a6),d1
 	bge.b abs_0_0004E1B6
@@ -59904,8 +59914,8 @@ abs_0_0004E1CE:
 	divs.w d6,d4
 	divs.w d6,d5
 abs_0_0004E1E6:
-	add.w $0194(a6),d4
-	add.w $0196(a6),d5
+	add.w projection_screen_origin_x(a6),d4
+	add.w projection_screen_origin_y(a6),d5
 	cmp.w $00E4(a6),d4
 	bge.b abs_0_0004E1FC
 	bset #0,d3
@@ -59975,8 +59985,8 @@ abs_0_0004E298:
 	divs.w d3,d1
 	divs.w d3,d2
 abs_0_0004E2B0:
-	add.w $0194(a6),d1
-	add.w $0196(a6),d2
+	add.w projection_screen_origin_x(a6),d1
+	add.w projection_screen_origin_y(a6),d2
 	cmp.w $00E4(a6),d1
 	blt.w abs_0_0004E350
 	cmp.w $00E6(a6),d1
@@ -59994,25 +60004,25 @@ abs_0_0004E2B0:
 	move.w $0(a5,d1.w),d2
 	move.w $01A2(a6),d1
 	not.w d2
-	cmpi.w #500,app_0A74(a6)
+	cmpi.w #500,stardrive_speed_addend(a6)
 	bpl.b abs_0_0004E302
 	and.w d2,(a0)
 abs_0_0004E302:
 	lea.l $0(a0,d1.w),a0
 	move.l a0,d3
 	lea.l $0(a0,d1.w),a0
-	cmpi.w #500,app_0A74(a6)
+	cmpi.w #500,stardrive_speed_addend(a6)
 	bpl.b abs_0_0004E316
 	and.w d2,(a0)
 abs_0_0004E316:
 	lea.l $0(a0,d1.w),a0
-	cmpi.w #500,app_0A74(a6)
+	cmpi.w #500,stardrive_speed_addend(a6)
 	bpl.b abs_0_0004E324
 	and.w d2,(a0)
 abs_0_0004E324:
 	not.w d2
 	movea.l d3,a0
-	cmpi.w #500,app_0A74(a6)
+	cmpi.w #500,stardrive_speed_addend(a6)
 	bpl.b abs_0_0004E332
 	or.w d2,(a0)
 abs_0_0004E332:
@@ -60125,8 +60135,8 @@ abs_0_0004E480:
 	divs.w d3,d1
 	divs.w d3,d2
 abs_0_0004E4D6:
-	add.w $0194(a6),d1
-	add.w $0196(a6),d2
+	add.w projection_screen_origin_x(a6),d1
+	add.w projection_screen_origin_y(a6),d2
 	cmp.w $00E4(a6),d1
 	bpl.b abs_0_0004E4EC
 	move.w $00E4(a6),d1
@@ -60156,8 +60166,8 @@ abs_0_0004E516:
 	divs.w d6,d4
 	divs.w d6,d5
 abs_0_0004E52C:
-	add.w $0194(a6),d4
-	add.w $0196(a6),d5
+	add.w projection_screen_origin_x(a6),d4
+	add.w projection_screen_origin_y(a6),d5
 	cmp.w $00E4(a6),d4
 	bpl.b abs_0_0004E542
 	bra.w abs_0_0004E350

@@ -63,6 +63,13 @@ typedef struct M68kFactsV2Profile {
   double platform_analysis_base_slot_seconds;
   double platform_analysis_call_summary_seconds;
   double platform_analysis_typed_ref_seconds;
+  double platform_analysis_typed_summary_seconds;
+  double platform_analysis_typed_graph_seconds;
+  double platform_analysis_typed_flow_seconds;
+  double platform_analysis_typed_callback_seconds;
+  double source_analysis_typed_target_seconds;
+  double source_analysis_build_seconds;
+  double source_analysis_finalize_seconds;
   double platform_analysis_call_comment_seconds;
   double platform_analysis_app_slot_seconds;
   double platform_analysis_runtime_data_seconds;

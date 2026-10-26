@@ -1979,3 +1979,72 @@ Source review caught five initially accepted annotations using unsupported
 storage kinds for add/edit/rename; 24 new cases and all 82 catalogue tests pass.
 Exact binary rebuilding alone did not catch the absent names, so final review
 also asserts the requested named scratch-prefix declarations in native output.
+
+## Reticle, scan target and propulsion continuation
+
+The next 23 actions name 16 connected fields and two internal command/lock
+continuations, with five semantic comments. Projection origin and neutral
+reticle position remain distinct (initial X159 versus160). Stored reticle
+coordinates precede separate drawing clamps; projectile snapshots precede
+later allocation checks and do not prove a spawned projectile or trajectory.
+Target pointer/type, even depth limit and projected coordinates connect the
+identity command, homing missile and tractor selection paths. The two scan
+routines retain their different filtering/shift behavior. `stardrive_speed_addend`
+connects its original update to movement, projectile speed and event thresholds
+without inventing physical units. No universal object+$3C contract is inferred.
+
+A bounded original-media run reached coordinate production at $D3E2/frame863,
+then normal I-command $753C, scan setup $73FC and return $74FE at frame864.
+Projection origin159/79, neutral and current reticle160/79, and zero offsets
+match the source producers. This route finds no candidate: target type stays0
+and depth becomes$7FFF. It verifies the no-target path, not a successful target
+lock, missile launch or tractor acquisition. Reproduce with the flight probe's
+`--observe-reticle-target`; all raw protection/input evidence stays private.
+Generic app names decrease136 to124; there are now292 field records including
+aliases. Byte classification remains unchanged. See
+`runtime/observations/starglider2-reticle-target-fields.json`.
+
+## Measured regeneration cost
+
+The worker's `build()` calls
+`build_project_listing_artifact_profile("amiga_raw_starglider2_game")` in one
+retained Python process. It replays effective metadata, reads the raw input,
+creates a **new** native artifact (decode/reachability, platform/typed analysis,
+source-quality/finalization, render plan and listing index), then requests only
+its summary. It does not assemble, run an emulator, emit analysis JSON or make
+an INCBIN package as part of that API call. Those are subsequent operations
+against the same artifact; verification explicitly retains it.
+
+One instrumented target run, also required for the changed reticle facts,
+measured316.47s wall/316.41s process CPU: metadata replay/temporary file0.964s
+(15,492,077bytes), native creation315.318s, remaining resolve/summary/transport
+about0.184s. The raw input is412,736bytes with29,665 accepted instructions,
+roughly20,000 labels and66,753 listing rows. Native C timers use process CPU,
+not separate wall timings: reachability/fixed point8.387s, typed graph1.946s,
+typed propagation119.169s, source-analysis catalogue7.277s,
+source-analysis finalization154.359s, render plan21.511s. These nested timings
+must not be added twice. Finalization still groups symbol/address observations,
+source-quality inference, table/binding finalization and structured-data import;
+it is not yet attributed to one of those functions.
+
+Subsequent retained-artifact operations measured analysis JSON/Python decode
+4.163s, inline emission0.010s, C/vasm verification7.815s and INCBIN export4.024s.
+An earlier retained replay measured repeated inline calls1.6–3ms; the duplicate
+inline refusal gate in package export therefore does not explain the minutes.
+The native result is reused for those operations, rather than recreated by the
+no-artifact convenience wrapper. No performance-only full-target rerun was
+started: the first coarse profiles came from normal semantic/correction builds,
+and the finer profile came from this new source batch.
+
+Labels/comments already use presentation-dirty invalidation in the service;
+the worker's unconditional `build()` nevertheless requests full native analysis.
+RSSET additions/extent/type changes currently invalidate it because they affect
+native ownership and provenance. A pure semantic rename should ultimately
+reuse those facts, but blindly treating every RSSET edit as presentation-only
+would admit stale type/range results. Skipping reachability alone could save
+only about8s here. The useful performance work is now localized to typed
+propagation and source finalization; no caching, convergence limit, assertion,
+or analysis rule was changed merely to obtain a faster number. Seven native
+phase timers expose this distinction. Four focused profile/API tests pass;
+two stale Python mocks initially failed against the existing API and were
+updated to its current projection/observation arguments before that final run.

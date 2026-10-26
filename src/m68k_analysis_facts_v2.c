@@ -10997,12 +10997,15 @@ static int facts_v2_collect_profile_internal(const M68kObject *object, const M68
   m68k_render_lookup_materialize_relocation_target_labels(&render_lookup);
   end = clock();
   platform_analysis_stats.pass_seconds = elapsed_seconds_local(start, end);
+  start = clock();
   if (m68k_analysis_render_lookup_materialize_typed_address_targets(&render_lookup, &decode, accepted_start,
       accepted_bytes) != 0) {
     m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_RENDER_FAILED,
       "facts_v2 pointer-store target materialization failed");
     goto fail;
   }
+  out_profile->source_analysis_typed_target_seconds = elapsed_seconds_local(start, clock());
+  start = clock();
   if (source_analysis != NULL &&
       m68k_analysis_render_lookup_build_source_analysis(&render_lookup, &decode, policy,
         accepted_start, accepted_bytes, source_analysis, &source_analysis_stats) != 0) {
@@ -11010,6 +11013,8 @@ static int facts_v2_collect_profile_internal(const M68kObject *object, const M68
       "facts_v2 source analysis build failed");
     goto fail;
   }
+  out_profile->source_analysis_build_seconds = elapsed_seconds_local(start, clock());
+  start = clock();
   if (source_analysis != NULL &&
       append_symbol_facts_from_label_lookup(&decode, &label_lookup, &render_lookup, source_analysis) != 0) {
     m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_RENDER_FAILED,
@@ -11096,6 +11101,7 @@ static int facts_v2_collect_profile_internal(const M68kObject *object, const M68
       goto fail;
     }
   }
+  out_profile->source_analysis_finalize_seconds = elapsed_seconds_local(start, clock());
   out_profile->labels_created = (uint32_t)label_lookup.point_count;
   out_profile->labels_referenced = (uint32_t)facts.label_request_count;
   start = clock();
@@ -11136,6 +11142,10 @@ static int facts_v2_collect_profile_internal(const M68kObject *object, const M68
   out_profile->platform_analysis_base_slot_seconds = platform_analysis_stats.base_slot_seconds;
   out_profile->platform_analysis_call_summary_seconds = platform_analysis_stats.call_summary_seconds;
   out_profile->platform_analysis_typed_ref_seconds = platform_analysis_stats.typed_ref_seconds;
+  out_profile->platform_analysis_typed_summary_seconds = platform_analysis_stats.typed_summary_seconds;
+  out_profile->platform_analysis_typed_graph_seconds = platform_analysis_stats.typed_graph_seconds;
+  out_profile->platform_analysis_typed_flow_seconds = platform_analysis_stats.typed_flow_seconds;
+  out_profile->platform_analysis_typed_callback_seconds = platform_analysis_stats.typed_callback_seconds;
   out_profile->platform_analysis_call_comment_seconds = platform_analysis_stats.call_comment_seconds;
   out_profile->platform_analysis_app_slot_seconds = platform_analysis_stats.app_slot_seconds;
   out_profile->platform_analysis_runtime_data_seconds = platform_analysis_stats.runtime_data_seconds;

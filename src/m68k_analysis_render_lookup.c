@@ -14952,6 +14952,7 @@ int m68k_analysis_render_lookup_run_platform_passes(M68kRenderLookup *lookup, co
   clock_t start;
   clock_t end;
   clock_t pass_start;
+  clock_t typed_stage_start;
   int direct_summaries_ready;
   size_t inferred_summary_count_before_callbacks;
   M68kRenderTypedFlowWorkflow typed_flow_workflow;
@@ -14977,16 +14978,23 @@ int m68k_analysis_render_lookup_run_platform_passes(M68kRenderLookup *lookup, co
   start = clock();
   /* Discover the complete direct-call graph before any typed transfer.  The
    * solver then owns recursive edges; typed flow only consumes its facts. */
+  typed_stage_start = clock();
   if (render_lookup_collect_inferred_direct_function_summaries(lookup, decode, accepted_start) != 0) return -1;
   if (render_lookup_solve_inferred_direct_function_summaries(lookup, decode, accepted_start) != 0) return -1;
   if (render_lookup_collect_platform_call_thunks(lookup, decode, accepted_start) != 0) return -1;
   /* A direct inferred summary guarantees the post-callback solve below. Its
    * final access walk supersedes the provisional one, so the discovery solve
    * need only converge callback identities and storage facts. */
+  if (stats != NULL) stats->typed_summary_seconds = elapsed_seconds_local(typed_stage_start, clock());
+  typed_stage_start = clock();
   direct_summaries_ready = lookup->inferred_function_summary_count != 0U;
   if (typed_flow_workflow_prepare(&typed_flow_workflow, lookup, decode, accepted_start) != 0) return -1;
+  if (stats != NULL) stats->typed_graph_seconds = elapsed_seconds_local(typed_stage_start, clock());
+  typed_stage_start = clock();
   if (render_lookup_analyze_amiga_typed_refs(lookup, decode, accepted_start, &typed_flow_workflow,
       !direct_summaries_ready) != 0) goto typed_flow_fail;
+  if (stats != NULL) stats->typed_flow_seconds = elapsed_seconds_local(typed_stage_start, clock());
+  typed_stage_start = clock();
   inferred_summary_count_before_callbacks = lookup->inferred_function_summary_count;
   if (render_lookup_collect_inferred_callback_table_function_summaries(lookup, decode, accepted_start) != 0)
     goto typed_flow_fail;
@@ -15004,6 +15012,7 @@ int m68k_analysis_render_lookup_run_platform_passes(M68kRenderLookup *lookup, co
   if (render_lookup_record_typed_app_slot_pointer_accesses(lookup, decode, accepted_start) != 0) return -1;
   end = clock();
   if (stats != NULL) stats->typed_ref_seconds = elapsed_seconds_local(start, end);
+  if (stats != NULL) stats->typed_callback_seconds = elapsed_seconds_local(typed_stage_start, end);
   start = clock();
   if (render_lookup_infer_bootblock_runtime_copies(lookup, decode, accepted_start) != 0) return -1;
   end = clock();

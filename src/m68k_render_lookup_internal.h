@@ -1105,6 +1105,10 @@ typedef struct M68kPlatformAnalysisPassStats {
   double base_slot_seconds;
   double call_summary_seconds;
   double typed_ref_seconds;
+  double typed_summary_seconds;
+  double typed_graph_seconds;
+  double typed_flow_seconds;
+  double typed_callback_seconds;
   double call_comment_seconds;
   double app_slot_seconds;
   double runtime_data_seconds;
