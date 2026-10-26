@@ -1341,6 +1341,12 @@ typedef struct M68kAppSlotRefIR {
   uint8_t operand_index;
   uint8_t access_kind;
   uint8_t base_evidence_kind;
+  /* For a propagated app cursor, displacement is the app-relative target;
+   * retain the actual register origin and operand delta separately. */
+  int16_t base_displacement;
+  int16_t operand_displacement;
+  uint8_t has_derived_base;
+  uint8_t access_size;
 } M68kAppSlotRefIR;
 
 typedef struct M68kRecoveredPlatformTypedAccessIR {

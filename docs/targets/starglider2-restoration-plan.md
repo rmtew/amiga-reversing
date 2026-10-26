@@ -2197,3 +2197,46 @@ all typed worklists remain converged. This necessary native regeneration took
 77.64 seconds. See
 `runtime/observations/starglider2-view-geometry-and-point-field.json` for the
 source contract, per-field references and clean standalone-build result.
+
+
+## Derived app cursors: closing a native access-catalogue gap
+
+The point-field cache exposed an existing address-domain failure: an address
+into an untyped byte array was known app-relative, but a following LEA required
+a pointee struct type before propagating that address. Failed static-target
+queries also reused and overwrote the decoded destination register. The native
+solver now keeps address knowledge independent of pointee type, reads self-LEA
+sources before clearing the destination, and preserves the originating base
+evidence through full-width copies, saved values and conservative joins.
+
+The converged native state now projects 51 additional references (3,045 to
+3,096): 23 writes, 19 reads, seven read/write accesses and two address formations.
+All 51 retain `a6_fallback`; they are conditional on the original app-base
+assumption, not new all-entry register proofs. Two form app+$C3E from A4 at
+app+$BC6 plus $78, at original runtime PCs $4DFD0 and $4E070. Other recovered
+uses connect inventory and communication-record cursors to their app targets.
+This is reusable catalogue recovery, not 51 new semantic field identities.
+The 299 field declarations, 107 generic field names and unclassified-byte
+accounting remain unchanged.
+
+Native/listing JSON retains logical target, base-relative origin, actual operand
+delta and scalar data width separately. Address formation has data width zero.
+Downstream use-site binding ignores derived targets: a normalized app offset
+cannot masquerade as the encoded displacement or a register at the layout
+origin. Provenance reports retain the inherited assumption rather than promote
+it to independent proof. Rendering keeps the actual cursor delta unchanged.
+
+Projection requires a declared owner covering the full access and a converged
+worklist. Unknown/hardware bases, numeric coincidences, conflicting joins,
+partial pointer copies, overflow and owner overruns are refused. Indexed,
+pre/postincrement and multi/striped-transfer memory footprints are not inferred
+by this scalar projection; in particular the saved, changing point-cache cursor
+still needs a richer footprint treatment. No new runtime coverage is claimed.
+
+All 277 focused regression/integration tests pass. One necessary native build
+took 85.31 seconds with no incomplete worklists or source-quality diagnostics.
+C/vasm verification preserves all 412,736 original bytes; all 57 assets are
+unchanged. Three canonical comments clarify the already-established view and
+point-field contract, including the $2000 (8,192-byte) plane stride. The receipt
+`runtime/observations/starglider2-derived-app-cursors.json` records exact
+coordinates, evidence limits and the clean staged-tree standalone build.

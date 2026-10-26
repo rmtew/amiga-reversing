@@ -419,7 +419,7 @@ typedef struct M68kRenderTypedStoredValue {
   uint8_t raw_long_candidate_count;
   uint8_t address_value_candidate_overflow;
   uint8_t pointer_target_known;
-  uint8_t reserved0;
+  uint8_t app_base_evidence_kind;
   uint32_t pointer_value;
   uint32_t pointer_candidates[4];
   uint32_t raw_long_value;
@@ -439,6 +439,7 @@ typedef struct M68kRenderTypedStoredValue {
 
 typedef struct M68kRenderTypedAppAddressValue {
   uint8_t known;
+  uint8_t base_evidence_kind;
   int16_t displacement;
 } M68kRenderTypedAppAddressValue;
 

@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
   "kind": "committed_native_rendered_original_export",
-  "canonical_source_commit": "1eb272d3e6b9aa6ea1e41582e628cfd05eebe238",
-  "publication_base_commit": "1eb272d3e6b9aa6ea1e41582e628cfd05eebe238",
+  "canonical_source_commit": "27256e40d989dba17cdd8e7fc2df4c7cab147821",
+  "publication_base_commit": "27256e40d989dba17cdd8e7fc2df4c7cab147821",
   "native_export": "CListingArtifact.source_package_payload(64)",
-  "main_source_sha256": "f7aa1bd1fee775e01c9aec67f2dfd257c8aeea5c5bc3480f92ad3fda257b5e2b",
+  "main_source_sha256": "7768e7d5b99882e95d3bc2ae47d8485e96fd337aa2ddd1dfaf92e6de052f2368",
   "asset_count": 57,
   "asset_bytes": 93633,
   "game_assembly_hand_edits": false,
@@ -25,12 +25,12 @@
     "paused Pandora work"
   ],
   "canonical_source_commit_role": "framework/publication base, not a claim that accompanying facts already existed in that commit",
-  "canonical_source_subject_revision": "45f101988790fe7afaeae0fa174c11abadcf08fb160fc14fc94adee56d800571",
+  "canonical_source_subject_revision": "3401d4b4d19d04a729bf3c85c424c75cca0ff3a3c63f65c93466b509149f4e50",
   "canonical_fact_sha256": {
     "source_binary.json": "42d4a5758b3e8236af7f912aee85e9ee5323bcd0961faa338c4f864080a0a7d9",
     "target_metadata.json": "e7540b68c118c56aba8815b6722eefa067517cc865fe9841d6c01ce96551389c",
-    "manual_actions.jsonl": "efeda162ced943a07f18c0e4bb6abfc70a80933b5c767bd4eec92deade01a9ac",
-    "decision_journal.jsonl": "2181957294b9b6edfb73fcb5c1ca118e497df06b25ca6e1a50b414ee58ab4245"
+    "manual_actions.jsonl": "a88a4ea2b35447d971c36bcdaf28d75d9d7ba57db679d13100b82787cf801367",
+    "decision_journal.jsonl": "dc0256ae571589835e3cb66f2446d298d8581342108beb104f83aa93faadd6dd"
   },
-  "refinement_receipt": "runtime/observations/starglider2-view-geometry-and-point-field.json"
+  "refinement_receipt": "runtime/observations/starglider2-derived-app-cursors.json"
 }

@@ -146,6 +146,13 @@ def _append_app_slot_contexts(contexts: list[dict[str, object]], row: Mapping[st
         if operand_index is not None:
             context["operand_index"] = operand_index
         _copy_optional_int(context, raw_ref, "displacement")
+        for coordinate in ("base_displacement", "operand_displacement", "data_access_size"):
+            _copy_optional_int(context, raw_ref, coordinate)
+        if isinstance(raw_ref.get("derived"), bool):
+            context["derived"] = raw_ref["derived"]
+        base_evidence = _str_or_none(raw_ref.get("base_evidence"))
+        if base_evidence:
+            context["base_evidence"] = base_evidence
         base_register = _str_or_none(raw_ref.get("base_register") or raw_ref.get("baseRegister"))
         if base_register:
             context["base_register"] = base_register

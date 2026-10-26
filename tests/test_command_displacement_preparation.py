@@ -96,3 +96,13 @@ def test_failed_preparation_discards_index_before_next_request(monkeypatch):
             server._execute_catalog_commands_unchecked("one",[{}])
         assert server._COMMAND_DISPLACEMENT_SNAPSHOTS.get() is None
     assert artifact.scans==2
+
+
+def test_derived_app_target_is_not_an_encoded_displacement_use():
+    sample = row(0, [("A4", 0x78)])
+    sample["app_slot_refs"] = [dict(symbol="cache", displacement=0xC3E,
+        base_register="A4", operand_index=0, access="address", derived=True,
+        base_displacement=0xBC6, operand_displacement=0x78, base_evidence="a6_fallback")]
+    index = server._same_displacement_use_index(Artifact([sample]))
+    assert set(index) == {("A4", 0x78)}
+    assert index["A4", 0x78][0] == 1

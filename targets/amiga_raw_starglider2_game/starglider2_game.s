@@ -3269,7 +3269,7 @@ abs_0_000033FE:
 abs_0_00003404:
 	jmp display_blank_event_message_line.l
 	dc.b $74,$73,$0A,$0A,$09,$65
-    ; Initialize original display/view state, including inclusive clip bounds X16..303/Y30..128. The neighboring143/79 defaults remain unnamed: adjacency alone does not establish their use.
+    ; Initialize display/view state and inclusive clip bounds X 16..303, Y 30..128. The adjacent 143/79 defaults remain unnamed: no consumer meaning is inferred from proximity.
 initialize_display_and_view_state:
 	move.w #$1357,$01B0(a6)
 	move.l #$77B50,$0000(a6)
@@ -59760,7 +59760,7 @@ initialize_alternate_sound_control:
 	sf.b abs_0_0004DE39.l
 	move.l (a7)+,d0
 	rts
-    ; Initialize20 XYZ WORD triplets at app+BC6 and clear20 previous-view XYZ triplets at app+C3E. Positions are randomized around the player; no model or object-name identity is inferred.
+    ; Initialize 20 XYZ WORD triplets at app+$BC6 and clear 20 previous-view triplets at app+$C3E. Positions are randomized around the player; no model or object identity is inferred.
 initialize_nearby_point_field:
 	move.w #$13,d7
 	lea.l point_field_world_positions(a6),a4
@@ -59803,7 +59803,7 @@ abs_0_0004DFD4:
 	clr.w (a5)+
 	dbf.w d7,abs_0_0004DFD4
 	rts
-    ; Project20 point-field XYZ triplets; cache view XYZ for fast-flight trails and recycle rejected points. Plane WORD stride is2000/2/0 by platform/mode. Original bounds and arithmetic remain.
+    ; Project 20 points, cache view XYZ for fast-flight trails, and recycle rejected points. Plane WORD stride is $2000/2/0 by platform/mode. Original bounds and arithmetic remain.
 draw_nearby_point_field:
 	move.b #$41,diagnostic_stage_step_word.l
 	clr.b diagnostic_step_byte.l

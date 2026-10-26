@@ -20,6 +20,7 @@ static int json_builder_append_nullable_string(JsonBuilder *builder, const char 
 static void amiga_struct_catalog_info(uint16_t struct_id, const char **out_source, int16_t *out_size);
 static const char *app_slot_access_kind_name(uint8_t access_kind);
 static const char *app_slot_base_evidence_kind_name(uint8_t kind);
+static int append_app_slot_derived_json(JsonBuilder *builder, const M68kAppSlotRefIR *ref);
 static const char *range_ownership_kind_name(uint8_t kind);
 static const char *range_ownership_status_name(uint8_t status);
 static const char *unresolved_typed_access_classification_name(uint8_t classification);
@@ -5770,6 +5771,7 @@ static int source_analysis_to_json_impl(const M68kSourceAnalysisIR *source_analy
           json_builder_append_json_string(&builder,
             app_slot_base_evidence_kind_name(ref->base_evidence_kind)) != 0)
         goto oom;
+      if (append_app_slot_derived_json(&builder, ref) != 0) goto oom;
       if (ref->symbol_name != NULL) {
         if (json_builder_append(&builder, ",\"symbol_name\":") != 0 ||
             json_builder_append_json_string(&builder, ref->symbol_name) != 0)
@@ -6607,6 +6609,13 @@ static const char *app_slot_access_kind_name(uint8_t access_kind) {
   }
 }
 
+static int append_app_slot_derived_json(JsonBuilder *builder, const M68kAppSlotRefIR *ref) {
+  if (ref == NULL || !ref->has_derived_base) return 0;
+  return json_builder_appendf(builder,
+    ",\"derived\":true,\"base_displacement\":%d,\"operand_displacement\":%d,\"data_access_size\":%u",
+    (int)ref->base_displacement, (int)ref->operand_displacement, (unsigned)ref->access_size);
+}
+
 static const char *app_slot_base_evidence_kind_name(uint8_t kind) {
   switch (kind) {
   case M68K_APP_SLOT_BASE_REGISTER_STATE: return "register_state";
@@ -6619,7 +6628,8 @@ static const char *app_slot_base_evidence_kind_name(uint8_t kind) {
 }
 
 static int append_listing_app_slot_ref_json(JsonBuilder *builder, const char *symbol_name, int16_t displacement,
-    uint8_t base_reg, uint8_t operand_index, const char *access_kind, uint8_t base_evidence_kind) {
+    uint8_t base_reg, uint8_t operand_index, const char *access_kind, uint8_t base_evidence_kind,
+    const M68kAppSlotRefIR *ref) {
   char base_register[4];
   if (symbol_name == NULL || access_kind == NULL) return 0;
   snprintf(base_register, sizeof(base_register), "A%u", (unsigned)base_reg);
@@ -6634,6 +6644,7 @@ static int append_listing_app_slot_ref_json(JsonBuilder *builder, const char *sy
   if (json_builder_append(builder, ",\"base_evidence\":") != 0 ||
       json_builder_append_json_string(builder, app_slot_base_evidence_kind_name(base_evidence_kind)) != 0)
     return -1;
+  if (append_app_slot_derived_json(builder, ref) != 0) return -1;
   return json_builder_append(builder, "}");
 }
 
@@ -6666,7 +6677,7 @@ static int append_listing_app_slot_refs_json(JsonBuilder *builder, const M68kSta
       if (symbol_name == NULL || access_kind == NULL) continue;
       if (emitted && json_builder_append(builder, ",") != 0) return -1;
       if (append_listing_app_slot_ref_json(builder, symbol_name, ref->displacement, ref->base_reg,
-          ref->operand_index, access_kind, ref->base_evidence_kind) != 0)
+          ref->operand_index, access_kind, ref->base_evidence_kind, ref) != 0)
         return -1;
       emitted = 1;
     }

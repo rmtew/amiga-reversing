@@ -897,6 +897,17 @@ def _provenance_classification(
             "parent_evidence_ids": [base_evidence_id.strip()],
         }
     if context.get("element_kind") == "app_slot":
+        if context.get("derived") is True:
+            return {
+                "source_family": "rsset_app_base",
+                "status": "path_specific",
+                "path_lifetime_scope": _provenance_scope(context, "selected_use"),
+                "confidence": "medium",
+                "origin_kind": "derived_app_cursor",
+                "reason": "Derived target retains originating " + str(context.get("base_evidence") or "unspecified") + "; it does not independently prove the register base or encode a layout-origin displacement.",
+                "conflicts": [],
+                "parent_evidence_ids": [],
+            }
         return {
             "source_family": "rsset_app_base",
             "status": "analysis_proven",
@@ -1096,7 +1107,7 @@ def _provenance_possible_actions(
             actions.append({"command_id": f"semantic.library_base.{_action_id_token(library_name)}", "state": "available"})
     if _provenance_register(context):
         actions.append({"command_id": "semantic.register.struct_ptr", "state": "available_with_parameters"})
-    if context.get("displacement") is not None and context.get("base_register"):
+    if context.get("derived") is not True and context.get("displacement") is not None and context.get("base_register"):
         actions.append({"command_id": "rsset.binding.report", "state": "report_only"})
         if context.get("base_evidence_id") and (
             not _has_explicit_source_evidence(context) or _rsset_explicit_source_evidence_is_accepted(context)
@@ -1109,7 +1120,7 @@ def _provenance_possible_actions(
 
 def _provenance_consumers(context: Mapping[str, object]) -> list[str]:
     consumers: list[str] = []
-    if context.get("displacement") is not None and context.get("base_register"):
+    if context.get("derived") is not True and context.get("displacement") is not None and context.get("base_register"):
         consumers.append("rsset.binding")
     if context.get("element_kind") in {"typed_access", "typed_gap"}:
         consumers.append("typed_field")
@@ -2888,6 +2899,10 @@ def _rsset_use_site_binding_parameters(
     *,
     require_evidence: bool,
 ) -> dict[str, object] | None:
+    # A logical app target formed through a cursor cannot bind an encoded
+    # displacement as if that cursor were the layout origin.
+    if context.get("derived") is True:
+        return None
     displacement = _optional_int(context.get("displacement"))
     operand_index = _optional_int(context.get("operand_index"))
     base_register = context.get("base_register")

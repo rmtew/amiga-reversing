@@ -2469,6 +2469,10 @@ def _same_displacement_use_index(
         row.setdefault("stable_key", row.get("row_key"))
         seen: set[tuple[str, int]] = set()
         for element_context in listing_element_contexts(row):
+            # Derived app targets are not encoded register displacements. The
+            # ordinary operand context remains the use-site binding witness.
+            if element_context.get("derived") is True:
+                continue
             base = element_context.get("base_register")
             displacement = element_context.get("displacement")
             if not isinstance(base, str) or not isinstance(displacement, int):
