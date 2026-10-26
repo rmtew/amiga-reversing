@@ -2301,3 +2301,38 @@ accounting remains 14,728 bytes in 260 intervals, with no code promotion or new
 runtime coverage. Damage/setup flags remain unnamed rather than assigning a
 speculative cheat or invulnerability role. See
 `runtime/observations/starglider2-input-panel-state.json`.
+
+## View-vertex records and polygon clip state
+
+Twelve canonical interpretations now describe the model-view scratch pipeline:
+two eight-byte record types, the supported app scratch prefix and polygon
+plane mask, three original loop-head register contracts, a polygon-clip entry
+and four semantic comments. The 104 hash-bound original model pointers have
+maximum last-vertex index 47, supporting a 48-record/384-byte prefix at app+$21E.
+This enlarges the old four-byte inferred declaration only to the demonstrated
+prefix; neither total adjacent capacity nor arbitrary replacement-model bounds
+are inferred. Workspace extent is not newly classified original payload data.
+
+`SG2ViewVertex` contains view-space X/Y/depth WORDs, used BYTE and clip-outcode
+BYTE. Original initialization clears WORD+6, face selection marks used BYTE+6,
+transformation writes XYZ only for used vertices, and projection writes clip
+BYTE+7 back into this source record. `SG2ProjectedVertex` separately contains
+screen X/Y/depth WORDs and a mode-dependent tail WORD: the model path leaves
+its tail alone, while the special-mesh path uses a different BYTE/WORD flag
+convention. These tails are deliberately not given one universal clip meaning.
+The polygon mask selects near and four side passes without changing original
+scaling, integer arithmetic or scratch-buffer limits.
+
+The original model-loop contracts now produce five native typed accesses and
+symbolic used/clip members in generated instructions; XYZ MOVEM operands retain
+accurate member annotations. These are evidence-backed static entry contracts,
+not a new runtime pointer proof. Generic app names fall from 95 to 93; declared
+app fields remain 299. The first admission refused an overlong descriptive
+context label before any append; shortening that label retained the full
+interpretation evidence and required no framework change.
+
+Native generation took 78.60 seconds with converged worklists and no source
+quality diagnostics. Native C/vasm, the INCBIN-source C check and a clean staged
+standalone build reproduce the original 412,736 bytes; all 57 assets remain
+unchanged. The 14,728 unclassified bytes/260 intervals and accepted code are
+unchanged. See `runtime/observations/starglider2-vertex-record-state.json`.

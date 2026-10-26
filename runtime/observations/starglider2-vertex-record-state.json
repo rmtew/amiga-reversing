@@ -1,0 +1,474 @@
+{
+  "schema_version": 1,
+  "kind": "model_view_and_projected_vertex_record_reconstruction",
+  "status": "exact_static_restoration",
+  "publication_base_commit": "9a3bf8b8dc34f7da94dbf2871da9f189ce9785f8",
+  "canonical_actions": 12,
+  "fields": [
+    {
+      "offset": 542,
+      "size": 384,
+      "symbol": "model_view_vertex_scratch_prefix",
+      "storage_kind": "byte_array",
+      "before_accesses": {
+        "address": 13
+      },
+      "before_runtime_sites": [
+        19134,
+        19280,
+        19608,
+        19680,
+        19864,
+        20048,
+        20690,
+        21528,
+        21650,
+        21844,
+        192868,
+        193090,
+        193414
+      ],
+      "after_accesses": {
+        "address": 13
+      },
+      "after_runtime_sites": [
+        19134,
+        19280,
+        19608,
+        19680,
+        19864,
+        20048,
+        20690,
+        21528,
+        21650,
+        21844,
+        192868,
+        193090,
+        193414
+      ]
+    },
+    {
+      "offset": 493,
+      "size": 1,
+      "symbol": "polygon_clip_plane_mask",
+      "storage_kind": "scalar",
+      "before_accesses": {
+        "write": 1,
+        "read": 5,
+        "read-write": 1
+      },
+      "before_runtime_sites": [
+        23282,
+        23340,
+        23350,
+        23528,
+        23724,
+        23910,
+        24106
+      ],
+      "after_accesses": {
+        "write": 1,
+        "read": 5,
+        "read-write": 1
+      },
+      "after_runtime_sites": [
+        23282,
+        23340,
+        23350,
+        23528,
+        23724,
+        23910,
+        24106
+      ]
+    }
+  ],
+  "labels": [
+    [
+      23282,
+      "clip_polygon_in_view_volume"
+    ]
+  ],
+  "structs": [
+    {
+      "name": "SG2ViewVertex",
+      "size": 8,
+      "fields": [
+        {
+          "name": "view_x",
+          "type": "WORD",
+          "offset": 0,
+          "size": 2
+        },
+        {
+          "name": "view_y",
+          "type": "WORD",
+          "offset": 2,
+          "size": 2
+        },
+        {
+          "name": "view_depth",
+          "type": "WORD",
+          "offset": 4,
+          "size": 2
+        },
+        {
+          "name": "used_flag",
+          "type": "BYTE",
+          "offset": 6,
+          "size": 1
+        },
+        {
+          "name": "clip_outcode",
+          "type": "UBYTE",
+          "offset": 7,
+          "size": 1
+        }
+      ]
+    },
+    {
+      "name": "SG2ProjectedVertex",
+      "size": 8,
+      "fields": [
+        {
+          "name": "screen_x",
+          "type": "WORD",
+          "offset": 0,
+          "size": 2
+        },
+        {
+          "name": "screen_y",
+          "type": "WORD",
+          "offset": 2,
+          "size": 2
+        },
+        {
+          "name": "depth",
+          "type": "WORD",
+          "offset": 4,
+          "size": 2
+        },
+        {
+          "name": "mode_dependent_flags",
+          "type": "UWORD",
+          "offset": 6,
+          "size": 2
+        }
+      ]
+    }
+  ],
+  "seeds": [
+    [
+      19612,
+      "A3",
+      "SG2ViewVertex"
+    ],
+    [
+      19720,
+      "A3",
+      "SG2ViewVertex"
+    ],
+    [
+      19720,
+      "A4",
+      "SG2ProjectedVertex"
+    ]
+  ],
+  "original_model_count": 104,
+  "maximum_last_vertex_index": 47,
+  "native_typed_accesses": {
+    "before": 243,
+    "after": 248
+  },
+  "admission_correction": "Native metadata refused an overlong context label before any append; shortened label, retaining full evidence in interpretation.",
+  "semantic_contract": "Original model-view scratch reconstruction.104 stored model pointers have maximum last-vertex index47. At4AC8 the app21E cursor advances6 and clearsWORD6 once per lastindex+1 records; face selection4C56 marks BYTE6 through an original vertex-offset stream.4C9C tests BYTE6, transforms only used source vertices and stores XYZ WORDs0/2/4 into app records, advances8.4D08 reads those WORDs, writes projected XYZ/depth WORDs into separate8-byte projected scratch records, and stores outcode at sourceBYTE7 (near80; XY sidebits1/2/4/8). Model path does not initialize destination bytes6/7 here; special36-vertex path writes destinationBYTE6 and sometimes readsWORD6, so destinationtail remains generic mode-dependent flags, not universally sameoutcode. The48-record384-byte app21E prefix is justified for supplied104 headers, not full neighboringcapacity or arbitrary replacement models. Seeds describe current-record types at original loopheads, not absolute pointer/lifetime or all-entry evidence; loops retain modelcount and callerframe assumptions.5AF2 consumes combined clipmask, near bit7 forces four sidepasses, and preserves original arithmetic. No new runtime or code promotion; app scratch bytes are runtime workspace, not classified original payload bytes.",
+  "field_count": {
+    "before": 299,
+    "after": 299,
+    "generic_before": 95,
+    "generic_after": 93
+  },
+  "access_records": {
+    "before": 3096,
+    "after": 3096
+  },
+  "unclassified": {
+    "before": {
+      "bytes": 14728,
+      "intervals": 260
+    },
+    "after": {
+      "bytes": 14728,
+      "intervals": 260
+    }
+  },
+  "verification": {
+    "kind": "verification",
+    "framework_exact": true,
+    "target_id": "amiga_raw_starglider2_game",
+    "subject_revision": "85621457698c334737bdebcf440ab3ea41a2403f94abaf7601778fb555b2f832",
+    "status": "exact",
+    "exact": true,
+    "source_sha256": "34f51f3e37e48bc2709e12d95b86c72bd96e36a00fcbe8b3a23ad76d1260941f",
+    "source_path": "/workspace/pandora-original-delivery/stable-d15c2cf8/.runtime-state/restoration/eb04f545fb97451725a1c91ab5abf6f2e097614c45880db6edfb4ea5c3f6e2c2/34f51f3e37e48bc2709e12d95b86c72bd96e36a00fcbe8b3a23ad76d1260941f.s",
+    "source_package_sha256": null,
+    "original_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "original_size": 412736,
+    "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "rebuilt_path": "/workspace/pandora-original-delivery/stable-d15c2cf8/.runtime-state/restoration/eb04f545fb97451725a1c91ab5abf6f2e097614c45880db6edfb4ea5c3f6e2c2/662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9.bin",
+    "framework_status": "exact",
+    "failure_kinds": [],
+    "message": "",
+    "oracle": {
+      "oracle_id": "vasm",
+      "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+      "comparison_level": "oracle.full_file_match",
+      "assembler_status": "accepted",
+      "message": "oracle output matched original bytes"
+    },
+    "receipt_id": "9d0ac0cb69e30a050f12ef7b7c2f54d5b4a7508d1fc72a8f1f7ea3572f1cb2db",
+    "revision": "cbcc643377030a0e9921a33898e8f0f680960a515763865f53c01a322711fa0f"
+  },
+  "native_profile": {
+    "api_wall_seconds": 78.59651133097941,
+    "native_profile": {
+      "generation": "facts_v2_listing_artifact_summary",
+      "backend": "amiga-raw",
+      "analysis_backend": "facts_v2",
+      "path": "/workspace/starglider2-private/main-copy.bin",
+      "facts_v2": {
+        "decode_seconds": 9e-06,
+        "seed_seconds": 0.010325,
+        "fixed_point_seconds": 7.281693,
+        "fixed_point_reachable_seconds": 6.029581,
+        "fixed_point_reachable_decode_seconds": 0.0,
+        "fixed_point_reachable_validate_seconds": 0.0,
+        "fixed_point_reachable_accept_seconds": 0.0,
+        "fixed_point_reachable_target_seconds": 0.0,
+        "fixed_point_reachable_relocation_seconds": 0.0,
+        "fixed_point_reachable_fallthrough_seconds": 0.0,
+        "fixed_point_index_seconds": 0.000619,
+        "fixed_point_required_label_conflict_seconds": 2.8e-05,
+        "fixed_point_opcode_relocation_conflict_seconds": 0.000208,
+        "fixed_point_rebuild_accepted_seconds": 0.009831,
+        "fixed_point_relocation_anchor_seconds": 0.000196,
+        "fixed_point_materialize_labels_seconds": 1.24102,
+        "fixed_point_runtime_address_ref_seconds": 1.153766,
+        "fixed_point_required_label_materialize_seconds": 0.087254,
+        "fixed_point_data_span_seconds": 0.00021,
+        "fixed_point_invariant_seconds": 2.9e-05,
+        "render_ir_seconds": 20.015109,
+        "render_ir_lookup_seconds": 0.245662,
+        "platform_analysis_pass_seconds": 6.112875,
+        "platform_analysis_base_slot_seconds": 0.03589,
+        "platform_analysis_call_summary_seconds": 0.048051,
+        "platform_analysis_typed_ref_seconds": 6.005476,
+        "platform_analysis_typed_summary_seconds": 0.006765,
+        "platform_analysis_typed_graph_seconds": 2.76943,
+        "platform_analysis_typed_flow_seconds": 2.902069,
+        "platform_analysis_typed_callback_seconds": 0.327207,
+        "source_analysis_typed_target_seconds": 3e-05,
+        "source_analysis_build_seconds": 5.583847,
+        "source_analysis_finalize_seconds": 36.485778,
+        "platform_analysis_call_comment_seconds": 1e-06,
+        "platform_analysis_app_slot_seconds": 0.022839,
+        "platform_analysis_runtime_data_seconds": 0.0,
+        "platform_analysis_hardware_data_seconds": 0.0,
+        "platform_analysis_generic_data_seconds": 0.0,
+        "render_ir_header_seconds": 12.822515,
+        "render_ir_walk_seconds": 5.927158,
+        "render_ir_footer_seconds": 1.265226,
+        "source_render_seconds": 0.0,
+        "decoded_candidates": 29938,
+        "accepted_instructions": 29665,
+        "data_spans": 172,
+        "labels_created": 19873,
+        "labels_referenced": 13059,
+        "unresolved_labels": 0,
+        "interior_conflicts": 0,
+        "interior_conflicts_resolved_by_demote": 0,
+        "interior_conflicts_unresolved": 0,
+        "relocation_failures": 0,
+        "first_relocation_failure_reason": "",
+        "first_relocation_failure_section": 0,
+        "first_relocation_failure_offset": 0,
+        "first_relocation_failure_target_section": 0,
+        "first_relocation_failure_width": 0,
+        "first_relocation_failure_raw_value": 0,
+        "first_relocation_failure_computed_target": 0,
+        "relocation_anchors": 0,
+        "first_relocation_anchor_kind": "",
+        "first_relocation_anchor_section": 0,
+        "first_relocation_anchor_offset": 0,
+        "first_relocation_anchor_target_section": 0,
+        "first_relocation_anchor_width": 0,
+        "first_relocation_anchor_platform_record_kind": "",
+        "first_relocation_anchor_raw_value": 0,
+        "first_relocation_anchor_addend": 0,
+        "relocation_anchor_instruction_bytes": 0,
+        "relocation_anchor_data_payloads": 0,
+        "relocation_anchor_unknown_contexts": 0,
+        "unassemblable_hunk_data_relocations": 0,
+        "unassemblable_hunk_base_register_relocations": 0,
+        "first_relocation_anchor_context": "",
+        "first_relocation_anchor_instruction_offset": 0,
+        "code_start_facts": 41982,
+        "code_start_section_entries": 0,
+        "code_start_policy_entry_offsets": 0,
+        "code_start_policy_entry_points": 165,
+        "code_start_control_targets": 10294,
+        "code_start_fallthroughs": 31523,
+        "code_start_inline_resumes": 0,
+        "code_start_linkage_api_entries": 0,
+        "code_start_platform_loadseg_entries": 0,
+        "code_start_stack_continuations": 0,
+        "code_start_boundary_api_entries": 0,
+        "platform_loadseg_segment_link_accesses": 0,
+        "platform_loadseg_segment_link_bptr_loads": 0,
+        "platform_loadseg_segment_link_resolved_targets": 0,
+        "first_platform_loadseg_segment_link_section": 0,
+        "first_platform_loadseg_segment_link_offset": 0,
+        "first_platform_loadseg_segment_link_target_section": 0,
+        "runtime_address_ranges": 5,
+        "runtime_address_range_conflicts": 0,
+        "table_target_set_limit_hits": 0,
+        "first_table_target_set_limit_section": 0,
+        "first_table_target_set_limit_offset": 0,
+        "first_table_target_set_limit_capacity": 0,
+        "source_quality_diagnostics": 0,
+        "source_quality_blockers": 0,
+        "first_source_quality_diagnostic_kind": "unknown",
+        "first_source_quality_diagnostic_section": 0,
+        "first_source_quality_diagnostic_offset": 0,
+        "runtime_address_view_starts": 41818,
+        "required_instruction_failures": 0,
+        "unsupported_instruction_demotes": 0,
+        "first_required_instruction_failure_section": 0,
+        "first_required_instruction_failure_offset": 0,
+        "first_required_instruction_failure_reason": "",
+        "first_required_instruction_failure_source_section": 0,
+        "first_required_instruction_failure_source_offset": 0,
+        "first_unsupported_instruction_demote_section": 0,
+        "first_unsupported_instruction_demote_offset": 0,
+        "first_unsupported_instruction_demote_reason": "",
+        "first_unsupported_instruction_demote_source_section": 0,
+        "first_unsupported_instruction_demote_source_offset": 0,
+        "opcode_relocation_conflicts_resolved_by_demote": 0,
+        "first_opcode_relocation_conflict_section": 0,
+        "first_opcode_relocation_conflict_offset": 0,
+        "first_opcode_relocation_conflict_aux_offset": 0,
+        "queue_iterations": 34581,
+        "workflow_arena_peak_used": 7466760,
+        "workflow_arena_total_blocks": 39,
+        "render_ir_statements": 51671,
+        "render_ir_labels": 5154,
+        "render_ir_instructions": 29665,
+        "render_ir_data_spans": 16852,
+        "render_ir_hash": "4d20a8f51fe8c56f",
+        "preview_source_enabled": false,
+        "preview_source_bytes": 0,
+        "preview_source_hash": "14650fb0739d0383",
+        "asm_source_enabled": true,
+        "asm_source_refused": false,
+        "asm_source_bytes": 2262008,
+        "asm_source_lines": 66801,
+        "asm_source_plan_rows": 65888,
+        "asm_source_plan_lines": 66801,
+        "asm_source_plan_bytes": 2262008,
+        "asm_source_relocation_exprs": 0,
+        "asm_source_symbolic_instructions": 29665,
+        "asm_source_numeric_runtime_refs": 0,
+        "asm_source_first_numeric_runtime_ref_section": 0,
+        "asm_source_first_numeric_runtime_ref_offset": 0,
+        "asm_source_first_numeric_runtime_ref_target_section": 0,
+        "asm_source_first_numeric_runtime_ref_target_offset": 0,
+        "asm_source_first_numeric_runtime_ref_runtime_address": 0,
+        "platform_base_slot_count": 299,
+        "platform_call_count": 1,
+        "platform_effect_count": 1,
+        "asm_source_lossy_numeric_hunk_relocations": 0,
+        "asm_source_instruction_render_failures": 0,
+        "asm_source_instruction_byte_mismatches": 0,
+        "asm_source_instruction_relocation_failures": 0,
+        "asm_source_relocation_anchor_refusals": 0,
+        "asm_source_unassemblable_hunk_data_relocation_refusals": 0,
+        "asm_source_unassemblable_hunk_base_register_relocation_refusals": 0,
+        "asm_source_first_failure_kind": "",
+        "asm_source_first_failure_section": 0,
+        "asm_source_first_failure_offset": 0,
+        "asm_source_first_failure_aux_offset": 0,
+        "asm_source_hash": "a27202f3007d8c46"
+      },
+      "timing": {
+        "source_seconds": 76.041089,
+        "summary_json_seconds": 6.5e-05,
+        "total_seconds": 6.5e-05
+      }
+    }
+  },
+  "source": {
+    "hand_edited": false,
+    "canonical_histories_append_only": true,
+    "assets_unchanged": 57,
+    "main_source_sha256": "f975199337ce13fbe774cea185b913f44c90432fa7933e544fd09cb8e4b07ac5"
+  },
+  "quality": {
+    "source_diagnostics": 0,
+    "incomplete_analysis": []
+  },
+  "source_package_C_exact": true,
+  "clean_staged_tree_build": true,
+  "limits": [
+    "Static original model producer/consumer contract; no new runtime or alternate-platform scenario.",
+    "Forty-eight-record prefix is justified for the 104 supplied model headers, not full backing capacity or arbitrary replacement models.",
+    "Internal continuation labels retain caller/control-state preconditions.",
+    "Projected tail flags have mode-dependent semantics; model source clip byte is not universally interchangeable with special-mesh destination flags.",
+    "Generic-field count is not semantic completion."
+  ],
+  "source_file_sha256": "f975199337ce13fbe774cea185b913f44c90432fa7933e544fd09cb8e4b07ac5",
+  "validated_target_git_tree": "f747fa5294cc032f1092f9b68e2b11940f88e572",
+  "standalone_build": {
+    "schema_version": 1,
+    "status": "pass",
+    "format": "raw_payload_not_AmigaDOS_HUNK",
+    "main_bytes": 412736,
+    "main_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "main_matches_original_identity": true,
+    "asset_count": 57,
+    "all_asset_source_slices_equal": true,
+    "decoded_view_inverse_exact": true,
+    "boot_copy_source_matches_resident_view": true,
+    "source_commit": "9a3bf8b8dc34f7da94dbf2871da9f189ce9785f8",
+    "assembler_sha256": "413e284020125f42709486dfe09907cab3dd9f3c2ea41017c190f8ea68f30825",
+    "flags": [
+      "-Fbin",
+      "-m68000",
+      "-no-opt"
+    ],
+    "outputs": [
+      {
+        "role": "original_main",
+        "filename": "Starglider2-original.raw",
+        "bytes": 412736,
+        "sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9"
+      },
+      {
+        "role": "decoded_analysis_view",
+        "filename": "protection-decoded-analysis.raw",
+        "bytes": 3548,
+        "sha256": "de8358853dd9ed9b006a23569bf393aa217ed3be3301a169465d80bfaf839922"
+      },
+      {
+        "role": "boot_installer_context",
+        "filename": "boot-selector-installer-context.raw",
+        "bytes": 40,
+        "sha256": "8d34852425e2e1bfa87b3febdfc74fb39e7c667e9d9ff73e17b594649e83b21b"
+      },
+      {
+        "role": "boot_resident_view",
+        "filename": "boot-selector-resident.raw",
+        "bytes": 20,
+        "sha256": "a26286a393713c046eff9dbaff15b20b26b171fa9e05fc9d538d16b0eddb6024"
+      }
+    ]
+  }
+}

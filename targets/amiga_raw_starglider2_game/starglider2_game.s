@@ -244,7 +244,7 @@ point_field_plane_byte_stride RS.W 1
     RS.B 6
 active_model_scale_shift RS.W 1
     RS.B 65
-app_01ED RS.B 1
+polygon_clip_plane_mask RS.B 1
     RS.B 1
 app_01EF RS.B 1
 app_01F0 RS.B 1
@@ -270,8 +270,8 @@ display_buffer_table_byte_offset RS.B 1
 panel_fast_animation_request RS.B 1
 display_and_frame_service_flags RS.B 1
     RS.B 19
-app_021E RS.L 1
-    RS.B 1166
+model_view_vertex_scratch_prefix RS.B 384
+    RS.B 786
 scan_target_reference RS.L 1
 app_06B4 RS.L 1
 distant_objects_cursor RS.L 1
@@ -897,6 +897,23 @@ SG2DecimalPlaceValue_SIZEOF EQU __RS
     RSRESET
 SG2SourceTextReference_text RS.L 1
 SG2SourceTextReference_SIZEOF EQU __RS
+
+; STRUCT SG2ViewVertex
+    RSRESET
+SG2ViewVertex_view_x RS.W 1
+SG2ViewVertex_view_y RS.W 1
+SG2ViewVertex_view_depth RS.W 1
+SG2ViewVertex_used_flag RS.B 1
+SG2ViewVertex_clip_outcode RS.B 1
+SG2ViewVertex_SIZEOF EQU __RS
+
+; STRUCT SG2ProjectedVertex
+    RSRESET
+SG2ProjectedVertex_screen_x RS.W 1
+SG2ProjectedVertex_screen_y RS.W 1
+SG2ProjectedVertex_depth RS.W 1
+SG2ProjectedVertex_mode_dependent_flags RS.W 1
+SG2ProjectedVertex_SIZEOF EQU __RS
 
 ADKF_CLRALL	EQU	$7FFF
 BPLCON2_PF2P2	EQU	$20
@@ -5099,9 +5116,10 @@ abs_0_00004AA4:
 	dbf.w d1,abs_0_00004AA4
 	clr.w abs_0_000052BE.l
 	bsr.w abs_0_000029BA
-	lea.l app_021E(a6),a3
+	lea.l model_view_vertex_scratch_prefix(a6),a3
 	moveq.l #0,d1
 	move.w model_last_vertex_index(a6),d0
+    ; Initialize used/outcode WORD at +6 in each eight-byte app view-vertex record. Supplied headers require at most 48 records; do not infer full adjacent capacity or replacement-model bounds.
 abs_0_00004AC8:
 	addq.l #6,a3
 	move.w d1,(a3)+
@@ -5141,7 +5159,7 @@ abs_0_00004B38:
 	lea.l shared_workspace_tail.l,a5
 	movea.l $0010(a6),a4
 	movea.l $0008(a6),a1
-	lea.l app_021E(a6),a0
+	lea.l model_view_vertex_scratch_prefix(a6),a0
 abs_0_00004B54:
 	move.l d0,-(a7)
 	move.w (a4)+,d2
@@ -5263,9 +5281,11 @@ transform_used_model_vertices_continuation:
 	move.l $007C(a6),(a3)
 	move.w model_last_vertex_index(a6),d0
 	movea.l $0008(a6),a4
-	lea.l app_021E(a6),a3
+	lea.l model_view_vertex_scratch_prefix(a6),a3
+    ; Current app view-vertex record: test used BYTE, transform source XYZ and store three view WORDs. Loop advances eight bytes; original model/caller and variant-offset contracts remain.
+    ; KNOWN: type A3=Target code-entry register seed:SG2ViewVertex
 abs_0_00004C9C:
-	tst.b $0006(a3)
+	tst.b SG2ViewVertex_used_flag(a3)
 	bpl.b abs_0_00004CC4
 	move.w $0006(a4),d4
 	bmi.b abs_0_00004CB8
@@ -5286,7 +5306,7 @@ abs_0_00004CC4:
 	move.b #$31,diagnostic_step_byte.l
 	move.b #$32,diagnostic_step_byte.l
 	move.w model_last_vertex_index(a6),d0
-	lea.l app_021E(a6),a3
+	lea.l model_view_vertex_scratch_prefix(a6),a3
 	lea.l projected_vertex_scratch_prefix.l,a4
 	lea.l projection_scale_lookup.l,a0
 	move.w view_clip_min_x(a6),d4
@@ -5295,11 +5315,12 @@ abs_0_00004CC4:
 	move.w view_clip_max_y(a6),d7
 	movea.w projection_screen_origin_x(a6),a1
 	movea.w projection_screen_origin_y(a6),a5
-    ; Project X/Y/depth into8-byte destination slots; clipBYTE7 belongs to source app vertices here. Supplied model headers max last-index47, not proof for arbitrary replacement models.
+    ; Read view XYZ and write projected X/Y/depth WORDs. Clip outcode is stored in source +7; destination +6/+7 are not initialized here. Other mesh paths have distinct flag conventions.
+    ; KNOWN: type A3=Target code-entry register seed:SG2ViewVertex; type A4=Target code-entry register seed:SG2ProjectedVertex
 project_model_vertex_screen_loop:
-	tst.b $0006(a3)
+	tst.b SG2ViewVertex_used_flag(a3)
 	beq.b abs_0_00004D58
-	movem.w (a3),d1-d3
+	movem.w (a3),d1-d3	; operand 1: SG2ViewVertex_view_x at (a3)
 	cmp.w #$80,d3
 	ble.w abs_0_00004E22
 	cmp.w #$2EE0,d3
@@ -5314,7 +5335,7 @@ project_model_vertex_screen_loop:
 abs_0_00004D36:
 	add.w a1,d1
 	add.w a5,d2
-	movem.w d1-d3,(a4)
+	movem.w d1-d3,(a4)	; operand 2: SG2ProjectedVertex_screen_x at (a4)
 	clr.b d3
 	cmp.w d4,d1
 	bpl.b abs_0_00004D46
@@ -5332,7 +5353,7 @@ abs_0_00004D52:
 	bmi.b abs_0_00004D58
 	addq.b #8,d3
 abs_0_00004D58:
-	move.b d3,$0007(a3)
+	move.b d3,SG2ViewVertex_clip_outcode(a3)
 	addq.w #8,a4
 	addq.w #8,a3
 	dbf.w d0,project_model_vertex_screen_loop
@@ -5348,7 +5369,7 @@ abs_0_00004D80:
 	moveq.l #0,d5
 	move.w #$7FFF,d6
 	move.w #$8000,d7
-	lea.l app_021E(a6),a0
+	lea.l model_view_vertex_scratch_prefix(a6),a0
 	clr.w (a4)+
 	movea.l a4,a1
 	move.w (a5)+,(a4)+
@@ -5430,7 +5451,7 @@ abs_0_00004E3E:
 	and.b d3,d1
 	or.b d3,d4
 abs_0_00004E50:
-	lea.l app_021E(a6),a2
+	lea.l model_view_vertex_scratch_prefix(a6),a2
 	adda.w d0,a2
 	move.l (a2)+,(a1)+
 	move.w (a2)+,(a1)+
@@ -5453,7 +5474,7 @@ abs_0_00004E72:
 	beq.b abs_0_00004E5C
 	move.b #$10,diagnostic_step_byte.l
 	movem.l a3-a5,-(a7)
-	bsr.w abs_0_00005AF2
+	bsr.w clip_polygon_in_view_volume
 	movem.l (a7)+,a3-a5
 	move.b #$B,diagnostic_step_byte.l
 abs_0_00004E9C:
@@ -5649,7 +5670,7 @@ abs_0_00005074:
 	move.w $01E4(a6),d0
 	subq.w #1,d0
 	movea.l $0070(a6),a5
-	lea.l app_021E(a6),a0
+	lea.l model_view_vertex_scratch_prefix(a6),a0
 	movea.l $0008(a6),a1
 project_auxiliary_faces_loop:
 	move.w d0,app_077A(a6)
@@ -5885,7 +5906,7 @@ abs_0_00005400:
 	dbf.w d1,abs_0_00005400
 	move.w model_last_vertex_index(a6),d7
 	beq.w abs_0_0000565C
-	lea.l app_021E(a6),a3
+	lea.l model_view_vertex_scratch_prefix(a6),a3
 	movea.l $0008(a6),a5
 abs_0_00005420:
 	move.w $0006(a5),d1
@@ -5924,7 +5945,7 @@ abs_0_00005460:
 	move.w d0,$01A0(a6)
 	andi.w #15,$01A0(a6)
 abs_0_00005492:
-	lea.l app_021E(a6),a3
+	lea.l model_view_vertex_scratch_prefix(a6),a3
 	move.w (a4),d4
 	movem.w $0(a3,d4.w),d5-d7
 	move.w $0002(a4),d4
@@ -5983,7 +6004,7 @@ abs_0_0000552E:
 	move.w d5,$0020(a6)
 	move.b #$24,diagnostic_step_byte.l
 	move.w $01B8(a6),d7
-	lea.l app_021E(a6),a3
+	lea.l model_view_vertex_scratch_prefix(a6),a3
 	movea.l abs_0_00003C30.l,a1
 	movea.l abs_0_00003C2C.l,a0
 	lea.l projection_scale_lookup.l,a5
@@ -6300,8 +6321,9 @@ model_maximum_signed_coordinates:
 	dc.b $C3,$F2,$30,$00,$C5,$F2,$30,$00,$B6,$7C,$01,$00,$62,$06,$EE,$81
 	dc.b $EE,$82,$60,$04,$48,$41,$48,$42,$D2,$6E,$01,$94,$D4,$6E,$01,$94
 	dc.b $4E,$75,$7E,$04,$24,$7C,$00,$00,$60,$6E
-abs_0_00005AF2:
-	move.b d4,app_01ED(a6)
+    ; Clip combined polygon plane mask: near bit 7 enables near clipping and all four side passes. Input triples are scaled in this service; original arithmetic and scratch-buffer limits remain.
+clip_polygon_in_view_volume:
+	move.b d4,polygon_clip_plane_mask(a6)
 	movea.w d7,a3
 	subq.w #1,d7
 	lea.l abs_0_00005EEC.l,a4
@@ -6323,9 +6345,9 @@ abs_0_00005B12:
 	move.w d4,(a0)+
 	move.w d5,(a0)+
 	dbf.w d0,abs_0_00005B12
-	btst.b #7,app_01ED(a6)
+	btst.b #7,polygon_clip_plane_mask(a6)
 	beq.w abs_0_00005BE8
-	ori.b #15,app_01ED(a6)
+	ori.b #15,polygon_clip_plane_mask(a6)
 	movea.l a4,a2
 	movea.l a5,a0
 	suba.l a3,a3
@@ -6399,7 +6421,7 @@ abs_0_00005BE2:
 	dbf.w d7,abs_0_00005B42
 	exg a5,a4
 abs_0_00005BE8:
-	btst.b #0,app_01ED(a6)
+	btst.b #0,polygon_clip_plane_mask(a6)
 	beq.w abs_0_00005CAC
 	movea.l a4,a2
 	movea.l a5,a0
@@ -6485,7 +6507,7 @@ abs_0_00005CA6:
 	dbf.w d7,abs_0_00005C00
 	exg a5,a4
 abs_0_00005CAC:
-	btst.b #1,app_01ED(a6)
+	btst.b #1,polygon_clip_plane_mask(a6)
 	beq.w abs_0_00005D66
 	movea.l a4,a2
 	movea.l a5,a0
@@ -6566,7 +6588,7 @@ abs_0_00005D60:
 	dbf.w d7,abs_0_00005CC4
 	exg a5,a4
 abs_0_00005D66:
-	btst.b #2,app_01ED(a6)
+	btst.b #2,polygon_clip_plane_mask(a6)
 	beq.w abs_0_00005E2A
 	movea.l a4,a2
 	movea.l a5,a0
@@ -6652,7 +6674,7 @@ abs_0_00005E24:
 	dbf.w d7,abs_0_00005D7E
 	exg a5,a4
 abs_0_00005E2A:
-	btst.b #3,app_01ED(a6)
+	btst.b #3,polygon_clip_plane_mask(a6)
 	beq.w abs_0_00005EE4
 	movea.l a4,a2
 	movea.l a5,a0
@@ -36998,7 +37020,7 @@ abs_0_0002F0AA:
 	andi.w #1,d6
 	neg.w d6
 	move.w d6,abs_0_0002F57A.l
-	lea.l app_021E(a6),a0
+	lea.l model_view_vertex_scratch_prefix(a6),a0
 	movem.w abs_0_0002F554.l,d1-d3
 	movem.w abs_0_0002F52E.l,d4-d6
 	moveq.l #5,d0
@@ -37060,7 +37082,7 @@ abs_0_0002F218:
 	add.w abs_0_0002F538.l,d3
 	dbf.w d0,abs_0_0002F17A
 	move.w #$23,d0
-	lea.l app_021E(a6),a3
+	lea.l model_view_vertex_scratch_prefix(a6),a3
 	lea.l projected_vertex_scratch_prefix.l,a4
 	lea.l projection_scale_lookup.l,a0
 	move.w view_clip_min_x(a6),d4
@@ -37175,7 +37197,7 @@ abs_0_0002F370:
 	moveq.l #15,d1
 	moveq.l #0,d2
 	moveq.l #0,d4
-	lea.l app_021E(a6),a0
+	lea.l model_view_vertex_scratch_prefix(a6),a0
 	move.l a3,-(a7)
 	lea.l projected_vertex_scratch_prefix.l,a3
 	move.w (a5)+,d0
@@ -37391,7 +37413,7 @@ abs_0_0002F644:
 	move.w (a7)+,d1
 	rts
 abs_0_0002F684:
-	jmp abs_0_00005AF2.l
+	jmp clip_polygon_in_view_volume.l
 abs_0_0002F68A:
 	jmp clip_line_to_view_bounds.l
 abs_0_0002F690:
@@ -60227,7 +60249,7 @@ abs_0_0004E5A4:
 abs_0_0004E5C0:
 	dc.b $00,$00,$00,$00
 abs_0_0004E5C4:
-	jmp abs_0_00005AF2.l
+	jmp clip_polygon_in_view_volume.l
 	dc.w $0000
 update_panel_animations:
 	move.b #$70,diagnostic_stage_step_word.l
