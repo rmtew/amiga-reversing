@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "source_commit": "077c61fc307b9281c90c37576e629a82d70d1217",
+  "source_commit": "dbb3f530fdc58952400bea1f48399208abe562fd",
   "source_assembly": "starglider2_game.s",
   "assets": [
     {
@@ -498,8 +498,8 @@
     },
     {
       "path": "README.md",
-      "bytes": 5432,
-      "sha256": "febfb0eeeb07533d03abd81531f8f9734b65d86a95e6eed1ec73e788c425df95"
+      "bytes": 5806,
+      "sha256": "92a5c34da6f80f60bc7036071979f0be2d29d64d30981031ade36ee9df90fc4c"
     },
     {
       "path": "analysis_views/boot-selector-installer-context.s",
@@ -513,8 +513,8 @@
     },
     {
       "path": "analysis_views/protection-decoded.s",
-      "bytes": 27427,
-      "sha256": "abcce583e06d12f652728009d35376ef3a8469e74bcaba1e3e773171f5e2d89a"
+      "bytes": 26864,
+      "sha256": "fd2c4a504b812c4f8574626da42c42317f140d24d3500311ef32d31ecd57fbc3"
     },
     {
       "path": "assets/argonaut_splash_picture_rle_data.bin",
@@ -878,13 +878,13 @@
     },
     {
       "path": "rendered-provenance.json",
-      "bytes": 2037,
-      "sha256": "7b22b26111c95c5c2a84608efcb2b59e0f6dbbb93fbf90879b347905db7761cf"
+      "bytes": 2962,
+      "sha256": "a3b533eb12ea1a4462de5e52b0d92c53cdd0770942e151e5b9bc19603efc3788"
     },
     {
       "path": "starglider2_game.s",
-      "bytes": 1868056,
-      "sha256": "28bc6f4ffc11fd4233d2e377cec5b76e4e5c45f0f73fed2f8903b5699dd0f6d5"
+      "bytes": 1868307,
+      "sha256": "be0d67a7a003df4c7fe2461dc472f39f2ba3acc5b3bedc60e38074993f744473"
     },
     {
       "path": "tools/starglider2_protection.py",
@@ -893,5 +893,5 @@
     }
   ],
   "source_commit_role": "publication base; canonical facts added in this batch bound by source_subject_revision and provenance hashes",
-  "source_subject_revision": "94d43b628916421a61fc313ab2cafbf65529ebc92716876d8a062ec2ce8638f9"
+  "source_subject_revision": "472418df3839f1b6162d5f21235d047ba3b7c387d496509460d4104fb38dcf0f"
 }

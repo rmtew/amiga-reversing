@@ -203,7 +203,7 @@ pending_bcd_score_addend RS.W 1
     RS.B 2
 shared_random_state_a RS.L 1
 shared_random_state_b RS.L 1
-    RS.B 4
+selected_novella_record_pointer RS.L 1
 object_initializer_chain_tail RS.L 1
     RS.B 4
 disc_record_write_cursor RS.L 1
@@ -260,7 +260,9 @@ app_01B1 RS.B 1
     RS.B 38
 app_01D8 RS.W 1
 app_01DA RS.W 1
-    RS.B 17
+    RS.B 4
+novella_attempts_remaining RS.W 1
+    RS.B 11
 polygon_clip_plane_mask RS.B 1
     RS.B 1
 app_01EF RS.B 1
@@ -280,8 +282,8 @@ mouse_primary_button_flag RS.B 1
 mouse_secondary_button_flag RS.B 1
 pending_key_scancode RS.B 1
 app_0204 RS.B 1
-app_0205 RS.B 1
-app_0206 RS.B 1
+novella_expected_char_latch RS.B 1
+novella_answer_tail_latch RS.B 1
 display_buffer_table_byte_offset RS.B 1
     RS.B 1
 panel_fast_animation_request RS.B 1
@@ -1308,14 +1310,14 @@ abs_0_000013D0:
 	bne.w abs_0_0000123E
 	tst.w icarus_game_over_reason(a6)
 	bne.w abs_0_00001560
-	tst.b app_0206(a6)
+	tst.b novella_answer_tail_latch(a6)
 	bne.w abs_0_00001560
 	cmpi.w #12000,icarus_shield_strength(a6)
 	bcc.b abs_0_0000140C
 	move.w frame_handoff_counter(a6),d1
 	andi.w #127,d1
 	bne.b abs_0_0000140C
-	tst.b app_0205(a6)
+	tst.b novella_expected_char_latch(a6)
 	bne.w abs_0_00001560
 abs_0_0000140C:
 	cmpi.w #12000,icarus_power_reserve(a6)
@@ -1371,7 +1373,7 @@ abs_0_00001466:
 abs_0_000014B2:
 	bra.w gameplay_frame_loop
 abs_0_000014B6:
-	tst.b app_0206(a6)
+	tst.b novella_answer_tail_latch(a6)
 	bne.w abs_0_00001560
 	move.w last_player_contact_type(a6),d0
 	add.w d0,d0
@@ -4289,7 +4291,7 @@ abs_0_00003FE0:
 	move.b #$D,diagnostic_step_byte.l
 	bsr.w abs_0_000040CC
 	move.b #$F,diagnostic_step_byte.l
-	tst.b app_0206(a6)
+	tst.b novella_answer_tail_latch(a6)
 	bne.b abs_0_00004096
 	rts
 abs_0_00004096:
@@ -14456,8 +14458,8 @@ abs_0_0000CCE4:
 abs_0_0000CD48:
 	move.w (a0)+,(a1)+
 	dbf.w d0,abs_0_0000CD48
-	st.b app_0205(a6)
-	st.b app_0206(a6)
+	st.b novella_expected_char_latch(a6)
+	st.b novella_answer_tail_latch(a6)
 	lea.l keyboard_down_flags.l,a0
 	moveq.l #0,d0
 	moveq.l #31,d1
@@ -50329,8 +50331,8 @@ abs_0_0003B3FE:
 	move.b #$1,$FFFFFC02.l
 	bsr.w abs_0_0003B57C
 	move.b #$1,$FFFFFC02.l
-	st.b app_0205(a6)
-	st.b app_0206(a6)
+	st.b novella_expected_char_latch(a6)
+	st.b novella_answer_tail_latch(a6)
 	bsr.w abs_0_0003B57C
 	move.b #$8,$FFFFFC02.l
 	bsr.w abs_0_0003B57C

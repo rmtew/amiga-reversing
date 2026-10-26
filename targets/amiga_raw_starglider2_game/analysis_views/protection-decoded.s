@@ -15,10 +15,12 @@
 
     RSSET 0
     RS.B 104
-app_0068 RS.L 1
-    RS.B 409
-app_0205 RS.B 1
-app_0206 RS.L 1
+selected_novella_record_pointer RS.L 1
+    RS.B 372
+novella_attempts_remaining RS.W 1
+    RS.B 35
+novella_expected_char_latch RS.B 1
+novella_answer_tail_latch RS.B 1
 app_SIZEOF EQU __RS
 
 ; STRUCT SG2NovellaWordRecord
@@ -41,7 +43,7 @@ abs_0_00012F80:
 	dc.b $06	; paragraph
 	dc.b $01	; word
 	dc.b $41,$00	; answer_and_fill
-	dcb.b $B,$20	; answer_and_fill
+	dcb.b $B,$20
 	dc.b $05	; page
 	dc.b $05	; paragraph
 	dc.b $07	; word
@@ -50,7 +52,7 @@ abs_0_00012F80:
 	dc.b $07	; paragraph
 	dc.b $01	; word
 	dc.b $48,$45,$00	; answer_and_fill
-	dcb.b $A,$20	; answer_and_fill
+	dcb.b $A,$20
 	dc.b $05	; page
 	dc.b $09	; paragraph
 	dc.b $05	; word
@@ -71,7 +73,7 @@ abs_0_00012F80:
 	dc.b $06	; paragraph
 	dc.b $03	; word
 	dc.b $54,$56,$00	; answer_and_fill
-	dcb.b $A,$20	; answer_and_fill
+	dcb.b $A,$20
 	dc.b $06	; page
 	dc.b $07	; paragraph
 	dc.b $09	; word
@@ -88,7 +90,7 @@ abs_0_00012F80:
 	dc.b $03	; paragraph
 	dc.b $0D	; word
 	dc.b $42,$45,$44,$00	; answer_and_fill
-	dcb.b $9,$20	; answer_and_fill
+	dcb.b $9,$20
 	dc.b $07	; page
 	dc.b $0A	; paragraph
 	dc.b $0D	; word
@@ -121,7 +123,7 @@ abs_0_00012F80:
 	dc.b $09	; paragraph
 	dc.b $0E	; word
 	dc.b $42,$41,$4C,$4C,$00	; answer_and_fill
-	dcb.b $8,$20	; answer_and_fill
+	dcb.b $8,$20
 	dc.b $0A	; page
 	dc.b $01	; paragraph
 	dc.b $02	; word
@@ -138,12 +140,12 @@ abs_0_00012F80:
 	dc.b $06	; paragraph
 	dc.b $01	; word
 	dc.b $53,$48,$45,$00	; answer_and_fill
-	dcb.b $9,$20	; answer_and_fill
+	dcb.b $9,$20
 	dc.b $0A	; page
 	dc.b $06	; paragraph
 	dc.b $0F	; word
 	dc.b $4B,$4E,$4F,$54,$00	; answer_and_fill
-	dcb.b $8,$20	; answer_and_fill
+	dcb.b $8,$20
 	dc.b $0B	; page
 	dc.b $03	; paragraph
 	dc.b $03	; word
@@ -196,7 +198,7 @@ abs_0_00012F80:
 	dc.b $0A	; paragraph
 	dc.b $09	; word
 	dc.b $48,$41,$52,$44,$00	; answer_and_fill
-	dcb.b $8,$20	; answer_and_fill
+	dcb.b $8,$20
 	dc.b $0D	; page
 	dc.b $0B	; paragraph
 	dc.b $05	; word
@@ -209,7 +211,7 @@ abs_0_00012F80:
 	dc.b $01	; paragraph
 	dc.b $01	; word
 	dc.b $4E,$4F,$00	; answer_and_fill
-	dcb.b $A,$20	; answer_and_fill
+	dcb.b $A,$20
 	dc.b $0E	; page
 	dc.b $02	; paragraph
 	dc.b $07	; word
@@ -238,7 +240,7 @@ abs_0_00012F80:
 	dc.b $09	; paragraph
 	dc.b $05	; word
 	dc.b $42,$41,$4E,$47,$00	; answer_and_fill
-	dcb.b $8,$20	; answer_and_fill
+	dcb.b $8,$20
 	dc.b $0F	; page
 	dc.b $02	; paragraph
 	dc.b $07	; word
@@ -259,7 +261,7 @@ abs_0_00012F80:
 	dc.b $01	; paragraph
 	dc.b $09	; word
 	dc.b $42,$4C,$4F,$57,$00	; answer_and_fill
-	dcb.b $8,$20	; answer_and_fill
+	dcb.b $8,$20
 	dc.b $10	; page
 	dc.b $02	; paragraph
 	dc.b $0D	; word
@@ -268,7 +270,7 @@ abs_0_00012F80:
 	dc.b $04	; paragraph
 	dc.b $0F	; word
 	dc.b $46,$49,$53,$54,$00	; answer_and_fill
-	dcb.b $8,$20	; answer_and_fill
+	dcb.b $8,$20
 	dc.b $10	; page
 	dc.b $05	; paragraph
 	dc.b $0C	; word
@@ -281,7 +283,7 @@ abs_0_00012F80:
 	dc.b $03	; paragraph
 	dc.b $12	; word
 	dc.b $48,$41,$52,$44,$00	; answer_and_fill
-	dcb.b $8,$20	; answer_and_fill
+	dcb.b $8,$20
 	dc.b $11	; page
 	dc.b $04	; paragraph
 	dc.b $0E	; word
@@ -294,7 +296,7 @@ abs_0_00012F80:
 	dc.b $06	; paragraph
 	dc.b $08	; word
 	dc.b $47,$49,$52,$4C,$00	; answer_and_fill
-	dcb.b $8,$20	; answer_and_fill
+	dcb.b $8,$20
 	dc.b $11	; page
 	dc.b $0E	; paragraph
 	dc.b $0E	; word
@@ -347,7 +349,7 @@ abs_0_00012F80:
 	dc.b $07	; paragraph
 	dc.b $04	; word
 	dc.b $54,$52,$49,$50,$00	; answer_and_fill
-	dcb.b $8,$20	; answer_and_fill
+	dcb.b $8,$20
 	dc.b $15	; page
 	dc.b $02	; paragraph
 	dc.b $03	; word
@@ -356,7 +358,7 @@ abs_0_00012F80:
 	dc.b $05	; paragraph
 	dc.b $02	; word
 	dc.b $50,$49,$47,$00	; answer_and_fill
-	dcb.b $9,$20	; answer_and_fill
+	dcb.b $9,$20
 	dc.b $15	; page
 	dc.b $07	; paragraph
 	dc.b $06	; word
@@ -365,7 +367,7 @@ abs_0_00012F80:
 	dc.b $01	; paragraph
 	dc.b $01	; word
 	dc.b $4F,$4E,$45,$00	; answer_and_fill
-	dcb.b $9,$20	; answer_and_fill
+	dcb.b $9,$20
 	dc.b $16	; page
 	dc.b $02	; paragraph
 	dc.b $03	; word
@@ -378,7 +380,7 @@ abs_0_00012F80:
 	dc.b $06	; paragraph
 	dc.b $08	; word
 	dc.b $46,$4F,$55,$52,$00	; answer_and_fill
-	dcb.b $8,$20	; answer_and_fill
+	dcb.b $8,$20
 	dc.b $16	; page
 	dc.b $09	; paragraph
 	dc.b $08	; word
@@ -403,7 +405,7 @@ abs_0_00012F80:
 	dc.b $01	; paragraph
 	dc.b $01	; word
 	dc.b $53,$49,$52,$00	; answer_and_fill
-	dcb.b $9,$20	; answer_and_fill
+	dcb.b $9,$20
 	dc.b $18	; page
 	dc.b $05	; paragraph
 	dc.b $0A	; word
@@ -416,7 +418,7 @@ abs_0_00012F80:
 	dc.b $0B	; paragraph
 	dc.b $04	; word
 	dc.b $41,$4E,$44,$00	; answer_and_fill
-	dcb.b $9,$20	; answer_and_fill
+	dcb.b $9,$20
 	dc.b $18	; page
 	dc.b $0F	; paragraph
 	dc.b $02	; word
@@ -429,7 +431,7 @@ abs_0_00012F80:
 	dc.b $04	; paragraph
 	dc.b $06	; word
 	dc.b $44,$49,$56,$45,$00	; answer_and_fill
-	dcb.b $8,$20	; answer_and_fill
+	dcb.b $8,$20
 	dc.b $19	; page
 	dc.b $05	; paragraph
 	dc.b $03	; word
@@ -454,7 +456,7 @@ abs_0_00012F80:
 	dc.b $07	; paragraph
 	dc.b $05	; word
 	dc.b $50,$41,$44,$53,$00	; answer_and_fill
-	dcb.b $8,$20	; answer_and_fill
+	dcb.b $8,$20
 	dc.b $1B	; page
 	dc.b $03	; paragraph
 	dc.b $01	; word
@@ -483,7 +485,7 @@ abs_0_00012F80:
 	dc.b $06	; paragraph
 	dc.b $09	; word
 	dc.b $4C,$4F,$56,$45,$00	; answer_and_fill
-	dcb.b $8,$20	; answer_and_fill
+	dcb.b $8,$20
 	dc.b $1C	; page
 	dc.b $07	; paragraph
 	dc.b $04	; word
@@ -492,12 +494,12 @@ abs_0_00012F80:
 	dc.b $01	; paragraph
 	dc.b $01	; word
 	dc.b $57,$4F,$4F,$44,$00	; answer_and_fill
-	dcb.b $8,$20	; answer_and_fill
+	dcb.b $8,$20
 	dc.b $1D	; page
 	dc.b $03	; paragraph
 	dc.b $01	; word
 	dc.b $46,$4F,$52,$00	; answer_and_fill
-	dcb.b $9,$20	; answer_and_fill
+	dcb.b $9,$20
 	dc.b $1D	; page
 	dc.b $0C	; paragraph
 	dc.b $07	; word
@@ -514,7 +516,7 @@ abs_0_00012F80:
 	dc.b $02	; paragraph
 	dc.b $02	; word
 	dc.b $4E,$45,$58,$54,$00	; answer_and_fill
-	dcb.b $8,$20	; answer_and_fill
+	dcb.b $8,$20
 	dc.b $1E	; page
 	dc.b $0A	; paragraph
 	dc.b $0E	; word
@@ -555,37 +557,37 @@ abs_0_00012F80:
 	dc.b $02	; paragraph
 	dc.b $03	; word
 	dc.b $41,$00	; answer_and_fill
-	dcb.b $B,$20	; answer_and_fill
+	dcb.b $B,$20
 	dc.b $21	; page
 	dc.b $03	; paragraph
 	dc.b $02	; word
 	dc.b $55,$50,$00	; answer_and_fill
-	dcb.b $A,$20	; answer_and_fill
+	dcb.b $A,$20
 	dc.b $21	; page
 	dc.b $05	; paragraph
 	dc.b $03	; word
 	dc.b $44,$4F,$57,$4E,$00	; answer_and_fill
-	dcb.b $8,$20	; answer_and_fill
+	dcb.b $8,$20
 	dc.b $21	; page
 	dc.b $06	; paragraph
 	dc.b $03	; word
 	dc.b $50,$52,$4F,$58,$00	; answer_and_fill
-	dcb.b $8,$20	; answer_and_fill
+	dcb.b $8,$20
 	dc.b $22	; page
 	dc.b $02	; paragraph
 	dc.b $02	; word
 	dc.b $53,$50,$55,$52,$00	; answer_and_fill
-	dcb.b $8,$20	; answer_and_fill
+	dcb.b $8,$20
 	dc.b $22	; page
 	dc.b $03	; paragraph
 	dc.b $0E	; word
 	dc.b $49,$4E,$00	; answer_and_fill
-	dcb.b $A,$20	; answer_and_fill
+	dcb.b $A,$20
 	dc.b $22	; page
 	dc.b $05	; paragraph
 	dc.b $02	; word
 	dc.b $48,$45,$52,$45,$00	; answer_and_fill
-	dcb.b $8,$20	; answer_and_fill
+	dcb.b $8,$20
 	dc.b $22	; page
 	dc.b $08	; paragraph
 	dc.b $03	; word
@@ -594,7 +596,7 @@ abs_0_00012F80:
 	dc.b $02	; paragraph
 	dc.b $01	; word
 	dc.b $54,$48,$45,$59,$00	; answer_and_fill
-	dcb.b $8,$20	; answer_and_fill
+	dcb.b $8,$20
 	dc.b $23	; page
 	dc.b $07	; paragraph
 	dc.b $02	; word
@@ -603,12 +605,12 @@ abs_0_00012F80:
 	dc.b $0C	; paragraph
 	dc.b $06	; word
 	dc.b $48,$4F,$4C,$44,$00	; answer_and_fill
-	dcb.b $8,$20	; answer_and_fill
+	dcb.b $8,$20
 	dc.b $24	; page
 	dc.b $01	; paragraph
 	dc.b $05	; word
 	dc.b $42,$49,$47,$00	; answer_and_fill
-	dcb.b $9,$20	; answer_and_fill
+	dcb.b $9,$20
 	dc.b $24	; page
 	dc.b $03	; paragraph
 	dc.b $03	; word
@@ -617,7 +619,7 @@ abs_0_00012F80:
 	dc.b $04	; paragraph
 	dc.b $01	; word
 	dc.b $57,$4F,$57,$00	; answer_and_fill
-	dcb.b $9,$20	; answer_and_fill
+	dcb.b $9,$20
 	dc.b $24	; page
 	dc.b $05	; paragraph
 	dc.b $0A	; word
@@ -642,7 +644,7 @@ abs_0_00012F80:
 	dc.b $04	; paragraph
 	dc.b $01	; word
 	dc.b $57,$49,$54,$48,$00	; answer_and_fill
-	dcb.b $8,$20	; answer_and_fill
+	dcb.b $8,$20
 	dc.b $26	; page
 	dc.b $05	; paragraph
 	dc.b $07	; word
@@ -663,7 +665,7 @@ abs_0_00012F80:
 	dc.b $04	; paragraph
 	dc.b $02	; word
 	dc.b $47,$41,$56,$45,$00	; answer_and_fill
-	dcb.b $8,$20	; answer_and_fill
+	dcb.b $8,$20
 	dc.b $28	; page
 	dc.b $03	; paragraph
 	dc.b $02	; word
@@ -680,12 +682,12 @@ abs_0_00012F80:
 	dc.b $05	; paragraph
 	dc.b $02	; word
 	dc.b $4D,$4F,$4F,$4E,$00	; answer_and_fill
-	dcb.b $8,$20	; answer_and_fill
+	dcb.b $8,$20
 	dc.b $29	; page
 	dc.b $0A	; paragraph
 	dc.b $01	; word
 	dc.b $47,$4F,$00	; answer_and_fill
-	dcb.b $A,$20	; answer_and_fill
+	dcb.b $A,$20
 	dc.b $29	; page
 	dc.b $0D	; paragraph
 	dc.b $08	; word
@@ -694,12 +696,12 @@ abs_0_00012F80:
 	dc.b $06	; paragraph
 	dc.b $02	; word
 	dc.b $49,$54,$00	; answer_and_fill
-	dcb.b $A,$20	; answer_and_fill
+	dcb.b $A,$20
 	dc.b $2A	; page
 	dc.b $08	; paragraph
 	dc.b $01	; word
 	dc.b $54,$48,$45,$00	; answer_and_fill
-	dcb.b $9,$20	; answer_and_fill
+	dcb.b $9,$20
 	dc.b $2A	; page
 	dc.b $09	; paragraph
 	dc.b $0B	; word
@@ -716,7 +718,7 @@ abs_0_00012F80:
 	dc.b $02	; paragraph
 	dc.b $02	; word
 	dc.b $50,$4F,$44,$53,$00	; answer_and_fill
-	dcb.b $8,$20	; answer_and_fill
+	dcb.b $8,$20
 	dc.b $2B	; page
 	dc.b $03	; paragraph
 	dc.b $02	; word
@@ -778,7 +780,7 @@ protection_paragraph_number_text:
 protection_word_number_text:
 	dc.b $20,$20,$20,$20,$20,$0D,$0D,$0A,$0A,$0A,$8F,$3A,$8A,$00,$00
 request_novella_word:
-	move.w #$3,$01E0(a6)
+	move.w #$3,novella_attempts_remaining(a6)
 abs_0_00013C02:
 	bsr.w abs_0_00013D38
 abs_0_00013C06:
@@ -789,10 +791,10 @@ abs_0_00013C06:
 	lea.l abs_0_00012F80(pc),a0
 	adda.l d0,a0
 remember_selected_novella_record:
-	move.l a0,app_0068(a6)
+	move.l a0,selected_novella_record_pointer(a6)
 	bsr.w abs_0_00013D44
 abs_0_00013C24:
-	movea.l app_0068(a6),a0
+	movea.l selected_novella_record_pointer(a6),a0
 	moveq.l #0,d0
 	move.b (a0)+,d0
 	lea.l abs_0_00012F80+3154(pc),a1
@@ -828,9 +830,9 @@ abs_0_00013C86:
 	movem.l a0-a1,-(a7)
 	bsr.w abs_0_00013D44
 abs_0_00013C8E:
-	lea.l app_0206(a6),a3
+	lea.l novella_answer_tail_latch(a6),a3
 	movem.l (a7)+,a0-a1
-	lea.l app_0205(a6),a2
+	lea.l novella_expected_char_latch(a6),a2
 compare_novella_answer:
 	move.b (a1)+,d0
 	move.b d0,(a2)
@@ -845,7 +847,7 @@ abs_0_00013CA8:
 abs_0_00013CB0:
 	rts
 retry_novella_answer:
-	subq.w #1,$01E0(a6)
+	subq.w #1,novella_attempts_remaining(a6)
 	beq.b protection_attempts_exhausted
 	lea.l abs_0_00012F80+2608(pc),a1
 	bsr.w abs_0_00013D2C

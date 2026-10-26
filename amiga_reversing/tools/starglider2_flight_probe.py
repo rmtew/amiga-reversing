@@ -5,11 +5,120 @@ press/release transitions. No guest-memory or register writes. Captures remain
 private; this does not establish full-game or all-code coverage.
 """
 import argparse
+from contextlib import ExitStack
 import hashlib
 import json
+import time
 from pathlib import Path
-from amiga_reversing.tools.copperline_control import CopperlineProcess
+from amiga_reversing.tools.copperline_control import CopperlineProcess, CopperlineTimeout
 from amiga_reversing.tools.copperline_runtime import wait_for_pc
+
+
+def _bind_instruction_windows(hits, views):
+    """Coordinate-bound byte matches, retaining ambiguity between source views."""
+    identities = [(target, base, data, hashlib.sha256(data).hexdigest())
+                  for target, base, data in views]
+    result = []
+    for index, hit in enumerate(hits):
+        pc = hit['triggering_pc']
+        sample = bytes.fromhex(hit['instruction_window_hex'])
+        if len(sample) != 16:
+            raise ValueError('Startup source binding requires the recorded 16-byte window')
+        matches = [dict(target_id=target, section_index=0, source_offset=pc-base,
+                        source_sha256=digest)
+                   for target, base, data, digest in identities
+                   if 0 <= pc-base <= len(data)-len(sample) and data[pc-base:pc-base+len(sample)] == sample]
+        result.append(dict(hit_index=index, runtime_pc=pc, sample_size=len(sample),
+            sample_sha256=hashlib.sha256(sample).hexdigest(), matches=matches,
+            status='matched' if len(matches) == 1 else 'ambiguous' if matches else 'not_matched'))
+    return result
+
+
+def bind_startup_flag_source_views(hits, original):
+    from amiga_reversing.tools import starglider2_protection as recipe
+    decoded, transformation = recipe.extract_view(original)
+    return dict(transformation=transformation,
+        instruction_windows=_bind_instruction_windows(hits, [
+            ('amiga_raw_starglider2_game', 0x1000, original),
+            ('amiga_raw_starglider2_protection_view', recipe.START, decoded)]),
+        scope='Site windows only, not whole runtime-view identity or original encoded code promotion')
+
+
+class StartupFlagObserver:
+    """First CPU zero writes to two fixed target flags, without changing inputs.
+
+    Resume the SAME absolute frame/PC goal after each observed bus transfer.
+    Stop collecting once both first clears are seen; later writers are outside
+    this observation. This adapter neither writes guest state nor guesses code.
+    """
+    def __init__(self, client, base, original, stage, *, max_hits=16):
+        self.client, self.base, self.original, self.stage = client, base, original, stage
+        self.max_hits, self.hits, self.cleared, self.ident = max_hits, [], {}, None
+        self.armed = dict(kind='mmio', addr=base + 0x205, len=2, access='write')
+        try:
+            self.ident = client.request('break.add', self.armed)['id']
+            state = client.request('break.list')
+            entries = state.get('breaks', [])
+            if not isinstance(entries, list) or not all(isinstance(b, dict) for b in entries):
+                raise ValueError('Malformed startup flag watch readback')
+            if not any(b.get('id') == self.ident and all(b.get(k) == v for k, v in self.armed.items())
+                       for b in entries):
+                raise ValueError('Startup flag watch readback differs from requested CPU range')
+            if any(b.get('id') != self.ident and b.get('kind') in ('mmio', 'watch') for b in entries):
+                raise ValueError('Startup flag observation requires an isolated memory watch')
+            stage('startup_flag_watch_armed', dict(armed_watch=self.armed, watch_id=self.ident,
+                backend_watch_state=state, flags=client.read_memory(base + 0x205, 2).hex(),
+                max_hits=max_hits, coverage='CPU data writes only; no DMA/fetch coverage'))
+        except Exception:
+            self.close_watch()
+            raise
+
+    def __getattr__(self, name):
+        return getattr(self.client, name)
+
+    def close_watch(self):
+        ident, self.ident = self.ident, None
+        if ident is not None:
+            self.client.remove_breakpoint(ident)
+
+    def run_until(self, params, *, timeout):
+        deadline = time.monotonic() + timeout
+        while True:
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                raise CopperlineTimeout('Startup flag observation exhausted original run deadline')
+            stop = self.client.run_until(params, timeout=remaining)
+            if stop.get('reason') != 'mmio':
+                return stop
+            access = stop.get('access') or {}
+            addr, size, value, pc = (access.get(k) for k in ('addr', 'size', 'value', 'pc'))
+            if (self.ident is None or access.get('access') != 'write'
+                    or type(addr) is not int or type(size) is not int or size not in (1, 2, 4)
+                    or type(value) is not int or not 0 <= value < (1 << (8 * size))
+                    or type(pc) is not int or not 0 <= pc <= 0xFFFFF0
+                    or not (addr < self.base + 0x207 and addr + size > self.base + 0x205)):
+                raise ValueError('Unexpected memory trap during startup flag observation')
+            if len(self.hits) >= self.max_hits:
+                raise ValueError('Startup flag write budget exhausted before both first clears')
+            registers = self.client.registers()
+            sample = self.client.read_memory(pc, 16)
+            offset = pc - 0x1000
+            matches = 0 <= offset <= len(self.original) - 16 and sample == self.original[offset:offset + 16]
+            hit = dict(stop_event=stop, registers=registers, triggering_pc=pc,
+                instruction_window_hex=sample.hex(), original_bytes_match=matches,
+                source_offset=offset if matches else None,
+                flags=self.client.read_memory(self.base + 0x205, 2).hex())
+            self.hits.append(hit)
+            for flag in (0x205, 0x206):
+                at = self.base + flag
+                if addr <= at < addr + size and not ((value >> (8 * (addr + size - 1 - at))) & 255):
+                    self.cleared.setdefault(flag, len(self.hits) - 1)
+            self.stage('startup_flag_write', dict(hit_index=len(self.hits) - 1, **hit))
+            if len(self.cleared) == 2:
+                self.close_watch()
+                self.stage('startup_flags_first_clears_observed', dict(
+                    first_clear_hit_indices={hex(k): v for k, v in self.cleared.items()},
+                    collection_retired=True, later_writers_observed=False))
 
 def observe_modal_inventory(client, flight_entry, workspace_base, translation, stage, inputs):
     """Bounded empty-inventory modal observation, using normal keys only.
@@ -124,8 +233,11 @@ def main(argv=None):
                         help='Observe bounded Backspace/I/X inventory modal state, then stop')
     parser.add_argument('--observe-reticle-target', action='store_true',
                         help='Observe reticle production and normal I-key target scan, then stop')
+    parser.add_argument('--observe-startup-flags', action='store_true',
+                        help='Observe first CPU clears of app0205/0206 through the normal startup/input prefix')
     args = parser.parse_args(argv)
-    if sum([args.observe_model_paths, args.observe_modal_inventory, args.observe_reticle_target]) > 1:
+    if sum([args.observe_model_paths, args.observe_modal_inventory, args.observe_reticle_target,
+            args.observe_startup_flags]) > 1:
         parser.error('Choose only one bounded observation route')
     if not args.answer_selected_protection_request:
         parser.error('This probe requires explicit protection-input opt-in')
@@ -136,7 +248,10 @@ def main(argv=None):
         if hashlib.sha256((p / filename).read_bytes()).hexdigest() != expected:
             raise ValueError('Unexpected original input: ' + filename)
     out.mkdir(parents=True, exist_ok=False)
-    r = dict(status='incomplete', steps=[], inputs=[], limits=['Unmodified original media; normal controller and keyboard input only', 'No guest register/memory writes; no DMA coverage claim'])
+    r = dict(status='incomplete', steps=[], inputs=[],
+        driver_sha256=hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
+        input_sha256=dict(IDENTITIES), machine_profile='a500ocs_512k',
+        limits=['Unmodified original media; normal controller and keyboard input only', 'No guest register/memory writes; no DMA coverage claim'])
 
     def save():
         (out / 'receipt.json').write_text(json.dumps(r, indent=2) + '\n')
@@ -146,7 +261,7 @@ def main(argv=None):
         save()
         print(n, json.dumps(v), flush=True)
     try:
-        with CopperlineProcess(str(args.copperline), rom=str(args.rom), floppy=str(p / 'original.adf')) as process:
+        with CopperlineProcess(str(args.copperline), rom=str(args.rom), floppy=str(p / 'original.adf')) as process, ExitStack() as observers:
             c = process.client
             for n, pc, addr, f in [('intro', 0x24000, 0x23FF8, 'first-read.bin'), ('main', 0x1000, 0x1000, 'main-copy.bin')]:
                 w = wait_for_pc(c, pc, 60)
@@ -155,6 +270,20 @@ def main(argv=None):
                 assert c.read_memory(addr, len((p / f).read_bytes())) == (p / f).read_bytes()
                 c.joystick(port=1, blue=n == 'intro')
                 r['inputs'].append(dict(frame=w['stop_event']['frame'], port=1, blue=n == 'intro'))
+            flag_observer = None
+            if args.observe_startup_flags:
+                anchor = wait_for_pc(c, 0xCD56, 60)
+                stage('startup_flags_initialized', anchor)
+                assert anchor['status'] == 'hit'
+                original = (p / 'main-copy.bin').read_bytes()
+                assert c.read_memory(0xCD56, 16) == original[0xBD56:0xBD66]
+                base = c.registers()['a6']
+                assert 0 <= base <= 0x80000 - 0x6998
+                assert int.from_bytes(c.read_memory(0x27A8, 4), 'big') == base
+                assert c.read_memory(base + 0x205, 2) == b'\xff\xff'
+                flag_observer = StartupFlagObserver(c, base, original, stage)
+                observers.callback(flag_observer.close_watch)
+                c = flag_observer
             w = wait_for_pc(c, 0x118A, 60)
             stage('title', w)
             assert w['status'] == 'hit'
@@ -199,6 +328,17 @@ def main(argv=None):
                 regs = c.registers()
                 base = regs['a6']
                 stage('flight_state', dict(registers=regs, player_pointer=c.read_memory(base + 0x700, 4).hex(), resources=c.read_memory(base + 0x774, 34).hex()))
+                if args.observe_startup_flags:
+                    assert flag_observer is not None
+                    stage('startup_flag_source_bindings', bind_startup_flag_source_views(
+                        flag_observer.hits, (p / 'main-copy.bin').read_bytes()))
+                    stage('startup_flags_at_flight', dict(flags=c.read_memory(base + 0x205, 2).hex(),
+                        observed_first_clears={hex(k): v for k, v in flag_observer.cleared.items()},
+                        hit_count=len(flag_observer.hits)))
+                    r['status'] = ('bounded_startup_flag_observation_complete'
+                        if len(flag_observer.cleared) == 2 else 'flight_reached_first_clears_not_observed')
+                    save()
+                    return
                 if args.observe_reticle_target:
                     observe_reticle_target(c, w, base, translation, stage, r['inputs'])
                     r['status'] = 'bounded_reticle_target_observation_complete'

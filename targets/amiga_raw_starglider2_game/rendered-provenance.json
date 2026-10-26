@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
   "kind": "committed_native_rendered_original_export",
-  "canonical_source_commit": "077c61fc307b9281c90c37576e629a82d70d1217",
-  "publication_base_commit": "077c61fc307b9281c90c37576e629a82d70d1217",
+  "canonical_source_commit": "dbb3f530fdc58952400bea1f48399208abe562fd",
+  "publication_base_commit": "dbb3f530fdc58952400bea1f48399208abe562fd",
   "native_export": "CListingArtifact.source_package_payload(64)",
-  "main_source_sha256": "28bc6f4ffc11fd4233d2e377cec5b76e4e5c45f0f73fed2f8903b5699dd0f6d5",
+  "main_source_sha256": "be0d67a7a003df4c7fe2461dc472f39f2ba3acc5b3bedc60e38074993f744473",
   "asset_count": 57,
   "asset_bytes": 93633,
   "game_assembly_hand_edits": false,
@@ -25,13 +25,26 @@
     "paused Pandora work"
   ],
   "canonical_source_commit_role": "publication base; reviewed canonical facts in this batch bound by canonical_fact_sha256",
-  "canonical_source_subject_revision": "94d43b628916421a61fc313ab2cafbf65529ebc92716876d8a062ec2ce8638f9",
+  "canonical_source_subject_revision": "472418df3839f1b6162d5f21235d047ba3b7c387d496509460d4104fb38dcf0f",
   "canonical_fact_sha256": {
     "source_binary.json": "42d4a5758b3e8236af7f912aee85e9ee5323bcd0961faa338c4f864080a0a7d9",
     "target_metadata.json": "e7540b68c118c56aba8815b6722eefa067517cc865fe9841d6c01ce96551389c",
-    "manual_actions.jsonl": "df839b27f946ceeba3322bb3110724c61c0f4a3a21647a89df4c7f94b831d64e",
-    "decision_journal.jsonl": "c8422334ec1c2f11fc79cf36b72ab101d66cdbb0a20ec7a609567219e6fcf8c5"
+    "manual_actions.jsonl": "ba71fd3d86cebc9eadbc0cd1f231d56cb1f329e28517d04b42afb60facf8590b",
+    "decision_journal.jsonl": "9603fbb81428f3194cfd012213c6c7a4f6393d711ff050b839a0e1b0734e77c1"
   },
-  "refinement_receipt": "runtime/observations/starglider2-retirement-faces.json",
-  "headers": "14 unmodified required include files collected by source_package.collect_package_includes from ext/amiga_includes/ndk_2.0/include; header notices retained"
+  "refinement_receipt": "runtime/observations/starglider2-novella-latches.json",
+  "headers": "14 unmodified required include files collected by source_package.collect_package_includes from ext/amiga_includes/ndk_2.0/include; header notices retained",
+  "decoded_protection_view": {
+    "target_id": "amiga_raw_starglider2_protection_view",
+    "native_export": "CListingArtifact.inline_source_text_with_profile",
+    "source_sha256": "fd2c4a504b812c4f8574626da42c42317f140d24d3500311ef32d31ecd57fbc3",
+    "source_subject_revision": "bc7efc11787e27369f86931b85b554826a65d1eabce05b4810e09706052d1091",
+    "canonical_fact_sha256": {
+      "source_binary.json": "68dbcc18ce1cd4cfa775786a355b9b44a8cc2ba8ea464ff217f2af0a38fe027a",
+      "target_metadata.json": "e7540b68c118c56aba8815b6722eefa067517cc865fe9841d6c01ce96551389c",
+      "manual_actions.jsonl": "51840d7d15e4507677c6a390652cdbd0036021eac31bc3b31d4612980530ef45",
+      "decision_journal.jsonl": "4bf93a0f60f39792719d845ce0f44d1553f8ba7d99f2d610fe3012dc3429b88e"
+    },
+    "runtime_scope": "Seven CPU write-site windows match this reversible view; no whole runtime-view identity or parent plaintext promotion."
+  }
 }

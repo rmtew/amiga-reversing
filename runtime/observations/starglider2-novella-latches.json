@@ -1,0 +1,410 @@
+{
+  "schema_version": 1,
+  "kind": "cross_view_novella_workspace_restoration",
+  "publication_base_commit": "dbb3f530fdc58952400bea1f48399208abe562fd",
+  "raw_runtime_receipt_sha256": "2840b864749597de033b4abd9264536ad35537b14ec013c7d435b978af735b9a",
+  "runtime_driver_identity": {
+    "sha256": "0b87b407f57fccfe9351fae3a0c777b536d337f5137f0d521f5a74c7d24659bf",
+    "description": "Source used by the completed live run, unchanged during execution; copied after completion before adding deterministic source-view postprocessing. No second live run is implied for the later postprocessing hook."
+  },
+  "driver_reproducibility": "Live driver preserved privately before postprocessing changes; identity reconstructed from unchanged module immediately after the run. Final committed driver adds deterministic source-view binding/identity fields, tested offline on retained hits without another runtime run.",
+  "source_view_bindings": {
+    "transformation": {
+      "schema_version": 1,
+      "parent_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+      "source_offset": 73600,
+      "load_address": 77696,
+      "entrypoint": 80892,
+      "size": 3484,
+      "long_count": 871,
+      "declared_end": 81182,
+      "untransformed_tail_size": 2,
+      "key": 844723765,
+      "encoded_sha256": "e655dadf03ab32f4ee36a8d96f240bb9055b0e49f2d8f05951fa485e88a3646f",
+      "decoded_sha256": "fb551353d3d0ab5e77eac02acbd55f2ebf336a34096966c32c280b99898a25ef",
+      "inverse_exact": true,
+      "subtraction_loop": 7940,
+      "rotation_loops": [
+        7992,
+        58436
+      ],
+      "limits": [
+        "Static decoded view; conditional execution requires separate evidence",
+        "Original payload remains encoded and is not replaced by this view",
+        "Two bytes before the declared end are outside the LONG loops"
+      ],
+      "context_end": 81244,
+      "unchanged_context_size": 64,
+      "analysis_view_size": 3548,
+      "analysis_view_sha256": "de8358853dd9ed9b006a23569bf393aa217ed3be3301a169465d80bfaf839922",
+      "unchanged_context_sha256": "82bdd995e2c077d607997aa2af7f84bbec6b12479ea85b25bf1dda404239f154"
+    },
+    "instruction_windows": [
+      {
+        "hit_index": 0,
+        "runtime_pc": 81052,
+        "sample_size": 16,
+        "sample_sha256": "dd9c8fa3bc4703aa62490215ce9063802aba55896f8b6901654e7abc863f0d4b",
+        "matches": [
+          {
+            "target_id": "amiga_raw_starglider2_protection_view",
+            "section_index": 0,
+            "source_offset": 3356,
+            "source_sha256": "de8358853dd9ed9b006a23569bf393aa217ed3be3301a169465d80bfaf839922"
+          }
+        ],
+        "status": "matched"
+      },
+      {
+        "hit_index": 1,
+        "runtime_pc": 81052,
+        "sample_size": 16,
+        "sample_sha256": "dd9c8fa3bc4703aa62490215ce9063802aba55896f8b6901654e7abc863f0d4b",
+        "matches": [
+          {
+            "target_id": "amiga_raw_starglider2_protection_view",
+            "section_index": 0,
+            "source_offset": 3356,
+            "source_sha256": "de8358853dd9ed9b006a23569bf393aa217ed3be3301a169465d80bfaf839922"
+          }
+        ],
+        "status": "matched"
+      },
+      {
+        "hit_index": 2,
+        "runtime_pc": 81052,
+        "sample_size": 16,
+        "sample_sha256": "dd9c8fa3bc4703aa62490215ce9063802aba55896f8b6901654e7abc863f0d4b",
+        "matches": [
+          {
+            "target_id": "amiga_raw_starglider2_protection_view",
+            "section_index": 0,
+            "source_offset": 3356,
+            "source_sha256": "de8358853dd9ed9b006a23569bf393aa217ed3be3301a169465d80bfaf839922"
+          }
+        ],
+        "status": "matched"
+      },
+      {
+        "hit_index": 3,
+        "runtime_pc": 81052,
+        "sample_size": 16,
+        "sample_sha256": "dd9c8fa3bc4703aa62490215ce9063802aba55896f8b6901654e7abc863f0d4b",
+        "matches": [
+          {
+            "target_id": "amiga_raw_starglider2_protection_view",
+            "section_index": 0,
+            "source_offset": 3356,
+            "source_sha256": "de8358853dd9ed9b006a23569bf393aa217ed3be3301a169465d80bfaf839922"
+          }
+        ],
+        "status": "matched"
+      },
+      {
+        "hit_index": 4,
+        "runtime_pc": 81052,
+        "sample_size": 16,
+        "sample_sha256": "dd9c8fa3bc4703aa62490215ce9063802aba55896f8b6901654e7abc863f0d4b",
+        "matches": [
+          {
+            "target_id": "amiga_raw_starglider2_protection_view",
+            "section_index": 0,
+            "source_offset": 3356,
+            "source_sha256": "de8358853dd9ed9b006a23569bf393aa217ed3be3301a169465d80bfaf839922"
+          }
+        ],
+        "status": "matched"
+      },
+      {
+        "hit_index": 5,
+        "runtime_pc": 81052,
+        "sample_size": 16,
+        "sample_sha256": "dd9c8fa3bc4703aa62490215ce9063802aba55896f8b6901654e7abc863f0d4b",
+        "matches": [
+          {
+            "target_id": "amiga_raw_starglider2_protection_view",
+            "section_index": 0,
+            "source_offset": 3356,
+            "source_sha256": "de8358853dd9ed9b006a23569bf393aa217ed3be3301a169465d80bfaf839922"
+          }
+        ],
+        "status": "matched"
+      },
+      {
+        "hit_index": 6,
+        "runtime_pc": 81064,
+        "sample_size": 16,
+        "sample_sha256": "b33f43e10d4a41f39de262eaac74461d736290433c7a95f0d42c8cf6ddbe4ec6",
+        "matches": [
+          {
+            "target_id": "amiga_raw_starglider2_protection_view",
+            "section_index": 0,
+            "source_offset": 3368,
+            "source_sha256": "de8358853dd9ed9b006a23569bf393aa217ed3be3301a169465d80bfaf839922"
+          }
+        ],
+        "status": "matched"
+      }
+    ],
+    "scope": "Site windows only, not whole runtime-view identity or original encoded code promotion"
+  },
+  "runtime": {
+    "status": "bounded_startup_flag_observation_complete",
+    "workspace_base": 431720,
+    "cpu_watch": {
+      "kind": "mmio",
+      "addr": 432237,
+      "len": 2,
+      "access": "write"
+    },
+    "watch_start_frame": 622,
+    "watch_start": "After original ST app205/app206 at CD56, before title/protection; startup clearing before arming is outside watch coverage.",
+    "write_hits": 7,
+    "observed_pcs": [
+      81052,
+      81064
+    ],
+    "first_zero_writes": [
+      {
+        "hit_index": 5,
+        "triggering_pc": 81052,
+        "effective_address": 432237,
+        "width": 1,
+        "access": "write",
+        "value": 0,
+        "frame": 830,
+        "cck": 58974209,
+        "registers": {
+          "a2": 432237,
+          "a3": 432238,
+          "a6": 431720,
+          "pc": 81054,
+          "sr": 8196
+        },
+        "source_binding": {
+          "hit_index": 5,
+          "runtime_pc": 81052,
+          "sample_size": 16,
+          "sample_sha256": "dd9c8fa3bc4703aa62490215ce9063802aba55896f8b6901654e7abc863f0d4b",
+          "matches": [
+            {
+              "target_id": "amiga_raw_starglider2_protection_view",
+              "section_index": 0,
+              "source_offset": 3356,
+              "source_sha256": "de8358853dd9ed9b006a23569bf393aa217ed3be3301a169465d80bfaf839922"
+            }
+          ],
+          "status": "matched"
+        }
+      },
+      {
+        "hit_index": 6,
+        "triggering_pc": 81064,
+        "effective_address": 432238,
+        "width": 1,
+        "access": "write",
+        "value": 0,
+        "frame": 830,
+        "cck": 58974220,
+        "registers": {
+          "a2": 432237,
+          "a3": 432238,
+          "a6": 431720,
+          "pc": 81066,
+          "sr": 8196
+        },
+        "source_binding": {
+          "hit_index": 6,
+          "runtime_pc": 81064,
+          "sample_size": 16,
+          "sample_sha256": "b33f43e10d4a41f39de262eaac74461d736290433c7a95f0d42c8cf6ddbe4ec6",
+          "matches": [
+            {
+              "target_id": "amiga_raw_starglider2_protection_view",
+              "section_index": 0,
+              "source_offset": 3368,
+              "source_sha256": "de8358853dd9ed9b006a23569bf393aa217ed3be3301a169465d80bfaf839922"
+            }
+          ],
+          "status": "matched"
+        }
+      }
+    ],
+    "flight_pc": 4744,
+    "flight_frame": 862,
+    "flight_cck": 61308574,
+    "flags_at_flight": "0000",
+    "inputs": "Original unmodified media, normal joystick and keyboard; selected answer/raw input values and intermediate character values remain private.",
+    "limits": [
+      "CPU data writes only; no DMA or fetch coverage.",
+      "Watch retired after both first zero writes; later writers not observed.",
+      "One normal answer prefix, not every retry/exhausted path or every exceptional renderer entry.",
+      "Only16-byte triggering instruction windows bound to decoded view; no whole runtime view or boot-shim residency claim."
+    ]
+  },
+  "before": {
+    "parent": {
+      "fields": 300,
+      "generic_fields": 55,
+      "app_accesses": 3316
+    },
+    "decoded": {
+      "fields": 3,
+      "generic_fields": 3,
+      "app_accesses": 4
+    }
+  },
+  "after": {
+    "parent": {
+      "fields": 302,
+      "generic_fields": 53,
+      "app_accesses": 3316
+    },
+    "decoded": {
+      "fields": 4,
+      "generic_fields": 0,
+      "app_accesses": 8
+    }
+  },
+  "canonical_actions": {
+    "parent": [
+      "manual-a5d8b6bc78e04411b48083c89efe114c",
+      "manual-b3871b05dfc449d586d454990bc1b7a4",
+      "manual-9305b52901b64677804798d35dff6138",
+      "manual-68c63db5913e4189b494cee0c2f089f8"
+    ],
+    "decoded": [
+      "manual-e1437dedd9144384a38bdc4344f133a6",
+      "manual-517a39440ccd43e6a4da25ace3e1479f",
+      "manual-72655f30ad9e4ed1bf0803df397a2e37",
+      "manual-855cfebbf5204727b5a6bbcd5e3e38f5"
+    ]
+  },
+  "verification": {
+    "parent": {
+      "kind": "verification",
+      "framework_exact": true,
+      "target_id": "amiga_raw_starglider2_game",
+      "subject_revision": "472418df3839f1b6162d5f21235d047ba3b7c387d496509460d4104fb38dcf0f",
+      "status": "exact",
+      "exact": true,
+      "source_sha256": "b6d1b960b7386affe50df26a5c31d71ff8e6c24e8804d00ad06db100cbd4e91b",
+      "source_path": "/workspace/pandora-original-delivery/stable-d15c2cf8/.runtime-state/restoration/eb04f545fb97451725a1c91ab5abf6f2e097614c45880db6edfb4ea5c3f6e2c2/b6d1b960b7386affe50df26a5c31d71ff8e6c24e8804d00ad06db100cbd4e91b.s",
+      "source_package_sha256": null,
+      "original_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+      "original_size": 412736,
+      "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+      "rebuilt_path": "/workspace/pandora-original-delivery/stable-d15c2cf8/.runtime-state/restoration/eb04f545fb97451725a1c91ab5abf6f2e097614c45880db6edfb4ea5c3f6e2c2/662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9.bin",
+      "framework_status": "exact",
+      "failure_kinds": [],
+      "message": "",
+      "oracle": {
+        "oracle_id": "vasm",
+        "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+        "comparison_level": "oracle.full_file_match",
+        "assembler_status": "accepted",
+        "message": "oracle output matched original bytes"
+      },
+      "receipt_id": "faa653c3e0076b2d136455dcd9291ba44ddb8725c842e67e67efb53262cad67c",
+      "revision": "e9d39fd7a4a05a591ebc493e3ce637fe3622676163813acf103dd4501e33eb5b"
+    },
+    "decoded": {
+      "kind": "verification",
+      "framework_exact": true,
+      "target_id": "amiga_raw_starglider2_protection_view",
+      "subject_revision": "bc7efc11787e27369f86931b85b554826a65d1eabce05b4810e09706052d1091",
+      "status": "exact",
+      "exact": true,
+      "source_sha256": "fd2c4a504b812c4f8574626da42c42317f140d24d3500311ef32d31ecd57fbc3",
+      "source_path": "/workspace/pandora-original-delivery/stable-d15c2cf8/.runtime-state/restoration/ede01454d974722457d3db568ff8ca4fda28ce6af2566758cea63960a362a14a/fd2c4a504b812c4f8574626da42c42317f140d24d3500311ef32d31ecd57fbc3.s",
+      "source_package_sha256": null,
+      "original_sha256": "de8358853dd9ed9b006a23569bf393aa217ed3be3301a169465d80bfaf839922",
+      "original_size": 3548,
+      "output_sha256": "de8358853dd9ed9b006a23569bf393aa217ed3be3301a169465d80bfaf839922",
+      "rebuilt_path": "/workspace/pandora-original-delivery/stable-d15c2cf8/.runtime-state/restoration/ede01454d974722457d3db568ff8ca4fda28ce6af2566758cea63960a362a14a/de8358853dd9ed9b006a23569bf393aa217ed3be3301a169465d80bfaf839922.bin",
+      "framework_status": "exact",
+      "failure_kinds": [],
+      "message": "",
+      "oracle": {
+        "oracle_id": "vasm",
+        "output_sha256": "de8358853dd9ed9b006a23569bf393aa217ed3be3301a169465d80bfaf839922",
+        "comparison_level": "oracle.full_file_match",
+        "assembler_status": "accepted",
+        "message": "oracle output matched original bytes"
+      },
+      "receipt_id": "07d8f4163342d98b0294ee5229b48eb9922815c2ded2ded5b332153ad8bbbe0f",
+      "revision": "6c2ff4b8274869686b4c7026531862cd205f239898008c69a91cda98aa9a638d"
+    }
+  },
+  "focused_tests": {
+    "passed": 32,
+    "skipped": 2,
+    "scope": "Startup CPU watch and existing Copperline transport tests; network permission required for local socket fixtures. No unchanged native backend tests rerun."
+  },
+  "preservation": {
+    "main_bytes": 412736,
+    "decoded_bytes": 3548,
+    "original_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "assets_unchanged": 57,
+    "headers_unchanged": 14,
+    "accepted_code_bytes": 106034,
+    "unclassified_bytes": 14606,
+    "unclassified_intervals": 261,
+    "generated_source_hand_edited": false,
+    "canonical_histories_append_only": true
+  },
+  "meanings": [
+    "Selected pointer addresses one of147 physical16-byte decoded records; pointer type not imposed universally in encoded parent.",
+    "WORD remaining attempts initialized3 and decremented on retry; model-cache displacement1E0 through A0 is another domain.",
+    "BYTE205 latches each expected character, including zero terminator. BYTE206 latches next input character, whose nonzero suffix retries. They are not generic boolean flags.",
+    "Normal successful checker leaves zero/zero before flight, so the guarded exceptional renderer entry is not exercised by this prefix. It is not declared unreachable or safe under arbitrary state."
+  ],
+  "next": "Follow the shared model/renderer entry and remaining field readers independently of this normal zero-latch contract; keep exceptional provenance conditional.",
+  "validated_target_git_tree": "0bf410c6fbc87444eb2ed5e7bceff7043bcfd4c6",
+  "clean_staged_tree_build": true,
+  "standalone_build": {
+    "schema_version": 1,
+    "status": "pass",
+    "format": "raw_payload_not_AmigaDOS_HUNK",
+    "main_bytes": 412736,
+    "main_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "main_matches_original_identity": true,
+    "asset_count": 57,
+    "all_asset_source_slices_equal": true,
+    "decoded_view_inverse_exact": true,
+    "boot_copy_source_matches_resident_view": true,
+    "source_commit": "dbb3f530fdc58952400bea1f48399208abe562fd",
+    "assembler_sha256": "413e284020125f42709486dfe09907cab3dd9f3c2ea41017c190f8ea68f30825",
+    "flags": [
+      "-Fbin",
+      "-m68000",
+      "-no-opt"
+    ],
+    "outputs": [
+      {
+        "role": "original_main",
+        "filename": "Starglider2-original.raw",
+        "bytes": 412736,
+        "sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9"
+      },
+      {
+        "role": "decoded_analysis_view",
+        "filename": "protection-decoded-analysis.raw",
+        "bytes": 3548,
+        "sha256": "de8358853dd9ed9b006a23569bf393aa217ed3be3301a169465d80bfaf839922"
+      },
+      {
+        "role": "boot_installer_context",
+        "filename": "boot-selector-installer-context.raw",
+        "bytes": 40,
+        "sha256": "8d34852425e2e1bfa87b3febdfc74fb39e7c667e9d9ff73e17b594649e83b21b"
+      },
+      {
+        "role": "boot_resident_view",
+        "filename": "boot-selector-resident.raw",
+        "bytes": 20,
+        "sha256": "a26286a393713c046eff9dbaff15b20b26b171fa9e05fc9d538d16b0eddb6024"
+      }
+    ]
+  }
+}

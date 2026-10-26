@@ -17,10 +17,14 @@ to their recorded closeout revision. See the current
 
 ## Current refinement and next evidence
 
-Latest: the [retirement-face batch](#current-retirement-face-preparation)
-explains three aliases/fields and a signed Y-bias prefix, classifying 64 bytes.
-Generic fields: 55. The preceding world-list batch restores pointer storage and
-raises native range accesses to 3,316 without upgrading fallback provenance.
+Latest: the [cross-view novella latch batch](../../runtime/observations/starglider2-novella-latches.json)
+links four workspace meanings in both original and reversible decoded projects.
+Decoded native access records rise from 4 to 8, including the actual A2/A3 BYTE writes;
+the existing shared propagation recovers them once exact extents are declared.
+The original-media prefix reaches flight at frame 862 after 7 observed CPU writes.
+Original generic fields: 53; unknown 14,606 bytes / 261 intervals unchanged.
+The preceding retirement-face batch classified 64 bytes; world-list restoration
+retains explicit fallback provenance and physical end-slot distinctions.
 
 The shared renderer now writes each data-span comment once: on identical facts
 this removes 12,903 duplicate trailing comments and 410,853 source bytes, with no

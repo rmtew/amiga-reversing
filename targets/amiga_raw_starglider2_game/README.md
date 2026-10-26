@@ -51,7 +51,7 @@ ADF, full input `binary.bin`, captures or assembler executable is committed here
 ## Scope and analysis views
 
 This is the reviewed original absolute-address restoration with explicit
-unknowns: 106034 code bytes are accepted; 14748 bytes in 260 intervals remain
+unknowns: 106034 code bytes are accepted; 14606 bytes in 261 intervals remain
 unclassified. It is not full semantic/all-path restoration or a completed
 walkthrough. The source and assets preserve every original output byte.
 
@@ -64,8 +64,9 @@ The boot installer source uses bootblock-relative logical coordinates (`ORG
 $24`), not an assumed OS boot-buffer address. Its original source context
 contains the 20 bytes copied to actual address `$380`; the resident view renders
 those same bytes there. A matching stacked return PC `$13C06` returns selector
-`$91`, otherwise forwarding to the main PRNG. Post-intro residency and protected
-execution remain unobserved. These views document original media provisioning;
+`$91`, otherwise forwarding to the main PRNG. The original-media flight prefix now has seven CPU write-site windows matching
+the decoded protection view. Post-intro residency of the boot shim itself remains
+unobserved; matching the selector result alone is not a residency proof. These views document original media provisioning;
 they are not a newly supplied loader or bypass to install.
 
 ## Regeneration and history
@@ -97,6 +98,9 @@ and type30 selector exceptions. This is not visual identification or a runtime
 proof of every model. See the current refinement receipt under
 `runtime/observations/starglider2-refinement-text-models.json` in the repository.
 
-The normal-disk probe reached the protection input path, not verified flight.
-No protection answer was supplied and no game state was modified. The old
-private ZIP is historical; this committed source is the refined export.
+After explicit user approval, the original-media probe entered the selected
+answer through normal keyboard input and reached flight. A bounded CPU-only
+watch explains the expected-character and remaining-answer latches; it does not
+cover every protection failure, later writer, model phase or DMA access. No guest
+memory/register writes were used. The old private ZIP is historical; this
+committed source is the refined export.
