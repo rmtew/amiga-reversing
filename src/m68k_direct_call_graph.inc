@@ -86,7 +86,7 @@ static int direct_call_graph_collect(M68kDirectCallGraph *graph, M68kRenderLooku
           if (direct_call_graph_append(graph, callee_index) != 0) goto cleanup;
         }
       }
-      count = typed_flow_successors_for_candidate(section, accepted_start[section_index], index->by_offset,
+      count = typed_flow_successors_for_candidate(lookup, section, accepted_start[section_index], index->by_offset,
         section->size + 1U, candidate, successors, 5U);
       for (successor = 0; successor < count; ++successor) {
         i = successors[successor];

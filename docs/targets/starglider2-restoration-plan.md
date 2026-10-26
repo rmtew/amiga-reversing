@@ -34,7 +34,7 @@ checks. 93 model-directory annotations join 92 original names plus the type 0/1
 alias. Type 30's substituted selector and eleven other placeholder-name entries
 remain explicit. These are catalogue associations, not visual identification or
 an all-path runtime instance census. That early catalogue/hardware suite passed 125 cases; the current focused
-cursor/provenance/integration checks pass 432. Earlier text/renderer checks
+cursor/provenance/integration checks pass 440. Earlier text/renderer checks
 retain their separate receipts. Source
 quality has zero diagnostics and retains the known encoded-entry boundary conflict.
 
@@ -65,7 +65,7 @@ relocation, C conversion or replacement OS loader is part of this project.
 
 ## Active priorities after cursor-span qualification
 
-The current source has 303 app field records, 93 generic names and 14,728
+The current source has 304 app field records, 94 generic names and 14,728
 unclassified bytes in 260 intervals. These measure different kinds of work,
 not overall completion. The current residual index is recomputed from retained
 native facts without another generation; the 15,111-byte/256-interval review
@@ -105,8 +105,8 @@ For those priorities the immediate acceptance questions and dependencies are:
 
 | Limitation | What it currently blocks | Next bounded experiment | Why it is sequenced here |
 | --- | --- | --- | --- |
-| Branchy point-field loop and mutable absolute cursor cell | Renderer read/update spans for world/cache triplets; initialization is bounded | Eight probes distinguish the failures: straight DBF has one range, retry/rollback has none; absolute cursor store/load works until +6 arithmetic. Local absolute store/update/alias invalidation now passes 21 cases. Sparse graph now admits all 435 direct summaries; compare absolute-JMP typed successors with the known source edge, then check cursor=base+6*(initial-counter) across setup/retry and saved-register paths | Actual renderer $4E0AC..$4E332 retries at $4E350 without decrementing D7; cache pointer crosses absolute cell $4E5C0. Whole-root stack transport is fixed but changes no target facts. Global writer-summary storage is not a per-program-point memory value. No target-shaped loop recognizer or dense extra per-node slot array is justified. |
-| Remaining conditional app bases | Explicit provenance for 3,020 fallback records (2,501 A6 and 519 declared-layout), alongside 186 register-state and one library-extension record | Group remaining sites by actual entry/call and base producer/borrow; select one concrete lost or conflicting transfer | The holder contract covers its 28 direct loads, not unknown callbacks or callees without a preservation contract. |
+| Branchy point-field loop and mutable absolute cursor cell | Renderer read/update spans for world/cache triplets; initialization is bounded | Eight probes distinguish the failures: straight DBF has one range, retry/rollback has none; absolute cursor store/load works until +6 arithmetic. Local absolute store/update/alias invalidation now passes 21 cases. Sparse graph now admits all 435 direct summaries; absolute-JMP transfer now consumes the known source edge. Diagnose the clipping body-state limit, then check cursor=base+6*(initial-counter) across setup/retry and saved-register paths | Actual renderer $4E0AC..$4E332 retries at $4E350 without decrementing D7; cache pointer crosses absolute cell $4E5C0. Whole-root stack transport is fixed but changes no target facts. Global writer-summary storage is not a per-program-point memory value. No target-shaped loop recognizer or dense extra per-node slot array is justified. |
+| Remaining conditional app bases | Explicit provenance for 2,998 fallback records (2,486 A6 and 512 declared-layout), alongside 210 register-state and one library-extension record | Group remaining sites by actual entry/call and base producer/borrow; select one concrete lost or conflicting transfer | The holder contract covers its 28 direct loads, not unknown callbacks or callees without a preservation contract. |
 | Orphan incoming path | Deciding whether a specific decoded island belongs in accepted code | Rank current unresolved signals against recovered pointer/table/return edges; choose one with a concrete inbound lead and, only if static evidence remains insufficient, observe that original normal-input condition | Follow recovered access/base evidence to avoid repeatedly scanning instruction-shaped bytes without an entry hypothesis. |
 | Shared buffer phase | Distinguishing producers/consumers of aliased scratch cells and safe source type views | Join the current vertex/cache/polygon writers and readers by original phase/entry; test one suspected overwrite-before-use or cross-phase consumer | Depends on accurate cursor/base associations; physical adjacency or storage capacity alone cannot identify ownership/lifetime. |
 | Model selector ambiguity | Attaching actual selector/variant meaning or an object identity to unresolved names | Join existing header/name/callback records with a selected original runtime instance or direct consumer; retain a counterexample for the type-30 substitution | After access/base work, unless an independent exact table consumer settles a case cheaply. No visual identity is inferred from a name-directory row. |
@@ -209,12 +209,36 @@ index uses 3,667,284 bytes. Full native generation remains 136.25 seconds, so th
 not a whole-pipeline speed claim. The dense graph engine has been replaced,
 not retained as a competing path.
 
-The clipping helper is still unsupported. Source CFG already contains its
-absolute-JMP edge `$4E5C4 -> $5AF2`; the next focused experiment checks whether
-typed-flow/body resolution is failing to consume that canonical mapping. The
-83-block, three-setup-entry renderer also saves/restores D7/A4 across clipping.
-Those exact transfer contracts precede any retry-envelope claim. No target-shaped
-recognizer or speculative code promotion was added.
+The next absolute-JMP batch below confirms and fixes the lost typed-flow/body
+edge `$4E5C4 -> $5AF2`. The helper then reaches the existing body resource limit;
+its effects are still not proved. The 83-block, three-setup-entry renderer saves
+D7/A4 across clipping. Those transfer contracts precede a retry-envelope claim.
+
+## Absolute-JMP transfer: current source gain
+
+The [JMP receipt](../../runtime/observations/starglider2-absolute-jump-flow.json)
+records 30 additional typed consumers with none removed: 27 world-object,
+2 MFM-template and 1 celestial-object access. Total typed accesses are now 314.
+App records rise from 3,207 to 3,209; 23 existing records gain register-state
+attribution. Of the two new records, one is explicit and one remains a qualified
+A6-derived fallback. There are 304 fields, of which 94 retain generic names.
+No meaning was invented for the newly exposed field.
+
+The shared CFG/body resolver now consumes the already-known absolute-JMP target,
+using the same executable mapping as CALL. WORD/LONG positives, pointer-only-view
+refusal and unresolved-tail negatives pass. Accepted successors retain unchanged
+register context; the sequential renderer still clears terminal context. A
+callable summary cannot ignore an unknown tail path merely because another path
+returns. Focused checks pass 440 cases, including the prior native refusal/SCC
+fixtures. C/vasm and the clean staged standalone build remain exact for all
+412,736 bytes. Canonical histories, 57 assets and 106,034 accepted code bytes are
+unchanged; unclassified ownership remains 14,728 bytes/260 intervals.
+
+The clipping trampoline now reaches `$5AF2` and reports `direct_body_limit`.
+The next experiment must distinguish path-state explosion from a genuinely
+large body and use shared CFG/value joins rather than raise a cap. Retry ranges,
+caller-entry base transport and orphan/shared-buffer interpretation remain open;
+this batch does not stand in for those contracts or for new runtime coverage.
 
 ## Committed buildable rendered output
 

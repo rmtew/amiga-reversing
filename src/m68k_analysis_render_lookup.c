@@ -6035,23 +6035,36 @@ static uint8_t typed_flow_instruction_written_unsaved_address_mask(const M68kIns
   return written_mask;
 }
 
-static int typed_flow_first_local_control_target(const M68kDecodeSectionIR *section,
+static int typed_flow_local_absolute_jump_target(const M68kRenderLookup *lookup,
+    const M68kDecodeCandidate *candidate, size_t *out_section, uint32_t *out_offset);
+
+static int typed_flow_first_local_control_target(const M68kRenderLookup *lookup, const M68kDecodeSectionIR *section,
     const M68kDecodeCandidate *candidate, uint32_t *out_target) {
   size_t index;
+  int found = 0;
   if (out_target != NULL) *out_target = 0U;
   if (section == NULL || candidate == NULL || out_target == NULL) return 0;
+  {
+    size_t target_section;
+    uint32_t target_offset;
+    if (typed_flow_local_absolute_jump_target(lookup, candidate, &target_section, &target_offset)) {
+      if (target_section != section->section_index || target_offset >= section->size) return 0;
+      *out_target = target_offset; return 1;
+    }
+  }
   for (index = 0U; index < candidate->target_count; ++index) {
     const M68kDecodeTarget *target = &candidate->targets[index];
     if ((target->kind == M68K_DECODE_TARGET_BRANCH || target->kind == M68K_DECODE_TARGET_JUMP) &&
         target->has_section && target->section_index == section->section_index && target->offset < section->size) {
-      *out_target = target->offset;
-      return 1;
+      if (found && *out_target != target->offset) return 0;
+      *out_target = target->offset; found = 1;
     }
   }
-  return 0;
+  return found;
 }
 
-static int typed_flow_local_call_target(const M68kRenderLookup *lookup, const M68kDecodeCandidate *candidate,
+static int typed_flow_local_absolute_control_target(const M68kRenderLookup *lookup,
+    const M68kDecodeCandidate *candidate, uint8_t flow,
     size_t *out_section_index, uint32_t *out_target_offset) {
   M68kInstructionIR instruction;
   const M68kSimFormMetadata *metadata;
@@ -6062,13 +6075,13 @@ static int typed_flow_local_call_target(const M68kRenderLookup *lookup, const M6
   if (lookup == NULL || candidate == NULL || out_section_index == NULL || out_target_offset == NULL) return 0;
   if (m68k_decode_candidate_to_instruction(candidate, &instruction) != 0 ||
       (metadata = m68k_sim_metadata_for_instruction(&instruction)) == NULL ||
-      metadata->flow_kind != M68K_SIM_FLOW_CALL || metadata->target_operand_index >= instruction.operand_count) {
+      metadata->flow_kind != flow || metadata->target_operand_index >= instruction.operand_count) {
     return candidate_direct_target(candidate, out_section_index, out_target_offset);
   }
   operand = &instruction.operands[metadata->target_operand_index];
-  if (operand->kind != M68K_ASM_OPERAND_EA || operand->value.ea_mode != 7U || operand->value.ea_reg != 1U)
+  if (operand->kind != M68K_ASM_OPERAND_EA || operand->value.ea_mode != 7U || (operand->value.ea_reg != 0U && operand->value.ea_reg != 1U))
     return candidate_direct_target(candidate, out_section_index, out_target_offset);
-  absolute_address = operand->value.value;
+  if (!operand_absolute_offset_local(operand, &absolute_address)) return 0;
   /* A pointer-only observed view is not generally executable.  An exact
      runtime code label independently proves this one absolute call target. */
   if (lookup->policy != NULL) {
@@ -6095,6 +6108,29 @@ static int typed_flow_local_call_target(const M68kRenderLookup *lookup, const M6
   if (render_lookup_pointer_value_to_object_source_location(lookup, absolute_address, out_section_index,
       out_target_offset)) return 1;
   return candidate_direct_target(candidate, out_section_index, out_target_offset);
+}
+
+/* CALL and absolute JMP share the same executable runtime/source mapping.
+ * Indirect multi-target jumps keep their existing complete successor vector. */
+static int typed_flow_local_call_target(const M68kRenderLookup *lookup, const M68kDecodeCandidate *candidate,
+    size_t *out_section_index, uint32_t *out_target_offset) {
+  return typed_flow_local_absolute_control_target(lookup, candidate, M68K_SIM_FLOW_CALL,
+    out_section_index, out_target_offset);
+}
+
+static int typed_flow_local_absolute_jump_target(const M68kRenderLookup *lookup,
+    const M68kDecodeCandidate *candidate, size_t *out_section, uint32_t *out_offset) {
+  M68kInstructionIR instruction;
+  const M68kSimFormMetadata *metadata;
+  const M68kOperandIR *operand;
+  if (candidate == NULL || m68k_decode_candidate_to_instruction(candidate, &instruction) != 0 ||
+      (metadata = m68k_sim_metadata_for_instruction(&instruction)) == NULL ||
+      metadata->flow_kind != M68K_SIM_FLOW_JUMP || metadata->target_operand_index >= instruction.operand_count)
+    return 0;
+  operand = &instruction.operands[metadata->target_operand_index];
+  if (operand->kind != M68K_ASM_OPERAND_EA || operand->value.ea_mode != 7U || (operand->value.ea_reg != 0U && operand->value.ea_reg != 1U))
+    return 0;
+  return typed_flow_local_absolute_control_target(lookup, candidate, M68K_SIM_FLOW_JUMP, out_section, out_offset);
 }
 
 /* A bounded callee proof starts with no hardware constants. These compact
@@ -6610,7 +6646,7 @@ static int typed_flow_local_callee_effect_summary(const M68kRenderLookup *lookup
         returned = 1U;
         break;
       }
-      if (typed_flow_first_local_control_target(section, candidate, &branch_target)) {
+      if (typed_flow_first_local_control_target(lookup, section, candidate, &branch_target)) {
         if (metadata->flow_kind == M68K_SIM_FLOW_JUMP ||
             (metadata->flow_kind == M68K_SIM_FLOW_BRANCH && metadata->flow_conditional == 0U)) {
           state.offset = branch_target;
@@ -6628,9 +6664,9 @@ static int typed_flow_local_callee_effect_summary(const M68kRenderLookup *lookup
         memcpy(worklist[work_count - 1U].entry_origin, state.entry_origin, sizeof(state.entry_origin));
         memcpy(worklist[work_count - 1U].data_origin, state.data_origin, sizeof(state.data_origin));
       }
-      if (metadata->flow_kind == M68K_SIM_FLOW_JUMP ||
-          (metadata->flow_kind == M68K_SIM_FLOW_BRANCH && metadata->flow_conditional == 0U) ||
-          metadata->flow_kind == M68K_SIM_FLOW_TRAP || candidate->byte_count > section->size - state.offset) break;
+      if (metadata->flow_kind == M68K_SIM_FLOW_JUMP || metadata->flow_kind == M68K_SIM_FLOW_TRAP) return 0;
+      if ((metadata->flow_kind == M68K_SIM_FLOW_BRANCH && metadata->flow_conditional == 0U) ||
+          candidate->byte_count > section->size - state.offset) return 0;
       state.offset += candidate->byte_count;
     }
     if (step == M68K_RENDER_TYPED_FLOW_LOCAL_CALLEE_INSTRUCTION_LIMIT) {
@@ -6973,7 +7009,8 @@ static int render_lookup_collect_inferred_direct_function_summaries(M68kRenderLo
   return 0;
 }
 
-static int typed_flow_successors_for_candidate(const M68kDecodeSectionIR *section, const uint8_t *accepted_start,
+static int typed_flow_successors_for_candidate(const M68kRenderLookup *lookup,
+    const M68kDecodeSectionIR *section, const uint8_t *accepted_start,
     const size_t *node_by_offset, uint32_t node_by_offset_count, const M68kDecodeCandidate *candidate,
     size_t *out_successors, size_t successor_capacity);
 
@@ -8819,7 +8856,8 @@ static int typed_flow_merge_input(M68kRenderTypedFlowNode *node, const M68kRende
   return changed;
 }
 
-static int typed_flow_successors_for_candidate(const M68kDecodeSectionIR *section, const uint8_t *accepted_start,
+static int typed_flow_successors_for_candidate(const M68kRenderLookup *lookup,
+    const M68kDecodeSectionIR *section, const uint8_t *accepted_start,
     const size_t *node_by_offset, uint32_t node_by_offset_count, const M68kDecodeCandidate *candidate,
     size_t *out_successors, size_t successor_capacity) {
   size_t count = 0U;
@@ -8829,6 +8867,17 @@ static int typed_flow_successors_for_candidate(const M68kDecodeSectionIR *sectio
   if (section == NULL || accepted_start == NULL || node_by_offset == NULL || candidate == NULL ||
       out_successors == NULL) {
     return 0;
+  }
+  {
+    size_t target_section;
+    uint32_t target_offset;
+    if (typed_flow_local_absolute_jump_target(lookup, candidate, &target_section, &target_offset)) {
+      if (target_section == section->section_index && target_offset < node_by_offset_count &&
+          node_by_offset[target_offset] != SIZE_MAX && successor_capacity != 0U) {
+        out_successors[0] = node_by_offset[target_offset]; return 1;
+      }
+      return 0;
+    }
   }
   for (target_index = 0U; target_index < candidate->target_count; ++target_index) {
     const M68kDecodeTarget *target = &candidate->targets[target_index];
@@ -9421,6 +9470,8 @@ static int typed_flow_process_node(M68kRenderLookup *lookup, const M68kDecodeIR 
     uint8_t reg;
     platform_state_update_data_lvo_after_instruction(out_platform_state, &instruction);
     platform_state_update_after_instruction(out_platform_state, lookup, &instruction);
+    if (metadata != NULL && metadata->flow_kind == M68K_SIM_FLOW_JUMP && node->successor_count != 0U)
+      *out_platform_state = before;
     for (reg = 0U; metadata != NULL && reg < 8U; ++reg) {
       uint32_t bit = (uint32_t)1U << reg;
       if (metadata->flow_kind == M68K_SIM_FLOW_JUMP ||
@@ -9467,7 +9518,8 @@ static int typed_flow_process_node(M68kRenderLookup *lookup, const M68kDecodeIR 
   typed_state_project_layout_roots(out_typed_state, lookup, out_platform_state);
   typed_state_import_layout_roots(out_typed_state, lookup, out_platform_state, section->section_index,
     node->candidate->offset);
-  if (candidate_terminates_a6_state(node->candidate)) typed_state_clear_all(out_typed_state);
+  if (candidate_terminates_a6_state(node->candidate) && node->successor_count == 0U)
+    typed_state_clear_all(out_typed_state);
   return 0;
 }
 
@@ -9554,13 +9606,14 @@ static void typed_flow_graph_destroy(M68kRenderTypedFlowGraph *graph) {
   memset(graph, 0, sizeof(*graph));
 }
 
-static void typed_flow_build_successors_for_nodes(const M68kDecodeSectionIR *section, const uint8_t *accepted_start,
+static void typed_flow_build_successors_for_nodes(const M68kRenderLookup *lookup,
+    const M68kDecodeSectionIR *section, const uint8_t *accepted_start,
     M68kRenderTypedFlowNode *nodes, size_t node_count, const size_t *node_by_offset,
     uint32_t node_by_offset_count) {
   size_t node_index;
   if (section == NULL || accepted_start == NULL || nodes == NULL || node_by_offset == NULL) return;
   for (node_index = 0U; node_index < node_count; ++node_index) {
-    int successor_count = typed_flow_successors_for_candidate(section, accepted_start, node_by_offset,
+    int successor_count = typed_flow_successors_for_candidate(lookup, section, accepted_start, node_by_offset,
       node_by_offset_count, nodes[node_index].candidate, nodes[node_index].successors,
       sizeof(nodes[node_index].successors) / sizeof(nodes[node_index].successors[0]));
     nodes[node_index].successor_count = (uint8_t)(successor_count > 0 ? successor_count : 0);
@@ -9653,7 +9706,8 @@ static int typed_flow_initialize_roots(const M68kAnalysisPolicy *policy, const M
 
 static int typed_flow_build_predecessors(M68kRenderTypedFlowGraph *graph, Arena *arena);
 
-static int typed_flow_graph_build(M68kRenderTypedFlowGraph *graph, const M68kAnalysisPolicy *policy,
+static int typed_flow_graph_build(M68kRenderTypedFlowGraph *graph, const M68kRenderLookup *lookup,
+    const M68kAnalysisPolicy *policy,
     const M68kDecodeSectionIR *section,
     const uint8_t *accepted_start, Arena *arena) {
   if (graph == NULL) return -1;
@@ -9662,7 +9716,7 @@ static int typed_flow_graph_build(M68kRenderTypedFlowGraph *graph, const M68kAna
       &graph->node_by_offset, &graph->node_by_offset_count, arena) != 0) {
     return -1;
   }
-  typed_flow_build_successors_for_nodes(section, accepted_start, graph->nodes, graph->node_count,
+  typed_flow_build_successors_for_nodes(lookup, section, accepted_start, graph->nodes, graph->node_count,
     graph->node_by_offset, graph->node_by_offset_count);
   if (typed_flow_build_predecessors(graph, arena) != 0) {
     typed_flow_graph_destroy(graph);
@@ -10169,7 +10223,7 @@ static int typed_flow_workflow_prepare(M68kRenderTypedFlowWorkflow *workflow,
   if (workflow->graphs == NULL) goto fail;
   workflow->section_count = decode->section_count;
   for (section_index = 0U; section_index < decode->section_count; ++section_index) {
-    if (typed_flow_graph_build(&workflow->graphs[section_index], lookup->policy,
+    if (typed_flow_graph_build(&workflow->graphs[section_index], lookup, lookup->policy,
         &decode->sections[section_index], accepted_start[section_index], workflow->arena) != 0) {
       goto fail;
     }

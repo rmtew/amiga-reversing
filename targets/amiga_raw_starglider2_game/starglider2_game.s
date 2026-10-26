@@ -248,7 +248,9 @@ reticle_neutral_screen_y RS.W 1
 point_field_plane_byte_stride RS.W 1
     RS.B 6
 active_model_scale_shift RS.W 1
-    RS.B 65
+    RS.B 44
+app_01D8 RS.W 1
+    RS.B 19
 polygon_clip_plane_mask RS.B 1
     RS.B 1
 app_01EF RS.B 1
@@ -18309,9 +18311,9 @@ abs_0_00010818:
 	lea.l disk_sector_interleave_order(pc),a3
 	move.b $0(a3,d0.w),d0
 	move.b d0,disk_service_state_current_sector_id.l
-	move.b d0,$0006(a1)
+	move.b d0,SG2MfmIdTemplate_sync_zero_seed+6(a1)
 	move.w disk_service_state_current_cylinder.l,d0
-	move.b d0,$0004(a1)
+	move.b d0,SG2MfmIdTemplate_sync_zero_seed+4(a1)
 	moveq.l #7,d2
 	bsr.w update_crc16_1021_bytes
 	move.b d6,disk_service_state_crc_high.l
@@ -45290,7 +45292,7 @@ split_asteroid_continuation:
 	move.b #$3,$001C(a3)
 	move.b #$FF,$001E(a2)
 	move.b #$FF,$001E(a3)
-	move.b $001D(a0),d0
+	move.b SG2WorldObject_model_scale_shift(a0),d0
 	addq.b #1,d0
 	move.b d0,$001D(a2)
 	move.b d0,$001D(a3)
@@ -45303,9 +45305,9 @@ split_asteroid_continuation:
 	move.w d0,$0024(a2)
 	move.w d0,$0024(a3)
 abs_0_00035CC0:
-	clr.b $001E(a0)
-	bclr.b #2,$0002(a0)
-	bclr.b #3,$0002(a0)
+	clr.b SG2WorldObject_retirement_phase_or_negative(a0)
+	bclr.b #2,SG2WorldObject_flags(a0)
+	bclr.b #3,SG2WorldObject_flags(a0)
 	clr.b $001C(a0)
 abs_0_00035CD4:
 	bra.w abs_0_00039D56
@@ -45769,7 +45771,7 @@ abs_0_00036318:
 	st.b pending_transient_event_sound(a6)
 abs_0_00036326:
 	move.w #$FFFF,$0012(a0)
-	addi.l #100,$0036(a0)
+	addi.l #100,SG2CelestialObject_radius_work_value(a0)
 	move.w $0010(a0),d0
 	lea.l abs_0_00039616.l,a1
 	move.b $0(a1,d0.w),$0014(a0)
@@ -46104,21 +46106,21 @@ abs_0_0003675A:
 	movea.l nearby_space_station_reference(a6),a1
 	move.l SG2WorldObject_world_x(a0),d0
 	move.l SG2WorldObject_world_y(a0),d1
-	move.l $000C(a0),d2
+	move.l SG2WorldObject_world_z(a0),d2
 	sub.l $0004(a1),d0
 	sub.l $0008(a1),d1
 	sub.l $000C(a1),d2
 	asr.l #5,d0
 	asr.l #5,d1
 	asr.l #5,d2
-	sub.l d0,$0004(a0)
-	sub.l d1,$0008(a0)
-	sub.l d2,$000C(a0)
+	sub.l d0,SG2WorldObject_world_x(a0)
+	sub.l d1,SG2WorldObject_world_y(a0)
+	sub.l d2,SG2WorldObject_world_z(a0)
 abs_0_000367AA:
 	subq.w #1,$0024(a0)
 	bpl.b abs_0_000367B8
 abs_0_000367B0:
-	clr.b $001E(a0)
+	clr.b SG2WorldObject_retirement_phase_or_negative(a0)
 	bsr.w handle_neutron_bomb_detonation
 abs_0_000367B8:
 	rts
@@ -46434,10 +46436,10 @@ abs_0_00036C54:
 	move.b #$58,$002A(a4)
 	move.b #$2F,$002A(a0)
 	move.w #$2F,(a4)
-	move.l $0004(a0),$0004(a4)
-	move.l $000C(a0),$000C(a4)
+	move.l SG2WorldObject_world_x(a0),$0004(a4)
+	move.l SG2WorldObject_world_z(a0),$000C(a4)
 	move.l #$FFFFBD98,d0
-	move.b $001D(a0),d1
+	move.b SG2WorldObject_model_scale_shift(a0),d1
 	asr.l d1,d0
 	move.l d0,$0008(a4)
 	bset.b #7,$001C(a4)
@@ -46463,11 +46465,11 @@ abs_0_00036D14:
 	move.l #$C8,d2
 	move.l player_world_x(a6),d0
 	move.l player_world_z(a6),d1
-	sub.l $0004(a0),d0
+	sub.l SG2WorldObject_world_x(a0),d0
 	bpl.b abs_0_00036D2A
 	neg.l d0
 abs_0_00036D2A:
-	sub.l $000C(a0),d1
+	sub.l SG2WorldObject_world_z(a0),d1
 	bpl.b abs_0_00036D32
 	neg.l d1
 abs_0_00036D32:
@@ -46647,9 +46649,9 @@ abs_0_00036F84:
 	move.w #$48,(a4)
 	sf.b $0022(a4)
 	move.w #$C8,$0024(a4)
-	move.l $0004(a0),$0004(a4)
-	move.l $0008(a0),$0008(a4)
-	move.l $000C(a0),$000C(a4)
+	move.l SG2WorldObject_world_x(a0),$0004(a4)
+	move.l SG2WorldObject_world_y(a0),$0008(a4)
+	move.l SG2WorldObject_world_z(a0),$000C(a4)
 	move.w $0010(a0),$0010(a4)
 	move.w $0012(a0),d7
 	tst.w $0028(a0)
@@ -46704,12 +46706,12 @@ abs_0_0003704C:
 	andi.w #255,d0
 	move.w d0,(a4)
 	move.l #$FFFFFFFF,$003C(a4)
-	move.l $0004(a0),$0004(a4)
-	move.l $0008(a0),$0008(a4)
-	move.l $000C(a0),$000C(a4)
-	move.w $002C(a0),d0
-	move.w $002E(a0),d1
-	move.w $0030(a0),d2
+	move.l SG2WorldObject_world_x(a0),$0004(a4)
+	move.l SG2WorldObject_world_y(a0),$0008(a4)
+	move.l SG2WorldObject_world_z(a0),$000C(a4)
+	move.w SG2WorldObject_velocity_x(a0),d0
+	move.w SG2WorldObject_velocity_y(a0),d1
+	move.w SG2WorldObject_velocity_z(a0),d2
 	asr.w #2,d0
 	asr.w #2,d1
 	asr.w #2,d2
@@ -46721,13 +46723,13 @@ abs_0_0003704C:
 	clr.b $0003(a4)
 	move.b #$4,$001D(a4)
 	clr.w $0020(a4)
-	clr.b $001E(a0)
-	bclr.b #2,$0002(a0)
-	bclr.b #3,$0002(a0)
+	clr.b SG2WorldObject_retirement_phase_or_negative(a0)
+	bclr.b #2,SG2WorldObject_flags(a0)
+	bclr.b #3,SG2WorldObject_flags(a0)
 	clr.b $001C(a0)
 	st.b pending_transient_event_sound(a6)
 	lea.l object_destruction_bcd_awards.l,a1
-	move.w (a0),d0
+	move.w (a0),d0	; operand 1: SG2WorldObject_object_type at (a0)
 	add.w d0,d0
 	move.w $0(a1,d0.w),d0
 	add.w d0,pending_bcd_score_addend(a6)
