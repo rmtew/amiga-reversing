@@ -34,7 +34,7 @@ checks. 93 model-directory annotations join 92 original names plus the type 0/1
 alias. Type 30's substituted selector and eleven other placeholder-name entries
 remain explicit. These are catalogue associations, not visual identification or
 an all-path runtime instance census. That early catalogue/hardware suite passed 125 cases; the current focused
-cursor/provenance/integration suite passes 299. Earlier text/renderer checks
+cursor/provenance/integration suite passes 330. Earlier text/renderer checks
 retain their separate receipts. Source
 quality has zero diagnostics and retains the known encoded-entry boundary conflict.
 
@@ -2490,3 +2490,25 @@ loads/stack transfer propagation are the next related implementation dependency;
 unknown indirect entries, cross-owner ranges and arbitrary replacement models
 are not silently admitted. See
 `runtime/observations/starglider2-counted-app-loop-ranges.json`.
+
+
+## Saved app cursor frames and overlapping writes
+
+The next generic transfer fix retains an untyped app cursor across balanced
+MOVEM.L stack save/restore, including mixed data/address-register masks. The
+existing path omitted app displacement/base evidence and then discarded its
+recognized frame. Two small fixtures reproduced this loss. Restoring the frame
+also exposed stale facts after partial writes into a saved LONG: stack writes
+now invalidate every intersecting tracked value, not only an exactly matching
+start offset. WORD saves, unknown stack adjustment and A7-in-mask cases remain
+unadmitted. The 330 focused tests pass, including byte/word interior overwrites.
+
+This is a prerequisite, not a claimed target gain: the complete current native
+analysis remains identical (3,175 app references, 248 typed accesses). Current
+C/vasm exact verification passes; inline and all 57 packaged assets/source are
+unchanged. The 94.76-second generation is one observed sample, not a performance
+claim. No new runtime observation, field name, classified byte or orphan entry
+is asserted. The branchy renderer still needs its counter/retry/rollback
+relation. Next is app-base propagation from the mutable global holder, preceded
+by focused tests for stale identities after arithmetic and partial copies. See
+`runtime/observations/starglider2-app-cursor-stack.json`.

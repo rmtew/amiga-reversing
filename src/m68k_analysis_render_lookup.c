@@ -3341,6 +3341,21 @@ static void typed_state_clear_stack_slot(M68kRenderTypedState *state, int16_t di
   }
 }
 
+/* Stack facts describe full LONG values.  A write into any byte of one
+ * invalidates it, including an unaligned partial overwrite of a saved cursor. */
+static void typed_state_clear_stack_write(M68kRenderTypedState *state, int16_t displacement,
+    uint8_t width) {
+  size_t index = 0U;
+  if (state == NULL) return;
+  if (width == 0U) { typed_state_clear_stack_slots(state); return; }
+  while (index < state->stack_slot_count) {
+    int32_t start = state->stack_slots[index].displacement;
+    if (start < (int32_t)displacement + width && (int32_t)displacement < start + 4) {
+      state->stack_slots[index] = state->stack_slots[--state->stack_slot_count];
+    } else ++index;
+  }
+}
+
 static void typed_state_set_stack_slot(M68kRenderTypedState *state, int16_t displacement,
     uint8_t caller_save_temporary, uint8_t abi_stack_convention, const M68kRenderTypedStoredValue *value,
     const M68kRenderTypedMemoryBaseValue *memory_base) {
@@ -5469,10 +5484,11 @@ static int render_lookup_record_typed_storage_store(M68kRenderLookup *lookup, M6
     return -1;
   }
   if (operand_is_stack_displacement_local(dest_operand, &stack_displacement)) {
-    if (typed_stored_value_has_useful_info(&value))
+    typed_state_clear_stack_write(state, stack_displacement,
+      m68k_sim_operand_width_bytes(instruction, (uint8_t)dest_index));
+    if (instruction->size_suffix == 'l' && typed_stored_value_has_useful_info(&value))
       typed_state_set_stack_slot(state, stack_displacement, 0U,
         M68K_FUNCTION_SUMMARY_ABI_STACK_CALLER_ARGUMENT, &value, NULL);
-    else typed_state_clear_stack_slot(state, stack_displacement);
     return 0;
   }
   /* Raw scalar identity may cross registers and stack temporaries, where a
@@ -5579,7 +5595,8 @@ static int render_lookup_record_untyped_memory_writes(M68kRenderLookup *lookup, 
     int added = 0;
     if (metadata->operand_access_kinds[operand_index] != M68K_SIM_ACCESS_MEMORY_WRITE) continue;
     if (operand_is_stack_displacement_local(operand, &stack_displacement)) {
-      typed_state_clear_stack_slot(state, stack_displacement);
+      typed_state_clear_stack_write(state, stack_displacement,
+        m68k_sim_operand_width_bytes(instruction, (uint8_t)operand_index));
     }
     if (operand_is_address_memory_local(operand, &base_reg, &base_displacement) && base_reg < 8U &&
         base_reg != 7U && !render_state_operand_uses_app_base(platform_state, base_reg, base_displacement)) {
@@ -7195,11 +7212,13 @@ static void typed_state_update_after_instruction(M68kRenderTypedState *state, M6
     }
   } else if (instruction->mnemonic_id == M68K_ASM_MNEMONIC_MOVEM && instruction->size_suffix == 'l' &&
       instruction->operand_count == 2U && instruction->operands[0].kind == M68K_ASM_OPERAND_REGLIST &&
+      (instruction->operands[0].value.value & (1UL << 15U)) == 0U &&
       operand_is_predec_a7_local(&instruction->operands[1])) {
     uint32_t mask = instruction->operands[0].value.value;
     int16_t displacement = 0;
     for (bit = 0U; bit < 16U; ++bit) if ((mask & (1UL << bit)) != 0U) ++displacement;
     typed_state_rebase_stack_slots(state, (int16_t)(displacement * 4));
+    recognized_stack_update = 1;
     displacement = 0;
     for (bit = 0U; bit < 16U; ++bit) {
       M68kRenderTypedStoredValue saved;
@@ -7212,6 +7231,9 @@ static void typed_state_update_after_instruction(M68kRenderTypedState *state, M6
         saved.array_element_index = state->addr_regs[reg].array_element_index;
         saved.byte_cursor = state->addr_regs[reg].byte_cursor;
         saved.provenance = state->addr_regs[reg].provenance;
+        saved.app_address_known = state->app_addr_regs[reg].known;
+        saved.app_displacement = state->app_addr_regs[reg].displacement;
+        saved.app_base_evidence_kind = state->app_addr_regs[reg].base_evidence_kind;
         typed_stored_value_update_known(&saved);
         typed_state_set_stack_slot(state, displacement, 1U, M68K_FUNCTION_SUMMARY_ABI_STACK_NONE,
           &saved, &state->memory_base_regs[reg]);
@@ -7220,7 +7242,8 @@ static void typed_state_update_after_instruction(M68kRenderTypedState *state, M6
     }
   } else if (instruction->mnemonic_id == M68K_ASM_MNEMONIC_MOVEM && instruction->size_suffix == 'l' &&
       instruction->operand_count == 2U && operand_is_postinc_a7_local(&instruction->operands[0]) &&
-      instruction->operands[1].kind == M68K_ASM_OPERAND_REGLIST) {
+      instruction->operands[1].kind == M68K_ASM_OPERAND_REGLIST &&
+      (instruction->operands[1].value.value & (1UL << 15U)) == 0U) {
     uint32_t mask = instruction->operands[1].value.value;
     int16_t displacement = 0;
     for (bit = 0U; bit < 16U; ++bit) {
@@ -7235,11 +7258,17 @@ static void typed_state_update_after_instruction(M68kRenderTypedState *state, M6
         if (saved != NULL && saved->struct_id != AMIGA_OS_STRUCT_ID_NONE)
           typed_state_set_reg_struct_id_array(state, 2U, reg, saved->struct_id,
             saved->array_element_count, saved->array_element_index, &saved->provenance);
+        if (saved != NULL && saved->app_address_known) {
+          state->app_addr_regs[reg].known = 1U;
+          state->app_addr_regs[reg].displacement = saved->app_displacement;
+          state->app_addr_regs[reg].base_evidence_kind = saved->app_base_evidence_kind;
+        }
         if (memory_base != NULL) state->memory_base_regs[reg] = *memory_base;
       }
       displacement = (int16_t)(displacement + 4);
     }
     typed_state_rebase_stack_slots(state, (int16_t)-displacement);
+    recognized_stack_update = 1;
   } else if (instruction->mnemonic_id == M68K_ASM_MNEMONIC_MOVEM && instruction->operand_count >= 2U &&
       instruction->operands[1].kind == M68K_ASM_OPERAND_REGLIST) {
     for (bit = 0U; bit < 8U; ++bit) {
