@@ -2152,3 +2152,48 @@ this batch does not pretend that every canonical source export can skip
 analysis. Type, extent and ownership changes continue invalidating native facts.
 The next source-restoration batch is the connected view/clip geometry and
 alternate-graphics mode, using its actual producers and consumers.
+
+
+## Shared view geometry and the point field
+
+The next 22 canonical changes restore shared clipping, model-scale and
+point-field contracts: nine field declarations and names, eight code labels
+(including internal continuations/results), and five entry comments. The app
+catalogue grows from 292 to 299 records; generic names fall from 109 to 107.
+This is improved source structure and purpose, with no reduction in the 14,748
+unclassified original bytes and no new code promotion.
+
+The four inclusive view bounds default to X 16..303 and Y 30..128. Their
+consumers connect viewport clearing/horizon bands, model projection, HUD sprite
+placement and line/point clipping. The line clip entry saves D1-D3 and accepts
+or rejects D4/D5 and D6/D7 endpoints with D0 equal to zero or -1. Its internal
+continuation/result labels retain the saved-frame precondition and original
+arithmetic limits. The active model-scale WORD comes from the object's low
+four scale bits, model-viewer controls and original defaults/overlay adjustment;
+it is not a persistent per-object field.
+
+A finite producer/consumer pair establishes two adjacent 120-byte regions:
+20 world XYZ WORD triplets at app+$BC6 and 20 previous-view XYZ triplets at
+app+$C3E. Initialization randomizes points around the player and clears the
+previous-view tuples. Rendering rotates/projects them, uses old view positions
+for fast-flight trails, and recycles rejected points. These are point-field
+roles, not guessed model/object identities. The plane WORD stride is $2000
+(8192 bytes) for Amiga, 2 bytes for alternate mode 0 and zero for alternate mode
+1. The alternate graphics flag comes from its original mode-selection and
+conversion path; no alternate-platform runtime test is claimed.
+
+The native app-access catalogue gains 213 records: 197 clip-bound, 12 scale and
+four plane-stride accesses. Every added record explicitly carries
+`declared_layout_a6_fallback`; declarations disambiguate these numeric offsets,
+not prove the base at every original entry. A remaining missing link is visible:
+there are still zero direct app-access records for the previous-view cache,
+despite the demonstrated derived A4/A5 and saved-cursor accesses. Zero catalogue
+records do not mean zero usage. This is the next bounded provenance/projection
+lead, rather than evidence to backfill fabricated references from source text.
+
+The current-backend C/vasm check reproduces all 412,736 original bytes, and all
+57 INCBIN assets remain unchanged. Source quality has zero diagnostics and
+all typed worklists remain converged. This necessary native regeneration took
+77.64 seconds. See
+`runtime/observations/starglider2-view-geometry-and-point-field.json` for the
+source contract, per-field references and clean standalone-build result.

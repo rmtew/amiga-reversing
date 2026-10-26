@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
   "kind": "committed_native_rendered_original_export",
-  "canonical_source_commit": "a14e80c212b8d989f43161586c7caba6d9a8ff9c",
-  "publication_base_commit": "a14e80c212b8d989f43161586c7caba6d9a8ff9c",
+  "canonical_source_commit": "1eb272d3e6b9aa6ea1e41582e628cfd05eebe238",
+  "publication_base_commit": "1eb272d3e6b9aa6ea1e41582e628cfd05eebe238",
   "native_export": "CListingArtifact.source_package_payload(64)",
-  "main_source_sha256": "57a454948aa3bdba80756c33878d32871142f4aa6e052281b2cba5dd13d2ac63",
+  "main_source_sha256": "f7aa1bd1fee775e01c9aec67f2dfd257c8aeea5c5bc3480f92ad3fda257b5e2b",
   "asset_count": 57,
   "asset_bytes": 93633,
   "game_assembly_hand_edits": false,
@@ -25,12 +25,12 @@
     "paused Pandora work"
   ],
   "canonical_source_commit_role": "framework/publication base, not a claim that accompanying facts already existed in that commit",
-  "canonical_source_subject_revision": "32435bf96c6938d6181723e4f1682decfe6e7a42dd05d6dc2594cc90a37517d3",
+  "canonical_source_subject_revision": "45f101988790fe7afaeae0fa174c11abadcf08fb160fc14fc94adee56d800571",
   "canonical_fact_sha256": {
     "source_binary.json": "42d4a5758b3e8236af7f912aee85e9ee5323bcd0961faa338c4f864080a0a7d9",
     "target_metadata.json": "e7540b68c118c56aba8815b6722eefa067517cc865fe9841d6c01ce96551389c",
-    "manual_actions.jsonl": "b9f723834f71457116f206afaea8ecac5acd3a35861f5e1abab4a50d1f18c2e7",
-    "decision_journal.jsonl": "e9d499f80536200b4c798eb035434707330a8b9bc356953b7e568edaef78696b"
+    "manual_actions.jsonl": "efeda162ced943a07f18c0e4bb6abfc70a80933b5c767bd4eec92deade01a9ac",
+    "decision_journal.jsonl": "2181957294b9b6edfb73fcb5c1ca118e497df06b25ca6e1a50b414ee58ab4245"
   },
-  "refinement_receipt": "runtime/observations/starglider2-tractor-contact-and-sequence-performance.json"
+  "refinement_receipt": "runtime/observations/starglider2-view-geometry-and-point-field.json"
 }

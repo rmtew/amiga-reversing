@@ -203,7 +203,12 @@ disc_record_write_cursor RS.L 1
 disc_reference_write_cursor RS.L 1
     RS.B 48
 app_00AC RS.L 1
-    RS.B 68
+    RS.B 52
+view_clip_min_x RS.W 1
+view_clip_max_x RS.W 1
+view_clip_min_y RS.W 1
+view_clip_max_y RS.W 1
+    RS.B 8
 model_view_matrix RS.B 18
 view_rotation_matrix RS.B 18
 model_rotation_0 RS.W 1
@@ -234,13 +239,17 @@ projection_screen_origin_y RS.W 1
     RS.B 4
 reticle_neutral_screen_x RS.W 1
 reticle_neutral_screen_y RS.W 1
-    RS.B 77
+    RS.B 2
+point_field_plane_byte_stride RS.W 1
+    RS.B 6
+active_model_scale_shift RS.W 1
+    RS.B 65
 app_01ED RS.B 1
     RS.B 1
 app_01EF RS.B 1
 app_01F0 RS.B 1
     RS.B 1
-app_01F2 RS.B 1
+alternate_graphics_mode RS.B 1
     RS.B 1
 app_01F4 RS.B 1
 app_01F5 RS.B 1
@@ -498,8 +507,9 @@ app_0BB9 RS.B 1
 app_0BBA RS.B 1
 app_0BBB RS.B 1
     RS.B 10
-app_0BC6 RS.L 1
-    RS.B 476
+point_field_world_positions RS.B 120
+point_field_previous_view_positions RS.B 120
+    RS.B 240
 model_type_target_selection_tags_prefix RS.B 103
     RS.B 151
 app_0EA4 RS.L 1
@@ -1125,7 +1135,7 @@ clear_game_workspace_loop:
 	move.b #$1,diagnostic_step_byte.l
 	jsr initialize_platform_runtime.l
 	move.b #$2,diagnostic_step_byte.l
-	jsr abs_0_00003410.l
+	jsr initialize_display_and_view_state.l
 	jsr initialize_model_coordinate_extents.l
 	jsr initialize_drawing_lookup_tables.l
 	jsr abs_0_0002F4F8.l
@@ -1612,7 +1622,7 @@ abs_0_0000188A:
 	bgt.w abs_0_000018AA
 	subi.b #48,d0
 	andi.w #15,d0
-	move.w d0,$01AA(a6)
+	move.w d0,active_model_scale_shift(a6)
 	bra.w abs_0_000019B4
 abs_0_000018AA:
 	cmp.b #$53,d0
@@ -2172,7 +2182,7 @@ reset_gameplay_state_and_input_defaults:
 	move.w #$32,title_idle_rate_windows_remaining(a6)
 	move.w #$0,icarus_game_over_reason(a6)
 	move.w #$FFFF,app_07C6(a6)
-	move.w #$4,$01AA(a6)
+	move.w #$4,active_model_scale_shift(a6)
 	move.w #$3,world_layout_index(a6)
 	move.w #$32,app_079A(a6)
 	lea.l player_score_bcd(a6),a0
@@ -3223,7 +3233,7 @@ abs_0_00003392:
 abs_0_00003398:
 	jmp initialize_world_object_pool.l
 abs_0_0000339E:
-	jmp abs_0_0004DFC8.l
+	jmp initialize_nearby_point_field.l
 refresh_counted_model_population:
 	jmp recompute_counted_model_population.l
 abs_0_000033AA:
@@ -3259,24 +3269,25 @@ abs_0_000033FE:
 abs_0_00003404:
 	jmp display_blank_event_message_line.l
 	dc.b $74,$73,$0A,$0A,$09,$65
-abs_0_00003410:
+    ; Initialize original display/view state, including inclusive clip bounds X16..303/Y30..128. The neighboring143/79 defaults remain unnamed: adjacency alone does not establish their use.
+initialize_display_and_view_state:
 	move.w #$1357,$01B0(a6)
 	move.l #$77B50,$0000(a6)
 	move.l #$77B50,$0004(a6)
 	move.w #$0,frame_handoff_counter(a6)
 	move.w #$0,vblank_tick_counter(a6)
 	move.w #$1,$01A0(a6)
-	move.w #$10,$00E4(a6)
-	move.w #$12F,$00E6(a6)
-	move.w #$1E,$00E8(a6)
-	move.w #$80,$00EA(a6)
+	move.w #$10,view_clip_min_x(a6)
+	move.w #$12F,view_clip_max_x(a6)
+	move.w #$1E,view_clip_min_y(a6)
+	move.w #$80,view_clip_max_y(a6)
 	move.w #$8F,$0198(a6)
 	move.w #$9F,projection_screen_origin_x(a6)
 	move.w #$4F,$019A(a6)
 	move.w #$4F,projection_screen_origin_y(a6)
 	move.w #$A0,reticle_neutral_screen_x(a6)
 	move.w #$4F,reticle_neutral_screen_y(a6)
-	move.w #$7,$01AA(a6)
+	move.w #$7,active_model_scale_shift(a6)
 	move.w #$0,pending_message_count(a6)
 	move.w #$0,message_display_countdown(a6)
 	move.w #$4,mouse_input_scale_shift(a6)
@@ -3312,9 +3323,9 @@ count_and_present_frame_handoff:
 abs_0_000034EA:
 	moveq.l #-1,d0
 clear_amiga_viewport:
-	move.w $00E8(a6),d3
-	move.w $00EA(a6),d4
-	bra.w abs_0_0000353A
+	move.w view_clip_min_y(a6),d3
+	move.w view_clip_max_y(a6),d4
+	bra.w fill_amiga_view_rows_continuation
 fill_amiga_horizon_bands:
 	tst.w d0
 	bne.b abs_0_00003522
@@ -3323,12 +3334,12 @@ fill_amiga_horizon_bands:
 	move.w abs_0_0002F014.l,d0
 	move.w abs_0_0002F010.l,d1
 	bmi.b clear_amiga_viewport
-	move.w $00E8(a6),d3
+	move.w view_clip_min_y(a6),d3
 	subq.w #1,d1
 	cmp.w d3,d1
 	blt.b abs_0_00003520
 	move.w d1,d4
-	bra.w abs_0_0000353A
+	bra.w fill_amiga_view_rows_continuation
 abs_0_00003520:
 	rts
 abs_0_00003522:
@@ -3337,10 +3348,11 @@ abs_0_00003522:
 	move.w abs_0_0002F016.l,d0
 	move.w abs_0_0002F010.l,d3
 	bmi.b abs_0_00003520
-	move.w $00EA(a6),d4
-abs_0_0000353A:
-	move.w $00E4(a6),d1
-	move.w $00E6(a6),d2
+	move.w view_clip_max_y(a6),d4
+    ; Shared clear/horizon continuation: D0 fill pattern, D3/D4 inclusive rows; view bounds supply X range. Requires the original caller return frame.
+fill_amiga_view_rows_continuation:
+	move.w view_clip_min_x(a6),d1
+	move.w view_clip_max_x(a6),d2
 	movea.l $0000(a6),a0
 	bsr.w abs_0_00003608
 	bsr.w abs_0_0000355A
@@ -3543,7 +3555,7 @@ abs_0_00003742:
 	move.w d0,(a2)
 	adda.w d3,a1
 	adda.w d3,a2
-	btst.b #1,app_01F2(a6)
+	btst.b #1,alternate_graphics_mode(a6)
 	beq.b abs_0_00003776
 	adda.w #$4C,a1
 	adda.w #$4C,a2
@@ -3599,7 +3611,7 @@ abs_0_000037AE:
 	move.w d5,(a2)
 	adda.w d3,a1
 	adda.w d3,a2
-	btst.b #1,app_01F2(a6)
+	btst.b #1,alternate_graphics_mode(a6)
 	beq.b abs_0_000037EE
 	adda.w #$4C,a1
 	adda.w #$4C,a2
@@ -3657,7 +3669,7 @@ abs_0_00003828:
 	move.w d5,(a2)
 	adda.w d3,a1
 	adda.w d3,a2
-	btst.b #1,app_01F2(a6)
+	btst.b #1,alternate_graphics_mode(a6)
 	beq.b abs_0_00003868
 	adda.w #$4C,a1
 	adda.w #$4C,a2
@@ -3889,7 +3901,7 @@ advance_picture_plane:
 	movea.l (a7)+,a0
 	rts
 abs_0_00003AFC:
-	btst.b #1,app_01F2(a6)
+	btst.b #1,alternate_graphics_mode(a6)
 	beq.w abs_0_00003B80
 	lea.l absolute_slot_00078000.l,a1
 	movea.l a1,a4
@@ -4673,19 +4685,19 @@ abs_0_000044C4:
 	divu.w d3,d0
 	move.w d1,d4
 	add.w d0,d4
-	cmp.w $00E4(a6),d4
+	cmp.w view_clip_min_x(a6),d4
 	blt.b abs_0_0000451E
 	move.w d1,d4
 	sub.w d0,d4
-	cmp.w $00E6(a6),d4
+	cmp.w view_clip_max_x(a6),d4
 	bgt.b abs_0_0000451E
 	move.w d2,d4
 	add.w d0,d4
-	cmp.w $00E8(a6),d4
+	cmp.w view_clip_min_y(a6),d4
 	blt.b abs_0_0000451E
 	move.w d2,d4
 	sub.w d0,d4
-	cmp.w $00EA(a6),d4
+	cmp.w view_clip_max_y(a6),d4
 	bgt.b abs_0_0000451E
 abs_0_00004510:
 	btst.b #1,$0002(a4)
@@ -4998,7 +5010,7 @@ abs_0_000049AA:
 abs_0_000049AC:
 	dc.b $00,$00,$00,$00
 abs_0_000049B0:
-	jmp abs_0_0004E04A.l
+	jmp draw_nearby_point_field.l
 abs_0_000049B6:
 	jmp abs_0_00039D70.l
 	dcb.b $C,$00
@@ -5050,7 +5062,7 @@ project_model_to_draw_records:
 	movea.l $0(a0,d0.w),a0
 	move.b SG2WorldObject_model_scale_shift(a4),d1
 	andi.w #15,d1
-	move.w d1,$01AA(a6)
+	move.w d1,active_model_scale_shift(a6)
 	move.w (a0)+,model_last_vertex_index(a6)
 	move.l (a0)+,$0178(a6)
 	move.l (a0)+,$0010(a6)
@@ -5276,10 +5288,10 @@ abs_0_00004CC4:
 	lea.l app_021E(a6),a3
 	lea.l projected_vertex_scratch_prefix.l,a4
 	lea.l projection_scale_lookup.l,a0
-	move.w $00E4(a6),d4
-	move.w $00E6(a6),d5
-	move.w $00E8(a6),d6
-	move.w $00EA(a6),d7
+	move.w view_clip_min_x(a6),d4
+	move.w view_clip_max_x(a6),d5
+	move.w view_clip_min_y(a6),d6
+	move.w view_clip_max_y(a6),d7
 	movea.w projection_screen_origin_x(a6),a1
 	movea.w projection_screen_origin_y(a6),a5
     ; Project X/Y/depth into8-byte destination slots; clipBYTE7 belongs to source app vertices here. Supplied model headers max last-index47, not proof for arbitrary replacement models.
@@ -5484,21 +5496,21 @@ abs_0_00004EEC:
 	divs.w d3,d2
 	add.w projection_screen_origin_x(a6),d1
 	add.w projection_screen_origin_y(a6),d2
-	cmp.w $00E4(a6),d1
+	cmp.w view_clip_min_x(a6),d1
 	bpl.b abs_0_00004F1E
-	move.w $00E4(a6),d1
+	move.w view_clip_min_x(a6),d1
 abs_0_00004F1E:
-	cmp.w $00E6(a6),d1
+	cmp.w view_clip_max_x(a6),d1
 	bmi.b abs_0_00004F28
-	move.w $00E6(a6),d1
+	move.w view_clip_max_x(a6),d1
 abs_0_00004F28:
-	cmp.w $00E8(a6),d2
+	cmp.w view_clip_min_y(a6),d2
 	bpl.b abs_0_00004F32
-	move.w $00E8(a6),d2
+	move.w view_clip_min_y(a6),d2
 abs_0_00004F32:
-	cmp.w $00EA(a6),d2
+	cmp.w view_clip_max_y(a6),d2
 	bmi.b abs_0_00004F3C
-	move.w $00EA(a6),d2
+	move.w view_clip_max_y(a6),d2
 abs_0_00004F3C:
 	cmp.w d1,d6
 	ble.b abs_0_00004F42
@@ -5614,24 +5626,24 @@ abs_0_00005074:
 	add.w d0,d0
 	move.w $0(a0,d0.w),d0
 	moveq.l #7,d4
-	sub.w $01AA(a6),d4
+	sub.w active_model_scale_shift(a6),d4
 	asl.l d4,d0
 	divu.w d3,d0
 	move.w d1,d4
 	add.w d0,d4
-	cmp.w $00E4(a6),d4
+	cmp.w view_clip_min_x(a6),d4
 	blt.w abs_0_000052AC
 	move.w d1,d4
 	sub.w d0,d4
-	cmp.w $00E6(a6),d4
+	cmp.w view_clip_max_x(a6),d4
 	bgt.w abs_0_000052AC
 	move.w d2,d4
 	add.w d0,d4
-	cmp.w $00E8(a6),d4
+	cmp.w view_clip_min_y(a6),d4
 	blt.w abs_0_000052AC
 	move.w d2,d4
 	sub.w d0,d4
-	cmp.w $00EA(a6),d4
+	cmp.w view_clip_max_y(a6),d4
 	bgt.w abs_0_000052AC
 	move.w $01E4(a6),d0
 	subq.w #1,d0
@@ -5710,7 +5722,7 @@ abs_0_000051AA:
 	beq.b abs_0_000051B8
 	bsr.w transform_vector_by_built_matrix
 abs_0_000051B8:
-	move.w $01AA(a6),d7
+	move.w active_model_scale_shift(a6),d7
 	asr.w d7,d2
 	neg.w d2
 	move.w d2,d6
@@ -5760,21 +5772,21 @@ abs_0_0000521C:
 abs_0_00005236:
 	add.w projection_screen_origin_x(a6),d1
 	add.w projection_screen_origin_y(a6),d2
-	cmp.w $00E4(a6),d1
+	cmp.w view_clip_min_x(a6),d1
 	bge.b abs_0_00005248
-	move.w $00E4(a6),d1
+	move.w view_clip_min_x(a6),d1
 abs_0_00005248:
-	cmp.w $00E6(a6),d1
+	cmp.w view_clip_max_x(a6),d1
 	ble.b abs_0_00005252
-	move.w $00E6(a6),d1
+	move.w view_clip_max_x(a6),d1
 abs_0_00005252:
-	cmp.w $00E8(a6),d2
+	cmp.w view_clip_min_y(a6),d2
 	bge.b abs_0_0000525C
-	move.w $00E8(a6),d2
+	move.w view_clip_min_y(a6),d2
 abs_0_0000525C:
-	cmp.w $00EA(a6),d2
+	cmp.w view_clip_max_y(a6),d2
 	ble.b abs_0_00005266
-	move.w $00EA(a6),d2
+	move.w view_clip_max_y(a6),d2
 abs_0_00005266:
 	move.w d1,$0(a0,d4.w)
 	move.w d2,$2(a0,d4.w)
@@ -5822,7 +5834,7 @@ abs_0_00005338:
 	movea.l $0(a0,d0.w),a0
 	move.b $001D(a4),d1
 	andi.w #15,d1
-	move.w d1,$01AA(a6)
+	move.w d1,active_model_scale_shift(a6)
 	move.w (a0)+,model_last_vertex_index(a6)
 	move.l (a0)+,$0178(a6)
 	move.l (a0)+,$0010(a6)
@@ -5849,7 +5861,7 @@ abs_0_0000539A:
 	bmi.w abs_0_00004FAA
 	tst.b abs_0_000058AE.l
 	bne.w abs_0_00004FAA
-	addq.w #1,$01AA(a6)
+	addq.w #1,active_model_scale_shift(a6)
 	lea.l model_header_pointers.l,a0
 	movea.l $00BC(a0),a0
 	move.w (a0)+,model_last_vertex_index(a6)
@@ -6011,24 +6023,24 @@ abs_0_000055BA:
 abs_0_000055CE:
 	add.w projection_screen_origin_x(a6),d1
 	add.w projection_screen_origin_y(a6),d2
-	cmp.w $00E4(a6),d1
+	cmp.w view_clip_min_x(a6),d1
 	bpl.b abs_0_000055E2
-	move.w $00E4(a6),d1
+	move.w view_clip_min_x(a6),d1
 	subq.w #1,d4
 abs_0_000055E2:
-	cmp.w $00E6(a6),d1
+	cmp.w view_clip_max_x(a6),d1
 	bmi.b abs_0_000055EE
-	move.w $00E6(a6),d1
+	move.w view_clip_max_x(a6),d1
 	subq.w #1,d4
 abs_0_000055EE:
-	cmp.w $00E8(a6),d2
+	cmp.w view_clip_min_y(a6),d2
 	bpl.b abs_0_000055FA
-	move.w $00E8(a6),d2
+	move.w view_clip_min_y(a6),d2
 	subq.w #1,d4
 abs_0_000055FA:
-	cmp.w $00EA(a6),d2
+	cmp.w view_clip_max_y(a6),d2
 	bmi.b abs_0_00005606
-	move.w $00EA(a6),d2
+	move.w view_clip_max_y(a6),d2
 	subq.w #1,d4
 abs_0_00005606:
 	cmp.w d1,d6
@@ -6210,7 +6222,7 @@ abs_0_0000580E:
 	move.w (a1),d3
 	add.w (a2),d3
 	add.w (a3),d3
-	move.w $01AA(a6),d4
+	move.w active_model_scale_shift(a6),d4
 	asr.w d4,d1
 	asr.w d4,d2
 	asr.w d4,d3
@@ -6731,73 +6743,74 @@ abs_0_00005FAE:
 	dcb.b $C0,$00
 	dc.b $01,$90,$01,$90,$02,$58,$FE,$70,$01,$90,$02,$58,$FE,$70,$FE,$70
 	dc.b $02,$58,$01,$90,$FE,$70,$02,$58
-abs_0_00006086:
+accept_clipped_view_line:
 	movem.l (a7)+,d1-d3
 	moveq.l #0,d0
 	rts
-abs_0_0000608E:
+reject_clipped_view_line:
 	movem.l (a7)+,d1-d3
 	moveq.l #-1,d0
 	rts
-abs_0_00006096:
+    ; Clip D4/D5 and D6/D7 against view bounds; D0=0 accepts, -1 rejects. Saves D1-D3; the continuation and result labels require that saved frame. Original arithmetic limits remain.
+clip_line_to_view_bounds:
 	movem.l d1-d3,-(a7)
-abs_0_0000609A:
+clip_line_to_view_bounds_continuation:
 	moveq.l #0,d0
-	cmp.w $00E6(a6),d4
+	cmp.w view_clip_max_x(a6),d4
 	ble.b abs_0_000060A4
 	addq.b #8,d0
 abs_0_000060A4:
-	cmp.w $00EA(a6),d5
+	cmp.w view_clip_max_y(a6),d5
 	ble.b abs_0_000060AC
 	addq.b #4,d0
 abs_0_000060AC:
-	cmp.w $00E4(a6),d4
+	cmp.w view_clip_min_x(a6),d4
 	bge.b abs_0_000060B4
 	addq.b #2,d0
 abs_0_000060B4:
-	cmp.w $00E8(a6),d5
+	cmp.w view_clip_min_y(a6),d5
 	bge.b abs_0_000060BC
 	addq.b #1,d0
 abs_0_000060BC:
 	moveq.l #0,d1
-	cmp.w $00E6(a6),d6
+	cmp.w view_clip_max_x(a6),d6
 	ble.b abs_0_000060C6
 	addq.b #8,d1
 abs_0_000060C6:
-	cmp.w $00EA(a6),d7
+	cmp.w view_clip_max_y(a6),d7
 	ble.b abs_0_000060CE
 	addq.b #4,d1
 abs_0_000060CE:
-	cmp.w $00E4(a6),d6
+	cmp.w view_clip_min_x(a6),d6
 	bge.b abs_0_000060D6
 	addq.b #2,d1
 abs_0_000060D6:
-	cmp.w $00E8(a6),d7
+	cmp.w view_clip_min_y(a6),d7
 	bge.b abs_0_000060DE
 	addq.b #1,d1
 abs_0_000060DE:
 	move.b d1,d2
 	or.b d0,d2
-	beq.w abs_0_00006086
+	beq.w accept_clipped_view_line
 	move.b d1,d2
 	and.b d0,d2
-	bne.w abs_0_0000608E
+	bne.w reject_clipped_view_line
 	cmp.w #$3FFF,d4
-	bge.w abs_0_0000608E
+	bge.w reject_clipped_view_line
 	cmp.w #$C001,d4
-	ble.w abs_0_0000608E
+	ble.w reject_clipped_view_line
 	cmp.w #$3FFF,d5
-	bge.w abs_0_0000608E
+	bge.w reject_clipped_view_line
 	cmp.w #$C001,d5
-	ble.w abs_0_0000608E
+	ble.w reject_clipped_view_line
 	cmp.w #$3FFF,d6
-	bge.w abs_0_0000608E
+	bge.w reject_clipped_view_line
 	cmp.w #$C001,d6
-	ble.w abs_0_0000608E
+	ble.w reject_clipped_view_line
 	cmp.w #$3FFF,d7
-	bge.w abs_0_0000608E
+	bge.w reject_clipped_view_line
 	cmp.w #$C001,d7
-	ble.w abs_0_0000608E
+	ble.w reject_clipped_view_line
 	cmp.w d4,d6
 	beq.w abs_0_00006258
 	cmp.w d5,d7
@@ -6806,7 +6819,7 @@ abs_0_000060DE:
 	beq.w abs_0_000061C8
 	btst #0,d0
 	beq.b abs_0_00006162
-	move.w $00E8(a6),d2
+	move.w view_clip_min_y(a6),d2
 	sub.w d5,d2
 	move.w d6,d3
 	sub.w d4,d3
@@ -6815,12 +6828,12 @@ abs_0_000060DE:
 	sub.w d5,d3
 	divs.w d3,d2
 	add.w d2,d4
-	move.w $00E8(a6),d5
-	bra.w abs_0_0000609A
+	move.w view_clip_min_y(a6),d5
+	bra.w clip_line_to_view_bounds_continuation
 abs_0_00006162:
 	btst #1,d0
 	beq.b abs_0_00006184
-	move.w $00E4(a6),d2
+	move.w view_clip_min_x(a6),d2
 	sub.w d4,d2
 	move.w d7,d3
 	sub.w d5,d3
@@ -6829,12 +6842,12 @@ abs_0_00006162:
 	sub.w d4,d3
 	divs.w d3,d2
 	add.w d2,d5
-	move.w $00E4(a6),d4
-	bra.w abs_0_0000609A
+	move.w view_clip_min_x(a6),d4
+	bra.w clip_line_to_view_bounds_continuation
 abs_0_00006184:
 	btst #2,d0
 	beq.b abs_0_000061A6
-	move.w $00EA(a6),d2
+	move.w view_clip_max_y(a6),d2
 	sub.w d5,d2
 	move.w d6,d3
 	sub.w d4,d3
@@ -6843,12 +6856,12 @@ abs_0_00006184:
 	sub.w d5,d3
 	divs.w d3,d2
 	add.w d2,d4
-	move.w $00EA(a6),d5
-	bra.w abs_0_0000609A
+	move.w view_clip_max_y(a6),d5
+	bra.w clip_line_to_view_bounds_continuation
 abs_0_000061A6:
 	btst #3,d0
 	beq.b abs_0_000061C8
-	move.w $00E6(a6),d2
+	move.w view_clip_max_x(a6),d2
 	sub.w d4,d2
 	move.w d7,d3
 	sub.w d5,d3
@@ -6857,14 +6870,14 @@ abs_0_000061A6:
 	sub.w d4,d3
 	divs.w d3,d2
 	add.w d2,d5
-	move.w $00E6(a6),d4
-	bra.w abs_0_0000609A
+	move.w view_clip_max_x(a6),d4
+	bra.w clip_line_to_view_bounds_continuation
 abs_0_000061C8:
 	tst.b d1
-	beq.w abs_0_0000609A
+	beq.w clip_line_to_view_bounds_continuation
 	btst #0,d1
 	beq.b abs_0_000061F0
-	move.w $00E8(a6),d2
+	move.w view_clip_min_y(a6),d2
 	sub.w d7,d2
 	move.w d4,d3
 	sub.w d6,d3
@@ -6873,12 +6886,12 @@ abs_0_000061C8:
 	sub.w d7,d3
 	divs.w d3,d2
 	add.w d2,d6
-	move.w $00E8(a6),d7
-	bra.w abs_0_0000609A
+	move.w view_clip_min_y(a6),d7
+	bra.w clip_line_to_view_bounds_continuation
 abs_0_000061F0:
 	btst #1,d1
 	beq.b abs_0_00006212
-	move.w $00E4(a6),d2
+	move.w view_clip_min_x(a6),d2
 	sub.w d6,d2
 	move.w d5,d3
 	sub.w d7,d3
@@ -6887,12 +6900,12 @@ abs_0_000061F0:
 	sub.w d6,d3
 	divs.w d3,d2
 	add.w d2,d7
-	move.w $00E4(a6),d6
-	bra.w abs_0_0000609A
+	move.w view_clip_min_x(a6),d6
+	bra.w clip_line_to_view_bounds_continuation
 abs_0_00006212:
 	btst #2,d1
 	beq.b abs_0_00006234
-	move.w $00EA(a6),d2
+	move.w view_clip_max_y(a6),d2
 	sub.w d7,d2
 	move.w d4,d3
 	sub.w d6,d3
@@ -6901,12 +6914,12 @@ abs_0_00006212:
 	sub.w d7,d3
 	divs.w d3,d2
 	add.w d2,d6
-	move.w $00EA(a6),d7
-	bra.w abs_0_0000609A
+	move.w view_clip_max_y(a6),d7
+	bra.w clip_line_to_view_bounds_continuation
 abs_0_00006234:
 	btst #3,d1
-	beq.w abs_0_0000609A
-	move.w $00E6(a6),d2
+	beq.w clip_line_to_view_bounds_continuation
+	move.w view_clip_max_x(a6),d2
 	sub.w d6,d2
 	move.w d5,d3
 	sub.w d7,d3
@@ -6915,54 +6928,54 @@ abs_0_00006234:
 	sub.w d6,d3
 	divs.w d3,d2
 	add.w d2,d7
-	move.w $00E6(a6),d6
-	bra.w abs_0_0000609A
+	move.w view_clip_max_x(a6),d6
+	bra.w clip_line_to_view_bounds_continuation
 abs_0_00006258:
-	cmp.w $00E8(a6),d5
+	cmp.w view_clip_min_y(a6),d5
 	blt.b abs_0_00006274
-	cmp.w $00EA(a6),d5
+	cmp.w view_clip_max_y(a6),d5
 	bgt.b abs_0_0000627A
 abs_0_00006264:
-	cmp.w $00E8(a6),d7
+	cmp.w view_clip_min_y(a6),d7
 	blt.b abs_0_00006280
-	cmp.w $00EA(a6),d7
+	cmp.w view_clip_max_y(a6),d7
 	bgt.b abs_0_00006288
-	bra.w abs_0_0000609A
+	bra.w clip_line_to_view_bounds_continuation
 abs_0_00006274:
-	move.w $00E8(a6),d5
+	move.w view_clip_min_y(a6),d5
 	bra.b abs_0_00006264
 abs_0_0000627A:
-	move.w $00EA(a6),d5
+	move.w view_clip_max_y(a6),d5
 	bra.b abs_0_00006264
 abs_0_00006280:
-	move.w $00E8(a6),d7
-	bra.w abs_0_0000609A
+	move.w view_clip_min_y(a6),d7
+	bra.w clip_line_to_view_bounds_continuation
 abs_0_00006288:
-	move.w $00EA(a6),d7
-	bra.w abs_0_0000609A
+	move.w view_clip_max_y(a6),d7
+	bra.w clip_line_to_view_bounds_continuation
 abs_0_00006290:
-	cmp.w $00E4(a6),d4
+	cmp.w view_clip_min_x(a6),d4
 	blt.b abs_0_000062AC
-	cmp.w $00E6(a6),d4
+	cmp.w view_clip_max_x(a6),d4
 	bgt.b abs_0_000062B2
 abs_0_0000629C:
-	cmp.w $00E4(a6),d6
+	cmp.w view_clip_min_x(a6),d6
 	blt.b abs_0_000062B8
-	cmp.w $00E6(a6),d6
+	cmp.w view_clip_max_x(a6),d6
 	bgt.b abs_0_000062C0
-	bra.w abs_0_0000609A
+	bra.w clip_line_to_view_bounds_continuation
 abs_0_000062AC:
-	move.w $00E4(a6),d4
+	move.w view_clip_min_x(a6),d4
 	bra.b abs_0_0000629C
 abs_0_000062B2:
-	move.w $00E6(a6),d4
+	move.w view_clip_max_x(a6),d4
 	bra.b abs_0_0000629C
 abs_0_000062B8:
-	move.w $00E4(a6),d6
-	bra.w abs_0_0000609A
+	move.w view_clip_min_x(a6),d6
+	bra.w clip_line_to_view_bounds_continuation
 abs_0_000062C0:
-	move.w $00E6(a6),d6
-	bra.w abs_0_0000609A
+	move.w view_clip_max_x(a6),d6
+	bra.w clip_line_to_view_bounds_continuation
     ; Sort references by descending signed depth WORD, then draw each radius/colour/centre record until the negative pointer sentinel. Colour uses its low 4 bits.
 sort_and_draw_disc_queue:
 	movem.l d0-d7/a0-a6,-(a7)
@@ -8662,7 +8675,7 @@ abs_0_000077D0:
 	movea.l a3,a4
 	adda.l #$8000,a4
 	movea.l a1,a2
-	tst.b app_01F2(a6)
+	tst.b alternate_graphics_mode(a6)
 	bmi.b abs_0_00007838
 abs_0_000077EE:
 	move.l (a1)+,(a0)+
@@ -8745,7 +8758,7 @@ abs_0_000078BE:
 	adda.l #$8000,a3
 	movea.l a3,a4
 	adda.l #$8000,a4
-	tst.b app_01F2(a6)
+	tst.b alternate_graphics_mode(a6)
 	bmi.b abs_0_000078F8
 abs_0_000078DA:
 	move.l (a0),(a1)+
@@ -14800,19 +14813,19 @@ abs_0_0000D29C:
 	move.l a0,_custom+sprpt.l	; sprite pointer
 	move.w scan_target_screen_x(a6),d1
 	move.w scan_target_screen_y(a6),d2
-	move.w $00E8(a6),d4
+	move.w view_clip_min_y(a6),d4
 	addq.w #8,d4
 	cmp.w d4,d2
 	bmi.b abs_0_0000D340
-	move.w $00EA(a6),d4
+	move.w view_clip_max_y(a6),d4
 	subq.w #7,d4
 	cmp.w d4,d2
 	bpl.b abs_0_0000D340
-	move.w $00E4(a6),d4
+	move.w view_clip_min_x(a6),d4
 	addq.w #7,d4
 	cmp.w d4,d1
 	bmi.b abs_0_0000D340
-	move.w $00E6(a6),d4
+	move.w view_clip_max_x(a6),d4
 	subq.w #8,d4
 	cmp.w d4,d1
 	bpl.b abs_0_0000D340
@@ -14888,25 +14901,25 @@ abs_0_0000D3CA:
 abs_0_0000D3E2:
 	move.w aim_reticle_screen_x(a6),d1
 	move.w aim_reticle_screen_y(a6),d2
-	move.w $00E8(a6),d4
+	move.w view_clip_min_y(a6),d4
 	addq.w #8,d4
 	cmp.w d4,d2
 	bpl.b abs_0_0000D3F6
 	move.w d4,d2
 abs_0_0000D3F6:
-	move.w $00EA(a6),d4
+	move.w view_clip_max_y(a6),d4
 	subq.w #7,d4
 	cmp.w d4,d2
 	bmi.b abs_0_0000D402
 	move.w d4,d2
 abs_0_0000D402:
-	move.w $00E4(a6),d4
+	move.w view_clip_min_x(a6),d4
 	addq.w #7,d4
 	cmp.w d4,d1
 	bpl.b abs_0_0000D40E
 	move.w d4,d1
 abs_0_0000D40E:
-	move.w $00E6(a6),d4
+	move.w view_clip_max_x(a6),d4
 	subq.w #8,d4
 	cmp.w d4,d1
 	bmi.b abs_0_0000D41A
@@ -16274,7 +16287,7 @@ abs_0_0000E9E0:
 	move.b d0,app_01FF(a6)
 	asr.w #8,d0
 	move.b d0,app_0200(a6)
-	move.w #$4,$01AA(a6)
+	move.w #$4,active_model_scale_shift(a6)
 	clr.w $017E(a6)
 	clr.w $0180(a6)
 	clr.w $0182(a6)
@@ -16382,7 +16395,7 @@ abs_0_0000EBFC:
 	move.w active_model_type_index(a6),d0
 	beq.b abs_0_0000EC46
 	lea.l world_object_pool(a6),a4
-	move.w $01AA(a6),d0
+	move.w active_model_scale_shift(a6),d0
 	move.b d0,$001D(a4)
 	move.w active_model_type_index(a6),d0
 	beq.b abs_0_0000EC46
@@ -16887,7 +16900,7 @@ abs_0_0000EEEA:
 	bgt.w abs_0_0000EF08
 	subi.b #48,d0
 	andi.w #15,d0
-	move.w d0,$01AA(a6)
+	move.w d0,active_model_scale_shift(a6)
 	rts
 abs_0_0000EF08:
 	move.b app_07E7(a6),d3
@@ -36659,11 +36672,11 @@ abs_0_0002ED14:
 	move.w d5,(a0)+
 	move.w d6,(a0)+
 	move.w d7,(a0)+
-	cmp.w $00E4(a6),d4
+	cmp.w view_clip_min_x(a6),d4
 	bne.w abs_0_0002EDB2
-	cmp.w $00E6(a6),d6
+	cmp.w view_clip_max_x(a6),d6
 	beq.b abs_0_0002ED50
-	cmp.w $00EA(a6),d7
+	cmp.w view_clip_max_y(a6),d7
 	beq.b abs_0_0002EDA6
 	bra.w abs_0_0002EEB0
 abs_0_0002ED50:
@@ -36674,105 +36687,105 @@ abs_0_0002ED50:
 	subq.w #4,a1
 	move.l a1,abs_0_00003C2C.l
 	move.w d5,abs_0_0002F010.l
-	move.w $00EA(a6),abs_0_0002F012.l
+	move.w view_clip_max_y(a6),abs_0_0002F012.l
 	bra.w abs_0_0002EED8
 abs_0_0002ED76:
-	move.w $00E6(a6),(a0)+
+	move.w view_clip_max_x(a6),(a0)+
 	move.w d5,(a0)+
 	move.w d5,abs_0_0002F010.l
-	move.w $00EA(a6),abs_0_0002F012.l
+	move.w view_clip_max_y(a6),abs_0_0002F012.l
 	bra.w abs_0_0002EECC
 abs_0_0002ED8E:
-	move.w $00E4(a6),(a0)+
+	move.w view_clip_min_x(a6),(a0)+
 	move.w d7,(a0)+
 	move.w d7,abs_0_0002F010.l
-	move.w $00EA(a6),abs_0_0002F012.l
+	move.w view_clip_max_y(a6),abs_0_0002F012.l
 	bra.w abs_0_0002EECC
 abs_0_0002EDA6:
-	move.w $00E4(a6),(a0)+
-	move.w $00EA(a6),(a0)+
+	move.w view_clip_min_x(a6),(a0)+
+	move.w view_clip_max_y(a6),(a0)+
 	bra.w abs_0_0002EECC
 abs_0_0002EDB2:
-	cmp.w $00E8(a6),d5
+	cmp.w view_clip_min_y(a6),d5
 	bne.w abs_0_0002EE1A
-	cmp.w $00EA(a6),d7
+	cmp.w view_clip_max_y(a6),d7
 	beq.b abs_0_0002EDEA
-	cmp.w $00E6(a6),d6
+	cmp.w view_clip_max_x(a6),d6
 	beq.b abs_0_0002EDCA
 	bra.w abs_0_0002EE6C
 abs_0_0002EDCA:
-	move.w $00E4(a6),(a0)+
+	move.w view_clip_min_x(a6),(a0)+
 	move.w d7,(a0)+
-	move.w $00E4(a6),(a0)+
-	move.w $00E8(a6),(a0)+
+	move.w view_clip_min_x(a6),(a0)+
+	move.w view_clip_min_y(a6),(a0)+
 	move.w d7,abs_0_0002F010.l
-	move.w $00EA(a6),abs_0_0002F012.l
+	move.w view_clip_max_y(a6),abs_0_0002F012.l
 	bra.w abs_0_0002EECC
 abs_0_0002EDEA:
-	move.w $00E4(a6),(a0)+
-	move.w $00EA(a6),(a0)+
-	move.w $00E4(a6),(a0)+
-	move.w $00E8(a6),(a0)+
+	move.w view_clip_min_x(a6),(a0)+
+	move.w view_clip_max_y(a6),(a0)+
+	move.w view_clip_min_x(a6),(a0)+
+	move.w view_clip_min_y(a6),(a0)+
 	bra.w abs_0_0002EECC
 abs_0_0002EDFE:
-	move.w $00E4(a6),(a0)+
-	move.w $00EA(a6),(a0)+
-	move.w $00E4(a6),(a0)+
-	move.w $00E8(a6),(a0)+
-	move.w $00E6(a6),(a0)+
-	move.w $00E8(a6),(a0)+
+	move.w view_clip_min_x(a6),(a0)+
+	move.w view_clip_max_y(a6),(a0)+
+	move.w view_clip_min_x(a6),(a0)+
+	move.w view_clip_min_y(a6),(a0)+
+	move.w view_clip_max_x(a6),(a0)+
+	move.w view_clip_min_y(a6),(a0)+
 	bra.w abs_0_0002EECC
 abs_0_0002EE1A:
-	cmp.w $00E6(a6),d4
+	cmp.w view_clip_max_x(a6),d4
 	bne.b abs_0_0002EE42
-	cmp.w $00EA(a6),d7
+	cmp.w view_clip_max_y(a6),d7
 	beq.b abs_0_0002EDFE
-	cmp.w $00E8(a6),d7
+	cmp.w view_clip_min_y(a6),d7
 	beq.w abs_0_0002EE84
-	move.w $00E4(a6),(a0)+
-	move.w $00E8(a6),(a0)+
-	move.w $00E6(a6),(a0)+
-	move.w $00E8(a6),(a0)+
+	move.w view_clip_min_x(a6),(a0)+
+	move.w view_clip_min_y(a6),(a0)+
+	move.w view_clip_max_x(a6),(a0)+
+	move.w view_clip_min_y(a6),(a0)+
 	bra.w abs_0_0002EECC
 abs_0_0002EE42:
-	cmp.w $00E6(a6),d6
+	cmp.w view_clip_max_x(a6),d6
 	beq.w abs_0_0002EEA4
-	cmp.w $00E8(a6),d7
+	cmp.w view_clip_min_y(a6),d7
 	beq.b abs_0_0002EE90
-	move.w $00E4(a6),(a0)+
-	move.w $00E8(a6),(a0)+
-	move.w $00E6(a6),(a0)+
-	move.w $00E8(a6),(a0)+
-	move.w $00E6(a6),(a0)+
-	move.w $00EA(a6),(a0)+
+	move.w view_clip_min_x(a6),(a0)+
+	move.w view_clip_min_y(a6),(a0)+
+	move.w view_clip_max_x(a6),(a0)+
+	move.w view_clip_min_y(a6),(a0)+
+	move.w view_clip_max_x(a6),(a0)+
+	move.w view_clip_max_y(a6),(a0)+
 	bra.w abs_0_0002EECC
 abs_0_0002EE6C:
-	move.w $00E4(a6),(a0)+
-	move.w $00E8(a6),(a0)+
+	move.w view_clip_min_x(a6),(a0)+
+	move.w view_clip_min_y(a6),(a0)+
 	cmpi.w #24832,abs_0_00013C02.l
 	bne.w abs_0_0002F690
 	bra.w abs_0_0002EECC
 abs_0_0002EE84:
-	move.w $00E6(a6),(a0)+
-	move.w $00E8(a6),(a0)+
+	move.w view_clip_max_x(a6),(a0)+
+	move.w view_clip_min_y(a6),(a0)+
 	bra.w abs_0_0002EECC
 abs_0_0002EE90:
-	move.w $00E6(a6),(a0)+
-	move.w $00E8(a6),(a0)+
-	move.w $00E6(a6),(a0)+
-	move.w $00EA(a6),(a0)+
+	move.w view_clip_max_x(a6),(a0)+
+	move.w view_clip_min_y(a6),(a0)+
+	move.w view_clip_max_x(a6),(a0)+
+	move.w view_clip_max_y(a6),(a0)+
 	bra.w abs_0_0002EECC
 abs_0_0002EEA4:
-	move.w $00E6(a6),(a0)+
-	move.w $00EA(a6),(a0)+
+	move.w view_clip_max_x(a6),(a0)+
+	move.w view_clip_max_y(a6),(a0)+
 	bra.w abs_0_0002EECC
 abs_0_0002EEB0:
-	move.w $00E6(a6),(a0)+
-	move.w $00E8(a6),(a0)+
-	move.w $00E6(a6),(a0)+
+	move.w view_clip_max_x(a6),(a0)+
+	move.w view_clip_min_y(a6),(a0)+
+	move.w view_clip_max_x(a6),(a0)+
 	move.w d5,(a0)+
 	move.w d5,abs_0_0002F010.l
-	move.w $00EA(a6),abs_0_0002F012.l
+	move.w view_clip_max_y(a6),abs_0_0002F012.l
 abs_0_0002EECC:
 	move.l #$FFFFFFFF,(a0)
 	addq.w #1,abs_0_000049A8.l
@@ -36786,8 +36799,8 @@ abs_0_0002EEDC:
 abs_0_0002EEEA:
 	bra.w abs_0_0002EED8
 abs_0_0002EEEE:
-	move.w $00E8(a6),abs_0_0002F010.l
-	move.w $00EA(a6),abs_0_0002F012.l
+	move.w view_clip_min_y(a6),abs_0_0002F010.l
+	move.w view_clip_max_y(a6),abs_0_0002F012.l
 	bra.w abs_0_0002EED8
 abs_0_0002EF02:
 	lea.l projection_scale_lookup.l,a2
@@ -37047,10 +37060,10 @@ abs_0_0002F218:
 	lea.l app_021E(a6),a3
 	lea.l projected_vertex_scratch_prefix.l,a4
 	lea.l projection_scale_lookup.l,a0
-	move.w $00E4(a6),d4
-	move.w $00E6(a6),d5
-	move.w $00E8(a6),d6
-	move.w $00EA(a6),d7
+	move.w view_clip_min_x(a6),d4
+	move.w view_clip_max_x(a6),d5
+	move.w view_clip_min_y(a6),d6
+	move.w view_clip_max_y(a6),d7
 	movea.w projection_screen_origin_x(a6),a1
 	movea.w projection_screen_origin_y(a6),a5
 project_special_mesh_screen_loop:
@@ -37267,21 +37280,21 @@ abs_0_0002F482:
 	divs.w d3,d2
 	add.w projection_screen_origin_x(a6),d1
 	add.w projection_screen_origin_y(a6),d2
-	cmp.w $00E4(a6),d1
+	cmp.w view_clip_min_x(a6),d1
 	bpl.b abs_0_0002F4AA
-	move.w $00E4(a6),d1
+	move.w view_clip_min_x(a6),d1
 abs_0_0002F4AA:
-	cmp.w $00E6(a6),d1
+	cmp.w view_clip_max_x(a6),d1
 	bmi.b abs_0_0002F4B4
-	move.w $00E6(a6),d1
+	move.w view_clip_max_x(a6),d1
 abs_0_0002F4B4:
-	cmp.w $00E8(a6),d2
+	cmp.w view_clip_min_y(a6),d2
 	bpl.b abs_0_0002F4BE
-	move.w $00E8(a6),d2
+	move.w view_clip_min_y(a6),d2
 abs_0_0002F4BE:
-	cmp.w $00EA(a6),d2
+	cmp.w view_clip_max_y(a6),d2
 	bmi.b abs_0_0002F4C8
-	move.w $00EA(a6),d2
+	move.w view_clip_max_y(a6),d2
 abs_0_0002F4C8:
 	move.w d1,(a4)+
 	move.w d2,(a4)+
@@ -37377,7 +37390,7 @@ abs_0_0002F644:
 abs_0_0002F684:
 	jmp abs_0_00005AF2.l
 abs_0_0002F68A:
-	jmp abs_0_00006096.l
+	jmp clip_line_to_view_bounds.l
 abs_0_0002F690:
 	jmp abs_0_0003D9DA.l
 abs_0_0002F696:
@@ -48825,10 +48838,10 @@ abs_0_0003A2DC:
 	move.b d0,$FFFF8260.w
 	st.b app_01EF(a6)
 abs_0_0003A2F8:
-	move.b d0,app_01F2(a6)
+	move.b d0,alternate_graphics_mode(a6)
 	lea.l screen_x_word_byte_offsets.l,a0
 	moveq.l #0,d0
-	btst.b #1,app_01F2(a6)
+	btst.b #1,alternate_graphics_mode(a6)
 	bne.b abs_0_0003A33A
 	lea.l absolute_slot_00068000.l,a1
 	lea.l $6F58(a1),a2
@@ -48871,10 +48884,10 @@ abs_0_0003A370:
 	dbf.w d2,abs_0_0003A370
 	dbf.w d1,abs_0_0003A36C
 abs_0_0003A37E:
-	move.b app_01F2(a6),d0
+	move.b alternate_graphics_mode(a6),d0
 	btst #1,d0
 	bne.w select_alternate_graphics_and_convert_assets
-	clr.b app_01F2(a6)
+	clr.b alternate_graphics_mode(a6)
 	lea.l abs_0_000034A4.l,a0
 	move.l #fade_in_alternate_palette,$0002(a0)
 	move.l #fade_out_alternate_palette,$0008(a0)
@@ -48900,7 +48913,7 @@ abs_0_0003A3E2:
 	move.w #$1,cockpit_picture_palette.l
 	rts
 select_alternate_graphics_and_convert_assets:
-	move.b #$FF,app_01F2(a6)
+	move.b #$FF,alternate_graphics_mode(a6)
 	lea.l abs_0_000034A4.l,a0
 	move.l #return_without_palette_fade,$0002(a0)
 	move.l #return_without_palette_fade,$0008(a0)
@@ -49053,7 +49066,7 @@ abs_0_0003A572:
 	adda.w $0(a2,d2.w),a1
 	movea.w #$A0,a3
 	move.w #$F,d6
-	tst.b app_01F2(a6)
+	tst.b alternate_graphics_mode(a6)
 	bmi.w abs_0_0003A688
 	move.w d1,d2
 	lsr.w #1,d2
@@ -49215,8 +49228,8 @@ abs_0_0003A734:
 abs_0_0003A752:
 	move.w #$FFFF,d0
 clear_alternate_viewport_mode0:
-	move.w $00E8(a6),d3
-	move.w $00EA(a6),d4
+	move.w view_clip_min_y(a6),d3
+	move.w view_clip_max_y(a6),d4
 	bra.b abs_0_0003A7A2
 fill_alternate_horizon_bands_mode0:
 	tst.w d0
@@ -49226,7 +49239,7 @@ fill_alternate_horizon_bands_mode0:
 	move.w abs_0_0002F014.l,d0
 	move.w abs_0_0002F010.l,d1
 	bmi.b clear_alternate_viewport_mode0
-	move.w $00E8(a6),d3
+	move.w view_clip_min_y(a6),d3
 	cmp.w d3,d1
 	subq.w #1,d1
 	blt.b abs_0_0003A788
@@ -49240,7 +49253,7 @@ abs_0_0003A78A:
 	move.w abs_0_0002F016.l,d0
 	move.w abs_0_0002F010.l,d3
 	bmi.b abs_0_0003A788
-	move.w $00EA(a6),d4
+	move.w view_clip_max_y(a6),d4
 abs_0_0003A7A2:
 	move.w d4,d2
 	movea.l $0000(a6),a5
@@ -49295,8 +49308,8 @@ abs_0_0003A81A:
 abs_0_0003A81C:
 	move.w #$0,d0
 clear_alternate_viewport_mode1:
-	move.w $00E8(a6),d3
-	move.w $00EA(a6),d4
+	move.w view_clip_min_y(a6),d3
+	move.w view_clip_max_y(a6),d4
 	bra.b abs_0_0003A868
 fill_alternate_horizon_bands_mode1:
 	tst.w d0
@@ -49306,7 +49319,7 @@ fill_alternate_horizon_bands_mode1:
 	moveq.l #0,d0
 	move.w abs_0_0002F010.l,d1
 	bmi.b clear_alternate_viewport_mode1
-	move.w $00E8(a6),d3
+	move.w view_clip_min_y(a6),d3
 	cmp.w d3,d1
 	subq.w #1,d1
 	blt.b abs_0_0003A84E
@@ -49320,7 +49333,7 @@ abs_0_0003A850:
 	move.w abs_0_0002F016.l,d0
 	move.w abs_0_0002F010.l,d3
 	bmi.b abs_0_0003A84E
-	move.w $00EA(a6),d4
+	move.w view_clip_max_y(a6),d4
 abs_0_0003A868:
 	move.w d4,d2
 	move.l a6,-(a7)
@@ -49470,7 +49483,7 @@ abs_0_0003A9F6:
 draw_alternate_contact_panel:
 	moveq.l #0,d0
 	movea.l $0000(a6),a0
-	btst.b #1,app_01F2(a6)
+	btst.b #1,alternate_graphics_mode(a6)
 	bne.w abs_0_0003AB04
 	lea.l $5A40(a0),a0
 	bsr.w abs_0_0003AF30
@@ -49628,19 +49641,19 @@ abs_0_0003ABF0:
 	addq.l #4,a0
 	move.w scan_target_screen_x(a6),d1
 	move.w scan_target_screen_y(a6),d2
-	move.w $00E8(a6),d4
+	move.w view_clip_min_y(a6),d4
 	addq.w #8,d4
 	cmp.w d4,d2
 	bmi.b abs_0_0003AC5A
-	move.w $00EA(a6),d4
+	move.w view_clip_max_y(a6),d4
 	subq.w #7,d4
 	cmp.w d4,d2
 	bpl.b abs_0_0003AC5A
-	move.w $00E4(a6),d4
+	move.w view_clip_min_x(a6),d4
 	addq.w #7,d4
 	cmp.w d4,d1
 	bmi.b abs_0_0003AC5A
-	move.w $00E6(a6),d4
+	move.w view_clip_max_x(a6),d4
 	subq.w #8,d4
 	cmp.w d4,d1
 	bpl.b abs_0_0003AC5A
@@ -50955,7 +50968,7 @@ abs_0_0003BDF8:
 	move.w abs_0_0003CAF0.l,d1
 	addq.w #4,abs_0_0003CAF0.l
 	movea.l abs_0_0003BE44(pc,d1.w),a0
-	tst.b app_01F2(a6)
+	tst.b alternate_graphics_mode(a6)
 	bmi.b abs_0_0003BE20
 	movea.l alternate_meter_framebuffer_offsets_mode0(pc,d1.w),a1
 	adda.l #$68000,a1
@@ -51218,7 +51231,7 @@ abs_0_0003C9BC:
 	moveq.l #46,d1
 	sub.w d0,d1
 	move.w d1,d0
-	tst.b app_01F2(a6)
+	tst.b alternate_graphics_mode(a6)
 	bmi.w abs_0_0003CA72
 	addq.l #4,a1
 	move.w abs_0_0003CAF0.l,d5
@@ -51491,7 +51504,7 @@ abs_0_0003CB2E:
 abs_0_0003CCFC:
 	rts
 abs_0_0003CCFE:
-	btst.b #1,app_01F2(a6)
+	btst.b #1,alternate_graphics_mode(a6)
 	bne.w abs_0_0003D3D2
 	lea.l app_07AC(a6),a1
 	lea.l abs_0_0000DFAC.l,a0
@@ -52377,7 +52390,7 @@ abs_0_0003D9D8:
 abs_0_0003D9DA:
 	move.b #$1,diagnostic_step_byte.l
 	move.l $0000(a6),abs_0_000416A8.l
-	move.b app_01F2(a6),abs_0_000416A5.l
+	move.b alternate_graphics_mode(a6),abs_0_000416A5.l
 	move.w player_rotation_2(a6),d7
 	andi.w #4095,d7
 	move.w d7,abs_0_000416A6.l
@@ -59747,9 +59760,10 @@ initialize_alternate_sound_control:
 	sf.b abs_0_0004DE39.l
 	move.l (a7)+,d0
 	rts
-abs_0_0004DFC8:
+    ; Initialize20 XYZ WORD triplets at app+BC6 and clear20 previous-view XYZ triplets at app+C3E. Positions are randomized around the player; no model or object-name identity is inferred.
+initialize_nearby_point_field:
 	move.w #$13,d7
-	lea.l app_0BC6(a6),a4
+	lea.l point_field_world_positions(a6),a4
 	lea.l $0078(a4),a5
 abs_0_0004DFD4:
 	move.l $0060(a6),d0
@@ -59789,13 +59803,14 @@ abs_0_0004DFD4:
 	clr.w (a5)+
 	dbf.w d7,abs_0_0004DFD4
 	rts
-abs_0_0004E04A:
+    ; Project20 point-field XYZ triplets; cache view XYZ for fast-flight trails and recycle rejected points. Plane WORD stride is2000/2/0 by platform/mode. Original bounds and arithmetic remain.
+draw_nearby_point_field:
 	move.b #$41,diagnostic_stage_step_word.l
 	clr.b diagnostic_step_byte.l
 	move.b #$1,diagnostic_step_byte.l
 	lea.l projection_scale_lookup.l,a2
 	lea.l screen_x_word_pixel_masks.l,a5
-	lea.l app_0BC6(a6),a4
+	lea.l point_field_world_positions(a6),a4
 	lea.l $0078(a4),a1
 	move.l a1,abs_0_0004E5C0.l
 	lea.l raster_row_byte_offsets.l,a1
@@ -59803,13 +59818,13 @@ abs_0_0004E04A:
 	move.w #$13,d7
 	tst.w platform_entry_flags.l
 	bmi.b abs_0_0004E0A6
-	move.w #$2,$01A2(a6)
-	tst.b app_01F2(a6)
+	move.w #$2,point_field_plane_byte_stride(a6)
+	tst.b alternate_graphics_mode(a6)
 	beq.b abs_0_0004E0AC
-	move.w #$0,$01A2(a6)
+	move.w #$0,point_field_plane_byte_stride(a6)
 	bra.b abs_0_0004E0AC
 abs_0_0004E0A6:
-	move.w #$2000,$01A2(a6)
+	move.w #$2000,point_field_plane_byte_stride(a6)
 abs_0_0004E0AC:
 	move.b #$8,diagnostic_step_byte.l
 	movem.w (a4)+,d1-d3
@@ -59893,19 +59908,19 @@ abs_0_0004E1A4:
 	add.w projection_screen_origin_x(a6),d1
 	add.w projection_screen_origin_y(a6),d2
 	clr.b d3
-	cmp.w $00E4(a6),d1
+	cmp.w view_clip_min_x(a6),d1
 	bge.b abs_0_0004E1B6
 	addq.b #1,d3
 abs_0_0004E1B6:
-	cmp.w $00E6(a6),d1
+	cmp.w view_clip_max_x(a6),d1
 	ble.b abs_0_0004E1BE
 	addq.b #2,d3
 abs_0_0004E1BE:
-	cmp.w $00E8(a6),d2
+	cmp.w view_clip_min_y(a6),d2
 	bge.b abs_0_0004E1C6
 	addq.b #4,d3
 abs_0_0004E1C6:
-	cmp.w $00EA(a6),d2
+	cmp.w view_clip_max_y(a6),d2
 	ble.b abs_0_0004E1CE
 	addq.b #8,d3
 abs_0_0004E1CE:
@@ -59921,22 +59936,22 @@ abs_0_0004E1CE:
 abs_0_0004E1E6:
 	add.w projection_screen_origin_x(a6),d4
 	add.w projection_screen_origin_y(a6),d5
-	cmp.w $00E4(a6),d4
+	cmp.w view_clip_min_x(a6),d4
 	bge.b abs_0_0004E1FC
 	bset #0,d3
 	bne.w abs_0_0004E348
 abs_0_0004E1FC:
-	cmp.w $00E6(a6),d4
+	cmp.w view_clip_max_x(a6),d4
 	ble.b abs_0_0004E20A
 	bset #1,d3
 	bne.w abs_0_0004E348
 abs_0_0004E20A:
-	cmp.w $00E8(a6),d5
+	cmp.w view_clip_min_y(a6),d5
 	bge.b abs_0_0004E218
 	bset #2,d3
 	bne.w abs_0_0004E348
 abs_0_0004E218:
-	cmp.w $00EA(a6),d5
+	cmp.w view_clip_max_y(a6),d5
 	ble.b abs_0_0004E226
 	bset #3,d3
 	bne.w abs_0_0004E348
@@ -59992,13 +60007,13 @@ abs_0_0004E298:
 abs_0_0004E2B0:
 	add.w projection_screen_origin_x(a6),d1
 	add.w projection_screen_origin_y(a6),d2
-	cmp.w $00E4(a6),d1
+	cmp.w view_clip_min_x(a6),d1
 	blt.w abs_0_0004E350
-	cmp.w $00E6(a6),d1
+	cmp.w view_clip_max_x(a6),d1
 	bgt.w abs_0_0004E350
-	cmp.w $00E8(a6),d2
+	cmp.w view_clip_min_y(a6),d2
 	blt.w abs_0_0004E350
-	cmp.w $00EA(a6),d2
+	cmp.w view_clip_max_y(a6),d2
 	bgt.b abs_0_0004E350
 	move.b #$14,diagnostic_step_byte.l
 	movea.l $0000(a6),a0
@@ -60007,7 +60022,7 @@ abs_0_0004E2B0:
 	add.w d1,d1
 	adda.w $0(a3,d1.w),a0
 	move.w $0(a5,d1.w),d2
-	move.w $01A2(a6),d1
+	move.w point_field_plane_byte_stride(a6),d1
 	not.w d2
 	cmpi.w #500,stardrive_speed_addend(a6)
 	bpl.b abs_0_0004E302
@@ -60142,22 +60157,22 @@ abs_0_0004E480:
 abs_0_0004E4D6:
 	add.w projection_screen_origin_x(a6),d1
 	add.w projection_screen_origin_y(a6),d2
-	cmp.w $00E4(a6),d1
+	cmp.w view_clip_min_x(a6),d1
 	bpl.b abs_0_0004E4EC
-	move.w $00E4(a6),d1
+	move.w view_clip_min_x(a6),d1
 	bra.w abs_0_0004E350
 abs_0_0004E4EC:
-	cmp.w $00E6(a6),d1
+	cmp.w view_clip_max_x(a6),d1
 	bmi.b abs_0_0004E4FA
 	bra.w abs_0_0004E350
 	dc.b $32,$2E,$00,$E6
 abs_0_0004E4FA:
-	cmp.w $00E8(a6),d2
+	cmp.w view_clip_min_y(a6),d2
 	bpl.b abs_0_0004E508
 	bra.w abs_0_0004E350
 	dc.b $34,$2E,$00,$E8
 abs_0_0004E508:
-	cmp.w $00EA(a6),d2
+	cmp.w view_clip_max_y(a6),d2
 	bmi.b abs_0_0004E516
 	bra.w abs_0_0004E350
 	dc.b $34,$2E,$00,$EA
@@ -60173,21 +60188,21 @@ abs_0_0004E516:
 abs_0_0004E52C:
 	add.w projection_screen_origin_x(a6),d4
 	add.w projection_screen_origin_y(a6),d5
-	cmp.w $00E4(a6),d4
+	cmp.w view_clip_min_x(a6),d4
 	bpl.b abs_0_0004E542
 	bra.w abs_0_0004E350
 	dc.b $38,$2E,$00,$E4
 abs_0_0004E542:
-	cmp.w $00E6(a6),d4
+	cmp.w view_clip_max_x(a6),d4
 	bmi.b abs_0_0004E550
 	bra.w abs_0_0004E350
 	dc.b $38,$2E,$00,$E6
 abs_0_0004E550:
-	cmp.w $00E8(a6),d5
+	cmp.w view_clip_min_y(a6),d5
 	bpl.b abs_0_0004E55A
 	bra.w abs_0_0004E350
 abs_0_0004E55A:
-	cmp.w $00EA(a6),d5
+	cmp.w view_clip_max_y(a6),d5
 	bmi.b abs_0_0004E568
 	bra.w abs_0_0004E350
 	dc.b $3A,$2E,$00,$EA
@@ -60344,7 +60359,7 @@ abs_0_0004E7D0:
 	movem.l (a7)+,d0-d7/a0-a6
 	rts
 abs_0_0004E7D6:
-	btst.b #1,app_01F2(a6)
+	btst.b #1,alternate_graphics_mode(a6)
 	bne.w abs_0_0004E848
 	lea.l absolute_slot_00068000.l,a0
 	lea.l absolute_slot_00070000.l,a1
