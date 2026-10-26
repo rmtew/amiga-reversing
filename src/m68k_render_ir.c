@@ -5961,28 +5961,46 @@ static int apply_manual_operand_representations(const M68kRenderLookup *lookup, 
   return 0;
 }
 
-static uint16_t render_amiga_struct_size_for_struct_id(uint16_t struct_id);
+static int lookup_typed_app_slot_field_symbol_name(const M68kRenderLookup *lookup, int16_t displacement,
+    char *base_symbol, size_t base_symbol_size, char *field_expr, size_t field_expr_size,
+    int32_t *out_field_offset);
+
+/* Read-only projection of canonical inline declarations and inferred inline
+ * contracts. Do not inject declared inline objects into the pointer-cell
+ * cache: an object's address and its first stored LONG are different values. */
+static size_t render_inline_app_region_count(const M68kRenderLookup *lookup) {
+  return lookup->typed_app_slot_count + (lookup->policy ? lookup->policy->rsset_layout_region_count : 0U);
+}
+
+static int render_inline_app_region_at(const M68kRenderLookup *lookup, size_t index,
+    int16_t *displacement, uint16_t *struct_id, const char **symbol) {
+  *symbol = NULL;
+  if (index < lookup->typed_app_slot_count) {
+    const M68kRenderTypedAppSlot *slot = &lookup->typed_app_slots[index];
+    if (slot->conflicted || !slot->inline_region || slot->struct_id == AMIGA_OS_STRUCT_ID_NONE) return 0;
+    *displacement = slot->displacement; *struct_id = slot->struct_id;
+    return 1;
+  }
+  index -= lookup->typed_app_slot_count;
+  if (!lookup->policy || index >= lookup->policy->rsset_layout_region_count ||
+      index >= M68K_ANALYSIS_RSSET_LAYOUT_REGION_LIMIT) return 0;
+  const M68kAnalysisRssetLayoutRegion *region = &lookup->policy->rsset_layout_regions[index];
+  if (region->storage_kind_id != M68K_ANALYSIS_RSSET_LAYOUT_STORAGE_STRUCT_INSTANCE ||
+      !region->symbol[0] || region->offset > INT16_MAX ||
+      (region->base_symbol[0] && strcmp(region->base_symbol, M68K_APP_BASE_SYMBOL)) ||
+      (region->layout_name[0] && strcmp(region->layout_name, M68K_APP_LAYOUT_NAME))) return 0;
+  *struct_id = render_lookup_struct_id(lookup, region->struct_name);
+  uint16_t size = render_lookup_struct_size(lookup, *struct_id);
+  if (!size || region->size < size || (uint32_t)region->offset + size > (uint32_t)INT16_MAX + 1U) return 0;
+  *displacement = (int16_t)region->offset; *symbol = region->symbol;
+  return 1;
+}
 
 static int lookup_typed_app_slot_region_contains_auto_offset(const M68kRenderLookup *lookup,
     int16_t displacement) {
-  size_t index;
-  if (lookup == NULL) return 0;
-  for (index = 0U; index < lookup->typed_app_slot_count; ++index) {
-    const M68kRenderTypedAppSlot *slot = &lookup->typed_app_slots[index];
-    uint16_t struct_size;
-    int32_t region_start;
-    int32_t region_end;
-    if (slot->conflicted != 0U || slot->inline_region == 0U ||
-        slot->struct_id == AMIGA_OS_STRUCT_ID_NONE) {
-      continue;
-    }
-    struct_size = render_amiga_struct_size_for_struct_id(slot->struct_id);
-    if (struct_size == 0U) continue;
-    region_start = (int32_t)slot->displacement;
-    region_end = region_start + (int32_t)struct_size;
-    if ((int32_t)displacement > region_start && (int32_t)displacement < region_end) return 1;
-  }
-  return 0;
+  /* Suppress an automatic alias only when the same unambiguous resolver can
+   * replace it. Padding and conflicting views retain their numeric fallback. */
+  return lookup_typed_app_slot_field_symbol_name(lookup, displacement, NULL, 0U, NULL, 0U, NULL);
 }
 
 static int lookup_typed_app_slot_field_symbol_name(const M68kRenderLookup *lookup, int16_t displacement,
@@ -6004,25 +6022,25 @@ static int lookup_typed_app_slot_field_symbol_name(const M68kRenderLookup *looku
       return 0;
     }
   }
-  for (index = 0U; index < lookup->typed_app_slot_count; ++index) {
-    const M68kRenderTypedAppSlot *slot = &lookup->typed_app_slots[index];
-    uint16_t struct_size;
+  for (index = 0U; index < render_inline_app_region_count(lookup); ++index) {
+    int16_t region_displacement;
+    uint16_t struct_id, struct_size;
+    const char *declared_symbol;
+    if (!render_inline_app_region_at(lookup, index, &region_displacement, &struct_id, &declared_symbol)) continue;
     int32_t field_offset;
     char candidate_base_symbol[64];
     char candidate_field_expr[96];
-    if (slot->conflicted != 0U || slot->inline_region == 0U ||
-        slot->struct_id == AMIGA_OS_STRUCT_ID_NONE) {
-      continue;
-    }
-    struct_size = render_amiga_struct_size_for_struct_id(slot->struct_id);
-    field_offset = (int32_t)displacement - (int32_t)slot->displacement;
+    struct_size = render_lookup_struct_size(lookup, struct_id);
+    field_offset = (int32_t)displacement - (int32_t)region_displacement;
     if (struct_size == 0U || field_offset <= 0 || field_offset >= (int32_t)struct_size ||
         field_offset < INT16_MIN || field_offset > INT16_MAX) {
       continue;
     }
-    if (!lookup_app_base_field_slot_symbol_name(lookup, slot->displacement, candidate_base_symbol,
-        sizeof(candidate_base_symbol)) ||
-        !amiga_os_resolve_struct_field_symbol_expr_by_struct_id(slot->struct_id, (int16_t)field_offset, 0,
+    if (declared_symbol)
+      snprintf(candidate_base_symbol, sizeof(candidate_base_symbol), "%s", declared_symbol);
+    else if (!lookup_app_base_field_slot_symbol_name(lookup, region_displacement, candidate_base_symbol,
+        sizeof(candidate_base_symbol))) continue;
+    if (!render_lookup_struct_field_expression(lookup, struct_id, (int16_t)field_offset,
           candidate_field_expr, sizeof(candidate_field_expr))) {
       continue;
     }
@@ -6048,23 +6066,6 @@ static int lookup_typed_app_slot_field_symbol_name(const M68kRenderLookup *looku
   return 1;
 }
 
-static uint16_t render_amiga_struct_size_for_struct_id(uint16_t struct_id) {
-  int32_t max_end = 0;
-  size_t index;
-  if (struct_id == AMIGA_OS_STRUCT_ID_NONE || amiga_os_name(M68K_PLATFORM_NAME_STRUCT, struct_id) == NULL)
-    return 0U;
-  for (index = 0U; index < AMIGA_OS_STRUCT_FIELD_COUNT; ++index) {
-    const AmigaOsStructFieldInfo *field = amiga_os_struct_field_at(index);
-    int32_t end;
-    if (field == NULL || field->struct_id != struct_id) continue;
-    end = (int32_t)field->offset + (int32_t)field->size;
-    if (field->size == 0U) end = field->offset;
-    if (end > max_end) max_end = end;
-  }
-  if (max_end <= 0) return 0U;
-  return max_end > UINT16_MAX ? UINT16_MAX : (uint16_t)max_end;
-}
-
 static int32_t lookup_typed_app_slot_region_size(const M68kRenderLookup *lookup, int16_t displacement,
     char *owner_struct_name, size_t owner_struct_name_size) {
   size_t index;
@@ -6072,22 +6073,21 @@ static int32_t lookup_typed_app_slot_region_size(const M68kRenderLookup *lookup,
   uint16_t found_struct_id = AMIGA_OS_STRUCT_ID_NONE;
   if (owner_struct_name != NULL && owner_struct_name_size > 0U) owner_struct_name[0] = '\0';
   if (lookup == NULL) return 0;
-  for (index = 0U; index < lookup->typed_app_slot_count; ++index) {
-    const M68kRenderTypedAppSlot *slot = &lookup->typed_app_slots[index];
-    uint16_t struct_size;
-    if (slot->conflicted != 0U || slot->inline_region == 0U || slot->displacement != displacement ||
-        slot->struct_id == AMIGA_OS_STRUCT_ID_NONE) {
-      continue;
-    }
-    struct_size = render_amiga_struct_size_for_struct_id(slot->struct_id);
-    if (struct_size == 0U) continue;
+  for (index = 0U; index < render_inline_app_region_count(lookup); ++index) {
+    int16_t region_displacement;
+    uint16_t struct_id, struct_size;
+    const char *symbol;
+    if (!render_inline_app_region_at(lookup, index, &region_displacement, &struct_id, &symbol) ||
+        region_displacement != displacement) continue;
+    struct_size = render_lookup_struct_size(lookup, struct_id);
+    if (!struct_size) continue;
     if (found_size != 0 && found_size != (int32_t)struct_size) return 0;
-    if (found_struct_id != AMIGA_OS_STRUCT_ID_NONE && found_struct_id != slot->struct_id) return 0;
+    if (found_struct_id != AMIGA_OS_STRUCT_ID_NONE && found_struct_id != struct_id) return 0;
     found_size = (int32_t)struct_size;
-    found_struct_id = slot->struct_id;
+    found_struct_id = struct_id;
   }
   if (found_struct_id != AMIGA_OS_STRUCT_ID_NONE && owner_struct_name != NULL && owner_struct_name_size > 0U) {
-    const char *struct_name = amiga_os_name(M68K_PLATFORM_NAME_STRUCT, found_struct_id);
+    const char *struct_name = render_lookup_struct_name(lookup, found_struct_id);
     if (struct_name != NULL) snprintf(owner_struct_name, owner_struct_name_size, "%s", struct_name);
   }
   return found_size;

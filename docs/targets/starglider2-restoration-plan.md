@@ -3104,3 +3104,31 @@ the resulting evidence. The tests must show an actual outcome/cost before an
 item is deferred; explaining that the current collector cannot model it is not
 a completed investigation. No further naming queue is placed ahead of them.
 See `runtime/observations/starglider2-input-display-fields.json`.
+
+## Current inline matrix source refinement
+
+The [inline-record receipt](../../runtime/observations/starglider2-inline-record-fields.json)
+closes the concrete gap above. Two minimal field/interior-byte fixtures failed
+under the OS-only resolver. Reusing the policy-aware resolver was necessary but
+not sufficient: canonical inline RSSET declarations never reached the renderer's
+inferred pointer-slot view. A read-only adapter now projects those existing
+declarations without treating inline object bytes as pointer cells. The duplicate
+OS-only extent scan is removed. Full extent/base/layout checks, padding, pointer
+versus instance, explicit binding priority and conflicting views pass 120 focused
+checks. No target address, matrix name or copied transfer engine is in the fix.
+
+Thirty-five instructions now render the existing matrix and WORD field identities,
+for example `view_rotation_matrix+SG2RotationMatrixWords_m11`, instead of generic
+app offsets. Sixteen redundant aliases disappear: 313 -> 297 field records and
+101 -> 85 generic symbols. This is improved expression of already-known fields,
+not sixteen newly discovered meanings. All 3,281 app access records, 316 typed
+accesses, 355 unresolved typed records, accepted code and ownership remain
+identical. The 14,728-byte/260-interval residual index is refreshed from this
+necessary generation; no separate accounting run is performed.
+
+C and vasm rebuild all 412,736 original bytes exactly. All 57 assets and fourteen
+required headers are unchanged. The committed source package gets a fresh clean
+standalone build. Canonical facts and append-only histories are unchanged; no
+runtime experiment or archive was needed. Concrete restoration continues with
+the model-viewer animation producers/consumers and their shared gameplay state,
+then specific remaining object/shared-buffer/incoming-path leads.

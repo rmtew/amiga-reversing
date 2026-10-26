@@ -548,38 +548,6 @@ world_object_pool RS.B 17000
 app_0062 RS.B 1
     RSSET $0067
 app_0067 RS.B 1
-    RSSET $00F6
-app_00F6 RS.W 1
-    RSSET $00F8
-app_00F8 RS.W 1
-    RSSET $00FA
-app_00FA RS.W 1
-    RSSET $00FC
-app_00FC RS.W 1
-    RSSET $00FE
-app_00FE RS.W 1
-    RSSET $0100
-app_0100 RS.W 1
-    RSSET $0102
-app_0102 RS.W 1
-    RSSET $0104
-app_0104 RS.W 1
-    RSSET $0108
-app_0108 RS.W 1
-    RSSET $010A
-app_010A RS.W 1
-    RSSET $010C
-app_010C RS.W 1
-    RSSET $010E
-app_010E RS.W 1
-    RSSET $0110
-app_0110 RS.W 1
-    RSSET $0112
-app_0112 RS.W 1
-    RSSET $0114
-app_0114 RS.W 1
-    RSSET $0116
-app_0116 RS.W 1
     RSSET $0779
 app_0779 RS.B 1
     RSSET $6598
@@ -2851,7 +2819,7 @@ abs_0_000029F4:
 	add.l d5,d4
 	asl.l #2,d4
 	swap.w d4
-	move.w d4,app_00FA(a6)
+	move.w d4,model_view_matrix+SG2RotationMatrixWords_m10(a6)
 	move.w (a1)+,d4
 	muls.w d1,d4
 	move.w (a1)+,d5
@@ -2862,7 +2830,7 @@ abs_0_000029F4:
 	add.l d5,d4
 	asl.l #2,d4
 	swap.w d4
-	move.w d4,app_0100(a6)
+	move.w d4,model_view_matrix+SG2RotationMatrixWords_m20(a6)
 	move.w $0002(a5),d1
 	move.w $0008(a5),d2
 	move.w $000E(a5),d3
@@ -2877,7 +2845,7 @@ abs_0_000029F4:
 	add.l d5,d4
 	asl.l #2,d4
 	swap.w d4
-	move.w d4,app_00F6(a6)
+	move.w d4,model_view_matrix+SG2RotationMatrixWords_m01(a6)
 	move.w (a1)+,d4
 	muls.w d1,d4
 	move.w (a1)+,d5
@@ -2888,7 +2856,7 @@ abs_0_000029F4:
 	add.l d5,d4
 	asl.l #2,d4
 	swap.w d4
-	move.w d4,app_00FC(a6)
+	move.w d4,model_view_matrix+SG2RotationMatrixWords_m11(a6)
 	move.w (a1)+,d4
 	muls.w d1,d4
 	move.w (a1)+,d5
@@ -2899,7 +2867,7 @@ abs_0_000029F4:
 	add.l d5,d4
 	asl.l #2,d4
 	swap.w d4
-	move.w d4,app_0102(a6)
+	move.w d4,model_view_matrix+SG2RotationMatrixWords_m21(a6)
 	move.w $0004(a5),d1
 	move.w $000A(a5),d2
 	move.w $0010(a5),d3
@@ -2914,7 +2882,7 @@ abs_0_000029F4:
 	add.l d5,d4
 	asl.l #2,d4
 	swap.w d4
-	move.w d4,app_00F8(a6)
+	move.w d4,model_view_matrix+SG2RotationMatrixWords_m02(a6)
 	move.w (a1)+,d4
 	muls.w d1,d4
 	move.w (a1)+,d5
@@ -2925,7 +2893,7 @@ abs_0_000029F4:
 	add.l d5,d4
 	asl.l #2,d4
 	swap.w d4
-	move.w d4,app_00FE(a6)
+	move.w d4,model_view_matrix+SG2RotationMatrixWords_m12(a6)
 	move.w (a1)+,d4
 	muls.w d1,d4
 	move.w (a1)+,d5
@@ -2936,7 +2904,7 @@ abs_0_000029F4:
 	add.l d5,d4
 	asl.l #2,d4
 	swap.w d4
-	move.w d4,app_0104(a6)
+	move.w d4,model_view_matrix+SG2RotationMatrixWords_m22(a6)
 	rts
 abs_0_00002B1E:
 	bsr.w build_three_angle_rotation_matrix
@@ -5620,17 +5588,17 @@ abs_0_00004FAC:
 	cmpi.w #145,abs_0_000049A8.l
 	bge.w abs_0_000052AC
 	neg.w d4
-	move.w app_0108(a6),d1
+	move.w view_rotation_matrix+SG2RotationMatrixWords_m01(a6),d1
 	muls.w d4,d1
 	asl.l #2,d1
 	swap.w d1
 	move.w d1,$004C(a6)
-	move.w app_010E(a6),d2
+	move.w view_rotation_matrix+SG2RotationMatrixWords_m11(a6),d2
 	muls.w d4,d2
 	asl.l #2,d2
 	swap.w d2
 	move.w d2,$0050(a6)
-	move.w app_0114(a6),d3
+	move.w view_rotation_matrix+SG2RotationMatrixWords_m21(a6),d3
 	muls.w d4,d3
 	asl.l #2,d3
 	swap.w d3
@@ -5767,17 +5735,17 @@ abs_0_000051B8:
 	asr.w d7,d2
 	neg.w d2
 	move.w d2,d6
-	move.w app_0108(a6),d7
+	move.w view_rotation_matrix+SG2RotationMatrixWords_m01(a6),d7
 	muls.w d6,d7
 	asl.l #2,d7
 	swap.w d7
 	move.w d7,d1
-	move.w app_010E(a6),d7
+	move.w view_rotation_matrix+SG2RotationMatrixWords_m11(a6),d7
 	muls.w d6,d7
 	asl.l #2,d7
 	swap.w d7
 	move.w d7,d2
-	move.w app_0114(a6),d7
+	move.w view_rotation_matrix+SG2RotationMatrixWords_m21(a6),d7
 	muls.w d6,d7
 	asl.l #2,d7
 	swap.w d7
@@ -6175,14 +6143,14 @@ transform_encoded_vertex_coordinates:
 	move.w d4,$0960(a1)
 	neg.w d4
 	move.w d4,(a1)
-	move.w app_00FA(a6),d4
+	move.w model_view_matrix+SG2RotationMatrixWords_m10(a6),d4
 	muls.w d1,d4
 	asl.l #2,d4
 	swap.w d4
 	move.w d4,$0962(a1)
 	neg.w d4
 	move.w d4,$0002(a1)
-	move.w app_0100(a6),d4
+	move.w model_view_matrix+SG2RotationMatrixWords_m20(a6),d4
 	muls.w d1,d4
 	asl.l #2,d4
 	swap.w d4
@@ -6194,21 +6162,21 @@ abs_0_00005754:
 	bne.b abs_0_0000579C
 	move.w #$FFFF,-$0002(a2)
 	move.w $0(a0,d2.w),d2
-	move.w app_00F6(a6),d4
+	move.w model_view_matrix+SG2RotationMatrixWords_m01(a6),d4
 	muls.w d2,d4
 	asl.l #2,d4
 	swap.w d4
 	move.w d4,$0960(a2)
 	neg.w d4
 	move.w d4,(a2)
-	move.w app_00FC(a6),d4
+	move.w model_view_matrix+SG2RotationMatrixWords_m11(a6),d4
 	muls.w d2,d4
 	asl.l #2,d4
 	swap.w d4
 	move.w d4,$0962(a2)
 	neg.w d4
 	move.w d4,$0002(a2)
-	move.w app_0102(a6),d4
+	move.w model_view_matrix+SG2RotationMatrixWords_m21(a6),d4
 	muls.w d2,d4
 	asl.l #2,d4
 	swap.w d4
@@ -6220,21 +6188,21 @@ abs_0_0000579C:
 	bne.b abs_0_000057E4
 	move.w #$FFFF,-$0002(a3)
 	move.w $0(a0,d3.w),d3
-	move.w app_00F8(a6),d4
+	move.w model_view_matrix+SG2RotationMatrixWords_m02(a6),d4
 	muls.w d3,d4
 	asl.l #2,d4
 	swap.w d4
 	move.w d4,$0960(a3)
 	neg.w d4
 	move.w d4,(a3)
-	move.w app_00FE(a6),d4
+	move.w model_view_matrix+SG2RotationMatrixWords_m12(a6),d4
 	muls.w d3,d4
 	asl.l #2,d4
 	swap.w d4
 	move.w d4,$0962(a3)
 	neg.w d4
 	move.w d4,$0002(a3)
-	move.w app_0104(a6),d4
+	move.w model_view_matrix+SG2RotationMatrixWords_m22(a6),d4
 	muls.w d3,d4
 	asl.l #2,d4
 	swap.w d4
@@ -36957,19 +36925,19 @@ abs_0_0002F022:
 	move.w d0,d1
 	muls.w view_rotation_matrix(a6),d1
 	move.w d0,d2
-	muls.w app_010C(a6),d2
+	muls.w view_rotation_matrix+SG2RotationMatrixWords_m10(a6),d2
 	move.w d0,d3
-	muls.w app_0112(a6),d3
+	muls.w view_rotation_matrix+SG2RotationMatrixWords_m20(a6),d3
 	swap.w d1
 	swap.w d2
 	swap.w d3
 	movem.w d1-d3,abs_0_0002F52E.l
 	move.w d0,d1
-	muls.w app_010A(a6),d1
+	muls.w view_rotation_matrix+SG2RotationMatrixWords_m02(a6),d1
 	move.w d0,d2
-	muls.w app_0110(a6),d2
+	muls.w view_rotation_matrix+SG2RotationMatrixWords_m12(a6),d2
 	move.w d0,d3
-	muls.w app_0116(a6),d3
+	muls.w view_rotation_matrix+SG2RotationMatrixWords_m22(a6),d3
 	swap.w d1
 	swap.w d2
 	swap.w d3
@@ -59882,16 +59850,16 @@ abs_0_0004E0AC:
 	sub.l player_world_y(a6),d2
 	sub.l player_world_z(a6),d3
 	move.b #$15,diagnostic_step_byte.l
-	move.w app_0112(a6),d4
+	move.w view_rotation_matrix+SG2RotationMatrixWords_m20(a6),d4
 	muls.w d1,d4
 	asl.l #2,d4
 	swap.w d4
-	move.w app_0114(a6),d5
+	move.w view_rotation_matrix+SG2RotationMatrixWords_m21(a6),d5
 	muls.w d2,d5
 	asl.l #2,d5
 	swap.w d5
 	add.w d5,d4
-	move.w app_0116(a6),d5
+	move.w view_rotation_matrix+SG2RotationMatrixWords_m22(a6),d5
 	muls.w d3,d5
 	asl.l #2,d5
 	swap.w d5
@@ -59902,28 +59870,28 @@ abs_0_0004E0AC:
 	muls.w d1,d4
 	asl.l #2,d4
 	swap.w d4
-	move.w app_0108(a6),d5
+	move.w view_rotation_matrix+SG2RotationMatrixWords_m01(a6),d5
 	muls.w d2,d5
 	asl.l #2,d5
 	swap.w d5
 	add.w d5,d4
-	move.w app_010A(a6),d5
+	move.w view_rotation_matrix+SG2RotationMatrixWords_m02(a6),d5
 	muls.w d3,d5
 	asl.l #2,d5
 	swap.w d5
 	add.w d5,d4
 	move.w d4,$012C(a6)
 	move.b #$18,diagnostic_step_byte.l
-	move.w app_010C(a6),d4
+	move.w view_rotation_matrix+SG2RotationMatrixWords_m10(a6),d4
 	muls.w d1,d4
 	asl.l #2,d4
 	swap.w d4
-	move.w app_010E(a6),d5
+	move.w view_rotation_matrix+SG2RotationMatrixWords_m11(a6),d5
 	muls.w d2,d5
 	asl.l #2,d5
 	swap.w d5
 	add.w d5,d4
-	move.w app_0110(a6),d5
+	move.w view_rotation_matrix+SG2RotationMatrixWords_m12(a6),d5
 	muls.w d3,d5
 	asl.l #2,d5
 	swap.w d5

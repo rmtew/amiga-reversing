@@ -1047,6 +1047,11 @@ int render_lookup_add_typed_storage_slot(M68kRenderLookup *lookup, uint8_t kind,
   size_t source_section_index, uint32_t source_offset, int *out_added);
 int render_lookup_conflict_typed_storage_slot(M68kRenderLookup *lookup, uint8_t kind, size_t section_index,
   int32_t displacement, uint32_t address, size_t source_section_index, uint32_t source_offset, int *out_added);
+uint16_t render_lookup_struct_id(const M68kRenderLookup *lookup, const char *name);
+uint16_t render_lookup_struct_size(const M68kRenderLookup *lookup, uint16_t struct_id);
+const char *render_lookup_struct_name(const M68kRenderLookup *lookup, uint16_t struct_id);
+int render_lookup_struct_field_expression(const M68kRenderLookup *lookup, uint16_t struct_id,
+    int16_t displacement, char *expression, size_t expression_size);
 int render_lookup_add_typed_access(M68kRenderLookup *lookup, size_t section_index, uint32_t offset,
     uint8_t operand_index, uint8_t base_reg, int16_t displacement, uint16_t root_struct_id,
     const AmigaOsResolvedStructFieldInfo *field, const char *field_expr,

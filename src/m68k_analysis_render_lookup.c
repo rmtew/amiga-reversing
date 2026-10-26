@@ -2440,6 +2440,39 @@ static int lookup_policy_resolve_struct_field(const M68kAnalysisPolicy *policy, 
   return 0;
 }
 
+/* Rendering shares the policy-aware resolver used by typed value analysis.
+ * Custom IDs are not generated AmigaOS IDs; never send them to the OS-only
+ * field/extent tables or maintain a second custom-field walker. */
+uint16_t render_lookup_struct_id(const M68kRenderLookup *lookup, const char *name) {
+  return lookup ? lookup_policy_struct_id_by_name(lookup->policy, name) : AMIGA_OS_STRUCT_ID_NONE;
+}
+
+uint16_t render_lookup_struct_size(const M68kRenderLookup *lookup, uint16_t struct_id) {
+  return lookup ? lookup_policy_struct_size_by_id(lookup->policy, struct_id) : 0U;
+}
+
+const char *render_lookup_struct_name(const M68kRenderLookup *lookup, uint16_t struct_id) {
+  return lookup ? lookup_policy_struct_name_by_id(lookup->policy, struct_id) : NULL;
+}
+
+int render_lookup_struct_field_expression(const M68kRenderLookup *lookup, uint16_t struct_id,
+    int16_t displacement, char *expression, size_t expression_size) {
+  M68kRenderResolvedStructField field;
+  int written;
+  if (!lookup || !expression || !expression_size) return 0;
+  expression[0] = '\0';
+  if (!lookup_policy_custom_struct_by_id(lookup->policy, struct_id))
+    return amiga_os_resolve_struct_field_symbol_expr_by_struct_id(struct_id, displacement, 0,
+      expression, expression_size);
+  if (!lookup_policy_resolve_struct_field(lookup->policy, struct_id, displacement, 1U, &field)) return 0;
+  int32_t byte_addend = (int32_t)displacement - field.offset;
+  if (byte_addend)
+    written = snprintf(expression, expression_size, "%s+%d", field.field_expr, byte_addend);
+  else written = snprintf(expression, expression_size, "%s", field.field_expr);
+  if (written < 0 || (size_t)written >= expression_size) { expression[0] = '\0'; return 0; }
+  return 1;
+}
+
 static void typed_state_apply_policy_register_seeds(M68kRenderTypedState *state,
     const M68kAnalysisPolicy *policy, size_t section_index, uint32_t offset) {
   uint16_t index;
