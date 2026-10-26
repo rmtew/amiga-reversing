@@ -7,8 +7,8 @@ that further analysis is exhausted. Current source remains byte exact: all
 with all 106034 accepted code bytes retained. No generated assembly was edited
 by hand and no interim archive was produced.
 
-The current ownership union leaves 14728 bytes in
-260 intervals unclassified. This is classification accounting,
+The current ownership union leaves 14670 bytes in
+262 intervals unclassified. This is classification accounting,
 not a semantic completion percentage. Earlier interval/site counts below belong
 to their recorded closeout revision. See the current
 [native memory-span receipt](../../runtime/observations/starglider2-app-memory-spans.json),
@@ -17,9 +17,10 @@ to their recorded closeout revision. See the current
 
 ## Current refinement and next evidence
 
-Latest: the [converged app-rendering/celestial batch](#current-converged-app-rendering-and-celestial-parent-caches)
-recovers eleven rendered accesses, identifies five fields, and corrects the
-historical C-suite failure count. Current generic field symbols: 75.
+Latest: the [environment/disc batch](#current-environment-proximity-and-disc-controls)
+explains four fields and two indexed WORD tables, reducing unknowns by58 bytes.
+Generic field symbols:71. The preceding converged-app batch recovers eleven
+rendered accesses and corrects the historical C-suite failure count.
 
 The shared renderer now writes each data-span comment once: on identical facts
 this removes 12,903 duplicate trailing comments and 410,853 source bytes, with no
@@ -3306,3 +3307,36 @@ are not a blanket reason to stop independent restoration or claim all tests
 pass. Continue connected environment consumers and original orphan/shared-buffer
 leads, retaining explicit unknowns instead of assigning seed-only storage a
 purpose. No new runtime replay or archive was made in this batch.
+
+## Current environment proximity and disc controls
+
+The [environment/disc receipt](../../runtime/observations/starglider2-environment-disc-controls.json)
+connects four more fields and two reader-supported WORD tables. The fixed
+(20,000,000,20,000,000) system-center metric drives radial environment and disc
+side selection. A station-nearby step normally ranges 0..5 and selects palette
+indices `3,1,6,5,4,0`; this affects type144 disc suppression/colour and the nearby
+Solice colour-table entry17. Step, palette index and RGB are kept distinct.
+
+For original type128, app+$9CC is an outer-layer loop last index. Negative
+suppresses that loop; otherwise DBF emits index+1 outer records, not necessarily
+the whole disc queue. Two proximity readers support a 23-WORD table prefix:
+normal center metric below6,000,000 yields indexes0..22, while Millway below
+1,200,000 yields0..18. Signed overflow, arbitrary incoming state and unknown
+writers are not covered by those original-use arguments. The eight following
+WORDs remain excluded. An early rationale undercounted them as four; a normal
+superseding API review records the correction. The 46-byte prefix extent was
+always correct, so no generated source or byte layout was patched to fix prose.
+
+The 12-byte ramp and 46-byte layer prefix classify 58 formerly unknown bytes.
+Unknowns are now **14,670 bytes in 262 intervals**: these two holes split larger
+intervals, so more intervals does not mean more unknown data. Generic field
+symbols are 75 -> 71. All code, 3,305 app accesses, 316 typed accesses, 40 table
+consumers and 189 address expressions remain unchanged. C/vasm and clean
+standalone output rebuild all 412,736 original bytes; 57 assets and fourteen
+headers are unchanged. The necessary generation took136.67 seconds; unchanged
+framework tests and runtime routes were not repeated. The prior 819-pass/three-
+failure C-suite result remains explicitly scoped in its linked receipt.
+
+Continue remaining connected environment consumers and concrete shared-buffer/
+orphan incoming leads. App+$9B8 and unsupported neighboring table data remain
+unknown; neither adjacency nor an absent direct reader establishes dead storage.

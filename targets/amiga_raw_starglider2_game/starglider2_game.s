@@ -457,16 +457,16 @@ cached_body_state_prefix RS.B 272
 body_orbit_angle_words RS.B 34
 stardrive_enabled_word RS.W 1
 nearby_space_station_reference RS.L 1
-app_09B4 RS.L 1
+system_center_proximity_metric RS.L 1
 app_09B8 RS.L 1
 millway_proximity_metric RS.L 1
 depot_line_pointer_offset RS.W 1
 neutron_bomb_spawn_countdown RS.W 1
 station_charge_steps_remaining RS.W 1
 station_firing_steps_remaining RS.W 1
-app_09C8 RS.W 1
-app_09CA RS.W 1
-app_09CC RS.W 1
+station_proximity_disc_colour_index RS.W 1
+station_proximity_colour_ramp_step RS.W 1
+type128_disc_outer_layer_index RS.W 1
 shared_inventory_depot_message_pointers RS.B 40
     RS.B 12
 app_0A02 RS.L 1
@@ -7303,7 +7303,7 @@ abs_0_00006832:
 	add.l d3,d3
 abs_0_00006834:
 	add.l d0,d3
-	move.l app_09B4(a6),d4
+	move.l system_center_proximity_metric(a6),d4
 	move.l d4,d2
 	sub.l d3,d4
 	bpl.b abs_0_00006842
@@ -7345,7 +7345,7 @@ abs_0_000068B4:
 abs_0_000068BC:
 	cmpi.w #144,(a4)
 	bne.b abs_0_000068D0
-	move.w app_09C8(a6),d0
+	move.w station_proximity_disc_colour_index(a6),d0
 	beq.w abs_0_00006AF6
 	move.w d0,$0004(a1)
 	bra.b abs_0_000068E2
@@ -7420,7 +7420,7 @@ abs_0_00006994:
 	bmi.b abs_0_000069BA
 	cmpi.w #145,(a4)
 	bne.b abs_0_000069BA
-	tst.w app_09CA(a6)
+	tst.w station_proximity_colour_ramp_step(a6)
 	bne.w abs_0_00006AE0
 	tst.b atmosphere_detected_flag(a6)
 	bmi.w abs_0_00006AE0
@@ -7432,7 +7432,7 @@ abs_0_000069BA:
 	cmpi.w #128,(a4)
 	bne.b abs_0_00006A30
 	move.w (a1),d0
-	move.w app_09CC(a6),d7
+	move.w type128_disc_outer_layer_index(a6),d7
 	bmi.w abs_0_00006AE0
 abs_0_000069D2:
 	movea.l disc_record_write_cursor(a6),a1
@@ -42003,7 +42003,7 @@ abs_0_00032F86:
 	sf.b abs_0_00039CD3.l
 	tst.b space_environment_flag(a6)
 	bpl.b abs_0_00032F9E
-	bsr.w abs_0_00037690
+	bsr.w update_system_center_proximity_metric
 	bsr.w update_millway_proximity_metric
 	bsr.w clear_stardrive_below_speed_threshold
 abs_0_00032F9E:
@@ -42159,25 +42159,25 @@ abs_0_0003318E:
 abs_0_0003319E:
 	tst.b space_environment_flag(a6)
 	bpl.w abs_0_000331DE
-	lea.l abs_0_0003960A.l,a0
+	lea.l station_proximity_disc_colour_ramp.l,a0
 	tst.b space_station_nearby_flag(a6)
 	bpl.b abs_0_000331C6
-	addq.w #1,app_09CA(a6)
-	cmpi.w #6,app_09CA(a6)
+	addq.w #1,station_proximity_colour_ramp_step(a6)
+	cmpi.w #6,station_proximity_colour_ramp_step(a6)
 	bmi.b abs_0_000331D0
-	move.w #$5,app_09CA(a6)
+	move.w #$5,station_proximity_colour_ramp_step(a6)
 	bra.b abs_0_000331D0
 abs_0_000331C6:
-	subq.w #1,app_09CA(a6)
+	subq.w #1,station_proximity_colour_ramp_step(a6)
 	bpl.b abs_0_000331D0
-	clr.w app_09CA(a6)
+	clr.w station_proximity_colour_ramp_step(a6)
 abs_0_000331D0:
-	move.w app_09CA(a6),d0
+	move.w station_proximity_colour_ramp_step(a6),d0
 	add.w d0,d0
-	move.w $0(a0,d0.w),app_09C8(a6)
+	move.w $0(a0,d0.w),station_proximity_disc_colour_index(a6)
 	bra.b abs_0_000331E4
 abs_0_000331DE:
-	move.w #$3,app_09C8(a6)
+	move.w #$3,station_proximity_disc_colour_index(a6)
 abs_0_000331E4:
 	move.w player_speed_target(a6),d0
 	tst.w d0
@@ -42258,7 +42258,7 @@ abs_0_00033310:
 	move.b #$78,diagnostic_step_byte.l
 	tst.b space_environment_flag(a6)
 	bpl.w abs_0_00033528
-	move.l app_09B4(a6),d0
+	move.l system_center_proximity_metric(a6),d0
 	cmp.l #$5B8D80,d0
 	bpl.w abs_0_00033440
 	move.l player_world_y(a6),d1
@@ -42279,8 +42279,8 @@ abs_0_0003333C:
 	ori.w #76,d2
 	move.w d2,abs_0_00039656.l
 	add.w d0,d0
-	lea.l abs_0_00039688.l,a1
-	move.w $0(a1,d0.w),app_09CC(a6)
+	lea.l type128_disc_layers_by_proximity.l,a1
+	move.w $0(a1,d0.w),type128_disc_outer_layer_index(a6)
 	add.w d0,d0
 	move.w d0,d3
 	add.w d0,d0
@@ -42360,8 +42360,8 @@ abs_0_0003345C:
 	ori.w #76,d2
 	move.w d2,abs_0_00039656.l
 	add.w d0,d0
-	lea.l abs_0_00039688.l,a1
-	move.w $0(a1,d0.w),app_09CC(a6)
+	lea.l type128_disc_layers_by_proximity.l,a1
+	move.w $0(a1,d0.w),type128_disc_outer_layer_index(a6)
 	cmpi.l #900000,millway_proximity_metric(a6)
 	bpl.w abs_0_000334AA
 	subi.w #2048,icarus_shield_strength(a6)
@@ -42397,14 +42397,14 @@ abs_0_0003350A:
 abs_0_0003350C:
 	move.w #$0,abs_0_00039654.l
 	move.w #$27,abs_0_00039656.l
-	move.w #$3,app_09CC(a6)
+	move.w #$3,type128_disc_outer_layer_index(a6)
 	bra.b abs_0_00033528
 abs_0_00033524:
 	bra.w abs_0_000338EE
 abs_0_00033528:
 	tst.b space_environment_flag(a6)
 	bpl.w abs_0_000338EE
-	move.l app_09B4(a6),d3
+	move.l system_center_proximity_metric(a6),d3
 	tst.w player_speed_target(a6)
 	beq.w abs_0_0003367A
 	bsr.w abs_0_00039D20
@@ -42581,11 +42581,11 @@ abs_0_0003373A:
 	bsr.w abs_0_00039D20
 	andi.w #15,d0
 	add.w d0,d0
-	cmpi.l #300000000,app_09B4(a6)
+	cmpi.l #300000000,system_center_proximity_metric(a6)
 	bpl.b abs_0_00033806
-	cmpi.l #150000000,app_09B4(a6)
+	cmpi.l #150000000,system_center_proximity_metric(a6)
 	bpl.b abs_0_0003380E
-	cmpi.l #90000000,app_09B4(a6)
+	cmpi.l #90000000,system_center_proximity_metric(a6)
 	bpl.b abs_0_00033816
 	bra.b abs_0_0003381E
 abs_0_00033806:
@@ -46252,8 +46252,8 @@ abs_0_00036998:
 update_nearby_solice_display:
 	lea.l disc_primary_colours.l,a1
 	lea.l disc_secondary_colours.l,a2
-	move.w app_09C8(a6),$0022(a1)
-	move.w app_09C8(a6),$0022(a2)
+	move.w station_proximity_disc_colour_index(a6),$0022(a1)
+	move.w station_proximity_disc_colour_index(a6),$0022(a2)
 	movea.l sine_lookup_pointer(a6),a1
 	movea.l cosine_lookup_pointer(a6),a2
 	move.w player_speed_target(a6),d1
@@ -46964,7 +46964,7 @@ abs_0_00037406:
 	rts
 abs_0_00037410:
 	sf.b modal_command_input_flag(a6)
-	move.w #$3,app_09CC(a6)
+	move.w #$3,type128_disc_outer_layer_index(a6)
 	move.w #$8,station_mini_sentinel_count(a6)
 	lea.l app_0A02(a6),a0
 	move.w #$9,d0
@@ -47059,7 +47059,7 @@ abs_0_00037586:
 	move.l #$1312D00,apogee_orbit_parent_z(a6)
 	move.l #$1E84800,millway_orbit_parent_x(a6)
 	move.l #$1312D00,millway_orbit_parent_z(a6)
-	move.l #$7A1200,app_09B4(a6)
+	move.l #$7A1200,system_center_proximity_metric(a6)
 	move.l #$7A1200,app_09B8(a6)
 	move.l #$3D0900,millway_proximity_metric(a6)
 	move.b #$FF,free_flight_controls_enabled_flag(a6)
@@ -47070,8 +47070,8 @@ abs_0_00037586:
 	sf.b tractor_input_override_flag(a6)
 	sf.b pending_transient_event_sound(a6)
 	sf.b space_station_nearby_flag(a6)
-	move.w #$3,app_09C8(a6)
-	move.w #$0,app_09CA(a6)
+	move.w #$3,station_proximity_disc_colour_index(a6)
+	move.w #$0,station_proximity_colour_ramp_step(a6)
 	move.w #$FFFF,abs_0_00037896.l
 	move.w #$FFFF,abs_0_0003999C.l
 	move.w #$80,abs_0_0003999E.l
@@ -47097,7 +47097,7 @@ abs_0_00037586:
 	sf.b abs_0_00039CD4.l
 	move.w #$FFFF,shared_grayscale_effect_countdown.l
 	rts
-abs_0_00037690:
+update_system_center_proximity_metric:
 	move.l #$1312D00,d0
 	move.l player_world_x(a6),d2
 	move.l d0,d1
@@ -47121,7 +47121,7 @@ abs_0_000376BA:
 	add.l d3,d3
 abs_0_000376BC:
 	add.l d0,d3
-	move.l d3,app_09B4(a6)
+	move.l d3,system_center_proximity_metric(a6)
 	rts
 update_millway_proximity_metric:
 	move.l millway_orbit_parent_x(a6),d0
@@ -48137,8 +48137,8 @@ abs_0_000395CA:
 	dc.b $FF,$FF,$40,$00,$FF,$FF,$D0,$00,$FF,$FF,$D0,$00,$FF,$FF,$D0,$00
 	dc.b $FF,$FF,$D0,$00,$FF,$FF,$D0,$00,$FF,$FF,$D0,$00,$FF,$FF,$D0,$00
 	dc.b $FF,$FF,$D0,$00,$FF,$FF,$D0,$00,$FF,$FF,$D0,$00,$FF,$FF,$D0,$00
-abs_0_0003960A:
-	dc.b $00,$03,$00,$01,$00,$06,$00,$05,$00,$04,$00,$00
+station_proximity_disc_colour_ramp:
+	dc.w $0003,$0001,$0006,$0005,$0004,$0000	; Original indexed WORD data, conditional original-use domain
 abs_0_00039616:
 	dc.b $02,$04,$03,$04,$05,$05,$06,$01,$03,$01,$03,$01,$03,$01,$06,$05
 	dc.b $06,$05,$04,$0B,$0C,$0B,$0D,$00,$00,$00,$00,$00,$00,$02
@@ -48157,11 +48157,11 @@ abs_0_00039658:
 abs_0_00039670:
 	dc.b "ppppppppppppppppp`P@0 "
 	dc.b $10,$00
-abs_0_00039688:
-	dcb.b $12,$FF
-	dc.b $00,$00,$00,$00,$00,$01,$00,$01,$00,$01,$00,$01,$00,$02,$00,$02
-	dc.b $00,$02,$00,$02,$00,$03,$00,$03,$00,$03,$00,$03,$00,$03,$00,$03
-	dc.b $00,$03,$00,$03,$00,$03,$00,$03,$00,$03,$00,$03
+type128_disc_layers_by_proximity:
+	dc.w $FFFF,$FFFF,$FFFF,$FFFF,$FFFF,$FFFF,$FFFF,$FFFF	; Original indexed WORD data, conditional original-use domain
+	dc.w $FFFF,$0000,$0000,$0001,$0001,$0001,$0001,$0002
+	dc.w $0002,$0002,$0002,$0003,$0003,$0003,$0003
+	dc.b $00,$03,$00,$03,$00,$03,$00,$03,$00,$03,$00,$03,$00,$03,$00,$03
 world_solice_display_radii:
 	dc.l $00000000	; display_radius
 	dc.l $00006000	; display_radius

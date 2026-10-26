@@ -1,0 +1,436 @@
+{
+  "schema_version": 1,
+  "kind": "environment_proximity_and_disc_control_restoration",
+  "publication_base_commit": "f7e60ba37bf0f38cff641b6ee94af6928ed32edd",
+  "backend_sha256": "033d818cde45a2bcb405d3bcd34fe0efa543c028c2b32ac2da3745842c0d5ef0",
+  "analysis_sha256": "4ea748e8a95f46c266d0bff339f52bb74714d08c81d5fbd02fd26691f04a8aa4",
+  "canonical_actions": [
+    {
+      "action_id": "manual-9f1d69a4247b49e29beb5684d50d7bfb",
+      "command_id": "target.rsset_region.add",
+      "meaning": "Original routine at runtime37690 computes signed dx=abs(playerX-20000000), dz=abs(playerZ-20000000), then dx+dz+2*max(dx,dz). Disc-side/colour selection compares the same metric for objects about this center; space environment, radial effects and stardrive thresholds consume it. Name the fixed system-center weighted planar proximity metric, not Euclidean distance, a physical unit or arbitrary-overflow-safe geometry. Seed9B8 remains a separate unknown."
+    },
+    {
+      "action_id": "manual-dcc6169181674546a5978df4181019c9",
+      "command_id": "target.rsset_region.add",
+      "meaning": "Original space-mode service indexes the six-WORD ramp3,1,6,5,4,0 by app9CA as the station-nearby flag ramps. Nonspace and setup set3. Type144 disc queue uses this WORD as its colour index, suppressing the disc when zero; nearby Solice display also copies it into colour-table entry17. This is an indexed colour selector, not an RGB word, station distance or universal model identity."
+    },
+    {
+      "action_id": "manual-52ece6ca5a1144d99a6f5e8328fbb984",
+      "command_id": "target.rsset_region.add",
+      "meaning": "Original station-nearby colour ramp index. Setup zero; in space the sign-bit station-nearby flag increments it with normal upper clamp5, absence decrements with normal floor0, then doubled index selects six-WORD colour ramp. This describes original initialized control flow, not an arbitrary-input invariant or physical-frame count."
+    },
+    {
+      "action_id": "manual-c69d93a7ea2f484e99016fe9419354fc",
+      "command_id": "target.rsset_region.add",
+      "meaning": "Original type128 disc layer-loop last index. System-center and Millway proximity branches load a signed WORD from the shared table; normal fallback/setup set3. Type128 disc queue skips layers if negative, otherwise DBF emits index+1 outer records with layer-specific colour/radius offsets. It is not a colour index or distance. Type128 identity is retained explicitly instead of inventing a visual object name."
+    },
+    {
+      "action_id": "manual-681b8c3c1c21467aad34ab336cda2545",
+      "command_id": "target.code_label.add",
+      "meaning": "Original routine at runtime37690 computes signed dx=abs(playerX-20000000), dz=abs(playerZ-20000000), then dx+dz+2*max(dx,dz). Disc-side/colour selection compares the same metric for objects about this center; space environment, radial effects and stardrive thresholds consume it. Name the fixed system-center weighted planar proximity metric, not Euclidean distance, a physical unit or arbitrary-overflow-safe geometry. Seed9B8 remains a separate unknown. Existing accepted entry only; no code promotion."
+    },
+    {
+      "action_id": "manual-7571e118d360428e81f69b6c058e7d2d",
+      "command_id": "target.data_block.layout.create",
+      "meaning": "Six physically present WORD colour indices3,1,6,5,4,0, read via app9CA normal range0..5 in the station-nearby space-mode control branch. Preserve palette indices versusRGB and exact12-byte extent; adjacent data excluded."
+    },
+    {
+      "action_id": "manual-5593eb116cfa415fb73f8e84e854c5aa",
+      "command_id": "target.data_block.element.set",
+      "meaning": "Six physically present WORD colour indices3,1,6,5,4,0, read via app9CA normal range0..5 in the station-nearby space-mode control branch. Preserve palette indices versusRGB and exact12-byte extent; adjacent data excluded."
+    },
+    {
+      "action_id": "manual-aa1fb79e8514478da76bc789877a7632",
+      "command_id": "target.data_block.layout.create",
+      "meaning": "Reader-supported23-WORD prefix of signed outer-layer indexes. Under original nonnegative proximity arithmetic, center metric<6000000 yields floor(highword/4)0..22; Millway metric<1200000 yields highword0..18. Negative values skip layers; nonnegative values controlDBF index+1 records. Preserve original signed tests/overflow behavior. Exclude following four adjacent WORDs: adjacency is not enough to claim complete backing or all selector domains."
+    },
+    {
+      "action_id": "manual-a4ef8364274f4d8686ac84ce291def9b",
+      "command_id": "target.data_block.element.set",
+      "meaning": "Reader-supported23-WORD prefix of signed outer-layer indexes. Under original nonnegative proximity arithmetic, center metric<6000000 yields floor(highword/4)0..22; Millway metric<1200000 yields highword0..18. Negative values skip layers; nonnegative values controlDBF index+1 records. Preserve original signed tests/overflow behavior. Exclude following four adjacent WORDs: adjacency is not enough to claim complete backing or all selector domains."
+    }
+  ],
+  "review": {
+    "decisions": [
+      {
+        "action_id": "manual-9f1d69a4247b49e29beb5684d50d7bfb",
+        "decision_id": "restoration-5456529d75a340b6b51dd992abb6b6fa",
+        "action": "accept_fact"
+      },
+      {
+        "action_id": "manual-dcc6169181674546a5978df4181019c9",
+        "decision_id": "restoration-08d62aa9f82544aa9d8c6a2d56e88e6a",
+        "action": "accept_fact"
+      },
+      {
+        "action_id": "manual-52ece6ca5a1144d99a6f5e8328fbb984",
+        "decision_id": "restoration-446d0d36f30d4c238ed57636138940e0",
+        "action": "accept_fact"
+      },
+      {
+        "action_id": "manual-c69d93a7ea2f484e99016fe9419354fc",
+        "decision_id": "restoration-28016b58f15c4d74aa02c7aba22db7f9",
+        "action": "accept_fact"
+      },
+      {
+        "action_id": "manual-681b8c3c1c21467aad34ab336cda2545",
+        "decision_id": "restoration-bf257f249b2e4c1ea4057a5267f138fa",
+        "action": "accept_fact"
+      },
+      {
+        "action_id": "manual-7571e118d360428e81f69b6c058e7d2d",
+        "decision_id": "restoration-3082464b839a495d9fed821260af6253",
+        "action": "accept_fact"
+      },
+      {
+        "action_id": "manual-5593eb116cfa415fb73f8e84e854c5aa",
+        "decision_id": "restoration-cd3611873b354f79a7a4cd6cdbf7bf4c",
+        "action": "accept_fact"
+      },
+      {
+        "action_id": "manual-aa1fb79e8514478da76bc789877a7632",
+        "decision_id": "restoration-58b994d3e5d84873b83e5ff778235bb8",
+        "action": "accept_fact"
+      },
+      {
+        "action_id": "manual-a4ef8364274f4d8686ac84ce291def9b",
+        "decision_id": "restoration-f60e35d54647416782c860fedbe54f06",
+        "action": "accept_fact"
+      }
+    ],
+    "verification": {
+      "receipt_id": "521443fd4883c6855ee2630d394d14dffff3e1a5c43ab958231bfebc4f69eead",
+      "kind": "verification",
+      "subject_revision": "87ddeb3553cba0ae0c3f8ef8a3d3e89068b3d924f9ec5bda0e688c4466b1592b",
+      "exact": true
+    },
+    "probe": null,
+    "subject_revision": "87ddeb3553cba0ae0c3f8ef8a3d3e89068b3d924f9ec5bda0e688c4466b1592b",
+    "revision": "4357ca3fe91ecb2e270aa3aadded26ebd4ffa75639e1104201b1b15863b86a5c"
+  },
+  "tail_count_correction": {
+    "decisions": [
+      {
+        "action_id": "manual-aa1fb79e8514478da76bc789877a7632",
+        "decision_id": "restoration-8e0d5adda122454ea416368c6db5ebf8",
+        "action": "accept_fact"
+      },
+      {
+        "action_id": "manual-a4ef8364274f4d8686ac84ce291def9b",
+        "decision_id": "restoration-511e14e4ab1c45839c4d8a5c5bdeeb1d",
+        "action": "accept_fact"
+      }
+    ],
+    "verification": {
+      "receipt_id": "521443fd4883c6855ee2630d394d14dffff3e1a5c43ab958231bfebc4f69eead",
+      "kind": "verification",
+      "subject_revision": "87ddeb3553cba0ae0c3f8ef8a3d3e89068b3d924f9ec5bda0e688c4466b1592b",
+      "exact": true
+    },
+    "probe": null,
+    "subject_revision": "87ddeb3553cba0ae0c3f8ef8a3d3e89068b3d924f9ec5bda0e688c4466b1592b",
+    "revision": "3a26be8348dea8329884d99203c3a44ab4479ba7eafada714e34dbc4dff9c303"
+  },
+  "instruction_evidence_sha256": "71473a7a1c0bdd658f6d4a1b545cda347dab2f409ee5cf09867e21739cccd51c",
+  "tables": {
+    "station_colour_ramp": {
+      "source_span": [
+        230922,
+        230934
+      ],
+      "values": [
+        3,
+        1,
+        6,
+        5,
+        4,
+        0
+      ],
+      "normal_index_domain": [
+        0,
+        5
+      ],
+      "index_source": "App9CA starts0; station flag ramps upward capped5 and absence decrements to floor0; original space-mode branch only. No arbitrary initialized-state proof."
+    },
+    "layer_prefix": {
+      "source_span": [
+        231048,
+        231094
+      ],
+      "values": [
+        -1,
+        -1,
+        -1,
+        -1,
+        -1,
+        -1,
+        -1,
+        -1,
+        -1,
+        0,
+        0,
+        1,
+        1,
+        1,
+        1,
+        2,
+        2,
+        2,
+        2,
+        3,
+        3,
+        3,
+        3
+      ],
+      "normal_index_domains": [
+        "center metric <6000000: highword >>2 yields0..22",
+        "Millway metric <1200000: highword yields0..18"
+      ],
+      "extent": "23 reader-supported WORD prefix; eight following WORDs before world_solice_display_radii remain excluded.",
+      "consumer": "For original type128, negative index suppresses outer layers; DBF emits index+1 records for nonnegative values. No universal index proof under overflow/arbitrary state.",
+      "excluded_tail_source_span": [
+        231094,
+        231110
+      ],
+      "excluded_tail_words": 8,
+      "correction": "Early adoption rationale undercounted the adjacent tail as four WORDs; byte extent23*2 was always correct and excludes all16 adjacent bytes."
+    }
+  },
+  "fields": [
+    {
+      "layout_name": "app",
+      "base_symbol": "__amiga_app_base__",
+      "sizeof_symbol": "app_SIZEOF",
+      "symbol": "system_center_proximity_metric",
+      "owner_struct_name": null,
+      "offset": 2484,
+      "size": 4,
+      "alias": false,
+      "layout_kind": 1,
+      "source_kind": 1,
+      "source_kind_name": "app_slot_access",
+      "value_kind": 2,
+      "confidence": 2,
+      "conflicted": false,
+      "conflict_reason": null,
+      "alias_of_symbol": null,
+      "alias_of_offset": null,
+      "source_section_index": 0,
+      "source_offset": 22582
+    },
+    {
+      "layout_name": "app",
+      "base_symbol": "__amiga_app_base__",
+      "sizeof_symbol": "app_SIZEOF",
+      "symbol": "station_proximity_disc_colour_index",
+      "owner_struct_name": null,
+      "offset": 2504,
+      "size": 2,
+      "alias": false,
+      "layout_kind": 1,
+      "source_kind": 1,
+      "source_kind_name": "app_slot_access",
+      "value_kind": 2,
+      "confidence": 2,
+      "conflicted": false,
+      "conflict_reason": null,
+      "alias_of_symbol": null,
+      "alias_of_offset": null,
+      "source_section_index": 0,
+      "source_offset": 22722
+    },
+    {
+      "layout_name": "app",
+      "base_symbol": "__amiga_app_base__",
+      "sizeof_symbol": "app_SIZEOF",
+      "symbol": "station_proximity_colour_ramp_step",
+      "owner_struct_name": null,
+      "offset": 2506,
+      "size": 2,
+      "alias": false,
+      "layout_kind": 1,
+      "source_kind": 1,
+      "source_kind_name": "app_slot_access",
+      "value_kind": 2,
+      "confidence": 2,
+      "conflicted": false,
+      "conflict_reason": null,
+      "alias_of_symbol": null,
+      "alias_of_offset": null,
+      "source_section_index": 0,
+      "source_offset": 22948
+    },
+    {
+      "layout_name": "app",
+      "base_symbol": "__amiga_app_base__",
+      "sizeof_symbol": "app_SIZEOF",
+      "symbol": "type128_disc_outer_layer_index",
+      "owner_struct_name": null,
+      "offset": 2508,
+      "size": 2,
+      "alias": false,
+      "layout_kind": 1,
+      "source_kind": 1,
+      "source_kind_name": "app_slot_access",
+      "value_kind": 2,
+      "confidence": 2,
+      "conflicted": false,
+      "conflict_reason": null,
+      "alias_of_symbol": null,
+      "alias_of_offset": null,
+      "source_section_index": 0,
+      "source_offset": 22986
+    }
+  ],
+  "before": {
+    "generic_field_symbols": 75,
+    "unclassified_bytes": 14728,
+    "unclassified_intervals": 260
+  },
+  "after": {
+    "generic_field_symbols": 71,
+    "unclassified_bytes": 14670,
+    "unclassified_intervals": 262
+  },
+  "classification_delta": {
+    "new_structured_bytes": 58,
+    "new_source_spans": [
+      [
+        230922,
+        230934
+      ],
+      [
+        231048,
+        231094
+      ]
+    ],
+    "lost_accepted_bytes": 0,
+    "code_bytes_unchanged": 106034,
+    "reason": "Two reader-supported WORD table holes split larger residual intervals; interval count rises while unknown bytes fall. No new code promotion or model identity."
+  },
+  "native_vectors_unchanged": {
+    "app_slot_refs": true,
+    "accepted_code_runs": true,
+    "recovered_platform_typed_accesses": true,
+    "recovered_indirect_sites": true,
+    "table_consumers": true,
+    "address_expressions": true
+  },
+  "semantics": [
+    "The fixed(20000000,20000000) system-center weighted X/Z metric feeds radial environment and disc-side selection; it is not Euclidean distance. Adjacent seed-only9B8 remains unknown.",
+    "Station-nearby ramp step normally0..5 chooses palette index3,1,6,5,4,0. Type144 disc queue consumes it, with zero suppression; nearby Solice display also copies it into colour-table entry17. It is not an RGB word or measured distance.",
+    "App9CC is the signed outer-layer loop last index for original type128. Negative suppresses that loop; otherwise DBF emits index+1 outer records in addition to earlier queue work. Keep type128 explicit rather than guessing its visual identity.",
+    "Layer table is only23-WORD reader-supported prefix; all eight adjacent WORDs before the next known object remain excluded. Initial rationale said four; normal API review supersedes that descriptive count without changing the correct46-byte owner or source subject."
+  ],
+  "verification": {
+    "kind": "verification",
+    "framework_exact": true,
+    "target_id": "amiga_raw_starglider2_game",
+    "subject_revision": "87ddeb3553cba0ae0c3f8ef8a3d3e89068b3d924f9ec5bda0e688c4466b1592b",
+    "status": "exact",
+    "exact": true,
+    "source_sha256": "ba6d089b27c6db44dc93546cbdc53720a5b2cfb42fa7d227a1250cae729e5377",
+    "source_path": "/workspace/pandora-original-delivery/stable-d15c2cf8/.runtime-state/restoration/eb04f545fb97451725a1c91ab5abf6f2e097614c45880db6edfb4ea5c3f6e2c2/ba6d089b27c6db44dc93546cbdc53720a5b2cfb42fa7d227a1250cae729e5377.s",
+    "source_package_sha256": null,
+    "original_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "original_size": 412736,
+    "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "rebuilt_path": "/workspace/pandora-original-delivery/stable-d15c2cf8/.runtime-state/restoration/eb04f545fb97451725a1c91ab5abf6f2e097614c45880db6edfb4ea5c3f6e2c2/662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9.bin",
+    "framework_status": "exact",
+    "failure_kinds": [],
+    "message": "",
+    "oracle": {
+      "oracle_id": "vasm",
+      "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+      "comparison_level": "oracle.full_file_match",
+      "assembler_status": "accepted",
+      "message": "oracle output matched original bytes"
+    },
+    "receipt_id": "521443fd4883c6855ee2630d394d14dffff3e1a5c43ab958231bfebc4f69eead",
+    "revision": "a78f04080a8b973939e4f71fe6e0ca7cf4daf21d6ed0a83df37cbffc4d69ebb1"
+  },
+  "preservation": {
+    "original_bytes": 412736,
+    "assets_unchanged": 57,
+    "headers_unchanged": 14,
+    "app_references": 3305,
+    "typed_accesses": 316,
+    "unresolved_typed_accesses": 355,
+    "table_consumers": 40,
+    "address_expressions": 189,
+    "source_quality_diagnostics": 0,
+    "incomplete_analysis": [],
+    "canonical_histories_append_only": true,
+    "generated_source_hand_edited": false,
+    "new_runtime_run": false
+  },
+  "framework_validation": {
+    "code_changed": false,
+    "reused_receipt": "runtime/observations/starglider2-celestial-render-projection.json",
+    "python_unique_passed": 36,
+    "native_passed": 819,
+    "native_failed": 3,
+    "scope": "No unchanged framework tests rerun for metadata-only source restoration. Three exact remaining failure names, baseline reproduction and bounded diagnostics are retained in the linked receipt; not an all-green claim."
+  },
+  "generation_wall_seconds": 136.66962326795328,
+  "process_usage": {
+    "wall_seconds": 184.61512463603867,
+    "user_seconds": 174.283018,
+    "system_seconds": 10.078731,
+    "max_rss_kib": 2679032
+  },
+  "limits": [
+    "Conditional initialized original-use index arguments are not arbitrary-input, signed-overflow or unknown-writer proofs.",
+    "Static reader/producer meaning, not new gameplay, pixel/audio equivalence or all-model visual identification.",
+    "14670 unknown bytes and30 unresolved orphan signals remain; no semantic completion percentage."
+  ],
+  "next": "Remaining connected environment operands and specific shared-buffer/orphan incoming leads. Seed-only and unchecked alias gaps stay explicit, not assigned purposes merely by adjacency.",
+  "validated_target_git_tree": "e2f4ca8632539cd78b9e77aa20d68fd4f78f951a",
+  "clean_staged_tree_build": true,
+  "standalone_build": {
+    "schema_version": 1,
+    "status": "pass",
+    "format": "raw_payload_not_AmigaDOS_HUNK",
+    "main_bytes": 412736,
+    "main_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "main_matches_original_identity": true,
+    "asset_count": 57,
+    "all_asset_source_slices_equal": true,
+    "decoded_view_inverse_exact": true,
+    "boot_copy_source_matches_resident_view": true,
+    "source_commit": "f7e60ba37bf0f38cff641b6ee94af6928ed32edd",
+    "assembler_sha256": "413e284020125f42709486dfe09907cab3dd9f3c2ea41017c190f8ea68f30825",
+    "flags": [
+      "-Fbin",
+      "-m68000",
+      "-no-opt"
+    ],
+    "outputs": [
+      {
+        "role": "original_main",
+        "filename": "Starglider2-original.raw",
+        "bytes": 412736,
+        "sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9"
+      },
+      {
+        "role": "decoded_analysis_view",
+        "filename": "protection-decoded-analysis.raw",
+        "bytes": 3548,
+        "sha256": "de8358853dd9ed9b006a23569bf393aa217ed3be3301a169465d80bfaf839922"
+      },
+      {
+        "role": "boot_installer_context",
+        "filename": "boot-selector-installer-context.raw",
+        "bytes": 40,
+        "sha256": "8d34852425e2e1bfa87b3febdfc74fb39e7c667e9d9ff73e17b594649e83b21b"
+      },
+      {
+        "role": "boot_resident_view",
+        "filename": "boot-selector-resident.raw",
+        "bytes": 20,
+        "sha256": "a26286a393713c046eff9dbaff15b20b26b171fa9e05fc9d538d16b0eddb6024"
+      }
+    ]
+  }
+}
