@@ -356,10 +356,10 @@ active_model_retirement_phase_word RS.W 1
 saved_model_face_loop_index RS.W 1
 inside_structure_flag RS.B 1
 space_environment_flag RS.B 1
-app_077E RS.B 1
+interior_visibility_band_tag RS.B 1
     RS.B 3
 tug_initializer_tail_reference RS.L 1
-app_0786 RS.B 1
+surface_exit_pitch_bias_steps RS.B 1
     RS.B 1
 integrating_object_count RS.W 1
 homing_missile_hud_icon_count RS.W 1
@@ -4354,7 +4354,7 @@ abs_0_0000417C:
 	beq.b abs_0_000041A8
 	btst.b #6,SG2WorldObject_flags(a4)
 	beq.b abs_0_000041A8
-	move.b app_077E(a6),d5
+	move.b interior_visibility_band_tag(a6),d5
 	beq.b abs_0_000041A8
 	sub.b $0025(a4),d5
 	beq.b abs_0_000041A8
@@ -13265,7 +13265,7 @@ abs_0_0000BA7A:
 	move.l d0,d2
 abs_0_0000BA8C:
 	dbf.w d3,abs_0_0000BA28
-	move.b $0025(a2),app_077E(a6)
+	move.b $0025(a2),interior_visibility_band_tag(a6)
 	movea.l player_object_reference(a6),a0
 	clr.w abs_0_00039CC6.l
 	move.w (a2),d0
@@ -13288,12 +13288,12 @@ abs_0_0000BA8C:
 	cmp.w #$55,d0
 	bne.w abs_0_0000B920
 abs_0_0000BAE0:
-	lea.l abs_0_0000C43C.l,a1
-	lea.l abs_0_0000C454.l,a3
+	lea.l wide_structure_profile_x_offsets.l,a1
+	lea.l wide_structure_profile_z_offsets.l,a3
 	bra.b abs_0_0000BAFA
 abs_0_0000BAEE:
-	lea.l abs_0_0000C46C.l,a1
-	lea.l abs_0_0000C484.l,a3
+	lea.l narrow_structure_profile_x_offsets.l,a1
+	lea.l narrow_structure_profile_z_offsets.l,a3
 abs_0_0000BAFA:
 	tst.b player_collision_response_flag(a6)
 	beq.b abs_0_0000BB26
@@ -13307,7 +13307,7 @@ abs_0_0000BAFA:
 	move.l horizontal_world_wrap_mask(a6),d2
 	and.l d2,player_world_x(a6)
 	and.l d2,player_world_z(a6)
-	bra.b abs_0_0000BB4A
+	bra.b apply_player_structure_profile_constraints
 abs_0_0000BB26:
 	movem.w player_motion_x(a6),d0-d2
 	add.l d0,d0
@@ -13319,7 +13319,7 @@ abs_0_0000BB26:
 	move.l horizontal_world_wrap_mask(a6),d2
 	and.l d2,player_world_x(a6)
 	and.l d2,player_world_z(a6)
-abs_0_0000BB4A:
+apply_player_structure_profile_constraints:
 	moveq.l #0,d0
 	move.w $0028(a2),d1
 	add.w d1,d1
@@ -13548,7 +13548,7 @@ return_to_surface_layout:
 	move.l #$FFFFFB50,player_world_y(a6)
 	move.l #$FFFFFB50,$0008(a1)
 	move.b #$2,structure_contact_pose_mode(a6)
-	move.b #$66,app_0786(a6)
+	move.b #$66,surface_exit_pitch_bias_steps(a6)
 	move.w #$3FF,player_rotation_0(a6)
 	move.w #$3FF,$0010(a1)
 	subi.w #16,world_layout_index(a6)
@@ -13607,7 +13607,7 @@ abs_0_0000BEFC:
 	move.b #$90,diagnostic_stage_step_word.l
 	clr.b diagnostic_step_byte.l
 	st.b inside_structure_flag(a6)
-	clr.b app_077E(a6)
+	clr.b interior_visibility_band_tag(a6)
 	move.l $0004(a2),player_world_x(a6)
 	move.l $000C(a2),player_world_z(a6)
 	move.l #$FFFFFA98,player_world_y(a6)
@@ -13659,13 +13659,13 @@ abs_0_0000BF84:
 	cmp.w #$55,d0
 	bne.w abs_0_0000B9F6
 abs_0_0000BFEC:
-	lea.l abs_0_0000C43C.l,a1
-	lea.l abs_0_0000C454.l,a3
-	bra.b abs_0_0000C006
+	lea.l wide_structure_profile_x_offsets.l,a1
+	lea.l wide_structure_profile_z_offsets.l,a3
+	bra.b apply_object_structure_profile_constraints
 abs_0_0000BFFA:
-	lea.l abs_0_0000C46C.l,a1
-	lea.l abs_0_0000C484.l,a3
-abs_0_0000C006:
+	lea.l narrow_structure_profile_x_offsets.l,a1
+	lea.l narrow_structure_profile_z_offsets.l,a3
+apply_object_structure_profile_constraints:
 	moveq.l #0,d0
 	move.w $0028(a2),d1
 	add.w d1,d1
@@ -13980,18 +13980,19 @@ abs_0_0000C424:
 	addi.w #400,d0
 	move.w d0,icarus_power_reserve(a6)
 	bra.w abs_0_0000B9C2
-abs_0_0000C43C:
-	dc.b $00,$00,$00,$00,$FF,$FF,$FC,$18,$00,$00,$03,$E8,$FF,$FF,$F9,$3C
-	dc.b $FF,$FF,$F8,$30,$FF,$FF,$F9,$3C
-abs_0_0000C454:
-	dc.b $FF,$FF,$F8,$30,$FF,$FF,$F9,$3C,$FF,$FF,$F9,$3C,$FF,$FF,$FC,$18
-	dc.b $00,$00,$00,$00,$00,$00,$03,$E8
-abs_0_0000C46C:
-	dc.b $00,$00,$00,$00,$FF,$FF,$FD,$A8,$00,$00,$02,$58,$FF,$FF,$FB,$F0
-	dc.b $FF,$FF,$FB,$50,$FF,$FF,$FB,$F0
-abs_0_0000C484:
-	dc.b $FF,$FF,$FB,$50,$FF,$FF,$FB,$F0,$FF,$FF,$FB,$F0,$FF,$FF,$FD,$A8
-	dc.b $00,$00,$00,$00,$00,$00,$02,$58,$FF,$FF,$F9,$E8
+wide_structure_profile_x_offsets:
+	dc.l $00000000,$FFFFFC18,$000003E8,$FFFFF93C	; Six original indexed LONG X/Z profile offsets, conditional constructor domain0..5
+	dc.l $FFFFF830,$FFFFF93C
+wide_structure_profile_z_offsets:
+	dc.l $FFFFF830,$FFFFF93C,$FFFFF93C,$FFFFFC18	; Six original indexed LONG X/Z profile offsets, conditional constructor domain0..5
+	dc.l $00000000,$000003E8
+narrow_structure_profile_x_offsets:
+	dc.l $00000000,$FFFFFDA8,$00000258,$FFFFFBF0	; Six original indexed LONG X/Z profile offsets, conditional constructor domain0..5
+	dc.l $FFFFFB50,$FFFFFBF0
+narrow_structure_profile_z_offsets:
+	dc.l $FFFFFB50,$FFFFFBF0,$FFFFFBF0,$FFFFFDA8	; Six original indexed LONG X/Z profile offsets, conditional constructor domain0..5
+	dc.l $00000000,$00000258
+	dc.b $FF,$FF,$F9,$E8
 	dcb.b $2C,$00
 abs_0_0000C4CC:
 	dc.b $00,$00,$00,$00
@@ -23011,11 +23012,11 @@ world_object_type_initializer_pointers:
 	dc.l abs_0_00018618
 	dc.l abs_0_00018626
 	dc.l abs_0_00018646
-	dc.l abs_0_00018662
-	dc.l abs_0_00018662
-	dc.l abs_0_00018662
-	dc.l abs_0_00018662
-	dc.l abs_0_00018662
+	dc.l initialize_structure_contact_flags
+	dc.l initialize_structure_contact_flags
+	dc.l initialize_structure_contact_flags
+	dc.l initialize_structure_contact_flags
+	dc.l initialize_structure_contact_flags
 	dc.l abs_0_000188EA
 	dc.l skip_object_type_initialization
 	dc.l abs_0_0001856E
@@ -23030,14 +23031,14 @@ world_object_type_initializer_pointers:
 	dc.l skip_object_type_initialization
 	dc.l abs_0_000185CE
 	dc.l skip_object_type_initialization
-	dc.l abs_0_0001864E
+	dc.l initialize_type85_structure_variant
 	dc.l abs_0_00018686
 	dc.l abs_0_00018690
 	dc.l abs_0_000186B4
 	dc.l abs_0_000186D4
 	dc.l initialize_energy_tower_variant_and_link
 	dc.l abs_0_0001872A
-	dc.l abs_0_00018662
+	dc.l initialize_structure_contact_flags
 	dc.l abs_0_00018744
 	dc.l abs_0_0001874C
 	dc.l skip_object_type_initialization
@@ -23425,12 +23426,12 @@ abs_0_00018626:
 abs_0_00018646:
 	bset.b #6,$0002(a0)
 	rts
-abs_0_0001864E:
+initialize_type85_structure_variant:
 	cmpi.b #4,$0026(a0)
-	bne.b abs_0_00018662
+	bne.b initialize_structure_contact_flags
 	move.w #$FFA6,$0030(a0)
 	move.w #$2D,$0014(a0)
-abs_0_00018662:
+initialize_structure_contact_flags:
 	bset.b #7,$001C(a0)
 	bset.b #6,$0002(a0)
 	rts
@@ -23496,19 +23497,19 @@ abs_0_00018744:
 	bra.w append_object_initializer_chain_link
 abs_0_0001874C:
 	tst.b $0026(a0)
-	beq.w abs_0_00018662
+	beq.w initialize_structure_contact_flags
 	cmp.w #$3,d4
-	beq.w abs_0_00018662
+	beq.w initialize_structure_contact_flags
 	cmp.w #$7,d4
-	beq.w abs_0_00018662
+	beq.w initialize_structure_contact_flags
 	cmp.w #$8,d4
 	bne.b abs_0_00018774
 	move.b #$2,$0026(a0)
-	bra.w abs_0_00018662
+	bra.w initialize_structure_contact_flags
 abs_0_00018774:
 	move.b d4,$0026(a0)
 	subq.b #4,$0026(a0)
-	bra.w abs_0_00018662
+	bra.w initialize_structure_contact_flags
 append_and_clear_object_initializer_chain:
 	tst.l object_initializer_chain_tail(a6)
 	beq.w skip_object_type_initialization
@@ -37503,15 +37504,15 @@ abs_0_0002F79C:
 abs_0_0002F7A2:
 	move.w negative_speed_control_accumulator(a6),d0
 	neg.w d0
-	tst.b app_0786(a6)
+	tst.b surface_exit_pitch_bias_steps(a6)
 	beq.b abs_0_0002F7C4
 	tst.w rotation_0_control_accumulator(a6)
 	bmi.b abs_0_0002F7C0
-	subq.b #1,app_0786(a6)
+	subq.b #1,surface_exit_pitch_bias_steps(a6)
 	subi.w #10,rotation_0_control_accumulator(a6)
 	bra.b abs_0_0002F7C4
 abs_0_0002F7C0:
-	clr.b app_0786(a6)
+	clr.b surface_exit_pitch_bias_steps(a6)
 abs_0_0002F7C4:
 	tst.b player_structure_clamp_flag(a6)
 	bne.b abs_0_0002F7D2

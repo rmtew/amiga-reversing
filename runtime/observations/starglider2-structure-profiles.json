@@ -1,0 +1,324 @@
+{
+  "schema_version": 1,
+  "kind": "structure_visibility_exit_bias_and_profile_lookup_restoration",
+  "publication_base_commit": "9daecd69e3ec74fa857d0b9b4697318e7b0128ca",
+  "backend_sha256": "4c2c378c839057f01abc4cc8db96ffd19fd0b18b3d15e5dad4d6db2e7f7c5851",
+  "analysis_sha256": "d5bed2e9bc5ee16d86ffc66dde7134218f5b7381ba4cfe1a5b8abc0e8be3d754",
+  "retained_instruction_evidence_sha256": "46acad3648989e4368727ea66f8655d80206321330377fa829c3fa1084c32972",
+  "instruction_coordinate_count": 154,
+  "original_interior_selector_counts": {
+    "85": {
+      "0": 26
+    },
+    "70": {
+      "2": 14,
+      "0": 9,
+      "5": 9,
+      "4": 7,
+      "3": 6,
+      "1": 6
+    },
+    "67": {
+      "2": 5,
+      "0": 3,
+      "1": 3,
+      "3": 3,
+      "4": 2,
+      "5": 2
+    },
+    "66": {
+      "0": 17,
+      "4": 1
+    },
+    "69": {
+      "1": 11,
+      "2": 9,
+      "5": 7,
+      "4": 6,
+      "3": 6,
+      "0": 5
+    },
+    "68": {
+      "1": 6,
+      "0": 3,
+      "3": 3,
+      "4": 3,
+      "5": 2,
+      "2": 2
+    }
+  },
+  "tables": [
+    {
+      "source_span": [
+        46140,
+        46164
+      ],
+      "name": "wide_structure_profile_x_offsets",
+      "values": [
+        0,
+        -1000,
+        1000,
+        -1732,
+        -2000,
+        -1732
+      ]
+    },
+    {
+      "source_span": [
+        46164,
+        46188
+      ],
+      "name": "wide_structure_profile_z_offsets",
+      "values": [
+        -2000,
+        -1732,
+        -1732,
+        -1000,
+        0,
+        1000
+      ]
+    },
+    {
+      "source_span": [
+        46188,
+        46212
+      ],
+      "name": "narrow_structure_profile_x_offsets",
+      "values": [
+        0,
+        -600,
+        600,
+        -1040,
+        -1200,
+        -1040
+      ]
+    },
+    {
+      "source_span": [
+        46212,
+        46236
+      ],
+      "name": "narrow_structure_profile_z_offsets",
+      "values": [
+        -1200,
+        -1040,
+        -1040,
+        -600,
+        0,
+        600
+      ]
+    }
+  ],
+  "before": {
+    "generic_fields": 50,
+    "app_references": 3316,
+    "typed_accesses": 316,
+    "unresolved_typed_accesses": 355,
+    "table_consumers": 40,
+    "unclassified_bytes": 14164,
+    "unclassified_intervals": 262
+  },
+  "after": {
+    "generic_fields": 48,
+    "app_references": 3316,
+    "typed_accesses": 316,
+    "unresolved_typed_accesses": 355,
+    "table_consumers": 40,
+    "unclassified_bytes": 14068,
+    "unclassified_intervals": 262
+  },
+  "canonical_actions": [
+    "manual-d5191230c1a648d1838ee38223213c61",
+    "manual-1e077fd312344ec0b39da83eb6b4a143",
+    "manual-b3744995f66348999a22143340f69631",
+    "manual-6a9939a093564214b07949e461ac237c",
+    "manual-7b26367a8dcc4c0cacb6df3fcfee8253",
+    "manual-e79bdb10c2584e1c8d9f5e957a8bb6a7",
+    "manual-d00fd634b6cb41cd84fdc277759c8758",
+    "manual-c8ebd52e0ebd4b7b937cd0a9b3a496d0",
+    "manual-707b32c60dd7478d82c0fc3b821a9ea7",
+    "manual-6700cf0c27d744c880d0927dd4324de5",
+    "manual-425a91fae4644bc89fe6770bcdc928af",
+    "manual-39657e4e3f3c4fe89d76849bf28b0c80",
+    "manual-b5e7665fe5c241e692cae5e12910b363",
+    "manual-dabee973c846431bb39ad67fd5443f35"
+  ],
+  "review_decisions": [
+    {
+      "action_id": "manual-d5191230c1a648d1838ee38223213c61",
+      "decision_id": "restoration-7238ef536f624d6c8e65a16feff64a11",
+      "action": "accept_fact"
+    },
+    {
+      "action_id": "manual-1e077fd312344ec0b39da83eb6b4a143",
+      "decision_id": "restoration-2cb4cccbd984417fa87e49dd4d5fb4c3",
+      "action": "accept_fact"
+    },
+    {
+      "action_id": "manual-b3744995f66348999a22143340f69631",
+      "decision_id": "restoration-74663068c83b4a889dd19e6be558281b",
+      "action": "accept_fact"
+    },
+    {
+      "action_id": "manual-6a9939a093564214b07949e461ac237c",
+      "decision_id": "restoration-78754c65066544b9bfc73fd2657b92b1",
+      "action": "accept_fact"
+    },
+    {
+      "action_id": "manual-7b26367a8dcc4c0cacb6df3fcfee8253",
+      "decision_id": "restoration-aec6aeb685a74f4fa96fd881b790f210",
+      "action": "accept_fact"
+    },
+    {
+      "action_id": "manual-e79bdb10c2584e1c8d9f5e957a8bb6a7",
+      "decision_id": "restoration-91427307f8634dbd9d7482482aa132c5",
+      "action": "accept_fact"
+    },
+    {
+      "action_id": "manual-d00fd634b6cb41cd84fdc277759c8758",
+      "decision_id": "restoration-ff95d72d02134a44930d656a2465828f",
+      "action": "accept_fact"
+    },
+    {
+      "action_id": "manual-c8ebd52e0ebd4b7b937cd0a9b3a496d0",
+      "decision_id": "restoration-43f8cf6e6c8c4186b258327198020134",
+      "action": "accept_fact"
+    },
+    {
+      "action_id": "manual-707b32c60dd7478d82c0fc3b821a9ea7",
+      "decision_id": "restoration-209e69af354649afb2228f1b9093274d",
+      "action": "accept_fact"
+    },
+    {
+      "action_id": "manual-6700cf0c27d744c880d0927dd4324de5",
+      "decision_id": "restoration-523f0763fcf6487da1d12bd94b539eff",
+      "action": "accept_fact"
+    },
+    {
+      "action_id": "manual-425a91fae4644bc89fe6770bcdc928af",
+      "decision_id": "restoration-71a313b5603d43df949598fc2a1f2943",
+      "action": "accept_fact"
+    },
+    {
+      "action_id": "manual-39657e4e3f3c4fe89d76849bf28b0c80",
+      "decision_id": "restoration-5e14ff1395764b3ab1ffdfedab863fde",
+      "action": "accept_fact"
+    },
+    {
+      "action_id": "manual-b5e7665fe5c241e692cae5e12910b363",
+      "decision_id": "restoration-893ef320941f4ac0aafffa1be29ebff0",
+      "action": "accept_fact"
+    },
+    {
+      "action_id": "manual-dabee973c846431bb39ad67fd5443f35",
+      "decision_id": "restoration-a46e278ddec5451e90af5f1ca2254543",
+      "action": "accept_fact"
+    }
+  ],
+  "contract": [
+    "Selected interior contact supplies its object25 BYTE to the workspace visibility tag. Entry clears the tag. With inside-structure and object flag6, zero disables this filter; otherwise equal or +/-1 modulo256 passes the original BYTE SUB/NEG/CMP test. This is not a universal room identifier.",
+    "Tunnel exit initializes the pitch-bias BYTE to102; its pose continuation sets the rotation0 accumulator1020. Later gated control steps subtract10/decrement while the accumulator is nonnegative; negative pitch cancels the bias. Not seconds or physical-frame timing.",
+    "The player and other-object constraint paths choose paired X/Z offsets at either scale, indexed by object28 WORD*4. Original relevant interior placements supply0..5. Types66..70 initialize common contact flags, and type85 adds its original parameter26==4 variant before that common body; none changes28 in initialization.",
+    "The four declared tables are exactly6 LONGs each. The following bytes remain unknown; no padding, sentinel or no-later-read claim. Generic object24/25/28 meanings remain polymorphic outside these consumers."
+  ],
+  "verification": {
+    "kind": "verification",
+    "framework_exact": true,
+    "target_id": "amiga_raw_starglider2_game",
+    "subject_revision": "0584edceb84f07d8d817e4c5fe543c787906619920855cadd2f088f2edb21f7e",
+    "status": "exact",
+    "exact": true,
+    "source_sha256": "6e323e1d21ad701c5a2d7893856d1e4ec5aefc6cd7949dc4462f92b013fbc23a",
+    "source_path": "/workspace/pandora-original-delivery/stable-d15c2cf8/.runtime-state/restoration/eb04f545fb97451725a1c91ab5abf6f2e097614c45880db6edfb4ea5c3f6e2c2/6e323e1d21ad701c5a2d7893856d1e4ec5aefc6cd7949dc4462f92b013fbc23a.s",
+    "source_package_sha256": null,
+    "original_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "original_size": 412736,
+    "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "rebuilt_path": "/workspace/pandora-original-delivery/stable-d15c2cf8/.runtime-state/restoration/eb04f545fb97451725a1c91ab5abf6f2e097614c45880db6edfb4ea5c3f6e2c2/662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9.bin",
+    "framework_status": "exact",
+    "failure_kinds": [],
+    "message": "",
+    "oracle": {
+      "oracle_id": "vasm",
+      "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+      "comparison_level": "oracle.full_file_match",
+      "assembler_status": "accepted",
+      "message": "oracle output matched original bytes"
+    },
+    "receipt_id": "9add5368653f69fc362168a800cc48362c5df70a6f5c2c299bc1d79d1030ce5b",
+    "revision": "71cc9469dc62a2f8e622b096e67e34059e5009efe0dae4f57a760d3e0895d143"
+  },
+  "framework_validation": {
+    "code_changed": false,
+    "native_passed": 823,
+    "native_failed": 0,
+    "reused_receipt": "runtime/observations/starglider2-api-input-collection.json",
+    "same_backend_as_reused_receipt": true,
+    "scope": "Fourteen target facts only; no repeated unchanged C suite or runtime route."
+  },
+  "preservation": {
+    "original_bytes": 412736,
+    "original_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "assets_unchanged": 57,
+    "headers_unchanged": 14,
+    "accepted_code_bytes": 106034,
+    "generated_source_hand_edited": false,
+    "canonical_histories_append_only": true,
+    "source_quality_diagnostics": 0,
+    "incomplete_analysis": []
+  },
+  "generation_wall_seconds": 145.99700087402016,
+  "limits": [
+    "Constructor selector domain only; later object mutations, extra callbacks and arbitrary entries are not closed.",
+    "No new live structure/tunnel/model observation or visual identity claim.",
+    "Base annotations retain their original assumption provenance; names do not upgrade A6 fallback to all-path workspace proof."
+  ],
+  "next": "Use original initializer/model and field-producer evidence for further connected restoration; leave producer-only slots and unchecked domains explicit rather than inventing names.",
+  "validated_target_git_tree": "b94c8a6c3ecdb138d2d48c9506e41cbad00f3f1f",
+  "clean_staged_tree_build": true,
+  "standalone_build": {
+    "schema_version": 1,
+    "status": "pass",
+    "format": "raw_payload_not_AmigaDOS_HUNK",
+    "main_bytes": 412736,
+    "main_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "main_matches_original_identity": true,
+    "asset_count": 57,
+    "all_asset_source_slices_equal": true,
+    "decoded_view_inverse_exact": true,
+    "boot_copy_source_matches_resident_view": true,
+    "source_commit": "9daecd69e3ec74fa857d0b9b4697318e7b0128ca",
+    "assembler_sha256": "413e284020125f42709486dfe09907cab3dd9f3c2ea41017c190f8ea68f30825",
+    "flags": [
+      "-Fbin",
+      "-m68000",
+      "-no-opt"
+    ],
+    "outputs": [
+      {
+        "role": "original_main",
+        "filename": "Starglider2-original.raw",
+        "bytes": 412736,
+        "sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9"
+      },
+      {
+        "role": "decoded_analysis_view",
+        "filename": "protection-decoded-analysis.raw",
+        "bytes": 3548,
+        "sha256": "de8358853dd9ed9b006a23569bf393aa217ed3be3301a169465d80bfaf839922"
+      },
+      {
+        "role": "boot_installer_context",
+        "filename": "boot-selector-installer-context.raw",
+        "bytes": 40,
+        "sha256": "8d34852425e2e1bfa87b3febdfc74fb39e7c667e9d9ff73e17b594649e83b21b"
+      },
+      {
+        "role": "boot_resident_view",
+        "filename": "boot-selector-resident.raw",
+        "bytes": 20,
+        "sha256": "a26286a393713c046eff9dbaff15b20b26b171fa9e05fc9d538d16b0eddb6024"
+      }
+    ]
+  }
+}

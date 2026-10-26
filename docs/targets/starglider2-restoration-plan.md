@@ -7,7 +7,7 @@ that further analysis is exhausted. Current source remains byte exact: all
 with all 106034 accepted code bytes retained. No generated assembly was edited
 by hand and no interim archive was produced.
 
-The current ownership union leaves 14164 bytes in
+The current ownership union leaves 14068 bytes in
 262 intervals unclassified. This is classification accounting,
 not a semantic completion percentage. Earlier interval/site counts below belong
 to their recorded closeout revision. See the current
@@ -25,17 +25,17 @@ hint, with clobber negatives. Earlier nine-/three-failure receipts remain dated
 history; they are not the current suite status. Target source/ownership/access
 vectors remain unchanged and C/vasm is exact on the updated backend.
 
-Latest: the [periodic BCD display batch](../../runtime/observations/starglider2-periodic-bcd.json)
-explains the two-byte packed-BCD counter, its separate service countdown and
-three graphics-dependent updater entries. Four displayed digits do not make
-the adjacent LONG fetch a 32-bit counter. Frequency/seconds remain unassigned.
-Generic main fields: 50.
+Latest: the [structure profile batch](../../runtime/observations/starglider2-structure-profiles.json)
+explains the interior visibility tag, finite tunnel-exit pitch bias and paired
+player/object profile lookups. Four six-LONG tables classify 96 bytes. Original
+constructor selectors are 0–5; later mutations remain unchecked. Generic main
+fields: 48. Polymorphic object fields are not given universal meanings.
 
-The preceding [tug batch](../../runtime/observations/starglider2-tug-parameters.json)
-restores 72 parameter triples, two mutable LONGs and the original constructor
-link contract; inventory-release bounds remain conditional. The [novella batch](../../runtime/observations/starglider2-novella-latches.json)
-links four fields across original/decoded views and observes the successful
-normal-input prefix, not every later writer or exceptional renderer path.
+The preceding [BCD batch](../../runtime/observations/starglider2-periodic-bcd.json)
+separates a four-digit packed counter from its adjacent service countdown.
+The [tug batch](../../runtime/observations/starglider2-tug-parameters.json) and
+[novella batch](../../runtime/observations/starglider2-novella-latches.json)
+retain their constructor-only and normal-input-prefix evidence boundaries.
 
 The shared renderer now writes each data-span comment once: on identical facts
 this removes 12,903 duplicate trailing comments and 410,853 source bytes, with no
