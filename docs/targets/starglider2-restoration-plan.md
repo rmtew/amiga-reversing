@@ -63,6 +63,33 @@ Scope: the UA/WOW Amiga disk already imported in this repository. Restore readab
 original absolute-address assembly, extracted assets and exact raw payloads. No
 relocation, C conversion or replacement OS loader is part of this project.
 
+## Current producer and address-observation correction
+
+The shared numeric producer now retains explicit external LEA values through LONG
+address arithmetic, without inventing source pointers or renderable expressions.
+The original initializer yields the finite candidates `$61668` and `$69668`;
+only the former maps into the loaded source image. Unmapped candidates now expose
+null source coordinates instead of a fabricated section-zero target. Multi-section
+coordinates are copied elementwise across native/public index widths.
+
+The same batch separates preserved CPU-register identities from invalidated memory
+contracts, removes future-writer numeric inference, makes unknown numeric joins
+order independent, and records address observations only after convergence.
+405 focused tests pass. C/vasm reproduce all 412,736 bytes; the complete rendered
+package is identical to the preceding qualified export, so its standalone build
+receipt is reused. App references remain 3,237 with zero attribution changes;
+320 typed accesses and ownership are unchanged. Address-value records change
+12 to 10: three provisional app-slot producers disappear and the computed base
+producer appears. This is corrected provenance, not new semantic field naming.
+See the [producer receipt](../../runtime/observations/starglider2-runtime-address-constants.json).
+
+The cache cursor at `$4E5C0` remains blocked by physical base provenance at callee
+entries, not by the now-correct numeric producer. Next is a bounded shared
+caller-input propagation experiment, including conflicting callers and independent
+entries. The earlier receipt's `workspace_bytes=0x6998` names the base subtraction,
+not a proven clear extent: the original clear loop covers `$6598` bytes. Neither
+proves all byte purposes or an unconditional renderer-entry address.
+
 ## Active priorities after cursor-span qualification
 
 The current source has 3,237 app references, 135 bounded loop-pattern records,

@@ -210,6 +210,8 @@ static const char *type_provenance_kind_name(uint8_t kind) {
     return "static_data";
   case M68K_PLATFORM_TYPE_PROVENANCE_IMMEDIATE:
     return "immediate";
+  case M68K_PLATFORM_TYPE_PROVENANCE_CONSTANT_VALUE:
+    return "constant_value";
   case M68K_PLATFORM_TYPE_PROVENANCE_NONE:
   default:
     return "unknown";
@@ -347,6 +349,8 @@ static const char *pointer_store_provenance_kind_name(uint8_t kind) {
   switch (kind) {
   case M68K_PLATFORM_TYPE_PROVENANCE_IMMEDIATE:
     return "immediate";
+  case M68K_PLATFORM_TYPE_PROVENANCE_CONSTANT_VALUE:
+    return "constant_value";
   case M68K_PLATFORM_TYPE_PROVENANCE_STATIC_DATA:
     return "static_data";
   case M68K_PLATFORM_TYPE_PROVENANCE_FIELD_POINTER:
@@ -4893,7 +4897,9 @@ static int source_analysis_to_json_impl(const M68kSourceAnalysisIR *source_analy
       if (json_builder_append(&builder, "],\"candidate_targets\":[") != 0) goto oom;
       for (transfer_index = 0U; transfer_index < value->candidate_target_count; ++transfer_index) {
         if (transfer_index != 0U && json_builder_append(&builder, ",") != 0) goto oom;
-        if (json_builder_appendf(&builder, "{\"section_index\":%u,\"offset\":%u}",
+        if (value->candidate_target_section_indices[transfer_index] == UINT32_MAX) {
+          if (json_builder_append(&builder, "{\"has_target\":false,\"section_index\":null,\"offset\":null}") != 0) goto oom;
+        } else if (json_builder_appendf(&builder, "{\"has_target\":true,\"section_index\":%u,\"offset\":%u}",
             (unsigned)value->candidate_target_section_indices[transfer_index],
             (unsigned)value->candidate_target_offsets[transfer_index]) != 0) goto oom;
       }

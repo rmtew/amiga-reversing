@@ -746,6 +746,7 @@ typedef enum M68kRenderBoundaryFlag {
 struct M68kRenderLookup {
   Arena *arena;
   struct M68kAffineEntryContext *affine_entry_context;
+  uint8_t suppress_address_value_observations; /* Intermediate CFG states are non-admitting. */
   M68kIncompleteAnalysisIR *typed_flow_incomplete;
   size_t typed_flow_incomplete_count;
   size_t typed_flow_incomplete_capacity;

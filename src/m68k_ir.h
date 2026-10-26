@@ -1422,7 +1422,9 @@ typedef enum M68kPlatformTypeProvenanceKind {
   M68K_PLATFORM_TYPE_PROVENANCE_STATIC_DATA = 12,
   /* A concrete immediate is the source expression for a value that may be
    * promoted to an address only after it reaches a typed destination. */
-  M68K_PLATFORM_TYPE_PROVENANCE_IMMEDIATE = 13
+  M68K_PLATFORM_TYPE_PROVENANCE_IMMEDIATE = 13,
+  /* Exact folded bits, without claiming a renderable producer expression. */
+  M68K_PLATFORM_TYPE_PROVENANCE_CONSTANT_VALUE = 14
 } M68kPlatformTypeProvenanceKind;
 
 typedef struct M68kRecoveredPlatformUnresolvedTypedAccessIR {
@@ -2018,6 +2020,8 @@ typedef struct M68kAddressValueTableOriginIR {
   uint32_t producer_offset;
   uint32_t target_section_index;
   uint32_t target_offset;
+    /* Numeric producer candidates; a source mapping need not exist for each.
+     * UINT32_MAX section index denotes an unresolved candidate target. */
     uint32_t candidate_source_values[M68K_ADDRESS_VALUE_CANDIDATE_LIMIT];
     uint32_t candidate_target_section_indices[M68K_ADDRESS_VALUE_CANDIDATE_LIMIT];
     uint32_t candidate_target_offsets[M68K_ADDRESS_VALUE_CANDIDATE_LIMIT];
