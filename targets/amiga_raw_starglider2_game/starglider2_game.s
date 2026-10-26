@@ -183,8 +183,8 @@
     INCLUDE "hardware/intbits.i"
 
     RSSET 0
-app_0000 RS.L 1
-app_0004 RS.L 1
+draw_buffer_base RS.L 1
+display_buffer_base RS.L 1
     RS.B 45
 app_0035 RS.B 1
     RS.B 1
@@ -223,9 +223,9 @@ app_0127 RS.B 1
 model_origin_delta_x RS.W 1
 model_origin_delta_y RS.W 1
 model_origin_delta_z RS.W 1
-app_0138 RS.B 1
+last_key_press_code RS.B 1
     RS.B 1
-app_013A RS.B 1
+last_key_release_code RS.B 1
     RS.B 33
 joystick_direction_bits RS.W 1
 frame_rate_display_sample RS.W 1
@@ -1249,7 +1249,7 @@ abs_0_00001256:
 	bsr.w abs_0_000033AA
 	move.b #$A,diagnostic_step_byte.l
 	move.b #$7F,display_and_frame_service_flags(a6)
-	move.l #$70000,$0000(a6)
+	move.l #$70000,draw_buffer_base.w(a6)
 	clr.w weapon_action_cooldown(a6)
 	st.b interrupted_game_available_flag(a6)
     ; Main gameplay frame path: render view, draw/update services, update objects, then frame/display handoff. Diagnostic writes are original instrumentation, not new trace code.
@@ -2155,7 +2155,7 @@ rotate_protection_words_for_picture:
 	ror (a2)+
 	dbf.w d1,rotate_protection_words_for_picture
 abs_0_00001F46:
-	move.l #$70000,$0000(a6)
+	move.l #$70000,draw_buffer_base.w(a6)
 	lea.l cockpit_picture_palette.l,a0
 	bsr.w decode_column_rle_picture
 	tst.w platform_entry_flags.l
@@ -2363,7 +2363,7 @@ abs_0_0000227C:
 	bra.w abs_0_000034A4
 abs_0_0000228E:
 	bsr.w abs_0_000033E0
-	movea.l $0004(a6),a0
+	movea.l display_buffer_base(a6),a0
 	lea.l abs_0_000022B2(pc),a1
 	move.b #$F,text_colour_plane_mask.l
 	jsr print_cursor_text.l
@@ -3294,8 +3294,9 @@ abs_0_00003404:
     ; Initialize display/view state and inclusive clip bounds X 16..303, Y 30..128. The adjacent 143/79 defaults remain unnamed: no consumer meaning is inferred from proximity.
 initialize_display_and_view_state:
 	move.w #$1357,$01B0(a6)
-	move.l #$77B50,$0000(a6)
-	move.l #$77B50,$0004(a6)
+    ; Draw/display base slots deliberately alias $77B50 during setup. Rotation later selects table entries; these are phase roles, not exclusive front/back allocation owners.
+	move.l #$77B50,draw_buffer_base.w(a6)
+	move.l #$77B50,display_buffer_base(a6)
 	move.w #$0,frame_handoff_counter(a6)
 	move.w #$0,vblank_tick_counter(a6)
 	move.w #$1,$01A0(a6)
@@ -3375,7 +3376,7 @@ abs_0_00003522:
 fill_amiga_view_rows_continuation:
 	move.w view_clip_min_x(a6),d1
 	move.w view_clip_max_x(a6),d2
-	movea.l $0000(a6),a0
+	movea.l draw_buffer_base.w(a6),a0
 	bsr.w abs_0_00003608
 	bsr.w abs_0_0000355A
 	bsr.w abs_0_0000359C
@@ -3759,8 +3760,8 @@ rotate_amiga_display_buffers:
 	andi.w #255,d0
 	lea.l _custom.l,a5
 	move.l amiga_rotating_copper_lists(pc,d0.w),cop1lc(a5)	; copper_list pointer
-	move.l amiga_display_buffer_bases(pc,d0.w),$0004(a6)
-	move.l amiga_draw_buffer_bases(pc,d0.w),$0000(a6)
+	move.l amiga_display_buffer_bases(pc,d0.w),display_buffer_base(a6)
+	move.l amiga_draw_buffer_bases(pc,d0.w),draw_buffer_base.w(a6)
 	addq.w #4,d0
 	cmp.w #$C,d0
 	bne.w abs_0_0000391C
@@ -7033,7 +7034,7 @@ abs_0_000062F0:
 	addq.l #4,a0
 	dbf.w d0,abs_0_000062DA
 abs_0_000062FC:
-	move.l $0000(a6),abs_0_000416A8.l
+	move.l draw_buffer_base.w(a6),abs_0_000416A8.l
 abs_0_00006304:
 	move.l (a2)+,d0
 	bmi.b abs_0_0000631E
@@ -14310,10 +14311,11 @@ abs_0_0000C906:
 	ror.b #1,d0
 	btst #7,d0
 	bne.b abs_0_0000C936
-	move.b d0,app_0138(a6)
+	move.b d0,last_key_press_code(a6)
 	bra.b abs_0_0000C93A
+    ; Last decoded release code retains bit7. This is a code byte, not a key-state boolean; current static readers alone cannot establish dead storage.
 abs_0_0000C936:
-	move.b d0,app_013A(a6)
+	move.b d0,last_key_release_code(a6)
 abs_0_0000C93A:
 	moveq.l #0,d1
 	btst #7,d0
@@ -14458,7 +14460,7 @@ abs_0_0000CCE4:
 	dbf.w d0,abs_0_0000CCE4
 	move.w #$4200,abs_0_0000C4DC.l
 	lea.l _custom.l,a5
-	move.l #$78000,app_0000.w(a6)
+	move.l #$78000,draw_buffer_base.w(a6)
 	move.w #$2C81,diwstrt(a5)	; display window start v=$2C h=$81
 	move.w #$F4C1,diwstop(a5)	; display window stop v=$F4 h=$C1
 	move.w #$38,ddfstrt(a5)	; display fetch start $38
@@ -15684,7 +15686,7 @@ abs_0_0000DD60:
 abs_0_0000DD80:
 	clr.b text_cursor_row.l
 	clr.b text_cursor_column.l
-	movea.l $0004(a6),a0
+	movea.l display_buffer_base(a6),a0
 	bra.w abs_0_0000DC72
 abs_0_0000DD94:
 	adda.w #$118,a0
@@ -15696,7 +15698,7 @@ abs_0_0000DD94:
 	move.b d0,text_cursor_row.l
 	bra.w abs_0_0000DC72
 abs_0_0000DDB6:
-	movea.l $0004(a6),a0
+	movea.l display_buffer_base(a6),a0
 	clr.b text_cursor_row.l
 	bra.w abs_0_0000DC72
 abs_0_0000DDC4:
@@ -49076,7 +49078,7 @@ abs_0_0003A51E:
 return_without_palette_fade:
 	rts
 abs_0_0003A542:
-	movea.l $0000(a6),a1
+	movea.l draw_buffer_base.w(a6),a1
 	subq.w #8,d2
 	subq.w #8,d1
 	cmp.w #$10,d1
@@ -49290,7 +49292,7 @@ abs_0_0003A78A:
 	move.w view_clip_max_y(a6),d4
 abs_0_0003A7A2:
 	move.w d4,d2
-	movea.l $0000(a6),a5
+	movea.l draw_buffer_base.w(a6),a5
 	mulu.w #$A0,d4
 	addi.w #152,d4
 	adda.w d4,a5
@@ -49371,7 +49373,7 @@ abs_0_0003A850:
 abs_0_0003A868:
 	move.w d4,d2
 	move.l a6,-(a7)
-	movea.l $0000(a6),a6
+	movea.l draw_buffer_base.w(a6),a6
 	mulu.w #$A0,d4
 	adda.w d4,a6
 	adda.w #$4C,a6
@@ -49428,8 +49430,8 @@ rotate_alternate_display_buffers:
 	lea.l alternate_display_base_register_bytes.l,a0
 	move.b $0(a0,d0.w),$FFFF8201.l
 	move.b $1(a0,d0.w),$FFFF8203.l
-	move.l alternate_display_buffer_bases(pc,d0.w),$0004(a6)
-	move.l alternate_draw_buffer_bases(pc,d0.w),$0000(a6)
+	move.l alternate_display_buffer_bases(pc,d0.w),display_buffer_base(a6)
+	move.l alternate_draw_buffer_bases(pc,d0.w),draw_buffer_base.w(a6)
 	addq.w #4,d0
 	cmp.w #$C,d0
 	bne.w abs_0_0003A926
@@ -49516,7 +49518,7 @@ abs_0_0003A9F6:
     ; Plot original contact-list relative X/Z into the cockpit contact panel; preserve range culling, flags and mode-specific pixel masks. Same path also draws scan/aim overlays.
 draw_alternate_contact_panel:
 	moveq.l #0,d0
-	movea.l $0000(a6),a0
+	movea.l draw_buffer_base.w(a6),a0
 	btst.b #1,alternate_graphics_mode(a6)
 	bne.w abs_0_0003AB04
 	lea.l $5A40(a0),a0
@@ -49563,7 +49565,7 @@ abs_0_0003AA56:
 	asr.w d2,d3
 	addi.w #144,d1
 	addi.w #160,d3
-	movea.l $0000(a6),a0
+	movea.l draw_buffer_base.w(a6),a0
 	add.w d3,d3
 	adda.w $0(a2,d3.w),a0
 	add.w d1,d1
@@ -49639,7 +49641,7 @@ abs_0_0003AB54:
 	asr.w d2,d3
 	addi.w #144,d1
 	addi.w #160,d3
-	movea.l $0000(a6),a0
+	movea.l draw_buffer_base.w(a6),a0
 	add.w d3,d3
 	adda.w $0(a2,d3.w),a0
 	move.w d1,d3
@@ -50554,7 +50556,7 @@ print_alternate_positioned_text_mode1:
 	movea.l game_workspace_base.l,a6
 	mulu.w #$A0,d1
 	add.w d0,d0
-	movea.l app_0004(a6),a0
+	movea.l display_buffer_base(a6),a0
 	andi.l #32766,d1
 	add.l d0,d1
 	lea.l $0(a0,d1.w),a0
@@ -50659,7 +50661,7 @@ abs_0_0003B8C4:
 	move.b d0,text_cursor_row.l
 	bra.w abs_0_0003B7E0
 abs_0_0003B8E8:
-	movea.l $0000(a6),a0
+	movea.l draw_buffer_base.w(a6),a0
 	clr.b text_cursor_row.l
 	bra.w abs_0_0003B7E0
 abs_0_0003B8F6:
@@ -50679,7 +50681,7 @@ print_alternate_positioned_text_mode0:
 	lea.l abs_0_0003BCAA.l,a0
 	move.b $0(a0,d0.w),d0
 	andi.l #255,d0
-	movea.l app_0004(a6),a0
+	movea.l display_buffer_base(a6),a0
 	andi.l #32766,d1
 	add.l d0,d1
 	lea.l $0(a0,d1.w),a0
@@ -50838,7 +50840,7 @@ abs_0_0003BAE0:
 abs_0_0003BB00:
 	clr.b text_cursor_row.l
 	clr.b text_cursor_column.l
-	movea.l $0004(a6),a0
+	movea.l display_buffer_base(a6),a0
 	bra.w abs_0_0003B9DC
 abs_0_0003BB14:
 	adda.l #$460,a0
@@ -50850,7 +50852,7 @@ abs_0_0003BB14:
 	move.b d0,text_cursor_row.l
 	bra.w abs_0_0003B9DC
 abs_0_0003BB38:
-	movea.l $0004(a6),a0
+	movea.l display_buffer_base(a6),a0
 	clr.b text_cursor_row.l
 	bra.w abs_0_0003B9DC
 abs_0_0003BB46:
@@ -51273,7 +51275,7 @@ abs_0_0003C9BC:
 	movea.l $0(a2,d5.w),a0
 	lea.l alternate_meter_framebuffer_offsets_mode0(pc),a2
 	movea.l $0(a2,d5.w),a2
-	adda.l $0000(a6),a2
+	adda.l draw_buffer_base.w(a6),a2
 	move.l a2,-(a7)
 	moveq.l #50,d1
 abs_0_0003C9EA:
@@ -51338,7 +51340,7 @@ abs_0_0003CA72:
 	movea.l $0(a2,d5.w),a0
 	lea.l alternate_meter_framebuffer_offsets_mode1(pc),a2
 	movea.l $0(a2,d5.w),a2
-	adda.l $0000(a6),a2
+	adda.l draw_buffer_base.w(a6),a2
 	move.l a2,-(a7)
 	moveq.l #50,d1
 abs_0_0003CA90:
@@ -52423,7 +52425,7 @@ abs_0_0003D9D8:
 	rts
 abs_0_0003D9DA:
 	move.b #$1,diagnostic_step_byte.l
-	move.l $0000(a6),abs_0_000416A8.l
+	move.l draw_buffer_base.w(a6),abs_0_000416A8.l
 	move.b alternate_graphics_mode(a6),abs_0_000416A5.l
 	move.w player_rotation_2(a6),d7
 	andi.w #4095,d7
@@ -57065,7 +57067,7 @@ abs_0_00041670:
 	move.l (a1),(a6)
 	move.l d1,(a1)
 	move.l a1,-(a7)
-	pea.l $0004(a6)
+	pea.l display_buffer_base(a6)
 	lea.l -$0004(a6),a1
 	bsr.w abs_0_00041646
 	bsr.w abs_0_0004163E
@@ -60050,7 +60052,7 @@ abs_0_0004E2B0:
 	cmp.w view_clip_max_y(a6),d2
 	bgt.b abs_0_0004E350
 	move.b #$14,diagnostic_step_byte.l
-	movea.l $0000(a6),a0
+	movea.l draw_buffer_base.w(a6),a0
 	add.w d2,d2
 	adda.w $0(a1,d2.w),a0
 	add.w d1,d1

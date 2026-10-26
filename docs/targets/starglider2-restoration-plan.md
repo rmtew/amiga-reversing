@@ -65,7 +65,7 @@ relocation, C conversion or replacement OS loader is part of this project.
 
 ## Active priorities after cursor-span qualification
 
-The current source has 303 app field records, 97 generic names and 14,728
+The current source has 303 app field records, 93 generic names and 14,728
 unclassified bytes in 260 intervals. These measure different kinds of work,
 not overall completion. The current residual index is recomputed from retained
 native facts without another generation; the 15,111-byte/256-interval review
@@ -2590,3 +2590,32 @@ relation rather than a target-shaped recognizer. App/layout identity domains,
 app-only range facts, stack-restored named-base provenance and the large render-
 lookup module remain explicit architectural limits. Each next obligation and
 experiment is in `runtime/observations/starglider2-workspace-base-propagation.json`.
+
+
+## Input/display roles and return to framework experiments
+
+The already-applied six-action batch names four fields exposed by the holder
+work. App+0 is `draw_buffer_base`; app+4 is `display_buffer_base`. Both original
+Amiga and alternate rotation routines assign the corresponding three-entry
+tables, while view fill reads+0 and text/cursor consumers read +4. Setup assigns
+$77B50 to both: these are phase roles, not exclusive front/back allocation owners.
+App+$138/$13A are `last_key_press_code` and `last_key_release_code`; the CIA
+producer reads SDR, inverts/rotates the code and branches on bit7. Release retains
+that bit. Two comments explain those non-obvious alias/value distinctions.
+No generated source was hand-edited and no dead-storage inference is made.
+
+The 303-field inventory now has 93 generic names instead of 97. This names newly
+exposed fields, not four of the prior 93-field backlog. Declaring their extents
+also adds 27 conditional A6 reference contexts (3,180 -> 3,207), not 27 runtime
+observations or new base proofs. Current C/vasm remains exact, all 57 assets are
+unchanged, ownership/code and the 14,728-byte residual complement are unchanged.
+No new framework code or unchanged broad test suite was needed for these facts.
+The native generation took 102.11 seconds; no performance claim follows.
+
+This closes the already-started restoration batch. The approved system-gap
+priority resumes now: first the branch/retry cursor-invariant fixture and
+whole-base stack/call propagation experiments, then orphan incoming paths using
+the resulting evidence. The tests must show an actual outcome/cost before an
+item is deferred; explaining that the current collector cannot model it is not
+a completed investigation. No further naming queue is placed ahead of them.
+See `runtime/observations/starglider2-input-display-fields.json`.
