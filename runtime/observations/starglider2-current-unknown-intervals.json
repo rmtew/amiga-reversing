@@ -1,15 +1,15 @@
 {
   "schema_version": 1,
   "kind": "current_native_residual_interval_index_not_input_facts",
-  "publication_base_commit": "077c61fc307b9281c90c37576e629a82d70d1217",
+  "publication_base_commit": "85634da200826de32e8e6d4030053c5926f30bfe",
   "binary_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
-  "source_sha256": "73861b5e41624a69ba04d7d44ead03914798b08fa17667ec2bffcaa5cc8f6d11",
-  "analysis_sha256": "bf5a234aa3051f71a7bc2771f333818a5719456eb7a02520ac8b5b85d678e1ac",
+  "source_sha256": "16350941c3d99e05214e33051ef7dabd6e94d9dc3ac7f4d79f1c9155005984c8",
+  "analysis_sha256": "ed1bf68df7625a93ab6d8e48bb6354e5604bafc122a6f1f9c6ef1334c203f3a1",
   "backend_sha256": "b935c76d6042e045c26023dfc4fa2f7eae8d7c81790f0d261c66696033f7b3fc",
-  "unclassified_bytes": 14606,
+  "unclassified_bytes": 14166,
   "interval_count": 261,
   "intervals_with_native_resolved_references": 57,
-  "native_resolved_reference_records": 699,
+  "native_resolved_reference_records": 692,
   "unclassified_interval_code_start_facts": 0,
   "orphan_candidate_statuses": {
     "unresolved": 30,
@@ -5246,36 +5246,18 @@
     },
     {
       "source_span": [
-        96568,
+        96576,
         96616
       ],
       "runtime_span": [
-        100664,
+        100672,
         100712
       ],
-      "bytes": 48,
-      "sha256": "b5c225d1c617768b01ae3dc7f5510cc043f8ed1dbf94331a698554a791a0b857",
+      "bytes": 40,
+      "sha256": "ab1e0439112408836ab0302800e5eeeb5bbd4dc91632f6ccd969ce2ecee3da6b",
       "classification": "unclassified",
       "semantic_review": "No new semantic disposition; current native index only.",
       "native_resolved_references": [
-        {
-          "kind": "runtime_address_ref",
-          "source_offset": 93584,
-          "source_runtime_address": 97680,
-          "target_offset": 96568,
-          "target_runtime_address": 100664,
-          "operand_index": 1,
-          "reference_role": null
-        },
-        {
-          "kind": "runtime_address_ref",
-          "source_offset": 93594,
-          "source_runtime_address": 97690,
-          "target_offset": 96572,
-          "target_runtime_address": 100668,
-          "operand_index": 1,
-          "reference_role": null
-        },
         {
           "kind": "runtime_address_ref",
           "source_offset": 93604,
@@ -5364,51 +5346,6 @@
           "target_offset": 96612,
           "target_runtime_address": 100708,
           "operand_index": 0,
-          "reference_role": null
-        },
-        {
-          "kind": "runtime_address_ref",
-          "source_offset": 95178,
-          "source_runtime_address": 99274,
-          "target_offset": 96572,
-          "target_runtime_address": 100668,
-          "operand_index": 1,
-          "reference_role": null
-        },
-        {
-          "kind": "runtime_address_ref",
-          "source_offset": 95188,
-          "source_runtime_address": 99284,
-          "target_offset": 96572,
-          "target_runtime_address": 100668,
-          "operand_index": 0,
-          "reference_role": null
-        },
-        {
-          "kind": "runtime_address_ref",
-          "source_offset": 95216,
-          "source_runtime_address": 99312,
-          "target_offset": 96568,
-          "target_runtime_address": 100664,
-          "operand_index": 1,
-          "reference_role": null
-        },
-        {
-          "kind": "runtime_address_ref",
-          "source_offset": 95226,
-          "source_runtime_address": 99322,
-          "target_offset": 96572,
-          "target_runtime_address": 100668,
-          "operand_index": 0,
-          "reference_role": null
-        },
-        {
-          "kind": "runtime_address_ref",
-          "source_offset": 95254,
-          "source_runtime_address": 99350,
-          "target_offset": 96568,
-          "target_runtime_address": 100664,
-          "operand_index": 1,
           "reference_role": null
         },
         {
@@ -6121,15 +6058,15 @@
     },
     {
       "source_span": [
-        200102,
+        200534,
         200536
       ],
       "runtime_span": [
-        204198,
+        204630,
         204632
       ],
-      "bytes": 434,
-      "sha256": "0891f358e2d8fd23314133c5bf835c495576858ca331401060daaacc40f164aa",
+      "bytes": 2,
+      "sha256": "96a296d224f285c67bee93c30f8a309157f0daa35dc5b87e410b78630a09cfc7",
       "classification": "unclassified",
       "semantic_review": "No new semantic disposition; current native index only.",
       "native_resolved_references": [],

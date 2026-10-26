@@ -358,7 +358,7 @@ inside_structure_flag RS.B 1
 space_environment_flag RS.B 1
 app_077E RS.B 1
     RS.B 3
-app_0782 RS.L 1
+tug_initializer_tail_reference RS.L 1
 app_0786 RS.B 1
     RS.B 1
 integrating_object_count RS.W 1
@@ -898,6 +898,13 @@ SG2ProjectedVertex_screen_y RS.W 1
 SG2ProjectedVertex_depth RS.W 1
 SG2ProjectedVertex_mode_dependent_flags RS.W 1
 SG2ProjectedVertex_SIZEOF EQU __RS
+
+; STRUCT SG2TugPlacementParameters
+    RSRESET
+SG2TugPlacementParameters_velocity_z RS.W 1
+SG2TugPlacementParameters_velocity_x RS.W 1
+SG2TugPlacementParameters_rotation_1 RS.W 1
+SG2TugPlacementParameters_SIZEOF EQU __RS
 
 ADKF_CLRALL	EQU	$7FFF
 BPLCON2_PF2P2	EQU	$20
@@ -22825,8 +22832,8 @@ abs_0_00017D88:
 	dbf.w d7,abs_0_00017D88
 	rts
 initialize_world_object_pool:
-	move.l #$31DA6,abs_0_00018938.l
-	move.l #$FFFFF830,abs_0_0001893C.l
+	move.l #tug_placement_parameter_prefix,tug_placement_parameter_cursor.l
+	move.l #$FFFFF830,tug_placement_group_world_y.l
 	st.b abs_0_00018964.l
 	clr.w abs_0_00018952.l
 	clr.w abs_0_00018950.l
@@ -22960,7 +22967,7 @@ world_object_type_initializer_pointers:
 	dc.l abs_0_000183A4
 	dc.l abs_0_000183BC
 	dc.l skip_object_type_initialization
-	dc.l abs_0_000183C6
+	dc.l initialize_space_tug_parameter_group
 	dc.l abs_0_00018430
 	dc.l abs_0_0001843E
 	dc.l skip_object_type_initialization
@@ -22982,7 +22989,7 @@ world_object_type_initializer_pointers:
 	dc.l abs_0_0001856E
 	dc.l skip_object_type_initialization
 	dc.l abs_0_00018526
-	dc.l abs_0_000183FA
+	dc.l initialize_and_link_tug_truck
 	dc.l skip_object_type_initialization
 	dc.l abs_0_0001823A
 	dc.l abs_0_000188FA
@@ -23253,30 +23260,30 @@ abs_0_000183A4:
 abs_0_000183BC:
 	move.l #$FFFFFF6A,$0008(a0)
 	rts
-abs_0_000183C6:
-	move.l a0,app_0782(a6)
-	subi.l #2000,abs_0_0001893C.l
-	move.l abs_0_0001893C.l,$0008(a0)
+initialize_space_tug_parameter_group:
+	move.l a0,tug_initializer_tail_reference(a6)
+	subi.l #2000,tug_placement_group_world_y.l
+	move.l tug_placement_group_world_y.l,$0008(a0)
 	move a4,usp
-	movea.l abs_0_00018938.l,a4
+	movea.l tug_placement_parameter_cursor.l,a4
 	move.w (a4)+,$0030(a0)
 	move.w (a4)+,$002C(a0)
 	move.w (a4)+,$0012(a0)
-	move.l a4,abs_0_00018938.l
+	move.l a4,tug_placement_parameter_cursor.l
 	move usp,a4
 	rts
-abs_0_000183FA:
-	move.l abs_0_0001893C.l,$0008(a0)
+initialize_and_link_tug_truck:
+	move.l tug_placement_group_world_y.l,$0008(a0)
 	move a4,usp
-	movea.l abs_0_00018938.l,a4
+	movea.l tug_placement_parameter_cursor.l,a4
 	move.w (a4)+,$0030(a0)
 	move.w (a4)+,$002C(a0)
 	move.w (a4)+,$0012(a0)
-	move.l a4,abs_0_00018938.l
-	movea.l app_0782(a6),a4
+	move.l a4,tug_placement_parameter_cursor.l
+	movea.l tug_initializer_tail_reference(a6),a4
 	move.l a4,$0038(a0)
 	move.l a0,$003C(a4)
-	move.l a0,app_0782(a6)
+	move.l a0,tug_initializer_tail_reference(a6)
 	move usp,a4
 	rts
 abs_0_00018430:
@@ -23626,10 +23633,10 @@ abs_0_00018922:
 	move.l #$FECED300,$0008(a0)
 	move.w #$F00,$0010(a0)
 	rts
-abs_0_00018938:
-	dc.b $00,$00,$00,$00
-abs_0_0001893C:
-	dc.b $00,$00,$00,$00
+tug_placement_parameter_cursor:
+	dc.l $00000000	; Original tug initialization source-backed state/parameter prefix
+tug_placement_group_world_y:
+	dc.l $00000000	; Original tug initialization source-backed state/parameter prefix
 abs_0_00018940:
 	dc.b $00,$03,$00,$03,$00,$01,$00,$01,$00,$01,$00,$06,$00,$06,$00,$05
 abs_0_00018950:
@@ -40438,34 +40445,224 @@ world_surface_15_placements:
 	dc.l $00000000	; world_z
 world_surface_15_placements_end_tag:
 	dc.w $0000	; 90 original surface placements, stride 10, plus zero tag; aliases 15
-	dc.b $FF,$88,$00,$00,$00,$00,$FF,$88,$00,$00,$00,$00,$FF,$88,$00,$00
-	dc.b $00,$00,$FF,$88,$00,$00,$00,$00,$FF,$88,$00,$00,$00,$00,$FF,$88
-	dc.b $00,$00,$00,$00,$FF,$D8,$00,$00,$00,$00,$FF,$D8,$00,$00,$00,$00
-	dc.b $FF,$D8,$00,$00,$00,$00,$FF,$D8,$00,$00,$00,$00,$FF,$D8,$00,$00
-	dc.b $00,$00,$FF,$D8,$00,$00,$00,$00,$FF,$7E,$00,$00,$00,$00,$FF,$7E
-	dc.b $00,$00,$00,$00,$FF,$7E,$00,$00,$00,$00,$FF,$7E,$00,$00,$00,$00
-	dc.b $FF,$7E,$00,$00,$00,$00,$FF,$7E,$00,$00,$00,$00,$FF,$CE,$00,$00
-	dc.b $00,$00,$FF,$CE,$00,$00,$00,$00,$FF,$CE,$00,$00,$00,$00,$FF,$CE
-	dc.b $00,$00,$00,$00,$FF,$CE,$00,$00,$00,$00,$FF,$CE,$00,$00,$00,$00
-	dc.b $00,$78,$00,$00,$08,$00,$00,$78,$00,$00,$08,$00,$00,$78,$00,$00
-	dc.b $08,$00,$00,$78,$00,$00,$08,$00,$00,$78,$00,$00,$08,$00,$00,$78
-	dc.b $00,$00,$08,$00,$00,$8C,$00,$00,$08,$00,$00,$8C,$00,$00,$08,$00
-	dc.b $00,$8C,$00,$00,$08,$00,$00,$8C,$00,$00,$08,$00,$00,$8C,$00,$00
-	dc.b $08,$00,$00,$8C,$00,$00,$08,$00,$00,$1E,$00,$00,$08,$00,$00,$1E
-	dc.b $00,$00,$08,$00,$00,$1E,$00,$00,$08,$00,$00,$1E,$00,$00,$08,$00
-	dc.b $00,$1E,$00,$00,$08,$00,$00,$1E,$00,$00,$08,$00,$00,$96,$00,$00
-	dc.b $08,$00,$00,$96,$00,$00,$08,$00,$00,$96,$00,$00,$08,$00,$00,$96
-	dc.b $00,$00,$08,$00,$00,$96,$00,$00,$08,$00,$00,$96,$00,$00,$08,$00
-	dc.b $00,$00,$00,$78,$04,$00,$00,$00,$00,$78,$04,$00,$00,$00,$00,$78
-	dc.b $04,$00,$00,$00,$00,$78,$04,$00,$00,$00,$00,$78,$04,$00,$00,$00
-	dc.b $00,$78,$04,$00,$00,$00,$00,$28,$04,$00,$00,$00,$00,$28,$04,$00
-	dc.b $00,$00,$00,$28,$04,$00,$00,$00,$00,$28,$04,$00,$00,$00,$00,$28
-	dc.b $04,$00,$00,$00,$00,$28,$04,$00,$00,$00,$00,$82,$04,$00,$00,$00
-	dc.b $00,$82,$04,$00,$00,$00,$00,$82,$04,$00,$00,$00,$00,$82,$04,$00
-	dc.b $00,$00,$00,$82,$04,$00,$00,$00,$00,$82,$04,$00,$00,$00,$00,$96
-	dc.b $04,$00,$00,$00,$00,$96,$04,$00,$00,$00,$00,$96,$04,$00,$00,$00
-	dc.b $00,$96,$04,$00,$00,$00,$00,$96,$04,$00,$00,$00,$00,$96,$04,$00
-	dc.b $00,$00
+tug_placement_parameter_prefix:
+	dc.w $FF88	; velocity_z
+	dc.w $0000	; velocity_x
+	dc.w $0000	; rotation_1
+	dc.w $FF88	; velocity_z
+	dc.w $0000	; velocity_x
+	dc.w $0000	; rotation_1
+	dc.w $FF88	; velocity_z
+	dc.w $0000	; velocity_x
+	dc.w $0000	; rotation_1
+	dc.w $FF88	; velocity_z
+	dc.w $0000	; velocity_x
+	dc.w $0000	; rotation_1
+	dc.w $FF88	; velocity_z
+	dc.w $0000	; velocity_x
+	dc.w $0000	; rotation_1
+	dc.w $FF88	; velocity_z
+	dc.w $0000	; velocity_x
+	dc.w $0000	; rotation_1
+	dc.w $FFD8	; velocity_z
+	dc.w $0000	; velocity_x
+	dc.w $0000	; rotation_1
+	dc.w $FFD8	; velocity_z
+	dc.w $0000	; velocity_x
+	dc.w $0000	; rotation_1
+	dc.w $FFD8	; velocity_z
+	dc.w $0000	; velocity_x
+	dc.w $0000	; rotation_1
+	dc.w $FFD8	; velocity_z
+	dc.w $0000	; velocity_x
+	dc.w $0000	; rotation_1
+	dc.w $FFD8	; velocity_z
+	dc.w $0000	; velocity_x
+	dc.w $0000	; rotation_1
+	dc.w $FFD8	; velocity_z
+	dc.w $0000	; velocity_x
+	dc.w $0000	; rotation_1
+	dc.w $FF7E	; velocity_z
+	dc.w $0000	; velocity_x
+	dc.w $0000	; rotation_1
+	dc.w $FF7E	; velocity_z
+	dc.w $0000	; velocity_x
+	dc.w $0000	; rotation_1
+	dc.w $FF7E	; velocity_z
+	dc.w $0000	; velocity_x
+	dc.w $0000	; rotation_1
+	dc.w $FF7E	; velocity_z
+	dc.w $0000	; velocity_x
+	dc.w $0000	; rotation_1
+	dc.w $FF7E	; velocity_z
+	dc.w $0000	; velocity_x
+	dc.w $0000	; rotation_1
+	dc.w $FF7E	; velocity_z
+	dc.w $0000	; velocity_x
+	dc.w $0000	; rotation_1
+	dc.w $FFCE	; velocity_z
+	dc.w $0000	; velocity_x
+	dc.w $0000	; rotation_1
+	dc.w $FFCE	; velocity_z
+	dc.w $0000	; velocity_x
+	dc.w $0000	; rotation_1
+	dc.w $FFCE	; velocity_z
+	dc.w $0000	; velocity_x
+	dc.w $0000	; rotation_1
+	dc.w $FFCE	; velocity_z
+	dc.w $0000	; velocity_x
+	dc.w $0000	; rotation_1
+	dc.w $FFCE	; velocity_z
+	dc.w $0000	; velocity_x
+	dc.w $0000	; rotation_1
+	dc.w $FFCE	; velocity_z
+	dc.w $0000	; velocity_x
+	dc.w $0000	; rotation_1
+	dc.w $0078	; velocity_z
+	dc.w $0000	; velocity_x
+	dc.w $0800	; rotation_1
+	dc.w $0078	; velocity_z
+	dc.w $0000	; velocity_x
+	dc.w $0800	; rotation_1
+	dc.w $0078	; velocity_z
+	dc.w $0000	; velocity_x
+	dc.w $0800	; rotation_1
+	dc.w $0078	; velocity_z
+	dc.w $0000	; velocity_x
+	dc.w $0800	; rotation_1
+	dc.w $0078	; velocity_z
+	dc.w $0000	; velocity_x
+	dc.w $0800	; rotation_1
+	dc.w $0078	; velocity_z
+	dc.w $0000	; velocity_x
+	dc.w $0800	; rotation_1
+	dc.w $008C	; velocity_z
+	dc.w $0000	; velocity_x
+	dc.w $0800	; rotation_1
+	dc.w $008C	; velocity_z
+	dc.w $0000	; velocity_x
+	dc.w $0800	; rotation_1
+	dc.w $008C	; velocity_z
+	dc.w $0000	; velocity_x
+	dc.w $0800	; rotation_1
+	dc.w $008C	; velocity_z
+	dc.w $0000	; velocity_x
+	dc.w $0800	; rotation_1
+	dc.w $008C	; velocity_z
+	dc.w $0000	; velocity_x
+	dc.w $0800	; rotation_1
+	dc.w $008C	; velocity_z
+	dc.w $0000	; velocity_x
+	dc.w $0800	; rotation_1
+	dc.w $001E	; velocity_z
+	dc.w $0000	; velocity_x
+	dc.w $0800	; rotation_1
+	dc.w $001E	; velocity_z
+	dc.w $0000	; velocity_x
+	dc.w $0800	; rotation_1
+	dc.w $001E	; velocity_z
+	dc.w $0000	; velocity_x
+	dc.w $0800	; rotation_1
+	dc.w $001E	; velocity_z
+	dc.w $0000	; velocity_x
+	dc.w $0800	; rotation_1
+	dc.w $001E	; velocity_z
+	dc.w $0000	; velocity_x
+	dc.w $0800	; rotation_1
+	dc.w $001E	; velocity_z
+	dc.w $0000	; velocity_x
+	dc.w $0800	; rotation_1
+	dc.w $0096	; velocity_z
+	dc.w $0000	; velocity_x
+	dc.w $0800	; rotation_1
+	dc.w $0096	; velocity_z
+	dc.w $0000	; velocity_x
+	dc.w $0800	; rotation_1
+	dc.w $0096	; velocity_z
+	dc.w $0000	; velocity_x
+	dc.w $0800	; rotation_1
+	dc.w $0096	; velocity_z
+	dc.w $0000	; velocity_x
+	dc.w $0800	; rotation_1
+	dc.w $0096	; velocity_z
+	dc.w $0000	; velocity_x
+	dc.w $0800	; rotation_1
+	dc.w $0096	; velocity_z
+	dc.w $0000	; velocity_x
+	dc.w $0800	; rotation_1
+	dc.w $0000	; velocity_z
+	dc.w $0078	; velocity_x
+	dc.w $0400	; rotation_1
+	dc.w $0000	; velocity_z
+	dc.w $0078	; velocity_x
+	dc.w $0400	; rotation_1
+	dc.w $0000	; velocity_z
+	dc.w $0078	; velocity_x
+	dc.w $0400	; rotation_1
+	dc.w $0000	; velocity_z
+	dc.w $0078	; velocity_x
+	dc.w $0400	; rotation_1
+	dc.w $0000	; velocity_z
+	dc.w $0078	; velocity_x
+	dc.w $0400	; rotation_1
+	dc.w $0000	; velocity_z
+	dc.w $0078	; velocity_x
+	dc.w $0400	; rotation_1
+	dc.w $0000	; velocity_z
+	dc.w $0028	; velocity_x
+	dc.w $0400	; rotation_1
+	dc.w $0000	; velocity_z
+	dc.w $0028	; velocity_x
+	dc.w $0400	; rotation_1
+	dc.w $0000	; velocity_z
+	dc.w $0028	; velocity_x
+	dc.w $0400	; rotation_1
+	dc.w $0000	; velocity_z
+	dc.w $0028	; velocity_x
+	dc.w $0400	; rotation_1
+	dc.w $0000	; velocity_z
+	dc.w $0028	; velocity_x
+	dc.w $0400	; rotation_1
+	dc.w $0000	; velocity_z
+	dc.w $0028	; velocity_x
+	dc.w $0400	; rotation_1
+	dc.w $0000	; velocity_z
+	dc.w $0082	; velocity_x
+	dc.w $0400	; rotation_1
+	dc.w $0000	; velocity_z
+	dc.w $0082	; velocity_x
+	dc.w $0400	; rotation_1
+	dc.w $0000	; velocity_z
+	dc.w $0082	; velocity_x
+	dc.w $0400	; rotation_1
+	dc.w $0000	; velocity_z
+	dc.w $0082	; velocity_x
+	dc.w $0400	; rotation_1
+	dc.w $0000	; velocity_z
+	dc.w $0082	; velocity_x
+	dc.w $0400	; rotation_1
+	dc.w $0000	; velocity_z
+	dc.w $0082	; velocity_x
+	dc.w $0400	; rotation_1
+	dc.w $0000	; velocity_z
+	dc.w $0096	; velocity_x
+	dc.w $0400	; rotation_1
+	dc.w $0000	; velocity_z
+	dc.w $0096	; velocity_x
+	dc.w $0400	; rotation_1
+	dc.w $0000	; velocity_z
+	dc.w $0096	; velocity_x
+	dc.w $0400	; rotation_1
+	dc.w $0000	; velocity_z
+	dc.w $0096	; velocity_x
+	dc.w $0400	; rotation_1
+	dc.w $0000	; velocity_z
+	dc.w $0096	; velocity_x
+	dc.w $0400	; rotation_1
+	dc.w $0000	; velocity_z
+	dc.w $0096	; velocity_x
+	dc.w $0400	; rotation_1
+	dc.w $0000
 world_interior_19_placements:
 	dc.w $0030	; type_and_map_flags
 	dc.l $0000CFB2	; world_x

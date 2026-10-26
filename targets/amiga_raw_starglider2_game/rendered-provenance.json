@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
   "kind": "committed_native_rendered_original_export",
-  "canonical_source_commit": "dbb3f530fdc58952400bea1f48399208abe562fd",
-  "publication_base_commit": "dbb3f530fdc58952400bea1f48399208abe562fd",
+  "canonical_source_commit": "85634da200826de32e8e6d4030053c5926f30bfe",
+  "publication_base_commit": "85634da200826de32e8e6d4030053c5926f30bfe",
   "native_export": "CListingArtifact.source_package_payload(64)",
-  "main_source_sha256": "be0d67a7a003df4c7fe2461dc472f39f2ba3acc5b3bedc60e38074993f744473",
+  "main_source_sha256": "238a1c775939a4652c108e9df2f8d9c4a9000c70de0bb9027046ca789d325dbb",
   "asset_count": 57,
   "asset_bytes": 93633,
   "game_assembly_hand_edits": false,
@@ -25,14 +25,14 @@
     "paused Pandora work"
   ],
   "canonical_source_commit_role": "publication base; reviewed canonical facts in this batch bound by canonical_fact_sha256",
-  "canonical_source_subject_revision": "472418df3839f1b6162d5f21235d047ba3b7c387d496509460d4104fb38dcf0f",
+  "canonical_source_subject_revision": "8538285bf9eef1620695c994cee81c819a698f7f4beac9aad70d0684b018e843",
   "canonical_fact_sha256": {
     "source_binary.json": "42d4a5758b3e8236af7f912aee85e9ee5323bcd0961faa338c4f864080a0a7d9",
     "target_metadata.json": "e7540b68c118c56aba8815b6722eefa067517cc865fe9841d6c01ce96551389c",
-    "manual_actions.jsonl": "ba71fd3d86cebc9eadbc0cd1f231d56cb1f329e28517d04b42afb60facf8590b",
-    "decision_journal.jsonl": "9603fbb81428f3194cfd012213c6c7a4f6393d711ff050b839a0e1b0734e77c1"
+    "manual_actions.jsonl": "50212907436b08a4974ce0a874fd5f9b0805a5807bfd4e8301bfc5215a8bc618",
+    "decision_journal.jsonl": "3c9a319b67d87a84494bf086a4c1afb8f857e615d58fe34cc7c9fb056eef6b84"
   },
-  "refinement_receipt": "runtime/observations/starglider2-novella-latches.json",
+  "refinement_receipt": "runtime/observations/starglider2-tug-parameters.json",
   "headers": "14 unmodified required include files collected by source_package.collect_package_includes from ext/amiga_includes/ndk_2.0/include; header notices retained",
   "decoded_protection_view": {
     "target_id": "amiga_raw_starglider2_protection_view",
