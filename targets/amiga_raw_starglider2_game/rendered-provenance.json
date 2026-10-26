@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
   "kind": "committed_native_rendered_original_export",
-  "canonical_source_commit": "09c6e4a0329a73643777b5d78d035e6a9be6fd18",
-  "publication_base_commit": "09c6e4a0329a73643777b5d78d035e6a9be6fd18",
+  "canonical_source_commit": "329d48716c838d1369fc348a39d4c40c968889a6",
+  "publication_base_commit": "329d48716c838d1369fc348a39d4c40c968889a6",
   "native_export": "CListingArtifact.source_package_payload(64)",
-  "main_source_sha256": "016d8c061bfc225848b59b52cf375099b205b44466c8470fab77f9670f64438c",
+  "main_source_sha256": "3b847152c8063d1fe6ebdf85a773be36a8dcd787ba0f2d07f71a6218c7db747c",
   "asset_count": 57,
   "asset_bytes": 93633,
   "game_assembly_hand_edits": false,
@@ -25,14 +25,14 @@
     "paused Pandora work"
   ],
   "canonical_source_commit_role": "publication base; unchanged canonical facts bound by canonical_fact_sha256; shared native changes in this batch",
-  "canonical_source_subject_revision": "b6bd29ce51f57401604421cef9e1706b9952a5a18617e31002994a902152ea50",
+  "canonical_source_subject_revision": "c19974d70528e225e42abd26776c14b1603ff618466a9908e9de903df9f03c1d",
   "canonical_fact_sha256": {
     "source_binary.json": "42d4a5758b3e8236af7f912aee85e9ee5323bcd0961faa338c4f864080a0a7d9",
     "target_metadata.json": "e7540b68c118c56aba8815b6722eefa067517cc865fe9841d6c01ce96551389c",
     "manual_actions.jsonl": "e702dceaa6bbfabc307555664cec4429b15ff2acea63c1d115243454c463d524",
     "decision_journal.jsonl": "602199bdfcd8ffd6567cd81955b6274aa30c00c23e1fcf636eae42eced6c1826"
   },
-  "refinement_receipt": "runtime/observations/starglider2-relative-dispatch.json",
+  "refinement_receipt": "runtime/observations/starglider2-string-pool-subentities.json",
   "headers": "14 unmodified required include files collected by source_package.collect_package_includes from ext/amiga_includes/ndk_2.0/include; header notices retained",
   "decoded_protection_view": {
     "target_id": "amiga_raw_starglider2_protection_view",

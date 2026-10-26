@@ -17218,111 +17218,109 @@ abs_0_0000F2E6:
 	dc.b $4E,$75
 object_name_pointers:
 	dc.l object_name_text_pool	; text
-	dc.l object_name_text_pool+$11	; text
-	dc.l object_name_text_pool+$18	; text
-	dc.l object_name_text_pool+$27	; text
-	dc.l object_name_text_pool+$3C	; text
-	dc.l object_name_text_pool+$53	; text
-	dc.l object_name_text_pool+$5E	; text
-	dc.l object_name_text_pool+$68	; text
-	dc.l object_name_text_pool+$73	; text
-	dc.l object_name_text_pool+$7A	; text
-	dc.l object_name_text_pool+$8A	; text
-	dc.l object_name_text_pool+$A1	; text
-	dc.l object_name_text_pool+$AC	; text
-	dc.l object_name_text_pool+$BB	; text
-	dc.l object_name_text_pool+$CB	; text
-	dc.l object_name_text_pool+$DA	; text
-	dc.l object_name_text_pool+$E2	; text
-	dc.l object_name_text_pool+$F0	; text
-	dc.l object_name_text_pool+$F8	; text
-	dc.l object_name_text_pool+$10E	; text
-	dc.l object_name_text_pool+$11F	; text
-	dc.l object_name_text_pool+$12F	; text
-	dc.l object_name_text_pool+$144	; text
-	dc.l object_name_text_pool+$154	; text
-	dc.l object_name_text_pool+$159	; text
-	dc.l object_name_text_pool+$168	; text
-	dc.l object_name_text_pool+$170	; text
-	dc.l object_name_text_pool+$178	; text
-	dc.l object_name_text_pool+$183	; text
-	dc.l object_name_text_pool+$197	; text
-	dc.l object_name_text_pool+$1A9	; text
-	dc.l object_name_text_pool+$1B4	; text
-	dc.l object_name_text_pool+$1C2	; text
-	dc.l object_name_text_pool+$1D4	; text
-	dc.l object_name_text_pool+$1E6	; text
-	dc.l object_name_text_pool+$1F4	; text
-	dc.l object_name_text_pool+$207	; text
-	dc.l object_name_text_pool+$210	; text
-	dc.l object_name_text_pool+$224	; text
-	dc.l object_name_text_pool+$231	; text
-	dc.l object_name_text_pool+$23B	; text
-	dc.l object_name_text_pool+$247	; text
-	dc.l object_name_text_pool+$251	; text
-	dc.l object_name_text_pool+$260	; text
-	dc.l object_name_text_pool+$274	; text
-	dc.l object_name_text_pool+$27E	; text
-	dc.l object_name_text_pool+$28D	; text
+	dc.l str_walker_s0_0000E595	; text
+	dc.l str_proximity_mine_s0_0000E59C	; text
+	dc.l str_egron_spire_building_s0_0000E5AB	; text
+	dc.l str_solar_energy_converter_s0_0000E5C0	; text
+	dc.l str_egron_silo_s0_0000E5D7	; text
+	dc.l str_buzz_bomb_s0_0000E5E2	; text
+	dc.l str_large_bird_s0_0000E5EC	; text
+	dc.l str_emma_2_s0_0000E5F7	; text
+	dc.l str_egron_land_tank_s0_0000E5FE	; text
+	dc.l str_egron_mechanical_whale_s0_0000E60E	; text
+	dc.l str_egron_duck_s0_0000E625	; text
+	dc.l str_homing_missile_s0_0000E630	; text
+	dc.l str_armed_transport_s0_0000E63F	; text
+	dc.l str_escape_capsule_s0_0000E64F	; text
+	dc.l str_stomper_s0_0000E65E	; text
+	dc.l str_small_fighter_s0_0000E666	; text
+	dc.l str_horatio_s0_0000E674	; text
+	dc.l str_large_egron_transport_s0_0000E67C	; text
+	dc.l str_pulsing_pyramids_s0_0000E692	; text
+	dc.l str_tunnel_sentinel_s0_0000E6A3	; text
+	dc.l str_vampire_type_fighter_s0_0000E6B3	; text
+	dc.l str_egron_space_tug_s0_0000E6C8	; text
+	dc.l str_gbml_s0_0000E6D8	; text
+	dc.l str_petrified_tree_s0_0000E6DD	; text
+	dc.l str_missile_s0_0000E6EC	; text
+	dc.l str_tripuss_s0_0000E6F4	; text
+	dc.l str_starglider_s0_0000E6FC	; text
+	dc.l str_egron_square_rocket_s0_0000E707	; text
+	dc.l str_egron_mini_rocket_s0_0000E71B	; text
+	dc.l str_the_icarus_s0_0000E72D	; text
+	dc.l str_space_fighter_s0_0000E738	; text
+	dc.l str_personnel_shuttle_s0_0000E746	; text
+	dc.l str_egron_buzz_bomber_s0_0000E758	; text
+	dc.l str_flying_saucer_s0_0000E76A	; text
+	dc.l str_egron_bird_fighter_s0_0000E778	; text
+	dc.l str_pac_worm_s0_0000E78B	; text
+	dc.l str_egron_mini_sentinel_s0_0000E794	; text
+	dc.l str_flat_diamond_s0_0000E7A8	; text
+	dc.l str_hover_car_s0_0000E7B5	; text
+	dc.l str_pirate_ship_s0_0000E7BF	; text
+	dc.l str_space_ray_s0_0000E7CB	; text
+	dc.l str_satellite_dish_s0_0000E7D5	; text
+	dc.l str_skim_launcher_drone_s0_0000E7E4	; text
+	dc.l str_tug_truck_s0_0000E7F8	; text
+	dc.l str_fighter_escort_s0_0000E802	; text
+	dc.l str_egron_dome_silo_s0_0000E811	; text
 	dc.l object_name_text_pool	; text
-	dc.l object_name_text_pool+$29D	; text
-	dc.l object_name_text_pool+$2B2	; text
-	dc.l object_name_text_pool+$2BB	; text
-	dc.l object_name_text_pool+$2CC	; text
-	dc.l object_name_text_pool+$2D4	; text
-	dc.l object_name_text_pool+$2E0	; text
-	dc.l object_name_text_pool+$2F5	; text
-	dc.l object_name_text_pool+$308	; text
-	dc.l object_name_text_pool+$316	; text
-	dc.l object_name_text_pool+$31D	; text
-	dc.l object_name_text_pool+$334	; text
-	dc.l object_name_text_pool+$34B	; text
-	dc.l object_name_text_pool+$35C	; text
-	dc.l object_name_text_pool+$369	; text
-	dc.l object_name_text_pool+$375	; text
-	dc.l object_name_text_pool+$381	; text
-	dc.l object_name_text_pool+$38D	; text
-	dc.l object_name_text_pool+$396	; text
-	dc.l object_name_text_pool	; text
-	dc.l object_name_text_pool	; text
+	dc.l str_tunnel_entrance_exit_s0_0000E821	; text
+	dc.l str_bt_tower_s0_0000E836	; text
+	dc.l str_gbml_with_cannon_s0_0000E83F	; text
+	dc.l str_pyramid_s0_0000E850	; text
+	dc.l str_tower_block_s0_0000E858	; text
+	dc.l str_tapering_tower_block_s0_0000E864	; text
+	dc.l str_energy_transmitter_s0_0000E879	; text
+	dc.l str_bouncing_ball_s0_0000E88C	; text
+	dc.l str_cobweb_s0_0000E89A	; text
+	dc.l str_tunnel_exit_indicators_s0_0000E8A1	; text
+	dc.l str_tunnel_exit_indicators_s0_0000E8B8	; text
+	dc.l str_old_heap_of_junk_s0_0000E8CF	; text
+	dc.l str_skim_missile_s0_0000E8E0	; text
+	dc.l str_scrap_metal_s0_0000E8ED	; text
+	dc.l str_scrap_metal_s0_0000E8F9	; text
+	dc.l str_blast_doors_s0_0000E905	; text
+	dc.l str_blowhole_s0_0000E911	; text
+	dc.l str_energy_gate_s0_0000E91A	; text
 	dc.l object_name_text_pool	; text
 	dc.l object_name_text_pool	; text
 	dc.l object_name_text_pool	; text
-	dc.l object_name_text_pool+$3A2	; text
-	dc.l object_name_text_pool+$3B5	; text
-	dc.l object_name_text_pool+$3C0	; text
-	dc.l object_name_text_pool+$3C9	; text
-	dc.l object_name_text_pool+$3D8	; text
-	dc.l object_name_text_pool+$3ED	; text
-	dc.l object_name_text_pool+$403	; text
-	dc.l object_name_text_pool+$419	; text
-	dc.l object_name_text_pool+$430	; text
-	dc.l object_name_text_pool+$448	; text
-	dc.l object_name_text_pool+$460	; text
-	dc.l object_name_text_pool+$478	; text
-	dc.l object_name_text_pool+$491	; text
-	dc.l object_name_text_pool+$4A5	; text
-	dc.l object_name_text_pool	; text
-	dc.l object_name_text_pool+$4BA	; text
-	dc.l object_name_text_pool+$4D4	; text
-	dc.l object_name_text_pool+$4E7	; text
-	dc.l object_name_text_pool+$4EF	; text
-	dc.l object_name_text_pool+$4F8	; text
-	dc.l object_name_text_pool+$505	; text
-	dc.l object_name_text_pool	; text
-	dc.l object_name_text_pool+$520	; text
-	dc.l object_name_text_pool+$52D	; text
 	dc.l object_name_text_pool	; text
 	dc.l object_name_text_pool	; text
+	dc.l str_icarus_pilot_couch_s0_0000E926	; text
+	dc.l str_laser_bolt_s0_0000E939	; text
+	dc.l str_asteroid_s0_0000E944	; text
+	dc.l str_small_asteroid_s0_0000E94D	; text
+	dc.l str_egron_projector_base_s0_0000E95C	; text
+	dc.l str_egron_projector_mount_s0_0000E971	; text
+	dc.l str_egron_projector_cover_s0_0000E987	; text
+	dc.l str_egron_projector_turret_s0_0000E99D	; text
+	dc.l str_projector_fuel_crystals_s0_0000E9B4	; text
+	dc.l str_projector_control_tower_s0_0000E9CC	; text
+	dc.l str_projector_crew_quarters_s0_0000E9E4	; text
+	dc.l str_egron_projector_sentinel_s0_0000E9FC	; text
+	dc.l str_cask_of_vistan_wine_s0_0000EA15	; text
+	dc.l str_energy_cube_launcher_s0_0000EA29	; text
 	dc.l object_name_text_pool	; text
-	dc.l object_name_text_pool+$53A	; text
-	dc.l object_name_text_pool+$547	; text
-	dc.l object_name_text_pool+$55B	; text
-	dc.l object_name_text_pool+$56F	; text
-	dc.l object_name_text_pool+$584	; text
-	dc.l object_name_text_pool+$599	; text
+	dc.l str_ground_based_laser_canno_s0_0000EA3E	; text
+	dc.l str_cluster_of_nodules_s0_0000EA58	; text
+	dc.l str_volcano_s0_0000EA6B	; text
+	dc.l str_columbus_s0_0000EA73	; text
+	dc.l str_energy_tower_s0_0000EA7C	; text
+	dc.l str_bouncing_bomb_s0_0000EA89	; text
+	dc.l object_name_text_pool	; text
+	dc.l str_energy_tower_s0_0000EAA4	; text
+	dc.l str_tunnel_depot_s0_0000EAB1	; text
 	dc.l object_name_text_pool	; text
 	dc.l object_name_text_pool	; text
+	dc.l object_name_text_pool	; text
+	dc.l str_neutron_bomb_s0_0000EABE	; text
+	dc.l str_egron_space_station_s0_0000EACB	; text
+	dc.l str_crate_of_castrobars_s0_0000EADF	; text
+	dc.l str_lump_of_mineral_rock_s0_0000EAF3	; text
+	dc.l str_case_of_nuclear_fuel_s0_0000EB08	; text
+	dc.l str_icarus_gas_laser_bolt_s0_0000EB1D	; text
 	dc.l object_name_text_pool	; text
 	dc.l object_name_text_pool	; text
 	dc.l object_name_text_pool	; text
@@ -17345,148 +17343,251 @@ object_name_pointers:
 	dc.l object_name_text_pool	; text
 	dc.l object_name_text_pool	; text
 	dc.l object_name_text_pool	; text
-	dc.l object_name_text_pool+$5C4	; text
-	dc.l object_name_text_pool+$5DF	; text
-	dc.l object_name_text_pool+$5FB	; text
-	dc.l object_name_text_pool+$617	; text
-	dc.l object_name_text_pool+$634	; text
-	dc.l object_name_text_pool+$651	; text
-	dc.l object_name_text_pool+$66D	; text
-	dc.l object_name_text_pool+$686	; text
-	dc.l object_name_text_pool+$6A2	; text
-	dc.l object_name_text_pool+$6BF	; text
-	dc.l object_name_text_pool+$6D9	; text
-	dc.l object_name_text_pool+$6F5	; text
-	dc.l object_name_text_pool+$711	; text
-	dc.l object_name_text_pool+$72E	; text
-	dc.l object_name_text_pool+$74B	; text
-	dc.l object_name_text_pool+$768	; text
 	dc.l object_name_text_pool	; text
-	dc.l object_name_text_pool+$5C4	; text
-	dc.l object_name_text_pool+$5AF	; text
-	dc.l object_name_text_pool+$5BF	; text
+	dc.l object_name_text_pool	; text
+	dc.l str_solice_star_of_the_syste_s0_0000EB48	; text
+	dc.l str_dante_1st_planet_of_syst_s0_0000EB63	; text
+	dc.l str_vista_2nd_planet_of_syst_s0_0000EB7F	; text
+	dc.l str_apogee_3rd_planet_of_sys_s0_0000EB9B	; text
+	dc.l str_millway_4th_planet_of_sy_s0_0000EBB8	; text
+	dc.l str_aldos_5th_planet_of_syst_s0_0000EBD5	; text
+	dc.l str_enos_1st_moon_of_apogee_s0_0000EBF1	; text
+	dc.l str_castron_2nd_moon_of_apog_s0_0000EC0A	; text
+	dc.l str_broadway_1st_moon_of_mil_s0_0000EC26	; text
+	dc.l str_apex_2nd_moon_of_millway_s0_0000EC43	; text
+	dc.l str_esprit_3rd_moon_of_millw_s0_0000EC5D	; text
+	dc.l str_questa_4th_moon_of_millw_s0_0000EC79	; text
+	dc.l str_westmere_5th_moon_of_mil_s0_0000EC95	; text
+	dc.l str_synapse_6th_moon_of_mill_s0_0000ECB2	; text
+	dc.l str_wackfunk_7th_moon_of_mil_s0_0000ECCF	; text
+	dc.l str_q_beta_lone_moon_of_aldo_s0_0000ECEC	; text
+	dc.l object_name_text_pool	; text
+	dc.l str_solice_star_of_the_syste_s0_0000EB48	; text
+	dc.l str_energy_spheroid_s0_0000EB33	; text
+	dc.l str_star_s0_0000EB43	; text
 object_name_text_pool:
-	dc.b 'N','o',' ','r','e','c','o','r','d','s',' ','f','o','u','n','d'	; NUL-terminated object/UI names and spare strings; no claim every string has a reader
-	dc.b $00,'W','a','l','k','e','r',$00,'P','r','o','x','i','m','i','t'
-	dc.b 'y',' ','M','i','n','e',$00,'E','g','r','o','n',' ','S','p','i'
-	dc.b 'r','e',' ','B','u','i','l','d','i','n','g',$00,'S','o','l','a'
-	dc.b 'r',' ','E','n','e','r','g','y',' ','C','o','n','v','e','r','t'
-	dc.b 'e','r',$00,'E','g','r','o','n',' ','S','i','l','o',$00,'B','u'
-	dc.b 'z','z',' ','B','o','m','b',$00,'L','a','r','g','e',' ','B','i'
-	dc.b 'r','d',$00,'E','m','m','a',' ','2',$00,'E','g','r','o','n',' '
-	dc.b 'L','a','n','d',' ','T','a','n','k',$00,'E','g','r','o','n',' '
-	dc.b 'M','e','c','h','a','n','i','c','a','l',' ','W','h','a','l','e'
-	dc.b $00,'E','g','r','o','n',' ','D','u','c','k',$00,'H','o','m','i'
-	dc.b 'n','g',' ','M','i','s','s','i','l','e',$00,'A','r','m','e','d'
-	dc.b ' ','T','r','a','n','s','p','o','r','t',$00,'E','s','c','a','p'
-	dc.b 'e',' ','C','a','p','s','u','l','e',$00,'S','t','o','m','p','e'
-	dc.b 'r',$00,'S','m','a','l','l',' ','F','i','g','h','t','e','r',$00
-	dc.b 'H','o','r','a','t','i','o',$00,'L','a','r','g','e',' ','E','g'
-	dc.b 'r','o','n',' ','T','r','a','n','s','p','o','r','t',$00,'P','u'
-	dc.b 'l','s','i','n','g',' ','P','y','r','a','m','i','d','s',$00,'T'
-	dc.b 'u','n','n','e','l',' ','S','e','n','t','i','n','e','l',$00,'V'
-	dc.b 'a','m','p','i','r','e',' ','T','y','p','e',' ','F','i','g','h'
-	dc.b 't','e','r',$00,'E','g','r','o','n',' ','S','p','a','c','e',' '
-	dc.b 'T','u','g',$00,'G','B','M','L',$00,'P','e','t','r','i','f','i'
-	dc.b 'e','d',' ','T','r','e','e',$00,'M','i','s','s','i','l','e',$00
-	dc.b 'T','r','i','p','u','s','s',$00,'S','t','a','r','g','l','i','d'
-	dc.b 'e','r',$00,'E','g','r','o','n',' ','S','q','u','a','r','e',' '
-	dc.b 'R','o','c','k','e','t',$00,'E','g','r','o','n',' ','M','i','n'
-	dc.b 'i',' ','R','o','c','k','e','t',$00,'T','h','e',' ','I','c','a'
-	dc.b 'r','u','s',$00,'S','p','a','c','e',' ','F','i','g','h','t','e'
-	dc.b 'r',$00,'P','e','r','s','o','n','n','e','l',' ','S','h','u','t'
-	dc.b 't','l','e',$00,'E','g','r','o','n',' ','B','u','z','z',' ','B'
-	dc.b 'o','m','b','e','r',$00,'F','l','y','i','n','g',' ','S','a','u'
-	dc.b 'c','e','r',$00,'E','g','r','o','n',' ','B','i','r','d',' ','F'
-	dc.b 'i','g','h','t','e','r',$00,'P','a','c','-','W','o','r','m',$00
-	dc.b 'E','g','r','o','n',' ','M','i','n','i','-','S','e','n','t','i'
-	dc.b 'n','e','l',$00,'F','l','a','t',' ','D','i','a','m','o','n','d'
-	dc.b $00,'H','o','v','e','r',' ','C','a','r',$00,'P','i','r','a','t'
-	dc.b 'e',' ','S','h','i','p',$00,'S','p','a','c','e',' ','R','a','y'
-	dc.b $00,'S','a','t','e','l','l','i','t','e',' ','D','i','s','h',$00
-	dc.b 'S','k','i','m',' ','L','a','u','n','c','h','e','r',' ','D','r'
-	dc.b 'o','n','e',$00,'T','u','g',' ','T','r','u','c','k',$00,'F','i'
-	dc.b 'g','h','t','e','r',' ','E','s','c','o','r','t',$00,'E','g','r'
-	dc.b 'o','n',' ','D','o','m','e',' ','S','i','l','o',$00,'T','u','n'
-	dc.b 'n','e','l',' ','E','n','t','r','a','n','c','e','/','E','x','i'
-	dc.b 't',$00,'B','T',' ','T','o','w','e','r',$00,'G','B','M','L',' '
-	dc.b 'w','i','t','h',' ','C','a','n','n','o','n',$00,'P','y','r','a'
-	dc.b 'm','i','d',$00,'T','o','w','e','r',' ','B','l','o','c','k',$00
-	dc.b 'T','a','p','e','r','i','n','g',' ','T','o','w','e','r',' ','B'
-	dc.b 'l','o','c','k',$00,'E','n','e','r','g','y',' ','T','r','a','n'
-	dc.b 's','m','i','t','t','e','r',$00,'B','o','u','n','c','i','n','g'
-	dc.b ' ','B','a','l','l',$00,'C','o','b','w','e','b',$00,'T','u','n'
-	dc.b 'n','e','l',' ','E','x','i','t',' ','I','n','d','i','c','a','t'
-	dc.b 'o','r','s',$00,'T','u','n','n','e','l',' ','E','x','i','t',' '
-	dc.b 'I','n','d','i','c','a','t','o','r','s',$00,'O','l','d',' ','H'
-	dc.b 'e','a','p',' ','O','f',' ','J','u','n','k',$00,'S','k','i','m'
-	dc.b ' ','M','i','s','s','i','l','e',$00,'S','c','r','a','p',' ','M'
-	dc.b 'e','t','a','l',$00,'S','c','r','a','p',' ','M','e','t','a','l'
-	dc.b $00,'B','l','a','s','t',' ','D','o','o','r','s',$00,'B','l','o'
-	dc.b 'w','h','o','l','e',$00,'E','n','e','r','g','y',' ','g','a','t'
-	dc.b 'e',$00,'I','c','a','r','u','s',' ','P','i','l','o','t',' ','C'
-	dc.b 'o','u','c','h',$00,'L','a','s','e','r',' ','B','o','l','t',$00
-	dc.b 'A','s','t','e','r','o','i','d',$00,'S','m','a','l','l',' ','A'
-	dc.b 's','t','e','r','o','i','d',$00,'E','g','r','o','n',' ','P','r'
-	dc.b 'o','j','e','c','t','o','r',' ','B','a','s','e',$00,'E','g','r'
-	dc.b 'o','n',' ','P','r','o','j','e','c','t','o','r',' ','M','o','u'
-	dc.b 'n','t',$00,'E','g','r','o','n',' ','P','r','o','j','e','c','t'
-	dc.b 'o','r',' ','C','o','v','e','r',$00,'E','g','r','o','n',' ','P'
-	dc.b 'r','o','j','e','c','t','o','r',' ','T','u','r','r','e','t',$00
-	dc.b 'P','r','o','j','e','c','t','o','r',' ','F','u','e','l',' ','C'
-	dc.b 'r','y','s','t','a','l','s',$00,'P','r','o','j','e','c','t','o'
-	dc.b 'r',' ','C','o','n','t','r','o','l',' ','T','o','w','e','r',$00
-	dc.b 'P','r','o','j','e','c','t','o','r',' ','C','r','e','w',' ','Q'
-	dc.b 'u','a','r','t','e','r','s',$00,'E','g','r','o','n',' ','P','r'
-	dc.b 'o','j','e','c','t','o','r',' ','S','e','n','t','i','n','e','l'
-	dc.b $00,'C','a','s','k',' ','o','f',' ','V','i','s','t','a','n',' '
-	dc.b 'W','i','n','e',$00,'E','n','e','r','g','y',' ','C','u','b','e'
-	dc.b ' ','L','a','u','n','c','h','e','r',$00,'G','r','o','u','n','d'
-	dc.b ' ','B','a','s','e','d',' ','L','a','s','e','r',' ','C','a','n'
-	dc.b 'n','o','n',$00,'C','l','u','s','t','e','r',' ','o','f',' ','N'
-	dc.b 'o','d','u','l','e','s',$00,'V','o','l','c','a','n','o',$00,'C'
-	dc.b 'o','l','u','m','b','u','s',$00,'E','n','e','r','g','y',' ','T'
-	dc.b 'o','w','e','r',$00,'B','o','u','n','c','i','n','g',' ','B','o'
-	dc.b 'm','b',$00,'E','n','e','r','g','y',' ','P','y','l','o','n',$00
-	dc.b 'E','n','e','r','g','y',' ','T','o','w','e','r',$00,'T','u','n'
-	dc.b 'n','e','l',' ','D','e','p','o','t',$00,'N','e','u','t','r','o'
-	dc.b 'n',' ','B','o','m','b',$00,'E','g','r','o','n',' ','S','p','a'
-	dc.b 'c','e',' ','S','t','a','t','i','o','n',$00,'C','r','a','t','e'
-	dc.b ' ','o','f',' ','C','a','s','t','r','o','b','a','r','s',$00,'L'
-	dc.b 'u','m','p',' ','o','f',' ','M','i','n','e','r','a','l',' ','R'
-	dc.b 'o','c','k',$00,'C','a','s','e',' ','o','f',' ','N','u','c','l'
-	dc.b 'e','a','r',' ','F','u','e','l',$00,'I','c','a','r','u','s',' '
-	dc.b 'G','a','s',' ','L','a','s','e','r',' ','B','o','l','t',$00,'E'
-	dc.b 'n','e','r','g','y',' ','S','p','h','e','r','o','i','d',$00,'S'
-	dc.b 't','a','r',$00,'S','o','l','i','c','e',' ','-','S','t','a','r'
-	dc.b ' ','o','f',' ','t','h','e',' ','S','y','s','t','e','m',$00,'D'
-	dc.b 'a','n','t','e',' ','-','1','s','t',' ','P','l','a','n','e','t'
-	dc.b ' ','o','f',' ','S','y','s','t','e','m',$00,'V','i','s','t','a'
-	dc.b ' ','-','2','n','d',' ','P','l','a','n','e','t',' ','o','f',' '
-	dc.b 'S','y','s','t','e','m',$00,'A','p','o','g','e','e',' ','-','3'
-	dc.b 'r','d',' ','P','l','a','n','e','t',' ','o','f',' ','S','y','s'
-	dc.b 't','e','m',$00,'M','i','l','l','w','a','y','-','4','t','h',' '
-	dc.b 'P','l','a','n','e','t',' ','o','f',' ','S','y','s','t','e','m'
-	dc.b $00,'A','l','d','o','s',' ','-','5','t','h',' ','P','l','a','n'
-	dc.b 'e','t',' ','o','f',' ','S','y','s','t','e','m',$00,'E','n','o'
-	dc.b 's',' ','-','1','s','t',' ','M','o','o','n',' ','o','f',' ','A'
-	dc.b 'p','o','g','e','e',$00,'C','a','s','t','r','o','n',' ','-','2'
-	dc.b 'n','d',' ','M','o','o','n',' ','o','f',' ','A','p','o','g','e'
-	dc.b 'e',$00,'B','r','o','a','d','w','a','y','-','1','s','t',' ','M'
-	dc.b 'o','o','n',' ','o','f',' ','M','i','l','l','w','a','y',$00,'A'
-	dc.b 'p','e','x',' ','-','2','n','d',' ','M','o','o','n',' ','o','f'
-	dc.b ' ','M','i','l','l','w','a','y',$00,'E','s','p','r','i','t',' '
-	dc.b '-','3','r','d',' ','M','o','o','n',' ','o','f',' ','M','i','l'
-	dc.b 'l','w','a','y',$00,'Q','u','e','s','t','a',' ','-','4','t','h'
-	dc.b ' ','M','o','o','n',' ','o','f',' ','M','i','l','l','w','a','y'
-	dc.b $00,'W','e','s','t','m','e','r','e','-','5','t','h',' ','M','o'
-	dc.b 'o','n',' ','o','f',' ','M','i','l','l','w','a','y',$00,'S','y'
-	dc.b 'n','a','p','s','e',' ','-','6','t','h',' ','M','o','o','n',' '
-	dc.b 'o','f',' ','M','i','l','l','w','a','y',$00,'W','a','c','k','f'
-	dc.b 'u','n','k','-','7','t','h',' ','M','o','o','n',' ','o','f',' '
-	dc.b 'M','i','l','l','w','a','y',$00,'Q','-','B','e','t','a',' ','-'
-	dc.b 'L','o','n','e',' ','M','o','o','n',' ','o','f',' ','A','l','d'
-	dc.b 'o','s',$00
+	dc.b "No records found",$00
+str_walker_s0_0000E595:
+	dc.b "Walker",$00
+str_proximity_mine_s0_0000E59C:
+	dc.b "Proximity Mine",$00
+str_egron_spire_building_s0_0000E5AB:
+	dc.b "Egron Spire Building",$00
+str_solar_energy_converter_s0_0000E5C0:
+	dc.b "Solar Energy Converter",$00
+str_egron_silo_s0_0000E5D7:
+	dc.b "Egron Silo",$00
+str_buzz_bomb_s0_0000E5E2:
+	dc.b "Buzz Bomb",$00
+str_large_bird_s0_0000E5EC:
+	dc.b "Large Bird",$00
+str_emma_2_s0_0000E5F7:
+	dc.b "Emma 2",$00
+str_egron_land_tank_s0_0000E5FE:
+	dc.b "Egron Land Tank",$00
+str_egron_mechanical_whale_s0_0000E60E:
+	dc.b "Egron Mechanical Whale",$00
+str_egron_duck_s0_0000E625:
+	dc.b "Egron Duck",$00
+str_homing_missile_s0_0000E630:
+	dc.b "Homing Missile",$00
+str_armed_transport_s0_0000E63F:
+	dc.b "Armed Transport",$00
+str_escape_capsule_s0_0000E64F:
+	dc.b "Escape Capsule",$00
+str_stomper_s0_0000E65E:
+	dc.b "Stomper",$00
+str_small_fighter_s0_0000E666:
+	dc.b "Small Fighter",$00
+str_horatio_s0_0000E674:
+	dc.b "Horatio",$00
+str_large_egron_transport_s0_0000E67C:
+	dc.b "Large Egron Transport",$00
+str_pulsing_pyramids_s0_0000E692:
+	dc.b "Pulsing Pyramids",$00
+str_tunnel_sentinel_s0_0000E6A3:
+	dc.b "Tunnel Sentinel",$00
+str_vampire_type_fighter_s0_0000E6B3:
+	dc.b "Vampire Type Fighter",$00
+str_egron_space_tug_s0_0000E6C8:
+	dc.b "Egron Space Tug",$00
+str_gbml_s0_0000E6D8:
+	dc.b "GBML",$00
+str_petrified_tree_s0_0000E6DD:
+	dc.b "Petrified Tree",$00
+str_missile_s0_0000E6EC:
+	dc.b "Missile",$00
+str_tripuss_s0_0000E6F4:
+	dc.b "Tripuss",$00
+str_starglider_s0_0000E6FC:
+	dc.b "Starglider",$00
+str_egron_square_rocket_s0_0000E707:
+	dc.b "Egron Square Rocket",$00
+str_egron_mini_rocket_s0_0000E71B:
+	dc.b "Egron Mini Rocket",$00
+str_the_icarus_s0_0000E72D:
+	dc.b "The Icarus",$00
+str_space_fighter_s0_0000E738:
+	dc.b "Space Fighter",$00
+str_personnel_shuttle_s0_0000E746:
+	dc.b "Personnel Shuttle",$00
+str_egron_buzz_bomber_s0_0000E758:
+	dc.b "Egron Buzz Bomber",$00
+str_flying_saucer_s0_0000E76A:
+	dc.b "Flying Saucer",$00
+str_egron_bird_fighter_s0_0000E778:
+	dc.b "Egron Bird Fighter",$00
+str_pac_worm_s0_0000E78B:
+	dc.b "Pac-Worm",$00
+str_egron_mini_sentinel_s0_0000E794:
+	dc.b "Egron Mini-Sentinel",$00
+str_flat_diamond_s0_0000E7A8:
+	dc.b "Flat Diamond",$00
+str_hover_car_s0_0000E7B5:
+	dc.b "Hover Car",$00
+str_pirate_ship_s0_0000E7BF:
+	dc.b "Pirate Ship",$00
+str_space_ray_s0_0000E7CB:
+	dc.b "Space Ray",$00
+str_satellite_dish_s0_0000E7D5:
+	dc.b "Satellite Dish",$00
+str_skim_launcher_drone_s0_0000E7E4:
+	dc.b "Skim Launcher Drone",$00
+str_tug_truck_s0_0000E7F8:
+	dc.b "Tug Truck",$00
+str_fighter_escort_s0_0000E802:
+	dc.b "Fighter Escort",$00
+str_egron_dome_silo_s0_0000E811:
+	dc.b "Egron Dome Silo",$00
+str_tunnel_entrance_exit_s0_0000E821:
+	dc.b "Tunnel Entrance/Exit",$00
+str_bt_tower_s0_0000E836:
+	dc.b "BT Tower",$00
+str_gbml_with_cannon_s0_0000E83F:
+	dc.b "GBML with Cannon",$00
+str_pyramid_s0_0000E850:
+	dc.b "Pyramid",$00
+str_tower_block_s0_0000E858:
+	dc.b "Tower Block",$00
+str_tapering_tower_block_s0_0000E864:
+	dc.b "Tapering Tower Block",$00
+str_energy_transmitter_s0_0000E879:
+	dc.b "Energy Transmitter",$00
+str_bouncing_ball_s0_0000E88C:
+	dc.b "Bouncing Ball",$00
+str_cobweb_s0_0000E89A:
+	dc.b "Cobweb",$00
+str_tunnel_exit_indicators_s0_0000E8A1:
+	dc.b "Tunnel Exit Indicators",$00
+str_tunnel_exit_indicators_s0_0000E8B8:
+	dc.b "Tunnel Exit Indicators",$00
+str_old_heap_of_junk_s0_0000E8CF:
+	dc.b "Old Heap Of Junk",$00
+str_skim_missile_s0_0000E8E0:
+	dc.b "Skim Missile",$00
+str_scrap_metal_s0_0000E8ED:
+	dc.b "Scrap Metal",$00
+str_scrap_metal_s0_0000E8F9:
+	dc.b "Scrap Metal",$00
+str_blast_doors_s0_0000E905:
+	dc.b "Blast Doors",$00
+str_blowhole_s0_0000E911:
+	dc.b "Blowhole",$00
+str_energy_gate_s0_0000E91A:
+	dc.b "Energy gate",$00
+str_icarus_pilot_couch_s0_0000E926:
+	dc.b "Icarus Pilot Couch",$00
+str_laser_bolt_s0_0000E939:
+	dc.b "Laser Bolt",$00
+str_asteroid_s0_0000E944:
+	dc.b "Asteroid",$00
+str_small_asteroid_s0_0000E94D:
+	dc.b "Small Asteroid",$00
+str_egron_projector_base_s0_0000E95C:
+	dc.b "Egron Projector Base",$00
+str_egron_projector_mount_s0_0000E971:
+	dc.b "Egron Projector Mount",$00
+str_egron_projector_cover_s0_0000E987:
+	dc.b "Egron Projector Cover",$00
+str_egron_projector_turret_s0_0000E99D:
+	dc.b "Egron Projector Turret",$00
+str_projector_fuel_crystals_s0_0000E9B4:
+	dc.b "Projector Fuel Crystals",$00
+str_projector_control_tower_s0_0000E9CC:
+	dc.b "Projector Control Tower",$00
+str_projector_crew_quarters_s0_0000E9E4:
+	dc.b "Projector Crew Quarters",$00
+str_egron_projector_sentinel_s0_0000E9FC:
+	dc.b "Egron Projector Sentinel",$00
+str_cask_of_vistan_wine_s0_0000EA15:
+	dc.b "Cask of Vistan Wine",$00
+str_energy_cube_launcher_s0_0000EA29:
+	dc.b "Energy Cube Launcher",$00
+str_ground_based_laser_canno_s0_0000EA3E:
+	dc.b "Ground Based Laser Cannon",$00
+str_cluster_of_nodules_s0_0000EA58:
+	dc.b "Cluster of Nodules",$00
+str_volcano_s0_0000EA6B:
+	dc.b "Volcano",$00
+str_columbus_s0_0000EA73:
+	dc.b "Columbus",$00
+str_energy_tower_s0_0000EA7C:
+	dc.b "Energy Tower",$00
+str_bouncing_bomb_s0_0000EA89:
+	dc.b "Bouncing Bomb",$00
+	dc.b "Energy Pylon",$00
+str_energy_tower_s0_0000EAA4:
+	dc.b "Energy Tower",$00
+str_tunnel_depot_s0_0000EAB1:
+	dc.b "Tunnel Depot",$00
+str_neutron_bomb_s0_0000EABE:
+	dc.b "Neutron Bomb",$00
+str_egron_space_station_s0_0000EACB:
+	dc.b "Egron Space Station",$00
+str_crate_of_castrobars_s0_0000EADF:
+	dc.b "Crate of Castrobars",$00
+str_lump_of_mineral_rock_s0_0000EAF3:
+	dc.b "Lump of Mineral Rock",$00
+str_case_of_nuclear_fuel_s0_0000EB08:
+	dc.b "Case of Nuclear Fuel",$00
+str_icarus_gas_laser_bolt_s0_0000EB1D:
+	dc.b "Icarus Gas Laser Bolt",$00
+str_energy_spheroid_s0_0000EB33:
+	dc.b "Energy Spheroid",$00
+str_star_s0_0000EB43:
+	dc.b "Star",$00
+str_solice_star_of_the_syste_s0_0000EB48:
+	dc.b "Solice -Star of the System",$00
+str_dante_1st_planet_of_syst_s0_0000EB63:
+	dc.b "Dante -1st Planet of System",$00
+str_vista_2nd_planet_of_syst_s0_0000EB7F:
+	dc.b "Vista -2nd Planet of System",$00
+str_apogee_3rd_planet_of_sys_s0_0000EB9B:
+	dc.b "Apogee -3rd Planet of System",$00
+str_millway_4th_planet_of_sy_s0_0000EBB8:
+	dc.b "Millway-4th Planet of System",$00
+str_aldos_5th_planet_of_syst_s0_0000EBD5:
+	dc.b "Aldos -5th Planet of System",$00
+str_enos_1st_moon_of_apogee_s0_0000EBF1:
+	dc.b "Enos -1st Moon of Apogee",$00
+str_castron_2nd_moon_of_apog_s0_0000EC0A:
+	dc.b "Castron -2nd Moon of Apogee",$00
+str_broadway_1st_moon_of_mil_s0_0000EC26:
+	dc.b "Broadway-1st Moon of Millway",$00
+str_apex_2nd_moon_of_millway_s0_0000EC43:
+	dc.b "Apex -2nd Moon of Millway",$00
+str_esprit_3rd_moon_of_millw_s0_0000EC5D:
+	dc.b "Esprit -3rd Moon of Millway",$00
+str_questa_4th_moon_of_millw_s0_0000EC79:
+	dc.b "Questa -4th Moon of Millway",$00
+str_westmere_5th_moon_of_mil_s0_0000EC95:
+	dc.b "Westmere-5th Moon of Millway",$00
+str_synapse_6th_moon_of_mill_s0_0000ECB2:
+	dc.b "Synapse -6th Moon of Millway",$00
+str_wackfunk_7th_moon_of_mil_s0_0000ECCF:
+	dc.b "Wackfunk-7th Moon of Millway",$00
+str_q_beta_lone_moon_of_aldo_s0_0000ECEC:
+	dc.b "Q-Beta -Lone Moon of Aldos",$00
 	dc.b $00
 abs_0_0000FD08:
 	dc.b $00,$00,$FD,$18

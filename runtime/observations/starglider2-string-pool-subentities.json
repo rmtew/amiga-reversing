@@ -1,0 +1,842 @@
+{
+  "schema_version": 1,
+  "kind": "referenced_string_subentities_under_character_owner",
+  "publication_base_commit": "329d48716c838d1369fc348a39d4c40c968889a6",
+  "backend_sha256": "ed287e2332c0423cb42b96e0d4b6905e3d04382d8c5216991d540b8de4eac94c",
+  "analysis_sha256": "7d4982a923b4bd06e847ef876b7db5d07463d9c3d553a563307c26e4b8edd31c",
+  "effective_metadata_sha256": "abbb82000e9f0220b647ad3c44dc0cef810e11de175eb38a1faa451c51508bde",
+  "cause": "The authored pool is one1923-byte character array. Native generic text discovery excludes starts under owned spans, and bounded source-pointer resolution only considered declared owners. Correct148 typed pointer targets therefore rendered as parent-plus-offset and character rows. The byte pool declaration was too coarse for entity-level output, and the framework did not expose subordinate records.",
+  "implementation": [
+    "Use already resolved typed source-pointer fields and explicit character-owner extents; never scan arbitrary LONGs for plausible text addresses. Validate NUL bounds, supported bytes and final code/data ownership.",
+    "Create inferred string records beneath the unchanged parent. A suffix pointer binds to its containing record plus the real addend; it does not invent a new string start.",
+    "Inferred names combine sanitized literal content and source section/offset, with deterministic collision handling. Authored names win, duplicate text at distinct addresses stays distinct, and shared pointers reuse one label.",
+    "Feed inferred records into the existing range/owner resolver and frozen rendering path. Inferred names remain generated, not authored declarations. No manual generated-source edits or game-specific constants.",
+    "Within an established character pool, render supported unreferenced NUL records without labels/consumers. Controls, quotes, backslashes, unsupported bytes and boundaries preserve original storage.",
+    "Snapshot the policy input count and copy retained owner/ref values across append operations, because the authoritative IR also grows a policy mirror. A growth fixture exercises22 policy items rather than assuming an allocation bucket."
+  ],
+  "whole_target_inventory": {
+    "canonical_data_block_layouts": 213,
+    "canonical_character_representations": 1,
+    "canonical_target_pointer_seeded_fields": 850,
+    "affected_pools": 1,
+    "scope": "All native resolved pointer fields and character owners are considered. This target has one explicit character representation; other already typed strings/directories retain their existing analysis."
+  },
+  "before_after": {
+    "parent_source_span": [
+      58756,
+      60679
+    ],
+    "parent_bytes_unchanged": 1923,
+    "parent_kind_unchanged": "bytes",
+    "directory_source_span": [
+      58164,
+      58756
+    ],
+    "directory_pointer_fields": 148,
+    "distinct_referenced_records": 111,
+    "string_records_exposed": 112,
+    "new_emitted_string_labels": 110,
+    "authored_first_record_label_preserved": "object_name_text_pool",
+    "pointer_expressions_changed_to_exact_string_labels": 111,
+    "shared_first_record_pointers": 37,
+    "unreferenced_by_this_directory_records": 1,
+    "unreferenced_record": {
+      "source_offset": 60055,
+      "runtime_address": 64151,
+      "size": 13,
+      "text": "Energy Pylon",
+      "new_label": false,
+      "live_reader_claim": false
+    },
+    "source_bytes": [
+      2279200,
+      2278342
+    ],
+    "unclassified_bytes": [
+      14068,
+      14068
+    ],
+    "generic_app_fields": [
+      48,
+      48
+    ],
+    "accepted_code_bytes": [
+      106034,
+      106034
+    ],
+    "relative_dispatch_contracts": [
+      8,
+      8
+    ]
+  },
+  "records": [
+    {
+      "source_offset": 58756,
+      "runtime_address": 62852,
+      "size": 17,
+      "referenced": true
+    },
+    {
+      "source_offset": 58773,
+      "runtime_address": 62869,
+      "size": 7,
+      "referenced": true
+    },
+    {
+      "source_offset": 58780,
+      "runtime_address": 62876,
+      "size": 15,
+      "referenced": true
+    },
+    {
+      "source_offset": 58795,
+      "runtime_address": 62891,
+      "size": 21,
+      "referenced": true
+    },
+    {
+      "source_offset": 58816,
+      "runtime_address": 62912,
+      "size": 23,
+      "referenced": true
+    },
+    {
+      "source_offset": 58839,
+      "runtime_address": 62935,
+      "size": 11,
+      "referenced": true
+    },
+    {
+      "source_offset": 58850,
+      "runtime_address": 62946,
+      "size": 10,
+      "referenced": true
+    },
+    {
+      "source_offset": 58860,
+      "runtime_address": 62956,
+      "size": 11,
+      "referenced": true
+    },
+    {
+      "source_offset": 58871,
+      "runtime_address": 62967,
+      "size": 7,
+      "referenced": true
+    },
+    {
+      "source_offset": 58878,
+      "runtime_address": 62974,
+      "size": 16,
+      "referenced": true
+    },
+    {
+      "source_offset": 58894,
+      "runtime_address": 62990,
+      "size": 23,
+      "referenced": true
+    },
+    {
+      "source_offset": 58917,
+      "runtime_address": 63013,
+      "size": 11,
+      "referenced": true
+    },
+    {
+      "source_offset": 58928,
+      "runtime_address": 63024,
+      "size": 15,
+      "referenced": true
+    },
+    {
+      "source_offset": 58943,
+      "runtime_address": 63039,
+      "size": 16,
+      "referenced": true
+    },
+    {
+      "source_offset": 58959,
+      "runtime_address": 63055,
+      "size": 15,
+      "referenced": true
+    },
+    {
+      "source_offset": 58974,
+      "runtime_address": 63070,
+      "size": 8,
+      "referenced": true
+    },
+    {
+      "source_offset": 58982,
+      "runtime_address": 63078,
+      "size": 14,
+      "referenced": true
+    },
+    {
+      "source_offset": 58996,
+      "runtime_address": 63092,
+      "size": 8,
+      "referenced": true
+    },
+    {
+      "source_offset": 59004,
+      "runtime_address": 63100,
+      "size": 22,
+      "referenced": true
+    },
+    {
+      "source_offset": 59026,
+      "runtime_address": 63122,
+      "size": 17,
+      "referenced": true
+    },
+    {
+      "source_offset": 59043,
+      "runtime_address": 63139,
+      "size": 16,
+      "referenced": true
+    },
+    {
+      "source_offset": 59059,
+      "runtime_address": 63155,
+      "size": 21,
+      "referenced": true
+    },
+    {
+      "source_offset": 59080,
+      "runtime_address": 63176,
+      "size": 16,
+      "referenced": true
+    },
+    {
+      "source_offset": 59096,
+      "runtime_address": 63192,
+      "size": 5,
+      "referenced": true
+    },
+    {
+      "source_offset": 59101,
+      "runtime_address": 63197,
+      "size": 15,
+      "referenced": true
+    },
+    {
+      "source_offset": 59116,
+      "runtime_address": 63212,
+      "size": 8,
+      "referenced": true
+    },
+    {
+      "source_offset": 59124,
+      "runtime_address": 63220,
+      "size": 8,
+      "referenced": true
+    },
+    {
+      "source_offset": 59132,
+      "runtime_address": 63228,
+      "size": 11,
+      "referenced": true
+    },
+    {
+      "source_offset": 59143,
+      "runtime_address": 63239,
+      "size": 20,
+      "referenced": true
+    },
+    {
+      "source_offset": 59163,
+      "runtime_address": 63259,
+      "size": 18,
+      "referenced": true
+    },
+    {
+      "source_offset": 59181,
+      "runtime_address": 63277,
+      "size": 11,
+      "referenced": true
+    },
+    {
+      "source_offset": 59192,
+      "runtime_address": 63288,
+      "size": 14,
+      "referenced": true
+    },
+    {
+      "source_offset": 59206,
+      "runtime_address": 63302,
+      "size": 18,
+      "referenced": true
+    },
+    {
+      "source_offset": 59224,
+      "runtime_address": 63320,
+      "size": 18,
+      "referenced": true
+    },
+    {
+      "source_offset": 59242,
+      "runtime_address": 63338,
+      "size": 14,
+      "referenced": true
+    },
+    {
+      "source_offset": 59256,
+      "runtime_address": 63352,
+      "size": 19,
+      "referenced": true
+    },
+    {
+      "source_offset": 59275,
+      "runtime_address": 63371,
+      "size": 9,
+      "referenced": true
+    },
+    {
+      "source_offset": 59284,
+      "runtime_address": 63380,
+      "size": 20,
+      "referenced": true
+    },
+    {
+      "source_offset": 59304,
+      "runtime_address": 63400,
+      "size": 13,
+      "referenced": true
+    },
+    {
+      "source_offset": 59317,
+      "runtime_address": 63413,
+      "size": 10,
+      "referenced": true
+    },
+    {
+      "source_offset": 59327,
+      "runtime_address": 63423,
+      "size": 12,
+      "referenced": true
+    },
+    {
+      "source_offset": 59339,
+      "runtime_address": 63435,
+      "size": 10,
+      "referenced": true
+    },
+    {
+      "source_offset": 59349,
+      "runtime_address": 63445,
+      "size": 15,
+      "referenced": true
+    },
+    {
+      "source_offset": 59364,
+      "runtime_address": 63460,
+      "size": 20,
+      "referenced": true
+    },
+    {
+      "source_offset": 59384,
+      "runtime_address": 63480,
+      "size": 10,
+      "referenced": true
+    },
+    {
+      "source_offset": 59394,
+      "runtime_address": 63490,
+      "size": 15,
+      "referenced": true
+    },
+    {
+      "source_offset": 59409,
+      "runtime_address": 63505,
+      "size": 16,
+      "referenced": true
+    },
+    {
+      "source_offset": 59425,
+      "runtime_address": 63521,
+      "size": 21,
+      "referenced": true
+    },
+    {
+      "source_offset": 59446,
+      "runtime_address": 63542,
+      "size": 9,
+      "referenced": true
+    },
+    {
+      "source_offset": 59455,
+      "runtime_address": 63551,
+      "size": 17,
+      "referenced": true
+    },
+    {
+      "source_offset": 59472,
+      "runtime_address": 63568,
+      "size": 8,
+      "referenced": true
+    },
+    {
+      "source_offset": 59480,
+      "runtime_address": 63576,
+      "size": 12,
+      "referenced": true
+    },
+    {
+      "source_offset": 59492,
+      "runtime_address": 63588,
+      "size": 21,
+      "referenced": true
+    },
+    {
+      "source_offset": 59513,
+      "runtime_address": 63609,
+      "size": 19,
+      "referenced": true
+    },
+    {
+      "source_offset": 59532,
+      "runtime_address": 63628,
+      "size": 14,
+      "referenced": true
+    },
+    {
+      "source_offset": 59546,
+      "runtime_address": 63642,
+      "size": 7,
+      "referenced": true
+    },
+    {
+      "source_offset": 59553,
+      "runtime_address": 63649,
+      "size": 23,
+      "referenced": true
+    },
+    {
+      "source_offset": 59576,
+      "runtime_address": 63672,
+      "size": 23,
+      "referenced": true
+    },
+    {
+      "source_offset": 59599,
+      "runtime_address": 63695,
+      "size": 17,
+      "referenced": true
+    },
+    {
+      "source_offset": 59616,
+      "runtime_address": 63712,
+      "size": 13,
+      "referenced": true
+    },
+    {
+      "source_offset": 59629,
+      "runtime_address": 63725,
+      "size": 12,
+      "referenced": true
+    },
+    {
+      "source_offset": 59641,
+      "runtime_address": 63737,
+      "size": 12,
+      "referenced": true
+    },
+    {
+      "source_offset": 59653,
+      "runtime_address": 63749,
+      "size": 12,
+      "referenced": true
+    },
+    {
+      "source_offset": 59665,
+      "runtime_address": 63761,
+      "size": 9,
+      "referenced": true
+    },
+    {
+      "source_offset": 59674,
+      "runtime_address": 63770,
+      "size": 12,
+      "referenced": true
+    },
+    {
+      "source_offset": 59686,
+      "runtime_address": 63782,
+      "size": 19,
+      "referenced": true
+    },
+    {
+      "source_offset": 59705,
+      "runtime_address": 63801,
+      "size": 11,
+      "referenced": true
+    },
+    {
+      "source_offset": 59716,
+      "runtime_address": 63812,
+      "size": 9,
+      "referenced": true
+    },
+    {
+      "source_offset": 59725,
+      "runtime_address": 63821,
+      "size": 15,
+      "referenced": true
+    },
+    {
+      "source_offset": 59740,
+      "runtime_address": 63836,
+      "size": 21,
+      "referenced": true
+    },
+    {
+      "source_offset": 59761,
+      "runtime_address": 63857,
+      "size": 22,
+      "referenced": true
+    },
+    {
+      "source_offset": 59783,
+      "runtime_address": 63879,
+      "size": 22,
+      "referenced": true
+    },
+    {
+      "source_offset": 59805,
+      "runtime_address": 63901,
+      "size": 23,
+      "referenced": true
+    },
+    {
+      "source_offset": 59828,
+      "runtime_address": 63924,
+      "size": 24,
+      "referenced": true
+    },
+    {
+      "source_offset": 59852,
+      "runtime_address": 63948,
+      "size": 24,
+      "referenced": true
+    },
+    {
+      "source_offset": 59876,
+      "runtime_address": 63972,
+      "size": 24,
+      "referenced": true
+    },
+    {
+      "source_offset": 59900,
+      "runtime_address": 63996,
+      "size": 25,
+      "referenced": true
+    },
+    {
+      "source_offset": 59925,
+      "runtime_address": 64021,
+      "size": 20,
+      "referenced": true
+    },
+    {
+      "source_offset": 59945,
+      "runtime_address": 64041,
+      "size": 21,
+      "referenced": true
+    },
+    {
+      "source_offset": 59966,
+      "runtime_address": 64062,
+      "size": 26,
+      "referenced": true
+    },
+    {
+      "source_offset": 59992,
+      "runtime_address": 64088,
+      "size": 19,
+      "referenced": true
+    },
+    {
+      "source_offset": 60011,
+      "runtime_address": 64107,
+      "size": 8,
+      "referenced": true
+    },
+    {
+      "source_offset": 60019,
+      "runtime_address": 64115,
+      "size": 9,
+      "referenced": true
+    },
+    {
+      "source_offset": 60028,
+      "runtime_address": 64124,
+      "size": 13,
+      "referenced": true
+    },
+    {
+      "source_offset": 60041,
+      "runtime_address": 64137,
+      "size": 14,
+      "referenced": true
+    },
+    {
+      "source_offset": 60055,
+      "runtime_address": 64151,
+      "size": 13,
+      "referenced": false
+    },
+    {
+      "source_offset": 60068,
+      "runtime_address": 64164,
+      "size": 13,
+      "referenced": true
+    },
+    {
+      "source_offset": 60081,
+      "runtime_address": 64177,
+      "size": 13,
+      "referenced": true
+    },
+    {
+      "source_offset": 60094,
+      "runtime_address": 64190,
+      "size": 13,
+      "referenced": true
+    },
+    {
+      "source_offset": 60107,
+      "runtime_address": 64203,
+      "size": 20,
+      "referenced": true
+    },
+    {
+      "source_offset": 60127,
+      "runtime_address": 64223,
+      "size": 20,
+      "referenced": true
+    },
+    {
+      "source_offset": 60147,
+      "runtime_address": 64243,
+      "size": 21,
+      "referenced": true
+    },
+    {
+      "source_offset": 60168,
+      "runtime_address": 64264,
+      "size": 21,
+      "referenced": true
+    },
+    {
+      "source_offset": 60189,
+      "runtime_address": 64285,
+      "size": 22,
+      "referenced": true
+    },
+    {
+      "source_offset": 60211,
+      "runtime_address": 64307,
+      "size": 16,
+      "referenced": true
+    },
+    {
+      "source_offset": 60227,
+      "runtime_address": 64323,
+      "size": 5,
+      "referenced": true
+    },
+    {
+      "source_offset": 60232,
+      "runtime_address": 64328,
+      "size": 27,
+      "referenced": true
+    },
+    {
+      "source_offset": 60259,
+      "runtime_address": 64355,
+      "size": 28,
+      "referenced": true
+    },
+    {
+      "source_offset": 60287,
+      "runtime_address": 64383,
+      "size": 28,
+      "referenced": true
+    },
+    {
+      "source_offset": 60315,
+      "runtime_address": 64411,
+      "size": 29,
+      "referenced": true
+    },
+    {
+      "source_offset": 60344,
+      "runtime_address": 64440,
+      "size": 29,
+      "referenced": true
+    },
+    {
+      "source_offset": 60373,
+      "runtime_address": 64469,
+      "size": 28,
+      "referenced": true
+    },
+    {
+      "source_offset": 60401,
+      "runtime_address": 64497,
+      "size": 25,
+      "referenced": true
+    },
+    {
+      "source_offset": 60426,
+      "runtime_address": 64522,
+      "size": 28,
+      "referenced": true
+    },
+    {
+      "source_offset": 60454,
+      "runtime_address": 64550,
+      "size": 29,
+      "referenced": true
+    },
+    {
+      "source_offset": 60483,
+      "runtime_address": 64579,
+      "size": 26,
+      "referenced": true
+    },
+    {
+      "source_offset": 60509,
+      "runtime_address": 64605,
+      "size": 28,
+      "referenced": true
+    },
+    {
+      "source_offset": 60537,
+      "runtime_address": 64633,
+      "size": 28,
+      "referenced": true
+    },
+    {
+      "source_offset": 60565,
+      "runtime_address": 64661,
+      "size": 29,
+      "referenced": true
+    },
+    {
+      "source_offset": 60594,
+      "runtime_address": 64690,
+      "size": 29,
+      "referenced": true
+    },
+    {
+      "source_offset": 60623,
+      "runtime_address": 64719,
+      "size": 29,
+      "referenced": true
+    },
+    {
+      "source_offset": 60652,
+      "runtime_address": 64748,
+      "size": 27,
+      "referenced": true
+    }
+  ],
+  "tests": {
+    "native_passed": 825,
+    "native_failed": 0,
+    "log_sha256": "d6a576d6b638f061dde5c7f249dd10f9a84897d031c343f3fbc7b999e775a30a",
+    "new_regression": "facts_v2_referenced_character_pool_subentities",
+    "variants": 6,
+    "coverage": [
+      "Repeated/shared pointer, real suffix, duplicate literal text at separate addresses, explicit CR/LF, quotes and backslash encoding",
+      "No character-owner premise, cut NUL extent, runtime-only pointer domain and bitmap ownership refuse inference",
+      "Authored name collision retains authored identity and deterministically disambiguates the inferred record",
+      "Eleven unreferenced records exercise policy-mirror growth and receive no new labels or readers",
+      "Parent BYTE span and original suffix target coordinates remain unchanged"
+    ]
+  },
+  "verification": {
+    "kind": "verification",
+    "framework_exact": true,
+    "target_id": "amiga_raw_starglider2_game",
+    "subject_revision": "c19974d70528e225e42abd26776c14b1603ff618466a9908e9de903df9f03c1d",
+    "status": "exact",
+    "exact": true,
+    "source_sha256": "d6b882517ccf3d7193ce63014925c897e37c12538e137da5268261e2402a16bb",
+    "source_path": "/workspace/pandora-original-delivery/stable-d15c2cf8/.runtime-state/restoration/eb04f545fb97451725a1c91ab5abf6f2e097614c45880db6edfb4ea5c3f6e2c2/d6b882517ccf3d7193ce63014925c897e37c12538e137da5268261e2402a16bb.s",
+    "source_package_sha256": null,
+    "original_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "original_size": 412736,
+    "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "rebuilt_path": "/workspace/pandora-original-delivery/stable-d15c2cf8/.runtime-state/restoration/eb04f545fb97451725a1c91ab5abf6f2e097614c45880db6edfb4ea5c3f6e2c2/662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9.bin",
+    "framework_status": "exact",
+    "failure_kinds": [],
+    "message": "",
+    "oracle": {
+      "oracle_id": "vasm",
+      "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+      "comparison_level": "oracle.full_file_match",
+      "assembler_status": "accepted",
+      "message": "oracle output matched original bytes"
+    },
+    "receipt_id": "50243a81f710731bc916fa41e554451bfbb3a7e69989c539c5950bbff8be52a1",
+    "revision": "8b1b4e7ae90eebf41909f81bf1035f40237bc29d893c39be86452efde54a596f"
+  },
+  "generation_wall_seconds": 116.93847037298838,
+  "limits": [
+    "Static original-byte interpretation, not a new runtime traversal or all-path model/object identity proof. No field meaning or code-coverage gain is claimed.",
+    "Alphabetic ASCII NUL records and CR/LF/TAB are admitted here. Numeric-only, high-bit/unknown-encoding, empty/padding, malformed and mixed typed/code spans are retained without invented string identities. A concrete text-reader/encoding contract is the next experiment for such a case.",
+    "Energy Pylon has no pointer in this148-entry directory; other indirect/absolute/cursor consumers are not excluded. It is not proven unused.",
+    "Per-field text annotations from the authored pointer-record type remain. Homogeneous record aggregation/comment duplication is a separate candidate in the requested systematic inventory; this change does not hide field context or claim all presentation work finished.",
+    "No change to original payload, runtime inputs, assets or headers; no new Copperline run or relocation."
+  ],
+  "validated_target_git_tree": "5ed90728786f2eb7c6587922f732af7e6c0c9166",
+  "clean_staged_tree_build": true,
+  "standalone_build": {
+    "schema_version": 1,
+    "status": "pass",
+    "format": "raw_payload_not_AmigaDOS_HUNK",
+    "main_bytes": 412736,
+    "main_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "main_matches_original_identity": true,
+    "asset_count": 57,
+    "all_asset_source_slices_equal": true,
+    "decoded_view_inverse_exact": true,
+    "boot_copy_source_matches_resident_view": true,
+    "source_commit": "329d48716c838d1369fc348a39d4c40c968889a6",
+    "assembler_sha256": "413e284020125f42709486dfe09907cab3dd9f3c2ea41017c190f8ea68f30825",
+    "flags": [
+      "-Fbin",
+      "-m68000",
+      "-no-opt"
+    ],
+    "outputs": [
+      {
+        "role": "original_main",
+        "filename": "Starglider2-original.raw",
+        "bytes": 412736,
+        "sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9"
+      },
+      {
+        "role": "decoded_analysis_view",
+        "filename": "protection-decoded-analysis.raw",
+        "bytes": 3548,
+        "sha256": "de8358853dd9ed9b006a23569bf393aa217ed3be3301a169465d80bfaf839922"
+      },
+      {
+        "role": "boot_installer_context",
+        "filename": "boot-selector-installer-context.raw",
+        "bytes": 40,
+        "sha256": "8d34852425e2e1bfa87b3febdfc74fb39e7c667e9d9ff73e17b594649e83b21b"
+      },
+      {
+        "role": "boot_resident_view",
+        "filename": "boot-selector-resident.raw",
+        "bytes": 20,
+        "sha256": "a26286a393713c046eff9dbaff15b20b26b171fa9e05fc9d538d16b0eddb6024"
+      }
+    ]
+  }
+}

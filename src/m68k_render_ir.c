@@ -733,6 +733,19 @@ static void format_asm_label(char *buf, size_t buf_size, size_t section_index, u
   snprintf(buf, buf_size, "loc_%u_%08X", (unsigned)section_index, (unsigned)offset);
 }
 
+static const char *lookup_inferred_text_label_name(const M68kRenderLookup *lookup,
+    size_t section_index, uint32_t offset) {
+  size_t index;
+  if (lookup == NULL) return NULL;
+  for (index = 0U; index < lookup->auto_structured_data_item_count; ++index) {
+    const M68kAnalysisStructuredDataItem *item = &lookup->auto_structured_data_items[index];
+    if (item->has_section_index && item->section_index == section_index && item->offset == offset &&
+        item->kind == M68K_ANALYSIS_STRUCTURED_DATA_STRING && item->has_consumer && item->label[0])
+      return item->label;
+  }
+  return NULL;
+}
+
 static const char *lookup_policy_label_name(const M68kRenderLookup *lookup, size_t section_index,
     uint32_t offset, uint8_t domain);
 
@@ -743,6 +756,11 @@ static void format_runtime_asm_label(const M68kRenderLookup *lookup, char *buf, 
   policy_name = lookup_policy_label_name(lookup, section_index, runtime_address,
     M68K_ANALYSIS_LABEL_DOMAIN_RUNTIME);
   if (policy_name != NULL && policy_name[0] != '\0') {
+    snprintf(buf, buf_size, "%s", policy_name);
+    return;
+  }
+  policy_name = lookup_inferred_text_label_name(lookup, section_index, source_offset);
+  if (policy_name != NULL) {
     snprintf(buf, buf_size, "%s", policy_name);
     return;
   }
@@ -3255,7 +3273,7 @@ static uint8_t resolve_owned_source_pointer_expression(const M68kRenderLookup *l
   uint32_t owner_start = 0U, owner_size = 0U;
   int has_code_owner;
   size_t decode_index;
-  uint16_t index;
+  size_t index;
   expression->outcome = M68K_RENDER_PLANNED_EXPRESSION_NUMERIC;
   if (section >= lookup->section_count || offset >= lookup->label_extents[section]) {
     snprintf(expression->reason, sizeof(expression->reason), "unmapped_source");
@@ -3268,8 +3286,11 @@ static uint8_t resolve_owned_source_pointer_expression(const M68kRenderLookup *l
       break;
     }
   }
-  for (index = 0U; lookup->policy != NULL && index < lookup->policy->structured_data_item_count; ++index) {
-    const M68kAnalysisStructuredDataItem *candidate = &lookup->policy->structured_data_items[index];
+  for (index = 0U; index < lookup->range_ownership_count; ++index) {
+    M68kRenderRangeOwnershipView range;
+    const M68kAnalysisStructuredDataItem *candidate;
+    if (!lookup_range_ownership_at_index(lookup, index, &range) || range.section_index != section ||
+        (candidate = range.structured_item) == NULL) continue;
     uint32_t candidate_start = candidate->has_source_owner_span ? candidate->source_owner_start : candidate->offset;
     uint32_t candidate_size = candidate->has_source_owner_span ? candidate->source_owner_size : candidate->size;
     if ((candidate->has_section_index && candidate->section_index != section) || candidate->label[0] == '\0' ||
@@ -6639,6 +6660,11 @@ uint8_t format_lookup_asm_label_with_generation(const M68kRenderLookup *lookup, 
         platform_amiga_format_global_base_slot_label(section_index, 'l', base_name, buf, buf_size)) {
       return 0U;
     }
+  }
+  policy_name = lookup_inferred_text_label_name(lookup, section_index, offset);
+  if (policy_name != NULL) {
+    snprintf(buf, buf_size, "%s", policy_name);
+    return 1U;
   }
   format_asm_label(buf, buf_size, section_index, offset);
   return 1U;

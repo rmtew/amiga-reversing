@@ -17,7 +17,19 @@ to their recorded closeout revision. See the current
 
 ## Current refinement and next evidence
 
-Latest: the [automatic relative-dispatch recovery](../../runtime/observations/starglider2-relative-dispatch.json)
+Latest: the [subordinate string-record recovery](../../runtime/observations/starglider2-string-pool-subentities.json)
+preserves the authored 1923-byte character pool and exposes all 112 NUL records.
+The 148 typed directory pointers cover 111 distinct records: 110 new string labels
+are emitted, while the authored pool label remains on its first record. The
+13-byte `Energy Pylon` record has no recovered directory pointer; it renders as
+text without a new name or reader claim. This does not prove it unused.
+The full native suite passes **825 tests, zero failures**. C/vasm and the clean
+standalone build preserve all original bytes. Code ownership and app access
+coverage are unchanged. The next whole-target audit groups suffix, lookup and
+interior-reference signals by missing evidence/projection mechanism rather than
+renaming them indiscriminately.
+
+The preceding [automatic relative-dispatch recovery](../../runtime/observations/starglider2-relative-dispatch.json)
 uses the existing control-value trace instead of a second adjacent-instruction
 WORD recognizer. Five scalar table contracts become relative dispatch contracts
 (**3 → 8**; 80 entries). Forty-eight entries gain symbolic target-minus-base
@@ -26,8 +38,8 @@ and all accepted code are preserved. The full native suite passes **824 tests,
 zero failures**; original C/vasm and clean standalone output remain exact.
 Structural extent is distinct from runtime selector bounds; two supplied tables
 retain unknown selector domains. No new runtime or unclassified-byte reduction
-is claimed. The next reported output gap is subordinate referenced strings inside
-coarse text pools; it remains active work, not a manual naming queue.
+is claimed. The subordinate referenced-string gap prompted the subsequent batch above;
+the broader suffix/lookup inventory remains active work.
 
 The preceding [final API-input collection fix](../../runtime/observations/starglider2-api-input-collection.json)
 passed its full native suite: **823 tests, zero failures**. One final-pass

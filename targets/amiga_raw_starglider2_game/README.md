@@ -61,6 +61,12 @@ address-register indices. Physical table extent is separate from any proven
 runtime selector bounds. See the
 [dispatch receipt](../../runtime/observations/starglider2-relative-dispatch.json).
 
+Referenced NUL strings inside the character pool now have deterministic inferred
+labels and quoted records. The pool owner, duplicate/shared addresses, suffix
+pointers and control bytes remain intact. Structural records without recovered
+references receive no new labels or reader claims. See the
+[string-pool receipt](../../runtime/observations/starglider2-string-pool-subentities.json).
+
 The decoded view is 3548 bytes: 3484 transformed bytes plus 64 unchanged context
 bytes. It is an analysis image, not a replacement game payload. Its inverse is
 checked against the rebuilt original. One known native original-image code/data

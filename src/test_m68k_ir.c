@@ -3534,6 +3534,102 @@ static int test_facts_v2_table_context_promotes_plain_entry_without_space(void) 
   return 0;
 }
 
+static int test_facts_v2_referenced_character_pool_subentities(void) {
+  static const uint8_t text[] = "Walker\0Proximity Mine\0Walker\0\r\nReady? \"Q\"\\\0Spare\0"
+    "Extra01\0Extra02\0Extra03\0Extra04\0Extra05\0Extra06\0Extra07\0Extra08\0Extra09\0Extra10\0";
+  static const uint32_t targets[] = {32U, 39U, 33U, 39U, 54U, 61U};
+  unsigned mode;
+  for (mode = 0U; mode < 6U; ++mode) {
+    uint8_t bytes[32U + sizeof(text)];
+    M68kObject object;
+    M68kSection section = {0};
+    M68kAnalysisPolicy policy;
+    M68kSourceAnalysisIR analysis = {0};
+    M68kFactsV2Profile profile;
+    M68kAnalysisStructuredDataItem *owner;
+    char *source = NULL;
+    uint32_t children = 0U, unreferenced = 0U;
+    size_t i;
+    memset(bytes, 0, sizeof(bytes));
+    bytes[0] = 0x4EU; bytes[1] = 0x75U;
+    memcpy(bytes + 32U, text, sizeof(text));
+    for (i = 0U; i < 6U; ++i) bytes[5U + i * 4U] = (uint8_t)targets[i];
+    M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+    section.kind = M68K_SECTION_CODE;
+    section.size = section.data_size = sizeof(bytes); section.data = bytes;
+    M68K_C_ASSERT(m68k_object_add_section(&object, &section).ok);
+    m68k_analysis_policy_init_default(&policy);
+    M68K_C_ASSERT_INT(0, m68k_analysis_policy_reserve_structured_data_items(&policy, 7U));
+    policy.runtime_range_count = 1U;
+    policy.runtime_ranges[0].has_section_index = 1U;
+    policy.runtime_ranges[0].size = sizeof(bytes);
+    policy.structured_data_item_count = 7U;
+    for (i = 0U; i < 6U; ++i) {
+      M68kAnalysisStructuredDataItem *field = &policy.structured_data_items[i];
+      field->has_section_index = 1U; field->section_index = 0U;
+      field->offset = 2U + (uint32_t)i * 4U; field->size = 4U;
+      field->kind = M68K_ANALYSIS_STRUCTURED_DATA_LONGS;
+      field->is_pointer = field->has_target = 1U; field->target_offset = targets[i];
+      field->pointer_address_domain = mode == 3U ? M68K_ANALYSIS_POINTER_DOMAIN_RUNTIME_ONLY :
+        M68K_ANALYSIS_POINTER_DOMAIN_MAPPED_SOURCE;
+    }
+    owner = &policy.structured_data_items[6];
+    owner->has_section_index = 1U; owner->section_index = 0U;
+    owner->offset = 32U; owner->size = mode == 2U ? 12U : sizeof(text);
+    owner->kind = M68K_ANALYSIS_STRUCTURED_DATA_BYTES;
+    owner->has_source_owner_span = 1U; owner->source_owner_start = 32U; owner->source_owner_size = owner->size;
+    strcpy(owner->label, "pool");
+    if (mode == 4U) m68k_analysis_structured_data_item_set_semantic_role_flags(owner,
+      M68K_ANALYSIS_STRUCTURED_DATA_ROLE_BITMAP);
+    policy.manual_representation_count = mode == 1U ? 0U : 1U;
+    policy.manual_representations[0].has_section_index = 1U;
+    policy.manual_representations[0].offset = 32U;
+    policy.manual_representations[0].size = owner->size;
+    policy.manual_representations[0].style_id = M68K_ANALYSIS_REPRESENTATION_STYLE_CHARACTER;
+    policy.named_label_count = mode == 5U ? 3U : 2U;
+    for (i = 0U; i < policy.named_label_count; ++i) {
+      policy.named_labels[i].has_section_index = 1U;
+      policy.named_labels[i].is_source_declaration = 1U;
+    }
+    policy.named_labels[0].offset = 2U; strcpy(policy.named_labels[0].name, "names");
+    policy.named_labels[1].offset = 32U; strcpy(policy.named_labels[1].name, "pool");
+    if (mode == 5U) strcpy(policy.named_labels[2].name, "str_proximity_mine_s0_00000027");
+    M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_analysis_profile_alloc(&object, &policy,
+      &source, &profile, &analysis, 1U, m68k_diag_sink(NULL)));
+    M68K_C_ASSERT(source != NULL);
+    for (i = 0U; i < analysis.structured_data_item_count; ++i) {
+      const M68kAnalysisStructuredDataItem *child = &analysis.structured_data_items[i];
+      if (child->kind != M68K_ANALYSIS_STRUCTURED_DATA_STRING || child->offset < 32U) continue;
+      if (child->has_consumer && child->label[0]) ++children;
+      if (!child->has_consumer && child->offset >= 75U) ++unreferenced;
+    }
+    M68K_C_ASSERT_U32(mode == 2U ? 1U : (mode == 0U || mode == 5U ? 4U : 0U), children);
+    if (mode == 0U || mode == 5U) {
+      M68K_C_ASSERT(strstr(source, "\tdc.l pool+$1\n") != NULL);
+      M68K_C_ASSERT(strstr(source, "\tdc.b \"Walker\",$00\n") != NULL);
+      M68K_C_ASSERT(strstr(source, "str_walker_s0_00000036:") != NULL);
+      M68K_C_ASSERT(strstr(source, "\tdc.b \"Spare\",$00\n") != NULL);
+      M68K_C_ASSERT(strstr(source, "str_spare") == NULL);
+      M68K_C_ASSERT(strstr(source, "$22,\"Q\",$22,$5C,$00") != NULL);
+      M68K_C_ASSERT_U32(11U, unreferenced);
+      M68K_C_ASSERT(analysis.policy.structured_data_item_count >= 22U);
+      M68K_C_ASSERT(analysis.policy.structured_data_item_capacity >= analysis.policy.structured_data_item_count);
+      M68K_C_ASSERT(strstr(source, mode == 5U ? "\tdc.l str_proximity_mine_s0_00000027_2\n" :
+        "\tdc.l str_proximity_mine_s0_00000027\n") != NULL);
+    }
+    M68K_C_ASSERT_U32(M68K_ANALYSIS_STRUCTURED_DATA_BYTES, analysis.policy.structured_data_items[6].kind);
+    M68K_C_ASSERT_U32(policy.structured_data_items[6].size, analysis.policy.structured_data_items[6].size);
+    M68K_C_ASSERT_U32(33U, analysis.policy.structured_data_items[2].target_offset);
+    M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
+    M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
+    m68k_facts_v2_free_text(source);
+    m68k_ir_source_analysis_destroy(&analysis);
+    m68k_analysis_policy_destroy(&policy);
+    m68k_object_destroy(&object);
+  }
+  return 0;
+}
+
 static int test_facts_v2_pointer_table_targets_promote_short_strings(void) {
   M68kObject object;
   M68kSection section;
@@ -40605,6 +40701,7 @@ int m68k_c_ir_tests(void) {
       test_facts_v2_rank_string_sequence_renders_starglider_examples},
     {"facts_v2_table_context_promotes_plain_entry_without_space",
       test_facts_v2_table_context_promotes_plain_entry_without_space},
+    {"facts_v2_referenced_character_pool_subentities", test_facts_v2_referenced_character_pool_subentities},
     {"facts_v2_pointer_table_targets_promote_short_strings",
       test_facts_v2_pointer_table_targets_promote_short_strings},
     {"facts_v2_pointer_table_targets_infer_dense_short_string_pool",

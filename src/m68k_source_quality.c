@@ -6620,6 +6620,160 @@ static int append_pointer_table_target_strings_for_item(M68kSourceAnalysisIR *so
   return 0;
 }
 
+/* A character-array owner remains the storage contract. Typed references
+ * may expose bounded NUL records beneath it without reclassifying the owner. */
+static int source_quality_text_name_used(const M68kSourceAnalysisIR *analysis, const char *name) {
+  size_t i, j;
+  for (i = 0U; i < analysis->policy.named_label_count; ++i)
+    if (!strcmp(analysis->policy.named_labels[i].name, name)) return 1;
+  for (i = 0U; i < analysis->section_count; ++i)
+    for (j = 0U; j < analysis->sections[i].symbol_origin_count; ++j)
+      if (analysis->sections[i].symbol_origins[j].symbol_name &&
+          !strcmp(analysis->sections[i].symbol_origins[j].symbol_name, name)) return 1;
+  for (i = 0U; i < analysis->structured_data_item_count; ++i)
+    if (!strcmp(analysis->structured_data_items[i].label, name)) return 1;
+  return 0;
+}
+
+static uint32_t source_quality_character_record_end(const M68kDecodeSectionIR *section,
+    const uint8_t *accepted_bytes, uint32_t start, uint32_t limit) {
+  uint32_t cursor, letters = 0U;
+  for (cursor = start; cursor < limit; ++cursor) {
+    uint8_t value = section->data[cursor];
+    if (source_quality_accepted_range_has_code_byte(accepted_bytes, section->size, cursor, 1U)) return 0U;
+    if (value == 0U) return letters ? cursor + 1U : 0U;
+    if (value != '\r' && value != '\n' && value != '\t' && (value < 0x20U || value > 0x7EU)) return 0U;
+    if ((value >= 'A' && value <= 'Z') || (value >= 'a' && value <= 'z')) ++letters;
+  }
+  return 0U;
+}
+
+static int append_referenced_character_pool_strings(M68kSourceAnalysisIR *analysis,
+    const M68kDecodeIR *decode, uint8_t *const *accepted_bytes) {
+  size_t i, j;
+  const M68kAnalysisPolicy *policy = &analysis->policy;
+  const size_t policy_count = policy->structured_data_item_count;
+  for (i = 0U; i < policy_count; ++i) {
+    M68kAnalysisStructuredDataItem ref_value = policy->structured_data_items[i];
+    const M68kAnalysisStructuredDataItem *ref = &ref_value;
+    const M68kAnalysisStructuredDataItem *owner = NULL;
+    const M68kDecodeSectionIR *section;
+    size_t decode_index = 0U;
+    uint32_t start, end, cursor;
+    int character_owner = 0, conflict = 0;
+    if (!source_quality_structured_data_item_is_target_pointer_field(ref) || ref->table_conflicted ||
+        ref->pointer_address_domain == M68K_ANALYSIS_POINTER_DOMAIN_RUNTIME_ONLY) continue;
+    section = source_quality_decode_section_by_index(decode, ref->target_section, &decode_index);
+    if (!section || !section->data || ref->target_offset >= section->size) continue;
+    for (j = 0U; j < policy_count; ++j) {
+      const M68kAnalysisStructuredDataItem *item = &policy->structured_data_items[j];
+      if (!item->has_section_index || item->section_index != ref->target_section || !item->size ||
+          item->offset > section->size || item->size > section->size - item->offset ||
+          ref->target_offset < item->offset || ref->target_offset - item->offset >= item->size) continue;
+      if (!source_quality_structured_data_item_is_untyped_bytes_placeholder(item) || item->is_pointer ||
+          item->table_conflicted || owner != NULL) { conflict = 1; break; }
+      owner = item;
+    }
+    if (conflict || !owner) continue;
+    for (j = 0U; j < policy->manual_representation_count; ++j) {
+      const M68kAnalysisManualRepresentation *rep = &policy->manual_representations[j];
+      if (rep->has_section_index && rep->section_index == ref->target_section && !rep->has_operand_index &&
+          rep->offset == owner->offset && rep->size == owner->size &&
+          rep->style_id == M68K_ANALYSIS_REPRESENTATION_STYLE_CHARACTER) character_owner = 1;
+    }
+    if (!character_owner) continue;
+    start = ref->target_offset;
+    while (start > owner->offset && section->data[start - 1U] != 0U) --start;
+    end = owner->offset + owner->size;
+    cursor = source_quality_character_record_end(section, accepted_bytes[decode_index], start, end);
+    if (!cursor || ref->target_offset >= cursor) continue;
+    --cursor;
+    if (source_quality_has_structured_data_item(analysis, ref->target_section, start, cursor - start + 1U,
+        M68K_ANALYSIS_STRUCTURED_DATA_STRING, M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_POINTER_STRING_TABLE)) continue;
+    {
+      M68kAnalysisStructuredDataItem child;
+      char stem[25], base[64];
+      size_t n = 0U;
+      unsigned suffix = 1U;
+      memset(&child, 0, sizeof(child));
+      child.has_section_index = 1U; child.section_index = ref->target_section;
+      child.offset = start; child.size = cursor - start + 1U;
+      child.kind = M68K_ANALYSIS_STRUCTURED_DATA_STRING;
+      child.has_consumer = 1U; child.consumer_section = ref->section_index; child.consumer_offset = ref->offset;
+      child.source_pattern_id = M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_POINTER_STRING_TABLE;
+      m68k_analysis_structured_data_item_set_semantic_role_flags(&child, M68K_ANALYSIS_STRUCTURED_DATA_ROLE_STRING);
+      for (j = start; j < cursor && n < sizeof(stem) - 1U; ++j) {
+        uint8_t value = section->data[j];
+        if ((value >= 'A' && value <= 'Z') || (value >= 'a' && value <= 'z') || (value >= '0' && value <= '9'))
+          stem[n++] = value >= 'A' && value <= 'Z' ? (char)(value + ('a' - 'A')) : (char)value;
+        else if (n && stem[n - 1U] != '_') stem[n++] = '_';
+      }
+      while (n && stem[n - 1U] == '_') --n;
+      stem[n] = '\0';
+      snprintf(base, sizeof(base), "str_%s_s%u_%08X", stem, (unsigned)child.section_index, start);
+      snprintf(child.label, sizeof(child.label), "%s", base);
+      while (source_quality_text_name_used(analysis, child.label))
+        snprintf(child.label, sizeof(child.label), "%s_%u", base, ++suffix);
+      if (m68k_ir_source_analysis_append_structured_data_item(analysis, &child) != 0) return -1;
+    }
+  }
+  for (i = 0U; i < policy_count; ++i) {
+    M68kAnalysisStructuredDataItem owner_value = policy->structured_data_items[i];
+    const M68kAnalysisStructuredDataItem *owner = &owner_value;
+    const M68kDecodeSectionIR *section;
+    size_t decode_index = 0U;
+    uint32_t cursor, limit;
+    int has_referenced_child = 0, character_owner = 0;
+    if (!owner->has_section_index || !source_quality_structured_data_item_is_untyped_bytes_placeholder(owner)) continue;
+    section = source_quality_decode_section_by_index(decode, owner->section_index, &decode_index);
+    if (!section || !section->data || owner->offset > section->size || owner->size > section->size - owner->offset) continue;
+    limit = owner->offset + owner->size;
+    for (j = 0U; j < policy->manual_representation_count; ++j) {
+      const M68kAnalysisManualRepresentation *rep = &policy->manual_representations[j];
+      if (rep->has_section_index && rep->section_index == owner->section_index && !rep->has_operand_index &&
+          rep->offset == owner->offset && rep->size == owner->size &&
+          rep->style_id == M68K_ANALYSIS_REPRESENTATION_STYLE_CHARACTER) character_owner = 1;
+    }
+    if (!character_owner) continue;
+    for (j = 0U; j < analysis->structured_data_item_count; ++j) {
+      const M68kAnalysisStructuredDataItem *child = &analysis->structured_data_items[j];
+      if (child->has_section_index && child->section_index == owner->section_index &&
+          child->kind == M68K_ANALYSIS_STRUCTURED_DATA_STRING && child->has_consumer && child->label[0] &&
+          child->offset >= owner->offset && child->offset < limit && child->size <= limit - child->offset)
+        has_referenced_child = 1;
+    }
+    if (!has_referenced_child) continue;
+    for (cursor = owner->offset; cursor < limit;) {
+      uint32_t end = source_quality_character_record_end(section, accepted_bytes[decode_index], cursor, limit);
+      if (end) {
+        int exists = 0;
+        for (j = 0U; j < analysis->structured_data_item_count; ++j) {
+          const M68kAnalysisStructuredDataItem *child = &analysis->structured_data_items[j];
+          if (child->has_section_index && child->section_index == owner->section_index &&
+              child->offset == cursor && child->size == end - cursor &&
+              child->kind == M68K_ANALYSIS_STRUCTURED_DATA_STRING) { exists = 1; break; }
+        }
+        if (!exists) {
+          M68kAnalysisStructuredDataItem child;
+          memset(&child, 0, sizeof(child));
+          child.has_section_index = 1U; child.section_index = owner->section_index;
+          child.offset = cursor; child.size = end - cursor;
+          child.kind = M68K_ANALYSIS_STRUCTURED_DATA_STRING;
+          child.source_pattern_id = M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_TERMINATED_TEXT;
+          m68k_analysis_structured_data_item_set_semantic_role_flags(&child, M68K_ANALYSIS_STRUCTURED_DATA_ROLE_STRING);
+          /* Structural record only: no consumer, label or live-reader claim. */
+          if (m68k_ir_source_analysis_append_structured_data_item(analysis, &child) != 0) return -1;
+        }
+        cursor = end;
+      } else {
+        while (cursor < limit && section->data[cursor] != 0U) ++cursor;
+        if (cursor < limit) ++cursor;
+      }
+    }
+  }
+  return 0;
+}
+
 static int append_pointer_table_target_strings(M68kSourceAnalysisIR *source_analysis,
     const M68kDecodeIR *decode, uint8_t *const *accepted_bytes, const M68kAnalysisPolicy *policy) {
   size_t index;
@@ -13460,6 +13614,7 @@ int m68k_source_quality_analyze_with_policy_and_hardware_base_seeds(M68kSourceAn
   m68k_ir_source_analysis_finalize_table_conflicts(source_analysis);
   SOURCE_QUALITY_CHECK_OK(append_structured_data_range_ownerships(source_analysis));
   SOURCE_QUALITY_CHECK_OK(append_pointer_table_target_strings(source_analysis, decode, accepted_bytes, policy));
+  SOURCE_QUALITY_CHECK_OK(append_referenced_character_pool_strings(source_analysis, decode, accepted_bytes));
   SOURCE_QUALITY_CHECK_OK(append_manual_mid_instruction_diagnostics(source_analysis));
   SOURCE_QUALITY_CHECK_OK(append_manual_noncode_overlap_diagnostics(source_analysis));
   SOURCE_QUALITY_CHECK_OK(append_accepted_run_noncode_fallthrough_diagnostics(source_analysis));
