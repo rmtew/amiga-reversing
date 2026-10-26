@@ -54372,8 +54372,22 @@ abs_0_0003EA84:
 	adda.w d5,a3
 	jmp abs_0_0003EA92(pc,a5.w)
 abs_0_0003EA92:
-	dc.w $0020,$004E,$007C,$00AA,$00D8,$0106,$0134,$0162	; lookup_table
-	dc.w $0190,$01BE,$01EC,$021A,$0248,$0276,$02A4,$02D2
+	dc.w abs_0_0003EAB2-abs_0_0003EA92	; lookup_table
+	dc.w abs_0_0003EAE0-abs_0_0003EA92
+	dc.w abs_0_0003EB0E-abs_0_0003EA92
+	dc.w abs_0_0003EB3C-abs_0_0003EA92
+	dc.w abs_0_0003EB6A-abs_0_0003EA92
+	dc.w abs_0_0003EB98-abs_0_0003EA92
+	dc.w abs_0_0003EBC6-abs_0_0003EA92
+	dc.w abs_0_0003EBF4-abs_0_0003EA92
+	dc.w abs_0_0003EC22-abs_0_0003EA92
+	dc.w abs_0_0003EC50-abs_0_0003EA92
+	dc.w abs_0_0003EC7E-abs_0_0003EA92
+	dc.w abs_0_0003ECAC-abs_0_0003EA92
+	dc.w abs_0_0003ECDA-abs_0_0003EA92
+	dc.w abs_0_0003ED08-abs_0_0003EA92
+	dc.w abs_0_0003ED36-abs_0_0003EA92
+	dc.w abs_0_0003ED64-abs_0_0003EA92
 abs_0_0003EAB2:
 	bra.b abs_0_0003EAB6
 abs_0_0003EAB4:
@@ -54729,8 +54743,22 @@ abs_0_0003ED92:
 	lea.l generated_outside_span_masks16(pc),a2
 	jmp abs_0_0003EDC4(pc,a5.w)
 abs_0_0003EDC4:
-	dc.w $0020,$004A,$0074,$009E,$00C8,$00F2,$011C,$0146	; lookup_table
-	dc.w $0170,$019A,$01C4,$01EE,$0218,$0242,$026C,$0296
+	dc.w abs_0_0003EDE4-abs_0_0003EDC4	; lookup_table
+	dc.w abs_0_0003EE0E-abs_0_0003EDC4
+	dc.w abs_0_0003EE38-abs_0_0003EDC4
+	dc.w abs_0_0003EE62-abs_0_0003EDC4
+	dc.w abs_0_0003EE8C-abs_0_0003EDC4
+	dc.w abs_0_0003EEB6-abs_0_0003EDC4
+	dc.w abs_0_0003EEE0-abs_0_0003EDC4
+	dc.w abs_0_0003EF0A-abs_0_0003EDC4
+	dc.w abs_0_0003EF34-abs_0_0003EDC4
+	dc.w abs_0_0003EF5E-abs_0_0003EDC4
+	dc.w abs_0_0003EF88-abs_0_0003EDC4
+	dc.w abs_0_0003EFB2-abs_0_0003EDC4
+	dc.w abs_0_0003EFDC-abs_0_0003EDC4
+	dc.w abs_0_0003F006-abs_0_0003EDC4
+	dc.w abs_0_0003F030-abs_0_0003EDC4
+	dc.w abs_0_0003F05A-abs_0_0003EDC4
 abs_0_0003EDE4:
 	move.w (a0)+,d3
 	and.w d4,d2
@@ -56775,8 +56803,22 @@ abs_0_0003FF2C:
 	bpl.w abs_0_0003F0B2
 	rts
 abs_0_0003FF42:
-	dc.w $1278,$128E,$12A6,$12C0,$12D6,$12F0,$130C,$1326	; lookup_table
-	dc.w $133E,$1358,$1372,$138E,$13A8,$13C0,$13DA,$13F4
+	dc.w abs_0_000411BA-abs_0_0003FF42	; lookup_table
+	dc.w abs_0_000411D0-abs_0_0003FF42
+	dc.w abs_0_000411E8-abs_0_0003FF42
+	dc.w abs_0_00041202-abs_0_0003FF42
+	dc.w abs_0_00041218-abs_0_0003FF42
+	dc.w abs_0_00041232-abs_0_0003FF42
+	dc.w abs_0_0004124E-abs_0_0003FF42
+	dc.w abs_0_00041268-abs_0_0003FF42
+	dc.w abs_0_00041280-abs_0_0003FF42
+	dc.w abs_0_0004129A-abs_0_0003FF42
+	dc.w abs_0_000412B4-abs_0_0003FF42
+	dc.w abs_0_000412D0-abs_0_0003FF42
+	dc.w abs_0_000412EA-abs_0_0003FF42
+	dc.w abs_0_00041302-abs_0_0003FF42
+	dc.w abs_0_0004131C-abs_0_0003FF42
+	dc.w abs_0_00041336-abs_0_0003FF42
 abs_0_0003FF62:
 	move.w #$98,d6
 	add.w d2,d2

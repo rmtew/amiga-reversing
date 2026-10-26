@@ -17,15 +17,27 @@ to their recorded closeout revision. See the current
 
 ## Current refinement and next evidence
 
-The [final API-input collection fix](../../runtime/observations/starglider2-api-input-collection.json)
-now passes the full native suite: **823 tests, zero failures**. One final-pass
+Latest: the [automatic relative-dispatch recovery](../../runtime/observations/starglider2-relative-dispatch.json)
+uses the existing control-value trace instead of a second adjacent-instruction
+WORD recognizer. Five scalar table contracts become relative dispatch contracts
+(**3 → 8**; 80 entries). Forty-eight entries gain symbolic target-minus-base
+rendering; 32 already had manual symbolic references. Existing dispatch contracts
+and all accepted code are preserved. The full native suite passes **824 tests,
+zero failures**; original C/vasm and clean standalone output remain exact.
+Structural extent is distinct from runtime selector bounds; two supplied tables
+retain unknown selector domains. No new runtime or unclassified-byte reduction
+is claimed. The next reported output gap is subordinate referenced strings inside
+coarse text pools; it remains active work, not a manual naming queue.
+
+The preceding [final API-input collection fix](../../runtime/observations/starglider2-api-input-collection.json)
+passed its full native suite: **823 tests, zero failures**. One final-pass
 consumer omission was fixed. Two old fixture expectations now distinguish
 value origin from write location and stable storage from a library-extension
 hint, with clobber negatives. Earlier nine-/three-failure receipts remain dated
 history; they are not the current suite status. Target source/ownership/access
 vectors remain unchanged and C/vasm is exact on the updated backend.
 
-Latest: the [structure profile batch](../../runtime/observations/starglider2-structure-profiles.json)
+The preceding [structure profile batch](../../runtime/observations/starglider2-structure-profiles.json)
 explains the interior visibility tag, finite tunnel-exit pitch bias and paired
 player/object profile lookups. Four six-LONG tables classify 96 bytes. Original
 constructor selectors are 0–5; later mutations remain unchecked. Generic main

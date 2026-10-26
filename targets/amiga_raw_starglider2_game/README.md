@@ -55,6 +55,12 @@ unknowns: 106034 code bytes are accepted; 14068 bytes in 262 intervals remain
 unclassified. It is not full semantic/all-path restoration or a completed
 walkthrough. The source and assets preserve every original output byte.
 
+The native control-value analysis now recovers eight signed-WORD dispatch
+contracts automatically, including separated load/LEA/JMP sequences and
+address-register indices. Physical table extent is separate from any proven
+runtime selector bounds. See the
+[dispatch receipt](../../runtime/observations/starglider2-relative-dispatch.json).
+
 The decoded view is 3548 bytes: 3484 transformed bytes plus 64 unchanged context
 bytes. It is an analysis image, not a replacement game payload. Its inverse is
 checked against the rebuilt original. One known native original-image code/data

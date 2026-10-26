@@ -75,6 +75,24 @@ typedef struct M68kLabelRequest {
   uint8_t confidence;
 } M68kLabelRequest;
 
+/* A control-use proof emitted by the existing value trace after validating
+ * a signed-WORD dispatch prefix. Coordinates are source coordinates; extent
+ * is structural evidence, not a universal bound on the runtime selector. */
+typedef struct M68kRelativeDispatchFact {
+  size_t table_section_index;
+  uint32_t table_offset;
+  uint32_t table_size;
+  size_t base_section_index;
+  uint32_t base_offset;
+  size_t consumer_section_index;
+  uint32_t consumer_offset;
+  size_t producer_section_index;
+  uint32_t producer_offset;
+  uint16_t producer_operand_index;
+  uint8_t has_producer;
+  uint8_t entry_size;
+} M68kRelativeDispatchFact;
+
 typedef struct M68kFactIR {
   Arena *arena;
   M68kFact *facts;
@@ -93,11 +111,15 @@ typedef struct M68kFactIR {
   uint32_t platform_media_transfer_count;
   uint32_t data_span_count;
   uint32_t violation_count;
+  M68kRelativeDispatchFact *relative_dispatches;
+  size_t relative_dispatch_count;
+  size_t relative_dispatch_capacity;
 } M68kFactIR;
 
 void m68k_fact_ir_init(M68kFactIR *ir);
 void m68k_fact_ir_destroy(M68kFactIR *ir);
 int m68k_fact_ir_append(M68kFactIR *ir, const M68kFact *fact);
+int m68k_fact_ir_append_relative_dispatch(M68kFactIR *ir, const M68kRelativeDispatchFact *fact);
 int m68k_fact_ir_append_label_request(M68kFactIR *ir, size_t section_index, uint32_t offset, uint8_t confidence);
 
 #endif

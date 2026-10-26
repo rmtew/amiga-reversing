@@ -1,0 +1,297 @@
+{
+  "schema_version": 1,
+  "kind": "shared_control_value_relative_dispatch_projection",
+  "publication_base_commit": "09c6e4a0329a73643777b5d78d035e6a9be6fd18",
+  "backend_sha256": "5266ca15b1fd14e421d9afc54d547eb408823a27ef5d490dc8aa621c96d9c28d",
+  "analysis_sha256": "c8d58a228702f9defce2be2b173126965f748afe4e80d17fbfbe4896b2e5ffbb",
+  "cause": "Core control tracing already recovered the supplied targets, but source-quality reconstructed WORD dispatches separately using adjacent/shallow instruction recognizers. That lost separated load/LEA/JMP and address-index relationships before typed table rendering.",
+  "implementation": [
+    "Sparse source-coordinate relative-dispatch contracts are emitted only after the existing control-use trace validates a WORD table prefix. Source-quality consumes these contracts and rechecks final code/data ownership.",
+    "Shared trace transport preserves raw WORD relations through register copies, sign-extends MOVEA.W/EXT.L explicitly and refuses unknown upper bits for LONG indexing. PC-indexed LEA supports Dn and An.",
+    "The old adjacent/shallow WORD dispatch recognizers and their helper scan are removed. The distinct existing keyed-LONG lane is retained. No Starglider addresses, names, patterns or manual per-table declarations are added to framework code.",
+    "Final projection splits at existing labels, preserves biased leading entries, rejects incompatible typed owners/ambiguous bases and distinguishes physical extent from local mask/compare evidence. Signed BGT without a nonnegative premise does not create a zero-based domain."
+  ],
+  "tests": {
+    "native_passed": 824,
+    "native_failed": 0,
+    "log_sha256": "8b3bf4c6a817d893dff75131831ad00c965a12b951725bb768880ac076a91bda",
+    "new_regression": "facts_v2_relative_dispatch_value_transport",
+    "variants": 17,
+    "coverage": [
+      "Dn load/LEA/JMP with intervening instructions and source-register clobber after pointer construction",
+      "An WORD load, LONG register copy and separated PC-indexed JMP",
+      "WORD copies, MOVEA.W and explicit EXT.L sign extension, An-indexed LEA",
+      "Unknown LONG upper bits, EXT.W, BYTE overwrite, unknown destination clobber, arithmetic ADD mistaken for a load and numeric lookup without control use remain unpromoted",
+      "Incompatible LONG ownership and independently accepted code ownership do not become relative tables",
+      "Signed upper-bound comparison alone retains unknown/non-zero-based selector domain",
+      "Existing direct/ADDA, biased leading-entry, mask/compare and preserved-call dispatch fixtures remain passing"
+    ]
+  },
+  "before_after": {
+    "relative_tables": [
+      3,
+      8
+    ],
+    "scalar_tables": [
+      19,
+      14
+    ],
+    "new_relative_contract_entries": 80,
+    "newly_symbolic_rendered_entries": 48,
+    "already_manually_symbolic_entries_newly_in_native_relative_contracts": 32,
+    "table_descriptors": [
+      64,
+      64
+    ],
+    "table_consumers": [
+      40,
+      40
+    ],
+    "address_expressions": [
+      189,
+      189
+    ],
+    "accepted_code_unchanged": true,
+    "recovered_indirect_sites_unchanged": true,
+    "unknown_bytes": [
+      14068,
+      14068
+    ],
+    "generic_app_fields": [
+      48,
+      48
+    ]
+  },
+  "relative_tables": [
+    {
+      "source_offset": 29212,
+      "runtime_address": 33308,
+      "bytes": 296,
+      "entries": 148,
+      "load_source_offset": 29204,
+      "load_runtime_address": 33300,
+      "base_source_offset": 29212,
+      "index_mask_domain": null,
+      "index_compare_domain": null,
+      "entry_count_proof": "consumer_structural_scan"
+    },
+    {
+      "source_offset": 28714,
+      "runtime_address": 32810,
+      "bytes": 296,
+      "entries": 148,
+      "load_source_offset": 28706,
+      "load_runtime_address": 32802,
+      "base_source_offset": 28714,
+      "index_mask_domain": null,
+      "index_compare_domain": null,
+      "entry_count_proof": "consumer_structural_scan"
+    },
+    {
+      "source_offset": 11354,
+      "runtime_address": 15450,
+      "bytes": 26,
+      "entries": 13,
+      "load_source_offset": 11346,
+      "load_runtime_address": 15442,
+      "base_source_offset": 11354,
+      "index_mask_domain": null,
+      "index_compare_domain": {
+        "min": 0,
+        "max": 7,
+        "branch_mnemonic_id": 54,
+        "branch_mnemonic": "bhi"
+      },
+      "entry_count_proof": "consumer_structural_scan"
+    },
+    {
+      "source_offset": 253380,
+      "runtime_address": 257476,
+      "bytes": 32,
+      "entries": 16,
+      "load_source_offset": 253332,
+      "load_runtime_address": 257428,
+      "base_source_offset": 253380,
+      "index_mask_domain": null,
+      "index_compare_domain": null,
+      "entry_count_proof": "consumer_structural_scan"
+    },
+    {
+      "source_offset": 252562,
+      "runtime_address": 256658,
+      "bytes": 32,
+      "entries": 16,
+      "load_source_offset": 252494,
+      "load_runtime_address": 256590,
+      "base_source_offset": 252562,
+      "index_mask_domain": {
+        "min": 0,
+        "max": 15
+      },
+      "index_compare_domain": null,
+      "entry_count_proof": "index_mask_domain"
+    },
+    {
+      "source_offset": 257858,
+      "runtime_address": 261954,
+      "bytes": 32,
+      "entries": 16,
+      "load_source_offset": 257896,
+      "load_runtime_address": 261992,
+      "base_source_offset": 257858,
+      "index_mask_domain": null,
+      "index_compare_domain": null,
+      "entry_count_proof": "consumer_structural_scan"
+    },
+    {
+      "source_offset": 249230,
+      "runtime_address": 253326,
+      "bytes": 32,
+      "entries": 16,
+      "load_source_offset": 249150,
+      "load_runtime_address": 253246,
+      "base_source_offset": 249230,
+      "index_mask_domain": null,
+      "index_compare_domain": null,
+      "entry_count_proof": "consumer_structural_scan"
+    },
+    {
+      "source_offset": 254226,
+      "runtime_address": 258322,
+      "bytes": 32,
+      "entries": 16,
+      "load_source_offset": 254150,
+      "load_runtime_address": 258246,
+      "base_source_offset": 254226,
+      "index_mask_domain": null,
+      "index_compare_domain": null,
+      "entry_count_proof": "consumer_structural_scan"
+    }
+  ],
+  "whole_target_scan": {
+    "scope": "All accepted code is visited by the existing native trace; all17 current recovered indirect sites were reconciled, not just the two screenshot sites.",
+    "resolved_jump_table_sites": 15,
+    "unresolved_sites": 2,
+    "other_resolved_forms": [
+      {
+        "runtime": 7378,
+        "kind": "LONG type initializer pointers"
+      },
+      {
+        "runtime": 97930,
+        "kind": "same LONG type initializer directory from original map loader"
+      },
+      {
+        "runtime": 29184,
+        "kind": "LONG weapon action targets"
+      },
+      {
+        "runtime": 214104,
+        "kind": "LONG dialogue state handlers"
+      },
+      {
+        "runtime": 248356,
+        "kind": "LONG raster dispatch pointers"
+      }
+    ],
+    "unresolved": [
+      {
+        "runtime": 50910,
+        "mechanism": "Read initial stack/vector from absolute0/4 then JMP(A0), not a WORD-offset table.",
+        "blocks": "Exact reset/exit target provenance, not relative-table rendering.",
+        "next_experiment": "Observe original media/platform vector contents at this exit if an exact runtime target is needed; do not infer a RAM table from these fixed reset vectors.",
+        "deferral": "No dependency for the reported dispatch defect; new reset-path runtime coverage is outside this bounded batch."
+      },
+      {
+        "runtime": 243120,
+        "mechanism": "Read initial stack/vector from absolute0/4 then JMP(A0), not a WORD-offset table.",
+        "blocks": "Exact reset/exit target provenance, not relative-table rendering.",
+        "next_experiment": "Observe original media/platform vector contents at this exit if an exact runtime target is needed; do not infer a RAM table from these fixed reset vectors.",
+        "deferral": "No dependency for the reported dispatch defect; new reset-path runtime coverage is outside this bounded batch."
+      }
+    ]
+  },
+  "verification": {
+    "kind": "verification",
+    "framework_exact": true,
+    "target_id": "amiga_raw_starglider2_game",
+    "subject_revision": "b6bd29ce51f57401604421cef9e1706b9952a5a18617e31002994a902152ea50",
+    "status": "exact",
+    "exact": true,
+    "source_sha256": "9672ea76f2b1c1a7cefe99dfcf1ca5297b102a060385a0116ce6f14287346bc4",
+    "source_path": "/workspace/pandora-original-delivery/stable-d15c2cf8/.runtime-state/restoration/eb04f545fb97451725a1c91ab5abf6f2e097614c45880db6edfb4ea5c3f6e2c2/9672ea76f2b1c1a7cefe99dfcf1ca5297b102a060385a0116ce6f14287346bc4.s",
+    "source_package_sha256": null,
+    "original_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "original_size": 412736,
+    "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "rebuilt_path": "/workspace/pandora-original-delivery/stable-d15c2cf8/.runtime-state/restoration/eb04f545fb97451725a1c91ab5abf6f2e097614c45880db6edfb4ea5c3f6e2c2/662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9.bin",
+    "framework_status": "exact",
+    "failure_kinds": [],
+    "message": "",
+    "oracle": {
+      "oracle_id": "vasm",
+      "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+      "comparison_level": "oracle.full_file_match",
+      "assembler_status": "accepted",
+      "message": "oracle output matched original bytes"
+    },
+    "receipt_id": "cd21aa0f41c03aa167581c37133909044e8a974a9ecc6e4b9eddfd68f0e14b90",
+    "revision": "7c77bcde5bff603f785d3ec01ec30ad3578586561efe17c7d6b8bf1f3509781d"
+  },
+  "generation_wall_seconds": 139.02412648301106,
+  "limits": [
+    "This is automatic recovery of supported control-value relations, not recognition of arbitrary address-looking WORDs. No instruction-size changes or target-specific rewrite.",
+    "The two supplied16-entry tables have structural extent but no universal runtime index-domain proof. Out-of-domain/mutated selectors are not certified.",
+    "No new guest run, executed-code coverage, model identity or semantic field meaning is claimed. Existing original-path assumptions and unknown intervals remain.",
+    "Guarded tables with physically skipped zero holes, cross-section/unsupported expressions or conflicting interpretations stay unpromoted rather than guessing. A targeted original-control-use fixture is the next experiment if such a concrete restoration case appears.",
+    "First whole-target comparison caught lost primary-object-table metadata due to guarding potential zero entries even when no physical entry was skipped. Final projection preserves the original contract; no weakened assertion or stale result is published."
+  ],
+  "validated_target_git_tree": "40c3b1caf19e5fd8c74241b2e2870937f246fcf1",
+  "clean_staged_tree_build": true,
+  "standalone_build": {
+    "schema_version": 1,
+    "status": "pass",
+    "format": "raw_payload_not_AmigaDOS_HUNK",
+    "main_bytes": 412736,
+    "main_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "main_matches_original_identity": true,
+    "asset_count": 57,
+    "all_asset_source_slices_equal": true,
+    "decoded_view_inverse_exact": true,
+    "boot_copy_source_matches_resident_view": true,
+    "source_commit": "09c6e4a0329a73643777b5d78d035e6a9be6fd18",
+    "assembler_sha256": "413e284020125f42709486dfe09907cab3dd9f3c2ea41017c190f8ea68f30825",
+    "flags": [
+      "-Fbin",
+      "-m68000",
+      "-no-opt"
+    ],
+    "outputs": [
+      {
+        "role": "original_main",
+        "filename": "Starglider2-original.raw",
+        "bytes": 412736,
+        "sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9"
+      },
+      {
+        "role": "decoded_analysis_view",
+        "filename": "protection-decoded-analysis.raw",
+        "bytes": 3548,
+        "sha256": "de8358853dd9ed9b006a23569bf393aa217ed3be3301a169465d80bfaf839922"
+      },
+      {
+        "role": "boot_installer_context",
+        "filename": "boot-selector-installer-context.raw",
+        "bytes": 40,
+        "sha256": "8d34852425e2e1bfa87b3febdfc74fb39e7c667e9d9ff73e17b594649e83b21b"
+      },
+      {
+        "role": "boot_resident_view",
+        "filename": "boot-selector-resident.raw",
+        "bytes": 20,
+        "sha256": "a26286a393713c046eff9dbaff15b20b26b171fa9e05fc9d538d16b0eddb6024"
+      }
+    ]
+  },
+  "additional_negative_cause": "A new ADD.W table(PC,D2.W),D2 negative reproduced the old raw-WORD loader accepting arithmetic as a load (two false targets). The raw load transfer now requires MOVE metadata; the separately validated ADDA/base addition lane remains. The negative now has zero targets and no relative contract, and the final whole-target accepted code/sites remain unchanged."
+}

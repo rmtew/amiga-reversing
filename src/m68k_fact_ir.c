@@ -68,3 +68,29 @@ int m68k_fact_ir_append_label_request(M68kFactIR *ir, size_t section_index, uint
   ++ir->label_request_count;
   return 0;
 }
+
+int m68k_fact_ir_append_relative_dispatch(M68kFactIR *ir, const M68kRelativeDispatchFact *fact) {
+  if (ir == NULL || ir->arena == NULL || fact == NULL || fact->entry_size != 2U ||
+      fact->table_size < 4U || (fact->table_size & 1U) != 0U) return -1;
+  for (size_t i = 0U; i < ir->relative_dispatch_count; ++i) {
+    const M68kRelativeDispatchFact *old = &ir->relative_dispatches[i];
+    if (old->table_section_index == fact->table_section_index && old->table_offset == fact->table_offset &&
+        old->table_size == fact->table_size && old->base_section_index == fact->base_section_index &&
+        old->base_offset == fact->base_offset && old->consumer_section_index == fact->consumer_section_index &&
+        old->consumer_offset == fact->consumer_offset && old->has_producer == fact->has_producer &&
+        (!fact->has_producer || (old->producer_section_index == fact->producer_section_index &&
+          old->producer_offset == fact->producer_offset &&
+          old->producer_operand_index == fact->producer_operand_index))) return 0;
+  }
+  if (ir->relative_dispatch_count == ir->relative_dispatch_capacity) {
+    if (ir->relative_dispatch_capacity > SIZE_MAX / 2U / sizeof(M68kRelativeDispatchFact)) return -1;
+    size_t capacity = ir->relative_dispatch_capacity ? ir->relative_dispatch_capacity * 2U : 16U;
+    M68kRelativeDispatchFact *grown = (M68kRelativeDispatchFact *)arena_realloc_copy(ir->arena,
+      ir->relative_dispatches, ir->relative_dispatch_count * sizeof(*grown), capacity * sizeof(*grown));
+    if (grown == NULL) return -1;
+    ir->relative_dispatches = grown;
+    ir->relative_dispatch_capacity = capacity;
+  }
+  ir->relative_dispatches[ir->relative_dispatch_count++] = *fact;
+  return 0;
+}
