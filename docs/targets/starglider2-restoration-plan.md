@@ -7,8 +7,8 @@ that further analysis is exhausted. Current source remains byte exact: all
 with all 106034 accepted code bytes retained. No generated assembly was edited
 by hand and no interim archive was produced.
 
-The current ownership union leaves 14166 bytes in
-261 intervals unclassified. This is classification accounting,
+The current ownership union leaves 14164 bytes in
+262 intervals unclassified. This is classification accounting,
 not a semantic completion percentage. Earlier interval/site counts below belong
 to their recorded closeout revision. See the current
 [native memory-span receipt](../../runtime/observations/starglider2-app-memory-spans.json),
@@ -17,16 +17,17 @@ to their recorded closeout revision. See the current
 
 ## Current refinement and next evidence
 
-Latest: the [tug initializer batch](../../runtime/observations/starglider2-tug-parameters.json)
-correlates original types 22/44 with two accepted callbacks and the shared
-world 8–14 placement stream. Twelve groups consume 72 parameter triples;
-432 bytes plus two mutable LONGs are now classified and named. Generic fields:
-52. The constructor prefix does not close inventory-release or arbitrary-call bounds.
+Latest: the [periodic BCD display batch](../../runtime/observations/starglider2-periodic-bcd.json)
+explains the two-byte packed-BCD counter, its separate service countdown and
+three graphics-dependent updater entries. Four displayed digits do not make
+the adjacent LONG fetch a 32-bit counter. Frequency/seconds remain unassigned.
+Generic main fields: 50.
 
-The preceding [novella latch batch](../../runtime/observations/starglider2-novella-latches.json)
-links four workspace meanings across original and decoded projects. Decoded
-native accesses rise from 4 to 8, including A2/A3 BYTE writes. Its original-media
-prefix reaches flight at frame 862 after seven CPU writes, without guest-state injection.
+The preceding [tug batch](../../runtime/observations/starglider2-tug-parameters.json)
+restores 72 parameter triples, two mutable LONGs and the original constructor
+link contract; inventory-release bounds remain conditional. The [novella batch](../../runtime/observations/starglider2-novella-latches.json)
+links four fields across original/decoded views and observes the successful
+normal-input prefix, not every later writer or exceptional renderer path.
 
 The shared renderer now writes each data-span comment once: on identical facts
 this removes 12,903 duplicate trailing comments and 410,853 source bytes, with no

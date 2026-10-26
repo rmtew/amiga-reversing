@@ -51,7 +51,7 @@ ADF, full input `binary.bin`, captures or assembler executable is committed here
 ## Scope and analysis views
 
 This is the reviewed original absolute-address restoration with explicit
-unknowns: 106034 code bytes are accepted; 14166 bytes in 261 intervals remain
+unknowns: 106034 code bytes are accepted; 14164 bytes in 262 intervals remain
 unclassified. It is not full semantic/all-path restoration or a completed
 walkthrough. The source and assets preserve every original output byte.
 

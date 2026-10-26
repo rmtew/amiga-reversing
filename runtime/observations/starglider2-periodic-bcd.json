@@ -1,0 +1,523 @@
+{
+  "schema_version": 1,
+  "kind": "packed_bcd_display_and_countdown_restoration",
+  "publication_base_commit": "98d7aff04bb350abbc0d440f4b34f455c3b582b7",
+  "backend_sha256": "b935c76d6042e045c26023dfc4fa2f7eae8d7c81790f0d261c66696033f7b3fc",
+  "analysis_sha256": "c9e11b07755ae57d91c63e0323a90d30e34be21d510febbdc2df89746600293b",
+  "retained_instruction_evidence_sha256": "d0ff73d58cd3163661e8fd55da1b7492933d0e8d54a5ea9b5e7733473fd2a329",
+  "instructions": [
+    {
+      "source_offset": 4096,
+      "bytes": "3d7c00320754",
+      "size": 6
+    },
+    {
+      "source_offset": 4102,
+      "bytes": "3d7c00000742",
+      "size": 6
+    },
+    {
+      "source_offset": 4108,
+      "bytes": "3d7cffff07c6",
+      "size": 6
+    },
+    {
+      "source_offset": 4114,
+      "bytes": "3d7c000401aa",
+      "size": 6
+    },
+    {
+      "source_offset": 4120,
+      "bytes": "3d7c00030798",
+      "size": 6
+    },
+    {
+      "source_offset": 4126,
+      "bytes": "3d7c0032079a",
+      "size": 6
+    },
+    {
+      "source_offset": 4132,
+      "bytes": "41ee071c",
+      "size": 4
+    },
+    {
+      "source_offset": 4136,
+      "bytes": "4298",
+      "size": 2
+    },
+    {
+      "source_offset": 4138,
+      "bytes": "1d7c004007f2",
+      "size": 6
+    },
+    {
+      "source_offset": 4144,
+      "bytes": "426e005c",
+      "size": 4
+    },
+    {
+      "source_offset": 4148,
+      "bytes": "422e01fe",
+      "size": 4
+    },
+    {
+      "source_offset": 4152,
+      "bytes": "3d7c999907aa",
+      "size": 6
+    },
+    {
+      "source_offset": 4158,
+      "bytes": "3d7c000107ac",
+      "size": 6
+    },
+    {
+      "source_offset": 4486,
+      "bytes": "23fc4a01ff000000d0ac",
+      "size": 10
+    },
+    {
+      "source_offset": 4496,
+      "bytes": "23fc4a01ff000000cef4",
+      "size": 10
+    },
+    {
+      "source_offset": 4506,
+      "bytes": "23fc4a01ff000000cfd0",
+      "size": 10
+    },
+    {
+      "source_offset": 4516,
+      "bytes": "3d7c000107ac",
+      "size": 6
+    },
+    {
+      "source_offset": 46918,
+      "bytes": "526e07c2",
+      "size": 4
+    },
+    {
+      "source_offset": 46922,
+      "bytes": "536e07ac",
+      "size": 4
+    },
+    {
+      "source_offset": 50848,
+      "bytes": "43f900013c9a",
+      "size": 6
+    },
+    {
+      "source_offset": 50854,
+      "bytes": "0c69b0180008",
+      "size": 6
+    },
+    {
+      "source_offset": 50860,
+      "bytes": "43ee07ac",
+      "size": 4
+    },
+    {
+      "source_offset": 50864,
+      "bytes": "41fa08fc",
+      "size": 4
+    },
+    {
+      "source_offset": 50868,
+      "bytes": "7400",
+      "size": 2
+    },
+    {
+      "source_offset": 50870,
+      "bytes": "9442",
+      "size": 2
+    },
+    {
+      "source_offset": 50872,
+      "bytes": "c308",
+      "size": 2
+    },
+    {
+      "source_offset": 50874,
+      "bytes": "c308",
+      "size": 2
+    },
+    {
+      "source_offset": 50876,
+      "bytes": "3d7c01b007ac",
+      "size": 6
+    },
+    {
+      "source_offset": 50882,
+      "bytes": "082e0001020a",
+      "size": 6
+    },
+    {
+      "source_offset": 50888,
+      "bytes": "6700ffd4",
+      "size": 4
+    },
+    {
+      "source_offset": 50892,
+      "bytes": "2011",
+      "size": 2
+    },
+    {
+      "source_offset": 50894,
+      "bytes": "7403",
+      "size": 2
+    },
+    {
+      "source_offset": 50896,
+      "bytes": "41f9000702e2",
+      "size": 6
+    },
+    {
+      "source_offset": 238010,
+      "bytes": "526e07c2",
+      "size": 4
+    },
+    {
+      "source_offset": 238014,
+      "bytes": "536e07ac",
+      "size": 4
+    },
+    {
+      "source_offset": 244990,
+      "bytes": "082e000101f2",
+      "size": 6
+    },
+    {
+      "source_offset": 244996,
+      "bytes": "660006cc",
+      "size": 4
+    },
+    {
+      "source_offset": 245000,
+      "bytes": "43ee07ac",
+      "size": 4
+    },
+    {
+      "source_offset": 245004,
+      "bytes": "41f90000dfac",
+      "size": 6
+    },
+    {
+      "source_offset": 245010,
+      "bytes": "5488",
+      "size": 2
+    },
+    {
+      "source_offset": 245012,
+      "bytes": "7400",
+      "size": 2
+    },
+    {
+      "source_offset": 245014,
+      "bytes": "9442",
+      "size": 2
+    },
+    {
+      "source_offset": 245016,
+      "bytes": "c308",
+      "size": 2
+    },
+    {
+      "source_offset": 245018,
+      "bytes": "c308",
+      "size": 2
+    },
+    {
+      "source_offset": 245020,
+      "bytes": "3d7c01b007ac",
+      "size": 6
+    },
+    {
+      "source_offset": 245026,
+      "bytes": "082e0001020a",
+      "size": 6
+    },
+    {
+      "source_offset": 245032,
+      "bytes": "6700ffd2",
+      "size": 4
+    },
+    {
+      "source_offset": 245036,
+      "bytes": "2611",
+      "size": 2
+    },
+    {
+      "source_offset": 245038,
+      "bytes": "7403",
+      "size": 2
+    },
+    {
+      "source_offset": 245040,
+      "bytes": "41f900068c28",
+      "size": 6
+    },
+    {
+      "source_offset": 245046,
+      "bytes": "47f900070c28",
+      "size": 6
+    },
+    {
+      "source_offset": 246738,
+      "bytes": "43ee07ac",
+      "size": 4
+    },
+    {
+      "source_offset": 246742,
+      "bytes": "41f90000dfac",
+      "size": 6
+    },
+    {
+      "source_offset": 246748,
+      "bytes": "5488",
+      "size": 2
+    },
+    {
+      "source_offset": 246750,
+      "bytes": "7400",
+      "size": 2
+    },
+    {
+      "source_offset": 246752,
+      "bytes": "9442",
+      "size": 2
+    },
+    {
+      "source_offset": 246754,
+      "bytes": "c308",
+      "size": 2
+    },
+    {
+      "source_offset": 246756,
+      "bytes": "c308",
+      "size": 2
+    },
+    {
+      "source_offset": 246758,
+      "bytes": "066e01b007ac",
+      "size": 6
+    },
+    {
+      "source_offset": 246764,
+      "bytes": "082e0001020a",
+      "size": 6
+    },
+    {
+      "source_offset": 246770,
+      "bytes": "6700ffdc",
+      "size": 4
+    },
+    {
+      "source_offset": 246774,
+      "bytes": "2611",
+      "size": 2
+    },
+    {
+      "source_offset": 246776,
+      "bytes": "7403",
+      "size": 2
+    },
+    {
+      "source_offset": 246778,
+      "bytes": "41f900068b64",
+      "size": 6
+    },
+    {
+      "source_offset": 246784,
+      "bytes": "47f900070b64",
+      "size": 6
+    }
+  ],
+  "canonical_actions": [
+    {
+      "action_id": "manual-3818f701628545859c221125ea0883d0",
+      "command_id": "target.rsset_region.add"
+    },
+    {
+      "action_id": "manual-dc7bcf16f57b4455ae871108b2ba2899",
+      "command_id": "target.rsset_region.add"
+    },
+    {
+      "action_id": "manual-7cbd70328a5843ac84cfef86dc7ec382",
+      "command_id": "target.code_label.add"
+    },
+    {
+      "action_id": "manual-ecb42555a41e4f8cac5edc4813bae5d3",
+      "command_id": "target.code_label.add"
+    },
+    {
+      "action_id": "manual-1e5371c9d8144f40b37e9205e4eeef2c",
+      "command_id": "target.code_label.add"
+    },
+    {
+      "action_id": "manual-8f57fd6754fe489a8b70d535b633a770",
+      "command_id": "target.data_block.layout.create"
+    },
+    {
+      "action_id": "manual-008d908e7824466cae6c467b90c65737",
+      "command_id": "target.data_block.element.set"
+    }
+  ],
+  "review_decisions": [
+    {
+      "action_id": "manual-3818f701628545859c221125ea0883d0",
+      "decision_id": "restoration-7c4b7af9a15e4c09968996f6d4790c19",
+      "action": "accept_fact"
+    },
+    {
+      "action_id": "manual-dc7bcf16f57b4455ae871108b2ba2899",
+      "decision_id": "restoration-d32e816a006c4a7ab0ee3266d2e023f6",
+      "action": "accept_fact"
+    },
+    {
+      "action_id": "manual-7cbd70328a5843ac84cfef86dc7ec382",
+      "decision_id": "restoration-b583b0eec8514592a83fce15e6c61627",
+      "action": "accept_fact"
+    },
+    {
+      "action_id": "manual-ecb42555a41e4f8cac5edc4813bae5d3",
+      "decision_id": "restoration-d13e5987052148248380eed4ab9e5704",
+      "action": "accept_fact"
+    },
+    {
+      "action_id": "manual-1e5371c9d8144f40b37e9205e4eeef2c",
+      "decision_id": "restoration-e4e0453cadc54078b781d3a51c846182",
+      "action": "accept_fact"
+    },
+    {
+      "action_id": "manual-8f57fd6754fe489a8b70d535b633a770",
+      "decision_id": "restoration-966a37b811ee4d9d8065f08094434797",
+      "action": "accept_fact"
+    },
+    {
+      "action_id": "manual-008d908e7824466cae6c467b90c65737",
+      "decision_id": "restoration-f8f4c6564b954185b49d36018cac0edd",
+      "action": "accept_fact"
+    }
+  ],
+  "before": {
+    "generic_fields": 52,
+    "app_references": 3316,
+    "typed_accesses": 316,
+    "unresolved_typed_accesses": 355,
+    "unclassified_bytes": 14166
+  },
+  "after": {
+    "generic_fields": 50,
+    "app_references": 3316,
+    "typed_accesses": 316,
+    "unresolved_typed_accesses": 355,
+    "unclassified_bytes": 14164,
+    "unclassified_intervals": 262
+  },
+  "contract": [
+    "Reset initializes app7AA WORD packedBCD9999 and app7AC WORD countdown1.",
+    "Gated interrupt services decrement countdown and call the updater only at zero. Modal and service gates retain their different scopes.",
+    "Two ABCD predecrements with X cleared add sourceWORD0001 to exactly the two bytes at7AA..7AB; first update wraps9999 to0000.",
+    "All three graphics entries select four counter digits. LONG fetch includes adjacent countdown, which is not a32-bit BCD field.",
+    "Amiga/alternate mode0 reset countdown432; alternate mode1 adds432. Both original instructions remain distinct."
+  ],
+  "limits": [
+    "No seconds, fixed tick frequency, timing equivalence or all-entry runtime claim.",
+    "Original decoded-protection comparison is retained unchanged; no claim that its CCR is the BCD carry input.",
+    "No new execution or code promotion. The preceding original-media latch run is a separate scope."
+  ],
+  "verification": {
+    "kind": "verification",
+    "framework_exact": true,
+    "target_id": "amiga_raw_starglider2_game",
+    "subject_revision": "9cdb6881d9f9208da4eef559dbe75c5ae59f854ef11850ca9c4c7d5d01cd03ed",
+    "status": "exact",
+    "exact": true,
+    "source_sha256": "9f0c908157f055a6461a297af22e40450675518fc4e166d20e00a1fba33de255",
+    "source_path": "/workspace/pandora-original-delivery/stable-d15c2cf8/.runtime-state/restoration/eb04f545fb97451725a1c91ab5abf6f2e097614c45880db6edfb4ea5c3f6e2c2/9f0c908157f055a6461a297af22e40450675518fc4e166d20e00a1fba33de255.s",
+    "source_package_sha256": null,
+    "original_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "original_size": 412736,
+    "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "rebuilt_path": "/workspace/pandora-original-delivery/stable-d15c2cf8/.runtime-state/restoration/eb04f545fb97451725a1c91ab5abf6f2e097614c45880db6edfb4ea5c3f6e2c2/662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9.bin",
+    "framework_status": "exact",
+    "failure_kinds": [],
+    "message": "",
+    "oracle": {
+      "oracle_id": "vasm",
+      "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+      "comparison_level": "oracle.full_file_match",
+      "assembler_status": "accepted",
+      "message": "oracle output matched original bytes"
+    },
+    "receipt_id": "2adbab6e8f681dca1bbbfd1cdb84ae0d86170aad35273a545af32e8902fd18c9",
+    "revision": "009a8e50796feedd74354166bd088399113b9cff5a9f0c9302f043cc808f461a"
+  },
+  "preservation": {
+    "original_bytes": 412736,
+    "original_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "assets_unchanged": 57,
+    "headers_unchanged": 14,
+    "accepted_code_bytes": 106034,
+    "generated_source_hand_edited": false,
+    "canonical_histories_append_only": true,
+    "source_quality_diagnostics": 0,
+    "incomplete_analysis": []
+  },
+  "generation_wall_seconds": 141.34268494101707,
+  "framework_validation": {
+    "code_changed": false,
+    "baseline_native_passed": 819,
+    "baseline_native_failed": 3,
+    "reused_receipt": "runtime/observations/starglider2-object-list-storage.json",
+    "scope": "Pure target-fact change; no unchanged full-suite rerun or all-green claim."
+  },
+  "next": "Continue connected field/routine recovery. Separately probe the existing OpenDevice address-consumer omission at final collection, without altering assertions or input contracts.",
+  "validated_target_git_tree": "c14bcca3e46210a77993b1c622a0dc5010ea9efd",
+  "clean_staged_tree_build": true,
+  "standalone_build": {
+    "schema_version": 1,
+    "status": "pass",
+    "format": "raw_payload_not_AmigaDOS_HUNK",
+    "main_bytes": 412736,
+    "main_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "main_matches_original_identity": true,
+    "asset_count": 57,
+    "all_asset_source_slices_equal": true,
+    "decoded_view_inverse_exact": true,
+    "boot_copy_source_matches_resident_view": true,
+    "source_commit": "98d7aff04bb350abbc0d440f4b34f455c3b582b7",
+    "assembler_sha256": "413e284020125f42709486dfe09907cab3dd9f3c2ea41017c190f8ea68f30825",
+    "flags": [
+      "-Fbin",
+      "-m68000",
+      "-no-opt"
+    ],
+    "outputs": [
+      {
+        "role": "original_main",
+        "filename": "Starglider2-original.raw",
+        "bytes": 412736,
+        "sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9"
+      },
+      {
+        "role": "decoded_analysis_view",
+        "filename": "protection-decoded-analysis.raw",
+        "bytes": 3548,
+        "sha256": "de8358853dd9ed9b006a23569bf393aa217ed3be3301a169465d80bfaf839922"
+      },
+      {
+        "role": "boot_installer_context",
+        "filename": "boot-selector-installer-context.raw",
+        "bytes": 40,
+        "sha256": "8d34852425e2e1bfa87b3febdfc74fb39e7c667e9d9ff73e17b594649e83b21b"
+      },
+      {
+        "role": "boot_resident_view",
+        "filename": "boot-selector-resident.raw",
+        "bytes": 20,
+        "sha256": "a26286a393713c046eff9dbaff15b20b26b171fa9e05fc9d538d16b0eddb6024"
+      }
+    ]
+  }
+}

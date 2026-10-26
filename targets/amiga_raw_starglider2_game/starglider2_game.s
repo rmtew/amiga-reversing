@@ -377,8 +377,8 @@ rotation_2_control_accumulator RS.W 1
 rotation_0_control_accumulator RS.W 1
 app_07A6 RS.W 1
 negative_speed_control_accumulator RS.W 1
-app_07AA RS.W 1
-app_07AC RS.W 1
+periodic_display_bcd_counter RS.W 1
+periodic_display_update_countdown RS.W 1
 pending_message_count RS.W 1
 app_07B0 RS.W 1
     RS.B 2
@@ -2198,8 +2198,8 @@ reset_gameplay_state_and_input_defaults:
 	move.b #$40,fire_key_scancode(a6)
 	clr.w pending_bcd_score_addend(a6)
 	clr.b app_01FE(a6)
-	move.w #$9999,app_07AA(a6)
-	move.w #$1,app_07AC(a6)
+	move.w #$9999,periodic_display_bcd_counter(a6)
+	move.w #$1,periodic_display_update_countdown(a6)
 	clr.w vblank_tick_counter(a6)
 	clr.w weapon_action_cooldown(a6)
 	clr.l pilot_shots_fired(a6)
@@ -2276,7 +2276,7 @@ enable_midframe_copper_blocks_continuation:
 	move.l #$4A01FF00,amiga_copper_list_c_mode_gate.l
 	move.l #$4A01FF00,amiga_copper_list_a_mode_gate.l
 	move.l #$4A01FF00,amiga_copper_list_b_mode_gate.l
-	move.w #$1,app_07AC(a6)
+	move.w #$1,periodic_display_update_countdown(a6)
 	clr.w message_display_countdown(a6)
 	clr.w pending_message_count(a6)
 	clr.w abs_0_0000499E.l
@@ -14158,9 +14158,9 @@ abs_0_0000C738:
 	tst.b modal_command_input_flag(a6)
 	bne.b abs_0_0000C754
 	addq.w #1,panel_animation_service_ticks(a6)
-	subq.w #1,app_07AC(a6)
+	subq.w #1,periodic_display_update_countdown(a6)
 	bne.b abs_0_0000C754
-	bsr.w abs_0_0000D6A0
+	bsr.w increment_and_draw_periodic_bcd_amiga
 abs_0_0000C754:
 	bsr.w abs_0_0000E114
 	tst.w message_display_countdown(a6)
@@ -15162,16 +15162,16 @@ abs_0_0000D64C:
 	dbf.w d2,abs_0_0000D64C
 abs_0_0000D69E:
 	rts
-abs_0_0000D6A0:
+increment_and_draw_periodic_bcd_amiga:
 	lea.l abs_0_00013C9A.l,a1
 	cmpi.w #45080,$0008(a1)
-	lea.l app_07AC(a6),a1
+	lea.l periodic_display_update_countdown(a6),a1
 	lea.l abs_0_0000DFAE(pc),a0
 	moveq.l #0,d2
 	sub.w d2,d2
 	abcd -(a0),-(a1)
 	abcd -(a0),-(a1)
-	move.w #$1B0,app_07AC(a6)
+	move.w #$1B0,periodic_display_update_countdown(a6)
 	btst.b #1,display_and_frame_service_flags(a6)
 	beq.w abs_0_0000D69E
 	move.l (a1),d0
@@ -15771,8 +15771,8 @@ text_colour_plane_mask:
 	dc.b $20,$20,$20,$20,$50,$6C,$65,$61,$73,$65,$20,$65,$6E,$74,$65,$72
 	dc.b $20,$6D,$65,$73,$73,$61,$67,$65
 	dcb.b $9,$00
-abs_0_0000DFAC:
-	dc.b $00,$01
+periodic_display_bcd_step:
+	dc.w $0001	; Packed BCD increment WORD consumed backwards by two ABCD instructions
 abs_0_0000DFAE:
 	dc.b $00,$00,$00,$00
 abs_0_0000DFB2:
@@ -50360,9 +50360,9 @@ abs_0_0003B1AC:
 	tst.b modal_command_input_flag(a6)
 	bne.b abs_0_0003B1C8
 	addq.w #1,panel_animation_service_ticks(a6)
-	subq.w #1,app_07AC(a6)
+	subq.w #1,periodic_display_update_countdown(a6)
 	bne.b abs_0_0003B1C8
-	bsr.w abs_0_0003CCFE
+	bsr.w increment_and_draw_periodic_bcd_alternate
 abs_0_0003B1C8:
 	tst.w message_display_countdown(a6)
 	beq.b abs_0_0003B1D2
@@ -51716,17 +51716,17 @@ abs_0_0003CB2E:
 	dbf.w d2,abs_0_0003CB2E
 abs_0_0003CCFC:
 	rts
-abs_0_0003CCFE:
+increment_and_draw_periodic_bcd_alternate:
 	btst.b #1,alternate_graphics_mode(a6)
-	bne.w abs_0_0003D3D2
-	lea.l app_07AC(a6),a1
-	lea.l abs_0_0000DFAC.l,a0
+	bne.w increment_and_draw_periodic_bcd_mode1
+	lea.l periodic_display_update_countdown(a6),a1
+	lea.l periodic_display_bcd_step.l,a0
 	addq.l #2,a0
 	moveq.l #0,d2
 	sub.w d2,d2
 	abcd -(a0),-(a1)
 	abcd -(a0),-(a1)
-	move.w #$1B0,app_07AC(a6)
+	move.w #$1B0,periodic_display_update_countdown(a6)
 	btst.b #1,display_and_frame_service_flags(a6)
 	beq.w abs_0_0003CCFC
 	move.l (a1),d3
@@ -52272,15 +52272,15 @@ abs_0_0003D3C0:
 	dbf.w d2,abs_0_0003D3C0
 abs_0_0003D3D0:
 	rts
-abs_0_0003D3D2:
-	lea.l app_07AC(a6),a1
-	lea.l abs_0_0000DFAC.l,a0
+increment_and_draw_periodic_bcd_mode1:
+	lea.l periodic_display_update_countdown(a6),a1
+	lea.l periodic_display_bcd_step.l,a0
 	addq.l #2,a0
 	moveq.l #0,d2
 	sub.w d2,d2
 	abcd -(a0),-(a1)
 	abcd -(a0),-(a1)
-	addi.w #432,app_07AC(a6)
+	addi.w #432,periodic_display_update_countdown(a6)
 	btst.b #1,display_and_frame_service_flags(a6)
 	beq.w abs_0_0003D3D0
 	move.l (a1),d3
