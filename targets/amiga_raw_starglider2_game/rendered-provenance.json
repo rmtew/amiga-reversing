@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
   "kind": "committed_native_rendered_original_export",
-  "canonical_source_commit": "c87c40c7991643e2f8e940b282dd2b788debaa30",
-  "publication_base_commit": "c87c40c7991643e2f8e940b282dd2b788debaa30",
+  "canonical_source_commit": "4ad61b5dd442c914d3896aa0d99a226be33569a5",
+  "publication_base_commit": "4ad61b5dd442c914d3896aa0d99a226be33569a5",
   "native_export": "CListingArtifact.source_package_payload(64)",
-  "main_source_sha256": "f6946203c6e2175f7c371f19d5ef0b79488edf3214836fe3a08c6c184c0a3490",
+  "main_source_sha256": "ceded725c8ea6fb34f19b37a92e26fe615b5118fb5f8dba1b3de3bbc572baea0",
   "asset_count": 57,
   "asset_bytes": 93633,
   "game_assembly_hand_edits": false,
@@ -25,12 +25,12 @@
     "paused Pandora work"
   ],
   "canonical_source_commit_role": "framework/publication base, not a claim that accompanying facts already existed in that commit",
-  "canonical_source_subject_revision": "d78efab1ecee35d9fbbaa48cbc444772a12252987425f84b684a261b4e36168a",
+  "canonical_source_subject_revision": "7bd4ea2ba6a00e2328a5a9a5a4cf669606f2acd1e8f789714420b7737bc628fd",
   "canonical_fact_sha256": {
     "source_binary.json": "42d4a5758b3e8236af7f912aee85e9ee5323bcd0961faa338c4f864080a0a7d9",
     "target_metadata.json": "e7540b68c118c56aba8815b6722eefa067517cc865fe9841d6c01ce96551389c",
-    "manual_actions.jsonl": "7aa1f68b0ffedd4b9a90a1f4d71c2cd898bdcb38c2011610a6bc06652ee0b012",
-    "decision_journal.jsonl": "001ca200483f28ce211ec7eebeb2756ef94f71864b3960b6d28887bc9bab4390"
+    "manual_actions.jsonl": "f3e265378d351e47037d26026dc0a24612655e6b4ade0b9915a5641ed6daf076",
+    "decision_journal.jsonl": "4285f96d1afbeca6f1a74b82693f26eadd98d819e4db6325b25710c350bd1925"
   },
-  "refinement_receipt": "runtime/observations/starglider2-flight-environment-state.json"
+  "refinement_receipt": "runtime/observations/starglider2-input-panel-state.json"
 }

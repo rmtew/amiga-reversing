@@ -257,18 +257,18 @@ app_01F6 RS.B 1
     RS.B 6
 primary_fire_flag RS.B 1
 app_01FE RS.B 1
-app_01FF RS.B 1
-app_0200 RS.B 1
-app_0201 RS.B 1
-app_0202 RS.B 1
+amiga_mouse_previous_x_counter RS.B 1
+amiga_mouse_previous_y_counter RS.B 1
+mouse_primary_button_flag RS.B 1
+mouse_secondary_button_flag RS.B 1
 pending_key_scancode RS.B 1
 app_0204 RS.B 1
 app_0205 RS.B 1
 app_0206 RS.B 1
 display_buffer_table_byte_offset RS.B 1
     RS.B 1
-app_0209 RS.B 1
-app_020A RS.B 1
+panel_fast_animation_request RS.B 1
+display_and_frame_service_flags RS.B 1
     RS.B 19
 app_021E RS.L 1
     RS.B 1166
@@ -370,7 +370,7 @@ view_rotation_2 RS.W 1
 view_rotation_offset_0 RS.W 1
 view_rotation_offset_1 RS.W 1
 view_offset_distance RS.W 1
-app_07C2 RS.W 1
+panel_animation_service_ticks RS.W 1
 weapon_action_cooldown RS.W 1
 app_07C6 RS.W 1
     RS.B 2
@@ -1172,7 +1172,7 @@ abs_0_0000118A:
 	bsr.w advance_shared_random_state
 	move.b pending_key_scancode(a6),d0
 	bne.b abs_0_000011C6
-	tst.b app_0201(a6)
+	tst.b mouse_primary_button_flag(a6)
 	bne.b abs_0_000011EE
 	tst.b primary_fire_flag(a6)
 	bne.b abs_0_000011EE
@@ -1198,7 +1198,7 @@ abs_0_000011E0:
 	bra.b abs_0_00001256
 abs_0_000011EE:
 	bsr.w advance_shared_random_state
-	tst.b app_0201(a6)
+	tst.b mouse_primary_button_flag(a6)
 	bne.b abs_0_000011EE
 	tst.b primary_fire_flag(a6)
 	bne.b abs_0_000011EE
@@ -1226,7 +1226,7 @@ abs_0_00001256:
 	bsr.w abs_0_000034D4
 	bsr.w abs_0_000033AA
 	move.b #$A,diagnostic_step_byte.l
-	move.b #$7F,app_020A(a6)
+	move.b #$7F,display_and_frame_service_flags(a6)
 	move.l #$70000,$0000(a6)
 	clr.w weapon_action_cooldown(a6)
 	st.b interrupted_game_available_flag(a6)
@@ -1286,7 +1286,7 @@ abs_0_0000137E:
 	move.w d0,$000E(a0)
 	movem.l (a7)+,d0/a0
 	bsr.w count_and_present_frame_handoff
-	bset.b #7,app_020A(a6)
+	bset.b #7,display_and_frame_service_flags(a6)
 	tst.w initial_resource_charge_steps(a6)
 	beq.b abs_0_000013D0
 	move.w icarus_shield_strength(a6),d0
@@ -1404,7 +1404,7 @@ abs_0_00001510:
 	bra.w gameplay_frame_loop
 abs_0_0000151E:
 	sf.b interrupted_game_available_flag(a6)
-	move.b #$80,app_020A(a6)
+	move.b #$80,display_and_frame_service_flags(a6)
 	clr.b display_buffer_table_byte_offset(a6)
 	bsr.w count_and_present_frame_handoff
 	move.w #$2EE,d1
@@ -1417,7 +1417,7 @@ abs_0_00001534:
 abs_0_00001542:
 	tst.b pending_key_scancode(a6)
 	bne.w abs_0_000016B0
-	tst.b app_0202(a6)
+	tst.b mouse_secondary_button_flag(a6)
 	bne.w abs_0_000016B0
 	cmp.w vblank_tick_counter(a6),d0
 	bne.b abs_0_00001542
@@ -1497,7 +1497,7 @@ abs_0_00001698:
 	clr.b diagnostic_step_byte.l
 abs_0_000016B0:
 	sf.b abs_0_00039CD0.l
-	move.b #$0,app_020A(a6)
+	move.b #$0,display_and_frame_service_flags(a6)
 	sf.b interrupted_game_available_flag(a6)
 	clr.w player_motion_x(a6)
 	clr.w player_motion_y(a6)
@@ -1514,7 +1514,7 @@ abs_0_000016B0:
 	move.b fire_key_scancode(a6),d0
 	cmp.b pending_key_scancode(a6),d0
 	beq.w abs_0_0000171C
-	tst.b app_0201(a6)
+	tst.b mouse_primary_button_flag(a6)
 	bne.w abs_0_0000171C
 	tst.b primary_fire_flag(a6)
 	bne.w abs_0_0000171C
@@ -1529,7 +1529,7 @@ abs_0_0000172C:
 	jsr poll_translated_command_key.l
 	tst.b d0
 	bne.b abs_0_00001748
-	tst.b app_0201(a6)
+	tst.b mouse_primary_button_flag(a6)
 	bne.b abs_0_00001748
 	tst.b primary_fire_flag(a6)
 	bne.b abs_0_00001748
@@ -2542,7 +2542,7 @@ disable_midframe_copper_blocks_continuation:
 	move.l #$FFFFFFFE,amiga_copper_list_c_mode_gate.l
 	move.l #$FFFFFFFE,amiga_copper_list_a_mode_gate.l
 	move.l #$FFFFFFFE,amiga_copper_list_b_mode_gate.l
-	sf.b app_020A(a6)
+	sf.b display_and_frame_service_flags(a6)
 	tst.w platform_entry_flags.l
 	bpl.b abs_0_0000271A
 	move.w #DMAF_AUDIO,_custom+dmacon.l
@@ -3723,9 +3723,9 @@ abs_0_000038C8:
 	move.w vblank_tick_counter(a6),d0
 	addq.w #2,d0
 abs_0_000038CE:
-	move.b app_01FF(a6),d1
+	move.b amiga_mouse_previous_x_counter(a6),d1
 	add.b d1,$0062(a6)
-	move.b app_0200(a6),d1
+	move.b amiga_mouse_previous_y_counter(a6),d1
 	add.b d1,app_0067(a6)
 	subq.l #7,$0060(a6)
 	addq.l #5,$0064(a6)
@@ -4044,8 +4044,9 @@ abs_0_00003C74:
 	andi.w #4095,d1
 	move.w d1,view_rotation_0(a6)
 	rts
+    ; Cockpit view sets display/service bit 0 and player visibility bit 1. External-view continuation clears them. Other service bits are retained; this is not the whole display enable state.
 abs_0_00003C96:
-	bset.b #0,app_020A(a6)
+	bset.b #0,display_and_frame_service_flags(a6)
 	bset.b #1,$0002(a0)
 	move.l $0004(a0),view_origin_x(a6)
 	move.l $0008(a0),d0
@@ -4072,7 +4073,7 @@ abs_0_00003CD8:
 	move.w #$0,view_rotation_offset_1(a6)
 	move.w #$320,view_offset_distance(a6)
 abs_0_00003D00:
-	bclr.b #0,app_020A(a6)
+	bclr.b #0,display_and_frame_service_flags(a6)
 	bclr.b #1,$0002(a0)
 	move.l $0004(a0),view_origin_x(a6)
 	move.l $0008(a0),view_origin_y(a6)
@@ -8230,7 +8231,7 @@ abs_0_000071AE:
 	bne.b abs_0_000071F8
     ; With one-hand mode off, port2 primary fire does not directly satisfy this gate. Original port1/shared action flag or configured keyboard scancode does; Space reached counter increment7278.
 abs_0_000071DE:
-	tst.b app_0201(a6)
+	tst.b mouse_primary_button_flag(a6)
 	bne.b abs_0_000071F8
 	lea.l keyboard_down_flags(pc),a0
 	clr.l d0
@@ -8518,7 +8519,7 @@ abs_0_000075B2:
 	andi.w #3,d0
 	bne.w update_locked_scan_target_projection
 abs_0_000075CC:
-	tst.b app_0201(a6)
+	tst.b mouse_primary_button_flag(a6)
 	bne.b try_launch_homing_missile_after_input
 	tst.b primary_fire_flag(a6)
 	bne.b try_launch_homing_missile_after_input
@@ -13921,7 +13922,7 @@ abs_0_0000C392:
 	bge.w abs_0_0000C29E
 	bra.w abs_0_0000C424
 abs_0_0000C3B2:
-	st.b app_0209(a6)
+	st.b panel_fast_animation_request(a6)
 	cmpi.w #30,(a0)
 	bne.w abs_0_0000B9C2
 	move.w player_speed_smoothed(a6),d1
@@ -14127,7 +14128,7 @@ amiga_vertical_blank_game_service:
 	bpl.b abs_0_0000C712
 	move.w #$0,weapon_action_cooldown(a6)
 abs_0_0000C712:
-	bsr.w abs_0_0000D170
+	bsr.w poll_amiga_mouse_and_joystick_controls
 	bsr.w update_amiga_hud_sprites
 	move.w frame_service_ticks_in_window(a6),d0
 	cmp.w abs_0_0000C4E0.l,d0
@@ -14136,12 +14137,13 @@ abs_0_0000C712:
 	move.w frame_handoffs_in_window(a6),frame_rate_display_sample(a6)
 	clr.w frame_handoffs_in_window(a6)
 	clr.w frame_service_ticks_in_window(a6)
+    ; Service flags bit 7 gates this IRQ branch; modal input gates selected counters and motion separately. Zero/nonzero tests elsewhere have different scope. Not a global pause Boolean.
 abs_0_0000C738:
-	tst.b app_020A(a6)
+	tst.b display_and_frame_service_flags(a6)
 	bpl.w abs_0_0000C876
 	tst.b modal_command_input_flag(a6)
 	bne.b abs_0_0000C754
-	addq.w #1,app_07C2(a6)
+	addq.w #1,panel_animation_service_ticks(a6)
 	subq.w #1,app_07AC(a6)
 	bne.b abs_0_0000C754
 	bsr.w abs_0_0000D6A0
@@ -14394,7 +14396,7 @@ initialize_platform_runtime:
 	jsr _LVOSuperState(a6)
 abs_0_0000CC48:
 	movea.l game_workspace_base.l,a6
-	sf.b app_020A(a6)
+	sf.b display_and_frame_service_flags(a6)
 	lea.l _custom.l,a5
 	move.w #$669,color+$22(a5)
 	move.w #$0,color+$24(a5)
@@ -14691,17 +14693,18 @@ amiga_boot_palette_words:
 	dc.b $0F,$FF,$0F,$FF,$0F,$FF,$0F,$FF,$0F,$FF,$0F,$FF,$0F,$FF,$0F,$FF
 	dc.b $0F,$FF,$0F,$FF,$0F,$FF,$0F,$FF,$0F,$FF,$0F,$FF,$0F,$FF,$0F,$FF
 	dc.b $0F,$FF,$0F,$FF,$0F,$FF,$0F,$FF,$0F,$FF,$0F,$FF,$0F,$FF,$0F,$FF
-abs_0_0000D170:
+    ; Poll active-low CIAA/POTINP buttons and JOY counters. Stored mouse BYTEs are previous hardware samples; wrap-adjusted deltas feed controls, not screen coordinates.
+poll_amiga_mouse_and_joystick_controls:
 	lea.l _custom.l,a5
 	moveq.l #0,d0
 	move.b $00BFE0FF.l,d0
 	btst #6,d0
-	seq.b app_0201(a6)
+	seq.b mouse_primary_button_flag(a6)
 	btst #7,d0
 	seq.b primary_fire_flag(a6)
 	move.w potinp(a5),d0
 	btst #10,d0
-	seq.b app_0202(a6)
+	seq.b mouse_secondary_button_flag(a6)
 	move.w #$C00,potgo(a5)
 	clr.w d2
 	move.w joy1dat(a5),d0	; joystick/mouse port 1 data
@@ -14729,8 +14732,8 @@ abs_0_0000D1CC:
 	move.w d0,d1
 	andi.w #255,d0
 	clr.w d2
-	move.b app_01FF(a6),d2
-	move.b d1,app_01FF(a6)
+	move.b amiga_mouse_previous_x_counter(a6),d2
+	move.b d1,amiga_mouse_previous_x_counter(a6)
 	sub.w d2,d0
 	cmp.w #$7F,d0
 	bmi.b abs_0_0000D1F2
@@ -14746,8 +14749,8 @@ abs_0_0000D1FC:
 	move.w d1,d0
 	andi.w #255,d0
 	clr.w d2
-	move.b app_0200(a6),d2
-	move.b d1,app_0200(a6)
+	move.b amiga_mouse_previous_y_counter(a6),d2
+	move.b d1,amiga_mouse_previous_y_counter(a6)
 	sub.w d2,d0
 	cmp.w #$7F,d0
 	bmi.b abs_0_0000D21E
@@ -14763,7 +14766,7 @@ abs_0_0000D228:
 	bpl.b abs_0_0000D25C
 	tst.b structure_contact_pose_mode(a6)
 	bne.b abs_0_0000D25C
-	tst.b app_0202(a6)
+	tst.b mouse_secondary_button_flag(a6)
 	beq.b abs_0_0000D244
 	add.w d0,negative_speed_control_accumulator(a6)
 	bra.b abs_0_0000D24A
@@ -14792,11 +14795,11 @@ update_amiga_hud_sprites:
 	move.l a0,_custom+sprpt+$14.l	; sprite pointer
 	move.l a0,_custom+sprpt+$18.l	; sprite pointer
 	move.l a0,_custom+sprpt+$1C.l	; sprite pointer
-	tst.b app_020A(a6)
+	tst.b display_and_frame_service_flags(a6)
 	bne.b abs_0_0000D29C
 	rts
 abs_0_0000D29C:
-	btst.b #0,app_020A(a6)
+	btst.b #0,display_and_frame_service_flags(a6)
 	beq.w abs_0_0000D444
 	lea.l hud_default_reticle_sprite.l,a0
 	cmpi.b #8,weapon_selection_and_status(a6)
@@ -14943,7 +14946,7 @@ abs_0_0000D41A:
 	or.b d2,d3
 	move.w d3,(a0)
 abs_0_0000D444:
-	btst.b #1,app_020A(a6)
+	btst.b #1,display_and_frame_service_flags(a6)
 	bne.b abs_0_0000D44E
 	rts
 abs_0_0000D44E:
@@ -15153,7 +15156,7 @@ abs_0_0000D6A0:
 	abcd -(a0),-(a1)
 	abcd -(a0),-(a1)
 	move.w #$1B0,app_07AC(a6)
-	btst.b #1,app_020A(a6)
+	btst.b #1,display_and_frame_service_flags(a6)
 	beq.w abs_0_0000D69E
 	move.l (a1),d0
 	moveq.l #3,d2
@@ -15223,7 +15226,7 @@ wait_for_translated_key:
 	move.l a0,-(a7)
 	moveq.l #0,d0
 abs_0_0000D7AE:
-	tst.b app_0201(a6)
+	tst.b mouse_primary_button_flag(a6)
 	bne.b abs_0_0000D7CE
 	tst.b primary_fire_flag(a6)
 	bne.b abs_0_0000D7CE
@@ -15887,7 +15890,7 @@ abs_0_0000E27A:
 	move.b #$13,diagnostic_step_byte.l
 poll_options_menu_choice:
 	bsr.w abs_0_0000E9B4
-	tst.b app_0201(a6)
+	tst.b mouse_primary_button_flag(a6)
 	bne.w store_control_settings_and_leave_options
 	tst.b primary_fire_flag(a6)
 	bne.w store_control_settings_and_leave_options
@@ -15926,7 +15929,7 @@ handle_painting_menu_choice:
 	bsr.w abs_0_00012F6E
 	bsr.w abs_0_0000E9D8
 	bsr.w abs_0_0000E9D2
-	st.b app_020A(a6)
+	st.b display_and_frame_service_flags(a6)
 	bsr.w abs_0_0000E9E0
 	bsr.w abs_0_00012F7A
 	bsr.w clear_text_framebuffer_and_cursor
@@ -15985,7 +15988,7 @@ abs_0_0000E3F2:
 	bra.w abs_0_0000E256
     ; Load-game choice retains first cockpit-palette WORD as a protection gate and original rotate/call13BFC path. Static entry condition known; actual execution/provider380 remains unqualified.
 handle_load_game_menu_choice:
-	clr.b app_020A(a6)
+	clr.b display_and_frame_service_flags(a6)
 	move.b #$1,options_load_game_choice.l
 	bsr.w redraw_options_text_at_origin
 	move.b #$2,options_load_game_choice.l
@@ -16259,7 +16262,7 @@ abs_0_0000E9D8:
 	dc.w $0000
 abs_0_0000E9E0:
 	sf.b interrupted_game_available_flag(a6)
-	move.b #$E,app_020A(a6)
+	move.b #$E,display_and_frame_service_flags(a6)
 	clr.b display_buffer_table_byte_offset(a6)
 	bsr.w abs_0_0000FD88
 	clr.w abs_0_000018B8.l
@@ -16284,9 +16287,9 @@ abs_0_0000E9E0:
 	move.w #$64,model_origin_delta_x(a6)
 	move.w #$64,model_origin_delta_y(a6)
 	clr.w d0
-	move.b d0,app_01FF(a6)
+	move.b d0,amiga_mouse_previous_x_counter(a6)
 	asr.w #8,d0
-	move.b d0,app_0200(a6)
+	move.b d0,amiga_mouse_previous_y_counter(a6)
 	move.w #$4,active_model_scale_shift(a6)
 	clr.w $017E(a6)
 	clr.w $0180(a6)
@@ -17623,7 +17626,7 @@ format_six_score_nibbles:
 poll_disk_operation_cancel:
 	tst.b pending_key_scancode(a6)
 	bne.b abs_0_0000FF1C
-	tst.b app_0201(a6)
+	tst.b mouse_primary_button_flag(a6)
 	bne.b abs_0_0000FF1C
 	tst.b primary_fire_flag(a6)
 	bne.b abs_0_0000FF1C
@@ -44703,7 +44706,7 @@ process_tractor_target_keys:
 	sf.b tractor_input_override_flag(a6)
 	bra.w abs_0_00035782
 abs_0_00035522:
-	st.b app_0209(a6)
+	st.b panel_fast_animation_request(a6)
 	move.w $0024(a0),d1
 	add.w d1,d1
 	add.w d1,d1
@@ -46354,7 +46357,7 @@ abs_0_00036BE0:
 	move.b #$FF,abs_0_00039B76.l
 	bra.b abs_0_00036C54
 abs_0_00036BF4:
-	st.b app_0209(a6)
+	st.b panel_fast_animation_request(a6)
 	subi.l #5,player_world_y(a6)
 	move.w icarus_power_reserve(a6),d0
 	cmp.w #$FFFF,d0
@@ -49629,7 +49632,7 @@ abs_0_0003ABDC:
 alternate_contact_dot_masks:
 	dc.w $C000,$3000,$0C00,$0300,$00C0,$0030,$000C,$0003
 abs_0_0003ABF0:
-	btst.b #0,app_020A(a6)
+	btst.b #0,display_and_frame_service_flags(a6)
 	beq.w abs_0_0003ACFC
 	cmpi.b #8,weapon_selection_and_status(a6)
 	bne.b abs_0_0003AC6C
@@ -50146,11 +50149,11 @@ abs_0_0003B190:
 	clr.w frame_handoffs_in_window(a6)
 	clr.w frame_service_ticks_in_window(a6)
 abs_0_0003B1AC:
-	tst.b app_020A(a6)
+	tst.b display_and_frame_service_flags(a6)
 	bpl.w abs_0_0003B28C
 	tst.b modal_command_input_flag(a6)
 	bne.b abs_0_0003B1C8
-	addq.w #1,app_07C2(a6)
+	addq.w #1,panel_animation_service_ticks(a6)
 	subq.w #1,app_07AC(a6)
 	bne.b abs_0_0003B1C8
 	bsr.w abs_0_0003CCFE
@@ -50189,7 +50192,7 @@ abs_0_0003B21A:
 	bra.b abs_0_0003B28C
 abs_0_0003B230:
 	bclr.b #0,$FFFFFA07.l
-	tst.b app_020A(a6)
+	tst.b display_and_frame_service_flags(a6)
 	beq.w abs_0_0003B350
 	tst.b inside_structure_flag(a6)
 	bne.b abs_0_0003B28C
@@ -50212,7 +50215,7 @@ abs_0_0003B280:
 	bpl.b abs_0_0003B28C
 	move.l app_07CA(a6),player_world_y(a6)
 abs_0_0003B28C:
-	tst.b app_020A(a6)
+	tst.b display_and_frame_service_flags(a6)
 	beq.w abs_0_0003B350
 	move.b #$1D,$FFFFFA21.w
 	move.b #$8,$FFFFFA1B.w
@@ -50424,9 +50427,9 @@ abs_0_0003B608:
 	bra.b abs_0_0003B5FC
 abs_0_0003B61E:
 	btst #0,d0
-	sne.b app_0202(a6)
+	sne.b mouse_secondary_button_flag(a6)
 	btst #1,d0
-	sne.b app_0201(a6)
+	sne.b mouse_primary_button_flag(a6)
 	bne.w abs_0_0003B710
 abs_0_0003B632:
 	btst #0,d0
@@ -51518,7 +51521,7 @@ abs_0_0003CCFE:
 	abcd -(a0),-(a1)
 	abcd -(a0),-(a1)
 	move.w #$1B0,app_07AC(a6)
-	btst.b #1,app_020A(a6)
+	btst.b #1,display_and_frame_service_flags(a6)
 	beq.w abs_0_0003CCFC
 	move.l (a1),d3
 	moveq.l #3,d2
@@ -52072,7 +52075,7 @@ abs_0_0003D3D2:
 	abcd -(a0),-(a1)
 	abcd -(a0),-(a1)
 	addi.w #432,app_07AC(a6)
-	btst.b #1,app_020A(a6)
+	btst.b #1,display_and_frame_service_flags(a6)
 	beq.w abs_0_0003D3D0
 	move.l (a1),d3
 	moveq.l #3,d2
@@ -60230,20 +60233,20 @@ update_panel_animations:
 	move.b #$70,diagnostic_stage_step_word.l
 	clr.b diagnostic_step_byte.l
 	movem.l d0-d7/a0-a6,-(a7)
-	tst.b app_0209(a6)
+	tst.b panel_fast_animation_request(a6)
 	beq.b abs_0_0004E5FA
 	move.w #$0,panel_animation_records_reload_countdown_3.l
 	move.w #$0,panel_animation_records_reload_countdown_4.l
-	clr.b app_0209(a6)
+	clr.b panel_fast_animation_request(a6)
 	bra.b abs_0_0004E60A
 abs_0_0004E5FA:
 	move.w #$64,panel_animation_records_reload_countdown_3.l
 	move.w #$64,panel_animation_records_reload_countdown_4.l
 abs_0_0004E60A:
-	move.w app_07C2(a6),d0
+	move.w panel_animation_service_ticks(a6),d0
 	cmp.b #$5,d0
 	blt.w abs_0_0004E7D0
-	clr.w app_07C2(a6)
+	clr.w panel_animation_service_ticks(a6)
 	move.b weapon_selection_and_status(a6),d0
 	cmp.b #$8,d0
 	bne.b abs_0_0004E656

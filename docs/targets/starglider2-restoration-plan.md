@@ -2271,3 +2271,33 @@ diagnostics. C/vasm and the clean standalone source build remain exact, with all
 unclassified bytes (14,748 to 14,728; still 260 residual intervals). No code is
 newly promoted and no new runtime path is claimed. See
 `runtime/observations/starglider2-flight-environment-state.json`.
+
+## Input samples and display/panel service state
+
+Seven more generic app fields are now named from connected producers and
+consumers: previous Amiga mouse-counter BYTEs, primary/secondary mouse-button
+flags, the consumed panel fast-animation request, the display/frame-service
+bitmask and the panel service-tick WORD. Generic field names fall from 102 to
+95; this is not a semantic-completion percentage. The original Amiga polling
+routine is named at $D170. Canonical history retains eleven active
+interpretations and one rolled-back misplaced comment; no generated assembly
+was hand-edited and no extra native build was needed for that correction.
+
+The input BYTEs retain hardware-counter samples rather than screen coordinates.
+Original wrap-adjusted deltas drive rotation or speed depending on the secondary
+button and flight/contact state. The alternate packet path writes the same
+button flags, but no alternate-platform execution is claimed. Display/service
+bit 0 gates the reticle and follows view selection, bit 1 gates resource-HUD
+work, and the sign bit gates selected IRQ services. Separate zero/nonzero and
+modal conditions remain; the field is not a global pause Boolean. The panel
+request selects reload zero versus 100 for animation records 3/4, then clears.
+The panel counter's low BYTE is compared against five before clearing its
+whole WORD; no universal physical-frame rate is inferred.
+
+The single necessary native generation took 82.39 seconds, converged and
+reported zero source-quality diagnostics. C/vasm and the clean standalone
+build reproduce the original payload with 57 unchanged assets. Unclassified
+accounting remains 14,728 bytes in 260 intervals, with no code promotion or new
+runtime coverage. Damage/setup flags remain unnamed rather than assigning a
+speculative cheat or invulnerability role. See
+`runtime/observations/starglider2-input-panel-state.json`.
