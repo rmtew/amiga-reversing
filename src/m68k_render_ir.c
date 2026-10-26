@@ -6097,6 +6097,9 @@ static int lookup_rsset_use_site_binding_symbol_name(const M68kRenderLookup *loo
     uint32_t offset, uint8_t operand_index, uint8_t base_reg, int16_t displacement,
     char *symbol_name, size_t symbol_name_size, int32_t *out_addend);
 
+static const M68kRenderTypedAccess *lookup_typed_access_for_operand(const M68kRenderLookup *lookup,
+    size_t section_index, uint32_t offset, uint8_t operand_index);
+
 static int attach_amiga_app_base_slot_symbols(const M68kRenderLookup *lookup,
     const M68kRenderPlatformState *state, size_t section_index, uint32_t offset,
     M68kInstructionIR *instruction) {
@@ -6124,6 +6127,12 @@ static int attach_amiga_app_base_slot_symbols(const M68kRenderLookup *lookup,
       attached = 1;
       continue;
     }
+    /* Explicit use-site bindings above are authoritative. A resolved typed
+     * operand then outranks an inferred global app-slot name at the same
+     * numeric displacement; the typed renderer below owns its expression. */
+    const M68kRenderTypedAccess *typed = lookup_typed_access_for_operand(lookup, section_index, offset,
+      (uint8_t)operand_index);
+    if (typed != NULL && typed->field_expr[0] != '\0') continue;
     if (m68k_bitset_u32_has(state->address_hardware_base_known, base_reg)) continue;
     if (m68k_bitset_u32_has(state->address_app_base_known, base_reg)) {
       if (!lookup_typed_app_slot_field_symbol_name(lookup, displacement, symbol_name, sizeof(symbol_name),

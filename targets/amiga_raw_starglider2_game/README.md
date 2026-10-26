@@ -10,7 +10,7 @@ the build script and README are packaging support, not hand-edited game code.
 
 Requirements: Python **3.9+** (standard library only) and the external Motorola
 frontend **vasmm68k_mot**. Tested with Python 3.12.14, vasm 2.0e / M68k backend
-2.8. The nine required Amiga include files are supplied in `includes/`.
+2.8. The 14 required Amiga include files are supplied in `includes/`.
 No analysis DLL, emulator, original reference binary or network is needed.
 
 From this directory:
@@ -35,7 +35,7 @@ and checks the decoded protection inverse. Output and a build receipt go to
 
 - `starglider2_game.s`: unmodified canonical native main assembly.
 - `assets/`: 57 native INCBIN files, 93633 bytes in total.
-- `includes/`: the nine unmodified required header files; notices retained.
+- `includes/`: the 14 unmodified required header files; notices retained.
 - `analysis_views/`: decoded protection and original boot-selector source views.
 - `tools/starglider2_protection.py`: original deterministic inverse recipe.
 - `rendered-manifest.json`: checksummed build inputs and exact output identities.

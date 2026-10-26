@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
   "kind": "committed_native_rendered_original_export",
-  "canonical_source_commit": "3a1d38c80467ba892a6d21fe7eefba0c219515f3",
-  "publication_base_commit": "3a1d38c80467ba892a6d21fe7eefba0c219515f3",
+  "canonical_source_commit": "a11b3ee23d8f8504d5c6905f53b30e027b1bd3a7",
+  "publication_base_commit": "a11b3ee23d8f8504d5c6905f53b30e027b1bd3a7",
   "native_export": "CListingArtifact.source_package_payload(64)",
-  "main_source_sha256": "7aaa2f5b99ca3697bac69a060580e06a41bb34375a24548cd69cbe858a366fc4",
+  "main_source_sha256": "2ee5d2fdcae4711355d357f7ad31651c24d266c8aec6f6082f12afc9f33a0d63",
   "asset_count": 57,
   "asset_bytes": 93633,
   "game_assembly_hand_edits": false,
@@ -24,13 +24,14 @@
     "assembler executable",
     "paused Pandora work"
   ],
-  "canonical_source_commit_role": "publication base; canonical facts unchanged from this commit",
-  "canonical_source_subject_revision": "4328d15ac2b20756128f7190a35f4b0d22ea7794075fb82eaa6822ce8fad08fd",
+  "canonical_source_commit_role": "publication base; this batch adds reviewed canonical facts bound by canonical_fact_sha256",
+  "canonical_source_subject_revision": "8ee1bd0559c0ef08c5debd29cb7ab52342225506aee0886a7582133080598843",
   "canonical_fact_sha256": {
     "source_binary.json": "42d4a5758b3e8236af7f912aee85e9ee5323bcd0961faa338c4f864080a0a7d9",
     "target_metadata.json": "e7540b68c118c56aba8815b6722eefa067517cc865fe9841d6c01ce96551389c",
-    "manual_actions.jsonl": "70a83e9c9a75ffe9079c7ec47b639a318b02a48d52a0feb2720253f7fc86dc07",
-    "decision_journal.jsonl": "775cb8e3358d6cb9d6923592df7d49b06c09717fac0e3ca3062073c070c77e3c"
+    "manual_actions.jsonl": "e1f09d4d912d9f545c014f5bde42f270be7f064df896802705e7f5a04a1a2ce2",
+    "decision_journal.jsonl": "ffd86c078677a1530cda4117869140e111f607179b474254f2e6c999fc5ce4cd"
   },
-  "refinement_receipt": "runtime/observations/starglider2-direct-call-entry-inputs.json"
+  "refinement_receipt": "runtime/observations/starglider2-exec-and-random-state.json",
+  "headers": "14 unmodified required include files collected by source_package.collect_package_includes from ext/amiga_includes/ndk_2.0/include; header notices retained"
 }

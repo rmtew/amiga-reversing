@@ -174,6 +174,7 @@
 ;     1.3: _LVOSuperState
 
     INCLUDE "exec/exec_lib.i"
+    INCLUDE "exec/execbase.i"
     INCLUDE "graphics/copper.i"
     INCLUDE "hardware/adkbits.i"
     INCLUDE "hardware/blit.i"
@@ -200,8 +201,8 @@ cosine_lookup_pointer RS.L 1
     RS.B 16
 pending_bcd_score_addend RS.W 1
     RS.B 2
-app_0060 RS.L 1
-app_0064 RS.L 1
+shared_random_state_a RS.L 1
+shared_random_state_b RS.L 1
     RS.B 4
 app_006C RS.L 1
     RS.B 4
@@ -221,9 +222,7 @@ model_rotation_0 RS.W 1
 model_rotation_1 RS.W 1
 model_rotation_2 RS.W 1
 app_011E RS.W 1
-    RS.B 7
-app_0127 RS.B 1
-    RS.B 10
+    RS.B 18
 model_origin_delta_x RS.W 1
 model_origin_delta_y RS.W 1
 model_origin_delta_z RS.W 1
@@ -2515,8 +2514,8 @@ abs_0_000025FE:
 	movem.l (a7)+,d0-d7/a0-a1
 	rts
 abs_0_0000261A:
-	move.l #$95901143,$0060(a6)
-	move.l #$28731549,$0064(a6)
+	move.l #$95901143,shared_random_state_a(a6)
+	move.l #$28731549,shared_random_state_b(a6)
 	move.b $01B0(a6),$0034(a6)
 	move.b $01B1(a6),d0
 	move.b d0,$0036(a6)
@@ -2535,13 +2534,13 @@ abs_0_0000261A:
     ; Shared PRNG: ROL.L 3, SUBQ.W 7, EOR.L; updates A6+$60/$64, preserves D1, returns D0. Original $380 shim and $4DED4 bridge forward here; byte perturbations remain aliases.
 advance_shared_random_state:
 	move.l d1,-(a7)
-	move.l $0060(a6),d0
-	move.l $0064(a6),d1
+	move.l shared_random_state_a(a6),d0
+	move.l shared_random_state_b(a6),d1
 	rol.l #3,d0
 	subq.w #7,d0
 	eor.w d1,d0
-	move.l d1,$0060(a6)
-	move.l d0,$0064(a6)
+	move.l d1,shared_random_state_a(a6)
+	move.l d0,shared_random_state_b(a6)
 	move.l (a7)+,d1
 	rts
 	dc.b $41,$EE,$00,$34,$10,$28,$00,$03,$E2,$10,$12,$28,$00,$02,$B3,$00
@@ -3496,8 +3495,8 @@ abs_0_0000365C:
 	mulu.w #$28,d0
 	addi.l #0,d0
 	add.l d0,d0
-	move.l $0060(a6),d6
-	move.l $0064(a6),d7
+	move.l shared_random_state_a(a6),d6
+	move.l shared_random_state_b(a6),d7
 	move.w #$100,d0
 abs_0_0000367E:
 	move.w d0,-(a7)
@@ -3742,8 +3741,8 @@ abs_0_000038A0:
 	movea.l (a7)+,a0
 	move.w (a7)+,d0
 	dbf.w d0,abs_0_0000367E
-	move.l d6,$0060(a6)
-	move.l d7,$0064(a6)
+	move.l d6,shared_random_state_a(a6)
+	move.l d7,shared_random_state_b(a6)
 	rts
 abs_0_000038B2:
 	move.w vblank_tick_counter(a6),d0
@@ -3761,11 +3760,11 @@ abs_0_000038C8:
 	addq.w #2,d0
 abs_0_000038CE:
 	move.b amiga_mouse_previous_x_counter(a6),d1
-	add.b d1,$0062(a6)
+	add.b d1,shared_random_state_a+2(a6)
 	move.b amiga_mouse_previous_y_counter(a6),d1
-	add.b d1,app_0067(a6)
-	subq.l #7,$0060(a6)
-	addq.l #5,$0064(a6)
+	add.b d1,shared_random_state_b+3(a6)
+	subq.l #7,shared_random_state_a(a6)
+	addq.l #5,shared_random_state_b(a6)
 	cmp.w vblank_tick_counter(a6),d0
 	bne.b abs_0_000038CE
 	rts
@@ -14434,7 +14433,8 @@ initialize_platform_runtime:
 	btst #0,d0
 	bne.w abs_0_0000CC48
 	movea.l $00000004.l,a6
-	addq.b #1,app_0127(a6)
+    ; KNOWN: type A6=Target code-entry register seed:ExecBase
+	addq.b #1,TDNestCnt(a6)
 	movea.l $00000004.l,a6
 	jsr _LVOSuperState(a6)
 abs_0_0000CC48:
@@ -59816,35 +59816,35 @@ initialize_nearby_point_field:
 	lea.l point_field_world_positions(a6),a4
 	lea.l $0078(a4),a5
 abs_0_0004DFD4:
-	move.l $0060(a6),d0
-	move.l $0064(a6),d1
+	move.l shared_random_state_a(a6),d0
+	move.l shared_random_state_b(a6),d1
 	rol.l #3,d0
 	subq.w #7,d0
 	eor.w d1,d0
-	move.l d1,$0060(a6)
-	move.l d0,$0064(a6)
+	move.l d1,shared_random_state_a(a6)
+	move.l d0,shared_random_state_b(a6)
 	andi.w #16383,d0
 	subi.w #8192,d0
 	add.l player_world_x(a6),d0
 	move.w d0,(a4)+
-	move.l $0060(a6),d0
-	move.l $0064(a6),d1
+	move.l shared_random_state_a(a6),d0
+	move.l shared_random_state_b(a6),d1
 	rol.l #3,d0
 	subq.w #7,d0
 	eor.w d1,d0
-	move.l d1,$0060(a6)
-	move.l d0,$0064(a6)
+	move.l d1,shared_random_state_a(a6)
+	move.l d0,shared_random_state_b(a6)
 	andi.w #16383,d0
 	subi.w #8192,d0
 	add.l player_world_y(a6),d0
 	move.w d0,(a4)+
-	move.l $0060(a6),d0
-	move.l $0064(a6),d1
+	move.l shared_random_state_a(a6),d0
+	move.l shared_random_state_b(a6),d1
 	rol.l #3,d0
 	subq.w #7,d0
 	eor.w d1,d0
-	move.l d1,$0060(a6)
-	move.l d0,$0064(a6)
+	move.l d1,shared_random_state_a(a6)
+	move.l d0,shared_random_state_b(a6)
 	andi.w #16383,d0
 	subi.w #8192,d0
 	add.l player_world_z(a6),d0
@@ -60112,13 +60112,13 @@ abs_0_0004E34C:
 abs_0_0004E350:
 	subq.l #6,abs_0_0004E5C0.l
 	move.b #$13,diagnostic_step_byte.l
-	move.l $0060(a6),d0
-	move.l $0064(a6),d1
+	move.l shared_random_state_a(a6),d0
+	move.l shared_random_state_b(a6),d1
 	rol.l #3,d0
 	subq.w #7,d0
 	eor.w d1,d0
-	move.l d1,$0060(a6)
-	move.l d0,$0064(a6)
+	move.l d1,shared_random_state_a(a6)
+	move.l d0,shared_random_state_b(a6)
 	andi.w #32767,d0
 	subi.w #16384,d0
 	move.w d0,d1
@@ -60131,23 +60131,23 @@ abs_0_0004E350:
 	move.w $0(a0,d1.w),$0168(a6)
 	movea.l cosine_lookup_pointer(a6),a0
 	move.w $0(a0,d1.w),$016A(a6)
-	move.l $0060(a6),d0
-	move.l $0064(a6),d1
+	move.l shared_random_state_a(a6),d0
+	move.l shared_random_state_b(a6),d1
 	rol.l #3,d0
 	subq.w #7,d0
 	eor.w d1,d0
-	move.l d1,$0060(a6)
-	move.l d0,$0064(a6)
+	move.l d1,shared_random_state_a(a6)
+	move.l d0,shared_random_state_b(a6)
 	andi.w #32767,d0
 	subi.w #16384,d0
 	move.w d0,d3
-	move.l $0060(a6),d0
-	move.l $0064(a6),d1
+	move.l shared_random_state_a(a6),d0
+	move.l shared_random_state_b(a6),d1
 	rol.l #3,d0
 	subq.w #7,d0
 	eor.w d1,d0
-	move.l d1,$0060(a6)
-	move.l d0,$0064(a6)
+	move.l d1,shared_random_state_a(a6)
+	move.l d0,shared_random_state_b(a6)
 	andi.w #32767,d0
 	subi.w #16384,d0
 	move.w d0,d1

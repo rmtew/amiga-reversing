@@ -87,7 +87,7 @@ The initializer's `$6998` is the base subtraction/reservation, not a proven
 clear extent: the original clear loop covers `$6598` bytes. Neither proves all
 byte purposes or an unconditional renderer-entry address.
 
-## Current direct-call input and convergence result
+## Direct-call input and convergence result
 
 The [caller-input receipt](../../runtime/observations/starglider2-direct-call-entry-inputs.json)
 records 267 passing focused checks and a converged exact C/vasm export. The shared
@@ -157,7 +157,7 @@ cost but do not establish its cause. Do not run another unchanged pipeline merel
 for timing: collect operation counts within that phase alongside the next
 necessary qualification before attributing the cost to scheduling or repeated work.
 
-## Current register bridge, cache boundary and regeneration cost
+## Register bridge, cache boundary and regeneration cost
 
 The [register/text-cost receipt](../../runtime/observations/starglider2-register-bridge-text-cost.json)
 records the next system slice: 279 register/call/cursor checks, 14 text/trace checks
@@ -202,10 +202,47 @@ arbitrary-loop closure. The generated KB resolves ExecBase `$127` as `TDNestCnt`
 its library-to-base-type association is currently absent and must not be guessed
 from the old `app_0127` name.
 
+## Current ExecBase and shared random-state restoration
+
+The [ExecBase/PRNG receipt](../../runtime/observations/starglider2-exec-and-random-state.json)
+records three canonical API actions and their normal Decision Journal acceptance.
+At source `$BC34` the original loads A6 from absolute location4; `$BC3A` increments
+byte `$127`, then reloads SysBase and calls SuperState. The scoped ExecBase type
+now renders `TDNestCnt`, the task-disable nesting counter. The renderer previously
+let a coincident generic app name hide this native typed field. The shared fix
+preserves explicit use-site bindings and gives resolved typed fields priority
+over an inferred global app name. Its reproducer failed before the fix; 89
+renderer/access checks and 22 struct/reference round-trip checks pass.
+
+The two LONG state components at app `$60/$64` now render as
+`shared_random_state_a/b`, backed by their initializer and repeated
+rotate/subtract/XOR/store consumers. Byte/WORD perturbations remain aliases;
+the independent six-byte/314159 startup seeds are not assigned this meaning.
+These declarations expose 32 additional accesses, all explicitly marked
+`declared_layout_a6_fallback`, including 24 loop records. They do not establish
+numeric A6 on every entry or close the cache-holder range. One false app field
+also disappears under the known ExecBase type. Current totals are 3,281 app
+references, 159 loop patterns, 316 typed accesses and 101 generic field symbols.
+
+All 412,736 bytes rebuild exactly through C and vasm. Accepted code, ownership,
+57 asset files, 14,728 unclassified bytes and 260 intervals are unchanged.
+The changed source adds `exec/execbase.i`; the existing package include collector
+finds fourteen required headers including its dependency closure. The committed
+standalone layout receives a fresh clean build. No assembly is hand-edited and
+no runtime replay or interim archive is produced. One native generation takes
+146.06 seconds with the optimized candidate scan enabled.
+
+The next concrete source review is the existing custom inline matrix records.
+Both are already named, sized and bound to `SG2RotationMatrixWords`; do not
+re-annotate those facts. Confirm why interior direct-A6 accesses still use
+generic app names, reproduce the resolver gap if present, and reuse the native
+custom-field resolver rather than adding target-specific field aliases. Continue
+specific orphan/shared-buffer/model leads after that useful source improvement.
+
 ## Active priorities after cursor-span qualification
 
-The current source has 3,249 app references, 135 bounded loop-pattern records,
-314 app field records, 104 generic names and 14,728
+The current source has 3,281 app references, 159 bounded loop-pattern records,
+313 app field records, 101 generic names and 14,728
 unclassified bytes in 260 intervals. These measure different kinds of work,
 not overall completion. The current residual index is recomputed from retained
 native facts without another generation; the 15,111-byte/256-interval review
