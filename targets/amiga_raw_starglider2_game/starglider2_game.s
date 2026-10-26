@@ -391,7 +391,7 @@ panel_animation_service_ticks RS.W 1
 weapon_action_cooldown RS.W 1
 app_07C6 RS.W 1
     RS.B 2
-app_07CA RS.L 1
+player_world_y_lower_limit RS.L 1
 player_collision_response_flag RS.B 1
 player_collision_response_steps RS.B 1
 scan_target_screen_x RS.W 1
@@ -467,10 +467,9 @@ station_firing_steps_remaining RS.W 1
 station_proximity_disc_colour_index RS.W 1
 station_proximity_colour_ramp_step RS.W 1
 type128_disc_outer_layer_index RS.W 1
-shared_inventory_depot_message_pointers RS.B 40
+shared_inventory_depot_message_pointers RS.L 10
     RS.B 12
-app_0A02 RS.L 1
-    RS.B 36
+released_object_tracking_references RS.L 10
 inventory_line_text_start RS.B 1
     RS.B 29
 inventory_list_quantity_prefix RS.B 10
@@ -529,23 +528,17 @@ point_field_previous_view_positions RS.B 120
     RS.B 240
 model_type_target_selection_tags_prefix RS.B 103
     RS.B 151
-app_0EA4 RS.L 1
-    RS.B 996
-app_128C RS.L 1
-    RS.B 996
-app_1674 RS.L 1
-app_1678 RS.L 1
-    RS.B 996
-app_1A60 RS.L 1
-app_1A64 RS.L 1
-    RS.B 996
-app_1E4C RS.L 1
-app_1E50 RS.L 1
-    RS.B 996
-app_2238 RS.L 1
-app_223C RS.L 1
-    RS.B 236
-app_232C RS.L 1
+free_object_stack_storage RS.L 250
+distant_object_list_storage RS.L 250
+distant_object_list_end_slot RS.B 4
+nearby_object_list_storage RS.L 250
+nearby_object_list_end_slot RS.B 4
+visible_object_list_storage RS.L 250
+visible_object_list_end_slot RS.B 4
+contact_object_list_storage RS.L 250
+contact_object_list_end_slot RS.B 4
+integrating_object_list_storage RS.L 60
+integrating_object_list_end_slot RS.B 4
 world_object_pool RS.B 17000
     RSSET $0062
 app_0062 RS.B 1
@@ -1958,14 +1951,14 @@ abs_0_00001CA2:
 	move.w player_rotation_1(a6),$0012(a2)
 	move.w player_rotation_2(a6),$0014(a2)
 	moveq.l #0,d3
-	lea.l app_0A02(a6),a0
+	lea.l released_object_tracking_references(a6),a0
 	move.w #$9,d7
-abs_0_00001D02:
+find_released_object_tracking_slot:
 	movea.l (a0)+,a1
 	cmpa.l #$0,a1
 	beq.b abs_0_00001D14
 	addq.w #1,d3
-	dbf.w d7,abs_0_00001D02
+	dbf.w d7,find_released_object_tracking_slot
 	bra.b abs_0_00001D18
 abs_0_00001D14:
 	move.l a2,-$0004(a0)
@@ -4329,14 +4322,14 @@ abs_0_000040F8:
 	dc.b $00,$00,$4E,$75
     ; Partition 250 original 68-byte world records into nearby/distant lists, free stack and a selected velocity-integration list. Bounds depend on original pool/count inputs.
 partition_world_object_lists:
-	lea.l app_1A60(a6),a3
-	lea.l app_232C(a6),a2
+	lea.l nearby_object_list_end_slot(a6),a3
+	lea.l integrating_object_list_end_slot(a6),a2
 	move.l a2,integrating_objects_cursor(a6)
-	lea.l app_1674(a6),a2
+	lea.l distant_object_list_end_slot(a6),a2
 	clr.w distant_object_count(a6)
 	lea.l world_object_pool(a6),a4
 	move.w world_object_slot_count(a6),d7
-	lea.l app_0EA4(a6),a1
+	lea.l free_object_stack_storage(a6),a1
 	clr.w free_object_count(a6)
 	clr.w integrating_object_count(a6)
 	movea.w #$44,a5
@@ -4522,9 +4515,9 @@ abs_0_00004304:
     ; Build backwards pointer lists from nearby objects: contact eligibility precedes visibility culling. Store separate cursors/counts; lists may share objects and are not exclusive owners.
 prepare_visible_and_contact_objects:
 	movea.l nearby_objects_cursor(a6),a3
-	lea.l app_1E4C(a6),a5
+	lea.l visible_object_list_end_slot(a6),a5
 	clr.w visible_object_count(a6)
-	lea.l app_2238(a6),a2
+	lea.l contact_object_list_end_slot(a6),a2
 	clr.w contact_object_count(a6)
 	move.w nearby_object_count(a6),d7
 	beq.w abs_0_00004522
@@ -14212,9 +14205,9 @@ abs_0_0000C7C6:
 	move.l #$FFFFFF88,player_world_y(a6)
 	bra.b abs_0_0000C814
 abs_0_0000C808:
-	cmp.l app_07CA(a6),d1
+	cmp.l player_world_y_lower_limit(a6),d1
 	bpl.b abs_0_0000C814
-	move.l app_07CA(a6),player_world_y(a6)
+	move.l player_world_y_lower_limit(a6),player_world_y(a6)
 abs_0_0000C814:
 	tst.b abs_0_0000C4E2.l
 	bne.b abs_0_0000C82C
@@ -18116,7 +18109,7 @@ serialize_workspace_pointers_relative:
 	sub.l d0,growing_projector_part_reference(a6)
 	sub.l d0,nearby_space_station_reference(a6)
 	move.w #$9,d1
-	lea.l app_0A02(a6),a0
+	lea.l released_object_tracking_references(a6),a0
 abs_0_0001060C:
 	tst.l (a0)+
 	beq.b abs_0_00010614
@@ -18124,32 +18117,32 @@ abs_0_0001060C:
 abs_0_00010614:
 	dbf.w d1,abs_0_0001060C
 	move.w #$F9,d1
-	lea.l app_0EA4(a6),a0
+	lea.l free_object_stack_storage(a6),a0
 abs_0_00010620:
 	sub.l d0,(a0)+
 	dbf.w d1,abs_0_00010620
 	move.w #$FA,d1
-	lea.l app_128C(a6),a0
+	lea.l distant_object_list_storage(a6),a0
 abs_0_0001062E:
 	sub.l d0,(a0)+
 	dbf.w d1,abs_0_0001062E
 	move.w #$FA,d1
-	lea.l app_1678(a6),a0
+	lea.l nearby_object_list_storage(a6),a0
 abs_0_0001063C:
 	sub.l d0,(a0)+
 	dbf.w d1,abs_0_0001063C
 	move.w #$FA,d1
-	lea.l app_1A64(a6),a0
+	lea.l visible_object_list_storage(a6),a0
 abs_0_0001064A:
 	sub.l d0,(a0)+
 	dbf.w d1,abs_0_0001064A
 	move.w #$FA,d1
-	lea.l app_1E50(a6),a0
+	lea.l contact_object_list_storage(a6),a0
 abs_0_00010658:
 	sub.l d0,(a0)+
 	dbf.w d1,abs_0_00010658
 	move.w #$3C,d1
-	lea.l app_223C(a6),a0
+	lea.l integrating_object_list_storage(a6),a0
 abs_0_00010666:
 	sub.l d0,(a0)+
 	dbf.w d1,abs_0_00010666
@@ -18191,7 +18184,7 @@ restore_workspace_pointers_absolute:
 	add.l d0,growing_projector_part_reference(a6)
 	add.l d0,nearby_space_station_reference(a6)
 	move.w #$9,d1
-	lea.l app_0A02(a6),a0
+	lea.l released_object_tracking_references(a6),a0
 abs_0_000106F2:
 	tst.l (a0)+
 	beq.b abs_0_000106FA
@@ -18199,32 +18192,32 @@ abs_0_000106F2:
 abs_0_000106FA:
 	dbf.w d1,abs_0_000106F2
 	move.w #$F9,d1
-	lea.l app_0EA4(a6),a0
+	lea.l free_object_stack_storage(a6),a0
 abs_0_00010706:
 	add.l d0,(a0)+
 	dbf.w d1,abs_0_00010706
 	move.w #$FA,d1
-	lea.l app_128C(a6),a0
+	lea.l distant_object_list_storage(a6),a0
 abs_0_00010714:
 	add.l d0,(a0)+
 	dbf.w d1,abs_0_00010714
 	move.w #$FA,d1
-	lea.l app_1678(a6),a0
+	lea.l nearby_object_list_storage(a6),a0
 abs_0_00010722:
 	add.l d0,(a0)+
 	dbf.w d1,abs_0_00010722
 	move.w #$FA,d1
-	lea.l app_1A64(a6),a0
+	lea.l visible_object_list_storage(a6),a0
 abs_0_00010730:
 	add.l d0,(a0)+
 	dbf.w d1,abs_0_00010730
 	move.w #$FA,d1
-	lea.l app_1E50(a6),a0
+	lea.l contact_object_list_storage(a6),a0
 abs_0_0001073E:
 	add.l d0,(a0)+
 	dbf.w d1,abs_0_0001073E
 	move.w #$3C,d1
-	lea.l app_223C(a6),a0
+	lea.l integrating_object_list_storage(a6),a0
 abs_0_0001074C:
 	add.l d0,(a0)+
 	dbf.w d1,abs_0_0001074C
@@ -22927,7 +22920,7 @@ read_interior_placement_parameters:
 	move.w (a0),d0	; operand 1: SG2WorldObject_object_type at (a0)
 	bra.b abs_0_00017E68
 abs_0_00017EC2:
-	lea.l app_0EA4(a6),a1
+	lea.l free_object_stack_storage(a6),a1
 	clr.w free_object_count(a6)
 abs_0_00017ECA:
 	addq.w #1,free_object_count(a6)
@@ -41984,9 +41977,9 @@ abs_0_00032F32:
 	clr.w abs_0_00039CC6.l
 	tst.b space_environment_flag(a6)
 	bmi.b abs_0_00032F86
-	lea.l app_0A02(a6),a0
+	lea.l released_object_tracking_references(a6),a0
 	move.w #$9,d7
-abs_0_00032F4E:
+animate_released_objects_loop:
 	movea.l (a0)+,a2
 	cmpa.l #$0,a2
 	beq.b abs_0_00032F82
@@ -41998,7 +41991,7 @@ abs_0_00032F4E:
 	move.l #$FFFFFF88,$0008(a2)
 	clr.l -$0004(a0)
 abs_0_00032F82:
-	dbf.w d7,abs_0_00032F4E
+	dbf.w d7,animate_released_objects_loop
 abs_0_00032F86:
 	sf.b abs_0_00039CD3.l
 	tst.b space_environment_flag(a6)
@@ -42832,7 +42825,7 @@ abs_0_00033B3A:
 	bsr.w abs_0_00039D2C
 	bsr.w recreate_saved_nearby_objects
 	clr.l nearby_space_station_reference(a6)
-	lea.l app_0A02(a6),a0
+	lea.l released_object_tracking_references(a6),a0
 	move.w #$9,d0
 abs_0_00033B52:
 	clr.l (a0)+
@@ -42849,7 +42842,7 @@ abs_0_00033B7C:
 	lea.l world_reference_y_coordinates.l,a0
 	move.w selected_celestial_body_index(a6),d0
 	asl.w #2,d0
-	move.l $0(a0,d0.w),app_07CA(a6)
+	move.l $0(a0,d0.w),player_world_y_lower_limit(a6)
 	move.w #$0,selected_object_sound_type.l
 	move.w #$FFFF,paula_object_sound_transition_phase.l
 	move.w #$0,paula_object_sound_restart_flag.l
@@ -43146,7 +43139,7 @@ abs_0_00033F5C:
 	bsr.w recreate_saved_nearby_objects
 	clr.l nearby_space_station_reference(a6)
 	st.b space_station_spawn_request(a6)
-	lea.l app_0A02(a6),a0
+	lea.l released_object_tracking_references(a6),a0
 	move.w #$9,d0
 abs_0_00033FAE:
 	clr.l (a0)+
@@ -44938,7 +44931,7 @@ toggle_tractor_target_lock:
 	movea.l tractor_target_reference(a6),a0
 	cmpa.l #$0,a0
 	bne.b abs_0_000357F0
-	lea.l app_0A02(a6),a1
+	lea.l released_object_tracking_references(a6),a1
 	move.w #$9,d7
 abs_0_000357C2:
 	movea.l (a1)+,a2
@@ -46966,7 +46959,7 @@ abs_0_00037410:
 	sf.b modal_command_input_flag(a6)
 	move.w #$3,type128_disc_outer_layer_index(a6)
 	move.w #$8,station_mini_sentinel_count(a6)
-	lea.l app_0A02(a6),a0
+	lea.l released_object_tracking_references(a6),a0
 	move.w #$9,d0
 abs_0_00037428:
 	clr.l (a0)+
@@ -46984,7 +46977,7 @@ abs_0_00037428:
 	lea.l world_reference_y_coordinates.l,a0
 	move.w #$3,d0
 	asl.w #2,d0
-	move.l $0(a0,d0.w),app_07CA(a6)
+	move.l $0(a0,d0.w),player_world_y_lower_limit(a6)
 	lea.l model_type_population_counts(a6),a0
 	lea.l taymar_delivered_model_counts_prefix(a6),a1
 	move.w #$67,d0
@@ -50225,9 +50218,9 @@ abs_0_0003B230:
 	move.l #$FFFFFF88,player_world_y(a6)
 	bra.b abs_0_0003B28C
 abs_0_0003B280:
-	cmp.l app_07CA(a6),d1
+	cmp.l player_world_y_lower_limit(a6),d1
 	bpl.b abs_0_0003B28C
-	move.l app_07CA(a6),player_world_y(a6)
+	move.l player_world_y_lower_limit(a6),player_world_y(a6)
 abs_0_0003B28C:
 	tst.b display_and_frame_service_flags(a6)
 	beq.w abs_0_0003B350

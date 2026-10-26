@@ -1,0 +1,1072 @@
+{
+  "schema_version": 1,
+  "kind": "world_pointer_list_storage_and_released_object_tracking_restoration",
+  "publication_base_commit": "841b8053766e78066423b3506997414b62f2b989",
+  "backend_sha256": "b935c76d6042e045c26023dfc4fa2f7eae8d7c81790f0d261c66696033f7b3fc",
+  "analysis_sha256": "26ba723cb66fce0afc42ed7528699fe69978966943a51e42e6e1c3f39173e2d2",
+  "canonical_actions": [
+    {
+      "action_id": "manual-f783357a8406408090a723c86ea10691",
+      "command_id": "target.rsset_region.add",
+      "interpretation": {
+        "evidence_refs": [
+          "s0:00000CFA:instruction",
+          "s0:00000D02:instruction",
+          "s0:00000D14:instruction",
+          "s0:0000F608:instruction",
+          "s0:0000F6EE:instruction",
+          "s0:00031F46:instruction",
+          "s0:00031F4E:instruction",
+          "s0:00031F82:instruction",
+          "s0:00032B4A:instruction",
+          "s0:00032FA6:instruction",
+          "s0:000347BA:instruction",
+          "s0:00036420:instruction"
+        ],
+        "reason": "Ten LONG references tracking released inventory objects: release code finds a zero slot and records A2 if available, world setup/transitions clear ten entries, nonspace service rotates/rises nonzero objects and clears the slot at Y=-120. Original target-toggle scan also touches the table; its branch/zero behavior is preserved, not repaired. Save/restore adjusts only nonzero entries. Not cargo inventory, ownership or a guarantee that every release fits.",
+        "source_evidence_status": "hypothesis",
+        "confidence": "high",
+        "subject_revision": "f46bc5dfdcd3c6bb29b1c527c4a3d66417109ccfbaf4e466059eeb9bb46480c1"
+      }
+    },
+    {
+      "action_id": "manual-608987609383424f82693fac2945d181",
+      "command_id": "target.rsset_region.add",
+      "interpretation": {
+        "evidence_refs": [
+          "s0:0000315C:instruction",
+          "s0:00003252:instruction",
+          "s0:00003286:instruction",
+          "s0:00003292:instruction",
+          "s0:000032A0:instruction",
+          "s0:000033F8:instruction",
+          "s0:00003518:instruction",
+          "s0:00003522:instruction",
+          "s0:0000F61C:instruction",
+          "s0:0000F702:instruction",
+          "s0:00016EC2:instruction"
+        ],
+        "reason": "Free-object pointer stack storage: partition/free initialization appends original68-byte pool addresses from this base, count and cursor govern pops by inventory/marker spawning. The physical prefix is250 LONGs; save/restore processes250 entries. No all-stale-entry validity or every-input pool bound proof.",
+        "source_evidence_status": "hypothesis",
+        "confidence": "high",
+        "subject_revision": "e08df4bae105c5f877158f03344d30cfdeb6668c7a6879527f40ee9afed02057"
+      }
+    },
+    {
+      "action_id": "manual-55fc0faac57e460aa8aa6a7ce56e1f3f",
+      "command_id": "target.rsset_region.add",
+      "interpretation": {
+        "evidence_refs": [
+          "s0:00003252:instruction",
+          "s0:00003286:instruction",
+          "s0:00003292:instruction",
+          "s0:000032A0:instruction",
+          "s0:000033F8:instruction",
+          "s0:00003518:instruction",
+          "s0:00003522:instruction",
+          "s0:0000F62A:instruction",
+          "s0:0000F710:instruction"
+        ],
+        "reason": "Distant-object backward list storage. Partition starts A2 at exclusive app1674, predecrements byLONG to append A4, and publishes distant_objects_cursor/count. Physical prefix250 LONGs ends before the separate end slot. Original save conversion processes251 LONGs including that padding; preserve it rather than calling the padding an extra live pointer.",
+        "source_evidence_status": "hypothesis",
+        "confidence": "high",
+        "subject_revision": "14ce63ef07b73927bac3c58969d1320f51892efdd0751146eb2c8a054744bf41"
+      }
+    },
+    {
+      "action_id": "manual-abd636c31d1d4b718bc4d21679f729f6",
+      "command_id": "target.rsset_region.add",
+      "interpretation": {
+        "evidence_refs": [
+          "s0:00003252:instruction",
+          "s0:00003286:instruction",
+          "s0:00003292:instruction",
+          "s0:000032A0:instruction",
+          "s0:000033F8:instruction",
+          "s0:00003518:instruction",
+          "s0:00003522:instruction",
+          "s0:0000F638:instruction",
+          "s0:0000F71E:instruction"
+        ],
+        "reason": "Nearby-object backward list storage. Partition starts A3 at exclusive app1A60, predecrements to append qualified A4 records and publishes nearby_objects_cursor/count. Physical prefix250 LONGs, separate four-byte end slot. Save conversion visits251 LONGs including the end slot; pointer and count guards remain original.",
+        "source_evidence_status": "hypothesis",
+        "confidence": "high",
+        "subject_revision": "03739727bb3f471702d29a7c5993f3ca523d8921eb3cd8aee3ae75514176803f"
+      }
+    },
+    {
+      "action_id": "manual-1b93c0196a5b4765866cb53e508a2f15",
+      "command_id": "target.rsset_region.add",
+      "interpretation": {
+        "evidence_refs": [
+          "s0:00003252:instruction",
+          "s0:00003286:instruction",
+          "s0:00003292:instruction",
+          "s0:000032A0:instruction",
+          "s0:000033F8:instruction",
+          "s0:00003518:instruction",
+          "s0:00003522:instruction",
+          "s0:0000F646:instruction",
+          "s0:0000F72C:instruction"
+        ],
+        "reason": "Visible-object backward list storage. prepare_visible_and_contact_objects starts A5 at exclusive app1E4C, appends pointers after the original visibility/type/flag tests and publishes visible cursor/count. Physical prefix250 LONGs; original serialization includes one extra end-slot LONG. The visible and contact lists can contain the same object and are not exclusive owners.",
+        "source_evidence_status": "hypothesis",
+        "confidence": "high",
+        "subject_revision": "73f0d4ca73e5df98ecec6f2aa4cbe432b66bb36a0a2b116f73835efdeed8c3e9"
+      }
+    },
+    {
+      "action_id": "manual-b1ed14dc6c3c44f5bcefd588563e83ea",
+      "command_id": "target.rsset_region.add",
+      "interpretation": {
+        "evidence_refs": [
+          "s0:00003252:instruction",
+          "s0:00003286:instruction",
+          "s0:00003292:instruction",
+          "s0:000032A0:instruction",
+          "s0:000033F8:instruction",
+          "s0:00003518:instruction",
+          "s0:00003522:instruction",
+          "s0:0000F654:instruction",
+          "s0:0000F73A:instruction"
+        ],
+        "reason": "Contact-object backward list storage. prepare_visible_and_contact_objects starts A2 at exclusive app2238 and appends A4 when object state1E is negative, before visibility culling. Physical250-LONG prefix with separate end slot; save conversion includes that slot. Do not conflate contact eligibility with visible geometry or assert exclusive membership.",
+        "source_evidence_status": "hypothesis",
+        "confidence": "high",
+        "subject_revision": "1f7cd946c336c95d2a313f272563f24c25b69fff62af5a5373a95bfd1c366236"
+      }
+    },
+    {
+      "action_id": "manual-331d3ac7ab6145c1ba2a5fde79a15d8f",
+      "command_id": "target.rsset_region.add",
+      "interpretation": {
+        "evidence_refs": [
+          "s0:00003252:instruction",
+          "s0:00003286:instruction",
+          "s0:00003292:instruction",
+          "s0:000032A0:instruction",
+          "s0:000033F8:instruction",
+          "s0:00003518:instruction",
+          "s0:00003522:instruction",
+          "s0:0000F662:instruction",
+          "s0:0000F748:instruction"
+        ],
+        "reason": "Velocity-integration backward list storage. Partition starts integrating cursor at app232C, appends selected types72/84/103 with nonzero object22, and increments integrating_object_count. The physical gap holds60 LONG entries; the code does not independently establish that the selected count never exceeds60. Original serialization visits61 LONGs including the separate end slot. Record capacity and original footprint, not a fabricated runtime safety invariant.",
+        "source_evidence_status": "hypothesis",
+        "confidence": "high",
+        "subject_revision": "5ec8bdf0b32f83afabc26ac4095676a0c78a24a53204fe34db31a3a1182a9d10"
+      }
+    },
+    {
+      "action_id": "manual-9ea787f1214c462aa9b2196d5db6b1a0",
+      "command_id": "target.rsset_region.add",
+      "interpretation": {
+        "evidence_refs": [
+          "s0:0000314C:instruction",
+          "s0:0000F62A:instruction",
+          "s0:0000F710:instruction"
+        ],
+        "reason": "Exclusive cursor-end address for the original distant_object_list storage. This four-byte gap is outside the live pointer-array prefix and before the next allocation. Original save/restore bulk conversion still touches it as its lastLONG. Name its address and preserve byte-array padding storage; do not invent an extra pointer entry, sentinel, independent owner lifetime or count bound.",
+        "source_evidence_status": "hypothesis",
+        "confidence": "high",
+        "subject_revision": "231b3f0f1e6bbe4401c65f3fc671feb7f62013dcad5f42f3c82eaaed91810ce2"
+      }
+    },
+    {
+      "action_id": "manual-98d844a26f3b4afe884b907416e06dbf",
+      "command_id": "target.rsset_region.add",
+      "interpretation": {
+        "evidence_refs": [
+          "s0:00003140:instruction",
+          "s0:0000F638:instruction",
+          "s0:0000F71E:instruction"
+        ],
+        "reason": "Exclusive cursor-end address for the original nearby_object_list storage. This four-byte gap is outside the live pointer-array prefix and before the next allocation. Original save/restore bulk conversion still touches it as its lastLONG. Name its address and preserve byte-array padding storage; do not invent an extra pointer entry, sentinel, independent owner lifetime or count bound.",
+        "source_evidence_status": "hypothesis",
+        "confidence": "high",
+        "subject_revision": "c4ede8544de3bccd58bfaba7173a720d14dc9106da3fd34a70d7334614a7a9a2"
+      }
+    },
+    {
+      "action_id": "manual-a8e1f4b3a6cf4217bc3dea7753abed42",
+      "command_id": "target.rsset_region.add",
+      "interpretation": {
+        "evidence_refs": [
+          "s0:00003324:instruction",
+          "s0:0000F646:instruction",
+          "s0:0000F72C:instruction"
+        ],
+        "reason": "Exclusive cursor-end address for the original visible_object_list storage. This four-byte gap is outside the live pointer-array prefix and before the next allocation. Original save/restore bulk conversion still touches it as its lastLONG. Name its address and preserve byte-array padding storage; do not invent an extra pointer entry, sentinel, independent owner lifetime or count bound.",
+        "source_evidence_status": "hypothesis",
+        "confidence": "high",
+        "subject_revision": "854dc209237e9bdbc9b3ab850786c83b32d8736303b3925134bd51a883b0c5c1"
+      }
+    },
+    {
+      "action_id": "manual-8a9322844afd482bb91e6d2ba7db9f08",
+      "command_id": "target.rsset_region.add",
+      "interpretation": {
+        "evidence_refs": [
+          "s0:0000332C:instruction",
+          "s0:0000F654:instruction",
+          "s0:0000F73A:instruction"
+        ],
+        "reason": "Exclusive cursor-end address for the original contact_object_list storage. This four-byte gap is outside the live pointer-array prefix and before the next allocation. Original save/restore bulk conversion still touches it as its lastLONG. Name its address and preserve byte-array padding storage; do not invent an extra pointer entry, sentinel, independent owner lifetime or count bound.",
+        "source_evidence_status": "hypothesis",
+        "confidence": "high",
+        "subject_revision": "bd5d9adfd9dd20f45dd28525bfc4dd4a66a1426c314d1768c6fdd65b2c5c9532"
+      }
+    },
+    {
+      "action_id": "manual-b4aee3f05868449daab59e0f4c92dcc2",
+      "command_id": "target.rsset_region.add",
+      "interpretation": {
+        "evidence_refs": [
+          "s0:00003144:instruction",
+          "s0:0000F662:instruction",
+          "s0:0000F748:instruction"
+        ],
+        "reason": "Exclusive cursor-end address for the original integrating_object_list storage. This four-byte gap is outside the live pointer-array prefix and before the next allocation. Original save/restore bulk conversion still touches it as its lastLONG. Name its address and preserve byte-array padding storage; do not invent an extra pointer entry, sentinel, independent owner lifetime or count bound.",
+        "source_evidence_status": "hypothesis",
+        "confidence": "high",
+        "subject_revision": "54562c3ed8f7f1699403647e88249d0aa8c057d518aeb432c127106f8fa78c6c"
+      }
+    },
+    {
+      "action_id": "manual-5b3c5254e4fa4b34a429abab2d79ee77",
+      "command_id": "target.rsset_region.add",
+      "interpretation": {
+        "evidence_refs": [
+          "s0:0000B808:instruction",
+          "s0:0000B80E:instruction",
+          "s0:00032B88:instruction",
+          "s0:00036478:instruction",
+          "s0:0003A280:instruction",
+          "s0:0003A286:instruction"
+        ],
+        "reason": "Selected-world setup copies a LONG from world_reference_y_coordinates into this field; initial game uses world index3. Both original input/update backends clamp player_world_y below this numeric lower limit, paired with the separate -120 upper limit. Name the numerical Y bound, not surface altitude, units or new platform reachability.",
+        "source_evidence_status": "hypothesis",
+        "confidence": "high",
+        "subject_revision": "ff779168c423ecce392c1644569d2c5f8f81809247852b7737685a70b4e0fa2a"
+      }
+    },
+    {
+      "action_id": "manual-234eb0df07db460d89bcc3997534a455",
+      "command_id": "target.code_label.add",
+      "interpretation": {
+        "evidence_refs": [
+          "s0:00000D02:instruction"
+        ],
+        "reason": "Ten LONG references tracking released inventory objects: release code finds a zero slot and records A2 if available, world setup/transitions clear ten entries, nonspace service rotates/rises nonzero objects and clears the slot at Y=-120. Original target-toggle scan also touches the table; its branch/zero behavior is preserved, not repaired. Save/restore adjusts only nonzero entries. Not cargo inventory, ownership or a guarantee that every release fits. This names an existing accepted internal loop, not a new callable ABI or code promotion.",
+        "source_evidence_status": "hypothesis",
+        "confidence": "high",
+        "subject_revision": "bf1508418475c6dc723699dc23bb6af16db1ed5282e6a4a5591704f938098f95"
+      }
+    },
+    {
+      "action_id": "manual-652360d9f5c8407db54e12fb0d57ff29",
+      "command_id": "target.code_label.add",
+      "interpretation": {
+        "evidence_refs": [
+          "s0:00031F4E:instruction"
+        ],
+        "reason": "Ten LONG references tracking released inventory objects: release code finds a zero slot and records A2 if available, world setup/transitions clear ten entries, nonspace service rotates/rises nonzero objects and clears the slot at Y=-120. Original target-toggle scan also touches the table; its branch/zero behavior is preserved, not repaired. Save/restore adjusts only nonzero entries. Not cargo inventory, ownership or a guarantee that every release fits. This names an existing accepted internal loop, not a new callable ABI or code promotion.",
+        "source_evidence_status": "hypothesis",
+        "confidence": "high",
+        "subject_revision": "f7a378b9dd166ee2ed0372fa1879b56c0183ef5548fe8d3a0416d91d28126679"
+      }
+    }
+  ],
+  "review_decisions": [
+    {
+      "action_id": "manual-f783357a8406408090a723c86ea10691",
+      "decision_id": "restoration-bb811dba3c61492f89fcd730e355a723",
+      "action": "accept_fact"
+    },
+    {
+      "action_id": "manual-608987609383424f82693fac2945d181",
+      "decision_id": "restoration-aabf389a7c0848c08502f4a4944b97ac",
+      "action": "accept_fact"
+    },
+    {
+      "action_id": "manual-55fc0faac57e460aa8aa6a7ce56e1f3f",
+      "decision_id": "restoration-3dd0c7bbc64d45a78c63114828f998e0",
+      "action": "accept_fact"
+    },
+    {
+      "action_id": "manual-abd636c31d1d4b718bc4d21679f729f6",
+      "decision_id": "restoration-c9db6b3a063645e2b0a4dfbc23937d57",
+      "action": "accept_fact"
+    },
+    {
+      "action_id": "manual-1b93c0196a5b4765866cb53e508a2f15",
+      "decision_id": "restoration-e4a2261dae3449ca8296bd52d1713e6e",
+      "action": "accept_fact"
+    },
+    {
+      "action_id": "manual-b1ed14dc6c3c44f5bcefd588563e83ea",
+      "decision_id": "restoration-bccfad95e1f240548d50d94b952b12a7",
+      "action": "accept_fact"
+    },
+    {
+      "action_id": "manual-331d3ac7ab6145c1ba2a5fde79a15d8f",
+      "decision_id": "restoration-bc4736976094461d98eb73c1c0f29b10",
+      "action": "accept_fact"
+    },
+    {
+      "action_id": "manual-9ea787f1214c462aa9b2196d5db6b1a0",
+      "decision_id": "restoration-c17c1384ecb14072b8661b2f586548f3",
+      "action": "accept_fact"
+    },
+    {
+      "action_id": "manual-98d844a26f3b4afe884b907416e06dbf",
+      "decision_id": "restoration-f5690e2a0a1a4b56b25f67b6ae5342ae",
+      "action": "accept_fact"
+    },
+    {
+      "action_id": "manual-a8e1f4b3a6cf4217bc3dea7753abed42",
+      "decision_id": "restoration-38c419a002934c7a9f6c42a0edb660e6",
+      "action": "accept_fact"
+    },
+    {
+      "action_id": "manual-8a9322844afd482bb91e6d2ba7db9f08",
+      "decision_id": "restoration-ee770e5c92d44cfeb393b7e11fc19319",
+      "action": "accept_fact"
+    },
+    {
+      "action_id": "manual-b4aee3f05868449daab59e0f4c92dcc2",
+      "decision_id": "restoration-967343f4baf349fcbcefaf50b0a286be",
+      "action": "accept_fact"
+    },
+    {
+      "action_id": "manual-5b3c5254e4fa4b34a429abab2d79ee77",
+      "decision_id": "restoration-55d3ea66a2384e93b86d192dedfa5492",
+      "action": "accept_fact"
+    },
+    {
+      "action_id": "manual-234eb0df07db460d89bcc3997534a455",
+      "decision_id": "restoration-a7182db9770f457f80d2e68d67a4478f",
+      "action": "accept_fact"
+    },
+    {
+      "action_id": "manual-652360d9f5c8407db54e12fb0d57ff29",
+      "decision_id": "restoration-d3bc0b97b1054818a959eb6c015dbfd5",
+      "action": "accept_fact"
+    }
+  ],
+  "instruction_evidence": {
+    "original_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "decoded_evidence_sha256": "d11cbf2ca3562f2d6de8a5e9218c9a7d824d7cbd174926bbd249d14a61b795b1",
+    "boundary_check_sha256": "066374ae8c8c84a7093bfb26569577985b5c312532723988f0773c7c018d82fc",
+    "instruction_coordinates_checked": 58,
+    "method": "Exact decoder metadata plus sequential decode from accepted CFG block starts; all cited offsets are instruction boundaries. Both save/restore immediate loop counters checked before acceptance."
+  },
+  "storage": {
+    "arrays": [
+      {
+        "offset": 2562,
+        "size": 40,
+        "symbol": "released_object_tracking_references",
+        "physical_entries": 10
+      },
+      {
+        "offset": 3748,
+        "size": 1000,
+        "symbol": "free_object_stack_storage",
+        "physical_entries": 250
+      },
+      {
+        "offset": 4748,
+        "size": 1000,
+        "symbol": "distant_object_list_storage",
+        "physical_entries": 250
+      },
+      {
+        "offset": 5752,
+        "size": 1000,
+        "symbol": "nearby_object_list_storage",
+        "physical_entries": 250
+      },
+      {
+        "offset": 6756,
+        "size": 1000,
+        "symbol": "visible_object_list_storage",
+        "physical_entries": 250
+      },
+      {
+        "offset": 7760,
+        "size": 1000,
+        "symbol": "contact_object_list_storage",
+        "physical_entries": 250
+      },
+      {
+        "offset": 8764,
+        "size": 240,
+        "symbol": "integrating_object_list_storage",
+        "physical_entries": 60
+      }
+    ],
+    "end_slots": [
+      {
+        "offset": 5748,
+        "size": 4,
+        "symbol": "distant_object_list_end_slot"
+      },
+      {
+        "offset": 6752,
+        "size": 4,
+        "symbol": "nearby_object_list_end_slot"
+      },
+      {
+        "offset": 7756,
+        "size": 4,
+        "symbol": "visible_object_list_end_slot"
+      },
+      {
+        "offset": 8760,
+        "size": 4,
+        "symbol": "contact_object_list_end_slot"
+      },
+      {
+        "offset": 9004,
+        "size": 4,
+        "symbol": "integrating_object_list_end_slot"
+      }
+    ],
+    "conversion": [
+      {
+        "base": 2562,
+        "symbol": "released_object_tracking_references",
+        "lea_source": 62984,
+        "counter_source": 62980,
+        "dbf_iterations": 10,
+        "converted_span": [
+          2562,
+          2602
+        ],
+        "array_span": [
+          2562,
+          2602
+        ],
+        "end_slot_span": null
+      },
+      {
+        "base": 2562,
+        "symbol": "released_object_tracking_references",
+        "lea_source": 63214,
+        "counter_source": 63210,
+        "dbf_iterations": 10,
+        "converted_span": [
+          2562,
+          2602
+        ],
+        "array_span": [
+          2562,
+          2602
+        ],
+        "end_slot_span": null
+      },
+      {
+        "base": 3748,
+        "symbol": "free_object_stack_storage",
+        "lea_source": 63004,
+        "counter_source": 63000,
+        "dbf_iterations": 250,
+        "converted_span": [
+          3748,
+          4748
+        ],
+        "array_span": [
+          3748,
+          4748
+        ],
+        "end_slot_span": null
+      },
+      {
+        "base": 3748,
+        "symbol": "free_object_stack_storage",
+        "lea_source": 63234,
+        "counter_source": 63230,
+        "dbf_iterations": 250,
+        "converted_span": [
+          3748,
+          4748
+        ],
+        "array_span": [
+          3748,
+          4748
+        ],
+        "end_slot_span": null
+      },
+      {
+        "base": 4748,
+        "symbol": "distant_object_list_storage",
+        "lea_source": 63018,
+        "counter_source": 63014,
+        "dbf_iterations": 251,
+        "converted_span": [
+          4748,
+          5752
+        ],
+        "array_span": [
+          4748,
+          5748
+        ],
+        "end_slot_span": [
+          5748,
+          5752
+        ]
+      },
+      {
+        "base": 4748,
+        "symbol": "distant_object_list_storage",
+        "lea_source": 63248,
+        "counter_source": 63244,
+        "dbf_iterations": 251,
+        "converted_span": [
+          4748,
+          5752
+        ],
+        "array_span": [
+          4748,
+          5748
+        ],
+        "end_slot_span": [
+          5748,
+          5752
+        ]
+      },
+      {
+        "base": 5752,
+        "symbol": "nearby_object_list_storage",
+        "lea_source": 63032,
+        "counter_source": 63028,
+        "dbf_iterations": 251,
+        "converted_span": [
+          5752,
+          6756
+        ],
+        "array_span": [
+          5752,
+          6752
+        ],
+        "end_slot_span": [
+          6752,
+          6756
+        ]
+      },
+      {
+        "base": 5752,
+        "symbol": "nearby_object_list_storage",
+        "lea_source": 63262,
+        "counter_source": 63258,
+        "dbf_iterations": 251,
+        "converted_span": [
+          5752,
+          6756
+        ],
+        "array_span": [
+          5752,
+          6752
+        ],
+        "end_slot_span": [
+          6752,
+          6756
+        ]
+      },
+      {
+        "base": 6756,
+        "symbol": "visible_object_list_storage",
+        "lea_source": 63046,
+        "counter_source": 63042,
+        "dbf_iterations": 251,
+        "converted_span": [
+          6756,
+          7760
+        ],
+        "array_span": [
+          6756,
+          7756
+        ],
+        "end_slot_span": [
+          7756,
+          7760
+        ]
+      },
+      {
+        "base": 6756,
+        "symbol": "visible_object_list_storage",
+        "lea_source": 63276,
+        "counter_source": 63272,
+        "dbf_iterations": 251,
+        "converted_span": [
+          6756,
+          7760
+        ],
+        "array_span": [
+          6756,
+          7756
+        ],
+        "end_slot_span": [
+          7756,
+          7760
+        ]
+      },
+      {
+        "base": 7760,
+        "symbol": "contact_object_list_storage",
+        "lea_source": 63060,
+        "counter_source": 63056,
+        "dbf_iterations": 251,
+        "converted_span": [
+          7760,
+          8764
+        ],
+        "array_span": [
+          7760,
+          8760
+        ],
+        "end_slot_span": [
+          8760,
+          8764
+        ]
+      },
+      {
+        "base": 7760,
+        "symbol": "contact_object_list_storage",
+        "lea_source": 63290,
+        "counter_source": 63286,
+        "dbf_iterations": 251,
+        "converted_span": [
+          7760,
+          8764
+        ],
+        "array_span": [
+          7760,
+          8760
+        ],
+        "end_slot_span": [
+          8760,
+          8764
+        ]
+      },
+      {
+        "base": 8764,
+        "symbol": "integrating_object_list_storage",
+        "lea_source": 63074,
+        "counter_source": 63070,
+        "dbf_iterations": 61,
+        "converted_span": [
+          8764,
+          9008
+        ],
+        "array_span": [
+          8764,
+          9004
+        ],
+        "end_slot_span": [
+          9004,
+          9008
+        ]
+      },
+      {
+        "base": 8764,
+        "symbol": "integrating_object_list_storage",
+        "lea_source": 63304,
+        "counter_source": 63300,
+        "dbf_iterations": 61,
+        "converted_span": [
+          8764,
+          9008
+        ],
+        "array_span": [
+          8764,
+          9004
+        ],
+        "end_slot_span": [
+          9004,
+          9008
+        ]
+      }
+    ],
+    "restrictions": [
+      "Pointer roles describe live original-use entries, not all stale/serialized bytes or arbitrary replacement inputs.",
+      "The integration slab has60 physical entries; its selected live count is not proved <=60. Do not silently convert that capacity into a safety assertion.",
+      "End slots are original exclusive initial cursors and serialized four-byte padding; no extra live pointer or sentinel meaning is assigned.",
+      "The ten release-tracking references are null-checked and preserve zero during save conversion; the other bulk loops convert their whole original footprints unconditionally."
+    ]
+  },
+  "meanings": [
+    "Seven explicit pointer-table regions: released-object tracking10; free stack250; distant/nearby/visible/contact lists250 each; integration60. No universal pointee struct is attached across model/procedural record overlays.",
+    "Five separate four-byte exclusive-end slots retain the original251/61-LONG serialization footprints. They are not extra live entries or invented sentinels. The free stack uses250 conversions, and the null-checked release table10.",
+    "Release code records a popped world object in the first available tracking slot, with original full-table behavior preserved. Nonspace animation rotates/rises tracked objects and clears their slot at the original Y threshold. Setup/transitions clear10 entries. The target-toggle scan retains its original zero/branch behavior.",
+    "App7CA copies selected-world reference Y and both original input/update backends use it as a numeric lower clamp, paired with the separate-120 upper clamp. No altitude units or new platform reachability claim."
+  ],
+  "framework": {
+    "change": "The existing shared RSSET formatter now emits an even, whole-LONG pointer_table as RS.L count, including the pre-existing10-entry inventory/depot message directory. Odd/partial tables keep byte declarations; byte_array remains byte_array. No new fact model, transfer engine, inferred pointer target or placed-address rewrite.",
+    "new_tests": "tests/test_rsset_pointer_arrays.py",
+    "focused_python_passed": 22,
+    "focused_seconds": 2.1,
+    "coverage": [
+      "ten/250/60/single-entry tables",
+      "two-byte-aligned but not four-byte-aligned base",
+      "odd base, partial LONG extent and byte-array contrasts",
+      "existing converged app rendering, typed inline fields and explicit binding guards"
+    ],
+    "native_passed": 819,
+    "native_failed": 3,
+    "native_failed_names": [
+      "facts_v2_analysis_reports_lookup_storage_write_site_provenance",
+      "facts_v2_analysis_records_platform_api_address_value_consumer",
+      "facts_v2_analysis_propagates_direct_field_pointer_store_through_app_slot"
+    ],
+    "native_log_sha256": "d2f9fe8b1a214b535a6df294a486e43bce6131fa60a7d0864afb19c984e94878",
+    "failure_diagnosis_receipt": "runtime/observations/starglider2-celestial-render-projection.json"
+  },
+  "before": {
+    "generic_field_symbols": 71,
+    "app_references": 3305,
+    "app_fields": 300
+  },
+  "after": {
+    "generic_field_symbols": 58,
+    "app_references": 3316,
+    "app_fields": 300
+  },
+  "new_range_access_records": [
+    {
+      "offset": 62988,
+      "displacement": 2562,
+      "base_register": "A0",
+      "operand_index": 0,
+      "access": "read",
+      "base_evidence": "a6_fallback",
+      "loop_iteration_count": 10,
+      "loop_iteration_stride": 4,
+      "loop_header_offset": 62988,
+      "loop_tail_offset": 62996,
+      "loop_counter_register": "D1",
+      "derived": true,
+      "base_displacement": 2562,
+      "operand_displacement": 0,
+      "data_access_size": 4,
+      "element_width": 4,
+      "transfer_count": 1,
+      "symbol_name": "app_0A02"
+    },
+    {
+      "offset": 62992,
+      "displacement": 2562,
+      "base_register": "A0",
+      "operand_index": 1,
+      "access": "read-write",
+      "base_evidence": "a6_fallback",
+      "loop_iteration_count": 10,
+      "loop_iteration_stride": 4,
+      "loop_header_offset": 62988,
+      "loop_tail_offset": 62996,
+      "loop_counter_register": "D1",
+      "derived": true,
+      "base_displacement": 2566,
+      "operand_displacement": -4,
+      "data_access_size": 4,
+      "element_width": 4,
+      "transfer_count": 1,
+      "symbol_name": "app_0A02"
+    },
+    {
+      "offset": 63008,
+      "displacement": 3748,
+      "base_register": "A0",
+      "operand_index": 1,
+      "access": "read-write",
+      "base_evidence": "a6_fallback",
+      "loop_iteration_count": 250,
+      "loop_iteration_stride": 4,
+      "loop_header_offset": 63008,
+      "loop_tail_offset": 63010,
+      "loop_counter_register": "D1",
+      "derived": true,
+      "base_displacement": 3748,
+      "operand_displacement": 0,
+      "data_access_size": 4,
+      "element_width": 4,
+      "transfer_count": 1,
+      "symbol_name": "app_0EA4"
+    },
+    {
+      "offset": 63218,
+      "displacement": 2562,
+      "base_register": "A0",
+      "operand_index": 0,
+      "access": "read",
+      "base_evidence": "a6_fallback",
+      "loop_iteration_count": 10,
+      "loop_iteration_stride": 4,
+      "loop_header_offset": 63218,
+      "loop_tail_offset": 63226,
+      "loop_counter_register": "D1",
+      "derived": true,
+      "base_displacement": 2562,
+      "operand_displacement": 0,
+      "data_access_size": 4,
+      "element_width": 4,
+      "transfer_count": 1,
+      "symbol_name": "app_0A02"
+    },
+    {
+      "offset": 63222,
+      "displacement": 2562,
+      "base_register": "A0",
+      "operand_index": 1,
+      "access": "read-write",
+      "base_evidence": "a6_fallback",
+      "loop_iteration_count": 10,
+      "loop_iteration_stride": 4,
+      "loop_header_offset": 63218,
+      "loop_tail_offset": 63226,
+      "loop_counter_register": "D1",
+      "derived": true,
+      "base_displacement": 2566,
+      "operand_displacement": -4,
+      "data_access_size": 4,
+      "element_width": 4,
+      "transfer_count": 1,
+      "symbol_name": "app_0A02"
+    },
+    {
+      "offset": 63238,
+      "displacement": 3748,
+      "base_register": "A0",
+      "operand_index": 1,
+      "access": "read-write",
+      "base_evidence": "a6_fallback",
+      "loop_iteration_count": 250,
+      "loop_iteration_stride": 4,
+      "loop_header_offset": 63238,
+      "loop_tail_offset": 63240,
+      "loop_counter_register": "D1",
+      "derived": true,
+      "base_displacement": 3748,
+      "operand_displacement": 0,
+      "data_access_size": 4,
+      "element_width": 4,
+      "transfer_count": 1,
+      "symbol_name": "app_0EA4"
+    },
+    {
+      "offset": 204622,
+      "displacement": 2562,
+      "base_register": "A0",
+      "operand_index": 0,
+      "access": "read",
+      "base_evidence": "a6_fallback",
+      "loop_iteration_count": 10,
+      "loop_iteration_stride": 4,
+      "loop_header_offset": 204622,
+      "loop_tail_offset": 204674,
+      "loop_counter_register": "D7",
+      "derived": true,
+      "base_displacement": 2562,
+      "operand_displacement": 0,
+      "data_access_size": 4,
+      "element_width": 4,
+      "transfer_count": 1,
+      "symbol_name": "app_0A02"
+    },
+    {
+      "offset": 204670,
+      "displacement": 2562,
+      "base_register": "A0",
+      "operand_index": 0,
+      "access": "write",
+      "base_evidence": "a6_fallback",
+      "loop_iteration_count": 10,
+      "loop_iteration_stride": 4,
+      "loop_header_offset": 204622,
+      "loop_tail_offset": 204674,
+      "loop_counter_register": "D7",
+      "derived": true,
+      "base_displacement": 2566,
+      "operand_displacement": -4,
+      "data_access_size": 4,
+      "element_width": 4,
+      "transfer_count": 1,
+      "symbol_name": "app_0A02"
+    },
+    {
+      "offset": 207698,
+      "displacement": 2562,
+      "base_register": "A0",
+      "operand_index": 0,
+      "access": "write",
+      "base_evidence": "a6_fallback",
+      "loop_iteration_count": 10,
+      "loop_iteration_stride": 4,
+      "loop_header_offset": 207698,
+      "loop_tail_offset": 207700,
+      "loop_counter_register": "D0",
+      "derived": true,
+      "base_displacement": 2562,
+      "operand_displacement": 0,
+      "data_access_size": 4,
+      "element_width": 4,
+      "transfer_count": 1,
+      "symbol_name": "app_0A02"
+    },
+    {
+      "offset": 208814,
+      "displacement": 2562,
+      "base_register": "A0",
+      "operand_index": 0,
+      "access": "write",
+      "base_evidence": "a6_fallback",
+      "loop_iteration_count": 10,
+      "loop_iteration_stride": 4,
+      "loop_header_offset": 208814,
+      "loop_tail_offset": 208816,
+      "loop_counter_register": "D0",
+      "derived": true,
+      "base_displacement": 2562,
+      "operand_displacement": 0,
+      "data_access_size": 4,
+      "element_width": 4,
+      "transfer_count": 1,
+      "symbol_name": "app_0A02"
+    },
+    {
+      "offset": 222248,
+      "displacement": 2562,
+      "base_register": "A0",
+      "operand_index": 0,
+      "access": "write",
+      "base_evidence": "a6_fallback",
+      "loop_iteration_count": 10,
+      "loop_iteration_stride": 4,
+      "loop_header_offset": 222248,
+      "loop_tail_offset": 222250,
+      "loop_counter_register": "D0",
+      "derived": true,
+      "base_displacement": 2562,
+      "operand_displacement": 0,
+      "data_access_size": 4,
+      "element_width": 4,
+      "transfer_count": 1,
+      "symbol_name": "app_0A02"
+    }
+  ],
+  "native_vectors_unchanged": {
+    "accepted_code_runs": true,
+    "range_ownerships": true,
+    "recovered_platform_typed_accesses": true,
+    "recovered_platform_unresolved_typed_accesses": true,
+    "recovered_indirect_sites": true,
+    "table_consumers": true,
+    "address_expressions": true
+  },
+  "verification": {
+    "kind": "verification",
+    "framework_exact": true,
+    "target_id": "amiga_raw_starglider2_game",
+    "subject_revision": "3764a0e8e04e4885ad43768f3eb07bdb3ed8c349b81921e8b8b9088fc8c87aaf",
+    "status": "exact",
+    "exact": true,
+    "source_sha256": "ba2eef63d99794c334515b4e05b888197124f202e4198eef03204684d08ea2a7",
+    "source_path": "/workspace/pandora-original-delivery/stable-d15c2cf8/.runtime-state/restoration/eb04f545fb97451725a1c91ab5abf6f2e097614c45880db6edfb4ea5c3f6e2c2/ba2eef63d99794c334515b4e05b888197124f202e4198eef03204684d08ea2a7.s",
+    "source_package_sha256": null,
+    "original_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "original_size": 412736,
+    "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "rebuilt_path": "/workspace/pandora-original-delivery/stable-d15c2cf8/.runtime-state/restoration/eb04f545fb97451725a1c91ab5abf6f2e097614c45880db6edfb4ea5c3f6e2c2/662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9.bin",
+    "framework_status": "exact",
+    "failure_kinds": [],
+    "message": "",
+    "oracle": {
+      "oracle_id": "vasm",
+      "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+      "comparison_level": "oracle.full_file_match",
+      "assembler_status": "accepted",
+      "message": "oracle output matched original bytes"
+    },
+    "receipt_id": "e8e75164788baf3958b440ac4678014bd3886e737aca6336b0d4af3cfbf853ff",
+    "revision": "b4f15f296c6411fc59c4494ea02937b9a7d43df27935cfc7317eb4c8a2c1327d"
+  },
+  "preservation": {
+    "original_bytes": 412736,
+    "assets_unchanged": 57,
+    "headers_unchanged": 14,
+    "accepted_code_bytes": 106034,
+    "typed_accesses": 316,
+    "unresolved_typed_accesses": 355,
+    "table_consumers": 40,
+    "address_expressions": 189,
+    "unclassified_bytes": 14670,
+    "unclassified_intervals": 262,
+    "source_quality_diagnostics": 0,
+    "incomplete_analysis": [],
+    "canonical_histories_append_only": true,
+    "generated_source_hand_edited": false,
+    "new_runtime_run": false
+  },
+  "generation_wall_seconds": 178.42794996500015,
+  "process_usage": {
+    "wall_seconds": 209.5694656909909,
+    "user_seconds": 198.784941,
+    "system_seconds": 10.364992,
+    "max_rss_kib": 2679076
+  },
+  "limits": [
+    "Eleven recovered loop-access records retain a6_fallback provenance; declaring extents did not turn them into numeric app-base or runtime observations.",
+    "Current native loop aggregation does not combine separate table/end-slot owners into one251/61-entry range. Static counter evidence preserves those accesses; no silently truncated range or universal pointer-validity proof.",
+    "The60-entry integration capacity is not a proven bound on the selected live count. Original variable counts, aliasing membership and save-format transformations remain.",
+    "No code/data classification, new indirect target, all-path model identity or semantic completion percentage follows."
+  ],
+  "next": "Follow the connected retirement-rendering path: app778/779 phase word/low-byte alias, saved face counter and the signed Y-bias WORD table. Check the normal-retirement gate and the type-limit domain before promoting the table; exceptional render entry paths remain explicit.",
+  "validated_target_git_tree": "60f4075886aea9395aa4a05a1ee869bf0ef2a4e7",
+  "clean_staged_tree_build": true,
+  "standalone_build": {
+    "schema_version": 1,
+    "status": "pass",
+    "format": "raw_payload_not_AmigaDOS_HUNK",
+    "main_bytes": 412736,
+    "main_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "main_matches_original_identity": true,
+    "asset_count": 57,
+    "all_asset_source_slices_equal": true,
+    "decoded_view_inverse_exact": true,
+    "boot_copy_source_matches_resident_view": true,
+    "source_commit": "841b8053766e78066423b3506997414b62f2b989",
+    "assembler_sha256": "413e284020125f42709486dfe09907cab3dd9f3c2ea41017c190f8ea68f30825",
+    "flags": [
+      "-Fbin",
+      "-m68000",
+      "-no-opt"
+    ],
+    "outputs": [
+      {
+        "role": "original_main",
+        "filename": "Starglider2-original.raw",
+        "bytes": 412736,
+        "sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9"
+      },
+      {
+        "role": "decoded_analysis_view",
+        "filename": "protection-decoded-analysis.raw",
+        "bytes": 3548,
+        "sha256": "de8358853dd9ed9b006a23569bf393aa217ed3be3301a169465d80bfaf839922"
+      },
+      {
+        "role": "boot_installer_context",
+        "filename": "boot-selector-installer-context.raw",
+        "bytes": 40,
+        "sha256": "8d34852425e2e1bfa87b3febdfc74fb39e7c667e9d9ff73e17b594649e83b21b"
+      },
+      {
+        "role": "boot_resident_view",
+        "filename": "boot-selector-resident.raw",
+        "bytes": 20,
+        "sha256": "a26286a393713c046eff9dbaff15b20b26b171fa9e05fc9d538d16b0eddb6024"
+      }
+    ]
+  }
+}

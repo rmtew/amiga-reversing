@@ -17,10 +17,11 @@ to their recorded closeout revision. See the current
 
 ## Current refinement and next evidence
 
-Latest: the [environment/disc batch](#current-environment-proximity-and-disc-controls)
-explains four fields and two indexed WORD tables, reducing unknowns by58 bytes.
-Generic field symbols:71. The preceding converged-app batch recovers eleven
-rendered accesses and corrects the historical C-suite failure count.
+Latest: the [world pointer-list batch](#current-world-pointer-list-storage)
+restores seven array regions and their end slots; generic fields: 58. Native
+range accesses rise to 3,316 without upgrading fallback provenance. The preceding
+environment/disc batch classified 58 bytes; the C-suite count correction remains
+explicit in the linked receipts.
 
 The shared renderer now writes each data-span comment once: on identical facts
 this removes 12,903 duplicate trailing comments and 410,853 source bytes, with no
@@ -3340,3 +3341,43 @@ failure C-suite result remains explicitly scoped in its linked receipt.
 Continue remaining connected environment consumers and concrete shared-buffer/
 orphan incoming leads. App+$9B8 and unsupported neighboring table data remain
 unknown; neither adjacency nor an absent direct reader establishes dead storage.
+
+## Current world pointer-list storage
+
+The [object-list receipt](../../runtime/observations/starglider2-object-list-storage.json)
+restores the actual storage behind the existing named cursors/counts: a 250-entry
+free stack; backward distant, nearby, visible and contact lists of 250 entries;
+a 60-entry integration list; and ten references tracking released objects. Five
+separate four-byte exclusive-end slots remain explicit. Original save/restore
+converts 251 or 61 LONGs for the backward lists, including those end slots. The
+free stack converts 250; released references convert 10 and preserve nulls.
+The padding is not renamed as an extra live pointer or invented sentinel.
+
+Original pool/partition stores and visibility/contact selection explain the
+roles; lists can share objects. Integration selects original types 72/84/103,
+but no invariant that its live count stays within 60 has been established.
+Released-object tracking records the first free slot, rotates/rises tracked
+objects outside space, and clears entries at the original Y threshold; full-table
+and target-toggle behavior are preserved. App+$7CA is the numerical player Y
+lower clamp supplied by selected-world reference Y, not a claimed altitude unit.
+All 58 cited instruction coordinates pass exact decoder and CFG-boundary checks.
+
+The shared RSSET renderer now honors existing pointer-table units as `RS.L n`.
+This also clarifies the pre-existing inventory/depot message-pointer directory.
+Odd or partial-LONG extents retain byte declarations, and ordinary byte arrays
+are unchanged. No universal pointee type was assigned across object overlays.
+Twenty-two focused Python cases pass. The full C suite remains 819 passes with
+the same three precisely diagnosed baseline failures; assertions were not relaxed.
+
+Generic fields fall 71 ->58. Existing native range machinery recovers eleven
+additional loop-access records, all still qualified `a6_fallback`, for 3,316 total.
+The remaining 251/61-entry spans cross table/end-slot owners and are not falsely
+reported as one bounded pointer-array range. Code, ownership, typed accesses,
+indirect targets and table consumers remain unchanged. All 412,736 bytes rebuild
+exactly with C/vasm and clean standalone source; 57 assets and fourteen headers
+are unchanged. The necessary native generation took 178.43 seconds, with no
+controlled performance-speedup claim or extra runtime replay.
+
+Next: the connected retirement-rendering phase/face-counter aliases and signed
+Y-bias table, using the original nonnegative-phase gate and type-limit prefix.
+An exceptional render entry must not silently expand a conditional index domain.

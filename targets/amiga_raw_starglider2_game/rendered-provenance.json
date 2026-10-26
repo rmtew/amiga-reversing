@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
   "kind": "committed_native_rendered_original_export",
-  "canonical_source_commit": "f7e60ba37bf0f38cff641b6ee94af6928ed32edd",
-  "publication_base_commit": "f7e60ba37bf0f38cff641b6ee94af6928ed32edd",
+  "canonical_source_commit": "841b8053766e78066423b3506997414b62f2b989",
+  "publication_base_commit": "841b8053766e78066423b3506997414b62f2b989",
   "native_export": "CListingArtifact.source_package_payload(64)",
-  "main_source_sha256": "19a3af415087f6c23fd6c384ba50bfcfe887a3953bb645422c0b249cbb8c0988",
+  "main_source_sha256": "7f2f4cdc1d88e1cd7a9044ad73ceb859dc5b32567ad09dd3a8ee2f66a0d7f423",
   "asset_count": 57,
   "asset_bytes": 93633,
   "game_assembly_hand_edits": false,
@@ -25,13 +25,13 @@
     "paused Pandora work"
   ],
   "canonical_source_commit_role": "publication base; reviewed canonical facts in this batch bound by canonical_fact_sha256",
-  "canonical_source_subject_revision": "87ddeb3553cba0ae0c3f8ef8a3d3e89068b3d924f9ec5bda0e688c4466b1592b",
+  "canonical_source_subject_revision": "3764a0e8e04e4885ad43768f3eb07bdb3ed8c349b81921e8b8b9088fc8c87aaf",
   "canonical_fact_sha256": {
     "source_binary.json": "42d4a5758b3e8236af7f912aee85e9ee5323bcd0961faa338c4f864080a0a7d9",
     "target_metadata.json": "e7540b68c118c56aba8815b6722eefa067517cc865fe9841d6c01ce96551389c",
-    "manual_actions.jsonl": "4058447f108d1808fba9bd0e6f2b3959ab06d87db87d0a4a6fcc76f425e0704c",
-    "decision_journal.jsonl": "c4a106bd1ab29c207976a988594ddf12b28ad26c0b808d1c7c7bbb632d6a53cb"
+    "manual_actions.jsonl": "868167f5dbba62fed7e808c856d2dd5118ea9145ee5f2ae201030e9220c260b2",
+    "decision_journal.jsonl": "50978a0bb1cf904439b8f5df7658d7ad80884fcf19b4d330395ba6138e996bda"
   },
-  "refinement_receipt": "runtime/observations/starglider2-environment-disc-controls.json",
+  "refinement_receipt": "runtime/observations/starglider2-object-list-storage.json",
   "headers": "14 unmodified required include files collected by source_package.collect_package_includes from ext/amiga_includes/ndk_2.0/include; header notices retained"
 }

@@ -9267,6 +9267,9 @@ static void render_asm_base_layout_format_slot_directive(const M68kBaseLayoutSlo
     } else {
       snprintf(line, line_size, "%s RS.B %d\n", slot->name, (int)slot->size);
     }
+  } else if (slot->storage_kind == M68K_ANALYSIS_RSSET_LAYOUT_STORAGE_POINTER_TABLE &&
+      slot->size > 0 && slot->size % 4 == 0 && (slot->displacement & 1) == 0) {
+    snprintf(line, line_size, "%s RS.L %d\n", slot->name, (int)(slot->size / 4));
   } else if (slot->size == 4 && (slot->displacement & 1) == 0) {
     snprintf(line, line_size, "%s RS.L 1\n", slot->name);
   } else if (slot->size == 2 && (slot->displacement & 1) == 0) {
