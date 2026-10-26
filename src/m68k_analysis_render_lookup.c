@@ -3576,6 +3576,7 @@ static void typed_state_set_base_slot(M68kRenderTypedState *state, uint8_t base_
   }
   if (state->base_slot_count >= M68K_RENDER_TYPED_BASE_SLOT_LIMIT) return;
   state->base_slots[state->base_slot_count].known = 1U;
+  state->base_slots[state->base_slot_count].storage_id = 0U;
   state->base_slots[state->base_slot_count].base_reg = base_reg;
   state->base_slots[state->base_slot_count].displacement = displacement;
   state->base_slots[state->base_slot_count].value = *value;
@@ -3704,6 +3705,69 @@ static int typed_app_address_operand_info(const M68kRenderLookup *lookup,
   return 1;
 }
 
+static int typed_app_cursor_immediate_delta(const M68kInstructionIR *instruction, int64_t *out_delta) {
+  uint32_t immediate;
+  int subtract;
+  if (instruction == NULL || instruction->operand_count != 2U ||
+      !m68k_ir_operand_immediate_value(&instruction->operands[0], &immediate) || immediate > INT32_MAX ||
+      (instruction->size_suffix == 'w' && immediate > INT16_MAX)) return 0;
+  subtract = instruction->mnemonic_id == M68K_ASM_MNEMONIC_SUB ||
+    instruction->mnemonic_id == M68K_ASM_MNEMONIC_SUBA || instruction->mnemonic_id == M68K_ASM_MNEMONIC_SUBI ||
+    instruction->mnemonic_id == M68K_ASM_MNEMONIC_SUBQ;
+  if (!subtract && instruction->mnemonic_id != M68K_ASM_MNEMONIC_ADD &&
+      instruction->mnemonic_id != M68K_ASM_MNEMONIC_ADDA && instruction->mnemonic_id != M68K_ASM_MNEMONIC_ADDI &&
+      instruction->mnemonic_id != M68K_ASM_MNEMONIC_ADDQ) return 0;
+  *out_delta = subtract ? -(int64_t)immediate : (int64_t)immediate;
+  return 1;
+}
+
+/* Local cells reuse canonical storage identities, including conflicted global
+ * writer summaries: a conflict there is not a conflict at every program point. */
+static uint32_t typed_absolute_storage_id(const M68kRenderLookup *lookup, size_t section, uint32_t address) {
+  size_t index;
+  for (index = 0U; index < lookup->typed_storage_slot_count && index < UINT32_MAX; ++index) {
+    const M68kRenderTypedStorageSlot *slot = &lookup->typed_storage_slots[index];
+    if (slot->kind == M68K_RENDER_TYPED_STORAGE_ABSOLUTE && slot->section_index == section &&
+        slot->address == address) return (uint32_t)index + 1U;
+  }
+  return 0U;
+}
+
+static const M68kRenderTypedBaseSlot *typed_state_absolute_cell(const M68kRenderTypedState *state, uint32_t id) {
+  size_t index;
+  if (id == 0U) return NULL;
+  for (index = 0U; index < state->base_slot_count; ++index)
+    if (state->base_slots[index].known && state->base_slots[index].storage_id == id)
+      return &state->base_slots[index];
+  return NULL;
+}
+
+static void typed_state_set_absolute_cell(M68kRenderTypedState *state, uint32_t id,
+    const M68kRenderTypedStoredValue *value) {
+  M68kRenderTypedBaseSlot *slot;
+  size_t index;
+  if (id == 0U || !typed_stored_value_has_useful_info(value)) return;
+  for (index = 0U; index < state->base_slot_count; ++index)
+    if (state->base_slots[index].storage_id == id) break;
+  if (index == state->base_slot_count) {
+    if (index == M68K_RENDER_TYPED_BASE_SLOT_LIMIT) return; /* Unknown, never global fallback. */
+    ++state->base_slot_count;
+  }
+  slot = &state->base_slots[index];
+  memset(slot, 0, sizeof(*slot));
+  slot->known = 1U; slot->base_reg = UINT8_MAX; slot->storage_id = id; slot->value = *value;
+}
+
+static void typed_state_forget_absolute_cells(M68kRenderTypedState *state) {
+  size_t index = 0U;
+  state->absolute_memory_written = 1U;
+  while (index < state->base_slot_count) {
+    if (state->base_slots[index].storage_id != 0U)
+      state->base_slots[index] = state->base_slots[--state->base_slot_count];
+    else ++index;
+  }
+}
+
 static int typed_storage_key_for_lookup_memory_operand(const M68kRenderLookup *lookup,
     const M68kRenderTypedState *state, const M68kRenderPlatformState *platform_state,
     size_t current_section_index, const M68kOperandIR *operand, uint8_t access_kind, uint8_t *out_kind,
@@ -3745,6 +3809,39 @@ static int typed_storage_key_for_lookup_memory_operand(const M68kRenderLookup *l
     return 1;
   }
   return 0;
+}
+
+/* Unknown aliases clear local absolute values. A known literal write retains
+ * only disjoint cells. This is a must-value cache, not a non-alias assumption. */
+static void typed_state_note_absolute_write(M68kRenderTypedState *state, const M68kRenderLookup *lookup,
+    size_t section, const M68kOperandIR *operand, uint8_t width) {
+  uint32_t address;
+  size_t index = 0U;
+  uint8_t platform = lookup->object != NULL ? lookup->object->platform_backend_kind : 0U;
+  if (!operand_absolute_offset_local(operand, &address)) {
+    typed_state_forget_absolute_cells(state); return;
+  }
+  if (platform_facts_v2_address_has_hardware_owner(platform, address)) return;
+  section = operand->symbol_ref.has_section ? operand->symbol_ref.section_index : section;
+  state->absolute_memory_written = 1U;
+  while (index < state->base_slot_count) {
+    M68kRenderTypedBaseSlot *cell = &state->base_slots[index];
+    if (cell->storage_id != 0U) {
+      const M68kRenderTypedStorageSlot *owner = &lookup->typed_storage_slots[cell->storage_id - 1U];
+      if (owner->section_index == section && typed_long_cell_overlaps_write(owner->address, address, width)) {
+        *cell = state->base_slots[--state->base_slot_count]; continue;
+      }
+    }
+    ++index;
+  }
+}
+
+static void typed_state_cache_absolute_store(M68kRenderTypedState *state, const M68kRenderLookup *lookup,
+    size_t section, const M68kOperandIR *operand, const M68kRenderTypedStoredValue *value) {
+  uint32_t address;
+  if (!operand_absolute_offset_local(operand, &address)) return;
+  section = operand->symbol_ref.has_section ? operand->symbol_ref.section_index : section;
+  typed_state_set_absolute_cell(state, typed_absolute_storage_id(lookup, section, address), value);
 }
 
 static const M68kRenderTypedStorageSlot *lookup_typed_storage_slot(const M68kRenderLookup *lookup, uint8_t kind,
@@ -4179,8 +4276,20 @@ static int typed_value_for_memory_read_operand(const M68kRenderLookup *lookup, c
         access_kind, &storage_kind, &storage_section, &storage_displacement, &storage_address)) {
       return 0;
     }
-    slot = lookup_typed_storage_slot(lookup, storage_kind, storage_section, storage_displacement, storage_address);
-    value = slot != NULL ? &slot->value : NULL;
+    if (storage_kind == M68K_RENDER_TYPED_STORAGE_ABSOLUTE) {
+      const M68kRenderTypedBaseSlot *cell = typed_state_absolute_cell(state,
+        typed_absolute_storage_id(lookup, storage_section, storage_address));
+      if (cell != NULL) value = &cell->value;
+      else if (state->absolute_memory_written) return 0;
+    }
+    if (value == NULL) {
+      slot = lookup_typed_storage_slot(lookup, storage_kind, storage_section, storage_displacement, storage_address);
+      value = slot != NULL ? &slot->value : NULL;
+      /* An inferred cursor writer elsewhere is not a reaching definition at
+       * this entry, including a store later in the same function. */
+      if (storage_kind == M68K_RENDER_TYPED_STORAGE_ABSOLUTE && value != NULL &&
+          value->app_address_known) return 0;
+    }
   }
   if (value == NULL) return 0;
   *out_value = *value;
@@ -5516,6 +5625,11 @@ static int render_lookup_record_typed_storage_store(M68kRenderLookup *lookup, M6
       source_index, dest_index, offset, &value) != 0) {
     return -1;
   }
+  {
+    uint8_t span = 0U;
+    (void)platform_operand_memory_span(instruction, dest_index, NULL, NULL, &span);
+    typed_state_note_absolute_write(state, lookup, section_index, dest_operand, span);
+  }
   if (operand_is_stack_displacement_local(dest_operand, &stack_displacement)) {
     typed_state_clear_stack_write(state, stack_displacement,
       m68k_sim_operand_width_bytes(instruction, (uint8_t)dest_index));
@@ -5547,7 +5661,11 @@ static int render_lookup_record_typed_storage_store(M68kRenderLookup *lookup, M6
       &value);
     if (!allow_lookup_storage || !state->memory_base_regs[base_reg].known) return 0;
   }
-  if (!allow_lookup_storage) return 0;
+  if (!allow_lookup_storage) {
+    if (instruction->size_suffix == 'l')
+      typed_state_cache_absolute_store(state, lookup, section_index, dest_operand, &value);
+    return 0;
+  }
   {
     uint8_t storage_kind = 0U;
     size_t storage_section = (size_t)-1;
@@ -5582,6 +5700,8 @@ static int render_lookup_record_typed_storage_store(M68kRenderLookup *lookup, M6
         storage_address, &value, section_index, offset, &added) != 0) {
       return -1;
     }
+    if (instruction->size_suffix == 'l')
+      typed_state_cache_absolute_store(state, lookup, section_index, dest_operand, &value);
     if (added && io_changed != NULL) *io_changed = 1;
     if (storage_kind == M68K_RENDER_TYPED_STORAGE_APP_SLOT && value.struct_id != AMIGA_OS_STRUCT_ID_NONE) {
       added = 0;
@@ -5629,6 +5749,34 @@ static int render_lookup_record_untyped_memory_writes(M68kRenderLookup *lookup, 
     uint32_t storage_address = 0U;
     int added = 0;
     if (metadata->operand_access_kinds[operand_index] != M68K_SIM_ACCESS_MEMORY_WRITE) continue;
+    {
+      M68kRenderTypedStoredValue updated;
+      uint8_t span = 0U;
+      uint32_t address, id = 0U;
+      int64_t delta;
+      typed_stored_value_clear(&updated);
+      (void)platform_operand_memory_span(instruction, operand_index, NULL, NULL, &span);
+      if (operand_index == 1U && instruction->size_suffix == 'l' && span == 4U &&
+          operand_absolute_offset_local(operand, &address) && typed_app_cursor_immediate_delta(instruction, &delta)) {
+        size_t owner_section = operand->symbol_ref.has_section ? operand->symbol_ref.section_index : section_index;
+        const M68kRenderTypedBaseSlot *cell;
+        id = typed_absolute_storage_id(lookup, owner_section, address);
+        cell = typed_state_absolute_cell(state, id);
+        if (cell != NULL && cell->value.app_address_known) {
+          int64_t next = (int64_t)cell->value.app_displacement + delta;
+          if (next >= INT16_MIN && next <= INT16_MAX) {
+            updated.app_address_known = 1U;
+            updated.app_displacement = (int16_t)next;
+            updated.app_base_evidence_kind = cell->value.app_base_evidence_kind;
+            updated.provenance = cell->value.provenance;
+            typed_provenance_append_transfer(&updated.provenance, section_index, offset, 0U, 1U);
+            typed_stored_value_update_known(&updated);
+          }
+        }
+      }
+      typed_state_note_absolute_write(state, lookup, section_index, operand, span);
+      typed_state_set_absolute_cell(state, id, &updated);
+    }
     if (operand_is_stack_displacement_local(operand, &stack_displacement)) {
       uint8_t span = 0U;
       (void)platform_operand_memory_span(instruction, operand_index, NULL, NULL, &span);
@@ -7774,9 +7922,9 @@ static void typed_state_update_after_instruction(M68kRenderTypedState *state, M6
     }
     /* Retain only exactly represented arithmetic. Signed WORD immediates
      * outside the nonnegative range need a separate signed decode contract. */
-    if (previous_app.known && immediate_value <= INT32_MAX &&
-        (instruction->size_suffix != 'w' || immediate_value <= INT16_MAX)) {
-      int64_t next = (int64_t)previous_app.displacement + delta;
+    int64_t app_delta;
+    if (previous_app.known && typed_app_cursor_immediate_delta(instruction, &app_delta)) {
+      int64_t next = (int64_t)previous_app.displacement + app_delta;
       if (next >= INT16_MIN && next <= INT16_MAX) {
         state->app_addr_regs[dest_reg] = previous_app;
         state->app_addr_regs[dest_reg].displacement = (int16_t)next;
@@ -7976,7 +8124,8 @@ static int typed_base_slots_equal(const M68kRenderTypedBaseSlot *left,
     const M68kRenderTypedBaseSlot *right) {
   if (left == NULL || right == NULL) return 0;
   return left->known == right->known && left->base_reg == right->base_reg &&
-    left->displacement == right->displacement && typed_stored_values_equal(&left->value, &right->value);
+    left->displacement == right->displacement && left->storage_id == right->storage_id &&
+    typed_stored_values_equal(&left->value, &right->value);
 }
 
 static int typed_base_slot_sets_equal(const M68kRenderTypedState *left, const M68kRenderTypedState *right) {
@@ -7984,8 +8133,9 @@ static int typed_base_slot_sets_equal(const M68kRenderTypedState *left, const M6
   if (left == NULL || right == NULL || left->base_slot_count != right->base_slot_count) return 0;
   for (index = 0U; index < left->base_slot_count; ++index) {
     const M68kRenderTypedBaseSlot *left_slot = &left->base_slots[index];
-    const M68kRenderTypedBaseSlot *right_slot = typed_state_base_slot_entry(right, left_slot->base_reg,
-      left_slot->displacement);
+    const M68kRenderTypedBaseSlot *right_slot = left_slot->storage_id != 0U ?
+      typed_state_absolute_cell(right, left_slot->storage_id) :
+      typed_state_base_slot_entry(right, left_slot->base_reg, left_slot->displacement);
     if (!typed_base_slots_equal(left_slot, right_slot)) return 0;
   }
   return 1;
@@ -8007,7 +8157,8 @@ static int typed_field_slot_sets_equal(const M68kRenderTypedState *left, const M
 static int typed_state_equal(const M68kRenderTypedState *left, const M68kRenderTypedState *right) {
   size_t index;
   if (left == NULL || right == NULL || left->stack_slot_count != right->stack_slot_count ||
-      left->base_slot_count != right->base_slot_count || left->field_slot_count != right->field_slot_count) {
+      left->base_slot_count != right->base_slot_count || left->field_slot_count != right->field_slot_count ||
+      left->absolute_memory_written != right->absolute_memory_written) {
     return 0;
   }
   for (index = 0U; index < 8U; ++index) {
@@ -8340,8 +8491,9 @@ static int typed_state_merge_base_slots(M68kRenderTypedState *dest, const M68kRe
   if (dest == NULL || source == NULL) return 0;
   for (dest_index = 0U; dest_index < dest->base_slot_count;) {
     M68kRenderTypedBaseSlot *dest_slot = &dest->base_slots[dest_index];
-    const M68kRenderTypedBaseSlot *source_slot = typed_state_base_slot_entry(source, dest_slot->base_reg,
-      dest_slot->displacement);
+    const M68kRenderTypedBaseSlot *source_slot = dest_slot->storage_id != 0U ?
+      typed_state_absolute_cell(source, dest_slot->storage_id) :
+      typed_state_base_slot_entry(source, dest_slot->base_reg, dest_slot->displacement);
     if (source_slot == NULL || typed_stored_value_merge(&dest_slot->value, &source_slot->value) ||
         !typed_stored_value_has_useful_info(&dest_slot->value)) {
       if (source_slot == NULL || !typed_stored_value_has_useful_info(&dest_slot->value)) {
@@ -8384,6 +8536,9 @@ static int typed_state_merge_into(M68kRenderTypedState *dest, const M68kRenderTy
   size_t index;
   int changed = 0;
   if (dest == NULL || source == NULL) return 0;
+  if (source->absolute_memory_written && !dest->absolute_memory_written) {
+    dest->absolute_memory_written = 1U; changed = 1;
+  }
   for (index = 0U; index < 8U; ++index) {
     M68kRenderTypedAppAddressValue old_data_app = dest->data_app_addr_regs[index];
     M68kRenderTypedAppAddressValue old_app = dest->app_addr_regs[index];
@@ -9444,6 +9599,17 @@ static int typed_flow_process_node(M68kRenderLookup *lookup, const M68kDecodeIR 
       memcpy(out_platform_state->address_hardware_base_id, hardware.address_hardware_base_id,
         sizeof(hardware.address_hardware_base_id));
     }
+  }
+  if (instruction_has_call_flow_local(&instruction)) {
+    const M68kAnalysisFunctionSummary *effects = selected_local_effects;
+    uint8_t index;
+    int writes = effects == NULL || effects->effects_invalid ||
+      effects->memory_effect_state != M68K_FUNCTION_SUMMARY_EFFECT_COMPONENT_EXPLICIT ||
+      effects->escape_effect_state != M68K_FUNCTION_SUMMARY_EFFECT_COMPONENT_EXPLICIT || effects->escape_count != 0U;
+    if (!writes) for (index = 0U; index < effects->memory_effect_count; ++index)
+      if (effects->memory_effects[index].kind == M68K_FUNCTION_SUMMARY_MEMORY_WRITE) writes = 1;
+    if (writes) typed_state_forget_absolute_cells(out_typed_state);
+    else out_typed_state->absolute_memory_written = 1U;
   }
   platform_state_note_call_result_after_instruction(out_platform_state, &instruction, chosen_vector);
   typed_state_project_layout_roots(out_typed_state, lookup, out_platform_state);

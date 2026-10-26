@@ -489,6 +489,9 @@ typedef struct M68kRenderTypedBaseSlot {
   uint8_t known;
   uint8_t base_reg;
   int16_t displacement;
+  /* 0 for register-relative cells; otherwise canonical storage index + 1.
+   * Uses existing alignment padding. Absolute cells use base_reg=UINT8_MAX. */
+  uint32_t storage_id;
   M68kRenderTypedStoredValue value;
 } M68kRenderTypedBaseSlot;
 
@@ -517,6 +520,9 @@ typedef struct M68kRenderTypedState {
   M68kRenderIoRequestSetup io_request_setups[8];
   uint32_t addr_reg_alias_known;
   uint8_t addr_reg_alias_source[8];
+  /* A local write/call prevents resurrecting a global writer-summary value.
+   * Exact local reaching stores may still supply their own value. */
+  uint8_t absolute_memory_written;
   M68kRenderTypedStackSlot stack_slots[M68K_RENDER_TYPED_STACK_SLOT_LIMIT];
   size_t stack_slot_count;
   M68kRenderTypedBaseSlot base_slots[M68K_RENDER_TYPED_BASE_SLOT_LIMIT];

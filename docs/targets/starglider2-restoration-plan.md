@@ -34,7 +34,7 @@ checks. 93 model-directory annotations join 92 original names plus the type 0/1
 alias. Type 30's substituted selector and eleven other placeholder-name entries
 remain explicit. These are catalogue associations, not visual identification or
 an all-path runtime instance census. That early catalogue/hardware suite passed 125 cases; the current focused
-cursor/provenance/integration checks pass 408. Earlier text/renderer checks
+cursor/provenance/integration checks pass 429. Earlier text/renderer checks
 retain their separate receipts. Source
 quality has zero diagnostics and retains the known encoded-entry boundary conflict.
 
@@ -105,7 +105,7 @@ For those priorities the immediate acceptance questions and dependencies are:
 
 | Limitation | What it currently blocks | Next bounded experiment | Why it is sequenced here |
 | --- | --- | --- | --- |
-| Branchy point-field loop and mutable absolute cursor cell | Renderer read/update spans for world/cache triplets; initialization is bounded | Eight probes distinguish the failures: straight DBF has one range, retry/rollback has none; absolute cursor store/load works until +6 arithmetic. Trace local memory versions/alias invalidation, then check cursor=base+6*(initial-counter) on every retry edge | Actual renderer $4E0AC..$4E332 retries at $4E350 without decrementing D7; cache pointer crosses absolute cell $4E5C0. Whole-root stack transport is fixed but changes no target facts. Global writer-summary storage is not a per-program-point memory value. No target-shaped loop recognizer or dense extra per-node slot array is justified. |
+| Branchy point-field loop and mutable absolute cursor cell | Renderer read/update spans for world/cache triplets; initialization is bounded | Eight probes distinguish the failures: straight DBF has one range, retry/rollback has none; absolute cursor store/load works until +6 arithmetic. Local absolute store/update/alias invalidation now passes21 cases. Next replace the direct-call graph capacity bottleneck, then check cursor=base+6*(initial-counter) on all retry/setup edges | Actual renderer $4E0AC..$4E332 retries at $4E350 without decrementing D7; cache pointer crosses absolute cell $4E5C0. Whole-root stack transport is fixed but changes no target facts. Global writer-summary storage is not a per-program-point memory value. No target-shaped loop recognizer or dense extra per-node slot array is justified. |
 | Remaining conditional app bases | Explicit provenance for 3,022 fallback records (2,503 A6 and 519 declared-layout), alongside 184 register-state and one library-extension record | Group remaining sites by actual entry/call and base producer/borrow; select one concrete lost or conflicting transfer | The holder contract covers its 28 direct loads, not unknown callbacks or callees without a preservation contract. |
 | Orphan incoming path | Deciding whether a specific decoded island belongs in accepted code | Rank current unresolved signals against recovered pointer/table/return edges; choose one with a concrete inbound lead and, only if static evidence remains insufficient, observe that original normal-input condition | Follow recovered access/base evidence to avoid repeatedly scanning instruction-shaped bytes without an entry hypothesis. |
 | Shared buffer phase | Distinguishing producers/consumers of aliased scratch cells and safe source type views | Join the current vertex/cache/polygon writers and readers by original phase/entry; test one suspected overwrite-before-use or cross-phase consumer | Depends on accurate cursor/base associations; physical adjacency or storage capacity alone cannot identify ownership/lifetime. |
@@ -162,6 +162,29 @@ propagation. Any next implementation must retain caller context or an evidenced
 incoming-path contract rather than infer an unconditional entry fact from one
 caller. Mutable absolute-cell arithmetic and retry SCCs remain the other
 concretely reproduced blockers above; this overlap repair does not solve them.
+
+## Mutable absolute cells: current system-first result
+
+The [flow-sensitive cell receipt](../../runtime/observations/starglider2-absolute-cursor-flow.json)
+records 429 passing focused checks. Exact absolute stores and LONG immediate
+cursor updates now carry reaching values through the existing local cell cache;
+unknown writes/calls and conflicting joins cannot resurrect a global writer
+summary. Existing no-write callable contracts retain values. Scalar and MOVEM
+write footprints remain shared. All state/node sizes are unchanged; no dense
+per-node storage array, target-address heuristic or instruction-count unrolling
+was introduced. The formerly failing absolute `+6` probe recovers its consumer.
+
+The final target pass remains C/vasm byte exact and its entire native analysis,
+source and package are identical. No new Starglider semantic coverage is claimed.
+The real renderer probe identifies 83 body blocks, three setup entries and a
+clipping call at `$4E4AE` through `$4E5C4`. That call is currently refused by the
+128-node direct-call graph capacity: 307 distinct targets/842 callsite records
+are refused in current facts. This is a concrete prerequisite for the retry and
+saved-register path, not merely an assertion that the loop is unproved. The next
+bounded implementation is input-sized sparse call-graph/SCC processing, retaining
+body, recursion and incomplete-analysis refusals, followed by the multi-entry
+retry invariant. Raising a convergence cap or adding a renderer-shaped shortcut
+is not the proposed repair. Caller-to-callee base input propagation remains next.
 
 ## Committed buildable rendered output
 
