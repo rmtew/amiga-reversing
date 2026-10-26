@@ -2422,7 +2422,6 @@ int m68k_ir_section_analysis_append_range_ownership(M68kSectionAnalysisIR *secti
 int m68k_ir_section_analysis_append_table_descriptor(M68kSectionAnalysisIR *section_analysis,
     const M68kTableDescriptorIR *descriptor) {
   M68kTableDescriptorIR normalized;
-  M68kTableConsumerIR consumer;
   if (section_analysis == NULL || descriptor == NULL) return -1;
   if (section_analysis->arena == NULL) return -1;
   if (descriptor->end_offset <= descriptor->start_offset || descriptor->entry_size == 0U ||
@@ -2439,37 +2438,51 @@ int m68k_ir_section_analysis_append_table_descriptor(M68kSectionAnalysisIR *sect
       &section_analysis->table_descriptor_capacity, 8U, sizeof(*section_analysis->table_descriptors));
   if (section_analysis->table_descriptors == NULL) return -1;
   section_analysis->table_descriptors[section_analysis->table_descriptor_count++] = normalized;
-  if (normalized.has_consumer) {
-    memset(&consumer, 0, sizeof(consumer));
-    consumer.consumer_offset = normalized.consumer_offset;
-    consumer.table_section_index = (uint32_t)section_analysis->section_index;
-    consumer.table_start_offset = normalized.start_offset;
-    consumer.table_end_offset = normalized.end_offset;
-    consumer.access_width = normalized.entry_size;
-    consumer.entry_count = normalized.entry_count;
-    consumer.entry_count_proof_id = normalized.entry_count_proof_id;
-    consumer.table_stop_reason_id = normalized.table_stop_reason_id;
-    consumer.table_kind_id = normalized.table_kind_id;
-    consumer.source_pattern_id = normalized.source_pattern_id;
-    consumer.has_index_register = normalized.has_index_register;
-    consumer.index_register_kind = normalized.index_register_kind;
-    consumer.index_register = normalized.index_register;
-    consumer.has_target_register = normalized.has_target_register;
-    consumer.target_register_kind = normalized.target_register_kind;
-    consumer.target_register = normalized.target_register;
-    consumer.has_index_mask_domain = normalized.has_index_mask_domain;
-    consumer.index_mask_min = normalized.index_mask_min;
-    consumer.index_mask_max = normalized.index_mask_max;
-    consumer.has_index_compare_domain = normalized.has_index_compare_domain;
-    consumer.index_compare_min = normalized.index_compare_min;
-    consumer.index_compare_max = normalized.index_compare_max;
-    consumer.index_domain_branch_mnemonic_id = normalized.index_domain_branch_mnemonic_id;
-    consumer.has_index_loop_domain = normalized.has_index_loop_domain;
-    consumer.index_loop_min = normalized.index_loop_min;
-    consumer.index_loop_max = normalized.index_loop_max;
-    consumer.index_loop_mnemonic_id = normalized.index_loop_mnemonic_id;
-    if (m68k_ir_section_analysis_append_table_consumer(section_analysis, &consumer) != 0) return -1;
-  }
+  if (normalized.has_consumer && normalized.consumer_section_index == section_analysis->section_index)
+    return m68k_ir_section_analysis_append_table_consumer_from_descriptor(section_analysis,
+      (uint32_t)section_analysis->section_index, &normalized);
+  return 0;
+}
+
+/* A consumer belongs to its instruction's section, even when the table lives
+ * elsewhere. Keep one descriptor-to-consumer projection for both cases. */
+int m68k_ir_section_analysis_append_table_consumer_from_descriptor(M68kSectionAnalysisIR *section_analysis,
+    uint32_t table_section_index, const M68kTableDescriptorIR *descriptor) {
+  M68kTableConsumerIR consumer;
+  if (!section_analysis || !descriptor) return -1;
+  if (!descriptor->has_consumer || descriptor->consumer_section_index != section_analysis->section_index) return 0;
+  memset(&consumer, 0, sizeof(consumer));
+  consumer.consumer_offset = descriptor->consumer_offset;
+  consumer.table_section_index = table_section_index;
+  consumer.table_start_offset = descriptor->start_offset;
+  consumer.table_end_offset = descriptor->end_offset;
+  consumer.access_width = descriptor->entry_size;
+  consumer.entry_count = descriptor->entry_count;
+  consumer.entry_count_proof_id = descriptor->entry_count_proof_id;
+  consumer.table_stop_reason_id = descriptor->table_stop_reason_id;
+  if (consumer.table_stop_reason_id == M68K_ANALYSIS_TABLE_STOP_REASON_UNKNOWN)
+    consumer.table_stop_reason_id =
+      m68k_analysis_table_stop_reason_for_entry_count_proof(consumer.entry_count_proof_id);
+  consumer.table_kind_id = descriptor->table_kind_id;
+  consumer.source_pattern_id = descriptor->source_pattern_id;
+  consumer.has_index_register = descriptor->has_index_register;
+  consumer.index_register_kind = descriptor->index_register_kind;
+  consumer.index_register = descriptor->index_register;
+  consumer.has_target_register = descriptor->has_target_register;
+  consumer.target_register_kind = descriptor->target_register_kind;
+  consumer.target_register = descriptor->target_register;
+  consumer.has_index_mask_domain = descriptor->has_index_mask_domain;
+  consumer.index_mask_min = descriptor->index_mask_min;
+  consumer.index_mask_max = descriptor->index_mask_max;
+  consumer.has_index_compare_domain = descriptor->has_index_compare_domain;
+  consumer.index_compare_min = descriptor->index_compare_min;
+  consumer.index_compare_max = descriptor->index_compare_max;
+  consumer.index_domain_branch_mnemonic_id = descriptor->index_domain_branch_mnemonic_id;
+  consumer.has_index_loop_domain = descriptor->has_index_loop_domain;
+  consumer.index_loop_min = descriptor->index_loop_min;
+  consumer.index_loop_max = descriptor->index_loop_max;
+  consumer.index_loop_mnemonic_id = descriptor->index_loop_mnemonic_id;
+  if (m68k_ir_section_analysis_append_table_consumer(section_analysis, &consumer) != 0) return -1;
   return 0;
 }
 

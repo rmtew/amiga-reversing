@@ -3165,3 +3165,54 @@ The next connected review follows the existing world-type initialization
 directory and its app+6C chain cursor. Use original selector/initializer and
 model-name evidence, preserving record union roles and unchecked index limits;
 do not guess visual object identities or promote orphan code from appearance.
+
+## Current object-initializer and shared-directory restoration
+
+The [initializer receipt](../../runtime/observations/starglider2-object-initializers.json)
+records the original 148-LONG/592-byte type-initializer directory, 55 distinct
+accepted targets and 57 selectors sharing a no-op RTS. It is used both by world
+placement and inventory release, not just startup. Its physically stored prefix
+ends before an adjacent six-byte JMP; it is not a universal checked selector
+domain. Six existing callbacks now name their demonstrated operations. Original
+type/name associations join selector 37 to the guarded Mini-Sentinel initializer,
+4 to the Solar Energy Converter chain anchor and 90 to the Energy Tower variant
+linker. Type 93's same Energy Tower text is not conflated. Selectors 96/97 retain
+unknown identities, with append and append/clear operations named from code.
+
+App+$6C now names the mutable object-initializer chain tail with an original-use
+SG2WorldObject pointer contract. Both actual caller contexts supply pool records.
+Object+$38/$3C remain type-dependent unions; no universal link-field names, power
+network behavior or visual identity is invented. Four provisional citation records
+were rejected and replaced after a finite native decoder walk checked instruction
+boundaries; the old table owner was retired through the normal API. All histories
+remain append-only, and nine current semantic actions have exact-bound review.
+
+Canonicalizing the table exposed a shared gap: table discovery stopped at owned
+bytes and discarded observed readers. Two minimal positives fail before the fix
+(inferred table: one reader, declared table: none; both have two actual reads).
+The existing operand/base walk now observes clean table descriptors separately
+from discovery. Native consumers retain their own registers/domains and instruction
+sections, and address expressions use that vector rather than a single descriptor
+reader. No target-specific recognizer, competing transfer engine or per-node
+array is added. The two original directory reads at source $CCE/$16E86 now survive.
+Across the target, consumers are 30 -> 40 and address expressions 179 -> 189
+(11 recovered links versus the held, unqualified candidate). App sites remain
+3,305, typed accesses 316, unresolved typed sites 355; generic names are 83 -> 82.
+Accepted code and indirect targets are unchanged. Only the directory's ownership
+evidence changes from discovery to declaration, preserving its exact span.
+
+All 104 focused/integration Python checks pass. The full C run has 812 passes
+and six failures, identical to a controlled pre-change build of committed
+25fd347a using the same unit objects: five timer-device rendering expectations
+and one storage-derived-call expectation. This is **not** an all-C-tests pass;
+these older follow-ups remain explicit rather than hidden by changed assertions.
+C and vasm rebuild all 412,736 original bytes. The source package is identical
+before/after the consumer fix, all 57 assets and fourteen headers are unchanged,
+and the final committed layout receives a clean standalone build. No runtime
+replay or archive is produced. The observation pass takes 3.55 seconds in this
+necessary qualification; no whole-pipeline speedup is inferred from that timing.
+
+Next: the concrete app+$7E4 structure-boundary clamp producers and contact/braking
+consumers. The 14,728-byte/260-interval complement and 30 unresolved orphan signals
+remain honest unknowns. Older timer/call test expectations do not justify an
+unbounded framework detour or a false all-path completion claim.

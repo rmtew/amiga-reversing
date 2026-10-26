@@ -3089,6 +3089,8 @@ int m68k_ir_section_analysis_append_range_ownership(M68kSectionAnalysisIR *secti
     const M68kRangeOwnershipIR *range);
 int m68k_ir_section_analysis_append_table_descriptor(M68kSectionAnalysisIR *section_analysis,
     const M68kTableDescriptorIR *descriptor);
+int m68k_ir_section_analysis_append_table_consumer_from_descriptor(M68kSectionAnalysisIR *section_analysis,
+    uint32_t table_section_index, const M68kTableDescriptorIR *descriptor);
 int m68k_ir_section_analysis_append_table_consumer(M68kSectionAnalysisIR *section_analysis,
     const M68kTableConsumerIR *consumer);
 int m68k_ir_section_analysis_append_address_expression(M68kSectionAnalysisIR *section_analysis,

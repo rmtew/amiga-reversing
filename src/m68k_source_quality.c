@@ -2832,6 +2832,12 @@ static int append_structured_data_table_descriptors(M68kSourceAnalysisIR *source
     descriptor.index_loop_mnemonic_id = item->index_loop_mnemonic_id;
     descriptor.conflict_state = item->table_conflict_state;
     if (m68k_ir_section_analysis_append_table_descriptor(section, &descriptor) != 0) return -1;
+    if (descriptor.has_consumer && descriptor.consumer_section_index != item->section_index) {
+      M68kSectionAnalysisIR *consumer_section =
+        source_analysis_section_by_index(source_analysis, descriptor.consumer_section_index);
+      if (consumer_section && m68k_ir_section_analysis_append_table_consumer_from_descriptor(
+          consumer_section, item->section_index, &descriptor) != 0) return -1;
+    }
   }
   return 0;
 }
@@ -2879,63 +2885,66 @@ static const M68kDecodeSectionIR *source_quality_decode_section_by_index(const M
 }
 
 static int indexed_operand_matches_table_consumer(const M68kAsmOperandValue *operand,
-    const M68kTableDescriptorIR *descriptor) {
-  if (operand == NULL || descriptor == NULL) return 0;
+    const M68kTableConsumerIR *consumer) {
+  if (operand == NULL || consumer == NULL) return 0;
   if (!((operand->ea_mode == 6U) || (operand->ea_mode == 7U && operand->ea_reg == 3U))) return 0;
   if (operand->index_is_address !=
-      (descriptor->index_register_kind == M68K_ANALYSIS_REGISTER_ADDRESS ? 1U : 0U) ||
-      operand->index_reg != descriptor->index_register) {
+      (consumer->index_register_kind == M68K_ANALYSIS_REGISTER_ADDRESS ? 1U : 0U) ||
+      operand->index_reg != consumer->index_register) {
     return 0;
   }
   return 1;
 }
 
-/* Table recovery owns bounds and index-domain proof. This pass adds only the
- * canonical expression edge from the indexed effective address to that
- * recovered contract. */
+/* Consumers own observed operand identity; descriptors own table geometry and
+ * admission. A shared table may have several independently indexed readers. */
 static int append_indexed_table_address_expressions(M68kSourceAnalysisIR *source_analysis,
     const M68kDecodeIR *decode) {
-  size_t table_section_index;
+  size_t section_index;
   if (source_analysis == NULL || decode == NULL) return 0;
-  for (table_section_index = 0U; table_section_index < source_analysis->section_count; ++table_section_index) {
-    M68kSectionAnalysisIR *table_section = &source_analysis->sections[table_section_index];
-    size_t descriptor_index;
-    for (descriptor_index = 0U; descriptor_index < table_section->table_descriptor_count; ++descriptor_index) {
-      const M68kTableDescriptorIR *descriptor = &table_section->table_descriptors[descriptor_index];
-      const M68kDecodeSectionIR *consumer_decode;
-      M68kSectionAnalysisIR *consumer_section;
+  for (section_index = 0U; section_index < source_analysis->section_count; ++section_index) {
+    M68kSectionAnalysisIR *consumer_section = &source_analysis->sections[section_index];
+    const M68kDecodeSectionIR *consumer_decode = source_quality_decode_section_by_index(decode,
+      (uint32_t)consumer_section->section_index, NULL);
+    size_t consumer_index;
+    if (!consumer_decode) continue;
+    for (consumer_index = 0U; consumer_index < consumer_section->table_consumer_count; ++consumer_index) {
+      const M68kTableConsumerIR *consumer = &consumer_section->table_consumers[consumer_index];
+      M68kSectionAnalysisIR *table_section =
+        source_analysis_section_by_index(source_analysis, consumer->table_section_index);
+      const M68kTableDescriptorIR *descriptor = NULL;
       const M68kDecodeCandidate *candidate;
-      size_t operand_index;
-      size_t matching_operand_count = 0U;
-      if (!descriptor->has_consumer || !descriptor->has_index_register ||
-          descriptor->status != M68K_RANGE_OWNERSHIP_STATUS_ACCEPTED ||
-          descriptor->conflict_state != M68K_ANALYSIS_CONFLICT_STATE_CLEAN) {
-        continue;
+      size_t descriptor_index, operand_index, matching_operand_count = 0U;
+      int conflicted = 0;
+      if (!consumer->has_index_register || !table_section) continue;
+      for (descriptor_index = 0U; descriptor_index < table_section->table_descriptor_count; ++descriptor_index) {
+        const M68kTableDescriptorIR *current = &table_section->table_descriptors[descriptor_index];
+        if (current->start_offset != consumer->table_start_offset ||
+            current->end_offset != consumer->table_end_offset || current->entry_size != consumer->access_width ||
+            current->table_kind_id != consumer->table_kind_id) continue;
+        if (current->status != M68K_RANGE_OWNERSHIP_STATUS_ACCEPTED ||
+            current->conflict_state != M68K_ANALYSIS_CONFLICT_STATE_CLEAN) { conflicted = 1; break; }
+        descriptor = current;
       }
-      consumer_section = source_analysis_section_by_index(source_analysis, descriptor->consumer_section_index);
-      consumer_decode = source_quality_decode_section_by_index(decode, descriptor->consumer_section_index, NULL);
-      if (consumer_section == NULL || consumer_decode == NULL) continue;
-      candidate = m68k_decode_ir_find_candidate_at_offset(consumer_decode, descriptor->consumer_offset);
-      if (candidate == NULL) continue;
+      if (!descriptor || conflicted) continue;
+      candidate = m68k_decode_ir_find_candidate_at_offset(consumer_decode, consumer->consumer_offset);
+      if (!candidate) continue;
       for (operand_index = 0U; operand_index < candidate->operand_count; ++operand_index) {
         if (candidate->operand_kinds[operand_index] == M68K_ASM_OPERAND_EA &&
-            indexed_operand_matches_table_consumer(&candidate->operands[operand_index], descriptor)) {
+            indexed_operand_matches_table_consumer(&candidate->operands[operand_index], consumer))
           ++matching_operand_count;
-        }
       }
       if (matching_operand_count != 1U) continue;
       for (operand_index = 0U; operand_index < candidate->operand_count; ++operand_index) {
         const M68kAsmOperandValue *operand = &candidate->operands[operand_index];
         M68kAddressExpressionIR expression;
         if (candidate->operand_kinds[operand_index] != M68K_ASM_OPERAND_EA ||
-            !indexed_operand_matches_table_consumer(operand, descriptor)) {
-          continue;
-        }
+            !indexed_operand_matches_table_consumer(operand, consumer)) continue;
         memset(&expression, 0, sizeof(expression));
         expression.kind = M68K_ADDRESS_EXPRESSION_INDEXED_TABLE;
-        expression.consumer_section_index = descriptor->consumer_section_index;
-        expression.consumer_offset = descriptor->consumer_offset;
-        expression.base_section_index = (uint32_t)table_section->section_index;
+        expression.consumer_section_index = (uint32_t)consumer_section->section_index;
+        expression.consumer_offset = consumer->consumer_offset;
+        expression.base_section_index = consumer->table_section_index;
         expression.base_offset = descriptor->start_offset;
         expression.operand_index = (uint8_t)operand_index;
         expression.has_index_register = 1U;
@@ -2944,7 +2953,6 @@ static int append_indexed_table_address_expressions(M68kSourceAnalysisIR *source
         expression.index_register = operand->index_reg;
         expression.index_scale = operand->scale != 0U ? operand->scale : 1U;
         expression.element_stride = (uint8_t)descriptor->entry_size;
-        expression.signed_addend = 0;
         if (m68k_ir_section_analysis_append_address_expression(consumer_section, &expression) != 0) return -1;
       }
     }
@@ -5901,8 +5909,54 @@ static uint32_t source_quality_scan_indexed_local_pointer_table_span(
   return count >= 2U ? count * 4U : 0U;
 }
 
+/* Observe reads of a recovered/declared table without reclassifying its bytes
+ * or replacing its canonical name. Bounds and conflicts remain descriptor facts;
+ * each actual indexed operand owns its register and index-domain evidence. */
+static int append_known_pointer_table_consumer(M68kSectionAnalysisIR *consumer_section,
+    const M68kSectionAnalysisIR *table_section, const M68kDecodeSectionIR *table_decode,
+    const uint8_t *accepted_bytes, uint32_t table_offset, uint32_t consumer_offset,
+    uint8_t index_kind, uint8_t index_reg, uint8_t has_target_reg, uint8_t target_kind, uint8_t target_reg,
+    const M68kSourceQualityTableIndexDomainEvidence *domain) {
+  const M68kTableDescriptorIR *found = NULL;
+  M68kTableDescriptorIR observed;
+  size_t index;
+  for (index = 0U; index < table_section->table_descriptor_count; ++index) {
+    const M68kTableDescriptorIR *descriptor = &table_section->table_descriptors[index];
+    if (descriptor->start_offset != table_offset ||
+        descriptor->table_kind_id != M68K_ANALYSIS_TABLE_KIND_POINTER || descriptor->entry_size != 4U) continue;
+    if (descriptor->status != M68K_RANGE_OWNERSHIP_STATUS_ACCEPTED ||
+        descriptor->conflict_state != M68K_ANALYSIS_CONFLICT_STATE_CLEAN) return 0;
+    if (found && found->end_offset != descriptor->end_offset) return 0;
+    found = descriptor;
+  }
+  if (!found || found->end_offset > table_decode->size || found->end_offset <= table_offset ||
+      (found->end_offset - table_offset) % 4U != 0U ||
+      source_quality_accepted_range_has_code_byte(accepted_bytes, table_decode->size,
+        table_offset, found->end_offset - table_offset)) return 0;
+  observed = *found;
+  observed.has_consumer = 1U;
+  observed.consumer_section_index = (uint32_t)consumer_section->section_index;
+  observed.consumer_offset = consumer_offset;
+  observed.source_pattern_id = M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_INDEXED_LOCAL_POINTER_READ;
+  observed.has_index_register = 1U;
+  observed.index_register_kind = index_kind; observed.index_register = index_reg;
+  observed.has_target_register = has_target_reg;
+  observed.target_register_kind = target_kind; observed.target_register = target_reg;
+  observed.has_index_mask_domain = domain->has_mask;
+  observed.index_mask_min = domain->mask_min; observed.index_mask_max = domain->mask_max;
+  observed.has_index_compare_domain = domain->has_compare;
+  observed.index_compare_min = domain->compare_min; observed.index_compare_max = domain->compare_max;
+  observed.index_domain_branch_mnemonic_id = domain->branch_mnemonic_id;
+  observed.has_index_loop_domain = domain->has_loop;
+  observed.index_loop_min = domain->loop_min; observed.index_loop_max = domain->loop_max;
+  observed.index_loop_mnemonic_id = domain->loop_mnemonic_id;
+  return m68k_ir_section_analysis_append_table_consumer_from_descriptor(consumer_section,
+    (uint32_t)table_section->section_index, &observed);
+}
+
 static int append_indexed_local_pointer_table_items(M68kSourceAnalysisIR *source_analysis,
-    const M68kDecodeIR *decode, uint8_t *const *accepted_start, uint8_t *const *accepted_bytes) {
+    const M68kDecodeIR *decode, uint8_t *const *accepted_start, uint8_t *const *accepted_bytes,
+    uint8_t consumers_only) {
   size_t decode_index;
   if (source_analysis == NULL || decode == NULL || accepted_start == NULL || accepted_bytes == NULL) return 0;
   for (decode_index = 0U; decode_index < decode->section_count; ++decode_index) {
@@ -5953,39 +6007,46 @@ static int append_indexed_local_pointer_table_items(M68kSourceAnalysisIR *source
             &instruction, &target_register_kind, &target_register);
           source_quality_derive_index_domain_before_table_access(section, accepted_start[decode_index],
             candidate->offset, index_register_kind, index_register, &index_domain);
-          if (!table_offset_is_code &&
-              !source_quality_section_has_interior_label(target_analysis, table_offset, item_size)) {
-            span = source_quality_scan_indexed_local_pointer_table_span(source_analysis, target_analysis,
-              target_section, accepted_start[target_section_index], accepted_bytes[target_section_index],
-              table_offset);
-          }
-          if (span == 0U && !table_offset_is_code &&
-              source_quality_candidate_indexed_read_dest_address_reg(candidate, &instruction, &dest_reg)) {
-            span = source_quality_scan_indexed_text_pointer_table_span(source_analysis, target_analysis,
-              target_section, accepted_bytes[target_section_index], table_offset);
-          }
-          if (span == 0U && table_offset_is_code &&
-              source_quality_candidate_indexed_read_dest_address_reg(candidate, &instruction, &dest_reg) &&
-              source_quality_candidate_later_is_indirect_control_through_addr_reg(section,
-                accepted_start[decode_index], candidate, dest_reg) &&
-              table_offset <= UINT32_MAX - item_size &&
-              table_offset + item_size <= target_section->size &&
-              item_size <= target_section->size - (table_offset + item_size) &&
-              !source_quality_accepted_range_has_code_byte(accepted_bytes[target_section_index],
-                target_section->size, table_offset + item_size, item_size) &&
-              !source_quality_section_has_interior_label(target_analysis, table_offset + item_size, item_size)) {
-            table_offset += item_size;
-            span = source_quality_scan_indexed_local_pointer_table_span(source_analysis, target_analysis,
-              target_section, accepted_start[target_section_index], accepted_bytes[target_section_index],
-              table_offset);
-          }
-          if (span != 0U &&
-              append_pc_relative_lookup_table_item(source_analysis, target_section_index, table_offset, span,
-                M68K_ANALYSIS_STRUCTURED_DATA_LONGS,
-                M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_INDEXED_LOCAL_POINTER_READ,
-                (uint32_t)section->section_index, candidate->offset, 1U, index_register_kind, index_register,
-                target_register_known, target_register_kind, target_register, &index_domain, 0U, 0U, 0U) != 0) {
-            return -1;
+          if (consumers_only) {
+            if (append_known_pointer_table_consumer(section_analysis, target_analysis, target_section,
+                accepted_bytes[target_section_index], table_offset, candidate->offset,
+                index_register_kind, index_register, target_register_known, target_register_kind,
+                target_register, &index_domain) != 0) return -1;
+          } else {
+            if (!table_offset_is_code &&
+                !source_quality_section_has_interior_label(target_analysis, table_offset, item_size)) {
+              span = source_quality_scan_indexed_local_pointer_table_span(source_analysis, target_analysis,
+                target_section, accepted_start[target_section_index], accepted_bytes[target_section_index],
+                table_offset);
+            }
+            if (span == 0U && !table_offset_is_code &&
+                source_quality_candidate_indexed_read_dest_address_reg(candidate, &instruction, &dest_reg)) {
+              span = source_quality_scan_indexed_text_pointer_table_span(source_analysis, target_analysis,
+                target_section, accepted_bytes[target_section_index], table_offset);
+            }
+            if (span == 0U && table_offset_is_code &&
+                source_quality_candidate_indexed_read_dest_address_reg(candidate, &instruction, &dest_reg) &&
+                source_quality_candidate_later_is_indirect_control_through_addr_reg(section,
+                  accepted_start[decode_index], candidate, dest_reg) &&
+                table_offset <= UINT32_MAX - item_size &&
+                table_offset + item_size <= target_section->size &&
+                item_size <= target_section->size - (table_offset + item_size) &&
+                !source_quality_accepted_range_has_code_byte(accepted_bytes[target_section_index],
+                  target_section->size, table_offset + item_size, item_size) &&
+                !source_quality_section_has_interior_label(target_analysis, table_offset + item_size, item_size)) {
+              table_offset += item_size;
+              span = source_quality_scan_indexed_local_pointer_table_span(source_analysis, target_analysis,
+                target_section, accepted_start[target_section_index], accepted_bytes[target_section_index],
+                table_offset);
+            }
+            if (span != 0U &&
+                append_pc_relative_lookup_table_item(source_analysis, target_section_index, table_offset, span,
+                  M68K_ANALYSIS_STRUCTURED_DATA_LONGS,
+                  M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_INDEXED_LOCAL_POINTER_READ,
+                  (uint32_t)section->section_index, candidate->offset, 1U, index_register_kind, index_register,
+                  target_register_known, target_register_kind, target_register, &index_domain, 0U, 0U, 0U) != 0) {
+              return -1;
+            }
           }
         }
       }
@@ -5994,6 +6055,11 @@ static int append_indexed_local_pointer_table_items(M68kSourceAnalysisIR *source
     }
   }
   return 0;
+}
+
+static int append_indexed_local_pointer_table_consumers(M68kSourceAnalysisIR *source_analysis,
+    const M68kDecodeIR *decode, uint8_t *const *accepted_start, uint8_t *const *accepted_bytes) {
+  return append_indexed_local_pointer_table_items(source_analysis, decode, accepted_start, accepted_bytes, 1U);
 }
 
 typedef struct M68kSourceQualityWordOffsetValue {
@@ -13707,7 +13773,7 @@ int m68k_source_quality_analyze_with_policy_and_hardware_base_seeds(M68kSourceAn
   SOURCE_QUALITY_CHECK_OK(append_indexed_word_dispatch_table_items(source_analysis, decode, accepted_start,
     accepted_bytes));
   SOURCE_QUALITY_CHECK_OK(append_indexed_local_pointer_table_items(source_analysis, decode, accepted_start,
-    accepted_bytes));
+    accepted_bytes, 0U));
   SOURCE_QUALITY_CHECK_OK(append_indexed_local_scalar_table_items(source_analysis, decode, accepted_start,
     accepted_bytes));
   SOURCE_QUALITY_CHECK_OK(append_pc_relative_lookup_table_items(source_analysis, decode, accepted_start,
@@ -13744,6 +13810,10 @@ int m68k_source_quality_analyze_with_policy_and_hardware_base_seeds(M68kSourceAn
   SOURCE_QUALITY_CHECK_OK(append_hardware_base_note_platform_semantic_uses(source_analysis, decode, accepted_start,
     policy, effective_seed_items, effective_seed_count));
   SOURCE_QUALITY_CHECK_OK(append_structured_data_table_descriptors(source_analysis));
+  /* The same shared operand/base walk now observes all clean existing owners.
+   * Discovery must stop at owned bytes; observation must not. */
+  SOURCE_QUALITY_CHECK_OK(append_indexed_local_pointer_table_consumers(source_analysis, decode, accepted_start,
+    accepted_bytes));
     SOURCE_QUALITY_CHECK_OK(append_indexed_table_address_expressions(source_analysis, decode));
     SOURCE_QUALITY_CHECK_OK(append_static_interior_address_expressions(source_analysis, decode, accepted_start));
     SOURCE_QUALITY_CHECK_OK(append_affine_static_interior_address_expressions(source_analysis));

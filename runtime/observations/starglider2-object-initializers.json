@@ -1,0 +1,1200 @@
+{
+  "schema_version": 1,
+  "kind": "world_type_initializers_and_preserved_pointer_table_consumers",
+  "publication_base_commit": "25fd347a015ae994f78cc5a189cb1c3c1ca4b078",
+  "backend_sha256": "46291b1f30c40929991dab7c7aa2a69b19f2b3abcfd3b54acaa01e56f298384c",
+  "analysis_sha256": "821ce15f95fbbb759064b5337dad158fdbd5aeb9dafbd6e96b54192cfae132a5",
+  "canonical_actions": [
+    {
+      "record": "manual_action",
+      "action_id": "manual-810c74c98a2c45f1b9ea786cfc64a032",
+      "sequence": 2741,
+      "created_at": "2026-10-26T17:33:10.212674+00:00",
+      "kind": "create_manual_label",
+      "label": {
+        "label_id": "catalog-code-label-h0-00016E92",
+        "name": "skip_object_type_initialization",
+        "scope": "global",
+        "address_domain": "source",
+        "hunk": 0,
+        "addr": 93842
+      },
+      "interpretation": {
+        "evidence_refs": [
+          "s0:00016E92:instruction"
+        ],
+        "reason": "Shared RTS for57 stored selectors. The callback itself changes no state; callers retain their different common initialization. Do not call it a no-object/dead type handler.",
+        "source_evidence_status": "hypothesis",
+        "confidence": "high",
+        "subject_revision": "7f2bfe312a85686769080d58f3ef1592414d0759f8ae5a6c65a4a26747e867bc"
+      }
+    },
+    {
+      "record": "manual_action",
+      "action_id": "manual-02a25dadd13645c08b6d23718f9e41ae",
+      "sequence": 2742,
+      "created_at": "2026-10-26T17:33:22.295753+00:00",
+      "kind": "create_manual_label",
+      "label": {
+        "label_id": "catalog-code-label-h0-00017140",
+        "name": "initialize_station_mini_sentinel",
+        "scope": "global",
+        "address_domain": "source",
+        "hunk": 0,
+        "addr": 94528
+      },
+      "interpretation": {
+        "evidence_refs": [
+          "s0:00017140:instruction",
+          "s0:0001715C:instruction",
+          "s0:00017160:instruction",
+          "s0:000171DE:instruction"
+        ],
+        "reason": "Directory selector37 uniquely selects this routine; the existing original model-name association is Egron Mini-Sentinel. It checks station-cycle enable/count, clears object type when disabled/excess, otherwise initializes a trigonometric position around the station reference plus flags/control words. This joins original selector/name and code behavior, not a new visual identification.",
+        "source_evidence_status": "hypothesis",
+        "confidence": "high",
+        "subject_revision": "92c79b97b87c248645ad7a6e2776e834e513f6c6b1212717c9e3e72359311ae9"
+      }
+    },
+    {
+      "record": "manual_action",
+      "action_id": "manual-320d40551856427b8a6ecd55ec2bda7e",
+      "sequence": 2743,
+      "created_at": "2026-10-26T17:33:31.626253+00:00",
+      "kind": "create_manual_label",
+      "label": {
+        "label_id": "catalog-code-label-h0-00017220",
+        "name": "initialize_solar_converter_chain_anchor",
+        "scope": "global",
+        "address_domain": "source",
+        "hunk": 0,
+        "addr": 94752
+      },
+      "interpretation": {
+        "evidence_refs": [
+          "s0:00017220:instruction",
+          "s0:00017234:instruction"
+        ],
+        "reason": "Directory selector4 (original Solar Energy Converter name) uniquely selects this initializer. It sets the original variant/state/Y and installs A0 as the mutable initializer-chain tail. No power-network semantics or universal object union meaning is inferred.",
+        "source_evidence_status": "hypothesis",
+        "confidence": "high",
+        "subject_revision": "d3c3ceac62e543cc9b06cc0919b9bba0fc925a3bf0a716fcd28bf0e3fea506ae"
+      }
+    },
+    {
+      "record": "manual_action",
+      "action_id": "manual-27f12e2c3c9f4fd2945b5769ebe1f2ca",
+      "sequence": 2744,
+      "created_at": "2026-10-26T17:33:42.074572+00:00",
+      "kind": "create_manual_label",
+      "label": {
+        "label_id": "catalog-code-label-h0-000176F6",
+        "name": "initialize_energy_tower_variant_and_link",
+        "scope": "global",
+        "address_domain": "source",
+        "hunk": 0,
+        "addr": 95990
+      },
+      "interpretation": {
+        "evidence_refs": [
+          "s0:000176F6:instruction",
+          "s0:0001770C:instruction",
+          "s0:00017716:instruction",
+          "s0:00017724:instruction"
+        ],
+        "reason": "Directory selector90 has the original Energy Tower name and uniquely selects this initializer. It randomizes the variant byte, connects current object to previous initializer-chain tail if nonzero, then stores current A0 as tail. Type93 shares the Energy Tower text but uses another initializer; do not conflate them.",
+        "source_evidence_status": "hypothesis",
+        "confidence": "high",
+        "subject_revision": "ef6d212b1fbaa792b43d0f6acbaf106a3e2a7bf022653dbb71a6fd1e37f0aa92"
+      }
+    },
+    {
+      "record": "manual_action",
+      "action_id": "manual-063f6280825644d094ce5c07fafee442",
+      "sequence": 2746,
+      "created_at": "2026-10-26T17:34:00.746932+00:00",
+      "kind": "create_manual_label",
+      "label": {
+        "label_id": "catalog-code-label-h0-00017780",
+        "name": "append_and_clear_object_initializer_chain",
+        "scope": "global",
+        "address_domain": "source",
+        "hunk": 0,
+        "addr": 96128
+      },
+      "interpretation": {
+        "evidence_refs": [
+          "s0:00017780:instruction",
+          "s0:0001778A:instruction",
+          "s0:00017798:instruction"
+        ],
+        "reason": "Directory selector97 has no supported original identity here. If a prior tail exists, this routine links current A0 and prior tail through+38/+3C, restores A2 from USP and clears app+6C. An empty tail returns without linking. This is not proof of a closed cycle or energy transmission behavior.",
+        "source_evidence_status": "hypothesis",
+        "confidence": "high",
+        "subject_revision": "5547c35abe6a5eab693271c49ee355e3b61ea0227a5d6fb626414db82800d02a"
+      }
+    },
+    {
+      "record": "manual_action",
+      "action_id": "manual-1542e9e7143c4cc3a30cdd3c0ee3bea4",
+      "sequence": 2748,
+      "created_at": "2026-10-26T17:36:15.317852+00:00",
+      "kind": "create_manual_data_block_layout",
+      "data_block_layout": {
+        "layout_id": "catalog-0cc968a12e3e41579a72e4b6d90d880b",
+        "hunk": 0,
+        "source_start": 93930,
+        "source_end": 94522,
+        "name": "world_object_type_initializer_pointers",
+        "role": "pointer_table",
+        "default_unit": "long"
+      },
+      "interpretation": {
+        "evidence_refs": [
+          "s0:00000CCE:instruction",
+          "s0:00016E82:instruction",
+          "s0:00016E86:instruction",
+          "s0:00016E8A:instruction",
+          "s0:00016EEA:data"
+        ],
+        "reason": "Original object-type-indexed callback directory:148 stored LONGs,55 distinct accepted target routines,57 selectors share a no-op RTS. Both world-placement initialization and inventory release use type*4 to load A5 and JSR(A5). Native structural scan already identifies this exact592-byte pointer extent. This names/canonicalizes that family, not a new instruction discovery or universal safe selector domain; the adjacent six-byte JMP is excluded. Replaces rejected provisional citation16E78 with decoded LEA/load/call starts16E82/16E86/16E8A.",
+        "source_evidence_status": "hypothesis",
+        "confidence": "high",
+        "subject_revision": "6511361213db105d034483707a5beb2cce7fe95c3beb4017ef7914afc877d693"
+      }
+    },
+    {
+      "record": "manual_action",
+      "action_id": "manual-52a3a293362e4adfb179cf587ee6b935",
+      "sequence": 2749,
+      "created_at": "2026-10-26T17:36:24.870602+00:00",
+      "kind": "set_manual_data_block_element",
+      "data_block_element": {
+        "data_block_element_id": "catalog-0cc968a12e3e41579a72e4b6d90d880b:0",
+        "layout_id": "catalog-0cc968a12e3e41579a72e4b6d90d880b",
+        "offset": 0,
+        "width": 592,
+        "kind": "array",
+        "array_count": 148,
+        "array_stride": 4
+      },
+      "interpretation": {
+        "evidence_refs": [
+          "s0:00000CCE:instruction",
+          "s0:00016E82:instruction",
+          "s0:00016E86:instruction",
+          "s0:00016E8A:instruction",
+          "s0:00016EEA:data"
+        ],
+        "reason": "Materialize the same148 existing callback LONGs under the named pointer-table owner. All stored targets resolve into already accepted code. Original type-byte arithmetic has no general148-entry range guard; retain the physical prefix versus dynamic index distinction. Owner and source boundaries are checked by the retained decoded walk.",
+        "source_evidence_status": "hypothesis",
+        "confidence": "high",
+        "subject_revision": "862eba9870dc3fcc7e8443c21777288fff656831c13d4536041479377fd3315c"
+      }
+    },
+    {
+      "record": "manual_action",
+      "action_id": "manual-ddd6121692594e7d8033271f08abe801",
+      "sequence": 2750,
+      "created_at": "2026-10-26T17:36:35.057758+00:00",
+      "kind": "create_manual_rsset_layout_region",
+      "rsset_layout_region": {
+        "rsset_layout_region_id": "catalog-rsset-region-app-006C",
+        "offset": 108,
+        "symbol": "object_initializer_chain_tail",
+        "size": 4,
+        "layout_name": "app",
+        "pointer_struct": "SG2WorldObject",
+        "storage_kind": "struct_pointer"
+      },
+      "interpretation": {
+        "evidence_refs": [
+          "s0:00016DEA:instruction",
+          "s0:00017234:instruction",
+          "s0:000176F6:instruction",
+          "s0:0001770C:instruction",
+          "s0:00017716:instruction",
+          "s0:00017724:instruction",
+          "s0:00017780:instruction",
+          "s0:0001778A:instruction",
+          "s0:00017798:instruction",
+          "s0:0001779E:instruction",
+          "s0:000177A8:instruction",
+          "s0:000177B4:instruction"
+        ],
+        "reason": "Original pool initialization clears this LONG. The Solar Energy Converter initializer sets it to current A0. Energy Tower/continuation initializers connect current object+38 to prior tail, prior object+3C to current object, and advance or clear the tail. A0 is the68-byte world-pool object in the placement loop and the popped free-object record in inventory release. This is an original-use SG2WorldObject pointer contract, not every-entry numeric provenance or a network-purpose guess. Object+38/+3C retain their type-dependent union interpretations; no universal record field meaning is added. Replaces the rejected provisional177B6 citation with the decoded LONG store at177B4.",
+        "source_evidence_status": "hypothesis",
+        "confidence": "high",
+        "subject_revision": "f0d0dbfcddc70fb7db299d49696bd46d4aaf3e9b5987e3b11ac0418349069fc4"
+      }
+    },
+    {
+      "record": "manual_action",
+      "action_id": "manual-d8147ab3c43a4592b30fc1c71b5503ad",
+      "sequence": 2751,
+      "created_at": "2026-10-26T17:36:44.398574+00:00",
+      "kind": "create_manual_label",
+      "label": {
+        "label_id": "catalog-code-label-h0-0001779E",
+        "name": "append_object_initializer_chain_link",
+        "scope": "global",
+        "address_domain": "source",
+        "hunk": 0,
+        "addr": 96158
+      },
+      "interpretation": {
+        "evidence_refs": [
+          "s0:0001779E:instruction",
+          "s0:000177A8:instruction",
+          "s0:000177B4:instruction"
+        ],
+        "reason": "Directory selector96 has no supported original identity here. This routine connects current A0+38 to prior tail, prior tail+3C to A0 and advances app+6C; with no tail it takes the shared store-tail return. Name the demonstrated operation, not a guessed model. Replaces the rejected provisional177B6 citation with decoded store177B4.",
+        "source_evidence_status": "hypothesis",
+        "confidence": "high",
+        "subject_revision": "7c1f2aee8a7da41c5e3518c185c9d7b59c735ad9e1abd681e432b65a54d60c51"
+      }
+    }
+  ],
+  "review": {
+    "decisions": [
+      {
+        "action_id": "manual-810c74c98a2c45f1b9ea786cfc64a032",
+        "decision_id": "restoration-83480d458f114313838155a1fc1aedeb",
+        "action": "accept_fact"
+      },
+      {
+        "action_id": "manual-02a25dadd13645c08b6d23718f9e41ae",
+        "decision_id": "restoration-f90c71e3293a48439f11a4ce143068c9",
+        "action": "accept_fact"
+      },
+      {
+        "action_id": "manual-320d40551856427b8a6ecd55ec2bda7e",
+        "decision_id": "restoration-984b922712c248c5be957e0d888663f1",
+        "action": "accept_fact"
+      },
+      {
+        "action_id": "manual-27f12e2c3c9f4fd2945b5769ebe1f2ca",
+        "decision_id": "restoration-10424775c6674cd29151c5623088512c",
+        "action": "accept_fact"
+      },
+      {
+        "action_id": "manual-063f6280825644d094ce5c07fafee442",
+        "decision_id": "restoration-ff78d6d849084bc5b33efdf9bc8027eb",
+        "action": "accept_fact"
+      },
+      {
+        "action_id": "manual-1542e9e7143c4cc3a30cdd3c0ee3bea4",
+        "decision_id": "restoration-143e788beae24dfe8cb5dc107b806e5f",
+        "action": "accept_fact"
+      },
+      {
+        "action_id": "manual-52a3a293362e4adfb179cf587ee6b935",
+        "decision_id": "restoration-a0e7d8b0c5d14ea698f6fa8edb47dd95",
+        "action": "accept_fact"
+      },
+      {
+        "action_id": "manual-ddd6121692594e7d8033271f08abe801",
+        "decision_id": "restoration-b3fd69442b7a4351adb451bf55e9d9d8",
+        "action": "accept_fact"
+      },
+      {
+        "action_id": "manual-d8147ab3c43a4592b30fc1c71b5503ad",
+        "decision_id": "restoration-00ab12b46598488f85e99d00784ea502",
+        "action": "accept_fact"
+      }
+    ],
+    "verification": {
+      "receipt_id": "abec0fea15dd3488cb31e9987cbce8f08fe0dfbd2832e8cc3be0836e52349f3d",
+      "kind": "verification",
+      "subject_revision": "a7b39946d1e70d62f295e7141f55c8cbd0191dd190a457136098c707246cc7ab",
+      "exact": true
+    },
+    "probe": null,
+    "subject_revision": "a7b39946d1e70d62f295e7141f55c8cbd0191dd190a457136098c707246cc7ab",
+    "revision": "006071710f3d51893893999b8335ed8b65115717c254a0dfed71373cf449061a"
+  },
+  "rejected_provisional_evidence": {
+    "decisions": [
+      {
+        "action_id": "manual-1a69986debfd4e55bb3ceb559764f47c",
+        "decision_id": "restoration-9cd642a8d97442d8b730072185210293",
+        "action": "reject_fact"
+      },
+      {
+        "action_id": "manual-acf92c0f1c144a4ab67310fef546ee39",
+        "decision_id": "restoration-497cb71efe414bdbb8f422de62c75b0f",
+        "action": "reject_fact"
+      },
+      {
+        "action_id": "manual-90989f0f559a417d9153498666525178",
+        "decision_id": "restoration-288efb3fd98f4b1fb260ed7771a961d6",
+        "action": "reject_fact"
+      },
+      {
+        "action_id": "manual-35128f3615a1499f8011faf707ceb59e",
+        "decision_id": "restoration-d5eb807a03594928949a4716458949cc",
+        "action": "reject_fact"
+      }
+    ],
+    "verification": null,
+    "probe": null,
+    "subject_revision": "9dcde8d43c85615ca4bff287044c028a6a31ec3857fce6d3c00240a4871e55a0",
+    "revision": "8041cc603ece2a62fdf5e8d3d766d634d186d7600771ea2bf8901b5a1f5eccdb"
+  },
+  "coordinate_validation": {
+    "input_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "decoded_ranges": [
+      [
+        93636,
+        93844
+      ],
+      [
+        94528,
+        94692
+      ],
+      [
+        94752,
+        94778
+      ],
+      [
+        95990,
+        96042
+      ],
+      [
+        96128,
+        96188
+      ]
+    ],
+    "decoded_instruction_count": 143,
+    "rejected_citations": [
+      {
+        "action_id": "manual-1a69986debfd4e55bb3ceb559764f47c",
+        "ref": "s0:00016E78:instruction"
+      },
+      {
+        "action_id": "manual-acf92c0f1c144a4ab67310fef546ee39",
+        "ref": "s0:00016E78:instruction"
+      },
+      {
+        "action_id": "manual-90989f0f559a417d9153498666525178",
+        "ref": "s0:000177B6:instruction"
+      },
+      {
+        "action_id": "manual-35128f3615a1499f8011faf707ceb59e",
+        "ref": "s0:000177B6:instruction"
+      }
+    ],
+    "method": "Use the existing exact native instruction-evidence decoder sequentially from known accepted block starts. Corrected refs16E82/16E86/16E8A and177B4 replace provisional operand-interior refs; the old owner was removed/recreated and all history remains append-only."
+  },
+  "directory": {
+    "source_span": [
+      93930,
+      94522
+    ],
+    "bytes": 592,
+    "entries": 148,
+    "distinct_stored_targets": 55,
+    "shared_no_op_selectors": 57,
+    "adjacent_six_byte_jump_excluded": true,
+    "consumers": [
+      {
+        "consumer_offset": 3278,
+        "table_section_index": 0,
+        "table_start_offset": 93930,
+        "table_end_offset": 94522,
+        "access_width": 4,
+        "entry_count": 148,
+        "entry_count_proof_id": 1,
+        "entry_count_proof": "structured_range",
+        "stop_reason_id": 1,
+        "stop_reason": "structured_range_end",
+        "index_mask_domain": null,
+        "index_compare_domain": null,
+        "index_loop_domain": null,
+        "table_kind_id": 2,
+        "table_kind": "pointer",
+        "source_pattern_id": 3,
+        "source_pattern": "indexed_local_pointer_read",
+        "index_register_kind": 1,
+        "index_register": 1,
+        "target_register_kind": 2,
+        "target_register": 5
+      },
+      {
+        "consumer_offset": 93830,
+        "table_section_index": 0,
+        "table_start_offset": 93930,
+        "table_end_offset": 94522,
+        "access_width": 4,
+        "entry_count": 148,
+        "entry_count_proof_id": 1,
+        "entry_count_proof": "structured_range",
+        "stop_reason_id": 1,
+        "stop_reason": "structured_range_end",
+        "index_mask_domain": null,
+        "index_compare_domain": null,
+        "index_loop_domain": null,
+        "table_kind_id": 2,
+        "table_kind": "pointer",
+        "source_pattern_id": 3,
+        "source_pattern": "indexed_local_pointer_read",
+        "index_register_kind": 1,
+        "index_register": 0,
+        "target_register_kind": 2,
+        "target_register": 5
+      }
+    ],
+    "address_expressions": [
+      {
+        "id": 30,
+        "kind_id": 1,
+        "kind": "indexed_table",
+        "consumer_section_index": 0,
+        "consumer_offset": 3278,
+        "operand_index": 0,
+        "base_section_index": 0,
+        "base_offset": 93930,
+        "signed_addend": 0,
+        "index_register_kind": 1,
+        "index_register": 1,
+        "index_scale": 1,
+        "element_stride": 4
+      },
+      {
+        "id": 35,
+        "kind_id": 1,
+        "kind": "indexed_table",
+        "consumer_section_index": 0,
+        "consumer_offset": 93830,
+        "operand_index": 0,
+        "base_section_index": 0,
+        "base_offset": 93930,
+        "signed_addend": 0,
+        "index_register_kind": 1,
+        "index_register": 0,
+        "index_scale": 1,
+        "element_stride": 4
+      }
+    ],
+    "selector_associations": [
+      {
+        "selector": 37,
+        "source_target": 94528,
+        "original_name": "Egron Mini-Sentinel",
+        "role": "station count/enable guarded initializer"
+      },
+      {
+        "selector": 4,
+        "source_target": 94752,
+        "original_name": "Solar Energy Converter",
+        "role": "initializer chain anchor"
+      },
+      {
+        "selector": 90,
+        "source_target": 95990,
+        "original_name": "Energy Tower",
+        "role": "random variant and chain link; distinct from selector93"
+      },
+      {
+        "selector": 96,
+        "source_target": 96158,
+        "original_name": null,
+        "role": "append chain link"
+      },
+      {
+        "selector": 97,
+        "source_target": 96128,
+        "original_name": null,
+        "role": "append link and clear tail"
+      }
+    ]
+  },
+  "chain_contract": "App+6C is a four-byte SG2WorldObject pointer used as mutable initializer-chain tail. Placement supplies68-byte pool records; inventory release supplies a popped free-object record. Linkers write current+38=previous tail and previous+3C=current, then advance/clear the tail. Record+38/+3C remain type-dependent union fields; no universal energy-network purpose or visual identity is invented.",
+  "shared_defect": "Discovery stopped on already-owned bytes. Inferred pointer directories therefore kept only the first reader, and canonical directories lost all readers. Declaration correctly owned geometry, but it incorrectly masked independent indexed-use evidence.",
+  "shared_fix": [
+    "Reuse the same decoded operand/base-state walk after table descriptors/conflicts are finalized to observe clean pointer directories. Do not reclassify or replace canonical names.",
+    "Each actual consumer retains its own source section, source PC, index/target registers and derived index-domain evidence; physical table extent does not imply index safety.",
+    "Address-expression projection follows the native consumer vector instead of a single descriptor reader. Descriptor-to-consumer field projection is shared and assigns cross-section consumers to the instruction section. No target recognizers, dense per-node state, extra persistence lane or second instruction transfer engine."
+  ],
+  "before": {
+    "app_references": 3305,
+    "app_fields": 300,
+    "generic_symbols": 83,
+    "typed_accesses": 316,
+    "unresolved_typed_accesses": 355,
+    "table_consumers": 30,
+    "address_expressions": 179,
+    "table_descriptors": 64,
+    "table_entries": 1184
+  },
+  "held_before_shared_fix": {
+    "app_references": 3305,
+    "app_fields": 300,
+    "generic_symbols": 82,
+    "typed_accesses": 316,
+    "unresolved_typed_accesses": 355,
+    "table_consumers": 29,
+    "address_expressions": 178,
+    "table_descriptors": 64,
+    "table_entries": 1184
+  },
+  "after": {
+    "app_references": 3305,
+    "app_fields": 300,
+    "generic_symbols": 82,
+    "typed_accesses": 316,
+    "unresolved_typed_accesses": 355,
+    "table_consumers": 40,
+    "address_expressions": 189,
+    "table_descriptors": 64,
+    "table_entries": 1184
+  },
+  "new_consumers_vs_held": [
+    {
+      "consumer_offset": 3278,
+      "table_section_index": 0,
+      "table_start_offset": 93930,
+      "table_end_offset": 94522,
+      "access_width": 4,
+      "entry_count": 148,
+      "entry_count_proof_id": 1,
+      "entry_count_proof": "structured_range",
+      "stop_reason_id": 1,
+      "stop_reason": "structured_range_end",
+      "index_mask_domain": null,
+      "index_compare_domain": null,
+      "index_loop_domain": null,
+      "table_kind_id": 2,
+      "table_kind": "pointer",
+      "source_pattern_id": 3,
+      "source_pattern": "indexed_local_pointer_read",
+      "index_register_kind": 1,
+      "index_register": 1,
+      "target_register_kind": 2,
+      "target_register": 5
+    },
+    {
+      "consumer_offset": 4570,
+      "table_section_index": 0,
+      "table_start_offset": 96628,
+      "table_end_offset": 97044,
+      "access_width": 4,
+      "entry_count": 104,
+      "entry_count_proof_id": 1,
+      "entry_count_proof": "structured_range",
+      "stop_reason_id": 1,
+      "stop_reason": "structured_range_end",
+      "index_mask_domain": null,
+      "index_compare_domain": null,
+      "index_loop_domain": null,
+      "table_kind_id": 2,
+      "table_kind": "pointer",
+      "source_pattern_id": 3,
+      "source_pattern": "indexed_local_pointer_read",
+      "index_register_kind": 1,
+      "index_register": 1,
+      "target_register_kind": 2,
+      "target_register": 0
+    },
+    {
+      "consumer_offset": 14914,
+      "table_section_index": 0,
+      "table_start_offset": 96628,
+      "table_end_offset": 97044,
+      "access_width": 4,
+      "entry_count": 104,
+      "entry_count_proof_id": 1,
+      "entry_count_proof": "structured_range",
+      "stop_reason_id": 1,
+      "stop_reason": "structured_range_end",
+      "index_mask_domain": null,
+      "index_compare_domain": null,
+      "index_loop_domain": null,
+      "table_kind_id": 2,
+      "table_kind": "pointer",
+      "source_pattern_id": 3,
+      "source_pattern": "indexed_local_pointer_read",
+      "index_register_kind": 1,
+      "index_register": 0,
+      "target_register_kind": 2,
+      "target_register": 0
+    },
+    {
+      "consumer_offset": 17240,
+      "table_section_index": 0,
+      "table_start_offset": 96628,
+      "table_end_offset": 97044,
+      "access_width": 4,
+      "entry_count": 104,
+      "entry_count_proof_id": 1,
+      "entry_count_proof": "structured_range",
+      "stop_reason_id": 1,
+      "stop_reason": "structured_range_end",
+      "index_mask_domain": null,
+      "index_compare_domain": null,
+      "index_loop_domain": null,
+      "table_kind_id": 2,
+      "table_kind": "pointer",
+      "source_pattern_id": 3,
+      "source_pattern": "indexed_local_pointer_read",
+      "index_register_kind": 1,
+      "index_register": 0,
+      "target_register_kind": 2,
+      "target_register": 0
+    },
+    {
+      "consumer_offset": 56290,
+      "table_section_index": 0,
+      "table_start_offset": 96628,
+      "table_end_offset": 97044,
+      "access_width": 4,
+      "entry_count": 104,
+      "entry_count_proof_id": 1,
+      "entry_count_proof": "structured_range",
+      "stop_reason_id": 1,
+      "stop_reason": "structured_range_end",
+      "index_mask_domain": null,
+      "index_compare_domain": null,
+      "index_loop_domain": null,
+      "table_kind_id": 2,
+      "table_kind": "pointer",
+      "source_pattern_id": 3,
+      "source_pattern": "indexed_local_pointer_read",
+      "index_register_kind": 1,
+      "index_register": 0,
+      "target_register_kind": 2,
+      "target_register": 0
+    },
+    {
+      "consumer_offset": 93830,
+      "table_section_index": 0,
+      "table_start_offset": 93930,
+      "table_end_offset": 94522,
+      "access_width": 4,
+      "entry_count": 148,
+      "entry_count_proof_id": 1,
+      "entry_count_proof": "structured_range",
+      "stop_reason_id": 1,
+      "stop_reason": "structured_range_end",
+      "index_mask_domain": null,
+      "index_compare_domain": null,
+      "index_loop_domain": null,
+      "table_kind_id": 2,
+      "table_kind": "pointer",
+      "source_pattern_id": 3,
+      "source_pattern": "indexed_local_pointer_read",
+      "index_register_kind": 1,
+      "index_register": 0,
+      "target_register_kind": 2,
+      "target_register": 5
+    },
+    {
+      "consumer_offset": 205178,
+      "table_section_index": 0,
+      "table_start_offset": 96628,
+      "table_end_offset": 97044,
+      "access_width": 4,
+      "entry_count": 104,
+      "entry_count_proof_id": 1,
+      "entry_count_proof": "structured_range",
+      "stop_reason_id": 1,
+      "stop_reason": "structured_range_end",
+      "index_mask_domain": null,
+      "index_compare_domain": null,
+      "index_loop_domain": null,
+      "table_kind_id": 2,
+      "table_kind": "pointer",
+      "source_pattern_id": 3,
+      "source_pattern": "indexed_local_pointer_read",
+      "index_register_kind": 1,
+      "index_register": 1,
+      "target_register_kind": 2,
+      "target_register": 0
+    },
+    {
+      "consumer_offset": 211906,
+      "table_section_index": 0,
+      "table_start_offset": 96628,
+      "table_end_offset": 97044,
+      "access_width": 4,
+      "entry_count": 104,
+      "entry_count_proof_id": 1,
+      "entry_count_proof": "structured_range",
+      "stop_reason_id": 1,
+      "stop_reason": "structured_range_end",
+      "index_mask_domain": null,
+      "index_compare_domain": null,
+      "index_loop_domain": null,
+      "table_kind_id": 2,
+      "table_kind": "pointer",
+      "source_pattern_id": 3,
+      "source_pattern": "indexed_local_pointer_read",
+      "index_register_kind": 1,
+      "index_register": 1,
+      "target_register_kind": 2,
+      "target_register": 0
+    },
+    {
+      "consumer_offset": 222536,
+      "table_section_index": 0,
+      "table_start_offset": 96628,
+      "table_end_offset": 97044,
+      "access_width": 4,
+      "entry_count": 104,
+      "entry_count_proof_id": 1,
+      "entry_count_proof": "structured_range",
+      "stop_reason_id": 1,
+      "stop_reason": "structured_range_end",
+      "index_mask_domain": null,
+      "index_compare_domain": null,
+      "index_loop_domain": null,
+      "table_kind_id": 2,
+      "table_kind": "pointer",
+      "source_pattern_id": 3,
+      "source_pattern": "indexed_local_pointer_read",
+      "index_register_kind": 1,
+      "index_register": 1,
+      "target_register_kind": 2,
+      "target_register": 0
+    },
+    {
+      "consumer_offset": 244182,
+      "table_section_index": 0,
+      "table_start_offset": 241220,
+      "table_end_offset": 241232,
+      "access_width": 4,
+      "entry_count": 3,
+      "entry_count_proof_id": 2,
+      "entry_count_proof": "consumer_structural_scan",
+      "stop_reason_id": 2,
+      "stop_reason": "consumer_structural_stop",
+      "index_mask_domain": null,
+      "index_compare_domain": null,
+      "index_loop_domain": null,
+      "table_kind_id": 2,
+      "table_kind": "pointer",
+      "source_pattern_id": 3,
+      "source_pattern": "indexed_local_pointer_read",
+      "index_register_kind": 1,
+      "index_register": 5,
+      "target_register_kind": 2,
+      "target_register": 0
+    },
+    {
+      "consumer_offset": 244348,
+      "table_section_index": 0,
+      "table_start_offset": 241220,
+      "table_end_offset": 241232,
+      "access_width": 4,
+      "entry_count": 3,
+      "entry_count_proof_id": 2,
+      "entry_count_proof": "consumer_structural_scan",
+      "stop_reason_id": 2,
+      "stop_reason": "consumer_structural_stop",
+      "index_mask_domain": null,
+      "index_compare_domain": null,
+      "index_loop_domain": null,
+      "table_kind_id": 2,
+      "table_kind": "pointer",
+      "source_pattern_id": 3,
+      "source_pattern": "indexed_local_pointer_read",
+      "index_register_kind": 1,
+      "index_register": 5,
+      "target_register_kind": 2,
+      "target_register": 0
+    }
+  ],
+  "tests": {
+    "before_reproduction": "Inferred two-reader fixture reports1, canonical reports0 instead of2; scalar negative passes. A provisional unit=word/pointer-table case was replaced by a real WORD-read contrast because canonical pointer-table normalization is always LONG.",
+    "python": {
+      "passed": 104,
+      "seconds": 1.92,
+      "coverage": [
+        "inferred/canonical independent readers and separate address expressions",
+        "WORD reads, scalar owners, unknown bases and conflicting extents",
+        "instruction-section versus table-section ownership and deduplication",
+        "existing text/pointer comments, array references, inline fields, source-quality tracing and catalogue integration"
+      ]
+    },
+    "native_current": {
+      "passed": 812,
+      "failed": 6,
+      "failures": [
+        "src/test_m68k_ir.c:25251: assertion failed: strstr(source, \"\\tlea.l app_timer_device_iorequest(a6),a1\\n\") != NULL",
+        "src/test_m68k_ir.c:25319: assertion failed: timer_include != NULL",
+        "src/test_m68k_ir.c:25404: assertion failed: strstr(source, \"\\tmove.w app_0100+TV_SECS+2(a4),d0\\n\") != NULL",
+        "src/test_m68k_ir.c:25524: assertion failed: strstr(source, \"\\tmovea.l app_TimerBase(a6),a0\\n\") != NULL",
+        "src/test_m68k_ir.c:25570: assertion failed: strstr(source, \"\\tmovea.l app_TimerBase(a6),a0\\n\") != NULL",
+        "src/test_m68k_ir.c:31059: assertion failed: typed == NULL"
+      ]
+    },
+    "native_pre_change_baseline": {
+      "commit": "25fd347a015ae994f78cc5a189cb1c3c1ca4b078",
+      "changed_source_paths": [
+        "src/m68k_ir.c",
+        "src/m68k_ir.h",
+        "src/m68k_source_quality.c"
+      ],
+      "method": "Recompile committed pre-change IR and source-quality against identical remaining stable objects; run identical current C unit objects. No target analysis or original binary changed.",
+      "exit_code": 1,
+      "passed": 812,
+      "failures": [
+        "src/test_m68k_ir.c:25251: assertion failed: strstr(source, \"\\tlea.l app_timer_device_iorequest(a6),a1\\n\") != NULL",
+        "src/test_m68k_ir.c:25319: assertion failed: timer_include != NULL",
+        "src/test_m68k_ir.c:25404: assertion failed: strstr(source, \"\\tmove.w app_0100+TV_SECS+2(a4),d0\\n\") != NULL",
+        "src/test_m68k_ir.c:25524: assertion failed: strstr(source, \"\\tmovea.l app_TimerBase(a6),a0\\n\") != NULL",
+        "src/test_m68k_ir.c:25570: assertion failed: strstr(source, \"\\tmovea.l app_TimerBase(a6),a0\\n\") != NULL",
+        "src/test_m68k_ir.c:31059: assertion failed: typed == NULL"
+      ],
+      "wall_seconds": 31.193193465995137
+    },
+    "native_verdict": "No new C unit failure relative to the controlled pre-change build. The full C suite is NOT green: five timer-device rendering expectations and one storage-derived-call expectation fail identically on committed25fd347a. These remain explicit pre-existing follow-ups, not silently changed tests."
+  },
+  "verification": {
+    "kind": "verification",
+    "framework_exact": true,
+    "target_id": "amiga_raw_starglider2_game",
+    "subject_revision": "a7b39946d1e70d62f295e7141f55c8cbd0191dd190a457136098c707246cc7ab",
+    "status": "exact",
+    "exact": true,
+    "source_sha256": "b0e24439d97f67e859bf55003fdeaf81c41820ea264a016fc2ed1e0de843c8d4",
+    "source_path": "/workspace/pandora-original-delivery/stable-d15c2cf8/.runtime-state/restoration/eb04f545fb97451725a1c91ab5abf6f2e097614c45880db6edfb4ea5c3f6e2c2/b0e24439d97f67e859bf55003fdeaf81c41820ea264a016fc2ed1e0de843c8d4.s",
+    "source_package_sha256": null,
+    "original_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "original_size": 412736,
+    "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "rebuilt_path": "/workspace/pandora-original-delivery/stable-d15c2cf8/.runtime-state/restoration/eb04f545fb97451725a1c91ab5abf6f2e097614c45880db6edfb4ea5c3f6e2c2/662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9.bin",
+    "framework_status": "exact",
+    "failure_kinds": [],
+    "message": "",
+    "oracle": {
+      "oracle_id": "vasm",
+      "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+      "comparison_level": "oracle.full_file_match",
+      "assembler_status": "accepted",
+      "message": "oracle output matched original bytes"
+    },
+    "receipt_id": "abec0fea15dd3488cb31e9987cbce8f08fe0dfbd2832e8cc3be0836e52349f3d",
+    "revision": "0b1f8f12f57180c5521b264f6db5f01c3494531b0c271bc2f00c9e0f243fb351"
+  },
+  "preservation": {
+    "original_bytes": 412736,
+    "accepted_code_unchanged": true,
+    "indirect_sites_unchanged": true,
+    "typed_accesses_unchanged": true,
+    "ownership_change": {
+      "before": [
+        {
+          "start_offset": 93930,
+          "end_offset": 94522,
+          "kind": 3,
+          "kind_name": "table",
+          "status": 2,
+          "status_name": "accepted",
+          "positive_evidence_flags": 520,
+          "negative_evidence_flags": 0,
+          "data_kind": 3,
+          "table_kind_id": 2,
+          "table_kind": "pointer",
+          "source_pattern_id": 3,
+          "source_pattern": "indexed_local_pointer_read",
+          "role": "pointer_table",
+          "source_offset": 3278,
+          "conflict_state": 0,
+          "conflict_state_name": "clean"
+        }
+      ],
+      "after": [
+        {
+          "start_offset": 93930,
+          "end_offset": 94522,
+          "kind": 3,
+          "kind_name": "table",
+          "status": 2,
+          "status_name": "accepted",
+          "positive_evidence_flags": 512,
+          "negative_evidence_flags": 0,
+          "data_kind": 3,
+          "table_kind_id": 2,
+          "table_kind": "pointer",
+          "source_pattern_id": 0,
+          "source_pattern": null,
+          "role": "pointer_table",
+          "source_offset": null,
+          "conflict_state": 0,
+          "conflict_state_name": "clean"
+        }
+      ],
+      "interpretation": "Same592-byte accepted pointer geometry: evidence changes from structural discovery to explicit canonical ownership. No accepted interval or unclassified complement changes."
+    },
+    "assets_unchanged": 57,
+    "unclassified_bytes": 14728,
+    "unclassified_intervals": 260,
+    "source_package_identical_across_consumer_fix": true,
+    "incomplete_analysis": [],
+    "source_quality_diagnostics": 0,
+    "new_runtime_run": false
+  },
+  "dependencies": {
+    "headers": [
+      "exec/exec_lib.i",
+      "exec/execbase.i",
+      "exec/interrupts.i",
+      "exec/libraries.i",
+      "exec/lists.i",
+      "exec/nodes.i",
+      "exec/types.i",
+      "graphics/copper.i",
+      "hardware/adkbits.i",
+      "hardware/blit.i",
+      "hardware/cia.i",
+      "hardware/custom.i",
+      "hardware/dmabits.i",
+      "hardware/intbits.i"
+    ],
+    "header_count": 14,
+    "assets_unchanged": 57
+  },
+  "profile": {
+    "api_wall_seconds": 126.24556884300546,
+    "native_profile": {
+      "generation": "facts_v2_listing_artifact_summary",
+      "backend": "amiga-raw",
+      "analysis_backend": "facts_v2",
+      "path": "/workspace/starglider2-private/main-copy.bin",
+      "facts_v2": {
+        "decode_seconds": 3e-06,
+        "seed_seconds": 0.004198,
+        "fixed_point_seconds": 9.510752,
+        "fixed_point_reachable_seconds": 8.010191,
+        "fixed_point_reachable_decode_seconds": 0.0,
+        "fixed_point_reachable_validate_seconds": 0.0,
+        "fixed_point_reachable_accept_seconds": 0.0,
+        "fixed_point_reachable_target_seconds": 0.0,
+        "fixed_point_reachable_relocation_seconds": 0.0,
+        "fixed_point_reachable_fallthrough_seconds": 0.0,
+        "fixed_point_index_seconds": 0.000598,
+        "fixed_point_required_label_conflict_seconds": 3.6e-05,
+        "fixed_point_opcode_relocation_conflict_seconds": 0.000212,
+        "fixed_point_rebuild_accepted_seconds": 0.011053,
+        "fixed_point_relocation_anchor_seconds": 0.000189,
+        "fixed_point_materialize_labels_seconds": 1.48829,
+        "fixed_point_runtime_address_ref_seconds": 1.379725,
+        "fixed_point_required_label_materialize_seconds": 0.108565,
+        "fixed_point_data_span_seconds": 0.000183,
+        "fixed_point_invariant_seconds": 3.6e-05,
+        "render_ir_seconds": 24.666353,
+        "render_ir_lookup_seconds": 0.336325,
+        "platform_analysis_pass_seconds": 46.207336,
+        "platform_analysis_base_slot_seconds": 0.040336,
+        "platform_analysis_call_summary_seconds": 0.073001,
+        "platform_analysis_typed_ref_seconds": 35.797417,
+        "platform_analysis_typed_summary_seconds": 0.095579,
+        "platform_analysis_typed_graph_seconds": 4.1436,
+        "platform_analysis_typed_flow_seconds": 5.447597,
+        "platform_analysis_typed_callback_seconds": 26.110636,
+        "source_analysis_typed_target_seconds": 5.6e-05,
+        "source_analysis_build_seconds": 7.23512,
+        "source_analysis_finalize_seconds": 34.987121,
+        "platform_analysis_call_comment_seconds": 1e-06,
+        "platform_analysis_app_slot_seconds": 10.295881,
+        "platform_analysis_runtime_data_seconds": 0.0,
+        "platform_analysis_hardware_data_seconds": 0.0,
+        "platform_analysis_generic_data_seconds": 0.0,
+        "render_ir_header_seconds": 15.949653,
+        "render_ir_walk_seconds": 7.30072,
+        "render_ir_footer_seconds": 1.415496,
+        "source_render_seconds": 0.0,
+        "decoded_candidates": 29938,
+        "accepted_instructions": 29665,
+        "data_spans": 172,
+        "labels_created": 19873,
+        "labels_referenced": 13059,
+        "unresolved_labels": 0,
+        "interior_conflicts": 0,
+        "interior_conflicts_resolved_by_demote": 0,
+        "interior_conflicts_unresolved": 0,
+        "relocation_failures": 0,
+        "first_relocation_failure_reason": "",
+        "first_relocation_failure_section": 0,
+        "first_relocation_failure_offset": 0,
+        "first_relocation_failure_target_section": 0,
+        "first_relocation_failure_width": 0,
+        "first_relocation_failure_raw_value": 0,
+        "first_relocation_failure_computed_target": 0,
+        "relocation_anchors": 0,
+        "first_relocation_anchor_kind": "",
+        "first_relocation_anchor_section": 0,
+        "first_relocation_anchor_offset": 0,
+        "first_relocation_anchor_target_section": 0,
+        "first_relocation_anchor_width": 0,
+        "first_relocation_anchor_platform_record_kind": "",
+        "first_relocation_anchor_raw_value": 0,
+        "first_relocation_anchor_addend": 0,
+        "relocation_anchor_instruction_bytes": 0,
+        "relocation_anchor_data_payloads": 0,
+        "relocation_anchor_unknown_contexts": 0,
+        "unassemblable_hunk_data_relocations": 0,
+        "unassemblable_hunk_base_register_relocations": 0,
+        "first_relocation_anchor_context": "",
+        "first_relocation_anchor_instruction_offset": 0,
+        "code_start_facts": 41982,
+        "code_start_section_entries": 0,
+        "code_start_policy_entry_offsets": 0,
+        "code_start_policy_entry_points": 165,
+        "code_start_control_targets": 10294,
+        "code_start_fallthroughs": 31523,
+        "code_start_inline_resumes": 0,
+        "code_start_linkage_api_entries": 0,
+        "code_start_platform_loadseg_entries": 0,
+        "code_start_stack_continuations": 0,
+        "code_start_boundary_api_entries": 0,
+        "platform_loadseg_segment_link_accesses": 0,
+        "platform_loadseg_segment_link_bptr_loads": 0,
+        "platform_loadseg_segment_link_resolved_targets": 0,
+        "first_platform_loadseg_segment_link_section": 0,
+        "first_platform_loadseg_segment_link_offset": 0,
+        "first_platform_loadseg_segment_link_target_section": 0,
+        "runtime_address_ranges": 5,
+        "runtime_address_range_conflicts": 0,
+        "table_target_set_limit_hits": 0,
+        "first_table_target_set_limit_section": 0,
+        "first_table_target_set_limit_offset": 0,
+        "first_table_target_set_limit_capacity": 0,
+        "source_quality_diagnostics": 0,
+        "source_quality_blockers": 0,
+        "first_source_quality_diagnostic_kind": "unknown",
+        "first_source_quality_diagnostic_section": 0,
+        "first_source_quality_diagnostic_offset": 0,
+        "runtime_address_view_starts": 41818,
+        "required_instruction_failures": 0,
+        "unsupported_instruction_demotes": 0,
+        "first_required_instruction_failure_section": 0,
+        "first_required_instruction_failure_offset": 0,
+        "first_required_instruction_failure_reason": "",
+        "first_required_instruction_failure_source_section": 0,
+        "first_required_instruction_failure_source_offset": 0,
+        "first_unsupported_instruction_demote_section": 0,
+        "first_unsupported_instruction_demote_offset": 0,
+        "first_unsupported_instruction_demote_reason": "",
+        "first_unsupported_instruction_demote_source_section": 0,
+        "first_unsupported_instruction_demote_source_offset": 0,
+        "opcode_relocation_conflicts_resolved_by_demote": 0,
+        "first_opcode_relocation_conflict_section": 0,
+        "first_opcode_relocation_conflict_offset": 0,
+        "first_opcode_relocation_conflict_aux_offset": 0,
+        "queue_iterations": 34581,
+        "workflow_arena_peak_used": 7466760,
+        "workflow_arena_total_blocks": 39,
+        "render_ir_statements": 51671,
+        "render_ir_labels": 5154,
+        "render_ir_instructions": 29665,
+        "render_ir_data_spans": 16852,
+        "render_ir_hash": "4d20a8f51fe8c56f",
+        "preview_source_enabled": false,
+        "preview_source_bytes": 0,
+        "preview_source_hash": "14650fb0739d0383",
+        "asm_source_enabled": true,
+        "asm_source_refused": false,
+        "asm_source_bytes": 2268411,
+        "asm_source_lines": 66793,
+        "asm_source_plan_rows": 65892,
+        "asm_source_plan_lines": 66793,
+        "asm_source_plan_bytes": 2268411,
+        "asm_source_relocation_exprs": 0,
+        "asm_source_symbolic_instructions": 29665,
+        "asm_source_numeric_runtime_refs": 0,
+        "asm_source_first_numeric_runtime_ref_section": 0,
+        "asm_source_first_numeric_runtime_ref_offset": 0,
+        "asm_source_first_numeric_runtime_ref_target_section": 0,
+        "asm_source_first_numeric_runtime_ref_target_offset": 0,
+        "asm_source_first_numeric_runtime_ref_runtime_address": 0,
+        "platform_base_slot_count": 316,
+        "platform_call_count": 1,
+        "platform_effect_count": 1,
+        "asm_source_lossy_numeric_hunk_relocations": 0,
+        "asm_source_instruction_render_failures": 0,
+        "asm_source_instruction_byte_mismatches": 0,
+        "asm_source_instruction_relocation_failures": 0,
+        "asm_source_relocation_anchor_refusals": 0,
+        "asm_source_unassemblable_hunk_data_relocation_refusals": 0,
+        "asm_source_unassemblable_hunk_base_register_relocation_refusals": 0,
+        "asm_source_first_failure_kind": "",
+        "asm_source_first_failure_section": 0,
+        "asm_source_first_failure_offset": 0,
+        "asm_source_first_failure_aux_offset": 0,
+        "asm_source_hash": "51a1619f8701f5b0"
+      },
+      "timing": {
+        "source_seconds": 123.326853,
+        "summary_json_seconds": 6e-05,
+        "total_seconds": 6e-05
+      }
+    }
+  },
+  "source_quality_pointer_stages_seconds": {
+    "append_indexed_local_pointer_table_items": 4.856845,
+    "append_indexed_local_pointer_table_consumers": 3.553918
+  },
+  "performance_scope": "One additional shared accepted-instruction walk, with existing bounded table/index-domain lookup. Measured observation cost is reported, not claimed free or a controlled whole-pipeline speedup.",
+  "process_usage": {
+    "wall_seconds": 155.63618789502652,
+    "user_seconds": 147.326611,
+    "system_seconds": 8.229143,
+    "max_rss_kib": 2678476
+  },
+  "limits": [
+    "148 stored callback entries are not an all-input safe selector range. The original indexing has no general148-entry bounds guard.",
+    "Original model-name/selector association is not visual identification. Selectors96/97 remain unnamed identities with only their code operation known.",
+    "Read association requires a known local base at the exact clean pointer-table start; this is not arbitrary mutable-cursor or every-entry provenance closure.",
+    "No orphan is promoted and no new runtime/gameplay coverage is claimed.82 generic field symbols,355 unresolved typed sites and30 unresolved orphan signals remain."
+  ],
+  "next": "Review the concrete structure-boundary clamp producers and contact/braking consumers at app+7E4. Keep the six pre-existing native C expectations visible and investigate them separately when they block a concrete source case; do not restart universal fallback/caller proof work.",
+  "validated_target_git_tree": "a8150a489bd62fcb99235097fcd57fd3ee0902d7",
+  "clean_staged_tree_build": true,
+  "standalone_build": {
+    "schema_version": 1,
+    "status": "pass",
+    "format": "raw_payload_not_AmigaDOS_HUNK",
+    "main_bytes": 412736,
+    "main_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "main_matches_original_identity": true,
+    "asset_count": 57,
+    "all_asset_source_slices_equal": true,
+    "decoded_view_inverse_exact": true,
+    "boot_copy_source_matches_resident_view": true,
+    "source_commit": "25fd347a015ae994f78cc5a189cb1c3c1ca4b078",
+    "assembler_sha256": "413e284020125f42709486dfe09907cab3dd9f3c2ea41017c190f8ea68f30825",
+    "flags": [
+      "-Fbin",
+      "-m68000",
+      "-no-opt"
+    ],
+    "outputs": [
+      {
+        "role": "original_main",
+        "filename": "Starglider2-original.raw",
+        "bytes": 412736,
+        "sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9"
+      },
+      {
+        "role": "decoded_analysis_view",
+        "filename": "protection-decoded-analysis.raw",
+        "bytes": 3548,
+        "sha256": "de8358853dd9ed9b006a23569bf393aa217ed3be3301a169465d80bfaf839922"
+      },
+      {
+        "role": "boot_installer_context",
+        "filename": "boot-selector-installer-context.raw",
+        "bytes": 40,
+        "sha256": "8d34852425e2e1bfa87b3febdfc74fb39e7c667e9d9ff73e17b594649e83b21b"
+      },
+      {
+        "role": "boot_resident_view",
+        "filename": "boot-selector-resident.raw",
+        "bytes": 20,
+        "sha256": "a26286a393713c046eff9dbaff15b20b26b171fa9e05fc9d538d16b0eddb6024"
+      }
+    ]
+  }
+}

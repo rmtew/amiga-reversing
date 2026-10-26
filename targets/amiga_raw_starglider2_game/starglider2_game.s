@@ -204,7 +204,7 @@ pending_bcd_score_addend RS.W 1
 shared_random_state_a RS.L 1
 shared_random_state_b RS.L 1
     RS.B 4
-app_006C RS.L 1
+object_initializer_chain_tail RS.L 1
     RS.B 4
 disc_record_write_cursor RS.L 1
 disc_reference_write_cursor RS.L 1
@@ -1948,7 +1948,7 @@ abs_0_00001CA2:
 	move.w d0,d1
 	asl.w #2,d1
 	movea.l a2,a0
-	lea.l abs_0_00017EEA.l,a5
+	lea.l world_object_type_initializer_pointers.l,a5
 	movea.l $0(a5,d1.w),a5
 	jsr (a5)
 	move.l player_world_x(a6),$0004(a2)
@@ -22860,7 +22860,7 @@ abs_0_00017DC4:
 	move.l d1,(a0)+
 	move.l d1,(a0)+
 	dbf.w d0,abs_0_00017DC4
-	clr.l app_006C(a6)
+	clr.l object_initializer_chain_tail(a6)
 	moveq.l #68,d2
 	lea.l world_object_pool(a6),a0
 	lea.l model_default_control_state_bytes.l,a3
@@ -22904,13 +22904,13 @@ abs_0_00017E6E:
 	clr.b $0003(a0)
 	add.w d0,d0
 	add.w d0,d0
-	lea.l abs_0_00017EEA(pc),a5
+	lea.l world_object_type_initializer_pointers(pc),a5
 	movea.l $0(a5,d0.w),a5
 	jsr (a5)
 	adda.w d2,a0
 	addq.w #1,d7
 	bra.b read_next_world_object_placement
-abs_0_00017E92:
+skip_object_type_initialization:
 	rts
     ; Interior Y is -1000. Three extra WORDs go to object+$24, +$28 and +$12. First two meanings remain type-dependent; no invented universal field purpose.
 read_interior_placement_parameters:
@@ -22942,70 +22942,70 @@ abs_0_00017EDC:
 	move.w d7,world_object_slot_count(a6)
 	sf.b app_07EE(a6)
 	rts
-abs_0_00017EEA:
-	dc.l abs_0_00017E92	; pointer_table
-	dc.l abs_0_00017E92
+world_object_type_initializer_pointers:
+	dc.l skip_object_type_initialization	; pointer_table
+	dc.l skip_object_type_initialization
 	dc.l abs_0_000181E4
 	dc.l abs_0_0001820A
-	dc.l abs_0_00018220
+	dc.l initialize_solar_converter_chain_anchor
 	dc.l abs_0_0001823A
 	dc.l abs_0_0001825A
 	dc.l abs_0_00018274
 	dc.l abs_0_00018296
-	dc.l abs_0_00017E92
+	dc.l skip_object_type_initialization
 	dc.l abs_0_000182F0
 	dc.l abs_0_000182F0
 	dc.l abs_0_0001872A
-	dc.l abs_0_00017E92
+	dc.l skip_object_type_initialization
 	dc.l abs_0_0001834E
-	dc.l abs_0_00017E92
+	dc.l skip_object_type_initialization
 	dc.l abs_0_00018374
 	dc.l abs_0_0001838A
-	dc.l abs_0_00017E92
+	dc.l skip_object_type_initialization
 	dc.l abs_0_000183A4
 	dc.l abs_0_000183BC
-	dc.l abs_0_00017E92
+	dc.l skip_object_type_initialization
 	dc.l abs_0_000183C6
 	dc.l abs_0_00018430
 	dc.l abs_0_0001843E
-	dc.l abs_0_00017E92
+	dc.l skip_object_type_initialization
 	dc.l abs_0_00018492
 	dc.l abs_0_000184B2
 	dc.l abs_0_000187BC
 	dc.l abs_0_000187D0
-	dc.l abs_0_00017E92
-	dc.l abs_0_00017E92
-	dc.l abs_0_00017E92
-	dc.l abs_0_00017E92
-	dc.l abs_0_00017E92
+	dc.l skip_object_type_initialization
+	dc.l skip_object_type_initialization
+	dc.l skip_object_type_initialization
+	dc.l skip_object_type_initialization
+	dc.l skip_object_type_initialization
 	dc.l abs_0_000184D4
 	dc.l abs_0_0001850A
-	dc.l abs_0_00018140
+	dc.l initialize_station_mini_sentinel
 	dc.l abs_0_0001851E
-	dc.l abs_0_00017E92
+	dc.l skip_object_type_initialization
 	dc.l abs_0_00018526
 	dc.l abs_0_0001856E
-	dc.l abs_0_00017E92
+	dc.l skip_object_type_initialization
 	dc.l abs_0_00018526
 	dc.l abs_0_000183FA
-	dc.l abs_0_00017E92
+	dc.l skip_object_type_initialization
 	dc.l abs_0_0001823A
 	dc.l abs_0_000188FA
 	dc.l abs_0_000185D6
-	dc.l abs_0_00017E92
+	dc.l skip_object_type_initialization
 	dc.l abs_0_00018430
 	dc.l abs_0_000185CE
 	dc.l abs_0_000185CE
 	dc.l abs_0_000185CE
-	dc.l abs_0_00017E92
+	dc.l skip_object_type_initialization
 	dc.l abs_0_00018602
 	dc.l abs_0_00018670
 	dc.l abs_0_00018670
 	dc.l abs_0_00018670
 	dc.l abs_0_00018430
 	dc.l abs_0_00018670
-	dc.l abs_0_00017E92
-	dc.l abs_0_00017E92
+	dc.l skip_object_type_initialization
+	dc.l skip_object_type_initialization
 	dc.l abs_0_00018618
 	dc.l abs_0_00018626
 	dc.l abs_0_00018646
@@ -23015,62 +23015,62 @@ abs_0_00017EEA:
 	dc.l abs_0_00018662
 	dc.l abs_0_00018662
 	dc.l abs_0_000188EA
-	dc.l abs_0_00017E92
+	dc.l skip_object_type_initialization
 	dc.l abs_0_0001856E
-	dc.l abs_0_00017E92
-	dc.l abs_0_00017E92
-	dc.l abs_0_00017E92
-	dc.l abs_0_00017E92
-	dc.l abs_0_00017E92
-	dc.l abs_0_00017E92
-	dc.l abs_0_00017E92
-	dc.l abs_0_00017E92
-	dc.l abs_0_00017E92
+	dc.l skip_object_type_initialization
+	dc.l skip_object_type_initialization
+	dc.l skip_object_type_initialization
+	dc.l skip_object_type_initialization
+	dc.l skip_object_type_initialization
+	dc.l skip_object_type_initialization
+	dc.l skip_object_type_initialization
+	dc.l skip_object_type_initialization
+	dc.l skip_object_type_initialization
 	dc.l abs_0_000185CE
-	dc.l abs_0_00017E92
+	dc.l skip_object_type_initialization
 	dc.l abs_0_0001864E
 	dc.l abs_0_00018686
 	dc.l abs_0_00018690
 	dc.l abs_0_000186B4
 	dc.l abs_0_000186D4
-	dc.l abs_0_000186F6
+	dc.l initialize_energy_tower_variant_and_link
 	dc.l abs_0_0001872A
 	dc.l abs_0_00018662
 	dc.l abs_0_00018744
 	dc.l abs_0_0001874C
-	dc.l abs_0_00017E92
-	dc.l abs_0_0001879E
-	dc.l abs_0_00018780
+	dc.l skip_object_type_initialization
+	dc.l append_object_initializer_chain_link
+	dc.l append_and_clear_object_initializer_chain
 	dc.l abs_0_00018902
 	dc.l abs_0_00018922
 	dc.l abs_0_00018698
 	dc.l abs_0_00018698
 	dc.l abs_0_00018698
-	dc.l abs_0_00017E92
-	dc.l abs_0_00017E92
-	dc.l abs_0_00017E92
-	dc.l abs_0_00017E92
-	dc.l abs_0_00017E92
-	dc.l abs_0_00017E92
-	dc.l abs_0_00017E92
-	dc.l abs_0_00017E92
-	dc.l abs_0_00017E92
-	dc.l abs_0_00017E92
-	dc.l abs_0_00017E92
-	dc.l abs_0_00017E92
-	dc.l abs_0_00017E92
-	dc.l abs_0_00017E92
-	dc.l abs_0_00017E92
-	dc.l abs_0_00017E92
-	dc.l abs_0_00017E92
-	dc.l abs_0_00017E92
-	dc.l abs_0_00017E92
-	dc.l abs_0_00017E92
-	dc.l abs_0_00017E92
-	dc.l abs_0_00017E92
-	dc.l abs_0_00017E92
-	dc.l abs_0_00017E92
-	dc.l abs_0_00017E92
+	dc.l skip_object_type_initialization
+	dc.l skip_object_type_initialization
+	dc.l skip_object_type_initialization
+	dc.l skip_object_type_initialization
+	dc.l skip_object_type_initialization
+	dc.l skip_object_type_initialization
+	dc.l skip_object_type_initialization
+	dc.l skip_object_type_initialization
+	dc.l skip_object_type_initialization
+	dc.l skip_object_type_initialization
+	dc.l skip_object_type_initialization
+	dc.l skip_object_type_initialization
+	dc.l skip_object_type_initialization
+	dc.l skip_object_type_initialization
+	dc.l skip_object_type_initialization
+	dc.l skip_object_type_initialization
+	dc.l skip_object_type_initialization
+	dc.l skip_object_type_initialization
+	dc.l skip_object_type_initialization
+	dc.l skip_object_type_initialization
+	dc.l skip_object_type_initialization
+	dc.l skip_object_type_initialization
+	dc.l skip_object_type_initialization
+	dc.l skip_object_type_initialization
+	dc.l skip_object_type_initialization
 	dc.l initialize_celestial_body_radius_and_y
 	dc.l initialize_celestial_body_radius_and_y
 	dc.l initialize_celestial_body_radius_and_y
@@ -23092,7 +23092,7 @@ abs_0_00017EEA:
 	dc.l abs_0_000188B6
 	dc.l abs_0_00018814
 	dc.b $4E,$F9,$00,$00,$26,$62
-abs_0_00018140:
+initialize_station_mini_sentinel:
 	movem.l d0-d7/a0-a6,-(a7)
 	tst.b station_cycle_enabled_flag(a6)
 	bpl.b abs_0_0001815C
@@ -23151,11 +23151,11 @@ abs_0_0001820A:
 	move.w #$FFC2,$002E(a0)
 	move.b #$E,$001F(a0)
 	rts
-abs_0_00018220:
+initialize_solar_converter_chain_anchor:
 	move.b #$1D,$0003(a0)
 	move.b #$FF,$001F(a0)
 	move.l #$A,$0008(a0)
-	move.l a0,app_006C(a6)
+	move.l a0,object_initializer_chain_tail(a6)
 	rts
 abs_0_0001823A:
 	bsr.w abs_0_00018968
@@ -23297,7 +23297,7 @@ abs_0_0001843E:
 	andi.b #7,d0
 	beq.b abs_0_00018482
 	andi.b #3,d0
-	bne.w abs_0_00017E92
+	bne.w skip_object_type_initialization
 	move.l #$FFFFFFFB,$0008(a0)
 	move.b #$5,$001D(a0)
 	rts
@@ -23398,7 +23398,7 @@ abs_0_000185D6:
 	move.b #$1,$002B(a0)
 	bset.b #7,$001C(a0)
 	tst.w d4
-	bmi.w abs_0_00017E92
+	bmi.w skip_object_type_initialization
 	move.b #$2,$001D(a0)
 	bset.b #6,$0002(a0)
 	bset.b #1,$0002(a0)
@@ -23465,7 +23465,7 @@ abs_0_000186D4:
 	move.w #$FFD3,$0020(a0)
 	move.l #$FFFFFF88,$0008(a0)
 	rts
-abs_0_000186F6:
+initialize_energy_tower_variant_and_link:
 	bsr.w abs_0_00018968
 	move.w d0,d1
 	andi.w #15,d0
@@ -23473,15 +23473,15 @@ abs_0_000186F6:
 	andi.w #3,d1
 	add.w d1,d0
 	move.b d0,$0003(a0)
-	tst.l app_006C(a6)
+	tst.l object_initializer_chain_tail(a6)
 	beq.w abs_0_00018724
 	move a2,usp
-	movea.l app_006C(a6),a2
+	movea.l object_initializer_chain_tail(a6),a2
 	move.l a2,$0038(a0)
 	move.l a0,$003C(a2)
 	move usp,a2
 abs_0_00018724:
-	move.l a0,app_006C(a6)
+	move.l a0,object_initializer_chain_tail(a6)
 	rts
 abs_0_0001872A:
 	bset.b #7,$001C(a0)
@@ -23491,7 +23491,7 @@ abs_0_0001872A:
 	rts
 abs_0_00018744:
 	st.b $0022(a0)
-	bra.w abs_0_0001879E
+	bra.w append_object_initializer_chain_link
 abs_0_0001874C:
 	tst.b $0026(a0)
 	beq.w abs_0_00018662
@@ -23507,24 +23507,24 @@ abs_0_00018774:
 	move.b d4,$0026(a0)
 	subq.b #4,$0026(a0)
 	bra.w abs_0_00018662
-abs_0_00018780:
-	tst.l app_006C(a6)
-	beq.w abs_0_00017E92
+append_and_clear_object_initializer_chain:
+	tst.l object_initializer_chain_tail(a6)
+	beq.w skip_object_type_initialization
 	move a2,usp
-	movea.l app_006C(a6),a2
+	movea.l object_initializer_chain_tail(a6),a2
 	move.l a2,$0038(a0)
 	move.l a0,$003C(a2)
 	move usp,a2
-	clr.l app_006C(a6)
+	clr.l object_initializer_chain_tail(a6)
 	rts
-abs_0_0001879E:
-	tst.l app_006C(a6)
+append_object_initializer_chain_link:
+	tst.l object_initializer_chain_tail(a6)
 	beq.w abs_0_00018724
 	move a2,usp
-	movea.l app_006C(a6),a2
+	movea.l object_initializer_chain_tail(a6),a2
 	move.l a2,$0038(a0)
 	move.l a0,$003C(a2)
-	move.l a0,app_006C(a6)
+	move.l a0,object_initializer_chain_tail(a6)
 	move usp,a2
 	rts
 abs_0_000187BC:
