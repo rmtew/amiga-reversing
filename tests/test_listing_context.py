@@ -60,3 +60,17 @@ def test_derived_app_target_cannot_be_bound_as_layout_origin_operand():
     assert "rsset.binding" not in catalog._provenance_consumers(context)
     assert not any(a["command_id"].startswith("rsset.binding")
         for a in catalog._provenance_possible_actions(context, classification))
+
+
+def test_iterated_app_cursor_context_preserves_counter_and_range_coordinates():
+    row = dict(row_key='s0:00000006:instruction', kind='instruction', section_index=0,
+        start_offset=6, end_offset=8, addr=6, app_slot_refs=[dict(symbol='points', displacement=0xBC6,
+        base_register='A4', operand_index=1, access='write', derived=True, base_displacement=0xBC6,
+        operand_displacement=0, data_access_size=2, element_width=2, transfer_count=1,
+        base_evidence='a6_fallback', loop_iteration_count=20, loop_iteration_stride=6,
+        loop_header_offset=6, loop_tail_offset=20, loop_counter_register='D7')])
+    context, = [c for c in listing_element_contexts(row) if c['element_kind'] == 'app_slot']
+    assert context['loop_iteration_count'] == 20 and context['loop_iteration_stride'] == 6
+    assert context['loop_header_offset'] == 6 and context['loop_tail_offset'] == 20
+    assert context['loop_counter_register'] == 'D7'
+    assert context['displacement'] == context['base_displacement'] == 0xBC6

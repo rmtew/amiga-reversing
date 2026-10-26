@@ -77,6 +77,14 @@ int main(void) {
   memset(&other, 0, sizeof(other));
   typed_state_merge_into(&state, &other);
   assert(!state.app_addr_regs[4].known);
+  {
+    M68kInstructionIR direct = m68k_plain_parse_instruction_to_ir(
+      "move.w #19,d7", M68K_ASM_CPU_68000, m68k_diag_sink(NULL));
+    M68kInstructionIR indirect = m68k_plain_parse_instruction_to_ir(
+      "move.w #19,(a0)", M68K_ASM_CPU_68000, m68k_diag_sink(NULL));
+    assert(instruction_operand_writes_register_from_metadata(&direct, 1));
+    assert(!instruction_operand_writes_register_from_metadata(&indirect, 1));
+  }
   /* Multi-transfer affine cursors must not silently advance by one WORD. */
   memset(&state, 0, sizeof(state));
   state.memory_base_regs[0].known = 1;

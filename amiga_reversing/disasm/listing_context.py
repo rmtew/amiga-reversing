@@ -146,10 +146,14 @@ def _append_app_slot_contexts(contexts: list[dict[str, object]], row: Mapping[st
         if operand_index is not None:
             context["operand_index"] = operand_index
         _copy_optional_int(context, raw_ref, "displacement")
-        for coordinate in ("base_displacement", "operand_displacement", "data_access_size", "element_width", "transfer_count"):
+        for coordinate in ("base_displacement", "operand_displacement", "data_access_size", "element_width", "transfer_count",
+                           "loop_iteration_count", "loop_iteration_stride", "loop_header_offset", "loop_tail_offset"):
             _copy_optional_int(context, raw_ref, coordinate)
         if isinstance(raw_ref.get("derived"), bool):
             context["derived"] = raw_ref["derived"]
+        loop_counter = _str_or_none(raw_ref.get("loop_counter_register"))
+        if loop_counter:
+            context["loop_counter_register"] = loop_counter
         base_evidence = _str_or_none(raw_ref.get("base_evidence"))
         if base_evidence:
             context["base_evidence"] = base_evidence

@@ -6611,6 +6611,10 @@ static const char *app_slot_access_kind_name(uint8_t access_kind) {
 
 static int append_app_slot_derived_json(JsonBuilder *builder, const M68kAppSlotRefIR *ref) {
   if (ref == NULL || !ref->has_derived_base) return 0;
+  if (ref->loop_iteration_count != 0U && json_builder_appendf(builder,
+      ",\"loop_iteration_count\":%u,\"loop_iteration_stride\":%d,\"loop_header_offset\":%u,\"loop_tail_offset\":%u,\"loop_counter_register\":\"D%u\"",
+      ref->loop_iteration_count, ref->loop_iteration_stride, ref->loop_header_offset,
+      ref->loop_tail_offset, ref->loop_counter_register) != 0) return -1;
   return json_builder_appendf(builder,
     ",\"derived\":true,\"base_displacement\":%d,\"operand_displacement\":%d,\"data_access_size\":%u,\"element_width\":%u,\"transfer_count\":%u",
     (int)ref->base_displacement, (int)ref->operand_displacement, (unsigned)ref->access_size, (unsigned)ref->element_width, (unsigned)ref->transfer_count);

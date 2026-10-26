@@ -76,10 +76,10 @@ The useful next opportunities, in order of demonstrated missing links, are:
 
 1. **Changing cursors across loops/saved slots.** Exact single-instruction
    postincrement/immediate updates and full MOVEM spans are implemented and
-   fixture-qualified below. The actual 20-point cache still has only two
-   address-formation records: joins erase its changing A4/saved-cursor positions.
-   Establish the finite original loop/owner/stride contract before admitting a
-   range. Do not infer it from storage capacity or claim arbitrary loops safe.
+   fixture-qualified below. The 20-point initializer now has five
+   proved strided write patterns. The branchy draw/readback path still loses its
+   changing A4/saved-cursor positions at joins/retries. Establish its counter-
+   relative invariant and saved-slot contract before admitting that range. Do not infer it from storage capacity or claim arbitrary loops safe.
 2. **App-base contexts and downstream consumers.** New matrix/control cursor
    references retain their A6 fallback labels. Trace concrete entry/caller and
    register-borrowing paths where they can change attribution; do not turn all
@@ -103,7 +103,7 @@ For those priorities the immediate acceptance questions and dependencies are:
 
 | Limitation | What it currently blocks | Next bounded experiment | Why it is sequenced here |
 | --- | --- | --- | --- |
-| Point-field loop and saved cursor | Complete native access spans for world/cache triplets, despite two known address formations | Reproduce the DBF-20 loop and saved-slot increment in small fixtures; compare preheader, join and storage states, then admit only a range justified by original counter/stride/owner facts | Exact instruction spans must be qualified first; that replacement is now complete. A single exact address cannot stand in for a changing loop position. |
+| Branchy point-field loop and saved cursor | Renderer read/update spans for world/cache triplets; initialization is now bounded | Extend the retry/DBF fixture with the original saved-slot increment and rollback, checking cursor=base+6*(initial-counter) | Single-entry straight-line DBF ranges are qualified. The actual renderer can retry without decrementing the counter, so a constant-stride body summary is insufficient. |
 | Conditional app base | Stronger attribution for fallback matrix, input and object-workspace references | Trace producers of `game_workspace_base`, its A6 loads, register copies/borrows and concrete entry/callback edges; reproduce any dropped propagation with a native fixture | Next after the range fixture; current declarations identify relative fields but do not establish their runtime register origin. |
 | Orphan incoming path | Deciding whether a specific decoded island belongs in accepted code | Rank current unresolved signals against recovered pointer/table/return edges; choose one with a concrete inbound lead and, only if static evidence remains insufficient, observe that original normal-input condition | Follow recovered access/base evidence to avoid repeatedly scanning instruction-shaped bytes without an entry hypothesis. |
 | Shared buffer phase | Distinguishing producers/consumers of aliased scratch cells and safe source type views | Join the current vertex/cache/polygon writers and readers by original phase/entry; test one suspected overwrite-before-use or cross-phase consumer | Depends on accurate cursor/base associations; physical adjacency or storage capacity alone cannot identify ownership/lifetime. |
@@ -2438,3 +2438,55 @@ links. Current orphan signals are 30 unresolved and five suppressed candidates,
 not 35 newly proved code entries. See
 `runtime/observations/starglider2-app-memory-spans.json` and
 `runtime/observations/starglider2-current-unknown-intervals.json`.
+
+
+## Bounded DBF app ranges and stride-preserving audit
+
+The next native slice recovers thirty original write patterns in six loop
+bodies, taking app reference records from 3,145 to 3,175 without dropping any
+prior record. Seventeen LONG patterns cover the 250 original 68-byte object
+records; five patterns cover both 20-triplet point arrays. The other patterns
+cover the existing ten-entry scratch prefixes, 104-entry byte arrays and 56
+projector flags. These are access ranges for already declared runtime workspace,
+not thirty newly identified fields or newly classified original payload bytes.
+
+The collector reuses accepted CFG/predecessor identity, the native WORD-value
+transfer for a constant preheader counter, and existing app-address transfers.
+It requires one entry and a sequential body, an unchanged DBF counter, affine
+cursor movement and complete repeated-envelope containment in one declared
+owner. It validates before recording facts. It does not widen the main solver,
+allocate state per iteration, raise an iteration cap or unroll the count. Tests
+cover one/sixty/65,536 iterations, unknown or modified counters, calls, early
+branches, extra entries, pointer reassignment and owner overruns. Generic EA
+write metadata is resolved through the actual decoded register/memory shape:
+`MOVE.W #19,D7` writes D7 even though the generic EA form labels its destination
+a memory write; `MOVE.W #19,(A0)` does not write A0. This missing interpretation
+initially hid the constant-counter proof and now has a focused regression.
+
+Native/listing facts keep per-transfer width/count separate from loop count,
+stride, header, tail and counter. The existing audit consumes a finite interval
+progression algebraically; it does not fill strided holes or expand 65,536
+iterations into records. Thirty targeted current instruction queries confirm
+that all thirty real patterns reach the audit. No complete instruction
+recollection or emulator run was needed.
+
+The 322 focused cases pass. Current C/vasm reproduces all original bytes;
+inline source and the full 57-asset package are identical to the previous
+qualified build, so no redundant standalone rebuild was run. Native generation
+took 89.48 seconds in this sample; typed-flow CPU was 3.60 seconds versus 3.51
+in the prior sample. The remainder of wall-time variation is not attributed to
+loop summarization without a controlled performance experiment. Worklists are
+converged and the graph-state representation remains unchanged. Accepted code,
+ownership, 299 app fields/93 generic names and the 14,728-byte residual complement
+are unchanged. The rolling residual index now binds this current native run;
+the original historical survey remains untouched.
+
+The cache's initialization is now represented as three XYZ WORD strides and a
+LONG+WORD clear, each repeated twenty times inside its 120-byte owner. This
+**does not close the renderer**: that body has internal retry edges and a saved
+cursor increment/rollback. A counter-relative invariant, including retries
+that do not consume a point, is the concrete next range experiment. App-base
+loads/stack transfer propagation are the next related implementation dependency;
+unknown indirect entries, cross-owner ranges and arbitrary replacement models
+are not silently admitted. See
+`runtime/observations/starglider2-counted-app-loop-ranges.json`.

@@ -160,3 +160,42 @@ def test_malformed_or_unbound_grouped_span_remains_unknown(mutation):
     assert not site['footprint_known']
     assert site['footprint_width_bytes'] is None
     assert not site['overlapping_declarations']
+
+
+@pytest.mark.parametrize('stride', [6, -6])
+def test_iterated_native_span_preserves_holes_and_counter_evidence(stride):
+    fields = [dict(base_symbol='__amiga_app_base__', symbol=s, offset=o, size=n, alias=False)
+              for s, o, n in [('first', 0, 2), ('untouched', 2, 4), ('second', 6, 2)]]
+    r = row(base_register='A5', width_bytes=2)
+    r['app_slot_refs'] = [dict(operand_index=0, displacement=0 if stride > 0 else 6,
+        symbol='first', access='read', derived=True, data_access_size=2, element_width=2, transfer_count=1,
+        base_evidence='a6_fallback', loop_iteration_count=2, loop_iteration_stride=stride,
+        loop_header_offset=0, loop_tail_offset=4, loop_counter_register='D7')]
+    site = build_app_access_audit([r], fields, app_base=0x1000, identity={})['sites'][0]
+    assert site['footprint_known'] and site['footprint_span_bytes'] == 8
+    assert site['footprint_iteration_count'] == 2
+    assert site['overlapping_declarations'] == ['first', 'second']
+    assert not site['undeclared_intersections'] and not site['undeclared_intersection_patterns']
+    assert site['app_attributions'][0]['base_evidence'] == 'a6_fallback'
+
+
+@pytest.mark.parametrize('mutation', [dict(loop_iteration_count=0), dict(loop_iteration_count=True),
+    dict(loop_iteration_count=65537), dict(loop_counter_register='A0'), dict(loop_tail_offset=0),
+    dict(loop_iteration_stride='6'), dict(data_access_size=3)])
+def test_invalid_native_iteration_pattern_cannot_fall_back_to_scalar_coverage(mutation):
+    r = row(base_register='A5', width_bytes=2)
+    ref = dict(operand_index=0, displacement=4, symbol='counter', access='read', derived=True,
+        data_access_size=2, element_width=2, transfer_count=1, base_evidence='a6_fallback',
+        loop_iteration_count=2, loop_iteration_stride=2, loop_header_offset=0,
+        loop_tail_offset=4, loop_counter_register='D7')
+    ref.update(mutation)
+    r['app_slot_refs'] = [ref]
+    assert not audit(r)['sites'][0]['footprint_known']
+
+
+def test_strided_intersection_is_compressed_not_filled_in():
+    from amiga_reversing.disasm.app_access_audit import _pattern_intersection
+    result = _pattern_intersection(0, 2, 65536, 6, 0, 400000)
+    assert result['first_start'] == 0 and result['last_start'] == 393210
+    assert result['count'] == 65536 and result['transfer_width'] == 2
+    assert 'start' not in result  # Four-byte holes are not reported as touched.

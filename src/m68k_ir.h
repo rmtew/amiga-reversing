@@ -1349,6 +1349,11 @@ typedef struct M68kAppSlotRefIR {
   uint8_t access_size;
   uint8_t element_width;
   uint8_t transfer_count;
+  uint32_t loop_iteration_count;
+  int32_t loop_iteration_stride;
+  uint32_t loop_header_offset;
+  uint32_t loop_tail_offset;
+  uint8_t loop_counter_register;
 } M68kAppSlotRefIR;
 
 typedef struct M68kRecoveredPlatformTypedAccessIR {

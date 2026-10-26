@@ -65,6 +65,46 @@ def _native_derived_span_width(refs, operand_width):
     return next(iter(spans)) if len(spans) == 1 else None
 
 
+def _native_iteration_pattern(refs, source_offset):
+    patterns = set()
+    for ref in refs:
+        if 'loop_iteration_count' not in ref:
+            if any(k.startswith('loop_') for k in ref):
+                return None
+            patterns.add((1, 0))
+            continue
+        count, stride, header, tail = (ref.get(k) for k in
+            ('loop_iteration_count', 'loop_iteration_stride', 'loop_header_offset', 'loop_tail_offset'))
+        start = ref.get('displacement')
+        if (any(type(n) is not int for n in (count, stride, header, tail, start))
+                or not 1 <= count <= 65536 or not -65535 <= stride <= 65535
+                or not 0 <= header <= source_offset < tail
+                or ref.get('loop_counter_register') not in {f'D{i}' for i in range(8)}
+                or min(start, start + stride * (count - 1)) < 0
+                or max(start, start + stride * (count - 1)) > 32767):
+            return None
+        patterns.add((count, stride))
+    return next(iter(patterns)) if len(patterns) == 1 else None
+
+
+def _pattern_intersection(start, width, count, stride, low, high):
+    """Intersect a finite progression of byte intervals without expansion."""
+    if stride < 0:
+        start += stride * (count - 1)
+        stride = -stride
+    if stride == 0:
+        return dict(start=max(start, low), end=min(start + width, high)) if start < high and start + width > low else None
+    first = max(0, (low - start - width) // stride + 1)
+    last = min(count - 1, (high - start - 1) // stride)
+    if first > last:
+        return None
+    if width >= stride:
+        return dict(start=max(low, start + first * stride), end=min(high, start + last * stride + width))
+    return dict(clip_start=low, clip_end=high, first_start=start + first * stride,
+                last_start=start + last * stride, transfer_width=width, stride=stride,
+                count=last - first + 1, order='ascending_addresses')
+
+
 def _gaps(fields, envelope):
     covered = set()
     for field in fields:
@@ -110,6 +150,9 @@ def build_app_access_audit(instructions, layout_fields, *, app_base, identity):
                 addresses.add(op['absolute_address'])
             width = op['width_bytes']
             derived_span = _native_derived_span_width(refs, width)
+            has_loop = any('loop_iteration_count' in r for r in refs)
+            iterations = (_native_iteration_pattern(refs, row_id[1]) if derived_span is not None
+                          else (None if has_loop else (1, 0)))
             address_use = op['access'] in {'address', 'branch_target'}
             concrete_overlap = [a - app_base for a in sorted(addresses)
                                 if a < app_base + envelope and a + (width or 1) > app_base]
@@ -139,20 +182,26 @@ def build_app_access_audit(instructions, layout_fields, *, app_base, identity):
             relative = sorted({r['displacement'] for r in refs} | set(concrete_overlap))
             conditional = [op['displacement']] if domain == 'unresolved_A6' and op['displacement_known'] else []
             footprint_source = 'native_form_operand'
-            if derived_span is not None and not conflict and not op['indexed'] and not address_use:
+            if derived_span is not None and iterations is not None and not conflict and not op['indexed'] and not address_use:
                 width = derived_span
                 footprint_source = 'native_derived_span'
+            iteration_count, iteration_stride = iterations if iterations is not None else (1, 0)
             footprint_known = bool(width and not op['indexed'] and not address_use and
+                                   not (has_loop and iterations is None) and
                                    (not op['bulk_transfer'] or footprint_source == 'native_derived_span'))
+            gap_patterns = []
             overlaps, gap_hits, conditional_overlaps, conditional_gap_hits = [], [], [], []
             if footprint_known:
                 for start in relative:
                     for f in fields:
-                        if start < f['offset'] + f['size'] and start + width > f['offset']:
+                        if _pattern_intersection(start, width, iteration_count, iteration_stride,
+                                                 f['offset'], f['offset'] + f['size']) is not None:
                             overlaps.append(f['symbol'])
                     for gap in gaps:
-                        if start < gap['end'] and start + width > gap['start']:
-                            gap_hits.append(dict(start=max(start, gap['start']), end=min(start + width, gap['end'])))
+                        intersection = _pattern_intersection(start, width, iteration_count, iteration_stride,
+                                                             gap['start'], gap['end'])
+                        if intersection is not None:
+                            (gap_hits if 'start' in intersection else gap_patterns).append(intersection)
                 for start in conditional:
                     conditional_overlaps.extend(f['symbol'] for f in fields
                                                 if start < f['offset'] + f['size'] and start + width > f['offset'])
@@ -172,6 +221,10 @@ def build_app_access_audit(instructions, layout_fields, *, app_base, identity):
                               address_only=address_use, footprint_known=footprint_known,
                               footprint_width_bytes=width if footprint_known else None,
                               footprint_source=footprint_source,
+                              footprint_iteration_count=iteration_count if footprint_known else None,
+                              footprint_iteration_stride=iteration_stride if footprint_known else None,
+                              footprint_span_bytes=(width + abs(iteration_stride) * (iteration_count - 1)) if footprint_known else None,
+                              undeclared_intersection_patterns=gap_patterns,
                               overlapping_declarations=sorted(set(overlaps)), undeclared_intersections=gap_hits))
     domains = Counter(s['domain'] for s in sites)
     app_sites = [s for s in sites if s['app_attributions'] or s['domain'] == 'physical_app_envelope_alias']

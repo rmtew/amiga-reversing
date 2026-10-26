@@ -69,7 +69,7 @@ def test_unproved_or_ambiguous_app_span_is_not_admitted(tmp_path, tail):
 def test_mutating_loop_join_is_not_a_claim_of_a_bounded_range(tmp_path):
     body = """lea.l $BC6(a6),a4
  lea.l $78(a4),a5
- move.w #19,d7
+ move.w d1,d7
 again:
  move.w (a5)+,d0
  dbf d7,again"""
