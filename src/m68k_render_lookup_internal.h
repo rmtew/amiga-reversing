@@ -940,6 +940,8 @@ uint32_t lookup_code_block_start_before_or_at(const M68kRenderLookup *lookup, si
   uint32_t offset);
 int lookup_source_runtime_address(const M68kRenderLookup *lookup, size_t section_index,
   uint32_t source_offset, uint32_t *out_runtime_address);
+int lookup_source_unique_runtime_span(const M68kRenderLookup *lookup, size_t section_index,
+  uint32_t source_offset, uint32_t width, uint32_t *out_runtime_address);
 int lookup_runtime_range_materialization(const M68kRenderLookup *lookup, const M68kFact *range,
   uint8_t *out_materialized, uint8_t *out_reason, M68kRuntimeViewRelationshipIR *out_relationship);
 int lookup_source_has_materialized_runtime_address(const M68kRenderLookup *lookup, size_t section_index,

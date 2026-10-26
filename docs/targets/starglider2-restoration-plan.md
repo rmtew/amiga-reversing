@@ -390,6 +390,40 @@ remains exact. The complete generated source package and all assets are identica
 so the preceding clean standalone source-tree receipt is reused instead of
 repeating the same build. No emulator run or interim package was needed.
 
+## Indirect absolute-cell aliases: current follow-on
+
+The [runtime-span receipt](../../runtime/observations/starglider2-absolute-cell-runtime-spans.json)
+records 358 focused passing tests. A disjoint write through `LEA other,An`
+previously discarded a saved absolute cell although the equivalent direct
+absolute write retained it. Alias checking now converts the existing **current**
+source-backed cursor and complete scalar/MOVEM footprint through an unambiguous
+materialized runtime view. Overlapping writes invalidate; exact disjoint spans
+preserve. Source offsets, pointer origins, logical app bases, partial/ambiguous
+views, unknown/indexed addresses and loader-only continuations are not accepted
+as effective runtime addresses. Added overlap tests rejected both an initial
+source-coordinate prototype and a pointer-origin prototype before publication.
+
+No new retained state or competing address model was added. Empty/relative-only
+local caches retain their write barrier without resolving runtime views; a native
+operation-count fixture checks 10,000 writes make no mapping calls, while one
+live absolute cell invokes the resolver. The complete target analysis and source
+package remain identical: 3,237 app references, 320 typed accesses, 135 loop
+patterns, 305 fields/95 generic and unchanged residual ownership. C/vasm remains
+exact; the unchanged standalone export reuses its existing receipt. Generation
+measured 176.30 seconds, with no isolated speed claim. Superseded development
+runs and the reconnect/process-cleanup cost are explicit in the receipt.
+
+The real secondary cache holder `$4E5C0` still has no bounded range. Its A6-relative
+writes require a physical base contract, not merely the logical layout role.
+`initialize_game` explicitly forms `$68000` or `$70000` minus `$6998`, giving
+candidate original workspace bases `$61668`/`$69668`; the already-recorded flight
+observation used `$69668`. The analysis has not closed that set at every renderer
+entry: the startup-bit skip path and caller/entry transfers remain obligations.
+The next bounded producer experiment is the unbacked LEA plus ADD/SUB chain in
+the existing shared value packet, then concrete caller/base propagation. No
+blanket non-aliasing declaration or unconditional runtime seed is justified by
+this one observation.
+
 ## Committed buildable rendered output
 
 The user explicitly requested the final rendered source and dependencies in Git.

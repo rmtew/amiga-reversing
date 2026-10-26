@@ -3822,17 +3822,38 @@ static void typed_state_note_absolute_write(M68kRenderTypedState *state, const M
   uint32_t address;
   size_t index = 0U;
   uint8_t platform = lookup->object != NULL ? lookup->object->platform_backend_kind : 0U;
+  int indirect_runtime_address = 0;
   if (!operand_absolute_offset_local(operand, &address)) {
-    typed_state_forget_absolute_cells(state); return;
+    uint8_t base_reg;
+    int16_t displacement;
+    M68kRenderTypedMemoryBaseValue effective;
+    int has_absolute_cell = 0;
+    state->absolute_memory_written = 1U;
+    for (size_t i = 0U; i < state->base_slot_count; ++i)
+      if (state->base_slots[i].storage_id) { has_absolute_cell = 1; break; }
+    /* Nothing to invalidate: retain the write barrier without resolving a
+     * runtime view for every ordinary memory instruction. */
+    if (!has_absolute_cell) return;
+    /* Cells carry runtime addresses. Resolve the current shared source cursor
+     * through a whole, unambiguous materialized view; neither a source offset,
+     * pointer origin nor app-layout role alone is an effective address. */
+    if (!operand_is_address_memory_local(operand, &base_reg, &displacement) || base_reg >= 8U ||
+        !typed_memory_base_with_displacement(&state->memory_base_regs[base_reg], displacement, &effective) ||
+        !lookup_source_unique_runtime_span(lookup, effective.section_index, effective.offset, width, &address)) {
+      typed_state_forget_absolute_cells(state); return;
+    }
+    indirect_runtime_address = 1;
+  } else {
+    if (platform_facts_v2_address_has_hardware_owner(platform, address)) return;
+    section = operand->symbol_ref.has_section ? operand->symbol_ref.section_index : section;
   }
-  if (platform_facts_v2_address_has_hardware_owner(platform, address)) return;
-  section = operand->symbol_ref.has_section ? operand->symbol_ref.section_index : section;
   state->absolute_memory_written = 1U;
   while (index < state->base_slot_count) {
     M68kRenderTypedBaseSlot *cell = &state->base_slots[index];
     if (cell->storage_id != 0U) {
       const M68kRenderTypedStorageSlot *owner = &lookup->typed_storage_slots[cell->storage_id - 1U];
-      if (owner->section_index == section && typed_long_cell_overlaps_write(owner->address, address, width)) {
+      if ((indirect_runtime_address || owner->section_index == section) &&
+          typed_long_cell_overlaps_write(owner->address, address, width)) {
         *cell = state->base_slots[--state->base_slot_count]; continue;
       }
     }

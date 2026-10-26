@@ -7905,6 +7905,30 @@ static int lookup_source_runtime_continuation_address(const M68kRenderLookup *lo
   return 1;
 }
 
+/* Alias proofs need one whole materialized mapping, not the rendering
+ * preference for one of several views or a loader-only continuation. */
+int lookup_source_unique_runtime_span(const M68kRenderLookup *lookup, size_t section_index,
+    uint32_t source_offset, uint32_t width, uint32_t *out_runtime_address) {
+  uint32_t chosen = 0U, last;
+  int found = 0;
+  if (out_runtime_address) *out_runtime_address = 0U;
+  if (!lookup || !width || source_offset > UINT32_MAX - (width - 1U)) return 0;
+  last = source_offset + width - 1U;
+  for (size_t i = 0U; i < lookup->runtime_address_range_count; ++i) {
+    const M68kFact *range = lookup->runtime_address_ranges[i].fact;
+    uint32_t first_runtime, last_runtime;
+    if (!range || range->section_index != section_index || !range->size ||
+        (uint64_t)source_offset >= (uint64_t)range->offset + range->size || last < range->offset ||
+        !runtime_range_is_materialized(lookup, range)) continue;
+    if (!runtime_range_contains_source(range, section_index, source_offset, &first_runtime) ||
+        !runtime_range_contains_source(range, section_index, last, &last_runtime) ||
+        (uint64_t)first_runtime + width - 1U != last_runtime || (found && chosen != first_runtime)) return 0;
+    chosen = first_runtime; found = 1;
+  }
+  if (found && out_runtime_address) *out_runtime_address = chosen;
+  return found;
+}
+
 int lookup_source_runtime_address(const M68kRenderLookup *lookup, size_t section_index,
     uint32_t source_offset, uint32_t *out_runtime_address) {
   size_t index;
