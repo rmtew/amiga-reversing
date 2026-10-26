@@ -350,8 +350,8 @@ last_projectile_reticle_y RS.W 1
 free_object_count RS.W 1
 icarus_power_reserve RS.W 1
 icarus_shield_strength RS.W 1
-app_0778 RS.W 1
-app_077A RS.W 1
+active_model_retirement_phase_word RS.W 1
+saved_model_face_loop_index RS.W 1
 inside_structure_flag RS.B 1
 space_environment_flag RS.B 1
 app_077E RS.B 1
@@ -545,7 +545,7 @@ app_0062 RS.B 1
     RSSET $0067
 app_0067 RS.B 1
     RSSET $0779
-app_0779 RS.B 1
+active_model_retirement_phase_byte RS.B 1
     RSSET $6598
 app_SIZEOF EQU __RS
 
@@ -4293,11 +4293,11 @@ abs_0_00003FE0:
 	bne.b abs_0_00004096
 	rts
 abs_0_00004096:
-	clr.w app_0778(a6)
-	move.b $001E(a4),app_0779(a6)
+	clr.w active_model_retirement_phase_word(a6)
+	move.b $001E(a4),active_model_retirement_phase_byte(a6)
 	move.b $0002(a4),abs_0_000049AC.l
 	movem.l d7/a4-a5,-(a7)
-	bsr.w abs_0_00005338
+	bsr.w prepare_retirement_model_faces
 	movem.l (a7)+,d7/a4-a5
 	bra.w abs_0_00003FD2
 	dc.b $4F,$62,$6A
@@ -5656,7 +5656,7 @@ abs_0_00005074:
 	lea.l model_view_vertex_scratch_prefix(a6),a0
 	movea.l $0008(a6),a1
 project_auxiliary_faces_loop:
-	move.w d0,app_077A(a6)
+	move.w d0,saved_model_face_loop_index(a6)
 	move.w (a5)+,d0
 	lsr.w #8,d0
 	andi.w #15,d0
@@ -5803,7 +5803,7 @@ abs_0_00005278:
 	dbf.w d0,abs_0_000050F6
 	move.w #$FFFF,(a4)+
 abs_0_00005284:
-	move.w app_077A(a6),d0
+	move.w saved_model_face_loop_index(a6),d0
 	cmpi.w #145,abs_0_000049A8.l
 	bgt.b abs_0_000052AC
 	dbf.w d0,project_auxiliary_faces_loop
@@ -5829,7 +5829,7 @@ abs_0_000052C0:
 	dc.w $0000
 abs_0_000052C2:
 	dcb.b $76,$00
-abs_0_00005338:
+prepare_retirement_model_faces:
 	move.b #$21,diagnostic_step_byte.l
 	lea.l abs_0_000058AF.l,a0
 	move.b $0(a0,d0.w),abs_0_000058AE.l
@@ -5859,10 +5859,10 @@ abs_0_00005338:
 abs_0_0000539A:
 	bsr.w abs_0_000029BA
 	move.l a4,-(a7)
-	bsr.w abs_0_000053E8
+	bsr.w transform_retirement_vertices_and_faces
 	movea.l (a7)+,a4
 	move.b #$22,diagnostic_step_byte.l
-	cmpi.b #3,app_0779(a6)
+	cmpi.b #3,active_model_retirement_phase_byte(a6)
 	bmi.w abs_0_00004FAA
 	tst.b abs_0_000058AE.l
 	bne.w abs_0_00004FAA
@@ -5875,7 +5875,7 @@ abs_0_0000539A:
 	move.l (a0)+,$0008(a6)
 	move.l (a0)+,$0014(a6)
 	clr.l $0024(a6)
-abs_0_000053E8:
+transform_retirement_vertices_and_faces:
 	cmpi.w #145,abs_0_000049A8.l
 	bgt.w abs_0_00004A28
 	moveq.l #0,d0
@@ -5913,7 +5913,7 @@ abs_0_0000543A:
 	beq.w abs_0_0000565C
 	subq.w #1,d0
 abs_0_00005460:
-	move.w d0,app_077A(a6)
+	move.w d0,saved_model_face_loop_index(a6)
 	move.w (a4)+,d1
 	move.w d1,d2
 	andi.w #15,d1
@@ -5948,7 +5948,7 @@ abs_0_00005492:
 	muls.w $0188(a6),d6
 	sub.l d6,d5
 	asr.l #5,d5
-	muls.w app_0778(a6),d5
+	muls.w active_model_retirement_phase_word(a6),d5
 	asr.l #3,d5
 	move.w d5,$0018(a6)
 	move.w d1,d5
@@ -5957,11 +5957,11 @@ abs_0_00005492:
 	muls.w $0184(a6),d6
 	sub.l d6,d5
 	asr.l #6,d5
-	muls.w app_0778(a6),d5
+	muls.w active_model_retirement_phase_word(a6),d5
 	tst.b space_environment_flag(a6)
 	bmi.b abs_0_00005508
-	move.w app_0778(a6),d6
-	lea.l abs_0_0000567C(pc),a5
+	move.w active_model_retirement_phase_word(a6),d6
+	lea.l retirement_face_y_bias_prefix(pc),a5
 	andi.w #65534,d6
 	add.w $0(a5,d6.w),d5
 abs_0_00005508:
@@ -5982,7 +5982,7 @@ abs_0_0000552E:
 	muls.w $0186(a6),d6
 	sub.l d6,d5
 	asr.l #5,d5
-	muls.w app_0778(a6),d5
+	muls.w active_model_retirement_phase_word(a6),d5
 	asr.l #3,d5
 	move.w d5,$0020(a6)
 	move.b #$24,diagnostic_step_byte.l
@@ -6081,7 +6081,7 @@ abs_0_0000563C:
 abs_0_0000564A:
 	cmpi.w #145,abs_0_000049A8.l
 	bgt.b abs_0_0000565C
-	move.w app_077A(a6),d0
+	move.w saved_model_face_loop_index(a6),d0
 	dbf.w d0,abs_0_00005460
 abs_0_0000565C:
 	rts
@@ -6098,11 +6098,11 @@ abs_0_0000566E:
 	subq.l #4,abs_0_00003C2C.l
 	subq.w #1,abs_0_000049A8.l
 	bra.b abs_0_0000564A
-abs_0_0000567C:
-	dc.b $00,$00,$FF,$B0,$FF,$6A,$FF,$2E,$FE,$FC,$FE,$D4,$FE,$B6,$FE,$A2
-	dc.b $FE,$A2,$FE,$B6,$FE,$D4,$FE,$FC,$FF,$2E,$FF,$6A,$FF,$B0,$00,$00
-	dc.b $00,$5A,$00,$BE,$01,$2C,$01,$A4,$02,$26,$02,$B2,$03,$48,$03,$E8
-	dc.b $04,$92,$05,$46,$06,$04,$06,$C2,$07,$8A,$08,$5C,$09,$38,$0A,$1E
+retirement_face_y_bias_prefix:
+	dc.w $0000,$FFB0,$FF6A,$FF2E,$FEFC,$FED4,$FEB6,$FEA2	; Signed phase-indexed Y displacement bias, conditional original-use prefix
+	dc.w $FEA2,$FEB6,$FED4,$FEFC,$FF2E,$FF6A,$FFB0,$0000
+	dc.w $005A,$00BE,$012C,$01A4,$0226,$02B2,$0348,$03E8
+	dc.w $0492,$0546,$0604,$06C2,$078A,$085C,$0938,$0A1E
 transform_encoded_vertex_coordinates:
 	movem.l d4/a0-a3,-(a7)
 	lea.l model_cache_x_negative_terms.l,a0

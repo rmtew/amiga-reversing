@@ -1,0 +1,454 @@
+{
+  "schema_version": 1,
+  "kind": "retirement_model_face_preparation_and_phase_bias_restoration",
+  "publication_base_commit": "077c61fc307b9281c90c37576e629a82d70d1217",
+  "backend_sha256": "b935c76d6042e045c26023dfc4fa2f7eae8d7c81790f0d261c66696033f7b3fc",
+  "analysis_sha256": "bf5a234aa3051f71a7bc2771f333818a5719456eb7a02520ac8b5b85d678e1ac",
+  "canonical_actions": [
+    {
+      "action_id": "manual-c930f38188c3457fbfcbc76da3af1710",
+      "command_id": "target.rsset_region.add",
+      "interpretation": {
+        "evidence_refs": [
+          "s0:00002FBE:instruction",
+          "s0:00003096:instruction",
+          "s0:0000309A:instruction",
+          "s0:000044D4:instruction",
+          "s0:000044EE:instruction",
+          "s0:000044F8:instruction",
+          "s0:0000453E:instruction"
+        ],
+        "reason": "Original visible-model path sends nonnegative object retirement phase to the special face-preparation entry; negative phases use the ordinary model projector. Caller clears app778 WORD then copies object1E BYTE to app779, making an explicit zero-extended WORD/BYTE low alias. Face-normal displacement arithmetic multiplies by that WORD; its even-masked value indexes a ground-mode Y-bias prefix, and the BYTE >=3 gate may select an additional type47 model pass. Preserve the separate app0206 exceptional entry, signed BYTE comparisons, original arithmetic and numeric type47 identity; this is not a physical distance/frame unit or every-entry phase bound.",
+        "source_evidence_status": "hypothesis",
+        "confidence": "high",
+        "subject_revision": "3764a0e8e04e4885ad43768f3eb07bdb3ed8c349b81921e8b8b9088fc8c87aaf"
+      }
+    },
+    {
+      "action_id": "manual-2cfc24446d644b64aaa3bf4b51b211ba",
+      "command_id": "target.rsset_region.add",
+      "interpretation": {
+        "evidence_refs": [
+          "s0:00002FBE:instruction",
+          "s0:0000309A:instruction",
+          "s0:000043AE:instruction"
+        ],
+        "reason": "Original visible-model path sends nonnegative object retirement phase to the special face-preparation entry; negative phases use the ordinary model projector. Caller clears app778 WORD then copies object1E BYTE to app779, making an explicit zero-extended WORD/BYTE low alias. Face-normal displacement arithmetic multiplies by that WORD; its even-masked value indexes a ground-mode Y-bias prefix, and the BYTE >=3 gate may select an additional type47 model pass. Preserve the separate app0206 exceptional entry, signed BYTE comparisons, original arithmetic and numeric type47 identity; this is not a physical distance/frame unit or every-entry phase bound.",
+        "source_evidence_status": "hypothesis",
+        "confidence": "high",
+        "subject_revision": "4d99593a8cdb64108dbf72d73e22e4f54055abcd80a09dd1b8343180e59fbdbe"
+      }
+    },
+    {
+      "action_id": "manual-61bf223879f04a3bb53efb8c65d6a678",
+      "command_id": "target.rsset_region.add",
+      "interpretation": {
+        "evidence_refs": [
+          "s0:000040DA:instruction",
+          "s0:00004284:instruction",
+          "s0:00004460:instruction",
+          "s0:00004654:instruction"
+        ],
+        "reason": "Both auxiliary and phase-displaced model face loops save their outer DBF index in this WORD before nested processing clobbers D0, then reload it for the next face. It is the raw saved loop index, not a face count, frame counter or exclusive lifetime across every renderer entry.",
+        "source_evidence_status": "hypothesis",
+        "confidence": "high",
+        "subject_revision": "64bc1ad7c0876636170c90f0637b257aa80c813b3c8210a08ce49862dcc4f6de"
+      }
+    },
+    {
+      "action_id": "manual-6591e3f189a64d329a3d9697aff49e1e",
+      "command_id": "target.code_label.add",
+      "interpretation": {
+        "evidence_refs": [
+          "s0:00002FBE:instruction",
+          "s0:0000309A:instruction",
+          "s0:00004338:instruction",
+          "s0:000043E8:instruction"
+        ],
+        "reason": "Original visible-model path sends nonnegative object retirement phase to the special face-preparation entry; negative phases use the ordinary model projector. Caller clears app778 WORD then copies object1E BYTE to app779, making an explicit zero-extended WORD/BYTE low alias. Face-normal displacement arithmetic multiplies by that WORD; its even-masked value indexes a ground-mode Y-bias prefix, and the BYTE >=3 gate may select an additional type47 model pass. Preserve the separate app0206 exceptional entry, signed BYTE comparisons, original arithmetic and numeric type47 identity; this is not a physical distance/frame unit or every-entry phase bound. Existing accepted model-header setup entry; no new ABI, caller closure or code promotion.",
+        "source_evidence_status": "hypothesis",
+        "confidence": "high",
+        "subject_revision": "23334cca3e8c25022d63fe8405321f9b5c4510a4f3a122a5fe8fff89b54f44eb"
+      }
+    },
+    {
+      "action_id": "manual-9b65afa564e9494fa8ed0a667ff60a53",
+      "command_id": "target.code_label.add",
+      "interpretation": {
+        "evidence_refs": [
+          "s0:00003096:instruction",
+          "s0:000040DA:instruction",
+          "s0:00004284:instruction",
+          "s0:000043E8:instruction",
+          "s0:00004460:instruction",
+          "s0:000044D4:instruction",
+          "s0:000044EE:instruction",
+          "s0:000044F8:instruction",
+          "s0:00004504:instruction",
+          "s0:0000453E:instruction",
+          "s0:00004654:instruction"
+        ],
+        "reason": "Original visible-model path sends nonnegative object retirement phase to the special face-preparation entry; negative phases use the ordinary model projector. Caller clears app778 WORD then copies object1E BYTE to app779, making an explicit zero-extended WORD/BYTE low alias. Face-normal displacement arithmetic multiplies by that WORD; its even-masked value indexes a ground-mode Y-bias prefix, and the BYTE >=3 gate may select an additional type47 model pass. Preserve the separate app0206 exceptional entry, signed BYTE comparisons, original arithmetic and numeric type47 identity; this is not a physical distance/frame unit or every-entry phase bound. Shared accepted body clears coordinate-cache marks, transforms encoded vertices and prepares face records with phase-dependent normal displacement; it does not itself prove rendered pixels or audio.",
+        "source_evidence_status": "hypothesis",
+        "confidence": "high",
+        "subject_revision": "7239f822e0069e18d8b104b1ee209a7fc47897ffe368c5b90960ccca68849b50"
+      }
+    },
+    {
+      "action_id": "manual-84e76291a6984cff8443b580bf17e7ca",
+      "command_id": "target.data_block.layout.create",
+      "interpretation": {
+        "evidence_refs": [
+          "s0:00002FBE:instruction",
+          "s0:0000309A:instruction",
+          "s0:00004504:instruction",
+          "s0:0000467C:data"
+        ],
+        "reason": "Physical 32-WORD signed Y-bias prefix at source467C..46BC, used by ADD.W indexed through A5 with D6=zero-extended phase&FFFE. The normal nonnegative retirement path and existing104-type limit prefix (maximum63) support byte offsets0..62 when phase begins within its original limit. App0206 entry, higher selectors and unknown writers remain unclosed. Preserve all original signed arithmetic; following accepted transform helper is not swallowed as table data or assumed never read.",
+        "source_evidence_status": "hypothesis",
+        "confidence": "high",
+        "subject_revision": "9167deaebb9a0a6bb0e276d9bc36bfa8ea03ab760eba0f1cb1cb8af548e2cbd7"
+      }
+    },
+    {
+      "action_id": "manual-297db9767d3d45c696954b8fc217c410",
+      "command_id": "target.data_block.element.set",
+      "interpretation": {
+        "evidence_refs": [
+          "s0:00002FBE:instruction",
+          "s0:0000309A:instruction",
+          "s0:00004504:instruction",
+          "s0:0000467C:data"
+        ],
+        "reason": "Physical 32-WORD signed Y-bias prefix at source467C..46BC, used by ADD.W indexed through A5 with D6=zero-extended phase&FFFE. The normal nonnegative retirement path and existing104-type limit prefix (maximum63) support byte offsets0..62 when phase begins within its original limit. App0206 entry, higher selectors and unknown writers remain unclosed. Preserve all original signed arithmetic; following accepted transform helper is not swallowed as table data or assumed never read.",
+        "source_evidence_status": "hypothesis",
+        "confidence": "high",
+        "subject_revision": "02429e099ef30d19cf94a21b30e5291e6ed9b5327815f739f9f0208bc37a4f9f"
+      }
+    }
+  ],
+  "review_decisions": [
+    {
+      "action_id": "manual-c930f38188c3457fbfcbc76da3af1710",
+      "decision_id": "restoration-e71b21e50d9b4773bb9fedd7e6fce5b7",
+      "action": "accept_fact"
+    },
+    {
+      "action_id": "manual-2cfc24446d644b64aaa3bf4b51b211ba",
+      "decision_id": "restoration-d9487fa4f06145e6a0eb74299621675f",
+      "action": "accept_fact"
+    },
+    {
+      "action_id": "manual-61bf223879f04a3bb53efb8c65d6a678",
+      "decision_id": "restoration-bc26b2349da34a3db1c360992abad60a",
+      "action": "accept_fact"
+    },
+    {
+      "action_id": "manual-6591e3f189a64d329a3d9697aff49e1e",
+      "decision_id": "restoration-bd1c5f3899dc4ebdbeac2faae9af5012",
+      "action": "accept_fact"
+    },
+    {
+      "action_id": "manual-9b65afa564e9494fa8ed0a667ff60a53",
+      "decision_id": "restoration-e5f780ef4c6546a5bf372c504b107a96",
+      "action": "accept_fact"
+    },
+    {
+      "action_id": "manual-84e76291a6984cff8443b580bf17e7ca",
+      "decision_id": "restoration-c197af5b46dc436fbeac12d4b77f1414",
+      "action": "accept_fact"
+    },
+    {
+      "action_id": "manual-297db9767d3d45c696954b8fc217c410",
+      "decision_id": "restoration-620d806a657849fea517da8170bcef1f",
+      "action": "accept_fact"
+    }
+  ],
+  "instruction_evidence_sha256": "09787023d065efd8980eb283b9bd99362f760b3cdd9896005c98c429b1b36335",
+  "domain_evidence": {
+    "phase_copy": [
+      12442
+    ],
+    "phase_gate": [
+      12222
+    ],
+    "bias_reader": [
+      17668
+    ],
+    "bias_source_span": [
+      18044,
+      18108
+    ],
+    "bias_word_values": [
+      0,
+      -80,
+      -150,
+      -210,
+      -260,
+      -300,
+      -330,
+      -350,
+      -350,
+      -330,
+      -300,
+      -260,
+      -210,
+      -150,
+      -80,
+      0,
+      90,
+      190,
+      300,
+      420,
+      550,
+      690,
+      840,
+      1000,
+      1170,
+      1350,
+      1540,
+      1730,
+      1930,
+      2140,
+      2360,
+      2590
+    ],
+    "retirement_limit_prefix": {
+      "source_span": [
+        91528,
+        91632
+      ],
+      "max_value": 63,
+      "distinct_values": [
+        0,
+        1,
+        5,
+        10,
+        15,
+        20,
+        30,
+        40,
+        48,
+        63
+      ]
+    },
+    "normal_domain": "Visible model path branches nonnegative object phase to the retirement renderer; negative phases use project_model_to_draw_records. Under the existing104-type limit prefix and phase starting within its original limit, equality-stop/increment keeps the rendered phase in0..63, so phase&FFFE reads even byte offsets0..62. This is a conditional original-use argument, not an all-writer/selector proof.",
+    "exception": "A separate app0206 path also enters the renderer. Its phase/base state and higher type domains are not closed here; following accepted helper code is not declared data or assumed unread. Type47 overlay identity remains numeric, without a visual-name guess."
+  },
+  "fields": [
+    {
+      "layout_name": "app",
+      "base_symbol": "__amiga_app_base__",
+      "sizeof_symbol": "app_SIZEOF",
+      "symbol": "active_model_retirement_phase_word",
+      "owner_struct_name": null,
+      "offset": 1912,
+      "size": 2,
+      "alias": false,
+      "layout_kind": 1,
+      "source_kind": 1,
+      "source_kind_name": "app_slot_access",
+      "value_kind": 2,
+      "confidence": 2,
+      "conflicted": false,
+      "conflict_reason": null,
+      "alias_of_symbol": null,
+      "alias_of_offset": null,
+      "source_section_index": 0,
+      "source_offset": 12438
+    },
+    {
+      "layout_name": "app",
+      "base_symbol": "__amiga_app_base__",
+      "sizeof_symbol": "app_SIZEOF",
+      "symbol": "active_model_retirement_phase_byte",
+      "owner_struct_name": null,
+      "offset": 1913,
+      "size": 1,
+      "alias": true,
+      "layout_kind": 1,
+      "source_kind": 1,
+      "source_kind_name": "app_slot_access",
+      "value_kind": 2,
+      "confidence": 2,
+      "conflicted": false,
+      "conflict_reason": null,
+      "alias_of_symbol": "active_model_retirement_phase_word",
+      "alias_of_offset": 1912,
+      "source_section_index": 0,
+      "source_offset": 12442
+    },
+    {
+      "layout_name": "app",
+      "base_symbol": "__amiga_app_base__",
+      "sizeof_symbol": "app_SIZEOF",
+      "symbol": "saved_model_face_loop_index",
+      "owner_struct_name": null,
+      "offset": 1914,
+      "size": 2,
+      "alias": false,
+      "layout_kind": 1,
+      "source_kind": 1,
+      "source_kind_name": "app_slot_access",
+      "value_kind": 2,
+      "confidence": 2,
+      "conflicted": false,
+      "conflict_reason": null,
+      "alias_of_symbol": null,
+      "alias_of_offset": null,
+      "source_section_index": 0,
+      "source_offset": 16602
+    }
+  ],
+  "meanings": [
+    "The visible-model caller selects this special path for nonnegative object retirement phase. It clears a WORD then copies the phase BYTE into its low byte; preserve this zero-extension and the explicit overlapping view. Negative phases normally use the ordinary model projector.",
+    "Both ordinary auxiliary faces and the retirement face loop save their raw outer DBF index across nested operations. It is not a face count or physical-frame counter.",
+    "The first accepted entry selects model header/animation data and prepares faces; after a signed phase>=3 and suppression check it may use additional header-directory entry47. Its visual identity remains unassigned. The shared body transforms encoded vertices and applies phase-scaled face-normal offsets.",
+    "Ground-mode Y displacement adds a signed table WORD indexed by even phase offset. Classify only the64-byte physical prefix before the accepted transform helper; retain original arithmetic and do not claim that exceptional/higher-selector paths cannot read beyond it."
+  ],
+  "before": {
+    "generic_fields": 58,
+    "unclassified_bytes": 14670,
+    "unclassified_intervals": 262
+  },
+  "after": {
+    "generic_fields": 55,
+    "unclassified_bytes": 14606,
+    "unclassified_intervals": 261
+  },
+  "new_data": {
+    "source_span": [
+      18044,
+      18108
+    ],
+    "bytes": 64,
+    "word_count": 32,
+    "normal_limit_prefix_source_span": [
+      91528,
+      91632
+    ],
+    "normal_limit_prefix_max": 63,
+    "not_a_global_index_proof": true
+  },
+  "native_vectors_unchanged": {
+    "app_slot_refs": true,
+    "accepted_code_runs": true,
+    "recovered_platform_typed_accesses": true,
+    "recovered_platform_unresolved_typed_accesses": true,
+    "recovered_indirect_sites": true,
+    "table_consumers": true,
+    "address_expressions": true
+  },
+  "verification": {
+    "kind": "verification",
+    "framework_exact": true,
+    "target_id": "amiga_raw_starglider2_game",
+    "subject_revision": "94d43b628916421a61fc313ab2cafbf65529ebc92716876d8a062ec2ce8638f9",
+    "status": "exact",
+    "exact": true,
+    "source_sha256": "73861b5e41624a69ba04d7d44ead03914798b08fa17667ec2bffcaa5cc8f6d11",
+    "source_path": "/workspace/pandora-original-delivery/stable-d15c2cf8/.runtime-state/restoration/eb04f545fb97451725a1c91ab5abf6f2e097614c45880db6edfb4ea5c3f6e2c2/73861b5e41624a69ba04d7d44ead03914798b08fa17667ec2bffcaa5cc8f6d11.s",
+    "source_package_sha256": null,
+    "original_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "original_size": 412736,
+    "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "rebuilt_path": "/workspace/pandora-original-delivery/stable-d15c2cf8/.runtime-state/restoration/eb04f545fb97451725a1c91ab5abf6f2e097614c45880db6edfb4ea5c3f6e2c2/662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9.bin",
+    "framework_status": "exact",
+    "failure_kinds": [],
+    "message": "",
+    "oracle": {
+      "oracle_id": "vasm",
+      "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+      "comparison_level": "oracle.full_file_match",
+      "assembler_status": "accepted",
+      "message": "oracle output matched original bytes"
+    },
+    "receipt_id": "5a13aa2f3603c09c6b01f8a9cd2206e6284fff179bf6351768da7142e70d6278",
+    "revision": "ca311314f518f0c4435f29778208ddc2c96601bf4bb1263d15cc1166b05863f4"
+  },
+  "framework_validation": {
+    "code_changed": false,
+    "reused_receipt": "runtime/observations/starglider2-object-list-storage.json",
+    "focused_python_passed": 22,
+    "native_passed": 819,
+    "native_failed": 3,
+    "scope": "No unchanged framework tests rerun for canonical metadata changes. The same three baseline provenance/API consumer cases remain explicit in the linked receipts."
+  },
+  "preservation": {
+    "original_bytes": 412736,
+    "assets_unchanged": 57,
+    "headers_unchanged": 14,
+    "accepted_code_bytes": 106034,
+    "app_references": 3316,
+    "typed_accesses": 316,
+    "unresolved_typed_accesses": 355,
+    "table_consumers": 40,
+    "address_expressions": 189,
+    "unresolved_orphan_signals": 30,
+    "source_quality_diagnostics": 0,
+    "incomplete_analysis": [],
+    "canonical_histories_append_only": true,
+    "generated_source_hand_edited": false,
+    "new_runtime_run": false
+  },
+  "generation_wall_seconds": 157.74091457098257,
+  "process_usage": {
+    "wall_seconds": 184.91606364102336,
+    "user_seconds": 176.281744,
+    "system_seconds": 10.670077,
+    "max_rss_kib": 2679016
+  },
+  "limits": [
+    "The existing104-type limit prefix and phase starting within its original limit provide a conditional normal-use0..63 argument, not all-writer/type safety.",
+    "App0206 independently enters the renderer; its startup-mode/phase contract is not closed here. Investigate actual producers rather than assuming the normal gate applies.",
+    "No visual type47 identification, helper-code demotion, game-state forcing, new execution observation or all-path restoration completion."
+  ],
+  "next": "Trace original app0205/0206 startup flag writes through the already approved normal-media input prefix, if a bounded CPU watch can retain exact original/runtime-modified instruction provenance. This should resolve the exceptional entry question or identify the exact missing link.",
+  "validated_target_git_tree": "41aa517b64e9e99cf4adeaa1bcc44a4422f97664",
+  "clean_staged_tree_build": true,
+  "standalone_build": {
+    "schema_version": 1,
+    "status": "pass",
+    "format": "raw_payload_not_AmigaDOS_HUNK",
+    "main_bytes": 412736,
+    "main_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "main_matches_original_identity": true,
+    "asset_count": 57,
+    "all_asset_source_slices_equal": true,
+    "decoded_view_inverse_exact": true,
+    "boot_copy_source_matches_resident_view": true,
+    "source_commit": "077c61fc307b9281c90c37576e629a82d70d1217",
+    "assembler_sha256": "413e284020125f42709486dfe09907cab3dd9f3c2ea41017c190f8ea68f30825",
+    "flags": [
+      "-Fbin",
+      "-m68000",
+      "-no-opt"
+    ],
+    "outputs": [
+      {
+        "role": "original_main",
+        "filename": "Starglider2-original.raw",
+        "bytes": 412736,
+        "sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9"
+      },
+      {
+        "role": "decoded_analysis_view",
+        "filename": "protection-decoded-analysis.raw",
+        "bytes": 3548,
+        "sha256": "de8358853dd9ed9b006a23569bf393aa217ed3be3301a169465d80bfaf839922"
+      },
+      {
+        "role": "boot_installer_context",
+        "filename": "boot-selector-installer-context.raw",
+        "bytes": 40,
+        "sha256": "8d34852425e2e1bfa87b3febdfc74fb39e7c667e9d9ff73e17b594649e83b21b"
+      },
+      {
+        "role": "boot_resident_view",
+        "filename": "boot-selector-resident.raw",
+        "bytes": 20,
+        "sha256": "a26286a393713c046eff9dbaff15b20b26b171fa9e05fc9d538d16b0eddb6024"
+      }
+    ]
+  }
+}

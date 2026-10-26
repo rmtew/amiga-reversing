@@ -7,8 +7,8 @@ that further analysis is exhausted. Current source remains byte exact: all
 with all 106034 accepted code bytes retained. No generated assembly was edited
 by hand and no interim archive was produced.
 
-The current ownership union leaves 14670 bytes in
-262 intervals unclassified. This is classification accounting,
+The current ownership union leaves 14606 bytes in
+261 intervals unclassified. This is classification accounting,
 not a semantic completion percentage. Earlier interval/site counts below belong
 to their recorded closeout revision. See the current
 [native memory-span receipt](../../runtime/observations/starglider2-app-memory-spans.json),
@@ -17,11 +17,10 @@ to their recorded closeout revision. See the current
 
 ## Current refinement and next evidence
 
-Latest: the [world pointer-list batch](#current-world-pointer-list-storage)
-restores seven array regions and their end slots; generic fields: 58. Native
-range accesses rise to 3,316 without upgrading fallback provenance. The preceding
-environment/disc batch classified 58 bytes; the C-suite count correction remains
-explicit in the linked receipts.
+Latest: the [retirement-face batch](#current-retirement-face-preparation)
+explains three aliases/fields and a signed Y-bias prefix, classifying 64 bytes.
+Generic fields: 55. The preceding world-list batch restores pointer storage and
+raises native range accesses to 3,316 without upgrading fallback provenance.
 
 The shared renderer now writes each data-span comment once: on identical facts
 this removes 12,903 duplicate trailing comments and 410,853 source bytes, with no
@@ -3381,3 +3380,37 @@ controlled performance-speedup claim or extra runtime replay.
 Next: the connected retirement-rendering phase/face-counter aliases and signed
 Y-bias table, using the original nonnegative-phase gate and type-limit prefix.
 An exceptional render entry must not silently expand a conditional index domain.
+
+## Current retirement-face preparation
+
+The [retirement-face receipt](../../runtime/observations/starglider2-retirement-faces.json)
+connects three scalar/alias names, two accepted routine entries and a 64-byte
+signed WORD-table prefix. The visible-model caller sends nonnegative object
+phases to this special path; negative phases normally use the existing ordinary
+model projector. A cleared WORD and low-BYTE copy explicitly zero-extend the
+object phase. Both face paths also preserve an outer DBF index in shared scratch;
+that saved index is not a face count or clock.
+
+The wrapper prepares the selected model header and may add directory entry 47
+when the signed phase is at least 3 and the original suppression test allows it.
+No visual name is guessed for that entry. The shared body transforms encoded
+vertices and uses phase-scaled face-normal displacements. Ground mode adds a
+signed Y-bias WORD at even phase offsets. The normal initialized retirement
+argument uses the existing 104-type limit prefix (maximum 63), so phases 0..63
+address the 32 stored WORDs before the next accepted helper. This does not prove
+all writers, higher selectors, arbitrary incoming phases or exceptional entries.
+In particular, app+$206 independently branches to the renderer: that context
+remains a concrete producer/consumer investigation, not a silently accepted bound.
+
+The table classifies 64 bytes; unknowns are now **14,606 bytes in 261 intervals**.
+Generic fields fall 58 ->55. All 3,316 native app references, code, typed accesses,
+indirect sites and table consumers remain unchanged. C/vasm and clean standalone
+source rebuild all 412,736 original bytes; 57 assets and fourteen headers remain
+unchanged. Necessary native generation took 157.74 seconds. No unchanged unit
+suite, runtime route or output-comparison campaign was repeated.
+
+Next: a bounded CPU-write observation of app+$205/$206 during the already
+qualified normal-media startup/input prefix. Preserve exact original versus
+runtime-modified PC identity; do not force guest state or turn one observed
+route into exhaustive writer coverage. If runtime capability is unavailable,
+report that exact blocker and continue independent static leads.
