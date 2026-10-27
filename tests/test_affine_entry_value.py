@@ -48,10 +48,10 @@ int main(void) {
   step(&state,&lookup,"movea.w a4,a0");assert(!state.addr_regs[0].entry_value_id);
   step(&state,&lookup,"move.l a4,-(a7)");typed_state_clear_stack_write(&state,1,1);
   step(&state,&lookup,"movea.l (a7)+,a0");assert(!state.addr_regs[0].entry_value_id);
-  other=state;typed_state_merge_into(&state,&other);expect(&context,state.addr_regs[4].entry_value_id,1,0);
+  other=state;typed_state_merge_into(&state,&other, NULL);expect(&context,state.addr_regs[4].entry_value_id,1,0);
   other.addr_regs[4].entry_value_id=affine_entry_adjust(&context,a,2);
-  typed_state_merge_into(&state,&other);assert(!state.addr_regs[4].entry_value_id);
-  other.addr_regs[4].entry_value_id=a;typed_state_merge_into(&state,&other);assert(!state.addr_regs[4].entry_value_id);
+  typed_state_merge_into(&state,&other, NULL);assert(!state.addr_regs[4].entry_value_id);
+  other.addr_regs[4].entry_value_id=a;typed_state_merge_into(&state,&other, NULL);assert(!state.addr_regs[4].entry_value_id);
   state.addr_regs[4].entry_value_id=a;
   value=typed_stored_value_for_address_register(&state,4);assert(value.entry_value_id==a && !value.known);
   typed_state_set_absolute_cell(&state,1,&value);

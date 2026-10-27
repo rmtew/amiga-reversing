@@ -38,11 +38,11 @@ int main(void) {
   step(&state,&lookup,"adda.l #$8000,a0");raw(&state.addr_regs[0],0x70000);
   step(&state,&lookup,"suba.l #$6998,a0");raw(&state.addr_regs[0],0x69668);
   assert(state.addr_regs[0].provenance.kind==M68K_PLATFORM_TYPE_PROVENANCE_CONSTANT_VALUE);
-  typed_state_merge_into(&state,&low);
+  typed_state_merge_into(&state,&low, NULL);
   assert(state.addr_regs[0].raw_long_value_known && state.addr_regs[0].raw_long_candidate_count==2);
   assert(state.addr_regs[0].raw_long_candidates[0]==0x69668 && state.addr_regs[0].raw_long_candidates[1]==0x61668);
-  typed_state_merge_into(&state,&unknown);assert(!state.addr_regs[0].raw_long_value_known);
-  typed_state_merge_into(&unknown,&low);assert(!unknown.addr_regs[0].raw_long_value_known);
+  typed_state_merge_into(&state,&unknown, NULL);assert(!state.addr_regs[0].raw_long_value_known);
+  typed_state_merge_into(&unknown,&low, NULL);assert(!unknown.addr_regs[0].raw_long_value_known);
   step(&state,&lookup,"movea.l #$68000,a0");step(&state,&lookup,"suba.l #$6998,a0");raw(&state.addr_regs[0],0x61668);
   step(&state,&lookup,"move.l a0,d0");step(&state,&lookup,"movea.l d0,a1");raw(&state.addr_regs[1],0x61668);
   step(&state,&lookup,"movea.w a0,a1");assert(!state.addr_regs[1].raw_long_value_known);
@@ -60,7 +60,7 @@ int main(void) {
     low=(M68kRenderTypedState){0};
     low.addr_regs[0].known=low.addr_regs[0].raw_long_value_known=low.addr_regs[0].raw_long_candidate_count=1;
     low.addr_regs[0].raw_long_value=low.addr_regs[0].raw_long_candidates[0]=0x68000+i;
-    typed_state_merge_into(&state,&low);
+    typed_state_merge_into(&state,&low, NULL);
   }
   assert(!state.addr_regs[0].raw_long_value_known && state.addr_regs[0].address_value_candidate_overflow);
   step(&state,&lookup,"addq.l #1,a0");assert(!state.addr_regs[0].raw_long_value_known);
@@ -95,17 +95,17 @@ int main(void) {
   M68kRenderTypedRegValue role={0},literal={0};role.known=1;role.layout_base_id=1;
   literal.known=literal.raw_long_value_known=literal.raw_long_candidate_count=1;
   literal.raw_long_value=literal.raw_long_candidates[0]=0x68000;
-  M68kRenderTypedRegValue joined=role;typed_reg_merge(&joined,&literal);assert(!joined.raw_long_value_known);
-  joined=literal;typed_reg_merge(&joined,&role);assert(!joined.raw_long_value_known);
+  M68kRenderTypedRegValue joined=role;typed_reg_merge(&joined,&literal, NULL);assert(!joined.raw_long_value_known);
+  joined=literal;typed_reg_merge(&joined,&role, NULL);assert(!joined.raw_long_value_known);
   M68kRenderTypedStoredValue typed={0},number={0};typed.known=1;typed.struct_id=1;
   number=typed;number.raw_long_value_known=number.raw_long_candidate_count=1;number.raw_long_value=number.raw_long_candidates[0]=0x68000;
-  M68kRenderTypedStoredValue merged=typed;typed_stored_value_merge(&merged,&number);assert(!merged.raw_long_value_known && merged.struct_id==1);
-  merged=number;typed_stored_value_merge(&merged,&typed);assert(!merged.raw_long_value_known && merged.struct_id==1);
+  M68kRenderTypedStoredValue merged=typed;typed_stored_value_merge(&merged,&number, NULL);assert(!merged.raw_long_value_known && merged.struct_id==1);
+  merged=number;typed_stored_value_merge(&merged,&typed, NULL);assert(!merged.raw_long_value_known && merged.struct_id==1);
   role=(M68kRenderTypedRegValue){0};role.known=1;role.struct_id=1;
   literal=role;literal.pointer_value_known=literal.pointer_candidate_count=1;
   literal.pointer_value=literal.pointer_candidates[0]=0x68000;
-  joined=role;typed_reg_merge(&joined,&literal);assert(!joined.pointer_value_known && joined.struct_id==1);
-  joined=literal;typed_reg_merge(&joined,&role);assert(!joined.pointer_value_known && joined.struct_id==1);
+  joined=role;typed_reg_merge(&joined,&literal, NULL);assert(!joined.pointer_value_known && joined.struct_id==1);
+  joined=literal;typed_reg_merge(&joined,&role, NULL);assert(!joined.pointer_value_known && joined.struct_id==1);
   assert(sizeof(M68kRenderTypedState)==32616 && sizeof(M68kRenderTypedStoredValue)==248);
   m68k_analysis_policy_destroy(&policy);return 0;
 }

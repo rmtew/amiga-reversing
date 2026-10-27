@@ -15,8 +15,13 @@ parent fields are inserted into canonical facts. Import, policy copying and
 render admission reject unknown parents, cycles, truncated prefixes, overlapping
 overrides and invalid own-field extents. Parent order in metadata is irrelevant.
 Custom-to-platform inheritance and overlapping field overrides are refused in
-this slice; generated platform hierarchy support is unchanged. Differing custom
-types at CFG joins remain conservative rather than gaining an implicit upcast.
+this slice; generated platform hierarchy support is unchanged. Known custom
+pointer types at CFG joins retain their nearest declared common prefix, including
+sibling types. Subtype-only fields are lost. The same policy-aware merge serves
+registers, saved values, cells and call inputs; it adds no per-node ancestry state.
+Existing cursor/array-position guards and unknown-path absorption remain in force.
+Unrelated roots and already-conflicted packets remain conservative. A common type
+does not imply equal pointer values, stronger producer provenance or safe lifetime.
 Compact aggregate macros retain their existing inherited-schema refusal.
 This is field/ownership projection, not automatic proof of a target subtype,
 array bound, lifetime or valid caller contract.

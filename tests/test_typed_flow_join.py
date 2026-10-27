@@ -27,27 +27,27 @@ int main(void) {
     if (pointer) { known.pointer_value_known = 1; known.pointer_value = 64; }
     else { known.raw_long_value_known = 1; known.raw_long_value = 64; }
     joined = unknown;
-    typed_reg_merge(&joined, &known);
+    typed_reg_merge(&joined, &known, NULL);
     assert(typed_reg_values_equal(&joined, &unknown));
     reverse = known;
-    typed_reg_merge(&reverse, &unknown);
+    typed_reg_merge(&reverse, &unknown, NULL);
     assert(typed_reg_values_equal(&joined, &reverse));
     /* A three-way join must retain the unknown path in every order. */
     second = known;
     if (pointer) second.pointer_value = 80; else second.raw_long_value = 80;
     for (permutation = 0; permutation != 3; ++permutation) {
       joined = permutation == 0 ? unknown : known;
-      typed_reg_merge(&joined, permutation == 0 ? &known : permutation == 1 ? &unknown : &second);
-      typed_reg_merge(&joined, permutation == 2 ? &unknown : &second);
+      typed_reg_merge(&joined, permutation == 0 ? &known : permutation == 1 ? &unknown : &second, NULL);
+      typed_reg_merge(&joined, permutation == 2 ? &unknown : &second, NULL);
       assert(typed_reg_values_equal(&joined, &unknown));
     }
     /* Known alternatives still retain their bounded union. */
     joined = known;
-    typed_reg_merge(&joined, &second);
+    typed_reg_merge(&joined, &second, NULL);
     assert(joined.known);
     assert(pointer ? joined.pointer_candidate_count == 2 : joined.raw_long_candidate_count == 2);
     reverse = joined;
-    typed_reg_merge(&joined, &second);
+    typed_reg_merge(&joined, &second, NULL);
     assert(typed_reg_values_equal(&joined, &reverse));
   }
   {

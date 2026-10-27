@@ -21,9 +21,23 @@ The [current systematic gap inventory](../../runtime/observations/starglider2-so
 joins native identities/accesses with canonical layouts and actual rendered
 boundaries. It records 66 suffix signals (including numeric adjacent variants),
 21 lookup contracts, 523 remaining interior references, 32 generic app fields
-and 277 unresolved record accesses. These are different denominators. Five
+and 271 unresolved record accesses. These are different denominators. Five
 suffixes name routines and one names text; neither is a pointer defect.
-Latest: the [skim-drone reconstruction](../../runtime/observations/starglider2-skim-drone-contracts.json)
+Latest: the [common custom-prefix join](../../runtime/observations/starglider2-custom-prefix-joins.json)
+fixes the nine mixed Drone/WorldObject diagnostics exposed by that restoration.
+The existing value merge now uses canonical custom ancestry, including siblings,
+through registers, saved packets, cells and call inputs. No per-node state,
+second engine or target-specific recognizer is added. Unknown inputs, changed
+cursor/array positions and unrelated roots remain conservative. **103 focused
+checks and 832 native tests pass.** All six common XYZ projections return;
+the three generic angle reads remain honest field gaps. Counts are now
+**442 typed / 271 unresolved**, with zero type-conflict cases in this inventory.
+Original C/vasm and clean standalone output remain exact; target generation
+was 116 seconds on this run. Classification, 32 generic app fields and 30 orphan
+islands are unchanged. Next return to the concrete collision-exclusion and
+model-specific caller/view evidence, rather than widening generic parent fields.
+
+Preceding: the [skim-drone reconstruction](../../runtime/observations/starglider2-skim-drone-contracts.json)
 records 22 canonical actions for original type 43: follow/idle countdowns,
 saved/restored rotations, shared selection state and type-wide collision
 exclusion with type 60 Skim Missile. Nearby dispatch advances the phases;

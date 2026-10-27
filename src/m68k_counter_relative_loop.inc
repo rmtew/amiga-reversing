@@ -152,7 +152,7 @@ static int counter_loop_prove(M68kRenderLookup *lookup, const M68kDecodeIR *deco
     if (!found_entry) { entry = *edge->snapshot; iterations = edge->iterations; found_entry = 1; }
     else {
       if (iterations != edge->iterations) { reason = "different_entry_counts"; goto cleanup; }
-      (void)typed_state_merge_into(&entry.typed, &edge->snapshot->typed);
+      (void)typed_state_merge_into(&entry.typed, &edge->snapshot->typed, lookup->policy);
       (void)platform_state_merge_into(&entry.platform, &edge->snapshot->platform);
     }
   }
@@ -240,7 +240,7 @@ static int counter_loop_prove(M68kRenderLookup *lookup, const M68kDecodeIR *deco
       int changed = !next->has_in;
       if (!next->has_in) { next->typed_in = node->typed_out; next->platform_in = node->platform_out; }
       else {
-        changed |= typed_state_merge_into(&next->typed_in, &node->typed_out);
+        changed |= typed_state_merge_into(&next->typed_in, &node->typed_out, lookup->policy);
         changed |= platform_state_merge_into(&next->platform_in, &node->platform_out);
       }
       if (changed && next->has_in != 2U) {

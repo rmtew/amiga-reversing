@@ -4356,10 +4356,30 @@ static int amiga_struct_prefix_chain_contains(uint16_t struct_id, uint16_t prefi
   return 0;
 }
 
-static uint16_t typed_struct_id_common_merge(uint16_t left_struct_id, uint16_t right_struct_id) {
+static uint16_t typed_struct_id_common_merge(const M68kAnalysisPolicy *policy,
+    uint16_t left_struct_id, uint16_t right_struct_id) {
+  const M68kAnalysisCustomStruct *left, *right;
   if (left_struct_id == right_struct_id) return left_struct_id;
   if (left_struct_id == AMIGA_OS_STRUCT_ID_NONE || right_struct_id == AMIGA_OS_STRUCT_ID_NONE)
     return AMIGA_OS_STRUCT_ID_NONE;
+  left = lookup_policy_custom_struct_by_id(policy, left_struct_id);
+  right = lookup_policy_custom_struct_by_id(policy, right_struct_id);
+  if (left != NULL || right != NULL) {
+    if (left == NULL || right == NULL) return AMIGA_OS_STRUCT_ID_NONE;
+    /* Canonical custom parents are zero-offset prefixes. Walk their existing
+     * ownership relation, including a common ancestor of sibling types. No
+     * field-name coincidence or generated/custom ID mixing establishes one. */
+    for (size_t a = 0U; left != NULL && a <= policy->custom_struct_count; ++a) {
+      const M68kAnalysisCustomStruct *candidate = right;
+      for (size_t b = 0U; candidate != NULL && b <= policy->custom_struct_count; ++b) {
+        if (left == candidate)
+          return (uint16_t)(M68K_ANALYSIS_CUSTOM_STRUCT_ID_BASE + (left - policy->custom_structs));
+        candidate = m68k_analysis_policy_custom_struct_parent(policy, candidate);
+      }
+      left = m68k_analysis_policy_custom_struct_parent(policy, left);
+    }
+    return AMIGA_OS_STRUCT_ID_NONE;
+  }
   if (amiga_struct_prefix_chain_contains(left_struct_id, right_struct_id)) return right_struct_id;
   if (amiga_struct_prefix_chain_contains(right_struct_id, left_struct_id)) return left_struct_id;
   return AMIGA_OS_STRUCT_ID_NONE;
@@ -4391,7 +4411,7 @@ static uint16_t typed_struct_id_common_nonroot_merge(uint16_t current_struct_id,
   if (candidate_struct_id == AMIGA_OS_STRUCT_ID_NONE || candidate_struct_id == root_struct_id)
     return AMIGA_OS_STRUCT_ID_NONE;
   if (current_struct_id == AMIGA_OS_STRUCT_ID_NONE) return candidate_struct_id;
-  merged = typed_struct_id_common_merge(current_struct_id, candidate_struct_id);
+  merged = typed_struct_id_common_merge(NULL, current_struct_id, candidate_struct_id);
   if (merged == AMIGA_OS_STRUCT_ID_NONE || merged == root_struct_id) {
     if (io_conflicted != NULL) *io_conflicted = 1U;
     return AMIGA_OS_STRUCT_ID_NONE;
@@ -8652,7 +8672,8 @@ static int typed_pointer_position_disagrees(uint16_t left_count, uint16_t left_i
   typed_table_origin_clear(&(value)->table_origin); \
 } while (0)
 
-static int typed_reg_merge_payload(M68kRenderTypedRegValue *dest, const M68kRenderTypedRegValue *source) {
+static int typed_reg_merge_payload(M68kRenderTypedRegValue *dest,
+    const M68kRenderTypedRegValue *source, const M68kAnalysisPolicy *policy) {
   M68kRenderTypedRegValue old_value;
   if (dest == NULL || source == NULL) return 0;
   old_value = *dest;
@@ -8708,7 +8729,7 @@ static int typed_reg_merge_payload(M68kRenderTypedRegValue *dest, const M68kRend
       (dest->array_element_index != 0U &&
        (dest->struct_id != source->struct_id || dest->output != source->output))) {
     int same_cursor = dest->byte_cursor == source->byte_cursor;
-    dest->struct_id = same_cursor ? typed_struct_id_common_merge(dest->struct_id, source->struct_id) : AMIGA_OS_STRUCT_ID_NONE;
+    dest->struct_id = same_cursor ? typed_struct_id_common_merge(policy, dest->struct_id, source->struct_id) : AMIGA_OS_STRUCT_ID_NONE;
     if (!same_cursor || dest->output != source->output) dest->output = NULL;
     dest->array_element_count = dest->array_element_index = 0U;
     if (!same_cursor) dest->byte_cursor = 0;
@@ -8765,7 +8786,7 @@ static int typed_reg_merge_payload(M68kRenderTypedRegValue *dest, const M68kRend
     return !typed_reg_values_equal(dest, &old_value);
   }
   {
-    uint16_t common_struct_id = typed_struct_id_common_merge(dest->struct_id, source->struct_id);
+    uint16_t common_struct_id = typed_struct_id_common_merge(policy, dest->struct_id, source->struct_id);
     if (common_struct_id != AMIGA_OS_STRUCT_ID_NONE) {
       dest->struct_id = common_struct_id;
       dest->output = NULL;
@@ -8846,21 +8867,22 @@ static int typed_reg_merge_payload(M68kRenderTypedRegValue *dest, const M68kRend
   return !typed_reg_values_equal(dest, &old_value);
 }
 
-static int typed_reg_merge(M68kRenderTypedRegValue *dest, const M68kRenderTypedRegValue *source) {
+static int typed_reg_merge(M68kRenderTypedRegValue *dest,
+    const M68kRenderTypedRegValue *source, const M68kAnalysisPolicy *policy) {
   M68kRenderTypedRegValue old, payload;
   uint32_t id;
   if (!dest || !source) return 0;
-  if (!dest->entry_value_id && !source->entry_value_id) return typed_reg_merge_payload(dest, source);
+  if (!dest->entry_value_id && !source->entry_value_id) return typed_reg_merge_payload(dest, source, policy);
   old = *dest; payload = *source;
   id = dest->entry_value_id == source->entry_value_id ? dest->entry_value_id : 0U;
   dest->entry_value_id = payload.entry_value_id = 0U;
-  (void)typed_reg_merge_payload(dest, &payload);
+  (void)typed_reg_merge_payload(dest, &payload, policy);
   dest->entry_value_id = id;
   return !typed_reg_values_equal(dest, &old);
 }
 
 static int typed_stored_value_merge_payload(M68kRenderTypedStoredValue *dest,
-    const M68kRenderTypedStoredValue *source) {
+    const M68kRenderTypedStoredValue *source, const M68kAnalysisPolicy *policy) {
   M68kRenderTypedStoredValue old_value;
   if (dest == NULL || source == NULL) return 0;
   old_value = *dest;
@@ -8886,7 +8908,7 @@ static int typed_stored_value_merge_payload(M68kRenderTypedStoredValue *dest,
       (dest->array_element_index != 0U &&
        (dest->struct_id != source->struct_id || dest->output != source->output))) {
     int same_cursor = dest->byte_cursor == source->byte_cursor;
-    dest->struct_id = same_cursor ? typed_struct_id_common_merge(dest->struct_id, source->struct_id) : AMIGA_OS_STRUCT_ID_NONE;
+    dest->struct_id = same_cursor ? typed_struct_id_common_merge(policy, dest->struct_id, source->struct_id) : AMIGA_OS_STRUCT_ID_NONE;
     if (!same_cursor || dest->output != source->output) dest->output = NULL;
     dest->array_element_count = dest->array_element_index = 0U;
     if (!same_cursor) dest->byte_cursor = 0;
@@ -8904,7 +8926,7 @@ static int typed_stored_value_merge_payload(M68kRenderTypedStoredValue *dest,
   if (dest->output != source->output) dest->output = NULL;
   dest->address_value_candidate_overflow |= source->address_value_candidate_overflow;
   typed_provenance_merge(&dest->provenance, &source->provenance);
-  dest->struct_id = typed_struct_id_common_merge(dest->struct_id, source->struct_id);
+  dest->struct_id = typed_struct_id_common_merge(policy, dest->struct_id, source->struct_id);
   if (dest->struct_id != old_value.struct_id || dest->struct_id != source->struct_id ||
       dest->array_element_count != source->array_element_count) {
     dest->array_element_count = dest->array_element_index = 0U;
@@ -8938,22 +8960,24 @@ static int typed_stored_value_merge_payload(M68kRenderTypedStoredValue *dest,
   return !typed_stored_values_equal(dest, &old_value);
 }
 
-static int typed_stored_value_merge(M68kRenderTypedStoredValue *dest, const M68kRenderTypedStoredValue *source) {
+static int typed_stored_value_merge(M68kRenderTypedStoredValue *dest,
+    const M68kRenderTypedStoredValue *source, const M68kAnalysisPolicy *policy) {
   M68kRenderTypedStoredValue old, payload;
   uint32_t id;
   if (!dest || !source) return 0;
-  if (!dest->entry_value_id && !source->entry_value_id) return typed_stored_value_merge_payload(dest, source);
+  if (!dest->entry_value_id && !source->entry_value_id) return typed_stored_value_merge_payload(dest, source, policy);
   old = *dest; payload = *source;
   id = dest->entry_value_id == source->entry_value_id ? dest->entry_value_id : 0U;
   dest->entry_value_id = payload.entry_value_id = 0U;
-  (void)typed_stored_value_merge_payload(dest, &payload);
+  (void)typed_stored_value_merge_payload(dest, &payload, policy);
   dest->entry_value_id = id;
   return !typed_stored_values_equal(dest, &old);
 }
 
 #undef TYPED_FORGET_CURRENT_SOURCE_POINTER
 
-static int typed_state_merge_stack_slots(M68kRenderTypedState *dest, const M68kRenderTypedState *source) {
+static int typed_state_merge_stack_slots(M68kRenderTypedState *dest,
+    const M68kRenderTypedState *source, const M68kAnalysisPolicy *policy) {
   size_t dest_index;
   int changed = 0;
   if (dest == NULL || source == NULL) return 0;
@@ -8971,7 +8995,7 @@ static int typed_state_merge_stack_slots(M68kRenderTypedState *dest, const M68kR
       }
     }
     if (source_slot == NULL || !typed_memory_bases_equal(&dest_slot->memory_base, &source_slot->memory_base) ||
-        typed_stored_value_merge(&dest_slot->value, &source_slot->value) ||
+        typed_stored_value_merge(&dest_slot->value, &source_slot->value, policy) ||
         (!typed_stored_value_has_useful_info(&dest_slot->value) && dest_slot->memory_base.known == 0U &&
          dest_slot->memory_base.pointer_table_known == 0U)) {
       if (source_slot == NULL || (!typed_stored_value_has_useful_info(&dest_slot->value) &&
@@ -8988,7 +9012,8 @@ static int typed_state_merge_stack_slots(M68kRenderTypedState *dest, const M68kR
   return changed;
 }
 
-static int typed_state_merge_base_slots(M68kRenderTypedState *dest, const M68kRenderTypedState *source) {
+static int typed_state_merge_base_slots(M68kRenderTypedState *dest,
+    const M68kRenderTypedState *source, const M68kAnalysisPolicy *policy) {
   size_t dest_index;
   int changed = 0;
   if (dest == NULL || source == NULL) return 0;
@@ -8997,7 +9022,7 @@ static int typed_state_merge_base_slots(M68kRenderTypedState *dest, const M68kRe
     const M68kRenderTypedBaseSlot *source_slot = dest_slot->storage_id != 0U ?
       typed_state_absolute_cell(source, dest_slot->storage_id) :
       typed_state_base_slot_entry(source, dest_slot->base_reg, dest_slot->displacement);
-    if (source_slot == NULL || typed_stored_value_merge(&dest_slot->value, &source_slot->value) ||
+    if (source_slot == NULL || typed_stored_value_merge(&dest_slot->value, &source_slot->value, policy) ||
         !typed_stored_value_has_useful_info(&dest_slot->value)) {
       if (source_slot == NULL || !typed_stored_value_has_useful_info(&dest_slot->value)) {
         dest->base_slots[dest_index] = dest->base_slots[dest->base_slot_count - 1U];
@@ -9012,7 +9037,8 @@ static int typed_state_merge_base_slots(M68kRenderTypedState *dest, const M68kRe
   return changed;
 }
 
-static int typed_state_merge_field_slots(M68kRenderTypedState *dest, const M68kRenderTypedState *source) {
+static int typed_state_merge_field_slots(M68kRenderTypedState *dest,
+    const M68kRenderTypedState *source, const M68kAnalysisPolicy *policy) {
   size_t dest_index;
   int changed = 0;
   if (dest == NULL || source == NULL) return 0;
@@ -9020,7 +9046,7 @@ static int typed_state_merge_field_slots(M68kRenderTypedState *dest, const M68kR
     M68kRenderTypedFieldSlot *dest_slot = &dest->field_slots[dest_index];
     const M68kRenderTypedFieldSlot *source_slot = typed_state_field_slot_entry(source, dest_slot->base_reg,
       dest_slot->struct_id, dest_slot->displacement);
-    if (source_slot == NULL || typed_stored_value_merge(&dest_slot->value, &source_slot->value) ||
+    if (source_slot == NULL || typed_stored_value_merge(&dest_slot->value, &source_slot->value, policy) ||
         !typed_stored_value_has_useful_info(&dest_slot->value)) {
       if (source_slot == NULL || !typed_stored_value_has_useful_info(&dest_slot->value)) {
         dest->field_slots[dest_index] = dest->field_slots[dest->field_slot_count - 1U];
@@ -9036,7 +9062,8 @@ static int typed_state_merge_field_slots(M68kRenderTypedState *dest, const M68kR
 }
 
 
-static int typed_state_merge_into(M68kRenderTypedState *dest, const M68kRenderTypedState *source) {
+static int typed_state_merge_into(M68kRenderTypedState *dest,
+    const M68kRenderTypedState *source, const M68kAnalysisPolicy *policy) {
   size_t index;
   int changed = 0;
   if (dest == NULL || source == NULL) return 0;
@@ -9049,8 +9076,8 @@ static int typed_state_merge_into(M68kRenderTypedState *dest, const M68kRenderTy
     M68kRenderTypedMemoryBaseValue old_data_memory_base = dest->data_memory_base_regs[index];
     M68kRenderTypedMemoryBaseValue old_memory_base = dest->memory_base_regs[index];
     M68kRenderIoRequestSetup old_io_request_setup = dest->io_request_setups[index];
-    changed |= typed_reg_merge(&dest->data_regs[index], &source->data_regs[index]);
-    changed |= typed_reg_merge(&dest->addr_regs[index], &source->addr_regs[index]);
+    changed |= typed_reg_merge(&dest->data_regs[index], &source->data_regs[index], policy);
+    changed |= typed_reg_merge(&dest->addr_regs[index], &source->addr_regs[index], policy);
     if (dest->data_app_addr_regs[index].known == 0U || source->data_app_addr_regs[index].known == 0U ||
         dest->data_app_addr_regs[index].displacement != source->data_app_addr_regs[index].displacement) {
       dest->data_app_addr_regs[index].known = 0U;
@@ -9128,9 +9155,9 @@ static int typed_state_merge_into(M68kRenderTypedState *dest, const M68kRenderTy
     if (!typed_io_request_setups_equal(&old_io_request_setup, &dest->io_request_setups[index])) changed = 1;
   }
   changed |= typed_register_alias_meet(dest, source);
-  if (typed_state_merge_stack_slots(dest, source)) changed = 1;
-  if (typed_state_merge_base_slots(dest, source)) changed = 1;
-  if (typed_state_merge_field_slots(dest, source)) changed = 1;
+  if (typed_state_merge_stack_slots(dest, source, policy)) changed = 1;
+  if (typed_state_merge_base_slots(dest, source, policy)) changed = 1;
+  if (typed_state_merge_field_slots(dest, source, policy)) changed = 1;
   return changed;
 }
 
@@ -9477,7 +9504,7 @@ static int platform_state_merge_into(M68kRenderPlatformState *dest, const M68kRe
 }
 
 static int typed_flow_merge_input(M68kRenderTypedFlowNode *node, const M68kRenderTypedState *typed_state,
-    const M68kRenderPlatformState *platform_state) {
+    const M68kRenderPlatformState *platform_state, const M68kAnalysisPolicy *policy) {
   int changed = 0;
   if (node == NULL || typed_state == NULL || platform_state == NULL) return 0;
   if (node->has_in == 0U) {
@@ -9486,7 +9513,7 @@ static int typed_flow_merge_input(M68kRenderTypedFlowNode *node, const M68kRende
     node->has_in = 1U;
     return 1;
   }
-  if (typed_state_merge_into(&node->typed_in, typed_state)) changed = 1;
+  if (typed_state_merge_into(&node->typed_in, typed_state, policy)) changed = 1;
   if (platform_state_merge_into(&node->platform_in, platform_state)) changed = 1;
   return changed;
 }
@@ -10518,7 +10545,7 @@ static int typed_flow_recompute_node_input(M68kRenderTypedFlowGraph *graph, size
       platform_input = predecessor->platform_out;
       has_input = 1;
     } else {
-      (void)typed_state_merge_into(&typed_input, &predecessor->typed_out);
+      (void)typed_state_merge_into(&typed_input, &predecessor->typed_out, lookup ? lookup->policy : NULL);
       (void)platform_state_merge_into(&platform_input, &predecessor->platform_out);
     }
   }
@@ -10531,7 +10558,7 @@ static int typed_flow_recompute_node_input(M68kRenderTypedFlowGraph *graph, size
       if (!caller->has_in) continue;
       typed_flow_call_entry_input(lookup, section, caller, &entry, &platform);
       if (!has_input) { typed_input = entry; platform_input = platform; has_input = 1; }
-      else { (void)typed_state_merge_into(&typed_input, &entry);
+      else { (void)typed_state_merge_into(&typed_input, &entry, lookup ? lookup->policy : NULL);
         (void)platform_state_merge_into(&platform_input, &platform); }
     }
   }

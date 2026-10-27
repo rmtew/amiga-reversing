@@ -18,23 +18,23 @@ int main(void) {
  a.known=a.pointer_value_known=a.pointer_candidate_count=1;
  a.pointer_value=a.pointer_candidates[0]=0x1000;
  b=a;b.byte_cursor=4;
- x=a;y=b;typed_reg_merge(&x,&b);typed_reg_merge(&y,&a);
+ x=a;y=b;typed_reg_merge(&x,&b, NULL);typed_reg_merge(&y,&a, NULL);
  assert(typed_reg_values_equal(&x,&y));
  assert(!x.pointer_value_known && !x.known && x.byte_cursor==0);
  /* A genuine equal-position join retains its exact pointer. */
- x=a;typed_reg_merge(&x,&a);assert(x.pointer_value_known && x.pointer_value==0x1000);
+ x=a;typed_reg_merge(&x,&a, NULL);assert(x.pointer_value_known && x.pointer_value==0x1000);
  /* Register, stack and memory packets must have the same position rule. */
  M68kRenderTypedStoredValue sa={0},sb,sx,sy;
  sa.known=sa.pointer_value_known=sa.pointer_candidate_count=1;
  sa.pointer_value=sa.pointer_candidates[0]=0x1000;
  sb=sa;sb.byte_cursor=4;sx=sa;sy=sb;
- typed_stored_value_merge(&sx,&sb);typed_stored_value_merge(&sy,&sa);
+ typed_stored_value_merge(&sx,&sb, NULL);typed_stored_value_merge(&sy,&sa, NULL);
  assert(typed_stored_values_equal(&sx,&sy));
  assert(!sx.pointer_value_known && !sx.known && sx.byte_cursor==0);
  /* Orthogonal whole-value identities survive a lost pointee position. */
  a.layout_base_id=b.layout_base_id=1;
  a.entry_value_id=b.entry_value_id=9;
- x=a;typed_reg_merge(&x,&b);
+ x=a;typed_reg_merge(&x,&b, NULL);
  assert(x.layout_base_id==1 && x.entry_value_id==9 && !x.pointer_value_known);
  /* Different array elements can keep their common pointee contract, but
   * cannot claim the same exact source pointer/current element coordinate. */
@@ -42,19 +42,19 @@ int main(void) {
  a.pointer_value=a.pointer_candidates[0]=0x1000;
  a.struct_id=AMIGA_OS_STRUCT_ID_LIB;a.array_element_count=4;
  b=a;b.array_element_index=1;x=a;y=b;
- typed_reg_merge(&x,&b);typed_reg_merge(&y,&a);
+ typed_reg_merge(&x,&b, NULL);typed_reg_merge(&y,&a, NULL);
  assert(typed_reg_values_equal(&x,&y));
  assert(x.known && x.struct_id==AMIGA_OS_STRUCT_ID_LIB && !x.pointer_value_known);
  assert(!x.array_element_count && !x.array_element_index);
  /* Losing bounds alone at element zero must not erase a common field
   * coordinate, exact pointer or pointee contract. */
  a.array_element_index=0;a.byte_cursor=4;b=a;b.array_element_count=0;
- x=a;y=b;typed_reg_merge(&x,&b);typed_reg_merge(&y,&a);
+ x=a;y=b;typed_reg_merge(&x,&b, NULL);typed_reg_merge(&y,&a, NULL);
  assert(typed_reg_values_equal(&x,&y));
  assert(x.pointer_value_known && x.byte_cursor==4 && !x.array_element_count);
  sa.struct_id=AMIGA_OS_STRUCT_ID_LIB;sa.byte_cursor=4;sa.array_element_count=4;
  sb=sa;sb.array_element_count=0;sx=sa;sy=sb;
- typed_stored_value_merge(&sx,&sb);typed_stored_value_merge(&sy,&sa);
+ typed_stored_value_merge(&sx,&sb, NULL);typed_stored_value_merge(&sy,&sa, NULL);
  assert(typed_stored_values_equal(&sx,&sy));
  assert(sx.pointer_value_known && sx.byte_cursor==4 && !sx.array_element_count);
  /* Backedge-first visitation must converge, not keep choosing the advancing
@@ -66,7 +66,7 @@ int main(void) {
  M68kInstructionIR increment=m68k_plain_parse_instruction_to_ir("addq.l #4,a1",M68K_ASM_CPU_68000,m68k_diag_sink(NULL));
  for(unsigned i=0;i<16;++i) {
    typed_state_update_after_instruction(&loop,&lookup,&platform,0,&increment,NULL,NULL,0,0);
-   typed_reg_merge(&loop.addr_regs[1],&entry);
+   typed_reg_merge(&loop.addr_regs[1],&entry, NULL);
    assert(!loop.addr_regs[1].known && !loop.addr_regs[1].pointer_value_known && !loop.addr_regs[1].byte_cursor);
  }
  m68k_analysis_policy_destroy(&policy);

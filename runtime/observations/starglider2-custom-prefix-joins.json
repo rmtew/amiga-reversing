@@ -1,0 +1,329 @@
+{
+  "schema_version": 1,
+  "kind": "canonical_custom_prefix_join_in_existing_value_flow",
+  "status": "qualified_batch_restoration_continues",
+  "publication_base_commit": "1c9c46f4dd1bf6e349b05bd44ffacdf21905c9e5",
+  "input": {
+    "binary_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "backend_sha256": "b5478af97d7cb377c512492569ce838c0bc27c4a7ffcc929f5869183fdd67ddf",
+    "lookup_source_sha256": "b8ce9498f6162476328609e79c3a503526e3db8c93f7d6f9a04459867d192789",
+    "counter_loop_source_sha256": "8b37193ff1213c5a6881f1451937ef1a854f8390fe910bfafc60d7fd2d4bfee2",
+    "analysis_sha256": "8745d7f1196f5fed553554b6057925835f17179bc0b518a2068935a331b52571",
+    "inline_source_sha256": "f18326006250bc91b7cecf1402437a3797713a13bba9875fc2016663c509e31f",
+    "effective_metadata_sha256": "c4cd80ff3ec80a89c6edd85eb11047aa67358f6b013a4096e316f67cf6eed4ee"
+  },
+  "canonical_target_actions": 0,
+  "cause": "Existing common-type merge understood generated platform prefixes only. More precise Drone input and generic WorldObject input became a sticky type-conflict packet, losing cursor information. Comparing field names after that point would not recover a sound position contract.",
+  "fix": "Pass the existing frozen policy explicitly through the single register/stored/state/call/counter-loop merge path. Its common-type operation follows canonical zero-offset custom parents to the nearest shared ancestor, including siblings, before conflict creation. Reuse canonical parent lookup; no field-name inference, target recognizer, extra state field, global registry or parallel solver.",
+  "conservative_guards": [
+    "Real unknown predecessors remain absorbing, in either input order.",
+    "Mismatched current cursor/array positions retain the existing loss of pointer/extent facts.",
+    "Unrelated roots, mixed generated/custom domains and already-conflicted packets are not rescued.",
+    "Only common-prefix members survive; subtype-only fields are lost.",
+    "Pointer candidate, origin, entry-expression and merged-producer provenance semantics are unchanged. Common type does not mean equal address or safe lifetime.",
+    "Generated platform-prefix behavior is unchanged. Existing declaration admission refuses unknown/cyclic/truncated/overlapping custom parents."
+  ],
+  "target_result": {
+    "before_conflicts": 9,
+    "after_conflicts": 0,
+    "restored_common_accesses": [
+      {
+        "offset": 221520,
+        "operand_index": 1,
+        "base_register": "A0",
+        "displacement": 4,
+        "base_cursor": 0,
+        "field_offset": 4,
+        "struct_size": 68,
+        "field_size": 4,
+        "root_struct_name": "SG2WorldObject",
+        "owner_struct_name": "SG2WorldObject",
+        "field_name": "world_x",
+        "field_expr": "SG2WorldObject_world_x",
+        "inherited": 0,
+        "nested": 0,
+        "type_provenance_kind_id": 0,
+        "type_provenance_kind": "unknown"
+      },
+      {
+        "offset": 221524,
+        "operand_index": 1,
+        "base_register": "A0",
+        "displacement": 8,
+        "base_cursor": 0,
+        "field_offset": 8,
+        "struct_size": 68,
+        "field_size": 4,
+        "root_struct_name": "SG2WorldObject",
+        "owner_struct_name": "SG2WorldObject",
+        "field_name": "world_y",
+        "field_expr": "SG2WorldObject_world_y",
+        "inherited": 0,
+        "nested": 0,
+        "type_provenance_kind_id": 0,
+        "type_provenance_kind": "unknown"
+      },
+      {
+        "offset": 221528,
+        "operand_index": 1,
+        "base_register": "A0",
+        "displacement": 12,
+        "base_cursor": 0,
+        "field_offset": 12,
+        "struct_size": 68,
+        "field_size": 4,
+        "root_struct_name": "SG2WorldObject",
+        "owner_struct_name": "SG2WorldObject",
+        "field_name": "world_z",
+        "field_expr": "SG2WorldObject_world_z",
+        "inherited": 0,
+        "nested": 0,
+        "type_provenance_kind_id": 0,
+        "type_provenance_kind": "unknown"
+      },
+      {
+        "offset": 221534,
+        "operand_index": 0,
+        "base_register": "A0",
+        "displacement": 4,
+        "base_cursor": 0,
+        "field_offset": 4,
+        "struct_size": 68,
+        "field_size": 4,
+        "root_struct_name": "SG2WorldObject",
+        "owner_struct_name": "SG2WorldObject",
+        "field_name": "world_x",
+        "field_expr": "SG2WorldObject_world_x",
+        "inherited": 0,
+        "nested": 0,
+        "type_provenance_kind_id": 0,
+        "type_provenance_kind": "unknown"
+      },
+      {
+        "offset": 221538,
+        "operand_index": 0,
+        "base_register": "A0",
+        "displacement": 8,
+        "base_cursor": 0,
+        "field_offset": 8,
+        "struct_size": 68,
+        "field_size": 4,
+        "root_struct_name": "SG2WorldObject",
+        "owner_struct_name": "SG2WorldObject",
+        "field_name": "world_y",
+        "field_expr": "SG2WorldObject_world_y",
+        "inherited": 0,
+        "nested": 0,
+        "type_provenance_kind_id": 0,
+        "type_provenance_kind": "unknown"
+      },
+      {
+        "offset": 221542,
+        "operand_index": 0,
+        "base_register": "A0",
+        "displacement": 12,
+        "base_cursor": 0,
+        "field_offset": 12,
+        "struct_size": 68,
+        "field_size": 4,
+        "root_struct_name": "SG2WorldObject",
+        "owner_struct_name": "SG2WorldObject",
+        "field_name": "world_z",
+        "field_expr": "SG2WorldObject_world_z",
+        "inherited": 0,
+        "nested": 0,
+        "type_provenance_kind_id": 0,
+        "type_provenance_kind": "unknown"
+      }
+    ],
+    "remaining_angle_field_gaps": [
+      {
+        "offset": 221796,
+        "operand_index": 0,
+        "base_register": "A0",
+        "displacement": 16,
+        "struct_size": 68,
+        "access_size": 2,
+        "root_struct_name": "SG2WorldObject",
+        "classification_id": 0,
+        "classification": "field_gap",
+        "container_candidate_count": 0,
+        "container_struct_name": null,
+        "container_field_expr": null,
+        "refinement_applied": 0,
+        "refined_struct_name": null,
+        "type_provenance_kind_id": 0,
+        "type_provenance_kind": "unknown"
+      },
+      {
+        "offset": 221800,
+        "operand_index": 0,
+        "base_register": "A0",
+        "displacement": 18,
+        "struct_size": 68,
+        "access_size": 2,
+        "root_struct_name": "SG2WorldObject",
+        "classification_id": 0,
+        "classification": "field_gap",
+        "container_candidate_count": 0,
+        "container_struct_name": null,
+        "container_field_expr": null,
+        "refinement_applied": 0,
+        "refined_struct_name": null,
+        "type_provenance_kind_id": 0,
+        "type_provenance_kind": "unknown"
+      },
+      {
+        "offset": 221804,
+        "operand_index": 0,
+        "base_register": "A0",
+        "displacement": 20,
+        "struct_size": 68,
+        "access_size": 2,
+        "root_struct_name": "SG2WorldObject",
+        "classification_id": 0,
+        "classification": "field_gap",
+        "container_candidate_count": 0,
+        "container_struct_name": null,
+        "container_field_expr": null,
+        "refinement_applied": 0,
+        "refined_struct_name": null,
+        "type_provenance_kind_id": 0,
+        "type_provenance_kind": "unknown"
+      }
+    ],
+    "meaning": "Six previous XYZ projections return. The three angle reads lose false type ambiguity but remain unknown fields on the generic parent; no universal orientation declaration is invented."
+  },
+  "before_after": {
+    "app_slot_ref_count": {
+      "before": 3383,
+      "after": 3383
+    },
+    "recovered_platform_typed_access_count": {
+      "before": 436,
+      "after": 442
+    },
+    "recovered_platform_unresolved_typed_access_count": {
+      "before": 277,
+      "after": 271
+    }
+  },
+  "validation": {
+    "native_suite_passed": 832,
+    "native_suite_failures": 0,
+    "native_suite_log_sha256": "fff8db61cba9b314dd6c218d0c3ecae57f5ae4605daf1b040c84b1cc324378ae",
+    "focused_python_passed": 103,
+    "python_log_sha256": "37027dbc2af8ed2d0706813602e3da9087e5cab26ebf86a6edfe2722384482d9",
+    "new_join_cases": 19,
+    "new_case_scope": "Parent/child, sibling and deeper ancestry; six three-predecessor permutations; stack and callee transport; same/mismatched cursor, unknown input, partial write and unrelated type.",
+    "fixture_input_contracts": "Synthetic pointer inputs use explicit entry-register contracts. An initial probe incorrectly assumed a storage declaration alone seeded loaded pointer types; it was corrected before qualification. The retained original target nine-conflict baseline is unchanged.",
+    "native_and_vasm": {
+      "kind": "verification",
+      "framework_exact": true,
+      "target_id": "amiga_raw_starglider2_game",
+      "subject_revision": "97d30eb2c2fab8d0c35867d714f8095a9d29e06cc57cbf2c41a2128c8a2b5c58",
+      "status": "exact",
+      "exact": true,
+      "source_sha256": "f18326006250bc91b7cecf1402437a3797713a13bba9875fc2016663c509e31f",
+      "source_path": "/workspace/pandora-original-delivery/stable-d15c2cf8/.runtime-state/restoration/eb04f545fb97451725a1c91ab5abf6f2e097614c45880db6edfb4ea5c3f6e2c2/f18326006250bc91b7cecf1402437a3797713a13bba9875fc2016663c509e31f.s",
+      "source_package_sha256": null,
+      "original_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+      "original_size": 412736,
+      "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+      "rebuilt_path": "/workspace/pandora-original-delivery/stable-d15c2cf8/.runtime-state/restoration/eb04f545fb97451725a1c91ab5abf6f2e097614c45880db6edfb4ea5c3f6e2c2/662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9.bin",
+      "framework_status": "exact",
+      "failure_kinds": [],
+      "message": "",
+      "oracle": {
+        "oracle_id": "vasm",
+        "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+        "comparison_level": "oracle.full_file_match",
+        "assembler_status": "accepted",
+        "message": "oracle output matched original bytes"
+      },
+      "receipt_id": "e3d8f0007cc246f83bdcd2ad1ab81c1d8de75157973d5beebf4283255cadaaa5",
+      "revision": "85afd4eb42b1b4f429d1640209d65f4954063fe64046347258d98b1570c92ff9"
+    },
+    "generation_wall_seconds": 115.56543903902639,
+    "source_quality_diagnostics": 0,
+    "incomplete_analysis": [],
+    "assets_unchanged": 57,
+    "required_headers": 14,
+    "clean_standalone_build": {
+      "status": "pass",
+      "validated_target_git_tree": "9e4dfa6782f70a1c851bf85ce5a7fc4db4bacab3",
+      "receipt": {
+        "schema_version": 1,
+        "status": "pass",
+        "format": "raw_payload_not_AmigaDOS_HUNK",
+        "main_bytes": 412736,
+        "main_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+        "main_matches_original_identity": true,
+        "asset_count": 57,
+        "all_asset_source_slices_equal": true,
+        "decoded_view_inverse_exact": true,
+        "boot_copy_source_matches_resident_view": true,
+        "source_commit": "1c9c46f4dd1bf6e349b05bd44ffacdf21905c9e5",
+        "assembler_sha256": "413e284020125f42709486dfe09907cab3dd9f3c2ea41017c190f8ea68f30825",
+        "flags": [
+          "-Fbin",
+          "-m68000",
+          "-no-opt"
+        ],
+        "outputs": [
+          {
+            "role": "original_main",
+            "filename": "Starglider2-original.raw",
+            "bytes": 412736,
+            "sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9"
+          },
+          {
+            "role": "decoded_analysis_view",
+            "filename": "protection-decoded-analysis.raw",
+            "bytes": 3548,
+            "sha256": "de8358853dd9ed9b006a23569bf393aa217ed3be3301a169465d80bfaf839922"
+          },
+          {
+            "role": "boot_installer_context",
+            "filename": "boot-selector-installer-context.raw",
+            "bytes": 40,
+            "sha256": "8d34852425e2e1bfa87b3febdfc74fb39e7c667e9d9ff73e17b594649e83b21b"
+          },
+          {
+            "role": "boot_resident_view",
+            "filename": "boot-selector-resident.raw",
+            "bytes": 20,
+            "sha256": "a26286a393713c046eff9dbaff15b20b26b171fa9e05fc9d538d16b0eddb6024"
+          }
+        ]
+      },
+      "recoverable_pandora_backups_verified": 16
+    }
+  },
+  "cost": {
+    "custom_type_count": 46,
+    "target_max_parent_depth": 1,
+    "additional_flow_state_bytes": 0,
+    "join_auxiliary_space": "Constant; parent pointers and bounded loop counters only.",
+    "lookup_bound": "Same-ID and absent-ID cases return immediately. A differing-custom-type join uses canonical linear parent lookup: O(S*D^2), S declared types and D parent depth. No speculative ancestry cache or new fixed-point cap.",
+    "performance_claim": "One changed-backend target generation only; reported wall time is not a controlled speedup benchmark."
+  },
+  "current_remainder": {
+    "generic_app_fields": 32,
+    "unresolved_typed_accesses": 271,
+    "unclassified_bytes": 13860,
+    "unclassified_intervals": 263,
+    "unresolved_orphans": 30,
+    "accepted_code_bytes": 106034
+  },
+  "limits": [
+    "No new target purpose or code/data classification, emulator run, guest-state forcing or relocation.",
+    "All producer/caller/type assumptions remain conditional original-path contracts; nearest ancestry is not an all-path runtime proof.",
+    "The saved-workspace enclosing owner and complete shared-buffer lifetimes are still separate obligations."
+  ],
+  "next": {
+    "group": "Collision exclusion and model-specific field roles",
+    "experiment": "Use the now-understood drone/missile type exclusion to inspect the shared collision reader and original caller/type guards. Recover a model/phase view where justified; do not assign radial projection words the same role.",
+    "secondary": "Group the remaining model angle helper callers and variants before adding a shared orientation contract. Current generic-parent angle gaps remain explicit."
+  }
+}

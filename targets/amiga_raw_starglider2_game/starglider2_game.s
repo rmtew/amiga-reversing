@@ -47129,14 +47129,14 @@ abs_0_0003713A:
 	rts
 abs_0_0003714C:
 	bsr.w abs_0_0003715E
-	add.l d0,$0004(a0)
-	add.l d1,$0008(a0)
-	add.l d2,$000C(a0)
+	add.l d0,SG2WorldObject_world_x(a0)
+	add.l d1,SG2WorldObject_world_y(a0)
+	add.l d2,SG2WorldObject_world_z(a0)
 	rts
 abs_0_0003715E:
-	move.l $0004(a0),d0
-	move.l $0008(a0),d1
-	move.l $000C(a0),d2
+	move.l SG2WorldObject_world_x(a0),d0
+	move.l SG2WorldObject_world_y(a0),d1
+	move.l SG2WorldObject_world_z(a0),d2
 	sub.l player_world_x(a6),d0
 	sub.l player_world_y(a6),d1
 	sub.l player_world_z(a6),d2

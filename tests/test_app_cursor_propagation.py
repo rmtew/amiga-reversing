@@ -71,11 +71,11 @@ int main(void) {
   lea(&state, &lookup, &platform, 6, 0xBC6, 4);
   other = state;
   other.app_addr_regs[4].base_evidence_kind = M68K_APP_SLOT_BASE_REGISTER_STATE;
-  typed_state_merge_into(&state, &other);
+  typed_state_merge_into(&state, &other, NULL);
   assert(state.app_addr_regs[4].known);
   assert(state.app_addr_regs[4].base_evidence_kind == M68K_APP_SLOT_BASE_UNSPECIFIED);
   memset(&other, 0, sizeof(other));
-  typed_state_merge_into(&state, &other);
+  typed_state_merge_into(&state, &other, NULL);
   assert(!state.app_addr_regs[4].known);
   {
     M68kInstructionIR direct = m68k_plain_parse_instruction_to_ir(
