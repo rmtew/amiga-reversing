@@ -1067,6 +1067,29 @@ SG2SteeredProjectile_heading_recompute_mod8_index RS.W 1
     RS.B 28
 SG2SteeredProjectile_SIZEOF EQU __RS
 
+; STRUCT SG2CollapsingSpire
+    RSRESET
+    RS.B 31
+SG2CollapsingSpire_collapse_durability_marker RS.B 1
+    RS.B 8
+SG2CollapsingSpire_collapse_rotation_step RS.W 1
+    RS.B 26
+SG2CollapsingSpire_SIZEOF EQU __RS
+
+; STRUCT SG2SolarConverter
+    RSRESET
+    RS.B 31
+SG2SolarConverter_variant_ping_pong_step RS.B 1
+    RS.B 36
+SG2SolarConverter_SIZEOF EQU __RS
+
+; STRUCT SG2MiniRocket
+    RSRESET
+    RS.B 36
+SG2MiniRocket_fall_acceleration_delay_updates RS.W 1
+    RS.B 30
+SG2MiniRocket_SIZEOF EQU __RS
+
 ADKF_CLRALL	EQU	$7FFF
 BPLCON2_PF2P2	EQU	$20
 BPLCON2_PF2PRI	EQU	$40
@@ -9260,8 +9283,8 @@ primary_object_update_offsets:
 	dc.w abs_0_000081D2-primary_object_update_offsets	; 148 relative WORD type-update targets; conditional original type domain 0..147
 	dc.w abs_0_00008850-primary_object_update_offsets
 	dc.w update_proximity_mine_warning_and_damage-primary_object_update_offsets
-	dc.w abs_0_00008E78-primary_object_update_offsets
-	dc.w abs_0_00008F0E-primary_object_update_offsets
+	dc.w update_egron_spire_collapse-primary_object_update_offsets
+	dc.w update_solar_converter_variant_and_chain-primary_object_update_offsets
 	dc.w abs_0_00009FEE-primary_object_update_offsets
 	dc.w update_link_following_or_free_motion_object-primary_object_update_offsets
 	dc.w force_large_bird_base_frame_then_update-primary_object_update_offsets
@@ -9320,7 +9343,7 @@ primary_object_update_offsets:
 	dc.w abs_0_000083FE-primary_object_update_offsets
 	dc.w abs_0_000083D8-primary_object_update_offsets
 	dc.w abs_0_000083D8-primary_object_update_offsets
-	dc.w abs_0_00008F9C-primary_object_update_offsets
+	dc.w update_blast_door_variant-primary_object_update_offsets
 	dc.w abs_0_0000A1C4-primary_object_update_offsets
 	dc.w abs_0_0000899E-primary_object_update_offsets
 	dc.w abs_0_000081D2-primary_object_update_offsets
@@ -10439,23 +10462,25 @@ abs_0_00008E40:
 	dc.b " Danger! Mine Detected:",$00
 	dc.b $13,$FC,$00,$0E,$00,$00,$E1,$03,$06,$68,$00,$20,$00,$12,$53,$68
 	dc.b $00,$24,$66,$00,$F3,$66,$31,$7C,$00,$64,$00,$24,$60,$00,$10,$8C
-abs_0_00008E78:
+    ; Type3 Spire: BYTE1F durability marker gates collapse. WORD28 ramps rotation by4; signed velocityY cycles -62 through66. Keep exact equality/wrap; initial marker validity is a precondition.
+    ; KNOWN: type A0=Target code-entry register seed:SG2CollapsingSpire
+update_egron_spire_collapse:
 	tst.b space_environment_flag(a6)
 	bmi.b abs_0_00008E88
 	tst.l SG2ObjectCore_world_y(a0)
 	bmi.b abs_0_00008E88
 	clr.l SG2ObjectCore_world_y(a0)
 abs_0_00008E88:
-	move.b $001F(a0),d0
+	move.b SG2CollapsingSpire_collapse_durability_marker(a0),d0
 	cmp.b SG2ObjectCore_durability_or_negative(a0),d0
 	beq.w abs_0_000081D2
-	tst.w $002E(a0)
-	beq.w abs_0_00008EF0
-	move.w $0028(a0),d0
-	add.w d0,$0012(a0)
+	tst.w SG2WorldObject_velocity_y(a0)
+	beq.w wind_down_spire_rotation_and_start_fall
+	move.w SG2CollapsingSpire_collapse_rotation_step(a0),d0
+	add.w d0,SG2WorldObject_rotation_1(a0)
 	cmp.w #$F0,d0
 	beq.w abs_0_00008EB4
-	addq.w #4,$0028(a0)
+	addq.w #4,SG2CollapsingSpire_collapse_rotation_step(a0)
 	bra.w abs_0_000081D2
 abs_0_00008EB4:
 	move.l horizontal_world_wrap_mask(a6),d3
@@ -10463,27 +10488,29 @@ abs_0_00008EB4:
 	addi.l #62,SG2ObjectCore_world_z(a0)
 	and.l d3,SG2ObjectCore_world_x(a0)
 	and.l d3,SG2ObjectCore_world_z(a0)
-	move.w $002E(a0),d0
+	move.w SG2WorldObject_velocity_y(a0),d0
 	ext.l d0
 	add.l d0,SG2ObjectCore_world_y(a0)
-	addq.w #4,$002E(a0)
-	cmpi.w #66,$002E(a0)
+	addq.w #4,SG2WorldObject_velocity_y(a0)
+	cmpi.w #66,SG2WorldObject_velocity_y(a0)
 	bne.w abs_0_000081D2
-	clr.w $002E(a0)
+	clr.w SG2WorldObject_velocity_y(a0)
 	bra.w abs_0_000081D2
-abs_0_00008EF0:
-	move.w $0028(a0),d0
-	add.w d0,$0012(a0)
-	subq.w #4,$0028(a0)
+wind_down_spire_rotation_and_start_fall:
+	move.w SG2CollapsingSpire_collapse_rotation_step(a0),d0
+	add.w d0,SG2WorldObject_rotation_1(a0)
+	subq.w #4,SG2CollapsingSpire_collapse_rotation_step(a0)
 	bne.w abs_0_000081D2
-	move.w #$FFC2,$002E(a0)
-	subq.b #1,$001F(a0)
+	move.w #$FFC2,SG2WorldObject_velocity_y(a0)
+	subq.b #1,SG2CollapsingSpire_collapse_durability_marker(a0)
 	bra.w abs_0_000081D2
-abs_0_00008F0E:
+    ; Type4 Converter: durability>2 counts variant down and signals guarded LONG3C links at17; durability<=2 uses signed BYTE1F ping-pong step. Linked pointee type remains unknown.
+    ; KNOWN: type A0=Target code-entry register seed:SG2SolarConverter
+update_solar_converter_variant_and_chain:
 	move.b #$10,diagnostic_step_byte.l
-	move.b $0003(a0),d0
+	move.b SG2WorldObject_vertex_variant_selector(a0),d0
 	cmpi.b #2,SG2ObjectCore_durability_or_negative(a0)
-	bls.b abs_0_00008F6E
+	bls.b advance_solar_converter_ping_pong_variant
 	cmpi.b #2,SG2ObjectCore_durability_or_negative(a0)
 	beq.b abs_0_00008F36
 	lea.l model_type_target_selection_tags_prefix(a6),a1
@@ -10492,46 +10519,48 @@ abs_0_00008F0E:
 abs_0_00008F36:
 	subq.b #1,d0
 	beq.w abs_0_000081D2
-	move.b d0,$0003(a0)
+	move.b d0,SG2WorldObject_vertex_variant_selector(a0)
 	cmp.b #$11,d0
 	bne.w abs_0_000081D2
-	movea.l $003C(a0),a4
+	movea.l SG2WorldObject_linked_record_or_sentinel(a0),a4
 	cmpa.l #$0,a4
 	beq.w abs_0_000081D2
 	movea.l a0,a1
-abs_0_00008F58:
+propagate_solar_converter_link_signal:
 	movea.l $003C(a1),a4
 	cmpa.l #$0,a4
 	beq.w abs_0_000081D2
 	st.b $0028(a4)
 	movea.l a4,a1
-	bra.b abs_0_00008F58
-abs_0_00008F6E:
-	move.b $001F(a0),d1
+	bra.b propagate_solar_converter_link_signal
+advance_solar_converter_ping_pong_variant:
+	move.b SG2SolarConverter_variant_ping_pong_step(a0),d1
 	add.b d1,d0
-	move.b d0,$0003(a0)
+	move.b d0,SG2WorldObject_vertex_variant_selector(a0)
 	cmp.b #$0,d0
 	beq.b abs_0_00008F88
 	cmp.b #$11,d0
 	beq.b abs_0_00008F92
 	bra.w abs_0_000081D2
 abs_0_00008F88:
-	move.b #$1,$001F(a0)
+	move.b #$1,SG2SolarConverter_variant_ping_pong_step(a0)
 	bra.w abs_0_000081D2
 abs_0_00008F92:
-	move.b #$FF,$001F(a0)
+	move.b #$FF,SG2SolarConverter_variant_ping_pong_step(a0)
 	bra.w abs_0_000081D2
-abs_0_00008F9C:
-	cmpi.b #6,$001C(a0)
+    ; Type63 Blast Doors: durability6 holds vertex variant0; otherwise increment until9. No open/closed geometry or passability claim follows from these state transitions.
+    ; KNOWN: type A0=Target code-entry register seed:SG2WorldObject
+update_blast_door_variant:
+	cmpi.b #6,SG2ObjectCore_durability_or_negative(a0)
 	bne.b abs_0_00008FAC
-	clr.b $0003(a0)
+	clr.b SG2WorldObject_vertex_variant_selector(a0)
 	bra.w abs_0_000081D2
 abs_0_00008FAC:
-	move.b $0003(a0),d0
+	move.b SG2WorldObject_vertex_variant_selector(a0),d0
 	cmp.b #$9,d0
 	beq.w abs_0_000081D2
 	addq.b #1,d0
-	move.b d0,$0003(a0)
+	move.b d0,SG2WorldObject_vertex_variant_selector(a0)
 	bra.w abs_0_000081D2
 	dc.b $60,$00,$F2,$0E,$16,$28,$00,$1F,$67,$00,$00,$2C,$10,$28,$00,$03
 	dc.b $D0,$03,$B0,$3C,$00,$00,$67,$0E,$B0,$3C,$00,$14,$67,$12,$11,$40
@@ -11326,13 +11355,13 @@ abs_0_00009B0E:
 	sf.b SG2ObjectCore_retirement_phase_or_negative(a0)
 	bra.w abs_0_000081D2
     ; Type29: negative space flag uses shared link/free-motion path; otherwise WORD24 delays downward acceleration. Distinct from flying-actor phase and asteroid spin counters.
-    ; KNOWN: type A0=Target code-entry register seed:SG2WorldObject
+    ; KNOWN: type A0=Target code-entry register seed:SG2MiniRocket
 update_mini_rocket_delay_then_fall:
 	tst.b space_environment_flag(a6)
 	bmi.w update_link_following_or_free_motion_object
-	tst.w $0024(a0)
+	tst.w SG2MiniRocket_fall_acceleration_delay_updates(a0)
 	beq.b accelerate_mini_rocket_after_delay
-	subq.w #1,$0024(a0)
+	subq.w #1,SG2MiniRocket_fall_acceleration_delay_updates(a0)
 	clr.w SG2WorldObject_velocity_y(a0)
 	bra.w abs_0_000081D2
 accelerate_mini_rocket_after_delay:

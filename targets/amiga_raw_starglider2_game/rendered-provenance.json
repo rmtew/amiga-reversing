@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
   "kind": "committed_native_rendered_original_export",
-  "canonical_source_commit": "b0f7d8c12cf792a355d57c4852dac8e755cefe18",
-  "publication_base_commit": "b0f7d8c12cf792a355d57c4852dac8e755cefe18",
+  "canonical_source_commit": "0b794fea40dd3d27dca6c8c7c5705d9935e6a594",
+  "publication_base_commit": "0b794fea40dd3d27dca6c8c7c5705d9935e6a594",
   "native_export": "CListingArtifact.source_package_payload(64)",
-  "main_source_sha256": "f580464cdbd99cda93f20d2c91188f65b01c6a281f1a023286925c2b56009179",
+  "main_source_sha256": "a2114c4157e38e01f0ba94c181154ff617d4e8502099834c9b13a8cadd459c1a",
   "asset_count": 57,
   "asset_bytes": 93633,
   "game_assembly_hand_edits": false,
@@ -24,15 +24,15 @@
     "assembler executable",
     "paused Pandora work"
   ],
-  "canonical_source_commit_role": "publication base; unchanged canonical annotations and shared fixes in this batch are bound by canonical_fact_sha256 and the refinement receipt",
-  "canonical_source_subject_revision": "3819671d76ef4776051b511d04cd8f828027d86a677380adb0eda160dc4d3b16",
+  "canonical_source_commit_role": "publication base; reviewed canonical facts added in this batch are bound by canonical_fact_sha256 and the refinement receipt",
+  "canonical_source_subject_revision": "9d13729e16f355c36fa5acbee9264bd45a904beb8b95497731f5e1c7ca9fc1f0",
   "canonical_fact_sha256": {
     "source_binary.json": "42d4a5758b3e8236af7f912aee85e9ee5323bcd0961faa338c4f864080a0a7d9",
     "target_metadata.json": "e7540b68c118c56aba8815b6722eefa067517cc865fe9841d6c01ce96551389c",
-    "manual_actions.jsonl": "022dd6cfa16db49ea03e8a7c5ad65f24ac3f5d31e9ca0ebce48673af66ea77d2",
-    "decision_journal.jsonl": "1e4d4abf1a65744548c33df1cc2757ed846ed77c67bce69c13d6e0b4dc8200de"
+    "manual_actions.jsonl": "825326f981c3f2c88a977ca214550c00ab3ce8d582227ef69a9e2a22eed89068",
+    "decision_journal.jsonl": "62ac7c15ae13dc8b5fad91a34a1700be11ad4c76f5e81ce25773865b5895d4f3"
   },
-  "refinement_receipt": "runtime/observations/starglider2-source-header-loop-domains.json",
+  "refinement_receipt": "runtime/observations/starglider2-structure-motion-contracts.json",
   "headers": "14 unmodified required include files collected by source_package.collect_package_includes from ext/amiga_includes/ndk_2.0/include; header notices retained",
   "decoded_protection_view": {
     "target_id": "amiga_raw_starglider2_protection_view",

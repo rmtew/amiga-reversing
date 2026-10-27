@@ -21,9 +21,40 @@ The [current systematic gap inventory](../../runtime/observations/starglider2-so
 joins native identities/accesses with canonical layouts and actual rendered
 boundaries. It records 67 suffix signals (including numeric adjacent variants),
 21 lookup contracts, 523 remaining interior references, 32 generic app fields
-and 682 unresolved record accesses. These are different denominators. Five
+and 659 unresolved record accesses. These are different denominators. Five
 suffixes name routines and one names text; neither is a pointer defect.
-Latest: the [source-directory loop batch](../../runtime/observations/starglider2-source-header-loop-domains.json)
+Latest: the [structure-motion contracts](../../runtime/observations/starglider2-structure-motion-contracts.json)
+join original primary dispatch entries 3/4/29/63 to the canonical object-name
+strings: Egron Spire Building, Solar Energy Converter, Egron Mini Rocket and
+Blast Doors. Three narrow World subtypes expose four operation-specific fields;
+six labels describe their established collapse, variant and link operations.
+The Spire marker/rotation-step, Converter signed variant step and Mini Rocket
+update-delay roles come from their actual consumers. The Door variant 0/9 rule
+does not establish open/closed geometry or passability. Shared pools and linked
+pointees retain broader/unknown contracts; exact signed/unsigned branches,
+wrapping arithmetic and conditional valid-record assumptions remain visible.
+
+Native projection adds **27 typed coordinates / 0 lost**, refines **16 existing
+root contexts** without changing their field meanings/widths, and removes **23
+unresolved coordinates / 0 newly exposed**. Current counts are **3412 app
+references /1590 typed /659 unresolved**. All 412,736 bytes rebuild exactly through
+C/vasm and clean standalone source. No framework code changed since the 320/832
+passing batch, so unchanged suites were not rerun. No new live encounter is
+claimed. The 32 generic app fields and 13,840 unclassified bytes remain; this is
+source understanding, not a completion percentage or another interim archive.
+
+The header-frame probe now distinguishes two causes: undeclared numeric storage
+correctly does not become a pointer, while a declared pointer holder carries a
+local reaching value. Register-to-register return transport works, but a pointer
+loaded from a cell and returned through a callee still lacks a result relation.
+Each probe initializes the loop count after calls, avoiding a confounded count
+loss. Before broadening that interface, establish the original source-owned
+workspace-holder pointer contract and its actual caller/return/alias obligations;
+its current scalar layout and loader-controlled startup are not a physical-frame
+proof. Continue independent dispatch-backed actor/shared-buffer interpretation,
+not universal memory-return closure as a prerequisite or per-reader seeds.
+
+Preceding: the [source-directory loop batch](../../runtime/observations/starglider2-source-header-loop-domains.json)
 reuses the native counter-relative worklist and shared affine values for bounded
 source-backed pointer directories. The 2/104-entry fixtures retain declared record
 types without inventing numeric candidates or raising the four-candidate limit.
@@ -37,7 +68,7 @@ blanket loop refusal previously left numeric displacements; these are recovered
 renderings, not109 newly established field meanings.
 
 **320 focused Python tests and 832 native C tests pass.** On Starglider the
-original header-loop induction now succeeds (17 nodes,16 transfers), adding a
+original header-loop induction now succeeds (17 nodes, 16 transfers), adding a
 104-iteration stationary write footprint; a second stationary read gains a
 5-iteration footprint. Both retain conditional A6 fallback provenance. Counts
 remain **3412 app references /1563 typed /682 unresolved**, with **0 new/lost/
