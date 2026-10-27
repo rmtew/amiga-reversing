@@ -21,9 +21,22 @@ The [current systematic gap inventory](../../runtime/observations/starglider2-so
 joins native identities/accesses with canonical layouts and actual rendered
 boundaries. It records 67 suffix signals (including numeric adjacent variants),
 21 lookup contracts, 523 remaining interior references, 32 generic app fields
-and 737 unresolved record accesses. These are different denominators. Five
+and 725 unresolved record accesses. These are different denominators. Five
 suffixes name routines and one names text; neither is a pointer defect.
-Latest: the [free-stack pointer footprints](../../runtime/observations/starglider2-free-stack-pointer-footprints.json)
+Latest: the [Skim Missile phase contract](../../runtime/observations/starglider2-skim-missile-lifetime.json)
+connects the original type60 constructor and both dispatch paths to its two
+countdown words. The climb phase adds50 to worldY; pursuit moves toward the
+player using signed delta>>2 and retires on the second countdown's negative
+result. These are updater calls, not seconds or physical frames. Shared toward,
+away and shifted-delta helpers now have role names; original arithmetic remains.
+Native propagation gains **12 typed coordinates / 0 lost**. Counts are
+**3412 app references / 1484 typed / 725 unresolved**.
+No blanket mixed-pool subtype or new live encounter is claimed. Original
+C/vasm/standalone bytes remain exact. Continue the source-loop domain and
+producer-backed variant/shared-buffer leads rather than treating this publication
+as restoration completion.
+
+Preceding: the [free-stack pointer footprints](../../runtime/observations/starglider2-free-stack-pointer-footprints.json)
 connect original free-object stack producers and predecrement pops through the
 existing Core contract. Shared decoded EA/span handling now supports signed
 pointer displacements and predecrement, and refuses misaligned or conflicting

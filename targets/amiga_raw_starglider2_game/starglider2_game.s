@@ -1040,6 +1040,14 @@ SG2NovellaDecodeState_encoded_payload_span_bytes RS.L 1
 SG2NovellaDecodeState_encoded_payload_pointer RS.L 1
 SG2NovellaDecodeState_SIZEOF EQU __RS
 
+; STRUCT SG2SkimMissile
+    RSRESET
+    RS.B 36
+SG2SkimMissile_climb_updates_remaining RS.W 1
+SG2SkimMissile_pursuit_updates_remaining RS.W 1
+    RS.B 28
+SG2SkimMissile_SIZEOF EQU __RS
+
 ADKF_CLRALL	EQU	$7FFF
 BPLCON2_PF2P2	EQU	$20
 BPLCON2_PF2PRI	EQU	$40
@@ -45941,21 +45949,22 @@ abs_0_00035DF4:
 	movea.l -(a1),a2
 	move.l a1,free_object_stack_cursor(a6)
 	subq.w #1,free_object_count(a6)
+    ; KNOWN: type A2=Target code-entry register seed:SG2SkimMissile
 	move.w #SG2_OBJECT_TYPE_SKIM_MISSILE,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
 	move.l SG2ObjectCore_world_x(a0),SG2ObjectCore_world_x(a2)
 	move.l SG2ObjectCore_world_y(a0),SG2ObjectCore_world_y(a2)
 	move.l SG2ObjectCore_world_z(a0),SG2ObjectCore_world_z(a2)
-	clr.w $0010(a2)
-	clr.w $0012(a2)
-	ori.w #1,$0010(a2)
-	clr.w $0014(a2)
-	move.w #$14,$0024(a2)
-	move.w #$96,$0026(a2)
+	clr.w SG2WorldObject_rotation_0(a2)
+	clr.w SG2WorldObject_rotation_1(a2)
+	ori.w #1,SG2WorldObject_rotation_0(a2)
+	clr.w SG2WorldObject_rotation_2(a2)
+	move.w #$14,SG2SkimMissile_climb_updates_remaining(a2)
+	move.w #$96,SG2SkimMissile_pursuit_updates_remaining(a2)
 	move.b #$A,SG2ObjectCore_durability_or_negative(a2)
 	move.b #$FF,SG2ObjectCore_retirement_phase_or_negative(a2)
-	move.b #$7,$001D(a2)
-	clr.b $0003(a2)
-	move.b #SG2_OBJECT_TYPE_SKIM_DRONE,$002A(a2)
+	move.b #$7,SG2WorldObject_model_scale_shift(a2)
+	clr.b SG2WorldObject_vertex_variant_selector(a2)
+	move.b #SG2_OBJECT_TYPE_SKIM_DRONE,SG2WorldObject_collision_ignored_object_type(a2)
 	move.b #SG2_OBJECT_TYPE_SKIM_MISSILE,SG2WorldObject_collision_ignored_object_type(a0)
 	move.w #$FFFF,SG2SkimLauncherDrone_follow_phase_countdown(a0)
 	bsr.w abs_0_00039D20
@@ -46001,7 +46010,7 @@ abs_0_00035EEE:
 	beq.b advance_skim_drone_follow_countdown
 evade_player_and_spin_skim_drone:
 	moveq.l #4,d7
-	bsr.w abs_0_0003714C
+	bsr.w move_object_away_from_player_fraction
 	addi.w #32,SG2WorldObject_rotation_0(a0)
 	andi.w #4095,SG2WorldObject_rotation_0(a0)
 	ori.w #1,SG2WorldObject_rotation_0(a0)
@@ -46051,27 +46060,28 @@ restore_skim_drone_orientation:
 	andi.w #4095,SG2WorldObject_rotation_2(a0)
 abs_0_00035FB2:
 	rts
-    ; KNOWN: type A0=Target code-entry register seed:SG2WorldObject
+    ; KNOWN: type A0=Target code-entry register seed:SG2SkimMissile
 update_nearby_skim_missile:
 	bsr.w advance_skim_missile_lifetime
 	addi.w #64,SG2WorldObject_rotation_1(a0)
 	andi.w #4095,SG2WorldObject_rotation_1(a0)
 	bra.w abs_0_00039D56
-    ; KNOWN: type A0=Target code-entry register seed:SG2WorldObject
+    ; KNOWN: type A0=Target code-entry register seed:SG2SkimMissile
 update_distant_skim_missile:
 	bsr.w advance_skim_missile_lifetime
 	bra.w abs_0_00039D3E
-    ; KNOWN: type A0=Target code-entry register seed:SG2WorldObject
+    ; Both type60 paths decrement climb first; nonnegative adds50 to worldY. Pursuit uses delta>>2, then decrements its own counter. Counts are updater calls, not seconds.
+    ; KNOWN: type A0=Target code-entry register seed:SG2SkimMissile
 advance_skim_missile_lifetime:
-	subq.w #1,$0024(a0)
-	bmi.b abs_0_00035FE0
+	subq.w #1,SG2SkimMissile_climb_updates_remaining(a0)
+	bmi.b advance_skim_missile_pursuit
 	addi.l #50,SG2ObjectCore_world_y(a0)
 	bra.b abs_0_00036006
-abs_0_00035FE0:
-	move.w #$FFFF,$0024(a0)
+advance_skim_missile_pursuit:
+	move.w #$FFFF,SG2SkimMissile_climb_updates_remaining(a0)
 	moveq.l #2,d7
-	bsr.w abs_0_0003713A
-	subq.w #1,$0026(a0)
+	bsr.w move_object_toward_player_fraction
+	subq.w #1,SG2SkimMissile_pursuit_updates_remaining(a0)
 	bpl.b abs_0_00036006
 	clr.b SG2ObjectCore_retirement_phase_or_negative(a0)
 	bclr.b #2,SG2ObjectCore_flags(a0)
@@ -47089,7 +47099,7 @@ update_nearby_pirate_ship:
 	subq.w #1,$0024(a0)
 	bpl.b abs_0_00036E34
 	move.w #$FFFF,$0024(a0)
-	bsr.w abs_0_0003714C
+	bsr.w move_object_away_from_player_fraction
 	bra.w abs_0_00039D56
 abs_0_00036E34:
 	move.l SG2ObjectCore_world_x(a0),d0
@@ -47232,7 +47242,7 @@ abs_0_0003703E:
 	bra.w abs_0_00039D56
 abs_0_00037042:
 	moveq.l #5,d7
-	bsr.w abs_0_0003713A
+	bsr.w move_object_toward_player_fraction
 	bra.w abs_0_00039D56
 abs_0_0003704C:
 	lea.l abs_0_00039B48.l,a1
@@ -47287,19 +47297,20 @@ abs_0_00037114:
 	dc.b $61,$00,$2C,$06,$32,$00,$02,$00,$00,$0F,$66,$12,$7E,$05,$61,$00
 	dc.b $00,$12,$02,$40,$03,$FF,$06,$40,$00,$40,$31,$40,$00,$24,$60,$00
 	dc.b $2C,$06
-abs_0_0003713A:
-	bsr.w abs_0_0003715E
+move_object_toward_player_fraction:
+	bsr.w compute_shifted_object_player_delta
 	sub.l d0,SG2ObjectCore_world_x(a0)
 	sub.l d1,SG2ObjectCore_world_y(a0)
 	sub.l d2,SG2ObjectCore_world_z(a0)
 	rts
-abs_0_0003714C:
-	bsr.w abs_0_0003715E
+move_object_away_from_player_fraction:
+	bsr.w compute_shifted_object_player_delta
 	add.l d0,SG2ObjectCore_world_x(a0)
 	add.l d1,SG2ObjectCore_world_y(a0)
 	add.l d2,SG2ObjectCore_world_z(a0)
 	rts
-abs_0_0003715E:
+    ; Unwrapped signed LONG object-minus-player XYZ, ASR by caller D7. Toward subtracts; away adds. Preserve original overflow/shift behavior; no normalized-distance or time guarantee.
+compute_shifted_object_player_delta:
 	move.l SG2ObjectCore_world_x(a0),d0
 	move.l SG2ObjectCore_world_y(a0),d1
 	move.l SG2ObjectCore_world_z(a0),d2
