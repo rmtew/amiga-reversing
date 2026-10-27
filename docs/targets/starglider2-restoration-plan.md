@@ -1,14 +1,14 @@
 # Starglider 2: original source restoration
 
-Status: **refinement active after the user's source review**. The earlier
+Status: **paused at the user's request after the current projectile-creator batch**. The earlier
 original-layout reviewed closeout and ZIP are historical milestones, not a claim
 that further analysis is exhausted. Current source remains byte exact: all
 412736 original bytes rebuild through C/vasm and a clean standalone export,
 with all 106034 accepted code bytes retained. No generated assembly was edited
 by hand and no interim archive was produced.
 
-The current ownership union leaves 13840 bytes in
-264 intervals unclassified. This is classification accounting,
+The current ownership union leaves 13640 bytes in
+263 intervals unclassified. This is classification accounting,
 not a semantic completion percentage. Earlier interval/site counts below belong
 to their recorded closeout revision. See the current
 [native memory-span receipt](../../runtime/observations/starglider2-app-memory-spans.json),
@@ -21,9 +21,39 @@ The [current systematic gap inventory](../../runtime/observations/starglider2-so
 joins native identities/accesses with canonical layouts and actual rendered
 boundaries. It records 67 suffix signals (including numeric adjacent variants),
 21 lookup contracts, 523 remaining interior references, 32 generic app fields
-and 606 unresolved record accesses. These are different denominators. Five
+and 582 unresolved record accesses. These are different denominators. Five
 suffixes name routines and one names text; neither is a pointer defect.
-Latest: the [ground-actor contracts](../../runtime/observations/starglider2-ground-actor-contracts.json)
+Latest: the [projectile-creator contracts](../../runtime/observations/starglider2-projectile-creator-contracts.json)
+connect the original creator interfaces and type-12/25 constructor join to their
+World/SteeredProjectile fields, including signed horizontal-motion scale. This
+adds **24 typed coordinates / 0 lost**, refines **16 existing contexts** without
+changing field meanings or widths, and removes **24 unresolved coordinates / 0
+new**. Current counts are **3412 app references /1687 typed /582 unresolved**.
+The 200-byte heading-policy storage now has a real attached WORD-array owner;
+its 100 stored WORDs do not prove a live index domain of 0..99. Zero suffix bytes
+may include padding or reserve.
+
+An annotation-preparation error initially supplied a different random owner ID
+to its array child. Historical replay ignored the orphan, and the first exact
+build did not catch that semantic mistake. The orphan was explicitly rejected
+and undone through the supported API; its correct replacement was reviewed
+against the current exact build. New annotation admission rejects unknown owner
+IDs atomically, while an optional explicit create ID supports dependent batches.
+Historical correction remains possible. Properly attached arrays already render
+correctly; this required no renderer patch or TST-specific recognizer. Focused
+checks passed: **151 manual-log/catalogue tests plus 3 native scalar-array
+render/exact-assembly fixtures**. Source C/vasm and clean standalone output retain
+all 412736 bytes, with the 57 existing assets unchanged.
+
+**Paused, not complete.** No next batch is running. If resumed, use the retained
+header pointer-holder/callee-return or selected-cell evidence to rank the next
+connected gaps. A live source-owned pointer contract and alias/return evidence
+remain necessary before expanding that interface. Ordinary numeric indexed
+reader discovery needs a concrete shared-IR experiment; the probes do not show
+a TST-specific bug. Remaining generic app names, unclassified bytes and 582
+access gaps are explicit unknowns, not semantic completion percentages.
+
+Preceding: the [ground-actor contracts](../../runtime/observations/starglider2-ground-actor-contracts.json)
 join original dispatch entries 9/23/26/50 to Egron Land Tank, GBML, Tripuss and
 GBML with Cannon in the existing name directory. Two narrow subtypes expose
 the Land Tank pair-link delay and Tripuss signed variant step, while the GBML
@@ -36,7 +66,7 @@ Linked peers and selected targets do not acquire invented types.
 Projection adds **73 typed coordinates / 0 lost** and refines **31 existing
 root contexts** without changing field meanings or widths. It removes **58
 unresolved coordinates and exposes 5 new Core gaps** in shared projectile-spawn
-code: a net reduction of 53. Current counts are **3412 app references /1663
+code: a net reduction of 53. That batch recorded **3412 app references /1663
 typed /606 unresolved**. C/vasm and clean standalone source remain byte exact;
 no unchanged framework suite or live gameplay was repeated. The executor
 reconnected in place after losing its old terminal session. One necessary
@@ -44,14 +74,6 @@ native requalification recovered the missing verification/review, with byte
 identical analysis, assembly and source package; annotations were not replayed.
 The elevated app-slot timing from the interrupted process did not recur in the
 fresh qualification. Its cause remains unestablished; no speedup is claimed.
-
-Next: inspect original creator-record callers/guards for the five newly exposed
-spawn readers ($976E/$97C4/$97DA/$97EC/$9810) before assigning World yaw,
-model-scale and collision-ignore fields. Prefer one supported callable input
-contract over per-reader seeds. Continue independent record/shared-buffer leads;
-the header physical-frame and cell-return questions remain separately bounded.
-The 32 generic app fields, 13,840 unclassified bytes and other source gaps are
-still active work, not an all-path proof requirement or completion percentage.
 
 Preceding: the [structure-motion contracts](../../runtime/observations/starglider2-structure-motion-contracts.json)
 join original primary dispatch entries 3/4/29/63 to the canonical object-name

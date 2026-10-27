@@ -1432,6 +1432,7 @@ def _target_data_block_layout_parameter_schema() -> dict[str, object]:
     properties = _object(schema.get("properties"), "data-block layout properties")
     properties.update(
         {
+            "layout_id": {"type": "string", "minLength": 1, "maxLength": 256},
             "hunk": {"type": "integer", "minimum": 0},
             "source_start": {"type": "integer", "minimum": 0},
             "source_end": {"type": "integer", "minimum": 1},
@@ -4254,8 +4255,12 @@ def _target_data_block_layout_payload(params: Mapping[str, object]) -> dict[str,
     source_end = _optional_int(params.get("source_end"))
     if hunk is None or source_start is None or source_end is None or source_end <= source_start:
         raise ValueError("create_manual_data_block_layout requires hunk and a non-empty source range")
+    layout_id = params.get("layout_id")
+    if layout_id is not None and (not isinstance(layout_id, str) or not layout_id.strip()
+                                  or len(layout_id) > 256 or "\x00" in layout_id):
+        raise ValueError("layout_id must be a non-empty string of at most 256 characters without NUL")
     layout: dict[str, object] = {
-        "layout_id": f"catalog-{uuid.uuid4().hex}",
+        "layout_id": layout_id if layout_id is not None else f"catalog-{uuid.uuid4().hex}",
         "hunk": hunk,
         "source_start": source_start,
         "source_end": source_end,

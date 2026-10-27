@@ -341,8 +341,17 @@ def append_manual_actions(
             if not isinstance(kind, ManualActionKind):
                 raise TypeError("kind must be a ManualActionKind")
             validate_manual_action_payload(payload)
+            if kind is ManualActionKind.SET_MANUAL_DATA_BLOCK_ELEMENT:
+                # Replay tolerates historical orphan children so that append-only
+                # corrections remain possible. New writes must never create one.
+                _validated_data_block_element(
+                    _object(payload.get("data_block_element"), what="data_block_element"),
+                    {str(layout["layout_id"]): layout for layout in projection.data_block_layouts},
+                )
             if kind is ManualActionKind.CREATE_MANUAL_DATA_BLOCK_LAYOUT:
                 requested = _object(payload.get("data_block_layout"), what="data_block_layout")
+                if any(layout["layout_id"] == requested.get("layout_id") for layout in projection.data_block_layouts):
+                    raise ValueError("an active data-block layout already uses this layout_id")
                 requested_range = tuple(requested.get(key) for key in ("hunk", "source_start", "source_end"))
                 if any(tuple(layout.get(key) for key in ("hunk", "source_start", "source_end")) == requested_range
                        for layout in projection.data_block_layouts):

@@ -2181,3 +2181,37 @@ def test_append_manual_action_rejects_target_identity_mismatch(tmp_path: Path) -
             payload={"seed": {"seed_id": "s1", "kind": "code", "addr": 0}},
             binary_source=binary_source,
         )
+
+
+def test_new_orphan_element_is_atomic_but_historical_orphan_can_be_undone(tmp_path: Path) -> None:
+    from amiga_reversing.disasm.manual_actions import append_manual_actions
+    target = tmp_path / 'target'
+    target.mkdir()
+    _write_raw_source(target, tmp_path / 'demo.bin', b'\x4e\x75' + bytes(30))
+    source = resolve_target_binary_source(target, project_root=tmp_path)
+    layout = dict(layout_id='words', hunk=0, source_start=16, source_end=32)
+    element = dict(layout_id='wrong', offset=0, width=16, kind='array', array_count=8, array_stride=2)
+    actions = [(ManualActionKind.CREATE_MANUAL_DATA_BLOCK_LAYOUT, dict(data_block_layout=layout)),
+               (ManualActionKind.SET_MANUAL_DATA_BLOCK_ELEMENT, dict(data_block_element=element))]
+    with pytest.raises(ValueError, match='unknown layout_id'):
+        append_manual_actions(target, actions=actions, binary_source=source)
+    path = target / MANUAL_ACTION_LOG_FILE_NAME
+    assert not path.exists()
+    element['layout_id'] = 'words'
+    append_manual_actions(target, actions=actions, binary_source=source)
+    before = path.read_bytes()
+    assert load_manual_projection(target, binary_source=source).data_block_elements[0]['layout_id'] == 'words'
+    with pytest.raises(ValueError, match='already uses this layout_id'):
+        append_manual_action(target, kind=ManualActionKind.CREATE_MANUAL_DATA_BLOCK_LAYOUT,
+                             payload=dict(data_block_layout={**layout, 'source_start': 2, 'source_end': 8}), binary_source=source)
+    assert path.read_bytes() == before
+    records = [json.loads(line) for line in path.read_text().splitlines()]
+    records.append(_action('legacy-orphan', 3, 'set_manual_data_block_element', data_block_element={**element, 'layout_id': 'missing'}))
+    _append_jsonl(path, records)
+    append_manual_action(target, kind=ManualActionKind.SET_MANUAL_DATA_BLOCK_ELEMENT,
+                         payload=dict(data_block_element=element), binary_source=source)
+    append_manual_action(target, kind=ManualActionKind.UNDO_ACTION,
+                         payload=dict(undoes_action_id='legacy-orphan'), binary_source=source)
+    projection = load_manual_projection(target, binary_source=source)
+    assert projection.review_state == 'clear'
+    assert 'legacy-orphan' in projection.inactive_action_ids

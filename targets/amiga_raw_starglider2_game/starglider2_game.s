@@ -1059,7 +1059,8 @@ SG2VelocityProjectile_SIZEOF EQU __RS
 
 ; STRUCT SG2SteeredProjectile
     RSRESET
-    RS.B 34
+    RS.B 32
+SG2SteeredProjectile_horizontal_motion_scale RS.W 1
 SG2SteeredProjectile_stored_target_tracking_byte RS.B 1
     RS.B 1
 SG2SteeredProjectile_remaining_updates RS.W 1
@@ -8823,8 +8824,8 @@ abs_0_00007626:
 	move.w player_rotation_2(a6),SG2WorldObject_rotation_2(a2)
 	move.w player_speed_smoothed(a6),d4
 	addi.w #500,d4
-	move.w d4,$0020(a2)
-	move.w $0020(a2),d3
+	move.w d4,SG2SteeredProjectile_horizontal_motion_scale(a2)
+	move.w SG2SteeredProjectile_horizontal_motion_scale(a2),d3
 	bsr.w abs_0_00007FC0
 	move.w d4,SG2WorldObject_velocity_x(a2)
 	move.w d5,SG2WorldObject_velocity_y(a2)
@@ -11114,14 +11115,16 @@ steer_projectile_toward_stored_target:
 abs_0_00009748:
 	addq.w #1,SG2SteeredProjectile_heading_recompute_mod8_index(a0)
 	andi.w #7,SG2SteeredProjectile_heading_recompute_mod8_index(a0)
-	bne.w abs_0_0000ADBA
+	bne.w recompute_tracked_projectile_horizontal_motion
 	bsr.w heading_from_stored_object_xz
 	andi.w #4095,d1
 	move.w d1,SG2WorldObject_rotation_1(a0)
-	bra.w abs_0_0000ADBA
+	bra.w recompute_tracked_projectile_horizontal_motion
+    ; Creator World yaw gate uses raw difference/NEG, not shortest wrapped angle. Direct9784 path intentionally bypasses alignment; normal creator/index/free-list preconditions remain.
+    ; KNOWN: type A0=Target code-entry register seed:SG2WorldObject
 try_ai_projectile_attack_if_aligned:
 	move.b #$1E,diagnostic_step_byte.l
-	move.w $0012(a0),d0
+	move.w SG2WorldObject_rotation_1(a0),d0
 	andi.w #4095,d0
 	sub.w d0,d1
 	bpl.b abs_0_0000977C
@@ -11129,7 +11132,8 @@ try_ai_projectile_attack_if_aligned:
 abs_0_0000977C:
 	cmp.w #$2D,d1
 	bpl.w abs_0_000081D2
-    ; Internal AI spawn continuation. Transient request selects type12 versus25; schedulers set/clear it and outer object loops reset it. It is not a collision or persistent per-object flag.
+    ; A0 is creator, not allocated child. Nonzero tag and unsigned freeCount>26 gate allocation; transient request selects12/25. Both paths set reciprocal collision-ignore type bytes.
+    ; KNOWN: type A0=Target code-entry register seed:SG2WorldObject
 spawn_ai_projectile_continuation:
 	move.b #$1F,diagnostic_step_byte.l
 	move.w (a0),d3	; operand 1: SG2ObjectCore_object_type at (a0)
@@ -11147,63 +11151,65 @@ spawn_ai_projectile_continuation:
 	lea.l object_projectile_spawn_y_offsets.l,a1
 	move.w $0(a1,d3.w),d2
 	ext.l d2
-	move.b $001D(a0),d0
+	move.b SG2WorldObject_model_scale_shift(a0),d0
 	asr.l d0,d2
 	tst.b ai_type12_projectile_request(a6)
-	beq.b abs_0_000097E2
+	beq.b initialize_ai_projectile_type25_tag
 	move.w #$C,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
 	move.b SG2ObjectCore_object_type+1(a0),$002A(a2)
-	move.b #$C,$002A(a0)
-	bra.b abs_0_000097F2
-abs_0_000097E2:
+	move.b #$C,SG2WorldObject_collision_ignored_object_type(a0)
+	bra.b initialize_ai_projectile_pose_and_motion
+initialize_ai_projectile_type25_tag:
 	move.w #$19,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
 	move.b SG2ObjectCore_object_type+1(a0),$002A(a2)
-	move.b #$19,$002A(a0)
-abs_0_000097F2:
+	move.b #$19,SG2WorldObject_collision_ignored_object_type(a0)
+    ; Both tag stores produce12/25 before this join. BYTE22 was cleared: this constructor is untracked. Preserve duplicate lifetime100 stores and separate creator/child table selectors.
+    ; KNOWN: type A2=Target code-entry register seed:SG2SteeredProjectile
+initialize_ai_projectile_pose_and_motion:
 	move.l SG2ObjectCore_world_x(a0),SG2ObjectCore_world_x(a2)
 	add.l SG2ObjectCore_world_y(a0),d2
 	move.l d2,SG2ObjectCore_world_y(a2)
 	move.l SG2ObjectCore_world_z(a0),SG2ObjectCore_world_z(a2)
-	clr.w $0010(a2)
+	clr.w SG2WorldObject_rotation_0(a2)
 	move.b #$FF,SG2ObjectCore_retirement_phase_or_negative(a2)
-	move.w $0012(a0),d1
-	move.b #$0,$0003(a2)
-	move.b #$4,$001D(a2)
-	lea.l abs_0_0000AE60(pc),a1
+	move.w SG2WorldObject_rotation_1(a0),d1
+	move.b #$0,SG2WorldObject_vertex_variant_selector(a2)
+	move.b #$4,SG2WorldObject_model_scale_shift(a2)
+	lea.l heading_policy_word_storage(pc),a1
 	tst.w $0(a1,d3.w)
 	beq.b abs_0_0000982E
 	subi.w #2048,d1
 abs_0_0000982E:
 	andi.w #4095,d1
-	move.w d1,$0012(a2)
-	clr.w $0014(a2)
-	clr.w $0010(a2)
+	move.w d1,SG2WorldObject_rotation_1(a2)
+	clr.w SG2WorldObject_rotation_2(a2)
+	clr.w SG2WorldObject_rotation_0(a2)
 	move.w (a2),d3	; operand 1: SG2ObjectCore_object_type at (a2)
 	add.w d3,d3
 	lea.l object_default_motion_words.l,a1
-	move.w $0(a1,d3.w),$0020(a2)
-	move.w #$64,$0024(a2)
+	move.w $0(a1,d3.w),SG2SteeredProjectile_horizontal_motion_scale(a2)
+	move.w #$64,SG2SteeredProjectile_remaining_updates(a2)
 	move.b #$1,SG2ObjectCore_durability_or_negative(a2)
-	move.w $0012(a2),d1
+	move.w SG2WorldObject_rotation_1(a2),d1
 	andi.w #4095,d1
 	asl.w #1,d1
 	movea.l sine_lookup_pointer(a6),a1
 	move.w $0(a1,d1.w),trig_sine_scratch_1(a6)
 	movea.l cosine_lookup_pointer(a6),a1
 	move.w $0(a1,d1.w),trig_cosine_scratch_1(a6)
-	move.w $0020(a2),d4
+	move.w SG2SteeredProjectile_horizontal_motion_scale(a2),d4
 	muls.w trig_sine_scratch_1(a6),d4
 	asl.l #1,d4
 	swap.w d4
 	neg.w d4
-	move.w d4,$002C(a2)
-	move.w $0020(a2),d4
+	move.w d4,SG2WorldObject_velocity_x(a2)
+	move.w SG2SteeredProjectile_horizontal_motion_scale(a2),d4
 	muls.w trig_cosine_scratch_1(a6),d4
 	asl.l #1,d4
 	swap.w d4
-	move.w d4,$0030(a2)
-	clr.w $002E(a2)
-	clr.b $0022(a2)
+	move.w d4,SG2WorldObject_velocity_z(a2)
+	clr.w SG2WorldObject_velocity_y(a2)
+	clr.b SG2SteeredProjectile_stored_target_tracking_byte(a2)
 	tst.b inside_structure_flag(a6)
 	beq.w abs_0_000081D2
 	bset.b #6,SG2ObjectCore_flags(a2)
@@ -12102,7 +12108,7 @@ abs_0_0000A54A:
 	move.w SG2WorldObject_rotation_1(a0),d1
 	move.b #$0,$0003(a2)
 	move.b #$4,$001D(a2)
-	lea.l abs_0_0000AE60(pc),a1
+	lea.l heading_policy_word_storage(pc),a1
 	tst.w $0(a1,d0.w)
 	beq.b abs_0_0000A5BC
 	subi.w #2048,d1
@@ -12614,7 +12620,9 @@ abs_0_0000AD7A:
 	swap.w d4
 	move.w d4,$0030(a0)
 	bra.w abs_0_000081D2
-abs_0_0000ADBA:
+    ; Tracked12/25 helper: signed WORD20 scales sine/cosine through original MULS, ASL.L1 and SWAP; X velocity is negated. No physical-unit or arbitrary mover-layout claim.
+    ; KNOWN: type A0=Target code-entry register seed:SG2SteeredProjectile
+recompute_tracked_projectile_horizontal_motion:
 	move.b #$3C,diagnostic_step_byte.l
 	move.w SG2WorldObject_rotation_1(a0),d1
 	andi.w #4095,d1
@@ -12623,13 +12631,13 @@ abs_0_0000ADBA:
 	move.w $0(a1,d1.w),trig_sine_scratch_1(a6)
 	movea.l cosine_lookup_pointer(a6),a1
 	move.w $0(a1,d1.w),trig_cosine_scratch_1(a6)
-	move.w $0020(a0),d4
+	move.w SG2SteeredProjectile_horizontal_motion_scale(a0),d4
 	muls.w trig_sine_scratch_1(a6),d4
 	asl.l #1,d4
 	swap.w d4
 	neg.w d4
 	move.w d4,SG2WorldObject_velocity_x(a0)
-	move.w $0020(a0),d4
+	move.w SG2SteeredProjectile_horizontal_motion_scale(a0),d4
 	muls.w trig_cosine_scratch_1(a6),d4
 	asl.l #1,d4
 	swap.w d4
@@ -12663,14 +12671,21 @@ abs_0_0000AE1E:
 	swap.w d4
 	move.w d4,$0030(a2)
 	rts
-abs_0_0000AE60:
-	dc.b $00,$00,$00,$01
-	dcb.b $F,$00
-	dc.b $01,$00,$01,$00,$00,$00,$00,$00,$01,$00,$00,$00,$01,$00,$01
-	dcb.b $9,$00
-	dc.b $01,$00,$01,$00,$00,$00,$00,$00,$01,$00,$01,$00,$01,$00,$01,$00
-	dc.b $01
-	dcb.b $8C,$00
+    ; 200 stored bytes to next accepted routine; indexed WORD nonzero subtracts2048 from creator yaw. Zero suffix may include padding; no universal0..99 index or live-read coverage proof.
+heading_policy_word_storage:
+	dc.w $0000,$0001,$0000,$0000,$0000,$0000,$0000,$0000	; 200-byte WORD storage at indexed heading-policy base; nonzero subtracts2048. Physical span en...
+	dc.w $0000,$0001,$0001,$0000,$0000,$0001,$0000,$0001
+	dc.w $0001,$0000,$0000,$0000,$0000,$0001,$0001,$0000
+	dc.w $0000,$0001,$0001,$0001,$0001,$0001,$0000,$0000
+	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000
+	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000
+	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000
+	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000
+	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000
+	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000
+	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000
+	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000
+	dc.w $0000,$0000,$0000,$0000
 abs_0_0000AF28:
 	move.b #$3D,diagnostic_step_byte.l
 	movea.l player_object_reference(a6),a4

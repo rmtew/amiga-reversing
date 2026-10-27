@@ -14,6 +14,24 @@ from amiga_reversing.disasm.manual_action_catalog import (
 )
 
 
+def test_target_layout_create_can_bind_a_dependent_atomic_element() -> None:
+    params = dict(hunk=0, source_start=16, source_end=32, layout_id="word-storage")
+    _, first = target_catalog_manual_payload("target.data_block.layout.create", params)
+    _, second = target_catalog_manual_payload("target.data_block.layout.create", params)
+    assert first["data_block_layout"]["layout_id"] == second["data_block_layout"]["layout_id"] == "word-storage"
+    params.pop("layout_id")
+    _, first = target_catalog_manual_payload("target.data_block.layout.create", params)
+    _, second = target_catalog_manual_payload("target.data_block.layout.create", params)
+    assert first["data_block_layout"]["layout_id"] != second["data_block_layout"]["layout_id"]
+
+
+@pytest.mark.parametrize("layout_id", ["", "  ", "bad\x00id", "a" * 257, 4])
+def test_target_layout_create_rejects_invalid_explicit_identity(layout_id) -> None:
+    with pytest.raises(ValueError, match="layout_id"):
+        target_catalog_manual_payload("target.data_block.layout.create",
+                                     dict(hunk=0, source_start=16, source_end=32, layout_id=layout_id))
+
+
 def test_range_data_block_layout_create_rejects_an_exact_existing_layout() -> None:
     layout = {"layout_id": "objects", "hunk": 0, "source_start": 0x100, "source_end": 0x108}
     rows = [

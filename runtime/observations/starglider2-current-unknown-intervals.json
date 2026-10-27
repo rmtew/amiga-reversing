@@ -1,13 +1,13 @@
 {
   "schema_version": 1,
   "kind": "current_native_residual_interval_index_not_input_facts",
-  "publication_base_commit": "6e6c55edf0d94e5ce36adc6fa45a9ef47a926581",
+  "publication_base_commit": "f3209e7d689c7a45bf3739efe15eca9e38b6ab3c",
   "binary_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
-  "source_sha256": "720e52b955abe60643898aa6ea2a3b1eac27fd9e6992ad9fe488c2bc8417da5a",
-  "analysis_sha256": "c94fb0c606c901566f023ec8b8109efb4effb6960125cf9e06fbd2489aa45fb0",
+  "source_sha256": "f79144844f2b774b56fff03f2a136a8cbb296046254cb5e2480cb6b13f5711f7",
+  "analysis_sha256": "e54b8516692bf036966aa482ca21349415dcd796d4cebaafe6480b2eedc1f6d1",
   "backend_sha256": "457ff6e685a00f0dd88dfacc483f5bc14067456fc597862ea6f1b39b27eea30a",
-  "unclassified_bytes": 13840,
-  "interval_count": 264,
+  "unclassified_bytes": 13640,
+  "interval_count": 263,
   "intervals_with_native_resolved_references": 56,
   "native_resolved_reference_records": 563,
   "unclassified_interval_code_start_facts": 0,
@@ -2267,31 +2267,6 @@
           "source_span": [
             39816,
             39828
-          ],
-          "disposition": "opaque_without_resolved_direct_sites"
-        }
-      ]
-    },
-    {
-      "source_span": [
-        40544,
-        40744
-      ],
-      "runtime_span": [
-        44640,
-        44840
-      ],
-      "bytes": 200,
-      "sha256": "5c9404356242a190fb13e9a4652f9af2125e77259a1d2d24c042dcf6121f9da9",
-      "classification": "unclassified",
-      "semantic_review": "No new semantic disposition; current native index only.",
-      "native_resolved_references": [],
-      "native_code_start_facts": [],
-      "historical_review_overlaps": [
-        {
-          "source_span": [
-            40544,
-            40744
           ],
           "disposition": "opaque_without_resolved_direct_sites"
         }

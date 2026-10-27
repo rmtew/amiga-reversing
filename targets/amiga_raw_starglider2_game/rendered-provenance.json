@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
   "kind": "committed_native_rendered_original_export",
-  "canonical_source_commit": "6e6c55edf0d94e5ce36adc6fa45a9ef47a926581",
-  "publication_base_commit": "6e6c55edf0d94e5ce36adc6fa45a9ef47a926581",
+  "canonical_source_commit": "f3209e7d689c7a45bf3739efe15eca9e38b6ab3c",
+  "publication_base_commit": "f3209e7d689c7a45bf3739efe15eca9e38b6ab3c",
   "native_export": "CListingArtifact.source_package_payload(64)",
-  "main_source_sha256": "ad0dd0931bab118aa866ab17196e99888999770e5fd332870ef538532a3cf7e2",
+  "main_source_sha256": "67fd0c8c2b3513b45a9fe974b0ab340d540ebc1d834fc5d12539416f3e98fa13",
   "asset_count": 57,
   "asset_bytes": 93633,
   "game_assembly_hand_edits": false,
@@ -24,15 +24,15 @@
     "assembler executable",
     "paused Pandora work"
   ],
-  "canonical_source_commit_role": "publication base; reviewed canonical facts added in this batch are bound by canonical_fact_sha256 and the refinement receipt",
-  "canonical_source_subject_revision": "499d0218ad0efe2ce426f11b58fa4c6f2c1b0c6b649afc3a7a29830bcb8d1224",
+  "canonical_source_commit_role": "publication base; reviewed canonical facts in this batch are bound by canonical_fact_sha256 and the refinement receipt",
+  "canonical_source_subject_revision": "3151a036599f90297e49b8b677ead3611729bae1537a194687efb90c17d3342e",
   "canonical_fact_sha256": {
     "source_binary.json": "42d4a5758b3e8236af7f912aee85e9ee5323bcd0961faa338c4f864080a0a7d9",
     "target_metadata.json": "e7540b68c118c56aba8815b6722eefa067517cc865fe9841d6c01ce96551389c",
-    "manual_actions.jsonl": "eeeb3bb51d59832ede5d2a6596f672c8c9342678165b1991d0631ad19c6e17fc",
-    "decision_journal.jsonl": "924bfd81e37f77b75dc3818fb87ce1aa059f045fc7a46a1033505e46a31dc906"
+    "manual_actions.jsonl": "ee249d3926b4345fe5ee319f1960adc07ad036f34d0da09853ae752ddbad910c",
+    "decision_journal.jsonl": "bd335f640fe1784a1b22b2be2f427bb1933214866a5534c66f2988287809c20b"
   },
-  "refinement_receipt": "runtime/observations/starglider2-ground-actor-contracts.json",
+  "refinement_receipt": "runtime/observations/starglider2-projectile-creator-contracts.json",
   "headers": "14 unmodified required include files collected by source_package.collect_package_includes from ext/amiga_includes/ndk_2.0/include; header notices retained",
   "decoded_protection_view": {
     "target_id": "amiga_raw_starglider2_protection_view",
