@@ -23,7 +23,20 @@ boundaries. It records 67 suffix signals (including numeric adjacent variants),
 21 lookup contracts, 523 remaining interior references, 32 generic app fields
 and 428 unresolved record accesses. These are different denominators. Five
 suffixes name routines and one names text; neither is a pointer defect.
-Latest: the [source-matrix ownership reconstruction](../../runtime/observations/starglider2-matrix-source-owners.json)
+Latest: the [proven app-span discovery fix](../../runtime/observations/starglider2-proven-app-spans.json)
+closes direct/derived access-discovery asymmetry. Converged app identity now
+records exact cursor accesses before an object is declared; weak interpretations
+still need a covering owner. Direct grouped accesses use the shared decoded
+footprint, including whole MOVEM spans. The retained minimal case recovers two
+16-byte accesses previously hidden. Current Starglider annotations already cover
+these cases, so actual target counts remain **3391 app references / 1199 typed /
+428 unresolved**, with identical source and accepted code: no invented gain.
+224 focused and 832 native tests pass; new-backend C/vasm output remains exact.
+Direct catalogue scalar declarations are not evidence of grouped object size.
+Continue concrete producer/consumer and inbound restoration; this fix is not a
+new runtime observation or object-lifetime proof.
+
+Preceding: the [source-matrix ownership reconstruction](../../runtime/observations/starglider2-matrix-source-owners.json)
 binds two original 18-byte mutable buffers to the existing nine-WORD matrix
 schema. Native LEA/type propagation recovers **51 field accesses** without
 per-instruction register seeds or a new recognizer. The original build/transpose
@@ -3218,8 +3231,10 @@ cannot masquerade as the encoded displacement or a register at the layout
 origin. Provenance reports retain the inherited assumption rather than promote
 it to independent proof. Rendering keeps the actual cursor delta unchanged.
 
-Projection requires a declared owner covering the full access and a converged
-worklist. Unknown/hardware bases, numeric coincidences, conflicting joins,
+At that historical scalar-only revision, projection required a declared owner
+covering the full access and a converged worklist. The current proven-span
+receipt above supersedes that owner restriction for register-state identities;
+weak interpretations retain it. Historical refusal details follow. Unknown/hardware bases, numeric coincidences, conflicting joins,
 partial pointer copies, overflow and owner overruns are refused. Indexed,
 pre/postincrement and multi/striped-transfer memory footprints are not inferred
 by this scalar projection; in particular the saved, changing point-cache cursor

@@ -6216,7 +6216,7 @@ static int attach_amiga_app_base_slot_symbols(const M68kRenderLookup *lookup,
     int proven_app = 0;
     int recorded_app = lookup_recorded_app_base_access(lookup, section_index, offset,
       (uint8_t)operand_index, base_reg, displacement, access_kind,
-      app_slot_access_size_from_instruction(instruction, access_kind), &proven_app);
+      app_slot_access_size_from_instruction(instruction, operand_index, access_kind), &proven_app);
     if (!proven_app && m68k_bitset_u32_has(state->address_hardware_base_known, base_reg)) continue;
     if (proven_app || m68k_bitset_u32_has(state->address_app_base_known, base_reg)) {
       if (!lookup_typed_app_slot_field_symbol_name(lookup, displacement, symbol_name, sizeof(symbol_name),
@@ -6247,7 +6247,7 @@ static int attach_amiga_app_base_slot_symbols(const M68kRenderLookup *lookup,
       uint8_t access_kind = app_slot_access_kind_from_instruction(instruction, operand_index);
       if (lookup->object != NULL && lookup->object->platform_backend_kind == M68K_PLATFORM_BACKEND_AMIGA_HUNK &&
           render_app_base_evidence_kind(lookup, state, base_reg, displacement,
-            app_slot_access_size_from_instruction(instruction, access_kind)) == M68K_APP_SLOT_BASE_UNSPECIFIED)
+            app_slot_access_size_from_instruction(instruction, operand_index, access_kind)) == M68K_APP_SLOT_BASE_UNSPECIFIED)
         continue;
       if (!lookup_typed_app_slot_field_symbol_name(lookup, displacement, symbol_name, sizeof(symbol_name),
           field_expr, sizeof(field_expr), &field_offset) &&

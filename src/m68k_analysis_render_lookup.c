@@ -12723,8 +12723,12 @@ static int typed_app_memory_span(const M68kRenderLookup *lookup, const M68kRende
    * replacement syntax operand or a scalar-width estimate for MOVEM. */
   if (shape == M68K_SIM_EA_SHAPE_PREDECREMENT) displacement = -(int16_t)(width * count);
   target = (int32_t)state->app_addr_regs[reg].displacement + displacement;
-  if (target < INT16_MIN || target > INT16_MAX ||
-      !policy_declared_app_extent_covers(lookup->policy, (int16_t)target, (uint8_t)(width * count))) return 0;
+  /* A proven app identity establishes this coordinate without a declaration.
+   * Weak fallback interpretations still need an independently declared owner;
+   * an observed span is not evidence of allocation bounds or object lifetime. */
+  if (target < 0 || target > INT16_MAX ||
+      (state->app_addr_regs[reg].base_evidence_kind != M68K_APP_SLOT_BASE_REGISTER_STATE &&
+       !policy_declared_app_extent_covers(lookup->policy, (int16_t)target, (uint8_t)(width * count)))) return 0;
   *out_reg = reg; *out_displacement = displacement; *out_access = access;
   *out_width = (uint8_t)(width * count); *out_element_width = width;
   *out_count = access == M68K_APP_SLOT_ACCESS_ADDRESS ? 0U : count;
@@ -12746,8 +12750,7 @@ static int render_lookup_record_derived_app_operand(M68kRenderLookup *lookup, si
         &operand_displacement, &access, &width, &element_width, &count)) return 0;
     base = &state->app_addr_regs[base_reg];
     target = (int32_t)base->displacement + operand_displacement;
-    if (target < INT16_MIN || target > INT16_MAX ||
-        !policy_declared_app_extent_covers(lookup->policy, (int16_t)target, width)) return 0;
+    /* typed_app_memory_span already checks coordinates and evidence strength. */
     if (render_lookup_add_app_access_ref(lookup, section_index, offset, base_reg, (int16_t)target,
         (uint8_t)operand_index, access, width, 0, base->base_evidence_kind) != 0) return -1;
     for (index = 0U; index < lookup->app_slot_ref_count; ++index) {
@@ -15969,13 +15972,13 @@ uint8_t app_slot_access_kind_from_instruction(const M68kInstructionIR *instructi
   return M68K_APP_SLOT_ACCESS_NONE;
 }
 
-uint8_t app_slot_access_size_from_instruction(const M68kInstructionIR *instruction, uint8_t access_kind) {
-  if (access_kind == M68K_APP_SLOT_ACCESS_ADDRESS) return 0U;
-  if (instruction == NULL) return 0U;
-  if (instruction->size_suffix == 'b') return 1U;
-  if (instruction->size_suffix == 'w') return 2U;
-  if (instruction->size_suffix == 'l') return 4U;
-  return 0U;
+uint8_t app_slot_access_size_from_instruction(const M68kInstructionIR *instruction,
+    size_t operand_index, uint8_t access_kind) {
+  uint8_t span = 0U;
+  if (access_kind == M68K_APP_SLOT_ACCESS_ADDRESS || instruction == NULL) return 0U;
+  /* Shared decoded footprints include register lists and fixed-size bit forms.
+   * Unsupported/striped accesses never become a guessed scalar span. */
+  return platform_operand_memory_span(instruction, operand_index, NULL, NULL, &span) ? span : 0U;
 }
 
 static int render_lookup_seed_policy_rsset_use_site_app_refs(M68kRenderLookup *lookup, const M68kDecodeIR *decode,
@@ -16016,9 +16019,11 @@ static int render_lookup_seed_policy_rsset_use_site_app_refs(M68kRenderLookup *l
           continue;
         }
         access_kind = app_slot_access_kind_from_instruction(&instruction, binding->operand_index);
+        if (access_kind != M68K_APP_SLOT_ACCESS_ADDRESS &&
+            app_slot_access_size_from_instruction(&instruction, binding->operand_index, access_kind) == 0U) continue;
         if (render_lookup_add_app_access_ref(lookup, section->section_index, candidate->offset, base_reg,
             displacement, binding->operand_index, access_kind,
-            app_slot_access_size_from_instruction(&instruction, access_kind), 0,
+            app_slot_access_size_from_instruction(&instruction, binding->operand_index, access_kind), 0,
             M68K_APP_SLOT_BASE_USE_SITE_BINDING) != 0) {
           return -1;
         }
@@ -16148,7 +16153,8 @@ static int render_lookup_record_base_app_accesses(M68kRenderLookup *lookup, size
         &displacement) || (int32_t)displacement < minimum) continue;
     access = app_slot_access_kind_from_instruction(instruction, operand_index);
     if (access == M68K_APP_SLOT_ACCESS_NONE) continue;
-    width = app_slot_access_size_from_instruction(instruction, access);
+    width = app_slot_access_size_from_instruction(instruction, operand_index, access);
+    if (access != M68K_APP_SLOT_ACCESS_ADDRESS && width == 0U) continue;
     evidence = render_app_base_evidence_kind(lookup, state, base_reg, displacement, width);
     if (legacy_fallbacks && evidence == M68K_APP_SLOT_BASE_REGISTER_STATE) {
       static const M68kRenderPlatformState unattributed = {0};

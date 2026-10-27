@@ -1,0 +1,184 @@
+{
+  "schema_version": 1,
+  "kind": "proven_app_cursor_access_discovery_and_shared_direct_footprint",
+  "status": "qualified_framework_gap_closed_restoration_continues",
+  "publication_base_commit": "8e0cef9b9a2f99bf55f5efa9b0cfe1dfd993f212",
+  "cause": "Derived app-cursor projection required a full declared owner even for converged register-state app identity. The same coordinate as a direct displacement was already recorded without an owner. This hid both original strongly-proven decode-frame stores before the preceding canonical frame declaration. A separate direct access helper estimated width from suffix, so a four-register MOVEM.L could pass a four-byte weak-owner test despite its16-byte footprint.",
+  "changes": [
+    "Use existing converged app-address identity to admit nonnegative signed16-bit derived coordinates independently of a declaration only for register_state provenance. Weak fallback/library-extension interpretations still require a covering owner. A span is access evidence, not allocation/object/lifetime proof.",
+    "Remove duplicate owner admission from the derived catalogue recorder; retain shared footprint/clobber/join/update/index/hardware/incomplete guards.",
+    "Direct operand footprint helper takes the exact operand index and calls existing platform_operand_memory_span; unsupported/striped forms are refused rather than scalarized. No new instruction facts, register-list implementation, target-specific addresses or parallel transfer engine."
+  ],
+  "reproducer": {
+    "before": [
+      {
+        "case": "direct",
+        "refs": [
+          {
+            "offset": 0,
+            "displacement": 156,
+            "base_register": "A2",
+            "operand_index": 1,
+            "access": "write",
+            "base_evidence": "register_state",
+            "symbol_name": "app_009C"
+          }
+        ]
+      },
+      {
+        "case": "derived",
+        "refs": [
+          {
+            "offset": 0,
+            "displacement": 172,
+            "base_register": "A2",
+            "operand_index": 0,
+            "access": "address",
+            "base_evidence": "register_state",
+            "symbol_name": "app_00AC"
+          }
+        ]
+      }
+    ],
+    "after": [
+      {
+        "case": "direct",
+        "refs": [
+          {
+            "offset": 0,
+            "displacement": 156,
+            "base_register": "A2",
+            "operand_index": 1,
+            "access": "write",
+            "base_evidence": "register_state",
+            "symbol_name": "app_009C"
+          }
+        ]
+      },
+      {
+        "case": "derived",
+        "refs": [
+          {
+            "offset": 0,
+            "displacement": 172,
+            "base_register": "A2",
+            "operand_index": 0,
+            "access": "address",
+            "base_evidence": "register_state",
+            "symbol_name": "app_00AC"
+          },
+          {
+            "offset": 4,
+            "displacement": 156,
+            "base_register": "A3",
+            "operand_index": 1,
+            "access": "write",
+            "base_evidence": "register_state",
+            "derived": true,
+            "base_displacement": 172,
+            "operand_displacement": -16,
+            "data_access_size": 16,
+            "element_width": 4,
+            "transfer_count": 4,
+            "symbol_name": "app_009C"
+          },
+          {
+            "offset": 8,
+            "displacement": 156,
+            "base_register": "A3",
+            "operand_index": 0,
+            "access": "read",
+            "base_evidence": "register_state",
+            "derived": true,
+            "base_displacement": 156,
+            "operand_displacement": 0,
+            "data_access_size": 16,
+            "element_width": 4,
+            "transfer_count": 4,
+            "symbol_name": "app_009C"
+          }
+        ]
+      }
+    ],
+    "outcome": "Without any owner, seeded A2 direct MOVEM store is recorded before and after. Derived predecrement store and postincrement read go from0to2 memory refs at app9C, both16bytes/fourLONGs/register_state. Separate weak A6 hardware-offset test admits only the16-byte owner, rejecting4-byte owner."
+  },
+  "inputs": {
+    "binary_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "analysis_sha256": "3c0354ca48a9192cb5c745635a5b191c54708d71777b92c3c4de552b0bf2c1e6",
+    "metadata_sha256": "3182144ffcd19e04c60b2e70eb06d8c07bf620232ba46b96ca7d96a1d6b9d2b7",
+    "backend_sha256": "4fb917aed57c8ab72645d149820a0ffcd18722170a440de53b811ed98ccc0c86",
+    "implementation_sha256": {
+      "src/m68k_analysis_render_lookup.c": "654eee540116598180df4cfdb5ebd33bf3ab1aae360ff17092053285338ad338",
+      "src/m68k_render_ir.c": "0e26fb83dddcbcdc38fdd3f710c460d659c58cfd50a16678427ccf9dfcf4a704",
+      "src/m68k_render_lookup_internal.h": "86d46d9e223630773feec7e105de362c6a675f9202ffc92b9156b2c3eeac6242"
+    }
+  },
+  "target_accounting": {
+    "before_after": {
+      "app_slot_ref_count": [
+        3391,
+        3391
+      ],
+      "recovered_platform_typed_access_count": [
+        1199,
+        1199
+      ],
+      "recovered_platform_unresolved_typed_access_count": [
+        428,
+        428
+      ]
+    },
+    "new_refs": [],
+    "lost_refs": [],
+    "new_by_displacement": {},
+    "incomplete": [],
+    "diagnostics": 0,
+    "accepted_code_runs_identical": true
+  },
+  "validation": {
+    "native_and_vasm": {
+      "kind": "verification",
+      "framework_exact": true,
+      "target_id": "amiga_raw_starglider2_game",
+      "subject_revision": "ca95f571b996df3e97ba3619d2cfa6aef48da166deaf3a7c9b7402d6892b53ab",
+      "status": "exact",
+      "exact": true,
+      "source_sha256": "0a3dbda023b37e8b62d743a43c6e6f9ddd695dc9a66b4cb3e87647cb59b96fc3",
+      "source_path": "/workspace/pandora-original-delivery/stable-d15c2cf8/.runtime-state/restoration/eb04f545fb97451725a1c91ab5abf6f2e097614c45880db6edfb4ea5c3f6e2c2/0a3dbda023b37e8b62d743a43c6e6f9ddd695dc9a66b4cb3e87647cb59b96fc3.s",
+      "source_package_sha256": null,
+      "original_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+      "original_size": 412736,
+      "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+      "rebuilt_path": "/workspace/pandora-original-delivery/stable-d15c2cf8/.runtime-state/restoration/eb04f545fb97451725a1c91ab5abf6f2e097614c45880db6edfb4ea5c3f6e2c2/662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9.bin",
+      "framework_status": "exact",
+      "failure_kinds": [],
+      "message": "",
+      "oracle": {
+        "oracle_id": "vasm",
+        "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+        "comparison_level": "oracle.full_file_match",
+        "assembler_status": "accepted",
+        "message": "oracle output matched original bytes"
+      },
+      "receipt_id": "d0dc4ff7013ac540e7347dbbd09d50484983742b3fcc436585c15ad4c1616b20",
+      "revision": "cfe50a6e56c1efc63b07abc03dc328f9cec031233a40708a84f95880cb8ddf60"
+    },
+    "focused_tests": 224,
+    "native_unit_tests": 832,
+    "framework_only": true,
+    "canonical_actions": 0,
+    "source_text_identical_to_prior": true,
+    "prior_clean_standalone": "8e0cef9b tested the identical rendered target tree dd6ef22107e39aec376f0de407124b0d172580f8; no second standalone rebuild needed for unchanged source/assets/includes.",
+    "regression_coverage": "Scalar b/w/l and MOVEM w/l, full pre/post update, register-state versus weak fallback, whole-group owner disambiguation, negative coordinates, equal/conflicting joins, clobbers, reglist-EA conflicts, indexed/striped accesses, incomplete flow, stack/call/counter/range/catalogue guards."
+  },
+  "generation_wall_seconds": 150.3134679700015,
+  "limits": [
+    "Current fully annotated Starglider target adds0accesses and0typed identities:3391apprefs/1199typed/428unresolved remain. Its needed owners already existed after the saved-frame/matrix batches. The gain is automatic discovery before such declarations, demonstrated by the retained minimal reproduction; no new semantic completion claim.",
+    "Direct app refs still lack the derived-span JSON fields. Shared decoded footprints now govern direct admission, and the instruction/audit interface supplies their actual grouped span; normalized inferred scalar declarations are not grouped object-size evidence.",
+    "No new normal-input runtime coverage, arbitrary-loop proof, allocation bounds, original callback/lifetime proof or dead-storage inference."
+  ],
+  "next": {
+    "group": "Concrete remaining producer/consumer and inbound evidence",
+    "experiment": "Return to retained original instruction/CFG evidence for generic fields and unresolved incoming paths; reject byte-pattern-only promotion and do not infer unused storage from absent direct readers."
+  }
+}

@@ -95,6 +95,9 @@ int main(void) {
     uint8_t width = 0U, count = 0U, span = 0U;
     assert(platform_operand_memory_span(&store, 1U, &width, &count, &span));
     assert(width == 4U && count == 2U && span == 8U);
+    assert(app_slot_access_size_from_instruction(&store, 1U, M68K_APP_SLOT_ACCESS_WRITE) == 8U);
+    assert(app_slot_access_size_from_instruction(&load, 0U, M68K_APP_SLOT_ACCESS_READ) == 4U);
+    assert(app_slot_access_size_from_instruction(&address, 0U, M68K_APP_SLOT_ACCESS_ADDRESS) == 0U);
     assert(platform_operand_memory_span(&load, 0U, &width, &count, &span));
     assert(width == 2U && count == 2U && span == 4U);
     assert(platform_operand_register_write_mask(&load, 1U) == 0x3000U);
@@ -247,9 +250,9 @@ joined:
         artifact.close()
 
 
-def test_no_declared_owner_or_unfinished_worklist_cannot_admit_derived_access(tmp_path, monkeypatch):
+def test_weak_unowned_base_or_unfinished_worklist_cannot_admit_derived_access(tmp_path, monkeypatch):
     body = 'lea.l $BC6(a6),a4\n lea.l $78(a4),a5\n move.l (a5),d0'
-    artifact, _ = cursor_artifact(tmp_path, body, regions=False, seeded=True)
+    artifact, _ = cursor_artifact(tmp_path, body, regions=False, seeded=False)
     try:
         assert not derived_refs(artifact)
     finally:
