@@ -968,7 +968,8 @@ SG2ObjectCore_world_z RS.L 1
 SG2ObjectCore_relative_x RS.W 1
 SG2ObjectCore_relative_y RS.W 1
 SG2ObjectCore_relative_z RS.W 1
-    RS.B 2
+SG2ObjectCore_durability_or_negative RS.B 1
+    RS.B 1
 SG2ObjectCore_retirement_phase_or_negative RS.B 1
     RS.B 37
 SG2ObjectCore_SIZEOF EQU __RS
@@ -2081,7 +2082,7 @@ abs_0_00001D42:
 	clr.b $001E(a2)
 abs_0_00001D64:
 	clr.b $0003(a2)
-	lea.l model_default_control_state_bytes.l,a0
+	lea.l model_default_durability_bytes.l,a0
 	move.b $0(a0,d0.w),$001C(a2)
 	lea.l model_default_scale_shifts.l,a0
 	move.b $0(a0,d0.w),$001D(a2)
@@ -9144,7 +9145,8 @@ abs_0_0000800A:
 	add.w d1,d1
 	tst.b SG2ObjectCore_flags(a0)
 	bmi.w abs_0_000081D2
-	tst.b $001C(a0)
+    ; Signed durability: zero suppresses this ordinary primary dispatch. Negative values bypass ordinary model-contact damage, not explicit bomb/projector retirement.
+	tst.b SG2ObjectCore_durability_or_negative(a0)
 	beq.w abs_0_000081D2
 	move.w primary_object_update_offsets(pc,d1.w),d1
 	jmp primary_object_update_offsets(pc,d1.w)
@@ -9327,7 +9329,7 @@ clear_and_release_world_object:
 	move.l d0,(a0)+
 	move.l d0,(a0)+
 	move.l d0,(a0)+	; operand 2: SG2ObjectCore_relative_y at (a0)+
-	move.l d0,(a0)+
+	move.l d0,(a0)+	; operand 2: SG2ObjectCore_durability_or_negative at (a0)+
 	move.l d0,(a0)+
 	move.l d0,(a0)+
 	move.l d0,(a0)+
@@ -9540,7 +9542,7 @@ abs_0_0000835C:
 	move.l d0,(a0)+
 	move.l d0,(a0)+
 	move.l d0,(a0)+	; operand 2: SG2ObjectCore_relative_y at (a0)+
-	move.l d0,(a0)+
+	move.l d0,(a0)+	; operand 2: SG2ObjectCore_durability_or_negative at (a0)+
 	move.l d0,(a0)+
 	move.l d0,(a0)+
 	move.l d0,(a0)+
@@ -11572,7 +11574,7 @@ abs_0_0000A004:
 	clr.b $0003(a2)
 	lea.l model_default_scale_shifts.l,a1
 	move.b $0(a1,d0.w),$001D(a2)
-	lea.l model_default_control_state_bytes.l,a1
+	lea.l model_default_durability_bytes.l,a1
 	move.b $0(a1,d0.w),$001C(a2)
 	add.w d0,d0
 	lea.l object_default_motion_words.l,a1
@@ -11610,7 +11612,7 @@ abs_0_0000A0F0:
 	cmpi.b #19,$0003(a0)
 	beq.b abs_0_0000A110
 	addq.b #1,$0003(a0)
-	lea.l model_default_control_state_bytes.l,a1
+	lea.l model_default_durability_bytes.l,a1
 	bra.w abs_0_000081D2
 abs_0_0000A110:
 	cmpi.l #4294966156,$0008(a2)
@@ -12125,7 +12127,7 @@ abs_0_0000A8F2:
 	clr.b $0003(a2)
 	lea.l model_default_scale_shifts.l,a1
 	move.b $0(a1,d0.w),$001D(a2)
-	lea.l model_default_control_state_bytes.l,a1
+	lea.l model_default_durability_bytes.l,a1
 	move.b $0(a1,d0.w),$001C(a2)
 	add.w d0,d0
 	lea.l object_default_motion_words.l,a1
@@ -12163,7 +12165,7 @@ abs_0_0000A9DE:
 	cmpi.b #19,$0003(a0)
 	beq.b abs_0_0000A9FE
 	addq.b #1,$0003(a0)
-	lea.l model_default_control_state_bytes.l,a1
+	lea.l model_default_durability_bytes.l,a1
 	bra.w abs_0_0000839C
 abs_0_0000A9FE:
 	cmpi.l #4294966156,$0008(a2)
@@ -12250,7 +12252,7 @@ abs_0_0000AB54:
 	cmpi.b #7,$0003(a0)
 	beq.b abs_0_0000AB74
 	addq.b #1,$0003(a0)
-	lea.l model_default_control_state_bytes.l,a1
+	lea.l model_default_durability_bytes.l,a1
 	bra.w abs_0_0000839C
 abs_0_0000AB74:
 	bclr.b #7,$0002(a2)
@@ -13040,39 +13042,40 @@ filter_contact_by_ignored_object_type:
 	cmpi.w #98,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
 	beq.w abs_0_0000B784
 	cmpi.w #84,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
-	beq.b abs_0_0000B6E6
+	beq.b apply_outer_cube_launcher_contact
 	cmpi.w #103,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
-	beq.b abs_0_0000B724
+	beq.b test_outer_laser_contact_durability
 	cmpi.w #12,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
 	beq.b abs_0_0000B714
 	bra.w abs_0_0000B7C0
-abs_0_0000B6E6:
-	tst.b $001C(a0)
+apply_outer_cube_launcher_contact:
+	tst.b SG2ObjectCore_durability_or_negative(a0)
 	bmi.w abs_0_0000B7D6
 	beq.w abs_0_0000B766
 	cmpi.w #12,(a0)	; operand 2: SG2ObjectCore_object_type at (a0)
-	bne.b abs_0_0000B706
+	bne.b decrement_outer_cube_contact_durability
 	tst.b $0022(a0)
-	beq.b abs_0_0000B706
-	clr.b $001C(a0)
+	beq.b decrement_outer_cube_contact_durability
+	clr.b SG2ObjectCore_durability_or_negative(a0)
 	bra.w abs_0_0000B784
-abs_0_0000B706:
-	subq.b #1,$001C(a0)
+    ; Cube-launcher contact may decrement twice via the following shared damage path. Preserve BYTE wrap, both branch tests and the outer missile shortcut; not one hit per contact.
+decrement_outer_cube_contact_durability:
+	subq.b #1,SG2ObjectCore_durability_or_negative(a0)
 	beq.w abs_0_0000B784
 	bmi.w abs_0_0000B784
-	bra.b abs_0_0000B72E
+	bra.b decrement_outer_contact_durability
 abs_0_0000B714:
 	cmpi.w #37,(a0)	; operand 2: SG2ObjectCore_object_type at (a0)
 	beq.b abs_0_0000B766
-	tst.b $001C(a0)
+	tst.b SG2ObjectCore_durability_or_negative(a0)
 	bmi.w abs_0_0000B7D6
 	bra.b abs_0_0000B766
-abs_0_0000B724:
-	tst.b $001C(a0)
+test_outer_laser_contact_durability:
+	tst.b SG2ObjectCore_durability_or_negative(a0)
 	beq.b abs_0_0000B766
 	bmi.w abs_0_0000B7D6
-abs_0_0000B72E:
-	subq.b #1,$001C(a0)
+decrement_outer_contact_durability:
+	subq.b #1,SG2ObjectCore_durability_or_negative(a0)
 	beq.b abs_0_0000B766
 	bmi.b abs_0_0000B766
 	bset.b #2,SG2ObjectCore_flags(a0)
@@ -13090,7 +13093,7 @@ abs_0_0000B758:
 	bra.w abs_0_0000B7D6
 abs_0_0000B766:
 	tst.b $0022(a2)
-	beq.b abs_0_0000B7C6
+	beq.b start_outer_contact_retirement
 	cmpi.w #37,(a0)	; operand 2: SG2ObjectCore_object_type at (a0)
 	beq.b abs_0_0000B784
 abs_0_0000B772:
@@ -13118,11 +13121,11 @@ abs_0_0000B7A4:
 	add.w d0,pending_bcd_score_addend(a6)
 	addq.l #1,pilot_hits_scored(a6)
 	movem.l (a7)+,d0/a1/a6
-	bra.b abs_0_0000B7C6
+	bra.b start_outer_contact_retirement
 abs_0_0000B7C0:
-	tst.b $001C(a0)
+	tst.b SG2ObjectCore_durability_or_negative(a0)
 	bmi.b abs_0_0000B7D6
-abs_0_0000B7C6:
+start_outer_contact_retirement:
 	bclr.b #3,SG2ObjectCore_flags(a0)
 	tst.b SG2ObjectCore_retirement_phase_or_negative(a0)
 	bpl.b abs_0_0000B7D6
@@ -13142,31 +13145,31 @@ abs_0_0000B7D6:
 	cmpi.w #98,(a0)	; operand 2: SG2ObjectCore_object_type at (a0)
 	beq.w abs_0_0000B8A6
 	cmpi.w #84,(a0)	; operand 2: SG2ObjectCore_object_type at (a0)
-	beq.b abs_0_0000B820
+	beq.b apply_inner_cube_launcher_contact
 	cmpi.w #103,(a0)	; operand 2: SG2ObjectCore_object_type at (a0)
-	beq.b abs_0_0000B846
+	beq.b test_inner_laser_contact_durability
 	cmpi.w #12,(a0)	; operand 2: SG2ObjectCore_object_type at (a0)
 	beq.b abs_0_0000B836
 	bra.w abs_0_0000B8E2
-abs_0_0000B820:
-	tst.b $001C(a2)
+apply_inner_cube_launcher_contact:
+	tst.b SG2ObjectCore_durability_or_negative(a2)
 	bmi.w abs_0_0000B8F8
-	subq.b #1,$001C(a2)
+	subq.b #1,SG2ObjectCore_durability_or_negative(a2)
 	beq.w abs_0_0000B8A6
 	bmi.w abs_0_0000B8A6
-	bra.b abs_0_0000B852
+	bra.b decrement_inner_contact_durability
 abs_0_0000B836:
 	cmpi.w #37,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
 	beq.b abs_0_0000B888
-	tst.b $001C(a2)
+	tst.b SG2ObjectCore_durability_or_negative(a2)
 	bmi.w abs_0_0000B8F8
 	bra.b abs_0_0000B888
-abs_0_0000B846:
-	tst.b $001C(a2)
+test_inner_laser_contact_durability:
+	tst.b SG2ObjectCore_durability_or_negative(a2)
 	beq.w abs_0_0000B888
 	bmi.w abs_0_0000B8F8
-abs_0_0000B852:
-	subq.b #1,$001C(a2)
+decrement_inner_contact_durability:
+	subq.b #1,SG2ObjectCore_durability_or_negative(a2)
 	beq.b abs_0_0000B888
 	bmi.b abs_0_0000B888
 	bset.b #2,SG2ObjectCore_flags(a2)
@@ -13184,7 +13187,7 @@ abs_0_0000B87C:
 	bra.b abs_0_0000B8F8
 abs_0_0000B888:
 	tst.b $0022(a0)
-	beq.b abs_0_0000B8E8
+	beq.b start_inner_contact_retirement
 	cmpi.w #37,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
 	beq.b abs_0_0000B8A6
 abs_0_0000B894:
@@ -13212,11 +13215,11 @@ abs_0_0000B8C6:
 	add.w d0,pending_bcd_score_addend(a6)
 	addq.l #1,pilot_hits_scored(a6)
 	movem.l (a7)+,d0/a1/a6
-	bra.b abs_0_0000B8E8
+	bra.b start_inner_contact_retirement
 abs_0_0000B8E2:
-	tst.b $001C(a2)
+	tst.b SG2ObjectCore_durability_or_negative(a2)
 	bmi.b abs_0_0000B8F8
-abs_0_0000B8E8:
+start_inner_contact_retirement:
 	bclr.b #3,SG2ObjectCore_flags(a2)
 	tst.b SG2ObjectCore_retirement_phase_or_negative(a2)
 	bpl.b abs_0_0000B8F8
@@ -23021,7 +23024,7 @@ object_default_motion_words:
 	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000
 	dcb.b $C,$00
     ; Default BYTE copied to object1C; later consumers use mixed state/countdown/flag meanings. Only104model-domain prefix identified; next6 stored04 bytes remain unassigned.
-model_default_control_state_bytes:
+model_default_durability_bytes:
 	dc.b $00,$06,$04,$0E,$06,$04,$04,$04,$04,$04,$04,$04,$02,$04,$04,$06
 	dcb.b $8,$04
 	dc.b $02,$02,$04,$63
@@ -23062,7 +23065,7 @@ abs_0_00017DC4:
 	move.l d1,(a0)+
 	move.l d1,(a0)+
 	move.l d1,(a0)+	; operand 2: SG2ObjectCore_relative_y at (a0)+
-	move.l d1,(a0)+
+	move.l d1,(a0)+	; operand 2: SG2ObjectCore_durability_or_negative at (a0)+
 	move.l d1,(a0)+
 	move.l d1,(a0)+
 	move.l d1,(a0)+
@@ -23076,7 +23079,7 @@ abs_0_00017DC4:
 	clr.l object_initializer_chain_tail(a6)
 	moveq.l #68,d2
 	lea.l world_object_pool(a6),a0
-	lea.l model_default_control_state_bytes.l,a3
+	lea.l model_default_durability_bytes.l,a3
 	lea.l model_default_scale_shifts.l,a4
 	lea.l world_placement_pointers.l,a1
 	lea.l model_horizontal_contact_extents.l,a2
@@ -23108,8 +23111,9 @@ read_next_world_object_placement:
 	move.l (a1)+,SG2ObjectCore_world_z(a0)
 	tst.w d4
 	bpl.b read_interior_placement_parameters
+    ; Copy original type-indexed durability default into signed BYTE1C. Stored model prefix has104 entries; high-type aliases are unchanged and are not established table bounds.
 abs_0_00017E68:
-	move.b $0(a3,d0.w),$001C(a0)
+	move.b $0(a3,d0.w),SG2ObjectCore_durability_or_negative(a0)
     ; Model shift comes from original type-indexed BYTE defaults at172CE. Known model prefix has104entries; high/out-of-domain selectors retain original unchecked aliases.
 abs_0_00017E6E:
 	move.b $0(a4,d0.w),$001D(a0)
@@ -23764,7 +23768,7 @@ initialize_celestial_body_radius_and_y:
 	move.l $0(a2,d0.w),SG2RadialObject_base_radius(a0)
 	move.l SG2RadialObject_base_radius(a0),SG2RadialObject_radius_work_value(a0)
 	move.l #$FECED300,SG2ObjectCore_world_y(a0)
-	bset.b #7,$001C(a0)
+	bset.b #7,SG2ObjectCore_durability_or_negative(a0)
 	move usp,a2
 	rts
 abs_0_00018814:
@@ -23823,7 +23827,7 @@ initialize_shared_radial_object:
 	move.l $0(a2,d0.w),SG2RadialObject_base_radius(a0)
 	move.l SG2RadialObject_base_radius(a0),SG2RadialObject_radius_work_value(a0)
 	move.l #$FFFE7960,SG2ObjectCore_world_y(a0)
-	bset.b #7,$001C(a0)
+	bset.b #7,SG2ObjectCore_durability_or_negative(a0)
 	move usp,a2
 	bset.b #4,SG2ObjectCore_flags(a0)
 	rts
@@ -42726,7 +42730,7 @@ abs_0_000333D0:
 	clr.b SG2ObjectCore_retirement_phase_or_negative(a2)
 	bclr.b #2,SG2ObjectCore_flags(a2)
 	bclr.b #3,SG2ObjectCore_flags(a2)
-	clr.b $001C(a2)
+	clr.b SG2ObjectCore_durability_or_negative(a2)
 abs_0_000333EC:
 	dbf.w d0,abs_0_000333D0
 	bra.b abs_0_00033434
@@ -43020,7 +43024,7 @@ abs_0_00033830:
 	move.w d0,(a4)
 	lea.l model_default_scale_shifts.l,a0
 	move.b $0(a0,d0.w),$001D(a4)
-	lea.l model_default_control_state_bytes.l,a0
+	lea.l model_default_durability_bytes.l,a0
 	move.b $0(a0,d0.w),$001C(a4)
 	move.b #$FF,$001E(a4)
 	clr.b $0003(a4)
@@ -44783,7 +44787,7 @@ retire_projector_or_type91_and_award:
 	clr.b SG2ObjectCore_retirement_phase_or_negative(a1)
 	bclr.b #2,SG2ObjectCore_flags(a1)
 	bclr.b #3,SG2ObjectCore_flags(a1)
-	clr.b $001C(a1)
+	clr.b SG2ObjectCore_durability_or_negative(a1)
 	move.w d1,d3
 	add.w d3,d3
 	move.w $0(a3,d3.w),d3
@@ -44945,7 +44949,7 @@ abs_0_00035280:
 	clr.b SG2ObjectCore_retirement_phase_or_negative(a1)
 	bclr.b #2,SG2ObjectCore_flags(a1)
 	bclr.b #3,SG2ObjectCore_flags(a1)
-	clr.b $001C(a1)
+	clr.b SG2ObjectCore_durability_or_negative(a1)
 abs_0_000352A8:
 	dbf.w d0,abs_0_00035280
 	clr.l nearby_space_station_reference(a6)
@@ -45629,7 +45633,7 @@ remove_distant_tractor_beam_marker:
 	bra.w abs_0_00039D3E
     ; KNOWN: type A0=Target code-entry register seed:SG2WorldObject
 update_nearby_asteroid:
-	cmpi.b #2,$001C(a0)
+	cmpi.b #2,SG2ObjectCore_durability_or_negative(a0)
 	ble.w split_asteroid_continuation
 	movem.w SG2WorldObject_velocity_x(a0),d0-d2
 	add.l d0,SG2ObjectCore_world_x(a0)
@@ -45707,7 +45711,7 @@ abs_0_00035CC0:
 	clr.b SG2ObjectCore_retirement_phase_or_negative(a0)
 	bclr.b #2,SG2ObjectCore_flags(a0)
 	bclr.b #3,SG2ObjectCore_flags(a0)
-	clr.b $001C(a0)
+	clr.b SG2ObjectCore_durability_or_negative(a0)
 abs_0_00035CD4:
 	bra.w abs_0_00039D56
     ; KNOWN: type A0=Target code-entry register seed:SG2WorldObject
@@ -45939,7 +45943,7 @@ abs_0_00035FE0:
 	clr.b SG2ObjectCore_retirement_phase_or_negative(a0)
 	bclr.b #2,SG2ObjectCore_flags(a0)
 	bclr.b #3,SG2ObjectCore_flags(a0)
-	clr.b $001C(a0)
+	clr.b SG2ObjectCore_durability_or_negative(a0)
 abs_0_00036006:
 	rts
 	dc.b $50,$68,$00,$12,$02,$68,$0F,$FF,$00,$12,$61,$00,$00,$0E,$60,$00
@@ -46923,7 +46927,7 @@ retire_distant_type47:
 	bra.w abs_0_00039D3E
     ; KNOWN: type A0=Target code-entry register seed:SG2WorldObject
 update_nearby_pirate_ship:
-	cmpi.b #2,$001C(a0)
+	cmpi.b #2,SG2ObjectCore_durability_or_negative(a0)
 	ble.w abs_0_0003704C
 	move.w SG2WorldObject_velocity_x(a0),d3
 	ext.l d3
@@ -47131,7 +47135,7 @@ abs_0_0003704C:
 	clr.b SG2ObjectCore_retirement_phase_or_negative(a0)
 	bclr.b #2,SG2ObjectCore_flags(a0)
 	bclr.b #3,SG2ObjectCore_flags(a0)
-	clr.b $001C(a0)
+	clr.b SG2ObjectCore_durability_or_negative(a0)
 	st.b pending_transient_event_sound(a6)
 	lea.l object_destruction_bcd_awards.l,a1
 	move.w (a0),d0	; operand 1: SG2ObjectCore_object_type at (a0)
@@ -47235,7 +47239,7 @@ abs_0_000371E4:
 	move.l d2,$0004(a4)
 	move.l d3,$0004(a4)
 	move.b #$FF,$001E(a4)
-	lea.l model_default_control_state_bytes.l,a3
+	lea.l model_default_durability_bytes.l,a3
 	move.b $0(a3,d0.w),$001C(a4)
 	clr.b $0003(a4)
 	move.b #$1,$001F(a4)

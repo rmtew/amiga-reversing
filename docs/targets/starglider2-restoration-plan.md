@@ -21,9 +21,23 @@ The [current systematic gap inventory](../../runtime/observations/starglider2-so
 joins native identities/accesses with canonical layouts and actual rendered
 boundaries. It records 66 suffix signals (including numeric adjacent variants),
 21 lookup contracts, 523 remaining interior references, 32 generic app fields
-and 240 unresolved record accesses. These are different denominators. Five
+and 212 unresolved record accesses. These are different denominators. Five
 suffixes name routines and one names text; neither is a pointer defect.
-Latest: the [shared object/contact views](../../runtime/observations/starglider2-object-contact-views.json)
+Latest: the [signed durability reconstruction](../../runtime/observations/starglider2-object-durability.json)
+replaces the coarse default-control-state description with the shared BYTE1C
+producer/consumer contract. Ordinary contact handling decrements positive values;
+negative values bypass those paths, and zero suppresses primary type dispatch.
+Model callbacks use strength thresholds for split/behavior transitions. This is
+not a universal timer, immunity flag or one-decrement-per-contact model: original
+cube-launcher double damage, missile shortcut, direct retirement and BYTE wrap
+remain explicit. The 104-byte defaults prefix is unchanged; no adjacent bytes
+are reclassified. **28 field accesses** are now projected through the
+common owner, with **778 typed /
+212 unresolved** overall. Original exact C/vasm and standalone output remain
+qualified, with no framework change or new runtime campaign in this batch.
+Continue actor-specific callback/state interpretation from these shared facts.
+
+Preceding: the [shared object/contact views](../../runtime/observations/starglider2-object-contact-views.json)
 separate the original 68-byte common record from model/motion and radial variants.
 Four pointer lists now preserve common pointee fields; original tag/consumption
 guards establish narrower views. Model rotations, one-based optional vertex-frame

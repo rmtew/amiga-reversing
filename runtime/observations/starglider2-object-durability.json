@@ -1,0 +1,443 @@
+{
+  "schema_version": 1,
+  "kind": "object_signed_contact_durability_and_primary_update_contract",
+  "status": "qualified_restoration_batch_continues",
+  "publication_base_commit": "52ace9333b05381eae9117d57946696561616b79",
+  "input": {
+    "binary_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "backend_sha256": "786c0581079840fbad6eba1a2656c08c0c5387f856fbda2201e02bc871b158f0",
+    "analysis_sha256": "4e5130c5f806f1cd96ec15a1070ce066241f1fc86ed1418acb2de7b529e1bf8a",
+    "effective_metadata_sha256": "c2569bbfe817467af977be2bcd3855f2acd39b8cbc6aa634efd66b1943dbcf4c",
+    "consumer_evidence_sha256": "11d6c3a6c4af08d289992698b6968ff10e95729d54fe3c11a4bd78722ab6c574"
+  },
+  "canonical_action_count": 14,
+  "interpretation": "Original generic placement17DF4/17E68 copies one type-indexed BYTE default from17D0C into record1C. Primary801A uses zero to suppress ordinary type dispatch. In pairwise contact, signed-negative1C bypasses ordinary damage/retirement paths, positive1C is decremented atB706/B72E or mirroredB828/B852, and surviving hits set flagsBIT2 while exhaustion reaches original scoring/retirement. Type103 original string Icarus Gas Laser Bolt reaches one-decrement path; type84 Energy Cube Launcher reaches the two-stage path, with an asymmetric outer Homing Missile12/nonzero22 shortcut that clears durability. Preserve both decrements, zero/negative comparisons and BYTE wrap rather than inventing saturation or one count per collision. Generic direct contact may retire a nonnegative object without decrementing, and neutron/projector/explicit retirement can bypass this protection: negative is not a universal invulnerability proof. Celestial1880A/radial188DA set bit7 on the same signed byte; construction/damage/actor split and clearing readers therefore support a shared durability_or_negative member at Core1C, not a universal set of independent flags. Model default table is only the existing104 BYTE prefix17D0C..17D74; high-type/default adjacent aliases and following6bytes remain unchanged and conditional. Model callbacks use strength thresholds for split/behavior transitions, not a universal timer. No new type seeds, pointer/index/lifetime proof, emulator run or rewritten behavior.",
+  "field": {
+    "owner": "SG2ObjectCore",
+    "name": "durability_or_negative",
+    "offset": 28,
+    "size": 1,
+    "type": "BYTE",
+    "meaning": "Signed durability used by ordinary contact damage and primary dispatch. Negative values bypass those ordinary contact paths; zero suppresses primary type dispatch. This is not a universal invulnerability flag or exact one-hit counter."
+  },
+  "default_table": {
+    "old_name": "model_default_control_state_bytes",
+    "name": "model_default_durability_bytes",
+    "runtime_span": [
+      97548,
+      97652
+    ],
+    "bytes": 104,
+    "extent_unchanged": true,
+    "scope": "Existing model prefix only. Original high-type/default aliases and following six bytes remain conditional/unclassified."
+  },
+  "damage_paths": {
+    "gas_laser_type": 103,
+    "cube_launcher_type": 84,
+    "homing_missile_type": 12,
+    "laser": "Ordinary positive budget decremented once on selected paths.",
+    "cube": "Original two-stage decrements retained, with asymmetric outer Homing Missile/nonzero22 shortcut. Preserve BYTE wrap and all original sign/zero tests.",
+    "other": "Direct contact can retire without decrement; explicit bomb/projector retirement can bypass negative durability. No normalization, universal immunity or one decrement per collision claim."
+  },
+  "labels": [
+    [
+      46822,
+      "apply_outer_cube_launcher_contact"
+    ],
+    [
+      46854,
+      "decrement_outer_cube_contact_durability"
+    ],
+    [
+      46884,
+      "test_outer_laser_contact_durability"
+    ],
+    [
+      46894,
+      "decrement_outer_contact_durability"
+    ],
+    [
+      47046,
+      "start_outer_contact_retirement"
+    ],
+    [
+      47136,
+      "apply_inner_cube_launcher_contact"
+    ],
+    [
+      47174,
+      "test_inner_laser_contact_durability"
+    ],
+    [
+      47186,
+      "decrement_inner_contact_durability"
+    ],
+    [
+      47336,
+      "start_inner_contact_retirement"
+    ]
+  ],
+  "native_sites": [
+    {
+      "source_offset": 28698,
+      "runtime_address": 32794,
+      "operand_index": 0,
+      "root": "SG2ObjectCore",
+      "owner": "SG2ObjectCore",
+      "inherited": 0,
+      "provenance": "policy_seed"
+    },
+    {
+      "source_offset": 29096,
+      "runtime_address": 33192,
+      "operand_index": 1,
+      "root": "SG2ObjectCore",
+      "owner": "SG2ObjectCore",
+      "inherited": 0,
+      "provenance": "policy_seed"
+    },
+    {
+      "source_offset": 29574,
+      "runtime_address": 33670,
+      "operand_index": 1,
+      "root": "SG2ObjectCore",
+      "owner": "SG2ObjectCore",
+      "inherited": 0,
+      "provenance": "policy_seed"
+    },
+    {
+      "source_offset": 42726,
+      "runtime_address": 46822,
+      "operand_index": 0,
+      "root": "SG2WorldObject",
+      "owner": "SG2ObjectCore",
+      "inherited": 1,
+      "provenance": "policy_seed"
+    },
+    {
+      "source_offset": 42750,
+      "runtime_address": 46846,
+      "operand_index": 0,
+      "root": "SG2WorldObject",
+      "owner": "SG2ObjectCore",
+      "inherited": 1,
+      "provenance": "policy_seed"
+    },
+    {
+      "source_offset": 42758,
+      "runtime_address": 46854,
+      "operand_index": 1,
+      "root": "SG2WorldObject",
+      "owner": "SG2ObjectCore",
+      "inherited": 1,
+      "provenance": "policy_seed"
+    },
+    {
+      "source_offset": 42778,
+      "runtime_address": 46874,
+      "operand_index": 0,
+      "root": "SG2WorldObject",
+      "owner": "SG2ObjectCore",
+      "inherited": 1,
+      "provenance": "policy_seed"
+    },
+    {
+      "source_offset": 42788,
+      "runtime_address": 46884,
+      "operand_index": 0,
+      "root": "SG2WorldObject",
+      "owner": "SG2ObjectCore",
+      "inherited": 1,
+      "provenance": "policy_seed"
+    },
+    {
+      "source_offset": 42798,
+      "runtime_address": 46894,
+      "operand_index": 1,
+      "root": "SG2WorldObject",
+      "owner": "SG2ObjectCore",
+      "inherited": 1,
+      "provenance": "policy_seed"
+    },
+    {
+      "source_offset": 42944,
+      "runtime_address": 47040,
+      "operand_index": 0,
+      "root": "SG2WorldObject",
+      "owner": "SG2ObjectCore",
+      "inherited": 1,
+      "provenance": "policy_seed"
+    },
+    {
+      "source_offset": 43040,
+      "runtime_address": 47136,
+      "operand_index": 0,
+      "root": "SG2WorldObject",
+      "owner": "SG2ObjectCore",
+      "inherited": 1,
+      "provenance": "policy_seed"
+    },
+    {
+      "source_offset": 43048,
+      "runtime_address": 47144,
+      "operand_index": 1,
+      "root": "SG2WorldObject",
+      "owner": "SG2ObjectCore",
+      "inherited": 1,
+      "provenance": "policy_seed"
+    },
+    {
+      "source_offset": 43068,
+      "runtime_address": 47164,
+      "operand_index": 0,
+      "root": "SG2WorldObject",
+      "owner": "SG2ObjectCore",
+      "inherited": 1,
+      "provenance": "policy_seed"
+    },
+    {
+      "source_offset": 43078,
+      "runtime_address": 47174,
+      "operand_index": 0,
+      "root": "SG2WorldObject",
+      "owner": "SG2ObjectCore",
+      "inherited": 1,
+      "provenance": "policy_seed"
+    },
+    {
+      "source_offset": 43090,
+      "runtime_address": 47186,
+      "operand_index": 1,
+      "root": "SG2WorldObject",
+      "owner": "SG2ObjectCore",
+      "inherited": 1,
+      "provenance": "policy_seed"
+    },
+    {
+      "source_offset": 43234,
+      "runtime_address": 47330,
+      "operand_index": 0,
+      "root": "SG2WorldObject",
+      "owner": "SG2ObjectCore",
+      "inherited": 1,
+      "provenance": "policy_seed"
+    },
+    {
+      "source_offset": 93650,
+      "runtime_address": 97746,
+      "operand_index": 1,
+      "root": "SG2ObjectCore",
+      "owner": "SG2ObjectCore",
+      "inherited": 0,
+      "provenance": "policy_seed"
+    },
+    {
+      "source_offset": 93800,
+      "runtime_address": 97896,
+      "operand_index": 1,
+      "root": "SG2ObjectCore",
+      "owner": "SG2ObjectCore",
+      "inherited": 0,
+      "provenance": "policy_seed"
+    },
+    {
+      "source_offset": 96266,
+      "runtime_address": 100362,
+      "operand_index": 1,
+      "root": "SG2CelestialObject",
+      "owner": "SG2ObjectCore",
+      "inherited": 1,
+      "provenance": "policy_seed"
+    },
+    {
+      "source_offset": 96474,
+      "runtime_address": 100570,
+      "operand_index": 1,
+      "root": "SG2RadialObject",
+      "owner": "SG2ObjectCore",
+      "inherited": 1,
+      "provenance": "policy_seed"
+    },
+    {
+      "source_offset": 205800,
+      "runtime_address": 209896,
+      "operand_index": 0,
+      "root": "SG2ObjectCore",
+      "owner": "SG2ObjectCore",
+      "inherited": 0,
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 213024,
+      "runtime_address": 217120,
+      "operand_index": 0,
+      "root": "SG2ObjectCore",
+      "owner": "SG2ObjectCore",
+      "inherited": 0,
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 213668,
+      "runtime_address": 217764,
+      "operand_index": 0,
+      "root": "SG2ObjectCore",
+      "owner": "SG2ObjectCore",
+      "inherited": 0,
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 215936,
+      "runtime_address": 220032,
+      "operand_index": 1,
+      "root": "SG2WorldObject",
+      "owner": "SG2ObjectCore",
+      "inherited": 1,
+      "provenance": "policy_seed"
+    },
+    {
+      "source_offset": 216272,
+      "runtime_address": 220368,
+      "operand_index": 0,
+      "root": "SG2WorldObject",
+      "owner": "SG2ObjectCore",
+      "inherited": 1,
+      "provenance": "unknown"
+    },
+    {
+      "source_offset": 217090,
+      "runtime_address": 221186,
+      "operand_index": 0,
+      "root": "SG2WorldObject",
+      "owner": "SG2ObjectCore",
+      "inherited": 1,
+      "provenance": "policy_seed"
+    },
+    {
+      "source_offset": 220602,
+      "runtime_address": 224698,
+      "operand_index": 1,
+      "root": "SG2WorldObject",
+      "owner": "SG2ObjectCore",
+      "inherited": 1,
+      "provenance": "policy_seed"
+    },
+    {
+      "source_offset": 221410,
+      "runtime_address": 225506,
+      "operand_index": 0,
+      "root": "SG2WorldObject",
+      "owner": "SG2ObjectCore",
+      "inherited": 1,
+      "provenance": "policy_seed"
+    }
+  ],
+  "before_after": {
+    "app_slot_ref_count": {
+      "before": 3383,
+      "after": 3383
+    },
+    "recovered_platform_typed_access_count": {
+      "before": 750,
+      "after": 778
+    },
+    "recovered_platform_unresolved_typed_access_count": {
+      "before": 240,
+      "after": 212
+    }
+  },
+  "validation": {
+    "native_and_vasm": {
+      "kind": "verification",
+      "framework_exact": true,
+      "target_id": "amiga_raw_starglider2_game",
+      "subject_revision": "3d0a1231ba2a13e74c39b87b66ff451c1cac6b1bac825378caed52624a5c8e00",
+      "status": "exact",
+      "exact": true,
+      "source_sha256": "fb23bb779e30fadc0cb54beef72ef8a0f2fcadac31e893b03f0dc2e2ee20c7dc",
+      "source_path": "/workspace/pandora-original-delivery/stable-d15c2cf8/.runtime-state/restoration/eb04f545fb97451725a1c91ab5abf6f2e097614c45880db6edfb4ea5c3f6e2c2/fb23bb779e30fadc0cb54beef72ef8a0f2fcadac31e893b03f0dc2e2ee20c7dc.s",
+      "source_package_sha256": null,
+      "original_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+      "original_size": 412736,
+      "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+      "rebuilt_path": "/workspace/pandora-original-delivery/stable-d15c2cf8/.runtime-state/restoration/eb04f545fb97451725a1c91ab5abf6f2e097614c45880db6edfb4ea5c3f6e2c2/662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9.bin",
+      "framework_status": "exact",
+      "failure_kinds": [],
+      "message": "",
+      "oracle": {
+        "oracle_id": "vasm",
+        "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+        "comparison_level": "oracle.full_file_match",
+        "assembler_status": "accepted",
+        "message": "oracle output matched original bytes"
+      },
+      "receipt_id": "91021569899d345c452c519a6390caa0a7956dd841ea9d5a39956e1a584333a9",
+      "revision": "8e6d71287ee21c9c3c8d07d198a1e51faa924719cae6b50bf1e6721430c32424"
+    },
+    "source_quality_diagnostics": 0,
+    "incomplete_analysis": [],
+    "generation_wall_seconds": 132.90484413097147,
+    "assets_unchanged": 57,
+    "required_headers": 14,
+    "framework_changed": false,
+    "framework_tests": "Unchanged 52ace933 backend; its 69 focused/832 native checks remain applicable. Changed canonical output receives native admission, full exact C/vasm and clean standalone qualification.",
+    "clean_standalone_build": {
+      "status": "pass",
+      "validated_target_git_tree": "36813d09d548acace6ebf38e47c1698c68d8e2b2",
+      "receipt": {
+        "schema_version": 1,
+        "status": "pass",
+        "format": "raw_payload_not_AmigaDOS_HUNK",
+        "main_bytes": 412736,
+        "main_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+        "main_matches_original_identity": true,
+        "asset_count": 57,
+        "all_asset_source_slices_equal": true,
+        "decoded_view_inverse_exact": true,
+        "boot_copy_source_matches_resident_view": true,
+        "source_commit": "52ace9333b05381eae9117d57946696561616b79",
+        "assembler_sha256": "413e284020125f42709486dfe09907cab3dd9f3c2ea41017c190f8ea68f30825",
+        "flags": [
+          "-Fbin",
+          "-m68000",
+          "-no-opt"
+        ],
+        "outputs": [
+          {
+            "role": "original_main",
+            "filename": "Starglider2-original.raw",
+            "bytes": 412736,
+            "sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9"
+          },
+          {
+            "role": "decoded_analysis_view",
+            "filename": "protection-decoded-analysis.raw",
+            "bytes": 3548,
+            "sha256": "de8358853dd9ed9b006a23569bf393aa217ed3be3301a169465d80bfaf839922"
+          },
+          {
+            "role": "boot_installer_context",
+            "filename": "boot-selector-installer-context.raw",
+            "bytes": 40,
+            "sha256": "8d34852425e2e1bfa87b3febdfc74fb39e7c667e9d9ff73e17b594649e83b21b"
+          },
+          {
+            "role": "boot_resident_view",
+            "filename": "boot-selector-resident.raw",
+            "bytes": 20,
+            "sha256": "a26286a393713c046eff9dbaff15b20b26b171fa9e05fc9d538d16b0eddb6024"
+          }
+        ]
+      },
+      "recoverable_pandora_backups_verified": 16
+    }
+  },
+  "limits": [
+    "No new runtime trace or all-path type, index, lifetime or gameplay equivalence proof.",
+    "Signed negative is a bypass in the documented ordinary paths, not protection from every weapon or explicit retirement.",
+    "Model-specific threshold behavior remains attached to its original callbacks; no universal timer interpretation."
+  ],
+  "next": {
+    "group": "Actor-specific state and callback dependencies",
+    "experiment": "Use the recovered durability thresholds and current typed access inventory to trace the next connected actor phase/launch/retirement fields, preserving variants instead of naming every shared physical byte universally."
+  }
+}
