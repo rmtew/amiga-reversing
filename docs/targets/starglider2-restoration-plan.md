@@ -7,8 +7,8 @@ that further analysis is exhausted. Current source remains byte exact: all
 with all 106034 accepted code bytes retained. No generated assembly was edited
 by hand and no interim archive was produced.
 
-The current ownership union leaves 13860 bytes in
-263 intervals unclassified. This is classification accounting,
+The current ownership union leaves 13840 bytes in
+264 intervals unclassified. This is classification accounting,
 not a semantic completion percentage. Earlier interval/site counts below belong
 to their recorded closeout revision. See the current
 [native memory-span receipt](../../runtime/observations/starglider2-app-memory-spans.json),
@@ -19,11 +19,26 @@ to their recorded closeout revision. See the current
 
 The [current systematic gap inventory](../../runtime/observations/starglider2-source-gap-inventory.json)
 joins native identities/accesses with canonical layouts and actual rendered
-boundaries. It records 66 suffix signals (including numeric adjacent variants),
+boundaries. It records 67 suffix signals (including numeric adjacent variants),
 21 lookup contracts, 523 remaining interior references, 32 generic app fields
-and 203 unresolved record accesses. These are different denominators. Five
+and 195 unresolved record accesses. These are different denominators. Five
 suffixes name routines and one names text; neither is a pointer defect.
-Latest: the [projector frame/state reconstruction](../../runtime/observations/starglider2-projector-frame-state.json)
+Latest: the [Mini-Sentinel state reconstruction](../../runtime/observations/starglider2-mini-sentinel-state.json)
+joins original type37, its unique initializer, near/far callbacks and orbit
+helper. Orbit angle and rotation increment have dedicated variant fields;
+the eight stored initial angles and two constructor counters now have roles.
+The enabled attempt count includes excess-limit rejections, so it is not a live
+actor count. A real BYTE/WORD distinction remains literal: periodic NEG.B touches
+only the high byte of the WORD increment. With initialized0018 that operation
+alone does not reverse it; other producers are not universally excluded. The
+random16..79 WORD26 has no established reader purpose and remains unnamed.
+**13 subtype field accesses** are projected, with
+**821 typed / 195 unresolved** overall.
+Original exact C/vasm and standalone output remain qualified. Continue other
+actor variants and concrete original inbound/alias leads; no gameplay rewrite,
+new runtime campaign or arbitrary index/lifetime proof.
+
+Preceding: the [projector frame/state reconstruction](../../runtime/observations/starglider2-projector-frame-state.json)
 connects original dispatch77/78/80 and projector network/rebuild writers to the
 cover, turret and control-tower model frames. Their signed BYTE1F step is now a
 projector-only field, not a universal object mode. The three model tables hold

@@ -1,0 +1,310 @@
+{
+  "schema_version": 1,
+  "kind": "original_mini_sentinel_orbit_and_byte_word_state_contract",
+  "status": "qualified_connected_restoration_batch_continues",
+  "publication_base_commit": "d978da39b9e3a4a8b46f91fc4246acb338c20c0a",
+  "input": {
+    "binary_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "backend_sha256": "786c0581079840fbad6eba1a2656c08c0c5387f856fbda2201e02bc871b158f0",
+    "analysis_sha256": "74d14d6b82297e7b09d721545cc9ffcd73610da8ceda1366b39e70087dd765a9",
+    "effective_metadata_sha256": "88853da89aecdebc63253990ec1f26ba3f7ed5b37b96975bae81a345c6649ed3",
+    "consumer_evidence_sha256": "468f4ca6e422fba0db9c220c09edbef7bedbc7a8d444172b10b759a75cffb44c"
+  },
+  "canonical_action_count": 15,
+  "interpretation": "Original model/name ID37 Egron Mini-Sentinel uniquely selects constructor18140. Original primary37 entry8484 branchesB4E2 then nearby35CD8; secondary37 entry8490 branchesB476 then distant35D4C. Nearby35CD8 is the only current direct caller of advance_mini_sentinel_orbit35D5A. Original WORD24 is an orbit angle: both near helper and far update add2 and mask4095; near helper computes X/Z with original sine/cosine tables, 2FFF magnitude and constants36000000/20400000, then sets Y FECED300. Constructor copies one of eight stored initial angles0,512,...3584 from18954, uses the same trig position, and advances BYTE-offset index18952 by2 only for accepted initializations. Enabled initialization-attempt count18950 increments BEFORE excess-limit refusal, so it is not a live-object count. Both words reset in world initialization. Table prefix16bytes ends before separate mutable flag18964; no arbitrary count/index bound or declaration of that flag purpose. Constructor also writes random16..79 to WORD26, whose consumer purpose remains unresolved and is not invented. WORD28 is a rotation increment, initialized0018 and read as WORD for rotation0/2 updates. CounterBYTE1F starts0F; nearby callback decrements it, on signed underflow executes NEG.B at address28 then resets3F. This negates the HIGH BYTE of WORD28, not the WORD. Under the demonstrated constructor value0018 and inspected updater alone, high byte0 remains0, so no reversal occurs. Preserve literal original operation; other creation/alias writers are not closed, and this is not an original-bug or universal no-op claim. Add a MiniSentinel view instead of reusing Drone countdown or Projector animation fields. No gameplay injection, routine replacement, new runtime coverage, units in seconds/frames or code repair.",
+  "fields": [
+    {
+      "name": "orbit_angle",
+      "type": "WORD",
+      "offset": 36,
+      "size": 2
+    },
+    {
+      "name": "rotation_increment",
+      "type": "WORD",
+      "offset": 40,
+      "size": 2
+    },
+    {
+      "name": "high_byte_negation_countdown",
+      "type": "BYTE",
+      "offset": 31,
+      "size": 1
+    }
+  ],
+  "labels": [
+    [
+      98656,
+      "initialize_mini_sentinel_orbit_position"
+    ],
+    [
+      220472,
+      "tick_mini_sentinel_high_byte_negation"
+    ],
+    [
+      220478,
+      "negate_mini_sentinel_rotation_high_byte"
+    ],
+    [
+      220492,
+      "advance_distant_mini_sentinel_orbit_angle"
+    ]
+  ],
+  "original_links": {
+    "type": 37,
+    "name": "Egron Mini-Sentinel",
+    "unique_constructor": 98624,
+    "primary_entry": 33924,
+    "primary_stub": 46306,
+    "nearby": 220376,
+    "secondary_entry": 33936,
+    "secondary_stub": 46198,
+    "distant": 220492,
+    "near_orbit_helper": 220506,
+    "current_direct_helper_callers": [
+      220376
+    ]
+  },
+  "state": {
+    "orbit": "Both updates add2 and mask4095. Nearby helper additionally computes fixed-center trigonometric X/Z and fixed Y; distant only advances the angle.",
+    "initial_angles": {
+      "runtime_span": [
+        100692,
+        100708
+      ],
+      "values": [
+        0,
+        512,
+        1024,
+        1536,
+        2048,
+        2560,
+        3072,
+        3584
+      ],
+      "following_mutable_flag_excluded": true,
+      "runtime_index_bound_proved": false
+    },
+    "initialization_attempts": "WORD18950 resets per world and increments before excess-limit rejection on enabled constructors. Not a live-object count.",
+    "initialization_index": "WORD18952 resets per world and advances by2 only after accepted initialization; byte offset, not element ordinal.",
+    "rotation": "WORD28 initializes0018 and feeds rotations0/2. Periodic NEG.B at28 changes its high BYTE only. Under that initialization and inspected updater alone the high byte0 stays0 and WORD value remains24; other producers/aliases are not universally excluded.",
+    "counter": "BYTE1F starts0F; decrement and signed-underflow test precede NEG.B and reset3F. These are eligible updater invocation counts, not universal frames/seconds.",
+    "unresolved": "Constructor writes random16..79 to WORD26. No consumer purpose is established, so it remains outside the named subtype fields."
+  },
+  "native_sites": [
+    {
+      "source_offset": 94572,
+      "runtime_address": 98668,
+      "operand": 1,
+      "field": "orbit_angle",
+      "root": "SG2MiniSentinel",
+      "provenance": "policy_seed"
+    },
+    {
+      "source_offset": 94586,
+      "runtime_address": 98682,
+      "operand": 0,
+      "field": "orbit_angle",
+      "root": "SG2MiniSentinel",
+      "provenance": "policy_seed"
+    },
+    {
+      "source_offset": 94674,
+      "runtime_address": 98770,
+      "operand": 1,
+      "field": "rotation_increment",
+      "root": "SG2MiniSentinel",
+      "provenance": "policy_seed"
+    },
+    {
+      "source_offset": 94680,
+      "runtime_address": 98776,
+      "operand": 1,
+      "field": "high_byte_negation_countdown",
+      "root": "SG2MiniSentinel",
+      "provenance": "policy_seed"
+    },
+    {
+      "source_offset": 216346,
+      "runtime_address": 220442,
+      "operand": 0,
+      "field": "rotation_increment",
+      "root": "SG2MiniSentinel",
+      "provenance": "unknown"
+    },
+    {
+      "source_offset": 216376,
+      "runtime_address": 220472,
+      "operand": 1,
+      "field": "high_byte_negation_countdown",
+      "root": "SG2MiniSentinel",
+      "provenance": "unknown"
+    },
+    {
+      "source_offset": 216382,
+      "runtime_address": 220478,
+      "operand": 0,
+      "field": "rotation_increment",
+      "root": "SG2MiniSentinel",
+      "provenance": "unknown"
+    },
+    {
+      "source_offset": 216386,
+      "runtime_address": 220482,
+      "operand": 1,
+      "field": "high_byte_negation_countdown",
+      "root": "SG2MiniSentinel",
+      "provenance": "unknown"
+    },
+    {
+      "source_offset": 216396,
+      "runtime_address": 220492,
+      "operand": 1,
+      "field": "orbit_angle",
+      "root": "SG2MiniSentinel",
+      "provenance": "policy_seed"
+    },
+    {
+      "source_offset": 216400,
+      "runtime_address": 220496,
+      "operand": 1,
+      "field": "orbit_angle",
+      "root": "SG2MiniSentinel",
+      "provenance": "policy_seed"
+    },
+    {
+      "source_offset": 216410,
+      "runtime_address": 220506,
+      "operand": 1,
+      "field": "orbit_angle",
+      "root": "SG2MiniSentinel",
+      "provenance": "policy_seed"
+    },
+    {
+      "source_offset": 216414,
+      "runtime_address": 220510,
+      "operand": 1,
+      "field": "orbit_angle",
+      "root": "SG2MiniSentinel",
+      "provenance": "policy_seed"
+    },
+    {
+      "source_offset": 216428,
+      "runtime_address": 220524,
+      "operand": 0,
+      "field": "orbit_angle",
+      "root": "SG2MiniSentinel",
+      "provenance": "policy_seed"
+    }
+  ],
+  "before_after": {
+    "app_slot_ref_count": {
+      "before": 3383,
+      "after": 3383
+    },
+    "recovered_platform_typed_access_count": {
+      "before": 803,
+      "after": 821
+    },
+    "recovered_platform_unresolved_typed_access_count": {
+      "before": 203,
+      "after": 195
+    }
+  },
+  "validation": {
+    "native_and_vasm": {
+      "kind": "verification",
+      "framework_exact": true,
+      "target_id": "amiga_raw_starglider2_game",
+      "subject_revision": "6da81253cbb387a2cd9f8e4111fdab9a11654ca2add17af4f6457ec71273d846",
+      "status": "exact",
+      "exact": true,
+      "source_sha256": "68c18f2dbc596d6cf4a085b0a664a812e02d0bd9e2a5062f97d3ce9cee948cd4",
+      "source_path": "/workspace/pandora-original-delivery/stable-d15c2cf8/.runtime-state/restoration/eb04f545fb97451725a1c91ab5abf6f2e097614c45880db6edfb4ea5c3f6e2c2/68c18f2dbc596d6cf4a085b0a664a812e02d0bd9e2a5062f97d3ce9cee948cd4.s",
+      "source_package_sha256": null,
+      "original_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+      "original_size": 412736,
+      "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+      "rebuilt_path": "/workspace/pandora-original-delivery/stable-d15c2cf8/.runtime-state/restoration/eb04f545fb97451725a1c91ab5abf6f2e097614c45880db6edfb4ea5c3f6e2c2/662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9.bin",
+      "framework_status": "exact",
+      "failure_kinds": [],
+      "message": "",
+      "oracle": {
+        "oracle_id": "vasm",
+        "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+        "comparison_level": "oracle.full_file_match",
+        "assembler_status": "accepted",
+        "message": "oracle output matched original bytes"
+      },
+      "receipt_id": "993c30424632ae5f208e9fff0ac3d47d1932e2d6b9ace21ade06fcd828646805",
+      "revision": "05cfa110ebc3e9d7cf37dd100cd281113322e17f2206f2afb4c0ae483a0c825f"
+    },
+    "source_quality_diagnostics": 0,
+    "incomplete_analysis": [],
+    "generation_wall_seconds": 149.0883067289833,
+    "assets_unchanged": 57,
+    "required_headers": 14,
+    "framework_changed": false,
+    "framework_tests": "Existing shared implementation unchanged; 69 focused/832 native results remain applicable. Native admission plus changed-source exact C/vasm and clean standalone qualification.",
+    "clean_standalone_build": {
+      "status": "pass",
+      "validated_target_git_tree": "c7bdb9124bb780500750fa262e034697c3f30a9e",
+      "receipt": {
+        "schema_version": 1,
+        "status": "pass",
+        "format": "raw_payload_not_AmigaDOS_HUNK",
+        "main_bytes": 412736,
+        "main_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+        "main_matches_original_identity": true,
+        "asset_count": 57,
+        "all_asset_source_slices_equal": true,
+        "decoded_view_inverse_exact": true,
+        "boot_copy_source_matches_resident_view": true,
+        "source_commit": "d978da39b9e3a4a8b46f91fc4246acb338c20c0a",
+        "assembler_sha256": "413e284020125f42709486dfe09907cab3dd9f3c2ea41017c190f8ea68f30825",
+        "flags": [
+          "-Fbin",
+          "-m68000",
+          "-no-opt"
+        ],
+        "outputs": [
+          {
+            "role": "original_main",
+            "filename": "Starglider2-original.raw",
+            "bytes": 412736,
+            "sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9"
+          },
+          {
+            "role": "decoded_analysis_view",
+            "filename": "protection-decoded-analysis.raw",
+            "bytes": 3548,
+            "sha256": "de8358853dd9ed9b006a23569bf393aa217ed3be3301a169465d80bfaf839922"
+          },
+          {
+            "role": "boot_installer_context",
+            "filename": "boot-selector-installer-context.raw",
+            "bytes": 40,
+            "sha256": "8d34852425e2e1bfa87b3febdfc74fb39e7c667e9d9ff73e17b594649e83b21b"
+          },
+          {
+            "role": "boot_resident_view",
+            "filename": "boot-selector-resident.raw",
+            "bytes": 20,
+            "sha256": "a26286a393713c046eff9dbaff15b20b26b171fa9e05fc9d538d16b0eddb6024"
+          }
+        ]
+      },
+      "recoverable_pandora_backups_verified": 16
+    }
+  },
+  "limits": [
+    "No original bug diagnosis or silent NEG.W replacement. BYTE and WORD operations remain literal original bytes.",
+    "No claim that every possible Mini-Sentinel creation/alias writer retains constructor value0018.",
+    "The eight stored initial angles do not establish an arbitrary initialization count/index bound.",
+    "No new Copperline run or live callback/side-effect coverage; this is static original-consumer reconstruction."
+  ],
+  "next": {
+    "group": "Remaining original actor state and inbound relationships",
+    "experiment": "Trace non-MiniSentinel WORD24/26 and BYTE1F uses by original type/callback, avoiding shared physical-offset naming across variants. Continue the unresolved random-word reader search only when a concrete alias/caller lead exists."
+  }
+}

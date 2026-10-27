@@ -1,15 +1,15 @@
 {
   "schema_version": 1,
   "kind": "current_native_residual_interval_index_not_input_facts",
-  "publication_base_commit": "941fa64f21d0c7664bd894be8c223554c88874c2",
+  "publication_base_commit": "d978da39b9e3a4a8b46f91fc4246acb338c20c0a",
   "binary_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
-  "source_sha256": "a5958f82fef6f3be0dda794e78e33653b668fe648e6ae3f6ed866938075c65c0",
-  "analysis_sha256": "416af667c0c1a1fe70769df5b73244a4006f1d827ebcfce82487c35ac18fcd7e",
+  "source_sha256": "68c18f2dbc596d6cf4a085b0a664a812e02d0bd9e2a5062f97d3ce9cee948cd4",
+  "analysis_sha256": "74d14d6b82297e7b09d721545cc9ffcd73610da8ceda1366b39e70087dd765a9",
   "backend_sha256": "786c0581079840fbad6eba1a2656c08c0c5387f856fbda2201e02bc871b158f0",
-  "unclassified_bytes": 13860,
-  "interval_count": 263,
-  "intervals_with_native_resolved_references": 55,
-  "native_resolved_reference_records": 570,
+  "unclassified_bytes": 13840,
+  "interval_count": 264,
+  "intervals_with_native_resolved_references": 56,
+  "native_resolved_reference_records": 563,
   "unclassified_interval_code_start_facts": 0,
   "orphan_candidate_statuses": {
     "unresolved": 30,
@@ -4864,14 +4864,49 @@
     {
       "source_span": [
         96576,
-        96616
+        96592
       ],
       "runtime_span": [
         100672,
+        100688
+      ],
+      "bytes": 16,
+      "sha256": "5290b9949e80b92434aeae0feea2c4fc8ee83eed98cd8208efdf73aa7db3cbc5",
+      "classification": "unclassified",
+      "semantic_review": "No new semantic disposition; current native index only.",
+      "native_resolved_references": [
+        {
+          "kind": "runtime_address_ref",
+          "source_offset": 96402,
+          "source_runtime_address": 100498,
+          "target_offset": 96576,
+          "target_runtime_address": 100672,
+          "operand_index": 0,
+          "reference_role": null
+        }
+      ],
+      "native_code_start_facts": [],
+      "historical_review_overlaps": [
+        {
+          "source_span": [
+            96568,
+            96616
+          ],
+          "disposition": "opaque_with_memory_operand_sites"
+        }
+      ]
+    },
+    {
+      "source_span": [
+        96612,
+        96616
+      ],
+      "runtime_span": [
+        100708,
         100712
       ],
-      "bytes": 40,
-      "sha256": "ab1e0439112408836ab0302800e5eeeb5bbd4dc91632f6ccd969ce2ecee3da6b",
+      "bytes": 4,
+      "sha256": "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119",
       "classification": "unclassified",
       "semantic_review": "No new semantic disposition; current native index only.",
       "native_resolved_references": [
@@ -4882,69 +4917,6 @@
           "target_offset": 96612,
           "target_runtime_address": 100708,
           "operand_index": 0,
-          "reference_role": null
-        },
-        {
-          "kind": "runtime_address_ref",
-          "source_offset": 93610,
-          "source_runtime_address": 97706,
-          "target_offset": 96594,
-          "target_runtime_address": 100690,
-          "operand_index": 0,
-          "reference_role": null
-        },
-        {
-          "kind": "runtime_address_ref",
-          "source_offset": 93616,
-          "source_runtime_address": 97712,
-          "target_offset": 96592,
-          "target_runtime_address": 100688,
-          "operand_index": 0,
-          "reference_role": null
-        },
-        {
-          "kind": "runtime_address_ref",
-          "source_offset": 94538,
-          "source_runtime_address": 98634,
-          "target_offset": 96592,
-          "target_runtime_address": 100688,
-          "operand_index": 1,
-          "reference_role": null
-        },
-        {
-          "kind": "runtime_address_ref",
-          "source_offset": 94548,
-          "source_runtime_address": 98644,
-          "target_offset": 96592,
-          "target_runtime_address": 100688,
-          "operand_index": 0,
-          "reference_role": null
-        },
-        {
-          "kind": "runtime_address_ref",
-          "source_offset": 94560,
-          "source_runtime_address": 98656,
-          "target_offset": 96596,
-          "target_runtime_address": 100692,
-          "operand_index": 0,
-          "reference_role": null
-        },
-        {
-          "kind": "runtime_address_ref",
-          "source_offset": 94566,
-          "source_runtime_address": 98662,
-          "target_offset": 96594,
-          "target_runtime_address": 100690,
-          "operand_index": 0,
-          "reference_role": null
-        },
-        {
-          "kind": "runtime_address_ref",
-          "source_offset": 94662,
-          "source_runtime_address": 98758,
-          "target_offset": 96594,
-          "target_runtime_address": 100690,
-          "operand_index": 1,
           "reference_role": null
         },
         {
@@ -4962,15 +4934,6 @@
           "source_runtime_address": 99028,
           "target_offset": 96612,
           "target_runtime_address": 100708,
-          "operand_index": 0,
-          "reference_role": null
-        },
-        {
-          "kind": "runtime_address_ref",
-          "source_offset": 96402,
-          "source_runtime_address": 100498,
-          "target_offset": 96576,
-          "target_runtime_address": 100672,
           "operand_index": 0,
           "reference_role": null
         }

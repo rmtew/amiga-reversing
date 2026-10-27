@@ -988,6 +988,17 @@ SG2ProjectorPart_network_animation_step RS.B 1
     RS.B 36
 SG2ProjectorPart_SIZEOF EQU __RS
 
+; STRUCT SG2MiniSentinel
+    RSRESET
+    RS.B 31
+SG2MiniSentinel_high_byte_negation_countdown RS.B 1
+    RS.B 4
+SG2MiniSentinel_orbit_angle RS.W 1
+    RS.B 2
+SG2MiniSentinel_rotation_increment RS.W 1
+    RS.B 26
+SG2MiniSentinel_SIZEOF EQU __RS
+
 ADKF_CLRALL	EQU	$7FFF
 BPLCON2_PF2P2	EQU	$20
 BPLCON2_PF2PRI	EQU	$40
@@ -12849,7 +12860,7 @@ abs_0_0000B46A:
 abs_0_0000B470:
 	jmp update_distant_neutron_bomb.l
 abs_0_0000B476:
-	jmp update_distant_mini_sentinel.l
+	jmp advance_distant_mini_sentinel_orbit_angle.l
 abs_0_0000B47C:
 	jmp update_nearby_projector_cover.l
 abs_0_0000B482:
@@ -23056,8 +23067,8 @@ initialize_world_object_pool:
 	move.l #tug_placement_parameter_prefix,tug_placement_parameter_cursor.l
 	move.l #$FFFFF830,tug_placement_group_world_y.l
 	st.b abs_0_00018964.l
-	clr.w abs_0_00018952.l
-	clr.w abs_0_00018950.l
+	clr.w mini_sentinel_initial_orbit_byte_offset.l
+	clr.w mini_sentinel_initialization_attempt_count.l
 	clr.b display_buffer_table_byte_offset(a6)
 	lea.l world_object_pool(a6),a0
 	move.w #$F9,d0
@@ -23316,24 +23327,25 @@ world_object_type_initializer_pointers:
 	dc.l initialize_shared_radial_object
 	dc.l abs_0_00018814
 	dc.b $4E,$F9,$00,$00,$26,$62
+    ; KNOWN: type A0=Target code-entry register seed:SG2MiniSentinel
 initialize_station_mini_sentinel:
 	movem.l d0-d7/a0-a6,-(a7)
 	tst.b station_cycle_enabled_flag(a6)
 	bpl.b abs_0_0001815C
-	addq.w #1,abs_0_00018950.l
+	addq.w #1,mini_sentinel_initialization_attempt_count.l
 	move.w station_mini_sentinel_count(a6),d0
-	cmp.w abs_0_00018950.l,d0
-	bpl.b abs_0_00018160
+	cmp.w mini_sentinel_initialization_attempt_count.l,d0
+	bpl.b initialize_mini_sentinel_orbit_position
 abs_0_0001815C:
-	clr.w (a0)
+	clr.w (a0)	; operand 1: SG2ObjectCore_object_type at (a0)
 	bra.b abs_0_000181DE
-abs_0_00018160:
-	lea.l abs_0_00018954.l,a2
-	move.w abs_0_00018952.l,d0
-	move.w $0(a2,d0.w),$0024(a0)
+initialize_mini_sentinel_orbit_position:
+	lea.l mini_sentinel_initial_orbit_angles.l,a2
+	move.w mini_sentinel_initial_orbit_byte_offset.l,d0
+	move.w $0(a2,d0.w),SG2MiniSentinel_orbit_angle(a0)
 	movea.l sine_lookup_pointer(a6),a1
 	movea.l cosine_lookup_pointer(a6),a2
-	move.w $0024(a0),d1
+	move.w SG2MiniSentinel_orbit_angle(a0),d1
 	add.w d1,d1
 	move.w #$2FFF,d3
 	move.w d3,d4
@@ -23347,17 +23359,18 @@ abs_0_00018160:
 	ext.l d4
 	addi.l #36000000,d3
 	addi.l #20400000,d4
-	move.l d3,$0004(a0)
-	move.l d4,$000C(a0)
-	move.l #$FECED300,$0008(a0)
+	move.l d3,SG2ObjectCore_world_x(a0)
+	move.l d4,SG2ObjectCore_world_z(a0)
+	move.l #$FECED300,SG2ObjectCore_world_y(a0)
+    ; Random16..79 is stored at WORD26; its consumer role remains unresolved. Separate WORD28 initializes rotation increment24 and BYTE1F starts the high-byte-negation countdown.
 	bsr.w abs_0_00018968
 	andi.w #63,d0
 	addi.w #16,d0
 	move.w d0,$0026(a0)
-	addq.w #2,abs_0_00018952.l
-	bset.b #7,$001C(a0)
-	move.w #$18,$0028(a0)
-	move.b #$F,$001F(a0)
+	addq.w #2,mini_sentinel_initial_orbit_byte_offset.l
+	bset.b #7,SG2ObjectCore_durability_or_negative(a0)
+	move.w #$18,SG2MiniSentinel_rotation_increment(a0)
+	move.b #$F,SG2MiniSentinel_high_byte_negation_countdown(a0)
 abs_0_000181DE:
 	movem.l (a7)+,d0-d7/a0-a6
 	rts
@@ -23866,12 +23879,12 @@ tug_placement_group_world_y:
 	dc.l $00000000	; Original tug initialization source-backed state/parameter prefix
 abs_0_00018940:
 	dc.b $00,$03,$00,$03,$00,$01,$00,$01,$00,$01,$00,$06,$00,$06,$00,$05
-abs_0_00018950:
+mini_sentinel_initialization_attempt_count:
 	dc.w $0000
-abs_0_00018952:
+mini_sentinel_initial_orbit_byte_offset:
 	dc.w $0000
-abs_0_00018954:
-	dc.b $00,$00,$02,$00,$04,$00,$06,$00,$08,$00,$0A,$00,$0C,$00,$0E,$00
+mini_sentinel_initial_orbit_angles:
+	dc.w $0000,$0200,$0400,$0600,$0800,$0A00,$0C00,$0E00
 abs_0_00018964:
 	dc.b $00,$00,$00,$00
 abs_0_00018968:
@@ -45725,7 +45738,7 @@ abs_0_00035CC0:
 	clr.b SG2ObjectCore_durability_or_negative(a0)
 abs_0_00035CD4:
 	bra.w abs_0_00039D56
-    ; KNOWN: type A0=Target code-entry register seed:SG2WorldObject
+    ; KNOWN: type A0=Target code-entry register seed:SG2MiniSentinel
 update_nearby_mini_sentinel:
 	bsr.w advance_mini_sentinel_orbit
 	tst.w player_rotation2_spin_steps.l
@@ -45743,30 +45756,34 @@ update_nearby_mini_sentinel:
 	bsr.w enqueue_event_message
 	bsr.w enqueue_blank_event_message_line
 abs_0_00035D1A:
-	move.w $0028(a0),d0
+	move.w SG2MiniSentinel_rotation_increment(a0),d0
 	add.w d0,SG2WorldObject_rotation_0(a0)
 	andi.w #4095,SG2WorldObject_rotation_0(a0)
 	ori.w #1,SG2WorldObject_rotation_0(a0)
 	add.w d0,SG2WorldObject_rotation_2(a0)
 	andi.w #4095,SG2WorldObject_rotation_2(a0)
-	subq.b #1,$001F(a0)
+tick_mini_sentinel_high_byte_negation:
+	subq.b #1,SG2MiniSentinel_high_byte_negation_countdown(a0)
 	bpl.b abs_0_00035D48
-	neg.b $0028(a0)
-	move.b #$3F,$001F(a0)
+    ; NEG.B changes only the high byte of WORD28. Constructor value0018 leaves that byte0, so this instruction alone preserves increment24; do not silently replace it with NEG.W or claim reversal.
+negate_mini_sentinel_rotation_high_byte:
+	neg.b SG2MiniSentinel_rotation_increment(a0)
+	move.b #$3F,SG2MiniSentinel_high_byte_negation_countdown(a0)
 abs_0_00035D48:
 	bra.w abs_0_00039D56
-    ; KNOWN: type A0=Target code-entry register seed:SG2WorldObject
-update_distant_mini_sentinel:
-	addq.w #2,$0024(a0)
-	andi.w #4095,$0024(a0)
+    ; KNOWN: type A0=Target code-entry register seed:SG2MiniSentinel
+advance_distant_mini_sentinel_orbit_angle:
+	addq.w #2,SG2MiniSentinel_orbit_angle(a0)
+	andi.w #4095,SG2MiniSentinel_orbit_angle(a0)
 	bra.w abs_0_00039D3E
-    ; KNOWN: type A0=Target code-entry register seed:SG2WorldObject
+    ; Near helper advances/masks orbit angle, then computes station-relative X/Z; distant callback only advances the angle. Original trig arithmetic and fixed Y remain unchanged.
+    ; KNOWN: type A0=Target code-entry register seed:SG2MiniSentinel
 advance_mini_sentinel_orbit:
-	addq.w #2,$0024(a0)
-	andi.w #4095,$0024(a0)
+	addq.w #2,SG2MiniSentinel_orbit_angle(a0)
+	andi.w #4095,SG2MiniSentinel_orbit_angle(a0)
 	movea.l sine_lookup_pointer(a6),a1
 	movea.l cosine_lookup_pointer(a6),a2
-	move.w $0024(a0),d1
+	move.w SG2MiniSentinel_orbit_angle(a0),d1
 	add.w d1,d1
 	move.w #$2FFF,d3
 	move.w d3,d4
