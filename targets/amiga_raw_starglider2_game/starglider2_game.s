@@ -999,6 +999,13 @@ SG2MiniSentinel_rotation_increment RS.W 1
     RS.B 26
 SG2MiniSentinel_SIZEOF EQU __RS
 
+; STRUCT SG2Asteroid
+    RSRESET
+    RS.B 36
+SG2Asteroid_rotation_2_spin_step RS.W 1
+    RS.B 30
+SG2Asteroid_SIZEOF EQU __RS
+
 ADKF_CLRALL	EQU	$7FFF
 BPLCON2_PF2P2	EQU	$20
 BPLCON2_PF2PRI	EQU	$40
@@ -23604,20 +23611,22 @@ abs_0_0001855A:
 	move.w d0,$0024(a0)
 	move.w #$FE0C,$0020(a0)
 	rts
+    ; Shared Space Ray41/Asteroid73 initializer. Final WORD24 seed0..31 has an asteroid spin consumer, but do not impose that private meaning on all Space Ray inputs.
+    ; KNOWN: type A0=Target code-entry register seed:SG2WorldObject
 abs_0_0001856E:
 	bsr.w abs_0_00018968
 	andi.w #4095,d0
-	move.w d0,$0012(a0)
-	bset.b #0,$0002(a0)
-	move.l #$FFFFB9B0,$0008(a0)
+	move.w d0,SG2WorldObject_rotation_1(a0)
+	bset.b #0,SG2ObjectCore_flags(a0)
+	move.l #$FFFFB9B0,SG2ObjectCore_world_y(a0)
 	bsr.w abs_0_00018968
 	andi.w #1023,d0
 	btst #0,d0
 	beq.w abs_0_0001859E
-	sub.l d0,$0008(a0)
+	sub.l d0,SG2ObjectCore_world_y(a0)
 	bra.b abs_0_000185B4
 abs_0_0001859E:
-	add.l d0,$0008(a0)
+	add.l d0,SG2ObjectCore_world_y(a0)
 	move.w #$1,$0024(a0)
 	move.w #$1,$0026(a0)
 	move.w #$3,$0020(a0)
@@ -23626,7 +23635,7 @@ abs_0_000185B4:
 	andi.w #31,d0
 	move.w d0,$0024(a0)
 	move.w #$FE0C,$0020(a0)
-	bset.b #5,$0002(a0)
+	bset.b #5,SG2ObjectCore_flags(a0)
 	rts
 abs_0_000185CE:
 	bset.b #7,$0002(a0)
@@ -45655,7 +45664,8 @@ abs_0_00035B62:
 remove_distant_tractor_beam_marker:
 	clr.w (a0)	; operand 1: SG2ObjectCore_object_type at (a0)
 	bra.w abs_0_00039D3E
-    ; KNOWN: type A0=Target code-entry register seed:SG2WorldObject
+    ; Types73/74: WORD24 drives rotation2; rotation0 adds64. MOVEM.W sign-extends three velocities before LONG position updates. Low signed durability enters the original split path.
+    ; KNOWN: type A0=Target code-entry register seed:SG2Asteroid
 update_nearby_asteroid:
 	cmpi.b #2,SG2ObjectCore_durability_or_negative(a0)
 	ble.w split_asteroid_continuation
@@ -45663,7 +45673,7 @@ update_nearby_asteroid:
 	add.l d0,SG2ObjectCore_world_x(a0)
 	add.l d1,SG2ObjectCore_world_y(a0)
 	add.l d2,SG2ObjectCore_world_z(a0)
-	move.w $0024(a0),d0
+	move.w SG2Asteroid_rotation_2_spin_step(a0),d0
 	addi.w #64,SG2WorldObject_rotation_0(a0)
 	add.w d0,SG2WorldObject_rotation_2(a0)
 	andi.w #4095,SG2WorldObject_rotation_0(a0)
@@ -45671,67 +45681,71 @@ update_nearby_asteroid:
 	bra.w abs_0_00035CD4
 split_asteroid_continuation:
 	cmpi.w #50,free_object_count(a6)
-	bls.w abs_0_00035CC0
+	bls.w retire_parent_after_asteroid_split
 	move.b SG2WorldObject_model_scale_shift(a0),d0
 	cmp.b #$A,d0
-	bpl.w abs_0_00035CC0
+	bpl.w retire_parent_after_asteroid_split
+prepare_small_asteroid_fragment_pair:
 	movea.l free_object_stack_cursor(a6),a1
+    ; Original split pops two pointers but decrements free count once, then retires parent. Preserve accounting/order; global count/stack consistency is a separate question.
 	movea.l -(a1),a2
 	movea.l -(a1),a3
 	move.l a1,free_object_stack_cursor(a6)
 	subq.w #1,free_object_count(a6)
 	move.w #$4A,(a2)
 	move.w #$4A,(a3)
-	move.l SG2ObjectCore_world_x(a0),$0004(a2)
-	move.l SG2ObjectCore_world_y(a0),$0008(a2)
-	move.l SG2ObjectCore_world_z(a0),$000C(a2)
-	move.l SG2ObjectCore_world_x(a0),$0004(a3)
-	move.l SG2ObjectCore_world_y(a0),$0008(a3)
-	move.l SG2ObjectCore_world_z(a0),$000C(a3)
+    ; KNOWN: type A2=Target code-entry register seed:SG2Asteroid; type A3=Target code-entry register seed:SG2Asteroid
+	move.l SG2ObjectCore_world_x(a0),SG2ObjectCore_world_x(a2)
+	move.l SG2ObjectCore_world_y(a0),SG2ObjectCore_world_y(a2)
+	move.l SG2ObjectCore_world_z(a0),SG2ObjectCore_world_z(a2)
+	move.l SG2ObjectCore_world_x(a0),SG2ObjectCore_world_x(a3)
+	move.l SG2ObjectCore_world_y(a0),SG2ObjectCore_world_y(a3)
+	move.l SG2ObjectCore_world_z(a0),SG2ObjectCore_world_z(a3)
 	bsr.w abs_0_00039D20
 	andi.l #1023,d0
-	move.w d0,$0010(a2)
+	move.w d0,SG2WorldObject_rotation_0(a2)
 	subi.l #512,d0
-	add.l d0,$0004(a2)
+	add.l d0,SG2ObjectCore_world_x(a2)
 	asr.w #6,d0
-	move.w d0,$002C(a2)
+	move.w d0,SG2WorldObject_velocity_x(a2)
 	neg.w d0
-	move.w d0,$002C(a3)
+	move.w d0,SG2WorldObject_velocity_x(a3)
 	bsr.w abs_0_00039D20
 	andi.l #1023,d0
-	move.w d0,$0012(a2)
+	move.w d0,SG2WorldObject_rotation_1(a2)
 	subi.l #512,d0
-	add.l d0,$0008(a2)
+	add.l d0,SG2ObjectCore_world_y(a2)
 	asr.w #6,d0
-	move.w d0,$002E(a2)
+	move.w d0,SG2WorldObject_velocity_y(a2)
 	neg.w d0
-	move.w d0,$002E(a3)
+	move.w d0,SG2WorldObject_velocity_y(a3)
 	bsr.w abs_0_00039D20
 	andi.l #1023,d0
-	move.w d0,$0014(a2)
+	move.w d0,SG2WorldObject_rotation_2(a2)
 	subi.l #512,d0
-	add.l d0,$000C(a2)
+	add.l d0,SG2ObjectCore_world_z(a2)
 	asr.w #6,d0
-	move.w d0,$0030(a2)
+	move.w d0,SG2WorldObject_velocity_z(a2)
 	neg.w d0
-	move.w d0,$0030(a3)
-	move.b #$3,$001C(a2)
-	move.b #$3,$001C(a3)
-	move.b #$FF,$001E(a2)
-	move.b #$FF,$001E(a3)
+	move.w d0,SG2WorldObject_velocity_z(a3)
+	move.b #$3,SG2ObjectCore_durability_or_negative(a2)
+	move.b #$3,SG2ObjectCore_durability_or_negative(a3)
+	move.b #$FF,SG2ObjectCore_retirement_phase_or_negative(a2)
+	move.b #$FF,SG2ObjectCore_retirement_phase_or_negative(a3)
 	move.b SG2WorldObject_model_scale_shift(a0),d0
 	addq.b #1,d0
-	move.b d0,$001D(a2)
-	move.b d0,$001D(a3)
-	move.b #$49,$002A(a2)
-	move.b #$49,$002A(a3)
+	move.b d0,SG2WorldObject_model_scale_shift(a2)
+	move.b d0,SG2WorldObject_model_scale_shift(a3)
+    ; Both type74 fragments ignore contact TYPE73, not a unique parent instance or each other. Both receive the same spin step10..73 and opposite velocity WORDs.
+	move.b #$49,SG2WorldObject_collision_ignored_object_type(a2)
+	move.b #$49,SG2WorldObject_collision_ignored_object_type(a3)
 	bsr.w abs_0_00039D20
 	move.w d0,d1
 	andi.w #63,d0
 	addi.w #10,d0
-	move.w d0,$0024(a2)
-	move.w d0,$0024(a3)
-abs_0_00035CC0:
+	move.w d0,SG2Asteroid_rotation_2_spin_step(a2)
+	move.w d0,SG2Asteroid_rotation_2_spin_step(a3)
+retire_parent_after_asteroid_split:
 	clr.b SG2ObjectCore_retirement_phase_or_negative(a0)
 	bclr.b #2,SG2ObjectCore_flags(a0)
 	bclr.b #3,SG2ObjectCore_flags(a0)

@@ -1,0 +1,204 @@
+{
+  "schema_version": 1,
+  "kind": "asteroid_rotation_and_original_fragment_creation_contract",
+  "status": "qualified_connected_restoration_batch_continues",
+  "publication_base_commit": "ad1c0875eb40383bd34175d87595727fdd4107dd",
+  "inputs": {
+    "binary_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "backend_sha256": "786c0581079840fbad6eba1a2656c08c0c5387f856fbda2201e02bc871b158f0",
+    "analysis_sha256": "10915ddbac686161c9eb9ec92462be8b349dd1a41eaa51b113d8d59261006462",
+    "effective_metadata_sha256": "bd1eab34c9051aaade452c6b82b8b16883348cd940a4b91189ec6dde042ac02e",
+    "consumer_evidence_sha256": "2b185219a74a50881e94a7ab9b6a6b3399232158953963985681826898798a53"
+  },
+  "canonical_action_count": 11,
+  "interpretation": "Original names/types73 Asteroid and74 Small Asteroid share primary entry83FA, BRA B45E, JMP35B80. Their original updater reads WORD24 as rotation2 spin increment, rotates0 by64, masks12-bit angles, and uses MOVEM.W velocity loads before LONG position additions; preserve sign extension and the real multi-register span. Signed durability<=2 branches to35BBA. Splitting needs original unsigned free count>50 and signed model scaleBYTE<10; original scale/index/arithmetic assumptions remain conditional. It pops TWO free-stack pointers, writes type74 to both, but decrements free count onlyONCE, then retires the parent. Keep that exact accounting and retirement ordering, without asserting count/stack equivalence or diagnosing/fixing an original bug. Both children copy parent XYZ; first gets random rotations/coordinate jitter, WORD velocities come from signed random[-512,511] ASR6 (-8..7), second receives their negations (-7..8). Both receive durability3, negative active phase, scale parent+1, collision-ignored TYPE73, and same spin increment10..73. Type73 exclusion is type-wide, not unique parent immunity or sibling exclusion(type74). The original shared initializer1856E belongs to BOTH Space Ray41 and Asteroid73; it finally writes random0..31 to WORD24. Do not attach Asteroid-only schema there: use common WorldObject input and leave private shared WORD purpose unresolved at that entry. Type74 empty initializer alone does not guarantee a spin seed; original split path explicitly initializes it. Bind Asteroid only at proven73/74 updater and at A2/A3 after both fragment types are written. No new runtime, lifetime/free-list consistency, arbitrary scale/count safety, gameplay rewrite, relocation or raw code repair.",
+  "field": {
+    "owner": "SG2Asteroid",
+    "parent": "SG2WorldObject",
+    "offset": 36,
+    "size": 2,
+    "type": "WORD",
+    "name": "rotation_2_spin_step"
+  },
+  "original_domains": {
+    "updater_types": [
+      73,
+      74
+    ],
+    "names": [
+      "Asteroid",
+      "Small Asteroid"
+    ],
+    "primary_entry": 33786,
+    "branch_stub": 46174,
+    "updater": 220032,
+    "shared_initializer": 99694,
+    "initializer_types": [
+      41,
+      73
+    ],
+    "initializer_names": [
+      "Space Ray",
+      "Asteroid"
+    ],
+    "initializer_contract": "Common WorldObject only; final random WORD24 has a spin role for Asteroid, not an invented universal Space Ray purpose."
+  },
+  "split": {
+    "entry": 220090,
+    "guards": "Signed durability<=2, original unsigned free count>50 and signed scaleBYTE<10.",
+    "free_stack": "Two pointer pops; one free-count decrement; eventual parent retirement. Literal original accounting/order retained; no proof of count-versus-stack invariants or original-bug diagnosis.",
+    "fragment_type": 74,
+    "position": "Both copy parent XYZ; only first receives the shown random coordinate jitter and rotation assignments.",
+    "velocities": "First WORD components -8..7 from signed(-512..511) ASR6; second receives their negations -7..8. WORD MOVEM sign extension remains part of original position update.",
+    "spin": "Both receive same random WORD10..73.",
+    "durability": 3,
+    "phase": "Negative active BYTE",
+    "scale": "Parent shift+1, preserving BYTE arithmetic.",
+    "collision_exclusion": "TYPE73, not one parent instance and not sibling type74.",
+    "parent": "Clear retirement phase/durability and flag bits2/3 on original path; no silent resource-accounting repair."
+  },
+  "labels": [
+    [
+      220112,
+      "prepare_small_asteroid_fragment_pair"
+    ],
+    [
+      220352,
+      "retire_parent_after_asteroid_split"
+    ]
+  ],
+  "native_spin_sites": [
+    {
+      "source_offset": 215964,
+      "runtime_address": 220060,
+      "operand": 0,
+      "root": "SG2Asteroid",
+      "provenance": "policy_seed"
+    },
+    {
+      "source_offset": 216248,
+      "runtime_address": 220344,
+      "operand": 1,
+      "root": "SG2Asteroid",
+      "provenance": "policy_seed"
+    },
+    {
+      "source_offset": 216252,
+      "runtime_address": 220348,
+      "operand": 1,
+      "root": "SG2Asteroid",
+      "provenance": "policy_seed"
+    }
+  ],
+  "before_after": {
+    "app_slot_ref_count": {
+      "before": 3383,
+      "after": 3383
+    },
+    "recovered_platform_typed_access_count": {
+      "before": 821,
+      "after": 856
+    },
+    "recovered_platform_unresolved_typed_access_count": {
+      "before": 195,
+      "after": 199
+    }
+  },
+  "validation": {
+    "native_and_vasm": {
+      "kind": "verification",
+      "framework_exact": true,
+      "target_id": "amiga_raw_starglider2_game",
+      "subject_revision": "d167ce4c1d46f442ddc40b2b7204fbc50fc72cef0f4cbf724ade7957f541456e",
+      "status": "exact",
+      "exact": true,
+      "source_sha256": "231c84c28b5448e10a97cea7e8bd28403e54c13fce91f20efe79f16ed6edde0e",
+      "source_path": "/workspace/pandora-original-delivery/stable-d15c2cf8/.runtime-state/restoration/eb04f545fb97451725a1c91ab5abf6f2e097614c45880db6edfb4ea5c3f6e2c2/231c84c28b5448e10a97cea7e8bd28403e54c13fce91f20efe79f16ed6edde0e.s",
+      "source_package_sha256": null,
+      "original_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+      "original_size": 412736,
+      "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+      "rebuilt_path": "/workspace/pandora-original-delivery/stable-d15c2cf8/.runtime-state/restoration/eb04f545fb97451725a1c91ab5abf6f2e097614c45880db6edfb4ea5c3f6e2c2/662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9.bin",
+      "framework_status": "exact",
+      "failure_kinds": [],
+      "message": "",
+      "oracle": {
+        "oracle_id": "vasm",
+        "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+        "comparison_level": "oracle.full_file_match",
+        "assembler_status": "accepted",
+        "message": "oracle output matched original bytes"
+      },
+      "receipt_id": "d935aa19e5b6068191d85f0e3301227e68ef8e8eebbab0439674e1380a8870dd",
+      "revision": "21f14be27fa51e12142868bac19641556ecd2e43c9c5a74a9715524ad84a3441"
+    },
+    "source_quality_diagnostics": 0,
+    "incomplete_analysis": [],
+    "generation_wall_seconds": 150.74316159600858,
+    "assets_unchanged": 57,
+    "required_headers": 14,
+    "framework_changed": false,
+    "focused_tests": "Unchanged shared implementation; previous 69 focused/832 native results remain applicable. New typed admission, changed whole-source exact C/vasm and clean standalone build qualify this slice.",
+    "clean_standalone_build": {
+      "status": "pass",
+      "validated_target_git_tree": "acbf2e7d67727b90ccac4a8ecfb78b1fce76a3f0",
+      "receipt": {
+        "schema_version": 1,
+        "status": "pass",
+        "format": "raw_payload_not_AmigaDOS_HUNK",
+        "main_bytes": 412736,
+        "main_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+        "main_matches_original_identity": true,
+        "asset_count": 57,
+        "all_asset_source_slices_equal": true,
+        "decoded_view_inverse_exact": true,
+        "boot_copy_source_matches_resident_view": true,
+        "source_commit": "ad1c0875eb40383bd34175d87595727fdd4107dd",
+        "assembler_sha256": "413e284020125f42709486dfe09907cab3dd9f3c2ea41017c190f8ea68f30825",
+        "flags": [
+          "-Fbin",
+          "-m68000",
+          "-no-opt"
+        ],
+        "outputs": [
+          {
+            "role": "original_main",
+            "filename": "Starglider2-original.raw",
+            "bytes": 412736,
+            "sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9"
+          },
+          {
+            "role": "decoded_analysis_view",
+            "filename": "protection-decoded-analysis.raw",
+            "bytes": 3548,
+            "sha256": "de8358853dd9ed9b006a23569bf393aa217ed3be3301a169465d80bfaf839922"
+          },
+          {
+            "role": "boot_installer_context",
+            "filename": "boot-selector-installer-context.raw",
+            "bytes": 40,
+            "sha256": "8d34852425e2e1bfa87b3febdfc74fb39e7c667e9d9ff73e17b594649e83b21b"
+          },
+          {
+            "role": "boot_resident_view",
+            "filename": "boot-selector-resident.raw",
+            "bytes": 20,
+            "sha256": "a26286a393713c046eff9dbaff15b20b26b171fa9e05fc9d538d16b0eddb6024"
+          }
+        ]
+      },
+      "recoverable_pandora_backups_verified": 16
+    }
+  },
+  "limits": [
+    "No new Copperline execution or independent runtime count/lifetime proof.",
+    "Shared Space Ray/Asteroid constructor is not bound to Asteroid; original type74 empty initializer does not establish a universal spin seed.",
+    "Original signed/unsigned gates and arithmetic are retained, not generalized to arbitrary scales/counts.",
+    "No guessed original-bug repair for the two-pop/one-decrement accounting."
+  ],
+  "next": {
+    "group": "Shared flying-actor behavior and original incoming type domains",
+    "experiment": "Follow Space Ray41 into its shared body at9010. Reconcile original callers before interpreting its WORD24 counter or applying any actor schema; the shared initializer alone cannot unify that word with asteroid spin."
+  },
+  "before_after_interpretation": "35 additional typed projections. Resolving asteroid spin closes one old gap; the newly typed shared WorldObject initializer exposes five still-unknown WORD writes at20/24/26. Net unresolved count rises195->199. These are newly visible diagnostics, not evidence that the five words share an asteroid role."
+}

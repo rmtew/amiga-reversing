@@ -21,9 +21,25 @@ The [current systematic gap inventory](../../runtime/observations/starglider2-so
 joins native identities/accesses with canonical layouts and actual rendered
 boundaries. It records 67 suffix signals (including numeric adjacent variants),
 21 lookup contracts, 523 remaining interior references, 32 generic app fields
-and 195 unresolved record accesses. These are different denominators. Five
+and 199 unresolved record accesses. These are different denominators. Five
 suffixes name routines and one names text; neither is a pointer defect.
-Latest: the [Mini-Sentinel state reconstruction](../../runtime/observations/starglider2-mini-sentinel-state.json)
+Latest: the [asteroid split/state reconstruction](../../runtime/observations/starglider2-asteroid-split-state.json)
+connects types73/74, their shared updater and explicit Small Asteroid creation.
+WORD24 is an asteroid spin step, distinct from the Pirate Ship countdown or
+Mini-Sentinel orbit angle. Fragment positions, mirrored velocity WORDs, shared
+spin seed and type-wide73 collision exclusion now project through typed records.
+The Space Ray41/Asteroid73 initializer stays at the common model type; private
+WORD24 meaning is not forced onto both. Two free-stack pops and one count
+decrement remain literal, with parent retirement following: count/stack
+consistency is a separate unresolved question, not silently repaired.
+**3 spin accesses** are projected, with
+**856 typed / 199 unresolved** overall.
+The common constructor annotation exposes five previously untyped WORD writes;
+closing the spin gap therefore leaves four more unresolved sites overall.
+Original C/vasm and clean standalone bytes remain exact. Continue the shared
+flying-actor body/caller domains to explain its different counter fields.
+
+Preceding: the [Mini-Sentinel state reconstruction](../../runtime/observations/starglider2-mini-sentinel-state.json)
 joins original type37, its unique initializer, near/far callbacks and orbit
 helper. Orbit angle and rotation increment have dedicated variant fields;
 the eight stored initial angles and two constructor counters now have roles.
