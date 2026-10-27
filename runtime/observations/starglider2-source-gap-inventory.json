@@ -2,7 +2,7 @@
   "schema_version": 2,
   "kind": "source_gap_discovery_not_fact_admission",
   "canonical_policy_items": {
-    "policy:15768": {
+    "policy:15770": {
       "section_index": 0,
       "offset": 235820,
       "size": 12,
@@ -27,7 +27,7 @@
       "target_section": null,
       "target_offset": null
     },
-    "policy:15769": {
+    "policy:15771": {
       "section_index": 0,
       "offset": 235832,
       "size": 12,
@@ -227,7 +227,7 @@
       "target_section": null,
       "target_offset": null
     },
-    "policy:15784": {
+    "policy:15786": {
       "section_index": 0,
       "offset": 254226,
       "size": 32,
@@ -252,7 +252,7 @@
       "target_section": null,
       "target_offset": null
     },
-    "policy:15779": {
+    "policy:15781": {
       "section_index": 0,
       "offset": 249230,
       "size": 32,
@@ -427,7 +427,7 @@
       "target_section": null,
       "target_offset": null
     },
-    "policy:15765": {
+    "policy:15767": {
       "section_index": 0,
       "offset": 232676,
       "size": 8,
@@ -552,7 +552,7 @@
       "target_section": 0,
       "target_offset": 187348
     },
-    "policy:16332": {
+    "policy:16334": {
       "section_index": 0,
       "offset": 311912,
       "size": 2,
@@ -577,7 +577,7 @@
       "target_section": null,
       "target_offset": null
     },
-    "policy:16331": {
+    "policy:16333": {
       "section_index": 0,
       "offset": 311910,
       "size": 2,
@@ -602,7 +602,7 @@
       "target_section": null,
       "target_offset": null
     },
-    "policy:16413": {
+    "policy:16415": {
       "section_index": 0,
       "offset": 317770,
       "size": 2,
@@ -752,7 +752,7 @@
       "target_section": null,
       "target_offset": null
     },
-    "policy:15794": {
+    "policy:15796": {
       "section_index": 0,
       "offset": 263864,
       "size": 400,
@@ -3752,7 +3752,7 @@
       "target_section": null,
       "target_offset": null
     },
-    "policy:16439": {
+    "policy:16441": {
       "section_index": 0,
       "offset": 317834,
       "size": 4,
@@ -3777,7 +3777,7 @@
       "target_section": 0,
       "target_offset": 318138
     },
-    "policy:16445": {
+    "policy:16447": {
       "section_index": 0,
       "offset": 317858,
       "size": 4,
@@ -3802,7 +3802,7 @@
       "target_section": 0,
       "target_offset": 318298
     },
-    "policy:16449": {
+    "policy:16451": {
       "section_index": 0,
       "offset": 317874,
       "size": 4,
@@ -3827,7 +3827,7 @@
       "target_section": 0,
       "target_offset": 318426
     },
-    "policy:16452": {
+    "policy:16454": {
       "section_index": 0,
       "offset": 317886,
       "size": 4,
@@ -3852,7 +3852,7 @@
       "target_section": 0,
       "target_offset": 319098
     },
-    "policy:16455": {
+    "policy:16457": {
       "section_index": 0,
       "offset": 317898,
       "size": 4,
@@ -3877,7 +3877,7 @@
       "target_section": 0,
       "target_offset": 319930
     },
-    "policy:16495": {
+    "policy:16497": {
       "section_index": 0,
       "offset": 318058,
       "size": 4,
@@ -5798,12 +5798,13 @@
       "scalar": 13
     },
     "interior_reference_records": 523,
-    "unresolved_typed_accesses": 295,
+    "unresolved_typed_accesses": 277,
     "unresolved_mechanisms": {
       "indexed_dynamic": 87,
-      "declared_field_hole": 201,
+      "declared_field_hole": 174,
       "auto_update_cursor": 2,
-      "outside_declared_record": 5
+      "outside_declared_record": 5,
+      "type_conflict": 9
     },
     "orphan_signal_statuses": {
       "unresolved": 30,
@@ -6725,6 +6726,85 @@
       "size": 4,
       "source": "manual_action_log"
     },
+    "SG2SkimLauncherDrone": {
+      "available_since": "1.0",
+      "base_offset": 0,
+      "base_struct": "SG2WorldObject",
+      "citation": "manual_action_log:SG2SkimLauncherDrone",
+      "fields": [
+        {
+          "available_since": "1.0",
+          "name": "rotation_0",
+          "named_base": null,
+          "offset": 16,
+          "pointer_struct": null,
+          "size": 2,
+          "struct": null,
+          "type": "WORD",
+          "value_kind": "scalar"
+        },
+        {
+          "available_since": "1.0",
+          "name": "rotation_1",
+          "named_base": null,
+          "offset": 18,
+          "pointer_struct": null,
+          "size": 2,
+          "struct": null,
+          "type": "WORD",
+          "value_kind": "scalar"
+        },
+        {
+          "available_since": "1.0",
+          "name": "rotation_2",
+          "named_base": null,
+          "offset": 20,
+          "pointer_struct": null,
+          "size": 2,
+          "struct": null,
+          "type": "WORD",
+          "value_kind": "scalar"
+        },
+        {
+          "available_since": "1.0",
+          "name": "follow_phase_countdown",
+          "named_base": null,
+          "offset": 36,
+          "pointer_struct": null,
+          "size": 2,
+          "struct": null,
+          "type": "WORD",
+          "value_kind": "scalar"
+        },
+        {
+          "available_since": "1.0",
+          "name": "idle_phase_countdown",
+          "named_base": null,
+          "offset": 38,
+          "pointer_struct": null,
+          "size": 2,
+          "struct": null,
+          "type": "WORD",
+          "value_kind": "scalar"
+        },
+        {
+          "available_since": "1.0",
+          "name": "collision_ignored_object_type",
+          "named_base": null,
+          "offset": 42,
+          "pointer_struct": null,
+          "size": 1,
+          "struct": null,
+          "type": "UBYTE",
+          "value_kind": "scalar"
+        }
+      ],
+      "name": "SG2SkimLauncherDrone",
+      "review_status": "seeded",
+      "seed_origin": "manual_analysis",
+      "size": 68,
+      "source": "manual_action_log"
+    },
     "SG2SoliceDisplayRadius": {
       "available_since": "1.0",
       "base_offset": 0,
@@ -7105,7 +7185,7 @@
         }
       ],
       "canonical_item_ids": [
-        "policy:15768"
+        "policy:15770"
       ],
       "canonical_entities": [
         {
@@ -7176,7 +7256,7 @@
         }
       ],
       "canonical_item_ids": [
-        "policy:15769"
+        "policy:15771"
       ],
       "canonical_entities": [
         {
@@ -9957,7 +10037,7 @@
         }
       ],
       "canonical_item_ids": [
-        "policy:15784"
+        "policy:15786"
       ],
       "canonical_entities": [
         {
@@ -10215,7 +10295,7 @@
         }
       ],
       "canonical_item_ids": [
-        "policy:15779"
+        "policy:15781"
       ],
       "canonical_entities": [
         {
@@ -13063,7 +13143,7 @@
         }
       ],
       "canonical_item_ids": [
-        "policy:15765"
+        "policy:15767"
       ],
       "canonical_entities": [
         {
@@ -13569,7 +13649,7 @@
         }
       ],
       "canonical_item_ids": [
-        "policy:16332"
+        "policy:16334"
       ],
       "canonical_entities": [
         {
@@ -13662,7 +13742,7 @@
         }
       ],
       "canonical_item_ids": [
-        "policy:16331"
+        "policy:16333"
       ],
       "canonical_entities": [
         {
@@ -13755,7 +13835,7 @@
         }
       ],
       "canonical_item_ids": [
-        "policy:16413"
+        "policy:16415"
       ],
       "canonical_entities": [
         {
@@ -15938,7 +16018,7 @@
         }
       ],
       "canonical_item_ids": [
-        "policy:15794"
+        "policy:15796"
       ],
       "canonical_entities": [
         {
@@ -29173,7 +29253,7 @@
       "evidence": "native_rendered_target_identity",
       "canonical_layout_id": "catalog-93699fe979424047a84698903fc03dd4",
       "target_policy_item_ids": [
-        "policy:16439"
+        "policy:16441"
       ]
     },
     {
@@ -29187,7 +29267,7 @@
       "evidence": "native_rendered_target_identity",
       "canonical_layout_id": "catalog-93699fe979424047a84698903fc03dd4",
       "target_policy_item_ids": [
-        "policy:16445"
+        "policy:16447"
       ]
     },
     {
@@ -29201,7 +29281,7 @@
       "evidence": "native_rendered_target_identity",
       "canonical_layout_id": "catalog-93699fe979424047a84698903fc03dd4",
       "target_policy_item_ids": [
-        "policy:16449"
+        "policy:16451"
       ]
     },
     {
@@ -29215,7 +29295,7 @@
       "evidence": "native_rendered_target_identity",
       "canonical_layout_id": "catalog-93699fe979424047a84698903fc03dd4",
       "target_policy_item_ids": [
-        "policy:16452"
+        "policy:16454"
       ]
     },
     {
@@ -29229,7 +29309,7 @@
       "evidence": "native_rendered_target_identity",
       "canonical_layout_id": "catalog-93699fe979424047a84698903fc03dd4",
       "target_policy_item_ids": [
-        "policy:16455"
+        "policy:16457"
       ]
     },
     {
@@ -29243,7 +29323,7 @@
       "evidence": "native_rendered_target_identity",
       "canonical_layout_id": "catalog-93699fe979424047a84698903fc03dd4",
       "target_policy_item_ids": [
-        "policy:16495"
+        "policy:16497"
       ]
     }
   ],
@@ -30879,6 +30959,116 @@
     {
       "section_index": 0,
       "mechanism": "declared_field_hole",
+      "offset": 95560,
+      "operand_index": 1,
+      "base_register": "A0",
+      "displacement": 36,
+      "struct_size": 68,
+      "access_size": 2,
+      "root_struct_name": "SG2WorldObject",
+      "classification_id": 0,
+      "classification": "field_gap",
+      "container_candidate_count": 0,
+      "container_struct_name": null,
+      "container_field_expr": null,
+      "refinement_applied": 0,
+      "refined_struct_name": null,
+      "type_provenance_kind_id": 11,
+      "type_provenance_kind": "policy_seed",
+      "type_provenance_section": 0,
+      "type_provenance_offset": 95526
+    },
+    {
+      "section_index": 0,
+      "mechanism": "declared_field_hole",
+      "offset": 95566,
+      "operand_index": 1,
+      "base_register": "A0",
+      "displacement": 38,
+      "struct_size": 68,
+      "access_size": 2,
+      "root_struct_name": "SG2WorldObject",
+      "classification_id": 0,
+      "classification": "field_gap",
+      "container_candidate_count": 0,
+      "container_struct_name": null,
+      "container_field_expr": null,
+      "refinement_applied": 0,
+      "refined_struct_name": null,
+      "type_provenance_kind_id": 11,
+      "type_provenance_kind": "policy_seed",
+      "type_provenance_section": 0,
+      "type_provenance_offset": 95526
+    },
+    {
+      "section_index": 0,
+      "mechanism": "declared_field_hole",
+      "offset": 95572,
+      "operand_index": 1,
+      "base_register": "A0",
+      "displacement": 32,
+      "struct_size": 68,
+      "access_size": 2,
+      "root_struct_name": "SG2WorldObject",
+      "classification_id": 0,
+      "classification": "field_gap",
+      "container_candidate_count": 0,
+      "container_struct_name": null,
+      "container_field_expr": null,
+      "refinement_applied": 0,
+      "refined_struct_name": null,
+      "type_provenance_kind_id": 11,
+      "type_provenance_kind": "policy_seed",
+      "type_provenance_section": 0,
+      "type_provenance_offset": 95526
+    },
+    {
+      "section_index": 0,
+      "mechanism": "declared_field_hole",
+      "offset": 95586,
+      "operand_index": 1,
+      "base_register": "A0",
+      "displacement": 36,
+      "struct_size": 68,
+      "access_size": 2,
+      "root_struct_name": "SG2WorldObject",
+      "classification_id": 0,
+      "classification": "field_gap",
+      "container_candidate_count": 0,
+      "container_struct_name": null,
+      "container_field_expr": null,
+      "refinement_applied": 0,
+      "refined_struct_name": null,
+      "type_provenance_kind_id": 11,
+      "type_provenance_kind": "policy_seed",
+      "type_provenance_section": 0,
+      "type_provenance_offset": 95526
+    },
+    {
+      "section_index": 0,
+      "mechanism": "declared_field_hole",
+      "offset": 95590,
+      "operand_index": 1,
+      "base_register": "A0",
+      "displacement": 32,
+      "struct_size": 68,
+      "access_size": 2,
+      "root_struct_name": "SG2WorldObject",
+      "classification_id": 0,
+      "classification": "field_gap",
+      "container_candidate_count": 0,
+      "container_struct_name": null,
+      "container_field_expr": null,
+      "refinement_applied": 0,
+      "refined_struct_name": null,
+      "type_provenance_kind_id": 11,
+      "type_provenance_kind": "policy_seed",
+      "type_provenance_section": 0,
+      "type_provenance_offset": 95526
+    },
+    {
+      "section_index": 0,
+      "mechanism": "declared_field_hole",
       "offset": 96266,
       "operand_index": 1,
       "base_register": "A0",
@@ -32351,628 +32541,6 @@
       "type_provenance_kind": "policy_seed",
       "type_provenance_section": 0,
       "type_provenance_offset": 216410
-    },
-    {
-      "section_index": 0,
-      "mechanism": "declared_field_hole",
-      "offset": 216512,
-      "operand_index": 0,
-      "base_register": "A0",
-      "displacement": 36,
-      "struct_size": 68,
-      "access_size": 2,
-      "root_struct_name": "SG2WorldObject",
-      "classification_id": 0,
-      "classification": "field_gap",
-      "container_candidate_count": 0,
-      "container_struct_name": null,
-      "container_field_expr": null,
-      "refinement_applied": 0,
-      "refined_struct_name": null,
-      "type_provenance_kind_id": 11,
-      "type_provenance_kind": "policy_seed",
-      "type_provenance_section": 0,
-      "type_provenance_offset": 216490
-    },
-    {
-      "section_index": 0,
-      "mechanism": "declared_field_hole",
-      "offset": 216676,
-      "operand_index": 1,
-      "base_register": "A0",
-      "displacement": 42,
-      "struct_size": 68,
-      "access_size": 1,
-      "root_struct_name": "SG2WorldObject",
-      "classification_id": 0,
-      "classification": "field_gap",
-      "container_candidate_count": 0,
-      "container_struct_name": null,
-      "container_field_expr": null,
-      "refinement_applied": 0,
-      "refined_struct_name": null,
-      "type_provenance_kind_id": 11,
-      "type_provenance_kind": "policy_seed",
-      "type_provenance_section": 0,
-      "type_provenance_offset": 216490
-    },
-    {
-      "section_index": 0,
-      "mechanism": "declared_field_hole",
-      "offset": 216682,
-      "operand_index": 1,
-      "base_register": "A0",
-      "displacement": 36,
-      "struct_size": 68,
-      "access_size": 2,
-      "root_struct_name": "SG2WorldObject",
-      "classification_id": 0,
-      "classification": "field_gap",
-      "container_candidate_count": 0,
-      "container_struct_name": null,
-      "container_field_expr": null,
-      "refinement_applied": 0,
-      "refined_struct_name": null,
-      "type_provenance_kind_id": 11,
-      "type_provenance_kind": "policy_seed",
-      "type_provenance_section": 0,
-      "type_provenance_offset": 216490
-    },
-    {
-      "section_index": 0,
-      "mechanism": "declared_field_hole",
-      "offset": 216700,
-      "operand_index": 1,
-      "base_register": "A0",
-      "displacement": 38,
-      "struct_size": 68,
-      "access_size": 2,
-      "root_struct_name": "SG2WorldObject",
-      "classification_id": 0,
-      "classification": "field_gap",
-      "container_candidate_count": 0,
-      "container_struct_name": null,
-      "container_field_expr": null,
-      "refinement_applied": 0,
-      "refined_struct_name": null,
-      "type_provenance_kind_id": 11,
-      "type_provenance_kind": "policy_seed",
-      "type_provenance_section": 0,
-      "type_provenance_offset": 216490
-    },
-    {
-      "section_index": 0,
-      "mechanism": "declared_field_hole",
-      "offset": 216736,
-      "operand_index": 0,
-      "base_register": "A0",
-      "displacement": 36,
-      "struct_size": 68,
-      "access_size": 2,
-      "root_struct_name": "SG2WorldObject",
-      "classification_id": 0,
-      "classification": "field_gap",
-      "container_candidate_count": 0,
-      "container_struct_name": null,
-      "container_field_expr": null,
-      "refinement_applied": 0,
-      "refined_struct_name": null,
-      "type_provenance_kind_id": 11,
-      "type_provenance_kind": "policy_seed",
-      "type_provenance_section": 0,
-      "type_provenance_offset": 216728
-    },
-    {
-      "section_index": 0,
-      "mechanism": "declared_field_hole",
-      "offset": 216742,
-      "operand_index": 1,
-      "base_register": "A0",
-      "displacement": 36,
-      "struct_size": 68,
-      "access_size": 2,
-      "root_struct_name": "SG2WorldObject",
-      "classification_id": 0,
-      "classification": "field_gap",
-      "container_candidate_count": 0,
-      "container_struct_name": null,
-      "container_field_expr": null,
-      "refinement_applied": 0,
-      "refined_struct_name": null,
-      "type_provenance_kind_id": 11,
-      "type_provenance_kind": "policy_seed",
-      "type_provenance_section": 0,
-      "type_provenance_offset": 216728
-    },
-    {
-      "section_index": 0,
-      "mechanism": "declared_field_hole",
-      "offset": 216760,
-      "operand_index": 1,
-      "base_register": "A0",
-      "displacement": 36,
-      "struct_size": 68,
-      "access_size": 2,
-      "root_struct_name": "SG2WorldObject",
-      "classification_id": 0,
-      "classification": "field_gap",
-      "container_candidate_count": 0,
-      "container_struct_name": null,
-      "container_field_expr": null,
-      "refinement_applied": 0,
-      "refined_struct_name": null,
-      "type_provenance_kind_id": 11,
-      "type_provenance_kind": "policy_seed",
-      "type_provenance_section": 0,
-      "type_provenance_offset": 216728
-    },
-    {
-      "section_index": 0,
-      "mechanism": "declared_field_hole",
-      "offset": 216778,
-      "operand_index": 1,
-      "base_register": "A0",
-      "displacement": 38,
-      "struct_size": 68,
-      "access_size": 2,
-      "root_struct_name": "SG2WorldObject",
-      "classification_id": 0,
-      "classification": "field_gap",
-      "container_candidate_count": 0,
-      "container_struct_name": null,
-      "container_field_expr": null,
-      "refinement_applied": 0,
-      "refined_struct_name": null,
-      "type_provenance_kind_id": 11,
-      "type_provenance_kind": "policy_seed",
-      "type_provenance_section": 0,
-      "type_provenance_offset": 216728
-    },
-    {
-      "section_index": 0,
-      "mechanism": "declared_field_hole",
-      "offset": 216782,
-      "operand_index": 1,
-      "base_register": "A0",
-      "displacement": 38,
-      "struct_size": 68,
-      "access_size": 2,
-      "root_struct_name": "SG2WorldObject",
-      "classification_id": 0,
-      "classification": "field_gap",
-      "container_candidate_count": 0,
-      "container_struct_name": null,
-      "container_field_expr": null,
-      "refinement_applied": 0,
-      "refined_struct_name": null,
-      "type_provenance_kind_id": 0,
-      "type_provenance_kind": "unknown"
-    },
-    {
-      "section_index": 0,
-      "mechanism": "declared_field_hole",
-      "offset": 216788,
-      "operand_index": 1,
-      "base_register": "A0",
-      "displacement": 38,
-      "struct_size": 68,
-      "access_size": 2,
-      "root_struct_name": "SG2WorldObject",
-      "classification_id": 0,
-      "classification": "field_gap",
-      "container_candidate_count": 0,
-      "container_struct_name": null,
-      "container_field_expr": null,
-      "refinement_applied": 0,
-      "refined_struct_name": null,
-      "type_provenance_kind_id": 0,
-      "type_provenance_kind": "unknown"
-    },
-    {
-      "section_index": 0,
-      "mechanism": "declared_field_hole",
-      "offset": 216806,
-      "operand_index": 1,
-      "base_register": "A0",
-      "displacement": 36,
-      "struct_size": 68,
-      "access_size": 2,
-      "root_struct_name": "SG2WorldObject",
-      "classification_id": 0,
-      "classification": "field_gap",
-      "container_candidate_count": 0,
-      "container_struct_name": null,
-      "container_field_expr": null,
-      "refinement_applied": 0,
-      "refined_struct_name": null,
-      "type_provenance_kind_id": 0,
-      "type_provenance_kind": "unknown"
-    },
-    {
-      "section_index": 0,
-      "mechanism": "declared_field_hole",
-      "offset": 216830,
-      "operand_index": 1,
-      "base_register": "A0",
-      "displacement": 16,
-      "struct_size": 68,
-      "access_size": 2,
-      "root_struct_name": "SG2WorldObject",
-      "classification_id": 0,
-      "classification": "field_gap",
-      "container_candidate_count": 0,
-      "container_struct_name": null,
-      "container_field_expr": null,
-      "refinement_applied": 0,
-      "refined_struct_name": null,
-      "type_provenance_kind_id": 0,
-      "type_provenance_kind": "unknown"
-    },
-    {
-      "section_index": 0,
-      "mechanism": "declared_field_hole",
-      "offset": 216836,
-      "operand_index": 1,
-      "base_register": "A0",
-      "displacement": 16,
-      "struct_size": 68,
-      "access_size": 2,
-      "root_struct_name": "SG2WorldObject",
-      "classification_id": 0,
-      "classification": "field_gap",
-      "container_candidate_count": 0,
-      "container_struct_name": null,
-      "container_field_expr": null,
-      "refinement_applied": 0,
-      "refined_struct_name": null,
-      "type_provenance_kind_id": 0,
-      "type_provenance_kind": "unknown"
-    },
-    {
-      "section_index": 0,
-      "mechanism": "declared_field_hole",
-      "offset": 216842,
-      "operand_index": 1,
-      "base_register": "A0",
-      "displacement": 16,
-      "struct_size": 68,
-      "access_size": 2,
-      "root_struct_name": "SG2WorldObject",
-      "classification_id": 0,
-      "classification": "field_gap",
-      "container_candidate_count": 0,
-      "container_struct_name": null,
-      "container_field_expr": null,
-      "refinement_applied": 0,
-      "refined_struct_name": null,
-      "type_provenance_kind_id": 0,
-      "type_provenance_kind": "unknown"
-    },
-    {
-      "section_index": 0,
-      "mechanism": "declared_field_hole",
-      "offset": 216848,
-      "operand_index": 1,
-      "base_register": "A0",
-      "displacement": 20,
-      "struct_size": 68,
-      "access_size": 2,
-      "root_struct_name": "SG2WorldObject",
-      "classification_id": 0,
-      "classification": "field_gap",
-      "container_candidate_count": 0,
-      "container_struct_name": null,
-      "container_field_expr": null,
-      "refinement_applied": 0,
-      "refined_struct_name": null,
-      "type_provenance_kind_id": 0,
-      "type_provenance_kind": "unknown"
-    },
-    {
-      "section_index": 0,
-      "mechanism": "declared_field_hole",
-      "offset": 216854,
-      "operand_index": 1,
-      "base_register": "A0",
-      "displacement": 20,
-      "struct_size": 68,
-      "access_size": 2,
-      "root_struct_name": "SG2WorldObject",
-      "classification_id": 0,
-      "classification": "field_gap",
-      "container_candidate_count": 0,
-      "container_struct_name": null,
-      "container_field_expr": null,
-      "refinement_applied": 0,
-      "refined_struct_name": null,
-      "type_provenance_kind_id": 0,
-      "type_provenance_kind": "unknown"
-    },
-    {
-      "section_index": 0,
-      "mechanism": "declared_field_hole",
-      "offset": 216876,
-      "operand_index": 0,
-      "base_register": "A0",
-      "displacement": 16,
-      "struct_size": 68,
-      "access_size": 2,
-      "root_struct_name": "SG2WorldObject",
-      "classification_id": 0,
-      "classification": "field_gap",
-      "container_candidate_count": 0,
-      "container_struct_name": null,
-      "container_field_expr": null,
-      "refinement_applied": 0,
-      "refined_struct_name": null,
-      "type_provenance_kind_id": 11,
-      "type_provenance_kind": "policy_seed",
-      "type_provenance_section": 0,
-      "type_provenance_offset": 216728
-    },
-    {
-      "section_index": 0,
-      "mechanism": "declared_field_hole",
-      "offset": 216880,
-      "operand_index": 0,
-      "base_register": "A0",
-      "displacement": 18,
-      "struct_size": 68,
-      "access_size": 2,
-      "root_struct_name": "SG2WorldObject",
-      "classification_id": 0,
-      "classification": "field_gap",
-      "container_candidate_count": 0,
-      "container_struct_name": null,
-      "container_field_expr": null,
-      "refinement_applied": 0,
-      "refined_struct_name": null,
-      "type_provenance_kind_id": 11,
-      "type_provenance_kind": "policy_seed",
-      "type_provenance_section": 0,
-      "type_provenance_offset": 216728
-    },
-    {
-      "section_index": 0,
-      "mechanism": "declared_field_hole",
-      "offset": 216884,
-      "operand_index": 0,
-      "base_register": "A0",
-      "displacement": 20,
-      "struct_size": 68,
-      "access_size": 2,
-      "root_struct_name": "SG2WorldObject",
-      "classification_id": 0,
-      "classification": "field_gap",
-      "container_candidate_count": 0,
-      "container_struct_name": null,
-      "container_field_expr": null,
-      "refinement_applied": 0,
-      "refined_struct_name": null,
-      "type_provenance_kind_id": 11,
-      "type_provenance_kind": "policy_seed",
-      "type_provenance_section": 0,
-      "type_provenance_offset": 216728
-    },
-    {
-      "section_index": 0,
-      "mechanism": "declared_field_hole",
-      "offset": 216892,
-      "operand_index": 1,
-      "base_register": "A0",
-      "displacement": 16,
-      "struct_size": 68,
-      "access_size": 2,
-      "root_struct_name": "SG2WorldObject",
-      "classification_id": 0,
-      "classification": "field_gap",
-      "container_candidate_count": 0,
-      "container_struct_name": null,
-      "container_field_expr": null,
-      "refinement_applied": 0,
-      "refined_struct_name": null,
-      "type_provenance_kind_id": 11,
-      "type_provenance_kind": "policy_seed",
-      "type_provenance_section": 0,
-      "type_provenance_offset": 216728
-    },
-    {
-      "section_index": 0,
-      "mechanism": "declared_field_hole",
-      "offset": 216898,
-      "operand_index": 1,
-      "base_register": "A0",
-      "displacement": 18,
-      "struct_size": 68,
-      "access_size": 2,
-      "root_struct_name": "SG2WorldObject",
-      "classification_id": 0,
-      "classification": "field_gap",
-      "container_candidate_count": 0,
-      "container_struct_name": null,
-      "container_field_expr": null,
-      "refinement_applied": 0,
-      "refined_struct_name": null,
-      "type_provenance_kind_id": 11,
-      "type_provenance_kind": "policy_seed",
-      "type_provenance_section": 0,
-      "type_provenance_offset": 216728
-    },
-    {
-      "section_index": 0,
-      "mechanism": "declared_field_hole",
-      "offset": 216904,
-      "operand_index": 1,
-      "base_register": "A0",
-      "displacement": 20,
-      "struct_size": 68,
-      "access_size": 2,
-      "root_struct_name": "SG2WorldObject",
-      "classification_id": 0,
-      "classification": "field_gap",
-      "container_candidate_count": 0,
-      "container_struct_name": null,
-      "container_field_expr": null,
-      "refinement_applied": 0,
-      "refined_struct_name": null,
-      "type_provenance_kind_id": 11,
-      "type_provenance_kind": "policy_seed",
-      "type_provenance_section": 0,
-      "type_provenance_offset": 216728
-    },
-    {
-      "section_index": 0,
-      "mechanism": "declared_field_hole",
-      "offset": 216920,
-      "operand_index": 1,
-      "base_register": "A0",
-      "displacement": 20,
-      "struct_size": 68,
-      "access_size": 2,
-      "root_struct_name": "SG2WorldObject",
-      "classification_id": 0,
-      "classification": "field_gap",
-      "container_candidate_count": 0,
-      "container_struct_name": null,
-      "container_field_expr": null,
-      "refinement_applied": 0,
-      "refined_struct_name": null,
-      "type_provenance_kind_id": 11,
-      "type_provenance_kind": "policy_seed",
-      "type_provenance_section": 0,
-      "type_provenance_offset": 216728
-    },
-    {
-      "section_index": 0,
-      "mechanism": "declared_field_hole",
-      "offset": 216924,
-      "operand_index": 1,
-      "base_register": "A0",
-      "displacement": 18,
-      "struct_size": 68,
-      "access_size": 2,
-      "root_struct_name": "SG2WorldObject",
-      "classification_id": 0,
-      "classification": "field_gap",
-      "container_candidate_count": 0,
-      "container_struct_name": null,
-      "container_field_expr": null,
-      "refinement_applied": 0,
-      "refined_struct_name": null,
-      "type_provenance_kind_id": 11,
-      "type_provenance_kind": "policy_seed",
-      "type_provenance_section": 0,
-      "type_provenance_offset": 216728
-    },
-    {
-      "section_index": 0,
-      "mechanism": "declared_field_hole",
-      "offset": 216928,
-      "operand_index": 1,
-      "base_register": "A0",
-      "displacement": 16,
-      "struct_size": 68,
-      "access_size": 2,
-      "root_struct_name": "SG2WorldObject",
-      "classification_id": 0,
-      "classification": "field_gap",
-      "container_candidate_count": 0,
-      "container_struct_name": null,
-      "container_field_expr": null,
-      "refinement_applied": 0,
-      "refined_struct_name": null,
-      "type_provenance_kind_id": 11,
-      "type_provenance_kind": "policy_seed",
-      "type_provenance_section": 0,
-      "type_provenance_offset": 216728
-    },
-    {
-      "section_index": 0,
-      "mechanism": "declared_field_hole",
-      "offset": 216986,
-      "operand_index": 1,
-      "base_register": "A0",
-      "displacement": 16,
-      "struct_size": 68,
-      "access_size": 2,
-      "root_struct_name": "SG2WorldObject",
-      "classification_id": 0,
-      "classification": "field_gap",
-      "container_candidate_count": 0,
-      "container_struct_name": null,
-      "container_field_expr": null,
-      "refinement_applied": 0,
-      "refined_struct_name": null,
-      "type_provenance_kind_id": 11,
-      "type_provenance_kind": "policy_seed",
-      "type_provenance_section": 0,
-      "type_provenance_offset": 216728
-    },
-    {
-      "section_index": 0,
-      "mechanism": "declared_field_hole",
-      "offset": 216992,
-      "operand_index": 1,
-      "base_register": "A0",
-      "displacement": 16,
-      "struct_size": 68,
-      "access_size": 2,
-      "root_struct_name": "SG2WorldObject",
-      "classification_id": 0,
-      "classification": "field_gap",
-      "container_candidate_count": 0,
-      "container_struct_name": null,
-      "container_field_expr": null,
-      "refinement_applied": 0,
-      "refined_struct_name": null,
-      "type_provenance_kind_id": 11,
-      "type_provenance_kind": "policy_seed",
-      "type_provenance_section": 0,
-      "type_provenance_offset": 216728
-    },
-    {
-      "section_index": 0,
-      "mechanism": "declared_field_hole",
-      "offset": 216998,
-      "operand_index": 1,
-      "base_register": "A0",
-      "displacement": 20,
-      "struct_size": 68,
-      "access_size": 2,
-      "root_struct_name": "SG2WorldObject",
-      "classification_id": 0,
-      "classification": "field_gap",
-      "container_candidate_count": 0,
-      "container_struct_name": null,
-      "container_field_expr": null,
-      "refinement_applied": 0,
-      "refined_struct_name": null,
-      "type_provenance_kind_id": 11,
-      "type_provenance_kind": "policy_seed",
-      "type_provenance_section": 0,
-      "type_provenance_offset": 216728
-    },
-    {
-      "section_index": 0,
-      "mechanism": "declared_field_hole",
-      "offset": 217004,
-      "operand_index": 1,
-      "base_register": "A0",
-      "displacement": 20,
-      "struct_size": 68,
-      "access_size": 2,
-      "root_struct_name": "SG2WorldObject",
-      "classification_id": 0,
-      "classification": "field_gap",
-      "container_candidate_count": 0,
-      "container_struct_name": null,
-      "container_field_expr": null,
-      "refinement_applied": 0,
-      "refined_struct_name": null,
-      "type_provenance_kind_id": 11,
-      "type_provenance_kind": "policy_seed",
-      "type_provenance_section": 0,
-      "type_provenance_offset": 216728
     },
     {
       "section_index": 0,
@@ -35608,18 +35176,138 @@
     },
     {
       "section_index": 0,
-      "mechanism": "declared_field_hole",
+      "mechanism": "type_conflict",
+      "offset": 221520,
+      "operand_index": 1,
+      "base_register": "A0",
+      "displacement": 4,
+      "struct_size": 68,
+      "access_size": 4,
+      "root_struct_name": "SG2SkimLauncherDrone",
+      "classification_id": 3,
+      "classification": "type_conflict",
+      "container_candidate_count": 2,
+      "container_struct_name": "SG2WorldObject",
+      "container_field_expr": null,
+      "refinement_applied": 0,
+      "refined_struct_name": null,
+      "type_provenance_kind_id": 0,
+      "type_provenance_kind": "unknown"
+    },
+    {
+      "section_index": 0,
+      "mechanism": "type_conflict",
+      "offset": 221524,
+      "operand_index": 1,
+      "base_register": "A0",
+      "displacement": 8,
+      "struct_size": 68,
+      "access_size": 4,
+      "root_struct_name": "SG2SkimLauncherDrone",
+      "classification_id": 3,
+      "classification": "type_conflict",
+      "container_candidate_count": 2,
+      "container_struct_name": "SG2WorldObject",
+      "container_field_expr": null,
+      "refinement_applied": 0,
+      "refined_struct_name": null,
+      "type_provenance_kind_id": 0,
+      "type_provenance_kind": "unknown"
+    },
+    {
+      "section_index": 0,
+      "mechanism": "type_conflict",
+      "offset": 221528,
+      "operand_index": 1,
+      "base_register": "A0",
+      "displacement": 12,
+      "struct_size": 68,
+      "access_size": 4,
+      "root_struct_name": "SG2SkimLauncherDrone",
+      "classification_id": 3,
+      "classification": "type_conflict",
+      "container_candidate_count": 2,
+      "container_struct_name": "SG2WorldObject",
+      "container_field_expr": null,
+      "refinement_applied": 0,
+      "refined_struct_name": null,
+      "type_provenance_kind_id": 0,
+      "type_provenance_kind": "unknown"
+    },
+    {
+      "section_index": 0,
+      "mechanism": "type_conflict",
+      "offset": 221534,
+      "operand_index": 0,
+      "base_register": "A0",
+      "displacement": 4,
+      "struct_size": 68,
+      "access_size": 4,
+      "root_struct_name": "SG2SkimLauncherDrone",
+      "classification_id": 3,
+      "classification": "type_conflict",
+      "container_candidate_count": 2,
+      "container_struct_name": "SG2WorldObject",
+      "container_field_expr": null,
+      "refinement_applied": 0,
+      "refined_struct_name": null,
+      "type_provenance_kind_id": 0,
+      "type_provenance_kind": "unknown"
+    },
+    {
+      "section_index": 0,
+      "mechanism": "type_conflict",
+      "offset": 221538,
+      "operand_index": 0,
+      "base_register": "A0",
+      "displacement": 8,
+      "struct_size": 68,
+      "access_size": 4,
+      "root_struct_name": "SG2SkimLauncherDrone",
+      "classification_id": 3,
+      "classification": "type_conflict",
+      "container_candidate_count": 2,
+      "container_struct_name": "SG2WorldObject",
+      "container_field_expr": null,
+      "refinement_applied": 0,
+      "refined_struct_name": null,
+      "type_provenance_kind_id": 0,
+      "type_provenance_kind": "unknown"
+    },
+    {
+      "section_index": 0,
+      "mechanism": "type_conflict",
+      "offset": 221542,
+      "operand_index": 0,
+      "base_register": "A0",
+      "displacement": 12,
+      "struct_size": 68,
+      "access_size": 4,
+      "root_struct_name": "SG2SkimLauncherDrone",
+      "classification_id": 3,
+      "classification": "type_conflict",
+      "container_candidate_count": 2,
+      "container_struct_name": "SG2WorldObject",
+      "container_field_expr": null,
+      "refinement_applied": 0,
+      "refined_struct_name": null,
+      "type_provenance_kind_id": 0,
+      "type_provenance_kind": "unknown"
+    },
+    {
+      "section_index": 0,
+      "mechanism": "type_conflict",
       "offset": 221796,
       "operand_index": 0,
       "base_register": "A0",
       "displacement": 16,
       "struct_size": 68,
       "access_size": 2,
-      "root_struct_name": "SG2WorldObject",
-      "classification_id": 0,
-      "classification": "field_gap",
-      "container_candidate_count": 0,
-      "container_struct_name": null,
+      "root_struct_name": "SG2SkimLauncherDrone",
+      "classification_id": 3,
+      "classification": "type_conflict",
+      "container_candidate_count": 2,
+      "container_struct_name": "SG2WorldObject",
       "container_field_expr": null,
       "refinement_applied": 0,
       "refined_struct_name": null,
@@ -35628,18 +35316,18 @@
     },
     {
       "section_index": 0,
-      "mechanism": "declared_field_hole",
+      "mechanism": "type_conflict",
       "offset": 221800,
       "operand_index": 0,
       "base_register": "A0",
       "displacement": 18,
       "struct_size": 68,
       "access_size": 2,
-      "root_struct_name": "SG2WorldObject",
-      "classification_id": 0,
-      "classification": "field_gap",
-      "container_candidate_count": 0,
-      "container_struct_name": null,
+      "root_struct_name": "SG2SkimLauncherDrone",
+      "classification_id": 3,
+      "classification": "type_conflict",
+      "container_candidate_count": 2,
+      "container_struct_name": "SG2WorldObject",
       "container_field_expr": null,
       "refinement_applied": 0,
       "refined_struct_name": null,
@@ -35648,18 +35336,18 @@
     },
     {
       "section_index": 0,
-      "mechanism": "declared_field_hole",
+      "mechanism": "type_conflict",
       "offset": 221804,
       "operand_index": 0,
       "base_register": "A0",
       "displacement": 20,
       "struct_size": 68,
       "access_size": 2,
-      "root_struct_name": "SG2WorldObject",
-      "classification_id": 0,
-      "classification": "field_gap",
-      "container_candidate_count": 0,
-      "container_struct_name": null,
+      "root_struct_name": "SG2SkimLauncherDrone",
+      "classification_id": 3,
+      "classification": "type_conflict",
+      "container_candidate_count": 2,
+      "container_struct_name": "SG2WorldObject",
       "container_field_expr": null,
       "refinement_applied": 0,
       "refined_struct_name": null,
@@ -40473,9 +40161,9 @@
     "Native rendered accesses describe the inline export. exported_definition checks the selected source; INCBIN packaging may intentionally hide internal boundaries."
   ],
   "input_sha256": {
-    "analysis": "75f2fc2e8aed4e1737f16052aa6d683d81d53eeee0f5365ebda83c822a2c6581",
-    "metadata": "ecf20ca0f25a0512c15f51c79663c33956cbfb9534183e30c45d76ced08b3a8f",
-    "source": "5cb942cf1e822a32faa89f2dde5978d3d1eb26522cca7e1f5210bcb4f5f82034"
+    "analysis": "3650949b5465604a522bd355ed3c52d16bbef10459f91e5bdb4ed100165d2898",
+    "metadata": "c4cd80ff3ec80a89c6edd85eb11047aa67358f6b013a4096e316f67cf6eed4ee",
+    "source": "8da359ec0886192dc66757efbb0f78074306a96bbe616477777666746fc5984c"
   },
   "input_binding": "Caller supplies matching retained artifacts. Hashes identify inputs; discovery is not an independent correspondence/admission proof."
 }

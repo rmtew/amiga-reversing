@@ -7,7 +7,7 @@ that further analysis is exhausted. Current source remains byte exact: all
 with all 106034 accepted code bytes retained. No generated assembly was edited
 by hand and no interim archive was produced.
 
-The current ownership union leaves 13865 bytes in
+The current ownership union leaves 13860 bytes in
 263 intervals unclassified. This is classification accounting,
 not a semantic completion percentage. Earlier interval/site counts below belong
 to their recorded closeout revision. See the current
@@ -21,9 +21,28 @@ The [current systematic gap inventory](../../runtime/observations/starglider2-so
 joins native identities/accesses with canonical layouts and actual rendered
 boundaries. It records 66 suffix signals (including numeric adjacent variants),
 21 lookup contracts, 523 remaining interior references, 32 generic app fields
-and 295 unresolved record accesses. These are different denominators. Five
+and 277 unresolved record accesses. These are different denominators. Five
 suffixes name routines and one names text; neither is a pointer defect.
-Latest: the [shared typed-footprint correction](../../runtime/observations/starglider2-typed-memory-widths.json)
+Latest: the [skim-drone reconstruction](../../runtime/observations/starglider2-skim-drone-contracts.json)
+records 22 canonical actions for original type 43: follow/idle countdowns,
+saved/restored rotations, shared selection state and type-wide collision
+exclusion with type 60 Skim Missile. Nearby dispatch advances the phases;
+distant dispatch does not. The initializer is shared with Pirate Ship and
+retains only common object context. Any successful launch clears the shared
+claim/reference, so these are not asserted to be a strict ownership lock.
+The source regenerates in 128 seconds and C/vasm plus a clean standalone build
+are exact. Five variable bytes reduce unclassified storage **13865 → 13860**.
+Typed accesses change **410 → 436**, unresolved **295 → 277**. This includes
+**32 added typed sites and six lost common XYZ projections**: nine mixed-type
+diagnostics expose that the existing shared join does not recognize custom
+parent/child prefixes. Three are formerly unresolved angle reads; none is hidden.
+Next reproduce and fix that shared join using canonical ancestry before conflict
+creation, preserving cursor/array/unknown-path guards. Do not seed generic
+helpers as Drone or compare field names after cursor provenance has been lost.
+The body/asset bytes remain original; restoration and the bounded join follow-up
+continue rather than closing on this publication.
+
+Preceding: the [shared typed-footprint correction](../../runtime/observations/starglider2-typed-memory-widths.json)
 uses existing decoded memory footprints instead of instruction suffixes for
 field diagnostics. Two original BSET cases now report BYTE width rather than
 zero: the inventory moves them from false unknown-width cases to genuine field

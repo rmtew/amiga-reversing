@@ -1,15 +1,15 @@
 {
   "schema_version": 1,
   "kind": "current_native_residual_interval_index_not_input_facts",
-  "publication_base_commit": "3413574764c8723e3f264b289546e33f21de6afd",
+  "publication_base_commit": "b6b3a3b5938ed2eb1994bdfa2c28f65a5badae77",
   "binary_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
-  "source_sha256": "cafe85aa6973671b3f9cb0562cb04c5f1b7c50e838f7436bcd393b5245d9aa29",
-  "analysis_sha256": "75f2fc2e8aed4e1737f16052aa6d683d81d53eeee0f5365ebda83c822a2c6581",
+  "source_sha256": "fa8faf78b5b3dbf26ea513e9656ce13907cae262d92fbcddee3a3798208e2f62",
+  "analysis_sha256": "3650949b5465604a522bd355ed3c52d16bbef10459f91e5bdb4ed100165d2898",
   "backend_sha256": "f616591d1f9dbbdd1729edc6ed7b8838b86732ed52ac3af8f8a88ac6cc950d24",
-  "unclassified_bytes": 13865,
+  "unclassified_bytes": 13860,
   "interval_count": 263,
   "intervals_with_native_resolved_references": 55,
-  "native_resolved_reference_records": 579,
+  "native_resolved_reference_records": 570,
   "unclassified_interval_code_start_facts": 0,
   "orphan_candidate_statuses": {
     "unresolved": 30,
@@ -7186,14 +7186,14 @@
     {
       "source_span": [
         232646,
-        232661
+        232658
       ],
       "runtime_span": [
         236742,
-        236757
+        236754
       ],
-      "bytes": 15,
-      "sha256": "5322fecfc92a5e3248a297a3df3eddfb9bd9049504272e4f572b87fa36d4b3bd",
+      "bytes": 12,
+      "sha256": "15ec7bf0b50732b49f8228e07d24365338f9e3ab994b00af08e5a3bffe55fd8b",
       "classification": "unclassified",
       "semantic_review": "No new semantic disposition; current native index only.",
       "native_resolved_references": [
@@ -7271,15 +7271,6 @@
         },
         {
           "kind": "runtime_address_ref",
-          "source_offset": 204678,
-          "source_runtime_address": 208774,
-          "target_offset": 232659,
-          "target_runtime_address": 236755,
-          "operand_index": 0,
-          "reference_role": null
-        },
-        {
-          "kind": "runtime_address_ref",
           "source_offset": 205750,
           "source_runtime_address": 209846,
           "target_offset": 232656,
@@ -7303,42 +7294,6 @@
           "target_offset": 232657,
           "target_runtime_address": 236753,
           "operand_index": 1,
-          "reference_role": null
-        },
-        {
-          "kind": "runtime_address_ref",
-          "source_offset": 208502,
-          "source_runtime_address": 212598,
-          "target_offset": 232659,
-          "target_runtime_address": 236755,
-          "operand_index": 0,
-          "reference_role": null
-        },
-        {
-          "kind": "runtime_address_ref",
-          "source_offset": 209282,
-          "source_runtime_address": 213378,
-          "target_offset": 232660,
-          "target_runtime_address": 236756,
-          "operand_index": 0,
-          "reference_role": null
-        },
-        {
-          "kind": "runtime_address_ref",
-          "source_offset": 209296,
-          "source_runtime_address": 213392,
-          "target_offset": 232660,
-          "target_runtime_address": 236756,
-          "operand_index": 0,
-          "reference_role": null
-        },
-        {
-          "kind": "runtime_address_ref",
-          "source_offset": 209306,
-          "source_runtime_address": 213402,
-          "target_offset": 232660,
-          "target_runtime_address": 236756,
-          "operand_index": 0,
           "reference_role": null
         },
         {
@@ -7406,51 +7361,6 @@
         },
         {
           "kind": "runtime_address_ref",
-          "source_offset": 216704,
-          "source_runtime_address": 220800,
-          "target_offset": 232658,
-          "target_runtime_address": 236754,
-          "operand_index": 0,
-          "reference_role": null
-        },
-        {
-          "kind": "runtime_address_ref",
-          "source_offset": 216728,
-          "source_runtime_address": 220824,
-          "target_offset": 232658,
-          "target_runtime_address": 236754,
-          "operand_index": 0,
-          "reference_role": null
-        },
-        {
-          "kind": "runtime_address_ref",
-          "source_offset": 216748,
-          "source_runtime_address": 220844,
-          "target_offset": 232658,
-          "target_runtime_address": 236754,
-          "operand_index": 0,
-          "reference_role": null
-        },
-        {
-          "kind": "runtime_address_ref",
-          "source_offset": 216864,
-          "source_runtime_address": 220960,
-          "target_offset": 232658,
-          "target_runtime_address": 236754,
-          "operand_index": 0,
-          "reference_role": null
-        },
-        {
-          "kind": "runtime_address_ref",
-          "source_offset": 217338,
-          "source_runtime_address": 221434,
-          "target_offset": 232659,
-          "target_runtime_address": 236755,
-          "operand_index": 0,
-          "reference_role": null
-        },
-        {
-          "kind": "runtime_address_ref",
           "source_offset": 222270,
           "source_runtime_address": 226366,
           "target_offset": 232646,
@@ -7514,38 +7424,11 @@
         },
         {
           "kind": "runtime_address_ref",
-          "source_offset": 222800,
-          "source_runtime_address": 226896,
-          "target_offset": 232658,
-          "target_runtime_address": 236754,
-          "operand_index": 0,
-          "reference_role": null
-        },
-        {
-          "kind": "runtime_address_ref",
           "source_offset": 222826,
           "source_runtime_address": 226922,
           "target_offset": 232657,
           "target_runtime_address": 236753,
           "operand_index": 1,
-          "reference_role": null
-        },
-        {
-          "kind": "runtime_address_ref",
-          "source_offset": 222834,
-          "source_runtime_address": 226930,
-          "target_offset": 232659,
-          "target_runtime_address": 236755,
-          "operand_index": 0,
-          "reference_role": null
-        },
-        {
-          "kind": "runtime_address_ref",
-          "source_offset": 222848,
-          "source_runtime_address": 226944,
-          "target_offset": 232660,
-          "target_runtime_address": 236756,
-          "operand_index": 0,
           "reference_role": null
         },
         {
@@ -7724,51 +7607,87 @@
     },
     {
       "source_span": [
-        232662,
-        232666
+        232659,
+        232661
       ],
       "runtime_span": [
-        236758,
-        236762
+        236755,
+        236757
       ],
-      "bytes": 4,
-      "sha256": "df3f619804a92fdb4057192dc43dd748ea778adc52bc498ce80524c014b81119",
+      "bytes": 2,
+      "sha256": "96a296d224f285c67bee93c30f8a309157f0daa35dc5b87e410b78630a09cfc7",
       "classification": "unclassified",
       "semantic_review": "No new semantic disposition; current native index only.",
       "native_resolved_references": [
         {
           "kind": "runtime_address_ref",
-          "source_offset": 216710,
-          "source_runtime_address": 220806,
-          "target_offset": 232662,
-          "target_runtime_address": 236758,
+          "source_offset": 204678,
+          "source_runtime_address": 208774,
+          "target_offset": 232659,
+          "target_runtime_address": 236755,
           "operand_index": 0,
           "reference_role": null
         },
         {
           "kind": "runtime_address_ref",
-          "source_offset": 216754,
-          "source_runtime_address": 220850,
-          "target_offset": 232662,
-          "target_runtime_address": 236758,
+          "source_offset": 208502,
+          "source_runtime_address": 212598,
+          "target_offset": 232659,
+          "target_runtime_address": 236755,
           "operand_index": 0,
           "reference_role": null
         },
         {
           "kind": "runtime_address_ref",
-          "source_offset": 216870,
-          "source_runtime_address": 220966,
-          "target_offset": 232662,
-          "target_runtime_address": 236758,
-          "operand_index": 1,
+          "source_offset": 209282,
+          "source_runtime_address": 213378,
+          "target_offset": 232660,
+          "target_runtime_address": 236756,
+          "operand_index": 0,
           "reference_role": null
         },
         {
           "kind": "runtime_address_ref",
-          "source_offset": 222806,
-          "source_runtime_address": 226902,
-          "target_offset": 232662,
-          "target_runtime_address": 236758,
+          "source_offset": 209296,
+          "source_runtime_address": 213392,
+          "target_offset": 232660,
+          "target_runtime_address": 236756,
+          "operand_index": 0,
+          "reference_role": null
+        },
+        {
+          "kind": "runtime_address_ref",
+          "source_offset": 209306,
+          "source_runtime_address": 213402,
+          "target_offset": 232660,
+          "target_runtime_address": 236756,
+          "operand_index": 0,
+          "reference_role": null
+        },
+        {
+          "kind": "runtime_address_ref",
+          "source_offset": 217338,
+          "source_runtime_address": 221434,
+          "target_offset": 232659,
+          "target_runtime_address": 236755,
+          "operand_index": 0,
+          "reference_role": null
+        },
+        {
+          "kind": "runtime_address_ref",
+          "source_offset": 222834,
+          "source_runtime_address": 226930,
+          "target_offset": 232659,
+          "target_runtime_address": 236755,
+          "operand_index": 0,
+          "reference_role": null
+        },
+        {
+          "kind": "runtime_address_ref",
+          "source_offset": 222848,
+          "source_runtime_address": 226944,
+          "target_offset": 232660,
+          "target_runtime_address": 236756,
           "operand_index": 0,
           "reference_role": null
         }
@@ -7777,8 +7696,8 @@
       "historical_review_overlaps": [
         {
           "source_span": [
-            232662,
-            232670
+            232646,
+            232661
           ],
           "disposition": "opaque_with_memory_operand_sites"
         }

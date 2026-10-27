@@ -955,10 +955,26 @@ SG2EnergySpheroid_expansion_steps_remaining RS.W 1
     RS.B 6
 SG2EnergySpheroid_SIZEOF EQU __RS
 
+; STRUCT SG2SkimLauncherDrone
+    RSRESET
+    RS.B 16
+SG2SkimLauncherDrone_rotation_0 RS.W 1
+SG2SkimLauncherDrone_rotation_1 RS.W 1
+SG2SkimLauncherDrone_rotation_2 RS.W 1
+    RS.B 14
+SG2SkimLauncherDrone_follow_phase_countdown RS.W 1
+SG2SkimLauncherDrone_idle_phase_countdown RS.W 1
+    RS.B 2
+SG2SkimLauncherDrone_collision_ignored_object_type RS.B 1
+    RS.B 25
+SG2SkimLauncherDrone_SIZEOF EQU __RS
+
 ADKF_CLRALL	EQU	$7FFF
 BPLCON2_PF2P2	EQU	$20
 BPLCON2_PF2PRI	EQU	$40
 INTF_CLRALL	EQU	$7FFF
+SG2_OBJECT_TYPE_SKIM_DRONE	EQU	43
+SG2_OBJECT_TYPE_SKIM_MISSILE	EQU	60
 SG2_SAVE_CHUNK_BYTES	EQU	$1400
 SG2_SAVE_CHUNK_DBF_LAST	EQU	$4FF
 SG2_SAVE_RESTORE_DBF_LAST	EQU	$17B8
@@ -23152,10 +23168,10 @@ world_object_type_initializer_pointers:
 	dc.l initialize_station_mini_sentinel
 	dc.l abs_0_0001851E
 	dc.l skip_object_type_initialization
-	dc.l abs_0_00018526
+	dc.l initialize_pirate_or_skim_drone
 	dc.l abs_0_0001856E
 	dc.l skip_object_type_initialization
-	dc.l abs_0_00018526
+	dc.l initialize_pirate_or_skim_drone
 	dc.l initialize_and_link_tug_truck
 	dc.l skip_object_type_initialization
 	dc.l abs_0_0001823A
@@ -23515,16 +23531,18 @@ abs_0_0001850A:
 abs_0_0001851E:
 	bset.b #0,$0002(a0)
 	rts
-abs_0_00018526:
-	move.l #$FFFFB9B0,$0008(a0)
+    ; Shared type40 Pirate Ship/type43 Skim Drone initializer. Keep their common position contract; drone follow/idle field meanings are bound only at its nearby updater/helper.
+    ; KNOWN: type A0=Target code-entry register seed:SG2WorldObject
+initialize_pirate_or_skim_drone:
+	move.l #$FFFFB9B0,SG2WorldObject_world_y(a0)
 	bsr.w abs_0_00018968
 	andi.w #1023,d0
 	btst #0,d0
 	beq.w abs_0_00018544
-	sub.l d0,$0008(a0)
+	sub.l d0,SG2WorldObject_world_y(a0)
 	bra.b abs_0_0001855A
 abs_0_00018544:
-	add.l d0,$0008(a0)
+	add.l d0,SG2WorldObject_world_y(a0)
 	move.w #$1,$0024(a0)
 	move.w #$1,$0026(a0)
 	move.w #$3,$0020(a0)
@@ -45723,14 +45741,15 @@ advance_mini_sentinel_orbit:
 	move.l d4,SG2WorldObject_world_z(a0)
 	move.l #$FECED300,SG2WorldObject_world_y(a0)
 	rts
-    ; KNOWN: type A0=Target code-entry register seed:SG2WorldObject
+    ; Nearby type43 only: advance phases, then original distance/free-count gates may launch type60. Child ignores type43 and drone ignores type60; these are type-wide collision exclusions.
+    ; KNOWN: type A0=Target code-entry register seed:SG2SkimLauncherDrone
 update_nearby_skim_launcher_drone:
 	bsr.w advance_skim_launcher_drone_state
 	cmpi.l #4294963200,SG2WorldObject_world_y(a0)
 	bmi.b abs_0_00035DC0
 	move.l #$FFFFF000,SG2WorldObject_world_y(a0)
 abs_0_00035DC0:
-	tst.w $0024(a0)
+	tst.w SG2SkimLauncherDrone_follow_phase_countdown(a0)
 	bmi.w abs_0_00035E90
 	move.w SG2WorldObject_relative_z(a0),d0
 	bpl.b abs_0_00035DD4
@@ -45757,7 +45776,7 @@ abs_0_00035DF4:
 	movea.l -(a1),a2
 	move.l a1,free_object_stack_cursor(a6)
 	subq.w #1,free_object_count(a6)
-	move.w #$3C,(a2)
+	move.w #SG2_OBJECT_TYPE_SKIM_MISSILE,(a2)
 	move.l SG2WorldObject_world_x(a0),$0004(a2)
 	move.l SG2WorldObject_world_y(a0),$0008(a2)
 	move.l SG2WorldObject_world_z(a0),$000C(a2)
@@ -45771,75 +45790,78 @@ abs_0_00035DF4:
 	move.b #$FF,$001E(a2)
 	move.b #$7,$001D(a2)
 	clr.b $0003(a2)
-	move.b #$2B,$002A(a2)
-	move.b #$3C,$002A(a0)
-	move.w #$FFFF,$0024(a0)
+	move.b #SG2_OBJECT_TYPE_SKIM_DRONE,$002A(a2)
+	move.b #SG2_OBJECT_TYPE_SKIM_MISSILE,SG2SkimLauncherDrone_collision_ignored_object_type(a0)
+	move.w #$FFFF,SG2SkimLauncherDrone_follow_phase_countdown(a0)
 	bsr.w abs_0_00039D20
 	andi.w #127,d0
 	addi.w #64,d0
-	move.w d0,$0026(a0)
-	sf.b abs_0_00039CD2.l
-	clr.l abs_0_00039CD6.l
+	move.w d0,SG2SkimLauncherDrone_idle_phase_countdown(a0)
+	sf.b skim_drone_follow_claim_flag.l
+	clr.l skim_drone_follow_reference.l
 	st.b pending_transient_event_sound(a6)
 abs_0_00035E90:
 	bra.w abs_0_00039D56
 finish_distant_skim_launcher_drone_update:
 	bra.w abs_0_00039D3E
-    ; KNOWN: type A0=Target code-entry register seed:SG2WorldObject
+    ; Shared follow claim selects one original drone path; other drones evade. Save/restore three angles around the player-vector calculation. Distant dispatch does not advance these phases.
+    ; KNOWN: type A0=Target code-entry register seed:SG2SkimLauncherDrone
 advance_skim_launcher_drone_state:
-	tst.b abs_0_00039CD2.l
+	tst.b skim_drone_follow_claim_flag.l
 	bmi.b abs_0_00035EEE
-abs_0_00035EA0:
-	tst.w $0024(a0)
-	bmi.b abs_0_00035ECE
-	subq.w #1,$0024(a0)
-	bpl.b abs_0_00035F20
-	sf.b abs_0_00039CD2.l
-	clr.l abs_0_00039CD6.l
-	move.w #$FFFF,$0024(a0)
+advance_skim_drone_follow_countdown:
+	tst.w SG2SkimLauncherDrone_follow_phase_countdown(a0)
+	bmi.b advance_skim_drone_idle_countdown
+	subq.w #1,SG2SkimLauncherDrone_follow_phase_countdown(a0)
+	bpl.b claim_skim_drone_follow_target
+	sf.b skim_drone_follow_claim_flag.l
+	clr.l skim_drone_follow_reference.l
+	move.w #$FFFF,SG2SkimLauncherDrone_follow_phase_countdown(a0)
 	bsr.w abs_0_00039D20
 	andi.w #127,d0
 	addi.w #64,d0
-	move.w d0,$0026(a0)
-abs_0_00035ECE:
-	subq.w #1,$0026(a0)
-	bpl.b abs_0_00035EF8
-	move.w #$FFFF,$0026(a0)
+	move.w d0,SG2SkimLauncherDrone_idle_phase_countdown(a0)
+advance_skim_drone_idle_countdown:
+	subq.w #1,SG2SkimLauncherDrone_idle_phase_countdown(a0)
+	bpl.b evade_player_and_spin_skim_drone
+	move.w #$FFFF,SG2SkimLauncherDrone_idle_phase_countdown(a0)
 	bsr.w abs_0_00039D20
 	andi.w #255,d0
 	addi.w #64,d0
-	move.w d0,$0024(a0)
+	move.w d0,SG2SkimLauncherDrone_follow_phase_countdown(a0)
 	bra.w abs_0_00035FB2
 abs_0_00035EEE:
-	movea.l abs_0_00039CD6.l,a3
+	movea.l skim_drone_follow_reference.l,a3
 	cmpa.l a0,a3
-	beq.b abs_0_00035EA0
-abs_0_00035EF8:
+	beq.b advance_skim_drone_follow_countdown
+evade_player_and_spin_skim_drone:
 	moveq.l #4,d7
 	bsr.w abs_0_0003714C
-	addi.w #32,$0010(a0)
-	andi.w #4095,$0010(a0)
-	ori.w #1,$0010(a0)
-	addi.w #32,$0014(a0)
-	andi.w #4095,$0014(a0)
+	addi.w #32,SG2SkimLauncherDrone_rotation_0(a0)
+	andi.w #4095,SG2SkimLauncherDrone_rotation_0(a0)
+	ori.w #1,SG2SkimLauncherDrone_rotation_0(a0)
+	addi.w #32,SG2SkimLauncherDrone_rotation_2(a0)
+	andi.w #4095,SG2SkimLauncherDrone_rotation_2(a0)
 	bra.w abs_0_00035FB2
-abs_0_00035F20:
-	st.b abs_0_00039CD2.l
-	move.l a0,abs_0_00039CD6.l
-	move.w $0010(a0),-(a7)
-	move.w $0012(a0),-(a7)
-	move.w $0014(a0),-(a7)
+claim_skim_drone_follow_target:
+	st.b skim_drone_follow_claim_flag.l
+	move.l a0,skim_drone_follow_reference.l
+save_skim_drone_orientation:
+	move.w SG2SkimLauncherDrone_rotation_0(a0),-(a7)
+	move.w SG2SkimLauncherDrone_rotation_1(a0),-(a7)
+	move.w SG2SkimLauncherDrone_rotation_2(a0),-(a7)
 	move.w #$C00,d3
-	move.w player_rotation_0(a6),$0010(a0)
-	move.w player_rotation_1(a6),$0012(a0)
-	move.w player_rotation_2(a6),$0014(a0)
+	move.w player_rotation_0(a6),SG2SkimLauncherDrone_rotation_0(a0)
+	move.w player_rotation_1(a6),SG2SkimLauncherDrone_rotation_1(a0)
+	move.w player_rotation_2(a6),SG2SkimLauncherDrone_rotation_2(a0)
 	bsr.w abs_0_00037264
 	neg.w d4
 	neg.w d5
 	neg.w d6
-	move.w (a7)+,$0014(a0)
-	move.w (a7)+,$0012(a0)
-	move.w (a7)+,$0010(a0)
+restore_skim_drone_orientation:
+	move.w (a7)+,SG2SkimLauncherDrone_rotation_2(a0)
+	move.w (a7)+,SG2SkimLauncherDrone_rotation_1(a0)
+	move.w (a7)+,SG2SkimLauncherDrone_rotation_0(a0)
 	ext.l d4
 	ext.l d5
 	ext.l d6
@@ -45858,10 +45880,10 @@ abs_0_00035F20:
 	sub.l d0,SG2WorldObject_world_x(a0)
 	sub.l d1,SG2WorldObject_world_y(a0)
 	sub.l d2,SG2WorldObject_world_z(a0)
-	addi.w #16,$0010(a0)
-	andi.w #4095,$0010(a0)
-	addi.w #16,$0014(a0)
-	andi.w #4095,$0014(a0)
+	addi.w #16,SG2SkimLauncherDrone_rotation_0(a0)
+	andi.w #4095,SG2SkimLauncherDrone_rotation_0(a0)
+	addi.w #16,SG2SkimLauncherDrone_rotation_2(a0)
+	andi.w #4095,SG2SkimLauncherDrone_rotation_2(a0)
 abs_0_00035FB2:
 	rts
     ; KNOWN: type A0=Target code-entry register seed:SG2WorldObject
@@ -47107,14 +47129,14 @@ abs_0_0003713A:
 	rts
 abs_0_0003714C:
 	bsr.w abs_0_0003715E
-	add.l d0,SG2WorldObject_world_x(a0)
-	add.l d1,SG2WorldObject_world_y(a0)
-	add.l d2,SG2WorldObject_world_z(a0)
+	add.l d0,$0004(a0)
+	add.l d1,$0008(a0)
+	add.l d2,$000C(a0)
 	rts
 abs_0_0003715E:
-	move.l SG2WorldObject_world_x(a0),d0
-	move.l SG2WorldObject_world_y(a0),d1
-	move.l SG2WorldObject_world_z(a0),d2
+	move.l $0004(a0),d0
+	move.l $0008(a0),d1
+	move.l $000C(a0),d2
 	sub.l player_world_x(a6),d0
 	sub.l player_world_y(a6),d1
 	sub.l player_world_z(a6),d2
@@ -47458,8 +47480,8 @@ abs_0_00037586:
 	move.w #$3,abs_0_00039CCA.l
 	sf.b abs_0_00039CCF.l
 	sf.b abs_0_00039CD0.l
-	sf.b abs_0_00039CD2.l
-	clr.l abs_0_00039CD6.l
+	sf.b skim_drone_follow_claim_flag.l
+	clr.l skim_drone_follow_reference.l
 	move.w #$FFFF,player_rotation2_spin_steps.l
 	clr.w player_rotation2_after_spin.l
 	move.b #$FF,abs_0_00039CD1.l
@@ -48814,7 +48836,7 @@ abs_0_00039CD0:
 	dc.b $00
 abs_0_00039CD1:
 	dc.b $00
-abs_0_00039CD2:
+skim_drone_follow_claim_flag:
 	dc.b $00
 abs_0_00039CD3:
 	dc.b $00
@@ -48822,8 +48844,8 @@ abs_0_00039CD4:
 	dc.b $00
 audio_output_enable_sign_flag:
 	dc.b $00
-abs_0_00039CD6:
-	dc.b $00,$00,$00,$00
+skim_drone_follow_reference:
+	dc.l $00000000
 player_rotation2_spin_steps:
 	dc.w $0000
 player_rotation2_after_spin:

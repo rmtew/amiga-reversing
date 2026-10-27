@@ -1,0 +1,437 @@
+{
+  "schema_version": 1,
+  "kind": "skim_drone_follow_idle_launch_and_collision_contract",
+  "status": "qualified_batch_shared_join_followup_active",
+  "publication_base_commit": "b6b3a3b5938ed2eb1994bdfa2c28f65a5badae77",
+  "input": {
+    "binary_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "backend_sha256": "f616591d1f9dbbdd1729edc6ed7b8838b86732ed52ac3af8f8a88ac6cc950d24",
+    "analysis_sha256": "3650949b5465604a522bd355ed3c52d16bbef10459f91e5bdb4ed100165d2898",
+    "inline_source_sha256": "fa8faf78b5b3dbf26ea513e9656ce13907cae262d92fbcddee3a3798208e2f62",
+    "effective_metadata_sha256": "c4cd80ff3ec80a89c6edd85eb11047aa67358f6b013a4096e316f67cf6eed4ee",
+    "consumer_evidence_sha256": "a7d7c279189a8353fab72509b3c9cb76f9cae0409ff1ff4b351fcab57ae67c30"
+  },
+  "canonical_actions": 22,
+  "interpretation": {
+    "action_start": 2953,
+    "action_count": 22,
+    "reason": "Original name directory43 is Skim Launcher Drone and60 Skim Missile. Original primary43 dispatch reaches8416 then the existing platform entry and35DAA; secondary43 reaches8422 and the distant finish, which does NOT invoke the phase helper. The helper has one current direct incoming call, from the nearby updater. Initializer18526 is shared with Pirate Ship40, so bind only common WorldObject fields there. Drone-specific WORD24 is follow-phase countdown, WORD26 idle-phase countdown. Shared negative flag39CD2 and pointer39CD6 select a following drone: other drones move away by signed delta>>4 and spin32; selected follow path saves its three rotation WORDs, temporarily substitutes player rotations for the vector helper, restores them, approaches player-minus-vector by signed delta>>3 and spins16. A0 and normal original calls/stack remain assumed, not arbitrary caller or actor lifetime proof. Stored random countdown seeds are follow64..319 and idle64..191; exact elapsed time is not asserted. Nearby launch also requires nonnegative follow phase, original WORD relative-coordinate gates, and unsigned free count>50. It creates type60 and writes collision exclusion BYTE2A=43 to child,60 to drone. The collision reader compares this BYTE with target type BYTE1: exclusions are by TYPE, not one parent instance. Any successful launch clears shared flag/reference, not just the previously selected follower. Original allocation failure, arithmetic wrap, signed tests and helper fixed-point order remain unchanged. Shared pointer is zero or the stored original drone pointer under these original paths; no global alias/lifetime closure, new gameplay, relocation or guest injection claim.",
+    "fields": [
+      {
+        "name": "rotation_0",
+        "type": "WORD",
+        "offset": 16,
+        "size": 2
+      },
+      {
+        "name": "rotation_1",
+        "type": "WORD",
+        "offset": 18,
+        "size": 2
+      },
+      {
+        "name": "rotation_2",
+        "type": "WORD",
+        "offset": 20,
+        "size": 2
+      },
+      {
+        "name": "follow_phase_countdown",
+        "type": "WORD",
+        "offset": 36,
+        "size": 2
+      },
+      {
+        "name": "idle_phase_countdown",
+        "type": "WORD",
+        "offset": 38,
+        "size": 2
+      },
+      {
+        "name": "collision_ignored_object_type",
+        "type": "UBYTE",
+        "offset": 42,
+        "size": 1
+      }
+    ],
+    "labels": [
+      [
+        99622,
+        "initialize_pirate_or_skim_drone"
+      ],
+      [
+        220832,
+        "advance_skim_drone_follow_countdown"
+      ],
+      [
+        220878,
+        "advance_skim_drone_idle_countdown"
+      ],
+      [
+        220920,
+        "evade_player_and_spin_skim_drone"
+      ],
+      [
+        220960,
+        "claim_skim_drone_follow_target"
+      ],
+      [
+        220972,
+        "save_skim_drone_orientation"
+      ],
+      [
+        221016,
+        "restore_skim_drone_orientation"
+      ]
+    ]
+  },
+  "original_types": {
+    "drone": 43,
+    "drone_name": "Skim Launcher Drone",
+    "missile": 60,
+    "missile_name": "Skim Missile",
+    "shared_constructor_types": [
+      40,
+      43
+    ],
+    "other_constructor_name": "Pirate Ship",
+    "constructor_runtime": 99622
+  },
+  "phases": {
+    "nearby": "Original primary type43 dispatch reaches8416 and the nearby wrapper35DAA, the sole current direct caller of the phase helper.",
+    "distant": "Original secondary type43 dispatch reaches8422 and distant finish35E94; it does not invoke the phase helper.",
+    "follow": "Nonnegative WORD24 counts down on the selected/original eligible helper path. Expiry clears shared flag/reference and seeds idle WORD26 in64..191. Idle expiry seeds follow WORD24 in64..319.",
+    "cadence": "Stored seed ranges and original updater invocations, not seconds or an unconditional per-frame duration. Constructor43 begins with a different random0..31 follow seed.",
+    "evade": "A different claimed follower selects movement away from player by signed delta>>4, spin32 on rotations0/2 and original low-bit/mask behavior.",
+    "follow_motion": "Save three original rotation WORDs, substitute player values for the motion-vector helper using magnitude seedC00, restore all three, then approach player-minus-computed-vector by signed delta>>3 and spin16. Fixed-point arithmetic/order is retained.",
+    "claim": "Shared negative flag39CD2 and runtime pointer39CD6 are original selection state, not a memory ownership lock or lifetime proof. Any successful launch clears both, even if the launcher was not the selected follower."
+  },
+  "launch": {
+    "gates": "Original nonnegative follow phase, signed WORD relative-coordinate tests, unsigned free count>50 and valid original free-list/caller assumptions.",
+    "new_object_type": 60,
+    "drone_ignored_collision_type": 60,
+    "missile_ignored_collision_type": 43,
+    "exclusion": "BYTE2A is compared with the other record type BYTE1 before collision response. This excludes the whole TYPE, not only the particular parent or projectile instance.",
+    "not_claimed": "No arbitrary index/list safety, successful live launch or new combat observation. Original arithmetic overflow and conditional tests are not normalized away."
+  },
+  "ownership": {
+    "record": "SG2SkimLauncherDrone inherits original WorldObject fields and owns only six evidenced rotation/phase/collision fields.",
+    "constructor": "Shared Pirate/Drone initializer gets common WorldObject context only; drone-specific fields are bound at nearby updater/helper.",
+    "pointer": "Source-backed LONG39CD6 is a nullable original runtime drone reference, classified as stored data plus existing typed absolute slot. Zero initial bytes are not made into a static code/data pointer.",
+    "gap": "Three bytes between claim BYTE and reference LONG remain unclassified; five variable bytes are newly accounted for."
+  },
+  "before_after": {
+    "app_slot_ref_count": {
+      "before": 3383,
+      "after": 3383
+    },
+    "recovered_platform_typed_access_count": {
+      "before": 410,
+      "after": 436
+    },
+    "recovered_platform_unresolved_typed_access_count": {
+      "before": 295,
+      "after": 277
+    }
+  },
+  "typed_site_changes": {
+    "added": 32,
+    "lost": 6,
+    "lost_sites": [
+      {
+        "runtime_address": 225616,
+        "operand_index": 1
+      },
+      {
+        "runtime_address": 225620,
+        "operand_index": 1
+      },
+      {
+        "runtime_address": 225624,
+        "operand_index": 1
+      },
+      {
+        "runtime_address": 225630,
+        "operand_index": 0
+      },
+      {
+        "runtime_address": 225634,
+        "operand_index": 0
+      },
+      {
+        "runtime_address": 225638,
+        "operand_index": 0
+      }
+    ]
+  },
+  "new_join_conflicts": {
+    "count": 9,
+    "records": [
+      {
+        "offset": 221520,
+        "operand_index": 1,
+        "base_register": "A0",
+        "displacement": 4,
+        "struct_size": 68,
+        "access_size": 4,
+        "root_struct_name": "SG2SkimLauncherDrone",
+        "classification_id": 3,
+        "classification": "type_conflict",
+        "container_candidate_count": 2,
+        "container_struct_name": "SG2WorldObject",
+        "container_field_expr": null,
+        "refinement_applied": 0,
+        "refined_struct_name": null,
+        "type_provenance_kind_id": 0,
+        "type_provenance_kind": "unknown"
+      },
+      {
+        "offset": 221524,
+        "operand_index": 1,
+        "base_register": "A0",
+        "displacement": 8,
+        "struct_size": 68,
+        "access_size": 4,
+        "root_struct_name": "SG2SkimLauncherDrone",
+        "classification_id": 3,
+        "classification": "type_conflict",
+        "container_candidate_count": 2,
+        "container_struct_name": "SG2WorldObject",
+        "container_field_expr": null,
+        "refinement_applied": 0,
+        "refined_struct_name": null,
+        "type_provenance_kind_id": 0,
+        "type_provenance_kind": "unknown"
+      },
+      {
+        "offset": 221528,
+        "operand_index": 1,
+        "base_register": "A0",
+        "displacement": 12,
+        "struct_size": 68,
+        "access_size": 4,
+        "root_struct_name": "SG2SkimLauncherDrone",
+        "classification_id": 3,
+        "classification": "type_conflict",
+        "container_candidate_count": 2,
+        "container_struct_name": "SG2WorldObject",
+        "container_field_expr": null,
+        "refinement_applied": 0,
+        "refined_struct_name": null,
+        "type_provenance_kind_id": 0,
+        "type_provenance_kind": "unknown"
+      },
+      {
+        "offset": 221534,
+        "operand_index": 0,
+        "base_register": "A0",
+        "displacement": 4,
+        "struct_size": 68,
+        "access_size": 4,
+        "root_struct_name": "SG2SkimLauncherDrone",
+        "classification_id": 3,
+        "classification": "type_conflict",
+        "container_candidate_count": 2,
+        "container_struct_name": "SG2WorldObject",
+        "container_field_expr": null,
+        "refinement_applied": 0,
+        "refined_struct_name": null,
+        "type_provenance_kind_id": 0,
+        "type_provenance_kind": "unknown"
+      },
+      {
+        "offset": 221538,
+        "operand_index": 0,
+        "base_register": "A0",
+        "displacement": 8,
+        "struct_size": 68,
+        "access_size": 4,
+        "root_struct_name": "SG2SkimLauncherDrone",
+        "classification_id": 3,
+        "classification": "type_conflict",
+        "container_candidate_count": 2,
+        "container_struct_name": "SG2WorldObject",
+        "container_field_expr": null,
+        "refinement_applied": 0,
+        "refined_struct_name": null,
+        "type_provenance_kind_id": 0,
+        "type_provenance_kind": "unknown"
+      },
+      {
+        "offset": 221542,
+        "operand_index": 0,
+        "base_register": "A0",
+        "displacement": 12,
+        "struct_size": 68,
+        "access_size": 4,
+        "root_struct_name": "SG2SkimLauncherDrone",
+        "classification_id": 3,
+        "classification": "type_conflict",
+        "container_candidate_count": 2,
+        "container_struct_name": "SG2WorldObject",
+        "container_field_expr": null,
+        "refinement_applied": 0,
+        "refined_struct_name": null,
+        "type_provenance_kind_id": 0,
+        "type_provenance_kind": "unknown"
+      },
+      {
+        "offset": 221796,
+        "operand_index": 0,
+        "base_register": "A0",
+        "displacement": 16,
+        "struct_size": 68,
+        "access_size": 2,
+        "root_struct_name": "SG2SkimLauncherDrone",
+        "classification_id": 3,
+        "classification": "type_conflict",
+        "container_candidate_count": 2,
+        "container_struct_name": "SG2WorldObject",
+        "container_field_expr": null,
+        "refinement_applied": 0,
+        "refined_struct_name": null,
+        "type_provenance_kind_id": 0,
+        "type_provenance_kind": "unknown"
+      },
+      {
+        "offset": 221800,
+        "operand_index": 0,
+        "base_register": "A0",
+        "displacement": 18,
+        "struct_size": 68,
+        "access_size": 2,
+        "root_struct_name": "SG2SkimLauncherDrone",
+        "classification_id": 3,
+        "classification": "type_conflict",
+        "container_candidate_count": 2,
+        "container_struct_name": "SG2WorldObject",
+        "container_field_expr": null,
+        "refinement_applied": 0,
+        "refined_struct_name": null,
+        "type_provenance_kind_id": 0,
+        "type_provenance_kind": "unknown"
+      },
+      {
+        "offset": 221804,
+        "operand_index": 0,
+        "base_register": "A0",
+        "displacement": 20,
+        "struct_size": 68,
+        "access_size": 2,
+        "root_struct_name": "SG2SkimLauncherDrone",
+        "classification_id": 3,
+        "classification": "type_conflict",
+        "container_candidate_count": 2,
+        "container_struct_name": "SG2WorldObject",
+        "container_field_expr": null,
+        "refinement_applied": 0,
+        "refined_struct_name": null,
+        "type_provenance_kind_id": 0,
+        "type_provenance_kind": "unknown"
+      }
+    ],
+    "cause": "The shared value join recognizes generated platform prefixes but not declared custom inheritance. WorldObject/SkimDrone incoming pointers conflict in generic XYZ and angle helpers.",
+    "effect": "Six previously named common XYZ accesses lose their field projection; three already-unresolved angle reads change to type-conflict diagnostics. These are exposed framework limitations, not nine newly discovered semantic fields.",
+    "next_experiment": "Use one generic parent/child/sibling join fixture plus mismatched cursor, unknown path, unrelated type and saved-value negatives. Extend the existing common-merge path with canonical custom ancestry, preserving cursor/array and conservative unknown semantics. Restore only common-prefix fields; do not force Drone onto generic helpers.",
+    "restriction": "Current mixed-type conflict packets discard cursor details, so post-hoc field-name comparison is insufficient. Resolve compatible types before conflict creation, not through target seeds or relaxed ambiguity guards."
+  },
+  "classification": {
+    "before_unclassified_bytes": 13865,
+    "after_unclassified_bytes": 13860,
+    "newly_classified_bytes": 5,
+    "intervals": 263,
+    "accepted_code_bytes": 106034,
+    "unresolved_orphans": 30,
+    "new_code_promoted": 0
+  },
+  "validation": {
+    "native_and_vasm": {
+      "kind": "verification",
+      "framework_exact": true,
+      "target_id": "amiga_raw_starglider2_game",
+      "subject_revision": "8e3f63e7212661f42d11e16fa3cd0d3d96a45bc2cccee2f3daf197515b2e8ed9",
+      "status": "exact",
+      "exact": true,
+      "source_sha256": "fa8faf78b5b3dbf26ea513e9656ce13907cae262d92fbcddee3a3798208e2f62",
+      "source_path": "/workspace/pandora-original-delivery/stable-d15c2cf8/.runtime-state/restoration/eb04f545fb97451725a1c91ab5abf6f2e097614c45880db6edfb4ea5c3f6e2c2/fa8faf78b5b3dbf26ea513e9656ce13907cae262d92fbcddee3a3798208e2f62.s",
+      "source_package_sha256": null,
+      "original_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+      "original_size": 412736,
+      "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+      "rebuilt_path": "/workspace/pandora-original-delivery/stable-d15c2cf8/.runtime-state/restoration/eb04f545fb97451725a1c91ab5abf6f2e097614c45880db6edfb4ea5c3f6e2c2/662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9.bin",
+      "framework_status": "exact",
+      "failure_kinds": [],
+      "message": "",
+      "oracle": {
+        "oracle_id": "vasm",
+        "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+        "comparison_level": "oracle.full_file_match",
+        "assembler_status": "accepted",
+        "message": "oracle output matched original bytes"
+      },
+      "receipt_id": "d2f53072bdfcdf2255027e66c6a44758b6e39193d6c1541509a335d04ae7db3f",
+      "revision": "8ce61aa20a0c2d14488ba933ac3e28e56e5a89f9f7780fba1489f99d63936f96"
+    },
+    "source_quality_diagnostics": 0,
+    "incomplete_analysis": [],
+    "generation_wall_seconds": 127.89915689197369,
+    "assets_unchanged": 57,
+    "required_headers": 14,
+    "framework_checks_reused": "No native change sinceb6b3a3b5; its832 native and31 focused checks retained.",
+    "clean_standalone_build": {
+      "status": "pass",
+      "validated_target_git_tree": "04f86cd92bd602c2eff5dc7b8164e7b5cf83839c",
+      "receipt": {
+        "schema_version": 1,
+        "status": "pass",
+        "format": "raw_payload_not_AmigaDOS_HUNK",
+        "main_bytes": 412736,
+        "main_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+        "main_matches_original_identity": true,
+        "asset_count": 57,
+        "all_asset_source_slices_equal": true,
+        "decoded_view_inverse_exact": true,
+        "boot_copy_source_matches_resident_view": true,
+        "source_commit": "b6b3a3b5938ed2eb1994bdfa2c28f65a5badae77",
+        "assembler_sha256": "413e284020125f42709486dfe09907cab3dd9f3c2ea41017c190f8ea68f30825",
+        "flags": [
+          "-Fbin",
+          "-m68000",
+          "-no-opt"
+        ],
+        "outputs": [
+          {
+            "role": "original_main",
+            "filename": "Starglider2-original.raw",
+            "bytes": 412736,
+            "sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9"
+          },
+          {
+            "role": "decoded_analysis_view",
+            "filename": "protection-decoded-analysis.raw",
+            "bytes": 3548,
+            "sha256": "de8358853dd9ed9b006a23569bf393aa217ed3be3301a169465d80bfaf839922"
+          },
+          {
+            "role": "boot_installer_context",
+            "filename": "boot-selector-installer-context.raw",
+            "bytes": 40,
+            "sha256": "8d34852425e2e1bfa87b3febdfc74fb39e7c667e9d9ff73e17b594649e83b21b"
+          },
+          {
+            "role": "boot_resident_view",
+            "filename": "boot-selector-resident.raw",
+            "bytes": 20,
+            "sha256": "a26286a393713c046eff9dbaff15b20b26b171fa9e05fc9d538d16b0eddb6024"
+          }
+        ]
+      },
+      "recoverable_pandora_backups_verified": 16
+    }
+  },
+  "limits": [
+    "32 generic app fields,277 unresolved typed accesses,30 orphan islands and13860 unclassified bytes remain, with distinct denominators.",
+    "No new runtime/graphics/audio/disk evidence, guest forcing or relocation.",
+    "New common-prefix join diagnostics remain visible and are the immediate bounded follow-up; this is not a subsystem or programme completion claim."
+  ]
+}
