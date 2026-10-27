@@ -1,0 +1,614 @@
+{
+  "schema_version": 1,
+  "kind": "source_backed_matrix_owners_reuse_existing_nine_word_schema",
+  "status": "qualified_connected_restoration_batch_continues",
+  "publication_base_commit": "63d8582ce08df0c3034393cda5fb92788f4b144a",
+  "inputs": {
+    "binary_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "backend_sha256": "aefef11009c97b1e46a54b3960a5c21a537590d1a3d76624526c3d7a68cc98ef",
+    "analysis_sha256": "3c0354ca48a9192cb5c745635a5b191c54708d71777b92c3c4de552b0bf2c1e6",
+    "effective_metadata_sha256": "3182144ffcd19e04c60b2e70eb06d8c07bf620232ba46b96ca7d96a1d6b9d2b7",
+    "consumer_evidence_sha256": "4f5916715b881abca08e499c8e384e033adb365d22e8202afc57999e80a51f2c"
+  },
+  "canonical_actions": 7,
+  "interpretation": "Existing SG2RotationMatrixWords schema defines nine signed WORDs in row-major offsets0,2,4/6,8,10/12,14,16. Existing app matrix instances atF4/106 already use it; original source scratch2BFC..2C0E and stored player orientation2C0E..2C20 were only data seeds. Native LEAs, exact18-byte copies (four LONGs plus one WORD), signed row dot-products and the builder/transposer establish that same record structure for these two source-backed mutable buffers. Create canonical source owners then bind the existing type through normal element commands. No runtime-only numeric-overlap alias, guessed pointer scan or per-instruction register seed. Original2B1E calls the three-angle builder then swaps WORD offsets2/6,4/12,10/14 using D0 and saves/restores D0/A5: literal in-place transpose. It is not a proof quantized matrices form an exact inverse or every input is orthogonal. Original29BA reads three model rotations, handles its zero-angle/non-type30 shortcut and otherwise combines original built/view matrix values; its output feeds model_view_matrix. Preserve all sign choices, fixed-point ASL2/SWAP truncation and overflow, original caller assumptions and type30 branch. Source buffers remain mutable original image data; no changed initialization, relocation or all-caller/lifetime guarantee. Nearby duplicate WORD11E initializations remain unnamed: inspected accepted paths provide no demonstrated cache reader, and absent native direct readers do not prove dead storage or an original bug.",
+  "cause": "App-resident matrices already used SG2RotationMatrixWords. Two original source-backed mutable buffers had only raw data seeds, with no canonical typed source owner; LEA-based consumers therefore lacked their field schema.",
+  "changes": "Create two canonical18-byte owners and bind the existing custom type through normal element commands. Existing native source-target/type propagation then recovers all51 sites here. No new framework code, per-instruction register seeds, numeric-overlap runtime substitutes or generated-source edits.",
+  "source_owners": [
+    {
+      "layout_id": "catalog-94aa499912754ede87aac351da603a01",
+      "name": "built_rotation_matrix_words",
+      "source_start": 7164,
+      "source_end": 7182,
+      "runtime_start": 11260,
+      "runtime_end": 11278,
+      "type_binding": {
+        "binding_kind": "custom_struct",
+        "bound_type_id": "SG2RotationMatrixWords",
+        "element_offset": 0,
+        "element_width": 18,
+        "layout_id": "catalog-94aa499912754ede87aac351da603a01",
+        "owner_action_id": "manual-ce5e2558f6f94bb3877e176556a67877",
+        "type_binding_id": "catalog-94aa499912754ede87aac351da603a01:0:18:custom_struct:SG2RotationMatrixWords"
+      }
+    },
+    {
+      "layout_id": "catalog-406153f3d9d9429784e57c93a8501f44",
+      "name": "player_orientation_matrix_words",
+      "source_start": 7182,
+      "source_end": 7200,
+      "runtime_start": 11278,
+      "runtime_end": 11296,
+      "type_binding": {
+        "binding_kind": "custom_struct",
+        "bound_type_id": "SG2RotationMatrixWords",
+        "element_offset": 0,
+        "element_width": 18,
+        "layout_id": "catalog-406153f3d9d9429784e57c93a8501f44",
+        "owner_action_id": "manual-1e2c2ca8115345028f2725daf828369a",
+        "type_binding_id": "catalog-406153f3d9d9429784e57c93a8501f44:0:18:custom_struct:SG2RotationMatrixWords"
+      }
+    }
+  ],
+  "schema": {
+    "name": "SG2RotationMatrixWords",
+    "size": 18,
+    "fields": "Nine signed WORDs at row-major offsets0,2,4 /6,8,10 /12,14,16; reused unchanged from existing app matrices."
+  },
+  "transpose": {
+    "entry": 11038,
+    "name": "build_and_transpose_rotation_matrix",
+    "behavior": "Call original builder; swap WORD2/6,4/12,10/14, preserve diagonals; local D0/A5 save and restore.",
+    "limits": "Literal in-place transpose. Q14 truncation/wrap and existing signs remain; not proof of an exact inverse or all-input orthogonality."
+  },
+  "model_view": {
+    "entry": 10682,
+    "name": "build_model_view_rotation_matrix",
+    "behavior": "Existing model-angle reads, zero-angle/non-type30 shortcut and original signed fixed-point composition feed model_view_matrix. No new axis-order claim."
+  },
+  "native_field_sites": [
+    {
+      "source_offset": 6264,
+      "runtime_address": 10360,
+      "operand": 1,
+      "register": "A5",
+      "field": "m21",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 6298,
+      "runtime_address": 10394,
+      "operand": 1,
+      "register": "A5",
+      "field": "m20",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 6308,
+      "runtime_address": 10404,
+      "operand": 1,
+      "register": "A5",
+      "field": "m22",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 6342,
+      "runtime_address": 10438,
+      "operand": 1,
+      "register": "A5",
+      "field": "m01",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 6352,
+      "runtime_address": 10448,
+      "operand": 1,
+      "register": "A5",
+      "field": "m11",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 6566,
+      "runtime_address": 10662,
+      "operand": 1,
+      "register": "A5",
+      "field": "m10",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 6570,
+      "runtime_address": 10666,
+      "operand": 1,
+      "register": "A5",
+      "field": "m12",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 6574,
+      "runtime_address": 10670,
+      "operand": 1,
+      "register": "A5",
+      "field": "m00",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 6578,
+      "runtime_address": 10674,
+      "operand": 1,
+      "register": "A5",
+      "field": "m02",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 6652,
+      "runtime_address": 10748,
+      "operand": 0,
+      "register": "A5",
+      "field": "m00",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 6656,
+      "runtime_address": 10752,
+      "operand": 0,
+      "register": "A5",
+      "field": "m10",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 6660,
+      "runtime_address": 10756,
+      "operand": 0,
+      "register": "A5",
+      "field": "m20",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 6664,
+      "runtime_address": 10760,
+      "operand": 0,
+      "register": "A5",
+      "field": "m02",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 6668,
+      "runtime_address": 10764,
+      "operand": 0,
+      "register": "A5",
+      "field": "m12",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 6672,
+      "runtime_address": 10768,
+      "operand": 0,
+      "register": "A5",
+      "field": "m22",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 6676,
+      "runtime_address": 10772,
+      "operand": 0,
+      "register": "A5",
+      "field": "m00",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 6680,
+      "runtime_address": 10776,
+      "operand": 0,
+      "register": "A5",
+      "field": "m10",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 6684,
+      "runtime_address": 10780,
+      "operand": 0,
+      "register": "A5",
+      "field": "m20",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 6764,
+      "runtime_address": 10860,
+      "operand": 0,
+      "register": "A5",
+      "field": "m01",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 6768,
+      "runtime_address": 10864,
+      "operand": 0,
+      "register": "A5",
+      "field": "m11",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 6772,
+      "runtime_address": 10868,
+      "operand": 0,
+      "register": "A5",
+      "field": "m21",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 6852,
+      "runtime_address": 10948,
+      "operand": 0,
+      "register": "A5",
+      "field": "m02",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 6856,
+      "runtime_address": 10952,
+      "operand": 0,
+      "register": "A5",
+      "field": "m12",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 6860,
+      "runtime_address": 10956,
+      "operand": 0,
+      "register": "A5",
+      "field": "m22",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 6954,
+      "runtime_address": 11050,
+      "operand": 0,
+      "register": "A5",
+      "field": "m10",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 6958,
+      "runtime_address": 11054,
+      "operand": 0,
+      "register": "A5",
+      "field": "m01",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 6958,
+      "runtime_address": 11054,
+      "operand": 1,
+      "register": "A5",
+      "field": "m10",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 6964,
+      "runtime_address": 11060,
+      "operand": 1,
+      "register": "A5",
+      "field": "m01",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 6968,
+      "runtime_address": 11064,
+      "operand": 0,
+      "register": "A5",
+      "field": "m20",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 6972,
+      "runtime_address": 11068,
+      "operand": 0,
+      "register": "A5",
+      "field": "m02",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 6972,
+      "runtime_address": 11068,
+      "operand": 1,
+      "register": "A5",
+      "field": "m20",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 6978,
+      "runtime_address": 11074,
+      "operand": 1,
+      "register": "A5",
+      "field": "m02",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 6982,
+      "runtime_address": 11078,
+      "operand": 0,
+      "register": "A5",
+      "field": "m21",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 6986,
+      "runtime_address": 11082,
+      "operand": 0,
+      "register": "A5",
+      "field": "m12",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 6986,
+      "runtime_address": 11082,
+      "operand": 1,
+      "register": "A5",
+      "field": "m21",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 6992,
+      "runtime_address": 11088,
+      "operand": 1,
+      "register": "A5",
+      "field": "m12",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 7088,
+      "runtime_address": 11184,
+      "operand": 0,
+      "register": "A5",
+      "field": "m00",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 7092,
+      "runtime_address": 11188,
+      "operand": 0,
+      "register": "A5",
+      "field": "m01",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 7098,
+      "runtime_address": 11194,
+      "operand": 0,
+      "register": "A5",
+      "field": "m02",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 7110,
+      "runtime_address": 11206,
+      "operand": 0,
+      "register": "A5",
+      "field": "m10",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 7114,
+      "runtime_address": 11210,
+      "operand": 0,
+      "register": "A5",
+      "field": "m11",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 7120,
+      "runtime_address": 11216,
+      "operand": 0,
+      "register": "A5",
+      "field": "m12",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 7132,
+      "runtime_address": 11228,
+      "operand": 0,
+      "register": "A5",
+      "field": "m20",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 7136,
+      "runtime_address": 11232,
+      "operand": 0,
+      "register": "A5",
+      "field": "m21",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 7142,
+      "runtime_address": 11238,
+      "operand": 0,
+      "register": "A5",
+      "field": "m22",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 25450,
+      "runtime_address": 29546,
+      "operand": 0,
+      "register": "A1",
+      "field": "m02",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 25458,
+      "runtime_address": 29554,
+      "operand": 0,
+      "register": "A1",
+      "field": "m12",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 25466,
+      "runtime_address": 29562,
+      "operand": 0,
+      "register": "A1",
+      "field": "m22",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 25508,
+      "runtime_address": 29604,
+      "operand": 0,
+      "register": "A1",
+      "field": "m00",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 25516,
+      "runtime_address": 29612,
+      "operand": 0,
+      "register": "A1",
+      "field": "m10",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 25524,
+      "runtime_address": 29620,
+      "operand": 0,
+      "register": "A1",
+      "field": "m20",
+      "provenance": "static_data"
+    }
+  ],
+  "before_after": {
+    "app_slot_ref_count": {
+      "before": 3391,
+      "owner_only": 3391,
+      "typed": 3391
+    },
+    "recovered_platform_typed_access_count": {
+      "before": 1148,
+      "owner_only": 1148,
+      "typed": 1199
+    },
+    "recovered_platform_unresolved_typed_access_count": {
+      "before": 428,
+      "owner_only": 428,
+      "typed": 428
+    }
+  },
+  "projection": {
+    "new_typed_coordinates": 51,
+    "lost_typed_coordinates": 0,
+    "field_counts": {
+      "m21": 5,
+      "m20": 7,
+      "m22": 5,
+      "m01": 5,
+      "m11": 3,
+      "m10": 7,
+      "m12": 7,
+      "m00": 5,
+      "m02": 7
+    }
+  },
+  "validation": {
+    "native_and_vasm": {
+      "kind": "verification",
+      "framework_exact": true,
+      "target_id": "amiga_raw_starglider2_game",
+      "subject_revision": "fa8d14ef714a2d155c331e06565721ac2b427ae2cf619a7d930d4fd3ceb07efe",
+      "status": "exact",
+      "exact": true,
+      "source_sha256": "0a3dbda023b37e8b62d743a43c6e6f9ddd695dc9a66b4cb3e87647cb59b96fc3",
+      "source_path": "/workspace/pandora-original-delivery/stable-d15c2cf8/.runtime-state/restoration/eb04f545fb97451725a1c91ab5abf6f2e097614c45880db6edfb4ea5c3f6e2c2/0a3dbda023b37e8b62d743a43c6e6f9ddd695dc9a66b4cb3e87647cb59b96fc3.s",
+      "source_package_sha256": null,
+      "original_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+      "original_size": 412736,
+      "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+      "rebuilt_path": "/workspace/pandora-original-delivery/stable-d15c2cf8/.runtime-state/restoration/eb04f545fb97451725a1c91ab5abf6f2e097614c45880db6edfb4ea5c3f6e2c2/662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9.bin",
+      "framework_status": "exact",
+      "failure_kinds": [],
+      "message": "",
+      "oracle": {
+        "oracle_id": "vasm",
+        "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+        "comparison_level": "oracle.full_file_match",
+        "assembler_status": "accepted",
+        "message": "oracle output matched original bytes"
+      },
+      "receipt_id": "11077dafed8c49c3e2c229a8a056fc401fa44b1be4dc49629b1aac5473552ec8",
+      "revision": "6d2e11d3b072acad5aae319a03bd820ae65f1c768b40474b92a8445a909a7fd2"
+    },
+    "incomplete_analysis": [],
+    "source_quality_diagnostics": 0,
+    "accepted_code_runs_identical": true,
+    "accepted_ownership_union_identical": true,
+    "assets_unchanged": 57,
+    "required_headers": 14,
+    "framework_changed": false,
+    "focused_tests": "Shared implementation unchanged since225 focused/oracle and832 native passes. New canonical binding admission, actual native projections, whole original C/vasm and clean standalone build qualify this slice.",
+    "clean_standalone_build": {
+      "status": "pass",
+      "validated_target_git_tree": "dd6ef22107e39aec376f0de407124b0d172580f8",
+      "receipt": {
+        "schema_version": 1,
+        "status": "pass",
+        "format": "raw_payload_not_AmigaDOS_HUNK",
+        "main_bytes": 412736,
+        "main_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+        "main_matches_original_identity": true,
+        "asset_count": 57,
+        "all_asset_source_slices_equal": true,
+        "decoded_view_inverse_exact": true,
+        "boot_copy_source_matches_resident_view": true,
+        "source_commit": "63d8582ce08df0c3034393cda5fb92788f4b144a",
+        "assembler_sha256": "413e284020125f42709486dfe09907cab3dd9f3c2ea41017c190f8ea68f30825",
+        "flags": [
+          "-Fbin",
+          "-m68000",
+          "-no-opt"
+        ],
+        "outputs": [
+          {
+            "role": "original_main",
+            "filename": "Starglider2-original.raw",
+            "bytes": 412736,
+            "sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9"
+          },
+          {
+            "role": "decoded_analysis_view",
+            "filename": "protection-decoded-analysis.raw",
+            "bytes": 3548,
+            "sha256": "de8358853dd9ed9b006a23569bf393aa217ed3be3301a169465d80bfaf839922"
+          },
+          {
+            "role": "boot_installer_context",
+            "filename": "boot-selector-installer-context.raw",
+            "bytes": 40,
+            "sha256": "8d34852425e2e1bfa87b3febdfc74fb39e7c667e9d9ff73e17b594649e83b21b"
+          },
+          {
+            "role": "boot_resident_view",
+            "filename": "boot-selector-resident.raw",
+            "bytes": 20,
+            "sha256": "a26286a393713c046eff9dbaff15b20b26b171fa9e05fc9d538d16b0eddb6024"
+          }
+        ]
+      },
+      "recoverable_pandora_backups_verified": 16
+    }
+  },
+  "workflow": {
+    "owner_generation_wall_seconds": 195.55924418498762,
+    "typed_generation_wall_seconds": 111.31571506598266,
+    "stages": "Normal owner creation assigns canonical IDs. Their returned active IDs and a fresh native owner artifact are then used for normal typed-element commands. Both stages keep revision/evidence guards; only the final complete batch is verified/reviewed/published.",
+    "cost_limit": "Two guarded stages expose a concrete command/workflow cost, not a new performance or cache claim."
+  },
+  "limits": [
+    "No new runtime path, arbitrary angle safety, lifetime or exact floating-point/inverse claim.",
+    "Source buffers remain mutable original image data; source reconstruction preserves their initial bytes, not every runtime content.",
+    "A typed field names an effective starting address; LONG/grouped accesses can span more than one WORD field. Physical instruction footprints stay authoritative.",
+    "Duplicate11E initialization writes remain unnamed. Inspected accepted paths do not establish a cache reader; absent direct readers do not prove unused/dead or an original bug."
+  ],
+  "next": {
+    "group": "Strong-base app-cursor discovery versus ownership restrictions",
+    "experiment": "The saved-frame case showed known register-state app addresses hidden until an owner was declared. Reproduce direct-base/derived-cursor parity, keep weak fallback ownership guards, and distinguish an exact observed span from inferred allocation/object bounds. Inspect remaining generic fields using actual producer/consumer evidence, not name counts."
+  }
+}

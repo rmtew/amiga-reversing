@@ -23,7 +23,21 @@ boundaries. It records 67 suffix signals (including numeric adjacent variants),
 21 lookup contracts, 523 remaining interior references, 32 generic app fields
 and 428 unresolved record accesses. These are different denominators. Five
 suffixes name routines and one names text; neither is a pointer defect.
-Latest: the [saved decode-frame and app-cursor reconstruction](../../runtime/observations/starglider2-decode-frame-state.json)
+Latest: the [source-matrix ownership reconstruction](../../runtime/observations/starglider2-matrix-source-owners.json)
+binds two original 18-byte mutable buffers to the existing nine-WORD matrix
+schema. Native LEA/type propagation recovers **51 field accesses** without
+per-instruction register seeds or a new recognizer. The original build/transpose
+and model-view routines have role names; literal swaps and Q14 behavior stay.
+Counts are **1199 typed /
+428 unresolved**;
+**51 new / 0 lost** typed coordinates.
+Original accepted code runs/ownership union, C/vasm and standalone bytes remain
+exact. Transpose is not claimed to be an exact inverse. Nearby duplicate $11E
+stores do not establish a cache purpose and remain unnamed. Continue strong-base
+cursor/ownership discovery parity and real generic-field consumers; an exact
+access should not be confused with an allocation or all-path safety proof.
+
+Preceding: the [saved decode-frame and app-cursor reconstruction](../../runtime/observations/starglider2-decode-frame-state.json)
 models the original four-LONG saved register frame at app $9C..$AC. Native
 predecrement uses the whole decoded span and keeps the resulting app cursor;
 qualified canonical start/end addresses flow through the existing use-site index

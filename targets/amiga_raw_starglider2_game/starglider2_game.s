@@ -2799,7 +2799,7 @@ build_three_angle_rotation_matrix:
 	add.w d3,d3
 	move.w $0(a0,d1.w),d0
 	neg.w d0
-	move.w d0,$000E(a5)
+	move.w d0,SG2RotationMatrixWords_m21(a5)
 	move.w d1,d0
 	add.w d2,d0
 	andi.w #8190,d0
@@ -2810,10 +2810,10 @@ build_three_angle_rotation_matrix:
 	andi.w #8190,d6
 	sub.w $0(a0,d6.w),d4
 	asr.w #1,d4
-	move.w d4,$000C(a5)
+	move.w d4,SG2RotationMatrixWords_m20(a5)
 	add.w $0(a1,d6.w),d5
 	asr.w #1,d5
-	move.w d5,$0010(a5)
+	move.w d5,SG2RotationMatrixWords_m22(a5)
 	move.w d1,d0
 	add.w d3,d0
 	andi.w #8190,d0
@@ -2824,10 +2824,10 @@ build_three_angle_rotation_matrix:
 	andi.w #8190,d7
 	sub.w $0(a0,d7.w),d4
 	asr.w #1,d4
-	move.w d4,$0002(a5)
+	move.w d4,SG2RotationMatrixWords_m01(a5)
 	add.w $0(a1,d7.w),d5
 	asr.w #1,d5
-	move.w d5,$0008(a5)
+	move.w d5,SG2RotationMatrixWords_m11(a5)
 	move.w d0,d4
 	sub.w d2,d0
 	andi.w #8190,d0
@@ -2909,13 +2909,13 @@ build_three_angle_rotation_matrix:
 	asr.w #1,d4
 	add.w d4,d5
 	sub.w d4,d1
-	move.w d0,$0006(a5)
-	move.w d1,$000A(a5)
-	move.w d5,$0000(a5)
-	move.w d6,$0004(a5)
+	move.w d0,SG2RotationMatrixWords_m10(a5)
+	move.w d1,SG2RotationMatrixWords_m12(a5)
+	move.w d5,SG2RotationMatrixWords_m00.w(a5)
+	move.w d6,SG2RotationMatrixWords_m02(a5)
 	movea.l (a7)+,a5
 	rts
-abs_0_000029BA:
+build_model_view_rotation_matrix:
 	move.w model_rotation_0(a6),d1
 	move.w model_rotation_1(a6),d2
 	move.w model_rotation_2(a6),d3
@@ -2935,17 +2935,17 @@ abs_0_000029BA:
 	bsr.w build_three_angle_rotation_matrix
 	bra.w store_built_model_view_matrix
 abs_0_000029F4:
-	bsr.w abs_0_00002B1E
+	bsr.w build_and_transpose_rotation_matrix
 	lea.l built_rotation_matrix_words(pc),a5
-	neg.w $0000(a5)
-	neg.w $0006(a5)
-	neg.w $000C(a5)
-	neg.w $0004(a5)
-	neg.w $000A(a5)
-	neg.w $0010(a5)
-	move.w $0000(a5),d1
-	move.w $0006(a5),d2
-	move.w $000C(a5),d3
+	neg.w SG2RotationMatrixWords_m00.w(a5)
+	neg.w SG2RotationMatrixWords_m10(a5)
+	neg.w SG2RotationMatrixWords_m20(a5)
+	neg.w SG2RotationMatrixWords_m02(a5)
+	neg.w SG2RotationMatrixWords_m12(a5)
+	neg.w SG2RotationMatrixWords_m22(a5)
+	move.w SG2RotationMatrixWords_m00.w(a5),d1
+	move.w SG2RotationMatrixWords_m10(a5),d2
+	move.w SG2RotationMatrixWords_m20(a5),d3
 	lea.l view_rotation_matrix(a6),a1
 	move.w (a1)+,d4
 	muls.w d1,d4
@@ -2980,9 +2980,9 @@ abs_0_000029F4:
 	asl.l #2,d4
 	swap.w d4
 	move.w d4,model_view_matrix+SG2RotationMatrixWords_m20(a6)
-	move.w $0002(a5),d1
-	move.w $0008(a5),d2
-	move.w $000E(a5),d3
+	move.w SG2RotationMatrixWords_m01(a5),d1
+	move.w SG2RotationMatrixWords_m11(a5),d2
+	move.w SG2RotationMatrixWords_m21(a5),d3
 	lea.l view_rotation_matrix(a6),a1
 	move.w (a1)+,d4
 	muls.w d1,d4
@@ -3017,9 +3017,9 @@ abs_0_000029F4:
 	asl.l #2,d4
 	swap.w d4
 	move.w d4,model_view_matrix+SG2RotationMatrixWords_m21(a6)
-	move.w $0004(a5),d1
-	move.w $000A(a5),d2
-	move.w $0010(a5),d3
+	move.w SG2RotationMatrixWords_m02(a5),d1
+	move.w SG2RotationMatrixWords_m12(a5),d2
+	move.w SG2RotationMatrixWords_m22(a5),d3
 	lea.l view_rotation_matrix(a6),a1
 	move.w (a1)+,d4
 	muls.w d1,d4
@@ -3055,19 +3055,20 @@ abs_0_000029F4:
 	swap.w d4
 	move.w d4,model_view_matrix+SG2RotationMatrixWords_m22(a6)
 	rts
-abs_0_00002B1E:
+    ; Build then transpose in place: swap WORD pairs m01/m10, m02/m20 and m12/m21; diagonal stays. Preserve Q14 truncation/wrap. Transpose is not a blanket exact-inverse claim.
+build_and_transpose_rotation_matrix:
 	bsr.w build_three_angle_rotation_matrix
 	movem.l d0/a5,-(a7)
 	lea.l built_rotation_matrix_words(pc),a5
-	move.w $0006(a5),d0
-	move.w $0002(a5),$0006(a5)
-	move.w d0,$0002(a5)
-	move.w $000C(a5),d0
-	move.w $0004(a5),$000C(a5)
-	move.w d0,$0004(a5)
-	move.w $000E(a5),d0
-	move.w $000A(a5),$000E(a5)
-	move.w d0,$000A(a5)
+	move.w SG2RotationMatrixWords_m10(a5),d0
+	move.w SG2RotationMatrixWords_m01(a5),SG2RotationMatrixWords_m10(a5)
+	move.w d0,SG2RotationMatrixWords_m01(a5)
+	move.w SG2RotationMatrixWords_m20(a5),d0
+	move.w SG2RotationMatrixWords_m02(a5),SG2RotationMatrixWords_m20(a5)
+	move.w d0,SG2RotationMatrixWords_m02(a5)
+	move.w SG2RotationMatrixWords_m21(a5),d0
+	move.w SG2RotationMatrixWords_m12(a5),SG2RotationMatrixWords_m21(a5)
+	move.w d0,SG2RotationMatrixWords_m12(a5)
 	movem.l (a7)+,d0/a5
 	rts
 build_player_orientation_matrix:
@@ -3075,7 +3076,7 @@ build_player_orientation_matrix:
 	move.w player_rotation_1(a6),d2
 	move.w player_rotation_2(a6),d3
 	neg.w d1
-	bsr.w abs_0_00002B1E
+	bsr.w build_and_transpose_rotation_matrix
 	lea.l built_rotation_matrix_words(pc),a1
 	lea.l player_orientation_matrix_words(pc),a2
 	bra.b copy_nine_matrix_words
@@ -3101,34 +3102,34 @@ copy_nine_matrix_words:
 transform_vector_by_built_matrix:
 	movem.l d4-d5/a5,-(a7)
 	lea.l built_rotation_matrix_words(pc),a5
-	move.w (a5)+,d4
+	move.w (a5)+,d4	; operand 1: SG2RotationMatrixWords_m00 at (a5)+
 	muls.w d1,d4
-	move.w (a5)+,d5
+	move.w (a5)+,d5	; operand 1: SG2RotationMatrixWords_m01 at (a5)+
 	muls.w d2,d5
 	add.l d5,d4
-	move.w (a5)+,d5
+	move.w (a5)+,d5	; operand 1: SG2RotationMatrixWords_m02 at (a5)+
 	muls.w d3,d5
 	add.l d5,d4
 	asl.l #2,d4
 	swap.w d4
 	move.w d4,-(a7)
-	move.w (a5)+,d4
+	move.w (a5)+,d4	; operand 1: SG2RotationMatrixWords_m10 at (a5)+
 	muls.w d1,d4
-	move.w (a5)+,d5
+	move.w (a5)+,d5	; operand 1: SG2RotationMatrixWords_m11 at (a5)+
 	muls.w d2,d5
 	add.l d5,d4
-	move.w (a5)+,d5
+	move.w (a5)+,d5	; operand 1: SG2RotationMatrixWords_m12 at (a5)+
 	muls.w d3,d5
 	add.l d5,d4
 	asl.l #2,d4
 	swap.w d4
 	move.w d4,-(a7)
-	move.w (a5)+,d4
+	move.w (a5)+,d4	; operand 1: SG2RotationMatrixWords_m20 at (a5)+
 	muls.w d1,d4
-	move.w (a5)+,d5
+	move.w (a5)+,d5	; operand 1: SG2RotationMatrixWords_m21 at (a5)+
 	muls.w d2,d5
 	add.l d5,d4
-	move.w (a5)+,d5
+	move.w (a5)+,d5	; operand 1: SG2RotationMatrixWords_m22 at (a5)+
 	muls.w d3,d5
 	add.l d5,d4
 	asl.l #2,d4
@@ -3139,9 +3140,25 @@ transform_vector_by_built_matrix:
 	movem.l (a7)+,d4-d5/a5
 	rts
 built_rotation_matrix_words:
-	dcb.w $9,$0000
+	dc.w $0000	; m00
+	dc.w $0000	; m01
+	dc.w $0000	; m02
+	dc.w $0000	; m10
+	dc.w $0000	; m11
+	dc.w $0000	; m12
+	dc.w $0000	; m20
+	dc.w $0000	; m21
+	dc.w $0000	; m22
 player_orientation_matrix_words:
-	dcb.w $9,$0000
+	dc.w $0000	; m00
+	dc.w $0000	; m01
+	dc.w $0000	; m02
+	dc.w $0000	; m10
+	dc.w $0000	; m11
+	dc.w $0000	; m12
+	dc.w $0000	; m20
+	dc.w $0000	; m21
+	dc.w $0000	; m22
 abs_0_00002C20:
 	lea.l keyboard_down_flags.l,a0
 	moveq.l #0,d0
@@ -4239,7 +4256,7 @@ abs_0_00003D00:
 abs_0_00003D34:
 	neg.w d1
 	move.w #$0,d3
-	bsr.w abs_0_00002B1E
+	bsr.w build_and_transpose_rotation_matrix
 	move.w #$0,d1
 	move.w #$0,d2
 	move.w view_offset_distance(a6),d3
@@ -5262,7 +5279,7 @@ abs_0_00004AA4:
 	addq.l #8,a0
 	dbf.w d1,abs_0_00004AA4
 	clr.w abs_0_000052BE.l
-	bsr.w abs_0_000029BA
+	bsr.w build_model_view_rotation_matrix
 	lea.l model_view_vertex_scratch_prefix(a6),a3
 	moveq.l #0,d1
 	move.w model_last_vertex_index(a6),d0
@@ -6022,7 +6039,7 @@ prepare_retirement_model_faces:
 	add.w d1,d1
 	move.l $0(a1,d1.w),$0024(a6)
 abs_0_0000539A:
-	bsr.w abs_0_000029BA
+	bsr.w build_model_view_rotation_matrix
 	move.l a4,-(a7)
 	bsr.w transform_retirement_vertices_and_faces
 	movea.l (a7)+,a4
@@ -8500,13 +8517,13 @@ abs_0_0000730A:
 	move.w $0020(a2),d3
 	lea.l player_orientation_matrix_words.l,a1
 	move.w d3,d4
-	muls.w $0004(a1),d4
+	muls.w SG2RotationMatrixWords_m02(a1),d4
 	swap.w d4
 	move.w d3,d5
-	muls.w $000A(a1),d5
+	muls.w SG2RotationMatrixWords_m12(a1),d5
 	swap.w d5
 	move.w d3,d6
-	muls.w $0010(a1),d6
+	muls.w SG2RotationMatrixWords_m22(a1),d6
 	swap.w d6
 	move.w d4,$002C(a2)
 	move.w d5,$002E(a2)
@@ -8519,13 +8536,13 @@ abs_0_0000739A:
 	add.w d3,d3
 	lea.l player_orientation_matrix_words.l,a1
 	move.w d3,d4
-	muls.w $0000(a1),d4
+	muls.w SG2RotationMatrixWords_m00.w(a1),d4
 	swap.w d4
 	move.w d3,d5
-	muls.w $0006(a1),d5
+	muls.w SG2RotationMatrixWords_m10(a1),d5
 	swap.w d5
 	move.w d3,d6
-	muls.w $000C(a1),d6
+	muls.w SG2RotationMatrixWords_m20(a1),d6
 	swap.w d6
 	ext.l d4
 	ext.l d5
