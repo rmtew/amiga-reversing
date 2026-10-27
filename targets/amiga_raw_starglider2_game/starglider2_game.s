@@ -208,7 +208,8 @@ object_initializer_chain_tail RS.L 1
     RS.B 4
 disc_record_write_cursor RS.L 1
 disc_reference_write_cursor RS.L 1
-    RS.B 48
+    RS.B 32
+novella_decode_saved_state RS.B 16
 app_00AC RS.L 1
     RS.B 52
 view_clip_min_x RS.W 1
@@ -1030,6 +1031,14 @@ SG2ScheduledActor_SIZEOF EQU __RS
 SG2EvasiveActor_proximity_evasion_countdown RS.W 1
     RS.B 28
 SG2EvasiveActor_SIZEOF EQU __RS
+
+; STRUCT SG2NovellaDecodeState
+    RSRESET
+SG2NovellaDecodeState_initial_subtraction_key RS.L 1
+SG2NovellaDecodeState_loop_counter_register RS.L 1
+SG2NovellaDecodeState_encoded_payload_span_bytes RS.L 1
+SG2NovellaDecodeState_encoded_payload_pointer RS.L 1
+SG2NovellaDecodeState_SIZEOF EQU __RS
 
 ADKF_CLRALL	EQU	$7FFF
 BPLCON2_PF2P2	EQU	$20
@@ -2240,7 +2249,7 @@ abs_0_00001EC2:
 	move.b #$0,app_07F4(a6)
     ; Protection phase1:871 LONGs at$12F80..$13D1C, subtract key$32597635+i. Declared end$13D1E leaves2bytes untouched. Exact observed normal boot.
 	move.w #$0,$01DA(a6)
-	lea.l $009C(a6),a3
+	lea.l novella_decode_saved_state(a6),a3
 	movem.l (a3)+,d0-d1/a1-a2
 	lea.l novella_check_encoded_payload.l,a2
 	lea.l abs_0_00013D1E.l,a1
@@ -2264,7 +2273,8 @@ abs_0_00001F24:
 	bsr.w abs_0_000034AA
 	tst.w cockpit_picture_palette.l
 	beq.b abs_0_00001F46
-	lea.l $009C(a6),a3
+	lea.l novella_decode_saved_state(a6),a3
+    ; Guarded reload of the saved four-LONG decode frame; DBF consumes only D1 low WORD. A1 retains full encoded span including the two-byte tail, not just the LONG-processed extent.
 	movem.l (a3)+,d0-d1/a1-a2
     ; Phase2 per LONG:ROL.W first half twice,ROR.W second half thrice. Decoded novella check is a separate canonical view; original bytes remain encoded.
 rotate_protection_words_for_picture:
@@ -14620,7 +14630,8 @@ abs_0_0000CC48:
 	lsr.w #2,d1
 	subq.w #1,d1
 	move.l #$32597635,d0
-	lea.l app_00AC(a6),a3
+	lea.l novella_decode_saved_state+16(a6),a3
+    ; Save D0 key, D1 DBF register, A1 byte span and A2 payload address in app $9C..$AC. LEA names the one-past end; predecrement MOVEM writes the full 16-byte frame.
 	movem.l d0-d1/a1-a2,-(a3)
 	lea.l color(a5),a1
 	move.w #$F,d0
@@ -16193,7 +16204,7 @@ handle_load_game_menu_choice:
 	bsr.w abs_0_00012F6E
 	tst.w cockpit_picture_palette.l
 	beq.b abs_0_0000E45C
-	lea.l $009C(a6),a3
+	lea.l novella_decode_saved_state(a6),a3
 	movem.l (a3)+,d0-d1/a1-a2
 rotate_protection_words_for_load:
 	rol (a2)
@@ -50881,7 +50892,7 @@ abs_0_0003B3FE:
 	lsr.w #2,d1
 	subq.w #1,d1
 	move.l #$32597635,d0
-	lea.l app_00AC(a6),a3
+	lea.l novella_decode_saved_state+16(a6),a3
 	movem.l d0-d1/a1-a2,-(a3)
 	lea.l select_disk_surface_a.l,a0
 	move.l #select_alternate_disk_surface_a,$0002(a0)

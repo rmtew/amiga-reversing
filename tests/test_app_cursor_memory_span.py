@@ -11,6 +11,7 @@ from tests.test_app_cursor_propagation import cursor_artifact, derived_refs
     ('movem.w (a5),d0-d2', [0xC3E], [6]),
     ('movem.l d0-d2,(a5)', [0xC3E], [12]),
     ('movem.w (a5)+,d0-d2\n move.w (a5),d3', [0xC3E, 0xC44], [6, 2]),
+    ('movem.w d0-d2,-(a5)\n move.w (a5),d0', [0xC38, 0xC38], [6, 2]),
 ])
 def test_known_app_cursor_reports_full_preupdate_spans(tmp_path, tail, targets, widths):
     artifact, original = cursor_artifact(tmp_path, 'lea.l $BC6(a6),a4\n lea.l $78(a4),a5\n' + tail)
@@ -52,7 +53,7 @@ def test_known_app_cursor_reports_full_preupdate_spans(tmp_path, tail, targets, 
     'movem.w (a5),a5\n move.w (a5),d0',
     'movem.w (a5)+,a5\n move.w (a5),d0',
     'movea.l (a5)+,a5\n move.w (a5),d0',
-    'movem.w d0-d2,-(a5)\n move.w (a5),d0',
+    'lea.l -$78(a5),a5\n movem.w d0-d2,-(a5)\n move.w (a5),d0',
     'movem.w 0(a5,d0.w),d0-d2',
     'cmpm.w (a5)+,(a5)+\n move.w (a5),d0',
     'adda.w #$FFFF,a5\n move.w (a5),d0',

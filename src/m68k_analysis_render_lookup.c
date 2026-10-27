@@ -7798,12 +7798,17 @@ static void typed_state_update_after_instruction(M68kRenderTypedState *state, M6
     const M68kOperandIR *operand = &instruction->operands[operand_index];
     uint8_t access, element_width, count;
     int16_t displacement;
-    if (m68k_instruction_operand_decoded_ea_shape(operand) != M68K_SIM_EA_SHAPE_POSTINCREMENT ||
+    uint8_t update_shape = m68k_instruction_operand_decoded_ea_shape(operand);
+    int32_t updated;
+    if ((update_shape != M68K_SIM_EA_SHAPE_POSTINCREMENT &&
+         update_shape != M68K_SIM_EA_SHAPE_PREDECREMENT) ||
         !typed_app_memory_span(lookup, state, instruction, operand_index, &app_update_reg,
           &displacement, &access, &app_update_width, &element_width, &count)) continue;
-    if ((int32_t)state->app_addr_regs[app_update_reg].displacement + app_update_width <= INT16_MAX) {
+    updated = (int32_t)state->app_addr_regs[app_update_reg].displacement +
+      (update_shape == M68K_SIM_EA_SHAPE_PREDECREMENT ? -(int32_t)app_update_width : app_update_width);
+    if (updated >= INT16_MIN && updated <= INT16_MAX) {
       app_after_update = state->app_addr_regs[app_update_reg];
-      app_after_update.displacement = (int16_t)(app_after_update.displacement + app_update_width);
+      app_after_update.displacement = (int16_t)updated;
     }
   }
   typed_origin_clear(&source_origin);
@@ -12650,7 +12655,8 @@ static int policy_declared_app_extent_covers(const M68kAnalysisPolicy *policy, i
 }
 
 /* One exact instruction footprint, never a loop-trip or cursor-range proof.
- * Predecrement/striped/indexed and shared update bases remain refused.
+ * Striped/indexed and shared update bases remain refused. Predecrement uses
+ * the whole decoded span before the access; postincrement uses it afterwards.
  * A distinct postincrement stream cannot change this operand's EA register. */
 static int typed_app_memory_span(const M68kRenderLookup *lookup, const M68kRenderTypedState *state,
     const M68kInstructionIR *instruction, size_t operand_index, uint8_t *out_reg,
@@ -12666,7 +12672,8 @@ static int typed_app_memory_span(const M68kRenderLookup *lookup, const M68kRende
       operand_index >= 4U || metadata->striped_direction != M68K_SIM_STRIPED_NONE) return 0;
   operand = &instruction->operands[operand_index];
   shape = m68k_instruction_operand_decoded_ea_shape(operand);
-  if (shape == M68K_SIM_EA_SHAPE_POSTINCREMENT && operand->kind == M68K_ASM_OPERAND_EA) {
+  if ((shape == M68K_SIM_EA_SHAPE_POSTINCREMENT || shape == M68K_SIM_EA_SHAPE_PREDECREMENT) &&
+      operand->kind == M68K_ASM_OPERAND_EA) {
     reg = operand->value.ea_reg;
   } else if (!operand_is_address_memory_local(operand, &reg, &displacement)) return 0;
   if (reg >= 7U || !state->app_addr_regs[reg].known ||
@@ -12678,7 +12685,7 @@ static int typed_app_memory_span(const M68kRenderLookup *lookup, const M68kRende
         metadata->address_operand_index != operand_index || reglist_index >= instruction->operand_count ||
         instruction->operands[reglist_index].kind != M68K_ASM_OPERAND_REGLIST ||
         (shape != M68K_SIM_EA_SHAPE_INDIRECT && shape != M68K_SIM_EA_SHAPE_DISPLACEMENT &&
-         shape != M68K_SIM_EA_SHAPE_POSTINCREMENT)) return 0;
+         shape != M68K_SIM_EA_SHAPE_POSTINCREMENT && shape != M68K_SIM_EA_SHAPE_PREDECREMENT)) return 0;
     mask = (uint16_t)instruction->operands[reglist_index].value.value;
     /* Loading the EA register changes its value independently of memory
      * cursor motion. Do not resurrect its old app identity afterwards. */
@@ -12693,7 +12700,8 @@ static int typed_app_memory_span(const M68kRenderLookup *lookup, const M68kRende
     if (access != M68K_APP_SLOT_ACCESS_ADDRESS &&
         !platform_operand_memory_span(instruction, operand_index, &width, &count, NULL)) return 0;
     if (access != M68K_APP_SLOT_ACCESS_ADDRESS && width != 1U && width != 2U && width != 4U) return 0;
-    if (access == M68K_APP_SLOT_ACCESS_ADDRESS && shape == M68K_SIM_EA_SHAPE_POSTINCREMENT) return 0;
+    if (access == M68K_APP_SLOT_ACCESS_ADDRESS &&
+        (shape == M68K_SIM_EA_SHAPE_POSTINCREMENT || shape == M68K_SIM_EA_SHAPE_PREDECREMENT)) return 0;
     for (index = 0U; index < instruction->operand_count; ++index) {
       uint8_t other_reg, other_shape;
       const M68kOperandIR *other = &instruction->operands[index];
@@ -12711,6 +12719,9 @@ static int typed_app_memory_span(const M68kRenderLookup *lookup, const M68kRende
           other->value.index_reg == reg) return 0;
     }
   }
+  /* This is the EA adjustment, including an implicit predecrement, not a
+   * replacement syntax operand or a scalar-width estimate for MOVEM. */
+  if (shape == M68K_SIM_EA_SHAPE_PREDECREMENT) displacement = -(int16_t)(width * count);
   target = (int32_t)state->app_addr_regs[reg].displacement + displacement;
   if (target < INT16_MIN || target > INT16_MAX ||
       !policy_declared_app_extent_covers(lookup->policy, (int16_t)target, (uint8_t)(width * count))) return 0;
@@ -16069,6 +16080,7 @@ static int render_lookup_record_layout_field_uses(M68kRenderLookup *lookup, size
   if (policy == NULL || lookup->typed_flow_incomplete_count != 0U) return 0;
   for (operand_index = 0U; operand_index < instruction->operand_count && operand_index < 4U; ++operand_index) {
     uint8_t reg = 0U, width = 0U;
+    int address_only;
     int16_t displacement;
     uint16_t index, selected = UINT16_MAX;
     const char *base;
@@ -16077,13 +16089,19 @@ static int render_lookup_record_layout_field_uses(M68kRenderLookup *lookup, size
     if (m68k_bitset_u32_has(state->address_app_base_known, reg)) base = M68K_APP_BASE_SYMBOL;
     else if (m68k_bitset_u32_has(state->address_layout_base_known, reg)) base = state->address_layout_base_symbol[reg];
     else continue;
-    if (!platform_operand_memory_span(instruction, operand_index, NULL, NULL, &width)) continue;
+    address_only = app_slot_access_kind_from_instruction(instruction, operand_index) == M68K_APP_SLOT_ACCESS_ADDRESS;
+    if (!address_only && !platform_operand_memory_span(instruction, operand_index, NULL, NULL, &width)) continue;
     for (index = 0U; index < policy->rsset_layout_region_count; ++index) {
       const M68kAnalysisRssetLayoutRegion *region = &policy->rsset_layout_regions[index];
       const char *owner = region->base_symbol[0] ? region->base_symbol : M68K_APP_BASE_SYMBOL;
       if (strcmp(base, owner) != 0 || region->symbol[0] == '\0' || region->size == 0U ||
           (uint32_t)displacement < region->offset ||
           (uint64_t)(uint16_t)displacement + width > (uint64_t)region->offset + region->size) continue;
+      /* A qualified address can name an owner's start or one-past end without
+       * claiming bytes there. Leave interior member naming to the field lane,
+       * and retain ambiguity when adjacent/alias owners offer different names. */
+      if (address_only && (uint32_t)displacement != region->offset &&
+          (uint64_t)(uint16_t)displacement != (uint64_t)region->offset + region->size) continue;
       if (selected != UINT16_MAX &&
           (strcmp(policy->rsset_layout_regions[selected].symbol, region->symbol) != 0 ||
            policy->rsset_layout_regions[selected].offset != region->offset)) { selected = UINT16_MAX; break; }

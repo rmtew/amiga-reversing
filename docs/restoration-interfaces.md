@@ -807,6 +807,31 @@ the endpoint remain unresolved; an invalid extra postincrement drops the cursor.
 The final declared array element follows the same rule without inventing a next
 element. Byte, WORD and LONG accesses retain their encoded auto-update syntax.
 
+Known app-address cursors also expose exact scalar and contiguous MOVEM memory
+footprints inside a declared app owner. The shared decoded footprint supplies
+element width and register count: predecrement subtracts the whole span before
+the access and postincrement advances after it. The converged cursor retains
+the resulting address, including a one-past endpoint; endpoint memory accesses
+still require their own covering extent. This does not infer a trip count or
+the values saved in individual MOVEM slots.
+
+For these derived app references, `base_displacement` is the incoming cursor;
+`operand_displacement` is its effective EA adjustment, including implicit
+predecrement. `data_access_size` is the complete span, while `element_width`
+and `transfer_count` retain its decomposition. Instruction syntax stays intact.
+Unknown/clobbered bases, hardware or library contexts, A7, indexed/striped spans,
+ambiguous shared updates, EA registers included in a MOVEM list and uncovered
+footprints retain refusal. App-base evidence is transported without promotion:
+a one-past address alone cannot disambiguate unknown A6 from a hardware base.
+This app-span projection does not extend the separate typed-record MOVEM lane.
+
+The existing qualified RSSET use-site index also names an owner's exact start
+or one-past end for address formation. Its zero-width address expression claims
+no bytes at the endpoint. Actual memory accesses still require a full covered
+span, interior member naming stays with the typed-field resolver, and different
+adjacent/alias owner names remain ambiguous. Unknown A6 and foreign bases do
+not acquire identity from an endpoint coincidence.
+
 Brief address-register indexed operands expose their encoded signed-byte
 `indexed_displacement` as an element. `representation.symbol` accepts only an
 equal-valued canonical target EQU; the native renderer checks the actual decoded

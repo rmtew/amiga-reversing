@@ -86,13 +86,18 @@ int main(void) {
     rows[i].ref.base_evidence_kind=M68K_APP_SLOT_BASE_REGISTER_STATE;
   }
   assert(render_lookup_index_app_accesses(&lookup)==0);
-#define PROVEN(s,o,r,d,w) lookup_proven_app_base_access(&lookup,s,o,0,r,d,M68K_APP_SLOT_ACCESS_READ,w)
+  int proven = 0;
+#define RECORDED(s,o,r,d,w) lookup_recorded_app_base_access(&lookup,s,o,0,r,d,M68K_APP_SLOT_ACCESS_READ,w,&proven)
+#define PROVEN(s,o,r,d,w) (RECORDED(s,o,r,d,w) && proven)
   assert(PROVEN(0,4,4,0x104,4)); assert(PROVEN(1,4,4,0x104,4));
   assert(!PROVEN(2,4,4,0x104,4)); assert(!PROVEN(0,8,4,0x104,4));
   assert(!PROVEN(0,4,5,0x104,4)); assert(!PROVEN(0,4,4,0x106,4));
   assert(rows[0].section_index==1 && rows[1].ref.offset==12);
   rows[2].ref.base_evidence_kind=M68K_APP_SLOT_BASE_A6_FALLBACK;
   assert(!PROVEN(0,4,4,0x104,4));
+  assert(RECORDED(0,4,4,0x104,4) && !proven);
+  rows[2].ref.base_evidence_kind=M68K_APP_SLOT_BASE_UNSPECIFIED;
+  assert(!RECORDED(0,4,4,0x104,4) && !proven);
   rows[2].ref.base_evidence_kind=M68K_APP_SLOT_BASE_REGISTER_STATE;
   rows[2].ref.has_derived_base=1; rows[2].ref.base_displacement=0x100;
   rows[2].ref.operand_displacement=4; rows[2].ref.access_size=4;

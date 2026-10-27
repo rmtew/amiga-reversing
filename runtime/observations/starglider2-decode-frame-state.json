@@ -1,0 +1,280 @@
+{
+  "schema_version": 1,
+  "kind": "known_app_predecrement_and_original_saved_decode_register_frame",
+  "status": "qualified_framework_and_connected_restoration_batch_continues",
+  "publication_base_commit": "c06b17ddc212399b94e30e8bf2d8a08380861e0a",
+  "inputs": {
+    "binary_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "backend_sha256": "aefef11009c97b1e46a54b3960a5c21a537590d1a3d76624526c3d7a68cc98ef",
+    "lookup_source_sha256": "358229b95943fa863f8b0f0185bc794897a4c28885a7e2ba4e15c8c0f9d9f285",
+    "analysis_sha256": "343b22d4c141a1a96d5385b292848f7af4421028a5165d5d98ba6bf14b3752a1",
+    "effective_metadata_sha256": "ab1cf0c52cc470f7ad051e679dfc37a19bd7a21626e63fb6f3d9b4ddb3096f83",
+    "consumer_evidence_sha256": "a738991af28c46f51aa17fe16225f98f8020694ec7ecaa56cbe59ca443fdfa29",
+    "baseline_analysis_sha256": "65b5e29968bfbf9b68e95f520d852db38d0f19331ffb8f725544bb0cfe899422"
+  },
+  "canonical_action_count": 4,
+  "interpretation": "Original normal Amiga and alternate startup each set D0=32597635, D1=(encoded byte span lowWORD>>2)-1, A1=encoded byte span and A2=novella encoded payload address, LEA app+AC intoA3, then MOVEM.L D0-D1/A1-A2,-(A3). Shared decoded footprint is four LONGs/16bytes, so stored frame occupies app9C..AC, with register order D0,D1,A1,A2 in ascending memory. Original readers LEA app9C,A3 then MOVEM.L (A3)+,D0-D1/A1-A2 in protection phases and load-menu path. Define one16-byte inline canonical saved-state owner and four register-storage fields, not unrelated app9C/A0/A4/A8 guesses. D1 is a32-bit saved register but DBF uses its lowWORD. A1 is the full end-minus-start span, including the original two-byte tail not processed by871 LONG operations; it is not the processed LONG-byte count. Payload pointer is original runtime/mapped-source address, not decoded-view coordinates. Preserve original redundant phase1 reload/recomputation, key arithmetic, gate state and encoded bytes; no protection bypass, guest injection or new runtime capture. AppAC is a one-past address, not evidence of a four-byte memory access there. Native qualified endpoint binding renders canonical owner+16 where original app-base state permits; weak/foreign contexts retain their evidence limits. Native predecrement uses full decoded scalar/MOVEM span and retains known resulting app cursor; no loop-trip proof, stored-register value cache or unconditional typed-record MOVEM extension. Require declared full owner for access projection and keep hardware/base ambiguity, unowned spans, clobbers, shared updates and EA-register-in-list refusal. Existing raw generic aliases may remain in analysis/header even when actual source expressions are already meaningful; do not claim each is an unresolved semantic field.",
+  "cause": {
+    "framework": "Known app-cursor projection explicitly refused predecrement and retained only postincrement updates. A declared16-byte synthetic frame lost both the predecrement MOVEM store and following read; direct forward read already worked.",
+    "target": "Original saved frame had no canonical9C..AC owner. Only the one-past AC address was named as a nominal app_00AC field. Native spans need a declared full owner; appearance of a four-byte LEA displacement is not a four-byte memory access.",
+    "renderer": "The existing qualified RSSET use-site index handled physical spans only. It now accepts zero-width address formation at an unambiguous canonical owner start/end, retaining native known-base qualification and memory/alias guards."
+  },
+  "fix": {
+    "app_cursor": "Reuse the shared generated element-width/register-count footprint. Subtract the whole span before predecrement access; retain the resulting cursor, including postincrement one-past values. No per-node arrays, target addresses, independent transfer engine or cap increase.",
+    "address_projection": "Extend existing native use-site facts and frozen rendering. Interior members retain their normal resolver; different adjacent/alias owner names remain ambiguous. Actual memory accesses still need full containment.",
+    "preserved_refusals": [
+      "Unknown/clobbered or hardware/foreign bases, A7, striped/indexed access, unsupported shared updates.",
+      "MOVEM EA register in its list; no claimed stored-value semantics for that form.",
+      "Uncovered spans and unknown A6 at hardware-offset endpoint coincidence."
+    ]
+  },
+  "frame": {
+    "layout": "app",
+    "start_offset": 156,
+    "end_offset": 172,
+    "size": 16,
+    "symbol": "novella_decode_saved_state",
+    "struct": "SG2NovellaDecodeState",
+    "fields": [
+      {
+        "offset": 0,
+        "size": 4,
+        "name": "initial_subtraction_key",
+        "register": "D0"
+      },
+      {
+        "offset": 4,
+        "size": 4,
+        "name": "loop_counter_register",
+        "register": "D1",
+        "limit": "Stored32 bits; DBF consumes low WORD."
+      },
+      {
+        "offset": 8,
+        "size": 4,
+        "name": "encoded_payload_span_bytes",
+        "register": "A1",
+        "limit": "Full computed byte span, including original two-byte tail."
+      },
+      {
+        "offset": 12,
+        "size": 4,
+        "name": "encoded_payload_pointer",
+        "register": "A2",
+        "pointer_domain": "mapped_source"
+      }
+    ],
+    "runtime": "No new gameplay run or guest-state injection. These are original static producer/consumer coordinates and a separate synthetic CPU oracle.",
+    "source_endpoint": "Both original startup LEAs render owner+16. Actual MOVEM operand syntax is unchanged."
+  },
+  "frame_spans": [
+    {
+      "source_offset": 3814,
+      "runtime_address": 7910,
+      "operand": 0,
+      "base_register": "A3",
+      "incoming_cursor": 156,
+      "effective_adjustment": 0,
+      "app_offset": 156,
+      "access": "read",
+      "width": 16,
+      "element_width": 4,
+      "transfer_count": 4,
+      "base_evidence": "declared_layout_a6_fallback"
+    },
+    {
+      "source_offset": 3892,
+      "runtime_address": 7988,
+      "operand": 0,
+      "base_register": "A3",
+      "incoming_cursor": 156,
+      "effective_adjustment": 0,
+      "app_offset": 156,
+      "access": "read",
+      "width": 16,
+      "element_width": 4,
+      "transfer_count": 4,
+      "base_evidence": "declared_layout_a6_fallback"
+    },
+    {
+      "source_offset": 48344,
+      "runtime_address": 52440,
+      "operand": 1,
+      "base_register": "A3",
+      "incoming_cursor": 172,
+      "effective_adjustment": -16,
+      "app_offset": 156,
+      "access": "write",
+      "width": 16,
+      "element_width": 4,
+      "transfer_count": 4,
+      "base_evidence": "register_state"
+    },
+    {
+      "source_offset": 54336,
+      "runtime_address": 58432,
+      "operand": 0,
+      "base_register": "A3",
+      "incoming_cursor": 156,
+      "effective_adjustment": 0,
+      "app_offset": 156,
+      "access": "read",
+      "width": 16,
+      "element_width": 4,
+      "transfer_count": 4,
+      "base_evidence": "declared_layout_a6_fallback"
+    },
+    {
+      "source_offset": 238698,
+      "runtime_address": 242794,
+      "operand": 1,
+      "base_register": "A3",
+      "incoming_cursor": 172,
+      "effective_adjustment": -16,
+      "app_offset": 156,
+      "access": "write",
+      "width": 16,
+      "element_width": 4,
+      "transfer_count": 4,
+      "base_evidence": "register_state"
+    }
+  ],
+  "before_after": {
+    "app_slot_ref_count": {
+      "before": 3383,
+      "framework_only": 3383,
+      "with_owner": 3391
+    },
+    "recovered_platform_typed_access_count": {
+      "before": 1148,
+      "framework_only": 1148,
+      "with_owner": 1148
+    },
+    "recovered_platform_unresolved_typed_access_count": {
+      "before": 428,
+      "framework_only": 428,
+      "with_owner": 428
+    }
+  },
+  "projection": {
+    "new_app_access_coordinates": 8,
+    "lost_app_access_coordinates": 0,
+    "new_frame_memory_operands": 5,
+    "writer_provenance": "Two register_state writes.",
+    "reader_provenance": "Three declared_layout_a6_fallback reads: declared owner disambiguates the numeric hardware-offset collision, without proving arbitrary A6 values.",
+    "typed_fields": "No fabricated per-register or per-field memory reads. The one bulk operand spans16 bytes; field descriptions record register storage roles, not sixteen-byte access to one four-byte field."
+  },
+  "validation": {
+    "focused_passed": 224,
+    "focused_log_sha256": "d8a389e167df30d0b24814790e8facea8b9442b9712acd685f9eac289708b9bc",
+    "additional_cpu_oracle_passed": 1,
+    "cpu_oracle_log_sha256": "016a4093788648644b08006f7d1d171ca7639313677f5aa929f004d4a3e52465",
+    "cpu_oracle": "Synthetic Musashi68000 store/restore: four distinct register values appear as D0,D1,A1,A2 at ascending LONG slots, A3 subtracts/adds16. Not a normal-input original game trace.",
+    "new_test_cases": "24 app-predecrement cases including CPU oracle;8 endpoint cases;1 added existing-span positive. Unknown/cross-boundary/foreign/hardware/clobber/list conflict negatives retained.",
+    "native_passed": 832,
+    "native_failures": 0,
+    "native_log_sha256": "fff8db61cba9b314dd6c218d0c3ecae57f5ae4605daf1b040c84b1cc324378ae",
+    "stale_fixture": "One pre-existing C test still called lookup_proven_app_base_access, renamed in c8948067 to recorded+out_proven. Adapted its call while preserving every original proof assertion and additionally checking fallback recorded-but-not-proven and unspecified refusal.",
+    "native_and_vasm": {
+      "kind": "verification",
+      "framework_exact": true,
+      "target_id": "amiga_raw_starglider2_game",
+      "subject_revision": "ca2c748c3658cce28e09135d3e804115f8daac63ee4e34ee1d7b617dcbcb6b1c",
+      "status": "exact",
+      "exact": true,
+      "source_sha256": "c5dac87dca7d0b34ba8e1d03974adf568d7973f5c12b072c4a661e87d3004882",
+      "source_path": "/workspace/pandora-original-delivery/stable-d15c2cf8/.runtime-state/restoration/eb04f545fb97451725a1c91ab5abf6f2e097614c45880db6edfb4ea5c3f6e2c2/c5dac87dca7d0b34ba8e1d03974adf568d7973f5c12b072c4a661e87d3004882.s",
+      "source_package_sha256": null,
+      "original_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+      "original_size": 412736,
+      "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+      "rebuilt_path": "/workspace/pandora-original-delivery/stable-d15c2cf8/.runtime-state/restoration/eb04f545fb97451725a1c91ab5abf6f2e097614c45880db6edfb4ea5c3f6e2c2/662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9.bin",
+      "framework_status": "exact",
+      "failure_kinds": [],
+      "message": "",
+      "oracle": {
+        "oracle_id": "vasm",
+        "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+        "comparison_level": "oracle.full_file_match",
+        "assembler_status": "accepted",
+        "message": "oracle output matched original bytes"
+      },
+      "receipt_id": "509cbfba11e0e5dc8d712a6527cd758a7d6a73483e9bdc93f07edec8a3bc3559",
+      "revision": "d2d0bc995909b9f26360b2ea4d5c6643cd8a6841d722af4356a7619d5f27cea0"
+    },
+    "incomplete_analysis": [],
+    "source_quality_diagnostics": 0,
+    "accepted_owner_spans_identical": true,
+    "assets_unchanged": 57,
+    "required_headers": 14,
+    "clean_standalone_build": {
+      "status": "pass",
+      "validated_target_git_tree": "690a1a3a6ba5da784c8bb2e693e088a96176f1a7",
+      "receipt": {
+        "schema_version": 1,
+        "status": "pass",
+        "format": "raw_payload_not_AmigaDOS_HUNK",
+        "main_bytes": 412736,
+        "main_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+        "main_matches_original_identity": true,
+        "asset_count": 57,
+        "all_asset_source_slices_equal": true,
+        "decoded_view_inverse_exact": true,
+        "boot_copy_source_matches_resident_view": true,
+        "source_commit": "c06b17ddc212399b94e30e8bf2d8a08380861e0a",
+        "assembler_sha256": "413e284020125f42709486dfe09907cab3dd9f3c2ea41017c190f8ea68f30825",
+        "flags": [
+          "-Fbin",
+          "-m68000",
+          "-no-opt"
+        ],
+        "outputs": [
+          {
+            "role": "original_main",
+            "filename": "Starglider2-original.raw",
+            "bytes": 412736,
+            "sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9"
+          },
+          {
+            "role": "decoded_analysis_view",
+            "filename": "protection-decoded-analysis.raw",
+            "bytes": 3548,
+            "sha256": "de8358853dd9ed9b006a23569bf393aa217ed3be3301a169465d80bfaf839922"
+          },
+          {
+            "role": "boot_installer_context",
+            "filename": "boot-selector-installer-context.raw",
+            "bytes": 40,
+            "sha256": "8d34852425e2e1bfa87b3febdfc74fb39e7c667e9d9ff73e17b594649e83b21b"
+          },
+          {
+            "role": "boot_resident_view",
+            "filename": "boot-selector-resident.raw",
+            "bytes": 20,
+            "sha256": "a26286a393713c046eff9dbaff15b20b26b171fa9e05fc9d538d16b0eddb6024"
+          }
+        ]
+      },
+      "recoverable_pandora_backups_verified": 16
+    }
+  },
+  "performance": {
+    "generation_wall_seconds": 131.549883143045,
+    "framework_only_baseline_wall_seconds": 170.03725382004632,
+    "command_context_recovery_wall_seconds": 165.6611594989663,
+    "recovery": "First native artifact was lost when non-TTY stdin reached EOF after successful baseline. Files were preserved. One persistent-terminal replacement matched baseline metadata and rendered source exactly before normal guarded command adoption; no bypass of current-row validation.",
+    "scope": "Measured required runs, not a causal speedup or whole-process memory claim. Scalar local cursor bookkeeping and existing use-site index; no new persistent analysis cache."
+  },
+  "limits": [
+    "Original binaries/code/data and unrelated paused work unchanged; byte equality is not all-path semantics.",
+    "Three reader base attributions remain explicitly conditional fallback, not register-state proof.",
+    "No loop-trip bounds, valid-lifetime or stored-register value cache inferred. Typed-record MOVEM propagation remains separate.",
+    "Raw generic address-marker/alias declarations can remain in the header even when actual source expressions are resolved. app_00AC is now header-only; it is not a demonstrated four-byte access.",
+    "The two PRNG byte aliases already render as shared_random_state_a+2/shared_random_state_b+3; their generic native alias names are not missing semantics.",
+    "No new gameplay or all-platform protected-path qualification; existing normal-input evidence remains separately scoped."
+  ],
+  "next": {
+    "group": "Remaining generic app signals and actual unresolved consumers",
+    "experiment": "Separate unused inferred address/alias declarations from missing meanings using the frozen plan; inspect original alternate random-state initialization and unclaimed consumer inbound paths before any code promotion. Avoid naming-only reductions or assuming no reader means dead."
+  }
+}

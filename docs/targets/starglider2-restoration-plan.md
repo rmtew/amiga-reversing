@@ -23,7 +23,24 @@ boundaries. It records 67 suffix signals (including numeric adjacent variants),
 21 lookup contracts, 523 remaining interior references, 32 generic app fields
 and 428 unresolved record accesses. These are different denominators. Five
 suffixes name routines and one names text; neither is a pointer defect.
-Latest: the [evasive-actor and secondary-counter reconstruction](../../runtime/observations/starglider2-evasive-actor-state.json)
+Latest: the [saved decode-frame and app-cursor reconstruction](../../runtime/observations/starglider2-decode-frame-state.json)
+models the original four-LONG saved register frame at app $9C..$AC. Native
+predecrement uses the whole decoded span and keeps the resulting app cursor;
+qualified canonical start/end addresses flow through the existing use-site index
+and frozen plan. Both startup LEAs now name the frame's one-past end. **Five
+16-byte operands** are recovered: two register-state writes and three explicitly
+conditional declared-layout reads. App references rise **3383 to 3391**, with
+**8 new / 0 lost** coordinates; typed/unresolved counts remain **1148 / 428**.
+No per-register field reads are fabricated from a bulk instruction.
+**224 focused, one additional CPU oracle and 832 native checks pass**; original
+accepted spans, C/vasm and clean standalone output stay exact. Raw app_00AC remains
+only as an inferred header declaration, while its real source uses are meaningful
+frame-end expressions. Two generic PRNG byte aliases likewise already render as
+parent+offset. These inventory signals are not all missing semantics. Continue
+actual unresolved consumers and native declaration-use accounting, not cosmetic
+name-count reduction or speculative orphan-code promotion.
+
+Preceding: the [evasive-actor and secondary-counter reconstruction](../../runtime/observations/starglider2-evasive-actor-state.json)
 connects Large Bird, Egron Bird Fighter and Starglider primary wrappers to their
 shared steering body and fourteen original types to the secondary counter body.
 A common ScheduledActor parent now owns the behavior counter; FlyingActor and
