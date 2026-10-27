@@ -1600,6 +1600,8 @@ void m68k_analysis_policy_init_default(M68kAnalysisPolicy *policy) {
   policy->named_label_capacity = 4U;
   policy->manual_representations = policy->manual_representations_inline;
   policy->manual_representation_capacity = 4U;
+  policy->rsset_layout_regions = policy->rsset_layout_regions_inline;
+  policy->rsset_layout_region_capacity = 4U;
 }
 
 void m68k_analysis_policy_destroy(M68kAnalysisPolicy *policy) {
@@ -1611,6 +1613,8 @@ void m68k_analysis_policy_destroy(M68kAnalysisPolicy *policy) {
   if (policy->named_labels_owner != 0U && policy->named_labels != NULL) free(policy->named_labels);
   if (policy->manual_representations_owner != 0U && policy->manual_representations != NULL)
     free(policy->manual_representations);
+  if (policy->rsset_layout_regions_owner != 0U && policy->rsset_layout_regions != NULL)
+    free(policy->rsset_layout_regions);
   policy->custom_structs = NULL;
   policy->custom_struct_count = 0U;
   policy->custom_struct_capacity = 0U;
@@ -1627,6 +1631,10 @@ void m68k_analysis_policy_destroy(M68kAnalysisPolicy *policy) {
   policy->manual_representations = policy->manual_representations_inline;
   policy->manual_representation_capacity = 4U;
   policy->manual_representations_owner = 0U;
+  policy->rsset_layout_region_count = 0U;
+  policy->rsset_layout_regions = policy->rsset_layout_regions_inline;
+  policy->rsset_layout_region_capacity = 4U;
+  policy->rsset_layout_regions_owner = 0U;
 }
 
 int m68k_analysis_policy_structured_data_items_valid(const M68kAnalysisPolicy *policy) {
@@ -1648,6 +1656,17 @@ int m68k_analysis_policy_named_labels_valid(const M68kAnalysisPolicy *policy) {
     return policy->named_label_capacity == 0U && policy->named_labels_owner == 0U;
   if (policy->named_labels == policy->named_labels_inline)
     return policy->named_label_capacity <= 4U && policy->named_labels_owner == 0U;
+  return 1;
+}
+
+int m68k_analysis_policy_rsset_layout_regions_valid(const M68kAnalysisPolicy *policy) {
+  if (policy == NULL || policy->rsset_layout_region_count > M68K_ANALYSIS_RSSET_LAYOUT_REGION_LIMIT ||
+      policy->rsset_layout_region_capacity > M68K_ANALYSIS_RSSET_LAYOUT_REGION_LIMIT ||
+      policy->rsset_layout_region_count > policy->rsset_layout_region_capacity) return 0;
+  if (policy->rsset_layout_regions == NULL)
+    return policy->rsset_layout_region_capacity == 0U && policy->rsset_layout_regions_owner == 0U;
+  if (policy->rsset_layout_regions == policy->rsset_layout_regions_inline)
+    return policy->rsset_layout_region_capacity <= 4U && policy->rsset_layout_regions_owner == 0U;
   return 1;
 }
 
@@ -1712,6 +1731,36 @@ int m68k_analysis_policy_reserve_named_labels(M68kAnalysisPolicy *policy, size_t
   return 0;
 }
 
+int m68k_analysis_policy_reserve_rsset_layout_regions(M68kAnalysisPolicy *policy, size_t required_count) {
+  M68kAnalysisRssetLayoutRegion *grown;
+  uint16_t capacity;
+  if (policy == NULL) return -1;
+  if (required_count > M68K_ANALYSIS_RSSET_LAYOUT_REGION_LIMIT) {
+    policy->storage_capacity_status = M68K_ANALYSIS_STORAGE_CAPACITY_RSSET_LAYOUT_REGIONS;
+    return M68K_ANALYSIS_POLICY_CAPACITY_EXCEEDED;
+  }
+  if (!m68k_analysis_policy_rsset_layout_regions_valid(policy)) return -1;
+  if (policy->rsset_layout_regions == NULL && required_count <= 4U) {
+    policy->rsset_layout_regions = policy->rsset_layout_regions_inline;
+    policy->rsset_layout_region_capacity = 4U;
+  }
+  if (required_count <= policy->rsset_layout_region_capacity) return 0;
+  capacity = policy->rsset_layout_region_capacity < 4U ? 4U : policy->rsset_layout_region_capacity;
+  while (capacity < required_count) {
+    size_t next = (size_t)capacity * 2U;
+    capacity = (uint16_t)(next <= M68K_ANALYSIS_RSSET_LAYOUT_REGION_LIMIT ? next : M68K_ANALYSIS_RSSET_LAYOUT_REGION_LIMIT);
+  }
+  grown = (M68kAnalysisRssetLayoutRegion *)calloc(capacity, sizeof(*grown));
+  if (grown == NULL) return -1;
+  if (policy->rsset_layout_region_count != 0U && policy->rsset_layout_regions != NULL)
+    memcpy(grown, policy->rsset_layout_regions, (size_t)policy->rsset_layout_region_count * sizeof(*grown));
+  if (policy->rsset_layout_regions_owner != 0U) free(policy->rsset_layout_regions);
+  policy->rsset_layout_regions = grown;
+  policy->rsset_layout_region_capacity = capacity;
+  policy->rsset_layout_regions_owner = 1U;
+  return 0;
+}
+
 int m68k_analysis_policy_manual_representations_valid(const M68kAnalysisPolicy *policy) {
   if (policy == NULL || policy->manual_representation_count > M68K_ANALYSIS_MANUAL_REPRESENTATION_LIMIT ||
       policy->manual_representation_capacity > M68K_ANALYSIS_MANUAL_REPRESENTATION_LIMIT ||
@@ -1755,14 +1804,17 @@ int m68k_analysis_policy_copy(M68kAnalysisPolicy *dest, const M68kAnalysisPolicy
   uint16_t structured_data_item_count;
   uint16_t named_label_count;
   uint16_t manual_representation_count;
+  uint16_t rsset_layout_region_count;
   uint16_t index;
   M68kAnalysisCustomStruct *custom_structs = NULL;
   M68kAnalysisStructuredDataItem *structured_data_items = NULL;
   M68kAnalysisNamedLabel *named_labels = NULL;
   M68kAnalysisManualRepresentation *manual_representations = NULL;
+  M68kAnalysisRssetLayoutRegion *rsset_layout_regions = NULL;
   if (dest == NULL || src == NULL) return -1;
   if (!m68k_analysis_policy_structured_data_items_valid(src) ||
       !m68k_analysis_policy_named_labels_valid(src) ||
+      !m68k_analysis_policy_rsset_layout_regions_valid(src) ||
       src->manual_data_reference_count > M68K_ANALYSIS_MANUAL_DATA_REFERENCE_LIMIT) return -1;
   if (dest == src) return 0;
   custom_struct_count = src->custom_struct_count;
@@ -1789,6 +1841,14 @@ int m68k_analysis_policy_copy(M68kAnalysisPolicy *dest, const M68kAnalysisPolicy
     named_labels = (M68kAnalysisNamedLabel *)calloc(named_label_count, sizeof(*named_labels));
     if (named_labels == NULL) goto oom;
     memcpy(named_labels, src->named_labels, (size_t)named_label_count * sizeof(*named_labels));
+  }
+  rsset_layout_region_count = src->rsset_layout_region_count;
+  if (rsset_layout_region_count > M68K_ANALYSIS_RSSET_LAYOUT_REGION_LIMIT ||
+      (rsset_layout_region_count != 0U && src->rsset_layout_regions == NULL)) goto oom;
+  if (rsset_layout_region_count > 4U) {
+    rsset_layout_regions = (M68kAnalysisRssetLayoutRegion *)calloc(rsset_layout_region_count, sizeof(*rsset_layout_regions));
+    if (rsset_layout_regions == NULL) goto oom;
+    memcpy(rsset_layout_regions, src->rsset_layout_regions, (size_t)rsset_layout_region_count * sizeof(*rsset_layout_regions));
   }
   manual_representation_count = src->manual_representation_count;
   if (!m68k_analysis_policy_manual_representations_valid(src)) goto oom;
@@ -1825,6 +1885,17 @@ int m68k_analysis_policy_copy(M68kAnalysisPolicy *dest, const M68kAnalysisPolicy
     memcpy(dest->named_labels_inline, src->named_labels,
       (size_t)named_label_count * sizeof(dest->named_labels_inline[0]));
   }
+  dest->rsset_layout_regions = dest->rsset_layout_regions_inline;
+  dest->rsset_layout_region_capacity = 4U;
+  dest->rsset_layout_regions_owner = 0U;
+  if (rsset_layout_region_count > 4U) {
+    dest->rsset_layout_regions = rsset_layout_regions;
+    dest->rsset_layout_region_capacity = rsset_layout_region_count;
+    dest->rsset_layout_regions_owner = 1U;
+  } else if (rsset_layout_region_count != 0U) {
+    memcpy(dest->rsset_layout_regions_inline, src->rsset_layout_regions,
+      (size_t)rsset_layout_region_count * sizeof(dest->rsset_layout_regions_inline[0]));
+  }
   dest->manual_representations = dest->manual_representations_inline;
   dest->manual_representation_capacity = 4U;
   dest->manual_representations_owner = 0U;
@@ -1846,6 +1917,7 @@ oom:
   free(structured_data_items);
   free(named_labels);
   free(manual_representations);
+  free(rsset_layout_regions);
   return -1;
 }
 

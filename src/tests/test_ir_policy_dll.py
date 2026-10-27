@@ -567,6 +567,29 @@ class IrPolicyDllTests(unittest.TestCase):
         self.assertEqual(addressed_rows[0]["entity_addr"], addressed_rows[0]["addr"])
         self.assertIn("SECTION", listing_text)
 
+    def test_effective_policy_rsset_regions_grow_past_256_without_truncation(self) -> None:
+        library = _file_library()
+        regions = [dict(offset=index * 2, size=2, layout_name="app",
+                        symbol=f"original_field_{index}", storage_kind="scalar")
+                   for index in range(300)]
+        # A duplicate original identity does not allocate another region or
+        # replace the first fact. All actual fields must survive native import.
+        regions.append(dict(regions[0], symbol="duplicate_name"))
+        with tempfile.TemporaryDirectory(dir=BUILD_DIR) as tmp:
+            path = Path(tmp) / "sample.hunk"
+            metadata_path = Path(tmp) / "target_metadata.json"
+            path.write_bytes(make_synthetic_hunkexe(code_data=b"\x4e\x75"))
+            metadata_path.write_text(json.dumps(dict(rsset_layout_regions=regions)), encoding="utf-8")
+            result, text = _file_alloc_text(library,
+                "platform_file_effective_policy_path_json_alloc", b"amiga-hunk",
+                str(path).encode(), str(metadata_path).encode(), b"")
+        self.assertEqual(result, 0, text)
+        imported = json.loads(text)["analysis_policy"]["rsset_layout_regions"]
+        self.assertEqual(len(imported), 300)
+        self.assertEqual(imported[0]["symbol"], "original_field_0")
+        self.assertEqual(imported[299]["symbol"], "original_field_299")
+        self.assertEqual(imported[299]["offset"], 598)
+
     def test_effective_policy_exports_rsset_storage_kind_id(self) -> None:
         library = _file_library()
         with tempfile.TemporaryDirectory(dir=BUILD_DIR) as tmp:

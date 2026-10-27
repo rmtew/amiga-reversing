@@ -4,6 +4,57 @@
 
 #include <string.h>
 
+static int test_rsset_regions_inline_growth_clone_and_identity_bound(void) {
+  M68kAnalysisPolicy source = {0}, copy = {0};
+  M68kAnalysisRssetLayoutRegion *saved;
+  M68K_C_ASSERT_INT(0, m68k_analysis_policy_reserve_rsset_layout_regions(&source, 4U));
+  source.rsset_layout_region_count = 4U;
+  strcpy(source.rsset_layout_regions[3].symbol, "inline_last");
+  M68K_C_ASSERT_INT(0, m68k_analysis_policy_copy(&copy, &source));
+  M68K_C_ASSERT(copy.rsset_layout_regions == copy.rsset_layout_regions_inline);
+  source.rsset_layout_regions[3].offset = 9U;
+  M68K_C_ASSERT_U32(0U, copy.rsset_layout_regions[3].offset);
+  m68k_analysis_policy_destroy(&copy);
+  M68K_C_ASSERT_INT(0, m68k_analysis_policy_reserve_rsset_layout_regions(&source, 300U));
+  M68K_C_ASSERT(source.rsset_layout_regions != source.rsset_layout_regions_inline);
+  M68K_C_ASSERT_STR("inline_last", source.rsset_layout_regions[3].symbol);
+  source.rsset_layout_region_count = 300U;
+  strcpy(source.rsset_layout_regions[299].symbol, "after_former_fixed_limit");
+  source.rsset_layout_regions[299].offset = 1234U;
+  M68K_C_ASSERT_INT(0, m68k_analysis_policy_copy(&copy, &source));
+  M68K_C_ASSERT(copy.rsset_layout_regions != source.rsset_layout_regions);
+  m68k_analysis_policy_destroy(&source);
+  M68K_C_ASSERT_U32(300U, copy.rsset_layout_region_count);
+  M68K_C_ASSERT_STR("after_former_fixed_limit", copy.rsset_layout_regions[299].symbol);
+  M68K_C_ASSERT_U32(1234U, copy.rsset_layout_regions[299].offset);
+  saved = copy.rsset_layout_regions;
+  size_t oversized[] = {(size_t)M68K_ANALYSIS_RSSET_LAYOUT_REGION_LIMIT + 1U, SIZE_MAX};
+  for (size_t index = 0U; index < sizeof(oversized)/sizeof(oversized[0]); ++index) {
+    M68K_C_ASSERT_INT(M68K_ANALYSIS_POLICY_CAPACITY_EXCEEDED,
+      m68k_analysis_policy_reserve_rsset_layout_regions(&copy, oversized[index]));
+    M68K_C_ASSERT_U32(M68K_ANALYSIS_STORAGE_CAPACITY_RSSET_LAYOUT_REGIONS, copy.storage_capacity_status);
+    M68K_C_ASSERT(copy.rsset_layout_regions == saved);
+    M68K_C_ASSERT_U32(300U, copy.rsset_layout_region_count);
+  }
+  m68k_analysis_policy_destroy(&copy);
+  m68k_analysis_policy_destroy(&copy);
+  M68K_C_ASSERT(copy.rsset_layout_regions == copy.rsset_layout_regions_inline);
+  M68K_C_ASSERT_U32(0U, copy.rsset_layout_region_count);
+  M68K_C_ASSERT_U32(4U, copy.rsset_layout_region_capacity);
+  m68k_analysis_policy_init_default(&source);
+  source.rsset_layout_region_count = 5U; /* Inline storage cannot claim five facts. */
+  copy.max_cpu = 42U;
+  M68K_C_ASSERT_INT(-1, m68k_analysis_policy_copy(&copy, &source));
+  M68K_C_ASSERT_U32(42U, copy.max_cpu);
+  source.rsset_layout_region_count = 0U;
+  source.rsset_layout_region_capacity = 300U;
+  M68K_C_ASSERT_INT(-1, m68k_analysis_policy_copy(&copy, &source));
+  M68K_C_ASSERT_U32(42U, copy.max_cpu);
+  m68k_analysis_policy_destroy(&source);
+  m68k_analysis_policy_destroy(&copy);
+  return 0;
+}
+
 static int test_manual_data_references_required_family_and_capacity_clone(void) {
   M68kAnalysisPolicy source = {0}, copy = {0};
   uint16_t index;
@@ -247,6 +298,7 @@ static int test_manual_representations_invalid_copy_preserves_destination(void) 
 
 int m68k_c_policy_storage_tests(void) {
   static const M68kCTestCase cases[] = {
+    {"rsset_regions_inline_growth_clone_and_identity_bound", test_rsset_regions_inline_growth_clone_and_identity_bound},
     {"manual_data_references_required_family_and_capacity_clone", test_manual_data_references_required_family_and_capacity_clone},
     {"data_and_labels_capacity_clone_and_wide_bounds", test_data_and_labels_capacity_clone_and_wide_bounds},
     {"auto_data_exceeds_optional_policy_mirror", test_auto_data_exceeds_optional_policy_mirror},

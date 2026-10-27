@@ -7059,6 +7059,7 @@ int m68k_render_lookup_build(M68kRenderLookup *lookup, const M68kObject *object,
   size_t analysis_label_index;
   if (lookup == NULL || decode == NULL || facts == NULL) return -1;
   memset(lookup, 0, sizeof(*lookup));
+  if (policy && !m68k_analysis_policy_rsset_layout_regions_valid(policy)) return -1;
   lookup->section_count = decode->section_count;
   lookup->object = object;
   lookup->policy = policy;

@@ -2058,6 +2058,13 @@ static int platform_file_add_policy_capacity_error_local(const M68kAnalysisPolic
     platform_file_add_error(list, message);
     return 1;
   }
+  if (policy->storage_capacity_status == M68K_ANALYSIS_STORAGE_CAPACITY_RSSET_LAYOUT_REGIONS) {
+    char message[96];
+    snprintf(message, sizeof(message), "RSSET layout region identity capacity exceeded (%u)",
+      (unsigned)M68K_ANALYSIS_RSSET_LAYOUT_REGION_LIMIT);
+    platform_file_add_error(list, message);
+    return 1;
+  }
   if (policy->storage_capacity_status == M68K_ANALYSIS_STORAGE_CAPACITY_STRUCTURED_DATA) {
     char message[96];
     snprintf(message, sizeof(message), "structured data item capacity exceeded (%u)",
@@ -3394,7 +3401,7 @@ static int policy_add_rsset_layout_region_local(M68kAnalysisPolicy *policy, uint
   const char *effective_layout = layout_name != NULL && layout_name[0] != '\0' ? layout_name : "app";
   const char *effective_base = base_symbol != NULL && base_symbol[0] != '\0' ? base_symbol : AMIGA_APP_BASE_TAG;
   if (policy == NULL || offset > 0x7FFFU || size == 0U || size > INT16_MAX ||
-      policy->rsset_layout_region_count >= M68K_ANALYSIS_RSSET_LAYOUT_REGION_LIMIT) {
+      !m68k_analysis_policy_rsset_layout_regions_valid(policy)) {
     return 0;
   }
   for (index = 0U; index < policy->rsset_layout_region_count; ++index) {
@@ -3406,6 +3413,8 @@ static int policy_add_rsset_layout_region_local(M68kAnalysisPolicy *policy, uint
       return 1;
     }
   }
+  if (m68k_analysis_policy_reserve_rsset_layout_regions(policy,
+      (size_t)policy->rsset_layout_region_count + 1U) != 0) return 0;
   slot = &policy->rsset_layout_regions[policy->rsset_layout_region_count];
   memset(slot, 0, sizeof(*slot));
   slot->offset = offset;

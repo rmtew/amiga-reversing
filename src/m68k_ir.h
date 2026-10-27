@@ -62,7 +62,9 @@ typedef struct M68kRenderPolicy {
 /* Nonfatal: authoritative source-analysis arena items exceed the policy mirror. */
 #define M68K_ANALYSIS_STORAGE_STRUCTURED_MIRROR_INCOMPLETE 3U
 #define M68K_ANALYSIS_STORAGE_CAPACITY_MANUAL_DATA_REFERENCES 4U
-#define M68K_ANALYSIS_RSSET_LAYOUT_REGION_LIMIT 256U
+#define M68K_ANALYSIS_STORAGE_CAPACITY_RSSET_LAYOUT_REGIONS 5U
+/* Base identities reserve 0/1 and UINT16_MAX; storage grows with facts. */
+#define M68K_ANALYSIS_RSSET_LAYOUT_REGION_LIMIT (UINT16_MAX - 2U)
 #define M68K_ANALYSIS_ABSOLUTE_STORAGE_SLOT_LIMIT 128U
 #define M68K_ANALYSIS_RSSET_USE_SITE_BINDING_LIMIT 128U
 /* Source restoration retains annotations across many subsystems. Keep this
@@ -890,10 +892,12 @@ typedef struct M68kAnalysisPolicy {
   uint16_t structured_data_item_capacity;
   uint16_t named_label_capacity;
   uint16_t manual_representation_capacity;
+  uint16_t rsset_layout_region_capacity;
   uint8_t custom_struct_owner;
   uint8_t structured_data_items_owner;
   uint8_t named_labels_owner;
   uint8_t manual_representations_owner;
+  uint8_t rsset_layout_regions_owner;
   uint32_t entry_offset;
   char source_context_kind[M68K_ANALYSIS_SOURCE_CONTEXT_TEXT_SIZE];
   char source_context_disk_id[M68K_ANALYSIS_SOURCE_CONTEXT_TEXT_SIZE];
@@ -912,7 +916,8 @@ typedef struct M68kAnalysisPolicy {
   M68kAnalysisEntryComment entry_comments[M68K_ANALYSIS_ENTRY_COMMENT_LIMIT];
   M68kAnalysisRuntimeRange runtime_ranges[M68K_ANALYSIS_RUNTIME_RANGE_LIMIT];
   M68kAnalysisRuntimeEntryPoint runtime_entry_points[M68K_ANALYSIS_RUNTIME_ENTRY_POINT_LIMIT];
-  M68kAnalysisRssetLayoutRegion rsset_layout_regions[M68K_ANALYSIS_RSSET_LAYOUT_REGION_LIMIT];
+  M68kAnalysisRssetLayoutRegion rsset_layout_regions_inline[4];
+  M68kAnalysisRssetLayoutRegion *rsset_layout_regions;
   M68kAnalysisAbsoluteStorageSlot absolute_storage_slots[M68K_ANALYSIS_ABSOLUTE_STORAGE_SLOT_LIMIT];
   M68kAnalysisRssetUseSiteBinding rsset_use_site_bindings[M68K_ANALYSIS_RSSET_USE_SITE_BINDING_LIMIT];
   M68kAnalysisManualRepresentation manual_representations_inline[4];
@@ -2995,6 +3000,8 @@ void m68k_analysis_policy_destroy(M68kAnalysisPolicy *policy);
 int m68k_analysis_policy_copy(M68kAnalysisPolicy *dest, const M68kAnalysisPolicy *src);
 int m68k_analysis_policy_structured_data_items_valid(const M68kAnalysisPolicy *policy);
 int m68k_analysis_policy_named_labels_valid(const M68kAnalysisPolicy *policy);
+int m68k_analysis_policy_rsset_layout_regions_valid(const M68kAnalysisPolicy *policy);
+int m68k_analysis_policy_reserve_rsset_layout_regions(M68kAnalysisPolicy *policy, size_t required_count);
 /* 0: reserved, -1: invalid storage/allocation failure, -2: capacity exceeded.
    Accept wide requests so a caller cannot implicitly narrow an oversized count. */
 int m68k_analysis_policy_reserve_structured_data_items(M68kAnalysisPolicy *policy, size_t required_count);

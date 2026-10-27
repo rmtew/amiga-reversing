@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "kind": "native_rsset_policy_storage_growth",
+  "publication_base_commit": "cb15da4a64a20a5179b9c9afd153251696befd5e",
+  "cause": "Starglider reached the fixed 256-entry RSSET policy array after two landscape field declarations. Admission of five further original fields failed atomically before any action was appended; the error was a fact-storage limit, not a name-length problem.",
+  "implementation": [
+    "Replace the fixed 256-entry policy array with four inline records and an owned growable vector, following existing structured-data, label and presentation storage.",
+    "Keep deep-copy, zero-init/default-init, borrowed/owned lifetime and invalid-capacity checks explicit. Preserve the destination when a copy fails; reset storage on destroy.",
+    "Retain a 65533-record identity bound because existing 16-bit layout-base IDs reserve 0/1 and UINT16_MAX. This is a storage/identity bound, with no instruction, value-set or convergence limit increase.",
+    "Grow only after original-identity duplicate lookup; repeated metadata keeps its existing first declaration. Render admission refuses invalid vector storage.",
+    "Keep offsets, widths, names, fixed hardware semantics and all source/export rules unchanged. No game-specific address or new analysis engine."
+  ],
+  "validation": {
+    "native_tests": 831,
+    "native_failures": 0,
+    "native_suite_sha256": "8f323ac69ffbc07ca36b6cea8ab1edcfd9be4133c83d3f1ce6de425926dc619e",
+    "python_tests": 2,
+    "python_failures": 0,
+    "python_log_sha256": "fefd166249373c22bb2d282e0ce97b29629bb483ebf37ff0769f08b9370f8b7d",
+    "native_scope": "Inline/heap growth, 300-record deep copy, source destruction, count preservation, oversized requests, invalid inline capacity and repeat destruction. Entire native suite rebuilt after the policy ABI change.",
+    "python_scope": "Import/export 300 distinct RSSET declarations plus one duplicate without truncation; preserve original first identity and final field. Existing pointer/scalar/byte-array storage-kind export test passes.",
+    "setup_failure": "Initial Python tests could not run because three CLI tool outputs were absent. Building the standard all target supplied them; both tests then passed. This was not a policy assertion failure."
+  },
+  "storage": {
+    "before_policy_bytes": 1585680,
+    "after_policy_bytes": 1470784,
+    "reduction_bytes": 114896,
+    "region_bytes": 456,
+    "inline_records": 4,
+    "imported_fixture_records": 300,
+    "identity_limit": 65533
+  },
+  "limits": [
+    "This receipt qualifies native policy storage. The pending original-game semantic batch and its regenerated source/standalone build are qualified separately.",
+    "No speedup or complete semantic-restoration claim. Runtime execution and DMA are unaffected by this host-only storage change."
+  ]
+}
