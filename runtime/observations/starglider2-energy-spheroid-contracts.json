@@ -1,0 +1,355 @@
+{
+  "schema_version": 1,
+  "kind": "energy_spheroid_variant_and_shared_radial_ownership_restoration",
+  "status": "qualified_batch_restoration_continues",
+  "publication_base_commit": "d8c272354fac307c0f0950e2ee3b58bcda35cda7",
+  "input": {
+    "binary_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "backend_sha256": "dbd83c6105f9021e61fa1c1294327f52ff703c331857b9e18d768708c9702ed9",
+    "analysis_sha256": "7c4769d43845950c69dc4c2dd53be9953b529104d55a202b806a770c09d6d789",
+    "inline_source_sha256": "cafe85aa6973671b3f9cb0562cb04c5f1b7c50e838f7436bcd393b5245d9aa29",
+    "effective_metadata_sha256": "ecf20ca0f25a0512c15f51c79663c33956cbfb9534183e30c45d76ced08b3a8f",
+    "consumer_evidence_sha256": "cdc3754f763b1c35d0fd1eec003b8daa418d5a4107da23f4417ba83b6def6b5a",
+    "dispatch_evidence_sha256": "20d1d83be606245491a4fdc7f579b1d48b0c2a075495c1bb7e75de0b260d1d02"
+  },
+  "canonical_actions": 15,
+  "interpretation": {
+    "action_start": 2938,
+    "action_count": 15,
+    "reason": "Original name entry146 is Energy Spheroid; primary relative dispatch146 reaches85D0 then B452 then362F4. Initializer188B6 is shared ONLY by original types145/146, so bind it to common radial fields rather than the energy-specific state. Original updater negative BYTE1F selects expanding-in-place mode; nonnegative mode moves Z+400. Expansion decrements WORD12; on expiry decrements WORD3C and retires when negative, otherwise keeps12=-1, grows radius36 by100, uses WORD10 to read two colour BYTE sequences and wraps index31 AFTER the read. These words are not generic orientation. Renderer original type146 guards and negative1F tests read primary BYTE14 and secondary BYTE15 into disc-command colourWORD. Secondary disc doubles projected radius. Common constructor/renderer uses base radiusLONG22 and workingLONG36. Introduce SG2RadialObject for shared position/radius ownership, make existing celestial schema inherit those fields with only orbit deltas own, and give energy its own counter/colour/projection state. No automatic reinterpretation of WorldObject10/12/14, no constructor-specific Energy binding for type145. Primary colour stored prefix39616..39634 has30 bytes, but masked32-cycle reads indices30/31 alias first two bytes of secondary sequence. Secondary39634..39654 has32 consumed bytes, including the following original zeroWORD. Initial index must be valid on original path; post-read mask is not arbitrary-input safety. No guest execution, colour/PCM equivalence or all-path lifetime claim.",
+    "radial_fields": [
+      {
+        "name": "object_type",
+        "type": "UWORD",
+        "offset": 0,
+        "size": 2
+      },
+      {
+        "name": "flags",
+        "type": "UBYTE",
+        "offset": 2,
+        "size": 1
+      },
+      {
+        "name": "world_x",
+        "type": "LONG",
+        "offset": 4,
+        "size": 4
+      },
+      {
+        "name": "world_y",
+        "type": "LONG",
+        "offset": 8,
+        "size": 4
+      },
+      {
+        "name": "world_z",
+        "type": "LONG",
+        "offset": 12,
+        "size": 4
+      },
+      {
+        "name": "base_radius",
+        "type": "LONG",
+        "offset": 34,
+        "size": 4
+      },
+      {
+        "name": "radius_work_value",
+        "type": "LONG",
+        "offset": 54,
+        "size": 4
+      }
+    ],
+    "energy_fields": [
+      {
+        "name": "colour_sequence_index",
+        "type": "UWORD",
+        "offset": 16,
+        "size": 2
+      },
+      {
+        "name": "expansion_delay_countdown",
+        "type": "WORD",
+        "offset": 18,
+        "size": 2
+      },
+      {
+        "name": "primary_colour_index",
+        "type": "UBYTE",
+        "offset": 20,
+        "size": 1
+      },
+      {
+        "name": "secondary_colour_index",
+        "type": "UBYTE",
+        "offset": 21,
+        "size": 1
+      },
+      {
+        "name": "expansion_mode_flag",
+        "type": "BYTE",
+        "offset": 31,
+        "size": 1
+      },
+      {
+        "name": "projected_screen_x",
+        "type": "WORD",
+        "offset": 38,
+        "size": 2
+      },
+      {
+        "name": "projected_screen_y",
+        "type": "WORD",
+        "offset": 40,
+        "size": 2
+      },
+      {
+        "name": "projected_radius",
+        "type": "WORD",
+        "offset": 42,
+        "size": 2
+      },
+      {
+        "name": "projection_radius_shift",
+        "type": "WORD",
+        "offset": 44,
+        "size": 2
+      },
+      {
+        "name": "expansion_steps_remaining",
+        "type": "WORD",
+        "offset": 60,
+        "size": 2
+      }
+    ],
+    "labels": [
+      [
+        100534,
+        "initialize_shared_radial_object"
+      ],
+      [
+        26790,
+        "select_expanding_spheroid_primary_colour"
+      ],
+      [
+        27300,
+        "append_energy_spheroid_outer_disc"
+      ]
+    ]
+  },
+  "dispatch": {
+    "type_index": 146,
+    "original_name": "Energy Spheroid",
+    "primary_entry_runtime": 34256,
+    "platform_stub_runtime": 46162,
+    "nearby_runtime": 221940,
+    "shared_initializer_runtime": 100534,
+    "shared_initializer_types": [
+      145,
+      146
+    ],
+    "references": {
+      "items": [
+        {
+          "section_index": 0,
+          "source_offset": 42066,
+          "symbol": "update_nearby_energy_spheroid",
+          "target_section_index": 0,
+          "target_offset": 217844,
+          "operand_index": 0,
+          "comment_only": false,
+          "kind": "symbol_reference",
+          "provenance": "typed_operand"
+        }
+      ],
+      "total": 1,
+      "offset": 0,
+      "limit": 100,
+      "has_more": false,
+      "scope": "native_artifact",
+      "unknowns": [
+        "Static facts are incomplete; absent references do not prove unreachability.",
+        "CFG edges use section-local targets; unresolved indirect transfers have null targets.",
+        "Function ownership is not inferred by this query."
+      ]
+    }
+  },
+  "ownership": {
+    "common": "SG2RadialObject owns original type/flags, XYZ and base/working radius. It does not inherit model velocity or orientation fields.",
+    "celestial": "Existing SG2CelestialObject now inherits those seven fields and retains only its two orbital delta fields. No copied parent declarations.",
+    "energy": "SG2EnergySpheroid inherits common radial fields and owns ten distinct counter/colour/projection fields. Its old forwarded celestial seed is replaced, not supplemented with overlapping meanings.",
+    "constructor": "Original types145 and146 share188B6; only the common radial contract is bound there. Energy-specific state is bound at the original146 updater and two type-guarded rendering branches.",
+    "not_claimed": "No universal interpretation of model-object10/12/14 or every nonmodel caller; no automatic custom upcast or arbitrary entry-register proof."
+  },
+  "behavior": {
+    "expansion_mode": "Negative BYTE1F expands in place; nonnegative path advances world Z by400.",
+    "delay": "Decrement WORD12. If negative, decrement WORD3C and clear type when it becomes negative; otherwise keep delay=-1 and grow working radius by100.",
+    "colour": "WORD10 selects primary/secondary sequence bytes into object14/15, then increments and masks31. Renderer expands these BYTEs into disc-command colour WORDs under original type/mode guards.",
+    "outer_disc": "The type146 secondary-disc branch doubles the projected radius and uses secondary colour in expanding mode.",
+    "unknowns": [
+      "Cadence is updater invocations, not seconds.",
+      "The mask follows the table read: arbitrary initial index validity is not proved.",
+      "No new live flight, sound or visual comparison evidence."
+    ]
+  },
+  "colour_storage": {
+    "primary": {
+      "runtime_span": [
+        235030,
+        235060
+      ],
+      "physical_bytes": 30,
+      "logical_period": 32,
+      "alias": "Logical indices30/31 read secondary sequence bytes0/1."
+    },
+    "secondary": {
+      "runtime_span": [
+        235060,
+        235092
+      ],
+      "physical_bytes": 32,
+      "tail": "Final two consumed bytes are the adjacent original zero WORD at39652."
+    },
+    "separate_owners": true,
+    "no_duplicated_padding": true
+  },
+  "before_after": {
+    "app_slot_ref_count": {
+      "before": 3383,
+      "after": 3383
+    },
+    "recovered_platform_typed_access_count": {
+      "before": 390,
+      "after": 410
+    },
+    "recovered_platform_unresolved_typed_access_count": {
+      "before": 303,
+      "after": 295
+    }
+  },
+  "generic_app_fields": {
+    "before": 32,
+    "after": 32
+  },
+  "classification": {
+    "before_unclassified_bytes": 13927,
+    "after_unclassified_bytes": 13865,
+    "newly_classified_bytes": 62,
+    "intervals": 263,
+    "accepted_code_bytes": 106034,
+    "unresolved_orphans": 30,
+    "new_code_promoted": 0
+  },
+  "validation": {
+    "native_and_vasm": {
+      "kind": "verification",
+      "framework_exact": true,
+      "target_id": "amiga_raw_starglider2_game",
+      "subject_revision": "a2bd2a81d25904cdea31ffbaa94a49c8952b710952cff5d4d10f1e0042d505df",
+      "status": "exact",
+      "exact": true,
+      "source_sha256": "cafe85aa6973671b3f9cb0562cb04c5f1b7c50e838f7436bcd393b5245d9aa29",
+      "source_path": "/workspace/pandora-original-delivery/stable-d15c2cf8/.runtime-state/restoration/eb04f545fb97451725a1c91ab5abf6f2e097614c45880db6edfb4ea5c3f6e2c2/cafe85aa6973671b3f9cb0562cb04c5f1b7c50e838f7436bcd393b5245d9aa29.s",
+      "source_package_sha256": null,
+      "original_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+      "original_size": 412736,
+      "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+      "rebuilt_path": "/workspace/pandora-original-delivery/stable-d15c2cf8/.runtime-state/restoration/eb04f545fb97451725a1c91ab5abf6f2e097614c45880db6edfb4ea5c3f6e2c2/662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9.bin",
+      "framework_status": "exact",
+      "failure_kinds": [],
+      "message": "",
+      "oracle": {
+        "oracle_id": "vasm",
+        "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+        "comparison_level": "oracle.full_file_match",
+        "assembler_status": "accepted",
+        "message": "oracle output matched original bytes"
+      },
+      "receipt_id": "d7ec871a665eff81b518c5df21110f7fcaec6d1d65cab611c66f7f75d3214a2e",
+      "revision": "d6ba8c552ccf9ef92dd5737e2491b40307a392d1c81fa3b589ebaff9870151e9"
+    },
+    "source_quality_diagnostics": 0,
+    "incomplete_analysis": [],
+    "generation_wall_seconds": 116.84496655699331,
+    "assets_unchanged": 57,
+    "required_headers": 14,
+    "framework_tests": "No native implementation changed since87abac33; its832 native and six footprint tests are retained, not rerun for target annotations.",
+    "clean_standalone_build": {
+      "status": "pass",
+      "validated_target_git_tree": "f26f4f85f76afd85dc5b58de27de3295afb3cf3e",
+      "receipt": {
+        "schema_version": 1,
+        "status": "pass",
+        "format": "raw_payload_not_AmigaDOS_HUNK",
+        "main_bytes": 412736,
+        "main_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+        "main_matches_original_identity": true,
+        "asset_count": 57,
+        "all_asset_source_slices_equal": true,
+        "decoded_view_inverse_exact": true,
+        "boot_copy_source_matches_resident_view": true,
+        "source_commit": "d8c272354fac307c0f0950e2ee3b58bcda35cda7",
+        "assembler_sha256": "413e284020125f42709486dfe09907cab3dd9f3c2ea41017c190f8ea68f30825",
+        "flags": [
+          "-Fbin",
+          "-m68000",
+          "-no-opt"
+        ],
+        "outputs": [
+          {
+            "role": "original_main",
+            "filename": "Starglider2-original.raw",
+            "bytes": 412736,
+            "sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9"
+          },
+          {
+            "role": "decoded_analysis_view",
+            "filename": "protection-decoded-analysis.raw",
+            "bytes": 3548,
+            "sha256": "de8358853dd9ed9b006a23569bf393aa217ed3be3301a169465d80bfaf839922"
+          },
+          {
+            "role": "boot_installer_context",
+            "filename": "boot-selector-installer-context.raw",
+            "bytes": 40,
+            "sha256": "8d34852425e2e1bfa87b3febdfc74fb39e7c667e9d9ff73e17b594649e83b21b"
+          },
+          {
+            "role": "boot_resident_view",
+            "filename": "boot-selector-resident.raw",
+            "bytes": 20,
+            "sha256": "a26286a393713c046eff9dbaff15b20b26b171fa9e05fc9d538d16b0eddb6024"
+          }
+        ]
+      },
+      "recoverable_pandora_backups_verified": 16
+    }
+  },
+  "limits": [
+    "Byte exactness and accepted conditional source contracts are separate from runtime/all-path completeness.",
+    "Shared constructor ownership does not imply energy state for type145. Orbital deltas remain celestial-specific.",
+    "Two colour sequences are physically adjacent but not duplicated or merged into a fabricated non-overlapping32-byte primary block.",
+    "The saved-workspace cross-leaf owner binding and original orphan incoming paths remain separate open obligations."
+  ],
+  "next": [
+    {
+      "group": "Skim launcher drone state",
+      "evidence": "The next largest orientation field-gap group is advance_skim_launcher_drone_state: two local signed phase countdowns, one global claim/owner, temporary player-angle substitution and distinct spin steps.",
+      "experiment": "Trace both original nearby/distant callers and constructor/motion helper. Bind only its proven variant fields; retain update-call cadence and shared-owner semantics."
+    },
+    {
+      "group": "Other reused model words",
+      "experiment": "Continue producer/consumer grouping by original dispatch type before assigning orientation/phase roles. Energy demonstrates why repeated offset is insufficient.",
+      "reason": "Independent variants have different physical meanings; a universal WorldObject field declaration would hide that distinction."
+    }
+  ],
+  "new_unresolved_diagnostic": {
+    "runtime_address": 100570,
+    "operand_index": 1,
+    "root": "SG2RadialObject",
+    "displacement": 28,
+    "access_size": 0,
+    "reason": "The newly bound shared constructor exposes original BSET bit7 at1C without a declared field. Typed diagnostic reports access_size0 although decoded operand facts report a one-byte write. Nine earlier unresolved sites close and one new diagnostic remains; its width-reporting discrepancy needs a focused shared-path check, not a guessed field name."
+  }
+}

@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
   "kind": "committed_native_rendered_original_export",
-  "canonical_source_commit": "87abac33074a7bf99fb6816ba246207d5e7cb3c4",
-  "publication_base_commit": "87abac33074a7bf99fb6816ba246207d5e7cb3c4",
+  "canonical_source_commit": "d8c272354fac307c0f0950e2ee3b58bcda35cda7",
+  "publication_base_commit": "d8c272354fac307c0f0950e2ee3b58bcda35cda7",
   "native_export": "CListingArtifact.source_package_payload(64)",
-  "main_source_sha256": "c373086aaa0e5adcc80e151f8c9f73e26b0edcd36496c583a225536d72068d74",
+  "main_source_sha256": "5cb942cf1e822a32faa89f2dde5978d3d1eb26522cca7e1f5210bcb4f5f82034",
   "asset_count": 57,
   "asset_bytes": 93633,
   "game_assembly_hand_edits": false,
@@ -25,14 +25,14 @@
     "paused Pandora work"
   ],
   "canonical_source_commit_role": "publication base; new canonical annotations and shared fixes in this batch are bound by canonical_fact_sha256 and the refinement receipt",
-  "canonical_source_subject_revision": "98430d7c451bcd48a0fbfae1812c5edf000b34d13f5d8a565bebf86cac50ad53",
+  "canonical_source_subject_revision": "a2bd2a81d25904cdea31ffbaa94a49c8952b710952cff5d4d10f1e0042d505df",
   "canonical_fact_sha256": {
     "source_binary.json": "42d4a5758b3e8236af7f912aee85e9ee5323bcd0961faa338c4f864080a0a7d9",
     "target_metadata.json": "e7540b68c118c56aba8815b6722eefa067517cc865fe9841d6c01ce96551389c",
-    "manual_actions.jsonl": "e267f3c2b10b98fb5f85d7ba94b68b27ee8e8c69fff88919cd1f10c7b4f79127",
-    "decision_journal.jsonl": "8cc680fb298bd82b814fd66e22be18eb34ae6b1e55627b14562b66268a477f79"
+    "manual_actions.jsonl": "dbea7c4c755aaa833b7671c8dca4e526031d16ea47127e72f397f1bba2299bf2",
+    "decision_journal.jsonl": "062091defc38c7383779c540f3e71791ac9cb738ecf9f7105fd1f9093909d46d"
   },
-  "refinement_receipt": "runtime/observations/starglider2-projector-neighborhood-contracts.json",
+  "refinement_receipt": "runtime/observations/starglider2-energy-spheroid-contracts.json",
   "headers": "14 unmodified required include files collected by source_package.collect_package_includes from ext/amiga_includes/ndk_2.0/include; header notices retained",
   "decoded_protection_view": {
     "target_id": "amiga_raw_starglider2_protection_view",

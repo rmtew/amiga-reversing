@@ -7,7 +7,7 @@ that further analysis is exhausted. Current source remains byte exact: all
 with all 106034 accepted code bytes retained. No generated assembly was edited
 by hand and no interim archive was produced.
 
-The current ownership union leaves 13927 bytes in
+The current ownership union leaves 13865 bytes in
 263 intervals unclassified. This is classification accounting,
 not a semantic completion percentage. Earlier interval/site counts below belong
 to their recorded closeout revision. See the current
@@ -23,7 +23,26 @@ boundaries. It records 66 suffix signals (including numeric adjacent variants),
 21 lookup contracts, 523 remaining interior references, 32 generic app fields
 and 303 unresolved record accesses. These are different denominators. Five
 suffixes name routines and one names text; neither is a pointer defect.
-Latest: the [projector neighborhood reconstruction](../../runtime/observations/starglider2-projector-neighborhood-contracts.json)
+Latest: the [energy-spheroid reconstruction](../../runtime/observations/starglider2-energy-spheroid-contracts.json)
+uses original name/dispatch entry 146 and its real guarded disc consumers.
+Fifteen canonical actions separate expansion index/delay, two colours, remaining
+steps and projection state from model orientation. The shared constructor serves
+**types 145/146**, so only common radial fields are bound there. The celestial
+schema now inherits those fields and retains its own orbital deltas; the energy
+schema has its own state. No new native recognizer or overlapping field trick
+was added. Primary colour storage is **30 bytes**: logical indices 30/31 alias
+the next sequence's first two bytes. The secondary sequence consumes **32 bytes**,
+including the adjacent zero WORD. The mask follows the read and is not arbitrary
+initial-index safety. Original C/vasm and clean standalone output are exact.
+Typed accesses change **390 → 410**;
+unresolved accesses **303 → 295**.
+Sixty-two evidenced bytes reduce unclassified storage **13927 → 13865**;
+generic app fields remain 32 and no code/orphan is promoted. No new runtime
+flight, graphics or audio comparison is claimed. Continue with the connected
+skim-launcher drone ownership/countdown/angle contract, not universal angle names
+for every reused object word. Publication is batch preservation, not completion.
+
+Preceding: the [projector neighborhood reconstruction](../../runtime/observations/starglider2-projector-neighborhood-contracts.json)
 connects four body-flag readers with spawn, growth and mixed-state processing.
 Thirteen canonical actions expose the 16-byte body flag prefix, invocation
 counter and eight original continuation/scan branches. Body flags 8..14 map

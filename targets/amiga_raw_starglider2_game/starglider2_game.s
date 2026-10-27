@@ -782,19 +782,10 @@ SG2ProjectorPlacement_SIZEOF EQU __RS
 
 ; STRUCT SG2CelestialObject
     RSRESET
-SG2CelestialObject_object_type RS.W 1
-SG2CelestialObject_flags RS.B 1
-    RS.B 1
-SG2CelestialObject_world_x RS.L 1
-SG2CelestialObject_world_y RS.L 1
-SG2CelestialObject_world_z RS.L 1
-    RS.B 18
-SG2CelestialObject_base_radius RS.L 1
-    RS.B 8
+    RS.B 46
 SG2CelestialObject_delta_world_x RS.L 1
 SG2CelestialObject_delta_world_z RS.L 1
-SG2CelestialObject_radius_work_value RS.L 1
-    RS.B 10
+    RS.B 14
 SG2CelestialObject_SIZEOF EQU __RS
 
 ; STRUCT SG2CachedBodyState
@@ -929,6 +920,40 @@ SG2TunnelDepot_service_id RS.B 1
 SG2TunnelDepot_z_approach_test_selector RS.W 1
     RS.B 26
 SG2TunnelDepot_SIZEOF EQU __RS
+
+; STRUCT SG2RadialObject
+    RSRESET
+SG2RadialObject_object_type RS.W 1
+SG2RadialObject_flags RS.B 1
+    RS.B 1
+SG2RadialObject_world_x RS.L 1
+SG2RadialObject_world_y RS.L 1
+SG2RadialObject_world_z RS.L 1
+    RS.B 18
+SG2RadialObject_base_radius RS.L 1
+    RS.B 16
+SG2RadialObject_radius_work_value RS.L 1
+    RS.B 10
+SG2RadialObject_SIZEOF EQU __RS
+
+; STRUCT SG2EnergySpheroid
+    RSRESET
+    RS.B 16
+SG2EnergySpheroid_colour_sequence_index RS.W 1
+SG2EnergySpheroid_expansion_delay_countdown RS.W 1
+SG2EnergySpheroid_primary_colour_index RS.B 1
+SG2EnergySpheroid_secondary_colour_index RS.B 1
+    RS.B 9
+SG2EnergySpheroid_expansion_mode_flag RS.B 1
+    RS.B 6
+SG2EnergySpheroid_projected_screen_x RS.W 1
+SG2EnergySpheroid_projected_screen_y RS.W 1
+SG2EnergySpheroid_projected_radius RS.W 1
+SG2EnergySpheroid_projection_radius_shift RS.W 1
+    RS.B 14
+SG2EnergySpheroid_expansion_steps_remaining RS.W 1
+    RS.B 6
+SG2EnergySpheroid_SIZEOF EQU __RS
 
 ADKF_CLRALL	EQU	$7FFF
 BPLCON2_PF2P2	EQU	$20
@@ -7370,7 +7395,9 @@ abs_0_00006890:
 	bne.b abs_0_000068BC
 	tst.b $001F(a4)
 	bpl.b abs_0_000068BC
-	move.b $0014(a4),d0
+    ; KNOWN: type A4=Target code-entry register seed:SG2EnergySpheroid
+select_expanding_spheroid_primary_colour:
+	move.b SG2EnergySpheroid_primary_colour_index(a4),d0
 	andi.w #255,d0
 	move.w d0,$0004(a1)
 	bra.b abs_0_000068E2
@@ -7507,7 +7534,7 @@ abs_0_00006A30:
 	move.w d1,(a1)
 	move.w $002A(a4),d3
 	cmpi.w #146,(a4)
-	beq.b abs_0_00006AA4
+	beq.b append_energy_spheroid_outer_disc
 	move.w d3,$0002(a1)
 	move.w $0026(a4),d1
 	asr.w #3,d3
@@ -7539,21 +7566,22 @@ abs_0_00006A7E:
 	move.w $0(a3,d1.w),$0004(a1)
 	bsr.w append_disc_queue_reference
 	bra.b abs_0_00006AE0
-abs_0_00006AA4:
+    ; KNOWN: type A4=Target code-entry register seed:SG2EnergySpheroid
+append_energy_spheroid_outer_disc:
 	add.w d3,d3
 	move.w d3,$0002(a1)
-	tst.b $001F(a4)
+	tst.b SG2EnergySpheroid_expansion_mode_flag(a4)
 	bmi.b abs_0_00006AB8
 	move.w #$B,$0004(a1)
 	bra.b abs_0_00006AC4
 abs_0_00006AB8:
-	move.b $0015(a4),d0
+	move.b SG2EnergySpheroid_secondary_colour_index(a4),d0
 	andi.w #255,d0
 	move.w d0,$0004(a1)
 abs_0_00006AC4:
-	move.w $0026(a4),d1
+	move.w SG2EnergySpheroid_projected_screen_x(a4),d1
 	add.w projection_screen_origin_x(a6),d1
-	move.w $0028(a4),d2
+	move.w SG2EnergySpheroid_projected_screen_y(a4),d2
 	add.w projection_screen_origin_y(a6),d2
 	move.w d1,$0006(a1)
 	move.w d2,$0008(a1)
@@ -23229,8 +23257,8 @@ world_object_type_initializer_pointers:
 	dc.l initialize_celestial_body_radius_and_y
 	dc.l initialize_celestial_body_radius_and_y
 	dc.l initialize_celestial_body_radius_and_y
-	dc.l abs_0_000188B6
-	dc.l abs_0_000188B6
+	dc.l initialize_shared_radial_object
+	dc.l initialize_shared_radial_object
 	dc.l abs_0_00018814
 	dc.b $4E,$F9,$00,$00,$26,$62
 initialize_station_mini_sentinel:
@@ -23682,14 +23710,14 @@ abs_0_000187D0:
 	rts
     ; KNOWN: type A0=Target code-entry register seed:SG2CelestialObject
 initialize_celestial_body_radius_and_y:
-	move.w (a0),d0	; operand 1: SG2CelestialObject_object_type at (a0)
+	move.w (a0),d0	; operand 1: SG2RadialObject_object_type at (a0)
 	subi.w #128,d0
 	asl.w #2,d0
 	move a2,usp
 	lea.l nonmodel_object_base_radii.l,a2
-	move.l $0(a2,d0.w),SG2CelestialObject_base_radius(a0)
-	move.l SG2CelestialObject_base_radius(a0),SG2CelestialObject_radius_work_value(a0)
-	move.l #$FECED300,SG2CelestialObject_world_y(a0)
+	move.l $0(a2,d0.w),SG2RadialObject_base_radius(a0)
+	move.l SG2RadialObject_base_radius(a0),SG2RadialObject_radius_work_value(a0)
+	move.l #$FECED300,SG2RadialObject_world_y(a0)
 	bset.b #7,$001C(a0)
 	move usp,a2
 	rts
@@ -23738,18 +23766,20 @@ abs_0_00018814:
 	move usp,a2
 	movem.l (a7)+,d3-d6/a1/a3
 	rts
-abs_0_000188B6:
-	move.w (a0),d0
+    ; Shared original type145/146 initializer: load base radius and copy to working radius. Bind common radial fields, not energy-specific counters or orbital deltas.
+    ; KNOWN: type A0=Target code-entry register seed:SG2RadialObject
+initialize_shared_radial_object:
+	move.w (a0),d0	; operand 1: SG2RadialObject_object_type at (a0)
 	subi.w #128,d0
 	asl.w #2,d0
 	move a2,usp
 	lea.l nonmodel_object_base_radii.l,a2
-	move.l $0(a2,d0.w),$0022(a0)
-	move.l $0022(a0),$0036(a0)
-	move.l #$FFFE7960,$0008(a0)
+	move.l $0(a2,d0.w),SG2RadialObject_base_radius(a0)
+	move.l SG2RadialObject_base_radius(a0),SG2RadialObject_radius_work_value(a0)
+	move.l #$FFFE7960,SG2RadialObject_world_y(a0)
 	bset.b #7,$001C(a0)
 	move usp,a2
-	bset.b #4,$0002(a0)
+	bset.b #4,SG2RadialObject_flags(a0)
 	rts
 abs_0_000188EA:
 	move.l #$FFFFF060,$0008(a0)
@@ -45894,23 +45924,23 @@ update_distant_q_beta:
     ; KNOWN: type A0=Target code-entry register seed:SG2CelestialObject
 advance_celestial_orbit_state:
 	move.l SG2CelestialObject_delta_world_x(a0),d0
-	add.l d0,SG2CelestialObject_world_x(a0)
+	add.l d0,SG2RadialObject_world_x(a0)
 	move.l SG2CelestialObject_delta_world_z(a0),d0
-	add.l d0,SG2CelestialObject_world_z(a0)
+	add.l d0,SG2RadialObject_world_z(a0)
 	lea.l body_orbit_recompute_counters.l,a1
-	move.w (a0),d0	; operand 1: SG2CelestialObject_object_type at (a0)
+	move.w (a0),d0	; operand 1: SG2RadialObject_object_type at (a0)
 	subi.w #128,d0
 	cmp.w #$3,d0
 	bne.b abs_0_000360C2
-	move.l SG2CelestialObject_world_x(a0),apogee_orbit_parent_x(a6)
-	move.l SG2CelestialObject_world_z(a0),apogee_orbit_parent_z(a6)
+	move.l SG2RadialObject_world_x(a0),apogee_orbit_parent_x(a6)
+	move.l SG2RadialObject_world_z(a0),apogee_orbit_parent_z(a6)
 	bra.b abs_0_000360E0
 abs_0_000360C2:
 	cmp.w #$4,d0
 	bne.b abs_0_000360D8
 	bne.b abs_0_000360E0
-	move.l SG2CelestialObject_world_x(a0),millway_orbit_parent_x(a6)
-	move.l SG2CelestialObject_world_z(a0),millway_orbit_parent_z(a6)
+	move.l SG2RadialObject_world_x(a0),millway_orbit_parent_x(a6)
+	move.l SG2RadialObject_world_z(a0),millway_orbit_parent_z(a6)
 	bra.b abs_0_000360E0
 abs_0_000360D8:
 	cmp.w #$5,d0
@@ -45959,8 +45989,8 @@ abs_0_0003610A:
 	asl.l d6,d3
 	asl.l d6,d4
 	bsr.w add_celestial_orbit_parent_offset
-	move.l d3,SG2CelestialObject_world_x(a0)
-	move.l d4,SG2CelestialObject_world_z(a0)
+	move.l d3,SG2RadialObject_world_x(a0)
+	move.l d4,SG2RadialObject_world_z(a0)
 	lea.l body_orbit_radii.l,a3
 	move.l $0(a3,d0.w),d3
 	lea.l body_orbit_radius_precision_shifts.l,a4
@@ -45981,10 +46011,10 @@ abs_0_0003610A:
 	asl.l d6,d3
 	asl.l d6,d4
 	bsr.w add_celestial_orbit_parent_offset
-	sub.l SG2CelestialObject_world_x(a0),d3
-	sub.l SG2CelestialObject_world_z(a0),d4
+	sub.l SG2RadialObject_world_x(a0),d3
+	sub.l SG2RadialObject_world_z(a0),d4
 	lea.l body_orbit_delta_shifts.l,a4
-	move.w (a0),d6	; operand 1: SG2CelestialObject_object_type at (a0)
+	move.w (a0),d6	; operand 1: SG2RadialObject_object_type at (a0)
 	subi.w #128,d6
 	move.b $0(a4,d6.w),d6
 	asr.l d6,d3
@@ -45995,17 +46025,17 @@ abs_0_000361DE:
 	rts
     ; KNOWN: type A0=Target code-entry register seed:SG2CelestialObject
 add_celestial_orbit_parent_offset:
-	cmpi.w #134,(a0)	; operand 2: SG2CelestialObject_object_type at (a0)
+	cmpi.w #134,(a0)	; operand 2: SG2RadialObject_object_type at (a0)
 	bpl.b abs_0_000361F4
 	addi.l #20000000,d3
 	addi.l #20000000,d4
 	bra.b abs_0_00036214
 abs_0_000361F4:
-	cmpi.w #134,(a0)	; operand 2: SG2CelestialObject_object_type at (a0)
+	cmpi.w #134,(a0)	; operand 2: SG2RadialObject_object_type at (a0)
 	bne.b abs_0_000361FC
 	bra.b abs_0_00036202
 abs_0_000361FC:
-	cmpi.w #135,(a0)	; operand 2: SG2CelestialObject_object_type at (a0)
+	cmpi.w #135,(a0)	; operand 2: SG2RadialObject_object_type at (a0)
 	bne.b abs_0_0003620C
 abs_0_00036202:
 	add.l apogee_orbit_parent_x(a6),d3
@@ -46074,18 +46104,19 @@ abs_0_000362E8:
 	addq.w #8,$0012(a0)
 	andi.w #4095,$0012(a0)
 	rts
-    ; KNOWN: type A0=Target code-entry register seed:SG2CelestialObject
+    ; Type146 Energy Spheroid: negative mode expands in place, otherwise Z+=400. Words10/12 are colour index/delay, not orientation. Original read precedes index wrap.
+    ; KNOWN: type A0=Target code-entry register seed:SG2EnergySpheroid
 update_nearby_energy_spheroid:
-	tst.b $001F(a0)
+	tst.b SG2EnergySpheroid_expansion_mode_flag(a0)
 	bmi.b abs_0_00036306
-	addi.l #400,SG2CelestialObject_world_z(a0)
+	addi.l #400,SG2RadialObject_world_z(a0)
 	bra.w abs_0_00039D56
 abs_0_00036306:
-	subq.w #1,$0012(a0)
+	subq.w #1,SG2EnergySpheroid_expansion_delay_countdown(a0)
 	bpl.b abs_0_0003635A
-	subq.w #1,$003C(a0)
+	subq.w #1,SG2EnergySpheroid_expansion_steps_remaining(a0)
 	bpl.b abs_0_00036318
-	clr.w (a0)	; operand 1: SG2CelestialObject_object_type at (a0)
+	clr.w (a0)	; operand 1: SG2RadialObject_object_type at (a0)
 	bra.w abs_0_00039D56
 abs_0_00036318:
 	bsr.w abs_0_00039D20
@@ -46093,15 +46124,16 @@ abs_0_00036318:
 	bne.b abs_0_00036326
 	st.b pending_transient_event_sound(a6)
 abs_0_00036326:
-	move.w #$FFFF,$0012(a0)
-	addi.l #100,SG2CelestialObject_radius_work_value(a0)
-	move.w $0010(a0),d0
-	lea.l abs_0_00039616.l,a1
-	move.b $0(a1,d0.w),$0014(a0)
-	lea.l abs_0_00039634.l,a1
-	move.b $0(a1,d0.w),$0015(a0)
-	addq.w #1,$0010(a0)
-	andi.w #31,$0010(a0)
+	move.w #$FFFF,SG2EnergySpheroid_expansion_delay_countdown(a0)
+	addi.l #100,SG2RadialObject_radius_work_value(a0)
+    ; Primary index30/31 aliases secondary bytes0/1. Secondary sequence includes the adjacent zeroWORD for its final two entries; preserve all original bytes and conditional initial index.
+	move.w SG2EnergySpheroid_colour_sequence_index(a0),d0
+	lea.l energy_spheroid_primary_colour_sequence.l,a1
+	move.b $0(a1,d0.w),SG2EnergySpheroid_primary_colour_index(a0)
+	lea.l energy_spheroid_secondary_colour_sequence.l,a1
+	move.b $0(a1,d0.w),SG2EnergySpheroid_secondary_colour_index(a0)
+	addq.w #1,SG2EnergySpheroid_colour_sequence_index(a0)
+	andi.w #31,SG2EnergySpheroid_colour_sequence_index(a0)
 abs_0_0003635A:
 	bra.w abs_0_00039D56
 	dc.b $06,$A8,$00,$00,$01,$90,$00,$0C,$53,$68,$00,$10,$6A,$02,$42,$50
@@ -46630,9 +46662,9 @@ abs_0_00036A56:
 	asl.l #2,d4
 	add.l player_world_y(a6),d3
 	add.l player_world_x(a6),d4
-	move.l d3,SG2CelestialObject_world_y(a0)
-	move.l d4,SG2CelestialObject_world_x(a0)
-	move.l player_world_z(a6),SG2CelestialObject_world_z(a0)
+	move.l d3,SG2RadialObject_world_y(a0)
+	move.l d4,SG2RadialObject_world_x(a0)
+	move.l player_world_z(a6),SG2RadialObject_world_z(a0)
     ; Select world curve or zero RGB. Fold masked phase to even offsets0..126:64 WORDs per actual curve. Preserve nulls, original world-index assumptions and alias behavior.
 	lea.l world_solice_light_curve_pointers.l,a3
 	move.w selected_celestial_body_index(a6),d0
@@ -48480,10 +48512,10 @@ flight_point_field_y_thresholds:
 	dc.l $FFFFD000,$FFFFD000,$FFFFD000,$FFFFD000
 station_proximity_disc_colour_ramp:
 	dc.w $0003,$0001,$0006,$0005,$0004,$0000	; Original indexed WORD data, conditional original-use domain
-abs_0_00039616:
+energy_spheroid_primary_colour_sequence:
 	dc.b $02,$04,$03,$04,$05,$05,$06,$01,$03,$01,$03,$01,$03,$01,$06,$05
 	dc.b $06,$05,$04,$0B,$0C,$0B,$0D,$00,$00,$00,$00,$00,$00,$02
-abs_0_00039634:
+energy_spheroid_secondary_colour_sequence:
 	dc.b $00,$04,$01,$04,$04,$04,$05,$06,$01,$04,$01,$06,$01,$06,$05,$02
 	dc.b $05,$04,$0B,$0C,$0D,$0E,$0D,$0E,$0D,$0E,$0D,$0E,$0D,$02
 abs_0_00039652:

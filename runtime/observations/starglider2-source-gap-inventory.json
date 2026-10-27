@@ -2,7 +2,7 @@
   "schema_version": 2,
   "kind": "source_gap_discovery_not_fact_admission",
   "canonical_policy_items": {
-    "policy:15766": {
+    "policy:15768": {
       "section_index": 0,
       "offset": 235820,
       "size": 12,
@@ -27,7 +27,7 @@
       "target_section": null,
       "target_offset": null
     },
-    "policy:15767": {
+    "policy:15769": {
       "section_index": 0,
       "offset": 235832,
       "size": 12,
@@ -227,7 +227,7 @@
       "target_section": null,
       "target_offset": null
     },
-    "policy:15782": {
+    "policy:15784": {
       "section_index": 0,
       "offset": 254226,
       "size": 32,
@@ -252,7 +252,7 @@
       "target_section": null,
       "target_offset": null
     },
-    "policy:15777": {
+    "policy:15779": {
       "section_index": 0,
       "offset": 249230,
       "size": 32,
@@ -427,7 +427,7 @@
       "target_section": null,
       "target_offset": null
     },
-    "policy:15763": {
+    "policy:15765": {
       "section_index": 0,
       "offset": 232676,
       "size": 8,
@@ -552,7 +552,7 @@
       "target_section": 0,
       "target_offset": 187348
     },
-    "policy:16330": {
+    "policy:16332": {
       "section_index": 0,
       "offset": 311912,
       "size": 2,
@@ -577,7 +577,7 @@
       "target_section": null,
       "target_offset": null
     },
-    "policy:16329": {
+    "policy:16331": {
       "section_index": 0,
       "offset": 311910,
       "size": 2,
@@ -602,7 +602,7 @@
       "target_section": null,
       "target_offset": null
     },
-    "policy:16411": {
+    "policy:16413": {
       "section_index": 0,
       "offset": 317770,
       "size": 2,
@@ -752,7 +752,7 @@
       "target_section": null,
       "target_offset": null
     },
-    "policy:15792": {
+    "policy:15794": {
       "section_index": 0,
       "offset": 263864,
       "size": 400,
@@ -1152,7 +1152,7 @@
       "target_section": null,
       "target_offset": null
     },
-    "policy:15660": {
+    "policy:15662": {
       "section_index": 0,
       "offset": 231174,
       "size": 64,
@@ -3752,7 +3752,7 @@
       "target_section": null,
       "target_offset": null
     },
-    "policy:16437": {
+    "policy:16439": {
       "section_index": 0,
       "offset": 317834,
       "size": 4,
@@ -3777,7 +3777,7 @@
       "target_section": 0,
       "target_offset": 318138
     },
-    "policy:16443": {
+    "policy:16445": {
       "section_index": 0,
       "offset": 317858,
       "size": 4,
@@ -3802,7 +3802,7 @@
       "target_section": 0,
       "target_offset": 318298
     },
-    "policy:16447": {
+    "policy:16449": {
       "section_index": 0,
       "offset": 317874,
       "size": 4,
@@ -3827,7 +3827,7 @@
       "target_section": 0,
       "target_offset": 318426
     },
-    "policy:16450": {
+    "policy:16452": {
       "section_index": 0,
       "offset": 317886,
       "size": 4,
@@ -3852,7 +3852,7 @@
       "target_section": 0,
       "target_offset": 319098
     },
-    "policy:16453": {
+    "policy:16455": {
       "section_index": 0,
       "offset": 317898,
       "size": 4,
@@ -3877,7 +3877,7 @@
       "target_section": 0,
       "target_offset": 319930
     },
-    "policy:16493": {
+    "policy:16495": {
       "section_index": 0,
       "offset": 318058,
       "size": 4,
@@ -5798,12 +5798,12 @@
       "scalar": 13
     },
     "interior_reference_records": 523,
-    "unresolved_typed_accesses": 303,
+    "unresolved_typed_accesses": 295,
     "unresolved_mechanisms": {
       "indexed_dynamic": 87,
-      "declared_field_hole": 208,
+      "declared_field_hole": 199,
       "auto_update_cursor": 2,
-      "address_formation_or_unknown_width": 1,
+      "address_formation_or_unknown_width": 2,
       "outside_declared_record": 5
     },
     "orphan_signal_statuses": {
@@ -6060,75 +6060,9 @@
     "SG2CelestialObject": {
       "available_since": "1.0",
       "base_offset": 0,
-      "base_struct": null,
+      "base_struct": "SG2RadialObject",
       "citation": "manual_action_log:SG2CelestialObject",
       "fields": [
-        {
-          "available_since": "1.0",
-          "name": "object_type",
-          "named_base": null,
-          "offset": 0,
-          "pointer_struct": null,
-          "size": 2,
-          "struct": null,
-          "type": "UWORD",
-          "value_kind": "scalar"
-        },
-        {
-          "available_since": "1.0",
-          "name": "flags",
-          "named_base": null,
-          "offset": 2,
-          "pointer_struct": null,
-          "size": 1,
-          "struct": null,
-          "type": "UBYTE",
-          "value_kind": "scalar"
-        },
-        {
-          "available_since": "1.0",
-          "name": "world_x",
-          "named_base": null,
-          "offset": 4,
-          "pointer_struct": null,
-          "size": 4,
-          "struct": null,
-          "type": "LONG",
-          "value_kind": "scalar"
-        },
-        {
-          "available_since": "1.0",
-          "name": "world_y",
-          "named_base": null,
-          "offset": 8,
-          "pointer_struct": null,
-          "size": 4,
-          "struct": null,
-          "type": "LONG",
-          "value_kind": "scalar"
-        },
-        {
-          "available_since": "1.0",
-          "name": "world_z",
-          "named_base": null,
-          "offset": 12,
-          "pointer_struct": null,
-          "size": 4,
-          "struct": null,
-          "type": "LONG",
-          "value_kind": "scalar"
-        },
-        {
-          "available_since": "1.0",
-          "name": "base_radius",
-          "named_base": null,
-          "offset": 34,
-          "pointer_struct": null,
-          "size": 4,
-          "struct": null,
-          "type": "LONG",
-          "value_kind": "scalar"
-        },
         {
           "available_since": "1.0",
           "name": "delta_world_x",
@@ -6145,17 +6079,6 @@
           "name": "delta_world_z",
           "named_base": null,
           "offset": 50,
-          "pointer_struct": null,
-          "size": 4,
-          "struct": null,
-          "type": "LONG",
-          "value_kind": "scalar"
-        },
-        {
-          "available_since": "1.0",
-          "name": "radius_work_value",
-          "named_base": null,
-          "offset": 54,
           "pointer_struct": null,
           "size": 4,
           "struct": null,
@@ -6653,6 +6576,96 @@
       "size": 4,
       "source": "manual_action_log"
     },
+    "SG2RadialObject": {
+      "available_since": "1.0",
+      "base_offset": 0,
+      "base_struct": null,
+      "citation": "manual_action_log:SG2RadialObject",
+      "fields": [
+        {
+          "available_since": "1.0",
+          "name": "object_type",
+          "named_base": null,
+          "offset": 0,
+          "pointer_struct": null,
+          "size": 2,
+          "struct": null,
+          "type": "UWORD",
+          "value_kind": "scalar"
+        },
+        {
+          "available_since": "1.0",
+          "name": "flags",
+          "named_base": null,
+          "offset": 2,
+          "pointer_struct": null,
+          "size": 1,
+          "struct": null,
+          "type": "UBYTE",
+          "value_kind": "scalar"
+        },
+        {
+          "available_since": "1.0",
+          "name": "world_x",
+          "named_base": null,
+          "offset": 4,
+          "pointer_struct": null,
+          "size": 4,
+          "struct": null,
+          "type": "LONG",
+          "value_kind": "scalar"
+        },
+        {
+          "available_since": "1.0",
+          "name": "world_y",
+          "named_base": null,
+          "offset": 8,
+          "pointer_struct": null,
+          "size": 4,
+          "struct": null,
+          "type": "LONG",
+          "value_kind": "scalar"
+        },
+        {
+          "available_since": "1.0",
+          "name": "world_z",
+          "named_base": null,
+          "offset": 12,
+          "pointer_struct": null,
+          "size": 4,
+          "struct": null,
+          "type": "LONG",
+          "value_kind": "scalar"
+        },
+        {
+          "available_since": "1.0",
+          "name": "base_radius",
+          "named_base": null,
+          "offset": 34,
+          "pointer_struct": null,
+          "size": 4,
+          "struct": null,
+          "type": "LONG",
+          "value_kind": "scalar"
+        },
+        {
+          "available_since": "1.0",
+          "name": "radius_work_value",
+          "named_base": null,
+          "offset": 54,
+          "pointer_struct": null,
+          "size": 4,
+          "struct": null,
+          "type": "LONG",
+          "value_kind": "scalar"
+        }
+      ],
+      "name": "SG2RadialObject",
+      "review_status": "seeded",
+      "seed_origin": "manual_analysis",
+      "size": 68,
+      "source": "manual_action_log"
+    },
     "SG2ScenePolygonHeader": {
       "available_since": "1.0",
       "base_offset": 0,
@@ -7093,7 +7106,7 @@
         }
       ],
       "canonical_item_ids": [
-        "policy:15766"
+        "policy:15768"
       ],
       "canonical_entities": [
         {
@@ -7164,7 +7177,7 @@
         }
       ],
       "canonical_item_ids": [
-        "policy:15767"
+        "policy:15769"
       ],
       "canonical_entities": [
         {
@@ -9945,7 +9958,7 @@
         }
       ],
       "canonical_item_ids": [
-        "policy:15782"
+        "policy:15784"
       ],
       "canonical_entities": [
         {
@@ -10203,7 +10216,7 @@
         }
       ],
       "canonical_item_ids": [
-        "policy:15777"
+        "policy:15779"
       ],
       "canonical_entities": [
         {
@@ -13051,7 +13064,7 @@
         }
       ],
       "canonical_item_ids": [
-        "policy:15763"
+        "policy:15765"
       ],
       "canonical_entities": [
         {
@@ -13557,7 +13570,7 @@
         }
       ],
       "canonical_item_ids": [
-        "policy:16330"
+        "policy:16332"
       ],
       "canonical_entities": [
         {
@@ -13650,7 +13663,7 @@
         }
       ],
       "canonical_item_ids": [
-        "policy:16329"
+        "policy:16331"
       ],
       "canonical_entities": [
         {
@@ -13743,7 +13756,7 @@
         }
       ],
       "canonical_item_ids": [
-        "policy:16411"
+        "policy:16413"
       ],
       "canonical_entities": [
         {
@@ -15926,7 +15939,7 @@
         }
       ],
       "canonical_item_ids": [
-        "policy:15792"
+        "policy:15794"
       ],
       "canonical_entities": [
         {
@@ -19908,7 +19921,7 @@
         }
       ],
       "canonical_item_ids": [
-        "policy:15660"
+        "policy:15662"
       ],
       "canonical_entities": [
         {
@@ -29161,7 +29174,7 @@
       "evidence": "native_rendered_target_identity",
       "canonical_layout_id": "catalog-93699fe979424047a84698903fc03dd4",
       "target_policy_item_ids": [
-        "policy:16437"
+        "policy:16439"
       ]
     },
     {
@@ -29175,7 +29188,7 @@
       "evidence": "native_rendered_target_identity",
       "canonical_layout_id": "catalog-93699fe979424047a84698903fc03dd4",
       "target_policy_item_ids": [
-        "policy:16443"
+        "policy:16445"
       ]
     },
     {
@@ -29189,7 +29202,7 @@
       "evidence": "native_rendered_target_identity",
       "canonical_layout_id": "catalog-93699fe979424047a84698903fc03dd4",
       "target_policy_item_ids": [
-        "policy:16447"
+        "policy:16449"
       ]
     },
     {
@@ -29203,7 +29216,7 @@
       "evidence": "native_rendered_target_identity",
       "canonical_layout_id": "catalog-93699fe979424047a84698903fc03dd4",
       "target_policy_item_ids": [
-        "policy:16450"
+        "policy:16452"
       ]
     },
     {
@@ -29217,7 +29230,7 @@
       "evidence": "native_rendered_target_identity",
       "canonical_layout_id": "catalog-93699fe979424047a84698903fc03dd4",
       "target_policy_item_ids": [
-        "policy:16453"
+        "policy:16455"
       ]
     },
     {
@@ -29231,7 +29244,7 @@
       "evidence": "native_rendered_target_identity",
       "canonical_layout_id": "catalog-93699fe979424047a84698903fc03dd4",
       "target_policy_item_ids": [
-        "policy:16493"
+        "policy:16495"
       ]
     }
   ],
@@ -30885,6 +30898,28 @@
       "type_provenance_kind": "policy_seed",
       "type_provenance_section": 0,
       "type_provenance_offset": 96230
+    },
+    {
+      "section_index": 0,
+      "mechanism": "address_formation_or_unknown_width",
+      "offset": 96474,
+      "operand_index": 1,
+      "base_register": "A0",
+      "displacement": 28,
+      "struct_size": 68,
+      "access_size": 0,
+      "root_struct_name": "SG2RadialObject",
+      "classification_id": 0,
+      "classification": "field_gap",
+      "container_candidate_count": 0,
+      "container_struct_name": null,
+      "container_field_expr": null,
+      "refinement_applied": 0,
+      "refined_struct_name": null,
+      "type_provenance_kind_id": 11,
+      "type_provenance_kind": "policy_seed",
+      "type_provenance_section": 0,
+      "type_provenance_offset": 96438
     },
     {
       "section_index": 0,
@@ -33291,204 +33326,6 @@
       "type_provenance_kind": "policy_seed",
       "type_provenance_section": 0,
       "type_provenance_offset": 217654
-    },
-    {
-      "section_index": 0,
-      "mechanism": "declared_field_hole",
-      "offset": 217844,
-      "operand_index": 0,
-      "base_register": "A0",
-      "displacement": 31,
-      "struct_size": 68,
-      "access_size": 1,
-      "root_struct_name": "SG2CelestialObject",
-      "classification_id": 0,
-      "classification": "field_gap",
-      "container_candidate_count": 0,
-      "container_struct_name": null,
-      "container_field_expr": null,
-      "refinement_applied": 0,
-      "refined_struct_name": null,
-      "type_provenance_kind_id": 11,
-      "type_provenance_kind": "policy_seed",
-      "type_provenance_section": 0,
-      "type_provenance_offset": 217844
-    },
-    {
-      "section_index": 0,
-      "mechanism": "declared_field_hole",
-      "offset": 217862,
-      "operand_index": 1,
-      "base_register": "A0",
-      "displacement": 18,
-      "struct_size": 68,
-      "access_size": 2,
-      "root_struct_name": "SG2CelestialObject",
-      "classification_id": 0,
-      "classification": "field_gap",
-      "container_candidate_count": 0,
-      "container_struct_name": null,
-      "container_field_expr": null,
-      "refinement_applied": 0,
-      "refined_struct_name": null,
-      "type_provenance_kind_id": 11,
-      "type_provenance_kind": "policy_seed",
-      "type_provenance_section": 0,
-      "type_provenance_offset": 217844
-    },
-    {
-      "section_index": 0,
-      "mechanism": "declared_field_hole",
-      "offset": 217868,
-      "operand_index": 1,
-      "base_register": "A0",
-      "displacement": 60,
-      "struct_size": 68,
-      "access_size": 2,
-      "root_struct_name": "SG2CelestialObject",
-      "classification_id": 0,
-      "classification": "field_gap",
-      "container_candidate_count": 0,
-      "container_struct_name": null,
-      "container_field_expr": null,
-      "refinement_applied": 0,
-      "refined_struct_name": null,
-      "type_provenance_kind_id": 11,
-      "type_provenance_kind": "policy_seed",
-      "type_provenance_section": 0,
-      "type_provenance_offset": 217844
-    },
-    {
-      "section_index": 0,
-      "mechanism": "declared_field_hole",
-      "offset": 217894,
-      "operand_index": 1,
-      "base_register": "A0",
-      "displacement": 18,
-      "struct_size": 68,
-      "access_size": 2,
-      "root_struct_name": "SG2CelestialObject",
-      "classification_id": 0,
-      "classification": "field_gap",
-      "container_candidate_count": 0,
-      "container_struct_name": null,
-      "container_field_expr": null,
-      "refinement_applied": 0,
-      "refined_struct_name": null,
-      "type_provenance_kind_id": 11,
-      "type_provenance_kind": "policy_seed",
-      "type_provenance_section": 0,
-      "type_provenance_offset": 217844
-    },
-    {
-      "section_index": 0,
-      "mechanism": "declared_field_hole",
-      "offset": 217908,
-      "operand_index": 0,
-      "base_register": "A0",
-      "displacement": 16,
-      "struct_size": 68,
-      "access_size": 2,
-      "root_struct_name": "SG2CelestialObject",
-      "classification_id": 0,
-      "classification": "field_gap",
-      "container_candidate_count": 0,
-      "container_struct_name": null,
-      "container_field_expr": null,
-      "refinement_applied": 0,
-      "refined_struct_name": null,
-      "type_provenance_kind_id": 11,
-      "type_provenance_kind": "policy_seed",
-      "type_provenance_section": 0,
-      "type_provenance_offset": 217844
-    },
-    {
-      "section_index": 0,
-      "mechanism": "declared_field_hole",
-      "offset": 217918,
-      "operand_index": 1,
-      "base_register": "A0",
-      "displacement": 20,
-      "struct_size": 68,
-      "access_size": 1,
-      "root_struct_name": "SG2CelestialObject",
-      "classification_id": 0,
-      "classification": "field_gap",
-      "container_candidate_count": 0,
-      "container_struct_name": null,
-      "container_field_expr": null,
-      "refinement_applied": 0,
-      "refined_struct_name": null,
-      "type_provenance_kind_id": 11,
-      "type_provenance_kind": "policy_seed",
-      "type_provenance_section": 0,
-      "type_provenance_offset": 217844
-    },
-    {
-      "section_index": 0,
-      "mechanism": "declared_field_hole",
-      "offset": 217930,
-      "operand_index": 1,
-      "base_register": "A0",
-      "displacement": 21,
-      "struct_size": 68,
-      "access_size": 1,
-      "root_struct_name": "SG2CelestialObject",
-      "classification_id": 0,
-      "classification": "field_gap",
-      "container_candidate_count": 0,
-      "container_struct_name": null,
-      "container_field_expr": null,
-      "refinement_applied": 0,
-      "refined_struct_name": null,
-      "type_provenance_kind_id": 11,
-      "type_provenance_kind": "policy_seed",
-      "type_provenance_section": 0,
-      "type_provenance_offset": 217844
-    },
-    {
-      "section_index": 0,
-      "mechanism": "declared_field_hole",
-      "offset": 217936,
-      "operand_index": 1,
-      "base_register": "A0",
-      "displacement": 16,
-      "struct_size": 68,
-      "access_size": 2,
-      "root_struct_name": "SG2CelestialObject",
-      "classification_id": 0,
-      "classification": "field_gap",
-      "container_candidate_count": 0,
-      "container_struct_name": null,
-      "container_field_expr": null,
-      "refinement_applied": 0,
-      "refined_struct_name": null,
-      "type_provenance_kind_id": 11,
-      "type_provenance_kind": "policy_seed",
-      "type_provenance_section": 0,
-      "type_provenance_offset": 217844
-    },
-    {
-      "section_index": 0,
-      "mechanism": "declared_field_hole",
-      "offset": 217940,
-      "operand_index": 1,
-      "base_register": "A0",
-      "displacement": 16,
-      "struct_size": 68,
-      "access_size": 2,
-      "root_struct_name": "SG2CelestialObject",
-      "classification_id": 0,
-      "classification": "field_gap",
-      "container_candidate_count": 0,
-      "container_struct_name": null,
-      "container_field_expr": null,
-      "refinement_applied": 0,
-      "refined_struct_name": null,
-      "type_provenance_kind_id": 11,
-      "type_provenance_kind": "policy_seed",
-      "type_provenance_section": 0,
-      "type_provenance_offset": 217844
     },
     {
       "section_index": 0,
@@ -40637,9 +40474,9 @@
     "Native rendered accesses describe the inline export. exported_definition checks the selected source; INCBIN packaging may intentionally hide internal boundaries."
   ],
   "input_sha256": {
-    "analysis": "9671e6df8876f3ce010232f908b429328798ba204face50d76b84f5f3b47b4ff",
-    "metadata": "39ceb402ad8f24bdf042d45438cb22bd43ada12e2d94dca833a290162d96b044",
-    "source": "c373086aaa0e5adcc80e151f8c9f73e26b0edcd36496c583a225536d72068d74"
+    "analysis": "7c4769d43845950c69dc4c2dd53be9953b529104d55a202b806a770c09d6d789",
+    "metadata": "ecf20ca0f25a0512c15f51c79663c33956cbfb9534183e30c45d76ced08b3a8f",
+    "source": "5cb942cf1e822a32faa89f2dde5978d3d1eb26522cca7e1f5210bcb4f5f82034"
   },
   "input_binding": "Caller supplies matching retained artifacts. Hashes identify inputs; discovery is not an independent correspondence/admission proof."
 }
