@@ -1,0 +1,173 @@
+{
+  "schema_version": 1,
+  "kind": "producer_consumer_selected_object_stored_reference_contracts",
+  "status": "qualified_connected_restoration_batch_continues",
+  "publication_base_commit": "b82f0fbd55a0307776014e8a628ab6636ad98499",
+  "inputs": {
+    "analysis_json_sha256": "b71845d0cb1d120999e4b61b910fcd1ae09051257bb52493721c1bf3a97df266",
+    "effective-metadata_json_sha256": "35912298d9e403ad198b1d0f5955fabef6640aba013434a46dc2095501f881a9",
+    "consumer-evidence_json_sha256": "e51364724f96e8ceea0e00c086d6d9dfafe84adaf0b20b1ba2a9ee9865085810"
+  },
+  "interpretation": "Original player_object_reference700 is assigned A0 at17E28 after LEA world_object_pool, typeWORD30, and player-specific World rotation/flags/durability initialization; view and interaction readers dereference the same record. Bind its active-game stored reference to existing SG2WorldObject. This is not the whole heterogeneous pool. Original scan_target_reference6B0 is cleared then assigned A4 from nearby/visible record selection; primary scan has both model and radial paths, while alternate scan has its own filter/math. The selected target can therefore receive only existing SG2ObjectCore, not blanket World or a guessed actor/model subtype. Homing projection reads core type/relative coordinates. Tractor_target_reference838 is null/selected/carried original pool reference; copies scan target and is consumed by attraction/contact/inventory paths, so also keep Core. Reviewed current native direct writers/readers and original savegame conversion: player/tractor LONGs temporarily subtract/add A6 and null/stale target states remain possible. These declarations describe normal dereference roles, not every encoded archive word, all aliases/indirect writers, non-null validity, ownership or lifetime safety. No new entry seeds, numeric target guess, gameplay injection, World cast for scan/tractor or source opcode change.",
+  "canonical_actions": 3,
+  "contracts": [
+    [
+      1792,
+      "player_object_reference",
+      "SG2WorldObject"
+    ],
+    [
+      1712,
+      "scan_target_reference",
+      "SG2ObjectCore"
+    ],
+    [
+      2104,
+      "tractor_target_reference",
+      "SG2ObjectCore"
+    ]
+  ],
+  "before_after": {
+    "app_slot_ref_count": [
+      3412,
+      3412
+    ],
+    "recovered_platform_typed_access_count": [
+      1484,
+      1484
+    ],
+    "recovered_platform_unresolved_typed_access_count": [
+      725,
+      725
+    ]
+  },
+  "projection": {
+    "new_typed_coordinates": 0,
+    "lost_typed_coordinates": 0,
+    "changed_existing_coordinates": 0,
+    "new_field_counts": {},
+    "new_struct_counts": {},
+    "removed_unresolved_coordinates": 0,
+    "new_unresolved_coordinates": 0,
+    "new_sites": [],
+    "changed_sites": [],
+    "removed_unresolved": [],
+    "new_unresolved": []
+  },
+  "validation": {
+    "native_and_vasm": {
+      "kind": "verification",
+      "framework_exact": true,
+      "target_id": "amiga_raw_starglider2_game",
+      "subject_revision": "0fd902f34e10a7e9e2071b1a13243dc75fb5e953a5b337f4aa17a9e9bc92677c",
+      "status": "exact",
+      "exact": true,
+      "source_sha256": "fa2abb2a25b49b7f83f4f213ffd125ae8e684cbcdfd5510099f5548dd141bd4a",
+      "source_path": "/workspace/pandora-original-delivery/stable-d15c2cf8/.runtime-state/restoration/eb04f545fb97451725a1c91ab5abf6f2e097614c45880db6edfb4ea5c3f6e2c2/fa2abb2a25b49b7f83f4f213ffd125ae8e684cbcdfd5510099f5548dd141bd4a.s",
+      "source_package_sha256": null,
+      "original_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+      "original_size": 412736,
+      "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+      "rebuilt_path": "/workspace/pandora-original-delivery/stable-d15c2cf8/.runtime-state/restoration/eb04f545fb97451725a1c91ab5abf6f2e097614c45880db6edfb4ea5c3f6e2c2/662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9.bin",
+      "framework_status": "exact",
+      "failure_kinds": [],
+      "message": "",
+      "oracle": {
+        "oracle_id": "vasm",
+        "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+        "comparison_level": "oracle.full_file_match",
+        "assembler_status": "accepted",
+        "message": "oracle output matched original bytes"
+      },
+      "receipt_id": "5064648d17742c7e3d8cfcbe1e47ca5a95ce363b4ebda9ac5ec69a9af24fbfe5",
+      "revision": "5eed6b438d75a0ff1848a8df4364419f30ed9c2520ae17ef3980d4565cf0eca6"
+    },
+    "framework_changed": false,
+    "reused_framework_checks": "120 focused and832 native checks fromb1a8b580; no changed framework/test behavior. New revision-checked contracts, native projections and C/vasm/clean standalone exact builds qualify this slice.",
+    "accepted_code_runs_identical": true,
+    "accepted_ownerships_identical": true,
+    "incomplete_analysis": [],
+    "source_quality_diagnostics": 0,
+    "clean_standalone_build": {
+      "status": "pass",
+      "validated_target_git_tree": "d38122abe3faadee48d8e4f61fc58c7e070e5d95",
+      "receipt": {
+        "schema_version": 1,
+        "status": "pass",
+        "format": "raw_payload_not_AmigaDOS_HUNK",
+        "main_bytes": 412736,
+        "main_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+        "main_matches_original_identity": true,
+        "asset_count": 57,
+        "all_asset_source_slices_equal": true,
+        "decoded_view_inverse_exact": true,
+        "boot_copy_source_matches_resident_view": true,
+        "source_commit": "b82f0fbd55a0307776014e8a628ab6636ad98499",
+        "assembler_sha256": "413e284020125f42709486dfe09907cab3dd9f3c2ea41017c190f8ea68f30825",
+        "flags": [
+          "-Fbin",
+          "-m68000",
+          "-no-opt"
+        ],
+        "outputs": [
+          {
+            "role": "original_main",
+            "filename": "Starglider2-original.raw",
+            "bytes": 412736,
+            "sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9"
+          },
+          {
+            "role": "decoded_analysis_view",
+            "filename": "protection-decoded-analysis.raw",
+            "bytes": 3548,
+            "sha256": "de8358853dd9ed9b006a23569bf393aa217ed3be3301a169465d80bfaf839922"
+          },
+          {
+            "role": "boot_installer_context",
+            "filename": "boot-selector-installer-context.raw",
+            "bytes": 40,
+            "sha256": "8d34852425e2e1bfa87b3febdfc74fb39e7c667e9d9ff73e17b594649e83b21b"
+          },
+          {
+            "role": "boot_resident_view",
+            "filename": "boot-selector-resident.raw",
+            "bytes": 20,
+            "sha256": "a26286a393713c046eff9dbaff15b20b26b171fa9e05fc9d538d16b0eddb6024"
+          }
+        ]
+      },
+      "recoverable_pandora_backups_verified": 16
+    }
+  },
+  "limits": [
+    "Only player reference uses World: constructor assigns type30 to first pool record and initializes its World fields. Selection supports model/radial/mixed records, so scan and tractor remain Core. No manual seed at each reader.",
+    "Active-game pointer contracts are distinct from exact numeric target candidates, null validity, save-relative encoding, stale target safety and object lifetime. No all-indirect-writer or arbitrary caller proof. Existing fallback base assumptions remain, not promoted to proven base identity by naming.",
+    "No new live target-lock, tractor encounter, all-path semantics, DMA or timing coverage. The original successful normal-input flight probe is not replayed for annotation-only output."
+  ],
+  "next": {
+    "group": "Source-owned model-header loop and remaining field variants",
+    "experiment": "Retained bounded DBF probe needs shared source-cursor induction/domain evidence distinct from finite target enumeration. Independently use selected-record read/write evidence to identify variant-specific fields without making the heterogeneous pool one subtype."
+  },
+  "stored_reference_projection_limit": {
+    "status": "reproduced_missing_flow_sensitive_app_storage",
+    "probe_sha256": "93e55b23c083a699a79f1fd9c541895b8d0f7f776a7fb29026b48ddb655ada7b",
+    "probe_output_sha256": "d698987bfd16c8ee1dc01a8857a3dc0d390205a365be18ee40cc8ee43b799755",
+    "cases": {
+      "read_only": "Record.world_x retained",
+      "register_copy": "Record.world_x retained",
+      "clear_then_read": "correctly no pointee type",
+      "clear_on_sibling_branch": "no type even on the separate untouched read path",
+      "load_save_clear_restore": "loses the earlier saved pointer type",
+      "serialization_roundtrip": "no type"
+    },
+    "cause": "All-writer app storage summaries are globally conflicted by clears and untyped arithmetic. Existing local cell repair is currently ABSOLUTE-only; declared app pointer fields alone do not supply flow-sensitive reaching values.",
+    "next_experiment": "Extend the existing canonical storage-id sparse cell path to app identities, with aliases, per-path write barriers, join/call effects and explicit entry-contract versus numeric/non-null validity. Keep clear/partial/mixed/unknown-call negatives; never simply ignore writes.",
+    "reason_deferred_in_this_semantic_batch": "Requires shared app/absolute cell integration and entry-state contract semantics rather than more target seeds. Three valid canonical type contracts are preserved with zero access gains; independent projectile consumers can progress without weakening this guard."
+  },
+  "remaining_source_loop_experiment": {
+    "fixture_sha256": "37e69356e0f066f8fb43e9b00454ff0ba3c2d5542a32f5bc2cedb3bd54d00d0c",
+    "output_sha256": "ccd0ca0ce4e1d6d6caff5c2ba1b089b84997469133b6126e508078b0c8039001",
+    "result": "one straight-directory positive passed; bounded two-entry DBF positive remains failing with no typed fields",
+    "interpretation": "Retained capability candidate, not a passing regression or all-loop acceptance. Existing numeric table binder lacks the carried selection domain; type evidence must not be inferred from an unknown/out-of-owner entry. The104-header target loop also contains nested scanning, beyond merely raising a finite candidate limit."
+  }
+}

@@ -23,7 +23,22 @@ boundaries. It records 67 suffix signals (including numeric adjacent variants),
 21 lookup contracts, 523 remaining interior references, 32 generic app fields
 and 725 unresolved record accesses. These are different denominators. Five
 suffixes name routines and one names text; neither is a pointer defect.
-Latest: the [Skim Missile phase contract](../../runtime/observations/starglider2-skim-missile-lifetime.json)
+Latest: the [selected-object reference contracts](../../runtime/observations/starglider2-selected-object-reference-contracts.json)
+connect original stored player, scan and tractor references to their existing
+record views. Player construction establishes its World fields; scan selection
+can choose model/radial variants, so scan and tractor stay Core. This admission exposes **0 additional typed coordinates / 0 lost**: the
+current all-writer app-slot summary is poisoned by clears/serialization writes,
+so these declarations alone do not improve consumer projection. A minimal
+fixture reproduces loss even on an untouched sibling branch and an earlier
+saved pointer. This is a concrete shared flow-sensitive-storage limitation,
+not permission to ignore writes or add reader-by-reader seeds. Counts are **3412 app references / 1484 typed / 725 unresolved**.
+Null/stale/save-relative states and original base assumptions remain explicit;
+these type contracts are not lifetime or pointer-validity proofs. Original exact
+C/vasm/standalone export remains. The next storage experiment must reuse sparse canonical cell identities and
+retain null/partial/conflict/call negatives. Independent variant-consumer work
+continues; publication is a preserved batch, not programme completion.
+
+Preceding: the [Skim Missile phase contract](../../runtime/observations/starglider2-skim-missile-lifetime.json)
 connects the original type60 constructor and both dispatch paths to its two
 countdown words. The climb phase adds50 to worldY; pursuit moves toward the
 player using signed delta>>2 and retires on the second countdown's negative
