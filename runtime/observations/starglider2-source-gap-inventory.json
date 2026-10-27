@@ -5823,10 +5823,10 @@
       "scalar": 13
     },
     "interior_reference_records": 523,
-    "unresolved_typed_accesses": 421,
+    "unresolved_typed_accesses": 423,
     "unresolved_mechanisms": {
       "indexed_dynamic": 87,
-      "declared_field_hole": 324,
+      "declared_field_hole": 326,
       "auto_update_cursor": 5,
       "outside_declared_record": 5
     },
@@ -7193,6 +7193,17 @@
           "name": "linked_record_or_sentinel",
           "named_base": null,
           "offset": 60,
+          "pointer_struct": null,
+          "size": 4,
+          "struct": null,
+          "type": "LONG",
+          "value_kind": "scalar"
+        },
+        {
+          "available_since": "1.0",
+          "name": "back_link_or_sentinel",
+          "named_base": null,
+          "offset": 56,
           "pointer_struct": null,
           "size": 4,
           "struct": null,
@@ -36102,6 +36113,28 @@
     {
       "section_index": 0,
       "mechanism": "declared_field_hole",
+      "offset": 94758,
+      "operand_index": 1,
+      "base_register": "A0",
+      "displacement": 31,
+      "struct_size": 68,
+      "access_size": 1,
+      "root_struct_name": "SG2WorldObject",
+      "classification_id": 0,
+      "classification": "field_gap",
+      "container_candidate_count": 0,
+      "container_struct_name": null,
+      "container_field_expr": null,
+      "refinement_applied": 0,
+      "refined_struct_name": null,
+      "type_provenance_kind_id": 11,
+      "type_provenance_kind": "policy_seed",
+      "type_provenance_section": 0,
+      "type_provenance_offset": 94752
+    },
+    {
+      "section_index": 0,
+      "mechanism": "declared_field_hole",
       "offset": 94824,
       "operand_index": 0,
       "base_register": "A0",
@@ -36362,6 +36395,28 @@
       "type_provenance_kind": "policy_seed",
       "type_provenance_section": 0,
       "type_provenance_offset": 95598
+    },
+    {
+      "section_index": 0,
+      "mechanism": "declared_field_hole",
+      "offset": 96068,
+      "operand_index": 0,
+      "base_register": "A0",
+      "displacement": 34,
+      "struct_size": 68,
+      "access_size": 1,
+      "root_struct_name": "SG2WorldObject",
+      "classification_id": 0,
+      "classification": "field_gap",
+      "container_candidate_count": 0,
+      "container_struct_name": null,
+      "container_field_expr": null,
+      "refinement_applied": 0,
+      "refined_struct_name": null,
+      "type_provenance_kind_id": 11,
+      "type_provenance_kind": "policy_seed",
+      "type_provenance_section": 0,
+      "type_provenance_offset": 96068
     },
     {
       "section_index": 0,
@@ -43556,9 +43611,9 @@
     "Native rendered accesses describe the inline export. exported_definition checks the selected source; INCBIN packaging may intentionally hide internal boundaries."
   ],
   "input_sha256": {
-    "analysis": "5c4a77161fac9bfb81d38827db52f3da0109773f0b8e762ee9c45cae941e42a2",
-    "metadata": "240586bd11804d3a1e385bcf34152d83fa3ba0e8107ac9b8b211b1c9d4ed3e67",
-    "source": "dbb4c1da2dac996561ea1f0c45578021b63728193c44436b3a68c0a4eb43c253"
+    "analysis": "025fdaa48f251c128a4e316000b137b2b5356a0b4c31dafdcd686dff5c1726cb",
+    "metadata": "965989fef4cd13aedfaa6be927c086edfaef9f8d481d42200fa89963f5a635a7",
+    "source": "14fca8049190266b08124a6ec6ecff695adccc36bc871c0faea1fce6a7f1c697"
   },
   "input_binding": "Caller supplies matching retained artifacts. Hashes identify inputs; discovery is not an independent correspondence/admission proof."
 }

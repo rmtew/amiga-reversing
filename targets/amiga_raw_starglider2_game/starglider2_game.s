@@ -662,7 +662,7 @@ SG2WorldObject_velocity_z RS.W 1
 SG2WorldObject_pre_view_relative_x RS.W 1
 SG2WorldObject_pre_view_relative_y RS.W 1
 SG2WorldObject_pre_view_relative_z RS.W 1
-    RS.B 4
+SG2WorldObject_back_link_or_sentinel RS.L 1
 SG2WorldObject_linked_record_or_sentinel RS.L 1
     RS.B 4
 SG2WorldObject_SIZEOF EQU __RS
@@ -10326,7 +10326,7 @@ abs_0_00008DDA:
 	bra.w abs_0_00008C9C
 abs_0_00008DDE:
 	bra.w abs_0_00008C9C
-    ; Original mine tests use WORD relativeZ and signed/unsigned branches; retain their exact asymmetry. Damage subtracts1500 shields with borrow saturation and increments received-hit count.
+    ; Original mine tests use WORD relative Z and signed/unsigned branches; retain their asymmetry. Damage subtracts 1500 shields with borrow saturation and increments the received-hit count.
     ; KNOWN: type A0=Target code-entry register seed:SG2WorldObject
 update_proximity_mine_warning_and_damage:
 	move.b #$D,diagnostic_step_byte.l
@@ -23420,10 +23420,11 @@ abs_0_0001820A:
 	move.w #$FFC2,$002E(a0)
 	move.b #$E,$001F(a0)
 	rts
+    ; KNOWN: type A0=Target code-entry register seed:SG2WorldObject
 initialize_solar_converter_chain_anchor:
-	move.b #$1D,$0003(a0)
+	move.b #$1D,SG2WorldObject_vertex_variant_selector(a0)
 	move.b #$FF,$001F(a0)
-	move.l #$A,$0008(a0)
+	move.l #$A,SG2ObjectCore_world_y(a0)
 	move.l a0,object_initializer_chain_tail(a6)
 	rts
 abs_0_0001823A:
@@ -23528,29 +23529,33 @@ abs_0_000183A4:
 abs_0_000183BC:
 	move.l #$FFFFFF6A,$0008(a0)
 	rts
+    ; KNOWN: type A0=Target code-entry register seed:SG2WorldObject
 initialize_space_tug_parameter_group:
 	move.l a0,tug_initializer_tail_reference(a6)
 	subi.l #2000,tug_placement_group_world_y.l
-	move.l tug_placement_group_world_y.l,$0008(a0)
+	move.l tug_placement_group_world_y.l,SG2ObjectCore_world_y(a0)
 	move a4,usp
 	movea.l tug_placement_parameter_cursor.l,a4
-	move.w (a4)+,$0030(a0)
-	move.w (a4)+,$002C(a0)
-	move.w (a4)+,$0012(a0)
+	move.w (a4)+,SG2WorldObject_velocity_z(a0)
+	move.w (a4)+,SG2WorldObject_velocity_x(a0)
+	move.w (a4)+,SG2WorldObject_rotation_1(a0)
 	move.l a4,tug_placement_parameter_cursor.l
 	move usp,a4
 	rts
+    ; Type 44: copy group Y and WORD velocity Z/X/yaw; previous tail becomes backlink and previous next-link becomes self. Valid prior anchor and placement order remain assumed.
+    ; KNOWN: type A0=Target code-entry register seed:SG2WorldObject
 initialize_and_link_tug_truck:
-	move.l tug_placement_group_world_y.l,$0008(a0)
+	move.l tug_placement_group_world_y.l,SG2ObjectCore_world_y(a0)
 	move a4,usp
 	movea.l tug_placement_parameter_cursor.l,a4
-	move.w (a4)+,$0030(a0)
-	move.w (a4)+,$002C(a0)
-	move.w (a4)+,$0012(a0)
+	move.w (a4)+,SG2WorldObject_velocity_z(a0)
+	move.w (a4)+,SG2WorldObject_velocity_x(a0)
+	move.w (a4)+,SG2WorldObject_rotation_1(a0)
 	move.l a4,tug_placement_parameter_cursor.l
 	movea.l tug_initializer_tail_reference(a6),a4
-	move.l a4,$0038(a0)
-	move.l a0,$003C(a4)
+    ; KNOWN: type A4=Target code-entry register seed:SG2WorldObject
+	move.l a4,SG2WorldObject_back_link_or_sentinel(a0)
+	move.l a0,SG2WorldObject_linked_record_or_sentinel(a4)
 	move.l a0,tug_initializer_tail_reference(a6)
 	move usp,a4
 	rts
@@ -23739,6 +23744,7 @@ abs_0_000186D4:
 	move.w #$FFD3,$0020(a0)
 	move.l #$FFFFFF88,$0008(a0)
 	rts
+    ; KNOWN: type A0=Target code-entry register seed:SG2WorldObject
 initialize_energy_tower_variant_and_link:
 	bsr.w abs_0_00018968
 	move.w d0,d1
@@ -23746,13 +23752,14 @@ initialize_energy_tower_variant_and_link:
 	rol.w #2,d1
 	andi.w #3,d1
 	add.w d1,d0
-	move.b d0,$0003(a0)
+	move.b d0,SG2WorldObject_vertex_variant_selector(a0)
 	tst.l object_initializer_chain_tail(a6)
 	beq.w abs_0_00018724
 	move a2,usp
 	movea.l object_initializer_chain_tail(a6),a2
-	move.l a2,$0038(a0)
-	move.l a0,$003C(a2)
+    ; KNOWN: type A2=Target code-entry register seed:SG2WorldObject
+	move.l a2,SG2WorldObject_back_link_or_sentinel(a0)
+	move.l a0,SG2WorldObject_linked_record_or_sentinel(a2)
 	move usp,a2
 abs_0_00018724:
 	move.l a0,object_initializer_chain_tail(a6)
@@ -23763,6 +23770,7 @@ abs_0_0001872A:
 	move.l #$FFFFFEA2,$0008(a0)
 	st.b $0022(a0)
 	rts
+    ; KNOWN: type A0=Target code-entry register seed:SG2WorldObject
 abs_0_00018744:
 	st.b $0022(a0)
 	bra.w append_object_initializer_chain_link
@@ -23782,23 +23790,28 @@ abs_0_00018774:
 	move.b d4,SG2TunnelDepot_service_id(a0)
 	subq.b #4,SG2TunnelDepot_service_id(a0)
 	bra.w initialize_structure_contact_flags
+    ; KNOWN: type A0=Target code-entry register seed:SG2WorldObject
 append_and_clear_object_initializer_chain:
 	tst.l object_initializer_chain_tail(a6)
 	beq.w skip_object_type_initialization
 	move a2,usp
 	movea.l object_initializer_chain_tail(a6),a2
-	move.l a2,$0038(a0)
-	move.l a0,$003C(a2)
+    ; KNOWN: type A2=Target code-entry register seed:SG2WorldObject
+	move.l a2,SG2WorldObject_back_link_or_sentinel(a0)
+	move.l a0,SG2WorldObject_linked_record_or_sentinel(a2)
 	move usp,a2
 	clr.l object_initializer_chain_tail(a6)
 	rts
+    ; Type 96 and type 93 wrapper share append-and-advance; type 97 appends then clears tail. Placeholder names for types 96/97 do not establish their game identities.
+    ; KNOWN: type A0=Target code-entry register seed:SG2WorldObject
 append_object_initializer_chain_link:
 	tst.l object_initializer_chain_tail(a6)
 	beq.w abs_0_00018724
 	move a2,usp
 	movea.l object_initializer_chain_tail(a6),a2
-	move.l a2,$0038(a0)
-	move.l a0,$003C(a2)
+    ; KNOWN: type A2=Target code-entry register seed:SG2WorldObject
+	move.l a2,SG2WorldObject_back_link_or_sentinel(a0)
+	move.l a0,SG2WorldObject_linked_record_or_sentinel(a2)
 	move.l a0,object_initializer_chain_tail(a6)
 	move usp,a2
 	rts

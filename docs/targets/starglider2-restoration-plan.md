@@ -21,9 +21,25 @@ The [current systematic gap inventory](../../runtime/observations/starglider2-so
 joins native identities/accesses with canonical layouts and actual rendered
 boundaries. It records 67 suffix signals (including numeric adjacent variants),
 21 lookup contracts, 523 remaining interior references, 32 generic app fields
-and 421 unresolved record accesses. These are different denominators. Five
+and 423 unresolved record accesses. These are different denominators. Five
 suffixes name routines and one names text; neither is a pointer defect.
-Latest: the [shared object-link reconstruction](../../runtime/observations/starglider2-object-links-state.json)
+Latest: the [back-link and chain-constructor reconstruction](../../runtime/observations/starglider2-chain-links-state.json)
+connects WorldObject LONG38 to the original backward/previous chain role and
+LONG3C to corresponding forward stores. Both remain LONGs with explicit
+sentinel/save-state limits. Space Tug and Tug Truck constructors expose ordered
+parameter consumption and append behavior; converter/Energy Tower constructors
+expose their separate chain-tail lifecycle. Original types 96/97 remain unnamed
+because their directory entries are placeholders, although append/clear behavior
+is established. **11 link-field sites** project, with
+**1095 typed /
+423 unresolved** overall;
+**19 new / 0 lost** typed coordinates. Original accepted spans,
+C/vasm and standalone bytes stay exact. Valid previous-record lifetime and
+placement order remain conditional. Continue the distinct vertical-steering
+actor family and its original caller/model contracts rather than impose one
+counter meaning on all physical offsets.
+
+Preceding: the [shared object-link reconstruction](../../runtime/observations/starglider2-object-links-state.json)
 connects original save/load rebasing, linked-record consumers and sentinel
 writers. WorldObject LONG3C is now linked-record-or-sentinel storage; it stays a
 LONG without unconditional pointer propagation. High/radial variants retain

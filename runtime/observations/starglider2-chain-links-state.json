@@ -1,0 +1,337 @@
+{
+  "schema_version": 1,
+  "kind": "original_backward_forward_record_chain_constructor_contracts",
+  "status": "qualified_connected_restoration_batch_continues",
+  "publication_base_commit": "9c98a904c09af8ce0300d98f3facd4dd7e6a49d3",
+  "inputs": {
+    "binary_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "backend_sha256": "d09dbb0f72ef82803519d9eb8656bced793da2ecae6c147e442b3fcde0fbdfd3",
+    "analysis_sha256": "025fdaa48f251c128a4e316000b137b2b5356a0b4c31dafdcd686dff5c1726cb",
+    "effective_metadata_sha256": "965989fef4cd13aedfaa6be927c086edfaef9f8d481d42200fa89963f5a635a7",
+    "consumer_evidence_sha256": "90edefe44346657e31257b184ec9a9141c6408c04445ed2c6218ac30268f0d07",
+    "initializer_domain_evidence_sha256": "5716c5ec3f38a7e86bfa10fcb81188becf28776fa958a9ec2aad022e2695febd"
+  },
+  "canonical_action_count": 15,
+  "interpretation": "Original model record LONG38 is the backward/previous member of record chains, with zero/FFFFFFFF sentinel treatment in the same save/load visitors as LONG3C. Keep it as LONG back_link_or_sentinel, without unconditional pointer_struct, and retain source-relative save state. Both original250-record68-byte visitors exclude negative low type byte; high/radial layouts do not inherit this WorldObject field. Original type22 Egron Space Tug initializer183C6 starts tug tail and consumes three WORD placement parameters;44 Tug Truck183FA loads same group Y, consumes velocityZ/velocityX/yaw, stores previous tail at own38, stores self at previous3C, advances tail. It assumes a valid earlier tug anchor; no guessed safety correction for missing/malformed placement order or parameter exhaustion. Solar Energy Converter4 initializer18220 starts separate initializer tail. Energy Tower90 initializer186F6 makes optional previous38/next3C links then always advances tail; Energy Tower93 initializer18744 sets BYTE22 and branches shared append1879E. Original types96/97 have placeholder No records found names; retain unknown identities while describing96 as append-and-advance and97 as append-and-clear behavior only. Shared append checks nonzero tail, writes previous38 and previous3C;97 clears tail after success,96 keeps current object as new tail. Preserve source ordering, USP temporary A2/A4 saves/restores, zero checks and original call assumptions. Consumer8740 clears linked neighbors38/3C on its original retirement path, while contact codeC1DA/C2CE checks original type90 and walks next links to set original state; do not claim all links reciprocal, acyclic, alive or guarded against arbitrary sentinel inputs. Explicit contexts type only original known model constructors and loaded previous model records; no generic high-type object release or whole-pool cast. Fields22/28 and unnamed96/97 identities stay separately unresolved. No new runtime path, game changes, relocation or unconditional pointer inference.",
+  "field": {
+    "owner": "SG2WorldObject",
+    "name": "back_link_or_sentinel",
+    "offset": 56,
+    "size": 4,
+    "type": "LONG",
+    "pointer_struct": null,
+    "meaning": "Backward/previous chain storage with original zero/-1/save-relative representation. Not an unconditional dereferenceable pointer."
+  },
+  "original_domains": [
+    {
+      "initializer_runtime": 98848,
+      "types": [
+        {
+          "type": 4,
+          "name": "Solar Energy Converter"
+        }
+      ]
+    },
+    {
+      "initializer_runtime": 99270,
+      "types": [
+        {
+          "type": 22,
+          "name": "Egron Space Tug"
+        }
+      ]
+    },
+    {
+      "initializer_runtime": 99322,
+      "types": [
+        {
+          "type": 44,
+          "name": "Tug Truck"
+        }
+      ]
+    },
+    {
+      "initializer_runtime": 100086,
+      "types": [
+        {
+          "type": 90,
+          "name": "Energy Tower"
+        }
+      ]
+    },
+    {
+      "initializer_runtime": 100164,
+      "types": [
+        {
+          "type": 93,
+          "name": "Energy Tower"
+        }
+      ]
+    },
+    {
+      "initializer_runtime": 100254,
+      "types": [
+        {
+          "type": 96,
+          "name": "No records found"
+        }
+      ]
+    },
+    {
+      "initializer_runtime": 100224,
+      "types": [
+        {
+          "type": 97,
+          "name": "No records found"
+        }
+      ]
+    }
+  ],
+  "tug": {
+    "anchor_type": 22,
+    "anchor_name": "Egron Space Tug",
+    "anchor_initializer": 99270,
+    "truck_type": 44,
+    "truck_initializer": 99322,
+    "parameter_record": "Three WORDs: velocity Z, velocity X, yaw. Both initializers use shared group Y; anchor first decreases group Y by2000.",
+    "append": "Current38=previous tail; previous3C=current; advance global tail.",
+    "assumptions": "Truck requires valid prior anchor and ordered parameter stream. Preserve USP save/restore and original absence of bounds/recovery checks."
+  },
+  "station_chain": {
+    "anchor_type": 4,
+    "anchor_initializer": 98848,
+    "energy_tower_types": [
+      90,
+      93
+    ],
+    "type90_initializer": 100086,
+    "type93_initializer": 100164,
+    "append_and_advance": 100254,
+    "append_and_clear": 100224,
+    "placeholder_types": [
+      96,
+      97
+    ],
+    "meaning": "Known constructor behavior only for96/97: original name directory has No records found. Do not invent object identities.",
+    "zero_tail": "No previous record writes when tail is zero. Type90 and shared96 path advance tail; type97 returns on zero or appends then clears existing tail."
+  },
+  "consumers": {
+    "retirement": 34624,
+    "contact_windows": [
+      49626,
+      49870
+    ],
+    "scope": "Original retirement clears neighbor links; contact code checks type90 and follows next chain to set state. Not proof all records have reciprocal, acyclic or alive links."
+  },
+  "native_link_sites": [
+    {
+      "source_offset": 35394,
+      "runtime_address": 39490,
+      "operand": 0,
+      "field": "linked_record_or_sentinel",
+      "root": "SG2WorldObject",
+      "provenance": "policy_seed"
+    },
+    {
+      "source_offset": 35406,
+      "runtime_address": 39502,
+      "operand": 0,
+      "field": "linked_record_or_sentinel",
+      "root": "SG2WorldObject",
+      "provenance": "policy_seed"
+    },
+    {
+      "source_offset": 35416,
+      "runtime_address": 39512,
+      "operand": 1,
+      "field": "linked_record_or_sentinel",
+      "root": "SG2WorldObject",
+      "provenance": "policy_seed"
+    },
+    {
+      "source_offset": 95264,
+      "runtime_address": 99360,
+      "operand": 1,
+      "field": "back_link_or_sentinel",
+      "root": "SG2WorldObject",
+      "provenance": "policy_seed"
+    },
+    {
+      "source_offset": 95268,
+      "runtime_address": 99364,
+      "operand": 1,
+      "field": "linked_record_or_sentinel",
+      "root": "SG2WorldObject",
+      "provenance": "policy_seed"
+    },
+    {
+      "source_offset": 96026,
+      "runtime_address": 100122,
+      "operand": 1,
+      "field": "back_link_or_sentinel",
+      "root": "SG2WorldObject",
+      "provenance": "policy_seed"
+    },
+    {
+      "source_offset": 96030,
+      "runtime_address": 100126,
+      "operand": 1,
+      "field": "linked_record_or_sentinel",
+      "root": "SG2WorldObject",
+      "provenance": "policy_seed"
+    },
+    {
+      "source_offset": 96142,
+      "runtime_address": 100238,
+      "operand": 1,
+      "field": "back_link_or_sentinel",
+      "root": "SG2WorldObject",
+      "provenance": "policy_seed"
+    },
+    {
+      "source_offset": 96146,
+      "runtime_address": 100242,
+      "operand": 1,
+      "field": "linked_record_or_sentinel",
+      "root": "SG2WorldObject",
+      "provenance": "policy_seed"
+    },
+    {
+      "source_offset": 96172,
+      "runtime_address": 100268,
+      "operand": 1,
+      "field": "back_link_or_sentinel",
+      "root": "SG2WorldObject",
+      "provenance": "policy_seed"
+    },
+    {
+      "source_offset": 96176,
+      "runtime_address": 100272,
+      "operand": 1,
+      "field": "linked_record_or_sentinel",
+      "root": "SG2WorldObject",
+      "provenance": "policy_seed"
+    }
+  ],
+  "before_after": {
+    "app_slot_ref_count": {
+      "before": 3383,
+      "after": 3383
+    },
+    "recovered_platform_typed_access_count": {
+      "before": 1076,
+      "after": 1095
+    },
+    "recovered_platform_unresolved_typed_access_count": {
+      "before": 421,
+      "after": 423
+    }
+  },
+  "projection": {
+    "new_typed": 19,
+    "lost_typed": 0,
+    "link_field_counts": {
+      "linked_record_or_sentinel": 7,
+      "back_link_or_sentinel": 4
+    },
+    "lost_sites": []
+  },
+  "validation": {
+    "native_and_vasm": {
+      "kind": "verification",
+      "framework_exact": true,
+      "target_id": "amiga_raw_starglider2_game",
+      "subject_revision": "ed211f2fd2c65fc89e4ad546c9140921f148fbbcfb6df82106b9998688cbd10c",
+      "status": "exact",
+      "exact": true,
+      "source_sha256": "e270f4fd748bb41b401a21419c00174a2e7cfa4c354f57af06f32aaed0306919",
+      "source_path": "/workspace/pandora-original-delivery/stable-d15c2cf8/.runtime-state/restoration/eb04f545fb97451725a1c91ab5abf6f2e097614c45880db6edfb4ea5c3f6e2c2/e270f4fd748bb41b401a21419c00174a2e7cfa4c354f57af06f32aaed0306919.s",
+      "source_package_sha256": null,
+      "original_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+      "original_size": 412736,
+      "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+      "rebuilt_path": "/workspace/pandora-original-delivery/stable-d15c2cf8/.runtime-state/restoration/eb04f545fb97451725a1c91ab5abf6f2e097614c45880db6edfb4ea5c3f6e2c2/662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9.bin",
+      "framework_status": "exact",
+      "failure_kinds": [],
+      "message": "",
+      "oracle": {
+        "oracle_id": "vasm",
+        "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+        "comparison_level": "oracle.full_file_match",
+        "assembler_status": "accepted",
+        "message": "oracle output matched original bytes"
+      },
+      "receipt_id": "564b42474a3f01d6e5c6b2d8d3339c386208ddc3e9cd218b2cae4a0fa25a5987",
+      "revision": "58368c5973bdd10b1e9785333d8d3488cae3361e92365fb6503ced10bfa10f7d"
+    },
+    "incomplete_analysis": [],
+    "source_quality_diagnostics": 0,
+    "generation_wall_seconds": 129.47423831600463,
+    "accepted_owner_spans_identical": true,
+    "assets_unchanged": 57,
+    "required_headers": 14,
+    "framework_changed": false,
+    "focused_tests": "Unchanged shared implementation; previous114 focused/832 native results remain applicable. Canonical action admission plus changed whole-source exact C/vasm and clean standalone build qualify this slice.",
+    "clean_standalone_build": {
+      "status": "pass",
+      "validated_target_git_tree": "eb41334f99044cf817a64ef8f9101f0992b134f2",
+      "receipt": {
+        "schema_version": 1,
+        "status": "pass",
+        "format": "raw_payload_not_AmigaDOS_HUNK",
+        "main_bytes": 412736,
+        "main_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+        "main_matches_original_identity": true,
+        "asset_count": 57,
+        "all_asset_source_slices_equal": true,
+        "decoded_view_inverse_exact": true,
+        "boot_copy_source_matches_resident_view": true,
+        "source_commit": "9c98a904c09af8ce0300d98f3facd4dd7e6a49d3",
+        "assembler_sha256": "413e284020125f42709486dfe09907cab3dd9f3c2ea41017c190f8ea68f30825",
+        "flags": [
+          "-Fbin",
+          "-m68000",
+          "-no-opt"
+        ],
+        "outputs": [
+          {
+            "role": "original_main",
+            "filename": "Starglider2-original.raw",
+            "bytes": 412736,
+            "sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9"
+          },
+          {
+            "role": "decoded_analysis_view",
+            "filename": "protection-decoded-analysis.raw",
+            "bytes": 3548,
+            "sha256": "de8358853dd9ed9b006a23569bf393aa217ed3be3301a169465d80bfaf839922"
+          },
+          {
+            "role": "boot_installer_context",
+            "filename": "boot-selector-installer-context.raw",
+            "bytes": 40,
+            "sha256": "8d34852425e2e1bfa87b3febdfc74fb39e7c667e9d9ff73e17b594649e83b21b"
+          },
+          {
+            "role": "boot_resident_view",
+            "filename": "boot-selector-resident.raw",
+            "bytes": 20,
+            "sha256": "a26286a393713c046eff9dbaff15b20b26b171fa9e05fc9d538d16b0eddb6024"
+          }
+        ]
+      },
+      "recoverable_pandora_backups_verified": 16
+    }
+  },
+  "limits": [
+    "No new runtime path, original lifetime proof, universal reciprocal/acyclic property or arbitrary sentinel safety.",
+    "Types96/97 retain unknown identities; constructor roles are concrete without guessed names.",
+    "No base Core or high/radial link declaration; no unconditional pointer propagation across saved relative values or sentinels.",
+    "The generic mixed-pool release/contact paths remain conservatively Core unless their original model branch is established.",
+    "Original parameter-stream bounds/order and USP/call assumptions are not silently repaired."
+  ],
+  "next": {
+    "group": "Other original flying-object motion and original incoming contracts",
+    "experiment": "Follow the distinct8C12 vertical-steering/proximity family and its original dispatch wrappers. Compare actual26 countdown consumers without imposing9010 phase24 semantics; use original names/model records to separate shared role from unrelated object variants."
+  }
+}
