@@ -87,3 +87,24 @@ def test_generic_base_field_retains_fallback_and_separate_offset_domain():
     assert row['app_accesses'][0]['offset'] == 10
     assert row['app_accesses'][0]['base_evidence'] == 'a6_fallback'
     assert not report['named_signals']
+
+
+def test_collection_consumers_keep_instruction_section_and_exact_table_identity():
+    pointer = dict(offset=0, size=4, value_kind='target_pointer')
+    metadata = dict(custom_structs=[dict(name='Ref', size=4, fields=[pointer])], data_block_layouts=[
+        dict(layout_id='L', name='names', hunk=0, source_start=100, source_end=112,
+             elements=[dict(offset=0, width=12, array_count=3, type_binding=dict(bound_type_id='Ref'))])])
+    consumer = dict(consumer_offset=8, table_section_index=0, table_start_offset=100, table_end_offset=112,
+                    index_mask_domain=None, index_compare_domain=None, index_loop_domain=None)
+    other_domain = {**consumer, 'table_section_index': 1}
+    other_extent = {**consumer, 'table_end_offset': 108}
+    analysis = dict(sections=[dict(section_index=0, table_descriptors=[
+        dict(start_offset=100, end_offset=112, table_kind='pointer')]),
+        dict(section_index=1, table_consumers=[consumer, other_domain, other_extent])])
+    report = inventory(analysis, metadata, '')
+    row = report['pointer_record_arrays'][0]
+    assert row['native_collection_consumers'] == [dict(section_index=1, **consumer)]
+    assert row['mechanism'] == 'collection_contract_exposed'
+    assert row['native_collection_consumers'][0]['index_mask_domain'] is None
+    assert report['summary']['native_table_contracts'] == 1
+    assert report['summary']['native_table_consumer_records'] == 3

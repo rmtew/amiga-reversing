@@ -28652,7 +28652,7 @@ static int test_facts_v2_render_asm_source_tracks_bounded_custom_struct_array_st
 static const uint8_t source_owner_array_bytes[] = {0x41, 0xFA, 0x00, 0x18, 0x43, 0xE8, 0x00, 0x04, 0x20, 0x11, 0x22, 0x28, 0x00, 0x04, 0x45, 0xE8, 0x00, 0x08, 0x24, 0x12, 0x58, 0x8A, 0x26, 0x12, 0x4E, 0x75, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
 
 static int test_facts_v2_source_owner_leaf_array_extent(void) {
-  for (unsigned mode = 0; mode < 11; ++mode) {
+  for (unsigned mode = 0; mode < 16; ++mode) {
     M68kObject object;
     M68kSection section = {0};
     M68kAnalysisPolicy policy;
@@ -28689,6 +28689,31 @@ static int test_facts_v2_source_owner_leaf_array_extent(void) {
   if(mode==9) {policy.structured_data_items[1].has_source_owner_span=1;policy.structured_data_items[1].source_owner_start=30;policy.structured_data_items[1].source_owner_size=8;}
   if(mode==10) { M68kAnalysisStructuredDataItem tmp=policy.structured_data_items[0];
     policy.structured_data_items[0]=policy.structured_data_items[2];policy.structured_data_items[2]=tmp; }
+  if (mode == 11U) { /* Ordinary numeric records are not pointer directories. */
+    st->fields[0].value_kind = M68K_ANALYSIS_STRUCT_FIELD_VALUE_SCALAR;
+    st->fields[0].pointer_address_domain = M68K_ANALYSIS_POINTER_DOMAIN_LEGACY;
+    strcpy(st->fields[0].type_name, "LONG");
+    for (size_t j = 0U; j < policy.structured_data_item_count; ++j) {
+      policy.structured_data_items[j].is_pointer = 0U;
+      policy.structured_data_items[j].pointer_address_domain = M68K_ANALYSIS_POINTER_DOMAIN_LEGACY;
+      strcpy(policy.structured_data_items[j].field_type, "LONG");
+    }
+  }
+  if (mode == 12U) {
+    for (size_t j = 0U; j < policy.structured_data_item_count; ++j)
+      policy.structured_data_items[j].struct_name[0] = '\0';
+  }
+  if (mode == 13U)
+    policy.structured_data_items[1].table_kind_id = M68K_ANALYSIS_TABLE_KIND_RELATIVE_CODE_DISPATCH;
+  if (mode == 14U || mode == 15U) {
+    M68kAnalysisStructuredDataItem *parent = &policy.structured_data_items[3];
+    memset(parent, 0, sizeof(*parent));
+    parent->has_section_index = 1U; parent->offset = 26U; parent->size = 12U;
+    parent->kind = M68K_ANALYSIS_STRUCTURED_DATA_LONGS;
+    strcpy(parent->field_type, "long"); /* Native admission retains raw unit spelling. */
+    if (mode == 15U) parent->table_kind_id = M68K_ANALYSIS_TABLE_KIND_SCALAR;
+    policy.structured_data_item_count = 4U;
+  }
   int result=m68k_facts_v2_render_asm_source_analysis_profile_alloc(&object,&policy,&source,&profile,&a,1,m68k_diag_sink(NULL));
   if(mode==8) {
     /* This conflicting declaration also crosses accepted code. Source admission
@@ -28696,8 +28721,23 @@ static int test_facts_v2_source_owner_leaf_array_extent(void) {
     M68K_C_ASSERT(result != 0);
   } else {
     M68K_C_ASSERT_INT(0,result); M68K_C_ASSERT(a.section_count == 1U);
-    int admitted = mode==0 || mode==1 || mode==7 || mode==9 || mode==10;
+    int admitted = mode==0 || mode==1 || mode==7 || mode==9 || mode==10 || mode==11 || mode==14;
     M68K_C_ASSERT_U32(admitted ? 5U : 0U,a.sections[0].recovered_platform_typed_access_count);
+    /* A packed aggregate still has its existing policy representation; this
+     * projection specifically restores collections hidden by leaf expansion. */
+    size_t collections = 0U;
+    for (size_t j = 0U; j < a.sections[0].table_descriptor_count; ++j) {
+      const M68kTableDescriptorIR *table = &a.sections[0].table_descriptors[j];
+      if (table->start_offset != 26U || table->end_offset != 38U ||
+          table->table_kind_id != M68K_ANALYSIS_TABLE_KIND_POINTER) continue;
+      ++collections;
+      M68K_C_ASSERT_U32(M68K_ANALYSIS_TABLE_KIND_POINTER, table->table_kind_id);
+      M68K_C_ASSERT_U32(3U, table->entry_count);
+      M68K_C_ASSERT_U32(M68K_ANALYSIS_TABLE_ENTRY_COUNT_PROOF_STRUCTURED_RANGE, table->entry_count_proof_id);
+      M68K_C_ASSERT(!table->has_consumer && !table->has_target && !table->has_index_mask_domain &&
+        !table->has_index_compare_domain && !table->has_index_loop_domain);
+    }
+    M68K_C_ASSERT_U32(admitted && mode != 1U && mode != 11U ? 1U : 0U, collections);
     if(admitted) {
       M68K_C_ASSERT(strstr(source,"Row_member+Row_SIZEOF(a0)") != NULL);
       M68K_C_ASSERT(test_source_has_annotated_instruction(source,"\tmove.l (a2),d2","operand 1: Row_member at (a2)"));

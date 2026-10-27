@@ -175,6 +175,12 @@ def inventory(analysis: dict, metadata: dict, source: str) -> dict:
             section_id = layout['hunk']
             matching = [t for t in sections.get(section_id, {}).get('table_descriptors', [])
                         if t['start_offset'] == start and t['end_offset'] == end and t['table_kind'] in {'pointer', 'absolute_code_dispatch'}]
+            collection_consumers = [dict(section_index=sid, **consumer)
+                                    for sid, consumer_section in sections.items()
+                                    for consumer in consumer_section.get('table_consumers', [])
+                                    if consumer.get('table_section_index') == section_id
+                                    and consumer.get('table_start_offset') == start
+                                    and consumer.get('table_end_offset') == end]
             overlapping = [r for r in policy if r.get('section_index') == section_id and start <= r.get('offset', -1) < end]
             leaves = [r for r in overlapping if r['size'] == 4 and (r['offset'] - start) % 4 == 0]
             contracts = [t for t in sections.get(section_id, {}).get('table_descriptors', [])
@@ -182,15 +188,20 @@ def inventory(analysis: dict, metadata: dict, source: str) -> dict:
             arrays.append(dict(layout_id=layout['layout_id'], name=layout.get('name'), section_index=section_id,
                                start_offset=start, end_offset=end, record_count=count, record_type=record['name'],
                                pointer_field=field, native_collection_contracts=matching,
+                               native_collection_consumers=collection_consumers,
                                native_leaf_items=len(leaves), native_overlapping_items=len(overlapping),
                                native_overlapping_contracts=contracts, bound_targets=sum(bool(r.get('has_target')) for r in leaves),
                                mechanism='collection_contract_exposed' if matching else 'canonical_array_projected_as_leaves',
-                               experiment='Reproduce the homogeneous pointer-record array through metadata admission; preserve domains/aliases while testing shared collection projection.'))
+                               experiment=('Follow native consumer index domains and original pointee producers; structural extent does not prove selector bounds.'
+                                           if matching else 'Reproduce the homogeneous pointer-record array through metadata admission; preserve domains/aliases while testing shared collection projection.')))
     orphans = [dict(section_index=sid, **r) for sid, section in sections.items()
                for r in section.get('orphan_code_signals', [])]
     return dict(schema_version=2, kind='source_gap_discovery_not_fact_admission',
                 canonical_policy_items=policy_catalog, canonical_layouts=layout_catalog, address_values=value_catalog,
-                summary=dict(suffix_names=len(named), suffix_dispositions=dict(Counter(r['disposition'] for r in named)),
+                summary=dict(native_table_contracts=sum(len(s.get('table_descriptors', [])) for s in sections.values()),
+                             native_table_consumer_records=sum(len(s.get('table_consumers', [])) for s in sections.values()),
+                             native_address_expression_records=sum(len(s.get('address_expressions', [])) for s in sections.values()),
+                             suffix_names=len(named), suffix_dispositions=dict(Counter(r['disposition'] for r in named)),
                              lookup_contracts=len(tables), lookup_kinds=dict(Counter(r['table_kind'] for r in tables)),
                              interior_reference_records=len(interiors), unresolved_typed_accesses=len(unresolved),
                              unresolved_mechanisms=dict(Counter(r['mechanism'] for r in unresolved)),

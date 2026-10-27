@@ -23,17 +23,22 @@ boundaries. It records 66 suffix signals (including numeric adjacent variants),
 22 lookup contracts, 524 remaining interior references, 48 generic app fields
 and 352 unresolved record accesses. These are different denominators. Five
 suffixes name routines and one names text; neither is a pointer defect.
-The [record-array extent repair](../../runtime/observations/starglider2-source-owner-array-extents.json)
-now carries validated canonical owner spans through existing typed cursors:
-**316 → 318 typed accesses; 355 → 352 unresolved diagnostics**. Two sprite
-accesses are recovered; the third removed diagnostic was a decimal-array boundary
-conflict, not a new semantic field. Nine record-array views are admitted from
-13 candidates. The ten pointer-record collections still lack full catalogue
-projection: this separate group remains open rather than being declared solved
-by the cursor gain. Next test that projection with exact target/domain/alias
-preservation, then bounded dynamic-index consumers, connected field/constructor
-semantics and incoming/orphan leads. Each group has a concrete experiment, what
-it blocks and an evidence-based deferral in the receipt.
+The [pointer-record collection projection](../../runtime/observations/starglider2-pointer-record-collections.json)
+now exposes **all ten** canonical pointer directories (499 entries) through the
+existing native descriptor path: **64 → 74 table contracts, 40 → 155 consumer
+records, 189 → 304 address expressions**. No names or rendered assembly changed;
+this is native evidence recovered from existing canonical types. Four exact raw
+LONG parent declarations remain valid aliases of their typed leaves. Structural
+counts remain separate from each reader's conditional index domain.
+
+The preceding [record-array extent repair](../../runtime/observations/starglider2-source-owner-array-extents.json)
+recovered two sprite field accesses and removed one decimal-array boundary
+conflict: **316 → 318 typed accesses; 355 → 352 unresolved diagnostics**. Next
+reconcile the known PC-relative Copper-list reader with its full pointer owner,
+then exercise bounded dynamic-index consumers and the connected field/caller
+leads. Disc-command and panel-frame directories currently have no indexed
+consumer from this pass; neither is called unused. Each group has a concrete
+experiment, what it blocks and an evidence-based deferral in the receipt.
 The inventory does not admit facts, rename symbols or replace native
 analysis. Reproduce it using `python -m amiga_reversing.tools.source_gap_inventory
 --analysis <retained-native-analysis.json> --metadata <effective-metadata.json>
@@ -41,7 +46,10 @@ analysis. Reproduce it using `python -m amiga_reversing.tools.source_gap_invento
 bound to the qualification receipts. No additional native generation was used
 for this accounting.
 
-Latest native suite: **827 tests, zero failures**. A newly exposed long symbolic
+Latest native suite: **827 tests, zero failures**. Six inventory tests pass. Original C/vasm
+remain exact. Standalone source, assets, headers and build script are byte-identical
+to the preceding clean qualification, whose result is reused explicitly.
+ A newly exposed long symbolic
 displacement reproduced and fixed a native assembler truncation defect. The
 same retained native source now rebuilds all original bytes with C and vasm;
 parser-only reassembly did not repeat analysis. Source quality/ownership and

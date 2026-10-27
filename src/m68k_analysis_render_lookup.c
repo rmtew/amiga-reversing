@@ -2332,7 +2332,10 @@ static int static_array_leaf_matches(const M68kAnalysisPolicy *policy,
   uint32_t field_offset = UINT32_MAX;
   uint16_t leaf_id = leaf->struct_id != AMIGA_OS_STRUCT_ID_NONE ? leaf->struct_id :
     lookup_policy_struct_id_by_name(policy, leaf->struct_name);
-  return !leaf->table_conflicted && leaf_id == struct_id && leaf->size == root->size &&
+  return !leaf->table_conflicted &&
+    (!root->is_pointer || leaf->table_kind_id == M68K_ANALYSIS_TABLE_KIND_UNKNOWN ||
+      leaf->table_kind_id == M68K_ANALYSIS_TABLE_KIND_POINTER) &&
+    leaf_id == struct_id && leaf->size == root->size &&
     leaf->kind == root->kind && leaf->is_pointer == root->is_pointer &&
     leaf->pointer_address_domain == root->pointer_address_domain &&
     !strcmp(leaf->pointer_struct, root->pointer_struct) &&
@@ -2340,6 +2343,20 @@ static int static_array_leaf_matches(const M68kAnalysisPolicy *policy,
     !strcmp(leaf->field_name, root->field_name) &&
     lookup_policy_static_data_field_offset(policy, struct_id, leaf, (uint16_t)root->size, &field_offset) &&
     field_offset == 0U;
+}
+
+/* A raw container may coexist with its subsequently typed fields. It carries
+ * storage/presentation only, never a conflicting table or pointer contract. */
+static int static_data_item_is_raw_container(const M68kAnalysisStructuredDataItem *item) {
+  return !item->table_conflicted && !item->semantic_role_flags && !item->source_pattern_id &&
+    item->table_kind_id == M68K_ANALYSIS_TABLE_KIND_UNKNOWN && !item->struct_name[0] &&
+    !item->field_name[0] &&
+    (!item->field_type[0] ||
+      (item->kind == M68K_ANALYSIS_STRUCTURED_DATA_BYTES && m68k_ascii_equal_ci(item->field_type, "byte")) ||
+      (item->kind == M68K_ANALYSIS_STRUCTURED_DATA_WORDS && m68k_ascii_equal_ci(item->field_type, "word")) ||
+      (item->kind == M68K_ANALYSIS_STRUCTURED_DATA_LONGS && m68k_ascii_equal_ci(item->field_type, "long"))) &&
+    !item->is_pointer && !item->has_target &&
+    item->pointer_address_domain == M68K_ANALYSIS_POINTER_DOMAIN_LEGACY;
 }
 
 /* One source-ordered pointer index and sparse derived views per immutable
@@ -2390,8 +2407,8 @@ static int render_lookup_build_static_record_arrays(M68kRenderLookup *lookup) {
   for (i = 0U; i < item_count; ++i) {
     const M68kAnalysisStructuredDataItem *item = items[i];
     uint64_t end = (uint64_t)item->offset + item->size;
-    if (item->kind == M68K_ANALYSIS_STRUCTURED_DATA_BYTES && !item->semantic_role_flags &&
-        !item->source_pattern_id && !item->struct_name[0]) end = 0U;
+    if (item->kind == M68K_ANALYSIS_STRUCTURED_DATA_BYTES && static_data_item_is_raw_container(item))
+      end = 0U;
     prefix_end[i] = i && items[i - 1U]->section_index == item->section_index && prefix_end[i - 1U] > end ?
       prefix_end[i - 1U] : end;
   }
@@ -2407,6 +2424,7 @@ static int render_lookup_build_static_record_arrays(M68kRenderLookup *lookup) {
     uint32_t end = root->offset + root->source_owner_size;
     size_t lo = 0U, hi = item_count, j;
     int valid = 1;
+    const char *reason = "complete_members";
     if (i && !static_array_candidate_compare(&candidates[i - 1U], candidate)) continue;
     while (lo < hi) {
       size_t mid = lo + (hi - lo) / 2U;
@@ -2415,21 +2433,34 @@ static int render_lookup_build_static_record_arrays(M68kRenderLookup *lookup) {
     }
     /* A declaration starting before the owner may still cross its first
      * member. Looking only at starts inside the span would miss that conflict. */
-    if (lo && items[lo - 1U]->section_index == root->section_index && prefix_end[lo - 1U] > root->offset)
-      continue;
-    for (j = lo; j < item_count; ++j) {
+    if (lo && items[lo - 1U]->section_index == root->section_index && prefix_end[lo - 1U] > root->offset) {
+      valid = 0;
+      reason = "crossing_declaration";
+    }
+    for (j = lo; valid && j < item_count; ++j) {
       const M68kAnalysisStructuredDataItem *leaf = items[j];
       if (leaf->section_index != root->section_index || leaf->offset >= end) break;
       ++member_visits;
-      if (leaf->kind == M68K_ANALYSIS_STRUCTURED_DATA_BYTES && !leaf->semantic_role_flags &&
-          !leaf->source_pattern_id && !leaf->struct_name[0]) continue;
-      if (!static_array_leaf_matches(policy, root, candidate->struct_id, leaf) ||
-          (leaf->offset != expected && leaf->offset != previous)) { valid = 0; break; }
+      if (static_data_item_is_raw_container(leaf) &&
+          (leaf->kind == M68K_ANALYSIS_STRUCTURED_DATA_BYTES ||
+           (leaf->kind == root->kind && leaf->offset == root->offset &&
+            leaf->size == root->source_owner_size))) continue;
+      if (!static_array_leaf_matches(policy, root, candidate->struct_id, leaf)) {
+        valid = 0; reason = "member_contract_mismatch"; break;
+      }
+      if (leaf->offset != expected && leaf->offset != previous) {
+        valid = 0; reason = "missing_member_or_stride"; break;
+      }
       if (leaf->offset == previous) continue; /* compatible physical alias */
       previous = expected;
       expected += root->size;
     }
-    if (valid && expected == end) {
+    if (valid && expected != end) { valid = 0; reason = "incomplete_tail"; }
+    if (getenv("AMIGA_REVERSING_PROFILE_TYPED_SOURCE_ARRAYS"))
+      fprintf(stderr, "typed_source_array section=%zu offset=%u size=%u type=%s label=%s pointer=%u admitted=%d reason=%s\n",
+        root->section_index, root->offset, root->source_owner_size, root->struct_name, root->label,
+        (unsigned)root->is_pointer, valid, reason);
+    if (valid) {
       M68kRenderStaticRecordArray *view = &lookup->static_record_arrays[lookup->static_record_array_count++];
       view->section_index = root->section_index; view->offset = root->offset; view->size = root->source_owner_size;
       view->struct_id = candidate->struct_id; view->element_count = (uint16_t)(view->size / root->size);
@@ -17026,6 +17057,42 @@ int m68k_analysis_render_lookup_append_section(M68kRenderLookup *lookup, const M
   return 0;
 }
 
+/* A declared pointer-record array is a structural collection even when every
+ * member was expanded into a leaf. Keep those leaves (and their target domains)
+ * authoritative; the descriptor adds extent, not invented targets or readers. */
+static int append_static_record_array_descriptors(const M68kRenderLookup *lookup,
+    M68kSectionAnalysisIR *section, const uint8_t *accepted_bytes) {
+  size_t index;
+  for (index = 0U; index < lookup->static_record_array_count; ++index) {
+    const M68kRenderStaticRecordArray *view = &lookup->static_record_arrays[index];
+    const M68kAnalysisCustomStruct *record;
+    M68kTableDescriptorIR descriptor;
+    uint32_t cursor;
+    int has_code = 0;
+    if (view->section_index != section->section_index) continue;
+    record = lookup_policy_custom_struct_by_id(lookup->policy, view->struct_id);
+    if (!record || record->size != 4U || record->field_count != 1U ||
+        record->fields[0].value_kind == M68K_ANALYSIS_STRUCT_FIELD_VALUE_SCALAR) continue;
+    if (accepted_bytes) {
+      for (cursor = view->offset; cursor < view->offset + view->size; ++cursor) {
+        if (accepted_bytes[cursor]) { has_code = 1; break; }
+      }
+    }
+    if (has_code) continue;
+    memset(&descriptor, 0, sizeof(descriptor));
+    descriptor.start_offset = view->offset;
+    descriptor.end_offset = view->offset + view->size;
+    descriptor.entry_size = record->size;
+    descriptor.entry_count = view->element_count;
+    descriptor.entry_count_proof_id = M68K_ANALYSIS_TABLE_ENTRY_COUNT_PROOF_STRUCTURED_RANGE;
+    descriptor.table_kind_id = M68K_ANALYSIS_TABLE_KIND_POINTER;
+    descriptor.status = M68K_RANGE_OWNERSHIP_STATUS_ACCEPTED;
+    descriptor.role_flags = M68K_ANALYSIS_STRUCTURED_DATA_ROLE_POINTER_TABLE;
+    if (m68k_ir_section_analysis_append_table_descriptor(section, &descriptor) != 0) return -1;
+  }
+  return 0;
+}
+
 int m68k_analysis_render_lookup_build_source_analysis(M68kRenderLookup *lookup,
     const M68kDecodeIR *decode, const M68kAnalysisPolicy *policy, uint8_t **accepted_start,
     uint8_t **accepted_bytes, M68kSourceAnalysisIR *source_analysis, M68kSourceAnalysisBuildStats *out_stats) {
@@ -17064,6 +17131,8 @@ int m68k_analysis_render_lookup_build_source_analysis(M68kRenderLookup *lookup,
       goto fail;
     }
     if (m68k_analysis_render_lookup_append_section(lookup, decode, &section_analysis) != 0) goto fail;
+    if (append_static_record_array_descriptors(lookup, &section_analysis, accepted_bytes[section_index]) != 0)
+      goto fail;
     if (m68k_analysis_render_lookup_append_platform_call_facts_for_section(out_stats, lookup, &platform_analysis_state,
         decode, policy, accepted_start, section_index, section, &section_analysis) < 0) {
       goto fail;
