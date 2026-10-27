@@ -21,9 +21,29 @@ The [current systematic gap inventory](../../runtime/observations/starglider2-so
 joins native identities/accesses with canonical layouts and actual rendered
 boundaries. It records 66 suffix signals (including numeric adjacent variants),
 21 lookup contracts, 523 remaining interior references, 32 generic app fields
-and 271 unresolved record accesses. These are different denominators. Five
+and 240 unresolved record accesses. These are different denominators. Five
 suffixes name routines and one names text; neither is a pointer defect.
-Latest: the [common custom-prefix join](../../runtime/observations/starglider2-custom-prefix-joins.json)
+Latest: the [shared object/contact views](../../runtime/observations/starglider2-object-contact-views.json)
+separate the original 68-byte common record from model/motion and radial variants.
+Four pointer lists now preserve common pointee fields; original tag/consumption
+guards establish narrower views. Model rotations, one-based optional vertex-frame
+selection and pre-camera XYZ caches are distinct from radial radius/projection
+and star colour state. Drone and Energy reuse these existing parent fields;
+their private phase/colour state remains separate. Earlier mixed pool/dispatch
+contracts have been narrowed to the common owner. The inner contact loop's early
+cache/index reads still precede its second-object type guard: this is an explicit
+ordering/bounds question, not hidden by a blanket model type. Native counts are
+**750 typed / 240 unresolved**.
+The new contracts exposed an order-dependent conflict/unknown join. Seven new
+regressions and 69 focused checks pass; the corrected shared merge converges
+with unchanged limits (final pass 52539 visits, zero pending), versus the
+previous 1898560-visit exhaustion. All 832 native tests pass. Six misleading
+velocity names in heterogeneous record clears are intentionally removed.
+Original C/vasm and clean standalone bytes remain exact. No new framework engine,
+runtime campaign or classification claim. Next follow concrete contact ordering
+and optional model-frame consumers, using these newly exposed fields.
+
+Preceding: the [common custom-prefix join](../../runtime/observations/starglider2-custom-prefix-joins.json)
 fixes the nine mixed Drone/WorldObject diagnostics exposed by that restoration.
 The existing value merge now uses canonical custom ancestry, including siblings,
 through registers, saved packets, cells and call inputs. No per-node state,

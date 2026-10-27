@@ -1,0 +1,4432 @@
+{
+  "schema_version": 1,
+  "kind": "heterogeneous_object_core_model_radial_contact_contracts",
+  "status": "qualified_semantic_batch_restoration_continues",
+  "publication_base_commit": "9c8cdbfd2a4fca323e3fcc37031a32f7d4c72780",
+  "inputs": {
+    "binary_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "backend_sha256": "786c0581079840fbad6eba1a2656c08c0c5387f856fbda2201e02bc871b158f0",
+    "analysis_sha256": "06a93a4addc0e761580a8f02d52ef7e21c70382547c4a885fa3d4aa056ad741e",
+    "effective_metadata_sha256": "fc91760b19d7bd8c4bf7ec2de27b2a0ef793517aaf42267b07dab1464fc91630",
+    "consumer_evidence_sha256": "f4967d09cddbc18778782dbf257d4869539298d80f48e44d7b47fa801fb9dfad",
+    "lookup_source_sha256": "fede451674322284257a3615a10bd14cff7bccc4a4d7a8676d3409073a76f617",
+    "new_regression_sha256": "9419c1e739bddae0a7943b03ac2e8cf0b68fe63ccfd916c887bfb32791502957"
+  },
+  "canonical_action_count": 35,
+  "interpretation": "Original records have 68-byte stride, but the nearby/visible/contact lists are heterogeneous. Partition417C tests actual type low BYTE before model path41C4; it writes pre-camera model X/Y/Z cacheWORDs32/34/36 in addition to relative16/18/1A. X/Z use the original horizontal wrap, Y is view-origin-relative. Preparation433E reads a nearby pointer, high-type branch4358 uses LONG36 radius and LONG22 working projection value, then rejoins camera rotation439C. It enqueues active-phase contacts43F8 BEFORE later model filter4406/440A. Therefore keep list pointees at shared SG2ObjectCore, a 68-byte skeleton with variant holes, and establish World/Radial views only at original guarded/consumption paths. Contact outer actual-tag guardB5A6/B5AA precedes World viewB5AE; inner tag guardB668/B66C only precedes B670: earlier A2 extent/cache reads remain a conditional ordering/index obligation. BYTE2A compares against other typeBYTE1, a type-wide collision exclusion. Main model branch3F94 consumes WORD10/12/14 as three rotations; model header optional vertex-frame pointer4A6A gates BYTE3: zero uses base, nonzero subtract1 then LONG index, so selector is one-based and arbitrary upper bound is not proven. Render branch D0 can have original type30 model override, so model/disc consumption contracts assume valid original override/caller, not all arbitrary values. Disc renderer147 strict branch68B4 reads WORD10 as primary colour, distinct from Energy indexWORD10/model rotationWORD10. Move shared radial projected fields from Energy to Radial, and shared model rotations/exclusion from Drone to World, preserving subtype-specific countdown/colour fields. Replace mixed pool/clear/dispatch seed contracts with Core; retain explicit model-motion helper contracts. No array count, lifetime, universal tag validity, new runtime execution, relocation or output-equivalence claim.",
+  "common_owner": {
+    "name": "SG2ObjectCore",
+    "size": 68,
+    "fields": [
+      {
+        "name": "object_type",
+        "type": "UWORD",
+        "offset": 0,
+        "size": 2
+      },
+      {
+        "name": "flags",
+        "type": "UBYTE",
+        "offset": 2,
+        "size": 1
+      },
+      {
+        "name": "retirement_phase_or_negative",
+        "type": "BYTE",
+        "offset": 30,
+        "size": 1
+      },
+      {
+        "name": "world_x",
+        "type": "LONG",
+        "offset": 4,
+        "size": 4
+      },
+      {
+        "name": "relative_x",
+        "type": "WORD",
+        "offset": 22,
+        "size": 2
+      },
+      {
+        "name": "world_y",
+        "type": "LONG",
+        "offset": 8,
+        "size": 4
+      },
+      {
+        "name": "relative_y",
+        "type": "WORD",
+        "offset": 24,
+        "size": 2
+      },
+      {
+        "name": "world_z",
+        "type": "LONG",
+        "offset": 12,
+        "size": 4
+      },
+      {
+        "name": "relative_z",
+        "type": "WORD",
+        "offset": 26,
+        "size": 2
+      }
+    ],
+    "meaning": "Common members of the original 68-byte physical record. Variant holes remain unknown here, not padding, a short physical prefix or a universal model layout."
+  },
+  "model_fields": [
+    {
+      "name": "velocity_x",
+      "type": "WORD",
+      "offset": 44,
+      "size": 2
+    },
+    {
+      "name": "velocity_y",
+      "type": "WORD",
+      "offset": 46,
+      "size": 2
+    },
+    {
+      "name": "velocity_z",
+      "type": "WORD",
+      "offset": 48,
+      "size": 2
+    },
+    {
+      "name": "model_scale_shift",
+      "type": "UBYTE",
+      "offset": 29,
+      "size": 1
+    },
+    {
+      "name": "rotation_0",
+      "type": "WORD",
+      "offset": 16,
+      "size": 2
+    },
+    {
+      "name": "rotation_1",
+      "type": "WORD",
+      "offset": 18,
+      "size": 2
+    },
+    {
+      "name": "rotation_2",
+      "type": "WORD",
+      "offset": 20,
+      "size": 2
+    },
+    {
+      "name": "collision_ignored_object_type",
+      "type": "UBYTE",
+      "offset": 42,
+      "size": 1
+    },
+    {
+      "name": "vertex_variant_selector",
+      "type": "UBYTE",
+      "offset": 3,
+      "size": 1
+    },
+    {
+      "name": "pre_view_relative_x",
+      "type": "WORD",
+      "offset": 50,
+      "size": 2
+    },
+    {
+      "name": "pre_view_relative_y",
+      "type": "WORD",
+      "offset": 52,
+      "size": 2
+    },
+    {
+      "name": "pre_view_relative_z",
+      "type": "WORD",
+      "offset": 54,
+      "size": 2
+    }
+  ],
+  "radial_fields": [
+    {
+      "name": "base_radius",
+      "type": "LONG",
+      "offset": 34,
+      "size": 4
+    },
+    {
+      "name": "radius_work_value",
+      "type": "LONG",
+      "offset": 54,
+      "size": 4
+    },
+    {
+      "name": "projected_screen_x",
+      "type": "WORD",
+      "offset": 38,
+      "size": 2
+    },
+    {
+      "name": "projected_screen_y",
+      "type": "WORD",
+      "offset": 40,
+      "size": 2
+    },
+    {
+      "name": "projected_radius",
+      "type": "WORD",
+      "offset": 42,
+      "size": 2
+    },
+    {
+      "name": "projection_radius_shift",
+      "type": "WORD",
+      "offset": 44,
+      "size": 2
+    }
+  ],
+  "conditional_inputs": [
+    [
+      16764,
+      "A4",
+      "SG2ObjectCore",
+      "Original mixed pool header; only common fields before tag split"
+    ],
+    [
+      32750,
+      "A0",
+      "SG2ObjectCore",
+      "Original heterogeneous primary dispatch input"
+    ],
+    [
+      33276,
+      "A0",
+      "SG2ObjectCore",
+      "Original heterogeneous secondary dispatch input"
+    ],
+    [
+      33174,
+      "A0",
+      "SG2ObjectCore",
+      "Original whole record clear input"
+    ],
+    [
+      97732,
+      "A0",
+      "SG2ObjectCore",
+      "Original heterogeneous pool clear input"
+    ],
+    [
+      97874,
+      "A0",
+      "SG2ObjectCore",
+      "Original heterogeneous world placement input"
+    ],
+    [
+      16836,
+      "A4",
+      "SG2WorldObject",
+      "Original actual low-type partition branch"
+    ],
+    [
+      17240,
+      "A4",
+      "SG2RadialObject",
+      "Original actual high-type projection branch"
+    ],
+    [
+      17422,
+      "A4",
+      "SG2WorldObject",
+      "Original actual low-type model visibility branch"
+    ],
+    [
+      16276,
+      "A4",
+      "SG2WorldObject",
+      "Original valid model renderer/type30 override"
+    ],
+    [
+      26612,
+      "A4",
+      "SG2RadialObject",
+      "Original valid disc renderer/type30 override"
+    ],
+    [
+      26804,
+      "A4",
+      "SG2StarObject",
+      "Original strict type147 star-colour branch"
+    ],
+    [
+      46510,
+      "A0",
+      "SG2WorldObject",
+      "Original outer actual low-type contact branch"
+    ],
+    [
+      46704,
+      "A2",
+      "SG2WorldObject",
+      "Original inner low-type contact guard; after early cache reads"
+    ]
+  ],
+  "labels": [
+    [
+      16836,
+      "cache_model_origin_relative_coordinates"
+    ],
+    [
+      17240,
+      "prepare_radial_object_projection_scale"
+    ],
+    [
+      17422,
+      "test_model_visibility_extents"
+    ],
+    [
+      46510,
+      "begin_model_contact_extent_comparison"
+    ],
+    [
+      46704,
+      "dispatch_model_pair_contact_response"
+    ],
+    [
+      46752,
+      "filter_contact_by_ignored_object_type"
+    ],
+    [
+      26804,
+      "select_star_point_colour"
+    ]
+  ],
+  "pointer_lists": {
+    "owners": [
+      "distant_objects_cursor",
+      "nearby_objects_cursor",
+      "visible_objects_cursor",
+      "contact_objects_cursor"
+    ],
+    "pointee": "SG2ObjectCore",
+    "count_or_lifetime_proved": false,
+    "mechanism": "Existing pointer-table holder, custom pointee and register-value propagation; no new engine or source-pointer fabrication."
+  },
+  "before_after": {
+    "app_slot_ref_count": {
+      "before": 3383,
+      "after": 3383
+    },
+    "recovered_platform_typed_access_count": {
+      "before": 442,
+      "after": 750
+    },
+    "recovered_platform_unresolved_typed_access_count": {
+      "before": 271,
+      "after": 240
+    }
+  },
+  "native_projection": {
+    "new_typed_sites": [
+      {
+        "root": "SG2ObjectCore",
+        "owner": "SG2ObjectCore",
+        "field": "flags",
+        "provenance": "static_data",
+        "sites_source_runtime_operand": [
+          [
+            14336,
+            18432,
+            1
+          ],
+          [
+            25630,
+            29726,
+            1
+          ],
+          [
+            42390,
+            46486,
+            1
+          ],
+          [
+            42568,
+            46664,
+            1
+          ],
+          [
+            205788,
+            209884,
+            1
+          ],
+          [
+            205794,
+            209890,
+            1
+          ],
+          [
+            213012,
+            217108,
+            1
+          ],
+          [
+            213018,
+            217114,
+            1
+          ],
+          [
+            213656,
+            217752,
+            1
+          ],
+          [
+            213662,
+            217758,
+            1
+          ],
+          [
+            215084,
+            219180,
+            1
+          ],
+          [
+            215090,
+            219186,
+            1
+          ],
+          [
+            221988,
+            226084,
+            1
+          ],
+          [
+            222048,
+            226144,
+            1
+          ],
+          [
+            236136,
+            240232,
+            1
+          ],
+          [
+            236390,
+            240486,
+            1
+          ],
+          [
+            306804,
+            310900,
+            1
+          ],
+          [
+            306812,
+            310908,
+            1
+          ],
+          [
+            312448,
+            316544,
+            1
+          ],
+          [
+            312456,
+            316552,
+            1
+          ]
+        ],
+        "count": 20
+      },
+      {
+        "root": "SG2ObjectCore",
+        "owner": "SG2ObjectCore",
+        "field": "object_type",
+        "provenance": "static_data",
+        "sites_source_runtime_operand": [
+          [
+            13120,
+            17216,
+            0
+          ],
+          [
+            13138,
+            17234,
+            0
+          ],
+          [
+            14346,
+            18442,
+            0
+          ],
+          [
+            25648,
+            29744,
+            1
+          ],
+          [
+            25656,
+            29752,
+            1
+          ],
+          [
+            25664,
+            29760,
+            1
+          ],
+          [
+            25672,
+            29768,
+            1
+          ],
+          [
+            25680,
+            29776,
+            1
+          ],
+          [
+            25688,
+            29784,
+            1
+          ],
+          [
+            25696,
+            29792,
+            0
+          ],
+          [
+            25834,
+            29930,
+            0
+          ],
+          [
+            38164,
+            42260,
+            0
+          ],
+          [
+            42406,
+            46502,
+            0
+          ],
+          [
+            42450,
+            46546,
+            0
+          ],
+          [
+            42592,
+            46688,
+            1
+          ],
+          [
+            42600,
+            46696,
+            0
+          ],
+          [
+            43562,
+            47658,
+            0
+          ],
+          [
+            205072,
+            209168,
+            0
+          ],
+          [
+            205778,
+            209874,
+            1
+          ],
+          [
+            206506,
+            210602,
+            0
+          ],
+          [
+            206512,
+            210608,
+            0
+          ],
+          [
+            207138,
+            211234,
+            0
+          ],
+          [
+            207624,
+            211720,
+            0
+          ],
+          [
+            212868,
+            216964,
+            0
+          ],
+          [
+            212912,
+            217008,
+            0
+          ],
+          [
+            212970,
+            217066,
+            0
+          ],
+          [
+            213634,
+            217730,
+            0
+          ],
+          [
+            213646,
+            217742,
+            1
+          ],
+          [
+            215076,
+            219172,
+            1
+          ],
+          [
+            215082,
+            219178,
+            0
+          ],
+          [
+            215180,
+            219276,
+            0
+          ],
+          [
+            221594,
+            225690,
+            0
+          ],
+          [
+            221998,
+            226094,
+            0
+          ],
+          [
+            222006,
+            226102,
+            1
+          ],
+          [
+            222014,
+            226110,
+            1
+          ],
+          [
+            222022,
+            226118,
+            1
+          ],
+          [
+            222030,
+            226126,
+            1
+          ],
+          [
+            222038,
+            226134,
+            1
+          ],
+          [
+            222058,
+            226154,
+            0
+          ],
+          [
+            222198,
+            226294,
+            0
+          ],
+          [
+            223286,
+            227382,
+            0
+          ],
+          [
+            236146,
+            240242,
+            0
+          ],
+          [
+            236400,
+            240496,
+            0
+          ],
+          [
+            306418,
+            310514,
+            0
+          ],
+          [
+            306820,
+            310916,
+            1
+          ],
+          [
+            306840,
+            310936,
+            0
+          ],
+          [
+            307190,
+            311286,
+            0
+          ],
+          [
+            312440,
+            316536,
+            0
+          ]
+        ],
+        "count": 48
+      },
+      {
+        "root": "SG2ObjectCore",
+        "owner": "SG2ObjectCore",
+        "field": "object_type",
+        "provenance": "unknown",
+        "sites_source_runtime_operand": [
+          [
+            13318,
+            17414,
+            0
+          ]
+        ],
+        "count": 1
+      },
+      {
+        "root": "SG2ObjectCore",
+        "owner": "SG2ObjectCore",
+        "field": "relative_x",
+        "provenance": "static_data",
+        "sites_source_runtime_operand": [
+          [
+            13126,
+            17222,
+            0
+          ],
+          [
+            14350,
+            18446,
+            0
+          ],
+          [
+            25700,
+            29796,
+            0
+          ],
+          [
+            43618,
+            47714,
+            0
+          ],
+          [
+            222062,
+            226158,
+            0
+          ],
+          [
+            236150,
+            240246,
+            0
+          ],
+          [
+            236404,
+            240500,
+            0
+          ],
+          [
+            306850,
+            310946,
+            0
+          ],
+          [
+            307202,
+            311298,
+            0
+          ],
+          [
+            312472,
+            316568,
+            0
+          ]
+        ],
+        "count": 10
+      },
+      {
+        "root": "SG2ObjectCore",
+        "owner": "SG2ObjectCore",
+        "field": "relative_x",
+        "provenance": "unknown",
+        "sites_source_runtime_operand": [
+          [
+            13286,
+            17382,
+            1
+          ]
+        ],
+        "count": 1
+      },
+      {
+        "root": "SG2ObjectCore",
+        "owner": "SG2ObjectCore",
+        "field": "relative_y",
+        "provenance": "static_data",
+        "sites_source_runtime_operand": [
+          [
+            13130,
+            17226,
+            0
+          ],
+          [
+            14354,
+            18450,
+            0
+          ],
+          [
+            25704,
+            29800,
+            0
+          ],
+          [
+            43634,
+            47730,
+            0
+          ],
+          [
+            222066,
+            226162,
+            0
+          ],
+          [
+            236154,
+            240250,
+            0
+          ],
+          [
+            236408,
+            240504,
+            0
+          ],
+          [
+            306858,
+            310954,
+            0
+          ],
+          [
+            307210,
+            311306,
+            0
+          ],
+          [
+            312480,
+            316576,
+            0
+          ]
+        ],
+        "count": 10
+      },
+      {
+        "root": "SG2ObjectCore",
+        "owner": "SG2ObjectCore",
+        "field": "relative_y",
+        "provenance": "unknown",
+        "sites_source_runtime_operand": [
+          [
+            13290,
+            17386,
+            1
+          ]
+        ],
+        "count": 1
+      },
+      {
+        "root": "SG2ObjectCore",
+        "owner": "SG2ObjectCore",
+        "field": "relative_z",
+        "provenance": "static_data",
+        "sites_source_runtime_operand": [
+          [
+            13134,
+            17230,
+            0
+          ],
+          [
+            14358,
+            18454,
+            0
+          ],
+          [
+            25708,
+            29804,
+            0
+          ],
+          [
+            43626,
+            47722,
+            0
+          ],
+          [
+            222070,
+            226166,
+            0
+          ],
+          [
+            236158,
+            240254,
+            0
+          ],
+          [
+            236412,
+            240508,
+            0
+          ],
+          [
+            306408,
+            310504,
+            0
+          ],
+          [
+            306868,
+            310964,
+            0
+          ],
+          [
+            307220,
+            311316,
+            0
+          ],
+          [
+            312224,
+            316320,
+            0
+          ],
+          [
+            312490,
+            316586,
+            0
+          ]
+        ],
+        "count": 12
+      },
+      {
+        "root": "SG2ObjectCore",
+        "owner": "SG2ObjectCore",
+        "field": "relative_z",
+        "provenance": "unknown",
+        "sites_source_runtime_operand": [
+          [
+            13294,
+            17390,
+            1
+          ]
+        ],
+        "count": 1
+      },
+      {
+        "root": "SG2ObjectCore",
+        "owner": "SG2ObjectCore",
+        "field": "retirement_phase_or_negative",
+        "provenance": "static_data",
+        "sites_source_runtime_operand": [
+          [
+            25640,
+            29736,
+            0
+          ],
+          [
+            42398,
+            46494,
+            0
+          ],
+          [
+            42576,
+            46672,
+            0
+          ],
+          [
+            205784,
+            209880,
+            0
+          ],
+          [
+            212862,
+            216958,
+            0
+          ],
+          [
+            212906,
+            217002,
+            0
+          ],
+          [
+            213008,
+            217104,
+            0
+          ],
+          [
+            213640,
+            217736,
+            0
+          ],
+          [
+            213652,
+            217748,
+            0
+          ],
+          [
+            221980,
+            226076,
+            0
+          ],
+          [
+            306392,
+            310488,
+            1
+          ],
+          [
+            306826,
+            310922,
+            0
+          ],
+          [
+            312208,
+            316304,
+            1
+          ],
+          [
+            312464,
+            316560,
+            0
+          ]
+        ],
+        "count": 14
+      },
+      {
+        "root": "SG2ObjectCore",
+        "owner": "SG2ObjectCore",
+        "field": "retirement_phase_or_negative",
+        "provenance": "unknown",
+        "sites_source_runtime_operand": [
+          [
+            13298,
+            17394,
+            0
+          ]
+        ],
+        "count": 1
+      },
+      {
+        "root": "SG2ObjectCore",
+        "owner": "SG2ObjectCore",
+        "field": "world_x",
+        "provenance": "static_data",
+        "sites_source_runtime_operand": [
+          [
+            207150,
+            211246,
+            0
+          ],
+          [
+            207642,
+            211738,
+            0
+          ],
+          [
+            221608,
+            225704,
+            0
+          ]
+        ],
+        "count": 3
+      },
+      {
+        "root": "SG2ObjectCore",
+        "owner": "SG2ObjectCore",
+        "field": "world_y",
+        "provenance": "static_data",
+        "sites_source_runtime_operand": [
+          [
+            42518,
+            46614,
+            0
+          ],
+          [
+            207154,
+            211250,
+            0
+          ],
+          [
+            207648,
+            211744,
+            0
+          ],
+          [
+            221612,
+            225708,
+            0
+          ]
+        ],
+        "count": 4
+      },
+      {
+        "root": "SG2ObjectCore",
+        "owner": "SG2ObjectCore",
+        "field": "world_z",
+        "provenance": "static_data",
+        "sites_source_runtime_operand": [
+          [
+            207158,
+            211254,
+            0
+          ],
+          [
+            207654,
+            211750,
+            0
+          ],
+          [
+            221616,
+            225712,
+            0
+          ]
+        ],
+        "count": 3
+      },
+      {
+        "root": "SG2RadialObject",
+        "owner": "SG2ObjectCore",
+        "field": "object_type",
+        "provenance": "policy_seed",
+        "sites_source_runtime_operand": [
+          [
+            13182,
+            17278,
+            1
+          ],
+          [
+            22528,
+            26624,
+            1
+          ],
+          [
+            22676,
+            26772,
+            1
+          ],
+          [
+            22682,
+            26778,
+            1
+          ],
+          [
+            22716,
+            26812,
+            1
+          ],
+          [
+            22740,
+            26836,
+            0
+          ]
+        ],
+        "count": 6
+      },
+      {
+        "root": "SG2RadialObject",
+        "owner": "SG2ObjectCore",
+        "field": "object_type",
+        "provenance": "unknown",
+        "sites_source_runtime_operand": [
+          [
+            22878,
+            26974,
+            1
+          ],
+          [
+            22942,
+            27038,
+            1
+          ],
+          [
+            22970,
+            27066,
+            1
+          ],
+          [
+            22978,
+            27074,
+            1
+          ],
+          [
+            23106,
+            27202,
+            1
+          ],
+          [
+            23184,
+            27280,
+            0
+          ],
+          [
+            23264,
+            27360,
+            0
+          ],
+          [
+            23286,
+            27382,
+            0
+          ]
+        ],
+        "count": 8
+      },
+      {
+        "root": "SG2RadialObject",
+        "owner": "SG2ObjectCore",
+        "field": "relative_x",
+        "provenance": "unknown",
+        "sites_source_runtime_operand": [
+          [
+            22766,
+            26862,
+            0
+          ],
+          [
+            22838,
+            26934,
+            0
+          ]
+        ],
+        "count": 2
+      },
+      {
+        "root": "SG2RadialObject",
+        "owner": "SG2ObjectCore",
+        "field": "relative_y",
+        "provenance": "unknown",
+        "sites_source_runtime_operand": [
+          [
+            22770,
+            26866,
+            0
+          ],
+          [
+            22844,
+            26940,
+            0
+          ]
+        ],
+        "count": 2
+      },
+      {
+        "root": "SG2RadialObject",
+        "owner": "SG2ObjectCore",
+        "field": "relative_z",
+        "provenance": "unknown",
+        "sites_source_runtime_operand": [
+          [
+            22754,
+            26850,
+            0
+          ],
+          [
+            22774,
+            26870,
+            0
+          ],
+          [
+            22850,
+            26946,
+            0
+          ]
+        ],
+        "count": 3
+      },
+      {
+        "root": "SG2RadialObject",
+        "owner": "SG2ObjectCore",
+        "field": "world_x",
+        "provenance": "policy_seed",
+        "sites_source_runtime_operand": [
+          [
+            13144,
+            17240,
+            0
+          ],
+          [
+            22544,
+            26640,
+            0
+          ]
+        ],
+        "count": 2
+      },
+      {
+        "root": "SG2RadialObject",
+        "owner": "SG2ObjectCore",
+        "field": "world_y",
+        "provenance": "policy_seed",
+        "sites_source_runtime_operand": [
+          [
+            13152,
+            17248,
+            0
+          ]
+        ],
+        "count": 1
+      },
+      {
+        "root": "SG2RadialObject",
+        "owner": "SG2ObjectCore",
+        "field": "world_z",
+        "provenance": "policy_seed",
+        "sites_source_runtime_operand": [
+          [
+            13160,
+            17256,
+            0
+          ],
+          [
+            22548,
+            26644,
+            0
+          ]
+        ],
+        "count": 2
+      },
+      {
+        "root": "SG2RadialObject",
+        "owner": "SG2RadialObject",
+        "field": "base_radius",
+        "provenance": "policy_seed",
+        "sites_source_runtime_operand": [
+          [
+            13168,
+            17264,
+            1
+          ],
+          [
+            13196,
+            17292,
+            0
+          ],
+          [
+            13208,
+            17304,
+            1
+          ]
+        ],
+        "count": 3
+      },
+      {
+        "root": "SG2RadialObject",
+        "owner": "SG2RadialObject",
+        "field": "base_radius",
+        "provenance": "unknown",
+        "sites_source_runtime_operand": [
+          [
+            22864,
+            26960,
+            0
+          ]
+        ],
+        "count": 1
+      },
+      {
+        "root": "SG2RadialObject",
+        "owner": "SG2RadialObject",
+        "field": "projected_radius",
+        "provenance": "unknown",
+        "sites_source_runtime_operand": [
+          [
+            22900,
+            26996,
+            1
+          ],
+          [
+            23020,
+            27116,
+            0
+          ],
+          [
+            23102,
+            27198,
+            0
+          ],
+          [
+            23142,
+            27238,
+            0
+          ]
+        ],
+        "count": 4
+      },
+      {
+        "root": "SG2RadialObject",
+        "owner": "SG2RadialObject",
+        "field": "projected_screen_x",
+        "provenance": "unknown",
+        "sites_source_runtime_operand": [
+          [
+            22814,
+            26910,
+            1
+          ],
+          [
+            23036,
+            27132,
+            0
+          ],
+          [
+            23116,
+            27212,
+            0
+          ]
+        ],
+        "count": 3
+      },
+      {
+        "root": "SG2RadialObject",
+        "owner": "SG2RadialObject",
+        "field": "projected_screen_y",
+        "provenance": "unknown",
+        "sites_source_runtime_operand": [
+          [
+            22818,
+            26914,
+            1
+          ],
+          [
+            23040,
+            27136,
+            0
+          ],
+          [
+            23146,
+            27242,
+            0
+          ]
+        ],
+        "count": 3
+      },
+      {
+        "root": "SG2RadialObject",
+        "owner": "SG2RadialObject",
+        "field": "projection_radius_shift",
+        "provenance": "policy_seed",
+        "sites_source_runtime_operand": [
+          [
+            13178,
+            17274,
+            1
+          ]
+        ],
+        "count": 1
+      },
+      {
+        "root": "SG2RadialObject",
+        "owner": "SG2RadialObject",
+        "field": "projection_radius_shift",
+        "provenance": "unknown",
+        "sites_source_runtime_operand": [
+          [
+            22780,
+            26876,
+            0
+          ]
+        ],
+        "count": 1
+      },
+      {
+        "root": "SG2RadialObject",
+        "owner": "SG2RadialObject",
+        "field": "radius_work_value",
+        "provenance": "policy_seed",
+        "sites_source_runtime_operand": [
+          [
+            13168,
+            17264,
+            0
+          ],
+          [
+            22594,
+            26690,
+            0
+          ]
+        ],
+        "count": 2
+      },
+      {
+        "root": "SG2StarObject",
+        "owner": "SG2StarObject",
+        "field": "primary_colour_index",
+        "provenance": "policy_seed",
+        "sites_source_runtime_operand": [
+          [
+            22708,
+            26804,
+            0
+          ]
+        ],
+        "count": 1
+      },
+      {
+        "root": "SG2WorldObject",
+        "owner": "SG2ObjectCore",
+        "field": "flags",
+        "provenance": "policy_seed",
+        "sites_source_runtime_operand": [
+          [
+            13584,
+            17680,
+            1
+          ],
+          [
+            42668,
+            46764,
+            1
+          ],
+          [
+            42678,
+            46774,
+            1
+          ],
+          [
+            42806,
+            46902,
+            1
+          ],
+          [
+            42950,
+            47046,
+            1
+          ],
+          [
+            42966,
+            47062,
+            1
+          ],
+          [
+            42976,
+            47072,
+            1
+          ],
+          [
+            43098,
+            47194,
+            1
+          ],
+          [
+            43240,
+            47336,
+            1
+          ]
+        ],
+        "count": 9
+      },
+      {
+        "root": "SG2WorldObject",
+        "owner": "SG2ObjectCore",
+        "field": "object_type",
+        "provenance": "policy_seed",
+        "sites_source_runtime_operand": [
+          [
+            42418,
+            46514,
+            0
+          ],
+          [
+            42584,
+            46680,
+            1
+          ],
+          [
+            42608,
+            46704,
+            1
+          ],
+          [
+            42616,
+            46712,
+            1
+          ],
+          [
+            42624,
+            46720,
+            1
+          ],
+          [
+            42632,
+            46728,
+            1
+          ],
+          [
+            42640,
+            46736,
+            1
+          ],
+          [
+            42648,
+            46744,
+            1
+          ],
+          [
+            42660,
+            46756,
+            0
+          ],
+          [
+            42688,
+            46784,
+            1
+          ],
+          [
+            42696,
+            46792,
+            1
+          ],
+          [
+            42704,
+            46800,
+            1
+          ],
+          [
+            42710,
+            46806,
+            1
+          ],
+          [
+            42716,
+            46812,
+            1
+          ],
+          [
+            42738,
+            46834,
+            1
+          ],
+          [
+            42772,
+            46868,
+            1
+          ],
+          [
+            42838,
+            46934,
+            0
+          ],
+          [
+            42860,
+            46956,
+            1
+          ],
+          [
+            42866,
+            46962,
+            1
+          ],
+          [
+            42872,
+            46968,
+            1
+          ],
+          [
+            42878,
+            46974,
+            1
+          ],
+          [
+            42894,
+            46990,
+            1
+          ],
+          [
+            42900,
+            46996,
+            1
+          ],
+          [
+            42922,
+            47018,
+            0
+          ],
+          [
+            42986,
+            47082,
+            1
+          ],
+          [
+            42994,
+            47090,
+            1
+          ],
+          [
+            43002,
+            47098,
+            1
+          ],
+          [
+            43010,
+            47106,
+            1
+          ],
+          [
+            43018,
+            47114,
+            1
+          ],
+          [
+            43024,
+            47120,
+            1
+          ],
+          [
+            43030,
+            47126,
+            1
+          ],
+          [
+            43062,
+            47158,
+            1
+          ],
+          [
+            43130,
+            47226,
+            0
+          ],
+          [
+            43150,
+            47246,
+            1
+          ],
+          [
+            43156,
+            47252,
+            1
+          ],
+          [
+            43162,
+            47258,
+            1
+          ],
+          [
+            43168,
+            47264,
+            1
+          ],
+          [
+            43184,
+            47280,
+            1
+          ],
+          [
+            43190,
+            47286,
+            1
+          ],
+          [
+            43212,
+            47308,
+            0
+          ]
+        ],
+        "count": 40
+      },
+      {
+        "root": "SG2WorldObject",
+        "owner": "SG2ObjectCore",
+        "field": "relative_x",
+        "provenance": "policy_seed",
+        "sites_source_runtime_operand": [
+          [
+            12180,
+            16276,
+            0
+          ]
+        ],
+        "count": 1
+      },
+      {
+        "root": "SG2WorldObject",
+        "owner": "SG2ObjectCore",
+        "field": "relative_y",
+        "provenance": "policy_seed",
+        "sites_source_runtime_operand": [
+          [
+            12186,
+            16282,
+            0
+          ]
+        ],
+        "count": 1
+      },
+      {
+        "root": "SG2WorldObject",
+        "owner": "SG2ObjectCore",
+        "field": "relative_z",
+        "provenance": "policy_seed",
+        "sites_source_runtime_operand": [
+          [
+            12192,
+            16288,
+            0
+          ]
+        ],
+        "count": 1
+      },
+      {
+        "root": "SG2WorldObject",
+        "owner": "SG2ObjectCore",
+        "field": "retirement_phase_or_negative",
+        "provenance": "policy_seed",
+        "sites_source_runtime_operand": [
+          [
+            12222,
+            16318,
+            0
+          ],
+          [
+            42956,
+            47052,
+            0
+          ],
+          [
+            42962,
+            47058,
+            0
+          ],
+          [
+            43246,
+            47342,
+            0
+          ],
+          [
+            43252,
+            47348,
+            0
+          ]
+        ],
+        "count": 5
+      },
+      {
+        "root": "SG2WorldObject",
+        "owner": "SG2ObjectCore",
+        "field": "world_y",
+        "provenance": "policy_seed",
+        "sites_source_runtime_operand": [
+          [
+            42514,
+            46610,
+            0
+          ]
+        ],
+        "count": 1
+      },
+      {
+        "root": "SG2WorldObject",
+        "owner": "SG2WorldObject",
+        "field": "collision_ignored_object_type",
+        "provenance": "policy_seed",
+        "sites_source_runtime_operand": [
+          [
+            42656,
+            46752,
+            0
+          ],
+          [
+            220306,
+            224402,
+            1
+          ]
+        ],
+        "count": 2
+      },
+      {
+        "root": "SG2WorldObject",
+        "owner": "SG2WorldObject",
+        "field": "collision_ignored_object_type",
+        "provenance": "unknown",
+        "sites_source_runtime_operand": [
+          [
+            221234,
+            225330,
+            1
+          ]
+        ],
+        "count": 1
+      },
+      {
+        "root": "SG2WorldObject",
+        "owner": "SG2WorldObject",
+        "field": "model_scale_shift",
+        "provenance": "policy_seed",
+        "sites_source_runtime_operand": [
+          [
+            13334,
+            17430,
+            0
+          ],
+          [
+            13536,
+            17632,
+            0
+          ],
+          [
+            42438,
+            46534,
+            0
+          ]
+        ],
+        "count": 3
+      },
+      {
+        "root": "SG2WorldObject",
+        "owner": "SG2WorldObject",
+        "field": "pre_view_relative_x",
+        "provenance": "policy_seed",
+        "sites_source_runtime_operand": [
+          [
+            12768,
+            16864,
+            1
+          ],
+          [
+            12780,
+            16876,
+            1
+          ],
+          [
+            12796,
+            16892,
+            1
+          ],
+          [
+            42466,
+            46562,
+            0
+          ]
+        ],
+        "count": 4
+      },
+      {
+        "root": "SG2WorldObject",
+        "owner": "SG2WorldObject",
+        "field": "pre_view_relative_y",
+        "provenance": "policy_seed",
+        "sites_source_runtime_operand": [
+          [
+            12878,
+            16974,
+            1
+          ]
+        ],
+        "count": 1
+      },
+      {
+        "root": "SG2WorldObject",
+        "owner": "SG2WorldObject",
+        "field": "pre_view_relative_z",
+        "provenance": "policy_seed",
+        "sites_source_runtime_operand": [
+          [
+            12828,
+            16924,
+            1
+          ],
+          [
+            12840,
+            16936,
+            1
+          ],
+          [
+            12854,
+            16950,
+            1
+          ],
+          [
+            42490,
+            46586,
+            0
+          ]
+        ],
+        "count": 4
+      },
+      {
+        "root": "SG2WorldObject",
+        "owner": "SG2WorldObject",
+        "field": "rotation_0",
+        "provenance": "policy_seed",
+        "sites_source_runtime_operand": [
+          [
+            12198,
+            16294,
+            0
+          ],
+          [
+            215890,
+            219986,
+            1
+          ],
+          [
+            215968,
+            220064,
+            1
+          ],
+          [
+            215978,
+            220074,
+            1
+          ],
+          [
+            217684,
+            221780,
+            1
+          ],
+          [
+            217690,
+            221786,
+            1
+          ],
+          [
+            217696,
+            221792,
+            1
+          ],
+          [
+            218970,
+            223066,
+            1
+          ],
+          [
+            218974,
+            223070,
+            1
+          ],
+          [
+            219098,
+            223194,
+            1
+          ],
+          [
+            219318,
+            223414,
+            0
+          ],
+          [
+            219324,
+            223420,
+            1
+          ],
+          [
+            220698,
+            224794,
+            1
+          ]
+        ],
+        "count": 13
+      },
+      {
+        "root": "SG2WorldObject",
+        "owner": "SG2WorldObject",
+        "field": "rotation_0",
+        "provenance": "unknown",
+        "sites_source_runtime_operand": [
+          [
+            216350,
+            220446,
+            1
+          ],
+          [
+            216354,
+            220450,
+            1
+          ],
+          [
+            216360,
+            220456,
+            1
+          ],
+          [
+            221116,
+            225212,
+            0
+          ],
+          [
+            221796,
+            225892,
+            0
+          ]
+        ],
+        "count": 5
+      },
+      {
+        "root": "SG2WorldObject",
+        "owner": "SG2WorldObject",
+        "field": "rotation_1",
+        "provenance": "policy_seed",
+        "sites_source_runtime_operand": [
+          [
+            12206,
+            16302,
+            0
+          ],
+          [
+            215884,
+            219980,
+            1
+          ],
+          [
+            217016,
+            221112,
+            1
+          ],
+          [
+            217022,
+            221118,
+            1
+          ],
+          [
+            217672,
+            221768,
+            1
+          ],
+          [
+            217678,
+            221774,
+            1
+          ],
+          [
+            217828,
+            221924,
+            1
+          ],
+          [
+            217832,
+            221928,
+            1
+          ],
+          [
+            217836,
+            221932,
+            1
+          ],
+          [
+            218500,
+            222596,
+            1
+          ],
+          [
+            218506,
+            222602,
+            1
+          ],
+          [
+            218634,
+            222730,
+            1
+          ],
+          [
+            218640,
+            222736,
+            1
+          ],
+          [
+            219104,
+            223200,
+            1
+          ],
+          [
+            220678,
+            224774,
+            1
+          ],
+          [
+            220682,
+            224778,
+            1
+          ]
+        ],
+        "count": 16
+      },
+      {
+        "root": "SG2WorldObject",
+        "owner": "SG2WorldObject",
+        "field": "rotation_1",
+        "provenance": "unknown",
+        "sites_source_runtime_operand": [
+          [
+            221122,
+            225218,
+            0
+          ],
+          [
+            221164,
+            225260,
+            0
+          ],
+          [
+            221168,
+            225264,
+            1
+          ],
+          [
+            221178,
+            225274,
+            1
+          ],
+          [
+            221800,
+            225896,
+            0
+          ]
+        ],
+        "count": 5
+      },
+      {
+        "root": "SG2WorldObject",
+        "owner": "SG2WorldObject",
+        "field": "rotation_2",
+        "provenance": "policy_seed",
+        "sites_source_runtime_operand": [
+          [
+            12214,
+            16310,
+            0
+          ],
+          [
+            215896,
+            219992,
+            1
+          ],
+          [
+            215974,
+            220070,
+            1
+          ],
+          [
+            215984,
+            220080,
+            1
+          ],
+          [
+            218980,
+            223076,
+            1
+          ],
+          [
+            218984,
+            223080,
+            1
+          ],
+          [
+            219110,
+            223206,
+            1
+          ],
+          [
+            219328,
+            223424,
+            0
+          ],
+          [
+            219334,
+            223430,
+            1
+          ],
+          [
+            220688,
+            224784,
+            1
+          ],
+          [
+            220692,
+            224788,
+            1
+          ]
+        ],
+        "count": 11
+      },
+      {
+        "root": "SG2WorldObject",
+        "owner": "SG2WorldObject",
+        "field": "rotation_2",
+        "provenance": "unknown",
+        "sites_source_runtime_operand": [
+          [
+            216366,
+            220462,
+            1
+          ],
+          [
+            216370,
+            220466,
+            1
+          ],
+          [
+            221150,
+            225246,
+            0
+          ],
+          [
+            221804,
+            225900,
+            0
+          ]
+        ],
+        "count": 4
+      },
+      {
+        "root": "SG2WorldObject",
+        "owner": "SG2WorldObject",
+        "field": "vertex_variant_selector",
+        "provenance": "policy_seed",
+        "sites_source_runtime_operand": [
+          [
+            14960,
+            19056,
+            0
+          ],
+          [
+            215872,
+            219968,
+            1
+          ],
+          [
+            215878,
+            219974,
+            1
+          ],
+          [
+            218328,
+            222424,
+            0
+          ],
+          [
+            218362,
+            222458,
+            1
+          ],
+          [
+            218380,
+            222476,
+            0
+          ],
+          [
+            218414,
+            222510,
+            1
+          ],
+          [
+            218428,
+            222524,
+            1
+          ],
+          [
+            218432,
+            222528,
+            1
+          ],
+          [
+            218452,
+            222548,
+            0
+          ],
+          [
+            218486,
+            222582,
+            1
+          ]
+        ],
+        "count": 11
+      },
+      {
+        "root": "SG2WorldObject",
+        "owner": "SG2WorldObject",
+        "field": "vertex_variant_selector",
+        "provenance": "unknown",
+        "sites_source_runtime_operand": [
+          [
+            219528,
+            223624,
+            1
+          ],
+          [
+            219536,
+            223632,
+            1
+          ]
+        ],
+        "count": 2
+      }
+    ],
+    "lost_typed_sites": [
+      {
+        "root": "SG2WorldObject",
+        "owner": "SG2WorldObject",
+        "field": "velocity_x",
+        "provenance": "policy_seed",
+        "sites_source_runtime_operand": [
+          [
+            29104,
+            33200,
+            1
+          ],
+          [
+            29582,
+            33678,
+            1
+          ],
+          [
+            93658,
+            97754,
+            1
+          ]
+        ],
+        "count": 3
+      },
+      {
+        "root": "SG2WorldObject",
+        "owner": "SG2WorldObject",
+        "field": "velocity_z",
+        "provenance": "policy_seed",
+        "sites_source_runtime_operand": [
+          [
+            29106,
+            33202,
+            1
+          ],
+          [
+            29584,
+            33680,
+            1
+          ],
+          [
+            93660,
+            97756,
+            1
+          ]
+        ],
+        "count": 3
+      }
+    ],
+    "changed_field_owner_or_role": [
+      {
+        "before": {
+          "root": "SG2CelestialObject",
+          "owner": "SG2RadialObject",
+          "field": "object_type"
+        },
+        "after": {
+          "root": "SG2CelestialObject",
+          "owner": "SG2ObjectCore",
+          "field": "object_type"
+        },
+        "sites_source_runtime_operand": [
+          [
+            96230,
+            100326,
+            0
+          ],
+          [
+            217256,
+            221352,
+            0
+          ],
+          [
+            217544,
+            221640,
+            0
+          ],
+          [
+            217568,
+            221664,
+            1
+          ],
+          [
+            217588,
+            221684,
+            1
+          ],
+          [
+            217596,
+            221692,
+            1
+          ]
+        ],
+        "count": 6
+      },
+      {
+        "before": {
+          "root": "SG2CelestialObject",
+          "owner": "SG2RadialObject",
+          "field": "world_x"
+        },
+        "after": {
+          "root": "SG2CelestialObject",
+          "owner": "SG2ObjectCore",
+          "field": "world_x"
+        },
+        "sites_source_runtime_operand": [
+          [
+            217238,
+            221334,
+            1
+          ],
+          [
+            217268,
+            221364,
+            0
+          ],
+          [
+            217290,
+            221386,
+            0
+          ],
+          [
+            217458,
+            221554,
+            1
+          ],
+          [
+            217530,
+            221626,
+            0
+          ],
+          [
+            219788,
+            223884,
+            1
+          ]
+        ],
+        "count": 6
+      },
+      {
+        "before": {
+          "root": "SG2CelestialObject",
+          "owner": "SG2RadialObject",
+          "field": "world_y"
+        },
+        "after": {
+          "root": "SG2CelestialObject",
+          "owner": "SG2ObjectCore",
+          "field": "world_y"
+        },
+        "sites_source_runtime_operand": [
+          [
+            96258,
+            100354,
+            1
+          ],
+          [
+            219784,
+            223880,
+            1
+          ]
+        ],
+        "count": 2
+      },
+      {
+        "before": {
+          "root": "SG2CelestialObject",
+          "owner": "SG2RadialObject",
+          "field": "world_z"
+        },
+        "after": {
+          "root": "SG2CelestialObject",
+          "owner": "SG2ObjectCore",
+          "field": "world_z"
+        },
+        "sites_source_runtime_operand": [
+          [
+            217246,
+            221342,
+            1
+          ],
+          [
+            217274,
+            221370,
+            0
+          ],
+          [
+            217296,
+            221392,
+            0
+          ],
+          [
+            217462,
+            221558,
+            1
+          ],
+          [
+            217534,
+            221630,
+            0
+          ],
+          [
+            219792,
+            223888,
+            1
+          ]
+        ],
+        "count": 6
+      },
+      {
+        "before": {
+          "root": "SG2EnergySpheroid",
+          "owner": "SG2EnergySpheroid",
+          "field": "projected_screen_x"
+        },
+        "after": {
+          "root": "SG2EnergySpheroid",
+          "owner": "SG2RadialObject",
+          "field": "projected_screen_x"
+        },
+        "sites_source_runtime_operand": [
+          [
+            23236,
+            27332,
+            0
+          ]
+        ],
+        "count": 1
+      },
+      {
+        "before": {
+          "root": "SG2EnergySpheroid",
+          "owner": "SG2EnergySpheroid",
+          "field": "projected_screen_y"
+        },
+        "after": {
+          "root": "SG2EnergySpheroid",
+          "owner": "SG2RadialObject",
+          "field": "projected_screen_y"
+        },
+        "sites_source_runtime_operand": [
+          [
+            23244,
+            27340,
+            0
+          ]
+        ],
+        "count": 1
+      },
+      {
+        "before": {
+          "root": "SG2EnergySpheroid",
+          "owner": "SG2RadialObject",
+          "field": "object_type"
+        },
+        "after": {
+          "root": "SG2EnergySpheroid",
+          "owner": "SG2ObjectCore",
+          "field": "object_type"
+        },
+        "sites_source_runtime_operand": [
+          [
+            217874,
+            221970,
+            0
+          ]
+        ],
+        "count": 1
+      },
+      {
+        "before": {
+          "root": "SG2EnergySpheroid",
+          "owner": "SG2RadialObject",
+          "field": "world_z"
+        },
+        "after": {
+          "root": "SG2EnergySpheroid",
+          "owner": "SG2ObjectCore",
+          "field": "world_z"
+        },
+        "sites_source_runtime_operand": [
+          [
+            217850,
+            221946,
+            1
+          ]
+        ],
+        "count": 1
+      },
+      {
+        "before": {
+          "root": "SG2RadialObject",
+          "owner": "SG2RadialObject",
+          "field": "flags"
+        },
+        "after": {
+          "root": "SG2RadialObject",
+          "owner": "SG2ObjectCore",
+          "field": "flags"
+        },
+        "sites_source_runtime_operand": [
+          [
+            96482,
+            100578,
+            1
+          ]
+        ],
+        "count": 1
+      },
+      {
+        "before": {
+          "root": "SG2RadialObject",
+          "owner": "SG2RadialObject",
+          "field": "object_type"
+        },
+        "after": {
+          "root": "SG2RadialObject",
+          "owner": "SG2ObjectCore",
+          "field": "object_type"
+        },
+        "sites_source_runtime_operand": [
+          [
+            96438,
+            100534,
+            0
+          ]
+        ],
+        "count": 1
+      },
+      {
+        "before": {
+          "root": "SG2RadialObject",
+          "owner": "SG2RadialObject",
+          "field": "world_y"
+        },
+        "after": {
+          "root": "SG2RadialObject",
+          "owner": "SG2ObjectCore",
+          "field": "world_y"
+        },
+        "sites_source_runtime_operand": [
+          [
+            96466,
+            100562,
+            1
+          ]
+        ],
+        "count": 1
+      },
+      {
+        "before": {
+          "root": "SG2SkimLauncherDrone",
+          "owner": "SG2SkimLauncherDrone",
+          "field": "collision_ignored_object_type"
+        },
+        "after": {
+          "root": "SG2SkimLauncherDrone",
+          "owner": "SG2WorldObject",
+          "field": "collision_ignored_object_type"
+        },
+        "sites_source_runtime_operand": [
+          [
+            216676,
+            220772,
+            1
+          ]
+        ],
+        "count": 1
+      },
+      {
+        "before": {
+          "root": "SG2SkimLauncherDrone",
+          "owner": "SG2SkimLauncherDrone",
+          "field": "rotation_0"
+        },
+        "after": {
+          "root": "SG2SkimLauncherDrone",
+          "owner": "SG2WorldObject",
+          "field": "rotation_0"
+        },
+        "sites_source_runtime_operand": [
+          [
+            216830,
+            220926,
+            1
+          ],
+          [
+            216836,
+            220932,
+            1
+          ],
+          [
+            216842,
+            220938,
+            1
+          ],
+          [
+            216876,
+            220972,
+            0
+          ],
+          [
+            216892,
+            220988,
+            1
+          ],
+          [
+            216928,
+            221024,
+            1
+          ],
+          [
+            216986,
+            221082,
+            1
+          ],
+          [
+            216992,
+            221088,
+            1
+          ]
+        ],
+        "count": 8
+      },
+      {
+        "before": {
+          "root": "SG2SkimLauncherDrone",
+          "owner": "SG2SkimLauncherDrone",
+          "field": "rotation_1"
+        },
+        "after": {
+          "root": "SG2SkimLauncherDrone",
+          "owner": "SG2WorldObject",
+          "field": "rotation_1"
+        },
+        "sites_source_runtime_operand": [
+          [
+            216880,
+            220976,
+            0
+          ],
+          [
+            216898,
+            220994,
+            1
+          ],
+          [
+            216924,
+            221020,
+            1
+          ]
+        ],
+        "count": 3
+      },
+      {
+        "before": {
+          "root": "SG2SkimLauncherDrone",
+          "owner": "SG2SkimLauncherDrone",
+          "field": "rotation_2"
+        },
+        "after": {
+          "root": "SG2SkimLauncherDrone",
+          "owner": "SG2WorldObject",
+          "field": "rotation_2"
+        },
+        "sites_source_runtime_operand": [
+          [
+            216848,
+            220944,
+            1
+          ],
+          [
+            216854,
+            220950,
+            1
+          ],
+          [
+            216884,
+            220980,
+            0
+          ],
+          [
+            216904,
+            221000,
+            1
+          ],
+          [
+            216920,
+            221016,
+            1
+          ],
+          [
+            216998,
+            221094,
+            1
+          ],
+          [
+            217004,
+            221100,
+            1
+          ]
+        ],
+        "count": 7
+      },
+      {
+        "before": {
+          "root": "SG2SkimLauncherDrone",
+          "owner": "SG2WorldObject",
+          "field": "relative_x"
+        },
+        "after": {
+          "root": "SG2SkimLauncherDrone",
+          "owner": "SG2ObjectCore",
+          "field": "relative_x"
+        },
+        "sites_source_runtime_operand": [
+          [
+            216556,
+            220652,
+            0
+          ]
+        ],
+        "count": 1
+      },
+      {
+        "before": {
+          "root": "SG2SkimLauncherDrone",
+          "owner": "SG2WorldObject",
+          "field": "relative_y"
+        },
+        "after": {
+          "root": "SG2SkimLauncherDrone",
+          "owner": "SG2ObjectCore",
+          "field": "relative_y"
+        },
+        "sites_source_runtime_operand": [
+          [
+            216540,
+            220636,
+            0
+          ]
+        ],
+        "count": 1
+      },
+      {
+        "before": {
+          "root": "SG2SkimLauncherDrone",
+          "owner": "SG2WorldObject",
+          "field": "relative_z"
+        },
+        "after": {
+          "root": "SG2SkimLauncherDrone",
+          "owner": "SG2ObjectCore",
+          "field": "relative_z"
+        },
+        "sites_source_runtime_operand": [
+          [
+            216520,
+            220616,
+            0
+          ]
+        ],
+        "count": 1
+      },
+      {
+        "before": {
+          "root": "SG2SkimLauncherDrone",
+          "owner": "SG2WorldObject",
+          "field": "world_x"
+        },
+        "after": {
+          "root": "SG2SkimLauncherDrone",
+          "owner": "SG2ObjectCore",
+          "field": "world_x"
+        },
+        "sites_source_runtime_operand": [
+          [
+            216600,
+            220696,
+            0
+          ],
+          [
+            216950,
+            221046,
+            0
+          ],
+          [
+            216974,
+            221070,
+            1
+          ]
+        ],
+        "count": 3
+      },
+      {
+        "before": {
+          "root": "SG2SkimLauncherDrone",
+          "owner": "SG2WorldObject",
+          "field": "world_y"
+        },
+        "after": {
+          "root": "SG2SkimLauncherDrone",
+          "owner": "SG2ObjectCore",
+          "field": "world_y"
+        },
+        "sites_source_runtime_operand": [
+          [
+            216494,
+            220590,
+            1
+          ],
+          [
+            216504,
+            220600,
+            1
+          ],
+          [
+            216606,
+            220702,
+            0
+          ],
+          [
+            216954,
+            221050,
+            0
+          ],
+          [
+            216978,
+            221074,
+            1
+          ]
+        ],
+        "count": 5
+      },
+      {
+        "before": {
+          "root": "SG2SkimLauncherDrone",
+          "owner": "SG2WorldObject",
+          "field": "world_z"
+        },
+        "after": {
+          "root": "SG2SkimLauncherDrone",
+          "owner": "SG2ObjectCore",
+          "field": "world_z"
+        },
+        "sites_source_runtime_operand": [
+          [
+            216612,
+            220708,
+            0
+          ],
+          [
+            216958,
+            221054,
+            0
+          ],
+          [
+            216982,
+            221078,
+            1
+          ]
+        ],
+        "count": 3
+      },
+      {
+        "before": {
+          "root": "SG2TunnelDepot",
+          "owner": "SG2WorldObject",
+          "field": "world_z"
+        },
+        "after": {
+          "root": "SG2TunnelDepot",
+          "owner": "SG2ObjectCore",
+          "field": "world_z"
+        },
+        "sites_source_runtime_operand": [
+          [
+            44312,
+            48408,
+            0
+          ],
+          [
+            44324,
+            48420,
+            0
+          ],
+          [
+            44358,
+            48454,
+            0
+          ],
+          [
+            44374,
+            48470,
+            0
+          ]
+        ],
+        "count": 4
+      },
+      {
+        "before": {
+          "root": "SG2WorldObject",
+          "owner": "SG2WorldObject",
+          "field": "flags"
+        },
+        "after": {
+          "root": "SG2ObjectCore",
+          "owner": "SG2ObjectCore",
+          "field": "flags"
+        },
+        "sites_source_runtime_operand": [
+          [
+            12680,
+            16776,
+            1
+          ],
+          [
+            28662,
+            32758,
+            1
+          ],
+          [
+            28672,
+            32768,
+            1
+          ],
+          [
+            28690,
+            32786,
+            0
+          ],
+          [
+            29018,
+            33114,
+            1
+          ],
+          [
+            29024,
+            33120,
+            1
+          ],
+          [
+            29042,
+            33138,
+            1
+          ],
+          [
+            29196,
+            33292,
+            0
+          ],
+          [
+            93864,
+            97960,
+            1
+          ],
+          [
+            93874,
+            97970,
+            1
+          ]
+        ],
+        "count": 10
+      },
+      {
+        "before": {
+          "root": "SG2WorldObject",
+          "owner": "SG2WorldObject",
+          "field": "flags"
+        },
+        "after": {
+          "root": "SG2WorldObject",
+          "owner": "SG2ObjectCore",
+          "field": "flags"
+        },
+        "sites_source_runtime_operand": [
+          [
+            216260,
+            220356,
+            1
+          ],
+          [
+            216266,
+            220362,
+            1
+          ],
+          [
+            217078,
+            221174,
+            1
+          ],
+          [
+            217084,
+            221180,
+            1
+          ],
+          [
+            221398,
+            225494,
+            1
+          ],
+          [
+            221404,
+            225500,
+            1
+          ]
+        ],
+        "count": 6
+      },
+      {
+        "before": {
+          "root": "SG2WorldObject",
+          "owner": "SG2WorldObject",
+          "field": "object_type"
+        },
+        "after": {
+          "root": "SG2ObjectCore",
+          "owner": "SG2ObjectCore",
+          "field": "object_type"
+        },
+        "sites_source_runtime_operand": [
+          [
+            12668,
+            16764,
+            0
+          ],
+          [
+            12732,
+            16828,
+            0
+          ],
+          [
+            12888,
+            16984,
+            0
+          ],
+          [
+            28682,
+            32778,
+            0
+          ],
+          [
+            29052,
+            33148,
+            0
+          ],
+          [
+            29082,
+            33178,
+            1
+          ],
+          [
+            29188,
+            33284,
+            0
+          ],
+          [
+            29508,
+            33604,
+            0
+          ],
+          [
+            29560,
+            33656,
+            1
+          ],
+          [
+            93636,
+            97732,
+            1
+          ],
+          [
+            93782,
+            97878,
+            1
+          ],
+          [
+            93870,
+            97966,
+            0
+          ],
+          [
+            93880,
+            97976,
+            0
+          ],
+          [
+            93884,
+            97980,
+            0
+          ],
+          [
+            93886,
+            97982,
+            0
+          ]
+        ],
+        "count": 15
+      },
+      {
+        "before": {
+          "root": "SG2WorldObject",
+          "owner": "SG2WorldObject",
+          "field": "object_type"
+        },
+        "after": {
+          "root": "SG2WorldObject",
+          "owner": "SG2ObjectCore",
+          "field": "object_type"
+        },
+        "sites_source_runtime_operand": [
+          [
+            215906,
+            220002,
+            1
+          ],
+          [
+            215930,
+            220026,
+            0
+          ],
+          [
+            219188,
+            223284,
+            0
+          ],
+          [
+            221424,
+            225520,
+            0
+          ]
+        ],
+        "count": 4
+      },
+      {
+        "before": {
+          "root": "SG2WorldObject",
+          "owner": "SG2WorldObject",
+          "field": "relative_x"
+        },
+        "after": {
+          "root": "SG2ObjectCore",
+          "owner": "SG2ObjectCore",
+          "field": "relative_x"
+        },
+        "sites_source_runtime_operand": [
+          [
+            12992,
+            17088,
+            1
+          ],
+          [
+            13000,
+            17096,
+            1
+          ],
+          [
+            13010,
+            17106,
+            1
+          ]
+        ],
+        "count": 3
+      },
+      {
+        "before": {
+          "root": "SG2WorldObject",
+          "owner": "SG2WorldObject",
+          "field": "relative_x"
+        },
+        "after": {
+          "root": "SG2WorldObject",
+          "owner": "SG2ObjectCore",
+          "field": "relative_x"
+        },
+        "sites_source_runtime_operand": [
+          [
+            12764,
+            16860,
+            1
+          ],
+          [
+            12776,
+            16872,
+            1
+          ],
+          [
+            12792,
+            16888,
+            1
+          ]
+        ],
+        "count": 3
+      },
+      {
+        "before": {
+          "root": "SG2WorldObject",
+          "owner": "SG2WorldObject",
+          "field": "relative_y"
+        },
+        "after": {
+          "root": "SG2ObjectCore",
+          "owner": "SG2ObjectCore",
+          "field": "relative_y"
+        },
+        "sites_source_runtime_operand": [
+          [
+            13080,
+            17176,
+            1
+          ],
+          [
+            29094,
+            33190,
+            1
+          ],
+          [
+            29572,
+            33668,
+            1
+          ],
+          [
+            93648,
+            97744,
+            1
+          ]
+        ],
+        "count": 4
+      },
+      {
+        "before": {
+          "root": "SG2WorldObject",
+          "owner": "SG2WorldObject",
+          "field": "relative_y"
+        },
+        "after": {
+          "root": "SG2WorldObject",
+          "owner": "SG2ObjectCore",
+          "field": "relative_y"
+        },
+        "sites_source_runtime_operand": [
+          [
+            12874,
+            16970,
+            1
+          ]
+        ],
+        "count": 1
+      },
+      {
+        "before": {
+          "root": "SG2WorldObject",
+          "owner": "SG2WorldObject",
+          "field": "relative_z"
+        },
+        "after": {
+          "root": "SG2ObjectCore",
+          "owner": "SG2ObjectCore",
+          "field": "relative_z"
+        },
+        "sites_source_runtime_operand": [
+          [
+            13038,
+            17134,
+            1
+          ],
+          [
+            13046,
+            17142,
+            1
+          ],
+          [
+            13056,
+            17152,
+            1
+          ]
+        ],
+        "count": 3
+      },
+      {
+        "before": {
+          "root": "SG2WorldObject",
+          "owner": "SG2WorldObject",
+          "field": "relative_z"
+        },
+        "after": {
+          "root": "SG2WorldObject",
+          "owner": "SG2ObjectCore",
+          "field": "relative_z"
+        },
+        "sites_source_runtime_operand": [
+          [
+            12824,
+            16920,
+            1
+          ],
+          [
+            12836,
+            16932,
+            1
+          ],
+          [
+            12850,
+            16946,
+            1
+          ],
+          [
+            219438,
+            223534,
+            0
+          ]
+        ],
+        "count": 4
+      },
+      {
+        "before": {
+          "root": "SG2WorldObject",
+          "owner": "SG2WorldObject",
+          "field": "retirement_phase_or_negative"
+        },
+        "after": {
+          "root": "SG2ObjectCore",
+          "owner": "SG2ObjectCore",
+          "field": "retirement_phase_or_negative"
+        },
+        "sites_source_runtime_operand": [
+          [
+            28654,
+            32750,
+            0
+          ],
+          [
+            29066,
+            33162,
+            0
+          ],
+          [
+            29072,
+            33168,
+            1
+          ],
+          [
+            29118,
+            33214,
+            1
+          ],
+          [
+            29180,
+            33276,
+            0
+          ],
+          [
+            29520,
+            33616,
+            0
+          ],
+          [
+            29526,
+            33622,
+            1
+          ],
+          [
+            29532,
+            33628,
+            1
+          ]
+        ],
+        "count": 8
+      },
+      {
+        "before": {
+          "root": "SG2WorldObject",
+          "owner": "SG2WorldObject",
+          "field": "retirement_phase_or_negative"
+        },
+        "after": {
+          "root": "SG2WorldObject",
+          "owner": "SG2ObjectCore",
+          "field": "retirement_phase_or_negative"
+        },
+        "sites_source_runtime_operand": [
+          [
+            216256,
+            220352,
+            0
+          ],
+          [
+            217074,
+            221170,
+            0
+          ],
+          [
+            219056,
+            223152,
+            0
+          ],
+          [
+            219142,
+            223238,
+            0
+          ],
+          [
+            219500,
+            223596,
+            1
+          ],
+          [
+            219544,
+            223640,
+            1
+          ],
+          [
+            220582,
+            224678,
+            1
+          ],
+          [
+            220592,
+            224688,
+            1
+          ],
+          [
+            221394,
+            225490,
+            0
+          ]
+        ],
+        "count": 9
+      },
+      {
+        "before": {
+          "root": "SG2WorldObject",
+          "owner": "SG2WorldObject",
+          "field": "world_x"
+        },
+        "after": {
+          "root": "SG2ObjectCore",
+          "owner": "SG2ObjectCore",
+          "field": "world_x"
+        },
+        "sites_source_runtime_operand": [
+          [
+            12968,
+            17064,
+            0
+          ],
+          [
+            29084,
+            33180,
+            1
+          ],
+          [
+            29562,
+            33658,
+            1
+          ],
+          [
+            93638,
+            97734,
+            1
+          ],
+          [
+            93788,
+            97884,
+            1
+          ]
+        ],
+        "count": 5
+      },
+      {
+        "before": {
+          "root": "SG2WorldObject",
+          "owner": "SG2WorldObject",
+          "field": "world_x"
+        },
+        "after": {
+          "root": "SG2WorldObject",
+          "owner": "SG2ObjectCore",
+          "field": "world_x"
+        },
+        "sites_source_runtime_operand": [
+          [
+            12740,
+            16836,
+            0
+          ],
+          [
+            47182,
+            51278,
+            1
+          ],
+          [
+            47210,
+            51306,
+            1
+          ],
+          [
+            215838,
+            219934,
+            0
+          ],
+          [
+            215860,
+            219956,
+            1
+          ],
+          [
+            215952,
+            220048,
+            1
+          ],
+          [
+            216040,
+            220136,
+            0
+          ],
+          [
+            216058,
+            220154,
+            0
+          ],
+          [
+            216472,
+            220568,
+            1
+          ],
+          [
+            217770,
+            221866,
+            0
+          ],
+          [
+            218588,
+            222684,
+            1
+          ],
+          [
+            218902,
+            222998,
+            1
+          ],
+          [
+            218930,
+            223026,
+            1
+          ],
+          [
+            219008,
+            223104,
+            0
+          ],
+          [
+            219038,
+            223134,
+            1
+          ],
+          [
+            219072,
+            223168,
+            1
+          ],
+          [
+            219450,
+            223546,
+            1
+          ],
+          [
+            219468,
+            223564,
+            1
+          ],
+          [
+            220316,
+            224412,
+            0
+          ],
+          [
+            220450,
+            224546,
+            0
+          ],
+          [
+            220548,
+            224644,
+            1
+          ],
+          [
+            220566,
+            224662,
+            1
+          ],
+          [
+            220618,
+            224714,
+            1
+          ],
+          [
+            220646,
+            224742,
+            1
+          ],
+          [
+            220724,
+            224820,
+            0
+          ],
+          [
+            221098,
+            225194,
+            0
+          ],
+          [
+            221320,
+            225416,
+            0
+          ],
+          [
+            221502,
+            225598,
+            1
+          ],
+          [
+            221520,
+            225616,
+            1
+          ],
+          [
+            221534,
+            225630,
+            0
+          ]
+        ],
+        "count": 30
+      },
+      {
+        "before": {
+          "root": "SG2WorldObject",
+          "owner": "SG2WorldObject",
+          "field": "world_y"
+        },
+        "after": {
+          "root": "SG2ObjectCore",
+          "owner": "SG2ObjectCore",
+          "field": "world_y"
+        },
+        "sites_source_runtime_operand": [
+          [
+            13060,
+            17156,
+            0
+          ],
+          [
+            29010,
+            33106,
+            1
+          ],
+          [
+            29034,
+            33130,
+            1
+          ],
+          [
+            29086,
+            33182,
+            1
+          ],
+          [
+            29564,
+            33660,
+            1
+          ],
+          [
+            93640,
+            97736,
+            1
+          ],
+          [
+            93844,
+            97940,
+            1
+          ]
+        ],
+        "count": 7
+      },
+      {
+        "before": {
+          "root": "SG2WorldObject",
+          "owner": "SG2WorldObject",
+          "field": "world_y"
+        },
+        "after": {
+          "root": "SG2WorldObject",
+          "owner": "SG2ObjectCore",
+          "field": "world_y"
+        },
+        "sites_source_runtime_operand": [
+          [
+            12858,
+            16954,
+            0
+          ],
+          [
+            14988,
+            19084,
+            0
+          ],
+          [
+            47192,
+            51288,
+            1
+          ],
+          [
+            95526,
+            99622,
+            1
+          ],
+          [
+            95550,
+            99646,
+            1
+          ],
+          [
+            95556,
+            99652,
+            1
+          ],
+          [
+            215842,
+            219938,
+            0
+          ],
+          [
+            215864,
+            219960,
+            1
+          ],
+          [
+            215956,
+            220052,
+            1
+          ],
+          [
+            216046,
+            220142,
+            0
+          ],
+          [
+            216064,
+            220160,
+            0
+          ],
+          [
+            216480,
+            220576,
+            1
+          ],
+          [
+            217046,
+            221142,
+            1
+          ],
+          [
+            217776,
+            221872,
+            0
+          ],
+          [
+            218630,
+            222726,
+            1
+          ],
+          [
+            218650,
+            222746,
+            1
+          ],
+          [
+            218660,
+            222756,
+            1
+          ],
+          [
+            218912,
+            223008,
+            1
+          ],
+          [
+            218950,
+            223046,
+            1
+          ],
+          [
+            218954,
+            223050,
+            1
+          ],
+          [
+            219012,
+            223108,
+            0
+          ],
+          [
+            219042,
+            223138,
+            1
+          ],
+          [
+            219088,
+            223184,
+            1
+          ],
+          [
+            219122,
+            223218,
+            1
+          ],
+          [
+            219348,
+            223444,
+            1
+          ],
+          [
+            219352,
+            223448,
+            1
+          ],
+          [
+            219384,
+            223480,
+            1
+          ],
+          [
+            219482,
+            223578,
+            1
+          ],
+          [
+            219492,
+            223588,
+            1
+          ],
+          [
+            220528,
+            224624,
+            1
+          ],
+          [
+            220532,
+            224628,
+            1
+          ],
+          [
+            220628,
+            224724,
+            1
+          ],
+          [
+            220736,
+            224832,
+            0
+          ],
+          [
+            221104,
+            225200,
+            0
+          ],
+          [
+            221326,
+            225422,
+            0
+          ],
+          [
+            221506,
+            225602,
+            1
+          ],
+          [
+            221524,
+            225620,
+            1
+          ],
+          [
+            221538,
+            225634,
+            0
+          ]
+        ],
+        "count": 38
+      },
+      {
+        "before": {
+          "root": "SG2WorldObject",
+          "owner": "SG2WorldObject",
+          "field": "world_z"
+        },
+        "after": {
+          "root": "SG2ObjectCore",
+          "owner": "SG2ObjectCore",
+          "field": "world_z"
+        },
+        "sites_source_runtime_operand": [
+          [
+            13014,
+            17110,
+            0
+          ],
+          [
+            29088,
+            33184,
+            1
+          ],
+          [
+            29566,
+            33662,
+            1
+          ],
+          [
+            93642,
+            97738,
+            1
+          ],
+          [
+            93792,
+            97888,
+            1
+          ]
+        ],
+        "count": 5
+      },
+      {
+        "before": {
+          "root": "SG2WorldObject",
+          "owner": "SG2WorldObject",
+          "field": "world_z"
+        },
+        "after": {
+          "root": "SG2WorldObject",
+          "owner": "SG2ObjectCore",
+          "field": "world_z"
+        },
+        "sites_source_runtime_operand": [
+          [
+            12800,
+            16896,
+            0
+          ],
+          [
+            47202,
+            51298,
+            1
+          ],
+          [
+            47214,
+            51310,
+            1
+          ],
+          [
+            215846,
+            219942,
+            0
+          ],
+          [
+            215868,
+            219964,
+            1
+          ],
+          [
+            215960,
+            220056,
+            1
+          ],
+          [
+            216052,
+            220148,
+            0
+          ],
+          [
+            216070,
+            220166,
+            0
+          ],
+          [
+            216476,
+            220572,
+            1
+          ],
+          [
+            217782,
+            221878,
+            0
+          ],
+          [
+            218592,
+            222688,
+            1
+          ],
+          [
+            218922,
+            223018,
+            1
+          ],
+          [
+            218934,
+            223030,
+            1
+          ],
+          [
+            219016,
+            223112,
+            0
+          ],
+          [
+            219046,
+            223142,
+            1
+          ],
+          [
+            219092,
+            223188,
+            1
+          ],
+          [
+            219460,
+            223556,
+            1
+          ],
+          [
+            219472,
+            223568,
+            1
+          ],
+          [
+            220322,
+            224418,
+            0
+          ],
+          [
+            220458,
+            224554,
+            0
+          ],
+          [
+            220558,
+            224654,
+            1
+          ],
+          [
+            220570,
+            224666,
+            1
+          ],
+          [
+            220638,
+            224734,
+            1
+          ],
+          [
+            220650,
+            224746,
+            1
+          ],
+          [
+            220748,
+            224844,
+            0
+          ],
+          [
+            221110,
+            225206,
+            0
+          ],
+          [
+            221332,
+            225428,
+            0
+          ],
+          [
+            221510,
+            225606,
+            1
+          ],
+          [
+            221528,
+            225624,
+            1
+          ],
+          [
+            221542,
+            225638,
+            0
+          ]
+        ],
+        "count": 30
+      }
+    ],
+    "unresolved_classifications": {
+      "indexed_dynamic": 87,
+      "field_gap": 148,
+      "auto_update_cursor": 5
+    },
+    "lost_site_disposition": "Six previous velocity field names in heterogeneous whole-record clear streams are intentionally removed. The clear does not establish every variant has model velocity fields.",
+    "new_typed_sites_count": 314,
+    "lost_typed_sites_count": 6,
+    "changed_field_owner_or_role_count": 249
+  },
+  "validation": {
+    "native_and_vasm": {
+      "kind": "verification",
+      "framework_exact": true,
+      "target_id": "amiga_raw_starglider2_game",
+      "subject_revision": "4b407f444257e4415e4d915433aa81f128c2f93af88d55f0617dc5cbc9764576",
+      "status": "exact",
+      "exact": true,
+      "source_sha256": "c3c243ecb4d96bd5409637c9079c9dab9cdca4032e1a52d90afc4d7b43fe28c8",
+      "source_path": "/workspace/pandora-original-delivery/stable-d15c2cf8/.runtime-state/restoration/eb04f545fb97451725a1c91ab5abf6f2e097614c45880db6edfb4ea5c3f6e2c2/c3c243ecb4d96bd5409637c9079c9dab9cdca4032e1a52d90afc4d7b43fe28c8.s",
+      "source_package_sha256": null,
+      "original_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+      "original_size": 412736,
+      "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+      "rebuilt_path": "/workspace/pandora-original-delivery/stable-d15c2cf8/.runtime-state/restoration/eb04f545fb97451725a1c91ab5abf6f2e097614c45880db6edfb4ea5c3f6e2c2/662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9.bin",
+      "framework_status": "exact",
+      "failure_kinds": [],
+      "message": "",
+      "oracle": {
+        "oracle_id": "vasm",
+        "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+        "comparison_level": "oracle.full_file_match",
+        "assembler_status": "accepted",
+        "message": "oracle output matched original bytes"
+      },
+      "receipt_id": "5e19c6373daba3556766cfe6de18c4195b7706d7ae15d81a56d758cb5edd8f70",
+      "revision": "aa8b0a1def6099a647a3b45285687cc78355b751d8518a20e9fbf7c480bc740e"
+    },
+    "source_quality_diagnostics": 0,
+    "incomplete_analysis": [],
+    "generation_wall_seconds": 147.31979293801123,
+    "assets_unchanged": 57,
+    "required_headers": 14,
+    "new_framework_code": true,
+    "focused_python_passed": 69,
+    "native_suite_passed": 832,
+    "new_regression_cases": 7,
+    "focused_test_log_sha256": "8227157a45fbb29f86af939675e7da3e8fd631871c26f7ba55fbb17772484fa5",
+    "native_test_log_sha256": "fff8db61cba9b314dd6c218d0c3ecae57f5ae4605daf1b040c84b1cc324378ae",
+    "framework_change": "Existing register-value merge now lets a genuine unknown absorb a type-conflict diagnostic packet before handling incompatible known packets. Before: two of six predecessor permutations fail. After: all six pass, and the two-known-input conflict stays explicit. No work limit raised or analysis rule weakened.",
+    "clean_standalone_build": {
+      "status": "pass",
+      "validated_target_git_tree": "a6cc154b21a1b61cfef8dea9713c5e338f1cfb2c",
+      "receipt": {
+        "schema_version": 1,
+        "status": "pass",
+        "format": "raw_payload_not_AmigaDOS_HUNK",
+        "main_bytes": 412736,
+        "main_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+        "main_matches_original_identity": true,
+        "asset_count": 57,
+        "all_asset_source_slices_equal": true,
+        "decoded_view_inverse_exact": true,
+        "boot_copy_source_matches_resident_view": true,
+        "source_commit": "9c8cdbfd2a4fca323e3fcc37031a32f7d4c72780",
+        "assembler_sha256": "413e284020125f42709486dfe09907cab3dd9f3c2ea41017c190f8ea68f30825",
+        "flags": [
+          "-Fbin",
+          "-m68000",
+          "-no-opt"
+        ],
+        "outputs": [
+          {
+            "role": "original_main",
+            "filename": "Starglider2-original.raw",
+            "bytes": 412736,
+            "sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9"
+          },
+          {
+            "role": "decoded_analysis_view",
+            "filename": "protection-decoded-analysis.raw",
+            "bytes": 3548,
+            "sha256": "de8358853dd9ed9b006a23569bf393aa217ed3be3301a169465d80bfaf839922"
+          },
+          {
+            "role": "boot_installer_context",
+            "filename": "boot-selector-installer-context.raw",
+            "bytes": 40,
+            "sha256": "8d34852425e2e1bfa87b3febdfc74fb39e7c667e9d9ff73e17b594649e83b21b"
+          },
+          {
+            "role": "boot_resident_view",
+            "filename": "boot-selector-resident.raw",
+            "bytes": 20,
+            "sha256": "a26286a393713c046eff9dbaff15b20b26b171fa9e05fc9d538d16b0eddb6024"
+          }
+        ]
+      },
+      "recoverable_pandora_backups_verified": 16
+    }
+  },
+  "solver_diagnosis": {
+    "before_target_incomplete": [
+      {
+        "kind": 1,
+        "kind_name": "capacity_exhausted",
+        "source_kind": 2,
+        "source_kind_name": "typed_flow_worklist",
+        "section_index": 0,
+        "offset": 211426,
+        "capacity": 1898560,
+        "hit_count": 2
+      }
+    ],
+    "before_trace_sha256": "c9cd515a6d3147978e8f9162f2f8e3b609c755b0e8bec1e1af4da6471c2e2716",
+    "after_trace_sha256": "b70a8dc77807af95fe84c720882aa02e29ad4bb538f05b023015bc1f1e97e83a",
+    "changed_byte": "A4 type_conflicted in the inventory clear loop at original349DC..349EE",
+    "fixture_log_sha256": "895046e45ec9589e3281726cdfdeb67d9b1fc10c4c68faa641ac55b55b028254",
+    "after_passes": [
+      {
+        "final": 0,
+        "nodes": 29665,
+        "visits": 47459,
+        "pending": 0,
+        "limit": 1898560
+      },
+      {
+        "final": 0,
+        "nodes": 29665,
+        "visits": 46006,
+        "pending": 0,
+        "limit": 1898560
+      },
+      {
+        "final": 0,
+        "nodes": 29665,
+        "visits": 46003,
+        "pending": 0,
+        "limit": 1898560
+      },
+      {
+        "final": 1,
+        "nodes": 29665,
+        "visits": 52539,
+        "pending": 0,
+        "limit": 1898560
+      }
+    ],
+    "node_visit_limit_unchanged": true,
+    "new_per_node_state_bytes": 0
+  },
+  "limits": [
+    "Actual nonnegative type-byte guards admit0..127 and do not alone prove the stored0..103 model table domain. Original valid model consumption remains a separate assumption.",
+    "The contact producer queues active-phase objects before its model visibility filter, so list pointees are heterogeneous.",
+    "The inner contact loop reads extent/cache values before its actual type-byte filter. Original pointer ordering/index bounds remain a specific obligation; new A2 model contract begins only after that filter.",
+    "Original valid model/disc consumption is assumed, including type30 render override. No arbitrary override value or universal caller proof.",
+    "One-based vertex selector role is established under a nonzero optional model frame table; no arbitrary upper bound is inferred.",
+    "No emulator run, memory lifetime proof, relocation, gameplay equivalence or all-path completeness claim."
+  ],
+  "next": {
+    "primary": "Inspect original contact-list ordering and concrete high-type consumers; trace model extent/cache obligation without blanket pointee narrowing.",
+    "independent": "Use model variant selector consumers and original header/name tables to connect remaining animated object fields and routines."
+  }
+}

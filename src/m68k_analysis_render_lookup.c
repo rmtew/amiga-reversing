@@ -8682,6 +8682,15 @@ static int typed_reg_merge_payload(M68kRenderTypedRegValue *dest,
       !typed_table_origins_equal(&dest->table_origin, &source->table_origin)) {
     typed_table_origin_clear(&dest->table_origin);
   }
+  /* A conflict records incompatible known inputs. A real unknown predecessor
+   * is less precise than that diagnostic packet and must absorb it too. Doing
+   * this after the conflict case makes a three-way join order-dependent:
+   * (A join B) join unknown differs from A join (B join unknown). */
+  if ((!dest->known && !dest->type_conflicted) ||
+      (!source->known && !source->type_conflicted)) {
+    typed_reg_value_clear(dest);
+    return !typed_reg_values_equal(dest, &old_value);
+  }
   if (dest->type_conflicted != 0U || source->type_conflicted != 0U) {
     if (dest->type_conflicted == 0U) *dest = *source;
     dest->layout_base_id = 0U;
@@ -8700,13 +8709,6 @@ static int typed_reg_merge_payload(M68kRenderTypedRegValue *dest,
     dest->address_value_candidate_overflow |= source->address_value_candidate_overflow;
     typed_origin_clear(&dest->origin);
     typed_provenance_merge(&dest->provenance, &source->provenance);
-    return !typed_reg_values_equal(dest, &old_value);
-  }
-  /* The caller copies the first reachable predecessor before merging. An
-   * unknown value here is therefore a real incoming path, not an empty
-   * accumulator. It must absorb later pointer/scalar facts in either order. */
-  if (dest->known == 0U || source->known == 0U) {
-    typed_reg_value_clear(dest);
     return !typed_reg_values_equal(dest, &old_value);
   }
   if (dest->layout_base_id == 0U &&

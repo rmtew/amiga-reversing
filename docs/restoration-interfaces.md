@@ -20,6 +20,10 @@ pointer types at CFG joins retain their nearest declared common prefix, includin
 sibling types. Subtype-only fields are lost. The same policy-aware merge serves
 registers, saved values, cells and call inputs; it adds no per-node ancestry state.
 Existing cursor/array-position guards and unknown-path absorption remain in force.
+An actual unknown predecessor also absorbs an incompatible-known-type conflict
+packet. Such a packet records the known inputs' disagreement, not a stronger
+must fact than unknown; placing that case first keeps three-way joins independent
+of predecessor order. Two incompatible known inputs still report their conflict.
 Unrelated roots and already-conflicted packets remain conservative. A common type
 does not imply equal pointer values, stronger producer provenance or safe lifetime.
 Compact aggregate macros retain their existing inherited-schema refusal.
