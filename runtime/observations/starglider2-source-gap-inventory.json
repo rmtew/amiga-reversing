@@ -5692,8 +5692,8 @@
     }
   },
   "address_values": {
-    "s0:v6": {
-      "id": 6,
+    "s0:v7": {
+      "id": 7,
       "source_value": 491520,
       "origin_kind_id": 13,
       "origin_kind": "immediate",
@@ -9819,7 +9819,7 @@
           "operand_index": 0,
           "kind_id": 1,
           "kind": "storage",
-          "address_value_id": 6,
+          "address_value_id": 7,
           "register_kind": 0,
           "register_index": 0,
           "contract_section_index": 0,
@@ -9831,7 +9831,7 @@
         }
       ],
       "address_producer_ids": [
-        "s0:v6"
+        "s0:v7"
       ],
       "rendered_references": [
         {
@@ -43495,9 +43495,9 @@
     "Native rendered accesses describe the inline export. exported_definition checks the selected source; INCBIN packaging may intentionally hide internal boundaries."
   ],
   "input_sha256": {
-    "analysis": "e597eccf7d47226873c4f25b65350cc6b828e46905d57fa6b1607067761d94af",
-    "metadata": "9a382c6a66fb6924c509d6a379b98f4fa12ed0f0fa98a928729ebcd3db111be1",
-    "source": "92c47b14ca92f0a0d69187974187e5bcd8ecb313184750d8cd7bd33c1e5226db"
+    "analysis": "cf894279bf9fdcbd5df8423e79a5018e51a06c4b511a1a00d33693b36afa14df",
+    "metadata": "e81896c4d6b927e5da12a3cf8749ee923e2a6ef620d43444e5a0ccc09d8ceeb4",
+    "source": "2b6df1156fb003c748dc005129ab8a33ac1ca8cc92c5e5dedeed4d29eb6bdbae"
   },
   "input_binding": "Caller supplies matching retained artifacts. Hashes identify inputs; discovery is not an independent correspondence/admission proof."
 }

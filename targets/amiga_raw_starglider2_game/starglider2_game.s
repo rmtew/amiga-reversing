@@ -50809,18 +50809,18 @@ abs_0_0003B28C:
 	movea.l integrating_objects_cursor(a6),a1
 abs_0_0003B2DC:
 	movea.l (a1)+,a0
-	move.w $002C(a0),d3
+	move.w SG2WorldObject_velocity_x(a0),d3
 	ext.l d3
-	add.l d3,$0004(a0)
-	move.w $002E(a0),d3
+	add.l d3,SG2ObjectCore_world_x(a0)
+	move.w SG2WorldObject_velocity_y(a0),d3
 	ext.l d3
-	add.l d3,$0008(a0)
-	move.w $0030(a0),d3
+	add.l d3,SG2ObjectCore_world_y(a0)
+	move.w SG2WorldObject_velocity_z(a0),d3
 	ext.l d3
-	add.l d3,$000C(a0)
+	add.l d3,SG2ObjectCore_world_z(a0)
 	move.l horizontal_world_wrap_mask(a6),d3
-	and.l d3,$0004(a0)
-	and.l d3,$000C(a0)
+	and.l d3,SG2ObjectCore_world_x(a0)
+	and.l d3,SG2ObjectCore_world_z(a0)
 	dbf.w d0,abs_0_0003B2DC
 abs_0_0003B30C:
 	move.l player_world_y(a6),d1

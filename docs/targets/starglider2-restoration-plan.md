@@ -23,7 +23,18 @@ boundaries. It records 67 suffix signals (including numeric adjacent variants),
 21 lookup contracts, 523 remaining interior references, 32 generic app fields
 and 424 unresolved record accesses. These are different denominators. Five
 suffixes name routines and one names text; neither is a pointer defect.
-Latest: the [indirect-table singleton fix](../../runtime/observations/starglider2-static-table-singleton.json)
+Latest: the [object-list cursor contracts](../../runtime/observations/starglider2-object-list-cursor-contracts.json)
+connect the original integrating/current-update slots to their existing list
+producers and readers. The selected physics list uses the existing World view;
+the mixed update list stays Core. Native propagation gains **8 typed sites /
+0 lost**, exposing signed velocities, XYZ updates and wrap masks in the alternate
+physics loop without per-instruction seeds or framework changes. Counts are
+**3412 app references / 1206 typed / 424 unresolved**. Original accepted code,
+ownership and exact C/vasm/standalone bytes remain. Free-stack predecrement and
+the104-header source loop remain separate, concrete transfer/domain experiments;
+no lifetime, arbitrary-count or blanket mixed-pool subtype proof is claimed.
+
+Preceding: the [indirect-table singleton fix](../../runtime/observations/starglider2-static-table-singleton.json)
 separates a resolved loaded pointer from an inline assembly operand. A minimal
 source-owned directory now exports exactly and retains its two header-field
 reads; unknown positions and unowned targets still refuse promotion. Existing

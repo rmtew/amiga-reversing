@@ -1,0 +1,251 @@
+{
+  "schema_version": 1,
+  "kind": "producer_backed_object_list_cursor_contracts",
+  "status": "qualified_connected_restoration_batch_continues",
+  "publication_base_commit": "0accce1b823420189490dc4f00a0c6592356a261",
+  "inputs": {
+    "binary_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "analysis_sha256": "cf894279bf9fdcbd5df8423e79a5018e51a06c4b511a1a00d33693b36afa14df",
+    "effective_metadata_sha256": "e81896c4d6b927e5da12a3cf8749ee923e2a6ef620d43444e5a0ccc09d8ceeb4",
+    "consumer_evidence_sha256": "0c852463db8f54458e2a69f801639f8b5e8cb5b023b09157f476511c4c5646ee",
+    "backend_sha256": "bb2e3457f955924413324774813db612feac462d8673e6c11dac8d0434d680ee"
+  },
+  "interpretation": "Original partitioner starts integrating cursor at its separate list end, appends A4 object addresses by predecrement for exactly type103/84/72 with BYTE22 eligibility, and stores the resulting list cursor. Original two physics readers load that cursor, read a LONG object reference then integrate signed WORD velocities2C/2E/30 into LONG XYZ and wrapXZ. Bind this operation-specific integrating list to existing SG2WorldObject view, already used by the primary physics reader; not a blanket World cast of all pool/nearby/high records. Original object updater copies nearby or distant list cursor to app6C4, reads an object LONG via postincrement then writes the advanced list cursor back. That mixed family gets only existing SG2ObjectCore pointee contract. Existing native pointer_table kind on these4-byte cursor slots denotes a loaded homogeneous runtime-table cursor, as in the four existing declared cursor contracts; do not type the cursor itself as an object or create another wrapper engine. Counts/storage extents/alias lists/lifetimes remain unchanged. Save code temporarily subtracts/restores workspace base from cursor LONGs; this normal active-game dereference contract does not certify relative archive words as live addresses. Free-stack pops use predecrement and are not newly claimed here. No new base seed, pool subtype cast, numeric pointer guess, original opcode or gameplay change.",
+  "canonical_actions": 2,
+  "contracts": [
+    {
+      "base_symbol": null,
+      "citation": "manual_action_log:catalog-rsset-region-app-06BC",
+      "layout_name": "app",
+      "offset": 1724,
+      "parse_order": null,
+      "parser_role": null,
+      "parser_routine": null,
+      "pointer_struct": "SG2WorldObject",
+      "review_status": "seeded",
+      "seed_origin": "manual_analysis",
+      "semantic_type": null,
+      "size": 4,
+      "sizeof_symbol": null,
+      "storage_kind": "pointer_table",
+      "struct_name": null,
+      "symbol": "integrating_objects_cursor"
+    },
+    {
+      "base_symbol": null,
+      "citation": "manual_action_log:catalog-rsset-region-app-06C4",
+      "layout_name": "app",
+      "offset": 1732,
+      "parse_order": null,
+      "parser_role": null,
+      "parser_routine": null,
+      "pointer_struct": "SG2ObjectCore",
+      "review_status": "seeded",
+      "seed_origin": "manual_analysis",
+      "semantic_type": null,
+      "size": 4,
+      "sizeof_symbol": null,
+      "storage_kind": "pointer_table",
+      "struct_name": null,
+      "symbol": "object_update_cursor"
+    }
+  ],
+  "before_after": {
+    "app_slot_ref_count": [
+      3412,
+      3412
+    ],
+    "recovered_platform_typed_access_count": [
+      1198,
+      1206
+    ],
+    "recovered_platform_unresolved_typed_access_count": [
+      424,
+      424
+    ]
+  },
+  "projection": {
+    "new_typed_coordinates": 8,
+    "lost_typed_coordinates": 0,
+    "field_counts": {
+      "velocity_x": 1,
+      "world_x": 2,
+      "velocity_y": 1,
+      "world_y": 1,
+      "velocity_z": 1,
+      "world_z": 2
+    },
+    "sites": [
+      {
+        "source_offset": 238302,
+        "runtime_pc": 242398,
+        "operand": 0,
+        "register": "A0",
+        "root_struct": "SG2WorldObject",
+        "field": "velocity_x",
+        "provenance": "static_data"
+      },
+      {
+        "source_offset": 238308,
+        "runtime_pc": 242404,
+        "operand": 1,
+        "register": "A0",
+        "root_struct": "SG2WorldObject",
+        "field": "world_x",
+        "provenance": "static_data"
+      },
+      {
+        "source_offset": 238312,
+        "runtime_pc": 242408,
+        "operand": 0,
+        "register": "A0",
+        "root_struct": "SG2WorldObject",
+        "field": "velocity_y",
+        "provenance": "static_data"
+      },
+      {
+        "source_offset": 238318,
+        "runtime_pc": 242414,
+        "operand": 1,
+        "register": "A0",
+        "root_struct": "SG2WorldObject",
+        "field": "world_y",
+        "provenance": "static_data"
+      },
+      {
+        "source_offset": 238322,
+        "runtime_pc": 242418,
+        "operand": 0,
+        "register": "A0",
+        "root_struct": "SG2WorldObject",
+        "field": "velocity_z",
+        "provenance": "static_data"
+      },
+      {
+        "source_offset": 238328,
+        "runtime_pc": 242424,
+        "operand": 1,
+        "register": "A0",
+        "root_struct": "SG2WorldObject",
+        "field": "world_z",
+        "provenance": "static_data"
+      },
+      {
+        "source_offset": 238336,
+        "runtime_pc": 242432,
+        "operand": 1,
+        "register": "A0",
+        "root_struct": "SG2WorldObject",
+        "field": "world_x",
+        "provenance": "static_data"
+      },
+      {
+        "source_offset": 238340,
+        "runtime_pc": 242436,
+        "operand": 1,
+        "register": "A0",
+        "root_struct": "SG2WorldObject",
+        "field": "world_z",
+        "provenance": "static_data"
+      }
+    ]
+  },
+  "validation": {
+    "native_and_vasm": {
+      "kind": "verification",
+      "framework_exact": true,
+      "target_id": "amiga_raw_starglider2_game",
+      "subject_revision": "ea876f234650590736b556df1bfd38d3d2b3a759c71a3dd4065a68cc5e02e9e8",
+      "status": "exact",
+      "exact": true,
+      "source_sha256": "83094e0e7fa69f5fef851b2f9a7ae4b39e74f48dedd7230ff9ccd2fbe7f72ccb",
+      "source_path": "/workspace/pandora-original-delivery/stable-d15c2cf8/.runtime-state/restoration/eb04f545fb97451725a1c91ab5abf6f2e097614c45880db6edfb4ea5c3f6e2c2/83094e0e7fa69f5fef851b2f9a7ae4b39e74f48dedd7230ff9ccd2fbe7f72ccb.s",
+      "source_package_sha256": null,
+      "original_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+      "original_size": 412736,
+      "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+      "rebuilt_path": "/workspace/pandora-original-delivery/stable-d15c2cf8/.runtime-state/restoration/eb04f545fb97451725a1c91ab5abf6f2e097614c45880db6edfb4ea5c3f6e2c2/662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9.bin",
+      "framework_status": "exact",
+      "failure_kinds": [],
+      "message": "",
+      "oracle": {
+        "oracle_id": "vasm",
+        "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+        "comparison_level": "oracle.full_file_match",
+        "assembler_status": "accepted",
+        "message": "oracle output matched original bytes"
+      },
+      "receipt_id": "c914071e21e74b7fe8a3ffb0f9589ecffecd0b886fe9d7a33c233ff9868579bf",
+      "revision": "f5f12de5b5c967df0de17b0480236cce2fddd506b7ab9b1a3a59e59f00d45fee"
+    },
+    "accepted_code_runs_identical": true,
+    "accepted_ownerships_identical": true,
+    "incomplete_analysis": [],
+    "source_quality_diagnostics": 0,
+    "assets_unchanged": 57,
+    "required_headers": 14,
+    "framework_changed": false,
+    "reused_framework_checks": "105 focused/832 native checks from0accce1b; no new framework edit. Guarded canonical admission, actual native projections and new exact original C/vasm/standalone output validate this slice.",
+    "clean_standalone_build": {
+      "status": "pass",
+      "validated_target_git_tree": "92e3d9a7ceb8b44ad3ae72b897ab72cf8c1d878c",
+      "receipt": {
+        "schema_version": 1,
+        "status": "pass",
+        "format": "raw_payload_not_AmigaDOS_HUNK",
+        "main_bytes": 412736,
+        "main_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+        "main_matches_original_identity": true,
+        "asset_count": 57,
+        "all_asset_source_slices_equal": true,
+        "decoded_view_inverse_exact": true,
+        "boot_copy_source_matches_resident_view": true,
+        "source_commit": "0accce1b823420189490dc4f00a0c6592356a261",
+        "assembler_sha256": "413e284020125f42709486dfe09907cab3dd9f3c2ea41017c190f8ea68f30825",
+        "flags": [
+          "-Fbin",
+          "-m68000",
+          "-no-opt"
+        ],
+        "outputs": [
+          {
+            "role": "original_main",
+            "filename": "Starglider2-original.raw",
+            "bytes": 412736,
+            "sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9"
+          },
+          {
+            "role": "decoded_analysis_view",
+            "filename": "protection-decoded-analysis.raw",
+            "bytes": 3548,
+            "sha256": "de8358853dd9ed9b006a23569bf393aa217ed3be3301a169465d80bfaf839922"
+          },
+          {
+            "role": "boot_installer_context",
+            "filename": "boot-selector-installer-context.raw",
+            "bytes": 40,
+            "sha256": "8d34852425e2e1bfa87b3febdfc74fb39e7c667e9d9ff73e17b594649e83b21b"
+          },
+          {
+            "role": "boot_resident_view",
+            "filename": "boot-selector-resident.raw",
+            "bytes": 20,
+            "sha256": "a26286a393713c046eff9dbaff15b20b26b171fa9e05fc9d538d16b0eddb6024"
+          }
+        ]
+      },
+      "recoverable_pandora_backups_verified": 16
+    }
+  },
+  "generation_wall_seconds": 181.09181624499615,
+  "limits": [
+    "Integrating list World view applies to the original selected velocity-integration role. The mixed object-update list retains only Core; no blanket World cast or renamed unknown object types.",
+    "Lists may contain the same objects and are not exclusive lifetime owners. Original counts/storage bounds/save-relative transformations remain, with no new all-input or allocation safety proof.",
+    "Free-stack cursor contract and predecrement entry reads were inspected but not newly admitted. Its source pop path needs a decoded operand footprint/value-address transfer fixture; mere pointer-looking contents or adjacency are insufficient.",
+    "The104-header DBF source-table loop still requires a proven source cursor/count domain and bounded homogeneous type validation distinct from the4-value numeric candidate packet. This stage does not claim it solved."
+  ],
+  "next": {
+    "group": "Source-domain loop and predecrement pointer-table reads",
+    "experiment": "Reuse shared counter-relative induction for the original source-table cursor and exact byte-span checks for predecrement table entry reads. Keep numeric target/rendering obligations separate from homogeneous pointee-type proof, with unsupported/NULL/out-of-owner/conflicting negative cases. Continue remaining consumer semantics from the resulting facts."
+  }
+}
