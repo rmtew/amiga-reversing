@@ -1,0 +1,2116 @@
+{
+  "schema_version": 1,
+  "kind": "original_dispatch_ground_actor_and_variant_contracts",
+  "status": "qualified_semantic_batch_restoration_continues",
+  "publication_base_commit": "6e6c55edf0d94e5ce36adc6fa45a9ef47a926581",
+  "canonical_actions_added": 20,
+  "canonical_actions_reviewed": 20,
+  "inputs": {
+    "analysis.json": "c94fb0c606c901566f023ec8b8109efb4effb6960125cf9e06fbd2489aa45fb0",
+    "effective-metadata.json": "779d08e372cbfdd147969342bb9d56325a6d1211ff4717cda10f8a6c7decef8d",
+    "inline.s": "720e52b955abe60643898aa6ea2a3b1eac27fd9e6992ad9fe488c2bc8417da5a",
+    "source-package.json": "5354eb923166168ebe242c6928ae1d6708b6ee210358573c6f948c488cffeb67",
+    "consumer-evidence.json": "8f27e17f4f46b81dc7b77e3ba3a0837f40bbe5efeb283b443a7ff79b02c983d5",
+    "adoption.json": "67efd403ed253558b0c27e8e942428b5efeab460c2045198870e9a4d7502656e"
+  },
+  "backend_sha256": "457ff6e685a00f0dd88dfacc483f5bc14067456fc597862ea6f1b39b27eea30a",
+  "original_bindings": {
+    "primary_word_dispatch_source": 28714,
+    "model_names": [
+      {
+        "type_id": 9,
+        "text": "Egron Land Tank",
+        "text_runtime_address": 62974,
+        "name_directory_source": 58164
+      },
+      {
+        "type_id": 23,
+        "text": "GBML",
+        "text_runtime_address": 63192,
+        "name_directory_source": 58164
+      },
+      {
+        "type_id": 26,
+        "text": "Tripuss",
+        "text_runtime_address": 63220,
+        "name_directory_source": 58164
+      },
+      {
+        "type_id": 50,
+        "text": "GBML with Cannon",
+        "text_runtime_address": 63551,
+        "name_directory_source": 58164
+      }
+    ],
+    "native_dispatch_entries": [
+      {
+        "table_start_offset": 28714,
+        "entry_index": 9,
+        "entry_offset": 28732,
+        "entry_size": 2,
+        "raw_value": 6946,
+        "raw_value_width": 2,
+        "table_kind_id": 3,
+        "table_kind": "relative_code_dispatch",
+        "source_pattern_id": 2,
+        "source_pattern": "indexed_word_dispatch",
+        "target_status": 2,
+        "target_status_name": "accepted_target",
+        "target_section_index": 0,
+        "target_offset": 35660,
+        "conflict_state": 0,
+        "conflict_state_name": "clean"
+      },
+      {
+        "table_start_offset": 28714,
+        "entry_index": 23,
+        "entry_offset": 28760,
+        "entry_size": 2,
+        "raw_value": 7378,
+        "raw_value_width": 2,
+        "table_kind_id": 3,
+        "table_kind": "relative_code_dispatch",
+        "source_pattern_id": 2,
+        "source_pattern": "indexed_word_dispatch",
+        "target_status": 2,
+        "target_status_name": "accepted_target",
+        "target_section_index": 0,
+        "target_offset": 36092,
+        "conflict_state": 0,
+        "conflict_state_name": "clean"
+      },
+      {
+        "table_start_offset": 28714,
+        "entry_index": 26,
+        "entry_offset": 28766,
+        "entry_size": 2,
+        "raw_value": 7518,
+        "raw_value_width": 2,
+        "table_kind_id": 3,
+        "table_kind": "relative_code_dispatch",
+        "source_pattern_id": 2,
+        "source_pattern": "indexed_word_dispatch",
+        "target_status": 2,
+        "target_status_name": "accepted_target",
+        "target_section_index": 0,
+        "target_offset": 36232,
+        "conflict_state": 0,
+        "conflict_state_name": "clean"
+      },
+      {
+        "table_start_offset": 28714,
+        "entry_index": 50,
+        "entry_offset": 28814,
+        "entry_size": 2,
+        "raw_value": 7254,
+        "raw_value_width": 2,
+        "table_kind_id": 3,
+        "table_kind": "relative_code_dispatch",
+        "source_pattern_id": 2,
+        "source_pattern": "indexed_word_dispatch",
+        "target_status": 2,
+        "target_status_name": "accepted_target",
+        "target_section_index": 0,
+        "target_offset": 35968,
+        "conflict_state": 0,
+        "conflict_state_name": "clean"
+      }
+    ]
+  },
+  "semantic_contracts": [
+    "Type9 Egron Land Tank at9B4C reuses Scheduled WORD24 and Evasive WORD26. Signed-negative26 bypasses the proximity comparison; zero/expired26 can install50 before a1024-unit heading adjustment. UBYTE28 is a pair-link release delay. When nonzero it decrements, and on zero with a nonzero LONG3C loads a peer, clears own link and peer BYTE28. Do not type the peer or treat the zero check as pointer validity/lifetime. Preserve repeated original X/Z velocity additions and exact durability6 branch; do not collapse duplicate integration.",
+    "Type23 GBML at9CFC reuses Scheduled WORD24. Low9bits-zero after decrement inverts the type-selection tag and enters the existing visible-object selection/continuation. The low4bits-zero branch enters a shared continuation only if signed playerY<-250. No acronym expansion, selected-target subtype or guaranteed shot is inferred.",
+    "Type50 GBML with Cannon at9C80 adds2048 in4096 angular units before the original heading interpolation. Vertex variant comes from bits8..10 of the wrapping objectY-minus-playerY difference after logical shift, not absolute altitude/range. WORD24 reloads15 only on reaching zero before an attack attempt; do not turn masks/counts into guaranteed wall-time firing frequency.",
+    "Type26 Tripuss at9D88 reuses Scheduled WORD24 and signed BYTE1F variant step. Zero step skips the later counter/motion while earlier pitch/Y updates remain. Sums0/9 change step to+1/-1 without storing that boundary variant, unlike Converter. Preserve exact wrap/Y clamp and asymmetric X/Z comparisons; they are not a normalized radius/AABB proximity test."
+  ],
+  "structures": [
+    {
+      "name": "SG2LandTank",
+      "base": "SG2EvasiveActor",
+      "size": 68,
+      "new_fields": [
+        {
+          "offset": 40,
+          "name": "pair_link_release_countdown",
+          "type": "UBYTE"
+        }
+      ]
+    },
+    {
+      "name": "SG2Tripuss",
+      "base": "SG2ScheduledActor",
+      "size": 68,
+      "new_fields": [
+        {
+          "offset": 31,
+          "name": "variant_ping_pong_step",
+          "type": "BYTE"
+        }
+      ]
+    }
+  ],
+  "labels": [
+    [
+      39756,
+      "update_nearby_egron_land_tank"
+    ],
+    [
+      39816,
+      "update_land_tank_pair_link_delay"
+    ],
+    [
+      39850,
+      "move_land_tank_during_link_delay"
+    ],
+    [
+      39914,
+      "move_land_tank_without_link_delay"
+    ],
+    [
+      39998,
+      "test_land_tank_proximity_evasion"
+    ],
+    [
+      40038,
+      "start_land_tank_evasion_turn"
+    ],
+    [
+      40064,
+      "update_gbml_cannon_heading_and_attack"
+    ],
+    [
+      40146,
+      "set_gbml_cannon_altitude_variant"
+    ],
+    [
+      40188,
+      "update_gbml_heading_and_target_scan"
+    ],
+    [
+      40328,
+      "update_nearby_tripuss"
+    ],
+    [
+      40416,
+      "advance_tripuss_counter_and_motion"
+    ]
+  ],
+  "before_after": {
+    "app_slot_ref_count": [
+      3412,
+      3412
+    ],
+    "recovered_platform_typed_access_count": [
+      1590,
+      1663
+    ],
+    "recovered_platform_unresolved_typed_access_count": [
+      659,
+      606
+    ]
+  },
+  "projection": {
+    "new_typed_coordinates": 73,
+    "lost_typed_coordinates": 0,
+    "refined_existing_coordinates": 31,
+    "refinement_changes": "Only root subtype/inherited flag/entry provenance; field owner/name/expression/width/displacement are unchanged.",
+    "removed_unresolved_coordinates": 58,
+    "new_unresolved_coordinates": 5,
+    "net_unresolved_reduction": 53,
+    "new_field_counts": {
+      "SG2ObjectCore_object_type": 3,
+      "SG2ObjectCore_world_x": 1,
+      "SG2ObjectCore_world_y": 2,
+      "SG2ObjectCore_world_z": 1,
+      "SG2ScheduledActor_behavior_update_counter": 10,
+      "SG2EvasiveActor_proximity_evasion_countdown": 4,
+      "SG2WorldObject_velocity_x": 4,
+      "SG2WorldObject_velocity_z": 4,
+      "SG2LandTank_pair_link_release_countdown": 2,
+      "SG2WorldObject_linked_record_or_sentinel": 3,
+      "SG2WorldObject_pre_view_relative_x": 1,
+      "SG2WorldObject_pre_view_relative_z": 1,
+      "SG2WorldObject_rotation_1": 17,
+      "SG2WorldObject_vertex_variant_selector": 3,
+      "SG2WorldObject_rotation_0": 7,
+      "SG2Tripuss_variant_ping_pong_step": 3,
+      "SG2WorldObject_collision_ignored_object_type": 1,
+      "SG2WorldObject_rotation_2": 6
+    },
+    "new_sites": [
+      {
+        "offset": 34700,
+        "operand_index": 0,
+        "base_register": "A0",
+        "displacement": 0,
+        "root_struct_name": "SG2ObjectCore",
+        "owner_struct_name": "SG2ObjectCore",
+        "field_expr": "SG2ObjectCore_object_type"
+      },
+      {
+        "offset": 34772,
+        "operand_index": 0,
+        "base_register": "A0",
+        "displacement": 1,
+        "root_struct_name": "SG2ObjectCore",
+        "owner_struct_name": "SG2ObjectCore",
+        "field_expr": "SG2ObjectCore_object_type"
+      },
+      {
+        "offset": 34790,
+        "operand_index": 0,
+        "base_register": "A0",
+        "displacement": 1,
+        "root_struct_name": "SG2ObjectCore",
+        "owner_struct_name": "SG2ObjectCore",
+        "field_expr": "SG2ObjectCore_object_type"
+      },
+      {
+        "offset": 34802,
+        "operand_index": 0,
+        "base_register": "A0",
+        "displacement": 4,
+        "root_struct_name": "SG2ObjectCore",
+        "owner_struct_name": "SG2ObjectCore",
+        "field_expr": "SG2ObjectCore_world_x"
+      },
+      {
+        "offset": 34808,
+        "operand_index": 0,
+        "base_register": "A0",
+        "displacement": 8,
+        "root_struct_name": "SG2ObjectCore",
+        "owner_struct_name": "SG2ObjectCore",
+        "field_expr": "SG2ObjectCore_world_y"
+      },
+      {
+        "offset": 34816,
+        "operand_index": 0,
+        "base_register": "A0",
+        "displacement": 12,
+        "root_struct_name": "SG2ObjectCore",
+        "owner_struct_name": "SG2ObjectCore",
+        "field_expr": "SG2ObjectCore_world_z"
+      },
+      {
+        "offset": 35668,
+        "operand_index": 1,
+        "base_register": "A0",
+        "displacement": 36,
+        "root_struct_name": "SG2LandTank",
+        "owner_struct_name": "SG2ScheduledActor",
+        "field_expr": "SG2ScheduledActor_behavior_update_counter"
+      },
+      {
+        "offset": 35682,
+        "operand_index": 1,
+        "base_register": "A0",
+        "displacement": 38,
+        "root_struct_name": "SG2LandTank",
+        "owner_struct_name": "SG2EvasiveActor",
+        "field_expr": "SG2EvasiveActor_proximity_evasion_countdown"
+      },
+      {
+        "offset": 35688,
+        "operand_index": 0,
+        "base_register": "A0",
+        "displacement": 44,
+        "root_struct_name": "SG2LandTank",
+        "owner_struct_name": "SG2WorldObject",
+        "field_expr": "SG2WorldObject_velocity_x"
+      },
+      {
+        "offset": 35698,
+        "operand_index": 0,
+        "base_register": "A0",
+        "displacement": 48,
+        "root_struct_name": "SG2LandTank",
+        "owner_struct_name": "SG2WorldObject",
+        "field_expr": "SG2WorldObject_velocity_z"
+      },
+      {
+        "offset": 35724,
+        "operand_index": 0,
+        "base_register": "A0",
+        "displacement": 40,
+        "root_struct_name": "SG2LandTank",
+        "owner_struct_name": "SG2LandTank",
+        "field_expr": "SG2LandTank_pair_link_release_countdown"
+      },
+      {
+        "offset": 35730,
+        "operand_index": 1,
+        "base_register": "A0",
+        "displacement": 40,
+        "root_struct_name": "SG2LandTank",
+        "owner_struct_name": "SG2LandTank",
+        "field_expr": "SG2LandTank_pair_link_release_countdown"
+      },
+      {
+        "offset": 35736,
+        "operand_index": 0,
+        "base_register": "A0",
+        "displacement": 60,
+        "root_struct_name": "SG2LandTank",
+        "owner_struct_name": "SG2WorldObject",
+        "field_expr": "SG2WorldObject_linked_record_or_sentinel"
+      },
+      {
+        "offset": 35742,
+        "operand_index": 0,
+        "base_register": "A0",
+        "displacement": 60,
+        "root_struct_name": "SG2LandTank",
+        "owner_struct_name": "SG2WorldObject",
+        "field_expr": "SG2WorldObject_linked_record_or_sentinel"
+      },
+      {
+        "offset": 35746,
+        "operand_index": 0,
+        "base_register": "A0",
+        "displacement": 60,
+        "root_struct_name": "SG2LandTank",
+        "owner_struct_name": "SG2WorldObject",
+        "field_expr": "SG2WorldObject_linked_record_or_sentinel"
+      },
+      {
+        "offset": 35754,
+        "operand_index": 0,
+        "base_register": "A0",
+        "displacement": 44,
+        "root_struct_name": "SG2LandTank",
+        "owner_struct_name": "SG2WorldObject",
+        "field_expr": "SG2WorldObject_velocity_x"
+      },
+      {
+        "offset": 35764,
+        "operand_index": 0,
+        "base_register": "A0",
+        "displacement": 48,
+        "root_struct_name": "SG2LandTank",
+        "owner_struct_name": "SG2WorldObject",
+        "field_expr": "SG2WorldObject_velocity_z"
+      },
+      {
+        "offset": 35790,
+        "operand_index": 0,
+        "base_register": "A0",
+        "displacement": 36,
+        "root_struct_name": "SG2LandTank",
+        "owner_struct_name": "SG2ScheduledActor",
+        "field_expr": "SG2ScheduledActor_behavior_update_counter"
+      },
+      {
+        "offset": 35818,
+        "operand_index": 0,
+        "base_register": "A0",
+        "displacement": 44,
+        "root_struct_name": "SG2LandTank",
+        "owner_struct_name": "SG2WorldObject",
+        "field_expr": "SG2WorldObject_velocity_x"
+      },
+      {
+        "offset": 35828,
+        "operand_index": 0,
+        "base_register": "A0",
+        "displacement": 48,
+        "root_struct_name": "SG2LandTank",
+        "owner_struct_name": "SG2WorldObject",
+        "field_expr": "SG2WorldObject_velocity_z"
+      },
+      {
+        "offset": 35850,
+        "operand_index": 0,
+        "base_register": "A0",
+        "displacement": 36,
+        "root_struct_name": "SG2LandTank",
+        "owner_struct_name": "SG2ScheduledActor",
+        "field_expr": "SG2ScheduledActor_behavior_update_counter"
+      },
+      {
+        "offset": 35886,
+        "operand_index": 0,
+        "base_register": "A0",
+        "displacement": 38,
+        "root_struct_name": "SG2LandTank",
+        "owner_struct_name": "SG2EvasiveActor",
+        "field_expr": "SG2EvasiveActor_proximity_evasion_countdown"
+      },
+      {
+        "offset": 35896,
+        "operand_index": 1,
+        "base_register": "A0",
+        "displacement": 38,
+        "root_struct_name": "SG2LandTank",
+        "owner_struct_name": "SG2EvasiveActor",
+        "field_expr": "SG2EvasiveActor_proximity_evasion_countdown"
+      },
+      {
+        "offset": 35902,
+        "operand_index": 0,
+        "base_register": "A0",
+        "displacement": 50,
+        "root_struct_name": "SG2LandTank",
+        "owner_struct_name": "SG2WorldObject",
+        "field_expr": "SG2WorldObject_pre_view_relative_x"
+      },
+      {
+        "offset": 35920,
+        "operand_index": 0,
+        "base_register": "A0",
+        "displacement": 54,
+        "root_struct_name": "SG2LandTank",
+        "owner_struct_name": "SG2WorldObject",
+        "field_expr": "SG2WorldObject_pre_view_relative_z"
+      },
+      {
+        "offset": 35942,
+        "operand_index": 1,
+        "base_register": "A0",
+        "displacement": 38,
+        "root_struct_name": "SG2LandTank",
+        "owner_struct_name": "SG2EvasiveActor",
+        "field_expr": "SG2EvasiveActor_proximity_evasion_countdown"
+      },
+      {
+        "offset": 35988,
+        "operand_index": 0,
+        "base_register": "A0",
+        "displacement": 18,
+        "root_struct_name": "SG2ScheduledActor",
+        "owner_struct_name": "SG2WorldObject",
+        "field_expr": "SG2WorldObject_rotation_1"
+      },
+      {
+        "offset": 36010,
+        "operand_index": 0,
+        "base_register": "A0",
+        "displacement": 18,
+        "root_struct_name": "SG2ScheduledActor",
+        "owner_struct_name": "SG2WorldObject",
+        "field_expr": "SG2WorldObject_rotation_1"
+      },
+      {
+        "offset": 36024,
+        "operand_index": 1,
+        "base_register": "A0",
+        "displacement": 18,
+        "root_struct_name": "SG2ScheduledActor",
+        "owner_struct_name": "SG2WorldObject",
+        "field_expr": "SG2WorldObject_rotation_1"
+      },
+      {
+        "offset": 36032,
+        "operand_index": 0,
+        "base_register": "A0",
+        "displacement": 18,
+        "root_struct_name": "SG2ScheduledActor",
+        "owner_struct_name": "SG2WorldObject",
+        "field_expr": "SG2WorldObject_rotation_1"
+      },
+      {
+        "offset": 36046,
+        "operand_index": 1,
+        "base_register": "A0",
+        "displacement": 18,
+        "root_struct_name": "SG2ScheduledActor",
+        "owner_struct_name": "SG2WorldObject",
+        "field_expr": "SG2WorldObject_rotation_1"
+      },
+      {
+        "offset": 36050,
+        "operand_index": 0,
+        "base_register": "A0",
+        "displacement": 8,
+        "root_struct_name": "SG2ScheduledActor",
+        "owner_struct_name": "SG2ObjectCore",
+        "field_expr": "SG2ObjectCore_world_y"
+      },
+      {
+        "offset": 36066,
+        "operand_index": 1,
+        "base_register": "A0",
+        "displacement": 3,
+        "root_struct_name": "SG2ScheduledActor",
+        "owner_struct_name": "SG2WorldObject",
+        "field_expr": "SG2WorldObject_vertex_variant_selector"
+      },
+      {
+        "offset": 36070,
+        "operand_index": 1,
+        "base_register": "A0",
+        "displacement": 36,
+        "root_struct_name": "SG2ScheduledActor",
+        "owner_struct_name": "SG2ScheduledActor",
+        "field_expr": "SG2ScheduledActor_behavior_update_counter"
+      },
+      {
+        "offset": 36078,
+        "operand_index": 1,
+        "base_register": "A0",
+        "displacement": 36,
+        "root_struct_name": "SG2ScheduledActor",
+        "owner_struct_name": "SG2ScheduledActor",
+        "field_expr": "SG2ScheduledActor_behavior_update_counter"
+      },
+      {
+        "offset": 36108,
+        "operand_index": 0,
+        "base_register": "A0",
+        "displacement": 18,
+        "root_struct_name": "SG2ScheduledActor",
+        "owner_struct_name": "SG2WorldObject",
+        "field_expr": "SG2WorldObject_rotation_1"
+      },
+      {
+        "offset": 36130,
+        "operand_index": 0,
+        "base_register": "A0",
+        "displacement": 18,
+        "root_struct_name": "SG2ScheduledActor",
+        "owner_struct_name": "SG2WorldObject",
+        "field_expr": "SG2WorldObject_rotation_1"
+      },
+      {
+        "offset": 36144,
+        "operand_index": 1,
+        "base_register": "A0",
+        "displacement": 18,
+        "root_struct_name": "SG2ScheduledActor",
+        "owner_struct_name": "SG2WorldObject",
+        "field_expr": "SG2WorldObject_rotation_1"
+      },
+      {
+        "offset": 36152,
+        "operand_index": 0,
+        "base_register": "A0",
+        "displacement": 18,
+        "root_struct_name": "SG2ScheduledActor",
+        "owner_struct_name": "SG2WorldObject",
+        "field_expr": "SG2WorldObject_rotation_1"
+      },
+      {
+        "offset": 36166,
+        "operand_index": 1,
+        "base_register": "A0",
+        "displacement": 18,
+        "root_struct_name": "SG2ScheduledActor",
+        "owner_struct_name": "SG2WorldObject",
+        "field_expr": "SG2WorldObject_rotation_1"
+      },
+      {
+        "offset": 36170,
+        "operand_index": 1,
+        "base_register": "A0",
+        "displacement": 36,
+        "root_struct_name": "SG2ScheduledActor",
+        "owner_struct_name": "SG2ScheduledActor",
+        "field_expr": "SG2ScheduledActor_behavior_update_counter"
+      },
+      {
+        "offset": 36174,
+        "operand_index": 0,
+        "base_register": "A0",
+        "displacement": 36,
+        "root_struct_name": "SG2ScheduledActor",
+        "owner_struct_name": "SG2ScheduledActor",
+        "field_expr": "SG2ScheduledActor_behavior_update_counter"
+      },
+      {
+        "offset": 36240,
+        "operand_index": 1,
+        "base_register": "A0",
+        "displacement": 16,
+        "root_struct_name": "SG2Tripuss",
+        "owner_struct_name": "SG2WorldObject",
+        "field_expr": "SG2WorldObject_rotation_0"
+      },
+      {
+        "offset": 36246,
+        "operand_index": 1,
+        "base_register": "A0",
+        "displacement": 16,
+        "root_struct_name": "SG2Tripuss",
+        "owner_struct_name": "SG2WorldObject",
+        "field_expr": "SG2WorldObject_rotation_0"
+      },
+      {
+        "offset": 36262,
+        "operand_index": 0,
+        "base_register": "A0",
+        "displacement": 16,
+        "root_struct_name": "SG2Tripuss",
+        "owner_struct_name": "SG2WorldObject",
+        "field_expr": "SG2WorldObject_rotation_0"
+      },
+      {
+        "offset": 36270,
+        "operand_index": 0,
+        "base_register": "A0",
+        "displacement": 31,
+        "root_struct_name": "SG2Tripuss",
+        "owner_struct_name": "SG2Tripuss",
+        "field_expr": "SG2Tripuss_variant_ping_pong_step"
+      },
+      {
+        "offset": 36278,
+        "operand_index": 0,
+        "base_register": "A0",
+        "displacement": 3,
+        "root_struct_name": "SG2Tripuss",
+        "owner_struct_name": "SG2WorldObject",
+        "field_expr": "SG2WorldObject_vertex_variant_selector"
+      },
+      {
+        "offset": 36292,
+        "operand_index": 1,
+        "base_register": "A0",
+        "displacement": 3,
+        "root_struct_name": "SG2Tripuss",
+        "owner_struct_name": "SG2WorldObject",
+        "field_expr": "SG2WorldObject_vertex_variant_selector"
+      },
+      {
+        "offset": 36300,
+        "operand_index": 1,
+        "base_register": "A0",
+        "displacement": 31,
+        "root_struct_name": "SG2Tripuss",
+        "owner_struct_name": "SG2Tripuss",
+        "field_expr": "SG2Tripuss_variant_ping_pong_step"
+      },
+      {
+        "offset": 36310,
+        "operand_index": 1,
+        "base_register": "A0",
+        "displacement": 31,
+        "root_struct_name": "SG2Tripuss",
+        "owner_struct_name": "SG2Tripuss",
+        "field_expr": "SG2Tripuss_variant_ping_pong_step"
+      },
+      {
+        "offset": 36320,
+        "operand_index": 1,
+        "base_register": "A0",
+        "displacement": 36,
+        "root_struct_name": "SG2Tripuss",
+        "owner_struct_name": "SG2ScheduledActor",
+        "field_expr": "SG2ScheduledActor_behavior_update_counter"
+      },
+      {
+        "offset": 36328,
+        "operand_index": 0,
+        "base_register": "A0",
+        "displacement": 44,
+        "root_struct_name": "SG2Tripuss",
+        "owner_struct_name": "SG2WorldObject",
+        "field_expr": "SG2WorldObject_velocity_x"
+      },
+      {
+        "offset": 36338,
+        "operand_index": 0,
+        "base_register": "A0",
+        "displacement": 48,
+        "root_struct_name": "SG2Tripuss",
+        "owner_struct_name": "SG2WorldObject",
+        "field_expr": "SG2WorldObject_velocity_z"
+      },
+      {
+        "offset": 36414,
+        "operand_index": 1,
+        "base_register": "A0",
+        "displacement": 16,
+        "root_struct_name": "SG2Tripuss",
+        "owner_struct_name": "SG2WorldObject",
+        "field_expr": "SG2WorldObject_rotation_0"
+      },
+      {
+        "offset": 36420,
+        "operand_index": 1,
+        "base_register": "A0",
+        "displacement": 16,
+        "root_struct_name": "SG2Tripuss",
+        "owner_struct_name": "SG2WorldObject",
+        "field_expr": "SG2WorldObject_rotation_0"
+      },
+      {
+        "offset": 36444,
+        "operand_index": 1,
+        "base_register": "A0",
+        "displacement": 16,
+        "root_struct_name": "SG2Tripuss",
+        "owner_struct_name": "SG2WorldObject",
+        "field_expr": "SG2WorldObject_rotation_0"
+      },
+      {
+        "offset": 36462,
+        "operand_index": 1,
+        "base_register": "A0",
+        "displacement": 16,
+        "root_struct_name": "SG2Tripuss",
+        "owner_struct_name": "SG2WorldObject",
+        "field_expr": "SG2WorldObject_rotation_0"
+      },
+      {
+        "offset": 36468,
+        "operand_index": 0,
+        "base_register": "A0",
+        "displacement": 36,
+        "root_struct_name": "SG2Tripuss",
+        "owner_struct_name": "SG2ScheduledActor",
+        "field_expr": "SG2ScheduledActor_behavior_update_counter"
+      },
+      {
+        "offset": 36528,
+        "operand_index": 0,
+        "base_register": "A0",
+        "displacement": 36,
+        "root_struct_name": "SG2Tripuss",
+        "owner_struct_name": "SG2ScheduledActor",
+        "field_expr": "SG2ScheduledActor_behavior_update_counter"
+      },
+      {
+        "offset": 38204,
+        "operand_index": 0,
+        "base_register": "A0",
+        "displacement": 18,
+        "root_struct_name": "SG2ScheduledActor",
+        "owner_struct_name": "SG2WorldObject",
+        "field_expr": "SG2WorldObject_rotation_1"
+      },
+      {
+        "offset": 38266,
+        "operand_index": 1,
+        "base_register": "A0",
+        "displacement": 42,
+        "root_struct_name": "SG2ScheduledActor",
+        "owner_struct_name": "SG2WorldObject",
+        "field_expr": "SG2WorldObject_collision_ignored_object_type"
+      },
+      {
+        "offset": 38302,
+        "operand_index": 0,
+        "base_register": "A0",
+        "displacement": 18,
+        "root_struct_name": "SG2ScheduledActor",
+        "owner_struct_name": "SG2WorldObject",
+        "field_expr": "SG2WorldObject_rotation_1"
+      },
+      {
+        "offset": 40196,
+        "operand_index": 0,
+        "base_register": "A0",
+        "displacement": 18,
+        "root_struct_name": "SG2ScheduledActor",
+        "owner_struct_name": "SG2WorldObject",
+        "field_expr": "SG2WorldObject_rotation_1"
+      },
+      {
+        "offset": 40216,
+        "operand_index": 0,
+        "base_register": "A0",
+        "displacement": 18,
+        "root_struct_name": "SG2ScheduledActor",
+        "owner_struct_name": "SG2WorldObject",
+        "field_expr": "SG2WorldObject_rotation_1"
+      },
+      {
+        "offset": 40230,
+        "operand_index": 1,
+        "base_register": "A0",
+        "displacement": 18,
+        "root_struct_name": "SG2ScheduledActor",
+        "owner_struct_name": "SG2WorldObject",
+        "field_expr": "SG2WorldObject_rotation_1"
+      },
+      {
+        "offset": 40234,
+        "operand_index": 0,
+        "base_register": "A0",
+        "displacement": 20,
+        "root_struct_name": "SG2ScheduledActor",
+        "owner_struct_name": "SG2WorldObject",
+        "field_expr": "SG2WorldObject_rotation_2"
+      },
+      {
+        "offset": 40248,
+        "operand_index": 1,
+        "base_register": "A0",
+        "displacement": 20,
+        "root_struct_name": "SG2ScheduledActor",
+        "owner_struct_name": "SG2WorldObject",
+        "field_expr": "SG2WorldObject_rotation_2"
+      },
+      {
+        "offset": 40254,
+        "operand_index": 1,
+        "base_register": "A0",
+        "displacement": 20,
+        "root_struct_name": "SG2ScheduledActor",
+        "owner_struct_name": "SG2WorldObject",
+        "field_expr": "SG2WorldObject_rotation_2"
+      },
+      {
+        "offset": 40260,
+        "operand_index": 0,
+        "base_register": "A0",
+        "displacement": 18,
+        "root_struct_name": "SG2ScheduledActor",
+        "owner_struct_name": "SG2WorldObject",
+        "field_expr": "SG2WorldObject_rotation_1"
+      },
+      {
+        "offset": 40274,
+        "operand_index": 1,
+        "base_register": "A0",
+        "displacement": 18,
+        "root_struct_name": "SG2ScheduledActor",
+        "owner_struct_name": "SG2WorldObject",
+        "field_expr": "SG2WorldObject_rotation_1"
+      },
+      {
+        "offset": 40278,
+        "operand_index": 0,
+        "base_register": "A0",
+        "displacement": 20,
+        "root_struct_name": "SG2ScheduledActor",
+        "owner_struct_name": "SG2WorldObject",
+        "field_expr": "SG2WorldObject_rotation_2"
+      },
+      {
+        "offset": 40292,
+        "operand_index": 1,
+        "base_register": "A0",
+        "displacement": 20,
+        "root_struct_name": "SG2ScheduledActor",
+        "owner_struct_name": "SG2WorldObject",
+        "field_expr": "SG2WorldObject_rotation_2"
+      },
+      {
+        "offset": 40298,
+        "operand_index": 1,
+        "base_register": "A0",
+        "displacement": 20,
+        "root_struct_name": "SG2ScheduledActor",
+        "owner_struct_name": "SG2WorldObject",
+        "field_expr": "SG2WorldObject_rotation_2"
+      }
+    ],
+    "refined_existing_sites": [
+      {
+        "source": {
+          "offset": 35672,
+          "operand_index": 1,
+          "base_register": "A0",
+          "displacement": 28,
+          "root_struct_name": "SG2LandTank",
+          "owner_struct_name": "SG2ObjectCore",
+          "field_expr": "SG2ObjectCore_durability_or_negative"
+        },
+        "old_root": "SG2ObjectCore",
+        "new_root": "SG2LandTank"
+      },
+      {
+        "source": {
+          "offset": 35694,
+          "operand_index": 1,
+          "base_register": "A0",
+          "displacement": 4,
+          "root_struct_name": "SG2LandTank",
+          "owner_struct_name": "SG2ObjectCore",
+          "field_expr": "SG2ObjectCore_world_x"
+        },
+        "old_root": "SG2ObjectCore",
+        "new_root": "SG2LandTank"
+      },
+      {
+        "source": {
+          "offset": 35704,
+          "operand_index": 1,
+          "base_register": "A0",
+          "displacement": 12,
+          "root_struct_name": "SG2LandTank",
+          "owner_struct_name": "SG2ObjectCore",
+          "field_expr": "SG2ObjectCore_world_z"
+        },
+        "old_root": "SG2ObjectCore",
+        "new_root": "SG2LandTank"
+      },
+      {
+        "source": {
+          "offset": 35712,
+          "operand_index": 1,
+          "base_register": "A0",
+          "displacement": 4,
+          "root_struct_name": "SG2LandTank",
+          "owner_struct_name": "SG2ObjectCore",
+          "field_expr": "SG2ObjectCore_world_x"
+        },
+        "old_root": "SG2ObjectCore",
+        "new_root": "SG2LandTank"
+      },
+      {
+        "source": {
+          "offset": 35716,
+          "operand_index": 1,
+          "base_register": "A0",
+          "displacement": 12,
+          "root_struct_name": "SG2LandTank",
+          "owner_struct_name": "SG2ObjectCore",
+          "field_expr": "SG2ObjectCore_world_z"
+        },
+        "old_root": "SG2ObjectCore",
+        "new_root": "SG2LandTank"
+      },
+      {
+        "source": {
+          "offset": 35760,
+          "operand_index": 1,
+          "base_register": "A0",
+          "displacement": 4,
+          "root_struct_name": "SG2LandTank",
+          "owner_struct_name": "SG2ObjectCore",
+          "field_expr": "SG2ObjectCore_world_x"
+        },
+        "old_root": "SG2ObjectCore",
+        "new_root": "SG2LandTank"
+      },
+      {
+        "source": {
+          "offset": 35770,
+          "operand_index": 1,
+          "base_register": "A0",
+          "displacement": 12,
+          "root_struct_name": "SG2LandTank",
+          "owner_struct_name": "SG2ObjectCore",
+          "field_expr": "SG2ObjectCore_world_z"
+        },
+        "old_root": "SG2ObjectCore",
+        "new_root": "SG2LandTank"
+      },
+      {
+        "source": {
+          "offset": 35778,
+          "operand_index": 1,
+          "base_register": "A0",
+          "displacement": 4,
+          "root_struct_name": "SG2LandTank",
+          "owner_struct_name": "SG2ObjectCore",
+          "field_expr": "SG2ObjectCore_world_x"
+        },
+        "old_root": "SG2ObjectCore",
+        "new_root": "SG2LandTank"
+      },
+      {
+        "source": {
+          "offset": 35782,
+          "operand_index": 1,
+          "base_register": "A0",
+          "displacement": 12,
+          "root_struct_name": "SG2LandTank",
+          "owner_struct_name": "SG2ObjectCore",
+          "field_expr": "SG2ObjectCore_world_z"
+        },
+        "old_root": "SG2ObjectCore",
+        "new_root": "SG2LandTank"
+      },
+      {
+        "source": {
+          "offset": 35824,
+          "operand_index": 1,
+          "base_register": "A0",
+          "displacement": 4,
+          "root_struct_name": "SG2LandTank",
+          "owner_struct_name": "SG2ObjectCore",
+          "field_expr": "SG2ObjectCore_world_x"
+        },
+        "old_root": "SG2ObjectCore",
+        "new_root": "SG2LandTank"
+      },
+      {
+        "source": {
+          "offset": 35834,
+          "operand_index": 1,
+          "base_register": "A0",
+          "displacement": 12,
+          "root_struct_name": "SG2LandTank",
+          "owner_struct_name": "SG2ObjectCore",
+          "field_expr": "SG2ObjectCore_world_z"
+        },
+        "old_root": "SG2ObjectCore",
+        "new_root": "SG2LandTank"
+      },
+      {
+        "source": {
+          "offset": 35842,
+          "operand_index": 1,
+          "base_register": "A0",
+          "displacement": 4,
+          "root_struct_name": "SG2LandTank",
+          "owner_struct_name": "SG2ObjectCore",
+          "field_expr": "SG2ObjectCore_world_x"
+        },
+        "old_root": "SG2ObjectCore",
+        "new_root": "SG2LandTank"
+      },
+      {
+        "source": {
+          "offset": 35846,
+          "operand_index": 1,
+          "base_register": "A0",
+          "displacement": 12,
+          "root_struct_name": "SG2LandTank",
+          "owner_struct_name": "SG2ObjectCore",
+          "field_expr": "SG2ObjectCore_world_z"
+        },
+        "old_root": "SG2ObjectCore",
+        "new_root": "SG2LandTank"
+      },
+      {
+        "source": {
+          "offset": 36190,
+          "operand_index": 0,
+          "base_register": "A0",
+          "displacement": 0,
+          "root_struct_name": "SG2ScheduledActor",
+          "owner_struct_name": "SG2ObjectCore",
+          "field_expr": "SG2ObjectCore_object_type"
+        },
+        "old_root": "SG2ObjectCore",
+        "new_root": "SG2ScheduledActor"
+      },
+      {
+        "source": {
+          "offset": 36252,
+          "operand_index": 1,
+          "base_register": "A0",
+          "displacement": 8,
+          "root_struct_name": "SG2Tripuss",
+          "owner_struct_name": "SG2ObjectCore",
+          "field_expr": "SG2ObjectCore_world_y"
+        },
+        "old_root": "SG2ObjectCore",
+        "new_root": "SG2Tripuss"
+      },
+      {
+        "source": {
+          "offset": 36266,
+          "operand_index": 0,
+          "base_register": "A0",
+          "displacement": 8,
+          "root_struct_name": "SG2Tripuss",
+          "owner_struct_name": "SG2ObjectCore",
+          "field_expr": "SG2ObjectCore_world_y"
+        },
+        "old_root": "SG2ObjectCore",
+        "new_root": "SG2Tripuss"
+      },
+      {
+        "source": {
+          "offset": 36334,
+          "operand_index": 1,
+          "base_register": "A0",
+          "displacement": 4,
+          "root_struct_name": "SG2Tripuss",
+          "owner_struct_name": "SG2ObjectCore",
+          "field_expr": "SG2ObjectCore_world_x"
+        },
+        "old_root": "SG2ObjectCore",
+        "new_root": "SG2Tripuss"
+      },
+      {
+        "source": {
+          "offset": 36344,
+          "operand_index": 1,
+          "base_register": "A0",
+          "displacement": 12,
+          "root_struct_name": "SG2Tripuss",
+          "owner_struct_name": "SG2ObjectCore",
+          "field_expr": "SG2ObjectCore_world_z"
+        },
+        "old_root": "SG2ObjectCore",
+        "new_root": "SG2Tripuss"
+      },
+      {
+        "source": {
+          "offset": 36352,
+          "operand_index": 1,
+          "base_register": "A0",
+          "displacement": 4,
+          "root_struct_name": "SG2Tripuss",
+          "owner_struct_name": "SG2ObjectCore",
+          "field_expr": "SG2ObjectCore_world_x"
+        },
+        "old_root": "SG2ObjectCore",
+        "new_root": "SG2Tripuss"
+      },
+      {
+        "source": {
+          "offset": 36356,
+          "operand_index": 1,
+          "base_register": "A0",
+          "displacement": 12,
+          "root_struct_name": "SG2Tripuss",
+          "owner_struct_name": "SG2ObjectCore",
+          "field_expr": "SG2ObjectCore_world_z"
+        },
+        "old_root": "SG2ObjectCore",
+        "new_root": "SG2Tripuss"
+      },
+      {
+        "source": {
+          "offset": 36360,
+          "operand_index": 0,
+          "base_register": "A0",
+          "displacement": 4,
+          "root_struct_name": "SG2Tripuss",
+          "owner_struct_name": "SG2ObjectCore",
+          "field_expr": "SG2ObjectCore_world_x"
+        },
+        "old_root": "SG2ObjectCore",
+        "new_root": "SG2Tripuss"
+      },
+      {
+        "source": {
+          "offset": 36386,
+          "operand_index": 0,
+          "base_register": "A0",
+          "displacement": 12,
+          "root_struct_name": "SG2Tripuss",
+          "owner_struct_name": "SG2ObjectCore",
+          "field_expr": "SG2ObjectCore_world_z"
+        },
+        "old_root": "SG2ObjectCore",
+        "new_root": "SG2Tripuss"
+      },
+      {
+        "source": {
+          "offset": 36426,
+          "operand_index": 1,
+          "base_register": "A0",
+          "displacement": 8,
+          "root_struct_name": "SG2Tripuss",
+          "owner_struct_name": "SG2ObjectCore",
+          "field_expr": "SG2ObjectCore_world_y"
+        },
+        "old_root": "SG2ObjectCore",
+        "new_root": "SG2Tripuss"
+      },
+      {
+        "source": {
+          "offset": 36434,
+          "operand_index": 1,
+          "base_register": "A0",
+          "displacement": 8,
+          "root_struct_name": "SG2Tripuss",
+          "owner_struct_name": "SG2ObjectCore",
+          "field_expr": "SG2ObjectCore_world_y"
+        },
+        "old_root": "SG2ObjectCore",
+        "new_root": "SG2Tripuss"
+      },
+      {
+        "source": {
+          "offset": 36450,
+          "operand_index": 1,
+          "base_register": "A0",
+          "displacement": 8,
+          "root_struct_name": "SG2Tripuss",
+          "owner_struct_name": "SG2ObjectCore",
+          "field_expr": "SG2ObjectCore_world_y"
+        },
+        "old_root": "SG2ObjectCore",
+        "new_root": "SG2Tripuss"
+      },
+      {
+        "source": {
+          "offset": 36498,
+          "operand_index": 0,
+          "base_register": "A0",
+          "displacement": 0,
+          "root_struct_name": "SG2Tripuss",
+          "owner_struct_name": "SG2ObjectCore",
+          "field_expr": "SG2ObjectCore_object_type"
+        },
+        "old_root": "SG2ObjectCore",
+        "new_root": "SG2Tripuss"
+      },
+      {
+        "source": {
+          "offset": 38240,
+          "operand_index": 0,
+          "base_register": "A0",
+          "displacement": 0,
+          "root_struct_name": "SG2ScheduledActor",
+          "owner_struct_name": "SG2ObjectCore",
+          "field_expr": "SG2ObjectCore_object_type"
+        },
+        "old_root": "SG2ObjectCore",
+        "new_root": "SG2ScheduledActor"
+      },
+      {
+        "source": {
+          "offset": 38260,
+          "operand_index": 0,
+          "base_register": "A0",
+          "displacement": 1,
+          "root_struct_name": "SG2ScheduledActor",
+          "owner_struct_name": "SG2ObjectCore",
+          "field_expr": "SG2ObjectCore_object_type"
+        },
+        "old_root": "SG2ObjectCore",
+        "new_root": "SG2ScheduledActor"
+      },
+      {
+        "source": {
+          "offset": 38272,
+          "operand_index": 0,
+          "base_register": "A0",
+          "displacement": 4,
+          "root_struct_name": "SG2ScheduledActor",
+          "owner_struct_name": "SG2ObjectCore",
+          "field_expr": "SG2ObjectCore_world_x"
+        },
+        "old_root": "SG2ObjectCore",
+        "new_root": "SG2ScheduledActor"
+      },
+      {
+        "source": {
+          "offset": 38278,
+          "operand_index": 0,
+          "base_register": "A0",
+          "displacement": 8,
+          "root_struct_name": "SG2ScheduledActor",
+          "owner_struct_name": "SG2ObjectCore",
+          "field_expr": "SG2ObjectCore_world_y"
+        },
+        "old_root": "SG2ObjectCore",
+        "new_root": "SG2ScheduledActor"
+      },
+      {
+        "source": {
+          "offset": 38286,
+          "operand_index": 0,
+          "base_register": "A0",
+          "displacement": 12,
+          "root_struct_name": "SG2ScheduledActor",
+          "owner_struct_name": "SG2ObjectCore",
+          "field_expr": "SG2ObjectCore_world_z"
+        },
+        "old_root": "SG2ObjectCore",
+        "new_root": "SG2ScheduledActor"
+      }
+    ],
+    "removed_unresolved": [
+      {
+        "offset": 35668,
+        "operand_index": 1,
+        "base_register": "A0",
+        "displacement": 36,
+        "root_struct_name": "SG2ObjectCore"
+      },
+      {
+        "offset": 35682,
+        "operand_index": 1,
+        "base_register": "A0",
+        "displacement": 38,
+        "root_struct_name": "SG2ObjectCore"
+      },
+      {
+        "offset": 35688,
+        "operand_index": 0,
+        "base_register": "A0",
+        "displacement": 44,
+        "root_struct_name": "SG2ObjectCore"
+      },
+      {
+        "offset": 35698,
+        "operand_index": 0,
+        "base_register": "A0",
+        "displacement": 48,
+        "root_struct_name": "SG2ObjectCore"
+      },
+      {
+        "offset": 35724,
+        "operand_index": 0,
+        "base_register": "A0",
+        "displacement": 40,
+        "root_struct_name": "SG2ObjectCore"
+      },
+      {
+        "offset": 35730,
+        "operand_index": 1,
+        "base_register": "A0",
+        "displacement": 40,
+        "root_struct_name": "SG2ObjectCore"
+      },
+      {
+        "offset": 35736,
+        "operand_index": 0,
+        "base_register": "A0",
+        "displacement": 60,
+        "root_struct_name": "SG2ObjectCore"
+      },
+      {
+        "offset": 35742,
+        "operand_index": 0,
+        "base_register": "A0",
+        "displacement": 60,
+        "root_struct_name": "SG2ObjectCore"
+      },
+      {
+        "offset": 35746,
+        "operand_index": 0,
+        "base_register": "A0",
+        "displacement": 60,
+        "root_struct_name": "SG2ObjectCore"
+      },
+      {
+        "offset": 35754,
+        "operand_index": 0,
+        "base_register": "A0",
+        "displacement": 44,
+        "root_struct_name": "SG2ObjectCore"
+      },
+      {
+        "offset": 35764,
+        "operand_index": 0,
+        "base_register": "A0",
+        "displacement": 48,
+        "root_struct_name": "SG2ObjectCore"
+      },
+      {
+        "offset": 35790,
+        "operand_index": 0,
+        "base_register": "A0",
+        "displacement": 36,
+        "root_struct_name": "SG2ObjectCore"
+      },
+      {
+        "offset": 35818,
+        "operand_index": 0,
+        "base_register": "A0",
+        "displacement": 44,
+        "root_struct_name": "SG2ObjectCore"
+      },
+      {
+        "offset": 35828,
+        "operand_index": 0,
+        "base_register": "A0",
+        "displacement": 48,
+        "root_struct_name": "SG2ObjectCore"
+      },
+      {
+        "offset": 35850,
+        "operand_index": 0,
+        "base_register": "A0",
+        "displacement": 36,
+        "root_struct_name": "SG2ObjectCore"
+      },
+      {
+        "offset": 35886,
+        "operand_index": 0,
+        "base_register": "A0",
+        "displacement": 38,
+        "root_struct_name": "SG2ObjectCore"
+      },
+      {
+        "offset": 35896,
+        "operand_index": 1,
+        "base_register": "A0",
+        "displacement": 38,
+        "root_struct_name": "SG2ObjectCore"
+      },
+      {
+        "offset": 35902,
+        "operand_index": 0,
+        "base_register": "A0",
+        "displacement": 50,
+        "root_struct_name": "SG2ObjectCore"
+      },
+      {
+        "offset": 35920,
+        "operand_index": 0,
+        "base_register": "A0",
+        "displacement": 54,
+        "root_struct_name": "SG2ObjectCore"
+      },
+      {
+        "offset": 35942,
+        "operand_index": 1,
+        "base_register": "A0",
+        "displacement": 38,
+        "root_struct_name": "SG2ObjectCore"
+      },
+      {
+        "offset": 36108,
+        "operand_index": 0,
+        "base_register": "A0",
+        "displacement": 18,
+        "root_struct_name": "SG2ObjectCore"
+      },
+      {
+        "offset": 36130,
+        "operand_index": 0,
+        "base_register": "A0",
+        "displacement": 18,
+        "root_struct_name": "SG2ObjectCore"
+      },
+      {
+        "offset": 36144,
+        "operand_index": 1,
+        "base_register": "A0",
+        "displacement": 18,
+        "root_struct_name": "SG2ObjectCore"
+      },
+      {
+        "offset": 36152,
+        "operand_index": 0,
+        "base_register": "A0",
+        "displacement": 18,
+        "root_struct_name": "SG2ObjectCore"
+      },
+      {
+        "offset": 36166,
+        "operand_index": 1,
+        "base_register": "A0",
+        "displacement": 18,
+        "root_struct_name": "SG2ObjectCore"
+      },
+      {
+        "offset": 36170,
+        "operand_index": 1,
+        "base_register": "A0",
+        "displacement": 36,
+        "root_struct_name": "SG2ObjectCore"
+      },
+      {
+        "offset": 36174,
+        "operand_index": 0,
+        "base_register": "A0",
+        "displacement": 36,
+        "root_struct_name": "SG2ObjectCore"
+      },
+      {
+        "offset": 36240,
+        "operand_index": 1,
+        "base_register": "A0",
+        "displacement": 16,
+        "root_struct_name": "SG2ObjectCore"
+      },
+      {
+        "offset": 36246,
+        "operand_index": 1,
+        "base_register": "A0",
+        "displacement": 16,
+        "root_struct_name": "SG2ObjectCore"
+      },
+      {
+        "offset": 36262,
+        "operand_index": 0,
+        "base_register": "A0",
+        "displacement": 16,
+        "root_struct_name": "SG2ObjectCore"
+      },
+      {
+        "offset": 36270,
+        "operand_index": 0,
+        "base_register": "A0",
+        "displacement": 31,
+        "root_struct_name": "SG2ObjectCore"
+      },
+      {
+        "offset": 36278,
+        "operand_index": 0,
+        "base_register": "A0",
+        "displacement": 3,
+        "root_struct_name": "SG2ObjectCore"
+      },
+      {
+        "offset": 36292,
+        "operand_index": 1,
+        "base_register": "A0",
+        "displacement": 3,
+        "root_struct_name": "SG2ObjectCore"
+      },
+      {
+        "offset": 36300,
+        "operand_index": 1,
+        "base_register": "A0",
+        "displacement": 31,
+        "root_struct_name": "SG2ObjectCore"
+      },
+      {
+        "offset": 36310,
+        "operand_index": 1,
+        "base_register": "A0",
+        "displacement": 31,
+        "root_struct_name": "SG2ObjectCore"
+      },
+      {
+        "offset": 36320,
+        "operand_index": 1,
+        "base_register": "A0",
+        "displacement": 36,
+        "root_struct_name": "SG2ObjectCore"
+      },
+      {
+        "offset": 36328,
+        "operand_index": 0,
+        "base_register": "A0",
+        "displacement": 44,
+        "root_struct_name": "SG2ObjectCore"
+      },
+      {
+        "offset": 36338,
+        "operand_index": 0,
+        "base_register": "A0",
+        "displacement": 48,
+        "root_struct_name": "SG2ObjectCore"
+      },
+      {
+        "offset": 36414,
+        "operand_index": 1,
+        "base_register": "A0",
+        "displacement": 16,
+        "root_struct_name": "SG2ObjectCore"
+      },
+      {
+        "offset": 36420,
+        "operand_index": 1,
+        "base_register": "A0",
+        "displacement": 16,
+        "root_struct_name": "SG2ObjectCore"
+      },
+      {
+        "offset": 36444,
+        "operand_index": 1,
+        "base_register": "A0",
+        "displacement": 16,
+        "root_struct_name": "SG2ObjectCore"
+      },
+      {
+        "offset": 36462,
+        "operand_index": 1,
+        "base_register": "A0",
+        "displacement": 16,
+        "root_struct_name": "SG2ObjectCore"
+      },
+      {
+        "offset": 36468,
+        "operand_index": 0,
+        "base_register": "A0",
+        "displacement": 36,
+        "root_struct_name": "SG2ObjectCore"
+      },
+      {
+        "offset": 36528,
+        "operand_index": 0,
+        "base_register": "A0",
+        "displacement": 36,
+        "root_struct_name": "SG2ObjectCore"
+      },
+      {
+        "offset": 38204,
+        "operand_index": 0,
+        "base_register": "A0",
+        "displacement": 18,
+        "root_struct_name": "SG2ObjectCore"
+      },
+      {
+        "offset": 38266,
+        "operand_index": 1,
+        "base_register": "A0",
+        "displacement": 42,
+        "root_struct_name": "SG2ObjectCore"
+      },
+      {
+        "offset": 38302,
+        "operand_index": 0,
+        "base_register": "A0",
+        "displacement": 18,
+        "root_struct_name": "SG2ObjectCore"
+      },
+      {
+        "offset": 40196,
+        "operand_index": 0,
+        "base_register": "A0",
+        "displacement": 18,
+        "root_struct_name": "SG2ObjectCore"
+      },
+      {
+        "offset": 40216,
+        "operand_index": 0,
+        "base_register": "A0",
+        "displacement": 18,
+        "root_struct_name": "SG2ObjectCore"
+      },
+      {
+        "offset": 40230,
+        "operand_index": 1,
+        "base_register": "A0",
+        "displacement": 18,
+        "root_struct_name": "SG2ObjectCore"
+      },
+      {
+        "offset": 40234,
+        "operand_index": 0,
+        "base_register": "A0",
+        "displacement": 20,
+        "root_struct_name": "SG2ObjectCore"
+      },
+      {
+        "offset": 40248,
+        "operand_index": 1,
+        "base_register": "A0",
+        "displacement": 20,
+        "root_struct_name": "SG2ObjectCore"
+      },
+      {
+        "offset": 40254,
+        "operand_index": 1,
+        "base_register": "A0",
+        "displacement": 20,
+        "root_struct_name": "SG2ObjectCore"
+      },
+      {
+        "offset": 40260,
+        "operand_index": 0,
+        "base_register": "A0",
+        "displacement": 18,
+        "root_struct_name": "SG2ObjectCore"
+      },
+      {
+        "offset": 40274,
+        "operand_index": 1,
+        "base_register": "A0",
+        "displacement": 18,
+        "root_struct_name": "SG2ObjectCore"
+      },
+      {
+        "offset": 40278,
+        "operand_index": 0,
+        "base_register": "A0",
+        "displacement": 20,
+        "root_struct_name": "SG2ObjectCore"
+      },
+      {
+        "offset": 40292,
+        "operand_index": 1,
+        "base_register": "A0",
+        "displacement": 20,
+        "root_struct_name": "SG2ObjectCore"
+      },
+      {
+        "offset": 40298,
+        "operand_index": 1,
+        "base_register": "A0",
+        "displacement": 20,
+        "root_struct_name": "SG2ObjectCore"
+      }
+    ],
+    "new_unresolved": [
+      {
+        "offset": 34670,
+        "operand_index": 0,
+        "base_register": "A0",
+        "displacement": 18,
+        "struct_size": 68,
+        "access_size": 2,
+        "root_struct_name": "SG2ObjectCore",
+        "classification_id": 0,
+        "classification": "field_gap",
+        "container_candidate_count": 0,
+        "container_struct_name": null,
+        "container_field_expr": null,
+        "refinement_applied": 0,
+        "refined_struct_name": null,
+        "type_provenance_kind_id": 0,
+        "type_provenance_kind": "unknown"
+      },
+      {
+        "offset": 34756,
+        "operand_index": 0,
+        "base_register": "A0",
+        "displacement": 29,
+        "struct_size": 68,
+        "access_size": 1,
+        "root_struct_name": "SG2ObjectCore",
+        "classification_id": 0,
+        "classification": "field_gap",
+        "container_candidate_count": 0,
+        "container_struct_name": null,
+        "container_field_expr": null,
+        "refinement_applied": 0,
+        "refined_struct_name": null,
+        "type_provenance_kind_id": 0,
+        "type_provenance_kind": "unknown"
+      },
+      {
+        "offset": 34778,
+        "operand_index": 1,
+        "base_register": "A0",
+        "displacement": 42,
+        "struct_size": 68,
+        "access_size": 1,
+        "root_struct_name": "SG2ObjectCore",
+        "classification_id": 0,
+        "classification": "field_gap",
+        "container_candidate_count": 0,
+        "container_struct_name": null,
+        "container_field_expr": null,
+        "refinement_applied": 0,
+        "refined_struct_name": null,
+        "type_provenance_kind_id": 0,
+        "type_provenance_kind": "unknown"
+      },
+      {
+        "offset": 34796,
+        "operand_index": 1,
+        "base_register": "A0",
+        "displacement": 42,
+        "struct_size": 68,
+        "access_size": 1,
+        "root_struct_name": "SG2ObjectCore",
+        "classification_id": 0,
+        "classification": "field_gap",
+        "container_candidate_count": 0,
+        "container_struct_name": null,
+        "container_field_expr": null,
+        "refinement_applied": 0,
+        "refined_struct_name": null,
+        "type_provenance_kind_id": 0,
+        "type_provenance_kind": "unknown"
+      },
+      {
+        "offset": 34832,
+        "operand_index": 0,
+        "base_register": "A0",
+        "displacement": 18,
+        "struct_size": 68,
+        "access_size": 2,
+        "root_struct_name": "SG2ObjectCore",
+        "classification_id": 0,
+        "classification": "field_gap",
+        "container_candidate_count": 0,
+        "container_struct_name": null,
+        "container_field_expr": null,
+        "refinement_applied": 0,
+        "refined_struct_name": null,
+        "type_provenance_kind_id": 0,
+        "type_provenance_kind": "unknown"
+      }
+    ]
+  },
+  "validation": {
+    "original_verification": {
+      "kind": "verification",
+      "framework_exact": true,
+      "target_id": "amiga_raw_starglider2_game",
+      "subject_revision": "499d0218ad0efe2ce426f11b58fa4c6f2c1b0c6b649afc3a7a29830bcb8d1224",
+      "status": "exact",
+      "exact": true,
+      "source_sha256": "720e52b955abe60643898aa6ea2a3b1eac27fd9e6992ad9fe488c2bc8417da5a",
+      "source_path": "/workspace/pandora-original-delivery/stable-d15c2cf8/.runtime-state/restoration/eb04f545fb97451725a1c91ab5abf6f2e097614c45880db6edfb4ea5c3f6e2c2/720e52b955abe60643898aa6ea2a3b1eac27fd9e6992ad9fe488c2bc8417da5a.s",
+      "source_package_sha256": null,
+      "original_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+      "original_size": 412736,
+      "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+      "rebuilt_path": "/workspace/pandora-original-delivery/stable-d15c2cf8/.runtime-state/restoration/eb04f545fb97451725a1c91ab5abf6f2e097614c45880db6edfb4ea5c3f6e2c2/662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9.bin",
+      "framework_status": "exact",
+      "failure_kinds": [],
+      "message": "",
+      "oracle": {
+        "oracle_id": "vasm",
+        "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+        "comparison_level": "oracle.full_file_match",
+        "assembler_status": "accepted",
+        "message": "oracle output matched original bytes"
+      },
+      "receipt_id": "5c737565e3f469887b344d774097300818d330ed7a22b2d06f7a4719412b099a",
+      "revision": "28660ad6a76d43abc0f4e6a8f650805272589e080148ab6d10b2edce57004a6f"
+    },
+    "canonical_batch": "20 revision-checked interpretations reviewed against original consumer/dispatch/name evidence after exact C/vasm verification.",
+    "framework_tests": "No framework code changed after the published 320 Python /832 C passing batch; unchanged suites were not repeated.",
+    "new_live_encounters": false,
+    "clean_standalone_build": {
+      "status": "pass",
+      "validated_target_git_tree": "e3c5cd4647518044fa689146e3ada464a7f1d2b3",
+      "receipt": {
+        "schema_version": 1,
+        "status": "pass",
+        "format": "raw_payload_not_AmigaDOS_HUNK",
+        "main_bytes": 412736,
+        "main_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+        "main_matches_original_identity": true,
+        "asset_count": 57,
+        "all_asset_source_slices_equal": true,
+        "decoded_view_inverse_exact": true,
+        "boot_copy_source_matches_resident_view": true,
+        "source_commit": "6e6c55edf0d94e5ce36adc6fa45a9ef47a926581",
+        "assembler_sha256": "413e284020125f42709486dfe09907cab3dd9f3c2ea41017c190f8ea68f30825",
+        "flags": [
+          "-Fbin",
+          "-m68000",
+          "-no-opt"
+        ],
+        "outputs": [
+          {
+            "role": "original_main",
+            "filename": "Starglider2-original.raw",
+            "bytes": 412736,
+            "sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9"
+          },
+          {
+            "role": "decoded_analysis_view",
+            "filename": "protection-decoded-analysis.raw",
+            "bytes": 3548,
+            "sha256": "de8358853dd9ed9b006a23569bf393aa217ed3be3301a169465d80bfaf839922"
+          },
+          {
+            "role": "boot_installer_context",
+            "filename": "boot-selector-installer-context.raw",
+            "bytes": 40,
+            "sha256": "8d34852425e2e1bfa87b3febdfc74fb39e7c667e9d9ff73e17b594649e83b21b"
+          },
+          {
+            "role": "boot_resident_view",
+            "filename": "boot-selector-resident.raw",
+            "bytes": 20,
+            "sha256": "a26286a393713c046eff9dbaff15b20b26b171fa9e05fc9d538d16b0eddb6024"
+          }
+        ]
+      },
+      "recoverable_pandora_backups_verified": 16
+    }
+  },
+  "execution_recovery": {
+    "repeated_interpretations": false,
+    "native_requalification": "One repeat after original process ended without a verification receipt; live native artifact cannot be deserialized from saved JSON by the existing API.",
+    "prior_outputs_retained": true,
+    "output_comparison": {
+      "analysis.json": {
+        "identical": true,
+        "sha256": "c94fb0c606c901566f023ec8b8109efb4effb6960125cf9e06fbd2489aa45fb0"
+      },
+      "inline.s": {
+        "identical": true,
+        "sha256": "720e52b955abe60643898aa6ea2a3b1eac27fd9e6992ad9fe488c2bc8417da5a"
+      },
+      "source-package.json": {
+        "identical": true,
+        "sha256": "5354eb923166168ebe242c6928ae1d6708b6ee210358573c6f948c488cffeb67"
+      }
+    },
+    "first_native_build_wall_seconds": 309.0973537460086,
+    "recovery_native_build_wall_seconds": 189.05790566798532,
+    "app_slot_native_cpu_seconds": [
+      97.907537,
+      14.056285
+    ],
+    "timing_conclusion": "The elevated app-slot timing did not recur in the fresh recovery process with identical outputs. Cause is not established; no optimization/speedup or source-semantic conclusion is claimed. No extra timing-only run."
+  },
+  "next_experiments": [
+    {
+      "blocks": "Five newly exposed creator-record field gaps in shared projectile-spawn code",
+      "runtime_sites": [
+        "$976E",
+        "$97C4",
+        "$97DA",
+        "$97EC",
+        "$9810"
+      ],
+      "next_step": "Enumerate original callers/guards and establish the shared creator-record input contract before assigning World yaw/model-scale/collision-ignore fields. Use one evidence-supported callable contract, not five reader seeds.",
+      "reason": "The more precise caller contexts expose Core at these shared readers; current Core schema does not establish those additional fields. New uncertainty is retained rather than hidden."
+    },
+    {
+      "blocks": "Header physical-frame and selected-cell chains",
+      "next_step": "Continue the source-owned pointer-holder and callee-return experiment recorded in the structure-motion receipt; retain unknown aliases and loader-entry restrictions.",
+      "reason": "This semantic batch changes no memory-cell return ABI or physical-A6 contract. Those limitations are not prerequisites for independent dispatch-backed restoration."
+    }
+  ],
+  "limits": [
+    "Original valid-record dispatch/name bindings, accepted CPU code, normal stack/returns and explicit schema assumptions; unseen indirect entries/invalid records are not certified.",
+    "No new normal-media flight/encounter, screenshots/audio/timing equivalence or guest-state injection.",
+    "Mixed pools and linked peers remain broader/unknown; LONG sentinels and absent lifetime/acyclic/termination proofs are preserved.",
+    "New actor contexts do not justify casting unrelated shared callees or removing the five newly exposed Core field gaps.",
+    "32 generic app fields,13,840 unclassified bytes and the remaining access/alias questions are not semantic completion percentages. Publication is a verified batch, not project completion."
+  ],
+  "performance": {
+    "api_wall_seconds": 189.05790566798532,
+    "native_profile": {
+      "generation": "facts_v2_listing_artifact_summary",
+      "backend": "amiga-raw",
+      "analysis_backend": "facts_v2",
+      "path": "/workspace/starglider2-private/main-copy.bin",
+      "facts_v2": {
+        "decode_seconds": 3e-06,
+        "seed_seconds": 0.004939,
+        "fixed_point_seconds": 12.318072,
+        "fixed_point_reachable_seconds": 10.518998,
+        "fixed_point_reachable_decode_seconds": 0.0,
+        "fixed_point_reachable_validate_seconds": 0.0,
+        "fixed_point_reachable_accept_seconds": 0.0,
+        "fixed_point_reachable_target_seconds": 0.0,
+        "fixed_point_reachable_relocation_seconds": 0.0,
+        "fixed_point_reachable_fallthrough_seconds": 0.0,
+        "fixed_point_index_seconds": 0.001359,
+        "fixed_point_required_label_conflict_seconds": 8e-05,
+        "fixed_point_opcode_relocation_conflict_seconds": 0.000267,
+        "fixed_point_rebuild_accepted_seconds": 0.014446,
+        "fixed_point_relocation_anchor_seconds": 0.000192,
+        "fixed_point_materialize_labels_seconds": 1.782483,
+        "fixed_point_runtime_address_ref_seconds": 1.666358,
+        "fixed_point_required_label_materialize_seconds": 0.116125,
+        "fixed_point_data_span_seconds": 0.000247,
+        "fixed_point_invariant_seconds": 3.1e-05,
+        "render_ir_seconds": 34.852749,
+        "render_ir_lookup_seconds": 0.373182,
+        "platform_analysis_pass_seconds": 87.798871,
+        "platform_analysis_base_slot_seconds": 0.063925,
+        "platform_analysis_call_summary_seconds": 0.101354,
+        "platform_analysis_typed_ref_seconds": 73.574432,
+        "platform_analysis_typed_summary_seconds": 0.11179,
+        "platform_analysis_typed_graph_seconds": 2.231433,
+        "platform_analysis_typed_flow_seconds": 6.18558,
+        "platform_analysis_typed_callback_seconds": 65.045625,
+        "source_analysis_typed_target_seconds": 4.5e-05,
+        "source_analysis_build_seconds": 10.402328,
+        "source_analysis_finalize_seconds": 35.291814,
+        "platform_analysis_call_comment_seconds": 1e-06,
+        "platform_analysis_app_slot_seconds": 14.056285,
+        "platform_analysis_runtime_data_seconds": 1e-06,
+        "platform_analysis_hardware_data_seconds": 0.0,
+        "platform_analysis_generic_data_seconds": 0.0,
+        "render_ir_header_seconds": 21.079328,
+        "render_ir_walk_seconds": 11.514165,
+        "render_ir_footer_seconds": 2.258691,
+        "source_render_seconds": 0.0,
+        "decoded_candidates": 29938,
+        "accepted_instructions": 29665,
+        "data_spans": 172,
+        "labels_created": 20120,
+        "labels_referenced": 13067,
+        "unresolved_labels": 0,
+        "interior_conflicts": 0,
+        "interior_conflicts_resolved_by_demote": 0,
+        "interior_conflicts_unresolved": 0,
+        "relocation_failures": 0,
+        "first_relocation_failure_reason": "",
+        "first_relocation_failure_section": 0,
+        "first_relocation_failure_offset": 0,
+        "first_relocation_failure_target_section": 0,
+        "first_relocation_failure_width": 0,
+        "first_relocation_failure_raw_value": 0,
+        "first_relocation_failure_computed_target": 0,
+        "relocation_anchors": 0,
+        "first_relocation_anchor_kind": "",
+        "first_relocation_anchor_section": 0,
+        "first_relocation_anchor_offset": 0,
+        "first_relocation_anchor_target_section": 0,
+        "first_relocation_anchor_width": 0,
+        "first_relocation_anchor_platform_record_kind": "",
+        "first_relocation_anchor_raw_value": 0,
+        "first_relocation_anchor_addend": 0,
+        "relocation_anchor_instruction_bytes": 0,
+        "relocation_anchor_data_payloads": 0,
+        "relocation_anchor_unknown_contexts": 0,
+        "unassemblable_hunk_data_relocations": 0,
+        "unassemblable_hunk_base_register_relocations": 0,
+        "first_relocation_anchor_context": "",
+        "first_relocation_anchor_instruction_offset": 0,
+        "code_start_facts": 42095,
+        "code_start_section_entries": 0,
+        "code_start_policy_entry_offsets": 0,
+        "code_start_policy_entry_points": 165,
+        "code_start_control_targets": 10302,
+        "code_start_fallthroughs": 31628,
+        "code_start_inline_resumes": 0,
+        "code_start_linkage_api_entries": 0,
+        "code_start_platform_loadseg_entries": 0,
+        "code_start_stack_continuations": 0,
+        "code_start_boundary_api_entries": 0,
+        "platform_loadseg_segment_link_accesses": 0,
+        "platform_loadseg_segment_link_bptr_loads": 0,
+        "platform_loadseg_segment_link_resolved_targets": 0,
+        "first_platform_loadseg_segment_link_section": 0,
+        "first_platform_loadseg_segment_link_offset": 0,
+        "first_platform_loadseg_segment_link_target_section": 0,
+        "runtime_address_ranges": 5,
+        "runtime_address_range_conflicts": 0,
+        "table_target_set_limit_hits": 0,
+        "first_table_target_set_limit_section": 0,
+        "first_table_target_set_limit_offset": 0,
+        "first_table_target_set_limit_capacity": 0,
+        "source_quality_diagnostics": 0,
+        "source_quality_blockers": 0,
+        "first_source_quality_diagnostic_kind": "unknown",
+        "first_source_quality_diagnostic_section": 0,
+        "first_source_quality_diagnostic_offset": 0,
+        "runtime_address_view_starts": 41931,
+        "required_instruction_failures": 0,
+        "unsupported_instruction_demotes": 0,
+        "first_required_instruction_failure_section": 0,
+        "first_required_instruction_failure_offset": 0,
+        "first_required_instruction_failure_reason": "",
+        "first_required_instruction_failure_source_section": 0,
+        "first_required_instruction_failure_source_offset": 0,
+        "first_unsupported_instruction_demote_section": 0,
+        "first_unsupported_instruction_demote_offset": 0,
+        "first_unsupported_instruction_demote_reason": "",
+        "first_unsupported_instruction_demote_source_section": 0,
+        "first_unsupported_instruction_demote_source_offset": 0,
+        "opcode_relocation_conflicts_resolved_by_demote": 0,
+        "first_opcode_relocation_conflict_section": 0,
+        "first_opcode_relocation_conflict_offset": 0,
+        "first_opcode_relocation_conflict_aux_offset": 0,
+        "queue_iterations": 34688,
+        "workflow_arena_peak_used": 7466760,
+        "workflow_arena_total_blocks": 39,
+        "render_ir_statements": 52148,
+        "render_ir_labels": 5279,
+        "render_ir_instructions": 29665,
+        "render_ir_data_spans": 17204,
+        "render_ir_hash": "252feca478883614",
+        "preview_source_enabled": false,
+        "preview_source_bytes": 0,
+        "preview_source_hash": "14650fb0739d0383",
+        "asm_source_enabled": true,
+        "asm_source_refused": false,
+        "asm_source_bytes": 2346537,
+        "asm_source_lines": 67493,
+        "asm_source_plan_rows": 66361,
+        "asm_source_plan_lines": 67493,
+        "asm_source_plan_bytes": 2346537,
+        "asm_source_relocation_exprs": 0,
+        "asm_source_symbolic_instructions": 29665,
+        "asm_source_numeric_runtime_refs": 0,
+        "asm_source_first_numeric_runtime_ref_section": 0,
+        "asm_source_first_numeric_runtime_ref_offset": 0,
+        "asm_source_first_numeric_runtime_ref_target_section": 0,
+        "asm_source_first_numeric_runtime_ref_target_offset": 0,
+        "asm_source_first_numeric_runtime_ref_runtime_address": 0,
+        "platform_base_slot_count": 325,
+        "platform_call_count": 1,
+        "platform_effect_count": 1,
+        "asm_source_lossy_numeric_hunk_relocations": 0,
+        "asm_source_instruction_render_failures": 0,
+        "asm_source_instruction_byte_mismatches": 0,
+        "asm_source_instruction_relocation_failures": 0,
+        "asm_source_relocation_anchor_refusals": 0,
+        "asm_source_unassemblable_hunk_data_relocation_refusals": 0,
+        "asm_source_unassemblable_hunk_base_register_relocation_refusals": 0,
+        "asm_source_first_failure_kind": "",
+        "asm_source_first_failure_section": 0,
+        "asm_source_first_failure_offset": 0,
+        "asm_source_first_failure_aux_offset": 0,
+        "asm_source_hash": "3cdd959691fe8b59"
+      },
+      "timing": {
+        "source_seconds": 181.511677,
+        "summary_json_seconds": 0.000374,
+        "total_seconds": 0.000374
+      }
+    }
+  }
+}

@@ -21,9 +21,39 @@ The [current systematic gap inventory](../../runtime/observations/starglider2-so
 joins native identities/accesses with canonical layouts and actual rendered
 boundaries. It records 67 suffix signals (including numeric adjacent variants),
 21 lookup contracts, 523 remaining interior references, 32 generic app fields
-and 659 unresolved record accesses. These are different denominators. Five
+and 606 unresolved record accesses. These are different denominators. Five
 suffixes name routines and one names text; neither is a pointer defect.
-Latest: the [structure-motion contracts](../../runtime/observations/starglider2-structure-motion-contracts.json)
+Latest: the [ground-actor contracts](../../runtime/observations/starglider2-ground-actor-contracts.json)
+join original dispatch entries 9/23/26/50 to Egron Land Tank, GBML, Tripuss and
+GBML with Cannon in the existing name directory. Two narrow subtypes expose
+the Land Tank pair-link delay and Tripuss signed variant step, while the GBML
+handlers reuse the Scheduled/World contracts. Eleven labels describe established
+heading, target-scan, link-delay and variant operations. Preserve repeated Land
+Tank X/Z integration, signed evasion tests, the Cannon's wrapping Y-difference
+bits, and Tripuss boundary-step changes that do not store the boundary variant.
+Linked peers and selected targets do not acquire invented types.
+
+Projection adds **73 typed coordinates / 0 lost** and refines **31 existing
+root contexts** without changing field meanings or widths. It removes **58
+unresolved coordinates and exposes 5 new Core gaps** in shared projectile-spawn
+code: a net reduction of 53. Current counts are **3412 app references /1663
+typed /606 unresolved**. C/vasm and clean standalone source remain byte exact;
+no unchanged framework suite or live gameplay was repeated. The executor
+reconnected in place after losing its old terminal session. One necessary
+native requalification recovered the missing verification/review, with byte
+identical analysis, assembly and source package; annotations were not replayed.
+The elevated app-slot timing from the interrupted process did not recur in the
+fresh qualification. Its cause remains unestablished; no speedup is claimed.
+
+Next: inspect original creator-record callers/guards for the five newly exposed
+spawn readers ($976E/$97C4/$97DA/$97EC/$9810) before assigning World yaw,
+model-scale and collision-ignore fields. Prefer one supported callable input
+contract over per-reader seeds. Continue independent record/shared-buffer leads;
+the header physical-frame and cell-return questions remain separately bounded.
+The 32 generic app fields, 13,840 unclassified bytes and other source gaps are
+still active work, not an all-path proof requirement or completion percentage.
+
+Preceding: the [structure-motion contracts](../../runtime/observations/starglider2-structure-motion-contracts.json)
 join original primary dispatch entries 3/4/29/63 to the canonical object-name
 strings: Egron Spire Building, Solar Energy Converter, Egron Mini Rocket and
 Blast Doors. Three narrow World subtypes expose four operation-specific fields;

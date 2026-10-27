@@ -1090,6 +1090,20 @@ SG2MiniRocket_fall_acceleration_delay_updates RS.W 1
     RS.B 30
 SG2MiniRocket_SIZEOF EQU __RS
 
+; STRUCT SG2LandTank
+    RSRESET
+    RS.B 40
+SG2LandTank_pair_link_release_countdown RS.B 1
+    RS.B 27
+SG2LandTank_SIZEOF EQU __RS
+
+; STRUCT SG2Tripuss
+    RSRESET
+    RS.B 31
+SG2Tripuss_variant_ping_pong_step RS.B 1
+    RS.B 36
+SG2Tripuss_SIZEOF EQU __RS
+
 ADKF_CLRALL	EQU	$7FFF
 BPLCON2_PF2P2	EQU	$20
 BPLCON2_PF2PRI	EQU	$40
@@ -9289,7 +9303,7 @@ primary_object_update_offsets:
 	dc.w update_link_following_or_free_motion_object-primary_object_update_offsets
 	dc.w force_large_bird_base_frame_then_update-primary_object_update_offsets
 	dc.w abs_0_00009500-primary_object_update_offsets
-	dc.w abs_0_00009B4C-primary_object_update_offsets
+	dc.w update_nearby_egron_land_tank-primary_object_update_offsets
 	dc.w abs_0_000094E6-primary_object_update_offsets
 	dc.w abs_0_00009390-primary_object_update_offsets
 	dc.w animate_nearby_homing_projectile-primary_object_update_offsets
@@ -9303,10 +9317,10 @@ primary_object_update_offsets:
 	dc.w abs_0_000093CE-primary_object_update_offsets
 	dc.w update_shared_flying_actor-primary_object_update_offsets
 	dc.w abs_0_0000863C-primary_object_update_offsets
-	dc.w abs_0_00009CFC-primary_object_update_offsets
+	dc.w update_gbml_heading_and_target_scan-primary_object_update_offsets
 	dc.w abs_0_000081D2-primary_object_update_offsets
 	dc.w update_nearby_steered_projectile-primary_object_update_offsets
-	dc.w abs_0_00009D88-primary_object_update_offsets
+	dc.w update_nearby_tripuss-primary_object_update_offsets
 	dc.w advance_starglider_frame_then_update-primary_object_update_offsets
 	dc.w update_shared_flying_actor-primary_object_update_offsets
 	dc.w update_mini_rocket_delay_then_fall-primary_object_update_offsets
@@ -9330,7 +9344,7 @@ primary_object_update_offsets:
 	dc.w abs_0_000084A8-primary_object_update_offsets
 	dc.w abs_0_0000A136-primary_object_update_offsets
 	dc.w abs_0_000089C8-primary_object_update_offsets
-	dc.w abs_0_00009C80-primary_object_update_offsets
+	dc.w update_gbml_cannon_heading_and_attack-primary_object_update_offsets
 	dc.w abs_0_000081D2-primary_object_update_offsets
 	dc.w abs_0_000081D2-primary_object_update_offsets
 	dc.w abs_0_000081D2-primary_object_update_offsets
@@ -11118,7 +11132,7 @@ abs_0_0000977C:
     ; Internal AI spawn continuation. Transient request selects type12 versus25; schedulers set/clear it and outer object loops reset it. It is not a collision or persistent per-object flag.
 spawn_ai_projectile_continuation:
 	move.b #$1F,diagnostic_step_byte.l
-	move.w (a0),d3
+	move.w (a0),d3	; operand 1: SG2ObjectCore_object_type at (a0)
 	lea.l model_type_target_selection_tags_prefix(a6),a1
 	tst.b $0(a1,d3.w)
 	beq.w abs_0_000081D2
@@ -11138,18 +11152,18 @@ spawn_ai_projectile_continuation:
 	tst.b ai_type12_projectile_request(a6)
 	beq.b abs_0_000097E2
 	move.w #$C,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
-	move.b $0001(a0),$002A(a2)
+	move.b SG2ObjectCore_object_type+1(a0),$002A(a2)
 	move.b #$C,$002A(a0)
 	bra.b abs_0_000097F2
 abs_0_000097E2:
 	move.w #$19,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
-	move.b $0001(a0),$002A(a2)
+	move.b SG2ObjectCore_object_type+1(a0),$002A(a2)
 	move.b #$19,$002A(a0)
 abs_0_000097F2:
-	move.l $0004(a0),SG2ObjectCore_world_x(a2)
-	add.l $0008(a0),d2
+	move.l SG2ObjectCore_world_x(a0),SG2ObjectCore_world_x(a2)
+	add.l SG2ObjectCore_world_y(a0),d2
 	move.l d2,SG2ObjectCore_world_y(a2)
-	move.l $000C(a0),SG2ObjectCore_world_z(a2)
+	move.l SG2ObjectCore_world_z(a0),SG2ObjectCore_world_z(a2)
 	clr.w $0010(a2)
 	move.b #$FF,SG2ObjectCore_retirement_phase_or_negative(a2)
 	move.w $0012(a0),d1
@@ -11372,61 +11386,63 @@ accelerate_mini_rocket_after_delay:
 	add.l SG2ObjectCore_world_y(a0),d0
 	move.l d0,SG2ObjectCore_world_y(a0)
 	bra.w abs_0_000081D2
-abs_0_00009B4C:
+    ; Type9 Land Tank: preserve repeated X/Z integration and signed WORD26 evasion gate. BYTE28 delay can release nonzero LONG3C peer; zero check does not prove peer type or lifetime.
+    ; KNOWN: type A0=Target code-entry register seed:SG2LandTank
+update_nearby_egron_land_tank:
 	move.b #$5,diagnostic_step_byte.l
-	subq.w #1,$0024(a0)
+	subq.w #1,SG2ScheduledActor_behavior_update_counter(a0)
 	cmpi.b #6,SG2ObjectCore_durability_or_negative(a0)
-	beq.w abs_0_00009B88
-	move.w #$FFFF,$0026(a0)
-	move.w $002C(a0),d3
+	beq.w update_land_tank_pair_link_delay
+	move.w #$FFFF,SG2EvasiveActor_proximity_evasion_countdown(a0)
+	move.w SG2WorldObject_velocity_x(a0),d3
 	ext.l d3
 	add.l d3,SG2ObjectCore_world_x(a0)
-	move.w $0030(a0),d3
+	move.w SG2WorldObject_velocity_z(a0),d3
 	ext.l d3
 	add.l d3,SG2ObjectCore_world_z(a0)
 	move.l horizontal_world_wrap_mask(a6),d3
 	and.l d3,SG2ObjectCore_world_x(a0)
 	and.l d3,SG2ObjectCore_world_z(a0)
-abs_0_00009B88:
+update_land_tank_pair_link_delay:
 	movea.l player_object_reference(a6),a4
-	tst.b $0028(a0)
-	beq.b abs_0_00009BEA
-	subq.b #1,$0028(a0)
-	bne.b abs_0_00009BAA
-	tst.l $003C(a0)
-	beq.b abs_0_00009BAA
-	movea.l $003C(a0),a2
-	clr.l $003C(a0)
+	tst.b SG2LandTank_pair_link_release_countdown(a0)
+	beq.b move_land_tank_without_link_delay
+	subq.b #1,SG2LandTank_pair_link_release_countdown(a0)
+	bne.b move_land_tank_during_link_delay
+	tst.l SG2WorldObject_linked_record_or_sentinel(a0)
+	beq.b move_land_tank_during_link_delay
+	movea.l SG2WorldObject_linked_record_or_sentinel(a0),a2
+	clr.l SG2WorldObject_linked_record_or_sentinel(a0)
 	clr.b $0028(a2)
-abs_0_00009BAA:
-	move.w $002C(a0),d3
+move_land_tank_during_link_delay:
+	move.w SG2WorldObject_velocity_x(a0),d3
 	ext.l d3
 	add.l d3,SG2ObjectCore_world_x(a0)
-	move.w $0030(a0),d3
+	move.w SG2WorldObject_velocity_z(a0),d3
 	ext.l d3
 	add.l d3,SG2ObjectCore_world_z(a0)
 	move.l horizontal_world_wrap_mask(a6),d3
 	and.l d3,SG2ObjectCore_world_x(a0)
 	and.l d3,SG2ObjectCore_world_z(a0)
 	bsr.w heading_with_player_as_reference
-	move.w $0024(a0),d0
+	move.w SG2ScheduledActor_behavior_update_counter(a0),d0
 	sf.b ai_type12_projectile_request(a6)
 	andi.b #15,d0
 	beq.w try_ai_projectile_attack_if_aligned
 	andi.b #7,d0
 	beq.w abs_0_00009F02
 	bra.w abs_0_000081D2
-abs_0_00009BEA:
-	move.w $002C(a0),d3
+move_land_tank_without_link_delay:
+	move.w SG2WorldObject_velocity_x(a0),d3
 	ext.l d3
 	add.l d3,SG2ObjectCore_world_x(a0)
-	move.w $0030(a0),d3
+	move.w SG2WorldObject_velocity_z(a0),d3
 	ext.l d3
 	add.l d3,SG2ObjectCore_world_z(a0)
 	move.l horizontal_world_wrap_mask(a6),d3
 	and.l d3,SG2ObjectCore_world_x(a0)
 	and.l d3,SG2ObjectCore_world_z(a0)
-	move.w $0024(a0),d0
+	move.w SG2ScheduledActor_behavior_update_counter(a0),d0
 	st.b ai_type12_projectile_request(a6)
 	andi.b #31,d0
 	beq.w abs_0_00009248
@@ -11435,41 +11451,43 @@ abs_0_00009BEA:
 	beq.w abs_0_00009248
 	andi.b #7,d0
 	beq.w abs_0_00009F02
-	tst.w $0026(a0)
+	tst.w SG2EvasiveActor_proximity_evasion_countdown(a0)
 	bmi.w abs_0_0000ACA8
-	beq.b abs_0_00009C3E
-	subq.w #1,$0026(a0)
+	beq.b test_land_tank_proximity_evasion
+	subq.w #1,SG2EvasiveActor_proximity_evasion_countdown(a0)
 	bne.b abs_0_00009C78
-abs_0_00009C3E:
-	move.w $0032(a0),d2
+test_land_tank_proximity_evasion:
+	move.w SG2WorldObject_pre_view_relative_x(a0),d2
 	sub.w $0032(a4),d2
 	bpl.b abs_0_00009C4A
 	neg.w d2
 abs_0_00009C4A:
 	cmp.w #$258,d2
-	ble.b abs_0_00009C66
-	move.w $0036(a0),d2
+	ble.b start_land_tank_evasion_turn
+	move.w SG2WorldObject_pre_view_relative_z(a0),d2
 	sub.w $0036(a4),d2
 	bpl.b abs_0_00009C5C
 	neg.w d2
 abs_0_00009C5C:
 	cmp.w #$258,d2
-	ble.b abs_0_00009C66
+	ble.b start_land_tank_evasion_turn
 	bra.w abs_0_0000ACA8
-abs_0_00009C66:
-	move.w #$32,$0026(a0)
+start_land_tank_evasion_turn:
+	move.w #$32,SG2EvasiveActor_proximity_evasion_countdown(a0)
 	bsr.w heading_with_player_as_reference
 	addi.w #1024,d1
 	bra.w abs_0_0000ACB0
 abs_0_00009C78:
 	bsr.w heading_with_player_as_reference
 	bra.w abs_0_0000ACB0
-abs_0_00009C80:
+    ; Type50 GBML with Cannon: add2048 to heading in4096 units; variant uses wrapping Y-difference bits8..10. WORD24 reloads15 only at zero before an attack attempt, not guaranteed fire.
+    ; KNOWN: type A0=Target code-entry register seed:SG2ScheduledActor
+update_gbml_cannon_heading_and_attack:
 	move.b #$24,diagnostic_step_byte.l
 	bsr.w heading_with_player_as_reference
 	addi.w #2048,d1
 	andi.w #4095,d1
-	move.w $0012(a0),d0
+	move.w SG2WorldObject_rotation_1(a0),d0
 	andi.w #4095,d0
 	sub.w d1,d0
 	bpl.b abs_0_00009CA2
@@ -11478,38 +11496,39 @@ abs_0_00009CA2:
 	cmp.w #$800,d0
 	ble.b abs_0_00009CBE
 	move.w d1,d2
-	move.w $0012(a0),d0
+	move.w SG2WorldObject_rotation_1(a0),d0
 	andi.w #4095,d0
 	sub.w d0,d2
 	asr.w #4,d2
 	sub.w d2,d0
-	move.w d0,$0012(a0)
-	bra.b abs_0_00009CD2
+	move.w d0,SG2WorldObject_rotation_1(a0)
+	bra.b set_gbml_cannon_altitude_variant
 abs_0_00009CBE:
 	move.w d1,d2
-	move.w $0012(a0),d0
+	move.w SG2WorldObject_rotation_1(a0),d0
 	andi.w #4095,d0
 	sub.w d0,d2
 	asr.w #4,d2
 	add.w d2,d0
-	move.w d0,$0012(a0)
-abs_0_00009CD2:
-	move.l $0008(a0),d0
+	move.w d0,SG2WorldObject_rotation_1(a0)
+set_gbml_cannon_altitude_variant:
+	move.l SG2ObjectCore_world_y(a0),d0
 	move.l player_world_y(a6),d2
 	sub.l d2,d0
 	lsr.l #8,d0
 	andi.b #7,d0
-	move.b d0,$0003(a0)
-	subq.w #1,$0024(a0)
+	move.b d0,SG2WorldObject_vertex_variant_selector(a0)
+	subq.w #1,SG2ScheduledActor_behavior_update_counter(a0)
 	bne.w abs_0_000081D2
-	move.w #$F,$0024(a0)
+	move.w #$F,SG2ScheduledActor_behavior_update_counter(a0)
 	sf.b ai_type12_projectile_request(a6)
 	bra.w try_ai_projectile_attack_if_aligned
-abs_0_00009CFC:
+    ; KNOWN: type A0=Target code-entry register seed:SG2ScheduledActor
+update_gbml_heading_and_target_scan:
 	move.b #$25,diagnostic_step_byte.l
 	bsr.w heading_with_player_as_reference
 	andi.w #4095,d1
-	move.w $0012(a0),d0
+	move.w SG2WorldObject_rotation_1(a0),d0
 	andi.w #4095,d0
 	sub.w d1,d0
 	bpl.b abs_0_00009D1A
@@ -11518,24 +11537,24 @@ abs_0_00009D1A:
 	cmp.w #$800,d0
 	ble.b abs_0_00009D36
 	move.w d1,d2
-	move.w $0012(a0),d0
+	move.w SG2WorldObject_rotation_1(a0),d0
 	andi.w #4095,d0
 	sub.w d0,d2
 	asr.w #4,d2
 	sub.w d2,d0
-	move.w d0,$0012(a0)
+	move.w d0,SG2WorldObject_rotation_1(a0)
 	bra.b abs_0_00009D4A
 abs_0_00009D36:
 	move.w d1,d2
-	move.w $0012(a0),d0
+	move.w SG2WorldObject_rotation_1(a0),d0
 	andi.w #4095,d0
 	sub.w d0,d2
 	asr.w #4,d2
 	add.w d2,d0
-	move.w d0,$0012(a0)
+	move.w d0,SG2WorldObject_rotation_1(a0)
 abs_0_00009D4A:
-	subq.w #1,$0024(a0)
-	move.w $0024(a0),d0
+	subq.w #1,SG2ScheduledActor_behavior_update_counter(a0)
+	move.w SG2ScheduledActor_behavior_update_counter(a0),d0
 	andi.w #511,d0
 	bne.w abs_0_00009D70
 	lea.l model_type_target_selection_tags_prefix(a6),a1
@@ -11550,37 +11569,39 @@ abs_0_00009D70:
 	cmpi.l #4294967046,player_world_y(a6)
 	bge.w abs_0_000081D2
 	bra.w abs_0_00009F02
-abs_0_00009D88:
+    ; Type26 Tripuss: zero BYTE1F step skips later timer/motion. Sums0/9 change step without storing boundary variant; preserve asymmetric X/Z comparisons, not a radius/AABB test.
+    ; KNOWN: type A0=Target code-entry register seed:SG2Tripuss
+update_nearby_tripuss:
 	move.b #$26,diagnostic_step_byte.l
-	addi.w #50,$0010(a0)
-	andi.w #4095,$0010(a0)
+	addi.w #50,SG2WorldObject_rotation_0(a0)
+	andi.w #4095,SG2WorldObject_rotation_0(a0)
 	addi.l #8,SG2ObjectCore_world_y(a0)
 	bmi.b abs_0_00009DAE
-	clr.w $0010(a0)
+	clr.w SG2WorldObject_rotation_0(a0)
 	clr.l SG2ObjectCore_world_y(a0)
 abs_0_00009DAE:
-	move.b $001F(a0),d3
+	move.b SG2Tripuss_variant_ping_pong_step(a0),d3
 	beq.w abs_0_000081D2
-	move.b $0003(a0),d0
+	move.b SG2WorldObject_vertex_variant_selector(a0),d0
 	add.b d3,d0
 	beq.b abs_0_00009DCC
 	cmp.b #$9,d0
 	beq.b abs_0_00009DD6
-	move.b d0,$0003(a0)
-	bra.w abs_0_00009DE0
+	move.b d0,SG2WorldObject_vertex_variant_selector(a0)
+	bra.w advance_tripuss_counter_and_motion
 abs_0_00009DCC:
-	move.b #$1,$001F(a0)
-	bra.w abs_0_00009DE0
+	move.b #$1,SG2Tripuss_variant_ping_pong_step(a0)
+	bra.w advance_tripuss_counter_and_motion
 abs_0_00009DD6:
-	move.b #$FF,$001F(a0)
-	bra.w abs_0_00009DE0
-abs_0_00009DE0:
-	subq.w #1,$0024(a0)
+	move.b #$FF,SG2Tripuss_variant_ping_pong_step(a0)
+	bra.w advance_tripuss_counter_and_motion
+advance_tripuss_counter_and_motion:
+	subq.w #1,SG2ScheduledActor_behavior_update_counter(a0)
 	beq.w abs_0_0000ACFC
-	move.w $002C(a0),d3
+	move.w SG2WorldObject_velocity_x(a0),d3
 	ext.l d3
 	add.l d3,SG2ObjectCore_world_x(a0)
-	move.w $0030(a0),d3
+	move.w SG2WorldObject_velocity_z(a0),d3
 	ext.l d3
 	add.l d3,SG2ObjectCore_world_z(a0)
 	move.l horizontal_world_wrap_mask(a6),d3
@@ -11599,17 +11620,17 @@ abs_0_00009DE0:
 	cmp.l #$FFFFFC18,d0
 	bmi.w abs_0_00009EB0
 abs_0_00009E3E:
-	subi.w #100,$0010(a0)
-	andi.w #4095,$0010(a0)
+	subi.w #100,SG2WorldObject_rotation_0(a0)
+	andi.w #4095,SG2WorldObject_rotation_0(a0)
 	subi.l #16,SG2ObjectCore_world_y(a0)
 	cmpi.l #4294967136,SG2ObjectCore_world_y(a0)
 	bgt.b abs_0_00009E6E
-	move.w #$C00,$0010(a0)
+	move.w #$C00,SG2WorldObject_rotation_0(a0)
 	move.l #$FFFFFF60,SG2ObjectCore_world_y(a0)
 	bra.w abs_0_000081D2
 abs_0_00009E6E:
-	andi.w #4095,$0010(a0)
-	move.w $0024(a0),d3
+	andi.w #4095,SG2WorldObject_rotation_0(a0)
+	move.w SG2ScheduledActor_behavior_update_counter(a0),d3
 	andi.b #63,d3
 	beq.w abs_0_0000ACFC
 	andi.b #31,d3
@@ -11627,7 +11648,7 @@ abs_0_00009EA4:
 	beq.w abs_0_00009F02
 	bra.w abs_0_000081D2
 abs_0_00009EB0:
-	move.w $0024(a0),d3
+	move.w SG2ScheduledActor_behavior_update_counter(a0),d3
 	andi.b #31,d3
 	beq.w abs_0_0000ACFC
 	andi.b #7,d3
@@ -12052,7 +12073,7 @@ abs_0_0000A52A:
 	move.b #$2E,diagnostic_step_byte.l
 	cmpi.w #24,free_object_count(a6)
 	bls.w abs_0_000081D2
-	move.w $0012(a0),d0
+	move.w SG2WorldObject_rotation_1(a0),d0
 	andi.w #4095,d0
 	sub.w d0,d1
 	bpl.b abs_0_0000A54A
@@ -12071,14 +12092,14 @@ abs_0_0000A54A:
 	ext.l d2
 	move.w #$19,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
 	move.b SG2ObjectCore_object_type+1(a0),$002A(a2)
-	move.b #$19,$002A(a0)
+	move.b #$19,SG2WorldObject_collision_ignored_object_type(a0)
 	move.l SG2ObjectCore_world_x(a0),SG2ObjectCore_world_x(a2)
 	add.l SG2ObjectCore_world_y(a0),d2
 	move.l d2,SG2ObjectCore_world_y(a2)
 	move.l SG2ObjectCore_world_z(a0),SG2ObjectCore_world_z(a2)
 	clr.w $0010(a2)
 	move.b #$FF,SG2ObjectCore_retirement_phase_or_negative(a2)
-	move.w $0012(a0),d1
+	move.w SG2WorldObject_rotation_1(a0),d1
 	move.b #$0,$0003(a2)
 	move.b #$4,$001D(a2)
 	lea.l abs_0_0000AE60(pc),a1
@@ -12535,7 +12556,7 @@ abs_0_0000ACFC:
 	bsr.w heading_with_player_as_reference
 abs_0_0000AD00:
 	andi.w #4095,d1
-	move.w $0012(a0),d0
+	move.w SG2WorldObject_rotation_1(a0),d0
 	andi.w #4095,d0
 	sub.w d1,d0
 	bpl.b abs_0_0000AD12
@@ -12543,34 +12564,34 @@ abs_0_0000AD00:
 abs_0_0000AD12:
 	cmp.w #$800,d0
 	ble.b abs_0_0000AD44
-	move.w $0012(a0),d0
+	move.w SG2WorldObject_rotation_1(a0),d0
 	andi.w #4095,d0
 	sub.w d0,d1
 	asr.w #5,d1
 	sub.w d1,d0
-	move.w d0,$0012(a0)
-	move.w $0014(a0),d2
+	move.w d0,SG2WorldObject_rotation_1(a0)
+	move.w SG2WorldObject_rotation_2(a0),d2
 	andi.w #4095,d2
 	sub.w d1,d2
 	andi.w #4095,d2
-	move.w d2,$0014(a0)
+	move.w d2,SG2WorldObject_rotation_2(a0)
 	bne.b abs_0_0000AD6E
-	addq.w #1,$0014(a0)
+	addq.w #1,SG2WorldObject_rotation_2(a0)
 	bra.b abs_0_0000AD6E
 abs_0_0000AD44:
-	move.w $0012(a0),d0
+	move.w SG2WorldObject_rotation_1(a0),d0
 	andi.w #4095,d0
 	sub.w d0,d1
 	asr.w #5,d1
 	add.w d1,d0
-	move.w d0,$0012(a0)
-	move.w $0014(a0),d2
+	move.w d0,SG2WorldObject_rotation_1(a0)
+	move.w SG2WorldObject_rotation_2(a0),d2
 	andi.w #4095,d2
 	add.w d1,d2
 	andi.w #4095,d2
-	move.w d2,$0014(a0)
+	move.w d2,SG2WorldObject_rotation_2(a0)
 	bne.b abs_0_0000AD6E
-	addq.w #1,$0014(a0)
+	addq.w #1,SG2WorldObject_rotation_2(a0)
 abs_0_0000AD6E:
 	move.b #$3C,diagnostic_step_byte.l
 	move.w $0012(a0),d1
