@@ -1,0 +1,252 @@
+{
+  "schema_version": 1,
+  "kind": "original_model_link_sentinels_and_shared_motion_contract",
+  "status": "qualified_connected_restoration_batch_continues",
+  "publication_base_commit": "2216b608867967bd8abcf11876cd37eaf3fb65c6",
+  "inputs": {
+    "binary_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "backend_sha256": "d09dbb0f72ef82803519d9eb8656bced793da2ecae6c147e442b3fcde0fbdfd3",
+    "analysis_sha256": "5c4a77161fac9bfb81d38827db52f3da0109773f0b8e762ee9c45cae941e42a2",
+    "effective_metadata_sha256": "240586bd11804d3a1e385bcf34152d83fa3ba0e8107ac9b8b211b1c9d4ed3e67",
+    "consumer_evidence_sha256": "1a3bf1ebdfba48d01a1b82c5b33a318244ac9a497be4e05d6a403c0f1064c4a7",
+    "caller_evidence_sha256": "de538ec955d06b30f9d08f7b6b91b19dded246532ae931ddf47f7177faad322a"
+  },
+  "canonical_action_count": 16,
+  "interpretation": "Original model object LONG3C is linked-record storage with zero/FFFFFFFF sentinels, not a universal enemy target or ordinary always-valid APTR. Original savegame pool walkers10674/1075A iterate250 records of68bytes, skip negative LOW typeBYTE (types>=128), and rebase LONG38/3C except0/FFFFFFFF. This agrees with WorldObject low-model domain; do not extend the field to radial/high-type records whose overlapping bytes differ. Reviewed producers include released inventory1D64 ->FFFFFFFF, shared Buzz Bomber spawn91C8 ->type6 andFFFFFFFF, original tug initializer183FA writes next-link3C and back-link38, and original spawned-parent/child links. Leave38 separate; it has not received an equivalent complete role review. Primary original name/type directory routes6 Buzz Bomb,83 Cask of Vistan Wine,100 Crate of Castrobars,101 Lump of Mineral Rock,102 Case of Nuclear Fuel to9A42;29 Egron Mini Rocket enters9B16 and shares9A42 only on negative space flag. The shared body accepts only signed-positive3C before dereference. If linked record phaseBYTE1E is nonnegative it writesFFFFFFFF and zeroes velocities; otherwise it rotates and approaches linked XYZ by arithmetic-shifted difference/16. Without a positive link, WORD velocities integrate and X/Z wrap; outside space/interior, belowY=-50 X/Z velocities ASR and Y velocity+=2, otherwise phase is cleared. Original arithmetic rounding/overflow and valid-pointer/lifetime assumptions remain. Type29 outside space counts downWORD24 with Y velocity0, then yaw+=16 and velocityY-=2; do not reuse flying-actor phase or asteroid-spin meaning for that delay. Bind A1 Core only at9A52 after the original positive-link gate; this is an explicit valid-original-record input contract, not dynamic pointer safety. Declare shared WorldObject3C as LONG linked_record_or_sentinel without pointer_struct, preventing unconditional pointer propagation across sentinels/save-relative state. Other users may require stronger guards or different link roles; no guessed all-path validity, new runtime evidence or game behavior repair.",
+  "field": {
+    "owner": "SG2WorldObject",
+    "name": "linked_record_or_sentinel",
+    "offset": 60,
+    "size": 4,
+    "type": "LONG",
+    "pointer_struct": null,
+    "reason": "Retain zero/-1 sentinels, save-relative values and multiple link roles; do not propagate an unconditional pointer type."
+  },
+  "original_domains": {
+    "shared_update_types": [
+      {
+        "type": 6,
+        "name": "Buzz Bomb"
+      },
+      {
+        "type": 83,
+        "name": "Cask of Vistan Wine"
+      },
+      {
+        "type": 100,
+        "name": "Crate of Castrobars"
+      },
+      {
+        "type": 101,
+        "name": "Lump of Mineral Rock"
+      },
+      {
+        "type": 102,
+        "name": "Case of Nuclear Fuel"
+      }
+    ],
+    "mini_rocket_type": 29,
+    "proximity_mine_type": 2
+  },
+  "savegame_contract": {
+    "subtract_loop": 67188,
+    "add_loop": 67418,
+    "count": 250,
+    "stride": 68,
+    "gate": "Skip records with negative LOW type byte, separating128..255 from the model side.",
+    "sentinels": [
+      0,
+      4294967295
+    ],
+    "fields_rebased": [
+      56,
+      60
+    ],
+    "scope": "Original in-place save/load representation, not a new relocation implementation. LONG38 keeps its separate unresolved schema role."
+  },
+  "shared_motion": {
+    "entry": 39490,
+    "linked_gate": "Signed-positive LONG3C before dereference. A1 Core annotation at9A52 remains conditional on valid original record/lifetime.",
+    "inactive_link": "Target phase BYTE1E nonnegative replaces link with-1 and clears velocities.",
+    "active_link": "Add32 to two rotation words, subtract ASR4 coordinate difference from each XYZ. Preserve original signed rounding/overflow.",
+    "free_motion": "Signed WORD velocities into LONG XYZ with X/Z wrap. Outside space/interior, Y below-50 halves X/Z velocities arithmetically and adds2 to Y velocity; otherwise clear retirement phase.",
+    "mini_rocket": "Type29: negative space flag enters shared link/free motion. Otherwise decrement nonzero WORD24 while clearing Y velocity, then add16 yaw and subtract2 Y velocity per invocation."
+  },
+  "mine": {
+    "type": 2,
+    "entry": 36322,
+    "warning": "Original literal Danger! Mine Detected text, selected from original relative-Z branch.",
+    "damage": "Subtract1500 shield with carry/borrow saturation and increment received-hit count.",
+    "limits": "Original signed/unsigned WORD branch asymmetry is retained; not replaced by a symmetric Euclidean distance claim."
+  },
+  "labels": [
+    [
+      39490,
+      "update_link_following_or_free_motion_object"
+    ],
+    [
+      39534,
+      "approach_active_linked_record"
+    ],
+    [
+      39610,
+      "integrate_free_motion_and_surface_retirement"
+    ],
+    [
+      39702,
+      "update_mini_rocket_delay_then_fall"
+    ],
+    [
+      39728,
+      "accelerate_mini_rocket_after_delay"
+    ],
+    [
+      36322,
+      "update_proximity_mine_warning_and_damage"
+    ],
+    [
+      98906,
+      "initialize_buzz_bomb_surface_state"
+    ]
+  ],
+  "native_link_sites": [
+    {
+      "source_offset": 35394,
+      "runtime_address": 39490,
+      "operand": 0,
+      "root": "SG2WorldObject",
+      "provenance": "policy_seed"
+    },
+    {
+      "source_offset": 35406,
+      "runtime_address": 39502,
+      "operand": 0,
+      "root": "SG2WorldObject",
+      "provenance": "policy_seed"
+    },
+    {
+      "source_offset": 35416,
+      "runtime_address": 39512,
+      "operand": 1,
+      "root": "SG2WorldObject",
+      "provenance": "policy_seed"
+    }
+  ],
+  "before_after": {
+    "app_slot_ref_count": {
+      "before": 3383,
+      "after": 3383
+    },
+    "recovered_platform_typed_access_count": {
+      "before": 1049,
+      "after": 1076
+    },
+    "recovered_platform_unresolved_typed_access_count": {
+      "before": 440,
+      "after": 421
+    }
+  },
+  "projection": {
+    "new_typed": 27,
+    "lost_typed": 0,
+    "lost_sites": []
+  },
+  "validation": {
+    "native_and_vasm": {
+      "kind": "verification",
+      "framework_exact": true,
+      "target_id": "amiga_raw_starglider2_game",
+      "subject_revision": "fa0c0fcaa9ad230267fa2704f5b07924e2bbb6d767dfa93d533a3df3d09118f6",
+      "status": "exact",
+      "exact": true,
+      "source_sha256": "c368a2641689bd67502a0f6608a488d2f9c58356070040a86612099a8053e774",
+      "source_path": "/workspace/pandora-original-delivery/stable-d15c2cf8/.runtime-state/restoration/eb04f545fb97451725a1c91ab5abf6f2e097614c45880db6edfb4ea5c3f6e2c2/c368a2641689bd67502a0f6608a488d2f9c58356070040a86612099a8053e774.s",
+      "source_package_sha256": null,
+      "original_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+      "original_size": 412736,
+      "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+      "rebuilt_path": "/workspace/pandora-original-delivery/stable-d15c2cf8/.runtime-state/restoration/eb04f545fb97451725a1c91ab5abf6f2e097614c45880db6edfb4ea5c3f6e2c2/662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9.bin",
+      "framework_status": "exact",
+      "failure_kinds": [],
+      "message": "",
+      "oracle": {
+        "oracle_id": "vasm",
+        "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+        "comparison_level": "oracle.full_file_match",
+        "assembler_status": "accepted",
+        "message": "oracle output matched original bytes"
+      },
+      "receipt_id": "0ac983753c280edfd933b63eca8efecbfffff4cea1881c164d37c50a88a169b5",
+      "revision": "c38557397e85a4b7ccc25d22418b76c75ea9842bf531112a75e5d32b7147b2d1"
+    },
+    "incomplete_analysis": [],
+    "source_quality_diagnostics": 0,
+    "generation_wall_seconds": 128.96530933800386,
+    "accepted_owner_spans_identical": true,
+    "assets_unchanged": 57,
+    "required_headers": 14,
+    "framework_changed": false,
+    "focused_tests": "Unchanged shared implementation; preceding114 focused/832 native tests remain applicable. Changed annotations qualify through exact C/vasm and clean standalone build.",
+    "clean_standalone_build": {
+      "status": "pass",
+      "validated_target_git_tree": "e804ffeb1703c5e530fa2e15794b1805bd58bf37",
+      "receipt": {
+        "schema_version": 1,
+        "status": "pass",
+        "format": "raw_payload_not_AmigaDOS_HUNK",
+        "main_bytes": 412736,
+        "main_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+        "main_matches_original_identity": true,
+        "asset_count": 57,
+        "all_asset_source_slices_equal": true,
+        "decoded_view_inverse_exact": true,
+        "boot_copy_source_matches_resident_view": true,
+        "source_commit": "2216b608867967bd8abcf11876cd37eaf3fb65c6",
+        "assembler_sha256": "413e284020125f42709486dfe09907cab3dd9f3c2ea41017c190f8ea68f30825",
+        "flags": [
+          "-Fbin",
+          "-m68000",
+          "-no-opt"
+        ],
+        "outputs": [
+          {
+            "role": "original_main",
+            "filename": "Starglider2-original.raw",
+            "bytes": 412736,
+            "sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9"
+          },
+          {
+            "role": "decoded_analysis_view",
+            "filename": "protection-decoded-analysis.raw",
+            "bytes": 3548,
+            "sha256": "de8358853dd9ed9b006a23569bf393aa217ed3be3301a169465d80bfaf839922"
+          },
+          {
+            "role": "boot_installer_context",
+            "filename": "boot-selector-installer-context.raw",
+            "bytes": 40,
+            "sha256": "8d34852425e2e1bfa87b3febdfc74fb39e7c667e9d9ff73e17b594649e83b21b"
+          },
+          {
+            "role": "boot_resident_view",
+            "filename": "boot-selector-resident.raw",
+            "bytes": 20,
+            "sha256": "a26286a393713c046eff9dbaff15b20b26b171fa9e05fc9d538d16b0eddb6024"
+          }
+        ]
+      },
+      "recoverable_pandora_backups_verified": 16
+    }
+  },
+  "limits": [
+    "No new runtime execution or general lifetime/valid-pointer proof.",
+    "Shared3C storage is a plain LONG, not an unconditional APTR or one enemy-target role. Parent/child/next/target meanings remain caller-specific.",
+    "High/radial types retain their own overlapping3C fields; no base Core field was added.",
+    "Original savegame0/-1 exclusion does not establish arbitrary incoming values valid, and save-relative state is not an active runtime pointer.",
+    "Long38/backlink review is separate. Original asymmetries, spawn accounting, rounding and branch semantics are preserved."
+  ],
+  "next": {
+    "group": "Original linked-object lifecycle and remaining producer-specific layouts",
+    "experiment": "Use explicit known consumers and savegame domain to inspect remaining38 backlink and reciprocal spawn links; retain model-specific fields where roles differ. Investigate original tug/carrier constructors before any next common-field declaration."
+  }
+}

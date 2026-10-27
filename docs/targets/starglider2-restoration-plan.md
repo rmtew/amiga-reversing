@@ -21,9 +21,26 @@ The [current systematic gap inventory](../../runtime/observations/starglider2-so
 joins native identities/accesses with canonical layouts and actual rendered
 boundaries. It records 67 suffix signals (including numeric adjacent variants),
 21 lookup contracts, 523 remaining interior references, 32 generic app fields
-and 440 unresolved record accesses. These are different denominators. Five
+and 421 unresolved record accesses. These are different denominators. Five
 suffixes name routines and one names text; neither is a pointer defect.
-Latest: the [shared flying-actor reconstruction](../../runtime/observations/starglider2-flying-actor-state.json)
+Latest: the [shared object-link reconstruction](../../runtime/observations/starglider2-object-links-state.json)
+connects original save/load rebasing, linked-record consumers and sentinel
+writers. WorldObject LONG3C is now linked-record-or-sentinel storage; it stays a
+LONG without unconditional pointer propagation. High/radial variants retain
+separate overlapping fields. Buzz Bomb and four cargo types share active-link
+approach/free-motion code; Mini Rocket conditionally enters that same path.
+The Proximity Mine routine now exposes its warning and shield-damage role
+without rewriting its original signed/unsigned relative-Z tests.
+**3 link accesses** project, with
+**1076 typed /
+421 unresolved** overall;
+**27 new / 0 lost** typed coordinates. Accepted owner spans,
+original C/vasm and clean standalone bytes remain unchanged. Valid original
+linked-record lifetime is conditional, not inferred from a positive integer.
+Continue producer-specific backlink/reciprocal-link layouts rather than force
+one target meaning onto every link.
+
+Preceding: the [shared flying-actor reconstruction](../../runtime/observations/starglider2-flying-actor-state.json)
 connects ten original model types to the shared body and two frame wrappers.
 Space Ray cycles base plus 19 alternatives; Large Egron Transport cycles base
 plus 23, under the original valid-selector contract. A distinct FlyingActor

@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "source_commit": "1f6e1a2173a33e4aa98f3629d3842a006d85b39a",
+  "source_commit": "2216b608867967bd8abcf11876cd37eaf3fb65c6",
   "source_assembly": "starglider2_game.s",
   "assets": [
     {
@@ -879,12 +879,12 @@
     {
       "path": "rendered-provenance.json",
       "bytes": 3014,
-      "sha256": "e0bc1e778f1bf323a658986aee825898242837508dbb65cd076b6a3577f0bf8c"
+      "sha256": "aa20dcab543c6b02f87228a09fbccdcd1ef8dd4ddb6784cf0387442c87b20d18"
     },
     {
       "path": "starglider2_game.s",
-      "bytes": 1912753,
-      "sha256": "726b4ee32eb0d770d23846de4a9d3107b4a4476a7ea74ea4cb033c59fcd05346"
+      "bytes": 1914815,
+      "sha256": "dbb4c1da2dac996561ea1f0c45578021b63728193c44436b3a68c0a4eb43c253"
     },
     {
       "path": "tools/starglider2_protection.py",
@@ -893,5 +893,5 @@
     }
   ],
   "source_commit_role": "publication base; new canonical annotations are bound by canonical_fact_sha256 and the refinement receipt",
-  "source_subject_revision": "efca0836aed238228baed7165ab0bb9d2f3f9db9b73a66bf2ef68d3c4c183c43"
+  "source_subject_revision": "fa0c0fcaa9ad230267fa2704f5b07924e2bbb6d767dfa93d533a3df3d09118f6"
 }

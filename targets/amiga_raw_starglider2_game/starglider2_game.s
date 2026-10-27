@@ -662,7 +662,9 @@ SG2WorldObject_velocity_z RS.W 1
 SG2WorldObject_pre_view_relative_x RS.W 1
 SG2WorldObject_pre_view_relative_y RS.W 1
 SG2WorldObject_pre_view_relative_z RS.W 1
-    RS.B 12
+    RS.B 4
+SG2WorldObject_linked_record_or_sentinel RS.L 1
+    RS.B 4
 SG2WorldObject_SIZEOF EQU __RS
 
 ; STRUCT SG2PlacementTag
@@ -9188,11 +9190,11 @@ abs_0_0000800A:
 primary_object_update_offsets:
 	dc.w abs_0_000081D2-primary_object_update_offsets	; 148 relative WORD type-update targets; conditional original type domain 0..147
 	dc.w abs_0_00008850-primary_object_update_offsets
-	dc.w abs_0_00008DE2-primary_object_update_offsets
+	dc.w update_proximity_mine_warning_and_damage-primary_object_update_offsets
 	dc.w abs_0_00008E78-primary_object_update_offsets
 	dc.w abs_0_00008F0E-primary_object_update_offsets
 	dc.w abs_0_00009FEE-primary_object_update_offsets
-	dc.w abs_0_00009A42-primary_object_update_offsets
+	dc.w update_link_following_or_free_motion_object-primary_object_update_offsets
 	dc.w abs_0_00008BE8-primary_object_update_offsets
 	dc.w abs_0_00009500-primary_object_update_offsets
 	dc.w abs_0_00009B4C-primary_object_update_offsets
@@ -9215,7 +9217,7 @@ primary_object_update_offsets:
 	dc.w abs_0_00009D88-primary_object_update_offsets
 	dc.w abs_0_00008BFC-primary_object_update_offsets
 	dc.w update_shared_flying_actor-primary_object_update_offsets
-	dc.w abs_0_00009B16-primary_object_update_offsets
+	dc.w update_mini_rocket_delay_then_fall-primary_object_update_offsets
 	dc.w abs_0_00008782-primary_object_update_offsets
 	dc.w update_shared_flying_actor-primary_object_update_offsets
 	dc.w update_shared_flying_actor-primary_object_update_offsets
@@ -9269,7 +9271,7 @@ primary_object_update_offsets:
 	dc.w abs_0_0000857C-primary_object_update_offsets
 	dc.w abs_0_00008588-primary_object_update_offsets
 	dc.w abs_0_00008594-primary_object_update_offsets
-	dc.w abs_0_00009A42-primary_object_update_offsets
+	dc.w update_link_following_or_free_motion_object-primary_object_update_offsets
 	dc.w abs_0_00009602-primary_object_update_offsets
 	dc.w abs_0_000087C8-primary_object_update_offsets
 	dc.w abs_0_000087AA-primary_object_update_offsets
@@ -9286,9 +9288,9 @@ primary_object_update_offsets:
 	dc.w abs_0_000081D2-primary_object_update_offsets
 	dc.w abs_0_00008600-primary_object_update_offsets
 	dc.w abs_0_000085B8-primary_object_update_offsets
-	dc.w abs_0_00009A42-primary_object_update_offsets
-	dc.w abs_0_00009A42-primary_object_update_offsets
-	dc.w abs_0_00009A42-primary_object_update_offsets
+	dc.w update_link_following_or_free_motion_object-primary_object_update_offsets
+	dc.w update_link_following_or_free_motion_object-primary_object_update_offsets
+	dc.w update_link_following_or_free_motion_object-primary_object_update_offsets
 	dc.w abs_0_0000959C-primary_object_update_offsets
 	dc.w abs_0_000081D2-primary_object_update_offsets
 	dc.w abs_0_000081D2-primary_object_update_offsets
@@ -10324,7 +10326,9 @@ abs_0_00008DDA:
 	bra.w abs_0_00008C9C
 abs_0_00008DDE:
 	bra.w abs_0_00008C9C
-abs_0_00008DE2:
+    ; Original mine tests use WORD relativeZ and signed/unsigned branches; retain their exact asymmetry. Damage subtracts1500 shields with borrow saturation and increments received-hit count.
+    ; KNOWN: type A0=Target code-entry register seed:SG2WorldObject
+update_proximity_mine_warning_and_damage:
 	move.b #$D,diagnostic_step_byte.l
 	move.w SG2ObjectCore_relative_z(a0),d0
 	bpl.b abs_0_00008DF2
@@ -10333,7 +10337,7 @@ abs_0_00008DF2:
 	cmp.w #$600,d0
 	bls.b abs_0_00008E02
 abs_0_00008DF8:
-	addi.w #64,$0012(a0)
+	addi.w #64,SG2WorldObject_rotation_1(a0)
 	bra.w abs_0_000081D2
 abs_0_00008E02:
 	cmpi.w #768,SG2ObjectCore_relative_z(a0)
@@ -11177,29 +11181,32 @@ abs_0_00009A30:
 abs_0_00009A3A:
 	st.b $0028(a0)
 	bra.w abs_0_000081D2
-abs_0_00009A42:
-	tst.l $003C(a0)
-	bmi.w abs_0_00009ABA
-	beq.w abs_0_00009ABA
-	movea.l $003C(a0),a1
-	tst.b $001E(a1)
-	bmi.b abs_0_00009A6E
-	move.l #$FFFFFFFF,$003C(a0)
-	clr.w $002C(a0)
-	clr.w $002E(a0)
-	clr.w $0030(a0)
-	bra.b abs_0_00009ABA
-abs_0_00009A6E:
-	addi.w #32,$0010(a0)
-	andi.w #4095,$0010(a0)
-	addi.w #32,$0014(a0)
-	andi.w #4095,$0014(a0)
+    ; Buzz Bomb/cargo: only signed-positive 3C dereferences a linked record. Inactive link sets -1 and clears velocities. Zero/negative links use free motion; valid lifetime remains assumed.
+    ; KNOWN: type A0=Target code-entry register seed:SG2WorldObject
+update_link_following_or_free_motion_object:
+	tst.l SG2WorldObject_linked_record_or_sentinel(a0)
+	bmi.w integrate_free_motion_and_surface_retirement
+	beq.w integrate_free_motion_and_surface_retirement
+	movea.l SG2WorldObject_linked_record_or_sentinel(a0),a1
+    ; KNOWN: type A1=Target code-entry register seed:SG2ObjectCore
+	tst.b SG2ObjectCore_retirement_phase_or_negative(a1)
+	bmi.b approach_active_linked_record
+	move.l #$FFFFFFFF,SG2WorldObject_linked_record_or_sentinel(a0)
+	clr.w SG2WorldObject_velocity_x(a0)
+	clr.w SG2WorldObject_velocity_y(a0)
+	clr.w SG2WorldObject_velocity_z(a0)
+	bra.b integrate_free_motion_and_surface_retirement
+approach_active_linked_record:
+	addi.w #32,SG2WorldObject_rotation_0(a0)
+	andi.w #4095,SG2WorldObject_rotation_0(a0)
+	addi.w #32,SG2WorldObject_rotation_2(a0)
+	andi.w #4095,SG2WorldObject_rotation_2(a0)
 	move.l SG2ObjectCore_world_x(a0),d0
 	move.l SG2ObjectCore_world_y(a0),d1
 	move.l SG2ObjectCore_world_z(a0),d2
-	sub.l $0004(a1),d0
-	sub.l $0008(a1),d1
-	sub.l $000C(a1),d2
+	sub.l SG2ObjectCore_world_x(a1),d0
+	sub.l SG2ObjectCore_world_y(a1),d1
+	sub.l SG2ObjectCore_world_z(a1),d2
 	move.l d0,d3
 	move.l d1,d4
 	move.l d2,d5
@@ -11210,14 +11217,14 @@ abs_0_00009A6E:
 	sub.l d1,SG2ObjectCore_world_y(a0)
 	sub.l d2,SG2ObjectCore_world_z(a0)
 	bra.w abs_0_000081D2
-abs_0_00009ABA:
-	move.w $002C(a0),d3
+integrate_free_motion_and_surface_retirement:
+	move.w SG2WorldObject_velocity_x(a0),d3
 	ext.l d3
 	add.l d3,SG2ObjectCore_world_x(a0)
-	move.w $002E(a0),d3
+	move.w SG2WorldObject_velocity_y(a0),d3
 	ext.l d3
 	add.l d3,SG2ObjectCore_world_y(a0)
-	move.w $0030(a0),d3
+	move.w SG2WorldObject_velocity_z(a0),d3
 	ext.l d3
 	add.l d3,SG2ObjectCore_world_z(a0)
 	move.l horizontal_world_wrap_mask(a6),d3
@@ -11229,25 +11236,27 @@ abs_0_00009ABA:
 	bne.w abs_0_000081D2
 	cmpi.l #4294967246,SG2ObjectCore_world_y(a0)
 	bge.b abs_0_00009B0E
-	asr $002C(a0)
-	addq.w #2,$002E(a0)
-	asr $0030(a0)
+	asr SG2WorldObject_velocity_x(a0)
+	addq.w #2,SG2WorldObject_velocity_y(a0)
+	asr SG2WorldObject_velocity_z(a0)
 	bra.w abs_0_000081D2
 abs_0_00009B0E:
 	sf.b SG2ObjectCore_retirement_phase_or_negative(a0)
 	bra.w abs_0_000081D2
-abs_0_00009B16:
+    ; Type29: negative space flag uses shared link/free-motion path; otherwise WORD24 delays downward acceleration. Distinct from flying-actor phase and asteroid spin counters.
+    ; KNOWN: type A0=Target code-entry register seed:SG2WorldObject
+update_mini_rocket_delay_then_fall:
 	tst.b space_environment_flag(a6)
-	bmi.w abs_0_00009A42
+	bmi.w update_link_following_or_free_motion_object
 	tst.w $0024(a0)
-	beq.b abs_0_00009B30
+	beq.b accelerate_mini_rocket_after_delay
 	subq.w #1,$0024(a0)
-	clr.w $002E(a0)
+	clr.w SG2WorldObject_velocity_y(a0)
 	bra.w abs_0_000081D2
-abs_0_00009B30:
-	addi.w #16,$0012(a0)
-	subq.w #2,$002E(a0)
-	move.w $002E(a0),d0
+accelerate_mini_rocket_after_delay:
+	addi.w #16,SG2WorldObject_rotation_1(a0)
+	subq.w #2,SG2WorldObject_velocity_y(a0)
+	move.w SG2WorldObject_velocity_y(a0),d0
 	ext.l d0
 	add.l SG2ObjectCore_world_y(a0),d0
 	move.l d0,SG2ObjectCore_world_y(a0)
@@ -23207,7 +23216,7 @@ world_object_type_initializer_pointers:
 	dc.l abs_0_0001820A
 	dc.l initialize_solar_converter_chain_anchor
 	dc.l abs_0_0001823A
-	dc.l abs_0_0001825A
+	dc.l initialize_buzz_bomb_surface_state
 	dc.l abs_0_00018274
 	dc.l abs_0_00018296
 	dc.l skip_object_type_initialization
@@ -23425,9 +23434,10 @@ abs_0_0001823A:
 	move.b #$19,$002B(a0)
 	move.b #$1,$001F(a0)
 	rts
-abs_0_0001825A:
-	bset.b #0,$0002(a0)
-	move.l #$FFFFB1E0,$0008(a0)
+    ; KNOWN: type A0=Target code-entry register seed:SG2WorldObject
+initialize_buzz_bomb_surface_state:
+	bset.b #0,SG2ObjectCore_flags(a0)
+	move.l #$FFFFB1E0,SG2ObjectCore_world_y(a0)
 	st.b $0024(a0)
 	move.w #$7D0,$0026(a0)
 	rts
