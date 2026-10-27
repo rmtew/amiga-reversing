@@ -5823,9 +5823,9 @@
       "scalar": 13
     },
     "interior_reference_records": 523,
-    "unresolved_typed_accesses": 682,
+    "unresolved_typed_accesses": 683,
     "unresolved_mechanisms": {
-      "declared_field_hole": 589,
+      "declared_field_hole": 590,
       "indexed_dynamic": 87,
       "auto_update_cursor": 1,
       "outside_declared_record": 5
@@ -41215,6 +41215,28 @@
     },
     {
       "section_index": 0,
+      "mechanism": "declared_field_hole",
+      "offset": 214310,
+      "operand_index": 0,
+      "base_register": "A0",
+      "displacement": 36,
+      "struct_size": 68,
+      "access_size": 2,
+      "root_struct_name": "SG2ObjectCore",
+      "classification_id": 0,
+      "classification": "field_gap",
+      "container_candidate_count": 0,
+      "container_struct_name": null,
+      "container_field_expr": null,
+      "refinement_applied": 0,
+      "refined_struct_name": null,
+      "type_provenance_kind_id": 11,
+      "type_provenance_kind": "policy_seed",
+      "type_provenance_section": 0,
+      "type_provenance_offset": 214242
+    },
+    {
+      "section_index": 0,
       "mechanism": "indexed_dynamic",
       "offset": 214584,
       "operand_index": 0,
@@ -49204,7 +49226,7 @@
     "Native rendered accesses describe the inline export. exported_definition checks the selected source; INCBIN packaging may intentionally hide internal boundaries."
   ],
   "input_sha256": {
-    "analysis": "e4b79488774ae75577ed9db43262b11d523b876d0ab912acd11790b4f18edfcc",
+    "analysis": "118e5ed7d46f0d4ff6536a0bea0249609e6501102dfe4141ab81f8de473061fa",
     "metadata": "761f5b324d6d98530129bada741d41b8b8db25590d5b705a49306dd31ac16e74",
     "source": "79810f75c23c9e722f50e28d18405157317f03262bcfa7d65d37c78251566baa"
   },

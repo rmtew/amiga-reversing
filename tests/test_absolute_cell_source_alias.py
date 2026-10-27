@@ -114,13 +114,13 @@ int main(void) {
   M68kRenderLookup lookup={0};M68kRenderTypedState state={0};M68kRenderTypedStoredValue value={0};
   M68kInstructionIR write=m68k_plain_parse_instruction_to_ir("clr.w (a2)",M68K_ASM_CPU_68000,m68k_diag_sink(NULL));
   typed_state_set_memory_base(&state,M68K_ANALYSIS_REGISTER_ADDRESS,2,0,16);
-  for(unsigned i=0;i<10000;++i)typed_state_note_absolute_write(&state,&lookup,0,&write.operands[0],2);
-  assert(state.absolute_memory_written && !mappings);
+  for(unsigned i=0;i<10000;++i)typed_state_note_storage_write(&state,&lookup,NULL,0,&write.operands[0],2);
+  assert((state.memory_write_barriers & M68K_CELL_WRITTEN_ABSOLUTE) && !mappings);
   value.known=1;value.layout_base_id=1;typed_state_set_base_slot(&state,3,0,&value);
-  typed_state_note_absolute_write(&state,&lookup,0,&write.operands[0],2);assert(!mappings);
-  typed_state_set_absolute_cell(&state,1,&value);
-  typed_state_note_absolute_write(&state,&lookup,0,&write.operands[0],2);assert(mappings==1);
-  assert(!typed_state_absolute_cell(&state,1));return 0;
+  typed_state_note_storage_write(&state,&lookup,NULL,0,&write.operands[0],2);assert(!mappings);
+  typed_state_set_memory_cell(&state,1,&value);
+  typed_state_note_storage_write(&state,&lookup,NULL,0,&write.operands[0],2);assert(mappings==1);
+  assert(!typed_state_memory_cell(&state,1));return 0;
 }
 ''')
     executable = tmp_path / 'lazy-span'

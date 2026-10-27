@@ -162,7 +162,7 @@ int main(void) {
  assert(!entry.addr_regs[7].known && !entry.app_addr_regs[7].known);
  assert(!entry.stack_slot_count && !entry.base_slot_count && !entry.field_slot_count);
  assert(!entry.stack_slots[0].known && !entry.base_slots[0].known && !entry.field_slots[0].known);
- assert(entry.absolute_memory_written && !platform.address_app_base_known && !platform.local_base_slots[0].valid);
+ assert((entry.memory_write_barriers == M68K_CELL_WRITTEN_ALL) && !platform.address_app_base_known && !platform.local_base_slots[0].valid);
  assert(caller.typed_in.stack_slot_count==1 && caller.typed_in.addr_regs[7].known);
  return 0;
 }''')

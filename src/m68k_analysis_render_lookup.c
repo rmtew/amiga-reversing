@@ -3324,6 +3324,8 @@ static void typed_memory_base_bind_pointer_table(M68kRenderTypedMemoryBaseValue 
   value->pointer_table_size = item->size;
 }
 
+static int typed_operand_has_app_storage_owner(const M68kRenderLookup *, const M68kRenderPlatformState *, uint8_t, int16_t);
+
 /* A runtime table has no source-section address to bind, but its app slot
  * still contracts the table's homogeneous longword entry type. */
 static int typed_memory_base_bind_runtime_pointer_table_slot(M68kRenderTypedMemoryBaseValue *value,
@@ -3334,7 +3336,7 @@ static int typed_memory_base_bind_runtime_pointer_table_slot(M68kRenderTypedMemo
   uint16_t index;
   if (value == NULL || lookup == NULL || lookup->policy == NULL || platform_state == NULL || operand == NULL ||
       !operand_is_address_memory_local(operand, &base_reg, &displacement) || base_reg >= 8U ||
-      !render_state_operand_uses_app_base(platform_state, base_reg, displacement)) {
+      !typed_operand_has_app_storage_owner(lookup, platform_state, base_reg, displacement)) {
     return 0;
   }
   for (index = 0U; index < lookup->policy->rsset_layout_region_count &&
@@ -3918,49 +3920,43 @@ static const M68kRenderTypedStoredValue *typed_state_field_slot_value(const M68k
   return slot != NULL && typed_stored_value_has_useful_info(&slot->value) ? &slot->value : NULL;
 }
 
-static uint16_t lookup_typed_output_slot_struct_id(const M68kRenderLookup *lookup, int16_t displacement) {
-  size_t index;
-  uint16_t struct_id = AMIGA_OS_STRUCT_ID_NONE;
-  if (lookup == NULL) return AMIGA_OS_STRUCT_ID_NONE;
-  for (index = 0U; index < lookup->typed_slot_effect_count; ++index) {
-    const M68kRenderTypedSlotEffect *effect = &lookup->typed_slot_effects[index];
-    uint16_t effect_struct_id;
-    if (effect->displacement != displacement || effect->output == NULL) continue;
-    effect_struct_id = effect->output->struct_id;
-    if (effect_struct_id == AMIGA_OS_STRUCT_ID_NONE) continue;
-    if (struct_id != AMIGA_OS_STRUCT_ID_NONE && struct_id != effect_struct_id) return AMIGA_OS_STRUCT_ID_NONE;
-    struct_id = effect_struct_id;
+#define M68K_CELL_WRITTEN_ABSOLUTE 1U
+#define M68K_CELL_WRITTEN_APP 2U
+#define M68K_CELL_WRITTEN_ALL 3U
+
+static int typed_storage_key_for_lookup_memory_operand(const M68kRenderLookup *,
+    const M68kRenderTypedState *, const M68kRenderPlatformState *, size_t, const M68kOperandIR *, uint8_t,
+    uint8_t *, size_t *, int32_t *, uint32_t *);
+
+static uint16_t lookup_declared_app_pointer_type(const M68kRenderLookup *lookup, int32_t displacement) {
+  if (!lookup->policy) return AMIGA_OS_STRUCT_ID_NONE;
+  for (uint16_t i = 0U; i < lookup->policy->rsset_layout_region_count; ++i) {
+    const M68kAnalysisRssetLayoutRegion *region = &lookup->policy->rsset_layout_regions[i];
+    if (region->offset == displacement && region->size == 4U &&
+        region->storage_kind_id == M68K_ANALYSIS_RSSET_LAYOUT_STORAGE_STRUCT_POINTER &&
+        (!region->base_symbol[0] || !strcmp(region->base_symbol, M68K_APP_BASE_SYMBOL)))
+      return lookup_policy_struct_id_by_name(lookup->policy, region->pointer_struct);
   }
-  return struct_id;
+  return AMIGA_OS_STRUCT_ID_NONE;
 }
 
 static uint16_t typed_struct_id_for_base_slot_operand(const M68kRenderLookup *lookup,
-    const M68kRenderPlatformState *platform_state, const M68kOperandIR *operand) {
-  uint8_t base_reg = 0U;
-  int16_t displacement = 0;
-  if (lookup == NULL || operand == NULL ||
-      !operand_is_address_memory_local(operand, &base_reg, &displacement) || base_reg >= 8U) {
-    return AMIGA_OS_STRUCT_ID_NONE;
+    const M68kRenderTypedState *state, const M68kRenderPlatformState *platform_state, const M68kOperandIR *operand,
+    uint8_t *out_provenance_kind) {
+  uint8_t kind = 0U, reg; size_t section; int32_t displacement; uint32_t address; int16_t delta;
+  if (out_provenance_kind) *out_provenance_kind = M68K_PLATFORM_TYPE_PROVENANCE_BASE_SLOT;
+  if (!lookup || !operand) return AMIGA_OS_STRUCT_ID_NONE;
+  if (typed_storage_key_for_lookup_memory_operand(lookup, state, platform_state, 0U, operand,
+      M68K_SIM_ACCESS_MEMORY_READ, &kind, &section, &displacement, &address) && kind == M68K_RENDER_TYPED_STORAGE_APP_SLOT) {
+    if (state && (state->memory_write_barriers & M68K_CELL_WRITTEN_APP)) return AMIGA_OS_STRUCT_ID_NONE;
+    /* An explicit entry type is conditional on the declared live slot. It
+     * contributes no numeric target, non-nullness or reaching writer. */
+    if (out_provenance_kind) *out_provenance_kind = M68K_PLATFORM_TYPE_PROVENANCE_POLICY_SEED;
+    return lookup_declared_app_pointer_type(lookup, displacement);
   }
-  if (platform_state != NULL) {
-    if (m68k_bitset_u32_has(platform_state->address_app_base_known, base_reg)) {
-      uint16_t output_struct_id = lookup_typed_output_slot_struct_id(lookup, displacement);
-      if (output_struct_id != AMIGA_OS_STRUCT_ID_NONE) return output_struct_id;
-      output_struct_id = lookup_typed_app_slot_struct_id(lookup, displacement);
-      if (output_struct_id != AMIGA_OS_STRUCT_ID_NONE) return output_struct_id;
-      return lookup_app_base_field_slot_struct_id(lookup, displacement);
-    }
-    if (m68k_bitset_u32_has(platform_state->address_base_known, base_reg)) {
-      return lookup_base_field_slot_struct_id(lookup, platform_state->address_base_library[base_reg], displacement);
-    }
-    if (base_reg == 6U) {
-      uint16_t output_struct_id = lookup_typed_app_slot_struct_id(lookup, displacement);
-      return output_struct_id != AMIGA_OS_STRUCT_ID_NONE ? output_struct_id :
-        lookup_app_base_field_slot_struct_id(lookup, displacement);
-    }
-  } else if (base_reg == 6U) {
-    return lookup_app_base_field_slot_struct_id(lookup, displacement);
-  }
+  if (platform_state && operand_is_address_memory_local(operand, &reg, &delta) && reg < 8U &&
+      m68k_bitset_u32_has(platform_state->address_base_known, reg))
+    return lookup_base_field_slot_struct_id(lookup, platform_state->address_base_library[reg], delta);
   return AMIGA_OS_STRUCT_ID_NONE;
 }
 
@@ -3971,6 +3967,14 @@ static uint16_t lookup_typed_app_slot_struct_id(const M68kRenderLookup *lookup, 
     const M68kRenderTypedAppSlot *slot = &lookup->typed_app_slots[index];
     if (slot->displacement == displacement)
       return slot->conflicted == 0U ? slot->struct_id : AMIGA_OS_STRUCT_ID_NONE;
+  }
+  return AMIGA_OS_STRUCT_ID_NONE;
+}
+
+static uint16_t lookup_typed_inline_app_struct_id(const M68kRenderLookup *lookup, int16_t displacement) {
+  for (size_t i = 0U; i < lookup->typed_app_slot_count; ++i) {
+    const M68kRenderTypedAppSlot *slot = &lookup->typed_app_slots[i];
+    if (slot->displacement == displacement && slot->inline_region && !slot->conflicted) return slot->struct_id;
   }
   return AMIGA_OS_STRUCT_ID_NONE;
 }
@@ -3991,7 +3995,7 @@ static int typed_app_address_operand_info(const M68kRenderLookup *lookup,
   if (evidence == M68K_APP_SLOT_BASE_UNSPECIFIED) return 0;
   if (out_base_evidence_kind != NULL) *out_base_evidence_kind = evidence;
   if (out_displacement != NULL) *out_displacement = displacement;
-  if (out_struct_id != NULL) *out_struct_id = lookup_typed_app_slot_struct_id(lookup, displacement);
+  if (out_struct_id != NULL) *out_struct_id = lookup_typed_inline_app_struct_id(lookup, displacement);
   return 1;
 }
 
@@ -4040,17 +4044,30 @@ static void typed_address_raw_long_after_immediate(M68kRenderTypedRegValue *valu
 
 /* Local cells reuse canonical storage identities, including conflicted global
  * writer summaries: a conflict there is not a conflict at every program point. */
-static uint32_t typed_absolute_storage_id(const M68kRenderLookup *lookup, size_t section, uint32_t address) {
-  size_t index;
-  for (index = 0U; index < lookup->typed_storage_slot_count && index < UINT32_MAX; ++index) {
+static int typed_storage_keys_match(const M68kRenderTypedStorageSlot *, uint8_t, size_t, int32_t, uint32_t);
+
+static int typed_operand_has_app_storage_owner(const M68kRenderLookup *lookup,
+    const M68kRenderPlatformState *platform_state, uint8_t reg, int16_t displacement) {
+  uint8_t evidence = render_app_base_evidence_kind(lookup, platform_state, reg, displacement, 1U);
+  return evidence == M68K_APP_SLOT_BASE_REGISTER_STATE || evidence == M68K_APP_SLOT_BASE_A6_FALLBACK;
+}
+
+static uint32_t typed_memory_storage_id(const M68kRenderLookup *lookup, uint8_t kind,
+    size_t section, int32_t displacement, uint32_t address) {
+  if (kind != M68K_RENDER_TYPED_STORAGE_APP_SLOT && kind != M68K_RENDER_TYPED_STORAGE_ABSOLUTE) return 0U;
+  for (size_t index = 0U; index < lookup->typed_storage_slot_count && index < UINT32_MAX; ++index) {
     const M68kRenderTypedStorageSlot *slot = &lookup->typed_storage_slots[index];
-    if (slot->kind == M68K_RENDER_TYPED_STORAGE_ABSOLUTE && slot->section_index == section &&
-        slot->address == address) return (uint32_t)index + 1U;
+    if (typed_storage_keys_match(slot, kind, section, displacement, address))
+      return (uint32_t)index + 1U;
   }
   return 0U;
 }
 
-static const M68kRenderTypedBaseSlot *typed_state_absolute_cell(const M68kRenderTypedState *state, uint32_t id) {
+static uint32_t typed_absolute_storage_id(const M68kRenderLookup *lookup, size_t section, uint32_t address) {
+  return typed_memory_storage_id(lookup, M68K_RENDER_TYPED_STORAGE_ABSOLUTE, section, 0, address);
+}
+
+static const M68kRenderTypedBaseSlot *typed_state_memory_cell(const M68kRenderTypedState *state, uint32_t id) {
   size_t index;
   if (id == 0U) return NULL;
   for (index = 0U; index < state->base_slot_count; ++index)
@@ -4059,7 +4076,20 @@ static const M68kRenderTypedBaseSlot *typed_state_absolute_cell(const M68kRender
   return NULL;
 }
 
-static void typed_state_set_absolute_cell(M68kRenderTypedState *state, uint32_t id,
+/* Reads inspect only the existing bounded sparse state. The canonical owner
+ * is indexed by storage_id; no scan of every global slot on each memory read. */
+static const M68kRenderTypedBaseSlot *typed_state_cell_for_storage(const M68kRenderTypedState *state,
+    const M68kRenderLookup *lookup, uint8_t kind, size_t section, int32_t displacement, uint32_t address) {
+  for (size_t i = 0U; i < state->base_slot_count; ++i) {
+    const M68kRenderTypedBaseSlot *cell = &state->base_slots[i];
+    if (cell->known && cell->storage_id && cell->storage_id <= lookup->typed_storage_slot_count &&
+        typed_storage_keys_match(&lookup->typed_storage_slots[cell->storage_id - 1U], kind, section, displacement, address))
+      return cell;
+  }
+  return NULL;
+}
+
+static void typed_state_set_memory_cell(M68kRenderTypedState *state, uint32_t id,
     const M68kRenderTypedStoredValue *value) {
   M68kRenderTypedBaseSlot *slot;
   size_t index;
@@ -4075,9 +4105,9 @@ static void typed_state_set_absolute_cell(M68kRenderTypedState *state, uint32_t 
   slot->known = 1U; slot->base_reg = UINT8_MAX; slot->storage_id = id; slot->value = *value;
 }
 
-static void typed_state_forget_absolute_cells(M68kRenderTypedState *state) {
+static void typed_state_forget_memory_cells(M68kRenderTypedState *state) {
   size_t index = 0U;
-  state->absolute_memory_written = 1U;
+  state->memory_write_barriers |= M68K_CELL_WRITTEN_ALL;
   while (index < state->base_slot_count) {
     if (state->base_slots[index].storage_id != 0U)
       state->base_slots[index] = state->base_slots[--state->base_slot_count];
@@ -4103,8 +4133,17 @@ static int typed_storage_key_for_lookup_memory_operand(const M68kRenderLookup *l
       (access_kind != M68K_SIM_ACCESS_MEMORY_READ && access_kind != M68K_SIM_ACCESS_MEMORY_WRITE)) {
     return 0;
   }
+  if (state != NULL && operand_is_address_memory_local(operand, &base_reg, &displacement) && base_reg < 8U &&
+      state->app_addr_regs[base_reg].known && (state->app_addr_regs[base_reg].base_evidence_kind == M68K_APP_SLOT_BASE_REGISTER_STATE ||
+       state->app_addr_regs[base_reg].base_evidence_kind == M68K_APP_SLOT_BASE_A6_FALLBACK)) {
+    int32_t effective = (int32_t)state->app_addr_regs[base_reg].displacement + displacement;
+    if (effective < INT16_MIN || effective > INT16_MAX) return 0;
+    if (out_kind != NULL) *out_kind = M68K_RENDER_TYPED_STORAGE_APP_SLOT;
+    if (out_displacement != NULL) *out_displacement = effective;
+    return 1;
+  }
   if (operand_is_address_memory_local(operand, &base_reg, &displacement) && base_reg < 8U &&
-      render_state_operand_uses_app_base(platform_state, base_reg, displacement)) {
+      typed_operand_has_app_storage_owner(lookup, platform_state, base_reg, displacement)) {
     if (out_kind != NULL) *out_kind = M68K_RENDER_TYPED_STORAGE_APP_SLOT;
     if (out_displacement != NULL) *out_displacement = displacement;
     return 1;
@@ -4128,58 +4167,79 @@ static int typed_storage_key_for_lookup_memory_operand(const M68kRenderLookup *l
   return 0;
 }
 
-/* Unknown aliases clear local absolute values. A known literal write retains
- * only disjoint cells. This is a must-value cache, not a non-alias assumption. */
-static void typed_state_note_absolute_write(M68kRenderTypedState *state, const M68kRenderLookup *lookup,
-    size_t section, const M68kOperandIR *operand, uint8_t width) {
-  uint32_t address;
-  size_t index = 0U;
-  uint8_t platform = lookup->object != NULL ? lookup->object->platform_backend_kind : 0U;
-  int indirect_runtime_address = 0;
+static int typed_storage_write_is_hardware(const M68kRenderLookup *lookup,
+    const M68kRenderPlatformState *platform_state, const M68kOperandIR *operand, uint8_t width) {
+  uint32_t address, base;
+  uint8_t reg, platform = lookup->object ? lookup->object->platform_backend_kind : 0U;
+  int16_t displacement;
+  if (!width) return 0;
   if (!operand_absolute_offset_local(operand, &address)) {
-    uint8_t base_reg;
-    int16_t displacement;
-    M68kRenderTypedMemoryBaseValue effective;
-    int has_absolute_cell = 0;
-    state->absolute_memory_written = 1U;
-    for (size_t i = 0U; i < state->base_slot_count; ++i)
-      if (state->base_slots[i].storage_id) { has_absolute_cell = 1; break; }
-    /* Nothing to invalidate: retain the write barrier without resolving a
-     * runtime view for every ordinary memory instruction. */
-    if (!has_absolute_cell) return;
-    /* Cells carry runtime addresses. Resolve the current shared source cursor
-     * through a whole, unambiguous materialized view; neither a source offset,
-     * pointer origin nor app-layout role alone is an effective address. */
-    if (!operand_is_address_memory_local(operand, &base_reg, &displacement) || base_reg >= 8U ||
-        !typed_memory_base_with_displacement(&state->memory_base_regs[base_reg], displacement, &effective) ||
-        !lookup_source_unique_runtime_span(lookup, effective.section_index, effective.offset, width, &address)) {
-      typed_state_forget_absolute_cells(state); return;
-    }
-    indirect_runtime_address = 1;
-  } else {
-    if (platform_facts_v2_address_has_hardware_owner(platform, address)) return;
-    section = operand->symbol_ref.has_section ? operand->symbol_ref.section_index : section;
+    int64_t effective;
+    if (!platform_state || !operand_is_address_memory_local(operand, &reg, &displacement) || reg >= 8U ||
+        !m68k_bitset_u32_has(platform_state->address_hardware_base_known, reg) ||
+        !platform_facts_v2_hardware_base_address(platform, platform_state->address_hardware_base_id[reg], &base)) return 0;
+    effective = (int64_t)base + displacement;
+    if (effective < 0 || effective > UINT32_MAX) return 0;
+    address = (uint32_t)effective;
   }
-  state->absolute_memory_written = 1U;
+  return address <= UINT32_MAX - (width - 1U) &&
+    platform_facts_v2_address_has_hardware_owner(platform, address) &&
+    platform_facts_v2_address_has_hardware_owner(platform, address + width - 1U);
+}
+
+/* Both domains use the same canonical storage IDs and sparse must-value cells.
+ * Cross-domain addresses are not assumed disjoint. Unknown aliases/calls kill
+ * reaching cells; a known same-domain write retains only disjoint LONGs. */
+static void typed_state_note_storage_write(M68kRenderTypedState *state, const M68kRenderLookup *lookup,
+    const M68kRenderPlatformState *platform_state, size_t section, const M68kOperandIR *operand, uint8_t width) {
+  uint8_t kind = 0U;
+  size_t owner_section = section, index = 0U;
+  int32_t displacement = 0;
+  uint32_t address = 0U;
+  int runtime_address = 0;
+  int has_cells = 0;
+  if (typed_storage_write_is_hardware(lookup, platform_state, operand, width)) return;
+  state->memory_write_barriers |= M68K_CELL_WRITTEN_ALL;
+  for (size_t i = 0U; i < state->base_slot_count; ++i)
+    if (state->base_slots[i].storage_id) { has_cells = 1; break; }
+  if (!has_cells) return;
+  if (!typed_storage_key_for_lookup_memory_operand(lookup, state, platform_state, section, operand,
+      M68K_SIM_ACCESS_MEMORY_WRITE, &kind, &owner_section, &displacement, &address) ||
+      kind == M68K_RENDER_TYPED_STORAGE_BASE_SLOT) {
+    uint8_t reg; int16_t delta; M68kRenderTypedMemoryBaseValue effective;
+    if (operand_is_address_memory_local(operand, &reg, &delta) && reg < 8U &&
+        typed_memory_base_with_displacement(&state->memory_base_regs[reg], delta, &effective) &&
+        lookup_source_unique_runtime_span(lookup, effective.section_index, effective.offset, width, &address)) {
+      kind = M68K_RENDER_TYPED_STORAGE_ABSOLUTE; runtime_address = 1;
+    } else {
+      typed_state_forget_memory_cells(state); return;
+    }
+  }
+  state->memory_write_barriers |= M68K_CELL_WRITTEN_ALL;
   while (index < state->base_slot_count) {
     M68kRenderTypedBaseSlot *cell = &state->base_slots[index];
-    if (cell->storage_id != 0U) {
+    if (cell->storage_id) {
       const M68kRenderTypedStorageSlot *owner = &lookup->typed_storage_slots[cell->storage_id - 1U];
-      if ((indirect_runtime_address || owner->section_index == section) &&
-          typed_long_cell_overlaps_write(owner->address, address, width)) {
-        *cell = state->base_slots[--state->base_slot_count]; continue;
-      }
+      int overlap = owner->kind != kind;
+      if (kind == M68K_RENDER_TYPED_STORAGE_APP_SLOT && owner->kind == kind)
+        overlap = typed_long_cell_overlaps_write(owner->displacement, displacement, width);
+      else if (kind == M68K_RENDER_TYPED_STORAGE_ABSOLUTE && owner->kind == kind)
+        overlap = (runtime_address || owner->section_index == owner_section) &&
+          typed_long_cell_overlaps_write(owner->address, address, width);
+      if (overlap) { *cell = state->base_slots[--state->base_slot_count]; continue; }
     }
     ++index;
   }
 }
 
-static void typed_state_cache_absolute_store(M68kRenderTypedState *state, const M68kRenderLookup *lookup,
-    size_t section, const M68kOperandIR *operand, const M68kRenderTypedStoredValue *value) {
-  uint32_t address;
-  if (!operand_absolute_offset_local(operand, &address)) return;
-  section = operand->symbol_ref.has_section ? operand->symbol_ref.section_index : section;
-  typed_state_set_absolute_cell(state, typed_absolute_storage_id(lookup, section, address), value);
+static void typed_state_cache_storage_store(M68kRenderTypedState *state, const M68kRenderLookup *lookup,
+    const M68kRenderPlatformState *platform_state, size_t section, const M68kOperandIR *operand,
+    const M68kRenderTypedStoredValue *value) {
+  uint8_t kind; size_t owner_section; int32_t displacement; uint32_t address;
+  if (!typed_stored_value_has_useful_info(value)) return;
+  if (!typed_storage_key_for_lookup_memory_operand(lookup, state, platform_state, section, operand,
+      M68K_SIM_ACCESS_MEMORY_WRITE, &kind, &owner_section, &displacement, &address)) return;
+  typed_state_set_memory_cell(state, typed_memory_storage_id(lookup, kind, owner_section, displacement, address), value);
 }
 
 static const M68kRenderTypedStorageSlot *lookup_typed_storage_slot(const M68kRenderLookup *lookup, uint8_t kind,
@@ -4584,7 +4644,7 @@ static int typed_value_for_memory_read_operand(const M68kRenderLookup *lookup, c
     }
   }
   if (operand_is_address_memory_local(operand, &base_reg, &base_displacement) && base_reg < 8U && base_reg != 7U &&
-      !render_state_operand_uses_app_base(platform_state, base_reg, base_displacement)) {
+      !typed_operand_has_app_storage_owner(lookup, platform_state, base_reg, base_displacement)) {
     if (state->addr_regs[base_reg].known && state->addr_regs[base_reg].struct_id != AMIGA_OS_STRUCT_ID_NONE) {
       int32_t field_displacement = state->addr_regs[base_reg].byte_cursor + (int32_t)base_displacement;
       value = typed_state_field_slot_value(state, base_reg, state->addr_regs[base_reg].struct_id,
@@ -4618,18 +4678,20 @@ static int typed_value_for_memory_read_operand(const M68kRenderLookup *lookup, c
         access_kind, &storage_kind, &storage_section, &storage_displacement, &storage_address)) {
       return 0;
     }
-    if (storage_kind == M68K_RENDER_TYPED_STORAGE_ABSOLUTE) {
-      const M68kRenderTypedBaseSlot *cell = typed_state_absolute_cell(state,
-        typed_absolute_storage_id(lookup, storage_section, storage_address));
+    if (storage_kind == M68K_RENDER_TYPED_STORAGE_ABSOLUTE || storage_kind == M68K_RENDER_TYPED_STORAGE_APP_SLOT) {
+      const M68kRenderTypedBaseSlot *cell = typed_state_cell_for_storage(state, lookup,
+        storage_kind, storage_section, storage_displacement, storage_address);
       if (cell != NULL) value = &cell->value;
-      else if (state->absolute_memory_written) return 0;
+      else if (storage_kind == M68K_RENDER_TYPED_STORAGE_APP_SLOT) return 0;
+      else if (state->memory_write_barriers & (storage_kind == M68K_RENDER_TYPED_STORAGE_APP_SLOT ?
+          M68K_CELL_WRITTEN_APP : M68K_CELL_WRITTEN_ABSOLUTE)) return 0;
     }
     if (value == NULL) {
       slot = lookup_typed_storage_slot(lookup, storage_kind, storage_section, storage_displacement, storage_address);
       value = slot != NULL ? &slot->value : NULL;
       /* An inferred cursor writer elsewhere is not a reaching definition at
        * this entry, including a store later in the same function. */
-      if (storage_kind == M68K_RENDER_TYPED_STORAGE_ABSOLUTE && value != NULL) {
+      if ((storage_kind == M68K_RENDER_TYPED_STORAGE_ABSOLUTE || storage_kind == M68K_RENDER_TYPED_STORAGE_APP_SLOT) && value != NULL) {
         if (value->app_address_known) return 0;
         /* This is a cross-program writer/type summary, not a reaching
          * definition. Keep its pointee contract, never promote its numeric
@@ -5070,9 +5132,8 @@ static int render_lookup_record_typed_struct_accesses(M68kRenderLookup *lookup, 
       table_origin = &state->addr_regs[base_reg].table_origin;
       type_conflicted = 1;
     } else if (struct_id == AMIGA_OS_STRUCT_ID_NONE && state->app_addr_regs[base_reg].known) {
-      struct_id = lookup_typed_app_slot_struct_id(lookup, state->app_addr_regs[base_reg].displacement);
-      if (struct_id == AMIGA_OS_STRUCT_ID_NONE)
-        struct_id = lookup_app_base_field_slot_struct_id(lookup, state->app_addr_regs[base_reg].displacement);
+      struct_id = lookup_typed_inline_app_struct_id(lookup, state->app_addr_regs[base_reg].displacement);
+
       app_slot_provenance = typed_provenance_make(M68K_PLATFORM_TYPE_PROVENANCE_APP_SLOT, section_index, offset);
       provenance = &app_slot_provenance;
     } else {
@@ -6109,7 +6170,7 @@ static int render_lookup_record_typed_storage_store(M68kRenderLookup *lookup, M6
   {
     uint8_t span = 0U;
     (void)platform_operand_memory_span(instruction, dest_index, NULL, NULL, &span);
-    typed_state_note_absolute_write(state, lookup, section_index, dest_operand, span);
+    typed_state_note_storage_write(state, lookup, platform_state, section_index, dest_operand, span);
   }
   if (operand_is_stack_displacement_local(dest_operand, &stack_displacement)) {
     typed_state_clear_stack_write(state, stack_displacement,
@@ -6130,7 +6191,7 @@ static int render_lookup_record_typed_storage_store(M68kRenderLookup *lookup, M6
     value.entry_value_id = entry_value_id;
   }
   if (operand_is_address_memory_local(dest_operand, &base_reg, &base_displacement) && base_reg < 8U &&
-      base_reg != 7U && !render_state_operand_uses_app_base(platform_state, base_reg, base_displacement)) {
+      base_reg != 7U && !typed_operand_has_app_storage_owner(lookup, platform_state, base_reg, base_displacement)) {
     uint8_t span = 0U;
     (void)platform_operand_memory_span(instruction, dest_index, NULL, NULL, &span);
     typed_state_clear_base_write(state, base_reg, base_displacement, span);
@@ -6146,7 +6207,7 @@ static int render_lookup_record_typed_storage_store(M68kRenderLookup *lookup, M6
   }
   if (!allow_lookup_storage) {
     if (instruction->size_suffix == 'l')
-      typed_state_cache_absolute_store(state, lookup, section_index, dest_operand, &value);
+      typed_state_cache_storage_store(state, lookup, platform_state, section_index, dest_operand, &value);
     return 0;
   }
   {
@@ -6184,7 +6245,7 @@ static int render_lookup_record_typed_storage_store(M68kRenderLookup *lookup, M6
       return -1;
     }
     if (instruction->size_suffix == 'l')
-      typed_state_cache_absolute_store(state, lookup, section_index, dest_operand, &value);
+      typed_state_cache_storage_store(state, lookup, platform_state, section_index, dest_operand, &value);
     if (added && io_changed != NULL) *io_changed = 1;
     if (storage_kind == M68K_RENDER_TYPED_STORAGE_APP_SLOT && value.struct_id != AMIGA_OS_STRUCT_ID_NONE) {
       added = 0;
@@ -6240,11 +6301,13 @@ static int render_lookup_record_untyped_memory_writes(M68kRenderLookup *lookup, 
       typed_stored_value_clear(&updated);
       (void)platform_operand_memory_span(instruction, operand_index, NULL, NULL, &span);
       if (operand_index == 1U && instruction->size_suffix == 'l' && span == 4U &&
-          operand_absolute_offset_local(operand, &address) && typed_app_cursor_immediate_delta(instruction, &delta)) {
-        size_t owner_section = operand->symbol_ref.has_section ? operand->symbol_ref.section_index : section_index;
+          typed_storage_key_for_lookup_memory_operand(lookup, state, platform_state, section_index, operand,
+            M68K_SIM_ACCESS_MEMORY_WRITE, &storage_kind, &storage_section, &storage_displacement, &address) &&
+          (storage_kind == M68K_RENDER_TYPED_STORAGE_APP_SLOT || storage_kind == M68K_RENDER_TYPED_STORAGE_ABSOLUTE) &&
+          typed_app_cursor_immediate_delta(instruction, &delta)) {
         const M68kRenderTypedBaseSlot *cell;
-        id = typed_absolute_storage_id(lookup, owner_section, address);
-        cell = typed_state_absolute_cell(state, id);
+        cell = typed_state_cell_for_storage(state, lookup, storage_kind, storage_section, storage_displacement, address);
+        id = cell ? cell->storage_id : 0U;
         if (cell != NULL && cell->value.entry_value_id)
           updated.entry_value_id = affine_entry_adjust(lookup->affine_entry_context,
             cell->value.entry_value_id, delta);
@@ -6260,8 +6323,8 @@ static int render_lookup_record_untyped_memory_writes(M68kRenderLookup *lookup, 
           }
         }
       }
-      typed_state_note_absolute_write(state, lookup, section_index, operand, span);
-      typed_state_set_absolute_cell(state, id, &updated);
+      typed_state_note_storage_write(state, lookup, platform_state, section_index, operand, span);
+      typed_state_set_memory_cell(state, id, &updated);
     }
     if (operand_is_stack_displacement_local(operand, &stack_displacement)) {
       uint8_t span = 0U;
@@ -6269,7 +6332,7 @@ static int render_lookup_record_untyped_memory_writes(M68kRenderLookup *lookup, 
       typed_state_clear_stack_write(state, stack_displacement, span);
     }
     if (operand_is_address_memory_local(operand, &base_reg, &base_displacement) && base_reg < 8U &&
-        base_reg != 7U && !render_state_operand_uses_app_base(platform_state, base_reg, base_displacement)) {
+        base_reg != 7U && !typed_operand_has_app_storage_owner(lookup, platform_state, base_reg, base_displacement)) {
       uint8_t span = 0U;
       (void)platform_operand_memory_span(instruction, operand_index, NULL, NULL, &span);
       typed_state_clear_base_write(state, base_reg, base_displacement, span);
@@ -8093,9 +8156,17 @@ static void typed_state_update_after_instruction(M68kRenderTypedState *state, M6
       }
     }
     if (source_struct_id == AMIGA_OS_STRUCT_ID_NONE) {
-      source_struct_id = typed_struct_id_for_base_slot_operand(lookup, platform_state, source_operand);
-      if (source_struct_id != AMIGA_OS_STRUCT_ID_NONE)
-        source_provenance = typed_provenance_make(M68K_PLATFORM_TYPE_PROVENANCE_BASE_SLOT, section_index, offset);
+      uint8_t slot_provenance_kind;
+      source_struct_id = typed_struct_id_for_base_slot_operand(lookup, state, platform_state, source_operand, &slot_provenance_kind);
+      if (source_struct_id != AMIGA_OS_STRUCT_ID_NONE) {
+        source_provenance = typed_provenance_make(slot_provenance_kind, section_index, offset);
+        source_provenance.producer_operand_index = (uint8_t)source_index;
+        stored_value.struct_id = source_struct_id;
+        if (stored_value.provenance.kind == M68K_PLATFORM_TYPE_PROVENANCE_NONE &&
+            !stored_value.provenance.merge_conflicted) stored_value.provenance = source_provenance;
+        else source_provenance = stored_value.provenance;
+        typed_stored_value_update_known(&stored_value);
+      }
     }
     if (source_origin.kind == M68K_RENDER_TYPED_ORIGIN_NONE && instruction->size_suffix == 'l' &&
         move_metadata != NULL && move_metadata->operand_access_kinds[source_index] == M68K_SIM_ACCESS_MEMORY_READ) {
@@ -8647,7 +8718,7 @@ static int typed_base_slot_sets_equal(const M68kRenderTypedState *left, const M6
   for (index = 0U; index < left->base_slot_count; ++index) {
     const M68kRenderTypedBaseSlot *left_slot = &left->base_slots[index];
     const M68kRenderTypedBaseSlot *right_slot = left_slot->storage_id != 0U ?
-      typed_state_absolute_cell(right, left_slot->storage_id) :
+      typed_state_memory_cell(right, left_slot->storage_id) :
       typed_state_base_slot_entry(right, left_slot->base_reg, left_slot->displacement);
     if (!typed_base_slots_equal(left_slot, right_slot)) return 0;
   }
@@ -8671,7 +8742,7 @@ static int typed_state_equal(const M68kRenderTypedState *left, const M68kRenderT
   size_t index;
   if (left == NULL || right == NULL || left->stack_slot_count != right->stack_slot_count ||
       left->base_slot_count != right->base_slot_count || left->field_slot_count != right->field_slot_count ||
-      left->absolute_memory_written != right->absolute_memory_written) {
+      left->memory_write_barriers != right->memory_write_barriers) {
     return 0;
   }
   for (index = 0U; index < 8U; ++index) {
@@ -9098,7 +9169,7 @@ static int typed_state_merge_base_slots(M68kRenderTypedState *dest,
   for (dest_index = 0U; dest_index < dest->base_slot_count;) {
     M68kRenderTypedBaseSlot *dest_slot = &dest->base_slots[dest_index];
     const M68kRenderTypedBaseSlot *source_slot = dest_slot->storage_id != 0U ?
-      typed_state_absolute_cell(source, dest_slot->storage_id) :
+      typed_state_memory_cell(source, dest_slot->storage_id) :
       typed_state_base_slot_entry(source, dest_slot->base_reg, dest_slot->displacement);
     if (source_slot == NULL || typed_stored_value_merge(&dest_slot->value, &source_slot->value, policy) ||
         !typed_stored_value_has_useful_info(&dest_slot->value)) {
@@ -9145,8 +9216,8 @@ static int typed_state_merge_into(M68kRenderTypedState *dest,
   size_t index;
   int changed = 0;
   if (dest == NULL || source == NULL) return 0;
-  if (source->absolute_memory_written && !dest->absolute_memory_written) {
-    dest->absolute_memory_written = 1U; changed = 1;
+  if ((source->memory_write_barriers | dest->memory_write_barriers) != dest->memory_write_barriers) {
+    dest->memory_write_barriers |= source->memory_write_barriers; changed = 1;
   }
   for (index = 0U; index < 8U; ++index) {
     M68kRenderTypedAppAddressValue old_data_app = dest->data_app_addr_regs[index];
@@ -10048,6 +10119,21 @@ static void typed_flow_instruction_input(const M68kRenderLookup *lookup,
     node->candidate->offset);
 }
 
+static void typed_state_apply_produced_storage_contracts(M68kRenderTypedState *state,
+    const M68kRenderLookup *lookup, size_t section, uint32_t offset) {
+  for (size_t i = 0U; i < lookup->typed_slot_effect_count; ++i) {
+    const M68kRenderTypedSlotEffect *effect = &lookup->typed_slot_effects[i];
+    M68kRenderTypedStoredValue value; uint32_t id;
+    if (effect->section_index != section || effect->offset != offset ||
+        effect->struct_id == AMIGA_OS_STRUCT_ID_NONE) continue;
+    id = typed_memory_storage_id(lookup, M68K_RENDER_TYPED_STORAGE_APP_SLOT, (size_t)-1, effect->displacement, 0U);
+    if (typed_state_memory_cell(state, id)) continue; /* Preserve a fuller actual store packet. */
+    typed_stored_value_clear(&value); value.known = 1U; value.struct_id = effect->struct_id;
+    value.provenance = typed_provenance_make(M68K_PLATFORM_TYPE_PROVENANCE_BASE_SLOT, section, offset);
+    typed_state_set_memory_cell(state, id, &value);
+  }
+}
+
 static int typed_flow_process_node_impl(M68kRenderLookup *lookup, const M68kDecodeIR *decode, uint8_t **accepted_start,
     const M68kDecodeSectionIR *section, const M68kRenderTypedFlowNode *node, int allow_lookup_storage,
     int record_typed_accesses, M68kRenderTypedState *out_typed_state, M68kRenderPlatformState *out_platform_state,
@@ -10292,8 +10378,15 @@ static int typed_flow_process_node_impl(M68kRenderLookup *lookup, const M68kDeco
       effects->escape_effect_state != M68K_FUNCTION_SUMMARY_EFFECT_COMPONENT_EXPLICIT || effects->escape_count != 0U;
     if (!writes) for (index = 0U; index < effects->memory_effect_count; ++index)
       if (effects->memory_effects[index].kind == M68K_FUNCTION_SUMMARY_MEMORY_WRITE) writes = 1;
-    if (writes) typed_state_forget_absolute_cells(out_typed_state);
-    else out_typed_state->absolute_memory_written = 1U;
+    if (writes) typed_state_forget_memory_cells(out_typed_state);
+    else out_typed_state->memory_write_barriers |= M68K_CELL_WRITTEN_ABSOLUTE;
+  }
+  {
+    int may_produce = instruction_has_call_flow_local(&instruction);
+    for (size_t i = 0U; !may_produce && i < instruction.operand_count; ++i)
+      may_produce = platform_operand_memory_access(&instruction, i) == M68K_SIM_ACCESS_MEMORY_WRITE;
+    if (may_produce) typed_state_apply_produced_storage_contracts(out_typed_state, lookup,
+      section->section_index, node->candidate->offset);
   }
   platform_state_note_call_result_after_instruction(out_platform_state, &instruction, chosen_vector);
   typed_state_project_layout_roots(out_typed_state, lookup, out_platform_state);
@@ -12337,6 +12430,43 @@ static int render_lookup_base_field_slot_owner_matches(const M68kRenderBaseField
   return strcmp(slot->owner_name, owner_name) == 0;
 }
 
+static uint16_t library_base_struct_id_for_library_id(uint16_t library_id) {
+  uint16_t struct_id;
+  if (library_id == 0U) return AMIGA_OS_STRUCT_ID_NONE;
+  struct_id = amiga_os_find_library_base_struct_id(library_id);
+  return struct_id != AMIGA_OS_STRUCT_ID_NONE ? struct_id : AMIGA_OS_STRUCT_ID_LIB;
+}
+
+uint16_t render_base_field_slot_pointer_struct_id(const M68kRenderBaseFieldSlot *slot) {
+  if (slot == NULL || slot->conflicted != 0U || slot->has_library_id == 0U) return AMIGA_OS_STRUCT_ID_NONE;
+  if (slot->value_kind == M68K_RENDER_BASE_FIELD_SLOT_DEVICE_BASE) return AMIGA_OS_STRUCT_ID_DD;
+  if (slot->value_kind == M68K_RENDER_BASE_FIELD_SLOT_LIBRARY_BASE)
+    return library_base_struct_id_for_library_id(slot->library_id);
+  return AMIGA_OS_STRUCT_ID_NONE;
+}
+
+static int render_lookup_add_produced_storage_type(M68kRenderLookup *, size_t, uint32_t, int16_t, uint16_t);
+
+/* Preserve each producer before the symbol/type aggregate coalesces equal
+ * slots. The effect uses the same native field type and canonical cell ID. */
+static int render_lookup_record_produced_base_field(M68kRenderLookup *lookup, uint8_t owner_kind,
+    uint8_t value_kind, uint8_t has_library_id, uint16_t library_id, int16_t displacement,
+    size_t section, uint32_t offset) {
+  M68kRenderBaseFieldSlot descriptor = {0};
+  M68kRenderTypedStoredValue value;
+  uint16_t type;
+  if (owner_kind != M68K_RENDER_BASE_FIELD_SLOT_OWNER_APP_BASE || section == SIZE_MAX || offset == UINT32_MAX)
+    return 0;
+  descriptor.value_kind = value_kind; descriptor.has_library_id = has_library_id; descriptor.library_id = library_id;
+  type = render_base_field_slot_pointer_struct_id(&descriptor);
+  if (type == AMIGA_OS_STRUCT_ID_NONE) return 0;
+  typed_stored_value_clear(&value); value.known = 1U; value.struct_id = type;
+  value.provenance = typed_provenance_make(M68K_PLATFORM_TYPE_PROVENANCE_BASE_SLOT, section, offset);
+  if (render_lookup_add_typed_storage_slot(lookup, M68K_RENDER_TYPED_STORAGE_APP_SLOT, (size_t)-1,
+      displacement, 0U, &value, section, offset, NULL)) return -1;
+  return render_lookup_add_produced_storage_type(lookup, section, offset, displacement, type);
+}
+
 static int render_lookup_add_base_field_slot_with_symbol(M68kRenderLookup *lookup, const char *owner_name,
     int16_t displacement, const char *library_name, const char *symbol_name, uint8_t value_kind,
     uint8_t observed_access_size, size_t source_section_index, uint32_t source_offset) {
@@ -12364,6 +12494,8 @@ static int render_lookup_add_base_field_slot_with_symbol(M68kRenderLookup *looku
   } else if (symbol_name == NULL || symbol_name[0] == '\0') {
     return 0;
   }
+  if (render_lookup_record_produced_base_field(lookup, owner_kind, value_kind, has_slot_library_id,
+      slot_library_id, displacement, source_section_index, source_offset)) return -1;
   for (index = 0U; index < lookup->base_field_slot_count; ++index) {
     M68kRenderBaseFieldSlot *slot = &lookup->base_field_slots[index];
     if (!render_lookup_base_field_slot_owner_matches(slot, owner_kind, owner_name) ||
@@ -12476,8 +12608,8 @@ static int render_lookup_seed_policy_rsset_layout_regions(M68kRenderLookup *look
         UINT32_MAX) != 0) {
       return -1;
     }
-    if (slot->storage_kind_id == M68K_ANALYSIS_RSSET_LAYOUT_STORAGE_STRUCT_POINTER &&
-        slot->pointer_struct[0] != '\0') {
+    if (!strcmp(base_symbol, M68K_APP_BASE_SYMBOL) &&
+        slot->storage_kind_id == M68K_ANALYSIS_RSSET_LAYOUT_STORAGE_STRUCT_POINTER && slot->pointer_struct[0] != '\0') {
       pointer_struct_id = lookup_policy_struct_id_by_name(policy, slot->pointer_struct);
       if (pointer_struct_id == AMIGA_OS_STRUCT_ID_NONE ||
           render_lookup_add_typed_app_slot(lookup, (int16_t)slot->offset, pointer_struct_id,
@@ -13483,7 +13615,11 @@ int render_lookup_add_typed_slot_effect(M68kRenderLookup *lookup, size_t section
     M68kRenderTypedSlotEffect *entry = &lookup->typed_slot_effects[index];
     if (entry->section_index == section_index && entry->offset == offset &&
         entry->displacement == displacement) {
-      if (entry->output != output) entry->output = NULL;
+      if (entry->output != output) {
+        if (!entry->output && entry->struct_id != AMIGA_OS_STRUCT_ID_NONE && entry->struct_id == output->struct_id)
+          entry->output = output;
+        else { entry->output = NULL; entry->struct_id = AMIGA_OS_STRUCT_ID_NONE; }
+      }
       return 0;
     }
   }
@@ -13501,7 +13637,31 @@ int render_lookup_add_typed_slot_effect(M68kRenderLookup *lookup, size_t section
   lookup->typed_slot_effects[lookup->typed_slot_effect_count].offset = offset;
   lookup->typed_slot_effects[lookup->typed_slot_effect_count].displacement = displacement;
   lookup->typed_slot_effects[lookup->typed_slot_effect_count].output = output;
+  lookup->typed_slot_effects[lookup->typed_slot_effect_count].struct_id = AMIGA_OS_STRUCT_ID_NONE;
   ++lookup->typed_slot_effect_count;
+  return 0;
+}
+
+static int render_lookup_add_produced_storage_type(M68kRenderLookup *lookup, size_t section,
+    uint32_t offset, int16_t displacement, uint16_t type) {
+  M68kRenderTypedSlotEffect *effect;
+  if (type == AMIGA_OS_STRUCT_ID_NONE) return 0;
+  for (size_t i = 0U; i < lookup->typed_slot_effect_count; ++i) {
+    effect = &lookup->typed_slot_effects[i];
+    if (effect->section_index == section && effect->offset == offset && effect->displacement == displacement) {
+      if (!effect->output && effect->struct_id != type) effect->struct_id = AMIGA_OS_STRUCT_ID_NONE;
+      return 0;
+    }
+  }
+  if (lookup->typed_slot_effect_count == lookup->typed_slot_effect_capacity) {
+    size_t capacity = lookup->typed_slot_effect_capacity ? lookup->typed_slot_effect_capacity * 2U : 16U;
+    M68kRenderTypedSlotEffect *grown = render_lookup_grow_array(lookup, lookup->typed_slot_effects,
+      lookup->typed_slot_effect_count, sizeof(*grown), capacity);
+    if (!grown) return -1;
+    lookup->typed_slot_effects = grown; lookup->typed_slot_effect_capacity = capacity;
+  }
+  effect = &lookup->typed_slot_effects[lookup->typed_slot_effect_count++]; memset(effect, 0, sizeof(*effect));
+  effect->section_index = section; effect->offset = offset; effect->displacement = displacement; effect->struct_id = type;
   return 0;
 }
 
@@ -14077,7 +14237,16 @@ static int append_render_lookup_platform_effects_for_section(const M68kRenderLoo
     const char *type_name;
     const char *semantic_kind;
     const char *value_domain_name;
-    if (effect->section_index != section_analysis->section_index || output == NULL) continue;
+    if (effect->section_index != section_analysis->section_index) continue;
+    if (output == NULL) {
+      if (effect->struct_id != AMIGA_OS_STRUCT_ID_NONE) {
+        const char *produced_type = lookup_policy_struct_name_by_id(lookup->policy, effect->struct_id);
+        if (produced_type && m68k_ir_section_analysis_append_recovered_platform_effect(section_analysis,
+            M68K_PLATFORM_BACKEND_AMIGA_HUNK, effect->offset, M68K_PLATFORM_EFFECT_WRITE_TYPED_SLOT,
+            0U, 0U, effect->displacement, INT16_MIN, NULL, NULL, produced_type, NULL, NULL, 0U, 0)) return -1;
+      }
+      continue;
+    }
     symbol_name = amiga_os_name(M68K_PLATFORM_NAME_SYMBOL, output->output_id);
     type_name = amiga_output_type_or_struct_name(output);
     semantic_kind = amiga_os_name(M68K_PLATFORM_NAME_SEMANTIC_KIND, output->semantic_kind_id);

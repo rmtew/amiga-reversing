@@ -28,7 +28,7 @@ typedef struct M68kLoopEntryRoot {
 } M68kLoopEntryRoot;
 #define M68K_LOOP_ROOT_DATA 1U
 #define M68K_LOOP_ROOT_ADDRESS 2U
-#define M68K_LOOP_ROOT_ABSOLUTE 3U
+#define M68K_LOOP_ROOT_CELL 3U
 #define M68K_LOOP_ROOT_STACK 4U
 #define M68K_LOOP_ROOT_LIMIT (16U + M68K_RENDER_TYPED_BASE_SLOT_LIMIT + M68K_RENDER_TYPED_STACK_SLOT_LIMIT)
 
@@ -78,8 +78,8 @@ static void counter_loop_project_registers(M68kRenderTypedState *state,
 static uint32_t counter_loop_root_at_tail(const M68kRenderTypedState *state, const M68kLoopEntryRoot *root) {
   if (root->kind == M68K_LOOP_ROOT_DATA) return state->data_regs[root->reg].entry_value_id;
   if (root->kind == M68K_LOOP_ROOT_ADDRESS) return state->addr_regs[root->reg].entry_value_id;
-  if (root->kind == M68K_LOOP_ROOT_ABSOLUTE) {
-    const M68kRenderTypedBaseSlot *slot = typed_state_absolute_cell(state, root->storage_id);
+  if (root->kind == M68K_LOOP_ROOT_CELL) {
+    const M68kRenderTypedBaseSlot *slot = typed_state_memory_cell(state, root->storage_id);
     return slot ? slot->value.entry_value_id : 0U;
   }
   if (root->kind == M68K_LOOP_ROOT_STACK) {
@@ -188,7 +188,7 @@ static int counter_loop_prove(M68kRenderLookup *lookup, const M68kDecodeIR *deco
   for (size_t i = 0U; i < entry.typed.base_slot_count; ++i) {
     M68kRenderTypedBaseSlot *slot = &entry.typed.base_slots[i];
     if (slot->known && slot->storage_id && slot->value.app_address_known) {
-      M68kLoopEntryRoot root = {0}; root.kind = M68K_LOOP_ROOT_ABSOLUTE; root.storage_id = slot->storage_id;
+      M68kLoopEntryRoot root = {0}; root.kind = M68K_LOOP_ROOT_CELL; root.storage_id = slot->storage_id;
       root.app = 1U; root.evidence = slot->value.app_base_evidence_kind; root.app_displacement = slot->value.app_displacement;
       slot->value.entry_value_id = counter_loop_add_root(&context, roots, &root_count, root, 4U);
     }

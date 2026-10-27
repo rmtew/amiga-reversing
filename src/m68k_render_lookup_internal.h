@@ -270,6 +270,8 @@ typedef struct M68kRenderTypedSlotEffect {
   size_t section_index;
   uint32_t offset;
   int16_t displacement;
+  /* Optional producer-owned memory type; uses existing alignment padding. */
+  uint16_t struct_id;
   const AmigaOsCallOutputInfo *output;
 } M68kRenderTypedSlotEffect;
 
@@ -492,7 +494,7 @@ typedef struct M68kRenderTypedBaseSlot {
   uint8_t base_reg;
   int16_t displacement;
   /* 0 for register-relative cells; otherwise canonical storage index + 1.
-   * Uses existing alignment padding. Absolute cells use base_reg=UINT8_MAX. */
+   * Uses existing alignment padding. Canonical app/absolute cells use base_reg=UINT8_MAX. */
   uint32_t storage_id;
   M68kRenderTypedStoredValue value;
 } M68kRenderTypedBaseSlot;
@@ -525,7 +527,7 @@ typedef struct M68kRenderTypedState {
   uint8_t register_alias_sources[8];
   /* A local write/call prevents resurrecting a global writer-summary value.
    * Exact local reaching stores may still supply their own value. */
-  uint8_t absolute_memory_written;
+  uint8_t memory_write_barriers;
   M68kRenderTypedStackSlot stack_slots[M68K_RENDER_TYPED_STACK_SLOT_LIMIT];
   size_t stack_slot_count;
   M68kRenderTypedBaseSlot base_slots[M68K_RENDER_TYPED_BASE_SLOT_LIMIT];
@@ -1131,6 +1133,7 @@ const M68kDecodeCandidate *find_candidate_at_offset_local(const M68kDecodeSectio
 int find_unique_relocation_operand(const M68kDecodeCandidate *candidate, const M68kFact *relocation,
   size_t *out_operand_index);
 int instruction_is_local_wrapper_cleanup(const M68kInstructionIR *instruction);
+uint16_t render_base_field_slot_pointer_struct_id(const M68kRenderBaseFieldSlot *slot);
 uint16_t lookup_app_base_field_slot_struct_id(const M68kRenderLookup *lookup, int16_t displacement);
 uint16_t lookup_base_field_slot_struct_id(const M68kRenderLookup *lookup, const char *owner_name,
   int16_t displacement);

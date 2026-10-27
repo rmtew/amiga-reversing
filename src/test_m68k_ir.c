@@ -28313,7 +28313,10 @@ static int check_direct_field_pointer_base_context(unsigned variant) {
         M68K_C_ASSERT_U32(M68K_PLATFORM_TYPE_PROVENANCE_FIELD_POINTER,access->type_provenance_kind);
         M68K_C_ASSERT_U32(6U,access->type_provenance_offset);
       } else if (variant == 1U) {
-        M68K_C_ASSERT_U32(M68K_PLATFORM_TYPE_PROVENANCE_NONE,access->type_provenance_kind);
+        /* The unchanged foreign base has its own local reaching cell. Keep
+         * its field-pointer provenance without giving it app ownership. */
+        M68K_C_ASSERT_U32(M68K_PLATFORM_TYPE_PROVENANCE_FIELD_POINTER,access->type_provenance_kind);
+        M68K_C_ASSERT_U32(6U,access->type_provenance_offset);
       } else {
         M68K_C_ASSERT(access->type_provenance_kind != M68K_PLATFORM_TYPE_PROVENANCE_FIELD_POINTER);
       }
@@ -34149,6 +34152,22 @@ static int test_facts_v2_render_asm_source_propagates_typed_base_across_branch_t
   M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
     m68k_diag_sink(NULL)));
   M68K_C_ASSERT(source != NULL);
+  M68K_C_ASSERT(strstr(source, "\tbra.b loc_0_00000022\n") != NULL);
+  /* The opaque incoming A6 identity is not carried through the saved frame.
+   * Do not borrow an aggregate app output type; test the explicit entry
+   * identity separately below. This does not prove the original path invalid. */
+  M68K_C_ASSERT(strstr(source, "\tcmpi.w #36,LIB_VERSION(a0)\n") == NULL);
+  m68k_facts_v2_free_text(source);
+  source = NULL;
+  policy.register_seed_count = 1U;
+  policy.register_seeds[0].kind = M68K_ANALYSIS_REGISTER_SEED_LIBRARY_BASE;
+  policy.register_seeds[0].reg_kind = M68K_ANALYSIS_REGISTER_ADDRESS;
+  policy.register_seeds[0].reg_index = 6U;
+  policy.register_seeds[0].has_entry_offset = 1U;
+  policy.register_seeds[0].has_section_index = 1U;
+  snprintf(policy.register_seeds[0].name, sizeof(policy.register_seeds[0].name), "__amiga_app_base__");
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
+    m68k_diag_sink(NULL)));
   M68K_C_ASSERT(strstr(source, "\tbra.b loc_0_00000022\n") != NULL);
   M68K_C_ASSERT(strstr(source, "\tcmpi.w #36,LIB_VERSION(a0)\n") != NULL);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);

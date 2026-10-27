@@ -21,9 +21,28 @@ The [current systematic gap inventory](../../runtime/observations/starglider2-so
 joins native identities/accesses with canonical layouts and actual rendered
 boundaries. It records 67 suffix signals (including numeric adjacent variants),
 21 lookup contracts, 523 remaining interior references, 32 generic app fields
-and 682 unresolved record accesses. These are different denominators. Five
+and 683 unresolved record accesses. These are different denominators. Five
 suffixes name routines and one names text; neither is a pointer defect.
-Latest: the [projectile record contracts](../../runtime/observations/starglider2-projectile-record-contracts.json)
+Latest: the [shared sparse app-storage correction](../../runtime/observations/starglider2-app-storage-cells.json)
+uses existing canonical cell identities and full decoded write footprints for
+local reaching values, including partial writes, MOVEM, joins and call effects.
+Native API memory types enter at each actual producer rather than borrowing an
+all-writer summary; foreign library slots cannot borrow app contracts. Explicit
+entry pointee types remain conditional policy facts with no numeric pointer.
+**318 focused tests and 832 native C tests pass**, with unchanged per-node and
+producer-effect sizes. Target projection retains **all 1562 typed coordinates**,
+exposes **one additional unresolved Core field at runtime $35526**, and adds no
+typed coordinates: **3412 app references /1562 typed /683 unresolved**. No
+semantic gain is invented from the fixture gains. The conservative unknown-write
+barrier still limits declared slot types in real selected-object consumers;
+the next bounded experiment is per-slot invalidation on proven disjoint writes,
+without reviving global writer values or losing null/conflict/call negatives.
+The104-header source-loop remains independently reproduced (straight-line pass,
+DBF-loop failure): it needs source-cursor domain induction and canonical selection
+reconciliation, not a larger numeric candidate cap. Original C/vasm and clean
+standalone bytes remain exact; no new live runtime coverage is claimed.
+
+Preceding: the [projectile record contracts](../../runtime/observations/starglider2-projectile-record-contracts.json)
 connect original nearby type72/103,84,12 and25 dispatches to their velocity,
 bounce, lifetime and target-steering fields. The two subtypes retain different
 BYTE22 roles and preserve nonzero-versus-negative integration tests, signed

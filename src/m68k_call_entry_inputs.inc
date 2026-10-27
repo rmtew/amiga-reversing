@@ -10,7 +10,7 @@ static void typed_flow_call_entry_input(const M68kRenderLookup *lookup,
   memset(typed->base_slots, 0, sizeof(typed->base_slots)); typed->base_slot_count = 0U;
   memset(typed->field_slots, 0, sizeof(typed->field_slots)); typed->field_slot_count = 0U;
   memset(typed->io_request_setups, 0, sizeof(typed->io_request_setups));
-  typed->absolute_memory_written = 1U;
+  typed->memory_write_barriers |= M68K_CELL_WRITTEN_ALL;
   for (uint8_t i = 0U; i < 8U; ++i) {
     if (typed->data_regs[i].origin.kind == M68K_RENDER_TYPED_ORIGIN_STACK_SLOT)
       typed_origin_clear(&typed->data_regs[i].origin);

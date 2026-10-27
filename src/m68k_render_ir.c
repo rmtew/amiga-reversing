@@ -8804,21 +8804,6 @@ int base_field_slot_is_base_pointer(const M68kRenderBaseFieldSlot *slot) {
     slot->value_kind == M68K_RENDER_BASE_FIELD_SLOT_DEVICE_BASE);
 }
 
-static uint16_t library_base_struct_id_for_library_id(uint16_t library_id) {
-  uint16_t struct_id;
-  if (library_id == 0U) return AMIGA_OS_STRUCT_ID_NONE;
-  struct_id = amiga_os_find_library_base_struct_id(library_id);
-  return struct_id != AMIGA_OS_STRUCT_ID_NONE ? struct_id : AMIGA_OS_STRUCT_ID_LIB;
-}
-
-static uint16_t base_field_slot_struct_id(const M68kRenderBaseFieldSlot *slot) {
-  if (slot == NULL || slot->conflicted != 0U || slot->has_library_id == 0U) return AMIGA_OS_STRUCT_ID_NONE;
-  if (slot->value_kind == M68K_RENDER_BASE_FIELD_SLOT_DEVICE_BASE) return AMIGA_OS_STRUCT_ID_DD;
-  if (slot->value_kind == M68K_RENDER_BASE_FIELD_SLOT_LIBRARY_BASE)
-    return library_base_struct_id_for_library_id(slot->library_id);
-  return AMIGA_OS_STRUCT_ID_NONE;
-}
-
 static int kb_library_base_field_symbol_name(const char *owner_name, int16_t displacement, char *symbol_name,
     size_t symbol_name_size) {
   return platform_facts_v2_library_base_field_symbol_name(M68K_PLATFORM_BACKEND_AMIGA_HUNK, owner_name,
@@ -8926,7 +8911,7 @@ uint16_t lookup_base_field_slot_struct_id(const M68kRenderLookup *lookup, const 
           lookup_app_base_field_slot_symbol_has_other_displacement(lookup, symbol_name, displacement))) {
       continue;
     }
-    struct_id = base_field_slot_struct_id(slot);
+    struct_id = render_base_field_slot_pointer_struct_id(slot);
     if (struct_id == AMIGA_OS_STRUCT_ID_NONE) continue;
     if (matched_struct_id != AMIGA_OS_STRUCT_ID_NONE && matched_struct_id != struct_id) return AMIGA_OS_STRUCT_ID_NONE;
     matched_struct_id = struct_id;
@@ -8949,7 +8934,7 @@ uint16_t lookup_app_base_field_slot_struct_id(const M68kRenderLookup *lookup, in
         lookup_app_base_field_slot_symbol_has_other_displacement(lookup, symbol_name, displacement)) {
       continue;
     }
-    struct_id = base_field_slot_struct_id(slot);
+    struct_id = render_base_field_slot_pointer_struct_id(slot);
     if (struct_id == AMIGA_OS_STRUCT_ID_NONE) continue;
     if (matched_struct_id != AMIGA_OS_STRUCT_ID_NONE && matched_struct_id != struct_id) return AMIGA_OS_STRUCT_ID_NONE;
     matched_struct_id = struct_id;

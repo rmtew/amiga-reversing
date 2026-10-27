@@ -54,8 +54,8 @@ int main(void) {
   other.addr_regs[4].entry_value_id=a;typed_state_merge_into(&state,&other, NULL);assert(!state.addr_regs[4].entry_value_id);
   state.addr_regs[4].entry_value_id=a;
   value=typed_stored_value_for_address_register(&state,4);assert(value.entry_value_id==a && !value.known);
-  typed_state_set_absolute_cell(&state,1,&value);
-  assert(typed_state_absolute_cell(&state,1)->value.entry_value_id==a);
+  typed_state_set_memory_cell(&state,1,&value);
+  assert(typed_state_memory_cell(&state,1)->value.entry_value_id==a);
   M68kAnalysisFunctionSummary summary={0};
   function_summary_set_register_partition(&summary,255,254);
   summary.memory_effect_state=summary.escape_effect_state=M68K_FUNCTION_SUMMARY_EFFECT_COMPONENT_EXPLICIT;

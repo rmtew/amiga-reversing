@@ -76,7 +76,7 @@ int main(void) {
   M68kRenderPlatformState platform={0};
   M68kInstructionIR word=m68k_plain_parse_instruction_to_ir("move.w a0,$1800.l",M68K_ASM_CPU_68000,m68k_diag_sink(NULL));
   assert(!render_lookup_record_typed_storage_store(&lookup,&state,&platform,0,&word,NULL,0,0,NULL));
-  assert(!typed_state_absolute_cell(&state,1));
+  assert(!typed_state_memory_cell(&state,1));
   state=(M68kRenderTypedState){0};
   state.addr_regs[6].known=1;state.addr_regs[6].layout_base_id=1;state.addr_regs[6].entry_value_id=3;
   state.addr_regs[6].struct_id=7;state.addr_regs[6].origin.kind=M68K_RENDER_TYPED_ORIGIN_LOOKUP_STORAGE;

@@ -64,3 +64,11 @@ def test_register_transport_does_not_consume_a_table_entry(tmp_path):
         assert any(r['base_register']=='A1' and r['field_name']=='tag' for r in accesses)
     finally:
         artifact.close()
+
+
+def test_foreign_library_extension_cannot_supply_an_app_table_contract(tmp_path):
+    artifact,_=table_artifact(tmp_path,'movea.l $4.w,a6\n movea.l $200(a6),a0\n movea.l (a0)+,a1\n tst.w (a1)')
+    try:
+        assert not [r for r in artifact.analysis_payload()[0]['sections'][0]['recovered_platform_typed_accesses']
+            if r['base_register']=='A1'and r['field_name']=='tag']
+    finally:artifact.close()
