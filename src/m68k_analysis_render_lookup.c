@@ -16099,10 +16099,16 @@ static int render_lookup_record_layout_field_uses(M68kRenderLookup *lookup, size
     const char *base;
     if (!operand_is_address_displacement_local(&instruction->operands[operand_index], &reg, &displacement) ||
         reg >= 8U || displacement < 0) continue;
+    address_only = app_slot_access_kind_from_instruction(instruction, operand_index) == M68K_APP_SLOT_ACCESS_ADDRESS;
     if (m68k_bitset_u32_has(state->address_app_base_known, reg)) base = M68K_APP_BASE_SYMBOL;
     else if (m68k_bitset_u32_has(state->address_layout_base_known, reg)) base = state->address_layout_base_symbol[reg];
+    /* The formatter already names nonhardware A6 fallback coordinates as app
+     * expressions. Name an unambiguous canonical endpoint under that SAME
+     * assumption; do not upgrade its catalogue provenance to register_state.
+     * Hardware collisions, foreign/unknown bases and memory extents stay out. */
+    else if (address_only && render_app_base_evidence_kind(lookup, state, reg, displacement, 0U) ==
+        M68K_APP_SLOT_BASE_A6_FALLBACK) base = M68K_APP_BASE_SYMBOL;
     else continue;
-    address_only = app_slot_access_kind_from_instruction(instruction, operand_index) == M68K_APP_SLOT_ACCESS_ADDRESS;
     if (!address_only && !platform_operand_memory_span(instruction, operand_index, NULL, NULL, &width)) continue;
     for (index = 0U; index < policy->rsset_layout_region_count; ++index) {
       const M68kAnalysisRssetLayoutRegion *region = &policy->rsset_layout_regions[index];

@@ -23,7 +23,18 @@ boundaries. It records 67 suffix signals (including numeric adjacent variants),
 21 lookup contracts, 523 remaining interior references, 32 generic app fields
 and 428 unresolved record accesses. These are different denominators. Five
 suffixes name routines and one names text; neither is a pointer defect.
-Latest: the [paired cursor/BCD reconstruction](../../runtime/observations/starglider2-paired-score-cursors.json)
+Latest: the [canonical endpoint-expression fix](../../runtime/observations/starglider2-app-endpoint-expressions.json)
+renders the score address as `player_score_bcd+4(a6)` through the normal frozen
+owner-point index. It retains the original `a6_fallback` assumption; no memory
+extent or base identity is promoted. Mode0/mode1 already form the equivalent
+address as LEA plus ADDQ. The whole-target difference is exactly one expression,
+with identical native access/type/code/ownership records. 121 focused and 832
+native tests pass; original C/vasm and standalone bytes remain exact. Counts stay
+**3412 app references / 1199 typed / 428 unresolved**. Generic endpoint/header
+aliases remain distinct from actual unexplained memory accesses.
+Continue concrete field/record and incoming-path restoration.
+
+Preceding: the [paired cursor/BCD reconstruction](../../runtime/observations/starglider2-paired-score-cursors.json)
 removes a blanket refusal of distinct predecrement operands and retains every
 independently updated cursor through the shared instruction transfer. The same
 regressions exposed and fixed last-cursor-only retention, including CMPM.

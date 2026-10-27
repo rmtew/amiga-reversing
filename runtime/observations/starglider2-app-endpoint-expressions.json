@@ -1,0 +1,140 @@
+{
+  "schema_version": 1,
+  "kind": "canonical_endpoint_expression_under_retained_conditional_app_interpretation",
+  "status": "qualified_shared_renderer_gap_closed_restoration_continues",
+  "publication_base_commit": "a388721403f36b343c17fefe1beef8822784f2a3",
+  "inputs": {
+    "binary_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "analysis_sha256": "f7c54de1a9aea185aea45013b84f504a5ce9ade22704b17fd3178990abf7ed43",
+    "effective_metadata_sha256": "9a382c6a66fb6924c509d6a379b98f4fa12ed0f0fa98a928729ebcd3db111be1",
+    "backend_sha256": "b1e6a39053cd7092a6458dc483fb98a2b6a525f22ce9b13301ece6f6385b85ab"
+  },
+  "cause": "The existing formatter already rendered nonhardware A6 fallback coordinates as app expressions, but the frozen canonical owner-point index accepted only stronger app/named-layout identities. The same literal one-past address therefore kept a generic inferred slot instead of the already-declared owner plus its size.",
+  "changes": "Address-only use-site indexing now also accepts exactly the existing nonhardware A6 fallback interpretation. It reuses the canonical region start/end, ambiguity checks and frozen index. No memory extent admission, foreign/hardware interpretation, coordinate/value change or provenance promotion. The app access catalogue keeps a6_fallback at the score endpoint.",
+  "fixture": {
+    "before": "1 new positive failure/8 previous guards passed: LEA app720 rendered app_0720 despite canonical score71C..720.",
+    "after": "score+4 expression and unchanged a6_fallback address fact. Hardware collision, unknown A4, foreign A6/library, beyond-owner memory and ambiguous ownership negative cases pass."
+  },
+  "target": {
+    "changed_expressions": 1,
+    "source_offset": 50726,
+    "runtime_address": 54822,
+    "before": "lea.l app_0720(a6),a1",
+    "after": "lea.l player_score_bcd+4(a6),a1",
+    "catalogue_provenance_before_after": "a6_fallback unchanged",
+    "other_original_variants": "mode0/mode1 already used LEA player_score_bcd then ADDQ.L4; no per-variant override needed.",
+    "counts": {
+      "app_slot_ref_count": [
+        3412,
+        3412
+      ],
+      "recovered_platform_typed_access_count": [
+        1199,
+        1199
+      ],
+      "recovered_platform_unresolved_typed_access_count": [
+        428,
+        428
+      ]
+    },
+    "all_access_records_identical": true,
+    "typed_records_identical": true,
+    "accepted_code_and_ownership_identical": true
+  },
+  "validation": {
+    "native_and_vasm": {
+      "kind": "verification",
+      "framework_exact": true,
+      "target_id": "amiga_raw_starglider2_game",
+      "subject_revision": "9b91b637b14e836676fabb59069f9edaadebac4786778e95804ee770b2a696db",
+      "status": "exact",
+      "exact": true,
+      "source_sha256": "814b690722d04968adb48e26852353538f29e9c2492f75bf927af80cf490c573",
+      "source_path": "/workspace/pandora-original-delivery/stable-d15c2cf8/.runtime-state/restoration/eb04f545fb97451725a1c91ab5abf6f2e097614c45880db6edfb4ea5c3f6e2c2/814b690722d04968adb48e26852353538f29e9c2492f75bf927af80cf490c573.s",
+      "source_package_sha256": null,
+      "original_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+      "original_size": 412736,
+      "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+      "rebuilt_path": "/workspace/pandora-original-delivery/stable-d15c2cf8/.runtime-state/restoration/eb04f545fb97451725a1c91ab5abf6f2e097614c45880db6edfb4ea5c3f6e2c2/662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9.bin",
+      "framework_status": "exact",
+      "failure_kinds": [],
+      "message": "",
+      "oracle": {
+        "oracle_id": "vasm",
+        "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+        "comparison_level": "oracle.full_file_match",
+        "assembler_status": "accepted",
+        "message": "oracle output matched original bytes"
+      },
+      "receipt_id": "2219fded2da61f8051bcee83d4ee3e4777caa489409d9af9103215da7c236f73",
+      "revision": "71c8329c2a8c92127c96b646fbf3889be57c61fd1f715ac8427a0f165f03b70b"
+    },
+    "focused_tests": 121,
+    "native_unit_tests": 832,
+    "canonical_actions": 0,
+    "incomplete_analysis": [],
+    "source_quality_diagnostics": 0,
+    "assets_unchanged": 57,
+    "required_headers": 14,
+    "clean_standalone_build": {
+      "status": "pass",
+      "validated_target_git_tree": "cab2f2ffcb52fce87477b7e88a8d7506625a4414",
+      "receipt": {
+        "schema_version": 1,
+        "status": "pass",
+        "format": "raw_payload_not_AmigaDOS_HUNK",
+        "main_bytes": 412736,
+        "main_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+        "main_matches_original_identity": true,
+        "asset_count": 57,
+        "all_asset_source_slices_equal": true,
+        "decoded_view_inverse_exact": true,
+        "boot_copy_source_matches_resident_view": true,
+        "source_commit": "a388721403f36b343c17fefe1beef8822784f2a3",
+        "assembler_sha256": "413e284020125f42709486dfe09907cab3dd9f3c2ea41017c190f8ea68f30825",
+        "flags": [
+          "-Fbin",
+          "-m68000",
+          "-no-opt"
+        ],
+        "outputs": [
+          {
+            "role": "original_main",
+            "filename": "Starglider2-original.raw",
+            "bytes": 412736,
+            "sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9"
+          },
+          {
+            "role": "decoded_analysis_view",
+            "filename": "protection-decoded-analysis.raw",
+            "bytes": 3548,
+            "sha256": "de8358853dd9ed9b006a23569bf393aa217ed3be3301a169465d80bfaf839922"
+          },
+          {
+            "role": "boot_installer_context",
+            "filename": "boot-selector-installer-context.raw",
+            "bytes": 40,
+            "sha256": "8d34852425e2e1bfa87b3febdfc74fb39e7c667e9d9ff73e17b594649e83b21b"
+          },
+          {
+            "role": "boot_resident_view",
+            "filename": "boot-selector-resident.raw",
+            "bytes": 20,
+            "sha256": "a26286a393713c046eff9dbaff15b20b26b171fa9e05fc9d538d16b0eddb6024"
+          }
+        ]
+      },
+      "recoverable_pandora_backups_verified": 16
+    }
+  },
+  "generation_wall_seconds": 149.2303853959893,
+  "limits": [
+    "This is equivalent address naming under an existing conditional app assumption, not proof of the unknown A6 value, C pointer intent, ownership/lifetime safety or a new reader.",
+    "Original raw app0720 remains an inferred address-only catalogue/header signal. Its declaration is not evidence of an extra LONG memory access. Existing0062/0067 aliases and frameAC endpoint likewise must not be counted as independent unknown semantic storage merely from their generic spelling.",
+    "No source opcode/byte, original layout, asset, runtime path or shared game state changed."
+  ],
+  "next": {
+    "group": "Remaining semantic consumers and variant contracts",
+    "experiment": "Follow concrete original record/field producer and reader paths using current inventory, keeping alias/endpoint signals separate from unresolved storage and callback-dependent semantics."
+  }
+}
