@@ -26,20 +26,34 @@ def _field_gap(access, structs):
     record = structs.get(access.get('root_struct_name'))
     if record is None:
         return 'missing_structure_contract'
-    if record.get('base_struct'):
-        return 'requires_native_inheritance_projection'
     lo = access['displacement']
     hi = lo + width
     if lo < 0 or hi > record['size']:
         return 'outside_declared_record'
+    # Diagnostic coverage only: native facts still own field/type admission.
+    # A parent declaration is no longer a blanket unimplemented mechanism.
+    fields = list(record.get('fields', []))
+    seen = {record['name']}
+    inherited = bool(record.get('base_struct'))
+    while record.get('base_struct'):
+        parent = record['base_struct']
+        if parent in seen:
+            return 'cyclic_inherited_structure_contract'
+        seen.add(parent)
+        record = structs.get(parent)
+        if record is None:
+            return 'missing_inherited_structure_contract'
+        fields.extend(record.get('fields', []))
     end = lo
-    for start, stop in sorted(_span(field) for field in record.get('fields', [])):
+    for start, stop in sorted(_span(field) for field in fields):
         if stop <= end:
             continue
         if start > end:
             break
         end = max(end, stop)
-    return 'covered_partial_or_composite_access' if end >= hi else 'declared_field_hole'
+    if end < hi:
+        return 'declared_field_hole'
+    return 'covered_inherited_span_requires_native_review' if inherited else 'covered_partial_or_composite_access'
 
 
 def inventory(analysis: dict, metadata: dict, source: str) -> dict:

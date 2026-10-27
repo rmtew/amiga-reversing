@@ -1637,6 +1637,66 @@ void m68k_analysis_policy_destroy(M68kAnalysisPolicy *policy) {
   policy->rsset_layout_regions_owner = 0U;
 }
 
+const M68kAnalysisCustomStruct *m68k_analysis_policy_custom_struct_parent(
+    const M68kAnalysisPolicy *policy, const M68kAnalysisCustomStruct *record) {
+  if (!policy || !record || !record->base_struct[0] || !policy->custom_structs) return NULL;
+  for (uint16_t i = 0U; i < policy->custom_struct_count && i < M68K_ANALYSIS_CUSTOM_STRUCT_LIMIT; ++i)
+    if (!strcmp(policy->custom_structs[i].name, record->base_struct)) return &policy->custom_structs[i];
+  return NULL;
+}
+
+const M68kAnalysisCustomStructField *m68k_analysis_policy_custom_struct_field_at(
+    const M68kAnalysisPolicy *policy, const M68kAnalysisCustomStruct *record,
+    uint32_t offset, uint32_t width, const M68kAnalysisCustomStruct **out_owner) {
+  if (out_owner) *out_owner = NULL;
+  if (!policy) return NULL;
+  for (uint16_t depth = 0U; record && depth <= policy->custom_struct_count; ++depth) {
+    for (uint16_t i = 0U; i < record->field_count && i < M68K_ANALYSIS_CUSTOM_STRUCT_FIELD_LIMIT; ++i) {
+      const M68kAnalysisCustomStructField *field = &record->fields[i];
+      if (!field->name[0] || !field->size) continue;
+      if (field->offset != offset && (!width || width >= field->size || offset < field->offset ||
+          (uint64_t)offset + width > (uint64_t)field->offset + field->size)) continue;
+      if (out_owner) *out_owner = record;
+      return field;
+    }
+    record = m68k_analysis_policy_custom_struct_parent(policy, record);
+  }
+  return NULL;
+}
+
+int m68k_analysis_policy_custom_structs_valid(const M68kAnalysisPolicy *policy) {
+  if (!policy || policy->custom_struct_count > M68K_ANALYSIS_CUSTOM_STRUCT_LIMIT ||
+      (policy->custom_struct_count && !policy->custom_structs)) return 0;
+  for (uint16_t i = 0U; i < policy->custom_struct_count; ++i) {
+    const M68kAnalysisCustomStruct *child = &policy->custom_structs[i], *current = child;
+    uint16_t depth = 0U;
+    if (!child->base_struct[0]) continue; /* Existing flat schemas are unchanged. */
+    if (!child->size || child->base_offset > child->size ||
+        child->field_count > M68K_ANALYSIS_CUSTOM_STRUCT_FIELD_LIMIT) return 0;
+    for (uint16_t f = 0U; f < child->field_count; ++f)
+      if (child->fields[f].offset < child->base_offset || child->fields[f].offset > child->size ||
+          child->fields[f].size > child->size - child->fields[f].offset) return 0;
+    while (current->base_struct[0]) {
+      const M68kAnalysisCustomStruct *parent = m68k_analysis_policy_custom_struct_parent(policy, current);
+      /* Unknown/platform parents, cycles, truncation and ambiguous overrides
+       * refuse. Filling holes of a known custom prefix is supported. */
+      if (!parent || ++depth > policy->custom_struct_count || !parent->size ||
+          parent->size > current->size || parent->field_count > M68K_ANALYSIS_CUSTOM_STRUCT_FIELD_LIMIT) return 0;
+      for (uint16_t c = 0U; c < child->field_count; ++c) {
+        const M68kAnalysisCustomStructField *cf = &child->fields[c];
+        for (uint16_t p = 0U; p < parent->field_count; ++p) {
+          const M68kAnalysisCustomStructField *pf = &parent->fields[p];
+          if (pf->offset > parent->size || pf->size > parent->size - pf->offset) return 0;
+          if (cf->size && pf->size && (uint64_t)cf->offset < (uint64_t)pf->offset + pf->size &&
+              (uint64_t)pf->offset < (uint64_t)cf->offset + cf->size) return 0;
+        }
+      }
+      current = parent;
+    }
+  }
+  return 1;
+}
+
 int m68k_analysis_policy_structured_data_items_valid(const M68kAnalysisPolicy *policy) {
   if (policy == NULL || policy->structured_data_item_count > M68K_ANALYSIS_STRUCTURED_DATA_ITEM_LIMIT ||
       policy->structured_data_item_capacity > M68K_ANALYSIS_STRUCTURED_DATA_ITEM_LIMIT ||
@@ -1815,6 +1875,7 @@ int m68k_analysis_policy_copy(M68kAnalysisPolicy *dest, const M68kAnalysisPolicy
   if (!m68k_analysis_policy_structured_data_items_valid(src) ||
       !m68k_analysis_policy_named_labels_valid(src) ||
       !m68k_analysis_policy_rsset_layout_regions_valid(src) ||
+      !m68k_analysis_policy_custom_structs_valid(src) ||
       src->manual_data_reference_count > M68K_ANALYSIS_MANUAL_DATA_REFERENCE_LIMIT) return -1;
   if (dest == src) return 0;
   custom_struct_count = src->custom_struct_count;

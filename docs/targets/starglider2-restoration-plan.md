@@ -20,10 +20,30 @@ to their recorded closeout revision. See the current
 The [current systematic gap inventory](../../runtime/observations/starglider2-source-gap-inventory.json)
 joins native identities/accesses with canonical layouts and actual rendered
 boundaries. It records 66 suffix signals (including numeric adjacent variants),
-21 lookup contracts, 523 remaining interior references, 36 generic app fields
+21 lookup contracts, 523 remaining interior references, 34 generic app fields
 and 303 unresolved record accesses. These are different denominators. Five
 suffixes name routines and one names text; neither is a pointer defect.
-Latest: the [scene queue and scratch reconstruction](../../runtime/observations/starglider2-scene-queue-contracts.json)
+Latest: the [depot instance/service reconstruction](../../runtime/observations/starglider2-depot-service-contracts.json)
+records ten canonical actions for type94 Tunnel Depot, service/approach fields,
+its constructor/contact contexts and docking reader roles/messages. The20
+original world instances produce service IDs0..10; eight physical placements
+include a shared stream with different IDs in different world instances. This
+is a static template contract, not arbitrary runtime selector bounds.
+A reproduced shared native import/lookup defect dropped custom inheritance.
+Native prefix ownership now resolves the four parent `world_z` accesses without
+copying fields into target facts. Unknown/cyclic/overlapping/truncated declarations
+refuse; custom upcasts and platform parents are not added implicitly.
+**832 native / 56 Python checks pass; original C/vasm and clean standalone output
+are exact.** Typed accesses rise **380 → 390**, unresolved remain303 and generic
+app fields fall **36 → 34**. Unknown storage and30 orphan islands are unchanged.
+A710-window native decoder cross-check rejected a sine-data false writer and
+found no additional direct docking writes. An11-hit raw pointer cross-check
+found coincidences/data and two still-unrooted JMP stubs; no code was promoted.
+Next investigate the concrete save/load workspace span and two-copy-cursor
+footprint, while retaining the unknown docking activation writer. Publication
+preserves batches; the restoration remains active.
+
+Preceding: the [scene queue and scratch reconstruction](../../runtime/observations/starglider2-scene-queue-contracts.json)
 records 42 canonical actions across original polygon/header phases, shared queue
 subregions, edge endpoints, coefficient scratch and service-entry arrays.
 It removes the false app label on the sorter's A6 cursor, while retaining an

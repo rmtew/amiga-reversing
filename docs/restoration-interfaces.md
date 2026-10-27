@@ -1,5 +1,26 @@
 # Restoration interfaces
 
+## Custom prefix inheritance
+
+Native custom-structure metadata retains `base_struct` and `base_offset`.
+An inherited **custom** parent is a prefix at offset zero; field offsets remain
+relative to the root. `base_offset` marks where the declaration's own fields
+start, as in an extension after its parent; zero also permits filling declared
+parent holes. It does not shift the inherited fields or the register value.
+
+One policy resolver serves scalar, partial, pointer, nested-field and static-field
+identity queries. Typed accesses retain both the derived root and actual parent
+owner, with inherited provenance and the parent's field symbol. No duplicate
+parent fields are inserted into canonical facts. Import, policy copying and
+render admission reject unknown parents, cycles, truncated prefixes, overlapping
+overrides and invalid own-field extents. Parent order in metadata is irrelevant.
+Custom-to-platform inheritance and overlapping field overrides are refused in
+this slice; generated platform hierarchy support is unchanged. Differing custom
+types at CFG joins remain conservative rather than gaining an implicit upcast.
+Compact aggregate macros retain their existing inherited-schema refusal.
+This is field/ownership projection, not automatic proof of a target subtype,
+array bound, lifetime or valid caller contract.
+
 `target.data.seed` classifies an evidenced source range before a listing can be
 rendered (for example, inline dispatch tables incorrectly reached as code).
 It takes `hunk`, `addr`, exclusive `end`, `name`, and `unit` (`byte`, `word`,

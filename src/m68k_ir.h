@@ -751,6 +751,10 @@ typedef struct M68kAnalysisCustomStruct {
   uint16_t field_count;
   uint16_t reserved;
   M68kAnalysisCustomStructField fields[M68K_ANALYSIS_CUSTOM_STRUCT_FIELD_LIMIT];
+  /* Inherited custom prefix starts at zero. Field offsets remain root-relative;
+   * base_offset is the declaration's own-field start, not a pointer adjustment. */
+  char base_struct[64];
+  uint32_t base_offset;
 } M68kAnalysisCustomStruct;
 
 typedef struct M68kAnalysisManualRuntimeAddressRef {
@@ -3001,6 +3005,12 @@ int m68k_analysis_policy_copy(M68kAnalysisPolicy *dest, const M68kAnalysisPolicy
 int m68k_analysis_policy_structured_data_items_valid(const M68kAnalysisPolicy *policy);
 int m68k_analysis_policy_named_labels_valid(const M68kAnalysisPolicy *policy);
 int m68k_analysis_policy_rsset_layout_regions_valid(const M68kAnalysisPolicy *policy);
+int m68k_analysis_policy_custom_structs_valid(const M68kAnalysisPolicy *policy);
+const M68kAnalysisCustomStruct *m68k_analysis_policy_custom_struct_parent(
+    const M68kAnalysisPolicy *policy, const M68kAnalysisCustomStruct *record);
+const M68kAnalysisCustomStructField *m68k_analysis_policy_custom_struct_field_at(
+    const M68kAnalysisPolicy *policy, const M68kAnalysisCustomStruct *record,
+    uint32_t offset, uint32_t width, const M68kAnalysisCustomStruct **out_owner);
 int m68k_analysis_policy_reserve_rsset_layout_regions(M68kAnalysisPolicy *policy, size_t required_count);
 /* 0: reserved, -1: invalid storage/allocation failure, -2: capacity exceeded.
    Accept wide requests so a caller cannot implicitly narrow an oversized count. */

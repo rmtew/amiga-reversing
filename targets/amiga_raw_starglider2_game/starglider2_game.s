@@ -374,7 +374,7 @@ player_rotation2_damage_impulse RS.W 1
     RS.B 2
 app_0792 RS.W 1
 weapon_energy_reserve RS.W 1
-app_0796 RS.W 1
+docking_service_phase RS.W 1
 world_layout_index RS.W 1
 app_079A RS.W 1
 pilot_hit_accuracy_word RS.W 1
@@ -413,7 +413,7 @@ model_viewer_bounds_pair_offset RS.B 1
 world_object_update_enabled_flag RS.B 1
 weapon_selection_and_status RS.B 1
 view_mode RS.B 1
-app_07EC RS.B 1
+docking_control_override_flag RS.B 1
 ai_type12_projectile_request RS.B 1
 app_07EE RS.B 1
 joystick_control_enabled_flag RS.B 1
@@ -921,6 +921,15 @@ SG2ScenePolygonHeader_SIZEOF EQU __RS
 SG2SceneSortReference_polygon RS.L 1
 SG2SceneSortReference_SIZEOF EQU __RS
 
+; STRUCT SG2TunnelDepot
+    RSRESET
+    RS.B 38
+SG2TunnelDepot_service_id RS.B 1
+    RS.B 1
+SG2TunnelDepot_z_approach_test_selector RS.W 1
+    RS.B 26
+SG2TunnelDepot_SIZEOF EQU __RS
+
 ADKF_CLRALL	EQU	$7FFF
 BPLCON2_PF2P2	EQU	$20
 BPLCON2_PF2PRI	EQU	$40
@@ -1350,7 +1359,7 @@ abs_0_0000140C:
 abs_0_0000141E:
 	tst.w icarus_shield_strength(a6)
 	beq.w abs_0_00001502
-	tst.w app_0796(a6)
+	tst.w docking_service_phase(a6)
 	bne.b abs_0_00001434
 	tst.w last_player_contact_type(a6)
 	bne.w abs_0_000014B6
@@ -2241,7 +2250,7 @@ reset_gameplay_state_and_input_defaults:
 	move.w d0,weapon_energy_reserve(a6)
 	move.w d0,player_speed_target(a6)
 	move.w #$10,initial_resource_charge_steps(a6)
-	move.w #$0,app_0796(a6)
+	move.w #$0,docking_service_phase(a6)
 	move.w #$0,player_rotation2_damage_impulse(a6)
 	moveq.l #0,d0
 	move.w d0,player_rotation_0(a6)
@@ -2266,7 +2275,7 @@ reset_gameplay_state_and_input_defaults:
 	clr.w bouncing_bomb_hud_icon_count(a6)
 	sf.b weapon_selection_and_status(a6)
 	sf.b view_mode(a6)
-	sf.b app_07EC(a6)
+	sf.b docking_control_override_flag(a6)
 	st.b world_object_update_enabled_flag(a6)
 	sf.b debug_features_enabled_flag(a6)
 	sf.b inside_structure_flag(a6)
@@ -4186,7 +4195,7 @@ render_world_view:
 	move.w #$FFFF,horizon_clip_max_y_snapshot.l
 	move.b #$2,diagnostic_step_byte.l
 	clr.w scene_packet_count.l
-	tst.b app_07EC(a6)
+	tst.b docking_control_override_flag(a6)
 	bne.b abs_0_00003EA4
 	tst.b inside_structure_flag(a6)
 	bne.b abs_0_00003EA4
@@ -4207,13 +4216,13 @@ abs_0_00003EA4:
 abs_0_00003EAA:
 	move.b #$2,diagnostic_step_byte.l
 	move.b #$3,diagnostic_step_byte.l
-	tst.b app_07EC(a6)
+	tst.b docking_control_override_flag(a6)
 	beq.b abs_0_00003EDE
 	clr.w rotation_2_control_accumulator(a6)
 	clr.w rotation_0_control_accumulator(a6)
-	cmpi.w #30,app_0796(a6)
+	cmpi.w #30,docking_service_phase(a6)
 	beq.b abs_0_00003ED8
-	lea.l abs_0_000040F8(pc),a1
+	lea.l docking_interrogate_prompt(pc),a1
 	bsr.w abs_0_000049DA
 abs_0_00003ED8:
 	move.w #$6C,app_0764(a6)
@@ -4312,7 +4321,7 @@ abs_0_00003FE0:
 	move.b #$C,diagnostic_step_byte.l
 	bsr.w abs_0_0000452C
 	move.b #$D,diagnostic_step_byte.l
-	bsr.w abs_0_000040CC
+	bsr.w enqueue_docking_launch_ready_message
 	move.b #$F,diagnostic_step_byte.l
 	tst.b novella_answer_tail_latch(a6)
 	bne.b abs_0_00004096
@@ -4328,16 +4337,16 @@ abs_0_00004096:
 	dc.b $4F,$62,$6A
 	dcb.b $10,$20
 	dc.b $00
-abs_0_000040CC:
-	cmpi.w #30,app_0796(a6)
+enqueue_docking_launch_ready_message:
+	cmpi.w #30,docking_service_phase(a6)
 	bne.b abs_0_000040DC
-	lea.l abs_0_000040DE(pc),a1
+	lea.l docking_ready_to_launch_message(pc),a1
 	bsr.w abs_0_000049DA
 abs_0_000040DC:
 	rts
-abs_0_000040DE:
+docking_ready_to_launch_message:
 	dc.b "All done, SPACE to launch",$00
-abs_0_000040F8:
+docking_interrogate_prompt:
 	dc.b "Docking, I to INTERROGATE",$00
 	dc.b $20,$20,$20,$20,$4C,$41,$55,$4E,$43,$48,$49,$4E,$47,$20,$46,$52
 	dc.b $4F,$4D,$20,$53,$49,$4C,$4F,$00
@@ -13480,18 +13489,19 @@ abs_0_0000BCC8:
 	move.l d1,player_world_x(a6)
 	st.b player_structure_clamp_flag(a6)
 	bra.w abs_0_0000BC18
-    ; This structure path widens object BYTE+$26 into current_structure_service_id. Meaning is variant-specific; it does not establish a universal field for every object type.
+    ; Type94 Tunnel Depot: widen BYTE26 service ID; WORD28 selects the original Z-approach test. IDs0..10 come from static world instances, not arbitrary constructor inputs.
+    ; KNOWN: type A2=Target code-entry register seed:SG2TunnelDepot
 abs_0_0000BD02:
 	clr.w d6
-	move.b $0026(a2),d6
+	move.b SG2TunnelDepot_service_id(a2),d6
 	move.w d6,current_structure_service_id(a6)
-	tst.w $0028(a2)
+	tst.w SG2TunnelDepot_z_approach_test_selector(a2)
 	bne.w abs_0_0000BD46
 	move.l player_world_z(a6),d0
-	sub.l $000C(a2),d0
+	sub.l SG2WorldObject_world_z(a2),d0
 	cmp.w #$23F,d0
 	ble.w abs_0_0000BAE0
-	move.l $000C(a2),d0
+	move.l SG2WorldObject_world_z(a2),d0
 	addi.l #570,d0
 	move.l d0,player_world_z(a6)
 	st.b player_collision_response_flag(a6)
@@ -13499,11 +13509,11 @@ abs_0_0000BD02:
 	move.w #$3F,last_player_contact_type(a6)
 	bra.w abs_0_0000BAE0
 abs_0_0000BD46:
-	move.l $000C(a2),d0
+	move.l SG2WorldObject_world_z(a2),d0
 	sub.l player_world_z(a6),d0
 	cmp.w #$23F,d0
 	ble.w abs_0_0000BAE0
-	move.l $000C(a2),d0
+	move.l SG2WorldObject_world_z(a2),d0
 	addi.l #570,d0
 	move.l d0,player_world_z(a6)
 	st.b player_collision_response_flag(a6)
@@ -23159,7 +23169,7 @@ world_object_type_initializer_pointers:
 	dc.l abs_0_0001872A
 	dc.l initialize_structure_contact_flags
 	dc.l abs_0_00018744
-	dc.l abs_0_0001874C
+	dc.l initialize_tunnel_depot_service_id
 	dc.l skip_object_type_initialization
 	dc.l append_object_initializer_chain_link
 	dc.l append_and_clear_object_initializer_chain
@@ -23614,8 +23624,9 @@ abs_0_0001872A:
 abs_0_00018744:
 	st.b $0022(a0)
 	bra.w append_object_initializer_chain_link
-abs_0_0001874C:
-	tst.b $0026(a0)
+    ; KNOWN: type A0=Target code-entry register seed:SG2TunnelDepot
+initialize_tunnel_depot_service_id:
+	tst.b SG2TunnelDepot_service_id(a0)
 	beq.w initialize_structure_contact_flags
 	cmp.w #$3,d4
 	beq.w initialize_structure_contact_flags
@@ -23623,11 +23634,11 @@ abs_0_0001874C:
 	beq.w initialize_structure_contact_flags
 	cmp.w #$8,d4
 	bne.b abs_0_00018774
-	move.b #$2,$0026(a0)
+	move.b #$2,SG2TunnelDepot_service_id(a0)
 	bra.w initialize_structure_contact_flags
 abs_0_00018774:
-	move.b d4,$0026(a0)
-	subq.b #4,$0026(a0)
+	move.b d4,SG2TunnelDepot_service_id(a0)
+	subq.b #4,SG2TunnelDepot_service_id(a0)
 	bra.w initialize_structure_contact_flags
 append_and_clear_object_initializer_chain:
 	tst.l object_initializer_chain_tail(a6)
@@ -37616,9 +37627,9 @@ abs_0_0002F77A:
 	ble.b abs_0_0002F786
 	move.w #$0,negative_speed_control_accumulator(a6)
 abs_0_0002F786:
-	tst.b app_07EC(a6)
+	tst.b docking_control_override_flag(a6)
 	beq.b abs_0_0002F7A2
-	cmpi.w #30,app_0796(a6)
+	cmpi.w #30,docking_service_phase(a6)
 	bne.b abs_0_0002F79C
 	move.w #$0,negative_speed_control_accumulator(a6)
 	bra.b abs_0_0002F7A2
@@ -37651,7 +37662,7 @@ abs_0_0002F7DA:
 	move.w #$0,negative_speed_control_accumulator(a6)
 abs_0_0002F7E6:
 	move.w d0,player_speed_target(a6)
-	tst.b app_07EC(a6)
+	tst.b docking_control_override_flag(a6)
 	bne.b abs_0_0002F82E
 	move.w trig_sine_scratch_2(a6),d1
 	tst.b space_environment_flag(a6)

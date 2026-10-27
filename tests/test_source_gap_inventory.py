@@ -46,12 +46,12 @@ def test_field_holes_not_conflated_with_inheritance_or_zero_width():
     metadata = dict(custom_structs=[dict(name='R', size=8, fields=[dict(offset=0, size=2), dict(offset=4, size=4)]),
                                    dict(name='Derived', size=8, base_struct='R', fields=[])])
     accesses = [dict(root_struct_name=root, displacement=offset, access_size=width, classification='field_gap')
-                for root, offset, width in [('R', 2, 2), ('R', 4, 2), ('R', 8, 2), ('R', 0, 0), ('Derived', 0, 2)]]
+                for root, offset, width in [('R', 2, 2), ('R', 4, 2), ('R', 8, 2), ('R', 0, 0), ('Derived', 0, 2), ('Derived', 2, 2)]]
     analysis = dict(sections=[dict(section_index=0, recovered_platform_unresolved_typed_accesses=accesses)])
     result = inventory(analysis, metadata, '')
     assert [r['mechanism'] for r in result['unresolved_typed_accesses']] == [
         'declared_field_hole', 'covered_partial_or_composite_access', 'outside_declared_record',
-        'address_formation_or_unknown_width', 'requires_native_inheritance_projection']
+        'address_formation_or_unknown_width', 'covered_inherited_span_requires_native_review', 'declared_field_hole']
 
 
 def test_pointer_array_contract_requires_canonical_type_and_exact_extent():

@@ -2272,14 +2272,15 @@ static int lookup_policy_static_data_field_offset(const M68kAnalysisPolicy *poli
   uint32_t matched_offset = 0U, matched_size = 0U;
   unsigned matches = 0U;
   if (custom_struct != NULL) {
-    uint16_t index;
-    for (index = 0U; index < custom_struct->field_count && index < M68K_ANALYSIS_CUSTOM_STRUCT_FIELD_LIMIT; ++index) {
-      const M68kAnalysisCustomStructField *field = &custom_struct->fields[index];
-      if (strcmp(field->name, item->field_name) != 0) continue;
-      if (item->field_type[0] != '\0' && strcmp(item->field_type, field->type_name) != 0) return 0;
-      matched_offset = field->offset;
-      matched_size = field->size;
-      ++matches;
+    const M68kAnalysisCustomStruct *record = custom_struct;
+    for (uint16_t depth = 0U; record && depth <= policy->custom_struct_count; ++depth) {
+      for (uint16_t index = 0U; index < record->field_count && index < M68K_ANALYSIS_CUSTOM_STRUCT_FIELD_LIMIT; ++index) {
+        const M68kAnalysisCustomStructField *field = &record->fields[index];
+        if (strcmp(field->name, item->field_name) != 0) continue;
+        if (item->field_type[0] && strcmp(item->field_type, field->type_name) != 0) return 0;
+        matched_offset = field->offset; matched_size = field->size; ++matches;
+      }
+      record = m68k_analysis_policy_custom_struct_parent(policy, record);
     }
   } else {
     uint32_t offset;
@@ -2584,28 +2585,22 @@ static int lookup_policy_resolve_struct_field(const M68kAnalysisPolicy *policy, 
   const char *struct_name;
   if (out_field != NULL) memset(out_field, 0, sizeof(*out_field));
   if (custom_struct != NULL) {
-    uint16_t field_index;
-    for (field_index = 0U; field_index < custom_struct->field_count &&
-         field_index < M68K_ANALYSIS_CUSTOM_STRUCT_FIELD_LIMIT; ++field_index) {
-      const M68kAnalysisCustomStructField *field = &custom_struct->fields[field_index];
-      if (field->size == 0U || field->name[0] == '\0') continue;
-      if (field->offset != (uint32_t)displacement &&
-          (access_size == 0U || access_size >= field->size || (uint32_t)displacement < field->offset ||
-           (uint64_t)(uint32_t)displacement + access_size > (uint64_t)field->offset + field->size)) continue;
-      if (out_field != NULL) {
-        out_field->offset = (int16_t)field->offset;
-        out_field->size = field->size > UINT16_MAX ? UINT16_MAX : (uint16_t)field->size;
-        snprintf(out_field->root_struct_name, sizeof(out_field->root_struct_name), "%s", custom_struct->name);
-        snprintf(out_field->owner_struct_name, sizeof(out_field->owner_struct_name), "%s", custom_struct->name);
-        snprintf(out_field->field_name, sizeof(out_field->field_name), "%s", field->name);
-        if (snprintf(out_field->field_expr, sizeof(out_field->field_expr), "%s_%s",
-            custom_struct->name, field->name) >= (int)sizeof(out_field->field_expr)) {
-          return 0;
-        }
-      }
-      return 1;
+    const M68kAnalysisCustomStruct *owner = NULL;
+    const M68kAnalysisCustomStructField *field = displacement < 0 ? NULL :
+      m68k_analysis_policy_custom_struct_field_at(policy, custom_struct,
+        (uint32_t)displacement, access_size, &owner);
+    if (!field) return 0;
+    if (out_field) {
+      out_field->offset = (int16_t)field->offset;
+      out_field->size = field->size > UINT16_MAX ? UINT16_MAX : (uint16_t)field->size;
+      out_field->inherited = owner != custom_struct;
+      snprintf(out_field->root_struct_name, sizeof(out_field->root_struct_name), "%s", custom_struct->name);
+      snprintf(out_field->owner_struct_name, sizeof(out_field->owner_struct_name), "%s", owner->name);
+      snprintf(out_field->field_name, sizeof(out_field->field_name), "%s", field->name);
+      if (snprintf(out_field->field_expr, sizeof(out_field->field_expr), "%s_%s",
+          owner->name, field->name) >= (int)sizeof(out_field->field_expr)) return 0;
     }
-    return 0;
+    return 1;
   }
   struct_name = amiga_os_name(M68K_PLATFORM_NAME_STRUCT, struct_id);
   if (struct_name != NULL && struct_name[0] != '\0') {
@@ -4201,18 +4196,11 @@ static uint16_t lookup_policy_pointer_struct_id_for_field(const M68kAnalysisPoli
     int16_t displacement) {
   const M68kAnalysisCustomStruct *custom_struct = lookup_policy_custom_struct_by_id(policy, struct_id);
   if (custom_struct != NULL) {
-    uint16_t field_index;
-    for (field_index = 0U; field_index < custom_struct->field_count &&
-         field_index < M68K_ANALYSIS_CUSTOM_STRUCT_FIELD_LIMIT; ++field_index) {
-      const M68kAnalysisCustomStructField *field = &custom_struct->fields[field_index];
-      if (field->offset != (uint32_t)displacement ||
-          field->value_kind != M68K_ANALYSIS_STRUCT_FIELD_VALUE_STRUCT_POINTER ||
-          field->pointer_struct[0] == '\0') {
-        continue;
-      }
-      return lookup_policy_struct_id_by_name(policy, field->pointer_struct);
-    }
-    return AMIGA_OS_STRUCT_ID_NONE;
+    const M68kAnalysisCustomStructField *field = displacement < 0 ? NULL :
+      m68k_analysis_policy_custom_struct_field_at(policy, custom_struct, (uint32_t)displacement, 0U, NULL);
+    if (!field || field->value_kind != M68K_ANALYSIS_STRUCT_FIELD_VALUE_STRUCT_POINTER ||
+        !field->pointer_struct[0]) return AMIGA_OS_STRUCT_ID_NONE;
+    return lookup_policy_struct_id_by_name(policy, field->pointer_struct);
   }
   {
     AmigaOsResolvedStructFieldInfo resolved;
@@ -4229,34 +4217,24 @@ static uint16_t lookup_policy_pointer_struct_id_for_field(const M68kAnalysisPoli
 static const M68kAnalysisCustomStructField *lookup_policy_pointer_value_field(const M68kAnalysisPolicy *policy,
     uint16_t struct_id, int32_t displacement, const M68kAnalysisCustomStruct **out_struct) {
   const M68kAnalysisCustomStruct *custom_struct = lookup_policy_custom_struct_by_id(policy, struct_id);
-  uint16_t field_index;
-  if (out_struct != NULL) *out_struct = NULL;
-  if (custom_struct == NULL || displacement < 0) return NULL;
-  for (field_index = 0U; field_index < custom_struct->field_count &&
-       field_index < M68K_ANALYSIS_CUSTOM_STRUCT_FIELD_LIMIT; ++field_index) {
-    const M68kAnalysisCustomStructField *field = &custom_struct->fields[field_index];
-    if (field->offset != (uint32_t)displacement ||
-        field->value_kind == M68K_ANALYSIS_STRUCT_FIELD_VALUE_SCALAR) {
-      continue;
-    }
-    if (out_struct != NULL) *out_struct = custom_struct;
-    return field;
-  }
-  return NULL;
+  const M68kAnalysisCustomStruct *owner = NULL;
+  if (out_struct) *out_struct = NULL;
+  if (!custom_struct || displacement < 0) return NULL;
+  const M68kAnalysisCustomStructField *field = m68k_analysis_policy_custom_struct_field_at(
+    policy, custom_struct, (uint32_t)displacement, 0U, &owner);
+  if (!field || field->value_kind == M68K_ANALYSIS_STRUCT_FIELD_VALUE_SCALAR) return NULL;
+  if (out_struct) *out_struct = owner;
+  return field;
 }
 
 static uint16_t lookup_policy_nested_struct_id_for_field(const M68kAnalysisPolicy *policy, uint16_t struct_id,
     int16_t displacement) {
   const M68kAnalysisCustomStruct *custom_struct = lookup_policy_custom_struct_by_id(policy, struct_id);
   if (custom_struct != NULL) {
-    uint16_t field_index;
-    for (field_index = 0U; field_index < custom_struct->field_count &&
-         field_index < M68K_ANALYSIS_CUSTOM_STRUCT_FIELD_LIMIT; ++field_index) {
-      const M68kAnalysisCustomStructField *field = &custom_struct->fields[field_index];
-      if (field->offset != (uint32_t)displacement || field->struct_name[0] == '\0') continue;
-      return lookup_policy_struct_id_by_name(policy, field->struct_name);
-    }
-    return AMIGA_OS_STRUCT_ID_NONE;
+    const M68kAnalysisCustomStructField *field = displacement < 0 ? NULL :
+      m68k_analysis_policy_custom_struct_field_at(policy, custom_struct, (uint32_t)displacement, 0U, NULL);
+    return field && field->struct_name[0] ? lookup_policy_struct_id_by_name(policy, field->struct_name) :
+      AMIGA_OS_STRUCT_ID_NONE;
   }
   {
     AmigaOsResolvedStructFieldInfo resolved;

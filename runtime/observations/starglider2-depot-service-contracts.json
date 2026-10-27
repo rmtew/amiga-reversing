@@ -1,0 +1,507 @@
+{
+  "schema_version": 1,
+  "kind": "depot_instance_service_and_custom_prefix_restoration",
+  "status": "qualified_batch_restoration_continues",
+  "publication_base_commit": "c8948067a5f966fd6497928b72414262d5eddcac",
+  "input": {
+    "binary_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "backend_sha256": "b899aa9f2fe587e43029b89aa67bed368f4d63023cb92d7a6704b0145b0043da",
+    "analysis_sha256": "c12e16d10c39d7807dc1e3649e85d79831c9414d2dd65db36a6a100f2d5ea112",
+    "inline_source_sha256": "590a508d77f70d7f963b0942bcfd7b2f1c16d6e0bc98c79866725ec387e6adb3",
+    "effective_metadata_sha256": "1a921b5bf8485a046347eed4d40b1bc4ccb86a5d06851e7ed6bf1a3198c0fb04",
+    "map_auditor_sha256": "74fd5bb823bca26506571de176514bb41dc68191a87d98dc8b68579de3abfa27"
+  },
+  "canonical_actions": 10,
+  "interpretation": {
+    "action_start": 2892,
+    "action_count": 10,
+    "reason": "Type94 is Tunnel Depot by original model/name directory. Initializer directory entry94 points1874C. Original17D90 clears pool, setsD4=world_layout_index-16; interior17E94 copies nonzero tag highBYTE to object26 and clears it from type.1874C leaves0 unchanged, preserves it for local worlds3/7, sets2 for local8, otherwise writes BYTE(D4-4). The20 original interior type94 world instances produce serviceIDs0..10, including one aliased source record whose instances at worlds24..30 map2,5..10. BD02 is selected by CMP#94 and widens this BYTE into current_structure_service_id; objectWORD28 selects original Z-approach subtraction. This is a type94 variant contract, not a universal WorldObject26/28 meaning or a bound on inventory-release/arbitrary D4. Separately app796 reset0 and readerphase30 selects All done SPACE to launch; other phases select Docking I to INTERROGATE. app7EC zero suppresses docking control override; nonzero clears input rotations, forces speed10 or0 atphase30, bypasses horizon/yaw path. Native fixed/loop-footprint and bounded original+decoded direct-displacement scan found only resets as writers, plus a rejected candidate inside accepted sine data. Reader-role names do not establish that the Amiga reaches nonzero docking states or that the phase is a timer.",
+    "messages": [
+      {
+        "runtime_address": 16606,
+        "name": "docking_ready_to_launch_message",
+        "size": 26
+      },
+      {
+        "runtime_address": 16632,
+        "name": "docking_interrogate_prompt",
+        "size": 26
+      }
+    ],
+    "prior_batch": "/workspace/starglider2-private/scene-queue-final-20261027"
+  },
+  "original_static_depot_domain": {
+    "model_type": 94,
+    "initializer": 100172,
+    "object_byte_offset": 38,
+    "consumer": 48386,
+    "records": [
+      {
+        "world_index": 19,
+        "local_index": 3,
+        "source_offset": 200872,
+        "runtime_address": 204968,
+        "initial_service_byte": 0,
+        "service_id": 0
+      },
+      {
+        "world_index": 19,
+        "local_index": 3,
+        "source_offset": 201272,
+        "runtime_address": 205368,
+        "initial_service_byte": 1,
+        "service_id": 1
+      },
+      {
+        "world_index": 19,
+        "local_index": 3,
+        "source_offset": 201400,
+        "runtime_address": 205496,
+        "initial_service_byte": 0,
+        "service_id": 0
+      },
+      {
+        "world_index": 23,
+        "local_index": 7,
+        "source_offset": 202314,
+        "runtime_address": 206410,
+        "initial_service_byte": 0,
+        "service_id": 0
+      },
+      {
+        "world_index": 23,
+        "local_index": 7,
+        "source_offset": 202554,
+        "runtime_address": 206650,
+        "initial_service_byte": 4,
+        "service_id": 4
+      },
+      {
+        "world_index": 23,
+        "local_index": 7,
+        "source_offset": 202810,
+        "runtime_address": 206906,
+        "initial_service_byte": 3,
+        "service_id": 3
+      },
+      {
+        "world_index": 24,
+        "local_index": 8,
+        "source_offset": 203356,
+        "runtime_address": 207452,
+        "initial_service_byte": 0,
+        "service_id": 0
+      },
+      {
+        "world_index": 24,
+        "local_index": 8,
+        "source_offset": 204316,
+        "runtime_address": 208412,
+        "initial_service_byte": 1,
+        "service_id": 2
+      },
+      {
+        "world_index": 25,
+        "local_index": 9,
+        "source_offset": 203356,
+        "runtime_address": 207452,
+        "initial_service_byte": 0,
+        "service_id": 0
+      },
+      {
+        "world_index": 25,
+        "local_index": 9,
+        "source_offset": 204316,
+        "runtime_address": 208412,
+        "initial_service_byte": 1,
+        "service_id": 5
+      },
+      {
+        "world_index": 26,
+        "local_index": 10,
+        "source_offset": 203356,
+        "runtime_address": 207452,
+        "initial_service_byte": 0,
+        "service_id": 0
+      },
+      {
+        "world_index": 26,
+        "local_index": 10,
+        "source_offset": 204316,
+        "runtime_address": 208412,
+        "initial_service_byte": 1,
+        "service_id": 6
+      },
+      {
+        "world_index": 27,
+        "local_index": 11,
+        "source_offset": 203356,
+        "runtime_address": 207452,
+        "initial_service_byte": 0,
+        "service_id": 0
+      },
+      {
+        "world_index": 27,
+        "local_index": 11,
+        "source_offset": 204316,
+        "runtime_address": 208412,
+        "initial_service_byte": 1,
+        "service_id": 7
+      },
+      {
+        "world_index": 28,
+        "local_index": 12,
+        "source_offset": 203356,
+        "runtime_address": 207452,
+        "initial_service_byte": 0,
+        "service_id": 0
+      },
+      {
+        "world_index": 28,
+        "local_index": 12,
+        "source_offset": 204316,
+        "runtime_address": 208412,
+        "initial_service_byte": 1,
+        "service_id": 8
+      },
+      {
+        "world_index": 29,
+        "local_index": 13,
+        "source_offset": 203356,
+        "runtime_address": 207452,
+        "initial_service_byte": 0,
+        "service_id": 0
+      },
+      {
+        "world_index": 29,
+        "local_index": 13,
+        "source_offset": 204316,
+        "runtime_address": 208412,
+        "initial_service_byte": 1,
+        "service_id": 9
+      },
+      {
+        "world_index": 30,
+        "local_index": 14,
+        "source_offset": 203356,
+        "runtime_address": 207452,
+        "initial_service_byte": 0,
+        "service_id": 0
+      },
+      {
+        "world_index": 30,
+        "local_index": 14,
+        "source_offset": 204316,
+        "runtime_address": 208412,
+        "initial_service_byte": 1,
+        "service_id": 10
+      }
+    ],
+    "service_ids": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10
+    ],
+    "limits": [
+      "Original static interior placements only; no inventory-release or arbitrary-call guarantee.",
+      "The original pool clear initializes absent service bytes to zero.",
+      "Aliased source records can receive different service IDs in different worlds.",
+      "This derived domain does not prove every dynamic service selector is in bounds."
+    ]
+  },
+  "native_inheritance": {
+    "cause": "CustomStructMetadata accepted base_struct/base_offset, but native import dropped the relationship and direct field loops saw only derived declarations. Four known inherited world_z accesses became field gaps.",
+    "implementation": "Persist the prefix declaration in native policy; resolve scalar/partial, pointer, nested and static-field identity through one shared parent/field path. Root and parent owner names remain distinct; inherited expressions use parent symbols. No copied target fields or target addresses in native code.",
+    "admission": "Unknown/custom-to-platform parent, cycle, truncated parent, overlapping override, own-field extent, malformed object arrays, duplicate schema names and fractional/negative base_offset refuse. Forward custom parent declarations are supported.",
+    "not_claimed": [
+      "No automatic custom upcast at joins: differing custom types remain conservative.",
+      "No multiple inheritance, shifted embedded parent or overlapping override/alias contract.",
+      "Generated platform hierarchy is unchanged; compact aggregate macros retain inherited-schema refusal.",
+      "Native admission validates declarations, not that every target caller supplies that subtype."
+    ]
+  },
+  "before_after": {
+    "app_slot_ref_count": {
+      "before": 3374,
+      "after": 3374
+    },
+    "recovered_platform_typed_access_count": {
+      "before": 380,
+      "after": 390
+    },
+    "recovered_platform_unresolved_typed_access_count": {
+      "before": 303,
+      "after": 303
+    }
+  },
+  "inherited_world_z_accesses": [
+    {
+      "offset": 44312,
+      "operand_index": 0,
+      "base_register": "A2",
+      "displacement": 12,
+      "base_cursor": 0,
+      "field_offset": 12,
+      "struct_size": 68,
+      "field_size": 4,
+      "root_struct_name": "SG2TunnelDepot",
+      "owner_struct_name": "SG2WorldObject",
+      "field_name": "world_z",
+      "field_expr": "SG2WorldObject_world_z",
+      "inherited": 1,
+      "nested": 0,
+      "type_provenance_kind_id": 11,
+      "type_provenance_kind": "policy_seed",
+      "type_provenance_section": 0,
+      "type_provenance_offset": 44290,
+      "type_provenance_operand_index": 0
+    },
+    {
+      "offset": 44324,
+      "operand_index": 0,
+      "base_register": "A2",
+      "displacement": 12,
+      "base_cursor": 0,
+      "field_offset": 12,
+      "struct_size": 68,
+      "field_size": 4,
+      "root_struct_name": "SG2TunnelDepot",
+      "owner_struct_name": "SG2WorldObject",
+      "field_name": "world_z",
+      "field_expr": "SG2WorldObject_world_z",
+      "inherited": 1,
+      "nested": 0,
+      "type_provenance_kind_id": 11,
+      "type_provenance_kind": "policy_seed",
+      "type_provenance_section": 0,
+      "type_provenance_offset": 44290,
+      "type_provenance_operand_index": 0
+    },
+    {
+      "offset": 44358,
+      "operand_index": 0,
+      "base_register": "A2",
+      "displacement": 12,
+      "base_cursor": 0,
+      "field_offset": 12,
+      "struct_size": 68,
+      "field_size": 4,
+      "root_struct_name": "SG2TunnelDepot",
+      "owner_struct_name": "SG2WorldObject",
+      "field_name": "world_z",
+      "field_expr": "SG2WorldObject_world_z",
+      "inherited": 1,
+      "nested": 0,
+      "type_provenance_kind_id": 11,
+      "type_provenance_kind": "policy_seed",
+      "type_provenance_section": 0,
+      "type_provenance_offset": 44290,
+      "type_provenance_operand_index": 0
+    },
+    {
+      "offset": 44374,
+      "operand_index": 0,
+      "base_register": "A2",
+      "displacement": 12,
+      "base_cursor": 0,
+      "field_offset": 12,
+      "struct_size": 68,
+      "field_size": 4,
+      "root_struct_name": "SG2TunnelDepot",
+      "owner_struct_name": "SG2WorldObject",
+      "field_name": "world_z",
+      "field_expr": "SG2WorldObject_world_z",
+      "inherited": 1,
+      "nested": 0,
+      "type_provenance_kind_id": 11,
+      "type_provenance_kind": "policy_seed",
+      "type_provenance_section": 0,
+      "type_provenance_offset": 44290,
+      "type_provenance_operand_index": 0
+    }
+  ],
+  "generic_app_fields": {
+    "before": 36,
+    "after": 34
+  },
+  "classification": {
+    "unclassified_bytes": 13943,
+    "intervals": 263,
+    "accepted_code_bytes": 106034,
+    "unchanged": true,
+    "explanation": "The two referenced docking messages were already native-owned strings; this batch adds role names and subtype/instance contracts, not new code/data ownership."
+  },
+  "writer_search": {
+    "native_scope": "Current direct app accesses and emitted loop footprints; only reset writers for0796/07EC.",
+    "additional_decoder_scope": "Even occurrences of the two displacement WORDs in original and separately decoded protection input. Nearby exact instruction windows are decoded by the existing shared native evidence API, never promoted by appearance.",
+    "attempts": 710,
+    "candidates": 11,
+    "false_candidate": {
+      "runtime_address": 177676,
+      "disposition": "BSET-looking bytes are inside accepted sine-table structured data, not a discovered write or code path."
+    },
+    "result": "No additional direct A6 writer found in this bounded search. Computed cursors, other base contexts, alternate inputs and unobserved dynamic code are not closed.",
+    "candidate_sha256": "7b97d8f49430624ef00618342efb860b4a9487c409a89f3bd6fa6fbabf71aa2b"
+  },
+  "orphan_followup": {
+    "scope": "All even target positions within30 unresolved orphan spans, exact32-bit runtime/source-offset candidate words; correlate each hit with native rows.",
+    "matches": 11,
+    "result": "Known scalar/text/data targets, domain coincidences and cross-instruction words do not establish calls. Two raw JMP stubs lead to candidate islands but still lack an anchored original caller. No orphan/code promoted.",
+    "examples": [
+      {
+        "site": 96094,
+        "reason": "Two WORD scalar values, not a callable pointer."
+      },
+      {
+        "site": 46044,
+        "reason": "Existing pilot-rating text pointer; source-offset reinterpretation manufactured the apparent code target."
+      },
+      {
+        "site": 54700,
+        "reason": "LEA world_altitude_meter_divisors: a real data address, not a source-offset function pointer."
+      },
+      {
+        "site": 44892,
+        "reason": "Bytes straddle MOVE.B immediate and following instruction, not one pointer operand."
+      },
+      {
+        "site": 50430,
+        "reason": "Raw JMP toC57E has no established incoming original path."
+      },
+      {
+        "site": 46302,
+        "reason": "Raw JMP to3635E has no established incoming original path."
+      }
+    ]
+  },
+  "validation": {
+    "native_suite_passed": 832,
+    "native_suite_failures": 0,
+    "native_suite_log_sha256": "fff8db61cba9b314dd6c218d0c3ecae57f5ae4605daf1b040c84b1cc324378ae",
+    "python_unique_tests": 56,
+    "python_breakdown": {
+      "custom_prefix": 14,
+      "existing_custom_metadata": 6,
+      "world_map_constructor": 30,
+      "gap_inventory": 6
+    },
+    "python_logs": {
+      "sg2-inherited-tests.log": "8f91a2c1e444c79591ec433c7bedcd1cb1c587f6a6369dc0ddd805b037a2691d",
+      "sg2-inherited-existing-tests.log": "a1ac3d09f634e3ce7fccb57367fec30f6beb88804a37896f6f602cb591555ca5",
+      "sg2-depot-audit-tests.log": "f1065c68778db83f472be326cc73b2af86b772a6fc7c8fa013368c97ba387926"
+    },
+    "native_and_vasm": {
+      "kind": "verification",
+      "framework_exact": true,
+      "target_id": "amiga_raw_starglider2_game",
+      "subject_revision": "fd6de39a36ff9dd261ca6b3f83e7cecf24c00a9b549fd5ba87c94eceec35f0a8",
+      "status": "exact",
+      "exact": true,
+      "source_sha256": "590a508d77f70d7f963b0942bcfd7b2f1c16d6e0bc98c79866725ec387e6adb3",
+      "source_path": "/workspace/pandora-original-delivery/stable-d15c2cf8/.runtime-state/restoration/eb04f545fb97451725a1c91ab5abf6f2e097614c45880db6edfb4ea5c3f6e2c2/590a508d77f70d7f963b0942bcfd7b2f1c16d6e0bc98c79866725ec387e6adb3.s",
+      "source_package_sha256": null,
+      "original_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+      "original_size": 412736,
+      "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+      "rebuilt_path": "/workspace/pandora-original-delivery/stable-d15c2cf8/.runtime-state/restoration/eb04f545fb97451725a1c91ab5abf6f2e097614c45880db6edfb4ea5c3f6e2c2/662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9.bin",
+      "framework_status": "exact",
+      "failure_kinds": [],
+      "message": "",
+      "oracle": {
+        "oracle_id": "vasm",
+        "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+        "comparison_level": "oracle.full_file_match",
+        "assembler_status": "accepted",
+        "message": "oracle output matched original bytes"
+      },
+      "receipt_id": "3591c94c8822288f4d6c3712fd0416031d2ff8e311947e5d2c863e2ff28a7208",
+      "revision": "5564d0d4ad5375d6bb8be0837db3d4a7f4572f85c0f2acd031f2d0f6b32e7226"
+    },
+    "source_quality_diagnostics": 0,
+    "incomplete_analysis": [],
+    "assets_unchanged": 57,
+    "required_headers": 14,
+    "clean_standalone_build": {
+      "status": "pass",
+      "validated_target_git_tree": "3df24f470310d627df85afa9958bcd2170bf9115",
+      "receipt": {
+        "schema_version": 1,
+        "status": "pass",
+        "format": "raw_payload_not_AmigaDOS_HUNK",
+        "main_bytes": 412736,
+        "main_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+        "main_matches_original_identity": true,
+        "asset_count": 57,
+        "all_asset_source_slices_equal": true,
+        "decoded_view_inverse_exact": true,
+        "boot_copy_source_matches_resident_view": true,
+        "source_commit": "c8948067a5f966fd6497928b72414262d5eddcac",
+        "assembler_sha256": "413e284020125f42709486dfe09907cab3dd9f3c2ea41017c190f8ea68f30825",
+        "flags": [
+          "-Fbin",
+          "-m68000",
+          "-no-opt"
+        ],
+        "outputs": [
+          {
+            "role": "original_main",
+            "filename": "Starglider2-original.raw",
+            "bytes": 412736,
+            "sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9"
+          },
+          {
+            "role": "decoded_analysis_view",
+            "filename": "protection-decoded-analysis.raw",
+            "bytes": 3548,
+            "sha256": "de8358853dd9ed9b006a23569bf393aa217ed3be3301a169465d80bfaf839922"
+          },
+          {
+            "role": "boot_installer_context",
+            "filename": "boot-selector-installer-context.raw",
+            "bytes": 40,
+            "sha256": "8d34852425e2e1bfa87b3febdfc74fb39e7c667e9d9ff73e17b594649e83b21b"
+          },
+          {
+            "role": "boot_resident_view",
+            "filename": "boot-selector-resident.raw",
+            "bytes": 20,
+            "sha256": "a26286a393713c046eff9dbaff15b20b26b171fa9e05fc9d538d16b0eddb6024"
+          }
+        ]
+      },
+      "recoverable_pandora_backups_verified": 16
+    }
+  },
+  "limits": [
+    "20 world instances cover8 physical type94 placements; the aliased stream has world-dependent IDs. This is not gameplay reachability, inventory-release or arbitrary-call index safety.",
+    "Docking phase/control names are original reader roles. The known input resets are not evidence of nonzero activation in the current Amiga route, and phase units are not identified as time.",
+    "No new emulator route or audio/graphics equivalence evidence. Byte exactness is independent of semantic completeness.",
+    "34 generic app fields,303 unresolved typed accesses,30 unresolved orphan islands and13943 unclassified bytes remain. Their denominators are separate."
+  ],
+  "next": [
+    {
+      "group": "Persisted workspace/save transfer",
+      "evidence": "Load copies6073 LONGs from shared workspace into app6B4..6598; save transfers five5120-byte chunks from app6B4, with a larger trailing transfer extent. Pointer normalization adds/subtracts A6, while the first LONG pointee is unidentified.",
+      "experiment": "Reconcile the two-copy-cursor DBF footprint with native range facts and exact initialization/transfer extents. Add reusable span support only if a focused missing-mechanism case reproduces.",
+      "not_claimed": "No relocation/OS port, no live disk modification and no invented pointee name for6B4."
+    },
+    {
+      "group": "Docking activation",
+      "experiment": "Require an original writer/cursor alias or a bounded natural docking route before claiming nonzero activation or counter units.",
+      "reason": "The completed current-view/direct-displacement searches found resets only; raw data-shaped opcode matches were rejected using owners."
+    },
+    {
+      "group": "Orphan incoming paths",
+      "experiment": "Trace a concrete ordinary-input transfer or referenced indirect directory into the two unrooted stubs when such evidence arises.",
+      "reason": "A raw JMP-to-JMP chain or data-domain numeric coincidence does not supply a root; the finite raw cross-check is now completed."
+    }
+  ]
+}

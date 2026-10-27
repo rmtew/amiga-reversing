@@ -1732,7 +1732,7 @@ static int policy_add_rsset_use_site_binding_local(M68kAnalysisPolicy *policy, u
   const char *layout_name, const char *base_symbol, const char *base_evidence_id,
   const char *binding_id, const char *owner_action_id);
 static int policy_add_custom_struct_local(M68kAnalysisPolicy *policy, const char *name, uint32_t size,
-  const char *fields_start, const char *fields_end);
+  const char *fields_start, const char *fields_end, const char *base_struct, uint32_t base_offset);
 static int policy_add_target_equate_local(M68kAnalysisPolicy *policy, const char *name, int32_t value,
   uint8_t value_style_id, const char *value_expr);
 static int policy_add_manual_representation_local(M68kAnalysisPolicy *policy, uint32_t section_index,
@@ -3261,7 +3261,7 @@ static int append_metadata_function_summary_local(const char *object_start, cons
 }
 
 static int policy_add_custom_struct_local(M68kAnalysisPolicy *policy, const char *name, uint32_t size,
-    const char *fields_start, const char *fields_end) {
+    const char *fields_start, const char *fields_end, const char *base_struct, uint32_t base_offset) {
   M68kAnalysisCustomStruct *custom_struct;
   const char *cursor;
   uint16_t index;
@@ -3278,22 +3278,34 @@ static int policy_add_custom_struct_local(M68kAnalysisPolicy *policy, const char
   }
   if (policy->custom_struct_count >= policy->custom_struct_capacity) return 0;
   for (index = 0U; index < policy->custom_struct_count; ++index) {
-    if (strcmp(policy->custom_structs[index].name, name) == 0) return 1;
+    if (strcmp(policy->custom_structs[index].name, name) == 0) return 0;
   }
   custom_struct = &policy->custom_structs[policy->custom_struct_count++];
   memset(custom_struct, 0, sizeof(*custom_struct));
   custom_struct->size = size;
-  if (!copy_policy_text(custom_struct->name, sizeof(custom_struct->name), name)) return 0;
+  custom_struct->base_offset = base_offset;
+  if (!copy_policy_text(custom_struct->name, sizeof(custom_struct->name), name) ||
+      !copy_policy_text(custom_struct->base_struct, sizeof(custom_struct->base_struct), base_struct)) return 0;
   cursor = fields_start;
   while (cursor != NULL && cursor < fields_end) {
     const char *field_end;
+    cursor = json_skip_ws_local(cursor, fields_end);
+    if (cursor == fields_end) break;
+    if (*cursor != '{') return 0;
     const char *field_start = json_next_object_local(cursor, fields_end, &field_end);
-    if (field_start == NULL) break;
+    if (field_start != cursor) return 0;
     if (!append_custom_struct_field_local(custom_struct, field_start, field_end)) return 0;
-    cursor = field_end;
+    cursor = json_skip_ws_local(field_end, fields_end);
+    if (cursor < fields_end) {
+      if (*cursor != ',') return 0;
+      cursor = json_skip_ws_local(cursor + 1, fields_end);
+      if (cursor == fields_end) return 0;
+    }
   }
   return 1;
 }
+
+static int layout_required_u32_local(const char *start, const char *end, const char *key, uint32_t *out);
 
 static int append_metadata_custom_struct_local(const char *object_start, const char *object_end,
     M68kAnalysisPolicy *policy) {
@@ -3303,11 +3315,15 @@ static int append_metadata_custom_struct_local(const char *object_start, const c
   const char *cursor;
   int depth = 0;
   uint32_t size = 0U;
-  int has_size = 0;
+  uint32_t base_offset = 0U;
   char name[64];
+  char base_struct[64] = {0};
   name[0] = '\0';
   if (!json_optional_string_field_local(object_start, object_end, "name", name, sizeof(name)) ||
-      !json_number_field_local(object_start, object_end, "size", &size, &has_size)) {
+      !json_optional_string_field_local(object_start, object_end, "base_struct", base_struct, sizeof(base_struct)) ||
+      !layout_required_u32_local(object_start, object_end, "size", &size) ||
+      (json_find_key_local(object_start, object_end, "base_offset") &&
+       !layout_required_u32_local(object_start, object_end, "base_offset", &base_offset))) {
     return 0;
   }
   fields_value = json_find_key_local(object_start, object_end, "fields");
@@ -3324,9 +3340,9 @@ static int append_metadata_custom_struct_local(const char *object_start, const c
       }
     }
   }
-  if (name[0] == '\0' || !has_size || fields_start == NULL) return 0;
+  if (name[0] == '\0' || fields_start == NULL) return 0;
   if (fields_end == NULL) return 0;
-  return policy_add_custom_struct_local(policy, name, size, fields_start, fields_end);
+  return policy_add_custom_struct_local(policy, name, size, fields_start, fields_end, base_struct, base_offset);
 }
 
 static int policy_add_entry_point_local(M68kAnalysisPolicy *policy, uint32_t section_index, uint32_t offset) {
@@ -9385,13 +9401,28 @@ static int append_metadata_generic_policy_text_local(const char *text, M68kAnaly
   cursor = json_find_array_local(text, "custom_structs", &array_end);
   while (cursor != NULL && cursor < array_end) {
     const char *object_end;
-    const char *object_start = json_next_object_local(cursor, array_end, &object_end);
-    if (object_start == NULL) break;
+    cursor = json_skip_ws_local(cursor, array_end);
+    if (cursor == array_end) break;
+    const char *object_start = *cursor == '{' ? json_next_object_local(cursor, array_end, &object_end) : NULL;
+    if (object_start != cursor) {
+      platform_file_add_policy_parse_error_local(policy, diagnostics.list, "custom structs require object entries");
+      return -1;
+    }
     if (!append_metadata_custom_struct_local(object_start, object_end, policy)) {
       platform_file_add_policy_parse_error_local(policy, diagnostics.list, "failed parsing target metadata custom struct");
       return -1;
     }
-    cursor = object_end;
+    cursor = json_skip_ws_local(object_end, array_end);
+    if (cursor < array_end) {
+      if (*cursor != ',') return -1;
+      cursor = json_skip_ws_local(cursor + 1, array_end);
+      if (cursor == array_end) return -1;
+    }
+  }
+  if (!m68k_analysis_policy_custom_structs_valid(policy)) {
+    platform_file_add_policy_parse_error_local(policy, diagnostics.list,
+      "invalid custom prefix inheritance: unknown parent, cycle, overlap or extent");
+    return -1;
   }
   cursor = json_find_array_local(text, "manual_representations", &array_end);
   while (cursor != NULL && cursor < array_end) {
@@ -10791,7 +10822,10 @@ static int append_effective_analysis_policy_json_local(JsonBuilder *builder, con
     if (index != 0U && json_builder_append(builder, ",") != 0) return -1;
     if (json_builder_append(builder, "{\"name\":") != 0 ||
         json_builder_append_json_string(builder, custom_struct->name) != 0 ||
-        json_builder_appendf(builder, ",\"size\":%u,\"fields\":[", (unsigned)custom_struct->size) != 0)
+        json_builder_appendf(builder, ",\"size\":%u,\"base_offset\":%u,\"base_struct\":",
+          (unsigned)custom_struct->size, (unsigned)custom_struct->base_offset) != 0 ||
+        json_builder_append_json_string(builder, custom_struct->base_struct) != 0 ||
+        json_builder_append(builder, ",\"fields\":[") != 0)
       return -1;
     for (field_index = 0U; field_index < custom_struct->field_count &&
          field_index < M68K_ANALYSIS_CUSTOM_STRUCT_FIELD_LIMIT; ++field_index) {

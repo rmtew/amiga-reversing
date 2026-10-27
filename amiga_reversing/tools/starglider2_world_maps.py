@@ -33,6 +33,49 @@ def decode_map(payload: bytes, start: int, stride: int) -> dict[str, int]:
     raise ValueError('Missing placement terminator')
 
 
+def type94_service_byte(initial: int, world_index: int) -> int:
+    """Reviewed $1874C constructor, with D4 = world_index - 16.
+
+    This is target interpretation, not a general CPU emulator or an admission
+    rule for arbitrary callers. Preserve the original BYTE wrap, including
+    outputs outside the service array for hypothetical replacement maps.
+    """
+    if type(initial) is not int or not 0 <= initial <= 255:
+        raise ValueError('Expected an unsigned initial service BYTE')
+    if type(world_index) is not int or not 16 <= world_index <= 31:
+        raise ValueError('Expected an original interior world index')
+    local = world_index - 16
+    if initial == 0 or local in (3, 7):
+        return initial
+    return 2 if local == 8 else (local - 4) & 255
+
+
+def depot_service_domain(payload: bytes, maps: list[dict]) -> dict[str, object]:
+    """Keep each world instance of an aliased placement stream distinct."""
+    records = []
+    for mapping in maps:
+        if mapping['stride'] != 16:
+            continue
+        for world in mapping['indices']:
+            for index in range(mapping['count']):
+                offset = mapping['start'] - 0x1000 + 16 * index
+                tag = struct.unpack_from('>H', payload, offset)[0]
+                if tag & 255 != 94:
+                    continue
+                initial = tag >> 8
+                records.append(dict(world_index=world, local_index=world - 16,
+                    source_offset=offset, runtime_address=offset + 0x1000,
+                    initial_service_byte=initial,
+                    service_id=type94_service_byte(initial, world)))
+    return dict(model_type=94, initializer=0x1874C, object_byte_offset=0x26,
+        consumer=0xBD02, records=records,
+        service_ids=sorted({r['service_id'] for r in records}),
+        limits=['Original static interior placements only; no inventory-release or arbitrary-call guarantee.',
+                'The original pool clear initializes absent service bytes to zero.',
+                'Aliased source records can receive different service IDs in different worlds.',
+                'This derived domain does not prove every dynamic service selector is in bounds.'])
+
+
 def audit(payload: bytes) -> dict[str, object]:
     if len(payload) != 412736 or hashlib.sha256(payload).hexdigest() != IMAGE_SHA256:
         raise ValueError('Expected the reviewed Starglider 2 main-copy image')
@@ -62,6 +105,7 @@ def audit(payload: bytes) -> dict[str, object]:
         unique_maps=ordered, unique_placement_records=1139,
         map_bytes=sum(m['end']-m['start'] for m in ordered),
         max_original_map_records=max(m['count'] for m in ordered),
+        depot_services=depot_service_domain(payload, ordered),
         constructor=0x17D90, next_record=0x17E52, extended_record=0x17E94,
         limits=['World index must remain in the original 0..31 catalogue domain',
                 'Shared empty maps guarantee only a 2-byte tag, not a full record pointee',

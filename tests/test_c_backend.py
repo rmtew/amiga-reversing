@@ -1547,6 +1547,8 @@ class _M68kAnalysisCustomStruct(ctypes.Structure):
         ("field_count", ctypes.c_uint16),
         ("reserved", ctypes.c_uint16),
         ("fields", _M68kAnalysisCustomStructField * 32),
+        ("base_struct", ctypes.c_char * 64),
+        ("base_offset", ctypes.c_uint32),
     ]
 
 
