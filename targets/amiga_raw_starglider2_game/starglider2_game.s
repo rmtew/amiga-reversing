@@ -1012,11 +1012,24 @@ SG2Asteroid_SIZEOF EQU __RS
     RSRESET
     RS.B 32
 SG2FlyingActor_horizontal_motion_scale RS.W 1
-    RS.B 2
-SG2FlyingActor_update_phase_counter RS.W 1
+    RS.B 4
 SG2FlyingActor_proximity_maneuver_countdown RS.W 1
     RS.B 28
 SG2FlyingActor_SIZEOF EQU __RS
+
+; STRUCT SG2ScheduledActor
+    RSRESET
+    RS.B 36
+SG2ScheduledActor_behavior_update_counter RS.W 1
+    RS.B 30
+SG2ScheduledActor_SIZEOF EQU __RS
+
+; STRUCT SG2EvasiveActor
+    RSRESET
+    RS.B 38
+SG2EvasiveActor_proximity_evasion_countdown RS.W 1
+    RS.B 28
+SG2EvasiveActor_SIZEOF EQU __RS
 
 ADKF_CLRALL	EQU	$7FFF
 BPLCON2_PF2P2	EQU	$20
@@ -9195,7 +9208,7 @@ primary_object_update_offsets:
 	dc.w abs_0_00008F0E-primary_object_update_offsets
 	dc.w abs_0_00009FEE-primary_object_update_offsets
 	dc.w update_link_following_or_free_motion_object-primary_object_update_offsets
-	dc.w abs_0_00008BE8-primary_object_update_offsets
+	dc.w force_large_bird_base_frame_then_update-primary_object_update_offsets
 	dc.w abs_0_00009500-primary_object_update_offsets
 	dc.w abs_0_00009B4C-primary_object_update_offsets
 	dc.w abs_0_000094E6-primary_object_update_offsets
@@ -9215,7 +9228,7 @@ primary_object_update_offsets:
 	dc.w abs_0_000081D2-primary_object_update_offsets
 	dc.w abs_0_00009694-primary_object_update_offsets
 	dc.w abs_0_00009D88-primary_object_update_offsets
-	dc.w abs_0_00008BFC-primary_object_update_offsets
+	dc.w advance_starglider_frame_then_update-primary_object_update_offsets
 	dc.w update_shared_flying_actor-primary_object_update_offsets
 	dc.w update_mini_rocket_delay_then_fall-primary_object_update_offsets
 	dc.w abs_0_00008782-primary_object_update_offsets
@@ -9223,7 +9236,7 @@ primary_object_update_offsets:
 	dc.w update_shared_flying_actor-primary_object_update_offsets
 	dc.w update_shared_flying_actor-primary_object_update_offsets
 	dc.w abs_0_0000A400-primary_object_update_offsets
-	dc.w abs_0_00008BD4-primary_object_update_offsets
+	dc.w advance_egron_bird_fighter_frame_then_update-primary_object_update_offsets
 	dc.w abs_0_00008A4E-primary_object_update_offsets
 	dc.w abs_0_00008484-primary_object_update_offsets
 	dc.w abs_0_0000932E-primary_object_update_offsets
@@ -9414,45 +9427,45 @@ secondary_object_update_offsets:
 	dc.w abs_0_0000A888-secondary_object_update_offsets
 	dc.w abs_0_0000A8DC-secondary_object_update_offsets
 	dc.w abs_0_0000839C-secondary_object_update_offsets
-	dc.w abs_0_0000A694-secondary_object_update_offsets
+	dc.w update_secondary_actor_motion_and_counter-secondary_object_update_offsets
 	dc.w abs_0_0000A6C8-secondary_object_update_offsets
 	dc.w abs_0_0000A748-secondary_object_update_offsets
 	dc.w abs_0_0000A6C8-secondary_object_update_offsets
 	dc.w abs_0_0000A6C8-secondary_object_update_offsets
 	dc.w abs_0_0000A8CE-secondary_object_update_offsets
-	dc.w abs_0_0000A694-secondary_object_update_offsets
+	dc.w update_secondary_actor_motion_and_counter-secondary_object_update_offsets
 	dc.w abs_0_0000839C-secondary_object_update_offsets
 	dc.w abs_0_0000A748-secondary_object_update_offsets
-	dc.w abs_0_0000A694-secondary_object_update_offsets
+	dc.w update_secondary_actor_motion_and_counter-secondary_object_update_offsets
 	dc.w abs_0_0000839C-secondary_object_update_offsets
-	dc.w abs_0_0000A694-secondary_object_update_offsets
+	dc.w update_secondary_actor_motion_and_counter-secondary_object_update_offsets
 	dc.w abs_0_0000839C-secondary_object_update_offsets
 	dc.w abs_0_0000839C-secondary_object_update_offsets
-	dc.w abs_0_0000A694-secondary_object_update_offsets
+	dc.w update_secondary_actor_motion_and_counter-secondary_object_update_offsets
 	dc.w abs_0_0000A634-secondary_object_update_offsets
 	dc.w abs_0_0000839C-secondary_object_update_offsets
 	dc.w abs_0_0000839C-secondary_object_update_offsets
 	dc.w abs_0_0000A8CE-secondary_object_update_offsets
 	dc.w abs_0_0000A6C8-secondary_object_update_offsets
-	dc.w abs_0_0000A694-secondary_object_update_offsets
-	dc.w abs_0_0000A694-secondary_object_update_offsets
-	dc.w abs_0_0000A694-secondary_object_update_offsets
+	dc.w update_secondary_actor_motion_and_counter-secondary_object_update_offsets
+	dc.w update_secondary_actor_motion_and_counter-secondary_object_update_offsets
+	dc.w update_secondary_actor_motion_and_counter-secondary_object_update_offsets
 	dc.w abs_0_0000839C-secondary_object_update_offsets
-	dc.w abs_0_0000A694-secondary_object_update_offsets
-	dc.w abs_0_0000A694-secondary_object_update_offsets
-	dc.w abs_0_0000A694-secondary_object_update_offsets
+	dc.w update_secondary_actor_motion_and_counter-secondary_object_update_offsets
+	dc.w update_secondary_actor_motion_and_counter-secondary_object_update_offsets
+	dc.w update_secondary_actor_motion_and_counter-secondary_object_update_offsets
 	dc.w abs_0_0000A7B4-secondary_object_update_offsets
-	dc.w abs_0_0000A694-secondary_object_update_offsets
+	dc.w update_secondary_actor_motion_and_counter-secondary_object_update_offsets
 	dc.w abs_0_0000A6C8-secondary_object_update_offsets
 	dc.w abs_0_00008490-secondary_object_update_offsets
 	dc.w abs_0_0000839C-secondary_object_update_offsets
 	dc.w abs_0_0000A748-secondary_object_update_offsets
 	dc.w abs_0_0000839C-secondary_object_update_offsets
-	dc.w abs_0_0000A694-secondary_object_update_offsets
+	dc.w update_secondary_actor_motion_and_counter-secondary_object_update_offsets
 	dc.w abs_0_0000839C-secondary_object_update_offsets
 	dc.w abs_0_00008422-secondary_object_update_offsets
 	dc.w abs_0_0000A634-secondary_object_update_offsets
-	dc.w abs_0_0000A694-secondary_object_update_offsets
+	dc.w update_secondary_actor_motion_and_counter-secondary_object_update_offsets
 	dc.w abs_0_0000AA24-secondary_object_update_offsets
 	dc.w abs_0_000084B4-secondary_object_update_offsets
 	dc.w abs_0_0000839C-secondary_object_update_offsets
@@ -10167,49 +10180,55 @@ advance_large_transport_frame_then_update:
 	bne.w update_shared_flying_actor
 	move.b #$0,SG2WorldObject_vertex_variant_selector(a0)
 	bra.w update_shared_flying_actor
-abs_0_00008BD4:
-	addq.b #1,$0003(a0)
-	cmpi.b #23,$0003(a0)
+    ; KNOWN: type A0=Target code-entry register seed:SG2EvasiveActor
+advance_egron_bird_fighter_frame_then_update:
+	addq.b #1,SG2WorldObject_vertex_variant_selector(a0)
+	cmpi.b #23,SG2WorldObject_vertex_variant_selector(a0)
 	bmi.b abs_0_00008BE4
-	clr.b $0003(a0)
+	clr.b SG2WorldObject_vertex_variant_selector(a0)
 abs_0_00008BE4:
-	bra.w abs_0_00008C12
-abs_0_00008BE8:
-	addq.b #1,$0003(a0)
-	cmpi.b #24,$0003(a0)
+	bra.w update_shared_evasive_actor
+    ; Large Bird primary clears its BYTE selector on both paths after increment. Output is base frame 0 despite 24 stored alternatives; preserve behavior without repair or dead-asset claims.
+    ; KNOWN: type A0=Target code-entry register seed:SG2EvasiveActor
+force_large_bird_base_frame_then_update:
+	addq.b #1,SG2WorldObject_vertex_variant_selector(a0)
+	cmpi.b #24,SG2WorldObject_vertex_variant_selector(a0)
 	bmi.b abs_0_00008BF8
-	clr.b $0003(a0)
+	clr.b SG2WorldObject_vertex_variant_selector(a0)
 abs_0_00008BF8:
-	bra.w abs_0_00008C12
+	bra.w update_shared_evasive_actor
     ; Selected control-state path: worldY<=first signed threshold increases Y velocity; worldY>=second decreases it. Tables are not universal ordered min/max bounds.
-abs_0_00008BFC:
-	addq.b #1,$0003(a0)
-	move.b $0003(a0),d0
+    ; KNOWN: type A0=Target code-entry register seed:SG2EvasiveActor
+advance_starglider_frame_then_update:
+	addq.b #1,SG2WorldObject_vertex_variant_selector(a0)
+	move.b SG2WorldObject_vertex_variant_selector(a0),d0
 	cmp.b #$28,d0
-	bne.w abs_0_00008C12
-	move.b #$0,$0003(a0)
-abs_0_00008C12:
-	move.w $002C(a0),d3
+	bne.w update_shared_evasive_actor
+	move.b #$0,SG2WorldObject_vertex_variant_selector(a0)
+    ; KNOWN: type A0=Target code-entry register seed:SG2EvasiveActor
+update_shared_evasive_actor:
+	move.w SG2WorldObject_velocity_x(a0),d3
 	ext.l d3
-	add.l d3,$0004(a0)
-	move.w $002E(a0),d3
+	add.l d3,SG2ObjectCore_world_x(a0)
+	move.w SG2WorldObject_velocity_y(a0),d3
 	ext.l d3
-	add.l d3,$0008(a0)
-	move.w $0030(a0),d3
+	add.l d3,SG2ObjectCore_world_y(a0)
+	move.w SG2WorldObject_velocity_z(a0),d3
 	ext.l d3
-	add.l d3,$000C(a0)
+	add.l d3,SG2ObjectCore_world_z(a0)
 	move.l horizontal_world_wrap_mask(a6),d3
-	and.l d3,$0004(a0)
-	and.l d3,$000C(a0)
+	and.l d3,SG2ObjectCore_world_x(a0)
+	and.l d3,SG2ObjectCore_world_z(a0)
 	movea.l player_object_reference(a6),a4
-	cmpi.b #2,$001C(a0)
-	bls.w abs_0_00008D50
+    ; KNOWN: type A4=Target code-entry register seed:SG2WorldObject
+	cmpi.b #2,SG2ObjectCore_durability_or_negative(a0)
+	bls.w retire_low_durability_evasive_actor
 	lea.l object_ai_y_increase_thresholds.l,a1
-	move.w (a0),d3
+	move.w (a0),d3	; operand 1: SG2ObjectCore_object_type at (a0)
 	add.w d3,d3
 	move.w $0(a1,d3.w),d2
 	ext.l d2
-	move.l $0008(a0),d4
+	move.l SG2ObjectCore_world_y(a0),d4
 	cmp.l d2,d4
 	ble.w increase_object_y_velocity_continuation
 	lea.l object_ai_y_decrease_thresholds.l,a1
@@ -10227,11 +10246,11 @@ abs_0_00008C8A:
 	cmp.l #$28,d4
 	bge.w abs_0_00008DAC
 abs_0_00008C94:
-	clr.w $002E(a0)
-	clr.w $0010(a0)
+	clr.w SG2WorldObject_velocity_y(a0)
+	clr.w SG2WorldObject_rotation_0(a0)
 abs_0_00008C9C:
 	move.b #$98,diagnostic_step_byte.l
-	move.w $0014(a0),d0
+	move.w SG2WorldObject_rotation_2(a0),d0
 	andi.w #4095,d0
 	beq.b abs_0_00008CDC
 	cmp.w #$401,d0
@@ -10242,86 +10261,87 @@ abs_0_00008C9C:
 	clr.w d0
 abs_0_00008CC0:
 	move.b #$99,diagnostic_step_byte.l
-	move.w d0,$0014(a0)
-	bra.b abs_0_00008CE8
+	move.w d0,SG2WorldObject_rotation_2(a0)
+	bra.b update_proximity_evasion_countdown
 abs_0_00008CCE:
 	addi.w #15,d0
 	andi.w #4095,d0
-	move.w d0,$0014(a0)
-	bne.b abs_0_00008CE8
+	move.w d0,SG2WorldObject_rotation_2(a0)
+	bne.b update_proximity_evasion_countdown
 abs_0_00008CDC:
 	move.b #$9A,diagnostic_step_byte.l
-	addq.w #1,$0014(a0)
-abs_0_00008CE8:
+	addq.w #1,SG2WorldObject_rotation_2(a0)
+    ; Nonzero evasion countdown decrements; if still nonzero, steer at player heading +2000, not exact +2048 reverse. Zero tests cached X/Z separation against 1500 and may reload 65.
+update_proximity_evasion_countdown:
 	move.b #$9B,diagnostic_step_byte.l
-	tst.w $0026(a0)
+	tst.w SG2EvasiveActor_proximity_evasion_countdown(a0)
 	beq.b abs_0_00008CFE
-	subq.w #1,$0026(a0)
-	bne.w abs_0_00008D6A
+	subq.w #1,SG2EvasiveActor_proximity_evasion_countdown(a0)
+	bne.w steer_near_opposite_player_heading
 abs_0_00008CFE:
 	move.b #$9C,diagnostic_step_byte.l
-	move.w $0032(a0),d2
-	sub.w $0032(a4),d2
+	move.w SG2WorldObject_pre_view_relative_x(a0),d2
+	sub.w SG2WorldObject_pre_view_relative_x(a4),d2
 	bpl.b abs_0_00008D12
 	neg.w d2
 abs_0_00008D12:
 	move.b #$9D,diagnostic_step_byte.l
 	cmp.w #$5DC,d2
 	bgt.w abs_0_0000ACFC
-	move.w $0036(a0),d2
-	sub.w $0036(a4),d2
+	move.w SG2WorldObject_pre_view_relative_z(a0),d2
+	sub.w SG2WorldObject_pre_view_relative_z(a4),d2
 	bpl.b abs_0_00008D2E
 	neg.w d2
 abs_0_00008D2E:
 	move.b #$9E,diagnostic_step_byte.l
 	cmp.w #$5DC,d2
 	bgt.w abs_0_0000ACFC
-	move.w #$41,$0026(a0)
+	move.w #$41,SG2EvasiveActor_proximity_evasion_countdown(a0)
 	move.b #$9F,diagnostic_step_byte.l
 	bra.w abs_0_0000ACFC
-abs_0_00008D50:
-	cmpi.l #4294967271,$0008(a0)
+retire_low_durability_evasive_actor:
+	cmpi.l #4294967271,SG2ObjectCore_world_y(a0)
 	bge.b abs_0_00008D62
-	addi.l #10,$0008(a0)
+	addi.l #10,SG2ObjectCore_world_y(a0)
 abs_0_00008D62:
-	clr.b $001E(a0)
+	clr.b SG2ObjectCore_retirement_phase_or_negative(a0)
 	bra.w abs_0_000081D2
-abs_0_00008D6A:
+steer_near_opposite_player_heading:
 	bsr.w heading_with_player_as_reference
 	addi.w #2000,d1
 	bra.w abs_0_0000AD00
 increase_object_y_velocity_continuation:
-	addq.w #1,$002E(a0)
-	cmpi.w #10,$002E(a0)
+	addq.w #1,SG2WorldObject_velocity_y(a0)
+	cmpi.w #10,SG2WorldObject_velocity_y(a0)
 	ble.b abs_0_00008D8C
-	move.w #$A,$002E(a0)
+	move.w #$A,SG2WorldObject_velocity_y(a0)
 abs_0_00008D88:
 	bra.w abs_0_00008C9C
 abs_0_00008D8C:
 	bra.w abs_0_00008C9C
 decrease_object_y_velocity_continuation:
-	subq.w #1,$002E(a0)
-	cmpi.w #65526,$002E(a0)
+	subq.w #1,SG2WorldObject_velocity_y(a0)
+	cmpi.w #65526,SG2WorldObject_velocity_y(a0)
 	bge.w abs_0_00008DA8
-	move.w #$FFF6,$002E(a0)
+	move.w #$FFF6,SG2WorldObject_velocity_y(a0)
 abs_0_00008DA4:
 	bra.w abs_0_00008C9C
 abs_0_00008DA8:
 	bra.w abs_0_00008C9C
 abs_0_00008DAC:
-	addq.w #1,$002E(a0)
-	cmpi.w #5,$002E(a0)
+	addq.w #1,SG2WorldObject_velocity_y(a0)
+	cmpi.w #5,SG2WorldObject_velocity_y(a0)
 	ble.b abs_0_00008DC2
-	move.w #$4,$002E(a0)
+	move.w #$4,SG2WorldObject_velocity_y(a0)
 abs_0_00008DBE:
 	bra.w abs_0_00008C9C
 abs_0_00008DC2:
 	bra.w abs_0_00008C9C
 abs_0_00008DC6:
-	subq.w #1,$002E(a0)
-	cmpi.w #65531,$002E(a0)
+	subq.w #1,SG2WorldObject_velocity_y(a0)
+	cmpi.w #65531,SG2WorldObject_velocity_y(a0)
 	bge.w abs_0_00008DDE
-	move.w #$FFFC,$002E(a0)
+	move.w #$FFFC,SG2WorldObject_velocity_y(a0)
 abs_0_00008DDA:
 	bra.w abs_0_00008C9C
 abs_0_00008DDE:
@@ -10466,7 +10486,7 @@ abs_0_00008FAC:
     ; KNOWN: type A0=Target code-entry register seed:SG2FlyingActor
 update_shared_flying_actor:
 	move.b #$14,diagnostic_step_byte.l
-	subq.w #1,SG2FlyingActor_update_phase_counter(a0)
+	subq.w #1,SG2ScheduledActor_behavior_update_counter(a0)
 	move.w SG2WorldObject_velocity_x(a0),d3
 	ext.l d3
 	add.l d3,SG2ObjectCore_world_x(a0)
@@ -10533,7 +10553,7 @@ abs_0_000090E2:
 schedule_flying_actor_phase_actions:
 	move.b #$82,diagnostic_step_byte.l
 	movea.l player_object_reference(a6),a4
-	move.w SG2FlyingActor_update_phase_counter(a0),d0
+	move.w SG2ScheduledActor_behavior_update_counter(a0),d0
 	andi.w #511,d0
 	beq.w try_transport_or_buzz_bomber_type2_spawn
 	andi.w #255,d0
@@ -12024,18 +12044,20 @@ abs_0_0000A634:
 	dc.b $4E,$75,$20,$28,$00,$04,$22,$28,$00,$08,$24,$28,$00,$0C,$90,$AE
 	dc.b $07,$04,$92,$AE,$07,$08,$94,$AE,$07,$0C,$EE,$A0,$EE,$A1,$EE,$A2
 	dc.b $4E,$75
-abs_0_0000A694:
+    ; Fourteen-type secondary body decrements WORD24 and schedules work on low-six-bit zero. Type29 also uses it as a primary drop delay; other object variants keep distinct meanings.
+    ; KNOWN: type A0=Target code-entry register seed:SG2ScheduledActor
+update_secondary_actor_motion_and_counter:
 	move.b #$44,diagnostic_step_byte.l
 	lea.l object_ai_y_increase_thresholds.l,a1
-	move.w (a0),d3
+	move.w (a0),d3	; operand 1: SG2ObjectCore_object_type at (a0)
 	add.w d3,d3
 	move.w $0(a1,d3.w),d3
 	ext.l d3
-	move.l $0008(a0),d4
+	move.l SG2ObjectCore_world_y(a0),d4
 	cmp.l d3,d4
 	ble.b abs_0_0000A718
 	lea.l object_ai_y_decrease_thresholds.l,a1
-	move.w (a0),d3
+	move.w (a0),d3	; operand 1: SG2ObjectCore_object_type at (a0)
 	add.w d3,d3
 	move.w $0(a1,d3.w),d3
 	ext.l d3
@@ -12061,10 +12083,10 @@ abs_0_0000A6C8:
 	beq.w abs_0_0000AC2C
 	bra.w abs_0_0000839C
 abs_0_0000A70E:
-	move.w #$FFFB,$002E(a0)
+	move.w #$FFFB,SG2WorldObject_velocity_y(a0)
 	bra.w abs_0_0000A6C8
 abs_0_0000A718:
-	move.w #$5,$002E(a0)
+	move.w #$5,SG2WorldObject_velocity_y(a0)
 	bra.w abs_0_0000A6C8
 	dc.b $26,$3C,$00,$08,$00,$00,$28,$28,$00,$08,$B8,$83,$6F,$E8,$43,$F9
 	dc.b $00,$01,$7B,$5E,$36,$10,$D6,$43,$36,$31,$30,$00,$48,$C3,$B8,$83
@@ -26479,7 +26501,7 @@ model_007_vertices:
 	dc.w $000C	; z_coordinate_ref
 	dc.w $0028	; variant_offset_or_negative
 model_007_variant_words:
-	dc.w $801E,$0020,$8016,$0000,$8018,$8022,$0014,$0000	; 24 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with unin...
+	dc.w $801E,$0020,$8016,$0000,$8018,$8022,$0014,$0000	; Large Bird:24 stored alternate vertex pointers. Primary wrapper clears selector on both paths...
 	dc.w $001E,$0020,$8016,$0000,$0018,$8022,$0014,$0000
 	dc.w $8024,$0026,$000C,$0000,$0024,$0026,$000C,$0000
 	dc.w $8028,$002A,$8016,$0000,$802C,$802E,$0014,$0000
@@ -26552,7 +26574,7 @@ model_007_variant_words:
 	dc.w $001E,$8020,$8016,$0000,$0018,$8096,$0014,$0000
 	dc.w $8024,$8026,$000C,$0000,$0024,$8026,$000C,$0000
 model_007_variant_frames:
-	dc.l model_007_variant_words	; 24 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with unin...
+	dc.l model_007_variant_words	; Large Bird:24 stored alternate vertex pointers. Primary wrapper clears selector on both paths...
 	dc.l model_007_variant_words+$30
 	dc.l model_007_variant_words+$60
 	dc.l model_007_variant_words+$90
@@ -28928,7 +28950,7 @@ model_027_vertices:
 	dc.w $001E	; z_coordinate_ref
 	dc.w $0038	; variant_offset_or_negative
 model_027_variant_words:
-	dc.w $8020,$8022,$0000,$0000,$0020,$8022,$0000,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with unin...
+	dc.w $8020,$8022,$0000,$0000,$0020,$8022,$0000,$0000	; Starglider:39 alternate vertex pointers. Primary equality40 reset cycles selector0..39 only f...
 	dc.w $8020,$8022,$0018,$0000,$0020,$8022,$0018,$0000
 	dc.w $8024,$8026,$0018,$0000,$0024,$8026,$0018,$0000
 	dc.w $8024,$8026,$001E,$0000,$0024,$8026,$001E,$0000
@@ -29085,7 +29107,7 @@ model_027_variant_words:
 	dc.w $801A,$801C,$0018,$0000,$001A,$801C,$0018,$0000
 	dc.w $801A,$801C,$001E,$0000,$001A,$801C,$001E,$0000
 model_027_variant_frames:
-	dc.l model_027_variant_words	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with unin...
+	dc.l model_027_variant_words	; Starglider:39 alternate vertex pointers. Primary equality40 reset cycles selector0..39 only f...
 	dc.l model_027_variant_words+$40
 	dc.l model_027_variant_words+$80
 	dc.l model_027_variant_words+$C0
@@ -29883,7 +29905,7 @@ model_035_vertices:
 	dc.w $001A	; z_coordinate_ref
 	dc.w $0028	; variant_offset_or_negative
 model_035_variant_words:
-	dc.w $801C,$801E,$0020,$0000,$8022,$8024,$0026,$0000	; 23 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with unin...
+	dc.w $801C,$801E,$0020,$0000,$8022,$8024,$0026,$0000	; Egron Bird Fighter:23 stored alternate pointers. Primary wrapper cycles0..22 under valid inco...
 	dc.w $801C,$801E,$0028,$0000,$001C,$801E,$0020,$0000
 	dc.w $0022,$8024,$0026,$0000,$001C,$801E,$0028,$0000
 	dc.w $802A,$8016,$002C,$0000,$802E,$8030,$0032,$0000
@@ -29953,7 +29975,7 @@ model_035_variant_words:
 	dc.w $801C,$801E,$0028,$0000,$0010,$800C,$0012,$0000
 	dc.w $0058,$805A,$005C,$0000,$001C,$801E,$0028,$0000
 model_035_variant_frames:
-	dc.l model_035_variant_words	; 23 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with unin...
+	dc.l model_035_variant_words	; Egron Bird Fighter:23 stored alternate pointers. Primary wrapper cycles0..22 under valid inco...
 	dc.l model_035_variant_words+$30
 	dc.l model_035_variant_words+$60
 	dc.l model_035_variant_words+$90

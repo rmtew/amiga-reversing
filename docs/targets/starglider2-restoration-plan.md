@@ -21,9 +21,26 @@ The [current systematic gap inventory](../../runtime/observations/starglider2-so
 joins native identities/accesses with canonical layouts and actual rendered
 boundaries. It records 67 suffix signals (including numeric adjacent variants),
 21 lookup contracts, 523 remaining interior references, 32 generic app fields
-and 423 unresolved record accesses. These are different denominators. Five
+and 428 unresolved record accesses. These are different denominators. Five
 suffixes name routines and one names text; neither is a pointer defect.
-Latest: the [back-link and chain-constructor reconstruction](../../runtime/observations/starglider2-chain-links-state.json)
+Latest: the [evasive-actor and secondary-counter reconstruction](../../runtime/observations/starglider2-evasive-actor-state.json)
+connects Large Bird, Egron Bird Fighter and Starglider primary wrappers to their
+shared steering body and fourteen original types to the secondary counter body.
+A common ScheduledActor parent now owns the behavior counter; FlyingActor and
+EvasiveActor retain distinct proximity-countdown roles. Type29 also uses the
+counter as a primary drop delay. Large Bird's primary clears its selector on
+both paths despite 24 stored alternatives; this is preserved, not repaired.
+Starglider uses base plus 39 alternatives under its valid domain; Egron Bird's
+wrapper produces 0..22 despite 23 stored alternate pointers. Other consumers
+remain possible and all stored bytes stay. **5 counter-field sites**
+project, with **1148 typed /
+428 unresolved** overall;
+**53 new / 0 lost** typed coordinates. Accepted owner spans,
+C/vasm and clean standalone output remain exact. Original unsigned durability,
+heading +2000, invocation cadence and conditional input provenance stay explicit.
+Continue concrete target-selection/spawn and generic app-field consumers.
+
+Preceding: the [back-link and chain-constructor reconstruction](../../runtime/observations/starglider2-chain-links-state.json)
 connects WorldObject LONG38 to the original backward/previous chain role and
 LONG3C to corresponding forward stores. Both remain LONGs with explicit
 sentinel/save-state limits. Space Tug and Tug Truck constructors expose ordered

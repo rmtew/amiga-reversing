@@ -1,0 +1,481 @@
+{
+  "schema_version": 1,
+  "kind": "evasive_actor_and_shared_secondary_counter_contracts",
+  "status": "qualified_connected_restoration_batch_continues",
+  "publication_base_commit": "4e7d0752ee657f7008f99220f33750ab6b044b46",
+  "inputs": {
+    "binary_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "backend_sha256": "d09dbb0f72ef82803519d9eb8656bced793da2ecae6c147e442b3fcde0fbdfd3",
+    "analysis_sha256": "65b5e29968bfbf9b68e95f520d852db38d0f19331ffb8f725544bb0cfe899422",
+    "effective_metadata_sha256": "33e165818bf54a06a500e1845afb9566ac56706b3e39f05d89c3bddc8390b02e",
+    "consumer_evidence_sha256": "8bf424c66cc1fa10fc976027f5342423043bde2530db6fbe88971142087e7619",
+    "caller_model_evidence_sha256": "9f9e0b92330b897f31734f68d1739da257a9ff5ec61f3b73634263f6ec49e0d7"
+  },
+  "canonical_action_count": 23,
+  "interpretation": "Original primary dispatch7 Large Bird,27 Starglider,35 Egron Bird Fighter enters wrappers8BE8/8BFC/8BD4 then shared8C12 without changing A0. Original secondary dispatch routes those and eleven other model types toA694: seven/13/16/18/21/27/28/29/31/32/33/35/41/45. All original14 entries are enumerated from the canonical148-WORD table; this is a conditional original type domain, not arbitrary index safety. A694 decrements WORD24 and uses low6 bits to schedule conditional original AI work; type29 primary also uses that word as a drop delay. Factor a ScheduledActor parent with behavior_update_counter24; FlyingActor derives from it and keeps its own20/26 fields, while new EvasiveActor adds only proximity_evasion_countdown26. This is an operation/caller-backed view, not a claim all WorldObjects use24 as a counter. Evasive primary performs no24 decrement. It uses original unsigned durability<=2 gate, unlike9010 signed gate; signed per-type Y thresholds accelerate/clamp vertical speed, then angle2 normalization and26 countdown govern heading. Nonzero countdown decrements; while still nonzero it computes player heading+2000 (not2048 exact reverse). At zero, absolute WORD cached X/Z separation<=1500 reloads65 before ordinary approach. Keep WORD wrap/ABS corner cases and invocation cadence, not seconds. Explicit player A4 WorldObject input after8C3C follows original player-type30 initializer; no universal record-pointer validity/lifetime proof. Geometry headers hold24/39/23 alternate pointers for types7/27/35. Large Bird8BE8 increments then clears selector on BOTH paths: primary wrapper outputs0 regardless incoming BYTE, despite stored alternatives. Preserve this literal behavior, not a guessed bug repair or unused-assets claim. Starglider equality40 reset cycles0..39 only under input0..39. Egron Bird signed-N branch at23 gives0..22 under valid input0..22; stored23rd alternate is not produced by that wrapper in that domain, but viewer/other writers may reach it. Preserve full geometry, unknown vertex WORD+6 and source byte layout. Explicit body/wrapper/secondary input contracts remain manual evidence-backed facts, not automatic all-incoming closure; no new runtime path or relocation.",
+  "original_domains": {
+    "models": [
+      {
+        "type": 7,
+        "name": "Large Bird",
+        "header_runtime": 101300,
+        "variant_table_runtime": 117756,
+        "stored_alternate_count": 24,
+        "pointers": [
+          116604,
+          116652,
+          116700,
+          116748,
+          116796,
+          116844,
+          116892,
+          116940,
+          116988,
+          117036,
+          117084,
+          117132,
+          117180,
+          117228,
+          117276,
+          117324,
+          117372,
+          117420,
+          117468,
+          117516,
+          117564,
+          117612,
+          117660,
+          117708
+        ],
+        "wrapper_runtime": 35816,
+        "wrapper_output_selector_domain": [
+          0,
+          0
+        ]
+      },
+      {
+        "type": 27,
+        "name": "Starglider",
+        "header_runtime": 101840,
+        "variant_table_runtime": 137048,
+        "stored_alternate_count": 39,
+        "pointers": [
+          134552,
+          134616,
+          134680,
+          134744,
+          134808,
+          134872,
+          134936,
+          135000,
+          135064,
+          135128,
+          135192,
+          135256,
+          135320,
+          135384,
+          135448,
+          135512,
+          135576,
+          135640,
+          135704,
+          135768,
+          135832,
+          135896,
+          135960,
+          136024,
+          136088,
+          136152,
+          136216,
+          136280,
+          136344,
+          136408,
+          136472,
+          136536,
+          136600,
+          136664,
+          136728,
+          136792,
+          136856,
+          136920,
+          136984
+        ],
+        "wrapper_runtime": 35836,
+        "wrapper_output_selector_domain": [
+          0,
+          39
+        ]
+      },
+      {
+        "type": 35,
+        "name": "Egron Bird Fighter",
+        "header_runtime": 102064,
+        "variant_table_runtime": 141466,
+        "stored_alternate_count": 23,
+        "pointers": [
+          140362,
+          140410,
+          140458,
+          140506,
+          140554,
+          140602,
+          140650,
+          140698,
+          140746,
+          140794,
+          140842,
+          140890,
+          140938,
+          140986,
+          141034,
+          141082,
+          141130,
+          141178,
+          141226,
+          141274,
+          141322,
+          141370,
+          141418
+        ],
+        "wrapper_runtime": 35796,
+        "wrapper_output_selector_domain": [
+          0,
+          22
+        ]
+      }
+    ],
+    "secondary_types": [
+      {
+        "type": 7,
+        "name": "Large Bird"
+      },
+      {
+        "type": 13,
+        "name": "Armed Transport"
+      },
+      {
+        "type": 16,
+        "name": "Small Fighter"
+      },
+      {
+        "type": 18,
+        "name": "Large Egron Transport"
+      },
+      {
+        "type": 21,
+        "name": "Vampire Type Fighter"
+      },
+      {
+        "type": 27,
+        "name": "Starglider"
+      },
+      {
+        "type": 28,
+        "name": "Egron Square Rocket"
+      },
+      {
+        "type": 29,
+        "name": "Egron Mini Rocket"
+      },
+      {
+        "type": 31,
+        "name": "Space Fighter"
+      },
+      {
+        "type": 32,
+        "name": "Personnel Shuttle"
+      },
+      {
+        "type": 33,
+        "name": "Egron Buzz Bomber"
+      },
+      {
+        "type": 35,
+        "name": "Egron Bird Fighter"
+      },
+      {
+        "type": 41,
+        "name": "Space Ray"
+      },
+      {
+        "type": 45,
+        "name": "Fighter Escort"
+      }
+    ]
+  },
+  "hierarchy": {
+    "counter_parent": "SG2ScheduledActor",
+    "counter_parent_base": "SG2WorldObject",
+    "field": {
+      "name": "behavior_update_counter",
+      "offset": 36,
+      "size": 2,
+      "type": "UWORD"
+    },
+    "flying_child": "SG2FlyingActor",
+    "flying_child_own_fields": [
+      "horizontal_motion_scale",
+      "proximity_maneuver_countdown"
+    ],
+    "evasive_child": "SG2EvasiveActor",
+    "evasive_child_field": {
+      "name": "proximity_evasion_countdown",
+      "offset": 38,
+      "size": 2,
+      "type": "UWORD"
+    },
+    "scope": "Fourteen original secondary-dispatch types share a counter-consumer view. Type29 also uses it as primary drop delay. Not a universal WorldObject24 declaration; Asteroid/Mini-Sentinel and high/radial meanings remain separate."
+  },
+  "evasion": {
+    "body": 35858,
+    "types": [
+      7,
+      27,
+      35
+    ],
+    "durability_gate": "Unsigned BYTE<=2, unlike signed9010 comparison. Original signed storage declaration does not replace consumer branch semantics.",
+    "countdown": "If nonzero, decrement; if still nonzero choose player heading+2000. This is not exact2048 reverse or measured seconds.",
+    "proximity": "At zero, original absolute WORD pre-view X/Z differences<=1500 reload65 then enter approach. Retain wrapping/ABS corner cases and current invocation ordering.",
+    "player_contract": "Original type30 constructor establishes player object. Explicit A4 WorldObject at8C40 follows original reference load, conditional on valid original state/lifetime."
+  },
+  "frame_findings": [
+    {
+      "type": 7,
+      "stored_alternates": 24,
+      "primary_output": "Always selector0: both paths after increment clear the byte. Other consumers/viewer are not declared absent; no original-bug repair."
+    },
+    {
+      "type": 27,
+      "stored_alternates": 39,
+      "primary_output": "Equality40 reset cycles0..39 under incoming0..39; selector0 base,1..39 stored alternatives."
+    },
+    {
+      "type": 35,
+      "stored_alternates": 23,
+      "primary_output": "Signed-N branch at23 cycles0..22 under incoming0..22. Stored final alternate is not selected by that wrapper in this domain; do not shrink pool or infer no other consumer."
+    }
+  ],
+  "secondary": {
+    "body": 42644,
+    "types": [
+      7,
+      13,
+      16,
+      18,
+      21,
+      27,
+      28,
+      29,
+      31,
+      32,
+      33,
+      35,
+      41,
+      45
+    ],
+    "behavior": "Integrate original motion/Y thresholds; decrement WORD24; low-six-bit zero branches to original conditional AI work. Primary Evasive body does not decrement24.",
+    "provenance": "Explicit original input contract, not automatic all-incoming/target-domain closure."
+  },
+  "labels": [
+    [
+      35858,
+      "update_shared_evasive_actor"
+    ],
+    [
+      35796,
+      "advance_egron_bird_fighter_frame_then_update"
+    ],
+    [
+      35816,
+      "force_large_bird_base_frame_then_update"
+    ],
+    [
+      35836,
+      "advance_starglider_frame_then_update"
+    ],
+    [
+      36072,
+      "update_proximity_evasion_countdown"
+    ],
+    [
+      36202,
+      "steer_near_opposite_player_heading"
+    ],
+    [
+      36176,
+      "retire_low_durability_evasive_actor"
+    ],
+    [
+      42644,
+      "update_secondary_actor_motion_and_counter"
+    ]
+  ],
+  "native_counter_sites": [
+    {
+      "source_offset": 31984,
+      "runtime_address": 36080,
+      "operand": 0,
+      "field": "proximity_evasion_countdown",
+      "owner": "SG2EvasiveActor",
+      "root": "SG2EvasiveActor",
+      "provenance": "policy_seed"
+    },
+    {
+      "source_offset": 31990,
+      "runtime_address": 36086,
+      "operand": 1,
+      "field": "proximity_evasion_countdown",
+      "owner": "SG2EvasiveActor",
+      "root": "SG2EvasiveActor",
+      "provenance": "policy_seed"
+    },
+    {
+      "source_offset": 32062,
+      "runtime_address": 36158,
+      "operand": 1,
+      "field": "proximity_evasion_countdown",
+      "owner": "SG2EvasiveActor",
+      "root": "SG2EvasiveActor",
+      "provenance": "policy_seed"
+    },
+    {
+      "source_offset": 32792,
+      "runtime_address": 36888,
+      "operand": 1,
+      "field": "behavior_update_counter",
+      "owner": "SG2ScheduledActor",
+      "root": "SG2FlyingActor",
+      "provenance": "policy_seed"
+    },
+    {
+      "source_offset": 33010,
+      "runtime_address": 37106,
+      "operand": 0,
+      "field": "behavior_update_counter",
+      "owner": "SG2ScheduledActor",
+      "root": "SG2FlyingActor",
+      "provenance": "policy_seed"
+    }
+  ],
+  "before_after": {
+    "app_slot_ref_count": {
+      "before": 3383,
+      "after": 3383
+    },
+    "recovered_platform_typed_access_count": {
+      "before": 1095,
+      "after": 1148
+    },
+    "recovered_platform_unresolved_typed_access_count": {
+      "before": 423,
+      "after": 428
+    }
+  },
+  "projection": {
+    "new_typed": 53,
+    "lost_typed": 0,
+    "counter_field_counts": {
+      "SG2EvasiveActor.proximity_evasion_countdown": 3,
+      "SG2ScheduledActor.behavior_update_counter": 2
+    },
+    "lost_sites": []
+  },
+  "validation": {
+    "native_and_vasm": {
+      "kind": "verification",
+      "framework_exact": true,
+      "target_id": "amiga_raw_starglider2_game",
+      "subject_revision": "3c6f6211a5ae99ef1a3d67abe8f2f89524cc1601e7fa02db8e523bdcea9a1950",
+      "status": "exact",
+      "exact": true,
+      "source_sha256": "24e3157e9e50670c53bd8a0b630b182445cbb46104aafe16787c0e2c8dd74b7c",
+      "source_path": "/workspace/pandora-original-delivery/stable-d15c2cf8/.runtime-state/restoration/eb04f545fb97451725a1c91ab5abf6f2e097614c45880db6edfb4ea5c3f6e2c2/24e3157e9e50670c53bd8a0b630b182445cbb46104aafe16787c0e2c8dd74b7c.s",
+      "source_package_sha256": null,
+      "original_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+      "original_size": 412736,
+      "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+      "rebuilt_path": "/workspace/pandora-original-delivery/stable-d15c2cf8/.runtime-state/restoration/eb04f545fb97451725a1c91ab5abf6f2e097614c45880db6edfb4ea5c3f6e2c2/662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9.bin",
+      "framework_status": "exact",
+      "failure_kinds": [],
+      "message": "",
+      "oracle": {
+        "oracle_id": "vasm",
+        "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+        "comparison_level": "oracle.full_file_match",
+        "assembler_status": "accepted",
+        "message": "oracle output matched original bytes"
+      },
+      "receipt_id": "1b28258535630ddd7f1d844be4c6d4835f3a0c57078ccf186f4a645ab618fd0c",
+      "revision": "16fc59a0a24089a29879795528e929a97918bb23f120e81a9e48daccf553fd11"
+    },
+    "incomplete_analysis": [],
+    "source_quality_diagnostics": 0,
+    "generation_wall_seconds": 120.16780407197075,
+    "accepted_owner_spans_identical": true,
+    "assets_unchanged": 57,
+    "required_headers": 14,
+    "framework_changed": false,
+    "focused_tests": "Shared implementation unchanged; preceding114 focused/832 native results remain applicable. Canonical hierarchy admission and exact changed whole-source C/vasm plus clean standalone build qualify this slice.",
+    "clean_standalone_build": {
+      "status": "pass",
+      "validated_target_git_tree": "b7895ed6203a1dc1f7f1800edeaf7f1574d96ff7",
+      "receipt": {
+        "schema_version": 1,
+        "status": "pass",
+        "format": "raw_payload_not_AmigaDOS_HUNK",
+        "main_bytes": 412736,
+        "main_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+        "main_matches_original_identity": true,
+        "asset_count": 57,
+        "all_asset_source_slices_equal": true,
+        "decoded_view_inverse_exact": true,
+        "boot_copy_source_matches_resident_view": true,
+        "source_commit": "4e7d0752ee657f7008f99220f33750ab6b044b46",
+        "assembler_sha256": "413e284020125f42709486dfe09907cab3dd9f3c2ea41017c190f8ea68f30825",
+        "flags": [
+          "-Fbin",
+          "-m68000",
+          "-no-opt"
+        ],
+        "outputs": [
+          {
+            "role": "original_main",
+            "filename": "Starglider2-original.raw",
+            "bytes": 412736,
+            "sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9"
+          },
+          {
+            "role": "decoded_analysis_view",
+            "filename": "protection-decoded-analysis.raw",
+            "bytes": 3548,
+            "sha256": "de8358853dd9ed9b006a23569bf393aa217ed3be3301a169465d80bfaf839922"
+          },
+          {
+            "role": "boot_installer_context",
+            "filename": "boot-selector-installer-context.raw",
+            "bytes": 40,
+            "sha256": "8d34852425e2e1bfa87b3febdfc74fb39e7c667e9d9ff73e17b594649e83b21b"
+          },
+          {
+            "role": "boot_resident_view",
+            "filename": "boot-selector-resident.raw",
+            "bytes": 20,
+            "sha256": "a26286a393713c046eff9dbaff15b20b26b171fa9e05fc9d538d16b0eddb6024"
+          }
+        ]
+      },
+      "recoverable_pandora_backups_verified": 16
+    }
+  },
+  "limits": [
+    "No new runtime, arbitrary-index/selector safety, valid-lifetime or all-incoming proof.",
+    "Model frame WORD+6 remains unknown. Stored alternatives are preserved even where one inspected wrapper does not select them.",
+    "Counter semantics are operation/context dependent; original type29 dual primary-delay/secondary-phase use remains explicit.",
+    "Different unsigned/signed durability branches, mask wrap, heading offset and original frame clear behavior are preserved.",
+    "No generic register-root rule was relaxed; explicit facts retain their conditional provenance."
+  ],
+  "next": {
+    "group": "Connected original shared actor selection, call inputs and remaining semantic gaps",
+    "experiment": "Use recovered model/counter facts to inspect original shared target selection/spawn consumers and remaining generic app fields; prioritize a concrete producer/consumer chain rather than reduce naming counts cosmetically."
+  }
+}
