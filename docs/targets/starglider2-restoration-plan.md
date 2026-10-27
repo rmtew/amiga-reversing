@@ -21,9 +21,22 @@ The [current systematic gap inventory](../../runtime/observations/starglider2-so
 joins native identities/accesses with canonical layouts and actual rendered
 boundaries. It records 67 suffix signals (including numeric adjacent variants),
 21 lookup contracts, 523 remaining interior references, 32 generic app fields
-and 725 unresolved record accesses. These are different denominators. Five
+and 682 unresolved record accesses. These are different denominators. Five
 suffixes name routines and one names text; neither is a pointer defect.
-Latest: the [selected-object reference contracts](../../runtime/observations/starglider2-selected-object-reference-contracts.json)
+Latest: the [projectile record contracts](../../runtime/observations/starglider2-projectile-record-contracts.json)
+connect original nearby type72/103,84,12 and25 dispatches to their velocity,
+bounce, lifetime and target-steering fields. The two subtypes retain different
+BYTE22 roles and preserve nonzero-versus-negative integration tests, signed
+versus unsigned lifetime branches, and guarded LONG target sentinels. Original
+constructors and handler contexts supply the evidence; the mixed pool stays Core.
+Native projection gains **78 typed coordinates / 0 lost**, with **43 removed and
+0 newly exposed unresolved coordinates**. Counts are **3412 app references /
+1562 typed / 682 unresolved**. Original C/vasm/standalone bytes remain
+exact. This adds static semantics, not a new live firing or homing observation.
+The stored-app reference flow and104-header source-loop domain remain active,
+concrete shared-analysis experiments; publication is not restoration completion.
+
+Preceding: the [selected-object reference contracts](../../runtime/observations/starglider2-selected-object-reference-contracts.json)
 connect original stored player, scan and tractor references to their existing
 record views. Player construction establishes its World fields; scan selection
 can choose model/radial variants, so scan and tractor stay Core. This admission exposes **0 additional typed coordinates / 0 lost**: the

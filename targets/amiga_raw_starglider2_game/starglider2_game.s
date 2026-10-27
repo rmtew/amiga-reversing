@@ -1048,6 +1048,25 @@ SG2SkimMissile_pursuit_updates_remaining RS.W 1
     RS.B 28
 SG2SkimMissile_SIZEOF EQU __RS
 
+; STRUCT SG2VelocityProjectile
+    RSRESET
+    RS.B 34
+SG2VelocityProjectile_integration_service_byte RS.B 1
+    RS.B 1
+SG2VelocityProjectile_remaining_updates RS.W 1
+    RS.B 30
+SG2VelocityProjectile_SIZEOF EQU __RS
+
+; STRUCT SG2SteeredProjectile
+    RSRESET
+    RS.B 34
+SG2SteeredProjectile_stored_target_tracking_byte RS.B 1
+    RS.B 1
+SG2SteeredProjectile_remaining_updates RS.W 1
+SG2SteeredProjectile_heading_recompute_mod8_index RS.W 1
+    RS.B 28
+SG2SteeredProjectile_SIZEOF EQU __RS
+
 ADKF_CLRALL	EQU	$7FFF
 BPLCON2_PF2P2	EQU	$20
 BPLCON2_PF2PRI	EQU	$40
@@ -8491,33 +8510,34 @@ abs_0_00007296:
 	movea.l -(a1),a2
 	move.l a1,free_object_stack_cursor(a6)
 	subq.w #1,free_object_count(a6)
-	st.b $0022(a2)
+    ; KNOWN: type A2=Target code-entry register seed:SG2VelocityProjectile
+	st.b SG2VelocityProjectile_integration_service_byte(a2)
 	move.w selected_projectile_amiga_effect_volume.l,paula_projectile_effect_volume.l
 	move.w selected_projectile_alternate_effect_volume.l,alternate_projectile_effect_volume.l
 	move.w selected_projectile_amiga_effect_period.l,paula_projectile_effect_period.l
 	move.w selected_projectile_alternate_effect_period.l,alternate_projectile_effect_period.l
 	move.w selected_projectile_type.l,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
-	move.b selected_projectile_model_scale_shift.l,$001D(a2)
+	move.b selected_projectile_model_scale_shift.l,SG2WorldObject_model_scale_shift(a2)
 	cmpi.w #103,selected_projectile_type.l
 	bne.b abs_0_00007306
 	neg.b type103_projectile_variant_sign.l
 	bpl.b abs_0_00007306
-	move.b #$1,$0003(a2)
+	move.b #$1,SG2WorldObject_vertex_variant_selector(a2)
 	bra.b abs_0_0000730A
 abs_0_00007306:
-	clr.b $0003(a2)
+	clr.b SG2WorldObject_vertex_variant_selector(a2)
 abs_0_0000730A:
 	move.b #$FF,SG2ObjectCore_retirement_phase_or_negative(a2)
 	move.b #$1,SG2ObjectCore_durability_or_negative(a2)
-	move.w #$64,$0024(a2)
-	move.b SG2ObjectCore_object_type+1(a2),$002A(a2)
+	move.w #$64,SG2VelocityProjectile_remaining_updates(a2)
+	move.b SG2ObjectCore_object_type+1(a2),SG2WorldObject_collision_ignored_object_type(a2)
 	move.l player_world_x(a6),SG2ObjectCore_world_x(a2)
 	move.l player_world_z(a6),SG2ObjectCore_world_z(a2)
 	move.l player_world_y(a6),SG2ObjectCore_world_y(a2)
-	move.w player_rotation_0(a6),$0010(a2)
-	ori.w #1,$0010(a2)
-	move.w player_rotation_1(a6),$0012(a2)
-	move.w player_rotation_2(a6),$0014(a2)
+	move.w player_rotation_0(a6),SG2WorldObject_rotation_0(a2)
+	ori.w #1,SG2WorldObject_rotation_0(a2)
+	move.w player_rotation_1(a6),SG2WorldObject_rotation_1(a2)
+	move.w player_rotation_2(a6),SG2WorldObject_rotation_2(a2)
 	move.w player_speed_smoothed(a6),d4
 	add.w stardrive_speed_addend(a6),d4
 	add.w selected_projectile_forward_speed_addend.l,d4
@@ -8533,9 +8553,9 @@ abs_0_0000730A:
 	move.w d3,d6
 	muls.w SG2RotationMatrixWords_m22(a1),d6
 	swap.w d6
-	move.w d4,$002C(a2)
-	move.w d5,$002E(a2)
-	move.w d6,$0030(a2)
+	move.w d4,SG2WorldObject_velocity_x(a2)
+	move.w d5,SG2WorldObject_velocity_y(a2)
+	move.w d6,SG2WorldObject_velocity_z(a2)
 	move.w #$190,d3
 	neg.w projectile_spawn_side_sign.l
 	bpl.b abs_0_0000739A
@@ -8748,29 +8768,30 @@ abs_0_00007626:
 	movea.l -(a1),a2
 	move.l a1,free_object_stack_cursor(a6)
 	subq.w #1,free_object_count(a6)
-	st.b $0022(a2)
+    ; KNOWN: type A2=Target code-entry register seed:SG2SteeredProjectile
+	st.b SG2SteeredProjectile_stored_target_tracking_byte(a2)
 	move.w #$C,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
-	move.b #$3,$001D(a2)
-	clr.b $0003(a2)
+	move.b #$3,SG2WorldObject_model_scale_shift(a2)
+	clr.b SG2WorldObject_vertex_variant_selector(a2)
 	bset.b #7,SG2ObjectCore_durability_or_negative(a2)
 	move.b #$FF,SG2ObjectCore_retirement_phase_or_negative(a2)
-	move.w #$190,$0024(a2)
-	move.l scan_target_reference(a6),$003C(a2)
+	move.w #$190,SG2SteeredProjectile_remaining_updates(a2)
+	move.l scan_target_reference(a6),SG2WorldObject_linked_record_or_sentinel(a2)
 	move.l player_world_x(a6),SG2ObjectCore_world_x(a2)
 	move.l player_world_y(a6),SG2ObjectCore_world_y(a2)
 	move.l player_world_z(a6),SG2ObjectCore_world_z(a2)
-	move.w player_rotation_0(a6),$0010(a2)
-	ori.w #1,$0010(a2)
-	move.w player_rotation_1(a6),$0012(a2)
-	move.w player_rotation_2(a6),$0014(a2)
+	move.w player_rotation_0(a6),SG2WorldObject_rotation_0(a2)
+	ori.w #1,SG2WorldObject_rotation_0(a2)
+	move.w player_rotation_1(a6),SG2WorldObject_rotation_1(a2)
+	move.w player_rotation_2(a6),SG2WorldObject_rotation_2(a2)
 	move.w player_speed_smoothed(a6),d4
 	addi.w #500,d4
 	move.w d4,$0020(a2)
 	move.w $0020(a2),d3
 	bsr.w abs_0_00007FC0
-	move.w d4,$002C(a2)
-	move.w d5,$002E(a2)
-	move.w d6,$0030(a2)
+	move.w d4,SG2WorldObject_velocity_x(a2)
+	move.w d5,SG2WorldObject_velocity_y(a2)
+	move.w d6,SG2WorldObject_velocity_z(a2)
 	add.w d4,d4
 	add.w d5,d5
 	add.w d6,d6
@@ -9248,7 +9269,7 @@ primary_object_update_offsets:
 	dc.w abs_0_00009B4C-primary_object_update_offsets
 	dc.w abs_0_000094E6-primary_object_update_offsets
 	dc.w abs_0_00009390-primary_object_update_offsets
-	dc.w abs_0_0000967A-primary_object_update_offsets
+	dc.w animate_nearby_homing_projectile-primary_object_update_offsets
 	dc.w update_shared_flying_actor-primary_object_update_offsets
 	dc.w abs_0_000099BC-primary_object_update_offsets
 	dc.w abs_0_00008A74-primary_object_update_offsets
@@ -9261,7 +9282,7 @@ primary_object_update_offsets:
 	dc.w abs_0_0000863C-primary_object_update_offsets
 	dc.w abs_0_00009CFC-primary_object_update_offsets
 	dc.w abs_0_000081D2-primary_object_update_offsets
-	dc.w abs_0_00009694-primary_object_update_offsets
+	dc.w update_nearby_steered_projectile-primary_object_update_offsets
 	dc.w abs_0_00009D88-primary_object_update_offsets
 	dc.w advance_starglider_frame_then_update-primary_object_update_offsets
 	dc.w update_shared_flying_actor-primary_object_update_offsets
@@ -9308,7 +9329,7 @@ primary_object_update_offsets:
 	dc.w abs_0_000081D2-primary_object_update_offsets
 	dc.w abs_0_000081D2-primary_object_update_offsets
 	dc.w abs_0_0000842E-primary_object_update_offsets
-	dc.w abs_0_0000959C-primary_object_update_offsets
+	dc.w update_nearby_type72_or_type103_projectile-primary_object_update_offsets
 	dc.w abs_0_000083FA-primary_object_update_offsets
 	dc.w abs_0_000083FA-primary_object_update_offsets
 	dc.w abs_0_00008540-primary_object_update_offsets
@@ -9320,7 +9341,7 @@ primary_object_update_offsets:
 	dc.w abs_0_00008588-primary_object_update_offsets
 	dc.w abs_0_00008594-primary_object_update_offsets
 	dc.w update_link_following_or_free_motion_object-primary_object_update_offsets
-	dc.w abs_0_00009602-primary_object_update_offsets
+	dc.w update_nearby_bouncing_projectile-primary_object_update_offsets
 	dc.w abs_0_000087C8-primary_object_update_offsets
 	dc.w abs_0_000087AA-primary_object_update_offsets
 	dc.w abs_0_000081D2-primary_object_update_offsets
@@ -9339,7 +9360,7 @@ primary_object_update_offsets:
 	dc.w update_link_following_or_free_motion_object-primary_object_update_offsets
 	dc.w update_link_following_or_free_motion_object-primary_object_update_offsets
 	dc.w update_link_following_or_free_motion_object-primary_object_update_offsets
-	dc.w abs_0_0000959C-primary_object_update_offsets
+	dc.w update_nearby_type72_or_type103_projectile-primary_object_update_offsets
 	dc.w abs_0_000081D2-primary_object_update_offsets
 	dc.w abs_0_000081D2-primary_object_update_offsets
 	dc.w abs_0_000081D2-primary_object_update_offsets
@@ -10923,117 +10944,123 @@ abs_0_00009590:
 	bsr.w heading_with_player_as_reference
 	addi.w #1024,d1
 	bra.w abs_0_0000ACB0
-abs_0_0000959C:
+    ; Types72/103: IRQ list accepts nonzero BYTE22; this handler skips local integration only for negative BYTE22. Preserve this distinction and signed life test; no boolean normalization.
+    ; KNOWN: type A0=Target code-entry register seed:SG2VelocityProjectile
+update_nearby_type72_or_type103_projectile:
 	move.b #$7F,diagnostic_step_byte.l
 	tst.b space_environment_flag(a6)
-	bmi.b abs_0_000095B2
-	tst.l $0008(a0)
-	bpl.w abs_0_000096F8
-abs_0_000095B2:
-	addi.b #1,$0003(a0)
-	andi.b #1,$0003(a0)
-	tst.b $0022(a0)
-	bmi.b abs_0_000095F6
-	move.w $002C(a0),d3
-	ext.l d3
-	add.l d3,$0004(a0)
-	move.w $002E(a0),d3
-	ext.l d3
-	add.l d3,$0008(a0)
-	move.w $0030(a0),d3
-	ext.l d3
-	add.l d3,$000C(a0)
-	move.l horizontal_world_wrap_mask(a6),d3
-	and.l d3,$0004(a0)
-	and.l d3,$000C(a0)
-	clr.w $0010(a0)
-	clr.w $0014(a0)
-abs_0_000095F6:
-	subq.w #1,$0024(a0)
-	ble.w abs_0_000096F8
-	bra.w abs_0_000081D2
-abs_0_00009602:
-	tst.b $0022(a0)
-	bmi.b abs_0_00009632
-	move.w $002C(a0),d3
-	ext.l d3
-	add.l d3,$0004(a0)
-	move.w $002E(a0),d3
-	ext.l d3
-	add.l d3,$0008(a0)
-	move.w $0030(a0),d3
-	ext.l d3
-	add.l d3,$000C(a0)
-	move.l horizontal_world_wrap_mask(a6),d3
-	and.l d3,$0004(a0)
-	and.l d3,$000C(a0)
-abs_0_00009632:
-	move.l $0008(a0),d0
-	neg.l d0
-	cmp.l #$14,d0
-	bpl.b abs_0_00009656
-	move.l #$FFFFFFEC,$0008(a0)
-	move.w $002E(a0),d0
-	asr.w #1,d0
-	move.w d0,$002E(a0)
-	neg.w $002E(a0)
-abs_0_00009656:
-	addi.w #256,$0014(a0)
-	andi.w #4095,$0014(a0)
-	addi.w #256,$0010(a0)
-	andi.w #4095,$0010(a0)
-	subq.w #1,$0024(a0)
-	ble.w abs_0_000096F8
-	bra.w abs_0_000081D2
-abs_0_0000967A:
-	move.b #$1C,diagnostic_step_byte.l
-	addi.b #1,$0003(a0)
-	cmpi.b #5,$0003(a0)
-	bne.b abs_0_00009694
-	clr.b $0003(a0)
-abs_0_00009694:
-	move.w $002C(a0),d3
+	bmi.b advance_simple_projectile_variant_and_motion
+	tst.l SG2ObjectCore_world_y(a0)
+	bpl.w retire_projectile_phase
+advance_simple_projectile_variant_and_motion:
+	addi.b #1,SG2WorldObject_vertex_variant_selector(a0)
+	andi.b #1,SG2WorldObject_vertex_variant_selector(a0)
+	tst.b SG2VelocityProjectile_integration_service_byte(a0)
+	bmi.b age_simple_projectile
+	move.w SG2WorldObject_velocity_x(a0),d3
 	ext.l d3
 	add.l d3,SG2ObjectCore_world_x(a0)
-	move.w $002E(a0),d3
+	move.w SG2WorldObject_velocity_y(a0),d3
 	ext.l d3
 	add.l d3,SG2ObjectCore_world_y(a0)
-	move.w $0030(a0),d3
+	move.w SG2WorldObject_velocity_z(a0),d3
 	ext.l d3
 	add.l d3,SG2ObjectCore_world_z(a0)
 	move.l horizontal_world_wrap_mask(a6),d3
 	and.l d3,SG2ObjectCore_world_x(a0)
 	and.l d3,SG2ObjectCore_world_z(a0)
-	tst.b $0022(a0)
-	bne.w abs_0_00009700
+	clr.w SG2WorldObject_rotation_0(a0)
+	clr.w SG2WorldObject_rotation_2(a0)
+age_simple_projectile:
+	subq.w #1,SG2VelocityProjectile_remaining_updates(a0)
+	ble.w retire_projectile_phase
+	bra.w abs_0_000081D2
+    ; KNOWN: type A0=Target code-entry register seed:SG2VelocityProjectile
+update_nearby_bouncing_projectile:
+	tst.b SG2VelocityProjectile_integration_service_byte(a0)
+	bmi.b bounce_projectile_above_ground
+	move.w SG2WorldObject_velocity_x(a0),d3
+	ext.l d3
+	add.l d3,SG2ObjectCore_world_x(a0)
+	move.w SG2WorldObject_velocity_y(a0),d3
+	ext.l d3
+	add.l d3,SG2ObjectCore_world_y(a0)
+	move.w SG2WorldObject_velocity_z(a0),d3
+	ext.l d3
+	add.l d3,SG2ObjectCore_world_z(a0)
+	move.l horizontal_world_wrap_mask(a6),d3
+	and.l d3,SG2ObjectCore_world_x(a0)
+	and.l d3,SG2ObjectCore_world_z(a0)
+bounce_projectile_above_ground:
+	move.l SG2ObjectCore_world_y(a0),d0
+	neg.l d0
+	cmp.l #$14,d0
+	bpl.b abs_0_00009656
+	move.l #$FFFFFFEC,SG2ObjectCore_world_y(a0)
+	move.w SG2WorldObject_velocity_y(a0),d0
+	asr.w #1,d0
+	move.w d0,SG2WorldObject_velocity_y(a0)
+	neg.w SG2WorldObject_velocity_y(a0)
+abs_0_00009656:
+	addi.w #256,SG2WorldObject_rotation_2(a0)
+	andi.w #4095,SG2WorldObject_rotation_2(a0)
+	addi.w #256,SG2WorldObject_rotation_0(a0)
+	andi.w #4095,SG2WorldObject_rotation_0(a0)
+	subq.w #1,SG2VelocityProjectile_remaining_updates(a0)
+	ble.w retire_projectile_phase
+	bra.w abs_0_000081D2
+    ; KNOWN: type A0=Target code-entry register seed:SG2SteeredProjectile
+animate_nearby_homing_projectile:
+	move.b #$1C,diagnostic_step_byte.l
+	addi.b #1,SG2WorldObject_vertex_variant_selector(a0)
+	cmpi.b #5,SG2WorldObject_vertex_variant_selector(a0)
+	bne.b update_nearby_steered_projectile
+	clr.b SG2WorldObject_vertex_variant_selector(a0)
+    ; KNOWN: type A0=Target code-entry register seed:SG2SteeredProjectile
+update_nearby_steered_projectile:
+	move.w SG2WorldObject_velocity_x(a0),d3
+	ext.l d3
+	add.l d3,SG2ObjectCore_world_x(a0)
+	move.w SG2WorldObject_velocity_y(a0),d3
+	ext.l d3
+	add.l d3,SG2ObjectCore_world_y(a0)
+	move.w SG2WorldObject_velocity_z(a0),d3
+	ext.l d3
+	add.l d3,SG2ObjectCore_world_z(a0)
+	move.l horizontal_world_wrap_mask(a6),d3
+	and.l d3,SG2ObjectCore_world_x(a0)
+	and.l d3,SG2ObjectCore_world_z(a0)
+	tst.b SG2SteeredProjectile_stored_target_tracking_byte(a0)
+	bne.w steer_projectile_toward_stored_target
 	move.l player_world_y(a6),d0
 	sub.l SG2ObjectCore_world_y(a0),d0
 	asr.l #2,d0
 	add.l d0,SG2ObjectCore_world_y(a0)
-	subq.w #1,$0024(a0)
-	ble.b abs_0_000096F8
+	subq.w #1,SG2SteeredProjectile_remaining_updates(a0)
+	ble.b retire_projectile_phase
 	cmpi.l #4294965596,SG2ObjectCore_world_y(a0)
-	bmi.b abs_0_000096F8
+	bmi.b retire_projectile_phase
 	bsr.w heading_with_player_as_reference
 	addi.w #2048,d1
 	andi.w #4095,d1
-	move.w d1,$0012(a0)
+	move.w d1,SG2WorldObject_rotation_1(a0)
 	bra.w abs_0_0000AD6E
-abs_0_000096F8:
-	clr.b $001E(a0)
+retire_projectile_phase:
+	clr.b SG2ObjectCore_retirement_phase_or_negative(a0)
 	bra.w abs_0_000081D2
-abs_0_00009700:
+    ; Tracking requires positive LONG3C and a live original target. Preserve unsigned BLS lifetime test, deltaY>>5, -10 clamp and modulo8 heading cadence. Zero22 uses the separate player path.
+steer_projectile_toward_stored_target:
 	move.b #$1D,diagnostic_step_byte.l
-	tst.l $003C(a0)
+	tst.l SG2WorldObject_linked_record_or_sentinel(a0)
 	beq.w abs_0_000081D2
 	bmi.w abs_0_000081D2
-	movea.l $003C(a0),a4
+	movea.l SG2WorldObject_linked_record_or_sentinel(a0),a4
 	tst.w (a4)
-	beq.b abs_0_000096F8
+	beq.b retire_projectile_phase
 	tst.b $001E(a4)
-	bpl.b abs_0_000096F8
-	subq.w #1,$0024(a0)
-	bls.b abs_0_000096F8
+	bpl.b retire_projectile_phase
+	subq.w #1,SG2SteeredProjectile_remaining_updates(a0)
+	bls.b retire_projectile_phase
 	move.l $0008(a4),d0
 	sub.l SG2ObjectCore_world_y(a0),d0
 	asr.l #5,d0
@@ -11042,12 +11069,12 @@ abs_0_00009700:
 	bmi.b abs_0_00009748
 	move.l #$FFFFFFF6,SG2ObjectCore_world_y(a0)
 abs_0_00009748:
-	addq.w #1,$0026(a0)
-	andi.w #7,$0026(a0)
+	addq.w #1,SG2SteeredProjectile_heading_recompute_mod8_index(a0)
+	andi.w #7,SG2SteeredProjectile_heading_recompute_mod8_index(a0)
 	bne.w abs_0_0000ADBA
 	bsr.w heading_from_stored_object_xz
 	andi.w #4095,d1
-	move.w d1,$0012(a0)
+	move.w d1,SG2WorldObject_rotation_1(a0)
 	bra.w abs_0_0000ADBA
 try_ai_projectile_attack_if_aligned:
 	move.b #$1E,diagnostic_step_byte.l
@@ -12539,7 +12566,7 @@ abs_0_0000AD7A:
 	bra.w abs_0_000081D2
 abs_0_0000ADBA:
 	move.b #$3C,diagnostic_step_byte.l
-	move.w $0012(a0),d1
+	move.w SG2WorldObject_rotation_1(a0),d1
 	andi.w #4095,d1
 	add.w d1,d1
 	movea.l sine_lookup_pointer(a6),a1
@@ -12551,12 +12578,12 @@ abs_0_0000ADBA:
 	asl.l #1,d4
 	swap.w d4
 	neg.w d4
-	move.w d4,$002C(a0)
+	move.w d4,SG2WorldObject_velocity_x(a0)
 	move.w $0020(a0),d4
 	muls.w trig_cosine_scratch_1(a6),d4
 	asl.l #1,d4
 	swap.w d4
-	move.w d4,$0030(a0)
+	move.w d4,SG2WorldObject_velocity_z(a0)
 	bra.w abs_0_000081D2
 abs_0_0000AE06:
 	move.w $0012(a2),d0
