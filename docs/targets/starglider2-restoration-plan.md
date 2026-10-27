@@ -21,9 +21,23 @@ The [current systematic gap inventory](../../runtime/observations/starglider2-so
 joins native identities/accesses with canonical layouts and actual rendered
 boundaries. It records 66 suffix signals (including numeric adjacent variants),
 21 lookup contracts, 523 remaining interior references, 32 generic app fields
-and 212 unresolved record accesses. These are different denominators. Five
+and 203 unresolved record accesses. These are different denominators. Five
 suffixes name routines and one names text; neither is a pointer defect.
-Latest: the [signed durability reconstruction](../../runtime/observations/starglider2-object-durability.json)
+Latest: the [projector frame/state reconstruction](../../runtime/observations/starglider2-projector-frame-state.json)
+connects original dispatch77/78/80 and projector network/rebuild writers to the
+cover, turret and control-tower model frames. Their signed BYTE1F step is now a
+projector-only field, not a universal object mode. The three model tables hold
+nine alternatives each: selector0 is base geometry,1..9 are alternatives. The
+fuel-crystal callback instead wraps0..7 over base plus seven alternatives.
+Canonical table roles now expose original-game consumption alongside viewer use.
+Incoming selector/step, flag and caller assumptions remain explicit; endpoint
+repeats and possible intervening network writes are preserved. **12 step
+accesses** are projected, with **803 typed /
+203 unresolved** overall. All original C/vasm and standalone bytes match.
+No new runtime campaign or geometry interpretation of opaque WORD+6. Continue
+the remaining actor-specific state and original incoming-path leads.
+
+Preceding: the [signed durability reconstruction](../../runtime/observations/starglider2-object-durability.json)
 replaces the coarse default-control-state description with the shared BYTE1C
 producer/consumer contract. Ordinary contact handling decrements positive values;
 negative values bypass those paths, and zero suppresses primary type dispatch.

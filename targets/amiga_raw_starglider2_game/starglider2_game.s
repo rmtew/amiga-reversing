@@ -981,6 +981,13 @@ SG2StarObject_primary_colour_index RS.W 1
     RS.B 50
 SG2StarObject_SIZEOF EQU __RS
 
+; STRUCT SG2ProjectorPart
+    RSRESET
+    RS.B 31
+SG2ProjectorPart_network_animation_step RS.B 1
+    RS.B 36
+SG2ProjectorPart_SIZEOF EQU __RS
+
 ADKF_CLRALL	EQU	$7FFF
 BPLCON2_PF2P2	EQU	$20
 BPLCON2_PF2PRI	EQU	$40
@@ -33516,7 +33523,7 @@ model_077_vertices:
 	dc.w $0000	; z_coordinate_ref
 	dc.w $0018	; variant_offset_or_negative
 model_077_variant_words:
-	dc.w $0000,$8008,$800A,$0000,$000A,$8008,$0000,$0000	; 9 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with unint...
+	dc.w $0000,$8008,$800A,$0000,$000A,$8008,$0000,$0000	; Nine alternate vertex frames for original projector animation/viewer; 8-byte records with WOR...
 	dc.w $0000,$8008,$000A,$0000,$800A,$8008,$0000,$0000
 	dc.w $0000,$800C,$800E,$0000,$000E,$800C,$0000,$0000
 	dc.w $0000,$800C,$000E,$0000,$800E,$800C,$0000,$0000
@@ -33535,7 +33542,7 @@ model_077_variant_words:
 	dc.w $0000,$8026,$8028,$0000,$0028,$8026,$0000,$0000
 	dc.w $0000,$8026,$0028,$0000,$8028,$8026,$0000,$0000
 model_077_variant_frames:
-	dc.l model_077_variant_words	; 9 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with unint...
+	dc.l model_077_variant_words	; Nine alternate vertex frames for original projector animation/viewer; 8-byte records with WOR...
 	dc.l model_077_variant_words+$20
 	dc.l model_077_variant_words+$40
 	dc.l model_077_variant_words+$60
@@ -33599,7 +33606,7 @@ model_078_vertices:
 	dc.w $8008	; z_coordinate_ref
 	dc.w $0040	; variant_offset_or_negative
 model_078_variant_words:
-	dc.w $0000,$0000,$0002,$0000,$0000,$8016,$8002,$0000	; 9 viewer-indexed variant frames, 9 encoded vertex records per frame; 8-byte stride with unint...
+	dc.w $0000,$0000,$0002,$0000,$0000,$8016,$8002,$0000	; Nine alternate vertex frames for original projector animation/viewer; 8-byte records with WOR...
 	dc.w $0004,$8018,$0006,$0000,$0000,$801A,$0008,$0000
 	dc.w $8004,$8018,$0006,$0000,$0000,$801C,$800C,$0000
 	dc.w $000E,$801E,$8008,$0000,$0000,$8020,$8014,$0000
@@ -33641,7 +33648,7 @@ model_078_variant_words:
 	dc.w $000E,$808A,$8008,$0000,$0000,$808C,$8014,$0000
 	dc.w $800E,$808A,$8008,$0000
 model_078_variant_frames:
-	dc.l model_078_variant_words	; 9 viewer-indexed variant frames, 9 encoded vertex records per frame; 8-byte stride with unint...
+	dc.l model_078_variant_words	; Nine alternate vertex frames for original projector animation/viewer; 8-byte records with WOR...
 	dc.l model_078_variant_words+$48
 	dc.l model_078_variant_words+$90
 	dc.l model_078_variant_words+$D8
@@ -33688,7 +33695,7 @@ model_079_vertices:
 	dc.w $000E	; z_coordinate_ref
 	dc.w $0028	; variant_offset_or_negative
 model_079_variant_words:
-	dc.w $8010,$8004,$8012,$0000,$0014,$8004,$8014,$0000	; 7 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with unint...
+	dc.w $8010,$8004,$8012,$0000,$0014,$8004,$8014,$0000	; Seven alternate vertex frames for original fuel-crystal animation/viewer; 8-byte records with...
 	dc.w $0012,$8004,$0010,$0000,$8016,$800A,$8018,$0000
 	dc.w $001A,$800A,$801A,$0000,$0018,$800A,$0016,$0000
 	dc.w $8008,$8004,$8006,$0000,$0008,$8004,$8006,$0000
@@ -33710,7 +33717,7 @@ model_079_variant_words:
 	dc.w $8010,$8004,$0012,$0000,$0018,$800A,$8016,$0000
 	dc.w $001A,$800A,$001A,$0000,$8016,$800A,$0018,$0000
 model_079_variant_frames:
-	dc.l model_079_variant_words	; 7 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with unint...
+	dc.l model_079_variant_words	; Seven alternate vertex frames for original fuel-crystal animation/viewer; 8-byte records with...
 	dc.l model_079_variant_words+$30
 	dc.l model_079_variant_words+$60
 	dc.l model_079_variant_words+$90
@@ -33782,7 +33789,7 @@ model_080_vertices:
 	dc.w $8010	; z_coordinate_ref
 	dc.w $0028	; variant_offset_or_negative
 model_080_variant_words:
-	dc.w $8004,$8012,$0014,$0000,$0004,$8012,$0014,$0000	; 9 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with unint...
+	dc.w $8004,$8012,$0014,$0000,$0004,$8012,$0014,$0000	; Nine alternate vertex frames for original projector animation/viewer; 8-byte records with WOR...
 	dc.w $800C,$8016,$8018,$0000,$000C,$8016,$8018,$0000
 	dc.w $8008,$801A,$801C,$0000,$0008,$801A,$801C,$0000
 	dc.w $8004,$801E,$0020,$0000,$0004,$801E,$0020,$0000
@@ -33810,7 +33817,7 @@ model_080_variant_words:
 	dc.w $800C,$8068,$806A,$0000,$000C,$8068,$806A,$0000
 	dc.w $8008,$804A,$806C,$0000,$0008,$804A,$806C,$0000
 model_080_variant_frames:
-	dc.l model_080_variant_words	; 9 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with unint...
+	dc.l model_080_variant_words	; Nine alternate vertex frames for original projector animation/viewer; 8-byte records with WOR...
 	dc.l model_080_variant_words+$30
 	dc.l model_080_variant_words+$60
 	dc.l model_080_variant_words+$90
@@ -44620,28 +44627,30 @@ spawn_rebuilt_projector_part_loop:
 	movea.l -(a3),a4
 	move.l a3,$06D4(a6)
 	subq.w #1,$0772(a6)
-	move.w d4,(a4)
-	move.l (a1)+,$0004(a4)
-	move.l (a1)+,$000C(a4)
-	move.l #$0,$0008(a4)
-	move.b #$FF,$001E(a4)
-	bset.b #7,$001C(a4)
-	move.b #$C,$001D(a4)
-	move.b #$0,$0003(a4)
-	move.b #$0,$001F(a4)
+    ; KNOWN: type A4=Target code-entry register seed:SG2ProjectorPart
+	move.w d4,(a4)	; operand 2: SG2ObjectCore_object_type at (a4)
+	move.l (a1)+,SG2ObjectCore_world_x(a4)
+	move.l (a1)+,SG2ObjectCore_world_z(a4)
+	move.l #$0,SG2ObjectCore_world_y(a4)
+	move.b #$FF,SG2ObjectCore_retirement_phase_or_negative(a4)
+	bset.b #7,SG2ObjectCore_durability_or_negative(a4)
+	move.b #$C,SG2WorldObject_model_scale_shift(a4)
+	move.b #$0,SG2WorldObject_vertex_variant_selector(a4)
+    ; Original eight-template projector spawn starts at base frame and step0; negative network flag sets step1. Preserve original allocation, flag and valid-template assumptions.
+	move.b #$0,SG2ProjectorPart_network_animation_step(a4)
 	tst.b $0AA7(a6)
 	bpl.b abs_0_00034E44
-	move.b #$1,$001F(a4)
+	move.b #$1,SG2ProjectorPart_network_animation_step(a4)
 abs_0_00034E44:
 	move.l a4,$085A(a6)
 	move.w d4,$085E(a6)
-	move.w #$0,$0010(a4)
-	move.w #$0,$0012(a4)
-	move.w #$0,$0014(a4)
+	move.w #$0,SG2WorldObject_rotation_0(a4)
+	move.w #$0,SG2WorldObject_rotation_1(a4)
+	move.w #$0,SG2WorldObject_rotation_2(a4)
 	cmp.w #$4E,d4
 	bne.b abs_0_00034E74
-	move.l $0004(a4),$0872(a6)
-	move.l $000C(a4),$0876(a6)
+	move.l SG2ObjectCore_world_x(a4),$0872(a6)
+	move.l SG2ObjectCore_world_z(a4),$0876(a6)
 	bra.b abs_0_00034E74
 abs_0_00034E72:
 	addq.l #8,a1
@@ -44701,8 +44710,10 @@ abs_0_00034EF0:
 	adda.l #$44,a0
 	dbf.w d1,abs_0_00034EF0
 	bra.b abs_0_00034F3C
+    ; Guarded projector types75..82 only: copy network state to animation step. It is not a universal WorldObject1F field; fuel-crystal callback instead wraps its selector independently.
+    ; KNOWN: type A0=Target code-entry register seed:SG2ProjectorPart
 abs_0_00034F2E:
-	move.b d2,$001F(a0)
+	move.b d2,SG2ProjectorPart_network_animation_step(a0)
 	adda.l #$44,a0
 	dbf.w d1,abs_0_00034EF0
 abs_0_00034F3C:
@@ -46297,41 +46308,42 @@ update_nearby_projector_base:
     ; KNOWN: type A0=Target code-entry register seed:SG2WorldObject
 update_nearby_projector_mount:
 	bra.w abs_0_00039D56
-    ; KNOWN: type A0=Target code-entry register seed:SG2WorldObject
+    ; Type77 Cover: gated signed step moves selector0..9 and reverses at10/FF. Zero uses base vertices;1..9 uses nine stored alternatives. Input/flag assumptions remain conditional.
+    ; KNOWN: type A0=Target code-entry register seed:SG2ProjectorPart
 update_nearby_projector_cover:
 	tst.b station_cycle_enabled_flag(a6)
 	bpl.b abs_0_000364FE
-	move.b $001F(a0),d0
+	move.b SG2ProjectorPart_network_animation_step(a0),d0
 	move.b SG2WorldObject_vertex_variant_selector(a0),d1
 	add.b d0,d1
 	cmp.b #$A,d1
 	bne.b abs_0_000364EC
-	neg.b $001F(a0)
+	neg.b SG2ProjectorPart_network_animation_step(a0)
 	move.b #$9,d1
 abs_0_000364EC:
 	cmp.b #$FF,d1
 	bne.b abs_0_000364FA
-	neg.b $001F(a0)
+	neg.b SG2ProjectorPart_network_animation_step(a0)
 	move.b #$0,d1
 abs_0_000364FA:
 	move.b d1,SG2WorldObject_vertex_variant_selector(a0)
 abs_0_000364FE:
 	bra.w abs_0_00039D56
-    ; KNOWN: type A0=Target code-entry register seed:SG2WorldObject
+    ; KNOWN: type A0=Target code-entry register seed:SG2ProjectorPart
 update_nearby_projector_turret:
 	tst.b station_cycle_enabled_flag(a6)
 	bpl.b abs_0_00036532
-	move.b $001F(a0),d0
+	move.b SG2ProjectorPart_network_animation_step(a0),d0
 	move.b SG2WorldObject_vertex_variant_selector(a0),d1
 	add.b d0,d1
 	cmp.b #$A,d1
 	bne.b abs_0_00036520
-	neg.b $001F(a0)
+	neg.b SG2ProjectorPart_network_animation_step(a0)
 	move.b #$9,d1
 abs_0_00036520:
 	cmp.b #$FF,d1
 	bne.b abs_0_0003652E
-	neg.b $001F(a0)
+	neg.b SG2ProjectorPart_network_animation_step(a0)
 	move.b #$0,d1
 abs_0_0003652E:
 	move.b d1,SG2WorldObject_vertex_variant_selector(a0)
@@ -46345,21 +46357,21 @@ update_nearby_projector_fuel_crystals:
 	andi.b #7,SG2WorldObject_vertex_variant_selector(a0)
 abs_0_00036546:
 	bra.w abs_0_00039D56
-    ; KNOWN: type A0=Target code-entry register seed:SG2WorldObject
+    ; KNOWN: type A0=Target code-entry register seed:SG2ProjectorPart
 update_nearby_projector_control_tower:
 	tst.b station_cycle_enabled_flag(a6)
 	bpl.b abs_0_0003657A
-	move.b $001F(a0),d0
+	move.b SG2ProjectorPart_network_animation_step(a0),d0
 	move.b SG2WorldObject_vertex_variant_selector(a0),d1
 	add.b d0,d1
 	cmp.b #$A,d1
 	bne.b abs_0_00036568
-	neg.b $001F(a0)
+	neg.b SG2ProjectorPart_network_animation_step(a0)
 	move.b #$9,d1
 abs_0_00036568:
 	cmp.b #$FF,d1
 	bne.b abs_0_00036576
-	neg.b $001F(a0)
+	neg.b SG2ProjectorPart_network_animation_step(a0)
 	move.b #$0,d1
 abs_0_00036576:
 	move.b d1,SG2WorldObject_vertex_variant_selector(a0)

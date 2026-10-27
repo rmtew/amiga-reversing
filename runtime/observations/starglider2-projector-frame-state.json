@@ -1,0 +1,335 @@
+{
+  "schema_version": 1,
+  "kind": "projector_model_animation_and_original_state_contract",
+  "status": "qualified_connected_restoration_batch_continues",
+  "publication_base_commit": "941fa64f21d0c7664bd894be8c223554c88874c2",
+  "inputs": {
+    "binary_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "backend_sha256": "786c0581079840fbad6eba1a2656c08c0c5387f856fbda2201e02bc871b158f0",
+    "analysis_sha256": "416af667c0c1a1fe70769df5b73244a4006f1d827ebcfce82487c35ac18fcd7e",
+    "effective_metadata_sha256": "cf4991230c1c70a8aa693b92d45d8e9d0a5f2d23c8a10f590db8b09f6bf7d45a",
+    "consumer_evidence_sha256": "bd7775994f60781c8c44cc17471462a01d49543f43aa09dfef394f3f09395a30",
+    "model_domain_evidence_sha256": "72239dfdb368ea29feeae2a12f94347335fb347ee1579139f85d6c736f7d772e"
+  },
+  "canonical_action_count": 13,
+  "interpretation": "Original model/name IDs75..82 are projector parts. Primary WORD dispatch77/78/80 reaches wrappers8558/8564/857C, original BRA stubsB47C/B4CA/B4AC, then nearby cover364CE/turret36502/control-tower3654A. These routines add signed BYTE1F to model vertex selectorBYTE3, reverse1F on reaching10 orFF and clamp to9 or0. Global station_cycle_enabled_flag must be negative; this is an invocation gate, not seconds. Existing model77/78/80 header LONG18 points to exactly nine alternate-frame pointers in their declared variant regions. Renderer selector0 uses base,1..9 chooses alternatives0..8. Under input selector0..9 and step-1/0/1, the original BYTE transitions stay0..9; arbitrary incoming step/selector and viewer writes are not certified. Type79 Fuel Crystals instead increments BYTE3 and masks7, using base+seven alternates, ignoring1F in this callback. Original eight10-byte rebuilt-part templates contain types75..82; the spawn writes frame0 and1F0, or1 when network flag is negative. Network propagation explicitly checks each type75..82 before copying projector_network_complete_flag to1F; this is a network-controlled animation step, not an unrelated universal WorldObject1F field. Its original global flag values/caller assumptions remain conditional; no blanket promise all writers use only0/FF. Give ProjectorPart a WorldObject parent and one own BYTE1F, bind original three consumers plus guarded network store and template-based spawn. Preserve frame record geometry, uninterpreted WORD+6, all bytes, pointer extents and original/update domain identities. No new emulator path, lifecycle/alias closure, relocation or generated-source editing.",
+  "model_domains": {
+    "placement_types": [
+      75,
+      76,
+      77,
+      78,
+      79,
+      80,
+      81,
+      82
+    ],
+    "models": [
+      {
+        "type": 77,
+        "header_runtime": 103124,
+        "variant_table_runtime": 160988,
+        "alternate_count": 9,
+        "pointers": [
+          160700,
+          160732,
+          160764,
+          160796,
+          160828,
+          160860,
+          160892,
+          160924,
+          160956
+        ],
+        "stored_role": "9 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with uninterpreted WORD +6, followed by frame pointer table"
+      },
+      {
+        "type": 78,
+        "header_runtime": 103148,
+        "variant_table_runtime": 161968,
+        "alternate_count": 9,
+        "pointers": [
+          161320,
+          161392,
+          161464,
+          161536,
+          161608,
+          161680,
+          161752,
+          161824,
+          161896
+        ],
+        "stored_role": "9 viewer-indexed variant frames, 9 encoded vertex records per frame; 8-byte stride with uninterpreted WORD +6, followed by frame pointer table"
+      },
+      {
+        "type": 79,
+        "header_runtime": 103172,
+        "variant_table_runtime": 162490,
+        "alternate_count": 7,
+        "pointers": [
+          162154,
+          162202,
+          162250,
+          162298,
+          162346,
+          162394,
+          162442
+        ],
+        "stored_role": "7 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninterpreted WORD +6, followed by frame pointer table"
+      },
+      {
+        "type": 80,
+        "header_runtime": 103196,
+        "variant_table_runtime": 163248,
+        "alternate_count": 9,
+        "pointers": [
+          162816,
+          162864,
+          162912,
+          162960,
+          163008,
+          163056,
+          163104,
+          163152,
+          163200
+        ],
+        "stored_role": "9 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninterpreted WORD +6, followed by frame pointer table"
+      }
+    ]
+  },
+  "field": {
+    "owner": "SG2ProjectorPart",
+    "parent": "SG2WorldObject",
+    "size": 68,
+    "offset": 31,
+    "type": "BYTE",
+    "name": "network_animation_step",
+    "meaning": "State copied by the projector network and used as a signed step by cover/turret/control-tower animation. Other part callbacks need not read it; it is not a universal object field."
+  },
+  "runtime_links": [
+    {
+      "type": 77,
+      "name": "Egron Projector Cover",
+      "primary_entry": 34136,
+      "branch_stub": 46204,
+      "decoded_helper": 222414
+    },
+    {
+      "type": 78,
+      "name": "Egron Projector Turret",
+      "primary_entry": 34148,
+      "branch_stub": 46282,
+      "decoded_helper": 222466
+    },
+    {
+      "type": 80,
+      "name": "Projector Control Tower",
+      "primary_entry": 34172,
+      "branch_stub": 46252,
+      "decoded_helper": 222538
+    }
+  ],
+  "frame_contract": {
+    "cover_turret_tower": "Under incoming selector0..9 and step-1/0/1, BYTE add plus equality tests10/FF reverse the step and clamp9/0. Endpoint repeats are retained. Selector0 means base geometry,1..9 select table entries0..8.",
+    "fuel_crystals": "When original station-cycle gate is negative, increment selector then mask7:0 base,1..7 the seven alternate frames. Does not read network step in this callback.",
+    "writers": "Original eight10-byte placement templates contain75..82. Spawn sets selector0, step0 or1; guarded network store copies the network flag only for75..82.",
+    "scope": "Callback/state relation and stored pointer-table extent, not an all-path input invariant, continuous animation, seconds/frame timing, universal viewer safety or observed runtime coverage."
+  },
+  "native_sites": [
+    {
+      "source_offset": 212530,
+      "runtime_address": 216626,
+      "operand": 1,
+      "root": "SG2ProjectorPart",
+      "provenance": "policy_seed"
+    },
+    {
+      "source_offset": 212542,
+      "runtime_address": 216638,
+      "operand": 1,
+      "root": "SG2ProjectorPart",
+      "provenance": "policy_seed"
+    },
+    {
+      "source_offset": 212782,
+      "runtime_address": 216878,
+      "operand": 1,
+      "root": "SG2ProjectorPart",
+      "provenance": "policy_seed"
+    },
+    {
+      "source_offset": 218324,
+      "runtime_address": 222420,
+      "operand": 0,
+      "root": "SG2ProjectorPart",
+      "provenance": "policy_seed"
+    },
+    {
+      "source_offset": 218340,
+      "runtime_address": 222436,
+      "operand": 0,
+      "root": "SG2ProjectorPart",
+      "provenance": "policy_seed"
+    },
+    {
+      "source_offset": 218354,
+      "runtime_address": 222450,
+      "operand": 0,
+      "root": "SG2ProjectorPart",
+      "provenance": "policy_seed"
+    },
+    {
+      "source_offset": 218376,
+      "runtime_address": 222472,
+      "operand": 0,
+      "root": "SG2ProjectorPart",
+      "provenance": "policy_seed"
+    },
+    {
+      "source_offset": 218392,
+      "runtime_address": 222488,
+      "operand": 0,
+      "root": "SG2ProjectorPart",
+      "provenance": "policy_seed"
+    },
+    {
+      "source_offset": 218406,
+      "runtime_address": 222502,
+      "operand": 0,
+      "root": "SG2ProjectorPart",
+      "provenance": "policy_seed"
+    },
+    {
+      "source_offset": 218448,
+      "runtime_address": 222544,
+      "operand": 0,
+      "root": "SG2ProjectorPart",
+      "provenance": "policy_seed"
+    },
+    {
+      "source_offset": 218464,
+      "runtime_address": 222560,
+      "operand": 0,
+      "root": "SG2ProjectorPart",
+      "provenance": "policy_seed"
+    },
+    {
+      "source_offset": 218478,
+      "runtime_address": 222574,
+      "operand": 0,
+      "root": "SG2ProjectorPart",
+      "provenance": "policy_seed"
+    }
+  ],
+  "before_after": {
+    "app_slot_ref_count": {
+      "before": 3383,
+      "after": 3383
+    },
+    "recovered_platform_typed_access_count": {
+      "before": 778,
+      "after": 803
+    },
+    "recovered_platform_unresolved_typed_access_count": {
+      "before": 212,
+      "after": 203
+    }
+  },
+  "validation": {
+    "native_and_vasm": {
+      "kind": "verification",
+      "framework_exact": true,
+      "target_id": "amiga_raw_starglider2_game",
+      "subject_revision": "9939840f095a6f9a5b8c33a3ca861075c7f22c7ae46fd50a60a43efd565357b7",
+      "status": "exact",
+      "exact": true,
+      "source_sha256": "a5958f82fef6f3be0dda794e78e33653b668fe648e6ae3f6ed866938075c65c0",
+      "source_path": "/workspace/pandora-original-delivery/stable-d15c2cf8/.runtime-state/restoration/eb04f545fb97451725a1c91ab5abf6f2e097614c45880db6edfb4ea5c3f6e2c2/a5958f82fef6f3be0dda794e78e33653b668fe648e6ae3f6ed866938075c65c0.s",
+      "source_package_sha256": null,
+      "original_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+      "original_size": 412736,
+      "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+      "rebuilt_path": "/workspace/pandora-original-delivery/stable-d15c2cf8/.runtime-state/restoration/eb04f545fb97451725a1c91ab5abf6f2e097614c45880db6edfb4ea5c3f6e2c2/662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9.bin",
+      "framework_status": "exact",
+      "failure_kinds": [],
+      "message": "",
+      "oracle": {
+        "oracle_id": "vasm",
+        "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+        "comparison_level": "oracle.full_file_match",
+        "assembler_status": "accepted",
+        "message": "oracle output matched original bytes"
+      },
+      "receipt_id": "96ae8541820494580ba3b8e62bfdb2580d5bd42d6ae804d26a1304f5c57d359c",
+      "revision": "a667341e9a75d7e4efa42b6b5a9a86be38e756e698bd2a394eb5257055c4e2e4"
+    },
+    "source_quality_diagnostics": 0,
+    "incomplete_analysis": [],
+    "generation_wall_seconds": 124.17416878399672,
+    "assets_unchanged": 57,
+    "required_headers": 14,
+    "framework_changed": false,
+    "focused_tests": "Existing shared implementation unchanged; its 69 focused/832 native checks remain applicable. Original data bounds/typed admission and changed whole-source exact builds qualify this canonical slice.",
+    "clean_standalone_build": {
+      "status": "pass",
+      "validated_target_git_tree": "17067286273340e27fc2d057cb66eedd11496935",
+      "receipt": {
+        "schema_version": 1,
+        "status": "pass",
+        "format": "raw_payload_not_AmigaDOS_HUNK",
+        "main_bytes": 412736,
+        "main_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+        "main_matches_original_identity": true,
+        "asset_count": 57,
+        "all_asset_source_slices_equal": true,
+        "decoded_view_inverse_exact": true,
+        "boot_copy_source_matches_resident_view": true,
+        "source_commit": "941fa64f21d0c7664bd894be8c223554c88874c2",
+        "assembler_sha256": "413e284020125f42709486dfe09907cab3dd9f3c2ea41017c190f8ea68f30825",
+        "flags": [
+          "-Fbin",
+          "-m68000",
+          "-no-opt"
+        ],
+        "outputs": [
+          {
+            "role": "original_main",
+            "filename": "Starglider2-original.raw",
+            "bytes": 412736,
+            "sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9"
+          },
+          {
+            "role": "decoded_analysis_view",
+            "filename": "protection-decoded-analysis.raw",
+            "bytes": 3548,
+            "sha256": "de8358853dd9ed9b006a23569bf393aa217ed3be3301a169465d80bfaf839922"
+          },
+          {
+            "role": "boot_installer_context",
+            "filename": "boot-selector-installer-context.raw",
+            "bytes": 40,
+            "sha256": "8d34852425e2e1bfa87b3febdfc74fb39e7c667e9d9ff73e17b594649e83b21b"
+          },
+          {
+            "role": "boot_resident_view",
+            "filename": "boot-selector-resident.raw",
+            "bytes": 20,
+            "sha256": "a26286a393713c046eff9dbaff15b20b26b171fa9e05fc9d538d16b0eddb6024"
+          }
+        ]
+      },
+      "recoverable_pandora_backups_verified": 16
+    }
+  },
+  "limits": [
+    "The network can replace the stored step between callbacks; no uninterrupted ping-pong timing is asserted.",
+    "Input-selector and step constraints, original flag values, valid template/free-list and caller context remain conditional.",
+    "No new Copperline run or all-viewer/arbitrary-input frame safety claim.",
+    "The opaque WORD+6 in each 8-byte vertex record stays uninterpreted.",
+    "Original and decoded runtime/source identities remain distinct; static incoming dispatch facts are not new runtime observations."
+  ],
+  "next": {
+    "group": "Remaining actor-specific state and original incoming paths",
+    "experiment": "Use current producer/consumer groups for non-projector BYTE1F/WORD24 variants. The inspected projector network flag already has native app access facts under symbol_name app_0AA7; canonical rendering resolves projector_network_complete_flag. This is distinct naming projection, not a demonstrated A6 propagation gap."
+  }
+}
