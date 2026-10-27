@@ -516,7 +516,7 @@ projector_network_complete_flag RS.B 1
 projector_growth_update_parity RS.B 1
 projector_part_presence_flags RS.B 56
 pending_bomb_bounce_sound RS.B 1
-app_0AE2 RS.B 1
+projector_mixed_state_scan_counter RS.B 1
 neutron_bomb_spawn_request RS.B 1
 neutron_bomb_retract_request RS.B 1
 model_type_population_counts RS.B 104
@@ -13598,11 +13598,11 @@ return_to_surface_layout:
 	st.b abs_0_0000C4CC.l
 abs_0_0000BE90:
 	bsr.w abs_0_0000E9C6
-	lea.l abs_0_00037B46.l,a2
+	lea.l world_projector_presence_flags.l,a2
 	move.w selected_celestial_body_index(a6),d0
 	tst.b $0(a2,d0.w)
 	bpl.w abs_0_0000BEAA
-	bsr.w abs_0_0000C4D0
+	bsr.w spawn_body_projectors_platform_entry
 abs_0_0000BEAA:
 	tst.b abs_0_0000C4CC.l
 	bpl.b abs_0_0000BEB6
@@ -14030,7 +14030,7 @@ narrow_structure_profile_z_offsets:
 	dcb.b $2C,$00
 abs_0_0000C4CC:
 	dc.b $00,$00,$00,$00
-abs_0_0000C4D0:
+spawn_body_projectors_platform_entry:
 	jmp spawn_selected_body_projector_parts.l
 abs_0_0000C4D6:
 	jmp handle_neutron_bomb_detonation.l
@@ -43197,7 +43197,7 @@ abs_0_00033B7C:
 	move.l $0(a0,d0.w),solice_display_radius(a6)
 	move.b #$3,solice_drift_quarter_rate_counter(a6)
 	move.b #$7,diagnostic_step_byte.l
-	lea.l abs_0_00037B46.l,a0
+	lea.l world_projector_presence_flags.l,a0
 	move.w selected_celestial_body_index(a6),d0
 	tst.b $0(a0,d0.w)
 	bpl.b abs_0_00033BE2
@@ -44291,7 +44291,7 @@ advance_projector_station_cycle_continuation:
 	move.b #$59,diagnostic_step_byte.l
 	tst.b space_environment_flag(a6)
 	bmi.b abs_0_00034AC4
-	lea.l abs_0_00037B46.l,a0
+	lea.l world_projector_presence_flags.l,a0
 	move.w selected_celestial_body_index(a6),d0
 	tst.b $0(a0,d0.w)
 	beq.b abs_0_00034AC4
@@ -44318,13 +44318,13 @@ abs_0_00034ACC:
 	bpl.b advance_station_event_cadence_continuation
 	addq.w #1,station_space_half_rate_toggle(a6)
 	andi.w #1,station_space_half_rate_toggle(a6)
-	bne.w abs_0_00034F3E
+	bne.w reconcile_nearby_projector_parts_continuation
     ; Mask WORD event tick after optional space half-rate toggle. Original CLR.L initializers overlap following WORDs; named WORD counters do not erase those writes.
 advance_station_event_cadence_continuation:
 	addq.w #1,station_event_tick_counter(a6)
 	move.w station_event_cadence_mask(a6),d0
 	and.w d0,station_event_tick_counter(a6)
-	bne.w abs_0_00034F3E
+	bne.w reconcile_nearby_projector_parts_continuation
 	move.b #$60,diagnostic_step_byte.l
 	lea.l projector_part_presence_flags(a6),a0
 	move.w #$37,d0
@@ -44371,7 +44371,7 @@ advance_station_construction_continuation:
 	subq.w #1,station_construction_steps_remaining(a6)
 	bpl.b abs_0_00034BAC
 	move.w #$FFFF,station_construction_steps_remaining(a6)
-	bra.w abs_0_00034F3E
+	bra.w reconcile_nearby_projector_parts_continuation
 abs_0_00034BAC:
 	move.w station_construction_steps_remaining(a6),d0
 	move.w #$34,d2
@@ -44381,7 +44381,7 @@ abs_0_00034BAC:
 	lea.l model_header_pointers.l,a0
 	movea.l $0(a0,d1.w),a0
 	move.w d2,$0002(a0)
-	bra.w abs_0_00034F3E
+	bra.w reconcile_nearby_projector_parts_continuation
 advance_station_charge_continuation:
 	tst.w station_charge_steps_remaining(a6)
 	bmi.b check_station_firing_completion_continuation
@@ -44399,9 +44399,9 @@ advance_station_charge_continuation:
 	bsr.w enqueue_message_if_outside_structure
 	bsr.w enqueue_blank_event_message_line
 	subq.w #1,station_charge_steps_remaining(a6)
-	bpl.w abs_0_00034F3E
+	bpl.w reconcile_nearby_projector_parts_continuation
 	move.w #$FFFF,station_charge_steps_remaining(a6)
-	bra.w abs_0_00034F3E
+	bra.w reconcile_nearby_projector_parts_continuation
     ; After construction and charging reach -1, advance firing to -1; next eligible cycle clears enable and reports Novenia destruction. This is source state flow, not observed game completion.
 check_station_firing_completion_continuation:
 	tst.w station_firing_steps_remaining(a6)
@@ -44426,9 +44426,9 @@ advance_station_firing_continuation:
 	bsr.w enqueue_message_if_outside_structure
 	bsr.w enqueue_blank_event_message_line
 	subq.w #1,station_firing_steps_remaining(a6)
-	bpl.w abs_0_00034F3E
+	bpl.w reconcile_nearby_projector_parts_continuation
 	move.w #$FFFF,station_firing_steps_remaining(a6)
-	bra.w abs_0_00034F3E
+	bra.w reconcile_nearby_projector_parts_continuation
 handle_missing_projector_part_continuation:
 	cmpi.w #$FFFF,station_charge_steps_remaining(a6)
 	bne.b abs_0_00034C8C
@@ -44569,9 +44569,9 @@ abs_0_00034E74:
 	dbf.w d7,spawn_rebuilt_projector_part_loop
 abs_0_00034E78:
 	subq.w #1,projector_rebuild_cursor(a6)
-	bpl.w abs_0_00034F3E
+	bpl.w reconcile_nearby_projector_parts_continuation
 	move.w #$37,projector_rebuild_cursor(a6)
-	bra.w abs_0_00034F3E
+	bra.w reconcile_nearby_projector_parts_continuation
 abs_0_00034E8A:
 	lea.l event_message_pointers.l,a1
 	move.w #$F,d0
@@ -44594,7 +44594,7 @@ abs_0_00034E8A:
 	move.l a1,station_report_secondary_message(a6)
 	bsr.w enqueue_message_if_outside_structure
 	bsr.w enqueue_blank_event_message_line
-	bra.w abs_0_00034F3E
+	bra.w reconcile_nearby_projector_parts_continuation
     ; Copy network BYTE to object1F only for types75..82 across250 records. Other object types keep their state; original sign/nonzero tests are not normalized.
 propagate_projector_network_state:
 	lea.l world_object_pool(a6),a0
@@ -44627,14 +44627,15 @@ abs_0_00034F2E:
 	dbf.w d1,abs_0_00034EF0
 abs_0_00034F3C:
 	rts
-abs_0_00034F3E:
+    ; With nearby objects, advance modulo32 invocation counter. Negative body flag and both phase signs among types75..82 gate reconciliation; cadence is not seconds.
+reconcile_nearby_projector_parts_continuation:
 	move.b #$64,diagnostic_step_byte.l
 	tst.w nearby_object_count(a6)
 	beq.w update_tractor_target_continuation
-	addq.b #1,app_0AE2(a6)
-	andi.b #31,app_0AE2(a6)
+	addq.b #1,projector_mixed_state_scan_counter(a6)
+	andi.b #31,projector_mixed_state_scan_counter(a6)
 	bne.w abs_0_00035034
-	lea.l abs_0_00037B46.l,a0
+	lea.l world_projector_presence_flags.l,a0
 	move.w selected_celestial_body_index(a6),d0
 	tst.b $0(a0,d0.w)
 	bpl.w abs_0_00035034
@@ -44642,7 +44643,7 @@ abs_0_00034F3E:
 	beq.w abs_0_00035034
 	subq.w #1,d0
 	movea.l nearby_objects_cursor(a6),a0
-abs_0_00034F7C:
+find_nonnegative_phase_projector_part:
 	movea.l (a0)+,a1
 	tst.b $001E(a1)
 	bmi.b abs_0_00034F92
@@ -44652,14 +44653,14 @@ abs_0_00034F7C:
 	cmp.w #$52,d1
 	ble.b abs_0_00034F9A
 abs_0_00034F92:
-	dbf.w d0,abs_0_00034F7C
+	dbf.w d0,find_nonnegative_phase_projector_part
 	bra.w abs_0_00035034
 abs_0_00034F9A:
 	move.w nearby_object_count(a6),d0
 	beq.w abs_0_00035034
 	subq.w #1,d0
 	movea.l nearby_objects_cursor(a6),a0
-abs_0_00034FA8:
+find_negative_phase_projector_part:
 	movea.l (a0)+,a1
 	tst.b $001E(a1)
 	bpl.b abs_0_00034FBE
@@ -44667,11 +44668,12 @@ abs_0_00034FA8:
 	cmp.w #$4B,d1
 	blt.b abs_0_00034FBE
 	cmp.w #$52,d1
-	ble.b abs_0_00034FC4
+	ble.b retire_mixed_projector_neighborhood
 abs_0_00034FBE:
-	dbf.w d0,abs_0_00034FA8
+	dbf.w d0,find_negative_phase_projector_part
 	bra.b abs_0_00035034
-abs_0_00034FC4:
+    ; Original body8..14 maps to rows6..0 of eight presence bytes. Retire parts75..82 plus type91 only after mixed-phase tests; type91 skips the presence update.
+retire_mixed_projector_neighborhood:
 	move.w nearby_object_count(a6),d0
 	beq.b abs_0_00035034
 	subq.w #1,d0
@@ -44683,24 +44685,25 @@ abs_0_00034FC4:
 	move.w #$6,d2
 	sub.w d1,d2
 	asl.w #3,d2
-abs_0_00034FE8:
+scan_projector_neighborhood_retirement:
 	movea.l (a0)+,a1
 	move.w (a1),d1
 	move.w d1,d4
 	cmp.w #$5B,d1
-	beq.b abs_0_00035010
+	beq.b retire_projector_or_type91_and_award
 	cmp.w #$4B,d1
 	blt.b abs_0_00035000
 	cmp.w #$52,d1
-	ble.b abs_0_00035006
+	ble.b clear_retired_projector_presence
 abs_0_00035000:
-	dbf.w d0,abs_0_00034FE8
+	dbf.w d0,scan_projector_neighborhood_retirement
 	bra.b abs_0_00035034
-abs_0_00035006:
+clear_retired_projector_presence:
 	subi.w #75,d4
 	add.w d2,d4
 	sf.b $0(a2,d4.w)
-abs_0_00035010:
+    ; Clear phase1E/behavior1C and flag bits2/3, then add the original type BCD award. This source path is not proof of player kills or observed mission completion.
+retire_projector_or_type91_and_award:
 	clr.b $001E(a1)
 	bclr.b #2,$0002(a1)
 	bclr.b #3,$0002(a1)
@@ -44709,7 +44712,7 @@ abs_0_00035010:
 	add.w d3,d3
 	move.w $0(a3,d3.w),d3
 	add.w d3,pending_bcd_score_addend(a6)
-	dbf.w d0,abs_0_00034FE8
+	dbf.w d0,scan_projector_neighborhood_retirement
 abs_0_00035034:
 	move.b #$67,diagnostic_step_byte.l
 	tst.b space_environment_flag(a6)
@@ -47531,7 +47534,7 @@ abs_0_0003778E:
 	bpl.b abs_0_000377A0
 	sf.b $0(a0,d0.w)
 abs_0_000377A0:
-	bra.w abs_0_00034F3E
+	bra.w reconcile_nearby_projector_parts_continuation
     ; Sum104 unsigned per-model count BYTEs except12/91/98/84. Store WORD total and LSL.W5 copy; preserve wrap and valid app-base assumptions. Not all-live or threat count.
 recompute_counted_model_population:
 	movem.l d0-d1/a1,-(a7)
@@ -47746,9 +47749,10 @@ projector_part_placement_templates:
 	dc.w $0052	; object_type
 	dc.l $00007000	; world_x
 	dc.l $00007000	; world_z
-abs_0_00037B46:
+world_projector_presence_flags:
 	dcb.b $8,$00
-	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$FF,$00,$00
+	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$FF,$00
+	dc.b $00
 abs_0_00037B57:
 	dc.b $00
 world_atmosphere_presence_flags:

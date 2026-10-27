@@ -1,0 +1,261 @@
+{
+  "schema_version": 1,
+  "kind": "original_projector_neighborhood_producer_consumer_contract",
+  "status": "qualified_batch_restoration_continues",
+  "publication_base_commit": "87abac33074a7bf99fb6816ba246207d5e7cb3c4",
+  "input": {
+    "binary_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "backend_sha256": "dbd83c6105f9021e61fa1c1294327f52ff703c331857b9e18d768708c9702ed9",
+    "analysis_sha256": "9671e6df8876f3ce010232f908b429328798ba204face50d76b84f5f3b47b4ff",
+    "inline_source_sha256": "27a6e636f2118e5d68be591eb53c0ee448493942ed3f9ff22bd499b85cf8fd81",
+    "effective_metadata_sha256": "39ceb402ad8f24bdf042d45438cb22bd43ada12e2d94dca833a290162d96b044",
+    "consumer_evidence_sha256": "4c2f346babe4bf63a9d7645b823800d8584bbe542bd9f17e41cae8d9ac75d4a7"
+  },
+  "canonical_actions": 13,
+  "interpretation": {
+    "action_start": 2925,
+    "action_count": 13,
+    "reason": "Four original consumers identify body-indexed projector-presence BYTEs at37B46: surface return, body construction, growth, and mixed-neighborhood reconciliation. The16-byte original body prefix is zero0..7/15, FF8..14; no bound on arbitrary higher selectors or adjacent bytes is claimed. Active selected-body values8..14 produce row6-(body-8) into56 presence flags, with8 part types75..82. At34F3E, nearby count must be nonzero before appAE2 increments and is masked31; processing occurs only on wrap, so the BYTE is an invocation cadence counter, not seconds or a universally per-frame timer. With original negative presence flag, two scans require BOTH a nonnegative-phase projector part and a negative-phase projector part in nearby list. Only then loop retires type75..82 and type91: clears phase1E and behavior1C, clears flag bits2/3 at2, adds original destruction BCD award. For75..82 only it also clears presence[row*8+type-75]. Type91 bypasses that presence update. These are original normal-list/app-base/type/caller assumptions, not arbitrary-object bounds, observed player victory or new gameplay. The two bytes after the16-byte flag prefix remain unclassified; no heuristic table-extent inflation.",
+    "labels": [
+      [
+        50384,
+        "spawn_body_projectors_platform_entry"
+      ],
+      [
+        216894,
+        "reconcile_nearby_projector_parts_continuation"
+      ],
+      [
+        216956,
+        "find_nonnegative_phase_projector_part"
+      ],
+      [
+        217000,
+        "find_negative_phase_projector_part"
+      ],
+      [
+        217028,
+        "retire_mixed_projector_neighborhood"
+      ],
+      [
+        217064,
+        "scan_projector_neighborhood_retirement"
+      ],
+      [
+        217094,
+        "clear_retired_projector_presence"
+      ],
+      [
+        217104,
+        "retire_projector_or_type91_and_award"
+      ]
+    ],
+    "consumer_source_offsets": [
+      44692,
+      207814,
+      211584,
+      212828
+    ]
+  },
+  "body_flags": {
+    "runtime_start": 228166,
+    "stored_prefix_bytes": 16,
+    "zero_indices": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      15
+    ],
+    "negative_indices": [
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14
+    ],
+    "consumer_source_offsets": [
+      44692,
+      207814,
+      211584,
+      212828
+    ],
+    "roles": [
+      "Surface return calls the existing platform projector-spawn entry for a negative flag.",
+      "Body construction spawns the selected body projector parts for a negative flag.",
+      "Growth continuation uses the same presence bytes with original nonzero and environment tests.",
+      "Neighborhood reconciliation requires a negative flag."
+    ],
+    "limits": "The16-entry physical body prefix is declared; the following two original zero bytes are not absorbed. No arbitrary higher selector bound, live reader or universal table immutability is asserted."
+  },
+  "neighborhood_scan": {
+    "runtime_entry": 216894,
+    "app_counter": 2786,
+    "counter_period": 32,
+    "counter_basis": "Eligible invocations having nonzero nearby count, not seconds and not unconditionally every frame.",
+    "eligibility": "Original station-cycle/caller paths; negative body presence flag and both nonnegative-phase and negative-phase type75..82 records must be present in nearby list.",
+    "row_formula": "6 - (selected_body - 8)",
+    "row_domain": "Original negative prefix entries8..14 produce rows6..0.",
+    "presence_index_formula": "8*row + (object_type-75)",
+    "presence_index_domain": [
+      0,
+      55
+    ],
+    "retired_types": [
+      75,
+      76,
+      77,
+      78,
+      79,
+      80,
+      81,
+      82,
+      91
+    ],
+    "type91": "Original name directory identifies bouncing bomb; it uses common retirement/award path but bypasses projector presence update.",
+    "effects": [
+      "Types75..82 clear their corresponding part-presence byte.",
+      "All admitted types clear phase1E and behavior1C and clear flags2/3 at2.",
+      "Add original object-type BCD destruction award to pending score addend."
+    ],
+    "not_claimed": "No arbitrary list/type/body validation, player kill interpretation, observed mission completion or new frame timing."
+  },
+  "before_after": {
+    "app_slot_ref_count": {
+      "before": 3383,
+      "after": 3383
+    },
+    "recovered_platform_typed_access_count": {
+      "before": 390,
+      "after": 390
+    },
+    "recovered_platform_unresolved_typed_access_count": {
+      "before": 303,
+      "after": 303
+    }
+  },
+  "generic_app_fields": {
+    "before": 33,
+    "after": 32
+  },
+  "classification": {
+    "before_unclassified_bytes": 13943,
+    "after_unclassified_bytes": 13927,
+    "intervals": 263,
+    "newly_classified_bytes": 16,
+    "accepted_code_bytes": 106034,
+    "unresolved_orphans": 30,
+    "new_code_promoted": 0
+  },
+  "validation": {
+    "native_and_vasm": {
+      "kind": "verification",
+      "framework_exact": true,
+      "target_id": "amiga_raw_starglider2_game",
+      "subject_revision": "98430d7c451bcd48a0fbfae1812c5edf000b34d13f5d8a565bebf86cac50ad53",
+      "status": "exact",
+      "exact": true,
+      "source_sha256": "27a6e636f2118e5d68be591eb53c0ee448493942ed3f9ff22bd499b85cf8fd81",
+      "source_path": "/workspace/pandora-original-delivery/stable-d15c2cf8/.runtime-state/restoration/eb04f545fb97451725a1c91ab5abf6f2e097614c45880db6edfb4ea5c3f6e2c2/27a6e636f2118e5d68be591eb53c0ee448493942ed3f9ff22bd499b85cf8fd81.s",
+      "source_package_sha256": null,
+      "original_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+      "original_size": 412736,
+      "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+      "rebuilt_path": "/workspace/pandora-original-delivery/stable-d15c2cf8/.runtime-state/restoration/eb04f545fb97451725a1c91ab5abf6f2e097614c45880db6edfb4ea5c3f6e2c2/662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9.bin",
+      "framework_status": "exact",
+      "failure_kinds": [],
+      "message": "",
+      "oracle": {
+        "oracle_id": "vasm",
+        "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+        "comparison_level": "oracle.full_file_match",
+        "assembler_status": "accepted",
+        "message": "oracle output matched original bytes"
+      },
+      "receipt_id": "38b359d276706f9aba8cc8df0b8a46c8d209efe3764588ee504260ea1928bf53",
+      "revision": "5bba497972196d02d27fe0eab6313f1e1f58f12db38abca10dad28e87c59c354"
+    },
+    "source_quality_diagnostics": 0,
+    "incomplete_analysis": [],
+    "generation_wall_seconds": 156.71337607200257,
+    "assets_unchanged": 57,
+    "required_headers": 14,
+    "framework_tests": "No framework code changed after87abac33; its832 native and six copy-footprint tests are not rerun for these target facts.",
+    "consumer_pages_complete": true,
+    "clean_standalone_build": {
+      "status": "pass",
+      "validated_target_git_tree": "16e699abcf97f41046a723e21e1719a6b77001d3",
+      "receipt": {
+        "schema_version": 1,
+        "status": "pass",
+        "format": "raw_payload_not_AmigaDOS_HUNK",
+        "main_bytes": 412736,
+        "main_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+        "main_matches_original_identity": true,
+        "asset_count": 57,
+        "all_asset_source_slices_equal": true,
+        "decoded_view_inverse_exact": true,
+        "boot_copy_source_matches_resident_view": true,
+        "source_commit": "87abac33074a7bf99fb6816ba246207d5e7cb3c4",
+        "assembler_sha256": "413e284020125f42709486dfe09907cab3dd9f3c2ea41017c190f8ea68f30825",
+        "flags": [
+          "-Fbin",
+          "-m68000",
+          "-no-opt"
+        ],
+        "outputs": [
+          {
+            "role": "original_main",
+            "filename": "Starglider2-original.raw",
+            "bytes": 412736,
+            "sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9"
+          },
+          {
+            "role": "decoded_analysis_view",
+            "filename": "protection-decoded-analysis.raw",
+            "bytes": 3548,
+            "sha256": "de8358853dd9ed9b006a23569bf393aa217ed3be3301a169465d80bfaf839922"
+          },
+          {
+            "role": "boot_installer_context",
+            "filename": "boot-selector-installer-context.raw",
+            "bytes": 40,
+            "sha256": "8d34852425e2e1bfa87b3febdfc74fb39e7c667e9d9ff73e17b594649e83b21b"
+          },
+          {
+            "role": "boot_resident_view",
+            "filename": "boot-selector-resident.raw",
+            "bytes": 20,
+            "sha256": "a26286a393713c046eff9dbaff15b20b26b171fa9e05fc9d538d16b0eddb6024"
+          }
+        ]
+      },
+      "recoverable_pandora_backups_verified": 16
+    }
+  },
+  "limits": [
+    "No new emulator run, live save/load, media modification or guest-state forcing.",
+    "The native73 table contracts/155 consumer records remain unchanged: this BYTE flag prefix is source storage, not a newly recovered pointer/dispatch directory.",
+    "32 generic app fields,303 unresolved typed accesses,30 orphan islands and13927 unclassified bytes remain; these are separate accounting dimensions.",
+    "Save-copy cross-field enclosing-owner admission remains a measured separate limitation from the preceding batch."
+  ],
+  "next": [
+    {
+      "group": "World-object orientation/phase fields",
+      "evidence": "82 field-gap accesses at offsets10/12/14 span SG2WorldObject and SG2CelestialObject. Most occur in specific update callbacks; some dynamic effects also use those words.",
+      "experiment": "Group original producer/consumer and constructor/callback contexts. Recover a variant/phase contract where justified rather than universally naming every reused word as orientation.",
+      "reason": "Repeated offset alone does not establish common semantics across projectile/effect/model variants."
+    },
+    {
+      "group": "Shared workspace ownership",
+      "experiment": "Explicitly bind existing canonical enclosing region to layout if needed for cross-leaf range admission; preserve physical aliases and lifetime restrictions.",
+      "reason": "Current save-copy transfer is understood but full owner envelope properly refuses; no giant leaf, adjacency guess or parallel owner model is introduced."
+    }
+  ]
+}

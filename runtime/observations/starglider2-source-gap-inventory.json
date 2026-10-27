@@ -2,7 +2,7 @@
   "schema_version": 2,
   "kind": "source_gap_discovery_not_fact_admission",
   "canonical_policy_items": {
-    "policy:15765": {
+    "policy:15766": {
       "section_index": 0,
       "offset": 235820,
       "size": 12,
@@ -27,7 +27,7 @@
       "target_section": null,
       "target_offset": null
     },
-    "policy:15766": {
+    "policy:15767": {
       "section_index": 0,
       "offset": 235832,
       "size": 12,
@@ -152,7 +152,7 @@
       "target_section": null,
       "target_offset": null
     },
-    "policy:15618": {
+    "policy:15619": {
       "section_index": 0,
       "offset": 229666,
       "size": 4,
@@ -227,7 +227,7 @@
       "target_section": null,
       "target_offset": null
     },
-    "policy:15781": {
+    "policy:15782": {
       "section_index": 0,
       "offset": 254226,
       "size": 32,
@@ -252,7 +252,7 @@
       "target_section": null,
       "target_offset": null
     },
-    "policy:15776": {
+    "policy:15777": {
       "section_index": 0,
       "offset": 249230,
       "size": 32,
@@ -277,7 +277,7 @@
       "target_section": null,
       "target_offset": null
     },
-    "policy:15329": {
+    "policy:15330": {
       "section_index": 0,
       "offset": 224104,
       "size": 4,
@@ -302,7 +302,7 @@
       "target_section": 0,
       "target_offset": 224452
     },
-    "policy:15330": {
+    "policy:15331": {
       "section_index": 0,
       "offset": 224104,
       "size": 348,
@@ -427,7 +427,7 @@
       "target_section": null,
       "target_offset": null
     },
-    "policy:15762": {
+    "policy:15763": {
       "section_index": 0,
       "offset": 232676,
       "size": 8,
@@ -452,7 +452,7 @@
       "target_section": null,
       "target_offset": null
     },
-    "policy:15529": {
+    "policy:15530": {
       "section_index": 0,
       "offset": 226920,
       "size": 32,
@@ -552,7 +552,7 @@
       "target_section": 0,
       "target_offset": 187348
     },
-    "policy:16329": {
+    "policy:16330": {
       "section_index": 0,
       "offset": 311912,
       "size": 2,
@@ -577,7 +577,7 @@
       "target_section": null,
       "target_offset": null
     },
-    "policy:16328": {
+    "policy:16329": {
       "section_index": 0,
       "offset": 311910,
       "size": 2,
@@ -602,7 +602,7 @@
       "target_section": null,
       "target_offset": null
     },
-    "policy:16410": {
+    "policy:16411": {
       "section_index": 0,
       "offset": 317770,
       "size": 2,
@@ -627,7 +627,7 @@
       "target_section": null,
       "target_offset": null
     },
-    "policy:15504": {
+    "policy:15505": {
       "section_index": 0,
       "offset": 226564,
       "size": 4,
@@ -677,7 +677,7 @@
       "target_section": null,
       "target_offset": null
     },
-    "policy:15623": {
+    "policy:15624": {
       "section_index": 0,
       "offset": 230126,
       "size": 224,
@@ -702,7 +702,7 @@
       "target_section": null,
       "target_offset": null
     },
-    "policy:15622": {
+    "policy:15623": {
       "section_index": 0,
       "offset": 229902,
       "size": 224,
@@ -752,7 +752,7 @@
       "target_section": null,
       "target_offset": null
     },
-    "policy:15791": {
+    "policy:15792": {
       "section_index": 0,
       "offset": 263864,
       "size": 400,
@@ -827,7 +827,7 @@
       "target_section": null,
       "target_offset": null
     },
-    "policy:15520": {
+    "policy:15521": {
       "section_index": 0,
       "offset": 226628,
       "size": 64,
@@ -852,7 +852,7 @@
       "target_section": null,
       "target_offset": null
     },
-    "policy:15521": {
+    "policy:15522": {
       "section_index": 0,
       "offset": 226628,
       "size": 348,
@@ -877,7 +877,7 @@
       "target_section": null,
       "target_offset": null
     },
-    "policy:15522": {
+    "policy:15523": {
       "section_index": 0,
       "offset": 226692,
       "size": 128,
@@ -1152,7 +1152,7 @@
       "target_section": null,
       "target_offset": null
     },
-    "policy:15659": {
+    "policy:15660": {
       "section_index": 0,
       "offset": 231174,
       "size": 64,
@@ -3752,7 +3752,7 @@
       "target_section": null,
       "target_offset": null
     },
-    "policy:16436": {
+    "policy:16437": {
       "section_index": 0,
       "offset": 317834,
       "size": 4,
@@ -3777,7 +3777,7 @@
       "target_section": 0,
       "target_offset": 318138
     },
-    "policy:16442": {
+    "policy:16443": {
       "section_index": 0,
       "offset": 317858,
       "size": 4,
@@ -3802,7 +3802,7 @@
       "target_section": 0,
       "target_offset": 318298
     },
-    "policy:16446": {
+    "policy:16447": {
       "section_index": 0,
       "offset": 317874,
       "size": 4,
@@ -3827,7 +3827,7 @@
       "target_section": 0,
       "target_offset": 318426
     },
-    "policy:16449": {
+    "policy:16450": {
       "section_index": 0,
       "offset": 317886,
       "size": 4,
@@ -3852,7 +3852,7 @@
       "target_section": 0,
       "target_offset": 319098
     },
-    "policy:16452": {
+    "policy:16453": {
       "section_index": 0,
       "offset": 317898,
       "size": 4,
@@ -3877,7 +3877,7 @@
       "target_section": 0,
       "target_offset": 319930
     },
-    "policy:16492": {
+    "policy:16493": {
       "section_index": 0,
       "offset": 318058,
       "size": 4,
@@ -5810,8 +5810,8 @@
       "unresolved": 30,
       "suppressed": 5
     },
-    "generic_base_layout_fields": 33,
-    "generic_base_symbols": 33,
+    "generic_base_layout_fields": 32,
+    "generic_base_symbols": 32,
     "homogeneous_pointer_record_arrays": 10,
     "array_projection_mechanisms": {
       "collection_contract_exposed": 10
@@ -7093,7 +7093,7 @@
         }
       ],
       "canonical_item_ids": [
-        "policy:15765"
+        "policy:15766"
       ],
       "canonical_entities": [
         {
@@ -7164,7 +7164,7 @@
         }
       ],
       "canonical_item_ids": [
-        "policy:15766"
+        "policy:15767"
       ],
       "canonical_entities": [
         {
@@ -7810,7 +7810,7 @@
         }
       ],
       "canonical_item_ids": [
-        "policy:15618"
+        "policy:15619"
       ],
       "canonical_entities": [
         {
@@ -9945,7 +9945,7 @@
         }
       ],
       "canonical_item_ids": [
-        "policy:15781"
+        "policy:15782"
       ],
       "canonical_entities": [
         {
@@ -10203,7 +10203,7 @@
         }
       ],
       "canonical_item_ids": [
-        "policy:15776"
+        "policy:15777"
       ],
       "canonical_entities": [
         {
@@ -10659,8 +10659,8 @@
         }
       ],
       "canonical_item_ids": [
-        "policy:15329",
-        "policy:15330"
+        "policy:15330",
+        "policy:15331"
       ],
       "canonical_entities": [
         {
@@ -13051,7 +13051,7 @@
         }
       ],
       "canonical_item_ids": [
-        "policy:15762"
+        "policy:15763"
       ],
       "canonical_entities": [
         {
@@ -13133,7 +13133,7 @@
         }
       ],
       "canonical_item_ids": [
-        "policy:15529"
+        "policy:15530"
       ],
       "canonical_entities": [
         {
@@ -13557,7 +13557,7 @@
         }
       ],
       "canonical_item_ids": [
-        "policy:16329"
+        "policy:16330"
       ],
       "canonical_entities": [
         {
@@ -13650,7 +13650,7 @@
         }
       ],
       "canonical_item_ids": [
-        "policy:16328"
+        "policy:16329"
       ],
       "canonical_entities": [
         {
@@ -13743,7 +13743,7 @@
         }
       ],
       "canonical_item_ids": [
-        "policy:16410"
+        "policy:16411"
       ],
       "canonical_entities": [
         {
@@ -13859,7 +13859,7 @@
         }
       ],
       "canonical_item_ids": [
-        "policy:15504"
+        "policy:15505"
       ],
       "canonical_entities": [
         {
@@ -15644,7 +15644,7 @@
         }
       ],
       "canonical_item_ids": [
-        "policy:15623"
+        "policy:15624"
       ],
       "canonical_entities": [
         {
@@ -15784,7 +15784,7 @@
         }
       ],
       "canonical_item_ids": [
-        "policy:15622"
+        "policy:15623"
       ],
       "canonical_entities": [
         {
@@ -15926,7 +15926,7 @@
         }
       ],
       "canonical_item_ids": [
-        "policy:15791"
+        "policy:15792"
       ],
       "canonical_entities": [
         {
@@ -18373,8 +18373,8 @@
         }
       ],
       "canonical_item_ids": [
-        "policy:15520",
-        "policy:15521"
+        "policy:15521",
+        "policy:15522"
       ],
       "canonical_entities": [
         {
@@ -18469,7 +18469,7 @@
         }
       ],
       "canonical_item_ids": [
-        "policy:15522"
+        "policy:15523"
       ],
       "canonical_entities": [
         {
@@ -19908,7 +19908,7 @@
         }
       ],
       "canonical_item_ids": [
-        "policy:15659"
+        "policy:15660"
       ],
       "canonical_entities": [
         {
@@ -21260,53 +21260,6 @@
           "access": "write",
           "base_evidence": "a6_fallback",
           "symbol_name": "app_09B8"
-        }
-      ],
-      "address_consumers": []
-    },
-    {
-      "domain": "base_layout",
-      "field": {
-        "layout_name": "app",
-        "base_symbol": "__amiga_app_base__",
-        "sizeof_symbol": "app_SIZEOF",
-        "symbol": "app_0AE2",
-        "owner_struct_name": null,
-        "offset": 2786,
-        "size": 1,
-        "alias": false,
-        "layout_kind": 1,
-        "source_kind": 1,
-        "source_kind_name": "app_slot_access",
-        "value_kind": 3,
-        "confidence": 2,
-        "conflicted": false,
-        "conflict_reason": null,
-        "alias_of_symbol": null,
-        "alias_of_offset": null,
-        "source_section_index": 0,
-        "source_offset": 212814
-      },
-      "app_accesses": [
-        {
-          "section_index": 0,
-          "offset": 212814,
-          "displacement": 2786,
-          "base_register": "A6",
-          "operand_index": 1,
-          "access": "read-write",
-          "base_evidence": "a6_fallback",
-          "symbol_name": "app_0AE2"
-        },
-        {
-          "section_index": 0,
-          "offset": 212818,
-          "displacement": 2786,
-          "base_register": "A6",
-          "operand_index": 1,
-          "access": "read-write",
-          "base_evidence": "a6_fallback",
-          "symbol_name": "app_0AE2"
         }
       ],
       "address_consumers": []
@@ -29208,7 +29161,7 @@
       "evidence": "native_rendered_target_identity",
       "canonical_layout_id": "catalog-93699fe979424047a84698903fc03dd4",
       "target_policy_item_ids": [
-        "policy:16436"
+        "policy:16437"
       ]
     },
     {
@@ -29222,7 +29175,7 @@
       "evidence": "native_rendered_target_identity",
       "canonical_layout_id": "catalog-93699fe979424047a84698903fc03dd4",
       "target_policy_item_ids": [
-        "policy:16442"
+        "policy:16443"
       ]
     },
     {
@@ -29236,7 +29189,7 @@
       "evidence": "native_rendered_target_identity",
       "canonical_layout_id": "catalog-93699fe979424047a84698903fc03dd4",
       "target_policy_item_ids": [
-        "policy:16446"
+        "policy:16447"
       ]
     },
     {
@@ -29250,7 +29203,7 @@
       "evidence": "native_rendered_target_identity",
       "canonical_layout_id": "catalog-93699fe979424047a84698903fc03dd4",
       "target_policy_item_ids": [
-        "policy:16449"
+        "policy:16450"
       ]
     },
     {
@@ -29264,7 +29217,7 @@
       "evidence": "native_rendered_target_identity",
       "canonical_layout_id": "catalog-93699fe979424047a84698903fc03dd4",
       "target_policy_item_ids": [
-        "policy:16452"
+        "policy:16453"
       ]
     },
     {
@@ -29278,7 +29231,7 @@
       "evidence": "native_rendered_target_identity",
       "canonical_layout_id": "catalog-93699fe979424047a84698903fc03dd4",
       "target_policy_item_ids": [
-        "policy:16492"
+        "policy:16493"
       ]
     }
   ],
@@ -40684,9 +40637,9 @@
     "Native rendered accesses describe the inline export. exported_definition checks the selected source; INCBIN packaging may intentionally hide internal boundaries."
   ],
   "input_sha256": {
-    "analysis": "fb555a2d6ca9ff99084c8247522aec057343dbe2e9c527e2fd6654eb2f807f6b",
-    "metadata": "c7dfb44578b5b0ba2221cae5bc3a3be327c4467f7034af68c525697348caefe1",
-    "source": "0550882bbb780d08c5f4d46fc4482c954954424e2d150696d1a1422292ef894d"
+    "analysis": "9671e6df8876f3ce010232f908b429328798ba204face50d76b84f5f3b47b4ff",
+    "metadata": "39ceb402ad8f24bdf042d45438cb22bd43ada12e2d94dca833a290162d96b044",
+    "source": "c373086aaa0e5adcc80e151f8c9f73e26b0edcd36496c583a225536d72068d74"
   },
   "input_binding": "Caller supplies matching retained artifacts. Hashes identify inputs; discovery is not an independent correspondence/admission proof."
 }

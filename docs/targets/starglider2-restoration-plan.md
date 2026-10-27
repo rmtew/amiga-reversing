@@ -7,7 +7,7 @@ that further analysis is exhausted. Current source remains byte exact: all
 with all 106034 accepted code bytes retained. No generated assembly was edited
 by hand and no interim archive was produced.
 
-The current ownership union leaves 13943 bytes in
+The current ownership union leaves 13927 bytes in
 263 intervals unclassified. This is classification accounting,
 not a semantic completion percentage. Earlier interval/site counts below belong
 to their recorded closeout revision. See the current
@@ -20,10 +20,26 @@ to their recorded closeout revision. See the current
 The [current systematic gap inventory](../../runtime/observations/starglider2-source-gap-inventory.json)
 joins native identities/accesses with canonical layouts and actual rendered
 boundaries. It records 66 suffix signals (including numeric adjacent variants),
-21 lookup contracts, 523 remaining interior references, 33 generic app fields
+21 lookup contracts, 523 remaining interior references, 32 generic app fields
 and 303 unresolved record accesses. These are different denominators. Five
 suffixes name routines and one names text; neither is a pointer defect.
-Latest: the [save/workspace reconstruction](../../runtime/observations/starglider2-save-workspace-contracts.json)
+Latest: the [projector neighborhood reconstruction](../../runtime/observations/starglider2-projector-neighborhood-contracts.json)
+connects four body-flag readers with spawn, growth and mixed-state processing.
+Thirteen canonical actions expose the 16-byte body flag prefix, invocation
+counter and eight original continuation/scan branches. Body flags 8..14 map
+exactly to seven rows of eight part-presence entries. The modulo-32 counter
+advances only with nearby objects; retirement requires both phase signs among
+parts 75..82. Type 91 follows retirement/award but skips the presence update.
+These are conditional original source contracts, not seconds or observed victory.
+Original C/vasm and a clean standalone rebuild are exact. No framework change or
+new emulator run was needed. Sixteen evidenced flag bytes reduce unclassified
+storage **13943 → 13927**; generic app fields **33 → 32**. The two following
+bytes remain unknown. Typed/unresolved counts and 30 orphan islands are unchanged.
+Next group the 82 orientation/phase field gaps by actual object and callback
+context; do not call reused effect words universally orientation. The save-copy
+enclosing-owner obligation remains explicit and does not block independent work.
+
+Preceding: the [save/workspace reconstruction](../../runtime/observations/starglider2-save-workspace-contracts.json)
 records 23 canonical actions for the original serialization boundary, disk chunks,
 copy loops and scoped format constants. Startup clears **$6598 bytes**, not the
 **$6998** distance below display. Load restores **$5EE4 bytes** at app+$6B4;
