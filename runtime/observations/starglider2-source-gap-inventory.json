@@ -5823,11 +5823,11 @@
       "scalar": 13
     },
     "interior_reference_records": 523,
-    "unresolved_typed_accesses": 428,
+    "unresolved_typed_accesses": 424,
     "unresolved_mechanisms": {
       "indexed_dynamic": 87,
       "declared_field_hole": 331,
-      "auto_update_cursor": 5,
+      "auto_update_cursor": 1,
       "outside_declared_record": 5
     },
     "orphan_signal_statuses": {
@@ -6489,111 +6489,6 @@
       "review_status": "seeded",
       "seed_origin": "manual_analysis",
       "size": 68,
-      "source": "manual_action_log"
-    },
-    "SG2ModelHeader": {
-      "available_since": "1.0",
-      "base_offset": 0,
-      "base_struct": null,
-      "citation": "manual_action_log:SG2ModelHeader",
-      "fields": [
-        {
-          "available_since": "1.0",
-          "name": "last_vertex_index",
-          "named_base": null,
-          "offset": 0,
-          "pointer_struct": null,
-          "size": 2,
-          "struct": null,
-          "type": "UWORD",
-          "value_kind": "scalar"
-        },
-        {
-          "available_since": "1.0",
-          "name": "face_count",
-          "named_base": null,
-          "offset": 2,
-          "pointer_struct": null,
-          "size": 2,
-          "struct": null,
-          "type": "UWORD",
-          "value_kind": "scalar"
-        },
-        {
-          "available_since": "1.0",
-          "name": "coordinate_word_count",
-          "named_base": null,
-          "offset": 4,
-          "pointer_struct": null,
-          "size": 2,
-          "struct": null,
-          "type": "UWORD",
-          "value_kind": "scalar"
-        },
-        {
-          "available_since": "1.0",
-          "name": "auxiliary_face_count",
-          "named_base": null,
-          "offset": 22,
-          "pointer_struct": null,
-          "size": 2,
-          "struct": null,
-          "type": "UWORD",
-          "value_kind": "scalar"
-        },
-        {
-          "available_since": "1.0",
-          "name": "face_commands",
-          "named_base": null,
-          "offset": 6,
-          "pointer_address_domain": "mapped_source",
-          "pointer_struct": null,
-          "size": 4,
-          "struct": null,
-          "type": "APTR",
-          "value_kind": "target_pointer"
-        },
-        {
-          "available_since": "1.0",
-          "name": "vertex_reference_records",
-          "named_base": null,
-          "offset": 10,
-          "pointer_address_domain": "mapped_source",
-          "pointer_struct": null,
-          "size": 4,
-          "struct": null,
-          "type": "APTR",
-          "value_kind": "target_pointer"
-        },
-        {
-          "available_since": "1.0",
-          "name": "coordinate_pool",
-          "named_base": null,
-          "offset": 14,
-          "pointer_address_domain": "mapped_source",
-          "pointer_struct": null,
-          "size": 4,
-          "struct": null,
-          "type": "APTR",
-          "value_kind": "target_pointer"
-        },
-        {
-          "available_since": "1.0",
-          "name": "vertex_variant_table",
-          "named_base": null,
-          "offset": 18,
-          "pointer_address_domain": "mapped_source",
-          "pointer_struct": null,
-          "size": 4,
-          "struct": null,
-          "type": "APTR",
-          "value_kind": "target_pointer"
-        }
-      ],
-      "name": "SG2ModelHeader",
-      "review_status": "seeded",
-      "seed_origin": "manual_analysis",
-      "size": 24,
       "source": "manual_action_log"
     },
     "SG2ObjectCore": {
@@ -29601,28 +29496,6 @@
     },
     {
       "section_index": 0,
-      "mechanism": "auto_update_cursor",
-      "offset": 14834,
-      "operand_index": 0,
-      "base_register": "A0",
-      "displacement": 0,
-      "struct_size": 24,
-      "access_size": 2,
-      "root_struct_name": "SG2ModelHeader",
-      "classification_id": 5,
-      "classification": "auto_update_cursor",
-      "container_candidate_count": 0,
-      "container_struct_name": null,
-      "container_field_expr": null,
-      "refinement_applied": 0,
-      "refined_struct_name": null,
-      "type_provenance_kind_id": 12,
-      "type_provenance_kind": "static_data",
-      "type_provenance_section": 0,
-      "type_provenance_offset": 14832
-    },
-    {
-      "section_index": 0,
       "mechanism": "declared_field_hole",
       "offset": 15056,
       "operand_index": 0,
@@ -36585,50 +36458,6 @@
     },
     {
       "section_index": 0,
-      "mechanism": "auto_update_cursor",
-      "offset": 204914,
-      "operand_index": 0,
-      "base_register": "A0",
-      "displacement": 0,
-      "struct_size": 68,
-      "access_size": 4,
-      "root_struct_name": "SG2ObjectCore",
-      "classification_id": 5,
-      "classification": "auto_update_cursor",
-      "container_candidate_count": 0,
-      "container_struct_name": null,
-      "container_field_expr": null,
-      "refinement_applied": 0,
-      "refined_struct_name": null,
-      "type_provenance_kind_id": 12,
-      "type_provenance_kind": "static_data",
-      "type_provenance_section": 0,
-      "type_provenance_offset": 204910
-    },
-    {
-      "section_index": 0,
-      "mechanism": "auto_update_cursor",
-      "offset": 204930,
-      "operand_index": 0,
-      "base_register": "A0",
-      "displacement": 0,
-      "struct_size": 68,
-      "access_size": 4,
-      "root_struct_name": "SG2ObjectCore",
-      "classification_id": 5,
-      "classification": "auto_update_cursor",
-      "container_candidate_count": 0,
-      "container_struct_name": null,
-      "container_field_expr": null,
-      "refinement_applied": 0,
-      "refined_struct_name": null,
-      "type_provenance_kind_id": 12,
-      "type_provenance_kind": "static_data",
-      "type_provenance_section": 0,
-      "type_provenance_offset": 204926
-    },
-    {
-      "section_index": 0,
       "mechanism": "indexed_dynamic",
       "offset": 207024,
       "operand_index": 0,
@@ -36758,28 +36587,6 @@
       "type_provenance_kind": "static_data",
       "type_provenance_section": 0,
       "type_provenance_offset": 224104
-    },
-    {
-      "section_index": 0,
-      "mechanism": "auto_update_cursor",
-      "offset": 209184,
-      "operand_index": 0,
-      "base_register": "A0",
-      "displacement": 0,
-      "struct_size": 68,
-      "access_size": 4,
-      "root_struct_name": "SG2ObjectCore",
-      "classification_id": 5,
-      "classification": "auto_update_cursor",
-      "container_candidate_count": 0,
-      "container_struct_name": null,
-      "container_field_expr": null,
-      "refinement_applied": 0,
-      "refined_struct_name": null,
-      "type_provenance_kind_id": 12,
-      "type_provenance_kind": "static_data",
-      "type_provenance_section": 0,
-      "type_provenance_offset": 209180
     },
     {
       "section_index": 0,
@@ -43688,9 +43495,9 @@
     "Native rendered accesses describe the inline export. exported_definition checks the selected source; INCBIN packaging may intentionally hide internal boundaries."
   ],
   "input_sha256": {
-    "analysis": "f7c54de1a9aea185aea45013b84f504a5ce9ade22704b17fd3178990abf7ed43",
+    "analysis": "e597eccf7d47226873c4f25b65350cc6b828e46905d57fa6b1607067761d94af",
     "metadata": "9a382c6a66fb6924c509d6a379b98f4fa12ed0f0fa98a928729ebcd3db111be1",
-    "source": "0e44c54f4c26418a428e1d53ee49fcef249d0b61edf1e696e0b1d200b9f6dbad"
+    "source": "92c47b14ca92f0a0d69187974187e5bcd8ecb313184750d8cd7bd33c1e5226db"
   },
   "input_binding": "Caller supplies matching retained artifacts. Hashes identify inputs; discovery is not an independent correspondence/admission proof."
 }

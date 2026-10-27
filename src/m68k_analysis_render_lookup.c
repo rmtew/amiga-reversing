@@ -7780,6 +7780,7 @@ static void typed_state_update_after_instruction(M68kRenderTypedState *state, M6
   uint8_t source_app_base_evidence_kind = M68K_APP_SLOT_BASE_UNSPECIFIED;
   int source_is_app_address = 0;
   int source_has_memory_base = 0;
+  int source_memory_base_is_value = 0;
   int recognized_stack_update = 0;
   /* Per-instruction pending updates, not additional CFG state. Two memory
    * operands can update distinct An cursors; retain each original value. */
@@ -7940,12 +7941,14 @@ static void typed_state_update_after_instruction(M68kRenderTypedState *state, M6
         move_metadata->operand_access_kinds[source_index] == M68K_SIM_ACCESS_MEMORY_READ) {
       source_has_memory_base = typed_memory_base_bind_runtime_pointer_table_slot(&source_memory_base, lookup,
         platform_state, source_operand);
+      source_memory_base_is_value = source_has_memory_base;
     }
     if (!source_has_memory_base && operand_is_postinc_a7_local(source_operand)) {
       const M68kRenderTypedMemoryBaseValue *stack_memory_base = typed_state_stack_slot_memory_base(state, 0);
       if (stack_memory_base != NULL) {
         source_memory_base = *stack_memory_base;
         source_has_memory_base = 1;
+        source_memory_base_is_value = 1;
       }
     }
     (void)typed_state_origin_for_operand(state, source_operand, &source_origin);
@@ -7967,9 +7970,10 @@ static void typed_state_update_after_instruction(M68kRenderTypedState *state, M6
       source_byte_cursor = stored_value.byte_cursor;
       source_provenance = stored_value.provenance;
     }
-    if (instruction->size_suffix == 'l' && move_metadata != NULL &&
-        (move_metadata->operand_access_kinds[source_index] == M68K_SIM_ACCESS_MEMORY_READ ||
-         (source_operand->kind == M68K_ASM_OPERAND_EA && source_operand->value.ea_mode == 6U))) {
+    /* A slot binding or saved-value reload already produced the value's
+     * identity. Only an EA's read-address identity is dereferenced here. */
+    if (!source_memory_base_is_value && instruction->size_suffix == 'l' &&
+        platform_operand_memory_access(instruction, source_index) == M68K_SIM_ACCESS_MEMORY_READ) {
       /* A table base is retained as memory-base bookkeeping. That bookkeeping
        * is useful, but is not the pointee type of the long read from the
        * table, so it must not suppress pointer-table propagation. */
@@ -7990,6 +7994,11 @@ static void typed_state_update_after_instruction(M68kRenderTypedState *state, M6
           (void)render_lookup_record_typed_table_load(lookup, section_index, offset, source_index,
             table_load_dest_reg, lookup_policy_struct_name_by_id(lookup->policy, table_value.struct_id), &table_value);
         }
+        /* An entry yields the pointee, not another copy of its source table.
+         * Only an independently bound concrete target can establish a new
+         * memory/table identity; table_origin still retains read provenance. */
+        typed_memory_base_clear(&source_memory_base);
+        source_has_memory_base = 0;
         if (table_value.pointer_target_known) {
           source_memory_base.known = 1U;
           source_memory_base.section_index = table_value.pointer_target_section_index;

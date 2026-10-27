@@ -1,0 +1,267 @@
+{
+  "schema_version": 1,
+  "kind": "preserve_pointer_table_dereference_depth_in_shared_value_transfer",
+  "status": "qualified_correctness_fix_restoration_continues",
+  "publication_base_commit": "e89bcee43e0d54f39fc081a77be3c38563e5a061",
+  "cause": [
+    "Loading a declared runtime table cursor bound its result memory identity, then the same transfer treated that newly loaded identity as the address of a table-entry read. It assigned the entry pointee type one dereference too early.",
+    "The generic EA source role was also treated as an actual memory read for direct An/Dn encodings. Saved/register cursor transport could therefore consume an entry rather than copy the cursor.",
+    "Entry reads retained the consumed source-table memory identity on their result unless a concrete target was known. That identity belongs to the input table, not its object entry."
+  ],
+  "changes": [
+    "Distinguish read-address identity from an already loaded slot/stack value within the existing instruction transfer. No extra CFG state or second type engine.",
+    "Use existing platform_operand_memory_access for actual decoded reads, preserving An/Dn and stack value transport.",
+    "Consume the source-table identity once per actual entry read. Keep its table_origin provenance; independently known target coordinates may bind their own new memory/table identity.",
+    "Existing runtime cursor declarations and homogeneous entry contracts are retained. Initial inspection considered metadata depth, but the reproducer established the transfer error; no guessed wrapper schema or target-specific annotations were adopted."
+  ],
+  "inputs": {
+    "binary_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "analysis_sha256": "e597eccf7d47226873c4f25b65350cc6b828e46905d57fa6b1607067761d94af",
+    "effective_metadata_sha256": "9a382c6a66fb6924c509d6a379b98f4fa12ed0f0fa98a928729ebcd3db111be1",
+    "backend_sha256": "c8f767b02cc91c79822cedb5cd703f8a600991ca5818893e86032c9cba372bf6"
+  },
+  "reproduction": {
+    "initial": "Existing cursor\u2192entry fixture produced a false Record_world_x field through the cursor itself. Initial2-case suite:1failed/1passed. Intermediate saved-cursor test reproduced another false cursor type. Final checks cover two entry reads, no pointee type on the cursor, no source-table identity on an entry, stack reload and An\u2192Dn\u2192An transport.",
+    "focused_tests": 102,
+    "native_unit_tests": 832
+  },
+  "target_accounting": {
+    "before_after": {
+      "app_slot_ref_count": [
+        3412,
+        3412
+      ],
+      "recovered_platform_typed_access_count": [
+        1199,
+        1198
+      ],
+      "recovered_platform_unresolved_typed_access_count": [
+        428,
+        424
+      ]
+    },
+    "new_refs": [],
+    "lost_refs": [],
+    "new_by_displacement": {},
+    "incomplete": [],
+    "diagnostics": 0,
+    "accepted_code_runs_identical": true
+  },
+  "removed_incorrect_typed_claims": [
+    {
+      "runtime_pc": 209168,
+      "access": {
+        "offset": 205072,
+        "operand_index": 0,
+        "base_register": "A0",
+        "displacement": 0,
+        "base_cursor": 0,
+        "field_offset": 0,
+        "struct_size": 68,
+        "field_size": 2,
+        "root_struct_name": "SG2ObjectCore",
+        "owner_struct_name": "SG2ObjectCore",
+        "field_name": "object_type",
+        "field_expr": "SG2ObjectCore_object_type",
+        "inherited": 0,
+        "nested": 0,
+        "type_provenance_kind_id": 12,
+        "type_provenance_kind": "static_data",
+        "type_provenance_section": 0,
+        "type_provenance_offset": 205068,
+        "type_provenance_operand_index": 0
+      }
+    }
+  ],
+  "removed_premature_type_diagnostics": [
+    {
+      "runtime_pc": 213280,
+      "access": {
+        "offset": 209184,
+        "operand_index": 0,
+        "base_register": "A0",
+        "displacement": 0,
+        "struct_size": 68,
+        "access_size": 4,
+        "root_struct_name": "SG2ObjectCore",
+        "classification_id": 5,
+        "classification": "auto_update_cursor",
+        "container_candidate_count": 0,
+        "container_struct_name": null,
+        "container_field_expr": null,
+        "refinement_applied": 0,
+        "refined_struct_name": null,
+        "type_provenance_kind_id": 12,
+        "type_provenance_kind": "static_data",
+        "type_provenance_section": 0,
+        "type_provenance_offset": 209180
+      }
+    },
+    {
+      "runtime_pc": 18930,
+      "access": {
+        "offset": 14834,
+        "operand_index": 0,
+        "base_register": "A0",
+        "displacement": 0,
+        "struct_size": 24,
+        "access_size": 2,
+        "root_struct_name": "SG2ModelHeader",
+        "classification_id": 5,
+        "classification": "auto_update_cursor",
+        "container_candidate_count": 0,
+        "container_struct_name": null,
+        "container_field_expr": null,
+        "refinement_applied": 0,
+        "refined_struct_name": null,
+        "type_provenance_kind_id": 12,
+        "type_provenance_kind": "static_data",
+        "type_provenance_section": 0,
+        "type_provenance_offset": 14832
+      }
+    },
+    {
+      "runtime_pc": 209026,
+      "access": {
+        "offset": 204930,
+        "operand_index": 0,
+        "base_register": "A0",
+        "displacement": 0,
+        "struct_size": 68,
+        "access_size": 4,
+        "root_struct_name": "SG2ObjectCore",
+        "classification_id": 5,
+        "classification": "auto_update_cursor",
+        "container_candidate_count": 0,
+        "container_struct_name": null,
+        "container_field_expr": null,
+        "refinement_applied": 0,
+        "refined_struct_name": null,
+        "type_provenance_kind_id": 12,
+        "type_provenance_kind": "static_data",
+        "type_provenance_section": 0,
+        "type_provenance_offset": 204926
+      }
+    },
+    {
+      "runtime_pc": 209010,
+      "access": {
+        "offset": 204914,
+        "operand_index": 0,
+        "base_register": "A0",
+        "displacement": 0,
+        "struct_size": 68,
+        "access_size": 4,
+        "root_struct_name": "SG2ObjectCore",
+        "classification_id": 5,
+        "classification": "auto_update_cursor",
+        "container_candidate_count": 0,
+        "container_struct_name": null,
+        "container_field_expr": null,
+        "refinement_applied": 0,
+        "refined_struct_name": null,
+        "type_provenance_kind_id": 12,
+        "type_provenance_kind": "static_data",
+        "type_provenance_section": 0,
+        "type_provenance_offset": 204910
+      }
+    }
+  ],
+  "interpretation": "Original33110 reads an object address from the distant-object pointer list, not the object_type field of that object. Its false field comment is removed. Four auto-update diagnostics lose their premature record-type precondition. This is not four resolved semantic accesses, and raw diagnostic denominators must not be interpreted as completion percentages.",
+  "validation": {
+    "native_and_vasm": {
+      "kind": "verification",
+      "framework_exact": true,
+      "target_id": "amiga_raw_starglider2_game",
+      "subject_revision": "7600669d013c8662e3144fc571dbdc187a9b9e3dfcb866b5e644237d0ae44b68",
+      "status": "exact",
+      "exact": true,
+      "source_sha256": "89d861c4be0dd045c0f06a95679b7025a802d5100524d2df72effd0e26105104",
+      "source_path": "/workspace/pandora-original-delivery/stable-d15c2cf8/.runtime-state/restoration/eb04f545fb97451725a1c91ab5abf6f2e097614c45880db6edfb4ea5c3f6e2c2/89d861c4be0dd045c0f06a95679b7025a802d5100524d2df72effd0e26105104.s",
+      "source_package_sha256": null,
+      "original_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+      "original_size": 412736,
+      "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+      "rebuilt_path": "/workspace/pandora-original-delivery/stable-d15c2cf8/.runtime-state/restoration/eb04f545fb97451725a1c91ab5abf6f2e097614c45880db6edfb4ea5c3f6e2c2/662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9.bin",
+      "framework_status": "exact",
+      "failure_kinds": [],
+      "message": "",
+      "oracle": {
+        "oracle_id": "vasm",
+        "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+        "comparison_level": "oracle.full_file_match",
+        "assembler_status": "accepted",
+        "message": "oracle output matched original bytes"
+      },
+      "receipt_id": "c01bf2fd14cc61142b59ed82a6024a4252fce2f628632ff14715a9c609bcf6bd",
+      "revision": "1ed00bc1097b3a5278a4d89463df00f8d42b4ea3feccaffade19ce0cae6b58f4"
+    },
+    "accepted_code_runs_identical": true,
+    "accepted_ownerships_identical": true,
+    "canonical_actions": 0,
+    "incomplete_analysis": [],
+    "source_quality_diagnostics": 0,
+    "assets_unchanged": 57,
+    "required_headers": 14,
+    "clean_standalone_build": {
+      "status": "pass",
+      "validated_target_git_tree": "a18e2aa270c55d81317c11fd39471c7c1a68bcf6",
+      "receipt": {
+        "schema_version": 1,
+        "status": "pass",
+        "format": "raw_payload_not_AmigaDOS_HUNK",
+        "main_bytes": 412736,
+        "main_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+        "main_matches_original_identity": true,
+        "asset_count": 57,
+        "all_asset_source_slices_equal": true,
+        "decoded_view_inverse_exact": true,
+        "boot_copy_source_matches_resident_view": true,
+        "source_commit": "e89bcee43e0d54f39fc081a77be3c38563e5a061",
+        "assembler_sha256": "413e284020125f42709486dfe09907cab3dd9f3c2ea41017c190f8ea68f30825",
+        "flags": [
+          "-Fbin",
+          "-m68000",
+          "-no-opt"
+        ],
+        "outputs": [
+          {
+            "role": "original_main",
+            "filename": "Starglider2-original.raw",
+            "bytes": 412736,
+            "sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9"
+          },
+          {
+            "role": "decoded_analysis_view",
+            "filename": "protection-decoded-analysis.raw",
+            "bytes": 3548,
+            "sha256": "de8358853dd9ed9b006a23569bf393aa217ed3be3301a169465d80bfaf839922"
+          },
+          {
+            "role": "boot_installer_context",
+            "filename": "boot-selector-installer-context.raw",
+            "bytes": 40,
+            "sha256": "8d34852425e2e1bfa87b3febdfc74fb39e7c667e9d9ff73e17b594649e83b21b"
+          },
+          {
+            "role": "boot_resident_view",
+            "filename": "boot-selector-resident.raw",
+            "bytes": 20,
+            "sha256": "a26286a393713c046eff9dbaff15b20b26b171fa9e05fc9d538d16b0eddb6024"
+          }
+        ]
+      },
+      "recoverable_pandora_backups_verified": 16
+    }
+  },
+  "generation_wall_seconds": 129.2632982719806,
+  "limits": [
+    "Declared runtime table entries retain their conditional homogeneous pointee contract; original count/range/lifetime safety is not newly proved.",
+    "Existing static_data provenance spelling for a runtime pointer-table contract describes a static analysis declaration, not observed immutable memory contents or new runtime execution.",
+    "The original49F2 model-header loop still lacks a justified typed read. Its old auto-update diagnostic disappeared with an over-early type; that does not establish header coverage."
+  ],
+  "next": {
+    "group": "Original model-header table loop and missing object cursor contracts",
+    "experiment": "Reproduce the source-backed table/DBF/header-read loop with a minimal canonical typed directory; determine which join/transfer loses the actual pointee without reinstating early cursor types. Separately inspect the original integrating/object-update/free-list producers and readers before adding any missing homogeneous cursor contract. Preserve mixed-record Core versus World distinctions."
+  }
+}

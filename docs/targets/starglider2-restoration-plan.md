@@ -21,9 +21,21 @@ The [current systematic gap inventory](../../runtime/observations/starglider2-so
 joins native identities/accesses with canonical layouts and actual rendered
 boundaries. It records 67 suffix signals (including numeric adjacent variants),
 21 lookup contracts, 523 remaining interior references, 32 generic app fields
-and 428 unresolved record accesses. These are different denominators. Five
+and 424 unresolved record accesses. These are different denominators. Five
 suffixes name routines and one names text; neither is a pointer defect.
-Latest: the [canonical endpoint-expression fix](../../runtime/observations/starglider2-app-endpoint-expressions.json)
+Latest: the [runtime-table pointer-depth correction](../../runtime/observations/starglider2-runtime-table-pointer-depth.json)
+keeps a loaded cursor distinct from an entry read and its pointee, including
+register and stack transport. Original $33110 loses an incorrect `object_type`
+comment: it reads an object pointer from the list, not the object header.
+Counts are **3412 app references / 1198 typed / 424 unresolved**. One false typed
+claim and four diagnostics based on premature types disappear; these are
+corrections, not five newly understood accesses. Valid entry-read regressions,
+102 focused and 832 native tests pass, with original exact C/vasm/standalone bytes.
+The model-header loop at $49F2 remains an explicit propagation lead; a vanished
+diagnostic is not a coverage claim. Next reproduce that actual source-table loop
+and inspect missing cursor contracts through their original producers/readers.
+
+Preceding: the [canonical endpoint-expression fix](../../runtime/observations/starglider2-app-endpoint-expressions.json)
 renders the score address as `player_score_bcd+4(a6)` through the normal frozen
 owner-point index. It retains the original `a6_fallback` assumption; no memory
 extent or base identity is promoted. Mode0/mode1 already form the equivalent

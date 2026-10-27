@@ -42655,7 +42655,7 @@ abs_0_00033106:
 	move.w distant_object_count(a6),d0
 	beq.b abs_0_00033184
 	movea.l distant_objects_cursor(a6),a0
-	movea.l (a0),a4	; operand 1: SG2ObjectCore_object_type at (a0)
+	movea.l (a0),a4
 abs_0_00033112:
 	lea.l model_default_scale_shifts.l,a0
 	move.w #$63,d0
