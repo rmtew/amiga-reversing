@@ -12518,7 +12518,8 @@ static int policy_declared_app_extent_covers(const M68kAnalysisPolicy *policy, i
 }
 
 /* One exact instruction footprint, never a loop-trip or cursor-range proof.
- * Predecrement/striped/indexed and shared update bases remain refused. */
+ * Predecrement/striped/indexed and shared update bases remain refused.
+ * A distinct postincrement stream cannot change this operand's EA register. */
 static int typed_app_memory_span(const M68kRenderLookup *lookup, const M68kRenderTypedState *state,
     const M68kInstructionIR *instruction, size_t operand_index, uint8_t *out_reg,
     int16_t *out_displacement, uint8_t *out_access, uint8_t *out_width,
@@ -12567,8 +12568,9 @@ static int typed_app_memory_span(const M68kRenderLookup *lookup, const M68kRende
       if (index == operand_index) continue;
       if (operand_address_register_index_local(other, &other_reg) && other_reg == reg) return 0;
       other_shape = m68k_instruction_operand_decoded_ea_shape(other);
-      if (other_shape == M68K_SIM_EA_SHAPE_POSTINCREMENT || other_shape == M68K_SIM_EA_SHAPE_PREDECREMENT)
-        return 0;
+      if (other_shape == M68K_SIM_EA_SHAPE_PREDECREMENT) return 0;
+      if (other_shape == M68K_SIM_EA_SHAPE_POSTINCREMENT &&
+          (other->kind != M68K_ASM_OPERAND_EA || other->value.ea_reg == reg)) return 0;
       if ((other->kind == M68K_ASM_OPERAND_EA || other->kind == M68K_ASM_OPERAND_BF_EA) &&
           other->value.ea_reg == reg &&
           (other_shape == M68K_SIM_EA_SHAPE_INDIRECT || other_shape == M68K_SIM_EA_SHAPE_DISPLACEMENT ||

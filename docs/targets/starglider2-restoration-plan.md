@@ -20,10 +20,31 @@ to their recorded closeout revision. See the current
 The [current systematic gap inventory](../../runtime/observations/starglider2-source-gap-inventory.json)
 joins native identities/accesses with canonical layouts and actual rendered
 boundaries. It records 66 suffix signals (including numeric adjacent variants),
-21 lookup contracts, 523 remaining interior references, 34 generic app fields
+21 lookup contracts, 523 remaining interior references, 33 generic app fields
 and 303 unresolved record accesses. These are different denominators. Five
 suffixes name routines and one names text; neither is a pointer defect.
-Latest: the [depot instance/service reconstruction](../../runtime/observations/starglider2-depot-service-contracts.json)
+Latest: the [save/workspace reconstruction](../../runtime/observations/starglider2-save-workspace-contracts.json)
+records 23 canonical actions for the original serialization boundary, disk chunks,
+copy loops and scoped format constants. Startup clears **$6598 bytes**, not the
+**$6998** distance below display. Load restores **$5EE4 bytes** at app+$6B4;
+five $1400-byte disk chunks include **$51C** extra transfer bytes. The original
+fixed layout includes $400 gap and $11C display prefix in that trailing transfer;
+this does not by itself establish corruption or ownership/lifetime safety.
+A reproduced general footprint defect rejected distinct postincrement copy
+streams. The shared fix recovers **nine app references: 3374 → 3383**; all
+six focused fixtures and **832 native checks pass**. Its framework-only generated
+source is unchanged. The annotated source rebuilds exactly with C/vasm and a
+clean standalone build; 57 assets and 14 headers remain unchanged.
+The actual save-copy trace proves its transfer invariant but now refuses the
+full cross-field envelope as `range_outside_declared_owner`. A four-byte prefix
+is not fabricated into a large leaf. Explicit binding to existing canonical
+region ownership is the next admission experiment, not a name-based guess.
+Generic app fields fall **34 → 33**; typed/unresolved and unclassified counts are
+unchanged. No runtime disk operation or new orphan/code promotion occurred.
+Continue with connected projector-neighborhood producer/consumer evidence;
+publication preserves progress and does not end the restoration.
+
+Preceding: the [depot instance/service reconstruction](../../runtime/observations/starglider2-depot-service-contracts.json)
 records ten canonical actions for type94 Tunnel Depot, service/approach fields,
 its constructor/contact contexts and docking reader roles/messages. The20
 original world instances produce service IDs0..10; eight physical placements

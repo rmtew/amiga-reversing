@@ -298,7 +298,7 @@ display_and_frame_service_flags RS.B 1
 model_view_vertex_scratch_prefix RS.B 384
     RS.B 786
 scan_target_reference RS.L 1
-app_06B4 RS.L 1
+savegame_prefix_rebased_long RS.L 1
 distant_objects_cursor RS.L 1
 integrating_objects_cursor RS.L 1
 object_update_dbf_index RS.W 1
@@ -934,6 +934,12 @@ ADKF_CLRALL	EQU	$7FFF
 BPLCON2_PF2P2	EQU	$20
 BPLCON2_PF2PRI	EQU	$40
 INTF_CLRALL	EQU	$7FFF
+SG2_SAVE_CHUNK_BYTES	EQU	$1400
+SG2_SAVE_CHUNK_DBF_LAST	EQU	$4FF
+SG2_SAVE_RESTORE_DBF_LAST	EQU	$17B8
+SG2_SAVE_TRACK_DBF_LAST	EQU	$4
+SG2_WORKSPACE_BELOW_DISPLAY_BYTES	EQU	$6998
+SG2_WORKSPACE_CLEAR_WORDS	EQU	$32CC
 _ciaa	EQU	$BFE001
 _ciab	EQU	$BFD000
 _custom	EQU	$DFF000
@@ -1154,12 +1160,13 @@ initialize_game:
 	tst.w platform_entry_flags.l
 	bpl.b abs_0_000010A6
 	adda.l #$8000,a0
+    ; Original fixed workspace lies $6998 bytes below display; only $6598 bytes are cleared. The remaining $400 gap is not thereby proved initialized or unused.
 abs_0_000010A6:
-	suba.l #$6998,a0
+	suba.l #SG2_WORKSPACE_BELOW_DISPLAY_BYTES,a0
 	move.l a0,game_workspace_base.l
 abs_0_000010B2:
 	movea.l game_workspace_base.l,a0
-	move.w #$32CC,d0
+	move.w #SG2_WORKSPACE_CLEAR_WORDS,d0
 	subq.w #1,d0
 clear_game_workspace_loop:
 	clr.w (a0)+
@@ -2609,7 +2616,7 @@ abs_0_0000278C:
 	dc.b "SG2 - Version 1.03 USA.",$00
 	dc.b $00,$00,$00,$01
 game_workspace_base:
-	dc.l $00003300	; Startup sets base used to clear 0x6998 bytes and load A6; original initial value 0x3300.
+	dc.l $00003300	; Workspace pointer. Original fixed Amiga path assigns$69668 ($70000-$6998); clear loop initial...
 abs_0_000027AC:
 	dcb.b $E,$00
 abs_0_000027BA:
@@ -17782,6 +17789,7 @@ abs_0_0000FF1C:
 	moveq.l #-1,d0
 	rts
 	dc.b $4E,$75
+    ; Restore $5EE4 bytes at app+$6B4, ending at world-pool end+$6598. Five $1400-byte chunks are read; the trailing $51C disk bytes are not copied back.
 load_game_from_disk:
 	sf.b interrupted_game_available_flag(a6)
 	move.w #$A,disk_service_state_expected_sector_count.l
@@ -17793,23 +17801,23 @@ load_game_from_disk:
 	bsr.w abs_0_00010F02
 	bne.w abs_0_0000FFBC
 	bsr.w abs_0_00010BCC
-	moveq.l #4,d1
+	moveq.l #SG2_SAVE_TRACK_DBF_LAST,d1
 	lea.l shared_workspace_prefix.l,a0
 	move.l a0,disk_service_state_transfer_buffer_pointer.l
-abs_0_0000FF6C:
+read_saved_workspace_track_loop:
 	move.l d1,-(a7)
 	bsr.w advance_disk_backend_cylinder
 	bsr.w abs_0_0001099A
 	bne.w abs_0_0000FFAA
-	addi.l #5120,disk_service_state_transfer_buffer_pointer.l
+	addi.l #SG2_SAVE_CHUNK_BYTES,disk_service_state_transfer_buffer_pointer.l
 	move.l (a7)+,d1
-	dbf.w d1,abs_0_0000FF6C
+	dbf.w d1,read_saved_workspace_track_loop
 	lea.l shared_workspace_prefix.l,a1
-	lea.l app_06B4(a6),a0
-	move.w #$17B8,d1
-abs_0_0000FF98:
+	lea.l savegame_prefix_rebased_long(a6),a0
+	move.w #SG2_SAVE_RESTORE_DBF_LAST,d1
+copy_saved_workspace_prefix_loop:
 	move.l (a1)+,(a0)+
-	dbf.w d1,abs_0_0000FF98
+	dbf.w d1,copy_saved_workspace_prefix_loop
 	st.b interrupted_game_available_flag(a6)
 	bsr.w restore_workspace_pointers_absolute
 	bra.w deselect_disk_backend
@@ -17837,6 +17845,7 @@ abs_0_0000FFDE:
 	beq.w deselect_disk_backend
 	lea.l disk_insert_adls_retry_prompt(pc),a1
 	bra.b abs_0_0000FFCC
+    ; Write five $1400-byte chunks from app+$6B4 after pointer rebasing. Only $5EE4 bytes are restored. In the original fixed layout the extra $51C includes $11C display bytes.
 save_game_to_disk:
 	bsr.w abs_0_00012F7A
 	bsr.w serialize_workspace_pointers_relative
@@ -17884,23 +17893,23 @@ abs_0_0001008E:
 	bsr.w abs_0_00010BCC
 	lea.l abs_0_00012658(pc),a1
 	bsr.w display_disk_operation_prompt
-	lea.l app_06B4(a6),a0
+	lea.l savegame_prefix_rebased_long(a6),a0
 	move.l a0,disk_service_state_memory_transfer_source_cursor.l
-	moveq.l #4,d1
-abs_0_000100A6:
+	moveq.l #SG2_SAVE_TRACK_DBF_LAST,d1
+write_saved_workspace_track_loop:
 	move.l d1,-(a7)
 	bsr.w advance_disk_backend_cylinder
 	lea.l runtime_code_0007E000.l,a1
 	movea.l disk_service_state_memory_transfer_source_cursor.l,a0
-	move.w #$4FF,d1
-abs_0_000100BC:
+	move.w #SG2_SAVE_CHUNK_DBF_LAST,d1
+stage_saved_workspace_track_chunk:
 	move.l (a0)+,(a1)+
-	dbf.w d1,abs_0_000100BC
+	dbf.w d1,stage_saved_workspace_track_chunk
 	bsr.w write_disk_backend_track
 	bne.w abs_0_00010136
 	addi.l #5120,disk_service_state_memory_transfer_source_cursor.l
 	move.l (a7)+,d1
-	dbf.w d1,abs_0_000100A6
+	dbf.w d1,write_saved_workspace_track_loop
 	move.l #$7E000,disk_service_state_transfer_buffer_pointer.l
 	bsr.w seek_disk_backend_cylinder_zero
 	tst.w abs_0_000121A4.l
@@ -18229,10 +18238,10 @@ abs_0_000105B4:
 	move.l a1,disk_service_state_memory_transfer_source_cursor.l
 	movem.l (a7)+,d0-d7/a0-a6
 	rts
-    ; Save-state conversion, not executable relocation. Subtract A6 from selected pointers; model-record links preserve 0/-1. Procedural types skip those two link fields.
+    ; Pointer encoding subtracts A6: fixed globals unconditionally; released refs skip zero; object links skip 0/-1 and retain original sign guard. No universal link-field type is claimed.
 serialize_workspace_pointers_relative:
 	move.l a6,d0
-	sub.l d0,app_06B4(a6)
+	sub.l d0,savegame_prefix_rebased_long(a6)
 	sub.l d0,object_update_cursor(a6)
 	sub.l d0,distant_objects_cursor(a6)
 	sub.l d0,integrating_objects_cursor(a6)
@@ -18307,7 +18316,7 @@ abs_0_000106A2:
 	rts
 restore_workspace_pointers_absolute:
 	move.l a6,d0
-	add.l d0,app_06B4(a6)
+	add.l d0,savegame_prefix_rebased_long(a6)
 	add.l d0,object_update_cursor(a6)
 	add.l d0,distant_objects_cursor(a6)
 	add.l d0,integrating_objects_cursor(a6)

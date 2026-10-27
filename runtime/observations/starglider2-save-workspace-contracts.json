@@ -1,0 +1,315 @@
+{
+  "schema_version": 1,
+  "kind": "original_save_workspace_contract_and_independent_copy_stream_analysis",
+  "status": "qualified_batch_restoration_continues",
+  "publication_base_commit": "deb0e56e1ae39434a8e1b7db1d66b560f4f80cb7",
+  "input": {
+    "binary_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "backend_sha256": "dbd83c6105f9021e61fa1c1294327f52ff703c331857b9e18d768708c9702ed9",
+    "analysis_sha256": "fb555a2d6ca9ff99084c8247522aec057343dbe2e9c527e2fd6654eb2f807f6b",
+    "inline_source_sha256": "da98f9967a575202fa6b40f05ff5c1a7b2736e34a72a4be5ca12b400729a7f4c",
+    "effective_metadata_sha256": "c7dfb44578b5b0ba2221cae5bc3a3be327c4467f7034af68c525697348caefe1",
+    "instruction_windows_sha256": "6c017bd2b5813e4321b27df00ec63c044e9443dc7cf48849412c61032e608a97"
+  },
+  "canonical_actions": 23,
+  "interpretation": {
+    "action_start": 2902,
+    "action_count": 23,
+    "reason": "Original save/load format and initialization boundary. Fixed Amiga header path chooses workspace$69668 = $70000-$6998; clear count$32CC WORDs initializes$6598 bytes, ending with250x68-byte world pool. The old workspace-pointer role incorrectly said$6998 bytes were cleared. Load reads five$1400-byte chunks into shared workspace41848..47C48, then restores6073 LONGs ($5EE4 bytes) into app6B4..6598. Save copies five$1400 chunks FROM app6B4 after subtractingA6 from serialized pointer slots. Thus$51C trailing disk bytes are not restored; in the original fixed layout the transfer includes$400 reserved gap and$11C of the first display. This is original raw transfer/padding, not an asserted overrun bug or OS allocation. First LONG6B4 is adjusted as a pointer but no live pointee is identified; name only its serialized prefix/rebasing role and declare fourbytes, not the whole saved range as a leaf owner. Unconditional global conversions differ from zero-skipping released refs and0/-1-skipping object links, with original object sign guards retained. Native copy-span fix is generic for distinct postincrement registers; full-save loop owner/context obligations remain separate. No live disk write, relocation, guest-state forcing or new game-path coverage.",
+    "constants": [
+      [
+        "SG2_SAVE_RESTORE_DBF_LAST",
+        6072
+      ],
+      [
+        "SG2_SAVE_CHUNK_DBF_LAST",
+        1279
+      ],
+      [
+        "SG2_SAVE_TRACK_DBF_LAST",
+        4
+      ],
+      [
+        "SG2_SAVE_CHUNK_BYTES",
+        5120
+      ],
+      [
+        "SG2_WORKSPACE_CLEAR_WORDS",
+        13004
+      ],
+      [
+        "SG2_WORKSPACE_BELOW_DISPLAY_BYTES",
+        27032
+      ]
+    ],
+    "representations": [
+      [
+        65428,
+        6072,
+        "SG2_SAVE_RESTORE_DBF_LAST"
+      ],
+      [
+        65720,
+        1279,
+        "SG2_SAVE_CHUNK_DBF_LAST"
+      ],
+      [
+        65402,
+        5120,
+        "SG2_SAVE_CHUNK_BYTES"
+      ],
+      [
+        4262,
+        27032,
+        "SG2_WORKSPACE_BELOW_DISPLAY_BYTES"
+      ],
+      [
+        4280,
+        13004,
+        "SG2_WORKSPACE_CLEAR_WORDS"
+      ],
+      [
+        65374,
+        4,
+        "SG2_SAVE_TRACK_DBF_LAST"
+      ],
+      [
+        65700,
+        4,
+        "SG2_SAVE_TRACK_DBF_LAST"
+      ]
+    ],
+    "labels": [
+      [
+        65432,
+        "copy_saved_workspace_prefix_loop"
+      ],
+      [
+        65388,
+        "read_saved_workspace_track_loop"
+      ],
+      [
+        65724,
+        "stage_saved_workspace_track_chunk"
+      ],
+      [
+        65702,
+        "write_saved_workspace_track_loop"
+      ]
+    ],
+    "comments": [
+      [
+        61218,
+        "Restore $5EE4 bytes at app+$6B4, ending at world-pool end+$6598. Five $1400-byte chunks are read; the trailing $51C disk bytes are not copied back."
+      ],
+      [
+        61420,
+        "Write five $1400-byte chunks from app+$6B4 after pointer rebasing. Only $5EE4 bytes are restored. In the original fixed layout the extra $51C includes $11C display bytes."
+      ],
+      [
+        62918,
+        "Pointer encoding subtracts A6: fixed globals unconditionally; released refs skip zero; object links skip 0/-1 and retain original sign guard. No universal link-field type is claimed."
+      ],
+      [
+        166,
+        "Original fixed workspace lies $6998 bytes below display; only $6598 bytes are cleared. The remaining $400 gap is not thereby proved initialized or unused."
+      ]
+    ]
+  },
+  "original_workspace": {
+    "fixed_amiga_base": 431720,
+    "display_base": 458752,
+    "distance_below_display": 27032,
+    "clear_words": 13004,
+    "clear_bytes": 26008,
+    "clear_end": 457728,
+    "world_pool_offset": 9008,
+    "world_record_bytes": 68,
+    "world_record_count": 250,
+    "gap_bytes": 1024,
+    "condition": "Original header byte1003 bit0 selects fixed path. Other platform/entry branches retain original behavior; stored initial base3300 is not overwritten universally.",
+    "correction": "The previous workspace-pointer role confused distance below display with bytes actually cleared. No claim that the remaining gap is initialized or unused."
+  },
+  "original_save_format": {
+    "app_start": 1716,
+    "restore_long_count": 6073,
+    "restore_bytes": 24292,
+    "restore_end": 26008,
+    "chunk_count": 5,
+    "chunk_bytes": 5120,
+    "transfer_bytes": 25600,
+    "extra_transfer_bytes": 1308,
+    "save_source_end_app_offset": 27316,
+    "load_scratch": [
+      268360,
+      293960
+    ],
+    "original_extra_bytes": {
+      "workspace_gap": 1024,
+      "display_prefix": 284
+    },
+    "meaning": "Original raw transfer/padding is larger than restored state. This is not demonstrated corruption or a new memory allocation claim.",
+    "shared_storage": "The five-chunk read overlaps render scratch and the first998 bytes of the X-negative model cache. Complete phase/lifetime exclusion is not established.",
+    "pointer_encoding": "Fixed globals subtract/add A6 unconditionally; released references skip zero; object links skip0/-1 and retain original type/sign guards. The first LONG has a serialized rebasing role but unidentified live pointee."
+  },
+  "native_copy_fix": {
+    "cause": "Per-operand footprint rejected every instruction having another postincrement operand, even when the other stream updates a different address register.",
+    "change": "Reuse existing decoded operand identity; accept distinct postincrement streams independently. Same-register updates, predecrement, unproved counts and owner overrun stay refused.",
+    "baseline_fixture": {
+      "failed": 2,
+      "passed": 4
+    },
+    "candidate_fixture": {
+      "passed": 6,
+      "failed": 0
+    },
+    "whole_target": {
+      "app_refs_before": 3374,
+      "app_refs_after": 3383,
+      "extra_refs": 9,
+      "framework_only_source_unchanged": true
+    },
+    "not_claimed": "The scalar footprints and supported bounded fixtures do not prove the complete target saved-workspace loop envelope."
+  },
+  "actual_loop_trace": {
+    "runtime_header": 65432,
+    "source_header": 61336,
+    "before_canonical_slot": "proved transfer invariant; nodes2/transfers1/roots4/rows0",
+    "after_canonical_slot": "range_outside_declared_owner; nodes2/transfers1/roots4/rows0",
+    "log_sha256": "150b85372cce7c35ef9ddd709034be415523417e50eaa6ac23f4ed3e6bb8ee49",
+    "boundary": "A four-byte serialized prefix declaration is not an owner for the entire cross-field saved-workspace extent. Current range admission requires one explicit enclosing owner; max field endpoint or physical adjacency is not such a contract.",
+    "next_experiment": "Bind an enclosing layout span explicitly to existing canonical memory-region ownership, then test cross-leaf spans and genuine gaps/conflicts. Do not infer ownership by matching names or create a parallel region model.",
+    "dependency": "Canonical memory-region facts exist, but no explicit region-to-RSSET-layout binding is currently represented. This is a shared admission-model extension, not a reason to invent a giant leaf or block independent restoration."
+  },
+  "before_after": {
+    "app_slot_ref_count": {
+      "before": 3374,
+      "after": 3383
+    },
+    "recovered_platform_typed_access_count": {
+      "before": 390,
+      "after": 390
+    },
+    "recovered_platform_unresolved_typed_access_count": {
+      "before": 303,
+      "after": 303
+    }
+  },
+  "generic_app_fields": {
+    "before": 34,
+    "after": 33
+  },
+  "classification": {
+    "unclassified_bytes": 13943,
+    "intervals": 263,
+    "accepted_code_bytes": 106034,
+    "unchanged": true
+  },
+  "validation": {
+    "native_suite_passed": 832,
+    "native_suite_failures": 0,
+    "native_suite_log_sha256": "fff8db61cba9b314dd6c218d0c3ecae57f5ae4605daf1b040c84b1cc324378ae",
+    "focused_python_passed": 6,
+    "focused_log_sha256": "580ff8d6754afc97775463e57c50000e811f60878d7b48367eb18a935bfb4550",
+    "native_and_vasm": {
+      "kind": "verification",
+      "framework_exact": true,
+      "target_id": "amiga_raw_starglider2_game",
+      "subject_revision": "37916b955381b100f38230dd97b0625c0377b70530422c1d17643970daac91ac",
+      "status": "exact",
+      "exact": true,
+      "source_sha256": "da98f9967a575202fa6b40f05ff5c1a7b2736e34a72a4be5ca12b400729a7f4c",
+      "source_path": "/workspace/pandora-original-delivery/stable-d15c2cf8/.runtime-state/restoration/eb04f545fb97451725a1c91ab5abf6f2e097614c45880db6edfb4ea5c3f6e2c2/da98f9967a575202fa6b40f05ff5c1a7b2736e34a72a4be5ca12b400729a7f4c.s",
+      "source_package_sha256": null,
+      "original_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+      "original_size": 412736,
+      "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+      "rebuilt_path": "/workspace/pandora-original-delivery/stable-d15c2cf8/.runtime-state/restoration/eb04f545fb97451725a1c91ab5abf6f2e097614c45880db6edfb4ea5c3f6e2c2/662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9.bin",
+      "framework_status": "exact",
+      "failure_kinds": [],
+      "message": "",
+      "oracle": {
+        "oracle_id": "vasm",
+        "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+        "comparison_level": "oracle.full_file_match",
+        "assembler_status": "accepted",
+        "message": "oracle output matched original bytes"
+      },
+      "receipt_id": "6e7f27ac1ffab5d221b2ec60ef60e87969f6831872e1ff8a6ed7f39a7b981a17",
+      "revision": "55a14164caf140cd93f1da33c65fa8c40f2eb97d516af7a7d8ec17dc3a530e3c"
+    },
+    "generation_wall_seconds": 145.41017468599603,
+    "source_quality_diagnostics": 0,
+    "incomplete_analysis": [],
+    "assets_unchanged": 57,
+    "required_headers": 14,
+    "clean_standalone_build": {
+      "status": "pass",
+      "validated_target_git_tree": "8b21e62ce69cfb7bdd7ec3abf75edc49e093873d",
+      "receipt": {
+        "schema_version": 1,
+        "status": "pass",
+        "format": "raw_payload_not_AmigaDOS_HUNK",
+        "main_bytes": 412736,
+        "main_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+        "main_matches_original_identity": true,
+        "asset_count": 57,
+        "all_asset_source_slices_equal": true,
+        "decoded_view_inverse_exact": true,
+        "boot_copy_source_matches_resident_view": true,
+        "source_commit": "deb0e56e1ae39434a8e1b7db1d66b560f4f80cb7",
+        "assembler_sha256": "413e284020125f42709486dfe09907cab3dd9f3c2ea41017c190f8ea68f30825",
+        "flags": [
+          "-Fbin",
+          "-m68000",
+          "-no-opt"
+        ],
+        "outputs": [
+          {
+            "role": "original_main",
+            "filename": "Starglider2-original.raw",
+            "bytes": 412736,
+            "sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9"
+          },
+          {
+            "role": "decoded_analysis_view",
+            "filename": "protection-decoded-analysis.raw",
+            "bytes": 3548,
+            "sha256": "de8358853dd9ed9b006a23569bf393aa217ed3be3301a169465d80bfaf839922"
+          },
+          {
+            "role": "boot_installer_context",
+            "filename": "boot-selector-installer-context.raw",
+            "bytes": 40,
+            "sha256": "8d34852425e2e1bfa87b3febdfc74fb39e7c667e9d9ff73e17b594649e83b21b"
+          },
+          {
+            "role": "boot_resident_view",
+            "filename": "boot-selector-resident.raw",
+            "bytes": 20,
+            "sha256": "a26286a393713c046eff9dbaff15b20b26b171fa9e05fc9d538d16b0eddb6024"
+          }
+        ]
+      },
+      "recoverable_pandora_backups_verified": 16
+    }
+  },
+  "limits": [
+    "No emulator or live save/load disk operation in this batch; no guest/media writes.",
+    "No relocation, OS port, universal buffer lifetime or all-profile workspace-base claim.",
+    "33 generic app fields,303 unresolved typed accesses,30 unresolved orphan islands and13943 unclassified bytes remain; these are separate denominators.",
+    "No new code/asset classification or runtime reachability was inferred from transfer padding."
+  ],
+  "next": [
+    {
+      "group": "Projector neighborhood servicing",
+      "evidence": "Modulo32 app byte gates scans of nearby type75..82 records and projector-part presence/state, connected to known network propagation.",
+      "experiment": "Trace the complete producer/consumer branch and original template byte directory before assigning the counter/eligibility semantics; preserve type/sign and world-index conditions."
+    },
+    {
+      "group": "Workspace range binding",
+      "experiment": "Use the explicit canonical region/layout relationship described above if this becomes a necessary restoration blocker; no guessed name-based association.",
+      "reason": "The reproduced transfer itself now works; the remaining owner obligation has a precise measured refusal. Independent semantic restoration remains productive."
+    }
+  ]
+}

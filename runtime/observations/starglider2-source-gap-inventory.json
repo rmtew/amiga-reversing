@@ -347,7 +347,7 @@
       "struct_id": 0,
       "field_id": 1802,
       "pointer_struct_id": 0,
-      "comment": "Startup sets base used to clear 0x6998 bytes and load A6; original initial value 0x3300.",
+      "comment": "Workspace pointer. Original fixed Amiga path assigns$69668 ($70000-$6998); clear loop initial...",
       "has_target": false,
       "target_section": null,
       "target_offset": null
@@ -4134,7 +4134,7 @@
       "name": "game_workspace_base",
       "provenance": null,
       "review_status": "seeded",
-      "role": "Startup sets base used to clear 0x6998 bytes and load A6; original initial value 0x3300.",
+      "role": "Workspace pointer. Original fixed Amiga path assigns$69668 ($70000-$6998); clear loop initializes$6598 bytes, not$6998. Stored initial$3300 matters when fixed-base selection is bypassed.",
       "runtime_end": null,
       "runtime_execution_view_id": null,
       "runtime_start": null,
@@ -5810,8 +5810,8 @@
       "unresolved": 30,
       "suppressed": 5
     },
-    "generic_base_layout_fields": 34,
-    "generic_base_symbols": 34,
+    "generic_base_layout_fields": 33,
+    "generic_base_symbols": 33,
     "homogeneous_pointer_record_arrays": 10,
     "array_projection_mechanisms": {
       "collection_contract_exposed": 10
@@ -11811,7 +11811,7 @@
           "addr": 6056,
           "c_type": null,
           "citation": "manual_action_log:catalog-4819a49811f04df4bfc31d48af3826b9:0",
-          "comment": "Startup sets base used to clear 0x6998 bytes and load A6; original initial value 0x3300.",
+          "comment": "Workspace pointer. Original fixed Amiga path assigns$69668 ($70000-$6998); clear loop initializes$6598 bytes, not$6998. Stored initial$3300 matters when fixed-base selection is bypassed.",
           "encoding": null,
           "end": 6060,
           "field_name": null,
@@ -20749,73 +20749,6 @@
           "access": "write",
           "base_evidence": "a6_fallback",
           "symbol_name": "app_0204"
-        }
-      ],
-      "address_consumers": []
-    },
-    {
-      "domain": "base_layout",
-      "field": {
-        "layout_name": "app",
-        "base_symbol": "__amiga_app_base__",
-        "sizeof_symbol": "app_SIZEOF",
-        "symbol": "app_06B4",
-        "owner_struct_name": null,
-        "offset": 1716,
-        "size": 4,
-        "alias": false,
-        "layout_kind": 1,
-        "source_kind": 1,
-        "source_kind_name": "app_slot_access",
-        "value_kind": 3,
-        "confidence": 2,
-        "conflicted": false,
-        "conflict_reason": null,
-        "alias_of_symbol": null,
-        "alias_of_offset": null,
-        "source_section_index": 0,
-        "source_offset": 61328
-      },
-      "app_accesses": [
-        {
-          "section_index": 0,
-          "offset": 61328,
-          "displacement": 1716,
-          "base_register": "A6",
-          "operand_index": 0,
-          "access": "address",
-          "base_evidence": "a6_fallback",
-          "symbol_name": "app_06B4"
-        },
-        {
-          "section_index": 0,
-          "offset": 61594,
-          "displacement": 1716,
-          "base_register": "A6",
-          "operand_index": 0,
-          "access": "address",
-          "base_evidence": "a6_fallback",
-          "symbol_name": "app_06B4"
-        },
-        {
-          "section_index": 0,
-          "offset": 62920,
-          "displacement": 1716,
-          "base_register": "A6",
-          "operand_index": 1,
-          "access": "read-write",
-          "base_evidence": "a6_fallback",
-          "symbol_name": "app_06B4"
-        },
-        {
-          "section_index": 0,
-          "offset": 63150,
-          "displacement": 1716,
-          "base_register": "A6",
-          "operand_index": 1,
-          "access": "read-write",
-          "base_evidence": "a6_fallback",
-          "symbol_name": "app_06B4"
         }
       ],
       "address_consumers": []
@@ -40751,9 +40684,9 @@
     "Native rendered accesses describe the inline export. exported_definition checks the selected source; INCBIN packaging may intentionally hide internal boundaries."
   ],
   "input_sha256": {
-    "analysis": "c12e16d10c39d7807dc1e3649e85d79831c9414d2dd65db36a6a100f2d5ea112",
-    "metadata": "1a921b5bf8485a046347eed4d40b1bc4ccb86a5d06851e7ed6bf1a3198c0fb04",
-    "source": "0c87b47997eaf14af08e504479805fe83a39886d04f047be813e45679bc72571"
+    "analysis": "fb555a2d6ca9ff99084c8247522aec057343dbe2e9c527e2fd6654eb2f807f6b",
+    "metadata": "c7dfb44578b5b0ba2221cae5bc3a3be327c4467f7034af68c525697348caefe1",
+    "source": "0550882bbb780d08c5f4d46fc4482c954954424e2d150696d1a1422292ef894d"
   },
   "input_binding": "Caller supplies matching retained artifacts. Hashes identify inputs; discovery is not an independent correspondence/admission proof."
 }
