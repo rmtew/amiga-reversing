@@ -21,9 +21,23 @@ The [current systematic gap inventory](../../runtime/observations/starglider2-so
 joins native identities/accesses with canonical layouts and actual rendered
 boundaries. It records 66 suffix signals (including numeric adjacent variants),
 21 lookup contracts, 523 remaining interior references, 32 generic app fields
-and 303 unresolved record accesses. These are different denominators. Five
+and 295 unresolved record accesses. These are different denominators. Five
 suffixes name routines and one names text; neither is a pointer defect.
-Latest: the [energy-spheroid reconstruction](../../runtime/observations/starglider2-energy-spheroid-contracts.json)
+Latest: the [shared typed-footprint correction](../../runtime/observations/starglider2-typed-memory-widths.json)
+uses existing decoded memory footprints instead of instruction suffixes for
+field diagnostics. Two original BSET cases now report BYTE width rather than
+zero: the inventory moves them from false unknown-width cases to genuine field
+holes. Counts remain **410 typed / 295 unresolved**. Multi-register diagnostic
+spans and predecrement use the full register list; unsupported striped spans
+refuse scalar interpretation. Exact-start field names remain address identities,
+not claims that a whole transfer fits one field. **31 focused checks and 832
+native tests pass**. The current target regenerated in 121 seconds and C/vasm
+is exact. Rendered source and all committed target build inputs are unchanged,
+so the preceding clean standalone result is reused rather than repeated.
+The headline inventory above is refreshed to 295; historical receipts retain
+their dated counts. Continue the concrete drone state reconstruction next.
+
+Preceding: the [energy-spheroid reconstruction](../../runtime/observations/starglider2-energy-spheroid-contracts.json)
 uses original name/dispatch entry 146 and its real guarded disc consumers.
 Fifteen canonical actions separate expansion index/delay, two colours, remaining
 steps and projection state from model orientation. The shared constructor serves

@@ -21,6 +21,22 @@ Compact aggregate macros retain their existing inherited-schema refusal.
 This is field/ownership projection, not automatic proof of a target subtype,
 array bound, lifetime or valid caller contract.
 
+Typed memory projection and unresolved diagnostics use the shared decoded
+contiguous footprint. Fixed-width bit forms retain their BYTE width even without
+an instruction suffix; multi-register transfers use the whole register-list
+span, including predecrement. Unsupported striped spans remain unresolved rather
+than gaining a contiguous scalar interpretation. Address formation retains its
+existing symbolic-address behavior and is not a physical memory read.
+
+A typed access names a field at the effective starting address; `field_size` is
+the declared field size, **not** proof that the whole transfer fits that field.
+An exact-start `MOVEM` may therefore retain the first field's address symbol.
+Interior partial-field resolution still requires containment. Consumers needing
+full coverage must combine the actual instruction footprint and enclosing owner,
+not count rendered symbols. `operand_facts.width_bytes` is per-element for bulk
+transfers; use its register list/bulk role or the shared footprint helper for the
+total span. Unresolved `access_size` records that contiguous span when supported.
+
 `target.data.seed` classifies an evidenced source range before a listing can be
 rendered (for example, inline dispatch tables incorrectly reached as code).
 It takes `hunk`, `addr`, exclusive `end`, `name`, and `unit` (`byte`, `word`,

@@ -1,0 +1,178 @@
+{
+  "schema_version": 1,
+  "kind": "shared_typed_memory_footprint_projection",
+  "status": "qualified_batch_restoration_continues",
+  "publication_base_commit": "3413574764c8723e3f264b289546e33f21de6afd",
+  "input": {
+    "binary_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "backend_sha256": "f616591d1f9dbbdd1729edc6ed7b8838b86732ed52ac3af8f8a88ac6cc950d24",
+    "lookup_source_sha256": "435207fd405a01aeada058daf5d749481c2947c0c412db796da9b68006e44b24",
+    "analysis_sha256": "75f2fc2e8aed4e1737f16052aa6d683d81d53eeee0f5365ebda83c822a2c6581",
+    "inline_source_sha256": "cafe85aa6973671b3f9cb0562cb04c5f1b7c50e838f7436bcd393b5245d9aa29",
+    "effective_metadata_sha256": "ecf20ca0f25a0512c15f51c79663c33956cbfb9534183e30c45d76ced08b3a8f"
+  },
+  "canonical_target_actions": 0,
+  "cause": "Typed field projection initialized access_size from the printed instruction suffix, using decoded operand width only for auto-update. Fixed-width bit operations had no suffix and incorrectly yielded zero in unresolved diagnostics. Multi-register diagnostics used one element rather than the whole footprint.",
+  "fix": "Reuse platform_operand_memory_span for supported contiguous memory accesses, including complete MOVEM register lists and predecrement. Unsupported striped spans remain unresolved instead of scalar inference. Preserve nominal address-formation behavior. No target addresses, opcode recognizer or new flow state.",
+  "contract_boundary": "Typed accesses name a starting field. An exact-start MOVEM may legitimately retain the first field symbol without proving the complete transfer fits it. field_size is a declaration size, not the transfer span. The initial proposed exact-start refusal was an incorrect test expectation, not a demonstrated framework bug; its replacement preserves that positive behavior and separately tests an interior cross-field diagnostic.",
+  "regression_evidence": {
+    "validated_baseline_failures": [
+      "BSET missing-field diagnostic incorrectly zero width.",
+      "BTST missing-field diagnostic incorrectly zero width.",
+      "Predecrement MOVEM diagnostic used one LONG update instead of two.",
+      "Striped MOVEP incorrectly gained a contiguous scalar-field interpretation."
+    ],
+    "candidate_passed": 31,
+    "breakdown": {
+      "footprint_tests": 11,
+      "custom_inheritance": 14,
+      "independent_copy_streams": 6
+    },
+    "additional_guards": [
+      "An interior cross-field MOVEM reports the complete eight-byte span.",
+      "Exact-start MOVEM keeps its starting-field identity; register-list facts remain separate.",
+      "Known one-byte fields retain bit-operation symbols.",
+      "LEA retains its existing symbolic-address behavior."
+    ],
+    "test_log_sha256": "f25bf0cd5e6cf36ffeac6c1dd761744a7e80e267a1662d73789004702675b8cd"
+  },
+  "actual_target_width_changes": [
+    {
+      "runtime_address": 100362,
+      "operand_index": 1,
+      "old_access_size": 0,
+      "new_access_size": 1,
+      "root": "SG2CelestialObject"
+    },
+    {
+      "runtime_address": 100570,
+      "operand_index": 1,
+      "old_access_size": 0,
+      "new_access_size": 1,
+      "root": "SG2RadialObject"
+    }
+  ],
+  "before_after": {
+    "app_slot_ref_count": {
+      "before": 3383,
+      "after": 3383
+    },
+    "recovered_platform_typed_access_count": {
+      "before": 410,
+      "after": 410
+    },
+    "recovered_platform_unresolved_typed_access_count": {
+      "before": 295,
+      "after": 295
+    }
+  },
+  "inventory_change": {
+    "before_false_unknown_width": 2,
+    "after_false_unknown_width": 0,
+    "before_declared_field_holes": 199,
+    "after_declared_field_holes": 201,
+    "meaning": "The same two missing-field cases now have known BYTE widths. No semantic field names or access sites were manufactured."
+  },
+  "validation": {
+    "native_suite_passed": 832,
+    "native_suite_failures": 0,
+    "native_suite_log_sha256": "fff8db61cba9b314dd6c218d0c3ecae57f5ae4605daf1b040c84b1cc324378ae",
+    "python_passed": 31,
+    "native_and_vasm": {
+      "kind": "verification",
+      "framework_exact": true,
+      "target_id": "amiga_raw_starglider2_game",
+      "subject_revision": "aa9452dd24f21087cd99cdea110f889a2518bb036b2c8b6661a3f4f1cba654ed",
+      "status": "exact",
+      "exact": true,
+      "source_sha256": "cafe85aa6973671b3f9cb0562cb04c5f1b7c50e838f7436bcd393b5245d9aa29",
+      "source_path": "/workspace/pandora-original-delivery/stable-d15c2cf8/.runtime-state/restoration/eb04f545fb97451725a1c91ab5abf6f2e097614c45880db6edfb4ea5c3f6e2c2/cafe85aa6973671b3f9cb0562cb04c5f1b7c50e838f7436bcd393b5245d9aa29.s",
+      "source_package_sha256": null,
+      "original_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+      "original_size": 412736,
+      "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+      "rebuilt_path": "/workspace/pandora-original-delivery/stable-d15c2cf8/.runtime-state/restoration/eb04f545fb97451725a1c91ab5abf6f2e097614c45880db6edfb4ea5c3f6e2c2/662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9.bin",
+      "framework_status": "exact",
+      "failure_kinds": [],
+      "message": "",
+      "oracle": {
+        "oracle_id": "vasm",
+        "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+        "comparison_level": "oracle.full_file_match",
+        "assembler_status": "accepted",
+        "message": "oracle output matched original bytes"
+      },
+      "receipt_id": "0bfd1ba1ccf9b008f15a46cb0c2ce763ba7b30dda9d943692ac53c91b55847c7",
+      "revision": "395049a74ebf0e39a42dc5d8a99f2ad51d8da5c2a9fc3cea6f82cbdb68e65649"
+    },
+    "generation_wall_seconds": 120.99261093803216,
+    "incomplete_analysis": [],
+    "source_quality_diagnostics": 0,
+    "inline_source_unchanged": true,
+    "rendered_package_source_unchanged": true,
+    "assets_unchanged": 57,
+    "clean_standalone_build_reused": {
+      "receipt": "runtime/observations/starglider2-energy-spheroid-contracts.json",
+      "validation": {
+        "status": "pass",
+        "validated_target_git_tree": "f26f4f85f76afd85dc5b58de27de3295afb3cf3e",
+        "receipt": {
+          "schema_version": 1,
+          "status": "pass",
+          "format": "raw_payload_not_AmigaDOS_HUNK",
+          "main_bytes": 412736,
+          "main_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+          "main_matches_original_identity": true,
+          "asset_count": 57,
+          "all_asset_source_slices_equal": true,
+          "decoded_view_inverse_exact": true,
+          "boot_copy_source_matches_resident_view": true,
+          "source_commit": "d8c272354fac307c0f0950e2ee3b58bcda35cda7",
+          "assembler_sha256": "413e284020125f42709486dfe09907cab3dd9f3c2ea41017c190f8ea68f30825",
+          "flags": [
+            "-Fbin",
+            "-m68000",
+            "-no-opt"
+          ],
+          "outputs": [
+            {
+              "role": "original_main",
+              "filename": "Starglider2-original.raw",
+              "bytes": 412736,
+              "sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9"
+            },
+            {
+              "role": "decoded_analysis_view",
+              "filename": "protection-decoded-analysis.raw",
+              "bytes": 3548,
+              "sha256": "de8358853dd9ed9b006a23569bf393aa217ed3be3301a169465d80bfaf839922"
+            },
+            {
+              "role": "boot_installer_context",
+              "filename": "boot-selector-installer-context.raw",
+              "bytes": 40,
+              "sha256": "8d34852425e2e1bfa87b3febdfc74fb39e7c667e9d9ff73e17b594649e83b21b"
+            },
+            {
+              "role": "boot_resident_view",
+              "filename": "boot-selector-resident.raw",
+              "bytes": 20,
+              "sha256": "a26286a393713c046eff9dbaff15b20b26b171fa9e05fc9d538d16b0eddb6024"
+            }
+          ]
+        },
+        "recoverable_pandora_backups_verified": 16
+      },
+      "reason": "Exact committed target tree and every source/asset/build input are unchanged; no repeated standalone assembly."
+    }
+  },
+  "limits": [
+    "No new target interpretation, classification, emulator run or runtime outcome.",
+    "The whole saved-workspace cross-field owner relation remains unbound; a transfer footprint is not an enclosing owner or lifetime proof.",
+    "32 generic app fields,295 unresolved typed accesses,30 orphan islands and13865 unclassified bytes remain, with distinct denominators."
+  ],
+  "next": {
+    "group": "Skim launcher drone state",
+    "experiment": "Inspect both original callers and constructor, then bind its actual angle/countdown/owner fields. Preserve active-owner and updater-call cadence conditions."
+  }
+}

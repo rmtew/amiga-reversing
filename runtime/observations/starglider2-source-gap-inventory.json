@@ -5801,9 +5801,8 @@
     "unresolved_typed_accesses": 295,
     "unresolved_mechanisms": {
       "indexed_dynamic": 87,
-      "declared_field_hole": 199,
+      "declared_field_hole": 201,
       "auto_update_cursor": 2,
-      "address_formation_or_unknown_width": 2,
       "outside_declared_record": 5
     },
     "orphan_signal_statuses": {
@@ -30879,13 +30878,13 @@
     },
     {
       "section_index": 0,
-      "mechanism": "address_formation_or_unknown_width",
+      "mechanism": "declared_field_hole",
       "offset": 96266,
       "operand_index": 1,
       "base_register": "A0",
       "displacement": 28,
       "struct_size": 68,
-      "access_size": 0,
+      "access_size": 1,
       "root_struct_name": "SG2CelestialObject",
       "classification_id": 0,
       "classification": "field_gap",
@@ -30901,13 +30900,13 @@
     },
     {
       "section_index": 0,
-      "mechanism": "address_formation_or_unknown_width",
+      "mechanism": "declared_field_hole",
       "offset": 96474,
       "operand_index": 1,
       "base_register": "A0",
       "displacement": 28,
       "struct_size": 68,
-      "access_size": 0,
+      "access_size": 1,
       "root_struct_name": "SG2RadialObject",
       "classification_id": 0,
       "classification": "field_gap",
@@ -40474,7 +40473,7 @@
     "Native rendered accesses describe the inline export. exported_definition checks the selected source; INCBIN packaging may intentionally hide internal boundaries."
   ],
   "input_sha256": {
-    "analysis": "7c4769d43845950c69dc4c2dd53be9953b529104d55a202b806a770c09d6d789",
+    "analysis": "75f2fc2e8aed4e1737f16052aa6d683d81d53eeee0f5365ebda83c822a2c6581",
     "metadata": "ecf20ca0f25a0512c15f51c79663c33956cbfb9534183e30c45d76ced08b3a8f",
     "source": "5cb942cf1e822a32faa89f2dde5978d3d1eb26522cca7e1f5210bcb4f5f82034"
   },

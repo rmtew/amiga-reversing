@@ -4999,6 +4999,7 @@ static int render_lookup_record_typed_struct_accesses(M68kRenderLookup *lookup, 
     char container_struct_name[64], container_field_expr[96];
     int refinement_applied = 0;
     int type_conflicted = 0;
+    int memory_span_known = 1;
     M68kRenderResolvedStructField field;
     M68kRenderTypedProvenance app_slot_provenance;
     const M68kRenderTypedProvenance *provenance = NULL;
@@ -5047,7 +5048,17 @@ static int render_lookup_record_typed_struct_accesses(M68kRenderLookup *lookup, 
     if (state->addr_regs[base_reg].known) base_cursor = state->addr_regs[base_reg].byte_cursor;
     struct_size = lookup_policy_struct_size_by_id(lookup->policy, struct_id);
     access_size = instruction_size_suffix_bytes_local(instruction->size_suffix);
-    if (auto_update != M68K_SIM_EA_UPDATE_NONE)
+    /* Use the same decoded footprint as writes/stack/range analysis: fixed
+     * bit forms have no size suffix and MOVEM touches its whole reglist.
+     * Address formation keeps its nominal width; it is not a memory read. */
+    if (platform_operand_memory_span(instruction, operand_index, NULL, NULL, &access_size)) {
+      memory_span_known = 1;
+    } else if (platform_operand_memory_access(instruction, operand_index) != M68K_SIM_ACCESS_NONE ||
+        (metadata != NULL && metadata->multi_transfer_direction != M68K_SIM_MULTI_NONE)) {
+      /* An unsupported striped footprint must not become a scalar field. */
+      memory_span_known = 0;
+      access_size = 0U;
+    } else if (auto_update != M68K_SIM_EA_UPDATE_NONE)
       access_size = m68k_sim_operand_width_bytes(instruction, (uint8_t)operand_index);
     if (auto_update == M68K_SIM_EA_UPDATE_PREDECREMENT) displacement = -(int32_t)access_size;
     if ((base_cursor > 0 && displacement > INT32_MAX - base_cursor) ||
@@ -5122,9 +5133,10 @@ static int render_lookup_record_typed_struct_accesses(M68kRenderLookup *lookup, 
         field_displacement = (int16_t)((uint64_t)array_offset % struct_size);
       }
     }
-    if (!lookup_policy_resolve_struct_field(lookup->policy, struct_id, field_displacement, access_size, &field)) {
+    if (!memory_span_known ||
+        !lookup_policy_resolve_struct_field(lookup->policy, struct_id, field_displacement, access_size, &field)) {
       int refined_exact_field_access_recorded = 0;
-      if (amiga_os_name(M68K_PLATFORM_NAME_STRUCT, struct_id) != NULL) {
+      if (memory_span_known && amiga_os_name(M68K_PLATFORM_NAME_STRUCT, struct_id) != NULL) {
         classify_unresolved_typed_access(struct_id, field_displacement, struct_size, access_size,
           &classification, &container_candidate_count,
           container_struct_name, sizeof(container_struct_name), container_field_expr, sizeof(container_field_expr),
