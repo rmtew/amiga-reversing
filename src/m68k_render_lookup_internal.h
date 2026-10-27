@@ -540,9 +540,9 @@ typedef struct M68kRenderTypedFlowNode {
   M68kRenderTypedState typed_out;
   M68kRenderPlatformState platform_in;
   M68kRenderPlatformState platform_out;
-  size_t successors[5];
+  size_t *successors; /* One compact graph-owned edge pool, not a fixed fanout. */
   size_t call_target; /* Sparse CALL edge; SIZE_MAX when absent. */
-  uint8_t successor_count;
+  size_t successor_count;
   uint8_t is_root;
   uint8_t has_in;
   uint8_t has_out;

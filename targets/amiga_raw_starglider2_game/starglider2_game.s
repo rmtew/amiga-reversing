@@ -9742,21 +9742,21 @@ abs_0_00008618:
 abs_0_0000863C:
 	move.w $002C(a0),d3
 	ext.l d3
-	add.l d3,$0004(a0)
+	add.l d3,SG2ObjectCore_world_x(a0)
 	move.w $002E(a0),d3
 	ext.l d3
-	add.l d3,$0008(a0)
+	add.l d3,SG2ObjectCore_world_y(a0)
 	move.w $0030(a0),d3
 	ext.l d3
-	add.l d3,$000C(a0)
+	add.l d3,SG2ObjectCore_world_z(a0)
 	move.l horizontal_world_wrap_mask(a6),d3
-	and.l d3,$0004(a0)
-	and.l d3,$000C(a0)
-	tst.b $001E(a0)
+	and.l d3,SG2ObjectCore_world_x(a0)
+	and.l d3,SG2ObjectCore_world_z(a0)
+	tst.b SG2ObjectCore_retirement_phase_or_negative(a0)
 	bpl.w abs_0_000081D2
-	cmpi.b #3,$001C(a0)
+	cmpi.b #3,SG2ObjectCore_durability_or_negative(a0)
 	bls.b abs_0_000086B8
-	cmpi.l #4294967256,$0008(a0)
+	cmpi.l #4294967256,SG2ObjectCore_world_y(a0)
 	bge.w abs_0_00008740
 	tst.b $0028(a0)
 	beq.w abs_0_000081D2
@@ -9783,7 +9783,7 @@ abs_0_000086BA:
 	movea.l a4,a1
 	bra.b abs_0_000086BA
 abs_0_000086CE:
-	cmpi.w #22,(a0)
+	cmpi.w #22,(a0)	; operand 2: SG2ObjectCore_object_type at (a0)
 	beq.w abs_0_00008740
 abs_0_000086D6:
 	cmpi.w #50,free_object_count(a6)
@@ -9835,9 +9835,9 @@ abs_0_0000877A:
 abs_0_00008780:
 	rts
 abs_0_00008782:
-	move.l player_world_x(a6),$0004(a0)
-	move.l player_world_y(a6),$0008(a0)
-	move.l player_world_z(a6),$000C(a0)
+	move.l player_world_x(a6),SG2ObjectCore_world_x(a0)
+	move.l player_world_y(a6),SG2ObjectCore_world_y(a0)
+	move.l player_world_z(a6),SG2ObjectCore_world_z(a0)
 	move.w player_rotation_0(a6),$0010(a0)
 	move.w player_rotation_1(a6),$0012(a0)
 	move.w player_rotation_2(a6),$0014(a0)
@@ -9891,19 +9891,19 @@ abs_0_00008846:
 	bra.w abs_0_000081D2
 abs_0_00008850:
 	subq.w #1,$0024(a0)
-	cmpi.b #6,$001C(a0)
+	cmpi.b #6,SG2ObjectCore_durability_or_negative(a0)
 	beq.w abs_0_00008888
 	addq.b #1,$0003(a0)
 	move.w #$FFFF,$0026(a0)
 	move.w $002C(a0),d3
 	ext.l d3
-	add.l d3,$0004(a0)
+	add.l d3,SG2ObjectCore_world_x(a0)
 	move.w $0030(a0),d3
 	ext.l d3
-	add.l d3,$000C(a0)
+	add.l d3,SG2ObjectCore_world_z(a0)
 	move.l horizontal_world_wrap_mask(a6),d3
-	and.l d3,$0004(a0)
-	and.l d3,$000C(a0)
+	and.l d3,SG2ObjectCore_world_x(a0)
+	and.l d3,SG2ObjectCore_world_z(a0)
 abs_0_00008888:
 	movea.l player_object_reference(a6),a4
 	addq.b #1,$0003(a0)
@@ -9923,13 +9923,13 @@ abs_0_0000889E:
 abs_0_000088BC:
 	move.w $002C(a0),d3
 	ext.l d3
-	add.l d3,$0004(a0)
+	add.l d3,SG2ObjectCore_world_x(a0)
 	move.w $0030(a0),d3
 	ext.l d3
-	add.l d3,$000C(a0)
+	add.l d3,SG2ObjectCore_world_z(a0)
 	move.l horizontal_world_wrap_mask(a6),d3
-	and.l d3,$0004(a0)
-	and.l d3,$000C(a0)
+	and.l d3,SG2ObjectCore_world_x(a0)
+	and.l d3,SG2ObjectCore_world_z(a0)
 	bsr.w heading_with_player_as_reference
 	move.w $0024(a0),d0
 	st.b ai_type12_projectile_request(a6)
@@ -9944,13 +9944,13 @@ abs_0_000088BC:
 abs_0_00008908:
 	move.w $002C(a0),d3
 	ext.l d3
-	add.l d3,$0004(a0)
+	add.l d3,SG2ObjectCore_world_x(a0)
 	move.w $0030(a0),d3
 	ext.l d3
-	add.l d3,$000C(a0)
+	add.l d3,SG2ObjectCore_world_z(a0)
 	move.l horizontal_world_wrap_mask(a6),d3
-	and.l d3,$0004(a0)
-	and.l d3,$000C(a0)
+	and.l d3,SG2ObjectCore_world_x(a0)
+	and.l d3,SG2ObjectCore_world_z(a0)
 	move.w $0024(a0),d0
 	st.b ai_type12_projectile_request(a6)
 	andi.b #63,d0
@@ -10051,18 +10051,18 @@ abs_0_00008A6A:
 abs_0_00008A74:
 	subq.w #1,$0024(a0)
 	movea.l player_object_reference(a6),a4
-	cmpi.b #6,$001C(a0)
+	cmpi.b #6,SG2ObjectCore_durability_or_negative(a0)
 	beq.w abs_0_00008AB0
 	addq.b #1,$0003(a0)
 	move.w $002C(a0),d3
 	ext.l d3
-	add.l d3,$0004(a0)
+	add.l d3,SG2ObjectCore_world_x(a0)
 	move.w $0030(a0),d3
 	ext.l d3
-	add.l d3,$000C(a0)
+	add.l d3,SG2ObjectCore_world_z(a0)
 	move.l horizontal_world_wrap_mask(a6),d3
-	and.l d3,$0004(a0)
-	and.l d3,$000C(a0)
+	and.l d3,SG2ObjectCore_world_x(a0)
+	and.l d3,SG2ObjectCore_world_z(a0)
 	move.w #$FFFF,$0026(a0)
 abs_0_00008AB0:
 	addq.b #1,$0003(a0)
@@ -10084,13 +10084,13 @@ abs_0_00008ACA:
 abs_0_00008AE8:
 	move.w $002C(a0),d3
 	ext.l d3
-	add.l d3,$0004(a0)
+	add.l d3,SG2ObjectCore_world_x(a0)
 	move.w $0030(a0),d3
 	ext.l d3
-	add.l d3,$000C(a0)
+	add.l d3,SG2ObjectCore_world_z(a0)
 	move.l horizontal_world_wrap_mask(a6),d3
-	and.l d3,$0004(a0)
-	and.l d3,$000C(a0)
+	and.l d3,SG2ObjectCore_world_x(a0)
+	and.l d3,SG2ObjectCore_world_z(a0)
 	bsr.w heading_with_player_as_reference
 	move.w $0024(a0),d0
 	st.b ai_type12_projectile_request(a6)
@@ -10103,13 +10103,13 @@ abs_0_00008AE8:
 abs_0_00008B2C:
 	move.w $002C(a0),d3
 	ext.l d3
-	add.l d3,$0004(a0)
+	add.l d3,SG2ObjectCore_world_x(a0)
 	move.w $0030(a0),d3
 	ext.l d3
-	add.l d3,$000C(a0)
+	add.l d3,SG2ObjectCore_world_z(a0)
 	move.l horizontal_world_wrap_mask(a6),d3
-	and.l d3,$0004(a0)
-	and.l d3,$000C(a0)
+	and.l d3,SG2ObjectCore_world_x(a0)
+	and.l d3,SG2ObjectCore_world_z(a0)
 	move.w $0024(a0),d0
 	st.b ai_type12_projectile_request(a6)
 	andi.b #31,d0
@@ -10314,7 +10314,7 @@ abs_0_00008DDE:
 	bra.w abs_0_00008C9C
 abs_0_00008DE2:
 	move.b #$D,diagnostic_step_byte.l
-	move.w $001A(a0),d0
+	move.w SG2ObjectCore_relative_z(a0),d0
 	bpl.b abs_0_00008DF2
 	neg.w d0
 abs_0_00008DF2:
@@ -10324,9 +10324,9 @@ abs_0_00008DF8:
 	addi.w #64,$0012(a0)
 	bra.w abs_0_000081D2
 abs_0_00008E02:
-	cmpi.w #768,$001A(a0)
+	cmpi.w #768,SG2ObjectCore_relative_z(a0)
 	bpl.b abs_0_00008E34
-	clr.b $001E(a0)
+	clr.b SG2ObjectCore_retirement_phase_or_negative(a0)
 	bsr.w advance_shared_random_state
 	andi.w #62,d0
 	subi.w #32,d0
@@ -10350,12 +10350,12 @@ abs_0_00008E40:
 abs_0_00008E78:
 	tst.b space_environment_flag(a6)
 	bmi.b abs_0_00008E88
-	tst.l $0008(a0)
+	tst.l SG2ObjectCore_world_y(a0)
 	bmi.b abs_0_00008E88
-	clr.l $0008(a0)
+	clr.l SG2ObjectCore_world_y(a0)
 abs_0_00008E88:
 	move.b $001F(a0),d0
-	cmp.b $001C(a0),d0
+	cmp.b SG2ObjectCore_durability_or_negative(a0),d0
 	beq.w abs_0_000081D2
 	tst.w $002E(a0)
 	beq.w abs_0_00008EF0
@@ -10367,13 +10367,13 @@ abs_0_00008E88:
 	bra.w abs_0_000081D2
 abs_0_00008EB4:
 	move.l horizontal_world_wrap_mask(a6),d3
-	addi.l #90,$0004(a0)
-	addi.l #62,$000C(a0)
-	and.l d3,$0004(a0)
-	and.l d3,$000C(a0)
+	addi.l #90,SG2ObjectCore_world_x(a0)
+	addi.l #62,SG2ObjectCore_world_z(a0)
+	and.l d3,SG2ObjectCore_world_x(a0)
+	and.l d3,SG2ObjectCore_world_z(a0)
 	move.w $002E(a0),d0
 	ext.l d0
-	add.l d0,$0008(a0)
+	add.l d0,SG2ObjectCore_world_y(a0)
 	addq.w #4,$002E(a0)
 	cmpi.w #66,$002E(a0)
 	bne.w abs_0_000081D2
@@ -10390,9 +10390,9 @@ abs_0_00008EF0:
 abs_0_00008F0E:
 	move.b #$10,diagnostic_step_byte.l
 	move.b $0003(a0),d0
-	cmpi.b #2,$001C(a0)
+	cmpi.b #2,SG2ObjectCore_durability_or_negative(a0)
 	bls.b abs_0_00008F6E
-	cmpi.b #2,$001C(a0)
+	cmpi.b #2,SG2ObjectCore_durability_or_negative(a0)
 	beq.b abs_0_00008F36
 	lea.l model_type_target_selection_tags_prefix(a6),a1
 	tst.b $0004(a1)
@@ -10716,10 +10716,10 @@ abs_0_000093CE:
 	move.b #$30,$002A(a0)
 	move.w $002E(a0),d0
 	ext.l d0
-	add.l d0,$0008(a0)
-	cmpi.l #4294967256,$0008(a0)
+	add.l d0,SG2ObjectCore_world_y(a0)
+	cmpi.l #4294967256,SG2ObjectCore_world_y(a0)
 	blt.b abs_0_000093F8
-	move.l #$FFFFFFC4,$0008(a0)
+	move.l #$FFFFFFC4,SG2ObjectCore_world_y(a0)
 	bra.b abs_0_00009406
 abs_0_000093F8:
 	addq.w #4,$002E(a0)
@@ -10919,25 +10919,25 @@ abs_0_0000967A:
 abs_0_00009694:
 	move.w $002C(a0),d3
 	ext.l d3
-	add.l d3,$0004(a0)
+	add.l d3,SG2ObjectCore_world_x(a0)
 	move.w $002E(a0),d3
 	ext.l d3
-	add.l d3,$0008(a0)
+	add.l d3,SG2ObjectCore_world_y(a0)
 	move.w $0030(a0),d3
 	ext.l d3
-	add.l d3,$000C(a0)
+	add.l d3,SG2ObjectCore_world_z(a0)
 	move.l horizontal_world_wrap_mask(a6),d3
-	and.l d3,$0004(a0)
-	and.l d3,$000C(a0)
+	and.l d3,SG2ObjectCore_world_x(a0)
+	and.l d3,SG2ObjectCore_world_z(a0)
 	tst.b $0022(a0)
 	bne.w abs_0_00009700
 	move.l player_world_y(a6),d0
-	sub.l $0008(a0),d0
+	sub.l SG2ObjectCore_world_y(a0),d0
 	asr.l #2,d0
-	add.l d0,$0008(a0)
+	add.l d0,SG2ObjectCore_world_y(a0)
 	subq.w #1,$0024(a0)
 	ble.b abs_0_000096F8
-	cmpi.l #4294965596,$0008(a0)
+	cmpi.l #4294965596,SG2ObjectCore_world_y(a0)
 	bmi.b abs_0_000096F8
 	bsr.w heading_with_player_as_reference
 	addi.w #2048,d1
@@ -10960,12 +10960,12 @@ abs_0_00009700:
 	subq.w #1,$0024(a0)
 	bls.b abs_0_000096F8
 	move.l $0008(a4),d0
-	sub.l $0008(a0),d0
+	sub.l SG2ObjectCore_world_y(a0),d0
 	asr.l #5,d0
-	add.l d0,$0008(a0)
-	cmpi.l #4294967286,$0008(a0)
+	add.l d0,SG2ObjectCore_world_y(a0)
+	cmpi.l #4294967286,SG2ObjectCore_world_y(a0)
 	bmi.b abs_0_00009748
-	move.l #$FFFFFFF6,$0008(a0)
+	move.l #$FFFFFFF6,SG2ObjectCore_world_y(a0)
 abs_0_00009748:
 	addq.w #1,$0026(a0)
 	andi.w #7,$0026(a0)
@@ -11140,19 +11140,19 @@ abs_0_000099EA:
 	lsr $0030(a0)
 	move.w $002C(a0),d3
 	ext.l d3
-	add.l d3,$0004(a0)
+	add.l d3,SG2ObjectCore_world_x(a0)
 	move.w $0030(a0),d3
 	ext.l d3
-	add.l d3,$000C(a0)
+	add.l d3,SG2ObjectCore_world_z(a0)
 	move.l horizontal_world_wrap_mask(a6),d3
-	and.l d3,$0004(a0)
-	and.l d3,$000C(a0)
+	and.l d3,SG2ObjectCore_world_x(a0)
+	and.l d3,SG2ObjectCore_world_z(a0)
 	tst.b space_environment_flag(a6)
 	bne.b abs_0_00009A30
-	move.l $0008(a0),d0
+	move.l SG2ObjectCore_world_y(a0),d0
 	cmpi.l #4294967251,d0
 	bge.b abs_0_00009A30
-	addi.l #8,$0008(a0)
+	addi.l #8,SG2ObjectCore_world_y(a0)
 	bra.w abs_0_000081D2
 abs_0_00009A30:
 	tst.w $0026(a0)
@@ -11178,9 +11178,9 @@ abs_0_00009A6E:
 	andi.w #4095,$0010(a0)
 	addi.w #32,$0014(a0)
 	andi.w #4095,$0014(a0)
-	move.l $0004(a0),d0
-	move.l $0008(a0),d1
-	move.l $000C(a0),d2
+	move.l SG2ObjectCore_world_x(a0),d0
+	move.l SG2ObjectCore_world_y(a0),d1
+	move.l SG2ObjectCore_world_z(a0),d2
 	sub.l $0004(a1),d0
 	sub.l $0008(a1),d1
 	sub.l $000C(a1),d2
@@ -11190,35 +11190,35 @@ abs_0_00009A6E:
 	asr.l #4,d0
 	asr.l #4,d1
 	asr.l #4,d2
-	sub.l d0,$0004(a0)
-	sub.l d1,$0008(a0)
-	sub.l d2,$000C(a0)
+	sub.l d0,SG2ObjectCore_world_x(a0)
+	sub.l d1,SG2ObjectCore_world_y(a0)
+	sub.l d2,SG2ObjectCore_world_z(a0)
 	bra.w abs_0_000081D2
 abs_0_00009ABA:
 	move.w $002C(a0),d3
 	ext.l d3
-	add.l d3,$0004(a0)
+	add.l d3,SG2ObjectCore_world_x(a0)
 	move.w $002E(a0),d3
 	ext.l d3
-	add.l d3,$0008(a0)
+	add.l d3,SG2ObjectCore_world_y(a0)
 	move.w $0030(a0),d3
 	ext.l d3
-	add.l d3,$000C(a0)
+	add.l d3,SG2ObjectCore_world_z(a0)
 	move.l horizontal_world_wrap_mask(a6),d3
-	and.l d3,$0004(a0)
-	and.l d3,$000C(a0)
+	and.l d3,SG2ObjectCore_world_x(a0)
+	and.l d3,SG2ObjectCore_world_z(a0)
 	tst.b space_environment_flag(a6)
 	bne.w abs_0_000081D2
 	tst.b inside_structure_flag(a6)
 	bne.w abs_0_000081D2
-	cmpi.l #4294967246,$0008(a0)
+	cmpi.l #4294967246,SG2ObjectCore_world_y(a0)
 	bge.b abs_0_00009B0E
 	asr $002C(a0)
 	addq.w #2,$002E(a0)
 	asr $0030(a0)
 	bra.w abs_0_000081D2
 abs_0_00009B0E:
-	sf.b $001E(a0)
+	sf.b SG2ObjectCore_retirement_phase_or_negative(a0)
 	bra.w abs_0_000081D2
 abs_0_00009B16:
 	tst.b space_environment_flag(a6)
@@ -11233,24 +11233,24 @@ abs_0_00009B30:
 	subq.w #2,$002E(a0)
 	move.w $002E(a0),d0
 	ext.l d0
-	add.l $0008(a0),d0
-	move.l d0,$0008(a0)
+	add.l SG2ObjectCore_world_y(a0),d0
+	move.l d0,SG2ObjectCore_world_y(a0)
 	bra.w abs_0_000081D2
 abs_0_00009B4C:
 	move.b #$5,diagnostic_step_byte.l
 	subq.w #1,$0024(a0)
-	cmpi.b #6,$001C(a0)
+	cmpi.b #6,SG2ObjectCore_durability_or_negative(a0)
 	beq.w abs_0_00009B88
 	move.w #$FFFF,$0026(a0)
 	move.w $002C(a0),d3
 	ext.l d3
-	add.l d3,$0004(a0)
+	add.l d3,SG2ObjectCore_world_x(a0)
 	move.w $0030(a0),d3
 	ext.l d3
-	add.l d3,$000C(a0)
+	add.l d3,SG2ObjectCore_world_z(a0)
 	move.l horizontal_world_wrap_mask(a6),d3
-	and.l d3,$0004(a0)
-	and.l d3,$000C(a0)
+	and.l d3,SG2ObjectCore_world_x(a0)
+	and.l d3,SG2ObjectCore_world_z(a0)
 abs_0_00009B88:
 	movea.l player_object_reference(a6),a4
 	tst.b $0028(a0)
@@ -11265,13 +11265,13 @@ abs_0_00009B88:
 abs_0_00009BAA:
 	move.w $002C(a0),d3
 	ext.l d3
-	add.l d3,$0004(a0)
+	add.l d3,SG2ObjectCore_world_x(a0)
 	move.w $0030(a0),d3
 	ext.l d3
-	add.l d3,$000C(a0)
+	add.l d3,SG2ObjectCore_world_z(a0)
 	move.l horizontal_world_wrap_mask(a6),d3
-	and.l d3,$0004(a0)
-	and.l d3,$000C(a0)
+	and.l d3,SG2ObjectCore_world_x(a0)
+	and.l d3,SG2ObjectCore_world_z(a0)
 	bsr.w heading_with_player_as_reference
 	move.w $0024(a0),d0
 	sf.b ai_type12_projectile_request(a6)
@@ -11283,13 +11283,13 @@ abs_0_00009BAA:
 abs_0_00009BEA:
 	move.w $002C(a0),d3
 	ext.l d3
-	add.l d3,$0004(a0)
+	add.l d3,SG2ObjectCore_world_x(a0)
 	move.w $0030(a0),d3
 	ext.l d3
-	add.l d3,$000C(a0)
+	add.l d3,SG2ObjectCore_world_z(a0)
 	move.l horizontal_world_wrap_mask(a6),d3
-	and.l d3,$0004(a0)
-	and.l d3,$000C(a0)
+	and.l d3,SG2ObjectCore_world_x(a0)
+	and.l d3,SG2ObjectCore_world_z(a0)
 	move.w $0024(a0),d0
 	st.b ai_type12_projectile_request(a6)
 	andi.b #31,d0
@@ -11403,7 +11403,7 @@ abs_0_00009D4A:
 	andi.w #511,d0
 	bne.w abs_0_00009D70
 	lea.l model_type_target_selection_tags_prefix(a6),a1
-	move.w (a0),d0
+	move.w (a0),d0	; operand 1: SG2ObjectCore_object_type at (a0)
 	move.b $0(a1,d0.w),d0
 	eori.b #255,d0
 	bsr.w select_visible_object_by_type_tag
@@ -11418,10 +11418,10 @@ abs_0_00009D88:
 	move.b #$26,diagnostic_step_byte.l
 	addi.w #50,$0010(a0)
 	andi.w #4095,$0010(a0)
-	addi.l #8,$0008(a0)
+	addi.l #8,SG2ObjectCore_world_y(a0)
 	bmi.b abs_0_00009DAE
 	clr.w $0010(a0)
-	clr.l $0008(a0)
+	clr.l SG2ObjectCore_world_y(a0)
 abs_0_00009DAE:
 	move.b $001F(a0),d3
 	beq.w abs_0_000081D2
@@ -11443,20 +11443,20 @@ abs_0_00009DE0:
 	beq.w abs_0_0000ACFC
 	move.w $002C(a0),d3
 	ext.l d3
-	add.l d3,$0004(a0)
+	add.l d3,SG2ObjectCore_world_x(a0)
 	move.w $0030(a0),d3
 	ext.l d3
-	add.l d3,$000C(a0)
+	add.l d3,SG2ObjectCore_world_z(a0)
 	move.l horizontal_world_wrap_mask(a6),d3
-	and.l d3,$0004(a0)
-	and.l d3,$000C(a0)
-	move.l $0004(a0),d0
+	and.l d3,SG2ObjectCore_world_x(a0)
+	and.l d3,SG2ObjectCore_world_z(a0)
+	move.l SG2ObjectCore_world_x(a0),d0
 	sub.l player_world_x(a6),d0
 	cmp.l #$3E8,d0
 	bpl.w abs_0_00009EB0
 	cmp.l #$FFFFFC18,d0
 	bpl.b abs_0_00009E3E
-	move.l $000C(a0),d0
+	move.l SG2ObjectCore_world_z(a0),d0
 	sub.l player_world_z(a6),d0
 	cmp.l #$3E8,d0
 	bpl.w abs_0_00009EB0
@@ -11465,11 +11465,11 @@ abs_0_00009DE0:
 abs_0_00009E3E:
 	subi.w #100,$0010(a0)
 	andi.w #4095,$0010(a0)
-	subi.l #16,$0008(a0)
-	cmpi.l #4294967136,$0008(a0)
+	subi.l #16,SG2ObjectCore_world_y(a0)
+	cmpi.l #4294967136,SG2ObjectCore_world_y(a0)
 	bgt.b abs_0_00009E6E
 	move.w #$C00,$0010(a0)
-	move.l #$FFFFFF60,$0008(a0)
+	move.l #$FFFFFF60,SG2ObjectCore_world_y(a0)
 	bra.w abs_0_000081D2
 abs_0_00009E6E:
 	andi.w #4095,$0010(a0)
@@ -11481,7 +11481,7 @@ abs_0_00009E6E:
 	andi.b #15,d3
 	bne.b abs_0_00009EA4
 	lea.l model_type_target_selection_tags_prefix(a6),a1
-	move.w (a0),d0
+	move.w (a0),d0	; operand 1: SG2ObjectCore_object_type at (a0)
 	move.b $0(a1,d0.w),d0
 	eori.b #255,d0
 	bsr.w select_visible_object_by_type_tag
@@ -11606,8 +11606,8 @@ abs_0_0000A004:
 	move.w $0(a1,d0.w),$0020(a2)
 	move.w #$3FE,$0024(a2)
 	clr.w $0026(a2)
-	move.l $0004(a0),$0004(a2)
-	move.l $000C(a0),$000C(a2)
+	move.l SG2ObjectCore_world_x(a0),$0004(a2)
+	move.l SG2ObjectCore_world_z(a0),$000C(a2)
 	move.w #$FFFB,$002E(a2)
 	move.b #$1,$002B(a2)
 	move.w #$1,$0014(a2)
@@ -11628,7 +11628,7 @@ abs_0_0000A0D8:
 	subq.b #1,$0003(a0)
 	bne.w abs_0_000081D2
 	move.w #$12C,$0026(a0)
-	bset.b #7,$001C(a0)
+	bset.b #7,SG2ObjectCore_durability_or_negative(a0)
 	bra.w abs_0_000081D2
 abs_0_0000A0F0:
 	movea.l $003C(a0),a2
@@ -12304,8 +12304,8 @@ abs_0_0000ABCA:
 abs_0_0000ABD2:
 	moveq.l #0,d1
 	moveq.l #0,d2
-	move.l $0004(a0),d2
-	move.l $000C(a0),d1
+	move.l SG2ObjectCore_world_x(a0),d2
+	move.l SG2ObjectCore_world_z(a0),d1
 	lsr.w #8,d2
 	lea.l coordinate_byte_to_bcd_digits.l,a1
 	move.b $0(a1,d2.w),d0

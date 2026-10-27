@@ -21,9 +21,26 @@ The [current systematic gap inventory](../../runtime/observations/starglider2-so
 joins native identities/accesses with canonical layouts and actual rendered
 boundaries. It records 67 suffix signals (including numeric adjacent variants),
 21 lookup contracts, 523 remaining interior references, 32 generic app fields
-and 199 unresolved record accesses. These are different denominators. Five
+and 434 unresolved record accesses. These are different denominators. Five
 suffixes name routines and one names text; neither is a pointer defect.
-Latest: the [asteroid split/state reconstruction](../../runtime/observations/starglider2-asteroid-split-state.json)
+Latest: the [shared indirect-JUMP transport fix](../../runtime/observations/starglider2-typed-indirect-flow.json)
+connects typed flow to the source-bound possible targets already exported by the
+canonical CFG. One compact successor pool replaces five slots per instruction;
+all worklist/range passes share it. **114 focused and 832 native checks pass**,
+including 300-way fanout, duplicate evidence and conservative negative cases.
+On unchanged target facts, 232 known jump edges add **118 typed projections**
+and lose **0**. Counts are **974 typed /
+434 unresolved**: new common
+record contexts expose additional member holes rather than guess their purpose.
+All passes converge; original C/vasm and standalone output remain exact.
+The shared AI body $9010 still receives an unknown explicit wrapper-entry input;
+that separate boundary is not claimed solved. Generation took 277 seconds versus
+151 previously, mostly extra render-IR time; pool construction itself was 0.041 seconds.
+Keep this observed cost visible and diagnose boundedly from retained evidence,
+while proceeding with concrete body input/field reconstruction. Unknown jump
+destinations, independent entries and CALL return rules remain conservative.
+
+Preceding: the [asteroid split/state reconstruction](../../runtime/observations/starglider2-asteroid-split-state.json)
 connects types73/74, their shared updater and explicit Small Asteroid creation.
 WORD24 is an asteroid spin step, distinct from the Pirate Ship countdown or
 Mini-Sentinel orbit angle. Fragment positions, mirrored velocity WORDs, shared

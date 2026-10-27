@@ -196,23 +196,30 @@ static size_t analysis_cfg_block_index_for_offset(const M68kSectionAnalysisIR *s
  * of a pointer table or a representative recovered-site target. The facts do
  * not assert completeness across callers or mutable stores, so the caller
  * retains the unresolved edge alongside these known destinations. */
-static int analysis_cfg_append_indirect_destinations(M68kSectionAnalysisIR *section_analysis,
-    const M68kDecodeSectionIR *section, const uint8_t *accepted_start,
-    const M68kDecodeCandidate *candidate, uint8_t kind) {
+static int analysis_candidate_is_indirect_control(const M68kDecodeCandidate *candidate,
+    uint8_t required_flow) {
   M68kInstructionIR instruction;
   const M68kSimFormMetadata *metadata;
-  uint32_t source_offset = candidate->offset;
   size_t operand_index;
-  size_t index;
   if (m68k_decode_candidate_to_instruction(candidate, &instruction) != 0) return 0;
   metadata = m68k_sim_metadata_for_instruction(&instruction);
   if (metadata == NULL || (metadata->flow_kind != M68K_SIM_FLOW_CALL &&
-      metadata->flow_kind != M68K_SIM_FLOW_JUMP)) return 0;
+      metadata->flow_kind != M68K_SIM_FLOW_JUMP) ||
+      (required_flow != 0U && metadata->flow_kind != required_flow)) return 0;
   operand_index = metadata->target_operand_index;
   if (operand_index >= candidate->operand_count || operand_index >= M68K_DECODE_IR_MAX_OPERANDS ||
       candidate->operand_kinds[operand_index] != M68K_ASM_OPERAND_EA ||
       (candidate->operands[operand_index].ea_mode == 7U &&
        candidate->operands[operand_index].ea_reg <= 1U)) return 0;
+  return 1;
+}
+
+static int analysis_cfg_append_indirect_destinations(M68kSectionAnalysisIR *section_analysis,
+    const M68kDecodeSectionIR *section, const uint8_t *accepted_start,
+    const M68kDecodeCandidate *candidate, uint8_t kind) {
+  uint32_t source_offset = candidate->offset;
+  size_t index;
+  if (!analysis_candidate_is_indirect_control(candidate, 0U)) return 0;
   for (index = 0U; index < section_analysis->code_start_ref_count; ++index) {
     const M68kCodeStartRefIR *ref = &section_analysis->code_start_refs[index];
     size_t edge_index;
@@ -10330,18 +10337,99 @@ static void typed_flow_graph_destroy(M68kRenderTypedFlowGraph *graph) {
   memset(graph, 0, sizeof(*graph));
 }
 
-static void typed_flow_build_successors_for_nodes(const M68kRenderLookup *lookup,
+typedef struct M68kTypedIndirectSuccessor {
+  size_t target, next;
+} M68kTypedIndirectSuccessor;
+
+/* Use the same accepted control-target facts exported by the canonical CFG.
+ * The unknown indirect destination is still unknown: this adds known possible
+ * JUMP edges, never a closed target-set claim or guessed CALL return edge.
+ * Scratch indexing and generation stamps make construction O(N + R + E),
+ * including duplicate provenance, without an array sized by maximum fanout
+ * in every large typed-flow node. */
+static int typed_flow_build_successors_for_nodes(const M68kRenderLookup *lookup,
     const M68kDecodeSectionIR *section, const uint8_t *accepted_start,
     M68kRenderTypedFlowNode *nodes, size_t node_count, const size_t *node_by_offset,
-    uint32_t node_by_offset_count) {
-  size_t node_index;
-  if (section == NULL || accepted_start == NULL || nodes == NULL || node_by_offset == NULL) return;
-  for (node_index = 0U; node_index < node_count; ++node_index) {
-    int successor_count = typed_flow_successors_for_candidate(lookup, section, accepted_start, node_by_offset,
-      node_by_offset_count, nodes[node_index].candidate, nodes[node_index].successors,
-      sizeof(nodes[node_index].successors) / sizeof(nodes[node_index].successors[0]));
-    nodes[node_index].successor_count = (uint8_t)(successor_count > 0 ? successor_count : 0);
+    uint32_t node_by_offset_count, Arena *arena) {
+  Arena *scratch = NULL;
+  size_t *heads, *seen, *edge_pool = NULL;
+  M68kTypedIndirectSuccessor *indirect;
+  size_t ref_count = lookup != NULL ? lookup->code_start_ref_count : 0U;
+  size_t indirect_count = 0U, edge_count = 0U, direct_edges = 0U, max_successors = 0U;
+  clock_t started = clock();
+  int result = -1;
+  if (node_count == 0U) return 0;
+  if (section == NULL || accepted_start == NULL || node_by_offset == NULL || arena == NULL) return -1;
+  if (nodes == NULL || node_count > SIZE_MAX / sizeof(size_t) ||
+      ref_count > SIZE_MAX / sizeof(*indirect)) return -1;
+  scratch = arena_create(65536U);
+  if (scratch == NULL) return -1;
+  heads = arena_alloc(scratch, node_count * sizeof(*heads));
+  seen = arena_calloc(scratch, node_count, sizeof(*seen));
+  indirect = arena_alloc(scratch, (ref_count != 0U ? ref_count : 1U) * sizeof(*indirect));
+  if (heads == NULL || seen == NULL || indirect == NULL) goto done;
+  for (size_t n = 0U; n < node_count; ++n) heads[n] = SIZE_MAX;
+  for (size_t r = 0U; r < ref_count; ++r) {
+    const M68kFact *ref = lookup->code_start_refs[r].fact;
+    size_t source, target;
+    if (ref == NULL || ref->reason != M68K_FACT_CODE_START_REASON_CONTROL_TARGET ||
+        ref->section_index != section->section_index || ref->source_section_index != section->section_index ||
+        ref->source_offset >= node_by_offset_count || ref->offset >= node_by_offset_count) continue;
+    source = node_by_offset[ref->source_offset]; target = node_by_offset[ref->offset];
+    if (source == SIZE_MAX || target == SIZE_MAX || source >= node_count || target >= node_count ||
+        !accepted_start_at(section, accepted_start, ref->offset) ||
+        !analysis_candidate_is_indirect_control(nodes[source].candidate, M68K_SIM_FLOW_JUMP)) continue;
+    indirect[indirect_count].target = target;
+    indirect[indirect_count].next = heads[source];
+    heads[source] = indirect_count++;
   }
+  for (unsigned pass = 0U; pass < 2U; ++pass) {
+    size_t cursor = 0U;
+    memset(seen, 0, node_count * sizeof(*seen));
+    for (size_t n = 0U; n < node_count; ++n) {
+      size_t direct[M68K_DECODE_IR_MAX_TARGETS + 1U], count = 0U;
+      int direct_count = typed_flow_successors_for_candidate(lookup, section, accepted_start, node_by_offset,
+        node_by_offset_count, nodes[n].candidate, direct, sizeof(direct) / sizeof(direct[0]));
+      if (pass != 0U) nodes[n].successors = edge_pool + cursor;
+      for (size_t e = 0U; e < (size_t)(direct_count > 0 ? direct_count : 0); ++e) {
+        size_t target = direct[e];
+        if (target >= node_count || seen[target] == n + 1U) continue;
+        seen[target] = n + 1U;
+        if (pass != 0U) edge_pool[cursor + count] = target;
+        else ++direct_edges;
+        ++count;
+      }
+      for (size_t r = heads[n]; r != SIZE_MAX; r = indirect[r].next) {
+        size_t target = indirect[r].target;
+        if (seen[target] == n + 1U) continue;
+        seen[target] = n + 1U;
+        if (pass != 0U) edge_pool[cursor + count] = target;
+        ++count;
+      }
+      if (count > SIZE_MAX - cursor) goto done;
+      if (pass != 0U && count != nodes[n].successor_count) goto done;
+      nodes[n].successor_count = count;
+      if (count > max_successors) max_successors = count;
+      cursor += count;
+    }
+    if (pass == 0U) {
+      edge_count = cursor;
+      if (edge_count > SIZE_MAX / sizeof(*edge_pool)) goto done;
+      edge_pool = arena_alloc(arena, (edge_count != 0U ? edge_count : 1U) * sizeof(*edge_pool));
+      if (edge_pool == NULL) goto done;
+    } else if (cursor != edge_count) goto done;
+  }
+  result = 0;
+done:
+  {
+    const char *trace = getenv("AMIGA_REVERSING_PROFILE_TYPED_FLOW");
+    if (result == 0 && trace != NULL && strcmp(trace, "1") == 0)
+      fprintf(stderr, "typed_flow_graph section=%zu nodes=%zu input_refs=%zu indirect_records=%zu direct_edges=%zu pooled_edges=%zu max_successors=%zu node_bytes=%zu pool_bytes=%zu cpu_seconds=%.6f\n",
+        (size_t)section->section_index, node_count, ref_count, indirect_count, direct_edges, edge_count,
+        max_successors, sizeof(*nodes), edge_count * sizeof(*edge_pool), elapsed_seconds_local(started, clock()));
+  }
+  arena_destroy(scratch);
+  return result;
 }
 
 static int typed_flow_offset_is_policy_entry_point(const M68kAnalysisPolicy *policy, size_t section_index,
@@ -10378,7 +10466,7 @@ static int typed_flow_mark_roots(const M68kAnalysisPolicy *policy, const M68kDec
   }
   for (node_index = 0U; node_index < node_count; ++node_index) nodes[node_index].is_root = 0U;
   for (node_index = 0U; node_index < node_count; ++node_index) {
-    uint8_t successor_index;
+    size_t successor_index;
     for (successor_index = 0U; successor_index < nodes[node_index].successor_count; ++successor_index) {
       size_t successor = nodes[node_index].successors[successor_index];
       if (successor < node_count && incoming_counts[successor] < UINT16_MAX) ++incoming_counts[successor];
@@ -10440,8 +10528,11 @@ static int typed_flow_graph_build(M68kRenderTypedFlowGraph *graph, const M68kRen
       &graph->node_by_offset, &graph->node_by_offset_count, arena) != 0) {
     return -1;
   }
-  typed_flow_build_successors_for_nodes(lookup, section, accepted_start, graph->nodes, graph->node_count,
-    graph->node_by_offset, graph->node_by_offset_count);
+  if (typed_flow_build_successors_for_nodes(lookup, section, accepted_start, graph->nodes, graph->node_count,
+      graph->node_by_offset, graph->node_by_offset_count, arena) != 0) {
+    typed_flow_graph_destroy(graph);
+    return -1;
+  }
   if (typed_flow_build_predecessors(graph, arena) != 0) {
     typed_flow_graph_destroy(graph);
     return -1;
@@ -10610,7 +10701,7 @@ static int hardware_relative_analyze_graph(M68kRenderLookup *lookup, const M68kD
     const M68kRenderTypedFlowNode *node;
     M68kRenderPlatformState before, next, normalized;
     M68kInstructionIR instruction;
-    uint8_t successor_index;
+    size_t successor_index;
     index = queue[head];
     head = (head + 1U) % graph->node_count;
     --count;
@@ -10782,7 +10873,7 @@ static int render_lookup_analyze_amiga_typed_refs_for_section(M68kRenderLookup *
     M68kRenderTypedState next_typed_state;
     M68kRenderPlatformState next_platform_state;
     M68kRenderTypedFlowNode *node;
-    uint8_t successor_index;
+    size_t successor_index;
     node_index = queue[queue_head];
     queue_head = (queue_head + 1U) % graph->node_count;
     --queue_count;
@@ -14601,7 +14692,7 @@ static int typed_flow_build_predecessors(M68kRenderTypedFlowGraph *graph, Arena 
   cursor = (size_t *)arena_alloc(arena, graph->node_count * sizeof(*cursor));
   if (counts == NULL || cursor == NULL) goto fail;
   for (node_index = 0U; node_index < graph->node_count; ++node_index) {
-    uint8_t successor_index;
+    size_t successor_index;
     for (successor_index = 0U; successor_index < graph->nodes[node_index].successor_count; ++successor_index) {
       size_t successor = graph->nodes[node_index].successors[successor_index];
       if (successor < graph->node_count) ++counts[successor];
@@ -14621,7 +14712,7 @@ static int typed_flow_build_predecessors(M68kRenderTypedFlowGraph *graph, Arena 
     sizeof(*graph->predecessors));
   if (graph->predecessors == NULL) goto fail;
   for (node_index = 0U; node_index < graph->node_count; ++node_index) {
-    uint8_t successor_index;
+    size_t successor_index;
     for (successor_index = 0U; successor_index < graph->nodes[node_index].successor_count; ++successor_index) {
       size_t successor = graph->nodes[node_index].successors[successor_index];
       if (successor < graph->node_count) graph->predecessors[cursor[successor]++] = node_index;

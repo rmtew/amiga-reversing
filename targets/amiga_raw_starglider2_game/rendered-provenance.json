@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
   "kind": "committed_native_rendered_original_export",
-  "canonical_source_commit": "ad1c0875eb40383bd34175d87595727fdd4107dd",
-  "publication_base_commit": "ad1c0875eb40383bd34175d87595727fdd4107dd",
+  "canonical_source_commit": "4b3e17c3946c32886d31b2459cbcdd5308d9f066",
+  "publication_base_commit": "4b3e17c3946c32886d31b2459cbcdd5308d9f066",
   "native_export": "CListingArtifact.source_package_payload(64)",
-  "main_source_sha256": "72d5581e66aea44e6b0d1267f145ad753cc7a508c0520dbbd1ac34b026eba20b",
+  "main_source_sha256": "1b4a95b7f00c6b1b59e1726c1b32e68515985251ea4b225988c59300917852cd",
   "asset_count": 57,
   "asset_bytes": 93633,
   "game_assembly_hand_edits": false,
@@ -25,14 +25,14 @@
     "paused Pandora work"
   ],
   "canonical_source_commit_role": "publication base; new canonical annotations and shared fixes in this batch are bound by canonical_fact_sha256 and the refinement receipt",
-  "canonical_source_subject_revision": "d167ce4c1d46f442ddc40b2b7204fbc50fc72cef0f4cbf724ade7957f541456e",
+  "canonical_source_subject_revision": "1d2a32e5128e10ea587b62b580ae9774bfc8dba383e340e3dd27baac8ff9b229",
   "canonical_fact_sha256": {
     "source_binary.json": "42d4a5758b3e8236af7f912aee85e9ee5323bcd0961faa338c4f864080a0a7d9",
     "target_metadata.json": "e7540b68c118c56aba8815b6722eefa067517cc865fe9841d6c01ce96551389c",
     "manual_actions.jsonl": "e6682a1c9f0348029b13e20dc24dc1c65304efd457640f6aea8ab0c7bcdda043",
     "decision_journal.jsonl": "e8297f990657c63f7938ad6ab0b07d16a8e4d5ecc3ef2874ee8bde87eaa51274"
   },
-  "refinement_receipt": "runtime/observations/starglider2-asteroid-split-state.json",
+  "refinement_receipt": "runtime/observations/starglider2-typed-indirect-flow.json",
   "headers": "14 unmodified required include files collected by source_package.collect_package_includes from ext/amiga_includes/ndk_2.0/include; header notices retained",
   "decoded_protection_view": {
     "target_id": "amiga_raw_starglider2_protection_view",

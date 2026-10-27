@@ -129,7 +129,7 @@ static int counter_loop_prove(M68kRenderLookup *lookup, const M68kDecodeIR *deco
         reason = "unresolved_control_target"; goto cleanup;
       }
     }
-    for (uint8_t j = 0U; j < node->successor_count; ++j) {
+    for (size_t j = 0U; j < node->successor_count; ++j) {
       size_t next = node->successors[j];
       if (next >= graph->node_count) { reason = "unresolved_successor"; goto cleanup; }
       if (!graph->nodes[next].has_out) {
@@ -235,7 +235,7 @@ static int counter_loop_prove(M68kRenderLookup *lookup, const M68kDecodeIR *deco
       fputc('\n', stderr);
     }
     if (context.failed) goto allocation;
-    for (uint8_t i = 0U; i < node->successor_count; ++i) {
+    for (size_t i = 0U; i < node->successor_count; ++i) {
       M68kRenderTypedFlowNode *next = &graph->nodes[node->successors[i]];
       int changed = !next->has_in;
       if (!next->has_in) { next->typed_in = node->typed_out; next->platform_in = node->platform_out; }
@@ -343,7 +343,7 @@ static int typed_flow_record_app_loop_ranges(M68kRenderLookup *lookup, const M68
       if (end->candidate->mnemonic_id != M68K_ASM_MNEMONIC_DBF || end->successor_count != 2U ||
           m68k_decode_candidate_to_instruction(end->candidate, &instruction) != 0 ||
           !operand_is_data_register_local(&instruction.operands[0], &counter)) continue;
-      for (uint8_t i = 0U; i < end->successor_count; ++i)
+      for (size_t i = 0U; i < end->successor_count; ++i)
         if (graph->nodes[end->successors[i]].candidate->offset < end->candidate->offset) header = end->successors[i];
       if (header == SIZE_MAX || graph->nodes[header].is_root) continue;
       size_t edges = graph->predecessor_offsets[header + 1U] - graph->predecessor_offsets[header];

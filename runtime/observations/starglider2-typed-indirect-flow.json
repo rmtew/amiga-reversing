@@ -1,0 +1,874 @@
+{
+  "schema_version": 1,
+  "kind": "typed_flow_consumes_canonical_indirect_jump_control_facts",
+  "status": "qualified_framework_batch_restoration_continues",
+  "publication_base_commit": "4b3e17c3946c32886d31b2459cbcdd5308d9f066",
+  "canonical_target_actions": 0,
+  "inputs": {
+    "binary_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "backend_sha256": "d09dbb0f72ef82803519d9eb8656bced793da2ecae6c147e442b3fcde0fbdfd3",
+    "analysis_sha256": "809d0650b4fb18726676834b57ddcd243b63d251116d9709922679d1ed1031dd",
+    "effective_metadata_sha256": "bd1eab34c9051aaade452c6b82b8b16883348cd940a4b91189ec6dde042ac02e",
+    "same_metadata_as_baseline": true,
+    "trace_sha256": "dd849bb66a5ca49d2fbfd11c093fc0379fc96e6d129b3d3bba22fdd1df91a649",
+    "lookup_source_sha256": "18c3004ba8d19d5369c5e82ffde9a4fefee55ca12277d8d2589bf9b0f0f3e7fb",
+    "node_header_sha256": "c045bcd895eabf2c709abcd10ce89a607a58b931ce9046ee8dfd0e8f50d9894c",
+    "counter_range_source_sha256": "bf2e1a932fbaa833f703a4adb50c411b6db586ad3118df631976fa2406e1c1ca"
+  },
+  "cause": "Canonical CFGs already exported source-bound possible targets for indirect jumps. Typed successors handled direct decoded targets only, and stored five successor slots per node. A three-entry WORD-dispatch fixture had all three CFG edges and no projected Record field access.",
+  "fix": "Consume accepted same-section CONTROL_TARGET facts for actual metadata-decoded indirect JMPs. Share indirect-control shape admission with canonical CFG export; preserve absolute-domain refusal and indirect CALL behavior. Replace the per-node fixed array with one compact arena-owned successor pool; update all shared worklist, predecessor, hardware and counter-range traversals to size_t degree. Scratch heads/generation stamps deduplicate provenance; no target recognizer, new transfer engine, target-set closure claim or cap increase.",
+  "fixture": {
+    "before_probe_sha256": "d53ec7e80b200ccd4bce2c851f406ff88a5a012a1305993badcb03e4c790ca41",
+    "new_tests": 9,
+    "coverage": [
+      "2/3/8/32-target WORD dispatch, original native exact reconstruction and retained unknown CFG destination.",
+      "Clobbered record pointer and unrelated numeric lookup supply no typed fields.",
+      "Indirect CALL does not gain guessed return/preservation transport.",
+      "Independent address exposure still contributes unknown entry state.",
+      "Native topology:300 successors,600 duplicate control records, invalid reason/source/target section/interior coordinates. No byte-sized fanout limit or duplicate predecessors."
+    ]
+  },
+  "target_graph": {
+    "section": 0,
+    "nodes": 29665,
+    "input_refs": 6854,
+    "indirect_records": 232,
+    "direct_edges": 33229,
+    "pooled_edges": 33461,
+    "max_successors": 77,
+    "node_bytes": 74688,
+    "pool_bytes": 267688,
+    "cpu_seconds": 0.04116
+  },
+  "converged_passes": [
+    {
+      "final": 0,
+      "visits": 50190,
+      "pending": 0,
+      "limit": 1898560
+    },
+    {
+      "final": 0,
+      "visits": 48794,
+      "pending": 0,
+      "limit": 1898560
+    },
+    {
+      "final": 0,
+      "visits": 48793,
+      "pending": 0,
+      "limit": 1898560
+    },
+    {
+      "final": 1,
+      "visits": 59240,
+      "pending": 0,
+      "limit": 1898560
+    }
+  ],
+  "before_after": {
+    "app_slot_ref_count": {
+      "before": 3383,
+      "after": 3383
+    },
+    "recovered_platform_typed_access_count": {
+      "before": 856,
+      "after": 974
+    },
+    "recovered_platform_unresolved_typed_access_count": {
+      "before": 199,
+      "after": 434
+    }
+  },
+  "projection": {
+    "new_typed": 118,
+    "lost_typed": 0,
+    "groups": [
+      {
+        "owner": "SG2ObjectCore",
+        "field": "durability_or_negative",
+        "sites_source_runtime_operand": [
+          [
+            30318,
+            34414,
+            1
+          ],
+          [
+            30804,
+            34900,
+            1
+          ],
+          [
+            31356,
+            35452,
+            1
+          ],
+          [
+            32396,
+            36492,
+            0
+          ],
+          [
+            32538,
+            36634,
+            1
+          ],
+          [
+            32546,
+            36642,
+            1
+          ],
+          [
+            35672,
+            39768,
+            1
+          ],
+          [
+            37094,
+            41190,
+            1
+          ]
+        ],
+        "count": 8
+      },
+      {
+        "owner": "SG2ObjectCore",
+        "field": "object_type",
+        "sites_source_runtime_operand": [
+          [
+            30414,
+            34510,
+            1
+          ],
+          [
+            36190,
+            40286,
+            0
+          ],
+          [
+            36498,
+            40594,
+            0
+          ]
+        ],
+        "count": 3
+      },
+      {
+        "owner": "SG2ObjectCore",
+        "field": "relative_z",
+        "sites_source_runtime_operand": [
+          [
+            32234,
+            36330,
+            0
+          ],
+          [
+            32258,
+            36354,
+            1
+          ]
+        ],
+        "count": 2
+      },
+      {
+        "owner": "SG2ObjectCore",
+        "field": "retirement_phase_or_negative",
+        "sites_source_runtime_operand": [
+          [
+            30310,
+            34406,
+            0
+          ],
+          [
+            32266,
+            36362,
+            0
+          ],
+          [
+            35598,
+            39694,
+            0
+          ]
+        ],
+        "count": 3
+      },
+      {
+        "owner": "SG2ObjectCore",
+        "field": "world_x",
+        "sites_source_runtime_operand": [
+          [
+            30274,
+            34370,
+            1
+          ],
+          [
+            30302,
+            34398,
+            1
+          ],
+          [
+            30594,
+            34690,
+            1
+          ],
+          [
+            30830,
+            34926,
+            1
+          ],
+          [
+            30848,
+            34944,
+            1
+          ],
+          [
+            30914,
+            35010,
+            1
+          ],
+          [
+            30932,
+            35028,
+            1
+          ],
+          [
+            30990,
+            35086,
+            1
+          ],
+          [
+            31008,
+            35104,
+            1
+          ],
+          [
+            31376,
+            35472,
+            1
+          ],
+          [
+            31394,
+            35490,
+            1
+          ],
+          [
+            31470,
+            35566,
+            1
+          ],
+          [
+            31488,
+            35584,
+            1
+          ],
+          [
+            31538,
+            35634,
+            1
+          ],
+          [
+            31556,
+            35652,
+            1
+          ],
+          [
+            32440,
+            36536,
+            1
+          ],
+          [
+            32456,
+            36552,
+            1
+          ],
+          [
+            34458,
+            38554,
+            1
+          ],
+          [
+            34486,
+            38582,
+            1
+          ],
+          [
+            35320,
+            39416,
+            1
+          ],
+          [
+            35338,
+            39434,
+            1
+          ],
+          [
+            35462,
+            39558,
+            0
+          ],
+          [
+            35498,
+            39594,
+            1
+          ],
+          [
+            35520,
+            39616,
+            1
+          ],
+          [
+            35548,
+            39644,
+            1
+          ],
+          [
+            35694,
+            39790,
+            1
+          ],
+          [
+            35712,
+            39808,
+            1
+          ],
+          [
+            35760,
+            39856,
+            1
+          ],
+          [
+            35778,
+            39874,
+            1
+          ],
+          [
+            35824,
+            39920,
+            1
+          ],
+          [
+            35842,
+            39938,
+            1
+          ],
+          [
+            36334,
+            40430,
+            1
+          ],
+          [
+            36352,
+            40448,
+            1
+          ],
+          [
+            36360,
+            40456,
+            0
+          ],
+          [
+            36990,
+            41086,
+            0
+          ],
+          [
+            39894,
+            43990,
+            0
+          ]
+        ],
+        "count": 36
+      },
+      {
+        "owner": "SG2ObjectCore",
+        "field": "world_y",
+        "sites_source_runtime_operand": [
+          [
+            30284,
+            34380,
+            1
+          ],
+          [
+            30326,
+            34422,
+            1
+          ],
+          [
+            30600,
+            34696,
+            1
+          ],
+          [
+            32382,
+            36478,
+            0
+          ],
+          [
+            32388,
+            36484,
+            0
+          ],
+          [
+            32470,
+            36566,
+            1
+          ],
+          [
+            33760,
+            37856,
+            1
+          ],
+          [
+            33764,
+            37860,
+            1
+          ],
+          [
+            33774,
+            37870,
+            1
+          ],
+          [
+            34468,
+            38564,
+            1
+          ],
+          [
+            34506,
+            38602,
+            0
+          ],
+          [
+            34512,
+            38608,
+            1
+          ],
+          [
+            34522,
+            38618,
+            1
+          ],
+          [
+            34604,
+            38700,
+            0
+          ],
+          [
+            34610,
+            38706,
+            1
+          ],
+          [
+            34614,
+            38710,
+            1
+          ],
+          [
+            34624,
+            38720,
+            1
+          ],
+          [
+            35352,
+            39448,
+            0
+          ],
+          [
+            35364,
+            39460,
+            1
+          ],
+          [
+            35466,
+            39562,
+            0
+          ],
+          [
+            35502,
+            39598,
+            1
+          ],
+          [
+            35530,
+            39626,
+            1
+          ],
+          [
+            35572,
+            39668,
+            1
+          ],
+          [
+            35648,
+            39744,
+            0
+          ],
+          [
+            35652,
+            39748,
+            1
+          ],
+          [
+            36252,
+            40348,
+            1
+          ],
+          [
+            36266,
+            40362,
+            0
+          ],
+          [
+            36426,
+            40522,
+            1
+          ],
+          [
+            36434,
+            40530,
+            1
+          ],
+          [
+            36450,
+            40546,
+            1
+          ]
+        ],
+        "count": 30
+      },
+      {
+        "owner": "SG2ObjectCore",
+        "field": "world_z",
+        "sites_source_runtime_operand": [
+          [
+            30294,
+            34390,
+            1
+          ],
+          [
+            30306,
+            34402,
+            1
+          ],
+          [
+            30606,
+            34702,
+            1
+          ],
+          [
+            30840,
+            34936,
+            1
+          ],
+          [
+            30852,
+            34948,
+            1
+          ],
+          [
+            30924,
+            35020,
+            1
+          ],
+          [
+            30936,
+            35032,
+            1
+          ],
+          [
+            31000,
+            35096,
+            1
+          ],
+          [
+            31012,
+            35108,
+            1
+          ],
+          [
+            31386,
+            35482,
+            1
+          ],
+          [
+            31398,
+            35494,
+            1
+          ],
+          [
+            31480,
+            35576,
+            1
+          ],
+          [
+            31492,
+            35588,
+            1
+          ],
+          [
+            31548,
+            35644,
+            1
+          ],
+          [
+            31560,
+            35656,
+            1
+          ],
+          [
+            32448,
+            36544,
+            1
+          ],
+          [
+            32460,
+            36556,
+            1
+          ],
+          [
+            34478,
+            38574,
+            1
+          ],
+          [
+            34490,
+            38586,
+            1
+          ],
+          [
+            35330,
+            39426,
+            1
+          ],
+          [
+            35342,
+            39438,
+            1
+          ],
+          [
+            35470,
+            39566,
+            0
+          ],
+          [
+            35506,
+            39602,
+            1
+          ],
+          [
+            35540,
+            39636,
+            1
+          ],
+          [
+            35552,
+            39648,
+            1
+          ],
+          [
+            35704,
+            39800,
+            1
+          ],
+          [
+            35716,
+            39812,
+            1
+          ],
+          [
+            35770,
+            39866,
+            1
+          ],
+          [
+            35782,
+            39878,
+            1
+          ],
+          [
+            35834,
+            39930,
+            1
+          ],
+          [
+            35846,
+            39942,
+            1
+          ],
+          [
+            36344,
+            40440,
+            1
+          ],
+          [
+            36356,
+            40452,
+            1
+          ],
+          [
+            36386,
+            40482,
+            0
+          ],
+          [
+            36996,
+            41092,
+            0
+          ],
+          [
+            39898,
+            43994,
+            0
+          ]
+        ],
+        "count": 36
+      }
+    ],
+    "meaning": "Additional known control paths reveal common object fields and previously untyped member gaps. More unresolved accesses means wider diagnosed context here, not a declaration that those fields share meanings."
+  },
+  "specific_AI_boundary": {
+    "body_runtime": 36880,
+    "status": "still_unknown_input_not_claimed_resolved",
+    "cause": "Space Ray wrapper8A34 also has an explicit historical manual policy code-entry root. Its unknown independent input reaches9010 alongside known dispatch inputs and remains absorbing.",
+    "next": "Inspect original seed intent and known caller domains, or declare the evidence-supported body input contract through normal canonical commands. Do not weaken all independent-root handling to force propagation."
+  },
+  "cost": {
+    "indexing": "Per section, added indexing/dedup operations O(N+R+E), N instructions, R frozen code-start refs, E output edges, plus existing ordinary address-domain resolver work in two count/fill passes. Scratch released after construction; retained adjacency O(N+E).",
+    "measured_node_bytes": {
+      "before": 74712,
+      "after": 74688
+    },
+    "measured_retained_successor_storage_delta_bytes": -444272,
+    "memory_scope": "Node-size delta plus the new pool on this64-bit host only, not a whole-process memory reduction claim.",
+    "generation_wall_seconds": {
+      "before": 150.74316159600858,
+      "after": 276.7101162769832
+    },
+    "stage_cpu_seconds": {
+      "platform_analysis_typed_graph_seconds": {
+        "before": 2.604043,
+        "after": 5.203105
+      },
+      "platform_analysis_typed_flow_seconds": {
+        "before": 7.224782,
+        "after": 6.768341
+      },
+      "platform_analysis_typed_callback_seconds": {
+        "before": 30.272117,
+        "after": 35.444069
+      },
+      "source_analysis_finalize_seconds": {
+        "before": 33.753541,
+        "after": 31.925671
+      },
+      "render_ir_header_seconds": {
+        "before": 33.067776,
+        "after": 74.4572
+      },
+      "render_ir_walk_seconds": {
+        "before": 8.624972,
+        "after": 67.445793
+      }
+    },
+    "performance_boundary": "No speedup claim: this one target run was slower. Measured pool construction is0.041seconds; most observed extra time is render-IR preparation/walk. That is a stage boundary, not yet a causal algorithm diagnosis. Use retained profiles/current source for a bounded follow-up; do not repeat full builds just for timing."
+  },
+  "validation": {
+    "focused_passed": 114,
+    "focused_log_sha256": "853fd35412c0489bc3aab4a5e0f4a26632dff0740519f1330da6497a13d8c80a",
+    "native_passed": 832,
+    "native_failures": 0,
+    "native_log_sha256": "fff8db61cba9b314dd6c218d0c3ecae57f5ae4605daf1b040c84b1cc324378ae",
+    "native_and_vasm": {
+      "kind": "verification",
+      "framework_exact": true,
+      "target_id": "amiga_raw_starglider2_game",
+      "subject_revision": "1d2a32e5128e10ea587b62b580ae9774bfc8dba383e340e3dd27baac8ff9b229",
+      "status": "exact",
+      "exact": true,
+      "source_sha256": "283e98bd51a1f5e953e33404a5f6b02c2ec720418907d0b1242f1761551c4b3a",
+      "source_path": "/workspace/pandora-original-delivery/stable-d15c2cf8/.runtime-state/restoration/eb04f545fb97451725a1c91ab5abf6f2e097614c45880db6edfb4ea5c3f6e2c2/283e98bd51a1f5e953e33404a5f6b02c2ec720418907d0b1242f1761551c4b3a.s",
+      "source_package_sha256": null,
+      "original_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+      "original_size": 412736,
+      "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+      "rebuilt_path": "/workspace/pandora-original-delivery/stable-d15c2cf8/.runtime-state/restoration/eb04f545fb97451725a1c91ab5abf6f2e097614c45880db6edfb4ea5c3f6e2c2/662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9.bin",
+      "framework_status": "exact",
+      "failure_kinds": [],
+      "message": "",
+      "oracle": {
+        "oracle_id": "vasm",
+        "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+        "comparison_level": "oracle.full_file_match",
+        "assembler_status": "accepted",
+        "message": "oracle output matched original bytes"
+      },
+      "receipt_id": "6a87776d564597676e6bef2dfe19afd0a2fd10915f9b84578832d73bcba77f6f",
+      "revision": "0c4ec1b4841b9610698de2ce8c72311b43255adf211fc6a4a22fd754e9594af3"
+    },
+    "incomplete_analysis": [],
+    "source_quality_diagnostics": 0,
+    "assets_unchanged": 57,
+    "required_headers": 14,
+    "classification": "No new decoder/table-recognition or code/data classification facts. Accepted106034 code bytes and13840 unclassified bytes remain unchanged.",
+    "clean_standalone_build": {
+      "status": "pass",
+      "validated_target_git_tree": "deb029c1b079e2413dc5f27e5f31a89672aca3a7",
+      "receipt": {
+        "schema_version": 1,
+        "status": "pass",
+        "format": "raw_payload_not_AmigaDOS_HUNK",
+        "main_bytes": 412736,
+        "main_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+        "main_matches_original_identity": true,
+        "asset_count": 57,
+        "all_asset_source_slices_equal": true,
+        "decoded_view_inverse_exact": true,
+        "boot_copy_source_matches_resident_view": true,
+        "source_commit": "4b3e17c3946c32886d31b2459cbcdd5308d9f066",
+        "assembler_sha256": "413e284020125f42709486dfe09907cab3dd9f3c2ea41017c190f8ea68f30825",
+        "flags": [
+          "-Fbin",
+          "-m68000",
+          "-no-opt"
+        ],
+        "outputs": [
+          {
+            "role": "original_main",
+            "filename": "Starglider2-original.raw",
+            "bytes": 412736,
+            "sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9"
+          },
+          {
+            "role": "decoded_analysis_view",
+            "filename": "protection-decoded-analysis.raw",
+            "bytes": 3548,
+            "sha256": "de8358853dd9ed9b006a23569bf393aa217ed3be3301a169465d80bfaf839922"
+          },
+          {
+            "role": "boot_installer_context",
+            "filename": "boot-selector-installer-context.raw",
+            "bytes": 40,
+            "sha256": "8d34852425e2e1bfa87b3febdfc74fb39e7c667e9d9ff73e17b594649e83b21b"
+          },
+          {
+            "role": "boot_resident_view",
+            "filename": "boot-selector-resident.raw",
+            "bytes": 20,
+            "sha256": "a26286a393713c046eff9dbaff15b20b26b171fa9e05fc9d538d16b0eddb6024"
+          }
+        ]
+      },
+      "recoverable_pandora_backups_verified": 16
+    }
+  },
+  "limits": [
+    "Known possible destinations do not prove a closed target set, valid arbitrary indices, all incoming paths or runtime execution.",
+    "Unknown CFG destinations remain explicit; independent roots, unknown-value absorption, call-clobber and input-provenance guards stay conservative.",
+    "No cross-section indirect transport, guessed JSR return edge, numeric code promotion, target-specific addresses or field-purpose guesses.",
+    "The shared AI body9010 still has an independent-input boundary; its semantics are the next restoration question, not falsely counted as a resolved target gain."
+  ],
+  "next": {
+    "restoration": "Reconcile shared flying-actor body/caller contracts and its counter fields using the newly propagated native facts.",
+    "performance": "Boundedly inspect render-IR preparation/walk against retained before/after profiles and affected operations; no blanket new optimization project."
+  }
+}

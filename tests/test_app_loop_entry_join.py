@@ -60,7 +60,8 @@ int main(void) {
   assert(!m68k_decode_ir_build_object_sections(&decode,&object,m68k_diag_sink(NULL)));
   for(unsigned i=0;i<2;++i)assert(!m68k_decode_ir_ensure_candidate_at(&decode,0,2*i,
     M68K_ASM_CPU_68000,&nodes[i].candidate,m68k_diag_sink(NULL)));
-  nodes[0].is_root=1;nodes[0].successor_count=1;nodes[0].successors[0]=1;
+  size_t successors[]={1};
+  nodes[0].is_root=1;nodes[0].successor_count=1;nodes[0].successors=successors;
   nodes[1].platform_out.word_values[7].count=1;nodes[1].platform_out.word_values[7].values[0]=19;
   graph.nodes=nodes;graph.node_count=2;graph.predecessor_offsets=offsets;graph.predecessors=pred;
   lookup.arena=arena_create(65536);assert(lookup.arena);

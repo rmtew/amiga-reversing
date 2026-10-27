@@ -46,6 +46,27 @@ not count rendered symbols. `operand_facts.width_bytes` is per-element for bulk
 transfers; use its register list/bulk role or the shared footprint helper for the
 total span. Unresolved `access_size` records that contiguous span when supported.
 
+## Known indirect jump destinations
+
+Typed flow consumes the same accepted, source-bound, same-section indirect-JUMP
+control-target facts exported by the canonical CFG. It does not infer targets
+from address-looking data or convert a table/base reference into a destination.
+The CFG's unknown destination remains explicit: transported input facts are
+scoped to the known edges, not a proof that the target set or all incoming paths
+are closed. Independent address exposures still supply unknown entry state.
+Indirect CALL return/preservation inference and cross-section jump transport are
+not added by this path; existing absolute-address/domain refusal stays intact.
+
+A compact graph-owned successor pool replaces the fixed five slots per typed
+instruction. The worklist, predecessor index, hardware and counter-range passes
+share these successors; there is no second transfer engine or byte-sized fanout
+limit. Construction deduplicates provenance using temporary indexed lists and
+generation stamps. Per section the added indexing and deduplication cost is O(N + R + E), for N
+instructions, R frozen code-start facts and E emitted successor edges, on top of
+the existing ordinary address-domain resolver in two count/fill passes. The scratch index is
+released after construction; retained storage is O(N + E). This is not an
+unbounded control-flow, lifetime or arbitrary-index safety claim.
+
 `target.data.seed` classifies an evidenced source range before a listing can be
 rendered (for example, inline dispatch tables incorrectly reached as code).
 It takes `hunk`, `addr`, exclusive `end`, `name`, and `unit` (`byte`, `word`,
