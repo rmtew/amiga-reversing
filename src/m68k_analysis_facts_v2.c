@@ -248,11 +248,18 @@ int m68k_source_analysis_bind_address_value_table_contracts(M68kSourceAnalysisIR
           value->resolution = M68K_ADDRESS_VALUE_RESOLUTION_RESOLVED;
           value->terminal_kind = M68K_ADDRESS_VALUE_TERMINAL_RESOLVED;
           value->table_origin.terminal_kind = M68K_ADDRESS_VALUE_TERMINAL_RESOLVED;
-          value->has_source_expression = 1U;
-          value->render_outcome = M68K_ADDRESS_VALUE_RENDER_SYMBOLIC;
+          /* Resolving the loaded value does not put that value literally in
+           * a register-indirect producer operand. Its directory entry remains
+           * symbolic data; only a proven producer/indexed expression is an
+           * inline source-expression obligation for this address value. */
+          value->has_source_expression = value->table_origin.address_expression_id != 0U ||
+            value->origin_kind == M68K_PLATFORM_TYPE_PROVENANCE_IMMEDIATE;
+          value->render_outcome = value->has_source_expression ?
+            M68K_ADDRESS_VALUE_RENDER_SYMBOLIC : M68K_ADDRESS_VALUE_RENDER_NON_SOURCE;
           value->review_class = M68K_ADDRESS_VALUE_REVIEW_FIXTURE_POSITIVE;
-          snprintf(value->terminal_reason, sizeof(value->terminal_reason),
-            "validated table singleton access");
+          snprintf(value->terminal_reason, sizeof(value->terminal_reason), "%s",
+            value->has_source_expression ? "validated table singleton access" :
+              "validated table singleton; no inline value operand");
         }
       } else if (value->table_origin.selection_kind == M68K_ADDRESS_VALUE_TABLE_SELECTION_FINITE) {
         if (value->table_origin.index_max < value->table_origin.index_min ||

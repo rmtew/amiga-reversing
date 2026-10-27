@@ -1,0 +1,99 @@
+{
+  "schema_version": 1,
+  "kind": "validated_indirect_table_singleton_without_inline_value_operand",
+  "status": "qualified_bounded_framework_slice_larger_loop_lead_active",
+  "publication_base_commit": "fce1495fbed001a9d988081a98e2f589a7568e6b",
+  "inputs": {
+    "binary_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "backend_sha256": "bb2e3457f955924413324774813db612feac462d8673e6c11dac8d0434d680ee",
+    "analysis_sha256": "e597eccf7d47226873c4f25b65350cc6b828e46905d57fa6b1607067761d94af",
+    "effective_metadata_sha256": "9a382c6a66fb6924c509d6a379b98f4fa12ed0f0fa98a928729ebcd3db111be1"
+  },
+  "cause": "The canonical table binder changed a validated singleton value to symbolic-source even when produced by MOVEA.L(An)+. That instruction encodes an indirect read, not the loaded pointer value. The frozen-plan validator correctly refused a symbolic value with no corresponding operand expression. Typed-table reconciliation also incorrectly required that rendering expression to keep the validated pointee type.",
+  "changes": [
+    "A validated singleton has an inline expression obligation only for an independently identified indexed expression or literal immediate producer. Otherwise its target/candidate facts stay resolved with non_source rendering; canonical directory data stays symbolic.",
+    "Type reconciliation accepts that exact resolved singleton without an inline operand only when source provenance, unique matching origin, valid entry index, resolved binder terminal, one candidate and source-owned target are present. Terminal/unknown/ambiguous selections retain refusal. No validator tolerance changed and no instruction rewritten."
+  ],
+  "tests": {
+    "focused_passed": 105,
+    "native_passed": 832,
+    "positive": "Canonical two-header directory, one indirect postincrement entry load, two typed header WORD reads, exact unchanged An operand, one resolved source-owned candidate with non_source/no_source_expression.",
+    "negative": "Unknown counter/position and explicit unowned first pointer cannot gain a typed singleton; existing indexed/table-conflict/foreign/domain/cursor/stack cases remain green."
+  },
+  "old_backend_crosscheck": {
+    "commit": "e89bcee43e0d54f39fc081a77be3c38563e5a061",
+    "result": "Both old and current backends reproduced the straight-load address_value export refusal and zero typed fields in the bounded DBF variant. Isolated old lookup object linked against otherwise identical current objects; no checkout/environment switch or target mutation.",
+    "evidence_sha256": {
+      "sg2-static-header-loop-old.json": "4177fb1765853d85f1fcecc6b1f75607f9bf1c28db9c15535e08e2b4d8910d75",
+      "sg2-static-header-loop-current.json": "8dac92942d659773d1a967923aa5c0abdb2fcbe051a6f6d564eaf653791128a4"
+    }
+  },
+  "target_accounting": {
+    "before_after": {
+      "app_slot_ref_count": [
+        3412,
+        3412
+      ],
+      "recovered_platform_typed_access_count": [
+        1198,
+        1198
+      ],
+      "recovered_platform_unresolved_typed_access_count": [
+        424,
+        424
+      ]
+    },
+    "new_refs": [],
+    "lost_refs": [],
+    "new_by_displacement": {},
+    "incomplete": [],
+    "diagnostics": 0,
+    "accepted_code_runs_identical": true
+  },
+  "validation": {
+    "native_and_vasm": {
+      "kind": "verification",
+      "framework_exact": true,
+      "target_id": "amiga_raw_starglider2_game",
+      "subject_revision": "5099030d46e5ed75d59707a195d7ca6b28990c9b66d7741ef292720922cb460b",
+      "status": "exact",
+      "exact": true,
+      "source_sha256": "89d861c4be0dd045c0f06a95679b7025a802d5100524d2df72effd0e26105104",
+      "source_path": "/workspace/pandora-original-delivery/stable-d15c2cf8/.runtime-state/restoration/eb04f545fb97451725a1c91ab5abf6f2e097614c45880db6edfb4ea5c3f6e2c2/89d861c4be0dd045c0f06a95679b7025a802d5100524d2df72effd0e26105104.s",
+      "source_package_sha256": null,
+      "original_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+      "original_size": 412736,
+      "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+      "rebuilt_path": "/workspace/pandora-original-delivery/stable-d15c2cf8/.runtime-state/restoration/eb04f545fb97451725a1c91ab5abf6f2e097614c45880db6edfb4ea5c3f6e2c2/662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9.bin",
+      "framework_status": "exact",
+      "failure_kinds": [],
+      "message": "",
+      "oracle": {
+        "oracle_id": "vasm",
+        "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+        "comparison_level": "oracle.full_file_match",
+        "assembler_status": "accepted",
+        "message": "oracle output matched original bytes"
+      },
+      "receipt_id": "53c6a3d99fabda9503e739fb1461d2b5fc7833f11780b5990a519474b742abce",
+      "revision": "cf94ff9bdec35dbd267a4fd3be9a3baaeb412fdec6ba9d2a91890eaad52bdd66"
+    },
+    "source_text_identical_to_prior": true,
+    "canonical_actions": 0,
+    "prior_clean_standalone": "fce1495f verified identical target tree a18e2aa270c55d81317c11fd39471c7c1a68bcf6; no repeated unchanged-source standalone rebuild.",
+    "incomplete_analysis": [],
+    "source_quality_diagnostics": 0
+  },
+  "generation_wall_seconds": 183.54465077602072,
+  "limits": [
+    "Current target remains3412apprefs/1198typed/424unresolved. This slice fixes a reproduced shared export/projection failure, not newly claimed Starglider semantic coverage.",
+    "A non_source loaded value remains a value fact and typed source-owned singleton; it is not an assembly literal or proof of all runtime memory contents/lifetimes."
+  ],
+  "remaining_loop": {
+    "original_pc": 18930,
+    "experiment": "Two-pointer DBF loop still has no justified typed accesses. Private state probe confirms transfer/join retain Header type and table identity; final reconciliation rejects the unknown selector. No expectation was changed to claim that positive case passes.",
+    "pending_positive_sha256": "37e69356e0f066f8fb43e9b00454ff0ba3c2d5542a32f5bc2cedb3bd54d00d0c",
+    "missing_contract": "Existing counter-relative induction projects app ranges only. Source-table loop support needs its proven cursor/count envelope linked to canonical entry/type validation. The104-entry model directory also exceeds the4-value exact pointer candidate packet, so bounded homogeneous type validation must remain distinct from enumerating numeric pointers or inline rendering. Do not raise the candidate cap or simply retain invalid/unknown selections.",
+    "next": "Reuse the shared induction, source intervals and canonical table entries for that bounded source-domain slice; retain unowned/NULL/cross-table and counter/alias negative cases. Meanwhile independent original object-list cursor contracts have concrete producers/readers and can be restored without waiting for a general fallback campaign."
+  }
+}

@@ -23,7 +23,20 @@ boundaries. It records 67 suffix signals (including numeric adjacent variants),
 21 lookup contracts, 523 remaining interior references, 32 generic app fields
 and 424 unresolved record accesses. These are different denominators. Five
 suffixes name routines and one names text; neither is a pointer defect.
-Latest: the [runtime-table pointer-depth correction](../../runtime/observations/starglider2-runtime-table-pointer-depth.json)
+Latest: the [indirect-table singleton fix](../../runtime/observations/starglider2-static-table-singleton.json)
+separates a resolved loaded pointer from an inline assembly operand. A minimal
+source-owned directory now exports exactly and retains its two header-field
+reads; unknown positions and unowned targets still refuse promotion. Existing
+indexed-expression checks stay intact. 105 focused and 832 native tests pass.
+The current Starglider source and counts remain unchanged at **3412 app refs /
+1198 typed / 424 unresolved**, with exact new-backend C/vasm verification.
+The $49F2 DBF model-header loop is still open: its source cursor/count domain
+needs the existing shared induction, and homogeneous type proof must be distinct
+from the four-value numeric-candidate packet. The retained positive probe still
+fails; no larger-loop acceptance is claimed. Continue that bounded mechanism
+and independent producer-backed object-list cursor contracts.
+
+Preceding: the [runtime-table pointer-depth correction](../../runtime/observations/starglider2-runtime-table-pointer-depth.json)
 keeps a loaded cursor distinct from an entry read and its pointee, including
 register and stack transport. Original $33110 loses an incorrect `object_type`
 comment: it reads an object pointer from the list, not the object header.

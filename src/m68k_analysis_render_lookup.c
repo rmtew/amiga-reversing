@@ -11695,6 +11695,20 @@ static M68kRenderTableContractState source_analysis_table_contract_state(
     }
   }
   if (match == NULL) return M68K_RENDER_TABLE_CONTRACT_NOT_TABLE_DERIVED;
+  /* A validated singleton load through a register has no inline pointer-value
+   * operand. Its exact canonical entry/target still proves the pointee type;
+   * do not confuse that with an indexed-expression rendering obligation.
+   * Unknown selectors and terminal/ambiguous targets cannot use this lane. */
+  if (match->origin_kind == M68K_PLATFORM_TYPE_PROVENANCE_STATIC_DATA &&
+      match->table_origin.selection_kind == M68K_ADDRESS_VALUE_TABLE_SELECTION_SINGLETON &&
+      match->table_origin.address_expression_id == 0U &&
+      match->table_origin.entry_index != UINT32_MAX &&
+      match->table_origin.terminal_kind == M68K_ADDRESS_VALUE_TERMINAL_RESOLVED &&
+      match->terminal_kind == M68K_ADDRESS_VALUE_TERMINAL_RESOLVED &&
+      match->resolution == M68K_ADDRESS_VALUE_RESOLUTION_RESOLVED && match->has_target &&
+      match->candidate_target_count == 1U &&
+      match->render_outcome == M68K_ADDRESS_VALUE_RENDER_NON_SOURCE && !match->has_source_expression)
+    return M68K_RENDER_TABLE_CONTRACT_VALID;
   if (match->table_origin.selection_kind == M68K_ADDRESS_VALUE_TABLE_SELECTION_TERMINAL ||
       match->render_outcome != M68K_ADDRESS_VALUE_RENDER_SYMBOLIC ||
       match->has_source_expression == 0U ||
