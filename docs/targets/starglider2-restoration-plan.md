@@ -7,8 +7,8 @@ that further analysis is exhausted. Current source remains byte exact: all
 with all 106034 accepted code bytes retained. No generated assembly was edited
 by hand and no interim archive was produced.
 
-The current ownership union leaves 14060 bytes in
-262 intervals unclassified. This is classification accounting,
+The current ownership union leaves 13943 bytes in
+263 intervals unclassified. This is classification accounting,
 not a semantic completion percentage. Earlier interval/site counts below belong
 to their recorded closeout revision. See the current
 [native memory-span receipt](../../runtime/observations/starglider2-app-memory-spans.json),
@@ -20,10 +20,28 @@ to their recorded closeout revision. See the current
 The [current systematic gap inventory](../../runtime/observations/starglider2-source-gap-inventory.json)
 joins native identities/accesses with canonical layouts and actual rendered
 boundaries. It records 66 suffix signals (including numeric adjacent variants),
-21 lookup contracts, 524 remaining interior references, 41 generic app fields
-and 300 unresolved record accesses. These are different denominators. Five
+21 lookup contracts, 523 remaining interior references, 36 generic app fields
+and 303 unresolved record accesses. These are different denominators. Five
 suffixes name routines and one names text; neither is a pointer defect.
-Latest: the [landscape and mode reconstruction](../../runtime/observations/starglider2-landscape-render-modes.json)
+Latest: the [scene queue and scratch reconstruction](../../runtime/observations/starglider2-scene-queue-contracts.json)
+records 42 canonical actions across original polygon/header phases, shared queue
+subregions, edge endpoints, coefficient scratch and service-entry arrays.
+It removes the false app label on the sorter's A6 cursor, while retaining an
+explicit original-loop invariant and its valid-range/stack assumptions. A shared
+native fix now honors known foreign local bases without recreating discarded weak
+A6 labels. **832 native tests / 11 focused vasm streams pass**. Original C/vasm
+and the clean standalone package remain exact; 57 assets and 14 headers remain
+unchanged. App references are **3316 → 3374**, typed accesses **370 → 380**.
+Three newly exposed variable-tail/adjacent-cell diagnostics remain: unresolved
+record accesses are **300 → 303**, not a coverage regression hidden by naming.
+Generic app fields are **41 → 36**; 117 evidenced data bytes reduce unclassified
+storage to **13943 bytes / 263 intervals**. No code or orphan was promoted.
+Publication preserves this verified batch; restoration continues into concrete
+motion-mode producer aliases and the remaining shared-buffer/incoming-path leads.
+Queue prefixes are physical storage facts, not a proof of unchecked bounds or
+independent disk/audio/render lifetimes.
+
+Preceding: the [landscape and mode reconstruction](../../runtime/observations/starglider2-landscape-render-modes.json)
 records seven supported app-field meanings, four original routine roles and four
 horizon fill-state words. Generic app names fall **48 → 41**; the eight declared
 fill-state bytes reduce native unclassified accounting **14068 → 14060** across
@@ -37,9 +55,9 @@ with 831 native tests and 15 Python ABI/import/admission checks across this batc
 The current orphan cross-check finds no resolved CFG/data/table target into the
 30 remaining islands; this does not establish unused code. Next use concrete
 producer groups and relevant original mode/callback paths, rather than repeat
-unfocused tracing or name initialization-only storage. The next active batch traces
-the horizon packet scratch and shared scene queue through their producers, sort
-and drawing consumers. Publication preserves tested work; restoration continues.
+unfocused tracing or name initialization-only storage. That queue batch is now recorded above; its remaining range/lifetime questions
+are explicit rather than blanket deferred. Publication preserves tested work;
+restoration continues.
 
 Preceding: the [closed WORD-index field projection](../../runtime/observations/starglider2-closed-word-index-fields.json)
 consumes existing converged scalar inputs instead of rejecting every indexed

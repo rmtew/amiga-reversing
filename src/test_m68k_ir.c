@@ -1952,6 +1952,106 @@ static int test_source_dcb_preserves_large_repeat_without_expanding_items(void) 
   return 0;
 }
 
+/* Independent vasm streams model a local A6 cursor, not a game address. */
+static int test_facts_v2_typed_foreign_a6_overrides_weak_app_fallback(void) {
+  static const struct {
+    const char *name; uint8_t bytes[32]; uint8_t size, foreign, app_refs; int binding;
+    uint8_t local_seed_offset;
+  } cases[] = {
+    {"app_entry",{0x48,0x6E,0x00,0x04,0x4E,0x75},6U,0U,1U,-1},
+    {"foreign_copy",{0x2C,0x48,0x48,0x6E,0x00,0x04,0x4E,0x75},8U,1U,0U,-1},
+    {"unknown_copy",{0x2C,0x48,0x48,0x6E,0x00,0x04,0x4E,0x75},8U,0U,1U,-1},
+    {"through_data",{0x20,0x08,0x2C,0x40,0x48,0x6E,0x00,0x04,0x4E,0x75},10U,1U,0U,-1},
+    {"restored_app",{0x2F,0x0E,0x2C,0x48,0x48,0x6E,0x00,0x04,0x2C,0x5F,0x48,0x6E,0x00,0x04,0x4E,0x75},16U,1U,1U,-1},
+    {"conflicting_join",{0x4A,0x07,0x67,0x02,0x2C,0x48,0x48,0x6E,0x00,0x04,0x4E,0x75},12U,1U,1U,-1},
+    {"explicit_binding",{0x2C,0x48,0x48,0x6E,0x00,0x04,0x4E,0x75},8U,1U,1U,2},
+    {"foreign_entry",{0x48,0x6E,0x00,0x04,0x4E,0x75},6U,2U,0U,-1},
+    {"unknown_after_foreign",{0x2C,0x48,0x2C,0x49,0x48,0x6E,0x00,0x04,0x4E,0x75},10U,1U,1U,-1},
+    /* An unbounded loop loses the pointee extent. A separately evidenced
+     * current-record invariant is not an inferred all-path array bound. */
+    {"cursor_loop_unknown",{0x2C,0x48,0x20,0x1E,0x4A,0x41,0x66,0xFA,0x59,0x8E,0x48,0x6E,0x00,0x04,0x4E,0x75},16U,1U,1U,-1,0U},
+    {"cursor_loop_contract",{0x2C,0x48,0x20,0x1E,0x4A,0x41,0x66,0xFA,0x59,0x8E,0x48,0x6E,0x00,0x04,0x4E,0x75},16U,1U,0U,-1,10U},
+  };
+  for (size_t variant = 0U; variant < sizeof(cases)/sizeof(cases[0]); ++variant) {
+    M68kObject object; M68kSection section = {0}; M68kAnalysisPolicy policy;
+    M68kSourceAnalysisIR analysis = {0}; M68kFactsV2Profile profile;
+    char *source = NULL;
+    M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+    object.platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
+    object.platform_file_kind = M68K_PLATFORM_FILE_EXECUTABLE;
+    section.kind = M68K_SECTION_CODE; section.size = section.data_size = cases[variant].size;
+    section.data = (uint8_t *)cases[variant].bytes;
+    M68K_C_ASSERT(m68k_object_add_section(&object, &section).ok);
+    m68k_analysis_policy_init_default(&policy);
+    policy.custom_structs = calloc(1U, sizeof(*policy.custom_structs));
+    M68K_C_ASSERT(policy.custom_structs != NULL);
+    policy.custom_struct_owner = 1U; policy.custom_struct_count = policy.custom_struct_capacity = 1U;
+    M68kAnalysisCustomStruct *record = policy.custom_structs;
+    strcpy(record->name, "ForeignRecord"); record->size = 4U; record->field_count = 1U;
+    strcpy(record->fields[0].name, "value"); strcpy(record->fields[0].type_name, "LONG");
+    record->fields[0].size = 4U;
+    policy.rsset_layout_region_count = 1U;
+    M68kAnalysisRssetLayoutRegion *slot = policy.rsset_layout_regions;
+    slot->offset = slot->size = 4U;
+    slot->flags = M68K_ANALYSIS_RSSET_LAYOUT_REGION_FLAG_APP_LAYOUT | M68K_ANALYSIS_RSSET_LAYOUT_REGION_FLAG_APP_BASE;
+    strcpy(slot->layout_name, "app"); strcpy(slot->base_symbol, "__amiga_app_base__");
+    strcpy(slot->symbol, "app_display");
+    policy.register_seed_count = cases[variant].foreign == 1U ? 2U : 1U;
+    M68kAnalysisRegisterSeed *seed = policy.register_seeds;
+    seed->kind = M68K_ANALYSIS_REGISTER_SEED_LIBRARY_BASE;
+    seed->reg_kind = M68K_ANALYSIS_REGISTER_ADDRESS; seed->reg_index = 6U;
+    seed->has_section_index = seed->has_entry_offset = 1U;
+    strcpy(seed->name, "__amiga_app_base__");
+    if (cases[variant].foreign) {
+      if (cases[variant].foreign == 1U) { ++seed; seed->reg_index = 0U; }
+      seed->kind = M68K_ANALYSIS_REGISTER_SEED_STRUCT_PTR;
+      seed->reg_kind = M68K_ANALYSIS_REGISTER_ADDRESS;
+      seed->has_section_index = seed->has_entry_offset = 1U;
+      strcpy(seed->name, "ForeignRecord");
+    }
+    if (cases[variant].local_seed_offset != 0U) {
+      seed = &policy.register_seeds[policy.register_seed_count++];
+      seed->kind = M68K_ANALYSIS_REGISTER_SEED_STRUCT_PTR;
+      seed->reg_kind = M68K_ANALYSIS_REGISTER_ADDRESS; seed->reg_index = 6U;
+      seed->has_section_index = seed->has_entry_offset = 1U;
+      seed->entry_offset = cases[variant].local_seed_offset;
+      strcpy(seed->name, "ForeignRecord");
+    }
+    if (cases[variant].binding >= 0) {
+      policy.rsset_use_site_binding_count = 1U;
+      M68kAnalysisRssetUseSiteBinding *binding = policy.rsset_use_site_bindings;
+      binding->offset = (uint32_t)cases[variant].binding;
+      binding->displacement = 4U; binding->base_reg = 6U;
+      strcpy(binding->layout_name, "app"); strcpy(binding->base_symbol, "__amiga_app_base__");
+      strcpy(binding->binding_id, "fixture-explicit-binding");
+      strcpy(binding->base_evidence_id, "fixture-original-app-context");
+    }
+    M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_analysis_profile_alloc(&object, &policy,
+      &source, &profile, &analysis, 1, m68k_diag_sink(NULL)));
+    size_t app_refs = analysis.sections[0].app_slot_ref_count;
+    if (app_refs != cases[variant].app_refs)
+      fprintf(stderr, "foreign A6 case %s expected apprefs=%u got=%zu\n", cases[variant].name,
+        (unsigned)cases[variant].app_refs, app_refs);
+    M68K_C_ASSERT_U32(cases[variant].app_refs, app_refs);
+    size_t rendered = 0U;
+    for (const char *cursor = source; (cursor = strstr(cursor, "\tpea.l app_display(a6)")) != NULL; ++cursor)
+      ++rendered;
+    if (rendered != app_refs) fprintf(stderr, "foreign A6 case %s rendered=%zu apprefs=%zu\n",
+      cases[variant].name, rendered, app_refs);
+    M68K_C_ASSERT_U32(app_refs, rendered);
+    unsigned char *rebuilt = NULL; size_t rebuilt_size = 0U;
+    char *assembly_profile = NULL, *error = NULL;
+    M68K_C_ASSERT_INT(0, platform_file_assemble_source_text_bytes_profile_alloc("amiga-raw", "", source,
+      "68000", &rebuilt, &rebuilt_size, &assembly_profile, &error));
+    M68K_C_ASSERT_U32(cases[variant].size, rebuilt_size);
+    M68K_C_ASSERT(memcmp(cases[variant].bytes, rebuilt, rebuilt_size) == 0);
+    platform_file_free_text(assembly_profile); platform_file_free_text(error); platform_file_free_bytes(rebuilt);
+    m68k_facts_v2_free_text(source); m68k_ir_source_analysis_destroy(&analysis);
+    m68k_analysis_policy_destroy(&policy); m68k_object_destroy(&object);
+  }
+  return 0;
+}
+
 /* Vasm-assembled original instruction streams. Each row includes the raw
  * records after RTS; no game state or guessed target address is involved. */
 static int test_facts_v2_closed_word_index_fields(void) {
@@ -40158,6 +40258,7 @@ int m68k_c_ir_tests(void) {
       test_source_fpu_zero_disables_fpu_alias_instruction},
     {"source_dcb_preserves_large_repeat_without_expanding_items",
       test_source_dcb_preserves_large_repeat_without_expanding_items},
+    {"facts_v2_typed_foreign_a6_overrides_weak_app_fallback", test_facts_v2_typed_foreign_a6_overrides_weak_app_fallback},
     {"facts_v2_closed_word_index_fields", test_facts_v2_closed_word_index_fields},
     {"facts_v2_pc_pointer_collection_consumers", test_facts_v2_pc_pointer_collection_consumers},
     {"source_long_base_relative_constant_expression", test_source_long_base_relative_constant_expression},

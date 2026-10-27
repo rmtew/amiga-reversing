@@ -11074,7 +11074,7 @@ static int typed_flow_solve_call_inputs(M68kRenderLookup *lookup, const M68kDeco
  * hardware/library/other-layout value contradicts an app interpretation. */
 static void typed_flow_filter_nonapp_fallbacks(M68kRenderLookup *lookup, const M68kDecodeIR *decode,
     const M68kRenderTypedFlowWorkflow *workflow) {
-  if (!workflow->graphs) return;
+  if (!workflow->graphs || lookup->typed_flow_incomplete_count != 0U) return;
   size_t kept = 0U;
   for (size_t i = 0U; i < lookup->app_slot_ref_count; ++i) {
     const M68kRenderAppSlotRef *ref = &lookup->app_slot_refs[i];
@@ -11085,7 +11085,7 @@ static void typed_flow_filter_nonapp_fallbacks(M68kRenderLookup *lookup, const M
       if (ref->ref.offset < graph->node_by_offset_count &&
           graph->node_by_offset[ref->ref.offset] != SIZE_MAX) {
         const M68kRenderTypedFlowNode *node = &graph->nodes[graph->node_by_offset[ref->ref.offset]];
-        if (node->has_in && graph->call_inputs_enabled) {
+        if (node->has_in) {
           M68kRenderTypedState typed;
           M68kRenderPlatformState platform;
           uint8_t reg = ref->ref.base_reg;
@@ -11093,8 +11093,19 @@ static void typed_flow_filter_nonapp_fallbacks(M68kRenderLookup *lookup, const M
           M68kHardwareRelativeBase hardware;
           int raw_hardware = !typed.app_addr_regs[reg].known &&
             typed_raw_hardware_value(&typed.addr_regs[reg], &hardware);
-          contradicted = !m68k_bitset_u32_has(platform.address_app_base_known, reg) &&
-            (raw_hardware || platform.relative_hardware[reg].offsets.count != 0U ||
+          /* A declared pointee type is also a base contract. In particular a
+           * local A6 cursor must not acquire an unrelated app field merely
+           * because the current displacement lies outside its known record.
+           * Keep explicit use-site/library/app evidence ahead of fallbacks. */
+          int typed_foreign = typed.addr_regs[reg].known && !typed.addr_regs[reg].type_conflicted &&
+            !typed.app_addr_regs[reg].known && typed.addr_regs[reg].struct_id != AMIGA_OS_STRUCT_ID_NONE &&
+            (ref->ref.base_evidence_kind == M68K_APP_SLOT_BASE_A6_FALLBACK ||
+             ref->ref.base_evidence_kind == M68K_APP_SLOT_BASE_DECLARED_LAYOUT_A6_FALLBACK);
+          int qualified_library_extension = ref->ref.base_evidence_kind == M68K_APP_SLOT_BASE_LIBRARY_EXTENSION &&
+            m68k_bitset_u32_has(platform.address_base_known, reg) &&
+            library_base_can_use_app_extension_slot(platform.address_base_library[reg], ref->ref.displacement);
+          contradicted = !m68k_bitset_u32_has(platform.address_app_base_known, reg) && !qualified_library_extension &&
+            (typed_foreign || raw_hardware || platform.relative_hardware[reg].offsets.count != 0U ||
              m68k_bitset_u32_has(platform.address_hardware_base_known, reg) ||
              m68k_bitset_u32_has(platform.address_base_known, reg) ||
              m68k_bitset_u32_has(platform.address_layout_base_known, reg));

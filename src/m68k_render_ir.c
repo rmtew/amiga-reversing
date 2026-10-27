@@ -6144,14 +6144,15 @@ int render_lookup_index_app_accesses(M68kRenderLookup *lookup) {
   return 0;
 }
 
-/* Project the converged CFG result, not the renderer's linear call state. Only
- * exact zero-origin register identities qualify: a cursor-relative operand or
- * a loop footprint cannot be rendered as an app-base displacement. */
-static int lookup_proven_app_base_access(const M68kRenderLookup *lookup, size_t section_index,
+/* Project per-site native qualification, retaining the distinction between
+ * conditional fallback and converged register-state evidence. Cursor-relative
+ * operands and loop footprints are not direct app-base displacements. */
+static int lookup_recorded_app_base_access(const M68kRenderLookup *lookup, size_t section_index,
     uint32_t offset, uint8_t operand_index, uint8_t base_reg, int16_t displacement,
-    uint8_t access_kind, uint8_t access_size) {
+    uint8_t access_kind, uint8_t access_size, int *out_proven) {
   size_t lo = 0U, hi = lookup->app_slot_ref_count;
-  int found = 0;
+  int found = 0, all_proven = 1;
+  *out_proven = 0;
   if (lookup->app_slot_ref_index == NULL) return 0;
   while (lo < hi) {
     size_t mid = lo + (hi - lo) / 2U;
@@ -6166,13 +6167,15 @@ static int lookup_proven_app_base_access(const M68kRenderLookup *lookup, size_t 
     if (row->section_index != section_index || ref->offset != offset) break;
     if (ref->operand_index != operand_index) continue;
     if (ref->base_reg != base_reg || ref->displacement != displacement ||
-        ref->base_evidence_kind != M68K_APP_SLOT_BASE_REGISTER_STATE ||
+        ref->base_evidence_kind == M68K_APP_SLOT_BASE_UNSPECIFIED ||
         ref->access_kind != access_kind ||
         ref->loop_iteration_count != 0U ||
         (ref->has_derived_base && (ref->access_size != access_size || ref->base_displacement != 0 ||
           ref->operand_displacement != displacement))) return 0;
+    all_proven &= ref->base_evidence_kind == M68K_APP_SLOT_BASE_REGISTER_STATE;
     found = 1;
   }
+  *out_proven = found && all_proven;
   return found;
 }
 
@@ -6210,9 +6213,10 @@ static int attach_amiga_app_base_slot_symbols(const M68kRenderLookup *lookup,
       (uint8_t)operand_index);
     if (typed != NULL && typed->field_expr[0] != '\0') continue;
     uint8_t access_kind = app_slot_access_kind_from_instruction(instruction, operand_index);
-    int proven_app = lookup_proven_app_base_access(lookup, section_index, offset,
+    int proven_app = 0;
+    int recorded_app = lookup_recorded_app_base_access(lookup, section_index, offset,
       (uint8_t)operand_index, base_reg, displacement, access_kind,
-      app_slot_access_size_from_instruction(instruction, access_kind));
+      app_slot_access_size_from_instruction(instruction, access_kind), &proven_app);
     if (!proven_app && m68k_bitset_u32_has(state->address_hardware_base_known, base_reg)) continue;
     if (proven_app || m68k_bitset_u32_has(state->address_app_base_known, base_reg)) {
       if (!lookup_typed_app_slot_field_symbol_name(lookup, displacement, symbol_name, sizeof(symbol_name),
@@ -6236,6 +6240,10 @@ static int attach_amiga_app_base_slot_symbols(const M68kRenderLookup *lookup,
         continue;
       }
     } else if (base_reg == 6U) {
+      /* The final native catalogue already discarded contradicted bases.
+       * Do not recreate a weak app interpretation from the linear formatter. */
+      if (lookup->object != NULL && lookup->object->platform_backend_kind == M68K_PLATFORM_BACKEND_AMIGA_HUNK &&
+          !recorded_app) continue;
       uint8_t access_kind = app_slot_access_kind_from_instruction(instruction, operand_index);
       if (lookup->object != NULL && lookup->object->platform_backend_kind == M68K_PLATFORM_BACKEND_AMIGA_HUNK &&
           render_app_base_evidence_kind(lookup, state, base_reg, displacement,

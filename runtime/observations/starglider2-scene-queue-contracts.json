@@ -1,0 +1,460 @@
+{
+  "schema_version": 1,
+  "kind": "scene_queue_and_shared_scratch_reconstruction",
+  "publication_base_commit": "1447c61b82572fccb80af864e8779d3bce298a4e",
+  "status": "qualified_batch_restoration_continues",
+  "input": {
+    "binary_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "backend_sha256": "4cca0dc4c89aa3cc40bd45c54f928e3cb1f7b41e5bf671f0e18e7f80eaf19c5a",
+    "analysis_sha256": "d39e1658aa07508bf7817990048397bb87abde738c1d58d8fe3ece6a4a92ca4a",
+    "inline_source_sha256": "89b6d47355780580d70077a36131040a3fa8c4fb993025436e95591aa1fdcc14",
+    "rendered_package_source_sha256": "46bfb67a489ed7d34d573a7f609f1f8edd357f0d43a84de165c8a9d18637c314",
+    "effective_metadata_sha256": "0e0e7a17e28e2796fc4c91d2d26f81b677c63e523461e5e8c305c9a2c7d2486c"
+  },
+  "canonical_actions": 42,
+  "contracts": {
+    "action_start": 2850,
+    "action_count": 42,
+    "reason": "Original scene queue producer/consumer reconstruction: render_world_view and model viewer seed arena4666A, reference cells4760A, count49A8 and cursor globals3C2C/3C30. Horizon2ED14 constructs28-byte scratch2EFF4: unsigned depth key0, encoded fill style2, variable WORD XY tail ending negative X; original horizon writes LONG-1, model producer only WORD-1. Sort41646 reads LONG references and UWORD keys, swaps references and uses unsigned BCS/BHI. A0/A1 contract applies only to original sort-phase valid ranges/normal stack/returns; A6 copied from A0 is a reference cursor, not app base. Outer3D9DA sorts then rewrites the SAME reference cells to rotated polygon packets and later edge/span records. Do not impose one global pointee type. Shared workspace41848 retains disk/audio aliases and unproved lifetime exclusions. Subdivision prefixes16000/4002/4000/600 follow actual starts456C8/4666A/4760A/47862, not independently safe allocation capacities or arbitrary-input bounds. No new runtime evidence or dead-code claim.",
+    "additional_reason": "Connected render/motion scratch contracts. Original interpolate_polygon_edge_spans advances A0 forward and A1 backward around the rotated polygon:41690/41694 store forward endpoint X/Y;41692/41696 store reverse endpoint X/Y, restored at edge transitions. Names are traversal directions, not universally left/right.3D9DA snapshots graphics mode, masked rotation2 and current draw buffer in416A5/416A6/416A8; disc path62FC also refreshes that draw-buffer cell. Six app WORDs164..16F are reusable sine/cosine coefficient pairs: motion37274 uses numbered angles0/1/2; horizon2EF4C uses view0 and NEG(view2); object constructors and point-field4Dxxx reuse pair1 for their own angle. Therefore coefficient scratch, not permanent player/view matrix fields or universally equal values across phases. These are canonical original-context meanings, not new runtime observations or arbitrary-caller provenance proof.",
+    "loop_invariant_reason": "Original quicksort41646 loop invariant: A6 starts from A0, left scan41652 reads LONG reference and advances4, exits its key scan then SUBA.L#4 restores the selected reference cell. At4165E A6 is therefore the current original scene-reference cell while A3 scans backward independently. Swaps branch back to the left scan; pivot placement41670 uses unchanged A6 and PEA4(A6) computes the next reference address. This current-record contract assumes valid original sort ranges, normal stack/return and the documented original queue phase. It does not claim arbitrary A6 values, array extent, all-input bounds or a type for later rotated/span phases. The existing extent join conservatively loses cursor pointee identity; this explicit original loop invariant does not relax that join or manufacture field bounds.",
+    "labels": [
+      [
+        267846,
+        "sort_scene_references_by_depth_key"
+      ],
+      [
+        267838,
+        "sort_scene_reference_saved_range"
+      ],
+      [
+        252378,
+        "sort_and_draw_scene_packets"
+      ],
+      [
+        252642,
+        "rotate_sorted_scene_packet_vertices"
+      ],
+      [
+        252712,
+        "draw_scene_packet_spans"
+      ]
+    ],
+    "seeds": [
+      [
+        15404,
+        4,
+        "scene_reference_write_cursor",
+        "long"
+      ],
+      [
+        15408,
+        4,
+        "scene_polygon_write_cursor",
+        "long"
+      ],
+      [
+        18856,
+        2,
+        "scene_packet_count",
+        "word"
+      ]
+    ],
+    "globals": [
+      [
+        267920,
+        2,
+        "polygon_forward_edge_end_x",
+        "word"
+      ],
+      [
+        267922,
+        2,
+        "polygon_reverse_edge_end_x",
+        "word"
+      ],
+      [
+        267924,
+        2,
+        "polygon_forward_edge_end_y",
+        "word"
+      ],
+      [
+        267926,
+        2,
+        "polygon_reverse_edge_end_y",
+        "word"
+      ],
+      [
+        267941,
+        1,
+        "scene_graphics_mode_snapshot",
+        "byte"
+      ],
+      [
+        267942,
+        2,
+        "scene_rotation2_snapshot",
+        "word"
+      ],
+      [
+        267944,
+        4,
+        "scene_draw_buffer_snapshot",
+        "long"
+      ]
+    ],
+    "fields": [
+      [
+        356,
+        2,
+        "trig_sine_scratch_0"
+      ],
+      [
+        358,
+        2,
+        "trig_cosine_scratch_0"
+      ],
+      [
+        360,
+        2,
+        "trig_sine_scratch_1"
+      ],
+      [
+        362,
+        2,
+        "trig_cosine_scratch_1"
+      ],
+      [
+        364,
+        2,
+        "trig_sine_scratch_2"
+      ],
+      [
+        366,
+        2,
+        "trig_cosine_scratch_2"
+      ]
+    ],
+    "service_fields": [
+      [
+        2693,
+        12,
+        "structure_service_entry_latches",
+        "byte_array"
+      ],
+      [
+        2705,
+        12,
+        "structure_service_entry_counts",
+        "byte_array"
+      ],
+      [
+        2717,
+        1,
+        "flight_point_field_active_flag",
+        "scalar"
+      ],
+      [
+        2134,
+        2,
+        "station_report_message_cycle_index",
+        "scalar"
+      ],
+      [
+        2728,
+        1,
+        "projector_growth_update_parity",
+        "scalar"
+      ]
+    ],
+    "service_reason": "Original service-entry bookkeeping:3419A indexes BYTE latch arrayA85 and counter arrayA91 by current_structure_service_id; skips processing if signed latch negative, otherwise increments counter BYTE and sets latch.34A46 clears12 latches on leaving/service reset;374A6 resets both12-byte arrays. These stored extents do not prove arbitrary objectBYTE26 service IDs are bounded, and counters retain BYTE wrap semantics. Original16 LONGs395CA..3960A indexed by selected celestial body compare signed playerY to select A9D; same flag enables draw_nearby_point_field and stardrive sound shaping, and its space ramp path clears only after addend>=16000 plus speed>=300, with grayscale/sound transition. Name point-field active flag, not universal atmosphere or stardrive-active identity.0856 increments and masks7, then selects event message21+index for station secondary report.0AA8 increments/masks1 to alternate eligible projector-growth updates; no physical-frame cadence claimed. No new runtime evidence or arbitrary-input bounds."
+  },
+  "framework": {
+    "cause": "Known foreign A6 pointee contracts were not considered in local-only CFGs; the renderer could recreate a weak app label after native contradiction filtering.",
+    "fix": "Consume converged local and call-enabled inputs, preserve app-derived and qualified library extension identities, suppress only contradicted fallback app refs, and require an existing native app access record before weak A6 rendering.",
+    "not_changed": [
+      "Unknown/conflicting bases retain conditional fallbacks; explicit use-site bindings remain authoritative.",
+      "No extra dense per-node state, target-address recognizer, pointer-bound widening or convergence cap.",
+      "The unbounded pointer loop still loses pointee extent conservatively; the target sort needs a separately authored current-record invariant."
+    ]
+  },
+  "established": [
+    "Original polygon headers carry unsigned depth sort key and encoded fill style; variable XY tails use negative-X termination. Horizon scratch is28 stored bytes, not a universal fixed-tail schema.",
+    "Sorting, rotated-polygon conversion and span construction reuse the same reference cells with different pointee meanings. Only the original sorting phase receives the reference/header type contract.",
+    "Shared workspace subregions name actual observed starts;4000arena-prefix and600reference-cell bytes are physical subdivisions, not unchecked writer bounds or independent lifetime allocations.",
+    "Six coefficient WORDs are reusable sine/cosine scratch pairs across motion, horizon, object construction and point-field consumers. They are not permanent player/view matrix fields.",
+    "Service bookkeeping has two12-byte arrays: entry latches reset on exit and byte entry counters reset on initialization. Original BYTE overflow and unproved arbitrary service selector bounds remain.",
+    "The point-field activation flag also shapes stardrive sound/ramp transitions; its16 stored signed LONG world-Y thresholds do not prove arbitrary celestial selectors."
+  ],
+  "before_after": {
+    "app_slot_ref_count": {
+      "before": 3316,
+      "after": 3374
+    },
+    "recovered_platform_typed_access_count": {
+      "before": 370,
+      "after": 380
+    },
+    "recovered_platform_unresolved_typed_access_count": {
+      "before": 300,
+      "after": 303
+    },
+    "table_descriptor_count": {
+      "before": 73,
+      "after": 73
+    },
+    "table_consumer_count": {
+      "before": 155,
+      "after": 155
+    },
+    "address_expression_count": {
+      "before": 304,
+      "after": 303
+    }
+  },
+  "removed_false_app_references": [
+    {
+      "runtime_address": 267896,
+      "prior_ref": {
+        "offset": 263800,
+        "displacement": 4,
+        "base_register": "A6",
+        "operand_index": 0,
+        "access": "address",
+        "base_evidence": "declared_layout_a6_fallback",
+        "symbol_name": "app_0004"
+      }
+    }
+  ],
+  "new_app_reference_records": 59,
+  "newly_exposed_unresolved_accesses": [
+    {
+      "offset": 187696,
+      "operand_index": 1,
+      "base_register": "A0",
+      "displacement": 4,
+      "struct_size": 4,
+      "access_size": 2,
+      "root_struct_name": "SG2ScenePolygonHeader",
+      "classification_id": 5,
+      "classification": "auto_update_cursor",
+      "container_candidate_count": 0,
+      "container_struct_name": null,
+      "container_field_expr": null,
+      "refinement_applied": 0,
+      "refined_struct_name": null,
+      "type_provenance_kind_id": 12,
+      "type_provenance_kind": "static_data",
+      "type_provenance_section": 0,
+      "type_provenance_offset": 188404
+    },
+    {
+      "offset": 263800,
+      "operand_index": 0,
+      "base_register": "A6",
+      "displacement": 4,
+      "struct_size": 4,
+      "access_size": 4,
+      "root_struct_name": "SG2SceneSortReference",
+      "classification_id": 0,
+      "classification": "field_gap",
+      "container_candidate_count": 0,
+      "container_struct_name": null,
+      "container_field_expr": null,
+      "refinement_applied": 0,
+      "refined_struct_name": null,
+      "type_provenance_kind_id": 11,
+      "type_provenance_kind": "policy_seed",
+      "type_provenance_section": 0,
+      "type_provenance_offset": 263774
+    },
+    {
+      "offset": 263804,
+      "operand_index": 0,
+      "base_register": "A6",
+      "displacement": -4,
+      "struct_size": 4,
+      "access_size": 4,
+      "root_struct_name": "SG2SceneSortReference",
+      "classification_id": 0,
+      "classification": "field_gap",
+      "container_candidate_count": 0,
+      "container_struct_name": null,
+      "container_field_expr": null,
+      "refinement_applied": 0,
+      "refined_struct_name": null,
+      "type_provenance_kind_id": 11,
+      "type_provenance_kind": "policy_seed",
+      "type_provenance_section": 0,
+      "type_provenance_offset": 263774
+    }
+  ],
+  "classification": {
+    "before_unclassified_bytes": 14060,
+    "after_unclassified_bytes": 13943,
+    "newly_classified_bytes": 117,
+    "before_intervals": 262,
+    "after_intervals": 263,
+    "accepted_code_bytes": 106034,
+    "code_promoted": false
+  },
+  "validation": {
+    "native_suite_passed": 832,
+    "native_suite_failures": 0,
+    "native_suite_log_sha256": "fff8db61cba9b314dd6c218d0c3ecae57f5ae4605daf1b040c84b1cc324378ae",
+    "focused_vasm_fixture_variants": 11,
+    "fixture_scope": "App/foreign/unknown entries, An-Dn-An, saved/restored A6, conflict join, explicit binding, unknown overwrite and an unbounded cursor loop with/without explicit current-record contract. All C reconstructions equal independently vasm-encoded bytes.",
+    "native_and_vasm": {
+      "kind": "verification",
+      "framework_exact": true,
+      "target_id": "amiga_raw_starglider2_game",
+      "subject_revision": "737d6cfbf529bc835b506f523fb31a86de15f01b64f59a312715ee96049289a8",
+      "status": "exact",
+      "exact": true,
+      "source_sha256": "89b6d47355780580d70077a36131040a3fa8c4fb993025436e95591aa1fdcc14",
+      "source_path": "/workspace/pandora-original-delivery/stable-d15c2cf8/.runtime-state/restoration/eb04f545fb97451725a1c91ab5abf6f2e097614c45880db6edfb4ea5c3f6e2c2/89b6d47355780580d70077a36131040a3fa8c4fb993025436e95591aa1fdcc14.s",
+      "source_package_sha256": null,
+      "original_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+      "original_size": 412736,
+      "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+      "rebuilt_path": "/workspace/pandora-original-delivery/stable-d15c2cf8/.runtime-state/restoration/eb04f545fb97451725a1c91ab5abf6f2e097614c45880db6edfb4ea5c3f6e2c2/662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9.bin",
+      "framework_status": "exact",
+      "failure_kinds": [],
+      "message": "",
+      "oracle": {
+        "oracle_id": "vasm",
+        "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+        "comparison_level": "oracle.full_file_match",
+        "assembler_status": "accepted",
+        "message": "oracle output matched original bytes"
+      },
+      "receipt_id": "f6d2b66192388999354db9a6c000a016926158524490b2949e1db5b456b3d372",
+      "revision": "652f1560602f23139527dd6442128674f529e0d6df87e8d91f98cb408ff960d5"
+    },
+    "assets_unchanged": 57,
+    "required_headers": 14,
+    "source_quality_diagnostics": 0,
+    "incomplete_analysis": [],
+    "clean_standalone_build": {
+      "status": "pass",
+      "validated_target_git_tree": "3ab0e645116af217395bcd122ff021eaebdcdeb2",
+      "receipt": {
+        "schema_version": 1,
+        "status": "pass",
+        "format": "raw_payload_not_AmigaDOS_HUNK",
+        "main_bytes": 412736,
+        "main_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+        "main_matches_original_identity": true,
+        "asset_count": 57,
+        "all_asset_source_slices_equal": true,
+        "decoded_view_inverse_exact": true,
+        "boot_copy_source_matches_resident_view": true,
+        "source_commit": "1447c61b82572fccb80af864e8779d3bce298a4e",
+        "assembler_sha256": "413e284020125f42709486dfe09907cab3dd9f3c2ea41017c190f8ea68f30825",
+        "flags": [
+          "-Fbin",
+          "-m68000",
+          "-no-opt"
+        ],
+        "outputs": [
+          {
+            "role": "original_main",
+            "filename": "Starglider2-original.raw",
+            "bytes": 412736,
+            "sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9"
+          },
+          {
+            "role": "decoded_analysis_view",
+            "filename": "protection-decoded-analysis.raw",
+            "bytes": 3548,
+            "sha256": "de8358853dd9ed9b006a23569bf393aa217ed3be3301a169465d80bfaf839922"
+          },
+          {
+            "role": "boot_installer_context",
+            "filename": "boot-selector-installer-context.raw",
+            "bytes": 40,
+            "sha256": "8d34852425e2e1bfa87b3febdfc74fb39e7c667e9d9ff73e17b594649e83b21b"
+          },
+          {
+            "role": "boot_resident_view",
+            "filename": "boot-selector-resident.raw",
+            "bytes": 20,
+            "sha256": "a26286a393713c046eff9dbaff15b20b26b171fa9e05fc9d538d16b0eddb6024"
+          }
+        ]
+      },
+      "recoverable_pandora_backups_verified": 16
+    }
+  },
+  "workflow_corrections": [
+    "A target mutation invalidated the retained context as designed; a second target-only command was refused before mutation and the context was refreshed.",
+    "One batch had a noncanonical evidence coordinate; preflight refused the whole batch before mutation. Subsequent anchors use inspected canonical row identities.",
+    "Whole-target validation retained the quicksort fallback after entry typing alone. A separately evidenced original-loop current-record contract was added; no pointer-extent join was weakened.",
+    "The expanded local filter initially dropped an existing qualified Exec extension test. The shared correction preserves that contract; all original assertions and832 native tests pass."
+  ],
+  "current_inventory": {
+    "native_table_contracts": 73,
+    "native_table_consumer_records": 155,
+    "native_address_expression_records": 303,
+    "suffix_names": 66,
+    "suffix_dispositions": {
+      "code_name_signal": 5,
+      "named_source_storage": 48,
+      "named_base_layout_storage": 11,
+      "named_absolute_storage": 1,
+      "text_name_signal": 1
+    },
+    "lookup_contracts": 21,
+    "lookup_kinds": {
+      "relative_code_dispatch": 8,
+      "scalar": 13
+    },
+    "interior_reference_records": 523,
+    "unresolved_typed_accesses": 303,
+    "unresolved_mechanisms": {
+      "indexed_dynamic": 87,
+      "declared_field_hole": 208,
+      "auto_update_cursor": 2,
+      "address_formation_or_unknown_width": 1,
+      "outside_declared_record": 5
+    },
+    "orphan_signal_statuses": {
+      "unresolved": 30,
+      "suppressed": 5
+    },
+    "generic_base_layout_fields": 36,
+    "generic_base_symbols": 36,
+    "homogeneous_pointer_record_arrays": 10,
+    "array_projection_mechanisms": {
+      "collection_contract_exposed": 10
+    }
+  },
+  "limits": [
+    "No new gameplay trace, model identity claim, all-entry proof or all-path semantic completion.",
+    "Valid original sort ranges, original phase and normal recursive stack/returns are explicit input assumptions. The loop contract is an annotation, not automatic proof of those conditions.",
+    "The two new sort address formations point to adjacent cells outside a single4-byte record; native field-gap diagnostics remain, not invented fields. The horizon variable tail also remains a cursor diagnostic.",
+    "Shared disk/audio/render lifetime exclusion and unchecked output high-water bounds are not established.",
+    "The source preview Unicode escape decoder limitation recorded in the preceding batch is unchanged."
+  ],
+  "remaining": [
+    {
+      "group": "Remaining generic app fields",
+      "blocks": "Meanings of36 fields, including motion overrides and initialization-only storage",
+      "next_experiment": "Trace original0796/07EC producer aliases and mode-specific readers; use bounded normal-input watches if no static writer is found.",
+      "reason": "0796 has reset plus contact/render threshold readers, but no additional direct writer in the current source. Do not infer a timer unit or unused storage from that absence."
+    },
+    {
+      "group": "Queue bounds and mutable cursor extent",
+      "blocks": "Universal vertex/reference capacity and complete typed footprint",
+      "next_experiment": "Use original producer high-water comparisons or a specific mode trace to establish cursor ranges; keep recorded prefixes and variable-tail facts separate.",
+      "reason": "The shared phase overlay and unknown polygon sizes prevent deriving safety from physical adjacency or one successful fixture."
+    },
+    {
+      "group": "Orphan incoming paths and shared owner lifetimes",
+      "blocks": "30 unresolved islands and complete shared disk/audio exclusion",
+      "next_experiment": "Follow concrete indirect reader/callback or phase transition evidence from the current inventory.",
+      "reason": "No newly resolved native target enters those islands in this batch; arbitrary code-shaped byte promotion would not recover an original path."
+    }
+  ]
+}

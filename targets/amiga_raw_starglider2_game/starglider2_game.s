@@ -234,7 +234,13 @@ joystick_direction_bits RS.W 1
 frame_rate_display_sample RS.W 1
 frame_service_ticks_in_window RS.W 1
 frame_handoffs_in_window RS.W 1
-    RS.B 14
+trig_sine_scratch_0 RS.W 1
+trig_cosine_scratch_0 RS.W 1
+trig_sine_scratch_1 RS.W 1
+trig_cosine_scratch_1 RS.W 1
+trig_sine_scratch_2 RS.W 1
+trig_cosine_scratch_2 RS.W 1
+    RS.B 2
 world_object_slot_count RS.W 1
 model_last_vertex_index RS.W 1
     RS.B 6
@@ -442,7 +448,7 @@ tractor_attraction_shift RS.W 1
 tractor_velocity_decay_phase RS.W 1
 station_event_tick_counter RS.W 1
 station_space_half_rate_toggle RS.W 1
-app_0856 RS.W 1
+station_report_message_cycle_index RS.W 1
 projector_rebuild_cursor RS.W 1
 growing_projector_part_reference RS.L 1
 growing_projector_part_type RS.W 1
@@ -494,11 +500,9 @@ professor_taymar_delivered_flag RS.B 1
 bomb_ingredient_set_complete_flag RS.B 1
 neutron_bomb_ready_flag RS.B 1
 neutron_bomb_collection_enabled_flag RS.B 1
-app_0A85 RS.B 1
-    RS.B 11
-app_0A91 RS.B 1
-    RS.B 11
-app_0A9D RS.B 1
+structure_service_entry_latches RS.B 12
+structure_service_entry_counts RS.B 12
+flight_point_field_active_flag RS.B 1
     RS.B 1
 tractor_markers_shrinking_flag RS.B 1
 tractor_marker_shrink_countdown RS.B 1
@@ -509,7 +513,7 @@ reuse_tractor_markers_flag RS.B 1
 world_transition_space_snapshot RS.B 1
     RS.B 1
 projector_network_complete_flag RS.B 1
-app_0AA8 RS.B 1
+projector_growth_update_parity RS.B 1
 projector_part_presence_flags RS.B 56
 pending_bomb_bounce_sound RS.B 1
 app_0AE2 RS.B 1
@@ -905,6 +909,17 @@ SG2TugPlacementParameters_velocity_z RS.W 1
 SG2TugPlacementParameters_velocity_x RS.W 1
 SG2TugPlacementParameters_rotation_1 RS.W 1
 SG2TugPlacementParameters_SIZEOF EQU __RS
+
+; STRUCT SG2ScenePolygonHeader
+    RSRESET
+SG2ScenePolygonHeader_depth_sort_key RS.W 1
+SG2ScenePolygonHeader_fill_style RS.W 1
+SG2ScenePolygonHeader_SIZEOF EQU __RS
+
+; STRUCT SG2SceneSortReference
+    RSRESET
+SG2SceneSortReference_polygon RS.L 1
+SG2SceneSortReference_SIZEOF EQU __RS
 
 ADKF_CLRALL	EQU	$7FFF
 BPLCON2_PF2P2	EQU	$20
@@ -4024,10 +4039,11 @@ abs_0_00003C0A:
 	dc.b $20,$20,$20,$20,$00,$00
 	dcb.b $14,$20
 	dc.b $00,$00
-abs_0_00003C2C:
-	dc.b $00,$00,$00,$00
-abs_0_00003C30:
-	dc.b $00,$00,$00,$00,$FF,$FF,$00,$00
+scene_reference_write_cursor:
+	dc.l $00000000
+scene_polygon_write_cursor:
+	dc.l $00000000
+	dc.b $FF,$FF,$00,$00
 abs_0_00003C38:
 	dc.b $FF,$FF,$1D,$40,$07,$EB,$4E,$75
     ; Player view selector: modes 0..7 use the relative table; larger BYTE values take the default path. Stored extra default entries are retained, not declared unused.
@@ -4162,14 +4178,14 @@ render_world_view:
 	move.b #$BB,diagnostic_stage_step_word.l
 	clr.b diagnostic_step_byte.l
 	move.b #$1,diagnostic_step_byte.l
-	move.l #$4666A,abs_0_00003C30.l
-	movea.l #abs_0_0004760A,a0
+	move.l #scene_polygon_arena_prefix,scene_polygon_write_cursor.l
+	movea.l #scene_draw_reference_cells,a0
 	move.l #$3C34,(a0)+
-	move.l a0,abs_0_00003C2C.l
+	move.l a0,scene_reference_write_cursor.l
 	move.w #$FFFF,horizon_ground_split_row.l
 	move.w #$FFFF,horizon_clip_max_y_snapshot.l
 	move.b #$2,diagnostic_step_byte.l
-	clr.w abs_0_000049A8.l
+	clr.w scene_packet_count.l
 	tst.b app_07EC(a6)
 	bne.b abs_0_00003EA4
 	tst.b inside_structure_flag(a6)
@@ -4262,18 +4278,18 @@ abs_0_00003F94:
 abs_0_00003FD2:
 	dbf.w d7,abs_0_00003F50
 abs_0_00003FD6:
-	tst.b app_0A9D(a6)
+	tst.b flight_point_field_active_flag(a6)
 	bpl.b abs_0_00003FE0
 	bsr.w abs_0_000049B0
 abs_0_00003FE0:
 	move.b #$D,diagnostic_stage_step_word.l
 	clr.b diagnostic_step_byte.l
-	movea.l abs_0_00003C2C.l,a2
+	movea.l scene_reference_write_cursor.l,a2
 	move.l #$3C36,(a2)+
-	move.l a2,abs_0_00003C2C.l
+	move.l a2,scene_reference_write_cursor.l
 	move.l #$FFFFFFFF,(a2)
-	move.w abs_0_000049A8.l,d0
-	lea.l abs_0_0004760A.l,a2
+	move.w scene_packet_count.l,d0
+	lea.l scene_draw_reference_cells.l,a2
 	move.l a6,-(a7)
 	movem.l a1-a2,-(a7)
 	movea.l disc_reference_write_cursor(a6),a1
@@ -5013,7 +5029,7 @@ abs_0_0000499E:
 	dc.w $0000
 abs_0_000049A0:
 	dc.b $20,$20,$20,$20,$00,$00,$00,$00
-abs_0_000049A8:
+scene_packet_count:
 	dc.w $0000
 abs_0_000049AA:
 	dc.w $0000
@@ -5025,7 +5041,7 @@ abs_0_000049B6:
 	jmp abs_0_00039D70.l
 	dcb.b $C,$00
 abs_0_000049C8:
-	jmp abs_0_0003D9DA.l
+	jmp sort_and_draw_scene_packets.l
 abs_0_000049CE:
 	jmp add_bcd_and_draw_digits.l
 abs_0_000049D4:
@@ -5063,7 +5079,7 @@ abs_0_00004A28:
     ; Original callers supply A4 world-object record: visible list or model viewer first pool slot. Entry is4A2A; preceding4A28 isRTS. Model index/normal-return preconditions remain.
     ; KNOWN: type A4=Target code-entry register seed:SG2WorldObject
 project_model_to_draw_records:
-	cmpi.w #145,abs_0_000049A8.l
+	cmpi.w #145,scene_packet_count.l
 	bgt.b abs_0_00004A28
 	move.w d0,active_model_type_index(a6)
 	lea.l model_header_pointers.l,a0
@@ -5353,8 +5369,8 @@ abs_0_00004D58:
 	tst.w abs_0_000052BE.l
 	beq.w abs_0_00004FAA
 	lea.l shared_workspace_tail.l,a5
-	movea.l abs_0_00003C2C.l,a3
-	movea.l abs_0_00003C30.l,a4
+	movea.l scene_reference_write_cursor.l,a3
+	movea.l scene_polygon_write_cursor.l,a4
 abs_0_00004D80:
 	move.b #$20,diagnostic_step_byte.l
 	movem.l a4-a5,-(a7)
@@ -5412,7 +5428,7 @@ abs_0_00004DF4:
 	movem.l (a7)+,a0/a2
 	move.w d4,(a0)
 	move.l a0,(a3)+
-	addq.w #1,abs_0_000049A8.l
+	addq.w #1,scene_packet_count.l
 	bra.w abs_0_00004F7C
 abs_0_00004E0A:
 	asl.l #7,d1
@@ -5487,7 +5503,7 @@ abs_0_00004EBC:
 	subq.w #1,d7
 	bmi.w abs_0_00004F7C
 	move.l a4,(a3)+
-	addq.w #1,abs_0_000049A8.l
+	addq.w #1,scene_packet_count.l
 	move.l a4,abs_0_000052BA.l
 	clr.w (a4)+
 	movea.l a4,a1
@@ -5559,23 +5575,23 @@ abs_0_00004F76:
 	move.w d4,(a2)
 	move.w #$FFFF,(a4)+
 abs_0_00004F7C:
-	cmpi.w #145,abs_0_000049A8.l
+	cmpi.w #145,scene_packet_count.l
 	bge.w abs_0_00004F92
 	subq.w #1,abs_0_000052BE.l
 	bne.w abs_0_00004D80
 abs_0_00004F92:
-	move.l a4,abs_0_00003C30.l
-	move.l a3,abs_0_00003C2C.l
+	move.l a4,scene_polygon_write_cursor.l
+	move.l a3,scene_reference_write_cursor.l
 	bra.b abs_0_00004FAC
 abs_0_00004FA0:
 	movea.l -(a3),a4
-	subq.w #1,abs_0_000049A8.l
+	subq.w #1,scene_packet_count.l
 	bra.b abs_0_00004F7C
 abs_0_00004FAA:
 	rts
 abs_0_00004FAC:
-	movea.l abs_0_00003C30.l,a4
-	movea.l abs_0_00003C2C.l,a3
+	movea.l scene_polygon_write_cursor.l,a4
+	movea.l scene_reference_write_cursor.l,a3
 	tst.w $01E4(a6)
 	beq.w abs_0_000052AC
 	tst.w abs_0_000018B8.l
@@ -5591,7 +5607,7 @@ abs_0_00004FAC:
 	move.w $01E2(a6),d4
 	cmp.w #$D120,d4
 	blt.w abs_0_000052AC
-	cmpi.w #145,abs_0_000049A8.l
+	cmpi.w #145,scene_packet_count.l
 	bge.w abs_0_000052AC
 	neg.w d4
 	move.w view_rotation_matrix+SG2RotationMatrixWords_m01(a6),d1
@@ -5674,7 +5690,7 @@ project_auxiliary_faces_loop:
 	move.l a4,(a3)+
 	move.w #$7FE0,(a4)+
 	clr.w (a4)+
-	addq.w #1,abs_0_000049A8.l
+	addq.w #1,scene_packet_count.l
 abs_0_000050F6:
 	move.w (a5)+,d4
 	cmpi.w #65244,$6(a0,d4.w)
@@ -5814,7 +5830,7 @@ abs_0_00005278:
 	move.w #$FFFF,(a4)+
 abs_0_00005284:
 	move.w saved_model_face_loop_index(a6),d0
-	cmpi.w #145,abs_0_000049A8.l
+	cmpi.w #145,scene_packet_count.l
 	bgt.b abs_0_000052AC
 	dbf.w d0,project_auxiliary_faces_loop
 	bra.b abs_0_000052AC
@@ -5823,13 +5839,13 @@ abs_0_00005298:
 	add.w d0,d0
 	adda.w d0,a5
 	subq.w #2,a5
-	subq.w #1,abs_0_000049A8.l
+	subq.w #1,scene_packet_count.l
 	subq.w #4,a3
 	movea.l (a3),a4
 	bra.b abs_0_00005284
 abs_0_000052AC:
-	move.l a4,abs_0_00003C30.l
-	move.l a3,abs_0_00003C2C.l
+	move.l a4,scene_polygon_write_cursor.l
+	move.l a3,scene_reference_write_cursor.l
 	rts
 abs_0_000052BA:
 	dc.b $00,$00,$00,$00
@@ -5886,7 +5902,7 @@ abs_0_0000539A:
 	move.l (a0)+,$0014(a6)
 	clr.l $0024(a6)
 transform_retirement_vertices_and_faces:
-	cmpi.w #145,abs_0_000049A8.l
+	cmpi.w #145,scene_packet_count.l
 	bgt.w abs_0_00004A28
 	moveq.l #0,d0
 	lea.l model_cache_x_negative_terms.l,a0
@@ -5998,15 +6014,15 @@ abs_0_0000552E:
 	move.b #$24,diagnostic_step_byte.l
 	move.w $01B8(a6),d7
 	lea.l model_view_vertex_scratch_prefix(a6),a3
-	movea.l abs_0_00003C30.l,a1
-	movea.l abs_0_00003C2C.l,a0
+	movea.l scene_polygon_write_cursor.l,a1
+	movea.l scene_reference_write_cursor.l,a0
 	lea.l projection_scale_lookup.l,a5
 	move.l a1,(a0)+
-	move.l a0,abs_0_00003C2C.l
+	move.l a0,scene_reference_write_cursor.l
 	clr.w (a1)+
 	movea.l a1,a2
 	move.w $01A0(a6),(a1)+
-	addq.w #1,abs_0_000049A8.l
+	addq.w #1,scene_packet_count.l
 	move.w #$7FFF,d6
 	move.w #$8000,d5
 	move.w d7,d4
@@ -6086,10 +6102,10 @@ abs_0_0000563A:
 	neg.w (a2)
 abs_0_0000563C:
 	move.w #$FFFF,(a1)+
-	move.l a1,abs_0_00003C30.l
+	move.l a1,scene_polygon_write_cursor.l
 	move.w d3,-$0002(a2)
 abs_0_0000564A:
-	cmpi.w #145,abs_0_000049A8.l
+	cmpi.w #145,scene_packet_count.l
 	bgt.b abs_0_0000565C
 	move.w saved_model_face_loop_index(a6),d0
 	dbf.w d0,abs_0_00005460
@@ -6105,8 +6121,8 @@ abs_0_00005668:
 	adda.w d7,a4
 	subq.w #2,a4
 abs_0_0000566E:
-	subq.l #4,abs_0_00003C2C.l
-	subq.w #1,abs_0_000049A8.l
+	subq.l #4,scene_reference_write_cursor.l
+	subq.w #1,scene_packet_count.l
 	bra.b abs_0_0000564A
 retirement_face_y_bias_prefix:
 	dc.w $0000,$FFB0,$FF6A,$FF2E,$FEFC,$FED4,$FEB6,$FEA2	; Signed phase-indexed Y displacement bias, conditional original-use prefix
@@ -7021,7 +7037,7 @@ abs_0_000062F0:
 	addq.l #4,a0
 	dbf.w d0,abs_0_000062DA
 abs_0_000062FC:
-	move.l draw_buffer_base.w(a6),abs_0_000416A8.l
+	move.l draw_buffer_base.w(a6),scene_draw_buffer_snapshot.l
 abs_0_00006304:
 	move.l (a2)+,d0
 	bmi.b abs_0_0000631E
@@ -10917,17 +10933,17 @@ abs_0_0000982E:
 	andi.w #4095,d1
 	asl.w #1,d1
 	movea.l sine_lookup_pointer(a6),a1
-	move.w $0(a1,d1.w),$0168(a6)
+	move.w $0(a1,d1.w),trig_sine_scratch_1(a6)
 	movea.l cosine_lookup_pointer(a6),a1
-	move.w $0(a1,d1.w),$016A(a6)
+	move.w $0(a1,d1.w),trig_cosine_scratch_1(a6)
 	move.w $0020(a2),d4
-	muls.w $0168(a6),d4
+	muls.w trig_sine_scratch_1(a6),d4
 	asl.l #1,d4
 	swap.w d4
 	neg.w d4
 	move.w d4,$002C(a2)
 	move.w $0020(a2),d4
-	muls.w $016A(a6),d4
+	muls.w trig_cosine_scratch_1(a6),d4
 	asl.l #1,d4
 	swap.w d4
 	move.w d4,$0030(a2)
@@ -11429,17 +11445,17 @@ abs_0_00009F02:
 	andi.w #4095,d1
 	asl.w #1,d1
 	movea.l sine_lookup_pointer(a6),a1
-	move.w $0(a1,d1.w),$0168(a6)
+	move.w $0(a1,d1.w),trig_sine_scratch_1(a6)
 	movea.l cosine_lookup_pointer(a6),a1
-	move.w $0(a1,d1.w),$016A(a6)
+	move.w $0(a1,d1.w),trig_cosine_scratch_1(a6)
 	move.w $0020(a2),d4
-	muls.w $0168(a6),d4
+	muls.w trig_sine_scratch_1(a6),d4
 	asl.l #1,d4
 	swap.w d4
 	neg.w d4
 	move.w d4,$002C(a2)
 	move.w $0020(a2),d4
-	muls.w $016A(a6),d4
+	muls.w trig_cosine_scratch_1(a6),d4
 	asl.l #1,d4
 	swap.w d4
 	move.w d4,$0030(a2)
@@ -11837,17 +11853,17 @@ abs_0_0000A5BC:
 	andi.w #4095,d1
 	asl.w #1,d1
 	movea.l sine_lookup_pointer(a6),a1
-	move.w $0(a1,d1.w),$0168(a6)
+	move.w $0(a1,d1.w),trig_sine_scratch_1(a6)
 	movea.l cosine_lookup_pointer(a6),a1
-	move.w $0(a1,d1.w),$016A(a6)
+	move.w $0(a1,d1.w),trig_cosine_scratch_1(a6)
 	move.w $0020(a2),d4
-	muls.w $0168(a6),d4
+	muls.w trig_sine_scratch_1(a6),d4
 	asl.l #1,d4
 	swap.w d4
 	neg.w d4
 	move.w d4,$002C(a2)
 	move.w $0020(a2),d4
-	muls.w $016A(a6),d4
+	muls.w trig_cosine_scratch_1(a6),d4
 	asl.l #1,d4
 	swap.w d4
 	move.w d4,$0030(a2)
@@ -12221,18 +12237,18 @@ abs_0_0000AC64:
 	andi.w #4095,d1
 	add.w d1,d1
 	movea.l sine_lookup_pointer(a6),a1
-	move.w $0(a1,d1.w),$0168(a6)
+	move.w $0(a1,d1.w),trig_sine_scratch_1(a6)
 	movea.l cosine_lookup_pointer(a6),a1
-	move.w $0(a1,d1.w),$016A(a6)
+	move.w $0(a1,d1.w),trig_cosine_scratch_1(a6)
 	move.w $0020(a0),d4
-	muls.w $0168(a6),d4
+	muls.w trig_sine_scratch_1(a6),d4
 	asl.l #1,d4
 	swap.w d4
 	neg.w d4
 	move.w d4,$002C(a0)
 	clr.w $002E(a0)
 	move.w $0020(a0),d4
-	muls.w $016A(a6),d4
+	muls.w trig_cosine_scratch_1(a6),d4
 	asl.l #1,d4
 	swap.w d4
 	move.w d4,$0030(a0)
@@ -12314,17 +12330,17 @@ abs_0_0000AD7A:
 	andi.w #4095,d1
 	add.w d1,d1
 	movea.l sine_lookup_pointer(a6),a1
-	move.w $0(a1,d1.w),$0168(a6)
+	move.w $0(a1,d1.w),trig_sine_scratch_1(a6)
 	movea.l cosine_lookup_pointer(a6),a1
-	move.w $0(a1,d1.w),$016A(a6)
+	move.w $0(a1,d1.w),trig_cosine_scratch_1(a6)
 	move.w $0020(a0),d4
-	muls.w $0168(a6),d4
+	muls.w trig_sine_scratch_1(a6),d4
 	asl.l #1,d4
 	swap.w d4
 	neg.w d4
 	move.w d4,$002C(a0)
 	move.w $0020(a0),d4
-	muls.w $016A(a6),d4
+	muls.w trig_cosine_scratch_1(a6),d4
 	asl.l #1,d4
 	swap.w d4
 	move.w d4,$0030(a0)
@@ -12335,17 +12351,17 @@ abs_0_0000ADBA:
 	andi.w #4095,d1
 	add.w d1,d1
 	movea.l sine_lookup_pointer(a6),a1
-	move.w $0(a1,d1.w),$0168(a6)
+	move.w $0(a1,d1.w),trig_sine_scratch_1(a6)
 	movea.l cosine_lookup_pointer(a6),a1
-	move.w $0(a1,d1.w),$016A(a6)
+	move.w $0(a1,d1.w),trig_cosine_scratch_1(a6)
 	move.w $0020(a0),d4
-	muls.w $0168(a6),d4
+	muls.w trig_sine_scratch_1(a6),d4
 	asl.l #1,d4
 	swap.w d4
 	neg.w d4
 	move.w d4,$002C(a0)
 	move.w $0020(a0),d4
-	muls.w $016A(a6),d4
+	muls.w trig_cosine_scratch_1(a6),d4
 	asl.l #1,d4
 	swap.w d4
 	move.w d4,$0030(a0)
@@ -12363,17 +12379,17 @@ abs_0_0000AE1E:
 	andi.w #4095,d3
 	add.w d3,d3
 	movea.l sine_lookup_pointer(a6),a1
-	move.w $0(a1,d3.w),$0168(a6)
+	move.w $0(a1,d3.w),trig_sine_scratch_1(a6)
 	movea.l cosine_lookup_pointer(a6),a1
-	move.w $0(a1,d3.w),$016A(a6)
+	move.w $0(a1,d3.w),trig_cosine_scratch_1(a6)
 	move.w $0020(a2),d4
-	muls.w $0168(a6),d4
+	muls.w trig_sine_scratch_1(a6),d4
 	asl.l #1,d4
 	swap.w d4
 	neg.w d4
 	move.w d4,$002C(a2)
 	move.w $0020(a2),d4
-	muls.w $016A(a6),d4
+	muls.w trig_cosine_scratch_1(a6),d4
 	asl.l #1,d4
 	swap.w d4
 	move.w d4,$0030(a2)
@@ -16333,7 +16349,7 @@ abs_0_0000EA9C:
 abs_0_0000EAC2:
 	dc.b $20,$20,$20,$20,$20,$20,$00,$00,$00,$00
 abs_0_0000EACC:
-	clr.w abs_0_000049A8.l
+	clr.w scene_packet_count.l
 	movem.l d0/a0,-(a7)
 	tst.w platform_entry_flags.l
 	bpl.b abs_0_0000EAF2
@@ -16420,12 +16436,12 @@ abs_0_0000EBFC:
 	move.b d0,$001D(a4)
 	move.w active_model_type_index(a6),d0
 	beq.b abs_0_0000EC46
-	movea.l #abs_0_0004760A,a0
-	move.l #$4666A,abs_0_00003C30.l
+	movea.l #scene_draw_reference_cells,a0
+	move.l #scene_polygon_arena_prefix,scene_polygon_write_cursor.l
 	move.l #$FD14,(a0)+
-	move.l a0,abs_0_00003C2C.l
+	move.l a0,scene_reference_write_cursor.l
 	bsr.w abs_0_0000FD76
-	movea.l abs_0_00003C2C.l,a2
+	movea.l scene_reference_write_cursor.l,a2
 	move.l #$FD16,(a2)+
 	move.l #$FFFFFFFF,(a2)
 abs_0_0000EC46:
@@ -16445,8 +16461,8 @@ abs_0_0000EC46:
 	move.w #$0,d0
 	bsr.w abs_0_0000FD9A
 abs_0_0000EC8C:
-	lea.l abs_0_0004760A.l,a2
-	move.w abs_0_000049A8.l,d0
+	lea.l scene_draw_reference_cells.l,a2
+	move.w scene_packet_count.l,d0
 	move.l a6,-(a7)
 	bsr.w abs_0_0000FD82
 	movea.l (a7)+,a6
@@ -17616,7 +17632,7 @@ abs_0_0000FD76:
 abs_0_0000FD7C:
 	jmp install_sine_cosine_pointers.l
 abs_0_0000FD82:
-	jmp abs_0_0003D9DA.l
+	jmp sort_and_draw_scene_packets.l
 abs_0_0000FD88:
 	jmp count_and_present_frame_handoff.l
 abs_0_0000FD8E:
@@ -36785,13 +36801,14 @@ abs_0_0002ECD2:
 	bne.b abs_0_0002ED14
 	cmp.w d4,d6
 	beq.w abs_0_0002EEDC
+    ; Horizon packet: depth key $FFFF, encoded fill style, variable XY pairs, negative-X terminator. This producer writes LONG -1; model packets may terminate only a WORD.
 abs_0_0002ED14:
-	lea.l abs_0_0002EFF4.l,a0
-	movea.l abs_0_00003C2C.l,a1
+	lea.l horizon_scene_polygon_scratch.l,a0
+	movea.l scene_reference_write_cursor.l,a1
 	move.l a0,(a1)+
-	move.l a1,abs_0_00003C2C.l
-	move.w #$FFFF,(a0)+
-	move.w landscape_ground_colour_index(a6),(a0)+
+	move.l a1,scene_reference_write_cursor.l
+	move.w #$FFFF,(a0)+	; operand 2: SG2ScenePolygonHeader_depth_sort_key at (a0)+
+	move.w landscape_ground_colour_index(a6),(a0)+	; operand 2: SG2ScenePolygonHeader_fill_style at (a0)+
 	move.w d4,(a0)+
 	move.w d5,(a0)+
 	move.w d6,(a0)+
@@ -36807,9 +36824,9 @@ abs_0_0002ED50:
 	cmp.w d5,d7
 	bgt.b abs_0_0002ED8E
 	blt.b abs_0_0002ED76
-	movea.l abs_0_00003C2C.l,a1
+	movea.l scene_reference_write_cursor.l,a1
 	subq.w #4,a1
-	move.l a1,abs_0_00003C2C.l
+	move.l a1,scene_reference_write_cursor.l
 	move.w d5,horizon_ground_split_row.l
 	move.w view_clip_max_y(a6),horizon_clip_max_y_snapshot.l
 	bra.w abs_0_0002EED8
@@ -36912,7 +36929,7 @@ abs_0_0002EEB0:
 	move.w view_clip_max_y(a6),horizon_clip_max_y_snapshot.l
 abs_0_0002EECC:
 	move.l #$FFFFFFFF,(a0)
-	addq.w #1,abs_0_000049A8.l
+	addq.w #1,scene_packet_count.l
 abs_0_0002EED8:
 	bra.w build_ground_grid_if_enabled
 abs_0_0002EEDC:
@@ -36957,52 +36974,52 @@ rotate_horizon_vector_to_view:
 	andi.w #4095,d4
 	add.w d4,d4
 	movea.l sine_lookup_pointer(a6),a0
-	move.w $0(a0,d4.w),$0164(a6)
+	move.w $0(a0,d4.w),trig_sine_scratch_0(a6)
 	movea.l cosine_lookup_pointer(a6),a0
-	move.w $0(a0,d4.w),$0166(a6)
+	move.w $0(a0,d4.w),trig_cosine_scratch_0(a6)
 	move.w view_rotation_2(a6),d4
 	neg.w d4
 	andi.w #4095,d4
 	add.w d4,d4
 	movea.l sine_lookup_pointer(a6),a0
-	move.w $0(a0,d4.w),$016C(a6)
+	move.w $0(a0,d4.w),trig_sine_scratch_2(a6)
 	movea.l cosine_lookup_pointer(a6),a0
-	move.w $0(a0,d4.w),$016E(a6)
+	move.w $0(a0,d4.w),trig_cosine_scratch_2(a6)
 	move.w d2,d4
-	muls.w $0166(a6),d4
+	muls.w trig_cosine_scratch_0(a6),d4
 	asl.l #2,d4
 	swap.w d4
 	move.w d3,d6
-	muls.w $0164(a6),d6
+	muls.w trig_sine_scratch_0(a6),d6
 	asl.l #2,d6
 	swap.w d6
 	add.w d6,d4
 	move.w d3,d5
-	muls.w $0166(a6),d5
+	muls.w trig_cosine_scratch_0(a6),d5
 	asl.l #2,d5
 	swap.w d5
 	move.w d2,d6
-	muls.w $0164(a6),d6
+	muls.w trig_sine_scratch_0(a6),d6
 	asl.l #2,d6
 	swap.w d6
 	sub.w d6,d5
 	move.w d4,d2
 	move.w d5,d3
 	move.w d1,d4
-	muls.w $016E(a6),d4
+	muls.w trig_cosine_scratch_2(a6),d4
 	asl.l #2,d4
 	swap.w d4
 	move.w d2,d6
-	muls.w $016C(a6),d6
+	muls.w trig_sine_scratch_2(a6),d6
 	asl.l #2,d6
 	swap.w d6
 	add.w d6,d4
 	move.w d2,d5
-	muls.w $016E(a6),d5
+	muls.w trig_cosine_scratch_2(a6),d5
 	asl.l #2,d5
 	swap.w d5
 	move.w d1,d6
-	muls.w $016C(a6),d6
+	muls.w trig_sine_scratch_2(a6),d6
 	asl.l #2,d6
 	swap.w d6
 	sub.w d6,d5
@@ -37010,9 +37027,11 @@ rotate_horizon_vector_to_view:
 	move.w d5,d2
 	movem.l (a7)+,d4-d6
 	rts
-abs_0_0002EFF4:
-	dc.b $00,$00,$00,$03
-	dcb.b $18,$00
+horizon_scene_polygon_scratch:
+	dc.w $0000	; depth_sort_key
+	dc.w $0003	; fill_style
+horizon_polygon_vertex_scratch:
+	dcb.w $C,$0000	; 28-byte horizon polygon scratch:4-byte header, variable WORD XY pairs, negative X sentinel. P...
 horizon_ground_split_row:
 	dc.w $001E	; Upper fill ends one row before this split; lower fill begins here. Negative means no usable s...
 horizon_clip_max_y_snapshot:
@@ -37244,8 +37263,8 @@ abs_0_0002F2C8:
 	bra.b abs_0_0002F292
 emit_special_mesh_quads_continuation:
 	lea.l abs_0_0002F57C(pc),a5
-	movea.l abs_0_00003C2C.l,a3
-	movea.l abs_0_00003C30.l,a4
+	movea.l scene_reference_write_cursor.l,a3
+	movea.l scene_polygon_write_cursor.l,a4
 abs_0_0002F2E8:
 	movem.l a4-a5,-(a7)
 	move.w #$7FF0,(a4)+
@@ -37281,7 +37300,7 @@ abs_0_0002F2E8:
 	move.w #$FFFF,(a4)+
 	movem.l (a7)+,a0/a2
 	move.l a0,(a3)+
-	addq.w #1,abs_0_000049A8.l
+	addq.w #1,scene_packet_count.l
 	bra.w abs_0_0002F4D4
 abs_0_0002F364:
 	addq.w #8,a5
@@ -37389,7 +37408,7 @@ abs_0_0002F462:
 	subq.w #1,d7
 	bmi.w abs_0_0002F4D4
 	move.l a4,(a3)+
-	addq.w #1,abs_0_000049A8.l
+	addq.w #1,scene_packet_count.l
 	move.w #$7FF0,(a4)+
 	movea.l a4,a1
 	move.w abs_0_000052C0.l,(a4)+
@@ -37427,12 +37446,12 @@ abs_0_0002F4C8:
 abs_0_0002F4D4:
 	subq.w #1,abs_0_000052BE.l
 	bne.w abs_0_0002F2E8
-	move.l a4,abs_0_00003C30.l
-	move.l a3,abs_0_00003C2C.l
+	move.l a4,scene_polygon_write_cursor.l
+	move.l a3,scene_reference_write_cursor.l
 	rts
 abs_0_0002F4EC:
 	movea.l -(a3),a4
-	subq.w #1,abs_0_000049A8.l
+	subq.w #1,scene_packet_count.l
 	bra.w abs_0_0002F4D4
 abs_0_0002F4F8:
 	lea.l abs_0_0002F57C(pc),a0
@@ -37516,7 +37535,7 @@ abs_0_0002F684:
 abs_0_0002F68A:
 	jmp clip_line_to_view_bounds.l
 abs_0_0002F690:
-	jmp abs_0_0003D9DA.l
+	jmp sort_and_draw_scene_packets.l
 abs_0_0002F696:
 	jmp transform_vector_by_view_matrix.l
     ; Smooth speed toward its requested value, build the original motion vector, and update flight orientation/control state. Settling and forced-view modes retain their original branches.
@@ -37558,7 +37577,7 @@ abs_0_0002F700:
 	move.w player_speed_smoothed(a6),d3
 	add.w stardrive_speed_addend(a6),d3
 	bsr.w build_player_motion_vector
-	move.w $016C(a6),d1
+	move.w trig_sine_scratch_2(a6),d1
 	move.w d4,player_motion_x(a6)
 	move.w d5,player_motion_y(a6)
 	move.w d6,player_motion_z(a6)
@@ -37634,7 +37653,7 @@ abs_0_0002F7E6:
 	move.w d0,player_speed_target(a6)
 	tst.b app_07EC(a6)
 	bne.b abs_0_0002F82E
-	move.w $016C(a6),d1
+	move.w trig_sine_scratch_2(a6),d1
 	tst.b space_environment_flag(a6)
 	bmi.b abs_0_0002F7FE
 	asr.w #8,d1
@@ -43219,15 +43238,15 @@ abs_0_00033C6E:
 	bsr.w enqueue_blank_event_message_line
 abs_0_00033C9A:
 	cmpi.w #1,selected_celestial_body_index(a6)
-	bne.w abs_0_00033DD0
+	bne.w update_point_field_flag_from_world_y
 	cmpi.w #10,free_object_count(a6)
-	bls.w abs_0_00033DD0
+	bls.w update_point_field_flag_from_world_y
 	addq.w #1,abs_0_00037898.l
 	andi.w #3,abs_0_00037898.l
-	bne.w abs_0_00033DD0
+	bne.w update_point_field_flag_from_world_y
 	bsr.w abs_0_00039D20
 	andi.w #3,d0
-	bne.w abs_0_00033DD0
+	bne.w update_point_field_flag_from_world_y
 	bsr.w abs_0_00039D20
 	move.w d0,d1
 	bsr.w abs_0_00039D20
@@ -43253,7 +43272,7 @@ abs_0_00033C9A:
 	move.b #$0,$001C(a4)
 	move.b #$5,$001D(a4)
 	cmpi.l #4294966796,player_world_y(a6)
-	bmi.w abs_0_00033DD0
+	bmi.w update_point_field_flag_from_world_y
 	move.l $0004(a4),d0
 	move.l player_world_x(a6),d2
 	move.l $000C(a4),d1
@@ -43286,7 +43305,7 @@ abs_0_00033D64:
 	st.b pending_transient_event_sound(a6)
 abs_0_00033D7A:
 	bsr.w abs_0_00033D80
-	bra.b abs_0_00033DD0
+	bra.b update_point_field_flag_from_world_y
 abs_0_00033D80:
 	move.w icarus_power_reserve(a6),d0
 	cmp.w #$FFFF,d0
@@ -43319,19 +43338,19 @@ abs_0_00033DC8:
 	move.w #$FFFF,icarus_shield_strength(a6)
 abs_0_00033DCE:
 	rts
-abs_0_00033DD0:
+update_point_field_flag_from_world_y:
 	move.b #$4,diagnostic_step_byte.l
-	lea.l abs_0_000395CA.l,a0
+	lea.l flight_point_field_y_thresholds.l,a0
 	move.w selected_celestial_body_index(a6),d0
 	asl.w #2,d0
 	move.l $0(a0,d0.w),d0
 	move.l player_world_y(a6),d1
 	cmp.l d1,d0
 	bmi.b abs_0_00033DF6
-	st.b app_0A9D(a6)
+	st.b flight_point_field_active_flag(a6)
 	bra.b abs_0_00033E02
 abs_0_00033DF6:
-	sf.b app_0A9D(a6)
+	sf.b flight_point_field_active_flag(a6)
 	move.b #$80,diagnostic_step_byte.l
 abs_0_00033E02:
 	lea.l world_reference_y_coordinates.l,a0
@@ -43419,9 +43438,9 @@ abs_0_00033F18:
 	move.l d6,$000C(a1)
 	cmp.w d3,d7
 	bne.b abs_0_00033F54
-	move.l d4,player_world_x(a6)
-	move.l d5,player_world_y(a6)
-	move.l d6,player_world_z(a6)
+	move.l d4,$0704(a6)
+	move.l d5,$0708(a6)
+	move.l d6,$070C(a6)
 abs_0_00033F54:
 	move.l $C(a2,d1.w),d3
 	move.w d3,$0020(a1)
@@ -43471,18 +43490,18 @@ abs_0_00033FF8:
 	move.b #$5,diagnostic_step_byte.l
 	tst.b space_environment_flag(a6)
 	bpl.w advance_taymar_bomb_ready_timer_continuation
-	tst.b app_0A9D(a6)
+	tst.b flight_point_field_active_flag(a6)
 	bpl.b abs_0_00034034
 	cmpi.w #16000,stardrive_speed_addend(a6)
 	bmi.b abs_0_00034030
 	cmpi.w #300,player_speed_smoothed(a6)
 	bmi.b abs_0_00034030
-	sf.b app_0A9D(a6)
+	sf.b flight_point_field_active_flag(a6)
 	move.w #$F,shared_grayscale_effect_countdown.l
 	st.b pending_transient_event_sound(a6)
 	bra.b abs_0_00034034
 abs_0_00034030:
-	st.b app_0A9D(a6)
+	st.b flight_point_field_active_flag(a6)
     ; In space: add100 up to16000 with stardrive/speed active; otherwise subtract300 down to zero. Also contributes to projectile speed and event thresholds; no unit conversion claimed.
 abs_0_00034034:
 	tst.w player_speed_smoothed(a6)
@@ -43490,7 +43509,7 @@ abs_0_00034034:
 	tst.w stardrive_enabled_word(a6)
 	bne.b abs_0_00034056
 abs_0_00034040:
-	st.b app_0A9D(a6)
+	st.b flight_point_field_active_flag(a6)
 	move.w stardrive_speed_addend(a6),d3
 	subi.w #300,d3
 	bpl.b abs_0_00034050
@@ -43588,10 +43607,10 @@ abs_0_00034172:
 	bra.w abs_0_00034A46
 abs_0_0003419A:
 	st.b abs_0_00039CD4.l
-	lea.l app_0A85(a6),a1
+	lea.l structure_service_entry_latches(a6),a1
 	tst.b $0(a1,d0.w)
 	bmi.w advance_taymar_depot_dialogue_continuation
-	lea.l app_0A91(a6),a0
+	lea.l structure_service_entry_counts(a6),a0
 	addq.b #1,$0(a0,d0.w)
 	st.b $0(a1,d0.w)
 	clr.w depot_line_pointer_offset(a6)
@@ -44239,7 +44258,7 @@ abs_0_00034A30:
 abs_0_00034A46:
 	clr.w taymar_intro_message_index.l
 	move.w #$FFFF,depot_dialogue_pause_countdown.l
-	lea.l app_0A85(a6),a0
+	lea.l structure_service_entry_latches(a6),a0
 	move.w #$B,d0
 abs_0_00034A5C:
 	clr.b (a0)+
@@ -44256,8 +44275,8 @@ advance_projector_station_cycle_continuation:
 	move.w selected_celestial_body_index(a6),d0
 	tst.b $0(a0,d0.w)
 	beq.b abs_0_00034AC4
-	addi.b #1,app_0AA8(a6)
-	andi.b #1,app_0AA8(a6)
+	addi.b #1,projector_growth_update_parity(a6)
+	andi.b #1,projector_growth_update_parity(a6)
 	bne.b abs_0_00034ACC
 	move.w growing_projector_part_type(a6),d0
 	beq.b abs_0_00034ACC
@@ -44497,10 +44516,10 @@ spawn_rebuilt_projector_part_loop:
 	add.w d0,d1
 	tst.b $0(a0,d1.w)
 	bpl.w abs_0_00034E72
-	movea.l free_object_stack_cursor(a6),a3
+	movea.l $06D4(a6),a3
 	movea.l -(a3),a4
-	move.l a3,free_object_stack_cursor(a6)
-	subq.w #1,free_object_count(a6)
+	move.l a3,$06D4(a6)
+	subq.w #1,$0772(a6)
 	move.w d4,(a4)
 	move.l (a1)+,$0004(a4)
 	move.l (a1)+,$000C(a4)
@@ -44510,19 +44529,19 @@ spawn_rebuilt_projector_part_loop:
 	move.b #$C,$001D(a4)
 	move.b #$0,$0003(a4)
 	move.b #$0,$001F(a4)
-	tst.b projector_network_complete_flag(a6)
+	tst.b $0AA7(a6)
 	bpl.b abs_0_00034E44
 	move.b #$1,$001F(a4)
 abs_0_00034E44:
-	move.l a4,growing_projector_part_reference(a6)
-	move.w d4,growing_projector_part_type(a6)
+	move.l a4,$085A(a6)
+	move.w d4,$085E(a6)
 	move.w #$0,$0010(a4)
 	move.w #$0,$0012(a4)
 	move.w #$0,$0014(a4)
 	cmp.w #$4E,d4
 	bne.b abs_0_00034E74
-	move.l $0004(a4),projector_turret_world_x(a6)
-	move.l $000C(a4),projector_turret_world_z(a6)
+	move.l $0004(a4),$0872(a6)
+	move.l $000C(a4),$0876(a6)
 	bra.b abs_0_00034E74
 abs_0_00034E72:
 	addq.l #8,a1
@@ -44545,10 +44564,10 @@ abs_0_00034E8A:
 	movea.l $0(a1,d0.w),a1
 	move.l a1,station_report_primary_message(a6)
 	bsr.w enqueue_message_if_outside_structure
-	addq.w #1,app_0856(a6)
-	andi.w #7,app_0856(a6)
+	addq.w #1,station_report_message_cycle_index(a6)
+	andi.w #7,station_report_message_cycle_index(a6)
 	lea.l event_message_pointers.l,a1
-	move.w app_0856(a6),d0
+	move.w station_report_message_cycle_index(a6),d0
 	addi.w #21,d0
 	asl.w #2,d0
 	movea.l $0(a1,d0.w),a1
@@ -46307,12 +46326,12 @@ abs_0_0003664E:
 	add.w d0,d1
 	tst.b $0(a0,d1.w)
 	bpl.w abs_0_000366E0
-	cmpi.w #1,free_object_count(a6)
+	cmpi.w #1,$0772(a6)
 	ble.w abs_0_000366E0
-	movea.l free_object_stack_cursor(a6),a3
+	movea.l $06D4(a6),a3
 	movea.l -(a3),a4
-	move.l a3,free_object_stack_cursor(a6)
-	subq.w #1,free_object_count(a6)
+	move.l a3,$06D4(a6)
+	subq.w #1,$0772(a6)
 	move.w d4,(a4)
 	move.l (a1)+,$0004(a4)
 	move.l (a1)+,$000C(a4)
@@ -46323,7 +46342,7 @@ abs_0_0003664E:
 	move.b $0(a3,d4.w),$001D(a4)
 	move.b #$0,$0003(a4)
 	move.b #$0,$001F(a4)
-	tst.b projector_network_complete_flag(a6)
+	tst.b $0AA7(a6)
 	bpl.b abs_0_000366BA
 	move.b #$1,$001F(a4)
 abs_0_000366BA:
@@ -46332,8 +46351,8 @@ abs_0_000366BA:
 	move.w #$0,$0014(a4)
 	cmp.w #$4E,d4
 	bne.b abs_0_000366E2
-	move.l $0004(a4),projector_turret_world_x(a6)
-	move.l $000C(a4),projector_turret_world_z(a6)
+	move.l $0004(a4),$0872(a6)
+	move.l $000C(a4),$0876(a6)
 	bra.b abs_0_000366E2
 abs_0_000366E0:
 	addq.l #8,a1
@@ -47143,33 +47162,33 @@ build_motion_vector_from_angles:
 	movea.l cosine_lookup_pointer(a6),a1
 	andi.w #4095,d4
 	add.w d4,d4
-	move.w $0(a3,d4.w),$0164(a6)
-	move.w $0(a1,d4.w),$0166(a6)
+	move.w $0(a3,d4.w),trig_sine_scratch_0(a6)
+	move.w $0(a1,d4.w),trig_cosine_scratch_0(a6)
 	andi.w #4095,d5
 	add.w d5,d5
-	move.w $0(a3,d5.w),$0168(a6)
-	move.w $0(a1,d5.w),$016A(a6)
+	move.w $0(a3,d5.w),trig_sine_scratch_1(a6)
+	move.w $0(a1,d5.w),trig_cosine_scratch_1(a6)
 	andi.w #4095,d6
 	add.w d6,d6
-	move.w $0(a3,d6.w),$016C(a6)
+	move.w $0(a3,d6.w),trig_sine_scratch_2(a6)
 	move.w d3,d4
-	muls.w $0168(a6),d4
+	muls.w trig_sine_scratch_1(a6),d4
 	add.l d4,d4
 	swap.w d4
-	muls.w $0166(a6),d4
+	muls.w trig_cosine_scratch_0(a6),d4
 	add.l d4,d4
 	swap.w d4
 	neg.w d4
 	move.w d3,d5
-	muls.w $0164(a6),d5
+	muls.w trig_sine_scratch_0(a6),d5
 	add.l d5,d5
 	swap.w d5
 	neg.w d5
 	move.w d3,d6
-	muls.w $016A(a6),d6
+	muls.w trig_cosine_scratch_1(a6),d6
 	add.l d6,d6
 	swap.w d6
-	muls.w $0166(a6),d6
+	muls.w trig_cosine_scratch_0(a6),d6
 	add.l d6,d6
 	swap.w d6
 	rts
@@ -47275,7 +47294,7 @@ abs_0_00037428:
 	move.b #$FF,audio_output_enable_sign_flag.l
 	clr.w pending_message_count(a6)
 	move.w #$1,message_display_countdown(a6)
-	sf.b app_0A9D(a6)
+	sf.b flight_point_field_active_flag(a6)
 	move.b #$4,weapon_selection_and_status(a6)
 	clr.w counted_model_population_times32.l
 	clr.w counted_model_population.l
@@ -47290,8 +47309,8 @@ abs_0_0003748A:
 	clr.b (a0)+
 	clr.b (a1)+
 	dbf.w d0,abs_0_0003748A
-	lea.l app_0A91(a6),a0
-	lea.l app_0A85(a6),a1
+	lea.l structure_service_entry_counts(a6),a0
+	lea.l structure_service_entry_latches(a6),a1
 	clr.w depot_line_pointer_offset(a6)
 	clr.w inventory_list_item_index(a6)
 	move.w #$B,d0
@@ -48430,11 +48449,11 @@ object_collect_exclusion_flags:
 	dc.b $FF
 	dcb.b $1C,$00
 	dcb.b $14,$FF
-abs_0_000395CA:
-	dc.b $FF,$FE,$80,$00,$FF,$FF,$D0,$00,$FF,$FF,$D0,$00,$FF,$FF,$A0,$00
-	dc.b $FF,$FF,$40,$00,$FF,$FF,$D0,$00,$FF,$FF,$D0,$00,$FF,$FF,$D0,$00
-	dc.b $FF,$FF,$D0,$00,$FF,$FF,$D0,$00,$FF,$FF,$D0,$00,$FF,$FF,$D0,$00
-	dc.b $FF,$FF,$D0,$00,$FF,$FF,$D0,$00,$FF,$FF,$D0,$00,$FF,$FF,$D0,$00
+flight_point_field_y_thresholds:
+	dc.l $FFFE8000,$FFFFD000,$FFFFD000,$FFFFA000
+	dc.l $FFFF4000,$FFFFD000,$FFFFD000,$FFFFD000
+	dc.l $FFFFD000,$FFFFD000,$FFFFD000,$FFFFD000
+	dc.l $FFFFD000,$FFFFD000,$FFFFD000,$FFFFD000
 station_proximity_disc_colour_ramp:
 	dc.w $0003,$0001,$0006,$0005,$0004,$0000	; Original indexed WORD data, conditional original-use domain
 abs_0_00039616:
@@ -52706,13 +52725,13 @@ abs_0_0003D9D0:
 	dc.w $0000
 abs_0_0003D9D8:
 	rts
-abs_0_0003D9DA:
+sort_and_draw_scene_packets:
 	move.b #$1,diagnostic_step_byte.l
-	move.l draw_buffer_base.w(a6),abs_0_000416A8.l
-	move.b alternate_graphics_mode(a6),abs_0_000416A5.l
+	move.l draw_buffer_base.w(a6),scene_draw_buffer_snapshot.l
+	move.b alternate_graphics_mode(a6),scene_graphics_mode_snapshot.l
 	move.w player_rotation_2(a6),d7
 	andi.w #4095,d7
-	move.w d7,abs_0_000416A6.l
+	move.w d7,scene_rotation2_snapshot.l
 	tst.w d0
 	bne.b abs_0_0003DA10
 	tst.w platform_entry_flags.l
@@ -52732,15 +52751,15 @@ abs_0_0003DA10:
 	addq.w #4,a4
 	tst.w d0
 	beq.b abs_0_0003DA32
-	bsr.w abs_0_00041646
+	bsr.w sort_scene_references_by_depth_key
 abs_0_0003DA32:
 	tst.w platform_entry_flags.l
 	bmi.w abs_0_0003DACE
 abs_0_0003DA3C:
-	btst.b #1,abs_0_000416A5.l
+	btst.b #1,scene_graphics_mode_snapshot.l
 	bne.w abs_0_0003DA82
 	lea.l abs_0_0003A0D2.l,a1
-	move.w abs_0_000416A6.l,d1
+	move.w scene_rotation2_snapshot.l,d1
 	cmp.w #$340,d1
 	bls.b abs_0_0003DA68
 	cmp.w #$B40,d1
@@ -52752,13 +52771,13 @@ abs_0_0003DA68:
 abs_0_0003DA6E:
 	move.l a1,(a4)+
 	moveq.l #0,d0
-	movea.l abs_0_000416A8.l,a0
+	movea.l scene_draw_buffer_snapshot.l,a0
 	lea.l $5B98(a0),a0
 	bsr.w abs_0_0003AF30
 	bra.b abs_0_0003DACE
 abs_0_0003DA82:
 	lea.l abs_0_0003A0D2.l,a1
-	move.w abs_0_000416A6.l,d1
+	move.w scene_rotation2_snapshot.l,d1
 	cmp.w #$340,d1
 	bls.b abs_0_0003DAA2
 	cmp.w #$B40,d1
@@ -52769,7 +52788,7 @@ abs_0_0003DAA2:
 	move.w #$3,$0002(a1)
 abs_0_0003DAA8:
 	move.l a1,(a4)+
-	movea.l abs_0_000416A8.l,a0
+	movea.l scene_draw_buffer_snapshot.l,a0
 	adda.w #$5B6C,a0
 	moveq.l #0,d0
 	move.w #$9C,d1
@@ -52781,14 +52800,15 @@ abs_0_0003DABC:
 	move.l d0,$0050(a0)
 	adda.w d1,a0
 	dbf.w d2,abs_0_0003DABC
+    ; Reuse shared reference cells: original polygons become rotated packets here, then edge/span pointers. Shared disk/audio lifetimes are not proven disjoint.
 abs_0_0003DACE:
 	move.l #$FFFFFFFF,(a4)
 	move.b #$3,diagnostic_step_byte.l
-	lea.l shared_workspace_prefix+16000(pc),a1
+	lea.l scene_rotated_packet_workspace_prefix(pc),a1
 	movea.l a2,a6
-abs_0_0003DAE2:
+rotate_sorted_scene_packet_vertices:
 	move.l (a2),d0
-	bmi.b abs_0_0003DB28
+	bmi.b draw_scene_packet_spans
 	movea.l d0,a0
 	move.l a1,(a2)+
 	addq.l #2,a0
@@ -52824,8 +52844,8 @@ abs_0_0003DB1C:
 abs_0_0003DB22:
 	move.l a1,(a5)
 	clr.l (a1)+
-	bra.b abs_0_0003DAE2
-abs_0_0003DB28:
+	bra.b rotate_sorted_scene_packet_vertices
+draw_scene_packet_spans:
 	move.l a6,-(a7)
 	bsr.w interpolate_polygon_edge_spans
 	movea.l (a7)+,a2
@@ -52856,9 +52876,9 @@ abs_0_0003DB4C:
 	moveq.l #0,d7
 abs_0_0003DB6C:
 	move.w (a0)+,d4
-	move.w d4,abs_0_00041690.l
+	move.w d4,polygon_forward_edge_end_x.l
 	move.w (a0)+,d3
-	move.w d3,abs_0_00041694.l
+	move.w d3,polygon_forward_edge_end_y.l
 	sub.w a2,d3
 	bmi.w abs_0_0003DC50
 	bne.b abs_0_0003DB88
@@ -52875,8 +52895,8 @@ abs_0_0003DB88:
 abs_0_0003DB98:
 	move.w -(a1),d6
 	move.w -(a1),d5
-	move.w d6,abs_0_00041696.l
-	move.w d5,abs_0_00041692.l
+	move.w d6,polygon_reverse_edge_end_y.l
+	move.w d5,polygon_reverse_edge_end_x.l
 	sub.w a5,d6
 	bmi.w abs_0_0003DC50
 	bne.b abs_0_0003DBB4
@@ -52898,14 +52918,14 @@ abs_0_0003DBC4:
 	move.w d0,(a3)+
 	move.w d1,(a3)+
 	dbf.w d3,abs_0_0003DC0E
-	move.w abs_0_00041690.l,d0
+	move.w polygon_forward_edge_end_x.l,d0
 	clr.w d7
-	movea.w abs_0_00041694.l,a2
+	movea.w polygon_forward_edge_end_y.l,a2
 abs_0_0003DBE2:
 	move.w (a0)+,d4
-	move.w d4,abs_0_00041690.l
+	move.w d4,polygon_forward_edge_end_x.l
 	move.w (a0)+,d3
-	move.w d3,abs_0_00041694.l
+	move.w d3,polygon_forward_edge_end_y.l
 	sub.w a2,d3
 	bmi.b abs_0_0003DC50
 	bne.b abs_0_0003DBFC
@@ -52922,14 +52942,14 @@ abs_0_0003DBFC:
 	subq.w #1,d3
 abs_0_0003DC0E:
 	dbf.w d6,abs_0_0003DBC4
-	move.w abs_0_00041692.l,d1
+	move.w polygon_reverse_edge_end_x.l,d1
 	ext.l d1
-	movea.w abs_0_00041696.l,a5
+	movea.w polygon_reverse_edge_end_y.l,a5
 abs_0_0003DC20:
 	move.w -(a1),d6
 	move.w -(a1),d5
-	move.w d6,abs_0_00041696.l
-	move.w d5,abs_0_00041692.l
+	move.w d6,polygon_reverse_edge_end_y.l
+	move.w d5,polygon_reverse_edge_end_x.l
 	sub.w a5,d6
 	bmi.b abs_0_0003DC50
 	bne.b abs_0_0003DC3A
@@ -53056,7 +53076,7 @@ abs_0_0003DD2C:
 	move.w (a0)+,d2
 	add.w d2,d2
 	lea.l raster_row_byte_offsets(pc),a3
-	movea.l abs_0_000416A8.l,a1
+	movea.l scene_draw_buffer_snapshot.l,a1
 	adda.w $0(a3,d2.w),a1
 	move.w (a0)+,d2
 	bmi.w abs_0_0003DD0A
@@ -54454,7 +54474,7 @@ abs_0_0003EA3E:
 	move.w (a0)+,d2
 	add.w d2,d2
 	lea.l raster_row_byte_offsets(pc),a1
-	movea.l abs_0_000416A8.l,a3
+	movea.l scene_draw_buffer_snapshot.l,a3
 	adda.w $0(a1,d2.w),a3
 	lea.l generated_outside_span_masks32(pc),a2
 	moveq.l #31,d4
@@ -54835,7 +54855,7 @@ abs_0_0003ED92:
 	move.w (a0)+,d2
 	add.w d2,d2
 	lea.l raster_row_byte_offsets(pc),a1
-	movea.l abs_0_000416A8.l,a3
+	movea.l scene_draw_buffer_snapshot.l,a3
 	adda.w $0(a1,d2.w),a3
 	move.w (a0)+,d2
 	bmi.w abs_0_0003DD0A
@@ -55137,9 +55157,9 @@ abs_0_0003F05A:
 	bpl.b abs_0_0003F05A
 	bra.w abs_0_0003DD0A
 draw_interleaved_4plane_span_records:
-	btst.b #1,abs_0_000416A5.l
+	btst.b #1,scene_graphics_mode_snapshot.l
 	bne.w abs_0_00041394
-	movea.l abs_0_000416A8.l,a4
+	movea.l scene_draw_buffer_snapshot.l,a4
 	movea.l #$FFFF0000,a3
 	move.l #$FFFF,d1
 	moveq.l #15,d0
@@ -57150,7 +57170,7 @@ abs_0_00041336:
 	bpl.w abs_0_0003F0B2
 	rts
 abs_0_0004134A:
-	movea.l abs_0_000416A8.l,a0
+	movea.l scene_draw_buffer_snapshot.l,a0
 	adda.w #$700C,a0
 	move.l #$33333333,(a0)
 	move.l #$33333333,$0004(a0)
@@ -57180,7 +57200,7 @@ abs_0_000413B0:
 	move.l $4(a1,d0.w),d6
 	move.w (a0)+,d1
 	add.w d1,d1
-	movea.l abs_0_000416A8.l,a6
+	movea.l scene_draw_buffer_snapshot.l,a6
 	adda.w $0(a5,d1.w),a6
 	move.w (a0)+,d2
 	bmi.b abs_0_000413A0
@@ -57224,7 +57244,7 @@ abs_0_000413D6:
 	bpl.b abs_0_000413CC
 	move.l (a2)+,d0
 	bpl.w abs_0_000413A4
-	movea.l abs_0_000416A8.l,a0
+	movea.l scene_draw_buffer_snapshot.l,a0
 	adda.w #$700C,a0
 	move.l #$33333333,(a0)
 	move.l #$33333333,$0004(a0)
@@ -57336,7 +57356,7 @@ abs_0_00041552:
 	bpl.w abs_0_000413CC
 	move.l (a2)+,d0
 	bpl.w abs_0_000413A4
-	movea.l abs_0_000416A8.l,a0
+	movea.l scene_draw_buffer_snapshot.l,a0
 	adda.w #$700C,a0
 	move.l #$33333333,(a0)
 	move.l #$33333333,$0004(a0)
@@ -57362,14 +57382,15 @@ abs_0_000415BE:
 	dcb.b $8,$00
 	dc.b $FF,$FF,$FF,$FF,$AA,$AA,$AA,$AA,$55,$55,$55,$55
 	dcb.b $8,$FF
-abs_0_0004163E:
+sort_scene_reference_saved_range:
 	movea.l $0004(a7),a0
 	movea.l $0008(a7),a1
-abs_0_00041646:
+    ; Sort original polygon references by unsigned depth key. A0 first/A1 last; recursive valid-range/stack contract. A6 is a reference cursor here, not app base.
+sort_scene_references_by_depth_key:
 	cmpa.l a1,a0
 	bgt.b abs_0_0004168E
-	movea.l (a1),a5
-	move.w (a5),d0
+	movea.l (a1),a5	; operand 1: SG2SceneSortReference_polygon at (a1)
+	move.w (a5),d0	; operand 1: SG2ScenePolygonHeader_depth_sort_key at (a5)
 	movea.l a0,a6
 	movea.l a1,a3
 abs_0_00041652:
@@ -57377,42 +57398,45 @@ abs_0_00041652:
 	cmp.w (a5),d0
 	bcs.b abs_0_00041652
 	suba.l #$4,a6
+    ; KNOWN: type A6=Target code-entry register seed:SG2SceneSortReference
 abs_0_0004165E:
 	movea.l -(a3),a5
 	cmp.w (a5),d0
 	bhi.b abs_0_0004165E
 	cmpa.l a3,a6
 	bgt.b abs_0_00041670
-	move.l (a6),d1
-	move.l (a3),(a6)
+	move.l (a6),d1	; operand 1: SG2SceneSortReference_polygon at (a6)
+	move.l (a3),(a6)	; operand 2: SG2SceneSortReference_polygon at (a6)
 	move.l d1,(a3)
 	bra.b abs_0_00041652
 abs_0_00041670:
-	move.l (a6),d1
-	move.l (a1),(a6)
-	move.l d1,(a1)
+	move.l (a6),d1	; operand 1: SG2SceneSortReference_polygon at (a6)
+	move.l (a1),(a6)	; operand 1: SG2SceneSortReference_polygon at (a1) | operand 2: SG2SceneSortReference_polygon at (a6)
+	move.l d1,(a1)	; operand 2: SG2SceneSortReference_polygon at (a1)
 	move.l a1,-(a7)
-	pea.l display_buffer_base(a6)
+	pea.l $0004(a6)
 	lea.l -$0004(a6),a1
-	bsr.w abs_0_00041646
-	bsr.w abs_0_0004163E
+	bsr.w sort_scene_references_by_depth_key
+	bsr.w sort_scene_reference_saved_range
 	adda.l #$8,a7
 abs_0_0004168E:
 	rts
-abs_0_00041690:
+polygon_forward_edge_end_x:
 	dc.w $0000
-abs_0_00041692:
+polygon_reverse_edge_end_x:
 	dc.w $0000
-abs_0_00041694:
+polygon_forward_edge_end_y:
 	dc.w $0000
-abs_0_00041696:
-	dcb.b $F,$00
-abs_0_000416A5:
+polygon_reverse_edge_end_y:
+	dc.w $0000
+	dcb.b $D,$00
+scene_graphics_mode_snapshot:
 	dc.b $00
-abs_0_000416A6:
+scene_rotation2_snapshot:
 	dc.w $0000
-abs_0_000416A8:
-	dc.b $00,$07,$80,$00,$00,$07,$A0,$00,$00,$07,$C0,$00,$00,$07,$E0,$00
+scene_draw_buffer_snapshot:
+	dc.l $00078000
+	dc.b $00,$07,$A0,$00,$00,$07,$C0,$00,$00,$07,$E0,$00
 raster_row_byte_offsets:
 	dc.w $0000,$00A0,$0140,$01E0,$0280,$0320,$03C0,$0460	; 200 WORD byte offsets. Amiga startup initializes 0,40,...7960; renderer indexes by doubled ro...
 	dc.w $0500,$05A0,$0640,$06E0,$0780,$0820,$08C0,$0960
@@ -57440,11 +57464,13 @@ raster_row_byte_offsets:
 	dc.w $7300,$73A0,$7440,$74E0,$7580,$7620,$76C0,$7760
 	dc.w $7800,$78A0,$7940,$79E0,$7A80,$7B20,$7BC0,$7C60
 shared_workspace_prefix:
-	dcb.b $3E80,$00
-abs_0_000456C8:
-	dcb.b $1F42,$00
-abs_0_0004760A:
-	dcb.b $258,$00
+	dcb.b $3E80,$00	; Shared disk IO, music ring and 3D caches. Bounds known; complete lifetime exclusion unproved.
+scene_rotated_packet_workspace_prefix:
+	dcb.b $FA2,$00	; Shared disk IO, music ring and 3D caches. Bounds known; complete lifetime exclusion unproved.
+scene_polygon_arena_prefix:
+	dcb.b $FA0,$00	; Shared disk IO, music ring and 3D caches. Bounds known; complete lifetime exclusion unproved.
+scene_draw_reference_cells:
+	dcb.l $96,$00000000	; Shared disk IO, music ring and 3D caches. Bounds known; complete lifetime exclusion unproved.
 model_cache_x_negative_terms:
 	dcb.w $4B0,$0000	; Shared disk IO, music ring and 3D caches. Bounds known; complete lifetime exclusion unproved.
 model_cache_x_positive_terms:
@@ -57639,7 +57665,7 @@ abs_0_0004BDCE:
 	bpl.b abs_0_0004BE2C
 	tst.w stardrive_enabled_word(a6)
 	beq.b abs_0_0004BE2C
-	tst.b app_0A9D(a6)
+	tst.b flight_point_field_active_flag(a6)
 	bpl.b abs_0_0004BE2C
 	move.w paula_speed_sound_volume.l,d0
 	beq.b abs_0_0004BDEA
@@ -60127,38 +60153,38 @@ initialize_nearby_point_field:
 	lea.l point_field_world_positions(a6),a4
 	lea.l $0078(a4),a5
 abs_0_0004DFD4:
-	move.l shared_random_state_a(a6),d0
-	move.l shared_random_state_b(a6),d1
+	move.l $0060(a6),d0
+	move.l $0064(a6),d1
 	rol.l #3,d0
 	subq.w #7,d0
 	eor.w d1,d0
-	move.l d1,shared_random_state_a(a6)
-	move.l d0,shared_random_state_b(a6)
+	move.l d1,$0060(a6)
+	move.l d0,$0064(a6)
 	andi.w #16383,d0
 	subi.w #8192,d0
-	add.l player_world_x(a6),d0
+	add.l $0704(a6),d0
 	move.w d0,(a4)+
-	move.l shared_random_state_a(a6),d0
-	move.l shared_random_state_b(a6),d1
+	move.l $0060(a6),d0
+	move.l $0064(a6),d1
 	rol.l #3,d0
 	subq.w #7,d0
 	eor.w d1,d0
-	move.l d1,shared_random_state_a(a6)
-	move.l d0,shared_random_state_b(a6)
+	move.l d1,$0060(a6)
+	move.l d0,$0064(a6)
 	andi.w #16383,d0
 	subi.w #8192,d0
-	add.l player_world_y(a6),d0
+	add.l $0708(a6),d0
 	move.w d0,(a4)+
-	move.l shared_random_state_a(a6),d0
-	move.l shared_random_state_b(a6),d1
+	move.l $0060(a6),d0
+	move.l $0064(a6),d1
 	rol.l #3,d0
 	subq.w #7,d0
 	eor.w d1,d0
-	move.l d1,shared_random_state_a(a6)
-	move.l d0,shared_random_state_b(a6)
+	move.l d1,$0060(a6)
+	move.l d0,$0064(a6)
 	andi.w #16383,d0
 	subi.w #8192,d0
-	add.l player_world_z(a6),d0
+	add.l $070C(a6),d0
 	move.w d0,(a4)+
 	clr.l (a5)+
 	clr.w (a5)+
@@ -60189,52 +60215,52 @@ abs_0_0004E0A6:
 abs_0_0004E0AC:
 	move.b #$8,diagnostic_step_byte.l
 	movem.w (a4)+,d1-d3
-	sub.l player_world_x(a6),d1
-	sub.l player_world_y(a6),d2
-	sub.l player_world_z(a6),d3
+	sub.l $0704(a6),d1
+	sub.l $0708(a6),d2
+	sub.l $070C(a6),d3
 	move.b #$15,diagnostic_step_byte.l
-	move.w view_rotation_matrix+SG2RotationMatrixWords_m20(a6),d4
+	move.w $0112(a6),d4
 	muls.w d1,d4
 	asl.l #2,d4
 	swap.w d4
-	move.w view_rotation_matrix+SG2RotationMatrixWords_m21(a6),d5
+	move.w $0114(a6),d5
 	muls.w d2,d5
 	asl.l #2,d5
 	swap.w d5
 	add.w d5,d4
-	move.w view_rotation_matrix+SG2RotationMatrixWords_m22(a6),d5
+	move.w $0116(a6),d5
 	muls.w d3,d5
 	asl.l #2,d5
 	swap.w d5
 	add.w d5,d4
 	move.w d4,$0054(a6)
 	move.b #$17,diagnostic_step_byte.l
-	move.w view_rotation_matrix(a6),d4
+	move.w $0106(a6),d4
 	muls.w d1,d4
 	asl.l #2,d4
 	swap.w d4
-	move.w view_rotation_matrix+SG2RotationMatrixWords_m01(a6),d5
+	move.w $0108(a6),d5
 	muls.w d2,d5
 	asl.l #2,d5
 	swap.w d5
 	add.w d5,d4
-	move.w view_rotation_matrix+SG2RotationMatrixWords_m02(a6),d5
+	move.w $010A(a6),d5
 	muls.w d3,d5
 	asl.l #2,d5
 	swap.w d5
 	add.w d5,d4
 	move.w d4,$012C(a6)
 	move.b #$18,diagnostic_step_byte.l
-	move.w view_rotation_matrix+SG2RotationMatrixWords_m10(a6),d4
+	move.w $010C(a6),d4
 	muls.w d1,d4
 	asl.l #2,d4
 	swap.w d4
-	move.w view_rotation_matrix+SG2RotationMatrixWords_m11(a6),d5
+	move.w $010E(a6),d5
 	muls.w d2,d5
 	asl.l #2,d5
 	swap.w d5
 	add.w d5,d4
-	move.w view_rotation_matrix+SG2RotationMatrixWords_m12(a6),d5
+	move.w $0110(a6),d5
 	muls.w d3,d5
 	asl.l #2,d5
 	swap.w d5
@@ -60253,7 +60279,7 @@ abs_0_0004E0AC:
 	ext.l d3
 	tst.w d4
 	beq.w abs_0_0004E298
-	cmpi.w #500,stardrive_speed_addend(a6)
+	cmpi.w #500,$0A74(a6)
 	bmi.w abs_0_0004E298
 	movem.w d4-d6,-(a7)
 	cmp.w #$80,d3
@@ -60266,22 +60292,22 @@ abs_0_0004E0AC:
 	divs.w d3,d1
 	divs.w d3,d2
 abs_0_0004E1A4:
-	add.w projection_screen_origin_x(a6),d1
-	add.w projection_screen_origin_y(a6),d2
+	add.w $0194(a6),d1
+	add.w $0196(a6),d2
 	clr.b d3
-	cmp.w view_clip_min_x(a6),d1
+	cmp.w $00E4(a6),d1
 	bge.b abs_0_0004E1B6
 	addq.b #1,d3
 abs_0_0004E1B6:
-	cmp.w view_clip_max_x(a6),d1
+	cmp.w $00E6(a6),d1
 	ble.b abs_0_0004E1BE
 	addq.b #2,d3
 abs_0_0004E1BE:
-	cmp.w view_clip_min_y(a6),d2
+	cmp.w $00E8(a6),d2
 	bge.b abs_0_0004E1C6
 	addq.b #4,d3
 abs_0_0004E1C6:
-	cmp.w view_clip_max_y(a6),d2
+	cmp.w $00EA(a6),d2
 	ble.b abs_0_0004E1CE
 	addq.b #8,d3
 abs_0_0004E1CE:
@@ -60295,24 +60321,24 @@ abs_0_0004E1CE:
 	divs.w d6,d4
 	divs.w d6,d5
 abs_0_0004E1E6:
-	add.w projection_screen_origin_x(a6),d4
-	add.w projection_screen_origin_y(a6),d5
-	cmp.w view_clip_min_x(a6),d4
+	add.w $0194(a6),d4
+	add.w $0196(a6),d5
+	cmp.w $00E4(a6),d4
 	bge.b abs_0_0004E1FC
 	bset #0,d3
 	bne.w abs_0_0004E348
 abs_0_0004E1FC:
-	cmp.w view_clip_max_x(a6),d4
+	cmp.w $00E6(a6),d4
 	ble.b abs_0_0004E20A
 	bset #1,d3
 	bne.w abs_0_0004E348
 abs_0_0004E20A:
-	cmp.w view_clip_min_y(a6),d5
+	cmp.w $00E8(a6),d5
 	bge.b abs_0_0004E218
 	bset #2,d3
 	bne.w abs_0_0004E348
 abs_0_0004E218:
-	cmp.w view_clip_max_y(a6),d5
+	cmp.w $00EA(a6),d5
 	ble.b abs_0_0004E226
 	bset #3,d3
 	bne.w abs_0_0004E348
@@ -60328,9 +60354,9 @@ abs_0_0004E234:
 	asr.w #8,d3
 	asr.w #3,d3
 	andi.w #14,d3
-	cmpi.w #1,selected_celestial_body_index(a6)
+	cmpi.w #1,$0830(a6)
 	ble.b abs_0_0004E258
-	cmpi.w #5,selected_celestial_body_index(a6)
+	cmpi.w #5,$0830(a6)
 	bne.b abs_0_0004E252
 	lea.l abs_0_0004E588(pc),a0
 	bra.b abs_0_0004E25C
@@ -60341,10 +60367,10 @@ abs_0_0004E258:
 	lea.l abs_0_0004E5A4(pc),a0
 abs_0_0004E25C:
 	move.w $0(a0,d3.w),d3
-	movea.l abs_0_00003C2C.l,a0
-	move.l abs_0_00003C30.l,(a0)+
-	move.l a0,abs_0_00003C2C.l
-	movea.l abs_0_00003C30.l,a0
+	movea.l scene_reference_write_cursor.l,a0
+	move.l scene_polygon_write_cursor.l,(a0)+
+	move.l a0,scene_reference_write_cursor.l
+	movea.l scene_polygon_write_cursor.l,a0
 	move.w d6,(a0)+
 	move.w d3,(a0)+
 	move.w d1,(a0)+
@@ -60352,8 +60378,8 @@ abs_0_0004E25C:
 	move.w d4,(a0)+
 	move.w d5,(a0)+
 	move.w #$FFFF,(a0)+
-	move.l a0,abs_0_00003C30.l
-	addq.w #1,abs_0_000049A8.l
+	move.l a0,scene_polygon_write_cursor.l
+	addq.w #1,scene_packet_count.l
 	bra.w abs_0_0004E332
 abs_0_0004E298:
 	cmp.w #$80,d3
@@ -60366,44 +60392,44 @@ abs_0_0004E298:
 	divs.w d3,d1
 	divs.w d3,d2
 abs_0_0004E2B0:
-	add.w projection_screen_origin_x(a6),d1
-	add.w projection_screen_origin_y(a6),d2
-	cmp.w view_clip_min_x(a6),d1
+	add.w $0194(a6),d1
+	add.w $0196(a6),d2
+	cmp.w $00E4(a6),d1
 	blt.w abs_0_0004E350
-	cmp.w view_clip_max_x(a6),d1
+	cmp.w $00E6(a6),d1
 	bgt.w abs_0_0004E350
-	cmp.w view_clip_min_y(a6),d2
+	cmp.w $00E8(a6),d2
 	blt.w abs_0_0004E350
-	cmp.w view_clip_max_y(a6),d2
+	cmp.w $00EA(a6),d2
 	bgt.b abs_0_0004E350
 	move.b #$14,diagnostic_step_byte.l
-	movea.l draw_buffer_base.w(a6),a0
+	movea.l $0000(a6),a0
 	add.w d2,d2
 	adda.w $0(a1,d2.w),a0
 	add.w d1,d1
 	adda.w $0(a3,d1.w),a0
 	move.w $0(a5,d1.w),d2
-	move.w point_field_plane_byte_stride(a6),d1
+	move.w $01A2(a6),d1
 	not.w d2
-	cmpi.w #500,stardrive_speed_addend(a6)
+	cmpi.w #500,$0A74(a6)
 	bpl.b abs_0_0004E302
 	and.w d2,(a0)
 abs_0_0004E302:
 	lea.l $0(a0,d1.w),a0
 	move.l a0,d3
 	lea.l $0(a0,d1.w),a0
-	cmpi.w #500,stardrive_speed_addend(a6)
+	cmpi.w #500,$0A74(a6)
 	bpl.b abs_0_0004E316
 	and.w d2,(a0)
 abs_0_0004E316:
 	lea.l $0(a0,d1.w),a0
-	cmpi.w #500,stardrive_speed_addend(a6)
+	cmpi.w #500,$0A74(a6)
 	bpl.b abs_0_0004E324
 	and.w d2,(a0)
 abs_0_0004E324:
 	not.w d2
 	movea.l d3,a0
-	cmpi.w #500,stardrive_speed_addend(a6)
+	cmpi.w #500,$0A74(a6)
 	bpl.b abs_0_0004E332
 	or.w d2,(a0)
 abs_0_0004E332:
@@ -60423,42 +60449,42 @@ abs_0_0004E34C:
 abs_0_0004E350:
 	subq.l #6,abs_0_0004E5C0.l
 	move.b #$13,diagnostic_step_byte.l
-	move.l shared_random_state_a(a6),d0
-	move.l shared_random_state_b(a6),d1
+	move.l $0060(a6),d0
+	move.l $0064(a6),d1
 	rol.l #3,d0
 	subq.w #7,d0
 	eor.w d1,d0
-	move.l d1,shared_random_state_a(a6)
-	move.l d0,shared_random_state_b(a6)
+	move.l d1,$0060(a6)
+	move.l d0,$0064(a6)
 	andi.w #32767,d0
 	subi.w #16384,d0
 	move.w d0,d1
-	add.l player_world_y(a6),d0
+	add.l $0708(a6),d0
 	move.w d0,$0054(a6)
 	move.w d0,-$0004(a4)
-	move.w player_rotation_1(a6),d1
+	move.w $0746(a6),d1
 	add.w d1,d1
-	movea.l sine_lookup_pointer(a6),a0
+	movea.l $0044(a6),a0
 	move.w $0(a0,d1.w),$0168(a6)
-	movea.l cosine_lookup_pointer(a6),a0
+	movea.l $0048(a6),a0
 	move.w $0(a0,d1.w),$016A(a6)
-	move.l shared_random_state_a(a6),d0
-	move.l shared_random_state_b(a6),d1
+	move.l $0060(a6),d0
+	move.l $0064(a6),d1
 	rol.l #3,d0
 	subq.w #7,d0
 	eor.w d1,d0
-	move.l d1,shared_random_state_a(a6)
-	move.l d0,shared_random_state_b(a6)
+	move.l d1,$0060(a6)
+	move.l d0,$0064(a6)
 	andi.w #32767,d0
 	subi.w #16384,d0
 	move.w d0,d3
-	move.l shared_random_state_a(a6),d0
-	move.l shared_random_state_b(a6),d1
+	move.l $0060(a6),d0
+	move.l $0064(a6),d1
 	rol.l #3,d0
 	subq.w #7,d0
 	eor.w d1,d0
-	move.l d1,shared_random_state_a(a6)
-	move.l d0,shared_random_state_b(a6)
+	move.l d1,$0060(a6)
+	move.l d0,$0064(a6)
 	andi.w #32767,d0
 	subi.w #16384,d0
 	move.w d0,d1
@@ -60480,8 +60506,8 @@ abs_0_0004E350:
 	asl.l #2,d6
 	swap.w d6
 	sub.w d6,d5
-	add.l player_world_x(a6),d4
-	add.l player_world_z(a6),d5
+	add.l $0704(a6),d4
+	add.l $070C(a6),d5
 	move.w d4,-$0006(a4)
 	move.w d5,-$0002(a4)
 	movea.l abs_0_0004E5C0.l,a0
@@ -60516,24 +60542,24 @@ abs_0_0004E480:
 	divs.w d3,d1
 	divs.w d3,d2
 abs_0_0004E4D6:
-	add.w projection_screen_origin_x(a6),d1
-	add.w projection_screen_origin_y(a6),d2
-	cmp.w view_clip_min_x(a6),d1
+	add.w $0194(a6),d1
+	add.w $0196(a6),d2
+	cmp.w $00E4(a6),d1
 	bpl.b abs_0_0004E4EC
-	move.w view_clip_min_x(a6),d1
+	move.w $00E4(a6),d1
 	bra.w abs_0_0004E350
 abs_0_0004E4EC:
-	cmp.w view_clip_max_x(a6),d1
+	cmp.w $00E6(a6),d1
 	bmi.b abs_0_0004E4FA
 	bra.w abs_0_0004E350
 	dc.b $32,$2E,$00,$E6
 abs_0_0004E4FA:
-	cmp.w view_clip_min_y(a6),d2
+	cmp.w $00E8(a6),d2
 	bpl.b abs_0_0004E508
 	bra.w abs_0_0004E350
 	dc.b $34,$2E,$00,$E8
 abs_0_0004E508:
-	cmp.w view_clip_max_y(a6),d2
+	cmp.w $00EA(a6),d2
 	bmi.b abs_0_0004E516
 	bra.w abs_0_0004E350
 	dc.b $34,$2E,$00,$EA
@@ -60547,23 +60573,23 @@ abs_0_0004E516:
 	divs.w d6,d4
 	divs.w d6,d5
 abs_0_0004E52C:
-	add.w projection_screen_origin_x(a6),d4
-	add.w projection_screen_origin_y(a6),d5
-	cmp.w view_clip_min_x(a6),d4
+	add.w $0194(a6),d4
+	add.w $0196(a6),d5
+	cmp.w $00E4(a6),d4
 	bpl.b abs_0_0004E542
 	bra.w abs_0_0004E350
 	dc.b $38,$2E,$00,$E4
 abs_0_0004E542:
-	cmp.w view_clip_max_x(a6),d4
+	cmp.w $00E6(a6),d4
 	bmi.b abs_0_0004E550
 	bra.w abs_0_0004E350
 	dc.b $38,$2E,$00,$E6
 abs_0_0004E550:
-	cmp.w view_clip_min_y(a6),d5
+	cmp.w $00E8(a6),d5
 	bpl.b abs_0_0004E55A
 	bra.w abs_0_0004E350
 abs_0_0004E55A:
-	cmp.w view_clip_max_y(a6),d5
+	cmp.w $00EA(a6),d5
 	bmi.b abs_0_0004E568
 	bra.w abs_0_0004E350
 	dc.b $3A,$2E,$00,$EA
