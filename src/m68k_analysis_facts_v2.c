@@ -173,6 +173,85 @@ static M68kAddressExpressionIR *find_indexed_table_expression_for_descriptor(
   return match;
 }
 
+
+/* Use the same canonical source-record view as register transfer. Compact
+ * packed arrays are intentional typed owners, not contradictory scalar leaves. */
+static int source_loop_entry_has_pointee_contract(M68kSourceAnalysisIR *analysis,
+    const M68kTableEntryIR *entry, const char *type_name, const char **reason) {
+  const M68kAnalysisPolicy *policy = &analysis->policy;
+  M68kSectionAnalysisIR *section = find_source_analysis_section(analysis, entry->target_section_index);
+  const M68kAnalysisCustomStruct *actual, *parent;
+  uint16_t conflict, id;
+  int32_t cursor;
+  *reason = "missing, conflicting or interior source-record view";
+  id = m68k_policy_source_struct_at(policy, entry->target_section_index, entry->target_offset,
+    NULL, NULL, &cursor, &conflict);
+  if (conflict != AMIGA_OS_STRUCT_ID_NONE || cursor || id < M68K_ANALYSIS_CUSTOM_STRUCT_ID_BASE ||
+      (uint32_t)id - M68K_ANALYSIS_CUSTOM_STRUCT_ID_BASE >= policy->custom_struct_count) return 0;
+  actual = &policy->custom_structs[id - M68K_ANALYSIS_CUSTOM_STRUCT_ID_BASE];
+  *reason = "source-record view exceeds the source image";
+  if (!section || !actual->size || entry->target_offset > section->section_size ||
+      actual->size > section->section_size - entry->target_offset) return 0;
+  *reason = "source-record view overlaps code or a conflict";
+  for (size_t i = 0U; i < section->range_ownership_count; ++i) {
+    const M68kRangeOwnershipIR *range = &section->range_ownerships[i];
+    if (range->start_offset < entry->target_offset + actual->size && range->end_offset > entry->target_offset &&
+        (range->conflict_state || (range->status == M68K_RANGE_OWNERSHIP_STATUS_ACCEPTED &&
+          range->kind == M68K_RANGE_OWNERSHIP_CODE))) return 0;
+  }
+  *reason = "source-record type is incompatible with the pointee contract";
+  parent = actual;
+  for (uint16_t depth = 0U; parent && depth <= policy->custom_struct_count; ++depth) {
+    if (!strcmp(parent->name, type_name)) return 1;
+    if (parent->base_offset) return 0;
+    parent = m68k_analysis_policy_custom_struct_parent(policy, parent);
+  }
+  return 0;
+}
+
+/* A native loop envelope resolves a type domain independently of numeric
+ * pointer packets. Every entry in the envelope is validated; no prefix is
+ * retained and the exact-candidate limit is untouched. */
+static int bind_source_pointer_loop_type_domain(M68kSourceAnalysisIR *analysis,
+    M68kAddressValueIR *value, const M68kTableDescriptorIR *descriptor) {
+  uint32_t minimum, maximum;
+  if (value->table_origin.selection_kind != M68K_ADDRESS_VALUE_TABLE_SELECTION_SINGLETON ||
+      value->table_origin.entry_index != UINT32_MAX || value->table_origin.address_expression_id ||
+      !value->pointee_struct_name[0] || value->resolution == M68K_ADDRESS_VALUE_RESOLUTION_TYPE_CONFLICT ||
+      value->resolution == M68K_ADDRESS_VALUE_RESOLUTION_CANDIDATE_OVERFLOW || descriptor->status != M68K_RANGE_OWNERSHIP_STATUS_ACCEPTED ||
+      !m68k_ir_source_analysis_pointer_loop_domain(analysis, value, &minimum, &maximum)) return 0;
+  if (maximum / 4U >= descriptor->entry_count) {
+    address_value_table_terminal(value, M68K_ADDRESS_VALUE_TERMINAL_INVALID,
+      "source cursor envelope exceeds the table owner");
+    return 1;
+  }
+  for (uint32_t index = minimum / 4U; index <= maximum / 4U; ++index) {
+    const M68kTableEntryIR *entry = find_table_entry_for_address_value(analysis, &value->table_origin, index);
+    const char *reason = "null, unresolved or unowned table entry";
+    if (!entry || !entry->raw_value || !entry->has_target || entry->conflict_state ||
+        entry->target_status != M68K_TABLE_ENTRY_TARGET_STATUS_ACCEPTED_TARGET ||
+        !source_loop_entry_has_pointee_contract(analysis, entry, value->pointee_struct_name, &reason)) {
+      address_value_table_terminal(value, M68K_ADDRESS_VALUE_TERMINAL_NO_PROVEN_TRANSFER_CONTRACT, NULL);
+      snprintf(value->terminal_reason, sizeof(value->terminal_reason), "source cursor entry %u: %s", index, reason);
+      return 1;
+    }
+  }
+  value->table_origin.selection_kind = M68K_ADDRESS_VALUE_TABLE_SELECTION_BOUNDED_SOURCE_CURSOR;
+  value->table_origin.index_min = minimum; value->table_origin.index_max = maximum;
+  value->table_origin.terminal_kind = M68K_ADDRESS_VALUE_TERMINAL_TYPE_DOMAIN;
+  value->resolution = M68K_ADDRESS_VALUE_RESOLUTION_TYPE_DOMAIN;
+  value->terminal_kind = M68K_ADDRESS_VALUE_TERMINAL_TYPE_DOMAIN;
+  value->has_target = value->has_source_expression = value->candidate_target_count = 0U;
+  memset(value->candidate_source_values, 0, sizeof(value->candidate_source_values));
+  memset(value->candidate_target_section_indices, 0, sizeof(value->candidate_target_section_indices));
+  memset(value->candidate_target_offsets, 0, sizeof(value->candidate_target_offsets));
+  value->render_outcome = M68K_ADDRESS_VALUE_RENDER_NON_SOURCE;
+  value->review_class = M68K_ADDRESS_VALUE_REVIEW_FIXTURE_POSITIVE;
+  snprintf(value->terminal_reason, sizeof(value->terminal_reason), "%s",
+    "validated source cursor type domain; numeric selection not resolved");
+  return 1;
+}
+
 int m68k_source_analysis_bind_address_value_table_contracts(M68kSourceAnalysisIR *analysis) {
   size_t section_index, value_index;
   if (analysis == NULL) return 0;
@@ -198,6 +277,7 @@ int m68k_source_analysis_bind_address_value_table_contracts(M68kSourceAnalysisIR
           "table descriptor contract is missing or incompatible");
         continue;
       }
+      if (bind_source_pointer_loop_type_domain(analysis, value, descriptor)) continue;
       if (value->table_origin.selection_kind == M68K_ADDRESS_VALUE_TABLE_SELECTION_FINITE) {
         expression = find_indexed_table_expression_for_descriptor(analysis, descriptor,
           value->table_origin.table_section_index, value->producer_operand_index);

@@ -1302,6 +1302,9 @@ static int typed_memory_base_offset_add(uint32_t base_offset, int32_t displaceme
 static void typed_memory_base_clear_pointer_table_if_offset_outside(M68kRenderTypedMemoryBaseValue *value);
 static int policy_declared_app_extent_covers(const M68kAnalysisPolicy *policy, int16_t displacement,
     uint32_t access_size);
+static int typed_register_memory_span(const M68kInstructionIR *instruction, size_t operand_index,
+    uint8_t *out_reg, int16_t *out_displacement, uint8_t *out_access, uint8_t *out_width,
+    uint8_t *out_element_width, uint8_t *out_count);
 static int typed_app_memory_span(const M68kRenderLookup *lookup, const M68kRenderTypedState *state,
     const M68kInstructionIR *instruction, size_t operand_index, uint8_t *out_reg,
     int16_t *out_displacement, uint8_t *out_access, uint8_t *out_width,
@@ -2501,10 +2504,9 @@ static int typed_operand_is_runtime_only(const M68kRenderLookup *lookup,
 /* A structured-data item can describe an object whose address is materialised
    at either its start or a proven interior byte. The cursor records that
    interior position relative to the root object for later field resolution. */
-static uint16_t lookup_policy_struct_id_for_static_data_target(const M68kRenderLookup *lookup,
+uint16_t m68k_policy_source_struct_at(const M68kAnalysisPolicy *policy,
     size_t section_index, uint32_t offset, uint16_t *out_array_element_count,
     uint16_t *out_array_element_index, int32_t *out_byte_cursor, uint16_t *out_conflict_struct_id) {
-  const M68kAnalysisPolicy *policy = lookup != NULL ? lookup->policy : NULL;
   size_t index;
   uint16_t resolved_struct_id = AMIGA_OS_STRUCT_ID_NONE;
   uint16_t resolved_array_element_count = 0U, resolved_array_element_index = 0U;
@@ -2554,7 +2556,24 @@ static uint16_t lookup_policy_struct_id_for_static_data_target(const M68kRenderL
     resolved_array_element_index = array_element_index;
     resolved_byte_cursor = byte_cursor;
   }
-  if (resolved_struct_id != AMIGA_OS_STRUCT_ID_NONE && resolved_array_element_count == 0U) {
+  if (out_array_element_count != NULL) *out_array_element_count = resolved_array_element_count;
+  if (out_array_element_index != NULL) *out_array_element_index = resolved_array_element_index;
+  if (out_byte_cursor != NULL) *out_byte_cursor = resolved_byte_cursor;
+  return resolved_struct_id;
+}
+
+static uint16_t lookup_policy_struct_id_for_static_data_target(const M68kRenderLookup *lookup,
+    size_t section_index, uint32_t offset, uint16_t *out_array_element_count,
+    uint16_t *out_array_element_index, int32_t *out_byte_cursor, uint16_t *out_conflict_struct_id) {
+  uint16_t resolved_array_element_count = 0U, resolved_array_element_index = 0U;
+  uint16_t conflict = AMIGA_OS_STRUCT_ID_NONE;
+  int32_t resolved_byte_cursor = 0;
+  size_t index;
+  uint16_t resolved_struct_id = m68k_policy_source_struct_at(lookup ? lookup->policy : NULL,
+    section_index, offset, &resolved_array_element_count, &resolved_array_element_index,
+    &resolved_byte_cursor, &conflict);
+  if (out_conflict_struct_id) *out_conflict_struct_id = conflict;
+  if (conflict == AMIGA_OS_STRUCT_ID_NONE && resolved_struct_id != AMIGA_OS_STRUCT_ID_NONE && resolved_array_element_count == 0U) {
     const M68kRenderStaticRecordArray *match = NULL;
     int ambiguous = 0;
     for (index = 0U; index < lookup->static_record_array_count; ++index) {
@@ -11828,7 +11847,7 @@ static int source_analysis_has_exact_table_expression(const M68kSourceAnalysisIR
 
 static M68kRenderTableContractState source_analysis_table_contract_state(
     const M68kSourceAnalysisIR *source_analysis, const M68kRenderTypedProvenance *provenance,
-    const M68kAddressValueTableOriginIR *access_origin) {
+    M68kAddressValueTableOriginIR *access_origin) {
   size_t section_index, value_index;
   const M68kAddressValueIR *match = NULL;
   if (source_analysis == NULL || provenance == NULL) {
@@ -11845,6 +11864,23 @@ static M68kRenderTableContractState source_analysis_table_contract_state(
             value->producer_offset != provenance->offset ||
             value->producer_operand_index != provenance->producer_operand_index) continue;
       } else if (access_origin == NULL || access_origin->has_origin == 0U) continue;
+      /* The binder can replace a widened unknown singleton by a proved
+       * source-cursor type domain. Normalize that same producer link; no
+       * numeric value or type is invented here. */
+      if (access_origin && access_origin->has_origin &&
+          provenance->kind == M68K_PLATFORM_TYPE_PROVENANCE_STATIC_DATA &&
+          access_origin->selection_kind == M68K_ADDRESS_VALUE_TABLE_SELECTION_SINGLETON &&
+          access_origin->entry_index == UINT32_MAX && !access_origin->address_expression_id &&
+          value->resolution == M68K_ADDRESS_VALUE_RESOLUTION_TYPE_DOMAIN &&
+          access_origin->table_section_index == value->table_origin.table_section_index &&
+          access_origin->table_start_offset == value->table_origin.table_start_offset &&
+          access_origin->consumer_section_index == value->table_origin.consumer_section_index &&
+          access_origin->consumer_offset == value->table_origin.consumer_offset) {
+        uint32_t minimum, maximum;
+        if (m68k_ir_source_analysis_pointer_loop_domain(source_analysis, value, &minimum, &maximum) &&
+            minimum == value->table_origin.index_min && maximum == value->table_origin.index_max)
+          *access_origin = value->table_origin;
+      }
       /* Terminal state is produced by the canonical binder, so it is not a
        * producer identity.  Match the persisted table/consumer/expression
        * coordinates and selection domain, then gate on the canonical state
@@ -11867,6 +11903,19 @@ static M68kRenderTableContractState source_analysis_table_contract_state(
     }
   }
   if (match == NULL) return M68K_RENDER_TABLE_CONTRACT_NOT_TABLE_DERIVED;
+  if (match->origin_kind == M68K_PLATFORM_TYPE_PROVENANCE_STATIC_DATA &&
+      match->table_origin.selection_kind == M68K_ADDRESS_VALUE_TABLE_SELECTION_BOUNDED_SOURCE_CURSOR &&
+      match->resolution == M68K_ADDRESS_VALUE_RESOLUTION_TYPE_DOMAIN &&
+      match->terminal_kind == M68K_ADDRESS_VALUE_TERMINAL_TYPE_DOMAIN &&
+      match->table_origin.terminal_kind == M68K_ADDRESS_VALUE_TERMINAL_TYPE_DOMAIN &&
+      !match->has_target && !match->candidate_target_count && !match->has_source_expression &&
+      match->render_outcome == M68K_ADDRESS_VALUE_RENDER_NON_SOURCE) {
+    uint32_t minimum, maximum;
+    if (m68k_ir_source_analysis_pointer_loop_domain(source_analysis, match, &minimum, &maximum) &&
+        minimum == match->table_origin.index_min && maximum == match->table_origin.index_max)
+      return M68K_RENDER_TABLE_CONTRACT_VALID;
+    return M68K_RENDER_TABLE_CONTRACT_INVALID;
+  }
   /* A validated singleton load through a register has no inline pointer-value
    * operand. Its exact canonical entry/target still proves the pointee type;
    * do not confuse that with an indexed-expression rendering obligation.
@@ -11948,6 +11997,12 @@ void m68k_analysis_render_lookup_reconcile_typed_table_contracts(M68kRenderLooku
         }
       if (source_analysis_table_contract_state(source_analysis, &provenance, &table_origin) ==
           M68K_RENDER_TABLE_CONTRACT_INVALID) continue;
+      if (table_origin.selection_kind == M68K_ADDRESS_VALUE_TABLE_SELECTION_BOUNDED_SOURCE_CURSOR) {
+        access->table_selection_kind = table_origin.selection_kind;
+        access->table_terminal_kind = table_origin.terminal_kind;
+        access->table_index_min = table_origin.index_min;
+        access->table_index_max = table_origin.index_max;
+      }
       }
       if (retained != access_index) section->recovered_platform_typed_accesses[retained] = *access;
       ++retained;
@@ -12092,6 +12147,7 @@ static int append_render_lookup_affine_address_evidence_for_section(const M68kRe
     evidence.target_section_index = (uint32_t)use->target_section_index;
     evidence.target_offset = use->target_offset;
     evidence.signed_addend = use->signed_addend;
+    evidence.loop_domain = use->loop_domain;
     if (m68k_ir_section_analysis_append_affine_address_evidence(section_analysis, &evidence) != 0) return -1;
   }
   return 0;
@@ -12897,17 +12953,15 @@ static int policy_declared_app_extent_covers(const M68kAnalysisPolicy *policy, i
  * Striped/indexed and shared update bases remain refused. Predecrement uses
  * the whole decoded span before the access; postincrement uses it afterwards.
  * A distinct postincrement stream cannot change this operand's EA register. */
-static int typed_app_memory_span(const M68kRenderLookup *lookup, const M68kRenderTypedState *state,
-    const M68kInstructionIR *instruction, size_t operand_index, uint8_t *out_reg,
+static int typed_register_memory_span(const M68kInstructionIR *instruction, size_t operand_index, uint8_t *out_reg,
     int16_t *out_displacement, uint8_t *out_access, uint8_t *out_width,
     uint8_t *out_element_width, uint8_t *out_count) {
   const M68kSimFormMetadata *metadata = m68k_sim_metadata_for_instruction(instruction);
   const M68kOperandIR *operand;
   uint8_t reg, access, width, count = 1U, shape;
   int16_t displacement = 0;
-  int32_t target;
   size_t index;
-  if (lookup == NULL || state == NULL || metadata == NULL || operand_index >= instruction->operand_count ||
+  if (metadata == NULL || operand_index >= instruction->operand_count ||
       operand_index >= 4U || metadata->striped_direction != M68K_SIM_STRIPED_NONE) return 0;
   operand = &instruction->operands[operand_index];
   shape = m68k_instruction_operand_decoded_ea_shape(operand);
@@ -12915,8 +12969,7 @@ static int typed_app_memory_span(const M68kRenderLookup *lookup, const M68kRende
       operand->kind == M68K_ASM_OPERAND_EA) {
     reg = operand->value.ea_reg;
   } else if (!operand_is_address_memory_local(operand, &reg, &displacement)) return 0;
-  if (reg >= 7U || !state->app_addr_regs[reg].known ||
-      state->app_addr_regs[reg].base_evidence_kind == M68K_APP_SLOT_BASE_UNSPECIFIED) return 0;
+  if (reg >= 7U) return 0;
   if (metadata->multi_transfer_direction != M68K_SIM_MULTI_NONE) {
     uint8_t reglist_index = metadata->reglist_operand_index;
     uint16_t mask;
@@ -12964,16 +13017,32 @@ static int typed_app_memory_span(const M68kRenderLookup *lookup, const M68kRende
   /* This is the EA adjustment, including an implicit predecrement, not a
    * replacement syntax operand or a scalar-width estimate for MOVEM. */
   if (shape == M68K_SIM_EA_SHAPE_PREDECREMENT) displacement = -(int16_t)(width * count);
+  *out_reg = reg; *out_displacement = displacement; *out_access = access;
+  *out_width = (uint8_t)(width * count); *out_element_width = width;
+  *out_count = access == M68K_APP_SLOT_ACCESS_ADDRESS ? 0U : count;
+  return 1;
+}
+
+static int typed_app_memory_span(const M68kRenderLookup *lookup, const M68kRenderTypedState *state,
+    const M68kInstructionIR *instruction, size_t operand_index, uint8_t *out_reg,
+    int16_t *out_displacement, uint8_t *out_access, uint8_t *out_width,
+    uint8_t *out_element_width, uint8_t *out_count) {
+  uint8_t reg, access, width, count;
+  int16_t displacement;
+  int32_t target;
+  if (!lookup || !state || !typed_register_memory_span(instruction, operand_index, &reg,
+      &displacement, &access, &width, out_element_width, &count) ||
+      !state->app_addr_regs[reg].known ||
+      state->app_addr_regs[reg].base_evidence_kind == M68K_APP_SLOT_BASE_UNSPECIFIED) return 0;
   target = (int32_t)state->app_addr_regs[reg].displacement + displacement;
   /* A proven app identity establishes this coordinate without a declaration.
    * Weak fallback interpretations still need an independently declared owner;
    * an observed span is not evidence of allocation bounds or object lifetime. */
   if (target < 0 || target > INT16_MAX ||
       (state->app_addr_regs[reg].base_evidence_kind != M68K_APP_SLOT_BASE_REGISTER_STATE &&
-       !policy_declared_app_extent_covers(lookup->policy, (int16_t)target, (uint8_t)(width * count)))) return 0;
+       !policy_declared_app_extent_covers(lookup->policy, (int16_t)target, width))) return 0;
   *out_reg = reg; *out_displacement = displacement; *out_access = access;
-  *out_width = (uint8_t)(width * count); *out_element_width = width;
-  *out_count = access == M68K_APP_SLOT_ACCESS_ADDRESS ? 0U : count;
+  *out_width = width; *out_count = count;
   return 1;
 }
 

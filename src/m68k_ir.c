@@ -341,6 +341,7 @@ const char *m68k_address_value_table_selection_name(uint8_t selection_kind) {
     case M68K_ADDRESS_VALUE_TABLE_SELECTION_SINGLETON: return "singleton";
     case M68K_ADDRESS_VALUE_TABLE_SELECTION_FINITE: return "finite";
     case M68K_ADDRESS_VALUE_TABLE_SELECTION_TERMINAL: return "terminal";
+    case M68K_ADDRESS_VALUE_TABLE_SELECTION_BOUNDED_SOURCE_CURSOR: return "bounded_source_cursor";
     default: return "none";
   }
 }
@@ -2724,6 +2725,43 @@ int m68k_ir_section_analysis_append_address_expression(M68kSectionAnalysisIR *se
   return 0;
 }
 
+
+int m68k_ir_source_analysis_pointer_loop_domain(const M68kSourceAnalysisIR *analysis,
+    const M68kAddressValueIR *value, uint32_t *out_min, uint32_t *out_max) {
+  uint32_t minimum = 0U, maximum = 0U;
+  int found = 0;
+  if (!analysis || !value || !out_min || !out_max || !value->table_origin.has_origin ||
+      value->origin_kind != M68K_PLATFORM_TYPE_PROVENANCE_STATIC_DATA || value->pointer_width != 4U)
+    return 0;
+  for (size_t s = 0U; s < analysis->section_count; ++s) {
+    const M68kSectionAnalysisIR *section = &analysis->sections[s];
+    if (section->section_index != value->producer_section_index) continue;
+    for (size_t i = 0U; i < section->affine_address_evidence_count; ++i) {
+      const M68kAffineAddressEvidenceIR *e = &section->affine_address_evidence[i];
+      const M68kAffineLoopDomainIR *loop = &e->loop_domain;
+      int64_t first, last, lo, hi;
+      if (e->consumer_section_index != value->producer_section_index ||
+          e->consumer_offset != value->producer_offset || e->operand_index != value->producer_operand_index ||
+          !loop->state) continue;
+      if (loop->state != 1U || !loop->iteration_count || loop->iteration_count > 65536U ||
+          loop->counter_register >= 8U || loop->header_offset >= loop->tail_offset ||
+          loop->tail_offset >= section->section_size || e->consumer_offset >= section->section_size ||
+          loop->access_width != 4U || loop->access_kind != M68K_APP_SLOT_ACCESS_READ ||
+          loop->iteration_stride % 4 || e->origin_section_index != e->target_section_index ||
+          e->target_section_index != value->table_origin.table_section_index ||
+          (int64_t)e->origin_offset + e->signed_addend != e->target_offset) return 0;
+      first = (int64_t)e->target_offset - value->table_origin.table_start_offset;
+      last = first + (int64_t)loop->iteration_stride * (loop->iteration_count - 1U);
+      lo = first < last ? first : last; hi = first > last ? first : last;
+      if (lo < 0 || hi > UINT32_MAX || lo % 4 || hi % 4) return 0;
+      if (found && (minimum != (uint32_t)lo || maximum != (uint32_t)hi)) return 0;
+      minimum = (uint32_t)lo; maximum = (uint32_t)hi; found = 1;
+    }
+  }
+  if (found) { *out_min = minimum; *out_max = maximum; }
+  return found;
+}
+
 int m68k_ir_section_analysis_append_affine_address_evidence(M68kSectionAnalysisIR *section_analysis,
     const M68kAffineAddressEvidenceIR *evidence) {
   size_t index;
@@ -2739,7 +2777,8 @@ int m68k_ir_section_analysis_append_affine_address_evidence(M68kSectionAnalysisI
         existing->origin_offset == evidence->origin_offset &&
         existing->target_section_index == evidence->target_section_index &&
         existing->target_offset == evidence->target_offset &&
-        existing->signed_addend == evidence->signed_addend) {
+        existing->signed_addend == evidence->signed_addend &&
+        memcmp(&existing->loop_domain, &evidence->loop_domain, sizeof(evidence->loop_domain)) == 0) {
       return 0;
     }
   }

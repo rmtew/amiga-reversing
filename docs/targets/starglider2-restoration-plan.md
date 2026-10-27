@@ -23,7 +23,39 @@ boundaries. It records 67 suffix signals (including numeric adjacent variants),
 21 lookup contracts, 523 remaining interior references, 32 generic app fields
 and 682 unresolved record accesses. These are different denominators. Five
 suffixes name routines and one names text; neither is a pointer defect.
-Latest: the [tractor/asteroid resource branch](../../runtime/observations/starglider2-tractor-asteroid-resource.json)
+Latest: the [source-directory loop batch](../../runtime/observations/starglider2-source-header-loop-domains.json)
+reuses the native counter-relative worklist and shared affine values for bounded
+source-backed pointer directories. The 2/104-entry fixtures retain declared record
+types without inventing numeric candidates or raising the four-candidate limit.
+CPU write/code stability, aliases, partial/conflicting paths, nested retry and
+unknown-call negatives remain conservative. An unrelated overwritten source root
+no longer discards the directory cursor. The batch also fixes a reproduced stale
+LONG identity across DBF/conditional DBcc counter writes and preserves direct
+symbols for exact zero-stride loop operands without upgrading fallback evidence.
+The regenerated source exposes **109 existing canonical field names** where a
+blanket loop refusal previously left numeric displacements; these are recovered
+renderings, not109 newly established field meanings.
+
+**320 focused Python tests and 832 native C tests pass.** On Starglider the
+original header-loop induction now succeeds (17 nodes,16 transfers), adding a
+104-iteration stationary write footprint; a second stationary read gains a
+5-iteration footprint. Both retain conditional A6 fallback provenance. Counts
+remain **3412 app references /1563 typed /682 unresolved**, with **0 new/lost/
+changed typed coordinates**. No source-loop pointer type domain is admitted in
+the target: the physical A6 write frame and subsequent directory-entry contracts
+remain open. A paired 104-entry probe accepts a known disjoint A6 frame and
+refuses an unknown frame. These synthetic gains are not claimed as recovered
+original pointer values or newly understood model identities.
+
+Next: follow the original workspace-base producer and platform/display caller
+chain to localize missing physical A6 provenance, then validate the complete
+Header/HeaderAux directory contract. Do not replace that obligation with a
+per-reader seed or numerical-disjointness guess. Progress independent semantic
+leads if this boundary needs separate evidence; no larger candidate cap or new
+all-path proof programme. The selected-object sparse-cell chain remains open.
+Publication preserves this batch; it does not close restoration.
+
+Preceding: the [tractor/asteroid resource branch](../../runtime/observations/starglider2-tractor-asteroid-resource.json)
 connects the original type-73 guarded path to the existing Asteroid WORD24
 spin-step field. The original body doubles that word twice with WORD wrap,
 adds it to power/weapon/shield reserves and saturates on carry; a separate PRNG

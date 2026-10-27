@@ -6146,7 +6146,8 @@ int render_lookup_index_app_accesses(M68kRenderLookup *lookup) {
 
 /* Project per-site native qualification, retaining the distinction between
  * conditional fallback and converged register-state evidence. Cursor-relative
- * operands and loop footprints are not direct app-base displacements. */
+ * operands and moving loop footprints are not direct app-base displacements.
+ * A zero-stride loop with the exact zero-origin operand remains stationary. */
 static int lookup_recorded_app_base_access(const M68kRenderLookup *lookup, size_t section_index,
     uint32_t offset, uint8_t operand_index, uint8_t base_reg, int16_t displacement,
     uint8_t access_kind, uint8_t access_size, int *out_proven) {
@@ -6169,7 +6170,7 @@ static int lookup_recorded_app_base_access(const M68kRenderLookup *lookup, size_
     if (ref->base_reg != base_reg || ref->displacement != displacement ||
         ref->base_evidence_kind == M68K_APP_SLOT_BASE_UNSPECIFIED ||
         ref->access_kind != access_kind ||
-        ref->loop_iteration_count != 0U ||
+        (ref->loop_iteration_count != 0U && ref->loop_iteration_stride != 0) ||
         (ref->has_derived_base && (ref->access_size != access_size || ref->base_displacement != 0 ||
           ref->operand_displacement != displacement))) return 0;
     all_proven &= ref->base_evidence_kind == M68K_APP_SLOT_BASE_REGISTER_STATE;

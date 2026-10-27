@@ -43693,9 +43693,9 @@ abs_0_00033F18:
 	move.l d6,$000C(a1)
 	cmp.w d3,d7
 	bne.b abs_0_00033F54
-	move.l d4,$0704(a6)
-	move.l d5,$0708(a6)
-	move.l d6,$070C(a6)
+	move.l d4,player_world_x(a6)
+	move.l d5,player_world_y(a6)
+	move.l d6,player_world_z(a6)
 abs_0_00033F54:
 	move.l $C(a2,d1.w),d3
 	move.w d3,$0020(a1)
@@ -44771,10 +44771,10 @@ spawn_rebuilt_projector_part_loop:
 	add.w d0,d1
 	tst.b $0(a0,d1.w)
 	bpl.w abs_0_00034E72
-	movea.l $06D4(a6),a3
+	movea.l free_object_stack_cursor(a6),a3
 	movea.l -(a3),a4
-	move.l a3,$06D4(a6)
-	subq.w #1,$0772(a6)
+	move.l a3,free_object_stack_cursor(a6)
+	subq.w #1,free_object_count(a6)
     ; KNOWN: type A4=Target code-entry register seed:SG2ProjectorPart
 	move.w d4,(a4)	; operand 2: SG2ObjectCore_object_type at (a4)
 	move.l (a1)+,SG2ObjectCore_world_x(a4)
@@ -44786,19 +44786,19 @@ spawn_rebuilt_projector_part_loop:
 	move.b #$0,SG2WorldObject_vertex_variant_selector(a4)
     ; Original eight-template projector spawn starts at base frame and step0; negative network flag sets step1. Preserve original allocation, flag and valid-template assumptions.
 	move.b #$0,SG2ProjectorPart_network_animation_step(a4)
-	tst.b $0AA7(a6)
+	tst.b projector_network_complete_flag(a6)
 	bpl.b abs_0_00034E44
 	move.b #$1,SG2ProjectorPart_network_animation_step(a4)
 abs_0_00034E44:
-	move.l a4,$085A(a6)
-	move.w d4,$085E(a6)
+	move.l a4,growing_projector_part_reference(a6)
+	move.w d4,growing_projector_part_type(a6)
 	move.w #$0,SG2WorldObject_rotation_0(a4)
 	move.w #$0,SG2WorldObject_rotation_1(a4)
 	move.w #$0,SG2WorldObject_rotation_2(a4)
 	cmp.w #$4E,d4
 	bne.b abs_0_00034E74
-	move.l SG2ObjectCore_world_x(a4),$0872(a6)
-	move.l SG2ObjectCore_world_z(a4),$0876(a6)
+	move.l SG2ObjectCore_world_x(a4),projector_turret_world_x(a6)
+	move.l SG2ObjectCore_world_z(a4),projector_turret_world_z(a6)
 	bra.b abs_0_00034E74
 abs_0_00034E72:
 	addq.l #8,a1
@@ -46608,12 +46608,12 @@ abs_0_0003664E:
 	add.w d0,d1
 	tst.b $0(a0,d1.w)
 	bpl.w abs_0_000366E0
-	cmpi.w #1,$0772(a6)
+	cmpi.w #1,free_object_count(a6)
 	ble.w abs_0_000366E0
-	movea.l $06D4(a6),a3
+	movea.l free_object_stack_cursor(a6),a3
 	movea.l -(a3),a4
-	move.l a3,$06D4(a6)
-	subq.w #1,$0772(a6)
+	move.l a3,free_object_stack_cursor(a6)
+	subq.w #1,free_object_count(a6)
 	move.w d4,(a4)	; operand 2: SG2ObjectCore_object_type at (a4)
 	move.l (a1)+,SG2ObjectCore_world_x(a4)
 	move.l (a1)+,SG2ObjectCore_world_z(a4)
@@ -46624,7 +46624,7 @@ abs_0_0003664E:
 	move.b $0(a3,d4.w),$001D(a4)
 	move.b #$0,$0003(a4)
 	move.b #$0,$001F(a4)
-	tst.b $0AA7(a6)
+	tst.b projector_network_complete_flag(a6)
 	bpl.b abs_0_000366BA
 	move.b #$1,$001F(a4)
 abs_0_000366BA:
@@ -46633,8 +46633,8 @@ abs_0_000366BA:
 	move.w #$0,$0014(a4)
 	cmp.w #$4E,d4
 	bne.b abs_0_000366E2
-	move.l SG2ObjectCore_world_x(a4),$0872(a6)
-	move.l SG2ObjectCore_world_z(a4),$0876(a6)
+	move.l SG2ObjectCore_world_x(a4),projector_turret_world_x(a6)
+	move.l SG2ObjectCore_world_z(a4),projector_turret_world_z(a6)
 	bra.b abs_0_000366E2
 abs_0_000366E0:
 	addq.l #8,a1
@@ -60437,38 +60437,38 @@ initialize_nearby_point_field:
 	lea.l point_field_world_positions(a6),a4
 	lea.l $0078(a4),a5
 abs_0_0004DFD4:
-	move.l $0060(a6),d0
-	move.l $0064(a6),d1
+	move.l shared_random_state_a(a6),d0
+	move.l shared_random_state_b(a6),d1
 	rol.l #3,d0
 	subq.w #7,d0
 	eor.w d1,d0
-	move.l d1,$0060(a6)
-	move.l d0,$0064(a6)
+	move.l d1,shared_random_state_a(a6)
+	move.l d0,shared_random_state_b(a6)
 	andi.w #16383,d0
 	subi.w #8192,d0
-	add.l $0704(a6),d0
+	add.l player_world_x(a6),d0
 	move.w d0,(a4)+
-	move.l $0060(a6),d0
-	move.l $0064(a6),d1
+	move.l shared_random_state_a(a6),d0
+	move.l shared_random_state_b(a6),d1
 	rol.l #3,d0
 	subq.w #7,d0
 	eor.w d1,d0
-	move.l d1,$0060(a6)
-	move.l d0,$0064(a6)
+	move.l d1,shared_random_state_a(a6)
+	move.l d0,shared_random_state_b(a6)
 	andi.w #16383,d0
 	subi.w #8192,d0
-	add.l $0708(a6),d0
+	add.l player_world_y(a6),d0
 	move.w d0,(a4)+
-	move.l $0060(a6),d0
-	move.l $0064(a6),d1
+	move.l shared_random_state_a(a6),d0
+	move.l shared_random_state_b(a6),d1
 	rol.l #3,d0
 	subq.w #7,d0
 	eor.w d1,d0
-	move.l d1,$0060(a6)
-	move.l d0,$0064(a6)
+	move.l d1,shared_random_state_a(a6)
+	move.l d0,shared_random_state_b(a6)
 	andi.w #16383,d0
 	subi.w #8192,d0
-	add.l $070C(a6),d0
+	add.l player_world_z(a6),d0
 	move.w d0,(a4)+
 	clr.l (a5)+
 	clr.w (a5)+
@@ -60499,52 +60499,52 @@ abs_0_0004E0A6:
 abs_0_0004E0AC:
 	move.b #$8,diagnostic_step_byte.l
 	movem.w (a4)+,d1-d3
-	sub.l $0704(a6),d1
-	sub.l $0708(a6),d2
-	sub.l $070C(a6),d3
+	sub.l player_world_x(a6),d1
+	sub.l player_world_y(a6),d2
+	sub.l player_world_z(a6),d3
 	move.b #$15,diagnostic_step_byte.l
-	move.w $0112(a6),d4
+	move.w view_rotation_matrix+SG2RotationMatrixWords_m20(a6),d4
 	muls.w d1,d4
 	asl.l #2,d4
 	swap.w d4
-	move.w $0114(a6),d5
+	move.w view_rotation_matrix+SG2RotationMatrixWords_m21(a6),d5
 	muls.w d2,d5
 	asl.l #2,d5
 	swap.w d5
 	add.w d5,d4
-	move.w $0116(a6),d5
+	move.w view_rotation_matrix+SG2RotationMatrixWords_m22(a6),d5
 	muls.w d3,d5
 	asl.l #2,d5
 	swap.w d5
 	add.w d5,d4
 	move.w d4,$0054(a6)
 	move.b #$17,diagnostic_step_byte.l
-	move.w $0106(a6),d4
+	move.w view_rotation_matrix(a6),d4
 	muls.w d1,d4
 	asl.l #2,d4
 	swap.w d4
-	move.w $0108(a6),d5
+	move.w view_rotation_matrix+SG2RotationMatrixWords_m01(a6),d5
 	muls.w d2,d5
 	asl.l #2,d5
 	swap.w d5
 	add.w d5,d4
-	move.w $010A(a6),d5
+	move.w view_rotation_matrix+SG2RotationMatrixWords_m02(a6),d5
 	muls.w d3,d5
 	asl.l #2,d5
 	swap.w d5
 	add.w d5,d4
 	move.w d4,$012C(a6)
 	move.b #$18,diagnostic_step_byte.l
-	move.w $010C(a6),d4
+	move.w view_rotation_matrix+SG2RotationMatrixWords_m10(a6),d4
 	muls.w d1,d4
 	asl.l #2,d4
 	swap.w d4
-	move.w $010E(a6),d5
+	move.w view_rotation_matrix+SG2RotationMatrixWords_m11(a6),d5
 	muls.w d2,d5
 	asl.l #2,d5
 	swap.w d5
 	add.w d5,d4
-	move.w $0110(a6),d5
+	move.w view_rotation_matrix+SG2RotationMatrixWords_m12(a6),d5
 	muls.w d3,d5
 	asl.l #2,d5
 	swap.w d5
@@ -60563,7 +60563,7 @@ abs_0_0004E0AC:
 	ext.l d3
 	tst.w d4
 	beq.w abs_0_0004E298
-	cmpi.w #500,$0A74(a6)
+	cmpi.w #500,stardrive_speed_addend(a6)
 	bmi.w abs_0_0004E298
 	movem.w d4-d6,-(a7)
 	cmp.w #$80,d3
@@ -60576,22 +60576,22 @@ abs_0_0004E0AC:
 	divs.w d3,d1
 	divs.w d3,d2
 abs_0_0004E1A4:
-	add.w $0194(a6),d1
-	add.w $0196(a6),d2
+	add.w projection_screen_origin_x(a6),d1
+	add.w projection_screen_origin_y(a6),d2
 	clr.b d3
-	cmp.w $00E4(a6),d1
+	cmp.w view_clip_min_x(a6),d1
 	bge.b abs_0_0004E1B6
 	addq.b #1,d3
 abs_0_0004E1B6:
-	cmp.w $00E6(a6),d1
+	cmp.w view_clip_max_x(a6),d1
 	ble.b abs_0_0004E1BE
 	addq.b #2,d3
 abs_0_0004E1BE:
-	cmp.w $00E8(a6),d2
+	cmp.w view_clip_min_y(a6),d2
 	bge.b abs_0_0004E1C6
 	addq.b #4,d3
 abs_0_0004E1C6:
-	cmp.w $00EA(a6),d2
+	cmp.w view_clip_max_y(a6),d2
 	ble.b abs_0_0004E1CE
 	addq.b #8,d3
 abs_0_0004E1CE:
@@ -60605,24 +60605,24 @@ abs_0_0004E1CE:
 	divs.w d6,d4
 	divs.w d6,d5
 abs_0_0004E1E6:
-	add.w $0194(a6),d4
-	add.w $0196(a6),d5
-	cmp.w $00E4(a6),d4
+	add.w projection_screen_origin_x(a6),d4
+	add.w projection_screen_origin_y(a6),d5
+	cmp.w view_clip_min_x(a6),d4
 	bge.b abs_0_0004E1FC
 	bset #0,d3
 	bne.w abs_0_0004E348
 abs_0_0004E1FC:
-	cmp.w $00E6(a6),d4
+	cmp.w view_clip_max_x(a6),d4
 	ble.b abs_0_0004E20A
 	bset #1,d3
 	bne.w abs_0_0004E348
 abs_0_0004E20A:
-	cmp.w $00E8(a6),d5
+	cmp.w view_clip_min_y(a6),d5
 	bge.b abs_0_0004E218
 	bset #2,d3
 	bne.w abs_0_0004E348
 abs_0_0004E218:
-	cmp.w $00EA(a6),d5
+	cmp.w view_clip_max_y(a6),d5
 	ble.b abs_0_0004E226
 	bset #3,d3
 	bne.w abs_0_0004E348
@@ -60638,9 +60638,9 @@ abs_0_0004E234:
 	asr.w #8,d3
 	asr.w #3,d3
 	andi.w #14,d3
-	cmpi.w #1,$0830(a6)
+	cmpi.w #1,selected_celestial_body_index(a6)
 	ble.b abs_0_0004E258
-	cmpi.w #5,$0830(a6)
+	cmpi.w #5,selected_celestial_body_index(a6)
 	bne.b abs_0_0004E252
 	lea.l abs_0_0004E588(pc),a0
 	bra.b abs_0_0004E25C
@@ -60676,44 +60676,44 @@ abs_0_0004E298:
 	divs.w d3,d1
 	divs.w d3,d2
 abs_0_0004E2B0:
-	add.w $0194(a6),d1
-	add.w $0196(a6),d2
-	cmp.w $00E4(a6),d1
+	add.w projection_screen_origin_x(a6),d1
+	add.w projection_screen_origin_y(a6),d2
+	cmp.w view_clip_min_x(a6),d1
 	blt.w abs_0_0004E350
-	cmp.w $00E6(a6),d1
+	cmp.w view_clip_max_x(a6),d1
 	bgt.w abs_0_0004E350
-	cmp.w $00E8(a6),d2
+	cmp.w view_clip_min_y(a6),d2
 	blt.w abs_0_0004E350
-	cmp.w $00EA(a6),d2
+	cmp.w view_clip_max_y(a6),d2
 	bgt.b abs_0_0004E350
 	move.b #$14,diagnostic_step_byte.l
-	movea.l $0000(a6),a0
+	movea.l draw_buffer_base.w(a6),a0
 	add.w d2,d2
 	adda.w $0(a1,d2.w),a0
 	add.w d1,d1
 	adda.w $0(a3,d1.w),a0
 	move.w $0(a5,d1.w),d2
-	move.w $01A2(a6),d1
+	move.w point_field_plane_byte_stride(a6),d1
 	not.w d2
-	cmpi.w #500,$0A74(a6)
+	cmpi.w #500,stardrive_speed_addend(a6)
 	bpl.b abs_0_0004E302
 	and.w d2,(a0)
 abs_0_0004E302:
 	lea.l $0(a0,d1.w),a0
 	move.l a0,d3
 	lea.l $0(a0,d1.w),a0
-	cmpi.w #500,$0A74(a6)
+	cmpi.w #500,stardrive_speed_addend(a6)
 	bpl.b abs_0_0004E316
 	and.w d2,(a0)
 abs_0_0004E316:
 	lea.l $0(a0,d1.w),a0
-	cmpi.w #500,$0A74(a6)
+	cmpi.w #500,stardrive_speed_addend(a6)
 	bpl.b abs_0_0004E324
 	and.w d2,(a0)
 abs_0_0004E324:
 	not.w d2
 	movea.l d3,a0
-	cmpi.w #500,$0A74(a6)
+	cmpi.w #500,stardrive_speed_addend(a6)
 	bpl.b abs_0_0004E332
 	or.w d2,(a0)
 abs_0_0004E332:
@@ -60733,65 +60733,65 @@ abs_0_0004E34C:
 abs_0_0004E350:
 	subq.l #6,abs_0_0004E5C0.l
 	move.b #$13,diagnostic_step_byte.l
-	move.l $0060(a6),d0
-	move.l $0064(a6),d1
+	move.l shared_random_state_a(a6),d0
+	move.l shared_random_state_b(a6),d1
 	rol.l #3,d0
 	subq.w #7,d0
 	eor.w d1,d0
-	move.l d1,$0060(a6)
-	move.l d0,$0064(a6)
+	move.l d1,shared_random_state_a(a6)
+	move.l d0,shared_random_state_b(a6)
 	andi.w #32767,d0
 	subi.w #16384,d0
 	move.w d0,d1
-	add.l $0708(a6),d0
+	add.l player_world_y(a6),d0
 	move.w d0,$0054(a6)
 	move.w d0,-$0004(a4)
-	move.w $0746(a6),d1
+	move.w player_rotation_1(a6),d1
 	add.w d1,d1
-	movea.l $0044(a6),a0
-	move.w $0(a0,d1.w),$0168(a6)
-	movea.l $0048(a6),a0
-	move.w $0(a0,d1.w),$016A(a6)
-	move.l $0060(a6),d0
-	move.l $0064(a6),d1
+	movea.l sine_lookup_pointer(a6),a0
+	move.w $0(a0,d1.w),trig_sine_scratch_1(a6)
+	movea.l cosine_lookup_pointer(a6),a0
+	move.w $0(a0,d1.w),trig_cosine_scratch_1(a6)
+	move.l shared_random_state_a(a6),d0
+	move.l shared_random_state_b(a6),d1
 	rol.l #3,d0
 	subq.w #7,d0
 	eor.w d1,d0
-	move.l d1,$0060(a6)
-	move.l d0,$0064(a6)
+	move.l d1,shared_random_state_a(a6)
+	move.l d0,shared_random_state_b(a6)
 	andi.w #32767,d0
 	subi.w #16384,d0
 	move.w d0,d3
-	move.l $0060(a6),d0
-	move.l $0064(a6),d1
+	move.l shared_random_state_a(a6),d0
+	move.l shared_random_state_b(a6),d1
 	rol.l #3,d0
 	subq.w #7,d0
 	eor.w d1,d0
-	move.l d1,$0060(a6)
-	move.l d0,$0064(a6)
+	move.l d1,shared_random_state_a(a6)
+	move.l d0,shared_random_state_b(a6)
 	andi.w #32767,d0
 	subi.w #16384,d0
 	move.w d0,d1
 	move.w d1,d4
-	muls.w $016A(a6),d4
+	muls.w trig_cosine_scratch_1(a6),d4
 	asl.l #2,d4
 	swap.w d4
 	move.w d3,d6
-	muls.w $0168(a6),d6
+	muls.w trig_sine_scratch_1(a6),d6
 	asl.l #2,d6
 	swap.w d6
 	add.w d6,d4
 	move.w d3,d5
-	muls.w $016A(a6),d5
+	muls.w trig_cosine_scratch_1(a6),d5
 	asl.l #2,d5
 	swap.w d5
 	move.w d1,d6
-	muls.w $0168(a6),d6
+	muls.w trig_sine_scratch_1(a6),d6
 	asl.l #2,d6
 	swap.w d6
 	sub.w d6,d5
-	add.l $0704(a6),d4
-	add.l $070C(a6),d5
+	add.l player_world_x(a6),d4
+	add.l player_world_z(a6),d5
 	move.w d4,-$0006(a4)
 	move.w d5,-$0002(a4)
 	movea.l abs_0_0004E5C0.l,a0
@@ -60826,24 +60826,24 @@ abs_0_0004E480:
 	divs.w d3,d1
 	divs.w d3,d2
 abs_0_0004E4D6:
-	add.w $0194(a6),d1
-	add.w $0196(a6),d2
-	cmp.w $00E4(a6),d1
+	add.w projection_screen_origin_x(a6),d1
+	add.w projection_screen_origin_y(a6),d2
+	cmp.w view_clip_min_x(a6),d1
 	bpl.b abs_0_0004E4EC
-	move.w $00E4(a6),d1
+	move.w view_clip_min_x(a6),d1
 	bra.w abs_0_0004E350
 abs_0_0004E4EC:
-	cmp.w $00E6(a6),d1
+	cmp.w view_clip_max_x(a6),d1
 	bmi.b abs_0_0004E4FA
 	bra.w abs_0_0004E350
 	dc.b $32,$2E,$00,$E6
 abs_0_0004E4FA:
-	cmp.w $00E8(a6),d2
+	cmp.w view_clip_min_y(a6),d2
 	bpl.b abs_0_0004E508
 	bra.w abs_0_0004E350
 	dc.b $34,$2E,$00,$E8
 abs_0_0004E508:
-	cmp.w $00EA(a6),d2
+	cmp.w view_clip_max_y(a6),d2
 	bmi.b abs_0_0004E516
 	bra.w abs_0_0004E350
 	dc.b $34,$2E,$00,$EA
@@ -60857,23 +60857,23 @@ abs_0_0004E516:
 	divs.w d6,d4
 	divs.w d6,d5
 abs_0_0004E52C:
-	add.w $0194(a6),d4
-	add.w $0196(a6),d5
-	cmp.w $00E4(a6),d4
+	add.w projection_screen_origin_x(a6),d4
+	add.w projection_screen_origin_y(a6),d5
+	cmp.w view_clip_min_x(a6),d4
 	bpl.b abs_0_0004E542
 	bra.w abs_0_0004E350
 	dc.b $38,$2E,$00,$E4
 abs_0_0004E542:
-	cmp.w $00E6(a6),d4
+	cmp.w view_clip_max_x(a6),d4
 	bmi.b abs_0_0004E550
 	bra.w abs_0_0004E350
 	dc.b $38,$2E,$00,$E6
 abs_0_0004E550:
-	cmp.w $00E8(a6),d5
+	cmp.w view_clip_min_y(a6),d5
 	bpl.b abs_0_0004E55A
 	bra.w abs_0_0004E350
 abs_0_0004E55A:
-	cmp.w $00EA(a6),d5
+	cmp.w view_clip_max_y(a6),d5
 	bmi.b abs_0_0004E568
 	bra.w abs_0_0004E350
 	dc.b $3A,$2E,$00,$EA

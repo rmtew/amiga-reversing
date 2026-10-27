@@ -3048,6 +3048,8 @@ static int append_affine_static_interior_address_expressions(M68kSourceAnalysisI
       const M68kAnalysisStructuredDataItem *item;
       M68kAddressExpressionIR expression;
       uint32_t expected_target;
+      /* A loop envelope must never become a constant replacement operand. */
+      if (evidence->loop_domain.state) continue;
       if (evidence->consumer_section_index != consumer_section->section_index ||
           evidence->origin_section_index != evidence->target_section_index ||
           !source_quality_add_signed_offset(evidence->origin_offset, evidence->signed_addend, &expected_target) ||

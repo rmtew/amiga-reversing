@@ -1850,7 +1850,8 @@ typedef enum M68kAddressValueResolutionKind {
   M68K_ADDRESS_VALUE_RESOLUTION_OUTSIDE_KNOWN_ADDRESS_SPACE = 5,
   M68K_ADDRESS_VALUE_RESOLUTION_TYPE_CONFLICT = 6,
   M68K_ADDRESS_VALUE_RESOLUTION_FINITE_CANDIDATE_TARGETS = 7,
-  M68K_ADDRESS_VALUE_RESOLUTION_CANDIDATE_OVERFLOW = 8
+  M68K_ADDRESS_VALUE_RESOLUTION_CANDIDATE_OVERFLOW = 8,
+  M68K_ADDRESS_VALUE_RESOLUTION_TYPE_DOMAIN = 9
 } M68kAddressValueResolutionKind;
 
 /* This records the typed destination that establishes address intent.  App
@@ -1871,7 +1872,8 @@ typedef enum M68kAddressValueTerminalKind {
   M68K_ADDRESS_VALUE_TERMINAL_INVALID = 4,
   M68K_ADDRESS_VALUE_TERMINAL_NO_PROVEN_TRANSFER_CONTRACT = 5,
   M68K_ADDRESS_VALUE_TERMINAL_UNREPRESENTABLE = 6,
-  M68K_ADDRESS_VALUE_TERMINAL_CANDIDATE_OVERFLOW = 7
+  M68K_ADDRESS_VALUE_TERMINAL_CANDIDATE_OVERFLOW = 7,
+  M68K_ADDRESS_VALUE_TERMINAL_TYPE_DOMAIN = 8
 } M68kAddressValueTerminalKind;
 
 typedef enum M68kAddressValueRenderOutcome {
@@ -2007,7 +2009,8 @@ typedef enum M68kAddressValueTableSelectionKind {
   M68K_ADDRESS_VALUE_TABLE_SELECTION_NONE = 0,
   M68K_ADDRESS_VALUE_TABLE_SELECTION_SINGLETON = 1,
   M68K_ADDRESS_VALUE_TABLE_SELECTION_FINITE = 2,
-  M68K_ADDRESS_VALUE_TABLE_SELECTION_TERMINAL = 3
+  M68K_ADDRESS_VALUE_TABLE_SELECTION_TERMINAL = 3,
+  M68K_ADDRESS_VALUE_TABLE_SELECTION_BOUNDED_SOURCE_CURSOR = 4
 } M68kAddressValueTableSelectionKind;
 
 const char *m68k_address_value_table_selection_name(uint8_t selection_kind);
@@ -2432,6 +2435,20 @@ typedef struct M68kAddressExpressionIR {
  * owned source range.  Keeping that boundary explicit prevents typed flow
  * from guessing range ownership and prevents rendering from rediscovering
  * arithmetic. */
+/* A loop envelope is an admission proof, not an exact loaded address. It is
+ * attached only after the shared CFG induction and full span checks succeed. */
+typedef struct M68kAffineLoopDomainIR {
+  uint32_t header_offset;
+  uint32_t tail_offset;
+  uint32_t iteration_count;
+  int32_t iteration_stride;
+  uint32_t access_width;
+  uint8_t state; /* 0: scalar, 1: proved loop envelope, 2: conflicting proofs. */
+  uint8_t counter_register;
+  uint8_t access_kind;
+  uint8_t reserved;
+} M68kAffineLoopDomainIR;
+
 typedef struct M68kAffineAddressEvidenceIR {
   uint32_t consumer_section_index;
   uint32_t consumer_offset;
@@ -2443,6 +2460,7 @@ typedef struct M68kAffineAddressEvidenceIR {
   uint8_t operand_index;
   uint8_t base_register;
   uint8_t reserved[2];
+  M68kAffineLoopDomainIR loop_domain;
 } M68kAffineAddressEvidenceIR;
 
 typedef enum M68kTableEntryTargetStatus {
@@ -3225,6 +3243,10 @@ int m68k_ir_section_analysis_append_address_value(M68kSectionAnalysisIR *section
     const M68kAddressValueIR *address_value);
 /* Bind only already-proven pointer-table descriptors/entries to existing
  * address-value consumers. This never discovers or classifies table data. */
+/* 1: unique native loop envelope, 0: absent/conflicting/invalid. Returns byte
+ * offsets relative to the table, not numeric loaded-pointer candidates. */
+int m68k_ir_source_analysis_pointer_loop_domain(const M68kSourceAnalysisIR *analysis,
+    const M68kAddressValueIR *value, uint32_t *out_min, uint32_t *out_max);
 int m68k_source_analysis_bind_address_value_table_contracts(M68kSourceAnalysisIR *source_analysis);
 int m68k_ir_section_analysis_append_platform_address_use(M68kSectionAnalysisIR *section_analysis,
     const M68kPlatformAddressUseIR *use);

@@ -8461,6 +8461,17 @@
           "target_offset": null,
           "operand_index": 0,
           "comment_only": false
+        },
+        {
+          "section_index": 0,
+          "offset": 316314,
+          "symbol_name": "cosine_lookup_pointer",
+          "access_kind_id": 3,
+          "access_kind": "operand",
+          "target_section_index": null,
+          "target_offset": null,
+          "operand_index": 0,
+          "comment_only": false
         }
       ],
       "exported_definition": false
@@ -10105,6 +10116,17 @@
         {
           "section_index": 0,
           "offset": 248290,
+          "symbol_name": "draw_buffer_base",
+          "access_kind_id": 3,
+          "access_kind": "operand",
+          "target_section_index": null,
+          "target_offset": null,
+          "operand_index": 0,
+          "comment_only": false
+        },
+        {
+          "section_index": 0,
+          "offset": 316126,
           "symbol_name": "draw_buffer_base",
           "access_kind_id": 3,
           "access_kind": "operand",
@@ -18626,6 +18648,17 @@
         {
           "section_index": 0,
           "offset": 221836,
+          "symbol_name": "sine_lookup_pointer",
+          "access_kind_id": 3,
+          "access_kind": "operand",
+          "target_section_index": null,
+          "target_offset": null,
+          "operand_index": 0,
+          "comment_only": false
+        },
+        {
+          "section_index": 0,
+          "offset": 316304,
           "symbol_name": "sine_lookup_pointer",
           "access_kind_id": 3,
           "access_kind": "operand",
@@ -49204,9 +49237,9 @@
     "Native rendered accesses describe the inline export. exported_definition checks the selected source; INCBIN packaging may intentionally hide internal boundaries."
   ],
   "input_sha256": {
-    "analysis": "d431b10df542783395e1edf9a63ed941e2f36496dae026837f39cbd6e747b7e4",
+    "analysis": "bb68a7b9d7f484d1dab49f135b57b191e466a2cf6907d3f559d81594b497f128",
     "metadata": "a34121e7faae45e75fbd6695498b403185b27277e96f0b881abfb5da897276ad",
-    "source": "486b0b1cf178f85fcfc02ad71a0cfdea991828ce2136c8515c285ac57e488863"
+    "source": "e66a355eb75d65bdebab49ab41da206d913d4fdff46d7a73b52dcbad4bcba41e"
   },
   "input_binding": "Caller supplies matching retained artifacts. Hashes identify inputs; discovery is not an independent correspondence/admission proof."
 }

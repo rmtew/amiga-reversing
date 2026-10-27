@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
   "kind": "committed_native_rendered_original_export",
-  "canonical_source_commit": "6cfd936ab66b618a3d65dbbbf47a84eb0080b039",
-  "publication_base_commit": "6cfd936ab66b618a3d65dbbbf47a84eb0080b039",
+  "canonical_source_commit": "b0f7d8c12cf792a355d57c4852dac8e755cefe18",
+  "publication_base_commit": "b0f7d8c12cf792a355d57c4852dac8e755cefe18",
   "native_export": "CListingArtifact.source_package_payload(64)",
-  "main_source_sha256": "5921d334190248fa22a70f35fe94df7d7963944701cb3c0af8b937313634db83",
+  "main_source_sha256": "f580464cdbd99cda93f20d2c91188f65b01c6a281f1a023286925c2b56009179",
   "asset_count": 57,
   "asset_bytes": 93633,
   "game_assembly_hand_edits": false,
@@ -25,14 +25,14 @@
     "paused Pandora work"
   ],
   "canonical_source_commit_role": "publication base; unchanged canonical annotations and shared fixes in this batch are bound by canonical_fact_sha256 and the refinement receipt",
-  "canonical_source_subject_revision": "093e8adab0fd88e74a0171ee1673d56c4139594ad6f9af7211e01e4e400bb6ea",
+  "canonical_source_subject_revision": "3819671d76ef4776051b511d04cd8f828027d86a677380adb0eda160dc4d3b16",
   "canonical_fact_sha256": {
     "source_binary.json": "42d4a5758b3e8236af7f912aee85e9ee5323bcd0961faa338c4f864080a0a7d9",
     "target_metadata.json": "e7540b68c118c56aba8815b6722eefa067517cc865fe9841d6c01ce96551389c",
     "manual_actions.jsonl": "022dd6cfa16db49ea03e8a7c5ad65f24ac3f5d31e9ca0ebce48673af66ea77d2",
     "decision_journal.jsonl": "1e4d4abf1a65744548c33df1cc2757ed846ed77c67bce69c13d6e0b4dc8200de"
   },
-  "refinement_receipt": "runtime/observations/starglider2-tractor-asteroid-resource.json",
+  "refinement_receipt": "runtime/observations/starglider2-source-header-loop-domains.json",
   "headers": "14 unmodified required include files collected by source_package.collect_package_includes from ext/amiga_includes/ndk_2.0/include; header notices retained",
   "decoded_protection_view": {
     "target_id": "amiga_raw_starglider2_protection_view",

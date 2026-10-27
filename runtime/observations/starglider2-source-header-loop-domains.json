@@ -1,0 +1,479 @@
+{
+  "schema_version": 1,
+  "kind": "native_bounded_source_cursor_type_domains",
+  "status": "qualified_framework_batch_restoration_continues",
+  "publication_base_commit": "b0f7d8c12cf792a355d57c4852dac8e755cefe18",
+  "canonical_actions_added": 0,
+  "inputs": {
+    "analysis.json": "bb68a7b9d7f484d1dab49f135b57b191e466a2cf6907d3f559d81594b497f128",
+    "effective-metadata.json": "a34121e7faae45e75fbd6695498b403185b27277e96f0b881abfb5da897276ad",
+    "inline.s": "e66a355eb75d65bdebab49ab41da206d913d4fdff46d7a73b52dcbad4bcba41e",
+    "source-package.json": "51e634a36c1a5657842772365b2e21ea650715ed0a6e9f367588c6e39b724b53"
+  },
+  "backend_sha256": "457ff6e685a00f0dd88dfacc483f5bc14067456fc597862ea6f1b39b27eea30a",
+  "mechanisms": [
+    "Reuse the counter-relative CFG worklist, shared affine entry identities and decoded register/memory footprints for source-backed directory cursors; nested DBF uses the same conservative joins rather than enumerating path/iteration combinations.",
+    "Keep type domains separate from exact pointer packets. A native loop envelope validates every covered pointer entry against canonical source ownership and a compatible declared record view. It carries zero numeric candidates, no inline pointer expression, and no changed four-candidate cap.",
+    "Reuse one canonical source-record view resolver for compact packed arrays and expanded record fields; conflicting, null, interior, code-overlapping and incompatible targets do not acquire the directory type.",
+    "CPU writes must be disjoint from the directory envelope and every instruction used by the proof. Known carried source/raw address roots and decoded spans include 24-bit bus aliases; unknown writes/calls and wrapping envelopes refuse. Losing an unrelated old source register no longer discards an otherwise valid directory cursor; a write through a lost pointer still refuses.",
+    "The shared decoded register-write mask now includes the conditional low-WORD DBcc counter write. A DBF/DBNE cannot retain an unchanged LONG address identity. The prior stale-identity assertion fails on the old implementation and passes on this one.",
+    "A stationary zero-stride loop keeps direct app symbols only when the original base displacement is zero and the original operand/access width matches. Moving/interior loops still cannot borrow a direct-base symbol; fallback provenance is not promoted to a proved base."
+  ],
+  "before_after": {
+    "app_slot_ref_count": [
+      3412,
+      3412
+    ],
+    "recovered_platform_typed_access_count": [
+      1563,
+      1563
+    ],
+    "recovered_platform_unresolved_typed_access_count": [
+      682,
+      682
+    ]
+  },
+  "projection": {
+    "new_typed_coordinates": 0,
+    "lost_typed_coordinates": 0,
+    "changed_existing_coordinates": 0,
+    "app_footprint_upgrades": [
+      {
+        "before": {
+          "offset": 14834,
+          "displacement": 372,
+          "base_register": "A6",
+          "operand_index": 1,
+          "access": "write",
+          "base_evidence": "declared_layout_a6_fallback",
+          "symbol_name": "app_0174"
+        },
+        "after": {
+          "offset": 14834,
+          "displacement": 372,
+          "base_register": "A6",
+          "operand_index": 1,
+          "access": "write",
+          "base_evidence": "declared_layout_a6_fallback",
+          "loop_iteration_count": 104,
+          "loop_iteration_stride": 0,
+          "loop_header_offset": 14832,
+          "loop_tail_offset": 14882,
+          "loop_counter_register": "D4",
+          "derived": true,
+          "base_displacement": 0,
+          "operand_displacement": 372,
+          "data_access_size": 2,
+          "element_width": 2,
+          "transfer_count": 1,
+          "symbol_name": "app_0174"
+        }
+      },
+      {
+        "before": {
+          "offset": 241162,
+          "displacement": 498,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "read",
+          "base_evidence": "a6_fallback",
+          "symbol_name": "app_01F2"
+        },
+        "after": {
+          "offset": 241162,
+          "displacement": 498,
+          "base_register": "A6",
+          "operand_index": 0,
+          "access": "read",
+          "base_evidence": "a6_fallback",
+          "loop_iteration_count": 5,
+          "loop_iteration_stride": 0,
+          "loop_header_offset": 241144,
+          "loop_tail_offset": 241214,
+          "loop_counter_register": "D4",
+          "derived": true,
+          "base_displacement": 0,
+          "operand_displacement": 498,
+          "data_access_size": 1,
+          "element_width": 1,
+          "transfer_count": 1,
+          "symbol_name": "app_01F2"
+        }
+      }
+    ],
+    "native_source_loop_type_domains": 0,
+    "stationary_operand_symbol_renderings": {
+      "count": 109,
+      "examples": [
+        {
+          "before": "move.l d4,$0704(a6)",
+          "after": "move.l d4,player_world_x(a6)"
+        },
+        {
+          "before": "move.l d5,$0708(a6)",
+          "after": "move.l d5,player_world_y(a6)"
+        },
+        {
+          "before": "move.l d6,$070C(a6)",
+          "after": "move.l d6,player_world_z(a6)"
+        },
+        {
+          "before": "movea.l $06D4(a6),a3",
+          "after": "movea.l free_object_stack_cursor(a6),a3"
+        },
+        {
+          "before": "move.l a3,$06D4(a6)",
+          "after": "move.l a3,free_object_stack_cursor(a6)"
+        },
+        {
+          "before": "subq.w #1,$0772(a6)",
+          "after": "subq.w #1,free_object_count(a6)"
+        },
+        {
+          "before": "tst.b $0AA7(a6)",
+          "after": "tst.b projector_network_complete_flag(a6)"
+        },
+        {
+          "before": "move.l a4,$085A(a6)",
+          "after": "move.l a4,growing_projector_part_reference(a6)"
+        },
+        {
+          "before": "move.w d4,$085E(a6)",
+          "after": "move.w d4,growing_projector_part_type(a6)"
+        },
+        {
+          "before": "move.l SG2ObjectCore_world_x(a4),$0872(a6)",
+          "after": "move.l SG2ObjectCore_world_x(a4),projector_turret_world_x(a6)"
+        },
+        {
+          "before": "move.l SG2ObjectCore_world_z(a4),$0876(a6)",
+          "after": "move.l SG2ObjectCore_world_z(a4),projector_turret_world_z(a6)"
+        },
+        {
+          "before": "cmpi.w #1,$0772(a6)",
+          "after": "cmpi.w #1,free_object_count(a6)"
+        }
+      ],
+      "mechanism": "Existing canonical field facts now remain visible at exact zero-origin, zero-stride loop operands. No new field meaning/type is claimed."
+    }
+  },
+  "validation": {
+    "focused_python_tests": {
+      "passed": 320,
+      "failed": 0,
+      "seconds": 17.36,
+      "command": "pytest -q tests/test_source_pointer_loop_domain.py tests/test_affine_entry_value.py tests/test_counter_relative_app_ranges.py tests/test_app_cursor_counted_loop.py tests/test_app_loop_entry_join.py tests/test_app_storage_cells.py tests/test_typed_pointer_domains.py tests/test_typed_flow_join.py tests/test_direct_call_entry_inputs.py tests/test_typed_memory_footprint_widths.py tests/test_pointer_table_read_footprints.py tests/test_app_cursor_memory_span.py tests/test_typed_conflict_unknown_join.py tests/test_typed_postincrement_cursor.py tests/test_app_cursor_propagation.py tests/test_direct_body_call_identity.py tests/test_custom_prefix_inheritance.py tests/test_converged_app_rendering.py"
+    },
+    "native_c_tests": {
+      "passed": 832,
+      "failed": 0
+    },
+    "original_verification": {
+      "kind": "verification",
+      "framework_exact": true,
+      "target_id": "amiga_raw_starglider2_game",
+      "subject_revision": "3819671d76ef4776051b511d04cd8f828027d86a677380adb0eda160dc4d3b16",
+      "status": "exact",
+      "exact": true,
+      "source_sha256": "e66a355eb75d65bdebab49ab41da206d913d4fdff46d7a73b52dcbad4bcba41e",
+      "source_path": "/workspace/pandora-original-delivery/stable-d15c2cf8/.runtime-state/restoration/eb04f545fb97451725a1c91ab5abf6f2e097614c45880db6edfb4ea5c3f6e2c2/e66a355eb75d65bdebab49ab41da206d913d4fdff46d7a73b52dcbad4bcba41e.s",
+      "source_package_sha256": null,
+      "original_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+      "original_size": 412736,
+      "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+      "rebuilt_path": "/workspace/pandora-original-delivery/stable-d15c2cf8/.runtime-state/restoration/eb04f545fb97451725a1c91ab5abf6f2e097614c45880db6edfb4ea5c3f6e2c2/662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9.bin",
+      "framework_status": "exact",
+      "failure_kinds": [],
+      "message": "",
+      "oracle": {
+        "oracle_id": "vasm",
+        "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+        "comparison_level": "oracle.full_file_match",
+        "assembler_status": "accepted",
+        "message": "oracle output matched original bytes"
+      },
+      "receipt_id": "3f447b5a5095f364cc8a39734d37a7e2eb560c63e0139baf293af7008314ecbe",
+      "revision": "1b8df3ba733793254ea86fdbba643deb508ce9325e72c5d556e2fb5e3e184d57"
+    },
+    "source_loop_cases": {
+      "cases": 31,
+      "positive": "Straight-line, two/104-entry DBF, duplicate aliases, disjoint absolute/source/known raw-frame writes, nested retry, equal-stride rollback and unrelated overwritten source roots.",
+      "negative": "Unknown/overrun/unaligned selection, null/heterogeneous entries, unknown calls/writes, directory/code/bus aliases, late-iteration overlap, extra entries, unequal paths, nested cursor/counter conflicts and lost write pointers."
+    },
+    "state_storage": "No new typed-flow per-node arrays. Existing sparse packets and affine entry IDs; additional roots are transient per proof and loop-domain facts are per evidenced site.",
+    "clean_standalone_build": {
+      "status": "pass",
+      "validated_target_git_tree": "1ded2e38ab50c34283b1584a38903355e8496c42",
+      "receipt": {
+        "schema_version": 1,
+        "status": "pass",
+        "format": "raw_payload_not_AmigaDOS_HUNK",
+        "main_bytes": 412736,
+        "main_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+        "main_matches_original_identity": true,
+        "asset_count": 57,
+        "all_asset_source_slices_equal": true,
+        "decoded_view_inverse_exact": true,
+        "boot_copy_source_matches_resident_view": true,
+        "source_commit": "b0f7d8c12cf792a355d57c4852dac8e755cefe18",
+        "assembler_sha256": "413e284020125f42709486dfe09907cab3dd9f3c2ea41017c190f8ea68f30825",
+        "flags": [
+          "-Fbin",
+          "-m68000",
+          "-no-opt"
+        ],
+        "outputs": [
+          {
+            "role": "original_main",
+            "filename": "Starglider2-original.raw",
+            "bytes": 412736,
+            "sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9"
+          },
+          {
+            "role": "decoded_analysis_view",
+            "filename": "protection-decoded-analysis.raw",
+            "bytes": 3548,
+            "sha256": "de8358853dd9ed9b006a23569bf393aa217ed3be3301a169465d80bfaf839922"
+          },
+          {
+            "role": "boot_installer_context",
+            "filename": "boot-selector-installer-context.raw",
+            "bytes": 40,
+            "sha256": "8d34852425e2e1bfa87b3febdfc74fb39e7c667e9d9ff73e17b594649e83b21b"
+          },
+          {
+            "role": "boot_resident_view",
+            "filename": "boot-selector-resident.raw",
+            "bytes": 20,
+            "sha256": "a26286a393713c046eff9dbaff15b20b26b171fa9e05fc9d538d16b0eddb6024"
+          }
+        ]
+      },
+      "recoverable_pandora_backups_verified": 16
+    }
+  },
+  "target_header_loop": {
+    "source_header": 14832,
+    "runtime_header": 18928,
+    "trace": "result=1 reason=proved nodes=17 transfers=16 roots=5 rows=2 peak_queue=2 expression_bytes=448 snapshot_bytes=6607056 lost_root=0",
+    "counter_iterations": 104,
+    "domain_admission": "not_admitted",
+    "app_write": {
+      "offset": 14834,
+      "displacement": 372,
+      "base_register": "A6",
+      "operand_index": 1,
+      "access": "write",
+      "base_evidence": "declared_layout_a6_fallback",
+      "loop_iteration_count": 104,
+      "loop_iteration_stride": 0,
+      "loop_header_offset": 14832,
+      "loop_tail_offset": 14882,
+      "loop_counter_register": "D4",
+      "derived": true,
+      "base_displacement": 0,
+      "operand_displacement": 372,
+      "data_access_size": 2,
+      "element_width": 2,
+      "transfer_count": 1,
+      "symbol_name": "app_0174"
+    },
+    "consequence": "Induction now records the stationary 104-iteration write footprint, but its A6 evidence remains conditional declared-layout fallback. No physical write-frame contract or Header pointer selection is invented. A paired 104-entry fixture with the same A6+$174 write accepts a known disjoint frame and refuses an unknown frame."
+  },
+  "remaining": [
+    {
+      "blocks": "Original 104-header pointee type selection",
+      "next_experiment": "Trace the original initialize_platform_runtime/display caller chain and game_workspace_base producer through the existing canonical values; establish or localize loss of a physical A6 frame. Then check all directory entry record views, including the separately declared HeaderAux prefix.",
+      "reason": "Current source-loop output contains no admitted native source range/type domain. Named/fallback A6 layout is not a disjointness proof. Do not seed individual readers or assume HeaderAux compatibility by matching fields."
+    },
+    {
+      "blocks": "Selected-object app-slot reaching values",
+      "next_experiment": "Follow actual producer/cell/call/alias barriers using the sparse-cell regression mechanisms already committed; progress independent record semantics when a physical-frame obligation remains open.",
+      "reason": "This batch does not close the earlier selected-reference chain or add a numeric pointer."
+    }
+  ],
+  "limits": [
+    "Static accepted original CPU CFG, normal stack/return and declared entry/schema contracts only. No new live flight/keyboard/DMA/interrupt or timing observation.",
+    "Source stability checks cover decoded CPU body writes, not concurrent DMA/interrupt mutation or arbitrary unseen entry paths.",
+    "Dense table-envelope validation is conservative for sparse strides; source-free/interior/ambiguous mappings and unsupported write EAs refuse.",
+    "No framework addresses, routine names or table sizes are specialized to Starglider; synthetic fixtures include the original 104-entry scale.",
+    "No optional path or all-path semantic completeness claim; publication is preservation of a tested batch, not restoration completion."
+  ],
+  "performance": {
+    "api_wall_seconds": 211.3143952190294,
+    "native_profile": {
+      "generation": "facts_v2_listing_artifact_summary",
+      "backend": "amiga-raw",
+      "analysis_backend": "facts_v2",
+      "path": "/workspace/starglider2-private/main-copy.bin",
+      "facts_v2": {
+        "decode_seconds": 3e-06,
+        "seed_seconds": 0.006036,
+        "fixed_point_seconds": 17.944545,
+        "fixed_point_reachable_seconds": 14.050967,
+        "fixed_point_reachable_decode_seconds": 0.0,
+        "fixed_point_reachable_validate_seconds": 0.0,
+        "fixed_point_reachable_accept_seconds": 0.0,
+        "fixed_point_reachable_target_seconds": 0.0,
+        "fixed_point_reachable_relocation_seconds": 0.0,
+        "fixed_point_reachable_fallthrough_seconds": 0.0,
+        "fixed_point_index_seconds": 0.000654,
+        "fixed_point_required_label_conflict_seconds": 2.7e-05,
+        "fixed_point_opcode_relocation_conflict_seconds": 0.000219,
+        "fixed_point_rebuild_accepted_seconds": 0.026291,
+        "fixed_point_relocation_anchor_seconds": 0.000196,
+        "fixed_point_materialize_labels_seconds": 3.865962,
+        "fixed_point_runtime_address_ref_seconds": 3.692534,
+        "fixed_point_required_label_materialize_seconds": 0.173428,
+        "fixed_point_data_span_seconds": 0.000229,
+        "fixed_point_invariant_seconds": 3.1e-05,
+        "render_ir_seconds": 47.212055,
+        "render_ir_lookup_seconds": 0.446714,
+        "platform_analysis_pass_seconds": 73.44897,
+        "platform_analysis_base_slot_seconds": 0.09456,
+        "platform_analysis_call_summary_seconds": 0.153691,
+        "platform_analysis_typed_ref_seconds": 55.07814,
+        "platform_analysis_typed_summary_seconds": 0.094526,
+        "platform_analysis_typed_graph_seconds": 2.858356,
+        "platform_analysis_typed_flow_seconds": 5.885651,
+        "platform_analysis_typed_callback_seconds": 46.239603,
+        "source_analysis_typed_target_seconds": 7.7e-05,
+        "source_analysis_build_seconds": 10.314623,
+        "source_analysis_finalize_seconds": 49.794548,
+        "platform_analysis_call_comment_seconds": 2e-06,
+        "platform_analysis_app_slot_seconds": 18.116186,
+        "platform_analysis_runtime_data_seconds": 0.0,
+        "platform_analysis_hardware_data_seconds": 1e-06,
+        "platform_analysis_generic_data_seconds": 0.0,
+        "render_ir_header_seconds": 31.582196,
+        "render_ir_walk_seconds": 13.051652,
+        "render_ir_footer_seconds": 2.577656,
+        "source_render_seconds": 0.0,
+        "decoded_candidates": 29938,
+        "accepted_instructions": 29665,
+        "data_spans": 172,
+        "labels_created": 20120,
+        "labels_referenced": 13067,
+        "unresolved_labels": 0,
+        "interior_conflicts": 0,
+        "interior_conflicts_resolved_by_demote": 0,
+        "interior_conflicts_unresolved": 0,
+        "relocation_failures": 0,
+        "first_relocation_failure_reason": "",
+        "first_relocation_failure_section": 0,
+        "first_relocation_failure_offset": 0,
+        "first_relocation_failure_target_section": 0,
+        "first_relocation_failure_width": 0,
+        "first_relocation_failure_raw_value": 0,
+        "first_relocation_failure_computed_target": 0,
+        "relocation_anchors": 0,
+        "first_relocation_anchor_kind": "",
+        "first_relocation_anchor_section": 0,
+        "first_relocation_anchor_offset": 0,
+        "first_relocation_anchor_target_section": 0,
+        "first_relocation_anchor_width": 0,
+        "first_relocation_anchor_platform_record_kind": "",
+        "first_relocation_anchor_raw_value": 0,
+        "first_relocation_anchor_addend": 0,
+        "relocation_anchor_instruction_bytes": 0,
+        "relocation_anchor_data_payloads": 0,
+        "relocation_anchor_unknown_contexts": 0,
+        "unassemblable_hunk_data_relocations": 0,
+        "unassemblable_hunk_base_register_relocations": 0,
+        "first_relocation_anchor_context": "",
+        "first_relocation_anchor_instruction_offset": 0,
+        "code_start_facts": 42095,
+        "code_start_section_entries": 0,
+        "code_start_policy_entry_offsets": 0,
+        "code_start_policy_entry_points": 165,
+        "code_start_control_targets": 10302,
+        "code_start_fallthroughs": 31628,
+        "code_start_inline_resumes": 0,
+        "code_start_linkage_api_entries": 0,
+        "code_start_platform_loadseg_entries": 0,
+        "code_start_stack_continuations": 0,
+        "code_start_boundary_api_entries": 0,
+        "platform_loadseg_segment_link_accesses": 0,
+        "platform_loadseg_segment_link_bptr_loads": 0,
+        "platform_loadseg_segment_link_resolved_targets": 0,
+        "first_platform_loadseg_segment_link_section": 0,
+        "first_platform_loadseg_segment_link_offset": 0,
+        "first_platform_loadseg_segment_link_target_section": 0,
+        "runtime_address_ranges": 5,
+        "runtime_address_range_conflicts": 0,
+        "table_target_set_limit_hits": 0,
+        "first_table_target_set_limit_section": 0,
+        "first_table_target_set_limit_offset": 0,
+        "first_table_target_set_limit_capacity": 0,
+        "source_quality_diagnostics": 0,
+        "source_quality_blockers": 0,
+        "first_source_quality_diagnostic_kind": "unknown",
+        "first_source_quality_diagnostic_section": 0,
+        "first_source_quality_diagnostic_offset": 0,
+        "runtime_address_view_starts": 41931,
+        "required_instruction_failures": 0,
+        "unsupported_instruction_demotes": 0,
+        "first_required_instruction_failure_section": 0,
+        "first_required_instruction_failure_offset": 0,
+        "first_required_instruction_failure_reason": "",
+        "first_required_instruction_failure_source_section": 0,
+        "first_required_instruction_failure_source_offset": 0,
+        "first_unsupported_instruction_demote_section": 0,
+        "first_unsupported_instruction_demote_offset": 0,
+        "first_unsupported_instruction_demote_reason": "",
+        "first_unsupported_instruction_demote_source_section": 0,
+        "first_unsupported_instruction_demote_source_offset": 0,
+        "opcode_relocation_conflicts_resolved_by_demote": 0,
+        "first_opcode_relocation_conflict_section": 0,
+        "first_opcode_relocation_conflict_offset": 0,
+        "first_opcode_relocation_conflict_aux_offset": 0,
+        "queue_iterations": 34688,
+        "workflow_arena_peak_used": 7466760,
+        "workflow_arena_total_blocks": 39,
+        "render_ir_statements": 52148,
+        "render_ir_labels": 5279,
+        "render_ir_instructions": 29665,
+        "render_ir_data_spans": 17204,
+        "render_ir_hash": "252feca478883614",
+        "preview_source_enabled": false,
+        "preview_source_bytes": 0,
+        "preview_source_hash": "14650fb0739d0383",
+        "asm_source_enabled": true,
+        "asm_source_refused": false,
+        "asm_source_bytes": 2340780,
+        "asm_source_lines": 67443,
+        "asm_source_plan_rows": 66354,
+        "asm_source_plan_lines": 67443,
+        "asm_source_plan_bytes": 2340780,
+        "asm_source_relocation_exprs": 0,
+        "asm_source_symbolic_instructions": 29665,
+        "asm_source_numeric_runtime_refs": 0,
+        "asm_source_first_numeric_runtime_ref_section": 0,
+        "asm_source_first_numeric_runtime_ref_offset": 0,
+        "asm_source_first_numeric_runtime_ref_target_section": 0,
+        "asm_source_first_numeric_runtime_ref_target_offset": 0,
+        "asm_source_first_numeric_runtime_ref_runtime_address": 0,
+        "platform_base_slot_count": 325,
+        "platform_call_count": 1,
+        "platform_effect_count": 1,
+        "asm_source_lossy_numeric_hunk_relocations": 0,
+        "asm_source_instruction_render_failures": 0,
+        "asm_source_instruction_byte_mismatches": 0,
+        "asm_source_instruction_relocation_failures": 0,
+        "asm_source_relocation_anchor_refusals": 0,
+        "asm_source_unassemblable_hunk_data_relocation_refusals": 0,
+        "asm_source_unassemblable_hunk_base_register_relocation_refusals": 0,
+        "asm_source_first_failure_kind": "",
+        "asm_source_first_failure_section": 0,
+        "asm_source_first_failure_offset": 0,
+        "asm_source_first_failure_aux_offset": 0,
+        "asm_source_hash": "eacc753360e7d866"
+      },
+      "timing": {
+        "source_seconds": 199.69151,
+        "summary_json_seconds": 0.000183,
+        "total_seconds": 0.000183
+      }
+    }
+  }
+}

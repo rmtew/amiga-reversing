@@ -395,6 +395,7 @@ static const char *address_value_resolution_name(uint8_t resolution) {
   case M68K_ADDRESS_VALUE_RESOLUTION_TYPE_CONFLICT: return "type_conflict";
   case M68K_ADDRESS_VALUE_RESOLUTION_FINITE_CANDIDATE_TARGETS: return "finite_candidate_targets";
   case M68K_ADDRESS_VALUE_RESOLUTION_CANDIDATE_OVERFLOW: return "candidate_overflow";
+  case M68K_ADDRESS_VALUE_RESOLUTION_TYPE_DOMAIN: return "type_domain";
   default: return "unknown";
   }
 }
@@ -408,6 +409,7 @@ static const char *address_value_terminal_kind_name(uint8_t kind) {
   case M68K_ADDRESS_VALUE_TERMINAL_NO_PROVEN_TRANSFER_CONTRACT: return "no_proven_transfer_contract";
   case M68K_ADDRESS_VALUE_TERMINAL_UNREPRESENTABLE: return "unrepresentable";
   case M68K_ADDRESS_VALUE_TERMINAL_CANDIDATE_OVERFLOW: return "candidate_overflow";
+  case M68K_ADDRESS_VALUE_TERMINAL_TYPE_DOMAIN: return "type_domain";
   default: return "unknown";
   }
 }
@@ -5692,12 +5694,21 @@ static int source_analysis_to_json_impl(const M68kSourceAnalysisIR *source_analy
       if (json_builder_appendf(&builder,
           "{\"consumer_section_index\":%u,\"consumer_offset\":%u,\"operand_index\":%u,"
           "\"base_register\":%u,\"origin_section_index\":%u,\"origin_offset\":%u,"
-          "\"target_section_index\":%u,\"target_offset\":%u,\"signed_addend\":%d}",
+          "\"target_section_index\":%u,\"target_offset\":%u,\"signed_addend\":%d",
           (unsigned)evidence->consumer_section_index, (unsigned)evidence->consumer_offset,
           (unsigned)evidence->operand_index, (unsigned)evidence->base_register,
           (unsigned)evidence->origin_section_index, (unsigned)evidence->origin_offset,
           (unsigned)evidence->target_section_index, (unsigned)evidence->target_offset,
           (int)evidence->signed_addend) != 0)
+        goto oom;
+      if (json_builder_appendf(&builder,
+          ",\"loop_domain\":{\"state_id\":%u,\"header_offset\":%u,\"tail_offset\":%u,"
+          "\"iteration_count\":%u,\"iteration_stride\":%d,\"access_width\":%u,"
+          "\"counter_register\":%u,\"access_kind\":%u}}",
+          (unsigned)evidence->loop_domain.state, (unsigned)evidence->loop_domain.header_offset,
+          (unsigned)evidence->loop_domain.tail_offset, (unsigned)evidence->loop_domain.iteration_count,
+          (int)evidence->loop_domain.iteration_stride, (unsigned)evidence->loop_domain.access_width,
+          (unsigned)evidence->loop_domain.counter_register, (unsigned)evidence->loop_domain.access_kind) != 0)
         goto oom;
     }
     if (json_builder_appendf(&builder, "],\"table_entry_count\":%u,\"table_entries\":[",

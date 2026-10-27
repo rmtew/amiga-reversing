@@ -25,6 +25,11 @@ typedef struct M68kLoopEntryRoot {
   int16_t displacement, app_displacement;
   uint32_t storage_id;
   int32_t stride;
+  uint8_t source;
+  M68kRenderTypedMemoryBaseValue source_base;
+  uint8_t address;
+  uint8_t raw_count;
+  uint32_t raw_values[4];
 } M68kLoopEntryRoot;
 #define M68K_LOOP_ROOT_DATA 1U
 #define M68K_LOOP_ROOT_ADDRESS 2U
@@ -37,6 +42,9 @@ typedef struct M68kLoopRangeRow {
   uint8_t reg, access, width, evidence;
   int16_t first;
   int32_t stride;
+  uint8_t source;
+  size_t source_section;
+  uint32_t source_first;
 } M68kLoopRangeRow;
 
 static int counter_loop_append_index(size_t **items, size_t *count, size_t *capacity, size_t item) {
@@ -65,6 +73,13 @@ static void counter_loop_project_registers(M68kRenderTypedState *state,
     M68kRenderTypedAppAddressValue *app = kind ? &state->app_addr_regs[reg] : &state->data_app_addr_regs[reg];
     const M68kAffineEntryValue *entry = affine_entry_value(context, value->entry_value_id);
     memset(app, 0, sizeof(*app));
+    if (entry && entry->width == 4U && entry->root <= root_count && roots[entry->root - 1U].source == 1U) {
+      M68kRenderTypedMemoryBaseValue base = roots[entry->root - 1U].source_base;
+      if (typed_memory_base_apply_affine_delta(&base, entry->offset)) {
+        if (kind) state->memory_base_regs[reg] = base;
+        else state->data_memory_base_regs[reg] = base;
+      }
+    }
     if (entry && entry->width == 4U && entry->root <= root_count && roots[entry->root - 1U].app) {
       const M68kLoopEntryRoot *root = &roots[entry->root - 1U];
       int64_t displacement = (int64_t)root->app_displacement + entry->offset;
@@ -89,6 +104,111 @@ static uint32_t counter_loop_root_at_tail(const M68kRenderTypedState *state, con
   return 0U;
 }
 
+/* Conservative for 24-bit 68000 bus aliases, including sign-extended
+ * absolute.W addresses. Wrapped envelopes are refused, never split/guessed. */
+static int counter_loop_bus_span(int64_t first, int64_t last, uint32_t width,
+    uint32_t *out_lo, uint32_t *out_hi) {
+  int64_t lo = first < last ? first : last, hi = (first > last ? first : last) + width;
+  if (!width || lo < 0 || hi > (int64_t)UINT32_MAX + 1 ||
+      ((uint64_t)lo >> 24) != ((uint64_t)(hi - 1) >> 24)) return 0;
+  *out_lo = (uint32_t)lo & 0xFFFFFFU;
+  *out_hi = *out_lo + (uint32_t)(hi - lo);
+  return 1;
+}
+
+static void counter_loop_capture_raw(M68kLoopEntryRoot *root, const M68kRenderTypedRegValue *value) {
+  if (value->address_value_candidate_overflow) return;
+  if (value->raw_long_value_known && value->raw_long_candidate_count <= 4U) {
+    root->raw_count = value->raw_long_candidate_count ? value->raw_long_candidate_count : 1U;
+    for (uint8_t i = 0U; i < root->raw_count; ++i)
+      root->raw_values[i] = value->raw_long_candidate_count ? value->raw_long_candidates[i] : value->raw_long_value;
+  } else if (value->pointer_value_known && value->pointer_candidate_count <= 4U) {
+    root->raw_count = value->pointer_candidate_count ? value->pointer_candidate_count : 1U;
+    for (uint8_t i = 0U; i < root->raw_count; ++i)
+      root->raw_values[i] = value->pointer_candidate_count ? value->pointer_candidates[i] : value->pointer_value;
+  }
+}
+
+static int counter_loop_source_write_disjoint(const M68kRenderLookup *lookup,
+    const M68kRenderTypedFlowNode *node, const M68kInstructionIR *instruction, size_t operand,
+    const M68kAffineEntryContext *context, const M68kLoopEntryRoot *roots, size_t root_count,
+    uint32_t iterations, uint32_t protected_lo, uint32_t protected_hi) {
+  uint8_t reg, access, width, element, count;
+  int16_t displacement;
+  uint32_t lo, hi, address;
+  if (operand_absolute_offset_local(&instruction->operands[operand], &address)) {
+    if (!platform_operand_memory_span(instruction, operand, &element, &count, &width) ||
+        !counter_loop_bus_span(address, address, width, &lo, &hi)) return 0;
+    return hi <= protected_lo || lo >= protected_hi;
+  }
+  if (!typed_register_memory_span(instruction, operand, &reg, &displacement, &access, &width, &element, &count))
+    return 0;
+  const M68kAffineEntryValue *value = affine_entry_value(context, node->typed_in.addr_regs[reg].entry_value_id);
+  if (!value || !value->root || value->root > root_count) return 0;
+  const M68kLoopEntryRoot *root = &roots[value->root - 1U];
+  int64_t relative = (int64_t)value->offset + displacement;
+  int64_t final_relative = relative + (int64_t)root->stride * (iterations - 1U);
+  if (root->source == 1U) {
+    int64_t first = (int64_t)root->source_base.offset + relative;
+    int64_t last = (int64_t)root->source_base.offset + final_relative;
+    int64_t begin = first < last ? first : last, end = (first > last ? first : last) + width;
+    if (begin < 0 || end > (int64_t)UINT32_MAX + 1 || end - begin > UINT32_MAX ||
+        !lookup_source_unique_runtime_span(lookup, root->source_base.section_index, (uint32_t)begin,
+          (uint32_t)(end - begin), &address) ||
+        !counter_loop_bus_span(address, address, (uint32_t)(end - begin), &lo, &hi)) return 0;
+    if (getenv("AMIGA_REVERSING_TRACE_SOURCE_CURSOR_DOMAINS"))
+      fprintf(stderr, "source_write pc=%X reg=A%u root=%u source=%zu first=%lld last=%lld width=%u runtime=%X..%X protected=%X..%X\n",
+        node->candidate->offset, reg, value->root, root->source_base.section_index,
+        (long long)first, (long long)last, width, lo, hi, protected_lo, protected_hi);
+    return hi <= protected_lo || lo >= protected_hi;
+  }
+  /* Raw addresses are used only with a carried app root proved invariant by
+   * this pass. A first-iteration constant with no entry relation is not enough. */
+  if ((!root->app && root->address != 1U) || !root->raw_count) return 0;
+  for (uint8_t i = 0U; i < root->raw_count; ++i) {
+    if (!counter_loop_bus_span((int64_t)root->raw_values[i] + relative,
+          (int64_t)root->raw_values[i] + final_relative, width, &lo, &hi) ||
+        (hi > protected_lo && lo < protected_hi)) return 0;
+  }
+  return 1;
+}
+
+static int counter_loop_source_range_stable(const M68kRenderLookup *lookup,
+    const M68kDecodeSectionIR *section, const M68kRenderTypedFlowGraph *graph,
+    const size_t *body, size_t body_count, const M68kCounterLoopCandidate *candidate,
+    const M68kAffineEntryContext *context, const M68kLoopEntryRoot *roots, size_t root_count,
+    const M68kLoopRangeRow *row, uint32_t iterations) {
+  uint32_t address, table_lo, table_hi;
+  int64_t last = (int64_t)row->source_first + (int64_t)row->stride * (iterations - 1U);
+  int64_t first = row->source_first < last ? row->source_first : last;
+  uint64_t width = (row->source_first > last ? row->source_first : last) + row->width - first;
+  if (first < 0 || width > UINT32_MAX ||
+      !lookup_source_unique_runtime_span(lookup, row->source_section, (uint32_t)first, (uint32_t)width, &address) ||
+      !counter_loop_bus_span(address, address, (uint32_t)width, &table_lo, &table_hi)) return 0;
+  for (size_t b = 0U; b < body_count; ++b) {
+    const M68kRenderTypedFlowNode *node = &graph->nodes[body[b]];
+    M68kInstructionIR instruction;
+    if (body[b] == candidate->tail) continue;
+    if (m68k_decode_candidate_to_instruction(node->candidate, &instruction)) return 0;
+    if (instruction_has_call_flow_local(&instruction)) return 0;
+    for (size_t operand = 0U; operand < instruction.operand_count; ++operand) {
+      if (platform_operand_memory_access(&instruction, operand) != M68K_SIM_ACCESS_MEMORY_WRITE) continue;
+      if (!counter_loop_source_write_disjoint(lookup, node, &instruction, operand, context, roots, root_count,
+            iterations, table_lo, table_hi)) return 0;
+      /* Writes must also preserve the very instructions used by this proof. */
+      for (size_t c = 0U; c < body_count; ++c) {
+        const M68kDecodeCandidate *code = graph->nodes[body[c]].candidate;
+        uint32_t code_lo, code_hi;
+        if (!lookup_source_unique_runtime_span(lookup, section->section_index, code->offset, code->byte_count, &address) ||
+            !counter_loop_bus_span(address, address, code->byte_count, &code_lo, &code_hi) ||
+            !counter_loop_source_write_disjoint(lookup, node, &instruction, operand, context, roots, root_count,
+              iterations, code_lo, code_hi)) return 0;
+      }
+    }
+  }
+  return 1;
+}
+
 static int counter_loop_prove(M68kRenderLookup *lookup, const M68kDecodeIR *decode,
     uint8_t **accepted_start, size_t section_index, M68kRenderTypedFlowGraph *graph,
     const M68kCounterLoopCandidate *candidate, size_t snapshot_bytes) {
@@ -103,7 +223,7 @@ static int counter_loop_prove(M68kRenderLookup *lookup, const M68kDecodeIR *deco
   size_t counter_root = 0U, stack_root = 0U, lost_root = 0U;
   uint32_t iterations = 0U;
   const char *reason = "unknown_entry";
-  int result = 0, found_entry = 0;
+  int result = 0, found_entry = 0, source_call = 0;
   const char *step_trace = getenv("AMIGA_REVERSING_ENTRY_STEP_PC");
   size_t traced_steps = 0U;
   if (counter_loop_append_index(&body, &body_count, &body_capacity, candidate->header) != 0) goto allocation;
@@ -120,9 +240,16 @@ static int counter_loop_prove(M68kRenderLookup *lookup, const M68kDecodeIR *deco
         m68k_decode_candidate_to_instruction(node->candidate, &instruction) != 0 ||
         !(metadata = m68k_sim_metadata_for_instruction(&instruction))) { reason = "extra_or_invalid_entry"; goto cleanup; }
     if (!node->successor_count || metadata->flow_kind == M68K_SIM_FLOW_RETURN ||
-        metadata->flow_kind == M68K_SIM_FLOW_TRAP || instruction.mnemonic_id == M68K_ASM_MNEMONIC_DBF) {
+        metadata->flow_kind == M68K_SIM_FLOW_TRAP) {
       reason = "unresolved_or_nested_exit"; goto cleanup;
     }
+    if (instruction.mnemonic_id == M68K_ASM_MNEMONIC_DBF) {
+      uint8_t inner_counter;
+      if (!operand_is_data_register_local(&instruction.operands[0], &inner_counter) || inner_counter == candidate->counter) {
+        reason = "nested_counter_overlap"; goto cleanup;
+      }
+    }
+    if (instruction_has_call_flow_local(&instruction)) source_call = 1;
     if (metadata->flow_kind == M68K_SIM_FLOW_BRANCH || metadata->flow_kind == M68K_SIM_FLOW_JUMP) {
       uint32_t target;
       if (!typed_flow_first_local_control_target(lookup, section, node->candidate, &target)) {
@@ -176,6 +303,7 @@ static int counter_loop_prove(M68kRenderLookup *lookup, const M68kDecodeIR *deco
     if (app.known) {
       M68kLoopEntryRoot root = {0}; root.kind = M68K_LOOP_ROOT_ADDRESS; root.reg = reg;
       root.app = 1U; root.evidence = app.base_evidence_kind; root.app_displacement = app.displacement;
+      counter_loop_capture_raw(&root, &entry.typed.addr_regs[reg]);
       entry.typed.addr_regs[reg].entry_value_id = counter_loop_add_root(&context, roots, &root_count, root, 4U);
     }
   }
@@ -184,6 +312,23 @@ static int counter_loop_prove(M68kRenderLookup *lookup, const M68kDecodeIR *deco
     M68kLoopEntryRoot root = {0}; root.kind = M68K_LOOP_ROOT_DATA; root.reg = reg;
     root.app = 1U; root.evidence = app.base_evidence_kind; root.app_displacement = app.displacement;
     entry.typed.data_regs[reg].entry_value_id = counter_loop_add_root(&context, roots, &root_count, root, 4U);
+  }
+  /* Source identities share the same affine entry algebra as app cursors.
+   * Numeric equality never joins roots from distinct entry registers. */
+  for (uint8_t kind = 0U; kind < 2U; ++kind) for (uint8_t reg = 0U; reg < (kind ? 7U : 8U); ++reg) {
+    M68kRenderTypedRegValue *value = kind ? &entry.typed.addr_regs[reg] : &entry.typed.data_regs[reg];
+    const M68kRenderTypedMemoryBaseValue *base = kind ? &entry.typed.memory_base_regs[reg] :
+      &entry.typed.data_memory_base_regs[reg];
+    if (value->entry_value_id || (!kind && reg == candidate->counter)) continue;
+    M68kLoopEntryRoot root = {0}; root.kind = kind ? M68K_LOOP_ROOT_ADDRESS : M68K_LOOP_ROOT_DATA;
+    root.reg = reg;
+    if (base->known && base->affine_known) { root.source = 1U; root.source_base = *base; }
+    else if (kind) {
+      counter_loop_capture_raw(&root, value);
+      if (!root.raw_count) continue;
+      root.address = 1U;
+    } else continue;
+    value->entry_value_id = counter_loop_add_root(&context, roots, &root_count, root, 4U);
   }
   for (size_t i = 0U; i < entry.typed.base_slot_count; ++i) {
     M68kRenderTypedBaseSlot *slot = &entry.typed.base_slots[i];
@@ -253,7 +398,14 @@ static int counter_loop_prove(M68kRenderLookup *lookup, const M68kDecodeIR *deco
   for (size_t i = 0U; i < root_count; ++i) {
     const M68kAffineEntryValue *value = affine_entry_value(&context,
       counter_loop_root_at_tail(&graph->nodes[candidate->tail].typed_in, &roots[i]));
-    if (!value || value->root != i + 1U) { lost_root = i + 1U; reason = "carried_value_lost_or_reassigned"; goto cleanup; }
+    if (!value || value->root != i + 1U) {
+      if (roots[i].source || roots[i].address) {
+        if (roots[i].source) roots[i].source = 2U;
+        if (roots[i].address) roots[i].address = 2U;
+        continue;
+      }
+      lost_root = i + 1U; reason = "carried_value_lost_or_reassigned"; goto cleanup;
+    }
     if ((i + 1U == counter_root || i + 1U == stack_root) && value->offset != 0) {
       reason = "counter_or_stack_changed"; goto cleanup;
     }
@@ -270,11 +422,38 @@ static int counter_loop_prove(M68kRenderLookup *lookup, const M68kDecodeIR *deco
       uint8_t reg, access, width, element, count; int16_t displacement;
       const M68kAffineEntryValue *value;
       int64_t first, last, lo, hi;
-      if (!typed_app_memory_span(lookup, &node->typed_in, &instruction, operand, &reg, &displacement,
+      if (!typed_register_memory_span(&instruction, operand, &reg, &displacement,
           &access, &width, &element, &count) || access == M68K_APP_SLOT_ACCESS_ADDRESS) continue;
       value = affine_entry_value(&context, node->typed_in.addr_regs[reg].entry_value_id);
-      if (!value || value->root > root_count || !roots[value->root - 1U].app) continue;
+      if (!value || value->root > root_count) continue;
       const M68kLoopEntryRoot *root = &roots[value->root - 1U];
+      if (root->source == 1U) {
+        const M68kAnalysisStructuredDataItem *table;
+        if (source_call || access != M68K_APP_SLOT_ACCESS_READ || width != 4U || count != 1U ||
+            !typed_pointer_read_operand_supported(&instruction, operand)) continue;
+        table = lookup_pointer_table_item_for_contract(lookup, root->source_base.pointer_table_section_index,
+          root->source_base.pointer_table_offset, root->source_base.pointer_table_size);
+        if (!root->source_base.pointer_table_known || !table) continue;
+        first = (int64_t)root->source_base.offset + value->offset + displacement;
+        last = first + (int64_t)root->stride * (iterations - 1U);
+        lo = first < last ? first : last; hi = (first > last ? first : last) + width;
+        if (lo < table->offset || hi > (int64_t)table->offset + table->size ||
+            ((first - table->offset) % 4) || root->stride % 4) continue;
+        if (row_count == row_capacity) {
+          size_t capacity = row_capacity ? row_capacity * 2U : 16U;
+          M68kLoopRangeRow *grown;
+          if (capacity < row_capacity || capacity > SIZE_MAX / sizeof(*grown)) goto allocation;
+          grown = realloc(rows, capacity * sizeof(*grown)); if (!grown) goto allocation;
+          rows = grown; row_capacity = capacity;
+        }
+        M68kLoopRangeRow row = {0}; row.node = index; row.operand = operand; row.reg = reg;
+        row.access = access; row.width = width; row.stride = root->stride; row.source = 1U;
+        row.source_section = root->source_base.section_index; row.source_first = (uint32_t)first;
+        rows[row_count++] = row;
+        continue;
+      }
+      if (!root->app || !typed_app_memory_span(lookup, &node->typed_in, &instruction, operand, &reg,
+          &displacement, &access, &width, &element, &count)) continue;
       first = (int64_t)root->app_displacement + value->offset + displacement;
       last = first + (int64_t)root->stride * (iterations - 1U);
       lo = first < last ? first : last; hi = (first > last ? first : last) + width;
@@ -296,6 +475,30 @@ static int counter_loop_prove(M68kRenderLookup *lookup, const M68kDecodeIR *deco
     const M68kLoopRangeRow *row = &rows[i];
     M68kRenderTypedFlowNode *node = &graph->nodes[row->node];
     M68kInstructionIR instruction;
+    if (row->source) {
+      if (!counter_loop_source_range_stable(lookup, section, graph, body, body_count, candidate,
+          &context, roots, root_count, row, iterations)) continue;
+      M68kRenderTypedMemoryBaseValue base = node->typed_in.memory_base_regs[row->reg];
+      int32_t displacement = (int32_t)((int64_t)row->source_first - base.offset);
+      if (render_lookup_add_affine_address_use(lookup, section->section_index, node->candidate->offset,
+          (uint8_t)row->operand, row->reg, &base, displacement)) goto allocation;
+      for (size_t j = 0U; j < lookup->affine_address_use_count; ++j) {
+        M68kRenderAffineAddressUse *use = &lookup->affine_address_uses[j];
+        if (use->section_index != section->section_index || use->offset != node->candidate->offset ||
+            use->operand_index != row->operand || use->target_section_index != row->source_section ||
+            use->target_offset != row->source_first) continue;
+        M68kAffineLoopDomainIR domain = {0}; domain.state = 1U;
+        domain.header_offset = graph->nodes[candidate->header].candidate->offset;
+        domain.tail_offset = graph->nodes[candidate->tail].candidate->offset;
+        domain.iteration_count = iterations; domain.iteration_stride = row->stride;
+        domain.access_width = row->width; domain.counter_register = candidate->counter;
+        domain.access_kind = row->access;
+        if (use->loop_domain.state && memcmp(&use->loop_domain, &domain, sizeof(domain)))
+          use->loop_domain.state = 2U;
+        else use->loop_domain = domain;
+      }
+      continue;
+    }
     if (m68k_decode_candidate_to_instruction(node->candidate, &instruction) != 0 ||
         render_lookup_record_derived_app_operand(lookup, section->section_index, &node->typed_in,
           &instruction, node->candidate->offset, row->operand) != 0) goto allocation;

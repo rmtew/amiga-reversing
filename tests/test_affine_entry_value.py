@@ -30,6 +30,12 @@ int main(void) {
   assert(!affine_entry_adjust(&context,affine_entry_intern(&context,1,INT32_MAX,4),1));
   expect(&context,affine_entry_adjust(&context,affine_entry_intern(&context,3,32767,2),1),3,-32768);
   expect(&context,affine_entry_adjust(&context,affine_entry_intern(&context,3,-1,2),1),3,0);
+  state.data_regs[6].entry_value_id=a;
+  step(&state,&lookup,"dbf d6,$1000");
+  assert(!state.data_regs[6].entry_value_id); /* WORD decrement invalidates a LONG identity. */
+  state.data_regs[6].entry_value_id=a;
+  step(&state,&lookup,"dbne d6,$1000");
+  assert(!state.data_regs[6].entry_value_id); /* Unknown CCR: conditional decrement is a may-write. */
   state.addr_regs[4].entry_value_id=a;state.addr_regs[7].entry_value_id=sp;
   step(&state,&lookup,"lea.l 6(a4),a0");expect(&context,state.addr_regs[0].entry_value_id,1,6);
   assert(!state.addr_regs[0].known && !state.addr_regs[0].pointer_value_known);

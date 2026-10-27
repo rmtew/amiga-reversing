@@ -211,6 +211,13 @@ uint16_t platform_operand_register_write_mask(const M68kInstructionIR *instructi
     else if (m68k_instruction_operand_direct_register(operand, &address, &reg) && reg < 8U)
       mask = (uint16_t)(1U << (reg + (address ? 8U : 0U)));
   }
+  /* DBcc may decrement the counter's low WORD. Its read role alone does
+   * not describe this conditional write; every successor must invalidate
+   * an unchanged full-register identity unless it models the condition. */
+  if (metadata != NULL && metadata->operation_type == M68K_SIM_OP_DBCC &&
+      operand_index == metadata->source_operand_index &&
+      m68k_instruction_operand_direct_register(operand, &address, &reg) && !address && reg < 8U)
+    mask |= (uint16_t)(1U << reg);
   if (platform_operand_updates_address_register(instruction, operand_index) && operand->value.ea_reg < 8U)
     mask |= (uint16_t)(1U << (8U + operand->value.ea_reg));
   return mask;

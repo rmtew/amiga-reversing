@@ -104,7 +104,11 @@ int main(void) {
   assert(!PROVEN(0,4,4,0x104,4));
   rows[2].ref.base_displacement=0; rows[2].ref.operand_displacement=0x104;
   assert(PROVEN(0,4,4,0x104,4)); assert(!PROVEN(0,4,4,0x104,2));
-  rows[2].ref.loop_iteration_count=3; assert(!PROVEN(0,4,4,0x104,4));
+  rows[2].ref.loop_iteration_count=3; assert(PROVEN(0,4,4,0x104,4));
+  rows[2].ref.loop_iteration_stride=4; assert(!PROVEN(0,4,4,0x104,4));
+  rows[2].ref.loop_iteration_stride=0;
+  rows[2].ref.base_evidence_kind=M68K_APP_SLOT_BASE_A6_FALLBACK;
+  assert(RECORDED(0,4,4,0x104,4) && !proven);
   m68k_render_lookup_destroy(&lookup);
   return 0;
 }

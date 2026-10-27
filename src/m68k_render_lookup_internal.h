@@ -425,6 +425,7 @@ typedef struct M68kRenderAffineAddressUse {
   int32_t signed_addend;
   uint8_t operand_index;
   uint8_t base_register;
+  M68kAffineLoopDomainIR loop_domain;
 } M68kRenderAffineAddressUse;
 
 typedef struct M68kRenderTypedStoredValue {
@@ -1199,6 +1200,12 @@ int m68k_analysis_render_lookup_build_source_analysis(M68kRenderLookup *lookup,
  * source-analysis table-entry binder has validated the selection.  Remove
  * only table-derived renderer facts whose final durable address value is not
  * a unique symbolic contract. */
+/* Shared source-record view used by transfer and final canonical binding.
+ * Packed arrays, source-field interiors and conflicting declarations retain
+ * the same semantics in both consumers. No values are read from raw bytes. */
+uint16_t m68k_policy_source_struct_at(const M68kAnalysisPolicy *policy, size_t section_index,
+    uint32_t offset, uint16_t *out_array_count, uint16_t *out_array_index,
+    int32_t *out_cursor, uint16_t *out_conflict_struct_id);
 void m68k_analysis_render_lookup_reconcile_typed_table_contracts(M68kRenderLookup *lookup,
   M68kSourceAnalysisIR *source_analysis);
 void m68k_analysis_render_lookup_resolve_amiga_instruction_platform_vectors(const M68kRenderLookup *lookup,
