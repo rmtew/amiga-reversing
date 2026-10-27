@@ -1,0 +1,148 @@
+{
+  "schema_version": 1,
+  "kind": "original_tractor_asteroid_spin_resource_contract",
+  "status": "qualified_restoration_batch_continues",
+  "publication_base_commit": "6cfd936ab66b618a3d65dbbbf47a84eb0080b039",
+  "inputs": {
+    "analysis.json": "d431b10df542783395e1edf9a63ed941e2f36496dae026837f39cbd6e747b7e4",
+    "effective-metadata.json": "a34121e7faae45e75fbd6695498b403185b27277e96f0b881abfb5da897276ad",
+    "consumer-evidence.json": "2290d0eadc4eb02f173ab041c8f088930302f6e71a0a6f1363254ed5c90a8ad3",
+    "inline.s": "486b0b1cf178f85fcfc02ad71a0cfdea991828ce2136c8515c285ac57e488863",
+    "source-package.json": "e7a9327c88b444b2f7c782a78a04fb776da597afd350246f66c147d917aff3e6"
+  },
+  "canonical_actions": 3,
+  "interpretation": "Original process_tractor_target_keys loads the selected Core record, compares typeWORD against73 and branches around this body for any other type. The only recovered control entry to35522 is the nonzero-low7 result branch after39D20 forwards to advance_shared_random_state, whose source preserves A0. No recovered data/runtime address reference exposes an additional entry. Original type73 is Asteroid; the existing SG2Asteroid WORD24 rotation_2_spin_step is read here, doubled twice with WORD wrap and added separately to power, weapon and shield reserves, skippingFFFF and saturating on ADD carry. The zero-low7 branch clears state/target instead. Bind Asteroid only at this original guarded block; preserve Core at the common3557C join and mixed tractor slot. This is a conditional original-path schema, not arbitrary entry/record validity, uniform PRNG probability, new runtime coverage or a new meaning for all Core WORD24.",
+  "before_after": {
+    "app_slot_ref_count": [
+      3412,
+      3412
+    ],
+    "recovered_platform_typed_access_count": [
+      1562,
+      1563
+    ],
+    "recovered_platform_unresolved_typed_access_count": [
+      682,
+      682
+    ]
+  },
+  "projection": {
+    "new_typed_coordinates": 1,
+    "lost_typed_coordinates": 0,
+    "changed_existing_coordinates": 0,
+    "new_sites": [
+      {
+        "offset": 214310,
+        "operand_index": 0,
+        "base_register": "A0",
+        "displacement": 36,
+        "base_cursor": 0,
+        "field_offset": 36,
+        "struct_size": 68,
+        "field_size": 2,
+        "root_struct_name": "SG2Asteroid",
+        "owner_struct_name": "SG2Asteroid",
+        "field_name": "rotation_2_spin_step",
+        "field_expr": "SG2Asteroid_rotation_2_spin_step",
+        "inherited": 0,
+        "nested": 0,
+        "type_provenance_kind_id": 11,
+        "type_provenance_kind": "policy_seed",
+        "type_provenance_section": 0,
+        "type_provenance_offset": 214306,
+        "type_provenance_operand_index": 0
+      }
+    ]
+  },
+  "validation": {
+    "native_and_vasm": {
+      "kind": "verification",
+      "framework_exact": true,
+      "target_id": "amiga_raw_starglider2_game",
+      "subject_revision": "093e8adab0fd88e74a0171ee1673d56c4139594ad6f9af7211e01e4e400bb6ea",
+      "status": "exact",
+      "exact": true,
+      "source_sha256": "486b0b1cf178f85fcfc02ad71a0cfdea991828ce2136c8515c285ac57e488863",
+      "source_path": "/workspace/pandora-original-delivery/stable-d15c2cf8/.runtime-state/restoration/eb04f545fb97451725a1c91ab5abf6f2e097614c45880db6edfb4ea5c3f6e2c2/486b0b1cf178f85fcfc02ad71a0cfdea991828ce2136c8515c285ac57e488863.s",
+      "source_package_sha256": null,
+      "original_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+      "original_size": 412736,
+      "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+      "rebuilt_path": "/workspace/pandora-original-delivery/stable-d15c2cf8/.runtime-state/restoration/eb04f545fb97451725a1c91ab5abf6f2e097614c45880db6edfb4ea5c3f6e2c2/662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9.bin",
+      "framework_status": "exact",
+      "failure_kinds": [],
+      "message": "",
+      "oracle": {
+        "oracle_id": "vasm",
+        "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+        "comparison_level": "oracle.full_file_match",
+        "assembler_status": "accepted",
+        "message": "oracle output matched original bytes"
+      },
+      "receipt_id": "c27deb0c0eba21e7691acfe7560f8774897e0a9cbb36b433921e7b684a030720",
+      "revision": "180ceb0660fc117830554db6c3aea325abe1c7a0e25da656c0764bbe62675ebf"
+    },
+    "framework_changed": false,
+    "reused_framework_tests": "336 focused Python and 832 native checks from 6cfd936a; no changed framework code. Revision-checked interpret/verify/review plus changed-source exact standalone build qualify these three annotations.",
+    "accepted_ownerships_identical": true,
+    "clean_standalone_build": {
+      "status": "pass",
+      "validated_target_git_tree": "68c602b1fbd1d194a44ed33553e72edc9fa927c2",
+      "receipt": {
+        "schema_version": 1,
+        "status": "pass",
+        "format": "raw_payload_not_AmigaDOS_HUNK",
+        "main_bytes": 412736,
+        "main_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+        "main_matches_original_identity": true,
+        "asset_count": 57,
+        "all_asset_source_slices_equal": true,
+        "decoded_view_inverse_exact": true,
+        "boot_copy_source_matches_resident_view": true,
+        "source_commit": "6cfd936ab66b618a3d65dbbbf47a84eb0080b039",
+        "assembler_sha256": "413e284020125f42709486dfe09907cab3dd9f3c2ea41017c190f8ea68f30825",
+        "flags": [
+          "-Fbin",
+          "-m68000",
+          "-no-opt"
+        ],
+        "outputs": [
+          {
+            "role": "original_main",
+            "filename": "Starglider2-original.raw",
+            "bytes": 412736,
+            "sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9"
+          },
+          {
+            "role": "decoded_analysis_view",
+            "filename": "protection-decoded-analysis.raw",
+            "bytes": 3548,
+            "sha256": "de8358853dd9ed9b006a23569bf393aa217ed3be3301a169465d80bfaf839922"
+          },
+          {
+            "role": "boot_installer_context",
+            "filename": "boot-selector-installer-context.raw",
+            "bytes": 40,
+            "sha256": "8d34852425e2e1bfa87b3febdfc74fb39e7c667e9d9ff73e17b594649e83b21b"
+          },
+          {
+            "role": "boot_resident_view",
+            "filename": "boot-selector-resident.raw",
+            "bytes": 20,
+            "sha256": "a26286a393713c046eff9dbaff15b20b26b171fa9e05fc9d538d16b0eddb6024"
+          }
+        ]
+      },
+      "recoverable_pandora_backups_verified": 16
+    }
+  },
+  "generation_measurement": {
+    "before": 193.30803961795755,
+    "after": 170.45898077898892
+  },
+  "limits": [
+    "The Asteroid view applies only to the original type73 guarded branch and normal helper/stack behavior. A single recovered inbound reference is not a proof against arbitrary indirect entries. The common join and mixed tractor storage stay Core.",
+    "The existing spin field is reused by the original WORD arithmetic. No uniform PRNG probability, physical time unit or universal resource interpretation for Core WORD24 is asserted.",
+    "No new flight/asteroid encounter or DMA/timing observation. The stored-reference propagation and source-backed header-loop limitations remain independent open investigations."
+  ]
+}

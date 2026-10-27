@@ -23,7 +23,19 @@ boundaries. It records 67 suffix signals (including numeric adjacent variants),
 21 lookup contracts, 523 remaining interior references, 32 generic app fields
 and 682 unresolved record accesses. These are different denominators. Five
 suffixes name routines and one names text; neither is a pointer defect.
-Latest: the [canonical entry/call cell transport](../../runtime/observations/starglider2-app-call-cells.json)
+Latest: the [tractor/asteroid resource branch](../../runtime/observations/starglider2-tractor-asteroid-resource.json)
+connects the original type-73 guarded path to the existing Asteroid WORD24
+spin-step field. The original body doubles that word twice with WORD wrap,
+adds it to power/weapon/shield reserves and saturates on carry; a separate PRNG
+low-seven-bits-zero path releases the target. This local subtype view does not
+cast the mixed tractor slot or common join. Native projection adds **1 typed
+coordinate / 0 lost / 0 changed**, yielding **3412 app references / 1563 typed /
+682 unresolved**. Original C/vasm and clean standalone output remain exact;
+no new live asteroid encounter is claimed. The next work remains the concrete
+source-backed header-loop domain and selected-reference chain, with current
+unknown aliases/call boundaries preserved rather than guessed disjoint.
+
+Preceding: the [canonical entry/call cell transport](../../runtime/observations/starglider2-app-call-cells.json)
 materializes conditional declared pointee types at graph roots in the existing
 sparse canonical cells, then applies ordinary overlap invalidation and must-joins.
 Known direct-call inputs retain canonical memory identities while dropping

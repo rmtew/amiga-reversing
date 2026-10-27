@@ -45289,7 +45289,7 @@ process_tractor_target_keys:
 	bne.w abs_0_0003557C
 	bsr.w abs_0_00039D20
 	andi.w #127,d0
-	bne.b abs_0_00035522
+	bne.b apply_asteroid_tractor_resource_pulse
 	clr.b $001E(a0)
 	bclr.b #2,$0002(a0)
 	bclr.b #3,$0002(a0)
@@ -45298,9 +45298,11 @@ process_tractor_target_keys:
 	clr.w scan_target_type(a6)
 	sf.b tractor_input_override_flag(a6)
 	bra.w abs_0_00035782
-abs_0_00035522:
+    ; Type73 only: asteroid spin WORD24 also supplies wrapping WORD x4 recharge. ADD carry saturates each reserve to $FFFF; zero PRNG low7 takes the separate target-release path.
+    ; KNOWN: type A0=Target code-entry register seed:SG2Asteroid
+apply_asteroid_tractor_resource_pulse:
 	st.b panel_fast_animation_request(a6)
-	move.w $0024(a0),d1
+	move.w SG2Asteroid_rotation_2_spin_step(a0),d1
 	add.w d1,d1
 	add.w d1,d1
 	move.w icarus_power_reserve(a6),d0

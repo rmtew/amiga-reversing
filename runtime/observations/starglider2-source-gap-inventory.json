@@ -49204,9 +49204,9 @@
     "Native rendered accesses describe the inline export. exported_definition checks the selected source; INCBIN packaging may intentionally hide internal boundaries."
   ],
   "input_sha256": {
-    "analysis": "e4b79488774ae75577ed9db43262b11d523b876d0ab912acd11790b4f18edfcc",
-    "metadata": "761f5b324d6d98530129bada741d41b8b8db25590d5b705a49306dd31ac16e74",
-    "source": "79810f75c23c9e722f50e28d18405157317f03262bcfa7d65d37c78251566baa"
+    "analysis": "d431b10df542783395e1edf9a63ed941e2f36496dae026837f39cbd6e747b7e4",
+    "metadata": "a34121e7faae45e75fbd6695498b403185b27277e96f0b881abfb5da897276ad",
+    "source": "486b0b1cf178f85fcfc02ad71a0cfdea991828ce2136c8515c285ac57e488863"
   },
   "input_binding": "Caller supplies matching retained artifacts. Hashes identify inputs; discovery is not an independent correspondence/admission proof."
 }
