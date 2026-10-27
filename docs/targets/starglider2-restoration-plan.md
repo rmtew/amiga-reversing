@@ -23,7 +23,21 @@ boundaries. It records 67 suffix signals (including numeric adjacent variants),
 21 lookup contracts, 523 remaining interior references, 32 generic app fields
 and 428 unresolved record accesses. These are different denominators. Five
 suffixes name routines and one names text; neither is a pointer defect.
-Latest: the [proven app-span discovery fix](../../runtime/observations/starglider2-proven-app-spans.json)
+Latest: the [paired cursor/BCD reconstruction](../../runtime/observations/starglider2-paired-score-cursors.json)
+removes a blanket refusal of distinct predecrement operands and retains every
+independently updated cursor through the shared instruction transfer. The same
+regressions exposed and fixed last-cursor-only retention, including CMPM.
+Native original score and periodic BCD routines gain **21 access records / 0 lost**:
+**3412 app references / 1199 typed / 428 unresolved**. These are access records,
+not 21 new semantic fields. Score accesses retain conditional A6 provenance;
+periodic accesses have register-state provenance. The score's high byte remains
+unchanged by its three-byte addition, and the periodic LONG reload overlaps the
+counter and countdown exactly as encoded. 237 focused and 832 native tests pass.
+Accepted code/ownership and all original C/vasm/standalone bytes are preserved.
+Continue actual producer/consumer and incoming-path restoration; no new runtime
+coverage or all-input BCD safety is claimed.
+
+Preceding: the [proven app-span discovery fix](../../runtime/observations/starglider2-proven-app-spans.json)
 closes direct/derived access-discovery asymmetry. Converged app identity now
 records exact cursor accesses before an object is declared; weak interpretations
 still need a covering owner. Direct grouped accesses use the shared decoded

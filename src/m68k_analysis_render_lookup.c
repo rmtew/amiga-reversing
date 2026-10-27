@@ -7781,8 +7781,10 @@ static void typed_state_update_after_instruction(M68kRenderTypedState *state, M6
   int source_is_app_address = 0;
   int source_has_memory_base = 0;
   int recognized_stack_update = 0;
-  uint8_t app_update_reg = 0U, app_update_width = 0U;
-  M68kRenderTypedAppAddressValue app_after_update = {0};
+  /* Per-instruction pending updates, not additional CFG state. Two memory
+   * operands can update distinct An cursors; retain each original value. */
+  uint8_t app_update_regs[4] = {0}, app_update_count = 0U;
+  M68kRenderTypedAppAddressValue app_after_updates[4] = {{0}};
   M68kStackRegisterTransfer stack_transfer = {0};
   int has_stack_transfer;
   uint32_t entry_values_before[16] = {0};
@@ -7796,7 +7798,7 @@ static void typed_state_update_after_instruction(M68kRenderTypedState *state, M6
   has_stack_transfer = platform_instruction_stack_register_transfer(instruction, &stack_transfer);
   for (operand_index = 0U; operand_index < instruction->operand_count && operand_index < 4U; ++operand_index) {
     const M68kOperandIR *operand = &instruction->operands[operand_index];
-    uint8_t access, element_width, count;
+    uint8_t access, element_width, count, app_update_reg = 0U, app_update_width = 0U;
     int16_t displacement;
     uint8_t update_shape = m68k_instruction_operand_decoded_ea_shape(operand);
     int32_t updated;
@@ -7807,8 +7809,10 @@ static void typed_state_update_after_instruction(M68kRenderTypedState *state, M6
     updated = (int32_t)state->app_addr_regs[app_update_reg].displacement +
       (update_shape == M68K_SIM_EA_SHAPE_PREDECREMENT ? -(int32_t)app_update_width : app_update_width);
     if (updated >= INT16_MIN && updated <= INT16_MAX) {
-      app_after_update = state->app_addr_regs[app_update_reg];
-      app_after_update.displacement = (int16_t)updated;
+      app_update_regs[app_update_count] = app_update_reg;
+      app_after_updates[app_update_count] = state->app_addr_regs[app_update_reg];
+      app_after_updates[app_update_count].displacement = (int16_t)updated;
+      ++app_update_count;
     }
   }
   typed_origin_clear(&source_origin);
@@ -8455,7 +8459,8 @@ static void typed_state_update_after_instruction(M68kRenderTypedState *state, M6
         instruction->operands[operand_index].value.ea_reg < 8U)
       state->addr_regs[instruction->operands[operand_index].value.ea_reg].layout_base_id = 0U;
   }
-  if (app_after_update.known) state->app_addr_regs[app_update_reg] = app_after_update;
+  for (uint8_t update = 0U; update < app_update_count; ++update)
+    state->app_addr_regs[app_update_regs[update]] = app_after_updates[update];
   if (instruction_may_update_stack_pointer_from_metadata(instruction) && !recognized_stack_update &&
       !instruction_has_call_flow_local(instruction)) {
     int32_t adjustment;
@@ -12708,8 +12713,11 @@ static int typed_app_memory_span(const M68kRenderLookup *lookup, const M68kRende
       if (index == operand_index) continue;
       if (operand_address_register_index_local(other, &other_reg) && other_reg == reg) return 0;
       other_shape = m68k_instruction_operand_decoded_ea_shape(other);
-      if (other_shape == M68K_SIM_EA_SHAPE_PREDECREMENT) return 0;
-      if (other_shape == M68K_SIM_EA_SHAPE_POSTINCREMENT &&
+      /* Distinct EA registers update independently (including ABCD/SBCD
+       * and ADDX/SUBX memory forms). Equal backing addresses are valid alias
+       * observations; repeated use of this same EA register is not inferred. */
+      if ((other_shape == M68K_SIM_EA_SHAPE_PREDECREMENT ||
+           other_shape == M68K_SIM_EA_SHAPE_POSTINCREMENT) &&
           (other->kind != M68K_ASM_OPERAND_EA || other->value.ea_reg == reg)) return 0;
       if ((other->kind == M68K_ASM_OPERAND_EA || other->kind == M68K_ASM_OPERAND_BF_EA) &&
           other->value.ea_reg == reg &&

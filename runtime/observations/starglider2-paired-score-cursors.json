@@ -1,0 +1,497 @@
+{
+  "schema_version": 1,
+  "kind": "independent_paired_ea_updates_recover_score_and_periodic_bcd_accesses",
+  "status": "qualified_connected_restoration_batch_continues",
+  "publication_base_commit": "84040e24f135c61cb8d67661368000457bded210",
+  "inputs": {
+    "binary_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "analysis_sha256": "05281deec5c62d631abc8f3abe7bcdac45d103c8d6c138a281cf356125910dc1",
+    "effective_metadata_sha256": "9a382c6a66fb6924c509d6a379b98f4fa12ed0f0fa98a928729ebcd3db111be1",
+    "consumer_evidence_sha256": "0cce4764d7c10b0405c5191a8e35c895bb7c3536787ecebfbecea3d48b22caec",
+    "backend_sha256": "0e240bc830b69cbaeddc40a32083b263925dcfba466d637638871754237b33ed"
+  },
+  "interpretation": "Original add_bcd_and_draw_amiga_digits stores D0 to source scratch, forms app720 as one-past the existing canonical four-byte player_score_bcd owner71C..720, then three ABCD source/destination predecrements modify score bytes71F,71E,71D. Subsequent LONG read at resultingA1-1 reloads whole71C..720. High score byte71C is not changed by this three-byte addition. Original six-glyph path remains; ordinary ADD.W award producers do not establish valid packedBCD for every input. Shared decoded predecrement operands use independent An values; distinct source/destination registers can update independently even if cells alias. Same-register paired update remains conservatively refused. Existing A6 fallback facts stay conditional, no new app-base seed or object bound. Preserve carry/extend chains, original byte order, data and runtime behavior; no injected gameplay, repaired score arithmetic or new all-path claim.",
+  "cause": [
+    "The derived app-span helper blanket-refused any other predecrement operand, even with a distinct EA register. Original score/periodic routines therefore lost their app cursor at their first ABCD.",
+    "A paired known-cursor regression then showed only the final auto-updated An survived. The transfer kept one pending cursor value. Two operand refs were recorded but the source cursor was lost afterward."
+  ],
+  "changes": [
+    "Share the existing per-operand pre/postincrement check: distinct EA registers update independently, while repeated use of the same An is still refused. No opcode/address recognizer or parallel transfer semantics.",
+    "Keep up to four operand updates locally for one instruction, snapshotting the incoming cursor values before the ordinary decoded register-write invalidation. Restore every qualified independent updated cursor. No extra per-CFG-node arrays or new value domain.",
+    "Two canonical comments explain the original low-three-byte score carry chain and one-past address. No generated-source edits, new names guessed from constants, changed game bytes or base-seeding shortcuts."
+  ],
+  "reproducer": {
+    "initial_paired_suite": "7 positive failures /3 conservative passes before the change; recorded /tmp/sg2-paired-predec-before-tests.log and /tmp/sg2-paired-predec-before.json privately",
+    "intermediate": "Removing the blanket refusal alone left one failure: with two aliased-cell independent An cursors, both ABCD operands were recorded but only the last An survived. Expected4 refs, observed3. The transfer correction retains both.",
+    "coverage": "ABCD/SBCD, ADDX/SUBX WORD/LONG, CMPM byte/word/long, two distinct registers pointing at the same cell, same-register repeated update refusal, clobbers and unowned weak bases, plus existing transfer/stack/join/counter/catalogue guards."
+  },
+  "accounting": {
+    "before_after": {
+      "app_slot_ref_count": [
+        3391,
+        3412
+      ],
+      "recovered_platform_typed_access_count": [
+        1199,
+        1199
+      ],
+      "recovered_platform_unresolved_typed_access_count": [
+        428,
+        428
+      ]
+    },
+    "new_refs": [
+      {
+        "offset": 50734,
+        "displacement": 1823,
+        "base_register": "A1",
+        "operand_index": 1,
+        "access": "read-write",
+        "base_evidence": "a6_fallback",
+        "derived": true,
+        "base_displacement": 1824,
+        "operand_displacement": -1,
+        "data_access_size": 1,
+        "element_width": 1,
+        "transfer_count": 1,
+        "symbol_name": "app_071F"
+      },
+      {
+        "offset": 50736,
+        "displacement": 1822,
+        "base_register": "A1",
+        "operand_index": 1,
+        "access": "read-write",
+        "base_evidence": "a6_fallback",
+        "derived": true,
+        "base_displacement": 1823,
+        "operand_displacement": -1,
+        "data_access_size": 1,
+        "element_width": 1,
+        "transfer_count": 1,
+        "symbol_name": "app_071E"
+      },
+      {
+        "offset": 50738,
+        "displacement": 1821,
+        "base_register": "A1",
+        "operand_index": 1,
+        "access": "read-write",
+        "base_evidence": "a6_fallback",
+        "derived": true,
+        "base_displacement": 1822,
+        "operand_displacement": -1,
+        "data_access_size": 1,
+        "element_width": 1,
+        "transfer_count": 1,
+        "symbol_name": "app_071D"
+      },
+      {
+        "offset": 50748,
+        "displacement": 1820,
+        "base_register": "A1",
+        "operand_index": 0,
+        "access": "read",
+        "base_evidence": "a6_fallback",
+        "derived": true,
+        "base_displacement": 1821,
+        "operand_displacement": -1,
+        "data_access_size": 4,
+        "element_width": 4,
+        "transfer_count": 1,
+        "symbol_name": "app_071C"
+      },
+      {
+        "offset": 50872,
+        "displacement": 1963,
+        "base_register": "A1",
+        "operand_index": 1,
+        "access": "read-write",
+        "base_evidence": "register_state",
+        "derived": true,
+        "base_displacement": 1964,
+        "operand_displacement": -1,
+        "data_access_size": 1,
+        "element_width": 1,
+        "transfer_count": 1,
+        "symbol_name": "app_07AB"
+      },
+      {
+        "offset": 50874,
+        "displacement": 1962,
+        "base_register": "A1",
+        "operand_index": 1,
+        "access": "read-write",
+        "base_evidence": "register_state",
+        "derived": true,
+        "base_displacement": 1963,
+        "operand_displacement": -1,
+        "data_access_size": 1,
+        "element_width": 1,
+        "transfer_count": 1,
+        "symbol_name": "app_07AA"
+      },
+      {
+        "offset": 50892,
+        "displacement": 1962,
+        "base_register": "A1",
+        "operand_index": 0,
+        "access": "read",
+        "base_evidence": "register_state",
+        "derived": true,
+        "base_displacement": 1962,
+        "operand_displacement": 0,
+        "data_access_size": 4,
+        "element_width": 4,
+        "transfer_count": 1,
+        "symbol_name": "app_07AA"
+      },
+      {
+        "offset": 244484,
+        "displacement": 1823,
+        "base_register": "A1",
+        "operand_index": 1,
+        "access": "read-write",
+        "base_evidence": "a6_fallback",
+        "derived": true,
+        "base_displacement": 1824,
+        "operand_displacement": -1,
+        "data_access_size": 1,
+        "element_width": 1,
+        "transfer_count": 1,
+        "symbol_name": "app_071F"
+      },
+      {
+        "offset": 244486,
+        "displacement": 1822,
+        "base_register": "A1",
+        "operand_index": 1,
+        "access": "read-write",
+        "base_evidence": "a6_fallback",
+        "derived": true,
+        "base_displacement": 1823,
+        "operand_displacement": -1,
+        "data_access_size": 1,
+        "element_width": 1,
+        "transfer_count": 1,
+        "symbol_name": "app_071E"
+      },
+      {
+        "offset": 244488,
+        "displacement": 1821,
+        "base_register": "A1",
+        "operand_index": 1,
+        "access": "read-write",
+        "base_evidence": "a6_fallback",
+        "derived": true,
+        "base_displacement": 1822,
+        "operand_displacement": -1,
+        "data_access_size": 1,
+        "element_width": 1,
+        "transfer_count": 1,
+        "symbol_name": "app_071D"
+      },
+      {
+        "offset": 244510,
+        "displacement": 1820,
+        "base_register": "A1",
+        "operand_index": 0,
+        "access": "read",
+        "base_evidence": "a6_fallback",
+        "derived": true,
+        "base_displacement": 1821,
+        "operand_displacement": -1,
+        "data_access_size": 4,
+        "element_width": 4,
+        "transfer_count": 1,
+        "symbol_name": "app_071C"
+      },
+      {
+        "offset": 245016,
+        "displacement": 1963,
+        "base_register": "A1",
+        "operand_index": 1,
+        "access": "read-write",
+        "base_evidence": "register_state",
+        "derived": true,
+        "base_displacement": 1964,
+        "operand_displacement": -1,
+        "data_access_size": 1,
+        "element_width": 1,
+        "transfer_count": 1,
+        "symbol_name": "app_07AB"
+      },
+      {
+        "offset": 245018,
+        "displacement": 1962,
+        "base_register": "A1",
+        "operand_index": 1,
+        "access": "read-write",
+        "base_evidence": "register_state",
+        "derived": true,
+        "base_displacement": 1963,
+        "operand_displacement": -1,
+        "data_access_size": 1,
+        "element_width": 1,
+        "transfer_count": 1,
+        "symbol_name": "app_07AA"
+      },
+      {
+        "offset": 245036,
+        "displacement": 1962,
+        "base_register": "A1",
+        "operand_index": 0,
+        "access": "read",
+        "base_evidence": "register_state",
+        "derived": true,
+        "base_displacement": 1962,
+        "operand_displacement": 0,
+        "data_access_size": 4,
+        "element_width": 4,
+        "transfer_count": 1,
+        "symbol_name": "app_07AA"
+      },
+      {
+        "offset": 246678,
+        "displacement": 1823,
+        "base_register": "A1",
+        "operand_index": 1,
+        "access": "read-write",
+        "base_evidence": "a6_fallback",
+        "derived": true,
+        "base_displacement": 1824,
+        "operand_displacement": -1,
+        "data_access_size": 1,
+        "element_width": 1,
+        "transfer_count": 1,
+        "symbol_name": "app_071F"
+      },
+      {
+        "offset": 246680,
+        "displacement": 1822,
+        "base_register": "A1",
+        "operand_index": 1,
+        "access": "read-write",
+        "base_evidence": "a6_fallback",
+        "derived": true,
+        "base_displacement": 1823,
+        "operand_displacement": -1,
+        "data_access_size": 1,
+        "element_width": 1,
+        "transfer_count": 1,
+        "symbol_name": "app_071E"
+      },
+      {
+        "offset": 246682,
+        "displacement": 1821,
+        "base_register": "A1",
+        "operand_index": 1,
+        "access": "read-write",
+        "base_evidence": "a6_fallback",
+        "derived": true,
+        "base_displacement": 1822,
+        "operand_displacement": -1,
+        "data_access_size": 1,
+        "element_width": 1,
+        "transfer_count": 1,
+        "symbol_name": "app_071D"
+      },
+      {
+        "offset": 246704,
+        "displacement": 1820,
+        "base_register": "A1",
+        "operand_index": 0,
+        "access": "read",
+        "base_evidence": "a6_fallback",
+        "derived": true,
+        "base_displacement": 1821,
+        "operand_displacement": -1,
+        "data_access_size": 4,
+        "element_width": 4,
+        "transfer_count": 1,
+        "symbol_name": "app_071C"
+      },
+      {
+        "offset": 246754,
+        "displacement": 1963,
+        "base_register": "A1",
+        "operand_index": 1,
+        "access": "read-write",
+        "base_evidence": "register_state",
+        "derived": true,
+        "base_displacement": 1964,
+        "operand_displacement": -1,
+        "data_access_size": 1,
+        "element_width": 1,
+        "transfer_count": 1,
+        "symbol_name": "app_07AB"
+      },
+      {
+        "offset": 246756,
+        "displacement": 1962,
+        "base_register": "A1",
+        "operand_index": 1,
+        "access": "read-write",
+        "base_evidence": "register_state",
+        "derived": true,
+        "base_displacement": 1963,
+        "operand_displacement": -1,
+        "data_access_size": 1,
+        "element_width": 1,
+        "transfer_count": 1,
+        "symbol_name": "app_07AA"
+      },
+      {
+        "offset": 246774,
+        "displacement": 1962,
+        "base_register": "A1",
+        "operand_index": 0,
+        "access": "read",
+        "base_evidence": "register_state",
+        "derived": true,
+        "base_displacement": 1962,
+        "operand_displacement": 0,
+        "data_access_size": 4,
+        "element_width": 4,
+        "transfer_count": 1,
+        "symbol_name": "app_07AA"
+      }
+    ],
+    "lost_refs": [],
+    "new_by_displacement": {
+      "0x71f": 3,
+      "0x71e": 3,
+      "0x71d": 3,
+      "0x71c": 3,
+      "0x7ab": 3,
+      "0x7aa": 6
+    },
+    "incomplete": [],
+    "diagnostics": 0,
+    "accepted_code_runs_identical": true
+  },
+  "ref_groups": {
+    "score": {
+      "bytes": [
+        1821,
+        1822,
+        1823
+      ],
+      "whole_long_reload": 1820,
+      "new_sites": 12,
+      "base_evidence": "a6_fallback, retained assumption"
+    },
+    "periodic_bcd": {
+      "bytes": [
+        1962,
+        1963
+      ],
+      "whole_long_reload": 1962,
+      "new_sites": 9,
+      "base_evidence": "register_state"
+    }
+  },
+  "validation": {
+    "native_and_vasm": {
+      "kind": "verification",
+      "framework_exact": true,
+      "target_id": "amiga_raw_starglider2_game",
+      "subject_revision": "2591c4f1593c10d33121543e2d241efe1aa62e785377b272ba43c2ae72faf193",
+      "status": "exact",
+      "exact": true,
+      "source_sha256": "ae1ee1fcfe9be5bad350bd239212493a95de69fe67611727f8938287661d31a0",
+      "source_path": "/workspace/pandora-original-delivery/stable-d15c2cf8/.runtime-state/restoration/eb04f545fb97451725a1c91ab5abf6f2e097614c45880db6edfb4ea5c3f6e2c2/ae1ee1fcfe9be5bad350bd239212493a95de69fe67611727f8938287661d31a0.s",
+      "source_package_sha256": null,
+      "original_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+      "original_size": 412736,
+      "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+      "rebuilt_path": "/workspace/pandora-original-delivery/stable-d15c2cf8/.runtime-state/restoration/eb04f545fb97451725a1c91ab5abf6f2e097614c45880db6edfb4ea5c3f6e2c2/662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9.bin",
+      "framework_status": "exact",
+      "failure_kinds": [],
+      "message": "",
+      "oracle": {
+        "oracle_id": "vasm",
+        "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+        "comparison_level": "oracle.full_file_match",
+        "assembler_status": "accepted",
+        "message": "oracle output matched original bytes"
+      },
+      "receipt_id": "5d54774286ff329e96a7f667e26ceea13d82be6f7d701ffec912ad0677485116",
+      "revision": "c87333dd1ce0ad4e931499174dea62adfdada4be0ba18e92898bf768af46b75f"
+    },
+    "focused_tests": 237,
+    "native_unit_tests": 832,
+    "accepted_code_runs_identical": true,
+    "accepted_ownerships_identical": true,
+    "incomplete_analysis": [],
+    "source_quality_diagnostics": 0,
+    "canonical_actions": 2,
+    "assets_unchanged": 57,
+    "required_headers": 14,
+    "clean_standalone_build": {
+      "status": "pass",
+      "validated_target_git_tree": "f51acb43b27e7ed621a184e41518b8bea2efbd3e",
+      "receipt": {
+        "schema_version": 1,
+        "status": "pass",
+        "format": "raw_payload_not_AmigaDOS_HUNK",
+        "main_bytes": 412736,
+        "main_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+        "main_matches_original_identity": true,
+        "asset_count": 57,
+        "all_asset_source_slices_equal": true,
+        "decoded_view_inverse_exact": true,
+        "boot_copy_source_matches_resident_view": true,
+        "source_commit": "84040e24f135c61cb8d67661368000457bded210",
+        "assembler_sha256": "413e284020125f42709486dfe09907cab3dd9f3c2ea41017c190f8ea68f30825",
+        "flags": [
+          "-Fbin",
+          "-m68000",
+          "-no-opt"
+        ],
+        "outputs": [
+          {
+            "role": "original_main",
+            "filename": "Starglider2-original.raw",
+            "bytes": 412736,
+            "sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9"
+          },
+          {
+            "role": "decoded_analysis_view",
+            "filename": "protection-decoded-analysis.raw",
+            "bytes": 3548,
+            "sha256": "de8358853dd9ed9b006a23569bf393aa217ed3be3301a169465d80bfaf839922"
+          },
+          {
+            "role": "boot_installer_context",
+            "filename": "boot-selector-installer-context.raw",
+            "bytes": 40,
+            "sha256": "8d34852425e2e1bfa87b3febdfc74fb39e7c667e9d9ff73e17b594649e83b21b"
+          },
+          {
+            "role": "boot_resident_view",
+            "filename": "boot-selector-resident.raw",
+            "bytes": 20,
+            "sha256": "a26286a393713c046eff9dbaff15b20b26b171fa9e05fc9d538d16b0eddb6024"
+          }
+        ]
+      },
+      "recoverable_pandora_backups_verified": 16
+    }
+  },
+  "workflow": {
+    "generation_wall_seconds": 158.07775631500408,
+    "full_generation_and_artifact_extraction_seconds": 176.63889760500751
+  },
+  "limits": [
+    "Static original-instruction evidence across renderer variants, not new normal-media runtime execution or all-path coverage.",
+    "Scores use original low-three-byte arithmetic with high byte unchanged. Original ordinary binary ADD.W addend producers do not certify all inputs as valid packed BCD. No repaired arithmetic or claimed all-input decimal safety.",
+    "Periodic LONG reload physically spans its two-byte BCD counter and following two-byte countdown; an access is not a claim those fields are one scalar object.",
+    "The weak score A6 attribution stays conditional; no new app-base proof. Raw app0720 remains a one-past address expression in that weak context, not a demonstrated extra four-byte slot.",
+    "Current1199 typed identities and428 unresolved record accesses remain unchanged;21 access records are not21 newly named semantic fields."
+  ],
+  "next": {
+    "group": "Remaining concrete original field/record consumers",
+    "experiment": "Use the refreshed native access inventory to distinguish genuine unclaimed readers from endpoint aliases and initialization-only fields; follow actual original call/type constraints rather than blanket pool casts or speculative names."
+  }
+}

@@ -15333,9 +15333,11 @@ null_sprite_seed:
 add_bcd_and_draw_amiga_digits:
 	lea.l abs_0_0000E000(pc),a0
 	move.l d0,(a0)+
+    ; One-past the four-byte score owner ($71C..$720), not another LONG slot. Three ABCD predecrements update only the low three bytes; the following -1(A1) LONG reloads all four.
 	lea.l app_0720(a6),a1
 	moveq.l #0,d2
 	sub.w d2,d2
+    ; Independent A0/A1 predecrements preserve the three-byte carry chain. Six displayed nibbles do not prove all caller addends are valid packed BCD; ordinary award ADD.W behavior is retained.
 	abcd -(a0),-(a1)
 	abcd -(a0),-(a1)
 	abcd -(a0),-(a1)
