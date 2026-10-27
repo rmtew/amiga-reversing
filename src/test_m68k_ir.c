@@ -1952,6 +1952,110 @@ static int test_source_dcb_preserves_large_repeat_without_expanding_items(void) 
   return 0;
 }
 
+/* Independently assembled: MOVEA.L rows(PC,D0.W),A1; the An-indexed
+ * equivalent to A3; RTS; three initially null pointer records. */
+static int test_facts_v2_pc_pointer_collection_consumers(void) {
+  const uint8_t original[] = {0x22,0x7B,0x00,0x08,0x26,0x7B,0xA0,0x04,0x4E,0x75,
+    0,0,0,0,0,0,0,0,0,0,0,0};
+  for (unsigned mode = 0U; mode < 7U; ++mode) {
+    uint8_t bytes[sizeof(original)];
+    M68kObject object;
+    M68kSection section = {0};
+    M68kAnalysisPolicy policy;
+    M68kFactsV2Profile profile;
+    M68kSourceAnalysisIR analysis = {0};
+    char *source = NULL;
+    memcpy(bytes, original, sizeof(bytes));
+    if (mode == 4U) { /* Plain PC displacement has no index register. */
+      bytes[1] = bytes[5] = 0x7A; bytes[6] = 0x00;
+    }
+    M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+    object.platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
+    object.platform_file_kind = M68K_PLATFORM_FILE_EXECUTABLE;
+    section.kind = M68K_SECTION_CODE;
+    section.size = section.data_size = sizeof(bytes);
+    section.data = bytes;
+    M68K_C_ASSERT(m68k_object_add_section(&object, &section).ok);
+    m68k_analysis_policy_init_default(&policy);
+    policy.custom_structs = calloc(1U, sizeof(*policy.custom_structs));
+    M68K_C_ASSERT(policy.custom_structs != NULL);
+    policy.custom_struct_owner = 1U;
+    policy.custom_struct_count = policy.custom_struct_capacity = 1U;
+    M68kAnalysisCustomStruct *record = &policy.custom_structs[0];
+    strcpy(record->name, "PointerRecord");
+    record->size = 4U; record->field_count = 1U;
+    strcpy(record->fields[0].name, "value");
+    strcpy(record->fields[0].type_name, mode == 1U ? "LONG" : "APTR");
+    record->fields[0].size = 4U;
+    record->fields[0].value_kind = mode == 1U ? M68K_ANALYSIS_STRUCT_FIELD_VALUE_SCALAR :
+      M68K_ANALYSIS_STRUCT_FIELD_VALUE_TARGET_POINTER;
+    record->fields[0].pointer_address_domain = mode == 1U ? M68K_ANALYSIS_POINTER_DOMAIN_LEGACY :
+      M68K_ANALYSIS_POINTER_DOMAIN_MAPPED_SOURCE;
+    policy.structured_data_item_count = 3U;
+    for (size_t i = 0U; i < 3U; ++i) {
+      M68kAnalysisStructuredDataItem *item = &policy.structured_data_items[i];
+      item->has_section_index = 1U; item->offset = 10U + 4U * i; item->size = 4U;
+      item->kind = M68K_ANALYSIS_STRUCTURED_DATA_LONGS;
+      if (mode != 2U) {
+        strcpy(item->struct_name, "PointerRecord"); strcpy(item->field_name, "value");
+        strcpy(item->field_type, mode == 1U ? "LONG" : "APTR");
+        item->is_pointer = mode != 1U;
+        item->pointer_address_domain = record->fields[0].pointer_address_domain;
+      }
+      if (i == 0U) {
+        item->has_source_owner_span = 1U; item->source_owner_start = 10U; item->source_owner_size = 12U;
+      }
+    }
+    if (mode == 3U) policy.structured_data_items[1].pointer_address_domain = M68K_ANALYSIS_POINTER_DOMAIN_RUNTIME_ONLY;
+    if (mode == 5U) policy.structured_data_items[1].table_conflicted = 1U;
+    if (mode == 6U) { /* Also observe an existing native declared table. */
+      M68kAnalysisStructuredDataItem *table = &policy.structured_data_items[0];
+      memset(table, 0, sizeof(*table));
+      table->has_section_index = 1U; table->offset = 10U; table->size = 12U;
+      table->kind = M68K_ANALYSIS_STRUCTURED_DATA_LONGS;
+      table->table_kind_id = M68K_ANALYSIS_TABLE_KIND_POINTER;
+      table->semantic_role_flags = M68K_ANALYSIS_STRUCTURED_DATA_ROLE_POINTER_TABLE;
+      table->entry_count_proof_id = M68K_ANALYSIS_TABLE_ENTRY_COUNT_PROOF_STRUCTURED_RANGE;
+      policy.structured_data_item_count = 1U;
+    }
+    M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_analysis_profile_alloc(&object, &policy,
+      &source, &profile, &analysis, 1, m68k_diag_sink(NULL)));
+    M68K_C_ASSERT(analysis.section_count == 1U);
+    size_t readers = 0U;
+    for (size_t i = 0U; i < analysis.sections[0].table_consumer_count; ++i) {
+      const M68kTableConsumerIR *reader = &analysis.sections[0].table_consumers[i];
+      if (mode == 4U) M68K_C_ASSERT(!reader->has_index_register);
+      if (reader->table_kind_id != M68K_ANALYSIS_TABLE_KIND_POINTER) continue;
+      ++readers;
+      M68K_C_ASSERT_U32(10U, reader->table_start_offset);
+      M68K_C_ASSERT_U32(22U, reader->table_end_offset);
+      M68K_C_ASSERT_U32(3U, reader->entry_count);
+      M68K_C_ASSERT_U32(M68K_ANALYSIS_TABLE_ENTRY_COUNT_PROOF_STRUCTURED_RANGE, reader->entry_count_proof_id);
+      M68K_C_ASSERT_U32(M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_PC_RELATIVE_INDEXED_READ,
+        reader->source_pattern_id);
+      M68K_C_ASSERT(reader->has_index_register && reader->has_target_register);
+      M68K_C_ASSERT_U32(reader->consumer_offset == 0U ? M68K_ANALYSIS_REGISTER_DATA :
+        M68K_ANALYSIS_REGISTER_ADDRESS, reader->index_register_kind);
+      M68K_C_ASSERT_U32(reader->consumer_offset == 0U ? 0U : 2U, reader->index_register);
+      M68K_C_ASSERT_U32(M68K_ANALYSIS_REGISTER_ADDRESS, reader->target_register_kind);
+      M68K_C_ASSERT_U32(reader->consumer_offset == 0U ? 1U : 3U, reader->target_register);
+      M68K_C_ASSERT(!reader->has_index_mask_domain && !reader->has_index_compare_domain && !reader->has_index_loop_domain);
+    }
+    M68K_C_ASSERT_U32(mode == 0U || mode == 6U ? 2U : 0U, readers);
+    unsigned char *rebuilt = NULL;
+    size_t rebuilt_size = 0U;
+    char *assembly_profile = NULL, *error = NULL;
+    M68K_C_ASSERT_INT(0, platform_file_assemble_source_text_bytes_profile_alloc("amiga-raw", "", source,
+      "68000", &rebuilt, &rebuilt_size, &assembly_profile, &error));
+    M68K_C_ASSERT_U32(sizeof(bytes), rebuilt_size);
+    M68K_C_ASSERT(memcmp(bytes, rebuilt, sizeof(bytes)) == 0);
+    platform_file_free_bytes(rebuilt); platform_file_free_text(assembly_profile); platform_file_free_text(error);
+    m68k_facts_v2_free_text(source); m68k_ir_source_analysis_destroy(&analysis);
+    m68k_analysis_policy_destroy(&policy); m68k_object_destroy(&object);
+  }
+  return 0;
+}
+
 static int test_source_long_base_relative_constant_expression(void) {
   const char *source_text =
     "SECTION section_0,code\n"
@@ -39878,6 +39982,7 @@ int m68k_c_ir_tests(void) {
       test_source_fpu_zero_disables_fpu_alias_instruction},
     {"source_dcb_preserves_large_repeat_without_expanding_items",
       test_source_dcb_preserves_large_repeat_without_expanding_items},
+    {"facts_v2_pc_pointer_collection_consumers", test_facts_v2_pc_pointer_collection_consumers},
     {"source_long_base_relative_constant_expression", test_source_long_base_relative_constant_expression},
     {"source_symbolic_absolute_after_dcb_does_not_leak_to_register_move",
       test_source_symbolic_absolute_after_dcb_does_not_leak_to_register_move},

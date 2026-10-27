@@ -20,10 +20,21 @@ to their recorded closeout revision. See the current
 The [current systematic gap inventory](../../runtime/observations/starglider2-source-gap-inventory.json)
 joins native identities/accesses with canonical layouts and actual rendered
 boundaries. It records 66 suffix signals (including numeric adjacent variants),
-22 lookup contracts, 524 remaining interior references, 48 generic app fields
+21 lookup contracts, 524 remaining interior references, 48 generic app fields
 and 352 unresolved record accesses. These are different denominators. Five
 suffixes name routines and one names text; neither is a pointer defect.
-The [pointer-record collection projection](../../runtime/observations/starglider2-pointer-record-collections.json)
+Latest: the [PC-relative collection observer](../../runtime/observations/starglider2-pc-pointer-collections.json)
+reuses the same native pointer consumer path for PC-relative reads. The Copper
+reader now attaches to the full three-entry owner instead of a one-entry scalar
+prefix. One redundant scalar contract is removed: **74 → 73 descriptors,
+14 → 13 scalar lookups**. The 155 consumers and 304 address expressions remain;
+this is corrected attribution, not155 new sites. Selector bounds stay unknown.
+All **828 native tests pass** and original C/vasm output is exact. All76 standalone
+build inputs still match the preceding clean build, whose result is reused.
+Next probe the139 indexed typed diagnostics using existing scalar/closed-index
+values; do not infer safety from table extent alone.
+
+Preceding: the [pointer-record collection projection](../../runtime/observations/starglider2-pointer-record-collections.json)
 now exposes **all ten** canonical pointer directories (499 entries) through the
 existing native descriptor path: **64 → 74 table contracts, 40 → 155 consumer
 records, 189 → 304 address expressions**. No names or rendered assembly changed;
@@ -33,10 +44,8 @@ counts remain separate from each reader's conditional index domain.
 
 The preceding [record-array extent repair](../../runtime/observations/starglider2-source-owner-array-extents.json)
 recovered two sprite field accesses and removed one decimal-array boundary
-conflict: **316 → 318 typed accesses; 355 → 352 unresolved diagnostics**. Next
-reconcile the known PC-relative Copper-list reader with its full pointer owner,
-then exercise bounded dynamic-index consumers and the connected field/caller
-leads. Disc-command and panel-frame directories currently have no indexed
+conflict: **316 → 318 typed accesses; 355 → 352 unresolved diagnostics**. That PC-relative reader gap is repaired in the current batch above; bounded
+dynamic-index consumers and connected field/caller leads remain. Disc-command and panel-frame directories currently have no indexed
 consumer from this pass; neither is called unused. Each group has a concrete
 experiment, what it blocks and an evidence-based deferral in the receipt.
 The inventory does not admit facts, rename symbols or replace native
@@ -46,7 +55,7 @@ analysis. Reproduce it using `python -m amiga_reversing.tools.source_gap_invento
 bound to the qualification receipts. No additional native generation was used
 for this accounting.
 
-Latest native suite: **827 tests, zero failures**. Six inventory tests pass. Original C/vasm
+The collection-projection native suite passed **827 tests, zero failures**. Six inventory tests pass. Original C/vasm
 remain exact. Standalone source, assets, headers and build script are byte-identical
 to the preceding clean qualification, whose result is reused explicitly.
  A newly exposed long symbolic

@@ -5806,7 +5806,7 @@
     }
   },
   "summary": {
-    "native_table_contracts": 74,
+    "native_table_contracts": 73,
     "native_table_consumer_records": 155,
     "native_address_expression_records": 304,
     "suffix_names": 66,
@@ -5817,10 +5817,10 @@
       "named_absolute_storage": 1,
       "text_name_signal": 1
     },
-    "lookup_contracts": 22,
+    "lookup_contracts": 21,
     "lookup_kinds": {
       "relative_code_dispatch": 8,
-      "scalar": 14
+      "scalar": 13
     },
     "interior_reference_records": 524,
     "unresolved_typed_accesses": 352,
@@ -22647,36 +22647,6 @@
     },
     {
       "section_index": 0,
-      "start_offset": 10530,
-      "end_offset": 10534,
-      "entry_size": 4,
-      "entry_count": 1,
-      "entry_count_proof_id": 2,
-      "entry_count_proof": "consumer_structural_scan",
-      "stop_reason_id": 2,
-      "stop_reason": "consumer_structural_stop",
-      "index_mask_domain": null,
-      "index_compare_domain": null,
-      "index_loop_domain": null,
-      "table_kind_id": 1,
-      "table_kind": "scalar",
-      "base_expression_id": 1,
-      "base_expression": "table_label",
-      "source_pattern_id": 6,
-      "source_pattern": "pc_relative_indexed_read",
-      "role_flags": 8,
-      "role": "lookup_table",
-      "status": 2,
-      "status_name": "accepted",
-      "target_section_index": null,
-      "target_offset": null,
-      "consumer_section_index": 0,
-      "consumer_offset": 10492,
-      "conflict_state": 0,
-      "conflict_state_name": "clean"
-    },
-    {
-      "section_index": 0,
       "start_offset": 10542,
       "end_offset": 10546,
       "entry_size": 4,
@@ -39187,9 +39157,34 @@
           "conflict_state_name": "clean"
         }
       ],
-      "native_collection_consumers": [],
-      "native_leaf_items": 4,
-      "native_overlapping_items": 5,
+      "native_collection_consumers": [
+        {
+          "section_index": 0,
+          "consumer_offset": 10492,
+          "table_section_index": 0,
+          "table_start_offset": 10530,
+          "table_end_offset": 10542,
+          "access_width": 4,
+          "entry_count": 3,
+          "entry_count_proof_id": 1,
+          "entry_count_proof": "structured_range",
+          "stop_reason_id": 1,
+          "stop_reason": "structured_range_end",
+          "index_mask_domain": null,
+          "index_compare_domain": null,
+          "index_loop_domain": null,
+          "table_kind_id": 2,
+          "table_kind": "pointer",
+          "source_pattern_id": 6,
+          "source_pattern": "pc_relative_indexed_read",
+          "index_register_kind": 1,
+          "index_register": 0,
+          "target_register_kind": null,
+          "target_register": null
+        }
+      ],
+      "native_leaf_items": 3,
+      "native_overlapping_items": 4,
       "native_overlapping_contracts": [
         {
           "start_offset": 10530,
@@ -39217,35 +39212,6 @@
           "target_offset": null,
           "consumer_section_index": null,
           "consumer_offset": null,
-          "conflict_state": 0,
-          "conflict_state_name": "clean"
-        },
-        {
-          "start_offset": 10530,
-          "end_offset": 10534,
-          "entry_size": 4,
-          "entry_count": 1,
-          "entry_count_proof_id": 2,
-          "entry_count_proof": "consumer_structural_scan",
-          "stop_reason_id": 2,
-          "stop_reason": "consumer_structural_stop",
-          "index_mask_domain": null,
-          "index_compare_domain": null,
-          "index_loop_domain": null,
-          "table_kind_id": 1,
-          "table_kind": "scalar",
-          "base_expression_id": 1,
-          "base_expression": "table_label",
-          "source_pattern_id": 6,
-          "source_pattern": "pc_relative_indexed_read",
-          "role_flags": 8,
-          "role": "lookup_table",
-          "status": 2,
-          "status_name": "accepted",
-          "target_section_index": null,
-          "target_offset": null,
-          "consumer_section_index": 0,
-          "consumer_offset": 10492,
           "conflict_state": 0,
           "conflict_state_name": "clean"
         }
@@ -42834,7 +42800,7 @@
     "Native rendered accesses describe the inline export. exported_definition checks the selected source; INCBIN packaging may intentionally hide internal boundaries."
   ],
   "input_sha256": {
-    "analysis": "a8734b3d9b30be430864b67548b7855612b784c6608673a7cca16a9be7fb673e",
+    "analysis": "2628b46dea08742102c36e2ea941f5e3a3b7c4d6134dc5d940ee0ec77740e121",
     "metadata": "abbb82000e9f0220b647ad3c44dc0cef810e11de175eb38a1faa451c51508bde",
     "source": "cb9c8b42b2424d3c19610b006e679e9205a75e07ee527b0212db5fd8778fca6d"
   },
