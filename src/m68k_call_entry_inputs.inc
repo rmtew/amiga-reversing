@@ -7,7 +7,17 @@ static void typed_flow_call_entry_input(const M68kRenderLookup *lookup,
     M68kRenderTypedState *typed, M68kRenderPlatformState *platform) {
   typed_flow_instruction_input(lookup, section, caller, typed, platform);
   memset(typed->stack_slots, 0, sizeof(typed->stack_slots)); typed->stack_slot_count = 0U;
-  memset(typed->base_slots, 0, sizeof(typed->base_slots)); typed->base_slot_count = 0U;
+  /* Canonical cells name memory independently of the caller's registers and
+   * stack frame. Transport their reaching packets through the ordinary call
+   * input join; discard only caller-relative scratch identities. Unknown calls
+   * and callee writes still use the shared invalidation rules. */
+  for (size_t i = 0U; i < typed->base_slot_count;) {
+    if (!typed->base_slots[i].storage_id)
+      typed->base_slots[i] = typed->base_slots[--typed->base_slot_count];
+    else ++i;
+  }
+  memset(typed->base_slots + typed->base_slot_count, 0,
+    (M68K_RENDER_TYPED_BASE_SLOT_LIMIT - typed->base_slot_count) * sizeof(typed->base_slots[0]));
   memset(typed->field_slots, 0, sizeof(typed->field_slots)); typed->field_slot_count = 0U;
   memset(typed->io_request_setups, 0, sizeof(typed->io_request_setups));
   typed->memory_write_barriers |= M68K_CELL_WRITTEN_ALL;

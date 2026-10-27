@@ -171,3 +171,69 @@ def test_other_named_layout_does_not_declare_an_app_pointee(tmp_path):
         assert not [r for r in a.analysis_payload()[0]['sections'][0]['recovered_platform_typed_accesses']
             if r['base_register']=='A0'and r['field_name']=='foreign_value']
     finally:a.close()
+
+
+@pytest.mark.parametrize('writes,expected', [
+    ('move.b #1,$210(a6)',True),
+    ('move.b #0,$1FF(a6)',True),
+    ('move.b #0,$204(a6)',True),
+    ('lea.l $210(a6),a3\n move.b #1,(a3)',True),
+    ('move.b #0,$203(a6)',False),
+    ('movem.l d0-d1,$1FC(a6)',False),
+    ('move.b #0,(a3)',False),
+    ('jsr $2000.l',False),
+    ('tst.w d0\n beq.w untouched\n clr.l $200(a6)\nuntouched:',False),
+])
+def test_declared_entry_cell_survives_only_proven_disjoint_writes(tmp_path,writes,expected):
+    a,_=record_cell(tmp_path,writes+'\n movea.l $200(a6),a0\n tst.l 4(a0)')
+    try:
+        rows=[r for r in a.analysis_payload()[0]['sections'][0]['recovered_platform_typed_accesses']
+              if r['base_register']=='A0'and r['field_name']=='world_x']
+        assert bool(rows)==expected
+        if rows:assert all(r['type_provenance_kind']=='policy_seed'for r in rows)
+        assert not [r for r in derived_refs(a)if r['base_register']=='A0']
+        assert not a.analysis_payload()[0]['incomplete_analysis']
+    finally:a.close()
+
+
+def test_entry_cell_capacity_cannot_resurrect_an_overwritten_declaration(tmp_path):
+    # More declarations than the existing sparse cell capacity. An unretained
+    # type may lose precision after a write; it must never borrow global values.
+    a,_=cursor_artifact(tmp_path,'clr.b $29D(a6)\n movea.l $29C(a6),a0\n tst.l 4(a0)',
+        source_reg='a6',seeded=True,regions=False,metadata_extra=dict(
+        custom_structs=[dict(name='Record',size=8,fields=[dict(name='world_x',type='LONG',offset=4,size=4)])],
+        rsset_layout_regions=[dict(layout_name='app',offset=0x200+i*4,size=4,
+            storage_kind='struct_pointer',pointer_struct='Record',symbol=f'entry_{i}')for i in range(40)]))
+    try:
+        assert not [r for r in a.analysis_payload()[0]['sections'][0]['recovered_platform_typed_accesses']
+                    if r['base_register']=='A0'and r['field_name']=='world_x']
+        assert not a.analysis_payload()[0]['incomplete_analysis']
+    finally:a.close()
+
+
+@pytest.mark.parametrize('prefix,tail,expected',[
+    ('','',True),
+    ('','clr.b $201(a6)',False),
+    ('','move.b #0,$210(a6)',True),
+    ('','move.b #0,(a2)',False),
+    ('','jsr $2000.l',False),
+    ('lea.l helper.l,a5\n','',False),
+])
+def test_known_call_entry_carries_only_canonical_reaching_cells(tmp_path,prefix,tail,expected):
+    a,_=app_cell(tmp_path,prefix+'lea.l $C3E(a6),a0\n move.l a0,$200(a6)\n bsr.w helper\n rts\nhelper:\n '+tail+
+        '\n movea.l $200(a6),a1\n move.w (a1),d0\n rts')
+    try:
+        rows=[r for r in derived_refs(a)if r['base_register']=='A1'and r['access']=='read']
+        assert [r['displacement']for r in rows]==([0xC3E]if expected else[])
+        assert not a.analysis_payload()[0]['incomplete_analysis']
+    finally:a.close()
+
+
+@pytest.mark.parametrize('other,expected',[(0xC3E,True),(0xBC6,False)])
+def test_call_entry_cells_join_all_original_callers(tmp_path,other,expected):
+    a,_=app_cell(tmp_path,'tst.w d0\n beq.w other\n lea.l $C3E(a6),a0\n move.l a0,$200(a6)\n bsr.w helper\n rts\nother:\n '+
+        f'lea.l ${other:X}(a6),a0\n move.l a0,$200(a6)\n bsr.w helper\n rts\nhelper:\n movea.l $200(a6),a1\n move.w (a1),d0\n rts')
+    try:
+        assert bool([r for r in derived_refs(a)if r['base_register']=='A1'and r['access']=='read'])==expected
+        assert not a.analysis_payload()[0]['incomplete_analysis']
+    finally:a.close()

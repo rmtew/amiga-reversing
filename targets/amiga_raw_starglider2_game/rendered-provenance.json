@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
   "kind": "committed_native_rendered_original_export",
-  "canonical_source_commit": "0b912335397f49cd9a44d06cba0a21d8212f48d7",
-  "publication_base_commit": "0b912335397f49cd9a44d06cba0a21d8212f48d7",
+  "canonical_source_commit": "8fbf848a609a2a4b31e60b32b90b4cab74a5c22c",
+  "publication_base_commit": "8fbf848a609a2a4b31e60b32b90b4cab74a5c22c",
   "native_export": "CListingArtifact.source_package_payload(64)",
   "main_source_sha256": "4b43b4d486469afe7b71fb6ce049e2df5fb61608d99338a4e0b1fd8449a47d5c",
   "asset_count": 57,
@@ -25,14 +25,14 @@
     "paused Pandora work"
   ],
   "canonical_source_commit_role": "publication base; unchanged canonical annotations and shared fixes in this batch are bound by canonical_fact_sha256 and the refinement receipt",
-  "canonical_source_subject_revision": "b0116249e64ab689eab0e7aaf2cf685b960824ce3420441d5f8af75328a520fa",
+  "canonical_source_subject_revision": "287fab468ad6cb082eae25eb80ed04d10376ff3c90ea413c9c2421578e0d051e",
   "canonical_fact_sha256": {
     "source_binary.json": "42d4a5758b3e8236af7f912aee85e9ee5323bcd0961faa338c4f864080a0a7d9",
     "target_metadata.json": "e7540b68c118c56aba8815b6722eefa067517cc865fe9841d6c01ce96551389c",
     "manual_actions.jsonl": "bbab771d43e2750077be4ac537ccba97658af1b31e84f27c069f9ef19c6f5ff7",
     "decision_journal.jsonl": "d20092148b76a7fe5a5e1d3baa85e6f962837671456e7b1045a6277dc3f9495c"
   },
-  "refinement_receipt": "runtime/observations/starglider2-app-storage-cells.json",
+  "refinement_receipt": "runtime/observations/starglider2-app-call-cells.json",
   "headers": "14 unmodified required include files collected by source_package.collect_package_includes from ext/amiga_includes/ndk_2.0/include; header notices retained",
   "decoded_protection_view": {
     "target_id": "amiga_raw_starglider2_protection_view",

@@ -21,9 +21,25 @@ The [current systematic gap inventory](../../runtime/observations/starglider2-so
 joins native identities/accesses with canonical layouts and actual rendered
 boundaries. It records 67 suffix signals (including numeric adjacent variants),
 21 lookup contracts, 523 remaining interior references, 32 generic app fields
-and 683 unresolved record accesses. These are different denominators. Five
+and 682 unresolved record accesses. These are different denominators. Five
 suffixes name routines and one names text; neither is a pointer defect.
-Latest: the [shared sparse app-storage correction](../../runtime/observations/starglider2-app-storage-cells.json)
+Latest: the [canonical entry/call cell transport](../../runtime/observations/starglider2-app-call-cells.json)
+materializes conditional declared pointee types at graph roots in the existing
+sparse canonical cells, then applies ordinary overlap invalidation and must-joins.
+Known direct-call inputs retain canonical memory identities while dropping
+caller-relative scratch and private stack state. **336 focused tests and 832
+native C tests pass**, including capacity, partial/MOVEM/unknown writes, conflicts,
+unknown calls and independent-entry negatives; no per-node state size was added.
+The synthetic lost cases are fixed, but target gains remain **0 new typed / 0
+lost / 0 changed**: **3412 app references /1562 typed /682 unresolved**.
+The additional unresolved Core observation from 8fb848a is withdrawn under the
+changed entry/call state, not explained or counted as a semantic closure. The
+full selected-reference chain remains conditional and unresolved. Original
+C/vasm and clean standalone export remain exact. Continue the bounded original
+type 73 tractor-resource branch and source-backed header-loop experiment, not
+an indefinite sequence of target-free value-model extensions.
+
+Preceding: the [shared sparse app-storage correction](../../runtime/observations/starglider2-app-storage-cells.json)
 uses existing canonical cell identities and full decoded write footprints for
 local reaching values, including partial writes, MOVEM, joins and call effects.
 Native API memory types enter at each actual producer rather than borrowing an

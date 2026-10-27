@@ -10651,7 +10651,33 @@ static int typed_flow_mark_roots(const M68kAnalysisPolicy *policy, const M68kDec
   return 0;
 }
 
-static void typed_flow_reset_roots(M68kRenderTypedFlowNode *nodes, size_t node_count) {
+/* Materialize conditional entry pointee types once, in the existing sparse
+ * must-value cells. Ordinary write overlap and joins then own their lifetime;
+ * an unrelated write cannot turn the declaration into a global writer value.
+ * Capacity exhaustion only drops precision after writes, never revives a fact. */
+static void typed_state_seed_declared_app_cells(M68kRenderTypedState *state,
+    const M68kRenderLookup *lookup, size_t section, uint32_t entry_offset) {
+  if (!lookup || !lookup->policy) return;
+  for (uint16_t i = 0U; i < lookup->policy->rsset_layout_region_count; ++i) {
+    const M68kAnalysisRssetLayoutRegion *region = &lookup->policy->rsset_layout_regions[i];
+    uint16_t type;
+    uint32_t id;
+    M68kRenderTypedStoredValue value;
+    if (region->size != 4U || region->storage_kind_id != M68K_ANALYSIS_RSSET_LAYOUT_STORAGE_STRUCT_POINTER ||
+        (region->base_symbol[0] && strcmp(region->base_symbol, M68K_APP_BASE_SYMBOL))) continue;
+    type = lookup_declared_app_pointer_type(lookup, region->offset);
+    id = typed_memory_storage_id(lookup, M68K_RENDER_TYPED_STORAGE_APP_SLOT, (size_t)-1, region->offset, 0U);
+    if (!id || type == AMIGA_OS_STRUCT_ID_NONE) continue;
+    typed_stored_value_clear(&value);
+    value.struct_id = type;
+    value.provenance = typed_provenance_make(M68K_PLATFORM_TYPE_PROVENANCE_POLICY_SEED, section, entry_offset);
+    typed_stored_value_update_known(&value);
+    typed_state_set_memory_cell(state, id, &value);
+  }
+}
+
+static void typed_flow_reset_roots(const M68kRenderLookup *lookup, size_t section,
+    M68kRenderTypedFlowNode *nodes, size_t node_count) {
   size_t node_index;
   for (node_index = 0U; node_index < node_count; ++node_index) {
     typed_state_clear_all(&nodes[node_index].typed_in);
@@ -10661,12 +10687,14 @@ static void typed_flow_reset_roots(M68kRenderTypedFlowNode *nodes, size_t node_c
     nodes[node_index].has_in = 0U;
     nodes[node_index].has_out = 0U;
     if (nodes[node_index].is_root) {
+      typed_state_seed_declared_app_cells(&nodes[node_index].typed_in, lookup, section,
+        nodes[node_index].candidate->offset);
       nodes[node_index].has_in = 1U;
     }
   }
 }
 
-static int typed_flow_initialize_roots(const M68kAnalysisPolicy *policy, const M68kDecodeSectionIR *section,
+static int typed_flow_initialize_roots(const M68kRenderLookup *lookup, const M68kAnalysisPolicy *policy, const M68kDecodeSectionIR *section,
     const uint8_t *accepted_start,
     M68kRenderTypedFlowNode *nodes, size_t node_count, const size_t *node_by_offset,
     uint32_t node_by_offset_count, Arena *arena) {
@@ -10674,7 +10702,7 @@ static int typed_flow_initialize_roots(const M68kAnalysisPolicy *policy, const M
       node_by_offset_count, arena) != 0) {
     return -1;
   }
-  typed_flow_reset_roots(nodes, node_count);
+  typed_flow_reset_roots(lookup, section->section_index, nodes, node_count);
   return 0;
 }
 
@@ -10699,7 +10727,7 @@ static int typed_flow_graph_build(M68kRenderTypedFlowGraph *graph, const M68kRen
     typed_flow_graph_destroy(graph);
     return -1;
   }
-  if (typed_flow_initialize_roots(policy, section, accepted_start, graph->nodes, graph->node_count,
+  if (typed_flow_initialize_roots(lookup, policy, section, accepted_start, graph->nodes, graph->node_count,
       graph->node_by_offset, graph->node_by_offset_count, arena) != 0) {
     typed_flow_graph_destroy(graph);
     return -1;
@@ -10707,9 +10735,10 @@ static int typed_flow_graph_build(M68kRenderTypedFlowGraph *graph, const M68kRen
   return 0;
 }
 
-static void typed_flow_reinitialize_roots(M68kRenderTypedFlowNode *nodes, size_t node_count) {
+static void typed_flow_reinitialize_roots(const M68kRenderLookup *lookup, size_t section,
+    M68kRenderTypedFlowNode *nodes, size_t node_count) {
   if (node_count != 0U) {
-    typed_flow_reset_roots(nodes, node_count);
+    typed_flow_reset_roots(lookup, section, nodes, node_count);
   }
 }
 
@@ -11014,7 +11043,7 @@ static int render_lookup_analyze_amiga_typed_refs_for_section(M68kRenderLookup *
   ArenaMark mark;
   int result = -1;
   if (graph == NULL || arena == NULL) return -1;
-  typed_flow_reinitialize_roots(graph->nodes, graph->node_count);
+  typed_flow_reinitialize_roots(lookup, section->section_index, graph->nodes, graph->node_count);
   if (graph->node_count == 0U) return 0;
   mark = arena_mark(arena);
   queue = (size_t *)arena_alloc(arena, graph->node_count * sizeof(*queue));

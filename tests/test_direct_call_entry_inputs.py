@@ -164,6 +164,18 @@ int main(void) {
  assert(!entry.stack_slots[0].known && !entry.base_slots[0].known && !entry.field_slots[0].known);
  assert((entry.memory_write_barriers == M68K_CELL_WRITTEN_ALL) && !platform.address_app_base_known && !platform.local_base_slots[0].valid);
  assert(caller.typed_in.stack_slot_count==1 && caller.typed_in.addr_regs[7].known);
+ /* A canonical memory identity is not caller-private register-relative state. */
+ caller.typed_in.base_slot_count=2;
+ caller.typed_in.base_slots[1].known=1;
+ caller.typed_in.base_slots[1].storage_id=1;
+ caller.typed_in.base_slots[1].value.known=1;
+ caller.typed_in.base_slots[1].value.raw_long_value_known=1;
+ caller.typed_in.base_slots[1].value.raw_long_value=0x1234;
+ typed_flow_call_entry_input(&lookup,&section,&caller,&entry,&platform);
+ assert(entry.base_slot_count==1 && entry.base_slots[0].storage_id==1);
+ assert(entry.base_slots[0].value.raw_long_value_known && entry.base_slots[0].value.raw_long_value==0x1234);
+ assert(!entry.base_slots[1].known && !entry.stack_slot_count && !entry.field_slot_count);
+ assert(caller.typed_in.base_slot_count==2);
  return 0;
 }''')
     exe=tmp_path/'call-input'
