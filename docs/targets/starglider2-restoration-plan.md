@@ -21,9 +21,26 @@ The [current systematic gap inventory](../../runtime/observations/starglider2-so
 joins native identities/accesses with canonical layouts and actual rendered
 boundaries. It records 67 suffix signals (including numeric adjacent variants),
 21 lookup contracts, 523 remaining interior references, 32 generic app fields
-and 434 unresolved record accesses. These are different denominators. Five
+and 440 unresolved record accesses. These are different denominators. Five
 suffixes name routines and one names text; neither is a pointer defect.
-Latest: the [shared indirect-JUMP transport fix](../../runtime/observations/starglider2-typed-indirect-flow.json)
+Latest: the [shared flying-actor reconstruction](../../runtime/observations/starglider2-flying-actor-state.json)
+connects ten original model types to the shared body and two frame wrappers.
+Space Ray cycles base plus 19 alternatives; Large Egron Transport cycles base
+plus 23, under the original valid-selector contract. A distinct FlyingActor
+schema exposes motion scale, invocation phase and proximity-maneuver countdown.
+The phase masks connect transport/Buzz Bomber Proximity Mine attempts and Buzz
+Bomber Buzz Bomb attempts to their original gates; they are not guaranteed
+spawn rates or wall-clock timers. Explicit body/wrapper input contracts retain
+conservative independent-root behavior rather than pretend all callers were
+inferred. **6 private field sites** project, with
+**1049 typed /
+440 unresolved** overall;
+**75 new / 0 lost** typed coordinates. Accepted ownership spans,
+original C/vasm and clean standalone output remain exact. Continue the spawned
+objects' original target-pointer and motion lifecycle; do not reuse the phase
+counter's meaning for asteroid spin or Mini-Sentinel orbit state.
+
+Preceding: the [shared indirect-JUMP transport fix](../../runtime/observations/starglider2-typed-indirect-flow.json)
 connects typed flow to the source-bound possible targets already exported by the
 canonical CFG. One compact successor pool replaces five slots per instruction;
 all worklist/range passes share it. **114 focused and 832 native checks pass**,

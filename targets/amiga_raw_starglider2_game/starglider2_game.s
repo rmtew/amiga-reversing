@@ -1006,6 +1006,16 @@ SG2Asteroid_rotation_2_spin_step RS.W 1
     RS.B 30
 SG2Asteroid_SIZEOF EQU __RS
 
+; STRUCT SG2FlyingActor
+    RSRESET
+    RS.B 32
+SG2FlyingActor_horizontal_motion_scale RS.W 1
+    RS.B 2
+SG2FlyingActor_update_phase_counter RS.W 1
+SG2FlyingActor_proximity_maneuver_countdown RS.W 1
+    RS.B 28
+SG2FlyingActor_SIZEOF EQU __RS
+
 ADKF_CLRALL	EQU	$7FFF
 BPLCON2_PF2P2	EQU	$20
 BPLCON2_PF2PRI	EQU	$40
@@ -9189,27 +9199,27 @@ primary_object_update_offsets:
 	dc.w abs_0_000094E6-primary_object_update_offsets
 	dc.w abs_0_00009390-primary_object_update_offsets
 	dc.w abs_0_0000967A-primary_object_update_offsets
-	dc.w abs_0_00009010-primary_object_update_offsets
+	dc.w update_shared_flying_actor-primary_object_update_offsets
 	dc.w abs_0_000099BC-primary_object_update_offsets
 	dc.w abs_0_00008A74-primary_object_update_offsets
-	dc.w abs_0_00009010-primary_object_update_offsets
+	dc.w update_shared_flying_actor-primary_object_update_offsets
 	dc.w abs_0_000092CC-primary_object_update_offsets
-	dc.w abs_0_00008BBA-primary_object_update_offsets
+	dc.w advance_large_transport_frame_then_update-primary_object_update_offsets
 	dc.w abs_0_00009EC8-primary_object_update_offsets
 	dc.w abs_0_000093CE-primary_object_update_offsets
-	dc.w abs_0_00009010-primary_object_update_offsets
+	dc.w update_shared_flying_actor-primary_object_update_offsets
 	dc.w abs_0_0000863C-primary_object_update_offsets
 	dc.w abs_0_00009CFC-primary_object_update_offsets
 	dc.w abs_0_000081D2-primary_object_update_offsets
 	dc.w abs_0_00009694-primary_object_update_offsets
 	dc.w abs_0_00009D88-primary_object_update_offsets
 	dc.w abs_0_00008BFC-primary_object_update_offsets
-	dc.w abs_0_00009010-primary_object_update_offsets
+	dc.w update_shared_flying_actor-primary_object_update_offsets
 	dc.w abs_0_00009B16-primary_object_update_offsets
 	dc.w abs_0_00008782-primary_object_update_offsets
-	dc.w abs_0_00009010-primary_object_update_offsets
-	dc.w abs_0_00009010-primary_object_update_offsets
-	dc.w abs_0_00009010-primary_object_update_offsets
+	dc.w update_shared_flying_actor-primary_object_update_offsets
+	dc.w update_shared_flying_actor-primary_object_update_offsets
+	dc.w update_shared_flying_actor-primary_object_update_offsets
 	dc.w abs_0_0000A400-primary_object_update_offsets
 	dc.w abs_0_00008BD4-primary_object_update_offsets
 	dc.w abs_0_00008A4E-primary_object_update_offsets
@@ -9217,11 +9227,11 @@ primary_object_update_offsets:
 	dc.w abs_0_0000932E-primary_object_update_offsets
 	dc.w abs_0_000094C6-primary_object_update_offsets
 	dc.w abs_0_00008618-primary_object_update_offsets
-	dc.w abs_0_00008A34-primary_object_update_offsets
+	dc.w advance_space_ray_frame_then_update-primary_object_update_offsets
 	dc.w abs_0_000087BE-primary_object_update_offsets
 	dc.w abs_0_00008416-primary_object_update_offsets
 	dc.w abs_0_0000863C-primary_object_update_offsets
-	dc.w abs_0_00009010-primary_object_update_offsets
+	dc.w update_shared_flying_actor-primary_object_update_offsets
 	dc.w abs_0_0000A2C0-primary_object_update_offsets
 	dc.w abs_0_000084A8-primary_object_update_offsets
 	dc.w abs_0_0000A136-primary_object_update_offsets
@@ -9796,9 +9806,9 @@ abs_0_000086D6:
 	move.w $002C(a0),$002C(a2)
 	move.w $002E(a0),$002E(a2)
 	move.w $0030(a0),$0030(a2)
-	move.l $0004(a0),$0004(a2)
-	move.l $0008(a0),$0008(a2)
-	move.l $000C(a0),$000C(a2)
+	move.l SG2ObjectCore_world_x(a0),$0004(a2)
+	move.l SG2ObjectCore_world_y(a0),$0008(a2)
+	move.l SG2ObjectCore_world_z(a0),$000C(a2)
 	move.b #$2,$001C(a2)
 	st.b $001E(a2)
 	move.b #$6,$001D(a2)
@@ -9809,8 +9819,8 @@ abs_0_000086D6:
 	move.b $0(a1,d0.w),d3
 	move.w d3,(a2)
 abs_0_00008740:
-	clr.b $001E(a0)
-	clr.b $001C(a0)
+	clr.b SG2ObjectCore_retirement_phase_or_negative(a0)
+	clr.b SG2ObjectCore_durability_or_negative(a0)
 	movea.l $003C(a0),a4
 	cmpa.l #$0,a4
 	beq.b abs_0_00008758
@@ -10030,13 +10040,14 @@ abs_0_00008A14:
 	move.w #$5A,(a0)
 	addi.l #4000,$000C(a0)
 	bra.w abs_0_000081D2
-abs_0_00008A34:
-	addq.b #1,$0003(a0)
-	move.b $0003(a0),d0
+    ; KNOWN: type A0=Target code-entry register seed:SG2FlyingActor
+advance_space_ray_frame_then_update:
+	addq.b #1,SG2WorldObject_vertex_variant_selector(a0)
+	move.b SG2WorldObject_vertex_variant_selector(a0),d0
 	cmp.b #$14,d0
-	bne.w abs_0_00009010
-	move.b #$0,$0003(a0)
-	bra.w abs_0_00009010
+	bne.w update_shared_flying_actor
+	move.b #$0,SG2WorldObject_vertex_variant_selector(a0)
+	bra.w update_shared_flying_actor
 abs_0_00008A4E:
 	addi.b #1,$0003(a0)
 	move.b $0003(a0),d2
@@ -10146,13 +10157,14 @@ abs_0_00008BA0:
 abs_0_00008BB2:
 	bsr.w heading_with_player_as_reference
 	bra.w abs_0_0000ACB0
-abs_0_00008BBA:
-	addq.b #1,$0003(a0)
-	move.b $0003(a0),d0
+    ; KNOWN: type A0=Target code-entry register seed:SG2FlyingActor
+advance_large_transport_frame_then_update:
+	addq.b #1,SG2WorldObject_vertex_variant_selector(a0)
+	move.b SG2WorldObject_vertex_variant_selector(a0),d0
 	cmp.b #$18,d0
-	bne.w abs_0_00009010
-	move.b #$0,$0003(a0)
-	bra.w abs_0_00009010
+	bne.w update_shared_flying_actor
+	move.b #$0,SG2WorldObject_vertex_variant_selector(a0)
+	bra.w update_shared_flying_actor
 abs_0_00008BD4:
 	addq.b #1,$0003(a0)
 	cmpi.b #23,$0003(a0)
@@ -10446,33 +10458,35 @@ abs_0_00008FAC:
 	dc.b $00,$03,$60,$00,$00,$12,$11,$7C,$00,$01,$00,$1F,$60,$00,$00,$08
 	dc.b $11,$7C,$00,$FF,$00,$1F,$06,$68,$00,$30,$00,$12,$53,$68,$00,$26
 	dc.b $6A,$00,$F1,$CE,$31,$7C,$07,$D0,$00,$26,$60,$00,$F1,$C4
-abs_0_00009010:
+    ; Original ten-type flying body: WORD24 schedules attempts by masks, not wall time; WORD26 affects Y steering and delayed proximity turning. Explicit valid-record input contract.
+    ; KNOWN: type A0=Target code-entry register seed:SG2FlyingActor
+update_shared_flying_actor:
 	move.b #$14,diagnostic_step_byte.l
-	subq.w #1,$0024(a0)
-	move.w $002C(a0),d3
+	subq.w #1,SG2FlyingActor_update_phase_counter(a0)
+	move.w SG2WorldObject_velocity_x(a0),d3
 	ext.l d3
-	add.l d3,$0004(a0)
-	move.w $002E(a0),d3
+	add.l d3,SG2ObjectCore_world_x(a0)
+	move.w SG2WorldObject_velocity_y(a0),d3
 	ext.l d3
-	add.l d3,$0008(a0)
-	move.w $0030(a0),d3
+	add.l d3,SG2ObjectCore_world_y(a0)
+	move.w SG2WorldObject_velocity_z(a0),d3
 	ext.l d3
-	add.l d3,$000C(a0)
+	add.l d3,SG2ObjectCore_world_z(a0)
 	move.l horizontal_world_wrap_mask(a6),d3
-	and.l d3,$0004(a0)
-	and.l d3,$000C(a0)
-	cmpi.b #3,$001C(a0)
+	and.l d3,SG2ObjectCore_world_x(a0)
+	and.l d3,SG2ObjectCore_world_z(a0)
+	cmpi.b #3,SG2ObjectCore_durability_or_negative(a0)
 	bmi.w abs_0_00009182
 	move.b #$80,diagnostic_step_byte.l
 	lea.l object_ai_y_increase_thresholds.l,a1
-	move.w (a0),d3
+	move.w (a0),d3	; operand 1: SG2ObjectCore_object_type at (a0)
 	add.w d3,d3
 	move.w $0(a1,d3.w),d2
 	ext.l d2
-	move.l $0008(a0),d4
+	move.l SG2ObjectCore_world_y(a0),d4
 	cmp.l d2,d4
 	ble.w abs_0_00009260
-	tst.w $0026(a0)
+	tst.w SG2FlyingActor_proximity_maneuver_countdown(a0)
 	bne.w abs_0_0000927A
 	lea.l object_ai_y_decrease_thresholds.l,a1
 	move.w $0(a1,d3.w),d2
@@ -10489,10 +10503,10 @@ abs_0_000090A0:
 	cmp.l #$28,d4
 	bge.w abs_0_00009296
 abs_0_000090AA:
-	clr.w $002E(a0)
-	clr.w $0010(a0)
+	clr.w SG2WorldObject_velocity_y(a0)
+	clr.w SG2WorldObject_rotation_0(a0)
 abs_0_000090B2:
-	move.w $0014(a0),d0
+	move.w SG2WorldObject_rotation_2(a0),d0
 	andi.w #4095,d0
 	beq.b abs_0_000090E2
 	cmp.w #$401,d0
@@ -10502,23 +10516,24 @@ abs_0_000090B2:
 	bpl.b abs_0_000090CE
 	clr.w d0
 abs_0_000090CE:
-	move.w d0,$0014(a0)
-	bra.b abs_0_000090E6
+	move.w d0,SG2WorldObject_rotation_2(a0)
+	bra.b schedule_flying_actor_phase_actions
 abs_0_000090D4:
 	addi.w #15,d0
 	andi.w #4095,d0
-	move.w d0,$0014(a0)
-	bra.b abs_0_000090E6
+	move.w d0,SG2WorldObject_rotation_2(a0)
+	bra.b schedule_flying_actor_phase_actions
 abs_0_000090E2:
-	addq.w #1,$0014(a0)
-abs_0_000090E6:
+	addq.w #1,SG2WorldObject_rotation_2(a0)
+    ; Decremented phase: low9=0 tries type2 only for18/33; low8=0 may spawn type6 for33; low6/5/3 select other AI branches. Conditions/free-list gates still apply.
+schedule_flying_actor_phase_actions:
 	move.b #$82,diagnostic_step_byte.l
 	movea.l player_object_reference(a6),a4
-	move.w $0024(a0),d0
+	move.w SG2FlyingActor_update_phase_counter(a0),d0
 	andi.w #511,d0
-	beq.w abs_0_000098B4
+	beq.w try_transport_or_buzz_bomber_type2_spawn
 	andi.w #255,d0
-	beq.w abs_0_000091C8
+	beq.w try_buzz_bomber_type6_spawn
 abs_0_00009106:
 	andi.b #63,d0
 	beq.w abs_0_00009248
@@ -10527,58 +10542,59 @@ abs_0_00009106:
 	andi.b #7,d0
 	bne.b abs_0_0000913A
 	lea.l model_type_target_selection_tags_prefix(a6),a1
-	move.w (a0),d0
+	move.w (a0),d0	; operand 1: SG2ObjectCore_object_type at (a0)
 	move.b $0(a1,d0.w),d0
 	eori.b #255,d0
 	move.b #$83,diagnostic_step_byte.l
 	bsr.w select_visible_object_by_type_tag
 	bra.w abs_0_0000A52A
+    ; Only residual phase paths decrement nonzero proximity countdown. At zero, nearby X/Z separation<=1200 reloads65 before turning; other phase actions can bypass this step.
 abs_0_0000913A:
 	move.b #$84,diagnostic_step_byte.l
-	tst.w $0026(a0)
+	tst.w SG2FlyingActor_proximity_maneuver_countdown(a0)
 	beq.b abs_0_00009150
-	subq.w #1,$0026(a0)
+	subq.w #1,SG2FlyingActor_proximity_maneuver_countdown(a0)
 	bne.w abs_0_000081D2
 abs_0_00009150:
-	move.w $0032(a0),d2
+	move.w SG2WorldObject_pre_view_relative_x(a0),d2
 	sub.w $0032(a4),d2
 	bpl.b abs_0_0000915C
 	neg.w d2
 abs_0_0000915C:
 	cmp.w #$4B0,d2
 	bgt.w abs_0_0000ACFC
-	move.w $0036(a0),d2
+	move.w SG2WorldObject_pre_view_relative_z(a0),d2
 	sub.w $0036(a4),d2
 	bpl.b abs_0_00009170
 	neg.w d2
 abs_0_00009170:
 	cmp.w #$4B0,d2
 	bgt.w abs_0_0000ACFC
-	move.w #$41,$0026(a0)
+	move.w #$41,SG2FlyingActor_proximity_maneuver_countdown(a0)
 	bra.w abs_0_0000ACFC
 abs_0_00009182:
 	tst.b $002B(a0)
 	bne.w abs_0_0000992E
 	tst.b space_environment_flag(a6)
 	bne.w abs_0_000086D6
-	cmpi.w #13,(a0)
+	cmpi.w #13,(a0)	; operand 2: SG2ObjectCore_object_type at (a0)
 	beq.w abs_0_000086D6
-	cmpi.w #18,(a0)
+	cmpi.w #18,(a0)	; operand 2: SG2ObjectCore_object_type at (a0)
 	beq.w abs_0_000086D6
-	cmpi.l #4294967271,$0008(a0)
+	cmpi.l #4294967271,SG2ObjectCore_world_y(a0)
 	blt.b abs_0_000091B4
-	clr.b $001E(a0)
+	clr.b SG2ObjectCore_retirement_phase_or_negative(a0)
 	bra.w abs_0_000081D2
 abs_0_000091B4:
-	addq.w #4,$002E(a0)
+	addq.w #4,SG2WorldObject_velocity_y(a0)
 	bsr.w heading_with_player_as_reference
 	addi.w #200,d1
 	andi.w #4095,d1
 	bra.w abs_0_0000AD00
-abs_0_000091C8:
+try_buzz_bomber_type6_spawn:
 	tst.b space_environment_flag(a6)
 	bne.w abs_0_00009106
-	cmpi.w #33,(a0)
+	cmpi.w #33,(a0)	; operand 2: SG2ObjectCore_object_type at (a0)
 	bne.w abs_0_00009106
 	cmpi.w #50,free_object_count(a6)
 	bls.w abs_0_00009106
@@ -10586,18 +10602,18 @@ abs_0_000091C8:
 	movea.l -(a1),a2
 	move.l a1,free_object_stack_cursor(a6)
 	subq.w #1,free_object_count(a6)
-	move.w $002C(a0),$002C(a2)
-	move.w $002E(a0),$002E(a2)
-	move.w $0030(a0),$0030(a2)
-	move.l $0004(a0),$0004(a2)
-	move.l $0008(a0),$0008(a2)
-	move.l $000C(a0),$000C(a2)
+	move.w SG2WorldObject_velocity_x(a0),$002C(a2)
+	move.w SG2WorldObject_velocity_y(a0),$002E(a2)
+	move.w SG2WorldObject_velocity_z(a0),$0030(a2)
+	move.l SG2ObjectCore_world_x(a0),$0004(a2)
+	move.l SG2ObjectCore_world_y(a0),$0008(a2)
+	move.l SG2ObjectCore_world_z(a0),$000C(a2)
 	addi.l #20,$0008(a2)
 	move.b #$2,$001C(a2)
 	st.b $001E(a2)
 	move.b #$6,$001D(a2)
 	move.w #$6,(a2)
-	move.b #$6,$002A(a0)
+	move.b #$6,SG2WorldObject_collision_ignored_object_type(a0)
 	move.b #$21,$002A(a2)
 	move.l #$FFFFFFFF,$003C(a2)
 	bra.w abs_0_000081D2
@@ -10608,37 +10624,37 @@ abs_0_00009248:
 	andi.w #4095,d1
 	bra.w try_ai_projectile_attack_if_aligned
 abs_0_00009260:
-	addq.w #1,$002E(a0)
-	cmpi.w #10,$002E(a0)
+	addq.w #1,SG2WorldObject_velocity_y(a0)
+	cmpi.w #10,SG2WorldObject_velocity_y(a0)
 	ble.b abs_0_00009276
-	move.w #$A,$002E(a0)
+	move.w #$A,SG2WorldObject_velocity_y(a0)
 abs_0_00009272:
 	bra.w abs_0_000090B2
 abs_0_00009276:
 	bra.w abs_0_000090B2
 abs_0_0000927A:
-	subq.w #1,$002E(a0)
-	cmpi.w #65526,$002E(a0)
+	subq.w #1,SG2WorldObject_velocity_y(a0)
+	cmpi.w #65526,SG2WorldObject_velocity_y(a0)
 	bge.w abs_0_00009292
-	move.w #$FFF6,$002E(a0)
+	move.w #$FFF6,SG2WorldObject_velocity_y(a0)
 abs_0_0000928E:
 	bra.w abs_0_000090B2
 abs_0_00009292:
 	bra.w abs_0_000090B2
 abs_0_00009296:
-	addq.w #1,$002E(a0)
-	cmpi.w #5,$002E(a0)
+	addq.w #1,SG2WorldObject_velocity_y(a0)
+	cmpi.w #5,SG2WorldObject_velocity_y(a0)
 	ble.b abs_0_000092AC
-	move.w #$4,$002E(a0)
+	move.w #$4,SG2WorldObject_velocity_y(a0)
 abs_0_000092A8:
 	bra.w abs_0_000090B2
 abs_0_000092AC:
 	bra.w abs_0_000090B2
 abs_0_000092B0:
-	subq.w #1,$002E(a0)
-	cmpi.w #65531,$002E(a0)
+	subq.w #1,SG2WorldObject_velocity_y(a0)
+	cmpi.w #65531,SG2WorldObject_velocity_y(a0)
 	bge.w abs_0_000092C8
-	move.w #$FFFC,$002E(a0)
+	move.w #$FFFC,SG2WorldObject_velocity_y(a0)
 abs_0_000092C4:
 	bra.w abs_0_000090B2
 abs_0_000092C8:
@@ -11063,8 +11079,8 @@ abs_0_0000982E:
 	beq.w abs_0_000081D2
 	bset.b #6,$0002(a2)
 	bra.w abs_0_000081D2
-abs_0_000098B4:
-	move.w (a0),d0
+try_transport_or_buzz_bomber_type2_spawn:
+	move.w (a0),d0	; operand 1: SG2ObjectCore_object_type at (a0)
 	cmp.w #$12,d0
 	beq.b abs_0_000098C4
 	cmp.w #$21,d0
@@ -11077,18 +11093,18 @@ abs_0_000098C4:
 	move.l a1,free_object_stack_cursor(a6)
 	subq.w #1,free_object_count(a6)
 	move.w #$2,(a2)
-	move.b $0001(a0),$002A(a2)
-	move.b #$2,$002A(a0)
+	move.b SG2ObjectCore_object_type+1(a0),$002A(a2)
+	move.b #$2,SG2WorldObject_collision_ignored_object_type(a0)
 	move.b #$4,$001C(a2)
 	bclr.b #7,$0002(a2)
 	move.b #$4,$001D(a2)
-	move.l $0004(a0),$0004(a2)
-	move.l $000C(a0),$000C(a2)
-	move.l $0008(a0),d3
+	move.l SG2ObjectCore_world_x(a0),$0004(a2)
+	move.l SG2ObjectCore_world_z(a0),$000C(a2)
+	move.l SG2ObjectCore_world_y(a0),d3
 	addi.l #50,d3
 	move.l d3,$0008(a2)
-	move.w $0010(a0),$0010(a2)
-	move.w $0014(a0),$0014(a2)
+	move.w SG2WorldObject_rotation_0(a0),$0010(a2)
+	move.w SG2WorldObject_rotation_2(a0),$0014(a2)
 	move.b #$FF,$001E(a2)
 	bra.w abs_0_000081D2
 abs_0_0000992E:
@@ -11928,18 +11944,18 @@ abs_0_0000A54A:
 	movea.l -(a1),a2
 	move.l a1,free_object_stack_cursor(a6)
 	subq.w #1,free_object_count(a6)
-	move.w (a0),d0
+	move.w (a0),d0	; operand 1: SG2ObjectCore_object_type at (a0)
 	add.w d0,d0
 	lea.l object_projectile_spawn_y_offsets.l,a1
 	move.w $0(a1,d0.w),d2
 	ext.l d2
 	move.w #$19,(a2)
-	move.b $0001(a0),$002A(a2)
+	move.b SG2ObjectCore_object_type+1(a0),$002A(a2)
 	move.b #$19,$002A(a0)
-	move.l $0004(a0),$0004(a2)
-	add.l $0008(a0),d2
+	move.l SG2ObjectCore_world_x(a0),$0004(a2)
+	add.l SG2ObjectCore_world_y(a0),d2
 	move.l d2,$0008(a2)
-	move.l $000C(a0),$000C(a2)
+	move.l SG2ObjectCore_world_z(a0),$000C(a2)
 	clr.w $0010(a2)
 	move.b #$FF,$001E(a2)
 	move.w $0012(a0),d1
@@ -23611,7 +23627,7 @@ abs_0_0001855A:
 	move.w d0,$0024(a0)
 	move.w #$FE0C,$0020(a0)
 	rts
-    ; Shared Space Ray41/Asteroid73 initializer. Final WORD24 seed0..31 has an asteroid spin consumer, but do not impose that private meaning on all Space Ray inputs.
+    ; Shared Space Ray41/Asteroid73 initializer. Final WORD24 seed0..31 phases actor actions or sets asteroid spin; keep common WorldObject input, not one private field meaning.
     ; KNOWN: type A0=Target code-entry register seed:SG2WorldObject
 abs_0_0001856E:
 	bsr.w abs_0_00018968
@@ -27948,7 +27964,7 @@ model_018_vertices:
 	dc.w $801A	; z_coordinate_ref
 	dc.w $FFFF	; variant_offset_or_negative
 model_018_variant_words:
-	dc.w $8016,$801C,$0018,$0000,$8016,$801C,$0006,$0000	; 23 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with unin...
+	dc.w $8016,$801C,$0018,$0000,$8016,$801C,$0006,$0000	; Large Egron Transport: 23 alternate vertex frames and 23 pointers. Original wrapper cycles se...
 	dc.w $0016,$801C,$0018,$0000,$0016,$801C,$0006,$0000
 	dc.w $8016,$801E,$0018,$0000,$8016,$801E,$0006,$0000
 	dc.w $0016,$801E,$0018,$0000,$0016,$801E,$0006,$0000
@@ -27995,7 +28011,7 @@ model_018_variant_words:
 	dc.w $8016,$801E,$0018,$0000,$8016,$801E,$0006,$0000
 	dc.w $0016,$801E,$0018,$0000,$0016,$801E,$0006,$0000
 model_018_variant_frames:
-	dc.l model_018_variant_words	; 23 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with unin...
+	dc.l model_018_variant_words	; Large Egron Transport: 23 alternate vertex frames and 23 pointers. Original wrapper cycles se...
 	dc.l model_018_variant_words+$20
 	dc.l model_018_variant_words+$40
 	dc.l model_018_variant_words+$60
@@ -30613,7 +30629,7 @@ model_041_vertices:
 	dc.w $0002	; z_coordinate_ref
 	dc.w $0028	; variant_offset_or_negative
 model_041_variant_words:
-	dc.w $800C,$8016,$0000,$0000,$8012,$8018,$000C,$0000	; 19 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with unin...
+	dc.w $800C,$8016,$0000,$0000,$8012,$8018,$000C,$0000	; Space Ray: 19 alternate vertex frames and 19 pointers. Original wrapper cycles selector0..19...
 	dc.w $8014,$001A,$0002,$0000,$000C,$8016,$0000,$0000
 	dc.w $0012,$8018,$000C,$0000,$0014,$001A,$0002,$0000
 	dc.w $800C,$801C,$0000,$0000,$8012,$801E,$000C,$0000
@@ -30671,7 +30687,7 @@ model_041_variant_words:
 	dc.w $8014,$001A,$0002,$0000,$000C,$8016,$0000,$0000
 	dc.w $0012,$003E,$000C,$0000,$0014,$001A,$0002,$0000
 model_041_variant_frames:
-	dc.l model_041_variant_words	; 19 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with unin...
+	dc.l model_041_variant_words	; Space Ray: 19 alternate vertex frames and 19 pointers. Original wrapper cycles selector0..19...
 	dc.l model_041_variant_words+$30
 	dc.l model_041_variant_words+$60
 	dc.l model_041_variant_words+$90

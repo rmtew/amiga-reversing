@@ -1,0 +1,464 @@
+{
+  "schema_version": 1,
+  "kind": "shared_flying_actor_original_caller_counter_and_vertex_frame_contracts",
+  "status": "qualified_connected_restoration_batch_continues",
+  "publication_base_commit": "1f6e1a2173a33e4aa98f3629d3842a006d85b39a",
+  "inputs": {
+    "binary_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "backend_sha256": "d09dbb0f72ef82803519d9eb8656bced793da2ecae6c147e442b3fcde0fbdfd3",
+    "analysis_sha256": "42a170c9497170824c3fbf467723b84831636501ecbdb23a6f1c6fc8e8d4cfdf",
+    "effective_metadata_sha256": "4a5573a2aa539d29e43a8673bbd06f782a0b154415fee047721a3e6932957316",
+    "consumer_evidence_sha256": "a3487f21ca352f8ce735e784ed496c47639ad579dddbe4851929781b08f4f77e",
+    "caller_model_evidence_sha256": "52c6338f7f1437c439a0022687ca334ed44cca251f584e524e99dc7dad1d8147"
+  },
+  "canonical_action_count": 16,
+  "interpretation": "Original primary WORD dispatch8026 and original name directory connect types13 Armed Transport,16 Small Fighter,21 Vampire Type Fighter,28 Egron Square Rocket,31 Space Fighter,32 Personnel Shuttle,33 Egron Buzz Bomber,45 Fighter Escort directly to9010;18 Large Egron Transport reaches8BBA and41 Space Ray reaches8A34, each then branches9010 without changing A0. Original model-record A0 calling convention is conditional on valid original list/type state, not automatic all-incoming provenance. Bind a FlyingActor child of WorldObject at that shared body and its two animation wrappers; do not weaken independent-root handling or pretend this explicit contract is automatically inferred. WORD24 decrements once per body invocation; successive masks511,255,63,31,7 select original spawn/heading/attack branches, not elapsed frames/seconds. 512-phase branch98B4 only spawns type2 for type18/33 with free-count>29; 256-phase91C8 only spawns type6 for type33 outside space with free-count>50. These are conditional attempt schedules, not guaranteed fire periods. WORD26 nonzero selects downward Y steering and in the residual counter phases is decremented before proximity turning; original nearby X/Z thresholds1200 can reload65. It is a proximity-maneuver countdown in this body, not the meaning of offset26 for every object. Signed WORD20 is horizontal motion scale used with heading sine/cosine in AD7A; no claim every WorldObject uses20 this way. Space Ray wrapper increments BYTE3, resets on equality20; Large Transport resets on equality24. Their headers select19/23 alternate pointers respectively, so valid input0..19/0..23 cycles through base plus alternatives. No arbitrary BYTE safety, wall-clock rate, model lifetime or runtime/all-caller proof. Shared initializer1856E remains common WorldObject because Asteroid73 shares it; final random WORD24 seed0..31 has distinct actor-phase versus asteroid-spin consumers. Preserve all bytes, overflow/wrap, type-wide exclusions, free-stack accounting and original bugs; no game repair or relocation.",
+  "original_domains": {
+    "callers": [
+      {
+        "type": 13,
+        "name": "Armed Transport",
+        "primary_runtime": 36880
+      },
+      {
+        "type": 16,
+        "name": "Small Fighter",
+        "primary_runtime": 36880
+      },
+      {
+        "type": 18,
+        "name": "Large Egron Transport",
+        "primary_runtime": 35770
+      },
+      {
+        "type": 21,
+        "name": "Vampire Type Fighter",
+        "primary_runtime": 36880
+      },
+      {
+        "type": 28,
+        "name": "Egron Square Rocket",
+        "primary_runtime": 36880
+      },
+      {
+        "type": 31,
+        "name": "Space Fighter",
+        "primary_runtime": 36880
+      },
+      {
+        "type": 32,
+        "name": "Personnel Shuttle",
+        "primary_runtime": 36880
+      },
+      {
+        "type": 33,
+        "name": "Egron Buzz Bomber",
+        "primary_runtime": 36880
+      },
+      {
+        "type": 41,
+        "name": "Space Ray",
+        "primary_runtime": 35380
+      },
+      {
+        "type": 45,
+        "name": "Fighter Escort",
+        "primary_runtime": 36880
+      }
+    ],
+    "models": [
+      {
+        "type": 18,
+        "name": "Large Egron Transport",
+        "header_runtime": 101604,
+        "alternate_table_runtime": 128832,
+        "alternate_count": 23,
+        "pointers": [
+          128096,
+          128128,
+          128160,
+          128192,
+          128224,
+          128256,
+          128288,
+          128320,
+          128352,
+          128384,
+          128416,
+          128448,
+          128480,
+          128512,
+          128544,
+          128576,
+          128608,
+          128640,
+          128672,
+          128704,
+          128736,
+          128768,
+          128800
+        ],
+        "selector_domain": [
+          0,
+          23
+        ],
+        "wrapper_runtime": 35770
+      },
+      {
+        "type": 41,
+        "name": "Space Ray",
+        "header_runtime": 102224,
+        "alternate_table_runtime": 147250,
+        "alternate_count": 19,
+        "pointers": [
+          146338,
+          146386,
+          146434,
+          146482,
+          146530,
+          146578,
+          146626,
+          146674,
+          146722,
+          146770,
+          146818,
+          146866,
+          146914,
+          146962,
+          147010,
+          147058,
+          147106,
+          147154,
+          147202
+        ],
+        "selector_domain": [
+          0,
+          19
+        ],
+        "wrapper_runtime": 35380
+      }
+    ],
+    "spawned_types": [
+      {
+        "type": 2,
+        "name": "Proximity Mine"
+      },
+      {
+        "type": 6,
+        "name": "Buzz Bomb"
+      }
+    ]
+  },
+  "input_contract": {
+    "body_runtime": 36880,
+    "owner": "SG2FlyingActor",
+    "parent": "SG2WorldObject",
+    "root_policy": "Independent code-entry unknown absorption remains unchanged. Original typed input is an explicit evidence-supported ABI annotation at the shared body and two wrappers, not inferred all-incoming-path closure.",
+    "caller_evidence": "Original 148-WORD primary dispatch plus original names, accepted branches and unchanged A0 in both wrappers. Ten original model-backed object types.",
+    "shared_constructor": "Type41 Space Ray and73 Asteroid share1856E; retain common WorldObject there. Its final random0..31 WORD24 seeds different consumer roles."
+  },
+  "fields": [
+    {
+      "offset": 32,
+      "size": 2,
+      "type": "WORD",
+      "name": "horizontal_motion_scale",
+      "meaning": "Signed horizontal motion coefficient used with heading sine/cosine at AD7A. Not a universal WorldObject20 field."
+    },
+    {
+      "offset": 36,
+      "size": 2,
+      "type": "UWORD",
+      "name": "update_phase_counter",
+      "meaning": "One modulo65536 decrement per shared-body invocation; phase masks schedule conditional actions, not seconds or guaranteed frame events."
+    },
+    {
+      "offset": 38,
+      "size": 2,
+      "type": "UWORD",
+      "name": "proximity_maneuver_countdown",
+      "meaning": "Nonzero influences downward Y steering. On residual counter phases decrement; at zero nearby X/Z distances<=1200 reload65 before heading adjustment. Other phase actions can bypass decrement."
+    }
+  ],
+  "phase_actions": [
+    {
+      "mask": 511,
+      "zero_branch": 39092,
+      "action": "Try Proximity Mine(type2), only caller type18/33 with original free-count>29."
+    },
+    {
+      "mask": 255,
+      "zero_branch": 37320,
+      "action": "Try Buzz Bomb(type6), only type33 outside space with original free-count>50; earlier low9 zero branch takes precedence."
+    },
+    {
+      "mask": 63,
+      "zero_branch": 37448,
+      "action": "Compute player-relative opposite heading and enter conditional aligned projectile attack."
+    },
+    {
+      "mask": 31,
+      "zero_branch": 40706,
+      "action": "Enter another original shared AI branch; no invented universal attack description."
+    },
+    {
+      "mask": 7,
+      "nonzero_branch": 37178,
+      "action": "Residual phases handle proximity countdown; zero enters visible type-tag selection and conditional projectile continuation."
+    }
+  ],
+  "models": [
+    {
+      "type": 18,
+      "name": "Large Egron Transport",
+      "header_runtime": 101604,
+      "alternate_table_runtime": 128832,
+      "alternate_count": 23,
+      "pointers": [
+        128096,
+        128128,
+        128160,
+        128192,
+        128224,
+        128256,
+        128288,
+        128320,
+        128352,
+        128384,
+        128416,
+        128448,
+        128480,
+        128512,
+        128544,
+        128576,
+        128608,
+        128640,
+        128672,
+        128704,
+        128736,
+        128768,
+        128800
+      ],
+      "selector_domain": [
+        0,
+        23
+      ],
+      "wrapper_runtime": 35770
+    },
+    {
+      "type": 41,
+      "name": "Space Ray",
+      "header_runtime": 102224,
+      "alternate_table_runtime": 147250,
+      "alternate_count": 19,
+      "pointers": [
+        146338,
+        146386,
+        146434,
+        146482,
+        146530,
+        146578,
+        146626,
+        146674,
+        146722,
+        146770,
+        146818,
+        146866,
+        146914,
+        146962,
+        147010,
+        147058,
+        147106,
+        147154,
+        147202
+      ],
+      "selector_domain": [
+        0,
+        19
+      ],
+      "wrapper_runtime": 35380
+    }
+  ],
+  "render_cost": {
+    "current_wall_seconds": 144.72232925501885,
+    "current_stage_cpu": {
+      "render_ir_header_seconds": 20.908241,
+      "render_ir_walk_seconds": 9.160032,
+      "source_analysis_finalize_seconds": 32.675397
+    },
+    "boundary": "This required semantic regeneration uses the same backend and returns to145 seconds despite more typed facts. It does not establish a monotone graph-size/render-cost regression or identify the prior run cause; no fitted cache/scheduling/host-contention diagnosis or speedup claim."
+  },
+  "model_limits": "Space Ray0..19 and Large Transport0..23 selector cycles require valid incoming selector. Equality-reset alone does not constrain arbitrary byte inputs. Coordinate record WORD+6 remains unknown; viewer may independently set selectors.",
+  "native_private_sites": [
+    {
+      "source_offset": 32792,
+      "runtime_address": 36888,
+      "operand": 1,
+      "field": "update_phase_counter",
+      "root": "SG2FlyingActor",
+      "provenance": "policy_seed"
+    },
+    {
+      "source_offset": 32882,
+      "runtime_address": 36978,
+      "operand": 0,
+      "field": "proximity_maneuver_countdown",
+      "root": "SG2FlyingActor",
+      "provenance": "policy_seed"
+    },
+    {
+      "source_offset": 33010,
+      "runtime_address": 37106,
+      "operand": 0,
+      "field": "update_phase_counter",
+      "root": "SG2FlyingActor",
+      "provenance": "policy_seed"
+    },
+    {
+      "source_offset": 33090,
+      "runtime_address": 37186,
+      "operand": 0,
+      "field": "proximity_maneuver_countdown",
+      "root": "SG2FlyingActor",
+      "provenance": "policy_seed"
+    },
+    {
+      "source_offset": 33096,
+      "runtime_address": 37192,
+      "operand": 1,
+      "field": "proximity_maneuver_countdown",
+      "root": "SG2FlyingActor",
+      "provenance": "policy_seed"
+    },
+    {
+      "source_offset": 33144,
+      "runtime_address": 37240,
+      "operand": 1,
+      "field": "proximity_maneuver_countdown",
+      "root": "SG2FlyingActor",
+      "provenance": "policy_seed"
+    }
+  ],
+  "before_after": {
+    "app_slot_ref_count": {
+      "before": 3383,
+      "after": 3383
+    },
+    "recovered_platform_typed_access_count": {
+      "before": 974,
+      "after": 1049
+    },
+    "recovered_platform_unresolved_typed_access_count": {
+      "before": 434,
+      "after": 440
+    }
+  },
+  "projection": {
+    "new_typed": 75,
+    "lost_typed": 0,
+    "private_field_counts": {
+      "update_phase_counter": 2,
+      "proximity_maneuver_countdown": 4
+    },
+    "lost_sites": []
+  },
+  "validation": {
+    "native_and_vasm": {
+      "kind": "verification",
+      "framework_exact": true,
+      "target_id": "amiga_raw_starglider2_game",
+      "subject_revision": "efca0836aed238228baed7165ab0bb9d2f3f9db9b73a66bf2ef68d3c4c183c43",
+      "status": "exact",
+      "exact": true,
+      "source_sha256": "4e5a88781a75d4c46a47072af3dab4a50028bcb24b5f7d5b18aaaaca7ff03475",
+      "source_path": "/workspace/pandora-original-delivery/stable-d15c2cf8/.runtime-state/restoration/eb04f545fb97451725a1c91ab5abf6f2e097614c45880db6edfb4ea5c3f6e2c2/4e5a88781a75d4c46a47072af3dab4a50028bcb24b5f7d5b18aaaaca7ff03475.s",
+      "source_package_sha256": null,
+      "original_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+      "original_size": 412736,
+      "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+      "rebuilt_path": "/workspace/pandora-original-delivery/stable-d15c2cf8/.runtime-state/restoration/eb04f545fb97451725a1c91ab5abf6f2e097614c45880db6edfb4ea5c3f6e2c2/662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9.bin",
+      "framework_status": "exact",
+      "failure_kinds": [],
+      "message": "",
+      "oracle": {
+        "oracle_id": "vasm",
+        "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+        "comparison_level": "oracle.full_file_match",
+        "assembler_status": "accepted",
+        "message": "oracle output matched original bytes"
+      },
+      "receipt_id": "952397a3266a92b5194a7059f7a46bccf4f7731cd380db04521b73f95bbbd88e",
+      "revision": "5f14433ff93119e45f035ac659df02d6191848b0ea6825293b800b321c4fbf72"
+    },
+    "incomplete_analysis": [],
+    "source_quality_diagnostics": 0,
+    "generation_wall_seconds": 144.72232925501885,
+    "accepted_owner_spans_identical": true,
+    "assets_unchanged": 57,
+    "required_headers": 14,
+    "framework_changed": false,
+    "focused_tests": "Shared implementation unchanged since 114 focused and832 native checks. This slice qualifies changed canonical interpretations with whole-source exact C/vasm and a clean standalone build.",
+    "clean_standalone_build": {
+      "status": "pass",
+      "validated_target_git_tree": "0d5fdd2abe2be0e80eb2416dfe12cb15e65c6b82",
+      "receipt": {
+        "schema_version": 1,
+        "status": "pass",
+        "format": "raw_payload_not_AmigaDOS_HUNK",
+        "main_bytes": 412736,
+        "main_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+        "main_matches_original_identity": true,
+        "asset_count": 57,
+        "all_asset_source_slices_equal": true,
+        "decoded_view_inverse_exact": true,
+        "boot_copy_source_matches_resident_view": true,
+        "source_commit": "1f6e1a2173a33e4aa98f3629d3842a006d85b39a",
+        "assembler_sha256": "413e284020125f42709486dfe09907cab3dd9f3c2ea41017c190f8ea68f30825",
+        "flags": [
+          "-Fbin",
+          "-m68000",
+          "-no-opt"
+        ],
+        "outputs": [
+          {
+            "role": "original_main",
+            "filename": "Starglider2-original.raw",
+            "bytes": 412736,
+            "sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9"
+          },
+          {
+            "role": "decoded_analysis_view",
+            "filename": "protection-decoded-analysis.raw",
+            "bytes": 3548,
+            "sha256": "de8358853dd9ed9b006a23569bf393aa217ed3be3301a169465d80bfaf839922"
+          },
+          {
+            "role": "boot_installer_context",
+            "filename": "boot-selector-installer-context.raw",
+            "bytes": 40,
+            "sha256": "8d34852425e2e1bfa87b3febdfc74fb39e7c667e9d9ff73e17b594649e83b21b"
+          },
+          {
+            "role": "boot_resident_view",
+            "filename": "boot-selector-resident.raw",
+            "bytes": 20,
+            "sha256": "a26286a393713c046eff9dbaff15b20b26b171fa9e05fc9d538d16b0eddb6024"
+          }
+        ]
+      },
+      "recoverable_pandora_backups_verified": 16
+    }
+  },
+  "limits": [
+    "No new normal-input runtime exercise; original caller/type/list/geometry contracts remain conditional.",
+    "Three explicit register contracts, not a native automatic proof of every incoming A0 value. Historical classification roots are preserved.",
+    "Phase counters advance on body invocation, not a measured wall-clock or guaranteed rendered-frame rate. Conditions and original free-stack/count assumptions remain.",
+    "Motion scale20 is declared from original AD7A consumer evidence but has zero projected subtype uses here: shared helper input joins remain broader. That does not erase the observed role or prove all callers.",
+    "Offset20/24/26 meanings stay on this subtype, not universal WorldObject/Asteroid/Mini-Sentinel meanings.",
+    "No guessed original bug repair, broad timing-equivalence claim, arbitrary-selector safety or all-path ownership proof."
+  ],
+  "next": {
+    "group": "Original spawned Proximity Mine/Buzz Bomb and shared target-pointer lifecycle",
+    "experiment": "Follow original type2/type6 dispatch, initialization and3C producer/consumer links; distinguish original sentinel/target state from other objects sharing3C. Continue connected field/routine reconstruction."
+  }
+}
