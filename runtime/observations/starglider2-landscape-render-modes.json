@@ -1,0 +1,746 @@
+{
+  "schema_version": 1,
+  "kind": "landscape_and_mode_producer_consumer_reconstruction",
+  "publication_base_commit": "580a6f5ff881fb3f5a8501e7689228dcaf0924f7",
+  "input": {
+    "binary_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+    "backend_sha256": "286e2da899e9956b9cbef23fc5fefad755ded22dd740d2f425bde097b66bb972",
+    "analysis_sha256": "20a0e3af53ae3e34a738ba5f3437040665f0c9faa8174d4984cd89daa56412a1",
+    "source_sha256": "5e8c4b57b362d5f7eeeabe0eb40548577d2e0a6544c2f41f8aeda4ce90d15525",
+    "effective_metadata_sha256": "495d1451eac8c52cb73a75900640947a91084ce4068c2f23dfd32b08587fad49"
+  },
+  "canonical_actions": 23,
+  "app_fields": [
+    {
+      "offset": 2038,
+      "size": 1,
+      "symbol": "landscape_background_draw_flags",
+      "accesses": {
+        "read-write": 1,
+        "write": 1,
+        "read": 3
+      },
+      "runtime_sites": [
+        6338,
+        8538,
+        15996,
+        191620,
+        192536
+      ]
+    },
+    {
+      "offset": 1968,
+      "size": 2,
+      "symbol": "landscape_ground_colour_index",
+      "accesses": {
+        "write": 3,
+        "read": 2
+      },
+      "runtime_sites": [
+        4664,
+        58472,
+        191588,
+        191788,
+        211564
+      ]
+    },
+    {
+      "offset": 502,
+      "size": 1,
+      "symbol": "debug_features_enabled_flag",
+      "accesses": {
+        "read": 5,
+        "read-write": 1,
+        "write": 1
+      },
+      "runtime_sites": [
+        5172,
+        6380,
+        7704,
+        7756,
+        8504,
+        60214,
+        61146
+      ]
+    },
+    {
+      "offset": 496,
+      "size": 1,
+      "symbol": "model_face_culling_disabled_flag",
+      "accesses": {
+        "write": 2,
+        "read": 1,
+        "read-write": 1
+      },
+      "runtime_sites": [
+        7882,
+        19348,
+        60030,
+        61970
+      ]
+    },
+    {
+      "offset": 501,
+      "size": 1,
+      "symbol": "model_viewer_blocking_input_flag",
+      "accesses": {
+        "read": 1
+      },
+      "runtime_sites": [
+        61018
+      ]
+    },
+    {
+      "offset": 2025,
+      "size": 1,
+      "symbol": "world_object_update_enabled_flag",
+      "accesses": {
+        "read": 2,
+        "write": 1
+      },
+      "runtime_sites": [
+        4840,
+        8500,
+        32712
+      ]
+    },
+    {
+      "offset": 2725,
+      "size": 1,
+      "symbol": "world_transition_space_snapshot",
+      "accesses": {
+        "write": 1,
+        "read": 2
+      },
+      "runtime_sites": [
+        211190,
+        211432,
+        212574
+      ]
+    }
+  ],
+  "routine_labels": [
+    [
+      191588,
+      "build_landscape_horizon_and_grid"
+    ],
+    [
+      192332,
+      "rotate_horizon_vector_to_view"
+    ],
+    [
+      192536,
+      "build_ground_grid_if_enabled"
+    ],
+    [
+      61970,
+      "toggle_model_face_culling"
+    ]
+  ],
+  "horizon_words": [
+    {
+      "runtime_address": 192528,
+      "symbol": "horizon_ground_split_row",
+      "role": "Upper fill ends one row before this split; lower fill begins here. Negative means no usable split."
+    },
+    {
+      "runtime_address": 192530,
+      "symbol": "horizon_clip_max_y_snapshot",
+      "role": "Clipped maxY snapshot written alongside split; model viewer also seeds128. No recovered direct reader, not a dead-storage claim."
+    },
+    {
+      "runtime_address": 192532,
+      "symbol": "horizon_upper_fill_colour",
+      "role": "Upper band indexed fill colour, set15. Alternate mode1 retains fixed zero instead of reading this WORD."
+    },
+    {
+      "runtime_address": 192534,
+      "symbol": "horizon_lower_fill_colour",
+      "role": "Lower band indexed fill colour, copied from current landscape colour. The lower fill uses viewport maxY, not the adjacent snapshot."
+    }
+  ],
+  "established": [
+    "Landscape flag bit0 builds the clipped horizon, while bit1 gates the separately generated ground grid. P toggles bit1; reset sets both. The original entry and state conditions remain.",
+    "The selected world colour supplies the lower fill and queued horizon polygon. The upper fill uses 15 in Amiga/alternate mode0, while alternate mode1 explicitly retains zero. Split row separates upper/lower fills.",
+    "The adjacent maxY word is a writer snapshot with no recovered direct reader. It is not asserted dead or used as the lower-fill end; the consumers use current viewport maxY.",
+    "The debug flag gates resource refresh, extra commands and viewer diagnostics. It is not a universal invulnerability guarantee.",
+    "The face-visibility flag bypasses cached/backface rejection, while ordinary projection and screen clipping still apply. Viewer input waiting and world-object update gates are named for their observed readers; unsupported incoming writers remain unknown.",
+    "The world-transition byte snapshots space/surface state at procedure entry, then detects changes after world/surface decisions. It is not assumed to be a previous physical-frame value."
+  ],
+  "before_after": {
+    "generic_app_fields": [
+      48,
+      41
+    ],
+    "accepted_code_bytes": [
+      106034,
+      106034
+    ],
+    "unclassified_bytes": [
+      14068,
+      14060
+    ],
+    "unclassified_intervals": [
+      262,
+      262
+    ],
+    "typed_accesses": [
+      370,
+      370
+    ],
+    "unresolved_typed_accesses": [
+      300,
+      300
+    ],
+    "named_original_routine_roles": 4,
+    "declared_horizon_words": 4,
+    "source_quality_diagnostics": 0,
+    "incomplete_analysis": [],
+    "explicit_rsset_regions": [
+      254,
+      261
+    ],
+    "indexed_dynamic_diagnostics": [
+      87,
+      87
+    ]
+  },
+  "workflow_corrections": [
+    "An empty named data container did not emit scalar declarations. Added the four scalar elements and asserted all field/word/routine names in the final generated source. The intermediate exact build alone was not accepted as semantic completion.",
+    "Native admission reached 256 fixed RSSET entries before the five mode fields. The shared growable-policy fix is published separately in 580a6f5f; no field batch was partially appended.",
+    "Updated the test-only ctypes policy mirror and checked every field offset/size against the C header. New positive tests admit 257/300 fields instead of preserving the obsolete 256 ceiling.",
+    "The grown-batch negative exposed silent omission of an unprojectable pending RSSET fact. Admission now asks the existing canonical converter to validate every pending declaration before native validation; historical load behaviour is unchanged. No duplicate Python placement or bounds engine.",
+    "The source audit reproduced silent clipping and trailing whitespace in native data-role previews. Preview import now derives capacity from its owning field, trims trailing whitespace and marks clipped text with an ellipsis without splitting raw UTF-8. Full authored roles remain in canonical metadata; instruction comments and parsing rules are unchanged."
+  ],
+  "validation": {
+    "native_suite": "runtime/observations/starglider2-rsset-policy-storage.json",
+    "additional_python_tests": 15,
+    "additional_python_failures": 0,
+    "abi_admission_log_sha256": "f0121bc559680bd6dd96ea61b14c1246afe536f2f580df57e3fd1a6920786fb2",
+    "native_and_vasm": {
+      "kind": "verification",
+      "framework_exact": true,
+      "target_id": "amiga_raw_starglider2_game",
+      "subject_revision": "bb7b27caa5cd6782f0e5f4f305787b22d75750558e0836163dcf2e95e48ca0af",
+      "status": "exact",
+      "exact": true,
+      "source_sha256": "5e8c4b57b362d5f7eeeabe0eb40548577d2e0a6544c2f41f8aeda4ce90d15525",
+      "source_path": "/workspace/pandora-original-delivery/stable-d15c2cf8/.runtime-state/restoration/eb04f545fb97451725a1c91ab5abf6f2e097614c45880db6edfb4ea5c3f6e2c2/5e8c4b57b362d5f7eeeabe0eb40548577d2e0a6544c2f41f8aeda4ce90d15525.s",
+      "source_package_sha256": null,
+      "original_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+      "original_size": 412736,
+      "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+      "rebuilt_path": "/workspace/pandora-original-delivery/stable-d15c2cf8/.runtime-state/restoration/eb04f545fb97451725a1c91ab5abf6f2e097614c45880db6edfb4ea5c3f6e2c2/662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9.bin",
+      "framework_status": "exact",
+      "failure_kinds": [],
+      "message": "",
+      "oracle": {
+        "oracle_id": "vasm",
+        "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+        "comparison_level": "oracle.full_file_match",
+        "assembler_status": "accepted",
+        "message": "oracle output matched original bytes"
+      },
+      "receipt_id": "d9c198846f9508d4e59f54594710977283fb156d0049ce01c164319a4720cd86",
+      "revision": "bf7da3b93a24463ca31a475d0e8c25bac28c366c126a78edabeb6f48c3211097"
+    },
+    "all_requested_rendered_symbols_asserted": true,
+    "analysis_wall_seconds": 139.4207764909952,
+    "process_usage": {
+      "wall_seconds": 157.99684913497185,
+      "user_seconds": 151.419383,
+      "system_seconds": 6.522985,
+      "max_rss_kib": 2697824
+    },
+    "clean_standalone_build": {
+      "status": "pass",
+      "validated_target_git_tree": "dc732df51630ec86ae4940eb4d3d2f89fb2a3374",
+      "receipt": {
+        "schema_version": 1,
+        "status": "pass",
+        "format": "raw_payload_not_AmigaDOS_HUNK",
+        "main_bytes": 412736,
+        "main_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+        "main_matches_original_identity": true,
+        "asset_count": 57,
+        "all_asset_source_slices_equal": true,
+        "decoded_view_inverse_exact": true,
+        "boot_copy_source_matches_resident_view": true,
+        "source_commit": "580a6f5ff881fb3f5a8501e7689228dcaf0924f7",
+        "assembler_sha256": "413e284020125f42709486dfe09907cab3dd9f3c2ea41017c190f8ea68f30825",
+        "flags": [
+          "-Fbin",
+          "-m68000",
+          "-no-opt"
+        ],
+        "outputs": [
+          {
+            "role": "original_main",
+            "filename": "Starglider2-original.raw",
+            "bytes": 412736,
+            "sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9"
+          },
+          {
+            "role": "decoded_analysis_view",
+            "filename": "protection-decoded-analysis.raw",
+            "bytes": 3548,
+            "sha256": "de8358853dd9ed9b006a23569bf393aa217ed3be3301a169465d80bfaf839922"
+          },
+          {
+            "role": "boot_installer_context",
+            "filename": "boot-selector-installer-context.raw",
+            "bytes": 40,
+            "sha256": "8d34852425e2e1bfa87b3febdfc74fb39e7c667e9d9ff73e17b594649e83b21b"
+          },
+          {
+            "role": "boot_resident_view",
+            "filename": "boot-selector-resident.raw",
+            "bytes": 20,
+            "sha256": "a26286a393713c046eff9dbaff15b20b26b171fa9e05fc9d538d16b0eddb6024"
+          }
+        ]
+      },
+      "recoverable_pandora_backups_verified": 16
+    },
+    "native_tests": 831,
+    "native_failures": 0,
+    "native_suite_sha256": "8f323ac69ffbc07ca36b6cea8ab1edcfd9be4133c83d3f1ce6de425926dc619e",
+    "role_preview_tests": 3,
+    "role_preview_log_sha256": "239573c1665ba0d20880d981ec7058ee3d44a42932e841724fdcee3ca672055d"
+  },
+  "cost_scope": "The final changed-source generation took 139.421 seconds. Earlier context construction, failed admission/setup attempts and the ended interactive session are retained in private logs as recovery costs, not extra semantic gains or speed benchmarks. No new emulator or unchanged gameplay run.",
+  "current_inventory": {
+    "native_table_contracts": 73,
+    "native_table_consumer_records": 155,
+    "native_address_expression_records": 304,
+    "suffix_names": 66,
+    "suffix_dispositions": {
+      "code_name_signal": 5,
+      "named_source_storage": 48,
+      "named_base_layout_storage": 11,
+      "named_absolute_storage": 1,
+      "text_name_signal": 1
+    },
+    "lookup_contracts": 21,
+    "lookup_kinds": {
+      "relative_code_dispatch": 8,
+      "scalar": 13
+    },
+    "interior_reference_records": 524,
+    "unresolved_typed_accesses": 300,
+    "unresolved_mechanisms": {
+      "indexed_dynamic": 87,
+      "declared_field_hole": 208,
+      "auto_update_cursor": 1,
+      "address_formation_or_unknown_width": 1,
+      "outside_declared_record": 3
+    },
+    "orphan_signal_statuses": {
+      "unresolved": 30,
+      "suppressed": 5
+    },
+    "generic_base_layout_fields": 41,
+    "generic_base_symbols": 41,
+    "homogeneous_pointer_record_arrays": 10,
+    "array_projection_mechanisms": {
+      "collection_contract_exposed": 10
+    }
+  },
+  "orphan_inbound_crosscheck": {
+    "rows": [
+      {
+        "source_span": [
+          2802,
+          2814
+        ],
+        "runtime_span": [
+          6898,
+          6910
+        ],
+        "native_incoming_edges": 0,
+        "native_resolved_data_or_table_targets": 0
+      },
+      {
+        "source_span": [
+          3682,
+          3688
+        ],
+        "runtime_span": [
+          7778,
+          7784
+        ],
+        "native_incoming_edges": 0,
+        "native_resolved_data_or_table_targets": 0
+      },
+      {
+        "source_span": [
+          3694,
+          3702
+        ],
+        "runtime_span": [
+          7790,
+          7798
+        ],
+        "native_incoming_edges": 0,
+        "native_resolved_data_or_table_targets": 0
+      },
+      {
+        "source_span": [
+          3720,
+          3738
+        ],
+        "runtime_span": [
+          7816,
+          7834
+        ],
+        "native_incoming_edges": 0,
+        "native_resolved_data_or_table_targets": 0
+      },
+      {
+        "source_span": [
+          5800,
+          5808
+        ],
+        "runtime_span": [
+          9896,
+          9904
+        ],
+        "native_incoming_edges": 0,
+        "native_resolved_data_or_table_targets": 0
+      },
+      {
+        "source_span": [
+          5970,
+          5994
+        ],
+        "runtime_span": [
+          10066,
+          10090
+        ],
+        "native_incoming_edges": 0,
+        "native_resolved_data_or_table_targets": 0
+      },
+      {
+        "source_span": [
+          7040,
+          7050
+        ],
+        "runtime_span": [
+          11136,
+          11146
+        ],
+        "native_incoming_edges": 0,
+        "native_resolved_data_or_table_targets": 0
+      },
+      {
+        "source_span": [
+          30112,
+          30124
+        ],
+        "runtime_span": [
+          34208,
+          34220
+        ],
+        "native_incoming_edges": 0,
+        "native_resolved_data_or_table_targets": 0
+      },
+      {
+        "source_span": [
+          30172,
+          30184
+        ],
+        "runtime_span": [
+          34268,
+          34280
+        ],
+        "native_incoming_edges": 0,
+        "native_resolved_data_or_table_targets": 0
+      },
+      {
+        "source_span": [
+          30244,
+          30256
+        ],
+        "runtime_span": [
+          34340,
+          34352
+        ],
+        "native_incoming_edges": 0,
+        "native_resolved_data_or_table_targets": 0
+      },
+      {
+        "source_span": [
+          33538,
+          33560
+        ],
+        "runtime_span": [
+          37634,
+          37656
+        ],
+        "native_incoming_edges": 0,
+        "native_resolved_data_or_table_targets": 0
+      },
+      {
+        "source_span": [
+          38498,
+          38516
+        ],
+        "runtime_span": [
+          42594,
+          42612
+        ],
+        "native_incoming_edges": 0,
+        "native_resolved_data_or_table_targets": 0
+      },
+      {
+        "source_span": [
+          39716,
+          39736
+        ],
+        "runtime_span": [
+          43812,
+          43832
+        ],
+        "native_incoming_edges": 0,
+        "native_resolved_data_or_table_targets": 0
+      },
+      {
+        "source_span": [
+          39816,
+          39828
+        ],
+        "runtime_span": [
+          43912,
+          43924
+        ],
+        "native_incoming_edges": 0,
+        "native_resolved_data_or_table_targets": 0
+      },
+      {
+        "source_span": [
+          45840,
+          45868
+        ],
+        "runtime_span": [
+          49936,
+          49964
+        ],
+        "native_incoming_edges": 0,
+        "native_resolved_data_or_table_targets": 0
+      },
+      {
+        "source_span": [
+          46462,
+          46490
+        ],
+        "runtime_span": [
+          50558,
+          50586
+        ],
+        "native_incoming_edges": 0,
+        "native_resolved_data_or_table_targets": 0
+      },
+      {
+        "source_span": [
+          48010,
+          48038
+        ],
+        "runtime_span": [
+          52106,
+          52134
+        ],
+        "native_incoming_edges": 0,
+        "native_resolved_data_or_table_targets": 0
+      },
+      {
+        "source_span": [
+          48142,
+          48162
+        ],
+        "runtime_span": [
+          52238,
+          52258
+        ],
+        "native_incoming_edges": 0,
+        "native_resolved_data_or_table_targets": 0
+      },
+      {
+        "source_span": [
+          52572,
+          52576
+        ],
+        "runtime_span": [
+          56668,
+          56672
+        ],
+        "native_incoming_edges": 0,
+        "native_resolved_data_or_table_targets": 0
+      },
+      {
+        "source_span": [
+          57406,
+          57412
+        ],
+        "runtime_span": [
+          61502,
+          61508
+        ],
+        "native_incoming_edges": 0,
+        "native_resolved_data_or_table_targets": 0
+      },
+      {
+        "source_span": [
+          57422,
+          57428
+        ],
+        "runtime_span": [
+          61518,
+          61524
+        ],
+        "native_incoming_edges": 0,
+        "native_resolved_data_or_table_targets": 0
+      },
+      {
+        "source_span": [
+          57726,
+          57744
+        ],
+        "runtime_span": [
+          61822,
+          61840
+        ],
+        "native_incoming_edges": 0,
+        "native_resolved_data_or_table_targets": 0
+      },
+      {
+        "source_span": [
+          61104,
+          61110
+        ],
+        "runtime_span": [
+          65200,
+          65206
+        ],
+        "native_incoming_edges": 0,
+        "native_resolved_data_or_table_targets": 0
+      },
+      {
+        "source_span": [
+          62808,
+          62820
+        ],
+        "runtime_span": [
+          66904,
+          66916
+        ],
+        "native_incoming_edges": 0,
+        "native_resolved_data_or_table_targets": 0
+      },
+      {
+        "source_span": [
+          95870,
+          95878
+        ],
+        "runtime_span": [
+          99966,
+          99974
+        ],
+        "native_incoming_edges": 0,
+        "native_resolved_data_or_table_targets": 0
+      },
+      {
+        "source_span": [
+          215914,
+          215930
+        ],
+        "runtime_span": [
+          220010,
+          220026
+        ],
+        "native_incoming_edges": 0,
+        "native_resolved_data_or_table_targets": 0
+      },
+      {
+        "source_span": [
+          217096,
+          217114
+        ],
+        "runtime_span": [
+          221192,
+          221210
+        ],
+        "native_incoming_edges": 0,
+        "native_resolved_data_or_table_targets": 0
+      },
+      {
+        "source_span": [
+          217950,
+          217970
+        ],
+        "runtime_span": [
+          222046,
+          222066
+        ],
+        "native_incoming_edges": 0,
+        "native_resolved_data_or_table_targets": 0
+      },
+      {
+        "source_span": [
+          221810,
+          221824
+        ],
+        "runtime_span": [
+          225906,
+          225920
+        ],
+        "native_incoming_edges": 0,
+        "native_resolved_data_or_table_targets": 0
+      },
+      {
+        "source_span": [
+          309908,
+          309932
+        ],
+        "runtime_span": [
+          314004,
+          314028
+        ],
+        "native_incoming_edges": 0,
+        "native_resolved_data_or_table_targets": 0
+      }
+    ],
+    "scope": "Current resolved native CFG and source/data/table/address-expression targets only. No hits in 30 islands; no inference of unused/dead storage or complete indirect/cursor/DMA coverage."
+  },
+  "remaining": [
+    {
+      "group": "Horizon packet scratch and shared scene queue",
+      "blocks": "Variable vertex payload and queue/arena roles still have anonymous source storage, despite concrete producers and drawing consumers.",
+      "experiment": "Continue now through the 28-byte horizon packet at runtime $2EFF4, cursors at $3C2C/$3C30, count at $49A8 and sort/draw entry $3D9DA. Trace original buffer geometry and header/vertex/sentinel reads before declaring layouts or universal bounds.",
+      "deferral": "This is the next active connected restoration batch, not a blanket deferral or project completion."
+    },
+    {
+      "group": "41 generic app fields",
+      "blocks": "Many retain initialization-only, shared-scratch or context-dependent uses. Generic naming is not itself a failure.",
+      "experiment": "Follow connected readers and writers for audio state prefixes, end-of-frame skip/pose fields and shared world-transition state. Require actual consumers before naming initialization-only legacy slots.",
+      "deferral": "This batch establishes seven concrete roles; it does not assign meanings to isolated constants or unclaimed code-shaped writers."
+    },
+    {
+      "group": "87 indexed diagnostics",
+      "blocks": "Closed scalar values, uniform field selection or admitted operand geometry are still missing.",
+      "experiment": "Use current producer/operand groups: 46 text, 16 sprite, 11 object-name, 8 audio, 4 viewer, 1 world-placement and 1 display-radius site. Inspect existing mask/compare/loop domains before another transfer change.",
+      "deferral": "Do not raise the existing finite-value cap or infer runtime bounds from a table extent. Each new shared fix needs a reproduced producer case."
+    },
+    {
+      "group": "30 orphan islands",
+      "blocks": "No resolved native incoming edge or data/table target in the current cross-check.",
+      "experiment": "A targeted normal-input probe of the relevant mode/callback could establish a real incoming transfer; correlate the actual PC with source coordinates before promotion.",
+      "deferral": "Static appearance and the no-hit cross-reference pass do not establish executable original entry or dead code; no pointless repeated flight route is run."
+    }
+  ],
+  "limits": [
+    "Static original-layout interpretation only; prior normal-media traces are not new runtime validation for these mode, horizon or debug paths.",
+    "Original app-base assumptions and callback/entry conditions stay explicit; source names do not establish arbitrary-call safety.",
+    "No manual generated-assembly edits, relocation, interim archive, game-state injection or Pandora work.",
+    "The preview fixture checks raw UTF-8 JSON input. Legacy native Unicode-escape decoding is outside this preview change: a separately observed \\u20ac case did not decode to the Euro character. Current game/source roles in this batch are ASCII; no broader JSON Unicode certification is claimed."
+  ]
+}

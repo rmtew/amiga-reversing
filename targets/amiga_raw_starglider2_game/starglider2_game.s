@@ -266,13 +266,13 @@ novella_attempts_remaining RS.W 1
 polygon_clip_plane_mask RS.B 1
     RS.B 1
 app_01EF RS.B 1
-app_01F0 RS.B 1
+model_face_culling_disabled_flag RS.B 1
     RS.B 1
 alternate_graphics_mode RS.B 1
     RS.B 1
 app_01F4 RS.B 1
-app_01F5 RS.B 1
-app_01F6 RS.B 1
+model_viewer_blocking_input_flag RS.B 1
+debug_features_enabled_flag RS.B 1
     RS.B 6
 primary_fire_flag RS.B 1
 app_01FE RS.B 1
@@ -380,7 +380,7 @@ negative_speed_control_accumulator RS.W 1
 periodic_display_bcd_counter RS.W 1
 periodic_display_update_countdown RS.W 1
 pending_message_count RS.W 1
-app_07B0 RS.W 1
+landscape_ground_colour_index RS.W 1
     RS.B 2
 message_display_countdown RS.W 1
 view_rotation_0 RS.W 1
@@ -404,7 +404,7 @@ player_structure_clamp_flag RS.B 1
 fixed_sight_mode_flag RS.B 1
 model_viewer_animation_state RS.B 1
 model_viewer_bounds_pair_offset RS.B 1
-app_07E9 RS.B 1
+world_object_update_enabled_flag RS.B 1
 weapon_selection_and_status RS.B 1
 view_mode RS.B 1
 app_07EC RS.B 1
@@ -417,7 +417,7 @@ fire_key_scancode RS.B 1
     RS.B 1
 app_07F4 RS.B 1
     RS.B 1
-app_07F6 RS.B 1
+landscape_background_draw_flags RS.B 1
     RS.B 1
 disc_queue_attempt_count RS.W 1
 disc_primary_colour_cursor RS.L 1
@@ -506,7 +506,7 @@ tractor_marker_shrink_countdown RS.B 1
 tractor_input_override_flag RS.B 1
     RS.B 1
 reuse_tractor_markers_flag RS.B 1
-app_0AA5 RS.B 1
+world_transition_space_snapshot RS.B 1
     RS.B 1
 projector_network_complete_flag RS.B 1
 app_0AA8 RS.B 1
@@ -1222,7 +1222,7 @@ abs_0_00001202:
 	move.b #$6,diagnostic_step_byte.l
 	moveq.l #0,d0
 	jsr add_bcd_and_draw_digits.l
-	move.w #$A,app_07B0(a6)
+	move.w #$A,landscape_ground_colour_index(a6)
 abs_0_0000123E:
 	move.b #$4,diagnostic_step_byte.l
 	bsr.w abs_0_00003380
@@ -1256,7 +1256,7 @@ gameplay_frame_loop:
 	move.b #$3,diagnostic_stage_step_word.l
 	clr.b diagnostic_step_byte.l
 	bsr.w abs_0_000033F8
-	tst.b app_07E9(a6)
+	tst.b world_object_update_enabled_flag(a6)
 	beq.b abs_0_00001300
 	move.b #$4,diagnostic_stage_step_word.l
 	clr.b diagnostic_step_byte.l
@@ -1340,7 +1340,7 @@ abs_0_0000141E:
 	tst.w last_player_contact_type(a6)
 	bne.w abs_0_000014B6
 abs_0_00001434:
-	tst.b app_01F6(a6)
+	tst.b debug_features_enabled_flag(a6)
 	beq.b abs_0_0000144C
 	move.w #$55F0,icarus_power_reserve(a6)
 	move.w #$9C40,icarus_shield_strength(a6)
@@ -1646,7 +1646,7 @@ abs_0_000018BB:
 abs_0_000018BC:
 	cmp.b #$50,d0
 	bne.b abs_0_000018C8
-	bchg.b #1,app_07F6(a6)
+	bchg.b #1,landscape_background_draw_flags(a6)
 abs_0_000018C8:
 	cmp.b #$1B,d0
 	beq.w abs_0_000024CC
@@ -1657,7 +1657,7 @@ abs_0_000018C8:
 	andi.w #223,d0
 	cmp.b #$57,d0
 	beq.w cycle_selected_weapon
-	tst.b app_01F6(a6)
+	tst.b debug_features_enabled_flag(a6)
 	beq.w abs_0_00001964
 	cmp.b #$98,d0
 	bne.b abs_0_00001900
@@ -2054,7 +2054,7 @@ abs_0_00001E0C:
 	cmp.b (a0)+,d0
 	bne.b abs_0_00001DFC
 	dbf.w d7,abs_0_00001E0C
-	tst.b app_01F6(a6)
+	tst.b debug_features_enabled_flag(a6)
 	bne.b abs_0_00001E2A
 	addq.w #1,$01D6(a6)
 	cmpi.w #1,$01D6(a6)
@@ -2070,7 +2070,7 @@ abs_0_00001E2A:
 	move.w d0,icarus_power_reserve(a6)
 	move.w d0,icarus_shield_strength(a6)
 	move.w d0,weapon_energy_reserve(a6)
-	not.b app_01F6(a6)
+	not.b debug_features_enabled_flag(a6)
 abs_0_00001E50:
 	bsr.w abs_0_00003404
 	clr.w depot_line_pointer_offset(a6)
@@ -2100,7 +2100,7 @@ abs_0_00001EBA:
 abs_0_00001EC2:
 	st.b $0154(a6)
 	st.b $0155(a6)
-	sf.b app_01F0(a6)
+	sf.b model_face_culling_disabled_flag(a6)
 	st.b app_01F4(a6)
 	sf.b app_0204(a6)
 	move.b #$0,app_07F4(a6)
@@ -2252,8 +2252,8 @@ reset_gameplay_state_and_input_defaults:
 	sf.b weapon_selection_and_status(a6)
 	sf.b view_mode(a6)
 	sf.b app_07EC(a6)
-	st.b app_07E9(a6)
-	sf.b app_01F6(a6)
+	st.b world_object_update_enabled_flag(a6)
+	sf.b debug_features_enabled_flag(a6)
 	sf.b inside_structure_flag(a6)
 	sf.b player_structure_clamp_flag(a6)
 	sf.b space_environment_flag(a6)
@@ -2261,7 +2261,7 @@ reset_gameplay_state_and_input_defaults:
 	sf.b player_collision_response_steps(a6)
 	sf.b structure_contact_pose_mode(a6)
 	move.w #$3,selected_celestial_body_index(a6)
-	move.b #$3,app_07F6(a6)
+	move.b #$3,landscape_background_draw_flags(a6)
 	move.b #$FF,free_flight_controls_enabled_flag(a6)
 	move.l #$1FFFF,horizontal_world_wrap_mask(a6)
 	move.w #$1E,type30_render_model_index(a6)
@@ -3340,8 +3340,8 @@ fill_amiga_horizon_bands:
 	bne.b abs_0_00003522
 	tst.b space_environment_flag(a6)
 	bmi.b abs_0_000034EA
-	move.w abs_0_0002F014.l,d0
-	move.w abs_0_0002F010.l,d1
+	move.w horizon_upper_fill_colour.l,d0
+	move.w horizon_ground_split_row.l,d1
 	bmi.b clear_amiga_viewport
 	move.w view_clip_min_y(a6),d3
 	subq.w #1,d1
@@ -3354,8 +3354,8 @@ abs_0_00003520:
 abs_0_00003522:
 	tst.b space_environment_flag(a6)
 	bmi.b abs_0_00003520
-	move.w abs_0_0002F016.l,d0
-	move.w abs_0_0002F010.l,d3
+	move.w horizon_lower_fill_colour.l,d0
+	move.w horizon_ground_split_row.l,d3
 	bmi.b abs_0_00003520
 	move.w view_clip_max_y(a6),d4
     ; Shared clear/horizon continuation: D0 fill pattern, D3/D4 inclusive rows; view bounds supply X range. Requires the original caller return frame.
@@ -4166,15 +4166,15 @@ render_world_view:
 	movea.l #abs_0_0004760A,a0
 	move.l #$3C34,(a0)+
 	move.l a0,abs_0_00003C2C.l
-	move.w #$FFFF,abs_0_0002F010.l
-	move.w #$FFFF,abs_0_0002F012.l
+	move.w #$FFFF,horizon_ground_split_row.l
+	move.w #$FFFF,horizon_clip_max_y_snapshot.l
 	move.b #$2,diagnostic_step_byte.l
 	clr.w abs_0_000049A8.l
 	tst.b app_07EC(a6)
 	bne.b abs_0_00003EA4
 	tst.b inside_structure_flag(a6)
 	bne.b abs_0_00003EA4
-	tst.b app_07F6(a6)
+	tst.b landscape_background_draw_flags(a6)
 	beq.b abs_0_00003EA4
 	move.b #$3,diagnostic_step_byte.l
 	move.b #$6F,diagnostic_step_byte.l
@@ -5029,7 +5029,7 @@ abs_0_000049C8:
 abs_0_000049CE:
 	jmp add_bcd_and_draw_digits.l
 abs_0_000049D4:
-	jmp abs_0_0002EC64.l
+	jmp build_landscape_horizon_and_grid.l
 abs_0_000049DA:
 	jmp enqueue_unique_message_pointer.l
 initialize_model_coordinate_extents:
@@ -5152,6 +5152,7 @@ abs_0_00004B38:
 	movea.l $0010(a6),a4
 	movea.l $0008(a6),a1
 	lea.l model_view_vertex_scratch_prefix(a6),a0
+    ; Forced face visibility bypasses cached/backface rejection, not later projection or screen clipping. The original negative face-header path also reaches admission independently.
 abs_0_00004B54:
 	move.l d0,-(a7)
 	move.w (a4)+,d2
@@ -5172,7 +5173,7 @@ abs_0_00004B80:
 	andi.w #7,d1
 	move.w d1,$01B8(a6)
 	move.b #$12,diagnostic_step_byte.l
-	tst.b app_01F0(a6)
+	tst.b model_face_culling_disabled_flag(a6)
 	bne.w abs_0_00004C4E
 	tst.w d2
 	bmi.w abs_0_00004C4E
@@ -9020,7 +9021,7 @@ abs_0_00007FC0:
 	jmp build_player_motion_vector.l
 	dc.w $0000
 update_world_objects:
-	tst.b app_07E9(a6)
+	tst.b world_object_update_enabled_flag(a6)
 	beq.w abs_0_000083A8
 	move.w nearby_object_count(a6),d6
 	beq.w abs_0_000081DE
@@ -16027,7 +16028,7 @@ abs_0_0000E45C:
 	bsr.w abs_0_00012F6E
 	clr.b display_buffer_table_byte_offset(a6)
 	bsr.w abs_0_0000FD88
-	move.w #$A,app_07B0(a6)
+	move.w #$A,landscape_ground_colour_index(a6)
 	bsr.w abs_0_0000E9D2
 	bsr.w abs_0_0000E9BA
 	bsr.w abs_0_0000E9C6
@@ -16312,7 +16313,7 @@ enter_model_viewer:
 	clr.w model_viewer_rotation_step_1(a6)
 	clr.w model_viewer_rotation_step_2(a6)
 	move.w #$1,active_model_type_index(a6)
-	clr.b app_01F0(a6)
+	clr.b model_face_culling_disabled_flag(a6)
 	lea.l world_object_pool(a6),a4
 	move.b #$0,$0003(a4)
 	move.b #$1,model_viewer_animation_state(a6)
@@ -16357,7 +16358,7 @@ abs_0_0000EB28:
 	lea.l abs_0_000027AC.l,a0
 	move.w d0,$000E(a0)
 	movem.l (a7)+,d0/a0
-	tst.b app_01F6(a6)
+	tst.b debug_features_enabled_flag(a6)
 	beq.w abs_0_0000EBFC
 	move.w active_model_type_index(a6),d0
 	lea.l abs_0_0000EAC2(pc),a1
@@ -16437,8 +16438,8 @@ abs_0_0000EC46:
 	move.w frame_handoff_counter(a6),d0
 	andi.w #3,d0
 	nop
-	move.w #$1E,abs_0_0002F010.l
-	move.w #$80,abs_0_0002F012.l
+	move.w #$1E,horizon_ground_split_row.l
+	move.w #$80,horizon_clip_max_y_snapshot.l
 	tst.b abs_0_0000FD4C.l
 	bne.b abs_0_0000EC8C
 	move.w #$0,d0
@@ -16874,7 +16875,8 @@ service_model_viewer_controls:
 	move.w d0,model_origin_delta_y(a6)
 	move.w negative_speed_control_accumulator(a6),d0
 	move.w d0,model_origin_delta_z(a6)
-	tst.b app_01F5(a6)
+    ; Nonzero blocking-input flag waits for a translated key; zero polls. No original writer or complete incoming-state contract is established for that flag.
+	tst.b model_viewer_blocking_input_flag(a6)
 	beq.b abs_0_0000EE66
 	bsr.w wait_for_translated_key
 	bra.b abs_0_0000EE6A
@@ -16909,10 +16911,10 @@ abs_0_0000EE6A:
 	beq.w stop_model_viewer_rotation
 	cmp.b #$52,d0
 	beq.w reset_model_viewer_rotation
-	tst.b app_01F6(a6)
+	tst.b debug_features_enabled_flag(a6)
 	beq.w abs_0_0000EEEA
 	cmp.b #$48,d0
-	beq.w abs_0_0000F212
+	beq.w toggle_model_face_culling
 abs_0_0000EEEA:
 	cmp.b #$30,d0
 	blt.w abs_0_0000EF08
@@ -17142,8 +17144,8 @@ reset_model_viewer_rotation:
 	clr.w model_rotation_2(a6)
 	clr.w model_rotation_0(a6)
 	rts
-abs_0_0000F212:
-	not.b app_01F0(a6)
+toggle_model_face_culling:
+	not.b model_face_culling_disabled_flag(a6)
 abs_0_0000F216:
 	rts
 abs_0_0000F218:
@@ -22772,14 +22774,14 @@ object_retirement_phase_limits:
 	dc.b $01,$00
     ; 20 LONG base radii indexed by type-128, for original types128..147. Object LONG22/36 meanings differ from low-type record overlays.
 nonmodel_object_base_radii:
-	dc.l $00100000,$00020000,$00020000,$00040000	; Types128..147 default LONG copied into type-dependent object22/36; not universal low-type field
+	dc.l $00100000,$00020000,$00020000,$00040000	; Types128..147 default LONG copied into type-dependent object22/36; not universal low-type fields
 	dc.l $00080000,$00012000,$00010000,$00012000
 	dc.l $00008000,$00008000,$00008000,$00008000
 	dc.l $00008000,$00008000,$00008000,$00010000
 	dc.l $00002000,$00001E00,$00000064,$00040000
     ; 16 signed world-reference Y levels. Surface initializer adds200; selected object placement adds1024+random. Not proven terrain floor/atmosphere height.
 world_reference_y_coordinates:
-	dc.l $FFFE0000,$FFFFC000,$FFFFC000,$FFFF8000	; Signed world-reference Y LONGs used by surface initialization and selected object placements; n
+	dc.l $FFFE0000,$FFFFC000,$FFFFC000,$FFFF8000	; Signed world-reference Y LONGs used by surface initialization and selected object placements;...
 	dc.l $FFFF0000,$FFFFC000,$FFFFC000,$FFFFC000
 	dc.l $FFFFC000,$FFFFC000,$FFFFC000,$FFFFC000
 	dc.l $FFFFC000,$FFFFC000,$FFFFC000,$FFFFC000
@@ -22789,7 +22791,7 @@ world_altitude_meter_divisors:
 	dc.w $0D55,$0D55,$0D55,$0D55,$0D55,$0D55,$0D55,$0D55
     ; 16 mask LONGs used by both surface world index and mapped interior index. Each is2^n-1; preserve original wrap and conditional selector assumptions.
 world_horizontal_wrap_masks:
-	dc.l $7FFFFFFF,$0001FFFF,$0001FFFF,$0001FFFF	; World-layout horizontal wrap masks shared by surface and interior paths; preserve conditional s
+	dc.l $7FFFFFFF,$0001FFFF,$0001FFFF,$0001FFFF	; World-layout horizontal wrap masks shared by surface and interior paths; preserve conditional...
 	dc.l $000FFFFF,$0001FFFF,$0000FFFF,$0000FFFF
 	dc.l $0000FFFF,$0000FFFF,$0000FFFF,$0000FFFF
 	dc.l $0000FFFF,$0000FFFF,$0000FFFF,$0001FFFF
@@ -24854,7 +24856,7 @@ model_header_run_32:
 	dc.w $0001	; auxiliary_face_count
 	dc.l model_103_auxiliary_faces	; auxiliary_face_commands
 model_000_faces:
-	dc.w $030C,$0000,$0008,$0010,$030B,$0000,$0018,$0008	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $030C,$0000,$0008,$0010,$030B,$0000,$0018,$0008	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $030B,$0000,$0010,$0020,$030C,$0000,$0028,$0018
 	dc.w $030C,$0000,$0020,$0028,$040E,$0010,$0008,$0030
 	dc.w $0038,$040D,$0008,$0018,$0040,$0030,$040D,$0020
@@ -24871,9 +24873,9 @@ model_000_faces:
 	dc.w $0090,$8300,$0088,$0098,$00A0,$8300,$0090,$00A8
 	dc.w $00B0
 model_000_auxiliary_faces:
-	dc.w $8500,$0008,$0010,$0020,$0028,$0018	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $8500,$0008,$0010,$0020,$0028,$0018	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 model_000_coordinates:
-	dc.w $0000,$12A0,$0190,$0230,$1020,$0690,$0320,$0DF0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0000,$12A0,$0190,$0230,$1020,$0690,$0320,$0DF0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $04B0,$0C60,$0410,$01E0,$0280,$0638,$0248,$0030
 	dc.w $0210,$03A0,$00A0,$0118,$0078,$0500,$12B0,$1030
 	dc.w $0E00,$0C70,$0668,$02E0,$0060,$01A0,$00D8,$02F0
@@ -24992,7 +24994,7 @@ model_000_vertices:
 	dc.w $802A	; z_coordinate_ref
 	dc.w $00B0	; variant_offset_or_negative
 model_001_variant_words:
-	dc.w $0000,$802C,$0004,$0000,$8006,$802E,$800A,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
+	dc.w $0000,$802C,$0004,$0000,$8006,$802E,$800A,$0000	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with uni...
 	dc.w $0006,$802E,$800A,$0000,$800C,$802E,$0000,$0000
 	dc.w $000C,$802E,$0000,$0000,$0000,$8030,$0010,$0000
 	dc.w $8004,$8032,$8014,$0000,$0004,$8032,$8014,$0000
@@ -25246,7 +25248,7 @@ model_001_variant_words:
 	dc.w $800C,$803C,$0040,$0000,$8004,$803C,$0040,$0000
 	dc.w $0004,$0000,$8180,$0000,$000C,$0000,$8180,$0000
 model_001_variant_frames:
-	dc.l model_001_variant_words	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
+	dc.l model_001_variant_words	; 22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with uni...
 	dc.l model_001_variant_words+$B8
 	dc.l model_001_variant_words+$170
 	dc.l model_001_variant_words+$228
@@ -25269,7 +25271,7 @@ model_001_variant_frames:
 	dc.l model_001_variant_words+$E60
 	dc.l model_001_variant_words+$F18
 model_002_faces:
-	dc.w $0301,$0000,$0010,$0020,$0301,$0018,$0008,$0028	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0301,$0000,$0010,$0020,$0301,$0018,$0008,$0028	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $0305,$0000,$0020,$0030,$0305,$0028,$0008,$0038
 	dc.w $0301,$0000,$0030,$0040,$0301,$0038,$0008,$0048
 	dc.w $0305,$0000,$0040,$0050,$0305,$0048,$0008,$0058
@@ -25284,10 +25286,10 @@ model_002_faces:
 	dc.w $0030,$0038,$0078,$0301,$0048,$0040,$0078,$0301
 	dc.w $0050,$0058,$0080,$0301,$0068,$0060,$0080
 model_002_auxiliary_faces:
-	dc.w $8300,$0070,$0030,$0000,$8300,$0078,$0050,$0000	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $8300,$0070,$0030,$0000,$8300,$0078,$0050,$0000	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $8300,$0080,$0010,$0000
 model_002_coordinates:
-	dc.w $0000,$0280,$0190,$0320,$02B0,$00A0,$0B40,$0A28	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0000,$0280,$0190,$0320,$02B0,$00A0,$0B40,$0A28	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $04D8,$0960,$0640
 model_002_vertices:
 	dc.w $0000	; x_coordinate_ref
@@ -25359,7 +25361,7 @@ model_002_vertices:
 	dc.w $8014	; z_coordinate_ref
 	dc.w $FFFF	; variant_offset_or_negative
 model_003_faces:
-	dc.w $0401,$0000,$0030,$0038,$0008,$0402,$0008,$0038	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0401,$0000,$0030,$0038,$0008,$0402,$0008,$0038	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $0040,$0010,$0401,$0010,$0040,$0048,$0018,$0402
 	dc.w $0018,$0048,$0050,$0020,$0401,$0020,$0050,$0058
 	dc.w $0028,$0402,$0028,$0058,$0030,$0000,$0406,$0030
@@ -25372,9 +25374,9 @@ model_003_faces:
 	dc.w $0309,$0088,$0090,$0060,$0606,$0000,$0008,$0010
 	dc.w $0018,$0020,$0028
 model_003_auxiliary_faces:
-	dc.w $8600,$0028,$0020,$0018,$0010,$0008,$0000	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $8600,$0028,$0020,$0018,$0010,$0008,$0000	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 model_003_coordinates:
-	dc.w $0000,$12C0,$1040,$0960,$0320,$0FA0,$0D88,$07D0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0000,$12C0,$1040,$0960,$0320,$0FA0,$0D88,$07D0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $0640,$02B8,$0190,$15E0
 model_003_vertices:
 	dc.w $0000	; x_coordinate_ref
@@ -25454,7 +25456,7 @@ model_003_vertices:
 	dc.w $0000	; z_coordinate_ref
 	dc.w $FFFF	; variant_offset_or_negative
 model_004_faces:
-	dc.w $0401,$0000,$0020,$0028,$0008,$0406,$0008,$0028	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0401,$0000,$0020,$0028,$0008,$0406,$0008,$0028	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $0030,$0010,$0401,$0010,$0030,$0038,$0018,$0406
 	dc.w $0000,$0018,$0038,$0020,$0408,$0020,$0040,$0048
 	dc.w $0028,$0409,$0028,$0048,$0050,$0030,$0408,$0030
@@ -25469,10 +25471,10 @@ model_004_faces:
 	dc.w $0050,$00B0,$00B8,$0058,$0409,$0058,$00B8,$00A0
 	dc.w $0040
 model_004_auxiliary_faces:
-	dc.w $8400,$0060,$0068,$0070,$0078,$8400,$0080,$0088	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $8400,$0060,$0068,$0070,$0078,$8400,$0080,$0088	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $0090,$0098
 model_004_coordinates:
-	dc.w $0000,$0960,$0320,$0640,$0FA0,$0AA0,$0460,$0680	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0000,$0960,$0320,$0640,$0FA0,$0AA0,$0460,$0680	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $0AE0,$0FE0,$0750,$0BB0,$10B0,$08A0,$0D00,$1200
 	dc.w $0A60,$0EC0,$13C0,$0C80,$10E0,$15E0,$0EE0,$1340
 	dc.w $1840,$1170,$15D0,$1AD0,$1408,$1868,$1D68,$1698
@@ -25581,7 +25583,7 @@ model_004_vertices:
 	dc.w $000C	; z_coordinate_ref
 	dc.w $0078	; variant_offset_or_negative
 model_004_variant_words:
-	dc.w $0004,$800E,$8004,$0000,$8004,$800E,$8004,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
+	dc.w $0004,$800E,$8004,$0000,$8004,$800E,$8004,$0000	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with uni...
 	dc.w $8004,$800E,$0004,$0000,$0004,$800E,$0004,$0000
 	dc.w $0008,$8010,$8008,$0000,$8008,$8010,$8008,$0000
 	dc.w $8008,$8010,$0008,$0000,$0008,$8010,$0008,$0000
@@ -25822,7 +25824,7 @@ model_004_variant_words:
 	dc.w $000C,$8068,$800C,$0000,$800C,$8068,$800C,$0000
 	dc.w $800C,$8068,$000C,$0000,$000C,$8068,$000C,$0000
 model_004_variant_frames:
-	dc.l model_004_variant_words	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
+	dc.l model_004_variant_words	; 30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with uni...
 	dc.l model_004_variant_words+$80
 	dc.l model_004_variant_words+$100
 	dc.l model_004_variant_words+$180
@@ -25853,7 +25855,7 @@ model_004_variant_frames:
 	dc.l model_004_variant_words+$E00
 	dc.l model_004_variant_words+$E80
 model_005_faces:
-	dc.w $0600,$0028,$0020,$0018,$0010,$0008,$0000,$0301	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0600,$0028,$0020,$0018,$0010,$0008,$0000,$0301	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $0030,$0038,$0060,$0301,$0040,$0048,$0068,$0301
 	dc.w $0050,$0058,$0070,$0306,$0000,$0030,$0060,$0306
 	dc.w $0008,$0060,$0038,$0306,$0010,$0040,$0068,$0306
@@ -25867,7 +25869,7 @@ model_005_faces:
 	dc.w $0090,$0309,$0058,$0050,$0098,$0309,$0030,$0058
 	dc.w $00A0
 model_005_coordinates:
-	dc.w $0000,$1770,$1446,$0BB8,$1194,$0F3C,$08CA,$1D4C	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0000,$1770,$1446,$0BB8,$1194,$0F3C,$08CA,$1D4C	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $32BE,$3A98,$000F,$001E,$0069,$003C,$0078,$00E1
 	dc.w $0087,$010E,$0195,$01D1,$0267,$0168,$00D2,$02D0
 	dc.w $0366,$01EF,$03ED,$0483,$0294,$0537,$05BE,$0348
@@ -25961,7 +25963,7 @@ model_005_vertices:
 	dc.w $0000	; z_coordinate_ref
 	dc.w $0028	; variant_offset_or_negative
 model_005_variant_words:
-	dc.w $8014,$8006,$8014,$0000,$8014,$8006,$0014,$0000	; 19 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
+	dc.w $8014,$8006,$8014,$0000,$8014,$8006,$0014,$0000	; 19 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with unin...
 	dc.w $0000,$8006,$0016,$0000,$0014,$8006,$0014,$0000
 	dc.w $0014,$8006,$8014,$0000,$0000,$8006,$8016,$0000
 	dc.w $8018,$8006,$801A,$0000,$8018,$8006,$001A,$0000
@@ -26019,7 +26021,7 @@ model_005_variant_words:
 	dc.w $0000,$8006,$0008,$0000,$0078,$8006,$000C,$0000
 	dc.w $0078,$8006,$800C,$0000,$0000,$8006,$8008,$0000
 model_005_variant_frames:
-	dc.l model_005_variant_words	; 19 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
+	dc.l model_005_variant_words	; 19 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with unin...
 	dc.l model_005_variant_words+$30
 	dc.l model_005_variant_words+$60
 	dc.l model_005_variant_words+$90
@@ -26039,7 +26041,7 @@ model_005_variant_frames:
 	dc.l model_005_variant_words+$330
 	dc.l model_005_variant_words+$360
 model_006_faces:
-	dc.w $040E,$0000,$0018,$0010,$0008,$040E,$00A0,$00A8	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $040E,$0000,$0018,$0010,$0008,$040E,$00A0,$00A8	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $00B0,$00B8,$040C,$0000,$0008,$0028,$0020,$040C
 	dc.w $00A0,$0060,$0068,$00A8,$040C,$0010,$0018,$0048
 	dc.w $0040,$040C,$00B8,$00B0,$0080,$0088,$040C,$0008
@@ -26057,7 +26059,7 @@ model_006_faces:
 	dc.w $0090,$0088,$0400,$00C0,$00C8,$00D0,$00D8,$0400
 	dc.w $00E0,$00F8,$00F0,$00E8
 model_006_coordinates:
-	dc.w $0000,$0640,$0AA0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0000,$0640,$0AA0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 model_006_vertices:
 	dc.w $0002	; x_coordinate_ref
 	dc.w $8004	; y_coordinate_ref
@@ -26188,7 +26190,7 @@ model_006_vertices:
 	dc.w $0004	; z_coordinate_ref
 	dc.w $FFFF	; variant_offset_or_negative
 model_007_faces:
-	dc.w $0301,$0000,$0008,$0010,$0306,$0000,$0018,$0008	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0301,$0000,$0008,$0010,$0306,$0000,$0018,$0008	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $0306,$0000,$0010,$0020,$0301,$0000,$0020,$0018
 	dc.w $0306,$0008,$0028,$0010,$0301,$0008,$0018,$0028
 	dc.w $0301,$0020,$0010,$0028,$0306,$0020,$0028,$0018
@@ -26202,10 +26204,10 @@ model_007_faces:
 	dc.w $0090,$0050,$8307,$0068,$0070,$0088,$8307,$0078
 	dc.w $0080,$0090
 model_007_auxiliary_faces:
-	dc.w $8400,$0000,$0018,$0058,$0010,$8400,$0038,$0078	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $8400,$0000,$0018,$0058,$0010,$8400,$0038,$0078	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $0080,$0040,$8400,$0068,$0030,$0040,$0070
 model_007_coordinates:
-	dc.w $0000,$0AF0,$01E0,$0730,$0230,$04B0,$0190,$0320	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0000,$0AF0,$01E0,$0730,$0230,$04B0,$0190,$0320	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $0960,$00F0,$07D0,$0640,$0B88,$02D0,$0530,$07C0
 	dc.w $00C0,$0200,$0528,$0080,$0790,$0170,$0B80,$0110
 	dc.w $0508,$0758,$0020,$04E0,$0150,$0718,$0270,$0B78
@@ -26293,7 +26295,7 @@ model_007_vertices:
 	dc.w $000C	; z_coordinate_ref
 	dc.w $0028	; variant_offset_or_negative
 model_007_variant_words:
-	dc.w $801E,$0020,$8016,$0000,$8018,$8022,$0014,$0000	; 24 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
+	dc.w $801E,$0020,$8016,$0000,$8018,$8022,$0014,$0000	; 24 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with unin...
 	dc.w $001E,$0020,$8016,$0000,$0018,$8022,$0014,$0000
 	dc.w $8024,$0026,$000C,$0000,$0024,$0026,$000C,$0000
 	dc.w $8028,$002A,$8016,$0000,$802C,$802E,$0014,$0000
@@ -26366,7 +26368,7 @@ model_007_variant_words:
 	dc.w $001E,$8020,$8016,$0000,$0018,$8096,$0014,$0000
 	dc.w $8024,$8026,$000C,$0000,$0024,$8026,$000C,$0000
 model_007_variant_frames:
-	dc.l model_007_variant_words	; 24 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
+	dc.l model_007_variant_words	; 24 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with unin...
 	dc.l model_007_variant_words+$30
 	dc.l model_007_variant_words+$60
 	dc.l model_007_variant_words+$90
@@ -26391,7 +26393,7 @@ model_007_variant_frames:
 	dc.l model_007_variant_words+$420
 	dc.l model_007_variant_words+$450
 model_008_faces:
-	dc.w $0401,$0008,$0000,$0020,$0028,$040E,$0028,$0020	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0401,$0008,$0000,$0020,$0028,$040E,$0028,$0020	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $0030,$0038,$0401,$0030,$0040,$0048,$0038,$040B
 	dc.w $0040,$0050,$0058,$0048,$0404,$0058,$0050,$0080
 	dc.w $0088,$040C,$0028,$0038,$0048,$0058,$040C,$0020
@@ -26407,10 +26409,10 @@ model_008_faces:
 	dc.w $0407,$0090,$0098,$00A8,$00A0,$8401,$00B0,$00B8
 	dc.w $00C8,$00C0
 model_008_auxiliary_faces:
-	dc.w $8800,$0000,$0020,$0050,$0080,$0088,$0058,$0028	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $8800,$0000,$0020,$0050,$0080,$0088,$0058,$0028	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $0008
 model_008_coordinates:
-	dc.w $0000,$0640,$01E0,$15E0,$0960,$08C0,$05A0,$0500	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0000,$0640,$01E0,$15E0,$0960,$08C0,$05A0,$0500	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $0320,$06E0,$07C8,$0E50,$0780,$0FA0,$12C0,$0820
 	dc.w $0DC0
 model_008_vertices:
@@ -26519,7 +26521,7 @@ model_008_vertices:
 	dc.w $0020	; z_coordinate_ref
 	dc.w $FFFF	; variant_offset_or_negative
 model_009_faces:
-	dc.w $040E,$0000,$0008,$0028,$0020,$040D,$0008,$0000	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $040E,$0000,$0008,$0028,$0020,$040D,$0008,$0000	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $0030,$0038,$030D,$0000,$0020,$0010,$030C,$0000
 	dc.w $0010,$0030,$030D,$0008,$0018,$0028,$030C,$0008
 	dc.w $0038,$0018,$030C,$0020,$0040,$0010,$030B,$0010
@@ -26530,9 +26532,9 @@ model_009_faces:
 	dc.w $0048,$0058,$0060,$0301,$0048,$0068,$0058,$0405
 	dc.w $0050,$0060,$0058,$0068
 model_009_auxiliary_faces:
-	dc.w $8500,$0000,$0008,$0018,$0040,$0010	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $8500,$0000,$0008,$0018,$0040,$0010	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 model_009_coordinates:
-	dc.w $0000,$0640,$0FA0,$0A00,$0820,$0500,$0B40,$0460	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0000,$0640,$0FA0,$0A00,$0820,$0500,$0B40,$0460	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $0320,$0780,$05A0,$0428,$0290,$04B8,$0508
 model_009_vertices:
 	dc.w $8002	; x_coordinate_ref
@@ -26600,7 +26602,7 @@ model_009_vertices:
 	dc.w $001C	; z_coordinate_ref
 	dc.w $FFFF	; variant_offset_or_negative
 model_010_faces:
-	dc.w $040E,$0000,$0008,$0048,$0040,$030D,$0000,$0040	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $040E,$0000,$0008,$0048,$0040,$030D,$0000,$0040	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $0010,$030D,$0008,$0018,$0048,$0402,$0008,$0000
 	dc.w $0050,$0058,$0308,$0000,$0010,$0050,$0308,$0008
 	dc.w $0058,$0018,$040D,$0040,$0048,$0068,$0060,$040C
@@ -26614,10 +26616,10 @@ model_010_faces:
 	dc.w $0080,$0090,$0088,$8306,$0010,$0020,$0098,$8306
 	dc.w $0018,$0028,$00A0
 model_010_auxiliary_faces:
-	dc.w $8800,$0000,$0010,$0020,$0030,$0038,$0028,$0018	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $8800,$0000,$0010,$0020,$0030,$0038,$0028,$0018	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $0008,$8400,$0010,$00A8,$0030,$0038
 model_010_coordinates:
-	dc.w $0000,$01E0,$1900,$0780,$0C80,$0140,$06A0,$1230	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0000,$01E0,$1900,$0780,$0C80,$0140,$06A0,$1230	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $03C0,$0500,$0460,$0320,$08C0,$0B40,$0640,$0700
 	dc.w $17C8,$0648,$1250,$0770,$17D0,$0550,$1298,$0720
 	dc.w $17E8,$0458,$12E0,$06B8,$17F8,$02B0,$1328,$1818
@@ -26720,7 +26722,7 @@ model_010_vertices:
 	dc.w $0020	; z_coordinate_ref
 	dc.w $0018	; variant_offset_or_negative
 model_010_variant_words:
-	dc.w $800A,$0022,$0024,$0000,$000A,$0022,$0024,$0000	; 21 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with uninte
+	dc.w $800A,$0022,$0024,$0000,$000A,$0022,$0024,$0000	; 21 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with unin...
 	dc.w $801C,$0026,$0028,$0000,$001C,$0026,$0028,$0000
 	dc.w $800A,$002A,$002C,$0000,$000A,$002A,$002C,$0000
 	dc.w $801C,$002E,$0030,$0000,$001C,$002E,$0030,$0000
@@ -26763,7 +26765,7 @@ model_010_variant_words:
 	dc.w $800A,$0022,$0024,$0000,$000A,$0022,$0024,$0000
 	dc.w $801C,$0082,$0030,$0000,$001C,$0082,$0030,$0000
 model_010_variant_frames:
-	dc.l model_010_variant_words	; 21 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with uninte
+	dc.l model_010_variant_words	; 21 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with unin...
 	dc.l model_010_variant_words+$20
 	dc.l model_010_variant_words+$40
 	dc.l model_010_variant_words+$60
@@ -26785,7 +26787,7 @@ model_010_variant_frames:
 	dc.l model_010_variant_words+$260
 	dc.l model_010_variant_words+$280
 model_011_faces:
-	dc.w $0308,$0000,$0038,$0008,$0309,$0008,$0038,$0010	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0308,$0000,$0038,$0008,$0309,$0008,$0038,$0010	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $030A,$0010,$0038,$0018,$0407,$0038,$0020,$0060
 	dc.w $0018,$030A,$0020,$0038,$0028,$0309,$0028,$0038
 	dc.w $0030,$0302,$0030,$0038,$0000,$0308,$0000,$0040
@@ -26796,7 +26798,7 @@ model_011_faces:
 	dc.w $0018,$0048,$0302,$0020,$0028,$0050,$840E,$0018
 	dc.w $0060,$0070,$0068,$840E,$0060,$0020,$0080,$0078
 model_011_coordinates:
-	dc.w $0000,$0FA0,$0960,$01E0,$0640,$0500,$0AA0,$0460	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0000,$0FA0,$0960,$01E0,$0640,$0500,$0AA0,$0460	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $0320,$0780,$14A0,$00A0,$03F0,$1508,$02B8,$1558
 	dc.w $00F8,$1590
 model_011_vertices:
@@ -26869,7 +26871,7 @@ model_011_vertices:
 	dc.w $0014	; z_coordinate_ref
 	dc.w $0018	; variant_offset_or_negative
 model_011_variant_words:
-	dc.w $8012,$8018,$001A,$0000,$8016,$8018,$001A,$0000	; 7 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with uninter
+	dc.w $8012,$8018,$001A,$0000,$8016,$8018,$001A,$0000	; 7 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with unint...
 	dc.w $0016,$0018,$001A,$0000,$0012,$0018,$001A,$0000
 	dc.w $8012,$801C,$001E,$0000,$8016,$801C,$001E,$0000
 	dc.w $0016,$001C,$001E,$0000,$0012,$001C,$001E,$0000
@@ -26884,7 +26886,7 @@ model_011_variant_words:
 	dc.w $8012,$000E,$0014,$0000,$8016,$000E,$0014,$0000
 	dc.w $0016,$800E,$0014,$0000,$0012,$800E,$0014,$0000
 model_011_variant_frames:
-	dc.l model_011_variant_words	; 7 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with uninter
+	dc.l model_011_variant_words	; 7 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with unint...
 	dc.l model_011_variant_words+$20
 	dc.l model_011_variant_words+$40
 	dc.l model_011_variant_words+$60
@@ -26892,14 +26894,14 @@ model_011_variant_frames:
 	dc.l model_011_variant_words+$A0
 	dc.l model_011_variant_words+$C0
 model_012_faces:
-	dc.w $0302,$0000,$0008,$0010,$0308,$0000,$0010,$0018	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0302,$0000,$0008,$0010,$0308,$0000,$0010,$0018	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $0309,$0000,$0018,$0008,$8301,$0000,$0008,$0020
 	dc.w $8301,$0000,$0010,$0028,$8301,$0000,$0018,$0030
 	dc.w $0302,$0008,$0018,$0010
 model_012_auxiliary_faces:
-	dc.w $8300,$0000,$0020,$0028,$8300,$0000,$0028,$0030	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $8300,$0000,$0020,$0028,$8300,$0000,$0028,$0030	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 model_012_coordinates:
-	dc.w $0000,$00A0,$0640,$01E0,$0320,$01A0,$00F0,$03C0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0000,$00A0,$0640,$01E0,$0320,$01A0,$00F0,$03C0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $04B0,$0340,$0098,$0030,$01C8,$0090,$0060,$01D0
 	dc.w $0160,$0140,$0390,$0128,$00C0,$03A8,$02C8,$0280
 	dc.w $0058,$0080,$0118,$0180,$01D8,$01B0,$0230,$0308
@@ -26934,7 +26936,7 @@ model_012_vertices:
 	dc.w $0010	; z_coordinate_ref
 	dc.w $0030	; variant_offset_or_negative
 model_012_variant_words:
-	dc.w $0014,$0016,$8004,$0000,$0018,$001A,$0008,$0000	; 4 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninter
+	dc.w $0014,$0016,$8004,$0000,$0018,$001A,$0008,$0000	; 4 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with unint...
 	dc.w $801C,$801E,$0008,$0000,$8020,$0022,$0008,$0000
 	dc.w $0024,$0026,$0010,$0000,$8028,$802A,$0010,$0000
 	dc.w $802C,$002E,$0010,$0000,$0030,$8032,$8004,$0000
@@ -26949,12 +26951,12 @@ model_012_variant_words:
 	dc.w $001C,$801E,$0008,$0000,$8024,$0026,$0010,$0000
 	dc.w $002C,$002E,$0010,$0000,$0028,$802A,$0010,$0000
 model_012_variant_frames:
-	dc.l model_012_variant_words	; 4 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninter
+	dc.l model_012_variant_words	; 4 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with unint...
 	dc.l model_012_variant_words+$38
 	dc.l model_012_variant_words+$70
 	dc.l model_012_variant_words+$A8
 model_013_faces:
-	dc.w $0401,$0000,$0028,$0068,$0060,$0306,$0000,$0060	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0401,$0000,$0028,$0068,$0060,$0306,$0000,$0060	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $0008,$0306,$0028,$0020,$0068,$0305,$0010,$0008
 	dc.w $0060,$0404,$0018,$0010,$0060,$0068,$0305,$0020
 	dc.w $0018,$0068,$0301,$0058,$0030,$0070,$0306,$0030
@@ -26967,9 +26969,9 @@ model_013_faces:
 	dc.w $8400,$0008,$0078,$0038,$0088,$8400,$0020,$0080
 	dc.w $0050,$0090
 model_013_auxiliary_faces:
-	dc.w $8600,$0028,$0020,$0018,$0010,$0008,$0000	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $8600,$0028,$0020,$0018,$0010,$0008,$0000	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 model_013_coordinates:
-	dc.w $0000,$0320,$0140,$0C80,$0960,$0640,$0460	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0000,$0320,$0140,$0C80,$0960,$0640,$0460	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 model_013_vertices:
 	dc.w $8002	; x_coordinate_ref
 	dc.w $8004	; y_coordinate_ref
@@ -27048,7 +27050,7 @@ model_013_vertices:
 	dc.w $8008	; z_coordinate_ref
 	dc.w $FFFF	; variant_offset_or_negative
 model_014_faces:
-	dc.w $030B,$0000,$0010,$0008,$030C,$0000,$0018,$0010	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $030B,$0000,$0010,$0008,$030C,$0000,$0018,$0010	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $030B,$0000,$0020,$0018,$030C,$0000,$0028,$0020
 	dc.w $030B,$0000,$0030,$0028,$030C,$0000,$0008,$0030
 	dc.w $040D,$0008,$0010,$0040,$0038,$040E,$0010,$0018
@@ -27059,9 +27061,9 @@ model_014_faces:
 	dc.w $0048,$0050,$030C,$0068,$0050,$0058,$030B,$0068
 	dc.w $0058,$0060,$030C,$0068,$0060,$0038
 model_014_auxiliary_faces:
-	dc.w $8600,$0030,$0028,$0020,$0018,$0010,$0008	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $8600,$0030,$0028,$0020,$0018,$0010,$0008	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 model_014_coordinates:
-	dc.w $0000,$08C0,$0320,$0C80,$0AD0,$0640	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0000,$08C0,$0320,$0C80,$0AD0,$0640	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 model_014_vertices:
 	dc.w $0000	; x_coordinate_ref
 	dc.w $8002	; y_coordinate_ref
@@ -27120,7 +27122,7 @@ model_014_vertices:
 	dc.w $0000	; z_coordinate_ref
 	dc.w $FFFF	; variant_offset_or_negative
 model_015_faces:
-	dc.w $0400,$0018,$0010,$0008,$0000,$0401,$0000,$0008	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0400,$0018,$0010,$0008,$0000,$0401,$0000,$0008	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $0028,$0020,$0406,$0008,$0010,$0030,$0028,$0401
 	dc.w $0010,$0018,$0038,$0030,$0406,$0018,$0000,$0020
 	dc.w $0038,$0306,$0020,$0028,$0040,$0305,$0028,$0030
@@ -27137,10 +27139,10 @@ model_015_faces:
 	dc.w $00B0,$0307,$0080,$00B0,$00A0,$0300,$00B0,$00A8
 	dc.w $00A0
 model_015_auxiliary_faces:
-	dc.w $8500,$0008,$0028,$0040,$0038,$0018,$8300,$00A0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $8500,$0008,$0028,$0040,$0038,$0018,$8300,$00A0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $00A8,$00B0,$8300,$0088,$0090,$0098
 model_015_coordinates:
-	dc.w $0000,$0F90,$0730,$00F0,$0EA0,$0780,$0DB0,$07D0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0000,$0F90,$0730,$00F0,$0EA0,$0780,$0DB0,$07D0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $0E00,$00A0,$01E0,$0C20,$0A40,$0AE0,$03C0,$02D0
 	dc.w $0720,$02C0,$0090,$0520,$0370,$0190,$0110,$0390
 	dc.w $0138,$0050,$0500,$05C0,$0078,$0FC8,$0ED8,$0DE8
@@ -27270,7 +27272,7 @@ model_015_vertices:
 	dc.w $0038	; z_coordinate_ref
 	dc.w $00B0	; variant_offset_or_negative
 model_015_variant_words:
-	dc.w $0000,$803A,$8004,$0000,$0006,$803C,$800A,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
+	dc.w $0000,$803A,$8004,$0000,$0006,$803C,$800A,$0000	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with uni...
 	dc.w $0000,$803E,$800E,$0000,$8006,$803C,$800A,$0000
 	dc.w $0000,$8040,$0012,$0000,$0014,$8042,$0000,$0000
 	dc.w $0000,$8044,$8012,$0000,$8014,$8042,$0000,$0000
@@ -27501,7 +27503,7 @@ model_015_variant_words:
 	dc.w $8014,$823A,$0118,$0000,$0032,$0000,$81CC,$0000
 	dc.w $0028,$0000,$81CC,$0000,$0014,$0000,$823C,$0000
 model_015_variant_frames:
-	dc.l model_015_variant_words	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint
+	dc.l model_015_variant_words	; 20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with uni...
 	dc.l model_015_variant_words+$B8
 	dc.l model_015_variant_words+$170
 	dc.l model_015_variant_words+$228
@@ -27522,7 +27524,7 @@ model_015_variant_frames:
 	dc.l model_015_variant_words+$CF0
 	dc.l model_015_variant_words+$DA8
 model_016_faces:
-	dc.w $0309,$0000,$0010,$0048,$0305,$0048,$0010,$0008	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0309,$0000,$0010,$0048,$0305,$0048,$0010,$0008	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $030B,$0010,$0000,$0018,$0304,$0008,$0010,$0018
 	dc.w $030B,$0000,$0020,$0018,$030C,$0008,$0018,$0020
 	dc.w $030C,$0020,$0000,$0028,$030D,$0028,$0008,$0020
@@ -27531,10 +27533,10 @@ model_016_faces:
 	dc.w $030C,$0038,$0000,$0040,$030B,$0038,$0040,$0008
 	dc.w $030B,$0040,$0000,$0048,$0304,$0040,$0048,$0008
 model_016_auxiliary_faces:
-	dc.w $8500,$0018,$0038,$0030,$0028,$0020,$8300,$0018	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $8500,$0018,$0038,$0030,$0028,$0020,$8300,$0018	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $0038,$0020
 model_016_coordinates:
-	dc.w $0000,$0190,$00A0,$00F0,$04B0,$03C0,$0410	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0000,$0190,$00A0,$00F0,$04B0,$03C0,$0410	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 model_016_vertices:
 	dc.w $0000	; x_coordinate_ref
 	dc.w $8002	; y_coordinate_ref
@@ -27577,7 +27579,7 @@ model_016_vertices:
 	dc.w $8002	; z_coordinate_ref
 	dc.w $FFFF	; variant_offset_or_negative
 model_017_faces:
-	dc.w $0302,$0000,$0008,$0010,$0309,$0000,$0018,$0008	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0302,$0000,$0008,$0010,$0309,$0000,$0018,$0008	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $0309,$0000,$0010,$0020,$0302,$0000,$0020,$0018
 	dc.w $0309,$0008,$0028,$0010,$0302,$0008,$0018,$0028
 	dc.w $0302,$0010,$0028,$0020,$0309,$0020,$0028,$0018
@@ -27588,10 +27590,10 @@ model_017_faces:
 	dc.w $0308,$0050,$0060,$0058,$0302,$0050,$0068,$0060
 	dc.w $0309,$0050,$0058,$0068,$030A,$0058,$0060,$0068
 model_017_auxiliary_faces:
-	dc.w $8400,$0000,$0018,$0028,$0010,$8400,$0028,$0040	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $8400,$0000,$0018,$0028,$0010,$8400,$0028,$0040	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $0050,$0038,$8300,$0060,$0058,$0050
 model_017_coordinates:
-	dc.w $0000,$07D0,$0230,$0320,$0140,$04B0,$0960,$01B8	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0000,$07D0,$0230,$0320,$0140,$04B0,$0960,$01B8	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $00E0,$0A50,$0220,$0478,$08F0,$09E0,$03E0,$07B8
 	dc.w $08A8,$0300,$05F8,$06E8,$0200,$0408,$04F8,$0120
 	dc.w $0248,$0338,$0088,$0110,$0050,$00A0,$0190,$0168
@@ -27654,7 +27656,7 @@ model_017_vertices:
 	dc.w $0012	; z_coordinate_ref
 	dc.w $0038	; variant_offset_or_negative
 model_017_variant_words:
-	dc.w $0000,$8008,$0016,$0000,$8008,$0000,$0016,$0000	; 9 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninter
+	dc.w $0000,$8008,$0016,$0000,$8008,$0000,$0016,$0000	; 9 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with unint...
 	dc.w $0008,$0000,$0016,$0000,$0000,$0008,$0016,$0000
 	dc.w $0000,$0000,$0018,$0000,$800E,$8010,$001A,$0000
 	dc.w $000E,$8010,$001A,$0000,$0000,$0014,$001A,$0000
@@ -27691,7 +27693,7 @@ model_017_variant_words:
 	dc.w $0000,$0000,$0046,$0000,$800E,$8010,$0048,$0000
 	dc.w $000E,$8010,$0048,$0000,$0000,$0014,$0048,$0000
 model_017_variant_frames:
-	dc.l model_017_variant_words	; 9 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninter
+	dc.l model_017_variant_words	; 9 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with unint...
 	dc.l model_017_variant_words+$40
 	dc.l model_017_variant_words+$80
 	dc.l model_017_variant_words+$C0
@@ -27701,7 +27703,7 @@ model_017_variant_frames:
 	dc.l model_017_variant_words+$1C0
 	dc.l model_017_variant_words+$200
 model_018_faces:
-	dc.w $030E,$0000,$0028,$0060,$030B,$0008,$0000,$0060	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $030E,$0000,$0028,$0060,$030B,$0008,$0000,$0060	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $030B,$0028,$0020,$0060,$030C,$0010,$0008,$0060
 	dc.w $030C,$0020,$0018,$0060,$0304,$0018,$0010,$0060
 	dc.w $0407,$0030,$0038,$0050,$0058,$040A,$0038,$0040
@@ -27713,11 +27715,11 @@ model_018_faces:
 	dc.w $0010,$0070,$0068,$8405,$0018,$0020,$0078,$0080
 	dc.w $8201,$0088,$0090
 model_018_auxiliary_faces:
-	dc.w $8600,$0028,$0020,$0018,$0010,$0008,$0000,$8400	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $8600,$0028,$0020,$0018,$0010,$0008,$0000,$8400	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $0078,$0080,$0018,$0020,$8400,$0070,$0068,$0008
 	dc.w $0010
 model_018_coordinates:
-	dc.w $0000,$0140,$00A0,$0FA0,$0460,$0320,$0C80,$0E60	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0000,$0140,$00A0,$0FA0,$0460,$0320,$0C80,$0E60	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $0370,$0960,$03C0,$0AA0,$0640,$1400,$0158,$0178
 	dc.w $0A98,$01C8,$0A90,$0238,$0A70,$02C0,$0A48,$0348
 	dc.w $0A08,$03E8,$09C8,$0970,$04F0,$0918,$0558,$08B8
@@ -27801,7 +27803,7 @@ model_018_vertices:
 	dc.w $801A	; z_coordinate_ref
 	dc.w $FFFF	; variant_offset_or_negative
 model_018_variant_words:
-	dc.w $8016,$801C,$0018,$0000,$8016,$801C,$0006,$0000	; 23 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with uninte
+	dc.w $8016,$801C,$0018,$0000,$8016,$801C,$0006,$0000	; 23 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with unin...
 	dc.w $0016,$801C,$0018,$0000,$0016,$801C,$0006,$0000
 	dc.w $8016,$801E,$0018,$0000,$8016,$801E,$0006,$0000
 	dc.w $0016,$801E,$0018,$0000,$0016,$801E,$0006,$0000
@@ -27848,7 +27850,7 @@ model_018_variant_words:
 	dc.w $8016,$801E,$0018,$0000,$8016,$801E,$0006,$0000
 	dc.w $0016,$801E,$0018,$0000,$0016,$801E,$0006,$0000
 model_018_variant_frames:
-	dc.l model_018_variant_words	; 23 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with uninte
+	dc.l model_018_variant_words	; 23 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with unin...
 	dc.l model_018_variant_words+$20
 	dc.l model_018_variant_words+$40
 	dc.l model_018_variant_words+$60
@@ -27872,14 +27874,14 @@ model_018_variant_frames:
 	dc.l model_018_variant_words+$2A0
 	dc.l model_018_variant_words+$2C0
 model_019_faces:
-	dc.w $0302,$0000,$0018,$0010,$0309,$0018,$0000,$0020	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0302,$0000,$0018,$0010,$0309,$0018,$0000,$0020	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $0302,$0020,$0000,$0008,$0309,$0010,$0008,$0000
 	dc.w $0302,$0020,$0040,$0028,$0309,$0028,$0040,$0030
 	dc.w $0302,$0030,$0040,$0038,$0309,$0038,$0040,$0020
 	dc.w $0408,$0008,$0010,$0018,$0020,$0408,$0020,$0028
 	dc.w $0030,$0038
 model_019_coordinates:
-	dc.w $0000,$0C80,$0320,$0FA0,$0960,$0C68,$0340,$0C60	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0000,$0C80,$0320,$0FA0,$0960,$0C68,$0340,$0C60	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $0928,$0338,$0C20,$0388,$0C18,$0890,$0380,$0BA0
 	dc.w $0408,$0B98,$0790,$0400,$0AF8,$04B0,$0AF0,$0640
 	dc.w $04A8,$0A28,$0578,$0948,$0660,$0940,$02E0,$0658
@@ -27923,7 +27925,7 @@ model_019_vertices:
 	dc.w $0002	; z_coordinate_ref
 	dc.w $0030	; variant_offset_or_negative
 model_019_variant_words:
-	dc.w $0000,$800A,$800C,$0000,$000E,$0000,$800C,$0000	; 15 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
+	dc.w $0000,$800A,$800C,$0000,$000E,$0000,$800C,$0000	; 15 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with unin...
 	dc.w $800A,$0000,$800C,$0000,$0000,$0000,$0010,$0000
 	dc.w $800C,$0000,$000E,$0000,$0012,$0000,$000E,$0000
 	dc.w $0000,$800C,$000E,$0000,$0000,$8014,$8016,$0000
@@ -27977,7 +27979,7 @@ model_019_variant_words:
 	dc.w $8002,$0000,$0004,$0000,$0002,$0000,$0004,$0000
 	dc.w $0000,$8002,$0004,$0000
 model_019_variant_frames:
-	dc.l model_019_variant_words	; 15 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
+	dc.l model_019_variant_words	; 15 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with unin...
 	dc.l model_019_variant_words+$38
 	dc.l model_019_variant_words+$70
 	dc.l model_019_variant_words+$A8
@@ -27993,7 +27995,7 @@ model_019_variant_frames:
 	dc.l model_019_variant_words+$2D8
 	dc.l model_019_variant_words+$310
 model_020_faces:
-	dc.w $0301,$0000,$0040,$0010,$0306,$0000,$0018,$0040	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0301,$0000,$0040,$0010,$0306,$0000,$0018,$0040	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $0305,$0000,$0048,$0018,$0304,$0000,$0020,$0048
 	dc.w $0305,$0000,$0050,$0020,$0306,$0000,$0028,$0050
 	dc.w $0301,$0000,$0058,$0028,$0306,$0000,$0030,$0058
@@ -28006,9 +28008,9 @@ model_020_faces:
 	dc.w $0304,$0008,$0030,$0060,$0305,$0008,$0060,$0038
 	dc.w $0306,$0008,$0038,$0068,$0301,$0008,$0068,$0010
 model_020_auxiliary_faces:
-	dc.w $8300,$0030,$0020,$0010,$8300,$0038,$0028,$0018	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $8300,$0030,$0020,$0010,$8300,$0038,$0028,$0018	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 model_020_coordinates:
-	dc.w $0000,$0640,$0C80,$0AD0,$0320,$0568	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0000,$0640,$0C80,$0AD0,$0320,$0568	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 model_020_vertices:
 	dc.w $0000	; x_coordinate_ref
 	dc.w $8002	; y_coordinate_ref
@@ -28067,7 +28069,7 @@ model_020_vertices:
 	dc.w $800A	; z_coordinate_ref
 	dc.w $FFFF	; variant_offset_or_negative
 model_021_faces:
-	dc.w $0304,$0000,$0020,$0008,$030D,$0018,$0020,$0000	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0304,$0000,$0020,$0008,$030D,$0018,$0020,$0000	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $030D,$0008,$0020,$0010,$030E,$0010,$0020,$0018
 	dc.w $030D,$0000,$0008,$0028,$030E,$0018,$0000,$0028
 	dc.w $030E,$0008,$0010,$0028,$030D,$0010,$0018,$0028
@@ -28075,10 +28077,10 @@ model_021_faces:
 	dc.w $0048,$0010,$8204,$0060,$0068,$8204,$0050,$0030
 	dc.w $8204,$0070,$0078,$8204,$0058,$0040
 model_021_auxiliary_faces:
-	dc.w $8400,$0018,$0010,$0008,$0000,$8400,$0040,$0048	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $8400,$0018,$0010,$0008,$0000,$8400,$0040,$0048	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $0010,$0018,$8400,$0008,$0010,$0038,$0030
 model_021_coordinates:
-	dc.w $0000,$1900,$0320,$0960,$0280,$0460,$0B40,$0780	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0000,$1900,$0320,$0960,$0280,$0460,$0B40,$0780	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $0FA0,$03C0
 model_021_vertices:
 	dc.w $0000	; x_coordinate_ref
@@ -28146,7 +28148,7 @@ model_021_vertices:
 	dc.w $8012	; z_coordinate_ref
 	dc.w $FFFF	; variant_offset_or_negative
 model_022_faces:
-	dc.w $030E,$0000,$0008,$0050,$030D,$0000,$0050,$0010	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $030E,$0000,$0008,$0050,$030D,$0000,$0050,$0010	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $030D,$0008,$0018,$0050,$030C,$0010,$0050,$0020
 	dc.w $030C,$0018,$0028,$0050,$030E,$0020,$0050,$0028
 	dc.w $0300,$0000,$0010,$0030,$0300,$0008,$0038,$0018
@@ -28155,9 +28157,9 @@ model_022_faces:
 	dc.w $0000,$0030,$0038,$0008,$040C,$0030,$0040,$0048
 	dc.w $0038
 model_022_auxiliary_faces:
-	dc.w $8600,$0008,$0018,$0028,$0020,$0010,$0000	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $8600,$0008,$0018,$0028,$0020,$0010,$0000	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 model_022_coordinates:
-	dc.w $0000,$0280,$0C80,$0640,$0320,$0960,$04B0,$0190	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0000,$0280,$0C80,$0640,$0320,$0960,$04B0,$0190	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $07D0
 model_022_vertices:
 	dc.w $8002	; x_coordinate_ref
@@ -28205,7 +28207,7 @@ model_022_vertices:
 	dc.w $000E	; z_coordinate_ref
 	dc.w $FFFF	; variant_offset_or_negative
 model_023_faces:
-	dc.w $040A,$0000,$0008,$0038,$0030,$040E,$0028,$0020	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $040A,$0000,$0008,$0038,$0030,$040E,$0028,$0020	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $0050,$0058,$0409,$0010,$0000,$0030,$0040,$0408
 	dc.w $0020,$0010,$0040,$0050,$0409,$0008,$0018,$0048
 	dc.w $0038,$0408,$0018,$0028,$0058,$0048,$0407,$0030
@@ -28216,7 +28218,7 @@ model_023_faces:
 	dc.w $0308,$0050,$0070,$0080,$0308,$0058,$0088,$0078
 	dc.w $0602,$0060,$0068,$0078,$0088,$0080,$0070
 model_023_coordinates:
-	dc.w $0000,$0320,$0568,$0640,$0190,$02B8,$04B0,$0C80	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0000,$0320,$0568,$0640,$0190,$02B8,$04B0,$0C80	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $07D0,$0960
 model_023_vertices:
 	dc.w $8002	; x_coordinate_ref
@@ -28292,7 +28294,7 @@ model_023_vertices:
 	dc.w $0010	; z_coordinate_ref
 	dc.w $FFFF	; variant_offset_or_negative
 model_024_faces:
-	dc.w $0308,$0000,$0010,$0008,$0309,$0000,$0018,$0010	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0308,$0000,$0010,$0008,$0309,$0000,$0018,$0010	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $0308,$0000,$0020,$0018,$0309,$0000,$0028,$0020
 	dc.w $0308,$0000,$0030,$0028,$0309,$0000,$0008,$0030
 	dc.w $8306,$0000,$0008,$0038,$8304,$0000,$0010,$0040
@@ -28304,7 +28306,7 @@ model_024_faces:
 	dc.w $0088,$040A,$0030,$0008,$0068,$0090,$0605,$0068
 	dc.w $0070,$0078,$0080,$0088,$0090
 model_024_coordinates:
-	dc.w $0000,$0FA0,$0460,$0230,$03C8,$0960,$0320,$04B0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0000,$0FA0,$0460,$0230,$03C8,$0960,$0320,$04B0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $0820,$01E0,$12C0,$00F0,$01A0
 model_024_vertices:
 	dc.w $0000	; x_coordinate_ref
@@ -28384,12 +28386,12 @@ model_024_vertices:
 	dc.w $0014	; z_coordinate_ref
 	dc.w $FFFF	; variant_offset_or_negative
 model_025_faces:
-	dc.w $0306,$0000,$0010,$0008,$0305,$0000,$0018,$0010	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0306,$0000,$0010,$0008,$0305,$0000,$0018,$0010	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $0304,$0000,$0008,$0018,$0300,$0008,$0010,$0018
 model_025_auxiliary_faces:
-	dc.w $8300,$0000,$0010,$0008	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $8300,$0000,$0010,$0008	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 model_025_coordinates:
-	dc.w $0000,$0640,$01A0,$00F0,$0320,$01E0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0000,$0640,$01A0,$00F0,$0320,$01E0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 model_025_vertices:
 	dc.w $0000	; x_coordinate_ref
 	dc.w $0000	; y_coordinate_ref
@@ -28408,7 +28410,7 @@ model_025_vertices:
 	dc.w $0008	; z_coordinate_ref
 	dc.w $FFFF	; variant_offset_or_negative
 model_026_faces:
-	dc.w $0304,$0000,$0028,$0008,$0305,$0000,$0010,$0028	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0304,$0000,$0028,$0008,$0305,$0000,$0010,$0028	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $0304,$0000,$0030,$0010,$0305,$0000,$0018,$0030
 	dc.w $0304,$0000,$0020,$0018,$0305,$0000,$0008,$0020
 	dc.w $0301,$0008,$0028,$0020,$0301,$0010,$0030,$0028
@@ -28421,7 +28423,7 @@ model_026_faces:
 	dc.w $0058,$0406,$0058,$0060,$0068,$0078,$0305,$0068
 	dc.w $0060,$0038,$0301,$0068,$0070,$0078
 model_026_coordinates:
-	dc.w $0000,$0960,$0410,$0AF0,$0258,$04B0,$0F00,$0578	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0000,$0960,$0410,$0AF0,$0258,$04B0,$0F00,$0578	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $06B8,$00C8,$02B8,$0640,$1310,$0958,$0020,$0018
 	dc.w $0010,$0AE8,$0EF8,$1308,$0088,$0078,$0040,$0948
 	dc.w $0130,$0108,$0098,$0AD8,$0EE8,$12F8,$0928,$0208
@@ -28500,7 +28502,7 @@ model_026_vertices:
 	dc.w $000A	; z_coordinate_ref
 	dc.w $0078	; variant_offset_or_negative
 model_026_variant_words:
-	dc.w $0000,$801A,$0000,$0000,$0000,$0000,$801C,$0000	; 13 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
+	dc.w $0000,$801A,$0000,$0000,$0000,$0000,$801C,$0000	; 13 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with uni...
 	dc.w $001E,$0000,$0020,$0000,$801E,$0000,$0020,$0000
 	dc.w $8004,$8022,$8008,$0000,$0004,$8022,$8008,$0000
 	dc.w $0000,$8022,$000A,$0000,$8004,$8024,$800E,$0000
@@ -28605,7 +28607,7 @@ model_026_variant_words:
 	dc.w $8010,$80BE,$8012,$0000,$8004,$80C0,$8008,$0000
 	dc.w $0004,$80C0,$8008,$0000,$0000,$80C0,$000A,$0000
 model_026_variant_frames:
-	dc.l model_026_variant_words	; 13 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint
+	dc.l model_026_variant_words	; 13 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with uni...
 	dc.l model_026_variant_words+$80
 	dc.l model_026_variant_words+$100
 	dc.l model_026_variant_words+$180
@@ -28619,7 +28621,7 @@ model_026_variant_frames:
 	dc.l model_026_variant_words+$580
 	dc.l model_026_variant_words+$600
 model_027_faces:
-	dc.w $030C,$0000,$0010,$0008,$0304,$0000,$0018,$0010	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $030C,$0000,$0010,$0008,$0304,$0000,$0018,$0010	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $030C,$0000,$0020,$0018,$030E,$0000,$0028,$0020
 	dc.w $0304,$0000,$0030,$0028,$030E,$0000,$0008,$0030
 	dc.w $040C,$0010,$0018,$0048,$0040,$030B,$0020,$0028
@@ -28635,11 +28637,11 @@ model_027_faces:
 	dc.w $0304,$0008,$0010,$0070,$0304,$0018,$0020,$0078
 	dc.w $0304,$0040,$0038,$0080,$0304,$0050,$0048,$0088
 model_027_auxiliary_faces:
-	dc.w $8700,$0000,$0020,$0050,$0068,$0060,$0038,$0008	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $8700,$0000,$0020,$0050,$0068,$0060,$0038,$0008	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $8500,$0018,$0078,$0098,$00A8,$0050,$8500,$0010
 	dc.w $0038,$00A0,$0090,$0070
 model_027_coordinates:
-	dc.w $0000,$0190,$0FA0,$01E0,$00A0,$0320,$00F0,$04B0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0000,$0190,$0FA0,$01E0,$00A0,$0320,$00F0,$04B0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $0960,$0640,$0870,$0050,$0AF0,$0F58,$0698,$11D0
 	dc.w $0950,$00A8,$0F50,$05A0,$0928,$0030,$0F48,$04A0
 	dc.w $08F0,$00F8,$0390,$08A8,$01B0,$0F40,$0270,$0860
@@ -28742,7 +28744,7 @@ model_027_vertices:
 	dc.w $001E	; z_coordinate_ref
 	dc.w $0038	; variant_offset_or_negative
 model_027_variant_words:
-	dc.w $8020,$8022,$0000,$0000,$0020,$8022,$0000,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
+	dc.w $8020,$8022,$0000,$0000,$0020,$8022,$0000,$0000	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with unin...
 	dc.w $8020,$8022,$0018,$0000,$0020,$8022,$0018,$0000
 	dc.w $8024,$8026,$0018,$0000,$0024,$8026,$0018,$0000
 	dc.w $8024,$8026,$001E,$0000,$0024,$8026,$001E,$0000
@@ -28899,7 +28901,7 @@ model_027_variant_words:
 	dc.w $801A,$801C,$0018,$0000,$001A,$801C,$0018,$0000
 	dc.w $801A,$801C,$001E,$0000,$001A,$801C,$001E,$0000
 model_027_variant_frames:
-	dc.l model_027_variant_words	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
+	dc.l model_027_variant_words	; 39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with unin...
 	dc.l model_027_variant_words+$40
 	dc.l model_027_variant_words+$80
 	dc.l model_027_variant_words+$C0
@@ -28939,7 +28941,7 @@ model_027_variant_frames:
 	dc.l model_027_variant_words+$940
 	dc.l model_027_variant_words+$980
 model_028_faces:
-	dc.w $030E,$0000,$0010,$0008,$030D,$0000,$0018,$0010	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $030E,$0000,$0010,$0008,$030D,$0000,$0018,$0010	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $030E,$0000,$0020,$0018,$030D,$0000,$0008,$0020
 	dc.w $040D,$0008,$0010,$0030,$0028,$040C,$0010,$0018
 	dc.w $0038,$0030,$040D,$0018,$0020,$0040,$0038,$040C
@@ -28948,10 +28950,10 @@ model_028_faces:
 	dc.w $0040,$0060,$0058,$040B,$0040,$0028,$0048,$0060
 	dc.w $040D,$0048,$0050,$0058,$0060
 model_028_auxiliary_faces:
-	dc.w $8500,$0000,$0010,$0030,$0040,$0020,$8400,$0030	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $8500,$0000,$0010,$0030,$0040,$0020,$8400,$0030	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $0050,$0060,$0040
 model_028_coordinates:
-	dc.w $0000,$0960,$02D0,$0320,$03C0,$00F0,$0190,$0140	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0000,$0960,$02D0,$0320,$03C0,$00F0,$0190,$0140	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $0640
 model_028_vertices:
 	dc.w $0000	; x_coordinate_ref
@@ -29007,7 +29009,7 @@ model_028_vertices:
 	dc.w $0010	; z_coordinate_ref
 	dc.w $FFFF	; variant_offset_or_negative
 model_029_faces:
-	dc.w $030E,$0000,$0010,$0008,$030D,$0000,$0018,$0010	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $030E,$0000,$0010,$0008,$030D,$0000,$0018,$0010	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $030C,$0000,$0020,$0018,$030B,$0000,$0028,$0020
 	dc.w $030C,$0000,$0030,$0028,$030D,$0000,$0008,$0030
 	dc.w $0301,$0098,$0038,$0040,$0306,$0098,$0040,$0048
@@ -29021,9 +29023,9 @@ model_029_faces:
 	dc.w $0048,$0078,$8305,$0020,$0050,$0080,$8305,$0028
 	dc.w $0058,$0088,$8306,$0030,$0060,$0090
 model_029_auxiliary_faces:
-	dc.w $8600,$0060,$0058,$0050,$0048,$0040,$0038	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $8600,$0060,$0058,$0050,$0048,$0040,$0038	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 model_029_coordinates:
-	dc.w $0000,$44C0,$2580,$0640,$0568,$0320,$0FA0,$0D88	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0000,$44C0,$2580,$0640,$0568,$0320,$0FA0,$0D88	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $07D0
 model_029_vertices:
 	dc.w $0000	; x_coordinate_ref
@@ -29134,11 +29136,11 @@ abs_0_00021BB2:
 abs_0_00021BBA:
 	dc.b $03,$05,$00,$50,$00,$B0,$00,$30
 model_030_auxiliary_faces:
-	dc.w $8700,$0000,$0010,$0020,$0030,$0028,$0018,$0008	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $8700,$0000,$0010,$0020,$0030,$0028,$0018,$0008	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $8500,$0030,$0020,$0040,$0050,$0060,$8500,$0018
 	dc.w $0028,$0058,$0048,$0038
 model_030_coordinates:
-	dc.w $0000,$12C0,$06E0,$0E60,$08C0,$0640,$0820,$0DC0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0000,$12C0,$06E0,$0E60,$08C0,$0640,$0820,$0DC0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $0320,$0FA0,$0960,$0C80,$0280,$03C0,$0A00,$01E0
 model_030_vertices:
 	dc.w $0000	; x_coordinate_ref
@@ -29234,7 +29236,7 @@ model_030_vertices:
 	dc.w $000E	; z_coordinate_ref
 	dc.w $FFFF	; variant_offset_or_negative
 model_031_faces:
-	dc.w $0302,$0000,$0050,$0048,$0308,$0000,$0048,$0008	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0302,$0000,$0050,$0048,$0308,$0000,$0048,$0008	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $0308,$0040,$0050,$0000,$0309,$0008,$0048,$0010
 	dc.w $0309,$0038,$0050,$0040,$030A,$0010,$0048,$0018
 	dc.w $030A,$0038,$0030,$0050,$0304,$0018,$0048,$0020
@@ -29246,10 +29248,10 @@ model_031_faces:
 	dc.w $0058,$0404,$0060,$0058,$0020,$0028,$0305,$0028
 	dc.w $0030,$0060,$8201,$0008,$0068,$8201,$0040,$0070
 model_031_auxiliary_faces:
-	dc.w $8400,$0000,$0038,$0030,$0028,$8400,$0000,$0020	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $8400,$0000,$0038,$0030,$0028,$8400,$0000,$0020	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $0018,$0010,$8300,$0000,$0028,$0020
 model_031_coordinates:
-	dc.w $0000,$12C0,$0960,$0640,$0C80,$0AA0,$01E0,$03C0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0000,$12C0,$0960,$0640,$0C80,$0AA0,$01E0,$03C0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $0320,$0FA0
 model_031_vertices:
 	dc.w $0000	; x_coordinate_ref
@@ -29313,7 +29315,7 @@ model_031_vertices:
 	dc.w $8012	; z_coordinate_ref
 	dc.w $FFFF	; variant_offset_or_negative
 model_032_faces:
-	dc.w $0400,$0000,$0028,$0038,$0030,$040E,$0018,$0010	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0400,$0000,$0028,$0038,$0030,$040E,$0018,$0010	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $0030,$0038,$030C,$0000,$0030,$0008,$030C,$0028
 	dc.w $0020,$0038,$030D,$0008,$0030,$0010,$030D,$0020
 	dc.w $0018,$0038,$040C,$0028,$0000,$0040,$0048,$040D
@@ -29322,9 +29324,9 @@ model_032_faces:
 	dc.w $030C,$0018,$0020,$0048,$8201,$0008,$0050,$8201
 	dc.w $0020,$0058
 model_032_auxiliary_faces:
-	dc.w $8600,$0028,$0020,$0018,$0010,$0008,$0000	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $8600,$0028,$0020,$0018,$0010,$0008,$0000	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 model_032_coordinates:
-	dc.w $0000,$0500,$0C80,$0280,$0FA0,$0320,$0398,$00C0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0000,$0500,$0C80,$0280,$0FA0,$0320,$0398,$00C0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $0B18,$0440,$0488
 model_032_vertices:
 	dc.w $8002	; x_coordinate_ref
@@ -29392,7 +29394,7 @@ model_032_vertices:
 	dc.w $8010	; z_coordinate_ref
 	dc.w $FFFF	; variant_offset_or_negative
 model_033_faces:
-	dc.w $0301,$0000,$0048,$0030,$030E,$0000,$0030,$0008	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0301,$0000,$0048,$0030,$030E,$0000,$0030,$0008	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $030E,$0000,$0028,$0048,$0406,$0030,$0048,$0040
 	dc.w $0038,$040D,$0008,$0030,$0038,$0010,$040D,$0048
 	dc.w $0028,$0020,$0040,$0305,$0018,$0038,$0040,$030C
@@ -29405,10 +29407,10 @@ model_033_faces:
 	dc.w $0008,$0070,$0078,$8404,$0020,$0028,$0080,$0088
 	dc.w $8204,$0070,$0090,$8204,$0080,$0098
 model_033_auxiliary_faces:
-	dc.w $8300,$0000,$0028,$0008,$8700,$0008,$0028,$0080	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $8300,$0000,$0028,$0008,$8700,$0008,$0028,$0080	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $0088,$0018,$0078,$0070
 model_033_coordinates:
-	dc.w $0000,$15E0,$0640,$0500,$0FA0,$12C0,$0320,$0460	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0000,$15E0,$0640,$0500,$0FA0,$12C0,$0320,$0460	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $0140,$0C80
 model_033_vertices:
 	dc.w $0000	; x_coordinate_ref
@@ -29492,7 +29494,7 @@ model_033_vertices:
 	dc.w $8008	; z_coordinate_ref
 	dc.w $FFFF	; variant_offset_or_negative
 model_034_faces:
-	dc.w $0609,$0028,$0020,$0018,$0010,$0008,$0000,$040E	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0609,$0028,$0020,$0018,$0010,$0008,$0000,$040E	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $0000,$0008,$0038,$0030,$040D,$0008,$0010,$0040
 	dc.w $0038,$040C,$0010,$0018,$0048,$0040,$040B,$0018
 	dc.w $0020,$0050,$0048,$040C,$0020,$0028,$0058,$0050
@@ -29505,9 +29507,9 @@ model_034_faces:
 	dc.w $0078,$0080,$0090,$030C,$0080,$0088,$0090,$030D
 	dc.w $0088,$0060,$0090
 model_034_auxiliary_faces:
-	dc.w $8600,$0058,$0050,$0048,$0040,$0038,$0030	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $8600,$0058,$0050,$0048,$0040,$0038,$0030	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 model_034_coordinates:
-	dc.w $0000,$0500,$0320,$02B8,$0190,$0C80,$0AD0,$0640	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0000,$0500,$0320,$02B8,$0190,$0C80,$0AD0,$0640	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $0960,$0820,$04B0,$05A0
 model_034_vertices:
 	dc.w $0000	; x_coordinate_ref
@@ -29587,7 +29589,7 @@ model_034_vertices:
 	dc.w $0000	; z_coordinate_ref
 	dc.w $FFFF	; variant_offset_or_negative
 model_035_faces:
-	dc.w $0301,$0000,$0010,$0008,$0306,$0000,$0018,$0010	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0301,$0000,$0010,$0008,$0306,$0000,$0018,$0010	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $0301,$0000,$0020,$0018,$0306,$0000,$0008,$0020
 	dc.w $0405,$0008,$0010,$0030,$0028,$0404,$0010,$0018
 	dc.w $0038,$0030,$0405,$0018,$0020,$0040,$0038,$0404
@@ -29600,11 +29602,11 @@ model_035_faces:
 	dc.w $0098,$0058,$8306,$0070,$0080,$0078,$8306,$0088
 	dc.w $0090,$0098
 model_035_auxiliary_faces:
-	dc.w $8500,$0028,$0050,$0080,$0078,$0070,$8500,$0038	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $8500,$0028,$0050,$0080,$0078,$0070,$8500,$0038	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $0088,$0090,$0098,$0050,$8400,$0000,$0018,$0068
 	dc.w $0008
 model_035_coordinates:
-	dc.w $0000,$12C0,$05A0,$0960,$0480,$0320,$0640,$0280	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0000,$12C0,$05A0,$0960,$0480,$0320,$0640,$0280	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $0E60,$0140,$13E8,$0568,$09C0,$0DC0,$0E50,$0608
 	dc.w $0150,$1448,$0688,$0938,$0DD0,$0E20,$0180,$1488
 	dc.w $0740,$08E0,$0E08,$0468,$01D0,$14A0,$0780,$08C0
@@ -29697,7 +29699,7 @@ model_035_vertices:
 	dc.w $001A	; z_coordinate_ref
 	dc.w $0028	; variant_offset_or_negative
 model_035_variant_words:
-	dc.w $801C,$801E,$0020,$0000,$8022,$8024,$0026,$0000	; 23 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
+	dc.w $801C,$801E,$0020,$0000,$8022,$8024,$0026,$0000	; 23 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with unin...
 	dc.w $801C,$801E,$0028,$0000,$001C,$801E,$0020,$0000
 	dc.w $0022,$8024,$0026,$0000,$001C,$801E,$0028,$0000
 	dc.w $802A,$8016,$002C,$0000,$802E,$8030,$0032,$0000
@@ -29767,7 +29769,7 @@ model_035_variant_words:
 	dc.w $801C,$801E,$0028,$0000,$0010,$800C,$0012,$0000
 	dc.w $0058,$805A,$005C,$0000,$001C,$801E,$0028,$0000
 model_035_variant_frames:
-	dc.l model_035_variant_words	; 23 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
+	dc.l model_035_variant_words	; 23 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with unin...
 	dc.l model_035_variant_words+$30
 	dc.l model_035_variant_words+$60
 	dc.l model_035_variant_words+$90
@@ -29791,7 +29793,7 @@ model_035_variant_frames:
 	dc.l model_035_variant_words+$3F0
 	dc.l model_035_variant_words+$420
 model_036_faces:
-	dc.w $0301,$0000,$0008,$0078,$0304,$0080,$0088,$0018	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0301,$0000,$0008,$0078,$0304,$0080,$0088,$0018	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $0306,$0000,$0010,$0008,$0306,$0078,$0008,$0020
 	dc.w $0305,$0080,$0018,$0010,$0305,$0088,$0020,$0018
 	dc.w $0404,$0000,$0078,$0020,$0010,$0406,$0088,$0080
@@ -29805,10 +29807,10 @@ model_036_faces:
 	dc.w $0068,$0060,$0301,$0050,$0070,$0068,$0306,$0050
 	dc.w $0058,$0070,$0400,$0058,$0060,$0068,$0070
 model_036_auxiliary_faces:
-	dc.w $8500,$0000,$0010,$0028,$0020,$0078,$8400,$0028	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $8500,$0000,$0010,$0028,$0020,$0078,$8400,$0028	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $0038,$0050,$0048,$8300,$0050,$0060,$0070
 model_036_coordinates:
-	dc.w $0000,$0280,$03C0,$12C0,$0780,$0C80,$0960,$06E0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0000,$0280,$03C0,$12C0,$0780,$0C80,$0960,$06E0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $0640,$0320,$00A0,$15E0,$1A40,$03E8,$0708,$0628
 	dc.w $00C8,$15B0,$1A10,$0398,$0460,$12B8,$0788,$05E0
 	dc.w $0468,$0148,$1518,$1978,$0500,$12B0,$0850,$0568
@@ -29900,7 +29902,7 @@ model_036_vertices:
 	dc.w $8006	; z_coordinate_ref
 	dc.w $0060	; variant_offset_or_negative
 model_036_variant_words:
-	dc.w $0002,$801A,$8006,$0000,$0000,$801C,$001E,$0000	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
+	dc.w $0002,$801A,$8006,$0000,$0000,$801C,$001E,$0000	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with uni...
 	dc.w $0012,$801A,$001E,$0000,$0000,$8020,$001E,$0000
 	dc.w $8012,$801A,$001E,$0000,$0000,$8004,$0022,$0000
 	dc.w $0000,$8008,$0024,$0000,$0004,$8004,$0024,$0000
@@ -30051,7 +30053,7 @@ model_036_variant_words:
 	dc.w $8002,$801A,$8006,$0000,$0002,$8026,$8006,$0000
 	dc.w $8002,$8026,$8006,$0000
 model_036_variant_frames:
-	dc.l model_036_variant_words	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint
+	dc.l model_036_variant_words	; 23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with uni...
 	dc.l model_036_variant_words+$68
 	dc.l model_036_variant_words+$D0
 	dc.l model_036_variant_words+$138
@@ -30075,7 +30077,7 @@ model_036_variant_frames:
 	dc.l model_036_variant_words+$888
 	dc.l model_036_variant_words+$8F0
 model_037_faces:
-	dc.w $0302,$0000,$0050,$0020,$0308,$0000,$0020,$0048	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0302,$0000,$0050,$0020,$0308,$0000,$0020,$0048	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $0301,$0000,$0040,$0018,$0306,$0000,$0018,$0038
 	dc.w $030E,$0000,$0028,$0010,$030D,$0000,$0010,$0030
 	dc.w $0308,$0008,$0020,$0050,$0302,$0008,$0048,$0020
@@ -30085,7 +30087,7 @@ model_037_faces:
 	dc.w $0301,$0000,$0038,$0040,$0306,$0008,$0040,$0038
 	dc.w $030E,$0000,$0030,$0028,$030D,$0008,$0028,$0030
 model_037_coordinates:
-	dc.w $0000,$0640,$04B0,$0410,$0250,$0190,$0320,$0380	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0000,$0640,$04B0,$0410,$0250,$0190,$0320,$0380	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $0028,$01E0,$02D0,$0230
 model_037_vertices:
 	dc.w $0000	; x_coordinate_ref
@@ -30133,16 +30135,16 @@ model_037_vertices:
 	dc.w $0000	; z_coordinate_ref
 	dc.w $FFFF	; variant_offset_or_negative
 model_038_faces:
-	dc.w $0302,$0000,$0018,$0010,$0308,$0000,$0020,$0018	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0302,$0000,$0018,$0010,$0308,$0000,$0020,$0018	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $0302,$0000,$0028,$0020,$0308,$0000,$0030,$0028
 	dc.w $0302,$0000,$0038,$0030,$0308,$0000,$0010,$0038
 	dc.w $0308,$0008,$0010,$0018,$0302,$0008,$0018,$0020
 	dc.w $0308,$0008,$0020,$0028,$0302,$0008,$0028,$0030
 	dc.w $0308,$0008,$0030,$0038,$0302,$0008,$0038,$0010
 model_038_auxiliary_faces:
-	dc.w $8600,$0038,$0030,$0028,$0020,$0018,$0010	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $8600,$0038,$0030,$0028,$0020,$0018,$0010	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 model_038_coordinates:
-	dc.w $0000,$0140,$0320,$02B4,$0190	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0000,$0140,$0320,$02B4,$0190	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 model_038_vertices:
 	dc.w $0000	; x_coordinate_ref
 	dc.w $8002	; y_coordinate_ref
@@ -30177,7 +30179,7 @@ model_038_vertices:
 	dc.w $8008	; z_coordinate_ref
 	dc.w $FFFF	; variant_offset_or_negative
 model_039_faces:
-	dc.w $040E,$0000,$0008,$0028,$0020,$030D,$0000,$0020	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $040E,$0000,$0008,$0028,$0020,$030D,$0000,$0020	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $0010,$040B,$0020,$0028,$0018,$0010,$030D,$0018
 	dc.w $0028,$0008,$0400,$0008,$0000,$0030,$0038,$040B
 	dc.w $0030,$0040,$0048,$0038,$040C,$0000,$0010,$0040
@@ -30185,10 +30187,10 @@ model_039_faces:
 	dc.w $0008,$0038,$0048,$8401,$0050,$0058,$0060,$0010
 	dc.w $8401,$0068,$0070,$0078,$0018
 model_039_auxiliary_faces:
-	dc.w $8400,$0000,$0008,$0018,$0010,$8400,$0050,$0010	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $8400,$0000,$0008,$0018,$0010,$8400,$0050,$0010	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $0060,$0058,$8400,$0068,$0070,$0078,$0018
 model_039_coordinates:
-	dc.w $0000,$0640,$0C80,$0500,$03C0,$0320,$01E0,$0AA0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0000,$0640,$0C80,$0500,$03C0,$0320,$01E0,$0AA0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $0960
 model_039_vertices:
 	dc.w $8002	; x_coordinate_ref
@@ -30256,7 +30258,7 @@ model_039_vertices:
 	dc.w $000E	; z_coordinate_ref
 	dc.w $FFFF	; variant_offset_or_negative
 model_040_faces:
-	dc.w $0301,$0008,$0038,$0010,$0306,$0010,$0038,$0018	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0301,$0008,$0038,$0010,$0306,$0010,$0038,$0018	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $0306,$0000,$0038,$0008,$0405,$0020,$0018,$0038
 	dc.w $0040,$0404,$0030,$0040,$0038,$0000,$0304,$0020
 	dc.w $0040,$0028,$0305,$0028,$0040,$0030,$0304,$0008
@@ -30273,7 +30275,7 @@ model_040_faces:
 	dc.w $0301,$0078,$0080,$00B0,$0305,$0080,$0090,$00B0
 	dc.w $8408,$0000,$0070,$0078,$0030
 model_040_coordinates:
-	dc.w $0000,$0320,$05A0,$0AA0,$0A00,$0C80,$07D0,$1900	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0000,$0320,$05A0,$0AA0,$0A00,$0C80,$07D0,$1900	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $03C0,$0500,$0280
 model_040_vertices:
 	dc.w $8002	; x_coordinate_ref
@@ -30369,7 +30371,7 @@ model_040_vertices:
 	dc.w $0012	; z_coordinate_ref
 	dc.w $FFFF	; variant_offset_or_negative
 model_041_faces:
-	dc.w $030D,$0000,$0010,$0008,$030E,$0000,$0018,$0010	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $030D,$0000,$0010,$0008,$030E,$0000,$0018,$0010	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $030D,$0000,$0020,$0018,$030C,$0000,$0028,$0020
 	dc.w $030B,$0000,$0030,$0028,$030C,$0000,$0008,$0030
 	dc.w $030E,$0008,$0010,$0038,$030D,$0010,$0040,$0038
@@ -30384,10 +30386,10 @@ model_041_faces:
 	dc.w $830B,$0000,$0020,$0078,$830C,$0020,$0048,$0078
 	dc.w $830B,$0048,$0078,$0080,$830C,$0048,$0080,$0088
 model_041_auxiliary_faces:
-	dc.w $8500,$0000,$0040,$0070,$0068,$0060,$8500,$0000	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $8500,$0000,$0040,$0070,$0068,$0060,$8500,$0000	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $0078,$0080,$0088,$0040
 model_041_coordinates:
-	dc.w $0000,$12C0,$0320,$0190,$03C0,$01E0,$0C80,$0140	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0000,$12C0,$0320,$0190,$03C0,$01E0,$0C80,$0140	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $0FA0,$0B40,$0640,$0398,$00C8,$01C8,$0310,$0180
 	dc.w $0238,$0208,$0118,$0130,$0268,$0090,$0280,$0128
 	dc.w $0098,$0230,$0120,$0308,$0188,$0390,$01D0,$00C0
@@ -30466,7 +30468,7 @@ model_041_vertices:
 	dc.w $0002	; z_coordinate_ref
 	dc.w $0028	; variant_offset_or_negative
 model_041_variant_words:
-	dc.w $800C,$8016,$0000,$0000,$8012,$8018,$000C,$0000	; 19 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
+	dc.w $800C,$8016,$0000,$0000,$8012,$8018,$000C,$0000	; 19 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with unin...
 	dc.w $8014,$001A,$0002,$0000,$000C,$8016,$0000,$0000
 	dc.w $0012,$8018,$000C,$0000,$0014,$001A,$0002,$0000
 	dc.w $800C,$801C,$0000,$0000,$8012,$801E,$000C,$0000
@@ -30524,7 +30526,7 @@ model_041_variant_words:
 	dc.w $8014,$001A,$0002,$0000,$000C,$8016,$0000,$0000
 	dc.w $0012,$003E,$000C,$0000,$0014,$001A,$0002,$0000
 model_041_variant_frames:
-	dc.l model_041_variant_words	; 19 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte
+	dc.l model_041_variant_words	; 19 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with unin...
 	dc.l model_041_variant_words+$30
 	dc.l model_041_variant_words+$60
 	dc.l model_041_variant_words+$90
@@ -30544,14 +30546,14 @@ model_041_variant_frames:
 	dc.l model_041_variant_words+$330
 	dc.l model_041_variant_words+$360
 model_042_faces:
-	dc.w $8309,$0008,$0018,$0010,$8308,$0008,$0020,$0018	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $8309,$0008,$0018,$0010,$8308,$0008,$0020,$0018	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $8302,$0008,$0028,$0020,$8308,$0008,$0030,$0028
 	dc.w $8309,$0008,$0038,$0030,$830A,$0008,$0010,$0038
 	dc.w $8201,$0008,$0040,$8201,$0000,$0008
 model_042_auxiliary_faces:
-	dc.w $8600,$0038,$0030,$0028,$0020,$0018,$0010	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $8600,$0038,$0030,$0028,$0020,$0018,$0010	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 model_042_coordinates:
-	dc.w $0000,$0640,$0320,$04A0,$05F0,$0878,$0238,$0C48	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0000,$0640,$0320,$04A0,$05F0,$0878,$0238,$0C48	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $01A0,$0608,$09C8,$0388
 model_042_vertices:
 	dc.w $0000	; x_coordinate_ref
@@ -30591,7 +30593,7 @@ model_042_vertices:
 	dc.w $8016	; z_coordinate_ref
 	dc.w $FFFF	; variant_offset_or_negative
 model_043_faces:
-	dc.w $050E,$0020,$0018,$0010,$0008,$0000,$050D,$0008	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $050E,$0020,$0018,$0010,$0008,$0000,$050D,$0008	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $0038,$0030,$0028,$0000,$050B,$0010,$0048,$0040
 	dc.w $0038,$0008,$050C,$0018,$0058,$0050,$0048,$0010
 	dc.w $050D,$0020,$0068,$0060,$0058,$0018,$050C,$0000
@@ -30601,7 +30603,7 @@ model_043_faces:
 	dc.w $0088,$0050,$0058,$0060,$050E,$0098,$0090,$0060
 	dc.w $0068,$0070,$050D,$0078,$0080,$0088,$0090,$0098
 model_043_coordinates:
-	dc.w $0000,$0F28,$13D8,$04B0,$0E68,$0C40,$08E8,$1888	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0000,$0F28,$13D8,$04B0,$0E68,$0C40,$08E8,$1888	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $0790,$1758
 model_043_vertices:
 	dc.w $0002	; x_coordinate_ref
@@ -30685,7 +30687,7 @@ model_043_vertices:
 	dc.w $000C	; z_coordinate_ref
 	dc.w $FFFF	; variant_offset_or_negative
 model_044_faces:
-	dc.w $0308,$0000,$0008,$0030,$0309,$0000,$0030,$0010	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0308,$0000,$0008,$0030,$0309,$0000,$0030,$0010	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $0309,$0008,$0018,$0030,$0308,$0010,$0030,$0038
 	dc.w $0308,$0018,$0038,$0030,$0302,$0010,$0038,$0020
 	dc.w $0302,$0018,$0028,$0038,$030A,$0020,$0038,$0028
@@ -30694,9 +30696,9 @@ model_044_faces:
 	dc.w $0309,$0018,$0040,$0028,$0308,$0020,$0028,$0040
 	dc.w $8202,$0000,$0048,$8202,$0008,$0050
 model_044_auxiliary_faces:
-	dc.w $8600,$0008,$0018,$0028,$0020,$0010,$0000	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $8600,$0008,$0018,$0028,$0020,$0010,$0000	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 model_044_coordinates:
-	dc.w $0000,$0320,$0280,$0640,$0190,$0960,$04B0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0000,$0320,$0280,$0640,$0190,$0960,$04B0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 model_044_vertices:
 	dc.w $8002	; x_coordinate_ref
 	dc.w $8004	; y_coordinate_ref
@@ -30743,7 +30745,7 @@ model_044_vertices:
 	dc.w $800A	; z_coordinate_ref
 	dc.w $FFFF	; variant_offset_or_negative
 model_045_faces:
-	dc.w $040E,$0000,$0008,$0048,$0040,$030D,$0000,$0040	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $040E,$0000,$0008,$0048,$0040,$030D,$0000,$0040	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $0010,$030D,$0008,$0018,$0048,$040C,$0040,$0048
 	dc.w $0058,$0050,$030B,$0010,$0040,$0050,$030B,$0048
 	dc.w $0018,$0058,$030E,$0010,$0050,$0020,$030E,$0018
@@ -30758,9 +30760,9 @@ model_045_faces:
 	dc.w $0038,$0030,$0060,$0068,$8201,$0020,$0078,$8201
 	dc.w $0028,$0080
 model_045_auxiliary_faces:
-	dc.w $8600,$0008,$0028,$0038,$0030,$0020,$0000	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $8600,$0008,$0028,$0038,$0030,$0020,$0000	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 model_045_coordinates:
-	dc.w $0000,$0320,$1900,$0640,$0B90,$0C80,$0460,$0280	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0000,$0320,$1900,$0640,$0B90,$0C80,$0460,$0280	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $0960,$0190,$0FA0
 model_045_vertices:
 	dc.w $8002	; x_coordinate_ref
@@ -30836,7 +30838,7 @@ model_045_vertices:
 	dc.w $8014	; z_coordinate_ref
 	dc.w $FFFF	; variant_offset_or_negative
 model_046_faces:
-	dc.w $8402,$0008,$0038,$0030,$0000,$8408,$0010,$0040	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $8402,$0008,$0038,$0030,$0000,$8408,$0010,$0040	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $0038,$0008,$0409,$0018,$0048,$0040,$0010,$040A
 	dc.w $0020,$0050,$00A0,$0098,$8409,$0028,$0058,$0050
 	dc.w $0020,$8408,$0028,$0000,$0030,$0058,$840E,$0038
@@ -30848,7 +30850,7 @@ model_046_faces:
 	dc.w $0304,$0080,$0090,$00A8,$8305,$0088,$0090,$0080
 	dc.w $8306,$0088,$0060,$0090
 model_046_coordinates:
-	dc.w $0000,$1770,$0BB8,$1446,$13EC,$09F6,$113A,$05DC	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0000,$1770,$0BB8,$1446,$13EC,$09F6,$113A,$05DC	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $0A23,$1707,$00A5,$1392,$0087,$0B7C,$005A,$0096
 	dc.w $0078,$004B,$1608,$0267,$12C0,$020D,$0B04,$013B
 	dc.w $0258,$01FE,$012C,$1482,$0519,$1167,$0456,$0A41
@@ -30948,7 +30950,7 @@ model_046_vertices:
 	dc.w $0000	; z_coordinate_ref
 	dc.w $0028	; variant_offset_or_negative
 model_046_variant_words:
-	dc.w $0012,$0000,$8014,$0000,$0016,$8004,$8018,$0000	; 9 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninter
+	dc.w $0012,$0000,$8014,$0000,$0016,$8004,$8018,$0000	; 9 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with unint...
 	dc.w $001A,$8008,$801C,$0000,$0012,$0000,$001E,$0000
 	dc.w $0016,$8004,$0020,$0000,$001A,$8008,$0022,$0000
 	dc.w $0024,$0000,$8026,$0000,$0028,$8004,$802A,$0000
@@ -30976,7 +30978,7 @@ model_046_variant_words:
 	dc.w $000E,$8008,$8010,$0000,$0004,$0000,$0006,$0000
 	dc.w $000A,$8004,$000C,$0000,$000E,$8008,$0010,$0000
 model_046_variant_frames:
-	dc.l model_046_variant_words	; 9 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninter
+	dc.l model_046_variant_words	; 9 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with unint...
 	dc.l model_046_variant_words+$30
 	dc.l model_046_variant_words+$60
 	dc.l model_046_variant_words+$90
@@ -30986,7 +30988,7 @@ model_046_variant_frames:
 	dc.l model_046_variant_words+$150
 	dc.l model_046_variant_words+$180
 model_047_faces:
-	dc.w $0306,$0000,$0008,$0010,$0304,$0000,$0010,$0018	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0306,$0000,$0008,$0010,$0304,$0000,$0010,$0018	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $0306,$0000,$0018,$0020,$0304,$0000,$0020,$0028
 	dc.w $0306,$0000,$0028,$0008,$0304,$0008,$0030,$0010
 	dc.w $0306,$0010,$0038,$0018,$0304,$0018,$0040,$0020
@@ -30997,7 +30999,7 @@ model_047_faces:
 	dc.w $0306,$0038,$0058,$0040,$0304,$0040,$0058,$0048
 	dc.w $0306,$0048,$0058,$0050,$0304,$0050,$0058,$0030
 model_047_coordinates:
-	dc.w $0000,$0BE0,$0550,$0AA0,$0A20,$0348,$0640,$0898	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0000,$0BE0,$0550,$0AA0,$0A20,$0348,$0640,$0898	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 model_047_vertices:
 	dc.w $0000	; x_coordinate_ref
 	dc.w $8002	; y_coordinate_ref
@@ -31048,7 +31050,7 @@ model_047_vertices:
 	dc.w $0000	; z_coordinate_ref
 	dc.w $FFFF	; variant_offset_or_negative
 model_048_faces:
-	dc.w $040B,$0000,$0030,$0038,$0008,$040C,$0008,$0038	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $040B,$0000,$0030,$0038,$0008,$040C,$0008,$0038	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $0040,$0010,$040D,$0010,$0040,$0048,$0018,$040E
 	dc.w $0018,$0048,$0050,$0020,$040D,$0020,$0050,$0058
 	dc.w $0028,$040C,$0028,$0058,$0030,$0000,$040A,$0030
@@ -31062,7 +31064,7 @@ model_048_faces:
 	dc.w $0090,$0060,$0600,$00B8,$00B0,$00A8,$00A0,$0098
 	dc.w $0090
 model_048_coordinates:
-	dc.w $0000,$3200,$2B50,$1900,$12C0,$2580,$2080,$15A0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0000,$3200,$2B50,$1900,$12C0,$2580,$2080,$15A0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $0C80
 model_048_vertices:
 	dc.w $0000	; x_coordinate_ref
@@ -31162,7 +31164,7 @@ model_048_vertices:
 	dc.w $8010	; z_coordinate_ref
 	dc.w $FFFF	; variant_offset_or_negative
 model_049_faces:
-	dc.w $030E,$0000,$0010,$0008,$030D,$0000,$0018,$0010	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $030E,$0000,$0010,$0008,$030D,$0000,$0018,$0010	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $030E,$0000,$0020,$0018,$030D,$0000,$0028,$0020
 	dc.w $030E,$0000,$0030,$0028,$030D,$0000,$0008,$0030
 	dc.w $040C,$0008,$0010,$0040,$0038,$040B,$0010,$0018
@@ -31175,9 +31177,9 @@ model_049_faces:
 	dc.w $00B0,$040E,$0088,$0090,$00C0,$00B8,$040D,$0090
 	dc.w $0068,$0098,$00C0
 model_049_auxiliary_faces:
-	dc.w $8600,$0030,$0028,$0020,$0018,$0010,$0008	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $8600,$0030,$0028,$0020,$0018,$0010,$0008	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 model_049_coordinates:
-	dc.w $0000,$2300,$1DB0,$0C80,$0AD0,$0640,$1900,$0568	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0000,$2300,$1DB0,$0C80,$0AD0,$0640,$1900,$0568	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $0320,$02B8,$0190,$0228,$0C48,$0BB8,$0440,$0990
 	dc.w $0808,$0110,$0620,$05D8,$0220,$04C8,$0400,$0800
 	dc.w $0C78,$0638,$0318
@@ -31283,7 +31285,7 @@ model_049_vertices:
 	dc.w $8010	; z_coordinate_ref
 	dc.w $FFFF	; variant_offset_or_negative
 model_049_variant_words:
-	dc.w $8016,$8004,$8018,$0000,$801A,$8004,$801C,$0000	; 11 viewer-indexed variant frames, 12 encoded vertex records per frame; 8-byte stride with unint
+	dc.w $8016,$8004,$8018,$0000,$801A,$8004,$801C,$0000	; 11 viewer-indexed variant frames, 12 encoded vertex records per frame; 8-byte stride with uni...
 	dc.w $801E,$8004,$0020,$0000,$0016,$8004,$0018,$0000
 	dc.w $001A,$8004,$001C,$0000,$001E,$8004,$8020,$0000
 	dc.w $8022,$800C,$8024,$0000,$8026,$800C,$8028,$0000
@@ -31350,7 +31352,7 @@ model_049_variant_words:
 	dc.w $002A,$800C,$002C,$0000,$0026,$800C,$8028,$0000
 	dc.w $0022,$800C,$8024,$0000,$802A,$800C,$802C,$0000
 model_049_variant_frames:
-	dc.l model_049_variant_words	; 11 viewer-indexed variant frames, 12 encoded vertex records per frame; 8-byte stride with unint
+	dc.l model_049_variant_words	; 11 viewer-indexed variant frames, 12 encoded vertex records per frame; 8-byte stride with uni...
 	dc.l model_049_variant_words+$60
 	dc.l model_049_variant_words+$C0
 	dc.l model_049_variant_words+$120
@@ -31362,7 +31364,7 @@ model_049_variant_frames:
 	dc.l model_049_variant_words+$360
 	dc.l model_049_variant_words+$3C0
 model_050_faces:
-	dc.w $0400,$0088,$0080,$0078,$0070,$0401,$0070,$0078	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0400,$0088,$0080,$0078,$0070,$0401,$0070,$0078	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $0098,$0090,$0406,$0078,$0080,$00A0,$0098,$0405
 	dc.w $0080,$0088,$00A8,$00A0,$0406,$0088,$0070,$0090
 	dc.w $00A8,$0306,$0090,$0098,$00B0,$0305,$0098,$00A0
@@ -31375,9 +31377,9 @@ model_050_faces:
 	dc.w $0058,$0060,$0068,$050A,$0048,$0038,$0050,$0068
 	dc.w $0060
 model_050_auxiliary_faces:
-	dc.w $8500,$0088,$0080,$0098,$00B0,$0090	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $8500,$0088,$0080,$0098,$00B0,$0090	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 model_050_coordinates:
-	dc.w $0000,$01E0,$0410,$05A0,$04B0,$0280,$06E0,$00F0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0000,$01E0,$0410,$05A0,$04B0,$0280,$06E0,$00F0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $0A00,$03C0,$0690,$02D0,$0370,$0758,$09A8,$0580
 	dc.w $0688,$0050,$0360,$08F8,$0910,$0738,$09B0,$0670
 	dc.w $00A0,$02E8,$0380,$0338,$0A78,$0830,$08E0,$0920
@@ -31481,7 +31483,7 @@ model_050_vertices:
 	dc.w $0018	; z_coordinate_ref
 	dc.w $0040	; variant_offset_or_negative
 model_050_variant_words:
-	dc.w $800E,$801A,$801C,$0000,$000E,$801A,$801C,$0000	; 9 viewer-indexed variant frames, 9 encoded vertex records per frame; 8-byte stride with uninter
+	dc.w $800E,$801A,$801C,$0000,$000E,$801A,$801C,$0000	; 9 viewer-indexed variant frames, 9 encoded vertex records per frame; 8-byte stride with unint...
 	dc.w $000E,$801E,$8010,$0000,$800E,$801E,$8010,$0000
 	dc.w $8002,$8020,$0022,$0000,$0002,$8020,$0022,$0000
 	dc.w $0002,$8016,$8022,$0000,$8002,$8016,$8022,$0000
@@ -31523,7 +31525,7 @@ model_050_variant_words:
 	dc.w $0002,$8008,$8002,$0000,$8002,$8008,$8002,$0000
 	dc.w $0000,$809C,$0000,$0000
 model_050_variant_frames:
-	dc.l model_050_variant_words	; 9 viewer-indexed variant frames, 9 encoded vertex records per frame; 8-byte stride with uninter
+	dc.l model_050_variant_words	; 9 viewer-indexed variant frames, 9 encoded vertex records per frame; 8-byte stride with unint...
 	dc.l model_050_variant_words+$48
 	dc.l model_050_variant_words+$90
 	dc.l model_050_variant_words+$D8
@@ -31533,12 +31535,12 @@ model_050_variant_frames:
 	dc.l model_050_variant_words+$1F8
 	dc.l model_050_variant_words+$240
 model_051_faces:
-	dc.w $830E,$0000,$0008,$0010,$830D,$0000,$0008,$0018	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $830E,$0000,$0008,$0010,$830D,$0000,$0008,$0018	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $830C,$0000,$0008,$0020,$030B,$0008,$0010,$0018
 	dc.w $030B,$0008,$0018,$0020,$030B,$0008,$0020,$0010
 	dc.w $8300,$0020,$0028,$0018
 model_051_coordinates:
-	dc.w $0000,$12C0,$0960,$04B0,$0820,$0AF0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0000,$12C0,$0960,$04B0,$0820,$0AF0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 model_051_vertices:
 	dc.w $0000	; x_coordinate_ref
 	dc.w $8002	; y_coordinate_ref
@@ -31565,7 +31567,7 @@ model_051_vertices:
 	dc.w $0000	; z_coordinate_ref
 	dc.w $FFFF	; variant_offset_or_negative
 model_052_faces:
-	dc.w $0701,$0000,$0008,$0010,$0018,$0020,$0028,$0030	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0701,$0000,$0008,$0010,$0018,$0020,$0028,$0030	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $0402,$0008,$0000,$0038,$0040,$0408,$0010,$0008
 	dc.w $0040,$0048,$040A,$0018,$0010,$0048,$0050,$0407
 	dc.w $0020,$0018,$0050,$0058,$040A,$0028,$0020,$0058
@@ -31573,7 +31575,7 @@ model_052_faces:
 	dc.w $0030,$0068,$0038,$8300,$0018,$0020,$0028,$8400
 	dc.w $0070,$0078,$0050,$0048
 model_052_coordinates:
-	dc.w $0000,$1C20,$03C0,$0280,$0640,$0320,$0230,$00F0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0000,$1C20,$03C0,$0280,$0640,$0320,$0230,$00F0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $0960,$06E0
 model_052_vertices:
 	dc.w $0000	; x_coordinate_ref
@@ -31653,12 +31655,12 @@ model_052_vertices:
 	dc.w $0004	; z_coordinate_ref
 	dc.w $FFFF	; variant_offset_or_negative
 model_053_faces:
-	dc.w $030D,$0000,$0010,$0018,$040E,$0008,$0000,$0018	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $030D,$0000,$0010,$0018,$040E,$0008,$0000,$0018	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $0020,$030D,$0008,$0020,$0028,$030C,$0008,$0028
 	dc.w $0030,$040D,$0000,$0008,$0030,$0038,$030C,$0000
 	dc.w $0038,$0010,$8400,$0010,$0040,$0048,$0028
 model_053_coordinates:
-	dc.w $0000,$1C20,$0230,$0730,$03C0,$0320,$06E0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0000,$1C20,$0230,$0730,$03C0,$0320,$06E0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 model_053_vertices:
 	dc.w $0000	; x_coordinate_ref
 	dc.w $8002	; y_coordinate_ref
@@ -31701,12 +31703,12 @@ model_053_vertices:
 	dc.w $0004	; z_coordinate_ref
 	dc.w $FFFF	; variant_offset_or_negative
 model_054_faces:
-	dc.w $0301,$0000,$0008,$0010,$0305,$0000,$0010,$0018	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0301,$0000,$0008,$0010,$0305,$0000,$0010,$0018	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $0306,$0000,$0018,$0008
 model_054_auxiliary_faces:
-	dc.w $8300,$0018,$0010,$0000	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $8300,$0018,$0010,$0000	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 model_054_coordinates:
-	dc.w $0000,$0C80,$0320,$0280,$0190	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0000,$0C80,$0320,$0280,$0190	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 model_054_vertices:
 	dc.w $0000	; x_coordinate_ref
 	dc.w $8002	; y_coordinate_ref
@@ -31725,7 +31727,7 @@ model_054_vertices:
 	dc.w $0008	; z_coordinate_ref
 	dc.w $FFFF	; variant_offset_or_negative
 model_055_faces:
-	dc.w $0301,$0000,$0008,$0010,$0302,$0000,$0010,$0018	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0301,$0000,$0008,$0010,$0302,$0000,$0010,$0018	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $0301,$0000,$0018,$0020,$0302,$0000,$0020,$0028
 	dc.w $0301,$0000,$0028,$0030,$0302,$0000,$0030,$0008
 	dc.w $0402,$0008,$0038,$0040,$0010,$0401,$0010,$0040
@@ -31744,9 +31746,9 @@ model_055_faces:
 	dc.w $0090,$0088,$0301,$0068,$0098,$0090,$0302,$0068
 	dc.w $0070,$0098
 model_055_auxiliary_faces:
-	dc.w $8600,$0038,$0040,$0048,$0050,$0058,$0060	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $8600,$0038,$0040,$0048,$0050,$0058,$0060	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 model_055_coordinates:
-	dc.w $0000,$1F40,$0928,$1C40,$0490,$07F0,$0ED8,$1470	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0000,$1F40,$0928,$1C40,$0490,$07F0,$0ED8,$1470	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $0768,$0CD8,$0300,$0AD0,$1A00,$0A08,$1788,$0500
 	dc.w $08B0,$1040,$1100,$0820,$0E18,$0278,$0900,$14D0
 	dc.w $0B38,$12D0,$0598,$09B8,$1230,$0DA0,$0918,$0FC0
@@ -31858,7 +31860,7 @@ model_055_vertices:
 	dc.w $8012	; z_coordinate_ref
 	dc.w $00C0	; variant_offset_or_negative
 model_055_variant_words:
-	dc.w $0000,$8018,$0000,$0000,$001A,$801C,$0000,$0000	; 3 viewer-indexed variant frames, 25 encoded vertex records per frame; 8-byte stride with uninte
+	dc.w $0000,$8018,$0000,$0000,$001A,$801C,$0000,$0000	; 3 viewer-indexed variant frames, 25 encoded vertex records per frame; 8-byte stride with unin...
 	dc.w $001E,$801C,$0020,$0000,$801E,$801C,$0020,$0000
 	dc.w $801A,$801C,$0000,$0000,$801E,$801C,$8020,$0000
 	dc.w $001E,$801C,$8020,$0000,$0022,$8024,$0000,$0000
@@ -31897,14 +31899,14 @@ model_055_variant_words:
 	dc.w $804C,$8054,$0000,$0000,$8050,$8054,$8038,$0000
 	dc.w $0050,$8054,$8038,$0000
 model_055_variant_frames:
-	dc.l model_055_variant_words	; 3 viewer-indexed variant frames, 25 encoded vertex records per frame; 8-byte stride with uninte
+	dc.l model_055_variant_words	; 3 viewer-indexed variant frames, 25 encoded vertex records per frame; 8-byte stride with unin...
 	dc.l model_055_variant_words+$C8
 	dc.l model_055_variant_words+$190
 model_056_faces:
-	dc.w $830C,$0000,$0008,$0028,$840E,$0008,$0010,$0020	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $830C,$0000,$0008,$0028,$840E,$0008,$0010,$0020	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $0028,$830C,$0010,$0018,$0020
 model_056_coordinates:
-	dc.w $0000,$1900,$08C0,$0C80,$15A0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0000,$1900,$08C0,$0C80,$15A0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 model_056_vertices:
 	dc.w $8002	; x_coordinate_ref
 	dc.w $0000	; y_coordinate_ref
@@ -31931,12 +31933,12 @@ model_056_vertices:
 	dc.w $0000	; z_coordinate_ref
 	dc.w $FFFF	; variant_offset_or_negative
 model_057_faces:
-	dc.w $8401,$0000,$0008,$0010,$0018,$840E,$0020,$0028	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $8401,$0000,$0008,$0010,$0018,$840E,$0020,$0028	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $0030,$0038,$8401,$0040,$0048,$0050,$0058,$840E
 	dc.w $0060,$0068,$0070,$0078,$8401,$0080,$0088,$0090
 	dc.w $0098,$840E,$00A0,$00A8,$00B0,$00B8
 model_057_coordinates:
-	dc.w $0000,$0800,$1760,$05A0,$0440,$0DA0,$1200,$13E0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0000,$0800,$1760,$05A0,$0440,$0DA0,$1200,$13E0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $0730,$0370,$0E40,$13A0,$1160,$17A0
 model_057_vertices:
 	dc.w $8002	; x_coordinate_ref
@@ -32036,13 +32038,13 @@ model_057_vertices:
 	dc.w $0006	; z_coordinate_ref
 	dc.w $FFFF	; variant_offset_or_negative
 model_058_faces:
-	dc.w $8201,$0000,$0008,$8206,$0010,$0018,$820D,$0020	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $8201,$0000,$0008,$8206,$0010,$0018,$820D,$0020	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $0028,$820E,$0030,$0038,$820D,$0040,$0048,$8206
 	dc.w $0050,$0058,$8201,$0060,$0068,$8206,$0070,$0078
 	dc.w $820D,$0080,$0088,$820E,$0090,$0098,$820D,$00A0
 	dc.w $00A8,$8206,$00B0,$00B8
 model_058_coordinates:
-	dc.w $0000,$0800,$1760,$12C0,$0440,$0DA0,$1200,$13E0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0000,$0800,$1760,$12C0,$0440,$0DA0,$1200,$13E0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $0730,$0370,$0E40,$13A0,$1160,$17A0
 model_058_vertices:
 	dc.w $8002	; x_coordinate_ref
@@ -32142,13 +32144,13 @@ model_058_vertices:
 	dc.w $8006	; z_coordinate_ref
 	dc.w $FFFF	; variant_offset_or_negative
 model_059_faces:
-	dc.w $0401,$0000,$0008,$0020,$0018,$0304,$0010,$0000	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0401,$0000,$0008,$0020,$0018,$0304,$0010,$0000	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $0018,$0304,$0008,$0010,$0020,$0305,$0010,$0018
 	dc.w $0028,$0305,$0010,$0030,$0020,$0306,$0010,$0028
 	dc.w $0038,$0306,$0010,$0038,$0030,$0500,$0018,$0020
 	dc.w $0030,$0038,$0028
 model_059_coordinates:
-	dc.w $0000,$12C0,$0FA0,$03C0,$0640,$0500,$0B40,$0F00	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0000,$12C0,$0FA0,$03C0,$0640,$0500,$0B40,$0F00	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 model_059_vertices:
 	dc.w $8002	; x_coordinate_ref
 	dc.w $0000	; y_coordinate_ref
@@ -32183,11 +32185,11 @@ model_059_vertices:
 	dc.w $0000	; z_coordinate_ref
 	dc.w $FFFF	; variant_offset_or_negative
 model_060_faces:
-	dc.w $830E,$0000,$0008,$0010,$830D,$0000,$0010,$0018	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $830E,$0000,$0008,$0010,$830D,$0000,$0010,$0018	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $830C,$0000,$0018,$0020,$8309,$0000,$0020,$0028
 	dc.w $830C,$0000,$0028,$0030,$830D,$0000,$0030,$0008
 model_060_coordinates:
-	dc.w $0000,$0A00,$0640,$12C0,$0FA0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0000,$0A00,$0640,$12C0,$0FA0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 model_060_vertices:
 	dc.w $0000	; x_coordinate_ref
 	dc.w $8002	; y_coordinate_ref
@@ -32218,11 +32220,11 @@ model_060_vertices:
 	dc.w $0000	; z_coordinate_ref
 	dc.w $FFFF	; variant_offset_or_negative
 model_061_faces:
-	dc.w $820B,$0000,$0008,$820C,$0010,$0018,$820D,$0020	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $820B,$0000,$0008,$820C,$0010,$0018,$820D,$0020	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $0028,$820E,$0030,$0038,$820E,$0040,$0048,$820D
 	dc.w $0050,$0058,$820C,$0060,$0068,$820B,$0070,$0078
 model_061_coordinates:
-	dc.w $0000,$0C80,$1180,$0780,$0280	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0000,$0C80,$1180,$0780,$0280	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 model_061_vertices:
 	dc.w $8002	; x_coordinate_ref
 	dc.w $0000	; y_coordinate_ref
@@ -32289,11 +32291,11 @@ model_061_vertices:
 	dc.w $0004	; z_coordinate_ref
 	dc.w $FFFF	; variant_offset_or_negative
 model_062_faces:
-	dc.w $820B,$0000,$0008,$820C,$0010,$0018,$820D,$0020	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $820B,$0000,$0008,$820C,$0010,$0018,$820D,$0020	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $0028,$820E,$0030,$0038,$820E,$0040,$0048,$820D
 	dc.w $0050,$0058,$820C,$0060,$0068,$820B,$0070,$0078
 model_062_coordinates:
-	dc.w $0000,$0180,$1180,$04B0,$0C80,$07E0,$0780,$0B10	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0000,$0180,$1180,$04B0,$0C80,$07E0,$0780,$0B10	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $0280
 model_062_vertices:
 	dc.w $8002	; x_coordinate_ref
@@ -32361,11 +32363,11 @@ model_062_vertices:
 	dc.w $0004	; z_coordinate_ref
 	dc.w $FFFF	; variant_offset_or_negative
 model_063_faces:
-	dc.w $8308,$0000,$0008,$0030,$8302,$0008,$0010,$0038	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $8308,$0000,$0008,$0030,$8302,$0008,$0010,$0038	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $8308,$0010,$0018,$0040,$8309,$0018,$0020,$0048
 	dc.w $830A,$0020,$0028,$0050,$8309,$0028,$0000,$0058
 model_063_coordinates:
-	dc.w $0000,$1900,$0C80,$15A0,$0960,$0060,$0030,$09A0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0000,$1900,$0C80,$15A0,$0960,$0060,$0030,$09A0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $0070,$01B0,$00F0,$0A68,$01F0,$03E0,$0230,$0B70
 	dc.w $0470,$06C0,$0C88,$07D0,$0A20,$05D0,$0D68,$0BB0
 	dc.w $0D70,$07C0,$0DF8,$0F80,$1030,$0E38,$12C0,$1210
@@ -32420,7 +32422,7 @@ model_063_vertices:
 	dc.w $0008	; z_coordinate_ref
 	dc.w $0028	; variant_offset_or_negative
 model_063_variant_words:
-	dc.w $800A,$000C,$000E,$0000,$0000,$0010,$000E,$0000	; 9 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninter
+	dc.w $800A,$000C,$000E,$0000,$0000,$0010,$000E,$0000	; 9 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with unint...
 	dc.w $000A,$000C,$000E,$0000,$000A,$800C,$000E,$0000
 	dc.w $0000,$8010,$000E,$0000,$800A,$800C,$000E,$0000
 	dc.w $8012,$0014,$0016,$0000,$0000,$0018,$0016,$0000
@@ -32448,7 +32450,7 @@ model_063_variant_words:
 	dc.w $0046,$0048,$004A,$0000,$0046,$8048,$004A,$0000
 	dc.w $0000,$8006,$004A,$0000,$8046,$8048,$004A,$0000
 model_063_variant_frames:
-	dc.l model_063_variant_words	; 9 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninter
+	dc.l model_063_variant_words	; 9 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with unint...
 	dc.l model_063_variant_words+$30
 	dc.l model_063_variant_words+$60
 	dc.l model_063_variant_words+$90
@@ -32458,14 +32460,14 @@ model_063_variant_frames:
 	dc.l model_063_variant_words+$150
 	dc.l model_063_variant_words+$180
 model_064_faces:
-	dc.w $830E,$0000,$0020,$0028,$840D,$0000,$0008,$0030	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $830E,$0000,$0020,$0028,$840D,$0000,$0008,$0030	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $0028,$830E,$0008,$0030,$0038,$840D,$0008,$0010
 	dc.w $0040,$0038,$830E,$0010,$0040,$0048,$840D,$0010
 	dc.w $0018,$0050,$0048,$830E,$0018,$0050,$0058,$840D
 	dc.w $0018,$0000,$0020,$0058,$8405,$0000,$0008,$0010
 	dc.w $0018
 model_064_coordinates:
-	dc.w $0000,$0C80,$1900,$0640,$0780,$0F00,$0320,$0680	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0000,$0C80,$1900,$0640,$0780,$0F00,$0320,$0680	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $0760,$0EB0,$0758,$0EC0,$0700,$0DF0,$06F8,$0E00
 	dc.w $07D0,$0668,$0CD0,$08E0,$05B8,$0B60,$05B0,$0B70
 	dc.w $09F0,$04F0,$09D0,$04E8,$09E0,$0AF0,$0438,$0870
@@ -32521,7 +32523,7 @@ model_064_vertices:
 	dc.w $800C	; z_coordinate_ref
 	dc.w $0038	; variant_offset_or_negative
 model_064_variant_words:
-	dc.w $8006,$800E,$8010,$0000,$0006,$800E,$8010,$0000	; 9 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninter
+	dc.w $8006,$800E,$8010,$0000,$0006,$800E,$8010,$0000	; 9 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with unint...
 	dc.w $0012,$800E,$800C,$0000,$0012,$800E,$000C,$0000
 	dc.w $0006,$800E,$0014,$0000,$8006,$800E,$0014,$0000
 	dc.w $8016,$800E,$000C,$0000,$8016,$800E,$800C,$0000
@@ -32558,7 +32560,7 @@ model_064_variant_words:
 	dc.w $0006,$8002,$000C,$0000,$8006,$8002,$000C,$0000
 	dc.w $8006,$8002,$000C,$0000,$8006,$8002,$800C,$0000
 model_064_variant_frames:
-	dc.l model_064_variant_words	; 9 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninter
+	dc.l model_064_variant_words	; 9 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with unint...
 	dc.l model_064_variant_words+$40
 	dc.l model_064_variant_words+$80
 	dc.l model_064_variant_words+$C0
@@ -32568,7 +32570,7 @@ model_064_variant_frames:
 	dc.l model_064_variant_words+$1C0
 	dc.l model_064_variant_words+$200
 model_065_faces:
-	dc.w $0301,$0000,$0020,$0010,$0301,$0008,$0018,$0028	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0301,$0000,$0020,$0010,$0301,$0008,$0018,$0028	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $0301,$0030,$0040,$0050,$0301,$0038,$0058,$0048
 	dc.w $0406,$0000,$0008,$0028,$0020,$0406,$0030,$0050
 	dc.w $0058,$0038,$0405,$0020,$0028,$0018,$0010,$0405
@@ -32577,7 +32579,7 @@ model_065_faces:
 	dc.w $0068,$820D,$0070,$0078,$820C,$0080,$0088,$820B
 	dc.w $0090,$0098,$8207,$00A0,$00A8
 model_065_coordinates:
-	dc.w $0000,$12C0,$0AD0,$0230,$0AA0,$1900,$07D0,$04B0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0000,$12C0,$0AD0,$0230,$0AA0,$1900,$07D0,$04B0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $0190,$10E0
 model_065_vertices:
 	dc.w $8002	; x_coordinate_ref
@@ -32669,7 +32671,7 @@ model_065_vertices:
 	dc.w $0000	; z_coordinate_ref
 	dc.w $0048	; variant_offset_or_negative
 model_065_variant_words:
-	dc.w $8002,$800E,$0000,$0000,$0002,$800E,$0000,$0000	; 6 viewer-indexed variant frames, 10 encoded vertex records per frame; 8-byte stride with uninte
+	dc.w $8002,$800E,$0000,$0000,$0002,$800E,$0000,$0000	; 6 viewer-indexed variant frames, 10 encoded vertex records per frame; 8-byte stride with unin...
 	dc.w $8002,$8010,$0000,$0000,$0002,$8010,$0000,$0000
 	dc.w $8002,$0010,$0000,$0000,$0002,$0010,$0000,$0000
 	dc.w $8002,$000E,$0000,$0000,$0002,$000E,$0000,$0000
@@ -32700,19 +32702,19 @@ model_065_variant_words:
 	dc.w $0012,$000E,$0000,$0000,$0002,$000E,$0000,$0000
 	dc.w $0012,$000E,$0000,$0000,$0002,$000E,$0000,$0000
 model_065_variant_frames:
-	dc.l model_065_variant_words	; 6 viewer-indexed variant frames, 10 encoded vertex records per frame; 8-byte stride with uninte
+	dc.l model_065_variant_words	; 6 viewer-indexed variant frames, 10 encoded vertex records per frame; 8-byte stride with unin...
 	dc.l model_065_variant_words+$50
 	dc.l model_065_variant_words+$A0
 	dc.l model_065_variant_words+$F0
 	dc.l model_065_variant_words+$140
 	dc.l model_065_variant_words+$190
 model_066_faces:
-	dc.w $8409,$0000,$0008,$0038,$0030,$840A,$0008,$0010	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $8409,$0000,$0008,$0038,$0030,$840A,$0008,$0010	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $0040,$0038,$8409,$0010,$0018,$0048,$0040,$8408
 	dc.w $0018,$0020,$0050,$0048,$8402,$0020,$0028,$0058
 	dc.w $0050,$8408,$0028,$0000,$0030,$0058
 model_066_coordinates:
-	dc.w $0000,$1900,$1F40,$0C80,$15A8	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0000,$1900,$1F40,$0C80,$15A8	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 model_066_vertices:
 	dc.w $8002	; x_coordinate_ref
 	dc.w $0000	; y_coordinate_ref
@@ -32763,12 +32765,12 @@ model_066_vertices:
 	dc.w $0004	; z_coordinate_ref
 	dc.w $FFFF	; variant_offset_or_negative
 model_067_faces:
-	dc.w $840A,$0000,$0008,$0038,$0030,$8409,$0008,$0010	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $840A,$0000,$0008,$0038,$0030,$8409,$0008,$0010	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $0040,$0038,$8408,$0010,$0018,$0048,$0040,$8402
 	dc.w $0018,$0020,$0050,$0048,$8408,$0020,$0028,$0058
 	dc.w $0050,$8409,$0028,$0000,$0030,$0058
 model_067_coordinates:
-	dc.w $0000,$1900,$12C0,$0C80,$15A8,$1970,$1618,$0F68	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0000,$1900,$12C0,$0C80,$15A8,$1970,$1618,$0F68	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $0C10
 model_067_vertices:
 	dc.w $8002	; x_coordinate_ref
@@ -32820,12 +32822,12 @@ model_067_vertices:
 	dc.w $000C	; z_coordinate_ref
 	dc.w $FFFF	; variant_offset_or_negative
 model_068_faces:
-	dc.w $8409,$0000,$0008,$0038,$0030,$8407,$0008,$0010	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $8409,$0000,$0008,$0038,$0030,$8407,$0008,$0010	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $0040,$0038,$8402,$0010,$0018,$0048,$0040,$8408
 	dc.w $0018,$0020,$0050,$0048,$8409,$0020,$0028,$0058
 	dc.w $0050,$840A,$0028,$0000,$0030,$0058
 model_068_coordinates:
-	dc.w $0000,$1900,$1970,$0C80,$15A8,$1618,$0F68,$0C10	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0000,$1900,$1970,$0C80,$15A8,$1618,$0F68,$0C10	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $12C0
 model_068_vertices:
 	dc.w $8002	; x_coordinate_ref
@@ -32877,12 +32879,12 @@ model_068_vertices:
 	dc.w $0010	; z_coordinate_ref
 	dc.w $FFFF	; variant_offset_or_negative
 model_069_faces:
-	dc.w $8408,$0000,$0008,$0038,$0030,$8402,$0008,$0010	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $8408,$0000,$0008,$0038,$0030,$8402,$0008,$0010	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $0040,$0038,$8408,$0010,$0018,$0048,$0040,$8409
 	dc.w $0018,$0020,$0050,$0048,$840A,$0020,$0028,$0058
 	dc.w $0050,$8409,$0028,$0000,$0030,$0058
 model_069_coordinates:
-	dc.w $0000,$1900,$12C0,$0C80,$15A8,$0C10,$0F68,$1618	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0000,$1900,$12C0,$0C80,$15A8,$0C10,$0F68,$1618	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $1970
 model_069_vertices:
 	dc.w $8002	; x_coordinate_ref
@@ -32934,12 +32936,12 @@ model_069_vertices:
 	dc.w $000C	; z_coordinate_ref
 	dc.w $FFFF	; variant_offset_or_negative
 model_070_faces:
-	dc.w $8402,$0000,$0008,$0038,$0030,$8408,$0008,$0010	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $8402,$0000,$0008,$0038,$0030,$8408,$0008,$0010	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $0040,$0038,$8409,$0010,$0018,$0048,$0040,$840A
 	dc.w $0018,$0020,$0050,$0048,$8409,$0020,$0028,$0058
 	dc.w $0050,$8408,$0028,$0000,$0030,$0058
 model_070_coordinates:
-	dc.w $0000,$1900,$0C10,$0C80,$15A8,$0F68,$1618,$1970	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0000,$1900,$0C10,$0C80,$15A8,$0F68,$1618,$1970	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $12C0
 model_070_vertices:
 	dc.w $8002	; x_coordinate_ref
@@ -32991,7 +32993,7 @@ model_070_vertices:
 	dc.w $0010	; z_coordinate_ref
 	dc.w $FFFF	; variant_offset_or_negative
 model_071_faces:
-	dc.w $8202,$0000,$0030,$8202,$0000,$0008,$8202,$0000	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $8202,$0000,$0030,$8202,$0000,$0008,$8202,$0000	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $0010,$8202,$0000,$0018,$8202,$0000,$0020,$8202
 	dc.w $0000,$0028,$0404,$0038,$0040,$0050,$0048,$0405
 	dc.w $0048,$0050,$0070,$0068,$0606,$0068,$0070,$00A0
@@ -33007,7 +33009,7 @@ model_071_faces:
 	dc.w $00B8,$0078,$0305,$0090,$0080,$00C0,$0304,$00A8
 	dc.w $0058,$00C8,$0304,$00B0,$00D0,$0060
 model_071_coordinates:
-	dc.w $0000,$0140,$03C0,$0500,$05F0,$01E0,$0640,$0460	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0000,$0140,$03C0,$0500,$05F0,$01E0,$0640,$0460	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $0780,$06E0,$02D0,$04C8,$05A0,$0A00,$08E0,$08C0
 	dc.w $0820,$1270,$1220
 model_071_vertices:
@@ -33136,11 +33138,11 @@ model_071_vertices:
 	dc.w $001E	; z_coordinate_ref
 	dc.w $FFFF	; variant_offset_or_negative
 model_072_faces:
-	dc.w $8402,$0000,$0008,$0010,$0018	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $8402,$0000,$0008,$0010,$0018	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 model_072_auxiliary_faces:
-	dc.w $8400,$0018,$0010,$0008,$0000	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $8400,$0018,$0010,$0008,$0000	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 model_072_coordinates:
-	dc.w $0000,$0640,$00C8,$0550	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0000,$0640,$00C8,$0550	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 model_072_vertices:
 	dc.w $0000	; x_coordinate_ref
 	dc.w $0000	; y_coordinate_ref
@@ -33159,11 +33161,11 @@ model_072_vertices:
 	dc.w $8006	; z_coordinate_ref
 	dc.w $0008	; variant_offset_or_negative
 model_072_variant_words:
-	dc.w $8004,$0000,$8006,$0000,$0004,$0000,$8006,$0000	; 1 viewer-indexed variant frames, 2 encoded vertex records per frame; 8-byte stride with uninter
+	dc.w $8004,$0000,$8006,$0000,$0004,$0000,$8006,$0000	; 1 viewer-indexed variant frames, 2 encoded vertex records per frame; 8-byte stride with unint...
 model_072_variant_frames:
-	dc.l model_072_variant_words	; 1 viewer-indexed variant frames, 2 encoded vertex records per frame; 8-byte stride with uninter
+	dc.l model_072_variant_words	; 1 viewer-indexed variant frames, 2 encoded vertex records per frame; 8-byte stride with unint...
 model_073_faces:
-	dc.w $040B,$0028,$0030,$0038,$0040,$040D,$0020,$0000	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $040B,$0028,$0030,$0038,$0040,$040D,$0020,$0000	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $0028,$0040,$030C,$0000,$0008,$0028,$030D,$0008
 	dc.w $0030,$0028,$030C,$0008,$0010,$0030,$030D,$0010
 	dc.w $0038,$0030,$030C,$0010,$0018,$0038,$030D,$0018
@@ -33174,7 +33176,7 @@ model_073_faces:
 	dc.w $0058,$0060,$030D,$0018,$0060,$0020,$030C,$0020
 	dc.w $0060,$0048,$040E,$0048,$0060,$0058,$0050
 model_073_coordinates:
-	dc.w $0000,$0B08,$01E0,$0F28,$11E0,$05C0,$12C0,$0780	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0000,$0B08,$01E0,$0F28,$11E0,$05C0,$12C0,$0780	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $0E60,$0AA0
 model_073_vertices:
 	dc.w $0002	; x_coordinate_ref
@@ -33230,7 +33232,7 @@ model_073_vertices:
 	dc.w $0000	; z_coordinate_ref
 	dc.w $FFFF	; variant_offset_or_negative
 model_074_faces:
-	dc.w $030C,$0000,$0008,$0028,$030E,$0008,$0030,$0028	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $030C,$0000,$0008,$0028,$030E,$0008,$0030,$0028	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $030C,$0008,$0010,$0030,$030D,$0010,$0018,$0030
 	dc.w $030E,$0018,$0020,$0030,$030B,$0020,$0028,$0030
 	dc.w $030D,$0020,$0000,$0028,$030D,$0000,$0038,$0040
@@ -33238,7 +33240,7 @@ model_074_faces:
 	dc.w $030C,$0010,$0040,$0018,$030B,$0018,$0040,$0038
 	dc.w $030D,$0018,$0038,$0020,$030C,$0020,$0038,$0000
 model_074_coordinates:
-	dc.w $0000,$0640,$0140,$0AA0,$0820,$0280,$01E0,$08C0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0000,$0640,$0140,$0AA0,$0820,$0280,$01E0,$08C0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $03C0,$0780,$0960,$0320
 model_074_vertices:
 	dc.w $0002	; x_coordinate_ref
@@ -33278,12 +33280,12 @@ model_074_vertices:
 	dc.w $000C	; z_coordinate_ref
 	dc.w $FFFF	; variant_offset_or_negative
 model_075_faces:
-	dc.w $040E,$0000,$0008,$0028,$0020,$040D,$0008,$0010	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $040E,$0000,$0008,$0028,$0020,$040D,$0008,$0010	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $0030,$0028,$040C,$0010,$0018,$0038,$0030,$040D
 	dc.w $0018,$0000,$0020,$0038,$0400,$0020,$0028,$0030
 	dc.w $0038
 model_075_coordinates:
-	dc.w $0000,$1F40,$2BC0,$0960,$0780	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0000,$1F40,$2BC0,$0960,$0780	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 model_075_vertices:
 	dc.w $8002	; x_coordinate_ref
 	dc.w $0000	; y_coordinate_ref
@@ -33318,12 +33320,12 @@ model_075_vertices:
 	dc.w $0006	; z_coordinate_ref
 	dc.w $FFFF	; variant_offset_or_negative
 model_076_faces:
-	dc.w $040D,$0000,$0008,$0028,$0020,$040C,$0008,$0010	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $040D,$0000,$0008,$0028,$0020,$040C,$0008,$0010	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $0030,$0028,$040B,$0010,$0018,$0038,$0030,$040C
 	dc.w $0018,$0000,$0020,$0038,$0400,$0020,$0028,$0030
 	dc.w $0038
 model_076_coordinates:
-	dc.w $0000,$0960,$0780,$0C80,$0DC0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0000,$0960,$0780,$0C80,$0DC0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 model_076_vertices:
 	dc.w $8002	; x_coordinate_ref
 	dc.w $8004	; y_coordinate_ref
@@ -33358,10 +33360,10 @@ model_076_vertices:
 	dc.w $0006	; z_coordinate_ref
 	dc.w $FFFF	; variant_offset_or_negative
 model_077_faces:
-	dc.w $8301,$0000,$0008,$0020,$8306,$0008,$0010,$0028	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $8301,$0000,$0008,$0020,$8306,$0008,$0010,$0028	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $8305,$0010,$0018,$0030,$8306,$0018,$0000,$0038
 model_077_coordinates:
-	dc.w $0000,$0C80,$0DC0,$18F8,$19D0,$00C8,$1BD8,$0350	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0000,$0C80,$0DC0,$18F8,$19D0,$00C8,$1BD8,$0350	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $1DE8,$07D8,$1E80,$0DE8,$1CB8,$1428,$1900,$14D8
 	dc.w $1BB8,$11C0,$1CD0,$10A8,$1D08
 model_077_vertices:
@@ -33398,7 +33400,7 @@ model_077_vertices:
 	dc.w $0000	; z_coordinate_ref
 	dc.w $0018	; variant_offset_or_negative
 model_077_variant_words:
-	dc.w $0000,$8008,$800A,$0000,$000A,$8008,$0000,$0000	; 9 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with uninter
+	dc.w $0000,$8008,$800A,$0000,$000A,$8008,$0000,$0000	; 9 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with unint...
 	dc.w $0000,$8008,$000A,$0000,$800A,$8008,$0000,$0000
 	dc.w $0000,$800C,$800E,$0000,$000E,$800C,$0000,$0000
 	dc.w $0000,$800C,$000E,$0000,$800E,$800C,$0000,$0000
@@ -33417,7 +33419,7 @@ model_077_variant_words:
 	dc.w $0000,$8026,$8028,$0000,$0028,$8026,$0000,$0000
 	dc.w $0000,$8026,$0028,$0000,$8028,$8026,$0000,$0000
 model_077_variant_frames:
-	dc.l model_077_variant_words	; 9 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with uninter
+	dc.l model_077_variant_words	; 9 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with unint...
 	dc.l model_077_variant_words+$20
 	dc.l model_077_variant_words+$40
 	dc.l model_077_variant_words+$60
@@ -33427,14 +33429,14 @@ model_077_variant_frames:
 	dc.l model_077_variant_words+$E0
 	dc.l model_077_variant_words+$100
 model_078_faces:
-	dc.w $0305,$0000,$0010,$0008,$0306,$0000,$0018,$0010	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0305,$0000,$0010,$0008,$0306,$0000,$0018,$0010	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $0301,$0000,$0020,$0018,$0306,$0000,$0008,$0020
 	dc.w $0409,$0008,$0010,$0030,$0028,$0408,$0010,$0018
 	dc.w $0038,$0030,$0402,$0018,$0020,$0040,$0038,$0408
 	dc.w $0020,$0008,$0028,$0040,$0400,$0028,$0030,$0038
 	dc.w $0040
 model_078_coordinates:
-	dc.w $0000,$0280,$03F0,$0140,$0500,$1220,$06E0,$01F8	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0000,$0280,$03F0,$0140,$0500,$1220,$06E0,$01F8	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $12C0,$1360,$0320,$01C8,$0308,$0448,$1528,$15C8
 	dc.w $1668,$0238,$04B8,$05F8,$0738,$1818,$18B8,$1958
 	dc.w $0780,$08C0,$0A00,$1AE0,$1B80,$1C20,$0778,$09F8
@@ -33481,7 +33483,7 @@ model_078_vertices:
 	dc.w $8008	; z_coordinate_ref
 	dc.w $0040	; variant_offset_or_negative
 model_078_variant_words:
-	dc.w $0000,$0000,$0002,$0000,$0000,$8016,$8002,$0000	; 9 viewer-indexed variant frames, 9 encoded vertex records per frame; 8-byte stride with uninter
+	dc.w $0000,$0000,$0002,$0000,$0000,$8016,$8002,$0000	; 9 viewer-indexed variant frames, 9 encoded vertex records per frame; 8-byte stride with unint...
 	dc.w $0004,$8018,$0006,$0000,$0000,$801A,$0008,$0000
 	dc.w $8004,$8018,$0006,$0000,$0000,$801C,$800C,$0000
 	dc.w $000E,$801E,$8008,$0000,$0000,$8020,$8014,$0000
@@ -33523,7 +33525,7 @@ model_078_variant_words:
 	dc.w $000E,$808A,$8008,$0000,$0000,$808C,$8014,$0000
 	dc.w $800E,$808A,$8008,$0000
 model_078_variant_frames:
-	dc.l model_078_variant_words	; 9 viewer-indexed variant frames, 9 encoded vertex records per frame; 8-byte stride with uninter
+	dc.l model_078_variant_words	; 9 viewer-indexed variant frames, 9 encoded vertex records per frame; 8-byte stride with unint...
 	dc.l model_078_variant_words+$48
 	dc.l model_078_variant_words+$90
 	dc.l model_078_variant_words+$D8
@@ -33533,12 +33535,12 @@ model_078_variant_frames:
 	dc.l model_078_variant_words+$1F8
 	dc.l model_078_variant_words+$240
 model_079_faces:
-	dc.w $0301,$0000,$0010,$0008,$0302,$0000,$0018,$0010	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0301,$0000,$0010,$0008,$0302,$0000,$0018,$0010	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $030E,$0000,$0008,$0018,$040E,$0008,$0010,$0028
 	dc.w $0020,$0401,$0010,$0018,$0030,$0028,$0402,$0018
 	dc.w $0008,$0020,$0030,$0305,$0020,$0028,$0030
 model_079_coordinates:
-	dc.w $0000,$0780,$0500,$03C0,$0678,$08C0,$01E0,$0338	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0000,$0780,$0500,$03C0,$0678,$08C0,$01E0,$0338	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $0738,$01F0,$0548,$0398,$00F8,$02A0,$03B8,$01D8
 model_079_vertices:
 	dc.w $0000	; x_coordinate_ref
@@ -33570,7 +33572,7 @@ model_079_vertices:
 	dc.w $000E	; z_coordinate_ref
 	dc.w $0028	; variant_offset_or_negative
 model_079_variant_words:
-	dc.w $8010,$8004,$8012,$0000,$0014,$8004,$8014,$0000	; 7 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninter
+	dc.w $8010,$8004,$8012,$0000,$0014,$8004,$8014,$0000	; 7 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with unint...
 	dc.w $0012,$8004,$0010,$0000,$8016,$800A,$8018,$0000
 	dc.w $001A,$800A,$801A,$0000,$0018,$800A,$0016,$0000
 	dc.w $8008,$8004,$8006,$0000,$0008,$8004,$8006,$0000
@@ -33592,7 +33594,7 @@ model_079_variant_words:
 	dc.w $8010,$8004,$0012,$0000,$0018,$800A,$8016,$0000
 	dc.w $001A,$800A,$001A,$0000,$8016,$800A,$0018,$0000
 model_079_variant_frames:
-	dc.l model_079_variant_words	; 7 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninter
+	dc.l model_079_variant_words	; 7 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with unint...
 	dc.l model_079_variant_words+$30
 	dc.l model_079_variant_words+$60
 	dc.l model_079_variant_words+$90
@@ -33600,14 +33602,14 @@ model_079_variant_frames:
 	dc.l model_079_variant_words+$F0
 	dc.l model_079_variant_words+$120
 model_080_faces:
-	dc.w $040C,$0000,$0008,$0028,$0020,$030D,$0000,$0020	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $040C,$0000,$0008,$0028,$0020,$030D,$0000,$0020	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $0010,$030D,$0008,$0018,$0028,$0406,$0010,$0020
 	dc.w $0028,$0018,$8400,$0020,$0028,$0038,$0030,$0406
 	dc.w $0030,$0040,$0048,$0038,$040E,$0040,$0050,$0058
 	dc.w $0048,$030D,$0030,$0050,$0040,$030D,$0038,$0048
 	dc.w $0058,$040B,$0030,$0038,$0058,$0050
 model_080_coordinates:
-	dc.w $0000,$1900,$0C80,$0A00,$0640,$0280,$0460,$0DC0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0000,$1900,$0C80,$0A00,$0640,$0280,$0460,$0DC0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $0780,$0A70,$0208,$0E30,$0070,$06B0,$07F0,$0BC0
 	dc.w $00B8,$0F80,$01C0,$0800,$0940,$0140,$1180,$03C0
 	dc.w $0B40,$1030,$03B0,$13F0,$0630,$0C70,$0DB0,$12C8
@@ -33664,7 +33666,7 @@ model_080_vertices:
 	dc.w $8010	; z_coordinate_ref
 	dc.w $0028	; variant_offset_or_negative
 model_080_variant_words:
-	dc.w $8004,$8012,$0014,$0000,$0004,$8012,$0014,$0000	; 9 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninter
+	dc.w $8004,$8012,$0014,$0000,$0004,$8012,$0014,$0000	; 9 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with unint...
 	dc.w $800C,$8016,$8018,$0000,$000C,$8016,$8018,$0000
 	dc.w $8008,$801A,$801C,$0000,$0008,$801A,$801C,$0000
 	dc.w $8004,$801E,$0020,$0000,$0004,$801E,$0020,$0000
@@ -33692,7 +33694,7 @@ model_080_variant_words:
 	dc.w $800C,$8068,$806A,$0000,$000C,$8068,$806A,$0000
 	dc.w $8008,$804A,$806C,$0000,$0008,$804A,$806C,$0000
 model_080_variant_frames:
-	dc.l model_080_variant_words	; 9 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninter
+	dc.l model_080_variant_words	; 9 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with unint...
 	dc.l model_080_variant_words+$30
 	dc.l model_080_variant_words+$60
 	dc.l model_080_variant_words+$90
@@ -33702,11 +33704,11 @@ model_080_variant_frames:
 	dc.l model_080_variant_words+$150
 	dc.l model_080_variant_words+$180
 model_081_faces:
-	dc.w $0302,$0000,$0008,$0010,$0308,$0000,$0010,$0018	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0302,$0000,$0008,$0010,$0308,$0000,$0010,$0018	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $0309,$0000,$0018,$0020,$030A,$0000,$0020,$0028
 	dc.w $0307,$0000,$0028,$0008
 model_081_coordinates:
-	dc.w $0000,$03C0,$02C0,$03D0,$0470,$0178,$04B0,$0460	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0000,$03C0,$02C0,$03D0,$0470,$0178,$04B0,$0460	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $0480
 model_081_vertices:
 	dc.w $0000	; x_coordinate_ref
@@ -33734,14 +33736,14 @@ model_081_vertices:
 	dc.w $8010	; z_coordinate_ref
 	dc.w $FFFF	; variant_offset_or_negative
 model_082_faces:
-	dc.w $030C,$0000,$0010,$0008,$030B,$0000,$0018,$0010	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $030C,$0000,$0010,$0008,$030B,$0000,$0018,$0010	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $030C,$0000,$0020,$0018,$030D,$0000,$0008,$0020
 	dc.w $030D,$0008,$0010,$0028,$030C,$0010,$0018,$0028
 	dc.w $030D,$0018,$0020,$0028,$030B,$0020,$0008,$0028
 model_082_auxiliary_faces:
-	dc.w $8400,$0008,$0010,$0018,$0020	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $8400,$0008,$0010,$0018,$0020	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 model_082_coordinates:
-	dc.w $0000,$0190,$04B0,$0320	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0000,$0190,$04B0,$0320	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 model_082_vertices:
 	dc.w $0000	; x_coordinate_ref
 	dc.w $0000	; y_coordinate_ref
@@ -33768,12 +33770,12 @@ model_082_vertices:
 	dc.w $0000	; z_coordinate_ref
 	dc.w $FFFF	; variant_offset_or_negative
 model_083_faces:
-	dc.w $0404,$0018,$0010,$0008,$0000,$0406,$0000,$0008	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0404,$0018,$0010,$0008,$0000,$0406,$0000,$0008	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $0028,$0020,$0405,$0008,$0010,$0030,$0028,$0406
 	dc.w $0010,$0018,$0038,$0030,$0405,$0018,$0000,$0020
 	dc.w $0038,$0401,$0020,$0028,$0030,$0038
 model_083_coordinates:
-	dc.w $0000,$0320,$0190,$04B0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0000,$0320,$0190,$04B0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 model_083_vertices:
 	dc.w $8002	; x_coordinate_ref
 	dc.w $0004	; y_coordinate_ref
@@ -33808,14 +33810,14 @@ model_083_vertices:
 	dc.w $0006	; z_coordinate_ref
 	dc.w $FFFF	; variant_offset_or_negative
 model_084_faces:
-	dc.w $0409,$0000,$0018,$0010,$0008,$0402,$0020,$0028	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0409,$0000,$0018,$0010,$0008,$0402,$0020,$0028	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $0030,$0038,$0401,$0000,$0020,$0038,$0018,$0409
 	dc.w $0018,$0038,$0030,$0010,$0402,$0010,$0030,$0028
 	dc.w $0008,$0401,$0000,$0008,$0028,$0020
 model_084_auxiliary_faces:
-	dc.w $8400,$0000,$0008,$0030,$0038	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $8400,$0000,$0008,$0030,$0038	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 model_084_coordinates:
-	dc.w $0000,$0320	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0000,$0320	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 model_084_vertices:
 	dc.w $8002	; x_coordinate_ref
 	dc.w $8002	; y_coordinate_ref
@@ -33850,7 +33852,7 @@ model_084_vertices:
 	dc.w $0002	; z_coordinate_ref
 	dc.w $FFFF	; variant_offset_or_negative
 model_085_faces:
-	dc.w $8409,$0000,$0008,$0038,$0030,$840A,$0008,$0010	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $8409,$0000,$0008,$0038,$0030,$840A,$0008,$0010	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $0040,$0038,$8409,$0010,$0018,$0048,$0040,$8408
 	dc.w $0018,$0020,$0050,$0048,$8402,$0020,$0028,$0058
 	dc.w $0050,$8408,$0028,$0000,$0030,$0058,$8309,$0000
@@ -33862,7 +33864,7 @@ model_085_faces:
 	dc.w $0090,$8402,$0050,$0058,$0098,$0090,$8308,$0058
 	dc.w $0030,$0098
 model_085_coordinates:
-	dc.w $0000,$1900,$1F40,$0C80,$15A8	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0000,$1900,$1F40,$0C80,$15A8	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 model_085_vertices:
 	dc.w $8002	; x_coordinate_ref
 	dc.w $0000	; y_coordinate_ref
@@ -33945,13 +33947,13 @@ model_085_vertices:
 	dc.w $0004	; z_coordinate_ref
 	dc.w $FFFF	; variant_offset_or_negative
 model_086_faces:
-	dc.w $0307,$0000,$0008,$0030,$030A,$0008,$0010,$0030	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0307,$0000,$0008,$0030,$030A,$0008,$0010,$0030	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $0309,$0010,$0018,$0030,$0308,$0018,$0020,$0030
 	dc.w $0309,$0020,$0028,$0030,$030A,$0028,$0000,$0030
 	dc.w $8201,$0038,$0040,$820E,$0048,$0050,$8202,$0030
 	dc.w $0058
 model_086_coordinates:
-	dc.w $0000,$0640,$06E0,$0C80,$0BE0,$08C0,$0DC0,$0280	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0000,$0640,$06E0,$0C80,$0BE0,$08C0,$0DC0,$0280	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $1040,$0B40,$12C0
 model_086_vertices:
 	dc.w $8002	; x_coordinate_ref
@@ -34003,7 +34005,7 @@ model_086_vertices:
 	dc.w $8014	; z_coordinate_ref
 	dc.w $FFFF	; variant_offset_or_negative
 model_087_faces:
-	dc.w $0301,$0000,$0038,$0030,$0305,$0000,$0048,$0038	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0301,$0000,$0038,$0030,$0305,$0000,$0048,$0038	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $0306,$0000,$0030,$0048,$0302,$0008,$0050,$0038
 	dc.w $0309,$0008,$0048,$0050,$0308,$0008,$0038,$0048
 	dc.w $030C,$0028,$0048,$0030,$030D,$0028,$0040,$0048
@@ -34013,7 +34015,7 @@ model_087_faces:
 	dc.w $0301,$0018,$0048,$0058,$030E,$0020,$0060,$0050
 	dc.w $030D,$0020,$0058,$0060,$030C,$0020,$0050,$0058
 model_087_coordinates:
-	dc.w $0000,$01E0,$0DC0,$0AA0,$0500,$1360,$0460,$05A0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0000,$01E0,$0DC0,$0AA0,$0500,$1360,$0460,$05A0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $0280,$1900,$0140,$15E0,$0780,$1540,$0960,$0320
 	dc.w $0FA0,$0A00,$0640,$0C80
 model_087_vertices:
@@ -34089,7 +34091,7 @@ abs_0_00028374:
 	dc.b $05,$01,$00,$60,$00,$80,$00,$78,$00,$70,$00,$68,$83,$00,$00,$30
 	dc.b $00,$00,$00,$88,$83,$00,$00,$18,$00,$28,$00,$90
 model_088_coordinates:
-	dc.w $0000,$3C00,$4880,$6400,$0500,$2F80,$1E00,$5F00	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0000,$3C00,$4880,$6400,$0500,$2F80,$1E00,$5F00	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $0780,$3200,$5280,$3700,$0A00,$5780,$0DC0,$1480
 	dc.w $1340,$1180,$0280,$07D0,$0F00,$7580
 model_088_vertices:
@@ -34170,7 +34172,7 @@ model_088_vertices:
 	dc.w $0010	; z_coordinate_ref
 	dc.w $FFFF	; variant_offset_or_negative
 model_089_faces:
-	dc.w $0302,$0000,$0010,$0008,$0308,$0000,$0018,$0010	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0302,$0000,$0010,$0008,$0308,$0000,$0018,$0010	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $0302,$0000,$0020,$0018,$0308,$0000,$0008,$0020
 	dc.w $0308,$0008,$0010,$0028,$0302,$0010,$0018,$0028
 	dc.w $0308,$0018,$0020,$0028,$0302,$0020,$0008,$0028
@@ -34180,11 +34182,11 @@ model_089_faces:
 	dc.w $0030,$0048,$0058,$0302,$0048,$0050,$0060,$0308
 	dc.w $0050,$0058,$0060,$0309,$0058,$0048,$0060
 model_089_auxiliary_faces:
-	dc.w $8400,$0000,$0018,$0028,$0008,$8300,$0028,$0040	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $8400,$0000,$0018,$0028,$0008,$8300,$0028,$0040	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $0030,$8400,$0030,$0040,$0058,$0048,$8300,$0048
 	dc.w $0058,$0060
 model_089_coordinates:
-	dc.w $0000,$0C80,$0320,$0640,$0280,$0118,$00A0,$06E0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0000,$0C80,$0320,$0640,$0280,$0118,$00A0,$06E0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $0140,$03B8,$0C98,$04D0,$05E8,$15F8,$0290,$06B0
 	dc.w $0178,$0060,$0208,$0438,$0520,$15C0,$03D0,$0648
 	dc.w $02B8,$01A0,$0030,$0148,$0260,$0500,$1530,$04C0
@@ -34247,7 +34249,7 @@ model_089_vertices:
 	dc.w $001A	; z_coordinate_ref
 	dc.w $0030	; variant_offset_or_negative
 model_089_variant_words:
-	dc.w $801C,$000C,$001E,$0000,$8020,$8010,$001E,$0000	; 19 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
+	dc.w $801C,$000C,$001E,$0000,$8020,$8010,$001E,$0000	; 19 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with unin...
 	dc.w $8022,$000C,$001E,$0000,$0024,$000C,$0014,$0000
 	dc.w $0004,$8010,$0014,$0000,$0026,$000C,$0014,$0000
 	dc.w $0028,$0000,$002A,$0000,$802C,$000C,$002E,$0000
@@ -34315,7 +34317,7 @@ model_089_variant_words:
 	dc.w $0086,$8010,$0014,$0000,$0084,$000C,$0014,$0000
 	dc.w $008A,$0000,$002A,$0000
 model_089_variant_frames:
-	dc.l model_089_variant_words	; 19 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
+	dc.l model_089_variant_words	; 19 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with unin...
 	dc.l model_089_variant_words+$38
 	dc.l model_089_variant_words+$70
 	dc.l model_089_variant_words+$A8
@@ -34335,13 +34337,13 @@ model_089_variant_frames:
 	dc.l model_089_variant_words+$3B8
 	dc.l model_089_variant_words+$3F0
 model_090_faces:
-	dc.w $820B,$0000,$0008,$820C,$0008,$0010,$820D,$0010	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $820B,$0000,$0008,$820C,$0008,$0010,$820D,$0010	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $0018,$820E,$0018,$0020,$820D,$0020,$0028,$820C
 	dc.w $0028,$0030,$820B,$0030,$0038,$820B,$0038,$0040
 	dc.w $0301,$0000,$0048,$0050,$0306,$0000,$0050,$0058
 	dc.w $0304,$0000,$0058,$0060,$0305,$0000,$0060,$0048
 model_090_coordinates:
-	dc.w $0000,$1900,$3E80,$0160,$1828,$2EE0,$0550,$13F0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0000,$1900,$3E80,$0160,$1828,$2EE0,$0550,$13F0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $1F40,$0600,$0BA0,$0FA0,$0150,$15B8,$09F0,$0D80
 	dc.w $0368,$1498,$0178,$1590,$41A0,$0320,$3B60,$0098
 	dc.w $1BB0,$0338,$1518,$0CF8,$1930,$0B28,$20C8,$0620
@@ -34427,7 +34429,7 @@ model_090_vertices:
 	dc.w $8004	; z_coordinate_ref
 	dc.w $FFFF	; variant_offset_or_negative
 model_090_variant_words:
-	dc.w $002E,$8030,$800A,$0000,$8032,$8034,$8010,$0000	; 19 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
+	dc.w $002E,$8030,$800A,$0000,$8032,$8034,$8010,$0000	; 19 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with unin...
 	dc.w $8036,$8038,$8016,$0000,$803A,$803C,$0000,$0000
 	dc.w $803E,$8040,$0016,$0000,$8042,$8044,$0010,$0000
 	dc.w $0046,$8048,$000A,$0000,$804A,$804C,$800A,$0000
@@ -34495,7 +34497,7 @@ model_090_variant_words:
 	dc.w $01EA,$81EC,$0016,$0000,$81EE,$81F0,$0010,$0000
 	dc.w $80F6,$81F2,$000A,$0000
 model_090_variant_frames:
-	dc.l model_090_variant_words	; 19 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte
+	dc.l model_090_variant_words	; 19 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with unin...
 	dc.l model_090_variant_words+$38
 	dc.l model_090_variant_words+$70
 	dc.l model_090_variant_words+$A8
@@ -34515,7 +34517,7 @@ model_090_variant_frames:
 	dc.l model_090_variant_words+$3B8
 	dc.l model_090_variant_words+$3F0
 model_091_faces:
-	dc.w $0400,$0000,$0008,$0038,$0030,$0403,$0008,$0010	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0400,$0000,$0008,$0038,$0030,$0403,$0008,$0010	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $0040,$0038,$0400,$0010,$0018,$0048,$0040,$0403
 	dc.w $0018,$0020,$0050,$0048,$0400,$0020,$0028,$0058
 	dc.w $0050,$0403,$0028,$0000,$0030,$0058,$0401,$0030
@@ -34529,12 +34531,12 @@ model_091_faces:
 	dc.w $0090,$00B8,$0600,$0000,$0028,$0020,$0018,$0010
 	dc.w $0008,$0600,$0090,$0098,$00A0,$00A8,$00B0,$00B8
 model_091_auxiliary_faces:
-	dc.w $8800,$0000,$0018,$0048,$0078,$00A8,$0090,$0060	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $8800,$0000,$0018,$0048,$0078,$00A8,$0090,$0060	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $0030,$8800,$0008,$0020,$0050,$0080,$00B0,$0098
 	dc.w $0068,$0038,$8800,$0010,$0028,$0058,$0088,$00B8
 	dc.w $00A0,$0070,$0040
 model_091_coordinates:
-	dc.w $0000,$06E0,$0140,$00A0,$0118,$04B0,$0320,$0190	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0000,$06E0,$0140,$00A0,$0118,$04B0,$0320,$0190	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $02B8,$0138,$0030,$00C8,$00F0,$0068,$0128,$0310
 	dc.w $0088,$0200,$0260,$0110,$02F0,$00D0,$02E8,$02B0
 	dc.w $0038,$0098,$0188
@@ -34636,7 +34638,7 @@ model_091_vertices:
 	dc.w $0008	; z_coordinate_ref
 	dc.w $00B8	; variant_offset_or_negative
 model_091_variant_words:
-	dc.w $8002,$8012,$0014,$0000,$8002,$8016,$8018,$0000	; 11 viewer-indexed variant frames, 24 encoded vertex records per frame; 8-byte stride with unint
+	dc.w $8002,$8012,$0014,$0000,$8002,$8016,$8018,$0000	; 11 viewer-indexed variant frames, 24 encoded vertex records per frame; 8-byte stride with uni...
 	dc.w $8002,$001A,$801C,$0000,$8002,$0012,$8014,$0000
 	dc.w $8002,$0016,$0018,$0000,$8002,$801A,$001C,$0000
 	dc.w $800A,$801E,$0020,$0000,$800A,$8022,$8024,$0000
@@ -34769,7 +34771,7 @@ model_091_variant_words:
 	dc.w $0002,$8012,$8014,$0000,$0002,$801A,$801C,$0000
 	dc.w $0002,$002A,$8018,$0000,$0002,$0012,$0014,$0000
 model_091_variant_frames:
-	dc.l model_091_variant_words	; 11 viewer-indexed variant frames, 24 encoded vertex records per frame; 8-byte stride with unint
+	dc.l model_091_variant_words	; 11 viewer-indexed variant frames, 24 encoded vertex records per frame; 8-byte stride with uni...
 	dc.l model_091_variant_words+$C0
 	dc.l model_091_variant_words+$180
 	dc.l model_091_variant_words+$240
@@ -34781,7 +34783,7 @@ model_091_variant_frames:
 	dc.l model_091_variant_words+$6C0
 	dc.l model_091_variant_words+$780
 model_092_faces:
-	dc.w $840A,$0000,$0008,$0038,$0030,$8409,$0008,$0010	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $840A,$0000,$0008,$0038,$0030,$8409,$0008,$0010	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $0040,$0038,$830A,$0040,$0048,$0088,$830A,$0048
 	dc.w $0060,$0088,$8409,$0060,$0068,$0010,$0088,$840A
 	dc.w $0010,$0018,$0070,$0068,$8409,$0018,$0020,$0078
@@ -34789,7 +34791,7 @@ model_092_faces:
 	dc.w $0048,$0090,$830A,$0048,$0050,$0090,$8408,$0020
 	dc.w $0028,$0058,$0050,$8409,$0028,$0000,$0030,$0058
 model_092_coordinates:
-	dc.w $0000,$1900,$30C0,$0C80,$15A8,$3200,$2370,$2580	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0000,$1900,$30C0,$0C80,$15A8,$3200,$2370,$2580	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $26B0,$2D60,$01B0
 model_092_vertices:
 	dc.w $8002	; x_coordinate_ref
@@ -34869,10 +34871,10 @@ model_092_vertices:
 	dc.w $8014	; z_coordinate_ref
 	dc.w $FFFF	; variant_offset_or_negative
 model_093_faces:
-	dc.w $0301,$0000,$0008,$0010,$0306,$0000,$0010,$0018	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0301,$0000,$0008,$0010,$0306,$0000,$0010,$0018	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $0304,$0000,$0018,$0020,$0305,$0000,$0020,$0008
 model_093_coordinates:
-	dc.w $0000,$1900,$3E80,$3B60,$0320,$41A0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0000,$1900,$3E80,$3B60,$0320,$41A0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 model_093_vertices:
 	dc.w $0000	; x_coordinate_ref
 	dc.w $8002	; y_coordinate_ref
@@ -34895,14 +34897,14 @@ model_093_vertices:
 	dc.w $0004	; z_coordinate_ref
 	dc.w $FFFF	; variant_offset_or_negative
 model_094_faces:
-	dc.w $830A,$0000,$0008,$0030,$830A,$0010,$0018,$0038	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $830A,$0000,$0008,$0030,$830A,$0010,$0018,$0038	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $830A,$0018,$0020,$0040,$830A,$0028,$0048,$0000
 	dc.w $8409,$0030,$0038,$0058,$0050,$8408,$0038,$0040
 	dc.w $0060,$0058,$8409,$0040,$0048,$0068,$0060,$8408
 	dc.w $0048,$0030,$0050,$0068,$840A,$0050,$0058,$0060
 	dc.w $0068
 model_094_coordinates:
-	dc.w $0000,$1900,$1F40,$0C80,$15A8	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0000,$1900,$1F40,$0C80,$15A8	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 model_094_vertices:
 	dc.w $8002	; x_coordinate_ref
 	dc.w $0000	; y_coordinate_ref
@@ -34961,11 +34963,11 @@ model_094_vertices:
 	dc.w $0004	; z_coordinate_ref
 	dc.w $FFFF	; variant_offset_or_negative
 model_095_faces:
-	dc.w $820E,$0000,$0008,$820E,$0008,$0010,$820E,$0010	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $820E,$0000,$0008,$820E,$0008,$0010,$820E,$0010	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $0018,$820E,$0018,$0020,$820E,$0020,$0028,$820E
 	dc.w $0028,$0030,$820E,$0030,$0038,$820E,$0038,$0000
 model_095_coordinates:
-	dc.w $0000,$0240,$1130,$0C00,$0170,$1460,$0280,$0B38	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0000,$0240,$1130,$0C00,$0170,$1460,$0280,$0B38	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $0030,$00A0,$10B0,$0F00,$02B0,$00F0,$0B88,$0140
 	dc.w $0210,$11E0,$0ED8,$0200,$11F0,$0E58,$0120,$0190
 	dc.w $1320,$0E00,$1270,$0100,$0EF0,$01D0,$1090,$0BA8
@@ -35019,7 +35021,7 @@ model_095_vertices:
 	dc.w $801C	; z_coordinate_ref
 	dc.w $0038	; variant_offset_or_negative
 model_095_variant_words:
-	dc.w $0000,$0020,$8022,$0000,$0024,$8026,$8024,$0000	; 19 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
+	dc.w $0000,$0020,$8022,$0000,$0024,$8026,$8024,$0000	; 19 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with unin...
 	dc.w $0028,$8012,$0000,$0000,$002A,$802C,$002A,$0000
 	dc.w $0000,$002E,$0030,$0000,$8032,$0012,$0032,$0000
 	dc.w $8034,$8036,$0000,$0000,$8038,$802C,$8038,$0000
@@ -35096,7 +35098,7 @@ model_095_variant_words:
 	dc.w $0000,$0054,$0072,$0000,$8136,$0138,$0136,$0000
 	dc.w $813A,$8008,$0000,$0000,$813C,$80BC,$813C,$0000
 model_095_variant_frames:
-	dc.l model_095_variant_words	; 19 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte
+	dc.l model_095_variant_words	; 19 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with unin...
 	dc.l model_095_variant_words+$40
 	dc.l model_095_variant_words+$80
 	dc.l model_095_variant_words+$C0
@@ -35116,13 +35118,13 @@ model_095_variant_frames:
 	dc.l model_095_variant_words+$440
 	dc.l model_095_variant_words+$480
 model_096_faces:
-	dc.w $0401,$0000,$0008,$0028,$0020,$0406,$0008,$0010	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0401,$0000,$0008,$0028,$0020,$0406,$0008,$0010	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $0030,$0028,$0405,$0010,$0018,$0038,$0030,$0406
 	dc.w $0018,$0000,$0020,$0038,$030E,$0020,$0028,$0040
 	dc.w $030D,$0028,$0030,$0040,$030C,$0030,$0038,$0040
 	dc.w $030D,$0038,$0020,$0040,$830E,$0048,$0050,$0058
 model_096_coordinates:
-	dc.w $0000,$15E0,$0320,$0960,$1900,$2580,$0140,$1DB0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0000,$15E0,$0320,$0960,$1900,$2580,$0140,$1DB0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 model_096_vertices:
 	dc.w $8002	; x_coordinate_ref
 	dc.w $0000	; y_coordinate_ref
@@ -35173,7 +35175,7 @@ model_096_vertices:
 	dc.w $800E	; z_coordinate_ref
 	dc.w $FFFF	; variant_offset_or_negative
 model_097_faces:
-	dc.w $0305,$0008,$0010,$0018,$0306,$0008,$0018,$0020	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0305,$0008,$0010,$0018,$0306,$0008,$0018,$0020	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $0301,$0008,$0020,$0010,$0304,$0010,$0028,$0018
 	dc.w $0305,$0018,$0028,$0020,$0306,$0020,$0028,$0010
 	dc.w $030C,$0028,$0030,$0038,$030D,$0028,$0038,$0040
@@ -35184,7 +35186,7 @@ model_097_faces:
 	dc.w $0305,$0058,$0068,$0060,$0306,$0060,$0068,$0050
 	dc.w $820E,$0000,$0008
 model_097_coordinates:
-	dc.w $0000,$1900,$12C0,$0790,$0FA0,$0460,$08C0,$0C80	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0000,$1900,$12C0,$0790,$0FA0,$0460,$08C0,$0C80	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $0960,$0640,$0320
 model_097_vertices:
 	dc.w $0000	; x_coordinate_ref
@@ -35244,7 +35246,7 @@ model_097_vertices:
 	dc.w $0000	; z_coordinate_ref
 	dc.w $FFFF	; variant_offset_or_negative
 model_098_faces:
-	dc.w $030E,$0000,$0010,$0008,$0301,$0000,$0018,$0010	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $030E,$0000,$0010,$0008,$0301,$0000,$0018,$0010	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $030E,$0000,$0020,$0018,$0301,$0000,$0028,$0020
 	dc.w $030E,$0000,$0030,$0028,$0301,$0000,$0008,$0030
 	dc.w $040D,$0008,$0010,$0040,$0038,$0406,$0010,$0018
@@ -35258,7 +35260,7 @@ model_098_faces:
 	dc.w $8401,$0080,$0088,$00A8,$00A0,$8406,$0088,$0070
 	dc.w $0090,$00A8
 model_098_coordinates:
-	dc.w $0000,$06E0,$0320,$04B0,$0190,$02B0,$0640,$0410	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0000,$06E0,$0320,$04B0,$0190,$02B0,$0640,$0410	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $0820
 model_098_vertices:
 	dc.w $0000	; x_coordinate_ref
@@ -35350,7 +35352,7 @@ model_098_vertices:
 	dc.w $0010	; z_coordinate_ref
 	dc.w $FFFF	; variant_offset_or_negative
 model_099_faces:
-	dc.w $8404,$0000,$0008,$0028,$0020,$8405,$0008,$0010	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $8404,$0000,$0008,$0028,$0020,$8405,$0008,$0010	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $0030,$0028,$8401,$0010,$0018,$0038,$0030,$8405
 	dc.w $0018,$0000,$0020,$0038,$8401,$0008,$0000,$0040
 	dc.w $0048,$8406,$0010,$0008,$0048,$0050,$8405,$0018
@@ -35384,7 +35386,7 @@ model_099_faces:
 	dc.w $0168,$0170,$840A,$0138,$0130,$0170,$0178,$8409
 	dc.w $0100,$0138,$0178,$0140
 model_099_coordinates:
-	dc.w $0000,$0C80,$0AF0,$1C20,$0640,$4248,$0FA0,$5DC0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0000,$0C80,$0AF0,$1C20,$0640,$4248,$0FA0,$5DC0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $5860,$1900,$7D00
 model_099_vertices:
 	dc.w $0002	; x_coordinate_ref
@@ -35580,14 +35582,14 @@ model_099_vertices:
 	dc.w $8014	; z_coordinate_ref
 	dc.w $FFFF	; variant_offset_or_negative
 model_100_faces:
-	dc.w $0402,$0018,$0010,$0008,$0000,$0309,$0000,$0008	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0402,$0018,$0010,$0008,$0000,$0309,$0000,$0008	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $0020,$0408,$0018,$0000,$0020,$0028,$0309,$0010
 	dc.w $0018,$0028,$040A,$0008,$0010,$0028,$0020,$0309
 	dc.w $0020,$0038,$0030,$0408,$0020,$0030,$0048,$0028
 	dc.w $0309,$0028,$0048,$0040,$040A,$0020,$0028,$0040
 	dc.w $0038,$0402,$0030,$0038,$0040,$0048
 model_100_coordinates:
-	dc.w $0000,$0230,$0190,$03C0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0000,$0230,$0190,$03C0	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 model_100_vertices:
 	dc.w $8002	; x_coordinate_ref
 	dc.w $8004	; y_coordinate_ref
@@ -35630,12 +35632,12 @@ model_100_vertices:
 	dc.w $0006	; z_coordinate_ref
 	dc.w $FFFF	; variant_offset_or_negative
 model_101_faces:
-	dc.w $0301,$0000,$0008,$0010,$0304,$0000,$0018,$0008	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0301,$0000,$0008,$0010,$0304,$0000,$0018,$0008	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $0305,$0008,$0018,$0010,$0306,$0010,$0018,$0000
 	dc.w $0304,$0018,$0020,$0028,$0305,$0018,$0028,$0030
 	dc.w $0306,$0018,$0030,$0020,$0301,$0020,$0030,$0028
 model_101_coordinates:
-	dc.w $0000,$02B0,$0190,$0320	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0000,$02B0,$0190,$0320	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 model_101_vertices:
 	dc.w $8002	; x_coordinate_ref
 	dc.w $0004	; y_coordinate_ref
@@ -35666,12 +35668,12 @@ model_101_vertices:
 	dc.w $0006	; z_coordinate_ref
 	dc.w $FFFF	; variant_offset_or_negative
 model_102_faces:
-	dc.w $040B,$0018,$0010,$0008,$0000,$040C,$0000,$0008	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $040B,$0018,$0010,$0008,$0000,$040C,$0000,$0008	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 	dc.w $0028,$0020,$040D,$0008,$0010,$0030,$0028,$040C
 	dc.w $0010,$0018,$0038,$0030,$040D,$0018,$0000,$0020
 	dc.w $0038,$040E,$0020,$0028,$0030,$0038
 model_102_coordinates:
-	dc.w $0000,$0320,$0230,$0410,$0190	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0000,$0320,$0230,$0410,$0190	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 model_102_vertices:
 	dc.w $8002	; x_coordinate_ref
 	dc.w $0004	; y_coordinate_ref
@@ -35706,11 +35708,11 @@ model_102_vertices:
 	dc.w $0004	; z_coordinate_ref
 	dc.w $FFFF	; variant_offset_or_negative
 model_103_faces:
-	dc.w $8403,$0000,$0008,$0010,$0018	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $8403,$0000,$0008,$0010,$0018	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 model_103_auxiliary_faces:
-	dc.w $8400,$0018,$0010,$0008,$0000	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $8400,$0018,$0010,$0008,$0000	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 model_103_coordinates:
-	dc.w $0000,$0640,$00C8,$0550	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps exc
+	dc.w $0000,$0640,$00C8,$0550	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
 model_103_vertices:
 	dc.w $0000	; x_coordinate_ref
 	dc.w $0000	; y_coordinate_ref
@@ -35729,9 +35731,9 @@ model_103_vertices:
 	dc.w $8006	; z_coordinate_ref
 	dc.w $0008	; variant_offset_or_negative
 model_103_variant_words:
-	dc.w $8004,$0000,$8006,$0000,$0004,$0000,$8006,$0000	; 1 viewer-indexed variant frames, 2 encoded vertex records per frame; 8-byte stride with uninter
+	dc.w $8004,$0000,$8006,$0000,$0004,$0000,$8006,$0000	; 1 viewer-indexed variant frames, 2 encoded vertex records per frame; 8-byte stride with unint...
 model_103_variant_frames:
-	dc.l model_103_variant_words	; 1 viewer-indexed variant frames, 2 encoded vertex records per frame; 8-byte stride with uninter
+	dc.l model_103_variant_words	; 1 viewer-indexed variant frames, 2 encoded vertex records per frame; 8-byte stride with unint...
     ; Scale WORDs by even byte offset o: o=0:$7FFF; 2..128:$4000/(o-1); 130..12502:$3FFF80/(o-2), floor. Maximal verified run, not all-caller bounds.
 projection_scale_lookup:
 	dc.w $7FFF,$4000,$1555,$0CCC,$0924,$071C,$05D1,$04EC
@@ -36730,13 +36732,14 @@ object_scan_sprite_frame_0:
 hud_scan_reticle_sprite:
 	INCBIN "assets/hud_scan_reticle_sprite.bin"
 ; bitmap
-abs_0_0002EC64:
-	move.w app_07B0(a6),abs_0_0002F016.l
-	move.w #$F,abs_0_0002F014.l
-	move.w #$FFFF,abs_0_0002F010.l
-	move.w #$FFFF,abs_0_0002F012.l
-	btst.b #0,app_07F6(a6)
-	beq.w abs_0_0002F018
+    ; Landscape flags: bit0 builds the clipped horizon; bit1 separately enables the ground grid. Shared split/colour words feed both Amiga and alternate fills; their mode1 upper fill stays zero.
+build_landscape_horizon_and_grid:
+	move.w landscape_ground_colour_index(a6),horizon_lower_fill_colour.l
+	move.w #$F,horizon_upper_fill_colour.l
+	move.w #$FFFF,horizon_ground_split_row.l
+	move.w #$FFFF,horizon_clip_max_y_snapshot.l
+	btst.b #0,landscape_background_draw_flags(a6)
+	beq.w build_ground_grid_if_enabled
 	move.w view_rotation_0(a6),d1
 	neg.w d1
 	andi.w #4095,d1
@@ -36763,7 +36766,7 @@ abs_0_0002ECD2:
 	move.w d0,d1
 	move.w #$0,d2
 	move.w d7,d3
-	bsr.w abs_0_0002EF4C
+	bsr.w rotate_horizon_vector_to_view
 	move.w d1,d4
 	move.w d2,d5
 	move.w d3,d6
@@ -36771,7 +36774,7 @@ abs_0_0002ECD2:
 	neg.w d1
 	move.w #$0,d2
 	move.w d7,d3
-	bsr.w abs_0_0002EF4C
+	bsr.w rotate_horizon_vector_to_view
 	bsr.w abs_0_0002EF02
 	bne.w abs_0_0002EEDC
 	move.w d4,$0138(a6)
@@ -36788,7 +36791,7 @@ abs_0_0002ED14:
 	move.l a0,(a1)+
 	move.l a1,abs_0_00003C2C.l
 	move.w #$FFFF,(a0)+
-	move.w app_07B0(a6),(a0)+
+	move.w landscape_ground_colour_index(a6),(a0)+
 	move.w d4,(a0)+
 	move.w d5,(a0)+
 	move.w d6,(a0)+
@@ -36807,20 +36810,20 @@ abs_0_0002ED50:
 	movea.l abs_0_00003C2C.l,a1
 	subq.w #4,a1
 	move.l a1,abs_0_00003C2C.l
-	move.w d5,abs_0_0002F010.l
-	move.w view_clip_max_y(a6),abs_0_0002F012.l
+	move.w d5,horizon_ground_split_row.l
+	move.w view_clip_max_y(a6),horizon_clip_max_y_snapshot.l
 	bra.w abs_0_0002EED8
 abs_0_0002ED76:
 	move.w view_clip_max_x(a6),(a0)+
 	move.w d5,(a0)+
-	move.w d5,abs_0_0002F010.l
-	move.w view_clip_max_y(a6),abs_0_0002F012.l
+	move.w d5,horizon_ground_split_row.l
+	move.w view_clip_max_y(a6),horizon_clip_max_y_snapshot.l
 	bra.w abs_0_0002EECC
 abs_0_0002ED8E:
 	move.w view_clip_min_x(a6),(a0)+
 	move.w d7,(a0)+
-	move.w d7,abs_0_0002F010.l
-	move.w view_clip_max_y(a6),abs_0_0002F012.l
+	move.w d7,horizon_ground_split_row.l
+	move.w view_clip_max_y(a6),horizon_clip_max_y_snapshot.l
 	bra.w abs_0_0002EECC
 abs_0_0002EDA6:
 	move.w view_clip_min_x(a6),(a0)+
@@ -36839,8 +36842,8 @@ abs_0_0002EDCA:
 	move.w d7,(a0)+
 	move.w view_clip_min_x(a6),(a0)+
 	move.w view_clip_min_y(a6),(a0)+
-	move.w d7,abs_0_0002F010.l
-	move.w view_clip_max_y(a6),abs_0_0002F012.l
+	move.w d7,horizon_ground_split_row.l
+	move.w view_clip_max_y(a6),horizon_clip_max_y_snapshot.l
 	bra.w abs_0_0002EECC
 abs_0_0002EDEA:
 	move.w view_clip_min_x(a6),(a0)+
@@ -36905,13 +36908,13 @@ abs_0_0002EEB0:
 	move.w view_clip_min_y(a6),(a0)+
 	move.w view_clip_max_x(a6),(a0)+
 	move.w d5,(a0)+
-	move.w d5,abs_0_0002F010.l
-	move.w view_clip_max_y(a6),abs_0_0002F012.l
+	move.w d5,horizon_ground_split_row.l
+	move.w view_clip_max_y(a6),horizon_clip_max_y_snapshot.l
 abs_0_0002EECC:
 	move.l #$FFFFFFFF,(a0)
 	addq.w #1,abs_0_000049A8.l
 abs_0_0002EED8:
-	bra.w abs_0_0002F018
+	bra.w build_ground_grid_if_enabled
 abs_0_0002EEDC:
 	move.w view_rotation_0(a6),d0
 	andi.w #4095,d0
@@ -36920,8 +36923,8 @@ abs_0_0002EEDC:
 abs_0_0002EEEA:
 	bra.w abs_0_0002EED8
 abs_0_0002EEEE:
-	move.w view_clip_min_y(a6),abs_0_0002F010.l
-	move.w view_clip_max_y(a6),abs_0_0002F012.l
+	move.w view_clip_min_y(a6),horizon_ground_split_row.l
+	move.w view_clip_max_y(a6),horizon_clip_max_y_snapshot.l
 	bra.w abs_0_0002EED8
 abs_0_0002EF02:
 	lea.l projection_scale_lookup.l,a2
@@ -36948,7 +36951,7 @@ abs_0_0002EF02:
 	add.w projection_screen_origin_y(a6),d5
 	add.w projection_screen_origin_y(a6),d7
 	bra.w abs_0_0002F68A
-abs_0_0002EF4C:
+rotate_horizon_vector_to_view:
 	movem.l d4-d6,-(a7)
 	move.w view_rotation_0(a6),d4
 	andi.w #4095,d4
@@ -37010,16 +37013,16 @@ abs_0_0002EF4C:
 abs_0_0002EFF4:
 	dc.b $00,$00,$00,$03
 	dcb.b $18,$00
-abs_0_0002F010:
-	dc.b $00,$1E
-abs_0_0002F012:
-	dc.b $00,$80
-abs_0_0002F014:
-	dc.w $0000
-abs_0_0002F016:
-	dc.w $0000
-abs_0_0002F018:
-	btst.b #1,app_07F6(a6)
+horizon_ground_split_row:
+	dc.w $001E	; Upper fill ends one row before this split; lower fill begins here. Negative means no usable s...
+horizon_clip_max_y_snapshot:
+	dc.w $0080	; Clipped maxY snapshot written alongside split; model viewer also seeds128. No recovered direc...
+horizon_upper_fill_colour:
+	dc.w $0000	; Upper band indexed fill colour, set15. Alternate mode1 retains fixed zero instead of reading...
+horizon_lower_fill_colour:
+	dc.w $0000	; Lower band indexed fill colour, copied from current landscape colour. The lower fill uses vie...
+build_ground_grid_if_enabled:
+	btst.b #1,landscape_background_draw_flags(a6)
 	bne.b abs_0_0002F022
 abs_0_0002F020:
 	rts
@@ -42946,9 +42949,10 @@ abs_0_000338C0:
 	btst #0,d0
 	bne.b abs_0_000338EE
 	neg.w $0028(a4)
+    ; Snapshot the space/surface flag before this world-transition procedure; compare after selection and surface tests. This byte is not necessarily the previous physical frame.
 abs_0_000338EE:
 	move.b #$1,diagnostic_step_byte.l
-	move.b space_environment_flag(a6),app_0AA5(a6)
+	move.b space_environment_flag(a6),world_transition_space_snapshot(a6)
 	tst.b space_environment_flag(a6)
 	beq.w abs_0_00033C4C
 	move.b #$2,diagnostic_step_byte.l
@@ -43035,7 +43039,7 @@ abs_0_000339E0:
 	sf.b space_environment_flag(a6)
 abs_0_000339E4:
 	move.b space_environment_flag(a6),d0
-	cmp.b app_0AA5(a6),d0
+	cmp.b world_transition_space_snapshot(a6),d0
 	beq.w abs_0_00033FF8
 	clr.w pending_message_count(a6)
 	move.w #$1,message_display_countdown(a6)
@@ -43069,7 +43073,7 @@ abs_0_00033A3A:
 	lea.l disc_primary_colours.l,a0
 	move.w selected_celestial_body_index(a6),d0
 	add.w d0,d0
-	move.w $0(a0,d0.w),app_07B0(a6)
+	move.w $0(a0,d0.w),landscape_ground_colour_index(a6)
 	lea.l world_high_altitude_mesh_material_indices.l,a0
 	move.w $0(a0,d0.w),special_mesh_material_index.l
 	move.w selected_celestial_body_index(a6),d0
@@ -43357,7 +43361,7 @@ abs_0_00033E3C:
 abs_0_00033E52:
 	move.b #$83,diagnostic_step_byte.l
 	move.b space_environment_flag(a6),d0
-	cmp.b app_0AA5(a6),d0
+	cmp.b world_transition_space_snapshot(a6),d0
 	beq.w abs_0_00033FF8
 	move.b #$85,diagnostic_step_byte.l
 	move.b #$7F,abs_0_00039CD1.l
@@ -47673,7 +47677,7 @@ initial_body_orbit_angles:
 	dc.w $0000
     ; Known orbital parameter prefix0..14 only. Literal LONG radii, not pointers. Following300000/100000 LONGs remain separate; physical adjacency alone does not expand observed consumer domain.
 body_orbit_radii:
-	dc.l $00000000,$002DC6C0,$003D0900,$007A1200	; 15 scalar LONG radii for known body-index prefix0..14; next two LONGs remain separately unassig
+	dc.l $00000000,$002DC6C0,$003D0900,$007A1200	; 15 scalar LONG radii for known body-index prefix0..14; next two LONGs remain separately unass...
 	dc.l $00B71B00,$00F42400,$0007A120,$000AAE60
 	dc.l $000F4240,$000F4240,$000F4240,$000F4240
 	dc.l $000F4240,$000F4240,$000F4240
@@ -49141,7 +49145,7 @@ abs_0_0003A2CE:
 abs_0_0003A2D0:
 	dc.b $00,$00,$00,$00
 abs_0_0003A2D4:
-	jmp abs_0_0002EF4C.l
+	jmp rotate_horizon_vector_to_view.l
 	dc.w $0000
 abs_0_0003A2DC:
 	clr.b app_01EF(a6)
@@ -49551,8 +49555,8 @@ fill_alternate_horizon_bands_mode0:
 	bne.b abs_0_0003A78A
 	tst.b space_environment_flag(a6)
 	bmi.b abs_0_0003A752
-	move.w abs_0_0002F014.l,d0
-	move.w abs_0_0002F010.l,d1
+	move.w horizon_upper_fill_colour.l,d0
+	move.w horizon_ground_split_row.l,d1
 	bmi.b clear_alternate_viewport_mode0
 	move.w view_clip_min_y(a6),d3
 	cmp.w d3,d1
@@ -49565,8 +49569,8 @@ abs_0_0003A788:
 abs_0_0003A78A:
 	tst.b space_environment_flag(a6)
 	bmi.b abs_0_0003A788
-	move.w abs_0_0002F016.l,d0
-	move.w abs_0_0002F010.l,d3
+	move.w horizon_lower_fill_colour.l,d0
+	move.w horizon_ground_split_row.l,d3
 	bmi.b abs_0_0003A788
 	move.w view_clip_max_y(a6),d4
 abs_0_0003A7A2:
@@ -49632,7 +49636,7 @@ fill_alternate_horizon_bands_mode1:
 	tst.b space_environment_flag(a6)
 	bmi.b abs_0_0003A81C
 	moveq.l #0,d0
-	move.w abs_0_0002F010.l,d1
+	move.w horizon_ground_split_row.l,d1
 	bmi.b clear_alternate_viewport_mode1
 	move.w view_clip_min_y(a6),d3
 	cmp.w d3,d1
@@ -49645,8 +49649,8 @@ abs_0_0003A84E:
 abs_0_0003A850:
 	tst.b space_environment_flag(a6)
 	bmi.b abs_0_0003A84E
-	move.w abs_0_0002F016.l,d0
-	move.w abs_0_0002F010.l,d3
+	move.w horizon_lower_fill_colour.l,d0
+	move.w horizon_ground_split_row.l,d3
 	bmi.b abs_0_0003A84E
 	move.w view_clip_max_y(a6),d4
 abs_0_0003A868:
@@ -53098,7 +53102,7 @@ drawing_dispatch_offsets:
 	dc.w draw_planar_span_color_14-drawing_dispatch_offsets
 	dc.w draw_planar_span_color_15-drawing_dispatch_offsets
 span_prefix_masks_32:
-	dc.l $00000000,$80000000,$C0000000,$E0000000	; 32 constant masks; prefix; producer of generated outside-span masks and indexed drawing consume
+	dc.l $00000000,$80000000,$C0000000,$E0000000	; 32 constant masks; prefix; producer of generated outside-span masks and indexed drawing consu...
 	dc.l $F0000000,$F8000000,$FC000000,$FE000000
 	dc.l $FF000000,$FF800000,$FFC00000,$FFE00000
 	dc.l $FFF00000,$FFF80000,$FFFC0000,$FFFE0000
@@ -53107,7 +53111,7 @@ span_prefix_masks_32:
 	dc.l $FFFFFF00,$FFFFFF80,$FFFFFFC0,$FFFFFFE0
 	dc.l $FFFFFFF0,$FFFFFFF8,$FFFFFFFC,$FFFFFFFE
 span_suffix_masks_32:
-	dc.l $7FFFFFFF,$3FFFFFFF,$1FFFFFFF,$0FFFFFFF	; 32 constant masks; suffix; producer of generated outside-span masks and indexed drawing consume
+	dc.l $7FFFFFFF,$3FFFFFFF,$1FFFFFFF,$0FFFFFFF	; 32 constant masks; suffix; producer of generated outside-span masks and indexed drawing consu...
 	dc.l $07FFFFFF,$03FFFFFF,$01FFFFFF,$00FFFFFF
 	dc.l $007FFFFF,$003FFFFF,$001FFFFF,$000FFFFF
 	dc.l $0007FFFF,$0003FFFF,$0001FFFF,$0000FFFF
@@ -53116,10 +53120,10 @@ span_suffix_masks_32:
 	dc.l $0000007F,$0000003F,$0000001F,$0000000F
 	dc.l $00000007,$00000003,$00000001,$00000000
 span_prefix_masks_16:
-	dc.w $0000,$8000,$C000,$E000,$F000,$F800,$FC00,$FE00	; 16 constant masks; prefix; producer of generated outside-span masks and indexed drawing consume
+	dc.w $0000,$8000,$C000,$E000,$F000,$F800,$FC00,$FE00	; 16 constant masks; prefix; producer of generated outside-span masks and indexed drawing consu...
 	dc.w $FF00,$FF80,$FFC0,$FFE0,$FFF0,$FFF8,$FFFC,$FFFE
 span_suffix_masks_16:
-	dc.w $7FFF,$3FFF,$1FFF,$0FFF,$07FF,$03FF,$01FF,$00FF	; 16 constant masks; suffix; producer of generated outside-span masks and indexed drawing consume
+	dc.w $7FFF,$3FFF,$1FFF,$0FFF,$07FF,$03FF,$01FF,$00FF	; 16 constant masks; suffix; producer of generated outside-span masks and indexed drawing consu...
 	dc.w $007F,$003F,$001F,$000F,$0007,$0003,$0001,$0000
 draw_planar_span_color_0:
 	bpl.b abs_0_0003DF0C
@@ -56958,9 +56962,9 @@ abs_0_0003FFA4:
 	move.l generated_outside_span_masks32(pc,d4.w),d4
 	jmp (a6)
 generated_outside_span_masks32:
-	dcb.l $400,$00000000	; Amiga initializer writes all 32x32 LONG combinations. Other platform path writes only first1024
+	dcb.l $400,$00000000	; Amiga initializer writes all 32x32 LONG combinations. Other platform path writes only first10...
 generated_outside_span_masks16:
-	dcb.w $100,$0000	; Amiga initializer writes all 16x16 WORD combinations from min/max indexed masks; original seeds
+	dcb.w $100,$0000	; Amiga initializer writes all 16x16 WORD combinations from min/max indexed masks; original see...
 abs_0_000411BA:
 	not.l d4
 	and.l d4,(a1)+
@@ -57410,7 +57414,7 @@ abs_0_000416A6:
 abs_0_000416A8:
 	dc.b $00,$07,$80,$00,$00,$07,$A0,$00,$00,$07,$C0,$00,$00,$07,$E0,$00
 raster_row_byte_offsets:
-	dc.w $0000,$00A0,$0140,$01E0,$0280,$0320,$03C0,$0460	; 200 WORD byte offsets. Amiga startup initializes 0,40,...7960; renderer indexes by doubled row 
+	dc.w $0000,$00A0,$0140,$01E0,$0280,$0320,$03C0,$0460	; 200 WORD byte offsets. Amiga startup initializes 0,40,...7960; renderer indexes by doubled ro...
 	dc.w $0500,$05A0,$0640,$06E0,$0780,$0820,$08C0,$0960
 	dc.w $0A00,$0AA0,$0B40,$0BE0,$0C80,$0D20,$0DC0,$0E60
 	dc.w $0F00,$0FA0,$1040,$10E0,$1180,$1220,$12C0,$1360

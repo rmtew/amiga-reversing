@@ -7,7 +7,7 @@ that further analysis is exhausted. Current source remains byte exact: all
 with all 106034 accepted code bytes retained. No generated assembly was edited
 by hand and no interim archive was produced.
 
-The current ownership union leaves 14068 bytes in
+The current ownership union leaves 14060 bytes in
 262 intervals unclassified. This is classification accounting,
 not a semantic completion percentage. Earlier interval/site counts below belong
 to their recorded closeout revision. See the current
@@ -20,10 +20,28 @@ to their recorded closeout revision. See the current
 The [current systematic gap inventory](../../runtime/observations/starglider2-source-gap-inventory.json)
 joins native identities/accesses with canonical layouts and actual rendered
 boundaries. It records 66 suffix signals (including numeric adjacent variants),
-21 lookup contracts, 524 remaining interior references, 48 generic app fields
+21 lookup contracts, 524 remaining interior references, 41 generic app fields
 and 300 unresolved record accesses. These are different denominators. Five
 suffixes name routines and one names text; neither is a pointer defect.
-Latest: the [closed WORD-index field projection](../../runtime/observations/starglider2-closed-word-index-fields.json)
+Latest: the [landscape and mode reconstruction](../../runtime/observations/starglider2-landscape-render-modes.json)
+records seven supported app-field meanings, four original routine roles and four
+horizon fill-state words. Generic app names fall **48 → 41**; the eight declared
+fill-state bytes reduce native unclassified accounting **14068 → 14060** across
+262 intervals. Code remains 106034 bytes and access coverage remains 370 typed /
+300 unresolved. Every requested symbol is checked in generated output; original
+C/vasm remains exact. Long data-role previews now show explicit clipping without trailing whitespace;
+full authored roles remain canonical. The clean standalone result is in the receipt.
+The 256-entry declaration limit was reached and replaced by shared growable
+[native RSSET storage](../../runtime/observations/starglider2-rsset-policy-storage.json),
+with 831 native tests and 15 Python ABI/import/admission checks across this batch.
+The current orphan cross-check finds no resolved CFG/data/table target into the
+30 remaining islands; this does not establish unused code. Next use concrete
+producer groups and relevant original mode/callback paths, rather than repeat
+unfocused tracing or name initialization-only storage. The next active batch traces
+the horizon packet scratch and shared scene queue through their producers, sort
+and drawing consumers. Publication preserves tested work; restoration continues.
+
+Preceding: the [closed WORD-index field projection](../../runtime/observations/starglider2-closed-word-index-fields.json)
 consumes existing converged scalar inputs instead of rejecting every indexed
 operand. It recovers **52 text-directory field accesses: 318 → 370 typed facts,
 352 → 300 unresolved diagnostics, 139 → 87 indexed-dynamic cases**. All remaining

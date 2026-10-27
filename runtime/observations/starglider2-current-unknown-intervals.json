@@ -1,15 +1,15 @@
 {
   "schema_version": 1,
   "kind": "current_native_residual_interval_index_not_input_facts",
-  "publication_base_commit": "1e54e524457934dfda92943a1aa84e843d83e168",
+  "publication_base_commit": "580a6f5ff881fb3f5a8501e7689228dcaf0924f7",
   "binary_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
-  "source_sha256": "d8ed844b164f69b70fb567b884a6c1594a93487e63c7dcde5347b4e6bd55d26b",
-  "analysis_sha256": "8545b7d1d019416b308bf51f3095a3c1d230d24943781567f9759dd7fad9ba99",
-  "backend_sha256": "0e6933c14712153d9e048d4279dbbd2dbcd9b0d3c190624499114c0d0b4a65af",
-  "unclassified_bytes": 14068,
+  "source_sha256": "5e8c4b57b362d5f7eeeabe0eb40548577d2e0a6544c2f41f8aeda4ce90d15525",
+  "analysis_sha256": "20a0e3af53ae3e34a738ba5f3437040665f0c9faa8174d4984cd89daa56412a1",
+  "backend_sha256": "286e2da899e9956b9cbef23fc5fefad755ded22dd740d2f425bde097b66bb972",
+  "unclassified_bytes": 14060,
   "interval_count": 262,
   "intervals_with_native_resolved_references": 57,
-  "native_resolved_reference_records": 682,
+  "native_resolved_reference_records": 651,
   "unclassified_interval_code_start_facts": 0,
   "orphan_candidate_statuses": {
     "unresolved": 30,
@@ -5307,302 +5307,23 @@
     {
       "source_span": [
         188404,
-        188440
+        188432
       ],
       "runtime_span": [
         192500,
-        192536
+        192528
       ],
-      "bytes": 36,
-      "sha256": "e1ea640f79f3ff94f2666c88df9c9decd7dd457e64a569f0c02767174ed137f5",
+      "bytes": 28,
+      "sha256": "7fe7c13af17c00ab8317ec1eef1af50321f090e944e262e96c393898dea7c007",
       "classification": "unclassified",
       "semantic_review": "No new semantic disposition; current native index only.",
       "native_resolved_references": [
-        {
-          "kind": "runtime_address_ref",
-          "source_offset": 9474,
-          "source_runtime_address": 13570,
-          "target_offset": 188436,
-          "target_runtime_address": 192532,
-          "operand_index": 0,
-          "reference_role": null
-        },
-        {
-          "kind": "runtime_address_ref",
-          "source_offset": 9480,
-          "source_runtime_address": 13576,
-          "target_offset": 188432,
-          "target_runtime_address": 192528,
-          "operand_index": 0,
-          "reference_role": null
-        },
-        {
-          "kind": "runtime_address_ref",
-          "source_offset": 9512,
-          "source_runtime_address": 13608,
-          "target_offset": 188438,
-          "target_runtime_address": 192534,
-          "operand_index": 0,
-          "reference_role": null
-        },
-        {
-          "kind": "runtime_address_ref",
-          "source_offset": 9518,
-          "source_runtime_address": 13614,
-          "target_offset": 188432,
-          "target_runtime_address": 192528,
-          "operand_index": 0,
-          "reference_role": null
-        },
-        {
-          "kind": "runtime_address_ref",
-          "source_offset": 11858,
-          "source_runtime_address": 15954,
-          "target_offset": 188432,
-          "target_runtime_address": 192528,
-          "operand_index": 1,
-          "reference_role": null
-        },
-        {
-          "kind": "runtime_address_ref",
-          "source_offset": 11866,
-          "source_runtime_address": 15962,
-          "target_offset": 188434,
-          "target_runtime_address": 192530,
-          "operand_index": 1,
-          "reference_role": null
-        },
-        {
-          "kind": "runtime_address_ref",
-          "source_offset": 56428,
-          "source_runtime_address": 60524,
-          "target_offset": 188432,
-          "target_runtime_address": 192528,
-          "operand_index": 1,
-          "reference_role": null
-        },
-        {
-          "kind": "runtime_address_ref",
-          "source_offset": 56436,
-          "source_runtime_address": 60532,
-          "target_offset": 188434,
-          "target_runtime_address": 192530,
-          "operand_index": 1,
-          "reference_role": null
-        },
-        {
-          "kind": "runtime_address_ref",
-          "source_offset": 187492,
-          "source_runtime_address": 191588,
-          "target_offset": 188438,
-          "target_runtime_address": 192534,
-          "operand_index": 1,
-          "reference_role": null
-        },
-        {
-          "kind": "runtime_address_ref",
-          "source_offset": 187500,
-          "source_runtime_address": 191596,
-          "target_offset": 188436,
-          "target_runtime_address": 192532,
-          "operand_index": 1,
-          "reference_role": null
-        },
-        {
-          "kind": "runtime_address_ref",
-          "source_offset": 187508,
-          "source_runtime_address": 191604,
-          "target_offset": 188432,
-          "target_runtime_address": 192528,
-          "operand_index": 1,
-          "reference_role": null
-        },
-        {
-          "kind": "runtime_address_ref",
-          "source_offset": 187516,
-          "source_runtime_address": 191612,
-          "target_offset": 188434,
-          "target_runtime_address": 192530,
-          "operand_index": 1,
-          "reference_role": null
-        },
         {
           "kind": "runtime_address_ref",
           "source_offset": 187668,
           "source_runtime_address": 191764,
           "target_offset": 188404,
           "target_runtime_address": 192500,
-          "operand_index": 0,
-          "reference_role": null
-        },
-        {
-          "kind": "runtime_address_ref",
-          "source_offset": 187748,
-          "source_runtime_address": 191844,
-          "target_offset": 188432,
-          "target_runtime_address": 192528,
-          "operand_index": 1,
-          "reference_role": null
-        },
-        {
-          "kind": "runtime_address_ref",
-          "source_offset": 187754,
-          "source_runtime_address": 191850,
-          "target_offset": 188434,
-          "target_runtime_address": 192530,
-          "operand_index": 1,
-          "reference_role": null
-        },
-        {
-          "kind": "runtime_address_ref",
-          "source_offset": 187772,
-          "source_runtime_address": 191868,
-          "target_offset": 188432,
-          "target_runtime_address": 192528,
-          "operand_index": 1,
-          "reference_role": null
-        },
-        {
-          "kind": "runtime_address_ref",
-          "source_offset": 187778,
-          "source_runtime_address": 191874,
-          "target_offset": 188434,
-          "target_runtime_address": 192530,
-          "operand_index": 1,
-          "reference_role": null
-        },
-        {
-          "kind": "runtime_address_ref",
-          "source_offset": 187796,
-          "source_runtime_address": 191892,
-          "target_offset": 188432,
-          "target_runtime_address": 192528,
-          "operand_index": 1,
-          "reference_role": null
-        },
-        {
-          "kind": "runtime_address_ref",
-          "source_offset": 187802,
-          "source_runtime_address": 191898,
-          "target_offset": 188434,
-          "target_runtime_address": 192530,
-          "operand_index": 1,
-          "reference_role": null
-        },
-        {
-          "kind": "runtime_address_ref",
-          "source_offset": 187864,
-          "source_runtime_address": 191960,
-          "target_offset": 188432,
-          "target_runtime_address": 192528,
-          "operand_index": 1,
-          "reference_role": null
-        },
-        {
-          "kind": "runtime_address_ref",
-          "source_offset": 187870,
-          "source_runtime_address": 191966,
-          "target_offset": 188434,
-          "target_runtime_address": 192530,
-          "operand_index": 1,
-          "reference_role": null
-        },
-        {
-          "kind": "runtime_address_ref",
-          "source_offset": 188094,
-          "source_runtime_address": 192190,
-          "target_offset": 188432,
-          "target_runtime_address": 192528,
-          "operand_index": 1,
-          "reference_role": null
-        },
-        {
-          "kind": "runtime_address_ref",
-          "source_offset": 188100,
-          "source_runtime_address": 192196,
-          "target_offset": 188434,
-          "target_runtime_address": 192530,
-          "operand_index": 1,
-          "reference_role": null
-        },
-        {
-          "kind": "runtime_address_ref",
-          "source_offset": 188142,
-          "source_runtime_address": 192238,
-          "target_offset": 188432,
-          "target_runtime_address": 192528,
-          "operand_index": 1,
-          "reference_role": null
-        },
-        {
-          "kind": "runtime_address_ref",
-          "source_offset": 188150,
-          "source_runtime_address": 192246,
-          "target_offset": 188434,
-          "target_runtime_address": 192530,
-          "operand_index": 1,
-          "reference_role": null
-        },
-        {
-          "kind": "runtime_address_ref",
-          "source_offset": 235370,
-          "source_runtime_address": 239466,
-          "target_offset": 188436,
-          "target_runtime_address": 192532,
-          "operand_index": 0,
-          "reference_role": null
-        },
-        {
-          "kind": "runtime_address_ref",
-          "source_offset": 235376,
-          "source_runtime_address": 239472,
-          "target_offset": 188432,
-          "target_runtime_address": 192528,
-          "operand_index": 0,
-          "reference_role": null
-        },
-        {
-          "kind": "runtime_address_ref",
-          "source_offset": 235408,
-          "source_runtime_address": 239504,
-          "target_offset": 188438,
-          "target_runtime_address": 192534,
-          "operand_index": 0,
-          "reference_role": null
-        },
-        {
-          "kind": "runtime_address_ref",
-          "source_offset": 235414,
-          "source_runtime_address": 239510,
-          "target_offset": 188432,
-          "target_runtime_address": 192528,
-          "operand_index": 0,
-          "reference_role": null
-        },
-        {
-          "kind": "runtime_address_ref",
-          "source_offset": 235574,
-          "source_runtime_address": 239670,
-          "target_offset": 188432,
-          "target_runtime_address": 192528,
-          "operand_index": 0,
-          "reference_role": null
-        },
-        {
-          "kind": "runtime_address_ref",
-          "source_offset": 235606,
-          "source_runtime_address": 239702,
-          "target_offset": 188438,
-          "target_runtime_address": 192534,
-          "operand_index": 0,
-          "reference_role": null
-        },
-        {
-          "kind": "runtime_address_ref",
-          "source_offset": 235612,
-          "source_runtime_address": 239708,
-          "target_offset": 188432,
-          "target_runtime_address": 192528,
           "operand_index": 0,
           "reference_role": null
         }

@@ -567,6 +567,27 @@ class IrPolicyDllTests(unittest.TestCase):
         self.assertEqual(addressed_rows[0]["entity_addr"], addressed_rows[0]["addr"])
         self.assertIn("SECTION", listing_text)
 
+    def test_data_role_preview_marks_clipping_and_preserves_utf8(self) -> None:
+        library = _file_library()
+        cases = [("keep this   ", "keep this"),
+                 ("a" * 92 + " " + "remaining role text", "a" * 92 + "..."),
+                 ("X" + "€" * 40, "X" + "€" * 30 + "...")]
+        for role, expected in cases:
+            with self.subTest(role=role), tempfile.TemporaryDirectory(dir=BUILD_DIR) as tmp:
+                path = Path(tmp) / "sample.hunk"
+                metadata = Path(tmp) / "target_metadata.json"
+                path.write_bytes(make_synthetic_hunkexe(code_data=b"\x00" * 4))
+                metadata.write_text(json.dumps(dict(seeded_entities=[dict(
+                    type="data", hunk=0, addr=0, end=4, unit="word",
+                    name="authored_state", comment=role)]), ensure_ascii=False), encoding="utf-8")
+                result, text = _file_alloc_text(library,
+                    "platform_file_effective_policy_path_json_alloc", b"amiga-hunk",
+                    str(path).encode(), str(metadata).encode(), b"")
+                self.assertEqual(result, 0, text)
+                comment = json.loads(text)["analysis_policy"]["structured_data_items"][0]["comment"]
+                self.assertEqual(comment, expected)
+                self.assertLessEqual(len(comment.encode("utf-8")), 96)
+
     def test_effective_policy_rsset_regions_grow_past_256_without_truncation(self) -> None:
         library = _file_library()
         regions = [dict(offset=index * 2, size=2, layout_name="app",

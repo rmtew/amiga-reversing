@@ -33,5 +33,13 @@
   "limits": [
     "This receipt qualifies native policy storage. The pending original-game semantic batch and its regenerated source/standalone build are qualified separately.",
     "No speedup or complete semantic-restoration claim. Runtime execution and DMA are unaffected by this host-only storage change."
-  ]
+  ],
+  "follow_up": {
+    "python_ctypes_mirror_updated": true,
+    "all_policy_field_offsets_and_sizes_verified": true,
+    "abi_and_grown_batch_tests": 12,
+    "failures": 0,
+    "log_sha256": "f0121bc559680bd6dd96ea61b14c1246afe536f2f580df57e3fd1a6920786fb2",
+    "negative": "A 300-valid-field prefix plus an unprojectable offset previously lost the invalid fact before native validation. New pending facts now pass the existing canonical converter or the whole batch refuses before writing. Historical projection is unchanged."
+  }
 }

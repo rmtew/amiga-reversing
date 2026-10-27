@@ -2,7 +2,7 @@
   "schema_version": 2,
   "kind": "source_gap_discovery_not_fact_admission",
   "canonical_policy_items": {
-    "policy:15752": {
+    "policy:15756": {
       "section_index": 0,
       "offset": 235820,
       "size": 12,
@@ -27,7 +27,7 @@
       "target_section": null,
       "target_offset": null
     },
-    "policy:15753": {
+    "policy:15757": {
       "section_index": 0,
       "offset": 235832,
       "size": 12,
@@ -152,7 +152,7 @@
       "target_section": null,
       "target_offset": null
     },
-    "policy:15606": {
+    "policy:15610": {
       "section_index": 0,
       "offset": 229666,
       "size": 4,
@@ -227,7 +227,7 @@
       "target_section": null,
       "target_offset": null
     },
-    "policy:15768": {
+    "policy:15772": {
       "section_index": 0,
       "offset": 254226,
       "size": 32,
@@ -252,7 +252,7 @@
       "target_section": null,
       "target_offset": null
     },
-    "policy:15763": {
+    "policy:15767": {
       "section_index": 0,
       "offset": 249230,
       "size": 32,
@@ -277,7 +277,7 @@
       "target_section": null,
       "target_offset": null
     },
-    "policy:15317": {
+    "policy:15321": {
       "section_index": 0,
       "offset": 224104,
       "size": 4,
@@ -302,7 +302,7 @@
       "target_section": 0,
       "target_offset": 224452
     },
-    "policy:15318": {
+    "policy:15322": {
       "section_index": 0,
       "offset": 224104,
       "size": 348,
@@ -427,7 +427,7 @@
       "target_section": null,
       "target_offset": null
     },
-    "policy:15749": {
+    "policy:15753": {
       "section_index": 0,
       "offset": 232676,
       "size": 8,
@@ -452,7 +452,7 @@
       "target_section": null,
       "target_offset": null
     },
-    "policy:15517": {
+    "policy:15521": {
       "section_index": 0,
       "offset": 226920,
       "size": 32,
@@ -552,7 +552,7 @@
       "target_section": 0,
       "target_offset": 187348
     },
-    "policy:16306": {
+    "policy:16310": {
       "section_index": 0,
       "offset": 311912,
       "size": 2,
@@ -577,7 +577,7 @@
       "target_section": null,
       "target_offset": null
     },
-    "policy:16305": {
+    "policy:16309": {
       "section_index": 0,
       "offset": 311910,
       "size": 2,
@@ -602,7 +602,7 @@
       "target_section": null,
       "target_offset": null
     },
-    "policy:16387": {
+    "policy:16391": {
       "section_index": 0,
       "offset": 317770,
       "size": 2,
@@ -627,7 +627,7 @@
       "target_section": null,
       "target_offset": null
     },
-    "policy:15492": {
+    "policy:15496": {
       "section_index": 0,
       "offset": 226564,
       "size": 4,
@@ -677,7 +677,7 @@
       "target_section": null,
       "target_offset": null
     },
-    "policy:15611": {
+    "policy:15615": {
       "section_index": 0,
       "offset": 230126,
       "size": 224,
@@ -702,7 +702,7 @@
       "target_section": null,
       "target_offset": null
     },
-    "policy:15610": {
+    "policy:15614": {
       "section_index": 0,
       "offset": 229902,
       "size": 224,
@@ -752,7 +752,7 @@
       "target_section": null,
       "target_offset": null
     },
-    "policy:15771": {
+    "policy:15775": {
       "section_index": 0,
       "offset": 263864,
       "size": 400,
@@ -772,7 +772,7 @@
       "struct_id": 0,
       "field_id": 1802,
       "pointer_struct_id": 0,
-      "comment": "200 WORD byte offsets. Amiga startup initializes 0,40,...7960; renderer indexes by doubled row ",
+      "comment": "200 WORD byte offsets. Amiga startup initializes 0,40,...7960; renderer indexes by doubled ro...",
       "has_target": false,
       "target_section": null,
       "target_offset": null
@@ -827,7 +827,7 @@
       "target_section": null,
       "target_offset": null
     },
-    "policy:15508": {
+    "policy:15512": {
       "section_index": 0,
       "offset": 226628,
       "size": 64,
@@ -852,7 +852,7 @@
       "target_section": null,
       "target_offset": null
     },
-    "policy:15509": {
+    "policy:15513": {
       "section_index": 0,
       "offset": 226628,
       "size": 348,
@@ -872,12 +872,12 @@
       "struct_id": 0,
       "field_id": 1802,
       "pointer_struct_id": 0,
-      "comment": "Container for11 already named adjacent dialogue/ingredient/trade subarrays, not forced relocati",
+      "comment": "Container for11 already named adjacent dialogue/ingredient/trade subarrays, not forced reloca...",
       "has_target": false,
       "target_section": null,
       "target_offset": null
     },
-    "policy:15510": {
+    "policy:15514": {
       "section_index": 0,
       "offset": 226692,
       "size": 128,
@@ -1102,7 +1102,7 @@
       "target_section": null,
       "target_offset": null
     },
-    "policy:10800": {
+    "policy:10804": {
       "section_index": 0,
       "offset": 190972,
       "size": 4,
@@ -1127,7 +1127,7 @@
       "target_section": 0,
       "target_offset": 191102
     },
-    "policy:10801": {
+    "policy:10805": {
       "section_index": 0,
       "offset": 190972,
       "size": 128,
@@ -1152,7 +1152,7 @@
       "target_section": null,
       "target_offset": null
     },
-    "policy:15646": {
+    "policy:15650": {
       "section_index": 0,
       "offset": 231174,
       "size": 64,
@@ -1177,7 +1177,7 @@
       "target_section": null,
       "target_offset": null
     },
-    "policy:15772": {
+    "policy:15776": {
       "section_index": 0,
       "offset": 264264,
       "size": 24602,
@@ -3022,7 +3022,7 @@
       "struct_id": 0,
       "field_id": 1802,
       "pointer_struct_id": 0,
-      "comment": "22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint",
+      "comment": "22 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with uni...",
       "has_target": false,
       "target_section": null,
       "target_offset": null
@@ -3047,7 +3047,7 @@
       "struct_id": 0,
       "field_id": 1802,
       "pointer_struct_id": 0,
-      "comment": "30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint",
+      "comment": "30 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with uni...",
       "has_target": false,
       "target_section": null,
       "target_offset": null
@@ -3072,7 +3072,7 @@
       "struct_id": 0,
       "field_id": 1802,
       "pointer_struct_id": 0,
-      "comment": "19 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte",
+      "comment": "19 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with unin...",
       "has_target": false,
       "target_section": null,
       "target_offset": null
@@ -3097,7 +3097,7 @@
       "struct_id": 0,
       "field_id": 1802,
       "pointer_struct_id": 0,
-      "comment": "24 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte",
+      "comment": "24 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with unin...",
       "has_target": false,
       "target_section": null,
       "target_offset": null
@@ -3122,7 +3122,7 @@
       "struct_id": 0,
       "field_id": 1802,
       "pointer_struct_id": 0,
-      "comment": "21 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with uninte",
+      "comment": "21 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with unin...",
       "has_target": false,
       "target_section": null,
       "target_offset": null
@@ -3147,7 +3147,7 @@
       "struct_id": 0,
       "field_id": 1802,
       "pointer_struct_id": 0,
-      "comment": "7 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with uninter",
+      "comment": "7 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with unint...",
       "has_target": false,
       "target_section": null,
       "target_offset": null
@@ -3172,7 +3172,7 @@
       "struct_id": 0,
       "field_id": 1802,
       "pointer_struct_id": 0,
-      "comment": "4 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninter",
+      "comment": "4 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with unint...",
       "has_target": false,
       "target_section": null,
       "target_offset": null
@@ -3197,7 +3197,7 @@
       "struct_id": 0,
       "field_id": 1802,
       "pointer_struct_id": 0,
-      "comment": "20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with unint",
+      "comment": "20 viewer-indexed variant frames, 23 encoded vertex records per frame; 8-byte stride with uni...",
       "has_target": false,
       "target_section": null,
       "target_offset": null
@@ -3222,7 +3222,7 @@
       "struct_id": 0,
       "field_id": 1802,
       "pointer_struct_id": 0,
-      "comment": "9 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninter",
+      "comment": "9 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with unint...",
       "has_target": false,
       "target_section": null,
       "target_offset": null
@@ -3247,7 +3247,7 @@
       "struct_id": 0,
       "field_id": 1802,
       "pointer_struct_id": 0,
-      "comment": "23 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with uninte",
+      "comment": "23 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with unin...",
       "has_target": false,
       "target_section": null,
       "target_offset": null
@@ -3272,7 +3272,7 @@
       "struct_id": 0,
       "field_id": 1802,
       "pointer_struct_id": 0,
-      "comment": "15 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte",
+      "comment": "15 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with unin...",
       "has_target": false,
       "target_section": null,
       "target_offset": null
@@ -3297,7 +3297,7 @@
       "struct_id": 0,
       "field_id": 1802,
       "pointer_struct_id": 0,
-      "comment": "13 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with unint",
+      "comment": "13 viewer-indexed variant frames, 16 encoded vertex records per frame; 8-byte stride with uni...",
       "has_target": false,
       "target_section": null,
       "target_offset": null
@@ -3322,7 +3322,7 @@
       "struct_id": 0,
       "field_id": 1802,
       "pointer_struct_id": 0,
-      "comment": "39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte",
+      "comment": "39 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with unin...",
       "has_target": false,
       "target_section": null,
       "target_offset": null
@@ -3347,7 +3347,7 @@
       "struct_id": 0,
       "field_id": 1802,
       "pointer_struct_id": 0,
-      "comment": "23 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte",
+      "comment": "23 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with unin...",
       "has_target": false,
       "target_section": null,
       "target_offset": null
@@ -3372,7 +3372,7 @@
       "struct_id": 0,
       "field_id": 1802,
       "pointer_struct_id": 0,
-      "comment": "23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with unint",
+      "comment": "23 viewer-indexed variant frames, 13 encoded vertex records per frame; 8-byte stride with uni...",
       "has_target": false,
       "target_section": null,
       "target_offset": null
@@ -3397,7 +3397,7 @@
       "struct_id": 0,
       "field_id": 1802,
       "pointer_struct_id": 0,
-      "comment": "19 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninte",
+      "comment": "19 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with unin...",
       "has_target": false,
       "target_section": null,
       "target_offset": null
@@ -3422,7 +3422,7 @@
       "struct_id": 0,
       "field_id": 1802,
       "pointer_struct_id": 0,
-      "comment": "9 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninter",
+      "comment": "9 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with unint...",
       "has_target": false,
       "target_section": null,
       "target_offset": null
@@ -3447,7 +3447,7 @@
       "struct_id": 0,
       "field_id": 1802,
       "pointer_struct_id": 0,
-      "comment": "11 viewer-indexed variant frames, 12 encoded vertex records per frame; 8-byte stride with unint",
+      "comment": "11 viewer-indexed variant frames, 12 encoded vertex records per frame; 8-byte stride with uni...",
       "has_target": false,
       "target_section": null,
       "target_offset": null
@@ -3472,7 +3472,7 @@
       "struct_id": 0,
       "field_id": 1802,
       "pointer_struct_id": 0,
-      "comment": "9 viewer-indexed variant frames, 9 encoded vertex records per frame; 8-byte stride with uninter",
+      "comment": "9 viewer-indexed variant frames, 9 encoded vertex records per frame; 8-byte stride with unint...",
       "has_target": false,
       "target_section": null,
       "target_offset": null
@@ -3497,7 +3497,7 @@
       "struct_id": 0,
       "field_id": 1802,
       "pointer_struct_id": 0,
-      "comment": "3 viewer-indexed variant frames, 25 encoded vertex records per frame; 8-byte stride with uninte",
+      "comment": "3 viewer-indexed variant frames, 25 encoded vertex records per frame; 8-byte stride with unin...",
       "has_target": false,
       "target_section": null,
       "target_offset": null
@@ -3522,7 +3522,7 @@
       "struct_id": 0,
       "field_id": 1802,
       "pointer_struct_id": 0,
-      "comment": "9 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninter",
+      "comment": "9 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with unint...",
       "has_target": false,
       "target_section": null,
       "target_offset": null
@@ -3547,7 +3547,7 @@
       "struct_id": 0,
       "field_id": 1802,
       "pointer_struct_id": 0,
-      "comment": "9 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninter",
+      "comment": "9 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with unint...",
       "has_target": false,
       "target_section": null,
       "target_offset": null
@@ -3572,7 +3572,7 @@
       "struct_id": 0,
       "field_id": 1802,
       "pointer_struct_id": 0,
-      "comment": "6 viewer-indexed variant frames, 10 encoded vertex records per frame; 8-byte stride with uninte",
+      "comment": "6 viewer-indexed variant frames, 10 encoded vertex records per frame; 8-byte stride with unin...",
       "has_target": false,
       "target_section": null,
       "target_offset": null
@@ -3597,7 +3597,7 @@
       "struct_id": 0,
       "field_id": 1802,
       "pointer_struct_id": 0,
-      "comment": "9 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with uninter",
+      "comment": "9 viewer-indexed variant frames, 4 encoded vertex records per frame; 8-byte stride with unint...",
       "has_target": false,
       "target_section": null,
       "target_offset": null
@@ -3622,7 +3622,7 @@
       "struct_id": 0,
       "field_id": 1802,
       "pointer_struct_id": 0,
-      "comment": "9 viewer-indexed variant frames, 9 encoded vertex records per frame; 8-byte stride with uninter",
+      "comment": "9 viewer-indexed variant frames, 9 encoded vertex records per frame; 8-byte stride with unint...",
       "has_target": false,
       "target_section": null,
       "target_offset": null
@@ -3647,7 +3647,7 @@
       "struct_id": 0,
       "field_id": 1802,
       "pointer_struct_id": 0,
-      "comment": "7 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninter",
+      "comment": "7 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with unint...",
       "has_target": false,
       "target_section": null,
       "target_offset": null
@@ -3672,7 +3672,7 @@
       "struct_id": 0,
       "field_id": 1802,
       "pointer_struct_id": 0,
-      "comment": "9 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with uninter",
+      "comment": "9 viewer-indexed variant frames, 6 encoded vertex records per frame; 8-byte stride with unint...",
       "has_target": false,
       "target_section": null,
       "target_offset": null
@@ -3697,7 +3697,7 @@
       "struct_id": 0,
       "field_id": 1802,
       "pointer_struct_id": 0,
-      "comment": "19 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte",
+      "comment": "19 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with unin...",
       "has_target": false,
       "target_section": null,
       "target_offset": null
@@ -3722,7 +3722,7 @@
       "struct_id": 0,
       "field_id": 1802,
       "pointer_struct_id": 0,
-      "comment": "19 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with uninte",
+      "comment": "19 viewer-indexed variant frames, 7 encoded vertex records per frame; 8-byte stride with unin...",
       "has_target": false,
       "target_section": null,
       "target_offset": null
@@ -3747,7 +3747,7 @@
       "struct_id": 0,
       "field_id": 1802,
       "pointer_struct_id": 0,
-      "comment": "11 viewer-indexed variant frames, 24 encoded vertex records per frame; 8-byte stride with unint",
+      "comment": "11 viewer-indexed variant frames, 24 encoded vertex records per frame; 8-byte stride with uni...",
       "has_target": false,
       "target_section": null,
       "target_offset": null
@@ -3772,12 +3772,12 @@
       "struct_id": 0,
       "field_id": 1802,
       "pointer_struct_id": 0,
-      "comment": "19 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with uninte",
+      "comment": "19 viewer-indexed variant frames, 8 encoded vertex records per frame; 8-byte stride with unin...",
       "has_target": false,
       "target_section": null,
       "target_offset": null
     },
-    "policy:16413": {
+    "policy:16417": {
       "section_index": 0,
       "offset": 317834,
       "size": 4,
@@ -3802,7 +3802,7 @@
       "target_section": 0,
       "target_offset": 318138
     },
-    "policy:16419": {
+    "policy:16423": {
       "section_index": 0,
       "offset": 317858,
       "size": 4,
@@ -3827,7 +3827,7 @@
       "target_section": 0,
       "target_offset": 318298
     },
-    "policy:16423": {
+    "policy:16427": {
       "section_index": 0,
       "offset": 317874,
       "size": 4,
@@ -3852,7 +3852,7 @@
       "target_section": 0,
       "target_offset": 318426
     },
-    "policy:16426": {
+    "policy:16430": {
       "section_index": 0,
       "offset": 317886,
       "size": 4,
@@ -3877,7 +3877,7 @@
       "target_section": 0,
       "target_offset": 319098
     },
-    "policy:16429": {
+    "policy:16433": {
       "section_index": 0,
       "offset": 317898,
       "size": 4,
@@ -3902,7 +3902,7 @@
       "target_section": 0,
       "target_offset": 319930
     },
-    "policy:16469": {
+    "policy:16473": {
       "section_index": 0,
       "offset": 318058,
       "size": 4,
@@ -5835,8 +5835,8 @@
       "unresolved": 30,
       "suppressed": 5
     },
-    "generic_base_layout_fields": 48,
-    "generic_base_symbols": 48,
+    "generic_base_layout_fields": 41,
+    "generic_base_symbols": 41,
     "homogeneous_pointer_record_arrays": 10,
     "array_projection_mechanisms": {
       "collection_contract_exposed": 10
@@ -7058,7 +7058,7 @@
         }
       ],
       "canonical_item_ids": [
-        "policy:15752"
+        "policy:15756"
       ],
       "canonical_entities": [
         {
@@ -7129,7 +7129,7 @@
         }
       ],
       "canonical_item_ids": [
-        "policy:15753"
+        "policy:15757"
       ],
       "canonical_entities": [
         {
@@ -7775,7 +7775,7 @@
         }
       ],
       "canonical_item_ids": [
-        "policy:15606"
+        "policy:15610"
       ],
       "canonical_entities": [
         {
@@ -9943,7 +9943,7 @@
         }
       ],
       "canonical_item_ids": [
-        "policy:15768"
+        "policy:15772"
       ],
       "canonical_entities": [
         {
@@ -10201,7 +10201,7 @@
         }
       ],
       "canonical_item_ids": [
-        "policy:15763"
+        "policy:15767"
       ],
       "canonical_entities": [
         {
@@ -10657,8 +10657,8 @@
         }
       ],
       "canonical_item_ids": [
-        "policy:15317",
-        "policy:15318"
+        "policy:15321",
+        "policy:15322"
       ],
       "canonical_entities": [
         {
@@ -13049,7 +13049,7 @@
         }
       ],
       "canonical_item_ids": [
-        "policy:15749"
+        "policy:15753"
       ],
       "canonical_entities": [
         {
@@ -13131,7 +13131,7 @@
         }
       ],
       "canonical_item_ids": [
-        "policy:15517"
+        "policy:15521"
       ],
       "canonical_entities": [
         {
@@ -13555,7 +13555,7 @@
         }
       ],
       "canonical_item_ids": [
-        "policy:16306"
+        "policy:16310"
       ],
       "canonical_entities": [
         {
@@ -13648,7 +13648,7 @@
         }
       ],
       "canonical_item_ids": [
-        "policy:16305"
+        "policy:16309"
       ],
       "canonical_entities": [
         {
@@ -13741,7 +13741,7 @@
         }
       ],
       "canonical_item_ids": [
-        "policy:16387"
+        "policy:16391"
       ],
       "canonical_entities": [
         {
@@ -13857,7 +13857,7 @@
         }
       ],
       "canonical_item_ids": [
-        "policy:15492"
+        "policy:15496"
       ],
       "canonical_entities": [
         {
@@ -15642,7 +15642,7 @@
         }
       ],
       "canonical_item_ids": [
-        "policy:15611"
+        "policy:15615"
       ],
       "canonical_entities": [
         {
@@ -15782,7 +15782,7 @@
         }
       ],
       "canonical_item_ids": [
-        "policy:15610"
+        "policy:15614"
       ],
       "canonical_entities": [
         {
@@ -15924,7 +15924,7 @@
         }
       ],
       "canonical_item_ids": [
-        "policy:15771"
+        "policy:15775"
       ],
       "canonical_entities": [
         {
@@ -18382,8 +18382,8 @@
         }
       ],
       "canonical_item_ids": [
-        "policy:15508",
-        "policy:15509"
+        "policy:15512",
+        "policy:15513"
       ],
       "canonical_entities": [
         {
@@ -18478,7 +18478,7 @@
         }
       ],
       "canonical_item_ids": [
-        "policy:15510"
+        "policy:15514"
       ],
       "canonical_entities": [
         {
@@ -19817,8 +19817,8 @@
         }
       ],
       "canonical_item_ids": [
-        "policy:10800",
-        "policy:10801"
+        "policy:10804",
+        "policy:10805"
       ],
       "canonical_entities": [
         {
@@ -19917,7 +19917,7 @@
         }
       ],
       "canonical_item_ids": [
-        "policy:15646"
+        "policy:15650"
       ],
       "canonical_entities": [
         {
@@ -20647,73 +20647,6 @@
         "layout_name": "app",
         "base_symbol": "__amiga_app_base__",
         "sizeof_symbol": "app_SIZEOF",
-        "symbol": "app_01F0",
-        "owner_struct_name": null,
-        "offset": 496,
-        "size": 1,
-        "alias": false,
-        "layout_kind": 1,
-        "source_kind": 1,
-        "source_kind_name": "app_slot_access",
-        "value_kind": 3,
-        "confidence": 2,
-        "conflicted": false,
-        "conflict_reason": null,
-        "alias_of_symbol": null,
-        "alias_of_offset": null,
-        "source_section_index": 0,
-        "source_offset": 3786
-      },
-      "app_accesses": [
-        {
-          "section_index": 0,
-          "offset": 3786,
-          "displacement": 496,
-          "base_register": "A6",
-          "operand_index": 0,
-          "access": "write",
-          "base_evidence": "a6_fallback",
-          "symbol_name": "app_01F0"
-        },
-        {
-          "section_index": 0,
-          "offset": 15252,
-          "displacement": 496,
-          "base_register": "A6",
-          "operand_index": 0,
-          "access": "read",
-          "base_evidence": "a6_fallback",
-          "symbol_name": "app_01F0"
-        },
-        {
-          "section_index": 0,
-          "offset": 55934,
-          "displacement": 496,
-          "base_register": "A6",
-          "operand_index": 0,
-          "access": "write",
-          "base_evidence": "a6_fallback",
-          "symbol_name": "app_01F0"
-        },
-        {
-          "section_index": 0,
-          "offset": 57874,
-          "displacement": 496,
-          "base_register": "A6",
-          "operand_index": 0,
-          "access": "read-write",
-          "base_evidence": "a6_fallback",
-          "symbol_name": "app_01F0"
-        }
-      ],
-      "address_consumers": []
-    },
-    {
-      "domain": "base_layout",
-      "field": {
-        "layout_name": "app",
-        "base_symbol": "__amiga_app_base__",
-        "sizeof_symbol": "app_SIZEOF",
         "symbol": "app_01F4",
         "owner_struct_name": null,
         "offset": 500,
@@ -20741,140 +20674,6 @@
           "access": "write",
           "base_evidence": "a6_fallback",
           "symbol_name": "app_01F4"
-        }
-      ],
-      "address_consumers": []
-    },
-    {
-      "domain": "base_layout",
-      "field": {
-        "layout_name": "app",
-        "base_symbol": "__amiga_app_base__",
-        "sizeof_symbol": "app_SIZEOF",
-        "symbol": "app_01F5",
-        "owner_struct_name": null,
-        "offset": 501,
-        "size": 1,
-        "alias": false,
-        "layout_kind": 1,
-        "source_kind": 1,
-        "source_kind_name": "app_slot_access",
-        "value_kind": 3,
-        "confidence": 2,
-        "conflicted": false,
-        "conflict_reason": null,
-        "alias_of_symbol": null,
-        "alias_of_offset": null,
-        "source_section_index": 0,
-        "source_offset": 56922
-      },
-      "app_accesses": [
-        {
-          "section_index": 0,
-          "offset": 56922,
-          "displacement": 501,
-          "base_register": "A6",
-          "operand_index": 0,
-          "access": "read",
-          "base_evidence": "a6_fallback",
-          "symbol_name": "app_01F5"
-        }
-      ],
-      "address_consumers": []
-    },
-    {
-      "domain": "base_layout",
-      "field": {
-        "layout_name": "app",
-        "base_symbol": "__amiga_app_base__",
-        "sizeof_symbol": "app_SIZEOF",
-        "symbol": "app_01F6",
-        "owner_struct_name": null,
-        "offset": 502,
-        "size": 1,
-        "alias": false,
-        "layout_kind": 1,
-        "source_kind": 1,
-        "source_kind_name": "app_slot_access",
-        "value_kind": 3,
-        "confidence": 2,
-        "conflicted": false,
-        "conflict_reason": null,
-        "alias_of_symbol": null,
-        "alias_of_offset": null,
-        "source_section_index": 0,
-        "source_offset": 1076
-      },
-      "app_accesses": [
-        {
-          "section_index": 0,
-          "offset": 1076,
-          "displacement": 502,
-          "base_register": "A6",
-          "operand_index": 0,
-          "access": "read",
-          "base_evidence": "a6_fallback",
-          "symbol_name": "app_01F6"
-        },
-        {
-          "section_index": 0,
-          "offset": 2284,
-          "displacement": 502,
-          "base_register": "A6",
-          "operand_index": 0,
-          "access": "read",
-          "base_evidence": "a6_fallback",
-          "symbol_name": "app_01F6"
-        },
-        {
-          "section_index": 0,
-          "offset": 3608,
-          "displacement": 502,
-          "base_register": "A6",
-          "operand_index": 0,
-          "access": "read",
-          "base_evidence": "a6_fallback",
-          "symbol_name": "app_01F6"
-        },
-        {
-          "section_index": 0,
-          "offset": 3660,
-          "displacement": 502,
-          "base_register": "A6",
-          "operand_index": 0,
-          "access": "read-write",
-          "base_evidence": "a6_fallback",
-          "symbol_name": "app_01F6"
-        },
-        {
-          "section_index": 0,
-          "offset": 4408,
-          "displacement": 502,
-          "base_register": "A6",
-          "operand_index": 0,
-          "access": "write",
-          "base_evidence": "a6_fallback",
-          "symbol_name": "app_01F6"
-        },
-        {
-          "section_index": 0,
-          "offset": 56118,
-          "displacement": 502,
-          "base_register": "A6",
-          "operand_index": 0,
-          "access": "read",
-          "base_evidence": "a6_fallback",
-          "symbol_name": "app_01F6"
-        },
-        {
-          "section_index": 0,
-          "offset": 57050,
-          "displacement": 502,
-          "base_register": "A6",
-          "operand_index": 0,
-          "access": "read",
-          "base_evidence": "a6_fallback",
-          "symbol_name": "app_01F6"
         }
       ],
       "address_consumers": []
@@ -21466,83 +21265,6 @@
         "layout_name": "app",
         "base_symbol": "__amiga_app_base__",
         "sizeof_symbol": "app_SIZEOF",
-        "symbol": "app_07B0",
-        "owner_struct_name": null,
-        "offset": 1968,
-        "size": 2,
-        "alias": false,
-        "layout_kind": 1,
-        "source_kind": 1,
-        "source_kind_name": "app_slot_access",
-        "value_kind": 3,
-        "confidence": 2,
-        "conflicted": false,
-        "conflict_reason": null,
-        "alias_of_symbol": null,
-        "alias_of_offset": null,
-        "source_section_index": 0,
-        "source_offset": 568
-      },
-      "app_accesses": [
-        {
-          "section_index": 0,
-          "offset": 568,
-          "displacement": 1968,
-          "base_register": "A6",
-          "operand_index": 1,
-          "access": "write",
-          "base_evidence": "a6_fallback",
-          "symbol_name": "app_07B0"
-        },
-        {
-          "section_index": 0,
-          "offset": 54376,
-          "displacement": 1968,
-          "base_register": "A6",
-          "operand_index": 1,
-          "access": "write",
-          "base_evidence": "a6_fallback",
-          "symbol_name": "app_07B0"
-        },
-        {
-          "section_index": 0,
-          "offset": 187492,
-          "displacement": 1968,
-          "base_register": "A6",
-          "operand_index": 0,
-          "access": "read",
-          "base_evidence": "a6_fallback",
-          "symbol_name": "app_07B0"
-        },
-        {
-          "section_index": 0,
-          "offset": 187692,
-          "displacement": 1968,
-          "base_register": "A6",
-          "operand_index": 0,
-          "access": "read",
-          "base_evidence": "a6_fallback",
-          "symbol_name": "app_07B0"
-        },
-        {
-          "section_index": 0,
-          "offset": 207468,
-          "displacement": 1968,
-          "base_register": "A6",
-          "operand_index": 1,
-          "access": "write",
-          "base_evidence": "a6_fallback",
-          "symbol_name": "app_07B0"
-        }
-      ],
-      "address_consumers": []
-    },
-    {
-      "domain": "base_layout",
-      "field": {
-        "layout_name": "app",
-        "base_symbol": "__amiga_app_base__",
-        "sizeof_symbol": "app_SIZEOF",
         "symbol": "app_07C6",
         "owner_struct_name": null,
         "offset": 1990,
@@ -21570,63 +21292,6 @@
           "access": "write",
           "base_evidence": "a6_fallback",
           "symbol_name": "app_07C6"
-        }
-      ],
-      "address_consumers": []
-    },
-    {
-      "domain": "base_layout",
-      "field": {
-        "layout_name": "app",
-        "base_symbol": "__amiga_app_base__",
-        "sizeof_symbol": "app_SIZEOF",
-        "symbol": "app_07E9",
-        "owner_struct_name": null,
-        "offset": 2025,
-        "size": 1,
-        "alias": false,
-        "layout_kind": 1,
-        "source_kind": 1,
-        "source_kind_name": "app_slot_access",
-        "value_kind": 3,
-        "confidence": 2,
-        "conflicted": false,
-        "conflict_reason": null,
-        "alias_of_symbol": null,
-        "alias_of_offset": null,
-        "source_section_index": 0,
-        "source_offset": 744
-      },
-      "app_accesses": [
-        {
-          "section_index": 0,
-          "offset": 744,
-          "displacement": 2025,
-          "base_register": "A6",
-          "operand_index": 0,
-          "access": "read",
-          "base_evidence": "a6_fallback",
-          "symbol_name": "app_07E9"
-        },
-        {
-          "section_index": 0,
-          "offset": 4404,
-          "displacement": 2025,
-          "base_register": "A6",
-          "operand_index": 0,
-          "access": "write",
-          "base_evidence": "a6_fallback",
-          "symbol_name": "app_07E9"
-        },
-        {
-          "section_index": 0,
-          "offset": 28616,
-          "displacement": 2025,
-          "base_register": "A6",
-          "operand_index": 0,
-          "access": "read",
-          "base_evidence": "a6_fallback",
-          "symbol_name": "app_07E9"
         }
       ],
       "address_consumers": []
@@ -21788,83 +21453,6 @@
           "access": "write",
           "base_evidence": "a6_fallback",
           "symbol_name": "app_07F4"
-        }
-      ],
-      "address_consumers": []
-    },
-    {
-      "domain": "base_layout",
-      "field": {
-        "layout_name": "app",
-        "base_symbol": "__amiga_app_base__",
-        "sizeof_symbol": "app_SIZEOF",
-        "symbol": "app_07F6",
-        "owner_struct_name": null,
-        "offset": 2038,
-        "size": 1,
-        "alias": false,
-        "layout_kind": 1,
-        "source_kind": 1,
-        "source_kind_name": "app_slot_access",
-        "value_kind": 3,
-        "confidence": 2,
-        "conflicted": false,
-        "conflict_reason": null,
-        "alias_of_symbol": null,
-        "alias_of_offset": null,
-        "source_section_index": 0,
-        "source_offset": 2242
-      },
-      "app_accesses": [
-        {
-          "section_index": 0,
-          "offset": 2242,
-          "displacement": 2038,
-          "base_register": "A6",
-          "operand_index": 1,
-          "access": "read-write",
-          "base_evidence": "a6_fallback",
-          "symbol_name": "app_07F6"
-        },
-        {
-          "section_index": 0,
-          "offset": 4442,
-          "displacement": 2038,
-          "base_register": "A6",
-          "operand_index": 1,
-          "access": "write",
-          "base_evidence": "a6_fallback",
-          "symbol_name": "app_07F6"
-        },
-        {
-          "section_index": 0,
-          "offset": 11900,
-          "displacement": 2038,
-          "base_register": "A6",
-          "operand_index": 0,
-          "access": "read",
-          "base_evidence": "a6_fallback",
-          "symbol_name": "app_07F6"
-        },
-        {
-          "section_index": 0,
-          "offset": 187524,
-          "displacement": 2038,
-          "base_register": "A6",
-          "operand_index": 1,
-          "access": "read",
-          "base_evidence": "a6_fallback",
-          "symbol_name": "app_07F6"
-        },
-        {
-          "section_index": 0,
-          "offset": 188440,
-          "displacement": 2038,
-          "base_register": "A6",
-          "operand_index": 1,
-          "access": "read",
-          "base_evidence": "a6_fallback",
-          "symbol_name": "app_07F6"
         }
       ],
       "address_consumers": []
@@ -22180,63 +21768,6 @@
           "access": "read",
           "base_evidence": "a6_fallback",
           "symbol_name": "app_0A9D"
-        }
-      ],
-      "address_consumers": []
-    },
-    {
-      "domain": "base_layout",
-      "field": {
-        "layout_name": "app",
-        "base_symbol": "__amiga_app_base__",
-        "sizeof_symbol": "app_SIZEOF",
-        "symbol": "app_0AA5",
-        "owner_struct_name": null,
-        "offset": 2725,
-        "size": 1,
-        "alias": false,
-        "layout_kind": 1,
-        "source_kind": 1,
-        "source_kind_name": "app_slot_access",
-        "value_kind": 3,
-        "confidence": 2,
-        "conflicted": false,
-        "conflict_reason": null,
-        "alias_of_symbol": null,
-        "alias_of_offset": null,
-        "source_section_index": 0,
-        "source_offset": 207094
-      },
-      "app_accesses": [
-        {
-          "section_index": 0,
-          "offset": 207094,
-          "displacement": 2725,
-          "base_register": "A6",
-          "operand_index": 1,
-          "access": "write",
-          "base_evidence": "a6_fallback",
-          "symbol_name": "app_0AA5"
-        },
-        {
-          "section_index": 0,
-          "offset": 207336,
-          "displacement": 2725,
-          "base_register": "A6",
-          "operand_index": 0,
-          "access": "read",
-          "base_evidence": "a6_fallback",
-          "symbol_name": "app_0AA5"
-        },
-        {
-          "section_index": 0,
-          "offset": 208478,
-          "displacement": 2725,
-          "base_register": "A6",
-          "operand_index": 0,
-          "access": "read",
-          "base_evidence": "a6_fallback",
-          "symbol_name": "app_0AA5"
         }
       ],
       "address_consumers": []
@@ -22994,7 +22525,7 @@
       "evidence": "native_rendered_target_identity",
       "canonical_layout_id": null,
       "target_policy_item_ids": [
-        "policy:15772"
+        "policy:15776"
       ]
     },
     {
@@ -30246,7 +29777,7 @@
       "evidence": "native_rendered_target_identity",
       "canonical_layout_id": "catalog-93699fe979424047a84698903fc03dd4",
       "target_policy_item_ids": [
-        "policy:16413"
+        "policy:16417"
       ]
     },
     {
@@ -30260,7 +29791,7 @@
       "evidence": "native_rendered_target_identity",
       "canonical_layout_id": "catalog-93699fe979424047a84698903fc03dd4",
       "target_policy_item_ids": [
-        "policy:16419"
+        "policy:16423"
       ]
     },
     {
@@ -30274,7 +29805,7 @@
       "evidence": "native_rendered_target_identity",
       "canonical_layout_id": "catalog-93699fe979424047a84698903fc03dd4",
       "target_policy_item_ids": [
-        "policy:16423"
+        "policy:16427"
       ]
     },
     {
@@ -30288,7 +29819,7 @@
       "evidence": "native_rendered_target_identity",
       "canonical_layout_id": "catalog-93699fe979424047a84698903fc03dd4",
       "target_policy_item_ids": [
-        "policy:16426"
+        "policy:16430"
       ]
     },
     {
@@ -30302,7 +29833,7 @@
       "evidence": "native_rendered_target_identity",
       "canonical_layout_id": "catalog-93699fe979424047a84698903fc03dd4",
       "target_policy_item_ids": [
-        "policy:16429"
+        "policy:16433"
       ]
     },
     {
@@ -30316,7 +29847,7 @@
       "evidence": "native_rendered_target_identity",
       "canonical_layout_id": "catalog-93699fe979424047a84698903fc03dd4",
       "target_policy_item_ids": [
-        "policy:16469"
+        "policy:16473"
       ]
     }
   ],
@@ -41656,9 +41187,9 @@
     "Native rendered accesses describe the inline export. exported_definition checks the selected source; INCBIN packaging may intentionally hide internal boundaries."
   ],
   "input_sha256": {
-    "analysis": "8545b7d1d019416b308bf51f3095a3c1d230d24943781567f9759dd7fad9ba99",
-    "metadata": "abbb82000e9f0220b647ad3c44dc0cef810e11de175eb38a1faa451c51508bde",
-    "source": "8b242278471246491a7125f9c766aced4466ffc044da9f058d043a103a5fedc2"
+    "analysis": "20a0e3af53ae3e34a738ba5f3437040665f0c9faa8174d4984cd89daa56412a1",
+    "metadata": "495d1451eac8c52cb73a75900640947a91084ce4068c2f23dfd32b08587fad49",
+    "source": "01067bab93843a2f85270a37919802fe94d0cbb9d30cf88fa07e71aa185bb21f"
   },
   "input_binding": "Caller supplies matching retained artifacts. Hashes identify inputs; discovery is not an independent correspondence/admission proof."
 }

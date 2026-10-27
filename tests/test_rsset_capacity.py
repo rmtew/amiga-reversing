@@ -1,4 +1,4 @@
-"""Explicit app fields have a finite capacity and fail atomically above it."""
+"""Explicit fields grow past the old limit; invalid batches still fail atomically."""
 import json
 import pytest
 from amiga_reversing.disasm import c_backend
@@ -15,7 +15,7 @@ def fixture(tmp_path):
 
 
 @pytest.mark.c_backend
-@pytest.mark.parametrize('count',[128,129,256])
+@pytest.mark.parametrize('count',[128,129,256,257,300])
 def test_native_rsset_capacity_preserves_every_region(tmp_path,count):
     source=fixture(tmp_path)
     regions=[dict(offset=i*2,size=1,symbol=f'state_{i}',layout_name='app',storage_kind='scalar')for i in range(count)]
@@ -27,12 +27,17 @@ def test_native_rsset_capacity_preserves_every_region(tmp_path,count):
 
 
 @pytest.mark.c_backend
-def test_rsset_overflow_refuses_entire_manual_batch(tmp_path):
+def test_invalid_rsset_tail_refuses_entire_grown_manual_batch(tmp_path):
     source=fixture(tmp_path);write_target_metadata(tmp_path,TargetMetadata(target_type='program',entry_register_seeds=()))
     actions=[(Kind.CREATE_MANUAL_RSSET_LAYOUT_REGION,{'rsset_layout_region':dict(
-        rsset_layout_region_id=f'slot-{i}',offset=2*i,size=1,symbol=f'slot_{i}',layout_name='app',storage_kind='scalar')})for i in range(257)]
+        rsset_layout_region_id=f'slot-{i}',offset=2*i,size=1,symbol=f'slot_{i}',layout_name='app',storage_kind='scalar')})for i in range(300)]
+    # Native signed app displacement validation must still reject an invalid
+    # tail after a valid prefix larger than the former fixed storage.
+    actions.append((Kind.CREATE_MANUAL_RSSET_LAYOUT_REGION,{'rsset_layout_region':dict(
+        rsset_layout_region_id='bad-tail',offset=0x8000,size=1,symbol='invalid_displacement',
+        layout_name='app',storage_kind='scalar')}))
     before=(tmp_path/'target_metadata.json').read_bytes()
-    with pytest.raises(RuntimeError,match='RSSET layout region'):
+    with pytest.raises(ValueError,match='unprojectable RSSET layout region'):
         append_manual_actions(tmp_path,binary_source=source,actions=actions)
     assert not(tmp_path/'manual_actions.jsonl').exists()
     assert not(tmp_path/'decision_journal.jsonl').exists()
@@ -40,7 +45,7 @@ def test_rsset_overflow_refuses_entire_manual_batch(tmp_path):
 
 
 @pytest.mark.c_backend
-@pytest.mark.parametrize('count',[129,256])
+@pytest.mark.parametrize('count',[129,256,300])
 def test_manual_rsset_batch_commits_all_admitted_fields(tmp_path,count):
     from amiga_reversing.disasm.manual_actions import load_manual_projection
     source=fixture(tmp_path);write_target_metadata(tmp_path,TargetMetadata(target_type='program',entry_register_seeds=()))

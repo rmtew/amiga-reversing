@@ -7771,6 +7771,22 @@ static MetadataSeededEntityClassification metadata_seeded_entity_classify_local(
   return classification;
 }
 
+/* Data roles are retained in full metadata; the fixed-width native comment
+ * is only a source preview. Make clipping visible and keep UTF-8 boundaries. */
+static void copy_data_role_preview_local(char *dest, size_t capacity, const char *source) {
+  size_t length = strlen(source), used;
+  int clipped;
+  if (capacity < 4U) { if (capacity) dest[0] = '\0'; return; }
+  clipped = length >= capacity;
+  used = clipped ? capacity - 4U : length;
+  if (clipped)
+    while (used && (((unsigned char)source[used] & 0xC0U) == 0x80U)) --used;
+  while (used && isspace((unsigned char)source[used - 1U])) --used;
+  memcpy(dest, source, used);
+  if (clipped) memcpy(dest + used, "...", 4U);
+  else dest[used] = '\0';
+}
+
 static int append_metadata_seeded_entity_local(const char *object_start, const char *object_end,
     M68kAnalysisPolicy *policy) {
   uint32_t addr = 0U;
@@ -7788,7 +7804,7 @@ static int append_metadata_seeded_entity_local(const char *object_start, const c
   char encoding[32];
   char name[64];
   char comment[256];
-  char policy_comment[96];
+  char policy_comment[sizeof(((M68kAnalysisStructuredDataItem *)0)->comment)];
   char struct_name[64];
   char field_name[64];
   char field_type[64];
@@ -7845,7 +7861,7 @@ static int append_metadata_seeded_entity_local(const char *object_start, const c
   }
   classification = metadata_seeded_entity_classify_local(entity_type, subtype, unit, pointer_struct, value_kind);
   if (classification.type_id != METADATA_SEEDED_ENTITY_TYPE_DATA) return 1;
-  snprintf(policy_comment, sizeof(policy_comment), "%s", comment);
+  copy_data_role_preview_local(policy_comment, sizeof(policy_comment), comment);
   item_index = policy->structured_data_item_count;
   if (!policy_add_structured_data_item_section_local(policy, 1U, has_hunk ? hunk : 0U, addr, end - addr,
         classification.structured_kind, policy_comment)) {

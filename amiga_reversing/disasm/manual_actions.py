@@ -2597,8 +2597,16 @@ def _validate_candidate_policy_capacity(
                for action in pending_actions):
         return
     from amiga_reversing.disasm.c_backend import validate_policy_storage_with_c_backend
-    from amiga_reversing.disasm.effective_metadata import effective_metadata_text
+    from amiga_reversing.disasm.effective_metadata import (
+        effective_metadata_text, _manual_rsset_layout_region_to_metadata,
+    )
 
+    # Projection may omit unsupported historical rows. A newly submitted fact
+    # must not disappear before native validation, especially in a large batch.
+    for action in pending_actions:
+        if action.get("kind") == ManualActionKind.CREATE_MANUAL_RSSET_LAYOUT_REGION:
+            if _manual_rsset_layout_region_to_metadata(action["rsset_layout_region"]) is None:
+                raise ValueError("unprojectable RSSET layout region in pending batch")
     text = effective_metadata_text(target_dir, pending_actions=pending_actions, binary_source=binary_source)
     if text:
         try:
