@@ -1608,13 +1608,13 @@ abs_0_000015AA:
 	movea.l -(a3),a4
 	move.l a3,free_object_stack_cursor(a6)
 	subq.w #1,free_object_count(a6)
-	move.w #$47,(a4)
-	move.l $0004(a0),$0004(a4)
-	move.l $0008(a0),$0008(a4)
-	move.l $000C(a0),$000C(a4)
+	move.w #$47,(a4)	; operand 2: SG2ObjectCore_object_type at (a4)
+	move.l $0004(a0),SG2ObjectCore_world_x(a4)
+	move.l $0008(a0),SG2ObjectCore_world_y(a4)
+	move.l $000C(a0),SG2ObjectCore_world_z(a4)
 	clr.w $002E(a4)
-	move.b #$FF,$001E(a4)
-	bset.b #7,$001C(a4)
+	move.b #$FF,SG2ObjectCore_retirement_phase_or_negative(a4)
+	bset.b #7,SG2ObjectCore_durability_or_negative(a4)
 	clr.b $0003(a4)
 	move.b #$6,$001D(a4)
 	move.b #$1E,$002A(a4)
@@ -2089,7 +2089,7 @@ abs_0_00001CA2:
 	movea.l -(a3),a2
 	move.l a3,free_object_stack_cursor(a6)
 	subq.w #1,free_object_count(a6)
-	move.w d0,(a2)
+	move.w d0,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
 	move.w d0,d1
 	asl.w #2,d1
 	movea.l a2,a0
@@ -6051,11 +6051,11 @@ abs_0_0000539A:
 	addq.w #1,active_model_scale_shift(a6)
 	lea.l model_header_pointers.l,a0
 	movea.l $00BC(a0),a0
-	move.w (a0)+,model_last_vertex_index(a6)
-	move.l (a0)+,$0178(a6)
-	move.l (a0)+,$0010(a6)
-	move.l (a0)+,$0008(a6)
-	move.l (a0)+,$0014(a6)
+	move.w (a0)+,model_last_vertex_index(a6)	; operand 1: SG2ModelHeader_last_vertex_index at (a0)+
+	move.l (a0)+,$0178(a6)	; operand 1: SG2ModelHeader_face_count at (a0)+
+	move.l (a0)+,$0010(a6)	; operand 1: SG2ModelHeader_face_commands at (a0)+
+	move.l (a0)+,$0008(a6)	; operand 1: SG2ModelHeader_vertex_reference_records at (a0)+
+	move.l (a0)+,$0014(a6)	; operand 1: SG2ModelHeader_coordinate_pool at (a0)+
 	clr.l $0024(a6)
 transform_retirement_vertices_and_faces:
 	cmpi.w #145,scene_packet_count.l
@@ -8488,7 +8488,7 @@ abs_0_00007296:
 	move.w selected_projectile_alternate_effect_volume.l,alternate_projectile_effect_volume.l
 	move.w selected_projectile_amiga_effect_period.l,paula_projectile_effect_period.l
 	move.w selected_projectile_alternate_effect_period.l,alternate_projectile_effect_period.l
-	move.w selected_projectile_type.l,(a2)
+	move.w selected_projectile_type.l,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
 	move.b selected_projectile_model_scale_shift.l,$001D(a2)
 	cmpi.w #103,selected_projectile_type.l
 	bne.b abs_0_00007306
@@ -8499,13 +8499,13 @@ abs_0_00007296:
 abs_0_00007306:
 	clr.b $0003(a2)
 abs_0_0000730A:
-	move.b #$FF,$001E(a2)
-	move.b #$1,$001C(a2)
+	move.b #$FF,SG2ObjectCore_retirement_phase_or_negative(a2)
+	move.b #$1,SG2ObjectCore_durability_or_negative(a2)
 	move.w #$64,$0024(a2)
-	move.b $0001(a2),$002A(a2)
-	move.l player_world_x(a6),$0004(a2)
-	move.l player_world_z(a6),$000C(a2)
-	move.l player_world_y(a6),$0008(a2)
+	move.b SG2ObjectCore_object_type+1(a2),$002A(a2)
+	move.l player_world_x(a6),SG2ObjectCore_world_x(a2)
+	move.l player_world_z(a6),SG2ObjectCore_world_z(a2)
+	move.l player_world_y(a6),SG2ObjectCore_world_y(a2)
 	move.w player_rotation_0(a6),$0010(a2)
 	ori.w #1,$0010(a2)
 	move.w player_rotation_1(a6),$0012(a2)
@@ -8547,12 +8547,12 @@ abs_0_0000739A:
 	ext.l d4
 	ext.l d5
 	ext.l d6
-	add.l d4,$0004(a2)
-	add.l d5,$0008(a2)
-	add.l d6,$000C(a2)
+	add.l d4,SG2ObjectCore_world_x(a2)
+	add.l d5,SG2ObjectCore_world_y(a2)
+	add.l d6,SG2ObjectCore_world_z(a2)
 	move.l horizontal_world_wrap_mask(a6),d0
-	and.l d0,$0004(a2)
-	and.l d0,$000C(a2)
+	and.l d0,SG2ObjectCore_world_x(a2)
+	and.l d0,SG2ObjectCore_world_z(a2)
 	rts
 abs_0_000073DA:
 	move.w selected_projectile_type.l,d0
@@ -8741,16 +8741,16 @@ abs_0_00007626:
 	move.l a1,free_object_stack_cursor(a6)
 	subq.w #1,free_object_count(a6)
 	st.b $0022(a2)
-	move.w #$C,(a2)
+	move.w #$C,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
 	move.b #$3,$001D(a2)
 	clr.b $0003(a2)
-	bset.b #7,$001C(a2)
-	move.b #$FF,$001E(a2)
+	bset.b #7,SG2ObjectCore_durability_or_negative(a2)
+	move.b #$FF,SG2ObjectCore_retirement_phase_or_negative(a2)
 	move.w #$190,$0024(a2)
 	move.l scan_target_reference(a6),$003C(a2)
-	move.l player_world_x(a6),$0004(a2)
-	move.l player_world_y(a6),$0008(a2)
-	move.l player_world_z(a6),$000C(a2)
+	move.l player_world_x(a6),SG2ObjectCore_world_x(a2)
+	move.l player_world_y(a6),SG2ObjectCore_world_y(a2)
+	move.l player_world_z(a6),SG2ObjectCore_world_z(a2)
 	move.w player_rotation_0(a6),$0010(a2)
 	ori.w #1,$0010(a2)
 	move.w player_rotation_1(a6),$0012(a2)
@@ -8769,12 +8769,12 @@ abs_0_00007626:
 	ext.l d4
 	ext.l d5
 	ext.l d6
-	add.l d4,$0004(a2)
-	add.l d5,$0008(a2)
-	add.l d6,$000C(a2)
+	add.l d4,SG2ObjectCore_world_x(a2)
+	add.l d5,SG2ObjectCore_world_y(a2)
+	add.l d6,SG2ObjectCore_world_z(a2)
 	move.l horizontal_world_wrap_mask(a6),d0
-	and.l d0,$0004(a2)
-	and.l d0,$000C(a2)
+	and.l d0,SG2ObjectCore_world_x(a2)
+	and.l d0,SG2ObjectCore_world_z(a2)
 	move.w #$64,weapon_action_cooldown(a6)
 abs_0_000076D2:
 	rts
@@ -9003,10 +9003,10 @@ abs_0_00007954:
 	movea.l -(a1),a2
 	move.l a1,free_object_stack_cursor(a6)
 	subq.w #1,free_object_count(a6)
-	move.w #$5B,(a2)
+	move.w #$5B,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
 	bsr.w initialize_launched_bomb_header
 	move.w #$1E,$002E(a2)
-	addi.l #20,$0008(a2)
+	addi.l #20,SG2ObjectCore_world_y(a2)
 	move.b #$5B,$002A(a2)
 	movea.l player_object_reference(a6),a0
 	move.b #$5B,$002A(a0)
@@ -9085,8 +9085,8 @@ initialize_launched_bomb_header:
 	st.b $0022(a2)
 	move.b #$5,$001D(a2)
 	clr.b $0003(a2)
-	move.b #$FF,$001E(a2)
-	move.b #$1,$001C(a2)
+	move.b #$FF,SG2ObjectCore_retirement_phase_or_negative(a2)
+	move.b #$1,SG2ObjectCore_durability_or_negative(a2)
 initialize_player_launched_bomb_motion:
 	move.w #$3E8,$0024(a2)
 	move.w #$0,$0026(a2)
@@ -9848,18 +9848,18 @@ abs_0_000086D6:
 	move.w $002C(a0),$002C(a2)
 	move.w $002E(a0),$002E(a2)
 	move.w $0030(a0),$0030(a2)
-	move.l SG2ObjectCore_world_x(a0),$0004(a2)
-	move.l SG2ObjectCore_world_y(a0),$0008(a2)
-	move.l SG2ObjectCore_world_z(a0),$000C(a2)
-	move.b #$2,$001C(a2)
-	st.b $001E(a2)
+	move.l SG2ObjectCore_world_x(a0),SG2ObjectCore_world_x(a2)
+	move.l SG2ObjectCore_world_y(a0),SG2ObjectCore_world_y(a2)
+	move.l SG2ObjectCore_world_z(a0),SG2ObjectCore_world_z(a2)
+	move.b #$2,SG2ObjectCore_durability_or_negative(a2)
+	st.b SG2ObjectCore_retirement_phase_or_negative(a2)
 	move.b #$6,$001D(a2)
 	lea.l abs_0_0000B446.l,a1
 	bsr.w advance_shared_random_state
 	andi.w #3,d0
 	clr.w d3
 	move.b $0(a1,d0.w),d3
-	move.w d3,(a2)
+	move.w d3,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
 abs_0_00008740:
 	clr.b SG2ObjectCore_retirement_phase_or_negative(a0)
 	clr.b SG2ObjectCore_durability_or_negative(a0)
@@ -10656,14 +10656,14 @@ try_buzz_bomber_type6_spawn:
 	move.w SG2WorldObject_velocity_x(a0),$002C(a2)
 	move.w SG2WorldObject_velocity_y(a0),$002E(a2)
 	move.w SG2WorldObject_velocity_z(a0),$0030(a2)
-	move.l SG2ObjectCore_world_x(a0),$0004(a2)
-	move.l SG2ObjectCore_world_y(a0),$0008(a2)
-	move.l SG2ObjectCore_world_z(a0),$000C(a2)
-	addi.l #20,$0008(a2)
-	move.b #$2,$001C(a2)
-	st.b $001E(a2)
+	move.l SG2ObjectCore_world_x(a0),SG2ObjectCore_world_x(a2)
+	move.l SG2ObjectCore_world_y(a0),SG2ObjectCore_world_y(a2)
+	move.l SG2ObjectCore_world_z(a0),SG2ObjectCore_world_z(a2)
+	addi.l #20,SG2ObjectCore_world_y(a2)
+	move.b #$2,SG2ObjectCore_durability_or_negative(a2)
+	st.b SG2ObjectCore_retirement_phase_or_negative(a2)
 	move.b #$6,$001D(a2)
-	move.w #$6,(a2)
+	move.w #$6,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
 	move.b #$6,SG2WorldObject_collision_ignored_object_type(a0)
 	move.b #$21,$002A(a2)
 	move.l #$FFFFFFFF,$003C(a2)
@@ -11073,21 +11073,21 @@ spawn_ai_projectile_continuation:
 	asr.l d0,d2
 	tst.b ai_type12_projectile_request(a6)
 	beq.b abs_0_000097E2
-	move.w #$C,(a2)
+	move.w #$C,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
 	move.b $0001(a0),$002A(a2)
 	move.b #$C,$002A(a0)
 	bra.b abs_0_000097F2
 abs_0_000097E2:
-	move.w #$19,(a2)
+	move.w #$19,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
 	move.b $0001(a0),$002A(a2)
 	move.b #$19,$002A(a0)
 abs_0_000097F2:
-	move.l $0004(a0),$0004(a2)
+	move.l $0004(a0),SG2ObjectCore_world_x(a2)
 	add.l $0008(a0),d2
-	move.l d2,$0008(a2)
-	move.l $000C(a0),$000C(a2)
+	move.l d2,SG2ObjectCore_world_y(a2)
+	move.l $000C(a0),SG2ObjectCore_world_z(a2)
 	clr.w $0010(a2)
-	move.b #$FF,$001E(a2)
+	move.b #$FF,SG2ObjectCore_retirement_phase_or_negative(a2)
 	move.w $0012(a0),d1
 	move.b #$0,$0003(a2)
 	move.b #$4,$001D(a2)
@@ -11100,12 +11100,12 @@ abs_0_0000982E:
 	move.w d1,$0012(a2)
 	clr.w $0014(a2)
 	clr.w $0010(a2)
-	move.w (a2),d3
+	move.w (a2),d3	; operand 1: SG2ObjectCore_object_type at (a2)
 	add.w d3,d3
 	lea.l object_default_motion_words.l,a1
 	move.w $0(a1,d3.w),$0020(a2)
 	move.w #$64,$0024(a2)
-	move.b #$1,$001C(a2)
+	move.b #$1,SG2ObjectCore_durability_or_negative(a2)
 	move.w $0012(a2),d1
 	andi.w #4095,d1
 	asl.w #1,d1
@@ -11128,7 +11128,7 @@ abs_0_0000982E:
 	clr.b $0022(a2)
 	tst.b inside_structure_flag(a6)
 	beq.w abs_0_000081D2
-	bset.b #6,$0002(a2)
+	bset.b #6,SG2ObjectCore_flags(a2)
 	bra.w abs_0_000081D2
 try_transport_or_buzz_bomber_type2_spawn:
 	move.w (a0),d0	; operand 1: SG2ObjectCore_object_type at (a0)
@@ -11143,20 +11143,20 @@ abs_0_000098C4:
 	movea.l -(a1),a2
 	move.l a1,free_object_stack_cursor(a6)
 	subq.w #1,free_object_count(a6)
-	move.w #$2,(a2)
+	move.w #$2,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
 	move.b SG2ObjectCore_object_type+1(a0),$002A(a2)
 	move.b #$2,SG2WorldObject_collision_ignored_object_type(a0)
-	move.b #$4,$001C(a2)
-	bclr.b #7,$0002(a2)
+	move.b #$4,SG2ObjectCore_durability_or_negative(a2)
+	bclr.b #7,SG2ObjectCore_flags(a2)
 	move.b #$4,$001D(a2)
-	move.l SG2ObjectCore_world_x(a0),$0004(a2)
-	move.l SG2ObjectCore_world_z(a0),$000C(a2)
+	move.l SG2ObjectCore_world_x(a0),SG2ObjectCore_world_x(a2)
+	move.l SG2ObjectCore_world_z(a0),SG2ObjectCore_world_z(a2)
 	move.l SG2ObjectCore_world_y(a0),d3
 	addi.l #50,d3
-	move.l d3,$0008(a2)
+	move.l d3,SG2ObjectCore_world_y(a2)
 	move.w SG2WorldObject_rotation_0(a0),$0010(a2)
 	move.w SG2WorldObject_rotation_2(a0),$0014(a2)
-	move.b #$FF,$001E(a2)
+	move.b #$FF,SG2ObjectCore_retirement_phase_or_negative(a2)
 	bra.w abs_0_000081D2
 abs_0_0000992E:
 	move.b #$20,diagnostic_step_byte.l
@@ -11167,25 +11167,25 @@ abs_0_0000992E:
 	movea.l -(a1),a2
 	move.l a1,free_object_stack_cursor(a6)
 	subq.w #1,free_object_count(a6)
-	move.w #$E,(a2)
+	move.w #$E,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
 	move.b #$7,$001D(a2)
 	move.b $0001(a0),$002A(a2)
 	move.b #$E,$002A(a0)
-	move.b #$2,$001C(a2)
-	move.l $0004(a0),$0004(a2)
-	move.l $000C(a0),$000C(a2)
+	move.b #$2,SG2ObjectCore_durability_or_negative(a2)
+	move.l $0004(a0),SG2ObjectCore_world_x(a2)
+	move.l $000C(a0),SG2ObjectCore_world_z(a2)
 	move.l $0008(a0),d3
 	addi.l #90,d3
 	bmi.b abs_0_0000998C
 	move.l #$FFFFFFF6,d3
 abs_0_0000998C:
-	move.l d3,$0008(a2)
+	move.l d3,SG2ObjectCore_world_y(a2)
 	move.w $0010(a0),$0010(a2)
 	move.w $0014(a0),$0014(a2)
 	move.w $002C(a0),$002C(a2)
 	move.w $0030(a0),$0030(a2)
 	move.w #$90,$0026(a2)
-	move.b #$FF,$001E(a2)
+	move.b #$FF,SG2ObjectCore_retirement_phase_or_negative(a2)
 	sf.b $0003(a2)
 	bra.w abs_0_000081D2
 abs_0_000099BC:
@@ -11607,22 +11607,22 @@ abs_0_00009F02:
 	ext.l d2
 	move.b $001D(a0),d0
 	asr.l d0,d2
-	move.w #$48,(a2)
+	move.w #$48,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
 	move.b $0001(a0),$002A(a2)
 	move.b #$48,$002A(a0)
-	move.l $0004(a0),$0004(a2)
+	move.l $0004(a0),SG2ObjectCore_world_x(a2)
 	add.l $0008(a0),d2
-	move.l d2,$0008(a2)
-	move.l $000C(a0),$000C(a2)
+	move.l d2,SG2ObjectCore_world_y(a2)
+	move.l $000C(a0),SG2ObjectCore_world_z(a2)
 	clr.w $0010(a2)
-	move.b #$FF,$001E(a2)
+	move.b #$FF,SG2ObjectCore_retirement_phase_or_negative(a2)
 	clr.b $0003(a2)
 	move.b #$4,$001D(a2)
 	move.w d1,$0012(a2)
 	clr.w $0014(a2)
 	move.w #$FF9C,$0020(a2)
 	move.w #$64,$0024(a2)
-	move.b #$1,$001C(a2)
+	move.b #$1,SG2ObjectCore_durability_or_negative(a2)
 	move.w $0012(a2),d1
 	andi.w #4095,d1
 	asl.w #1,d1
@@ -11665,33 +11665,33 @@ abs_0_0000A004:
 	bsr.w advance_shared_random_state
 	andi.w #7,d0
 	move.b $0(a1,d0.w),d0
-	move.w d0,(a2)
+	move.w d0,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
 	move.b #$5,$002A(a2)
 	move.b d0,$002A(a0)
 	clr.b $0003(a2)
 	lea.l model_default_scale_shifts.l,a1
 	move.b $0(a1,d0.w),$001D(a2)
 	lea.l model_default_durability_bytes.l,a1
-	move.b $0(a1,d0.w),$001C(a2)
+	move.b $0(a1,d0.w),SG2ObjectCore_durability_or_negative(a2)
 	add.w d0,d0
 	lea.l object_default_motion_words.l,a1
 	move.w $0(a1,d0.w),$0020(a2)
 	move.w #$3FE,$0024(a2)
 	clr.w $0026(a2)
-	move.l SG2ObjectCore_world_x(a0),$0004(a2)
-	move.l SG2ObjectCore_world_z(a0),$000C(a2)
+	move.l SG2ObjectCore_world_x(a0),SG2ObjectCore_world_x(a2)
+	move.l SG2ObjectCore_world_z(a0),SG2ObjectCore_world_z(a2)
 	move.w #$FFFB,$002E(a2)
 	move.b #$1,$002B(a2)
 	move.w #$1,$0014(a2)
 	move.b #$64,$0029(a2)
 	bsr.w heading_with_player_as_reference
 	move.w d1,$0012(a2)
-	move.l #$FFFFFFEC,$0008(a2)
-	move.b #$FF,$001E(a2)
+	move.l #$FFFFFFEC,SG2ObjectCore_world_y(a2)
+	move.b #$FF,SG2ObjectCore_retirement_phase_or_negative(a2)
 	move.l a0,$003C(a2)
 	move.l a2,$003C(a0)
-	bset.b #7,$0002(a2)
-	bset.b #5,$0002(a2)
+	bset.b #7,SG2ObjectCore_flags(a2)
+	bset.b #5,SG2ObjectCore_flags(a2)
 	st.b $0028(a0)
 	bra.w abs_0_000081D2
 abs_0_0000A0D4:
@@ -11729,24 +11729,24 @@ abs_0_0000A136:
 	movea.l -(a1),a2
 	move.l a1,free_object_stack_cursor(a6)
 	subq.w #1,free_object_count(a6)
-	move.w #$14,(a2)
+	move.w #$14,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
 	move.b #$30,$002A(a2)
 	move.b #$14,$002A(a0)
 	clr.b $0003(a2)
 	move.b #$4,$001D(a2)
-	move.l $0004(a0),$0004(a2)
-	move.l $000C(a0),$000C(a2)
-	move.l #$FFFFFFC4,$0008(a2)
-	move.b #$FF,$001E(a2)
+	move.l $0004(a0),SG2ObjectCore_world_x(a2)
+	move.l $000C(a0),SG2ObjectCore_world_z(a2)
+	move.l #$FFFFFFC4,SG2ObjectCore_world_y(a2)
+	move.b #$FF,SG2ObjectCore_retirement_phase_or_negative(a2)
 	clr.w $0010(a2)
 	bsr.w heading_with_player_as_reference
 	move.w d1,$0012(a2)
 	clr.w $0014(a2)
 	move.l a0,$003C(a2)
 	move.l a2,$003C(a0)
-	bclr.b #4,$0002(a2)
+	bclr.b #4,SG2ObjectCore_flags(a2)
 	subq.b #1,$002B(a0)
-	move.b #$2,$001C(a2)
+	move.b #$2,SG2ObjectCore_durability_or_negative(a2)
 	clr.w $002C(a2)
 	move.w #$FF84,$002E(a2)
 	clr.w $0030(a2)
@@ -11770,26 +11770,26 @@ abs_0_0000A1DE:
 	move.l a1,free_object_stack_cursor(a6)
 	subq.w #1,free_object_count(a6)
 	bset.b #7,$001C(a0)
-	move.w #$26,(a2)
+	move.w #$26,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
 	lea.l object_default_motion_words.l,a1
 	move.w $004C(a1),$0020(a2)
 	move.b #$26,$002A(a2)
 	move.b #$26,$002A(a0)
 	move.b #$4,$001D(a2)
 	clr.b $0003(a2)
-	move.l $0004(a0),$0004(a2)
-	move.l $000C(a0),$000C(a2)
+	move.l $0004(a0),SG2ObjectCore_world_x(a2)
+	move.l $000C(a0),SG2ObjectCore_world_z(a2)
 	move.w $0012(a0),$0012(a2)
-	move.l #$FFFFFFC4,$0008(a2)
-	move.b #$FF,$001E(a2)
+	move.l #$FFFFFFC4,SG2ObjectCore_world_y(a2)
+	move.b #$FF,SG2ObjectCore_retirement_phase_or_negative(a2)
 	move.l a0,$003C(a2)
 	move.l a2,$003C(a0)
-	bclr.b #4,$0002(a2)
+	bclr.b #4,SG2ObjectCore_flags(a2)
 	subq.b #1,$002B(a0)
-	move.b #$2,$001C(a2)
+	move.b #$2,SG2ObjectCore_durability_or_negative(a2)
 	move.w #$FFC2,$002E(a2)
 	move.b #$FF,$001F(a0)
-	bset.b #7,$001C(a2)
+	bset.b #7,SG2ObjectCore_durability_or_negative(a2)
 	move.w #$1,$0024(a2)
 	move.w #$1,$0026(a2)
 	move.w #$64,$0024(a0)
@@ -11827,15 +11827,15 @@ abs_0_0000A2CE:
 	andi.w #3,d0
 	clr.w d3
 	move.b $0(a1,d0.w),d3
-	move.w d3,(a2)
+	move.w d3,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
 	move.b #$2E,$002A(a2)
 	move.b d3,$002A(a0)
 	move.b #$3,$001D(a2)
 	clr.b $0003(a2)
-	move.l $0004(a0),$0004(a2)
-	move.l $000C(a0),$000C(a2)
-	move.l #$FFFFFFFB,$0008(a2)
-	move.b #$FF,$001E(a2)
+	move.l $0004(a0),SG2ObjectCore_world_x(a2)
+	move.l $000C(a0),SG2ObjectCore_world_z(a2)
+	move.l #$FFFFFFFB,SG2ObjectCore_world_y(a2)
+	move.b #$FF,SG2ObjectCore_retirement_phase_or_negative(a2)
 	move.w $0010(a0),$0010(a2)
 	move.w $0012(a0),d3
 	addi.w #1024,d3
@@ -11843,23 +11843,23 @@ abs_0_0000A2CE:
 	move.w $0014(a0),$0014(a2)
 	move.l a0,$003C(a2)
 	move.l a2,$003C(a0)
-	bset.b #7,$0002(a2)
+	bset.b #7,SG2ObjectCore_flags(a2)
 	st.b $0028(a0)
 	lea.l object_default_motion_words.l,a1
-	move.w (a2),d0
+	move.w (a2),d0	; operand 1: SG2ObjectCore_object_type at (a2)
 	add.w d0,d0
 	move.w $0(a1,d0.w),d0
 	move.w d0,$0020(a2)
-	move.b #$6,$001C(a2)
+	move.b #$6,SG2ObjectCore_durability_or_negative(a2)
 	move.b #$1,$002B(a2)
 	move.l a0,$003C(a2)
-	bclr.b #4,$0002(a2)
+	bclr.b #4,SG2ObjectCore_flags(a2)
 	move.b #$64,$0029(a2)
 	move.b #$AA,$0028(a2)
-	cmpi.w #9,(a2)
+	cmpi.w #9,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
 	bne.b abs_0_0000A3B2
 	move.w #$64,$0026(a2)
-	move.l #$FFFFFFFC,$0008(a2)
+	move.l #$FFFFFFFC,SG2ObjectCore_world_y(a2)
 	move.w #$3,$0024(a2)
 abs_0_0000A3B2:
 	bsr.w abs_0_0000AE1E
@@ -12005,15 +12005,15 @@ abs_0_0000A54A:
 	lea.l object_projectile_spawn_y_offsets.l,a1
 	move.w $0(a1,d0.w),d2
 	ext.l d2
-	move.w #$19,(a2)
+	move.w #$19,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
 	move.b SG2ObjectCore_object_type+1(a0),$002A(a2)
 	move.b #$19,$002A(a0)
-	move.l SG2ObjectCore_world_x(a0),$0004(a2)
+	move.l SG2ObjectCore_world_x(a0),SG2ObjectCore_world_x(a2)
 	add.l SG2ObjectCore_world_y(a0),d2
-	move.l d2,$0008(a2)
-	move.l SG2ObjectCore_world_z(a0),$000C(a2)
+	move.l d2,SG2ObjectCore_world_y(a2)
+	move.l SG2ObjectCore_world_z(a0),SG2ObjectCore_world_z(a2)
 	clr.w $0010(a2)
-	move.b #$FF,$001E(a2)
+	move.b #$FF,SG2ObjectCore_retirement_phase_or_negative(a2)
 	move.w $0012(a0),d1
 	move.b #$0,$0003(a2)
 	move.b #$4,$001D(a2)
@@ -12025,12 +12025,12 @@ abs_0_0000A5BC:
 	andi.w #4095,d1
 	move.w d1,$0012(a2)
 	clr.w $0014(a2)
-	move.w (a2),d1
+	move.w (a2),d1	; operand 1: SG2ObjectCore_object_type at (a2)
 	add.w d1,d1
 	lea.l object_default_motion_words.l,a1
 	move.w $0(a1,d1.w),$0020(a2)
 	move.w #$64,$0024(a2)
-	move.b #$2,$001C(a2)
+	move.b #$2,SG2ObjectCore_durability_or_negative(a2)
 	move.w $0012(a2),d1
 	andi.w #4095,d1
 	asl.w #1,d1
@@ -12220,33 +12220,33 @@ abs_0_0000A8F2:
 	bsr.w abs_0_0000E9B4
 	andi.w #7,d0
 	move.b $0(a1,d0.w),d0
-	move.w d0,(a2)
+	move.w d0,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
 	move.b #$5,$002A(a2)
 	move.b d0,$002A(a0)
 	clr.b $0003(a2)
 	lea.l model_default_scale_shifts.l,a1
 	move.b $0(a1,d0.w),$001D(a2)
 	lea.l model_default_durability_bytes.l,a1
-	move.b $0(a1,d0.w),$001C(a2)
+	move.b $0(a1,d0.w),SG2ObjectCore_durability_or_negative(a2)
 	add.w d0,d0
 	lea.l object_default_motion_words.l,a1
 	move.w $0(a1,d0.w),$0020(a2)
 	move.w #$3FE,$0024(a2)
 	clr.w $0026(a2)
-	move.l $0004(a0),$0004(a2)
-	move.l $000C(a0),$000C(a2)
+	move.l $0004(a0),SG2ObjectCore_world_x(a2)
+	move.l $000C(a0),SG2ObjectCore_world_z(a2)
 	move.w #$FFFB,$002E(a2)
 	move.b #$1,$002B(a2)
 	move.w #$1,$0014(a2)
 	move.b #$64,$0029(a2)
 	bsr.w abs_0_0000AF28
 	move.w d1,$0012(a2)
-	move.l #$FFFFFFEC,$0008(a2)
-	move.b #$FF,$001E(a2)
+	move.l #$FFFFFFEC,SG2ObjectCore_world_y(a2)
+	move.b #$FF,SG2ObjectCore_retirement_phase_or_negative(a2)
 	move.l a0,$003C(a2)
 	move.l a2,$003C(a0)
-	bset.b #7,$0002(a2)
-	bset.b #5,$0002(a2)
+	bset.b #7,SG2ObjectCore_flags(a2)
+	bset.b #5,SG2ObjectCore_flags(a2)
 	st.b $0028(a0)
 	bra.w abs_0_0000839C
 abs_0_0000A9C2:
@@ -12297,15 +12297,15 @@ abs_0_0000AA3A:
 	andi.w #3,d0
 	clr.w d3
 	move.b $0(a1,d0.w),d3
-	move.w d3,(a2)
+	move.w d3,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
 	move.b #$2E,$002A(a2)
 	move.b d3,$002A(a0)
 	move.b #$3,$001D(a2)
 	clr.b $0003(a2)
-	move.l $0004(a0),$0004(a2)
-	move.l $000C(a0),$000C(a2)
-	move.l #$FFFFFFFB,$0008(a2)
-	move.b #$FF,$001E(a2)
+	move.l $0004(a0),SG2ObjectCore_world_x(a2)
+	move.l $000C(a0),SG2ObjectCore_world_z(a2)
+	move.l #$FFFFFFFB,SG2ObjectCore_world_y(a2)
+	move.b #$FF,SG2ObjectCore_retirement_phase_or_negative(a2)
 	move.w $0010(a0),$0010(a2)
 	move.w $0012(a0),d3
 	addi.w #1024,d3
@@ -12313,21 +12313,21 @@ abs_0_0000AA3A:
 	move.w $0014(a0),$0014(a2)
 	move.l a0,$003C(a2)
 	move.l a2,$003C(a0)
-	bset.b #7,$0002(a2)
+	bset.b #7,SG2ObjectCore_flags(a2)
 	st.b $0028(a0)
 	move.b #$FF,$0029(a0)
 	lea.l object_default_motion_words.l,a1
-	move.w (a2),d0
+	move.w (a2),d0	; operand 1: SG2ObjectCore_object_type at (a2)
 	add.w d0,d0
 	move.w $0(a1,d0.w),d0
 	move.w d0,$0020(a2)
-	move.b #$6,$001C(a2)
+	move.b #$6,SG2ObjectCore_durability_or_negative(a2)
 	move.b #$1,$002B(a2)
 	move.l a0,$003C(a2)
-	bclr.b #4,$0002(a2)
+	bclr.b #4,SG2ObjectCore_flags(a2)
 	move.b #$64,$0029(a2)
 	move.b #$AA,$0028(a2)
-	cmpi.w #9,(a2)
+	cmpi.w #9,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
 	bne.b abs_0_0000AB1C
 	move.w #$64,$0026(a2)
 	move.w #$3,$0024(a2)
@@ -42615,10 +42615,10 @@ abs_0_00033076:
 	movea.l nearby_objects_cursor(a6),a0
 	movea.l (a0)+,a2
 abs_0_00033084:
-	move.w #$62,(a2)
+	move.w #$62,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
 	bsr.w abs_0_00039D4A
 	move.l carried_neutron_bomb_y_offset.l,d0
-	add.l d0,$0008(a2)
+	add.l d0,SG2ObjectCore_world_y(a2)
 	sf.b $001F(a2)
 	move.l a2,carried_neutron_bomb_reference(a6)
 abs_0_0003309E:
@@ -42660,13 +42660,13 @@ abs_0_00033112:
 	lea.l model_default_scale_shifts.l,a0
 	move.w #$63,d0
 	move.b $0(a0,d0.w),$001D(a4)
-	move.w d0,(a4)
-	move.b #$FF,$001E(a4)
-	bset.b #7,$001C(a4)
+	move.w d0,(a4)	; operand 2: SG2ObjectCore_object_type at (a4)
+	move.b #$FF,SG2ObjectCore_retirement_phase_or_negative(a4)
+	bset.b #7,SG2ObjectCore_durability_or_negative(a4)
 	clr.b $0003(a4)
-	move.l #$2255100,$0004(a4)
-	move.l #$1374780,$000C(a4)
-	move.l #$FECED300,$0008(a4)
+	move.l #$2255100,SG2ObjectCore_world_x(a4)
+	move.l #$1374780,SG2ObjectCore_world_z(a4)
+	move.l #$FECED300,SG2ObjectCore_world_y(a4)
 	move.w #$F00,$0010(a4)
 	clr.w $0012(a4)
 	clr.w $0014(a4)
@@ -42986,33 +42986,33 @@ abs_0_0003359E:
 	add.l player_world_x(a6),d4
 	add.l player_world_y(a6),d5
 	add.l player_world_z(a6),d6
-	move.l d4,$0004(a4)
-	move.l d5,$0008(a4)
-	move.l d6,$000C(a4)
+	move.l d4,SG2ObjectCore_world_x(a4)
+	move.l d5,SG2ObjectCore_world_y(a4)
+	move.l d6,SG2ObjectCore_world_z(a4)
 	bsr.w abs_0_00039D20
 	andi.l #1023,d0
 	move.w d0,$0010(a4)
 	subi.l #512,d0
-	add.l d0,$0004(a4)
+	add.l d0,SG2ObjectCore_world_x(a4)
 	asr.w #6,d0
 	move.w d0,$002C(a4)
 	bsr.w abs_0_00039D20
 	andi.l #1023,d0
 	move.w d0,$0012(a4)
 	subi.l #512,d0
-	add.l d0,$0008(a4)
+	add.l d0,SG2ObjectCore_world_y(a4)
 	asr.w #6,d0
 	move.w d0,$002E(a4)
 	bsr.w abs_0_00039D20
 	andi.l #1023,d0
 	move.w d0,$0014(a4)
 	subi.l #512,d0
-	add.l d0,$000C(a4)
+	add.l d0,SG2ObjectCore_world_z(a4)
 	asr.w #6,d0
 	move.w d0,$0030(a4)
-	move.w #$49,(a4)
-	move.b #$3,$001C(a4)
-	move.b #$FF,$001E(a4)
+	move.w #$49,(a4)	; operand 2: SG2ObjectCore_object_type at (a4)
+	move.b #$3,SG2ObjectCore_durability_or_negative(a4)
+	move.b #$FF,SG2ObjectCore_retirement_phase_or_negative(a4)
 	bsr.w abs_0_00039D20
 	move.w d0,d1
 	andi.w #63,d0
@@ -43095,25 +43095,25 @@ abs_0_0003373A:
 	add.l player_world_x(a6),d4
 	add.l player_world_y(a6),d5
 	add.l player_world_z(a6),d6
-	move.l d4,$0004(a4)
-	move.l d5,$0008(a4)
-	move.l d6,$000C(a4)
+	move.l d4,SG2ObjectCore_world_x(a4)
+	move.l d5,SG2ObjectCore_world_y(a4)
+	move.l d6,SG2ObjectCore_world_z(a4)
 	bsr.w abs_0_00039D20
 	andi.l #4095,d0
 	move.w d0,$0012(a4)
 	subi.l #2048,d0
-	add.l d0,$0004(a4)
+	add.l d0,SG2ObjectCore_world_x(a4)
 	clr.w $0010(a4)
 	ori.w #1,$0010(a4)
 	bsr.w abs_0_00039D20
 	andi.l #1023,d0
 	subi.l #512,d0
-	add.l d0,$0008(a4)
+	add.l d0,SG2ObjectCore_world_y(a4)
 	bsr.w abs_0_00039D20
 	andi.l #4095,d0
 	move.w d0,$0014(a4)
 	subi.l #2048,d0
-	add.l d0,$000C(a4)
+	add.l d0,SG2ObjectCore_world_z(a4)
 	bsr.w abs_0_00039D20
 	andi.w #15,d0
 	add.w d0,d0
@@ -43141,12 +43141,12 @@ abs_0_0003381E:
 	movea.l $0(a0,d1.w),a0
 abs_0_00033830:
 	move.w $0(a0,d0.w),d0
-	move.w d0,(a4)
+	move.w d0,(a4)	; operand 2: SG2ObjectCore_object_type at (a4)
 	lea.l model_default_scale_shifts.l,a0
 	move.b $0(a0,d0.w),$001D(a4)
 	lea.l model_default_durability_bytes.l,a0
-	move.b $0(a0,d0.w),$001C(a4)
-	move.b #$FF,$001E(a4)
+	move.b $0(a0,d0.w),SG2ObjectCore_durability_or_negative(a4)
+	move.b #$FF,SG2ObjectCore_retirement_phase_or_negative(a4)
 	clr.b $0003(a4)
 	move.b #$1,$001F(a4)
 	lea.l object_default_motion_words.l,a0
@@ -43156,15 +43156,15 @@ abs_0_00033830:
 	clr.w $002C(a4)
 	clr.w $0010(a4)
 	ori.w #1,$0010(a4)
-	cmpi.w #91,(a4)
+	cmpi.w #91,(a4)	; operand 2: SG2ObjectCore_object_type at (a4)
 	bne.b abs_0_0003388A
-	bset.b #7,$0002(a4)
+	bset.b #7,SG2ObjectCore_flags(a4)
 abs_0_0003388A:
-	cmpi.w #10,(a4)
+	cmpi.w #10,(a4)	; operand 2: SG2ObjectCore_object_type at (a4)
 	bne.b abs_0_00033896
 	move.w #$3E8,$0024(a4)
 abs_0_00033896:
-	cmpi.w #40,(a4)
+	cmpi.w #40,(a4)	; operand 2: SG2ObjectCore_object_type at (a4)
 	bne.b abs_0_000338EE
 	tst.w abs_0_00037896.l
 	bpl.b abs_0_000338C0
@@ -43483,19 +43483,19 @@ abs_0_00033C9A:
 	movea.l -(a3),a4
 	move.l a3,free_object_stack_cursor(a6)
 	subq.w #1,free_object_count(a6)
-	move.w #$2F,(a4)
-	move.l d0,$0004(a4)
-	move.l d1,$000C(a4)
-	move.l #$FFFFFFEC,$0008(a4)
-	move.b #$2,$001E(a4)
+	move.w #$2F,(a4)	; operand 2: SG2ObjectCore_object_type at (a4)
+	move.l d0,SG2ObjectCore_world_x(a4)
+	move.l d1,SG2ObjectCore_world_z(a4)
+	move.l #$FFFFFFEC,SG2ObjectCore_world_y(a4)
+	move.b #$2,SG2ObjectCore_retirement_phase_or_negative(a4)
 	move.b #$0,$0003(a4)
-	move.b #$0,$001C(a4)
+	move.b #$0,SG2ObjectCore_durability_or_negative(a4)
 	move.b #$5,$001D(a4)
 	cmpi.l #4294966796,player_world_y(a6)
 	bmi.w update_point_field_flag_from_world_y
-	move.l $0004(a4),d0
+	move.l SG2ObjectCore_world_x(a4),d0
 	move.l player_world_x(a6),d2
-	move.l $000C(a4),d1
+	move.l SG2ObjectCore_world_z(a4),d1
 	move.l player_world_z(a6),d3
 	sub.l d0,d2
 	bpl.b abs_0_00033D4E
@@ -43799,18 +43799,18 @@ abs_0_00034114:
 	movea.l distant_objects_cursor(a6),a0
 	movea.l (a0)+,a4
 abs_0_00034122:
-	move.w #$62,(a4)
-	move.l #$A71E,$0004(a4)
-	move.l #$14D12,$000C(a4)
-	move.l #$FFFFFEA2,$0008(a4)
+	move.w #$62,(a4)	; operand 2: SG2ObjectCore_object_type at (a4)
+	move.l #$A71E,SG2ObjectCore_world_x(a4)
+	move.l #$14D12,SG2ObjectCore_world_z(a4)
+	move.l #$FFFFFEA2,SG2ObjectCore_world_y(a4)
 	clr.w $0010(a4)
 	clr.w $0012(a4)
 	clr.w $0014(a4)
-	bset.b #7,$001C(a4)
-	move.b #$FF,$001E(a4)
+	bset.b #7,SG2ObjectCore_durability_or_negative(a4)
+	move.b #$FF,SG2ObjectCore_retirement_phase_or_negative(a4)
 	clr.b $0003(a4)
 	move.b #$5,$001D(a4)
-	bset.b #7,$0002(a4)
+	bset.b #7,SG2ObjectCore_flags(a4)
 abs_0_00034166:
 	st.b neutron_bomb_ready_flag(a6)
 	move.b #$51,diagnostic_step_byte.l
@@ -45029,7 +45029,7 @@ abs_0_000351C2:
 	move.l a3,free_object_stack_cursor(a6)
 	subq.w #1,free_object_count(a6)
 	move.w #$92,d0
-	move.w d0,(a4)
+	move.w d0,(a4)	; operand 2: SG2ObjectCore_object_type at (a4)
 	st.b $001F(a4)
 	move.l d2,$0022(a4)
 	addq.w #8,d2
@@ -45037,24 +45037,24 @@ abs_0_000351C2:
 	clr.w $0010(a4)
 	clr.w $0014(a4)
 	move.w #$40,$003C(a4)
-	move.l $0004(a0),$0004(a4)
-	move.l $0008(a0),$0008(a4)
-	move.l $000C(a0),$000C(a4)
+	move.l $0004(a0),SG2ObjectCore_world_x(a4)
+	move.l $0008(a0),SG2ObjectCore_world_y(a4)
+	move.l $000C(a0),SG2ObjectCore_world_z(a4)
 	tst.w d7
 	beq.b abs_0_00035256
 	bsr.w abs_0_00039D20
 	andi.l #1023,d0
 	subi.l #512,d0
-	add.l d0,$0004(a4)
-	add.l d0,$0008(a4)
-	add.l d0,$000C(a4)
+	add.l d0,SG2ObjectCore_world_x(a4)
+	add.l d0,SG2ObjectCore_world_y(a4)
+	add.l d0,SG2ObjectCore_world_z(a4)
 abs_0_00035256:
 	bsr.w abs_0_00039D20
 	andi.w #31,d0
 	addq.w #2,d0
 	move.w d0,$0012(a4)
-	move.b #$FF,$001E(a4)
-	bset.b #7,$001C(a4)
+	move.b #$FF,SG2ObjectCore_retirement_phase_or_negative(a4)
+	bset.b #7,SG2ObjectCore_durability_or_negative(a4)
 	clr.b $0003(a4)
 	bra.b update_tractor_target_continuation
     ; Retirement resets construction/charge/fire to 52/4/2 and advances sequence. Negative table sentinel rolls index back and uses mask $3F; preserve fallback and existing object retirement.
@@ -45620,13 +45620,13 @@ abs_0_00035946:
 	movea.l -(a1),a2
 	move.l a1,free_object_stack_cursor(a6)
 	subq.w #1,free_object_count(a6)
-	move.w abs_0_00037894.l,(a2)
+	move.w abs_0_00037894.l,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
 	sf.b $0022(a2)
 	move.b $001D(a0),d3
 	move.b d3,$001D(a2)
 	clr.b $0003(a2)
-	move.b #$FF,$001E(a2)
-	bset.b #7,$001C(a2)
+	move.b #$FF,SG2ObjectCore_retirement_phase_or_negative(a2)
+	bset.b #7,SG2ObjectCore_durability_or_negative(a2)
 	move.w scan_target_type(a6),d0
 	add.w d0,d0
 	lea.l model_negative_y_contact_extents.l,a1
@@ -45634,9 +45634,9 @@ abs_0_00035946:
 	lsr.w d3,d0
 	ext.l d0
 	move.l d0,tractor_marker_lower_y_offset(a6)
-	move.l player_world_x(a6),$0004(a2)
-	move.l player_world_y(a6),$0008(a2)
-	move.l player_world_z(a6),$000C(a2)
+	move.l player_world_x(a6),SG2ObjectCore_world_x(a2)
+	move.l player_world_y(a6),SG2ObjectCore_world_y(a2)
+	move.l player_world_z(a6),SG2ObjectCore_world_z(a2)
 	move.w #$0,$002C(a2)
 	move.w #$0,$002E(a2)
 	move.w #$0,$0030(a2)
@@ -45649,12 +45649,12 @@ abs_0_00035946:
 	move.l a1,free_object_stack_cursor(a6)
 	subq.w #1,free_object_count(a6)
 	move.w abs_0_00037894.l,d7
-	move.w d7,(a2)
+	move.w d7,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
 	move.b $001D(a0),d3
 	move.b d3,$001D(a2)
 	clr.b $0003(a2)
-	move.b #$FF,$001E(a2)
-	bset.b #7,$001C(a2)
+	move.b #$FF,SG2ObjectCore_retirement_phase_or_negative(a2)
+	bset.b #7,SG2ObjectCore_durability_or_negative(a2)
 	move.w scan_target_type(a6),d0
 	add.w d0,d0
 	lea.l model_negative_y_contact_extents.l,a1
@@ -45662,9 +45662,9 @@ abs_0_00035946:
 	lsr.w d3,d0
 	ext.l d0
 	move.l d0,tractor_marker_lower_y_offset(a6)
-	move.l player_world_x(a6),$0004(a2)
-	move.l player_world_y(a6),$0008(a2)
-	move.l player_world_z(a6),$000C(a2)
+	move.l player_world_x(a6),SG2ObjectCore_world_x(a2)
+	move.l player_world_y(a6),SG2ObjectCore_world_y(a2)
+	move.l player_world_z(a6),SG2ObjectCore_world_z(a2)
 	move.w #$0,$002C(a2)
 	move.w #$0,$002E(a2)
 	move.w #$0,$0030(a2)
@@ -45783,8 +45783,8 @@ prepare_small_asteroid_fragment_pair:
 	movea.l -(a1),a3
 	move.l a1,free_object_stack_cursor(a6)
 	subq.w #1,free_object_count(a6)
-	move.w #$4A,(a2)
-	move.w #$4A,(a3)
+	move.w #$4A,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
+	move.w #$4A,(a3)	; operand 2: SG2ObjectCore_object_type at (a3)
     ; KNOWN: type A2=Target code-entry register seed:SG2Asteroid; type A3=Target code-entry register seed:SG2Asteroid
 	move.l SG2ObjectCore_world_x(a0),SG2ObjectCore_world_x(a2)
 	move.l SG2ObjectCore_world_y(a0),SG2ObjectCore_world_y(a2)
@@ -45941,18 +45941,18 @@ abs_0_00035DF4:
 	movea.l -(a1),a2
 	move.l a1,free_object_stack_cursor(a6)
 	subq.w #1,free_object_count(a6)
-	move.w #SG2_OBJECT_TYPE_SKIM_MISSILE,(a2)
-	move.l SG2ObjectCore_world_x(a0),$0004(a2)
-	move.l SG2ObjectCore_world_y(a0),$0008(a2)
-	move.l SG2ObjectCore_world_z(a0),$000C(a2)
+	move.w #SG2_OBJECT_TYPE_SKIM_MISSILE,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
+	move.l SG2ObjectCore_world_x(a0),SG2ObjectCore_world_x(a2)
+	move.l SG2ObjectCore_world_y(a0),SG2ObjectCore_world_y(a2)
+	move.l SG2ObjectCore_world_z(a0),SG2ObjectCore_world_z(a2)
 	clr.w $0010(a2)
 	clr.w $0012(a2)
 	ori.w #1,$0010(a2)
 	clr.w $0014(a2)
 	move.w #$14,$0024(a2)
 	move.w #$96,$0026(a2)
-	move.b #$A,$001C(a2)
-	move.b #$FF,$001E(a2)
+	move.b #$A,SG2ObjectCore_durability_or_negative(a2)
+	move.b #$FF,SG2ObjectCore_retirement_phase_or_negative(a2)
 	move.b #$7,$001D(a2)
 	clr.b $0003(a2)
 	move.b #SG2_OBJECT_TYPE_SKIM_DRONE,$002A(a2)
@@ -46266,17 +46266,17 @@ advance_space_station_state:
 	move.l a3,free_object_stack_cursor(a6)
 	subq.w #1,free_object_count(a6)
 	move.w #$92,d0
-	move.w d0,(a4)
+	move.w d0,(a4)	; operand 2: SG2ObjectCore_object_type at (a4)
 	subi.w #128,d0
 	asl.w #2,d0
 	lea.l nonmodel_object_base_radii.l,a1
 	move.l $0(a1,d0.w),$0022(a4)
 	move.l $0022(a4),$0036(a4)
-	move.l SG2ObjectCore_world_x(a0),$0004(a4)
-	move.l SG2ObjectCore_world_y(a0),$0008(a4)
-	move.l SG2ObjectCore_world_z(a0),$000C(a4)
-	move.b #$FF,$001E(a4)
-	bset.b #7,$001C(a4)
+	move.l SG2ObjectCore_world_x(a0),SG2ObjectCore_world_x(a4)
+	move.l SG2ObjectCore_world_y(a0),SG2ObjectCore_world_y(a4)
+	move.l SG2ObjectCore_world_z(a0),SG2ObjectCore_world_z(a4)
+	move.b #$FF,SG2ObjectCore_retirement_phase_or_negative(a4)
+	bset.b #7,SG2ObjectCore_durability_or_negative(a4)
 	move.w #$32,$0010(a4)
 	sf.b $001F(a4)
 abs_0_000362D2:
@@ -46575,12 +46575,12 @@ abs_0_0003664E:
 	movea.l -(a3),a4
 	move.l a3,$06D4(a6)
 	subq.w #1,$0772(a6)
-	move.w d4,(a4)
-	move.l (a1)+,$0004(a4)
-	move.l (a1)+,$000C(a4)
-	move.l #$0,$0008(a4)
-	move.b #$FF,$001E(a4)
-	bset.b #7,$001C(a4)
+	move.w d4,(a4)	; operand 2: SG2ObjectCore_object_type at (a4)
+	move.l (a1)+,SG2ObjectCore_world_x(a4)
+	move.l (a1)+,SG2ObjectCore_world_z(a4)
+	move.l #$0,SG2ObjectCore_world_y(a4)
+	move.b #$FF,SG2ObjectCore_retirement_phase_or_negative(a4)
+	bset.b #7,SG2ObjectCore_durability_or_negative(a4)
 	lea.l model_default_scale_shifts.l,a3
 	move.b $0(a3,d4.w),$001D(a4)
 	move.b #$0,$0003(a4)
@@ -46594,8 +46594,8 @@ abs_0_000366BA:
 	move.w #$0,$0014(a4)
 	cmp.w #$4E,d4
 	bne.b abs_0_000366E2
-	move.l $0004(a4),$0872(a6)
-	move.l $000C(a4),$0876(a6)
+	move.l SG2ObjectCore_world_x(a4),$0872(a6)
+	move.l SG2ObjectCore_world_z(a4),$0876(a6)
 	bra.b abs_0_000366E2
 abs_0_000366E0:
 	addq.l #8,a1
@@ -46978,15 +46978,15 @@ abs_0_00036C54:
 	subq.w #1,free_object_count(a6)
 	move.b #$58,$002A(a4)
 	move.b #$2F,SG2WorldObject_collision_ignored_object_type(a0)
-	move.w #$2F,(a4)
-	move.l SG2ObjectCore_world_x(a0),$0004(a4)
-	move.l SG2ObjectCore_world_z(a0),$000C(a4)
+	move.w #$2F,(a4)	; operand 2: SG2ObjectCore_object_type at (a4)
+	move.l SG2ObjectCore_world_x(a0),SG2ObjectCore_world_x(a4)
+	move.l SG2ObjectCore_world_z(a0),SG2ObjectCore_world_z(a4)
 	move.l #$FFFFBD98,d0
 	move.b SG2WorldObject_model_scale_shift(a0),d1
 	asr.l d1,d0
-	move.l d0,$0008(a4)
-	bset.b #7,$001C(a4)
-	move.b #$FF,$001E(a4)
+	move.l d0,SG2ObjectCore_world_y(a4)
+	bset.b #7,SG2ObjectCore_durability_or_negative(a4)
+	move.b #$FF,SG2ObjectCore_retirement_phase_or_negative(a4)
 	move.b #$0,$0003(a4)
 	bsr.w abs_0_00039D20
 	andi.b #1,d0
@@ -47136,25 +47136,25 @@ abs_0_00036E58:
 	movea.l -(a3),a2
 	move.l a3,free_object_stack_cursor(a6)
 	subq.w #1,free_object_count(a6)
-	move.w d0,(a2)
-	move.l player_world_x(a6),$0004(a2)
-	move.l player_world_y(a6),$0008(a2)
-	move.l player_world_z(a6),$000C(a2)
+	move.w d0,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
+	move.l player_world_x(a6),SG2ObjectCore_world_x(a2)
+	move.l player_world_y(a6),SG2ObjectCore_world_y(a2)
+	move.l player_world_z(a6),SG2ObjectCore_world_z(a2)
 	move.w #$9C4,d3
 	bsr.w build_player_motion_vector
 	ext.l d4
 	ext.l d5
 	ext.l d6
-	add.l d4,$0004(a2)
-	add.l d5,$0008(a2)
-	add.l d6,$000C(a2)
-	addi.l #100,$0008(a2)
+	add.l d4,SG2ObjectCore_world_x(a2)
+	add.l d5,SG2ObjectCore_world_y(a2)
+	add.l d6,SG2ObjectCore_world_z(a2)
+	addi.l #100,SG2ObjectCore_world_y(a2)
 	move.l horizontal_world_wrap_mask(a6),d3
-	and.l d3,$0004(a2)
-	and.l d3,$000C(a2)
+	and.l d3,SG2ObjectCore_world_x(a2)
+	and.l d3,SG2ObjectCore_world_z(a2)
 	clr.b $0003(a2)
-	bset.b #7,$001C(a2)
-	move.b #$FF,$001E(a2)
+	bset.b #7,SG2ObjectCore_durability_or_negative(a2)
+	move.b #$FF,SG2ObjectCore_retirement_phase_or_negative(a2)
 	lea.l model_default_scale_shifts.l,a1
 	move.b $0(a1,d0.w),$001D(a2)
 	move.l a0,$003C(a2)
@@ -47189,12 +47189,12 @@ abs_0_00036F84:
 	movea.l -(a3),a4
 	move.l a3,free_object_stack_cursor(a6)
 	subq.w #1,free_object_count(a6)
-	move.w #$48,(a4)
+	move.w #$48,(a4)	; operand 2: SG2ObjectCore_object_type at (a4)
 	sf.b $0022(a4)
 	move.w #$C8,$0024(a4)
-	move.l SG2ObjectCore_world_x(a0),$0004(a4)
-	move.l SG2ObjectCore_world_y(a0),$0008(a4)
-	move.l SG2ObjectCore_world_z(a0),$000C(a4)
+	move.l SG2ObjectCore_world_x(a0),SG2ObjectCore_world_x(a4)
+	move.l SG2ObjectCore_world_y(a0),SG2ObjectCore_world_y(a4)
+	move.l SG2ObjectCore_world_z(a0),SG2ObjectCore_world_z(a4)
 	move.w SG2WorldObject_rotation_0(a0),$0010(a4)
 	move.w SG2WorldObject_rotation_1(a0),d7
 	tst.w $0028(a0)
@@ -47219,11 +47219,11 @@ abs_0_00036FD6:
 	ext.l d4
 	ext.l d5
 	ext.l d6
-	sub.l d4,$0004(a4)
-	sub.l d5,$0008(a4)
-	sub.l d6,$000C(a4)
-	move.b #$FF,$001E(a4)
-	move.b #$1,$001C(a4)
+	sub.l d4,SG2ObjectCore_world_x(a4)
+	sub.l d5,SG2ObjectCore_world_y(a4)
+	sub.l d6,SG2ObjectCore_world_z(a4)
+	move.b #$FF,SG2ObjectCore_retirement_phase_or_negative(a4)
+	move.b #$1,SG2ObjectCore_durability_or_negative(a4)
 	clr.b $0003(a4)
 	move.b #$3,$001D(a4)
 	move.b #$48,SG2WorldObject_collision_ignored_object_type(a0)
@@ -47247,11 +47247,11 @@ abs_0_0003704C:
 	move.l a3,free_object_stack_cursor(a6)
 	subq.w #1,free_object_count(a6)
 	andi.w #255,d0
-	move.w d0,(a4)
+	move.w d0,(a4)	; operand 2: SG2ObjectCore_object_type at (a4)
 	move.l #$FFFFFFFF,$003C(a4)
-	move.l SG2ObjectCore_world_x(a0),$0004(a4)
-	move.l SG2ObjectCore_world_y(a0),$0008(a4)
-	move.l SG2ObjectCore_world_z(a0),$000C(a4)
+	move.l SG2ObjectCore_world_x(a0),SG2ObjectCore_world_x(a4)
+	move.l SG2ObjectCore_world_y(a0),SG2ObjectCore_world_y(a4)
+	move.l SG2ObjectCore_world_z(a0),SG2ObjectCore_world_z(a4)
 	move.w SG2WorldObject_velocity_x(a0),d0
 	move.w SG2WorldObject_velocity_y(a0),d1
 	move.w SG2WorldObject_velocity_z(a0),d2
@@ -47261,8 +47261,8 @@ abs_0_0003704C:
 	move.w d0,$002C(a4)
 	move.w d1,$002C(a4)
 	move.w d2,$002C(a4)
-	move.b #$FF,$001E(a4)
-	move.b #$5,$001C(a4)
+	move.b #$FF,SG2ObjectCore_retirement_phase_or_negative(a4)
+	move.b #$5,SG2ObjectCore_durability_or_negative(a4)
 	clr.b $0003(a4)
 	move.b #$4,$001D(a4)
 	clr.w $0020(a4)
@@ -47359,7 +47359,7 @@ abs_0_000371E4:
 	movea.l -(a3),a4
 	move.l a3,free_object_stack_cursor(a6)
 	subq.w #1,free_object_count(a6)
-	move.w d0,(a4)
+	move.w d0,(a4)	; operand 2: SG2ObjectCore_object_type at (a4)
 	move.w (a0)+,d1
 	move.w (a0)+,d2
 	move.w (a0)+,d3
@@ -47369,12 +47369,12 @@ abs_0_000371E4:
 	add.l player_world_x(a6),d1
 	add.l player_world_y(a6),d2
 	add.l player_world_z(a6),d3
-	move.l d1,$0004(a4)
-	move.l d2,$0004(a4)
-	move.l d3,$0004(a4)
-	move.b #$FF,$001E(a4)
+	move.l d1,SG2ObjectCore_world_x(a4)
+	move.l d2,SG2ObjectCore_world_x(a4)
+	move.l d3,SG2ObjectCore_world_x(a4)
+	move.b #$FF,SG2ObjectCore_retirement_phase_or_negative(a4)
 	lea.l model_default_durability_bytes.l,a3
-	move.b $0(a3,d0.w),$001C(a4)
+	move.b $0(a3,d0.w),SG2ObjectCore_durability_or_negative(a4)
 	clr.b $0003(a4)
 	move.b #$1,$001F(a4)
 	lea.l model_default_scale_shifts.l,a3

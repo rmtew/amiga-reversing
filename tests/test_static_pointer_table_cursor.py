@@ -8,11 +8,15 @@ from amiga_reversing.disasm.target_metadata import TargetMetadata, write_target_
 from amiga_reversing.disasm.effective_metadata import effective_metadata_file
 
 
-def header_table_artifact(tmp_path, loop, *, unknown_count=False, invalid_first=False):
+def header_table_artifact(tmp_path, loop, *, unknown_count=False, invalid_first=False, initial_delta=0, read=None):
     text = (' SECTION code,code\n ORG $1000\n lea.l directory(pc),a3\n moveq #1,d4\n'
         'again:\n movea.l (a3)+,a0\n move.w (a0)+,d0\n move.w (a0),d1\n'
         + (' dbf d4,again\n' if loop else '')
         + ' rts\ndirectory:\n dc.l first,second\nfirst:dc.w 1,2\nsecond:dc.w 3,4\n')
+    if initial_delta:
+        text=text.replace('directory(pc)',f'directory+{initial_delta}(pc)')
+    if read:
+        text=text.replace('movea.l (a3)+,a0',read)
     if unknown_count:
         text=text.replace('moveq #1,d4','move.w d2,d4')
     if invalid_first:

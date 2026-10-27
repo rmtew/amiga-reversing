@@ -3227,7 +3227,14 @@ static int typed_memory_base_apply_affine_delta(M68kRenderTypedMemoryBaseValue *
   if (value == NULL) return 0;
   /* Cursor widening can lose a concrete offset without losing the table's
    * homogeneous pointee contract. This retains a type, never a target/bound. */
-  if (!value->known) return value->pointer_table_known != 0U;
+  if (!value->known) {
+    /* This runtime contract denotes aligned LONG entries, not arbitrary
+     * byte positions in a table. Losing the numeric base must not lose that
+     * entry-alignment obligation. */
+    if (value->pointer_table_known && delta % 4 == 0) return 1;
+    typed_memory_base_clear(value);
+    return 0;
+  }
   if (!value->affine_known || !typed_memory_base_offset_add(value->offset, delta, &next_offset)) return 0;
   next_addend = (int64_t)value->affine_signed_addend + (int64_t)delta;
   if (next_addend < INT32_MIN || next_addend > INT32_MAX) return 0;
@@ -6286,9 +6293,51 @@ static int render_lookup_record_untyped_memory_writes(M68kRenderLookup *lookup, 
   return 0;
 }
 
+/* Resolve one decoded LONG pointer read. This is the input EA, before an
+ * implicit update; it is neither the loaded value nor a loop-range proof. */
+static int typed_pointer_read_operand_supported(const M68kInstructionIR *instruction, size_t operand_index) {
+  uint8_t width, count, span, shape, reg;
+  const M68kOperandIR *operand;
+  if (!instruction || operand_index >= instruction->operand_count ||
+      platform_operand_memory_access(instruction, operand_index) != M68K_SIM_ACCESS_MEMORY_READ ||
+      !platform_operand_memory_span(instruction, operand_index, &width, &count, &span) ||
+      width != 4U || count != 1U || span != 4U) return 0;
+  operand = &instruction->operands[operand_index];
+  shape = m68k_instruction_operand_decoded_ea_shape(operand);
+  if (shape != M68K_SIM_EA_SHAPE_PREDECREMENT && shape != M68K_SIM_EA_SHAPE_POSTINCREMENT) return 1;
+  if (operand->kind != M68K_ASM_OPERAND_EA || (reg = operand->value.ea_reg) >= 8U) return 0;
+  for (size_t other = 0U; other < instruction->operand_count; ++other)
+    if (other != operand_index &&
+        (platform_operand_register_write_mask(instruction, other) & (1U << (8U + reg)))) return 0;
+  return 1;
+}
+
+static int typed_memory_base_for_pointer_read(const M68kRenderTypedState *state,
+    const M68kInstructionIR *instruction, size_t operand_index, M68kRenderTypedMemoryBaseValue *out) {
+  const M68kOperandIR *operand;
+  uint8_t shape, reg;
+  int16_t displacement = 0;
+  if (!state || !out || !typed_pointer_read_operand_supported(instruction, operand_index)) return 0;
+  operand = &instruction->operands[operand_index];
+  shape = m68k_instruction_operand_decoded_ea_shape(operand);
+  if (shape == M68K_SIM_EA_SHAPE_PREDECREMENT || shape == M68K_SIM_EA_SHAPE_POSTINCREMENT) {
+    reg = operand->value.ea_reg;
+    if (shape == M68K_SIM_EA_SHAPE_PREDECREMENT) {
+      uint8_t span = 0U;
+      if (!platform_operand_memory_span(instruction, operand_index, NULL, NULL, &span)) return 0;
+      displacement = -(int16_t)span;
+    }
+  } else if (!operand_is_address_memory_local(operand, &reg, &displacement)) return 0;
+  if (reg >= 8U) return 0;
+  *out = state->memory_base_regs[reg];
+  if (!out->known && !out->pointer_table_known) return 0;
+  return displacement == 0 || typed_memory_base_apply_affine_delta(out, displacement);
+}
+
 static int typed_stored_value_from_pointer_table_read(M68kRenderTypedStoredValue *value,
     const M68kRenderLookup *lookup, const M68kRenderTypedState *state, const M68kOperandIR *operand,
-    size_t section_index, uint32_t offset, const M68kRenderTypedMemoryBaseValue *override_memory_base) {
+    size_t section_index, uint32_t offset, const M68kRenderTypedMemoryBaseValue *override_memory_base,
+    const M68kInstructionIR *read_instruction, size_t read_operand_index) {
   M68kRenderTypedMemoryBaseValue memory_base;
   const M68kAnalysisStructuredDataItem *item = NULL;
   uint16_t struct_id;
@@ -6296,8 +6345,9 @@ static int typed_stored_value_from_pointer_table_read(M68kRenderTypedStoredValue
   uint32_t domain_min = 0U, domain_max = 0U, entry_index;
   uint8_t has_domain = 0U;
   if (value == NULL || lookup == NULL || state == NULL || operand == NULL) return 0;
+  if (read_instruction && !typed_pointer_read_operand_supported(read_instruction, read_operand_index)) return 0;
   if (override_memory_base != NULL) memory_base = *override_memory_base;
-  else if (!typed_state_copy_memory_base(state, operand, &memory_base)) return 0;
+  else if (!typed_memory_base_for_pointer_read(state, read_instruction, read_operand_index, &memory_base)) return 0;
   item = memory_base.pointer_table_known ?
     lookup_pointer_table_item_for_contract(lookup, memory_base.pointer_table_section_index,
       memory_base.pointer_table_offset, memory_base.pointer_table_size) :
@@ -6442,7 +6492,7 @@ static int typed_stored_value_from_direct_pointer_table_read(M68kRenderTypedStor
   memory_base.pointer_table_offset = item->offset;
   memory_base.pointer_table_size = item->size;
   return typed_stored_value_from_pointer_table_read(value, lookup, &empty_state, operand,
-    section_index, offset, &memory_base);
+    section_index, offset, &memory_base, NULL, 0U);
 }
 
 /* A declared callback table is also a durable table-origin contract when the
@@ -7978,7 +8028,7 @@ static void typed_state_update_after_instruction(M68kRenderTypedState *state, M6
        * is useful, but is not the pointee type of the long read from the
        * table, so it must not suppress pointer-table propagation. */
       if (typed_stored_value_from_pointer_table_read(&table_value, lookup, state, source_operand,
-          section_index, offset, source_has_memory_base ? &source_memory_base : NULL)) {
+          section_index, offset, source_has_memory_base ? &source_memory_base : NULL, instruction, source_index)) {
         table_value.provenance.producer_operand_index = (uint8_t)source_index;
         if (source_struct_id == AMIGA_OS_STRUCT_ID_NONE && !typed_stored_value_has_useful_info(&stored_value))
           stored_value = table_value;

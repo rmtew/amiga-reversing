@@ -1,0 +1,2574 @@
+{
+  "schema_version": 1,
+  "kind": "decoded_pointer_read_footprints_and_free_stack_contract",
+  "status": "qualified_connected_restoration_batch_continues",
+  "publication_base_commit": "56dff0b043288578d755b1f0966077d2998c50ec",
+  "inputs": {
+    "analysis_json_sha256": "edc17ed66b783182ae85bfd2175ac80fcc4d1e038362597d5e01e3bfc2aa8070",
+    "effective-metadata_json_sha256": "3cdfa82e8d468c91711562e8e961df51232e2b6140b626f123bea27dd11ee9e3",
+    "consumer-evidence_json_sha256": "3648d0b08bd9c29bb53ff76d1f46f20004b1252b0268e9a16487f8727c618b78"
+  },
+  "interpretation": "Original initializer clears250 records of68bytes at world_object_pool and stores addresses of unused pool records into the free reference stack, leaving app6D4 at its one-past top. Release paths append original object addresses via postincrement and update the cursor; spawn paths use MOVEA.L -(An) then update the cursor, sometimes twice in one original path. Declare the four-byte free_object_stack_cursor slot through the existing runtime pointer_table contract with SG2ObjectCore homogeneous entry type; the cursor is not itself an object, and mixed/high/world variants are not all cast to World. Typed entry reads must use the decoded full four-byte pointer footprint at the predecrement address, preserve width/alignment, refuse conflicting/partial/unmodelled reads, and separate the loaded value from its source table. Retain all original count guards, known double-pop/one-decrement behavior, storage extents, alias/lifetime assumptions and save-relative subtract/restore phases. This active-game dereference contract does not certify arbitrary counts, serialized relative words as pointers, or allocation safety. No new entry/base seed, target-address recognizer, numeric pointer scan, code/data promotion, original opcode repair or gameplay injection.",
+  "canonical_actions": 1,
+  "contract": {
+    "base_symbol": null,
+    "citation": "manual_action_log:catalog-rsset-region-app-06D4",
+    "layout_name": "app",
+    "offset": 1748,
+    "parse_order": null,
+    "parser_role": null,
+    "parser_routine": null,
+    "pointer_struct": "SG2ObjectCore",
+    "review_status": "seeded",
+    "seed_origin": "manual_analysis",
+    "semantic_type": null,
+    "size": 4,
+    "sizeof_symbol": null,
+    "storage_kind": "pointer_table",
+    "struct_name": null,
+    "symbol": "free_object_stack_cursor"
+  },
+  "before_after": {
+    "app_slot_ref_count": [
+      3412,
+      3412
+    ],
+    "recovered_platform_typed_access_count": [
+      1206,
+      1472
+    ],
+    "recovered_platform_unresolved_typed_access_count": [
+      424,
+      737
+    ]
+  },
+  "projection": {
+    "new_count": 266,
+    "lost_count": 0,
+    "changed_count": 0,
+    "new_by_field": {
+      "SG2ObjectCore_object_type": 48,
+      "SG2ObjectCore_world_x": 46,
+      "SG2ObjectCore_world_y": 43,
+      "SG2ObjectCore_world_z": 43,
+      "SG2ObjectCore_retirement_phase_or_negative": 33,
+      "SG2ObjectCore_durability_or_negative": 34,
+      "SG2ModelHeader_last_vertex_index": 1,
+      "SG2ModelHeader_face_count": 1,
+      "SG2ModelHeader_face_commands": 1,
+      "SG2ModelHeader_vertex_reference_records": 1,
+      "SG2ModelHeader_coordinate_pool": 1,
+      "SG2ObjectCore_flags": 14
+    },
+    "new_by_struct": {
+      "SG2ObjectCore": 261,
+      "SG2ModelHeader": 5
+    },
+    "unresolved_by_class": {
+      "field_gap": 649,
+      "indexed_dynamic": 87,
+      "auto_update_cursor": 1
+    },
+    "new_unresolved_count": 313,
+    "removed_unresolved_count": 0
+  },
+  "sites": [
+    {
+      "source_offset": 1528,
+      "runtime_pc": 5624,
+      "operand": 1,
+      "register": "A4",
+      "root_struct": "SG2ObjectCore",
+      "field": "object_type",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 1532,
+      "runtime_pc": 5628,
+      "operand": 1,
+      "register": "A4",
+      "root_struct": "SG2ObjectCore",
+      "field": "world_x",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 1538,
+      "runtime_pc": 5634,
+      "operand": 1,
+      "register": "A4",
+      "root_struct": "SG2ObjectCore",
+      "field": "world_y",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 1544,
+      "runtime_pc": 5640,
+      "operand": 1,
+      "register": "A4",
+      "root_struct": "SG2ObjectCore",
+      "field": "world_z",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 1554,
+      "runtime_pc": 5650,
+      "operand": 1,
+      "register": "A4",
+      "root_struct": "SG2ObjectCore",
+      "field": "retirement_phase_or_negative",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 1560,
+      "runtime_pc": 5656,
+      "operand": 1,
+      "register": "A4",
+      "root_struct": "SG2ObjectCore",
+      "field": "durability_or_negative",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 3264,
+      "runtime_pc": 7360,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "object_type",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 17360,
+      "runtime_pc": 21456,
+      "operand": 0,
+      "register": "A0",
+      "root_struct": "SG2ModelHeader",
+      "field": "last_vertex_index",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 17364,
+      "runtime_pc": 21460,
+      "operand": 0,
+      "register": "A0",
+      "root_struct": "SG2ModelHeader",
+      "field": "face_count",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 17368,
+      "runtime_pc": 21464,
+      "operand": 0,
+      "register": "A0",
+      "root_struct": "SG2ModelHeader",
+      "field": "face_commands",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 17372,
+      "runtime_pc": 21468,
+      "operand": 0,
+      "register": "A0",
+      "root_struct": "SG2ModelHeader",
+      "field": "vertex_reference_records",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 17376,
+      "runtime_pc": 21472,
+      "operand": 0,
+      "register": "A0",
+      "root_struct": "SG2ModelHeader",
+      "field": "coordinate_pool",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 25310,
+      "runtime_pc": 29406,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "object_type",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 25354,
+      "runtime_pc": 29450,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "retirement_phase_or_negative",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 25360,
+      "runtime_pc": 29456,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "durability_or_negative",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 25372,
+      "runtime_pc": 29468,
+      "operand": 0,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "object_type",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 25378,
+      "runtime_pc": 29474,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "world_x",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 25384,
+      "runtime_pc": 29480,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "world_z",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 25390,
+      "runtime_pc": 29486,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "world_y",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 25536,
+      "runtime_pc": 29632,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "world_x",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 25540,
+      "runtime_pc": 29636,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "world_y",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 25544,
+      "runtime_pc": 29640,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "world_z",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 25552,
+      "runtime_pc": 29648,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "world_x",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 25556,
+      "runtime_pc": 29652,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "world_z",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 26168,
+      "runtime_pc": 30264,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "object_type",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 26182,
+      "runtime_pc": 30278,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "durability_or_negative",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 26188,
+      "runtime_pc": 30284,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "retirement_phase_or_negative",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 26206,
+      "runtime_pc": 30302,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "world_x",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 26212,
+      "runtime_pc": 30308,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "world_y",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 26218,
+      "runtime_pc": 30314,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "world_z",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 26292,
+      "runtime_pc": 30388,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "world_x",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 26296,
+      "runtime_pc": 30392,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "world_y",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 26300,
+      "runtime_pc": 30396,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "world_z",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 26308,
+      "runtime_pc": 30404,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "world_x",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 26312,
+      "runtime_pc": 30408,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "world_z",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 26994,
+      "runtime_pc": 31090,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "object_type",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 27008,
+      "runtime_pc": 31104,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "world_y",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 27302,
+      "runtime_pc": 31398,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "retirement_phase_or_negative",
+      "provenance": "unknown"
+    },
+    {
+      "source_offset": 27308,
+      "runtime_pc": 31404,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "durability_or_negative",
+      "provenance": "unknown"
+    },
+    {
+      "source_offset": 30472,
+      "runtime_pc": 34568,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "world_x",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 30478,
+      "runtime_pc": 34574,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "world_y",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 30484,
+      "runtime_pc": 34580,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "world_z",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 30490,
+      "runtime_pc": 34586,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "durability_or_negative",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 30496,
+      "runtime_pc": 34592,
+      "operand": 0,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "retirement_phase_or_negative",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 30526,
+      "runtime_pc": 34622,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "object_type",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 33282,
+      "runtime_pc": 37378,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "world_x",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 33288,
+      "runtime_pc": 37384,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "world_y",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 33294,
+      "runtime_pc": 37390,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "world_z",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 33300,
+      "runtime_pc": 37396,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "world_y",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 33308,
+      "runtime_pc": 37404,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "durability_or_negative",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 33314,
+      "runtime_pc": 37410,
+      "operand": 0,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "retirement_phase_or_negative",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 33324,
+      "runtime_pc": 37420,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "object_type",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 34768,
+      "runtime_pc": 38864,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "object_type",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 34786,
+      "runtime_pc": 38882,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "object_type",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 34802,
+      "runtime_pc": 38898,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "world_x",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 34812,
+      "runtime_pc": 38908,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "world_y",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 34816,
+      "runtime_pc": 38912,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "world_z",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 34826,
+      "runtime_pc": 38922,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "retirement_phase_or_negative",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 34878,
+      "runtime_pc": 38974,
+      "operand": 0,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "object_type",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 34900,
+      "runtime_pc": 38996,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "durability_or_negative",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 34986,
+      "runtime_pc": 39082,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "flags",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 35036,
+      "runtime_pc": 39132,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "object_type",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 35052,
+      "runtime_pc": 39148,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "durability_or_negative",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 35058,
+      "runtime_pc": 39154,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "flags",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 35070,
+      "runtime_pc": 39166,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "world_x",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 35076,
+      "runtime_pc": 39172,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "world_z",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 35092,
+      "runtime_pc": 39188,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "world_y",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 35108,
+      "runtime_pc": 39204,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "retirement_phase_or_negative",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 35154,
+      "runtime_pc": 39250,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "object_type",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 35176,
+      "runtime_pc": 39272,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "durability_or_negative",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 35182,
+      "runtime_pc": 39278,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "world_x",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 35188,
+      "runtime_pc": 39284,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "world_z",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 35212,
+      "runtime_pc": 39308,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "world_y",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 35246,
+      "runtime_pc": 39342,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "retirement_phase_or_negative",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 36688,
+      "runtime_pc": 40784,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "object_type",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 36704,
+      "runtime_pc": 40800,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "world_x",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 36714,
+      "runtime_pc": 40810,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "world_y",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 36718,
+      "runtime_pc": 40814,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "world_z",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 36728,
+      "runtime_pc": 40824,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "retirement_phase_or_negative",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 36764,
+      "runtime_pc": 40860,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "durability_or_negative",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 36926,
+      "runtime_pc": 41022,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "object_type",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 36960,
+      "runtime_pc": 41056,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "durability_or_negative",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 36990,
+      "runtime_pc": 41086,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "world_x",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 36996,
+      "runtime_pc": 41092,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "world_z",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 37034,
+      "runtime_pc": 41130,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "world_y",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 37042,
+      "runtime_pc": 41138,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "retirement_phase_or_negative",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 37056,
+      "runtime_pc": 41152,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "flags",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 37062,
+      "runtime_pc": 41158,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "flags",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 37206,
+      "runtime_pc": 41302,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "object_type",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 37232,
+      "runtime_pc": 41328,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "world_x",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 37238,
+      "runtime_pc": 41334,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "world_z",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 37244,
+      "runtime_pc": 41340,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "world_y",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 37252,
+      "runtime_pc": 41348,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "retirement_phase_or_negative",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 37282,
+      "runtime_pc": 41378,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "flags",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 37292,
+      "runtime_pc": 41388,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "durability_or_negative",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 37390,
+      "runtime_pc": 41486,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "object_type",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 37428,
+      "runtime_pc": 41524,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "world_x",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 37434,
+      "runtime_pc": 41530,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "world_z",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 37446,
+      "runtime_pc": 41542,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "world_y",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 37454,
+      "runtime_pc": 41550,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "retirement_phase_or_negative",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 37468,
+      "runtime_pc": 41564,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "flags",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 37478,
+      "runtime_pc": 41574,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "durability_or_negative",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 37496,
+      "runtime_pc": 41592,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "durability_or_negative",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 37642,
+      "runtime_pc": 41738,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "object_type",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 37664,
+      "runtime_pc": 41760,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "world_x",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 37670,
+      "runtime_pc": 41766,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "world_z",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 37676,
+      "runtime_pc": 41772,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "world_y",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 37684,
+      "runtime_pc": 41780,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "retirement_phase_or_negative",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 37722,
+      "runtime_pc": 41818,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "flags",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 37738,
+      "runtime_pc": 41834,
+      "operand": 0,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "object_type",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 37750,
+      "runtime_pc": 41846,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "durability_or_negative",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 37766,
+      "runtime_pc": 41862,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "flags",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 37784,
+      "runtime_pc": 41880,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "object_type",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 37796,
+      "runtime_pc": 41892,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "world_y",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 38256,
+      "runtime_pc": 42352,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "object_type",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 38272,
+      "runtime_pc": 42368,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "world_x",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 38282,
+      "runtime_pc": 42378,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "world_y",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 38286,
+      "runtime_pc": 42382,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "world_z",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 38296,
+      "runtime_pc": 42392,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "retirement_phase_or_negative",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 38344,
+      "runtime_pc": 42440,
+      "operand": 0,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "object_type",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 38366,
+      "runtime_pc": 42462,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "durability_or_negative",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 39212,
+      "runtime_pc": 43308,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "object_type",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 39246,
+      "runtime_pc": 43342,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "durability_or_negative",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 39276,
+      "runtime_pc": 43372,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "world_x",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 39282,
+      "runtime_pc": 43378,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "world_z",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 39320,
+      "runtime_pc": 43416,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "world_y",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 39328,
+      "runtime_pc": 43424,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "retirement_phase_or_negative",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 39342,
+      "runtime_pc": 43438,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "flags",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 39348,
+      "runtime_pc": 43444,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "flags",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 39542,
+      "runtime_pc": 43638,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "object_type",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 39564,
+      "runtime_pc": 43660,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "world_x",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 39570,
+      "runtime_pc": 43666,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "world_z",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 39576,
+      "runtime_pc": 43672,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "world_y",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 39584,
+      "runtime_pc": 43680,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "retirement_phase_or_negative",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 39622,
+      "runtime_pc": 43718,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "flags",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 39644,
+      "runtime_pc": 43740,
+      "operand": 0,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "object_type",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 39656,
+      "runtime_pc": 43752,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "durability_or_negative",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 39672,
+      "runtime_pc": 43768,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "flags",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 39690,
+      "runtime_pc": 43786,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "object_type",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 204932,
+      "runtime_pc": 209028,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "object_type",
+      "provenance": "unknown"
+    },
+    {
+      "source_offset": 204946,
+      "runtime_pc": 209042,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "world_y",
+      "provenance": "unknown"
+    },
+    {
+      "source_offset": 205090,
+      "runtime_pc": 209186,
+      "operand": 1,
+      "register": "A4",
+      "root_struct": "SG2ObjectCore",
+      "field": "object_type",
+      "provenance": "unknown"
+    },
+    {
+      "source_offset": 205092,
+      "runtime_pc": 209188,
+      "operand": 1,
+      "register": "A4",
+      "root_struct": "SG2ObjectCore",
+      "field": "retirement_phase_or_negative",
+      "provenance": "unknown"
+    },
+    {
+      "source_offset": 205098,
+      "runtime_pc": 209194,
+      "operand": 1,
+      "register": "A4",
+      "root_struct": "SG2ObjectCore",
+      "field": "durability_or_negative",
+      "provenance": "unknown"
+    },
+    {
+      "source_offset": 205108,
+      "runtime_pc": 209204,
+      "operand": 1,
+      "register": "A4",
+      "root_struct": "SG2ObjectCore",
+      "field": "world_x",
+      "provenance": "unknown"
+    },
+    {
+      "source_offset": 205116,
+      "runtime_pc": 209212,
+      "operand": 1,
+      "register": "A4",
+      "root_struct": "SG2ObjectCore",
+      "field": "world_z",
+      "provenance": "unknown"
+    },
+    {
+      "source_offset": 205124,
+      "runtime_pc": 209220,
+      "operand": 1,
+      "register": "A4",
+      "root_struct": "SG2ObjectCore",
+      "field": "world_y",
+      "provenance": "unknown"
+    },
+    {
+      "source_offset": 206302,
+      "runtime_pc": 210398,
+      "operand": 1,
+      "register": "A4",
+      "root_struct": "SG2ObjectCore",
+      "field": "world_x",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 206306,
+      "runtime_pc": 210402,
+      "operand": 1,
+      "register": "A4",
+      "root_struct": "SG2ObjectCore",
+      "field": "world_y",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 206310,
+      "runtime_pc": 210406,
+      "operand": 1,
+      "register": "A4",
+      "root_struct": "SG2ObjectCore",
+      "field": "world_z",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 206334,
+      "runtime_pc": 210430,
+      "operand": 1,
+      "register": "A4",
+      "root_struct": "SG2ObjectCore",
+      "field": "world_x",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 206364,
+      "runtime_pc": 210460,
+      "operand": 1,
+      "register": "A4",
+      "root_struct": "SG2ObjectCore",
+      "field": "world_y",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 206394,
+      "runtime_pc": 210490,
+      "operand": 1,
+      "register": "A4",
+      "root_struct": "SG2ObjectCore",
+      "field": "world_z",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 206404,
+      "runtime_pc": 210500,
+      "operand": 1,
+      "register": "A4",
+      "root_struct": "SG2ObjectCore",
+      "field": "object_type",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 206408,
+      "runtime_pc": 210504,
+      "operand": 1,
+      "register": "A4",
+      "root_struct": "SG2ObjectCore",
+      "field": "durability_or_negative",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 206414,
+      "runtime_pc": 210510,
+      "operand": 1,
+      "register": "A4",
+      "root_struct": "SG2ObjectCore",
+      "field": "retirement_phase_or_negative",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 206722,
+      "runtime_pc": 210818,
+      "operand": 1,
+      "register": "A4",
+      "root_struct": "SG2ObjectCore",
+      "field": "world_x",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 206726,
+      "runtime_pc": 210822,
+      "operand": 1,
+      "register": "A4",
+      "root_struct": "SG2ObjectCore",
+      "field": "world_y",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 206730,
+      "runtime_pc": 210826,
+      "operand": 1,
+      "register": "A4",
+      "root_struct": "SG2ObjectCore",
+      "field": "world_z",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 206754,
+      "runtime_pc": 210850,
+      "operand": 1,
+      "register": "A4",
+      "root_struct": "SG2ObjectCore",
+      "field": "world_x",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 206784,
+      "runtime_pc": 210880,
+      "operand": 1,
+      "register": "A4",
+      "root_struct": "SG2ObjectCore",
+      "field": "world_y",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 206808,
+      "runtime_pc": 210904,
+      "operand": 1,
+      "register": "A4",
+      "root_struct": "SG2ObjectCore",
+      "field": "world_z",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 206900,
+      "runtime_pc": 210996,
+      "operand": 1,
+      "register": "A4",
+      "root_struct": "SG2ObjectCore",
+      "field": "object_type",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 206920,
+      "runtime_pc": 211016,
+      "operand": 1,
+      "register": "A4",
+      "root_struct": "SG2ObjectCore",
+      "field": "durability_or_negative",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 206926,
+      "runtime_pc": 211022,
+      "operand": 1,
+      "register": "A4",
+      "root_struct": "SG2ObjectCore",
+      "field": "retirement_phase_or_negative",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 206974,
+      "runtime_pc": 211070,
+      "operand": 1,
+      "register": "A4",
+      "root_struct": "SG2ObjectCore",
+      "field": "object_type",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 206980,
+      "runtime_pc": 211076,
+      "operand": 1,
+      "register": "A4",
+      "root_struct": "SG2ObjectCore",
+      "field": "flags",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 206986,
+      "runtime_pc": 211082,
+      "operand": 1,
+      "register": "A4",
+      "root_struct": "SG2ObjectCore",
+      "field": "object_type",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 206998,
+      "runtime_pc": 211094,
+      "operand": 1,
+      "register": "A4",
+      "root_struct": "SG2ObjectCore",
+      "field": "object_type",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 208128,
+      "runtime_pc": 212224,
+      "operand": 1,
+      "register": "A4",
+      "root_struct": "SG2ObjectCore",
+      "field": "object_type",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 208132,
+      "runtime_pc": 212228,
+      "operand": 1,
+      "register": "A4",
+      "root_struct": "SG2ObjectCore",
+      "field": "world_x",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 208136,
+      "runtime_pc": 212232,
+      "operand": 1,
+      "register": "A4",
+      "root_struct": "SG2ObjectCore",
+      "field": "world_z",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 208140,
+      "runtime_pc": 212236,
+      "operand": 1,
+      "register": "A4",
+      "root_struct": "SG2ObjectCore",
+      "field": "world_y",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 208148,
+      "runtime_pc": 212244,
+      "operand": 1,
+      "register": "A4",
+      "root_struct": "SG2ObjectCore",
+      "field": "retirement_phase_or_negative",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 208160,
+      "runtime_pc": 212256,
+      "operand": 1,
+      "register": "A4",
+      "root_struct": "SG2ObjectCore",
+      "field": "durability_or_negative",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 208184,
+      "runtime_pc": 212280,
+      "operand": 0,
+      "register": "A4",
+      "root_struct": "SG2ObjectCore",
+      "field": "world_x",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 208192,
+      "runtime_pc": 212288,
+      "operand": 0,
+      "register": "A4",
+      "root_struct": "SG2ObjectCore",
+      "field": "world_z",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 209186,
+      "runtime_pc": 213282,
+      "operand": 1,
+      "register": "A4",
+      "root_struct": "SG2ObjectCore",
+      "field": "object_type",
+      "provenance": "unknown"
+    },
+    {
+      "source_offset": 209190,
+      "runtime_pc": 213286,
+      "operand": 1,
+      "register": "A4",
+      "root_struct": "SG2ObjectCore",
+      "field": "world_x",
+      "provenance": "unknown"
+    },
+    {
+      "source_offset": 209198,
+      "runtime_pc": 213294,
+      "operand": 1,
+      "register": "A4",
+      "root_struct": "SG2ObjectCore",
+      "field": "world_z",
+      "provenance": "unknown"
+    },
+    {
+      "source_offset": 209206,
+      "runtime_pc": 213302,
+      "operand": 1,
+      "register": "A4",
+      "root_struct": "SG2ObjectCore",
+      "field": "world_y",
+      "provenance": "unknown"
+    },
+    {
+      "source_offset": 209226,
+      "runtime_pc": 213322,
+      "operand": 1,
+      "register": "A4",
+      "root_struct": "SG2ObjectCore",
+      "field": "durability_or_negative",
+      "provenance": "unknown"
+    },
+    {
+      "source_offset": 209232,
+      "runtime_pc": 213328,
+      "operand": 1,
+      "register": "A4",
+      "root_struct": "SG2ObjectCore",
+      "field": "retirement_phase_or_negative",
+      "provenance": "unknown"
+    },
+    {
+      "source_offset": 209248,
+      "runtime_pc": 213344,
+      "operand": 1,
+      "register": "A4",
+      "root_struct": "SG2ObjectCore",
+      "field": "flags",
+      "provenance": "unknown"
+    },
+    {
+      "source_offset": 213508,
+      "runtime_pc": 217604,
+      "operand": 1,
+      "register": "A4",
+      "root_struct": "SG2ObjectCore",
+      "field": "object_type",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 213540,
+      "runtime_pc": 217636,
+      "operand": 1,
+      "register": "A4",
+      "root_struct": "SG2ObjectCore",
+      "field": "world_x",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 213546,
+      "runtime_pc": 217642,
+      "operand": 1,
+      "register": "A4",
+      "root_struct": "SG2ObjectCore",
+      "field": "world_y",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 213552,
+      "runtime_pc": 217648,
+      "operand": 1,
+      "register": "A4",
+      "root_struct": "SG2ObjectCore",
+      "field": "world_z",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 213578,
+      "runtime_pc": 217674,
+      "operand": 1,
+      "register": "A4",
+      "root_struct": "SG2ObjectCore",
+      "field": "world_x",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 213582,
+      "runtime_pc": 217678,
+      "operand": 1,
+      "register": "A4",
+      "root_struct": "SG2ObjectCore",
+      "field": "world_y",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 213586,
+      "runtime_pc": 217682,
+      "operand": 1,
+      "register": "A4",
+      "root_struct": "SG2ObjectCore",
+      "field": "world_z",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 213604,
+      "runtime_pc": 217700,
+      "operand": 1,
+      "register": "A4",
+      "root_struct": "SG2ObjectCore",
+      "field": "retirement_phase_or_negative",
+      "provenance": "unknown"
+    },
+    {
+      "source_offset": 213610,
+      "runtime_pc": 217706,
+      "operand": 1,
+      "register": "A4",
+      "root_struct": "SG2ObjectCore",
+      "field": "durability_or_negative",
+      "provenance": "unknown"
+    },
+    {
+      "source_offset": 215408,
+      "runtime_pc": 219504,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "object_type",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 215430,
+      "runtime_pc": 219526,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "retirement_phase_or_negative",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 215436,
+      "runtime_pc": 219532,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "durability_or_negative",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 215466,
+      "runtime_pc": 219562,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "world_x",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 215472,
+      "runtime_pc": 219568,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "world_y",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 215478,
+      "runtime_pc": 219574,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "world_z",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 215546,
+      "runtime_pc": 219642,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "object_type",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 215560,
+      "runtime_pc": 219656,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "retirement_phase_or_negative",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 215566,
+      "runtime_pc": 219662,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "durability_or_negative",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 215596,
+      "runtime_pc": 219692,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "world_x",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 215602,
+      "runtime_pc": 219698,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "world_y",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 215608,
+      "runtime_pc": 219704,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "world_z",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 216032,
+      "runtime_pc": 220128,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "object_type",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 216036,
+      "runtime_pc": 220132,
+      "operand": 1,
+      "register": "A3",
+      "root_struct": "SG2ObjectCore",
+      "field": "object_type",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 216596,
+      "runtime_pc": 220692,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "object_type",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 216600,
+      "runtime_pc": 220696,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "world_x",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 216606,
+      "runtime_pc": 220702,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "world_y",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 216612,
+      "runtime_pc": 220708,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "world_z",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 216648,
+      "runtime_pc": 220744,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "durability_or_negative",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 216654,
+      "runtime_pc": 220750,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "retirement_phase_or_negative",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 217744,
+      "runtime_pc": 221840,
+      "operand": 1,
+      "register": "A4",
+      "root_struct": "SG2ObjectCore",
+      "field": "object_type",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 217770,
+      "runtime_pc": 221866,
+      "operand": 1,
+      "register": "A4",
+      "root_struct": "SG2ObjectCore",
+      "field": "world_x",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 217776,
+      "runtime_pc": 221872,
+      "operand": 1,
+      "register": "A4",
+      "root_struct": "SG2ObjectCore",
+      "field": "world_y",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 217782,
+      "runtime_pc": 221878,
+      "operand": 1,
+      "register": "A4",
+      "root_struct": "SG2ObjectCore",
+      "field": "world_z",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 217788,
+      "runtime_pc": 221884,
+      "operand": 1,
+      "register": "A4",
+      "root_struct": "SG2ObjectCore",
+      "field": "retirement_phase_or_negative",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 217794,
+      "runtime_pc": 221890,
+      "operand": 1,
+      "register": "A4",
+      "root_struct": "SG2ObjectCore",
+      "field": "durability_or_negative",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 218744,
+      "runtime_pc": 222840,
+      "operand": 1,
+      "register": "A4",
+      "root_struct": "SG2ObjectCore",
+      "field": "object_type",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 218746,
+      "runtime_pc": 222842,
+      "operand": 1,
+      "register": "A4",
+      "root_struct": "SG2ObjectCore",
+      "field": "world_x",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 218750,
+      "runtime_pc": 222846,
+      "operand": 1,
+      "register": "A4",
+      "root_struct": "SG2ObjectCore",
+      "field": "world_z",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 218754,
+      "runtime_pc": 222850,
+      "operand": 1,
+      "register": "A4",
+      "root_struct": "SG2ObjectCore",
+      "field": "world_y",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 218762,
+      "runtime_pc": 222858,
+      "operand": 1,
+      "register": "A4",
+      "root_struct": "SG2ObjectCore",
+      "field": "retirement_phase_or_negative",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 218768,
+      "runtime_pc": 222864,
+      "operand": 1,
+      "register": "A4",
+      "root_struct": "SG2ObjectCore",
+      "field": "durability_or_negative",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 218834,
+      "runtime_pc": 222930,
+      "operand": 0,
+      "register": "A4",
+      "root_struct": "SG2ObjectCore",
+      "field": "world_x",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 218840,
+      "runtime_pc": 222936,
+      "operand": 0,
+      "register": "A4",
+      "root_struct": "SG2ObjectCore",
+      "field": "world_z",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 220312,
+      "runtime_pc": 224408,
+      "operand": 1,
+      "register": "A4",
+      "root_struct": "SG2ObjectCore",
+      "field": "object_type",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 220316,
+      "runtime_pc": 224412,
+      "operand": 1,
+      "register": "A4",
+      "root_struct": "SG2ObjectCore",
+      "field": "world_x",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 220322,
+      "runtime_pc": 224418,
+      "operand": 1,
+      "register": "A4",
+      "root_struct": "SG2ObjectCore",
+      "field": "world_z",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 220340,
+      "runtime_pc": 224436,
+      "operand": 1,
+      "register": "A4",
+      "root_struct": "SG2ObjectCore",
+      "field": "world_y",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 220344,
+      "runtime_pc": 224440,
+      "operand": 1,
+      "register": "A4",
+      "root_struct": "SG2ObjectCore",
+      "field": "durability_or_negative",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 220350,
+      "runtime_pc": 224446,
+      "operand": 1,
+      "register": "A4",
+      "root_struct": "SG2ObjectCore",
+      "field": "retirement_phase_or_negative",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 220876,
+      "runtime_pc": 224972,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "object_type",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 220878,
+      "runtime_pc": 224974,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "world_x",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 220884,
+      "runtime_pc": 224980,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "world_y",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 220890,
+      "runtime_pc": 224986,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "world_z",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 220910,
+      "runtime_pc": 225006,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "world_x",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 220914,
+      "runtime_pc": 225010,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "world_y",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 220918,
+      "runtime_pc": 225014,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "world_z",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 220922,
+      "runtime_pc": 225018,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "world_y",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 220934,
+      "runtime_pc": 225030,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "world_x",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 220938,
+      "runtime_pc": 225034,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "world_z",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 220946,
+      "runtime_pc": 225042,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "durability_or_negative",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 220952,
+      "runtime_pc": 225048,
+      "operand": 1,
+      "register": "A2",
+      "root_struct": "SG2ObjectCore",
+      "field": "retirement_phase_or_negative",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 221084,
+      "runtime_pc": 225180,
+      "operand": 1,
+      "register": "A4",
+      "root_struct": "SG2ObjectCore",
+      "field": "object_type",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 221098,
+      "runtime_pc": 225194,
+      "operand": 1,
+      "register": "A4",
+      "root_struct": "SG2ObjectCore",
+      "field": "world_x",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 221104,
+      "runtime_pc": 225200,
+      "operand": 1,
+      "register": "A4",
+      "root_struct": "SG2ObjectCore",
+      "field": "world_y",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 221110,
+      "runtime_pc": 225206,
+      "operand": 1,
+      "register": "A4",
+      "root_struct": "SG2ObjectCore",
+      "field": "world_z",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 221200,
+      "runtime_pc": 225296,
+      "operand": 1,
+      "register": "A4",
+      "root_struct": "SG2ObjectCore",
+      "field": "world_x",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 221204,
+      "runtime_pc": 225300,
+      "operand": 1,
+      "register": "A4",
+      "root_struct": "SG2ObjectCore",
+      "field": "world_y",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 221208,
+      "runtime_pc": 225304,
+      "operand": 1,
+      "register": "A4",
+      "root_struct": "SG2ObjectCore",
+      "field": "world_z",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 221212,
+      "runtime_pc": 225308,
+      "operand": 1,
+      "register": "A4",
+      "root_struct": "SG2ObjectCore",
+      "field": "retirement_phase_or_negative",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 221218,
+      "runtime_pc": 225314,
+      "operand": 1,
+      "register": "A4",
+      "root_struct": "SG2ObjectCore",
+      "field": "durability_or_negative",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 221310,
+      "runtime_pc": 225406,
+      "operand": 1,
+      "register": "A4",
+      "root_struct": "SG2ObjectCore",
+      "field": "object_type",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 221320,
+      "runtime_pc": 225416,
+      "operand": 1,
+      "register": "A4",
+      "root_struct": "SG2ObjectCore",
+      "field": "world_x",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 221326,
+      "runtime_pc": 225422,
+      "operand": 1,
+      "register": "A4",
+      "root_struct": "SG2ObjectCore",
+      "field": "world_y",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 221332,
+      "runtime_pc": 225428,
+      "operand": 1,
+      "register": "A4",
+      "root_struct": "SG2ObjectCore",
+      "field": "world_z",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 221368,
+      "runtime_pc": 225464,
+      "operand": 1,
+      "register": "A4",
+      "root_struct": "SG2ObjectCore",
+      "field": "retirement_phase_or_negative",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 221374,
+      "runtime_pc": 225470,
+      "operand": 1,
+      "register": "A4",
+      "root_struct": "SG2ObjectCore",
+      "field": "durability_or_negative",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 221702,
+      "runtime_pc": 225798,
+      "operand": 1,
+      "register": "A4",
+      "root_struct": "SG2ObjectCore",
+      "field": "object_type",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 221728,
+      "runtime_pc": 225824,
+      "operand": 1,
+      "register": "A4",
+      "root_struct": "SG2ObjectCore",
+      "field": "world_x",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 221732,
+      "runtime_pc": 225828,
+      "operand": 1,
+      "register": "A4",
+      "root_struct": "SG2ObjectCore",
+      "field": "world_x",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 221736,
+      "runtime_pc": 225832,
+      "operand": 1,
+      "register": "A4",
+      "root_struct": "SG2ObjectCore",
+      "field": "world_x",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 221740,
+      "runtime_pc": 225836,
+      "operand": 1,
+      "register": "A4",
+      "root_struct": "SG2ObjectCore",
+      "field": "retirement_phase_or_negative",
+      "provenance": "static_data"
+    },
+    {
+      "source_offset": 221752,
+      "runtime_pc": 225848,
+      "operand": 1,
+      "register": "A4",
+      "root_struct": "SG2ObjectCore",
+      "field": "durability_or_negative",
+      "provenance": "static_data"
+    }
+  ],
+  "mechanisms": [
+    "Pointer-read effective address comes from shared decoded memory access/full span, including predecrement and signed displacement; implicit cursor update is separate from the loaded pointer.",
+    "Only a single aligned LONG entry read supports this pointee contract. Conflicting auto-update destination writes, partial/multi-element footprints, misalignment and source-backed entries outside ownership refuse.",
+    "Unknown runtime cursor alignment survives whole-entry deltas only. A two-byte cursor adjustment previously preserved the homogeneous pointer contract incorrectly."
+  ],
+  "validation": {
+    "native_and_vasm": {
+      "kind": "verification",
+      "framework_exact": true,
+      "target_id": "amiga_raw_starglider2_game",
+      "subject_revision": "fdd2bd1e0c35ec2e5ed9de5362fec5296ee53cdc609f1910d6b5a93965e2a927",
+      "status": "exact",
+      "exact": true,
+      "source_sha256": "b1b7ebd681497887fd833c5b222a2a9fccaeaff66762038feed793432f37b9c1",
+      "source_path": "/workspace/pandora-original-delivery/stable-d15c2cf8/.runtime-state/restoration/eb04f545fb97451725a1c91ab5abf6f2e097614c45880db6edfb4ea5c3f6e2c2/b1b7ebd681497887fd833c5b222a2a9fccaeaff66762038feed793432f37b9c1.s",
+      "source_package_sha256": null,
+      "original_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+      "original_size": 412736,
+      "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+      "rebuilt_path": "/workspace/pandora-original-delivery/stable-d15c2cf8/.runtime-state/restoration/eb04f545fb97451725a1c91ab5abf6f2e097614c45880db6edfb4ea5c3f6e2c2/662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9.bin",
+      "framework_status": "exact",
+      "failure_kinds": [],
+      "message": "",
+      "oracle": {
+        "oracle_id": "vasm",
+        "output_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+        "comparison_level": "oracle.full_file_match",
+        "assembler_status": "accepted",
+        "message": "oracle output matched original bytes"
+      },
+      "receipt_id": "c911f2af2514c54a48cd0c2b4a27decc142c765a65df046a40443f40cbbbf6ff",
+      "revision": "254d21986c25ad6f33f6c5b52be47cc0cd2be6ba6569ca8f48da8d13e6bf91bd"
+    },
+    "focused_tests": 120,
+    "native_tests": 832,
+    "before_regression_result": "4 failed,5 passed: missing predecrement and signed displacement reads, and false pointee after ADDQ.L #2; self-update conflicts already refused.",
+    "accepted_code_runs_identical": true,
+    "accepted_ownerships_identical": true,
+    "app_access_records_identical": true,
+    "incomplete_analysis": [],
+    "source_quality_diagnostics": 0,
+    "clean_standalone_build": {
+      "status": "pass",
+      "validated_target_git_tree": "2fda0a3062110be56679ebb57fc8b4997b7b35d2",
+      "receipt": {
+        "schema_version": 1,
+        "status": "pass",
+        "format": "raw_payload_not_AmigaDOS_HUNK",
+        "main_bytes": 412736,
+        "main_sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+        "main_matches_original_identity": true,
+        "asset_count": 57,
+        "all_asset_source_slices_equal": true,
+        "decoded_view_inverse_exact": true,
+        "boot_copy_source_matches_resident_view": true,
+        "source_commit": "56dff0b043288578d755b1f0966077d2998c50ec",
+        "assembler_sha256": "413e284020125f42709486dfe09907cab3dd9f3c2ea41017c190f8ea68f30825",
+        "flags": [
+          "-Fbin",
+          "-m68000",
+          "-no-opt"
+        ],
+        "outputs": [
+          {
+            "role": "original_main",
+            "filename": "Starglider2-original.raw",
+            "bytes": 412736,
+            "sha256": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9"
+          },
+          {
+            "role": "decoded_analysis_view",
+            "filename": "protection-decoded-analysis.raw",
+            "bytes": 3548,
+            "sha256": "de8358853dd9ed9b006a23569bf393aa217ed3be3301a169465d80bfaf839922"
+          },
+          {
+            "role": "boot_installer_context",
+            "filename": "boot-selector-installer-context.raw",
+            "bytes": 40,
+            "sha256": "8d34852425e2e1bfa87b3febdfc74fb39e7c667e9d9ff73e17b594649e83b21b"
+          },
+          {
+            "role": "boot_resident_view",
+            "filename": "boot-selector-resident.raw",
+            "bytes": 20,
+            "sha256": "a26286a393713c046eff9dbaff15b20b26b171fa9e05fc9d538d16b0eddb6024"
+          }
+        ]
+      },
+      "recoverable_pandora_backups_verified": 16
+    }
+  },
+  "generation_wall_seconds": 213.25037779600825,
+  "limits": [
+    "261 newly typed Core accesses follow free-stack entries. Their more specific variant fields remain unknown:313 additional unresolved coordinates are exposed, not313 resolved accesses or proven new storage. No prior typed coordinate or field/provenance changed.",
+    "Five independent ModelHeader reads at runtime53D0..53E0 now resolve canonical entry47 via signed displacement. This does not close the separate104-header DBF loop at49F2 or prove its entire selection domain.",
+    "Runtime pointer-table contracts are evidence-backed active-game homogeneous type assumptions, not numeric target sets, allocation lifetime, arbitrary count, complete bounds or save-relative archive guarantees.",
+    "Original double-pop/one-count-decrement paths and pool variants remain unchanged; Core is not a blanket World subtype. No gameplay run or broader CPU/DMA coverage is added."
+  ],
+  "next": {
+    "group": "Source-owned model-header loop domain",
+    "experiment": "Use the retained two-entry DBF regression and shared counter-relative induction; keep homogeneous type evidence distinct from the four-candidate numeric packet. Do not manually seed a header type at49F2. Continue independent variant field consumers where role evidence supports them."
+  }
+}

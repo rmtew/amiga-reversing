@@ -21,9 +21,21 @@ The [current systematic gap inventory](../../runtime/observations/starglider2-so
 joins native identities/accesses with canonical layouts and actual rendered
 boundaries. It records 67 suffix signals (including numeric adjacent variants),
 21 lookup contracts, 523 remaining interior references, 32 generic app fields
-and 424 unresolved record accesses. These are different denominators. Five
+and 737 unresolved record accesses. These are different denominators. Five
 suffixes name routines and one names text; neither is a pointer defect.
-Latest: the [object-list cursor contracts](../../runtime/observations/starglider2-object-list-cursor-contracts.json)
+Latest: the [free-stack pointer footprints](../../runtime/observations/starglider2-free-stack-pointer-footprints.json)
+connect original free-object stack producers and predecrement pops through the
+existing Core contract. Shared decoded EA/span handling now supports signed
+pointer displacements and predecrement, and refuses misaligned or conflicting
+reads. **266 typed coordinates recovered, none lost or changed**:261 Core fields
+and5 concrete ModelHeader entry47 reads. Counts are **3412 app references /
+1472 typed / 737 unresolved**. The313 additional unresolved coordinates expose
+variant field gaps; they are not newly resolved fields.120 focused and832 native
+checks pass; original C/vasm and clean standalone bytes remain exact. No new
+all-count/bounds/lifetime or gameplay coverage is claimed. The separate104-header
+DBF source-table loop remains a concrete domain experiment, not a solved case.
+
+Preceding: the [object-list cursor contracts](../../runtime/observations/starglider2-object-list-cursor-contracts.json)
 connect the original integrating/current-update slots to their existing list
 producers and readers. The selected physics list uses the existing World view;
 the mixed update list stays Core. Native propagation gains **8 typed sites /
