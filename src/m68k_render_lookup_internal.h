@@ -100,7 +100,7 @@ typedef struct M68kRenderPlatformLocalBaseSlot {
 
 /* Closed low-WORD sets, capped to ensure loop convergence. Zero count is top.
  * Relative hardware sets never assert a single absolute register identity. */
-#define M68K_HARDWARE_VALUE_LIMIT 8U
+#define M68K_HARDWARE_VALUE_LIMIT M68K_WORD_INDEX_VALUE_LIMIT
 typedef struct M68kHardwareWordSet {
   uint16_t values[M68K_HARDWARE_VALUE_LIMIT];
   uint8_t count;
@@ -549,6 +549,7 @@ typedef struct M68kRenderTypedFlowNode {
 } M68kRenderTypedFlowNode;
 
 typedef struct M68kRenderTypedAccess {
+  M68kWordIndexAccessIR word_index;
   size_t section_index;
   uint32_t offset;
   uint8_t operand_index;

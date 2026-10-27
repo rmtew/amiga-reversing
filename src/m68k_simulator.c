@@ -2160,19 +2160,18 @@ static int sim_ea_index_value(const M68kSimCpuState *state, const M68kOperandIR 
   return sim_register_value(state, operand->value.index_is_address, operand->value.index_reg, out_value);
 }
 
-static int sim_ea_index_value_by_metadata(const M68kSimCpuState *state, const M68kOperandIR *operand,
+/* Resolve the decoded extension fields once for concrete execution and
+ * analysis clients. Register lookup/provenance remains owned by each caller. */
+static uint32_t sim_normalize_constant_index_value(const M68kOperandIR *operand,
     uint8_t index_extension_format, uint8_t index_register_class, uint8_t index_value_width_source,
-    uint8_t index_scale_source, uint8_t index_sign_source, M68kSimValue *out_value) {
-  M68kSimValue raw_value;
-  uint32_t normalized;
+    uint8_t index_scale_source, uint8_t index_sign_source, uint32_t raw_value) {
+  uint32_t normalized = raw_value;
   uint32_t scale;
-  if (state == NULL || operand == NULL || out_value == NULL) return 0;
   if (index_extension_format != M68K_SIM_EA_INDEX_EXT_BRIEF ||
       index_register_class != M68K_SIM_EA_INDEX_REG_DATA_OR_ADDRESS) {
-    return sim_ea_index_value(state, operand, out_value);
+    if (!operand->value.index_long) normalized = sim_sign_extend_value(normalized & 0xFFFFU, 16U);
+    return normalized;
   }
-  if (!sim_ea_index_value(state, operand, &raw_value) || raw_value.kind != M68K_SIM_VALUE_CONSTANT) return 0;
-  normalized = raw_value.value;
   if (index_value_width_source == M68K_SIM_EA_INDEX_WIDTH_EXTENSION_WORD || !operand->value.index_long) {
     normalized &= 0xFFFFU;
   }
@@ -2183,6 +2182,22 @@ static int sim_ea_index_value_by_metadata(const M68kSimCpuState *state, const M6
     scale = operand->value.scale == 0U ? 1U : operand->value.scale;
     normalized = (uint32_t)((int32_t)normalized * (int32_t)scale);
   }
+  return normalized;
+}
+
+static int sim_ea_index_value_by_metadata(const M68kSimCpuState *state, const M68kOperandIR *operand,
+    uint8_t index_extension_format, uint8_t index_register_class, uint8_t index_value_width_source,
+    uint8_t index_scale_source, uint8_t index_sign_source, M68kSimValue *out_value) {
+  M68kSimValue raw_value;
+  uint32_t normalized;
+  if (state == NULL || operand == NULL || out_value == NULL) return 0;
+  if (index_extension_format != M68K_SIM_EA_INDEX_EXT_BRIEF ||
+      index_register_class != M68K_SIM_EA_INDEX_REG_DATA_OR_ADDRESS) {
+    return sim_ea_index_value(state, operand, out_value);
+  }
+  if (!sim_ea_index_value(state, operand, &raw_value) || raw_value.kind != M68K_SIM_VALUE_CONSTANT) return 0;
+  normalized = sim_normalize_constant_index_value(operand, index_extension_format, index_register_class,
+    index_value_width_source, index_scale_source, index_sign_source, raw_value.value);
   *out_value = sim_value_constant(normalized, raw_value.provenance);
   return 1;
 }
@@ -2224,28 +2239,34 @@ static int sim_concrete_ea_index_value(const M68kSimConcreteState *state, const 
 static int sim_concrete_ea_index_value_by_metadata(const M68kSimConcreteState *state, const M68kOperandIR *operand,
     uint8_t index_extension_format, uint8_t index_register_class, uint8_t index_value_width_source,
     uint8_t index_scale_source, uint8_t index_sign_source, uint32_t *out_value) {
-  uint32_t normalized;
-  uint32_t scale;
-  if (state == NULL || operand == NULL || out_value == NULL) return 0;
-  if (index_extension_format != M68K_SIM_EA_INDEX_EXT_BRIEF ||
-      index_register_class != M68K_SIM_EA_INDEX_REG_DATA_OR_ADDRESS) {
-    if (!sim_concrete_ea_index_value(state, operand, &normalized)) return 0;
-    if (!operand->value.index_long) normalized = sim_sign_extend_value(normalized & 0xFFFFU, 16U);
-    *out_value = normalized;
-    return 1;
-  }
-  if (!sim_concrete_ea_index_value(state, operand, &normalized)) return 0;
-  if (index_value_width_source == M68K_SIM_EA_INDEX_WIDTH_EXTENSION_WORD || !operand->value.index_long) {
-    normalized &= 0xFFFFU;
-  }
-  if (index_sign_source == M68K_SIM_EA_INDEX_SIGN_EXTENSION_WORD || !operand->value.index_long) {
-    normalized = sim_sign_extend_value(normalized, 16U);
-  }
-  if (index_scale_source == M68K_SIM_EA_INDEX_SCALE_EXTENSION_WORD) {
-    scale = operand->value.scale == 0U ? 1U : operand->value.scale;
-    normalized = (uint32_t)((int32_t)normalized * (int32_t)scale);
-  }
-  *out_value = normalized;
+  uint32_t raw_value;
+  if (state == NULL || operand == NULL || out_value == NULL ||
+      !sim_concrete_ea_index_value(state, operand, &raw_value)) return 0;
+  *out_value = sim_normalize_constant_index_value(operand, index_extension_format, index_register_class,
+    index_value_width_source, index_scale_source, index_sign_source, raw_value);
+  return 1;
+}
+
+int m68k_sim_operand_word_index_value(const M68kInstructionIR *instruction, uint8_t operand_index,
+    uint32_t raw_value, uint32_t *out_value) {
+  const M68kSimFormMetadata *metadata;
+  const M68kOperandIR *operand;
+  uint8_t shape;
+  if (instruction == NULL || out_value == NULL || operand_index >= instruction->operand_count ||
+      operand_index >= 4U) return 0;
+  metadata = m68k_sim_metadata_for_instruction(instruction);
+  operand = &instruction->operands[operand_index];
+  shape = m68k_instruction_operand_decoded_ea_shape(operand);
+  if (!metadata || operand->kind != M68K_ASM_OPERAND_EA || operand->value.index_reg >= 8U ||
+      (shape != M68K_SIM_EA_SHAPE_INDEX && shape != M68K_SIM_EA_SHAPE_PC_INDEX) ||
+      operand->value.index_long || operand->value.scale > 1U ||
+      operand->value.full_ext_base_suppress || operand->value.full_ext_index_suppress ||
+      operand->value.full_ext_base_disp_size || operand->value.full_ext_outer_disp_size || operand->value.full_ext_iis)
+    return 0;
+  *out_value = sim_normalize_constant_index_value(operand,
+    metadata->operand_ea_index_extension_formats[operand_index], metadata->operand_ea_index_register_classes[operand_index],
+    metadata->operand_ea_index_value_width_sources[operand_index], metadata->operand_ea_index_scale_sources[operand_index],
+    metadata->operand_ea_index_sign_sources[operand_index], raw_value);
   return 1;
 }
 

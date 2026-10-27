@@ -16,6 +16,22 @@
 
 #include <time.h>
 
+static int append_word_index_access_json(JsonBuilder *builder, const M68kWordIndexAccessIR *index) {
+  size_t value;
+  if (!index->value_count) return 0;
+  if (index->value_count > M68K_WORD_INDEX_VALUE_LIMIT) return -1;
+  if (json_builder_appendf(builder,
+      ",\"word_index\":{\"register\":\"%c%u\",\"index_width\":2,\"scale\":1,"
+      "\"access_width\":%u,\"record_count\":%u,\"base_record_index\":%u,\"encoded_symbol_correction\":%d,"
+      "\"evidence\":\"closed_cfg_input_values\",\"byte_offsets\":[",
+      index->reg_kind == M68K_ANALYSIS_REGISTER_ADDRESS ? 'A' : 'D', (unsigned)index->reg_index,
+      (unsigned)index->access_width, (unsigned)index->record_count, (unsigned)index->base_record_index,
+      index->encoded_symbol_correction) != 0) return -1;
+  for (value = 0U; value < index->value_count; ++value)
+    if (json_builder_appendf(builder, "%s%d", value ? "," : "", index->byte_offsets[value]) != 0) return -1;
+  return json_builder_append(builder, "]}");
+}
+
 static int json_builder_append_nullable_string(JsonBuilder *builder, const char *text);
 static void amiga_struct_catalog_info(uint16_t struct_id, const char **out_source, int16_t *out_size);
 static const char *app_slot_access_kind_name(uint8_t access_kind);
@@ -2863,6 +2879,10 @@ static int platform_typed_access_owner_range(const M68kRecoveredPlatformTypedAcc
     owner_range_start = (int64_t)access->displacement - (int64_t)access->field_offset;
     owner_range_size = access->struct_size;
   }
+  if (access->word_index.value_count && access->word_index.record_count && access->struct_size) {
+    owner_range_start = -(int64_t)access->word_index.base_record_index * access->struct_size - access->base_cursor;
+    owner_range_size = (uint32_t)access->word_index.record_count * access->struct_size;
+  }
   if (owner_range_size == 0U) return 0;
   if (out_start != NULL) *out_start = owner_range_start;
   if (out_size != NULL) *out_size = owner_range_size;
@@ -3397,7 +3417,9 @@ static int append_source_analysis_memory_layout_records_json(JsonBuilder *builde
       uint8_t conflicted;
       uint8_t conflict_state;
       (void)platform_typed_access_owner_range(access, &owner_range_start, &owner_range_size);
-      conflicted = access->type_provenance_kind == M68K_PLATFORM_TYPE_PROVENANCE_APP_SLOT
+      /* A pointee selected through an index is not a direct app-base slot.
+       * Its finite EA set remains relative to the actual base register. */
+      conflicted = !access->word_index.value_count && access->type_provenance_kind == M68K_PLATFORM_TYPE_PROVENANCE_APP_SLOT
         ? (uint8_t)source_analysis_app_slot_range_conflicts_with_non_app_layout(source_analysis,
             owner_range_start, owner_range_size)
         : 0U;
@@ -3427,13 +3449,24 @@ static int append_source_analysis_memory_layout_records_json(JsonBuilder *builde
         return -1;
       if (json_builder_append_json_string(builder, type_provenance_kind_name(access->type_provenance_kind)) != 0)
         return -1;
+      if (append_word_index_access_json(builder, &access->word_index) != 0) return -1;
       if (json_builder_appendf(builder,
           ",\"owner_range_start\":%lld,\"owner_range_size\":%u,\"owner_range_end\":%lld",
           (long long)owner_range_start, (unsigned)owner_range_size,
           (long long)(owner_range_start + (int64_t)owner_range_size)) != 0) {
         return -1;
       }
-      if (append_memory_layout_range_json(builder, MEMORY_LAYOUT_RANGE_SPACE_BASE_RELATIVE,
+      if (access->word_index.value_count) {
+        size_t value;
+        if (json_builder_append(builder, ",\"indexed_access_ranges\":[") != 0) return -1;
+        for (value = 0U; value < access->word_index.value_count; ++value) {
+          if (json_builder_append(builder, value ? ",{\"indexed\":true" : "{\"indexed\":true") != 0 ||
+              append_memory_layout_range_json(builder, MEMORY_LAYOUT_RANGE_SPACE_BASE_RELATIVE,
+                (int64_t)access->displacement + access->word_index.byte_offsets[value],
+                access->word_index.access_width) != 0 || json_builder_append(builder, "}") != 0) return -1;
+        }
+        if (json_builder_append(builder, "]") != 0) return -1;
+      } else if (append_memory_layout_range_json(builder, MEMORY_LAYOUT_RANGE_SPACE_BASE_RELATIVE,
           (int64_t)access->displacement, access->field_size) != 0) return -1;
       if (json_builder_appendf(builder,
           ",\"conflicted\":%s,\"conflict_state_id\":%u,\"conflict_state\":\"%s\"}",
@@ -5836,6 +5869,7 @@ static int source_analysis_to_json_impl(const M68kSourceAnalysisIR *source_analy
             (unsigned)access->type_provenance_operand_index) != 0)
           goto oom;
       }
+      if (append_word_index_access_json(&builder, &access->word_index) != 0) goto oom;
       if (access->has_table_origin != 0U &&
           json_builder_appendf(&builder,
             ",\"table_origin\":{\"table_section\":%u,\"table_start_offset\":%u,\"consumer_section\":%u,\"consumer_offset\":%u,\"address_expression_id\":%u,\"entry_index\":%u,\"index_min\":%u,\"index_max\":%u,\"selection_kind_id\":%u,\"terminal_kind_id\":%u}",

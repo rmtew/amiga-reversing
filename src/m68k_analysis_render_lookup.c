@@ -2194,7 +2194,8 @@ static int render_lookup_add_typed_access_by_names(M68kRenderLookup *lookup, siz
     uint8_t operand_index, uint8_t base_reg, int16_t displacement, uint16_t struct_size,
   int16_t array_element_addend, int32_t base_cursor, uint16_t field_byte_offset,
   const M68kRenderResolvedStructField *field,
-  const M68kRenderTypedProvenance *provenance, const M68kAddressValueTableOriginIR *table_origin);
+  const M68kRenderTypedProvenance *provenance, const M68kAddressValueTableOriginIR *table_origin,
+    const M68kWordIndexAccessIR *word_index);
 static int render_lookup_add_unresolved_typed_access_by_names(M68kRenderLookup *lookup, size_t section_index,
   uint32_t offset, uint8_t operand_index, uint8_t base_reg, int32_t displacement, const char *root_struct_name,
   uint16_t struct_size, uint8_t access_size, uint8_t classification, uint16_t container_candidate_count,
@@ -4898,9 +4899,111 @@ static int typed_access_has_unmodelled_base_update(const M68kRenderLookup *looku
   return 0;
 }
 
+/* Closed index values are already carried by the shared typed/platform CFG
+ * states. This projection adds no flow state and runs only at final accesses. */
+static int typed_word_index_values(const M68kRenderTypedState *state,
+    const M68kRenderPlatformState *platform_state, const M68kInstructionIR *instruction,
+    uint8_t operand_index, M68kWordIndexAccessIR *evidence) {
+  const M68kOperandIR *operand = &instruction->operands[operand_index];
+  const M68kRenderTypedRegValue *raw;
+  const M68kHardwareWordSet *words = NULL;
+  uint32_t ignored;
+  size_t count, index;
+  if (!m68k_sim_operand_word_index_value(instruction, operand_index, 0U, &ignored)) return 0;
+  raw = operand->value.index_is_address ? &state->addr_regs[operand->value.index_reg] :
+    &state->data_regs[operand->value.index_reg];
+  if (raw->raw_long_value_known && !raw->address_value_candidate_overflow && !raw->type_conflicted &&
+      raw->raw_long_candidate_count <= 4U) {
+    count = raw->raw_long_candidate_count ? raw->raw_long_candidate_count : 1U;
+  } else {
+    if (!platform_state || operand->value.index_is_address) return 0;
+    words = &platform_state->word_values[operand->value.index_reg];
+    if (!words->count || words->count > M68K_WORD_INDEX_VALUE_LIMIT || words->requires_input_contract) return 0;
+    count = words->count;
+  }
+  evidence->reg_kind = operand->value.index_is_address ? M68K_ANALYSIS_REGISTER_ADDRESS : M68K_ANALYSIS_REGISTER_DATA;
+  evidence->reg_index = operand->value.index_reg;
+  for (index = 0U; index < count; ++index) {
+    uint32_t bits, source = words ? words->values[index] :
+      raw->raw_long_candidate_count ? raw->raw_long_candidates[index] : raw->raw_long_value;
+    size_t position = 0U;
+    if (!m68k_sim_operand_word_index_value(instruction, operand_index, source, &bits)) return 0;
+    int32_t value = (int32_t)bits;
+    while (position < evidence->value_count && evidence->byte_offsets[position] < value) ++position;
+    if (position < evidence->value_count && evidence->byte_offsets[position] == value) continue;
+    if (evidence->value_count == M68K_WORD_INDEX_VALUE_LIMIT) return 0;
+    memmove(&evidence->byte_offsets[position + 1U], &evidence->byte_offsets[position],
+      (evidence->value_count - position) * sizeof(*evidence->byte_offsets));
+    evidence->byte_offsets[position] = value;
+    ++evidence->value_count;
+  }
+  return evidence->value_count != 0U;
+}
+
+static int typed_record_word_index_access(M68kRenderLookup *lookup, size_t section_index,
+    const M68kRenderTypedState *state, const M68kRenderPlatformState *platform_state,
+    const M68kInstructionIR *instruction, uint32_t offset, uint8_t operand_index, uint8_t base_reg,
+    uint16_t struct_id, uint16_t struct_size, int32_t displacement, int32_t base_cursor,
+    const M68kRenderTypedProvenance *provenance, const M68kAddressValueTableOriginIR *table_origin) {
+  const M68kOperandIR *operand = &instruction->operands[operand_index];
+  const M68kSimFormMetadata *metadata = m68k_sim_metadata_for_instruction(instruction);
+  const M68kRenderTypedRegValue *base = &state->addr_regs[base_reg];
+  M68kWordIndexAccessIR evidence = {0};
+  M68kRenderResolvedStructField selected_field = {0};
+  uint8_t width, count;
+  int64_t encoded, total;
+  int32_t field_displacement, array_addend;
+  size_t index;
+  if (!metadata || !struct_size || displacement < INT16_MIN || displacement > INT16_MAX ||
+      (metadata->operand_access_kinds[operand_index] != M68K_SIM_ACCESS_MEMORY_READ &&
+       metadata->operand_access_kinds[operand_index] != M68K_SIM_ACCESS_MEMORY_WRITE) ||
+      !platform_operand_memory_span(instruction, operand_index, &width, &count, NULL) || count != 1U ||
+      (width != 1U && width != 2U && width != 4U) ||
+      typed_access_has_unmodelled_base_update(lookup, state, instruction, operand_index, base_reg, &width)) return 0;
+  /* Another operand can update an An index before this EA is evaluated. */
+  if (operand->value.index_is_address) {
+    for (index = 0U; index < instruction->operand_count; ++index) {
+      const M68kOperandIR *other = &instruction->operands[index];
+      uint8_t shape = m68k_instruction_operand_decoded_ea_shape(other);
+      if (other->kind == M68K_ASM_OPERAND_EA && other->value.ea_reg == operand->value.index_reg &&
+          (shape == M68K_SIM_EA_SHAPE_POSTINCREMENT || shape == M68K_SIM_EA_SHAPE_PREDECREMENT)) return 0;
+    }
+  }
+  if (!typed_word_index_values(state, platform_state, instruction, operand_index, &evidence)) return 0;
+  evidence.access_width = width;
+  evidence.record_count = base->known && base->array_element_count ? base->array_element_count : 1U;
+  evidence.base_record_index = base->known && base->array_element_count ? base->array_element_index : 0U;
+  if (evidence.base_record_index >= evidence.record_count) return 0;
+  total = (int64_t)evidence.record_count * struct_size;
+  encoded = (int64_t)evidence.base_record_index * struct_size + base_cursor + displacement;
+  /* Select the semantic field from actual EAs, but express only the encoded
+   * displacement. The same live register index must remain in the instruction. */
+  array_addend = (int32_t)(((int64_t)base_cursor + displacement) / struct_size);
+  if (array_addend < INT16_MIN || array_addend > INT16_MAX) return 0;
+  for (index = 0U; index < evidence.value_count; ++index) {
+    int64_t effective = encoded + evidence.byte_offsets[index];
+    M68kRenderResolvedStructField actual;
+    if (effective < 0 || effective + width > total || effective % struct_size > INT16_MAX ||
+        !lookup_policy_resolve_struct_field(lookup->policy, struct_id, (int16_t)(effective % struct_size), width, &actual) ||
+        !actual.field_expr[0]) return 0;
+    if (!index) selected_field = actual;
+    else if (strcmp(actual.field_expr, selected_field.field_expr) || actual.offset != selected_field.offset ||
+        actual.size != selected_field.size) return 0;
+  }
+  field_displacement = (int32_t)((int64_t)base_cursor + displacement - (int64_t)array_addend * struct_size);
+  evidence.encoded_symbol_correction = field_displacement - selected_field.offset;
+  int64_t symbol_addend = -(int64_t)base_cursor + evidence.encoded_symbol_correction;
+  if (symbol_addend < INT32_MIN || symbol_addend > INT32_MAX) return 0;
+  if (render_lookup_add_typed_access_by_names(lookup, section_index, offset, operand_index, base_reg,
+      (int16_t)displacement, struct_size, (int16_t)array_addend, base_cursor,
+      0U, &selected_field, provenance, table_origin, &evidence) != 0)
+    return -1;
+  return 1;
+}
+
 static int render_lookup_record_typed_struct_accesses(M68kRenderLookup *lookup, size_t section_index,
-    M68kRenderTypedState *state, const M68kInstructionIR *instruction, uint32_t offset, int record_accesses,
-    int *io_changed) {
+    M68kRenderTypedState *state, const M68kRenderPlatformState *platform_state, const M68kInstructionIR *instruction, uint32_t offset, int record_accesses,
+    int *io_changed, int indexed_only) {
   const M68kSimFormMetadata *metadata;
   size_t operand_index;
   if (lookup == NULL || state == NULL || instruction == NULL) return 0;
@@ -4927,6 +5030,7 @@ static int render_lookup_record_typed_struct_accesses(M68kRenderLookup *lookup, 
     struct_id = AMIGA_OS_STRUCT_ID_NONE;
     if (metadata != NULL && metadata->operand_access_kinds[operand_index] == M68K_SIM_ACCESS_BRANCH_TARGET)
       continue;
+    if (indexed_only && (operand->kind != M68K_ASM_OPERAND_EA || operand->value.ea_mode != 6U)) continue;
     if (operand->kind == M68K_ASM_OPERAND_EA &&
         (operand->value.ea_mode == 3U || operand->value.ea_mode == 4U) && operand->value.ea_reg < 8U) {
       base_reg = operand->value.ea_reg;
@@ -4975,6 +5079,11 @@ static int render_lookup_record_typed_struct_accesses(M68kRenderLookup *lookup, 
     effective_displacement = displacement + base_cursor;
     if (operand->value.ea_mode == 6U) {
       if (record_accesses) {
+        int indexed = indexed_only && !type_conflicted ? typed_record_word_index_access(lookup, section_index, state, platform_state,
+          instruction, offset, (uint8_t)operand_index, base_reg, struct_id, struct_size, displacement, base_cursor,
+          provenance, table_origin) : 0;
+        if (indexed < 0) return -1;
+        if (indexed > 0) continue;
         const char *root_struct_name = lookup_policy_struct_name_by_id(lookup->policy, struct_id);
         if (root_struct_name != NULL &&
             render_lookup_add_unresolved_typed_access_by_names(lookup, section_index, offset,
@@ -5061,7 +5170,7 @@ static int render_lookup_record_typed_struct_accesses(M68kRenderLookup *lookup, 
           if (render_lookup_add_typed_access_by_names(lookup, section_index, offset, (uint8_t)operand_index,
               base_reg, (int16_t)displacement, lookup_policy_struct_size_by_id(lookup->policy, container_struct_id),
               array_element_addend, base_cursor, 0U, &field,
-              &prefix_provenance, NULL) != 0) {
+              &prefix_provenance, NULL, NULL) != 0) {
             return -1;
           }
           refined_exact_field_access_recorded = 1;
@@ -5096,7 +5205,7 @@ static int render_lookup_record_typed_struct_accesses(M68kRenderLookup *lookup, 
     if (record_accesses) {
       if (render_lookup_add_typed_access_by_names(lookup, section_index, offset, (uint8_t)operand_index,
           base_reg, (int16_t)displacement, struct_size, array_element_addend, base_cursor,
-          (uint16_t)(field_displacement - field.offset), &field, provenance, table_origin) != 0) {
+          (uint16_t)(field_displacement - field.offset), &field, provenance, table_origin, NULL) != 0) {
         return -1;
       }
     }
@@ -9221,6 +9330,27 @@ static void hardware_relative_transfer(M68kRenderPlatformState *state, const M68
         (instruction->mnemonic_id == M68K_ASM_MNEMONIC_MOVE &&
          (instruction->size_suffix == 'w' || instruction->size_suffix == 'l'))) {
       state->word_values[dest] = source;
+    } else if (meta->operation_type == M68K_SIM_OP_LOGIC_AND && source.count == 1U &&
+        (m68k_sim_operand_width_bytes(instruction, 1U) == 2U ||
+         m68k_sim_operand_width_bytes(instruction, 1U) == 4U)) {
+      uint16_t mask = source.values[0];
+      if (before->word_values[dest].count) {
+        for (i = 0U; i < before->word_values[dest].count; ++i)
+          if (!hardware_word_set_add(&result, before->word_values[dest].values[i] & mask)) return;
+      } else {
+        /* For an unknown input, AND's image is exactly the submasks. Only
+         * enumerate a closed set that fits the existing scalar abstraction. */
+        uint16_t bits = mask, value = mask;
+        unsigned bit_count = 0U;
+        while (bits) { bits &= (uint16_t)(bits - 1U); ++bit_count; }
+        if ((1U << bit_count) > M68K_HARDWARE_VALUE_LIMIT) return;
+        for (;;) {
+          if (!hardware_word_set_add(&result, value)) return;
+          if (!value) break;
+          value = (uint16_t)((value - 1U) & mask);
+        }
+      }
+      state->word_values[dest] = result;
     } else if ((meta->operation_type == M68K_SIM_OP_ADD || meta->operation_type == M68K_SIM_OP_SUB) &&
         (instruction->size_suffix == 'w' || instruction->size_suffix == 'l')) {
       if (!source.count) return;
@@ -9903,8 +10033,8 @@ static int typed_flow_process_node_impl(M68kRenderLookup *lookup, const M68kDeco
   }
   if (record_typed_accesses && render_lookup_record_hardware_address_uses(lookup, section->section_index,
       out_platform_state, &instruction, node->candidate->offset) != 0) return -1;
-  if (render_lookup_record_typed_struct_accesses(lookup, section->section_index, out_typed_state, &instruction,
-      node->candidate->offset, record_typed_accesses, io_changed) != 0) {
+  if (render_lookup_record_typed_struct_accesses(lookup, section->section_index, out_typed_state, out_platform_state, &instruction,
+      node->candidate->offset, record_typed_accesses, io_changed, 0) != 0) {
     return -1;
   }
   typed_state_record_io_request_immediate_store(out_typed_state, &instruction, node->candidate->offset);
@@ -10531,6 +10661,24 @@ static int hardware_relative_analyze_graph(M68kRenderLookup *lookup, const M68kD
     if (m68k_decode_candidate_to_instruction(graph->nodes[index].candidate, &instruction) != 0 ||
         render_lookup_record_hardware_address_uses(lookup, section->section_index, &proof, &instruction,
           graph->nodes[index].candidate->offset) != 0) goto done;
+    /* These input values belong to this converged independent solve. Consume
+     * them now, without publishing a second retained scalar state on each node.
+     * Only indexed candidates need a copy of the larger typed register state. */
+    int has_word_index = 0;
+    for (size_t operand = 0U; operand < instruction.operand_count && operand < 4U; ++operand) {
+      uint32_t ignored;
+      if (m68k_instruction_operand_decoded_ea_shape(&instruction.operands[operand]) == M68K_SIM_EA_SHAPE_INDEX &&
+          m68k_sim_operand_word_index_value(&instruction, (uint8_t)operand, 0U, &ignored)) {
+        has_word_index = 1; break;
+      }
+    }
+    if (has_word_index) {
+      M68kRenderTypedState typed_input;
+      M68kRenderPlatformState unused_platform;
+      typed_flow_instruction_input(lookup, section, &graph->nodes[index], &typed_input, &unused_platform);
+      if (render_lookup_record_typed_struct_accesses(lookup, section->section_index, &typed_input, &proof,
+          &instruction, graph->nodes[index].candidate->offset, 1, NULL, 1) != 0) goto done;
+    }
   }
   result = 0;
 done:
@@ -11333,7 +11481,7 @@ static int append_render_lookup_typed_accesses_for_section(const M68kRenderLooku
         access->displacement, access->base_cursor, access->field_offset, access->struct_size, access->field_size,
         access->root_struct_name, access->owner_struct_name, access->field_name, access->field_expr,
         access->inherited, access->nested, access->provenance.kind, access->provenance.producer_operand_index, access->provenance.section_index,
-        access->provenance.offset, &access->table_origin) != 0) {
+        access->provenance.offset, &access->table_origin, &access->word_index) != 0) {
       return -1;
     }
   }
@@ -13397,7 +13545,8 @@ static int render_lookup_add_typed_access_by_names(M68kRenderLookup *lookup, siz
     uint8_t operand_index, uint8_t base_reg, int16_t displacement, uint16_t struct_size,
     int16_t array_element_addend, int32_t base_cursor, uint16_t field_byte_offset,
     const M68kRenderResolvedStructField *field,
-    const M68kRenderTypedProvenance *provenance, const M68kAddressValueTableOriginIR *table_origin) {
+    const M68kRenderTypedProvenance *provenance, const M68kAddressValueTableOriginIR *table_origin,
+    const M68kWordIndexAccessIR *word_index) {
   size_t index;
   M68kRenderTypedAccess *grown;
   size_t next_capacity;
@@ -13439,6 +13588,7 @@ static int render_lookup_add_typed_access_by_names(M68kRenderLookup *lookup, siz
     lookup->typed_accesses[lookup->typed_access_count].provenance = *provenance;
   }
   if (table_origin != NULL) lookup->typed_accesses[lookup->typed_access_count].table_origin = *table_origin;
+  if (word_index != NULL) lookup->typed_accesses[lookup->typed_access_count].word_index = *word_index;
   snprintf(lookup->typed_accesses[lookup->typed_access_count].root_struct_name,
     sizeof(lookup->typed_accesses[lookup->typed_access_count].root_struct_name), "%s", field->root_struct_name);
   snprintf(lookup->typed_accesses[lookup->typed_access_count].owner_struct_name,
@@ -13477,7 +13627,7 @@ int render_lookup_add_typed_access(M68kRenderLookup *lookup, size_t section_inde
   snprintf(resolved.field_name, sizeof(resolved.field_name), "%s", field_name);
   snprintf(resolved.field_expr, sizeof(resolved.field_expr), "%s", field_expr);
   return render_lookup_add_typed_access_by_names(lookup, section_index, offset, operand_index, base_reg,
-    displacement, amiga_struct_size_for_struct_id(root_struct_id), 0U, 0, 0U, &resolved, provenance, NULL);
+    displacement, amiga_struct_size_for_struct_id(root_struct_id), 0U, 0, 0U, &resolved, provenance, NULL, NULL);
 }
 
 static int render_lookup_add_unresolved_typed_access_by_names(M68kRenderLookup *lookup, size_t section_index,
@@ -16319,6 +16469,54 @@ const AmigaOsLibraryVectorInfo *resolve_amiga_local_helper_call_vector(const M68
     candidate, 0U);
 }
 
+static int typed_index_site_compare(const void *left, const void *right) {
+  const M68kRenderTypedAccess *a = *(const M68kRenderTypedAccess *const *)left;
+  const M68kRenderTypedAccess *b = *(const M68kRenderTypedAccess *const *)right;
+  int name;
+  if (a->section_index != b->section_index) return a->section_index < b->section_index ? -1 : 1;
+  if (a->offset != b->offset) return a->offset < b->offset ? -1 : 1;
+  if (a->operand_index != b->operand_index) return a->operand_index < b->operand_index ? -1 : 1;
+  name = strcmp(a->root_struct_name, b->root_struct_name);
+  if (name) return name;
+  return a->struct_size < b->struct_size ? -1 : a->struct_size != b->struct_size;
+}
+
+static int typed_prune_resolved_indexed_diagnostics(M68kRenderLookup *lookup) {
+  const M68kRenderTypedAccess **resolved;
+  size_t count = 0U, index, kept = 0U;
+  for (index = 0U; index < lookup->typed_access_count; ++index)
+    count += lookup->typed_accesses[index].word_index.value_count != 0U;
+  if (!count) return 0;
+  resolved = malloc(count * sizeof(*resolved));
+  if (!resolved) return -1;
+  count = 0U;
+  for (index = 0U; index < lookup->typed_access_count; ++index)
+    if (lookup->typed_accesses[index].word_index.value_count) resolved[count++] = &lookup->typed_accesses[index];
+  qsort(resolved, count, sizeof(*resolved), typed_index_site_compare);
+  for (index = 0U; index < lookup->unresolved_typed_access_count; ++index) {
+    const M68kRenderUnresolvedTypedAccess *entry = &lookup->unresolved_typed_accesses[index];
+    int superseded = 0;
+    if (entry->classification == M68K_PLATFORM_UNRESOLVED_TYPED_ACCESS_INDEXED_DYNAMIC) {
+      M68kRenderTypedAccess key = {0};
+      const M68kRenderTypedAccess *key_ptr = &key;
+      size_t lo = 0U, hi = count;
+      key.section_index = entry->section_index; key.offset = entry->offset;
+      key.operand_index = entry->operand_index; key.struct_size = entry->struct_size;
+      snprintf(key.root_struct_name, sizeof(key.root_struct_name), "%s", entry->root_struct_name);
+      while (lo < hi) {
+        size_t mid = lo + (hi - lo) / 2U;
+        if (typed_index_site_compare(&resolved[mid], &key_ptr) < 0) lo = mid + 1U;
+        else hi = mid;
+      }
+      superseded = lo < count && !typed_index_site_compare(&resolved[lo], &key_ptr);
+    }
+    if (!superseded) lookup->unresolved_typed_accesses[kept++] = *entry;
+  }
+  lookup->unresolved_typed_access_count = kept;
+  free(resolved);
+  return 0;
+}
+
 int m68k_analysis_render_lookup_run_platform_passes(M68kRenderLookup *lookup, const M68kDecodeIR *decode,
     uint8_t **accepted_start, uint8_t **accepted_bytes, M68kPlatformAnalysisPassStats *stats) {
   clock_t start;
@@ -16389,6 +16587,7 @@ int m68k_analysis_render_lookup_run_platform_passes(M68kRenderLookup *lookup, co
   typed_flow_filter_nonapp_fallbacks(lookup, decode, &typed_flow_workflow);
   /* Loop proof deliberately borrows node value storage after projection. */
   if (typed_flow_record_app_loop_ranges(lookup, decode, accepted_start, &typed_flow_workflow) != 0) goto typed_flow_fail;
+  if (typed_prune_resolved_indexed_diagnostics(lookup) != 0) goto typed_flow_fail;
   typed_flow_workflow_destroy(&typed_flow_workflow);
   end = clock();
   if (stats != NULL) stats->typed_ref_seconds = elapsed_seconds_local(start, end);
@@ -16646,7 +16845,7 @@ static int analysis_record_mac_output_pointer_local_read_facts(const M68kDecodeS
         if (m68k_ir_section_analysis_append_recovered_platform_typed_access(section_analysis,
             M68K_PLATFORM_BACKEND_MACOS, candidate->offset, (uint8_t)operand_index, base_reg, displacement, 0,
             0, 0U, access_size, arg->pointee_type_name, arg->pointee_type_name, arg->field_name,
-            "", 0U, 0U, M68K_PLATFORM_TYPE_PROVENANCE_API_OUTPUT, 0U, section->section_index, call_offset, NULL) != 0) {
+            "", 0U, 0U, M68K_PLATFORM_TYPE_PROVENANCE_API_OUTPUT, 0U, section->section_index, call_offset, NULL, NULL) != 0) {
           return -1;
         }
         {
@@ -16663,7 +16862,7 @@ static int analysis_record_mac_output_pointer_local_read_facts(const M68kDecodeS
                 M68K_PLATFORM_BACKEND_MACOS, candidate->offset, (uint8_t)dest_index, dest_base_reg,
                 dest_displacement, 0, 0, 0U, access_size, arg->pointee_type_name, arg->pointee_type_name,
                 arg->field_name, "", 0U, 0U, M68K_PLATFORM_TYPE_PROVENANCE_API_OUTPUT, 0U, section->section_index,
-                call_offset, NULL) != 0) {
+                call_offset, NULL, NULL) != 0) {
               return -1;
             }
           }
@@ -16744,7 +16943,7 @@ static int analysis_record_mac_call_stack_arg_facts(const M68kRenderLookup *look
         if (m68k_ir_section_analysis_append_recovered_platform_typed_access(section_analysis,
             M68K_PLATFORM_BACKEND_MACOS, arg->offset, 0U, arg->source_reg_index, arg->source_displacement, 0,
             0, 0U, 0U, param->type_name, param->type_name, param->name != NULL ? param->name : "",
-            "", 0U, 0U, M68K_PLATFORM_TYPE_PROVENANCE_API_INPUT, 0U, section->section_index, call_offset, NULL) != 0) {
+            "", 0U, 0U, M68K_PLATFORM_TYPE_PROVENANCE_API_INPUT, 0U, section->section_index, call_offset, NULL, NULL) != 0) {
           return -1;
         }
       }

@@ -1,12 +1,61 @@
 #include "m68k_c_unit_test.h"
 #include "m68k_simulator.h"
+#include "m68k_plain_parse.h"
 #include "generated/m68k_asm_tables.h"
 
 #include <string.h>
+#include <stdlib.h>
 
 static int test_external_write_allowed(void *user, uint32_t address, uint8_t width) {
   (void)user;
   return address == 0x30U && width == 1U;
+}
+
+static int test_word_index_adapter_uses_decoded_width_and_refuses_unsupported_forms(void) {
+  static const struct {
+    const char *instruction;
+    uint8_t cpu;
+    uint32_t raw, expected;
+    int admitted;
+  } cases[] = {
+    {"move.l 0(a0,d0.w),d1", M68K_ASM_CPU_68000, 0x12340004U, 4U, 1},
+    {"move.l 0(a0,d0.w),d1", M68K_ASM_CPU_68000, 0x1234FFFCU, 0xFFFFFFFCU, 1},
+    {"move.l 0(a0,a2.w),d1", M68K_ASM_CPU_68000, 0x00008000U, 0xFFFF8000U, 1},
+    {"move.l 0(a0,d0.l),d1", M68K_ASM_CPU_68000, 4U, 0U, 0},
+    {"move.l 0(a0,d0.w*2),d1", M68K_ASM_CPU_68020, 4U, 0U, 0},
+    {"move.l 4(a0),d1", M68K_ASM_CPU_68000, 4U, 0U, 0},
+  };
+  for (size_t index = 0U; index < sizeof(cases)/sizeof(cases[0]); ++index) {
+    M68kInstructionIR instruction = m68k_plain_parse_instruction_to_ir(cases[index].instruction,
+      cases[index].cpu, m68k_diag_sink(NULL));
+    /* This adapter consumes decoded IR. The plain text helper currently
+     * normalizes this scale syntax, so supply the decoded extension scale
+     * explicitly for the unsupported68020 guard fixture. */
+    if (cases[index].cpu == M68K_ASM_CPU_68020) instruction.operands[0].value.scale = 2U;
+    uint32_t value = 0U;
+    M68K_C_ASSERT_U32(2U, instruction.operand_count);
+    int admitted = m68k_sim_operand_word_index_value(&instruction, 0U, cases[index].raw, &value);
+    if (admitted != cases[index].admitted) fprintf(stderr, "index adapter case %s admitted=%d scale=%u width=%u\n", cases[index].instruction, admitted, instruction.operands[0].value.scale, instruction.operands[0].value.index_long);
+    M68K_C_ASSERT_INT(cases[index].admitted, admitted);
+    if (cases[index].admitted) M68K_C_ASSERT_U32(cases[index].expected, value);
+  }
+  /* Factoring the index calculation must preserve concrete LONG execution.
+   * Vasm produced 32300800; independent Musashi reads BEEF at10104, not CAFE at104. */
+  uint8_t *memory = calloc(0x20000U, 1U);
+  M68K_C_ASSERT(memory != NULL);
+  const uint8_t code[] = {0x32U,0x30U,0x08U,0x00U};
+  memcpy(memory + 0x1000U, code, sizeof(code));
+  memory[0x104U] = 0xCAU; memory[0x105U] = 0xFEU;
+  memory[0x10104U] = 0xBEU; memory[0x10105U] = 0xEFU;
+  M68kSimConcreteState state = {0};
+  M68kSimConcreteRunTraceResult trace;
+  state.pc = 0x1000U; state.a[0] = 0x100U; state.d[0] = 0x10004U; state.sr = 0x2700U;
+  M68K_C_ASSERT_INT(0, m68k_simulate_run_concrete(M68K_ASM_CPU_68000, memory, 0x20000U,
+    &state, 1U, 0U, 0U, NULL, &trace));
+  M68K_C_ASSERT_U32(0xBEEFU, state.d[1]);
+  M68K_C_ASSERT_U32(0x1004U, state.pc);
+  free(memory);
+  return 0;
 }
 
 static int test_concrete_subi_word_preserves_upper_and_sets_ccr(void) {
@@ -586,6 +635,8 @@ int m68k_c_simulator_tests(void) {
     {"metadata_lookup_does_not_fallback_to_mnemonic_shape",
       test_metadata_lookup_does_not_fallback_to_mnemonic_shape},
     {"concrete_run_stops_on_pc_range", test_concrete_run_stops_on_pc_range},
+    {"word_index_adapter_uses_decoded_width_and_refuses_unsupported_forms",
+      test_word_index_adapter_uses_decoded_width_and_refuses_unsupported_forms},
     {"concrete_subi_word_preserves_upper_and_sets_ccr", test_concrete_subi_word_preserves_upper_and_sets_ccr},
     {"concrete_bit_ea_category_width_and_flags", test_concrete_bit_ea_category_width_and_flags},
     {"concrete_run_stops_on_instruction_limit", test_concrete_run_stops_on_instruction_limit},

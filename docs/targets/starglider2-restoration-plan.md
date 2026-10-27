@@ -21,18 +21,25 @@ The [current systematic gap inventory](../../runtime/observations/starglider2-so
 joins native identities/accesses with canonical layouts and actual rendered
 boundaries. It records 66 suffix signals (including numeric adjacent variants),
 21 lookup contracts, 524 remaining interior references, 48 generic app fields
-and 352 unresolved record accesses. These are different denominators. Five
+and 300 unresolved record accesses. These are different denominators. Five
 suffixes name routines and one names text; neither is a pointer defect.
-Latest: the [PC-relative collection observer](../../runtime/observations/starglider2-pc-pointer-collections.json)
-reuses the same native pointer consumer path for PC-relative reads. The Copper
-reader now attaches to the full three-entry owner instead of a one-entry scalar
-prefix. One redundant scalar contract is removed: **74 → 73 descriptors,
-14 → 13 scalar lookups**. The 155 consumers and 304 address expressions remain;
-this is corrected attribution, not155 new sites. Selector bounds stay unknown.
-All **828 native tests pass** and original C/vasm output is exact. All76 standalone
-build inputs still match the preceding clean build, whose result is reused.
-Next probe the139 indexed typed diagnostics using existing scalar/closed-index
-values; do not infer safety from table extent alone.
+Latest: the [closed WORD-index field projection](../../runtime/observations/starglider2-closed-word-index-fields.json)
+consumes existing converged scalar inputs instead of rejecting every indexed
+operand. It recovers **52 text-directory field accesses: 318 → 370 typed facts,
+352 → 300 unresolved diagnostics, 139 → 87 indexed-dynamic cases**. All remaining
+unresolved records are unchanged. Each accepted candidate is checked against
+the full owner and same field; signed indices, actual widths and disjoint ranges
+are retained without folding away the live register. Original C/vasm output is
+exact and **830 native tests pass**. The clean standalone result is recorded in
+the receipt. This is field/range evidence, not new pointee semantics or runtime
+coverage. Next group the remaining producer/cursor gaps and continue connected
+app-field, shared-buffer and incoming-path reconstruction.
+
+Preceding: the [PC-relative collection observer](../../runtime/observations/starglider2-pc-pointer-collections.json)
+attaches the Copper reader to its full three-entry owner instead of a one-entry
+scalar prefix: **74 → 73 descriptors, 14 → 13 scalar lookups**. Its 155 consumers
+and 304 address expressions were unchanged; selector bounds stayed unknown.
+That batch passed 828 native tests and reused the unchanged 76 standalone inputs.
 
 Preceding: the [pointer-record collection projection](../../runtime/observations/starglider2-pointer-record-collections.json)
 now exposes **all ten** canonical pointer directories (499 entries) through the

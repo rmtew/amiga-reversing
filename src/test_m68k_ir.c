@@ -1952,6 +1952,182 @@ static int test_source_dcb_preserves_large_repeat_without_expanding_items(void) 
   return 0;
 }
 
+/* Vasm-assembled original instruction streams. Each row includes the raw
+ * records after RTS; no game state or guessed target address is involved. */
+static int test_facts_v2_closed_word_index_fields(void) {
+  static const struct {
+    const char *name;
+    uint8_t bytes[128];
+    uint16_t size, rows, access, record_size, record_count, value_count;
+    int32_t values[M68K_WORD_INDEX_VALUE_LIMIT];
+    uint8_t width, field_offset, reg_kind, reg_index, aggregate, conditional;
+  } cases[] = {
+    {"literal_word",{0x41,0xFA,0x00,0x0C,0x30,0x3C,0x00,0x04,0x22,0x30,0x00,0x00,0x4E,0x75,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00},26U,14U,8U,4U,3U,1U,{4},4U,0U,1U,0U,0U,0U},
+    {"literal_moveq",{0x41,0xFA,0x00,0x0A,0x70,0x04,0x22,0x30,0x00,0x00,0x4E,0x75,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00},24U,12U,6U,4U,3U,1U,{4},4U,0U,1U,0U,0U,0U},
+    {"literal_aggregate",{0x41,0xFA,0x00,0x0C,0x30,0x3C,0x00,0x04,0x22,0x30,0x00,0x00,0x4E,0x75,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00},26U,14U,8U,4U,3U,1U,{4},4U,0U,1U,0U,1U,0U},
+    {"mask_two",{0x41,0xFA,0x00,0x0E,0x02,0x40,0x00,0x01,0xE5,0x48,0x22,0x30,0x00,0x00,0x4E,0x75,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00},28U,16U,10U,4U,3U,2U,{0,4},4U,0U,1U,0U,0U,0U},
+    {"mask_eight",{0x41,0xFA,0x00,0x0E,0x02,0x40,0x00,0x07,0xE5,0x48,0x22,0x30,0x00,0x00,0x4E,0x75,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00},48U,16U,10U,4U,8U,8U,{0,4,8,12,16,20,24,28},4U,0U,1U,0U,0U,0U},
+    {"mask_too_wide",{0x41,0xFA,0x00,0x0E,0x02,0x40,0x00,0x0F,0xE5,0x48,0x22,0x30,0x00,0x00,0x4E,0x75,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00},80U,16U,10U,4U,16U,0U,{0},4U,0U,1U,0U,0U,0U},
+    {"byte_mask_unknown_upper",{0x41,0xFA,0x00,0x0E,0x02,0x00,0x00,0x01,0xE5,0x48,0x22,0x30,0x00,0x00,0x4E,0x75,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00},28U,16U,10U,4U,3U,0U,{0},4U,0U,1U,0U,0U,0U},
+    {"unknown_index",{0x41,0xFA,0x00,0x08,0x22,0x30,0x00,0x00,0x4E,0x75,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00},22U,10U,4U,4U,3U,0U,{0},4U,0U,1U,0U,0U,0U},
+    {"outside_array",{0x41,0xFA,0x00,0x0C,0x30,0x3C,0x00,0x0C,0x22,0x30,0x00,0x00,0x4E,0x75,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00},26U,14U,8U,4U,3U,0U,{0},4U,0U,1U,0U,0U,0U},
+    {"negative_outside",{0x41,0xFA,0x00,0x0C,0x30,0x3C,0xFF,0xFF,0x22,0x30,0x00,0x00,0x4E,0x75,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00},26U,14U,8U,4U,3U,0U,{0},4U,0U,1U,0U,0U,0U},
+    {"negative_cancelled",{0x41,0xFA,0x00,0x0C,0x30,0x3C,0xFF,0xFC,0x22,0x30,0x00,0x04,0x4E,0x75,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00},26U,14U,8U,4U,3U,1U,{-4},4U,0U,1U,0U,0U,0U},
+    {"partial_memory_clobber",{0x41,0xFA,0x00,0x12,0x30,0x3C,0x00,0x04,0x10,0x39,0x00,0x00,0x01,0x00,0x22,0x30,0x00,0x00,0x4E,0x75,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00},32U,20U,14U,4U,3U,0U,{0},4U,0U,1U,0U,0U,0U},
+    {"join_same_field",{0x41,0xFA,0x00,0x16,0x4A,0x07,0x67,0x06,0x30,0x3C,0x00,0x00,0x60,0x04,0x30,0x3C,0x00,0x04,0x22,0x30,0x00,0x00,0x4E,0x75,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00},36U,24U,18U,4U,3U,2U,{0,4},4U,0U,1U,0U,0U,0U},
+    {"join_outside",{0x41,0xFA,0x00,0x16,0x4A,0x07,0x67,0x06,0x30,0x3C,0x00,0x04,0x60,0x04,0x30,0x3C,0x00,0x0C,0x22,0x30,0x00,0x00,0x4E,0x75,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00},36U,24U,18U,4U,3U,0U,{0},4U,0U,1U,0U,0U,0U},
+    {"join_unknown",{0x41,0xFA,0x00,0x10,0x4A,0x07,0x67,0x04,0x30,0x3C,0x00,0x04,0x22,0x30,0x00,0x00,0x4E,0x75,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00},30U,18U,12U,4U,3U,0U,{0},4U,0U,1U,0U,0U,0U},
+    {"index_copy_gap",{0x41,0xFA,0x00,0x10,0x30,0x3C,0x00,0x04,0x34,0x00,0x4E,0x71,0x22,0x30,0x20,0x00,0x4E,0x75,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00},30U,18U,12U,4U,3U,1U,{4},4U,0U,1U,2U,0U,0U},
+    {"address_index",{0x41,0xFA,0x00,0x0E,0x24,0x7C,0x00,0x00,0x00,0x04,0x22,0x30,0xA0,0x00,0x4E,0x75,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00},28U,16U,10U,4U,3U,1U,{4},4U,0U,2U,2U,0U,0U},
+    {"address_index_clobber",{0x41,0xFA,0x00,0x10,0x24,0x7C,0x00,0x00,0x00,0x04,0x24,0x49,0x22,0x30,0xA0,0x00,0x4E,0x75,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00},30U,18U,12U,4U,3U,0U,{0},4U,0U,2U,2U,0U,0U},
+    {"address_index_auto_update",{0x41,0xFA,0x00,0x0E,0x24,0x7C,0x00,0x00,0x00,0x04,0x21,0x9A,0xA0,0x00,0x4E,0x75,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00},28U,16U,10U,4U,3U,0U,{0},4U,0U,2U,2U,0U,0U},
+    {"partial_byte_field",{0x41,0xFA,0x00,0x0C,0x30,0x3C,0x00,0x01,0x12,0x30,0x00,0x00,0x4E,0x75,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00},26U,14U,8U,4U,3U,1U,{1},1U,0U,1U,0U,0U,0U},
+    {"partial_word_field",{0x41,0xFA,0x00,0x0C,0x30,0x3C,0x00,0x02,0x32,0x30,0x00,0x00,0x4E,0x75,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00},26U,14U,8U,4U,3U,1U,{2},2U,0U,1U,0U,0U,0U},
+    {"different_named_field",{0x41,0xFA,0x00,0x0C,0x30,0x3C,0x00,0x04,0x22,0x30,0x00,0x00,0x4E,0x75,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00},38U,14U,8U,8U,3U,1U,{4},4U,4U,1U,0U,1U,0U},
+    {"multiple_fields",{0x41,0xFA,0x00,0x0E,0x02,0x40,0x00,0x01,0xE5,0x48,0x22,0x30,0x00,0x00,0x4E,0x75,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00},40U,16U,10U,8U,3U,0U,{0},4U,0U,1U,0U,1U,0U},
+    {"long_index_unsupported",{0x41,0xFA,0x00,0x0E,0x20,0x3C,0x00,0x00,0x00,0x04,0x22,0x30,0x08,0x00,0x4E,0x75,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00},28U,16U,10U,4U,3U,0U,{0},4U,0U,1U,0U,0U,0U},
+    {"opaque_call",{0x41,0xFA,0x00,0x12,0x30,0x3C,0x00,0x04,0x4E,0xB9,0x01,0x00,0x00,0x00,0x22,0x30,0x00,0x00,0x4E,0x75,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00},32U,20U,14U,4U,3U,0U,{0},4U,0U,1U,0U,0U,0U},
+    {"conditional_index_contract",{0x41,0xFA,0x00,0x08,0x22,0x30,0x00,0x00,0x4E,0x75,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00},22U,10U,4U,4U,3U,0U,{0},4U,0U,1U,0U,0U,1U},
+  };
+  for (size_t variant = 0U; variant < sizeof(cases)/sizeof(cases[0]); ++variant) {
+    M68kObject object;
+    M68kSection section = {0};
+    M68kAnalysisPolicy policy;
+    M68kFactsV2Profile profile;
+    M68kSourceAnalysisIR analysis = {0};
+    char *source = NULL;
+    M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+    object.platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
+    object.platform_file_kind = M68K_PLATFORM_FILE_EXECUTABLE;
+    section.kind = M68K_SECTION_CODE; section.size = section.data_size = cases[variant].size;
+    section.data = (uint8_t *)cases[variant].bytes;
+    M68K_C_ASSERT(m68k_object_add_section(&object, &section).ok);
+    m68k_analysis_policy_init_default(&policy);
+    policy.custom_structs = calloc(1U, sizeof(*policy.custom_structs));
+    M68K_C_ASSERT(policy.custom_structs != NULL);
+    policy.custom_struct_owner = 1U; policy.custom_struct_count = policy.custom_struct_capacity = 1U;
+    M68kAnalysisCustomStruct *record = &policy.custom_structs[0];
+    strcpy(record->name, "IndexedRecord"); record->size = cases[variant].record_size;
+    record->field_count = record->size == 8U ? 2U : 1U;
+    for (size_t field = 0U; field < record->field_count; ++field) {
+      strcpy(record->fields[field].name, record->size == 8U ? (field ? "right" : "left") : "value");
+      strcpy(record->fields[field].type_name, record->size == 8U ? "LONG" : "APTR");
+      record->fields[field].offset = 4U * field; record->fields[field].size = 4U;
+      record->fields[field].value_kind = record->size == 8U ? M68K_ANALYSIS_STRUCT_FIELD_VALUE_SCALAR :
+        M68K_ANALYSIS_STRUCT_FIELD_VALUE_TARGET_POINTER;
+      record->fields[field].pointer_address_domain = record->size == 8U ? M68K_ANALYSIS_POINTER_DOMAIN_LEGACY :
+        M68K_ANALYSIS_POINTER_DOMAIN_MAPPED_SOURCE;
+    }
+    size_t item_count = cases[variant].aggregate ? 1U : cases[variant].record_count;
+    M68K_C_ASSERT_INT(0, m68k_analysis_policy_reserve_structured_data_items(&policy, item_count));
+    policy.structured_data_item_count = (uint16_t)item_count;
+    for (size_t item = 0U; item < policy.structured_data_item_count; ++item) {
+      M68kAnalysisStructuredDataItem *leaf = &policy.structured_data_items[item];
+      leaf->has_section_index = 1U; leaf->offset = cases[variant].rows + 4U * item;
+      leaf->size = cases[variant].aggregate ? cases[variant].record_count * record->size : 4U;
+      leaf->kind = M68K_ANALYSIS_STRUCTURED_DATA_LONGS;
+      strcpy(leaf->struct_name, record->name);
+      if (!cases[variant].aggregate) {
+        strcpy(leaf->field_name, "value"); strcpy(leaf->field_type, "APTR");
+        leaf->is_pointer = 1U; leaf->pointer_address_domain = M68K_ANALYSIS_POINTER_DOMAIN_MAPPED_SOURCE;
+      }
+      if (!item) {
+        leaf->has_source_owner_span = 1U; leaf->source_owner_start = leaf->offset;
+        leaf->source_owner_size = cases[variant].record_count * record->size;
+      }
+    }
+    if (cases[variant].conditional) {
+      policy.register_seed_count = 1U;
+      M68kAnalysisRegisterSeed *seed = &policy.register_seeds[0];
+      seed->kind = M68K_ANALYSIS_REGISTER_SEED_HARDWARE_INDEXED;
+      seed->reg_kind = M68K_ANALYSIS_REGISTER_ADDRESS; seed->reg_index = 5U;
+      seed->has_entry_offset = seed->has_section_index = 1U;
+      strcpy(seed->name, "_custom"); seed->hardware_stride = 1U;
+      seed->hardware_index_register = 0U; seed->hardware_index_count = 2U;
+      seed->hardware_index_values[1] = 4U;
+    }
+    int result = m68k_facts_v2_render_asm_source_analysis_profile_alloc(&object, &policy,
+      &source, &profile, &analysis, 1, m68k_diag_sink(NULL));
+    if (result) fprintf(stderr,"word index variant %s failed admission\n",cases[variant].name);
+    M68K_C_ASSERT_INT(0, result);
+    M68K_C_ASSERT(analysis.section_count == 1U);
+    size_t found = 0U;
+    for (size_t item = 0U; item < analysis.sections[0].recovered_platform_typed_access_count; ++item) {
+      const M68kRecoveredPlatformTypedAccessIR *access = &analysis.sections[0].recovered_platform_typed_accesses[item];
+      if (access->offset != cases[variant].access || !access->word_index.value_count) continue;
+      ++found;
+      const M68kWordIndexAccessIR *index = &access->word_index;
+      if (index->value_count != cases[variant].value_count)
+        fprintf(stderr,"word index variant %s expected value_count=%u got=%u first=%d\n",cases[variant].name,
+          (unsigned)cases[variant].value_count,(unsigned)index->value_count,index->byte_offsets[0]);
+      M68K_C_ASSERT_U32(cases[variant].value_count, index->value_count);
+      M68K_C_ASSERT_U32(cases[variant].reg_kind, index->reg_kind);
+      M68K_C_ASSERT_U32(cases[variant].reg_index, index->reg_index);
+      M68K_C_ASSERT_U32(cases[variant].width, index->access_width);
+      M68K_C_ASSERT_U32(cases[variant].record_count, index->record_count);
+      M68K_C_ASSERT_U32(0U, index->base_record_index);
+      M68K_C_ASSERT_U32(cases[variant].field_offset, access->field_offset);
+      for (size_t value = 0U; value < index->value_count; ++value)
+        M68K_C_ASSERT_INT(cases[variant].values[value], index->byte_offsets[value]);
+      if (cases[variant].field_offset == 4U) M68K_C_ASSERT_INT(-4, index->encoded_symbol_correction);
+    }
+    if (found != (cases[variant].value_count != 0U))
+      fprintf(stderr,"word index variant %s expected resolved=%d got=%zu\n",cases[variant].name,
+        cases[variant].value_count != 0U,found);
+    M68K_C_ASSERT_U32(cases[variant].value_count != 0U, found);
+    size_t unresolved = 0U;
+    for (size_t item = 0U; item < analysis.sections[0].recovered_platform_unresolved_typed_access_count; ++item)
+      unresolved += analysis.sections[0].recovered_platform_unresolved_typed_accesses[item].offset == cases[variant].access;
+    /* An opaque call invalidates the typed base as well as the index: there
+     * is no surviving typed owner on which to report INDEXED_DYNAMIC. */
+    unsigned expected_unresolved = cases[variant].value_count == 0U &&
+      strcmp(cases[variant].name, "opaque_call") != 0;
+    if (unresolved != expected_unresolved) fprintf(stderr,"word index variant %s unresolved=%zu expected=%d\n",cases[variant].name,unresolved,expected_unresolved);
+    M68K_C_ASSERT_U32(expected_unresolved, unresolved);
+    char *json = NULL;
+    M68K_C_ASSERT_INT(0, source_analysis_to_json(&analysis, &json, m68k_diag_sink(NULL)));
+    M68K_C_ASSERT((strstr(json, "\"word_index\":{") != NULL) == (cases[variant].value_count != 0U));
+    M68K_C_ASSERT((strstr(json, "\"indexed_access_ranges\":[") != NULL) == (cases[variant].value_count != 0U));
+    if (found) {
+      const M68kRecoveredPlatformTypedAccessIR *indexed = NULL;
+      for (size_t item = 0U; item < analysis.sections[0].recovered_platform_typed_access_count; ++item)
+        if (analysis.sections[0].recovered_platform_typed_accesses[item].word_index.value_count)
+          indexed = &analysis.sections[0].recovered_platform_typed_accesses[item];
+      M68K_C_ASSERT(indexed != NULL);
+      for (size_t value = 0U; value < indexed->word_index.value_count; ++value) {
+        char range[128];
+        int start = indexed->displacement + indexed->word_index.byte_offsets[value];
+        snprintf(range, sizeof(range), "\"range_start\":%d,\"range_size\":%u,\"range_end\":%d",
+          start, (unsigned)indexed->word_index.access_width, start + indexed->word_index.access_width);
+        M68K_C_ASSERT(strstr(json, range) != NULL);
+      }
+    }
+    free(json);
+    if (found) {
+      M68kSourceAnalysisIR *copy = calloc(1U, sizeof(*copy));
+      M68K_C_ASSERT(copy != NULL);
+      M68K_C_ASSERT_INT(0, m68k_ir_source_analysis_create(copy));
+      M68K_C_ASSERT_INT(0, m68k_ir_source_analysis_append_section(copy, &analysis.sections[0]));
+      M68K_C_ASSERT_U32(analysis.sections[0].recovered_platform_typed_access_count,
+        copy->sections[0].recovered_platform_typed_access_count);
+      for (size_t item = 0U; item < copy->sections[0].recovered_platform_typed_access_count; ++item)
+        M68K_C_ASSERT(memcmp(&copy->sections[0].recovered_platform_typed_accesses[item].word_index,
+          &analysis.sections[0].recovered_platform_typed_accesses[item].word_index,sizeof(M68kWordIndexAccessIR)) == 0);
+      m68k_ir_source_analysis_destroy(copy); free(copy);
+    }
+    unsigned char *rebuilt = NULL; size_t rebuilt_size = 0U;
+    char *assembly_profile = NULL, *error = NULL;
+    M68K_C_ASSERT_INT(0, platform_file_assemble_source_text_bytes_profile_alloc("amiga-raw", "", source,
+      "any", &rebuilt, &rebuilt_size, &assembly_profile, &error));
+    M68K_C_ASSERT_U32(cases[variant].size, rebuilt_size);
+    M68K_C_ASSERT(memcmp(rebuilt, cases[variant].bytes, rebuilt_size) == 0);
+    platform_file_free_bytes(rebuilt); platform_file_free_text(assembly_profile); platform_file_free_text(error);
+    m68k_facts_v2_free_text(source); m68k_ir_source_analysis_destroy(&analysis);
+    m68k_analysis_policy_destroy(&policy); m68k_object_destroy(&object);
+  }
+  return 0;
+}
+
 /* Independently assembled: MOVEA.L rows(PC,D0.W),A1; the An-indexed
  * equivalent to A3; RTS; three initially null pointer records. */
 static int test_facts_v2_pc_pointer_collection_consumers(void) {
@@ -24741,7 +24917,7 @@ static int test_source_analysis_platform_typed_access_conflicts_with_non_app_lay
   M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_append_recovered_platform_typed_access(
     &section_analysis, M68K_PLATFORM_BACKEND_AMIGA_HUNK, 0x10U, 0U, 4U, 0x0106, 0, 6, 8U, 2U,
     "TIMEVAL", "TIMEVAL", "TV_MICRO", "TV_MICRO+2", 0U, 0U, M68K_PLATFORM_TYPE_PROVENANCE_APP_SLOT,
-    0U, 0U, 0x0100U, NULL));
+    0U, 0U, 0x0100U, NULL, NULL));
   M68K_C_ASSERT_INT(0, m68k_ir_source_analysis_append_section(&source_analysis, &section_analysis));
 
   m68k_ir_source_analysis_finalize_base_layout_conflicts(&source_analysis);
@@ -24795,7 +24971,7 @@ static int test_source_analysis_named_layout_conflicts_with_app_typed_access(voi
   M68K_C_ASSERT_INT(0, m68k_ir_section_analysis_append_recovered_platform_typed_access(
     &section_analysis, M68K_PLATFORM_BACKEND_AMIGA_HUNK, 0x10U, 0U, 6U, 0x0106, 0, 6, 8U, 2U,
     "TIMEVAL", "TIMEVAL", "TV_MICRO", "TV_MICRO+2", 0U, 0U, M68K_PLATFORM_TYPE_PROVENANCE_APP_SLOT,
-    0U, 0U, 0x0100U, NULL));
+    0U, 0U, 0x0100U, NULL, NULL));
   M68K_C_ASSERT_INT(0, m68k_ir_source_analysis_append_section(&source_analysis, &section_analysis));
 
   m68k_ir_source_analysis_finalize_base_layout_conflicts(&source_analysis);
@@ -39982,6 +40158,7 @@ int m68k_c_ir_tests(void) {
       test_source_fpu_zero_disables_fpu_alias_instruction},
     {"source_dcb_preserves_large_repeat_without_expanding_items",
       test_source_dcb_preserves_large_repeat_without_expanding_items},
+    {"facts_v2_closed_word_index_fields", test_facts_v2_closed_word_index_fields},
     {"facts_v2_pc_pointer_collection_consumers", test_facts_v2_pc_pointer_collection_consumers},
     {"source_long_base_relative_constant_expression", test_source_long_base_relative_constant_expression},
     {"source_symbolic_absolute_after_dcb_does_not_leak_to_register_move",

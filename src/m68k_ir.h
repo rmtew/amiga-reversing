@@ -1361,7 +1361,22 @@ typedef struct M68kAppSlotRefIR {
   uint8_t loop_counter_register;
 } M68kAppSlotRefIR;
 
+/* Sparse access evidence from a closed CFG input-value set. Offsets are the
+ * signed contribution of a non-scaled brief WORD index, not guest addresses. */
+#define M68K_WORD_INDEX_VALUE_LIMIT 8U
+typedef struct M68kWordIndexAccessIR {
+  uint8_t value_count;
+  uint8_t reg_kind;
+  uint8_t reg_index;
+  uint8_t access_width;
+  uint16_t record_count;
+  uint16_t base_record_index;
+  int32_t encoded_symbol_correction; /* Keep the encoded displacement; the index stays live. */
+  int32_t byte_offsets[M68K_WORD_INDEX_VALUE_LIMIT];
+} M68kWordIndexAccessIR;
+
 typedef struct M68kRecoveredPlatformTypedAccessIR {
+  M68kWordIndexAccessIR word_index;
   uint32_t offset;
   uint8_t operand_index;
   uint8_t base_reg;
@@ -3123,7 +3138,8 @@ int m68k_ir_section_analysis_append_recovered_platform_typed_access(M68kSectionA
     int32_t base_cursor, int16_t field_offset, uint16_t struct_size, uint16_t field_size, const char *root_struct_name,
     const char *owner_struct_name, const char *field_name, const char *field_expr, uint8_t inherited,
     uint8_t nested, uint8_t type_provenance_kind, uint8_t type_provenance_operand_index, size_t type_provenance_section_index,
-    uint32_t type_provenance_offset, const M68kAddressValueTableOriginIR *table_origin);
+    uint32_t type_provenance_offset, const M68kAddressValueTableOriginIR *table_origin,
+    const M68kWordIndexAccessIR *word_index);
 int m68k_ir_section_analysis_append_recovered_platform_unresolved_typed_access(
     M68kSectionAnalysisIR *section_analysis, uint8_t platform_kind, uint32_t offset, uint8_t operand_index,
     uint8_t base_reg, int32_t displacement, uint16_t struct_size, uint8_t access_size, const char *root_struct_name,

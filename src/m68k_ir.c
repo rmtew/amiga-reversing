@@ -3030,12 +3030,22 @@ int m68k_ir_section_analysis_append_app_slot_ref(M68kSectionAnalysisIR *section_
   return 0;
 }
 
+static int word_index_access_equal(const M68kWordIndexAccessIR *left, const M68kWordIndexAccessIR *right) {
+  if (!right || !right->value_count) return !left->value_count;
+  return left->value_count == right->value_count && left->reg_kind == right->reg_kind &&
+    left->reg_index == right->reg_index && left->access_width == right->access_width &&
+    left->record_count == right->record_count && left->base_record_index == right->base_record_index &&
+    left->encoded_symbol_correction == right->encoded_symbol_correction &&
+    !memcmp(left->byte_offsets, right->byte_offsets, left->value_count * sizeof(*left->byte_offsets));
+}
+
 int m68k_ir_section_analysis_append_recovered_platform_typed_access(M68kSectionAnalysisIR *section_analysis,
     uint8_t platform_kind, uint32_t offset, uint8_t operand_index, uint8_t base_reg, int16_t displacement,
     int32_t base_cursor, int16_t field_offset, uint16_t struct_size, uint16_t field_size, const char *root_struct_name,
     const char *owner_struct_name, const char *field_name, const char *field_expr, uint8_t inherited,
     uint8_t nested, uint8_t type_provenance_kind, uint8_t type_provenance_operand_index, size_t type_provenance_section_index,
-    uint32_t type_provenance_offset, const M68kAddressValueTableOriginIR *table_origin) {
+    uint32_t type_provenance_offset, const M68kAddressValueTableOriginIR *table_origin,
+    const M68kWordIndexAccessIR *word_index) {
   size_t index;
   char *copy_root_struct_name, *copy_owner_struct_name, *copy_field_name, *copy_field_expr;
   M68kRecoveredPlatformTypedAccessIR *new_access;
@@ -3053,6 +3063,11 @@ int m68k_ir_section_analysis_append_recovered_platform_typed_access(M68kSectionA
   field_ref.platform_kind = platform_kind;
   field_ref.domain_kind = M68K_PLATFORM_NAME_FIELD;
   field_ref.id = m68k_platform_name_id_from_text(platform_kind, M68K_PLATFORM_NAME_FIELD, field_name);
+  if (word_index && word_index->value_count &&
+      (word_index->value_count > M68K_WORD_INDEX_VALUE_LIMIT || word_index->reg_index >= 8U ||
+       (word_index->reg_kind != M68K_ANALYSIS_REGISTER_DATA && word_index->reg_kind != M68K_ANALYSIS_REGISTER_ADDRESS) ||
+       (word_index->access_width != 1U && word_index->access_width != 2U && word_index->access_width != 4U) ||
+       !word_index->record_count || word_index->base_record_index >= word_index->record_count)) return -1;
   for (index = 0; index < section_analysis->recovered_platform_typed_access_count; ++index) {
     M68kRecoveredPlatformTypedAccessIR *existing = &section_analysis->recovered_platform_typed_accesses[index];
     if (existing->offset == offset && existing->operand_index == operand_index &&
@@ -3069,7 +3084,8 @@ int m68k_ir_section_analysis_append_recovered_platform_typed_access(M68kSectionA
         m68k_platform_name_matches(&existing->owner_struct_ref, existing->owner_struct_name, &owner_struct_ref,
           owner_struct_name) &&
         m68k_platform_name_matches(&existing->field_ref, existing->field_name, &field_ref, field_name) &&
-        strcmp(existing->field_expr != NULL ? existing->field_expr : "", field_expr) == 0) {
+        strcmp(existing->field_expr != NULL ? existing->field_expr : "", field_expr) == 0 &&
+        word_index_access_equal(&existing->word_index, word_index)) {
       return 0;
     }
   }
@@ -3098,6 +3114,7 @@ int m68k_ir_section_analysis_append_recovered_platform_typed_access(M68kSectionA
    * newly allocated slot.  The optional table-origin fields must therefore
    * start absent rather than inherit bytes from a prior arena allocation. */
   memset(new_access, 0, sizeof(*new_access));
+  if (word_index && word_index->value_count) new_access->word_index = *word_index;
   new_access->offset = offset;
   new_access->operand_index = operand_index;
   new_access->base_reg = base_reg;
@@ -5377,7 +5394,7 @@ int m68k_ir_source_analysis_append_section(M68kSourceAnalysisIR *source_analysis
           access->field_offset, access->struct_size, access->field_size, root_struct_name, owner_struct_name,
           field_name, access->field_expr, access->inherited, access->nested, access->type_provenance_kind, access->type_provenance_operand_index,
           access->type_provenance_section_index, access->type_provenance_offset,
-          table_origin.has_origin != 0U ? &table_origin : NULL) != 0) {
+          table_origin.has_origin != 0U ? &table_origin : NULL, &access->word_index) != 0) {
       m68k_ir_section_analysis_destroy(&copy);
       return -1;
     }

@@ -1605,7 +1605,7 @@ abs_0_0000183A:
 	move.w #$1,message_display_countdown(a6)
 	lea.l event_message_pointers.l,a1
 	move.w #$DC,d0
-	movea.l $0(a1,d0.w),a1
+	movea.l SG2SourceTextReference_text(a1,d0.w),a1
 	bsr.w abs_0_000033C2
 	bsr.w abs_0_000033FE
 	bsr.w build_inventory_status_lists
@@ -1905,7 +1905,7 @@ abs_0_00001C1E:
 	move.b #$74,diagnostic_step_byte.l
 	lea.l event_message_pointers.l,a1
 	move.w #$D0,d0
-	movea.l $0(a1,d0.w),a1
+	movea.l SG2SourceTextReference_text(a1,d0.w),a1
 	bsr.w abs_0_000033C2
 	clr.w depot_line_pointer_offset(a6)
 	clr.w inventory_list_item_index(a6)
@@ -8940,7 +8940,7 @@ abs_0_00007B22:
 	clr.w pending_message_count(a6)
 	move.w #$1,message_display_countdown(a6)
 	lea.l event_message_pointers.l,a1
-	movea.l $0(a1,d0.w),a1
+	movea.l SG2SourceTextReference_text(a1,d0.w),a1
 	bsr.w enqueue_unique_message_pointer
 	bsr.w abs_0_00007FB4
 	rts
@@ -37770,7 +37770,7 @@ abs_0_0002F9AA:
 	move.w #$FFFF,stardrive_enabled_word(a6)
 	lea.l event_message_pointers.l,a0
 	move.w #$0,d0
-	movea.l $0(a0,d0.w),a1
+	movea.l SG2SourceTextReference_text(a0,d0.w),a1
 	bsr.w abs_0_0002F9EE
 	bra.b abs_0_0002F9DE
 abs_0_0002F9C4:
@@ -42243,17 +42243,17 @@ abs_0_00032EB0:
 	move.w #$1,message_display_countdown(a6)
 	move.w #$134,d0
 	lea.l event_message_pointers.l,a1
-	movea.l $0(a1,d0.w),a1
+	movea.l SG2SourceTextReference_text(a1,d0.w),a1
 	bsr.w enqueue_event_message
 	move.w #$158,d0
 	lea.l event_message_pointers.l,a1
-	movea.l $0(a1,d0.w),a1
+	movea.l SG2SourceTextReference_text(a1,d0.w),a1
 	bsr.w enqueue_event_message
 	bra.b abs_0_00032F12
 abs_0_00032EE0:
 	move.w #$134,d0
 	lea.l event_message_pointers.l,a1
-	movea.l $0(a1,d0.w),a1
+	movea.l SG2SourceTextReference_text(a1,d0.w),a1
 	bsr.w enqueue_event_message
 	bsr.w abs_0_00039D20
 	andi.w #3,d0
@@ -42309,11 +42309,11 @@ abs_0_00032F9E:
 	move.w #$1,message_display_countdown(a6)
 	lea.l event_message_pointers.l,a1
 	move.w #$F4,d0
-	movea.l $0(a1,d0.w),a1
+	movea.l SG2SourceTextReference_text(a1,d0.w),a1
 	bsr.w enqueue_event_message
 	lea.l event_message_pointers.l,a1
 	move.w #$4,d0
-	movea.l $0(a1,d0.w),a1
+	movea.l SG2SourceTextReference_text(a1,d0.w),a1
 	bsr.w enqueue_event_message
 	bsr.w enqueue_blank_event_message_line
 abs_0_00032FDC:
@@ -42591,7 +42591,7 @@ abs_0_00033392:
 	move.w #$1,message_display_countdown(a6)
 	lea.l event_message_pointers.l,a1
 	move.w #$B0,d0
-	movea.l $0(a1,d0.w),a1
+	movea.l SG2SourceTextReference_text(a1,d0.w),a1
 	bsr.w enqueue_event_message
 	bsr.w enqueue_blank_event_message_line
 	tst.b abs_0_00039CD0.l
@@ -42628,7 +42628,7 @@ abs_0_00033406:
 	move.w #$1,message_display_countdown(a6)
 	lea.l event_message_pointers.l,a1
 	move.w #$B4,d0
-	movea.l $0(a1,d0.w),a1
+	movea.l SG2SourceTextReference_text(a1,d0.w),a1
 	bsr.w enqueue_event_message
 	bsr.w enqueue_blank_event_message_line
 abs_0_00033434:
@@ -42671,7 +42671,7 @@ abs_0_000334B4:
 	move.w #$1,message_display_countdown(a6)
 	lea.l event_message_pointers.l,a1
 	move.w #$104,d0
-	movea.l $0(a1,d0.w),a1
+	movea.l SG2SourceTextReference_text(a1,d0.w),a1
 	bsr.w enqueue_event_message
 	bsr.w enqueue_blank_event_message_line
 	bra.b abs_0_0003350A
@@ -42683,7 +42683,7 @@ abs_0_000334DA:
 	move.w #$1,message_display_countdown(a6)
 	lea.l event_message_pointers.l,a1
 	move.w #$108,d0
-	movea.l $0(a1,d0.w),a1
+	movea.l SG2SourceTextReference_text(a1,d0.w),a1
 	bsr.w enqueue_event_message
 	bsr.w enqueue_blank_event_message_line
 abs_0_0003350A:
@@ -43051,11 +43051,11 @@ abs_0_00033A12:
 abs_0_00033A16:
 	lea.l event_message_pointers.l,a1
 	move.w #$FC,d0
-	movea.l $0(a1,d0.w),a1
+	movea.l SG2SourceTextReference_text(a1,d0.w),a1
 	bsr.w enqueue_event_message
 	lea.l event_message_pointers.l,a1
 	move.w #$100,d0
-	movea.l $0(a1,d0.w),a1
+	movea.l SG2SourceTextReference_text(a1,d0.w),a1
 	bsr.w enqueue_event_message
 abs_0_00033A3A:
 	clr.w stardrive_enabled_word(a6)
@@ -43210,7 +43210,7 @@ abs_0_00033C6E:
 	move.w #$40,player_rotation2_spin_steps.l
 	move.w #$E0,d0
 	lea.l event_message_pointers.l,a1
-	movea.l $0(a1,d0.w),a1
+	movea.l SG2SourceTextReference_text(a1,d0.w),a1
 	bsr.w enqueue_event_message
 	bsr.w enqueue_blank_event_message_line
 abs_0_00033C9A:
@@ -43376,7 +43376,7 @@ abs_0_00033E9C:
 	move.w #$12C,d0
 abs_0_00033EA0:
 	lea.l event_message_pointers.l,a1
-	movea.l $0(a1,d0.w),a1
+	movea.l SG2SourceTextReference_text(a1,d0.w),a1
 	bsr.w enqueue_event_message
 	move.w #$0,world_layout_index(a6)
 	move.w world_layout_index(a6),d1
@@ -43459,7 +43459,7 @@ abs_0_00033FD8:
 	bpl.b abs_0_00033FF4
 	lea.l event_message_pointers.l,a0
 	move.w #$0,d0
-	movea.l $0(a0,d0.w),a1
+	movea.l SG2SourceTextReference_text(a0,d0.w),a1
 	bsr.w enqueue_event_message
 abs_0_00033FF4:
 	bra.w advance_taymar_bomb_ready_timer_continuation
@@ -43901,14 +43901,14 @@ abs_0_000345C6:
 display_blank_event_message_line:
 	lea.l event_message_pointers.l,a1
 	move.w #$8C,d0
-	movea.l $0(a1,d0.w),a1
+	movea.l SG2SourceTextReference_text(a1,d0.w),a1
 	bsr.w display_event_message_line
 	rts
     ; Index35 selects27 stored spaces plusNUL: enqueue blank message line through shared queue, preserving original timing/queue preconditions. Immediate counterpart is345CA.
 enqueue_blank_event_message_line:
 	lea.l event_message_pointers.l,a1
 	move.w #$8C,d0
-	movea.l $0(a1,d0.w),a1
+	movea.l SG2SourceTextReference_text(a1,d0.w),a1
 	bsr.w enqueue_event_message
 	rts
 abs_0_000345F2:
@@ -44080,7 +44080,7 @@ abs_0_00034840:
 	move.b #$74,diagnostic_step_byte.l
 	lea.l event_message_pointers.l,a1
 	move.w #$D0,d0
-	movea.l $0(a1,d0.w),a1
+	movea.l SG2SourceTextReference_text(a1,d0.w),a1
 	bsr.w display_event_message_line
 	clr.w depot_line_pointer_offset(a6)
 	clr.w inventory_list_item_index(a6)
@@ -44395,10 +44395,10 @@ abs_0_00034C8C:
 	bsr.w propagate_projector_network_state
 	lea.l event_message_pointers.l,a1
 	move.w #$44,d0
-	move.l $0(a1,d0.w),station_report_primary_message(a6)
+	move.l SG2SourceTextReference_text(a1,d0.w),station_report_primary_message(a6)
 	lea.l event_message_pointers.l,a1
 	move.w #$150,d0
-	move.l $0(a1,d0.w),station_report_secondary_message(a6)
+	move.l SG2SourceTextReference_text(a1,d0.w),station_report_secondary_message(a6)
 	cmpi.w #1,free_object_count(a6)
 	bls.w abs_0_00034E8A
 	bsr.w abs_0_00039D20
@@ -44689,69 +44689,69 @@ abs_0_00035072:
 	bpl.w abs_0_00035118
 	lea.l event_message_pointers.l,a1
 	move.w #$E4,d0
-	movea.l $0(a1,d0.w),a1
+	movea.l SG2SourceTextReference_text(a1,d0.w),a1
 	bsr.w enqueue_event_message
 	lea.l event_message_pointers.l,a1
 	move.w #$E8,d0
-	movea.l $0(a1,d0.w),a1
+	movea.l SG2SourceTextReference_text(a1,d0.w),a1
 	bsr.w enqueue_event_message
 	lea.l event_message_pointers.l,a1
 	move.w #$EC,d0
-	movea.l $0(a1,d0.w),a1
+	movea.l SG2SourceTextReference_text(a1,d0.w),a1
 	bsr.w enqueue_event_message
 	lea.l event_message_pointers.l,a1
 	move.w #$F0,d0
-	movea.l $0(a1,d0.w),a1
+	movea.l SG2SourceTextReference_text(a1,d0.w),a1
 	bsr.w enqueue_event_message
 	lea.l event_message_pointers.l,a1
 	move.w #$E4,d0
-	movea.l $0(a1,d0.w),a1
+	movea.l SG2SourceTextReference_text(a1,d0.w),a1
 	bsr.w enqueue_event_message
 	lea.l event_message_pointers.l,a1
 	move.w #$E8,d0
-	movea.l $0(a1,d0.w),a1
+	movea.l SG2SourceTextReference_text(a1,d0.w),a1
 	bsr.w enqueue_event_message
 	lea.l event_message_pointers.l,a1
 	move.w #$EC,d0
-	movea.l $0(a1,d0.w),a1
+	movea.l SG2SourceTextReference_text(a1,d0.w),a1
 	bsr.w enqueue_event_message
 	lea.l event_message_pointers.l,a1
 	move.w #$F0,d0
-	movea.l $0(a1,d0.w),a1
+	movea.l SG2SourceTextReference_text(a1,d0.w),a1
 	bsr.w enqueue_event_message
 	bra.w abs_0_000351A8
 abs_0_00035118:
 	lea.l event_message_pointers.l,a1
 	move.w #$E4,d0
-	movea.l $0(a1,d0.w),a1
+	movea.l SG2SourceTextReference_text(a1,d0.w),a1
 	bsr.w enqueue_event_message
 	lea.l event_message_pointers.l,a1
 	move.w #$E8,d0
-	movea.l $0(a1,d0.w),a1
+	movea.l SG2SourceTextReference_text(a1,d0.w),a1
 	bsr.w enqueue_event_message
 	lea.l event_message_pointers.l,a1
 	move.w #$120,d0
-	movea.l $0(a1,d0.w),a1
+	movea.l SG2SourceTextReference_text(a1,d0.w),a1
 	bsr.w enqueue_event_message
 	lea.l event_message_pointers.l,a1
 	move.w #$124,d0
-	movea.l $0(a1,d0.w),a1
+	movea.l SG2SourceTextReference_text(a1,d0.w),a1
 	bsr.w enqueue_event_message
 	lea.l event_message_pointers.l,a1
 	move.w #$E4,d0
-	movea.l $0(a1,d0.w),a1
+	movea.l SG2SourceTextReference_text(a1,d0.w),a1
 	bsr.w enqueue_event_message
 	lea.l event_message_pointers.l,a1
 	move.w #$E8,d0
-	movea.l $0(a1,d0.w),a1
+	movea.l SG2SourceTextReference_text(a1,d0.w),a1
 	bsr.w enqueue_event_message
 	lea.l event_message_pointers.l,a1
 	move.w #$120,d0
-	movea.l $0(a1,d0.w),a1
+	movea.l SG2SourceTextReference_text(a1,d0.w),a1
 	bsr.w enqueue_event_message
 	lea.l event_message_pointers.l,a1
 	move.w #$124,d0
-	movea.l $0(a1,d0.w),a1
+	movea.l SG2SourceTextReference_text(a1,d0.w),a1
 	bsr.w enqueue_event_message
 abs_0_000351A8:
 	bsr.w enqueue_blank_event_message_line
@@ -44983,7 +44983,7 @@ abs_0_000354AE:
 abs_0_000354B0:
 	move.w #$128,d0
 	lea.l event_message_pointers.l,a1
-	movea.l $0(a1,d0.w),a1
+	movea.l SG2SourceTextReference_text(a1,d0.w),a1
 	clr.w pending_message_count(a6)
 	move.w #$1,message_display_countdown(a6)
 	bsr.w enqueue_event_message
@@ -45257,7 +45257,7 @@ abs_0_000357F0:
 	clr.w tractor_target_rotation_step(a6)
 	lea.l event_message_pointers.l,a1
 	move.w #$F8,d0
-	movea.l $0(a1,d0.w),a1
+	movea.l SG2SourceTextReference_text(a1,d0.w),a1
 	bsr.w enqueue_event_message
 	bra.w abs_0_00035A94
 abs_0_00035816:
@@ -45602,7 +45602,7 @@ update_nearby_mini_sentinel:
 	move.w #$40,player_rotation2_spin_steps.l
 	move.w #$E0,d0
 	lea.l event_message_pointers.l,a1
-	movea.l $0(a1,d0.w),a1
+	movea.l SG2SourceTextReference_text(a1,d0.w),a1
 	bsr.w enqueue_event_message
 	bsr.w enqueue_blank_event_message_line
 abs_0_00035D1A:
@@ -46095,7 +46095,7 @@ abs_0_000363CE:
 abs_0_000363E4:
 	lea.l event_message_pointers.l,a1
 	move.w #$14C,d0
-	movea.l $0(a1,d0.w),a1
+	movea.l SG2SourceTextReference_text(a1,d0.w),a1
 	bsr.w enqueue_event_message
 abs_0_000363F6:
 	lea.l event_message_pointers.l,a1
@@ -46113,7 +46113,7 @@ abs_0_000363F6:
 	bpl.b abs_0_0003645A
 	lea.l event_message_pointers.l,a1
 	move.w #$134,d0
-	movea.l $0(a1,d0.w),a1
+	movea.l SG2SourceTextReference_text(a1,d0.w),a1
 	bsr.w enqueue_event_message
 	bsr.w abs_0_00039D20
 	andi.w #3,d0
@@ -46130,7 +46130,7 @@ abs_0_0003645A:
 abs_0_00036462:
 	lea.l event_message_pointers.l,a1
 	move.w #$148,d0
-	movea.l $0(a1,d0.w),a1
+	movea.l SG2SourceTextReference_text(a1,d0.w),a1
 	bsr.w enqueue_message_if_outside_structure
 	tst.b professor_taymar_delivered_flag(a6)
 	bmi.b abs_0_00036486
@@ -46438,11 +46438,11 @@ handle_neutron_bomb_detonation:
 	move.w #$1,message_display_countdown(a6)
 	lea.l event_message_pointers.l,a1
 	move.w #$154,d0
-	movea.l $0(a1,d0.w),a1
+	movea.l SG2SourceTextReference_text(a1,d0.w),a1
 	bsr.w enqueue_event_message
 	lea.l event_message_pointers.l,a1
 	move.w #$154,d0
-	movea.l $0(a1,d0.w),a1
+	movea.l SG2SourceTextReference_text(a1,d0.w),a1
 	bsr.w enqueue_event_message
 	clr.w icarus_shield_strength(a6)
 	st.b pending_transient_event_sound(a6)
@@ -47457,21 +47457,21 @@ report_novenia_destruction_continuation:
 	move.w #$1,message_display_countdown(a6)
 	lea.l event_message_pointers.l,a1
 	move.w #$3C,d0
-	movea.l $0(a1,d0.w),a1
+	movea.l SG2SourceTextReference_text(a1,d0.w),a1
 	bsr.w enqueue_event_message
 	lea.l event_message_pointers.l,a1
 	move.w #$B8,d0
-	movea.l $0(a1,d0.w),a1
+	movea.l SG2SourceTextReference_text(a1,d0.w),a1
 	move.l a1,station_report_primary_message(a6)
 	bsr.w enqueue_event_message
 	lea.l event_message_pointers.l,a1
 	move.w #$BC,d0
-	movea.l $0(a1,d0.w),a1
+	movea.l SG2SourceTextReference_text(a1,d0.w),a1
 	move.l a1,station_report_secondary_message(a6)
 	bsr.w enqueue_event_message
 	lea.l event_message_pointers.l,a1
 	move.w #$C0,d0
-	movea.l $0(a1,d0.w),a1
+	movea.l SG2SourceTextReference_text(a1,d0.w),a1
 	bsr.w enqueue_event_message
 	bsr.w enqueue_blank_event_message_line
 abs_0_00037778:
@@ -47523,7 +47523,7 @@ clear_stardrive_below_speed_threshold:
 	bpl.b abs_0_00037818
 	lea.l event_message_pointers.l,a1
 	move.w #$4,d0
-	movea.l $0(a1,d0.w),a1
+	movea.l SG2SourceTextReference_text(a1,d0.w),a1
 	bsr.w enqueue_event_message
 	bsr.w enqueue_blank_event_message_line
 abs_0_00037818:
