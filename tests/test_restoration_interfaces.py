@@ -71,7 +71,7 @@ def operation_server():
         thread.join()
 
 
-@pytest.mark.parametrize("kind", ["references", "expressions"])
+@pytest.mark.parametrize("kind", ["references", "expressions", "base_candidates"])
 def test_cli_http_equivalence_and_stale_refusal(operation_server,kind):
     url, requests = operation_server
     expected = RestorationClient(url).call(
@@ -153,7 +153,7 @@ def test_layout_export_cli_http_repeated_and_refused(operation_server):
     assert refused['status']=='refused'
 
 
-@pytest.mark.parametrize("kind", ["references", "expressions"])
+@pytest.mark.parametrize("kind", ["references", "expressions", "base_candidates"])
 def test_mcp_stdio_initialize_list_and_operation_parity(operation_server,kind):
     pytest.importorskip("mcp")
     from mcp import ClientSession

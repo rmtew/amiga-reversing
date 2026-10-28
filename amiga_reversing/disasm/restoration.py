@@ -277,7 +277,7 @@ def _query(target_id, body, current):
         items = _server()._cached_analysis_review_items(target_id, artifact)
         page = _page(items, offset, limit, "native analysis review items",
                      ["Review items are candidates, not a complete inventory of semantic unknowns."])
-    elif kind in {"symbols", "references", "fields", "instructions", "edges", "expressions"}:
+    elif kind in {"symbols", "references", "fields", "instructions", "edges", "expressions", "base_candidates"}:
         page = artifact.query_payload(**filters, offset=offset, limit=limit)
         if kind == "expressions":
             for item in page["items"]:

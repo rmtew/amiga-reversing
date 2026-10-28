@@ -299,6 +299,35 @@ The exact-one-instruction native evidence entry point reuses this serializer for
 retained identity-checked bytes; it supplies no platform attribution or callee,
 exception-frame, register-flow or gameplay proof by itself.
 
+`base_candidates` complements declared app/typed accesses with **non-admitting
+leads** from fixed-displacement or plain-indirect A6 operands, only when canonical
+regions register the default app namespace. It reads accepted instructions and
+existing native evidence; it does not infer slot meanings, effective addresses,
+new ownership or executable code. Reported typed/platform/hardware contexts and
+existing derived/ranged app references retain their own catalogues. Indexed and
+updating EAs are outside this query's scope. It does not replay register flow:
+an absolute base absent from the frozen catalogue can still appear as an
+unproven fallback candidate. Candidate coverage is not all-path attribution.
+
+Each row retains source coordinates, operand identity, signed displacement,
+access role, full contiguous instruction footprint when supported, existing
+symbol/base evidence and coverage (`undeclared`, `partially_declared` or
+`unknown_footprint`). Coverage uses the union of declared storage extents; it does
+not infer shared owners. Address-only formation may name one-past without
+claiming storage. MOVEM uses its complete register span; unsupported striped
+footprints remain unknown. A write role can also read its destination.
+`admitting:false` applies even when a base has tracked evidence. Missing or
+conflicting context is not repaired by the configured fallback hint.
+
+The normal coordinate, `field_offset` (displacement) and namespace `symbol`
+filters apply. Text filters match coverage or the existing symbol, not rendered
+assembly. Pages count operand candidates, not instructions. Temporary sorted
+region/evidence indices take O(R + E) memory and O(R log R + E log E + N log E)
+work for R regions, E evidence rows and N instruction operands (plus duplicate
+operand evidence); no full analysis/navigation JSON or rerender is requested.
+Use the candidates to investigate producers/consumers before revision-checked
+canonical promotion. No generated inventory file is required.
+
 `query` text is a case-sensitive literal substring of symbol names for `symbols`
 and generated instruction text for `instructions`; it does not normalize numeric
 values or search instruction annotations. Function queries match names without

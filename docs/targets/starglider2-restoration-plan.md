@@ -36,12 +36,31 @@ clean standalone output are exact, with 57 assets and 14 headers unchanged.
 The source-header loop still has no admitted type-domain packet; its physical
 A6/return-link questions were not manufactured away by symbolic scratch names.
 
-Next: expose undeclared base-relative operands as non-admitting discovery
-candidates through the existing native query surface. The previous field-only
-inventory omitted these 70 unclaimed uses until their declarations existed;
-strong/foreign base evidence, declared ownership and instruction footprints must
-remain distinct from a configured fallback hint. Use such candidates to choose
-connected producer/consumer work, not automatic slot-purpose guesses.
+The native `base_candidates` query now complements the declared field inventory
+with non-admitting fixed-A6 operand leads. One unchanged target artifact yielded
+**93 candidates: 90 undeclared and three partially covered**, paged in 0.016s;
+the rendered source was identical to the preceding qualified export. Concrete
+address evidence was absent for every returned operand; the final broader
+foreign-owner suppression therefore cannot change these measured rows. The query
+retains full supported footprints, source coordinates and assumption provenance;
+it creates no ownership, names or analysis facts and commits no observation dump.
+
+**Paused at the user's 2026-10-28 tie-off instruction.** Next suggested connected
+batch: the retirement-face edge-vector scratch at app184..189 and its scaled,
+phase-biased displacement components at app18/1C/20. Their original producer,
+signed cross-product terms and per-vertex consumers are connected; no annotations
+or semantic promotion for this next batch were started. These are not generic
+rotation fields. The three partial-coverage candidates also need review before
+any ownership expansion. Existing 539 unresolved typed accesses remain unresolved;
+93 discovery leads are a different population, not 93 new field meanings.
+A synthetic absolute-A6 case has no retained concrete address at its read; it
+therefore remains a fallback lead, explicitly not an admitted app reference.
+Closing that analysis gap would require a separate value-flow experiment, not
+register simulation inside the query.
+Tie-off validation: 36 focused Python tests and all 832 native C cases pass;
+three optional MCP stdio tests are skipped because `mcp` is unavailable. No
+source bytes changed, so the preceding exact C/vasm and standalone qualification
+remains applicable; no duplicate full rebuild or runtime campaign was started.
 
 Preceding: the shared motion continuation now has one operational World-record view
 with signed WORD20 `horizontal_motion_scale`, also present in the existing
@@ -53,10 +72,8 @@ field meanings/widths, removes four gaps and exposes none: **3412 app references
 cast or physical-speed/unit claim. The full C/vasm and clean standalone builds
 remain exact; 57 assets and 14 headers are unchanged. No observation dump added.
 
-Next: investigate the model-face visibility cache and its workspace scratch.
-Its actual bit tests/sets/clears distinguish a scalar cache from a pointer. Check
-whether missing layout-base input contracts, rather than missing field names,
-explain the remaining raw workspace operands before annotating individual reads.
+That model-face/scratch follow-up is completed in the current batch above.
+It was missing declared scratch ownership, not a new base-propagation defect.
 
 Preceding: twelve original object-constructor interfaces now reuse their established
 updater layouts, checked against both original type directories and every known
@@ -69,8 +86,8 @@ WORD Y write and type4's initial vertex variant29 rather than imposing a0..9
 bound. C/vasm and the clean standalone package remain byte exact; 57 assets and
 14 headers are unchanged. No new observation dump is committed.
 
-Next connected work: follow the signed horizontal-motion multiplier consumers
-for EvasiveActor and Tripuss, using these constructors as producer evidence.
+The signed horizontal-motion consumer follow-up is completed above for
+EvasiveActor and Tripuss, using these constructors as producer evidence.
 Other newly surfaced fields remain unknown until their actual consumers agree;
 the cargo fallthrough keeps a common World prefix and does not become a new
 cargo subtype. The header cell-return ABI remains a separate bounded dependency,

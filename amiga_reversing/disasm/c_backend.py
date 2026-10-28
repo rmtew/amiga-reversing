@@ -2375,7 +2375,7 @@ class CListingArtifact:
         target; symbolic matching is exact. Ordering follows immutable native
         record order, so pagination is deterministic within an artifact revision.
         """
-        if kind not in {"symbols", "references", "fields", "instructions", "edges", "expressions"}:
+        if kind not in {"symbols", "references", "fields", "instructions", "edges", "expressions", "base_candidates"}:
             raise ValueError("Unknown native query kind")
         if direction not in {"incoming", "outgoing", "both"}:
             raise ValueError("direction must be incoming, outgoing, or both")

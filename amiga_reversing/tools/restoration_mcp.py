@@ -64,6 +64,7 @@ def create_server(client: RestorationClient):
             "fields",
             "instructions",
             "expressions",
+            "base_candidates",
             "edges",
             "functions",
             "gaps",

@@ -17,7 +17,8 @@ ROOT = Path(__file__).resolve().parents[1]
 
 @contextmanager
 def artifact(code: str, metadata_path: str = ""):
-    if not (ROOT / "src/build/platform_file_lib.dll").exists():
+    if not any((ROOT / path).exists() for path in (
+        "src/build/platform_file_lib.dll", "src/build/libamiga_backend.so")):
         pytest.skip("native backend must be built")
     with tempfile.TemporaryDirectory() as directory:
         binary = Path(directory) / "query.bin"

@@ -14485,6 +14485,8 @@ cleanup:
 
 /* Compact read projection over the same immutable facts and typed render plan
  * used by the listing. No rendered text is interpreted and only a page is emitted. */
+#include "platform_file_base_candidates.inc"
+
 static int query_coordinate(int has_section, uint32_t section, int has_start,
     uint32_t start, int has_end, uint32_t end, uint32_t candidate_section, uint32_t candidate) {
   return (!has_section || section == candidate_section) &&
@@ -14500,13 +14502,15 @@ int platform_file_facts_v2_listing_artifact_query_json_alloc(PlatformFileListing
   size_t i, j, total = 0, emitted = 0;
   int incoming, outgoing;
   const M68kRenderPlan *plan;
+  BaseCandidateIndex base_index = {0};
   if (out_text == NULL) return -1;
   *out_text = NULL;
   if (!artifact || !kind || !query || !symbol || !struct_name || !direction ||
       limit < 1 || limit > 100 || (has_end && (!has_start || end <= start)) ||
       (strcmp(direction, "incoming") && strcmp(direction, "outgoing") && strcmp(direction, "both")) ||
       (strcmp(kind, "symbols") && strcmp(kind, "references") && strcmp(kind, "fields") &&
-       strcmp(kind, "instructions") && strcmp(kind, "edges") && strcmp(kind, "expressions"))) return -1;
+       strcmp(kind, "instructions") && strcmp(kind, "edges") && strcmp(kind, "expressions") &&
+       strcmp(kind, "base_candidates"))) return -1;
   incoming = strcmp(direction, "outgoing") != 0;
   outgoing = strcmp(direction, "incoming") != 0;
   plan = &artifact->source_plan;
@@ -14520,7 +14524,68 @@ int platform_file_facts_v2_listing_artifact_query_json_alloc(PlatformFileListing
   else Q(json_builder_append(&b, ",\"target_section_index\":null,\"target_offset\":null")); } while (0)
   Q(json_builder_create(&b));
   Q(json_builder_append(&b, "{\"items\":["));
-  if (!strcmp(kind, "expressions")) {
+  if (!strcmp(kind, "base_candidates")) {
+    if (base_candidate_index_build(&base_index, &artifact->source_analysis)) goto failure;
+    for (i=0; base_index.region_count && i<plan->instruction_count; ++i) {
+      const M68kRenderPlannedInstruction *ins=&plan->instructions[i];
+      const M68kSimFormMetadata *meta=m68k_sim_metadata_for_instruction(&ins->instruction);
+      if (!meta || !COORD(ins->source_section_index,ins->source_offset) ||
+          (*symbol && strcmp(symbol,M68K_APP_BASE_SYMBOL)) || *struct_name) continue;
+      for (j=0;j<ins->instruction.operand_count && j<4U;++j) {
+        const M68kOperandIR *op=&ins->instruction.operands[j];
+        uint8_t shape=m68k_instruction_operand_decoded_ea_shape(op),span=0U;
+        int32_t displacement;
+        int address_only=meta->operand_access_kinds[j]==M68K_SIM_ACCESS_COMPUTE_ADDRESS;
+        int span_known;
+        const char *coverage,*access;
+        const char *existing_symbol="",*base_evidence="configured_fallback_unproven";
+        int handled=0;
+        BaseCandidateEvidence key={ins->source_section_index,ins->source_offset,(uint32_t)j,NULL};
+        const BaseCandidateEvidence *evidence;
+        if ((shape!=M68K_SIM_EA_SHAPE_DISPLACEMENT && shape!=M68K_SIM_EA_SHAPE_INDIRECT) ||
+            op->value.ea_reg!=6U ||
+            (address_only && meta->flow_kind!=M68K_SIM_FLOW_NONE &&
+             meta->flow_kind!=M68K_SIM_FLOW_SEQUENTIAL)) continue;
+        displacement=shape==M68K_SIM_EA_SHAPE_DISPLACEMENT ?
+          (int32_t)m68k_sign_extend32(op->value.value,16U) : 0;
+        if (has_field && field_offset!=displacement) continue;
+        evidence=base_index.evidence_count ? bsearch(&key,base_index.evidence,base_index.evidence_count,
+            sizeof(*base_index.evidence),base_candidate_evidence_compare) : NULL;
+        if(evidence) {
+          while(evidence>base_index.evidence && !base_candidate_evidence_compare(&key,evidence-1U)) --evidence;
+          for(; evidence<base_index.evidence+base_index.evidence_count &&
+                !base_candidate_evidence_compare(&key,evidence); ++evidence) {
+            const M68kAppSlotRefIR *ref=evidence->app_ref;
+            /* A start-address symbol does not cover a whole MOVEM span.
+             * Existing derived/ranged app accesses keep their own catalogue;
+             * never reinterpret their raw encoded offset as base zero. */
+            if(!ref || ref->displacement!=displacement || ref->loop_iteration_stride) {handled=1;break;}
+            existing_symbol=ref->symbol_name ? ref->symbol_name : "";
+            if(ref->base_evidence_kind==M68K_APP_SLOT_BASE_REGISTER_STATE) base_evidence="register_state";
+          }
+        }
+        if(handled) continue;
+        if (address_only) { span_known=1; access="compute_address"; }
+        else {
+          uint8_t role=platform_operand_memory_access(&ins->instruction,j);
+          if(role==M68K_SIM_ACCESS_NONE) continue;
+          access=role==M68K_SIM_ACCESS_MEMORY_WRITE ? "memory_write" : "memory_read";
+          span_known=platform_operand_memory_span(&ins->instruction,j,NULL,NULL,&span);
+        }
+        coverage=base_candidate_coverage(&base_index,displacement,span,address_only,span_known);
+        if(!coverage || (*query && !strstr(coverage,query) && !strstr(existing_symbol,query))) continue;
+        PAGE(); ID(ins->source_section_index,ins->source_offset);
+        Q(json_builder_appendf(&b,",\"operand_index\":%u,\"source_size\":%u,\"base_register\":\"A6\","
+          "\"namespace\":\"" M68K_APP_BASE_SYMBOL "\",\"displacement\":%d,\"access\":\"%s\","
+          "\"span_bytes\":%u,\"span_known\":%s,\"address_only\":%s,\"coverage\":\"%s\","
+          "\"base_evidence\":\"%s\",\"admitting\":false,"
+          "\"provenance\":\"accepted_instruction\"",
+          (unsigned)j,(unsigned)ins->instruction.byte_count,(int)displacement,access,(unsigned)span,
+          span_known ? "true":"false",address_only ? "true":"false",coverage,base_evidence));
+        STR("existing_symbol",existing_symbol); Q(json_builder_append(&b,"}"));
+      }
+    }
+  } else if (!strcmp(kind, "expressions")) {
     for(i=0;i<plan->expression_count;i++) {
       const M68kRenderPlannedExpression *e=&plan->expressions[i];
       if((*symbol && strcmp(symbol,e->target_symbol)) ||
@@ -14717,12 +14782,17 @@ int platform_file_facts_v2_listing_artifact_query_json_alloc(PlatformFileListing
       }
     }
   }
-  Q(json_builder_appendf(&b, "],\"total\":%zu,\"offset\":%u,\"limit\":%u,\"has_more\":%s,\"scope\":\"native_artifact\",\"unknowns\":[\"Static facts are incomplete; absent references do not prove unreachability.\",\"CFG edges use section-local targets; unresolved indirect transfers have null targets.\",\"Function ownership is not inferred by this query.\"]}",
+  Q(json_builder_appendf(&b, "],\"total\":%zu,\"offset\":%u,\"limit\":%u,\"has_more\":%s,\"scope\":\"native_artifact\",\"unknowns\":[\"Static facts are incomplete; absent references do not prove unreachability.\",\"CFG edges use section-local targets; unresolved indirect transfers have null targets.\",\"Function ownership is not inferred by this query.\"",
     total, offset, limit, (size_t)offset + emitted < total ? "true" : "false"));
+  if(!strcmp(kind,"base_candidates")) Q(json_builder_append(&b,
+    ",\"Fallback base candidates are namespace hints, not ownership, purpose, range or register-base facts.\""));
+  Q(json_builder_append(&b,"]}"));
   *out_text = json_builder_build(&b);
+  base_candidate_index_destroy(&base_index);
   json_builder_destroy(&b);
   return *out_text ? 0 : -1;
 failure:
+  base_candidate_index_destroy(&base_index);
   json_builder_destroy(&b);
   return -1;
 #undef Q

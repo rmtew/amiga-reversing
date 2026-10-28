@@ -55,6 +55,7 @@ def main(argv: list[str] | None = None) -> int:
             "fields",
             "instructions",
             "expressions",
+            "base_candidates",
             "edges",
             "functions",
             "gaps",
