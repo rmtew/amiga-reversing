@@ -1027,7 +1027,9 @@ SG2ScheduledActor_SIZEOF EQU __RS
 
 ; STRUCT SG2EvasiveActor
     RSRESET
-    RS.B 38
+    RS.B 32
+SG2EvasiveActor_horizontal_motion_scale RS.W 1
+    RS.B 4
 SG2EvasiveActor_proximity_evasion_countdown RS.W 1
     RS.B 28
 SG2EvasiveActor_SIZEOF EQU __RS
@@ -1102,8 +1104,16 @@ SG2LandTank_SIZEOF EQU __RS
     RSRESET
     RS.B 31
 SG2Tripuss_variant_ping_pong_step RS.B 1
-    RS.B 36
+SG2Tripuss_horizontal_motion_scale RS.W 1
+    RS.B 34
 SG2Tripuss_SIZEOF EQU __RS
+
+; STRUCT SG2HorizontalMotionView
+    RSRESET
+    RS.B 32
+SG2HorizontalMotionView_horizontal_motion_scale RS.W 1
+    RS.B 34
+SG2HorizontalMotionView_SIZEOF EQU __RS
 
 ADKF_CLRALL	EQU	$7FFF
 BPLCON2_PF2P2	EQU	$20
@@ -10080,7 +10090,7 @@ abs_0_00008908:
 	andi.b #15,d0
 	beq.w abs_0_00009F02
 	tst.w $0026(a0)
-	bmi.w abs_0_0000ACA8
+	bmi.w blend_actor_toward_opposite_player_heading
 	beq.b abs_0_0000895C
 	subq.w #1,$0026(a0)
 	bne.b abs_0_00008996
@@ -10099,15 +10109,15 @@ abs_0_00008968:
 abs_0_0000897A:
 	cmp.w #$258,d2
 	ble.b abs_0_00008984
-	bra.w abs_0_0000ACA8
+	bra.w blend_actor_toward_opposite_player_heading
 abs_0_00008984:
 	move.w #$32,$0026(a0)
 	bsr.w heading_with_player_as_reference
 	addi.w #1024,d1
-	bra.w abs_0_0000ACB0
+	bra.w blend_actor_heading_and_clear_other_rotations
 abs_0_00008996:
 	bsr.w heading_with_player_as_reference
-	bra.w abs_0_0000ACB0
+	bra.w blend_actor_heading_and_clear_other_rotations
 abs_0_0000899E:
 	cmpi.b #1,$001C(a0)
 	beq.b abs_0_000089BE
@@ -10238,7 +10248,7 @@ abs_0_00008B2C:
 	andi.b #15,d0
 	beq.w abs_0_00009248
 	tst.w $0026(a0)
-	bmi.w abs_0_0000ACA8
+	bmi.w blend_actor_toward_opposite_player_heading
 	beq.b abs_0_00008B78
 	subq.w #1,$0026(a0)
 	bne.b abs_0_00008BB2
@@ -10257,15 +10267,15 @@ abs_0_00008B84:
 abs_0_00008B96:
 	cmp.w #$23A,d2
 	ble.b abs_0_00008BA0
-	bra.w abs_0_0000ACA8
+	bra.w blend_actor_toward_opposite_player_heading
 abs_0_00008BA0:
 	move.w #$3C,$0026(a0)
 	bsr.w heading_with_player_as_reference
 	addi.w #600,d1
-	bra.w abs_0_0000ACB0
+	bra.w blend_actor_heading_and_clear_other_rotations
 abs_0_00008BB2:
 	bsr.w heading_with_player_as_reference
-	bra.w abs_0_0000ACB0
+	bra.w blend_actor_heading_and_clear_other_rotations
     ; KNOWN: type A0=Target code-entry register seed:SG2FlyingActor
 advance_large_transport_frame_then_update:
 	addq.b #1,SG2WorldObject_vertex_variant_selector(a0)
@@ -10381,7 +10391,7 @@ abs_0_00008CFE:
 abs_0_00008D12:
 	move.b #$9D,diagnostic_step_byte.l
 	cmp.w #$5DC,d2
-	bgt.w abs_0_0000ACFC
+	bgt.w blend_actor_toward_player_heading
 	move.w SG2WorldObject_pre_view_relative_z(a0),d2
 	sub.w SG2WorldObject_pre_view_relative_z(a4),d2
 	bpl.b abs_0_00008D2E
@@ -10389,10 +10399,10 @@ abs_0_00008D12:
 abs_0_00008D2E:
 	move.b #$9E,diagnostic_step_byte.l
 	cmp.w #$5DC,d2
-	bgt.w abs_0_0000ACFC
+	bgt.w blend_actor_toward_player_heading
 	move.w #$41,SG2EvasiveActor_proximity_evasion_countdown(a0)
 	move.b #$9F,diagnostic_step_byte.l
-	bra.w abs_0_0000ACFC
+	bra.w blend_actor_toward_player_heading
 retire_low_durability_evasive_actor:
 	cmpi.l #4294967271,SG2ObjectCore_world_y(a0)
 	bge.b abs_0_00008D62
@@ -10403,7 +10413,7 @@ abs_0_00008D62:
 steer_near_opposite_player_heading:
 	bsr.w heading_with_player_as_reference
 	addi.w #2000,d1
-	bra.w abs_0_0000AD00
+	bra.w blend_actor_heading_and_secondary_rotation
 increase_object_y_velocity_continuation:
 	addq.w #1,SG2WorldObject_velocity_y(a0)
 	cmpi.w #10,SG2WorldObject_velocity_y(a0)
@@ -10686,16 +10696,16 @@ abs_0_00009150:
 	neg.w d2
 abs_0_0000915C:
 	cmp.w #$4B0,d2
-	bgt.w abs_0_0000ACFC
+	bgt.w blend_actor_toward_player_heading
 	move.w SG2WorldObject_pre_view_relative_z(a0),d2
 	sub.w $0036(a4),d2
 	bpl.b abs_0_00009170
 	neg.w d2
 abs_0_00009170:
 	cmp.w #$4B0,d2
-	bgt.w abs_0_0000ACFC
+	bgt.w blend_actor_toward_player_heading
 	move.w #$41,SG2FlyingActor_proximity_maneuver_countdown(a0)
-	bra.w abs_0_0000ACFC
+	bra.w blend_actor_toward_player_heading
 abs_0_00009182:
 	tst.b $002B(a0)
 	bne.w abs_0_0000992E
@@ -10714,7 +10724,7 @@ abs_0_000091B4:
 	bsr.w heading_with_player_as_reference
 	addi.w #200,d1
 	andi.w #4095,d1
-	bra.w abs_0_0000AD00
+	bra.w blend_actor_heading_and_secondary_rotation
 try_buzz_bomber_type6_spawn:
 	tst.b space_environment_flag(a6)
 	bne.w abs_0_00009106
@@ -10919,7 +10929,7 @@ abs_0_000094A8:
 	bne.w abs_0_000081D2
 	move.w #$FFC2,$002E(a0)
 	bsr.w heading_with_player_as_reference
-	bra.w abs_0_0000AD7A
+	bra.w recompute_actor_horizontal_motion_from_angle
 abs_0_000094C6:
 	tst.b $0028(a0)
 	beq.b abs_0_00009500
@@ -10981,13 +10991,13 @@ abs_0_00009570:
 	andi.b #31,d0
 	subi.w #16,d0
 	add.w d0,d1
-	bra.w abs_0_0000ACB0
+	bra.w blend_actor_heading_and_clear_other_rotations
 abs_0_0000958A:
 	move.w #$32,$0026(a0)
 abs_0_00009590:
 	bsr.w heading_with_player_as_reference
 	addi.w #1024,d1
-	bra.w abs_0_0000ACB0
+	bra.w blend_actor_heading_and_clear_other_rotations
     ; Types72/103: IRQ list accepts nonzero BYTE22; this handler skips local integration only for negative BYTE22. Preserve this distinction and signed life test; no boolean normalization.
     ; KNOWN: type A0=Target code-entry register seed:SG2VelocityProjectile
 update_nearby_type72_or_type103_projectile:
@@ -11088,7 +11098,7 @@ update_nearby_steered_projectile:
 	addi.w #2048,d1
 	andi.w #4095,d1
 	move.w d1,SG2WorldObject_rotation_1(a0)
-	bra.w abs_0_0000AD6E
+	bra.w recompute_actor_horizontal_motion_from_heading
 retire_projectile_phase:
 	clr.b SG2ObjectCore_retirement_phase_or_negative(a0)
 	bra.w abs_0_000081D2
@@ -11458,7 +11468,7 @@ move_land_tank_without_link_delay:
 	andi.b #7,d0
 	beq.w abs_0_00009F02
 	tst.w SG2EvasiveActor_proximity_evasion_countdown(a0)
-	bmi.w abs_0_0000ACA8
+	bmi.w blend_actor_toward_opposite_player_heading
 	beq.b test_land_tank_proximity_evasion
 	subq.w #1,SG2EvasiveActor_proximity_evasion_countdown(a0)
 	bne.b abs_0_00009C78
@@ -11477,15 +11487,15 @@ abs_0_00009C4A:
 abs_0_00009C5C:
 	cmp.w #$258,d2
 	ble.b start_land_tank_evasion_turn
-	bra.w abs_0_0000ACA8
+	bra.w blend_actor_toward_opposite_player_heading
 start_land_tank_evasion_turn:
 	move.w #$32,SG2EvasiveActor_proximity_evasion_countdown(a0)
 	bsr.w heading_with_player_as_reference
 	addi.w #1024,d1
-	bra.w abs_0_0000ACB0
+	bra.w blend_actor_heading_and_clear_other_rotations
 abs_0_00009C78:
 	bsr.w heading_with_player_as_reference
-	bra.w abs_0_0000ACB0
+	bra.w blend_actor_heading_and_clear_other_rotations
     ; Type50 GBML with Cannon: add2048 to heading in4096 units; variant uses wrapping Y-difference bits8..10. WORD24 reloads15 only at zero before an attack attempt, not guaranteed fire.
     ; KNOWN: type A0=Target code-entry register seed:SG2ScheduledActor
 update_gbml_cannon_heading_and_attack:
@@ -11603,7 +11613,7 @@ abs_0_00009DD6:
 	bra.w advance_tripuss_counter_and_motion
 advance_tripuss_counter_and_motion:
 	subq.w #1,SG2ScheduledActor_behavior_update_counter(a0)
-	beq.w abs_0_0000ACFC
+	beq.w blend_actor_toward_player_heading
 	move.w SG2WorldObject_velocity_x(a0),d3
 	ext.l d3
 	add.l d3,SG2ObjectCore_world_x(a0)
@@ -11638,7 +11648,7 @@ abs_0_00009E6E:
 	andi.w #4095,SG2WorldObject_rotation_0(a0)
 	move.w SG2ScheduledActor_behavior_update_counter(a0),d3
 	andi.b #63,d3
-	beq.w abs_0_0000ACFC
+	beq.w blend_actor_toward_player_heading
 	andi.b #31,d3
 	beq.w abs_0_00009248
 	andi.b #15,d3
@@ -11656,7 +11666,7 @@ abs_0_00009EA4:
 abs_0_00009EB0:
 	move.w SG2ScheduledActor_behavior_update_counter(a0),d3
 	andi.b #31,d3
-	beq.w abs_0_0000ACFC
+	beq.w blend_actor_toward_player_heading
 	andi.b #7,d3
 	beq.w abs_0_00009248
 	bra.w abs_0_000081D2
@@ -12039,21 +12049,21 @@ abs_0_0000A4B8:
 	ble.b abs_0_0000A4CA
 	bsr.w heading_with_player_as_reference
 	addi.w #2010,d1
-	bra.w abs_0_0000AD7A
+	bra.w recompute_actor_horizontal_motion_from_angle
 abs_0_0000A4CA:
 	move.w #$32,$0026(a0)
 	bsr.w heading_with_player_as_reference
 	addi.w #800,d1
 	addi.w #32,$0012(a0)
-	bra.w abs_0_0000AD7A
+	bra.w recompute_actor_horizontal_motion_from_angle
 abs_0_0000A4E2:
 	bsr.w heading_with_player_as_reference
 	addi.w #800,d1
-	bra.w abs_0_0000AD7A
+	bra.w recompute_actor_horizontal_motion_from_angle
 abs_0_0000A4EE:
 	bsr.w heading_with_player_as_reference
 	addi.w #2048,d1
-	bra.w abs_0_0000AD7A
+	bra.w recompute_actor_horizontal_motion_from_angle
     ; D0 desired type tag; return first different visible object in A4, or player on no match. Callers complement own mutable tag; no nearest-target or universal faction claim.
 select_visible_object_by_type_tag:
 	move.b #$2D,diagnostic_step_byte.l
@@ -12528,14 +12538,17 @@ abs_0_0000AC64:
 	swap.w d4
 	move.w d4,$0030(a0)
 	bra.w abs_0_0000839C
-abs_0_0000ACA8:
+    ; Opposite-heading entry adds2048 before the original blend. Other entries accept caller D1 or derive heading. Preserve exact branches and shifts; no idealized shortest-turn claim.
+    ; KNOWN: type A0=Target code-entry register seed:SG2HorizontalMotionView
+blend_actor_toward_opposite_player_heading:
 	bsr.w heading_with_player_as_reference
 	addi.w #2048,d1
-abs_0_0000ACB0:
+    ; KNOWN: type A0=Target code-entry register seed:SG2HorizontalMotionView
+blend_actor_heading_and_clear_other_rotations:
 	andi.w #4095,d1
-	clr.w $0010(a0)
-	clr.w $0014(a0)
-	move.w $0012(a0),d0
+	clr.w SG2WorldObject_rotation_0(a0)
+	clr.w SG2WorldObject_rotation_2(a0)
+	move.w SG2WorldObject_rotation_1(a0),d0
 	andi.w #4095,d0
 	sub.w d1,d0
 	bpl.b abs_0_0000ACCA
@@ -12543,24 +12556,26 @@ abs_0_0000ACB0:
 abs_0_0000ACCA:
 	cmp.w #$800,d0
 	ble.b abs_0_0000ACE6
-	move.w $0012(a0),d0
+	move.w SG2WorldObject_rotation_1(a0),d0
 	andi.w #4095,d0
 	sub.w d0,d1
 	asr.w #5,d1
 	sub.w d1,d0
-	move.w d0,$0012(a0)
-	bra.w abs_0_0000AD6E
+	move.w d0,SG2WorldObject_rotation_1(a0)
+	bra.w recompute_actor_horizontal_motion_from_heading
 abs_0_0000ACE6:
-	move.w $0012(a0),d0
+	move.w SG2WorldObject_rotation_1(a0),d0
 	andi.w #4095,d0
 	sub.w d0,d1
 	asr.w #5,d1
 	add.w d1,d0
-	move.w d0,$0012(a0)
-	bra.w abs_0_0000AD6E
-abs_0_0000ACFC:
+	move.w d0,SG2WorldObject_rotation_1(a0)
+	bra.w recompute_actor_horizontal_motion_from_heading
+    ; KNOWN: type A0=Target code-entry register seed:SG2HorizontalMotionView
+blend_actor_toward_player_heading:
 	bsr.w heading_with_player_as_reference
-abs_0_0000AD00:
+    ; KNOWN: type A0=Target code-entry register seed:SG2HorizontalMotionView
+blend_actor_heading_and_secondary_rotation:
 	andi.w #4095,d1
 	move.w SG2WorldObject_rotation_1(a0),d0
 	andi.w #4095,d0
@@ -12581,9 +12596,9 @@ abs_0_0000AD12:
 	sub.w d1,d2
 	andi.w #4095,d2
 	move.w d2,SG2WorldObject_rotation_2(a0)
-	bne.b abs_0_0000AD6E
+	bne.b recompute_actor_horizontal_motion_from_heading
 	addq.w #1,SG2WorldObject_rotation_2(a0)
-	bra.b abs_0_0000AD6E
+	bra.b recompute_actor_horizontal_motion_from_heading
 abs_0_0000AD44:
 	move.w SG2WorldObject_rotation_1(a0),d0
 	andi.w #4095,d0
@@ -12596,29 +12611,32 @@ abs_0_0000AD44:
 	add.w d1,d2
 	andi.w #4095,d2
 	move.w d2,SG2WorldObject_rotation_2(a0)
-	bne.b abs_0_0000AD6E
+	bne.b recompute_actor_horizontal_motion_from_heading
 	addq.w #1,SG2WorldObject_rotation_2(a0)
-abs_0_0000AD6E:
+    ; KNOWN: type A0=Target code-entry register seed:SG2HorizontalMotionView
+recompute_actor_horizontal_motion_from_heading:
 	move.b #$3C,diagnostic_step_byte.l
-	move.w $0012(a0),d1
-abs_0_0000AD7A:
+	move.w SG2WorldObject_rotation_1(a0),d1
+    ; Shared motion view: signed WORD20 scales sine/cosine via MULS, ASL.L1 and SWAP; X is negated. Preserve truncation/wrap. Not a universal object type, initialized-value or physical-unit claim.
+    ; KNOWN: type A0=Target code-entry register seed:SG2HorizontalMotionView
+recompute_actor_horizontal_motion_from_angle:
 	andi.w #4095,d1
 	add.w d1,d1
 	movea.l sine_lookup_pointer(a6),a1
 	move.w $0(a1,d1.w),trig_sine_scratch_1(a6)
 	movea.l cosine_lookup_pointer(a6),a1
 	move.w $0(a1,d1.w),trig_cosine_scratch_1(a6)
-	move.w $0020(a0),d4
+	move.w SG2HorizontalMotionView_horizontal_motion_scale(a0),d4
 	muls.w trig_sine_scratch_1(a6),d4
 	asl.l #1,d4
 	swap.w d4
 	neg.w d4
-	move.w d4,$002C(a0)
-	move.w $0020(a0),d4
+	move.w d4,SG2WorldObject_velocity_x(a0)
+	move.w SG2HorizontalMotionView_horizontal_motion_scale(a0),d4
 	muls.w trig_cosine_scratch_1(a6),d4
 	asl.l #1,d4
 	swap.w d4
-	move.w d4,$0030(a0)
+	move.w d4,SG2WorldObject_velocity_z(a0)
 	bra.w abs_0_000081D2
     ; Tracked12/25 helper: signed WORD20 scales sine/cosine through original MULS, ASL.L1 and SWAP; X velocity is negated. No physical-unit or arbitrary mover-layout claim.
     ; KNOWN: type A0=Target code-entry register seed:SG2SteeredProjectile
@@ -23603,7 +23621,7 @@ initialize_large_bird_pose_and_motion:
 	andi.w #4095,d0
 	move.w d0,SG2WorldObject_rotation_1(a0)
 	move.l #$FFFFFE0C,SG2ObjectCore_world_y(a0)
-	move.w #$FA,$0020(a0)
+	move.w #$FA,SG2EvasiveActor_horizontal_motion_scale(a0)
 	bset.b #5,SG2ObjectCore_flags(a0)
 	rts
 abs_0_00018296:
@@ -23746,7 +23764,7 @@ initialize_tripuss_pose_and_variant_step:
 	bsr.w abs_0_00018968
 	andi.w #4095,d0
 	move.w d0,SG2WorldObject_rotation_1(a0)
-	move.w #$C8,$0020(a0)
+	move.w #$C8,SG2Tripuss_horizontal_motion_scale(a0)
 	move.b #$1,SG2Tripuss_variant_ping_pong_step(a0)
 	move.w #$2,SG2ScheduledActor_behavior_update_counter(a0)
 	rts
@@ -23756,7 +23774,7 @@ initialize_starglider_pose_and_motion:
 	andi.w #4095,d0
 	move.w d0,SG2WorldObject_rotation_1(a0)
 	move.l #$FFFFFD12,SG2ObjectCore_world_y(a0)
-	move.w #$50,$0020(a0)
+	move.w #$50,SG2EvasiveActor_horizontal_motion_scale(a0)
 	bset.b #5,SG2ObjectCore_flags(a0)
 	rts
     ; KNOWN: type A0=Target code-entry register seed:SG2EvasiveActor
@@ -23769,7 +23787,7 @@ initialize_bird_fighter_state:
 	bsr.w abs_0_00018968
 	move.w d0,SG2ScheduledActor_behavior_update_counter(a0)
 	move.l #$FFFFFD12,SG2ObjectCore_world_y(a0)
-	move.w #$FFA6,$0020(a0)
+	move.w #$FFA6,SG2EvasiveActor_horizontal_motion_scale(a0)
 	bset.b #5,SG2ObjectCore_flags(a0)
 	rts
 abs_0_0001850A:

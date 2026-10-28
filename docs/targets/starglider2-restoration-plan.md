@@ -20,9 +20,24 @@ An on-demand systematic gap inventory (`amiga_reversing/tools/source_gap_invento
 joins native identities/accesses with canonical layouts and actual rendered
 boundaries. It records 67 suffix signals (including numeric adjacent variants),
 21 lookup contracts, 523 remaining interior references, 32 generic app fields
-and 546 unresolved record accesses. These are different denominators. Five
+and 542 unresolved record accesses. These are different denominators. Five
 suffixes name routines and one names text; neither is a pointer defect.
-Latest: twelve original object-constructor interfaces now reuse their established
+Latest: the shared motion continuation now has one operational World-record view
+with signed WORD20 `horizontal_motion_scale`, also present in the existing
+EvasiveActor and Tripuss layouts. Six original entry aliases retain their
+different angle/heading preconditions and exact shifts, branch and wrap behavior.
+This adds 16 typed accesses, refines 11 existing contexts without changing their
+field meanings/widths, removes four gaps and exposes none: **3412 app references
+/1779 typed /542 unresolved**. This is a local callable view, not a whole-pool
+cast or physical-speed/unit claim. The full C/vasm and clean standalone builds
+remain exact; 57 assets and 14 headers are unchanged. No observation dump added.
+
+Next: investigate the model-face visibility cache and its workspace scratch.
+Its actual bit tests/sets/clears distinguish a scalar cache from a pointer. Check
+whether missing layout-base input contracts, rather than missing field names,
+explain the remaining raw workspace operands before annotating individual reads.
+
+Preceding: twelve original object-constructor interfaces now reuse their established
 updater layouts, checked against both original type directories and every known
 incoming edge. This adds 32 typed accesses, refines two existing contexts, and
 loses none. One prior gap resolves and nine previously untracked fields become
