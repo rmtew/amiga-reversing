@@ -12,18 +12,17 @@ The current ownership union leaves 13640 bytes in
 not a semantic completion percentage. Earlier interval/site counts below belong
 to their recorded closeout revision. See the current
 [native memory-span receipt](../../runtime/observations/starglider2-app-memory-spans.json),
-[current residual index](../../runtime/observations/starglider2-current-unknown-intervals.json) and
 [current flight evidence](../../runtime/observations/starglider2-flight-input-evidence.json).
 
 ## Current refinement and next evidence
 
-The [current systematic gap inventory](../../runtime/observations/starglider2-source-gap-inventory.json)
+An on-demand systematic gap inventory (`amiga_reversing/tools/source_gap_inventory.py`)
 joins native identities/accesses with canonical layouts and actual rendered
 boundaries. It records 67 suffix signals (including numeric adjacent variants),
 21 lookup contracts, 523 remaining interior references, 32 generic app fields
 and 538 unresolved record accesses. These are different denominators. Five
 suffixes name routines and one names text; neither is a pointer defect.
-Latest: the [shared WORD-shift recovery](../../runtime/observations/starglider2-word-index-shift-recovery.json)
+Latest: the shared WORD-shift recovery (master `a8aa7aa7`)
 uses generated operation/direction/fill/count metadata instead of an LSL-only
 mnemonic check. It recovers **44 existing message-directory field accesses**
 across mission, station and inventory code, with **0 lost/changed prior typed
@@ -44,7 +43,7 @@ The two remaining opaque indirect jumps load reset SSP/PC from addresses 0/4;
 their missing target evidence is boot-vector state, not justification to promote
 nearby unclaimed instruction islands. Remaining gaps are not a completion claim.
 
-Preceding: the [projectile-creator contracts](../../runtime/observations/starglider2-projectile-creator-contracts.json)
+Preceding: the projectile-creator contracts (master `e27b8f71`)
 connect the original creator interfaces and type-12/25 constructor join to their
 World/SteeredProjectile fields, including signed horizontal-motion scale. This
 adds **24 typed coordinates / 0 lost**, refines **16 existing contexts** without
@@ -3685,8 +3684,7 @@ enriched operand-site survey and does not repeat its 58/714 counts as current.
 The historical 15,111-byte/256-interval review is preserved unchanged with overlap
 links. Current orphan signals are 30 unresolved and five suppressed candidates,
 not 35 newly proved code entries. See
-`runtime/observations/starglider2-app-memory-spans.json` and
-`runtime/observations/starglider2-current-unknown-intervals.json`.
+`runtime/observations/starglider2-app-memory-spans.json`; the full interval dump is reproducible from native accepted ownership spans.
 
 
 ## Bounded DBF app ranges and stride-preserving audit
@@ -4173,3 +4171,27 @@ qualified normal-media startup/input prefix. Preserve exact original versus
 runtime-modified PC identity; do not force guest state or turn one observed
 route into exhaustive writer coverage. If runtime capability is unavailable,
 report that exact blocker and continue independent static leads.
+
+## Essential evidence policy (2026-10-28)
+
+Canonical target inputs remain in the Manual Action Log, Decision Journal and
+metadata. Generated assembly/assets and their standalone manifest/provenance
+remain buildable. Unique runtime evidence remains. The bulky projectile access
+receipt, rolling gap/interval dumps and shift receipt had no build/test/runtime
+consumer in this checkout; their duplicated facts are no longer committed.
+History remains recoverable in Git. Checks for the WORD-shift batch were 89
+focused Python tests, 832 native C tests, original C/vasm exactness and a clean
+standalone build; original identity remains bound in the target manifest.
+
+To reproduce detail with the original input installed, open the target with
+`c_backend.build_project_listing_artifact_profile`, retain `analysis_payload()`,
+`inline_source_text_with_profile()` and `effective_metadata_file`, and run:
+
+```sh
+python3 amiga_reversing/tools/source_gap_inventory.py --analysis analysis.json --metadata metadata.json --source source.s --output gaps.json
+```
+
+The unknown intervals are the complement of the union of accepted
+`range_ownerships` in that native analysis. These outputs are local inspection
+aids, not canonical facts or an independent correspondence proof. No reporting
+framework or new native-analysis pass is required for this cleanup.

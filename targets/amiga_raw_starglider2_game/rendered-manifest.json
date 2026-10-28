@@ -878,8 +878,8 @@
     },
     {
       "path": "rendered-provenance.json",
-      "bytes": 3032,
-      "sha256": "2da49fd2acf719781087f02feedb7b68069e00bdca5c2851bfe1fee854a73c89"
+      "bytes": 2941,
+      "sha256": "71b22e7d57270f0154b59c027aae89847a359b813155ce2d1aa082171192fc01"
     },
     {
       "path": "starglider2_game.s",

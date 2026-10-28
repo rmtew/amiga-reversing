@@ -837,10 +837,5 @@
         ]
       }
     }
-  ],
-  "consumer_record_details": {
-    "path": "runtime/observations/starglider2-source-gap-inventory.json",
-    "sha256": "d4e124ea59a559c820c1a690bcfe2cd0da5ede47ca6e70bad3c4e9b673525b42",
-    "location": "pointer_record_arrays[].native_collection_consumers; match table section/start/end and instruction section/offset. Full native index/target/conditional-domain fields retained there rather than duplicated."
-  }
+  ]
 }

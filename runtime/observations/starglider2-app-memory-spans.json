@@ -998,6 +998,5 @@
     "MOVEM full spans are demonstrated in native fixtures and audit integration, but this target gained scalar references only: 45 matrix WORD reads and four other accesses.",
     "The original point-field cache still has only two address formations. Its mutable loop/saved-slot positions need a separate bounded range contract; no whole-cache footprint closure is claimed.",
     "A6 fallback evidence is inherited and remains conditional; no new runtime CPU/DMA coverage or all-path model proof."
-  ],
-  "current_residual_index": "runtime/observations/starglider2-current-unknown-intervals.json"
+  ]
 }

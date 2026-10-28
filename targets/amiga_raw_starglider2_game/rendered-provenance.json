@@ -32,7 +32,6 @@
     "manual_actions.jsonl": "ee249d3926b4345fe5ee319f1960adc07ad036f34d0da09853ae752ddbad910c",
     "decision_journal.jsonl": "bd335f640fe1784a1b22b2be2f427bb1933214866a5534c66f2988287809c20b"
   },
-  "refinement_receipt": "runtime/observations/starglider2-word-index-shift-recovery.json",
   "headers": "14 unmodified required include files collected by source_package.collect_package_includes from ext/amiga_includes/ndk_2.0/include; header notices retained",
   "decoded_protection_view": {
     "target_id": "amiga_raw_starglider2_protection_view",
