@@ -20,9 +20,27 @@ An on-demand systematic gap inventory (`amiga_reversing/tools/source_gap_invento
 joins native identities/accesses with canonical layouts and actual rendered
 boundaries. It records 67 suffix signals (including numeric adjacent variants),
 21 lookup contracts, 523 remaining interior references, 32 generic app fields
-and 538 unresolved record accesses. These are different denominators. Five
+and 546 unresolved record accesses. These are different denominators. Five
 suffixes name routines and one names text; neither is a pointer defect.
-Latest: the shared WORD-shift recovery (master `a8aa7aa7`)
+Latest: twelve original object-constructor interfaces now reuse their established
+updater layouts, checked against both original type directories and every known
+incoming edge. This adds 32 typed accesses, refines two existing contexts, and
+loses none. One prior gap resolves and nine previously untracked fields become
+explicit gaps: **3412 app references /1763 typed /546 unresolved**. Eleven
+constructor names expose their original object roles; no new field meaning was
+invented. Mixed-role constructors remain broad. Preserve type28's partial high
+WORD Y write and type4's initial vertex variant29 rather than imposing a0..9
+bound. C/vasm and the clean standalone package remain byte exact; 57 assets and
+14 headers are unchanged. No new observation dump is committed.
+
+Next connected work: follow the signed horizontal-motion multiplier consumers
+for EvasiveActor and Tripuss, using these constructors as producer evidence.
+Other newly surfaced fields remain unknown until their actual consumers agree;
+the cargo fallthrough keeps a common World prefix and does not become a new
+cargo subtype. The header cell-return ABI remains a separate bounded dependency,
+not a reason to stop independent source reconstruction.
+
+Preceding: the shared WORD-shift recovery (master `a8aa7aa7`)
 uses generated operation/direction/fill/count metadata instead of an LSL-only
 mnemonic check. It recovers **44 existing message-directory field accesses**
 across mission, station and inventory code, with **0 lost/changed prior typed
