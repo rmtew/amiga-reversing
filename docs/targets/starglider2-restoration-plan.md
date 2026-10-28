@@ -20,9 +20,30 @@ An on-demand systematic gap inventory (`amiga_reversing/tools/source_gap_invento
 joins native identities/accesses with canonical layouts and actual rendered
 boundaries. It records 67 suffix signals (including numeric adjacent variants),
 21 lookup contracts, 523 remaining interior references, 32 generic app fields
-and 542 unresolved record accesses. These are different denominators. Five
+and 539 unresolved record accesses. These are different denominators. Five
 suffixes name routines and one names text; neither is a pointer defect.
-Latest: the shared motion continuation now has one operational World-record view
+Latest: the model-projection workspace now names 70 previously raw scratch
+accesses through existing declared-layout fallback, not a new base-propagation
+algorithm or physical-frame proof. The A4 render-only view resolves the three
+LONG40 face-admission-cache accesses; it is a scalar bit cache, not a pointer
+or final visibility guarantee. Header face/coordinate counts share one packed
+four-byte owner. Phase-local header addresses remain scalar storage declarations
+so they do not promise persistent pointee types across phases. Fill style also
+covers its two original initializer/raster uses. No prior typed/app access was
+lost; three existing contexts were refined without field-meaning changes.
+Current counts: **3482 app references /1782 typed /539 unresolved**. C/vasm and
+clean standalone output are exact, with 57 assets and 14 headers unchanged.
+The source-header loop still has no admitted type-domain packet; its physical
+A6/return-link questions were not manufactured away by symbolic scratch names.
+
+Next: expose undeclared base-relative operands as non-admitting discovery
+candidates through the existing native query surface. The previous field-only
+inventory omitted these 70 unclaimed uses until their declarations existed;
+strong/foreign base evidence, declared ownership and instruction footprints must
+remain distinct from a configured fallback hint. Use such candidates to choose
+connected producer/consumer work, not automatic slot-purpose guesses.
+
+Preceding: the shared motion continuation now has one operational World-record view
 with signed WORD20 `horizontal_motion_scale`, also present in the existing
 EvasiveActor and Tripuss layouts. Six original entry aliases retain their
 different angle/heading preconditions and exact shifts, branch and wrap behavior.

@@ -186,7 +186,13 @@
     RSSET 0
 draw_buffer_base RS.L 1
 display_buffer_base RS.L 1
-    RS.B 44
+active_model_vertex_reference_records RS.L 1
+    RS.B 4
+active_model_face_commands RS.L 1
+active_model_coordinate_pool RS.L 1
+    RS.B 12
+active_model_vertex_variant_data RS.L 1
+    RS.B 12
 app_0034 RS.B 1
 app_0035 RS.B 1
 app_0036 RS.B 1
@@ -205,10 +211,11 @@ shared_random_state_a RS.L 1
 shared_random_state_b RS.L 1
 selected_novella_record_pointer RS.L 1
 object_initializer_chain_tail RS.L 1
-    RS.B 4
+active_model_auxiliary_face_commands RS.L 1
 disc_record_write_cursor RS.L 1
 disc_reference_write_cursor RS.L 1
-    RS.B 32
+model_face_admission_bits_scratch RS.L 1
+    RS.B 28
 novella_decode_saved_state RS.B 16
 app_00AC RS.L 1
     RS.B 52
@@ -244,7 +251,8 @@ trig_cosine_scratch_2 RS.W 1
     RS.B 2
 world_object_slot_count RS.W 1
 model_last_vertex_index RS.W 1
-    RS.B 6
+    RS.B 2
+active_model_header_counts RS.L 1
 vblank_tick_counter RS.W 1
 model_viewer_rotation_step_0 RS.W 1
 model_viewer_rotation_step_1 RS.W 1
@@ -257,19 +265,23 @@ projection_screen_origin_y RS.W 1
     RS.B 4
 reticle_neutral_screen_x RS.W 1
 reticle_neutral_screen_y RS.W 1
-    RS.B 2
+drawing_fill_style_word RS.W 1
 point_field_plane_byte_stride RS.W 1
     RS.B 6
 active_model_scale_shift RS.W 1
     RS.B 4
 app_01B0 RS.B 1
 app_01B1 RS.B 1
-    RS.B 38
+    RS.B 6
+model_face_vertex_count_scratch RS.W 1
+    RS.B 30
 app_01D8 RS.W 1
 app_01DA RS.W 1
     RS.B 4
 novella_attempts_remaining RS.W 1
-    RS.B 11
+active_auxiliary_model_y_low_word RS.W 1
+active_model_auxiliary_face_count RS.W 1
+    RS.B 7
 polygon_clip_plane_mask RS.B 1
     RS.B 1
 app_01EF RS.B 1
@@ -1114,6 +1126,18 @@ SG2Tripuss_SIZEOF EQU __RS
 SG2HorizontalMotionView_horizontal_motion_scale RS.W 1
     RS.B 34
 SG2HorizontalMotionView_SIZEOF EQU __RS
+
+; STRUCT SG2ModelRenderView
+    RSRESET
+    RS.B 64
+SG2ModelRenderView_face_admission_cache_bits RS.L 1
+SG2ModelRenderView_SIZEOF EQU __RS
+
+; STRUCT SG2ModelHeaderCounts
+    RSRESET
+SG2ModelHeaderCounts_face_count RS.W 1
+SG2ModelHeaderCounts_coordinate_word_count RS.W 1
+SG2ModelHeaderCounts_SIZEOF EQU __RS
 
 ADKF_CLRALL	EQU	$7FFF
 BPLCON2_PF2P2	EQU	$20
@@ -3521,7 +3545,7 @@ initialize_display_and_view_state:
 	move.l #$77B50,display_buffer_base(a6)
 	move.w #$0,frame_handoff_counter(a6)
 	move.w #$0,vblank_tick_counter(a6)
-	move.w #$1,$01A0(a6)
+	move.w #$1,drawing_fill_style_word(a6)
 	move.w #$10,view_clip_min_x(a6)
 	move.w #$12F,view_clip_max_x(a6)
 	move.w #$1E,view_clip_min_y(a6)
@@ -5286,13 +5310,13 @@ initialize_model_coordinate_extents:
 abs_0_000049F0:
 	movea.l (a3)+,a0
 	move.w (a0)+,model_last_vertex_index(a6)
-	move.l (a0)+,$0178(a6)
-	move.l (a0)+,$0010(a6)
-	move.l (a0)+,$0008(a6)
-	move.l (a0)+,$0014(a6)
-	move.w $017A(a6),d0
+	move.l (a0)+,active_model_header_counts(a6)
+	move.l (a0)+,active_model_face_commands(a6)
+	move.l (a0)+,active_model_vertex_reference_records(a6)
+	move.l (a0)+,active_model_coordinate_pool(a6)
+	move.w active_model_header_counts+SG2ModelHeaderCounts_coordinate_word_count(a6),d0
 	subq.w #1,d0
-	movea.l $0014(a6),a1
+	movea.l active_model_coordinate_pool(a6),a1
 	move.w #$8000,d2
 abs_0_00004A14:
 	move.w (a1)+,d3
@@ -5307,7 +5331,7 @@ abs_0_00004A1C:
 abs_0_00004A28:
 	rts
     ; Original callers supply A4 world-object record: visible list or model viewer first pool slot. Entry is4A2A; preceding4A28 isRTS. Model index/normal-return preconditions remain.
-    ; KNOWN: type A4=Target code-entry register seed:SG2WorldObject
+    ; KNOWN: type A4=Target code-entry register seed:SG2ModelRenderView
 project_model_to_draw_records:
 	cmpi.w #145,scene_packet_count.l
 	bgt.b abs_0_00004A28
@@ -5320,11 +5344,11 @@ project_model_to_draw_records:
 	andi.w #15,d1
 	move.w d1,active_model_scale_shift(a6)
 	move.w (a0)+,model_last_vertex_index(a6)
-	move.l (a0)+,$0178(a6)
-	move.l (a0)+,$0010(a6)
-	move.l (a0)+,$0008(a6)
-	move.l (a0)+,$0014(a6)
-	clr.l $0024(a6)
+	move.l (a0)+,active_model_header_counts(a6)
+	move.l (a0)+,active_model_face_commands(a6)
+	move.l (a0)+,active_model_vertex_reference_records(a6)
+	move.l (a0)+,active_model_coordinate_pool(a6)
+	clr.l active_model_vertex_variant_data(a6)
 	move.l (a0)+,d0
 	beq.b abs_0_00004A84
 	moveq.l #0,d1
@@ -5335,18 +5359,18 @@ project_model_to_draw_records:
 	movea.l d0,a1
 	add.w d1,d1
 	add.w d1,d1
-	move.l $0(a1,d1.w),$0024(a6)
+	move.l $0(a1,d1.w),active_model_vertex_variant_data(a6)
 abs_0_00004A84:
 	move.w (a0)+,d0
-	move.w d0,$01E4(a6)
+	move.w d0,active_model_auxiliary_face_count(a6)
 	beq.b abs_0_00004A98
 	move.l SG2ObjectCore_world_y(a4),d0
-	move.w d0,$01E2(a6)
-	move.l (a0)+,$0070(a6)
+	move.w d0,active_auxiliary_model_y_low_word(a6)
+	move.l (a0)+,active_model_auxiliary_face_commands(a6)
 abs_0_00004A98:
 	moveq.l #0,d0
 	lea.l model_cache_x_negative_terms.l,a0
-	move.w $017A(a6),d1
+	move.w active_model_header_counts+SG2ModelHeaderCounts_coordinate_word_count(a6),d1
 abs_0_00004AA4:
 	move.w d0,(a0)
 	move.w d0,$12C0(a0)
@@ -5363,8 +5387,9 @@ abs_0_00004AC8:
 	addq.l #6,a3
 	move.w d1,(a3)+
 	dbf.w d0,abs_0_00004AC8
-	lea.l $0040(a4),a1
-	move.l (a1),$007C(a6)
+    ; Object LONG40 is a 32-bit face-admission cache, saved through app7C and restored via its address. It is not a pointer or proof of final pixel visibility or independent bits for all faces.
+	lea.l SG2ModelRenderView_face_admission_cache_bits(a4),a1
+	move.l (a1),model_face_admission_bits_scratch(a6)	; operand 1: SG2ModelRenderView_face_admission_cache_bits at (a1)
 	move.l a1,-(a7)
 	clr.w abs_0_000058A4.l
 	move.w active_model_type_index(a6),d0
@@ -5392,12 +5417,12 @@ abs_0_00004B2A:
 	bne.b abs_0_00004B38
 	move.w #$FFFF,abs_0_000058A4.l
 abs_0_00004B38:
-	move.w $0178(a6),d0
+	move.w active_model_header_counts(a6),d0
 	beq.w transform_used_model_vertices_continuation
 	subq.w #1,d0
 	lea.l shared_workspace_tail.l,a5
-	movea.l $0010(a6),a4
-	movea.l $0008(a6),a1
+	movea.l active_model_face_commands(a6),a4
+	movea.l active_model_vertex_reference_records(a6),a1
 	lea.l model_view_vertex_scratch_prefix(a6),a0
     ; Forced face visibility bypasses cached/backface rejection, not later projection or screen clipping. The original negative face-header path also reaches admission independently.
 abs_0_00004B54:
@@ -5405,20 +5430,20 @@ abs_0_00004B54:
 	move.w (a4)+,d2
 	move.w d2,d1
 	ext.w d1
-	move.w d1,$01A0(a6)
+	move.w d1,drawing_fill_style_word(a6)
 	cmpi.w #47,active_model_type_index(a6)
 	bne.b abs_0_00004B80
 	move.l a0,-(a7)
 	lea.l abs_0_00005894.l,a0
 	bsr.w advance_shared_random_state
 	andi.w #14,d0
-	move.w $0(a0,d0.w),$01A0(a6)
+	move.w $0(a0,d0.w),drawing_fill_style_word(a6)
 	movea.l (a7)+,a0
 abs_0_00004B80:
 	move.w d2,d1
 	lsr.w #8,d1
 	andi.w #7,d1
-	move.w d1,$01B8(a6)
+	move.w d1,model_face_vertex_count_scratch(a6)
 	move.b #$12,diagnostic_step_byte.l
 	tst.b model_face_culling_disabled_flag(a6)
 	bne.w abs_0_00004C4E
@@ -5429,7 +5454,8 @@ abs_0_00004B80:
 	move.w frame_handoff_counter(a6),d1
 	andi.w #3,d1
 	beq.b abs_0_00004BC2
-	move.l $007C(a6),d1
+    ; Cached face admission is reused except refresh phases/forced models. Original BTST/BSET/BCLR indexing and later projection/clipping remain unchanged.
+	move.l model_face_admission_bits_scratch(a6),d1
 	btst d0,d1
 	bne.w abs_0_00004C4E
 	bra.w abs_0_00004C32
@@ -5486,18 +5512,18 @@ abs_0_00004BC2:
 	add.l d1,d6
 	bmi.b abs_0_00004C4E
 abs_0_00004C32:
-	move.w $01B8(a6),d2
+	move.w model_face_vertex_count_scratch(a6),d2
 	adda.w d2,a4
 	adda.w d2,a4
 	move.l (a7)+,d0
-	move.l $007C(a6),d1
+	move.l model_face_admission_bits_scratch(a6),d1
 	bclr d0,d1
-	move.l d1,$007C(a6)
+	move.l d1,model_face_admission_bits_scratch(a6)
 	dbf.w d0,abs_0_00004B54
 	bra.w transform_used_model_vertices_continuation
 abs_0_00004C4E:
-	move.w $01B8(a6),d2
-	move.w $01A0(a6),(a5)+
+	move.w model_face_vertex_count_scratch(a6),d2
+	move.w drawing_fill_style_word(a6),(a5)+
 abs_0_00004C56:
 	move.w (a4)+,d1
 	move.w d1,(a5)+
@@ -5510,17 +5536,17 @@ abs_0_00004C64:
 	addq.w #1,abs_0_000052BE.l
 	move.w #$FFFF,(a5)+
 	move.l (a7)+,d0
-	move.l $007C(a6),d1
+	move.l model_face_admission_bits_scratch(a6),d1
 	bset d0,d1
-	move.l d1,$007C(a6)
+	move.l d1,model_face_admission_bits_scratch(a6)
 	dbf.w d0,abs_0_00004B54
 	move.b #$30,diagnostic_step_byte.l
     ; Internal continuation pops saved A3, transforms only source vertices whose flagBYTE6 is negative. Original caller frame and variant-offset preconditions remain.
 transform_used_model_vertices_continuation:
 	movea.l (a7)+,a3
-	move.l $007C(a6),(a3)
+	move.l model_face_admission_bits_scratch(a6),(a3)	; operand 2: SG2ModelRenderView_face_admission_cache_bits at (a3)
 	move.w model_last_vertex_index(a6),d0
-	movea.l $0008(a6),a4
+	movea.l active_model_vertex_reference_records(a6),a4
 	lea.l model_view_vertex_scratch_prefix(a6),a3
     ; Current app view-vertex record: test used BYTE, transform source XYZ and store three view WORDs. Loop advances eight bytes; original model/caller and variant-offset contracts remain.
     ; KNOWN: type A3=Target code-entry register seed:SG2ViewVertex
@@ -5529,7 +5555,7 @@ abs_0_00004C9C:
 	bpl.b abs_0_00004CC4
 	move.w $0006(a4),d4
 	bmi.b abs_0_00004CB8
-	move.l $0024(a6),d1
+	move.l active_model_vertex_variant_data(a6),d1
 	beq.b abs_0_00004CB8
 	movea.l d1,a1
 	movem.w $0(a1,d4.w),d1-d3
@@ -5823,7 +5849,7 @@ abs_0_00004FAA:
 abs_0_00004FAC:
 	movea.l scene_polygon_write_cursor.l,a4
 	movea.l scene_reference_write_cursor.l,a3
-	tst.w $01E4(a6)
+	tst.w active_model_auxiliary_face_count(a6)
 	beq.w abs_0_000052AC
 	tst.w abs_0_000018B8.l
 	beq.w abs_0_000052AC
@@ -5835,7 +5861,7 @@ abs_0_00004FAC:
 	beq.w abs_0_000052AC
 	cmpi.w #103,active_model_type_index(a6)
 	beq.w abs_0_000052AC
-	move.w $01E2(a6),d4
+	move.w active_auxiliary_model_y_low_word(a6),d4
 	cmp.w #$D120,d4
 	blt.w abs_0_000052AC
 	cmpi.w #145,scene_packet_count.l
@@ -5907,11 +5933,11 @@ abs_0_00005074:
 	sub.w d0,d4
 	cmp.w view_clip_max_y(a6),d4
 	bgt.w abs_0_000052AC
-	move.w $01E4(a6),d0
+	move.w active_model_auxiliary_face_count(a6),d0
 	subq.w #1,d0
-	movea.l $0070(a6),a5
+	movea.l active_model_auxiliary_face_commands(a6),a5
 	lea.l model_view_vertex_scratch_prefix(a6),a0
-	movea.l $0008(a6),a1
+	movea.l active_model_vertex_reference_records(a6),a1
 project_auxiliary_faces_loop:
 	move.w d0,saved_model_face_loop_index(a6)
 	move.w (a5)+,d0
@@ -5936,7 +5962,7 @@ abs_0_0000510C:
 	move.b #$1,$6(a0,d4.w)
 	move.w $6(a1,d4.w),d5
 	bmi.b abs_0_00005132
-	move.l $0024(a6),d1
+	move.l active_model_vertex_variant_data(a6),d1
 	beq.b abs_0_00005132
 	movea.l d1,a2
 	movem.w $0(a2,d5.w),d1-d3
@@ -5949,7 +5975,7 @@ abs_0_00005138:
 abs_0_00005142:
 	move.w $6(a1,d4.w),d5
 	bmi.b abs_0_00005158
-	move.l $0024(a6),d1
+	move.l active_model_vertex_variant_data(a6),d1
 	beq.b abs_0_00005158
 	movea.l d1,a2
 	movem.w $0(a2,d5.w),d1-d3
@@ -5963,7 +5989,7 @@ abs_0_0000515E:
 	andi.w #32767,d1
 	andi.w #32767,d2
 	andi.w #32767,d3
-	movea.l $0014(a6),a2
+	movea.l active_model_coordinate_pool(a6),a2
 	move.w $0(a2,d1.w),d1
 	move.w $0(a2,d2.w),d2
 	move.w $0(a2,d3.w),d3
@@ -6098,11 +6124,11 @@ prepare_retirement_model_faces:
 	andi.w #15,d1
 	move.w d1,active_model_scale_shift(a6)
 	move.w (a0)+,model_last_vertex_index(a6)
-	move.l (a0)+,$0178(a6)
-	move.l (a0)+,$0010(a6)
-	move.l (a0)+,$0008(a6)
-	move.l (a0)+,$0014(a6)
-	clr.l $0024(a6)
+	move.l (a0)+,active_model_header_counts(a6)
+	move.l (a0)+,active_model_face_commands(a6)
+	move.l (a0)+,active_model_vertex_reference_records(a6)
+	move.l (a0)+,active_model_coordinate_pool(a6)
+	clr.l active_model_vertex_variant_data(a6)
 	move.l (a0),d0
 	beq.b abs_0_0000539A
 	moveq.l #0,d1
@@ -6112,7 +6138,7 @@ prepare_retirement_model_faces:
 	movea.l d0,a1
 	add.w d1,d1
 	add.w d1,d1
-	move.l $0(a1,d1.w),$0024(a6)
+	move.l $0(a1,d1.w),active_model_vertex_variant_data(a6)
 abs_0_0000539A:
 	bsr.w build_model_view_rotation_matrix
 	move.l a4,-(a7)
@@ -6127,17 +6153,17 @@ abs_0_0000539A:
 	lea.l model_header_pointers.l,a0
 	movea.l $00BC(a0),a0
 	move.w (a0)+,model_last_vertex_index(a6)	; operand 1: SG2ModelHeader_last_vertex_index at (a0)+
-	move.l (a0)+,$0178(a6)	; operand 1: SG2ModelHeader_face_count at (a0)+
-	move.l (a0)+,$0010(a6)	; operand 1: SG2ModelHeader_face_commands at (a0)+
-	move.l (a0)+,$0008(a6)	; operand 1: SG2ModelHeader_vertex_reference_records at (a0)+
-	move.l (a0)+,$0014(a6)	; operand 1: SG2ModelHeader_coordinate_pool at (a0)+
-	clr.l $0024(a6)
+	move.l (a0)+,active_model_header_counts(a6)	; operand 1: SG2ModelHeader_face_count at (a0)+
+	move.l (a0)+,active_model_face_commands(a6)	; operand 1: SG2ModelHeader_face_commands at (a0)+
+	move.l (a0)+,active_model_vertex_reference_records(a6)	; operand 1: SG2ModelHeader_vertex_reference_records at (a0)+
+	move.l (a0)+,active_model_coordinate_pool(a6)	; operand 1: SG2ModelHeader_coordinate_pool at (a0)+
+	clr.l active_model_vertex_variant_data(a6)
 transform_retirement_vertices_and_faces:
 	cmpi.w #145,scene_packet_count.l
 	bgt.w abs_0_00004A28
 	moveq.l #0,d0
 	lea.l model_cache_x_negative_terms.l,a0
-	move.w $017A(a6),d1
+	move.w active_model_header_counts+SG2ModelHeaderCounts_coordinate_word_count(a6),d1
 abs_0_00005400:
 	move.w d0,(a0)
 	move.w d0,$12C0(a0)
@@ -6147,11 +6173,11 @@ abs_0_00005400:
 	move.w model_last_vertex_index(a6),d7
 	beq.w abs_0_0000565C
 	lea.l model_view_vertex_scratch_prefix(a6),a3
-	movea.l $0008(a6),a5
+	movea.l active_model_vertex_reference_records(a6),a5
 abs_0_00005420:
 	move.w $0006(a5),d1
 	bmi.b abs_0_00005436
-	move.l $0024(a6),d0
+	move.l active_model_vertex_variant_data(a6),d0
 	beq.b abs_0_00005436
 	movea.l d0,a0
 	movem.w $0(a0,d1.w),d1-d3
@@ -6165,8 +6191,8 @@ abs_0_0000543A:
 	addq.w #8,a3
 	dbf.w d7,abs_0_00005420
 	move.b #$23,diagnostic_step_byte.l
-	movea.l $0010(a6),a4
-	move.w $0178(a6),d0
+	movea.l active_model_face_commands(a6),a4
+	move.w active_model_header_counts(a6),d0
 	beq.w abs_0_0000565C
 	subq.w #1,d0
 abs_0_00005460:
@@ -6174,16 +6200,16 @@ abs_0_00005460:
 	move.w (a4)+,d1
 	move.w d1,d2
 	andi.w #15,d1
-	move.w d1,$01A0(a6)
+	move.w d1,drawing_fill_style_word(a6)
 	lsr.w #8,d2
 	andi.w #7,d2
-	move.w d2,$01B8(a6)
+	move.w d2,model_face_vertex_count_scratch(a6)
 	cmp.w #$2,d2
 	beq.w abs_0_0000565E
-	tst.w $01A0(a6)
+	tst.w drawing_fill_style_word(a6)
 	bpl.b abs_0_00005492
-	move.w d0,$01A0(a6)
-	andi.w #15,$01A0(a6)
+	move.w d0,drawing_fill_style_word(a6)
+	andi.w #15,drawing_fill_style_word(a6)
 abs_0_00005492:
 	lea.l model_view_vertex_scratch_prefix(a6),a3
 	move.w (a4),d4
@@ -6243,7 +6269,7 @@ abs_0_0000552E:
 	asr.l #3,d5
 	move.w d5,$0020(a6)
 	move.b #$24,diagnostic_step_byte.l
-	move.w $01B8(a6),d7
+	move.w model_face_vertex_count_scratch(a6),d7
 	lea.l model_view_vertex_scratch_prefix(a6),a3
 	movea.l scene_polygon_write_cursor.l,a1
 	movea.l scene_reference_write_cursor.l,a0
@@ -6252,7 +6278,7 @@ abs_0_0000552E:
 	move.l a0,scene_reference_write_cursor.l
 	clr.w (a1)+
 	movea.l a1,a2
-	move.w $01A0(a6),(a1)+
+	move.w drawing_fill_style_word(a6),(a1)+
 	addq.w #1,scene_packet_count.l
 	move.w #$7FFF,d6
 	move.w #$8000,d5
@@ -6343,7 +6369,7 @@ abs_0_0000564A:
 abs_0_0000565C:
 	rts
 abs_0_0000565E:
-	move.w $01B8(a6),d4
+	move.w model_face_vertex_count_scratch(a6),d4
 	add.w d4,d4
 	adda.w d4,a4
 	bra.b abs_0_0000564A
@@ -6384,7 +6410,7 @@ transform_encoded_vertex_coordinates:
 	add.w d4,d4
 	add.w d4,d4
 	lea.l $0(a0,d4.w),a3
-	movea.l $0014(a6),a0
+	movea.l active_model_coordinate_pool(a6),a0
 	tst.w (a1)+
 	bne.b abs_0_00005754
 	move.w $0(a0,d1.w),d1
@@ -6505,7 +6531,7 @@ abs_0_00005850:
 	movem.l d5/a5,-(a7)
 	move.w $6(a1,d4.w),d5
 	bmi.b abs_0_00005878
-	move.l $0024(a6),d0
+	move.l active_model_vertex_variant_data(a6),d0
 	beq.b abs_0_00005878
 	movea.l d0,a5
 	move.w $0(a5,d5.w),d1
@@ -16757,7 +16783,7 @@ abs_0_0000EBFC:
 	move.l #$FD16,(a2)+
 	move.l #$FFFFFFFF,(a2)
 abs_0_0000EC46:
-	move.w $01A0(a6),d0
+	move.w drawing_fill_style_word(a6),d0
 	andi.w #4095,d0
 	lea.l abs_0_000049A0.l,a1
 	bsr.w abs_0_0000FD8E
