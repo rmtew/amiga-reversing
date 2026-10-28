@@ -9547,14 +9547,21 @@ static void hardware_relative_transfer(M68kRenderPlatformState *state, const M68
           if (!hardware_word_set_add(&result, value)) return;
         }
       state->word_values[dest] = result;
-    } else if ((instruction->mnemonic_id == M68K_ASM_MNEMONIC_LSL ||
+    } else if (((meta->operation_type == M68K_SIM_OP_SHIFT &&
+                 meta->shift_direction == M68K_SIM_SHIFT_DIR_LEFT &&
+                 meta->shift_fill_mode == M68K_SIM_SHIFT_FILL_ZERO &&
+                 meta->shift_count_source == M68K_SIM_SHIFT_COUNT_OPERAND) ||
                 instruction->mnemonic_id == M68K_ASM_MNEMONIC_MULU) &&
         instruction->size_suffix == 'w' && source.count == 1U) {
       uint16_t amount = source.values[0];
-      if (instruction->mnemonic_id == M68K_ASM_MNEMONIC_LSL && amount > 15U) return;
+      /* ASL and LSL have the same low-WORD value transfer according to the
+       * generated direction/fill metadata. Their different CCR effects do not
+       * enter this value-only domain. Keep the existing narrow count bound. */
+      int shift = meta->operation_type == M68K_SIM_OP_SHIFT;
+      if (shift && amount > 15U) return;
       for (i = 0U; i < before->word_values[dest].count; ++i) {
         uint32_t value = before->word_values[dest].values[i];
-        value = instruction->mnemonic_id == M68K_ASM_MNEMONIC_LSL ? value << amount : value * amount;
+        value = shift ? value << amount : value * amount;
         if (!hardware_word_set_add(&result, (uint16_t)value)) return;
       }
       state->word_values[dest] = result;

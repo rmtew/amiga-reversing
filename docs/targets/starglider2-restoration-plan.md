@@ -1,6 +1,6 @@
 # Starglider 2: original source restoration
 
-Status: **paused at the user's request after the current projectile-creator batch**. The earlier
+Status: **refinement resumed on 2026-10-28 at the user's request**. The earlier
 original-layout reviewed closeout and ZIP are historical milestones, not a claim
 that further analysis is exhausted. Current source remains byte exact: all
 412736 original bytes rebuild through C/vasm and a clean standalone export,
@@ -21,9 +21,30 @@ The [current systematic gap inventory](../../runtime/observations/starglider2-so
 joins native identities/accesses with canonical layouts and actual rendered
 boundaries. It records 67 suffix signals (including numeric adjacent variants),
 21 lookup contracts, 523 remaining interior references, 32 generic app fields
-and 582 unresolved record accesses. These are different denominators. Five
+and 538 unresolved record accesses. These are different denominators. Five
 suffixes name routines and one names text; neither is a pointer defect.
-Latest: the [projectile-creator contracts](../../runtime/observations/starglider2-projectile-creator-contracts.json)
+Latest: the [shared WORD-shift recovery](../../runtime/observations/starglider2-word-index-shift-recovery.json)
+uses generated operation/direction/fill/count metadata instead of an LSL-only
+mnemonic check. It recovers **44 existing message-directory field accesses**
+across mission, station and inventory code, with **0 lost/changed prior typed
+facts and 0 new unresolved accesses**. No canonical target facts or names were
+added. Current counts are **3412 app references /1731 typed /538 unresolved**.
+The four failing ASL closed-family cases now pass; **89 focused Python and
+832 native C tests** passed, followed by one complete exact generation and clean
+standalone build. This is field projection, not 44 new string identities or
+new runtime coverage. The count/width/unknown-write restrictions remain intact.
+
+The header cell-return question remains bounded: saved paired fixtures prove
+that a declared pointer holder works inline and loses its returned relation
+through a callee. The current inferred ABI identifies register inputs, not a
+canonical memory-cell input. Before extending it, bind the actual source-owned
+holder and its caller/write obligations; do not supply per-reader frame seeds.
+Meanwhile independent object/constructor and indexed-reader restoration continues.
+The two remaining opaque indirect jumps load reset SSP/PC from addresses 0/4;
+their missing target evidence is boot-vector state, not justification to promote
+nearby unclaimed instruction islands. Remaining gaps are not a completion claim.
+
+Preceding: the [projectile-creator contracts](../../runtime/observations/starglider2-projectile-creator-contracts.json)
 connect the original creator interfaces and type-12/25 constructor join to their
 World/SteeredProjectile fields, including signed horizontal-motion scale. This
 adds **24 typed coordinates / 0 lost**, refines **16 existing contexts** without
@@ -45,7 +66,7 @@ checks passed: **151 manual-log/catalogue tests plus 3 native scalar-array
 render/exact-assembly fixtures**. Source C/vasm and clean standalone output retain
 all 412736 bytes, with the 57 existing assets unchanged.
 
-**Paused, not complete.** No next batch is running. If resumed, use the retained
+The preceding batch paused on 2026-10-27; that pause is now lifted. Use the retained
 header pointer-holder/callee-return or selected-cell evidence to rank the next
 connected gaps. A live source-owned pointer contract and alias/return evidence
 remain necessary before expanding that interface. Ordinary numeric indexed

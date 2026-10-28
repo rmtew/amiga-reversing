@@ -36,7 +36,7 @@ def analyze(source):
 
 
 @pytest.mark.parametrize("last_channel", [0, 1, 2, 3])
-@pytest.mark.parametrize("scaling", ["lsl.w #4,d0", "mulu.w #16,d0"])
+@pytest.mark.parametrize("scaling", ["lsl.w #4,d0", "asl.w #4,d0", "mulu.w #16,d0"])
 def test_dbf_channel_family_is_closed_and_renders_without_manual_bindings(tmp_path, last_channel, scaling):
     source, original = fixture(tmp_path, f""" moveq #{last_channel},d7
 loop:

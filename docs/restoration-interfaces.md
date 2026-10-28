@@ -559,8 +559,12 @@ checks the registered base, register classes, set capacity and offset extent
 before history is appended. Source comments say `INPUT contract`, rather than
 presenting the destination as a fixed address or a recovered game struct.
 
-The bounded hardware solver tracks low-WORD constants, moves, immediate shifts
-and multiplies, ADDA.W, and DBF's separate backedge/exhaustion states. It unions
+The bounded hardware solver tracks low-WORD constants, moves, zero-fill WORD
+left shifts and multiplies, ADDA.W, and DBF's separate backedge/exhaustion states.
+Left-shift value transfer uses generated operation/direction/fill metadata, so
+ASL and LSL share it without conflating their CCR effects. Known counts retain
+the existing 0..15 supported range; BYTE/LONG, unknown and other shift forms
+remain conservative. It unions
 closed sets at joins and discards unknown or overflowing sets. Its fixed point
 is independent of typed-memory propagation; an exhausted hardware proof budget
 publishes no family facts. Calls, unmodelled/partial writes, memory loads and
