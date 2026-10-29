@@ -13532,8 +13532,8 @@ begin_model_contact_extent_comparison:
 	lsr.w d0,d4
 	lsr.l d0,d5
 	lsr.l d0,d3
-    ; Second contact pointer is heterogeneous. Extent/cache reads precede its low-type guard at B668; common-list typing does not prove the early indexing or ordering safe.
-abs_0_0000B5D0:
+    ; Observed tag145 inner record, f864: PC B5D6 reads WORD1717A=$0460, negative-Y element40 beyond horizontal104 WORDs. Keep original formula/later tag guard; no safety/bug claim.
+read_inner_contact_before_type_filter:
 	movea.l (a3)+,a2
 	move.w (a2),d2	; operand 1: SG2ObjectCore_object_type at (a2)
 	add.w d2,d2
@@ -13806,7 +13806,7 @@ start_inner_contact_retirement:
 abs_0_0000B8F4:
 	clr.b SG2ObjectCore_retirement_phase_or_negative(a2)
 abs_0_0000B8F8:
-	dbf.w d6,abs_0_0000B5D0
+	dbf.w d6,read_inner_contact_before_type_filter
     ; Collision response decrements in this update pass, not proved physical frames. IRQ response reverses motion and clears speed at step1; preserve the original3/4-step producers.
 abs_0_0000B8FC:
 	dbf.w d7,abs_0_0000B594
@@ -48081,11 +48081,12 @@ abs_0_0003731A:
 	beq.w abs_0_00037406
 	cmpi.w #103,(a4)	; operand 2: SG2ObjectCore_object_type at (a4)
 	beq.w abs_0_00037406
-	bra.b abs_0_0003736A
+	bra.b test_alternate_model_scan_extent
 abs_0_00037360:
 	btst.b #7,SG2ObjectCore_flags(a4)
 	beq.w abs_0_00037406
-abs_0_0003736A:
+    ; KNOWN: type A4=Target code-entry register seed:SG2TargetingObject
+test_alternate_model_scan_extent:
 	move.w (a4),d0	; operand 1: SG2ObjectCore_object_type at (a4)
 	add.w d0,d0
 	move.w SG2ObjectCore_relative_x(a4),d1
@@ -48103,7 +48104,7 @@ abs_0_0003736A:
 	move.w aim_reticle_screen_x(a6),d4
 	sub.w d1,d4
 	move.w $0(a2,d0.w),d6
-	move.b $001D(a4),d5
+	move.b SG2TargetingObject_model_scale_shift(a4),d5
 	ext.l d6
 	lsr.w d5,d6
 	muls.w $0(a0,d3.w),d6

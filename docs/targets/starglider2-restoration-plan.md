@@ -50,18 +50,44 @@ release loop sets it in following records; a live tug then damps X/Z velocity by
 four and increments Y velocity. Release, reciprocal detachment and the original
 signed-WORD damping helper are named. Raw nullable/sentinel link fields stay raw;
 chain validity, original order and initial flag state are not newly proven.
-Secondary integration retains its World view. Current totals are **3503 app
+Secondary integration retains its World view. At the tug revision totals were **3503 app
 /2656 typed /171 unresolved** (55 read roles, 112 destination writes, four address
 formations). Unknown-byte/code/asset accounting is unchanged; C/vasm and clean
 standalone output are exact. No new runtime coverage is claimed.
 
-Contact-list producer review found the active append before the later model and
-visibility tests, including the radial transform path. Therefore a global
-model-only contact-list cast would be unjustified; the five preguard inner reads
-remain raw. A bounded normal-input list/type observation is the next experiment
-if those mixed-path semantics are pursued; no new live run was needed for the
-separate guarded reticle/tug contracts. Independently, the alternate scan has an
-explicit low-tag sign guard and an existing targeting-layout consumer to review.
+Normal-media flight now observes mixed contact membership directly: frames
+863/925/986 contain 2/19/20 members, including type145 in all three. A separate
+bounded follow-up captures the original early extent **CPU read** at frame864,
+CCK61451370: PC `$B5D6` (source `$A5D6`), inner type145, doubled index290,
+A4 `$17058`, WORD `$1717A` = `$0460`. This lies beyond the declared104-WORD
+horizontal prefix and equals negative-Y table base `$1712A` +80 (element40).
+The trap reports a two-byte read and its instruction window matches original
+bytes. Keep the original formula, table extents and later type guard; this is
+neither a bug verdict nor safety/all-path/DMA evidence. The five early inner
+field reads remain unresolved, not silently recast as model fields.
+
+The alternate scan's separate low-tag sign guard, exclusions and type12 flag
+path justify an existing Targeting input role after their join. Its BYTE29
+scale read now resolves; original logical shifts, zero-depth rejection and
+unchecked full-tag/index behavior remain. Current totals are **3503 app /2657
+typed /170 unresolved** (54 read roles, 112 destination writes, four address
+formations). Code, ownership accounting, assets and original output bytes are
+unchanged; C/vasm and a clean standalone export pass.
+
+Reproduce these bounded questions with `starglider2_flight_probe` using the
+existing private original media/ROM inputs, normal protection-input opt-in, and
+`--observe-contact-lists` or `--observe-contact-pair-read`. The latter stops
+after one post-producer snapshot and one frame-bounded CPU read. Captures and
+executed driver sources remain private; the unique pair receipt SHA256 is
+`e4b6dfbb168321375d3f8ab15943bc49b612f405fe5b89bb0f9112e7ef2ddc2c`.
+Sixteen focused observer checks pass, including mixed/duplicate members and
+out-of-backing/misaligned pointers; the combined observer/shared-runtime suite
+passes 144 tests. No observation dump is added to Git.
+
+Remaining contact work concerns the consequences of the actual cross-table
+read and later rejection, not establishing whether mixed membership is merely
+possible. A next bounded experiment can follow that same pair to the later
+type guard/return; this batch does not claim those later paths were observed.
 The `$24` group still has only 16 catalogued destination-write roles and no
 corresponding naming justification.
 

@@ -220,6 +220,109 @@ def observe_reticle_target(client, flight_entry, workspace_base, translation, st
             stored_type=kind, sha256=hashlib.sha256(record).hexdigest()))
 
 
+def contact_list_records(pointer_bytes, pool, *, cursor, storage_start, storage_size,
+                         pool_base, stride):
+    """Validate captured ownership, retaining duplicates and every original tag."""
+    if (stride < 2 or len(pool) % stride or len(pointer_bytes) % 4
+            or not storage_start <= cursor <= storage_start + storage_size
+            or cursor + len(pointer_bytes) > storage_start + storage_size):
+        raise ValueError('Contact snapshot exceeds its canonical backing')
+    records = []
+    for i in range(0, len(pointer_bytes), 4):
+        pointer = int.from_bytes(pointer_bytes[i:i + 4], 'big')
+        offset = pointer - pool_base
+        if offset < 0 or offset % stride or offset + stride > len(pool):
+            raise ValueError('Contact pointer is not a captured pool record')
+        raw = pool[offset:offset + stride]
+        records.append(dict(address=pointer, pool_record=offset // stride,
+            stored_type=int.from_bytes(raw[:2], 'big'), bytes_hex=raw.hex()))
+    return records
+
+
+def observe_contact_lists(client, flight_entry, workspace_base, original, stage, *, pair_read=False):
+    """Three post-producer samples through normal idle flight, no list mutation."""
+    from amiga_reversing.disasm.effective_metadata import effective_target_metadata
+    metadata = effective_target_metadata(Path('targets/amiga_raw_starglider2_game'))
+    regions = {x.symbol: x for x in metadata.rsset_layout_regions if x.symbol}
+    cursor_slot, count_slot, storage, pool = [regions[n] for n in
+        ['contact_objects_cursor', 'contact_object_count',
+         'contact_object_list_storage', 'world_object_pool']]
+    stride = next(x.size for x in metadata.custom_structs if x.name == 'SG2ObjectCore')
+    assert cursor_slot.size == 4 and count_slot.size == 2 and stride == 68
+    # Canonical native source352A is RTS after publishing both list cursors.
+    source, pc = 0x352A, 0x452A
+    assert original[source:source + 2] == bytes.fromhex('4e75')
+    first_frame = flight_entry['stop_event']['frame']
+    for sample in range(3):
+        if sample:
+            target = previous_frame + 60
+            if target >= first_frame + 180:
+                raise ValueError('Contact observation exhausted its frame budget')
+            event = client.run_until(dict(frame=target), timeout=30)
+            if event.get('reason') != 'target' or event.get('frame') != target:
+                raise RuntimeError('Unexpected stop between contact samples')
+        event = wait_for_pc(client, pc, 30, frame_limit=first_frame + 180)
+        stage('contact_producer_return', event)
+        if event['status'] != 'hit':
+            raise RuntimeError('Post-producer contact snapshot not observed')
+        registers = client.registers()
+        if registers['a6'] != workspace_base or client.read_memory(pc, 16) != original[source:source + 16]:
+            raise ValueError('Contact sample has an unbound base or instruction window')
+        count = int.from_bytes(client.read_memory(workspace_base + count_slot.offset, 2), 'big')
+        if count * 4 > storage.size:
+            raise ValueError('Contact count exceeds canonical list backing')
+        cursor = int.from_bytes(client.read_memory(workspace_base + cursor_slot.offset, 4), 'big')
+        # Validate even the empty cursor before issuing a guest-memory read there.
+        start = workspace_base + storage.offset
+        if not start <= cursor <= start + storage.size or cursor + count * 4 > start + storage.size:
+            raise ValueError('Contact cursor exceeds canonical list backing')
+        pointers = client.read_memory(cursor, count * 4) if count else b''
+        records = contact_list_records(pointers,
+            client.read_memory(workspace_base + pool.offset, pool.size), cursor=cursor,
+            storage_start=start, storage_size=storage.size,
+            pool_base=workspace_base + pool.offset, stride=stride)
+        from collections import Counter
+        previous_frame = event['stop_event']['frame']
+        stage('contact_list_snapshot', dict(sample=sample, frame=previous_frame,
+            runtime_pc=pc, source_offset=source, instruction_window_exact=True,
+            count=count, cursor=cursor, records=records,
+            type_counts=dict(Counter(str(x['stored_type']) for x in records)),
+            scope='Post-producer membership only; no all-path or collision-read coverage'))
+        if pair_read:
+            # Native source A5D0..A5DA binds load-record/type/double/indexed-read.
+            goal, source = 0xB5D6, 0xA5D6
+            assert original[source - 6:source + 8] == bytes.fromhex('245b3412d44232342000102a001d')
+            hit = wait_for_pc(client, goal, 30, frame_limit=first_frame + 180)
+            stage('contact_inner_extent_read_entry', hit)
+            if hit['status'] != 'hit':
+                raise RuntimeError('Early contact extent read not observed in frame budget')
+            regs = client.registers()
+            if client.read_memory(goal, 16) != original[source:source + 16]:
+                raise ValueError('Early contact reader instruction window differs')
+            captured = contact_list_records(regs['a2'].to_bytes(4, 'big'),
+                client.read_memory(workspace_base + pool.offset, pool.size),
+                cursor=start, storage_start=start, storage_size=storage.size,
+                pool_base=workspace_base + pool.offset, stride=stride)[0]
+            index = regs['d2'] & 0xffff
+            if index >= 0x8000 or index != captured['stored_type'] * 2:
+                raise ValueError('Early contact index is outside the observed nonnegative doubled-tag case')
+            address = regs['a4'] + index
+            from amiga_reversing.tools.copperline_runtime import wait_for_memory_access
+            access = wait_for_memory_access(client, dict(address=address, length=2,
+                access='read', engine='cpu', wait_seconds=5, frames=1),
+                start_event=hit['stop_event'])
+            stage('contact_inner_extent_cpu_read', dict(record=captured, registers_before=regs,
+                runtime_pc=goal, source_offset=source, instruction_window_exact=True,
+                expected_data_address=address, observation=access,
+                scope='One original CPU data access; no DMA/all-path or safety proof'))
+            if access['status'] != 'hit':
+                raise RuntimeError('Expected early contact CPU data read was not observed')
+            observed = access['stop_event'].get('access') or {}
+            if observed.get('pc') != goal or observed.get('addr') != address:
+                raise ValueError('Observed contact trap belongs to a different site or address')
+            return
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--inputs', type=Path, required=True)
@@ -233,11 +336,15 @@ def main(argv=None):
                         help='Observe bounded Backspace/I/X inventory modal state, then stop')
     parser.add_argument('--observe-reticle-target', action='store_true',
                         help='Observe reticle production and normal I-key target scan, then stop')
+    parser.add_argument('--observe-contact-pair-read', action='store_true',
+                        help='Observe one early contact extent CPU read after the first list sample')
+    parser.add_argument('--observe-contact-lists', action='store_true',
+                        help='Sample canonical contact-list membership after its producer, then stop')
     parser.add_argument('--observe-startup-flags', action='store_true',
                         help='Observe first CPU clears of app0205/0206 through the normal startup/input prefix')
     args = parser.parse_args(argv)
     if sum([args.observe_model_paths, args.observe_modal_inventory, args.observe_reticle_target,
-            args.observe_startup_flags]) > 1:
+            args.observe_startup_flags, args.observe_contact_lists, args.observe_contact_pair_read]) > 1:
         parser.error('Choose only one bounded observation route')
     if not args.answer_selected_protection_request:
         parser.error('This probe requires explicit protection-input opt-in')
@@ -337,6 +444,13 @@ def main(argv=None):
                         hit_count=len(flag_observer.hits)))
                     r['status'] = ('bounded_startup_flag_observation_complete'
                         if len(flag_observer.cleared) == 2 else 'flight_reached_first_clears_not_observed')
+                    save()
+                    return
+                if args.observe_contact_lists or args.observe_contact_pair_read:
+                    observe_contact_lists(c, w, base, (p / 'main-copy.bin').read_bytes(), stage,
+                                          pair_read=args.observe_contact_pair_read)
+                    r['status'] = ('bounded_contact_pair_read_observation_complete'
+                        if args.observe_contact_pair_read else 'bounded_contact_list_observation_complete')
                     save()
                     return
                 if args.observe_reticle_target:
