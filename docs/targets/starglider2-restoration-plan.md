@@ -32,6 +32,13 @@ The energy-tower initializer's World chain view stays distinct from its updater
 view. Packed-header normalization, signed comparisons, wrap, PRNG transforms,
 nullable/sentinel links and unknown constructor parameters remain unchanged.
 
+The shared review-gap query now applies source/section filters before paging;
+it previously ignored them. Against the retained 303 native SGII review items,
+the requested source interval `$B400..$BC00` returns its 15 intersecting items,
+including the still-open toggle/monitor candidates. 99 operation/review tests
+pass. This is retrieval correctness, not additional classification or acceptance;
+assembly and its existing exact-build evidence are unchanged.
+
 The accepted port-interrupt entry now names its 16-LONG register snapshot,
 separate captured PC LONG and status WORD, and the existing handler. Its normal
 return reloads only D0-D7/A0-A6 and uses the original RTE stack; captured A7/PC/SR

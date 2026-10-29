@@ -219,6 +219,11 @@ def _query(target_id, body, current):
         raise ValueError(f"query text is unsupported for {kind}")
     if kind == "field_gaps" and set(filters) - {"kind", "section_index", "source_offset", "end_offset", "struct_name", "field_offset"}:
         raise ValueError("field_gaps supports source coordinates, struct_name and field_offset")
+    if kind == "gaps":
+        if set(filters) - {"kind", "section_index", "source_offset", "end_offset"}:
+            raise ValueError("gaps supports only source coordinates and pagination")
+        if "end_offset" in filters and ("source_offset" not in filters or filters["end_offset"] <= filters["source_offset"]):
+            raise ValueError("gap end_offset requires a nonempty source interval")
     artifact = _artifact(target_id)
     if kind == "functions":
         from amiga_reversing.disasm.function_facts import analysis_function_facts
@@ -279,6 +284,17 @@ def _query(target_id, body, current):
                      ["Region/layout definition does not establish reference, initialization or execution closure."])
     elif kind == "gaps":
         items = _server()._cached_analysis_review_items(target_id, artifact)
+        if "section_index" in filters:
+            items = [item for item in items if item.get("hunk") == filters["section_index"]]
+        if "source_offset" in filters:
+            lo = filters["source_offset"]
+            hi = filters.get("end_offset", lo + 1)
+            # Review ranges are half-open. Point queries include the containing
+            # range, not merely items starting at the exact requested byte.
+            items = [item for item in items
+                     if type(item.get("start")) is int and type(item.get("end")) is int
+                     and item["end"] > item["start"]
+                     and item["start"] < hi and item["end"] > lo]
         page = _page(items, offset, limit, "native analysis review items",
                      ["Review items are candidates, not a complete inventory of semantic unknowns."])
     elif kind in {"symbols", "references", "fields", "field_gaps", "instructions", "edges", "expressions", "base_candidates"}:

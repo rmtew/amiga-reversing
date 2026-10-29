@@ -122,6 +122,40 @@ def current():
     return invoke("state")["revision"]
 
 
+def test_gap_source_filter_overlaps_native_ranges_before_paging(target):
+    items = [dict(item_id='before', hunk=0, start=0, end=4),
+             dict(item_id='left', hunk=0, start=4, end=8),
+             dict(item_id='right', hunk=0, start=8, end=12),
+             dict(item_id='after', hunk=0, start=12, end=16),
+             dict(item_id='other-section', hunk=1, start=4, end=12),
+             dict(item_id='unlocated'), dict(item_id='empty', hunk=0, start=6, end=6)]
+    target.backend._cached_analysis_review_items = lambda *args: tuple(items)
+    first = invoke('query', kind='gaps', section_index=0, source_offset=6, end_offset=10, limit=1)
+    assert first['total'] == 2 and first['items'][0]['item_id'] == 'left'
+    second = invoke('query', kind='gaps', section_index=0, source_offset=6, end_offset=10,
+                    limit=1, cursor=first['next_cursor'])
+    assert second['items'][0]['item_id'] == 'right' and second['next_cursor'] is None
+    point = invoke('query', kind='gaps', section_index=0, source_offset=8)
+    assert [item['item_id'] for item in point['items']] == ['right']
+    assert invoke('query', kind='gaps', section_index=0, source_offset=16)['total'] == 0
+    assert invoke('query', kind='gaps', section_index=1)['items'][0]['item_id'] == 'other-section'
+    assert invoke('query', kind='gaps')['total'] == len(items)
+    assert target.calls == []  # The cached native review projection is reused.
+    with pytest.raises(ValueError, match='stale_cursor'):
+        invoke('query', kind='gaps', section_index=0, source_offset=7, end_offset=10,
+               cursor=first['next_cursor'])
+
+
+@pytest.mark.parametrize('extra', [dict(end_offset=4), dict(source_offset=4, end_offset=4),
+                                  dict(source_offset=8, end_offset=4), dict(symbol='pointer'),
+                                  dict(field_offset=4), dict(struct_name='Record'),
+                                  dict(direction='incoming'), dict(relation='callers')])
+def test_gap_query_refuses_unsupported_filters_and_invalid_ranges(target, extra):
+    with pytest.raises(ValueError, match='gaps supports only|gap end_offset requires'):
+        invoke('query', kind='gaps', **extra)
+    assert target.calls == []
+
+
 def test_field_gap_query_forwards_native_filters_and_revision_cursor(target):
     first = invoke('query', kind='field_gaps', struct_name='Record', field_offset=8, limit=1)
     assert target.calls[-1]['kind'] == 'field_gaps'

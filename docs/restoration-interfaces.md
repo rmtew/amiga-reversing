@@ -231,6 +231,13 @@ Queries and history use the returned `next_cursor` for pagination. An input
 `offset` is rejected rather than silently starting again at the first page;
 native artifact queries retain their separate internal offset API.
 
+`query --kind gaps` filters cached native review items by `section_index` and
+source location before pagination. With `end_offset`, it returns ranges that
+overlap the requested half-open interval; a lone `source_offset` selects ranges
+containing that byte. Unlocated items remain visible in an unfiltered query.
+Other filters and empty/reversed intervals refuse instead of silently returning
+unrelated items. This is review navigation, not additional code/data admission.
+
 `query --kind field_gaps` pages the native unresolved field-access records
 directly. Source coordinates, `struct_name` and `field_offset` filter the same
 identities exposed by `fields`; resolved accesses and listing materialization are
