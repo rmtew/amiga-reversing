@@ -1299,14 +1299,42 @@ SG2Volcano_SIZEOF EQU __RS
 
 ; STRUCT SG2PirateShip
     RSRESET
-    RS.B 32
-SG2PirateShip_motion_vector_scale RS.W 1
-    RS.B 2
+    RS.B 36
 SG2PirateShip_raid_approach_updates_or_negative RS.W 1
 SG2PirateShip_raid_attempt_mod8_index RS.W 1
 SG2PirateShip_paired_heading_rotation_step RS.W 1
     RS.B 26
 SG2PirateShip_SIZEOF EQU __RS
+
+; STRUCT SG2MotionVectorActor
+    RSRESET
+    RS.B 32
+SG2MotionVectorActor_motion_vector_scale RS.W 1
+    RS.B 34
+SG2MotionVectorActor_SIZEOF EQU __RS
+
+; STRUCT SG2TimedMotionActor
+    RSRESET
+    RS.B 36
+SG2TimedMotionActor_remaining_updates RS.W 1
+    RS.B 30
+SG2TimedMotionActor_SIZEOF EQU __RS
+
+; STRUCT SG2BouncingBomb
+    RSRESET
+    RS.B 34
+SG2BouncingBomb_vertex_cycle_phase RS.W 1
+    RS.B 2
+SG2BouncingBomb_vertex_cycle_mask RS.W 1
+    RS.B 28
+SG2BouncingBomb_SIZEOF EQU __RS
+
+; STRUCT SG2NeutronBomb
+    RSRESET
+    RS.B 31
+SG2NeutronBomb_released_motion_negative_flag RS.B 1
+    RS.B 36
+SG2NeutronBomb_SIZEOF EQU __RS
 
 ADKF_CLRALL	EQU	$7FFF
 BPLCON2_PF2P2	EQU	$20
@@ -9276,7 +9304,7 @@ abs_0_00007954:
 	movea.l -(a1),a2
 	move.l a1,free_object_stack_cursor(a6)
 	subq.w #1,free_object_count(a6)
-    ; KNOWN: type A2=Target code-entry register seed:SG2WorldObject
+    ; KNOWN: type A2=Target code-entry register seed:SG2BouncingBomb
 	move.w #$5B,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
 	bsr.w initialize_launched_bomb_header
 	move.w #$1E,SG2WorldObject_velocity_y(a2)
@@ -9355,38 +9383,40 @@ abs_0_00007A6A:
 	bsr.w enqueue_unique_message_pointer
 	bsr.w abs_0_00007FB4
 	rts
+    ; KNOWN: type A2=Target code-entry register seed:SG2TimedMotionActor
 initialize_launched_bomb_header:
 	st.b $0022(a2)
 	move.b #$5,SG2TargetingObject_model_scale_shift(a2)
 	clr.b SG2WorldObject_vertex_variant_selector(a2)
 	move.b #$FF,SG2ObjectCore_retirement_phase_or_negative(a2)
 	move.b #$1,SG2ObjectCore_durability_or_negative(a2)
+    ; KNOWN: type A2=Target code-entry register seed:SG2TimedMotionActor
 initialize_player_launched_bomb_motion:
-	move.w #$3E8,$0024(a2)
+	move.w #$3E8,SG2TimedMotionActor_remaining_updates(a2)
 	move.w #$0,$0026(a2)
-	move.l player_world_x(a6),$0004(a2)
-	move.l player_world_z(a6),$000C(a2)
-	move.l player_world_y(a6),$0008(a2)
-	move.w player_rotation_0(a6),$0010(a2)
-	move.w player_rotation_1(a6),$0012(a2)
-	move.w player_rotation_2(a6),$0014(a2)
+	move.l player_world_x(a6),SG2ObjectCore_world_x(a2)
+	move.l player_world_z(a6),SG2ObjectCore_world_z(a2)
+	move.l player_world_y(a6),SG2ObjectCore_world_y(a2)
+	move.w player_rotation_0(a6),SG2WorldObject_rotation_0(a2)
+	move.w player_rotation_1(a6),SG2WorldObject_rotation_1(a2)
+	move.w player_rotation_2(a6),SG2WorldObject_rotation_2(a2)
 	move.w player_speed_smoothed(a6),d4
 	addi.w #200,d4
-	move.w d4,$0020(a2)
-	move.w $0020(a2),d3
+	move.w d4,SG2MotionVectorActor_motion_vector_scale(a2)
+	move.w SG2MotionVectorActor_motion_vector_scale(a2),d3
 	bsr.w abs_0_00007FC0
-	move.w d4,$002C(a2)
-	move.w d5,$002E(a2)
-	move.w d6,$0030(a2)
+	move.w d4,SG2WorldObject_velocity_x(a2)
+	move.w d5,SG2WorldObject_velocity_y(a2)
+	move.w d6,SG2WorldObject_velocity_z(a2)
 	ext.l d4
 	ext.l d5
 	ext.l d6
-	add.l d4,$0004(a2)
-	add.l d5,$0008(a2)
-	add.l d6,$000C(a2)
+	add.l d4,SG2ObjectCore_world_x(a2)
+	add.l d5,SG2ObjectCore_world_y(a2)
+	add.l d6,SG2ObjectCore_world_z(a2)
 	move.l horizontal_world_wrap_mask(a6),d0
-	and.l d0,$0004(a2)
-	and.l d0,$000C(a2)
+	and.l d0,SG2ObjectCore_world_x(a2)
+	and.l d0,SG2ObjectCore_world_z(a2)
 	rts
 abs_0_00007B22:
 	clr.w pending_message_count(a6)
@@ -10050,12 +10080,14 @@ abs_0_000085D0:
 	move.b #$DF,diagnostic_step_byte.l
 	bra.w abs_0_0000B452
 	dc.b $13,$FC,$00,$E0,$00,$00,$E1,$03,$60,$00,$2E,$F6
+    ; KNOWN: type A0=Target code-entry register seed:SG2BouncingBomb
 abs_0_000085E8:
 	move.b #$E1,diagnostic_step_byte.l
 	bra.w abs_0_0000B524
 abs_0_000085F4:
 	move.b #$E2,diagnostic_step_byte.l
 	bra.w abs_0_0000B4D0
+    ; KNOWN: type A0=Target code-entry register seed:SG2NeutronBomb
 abs_0_00008600:
 	move.b #$E3,diagnostic_step_byte.l
 	bra.w abs_0_0000B44C
@@ -43020,13 +43052,13 @@ abs_0_00033076:
 	subq.w #1,d0
 	movea.l nearby_objects_cursor(a6),a0
 	movea.l (a0)+,a2
-    ; KNOWN: type A2=Target code-entry register seed:SG2WorldObject
+    ; KNOWN: type A2=Target code-entry register seed:SG2NeutronBomb
 abs_0_00033084:
 	move.w #$62,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
 	bsr.w abs_0_00039D4A
 	move.l carried_neutron_bomb_y_offset.l,d0
 	add.l d0,SG2ObjectCore_world_y(a2)
-	sf.b $001F(a2)
+	sf.b SG2NeutronBomb_released_motion_negative_flag(a2)
 	move.l a2,carried_neutron_bomb_reference(a6)
 abs_0_0003309E:
 	tst.b neutron_bomb_retract_request(a6)
@@ -43584,11 +43616,11 @@ abs_0_00033896:
 	bsr.w enqueue_message_if_outside_structure
 	move.w #$F,pirate_warning_cooldown_or_negative.l
 abs_0_000338C0:
-	move.w SG2PirateShip_motion_vector_scale(a4),d0
+	move.w SG2MotionVectorActor_motion_vector_scale(a4),d0
 	add.w d0,d0
 	add.w d0,d0
 	add.w d0,d0
-	move.w d0,SG2PirateShip_motion_vector_scale(a4)
+	move.w d0,SG2MotionVectorActor_motion_vector_scale(a4)
 	bsr.w abs_0_00039D20
 	andi.w #511,d0
 	addi.w #64,d0
@@ -47019,19 +47051,19 @@ abs_0_000366E0:
 abs_0_000366E2:
 	dbf.w d7,abs_0_0003664E
 	rts
-    ; KNOWN: type A0=Target code-entry register seed:SG2WorldObject
+    ; KNOWN: type A0=Target code-entry register seed:SG2NeutronBomb
 update_nearby_neutron_bomb:
 	move.b #$56,diagnostic_step_byte.l
 	bsr.w advance_neutron_bomb_state
 	bra.w abs_0_00039D56
-    ; KNOWN: type A0=Target code-entry register seed:SG2WorldObject
+    ; KNOWN: type A0=Target code-entry register seed:SG2NeutronBomb
 update_distant_neutron_bomb:
 	move.b #$57,diagnostic_step_byte.l
 	bsr.w advance_neutron_bomb_state
 	bra.w abs_0_00039D3E
-    ; KNOWN: type A0=Target code-entry register seed:SG2WorldObject
+    ; KNOWN: type A0=Target code-entry register seed:SG2NeutronBomb
 advance_neutron_bomb_state:
-	tst.b $001F(a0)
+	tst.b SG2NeutronBomb_released_motion_negative_flag(a0)
 	bpl.w abs_0_000367BA
 	move.w SG2WorldObject_velocity_x(a0),d3
 	ext.l d3
@@ -47077,7 +47109,7 @@ abs_0_0003675A:
 	sub.l d1,SG2ObjectCore_world_y(a0)
 	sub.l d2,SG2ObjectCore_world_z(a0)
 abs_0_000367AA:
-	subq.w #1,$0024(a0)
+	subq.w #1,SG2TimedMotionActor_remaining_updates(a0)
 	bpl.b abs_0_000367B8
 abs_0_000367B0:
 	clr.b SG2ObjectCore_retirement_phase_or_negative(a0)
@@ -47139,17 +47171,17 @@ abs_0_00036884:
 	adda.w #$44,a0
 	dbf.w d0,abs_0_0003687A
 	rts
-    ; KNOWN: type A0=Target code-entry register seed:SG2WorldObject
+    ; KNOWN: type A0=Target code-entry register seed:SG2BouncingBomb
 update_nearby_bouncing_bomb:
 	move.b #$91,diagnostic_step_byte.l
 	bsr.w advance_bouncing_bomb_state
 	bra.w abs_0_00039D56
-    ; KNOWN: type A0=Target code-entry register seed:SG2WorldObject
+    ; KNOWN: type A0=Target code-entry register seed:SG2BouncingBomb
 update_distant_bouncing_bomb:
 	move.b #$92,diagnostic_step_byte.l
 	bsr.w advance_bouncing_bomb_state
 	bra.w abs_0_00039D3E
-    ; KNOWN: type A0=Target code-entry register seed:SG2WorldObject
+    ; KNOWN: type A0=Target code-entry register seed:SG2BouncingBomb
 advance_bouncing_bomb_state:
 	tst.b space_environment_flag(a6)
 	bmi.w abs_0_00036934
@@ -47165,21 +47197,21 @@ advance_bouncing_bomb_state:
 	add.l d3,SG2ObjectCore_world_y(a0)
 	cmpi.l #4294967271,SG2ObjectCore_world_y(a0)
 	bmi.w abs_0_00036934
-	addq.w #3,$0026(a0)
+	addq.w #3,SG2BouncingBomb_vertex_cycle_mask(a0)
 	move.w SG2WorldObject_velocity_y(a0),d3
 	subi.w #10,d3
 	neg.w d3
 	move.w d3,SG2WorldObject_velocity_y(a0)
 	ext.l d3
 	add.l d3,SG2ObjectCore_world_y(a0)
-	subi.w #20,$0020(a0)
+	subi.w #20,SG2MotionVectorActor_motion_vector_scale(a0)
 	bpl.b abs_0_0003691A
-	move.w #$0,$0020(a0)
+	move.w #$0,SG2MotionVectorActor_motion_vector_scale(a0)
 	move.w #$0,SG2WorldObject_velocity_x(a0)
 	move.w #$0,SG2WorldObject_velocity_z(a0)
 	bra.w abs_0_00036934
 abs_0_0003691A:
-	move.w $0020(a0),d3
+	move.w SG2MotionVectorActor_motion_vector_scale(a0),d3
 	bsr.w build_object_motion_vector_from_rotation
 	move.w d4,SG2WorldObject_velocity_x(a0)
 	move.w d6,SG2WorldObject_velocity_z(a0)
@@ -47196,7 +47228,7 @@ abs_0_00036934:
 	move.l horizontal_world_wrap_mask(a6),d3
 	and.l d3,SG2ObjectCore_world_x(a0)
 	and.l d3,SG2ObjectCore_world_z(a0)
-	tst.w $0020(a0)
+	tst.w SG2MotionVectorActor_motion_vector_scale(a0)
 	bne.b abs_0_00036974
 	cmpi.l #4294967271,SG2ObjectCore_world_y(a0)
 	bmi.b abs_0_00036974
@@ -47204,11 +47236,11 @@ abs_0_00036934:
 	move.b #$0,SG2ObjectCore_retirement_phase_or_negative(a0)
 	rts
 abs_0_00036974:
-	subq.w #1,$0024(a0)
+	subq.w #1,SG2TimedMotionActor_remaining_updates(a0)
 	bmi.b abs_0_00036998
-	move.w $0026(a0),d0
-	addq.w #1,$0022(a0)
-	and.w d0,$0022(a0)
+	move.w SG2BouncingBomb_vertex_cycle_mask(a0),d0
+	addq.w #1,SG2BouncingBomb_vertex_cycle_phase(a0)
+	and.w d0,SG2BouncingBomb_vertex_cycle_phase(a0)
 	bne.b abs_0_00036996
 	subi.b #1,SG2WorldObject_vertex_variant_selector(a0)
 	bpl.b abs_0_00036996
@@ -47493,7 +47525,7 @@ update_nearby_pirate_ship:
 	move.l horizontal_world_wrap_mask(a6),d3
 	and.l d3,SG2ObjectCore_world_x(a0)
 	and.l d3,SG2ObjectCore_world_z(a0)
-	move.w SG2PirateShip_motion_vector_scale(a0),d3
+	move.w SG2MotionVectorActor_motion_vector_scale(a0),d3
 	bsr.w build_object_motion_vector_from_rotation
 	move.w d4,SG2WorldObject_velocity_x(a0)
 	move.w d5,SG2WorldObject_velocity_y(a0)
