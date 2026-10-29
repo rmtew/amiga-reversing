@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
   "kind": "committed_native_rendered_original_export",
-  "canonical_source_commit": "7f4d1531fa74db875dd1c07ede0453142f1db20b",
-  "publication_base_commit": "7f4d1531fa74db875dd1c07ede0453142f1db20b",
+  "canonical_source_commit": "4b1f40f17e884df959299521761dc9f4dbf7c045",
+  "publication_base_commit": "4b1f40f17e884df959299521761dc9f4dbf7c045",
   "native_export": "CListingArtifact.source_package_payload(64)",
-  "main_source_sha256": "eba45ff3024fdd25f8296423723bd245b2e9296971fb5a50bc3556db07ce5a1d",
+  "main_source_sha256": "b8f42710b1b417a179beb4bf9e3562221c7e68727dd280a838e3cf292b4bfa8c",
   "asset_count": 57,
   "asset_bytes": 93633,
   "game_assembly_hand_edits": false,
@@ -24,13 +24,13 @@
     "assembler executable",
     "paused Pandora work"
   ],
-  "canonical_source_commit_role": "publication base; reviewed fragment, asteroid and spheroid producer contracts are bound by canonical facts and verification",
-  "canonical_source_subject_revision": "12d333d5f1ef873749acca8997c30d6188404ca16d0b3e9d30ffb1faff2fcfa5",
+  "canonical_source_commit_role": "publication base; reviewed Emma2 radio state and complete source-record collection projection are bound by canonical facts and verification",
+  "canonical_source_subject_revision": "21bc5ff540b53fe4e84d25ff58f6ab4a3af3a40937f941351ca5419dbe1346db",
   "canonical_fact_sha256": {
     "source_binary.json": "42d4a5758b3e8236af7f912aee85e9ee5323bcd0961faa338c4f864080a0a7d9",
     "target_metadata.json": "e7540b68c118c56aba8815b6722eefa067517cc865fe9841d6c01ce96551389c",
-    "manual_actions.jsonl": "c10d1442ac4f27c03c06a713b8ac02dbeec2bc16e10b2396bba705d4bbb0230d",
-    "decision_journal.jsonl": "818e1f4a89354f8b9f03f77daf575f87a849c5c98fa720ff57aea67dde07a848"
+    "manual_actions.jsonl": "6152ea6421dcd73661dca33b1a5e1e35597ea7f74ee660ac5603a72850279301",
+    "decision_journal.jsonl": "7389311b361ad04e9d183fba28b49aac0bf60280babff2061b753ae5c98bc241"
   },
   "headers": "14 unmodified required include files collected by source_package.collect_package_includes from ext/amiga_includes/ndk_2.0/include; header notices retained",
   "decoded_protection_view": {
@@ -46,5 +46,5 @@
     },
     "runtime_scope": "Seven CPU write-site windows match this reversible view; no whole runtime-view identity or parent plaintext promotion."
   },
-  "verification_receipt_id": "0607c8d48ae887bfcec790dca07c4eca53ba84edc5676357a0133ef21cd6de50"
+  "verification_receipt_id": "61ae2c506bed6a0ba69910f5744517bddcefa0286a9ecdd92361a3f6fc3f3954"
 }

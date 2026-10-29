@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "source_commit": "7f4d1531fa74db875dd1c07ede0453142f1db20b",
+  "source_commit": "4b1f40f17e884df959299521761dc9f4dbf7c045",
   "source_assembly": "starglider2_game.s",
   "assets": [
     {
@@ -878,13 +878,13 @@
     },
     {
       "path": "rendered-provenance.json",
-      "bytes": 3014,
-      "sha256": "856264daf5dbfe6806d30a3c25b8fe710f70510859ca3294275ac90f3f8b539c"
+      "bytes": 3030,
+      "sha256": "8e81f79c0a319f759af0ae508f41d963ebc6c4b710ee3a215b696d5e8c184146"
     },
     {
       "path": "starglider2_game.s",
-      "bytes": 2000166,
-      "sha256": "eba45ff3024fdd25f8296423723bd245b2e9296971fb5a50bc3556db07ce5a1d"
+      "bytes": 2000772,
+      "sha256": "b8f42710b1b417a179beb4bf9e3562221c7e68727dd280a838e3cf292b4bfa8c"
     },
     {
       "path": "tools/starglider2_protection.py",
@@ -892,6 +892,6 @@
       "sha256": "81d3f66d36dbfbd5c77238b20c28e8b9abaa329777eb91f64669bbbf13703582"
     }
   ],
-  "source_commit_role": "publication base; reviewed fragment, asteroid and spheroid producer contracts are bound by verification_receipt_id",
-  "source_subject_revision": "12d333d5f1ef873749acca8997c30d6188404ca16d0b3e9d30ffb1faff2fcfa5"
+  "source_commit_role": "publication base; reviewed Emma2 radio state and complete source-record collection projection are bound by verification_receipt_id",
+  "source_subject_revision": "21bc5ff540b53fe4e84d25ff58f6ab4a3af3a40937f941351ca5419dbe1346db"
 }

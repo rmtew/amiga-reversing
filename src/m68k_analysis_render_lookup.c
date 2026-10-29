@@ -2338,23 +2338,54 @@ static int static_array_candidate_compare(const void *left, const void *right) {
   return a->struct_id < b->struct_id ? -1 : a->struct_id != b->struct_id;
 }
 
+/* Rendering may expose a record as individual fields. Validate those fields
+ * against their declared record coordinates, not against the first leaf's
+ * width/type. A presentation choice must not change the array contract. */
 static int static_array_leaf_matches(const M68kAnalysisPolicy *policy,
     const M68kAnalysisStructuredDataItem *root, uint16_t struct_id,
     const M68kAnalysisStructuredDataItem *leaf) {
+  const M68kAnalysisCustomStruct *record = lookup_policy_custom_struct_by_id(policy, struct_id);
+  const M68kAnalysisCustomStructField *field = NULL;
   uint32_t field_offset = UINT32_MAX;
   uint16_t leaf_id = leaf->struct_id != AMIGA_OS_STRUCT_ID_NONE ? leaf->struct_id :
     lookup_policy_struct_id_by_name(policy, leaf->struct_name);
-  return !leaf->table_conflicted &&
-    (!root->is_pointer || leaf->table_kind_id == M68K_ANALYSIS_TABLE_KIND_UNKNOWN ||
+  size_t i;
+  if (!record || !record->size || leaf->offset < root->offset || leaf->table_conflicted ||
+      leaf_id != struct_id || !lookup_policy_static_data_field_offset(policy, struct_id, leaf,
+        (uint16_t)record->size, &field_offset) ||
+      field_offset != (leaf->offset - root->offset) % record->size) return 0;
+  for (i = 0U; i < record->field_count; ++i)
+    if (record->fields[i].offset == field_offset && !strcmp(record->fields[i].name, leaf->field_name)) {
+      field = &record->fields[i]; break;
+    }
+  return field && leaf->size == field->size &&
+    leaf->kind == (field->size == 1U ? M68K_ANALYSIS_STRUCTURED_DATA_BYTES :
+      field->size == 2U ? M68K_ANALYSIS_STRUCTURED_DATA_WORDS : M68K_ANALYSIS_STRUCTURED_DATA_LONGS) &&
+    m68k_ascii_equal_ci(leaf->field_type, field->type_name) &&
+    leaf->is_pointer == (field->value_kind != M68K_ANALYSIS_STRUCT_FIELD_VALUE_SCALAR) &&
+    (!leaf->is_pointer || leaf->table_kind_id == M68K_ANALYSIS_TABLE_KIND_UNKNOWN ||
       leaf->table_kind_id == M68K_ANALYSIS_TABLE_KIND_POINTER) &&
-    leaf_id == struct_id && leaf->size == root->size &&
-    leaf->kind == root->kind && leaf->is_pointer == root->is_pointer &&
-    leaf->pointer_address_domain == root->pointer_address_domain &&
-    !strcmp(leaf->pointer_struct, root->pointer_struct) &&
-    !strcmp(leaf->pointer_symbol_group, root->pointer_symbol_group) &&
-    !strcmp(leaf->field_name, root->field_name) &&
-    lookup_policy_static_data_field_offset(policy, struct_id, leaf, (uint16_t)root->size, &field_offset) &&
-    field_offset == 0U;
+    leaf->pointer_address_domain == field->pointer_address_domain &&
+    !strcmp(leaf->pointer_struct, field->pointer_struct) &&
+    !strcmp(leaf->pointer_symbol_group, field->pointer_symbol_group);
+}
+
+/* This first generalization admits flat, tightly packed primitive records.
+ * Padding/nesting/inheritance require their own coverage proof; sum alone is
+ * insufficient, so the source-ordered member sweep below also checks every
+ * physical byte and declared field coordinate. */
+static int static_array_record_supported(const M68kAnalysisCustomStruct *record) {
+  uint64_t total = 0U;
+  size_t i;
+  if (!record || !record->field_count || !record->size || record->size > UINT16_MAX) return 0;
+  for (i = 0U; i < record->field_count; ++i) {
+    const M68kAnalysisCustomStructField *field = &record->fields[i];
+    if ((field->size != 1U && field->size != 2U && field->size != 4U) ||
+        field->struct_name[0] || !strcmp(field->type_name, "STRUCT") ||
+        (uint64_t)field->offset + field->size > record->size) return 0;
+    total += field->size;
+  }
+  return total == record->size;
 }
 
 /* A raw container may coexist with its subsequently typed fields. It carries
@@ -2371,7 +2402,7 @@ static int static_data_item_is_raw_container(const M68kAnalysisStructuredDataIte
     item->pointer_address_domain == M68K_ANALYSIS_POINTER_DOMAIN_LEGACY;
 }
 
-/* One source-ordered pointer index and sparse derived views per immutable
+/* One source-ordered field index and sparse derived views per immutable
  * lookup. No per-node slot arrays, repeated policy replay or new transfer
  * engine: the existing typed array count/index/cursor carries the result. */
 static int render_lookup_build_static_record_arrays(M68kRenderLookup *lookup) {
@@ -2396,20 +2427,14 @@ static int render_lookup_build_static_record_arrays(M68kRenderLookup *lookup) {
     items[item_count++] = item;
     if (!item->has_source_owner_span || item->source_owner_start != item->offset ||
         (item->size != 1U && item->size != 2U && item->size != 4U) ||
-        item->source_owner_size <= item->size || item->source_owner_size % item->size ||
-        item->source_owner_size / item->size > UINT16_MAX ||
         item->section_index >= lookup->object->section_count ||
         item->offset > lookup->object->sections[item->section_index].size ||
         item->source_owner_size > lookup->object->sections[item->section_index].size - item->offset) continue;
     struct_id = item->struct_id != AMIGA_OS_STRUCT_ID_NONE ? item->struct_id :
       lookup_policy_struct_id_by_name(policy, item->struct_name);
     record = lookup_policy_custom_struct_by_id(policy, struct_id);
-    if (!record || record->size != item->size || record->field_count != 1U ||
-        record->fields[0].struct_name[0] || !strcmp(record->fields[0].type_name, "STRUCT") ||
-        item->is_pointer != (record->fields[0].value_kind != M68K_ANALYSIS_STRUCT_FIELD_VALUE_SCALAR) ||
-        item->pointer_address_domain != record->fields[0].pointer_address_domain ||
-        strcmp(item->pointer_struct, record->fields[0].pointer_struct) ||
-        strcmp(item->pointer_symbol_group, record->fields[0].pointer_symbol_group) ||
+    if (!static_array_record_supported(record) || item->source_owner_size <= record->size ||
+        item->source_owner_size % record->size || item->source_owner_size / record->size > UINT16_MAX ||
         !static_array_leaf_matches(policy, item, struct_id, item)) continue;
     candidates[candidate_count].owner = item;
     candidates[candidate_count++].struct_id = struct_id;
@@ -2465,7 +2490,7 @@ static int render_lookup_build_static_record_arrays(M68kRenderLookup *lookup) {
       }
       if (leaf->offset == previous) continue; /* compatible physical alias */
       previous = expected;
-      expected += root->size;
+      expected += leaf->size;
     }
     if (valid && expected != end) { valid = 0; reason = "incomplete_tail"; }
     if (getenv("AMIGA_REVERSING_PROFILE_TYPED_SOURCE_ARRAYS"))
@@ -2475,7 +2500,7 @@ static int render_lookup_build_static_record_arrays(M68kRenderLookup *lookup) {
     if (valid) {
       M68kRenderStaticRecordArray *view = &lookup->static_record_arrays[lookup->static_record_array_count++];
       view->section_index = root->section_index; view->offset = root->offset; view->size = root->source_owner_size;
-      view->struct_id = candidate->struct_id; view->element_count = (uint16_t)(view->size / root->size);
+      view->struct_id = candidate->struct_id; view->element_count = (uint16_t)(view->size / lookup_policy_struct_size_by_id(policy, candidate->struct_id));
     }
   }
   if (getenv("AMIGA_REVERSING_PROFILE_TYPED_SOURCE_ARRAYS"))

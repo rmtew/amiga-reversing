@@ -20,7 +20,7 @@ An on-demand systematic gap inventory (`amiga_reversing/tools/source_gap_invento
 joins native identities/accesses with canonical layouts and actual rendered
 boundaries. It records 67 suffix signals (including numeric adjacent variants),
 21 lookup contracts, 462 remaining interior references, 31 generic app fields
-and 179 unresolved record accesses. These are different denominators. Five
+and 177 unresolved record accesses. These are different denominators. Five
 suffixes name routines and one names text; neither is a pointer defect.
 Current restored object contracts connect original update/initializer directories,
 literal-tag producers and reviewed forwarding paths. Walking, flying, mechanical,
@@ -32,7 +32,32 @@ The energy-tower initializer's World chain view stays distinct from its updater
 view. Packed-header normalization, signed comparisons, wrap, PRNG transforms,
 nullable/sentinel links and unknown constructor parameters remain unchanged.
 
-The latest construction-phase batch joins two energy-spheroid producers, the
+The current Emma2 transport view connects the original type 8 initializer and
+explicit type 8 radio/boarding cases to the existing model name and radio texts.
+It adds 6 typed accesses and resolves 2 recorded gaps: **3503 app /2623 typed /177
+unresolved**. Its radio-enable byte and modulo 16 message phase are local roles;
+the same physical byte +$22 has different established roles in other actors.
+The initializer now uses a Scheduled transport view rather than inheriting an
+unverified proximity-evasion field. Two motion-scale accesses change owner from
+EvasiveActor to EmmaTransport with identical name, offset and width. Original
+conditions, values and service-call timing remain unchanged; no runtime coverage
+is added. Current C/vasm and clean standalone output are byte exact.
+
+Native source collection recovery now validates complete flat, tightly packed
+multi-field records independently of `struct` versus `array` presentation. Mixed
+widths, pointer domains and compatible aliases are checked; missing, conflicting,
+crossing or mismatched declarations refuse collection bounds. The target admits
+143 collections from 155 candidates using 531008 index bytes and 11242 member visits.
+This proof repair alone changes no SGII source or access count. 104 focused checks
+and 832 native cases pass; two strict expected failures retain the distinct loop
+transport gap. Valid fixed/filtered three-record loops currently lose their
+record position at CFG joins, while a four-record overrun refuses typing. The
+real saved-record writer also has filtered 0/8-byte advances and a separate memory
+counter limiting writes to 20. Its next experiment needs a shared cursor/count
+invariant, not a per-reader seed or unbounded cursor normalization. Existing
+saved-record routine names and ownership were already meaningful and are retained.
+
+The preceding construction-phase batch joins two energy-spheroid producers, the
 asteroid constructor's earlier motion writes, and two bounded fragment/bomb
 producers to existing consumer schemas. Five register contracts and one fragment
 tag-table name recover **28 accesses**, with no new gaps or changed old field
@@ -95,7 +120,7 @@ reads remain unchanged; only the independently bounded destruction drop is typed
 
 The shared framework now preserves canonical inline-object types through LEA
 and existing register/stack transfers. Five matrix consumers gained45 accesses;
-49 focused Python checks and832 native cases passed. Pointer-cell addresses,
+49 focused Python checks and 832 native cases passed. Pointer-cell addresses,
 foreign bases, conflicting phase views and incomplete extents remain conservative.
 Direct PEA typed stack construction is still separate.
 
@@ -437,7 +462,7 @@ pointer displacements and predecrement, and refuses misaligned or conflicting
 reads. **266 typed coordinates recovered, none lost or changed**:261 Core fields
 and5 concrete ModelHeader entry47 reads. Counts are **3412 app references /
 1472 typed / 737 unresolved**. The313 additional unresolved coordinates expose
-variant field gaps; they are not newly resolved fields.120 focused and832 native
+variant field gaps; they are not newly resolved fields.120 focused and 832 native
 checks pass; original C/vasm and clean standalone bytes remain exact. No new
 all-count/bounds/lifetime or gameplay coverage is claimed. The separate104-header
 DBF source-table loop remains a concrete domain experiment, not a solved case.

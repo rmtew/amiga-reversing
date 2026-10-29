@@ -1359,6 +1359,15 @@ SG2GroundLaunchState_link_release_countdown RS.B 1
     RS.B 27
 SG2GroundLaunchState_SIZEOF EQU __RS
 
+; STRUCT SG2EmmaTransport
+    RSRESET
+    RS.B 31
+SG2EmmaTransport_taymar_radio_phase_mod16 RS.B 1
+SG2EmmaTransport_horizontal_motion_scale RS.W 1
+SG2EmmaTransport_taymar_radio_enabled_flag RS.B 1
+    RS.B 33
+SG2EmmaTransport_SIZEOF EQU __RS
+
 ADKF_CLRALL	EQU	$7FFF
 BPLCON2_PF2P2	EQU	$20
 BPLCON2_PF2PRI	EQU	$40
@@ -23940,7 +23949,7 @@ initialize_large_bird_pose_and_motion:
 	move.w #$FA,SG2EvasiveActor_horizontal_motion_scale(a0)
 	bset.b #5,SG2ObjectCore_flags(a0)
 	rts
-    ; KNOWN: type A0=Target code-entry register seed:SG2EvasiveActor
+    ; KNOWN: type A0=Target code-entry register seed:SG2EmmaTransport
 initialize_emma2_mission_dependent_motion:
 	bsr.w abs_0_00018968
 	andi.w #4095,d0
@@ -23955,15 +23964,15 @@ initialize_emma2_mission_dependent_motion:
 	bne.b abs_0_000182DC
 	bset.b #7,SG2ObjectCore_durability_or_negative(a0)
 	move.w #$7FFF,SG2ScheduledActor_behavior_update_counter(a0)
-	move.w #$FF38,SG2EvasiveActor_horizontal_motion_scale(a0)
-	st.b $0022(a0)
+	move.w #$FF38,SG2EmmaTransport_horizontal_motion_scale(a0)
+	st.b SG2EmmaTransport_taymar_radio_enabled_flag(a0)
 	sf.b abs_0_00018964.l
 	rts
 abs_0_000182DC:
 	bsr.w abs_0_00018968
 	move.w d0,SG2ScheduledActor_behavior_update_counter(a0)
-	move.w #$FE0C,SG2EvasiveActor_horizontal_motion_scale(a0)
-	sf.b $0022(a0)
+	move.w #$FE0C,SG2EmmaTransport_horizontal_motion_scale(a0)
+	sf.b SG2EmmaTransport_taymar_radio_enabled_flag(a0)
 	rts
     ; KNOWN: type A0=Target code-entry register seed:SG2EvasiveActor
 initialize_whale_and_duck_height_and_motion:
@@ -45656,10 +45665,11 @@ update_tractor_target_continuation:
 abs_0_00035320:
 	cmpi.w #8,(a0)
 	bne.b abs_0_0003539C
-	tst.b $0022(a0)
+    ; KNOWN: type A0=Target code-entry register seed:SG2EmmaTransport
+	tst.b SG2EmmaTransport_taymar_radio_enabled_flag(a0)
 	bpl.b abs_0_0003539C
-	addq.b #1,$001F(a0)
-	andi.b #15,$001F(a0)
+	addq.b #1,SG2EmmaTransport_taymar_radio_phase_mod16(a0)
+	andi.b #15,SG2EmmaTransport_taymar_radio_phase_mod16(a0)
 	bne.b abs_0_0003539C
 	lea.l event_message_pointers.l,a1
 	move.w #$1F,d0
@@ -45956,8 +45966,9 @@ abs_0_000356C8:
 abs_0_000356DE:
 	cmpi.w #8,(a0)
 	bne.b abs_0_000356EC
+    ; KNOWN: type A0=Target code-entry register seed:SG2EmmaTransport
 	st.b professor_taymar_aboard_flag(a6)
-	sf.b $0022(a0)
+	sf.b SG2EmmaTransport_taymar_radio_enabled_flag(a0)
 abs_0_000356EC:
 	lea.l model_type_population_counts(a6),a1
 	move.w (a0),d0
