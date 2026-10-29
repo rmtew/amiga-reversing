@@ -1160,6 +1160,21 @@ SG2EscapeCapsule_translation_stopped_flag RS.B 1
     RS.B 27
 SG2EscapeCapsule_SIZEOF EQU __RS
 
+; STRUCT SG2WalkingActor
+    RSRESET
+    RS.B 38
+SG2WalkingActor_heading_change_countdown_or_negative RS.W 1
+SG2WalkingActor_link_release_countdown RS.B 1
+    RS.B 27
+SG2WalkingActor_SIZEOF EQU __RS
+
+; STRUCT SG2VertexOscillator
+    RSRESET
+    RS.B 31
+SG2VertexOscillator_vertex_variant_step RS.B 1
+    RS.B 36
+SG2VertexOscillator_SIZEOF EQU __RS
+
 ADKF_CLRALL	EQU	$7FFF
 BPLCON2_PF2P2	EQU	$20
 BPLCON2_PF2PRI	EQU	$40
@@ -9355,7 +9370,7 @@ abs_0_0000800A:
 	jmp primary_object_update_offsets(pc,d1.w)
 primary_object_update_offsets:
 	dc.w abs_0_000081D2-primary_object_update_offsets	; 148 relative WORD type-update targets; conditional original type domain 0..147
-	dc.w abs_0_00008850-primary_object_update_offsets
+	dc.w update_walker_motion_and_attack_cadence-primary_object_update_offsets
 	dc.w update_proximity_mine_warning_and_damage-primary_object_update_offsets
 	dc.w update_egron_spire_collapse-primary_object_update_offsets
 	dc.w update_solar_converter_variant_and_chain-primary_object_update_offsets
@@ -9364,19 +9379,19 @@ primary_object_update_offsets:
 	dc.w force_large_bird_base_frame_then_update-primary_object_update_offsets
 	dc.w abs_0_00009500-primary_object_update_offsets
 	dc.w update_nearby_egron_land_tank-primary_object_update_offsets
-	dc.w abs_0_000094E6-primary_object_update_offsets
-	dc.w abs_0_00009390-primary_object_update_offsets
+	dc.w advance_mechanical_whale_vertex_cycle-primary_object_update_offsets
+	dc.w oscillate_duck_vertex_variant-primary_object_update_offsets
 	dc.w animate_nearby_homing_projectile-primary_object_update_offsets
 	dc.w update_shared_flying_actor-primary_object_update_offsets
 	dc.w update_escape_capsule_spin_and_motion-primary_object_update_offsets
-	dc.w abs_0_00008A74-primary_object_update_offsets
+	dc.w update_stomper_motion_and_attack_cadence-primary_object_update_offsets
 	dc.w update_shared_flying_actor-primary_object_update_offsets
-	dc.w abs_0_000092CC-primary_object_update_offsets
+	dc.w update_horatio_vertex_cycle_and_drag-primary_object_update_offsets
 	dc.w advance_large_transport_frame_then_update-primary_object_update_offsets
-	dc.w abs_0_00009EC8-primary_object_update_offsets
+	dc.w oscillate_pyramid_vertex_variant-primary_object_update_offsets
 	dc.w update_tunnel_sentinel_bounce_and_fire_gate-primary_object_update_offsets
 	dc.w update_shared_flying_actor-primary_object_update_offsets
-	dc.w abs_0_0000863C-primary_object_update_offsets
+	dc.w update_linked_tug_motion_and_retirement-primary_object_update_offsets
 	dc.w update_gbml_heading_and_target_scan-primary_object_update_offsets
 	dc.w abs_0_000081D2-primary_object_update_offsets
 	dc.w update_nearby_steered_projectile-primary_object_update_offsets
@@ -9384,7 +9399,7 @@ primary_object_update_offsets:
 	dc.w advance_starglider_frame_then_update-primary_object_update_offsets
 	dc.w update_shared_flying_actor-primary_object_update_offsets
 	dc.w update_mini_rocket_delay_then_fall-primary_object_update_offsets
-	dc.w abs_0_00008782-primary_object_update_offsets
+	dc.w copy_player_pose_to_icarus_object-primary_object_update_offsets
 	dc.w update_shared_flying_actor-primary_object_update_offsets
 	dc.w update_shared_flying_actor-primary_object_update_offsets
 	dc.w update_shared_flying_actor-primary_object_update_offsets
@@ -9398,7 +9413,7 @@ primary_object_update_offsets:
 	dc.w advance_space_ray_frame_then_update-primary_object_update_offsets
 	dc.w abs_0_000087BE-primary_object_update_offsets
 	dc.w abs_0_00008416-primary_object_update_offsets
-	dc.w abs_0_0000863C-primary_object_update_offsets
+	dc.w update_linked_tug_motion_and_retirement-primary_object_update_offsets
 	dc.w update_shared_flying_actor-primary_object_update_offsets
 	dc.w abs_0_0000A2C0-primary_object_update_offsets
 	dc.w abs_0_000084A8-primary_object_update_offsets
@@ -9918,14 +9933,15 @@ abs_0_00008618:
 	bra.w abs_0_0000B494
 	dc.b $13,$FC,$00,$E6,$00,$00,$E1,$03,$60,$00,$2E,$C0,$33,$EE,$07,$56
 	dc.b $00,$DF,$F1,$80,$60,$00,$FB,$98
-abs_0_0000863C:
-	move.w $002C(a0),d3
+    ; KNOWN: type A0=Target code-entry register seed:SG2WorldObject
+update_linked_tug_motion_and_retirement:
+	move.w SG2WorldObject_velocity_x(a0),d3
 	ext.l d3
 	add.l d3,SG2ObjectCore_world_x(a0)
-	move.w $002E(a0),d3
+	move.w SG2WorldObject_velocity_y(a0),d3
 	ext.l d3
 	add.l d3,SG2ObjectCore_world_y(a0)
-	move.w $0030(a0),d3
+	move.w SG2WorldObject_velocity_z(a0),d3
 	ext.l d3
 	add.l d3,SG2ObjectCore_world_z(a0)
 	move.l horizontal_world_wrap_mask(a6),d3
@@ -9939,18 +9955,18 @@ abs_0_0000863C:
 	bge.w abs_0_00008740
 	tst.b $0028(a0)
 	beq.w abs_0_000081D2
-	move.w $002C(a0),d0
+	move.w SG2WorldObject_velocity_x(a0),d0
 	beq.b abs_0_00008698
 	bsr.w abs_0_0000876E
-	move.w d0,$002C(a0)
+	move.w d0,SG2WorldObject_velocity_x(a0)
 abs_0_00008698:
-	move.w $002E(a0),d0
+	move.w SG2WorldObject_velocity_y(a0),d0
 	addi.w #1,d0
-	move.w d0,$002E(a0)
-	move.w $0030(a0),d0
+	move.w d0,SG2WorldObject_velocity_y(a0)
+	move.w SG2WorldObject_velocity_z(a0),d0
 	beq.w abs_0_000081D2
 	bsr.w abs_0_0000876E
-	move.w d0,$0030(a0)
+	move.w d0,SG2WorldObject_velocity_z(a0)
 	bra.w abs_0_000081D2
 abs_0_000086B8:
 	movea.l a0,a1
@@ -9972,9 +9988,9 @@ abs_0_000086D6:
 	move.l a1,free_object_stack_cursor(a6)
 	subq.w #1,free_object_count(a6)
 	move.l #$FFFFFFFF,$003C(a2)
-	move.w $002C(a0),$002C(a2)
-	move.w $002E(a0),$002E(a2)
-	move.w $0030(a0),$0030(a2)
+	move.w SG2WorldObject_velocity_x(a0),$002C(a2)
+	move.w SG2WorldObject_velocity_y(a0),$002E(a2)
+	move.w SG2WorldObject_velocity_z(a0),$0030(a2)
 	move.l SG2ObjectCore_world_x(a0),SG2ObjectCore_world_x(a2)
 	move.l SG2ObjectCore_world_y(a0),SG2ObjectCore_world_y(a2)
 	move.l SG2ObjectCore_world_z(a0),SG2ObjectCore_world_z(a2)
@@ -9990,12 +10006,12 @@ abs_0_000086D6:
 abs_0_00008740:
 	clr.b SG2ObjectCore_retirement_phase_or_negative(a0)
 	clr.b SG2ObjectCore_durability_or_negative(a0)
-	movea.l $003C(a0),a4
+	movea.l SG2WorldObject_linked_record_or_sentinel(a0),a4
 	cmpa.l #$0,a4
 	beq.b abs_0_00008758
 	clr.l $0038(a4)
 abs_0_00008758:
-	movea.l $0038(a0),a4
+	movea.l SG2WorldObject_back_link_or_sentinel(a0),a4
 	cmpa.l #$0,a4
 	beq.w abs_0_000081D2
 	clr.l $003C(a4)
@@ -10013,13 +10029,14 @@ abs_0_0000877A:
 	clr.w d0
 abs_0_00008780:
 	rts
-abs_0_00008782:
+    ; KNOWN: type A0=Target code-entry register seed:SG2WorldObject
+copy_player_pose_to_icarus_object:
 	move.l player_world_x(a6),SG2ObjectCore_world_x(a0)
 	move.l player_world_y(a6),SG2ObjectCore_world_y(a0)
 	move.l player_world_z(a6),SG2ObjectCore_world_z(a0)
-	move.w player_rotation_0(a6),$0010(a0)
-	move.w player_rotation_1(a6),$0012(a0)
-	move.w player_rotation_2(a6),$0014(a0)
+	move.w player_rotation_0(a6),SG2WorldObject_rotation_0(a0)
+	move.w player_rotation_1(a6),SG2WorldObject_rotation_1(a0)
+	move.w player_rotation_2(a6),SG2WorldObject_rotation_2(a0)
 	bra.w abs_0_000081D2
 abs_0_000087AA:
 	subq.b #1,$0026(a0)
@@ -10068,16 +10085,17 @@ abs_0_0000882E:
 abs_0_00008846:
 	addi.w #112,$0012(a0)
 	bra.w abs_0_000081D2
-abs_0_00008850:
-	subq.w #1,$0024(a0)
+    ; KNOWN: type A0=Target code-entry register seed:SG2WalkingActor
+update_walker_motion_and_attack_cadence:
+	subq.w #1,SG2ScheduledActor_behavior_update_counter(a0)
 	cmpi.b #6,SG2ObjectCore_durability_or_negative(a0)
 	beq.w abs_0_00008888
-	addq.b #1,$0003(a0)
-	move.w #$FFFF,$0026(a0)
-	move.w $002C(a0),d3
+	addq.b #1,SG2WorldObject_vertex_variant_selector(a0)
+	move.w #$FFFF,SG2WalkingActor_heading_change_countdown_or_negative(a0)
+	move.w SG2WorldObject_velocity_x(a0),d3
 	ext.l d3
 	add.l d3,SG2ObjectCore_world_x(a0)
-	move.w $0030(a0),d3
+	move.w SG2WorldObject_velocity_z(a0),d3
 	ext.l d3
 	add.l d3,SG2ObjectCore_world_z(a0)
 	move.l horizontal_world_wrap_mask(a6),d3
@@ -10085,32 +10103,32 @@ abs_0_00008850:
 	and.l d3,SG2ObjectCore_world_z(a0)
 abs_0_00008888:
 	movea.l player_object_reference(a6),a4
-	addq.b #1,$0003(a0)
-	cmpi.b #22,$0003(a0)
+	addq.b #1,SG2WorldObject_vertex_variant_selector(a0)
+	cmpi.b #22,SG2WorldObject_vertex_variant_selector(a0)
 	ble.w abs_0_0000889E
-	sf.b $0003(a0)
+	sf.b SG2WorldObject_vertex_variant_selector(a0)
 abs_0_0000889E:
-	tst.b $0028(a0)
+	tst.b SG2WalkingActor_link_release_countdown(a0)
 	beq.b abs_0_00008908
-	subq.b #1,$0028(a0)
+	subq.b #1,SG2WalkingActor_link_release_countdown(a0)
 	bne.b abs_0_000088BC
-	tst.l $003C(a0)
+	tst.l SG2WorldObject_linked_record_or_sentinel(a0)
 	beq.b abs_0_000088BC
-	movea.l $003C(a0),a2
-	clr.l $003C(a0)
+	movea.l SG2WorldObject_linked_record_or_sentinel(a0),a2
+	clr.l SG2WorldObject_linked_record_or_sentinel(a0)
 	clr.b $0028(a2)
 abs_0_000088BC:
-	move.w $002C(a0),d3
+	move.w SG2WorldObject_velocity_x(a0),d3
 	ext.l d3
 	add.l d3,SG2ObjectCore_world_x(a0)
-	move.w $0030(a0),d3
+	move.w SG2WorldObject_velocity_z(a0),d3
 	ext.l d3
 	add.l d3,SG2ObjectCore_world_z(a0)
 	move.l horizontal_world_wrap_mask(a6),d3
 	and.l d3,SG2ObjectCore_world_x(a0)
 	and.l d3,SG2ObjectCore_world_z(a0)
 	bsr.w heading_with_player_as_reference
-	move.w $0024(a0),d0
+	move.w SG2ScheduledActor_behavior_update_counter(a0),d0
 	st.b ai_type12_projectile_request(a6)
 	andi.b #31,d0
 	beq.w try_ai_projectile_attack_if_aligned
@@ -10121,16 +10139,16 @@ abs_0_000088BC:
 	beq.w abs_0_00009F02
 	bra.w abs_0_000081D2
 abs_0_00008908:
-	move.w $002C(a0),d3
+	move.w SG2WorldObject_velocity_x(a0),d3
 	ext.l d3
 	add.l d3,SG2ObjectCore_world_x(a0)
-	move.w $0030(a0),d3
+	move.w SG2WorldObject_velocity_z(a0),d3
 	ext.l d3
 	add.l d3,SG2ObjectCore_world_z(a0)
 	move.l horizontal_world_wrap_mask(a6),d3
 	and.l d3,SG2ObjectCore_world_x(a0)
 	and.l d3,SG2ObjectCore_world_z(a0)
-	move.w $0024(a0),d0
+	move.w SG2ScheduledActor_behavior_update_counter(a0),d0
 	st.b ai_type12_projectile_request(a6)
 	andi.b #63,d0
 	beq.w abs_0_00009248
@@ -10139,20 +10157,20 @@ abs_0_00008908:
 	beq.w abs_0_00009248
 	andi.b #15,d0
 	beq.w abs_0_00009F02
-	tst.w $0026(a0)
+	tst.w SG2WalkingActor_heading_change_countdown_or_negative(a0)
 	bmi.w blend_actor_toward_opposite_player_heading
 	beq.b abs_0_0000895C
-	subq.w #1,$0026(a0)
+	subq.w #1,SG2WalkingActor_heading_change_countdown_or_negative(a0)
 	bne.b abs_0_00008996
 abs_0_0000895C:
-	move.w $0032(a0),d2
+	move.w SG2WorldObject_pre_view_relative_x(a0),d2
 	sub.w $0032(a4),d2
 	bpl.b abs_0_00008968
 	neg.w d2
 abs_0_00008968:
 	cmp.w #$258,d2
 	ble.b abs_0_00008984
-	move.w $0036(a0),d2
+	move.w SG2WorldObject_pre_view_relative_z(a0),d2
 	sub.w $0036(a4),d2
 	bpl.b abs_0_0000897A
 	neg.w d2
@@ -10161,7 +10179,7 @@ abs_0_0000897A:
 	ble.b abs_0_00008984
 	bra.w blend_actor_toward_opposite_player_heading
 abs_0_00008984:
-	move.w #$32,$0026(a0)
+	move.w #$32,SG2WalkingActor_heading_change_countdown_or_negative(a0)
 	bsr.w heading_with_player_as_reference
 	addi.w #1024,d1
 	bra.w blend_actor_heading_and_clear_other_rotations
@@ -10228,51 +10246,52 @@ abs_0_00008A4E:
 abs_0_00008A6A:
 	move.b #$0,$0003(a0)
 	bra.w abs_0_00009500
-abs_0_00008A74:
-	subq.w #1,$0024(a0)
+    ; KNOWN: type A0=Target code-entry register seed:SG2WalkingActor
+update_stomper_motion_and_attack_cadence:
+	subq.w #1,SG2ScheduledActor_behavior_update_counter(a0)
 	movea.l player_object_reference(a6),a4
 	cmpi.b #6,SG2ObjectCore_durability_or_negative(a0)
 	beq.w abs_0_00008AB0
-	addq.b #1,$0003(a0)
-	move.w $002C(a0),d3
+	addq.b #1,SG2WorldObject_vertex_variant_selector(a0)
+	move.w SG2WorldObject_velocity_x(a0),d3
 	ext.l d3
 	add.l d3,SG2ObjectCore_world_x(a0)
-	move.w $0030(a0),d3
+	move.w SG2WorldObject_velocity_z(a0),d3
 	ext.l d3
 	add.l d3,SG2ObjectCore_world_z(a0)
 	move.l horizontal_world_wrap_mask(a6),d3
 	and.l d3,SG2ObjectCore_world_x(a0)
 	and.l d3,SG2ObjectCore_world_z(a0)
-	move.w #$FFFF,$0026(a0)
+	move.w #$FFFF,SG2WalkingActor_heading_change_countdown_or_negative(a0)
 abs_0_00008AB0:
-	addq.b #1,$0003(a0)
-	move.b $0003(a0),d0
+	addq.b #1,SG2WorldObject_vertex_variant_selector(a0)
+	move.b SG2WorldObject_vertex_variant_selector(a0),d0
 	cmp.b #$14,d0
 	ble.w abs_0_00008ACA
-	move.b #$0,$0003(a0)
+	move.b #$0,SG2WorldObject_vertex_variant_selector(a0)
 	bra.w abs_0_00008ACA
 abs_0_00008ACA:
-	tst.b $0028(a0)
+	tst.b SG2WalkingActor_link_release_countdown(a0)
 	beq.b abs_0_00008B2C
-	subq.b #1,$0028(a0)
+	subq.b #1,SG2WalkingActor_link_release_countdown(a0)
 	bne.b abs_0_00008AE8
-	tst.l $003C(a0)
+	tst.l SG2WorldObject_linked_record_or_sentinel(a0)
 	beq.b abs_0_00008AE8
-	movea.l $003C(a0),a2
-	clr.l $003C(a0)
+	movea.l SG2WorldObject_linked_record_or_sentinel(a0),a2
+	clr.l SG2WorldObject_linked_record_or_sentinel(a0)
 	clr.b $0028(a2)
 abs_0_00008AE8:
-	move.w $002C(a0),d3
+	move.w SG2WorldObject_velocity_x(a0),d3
 	ext.l d3
 	add.l d3,SG2ObjectCore_world_x(a0)
-	move.w $0030(a0),d3
+	move.w SG2WorldObject_velocity_z(a0),d3
 	ext.l d3
 	add.l d3,SG2ObjectCore_world_z(a0)
 	move.l horizontal_world_wrap_mask(a6),d3
 	and.l d3,SG2ObjectCore_world_x(a0)
 	and.l d3,SG2ObjectCore_world_z(a0)
 	bsr.w heading_with_player_as_reference
-	move.w $0024(a0),d0
+	move.w SG2ScheduledActor_behavior_update_counter(a0),d0
 	st.b ai_type12_projectile_request(a6)
 	andi.b #15,d0
 	beq.w spawn_ai_projectile_continuation
@@ -10281,36 +10300,36 @@ abs_0_00008AE8:
 	beq.w try_ai_projectile_attack_if_aligned
 	bra.w abs_0_000081D2
 abs_0_00008B2C:
-	move.w $002C(a0),d3
+	move.w SG2WorldObject_velocity_x(a0),d3
 	ext.l d3
 	add.l d3,SG2ObjectCore_world_x(a0)
-	move.w $0030(a0),d3
+	move.w SG2WorldObject_velocity_z(a0),d3
 	ext.l d3
 	add.l d3,SG2ObjectCore_world_z(a0)
 	move.l horizontal_world_wrap_mask(a6),d3
 	and.l d3,SG2ObjectCore_world_x(a0)
 	and.l d3,SG2ObjectCore_world_z(a0)
-	move.w $0024(a0),d0
+	move.w SG2ScheduledActor_behavior_update_counter(a0),d0
 	st.b ai_type12_projectile_request(a6)
 	andi.b #31,d0
 	beq.w abs_0_00009248
 	sf.b ai_type12_projectile_request(a6)
 	andi.b #15,d0
 	beq.w abs_0_00009248
-	tst.w $0026(a0)
+	tst.w SG2WalkingActor_heading_change_countdown_or_negative(a0)
 	bmi.w blend_actor_toward_opposite_player_heading
 	beq.b abs_0_00008B78
-	subq.w #1,$0026(a0)
+	subq.w #1,SG2WalkingActor_heading_change_countdown_or_negative(a0)
 	bne.b abs_0_00008BB2
 abs_0_00008B78:
-	move.w $0032(a0),d2
+	move.w SG2WorldObject_pre_view_relative_x(a0),d2
 	sub.w $0032(a4),d2
 	bpl.b abs_0_00008B84
 	neg.w d2
 abs_0_00008B84:
 	cmp.w #$23A,d2
 	ble.b abs_0_00008BA0
-	move.w $0036(a0),d2
+	move.w SG2WorldObject_pre_view_relative_z(a0),d2
 	sub.w $0036(a4),d2
 	bpl.b abs_0_00008B96
 	neg.w d2
@@ -10319,7 +10338,7 @@ abs_0_00008B96:
 	ble.b abs_0_00008BA0
 	bra.w blend_actor_toward_opposite_player_heading
 abs_0_00008BA0:
-	move.w #$3C,$0026(a0)
+	move.w #$3C,SG2WalkingActor_heading_change_countdown_or_negative(a0)
 	bsr.w heading_with_player_as_reference
 	addi.w #600,d1
 	bra.w blend_actor_heading_and_clear_other_rotations
@@ -10844,19 +10863,20 @@ abs_0_000092C4:
 	bra.w abs_0_000090B2
 abs_0_000092C8:
 	bra.w abs_0_000090B2
-abs_0_000092CC:
+    ; KNOWN: type A0=Target code-entry register seed:SG2WorldObject
+update_horatio_vertex_cycle_and_drag:
 	move.b #$16,diagnostic_step_byte.l
-	addq.b #1,$0003(a0)
-	move.b $0003(a0),d0
+	addq.b #1,SG2WorldObject_vertex_variant_selector(a0)
+	move.b SG2WorldObject_vertex_variant_selector(a0),d0
 	cmp.b #$9,d0
 	beq.b abs_0_000092F4
 	cmp.b #$A,d0
 	beq.b abs_0_000092F4
-	asr $0030(a0)
-	asr $002C(a0)
+	asr SG2WorldObject_velocity_z(a0)
+	asr SG2WorldObject_velocity_x(a0)
 	bra.w abs_0_00009500
 abs_0_000092F4:
-	clr.b $0003(a0)
+	clr.b SG2WorldObject_vertex_variant_selector(a0)
 	movea.l a0,a2
 	bsr.w abs_0_0000AE06
 	bra.w abs_0_00009500
@@ -10895,23 +10915,24 @@ abs_0_00009378:
 abs_0_00009386:
 	move.w #$FFC2,SG2WorldObject_velocity_y(a0)
 	bra.w abs_0_000081D2
-abs_0_00009390:
+    ; KNOWN: type A0=Target code-entry register seed:SG2VertexOscillator
+oscillate_duck_vertex_variant:
 	move.b #$17,diagnostic_step_byte.l
-	move.b $001F(a0),d3
+	move.b SG2VertexOscillator_vertex_variant_step(a0),d3
 	beq.w abs_0_000081D2
-	move.b $0003(a0),d0
+	move.b SG2WorldObject_vertex_variant_selector(a0),d0
 	add.b d3,d0
 	cmp.b #$0,d0
 	beq.b abs_0_000093BA
 	cmp.b #$7,d0
 	beq.b abs_0_000093C4
-	move.b d0,$0003(a0)
+	move.b d0,SG2WorldObject_vertex_variant_selector(a0)
 	bra.w abs_0_00009500
 abs_0_000093BA:
-	move.b #$1,$001F(a0)
+	move.b #$1,SG2VertexOscillator_vertex_variant_step(a0)
 	bra.w abs_0_000081D2
 abs_0_000093C4:
-	move.b #$FF,$001F(a0)
+	move.b #$FF,SG2VertexOscillator_vertex_variant_step(a0)
 	bra.w abs_0_00009500
     ; KNOWN: type A0=Target code-entry register seed:SG2ScheduledActor
 update_tunnel_sentinel_bounce_and_fire_gate:
@@ -10994,13 +11015,14 @@ abs_0_000094C6:
 	clr.l $003C(a0)
 	clr.b $0028(a2)
 	bra.b abs_0_00009500
-abs_0_000094E6:
+    ; KNOWN: type A0=Target code-entry register seed:SG2WorldObject
+advance_mechanical_whale_vertex_cycle:
 	move.b #$19,diagnostic_step_byte.l
-	addq.b #1,$0003(a0)
-	move.b $0003(a0),d0
+	addq.b #1,SG2WorldObject_vertex_variant_selector(a0)
+	move.b SG2WorldObject_vertex_variant_selector(a0),d0
 	cmp.b #$16,d0
 	bne.b abs_0_00009500
-	clr.b $0003(a0)
+	clr.b SG2WorldObject_vertex_variant_selector(a0)
 abs_0_00009500:
 	move.b #$AF,diagnostic_step_byte.l
 	movea.l player_object_reference(a6),a4
@@ -11728,22 +11750,23 @@ abs_0_00009EB0:
 	andi.b #7,d3
 	beq.w abs_0_00009248
 	bra.w abs_0_000081D2
-abs_0_00009EC8:
+    ; KNOWN: type A0=Target code-entry register seed:SG2VertexOscillator
+oscillate_pyramid_vertex_variant:
 	move.b #$27,diagnostic_step_byte.l
-	move.b $001F(a0),d3
+	move.b SG2VertexOscillator_vertex_variant_step(a0),d3
 	beq.w abs_0_000081D2
-	move.b $0003(a0),d0
+	move.b SG2WorldObject_vertex_variant_selector(a0),d0
 	add.b d3,d0
 	beq.b abs_0_00009EEE
 	cmp.b #$F,d0
 	beq.b abs_0_00009EF8
-	move.b d0,$0003(a0)
+	move.b d0,SG2WorldObject_vertex_variant_selector(a0)
 	bra.w abs_0_000081D2
 abs_0_00009EEE:
-	move.b #$1,$001F(a0)
+	move.b #$1,SG2VertexOscillator_vertex_variant_step(a0)
 	bra.w abs_0_000081D2
 abs_0_00009EF8:
-	move.b #$FF,$001F(a0)
+	move.b #$FF,SG2VertexOscillator_vertex_variant_step(a0)
 	bra.w abs_0_000081D2
 abs_0_00009F02:
 	move.b #$28,diagnostic_step_byte.l
@@ -12724,13 +12747,13 @@ recompute_tracked_projectile_horizontal_motion:
 	move.w d4,SG2WorldObject_velocity_z(a0)
 	bra.w abs_0_000081D2
 abs_0_0000AE06:
-	move.w $0012(a2),d0
+	move.w SG2WorldObject_rotation_1(a2),d0
 	andi.w #4095,d0
-	move.w d0,$0012(a2)
+	move.w d0,SG2WorldObject_rotation_1(a2)
 	sub.w d0,d1
 	andi.w #4095,d1
 	asr.w #4,d1
-	add.w d1,$0012(a2)
+	add.w d1,SG2WorldObject_rotation_1(a2)
 abs_0_0000AE1E:
 	move.w $0012(a2),d3
 	andi.w #4095,d3

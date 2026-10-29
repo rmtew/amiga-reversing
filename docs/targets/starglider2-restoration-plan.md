@@ -20,9 +20,21 @@ An on-demand systematic gap inventory (`amiga_reversing/tools/source_gap_invento
 joins native identities/accesses with canonical layouts and actual rendered
 boundaries. It records 67 suffix signals (including numeric adjacent variants),
 21 lookup contracts, 523 remaining interior references, 32 generic app fields
-and 423 unresolved record accesses. These are different denominators. Five
+and 337 unresolved record accesses. These are different denominators. Five
 suffixes name routines and one names text; neither is a pointer defect.
-Latest: canonical inline-record addresses now use the same read-only projection
+Latest: eight original updater entries now expose Walker/Stomper, linked-tug,
+Horatio, mechanical-whale, duck/pyramid and Icarus contracts. The original type
+and name directories bind nine tags to these entries. Two small derived layouts
+express walking cadence/heading/link-release counters and signed vertex-variant
+steps; four entries reuse existing layouts. No global object-pool cast or linked
+pointee claim is made. Eighteen canonical actions recover 86 typed accesses and
+resolve 86 gaps, refining 43 contexts without field-meaning changes, lost accesses
+or new gaps: **3495 app /2059 typed /337 unresolved**. C/vasm is exact; the clean
+standalone export is qualified before publication. All 57 assets/14 headers are
+unchanged. Original counter wraps, signed branches, conditional doubled variant
+increments and uncertain initialization remain intact.
+
+Preceding: canonical inline-record addresses now use the same read-only projection
 as rendering, rather than losing their types after LEA. No target facts were
 added. Five existing rotation-matrix consumers gain 45 typed field accesses;
 five aggregate/cursor accesses become explicit unresolved records rather than
@@ -113,7 +125,7 @@ starts. Their original producer really emits clipped horizon coordinates; a
 phase/width alias must remain distinct from the keyboard contract. Investigate
 existing canonical alias/view support before adding or renaming ownership. The
 third partial candidate is the already-documented LONG clear spanning a pending
-score WORD and following storage; that clear alone cannot name the extra bytes. Discovery leads and the 418 unresolved
+score WORD and following storage; that clear alone cannot name the extra bytes. Discovery leads and the 337 unresolved
 typed accesses remain different populations.
 A bounded alias reproducer found a shared renderer defect: an inferred
 same-origin conflict silently dropped the canonical app declaration while
