@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import pytest
+
 from amiga_reversing.disasm.manual_review_items import analysis_review_items
 
 
@@ -56,6 +58,44 @@ def test_analysis_review_items_emit_orphan_unreconciled_and_suspicious_items() -
         assert isinstance(item["evidence_fingerprint"], str)
         assert item["state"] == "open"
         assert isinstance(item["suggested_actions"], list)
+
+
+def _boundary_review_item(message: object) -> dict:
+    return next(
+        item for item in analysis_review_items({
+            "analysis_policy": {
+                "structured_data_items": [{"section_index": 0, "offset": 8, "size": 8}],
+            },
+            "sections": [{
+                "section_index": 0,
+                "section_size": 16,
+                "violations": [{
+                    "offset": 12, "kind_name": "invalid_interior_reference",
+                    "message": message,
+                }],
+            }],
+        }) if item["kind"] == "suspicious_instruction_decode"
+    )
+
+
+def test_native_boundary_cause_survives_review_projection() -> None:
+    message = "code/data boundary conflict at $000C references $0008; emitted as data"
+    item = _boundary_review_item(message)
+    assert item["message"] == message
+    assert item["violation_kind"] == "invalid_interior_reference"
+    assert item["hunk"] == 0 and (item["start"], item["end"]) == (12, 14)
+    assert item["state"] == "open" and item["review_confidence"] == "high"
+    assert item["suggested_actions"]  # No suppression or acknowledgement from data ownership.
+    changed = _boundary_review_item(message.replace("$0008", "$000A"))
+    assert changed["item_id"] == item["item_id"]
+    assert changed["evidence_fingerprint"] != item["evidence_fingerprint"]
+
+
+@pytest.mark.parametrize("message", [None, "", " \t", 3, {"unexpected": "object"}])
+def test_missing_native_cause_keeps_generic_review_warning(message: object) -> None:
+    item = _boundary_review_item(message)
+    assert item["message"] == "Accepted or candidate instruction decode violates target policy"
+    assert item["state"] == "open" and item["review_confidence"] == "high"
 
 
 def test_orphan_code_terminal_decode_only_is_report_only() -> None:

@@ -32,6 +32,13 @@ The energy-tower initializer's World chain view stays distinct from its updater
 view. Packed-header normalization, signed comparisons, wrap, PRNG transforms,
 nullable/sentinel links and unknown constructor parameters remain unchanged.
 
+The main-view warning at source+$12BFC is a code/data boundary conflict in the
+intentional novella encoded payload, not an accepted original-phase instruction.
+Its separate decoded view and conditional transforms remain distinct. The shared
+review projection now preserves the native diagnostic cause instead of replacing
+it with a generic instruction-policy message; the warning remains open/high
+confidence. Source bytes, code/data admission and runtime claims are unchanged.
+
 The alternate PSG selection/envelope batch identifies thirteen entities and
 23 consumed bytes across 60 native incoming references: nullable selected-object
 Core storage, event/noise envelopes, shared decay phases, type34 sweep state and

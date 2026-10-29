@@ -245,6 +245,9 @@ def _suspicious_instruction_items(section: dict[str, object], section_index: int
             continue
         start = _int_field(violation, "offset", _int_field(violation, "start_offset", 0))
         size = max(1, _int_field(violation, "size", 2))
+        message = violation.get("message")
+        if not isinstance(message, str) or not message.strip():
+            message = "Accepted or candidate instruction decode violates target policy"
         items.append(
             {
                 "kind": ReviewItemKind.SUSPICIOUS_INSTRUCTION_DECODE,
@@ -256,7 +259,7 @@ def _suspicious_instruction_items(section: dict[str, object], section_index: int
                 "review_confidence": ReviewConfidence.HIGH,
                 "violation_kind": violation.get("kind_name") or violation.get("kind"),
                 "required_cpu": violation.get("required_cpu_name") or violation.get("required_cpu"),
-                "message": "Accepted or candidate instruction decode violates target policy",
+                "message": message,
                 "source": "analysis",
             }
         )
