@@ -7,8 +7,8 @@ that further analysis is exhausted. Current source remains byte exact: all
 with all 106034 accepted code bytes retained. No generated assembly was edited
 by hand and no interim archive was produced.
 
-The current ownership union leaves 13612 bytes in
-263 intervals unclassified. This is classification accounting,
+The current ownership union leaves 13579 bytes in
+264 intervals unclassified. This is classification accounting,
 not a semantic completion percentage. Earlier interval/site counts below belong
 to their recorded closeout revision. See the current
 [native memory-span receipt](../../runtime/observations/starglider2-app-memory-spans.json),
@@ -32,6 +32,17 @@ The energy-tower initializer's World chain view stays distinct from its updater
 view. Packed-header normalization, signed comparisons, wrap, PRNG transforms,
 nullable/sentinel links and unknown constructor parameters remain unchanged.
 
+The connected player-effects batch recovers nine scalar/table entities and four
+existing model-face identities, replacing 46 absolute references. Speed/stardrive
+state selects six material indices for four Icarus faces; two byte-mask tables
+gate asteroid creation. Ejection flag/countdown consumers include the pilot couch,
+input and rendering. Thirty-three bytes gain ownership; neighbouring unreferenced
+bytes remain unknown. Table physical extents are explicit, not a blanket claim
+about every possible speed writer. C/vasm and clean standalone rebuild all 412736
+bytes. App/typed/gap counts and accepted code remain unchanged. The next connected
+lead is the alternate PSG path's control state and object-type volume directory;
+its presence does not prove Amiga/Paula execution.
+
 Direct consumer review now identifies eight independent scalar globals: surface
 braking/release delay, Novenia report cadence/count, Novenia palette flash, station
 notice phase, depot inventory mode, fatal-overheat latch and effect-colour fade.
@@ -42,8 +53,7 @@ The native catalogue retains **3503 app /2623 typed /177 unresolved**, all accep
 code and previous access meanings. C/vasm and clean standalone output remain exact;
 no new runtime coverage is asserted. The bulk consumer scan found references to
 64 of the prior 264 unknown spans; those are investigation candidates, not automatic
-code/data promotions. The next connected lead is player-model material animation
-and its neighbouring asteroid-spawn mask consumers.
+code/data promotions. The subsequent player-model/spawn batch is recorded above.
 
 The current Emma2 transport view connects the original type 8 initializer and
 explicit type 8 radio/boarding cases to the existing model name and radio texts.

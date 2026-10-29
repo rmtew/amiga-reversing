@@ -1908,7 +1908,7 @@ abs_0_00001560:
 	bsr.w enqueue_game_over_reason_message
 	sf.b interrupted_game_available_flag(a6)
 	movea.l player_object_reference(a6),a0
-	cmpi.w #200,abs_0_00039B7A.l
+	cmpi.w #200,game_over_sequence_countdown.l
 	bne.b abs_0_000015AA
 	cmpi.b #4,view_mode(a6)
 	bpl.w abs_0_0000164C
@@ -1919,9 +1919,9 @@ abs_0_00001560:
 	andi.w #4095,d0
 	move.w d0,view_rotation_offset_1(a6)
 abs_0_000015AA:
-	cmpi.w #180,abs_0_00039B7A.l
+	cmpi.w #180,game_over_sequence_countdown.l
 	bne.w abs_0_0000164C
-	st.b abs_0_00039B78.l
+	st.b player_ejection_active_flag.l
 	clr.b $001E(a0)
 	bclr.b #2,$0002(a0)
 	bclr.b #3,$0002(a0)
@@ -1964,14 +1964,14 @@ abs_0_0000164C:
 	move.w player_rotation_0(a6),$0010(a0)
 	move.w player_rotation_1(a6),$0012(a0)
 	move.w player_rotation_2(a6),$0014(a0)
-	tst.b abs_0_00039B78.l
+	tst.b player_ejection_active_flag.l
 	bpl.b abs_0_00001698
 	bsr.w advance_shared_random_state
 	andi.w #7,d0
 	bne.b abs_0_00001698
 	st.b pending_transient_event_sound(a6)
 abs_0_00001698:
-	subq.w #1,abs_0_00039B7A.l
+	subq.w #1,game_over_sequence_countdown.l
 	bpl.w gameplay_frame_loop
 	move.b #$8,diagnostic_stage_step_word.l
 	clr.b diagnostic_step_byte.l
@@ -2058,7 +2058,7 @@ frame_rate_decimal_text_storage:
 	dc.b $20,$20,$20,$20,$20,$20,$20,$00,$00,$00,$00,$00,$00,$00,$30,$3C
 	dc.b $D0,$00,$51,$C8,$FF,$FE,$4E,$75
 process_frame_input_commands:
-	cmpi.w #199,abs_0_00039B7A.l
+	cmpi.w #199,game_over_sequence_countdown.l
 	ble.b abs_0_00001816
 	bsr.w abs_0_00002C20
 abs_0_00001816:
@@ -2085,11 +2085,11 @@ abs_0_0000183A:
 	clr.w inventory_list_item_index(a6)
 	bra.w modal_inventory_command_loop
 abs_0_0000186A:
-	tst.b abs_0_00039B78.l
+	tst.b player_ejection_active_flag.l
 	bpl.b abs_0_0000187E
 	cmp.b #$20,d0
 	bne.b abs_0_0000187E
-	clr.w abs_0_00039B7A.l
+	clr.w game_over_sequence_countdown.l
     ; Input token $97 negates sign flag: FF/01 alternate enabled/muted. Audio output tests its sign, so preserve NEG.B and do not normalize to a nonzero boolean.
 abs_0_0000187E:
 	cmp.b #$97,d0
@@ -2167,7 +2167,7 @@ abs_0_00001964:
 	beq.w enqueue_reticle_target_identity
 	cmp.b #$44,d0
 	beq.w abs_0_0000338C
-	tst.b abs_0_00039B78.l
+	tst.b player_ejection_active_flag.l
 	bmi.b abs_0_000019A4
 	cmp.b #$54,d0
 	bne.b abs_0_00001992
@@ -2766,7 +2766,7 @@ abs_0_000021C8:
 	lea.l model_header_pointers.l,a0
 	movea.l $0(a0,d1.w),a0
 	move.w d2,$0002(a0)
-	move.w #$C8,abs_0_00039B7A.l
+	move.w #$C8,game_over_sequence_countdown.l
 	clr.l carried_neutron_bomb_reference(a6)
 	clr.l tractor_target_reference(a6)
 	clr.l previous_tractor_target_reference(a6)
@@ -6482,7 +6482,7 @@ abs_0_00005508:
 	move.w d5,retirement_face_displacement_y(a6)
 	tst.b space_environment_flag(a6)
 	bmi.b abs_0_0000552E
-	tst.b abs_0_00039B78.l
+	tst.b player_ejection_active_flag.l
 	bmi.b abs_0_0000552E
 	btst.b #5,abs_0_000049AC.l
 	bne.b abs_0_0000552E
@@ -8735,7 +8735,7 @@ disc_offset_direction_flag:
     ; Normal selection uses stored byte offsets0/4/8/12/16 into five LONG targets. Other paths also use this BYTE as status/countdown; retain original entry/domain gates.
 dispatch_selected_weapon_action:
 	move.b #$41,diagnostic_step_byte.l
-	tst.b abs_0_00039B78.l
+	tst.b player_ejection_active_flag.l
 	bpl.b abs_0_000071AE
 	rts
 abs_0_000071AE:
@@ -10000,7 +10000,7 @@ abs_0_00008422:
 	bra.w abs_0_0000B49A
     ; KNOWN: type A0=Target code-entry register seed:SG2WorldObject
 update_pilot_couch_bounce_and_spin:
-	cmpi.w #20,abs_0_00039B7A.l
+	cmpi.w #20,game_over_sequence_countdown.l
 	bne.b abs_0_0000843E
 	clr.b SG2ObjectCore_retirement_phase_or_negative(a0)
 	bra.b abs_0_00008480
@@ -29909,13 +29909,13 @@ model_030_faces:
 	dc.b $03,$0A,$00,$18,$00,$38,$00,$A8,$03,$09,$00,$18,$00,$A8,$00,$28
 	dc.b $03,$09,$00,$20,$00,$30,$00,$B0,$03,$0A,$00,$20,$00,$B0,$00,$40
 	dc.b $03,$09,$00,$40,$00,$B0,$00,$50
-abs_0_00021BA2:
+icarus_speed_animated_face_0:
 	dc.b $03,$01,$00,$28,$00,$48,$00,$58
-abs_0_00021BAA:
+icarus_speed_animated_face_1:
 	dc.b $03,$01,$00,$50,$00,$30,$00,$60
-abs_0_00021BB2:
+icarus_speed_animated_face_2:
 	dc.b $03,$05,$00,$48,$00,$28,$00,$A8
-abs_0_00021BBA:
+icarus_speed_animated_face_3:
 	dc.b $03,$05,$00,$50,$00,$B0,$00,$30
 model_030_auxiliary_faces:
 	dc.w $8700,$0000,$0010,$0020,$0030,$0028,$0018,$0008	; base model face commands, coordinate WORD pools and encoded vertex references; variant gaps e...
@@ -38306,7 +38306,7 @@ abs_0_0002F696:
 	jmp transform_vector_by_view_matrix.l
     ; Smooth speed toward its requested value, build the original motion vector, and update flight orientation/control state. Settling and forced-view modes retain their original branches.
 update_player_flight_controls:
-	tst.b abs_0_00039B78.l
+	tst.b player_ejection_active_flag.l
 	bpl.b abs_0_0002F6A6
 	rts
 abs_0_0002F6A6:
@@ -43266,43 +43266,43 @@ abs_0_000331E4:
 	move.w player_speed_target(a6),d0
 	tst.w d0
 	bne.b abs_0_000331FE
-	move.w #$0,abs_0_00039B58.l
-	move.w #$0,abs_0_00039B5A.l
+	move.w #$0,icarus_speed_colour_max_step.l
+	move.w #$0,icarus_speed_colour_step.l
 	bra.b abs_0_0003326A
 abs_0_000331FE:
 	tst.w stardrive_enabled_word(a6)
 	bmi.b abs_0_00033238
-	move.w #$1,abs_0_00039B58.l
+	move.w #$1,icarus_speed_colour_max_step.l
 	cmp.w #$C8,d0
 	bmi.b abs_0_0003326A
-	move.w #$2,abs_0_00039B58.l
+	move.w #$2,icarus_speed_colour_max_step.l
 	cmp.w #$190,d0
 	bmi.b abs_0_0003326A
-	move.w #$3,abs_0_00039B58.l
+	move.w #$3,icarus_speed_colour_max_step.l
 	cmp.w #$1C2,d0
 	bmi.b abs_0_0003326A
-	move.w #$4,abs_0_00039B58.l
+	move.w #$4,icarus_speed_colour_max_step.l
 	bra.b abs_0_0003326A
 abs_0_00033238:
-	move.w #$2,abs_0_00039B58.l
+	move.w #$2,icarus_speed_colour_max_step.l
 	cmp.w #$C8,d0
 	bmi.b abs_0_0003326A
-	move.w #$3,abs_0_00039B58.l
+	move.w #$3,icarus_speed_colour_max_step.l
 	cmp.w #$190,d0
 	bmi.b abs_0_0003326A
-	move.w #$4,abs_0_00039B58.l
+	move.w #$4,icarus_speed_colour_max_step.l
 	cmp.w #$1C2,d0
 	bmi.b abs_0_0003326A
-	move.w #$5,abs_0_00039B58.l
+	move.w #$5,icarus_speed_colour_max_step.l
 abs_0_0003326A:
-	lea.l abs_0_00021BA2.l,a1
-	lea.l abs_0_00021BAA.l,a2
-	lea.l abs_0_00021BB2.l,a3
-	lea.l abs_0_00021BBA.l,a4
-	lea.l abs_0_00039B5E.l,a0
-	move.w abs_0_00039B5A.l,d0
-	move.w abs_0_00039B5C.l,d1
-	move.w abs_0_00039B58.l,d2
+	lea.l icarus_speed_animated_face_0.l,a1
+	lea.l icarus_speed_animated_face_1.l,a2
+	lea.l icarus_speed_animated_face_2.l,a3
+	lea.l icarus_speed_animated_face_3.l,a4
+	lea.l icarus_speed_face_colour_indices.l,a0
+	move.w icarus_speed_colour_step.l,d0
+	move.w icarus_speed_colour_step_direction.l,d1
+	move.w icarus_speed_colour_max_step.l,d2
 	move.b $0(a0,d0.w),$0001(a1)
 	move.b $0(a0,d0.w),$0001(a2)
 	move.b $0(a0,d0.w),$0001(a3)
@@ -43311,10 +43311,10 @@ abs_0_0003326A:
 	bmi.b abs_0_000332C2
 	cmp.w d2,d0
 	bgt.b abs_0_000332C2
-	move.w d0,abs_0_00039B5A.l
+	move.w d0,icarus_speed_colour_step.l
 	bra.b abs_0_000332C8
 abs_0_000332C2:
-	neg.w abs_0_00039B5C.l
+	neg.w icarus_speed_colour_step_direction.l
 abs_0_000332C8:
 	tst.b space_environment_flag(a6)
 	bmi.b abs_0_00033310
@@ -43503,18 +43503,18 @@ abs_0_00033528:
 	bpl.w abs_0_0003367A
 	cmp.l #$FE54C100,d3
 	bmi.w abs_0_0003367A
-	addq.b #1,abs_0_00039B75.l
-	andi.b #1,abs_0_00039B75.l
+	addq.b #1,asteroid_spawn_region_phase_mod2.l
+	andi.b #1,asteroid_spawn_region_phase_mod2.l
 	bne.w abs_0_0003367A
 abs_0_00033584:
 	move.w player_speed_target(a6),d1
 	lsr.w #6,d1
 	tst.w stardrive_enabled_word(a6)
 	bpl.b abs_0_00033598
-	lea.l abs_0_00039B6D.l,a0
+	lea.l asteroid_spawn_random_masks_stardrive.l,a0
 	bra.b abs_0_0003359E
 abs_0_00033598:
-	lea.l abs_0_00039B64.l,a0
+	lea.l asteroid_spawn_random_masks_normal.l,a0
 abs_0_0003359E:
 	move.b $0(a0,d1.w),d1
 	bsr.w abs_0_00039D20
@@ -44710,7 +44710,7 @@ enqueue_blank_event_message_line:
 abs_0_000345F2:
 	tst.b neutron_bomb_order_requested_flag(a6)
 	bmi.b abs_0_0003466C
-	tst.b abs_0_00039B78.l
+	tst.b player_ejection_active_flag.l
 	bmi.b abs_0_0003460E
 	lea.l model_type_population_counts(a6),a4
 	tst.b $0062(a4)
@@ -44814,7 +44814,7 @@ abs_0_00034764:
 	move.b #$70,diagnostic_step_byte.l
 	tst.b depot_inventory_mode_flag.l
 	bpl.w abs_0_000348E2
-	tst.b abs_0_00039B78.l
+	tst.b player_ejection_active_flag.l
 	bmi.b abs_0_0003478C
 	bsr.w abs_0_00039D44
 abs_0_0003478C:
@@ -44924,7 +44924,7 @@ abs_0_000348D0:
 	bra.w advance_projector_station_cycle_continuation
 abs_0_000348E2:
 	move.b #$72,diagnostic_step_byte.l
-	tst.b abs_0_00039B78.l
+	tst.b player_ejection_active_flag.l
 	bmi.b abs_0_000348F6
 	bsr.w abs_0_00039D44
 abs_0_000348F6:
@@ -48206,8 +48206,8 @@ abs_0_00037586:
 	move.w #$FFFF,abs_0_0003999C.l
 	move.w #$80,abs_0_0003999E.l
 	clr.l nearby_space_station_reference(a6)
-	sf.b abs_0_00039B78.l
-	move.w #$C8,abs_0_00039B7A.l
+	sf.b player_ejection_active_flag.l
+	move.w #$C8,game_over_sequence_countdown.l
 	clr.w abs_0_00039652.l
 	st.b station_cycle_enabled_flag(a6)
 	clr.b station_spawn_message_phase_mod2.l
@@ -49444,25 +49444,26 @@ abs_0_00039B28:
 	dc.b $00,$5B,$00,$10,$00,$1B,$00,$3B,$00,$3D,$00,$3E,$00,$3B,$00,$3D
 pirate_destruction_drop_choices:
 	dc.b $00,$00,$64,$00,$00,$00,$00,$65,$00,$00,$53,$00,$00,$00,$00,$00
-abs_0_00039B58:
+icarus_speed_colour_max_step:
 	dc.w $0000
-abs_0_00039B5A:
+icarus_speed_colour_step:
 	dc.w $0000
-abs_0_00039B5C:
-	dc.b $00,$01
-abs_0_00039B5E:
+icarus_speed_colour_step_direction:
+	dc.w $0001
+icarus_speed_face_colour_indices:
 	dc.b $07,$04,$05,$06,$01,$03
-abs_0_00039B64:
+asteroid_spawn_random_masks_normal:
 	dc.b $1F,$0F,$0F,$0F,$0F,$07,$07,$07,$01
-abs_0_00039B6D:
+asteroid_spawn_random_masks_stardrive:
 	dc.b $0F,$0F,$07,$07,$03,$03,$03,$01
-abs_0_00039B75:
+asteroid_spawn_region_phase_mod2:
 	dc.b $00
 volcano_refill_updates_or_negative:
 	dc.b $FF,$00
-abs_0_00039B78:
-	dc.w $0000
-abs_0_00039B7A:
+player_ejection_active_flag:
+	dc.b $00
+	dc.b $00
+game_over_sequence_countdown:
 	dc.w $0000
 counted_model_population_times32:
 	dc.w $0000

@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "source_commit": "061cc83d71d9910a03b6aeeb3701264e6f78e0c7",
+  "source_commit": "0e41417f99a55612f44e87c7eec48c2500a67f42",
   "source_assembly": "starglider2_game.s",
   "assets": [
     {
@@ -878,13 +878,13 @@
     },
     {
       "path": "rendered-provenance.json",
-      "bytes": 3001,
-      "sha256": "948c54f09155ea24aeed36b4f07af2e5c84eafa2ac70cb5a1dbb494168372ed5"
+      "bytes": 3030,
+      "sha256": "6a5e46d34ee2a3b2e7534b218dfe0dd43aac62e961c95cc41e32ea012c5bd311"
     },
     {
       "path": "starglider2_game.s",
-      "bytes": 2001671,
-      "sha256": "2f1c925c3eddab70b76eb9729c06be7e92b7667d5a35f0ad5c9f17aeda5200d1"
+      "bytes": 2002501,
+      "sha256": "c92205bcb8ac0209e3d616a338c45a88d3d2a1d482257535d75d5846ed292d98"
     },
     {
       "path": "tools/starglider2_protection.py",
@@ -892,6 +892,6 @@
       "sha256": "81d3f66d36dbfbd5c77238b20c28e8b9abaa329777eb91f64669bbbf13703582"
     }
   ],
-  "source_commit_role": "publication base; reviewed independent scalar storage identities are bound by verification_receipt_id",
-  "source_subject_revision": "e44b798c0ea0f47c8a09f100deffb93e0197cee6bd6aa73216d8d4b77c692e0a"
+  "source_commit_role": "publication base; reviewed player-model material animation, asteroid masks and ejection state are bound by verification_receipt_id",
+  "source_subject_revision": "86137330d6c1ff4cd77b9d72cd1950ad61fb1a2f8c0e8986503e0d6683f82836"
 }
