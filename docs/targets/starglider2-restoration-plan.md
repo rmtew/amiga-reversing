@@ -7,8 +7,8 @@ that further analysis is exhausted. Current source remains byte exact: all
 with all 106034 accepted code bytes retained. No generated assembly was edited
 by hand and no interim archive was produced.
 
-The current ownership union leaves 13640 bytes in
-263 intervals unclassified. This is classification accounting,
+The current ownership union leaves 13624 bytes in
+264 intervals unclassified. This is classification accounting,
 not a semantic completion percentage. Earlier interval/site counts below belong
 to their recorded closeout revision. See the current
 [native memory-span receipt](../../runtime/observations/starglider2-app-memory-spans.json),
@@ -20,7 +20,7 @@ An on-demand systematic gap inventory (`amiga_reversing/tools/source_gap_invento
 joins native identities/accesses with canonical layouts and actual rendered
 boundaries. It records 67 suffix signals (including numeric adjacent variants),
 21 lookup contracts, 523 remaining interior references, 31 generic app fields
-and 304 unresolved record accesses. These are different denominators. Five
+and 286 unresolved record accesses. These are different denominators. Five
 suffixes name routines and one names text; neither is a pointer defect.
 Current restored object contracts connect original update/initializer directories,
 literal-tag producers and reviewed forwarding paths. Walking, flying, mechanical,
@@ -32,20 +32,22 @@ The energy-tower initializer's World chain view stays distinct from its updater
 view. Packed-header normalization, signed comparisons, wrap, PRNG transforms,
 nullable/sentinel links and unknown constructor parameters remain unchanged.
 
-Latest: the original type88 volcano constructor/update pair now shares three
-explicit fields: signed eruption-colour countdown, mod4 emission-attempt index
-and mod2 face-colour-pair index. Its global refill countdown remains separate
-from object storage, without a fixed-duration claim. Whale/Duck and Columbus
-constructors reuse the established EvasiveActor requirements of their actual
-steering continuation. Seven actions resolve15 gaps, refine13 contexts and lose
-no access or field meaning: **3503 app /2381 typed /304 unresolved**.
-The preceding shared A2 motion and A0/A4 heading interfaces resolved five more
-gaps without mid-body pointer seeds or upgrading A6 layout fallback to proof.
-All nonempty initializer-directory entries have reviewed contracts; arbitrary
-selectors, unknown fields and lifecycle assumptions remain explicit. Mixed
-Pirate/Skim and Ray/Asteroid initializers deliberately retain common-prefix views.
-C/vasm and clean staged standalone builds reproduce all412736 original bytes;
-57 assets and14 headers are unchanged. No new emulator run or observation dump.
+Latest: the PirateShip role names motion-vector scale, approach countdown,
+mod8 raid cadence and signed paired-heading step. The original type40 contact
+comparison establishes the A4 view before its writes. Its shared Skim initializer
+keeps the common World prefix. A16-byte destruction table selects only three
+existing World cargo types after excluding zero; that constructor is now typed.
+The separate theft path doubles a BYTE index into an eight-byte ingredient table,
+so some selections read adjacent projector-table bytes. Its subtype remains
+unresolved; the owner is not enlarged and unchecked behavior is unchanged.
+Eight actions resolve18 gaps and refine47 contexts with no lost access or changed
+field meaning: **3503 app /2399 typed /286 unresolved**. The new16-byte owner leaves
+13624 unclassified bytes in264 intervals; accepted code remains106034 bytes.
+Original repeated X-velocity stores, signed/wrapped arithmetic and pointer/lifetime
+assumptions remain intact. C/vasm and clean staged standalone outputs match all
+412736 bytes, with57 assets and14 headers unchanged. No new runtime run or dump.
+Earlier connected actor, initializer, motion and volcano results remain in the
+canonical action history and Git; publication is a preservation checkpoint.
 
 The shared framework now preserves canonical inline-object types through LEA
 and existing register/stack transfers. Five matrix consumers gained45 accesses;
@@ -53,8 +55,10 @@ and existing register/stack transfers. Five matrix consumers gained45 accesses;
 foreign bases, conflicting phase views and incomplete extents remain conservative.
 Direct PEA typed stack construction is still separate.
 
-Next inspect pirate motion/raid fields and their shared initialization boundaries,
-then the ranked remaining Core/World field groups. All37 sprite/name/audio/
+Next fix the reproduced local index-domain scanner error: it retains a masked
+bound across register clobbers or a branch bypass. Positive and negative fixtures
+reproduce this independently; current target domains are being checked separately.
+Reuse shared write/flow/entry facts rather than add a competing range engine. All37 sprite/name/audio/
 text-reference gaps are indexed accesses. A four-entry fixture resolves a constant
 index but remains `indexed_dynamic` after signed0..3 guards; its unguarded negative
 also stays unresolved. Branch/partial-WORD constraint transport needs shared-value
@@ -80,7 +84,7 @@ starts. Their original producer really emits clipped horizon coordinates; a
 phase/width alias must remain distinct from the keyboard contract. Investigate
 existing canonical alias/view support before adding or renaming ownership. The
 third partial candidate is the already-documented LONG clear spanning a pending
-score WORD and following storage; that clear alone cannot name the extra bytes. Discovery leads and the 304 unresolved
+score WORD and following storage; that clear alone cannot name the extra bytes. Discovery leads and the 286 unresolved
 typed accesses remain different populations.
 A bounded alias reproducer found a shared renderer defect: an inferred
 same-origin conflict silently dropped the canonical app declaration while

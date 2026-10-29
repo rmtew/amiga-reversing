@@ -1297,6 +1297,17 @@ SG2Volcano_face_colour_pair_index RS.W 1
     RS.B 28
 SG2Volcano_SIZEOF EQU __RS
 
+; STRUCT SG2PirateShip
+    RSRESET
+    RS.B 32
+SG2PirateShip_motion_vector_scale RS.W 1
+    RS.B 2
+SG2PirateShip_raid_approach_updates_or_negative RS.W 1
+SG2PirateShip_raid_attempt_mod8_index RS.W 1
+SG2PirateShip_paired_heading_rotation_step RS.W 1
+    RS.B 26
+SG2PirateShip_SIZEOF EQU __RS
+
 ADKF_CLRALL	EQU	$7FFF
 BPLCON2_PF2P2	EQU	$20
 BPLCON2_PF2PRI	EQU	$40
@@ -10051,6 +10062,7 @@ abs_0_00008600:
 abs_0_0000860C:
 	move.b #$E4,diagnostic_step_byte.l
 	bra.w abs_0_0000B470
+    ; KNOWN: type A0=Target code-entry register seed:SG2PirateShip
 abs_0_00008618:
 	move.b #$E5,diagnostic_step_byte.l
 	bra.w abs_0_0000B494
@@ -43084,9 +43096,9 @@ abs_0_00033184:
 abs_0_0003318A:
 	sf.b space_station_spawn_request(a6)
 abs_0_0003318E:
-	subq.w #1,abs_0_00037896.l
+	subq.w #1,pirate_warning_cooldown_or_negative.l
 	bpl.b abs_0_0003319E
-	move.w #$FFFF,abs_0_00037896.l
+	move.w #$FFFF,pirate_warning_cooldown_or_negative.l
 abs_0_0003319E:
 	tst.b space_environment_flag(a6)
 	bpl.w abs_0_000331DE
@@ -43562,28 +43574,29 @@ abs_0_0003388A:
 abs_0_00033896:
 	cmpi.w #40,(a4)	; operand 2: SG2ObjectCore_object_type at (a4)
 	bne.b abs_0_000338EE
-	tst.w abs_0_00037896.l
+    ; KNOWN: type A4=Target code-entry register seed:SG2PirateShip
+	tst.w pirate_warning_cooldown_or_negative.l
 	bpl.b abs_0_000338C0
 	lea.l event_message_pointers.l,a1
 	move.w #$24,d1
 	asl.w #2,d1
 	movea.l SG2SourceTextReference_text(a1,d1.w),a1
 	bsr.w enqueue_message_if_outside_structure
-	move.w #$F,abs_0_00037896.l
+	move.w #$F,pirate_warning_cooldown_or_negative.l
 abs_0_000338C0:
-	move.w $0020(a4),d0
+	move.w SG2PirateShip_motion_vector_scale(a4),d0
 	add.w d0,d0
 	add.w d0,d0
 	add.w d0,d0
-	move.w d0,$0020(a4)
+	move.w d0,SG2PirateShip_motion_vector_scale(a4)
 	bsr.w abs_0_00039D20
 	andi.w #511,d0
 	addi.w #64,d0
-	move.w d0,$0024(a4)
-	move.w #$10,$0028(a4)
+	move.w d0,SG2PirateShip_raid_approach_updates_or_negative(a4)
+	move.w #$10,SG2PirateShip_paired_heading_rotation_step(a4)
 	btst #0,d0
 	bne.b abs_0_000338EE
-	neg.w $0028(a4)
+	neg.w SG2PirateShip_paired_heading_rotation_step(a4)
     ; Snapshot the space/surface flag before this world-transition procedure; compare after selection and surface tests. This byte is not necessarily the previous physical frame.
 abs_0_000338EE:
 	move.b #$1,diagnostic_step_byte.l
@@ -46422,7 +46435,7 @@ save_skim_drone_orientation:
 	move.w player_rotation_0(a6),SG2WorldObject_rotation_0(a0)
 	move.w player_rotation_1(a6),SG2WorldObject_rotation_1(a0)
 	move.w player_rotation_2(a6),SG2WorldObject_rotation_2(a0)
-	bsr.w abs_0_00037264
+	bsr.w build_object_motion_vector_from_rotation
 	neg.w d4
 	neg.w d5
 	neg.w d6
@@ -47167,7 +47180,7 @@ advance_bouncing_bomb_state:
 	bra.w abs_0_00036934
 abs_0_0003691A:
 	move.w $0020(a0),d3
-	bsr.w abs_0_00037264
+	bsr.w build_object_motion_vector_from_rotation
 	move.w d4,SG2WorldObject_velocity_x(a0)
 	move.w d6,SG2WorldObject_velocity_z(a0)
     ; Bouncing-bomb update copies object WORD+$1A as the sound argument and sets a sign-bit pending BYTE. The two audio backends interpret the argument differently; no generic distance ABI claimed.
@@ -47464,7 +47477,7 @@ abs_0_00036DA6:
 retire_distant_type47:
 	move.b #$9,SG2ObjectCore_retirement_phase_or_negative(a0)
 	bra.w abs_0_00039D3E
-    ; KNOWN: type A0=Target code-entry register seed:SG2WorldObject
+    ; KNOWN: type A0=Target code-entry register seed:SG2PirateShip
 update_nearby_pirate_ship:
 	cmpi.b #2,SG2ObjectCore_durability_or_negative(a0)
 	ble.w abs_0_0003704C
@@ -47480,20 +47493,20 @@ update_nearby_pirate_ship:
 	move.l horizontal_world_wrap_mask(a6),d3
 	and.l d3,SG2ObjectCore_world_x(a0)
 	and.l d3,SG2ObjectCore_world_z(a0)
-	move.w $0020(a0),d3
-	bsr.w abs_0_00037264
+	move.w SG2PirateShip_motion_vector_scale(a0),d3
+	bsr.w build_object_motion_vector_from_rotation
 	move.w d4,SG2WorldObject_velocity_x(a0)
 	move.w d5,SG2WorldObject_velocity_y(a0)
 	move.w d6,SG2WorldObject_velocity_z(a0)
-	move.w $0028(a0),d1
+	move.w SG2PirateShip_paired_heading_rotation_step(a0),d1
 	add.w d1,SG2WorldObject_rotation_1(a0)
 	andi.w #4095,SG2WorldObject_rotation_1(a0)
 	add.w d1,SG2WorldObject_rotation_2(a0)
 	andi.w #4095,SG2WorldObject_rotation_2(a0)
 	ori.w #1,SG2WorldObject_rotation_0(a0)
-	subq.w #1,$0024(a0)
+	subq.w #1,SG2PirateShip_raid_approach_updates_or_negative(a0)
 	bpl.b abs_0_00036E34
-	move.w #$FFFF,$0024(a0)
+	move.w #$FFFF,SG2PirateShip_raid_approach_updates_or_negative(a0)
 	bsr.w move_object_away_from_player_fraction
 	bra.w abs_0_00039D56
 abs_0_00036E34:
@@ -47519,8 +47532,8 @@ abs_0_00036E58:
 	bpl.w abs_0_00037042
 	cmp.l d3,d2
 	bpl.w abs_0_00037042
-	addq.w #1,$0026(a0)
-	andi.w #7,$0026(a0)
+	addq.w #1,SG2PirateShip_raid_attempt_mod8_index(a0)
+	andi.w #7,SG2PirateShip_raid_attempt_mod8_index(a0)
 	bne.w abs_0_0003703E
 	bsr.w abs_0_00039D20
 	andi.b #7,d0
@@ -47603,7 +47616,7 @@ abs_0_00036F84:
 	move.l SG2ObjectCore_world_z(a0),SG2ObjectCore_world_z(a4)
 	move.w SG2WorldObject_rotation_0(a0),SG2WorldObject_rotation_0(a4)
 	move.w SG2WorldObject_rotation_1(a0),d7
-	tst.w $0028(a0)
+	tst.w SG2PirateShip_paired_heading_rotation_step(a0)
 	bmi.b abs_0_00036FD2
 	addi.w #1280,d7
 	bra.b abs_0_00036FD6
@@ -47617,7 +47630,7 @@ abs_0_00036FD6:
 	move.w d3,$0020(a4)
 	move.w SG2WorldObject_rotation_1(a0),d7
 	move.w SG2WorldObject_rotation_1(a4),SG2WorldObject_rotation_1(a0)
-	bsr.w abs_0_00037264
+	bsr.w build_object_motion_vector_from_rotation
 	move.w d7,SG2WorldObject_rotation_1(a0)
 	move.w d4,SG2WorldObject_velocity_x(a4)
 	move.w d5,SG2WorldObject_velocity_y(a4)
@@ -47641,7 +47654,7 @@ abs_0_00037042:
 	bsr.w move_object_toward_player_fraction
 	bra.w abs_0_00039D56
 abs_0_0003704C:
-	lea.l abs_0_00039B48.l,a1
+	lea.l pirate_destruction_drop_choices.l,a1
 	bsr.w abs_0_00039D20
 	andi.w #15,d0
 	move.b $0(a1,d0.w),d0
@@ -47653,8 +47666,9 @@ abs_0_0003704C:
 	move.l a3,free_object_stack_cursor(a6)
 	subq.w #1,free_object_count(a6)
 	andi.w #255,d0
+    ; KNOWN: type A4=Target code-entry register seed:SG2WorldObject
 	move.w d0,(a4)	; operand 2: SG2ObjectCore_object_type at (a4)
-	move.l #$FFFFFFFF,$003C(a4)
+	move.l #$FFFFFFFF,SG2WorldObject_linked_record_or_sentinel(a4)
 	move.l SG2ObjectCore_world_x(a0),SG2ObjectCore_world_x(a4)
 	move.l SG2ObjectCore_world_y(a0),SG2ObjectCore_world_y(a4)
 	move.l SG2ObjectCore_world_z(a0),SG2ObjectCore_world_z(a4)
@@ -47664,13 +47678,13 @@ abs_0_0003704C:
 	asr.w #2,d0
 	asr.w #2,d1
 	asr.w #2,d2
-	move.w d0,$002C(a4)
-	move.w d1,$002C(a4)
-	move.w d2,$002C(a4)
+	move.w d0,SG2WorldObject_velocity_x(a4)
+	move.w d1,SG2WorldObject_velocity_x(a4)
+	move.w d2,SG2WorldObject_velocity_x(a4)
 	move.b #$FF,SG2ObjectCore_retirement_phase_or_negative(a4)
 	move.b #$5,SG2ObjectCore_durability_or_negative(a4)
-	clr.b $0003(a4)
-	move.b #$4,$001D(a4)
+	clr.b SG2WorldObject_vertex_variant_selector(a4)
+	move.b #$4,SG2TargetingObject_model_scale_shift(a4)
 	clr.w $0020(a4)
 	clr.b SG2ObjectCore_retirement_phase_or_negative(a0)
 	bclr.b #2,SG2ObjectCore_flags(a0)
@@ -47796,7 +47810,7 @@ enqueue_message_if_outside_structure:
 	bsr.w enqueue_event_message
 abs_0_00037262:
 	rts
-abs_0_00037264:
+build_object_motion_vector_from_rotation:
 	move.w SG2WorldObject_rotation_0(a0),d4
 	move.w SG2WorldObject_rotation_1(a0),d5
 	move.w SG2WorldObject_rotation_2(a0),d6
@@ -48039,7 +48053,7 @@ abs_0_00037586:
 	sf.b space_station_nearby_flag(a6)
 	move.w #$3,station_proximity_disc_colour_index(a6)
 	move.w #$0,station_proximity_colour_ramp_step(a6)
-	move.w #$FFFF,abs_0_00037896.l
+	move.w #$FFFF,pirate_warning_cooldown_or_negative.l
 	move.w #$FFFF,abs_0_0003999C.l
 	move.w #$80,abs_0_0003999E.l
 	clr.l nearby_space_station_reference(a6)
@@ -48241,7 +48255,7 @@ abs_0_0003788E:
 	rts
 abs_0_00037894:
 	dc.b $00,$5F
-abs_0_00037896:
+pirate_warning_cooldown_or_negative:
 	dc.w $0000
 abs_0_00037898:
 	dc.w $0000
@@ -49279,7 +49293,7 @@ abs_0_00039B08:
 abs_0_00039B28:
 	dc.b $00,$1B,$00,$3B,$00,$3D,$00,$3E,$00,$5B,$00,$3B,$00,$3D,$00,$3E
 	dc.b $00,$5B,$00,$10,$00,$1B,$00,$3B,$00,$3D,$00,$3E,$00,$3B,$00,$3D
-abs_0_00039B48:
+pirate_destruction_drop_choices:
 	dc.b $00,$00,$64,$00,$00,$00,$00,$65,$00,$00,$53,$00,$00,$00,$00,$00
 abs_0_00039B58:
 	dc.w $0000
