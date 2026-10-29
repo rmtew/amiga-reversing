@@ -20,9 +20,25 @@ An on-demand systematic gap inventory (`amiga_reversing/tools/source_gap_invento
 joins native identities/accesses with canonical layouts and actual rendered
 boundaries. It records 67 suffix signals (including numeric adjacent variants),
 21 lookup contracts, 523 remaining interior references, 31 generic app fields
-and 308 unresolved record accesses. These are different denominators. Five
+and 313 unresolved record accesses. These are different denominators. Five
 suffixes name routines and one names text; neither is a pointer defect.
-Latest: four established scale/collision/cached-XZ fields now form the common
+Latest: sixteen initializer views now follow their exact original initializer /
+updater selector sets, with fifteen previously generic constructor names. Thirty-two
+actions add 46 typed accesses (two tower gaps resolved, 44 previously uncatalogued)
+and expose seven still-unknown constructor bytes/words. No old access or meaning
+changes: **3503 app /2312 typed /313 unresolved**. Type93's unique initializer
+STs the newly named primary-form restore-inhibit flag, then enters the existing
+World-view chain helper; the flag remains on EnergyTower rather than World.
+Both retained pool snapshots match their recorded hashes. No new emulator run
+was needed, and snapshot values are not claimed as writer attribution. Packed
+header-byte normalization, conditional mission motion, capsule random state,
+bounce-scale overwrite and unproved initialization elsewhere are preserved.
+C/vasm and clean staged standalone output are checked before publication; assets
+and headers are unchanged. Next inspect the exposed constructor parameters and
+forwarding paths before inferring more initializer contracts; the scalar guard
+transport limitation remains separate from this source-level recovery.
+
+Preceding: four established scale/collision/cached-XZ fields now form the common
 TargetingObject base of World and GroundLaser. Seven canonical actions move only
 World-local copies (including an old separate overlay); inherited types, names,
 widths and offsets are identical. Existing joins recover all seven laser-callee
@@ -198,7 +214,7 @@ starts. Their original producer really emits clipped horizon coordinates; a
 phase/width alias must remain distinct from the keyboard contract. Investigate
 existing canonical alias/view support before adding or renaming ownership. The
 third partial candidate is the already-documented LONG clear spanning a pending
-score WORD and following storage; that clear alone cannot name the extra bytes. Discovery leads and the 308 unresolved
+score WORD and following storage; that clear alone cannot name the extra bytes. Discovery leads and the 313 unresolved
 typed accesses remain different populations.
 A bounded alias reproducer found a shared renderer defect: an inferred
 same-origin conflict silently dropped the canonical app declaration while

@@ -1246,7 +1246,9 @@ SG2VariantObject_SIZEOF EQU __RS
 
 ; STRUCT SG2EnergyTower
     RSRESET
-    RS.B 40
+    RS.B 34
+SG2EnergyTower_primary_form_restore_inhibit_flag RS.B 1
+    RS.B 5
 SG2EnergyTower_alternate_form_request RS.B 1
     RS.B 27
 SG2EnergyTower_SIZEOF EQU __RS
@@ -10338,7 +10340,7 @@ update_energy_tower_variant_and_alternate_form:
 	bra.w abs_0_000081D2
     ; KNOWN: type A0=Target code-entry register seed:SG2EnergyTower
 restore_energy_tower_primary_form:
-	tst.b $0022(a0)
+	tst.b SG2EnergyTower_primary_form_restore_inhibit_flag(a0)
 	bne.w abs_0_000081D2
 	tst.b SG2EnergyTower_alternate_form_request(a0)
 	bne.w abs_0_000081D2
@@ -23600,22 +23602,22 @@ world_object_type_initializer_pointers:
 	dc.l initialize_proximity_mine_state
 	dc.l initialize_spire_pose_and_collapse_marker
 	dc.l initialize_solar_converter_chain_anchor
-	dc.l abs_0_0001823A
+	dc.l initialize_silo_heading_and_status
 	dc.l initialize_buzz_bomb_surface_state
 	dc.l initialize_large_bird_pose_and_motion
-	dc.l abs_0_00018296
+	dc.l initialize_emma2_mission_dependent_motion
 	dc.l skip_object_type_initialization
 	dc.l abs_0_000182F0
 	dc.l abs_0_000182F0
 	dc.l abs_0_0001872A
 	dc.l skip_object_type_initialization
-	dc.l abs_0_0001834E
+	dc.l initialize_escape_capsule_spin_and_translation_state
 	dc.l skip_object_type_initialization
 	dc.l initialize_small_fighter_pose_and_motion
-	dc.l abs_0_0001838A
+	dc.l initialize_horatio_heading_and_motion
 	dc.l skip_object_type_initialization
-	dc.l abs_0_000183A4
-	dc.l abs_0_000183BC
+	dc.l initialize_pyramid_vertex_oscillation
+	dc.l initialize_tunnel_sentinel_world_y
 	dc.l skip_object_type_initialization
 	dc.l initialize_space_tug_parameter_group
 	dc.l abs_0_00018430
@@ -23631,9 +23633,9 @@ world_object_type_initializer_pointers:
 	dc.l skip_object_type_initialization
 	dc.l skip_object_type_initialization
 	dc.l initialize_bird_fighter_state
-	dc.l abs_0_0001850A
+	dc.l initialize_pac_worm_heading_and_motion
 	dc.l initialize_station_mini_sentinel
-	dc.l abs_0_0001851E
+	dc.l initialize_flat_diamond_flags
 	dc.l skip_object_type_initialization
 	dc.l initialize_pirate_or_skim_drone
 	dc.l abs_0_0001856E
@@ -23641,16 +23643,16 @@ world_object_type_initializer_pointers:
 	dc.l initialize_pirate_or_skim_drone
 	dc.l initialize_and_link_tug_truck
 	dc.l skip_object_type_initialization
-	dc.l abs_0_0001823A
+	dc.l initialize_silo_heading_and_status
 	dc.l abs_0_000188FA
-	dc.l abs_0_000185D6
+	dc.l initialize_tunnel_emitter_from_packed_header
 	dc.l skip_object_type_initialization
 	dc.l abs_0_00018430
 	dc.l abs_0_000185CE
 	dc.l abs_0_000185CE
 	dc.l abs_0_000185CE
 	dc.l skip_object_type_initialization
-	dc.l abs_0_00018602
+	dc.l initialize_bouncing_ball_height_and_motion
 	dc.l abs_0_00018670
 	dc.l abs_0_00018670
 	dc.l abs_0_00018670
@@ -23659,14 +23661,14 @@ world_object_type_initializer_pointers:
 	dc.l skip_object_type_initialization
 	dc.l skip_object_type_initialization
 	dc.l initialize_blast_door_flags
-	dc.l abs_0_00018626
-	dc.l abs_0_00018646
+	dc.l initialize_blowhole_emission_phase
+	dc.l initialize_energy_gate_flags
 	dc.l initialize_structure_contact_flags
 	dc.l initialize_structure_contact_flags
 	dc.l initialize_structure_contact_flags
 	dc.l initialize_structure_contact_flags
 	dc.l initialize_structure_contact_flags
-	dc.l abs_0_000188EA
+	dc.l initialize_pilot_couch_world_y_and_durability
 	dc.l skip_object_type_initialization
 	dc.l abs_0_0001856E
 	dc.l skip_object_type_initialization
@@ -23681,14 +23683,14 @@ world_object_type_initializer_pointers:
 	dc.l abs_0_000185CE
 	dc.l skip_object_type_initialization
 	dc.l initialize_type85_structure_variant
-	dc.l abs_0_00018686
+	dc.l initialize_ground_laser_world_y
 	dc.l abs_0_00018690
 	dc.l abs_0_000186B4
 	dc.l abs_0_000186D4
 	dc.l initialize_energy_tower_variant_and_link
 	dc.l abs_0_0001872A
 	dc.l initialize_structure_contact_flags
-	dc.l abs_0_00018744
+	dc.l initialize_energy_tower_restore_inhibit_and_link
 	dc.l initialize_tunnel_depot_service_id
 	dc.l skip_object_type_initialization
 	dc.l append_object_initializer_chain_link
@@ -23815,11 +23817,12 @@ initialize_solar_converter_chain_anchor:
 	move.l #$A,SG2ObjectCore_world_y(a0)
 	move.l a0,object_initializer_chain_tail(a6)
 	rts
-abs_0_0001823A:
+    ; KNOWN: type A0=Target code-entry register seed:SG2SiloLauncher
+initialize_silo_heading_and_status:
 	bsr.w abs_0_00018968
 	andi.w #4095,d0
-	move.w d0,$0012(a0)
-	bset.b #7,$001C(a0)
+	move.w d0,SG2WorldObject_rotation_1(a0)
+	bset.b #7,SG2ObjectCore_durability_or_negative(a0)
 	move.b #$19,$002B(a0)
 	move.b #$1,$001F(a0)
 	rts
@@ -23839,10 +23842,11 @@ initialize_large_bird_pose_and_motion:
 	move.w #$FA,SG2EvasiveActor_horizontal_motion_scale(a0)
 	bset.b #5,SG2ObjectCore_flags(a0)
 	rts
-abs_0_00018296:
+    ; KNOWN: type A0=Target code-entry register seed:SG2EvasiveActor
+initialize_emma2_mission_dependent_motion:
 	bsr.w abs_0_00018968
 	andi.w #4095,d0
-	move.w d0,$0012(a0)
+	move.w d0,SG2WorldObject_rotation_1(a0)
 	tst.b professor_taymar_delivered_flag(a6)
 	bmi.b abs_0_000182DC
 	tst.b professor_taymar_aboard_flag(a6)
@@ -23851,16 +23855,16 @@ abs_0_00018296:
 	bpl.b abs_0_000182DC
 	cmpi.w #8,selected_celestial_body_index(a6)
 	bne.b abs_0_000182DC
-	bset.b #7,$001C(a0)
-	move.w #$7FFF,$0024(a0)
-	move.w #$FF38,$0020(a0)
+	bset.b #7,SG2ObjectCore_durability_or_negative(a0)
+	move.w #$7FFF,SG2ScheduledActor_behavior_update_counter(a0)
+	move.w #$FF38,SG2EvasiveActor_horizontal_motion_scale(a0)
 	st.b $0022(a0)
 	sf.b abs_0_00018964.l
 	rts
 abs_0_000182DC:
 	bsr.w abs_0_00018968
-	move.w d0,$0024(a0)
-	move.w #$FE0C,$0020(a0)
+	move.w d0,SG2ScheduledActor_behavior_update_counter(a0)
+	move.w #$FE0C,SG2EvasiveActor_horizontal_motion_scale(a0)
 	sf.b $0022(a0)
 	rts
 abs_0_000182F0:
@@ -23887,14 +23891,15 @@ abs_0_000182F0:
 	bset.b #5,$0002(a0)
 	movea.l (a7)+,a1
 	rts
-abs_0_0001834E:
-	move.l #$FFFFFE70,$0008(a0)
-	move.w #$FFEC,$0026(a0)
+    ; KNOWN: type A0=Target code-entry register seed:SG2EscapeCapsule
+initialize_escape_capsule_spin_and_translation_state:
+	move.l #$FFFFFE70,SG2ObjectCore_world_y(a0)
+	move.w #$FFEC,SG2EscapeCapsule_spin_step(a0)
 	move.w #$C8,$0020(a0)
 	bsr.w abs_0_00018968
 	andi.w #63,d0
 	move.w d0,$0024(a0)
-	move.b d0,$0028(a0)
+	move.b d0,SG2EscapeCapsule_translation_stopped_flag(a0)
 	rts
     ; KNOWN: type A0=Target code-entry register seed:SG2FlyingActor
 initialize_small_fighter_pose_and_motion:
@@ -23902,22 +23907,25 @@ initialize_small_fighter_pose_and_motion:
 	move.w #$FED4,SG2FlyingActor_horizontal_motion_scale(a0)
 	bset.b #5,SG2ObjectCore_flags(a0)
 	rts
-abs_0_0001838A:
+    ; KNOWN: type A0=Target code-entry register seed:SG2EvasiveActor
+initialize_horatio_heading_and_motion:
 	bsr.w abs_0_00018968
 	andi.w #4095,d0
-	move.w d0,$0012(a0)
-	move.w #$FEA2,$0020(a0)
-	move.w #$2,$0024(a0)
+	move.w d0,SG2WorldObject_rotation_1(a0)
+	move.w #$FEA2,SG2EvasiveActor_horizontal_motion_scale(a0)
+	move.w #$2,SG2ScheduledActor_behavior_update_counter(a0)
 	rts
-abs_0_000183A4:
+    ; KNOWN: type A0=Target code-entry register seed:SG2VertexOscillator
+initialize_pyramid_vertex_oscillation:
 	bsr.w abs_0_00018968
 	andi.w #4095,d0
-	move.w d0,$0012(a0)
-	clr.b $0003(a0)
-	move.b #$1,$001F(a0)
+	move.w d0,SG2WorldObject_rotation_1(a0)
+	clr.b SG2WorldObject_vertex_variant_selector(a0)
+	move.b #$1,SG2VertexOscillator_vertex_variant_step(a0)
 	rts
-abs_0_000183BC:
-	move.l #$FFFFFF6A,$0008(a0)
+    ; KNOWN: type A0=Target code-entry register seed:SG2ScheduledActor
+initialize_tunnel_sentinel_world_y:
+	move.l #$FFFFFF6A,SG2ObjectCore_world_y(a0)
 	rts
     ; KNOWN: type A0=Target code-entry register seed:SG2WorldObject
 initialize_space_tug_parameter_group:
@@ -24005,14 +24013,16 @@ initialize_bird_fighter_state:
 	move.w #$FFA6,SG2EvasiveActor_horizontal_motion_scale(a0)
 	bset.b #5,SG2ObjectCore_flags(a0)
 	rts
-abs_0_0001850A:
+    ; KNOWN: type A0=Target code-entry register seed:SG2EvasiveActor
+initialize_pac_worm_heading_and_motion:
 	bsr.w abs_0_00018968
 	andi.w #4095,d0
-	move.w d0,$0012(a0)
-	move.w #$FF38,$0020(a0)
+	move.w d0,SG2WorldObject_rotation_1(a0)
+	move.w #$FF38,SG2EvasiveActor_horizontal_motion_scale(a0)
 	rts
-abs_0_0001851E:
-	bset.b #0,$0002(a0)
+    ; KNOWN: type A0=Target code-entry register seed:SG2WorldObject
+initialize_flat_diamond_flags:
+	bset.b #0,SG2ObjectCore_flags(a0)
 	rts
     ; Shared type40 Pirate Ship/type43 Skim Drone initializer. Keep their common position contract; drone follow/idle field meanings are bound only at its nearby updater/helper.
     ; KNOWN: type A0=Target code-entry register seed:SG2WorldObject
@@ -24064,54 +24074,60 @@ abs_0_000185B4:
 abs_0_000185CE:
 	bset.b #7,$0002(a0)
 	rts
-abs_0_000185D6:
-	move.b (a0),$0024(a0)
-	clr.b (a0)
-	move.b #$1,$002B(a0)
-	bset.b #7,$001C(a0)
+    ; KNOWN: type A0=Target code-entry register seed:SG2TunnelEmitter
+initialize_tunnel_emitter_from_packed_header:
+	move.b (a0),$0024(a0)	; operand 1: SG2ObjectCore_object_type at (a0)
+	clr.b (a0)	; operand 1: SG2ObjectCore_object_type at (a0)
+	move.b #$1,SG2TunnelEmitter_remaining_sentinel_emissions(a0)
+	bset.b #7,SG2ObjectCore_durability_or_negative(a0)
 	tst.w d4
 	bmi.w skip_object_type_initialization
-	move.b #$2,$001D(a0)
-	bset.b #6,$0002(a0)
-	bset.b #1,$0002(a0)
+	move.b #$2,SG2TargetingObject_model_scale_shift(a0)
+	bset.b #6,SG2ObjectCore_flags(a0)
+	bset.b #1,SG2ObjectCore_flags(a0)
 	rts
-abs_0_00018602:
-	move.w #$FFC2,$002E(a0)
-	move.l #$FFFFFFC9,$0008(a0)
-	move.w #$14,$0020(a0)
+    ; KNOWN: type A0=Target code-entry register seed:SG2BouncingActor
+initialize_bouncing_ball_height_and_motion:
+	move.w #$FFC2,SG2WorldObject_velocity_y(a0)
+	move.l #$FFFFFFC9,SG2ObjectCore_world_y(a0)
+	move.w #$14,SG2BouncingActor_horizontal_motion_scale(a0)
 	rts
     ; KNOWN: type A0=Target code-entry register seed:SG2WorldObject
 initialize_blast_door_flags:
 	move.b #$1,$001F(a0)
 	bset.b #6,SG2ObjectCore_flags(a0)
 	rts
-abs_0_00018626:
+    ; KNOWN: type A0=Target code-entry register seed:SG2BlowholeEmitter
+initialize_blowhole_emission_phase:
 	bsr.w abs_0_00018968
 	andi.w #4095,d0
-	move.w d0,$0012(a0)
-	move.b #$3,$002B(a0)
-	move.b #$1,$001F(a0)
-	move.w #$1,$0024(a0)
+	move.w d0,SG2WorldObject_rotation_1(a0)
+	move.b #$3,SG2BlowholeEmitter_remaining_diamond_emissions(a0)
+	move.b #$1,SG2VertexOscillator_vertex_variant_step(a0)
+	move.w #$1,SG2BlowholeEmitter_emission_phase_counter(a0)
 	rts
-abs_0_00018646:
-	bset.b #6,$0002(a0)
+    ; KNOWN: type A0=Target code-entry register seed:SG2VariantObject
+initialize_energy_gate_flags:
+	bset.b #6,SG2ObjectCore_flags(a0)
 	rts
+    ; KNOWN: type A0=Target code-entry register seed:SG2TunnelIndicator
 initialize_type85_structure_variant:
-	cmpi.b #4,$0026(a0)
+	cmpi.b #4,SG2TunnelIndicator_rotation_mode(a0)
 	bne.b initialize_structure_contact_flags
-	move.w #$FFA6,$0030(a0)
-	move.w #$2D,$0014(a0)
+	move.w #$FFA6,SG2TunnelIndicator_angular_step(a0)
+	move.w #$2D,SG2TunnelIndicator_rotation_2(a0)
 initialize_structure_contact_flags:
-	bset.b #7,$001C(a0)
-	bset.b #6,$0002(a0)
+	bset.b #7,SG2ObjectCore_durability_or_negative(a0)
+	bset.b #6,SG2ObjectCore_flags(a0)
 	rts
 abs_0_00018670:
 	bset.b #7,$001C(a0)
 	bset.b #6,$0002(a0)
 	rts
 	dc.b $08,$E8,$00,$07,$00,$1C,$4E,$75
-abs_0_00018686:
-	move.l #$A,$0008(a0)
+    ; KNOWN: type A0=Target code-entry register seed:SG2GroundLaser
+initialize_ground_laser_world_y:
+	move.l #$A,SG2ObjectCore_world_y(a0)
 	rts
 abs_0_00018690:
 	move.l #$FFFFFF9C,$0008(a0)
@@ -24166,9 +24182,9 @@ abs_0_0001872A:
 	move.l #$FFFFFEA2,$0008(a0)
 	st.b $0022(a0)
 	rts
-    ; KNOWN: type A0=Target code-entry register seed:SG2WorldObject
-abs_0_00018744:
-	st.b $0022(a0)
+    ; KNOWN: type A0=Target code-entry register seed:SG2EnergyTower
+initialize_energy_tower_restore_inhibit_and_link:
+	st.b SG2EnergyTower_primary_form_restore_inhibit_flag(a0)
 	bra.w append_object_initializer_chain_link
     ; KNOWN: type A0=Target code-entry register seed:SG2TunnelDepot
 initialize_tunnel_depot_service_id:
@@ -24298,9 +24314,10 @@ initialize_shared_radial_object:
 	move usp,a2
 	bset.b #4,SG2ObjectCore_flags(a0)
 	rts
-abs_0_000188EA:
-	move.l #$FFFFF060,$0008(a0)
-	bset.b #7,$001C(a0)
+    ; KNOWN: type A0=Target code-entry register seed:SG2WorldObject
+initialize_pilot_couch_world_y_and_durability:
+	move.l #$FFFFF060,SG2ObjectCore_world_y(a0)
+	bset.b #7,SG2ObjectCore_durability_or_negative(a0)
 	rts
 abs_0_000188FA:
 	bset.b #7,$001C(a0)
