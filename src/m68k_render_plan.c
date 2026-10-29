@@ -12,6 +12,16 @@
 #include <stdlib.h>
 #include <string.h>
 
+int m68k_render_planned_expression_is_source_pointer(const M68kRenderPlannedExpression *e) {
+  return e != NULL &&
+    (e->kind == M68K_RENDER_PLANNED_EXPRESSION_DATA_POINTER ||
+     e->kind == M68K_RENDER_PLANNED_EXPRESSION_TABLE_ENTRY) &&
+    e->operand_index == UINT32_MAX && e->pointer_width != 0U &&
+    (e->pointer_address_domain == M68K_ANALYSIS_POINTER_DOMAIN_LEGACY ||
+     e->pointer_address_domain == M68K_ANALYSIS_POINTER_DOMAIN_MAPPED_SOURCE) &&
+    e->outcome == M68K_RENDER_PLANNED_EXPRESSION_SYMBOLIC && e->has_target && e->target_symbol[0];
+}
+
 static Arena *render_plan_arena(M68kRenderPlan *plan) {
   if (plan == NULL) return NULL;
   if (plan->finalized) return NULL;

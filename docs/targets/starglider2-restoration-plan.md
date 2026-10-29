@@ -32,14 +32,25 @@ The energy-tower initializer's World chain view stays distinct from its updater
 view. Packed-header normalization, signed comparisons, wrap, PRNG transforms,
 nullable/sentinel links and unknown constructor parameters remain unchanged.
 
-Latest world-data identity recovery joins original body selection and planetfall
-text through their shared index. Fourteen physical placement owners and 26 element
-labels now use established body names, space, shared-moon or empty-interior roles.
-All 32 logical slots, 1139 static placements, physical aliases and 10/16-byte formats
-remain intact. Shared streams are not attributed to one body; the empty interior
-remains only a two-byte terminator. No opaque parameter receives a guessed meaning,
-and static templates do not imply every world is visited. App/typed/gap records
-are exactly unchanged: **3503 app /2589 typed /207 unresolved**.
+Model-header identity recovery now joins the original model and object-name
+directories through their shared selector. Ninety-two physical headers gain names
+from established canonical text, without splitting compact arrays. Eleven anonymous
+headers and the model-0/1 alias remain; duplicate display names retain distinct type
+IDs. This identifies records, not visual shapes or universal runtime reachability.
+The preceding world-data batch names fourteen physical placement owners and 26
+elements while preserving 32 logical slots and 1139 static placements. App/typed/gap
+records remain exactly unchanged: **3503 app /2589 typed /207 unresolved**.
+
+The shared native reference query now projects resolved typed data-pointer
+expressions from the frozen plan. Artifact navigation counts those source operands
+too, using a sorted span index rather than rescanning all expressions per row.
+All 16959 previous reference records remain, with 894 typed pointer edges newly
+exposed (17853 total). Existing explicit data-reference modes retain precedence; scalar, null, ambiguous,
+unmapped and runtime-only values cannot manufacture source edges. These are static
+pointer dependencies, not newly executed instructions. Focused positive/negative
+checks and the native suite pass; current source qualification is recorded by the
+rendered provenance. Forward-only corpus navigation does not yet retain the plan's
+pointer-expression index and is not included in this navigation-count claim.
 
 Preceding launch-state contracts recover common behavior counters, airborne capsule
 flags and ground link-release countdowns, with LandTank-specific fields only after

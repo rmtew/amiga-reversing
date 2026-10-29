@@ -83,12 +83,19 @@ def test_bound_array_pointer_uses_an_emitted_symbol_with_exact_bytes(tmp_path, i
             assert row['pointer_resolution']['outcome'] == 'unresolved'
             assert row['pointer_resolution']['reason'] == 'missing_source_owner'
             assert 'node_array' not in row['text']
+            assert not artifact.query_payload('references', source_offset=2,
+                direction='outgoing')['items']
             text, _ = artifact.inline_source_text_with_profile()
             rebuilt, _ = assemble_platform_source_text_with_c_backend('amiga-raw', text, project_root=PROJECT_ROOT)
             assert rebuilt == original
             return
         assert row['pointer_resolution']['outcome'] == 'symbolic'
         assert row['pointer_resolution']['target_offset'] == target
+        refs = artifact.query_payload('references', source_offset=2, direction='outgoing')['items']
+        assert len(refs) == 1 and refs[0]['target_offset'] == target
+        assert refs[0]['provenance'] == 'typed_data_pointer'
+        assert artifact.query_payload('references', source_offset=target,
+            direction='incoming')['items'] == refs
         assert f'dc.l {expected}' in row['text']
         text, _ = artifact.inline_source_text_with_profile()
         assert 'node_array:\n' in text

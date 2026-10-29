@@ -14493,6 +14493,43 @@ static int query_coordinate(int has_section, uint32_t section, int has_start,
     (!has_start || (has_end ? candidate >= start && candidate < end : candidate == start));
 }
 
+/* Explicit analysis xrefs, including suppressed/source-only interpretations,
+ * take precedence over the typed data-operand fallback. Index source identities
+ * once per query rather than scanning every data reference for every expression. */
+static int query_source_coordinate_compare(const void *left, const void *right) {
+  uint64_t a = *(const uint64_t *)left, b = *(const uint64_t *)right;
+  return (a > b) - (a < b);
+}
+
+static int query_data_reference_sources(const M68kSourceAnalysisIR *analysis,
+    uint64_t **out_keys, size_t *out_count) {
+  size_t capacity = 0U, count = 0U, i, j;
+  uint64_t *keys;
+  *out_keys = NULL; *out_count = 0U;
+  for (i = 0U; i < analysis->section_count; ++i) {
+    const M68kSectionAnalysisIR *section = &analysis->sections[i];
+    if (section->data_reference_count > SIZE_MAX - capacity) return -1;
+    capacity += section->data_reference_count;
+    if (section->runtime_address_ref_count > SIZE_MAX - capacity) return -1;
+    capacity += section->runtime_address_ref_count;
+  }
+  if (capacity == 0U) return 0;
+  if (capacity > SIZE_MAX / sizeof(*keys) || !(keys = malloc(capacity * sizeof(*keys)))) return -1;
+  for (i = 0U; i < analysis->section_count; ++i) {
+    const M68kSectionAnalysisIR *section = &analysis->sections[i];
+    for (j = 0U; j < section->data_reference_count; ++j)
+      keys[count++] = ((uint64_t)section->section_index << 32U) | section->data_references[j].source_offset;
+    for (j = 0U; j < section->runtime_address_ref_count; ++j) {
+      const M68kRuntimeAddressRefIR *ref = &section->runtime_address_refs[j];
+      if (ref->owner_kind && !strcmp(ref->owner_kind, "data_block_interpreted_ref"))
+        keys[count++] = ((uint64_t)section->section_index << 32U) | ref->offset;
+    }
+  }
+  qsort(keys, count, sizeof(*keys), query_source_coordinate_compare);
+  *out_keys = keys; *out_count = count;
+  return 0;
+}
+
 int platform_file_facts_v2_listing_artifact_query_json_alloc(PlatformFileListingArtifact *artifact,
     const char *kind, const char *query, int has_section, uint32_t section_index,
     int has_start, uint32_t start, int has_end, uint32_t end, const char *symbol,
@@ -14503,6 +14540,8 @@ int platform_file_facts_v2_listing_artifact_query_json_alloc(PlatformFileListing
   int incoming, outgoing;
   const M68kRenderPlan *plan;
   BaseCandidateIndex base_index = {0};
+  uint64_t *data_reference_sources = NULL;
+  size_t data_reference_source_count = 0U;
   if (out_text == NULL) return -1;
   *out_text = NULL;
   if (!artifact || !kind || !query || !symbol || !struct_name || !direction ||
@@ -14523,6 +14562,9 @@ int platform_file_facts_v2_listing_artifact_query_json_alloc(PlatformFileListing
 #define TARGET(has, sec, pos) do { if (has) Q(json_builder_appendf(&b, ",\"target_section_index\":%u,\"target_offset\":%u", (unsigned)(sec), (unsigned)(pos))); \
   else Q(json_builder_append(&b, ",\"target_section_index\":null,\"target_offset\":null")); } while (0)
   Q(json_builder_create(&b));
+  if (!strcmp(kind, "references"))
+    Q(query_data_reference_sources(&artifact->source_analysis,
+      &data_reference_sources, &data_reference_source_count));
   Q(json_builder_append(&b, "{\"items\":["));
   if (!strcmp(kind, "base_candidates")) {
     if (base_candidate_index_build(&base_index, &artifact->source_analysis)) goto failure;
@@ -14679,6 +14721,25 @@ int platform_file_facts_v2_listing_artifact_query_json_alloc(PlatformFileListing
       }
     }
   }
+  if (!strcmp(kind, "references")) for (i = 0U; i < plan->expression_count; ++i) {
+    const M68kRenderPlannedExpression *expression = &plan->expressions[i];
+    uint64_t source_key = ((uint64_t)expression->source_section_index << 32U) | expression->source_offset;
+    if (!m68k_render_planned_expression_is_source_pointer(expression) ||
+        (*symbol && strcmp(symbol, expression->target_symbol)) ||
+        !(!(has_section || has_start) ||
+          (outgoing && COORD(expression->source_section_index, expression->source_offset)) ||
+          (incoming && COORD(expression->target_section_index, expression->target_offset))) ||
+        (data_reference_source_count && bsearch(&source_key, data_reference_sources,
+          data_reference_source_count, sizeof(*data_reference_sources), query_source_coordinate_compare))) continue;
+    PAGE(); ID(expression->source_section_index, expression->source_offset);
+    STR("symbol", expression->target_symbol);
+    TARGET(1, expression->target_section_index, expression->target_offset);
+    Q(json_builder_appendf(&b, ",\"operand_index\":null,\"comment_only\":false,"
+      "\"kind\":\"symbol_reference\",\"provenance\":\"typed_data_pointer\","
+      "\"pointer_width\":%u,\"pointer_address_domain\":%u,\"pointer_value_part\":%u}",
+      (unsigned)expression->pointer_width, (unsigned)expression->pointer_address_domain,
+      (unsigned)expression->pointer_value_part));
+  }
   for (i = 0; i < artifact->source_analysis.section_count; ++i) {
     const M68kSectionAnalysisIR *sec = &artifact->source_analysis.sections[i];
     if (!strcmp(kind, "edges")) {
@@ -14788,10 +14849,12 @@ int platform_file_facts_v2_listing_artifact_query_json_alloc(PlatformFileListing
     ",\"Fallback base candidates are namespace hints, not ownership, purpose, range or register-base facts.\""));
   Q(json_builder_append(&b,"]}"));
   *out_text = json_builder_build(&b);
+  free(data_reference_sources);
   base_candidate_index_destroy(&base_index);
   json_builder_destroy(&b);
   return *out_text ? 0 : -1;
 failure:
+  free(data_reference_sources);
   base_candidate_index_destroy(&base_index);
   json_builder_destroy(&b);
   return -1;

@@ -24467,203 +24467,203 @@ abs_0_0001896E:
 	jmp build_motion_vector_from_angles.l
     ; Type 0: No records found. Shares header with type1; zero is skipped in visible-object drawing.
 model_header_pointers:
-	dc.l model_headers	; 104 model pointers; entries 0 and 1 intentionally alias the same header
+	dc.l walker_model_header	; 104 model pointers; entries 0 and 1 intentionally alias the same header
     ; Type 1: Walker.
-	dc.l model_headers
+	dc.l walker_model_header
     ; Type 2: Proximity Mine.
-	dc.l model_headers+$1C
+	dc.l proximity_mine_model_header
     ; Type 3: Egron Spire Building.
-	dc.l model_headers+$38
+	dc.l egron_spire_building_model_header
     ; Type 4: Solar Energy Converter.
-	dc.l model_headers+$54
+	dc.l solar_energy_converter_model_header
     ; Type 5: Egron Silo.
-	dc.l model_header_run_01
+	dc.l egron_silo_model_header
     ; Type 6: Buzz Bomb.
-	dc.l model_header_run_01+$18
+	dc.l buzz_bomb_model_header
     ; Type 7: Large Bird.
-	dc.l model_header_run_02
+	dc.l large_bird_model_header
     ; Type 8: Emma 2.
-	dc.l model_header_run_02+$1C
+	dc.l emma_2_model_header
     ; Type 9: Egron Land Tank.
-	dc.l model_header_run_02+$38
+	dc.l egron_land_tank_model_header
     ; Type 10: Egron Mechanical Whale.
-	dc.l model_header_run_02+$54
+	dc.l egron_mechanical_whale_model_header
     ; Type 11: Egron Duck.
-	dc.l model_header_run_03
+	dc.l egron_duck_model_header
     ; Type 12: Homing Missile.
-	dc.l model_header_run_04
+	dc.l homing_missile_model_header
     ; Type 13: Armed Transport.
-	dc.l model_header_run_04+$1C
+	dc.l armed_transport_model_header
     ; Type 14: Escape Capsule.
-	dc.l model_header_run_04+$38
+	dc.l escape_capsule_model_header
     ; Type 15: Stomper.
-	dc.l model_header_run_04+$54
+	dc.l stomper_model_header
     ; Type 16: Small Fighter.
-	dc.l model_header_run_04+$70
+	dc.l small_fighter_model_header
     ; Type 17: Horatio.
-	dc.l model_header_run_04+$8C
+	dc.l horatio_model_header
     ; Type 18: Large Egron Transport.
-	dc.l model_header_run_04+$A8
+	dc.l large_egron_transport_model_header
     ; Type 19: Pulsing Pyramids.
-	dc.l model_header_run_05
+	dc.l pulsing_pyramids_model_header
     ; Type 20: Tunnel Sentinel.
-	dc.l model_header_run_06
+	dc.l tunnel_sentinel_model_header
     ; Type 21: Vampire Type Fighter.
-	dc.l model_header_run_06+$1C
+	dc.l vampire_type_fighter_model_header
     ; Type 22: Egron Space Tug.
-	dc.l model_header_run_06+$38
+	dc.l egron_space_tug_model_header
     ; Type 23: GBML.
-	dc.l model_header_run_07
+	dc.l gbml_model_header
     ; Type 24: Petrified Tree.
-	dc.l model_header_run_07+$18
+	dc.l petrified_tree_model_header
     ; Type 25: Missile.
-	dc.l model_header_run_08
+	dc.l missile_model_header
     ; Type 26: Tripuss.
-	dc.l model_header_run_09
+	dc.l tripuss_model_header
     ; Type 27: Starglider.
-	dc.l model_header_run_10
+	dc.l starglider_model_header
     ; Type 28: Egron Square Rocket.
-	dc.l model_header_run_10+$1C
+	dc.l egron_square_rocket_model_header
     ; Type 29: Egron Mini Rocket.
-	dc.l model_header_run_10+$38
+	dc.l egron_mini_rocket_model_header
     ; Type 30: The Icarus. Visible-object drawing substitutes app0192; this is the stored type30 model.
-	dc.l model_header_run_10+$54
+	dc.l the_icarus_model_header
     ; Type 31: Space Fighter.
-	dc.l model_header_run_10+$70
+	dc.l space_fighter_model_header
     ; Type 32: Personnel Shuttle.
-	dc.l model_header_run_10+$8C
+	dc.l personnel_shuttle_model_header
     ; Type 33: Egron Buzz Bomber.
-	dc.l model_header_run_10+$A8
+	dc.l egron_buzz_bomber_model_header
     ; Type 34: Flying Saucer.
-	dc.l model_header_run_10+$C4
+	dc.l flying_saucer_model_header
     ; Type 35: Egron Bird Fighter.
-	dc.l model_header_run_10+$E0
+	dc.l egron_bird_fighter_model_header
     ; Type 36: Pac-Worm.
-	dc.l model_header_run_10+$FC
+	dc.l pac_worm_model_header
     ; Type 37: Egron Mini-Sentinel.
-	dc.l model_header_run_11
+	dc.l egron_mini_sentinel_model_header
     ; Type 38: Flat Diamond.
-	dc.l model_header_run_12
+	dc.l flat_diamond_model_header
     ; Type 39: Hover Car.
-	dc.l model_header_run_12+$1C
+	dc.l hover_car_model_header
     ; Type 40: Pirate Ship.
-	dc.l model_header_run_13
+	dc.l pirate_ship_model_header
     ; Type 41: Space Ray.
-	dc.l model_header_run_14
+	dc.l space_ray_model_header
     ; Type 42: Satellite Dish.
-	dc.l model_header_run_14+$1C
+	dc.l satellite_dish_model_header
     ; Type 43: Skim Launcher Drone.
-	dc.l model_header_run_15
+	dc.l skim_launcher_drone_model_header
     ; Type 44: Tug Truck.
-	dc.l model_header_run_16
+	dc.l tug_truck_model_header
     ; Type 45: Fighter Escort.
-	dc.l model_header_run_16+$1C
+	dc.l fighter_escort_model_header
     ; Type 46: Egron Dome Silo.
-	dc.l model_header_run_17
-	dc.l model_header_run_17+$18
+	dc.l egron_dome_silo_model_header
+	dc.l egron_dome_silo_model_header+$18
     ; Type 48: Tunnel Entrance/Exit.
-	dc.l model_header_run_17+$30
+	dc.l tunnel_entrance_exit_model_header
     ; Type 49: BT Tower.
-	dc.l model_header_run_18
+	dc.l bt_tower_model_header
     ; Type 50: GBML with Cannon.
-	dc.l model_header_run_18+$1C
+	dc.l gbml_with_cannon_model_header
     ; Type 51: Pyramid.
-	dc.l model_header_run_19
+	dc.l pyramid_model_header
     ; Type 52: Tower Block.
-	dc.l model_header_run_19+$18
+	dc.l tower_block_model_header
     ; Type 53: Tapering Tower Block.
-	dc.l model_header_run_19+$30
+	dc.l tapering_tower_block_model_header
     ; Type 54: Energy Transmitter.
-	dc.l model_header_run_20
+	dc.l energy_transmitter_model_header
     ; Type 55: Bouncing Ball.
-	dc.l model_header_run_20+$1C
+	dc.l bouncing_ball_model_header
     ; Type 56: Cobweb.
-	dc.l model_header_run_21
+	dc.l cobweb_model_header
     ; Type 57: Tunnel Exit Indicators.
-	dc.l model_header_run_21+$18
+	dc.l tunnel_exit_indicators_type_057_model_header
     ; Type 58: Tunnel Exit Indicators.
-	dc.l model_header_run_21+$30
+	dc.l tunnel_exit_indicators_type_058_model_header
     ; Type 59: Old Heap Of Junk.
-	dc.l model_header_run_21+$48
+	dc.l old_heap_of_junk_model_header
     ; Type 60: Skim Missile.
-	dc.l model_header_run_21+$60
+	dc.l skim_missile_model_header
     ; Type 61: Scrap Metal.
-	dc.l model_header_run_21+$78
+	dc.l scrap_metal_type_061_model_header
     ; Type 62: Scrap Metal.
-	dc.l model_header_run_21+$90
+	dc.l scrap_metal_type_062_model_header
     ; Type 63: Blast Doors.
-	dc.l model_header_run_21+$A8
+	dc.l blast_doors_model_header
     ; Type 64: Blowhole.
-	dc.l model_header_run_21+$C0
+	dc.l blowhole_model_header
     ; Type 65: Energy gate.
-	dc.l model_header_run_21+$D8
-	dc.l model_header_run_21+$F0
-	dc.l model_header_run_21+$108
-	dc.l model_header_run_21+$120
-	dc.l model_header_run_21+$138
-	dc.l model_header_run_21+$150
+	dc.l energy_gate_model_header
+	dc.l cobweb_model_header+$F0
+	dc.l cobweb_model_header+$108
+	dc.l cobweb_model_header+$120
+	dc.l cobweb_model_header+$138
+	dc.l cobweb_model_header+$150
     ; Type 71: Icarus Pilot Couch.
-	dc.l model_header_run_21+$168
+	dc.l icarus_pilot_couch_model_header
     ; Type 72: Laser Bolt.
-	dc.l model_header_run_22
+	dc.l laser_bolt_model_header
     ; Type 73: Asteroid.
-	dc.l model_header_run_23
+	dc.l asteroid_model_header
     ; Type 74: Small Asteroid.
-	dc.l model_header_run_23+$18
+	dc.l small_asteroid_model_header
     ; Type 75: Egron Projector Base.
-	dc.l model_header_run_23+$30
+	dc.l egron_projector_base_model_header
     ; Type 76: Egron Projector Mount.
-	dc.l model_header_run_23+$48
+	dc.l egron_projector_mount_model_header
     ; Type 77: Egron Projector Cover.
-	dc.l model_header_run_23+$60
+	dc.l egron_projector_cover_model_header
     ; Type 78: Egron Projector Turret.
-	dc.l model_header_run_23+$78
+	dc.l egron_projector_turret_model_header
     ; Type 79: Projector Fuel Crystals.
-	dc.l model_header_run_23+$90
+	dc.l projector_fuel_crystals_model_header
     ; Type 80: Projector Control Tower.
-	dc.l model_header_run_23+$A8
+	dc.l projector_control_tower_model_header
     ; Type 81: Projector Crew Quarters.
-	dc.l model_header_run_23+$C0
+	dc.l projector_crew_quarters_model_header
     ; Type 82: Egron Projector Sentinel.
-	dc.l model_header_run_24
+	dc.l egron_projector_sentinel_model_header
     ; Type 83: Cask of Vistan Wine.
-	dc.l model_header_run_25
+	dc.l cask_of_vistan_wine_model_header
     ; Type 84: Energy Cube Launcher.
-	dc.l model_header_run_26
+	dc.l energy_cube_launcher_model_header
 	dc.l model_header_run_27
     ; Type 86: Ground Based Laser Cannon.
-	dc.l model_header_run_27+$18
+	dc.l ground_based_laser_canno_model_header
     ; Type 87: Cluster of Nodules.
-	dc.l model_header_run_27+$30
+	dc.l cluster_of_nodules_model_header
     ; Type 88: Volcano.
-	dc.l model_header_run_27+$48
+	dc.l volcano_model_header
     ; Type 89: Columbus.
-	dc.l model_header_run_28
+	dc.l columbus_model_header
     ; Type 90: Energy Tower.
-	dc.l model_header_run_29
+	dc.l energy_tower_type_090_model_header
     ; Type 91: Bouncing Bomb.
-	dc.l model_header_run_30
+	dc.l bouncing_bomb_model_header
 	dc.l model_header_run_31
     ; Type 93: Energy Tower.
-	dc.l model_header_run_31+$18
+	dc.l energy_tower_type_093_model_header
     ; Type 94: Tunnel Depot.
-	dc.l model_header_run_31+$30
+	dc.l tunnel_depot_model_header
 	dc.l model_header_run_31+$48
 	dc.l model_header_run_31+$60
 	dc.l model_header_run_31+$78
     ; Type 98: Neutron Bomb.
-	dc.l model_header_run_31+$90
+	dc.l neutron_bomb_model_header
     ; Type 99: Egron Space Station.
-	dc.l model_header_run_31+$A8
+	dc.l egron_space_station_model_header
     ; Type 100: Crate of Castrobars.
-	dc.l model_header_run_31+$C0
+	dc.l crate_of_castrobars_model_header
     ; Type 101: Lump of Mineral Rock.
-	dc.l model_header_run_31+$D8
+	dc.l lump_of_mineral_rock_model_header
     ; Type 102: Case of Nuclear Fuel.
-	dc.l model_header_run_31+$F0
+	dc.l case_of_nuclear_fuel_model_header
     ; Type 103: Icarus Gas Laser Bolt.
-	dc.l model_header_run_32
-model_headers:
+	dc.l icarus_gas_laser_bolt_model_header
+walker_model_header:
 	dc.w $0016	; last_vertex_index
 	dc.w $001D	; face_count
 	dc.w $00C1	; coordinate_word_count
@@ -24673,6 +24673,7 @@ model_headers:
 	dc.l model_001_variant_frames	; vertex_variant_table
 	dc.w $0001	; auxiliary_face_count
 	dc.l model_000_auxiliary_faces	; auxiliary_face_commands
+proximity_mine_model_header:
 	dc.w $0010	; last_vertex_index
 	dc.w $001B	; face_count
 	dc.w $000B	; coordinate_word_count
@@ -24682,6 +24683,7 @@ model_headers:
 	dc.l $00000000	; vertex_variant_table
 	dc.w $0003	; auxiliary_face_count
 	dc.l model_002_auxiliary_faces	; auxiliary_face_commands
+egron_spire_building_model_header:
 	dc.w $0012	; last_vertex_index
 	dc.w $0013	; face_count
 	dc.w $000C	; coordinate_word_count
@@ -24691,6 +24693,7 @@ model_headers:
 	dc.l $00000000	; vertex_variant_table
 	dc.w $0001	; auxiliary_face_count
 	dc.l model_003_auxiliary_faces	; auxiliary_face_commands
+solar_energy_converter_model_header:
 	dc.w $0017	; last_vertex_index
 	dc.w $0015	; face_count
 	dc.w $0053	; coordinate_word_count
@@ -24700,7 +24703,7 @@ model_headers:
 	dc.l model_004_variant_frames	; vertex_variant_table
 	dc.w $0002	; auxiliary_face_count
 	dc.l model_004_auxiliary_faces	; auxiliary_face_commands
-model_header_run_01:
+egron_silo_model_header:
 	dc.w $0014	; last_vertex_index
 	dc.w $0016	; face_count
 	dc.w $003D	; coordinate_word_count
@@ -24709,6 +24712,7 @@ model_header_run_01:
 	dc.l model_005_coordinates	; coordinate_pool
 	dc.l model_005_variant_frames	; vertex_variant_table
 	dc.w $0000	; auxiliary_face_count
+buzz_bomb_model_header:
 	dc.w $001F	; last_vertex_index
 	dc.w $001C	; face_count
 	dc.w $0003	; coordinate_word_count
@@ -24717,7 +24721,7 @@ model_header_run_01:
 	dc.l model_006_coordinates	; coordinate_pool
 	dc.l $00000000	; vertex_variant_table
 	dc.w $0000	; auxiliary_face_count
-model_header_run_02:
+large_bird_model_header:
 	dc.w $0012	; last_vertex_index
 	dc.w $0018	; face_count
 	dc.w $004C	; coordinate_word_count
@@ -24727,6 +24731,7 @@ model_header_run_02:
 	dc.l model_007_variant_frames	; vertex_variant_table
 	dc.w $0003	; auxiliary_face_count
 	dc.l model_007_auxiliary_faces	; auxiliary_face_commands
+emma_2_model_header:
 	dc.w $0019	; last_vertex_index
 	dc.w $0018	; face_count
 	dc.w $0011	; coordinate_word_count
@@ -24736,6 +24741,7 @@ model_header_run_02:
 	dc.l $00000000	; vertex_variant_table
 	dc.w $0001	; auxiliary_face_count
 	dc.l model_008_auxiliary_faces	; auxiliary_face_commands
+egron_land_tank_model_header:
 	dc.w $000F	; last_vertex_index
 	dc.w $0012	; face_count
 	dc.w $000F	; coordinate_word_count
@@ -24745,6 +24751,7 @@ model_header_run_02:
 	dc.l $00000000	; vertex_variant_table
 	dc.w $0001	; auxiliary_face_count
 	dc.l model_009_auxiliary_faces	; auxiliary_face_commands
+egron_mechanical_whale_model_header:
 	dc.w $0016	; last_vertex_index
 	dc.w $0016	; face_count
 	dc.w $0042	; coordinate_word_count
@@ -24754,7 +24761,7 @@ model_header_run_02:
 	dc.l model_010_variant_frames	; vertex_variant_table
 	dc.w $0002	; auxiliary_face_count
 	dc.l model_010_auxiliary_faces	; auxiliary_face_commands
-model_header_run_03:
+egron_duck_model_header:
 	dc.w $0010	; last_vertex_index
 	dc.w $0012	; face_count
 	dc.w $0012	; coordinate_word_count
@@ -24763,7 +24770,7 @@ model_header_run_03:
 	dc.l model_011_coordinates	; coordinate_pool
 	dc.l model_011_variant_frames	; vertex_variant_table
 	dc.w $0000	; auxiliary_face_count
-model_header_run_04:
+homing_missile_model_header:
 	dc.w $0006	; last_vertex_index
 	dc.w $0007	; face_count
 	dc.w $0022	; coordinate_word_count
@@ -24773,6 +24780,7 @@ model_header_run_04:
 	dc.l model_012_variant_frames	; vertex_variant_table
 	dc.w $0002	; auxiliary_face_count
 	dc.l model_012_auxiliary_faces	; auxiliary_face_commands
+armed_transport_model_header:
 	dc.w $0012	; last_vertex_index
 	dc.w $0014	; face_count
 	dc.w $0007	; coordinate_word_count
@@ -24782,6 +24790,7 @@ model_header_run_04:
 	dc.l $00000000	; vertex_variant_table
 	dc.w $0001	; auxiliary_face_count
 	dc.l model_013_auxiliary_faces	; auxiliary_face_commands
+escape_capsule_model_header:
 	dc.w $000D	; last_vertex_index
 	dc.w $0012	; face_count
 	dc.w $0006	; coordinate_word_count
@@ -24791,6 +24800,7 @@ model_header_run_04:
 	dc.l $00000000	; vertex_variant_table
 	dc.w $0001	; auxiliary_face_count
 	dc.l model_014_auxiliary_faces	; auxiliary_face_commands
+stomper_model_header:
 	dc.w $0016	; last_vertex_index
 	dc.w $001D	; face_count
 	dc.w $011F	; coordinate_word_count
@@ -24800,6 +24810,7 @@ model_header_run_04:
 	dc.l model_015_variant_frames	; vertex_variant_table
 	dc.w $0003	; auxiliary_face_count
 	dc.l model_015_auxiliary_faces	; auxiliary_face_commands
+small_fighter_model_header:
 	dc.w $0009	; last_vertex_index
 	dc.w $0010	; face_count
 	dc.w $0007	; coordinate_word_count
@@ -24809,6 +24820,7 @@ model_header_run_04:
 	dc.l $00000000	; vertex_variant_table
 	dc.w $0002	; auxiliary_face_count
 	dc.l model_016_auxiliary_faces	; auxiliary_face_commands
+horatio_model_header:
 	dc.w $000D	; last_vertex_index
 	dc.w $0014	; face_count
 	dc.w $0025	; coordinate_word_count
@@ -24818,6 +24830,7 @@ model_header_run_04:
 	dc.l model_017_variant_frames	; vertex_variant_table
 	dc.w $0003	; auxiliary_face_count
 	dc.l model_017_auxiliary_faces	; auxiliary_face_commands
+large_egron_transport_model_header:
 	dc.w $0012	; last_vertex_index
 	dc.w $0013	; face_count
 	dc.w $002F	; coordinate_word_count
@@ -24827,7 +24840,7 @@ model_header_run_04:
 	dc.l model_018_variant_frames	; vertex_variant_table
 	dc.w $0003	; auxiliary_face_count
 	dc.l model_018_auxiliary_faces	; auxiliary_face_commands
-model_header_run_05:
+pulsing_pyramids_model_header:
 	dc.w $0008	; last_vertex_index
 	dc.w $000A	; face_count
 	dc.w $002B	; coordinate_word_count
@@ -24836,7 +24849,7 @@ model_header_run_05:
 	dc.l model_019_coordinates	; coordinate_pool
 	dc.l model_019_variant_frames	; vertex_variant_table
 	dc.w $0000	; auxiliary_face_count
-model_header_run_06:
+tunnel_sentinel_model_header:
 	dc.w $000D	; last_vertex_index
 	dc.w $0018	; face_count
 	dc.w $0006	; coordinate_word_count
@@ -24846,6 +24859,7 @@ model_header_run_06:
 	dc.l $00000000	; vertex_variant_table
 	dc.w $0002	; auxiliary_face_count
 	dc.l model_020_auxiliary_faces	; auxiliary_face_commands
+vampire_type_fighter_model_header:
 	dc.w $000F	; last_vertex_index
 	dc.w $000E	; face_count
 	dc.w $000A	; coordinate_word_count
@@ -24855,6 +24869,7 @@ model_header_run_06:
 	dc.l $00000000	; vertex_variant_table
 	dc.w $0003	; auxiliary_face_count
 	dc.l model_021_auxiliary_faces	; auxiliary_face_commands
+egron_space_tug_model_header:
 	dc.w $000A	; last_vertex_index
 	dc.w $000D	; face_count
 	dc.w $0009	; coordinate_word_count
@@ -24864,7 +24879,7 @@ model_header_run_06:
 	dc.l $00000000	; vertex_variant_table
 	dc.w $0001	; auxiliary_face_count
 	dc.l model_022_auxiliary_faces	; auxiliary_face_commands
-model_header_run_07:
+gbml_model_header:
 	dc.w $0011	; last_vertex_index
 	dc.w $0011	; face_count
 	dc.w $000A	; coordinate_word_count
@@ -24873,6 +24888,7 @@ model_header_run_07:
 	dc.l model_023_coordinates	; coordinate_pool
 	dc.l $00000000	; vertex_variant_table
 	dc.w $0000	; auxiliary_face_count
+petrified_tree_model_header:
 	dc.w $0012	; last_vertex_index
 	dc.w $0013	; face_count
 	dc.w $000D	; coordinate_word_count
@@ -24881,7 +24897,7 @@ model_header_run_07:
 	dc.l model_024_coordinates	; coordinate_pool
 	dc.l $00000000	; vertex_variant_table
 	dc.w $0000	; auxiliary_face_count
-model_header_run_08:
+missile_model_header:
 	dc.w $0003	; last_vertex_index
 	dc.w $0004	; face_count
 	dc.w $0006	; coordinate_word_count
@@ -24891,7 +24907,7 @@ model_header_run_08:
 	dc.l $00000000	; vertex_variant_table
 	dc.w $0001	; auxiliary_face_count
 	dc.l model_025_auxiliary_faces	; auxiliary_face_commands
-model_header_run_09:
+tripuss_model_header:
 	dc.w $000F	; last_vertex_index
 	dc.w $0016	; face_count
 	dc.w $0061	; coordinate_word_count
@@ -24900,7 +24916,7 @@ model_header_run_09:
 	dc.l model_026_coordinates	; coordinate_pool
 	dc.l model_026_variant_frames	; vertex_variant_table
 	dc.w $0000	; auxiliary_face_count
-model_header_run_10:
+starglider_model_header:
 	dc.w $0015	; last_vertex_index
 	dc.w $001C	; face_count
 	dc.w $0063	; coordinate_word_count
@@ -24910,6 +24926,7 @@ model_header_run_10:
 	dc.l model_027_variant_frames	; vertex_variant_table
 	dc.w $0003	; auxiliary_face_count
 	dc.l model_027_auxiliary_faces	; auxiliary_face_commands
+egron_square_rocket_model_header:
 	dc.w $000C	; last_vertex_index
 	dc.w $000D	; face_count
 	dc.w $0009	; coordinate_word_count
@@ -24919,6 +24936,7 @@ model_header_run_10:
 	dc.l $00000000	; vertex_variant_table
 	dc.w $0002	; auxiliary_face_count
 	dc.l model_028_auxiliary_faces	; auxiliary_face_commands
+egron_mini_rocket_model_header:
 	dc.w $0013	; last_vertex_index
 	dc.w $0018	; face_count
 	dc.w $0009	; coordinate_word_count
@@ -24928,6 +24946,7 @@ model_header_run_10:
 	dc.l $00000000	; vertex_variant_table
 	dc.w $0001	; auxiliary_face_count
 	dc.l model_029_auxiliary_faces	; auxiliary_face_commands
+the_icarus_model_header:
 	dc.w $0016	; last_vertex_index
 	dc.w $0026	; face_count
 	dc.w $0010	; coordinate_word_count
@@ -24937,6 +24956,7 @@ model_header_run_10:
 	dc.l $00000000	; vertex_variant_table
 	dc.w $0003	; auxiliary_face_count
 	dc.l model_030_auxiliary_faces	; auxiliary_face_commands
+space_fighter_model_header:
 	dc.w $000E	; last_vertex_index
 	dc.w $0016	; face_count
 	dc.w $000A	; coordinate_word_count
@@ -24946,6 +24966,7 @@ model_header_run_10:
 	dc.l $00000000	; vertex_variant_table
 	dc.w $0003	; auxiliary_face_count
 	dc.l model_031_auxiliary_faces	; auxiliary_face_commands
+personnel_shuttle_model_header:
 	dc.w $000F	; last_vertex_index
 	dc.w $000E	; face_count
 	dc.w $000B	; coordinate_word_count
@@ -24955,6 +24976,7 @@ model_header_run_10:
 	dc.l $00000000	; vertex_variant_table
 	dc.w $0001	; auxiliary_face_count
 	dc.l model_032_auxiliary_faces	; auxiliary_face_commands
+egron_buzz_bomber_model_header:
 	dc.w $0013	; last_vertex_index
 	dc.w $0016	; face_count
 	dc.w $000A	; coordinate_word_count
@@ -24964,6 +24986,7 @@ model_header_run_10:
 	dc.l $00000000	; vertex_variant_table
 	dc.w $0002	; auxiliary_face_count
 	dc.l model_033_auxiliary_faces	; auxiliary_face_commands
+flying_saucer_model_header:
 	dc.w $0012	; last_vertex_index
 	dc.w $0013	; face_count
 	dc.w $000C	; coordinate_word_count
@@ -24973,6 +24996,7 @@ model_header_run_10:
 	dc.l $00000000	; vertex_variant_table
 	dc.w $0001	; auxiliary_face_count
 	dc.l model_034_auxiliary_faces	; auxiliary_face_commands
+egron_bird_fighter_model_header:
 	dc.w $0013	; last_vertex_index
 	dc.w $0014	; face_count
 	dc.w $0053	; coordinate_word_count
@@ -24982,6 +25006,7 @@ model_header_run_10:
 	dc.l model_035_variant_frames	; vertex_variant_table
 	dc.w $0003	; auxiliary_face_count
 	dc.l model_035_auxiliary_faces	; auxiliary_face_commands
+pac_worm_model_header:
 	dc.w $0011	; last_vertex_index
 	dc.w $0019	; face_count
 	dc.w $008A	; coordinate_word_count
@@ -24991,7 +25016,7 @@ model_header_run_10:
 	dc.l model_036_variant_frames	; vertex_variant_table
 	dc.w $0003	; auxiliary_face_count
 	dc.l model_036_auxiliary_faces	; auxiliary_face_commands
-model_header_run_11:
+egron_mini_sentinel_model_header:
 	dc.w $000A	; last_vertex_index
 	dc.w $0012	; face_count
 	dc.w $000C	; coordinate_word_count
@@ -25000,7 +25025,7 @@ model_header_run_11:
 	dc.l model_037_coordinates	; coordinate_pool
 	dc.l $00000000	; vertex_variant_table
 	dc.w $0000	; auxiliary_face_count
-model_header_run_12:
+flat_diamond_model_header:
 	dc.w $0007	; last_vertex_index
 	dc.w $000C	; face_count
 	dc.w $0005	; coordinate_word_count
@@ -25010,6 +25035,7 @@ model_header_run_12:
 	dc.l $00000000	; vertex_variant_table
 	dc.w $0001	; auxiliary_face_count
 	dc.l model_038_auxiliary_faces	; auxiliary_face_commands
+hover_car_model_header:
 	dc.w $000F	; last_vertex_index
 	dc.w $000B	; face_count
 	dc.w $0009	; coordinate_word_count
@@ -25019,7 +25045,7 @@ model_header_run_12:
 	dc.l $00000000	; vertex_variant_table
 	dc.w $0003	; auxiliary_face_count
 	dc.l model_039_auxiliary_faces	; auxiliary_face_commands
-model_header_run_13:
+pirate_ship_model_header:
 	dc.w $0016	; last_vertex_index
 	dc.w $001D	; face_count
 	dc.w $000B	; coordinate_word_count
@@ -25028,7 +25054,7 @@ model_header_run_13:
 	dc.l model_040_coordinates	; coordinate_pool
 	dc.l $00000000	; vertex_variant_table
 	dc.w $0000	; auxiliary_face_count
-model_header_run_14:
+space_ray_model_header:
 	dc.w $0011	; last_vertex_index
 	dc.w $001C	; face_count
 	dc.w $0023	; coordinate_word_count
@@ -25038,6 +25064,7 @@ model_header_run_14:
 	dc.l model_041_variant_frames	; vertex_variant_table
 	dc.w $0002	; auxiliary_face_count
 	dc.l model_041_auxiliary_faces	; auxiliary_face_commands
+satellite_dish_model_header:
 	dc.w $0008	; last_vertex_index
 	dc.w $0008	; face_count
 	dc.w $000C	; coordinate_word_count
@@ -25047,7 +25074,7 @@ model_header_run_14:
 	dc.l $00000000	; vertex_variant_table
 	dc.w $0001	; auxiliary_face_count
 	dc.l model_042_auxiliary_faces	; auxiliary_face_commands
-model_header_run_15:
+skim_launcher_drone_model_header:
 	dc.w $0013	; last_vertex_index
 	dc.w $000C	; face_count
 	dc.w $000A	; coordinate_word_count
@@ -25056,7 +25083,7 @@ model_header_run_15:
 	dc.l model_043_coordinates	; coordinate_pool
 	dc.l $00000000	; vertex_variant_table
 	dc.w $0000	; auxiliary_face_count
-model_header_run_16:
+tug_truck_model_header:
 	dc.w $000A	; last_vertex_index
 	dc.w $0010	; face_count
 	dc.w $0007	; coordinate_word_count
@@ -25066,6 +25093,7 @@ model_header_run_16:
 	dc.l $00000000	; vertex_variant_table
 	dc.w $0001	; auxiliary_face_count
 	dc.l model_044_auxiliary_faces	; auxiliary_face_commands
+fighter_escort_model_header:
 	dc.w $0011	; last_vertex_index
 	dc.w $001A	; face_count
 	dc.w $000B	; coordinate_word_count
@@ -25075,7 +25103,7 @@ model_header_run_16:
 	dc.l $00000000	; vertex_variant_table
 	dc.w $0001	; auxiliary_face_count
 	dc.l model_045_auxiliary_faces	; auxiliary_face_commands
-model_header_run_17:
+egron_dome_silo_model_header:
 	dc.w $0015	; last_vertex_index
 	dc.w $0012	; face_count
 	dc.w $004D	; coordinate_word_count
@@ -25092,6 +25120,7 @@ model_header_run_17:
 	dc.l model_047_coordinates	; coordinate_pool
 	dc.l $00000000	; vertex_variant_table
 	dc.w $0000	; auxiliary_face_count
+tunnel_entrance_exit_model_header:
 	dc.w $0017	; last_vertex_index
 	dc.w $0013	; face_count
 	dc.w $0009	; coordinate_word_count
@@ -25100,7 +25129,7 @@ model_header_run_17:
 	dc.l model_048_coordinates	; coordinate_pool
 	dc.l $00000000	; vertex_variant_table
 	dc.w $0000	; auxiliary_face_count
-model_header_run_18:
+bt_tower_model_header:
 	dc.w $0018	; last_vertex_index
 	dc.w $0013	; face_count
 	dc.w $001B	; coordinate_word_count
@@ -25110,6 +25139,7 @@ model_header_run_18:
 	dc.l model_049_variant_frames	; vertex_variant_table
 	dc.w $0001	; auxiliary_face_count
 	dc.l model_049_auxiliary_faces	; auxiliary_face_commands
+gbml_with_cannon_model_header:
 	dc.w $0016	; last_vertex_index
 	dc.w $0013	; face_count
 	dc.w $004F	; coordinate_word_count
@@ -25119,7 +25149,7 @@ model_header_run_18:
 	dc.l model_050_variant_frames	; vertex_variant_table
 	dc.w $0001	; auxiliary_face_count
 	dc.l model_050_auxiliary_faces	; auxiliary_face_commands
-model_header_run_19:
+pyramid_model_header:
 	dc.w $0005	; last_vertex_index
 	dc.w $0007	; face_count
 	dc.w $0006	; coordinate_word_count
@@ -25128,6 +25158,7 @@ model_header_run_19:
 	dc.l model_051_coordinates	; coordinate_pool
 	dc.l $00000000	; vertex_variant_table
 	dc.w $0000	; auxiliary_face_count
+tower_block_model_header:
 	dc.w $0012	; last_vertex_index
 	dc.w $000A	; face_count
 	dc.w $000A	; coordinate_word_count
@@ -25136,6 +25167,7 @@ model_header_run_19:
 	dc.l model_052_coordinates	; coordinate_pool
 	dc.l $00000000	; vertex_variant_table
 	dc.w $0000	; auxiliary_face_count
+tapering_tower_block_model_header:
 	dc.w $0009	; last_vertex_index
 	dc.w $0007	; face_count
 	dc.w $0007	; coordinate_word_count
@@ -25144,7 +25176,7 @@ model_header_run_19:
 	dc.l model_053_coordinates	; coordinate_pool
 	dc.l $00000000	; vertex_variant_table
 	dc.w $0000	; auxiliary_face_count
-model_header_run_20:
+energy_transmitter_model_header:
 	dc.w $0003	; last_vertex_index
 	dc.w $0003	; face_count
 	dc.w $0005	; coordinate_word_count
@@ -25154,6 +25186,7 @@ model_header_run_20:
 	dc.l $00000000	; vertex_variant_table
 	dc.w $0001	; auxiliary_face_count
 	dc.l model_054_auxiliary_faces	; auxiliary_face_commands
+bouncing_ball_model_header:
 	dc.w $0019	; last_vertex_index
 	dc.w $001E	; face_count
 	dc.w $002B	; coordinate_word_count
@@ -25163,7 +25196,7 @@ model_header_run_20:
 	dc.l model_055_variant_frames	; vertex_variant_table
 	dc.w $0001	; auxiliary_face_count
 	dc.l model_055_auxiliary_faces	; auxiliary_face_commands
-model_header_run_21:
+cobweb_model_header:
 	dc.w $0005	; last_vertex_index
 	dc.w $0003	; face_count
 	dc.w $0005	; coordinate_word_count
@@ -25172,6 +25205,7 @@ model_header_run_21:
 	dc.l model_056_coordinates	; coordinate_pool
 	dc.l $00000000	; vertex_variant_table
 	dc.w $0000	; auxiliary_face_count
+tunnel_exit_indicators_type_057_model_header:
 	dc.w $0017	; last_vertex_index
 	dc.w $0006	; face_count
 	dc.w $000E	; coordinate_word_count
@@ -25180,6 +25214,7 @@ model_header_run_21:
 	dc.l model_057_coordinates	; coordinate_pool
 	dc.l $00000000	; vertex_variant_table
 	dc.w $0000	; auxiliary_face_count
+tunnel_exit_indicators_type_058_model_header:
 	dc.w $0017	; last_vertex_index
 	dc.w $000C	; face_count
 	dc.w $000E	; coordinate_word_count
@@ -25188,6 +25223,7 @@ model_header_run_21:
 	dc.l model_058_coordinates	; coordinate_pool
 	dc.l $00000000	; vertex_variant_table
 	dc.w $0000	; auxiliary_face_count
+old_heap_of_junk_model_header:
 	dc.w $0007	; last_vertex_index
 	dc.w $0008	; face_count
 	dc.w $0008	; coordinate_word_count
@@ -25196,6 +25232,7 @@ model_header_run_21:
 	dc.l model_059_coordinates	; coordinate_pool
 	dc.l $00000000	; vertex_variant_table
 	dc.w $0000	; auxiliary_face_count
+skim_missile_model_header:
 	dc.w $0006	; last_vertex_index
 	dc.w $0006	; face_count
 	dc.w $0005	; coordinate_word_count
@@ -25204,6 +25241,7 @@ model_header_run_21:
 	dc.l model_060_coordinates	; coordinate_pool
 	dc.l $00000000	; vertex_variant_table
 	dc.w $0000	; auxiliary_face_count
+scrap_metal_type_061_model_header:
 	dc.w $000F	; last_vertex_index
 	dc.w $0008	; face_count
 	dc.w $0005	; coordinate_word_count
@@ -25212,6 +25250,7 @@ model_header_run_21:
 	dc.l model_061_coordinates	; coordinate_pool
 	dc.l $00000000	; vertex_variant_table
 	dc.w $0000	; auxiliary_face_count
+scrap_metal_type_062_model_header:
 	dc.w $000F	; last_vertex_index
 	dc.w $0008	; face_count
 	dc.w $0009	; coordinate_word_count
@@ -25220,6 +25259,7 @@ model_header_run_21:
 	dc.l model_062_coordinates	; coordinate_pool
 	dc.l $00000000	; vertex_variant_table
 	dc.w $0000	; auxiliary_face_count
+blast_doors_model_header:
 	dc.w $000B	; last_vertex_index
 	dc.w $0006	; face_count
 	dc.w $0026	; coordinate_word_count
@@ -25228,6 +25268,7 @@ model_header_run_21:
 	dc.l model_063_coordinates	; coordinate_pool
 	dc.l model_063_variant_frames	; vertex_variant_table
 	dc.w $0000	; auxiliary_face_count
+blowhole_model_header:
 	dc.w $000B	; last_vertex_index
 	dc.w $0009	; face_count
 	dc.w $0029	; coordinate_word_count
@@ -25236,6 +25277,7 @@ model_header_run_21:
 	dc.l model_064_coordinates	; coordinate_pool
 	dc.l model_064_variant_frames	; vertex_variant_table
 	dc.w $0000	; auxiliary_face_count
+energy_gate_model_header:
 	dc.w $0015	; last_vertex_index
 	dc.w $000F	; face_count
 	dc.w $000A	; coordinate_word_count
@@ -25284,6 +25326,7 @@ model_header_run_21:
 	dc.l model_070_coordinates	; coordinate_pool
 	dc.l $00000000	; vertex_variant_table
 	dc.w $0000	; auxiliary_face_count
+icarus_pilot_couch_model_header:
 	dc.w $001E	; last_vertex_index
 	dc.w $001A	; face_count
 	dc.w $0013	; coordinate_word_count
@@ -25292,7 +25335,7 @@ model_header_run_21:
 	dc.l model_071_coordinates	; coordinate_pool
 	dc.l $00000000	; vertex_variant_table
 	dc.w $0000	; auxiliary_face_count
-model_header_run_22:
+laser_bolt_model_header:
 	dc.w $0003	; last_vertex_index
 	dc.w $0001	; face_count
 	dc.w $0004	; coordinate_word_count
@@ -25302,7 +25345,7 @@ model_header_run_22:
 	dc.l model_072_variant_frames	; vertex_variant_table
 	dc.w $0001	; auxiliary_face_count
 	dc.l model_072_auxiliary_faces	; auxiliary_face_commands
-model_header_run_23:
+asteroid_model_header:
 	dc.w $000C	; last_vertex_index
 	dc.w $0013	; face_count
 	dc.w $000A	; coordinate_word_count
@@ -25311,6 +25354,7 @@ model_header_run_23:
 	dc.l model_073_coordinates	; coordinate_pool
 	dc.l $00000000	; vertex_variant_table
 	dc.w $0000	; auxiliary_face_count
+small_asteroid_model_header:
 	dc.w $0008	; last_vertex_index
 	dc.w $000E	; face_count
 	dc.w $000C	; coordinate_word_count
@@ -25319,6 +25363,7 @@ model_header_run_23:
 	dc.l model_074_coordinates	; coordinate_pool
 	dc.l $00000000	; vertex_variant_table
 	dc.w $0000	; auxiliary_face_count
+egron_projector_base_model_header:
 	dc.w $0007	; last_vertex_index
 	dc.w $0005	; face_count
 	dc.w $0005	; coordinate_word_count
@@ -25327,6 +25372,7 @@ model_header_run_23:
 	dc.l model_075_coordinates	; coordinate_pool
 	dc.l $00000000	; vertex_variant_table
 	dc.w $0000	; auxiliary_face_count
+egron_projector_mount_model_header:
 	dc.w $0007	; last_vertex_index
 	dc.w $0005	; face_count
 	dc.w $0005	; coordinate_word_count
@@ -25335,6 +25381,7 @@ model_header_run_23:
 	dc.l model_076_coordinates	; coordinate_pool
 	dc.l $00000000	; vertex_variant_table
 	dc.w $0000	; auxiliary_face_count
+egron_projector_cover_model_header:
 	dc.w $0007	; last_vertex_index
 	dc.w $0004	; face_count
 	dc.w $0015	; coordinate_word_count
@@ -25343,6 +25390,7 @@ model_header_run_23:
 	dc.l model_077_coordinates	; coordinate_pool
 	dc.l model_077_variant_frames	; vertex_variant_table
 	dc.w $0000	; auxiliary_face_count
+egron_projector_turret_model_header:
 	dc.w $0008	; last_vertex_index
 	dc.w $0009	; face_count
 	dc.w $0047	; coordinate_word_count
@@ -25351,6 +25399,7 @@ model_header_run_23:
 	dc.l model_078_coordinates	; coordinate_pool
 	dc.l model_078_variant_frames	; vertex_variant_table
 	dc.w $0000	; auxiliary_face_count
+projector_fuel_crystals_model_header:
 	dc.w $0006	; last_vertex_index
 	dc.w $0007	; face_count
 	dc.w $0010	; coordinate_word_count
@@ -25359,6 +25408,7 @@ model_header_run_23:
 	dc.l model_079_coordinates	; coordinate_pool
 	dc.l model_079_variant_frames	; vertex_variant_table
 	dc.w $0000	; auxiliary_face_count
+projector_control_tower_model_header:
 	dc.w $000B	; last_vertex_index
 	dc.w $000A	; face_count
 	dc.w $0037	; coordinate_word_count
@@ -25367,6 +25417,7 @@ model_header_run_23:
 	dc.l model_080_coordinates	; coordinate_pool
 	dc.l model_080_variant_frames	; vertex_variant_table
 	dc.w $0000	; auxiliary_face_count
+projector_crew_quarters_model_header:
 	dc.w $0005	; last_vertex_index
 	dc.w $0005	; face_count
 	dc.w $0009	; coordinate_word_count
@@ -25375,7 +25426,7 @@ model_header_run_23:
 	dc.l model_081_coordinates	; coordinate_pool
 	dc.l $00000000	; vertex_variant_table
 	dc.w $0000	; auxiliary_face_count
-model_header_run_24:
+egron_projector_sentinel_model_header:
 	dc.w $0005	; last_vertex_index
 	dc.w $0008	; face_count
 	dc.w $0004	; coordinate_word_count
@@ -25385,7 +25436,7 @@ model_header_run_24:
 	dc.l $00000000	; vertex_variant_table
 	dc.w $0001	; auxiliary_face_count
 	dc.l model_082_auxiliary_faces	; auxiliary_face_commands
-model_header_run_25:
+cask_of_vistan_wine_model_header:
 	dc.w $0007	; last_vertex_index
 	dc.w $0006	; face_count
 	dc.w $0004	; coordinate_word_count
@@ -25394,7 +25445,7 @@ model_header_run_25:
 	dc.l model_083_coordinates	; coordinate_pool
 	dc.l $00000000	; vertex_variant_table
 	dc.w $0000	; auxiliary_face_count
-model_header_run_26:
+energy_cube_launcher_model_header:
 	dc.w $0007	; last_vertex_index
 	dc.w $0006	; face_count
 	dc.w $0002	; coordinate_word_count
@@ -25413,6 +25464,7 @@ model_header_run_27:
 	dc.l model_085_coordinates	; coordinate_pool
 	dc.l $00000000	; vertex_variant_table
 	dc.w $0000	; auxiliary_face_count
+ground_based_laser_canno_model_header:
 	dc.w $000B	; last_vertex_index
 	dc.w $0009	; face_count
 	dc.w $000B	; coordinate_word_count
@@ -25421,6 +25473,7 @@ model_header_run_27:
 	dc.l model_086_coordinates	; coordinate_pool
 	dc.l $00000000	; vertex_variant_table
 	dc.w $0000	; auxiliary_face_count
+cluster_of_nodules_model_header:
 	dc.w $000C	; last_vertex_index
 	dc.w $0012	; face_count
 	dc.w $0014	; coordinate_word_count
@@ -25429,6 +25482,7 @@ model_header_run_27:
 	dc.l model_087_coordinates	; coordinate_pool
 	dc.l $00000000	; vertex_variant_table
 	dc.w $0000	; auxiliary_face_count
+volcano_model_header:
 	dc.w $0012	; last_vertex_index
 	dc.w $0011	; face_count
 	dc.w $0016	; coordinate_word_count
@@ -25437,7 +25491,7 @@ model_header_run_27:
 	dc.l model_088_coordinates	; coordinate_pool
 	dc.l $00000000	; vertex_variant_table
 	dc.w $0000	; auxiliary_face_count
-model_header_run_28:
+columbus_model_header:
 	dc.w $000C	; last_vertex_index
 	dc.w $0011	; face_count
 	dc.w $0046	; coordinate_word_count
@@ -25447,7 +25501,7 @@ model_header_run_28:
 	dc.l model_089_variant_frames	; vertex_variant_table
 	dc.w $0004	; auxiliary_face_count
 	dc.l model_089_auxiliary_faces	; auxiliary_face_commands
-model_header_run_29:
+energy_tower_type_090_model_header:
 	dc.w $000C	; last_vertex_index
 	dc.w $000C	; face_count
 	dc.w $00FA	; coordinate_word_count
@@ -25456,7 +25510,7 @@ model_header_run_29:
 	dc.l model_090_coordinates	; coordinate_pool
 	dc.l model_090_variant_frames	; vertex_variant_table
 	dc.w $0000	; auxiliary_face_count
-model_header_run_30:
+bouncing_bomb_model_header:
 	dc.w $0017	; last_vertex_index
 	dc.w $0014	; face_count
 	dc.w $001B	; coordinate_word_count
@@ -25475,6 +25529,7 @@ model_header_run_31:
 	dc.l model_092_coordinates	; coordinate_pool
 	dc.l $00000000	; vertex_variant_table
 	dc.w $0000	; auxiliary_face_count
+energy_tower_type_093_model_header:
 	dc.w $0004	; last_vertex_index
 	dc.w $0004	; face_count
 	dc.w $0006	; coordinate_word_count
@@ -25483,6 +25538,7 @@ model_header_run_31:
 	dc.l model_093_coordinates	; coordinate_pool
 	dc.l $00000000	; vertex_variant_table
 	dc.w $0000	; auxiliary_face_count
+tunnel_depot_model_header:
 	dc.w $000D	; last_vertex_index
 	dc.w $0009	; face_count
 	dc.w $0005	; coordinate_word_count
@@ -25515,6 +25571,7 @@ model_header_run_31:
 	dc.l model_097_coordinates	; coordinate_pool
 	dc.l $00000000	; vertex_variant_table
 	dc.w $0000	; auxiliary_face_count
+neutron_bomb_model_header:
 	dc.w $0015	; last_vertex_index
 	dc.w $0016	; face_count
 	dc.w $0009	; coordinate_word_count
@@ -25523,6 +25580,7 @@ model_header_run_31:
 	dc.l model_098_coordinates	; coordinate_pool
 	dc.l $00000000	; vertex_variant_table
 	dc.w $0000	; auxiliary_face_count
+egron_space_station_model_header:
 	dc.w $002F	; last_vertex_index
 	dc.w $0034	; face_count
 	dc.w $000B	; coordinate_word_count
@@ -25531,6 +25589,7 @@ model_header_run_31:
 	dc.l model_099_coordinates	; coordinate_pool
 	dc.l $00000000	; vertex_variant_table
 	dc.w $0000	; auxiliary_face_count
+crate_of_castrobars_model_header:
 	dc.w $0009	; last_vertex_index
 	dc.w $000A	; face_count
 	dc.w $0004	; coordinate_word_count
@@ -25539,6 +25598,7 @@ model_header_run_31:
 	dc.l model_100_coordinates	; coordinate_pool
 	dc.l $00000000	; vertex_variant_table
 	dc.w $0000	; auxiliary_face_count
+lump_of_mineral_rock_model_header:
 	dc.w $0006	; last_vertex_index
 	dc.w $0008	; face_count
 	dc.w $0004	; coordinate_word_count
@@ -25547,6 +25607,7 @@ model_header_run_31:
 	dc.l model_101_coordinates	; coordinate_pool
 	dc.l $00000000	; vertex_variant_table
 	dc.w $0000	; auxiliary_face_count
+case_of_nuclear_fuel_model_header:
 	dc.w $0007	; last_vertex_index
 	dc.w $0006	; face_count
 	dc.w $0005	; coordinate_word_count
@@ -25555,7 +25616,7 @@ model_header_run_31:
 	dc.l model_102_coordinates	; coordinate_pool
 	dc.l $00000000	; vertex_variant_table
 	dc.w $0000	; auxiliary_face_count
-model_header_run_32:
+icarus_gas_laser_bolt_model_header:
 	dc.w $0003	; last_vertex_index
 	dc.w $0001	; face_count
 	dc.w $0004	; coordinate_word_count

@@ -9503,7 +9503,8 @@ typedef struct ListingNavigationJsonContext ListingNavigationJsonContext;
 static int listing_navigation_observe_row(ListingNavigationJsonContext *navigation, size_t row_index,
     const char *line_start, size_t line_length, uint8_t row_kind_id, const char *stripped, const char *opcode,
     const char *operand, const char *comment, int section_index, const M68kStatementIR *stmt,
-    const char *plan_data_class, uint32_t plan_data_class_flags);
+    const char *plan_data_class, uint32_t plan_data_class_flags,
+    uint32_t source_start, uint32_t source_size);
 
 static int listing_source_header_rows_init(ListingSourceHeaderRows *rows) {
   if (rows == NULL) return -1;
@@ -9742,7 +9743,8 @@ static int append_listing_render_plan_json_row(ListingRenderPlanJsonContext *con
       listing_navigation_observe_row(context->navigation, context->row_index, line_start, line_length, row_kind_id,
         stripped, opcode, operand, comment, section_index, stmt,
         context->current_plan_row != NULL ? context->current_plan_row->data_class : NULL,
-        context->current_plan_row != NULL ? context->current_plan_row->data_class_flags : 0U) != 0)
+        context->current_plan_row != NULL ? context->current_plan_row->data_class_flags : 0U,
+        plan_source_offset, has_plan_source_range ? plan_source_size : 0U) != 0)
     return -1;
   ++context->row_index;
   return 0;
@@ -10411,6 +10413,8 @@ typedef struct ListingNavigationTypedDataKey {
 
 struct ListingNavigationJsonContext {
   Arena *arena;
+  const M68kRenderPlannedExpression **data_pointer_expressions;
+  size_t data_pointer_expression_count;
   ListingNavigationTypedDataKey *typed_data_keys;
   size_t typed_data_key_count;
   size_t typed_data_key_capacity;
@@ -10500,6 +10504,7 @@ static int listing_navigation_group_init(JsonBuilder *builder) {
 
 static void listing_navigation_destroy(ListingNavigationJsonContext *navigation) {
   if (navigation == NULL) return;
+  free(navigation->data_pointer_expressions);
   arena_destroy(navigation->arena);
   json_builder_destroy(&navigation->typed_data);
   json_builder_destroy(&navigation->typed_gaps);
@@ -10963,10 +10968,60 @@ static int listing_navigation_observe_equate_refs(ListingNavigationJsonContext *
   return 0;
 }
 
+/* Index frozen pointer facts once; each data line visits only its own source span. */
+static int navigation_data_pointer_compare(const void *left, const void *right) {
+  const M68kRenderPlannedExpression *a = *(const M68kRenderPlannedExpression *const *)left;
+  const M68kRenderPlannedExpression *b = *(const M68kRenderPlannedExpression *const *)right;
+  if (a->source_section_index != b->source_section_index)
+    return a->source_section_index > b->source_section_index ? 1 : -1;
+  return (a->source_offset > b->source_offset) - (a->source_offset < b->source_offset);
+}
+
+static int navigation_index_data_pointers(ListingNavigationJsonContext *navigation, const M68kRenderPlan *plan) {
+  size_t i, count = 0U;
+  for (i = 0U; i < plan->expression_count; ++i)
+    if (m68k_render_planned_expression_is_source_pointer(&plan->expressions[i])) ++count;
+  if (count == 0U) return 0;
+  if (count > SIZE_MAX / sizeof(*navigation->data_pointer_expressions)) return -1;
+  navigation->data_pointer_expressions = malloc(count * sizeof(*navigation->data_pointer_expressions));
+  if (navigation->data_pointer_expressions == NULL) return -1;
+  for (i = 0U; i < plan->expression_count; ++i)
+    if (m68k_render_planned_expression_is_source_pointer(&plan->expressions[i]))
+      navigation->data_pointer_expressions[navigation->data_pointer_expression_count++] = &plan->expressions[i];
+  qsort(navigation->data_pointer_expressions, count, sizeof(*navigation->data_pointer_expressions),
+    navigation_data_pointer_compare);
+  return 0;
+}
+
+static int navigation_observe_data_pointers(ListingNavigationJsonContext *navigation,
+    const M68kStatementIR *stmt, size_t row_index, int section_index, const char *row_kind,
+    const char *match_text, uint32_t source_start, uint32_t source_size) {
+  size_t low = 0U, high = navigation->data_pointer_expression_count, i;
+  if (!stmt || stmt->kind != M68K_STATEMENT_DATA || section_index < 0 || !source_size) return 0;
+  while (low < high) {
+    size_t mid = low + (high - low) / 2U;
+    const M68kRenderPlannedExpression *e = navigation->data_pointer_expressions[mid];
+    if (e->source_section_index < (uint32_t)section_index ||
+        (e->source_section_index == (uint32_t)section_index && e->source_offset < source_start)) low = mid + 1U;
+    else high = mid;
+  }
+  for (i = low; i < navigation->data_pointer_expression_count; ++i) {
+    const M68kRenderPlannedExpression *e = navigation->data_pointer_expressions[i];
+    M68kStatementIR source = *stmt;
+    if (e->source_section_index != (uint32_t)section_index ||
+        (uint64_t)e->source_offset >= (uint64_t)source_start + source_size) break;
+    source.offset = e->source_offset;
+    if (listing_navigation_append_label_ref(navigation, e->target_symbol, LISTING_LABEL_ACCESS_REFERENCE,
+        match_text, match_text, &source, row_index, section_index, row_kind) != 0) return -1;
+  }
+  return 0;
+}
+
 static int listing_navigation_observe_row(ListingNavigationJsonContext *navigation, size_t row_index,
     const char *line_start, size_t line_length, uint8_t row_kind_id, const char *stripped, const char *opcode,
     const char *operand, const char *comment, int section_index, const M68kStatementIR *stmt,
-    const char *plan_data_class, uint32_t plan_data_class_flags) {
+    const char *plan_data_class, uint32_t plan_data_class_flags,
+    uint32_t source_start, uint32_t source_size) {
   const M68kSectionAnalysisIR *section = NULL;
   char match_text[512];
   char summary[512];
@@ -11003,6 +11058,8 @@ static int listing_navigation_observe_row(ListingNavigationJsonContext *navigati
         return -1;
     }
   }
+  if (navigation_observe_data_pointers(navigation, stmt, row_index, section_index, row_kind,
+      match_text, source_start, source_size) != 0) return -1;
   if (listing_navigation_observe_label_refs(navigation, stmt, row_index, section_index, row_kind, match_text) != 0)
     return -1;
   if (listing_navigation_observe_equate_refs(navigation, stmt, row_index, section_index, row_kind, match_text) != 0)
@@ -11684,6 +11741,7 @@ int source_file_listing_navigation_from_render_plan_append_json(JsonBuilder *bui
     goto oom;
   if (source_file != NULL) platform_backend_kind = source_file->platform_backend_kind;
   if (listing_navigation_init(&navigation, platform_backend_kind, source_analysis, analysis_policy) != 0) goto oom;
+  if (navigation_index_data_pointers(&navigation, render_plan) != 0) goto oom;
   context.header_rows = &header_rows;
   context.navigation = &navigation;
   context.source_file = source_file;

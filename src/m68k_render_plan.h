@@ -86,6 +86,9 @@ typedef struct M68kRenderPlannedExpression {
   char reason[96];
 } M68kRenderPlannedExpression;
 
+/* A resolved source pointer, never a coincident runtime-only/scalar value. */
+int m68k_render_planned_expression_is_source_pointer(const M68kRenderPlannedExpression *expression);
+
 typedef struct M68kRenderPlannedDeclaration {
   uint32_t section_index;
   uint32_t offset;
