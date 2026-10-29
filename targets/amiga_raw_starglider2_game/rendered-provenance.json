@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
   "kind": "committed_native_rendered_original_export",
-  "canonical_source_commit": "87c6f6c96185fcf1ab118aa0ba3cd6a91e6fad35",
-  "publication_base_commit": "87c6f6c96185fcf1ab118aa0ba3cd6a91e6fad35",
+  "canonical_source_commit": "b47fade1e44d7feced2f5a2fa124c2f30b3ae802",
+  "publication_base_commit": "b47fade1e44d7feced2f5a2fa124c2f30b3ae802",
   "native_export": "CListingArtifact.source_package_payload(64)",
-  "main_source_sha256": "50a2629435e144ac97b73b5dfa7e2cbec8afd4063f8cf5a400b8ca06bffbc8c4",
+  "main_source_sha256": "4197e1da0b884f4ece4267563736186c3ddef8fadc12bf04018b3fc58c6a11c6",
   "asset_count": 57,
   "asset_bytes": 93633,
   "game_assembly_hand_edits": false,
@@ -24,13 +24,13 @@
     "assembler executable",
     "paused Pandora work"
   ],
-  "canonical_source_commit_role": "publication base; reviewed original actor updater views in this batch are bound by canonical_fact_sha256 and verification_receipt_id",
-  "canonical_source_subject_revision": "d16dd3cecf2b45880bea0bc605cf76eb72058b03aa100ac5397dede36b9c25ab",
+  "canonical_source_commit_role": "publication base; reviewed original title and decimal-output contracts in this batch are bound by canonical_fact_sha256 and verification_receipt_id",
+  "canonical_source_subject_revision": "67fc4ff8cd6e6fdd130b4093ef0e3002814a9bf166ecb26e27400bdbcbd58d84",
   "canonical_fact_sha256": {
     "source_binary.json": "42d4a5758b3e8236af7f912aee85e9ee5323bcd0961faa338c4f864080a0a7d9",
     "target_metadata.json": "e7540b68c118c56aba8815b6722eefa067517cc865fe9841d6c01ce96551389c",
-    "manual_actions.jsonl": "f9106048a6ee93558863db52878d2469773eaf74bdacd4e0231d748c143a3a4a",
-    "decision_journal.jsonl": "f07e31c15985c4e64cea2c3f1cd9981e1cb8b9be4edd4d40b1c37cc66572a261"
+    "manual_actions.jsonl": "e2ba0b0e3144e346c88bedebf31bb77a919c877916bf82ee3ec0d0ff756815b2",
+    "decision_journal.jsonl": "55acf0e228887af09af6f7895726eef692be457a8f29d77122ec174e24fd5cc9"
   },
   "headers": "14 unmodified required include files collected by source_package.collect_package_includes from ext/amiga_includes/ndk_2.0/include; header notices retained",
   "decoded_protection_view": {
@@ -46,5 +46,5 @@
     },
     "runtime_scope": "Seven CPU write-site windows match this reversible view; no whole runtime-view identity or parent plaintext promotion."
   },
-  "verification_receipt_id": "b442c0de6faaef6736a561049a62ab073fcbec3d0e6ea765add97cbef0c72f6c"
+  "verification_receipt_id": "7cc377756db71a1e16d43410b1cd5457cc105598c78fcad87851961d87b60847"
 }

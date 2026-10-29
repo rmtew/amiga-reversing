@@ -209,7 +209,8 @@ app_003C RS.L 1
     RS.B 4
 sine_lookup_pointer RS.L 1
 cosine_lookup_pointer RS.L 1
-    RS.B 16
+    RS.B 12
+decimal_text_end_cursor RS.L 1
 pending_bcd_score_addend RS.W 1
     RS.B 2
 shared_random_state_a RS.L 1
@@ -281,7 +282,7 @@ app_01B1 RS.B 1
     RS.B 6
 model_face_vertex_count_scratch RS.W 1
     RS.B 30
-app_01D8 RS.W 1
+title_page_cycle_counter RS.W 1
 app_01DA RS.W 1
     RS.B 4
 novella_attempts_remaining RS.W 1
@@ -1432,7 +1433,7 @@ clear_game_workspace_loop:
 	lea.l abs_0_00003370.l,a7
 	bsr.w abs_0_000034AA
 	jsr abs_0_0000261A.l
-	move.w #$0,app_01D8(a6)
+	move.w #$0,title_page_cycle_counter(a6)
 	clr.b pending_key_scancode(a6)
 	move.b #$5,diagnostic_step_byte.l
 	clr.b display_buffer_table_byte_offset(a6)
@@ -1444,14 +1445,14 @@ clear_game_workspace_loop:
 	jsr deselect_disk_backend.l
 abs_0_00001158:
 	move.b #$B,diagnostic_step_byte.l
-	move.w #$0,$01D8(a6)
+	move.w #$0,title_page_cycle_counter(a6)
 	clr.b pending_key_scancode(a6)
 abs_0_0000116A:
 	move.b #$C,diagnostic_step_byte.l
 	bsr.w disable_midframe_copper_blocks_continuation
-	bsr.w abs_0_0000227C
+	bsr.w show_argonaut_splash_page
 abs_0_0000117A:
-	addq.w #1,$01D8(a6)
+	addq.w #1,title_page_cycle_counter(a6)
 	move.w #$14,title_idle_rate_windows_remaining(a6)
 	jsr load_and_stream_music.l
 abs_0_0000118A:
@@ -1464,12 +1465,12 @@ abs_0_0000118A:
 	bne.b abs_0_000011EE
 	tst.w title_idle_rate_windows_remaining(a6)
 	bpl.b abs_0_0000118A
-	move.w $01D8(a6),d6
+	move.w title_page_cycle_counter(a6),d6
 	andi.w #1,d6
 	beq.b abs_0_0000116A
 	move.b #$D,diagnostic_step_byte.l
 	bsr.w abs_0_000034AA
-	jsr abs_0_0000228E.l
+	jsr show_title_credits_page.l
 	bra.w abs_0_0000117A
 abs_0_000011C6:
 	move.b #$B,diagnostic_stage_step_word.l
@@ -1807,7 +1808,7 @@ abs_0_000016B0:
 	bne.w abs_0_0000171C
 	bra.w abs_0_00001158
 abs_0_0000171C:
-	clr.w $01D8(a6)
+	clr.w title_page_cycle_counter(a6)
 	bra.w abs_0_00001202
 abs_0_00001724:
 	move.w vblank_tick_counter(a6),d7
@@ -1844,24 +1845,24 @@ abs_0_000017AA:
 	move.w frame_rate_display_sample(a6),d1
 	mulu.w #$A,d1
 abs_0_000017B2:
-	lea.l abs_0_000017F0(pc),a1
+	lea.l frame_rate_decimal_text_storage(pc),a1
 	move.l #$0,(a1)
 	move.w d1,d0
 	bsr.w format_signed_word_decimal_text
-	movea.l $0058(a6),a1
+	movea.l decimal_text_end_cursor(a6),a1
 	move.b -$0002(a1),-$0001(a1)
 	move.b #$2E,-$0002(a1)
 	move.b #$20,(a1)+
 	clr.b (a1)
-	lea.l abs_0_000017EC(pc),a1
+	lea.l frame_rate_display_text(pc),a1
 	move.l #$8C,d1
 	moveq.l #6,d0
 	jsr print_positioned_text.l
 abs_0_000017EA:
 	rts
-abs_0_000017EC:
+frame_rate_display_text:
 	dc.b $46,$2F,$53,$20
-abs_0_000017F0:
+frame_rate_decimal_text_storage:
 	dc.b $20,$20,$20,$20,$20,$20,$20,$00,$00,$00,$00,$00,$00,$00,$30,$3C
 	dc.b $D0,$00,$51,$C8,$FF,$FE,$4E,$75
 process_frame_input_commands:
@@ -2621,21 +2622,21 @@ abs_0_0000226E:
 	dbf.w d0,abs_0_0000226E
 abs_0_0000227A:
 	rts
-abs_0_0000227C:
+show_argonaut_splash_page:
 	lea.l argonaut_splash_picture_palette.l,a0
 	move.l a0,-(a7)
 	bsr.w decode_column_rle_picture
 	movea.l (a7)+,a1
 	bra.w abs_0_000034A4
-abs_0_0000228E:
+show_title_credits_page:
 	bsr.w abs_0_000033E0
 	movea.l display_buffer_base(a6),a0
-	lea.l abs_0_000022B2(pc),a1
+	lea.l title_credits_text(pc),a1
 	move.b #$F,text_colour_plane_mask.l
 	jsr print_cursor_text.l
 	lea.l cockpit_picture_palette.l,a1
 	bra.w abs_0_000034A4
-abs_0_000022B2:
+title_credits_text:
 	dc.b $0D,$0A,$0A
 	dc.b "    Starglider 2 was written by....",$0D,$0A,$0A
 	dc.b "       Jez San, Richard Clucas,",$0D,$0A
@@ -2726,17 +2727,17 @@ abs_0_000025A8:
 abs_0_000025B2:
 	dbf.w d3,abs_0_00002592
 	clr.b (a1)+
-	move.l a1,$0058(a6)
+	move.l a1,decimal_text_end_cursor(a6)
 	movem.l (a7)+,d0-d7/a0-a1
 	rts
 abs_0_000025C2:
 	move.b #$30,d1
 	move.b d1,(a1)+
 	clr.b (a1)+
-	move.l a1,$0058(a6)
+	move.l a1,decimal_text_end_cursor(a6)
 	movem.l (a7)+,d0-d7/a0-a1
 	rts
-abs_0_000025D4:
+format_signed_word_four_decimal_positions:
 	movem.l d0-d7/a0-a1,-(a7)
 	clr.w d4
 	lea.l decimal_place_value_longs_decimal_divisor_4(pc),a0
@@ -2763,7 +2764,7 @@ abs_0_000025FE:
 	moveq.l #1,d4
 	dbf.w d3,abs_0_000025F2
 	clr.b (a1)+
-	move.l a1,$0058(a6)
+	move.l a1,decimal_text_end_cursor(a6)
 	movem.l (a7)+,d0-d7/a0-a1
 	rts
 abs_0_0000261A:
@@ -18033,7 +18034,7 @@ abs_0_0000FD82:
 abs_0_0000FD88:
 	jmp count_and_present_frame_handoff.l
 abs_0_0000FD8E:
-	jmp abs_0_000025D4.l
+	jmp format_signed_word_four_decimal_positions.l
 abs_0_0000FD94:
 	jmp display_frame_rate_if_enabled.l
 abs_0_0000FD9A:

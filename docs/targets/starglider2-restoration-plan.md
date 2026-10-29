@@ -19,10 +19,22 @@ to their recorded closeout revision. See the current
 An on-demand systematic gap inventory (`amiga_reversing/tools/source_gap_inventory.py`)
 joins native identities/accesses with canonical layouts and actual rendered
 boundaries. It records 67 suffix signals (including numeric adjacent variants),
-21 lookup contracts, 523 remaining interior references, 32 generic app fields
+21 lookup contracts, 523 remaining interior references, 31 generic app fields
 and 337 unresolved record accesses. These are different denominators. Five
 suffixes name routines and one names text; neither is a pointer defect.
-Latest: eight original updater entries now expose Walker/Stomper, linked-tug,
+Latest: the title page-cycle counter and decimal post-NUL cursor now have
+explicit canonical extents, and six connected formatter/page/text labels expose
+the original consumers. Eight actions name eight previously raw app accesses:
+**3503 app /2059 typed /337 unresolved**. No typed access or prior meaning changes.
+These new app references retain declared-layout A6 fallback, not register-state
+proof: the offsets collide with custom-register numbering. The cursor is opaque
+LONG storage, not a persistent typed string pointer. Four decimal positions do
+not promise valid digits for arbitrary WORD magnitudes; the frame-rate text
+storage gains no guessed extent and following raw bytes remain untouched.
+C/vasm is exact and the clean staged standalone export is checked for publication;
+57 assets and 14 headers remain unchanged.
+
+Preceding: eight original updater entries now expose Walker/Stomper, linked-tug,
 Horatio, mechanical-whale, duck/pyramid and Icarus contracts. The original type
 and name directories bind nine tags to these entries. Two small derived layouts
 express walking cadence/heading/link-release counters and signed vertex-variant
