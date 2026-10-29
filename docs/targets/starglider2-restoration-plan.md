@@ -20,9 +20,23 @@ An on-demand systematic gap inventory (`amiga_reversing/tools/source_gap_invento
 joins native identities/accesses with canonical layouts and actual rendered
 boundaries. It records 67 suffix signals (including numeric adjacent variants),
 21 lookup contracts, 523 remaining interior references, 31 generic app fields
-and 315 unresolved record accesses. These are different denominators. Five
+and 308 unresolved record accesses. These are different denominators. Five
 suffixes name routines and one names text; neither is a pointer defect.
-Latest: eight original mechanical/energy callbacks now have five small role
+Latest: four established scale/collision/cached-XZ fields now form the common
+TargetingObject base of World and GroundLaser. Seven canonical actions move only
+World-local copies (including an old separate overlay); inherited types, names,
+widths and offsets are identical. Existing joins recover all seven laser-callee
+gaps without per-reader seeds or asserting World velocity fields on the laser:
+**3503 app /2266 typed /308 unresolved**. Ninety existing typed accesses migrate
+owner World to Targeting only for those four exact signatures; no other meaning
+changes, lost accesses or new gaps. C/vasm and clean staged standalone output are
+checked before publication; 57 assets and 14 headers are unchanged. The tower
+gate remains separate: retained original-flight snapshots have one initial type93
+with BYTE34=FF and fourteen type90 records with zero; inspect its original
+initializer directory before launching another runtime pass. Snapshot values
+alone do not attribute a writer or prove the flag's broader meaning.
+
+Preceding: eight original mechanical/energy callbacks now have five small role
 layouts, eight entry views and eight names. Variant and heading-only views derive
 from Core rather than asserting unused World/velocity fields. Twenty-one actions
 add 31 previously uncatalogued typed accesses; eight further accesses become
@@ -32,8 +46,7 @@ meaning changes: **3503 app /2259 typed /315 unresolved**. C/vasm and the clean
 staged standalone export are checked before publication; assets/headers unchanged.
 Original signed gate comparisons, counter wraps, PRNG bit transforms, type90/93
 changes and world-Z shifts remain intact, without universal range/timing claims.
-Next: inspect the seven shared-callee field requirements and the tower gate's
-writers. Separately, all 37 sprite/name/audio/text-reference gaps are indexed
+The seven shared-callee field requirements are recovered above. Next: the tower gate's writers. Separately, all 37 sprite/name/audio/text-reference gaps are indexed
 accesses: a tiny four-entry array resolves a constant index, but retains
 `indexed_dynamic` even after explicit signed 0..3 guards; the unguarded negative
 case remains unresolved. Investigate existing branch/value constraint transport,
@@ -185,7 +198,7 @@ starts. Their original producer really emits clipped horizon coordinates; a
 phase/width alias must remain distinct from the keyboard contract. Investigate
 existing canonical alias/view support before adding or renaming ownership. The
 third partial candidate is the already-documented LONG clear spanning a pending
-score WORD and following storage; that clear alone cannot name the extra bytes. Discovery leads and the 315 unresolved
+score WORD and following storage; that clear alone cannot name the extra bytes. Discovery leads and the 308 unresolved
 typed accesses remain different populations.
 A bounded alias reproducer found a shared renderer defect: an inferred
 same-origin conflict silently dropped the canonical app declaration while
