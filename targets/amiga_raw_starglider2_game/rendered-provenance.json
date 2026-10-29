@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
   "kind": "committed_native_rendered_original_export",
-  "canonical_source_commit": "0e41417f99a55612f44e87c7eec48c2500a67f42",
-  "publication_base_commit": "0e41417f99a55612f44e87c7eec48c2500a67f42",
+  "canonical_source_commit": "663e3b01d8b50763b419c3ea982f2bd0d39c75c8",
+  "publication_base_commit": "663e3b01d8b50763b419c3ea982f2bd0d39c75c8",
   "native_export": "CListingArtifact.source_package_payload(64)",
-  "main_source_sha256": "c92205bcb8ac0209e3d616a338c45a88d3d2a1d482257535d75d5846ed292d98",
+  "main_source_sha256": "3adf994bfc324ef9a892096ed044a0fa27fd34e2a757ccaac1a05e99fb8aedb0",
   "asset_count": 57,
   "asset_bytes": 93633,
   "game_assembly_hand_edits": false,
@@ -24,13 +24,13 @@
     "assembler executable",
     "paused Pandora work"
   ],
-  "canonical_source_commit_role": "publication base; reviewed player-model material animation, asteroid masks and ejection state are bound by canonical facts and verification",
-  "canonical_source_subject_revision": "86137330d6c1ff4cd77b9d72cd1950ad61fb1a2f8c0e8986503e0d6683f82836",
+  "canonical_source_commit_role": "publication base; reviewed alternate PSG state and type-volume consumers are bound by canonical facts and verification",
+  "canonical_source_subject_revision": "ba9cde1be56ab5d9124e9c57cc95f26dcabadb193c689c812da952e6c617e300",
   "canonical_fact_sha256": {
     "source_binary.json": "42d4a5758b3e8236af7f912aee85e9ee5323bcd0961faa338c4f864080a0a7d9",
     "target_metadata.json": "e7540b68c118c56aba8815b6722eefa067517cc865fe9841d6c01ce96551389c",
-    "manual_actions.jsonl": "54e076c333ac052d2e8cf23d77c4329f77981f6806bd7d108a368440bb5380bb",
-    "decision_journal.jsonl": "0ad26ddb47bea6335382d948d05288df6555eee535b503bfcba3f2ed173cdebe"
+    "manual_actions.jsonl": "079911a2ed27abaddd78e6d783eea5d72b21a017908a802cf1f0068ba434d5d9",
+    "decision_journal.jsonl": "9efec96b2c5e5592cad4a0dc2675c7ac9e23952295685221db758b0a39ba14f5"
   },
   "headers": "14 unmodified required include files collected by source_package.collect_package_includes from ext/amiga_includes/ndk_2.0/include; header notices retained",
   "decoded_protection_view": {
@@ -46,5 +46,5 @@
     },
     "runtime_scope": "Seven CPU write-site windows match this reversible view; no whole runtime-view identity or parent plaintext promotion."
   },
-  "verification_receipt_id": "e5214de30098ad8674112f93b3b81c6b340cbca4b29f3bf232adcca0706787cb"
+  "verification_receipt_id": "f78ad56e62850b0a00c6ab382152753eebf3517d8a03bf7b7908e7cf27e25169"
 }

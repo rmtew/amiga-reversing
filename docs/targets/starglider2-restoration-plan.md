@@ -7,8 +7,8 @@ that further analysis is exhausted. Current source remains byte exact: all
 with all 106034 accepted code bytes retained. No generated assembly was edited
 by hand and no interim archive was produced.
 
-The current ownership union leaves 13579 bytes in
-264 intervals unclassified. This is classification accounting,
+The current ownership union leaves 13410 bytes in
+266 intervals unclassified. This is classification accounting,
 not a semantic completion percentage. Earlier interval/site counts below belong
 to their recorded closeout revision. See the current
 [native memory-span receipt](../../runtime/observations/starglider2-app-memory-spans.json),
@@ -32,6 +32,16 @@ The energy-tower initializer's World chain view stays distinct from its updater
 view. Packed-header normalization, signed comparisons, wrap, PRNG transforms,
 nullable/sentinel links and unknown constructor parameters remain unchanged.
 
+The alternate PSG consumer batch identifies fourteen control scalars and the
+148-byte object-type volume/exclusion directory, with 42 native incoming references.
+Projectile modulation/reset state, shared noise phases, type-8 timing and nearest
+sound selection retain original signed tests and widths. Three exact owners cover
+169 bytes; seven adjacent unexplained bytes stay unknown. These consumers write
+alternate PSG registers, so this is not an Amiga/Paula runtime-coverage claim.
+C/vasm and clean standalone output remain exact; 57 assets, 14 headers, accepted
+code and **3503 app /2623 typed /177 unresolved** remain unchanged. Next is the
+ground-grid scratch/quad producer-consumer contract, not another sound test run.
+
 The connected player-effects batch recovers nine scalar/table entities and four
 existing model-face identities, replacing 46 absolute references. Speed/stardrive
 state selects six material indices for four Icarus faces; two byte-mask tables
@@ -39,9 +49,7 @@ gate asteroid creation. Ejection flag/countdown consumers include the pilot couc
 input and rendering. Thirty-three bytes gain ownership; neighbouring unreferenced
 bytes remain unknown. Table physical extents are explicit, not a blanket claim
 about every possible speed writer. C/vasm and clean standalone rebuild all 412736
-bytes. App/typed/gap counts and accepted code remain unchanged. The next connected
-lead is the alternate PSG path's control state and object-type volume directory;
-its presence does not prove Amiga/Paula execution.
+bytes. App/typed/gap counts and accepted code remain unchanged. The subsequent alternate PSG batch is recorded above.
 
 Direct consumer review now identifies eight independent scalar globals: surface
 braking/release delay, Novenia report cadence/count, Novenia palette flash, station
@@ -77,7 +85,13 @@ transport gap. Valid fixed/filtered three-record loops currently lose their
 record position at CFG joins, while a four-record overrun refuses typing. The
 real saved-record writer also has filtered 0/8-byte advances and a separate memory
 counter limiting writes to 20. Its next experiment needs a shared cursor/count
-invariant, not a per-reader seed or unbounded cursor normalization. Existing
+invariant, not a per-reader seed or unbounded cursor normalization. The current
+source-loop pass promotes closed LONG pointer reads only after proving contents
+stability. Record stores instead need field/extent geometry without assuming their
+contents stay stable; the filtered writer also has unequal 0/8-byte path advances.
+Reusing that pointer-read gate or merely allowing WORDs would not establish either
+contract. The retained fixed/filtered loop and overrun fixtures are the bounded
+next tests for a shared geometry projection. Existing
 saved-record routine names and ownership were already meaningful and are retained.
 
 The preceding construction-phase batch joins two energy-spheroid producers, the

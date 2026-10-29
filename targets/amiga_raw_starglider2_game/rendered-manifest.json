@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "source_commit": "0e41417f99a55612f44e87c7eec48c2500a67f42",
+  "source_commit": "663e3b01d8b50763b419c3ea982f2bd0d39c75c8",
   "source_assembly": "starglider2_game.s",
   "assets": [
     {
@@ -878,13 +878,13 @@
     },
     {
       "path": "rendered-provenance.json",
-      "bytes": 3030,
-      "sha256": "6a5e46d34ee2a3b2e7534b218dfe0dd43aac62e961c95cc41e32ea012c5bd311"
+      "bytes": 3009,
+      "sha256": "2a9ddbaf394682dca71cb3a68418d41f8fb5fb7d20964dd81c1cf36ffe57c3e2"
     },
     {
       "path": "starglider2_game.s",
-      "bytes": 2002501,
-      "sha256": "c92205bcb8ac0209e3d616a338c45a88d3d2a1d482257535d75d5846ed292d98"
+      "bytes": 2003668,
+      "sha256": "3adf994bfc324ef9a892096ed044a0fa27fd34e2a757ccaac1a05e99fb8aedb0"
     },
     {
       "path": "tools/starglider2_protection.py",
@@ -892,6 +892,6 @@
       "sha256": "81d3f66d36dbfbd5c77238b20c28e8b9abaa329777eb91f64669bbbf13703582"
     }
   ],
-  "source_commit_role": "publication base; reviewed player-model material animation, asteroid masks and ejection state are bound by verification_receipt_id",
-  "source_subject_revision": "86137330d6c1ff4cd77b9d72cd1950ad61fb1a2f8c0e8986503e0d6683f82836"
+  "source_commit_role": "publication base; reviewed alternate PSG state and type-volume consumers are bound by verification_receipt_id",
+  "source_subject_revision": "ba9cde1be56ab5d9124e9c57cc95f26dcabadb193c689c812da952e6c617e300"
 }

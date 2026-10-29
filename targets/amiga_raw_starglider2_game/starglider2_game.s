@@ -8793,7 +8793,7 @@ abs_0_00007256:
 	tst.w weapon_energy_reserve(a6)
 	beq.w abs_0_000073DA
 	move.w selected_projectile_action_cooldown.l,weapon_action_cooldown(a6)
-	st.b abs_0_0004DE39.l
+	st.b alternate_projectile_effect_reset_request.l
 	move.w aim_reticle_screen_x(a6),last_projectile_reticle_x(a6)
 	move.w aim_reticle_screen_y(a6),last_projectile_reticle_y(a6)
 	addq.l #1,pilot_shots_fired(a6)
@@ -60163,8 +60163,8 @@ abs_0_0004D452:
 	movea.l nearby_objects_cursor(a6),a0
 	move.w #$7FFF,d2
 	clr.l abs_0_0004DDA8.l
-	lea.l abs_0_0004DE3E.l,a3
-	sf.b abs_0_0004DE3B.l
+	lea.l psg_object_type_base_volumes_or_negative.l,a3
+	sf.b psg_nearby_sound_candidate_found_flag.l
 abs_0_0004D476:
 	movea.l (a0)+,a1
 	move.w (a1),d0	; operand 1: SG2ObjectCore_object_type at (a1)
@@ -60194,7 +60194,7 @@ abs_0_0004D4B2:
 	lsr.w #2,d0
 	cmp.w d0,d2
 	bmi.b abs_0_0004D4CA
-	st.b abs_0_0004DE3B.l
+	st.b psg_nearby_sound_candidate_found_flag.l
 	movea.l a1,a2
 	move.l a1,abs_0_0004DDA8.l
 	move.w d0,d2
@@ -60203,7 +60203,7 @@ abs_0_0004D4CA:
 	movea.l abs_0_0004DDA8.l,a0
 	cmpa.l #$0,a0
 	beq.b abs_0_0004D50A
-	tst.b abs_0_0004DE3B.l
+	tst.b psg_nearby_sound_candidate_found_flag.l
 	bpl.b abs_0_0004D50A
 	move.w (a0),d4
 	move.w d4,selected_object_sound_type.l
@@ -60237,34 +60237,34 @@ abs_0_0004D53A:
 update_alternate_sound_and_display_effects:
 	move.b #$93,diagnostic_step_byte.l
 	movem.l d0-d7/a0-a6,-(a7)
-	tst.b abs_0_0004DE39.l
+	tst.b alternate_projectile_effect_reset_request.l
 	beq.b abs_0_0004D572
-	move.w #$0,abs_0_0004DE26.l
-	move.w #$1,abs_0_0004DE2C.l
-	move.w #$0,abs_0_0004DE2E.l
-	sf.b abs_0_0004DE39.l
+	move.w #$0,alternate_projectile_volume_decay_phase_mod16.l
+	move.w #$1,alternate_projectile_period_polarity.l
+	move.w #$0,alternate_projectile_period_phase_mod256.l
+	sf.b alternate_projectile_effect_reset_request.l
 abs_0_0004D572:
-	addi.w #1,abs_0_0004DE26.l
-	andi.w #15,abs_0_0004DE26.l
+	addi.w #1,alternate_projectile_volume_decay_phase_mod16.l
+	andi.w #15,alternate_projectile_volume_decay_phase_mod16.l
 	bne.b abs_0_0004D596
 	subi.w #1,alternate_projectile_effect_volume.l
 	bpl.b abs_0_0004D596
 	move.w #$0,alternate_projectile_effect_volume.l
 abs_0_0004D596:
 	addi.w #20,alternate_projectile_effect_period.l
-	neg.w abs_0_0004DE2C.l
+	neg.w alternate_projectile_period_polarity.l
 	bmi.b abs_0_0004D5AA
 	moveq.l #60,d0
 	bra.b abs_0_0004D5AC
 abs_0_0004D5AA:
 	moveq.l #0,d0
 abs_0_0004D5AC:
-	addi.w #64,abs_0_0004DE2E.l
-	andi.w #255,abs_0_0004DE2E.l
+	addi.w #64,alternate_projectile_period_phase_mod256.l
+	andi.w #255,alternate_projectile_period_phase_mod256.l
 	move.w alternate_projectile_effect_period.l,d1
 	add.w d0,d1
-	add.w abs_0_0004DE2E.l,d1
-	move.w d1,abs_0_0004DE24.l
+	add.w alternate_projectile_period_phase_mod256.l,d1
+	move.w d1,alternate_projectile_modulated_period.l
 	tst.w stardrive_enabled_word(a6)
 	bmi.b abs_0_0004D5E0
 	tst.w abs_0_0004DD9C.l
@@ -60335,17 +60335,17 @@ abs_0_0004D642:
 	beq.b update_psg_type10_sound_phase
 	bra.w abs_0_0004D9A6
 abs_0_0004D6D2:
-	tst.b abs_0_0004DE38.l
+	tst.b psg_type8_period_phase_mod4.l
 	bne.b abs_0_0004D6EA
-	addq.b #1,abs_0_0004DE37.l
-	andi.b #3,abs_0_0004DE37.l
+	addq.b #1,psg_type8_delay_phase_mod4.l
+	andi.b #3,psg_type8_delay_phase_mod4.l
 	bne.b abs_0_0004D70A
 abs_0_0004D6EA:
 	move.w #$1F4,d0
 	add.w player_speed_smoothed(a6),d0
 	move.w d0,psg_object_sound_period_word.l
-	addq.b #1,abs_0_0004DE38.l
-	andi.b #3,abs_0_0004DE38.l
+	addq.b #1,psg_type8_period_phase_mod4.l
+	andi.b #3,psg_type8_period_phase_mod4.l
 	bra.w abs_0_0004D9A6
 abs_0_0004D70A:
 	move.w #$2EE,d0
@@ -60411,12 +60411,12 @@ abs_0_0004D7DA:
 abs_0_0004D7E8:
 	move.w #$9C4,d1
 abs_0_0004D7EC:
-	addq.w #2,abs_0_0004DE30.l
-	andi.w #511,abs_0_0004DE30.l
+	addq.w #2,psg_shared_object_period_phase.l
+	andi.w #511,psg_shared_object_period_phase.l
 	bsr.w advance_shared_random_state_effects_bridge
 	andi.w #1023,d0
 	add.w d1,d0
-	move.w abs_0_0004DE30.l,d1
+	move.w psg_shared_object_period_phase.l,d1
 	add.w d1,d0
 	move.w d0,psg_object_sound_period_word.l
 	bra.w abs_0_0004D9A6
@@ -60428,9 +60428,9 @@ abs_0_0004D816:
 abs_0_0004D824:
 	move.w #$7D0,d0
 abs_0_0004D828:
-	addq.w #1,abs_0_0004DE30.l
-	andi.w #31,abs_0_0004DE30.l
-	move.w abs_0_0004DE30.l,d2
+	addq.w #1,psg_shared_object_period_phase.l
+	andi.w #31,psg_shared_object_period_phase.l
+	move.w psg_shared_object_period_phase.l,d2
 	add.w d2,d0
 	movea.l abs_0_0004DDA8.l,a0
 	move.b $0003(a0),d1
@@ -60492,8 +60492,8 @@ abs_0_0004D91A:
 	bra.b abs_0_0004D97C
 abs_0_0004D92C:
 	bsr.w abs_0_0004DD5E
-	move.w abs_0_0004DE34.l,d0
-	move.w abs_0_0004DE32.l,d1
+	move.w psg_object_noise_period_direction.l,d0
+	move.w psg_object_noise_period_step.l,d1
 	add.w d0,d1
 	bmi.b abs_0_0004D948
 	cmp.w #$3,d1
@@ -60502,21 +60502,21 @@ abs_0_0004D92C:
 abs_0_0004D948:
 	neg.w d0
 	add.w d0,d1
-	move.w d0,abs_0_0004DE34.l
+	move.w d0,psg_object_noise_period_direction.l
 abs_0_0004D952:
-	move.w d1,abs_0_0004DE32.l
+	move.w d1,psg_object_noise_period_step.l
 	move.w player_speed_smoothed(a6),d0
 	asr.w #3,d0
 	add.w d0,d1
 	tst.w stardrive_enabled_word(a6)
 	bmi.b abs_0_0004D9BC
-	st.b abs_0_0004DE36.l
+	st.b psg_object_sets_noise_period_flag.l
 	move.b #$6,$00FF8800.l
 	move.b d1,$00FF8802.l
 	bra.b abs_0_0004D9BC
 abs_0_0004D97C:
 	bsr.w abs_0_0004DD5E
-	st.b abs_0_0004DE3C.l
+	st.b psg_noise_uses_object_period_flag.l
 	addq.b #1,abs_0_0004DE1E.l
 	andi.b #7,abs_0_0004DE1E.l
 	bne.b abs_0_0004D9BC
@@ -60528,8 +60528,8 @@ abs_0_0004D9A6:
 	sf.b abs_0_0004DE16.l
 abs_0_0004D9AC:
 	bsr.w abs_0_0004DD40
-	sf.b abs_0_0004DE3C.l
-	sf.b abs_0_0004DE36.l
+	sf.b psg_noise_uses_object_period_flag.l
+	sf.b psg_object_sets_noise_period_flag.l
 abs_0_0004D9BC:
 	cmpi.w #1,selected_object_sound_type.l
 	bne.b abs_0_0004D9CE
@@ -60578,7 +60578,7 @@ abs_0_0004DA62:
 	clr.b d0
 abs_0_0004DA64:
 	move.b d0,$00FF8802.l
-	move.w abs_0_0004DE24.l,d1
+	move.w alternate_projectile_modulated_period.l,d1
 	move.b #$0,$00FF8800.l
 	move.b d1,$00FF8802.l
 	move.b #$1,$00FF8800.l
@@ -60594,7 +60594,7 @@ abs_0_0004DAA4:
 	move.w abs_0_0004DD9C.l,d0
 	bra.b abs_0_0004DABA
 abs_0_0004DAAC:
-	tst.b abs_0_0004DE3A.l
+	tst.b psg_noise_variation_polarity.l
 	bpl.b abs_0_0004DABA
 	subq.b #1,d0
 	bpl.b abs_0_0004DABA
@@ -60611,15 +60611,15 @@ abs_0_0004DACA:
 	move.b d0,$00FF8802.l
 	tst.w stardrive_enabled_word(a6)
 	bmi.b abs_0_0004DB1E
-	tst.b abs_0_0004DE36.l
+	tst.b psg_object_sets_noise_period_flag.l
 	bmi.b abs_0_0004DB1E
-	tst.b abs_0_0004DE3C.l
+	tst.b psg_noise_uses_object_period_flag.l
 	bpl.b abs_0_0004DAF6
 	move.w psg_object_sound_period_word.l,d1
 	bra.b abs_0_0004DB10
 abs_0_0004DAF6:
 	move.w abs_0_0004DDA2.l,d1
-	neg.b abs_0_0004DE3A.l
+	neg.b psg_noise_variation_polarity.l
 	bpl.b abs_0_0004DB06
 	addq.b #1,d1
 abs_0_0004DB06:
@@ -60882,42 +60882,44 @@ alternate_projectile_effect_volume:
 	dc.w $0000
 alternate_projectile_effect_period:
 	dc.w $0000
-abs_0_0004DE24:
+alternate_projectile_modulated_period:
 	dc.w $0000
-abs_0_0004DE26:
-	dc.b $00,$01,$00,$00,$00,$00
-abs_0_0004DE2C:
-	dc.b $00,$01
-abs_0_0004DE2E:
+alternate_projectile_volume_decay_phase_mod16:
+	dc.w $0001
+	dc.b $00,$00,$00,$00
+alternate_projectile_period_polarity:
+	dc.w $0001
+alternate_projectile_period_phase_mod256:
 	dc.w $0000
-abs_0_0004DE30:
+psg_shared_object_period_phase:
 	dc.w $0000
-abs_0_0004DE32:
+psg_object_noise_period_step:
 	dc.w $0000
-abs_0_0004DE34:
-	dc.b $00,$01
-abs_0_0004DE36:
+psg_object_noise_period_direction:
+	dc.w $0001
+psg_object_sets_noise_period_flag:
 	dc.b $00
-abs_0_0004DE37:
+psg_type8_delay_phase_mod4:
 	dc.b $00
-abs_0_0004DE38:
+psg_type8_period_phase_mod4:
 	dc.b $00
-abs_0_0004DE39:
+alternate_projectile_effect_reset_request:
 	dc.b $00
-abs_0_0004DE3A:
+psg_noise_variation_polarity:
 	dc.b $01
-abs_0_0004DE3B:
+psg_nearby_sound_candidate_found_flag:
 	dc.b $00
-abs_0_0004DE3C:
-	dc.w $0000
-abs_0_0004DE3E:
+psg_noise_uses_object_period_flag:
+	dc.b $00
+	dc.b $00
+psg_object_type_base_volumes_or_negative:
 	dc.b $FF,$0F,$FF,$0A,$0A,$FF,$FF,$FF,$08,$FF,$0F,$FF,$FF,$08,$FF,$0F
 	dc.b $0F,$FF,$08,$FF,$FF,$08
 	dcb.b $9,$FF
 	dc.b $08,$08,$FF,$0A,$FF,$FF,$FF,$FF,$08,$08,$FF,$FF,$FF,$FF,$08,$FF
 	dc.b $FF,$FF,$07
 	dcb.b $62,$FF
-	dc.b $00,$00
+	dc.w $0000
 advance_shared_random_state_effects_bridge:
 	jmp advance_shared_random_state.l
 	dc.w $0000
@@ -60959,7 +60961,7 @@ initialize_alternate_sound_control:
 	bset #5,d0
 	move.b #$7,$00FF8800.l
 	move.b d0,$00FF8802.l
-	sf.b abs_0_0004DE39.l
+	sf.b alternate_projectile_effect_reset_request.l
 	move.l (a7)+,d0
 	rts
     ; Initialize 20 XYZ WORD triplets at app+$BC6 and clear 20 previous-view triplets at app+$C3E. Positions are randomized around the player; no model or object identity is inferred.
