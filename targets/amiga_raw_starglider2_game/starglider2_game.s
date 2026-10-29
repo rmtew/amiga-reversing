@@ -1287,6 +1287,16 @@ SG2TargetingObject_pre_view_relative_z RS.W 1
     RS.B 12
 SG2TargetingObject_SIZEOF EQU __RS
 
+; STRUCT SG2Volcano
+    RSRESET
+    RS.B 34
+SG2Volcano_eruption_colour_countdown_or_negative RS.B 1
+    RS.B 1
+SG2Volcano_eruption_attempt_mod4_index RS.W 1
+SG2Volcano_face_colour_pair_index RS.W 1
+    RS.B 28
+SG2Volcano_SIZEOF EQU __RS
+
 ADKF_CLRALL	EQU	$7FFF
 BPLCON2_PF2P2	EQU	$20
 BPLCON2_PF2PRI	EQU	$40
@@ -9949,6 +9959,7 @@ abs_0_00008484:
 abs_0_00008490:
 	move.b #$C5,diagnostic_step_byte.l
 	bra.w abs_0_0000B476
+    ; KNOWN: type A0=Target code-entry register seed:SG2Volcano
 abs_0_0000849C:
 	move.b #$C6,diagnostic_step_byte.l
 	bra.w abs_0_0000B536
@@ -23872,12 +23883,12 @@ abs_0_000182DC:
 	move.w #$FE0C,SG2EvasiveActor_horizontal_motion_scale(a0)
 	sf.b $0022(a0)
 	rts
-    ; KNOWN: type A0=Target code-entry register seed:SG2WorldObject
+    ; KNOWN: type A0=Target code-entry register seed:SG2EvasiveActor
 initialize_whale_and_duck_height_and_motion:
 	bsr.w abs_0_00018968
 	andi.w #4095,d0
 	move.w d0,SG2WorldObject_rotation_1(a0)
-	move.w #$FF7E,$0020(a0)
+	move.w #$FF7E,SG2EvasiveActor_horizontal_motion_scale(a0)
 	move.l a1,-(a7)
 	lea.l world_reference_y_coordinates.l,a1
 	move.w selected_celestial_body_index(a6),d1
@@ -23890,9 +23901,9 @@ initialize_whale_and_duck_height_and_motion:
 	move.l d1,SG2ObjectCore_world_y(a0)
 	bsr.w abs_0_00018968
 	andi.w #1023,d0
-	move.w d0,$0026(a0)
+	move.w d0,SG2EvasiveActor_proximity_evasion_countdown(a0)
 	andi.w #7,d0
-	move.w d0,$0024(a0)
+	move.w d0,SG2ScheduledActor_behavior_update_counter(a0)
 	move.b #$1,$001F(a0)
 	bset.b #5,SG2ObjectCore_flags(a0)
 	movea.l (a7)+,a1
@@ -24152,22 +24163,22 @@ initialize_cargo_heading_flags_and_link_sentinel:
 	move.w d0,SG2WorldObject_rotation_1(a0)
 	move.l #$FFFFFFFF,SG2WorldObject_linked_record_or_sentinel(a0)
 	rts
-    ; KNOWN: type A0=Target code-entry register seed:SG2WorldObject
+    ; KNOWN: type A0=Target code-entry register seed:SG2Volcano
 initialize_volcano_heading_and_phase_words:
 	bsr.w abs_0_00018968
 	andi.w #4095,d0
 	move.w d0,SG2WorldObject_rotation_1(a0)
 	bset.b #7,SG2ObjectCore_durability_or_negative(a0)
-	move.w #$0,$0024(a0)
-	move.w #$0,$0026(a0)
+	move.w #$0,SG2Volcano_eruption_attempt_mod4_index(a0)
+	move.w #$0,SG2Volcano_face_colour_pair_index(a0)
 	rts
-    ; KNOWN: type A0=Target code-entry register seed:SG2WorldObject
+    ; KNOWN: type A0=Target code-entry register seed:SG2EvasiveActor
 initialize_columbus_height_and_motion:
 	bsr.w abs_0_00018968
 	andi.w #4095,d0
 	move.w d0,SG2WorldObject_rotation_1(a0)
-	move.w #$2,$0024(a0)
-	move.w #$FFD3,$0020(a0)
+	move.w #$2,SG2ScheduledActor_behavior_update_counter(a0)
+	move.w #$FFD3,SG2EvasiveActor_horizontal_motion_scale(a0)
 	move.l #$FFFFFF88,SG2ObjectCore_world_y(a0)
 	rts
     ; KNOWN: type A0=Target code-entry register seed:SG2WorldObject
@@ -47272,14 +47283,14 @@ abs_0_00036AE2:
 	bra.w abs_0_00039D56
 finish_distant_solice_update:
 	bra.w abs_0_00039D3E
-    ; KNOWN: type A0=Target code-entry register seed:SG2WorldObject
+    ; KNOWN: type A0=Target code-entry register seed:SG2Volcano
 update_nearby_volcano:
-	addq.w #1,$0026(a0)
-	andi.w #1,$0026(a0)
-	move.w $0026(a0),d0
-	subi.b #1,$0022(a0)
+	addq.w #1,SG2Volcano_face_colour_pair_index(a0)
+	andi.w #1,SG2Volcano_face_colour_pair_index(a0)
+	move.w SG2Volcano_face_colour_pair_index(a0),d0
+	subi.b #1,SG2Volcano_eruption_colour_countdown_or_negative(a0)
 	bpl.b abs_0_00036B74
-	move.b #$FF,$0022(a0)
+	move.b #$FF,SG2Volcano_eruption_colour_countdown_or_negative(a0)
 	lea.l abs_0_00028342.l,a1
 	lea.l volcano_face_colour_pairs_bank0.l,a3
 	move.b $0(a3,d0.w),$0001(a1)
@@ -47319,9 +47330,9 @@ abs_0_00036B74:
 	lea.l abs_0_00039994.l,a3
 	move.b $0(a3,d0.w),$0001(a1)
 abs_0_00036BE0:
-	subi.b #1,abs_0_00039B76.l
+	subi.b #1,volcano_refill_updates_or_negative.l
 	bpl.b abs_0_00036BF4
-	move.b #$FF,abs_0_00039B76.l
+	move.b #$FF,volcano_refill_updates_or_negative.l
 	bra.b abs_0_00036C54
 abs_0_00036BF4:
 	st.b panel_fast_animation_request(a6)
@@ -47356,15 +47367,15 @@ abs_0_00036C38:
 abs_0_00036C4E:
 	move.w #$FFFF,icarus_shield_strength(a6)
 abs_0_00036C54:
-	addq.w #1,$0024(a0)
-	andi.w #3,$0024(a0)
+	addq.w #1,SG2Volcano_eruption_attempt_mod4_index(a0)
+	andi.w #3,SG2Volcano_eruption_attempt_mod4_index(a0)
 	bne.w abs_0_00036D14
 	bsr.w abs_0_00039D20
 	andi.w #7,d0
 	bne.w abs_0_00036D14
 	cmpi.w #10,free_object_count(a6)
 	bls.w abs_0_00036D14
-	move.b #$3,$0022(a0)
+	move.b #$3,SG2Volcano_eruption_colour_countdown_or_negative(a0)
 	movea.l free_object_stack_cursor(a6),a3
 	movea.l -(a3),a4
 	move.l a3,free_object_stack_cursor(a6)
@@ -47425,7 +47436,7 @@ abs_0_00036D32:
 	move.b #$A,d3
 	lsr.l d3,d1
 	st.b pending_transient_event_sound(a6)
-	move.b d1,abs_0_00039B76.l
+	move.b d1,volcano_refill_updates_or_negative.l
 abs_0_00036D66:
 	bra.w abs_0_00039D56
     ; KNOWN: type A0=Target code-entry register seed:SG2WorldObject
@@ -49284,7 +49295,7 @@ abs_0_00039B6D:
 	dc.b $0F,$0F,$07,$07,$03,$03,$03,$01
 abs_0_00039B75:
 	dc.b $00
-abs_0_00039B76:
+volcano_refill_updates_or_negative:
 	dc.b $FF,$00
 abs_0_00039B78:
 	dc.w $0000

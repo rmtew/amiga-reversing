@@ -20,7 +20,7 @@ An on-demand systematic gap inventory (`amiga_reversing/tools/source_gap_invento
 joins native identities/accesses with canonical layouts and actual rendered
 boundaries. It records 67 suffix signals (including numeric adjacent variants),
 21 lookup contracts, 523 remaining interior references, 31 generic app fields
-and 319 unresolved record accesses. These are different denominators. Five
+and 304 unresolved record accesses. These are different denominators. Five
 suffixes name routines and one names text; neither is a pointer defect.
 Current restored object contracts connect original update/initializer directories,
 literal-tag producers and reviewed forwarding paths. Walking, flying, mechanical,
@@ -32,19 +32,20 @@ The energy-tower initializer's World chain view stays distinct from its updater
 view. Packed-header normalization, signed comparisons, wrap, PRNG transforms,
 nullable/sentinel links and unknown constructor parameters remain unchanged.
 
-Latest: shared A2 horizontal-motion and A0/A4 heading callable inputs reuse the
-existing HorizontalMotion, Core and Targeting schemas (nine actions, three routine
-names). Four original A2 call/fallthrough paths and the player/linked-target heading
-callers establish the interfaces. This adds15 typed accesses, resolves five gaps,
-refines eight contexts and loses no access or field meaning. Current counts:
-**3503 app /2366 typed /319 unresolved**. No mid-body player-pointer seed or upgrade
-from declared-layout A6 fallback to register proof is introduced. Original divider,
-wrap, flags and conditional valid-record assumptions remain unchanged.
-All nonempty original initializer directory entries also have reviewed contracts;
-this does not establish arbitrary selector validity or complete field semantics.
+Latest: the original type88 volcano constructor/update pair now shares three
+explicit fields: signed eruption-colour countdown, mod4 emission-attempt index
+and mod2 face-colour-pair index. Its global refill countdown remains separate
+from object storage, without a fixed-duration claim. Whale/Duck and Columbus
+constructors reuse the established EvasiveActor requirements of their actual
+steering continuation. Seven actions resolve15 gaps, refine13 contexts and lose
+no access or field meaning: **3503 app /2381 typed /304 unresolved**.
+The preceding shared A2 motion and A0/A4 heading interfaces resolved five more
+gaps without mid-body pointer seeds or upgrading A6 layout fallback to proof.
+All nonempty initializer-directory entries have reviewed contracts; arbitrary
+selectors, unknown fields and lifecycle assumptions remain explicit. Mixed
+Pirate/Skim and Ray/Asteroid initializers deliberately retain common-prefix views.
 C/vasm and clean staged standalone builds reproduce all412736 original bytes;
-57 assets and14 headers remain unchanged. No new runtime run or interim archive.
-Canonical histories retain detailed evidence without duplicate observation dumps.
+57 assets and14 headers are unchanged. No new emulator run or observation dump.
 
 The shared framework now preserves canonical inline-object types through LEA
 and existing register/stack transfers. Five matrix consumers gained45 accesses;
@@ -52,8 +53,8 @@ and existing register/stack transfers. Five matrix consumers gained45 accesses;
 foreign bases, conflicting phase views and incomplete extents remain conservative.
 Direct PEA typed stack construction is still separate.
 
-Next connect volcano colour/emission parameters and the mechanical constructors
-to their established steering-field consumers. All37 sprite/name/audio/
+Next inspect pirate motion/raid fields and their shared initialization boundaries,
+then the ranked remaining Core/World field groups. All37 sprite/name/audio/
 text-reference gaps are indexed accesses. A four-entry fixture resolves a constant
 index but remains `indexed_dynamic` after signed0..3 guards; its unguarded negative
 also stays unresolved. Branch/partial-WORD constraint transport needs shared-value
@@ -79,7 +80,7 @@ starts. Their original producer really emits clipped horizon coordinates; a
 phase/width alias must remain distinct from the keyboard contract. Investigate
 existing canonical alias/view support before adding or renaming ownership. The
 third partial candidate is the already-documented LONG clear spanning a pending
-score WORD and following storage; that clear alone cannot name the extra bytes. Discovery leads and the 319 unresolved
+score WORD and following storage; that clear alone cannot name the extra bytes. Discovery leads and the 304 unresolved
 typed accesses remain different populations.
 A bounded alias reproducer found a shared renderer defect: an inferred
 same-origin conflict silently dropped the canonical app declaration while
