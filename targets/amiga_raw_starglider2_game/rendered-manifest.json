@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "source_commit": "869e02311d7aefb12439d3ed965b6e20f6dfa9d3",
+  "source_commit": "0a9bd22432a361fd68833e1eea181d7ba42cae70",
   "source_assembly": "starglider2_game.s",
   "assets": [
     {
@@ -878,13 +878,13 @@
     },
     {
       "path": "rendered-provenance.json",
-      "bytes": 2995,
-      "sha256": "db68c7d3b283bcafe1eebfb0ea83cdee13a33846ebd938dee4d2c24445784865"
+      "bytes": 3011,
+      "sha256": "7c6f37c569aa473f8acb1d7b4887b8f740d5fae0a791bb88c4ab3048381d422c"
     },
     {
       "path": "starglider2_game.s",
-      "bytes": 1993839,
-      "sha256": "7864bc2378c09fb16f89803df7805e8c954e496f84d0ad9fc1a838cf0f78858f"
+      "bytes": 1994605,
+      "sha256": "7959ef32a6785b0a0f4692d72411894cab1a6e0a5d4a297ca34b970d1d109f27"
     },
     {
       "path": "tools/starglider2_protection.py",
@@ -892,6 +892,6 @@
       "sha256": "81d3f66d36dbfbd5c77238b20c28e8b9abaa329777eb91f64669bbbf13703582"
     }
   ],
-  "source_commit_role": "publication base; reviewed secondary-update role contracts are bound by verification_receipt_id",
-  "source_subject_revision": "2fd30467dfd2568db59d70735b65368b0ccc105ac4561a7504f78ef18fcf15eb"
+  "source_commit_role": "publication base; reviewed tractor marker and projector producer contracts are bound by verification_receipt_id",
+  "source_subject_revision": "876d65f56af35bc13dc4077d3d93d683e6bfc72ef6f4df027724fb5ec4899567"
 }

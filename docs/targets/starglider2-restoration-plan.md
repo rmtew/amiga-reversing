@@ -20,7 +20,7 @@ An on-demand systematic gap inventory (`amiga_reversing/tools/source_gap_invento
 joins native identities/accesses with canonical layouts and actual rendered
 boundaries. It records 67 suffix signals (including numeric adjacent variants),
 21 lookup contracts, 523 remaining interior references, 31 generic app fields
-and 254 unresolved record accesses. These are different denominators. Five
+and 231 unresolved record accesses. These are different denominators. Five
 suffixes name routines and one names text; neither is a pointer defect.
 Current restored object contracts connect original update/initializer directories,
 literal-tag producers and reviewed forwarding paths. Walking, flying, mechanical,
@@ -32,25 +32,25 @@ The energy-tower initializer's World chain view stays distinct from its updater
 view. Packed-header normalization, signed comparisons, wrap, PRNG transforms,
 nullable/sentinel links and unknown constructor parameters remain unchanged.
 
-Latest secondary-update contracts connect seven previously untyped bodies to
-15 original directory tags. Mixed groups keep only their common World view;
-the shared behavior-counter body has a secondary-phase ScheduledActor view.
-Saucer, SolarConverter and both Silo paths reuse their established primary roles.
-Fourteen actions add seven routine names and **88 newly attributed typed accesses**;
-all prior accesses and meanings remain. Five newly exposed gaps are retained:
-two ground-link BYTE 40 reads, two shared steering WORD 32 accesses and the dome
-launcher BYTE 41 write. This is increased coverage, not five regressions or a
-claim that every linked pointee is known: **3503 app /2542 typed /254 unresolved**.
-Original conditional double X/Z integration, WORD-counter/low-BYTE mask semantics,
-wrapped heading arithmetic and nullable/unknown chain links remain unchanged.
+Latest visual-constructor contracts connect two tractor-marker acquisition paths
+to their established World callbacks, and the eight literal projector templates
+(types 75..82) to the existing ProjectorPart view. Three actions recover 23 typed
+accesses and resolve 23 gaps, with no lost access or changed field meaning:
+**3503 app /2565 typed /231 unresolved**. The configured marker tag starts at 95;
+it is not asserted immutable or identified by the generic No-records text.
+Selected tractor targets, saved-nearby records and non-model particles retain
+their narrower views. Projector BYTE 31 initialization does not imply that all
+eight callbacks animate or that every field is initialized.
 
-The preceding launcher/station batch recovered 22 accesses. Its station emission
-phase is only BYTE 34 modulo eight; WORD 36 remains unnamed and emitted type 146
-is non-model. Bomb roles preserve shared vector-scale/countdown fields, partial
-header writes, opaque carried references, repeated Y integration and detonation
-clobbers. C/vasm and the clean staged standalone export match all 412736 bytes;
-57 assets, 14 headers and 106034 accepted code bytes remain unchanged. The ownership
-union still leaves 13624 bytes in 264 intervals unclassified.
+The preceding distant-update batch covered seven bodies/15 original tags, adding
+88 accesses and seven routine names. Its five newly exposed gaps remain: ground
+link BYTE 40 reads, shared steering WORD 32 reads and the dome launcher BYTE 41
+write. Mixed groups keep common/phase-specific roles; original double X/Z
+integration, low-BYTE masking, wrapped heading and unknown links remain unchanged.
+Launcher/station and bomb contracts retain their partial initialization, opaque
+references and non-model distinctions. C/vasm and the clean staged standalone
+export match all 412736 bytes; 57 assets, 14 headers and 106034 accepted code bytes
+are unchanged. The ownership union leaves 13624 bytes in 264 intervals unclassified.
 
 The preceding shared low-WORD transfer fix retains same-register ADD/SUB
 correlation without treating different registers with equal sets as identical.

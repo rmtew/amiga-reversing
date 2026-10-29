@@ -46082,11 +46082,12 @@ abs_0_00035946:
 	movea.l -(a1),a2
 	move.l a1,free_object_stack_cursor(a6)
 	subq.w #1,free_object_count(a6)
+    ; KNOWN: type A2=Target code-entry register seed:SG2WorldObject
 	move.w abs_0_00037894.l,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
 	sf.b $0022(a2)
 	move.b $001D(a0),d3
-	move.b d3,$001D(a2)
-	clr.b $0003(a2)
+	move.b d3,SG2TargetingObject_model_scale_shift(a2)
+	clr.b SG2WorldObject_vertex_variant_selector(a2)
 	move.b #$FF,SG2ObjectCore_retirement_phase_or_negative(a2)
 	bset.b #7,SG2ObjectCore_durability_or_negative(a2)
 	move.w scan_target_type(a6),d0
@@ -46099,22 +46100,23 @@ abs_0_00035946:
 	move.l player_world_x(a6),SG2ObjectCore_world_x(a2)
 	move.l player_world_y(a6),SG2ObjectCore_world_y(a2)
 	move.l player_world_z(a6),SG2ObjectCore_world_z(a2)
-	move.w #$0,$002C(a2)
-	move.w #$0,$002E(a2)
-	move.w #$0,$0030(a2)
+	move.w #$0,SG2WorldObject_velocity_x(a2)
+	move.w #$0,SG2WorldObject_velocity_y(a2)
+	move.w #$0,SG2WorldObject_velocity_z(a2)
 	move.w #$0,$0020(a2)
-	move.w #$0,$0010(a2)
-	move.w #$0,$0012(a2)
-	move.w #$0,$0014(a2)
+	move.w #$0,SG2WorldObject_rotation_0(a2)
+	move.w #$0,SG2WorldObject_rotation_1(a2)
+	move.w #$0,SG2WorldObject_rotation_2(a2)
 	movea.l free_object_stack_cursor(a6),a1
 	movea.l -(a1),a2
 	move.l a1,free_object_stack_cursor(a6)
 	subq.w #1,free_object_count(a6)
 	move.w abs_0_00037894.l,d7
+    ; KNOWN: type A2=Target code-entry register seed:SG2WorldObject
 	move.w d7,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
 	move.b $001D(a0),d3
-	move.b d3,$001D(a2)
-	clr.b $0003(a2)
+	move.b d3,SG2TargetingObject_model_scale_shift(a2)
+	clr.b SG2WorldObject_vertex_variant_selector(a2)
 	move.b #$FF,SG2ObjectCore_retirement_phase_or_negative(a2)
 	bset.b #7,SG2ObjectCore_durability_or_negative(a2)
 	move.w scan_target_type(a6),d0
@@ -46127,13 +46129,13 @@ abs_0_00035946:
 	move.l player_world_x(a6),SG2ObjectCore_world_x(a2)
 	move.l player_world_y(a6),SG2ObjectCore_world_y(a2)
 	move.l player_world_z(a6),SG2ObjectCore_world_z(a2)
-	move.w #$0,$002C(a2)
-	move.w #$0,$002E(a2)
-	move.w #$0,$0030(a2)
+	move.w #$0,SG2WorldObject_velocity_x(a2)
+	move.w #$0,SG2WorldObject_velocity_y(a2)
+	move.w #$0,SG2WorldObject_velocity_z(a2)
 	move.w #$0,$0020(a2)
-	move.w #$0,$0010(a2)
-	move.w #$400,$0012(a2)
-	move.w #$0,$0014(a2)
+	move.w #$0,SG2WorldObject_rotation_0(a2)
+	move.w #$400,SG2WorldObject_rotation_1(a2)
+	move.w #$0,SG2WorldObject_rotation_2(a2)
 abs_0_00035A68:
 	bra.w abs_0_00035A9E
 abs_0_00035A6C:
@@ -47041,6 +47043,7 @@ abs_0_0003664E:
 	movea.l -(a3),a4
 	move.l a3,free_object_stack_cursor(a6)
 	subq.w #1,free_object_count(a6)
+    ; KNOWN: type A4=Target code-entry register seed:SG2ProjectorPart
 	move.w d4,(a4)	; operand 2: SG2ObjectCore_object_type at (a4)
 	move.l (a1)+,SG2ObjectCore_world_x(a4)
 	move.l (a1)+,SG2ObjectCore_world_z(a4)
@@ -47048,16 +47051,16 @@ abs_0_0003664E:
 	move.b #$FF,SG2ObjectCore_retirement_phase_or_negative(a4)
 	bset.b #7,SG2ObjectCore_durability_or_negative(a4)
 	lea.l model_default_scale_shifts.l,a3
-	move.b $0(a3,d4.w),$001D(a4)
-	move.b #$0,$0003(a4)
-	move.b #$0,$001F(a4)
+	move.b $0(a3,d4.w),SG2TargetingObject_model_scale_shift(a4)
+	move.b #$0,SG2WorldObject_vertex_variant_selector(a4)
+	move.b #$0,SG2ProjectorPart_network_animation_step(a4)
 	tst.b projector_network_complete_flag(a6)
 	bpl.b abs_0_000366BA
-	move.b #$1,$001F(a4)
+	move.b #$1,SG2ProjectorPart_network_animation_step(a4)
 abs_0_000366BA:
-	move.w #$0,$0010(a4)
-	move.w #$0,$0012(a4)
-	move.w #$0,$0014(a4)
+	move.w #$0,SG2WorldObject_rotation_0(a4)
+	move.w #$0,SG2WorldObject_rotation_1(a4)
+	move.w #$0,SG2WorldObject_rotation_2(a4)
 	cmp.w #$4E,d4
 	bne.b abs_0_000366E2
 	move.l SG2ObjectCore_world_x(a4),projector_turret_world_x(a6)

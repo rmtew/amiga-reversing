@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
   "kind": "committed_native_rendered_original_export",
-  "canonical_source_commit": "869e02311d7aefb12439d3ed965b6e20f6dfa9d3",
-  "publication_base_commit": "869e02311d7aefb12439d3ed965b6e20f6dfa9d3",
+  "canonical_source_commit": "0a9bd22432a361fd68833e1eea181d7ba42cae70",
+  "publication_base_commit": "0a9bd22432a361fd68833e1eea181d7ba42cae70",
   "native_export": "CListingArtifact.source_package_payload(64)",
-  "main_source_sha256": "7864bc2378c09fb16f89803df7805e8c954e496f84d0ad9fc1a838cf0f78858f",
+  "main_source_sha256": "7959ef32a6785b0a0f4692d72411894cab1a6e0a5d4a297ca34b970d1d109f27",
   "asset_count": 57,
   "asset_bytes": 93633,
   "game_assembly_hand_edits": false,
@@ -24,13 +24,13 @@
     "assembler executable",
     "paused Pandora work"
   ],
-  "canonical_source_commit_role": "publication base; reviewed secondary-update role contracts are bound by canonical facts and verification",
-  "canonical_source_subject_revision": "2fd30467dfd2568db59d70735b65368b0ccc105ac4561a7504f78ef18fcf15eb",
+  "canonical_source_commit_role": "publication base; reviewed tractor marker and projector producer contracts are bound by canonical facts and verification",
+  "canonical_source_subject_revision": "876d65f56af35bc13dc4077d3d93d683e6bfc72ef6f4df027724fb5ec4899567",
   "canonical_fact_sha256": {
     "source_binary.json": "42d4a5758b3e8236af7f912aee85e9ee5323bcd0961faa338c4f864080a0a7d9",
     "target_metadata.json": "e7540b68c118c56aba8815b6722eefa067517cc865fe9841d6c01ce96551389c",
-    "manual_actions.jsonl": "c20fff911b4f78730bd16f99086c4e4a577eca05f7f180634e41182f20548c28",
-    "decision_journal.jsonl": "5cad8caaa49c85f7f153e76f797cf6e9b7bd3467dfc93639248bad6f93c72e89"
+    "manual_actions.jsonl": "d61adf6573ccfb95bcdfd2c81528600385d33afc394272bb77b3609c68351e23",
+    "decision_journal.jsonl": "afd37890bd0cc663e710bbacc04752024eb6e56be974da54b44cda0be346df99"
   },
   "headers": "14 unmodified required include files collected by source_package.collect_package_includes from ext/amiga_includes/ndk_2.0/include; header notices retained",
   "decoded_protection_view": {
@@ -46,5 +46,5 @@
     },
     "runtime_scope": "Seven CPU write-site windows match this reversible view; no whole runtime-view identity or parent plaintext promotion."
   },
-  "verification_receipt_id": "272bb4353d4ebed10bf934157639adb55dc6da5ca6d2640a610b019068e4f31e"
+  "verification_receipt_id": "7bbb2581d99944aeaa07653a37a47fc59ac4f428d7789b97ca5047cd87711b4d"
 }
