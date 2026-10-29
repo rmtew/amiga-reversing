@@ -87,6 +87,11 @@
 ;     absolute[$00039848-$0003984C] refs=1 access=a
 ;     absolute[$0003B122] refs=1 access=a
 ;     absolute[$0003B588] refs=2 access=a
+;     absolute[$0003BE94-$0003BE98] refs=1 access=a
+;     absolute[$0003C054-$0003C058] refs=1 access=a
+;     absolute[$0003C214-$0003C218] refs=1 access=a
+;     absolute[$0003C3D4-$0003C3D8] refs=1 access=a
+;     absolute[$0003C594-$0003C598] refs=1 access=a
 ;     absolute[$00068000] refs=6 access=a
 ;     absolute[$000681EC] refs=1 access=a
 ;     absolute[$00068218] refs=1 access=a
@@ -1563,6 +1568,11 @@ dblk_ref_h0_00037E26_runtime_00038E26	EQU	$38E26
 dblk_ref_h0_00038748_runtime_00039748	EQU	$39748
 dblk_ref_h0_000387C8_runtime_000397C8	EQU	$397C8
 dblk_ref_h0_00038848_runtime_00039848	EQU	$39848
+dblk_ref_h0_0003AE94_runtime_0003BE94	EQU	$3BE94
+dblk_ref_h0_0003B054_runtime_0003C054	EQU	$3C054
+dblk_ref_h0_0003B214_runtime_0003C214	EQU	$3C214
+dblk_ref_h0_0003B3D4_runtime_0003C3D4	EQU	$3C3D4
+dblk_ref_h0_0003B594_runtime_0003C594	EQU	$3C594
 m68k_vector_address_error	EQU	$C
 m68k_vector_bus_error	EQU	$8
 m68k_vector_division_by_zero	EQU	$14
@@ -3749,7 +3759,7 @@ abs_0_0000339E:
 refresh_counted_model_population:
 	jmp recompute_counted_model_population.l
 abs_0_000033AA:
-	jmp abs_0_0003BD66.l
+	jmp invalidate_alternate_power_meter_cache.l
 abs_0_000033B0:
 	jmp display_pilot_rating_results.l
 print_cursor_text_bridge:
@@ -44203,7 +44213,7 @@ abs_0_00033EA0:
 	bsr.w capture_nearby_relative_objects
 	move.b #$87,diagnostic_step_byte.l
 	bsr.w abs_0_00039D26
-	bsr.w abs_0_0003BD66
+	bsr.w invalidate_alternate_power_meter_cache
 	move.b #$88,diagnostic_step_byte.l
 	move.w #$0,selected_object_sound_type.l
 	move.w #$FFFF,paula_object_sound_transition_phase.l
@@ -49626,7 +49636,7 @@ abs_0_00039D20:
 abs_0_00039D26:
 	jmp initialize_world_object_pool.l
 abs_0_00039D2C:
-	jmp abs_0_0003BD66.l
+	jmp invalidate_alternate_power_meter_cache.l
 display_event_message_line:
 	jmp display_timed_message_line.l
 abs_0_00039D38:
@@ -52128,8 +52138,8 @@ abs_0_0003BD4A:
 abs_0_0003BD4C:
 	dc.b $00,$00,$07,$01,$07,$60,$03,$00,$04,$01,$06,$01,$00,$24,$00,$35
 	dc.b $00,$36,$00,$47,$00,$00,$00,$00,$00,$00
-abs_0_0003BD66:
-	move.w #$FFFF,abs_0_0003CAE4.l
+invalidate_alternate_power_meter_cache:
+	move.w #$FFFF,alternate_power_meter_cached_level.l
 	rts
 	dc.b $70,$00,$33,$C0,$00,$03,$CA,$E4,$33,$C0,$00,$03,$CA,$E6,$33,$C0
 	dc.b $00,$03,$CA,$E8,$33,$C0,$00,$03,$CA,$EA,$33,$C0,$00,$03,$CA,$EC
@@ -52137,23 +52147,23 @@ abs_0_0003BD66:
 	dc.b $00,$03,$C8,$9A,$33,$C0,$00,$03,$C8,$EE,$33,$C0,$00,$03,$C9,$90
 	dc.b $4E,$75
 capture_alternate_meter_backgrounds:
-	clr.w abs_0_0003CAE4.l
-	clr.w abs_0_0003C7B0.l
-	clr.w abs_0_0003CAE6.l
-	clr.w abs_0_0003C826.l
-	clr.w abs_0_0003CAE8.l
-	clr.w abs_0_0003C89A.l
+	clr.w alternate_power_meter_cached_level.l
+	clr.w alternate_power_meter_redraw_countdown.l
+	clr.w alternate_shield_meter_cached_level.l
+	clr.w alternate_shield_meter_redraw_countdown.l
+	clr.w alternate_weapon_energy_meter_cached_level.l
+	clr.w alternate_weapon_energy_meter_redraw_countdown.l
 	clr.w abs_0_0003CAEA.l
 	clr.w abs_0_0003C8EE.l
-	move.w #$A,abs_0_0003CAEC.l
-	clr.w abs_0_0003C990.l
-	clr.w abs_0_0003CAF0.l
+	move.w #$A,alternate_altitude_meter_cached_level.l
+	clr.w alternate_altitude_meter_redraw_countdown.l
+	clr.w alternate_meter_directory_byte_offset.l
 	moveq.l #4,d4
 abs_0_0003BDF8:
 	moveq.l #55,d0
-	move.w abs_0_0003CAF0.l,d1
-	addq.w #4,abs_0_0003CAF0.l
-	movea.l abs_0_0003BE44(pc,d1.w),a0
+	move.w alternate_meter_directory_byte_offset.l,d1
+	addq.w #4,alternate_meter_directory_byte_offset.l
+	movea.l alternate_meter_background_pointers(pc,d1.w),a0
 	tst.b alternate_graphics_mode(a6)
 	bmi.b abs_0_0003BE20
 	movea.l alternate_meter_framebuffer_offsets_mode0(pc,d1.w),a1
@@ -52173,11 +52183,12 @@ abs_0_0003BE2E:
 	dbf.w d0,abs_0_0003BE2E
 	dbf.w d4,abs_0_0003BDF8
 	rts
-abs_0_0003BE44:
-	dc.l alternate_meter_background_storage	; pointer_table
-	dc.l abs_0_0003C054
-	dc.l abs_0_0003C214
-	dc.b $00,$03,$C3,$D4,$00,$03,$C5,$94
+alternate_meter_background_pointers:
+	dc.l alternate_weapon_energy_meter_background
+	dc.l alternate_shield_meter_background
+	dc.l alternate_power_meter_background
+	dc.l alternate_speed_meter_background
+	dc.l alternate_altitude_meter_background
 alternate_meter_framebuffer_offsets_mode0:
 	dc.l $00005160,$00005168,$00005170,$000051B0	; Five literal BYTE offsets; consumer adds fixed framebuffer base$68000, not source pointers
 	dc.l $000051B8
@@ -52190,12 +52201,16 @@ abs_0_0003BE80:
 	dc.l abs_0_0003CA4A
 	dc.l abs_0_0003CA26
 	dc.l abs_0_0003CA4A
-alternate_meter_background_storage:
-	dcb.b $1C0,$00
-abs_0_0003C054:
-	dcb.b $1C0,$00
-abs_0_0003C214:
-	dcb.b $540,$00
+alternate_weapon_energy_meter_background:
+	dcb.l $70,$00000000
+alternate_shield_meter_background:
+	dcb.l $70,$00000000
+alternate_power_meter_background:
+	dcb.l $70,$00000000
+alternate_speed_meter_background:
+	dcb.l $70,$00000000
+alternate_altitude_meter_background:
+	dcb.l $70,$00000000
     ; Sequential alternate meter stages read power, shield and weapon-energy WORDs. Internal step labels are fallthrough regions, not independent callable ABI contracts.
 update_alternate_resource_meters:
 	move.w icarus_power_reserve(a6),d0
@@ -52204,17 +52219,17 @@ update_alternate_resource_meters:
 	move.w d0,d1
 	lsr.w #1,d1
 	add.w d1,d0
-	cmp.w abs_0_0003CAE4.l,d0
+	cmp.w alternate_power_meter_cached_level.l,d0
 	bne.b abs_0_0003C77A
-	tst.w abs_0_0003C7B0.l
+	tst.w alternate_power_meter_redraw_countdown.l
 	beq.b alternate_shield_meter_step
-	subq.w #1,abs_0_0003C7B0.l
+	subq.w #1,alternate_power_meter_redraw_countdown.l
 	bra.b abs_0_0003C788
 abs_0_0003C77A:
-	move.w d0,abs_0_0003CAE4.l
-	move.w #$3,abs_0_0003C7B0.l
+	move.w d0,alternate_power_meter_cached_level.l
+	move.w #$3,alternate_power_meter_redraw_countdown.l
 abs_0_0003C788:
-	move.w #$8,abs_0_0003CAF0.l
+	move.w #$8,alternate_meter_directory_byte_offset.l
 	cmp.w #$5,d0
 	bls.b abs_0_0003C7B2
 	moveq.l #-2,d4
@@ -52226,7 +52241,7 @@ abs_0_0003C788:
 	lea.l hud_sprite_conversion_directory.l,a2
 	movea.l SG2SpriteControlReference_control_words(a2,d2.w),a1
 	bra.b abs_0_0003C7C6
-abs_0_0003C7B0:
+alternate_power_meter_redraw_countdown:
 	dc.w $0000
 abs_0_0003C7B2:
 	move.w d0,d2
@@ -52237,7 +52252,7 @@ abs_0_0003C7B2:
 	moveq.l #5,d4
 	addq.w #1,d0
 abs_0_0003C7C6:
-	bsr.w abs_0_0003C9BC
+	bsr.w draw_alternate_meter
 alternate_shield_meter_step:
 	move.w icarus_shield_strength(a6),d0
 	lsr.w #8,d0
@@ -52245,17 +52260,17 @@ alternate_shield_meter_step:
 	move.w d0,d1
 	lsr.w #1,d1
 	add.w d1,d0
-	cmp.w abs_0_0003CAE6.l,d0
+	cmp.w alternate_shield_meter_cached_level.l,d0
 	bne.b abs_0_0003C7F0
-	tst.w abs_0_0003C826.l
+	tst.w alternate_shield_meter_redraw_countdown.l
 	beq.b alternate_weapon_energy_meter_step
-	subq.w #1,abs_0_0003C826.l
+	subq.w #1,alternate_shield_meter_redraw_countdown.l
 	bra.b abs_0_0003C7FE
 abs_0_0003C7F0:
-	move.w d0,abs_0_0003CAE6.l
-	move.w #$3,abs_0_0003C826.l
+	move.w d0,alternate_shield_meter_cached_level.l
+	move.w #$3,alternate_shield_meter_redraw_countdown.l
 abs_0_0003C7FE:
-	move.w #$4,abs_0_0003CAF0.l
+	move.w #$4,alternate_meter_directory_byte_offset.l
 	cmp.w #$5,d0
 	bls.b abs_0_0003C828
 	moveq.l #-2,d4
@@ -52267,7 +52282,7 @@ abs_0_0003C7FE:
 	lea.l hud_sprite_conversion_directory.l,a2
 	movea.l SG2SpriteControlReference_control_words+2*SG2SpriteControlReference_SIZEOF(a2,d2.w),a1
 	bra.b abs_0_0003C83C
-abs_0_0003C826:
+alternate_shield_meter_redraw_countdown:
 	dc.w $0000
 abs_0_0003C828:
 	move.w d0,d2
@@ -52278,7 +52293,7 @@ abs_0_0003C828:
 	addq.w #1,d0
 	moveq.l #5,d4
 abs_0_0003C83C:
-	bsr.w abs_0_0003C9BC
+	bsr.w draw_alternate_meter
 alternate_weapon_energy_meter_step:
 	move.w weapon_energy_reserve(a6),d0
 	lsr.w #8,d0
@@ -52286,17 +52301,17 @@ alternate_weapon_energy_meter_step:
 	move.w d0,d1
 	lsr.w #1,d1
 	add.w d1,d0
-	cmp.w abs_0_0003CAE8.l,d0
+	cmp.w alternate_weapon_energy_meter_cached_level.l,d0
 	bne.b abs_0_0003C866
-	tst.w abs_0_0003C89A.l
+	tst.w alternate_weapon_energy_meter_redraw_countdown.l
 	beq.b abs_0_0003C8B4
-	subq.w #1,abs_0_0003C89A.l
+	subq.w #1,alternate_weapon_energy_meter_redraw_countdown.l
 	bra.b abs_0_0003C874
 abs_0_0003C866:
-	move.w d0,abs_0_0003CAE8.l
-	move.w #$3,abs_0_0003C89A.l
+	move.w d0,alternate_weapon_energy_meter_cached_level.l
+	move.w #$3,alternate_weapon_energy_meter_redraw_countdown.l
 abs_0_0003C874:
-	clr.w abs_0_0003CAF0.l
+	clr.w alternate_meter_directory_byte_offset.l
 	cmp.w #$5,d0
 	bls.b abs_0_0003C89C
 	moveq.l #-2,d4
@@ -52308,7 +52323,7 @@ abs_0_0003C874:
 	lea.l hud_sprite_conversion_directory.l,a2
 	movea.l SG2SpriteControlReference_control_words+4*SG2SpriteControlReference_SIZEOF(a2,d2.w),a1
 	bra.b abs_0_0003C8B0
-abs_0_0003C89A:
+alternate_weapon_energy_meter_redraw_countdown:
 	dc.w $0000
 abs_0_0003C89C:
 	move.w d0,d2
@@ -52319,7 +52334,7 @@ abs_0_0003C89C:
 	addq.w #1,d0
 	moveq.l #5,d4
 abs_0_0003C8B0:
-	bsr.w abs_0_0003C9BC
+	bsr.w draw_alternate_meter
 abs_0_0003C8B4:
 	move.w player_speed_target(a6),d0
 	tst.w d0
@@ -52328,7 +52343,7 @@ abs_0_0003C8B4:
 abs_0_0003C8BE:
 	mulu.w #$64,d0
 	divu.w #$3FC,d0
-	move.w #$C,abs_0_0003CAF0.l
+	move.w #$C,alternate_meter_directory_byte_offset.l
 	cmp.w #$6,d0
 	bls.b abs_0_0003C8F0
 	moveq.l #-2,d4
@@ -52358,7 +52373,7 @@ abs_0_0003C90C:
 	addq.w #1,d0
 	moveq.l #6,d4
 abs_0_0003C916:
-	bsr.w abs_0_0003C9BC
+	bsr.w draw_alternate_meter
 	move.l player_world_y(a6),d0
 	bpl.b abs_0_0003C922
 	neg.l d0
@@ -52372,29 +52387,29 @@ abs_0_0003C92C:
 	move.w selected_celestial_body_index(a6),d1
 	add.w d1,d1
 	divu.w $0(a0,d1.w),d0
-	cmp.w abs_0_0003CAEC.l,d0
+	cmp.w alternate_altitude_meter_cached_level.l,d0
 	bne.b abs_0_0003C958
-	tst.w abs_0_0003C990.l
+	tst.w alternate_altitude_meter_redraw_countdown.l
 	beq.b abs_0_0003C9B8
-	subq.w #1,abs_0_0003C990.l
+	subq.w #1,alternate_altitude_meter_redraw_countdown.l
 	bra.b abs_0_0003C960
 abs_0_0003C958:
-	move.w #$3,abs_0_0003C990.l
+	move.w #$3,alternate_altitude_meter_redraw_countdown.l
 abs_0_0003C960:
 	cmp.w #$2,d0
 	bgt.b abs_0_0003C968
 	moveq.l #1,d0
 abs_0_0003C968:
-	move.w d0,abs_0_0003CAEC.l
-	move.w #$10,abs_0_0003CAF0.l
+	move.w d0,alternate_altitude_meter_cached_level.l
+	move.w #$10,alternate_meter_directory_byte_offset.l
 	moveq.l #6,d4
 	cmp.w #$2B,d0
 	bgt.b abs_0_0003C992
 	lea.l hud_sprite_conversion_directory.l,a2
 	movea.l SG2SpriteControlReference_control_words+8*SG2SpriteControlReference_SIZEOF(a2),a1
-	st.b abs_0_0003CAEE.l
-	bra.b abs_0_0003C9BC
-abs_0_0003C990:
+	st.b alternate_altitude_meter_skip_in_space_flag.l
+	bra.b draw_alternate_meter
+alternate_altitude_meter_redraw_countdown:
 	dc.w $0000
 abs_0_0003C992:
 	cmp.w #$2F,d0
@@ -52408,20 +52423,20 @@ abs_0_0003C99A:
 	lea.l hud_altitude_meter_sprite_pointers.l,a1
 	subq.w #1,d0
 	movea.l $0(a1,d2.w),a1
-	st.b abs_0_0003CAEE.l
-	bra.b abs_0_0003C9BC
+	st.b alternate_altitude_meter_skip_in_space_flag.l
+	bra.b draw_alternate_meter
 abs_0_0003C9B8:
 	rts
 	dc.b $78,$FF
-abs_0_0003C9BC:
+draw_alternate_meter:
 	moveq.l #46,d1
 	sub.w d0,d1
 	move.w d1,d0
 	tst.b alternate_graphics_mode(a6)
 	bmi.w abs_0_0003CA72
 	addq.l #4,a1
-	move.w abs_0_0003CAF0.l,d5
-	lea.l abs_0_0003BE44(pc),a2
+	move.w alternate_meter_directory_byte_offset.l,d5
+	lea.l alternate_meter_background_pointers(pc),a2
 	movea.l $0(a2,d5.w),a0
 	lea.l alternate_meter_framebuffer_offsets_mode0(pc),a2
 	movea.l $0(a2,d5.w),a2
@@ -52434,9 +52449,9 @@ abs_0_0003C9EA:
 	lea.l $009C(a2),a2
 	dbf.w d1,abs_0_0003C9EA
 	movea.l (a7)+,a2
-	tst.b abs_0_0003CAEE.l
+	tst.b alternate_altitude_meter_skip_in_space_flag.l
 	bpl.b abs_0_0003CA0E
-	clr.b abs_0_0003CAEE.l
+	clr.b alternate_altitude_meter_skip_in_space_flag.l
 	tst.b space_environment_flag(a6)
 	bpl.b abs_0_0003CA0E
 	rts
@@ -52485,8 +52500,8 @@ abs_0_0003CA4A:
 	dbf.w d4,abs_0_0003CA4A
 	rts
 abs_0_0003CA72:
-	move.w abs_0_0003CAF0.l,d5
-	lea.l abs_0_0003BE44(pc),a2
+	move.w alternate_meter_directory_byte_offset.l,d5
+	lea.l alternate_meter_background_pointers(pc),a2
 	movea.l $0(a2,d5.w),a0
 	lea.l alternate_meter_framebuffer_offsets_mode1(pc),a2
 	movea.l $0(a2,d5.w),a2
@@ -52499,9 +52514,9 @@ abs_0_0003CA90:
 	lea.l $00A0(a2),a2
 	dbf.w d1,abs_0_0003CA90
 	movea.l (a7)+,a2
-	tst.b abs_0_0003CAEE.l
+	tst.b alternate_altitude_meter_skip_in_space_flag.l
 	bpl.b abs_0_0003CAB6
-	clr.b abs_0_0003CAEE.l
+	clr.b alternate_altitude_meter_skip_in_space_flag.l
 	tst.b space_environment_flag(a6)
 	bpl.b abs_0_0003CAB6
 	rts
@@ -52523,19 +52538,20 @@ abs_0_0003CAC4:
 	lea.l $00A0(a2),a2
 	dbf.w d4,abs_0_0003CAC4
 	rts
-abs_0_0003CAE4:
+alternate_power_meter_cached_level:
 	dc.w $0000
-abs_0_0003CAE6:
-	dc.b $00,$32
-abs_0_0003CAE8:
+alternate_shield_meter_cached_level:
+	dc.w $0032
+alternate_weapon_energy_meter_cached_level:
 	dc.w $0000
 abs_0_0003CAEA:
 	dc.w $0000
-abs_0_0003CAEC:
-	dc.b $03,$E8
-abs_0_0003CAEE:
-	dc.w $0000
-abs_0_0003CAF0:
+alternate_altitude_meter_cached_level:
+	dc.w $03E8
+alternate_altitude_meter_skip_in_space_flag:
+	dc.b $00
+	dc.b $00
+alternate_meter_directory_byte_offset:
 	dc.w $0000
 add_bcd_and_draw_digits_mode0:
 	lea.l abs_0_0000E000.l,a0

@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
   "kind": "committed_native_rendered_original_export",
-  "canonical_source_commit": "d23a7a830a236565b828bcbae95749c86d8326a4",
-  "publication_base_commit": "d23a7a830a236565b828bcbae95749c86d8326a4",
+  "canonical_source_commit": "9c3cfb6b25cc1e079bfb0cebe047760068fba6e3",
+  "publication_base_commit": "9c3cfb6b25cc1e079bfb0cebe047760068fba6e3",
   "native_export": "CListingArtifact.source_package_payload(64)",
-  "main_source_sha256": "3f58ac72c6de3feaa32f422fda764b500a3d51f449ba1d928a38409e3572e644",
+  "main_source_sha256": "da4925da1918f5d4186ee10d2caa6c5de247cd859036beb5d445dcb5ca125f9c",
   "asset_count": 57,
   "asset_bytes": 93633,
   "game_assembly_hand_edits": false,
@@ -24,13 +24,13 @@
     "assembler executable",
     "paused Pandora work"
   ],
-  "canonical_source_commit_role": "publication base; reviewed PSG selection, envelope and common-Core pointer consumers are bound by canonical facts and verification",
-  "canonical_source_subject_revision": "f62f31957ce38fbb1d8ef1faf7916751063ffb444fecc6ed3edc191efc1a0695",
+  "canonical_source_commit_role": "publication base; reviewed alternate HUD capture, cache, redraw and directory consumers are bound by canonical facts and verification",
+  "canonical_source_subject_revision": "2ed2c3e2d58f69c49001f4acc6b30717e63b55f2251d948ccd80c4025448205d",
   "canonical_fact_sha256": {
     "source_binary.json": "42d4a5758b3e8236af7f912aee85e9ee5323bcd0961faa338c4f864080a0a7d9",
     "target_metadata.json": "e7540b68c118c56aba8815b6722eefa067517cc865fe9841d6c01ce96551389c",
-    "manual_actions.jsonl": "ba8c5f943a8f3e96bff1dbc635ae7d13e536a4b840787f35d3fdc8a9c3c87bd1",
-    "decision_journal.jsonl": "c6ad72bd6b59763b3add7c395d1fe4fbb1e548bcd7d4d1aa51d3a9dd3406ce98"
+    "manual_actions.jsonl": "02d1e16540dd132b3eb1683a7f3bfd1524f4a70f206ff8b6b0d848a96106ba44",
+    "decision_journal.jsonl": "ba47b77f23adccc903423a3216cd0a75571560aec32355de25ad9eee1df075b2"
   },
   "headers": "14 unmodified required include files collected by source_package.collect_package_includes from ext/amiga_includes/ndk_2.0/include; header notices retained",
   "decoded_protection_view": {
@@ -46,5 +46,5 @@
     },
     "runtime_scope": "Seven CPU write-site windows match this reversible view; no whole runtime-view identity or parent plaintext promotion."
   },
-  "verification_receipt_id": "5bed7a9243cfc6571c521cc776985c1732203b90ae2c1f3a0d703e8ca761a6dc"
+  "verification_receipt_id": "dd53362686542ea63233a19720f3db7d34488b5f55d2b80d758a9f3330497a74"
 }

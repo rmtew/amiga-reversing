@@ -7,8 +7,8 @@ that further analysis is exhausted. Current source remains byte exact: all
 with all 106034 accepted code bytes retained. No generated assembly was edited
 by hand and no interim archive was produced.
 
-The current ownership union leaves 12659 bytes in
-274 intervals unclassified. This is classification accounting,
+The current ownership union leaves 12632 bytes in
+270 intervals unclassified. This is classification accounting,
 not a semantic completion percentage. Earlier interval/site counts below belong
 to their recorded closeout revision. See the current
 [native memory-span receipt](../../runtime/observations/starglider2-app-memory-spans.json),
@@ -18,7 +18,7 @@ to their recorded closeout revision. See the current
 
 An on-demand systematic gap inventory (`amiga_reversing/tools/source_gap_inventory.py`)
 joins native identities/accesses with canonical layouts and actual rendered
-boundaries. It records 71 suffix signals (including numeric adjacent variants),
+boundaries. The previous whole-target snapshot records 71 suffix signals (including numeric adjacent variants),
 21 lookup contracts, 462 remaining interior references, 31 generic app fields
 and 177 unresolved record accesses. These are different denominators. Five
 suffixes name routines and one names text; neither is a pointer defect.
@@ -39,9 +39,20 @@ type10 mute control. BYTE high-address updates stay BYTE-sized; three neighbouri
 bytes remain unclassified. All 597 reviewed instruction records retain their
 existing typed meanings, and accepted code is unchanged. This adds source meaning,
 not typed-access or runtime coverage: **3503 app /2650 typed /177 unresolved**.
-C/vasm and the clean standalone source rebuild remain exact. Next connect the
-alternate HUD meter caches, redraw countdowns, shared selector and saved pixel
-backgrounds through their original capture/restore consumers.
+C/vasm and the clean standalone source rebuild remain exact. The connected HUD-meter follow-up is recorded next.
+
+The alternate HUD-meter follow-up restores eighteen names: four level caches,
+four live redraw countdowns, a BYTE altitude-skip flag, the shared directory byte
+offset, five 448-byte captured backgrounds, their five-entry pointer directory and
+two existing callable entries. Original capture saves 56 rows; restore reads 51.
+The altitude comparison precedes its stored-value clamp. The legacy speed-cache
+WORD and flag backing BYTE remain unexplained. 27 newly classified bytes are
+separate from the already-owned 2240-byte background storage. Native totals and
+all reviewed typed meanings remain unchanged. All five directory LONGs now name
+their buffers with explicit source/runtime-domain contracts, rather than numeric
+addresses. Ownership staging is required by the existing command guard; the
+intermediate scalar-only rendering was not published. C/vasm and clean standalone
+output remain exact. No runtime coverage or arbitrary-caller bound is added.
 
 The Paula control/period batch identifies fourteen storage/table entities and
 160 bytes: a matching-prefix volume sum, previous selected relative XYZ, envelope
