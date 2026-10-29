@@ -20,9 +20,26 @@ An on-demand systematic gap inventory (`amiga_reversing/tools/source_gap_invento
 joins native identities/accesses with canonical layouts and actual rendered
 boundaries. It records 67 suffix signals (including numeric adjacent variants),
 21 lookup contracts, 523 remaining interior references, 31 generic app fields
-and 307 unresolved record accesses. These are different denominators. Five
+and 315 unresolved record accesses. These are different denominators. Five
 suffixes name routines and one names text; neither is a pointer defect.
-Latest: capsule-carrier, hover-car, bouncing-ball, tunnel-indicator and shared
+Latest: eight original mechanical/energy callbacks now have five small role
+layouts, eight entry views and eight names. Variant and heading-only views derive
+from Core rather than asserting unused World/velocity fields. Twenty-one actions
+add 31 previously uncatalogued typed accesses; eight further accesses become
+explicit gaps (the paired tower's unknown BYTE34 gate, and seven shared callee
+reads requiring more of the ground-laser input contract). No prior access or
+meaning changes: **3503 app /2259 typed /315 unresolved**. C/vasm and the clean
+staged standalone export are checked before publication; assets/headers unchanged.
+Original signed gate comparisons, counter wraps, PRNG bit transforms, type90/93
+changes and world-Z shifts remain intact, without universal range/timing claims.
+Next: inspect the seven shared-callee field requirements and the tower gate's
+writers. Separately, all 37 sprite/name/audio/text-reference gaps are indexed
+accesses: a tiny four-entry array resolves a constant index, but retains
+`indexed_dynamic` even after explicit signed 0..3 guards; the unguarded negative
+case remains unresolved. Investigate existing branch/value constraint transport,
+not extra per-reader array seeds or assumed bounds from storage extent.
+
+Preceding: capsule-carrier, hover-car, bouncing-ball, tunnel-indicator and shared
 proximity-steering views now expose 56 more typed accesses: two replace capsule
 flag gaps and 54 were previously uncatalogued. Nine contexts refine without
 meaning changes, lost accesses or new gaps: **3503 app /2228 typed /307 unresolved**.
@@ -168,7 +185,7 @@ starts. Their original producer really emits clipped horizon coordinates; a
 phase/width alias must remain distinct from the keyboard contract. Investigate
 existing canonical alias/view support before adding or renaming ownership. The
 third partial candidate is the already-documented LONG clear spanning a pending
-score WORD and following storage; that clear alone cannot name the extra bytes. Discovery leads and the 307 unresolved
+score WORD and following storage; that clear alone cannot name the extra bytes. Discovery leads and the 315 unresolved
 typed accesses remain different populations.
 A bounded alias reproducer found a shared renderer defect: an inferred
 same-origin conflict silently dropped the canonical app declaration while

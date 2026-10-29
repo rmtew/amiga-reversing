@@ -1241,6 +1241,41 @@ SG2TunnelIndicator_angular_step RS.W 1
     RS.B 18
 SG2TunnelIndicator_SIZEOF EQU __RS
 
+; STRUCT SG2VariantObject
+    RSRESET
+    RS.B 3
+SG2VariantObject_vertex_variant_selector RS.B 1
+    RS.B 64
+SG2VariantObject_SIZEOF EQU __RS
+
+; STRUCT SG2EnergyTower
+    RSRESET
+    RS.B 40
+SG2EnergyTower_alternate_form_request RS.B 1
+    RS.B 27
+SG2EnergyTower_SIZEOF EQU __RS
+
+; STRUCT SG2HeadingRotor
+    RSRESET
+    RS.B 18
+SG2HeadingRotor_rotation_1 RS.W 1
+    RS.B 48
+SG2HeadingRotor_SIZEOF EQU __RS
+
+; STRUCT SG2TimedHeadingRotor
+    RSRESET
+    RS.B 36
+SG2TimedHeadingRotor_rotation_trigger_counter RS.W 1
+    RS.B 30
+SG2TimedHeadingRotor_SIZEOF EQU __RS
+
+; STRUCT SG2GroundLaser
+    RSRESET
+    RS.B 38
+SG2GroundLaser_fire_phase_counter RS.B 1
+    RS.B 29
+SG2GroundLaser_SIZEOF EQU __RS
+
 ADKF_CLRALL	EQU	$7FFF
 BPLCON2_PF2P2	EQU	$20
 BPLCON2_PF2PRI	EQU	$40
@@ -9471,25 +9506,25 @@ primary_object_update_offsets:
 	dc.w update_shared_flying_actor-primary_object_update_offsets
 	dc.w update_saucer_motion_evasion_and_capsule-primary_object_update_offsets
 	dc.w advance_egron_bird_fighter_frame_then_update-primary_object_update_offsets
-	dc.w abs_0_00008A4E-primary_object_update_offsets
+	dc.w advance_pac_worm_vertex_and_motion_phase-primary_object_update_offsets
 	dc.w abs_0_00008484-primary_object_update_offsets
 	dc.w update_flat_diamond_ballistic_motion-primary_object_update_offsets
 	dc.w release_hover_car_link_then_steer-primary_object_update_offsets
 	dc.w abs_0_00008618-primary_object_update_offsets
 	dc.w advance_space_ray_frame_then_update-primary_object_update_offsets
-	dc.w abs_0_000087BE-primary_object_update_offsets
+	dc.w step_satellite_dish_heading-primary_object_update_offsets
 	dc.w abs_0_00008416-primary_object_update_offsets
 	dc.w update_linked_tug_motion_and_retirement-primary_object_update_offsets
 	dc.w update_shared_flying_actor-primary_object_update_offsets
 	dc.w update_dome_silo_launch_cycle-primary_object_update_offsets
 	dc.w abs_0_000084A8-primary_object_update_offsets
 	dc.w try_tunnel_sentinel_emission-primary_object_update_offsets
-	dc.w abs_0_000089C8-primary_object_update_offsets
+	dc.w advance_bt_tower_vertex_cycle-primary_object_update_offsets
 	dc.w update_gbml_cannon_heading_and_attack-primary_object_update_offsets
 	dc.w abs_0_000081D2-primary_object_update_offsets
 	dc.w abs_0_000081D2-primary_object_update_offsets
 	dc.w abs_0_000081D2-primary_object_update_offsets
-	dc.w abs_0_0000882E-primary_object_update_offsets
+	dc.w step_energy_transmitter_heading_phase-primary_object_update_offsets
 	dc.w update_bouncing_ball_motion_and_vertex_phase-primary_object_update_offsets
 	dc.w abs_0_000081D2-primary_object_update_offsets
 	dc.w update_tunnel_indicator_rotation-primary_object_update_offsets
@@ -9500,7 +9535,7 @@ primary_object_update_offsets:
 	dc.w abs_0_000083D8-primary_object_update_offsets
 	dc.w update_blast_door_variant-primary_object_update_offsets
 	dc.w update_blowhole_diamond_emission-primary_object_update_offsets
-	dc.w abs_0_0000899E-primary_object_update_offsets
+	dc.w update_energy_gate_vertex_variant-primary_object_update_offsets
 	dc.w abs_0_000081D2-primary_object_update_offsets
 	dc.w abs_0_000081D2-primary_object_update_offsets
 	dc.w abs_0_000081D2-primary_object_update_offsets
@@ -9521,14 +9556,14 @@ primary_object_update_offsets:
 	dc.w update_link_following_or_free_motion_object-primary_object_update_offsets
 	dc.w update_nearby_bouncing_projectile-primary_object_update_offsets
 	dc.w update_tunnel_indicator_rotation-primary_object_update_offsets
-	dc.w abs_0_000087AA-primary_object_update_offsets
+	dc.w step_ground_laser_fire_phase-primary_object_update_offsets
 	dc.w abs_0_000081D2-primary_object_update_offsets
 	dc.w abs_0_0000849C-primary_object_update_offsets
 	dc.w abs_0_00009318-primary_object_update_offsets
-	dc.w abs_0_000089E2-primary_object_update_offsets
+	dc.w update_energy_tower_variant_and_alternate_form-primary_object_update_offsets
 	dc.w abs_0_000085E8-primary_object_update_offsets
 	dc.w abs_0_000081D2-primary_object_update_offsets
-	dc.w abs_0_00008A14-primary_object_update_offsets
+	dc.w restore_energy_tower_primary_form-primary_object_update_offsets
 	dc.w abs_0_000081D2-primary_object_update_offsets
 	dc.w abs_0_000084C0-primary_object_update_offsets
 	dc.w abs_0_000081D2-primary_object_update_offsets
@@ -10104,14 +10139,16 @@ copy_player_pose_to_icarus_object:
 	move.w player_rotation_1(a6),SG2WorldObject_rotation_1(a0)
 	move.w player_rotation_2(a6),SG2WorldObject_rotation_2(a0)
 	bra.w abs_0_000081D2
-abs_0_000087AA:
-	subq.b #1,$0026(a0)
-	move.b $0026(a0),d0
+    ; KNOWN: type A0=Target code-entry register seed:SG2GroundLaser
+step_ground_laser_fire_phase:
+	subq.b #1,SG2GroundLaser_fire_phase_counter(a0)
+	move.b SG2GroundLaser_fire_phase_counter(a0),d0
 	andi.b #7,d0
 	beq.w abs_0_00009F02
 	bra.w abs_0_000081D2
-abs_0_000087BE:
-	addi.w #32,$0012(a0)
+    ; KNOWN: type A0=Target code-entry register seed:SG2HeadingRotor
+step_satellite_dish_heading:
+	addi.w #32,SG2HeadingRotor_rotation_1(a0)
 	bra.w abs_0_000081D2
     ; KNOWN: type A0=Target code-entry register seed:SG2TunnelIndicator
 update_tunnel_indicator_rotation:
@@ -10142,15 +10179,16 @@ abs_0_00008810:
 abs_0_00008826:
 	subq.w #4,SG2TunnelIndicator_angular_step(a0)
 	bra.w abs_0_000081D2
-abs_0_0000882E:
-	subq.w #1,$0024(a0)
+    ; KNOWN: type A0=Target code-entry register seed:SG2TimedHeadingRotor
+step_energy_transmitter_heading_phase:
+	subq.w #1,SG2TimedHeadingRotor_rotation_trigger_counter(a0)
 	beq.b abs_0_00008846
-	tst.b $001C(a0)
+	tst.b SG2ObjectCore_durability_or_negative(a0)
 	bne.w abs_0_000081D2
-	addi.w #112,$0012(a0)
+	addi.w #112,SG2HeadingRotor_rotation_1(a0)
 	bra.w abs_0_000081D2
 abs_0_00008846:
-	addi.w #112,$0012(a0)
+	addi.w #112,SG2HeadingRotor_rotation_1(a0)
 	bra.w abs_0_000081D2
     ; KNOWN: type A0=Target code-entry register seed:SG2WalkingActor
 update_walker_motion_and_attack_cadence:
@@ -10253,46 +10291,50 @@ abs_0_00008984:
 abs_0_00008996:
 	bsr.w heading_with_player_as_reference
 	bra.w blend_actor_heading_and_clear_other_rotations
-abs_0_0000899E:
-	cmpi.b #1,$001C(a0)
+    ; KNOWN: type A0=Target code-entry register seed:SG2VariantObject
+update_energy_gate_vertex_variant:
+	cmpi.b #1,SG2ObjectCore_durability_or_negative(a0)
 	beq.b abs_0_000089BE
-	addq.b #1,$0003(a0)
-	move.b $0003(a0),d0
+	addq.b #1,SG2VariantObject_vertex_variant_selector(a0)
+	move.b SG2VariantObject_vertex_variant_selector(a0),d0
 	cmp.b #$6,d0
 	blt.w abs_0_000081D2
-	clr.b $0003(a0)
+	clr.b SG2VariantObject_vertex_variant_selector(a0)
 	bra.w abs_0_000081D2
 abs_0_000089BE:
-	move.b #$6,$0003(a0)
+	move.b #$6,SG2VariantObject_vertex_variant_selector(a0)
 	bra.w abs_0_000081D2
-abs_0_000089C8:
-	addq.b #1,$0003(a0)
-	move.b $0003(a0),d0
+    ; KNOWN: type A0=Target code-entry register seed:SG2VariantObject
+advance_bt_tower_vertex_cycle:
+	addq.b #1,SG2VariantObject_vertex_variant_selector(a0)
+	move.b SG2VariantObject_vertex_variant_selector(a0),d0
 	cmp.b #$C,d0
 	bne.w abs_0_000081D2
-	move.b #$0,$0003(a0)
+	move.b #$0,SG2VariantObject_vertex_variant_selector(a0)
 	bra.w abs_0_000081D2
-abs_0_000089E2:
+    ; KNOWN: type A0=Target code-entry register seed:SG2EnergyTower
+update_energy_tower_variant_and_alternate_form:
 	bsr.w advance_shared_random_state
 	move.w d0,d1
 	andi.w #15,d0
 	rol.w #2,d1
 	andi.w #3,d1
 	add.w d1,d0
-	move.b d0,$0003(a0)
-	tst.b $0028(a0)
+	move.b d0,SG2VariantObject_vertex_variant_selector(a0)
+	tst.b SG2EnergyTower_alternate_form_request(a0)
 	beq.w abs_0_000081D2
-	move.w #$5D,(a0)
-	sf.b $0003(a0)
-	subi.l #4000,$000C(a0)
+	move.w #$5D,(a0)	; operand 2: SG2ObjectCore_object_type at (a0)
+	sf.b SG2VariantObject_vertex_variant_selector(a0)
+	subi.l #4000,SG2ObjectCore_world_z(a0)
 	bra.w abs_0_000081D2
-abs_0_00008A14:
+    ; KNOWN: type A0=Target code-entry register seed:SG2EnergyTower
+restore_energy_tower_primary_form:
 	tst.b $0022(a0)
 	bne.w abs_0_000081D2
-	tst.b $0028(a0)
+	tst.b SG2EnergyTower_alternate_form_request(a0)
 	bne.w abs_0_000081D2
-	move.w #$5A,(a0)
-	addi.l #4000,$000C(a0)
+	move.w #$5A,(a0)	; operand 2: SG2ObjectCore_object_type at (a0)
+	addi.l #4000,SG2ObjectCore_world_z(a0)
 	bra.w abs_0_000081D2
     ; KNOWN: type A0=Target code-entry register seed:SG2FlyingActor
 advance_space_ray_frame_then_update:
@@ -10302,16 +10344,17 @@ advance_space_ray_frame_then_update:
 	bne.w update_shared_flying_actor
 	move.b #$0,SG2WorldObject_vertex_variant_selector(a0)
 	bra.w update_shared_flying_actor
-abs_0_00008A4E:
-	addi.b #1,$0003(a0)
-	move.b $0003(a0),d2
+    ; KNOWN: type A0=Target code-entry register seed:SG2EvasiveActor
+advance_pac_worm_vertex_and_motion_phase:
+	addi.b #1,SG2WorldObject_vertex_variant_selector(a0)
+	move.b SG2WorldObject_vertex_variant_selector(a0),d2
 	cmp.b #$18,d2
 	beq.b abs_0_00008A6A
 	cmp.b #$E,d2
 	bls.w abs_0_000081D2
 	bra.w integrate_and_steer_horizontal_actor
 abs_0_00008A6A:
-	move.b #$0,$0003(a0)
+	move.b #$0,SG2WorldObject_vertex_variant_selector(a0)
 	bra.w integrate_and_steer_horizontal_actor
     ; KNOWN: type A0=Target code-entry register seed:SG2WalkingActor
 update_stomper_motion_and_attack_cadence:
@@ -11844,7 +11887,7 @@ abs_0_00009F02:
 	bsr.w heading_with_player_as_reference
 	addi.w #2048,d1
 	andi.w #4095,d1
-	move.w (a0),d3
+	move.w (a0),d3	; operand 1: SG2ObjectCore_object_type at (a0)
 	lea.l model_type_target_selection_tags_prefix(a6),a1
 	tst.b $0(a1,d3.w)
 	beq.w abs_0_000081D2
@@ -11862,12 +11905,12 @@ abs_0_00009F02:
 	asr.l d0,d2
     ; KNOWN: type A2=Target code-entry register seed:SG2VelocityProjectile
 	move.w #$48,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
-	move.b $0001(a0),SG2WorldObject_collision_ignored_object_type(a2)
+	move.b SG2ObjectCore_object_type+1(a0),SG2WorldObject_collision_ignored_object_type(a2)
 	move.b #$48,$002A(a0)
-	move.l $0004(a0),SG2ObjectCore_world_x(a2)
-	add.l $0008(a0),d2
+	move.l SG2ObjectCore_world_x(a0),SG2ObjectCore_world_x(a2)
+	add.l SG2ObjectCore_world_y(a0),d2
 	move.l d2,SG2ObjectCore_world_y(a2)
-	move.l $000C(a0),SG2ObjectCore_world_z(a2)
+	move.l SG2ObjectCore_world_z(a0),SG2ObjectCore_world_z(a2)
 	clr.w SG2WorldObject_rotation_0(a2)
 	move.b #$FF,SG2ObjectCore_retirement_phase_or_negative(a2)
 	clr.b SG2WorldObject_vertex_variant_selector(a2)
