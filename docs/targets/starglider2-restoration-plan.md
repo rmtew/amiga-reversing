@@ -20,9 +20,22 @@ An on-demand systematic gap inventory (`amiga_reversing/tools/source_gap_invento
 joins native identities/accesses with canonical layouts and actual rendered
 boundaries. It records 67 suffix signals (including numeric adjacent variants),
 21 lookup contracts, 523 remaining interior references, 32 generic app fields
-and 418 unresolved record accesses. These are different denominators. Five
+and 423 unresolved record accesses. These are different denominators. Five
 suffixes name routines and one names text; neither is a pointer defect.
-Latest: eight more producers now reuse the established leaf-updater views for
+Latest: canonical inline-record addresses now use the same read-only projection
+as rendering, rather than losing their types after LEA. No target facts were
+added. Five existing rotation-matrix consumers gain 45 typed field accesses;
+five aggregate/cursor accesses become explicit unresolved records rather than
+being hidden. Current counts: **3495 app /1973 typed /423 unresolved**.
+49 focused Python checks and all 832 native cases pass; current C/vasm exactness
+and the clean staged standalone rebuild match all 412736 bytes. Target generation took 180s (no comparative speed claim).
+Same-origin conflicts, pointer-cell addresses, foreign bases, incomplete extents
+and larger-backing-as-array guesses remain conservative. Direct PEA address
+construction still lacks the corresponding typed stack value; arbitrary phase
+views remain a separate contract. Canonical facts, 57 assets and 14 headers are
+unchanged; the generated source exposes the recovered matrix fields.
+
+Preceding: eight more producers now reuse the established leaf-updater views for
 bouncing/neutron bombs, asteroids and internal type47. Original CFG forwarding
 paths preserve A0; exact generated instruction flow and shared register-write
 evidence establish sequential prefixes without guessing from missing edges.

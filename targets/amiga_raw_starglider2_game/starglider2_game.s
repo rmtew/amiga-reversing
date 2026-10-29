@@ -2859,34 +2859,34 @@ abs_0_000027BA:
 transform_vector_by_view_matrix:
 	movem.l d4-d5/a5,-(a7)
 	lea.l view_rotation_matrix(a6),a5
-	move.w (a5)+,d4
+	move.w (a5)+,d4	; operand 1: SG2RotationMatrixWords_m00 at (a5)+
 	muls.w d1,d4
-	move.w (a5)+,d5
+	move.w (a5)+,d5	; operand 1: SG2RotationMatrixWords_m01 at (a5)+
 	muls.w d2,d5
 	add.l d5,d4
-	move.w (a5)+,d5
+	move.w (a5)+,d5	; operand 1: SG2RotationMatrixWords_m02 at (a5)+
 	muls.w d3,d5
 	add.l d5,d4
 	asl.l #2,d4
 	swap.w d4
 	move.w d4,-(a7)
-	move.w (a5)+,d4
+	move.w (a5)+,d4	; operand 1: SG2RotationMatrixWords_m10 at (a5)+
 	muls.w d1,d4
-	move.w (a5)+,d5
+	move.w (a5)+,d5	; operand 1: SG2RotationMatrixWords_m11 at (a5)+
 	muls.w d2,d5
 	add.l d5,d4
-	move.w (a5)+,d5
+	move.w (a5)+,d5	; operand 1: SG2RotationMatrixWords_m12 at (a5)+
 	muls.w d3,d5
 	add.l d5,d4
 	asl.l #2,d4
 	swap.w d4
 	move.w d4,-(a7)
-	move.w (a5)+,d4
+	move.w (a5)+,d4	; operand 1: SG2RotationMatrixWords_m20 at (a5)+
 	muls.w d1,d4
-	move.w (a5)+,d5
+	move.w (a5)+,d5	; operand 1: SG2RotationMatrixWords_m21 at (a5)+
 	muls.w d2,d5
 	add.l d5,d4
-	move.w (a5)+,d5
+	move.w (a5)+,d5	; operand 1: SG2RotationMatrixWords_m22 at (a5)+
 	muls.w d3,d5
 	add.l d5,d4
 	asl.l #2,d4
@@ -3068,34 +3068,34 @@ abs_0_000029F4:
 	move.w SG2RotationMatrixWords_m10(a5),d2
 	move.w SG2RotationMatrixWords_m20(a5),d3
 	lea.l view_rotation_matrix(a6),a1
-	move.w (a1)+,d4
+	move.w (a1)+,d4	; operand 1: SG2RotationMatrixWords_m00 at (a1)+
 	muls.w d1,d4
-	move.w (a1)+,d5
+	move.w (a1)+,d5	; operand 1: SG2RotationMatrixWords_m01 at (a1)+
 	muls.w d2,d5
 	add.l d5,d4
-	move.w (a1)+,d5
+	move.w (a1)+,d5	; operand 1: SG2RotationMatrixWords_m02 at (a1)+
 	muls.w d3,d5
 	add.l d5,d4
 	asl.l #2,d4
 	swap.w d4
 	move.w d4,model_view_matrix(a6)
-	move.w (a1)+,d4
+	move.w (a1)+,d4	; operand 1: SG2RotationMatrixWords_m10 at (a1)+
 	muls.w d1,d4
-	move.w (a1)+,d5
+	move.w (a1)+,d5	; operand 1: SG2RotationMatrixWords_m11 at (a1)+
 	muls.w d2,d5
 	add.l d5,d4
-	move.w (a1)+,d5
+	move.w (a1)+,d5	; operand 1: SG2RotationMatrixWords_m12 at (a1)+
 	muls.w d3,d5
 	add.l d5,d4
 	asl.l #2,d4
 	swap.w d4
 	move.w d4,model_view_matrix+SG2RotationMatrixWords_m10(a6)
-	move.w (a1)+,d4
+	move.w (a1)+,d4	; operand 1: SG2RotationMatrixWords_m20 at (a1)+
 	muls.w d1,d4
-	move.w (a1)+,d5
+	move.w (a1)+,d5	; operand 1: SG2RotationMatrixWords_m21 at (a1)+
 	muls.w d2,d5
 	add.l d5,d4
-	move.w (a1)+,d5
+	move.w (a1)+,d5	; operand 1: SG2RotationMatrixWords_m22 at (a1)+
 	muls.w d3,d5
 	add.l d5,d4
 	asl.l #2,d4
@@ -3105,34 +3105,34 @@ abs_0_000029F4:
 	move.w SG2RotationMatrixWords_m11(a5),d2
 	move.w SG2RotationMatrixWords_m21(a5),d3
 	lea.l view_rotation_matrix(a6),a1
-	move.w (a1)+,d4
+	move.w (a1)+,d4	; operand 1: SG2RotationMatrixWords_m00 at (a1)+
 	muls.w d1,d4
-	move.w (a1)+,d5
+	move.w (a1)+,d5	; operand 1: SG2RotationMatrixWords_m01 at (a1)+
 	muls.w d2,d5
 	add.l d5,d4
-	move.w (a1)+,d5
+	move.w (a1)+,d5	; operand 1: SG2RotationMatrixWords_m02 at (a1)+
 	muls.w d3,d5
 	add.l d5,d4
 	asl.l #2,d4
 	swap.w d4
 	move.w d4,model_view_matrix+SG2RotationMatrixWords_m01(a6)
-	move.w (a1)+,d4
+	move.w (a1)+,d4	; operand 1: SG2RotationMatrixWords_m10 at (a1)+
 	muls.w d1,d4
-	move.w (a1)+,d5
+	move.w (a1)+,d5	; operand 1: SG2RotationMatrixWords_m11 at (a1)+
 	muls.w d2,d5
 	add.l d5,d4
-	move.w (a1)+,d5
+	move.w (a1)+,d5	; operand 1: SG2RotationMatrixWords_m12 at (a1)+
 	muls.w d3,d5
 	add.l d5,d4
 	asl.l #2,d4
 	swap.w d4
 	move.w d4,model_view_matrix+SG2RotationMatrixWords_m11(a6)
-	move.w (a1)+,d4
+	move.w (a1)+,d4	; operand 1: SG2RotationMatrixWords_m20 at (a1)+
 	muls.w d1,d4
-	move.w (a1)+,d5
+	move.w (a1)+,d5	; operand 1: SG2RotationMatrixWords_m21 at (a1)+
 	muls.w d2,d5
 	add.l d5,d4
-	move.w (a1)+,d5
+	move.w (a1)+,d5	; operand 1: SG2RotationMatrixWords_m22 at (a1)+
 	muls.w d3,d5
 	add.l d5,d4
 	asl.l #2,d4
@@ -3142,34 +3142,34 @@ abs_0_000029F4:
 	move.w SG2RotationMatrixWords_m12(a5),d2
 	move.w SG2RotationMatrixWords_m22(a5),d3
 	lea.l view_rotation_matrix(a6),a1
-	move.w (a1)+,d4
+	move.w (a1)+,d4	; operand 1: SG2RotationMatrixWords_m00 at (a1)+
 	muls.w d1,d4
-	move.w (a1)+,d5
+	move.w (a1)+,d5	; operand 1: SG2RotationMatrixWords_m01 at (a1)+
 	muls.w d2,d5
 	add.l d5,d4
-	move.w (a1)+,d5
+	move.w (a1)+,d5	; operand 1: SG2RotationMatrixWords_m02 at (a1)+
 	muls.w d3,d5
 	add.l d5,d4
 	asl.l #2,d4
 	swap.w d4
 	move.w d4,model_view_matrix+SG2RotationMatrixWords_m02(a6)
-	move.w (a1)+,d4
+	move.w (a1)+,d4	; operand 1: SG2RotationMatrixWords_m10 at (a1)+
 	muls.w d1,d4
-	move.w (a1)+,d5
+	move.w (a1)+,d5	; operand 1: SG2RotationMatrixWords_m11 at (a1)+
 	muls.w d2,d5
 	add.l d5,d4
-	move.w (a1)+,d5
+	move.w (a1)+,d5	; operand 1: SG2RotationMatrixWords_m12 at (a1)+
 	muls.w d3,d5
 	add.l d5,d4
 	asl.l #2,d4
 	swap.w d4
 	move.w d4,model_view_matrix+SG2RotationMatrixWords_m12(a6)
-	move.w (a1)+,d4
+	move.w (a1)+,d4	; operand 1: SG2RotationMatrixWords_m20 at (a1)+
 	muls.w d1,d4
-	move.w (a1)+,d5
+	move.w (a1)+,d5	; operand 1: SG2RotationMatrixWords_m21 at (a1)+
 	muls.w d2,d5
 	add.l d5,d4
-	move.w (a1)+,d5
+	move.w (a1)+,d5	; operand 1: SG2RotationMatrixWords_m22 at (a1)+
 	muls.w d3,d5
 	add.l d5,d4
 	asl.l #2,d4
@@ -4852,34 +4852,34 @@ abs_0_00004390:
 	move.l d4,SG2RadialObject_base_radius(a4)
 abs_0_0000439C:
 	lea.l view_rotation_matrix(a6),a0
-	move.w (a0)+,d4
+	move.w (a0)+,d4	; operand 1: SG2RotationMatrixWords_m00 at (a0)+
 	muls.w d1,d4
-	move.w (a0)+,d5
+	move.w (a0)+,d5	; operand 1: SG2RotationMatrixWords_m01 at (a0)+
 	muls.w d2,d5
 	add.l d5,d4
-	move.w (a0)+,d5
+	move.w (a0)+,d5	; operand 1: SG2RotationMatrixWords_m02 at (a0)+
 	muls.w d3,d5
 	add.l d5,d4
 	asl.l #2,d4
 	swap.w d4
 	move.w d4,-(a7)
-	move.w (a0)+,d4
+	move.w (a0)+,d4	; operand 1: SG2RotationMatrixWords_m10 at (a0)+
 	muls.w d1,d4
-	move.w (a0)+,d5
+	move.w (a0)+,d5	; operand 1: SG2RotationMatrixWords_m11 at (a0)+
 	muls.w d2,d5
 	add.l d5,d4
-	move.w (a0)+,d5
+	move.w (a0)+,d5	; operand 1: SG2RotationMatrixWords_m12 at (a0)+
 	muls.w d3,d5
 	add.l d5,d4
 	asl.l #2,d4
 	swap.w d4
 	move.w d4,-(a7)
-	move.w (a0)+,d4
+	move.w (a0)+,d4	; operand 1: SG2RotationMatrixWords_m20 at (a0)+
 	muls.w d1,d4
-	move.w (a0)+,d5
+	move.w (a0)+,d5	; operand 1: SG2RotationMatrixWords_m21 at (a0)+
 	muls.w d2,d5
 	add.l d5,d4
-	move.w (a0)+,d5
+	move.w (a0)+,d5	; operand 1: SG2RotationMatrixWords_m22 at (a0)+
 	muls.w d3,d5
 	add.l d5,d4
 	asl.l #2,d4

@@ -1065,6 +1065,10 @@ int render_lookup_add_typed_storage_slot(M68kRenderLookup *lookup, uint8_t kind,
   size_t source_section_index, uint32_t source_offset, int *out_added);
 int render_lookup_conflict_typed_storage_slot(M68kRenderLookup *lookup, uint8_t kind, size_t section_index,
   int32_t displacement, uint32_t address, size_t source_section_index, uint32_t source_offset, int *out_added);
+/* Shared read-only inline-object projection; never a pointer-cell insertion. */
+size_t render_lookup_inline_app_region_count(const M68kRenderLookup *lookup);
+int render_lookup_inline_app_region_at(const M68kRenderLookup *lookup, size_t index,
+    int16_t *displacement, uint16_t *struct_id, const char **symbol);
 uint16_t render_lookup_struct_id(const M68kRenderLookup *lookup, const char *name);
 uint16_t render_lookup_struct_size(const M68kRenderLookup *lookup, uint16_t struct_id);
 const char *render_lookup_struct_name(const M68kRenderLookup *lookup, uint16_t struct_id);

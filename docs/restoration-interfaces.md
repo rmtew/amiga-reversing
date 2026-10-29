@@ -299,6 +299,18 @@ The exact-one-instruction native evidence entry point reuses this serializer for
 retained identity-checked bytes; it supplies no platform attribution or callee,
 exception-frame, register-flow or gameplay proof by itself.
 
+Canonical app `struct_instance` declarations also supply the pointee type when
+`LEA` forms the exact object's address. Rendering and typed propagation share
+one read-only inline-region projection; this does not insert an inline object
+into the pointer-cell cache or type its first stored LONG as a pointer. Existing
+register and stack value transfers retain the type. Conflicting views, foreign
+bases, incomplete extents and interior/one-past address formation do not acquire
+that object type; larger backing alone does not imply an array. Existing app-base
+assumption provenance and library-extension rules are unchanged. This projection
+currently covers the default app layout, not arbitrary phase selection. Direct
+`PEA` address construction still lacks the corresponding typed value transfer;
+`LEA` followed by the existing LONG stack transfer is covered instead.
+
 `base_candidates` complements declared app/typed accesses with **non-admitting
 leads** from fixed-displacement or plain-indirect A6 operands, only when canonical
 regions register the default app namespace. It reads accepted instructions and

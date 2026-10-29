@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
   "kind": "committed_native_rendered_original_export",
-  "canonical_source_commit": "61a0962b92843635466e5c7cf5199aec457a577a",
-  "publication_base_commit": "61a0962b92843635466e5c7cf5199aec457a577a",
+  "canonical_source_commit": "09ff45d6c102fa64fc7e4b21c4c327d8fa18f900",
+  "publication_base_commit": "09ff45d6c102fa64fc7e4b21c4c327d8fa18f900",
   "native_export": "CListingArtifact.source_package_payload(64)",
-  "main_source_sha256": "d499c2f79a02126d143bf983d8e8bea2b162458529672614dd2318a12e62a72b",
+  "main_source_sha256": "b28792b5b733b2eff5eb96fde7a50997932d72c622fe21ec33ae7d808574c6c7",
   "asset_count": 57,
   "asset_bytes": 93633,
   "game_assembly_hand_edits": false,
@@ -24,8 +24,8 @@
     "assembler executable",
     "paused Pandora work"
   ],
-  "canonical_source_commit_role": "publication base; reviewed forwarded-updater producer contracts in this batch are bound by canonical_fact_sha256 and verification_receipt_id",
-  "canonical_source_subject_revision": "e89f351299ce68fbac7e1b98fb06f3c3194525f1868abfad8e2d4baa929ddd82",
+  "canonical_source_commit_role": "publication base; shared inline-object address projection is qualified by verification_receipt_id; canonical facts unchanged",
+  "canonical_source_subject_revision": "ec4a6e7e53100ca53cc12f8d62fda8dc4fe51467c076e6e603fcbc5274bb9daa",
   "canonical_fact_sha256": {
     "source_binary.json": "42d4a5758b3e8236af7f912aee85e9ee5323bcd0961faa338c4f864080a0a7d9",
     "target_metadata.json": "e7540b68c118c56aba8815b6722eefa067517cc865fe9841d6c01ce96551389c",
@@ -46,5 +46,5 @@
     },
     "runtime_scope": "Seven CPU write-site windows match this reversible view; no whole runtime-view identity or parent plaintext promotion."
   },
-  "verification_receipt_id": "6da44e83019dc7c3c47970d8fa45f2a897e30b03e4a2285a9afe3db03ef690e1"
+  "verification_receipt_id": "e5749cae8c16a40358994b2f303d07ccdda5dd439fbde73d00ef94f9e468cbb0"
 }

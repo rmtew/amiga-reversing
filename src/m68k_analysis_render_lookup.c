@@ -3990,12 +3990,62 @@ static uint16_t lookup_typed_app_slot_struct_id(const M68kRenderLookup *lookup, 
   return AMIGA_OS_STRUCT_ID_NONE;
 }
 
+/* Read-only projection of canonical inline declarations and inferred inline
+ * contracts. Do not inject declared inline objects into the pointer-cell
+ * cache: an object's address and its first stored LONG are different values. */
+size_t render_lookup_inline_app_region_count(const M68kRenderLookup *lookup) {
+  return lookup->typed_app_slot_count + (lookup->policy ? lookup->policy->rsset_layout_region_count : 0U);
+}
+
+int render_lookup_inline_app_region_at(const M68kRenderLookup *lookup, size_t index,
+    int16_t *displacement, uint16_t *struct_id, const char **symbol) {
+  *symbol = NULL;
+  if (index < lookup->typed_app_slot_count) {
+    const M68kRenderTypedAppSlot *slot = &lookup->typed_app_slots[index];
+    if (slot->conflicted || !slot->inline_region || slot->struct_id == AMIGA_OS_STRUCT_ID_NONE) return 0;
+    *displacement = slot->displacement; *struct_id = slot->struct_id;
+    return 1;
+  }
+  index -= lookup->typed_app_slot_count;
+  if (!lookup->policy || index >= lookup->policy->rsset_layout_region_count ||
+      index >= M68K_ANALYSIS_RSSET_LAYOUT_REGION_LIMIT) return 0;
+  const M68kAnalysisRssetLayoutRegion *region = &lookup->policy->rsset_layout_regions[index];
+  if (region->storage_kind_id != M68K_ANALYSIS_RSSET_LAYOUT_STORAGE_STRUCT_INSTANCE ||
+      !region->symbol[0] || region->offset > INT16_MAX ||
+      (region->base_symbol[0] && strcmp(region->base_symbol, M68K_APP_BASE_SYMBOL)) ||
+      (region->layout_name[0] && strcmp(region->layout_name, M68K_APP_LAYOUT_NAME))) return 0;
+  *struct_id = render_lookup_struct_id(lookup, region->struct_name);
+  uint16_t size = render_lookup_struct_size(lookup, *struct_id);
+  if (!size || region->size < size || (uint32_t)region->offset + size > (uint32_t)INT16_MAX + 1U) return 0;
+  *displacement = (int16_t)region->offset; *symbol = region->symbol;
+  return 1;
+}
+
 static uint16_t lookup_typed_inline_app_struct_id(const M68kRenderLookup *lookup, int16_t displacement) {
+  uint16_t found = AMIGA_OS_STRUCT_ID_NONE;
+  if (lookup == NULL) return found;
+  /* A conflicting canonical view is not resolved by choosing the default
+   * declaration. Keep the address, but do not manufacture its pointee type. */
+  for (size_t i = 0U; i < lookup->base_field_slot_count; ++i) {
+    const M68kRenderBaseFieldSlot *slot = &lookup->base_field_slots[i];
+    if (slot->displacement == displacement && slot->conflicted &&
+        render_base_field_slot_owner_is_app_base(slot)) return AMIGA_OS_STRUCT_ID_NONE;
+  }
   for (size_t i = 0U; i < lookup->typed_app_slot_count; ++i) {
     const M68kRenderTypedAppSlot *slot = &lookup->typed_app_slots[i];
-    if (slot->displacement == displacement && slot->inline_region && !slot->conflicted) return slot->struct_id;
+    if (slot->displacement == displacement && slot->inline_region && slot->conflicted)
+      return AMIGA_OS_STRUCT_ID_NONE;
   }
-  return AMIGA_OS_STRUCT_ID_NONE;
+  for (size_t i = 0U; i < render_lookup_inline_app_region_count(lookup); ++i) {
+    int16_t start;
+    uint16_t candidate;
+    const char *symbol;
+    if (!render_lookup_inline_app_region_at(lookup, i, &start, &candidate, &symbol) ||
+        start != displacement) continue;
+    if (found != AMIGA_OS_STRUCT_ID_NONE && found != candidate) return AMIGA_OS_STRUCT_ID_NONE;
+    found = candidate;
+  }
+  return found;
 }
 
 static int typed_app_address_operand_info(const M68kRenderLookup *lookup,
