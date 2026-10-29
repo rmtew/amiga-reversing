@@ -20,9 +20,20 @@ An on-demand systematic gap inventory (`amiga_reversing/tools/source_gap_invento
 joins native identities/accesses with canonical layouts and actual rendered
 boundaries. It records 67 suffix signals (including numeric adjacent variants),
 21 lookup contracts, 523 remaining interior references, 32 generic app fields
-and 539 unresolved record accesses. These are different denominators. Five
+and 491 unresolved record accesses. These are different denominators. Five
 suffixes name routines and one names text; neither is a pointer defect.
-Latest: retirement-face scratch now has a six-byte signed edge-delta layout
+Latest: seven original constant-tag producer views reuse established mine,
+Buzz Bomb, steered-projectile and velocity-projectile updater layouts. The scan
+found 19 actual immediate-tag writes; comparisons were excluded. Only seven had
+reviewed directory-to-updater contracts for this batch; others are untouched.
+This resolves 48 typed gaps, refines 32 existing contexts without changing field
+meanings, loses no accesses and exposes no gaps: **3495 app /1830 typed /491
+unresolved**. It is canonical target contract transfer through the existing
+engine, not automatic discriminant inference or a new global pool type.
+C/vasm and a clean staged standalone build match all 412736 original bytes;
+57 assets and 14 headers remain unchanged.
+
+Preceding: retirement-face scratch has a six-byte signed edge-delta layout
 and three separate WORD displacement slots. All 13 original uses are connected
 from vertex differences through the signed cross product and phase/bias scaling
 to per-vertex projection. Intervening bytes remain unclaimed; overflow, shifts
@@ -31,7 +42,7 @@ in the initial rationale: the original products are edge1 cross edge2.
 This adds 13 app references with no prior access changed or lost, no new typed
 accesses or resolved typed gaps: **3495 app /1782 typed /539 unresolved**.
 C/vasm and the clean standalone export reproduce all 412736 original bytes;
-57 assets and 14 headers are unchanged. Discovery candidates decrease93 to80.
+57 assets and 14 headers are unchanged. Discovery candidates decrease 93 to 80.
 
 Preceding: the model-projection workspace names 70 previously raw scratch
 accesses through existing declared-layout fallback, not a new base-propagation
@@ -65,7 +76,7 @@ starts. Their original producer really emits clipped horizon coordinates; a
 phase/width alias must remain distinct from the keyboard contract. Investigate
 existing canonical alias/view support before adding or renaming ownership. The
 third partial candidate is the already-documented LONG clear spanning a pending
-score WORD and following storage; that clear alone cannot name the extra bytes. Discovery leads and the 539 unresolved
+score WORD and following storage; that clear alone cannot name the extra bytes. Discovery leads and the 491 unresolved
 typed accesses remain different populations.
 A bounded alias reproducer found a shared renderer defect: an inferred
 same-origin conflict silently dropped the canonical app declaration while
@@ -77,8 +88,10 @@ SGII package source is byte-identical under this fix; existing exact/standalone
 qualification remains applicable. No target alias facts were added: ordinary
 width coverage does not establish phase attribution. The horizon/keyboard view
 still needs an explicit context/view contract; treating transfer width as a
-phase test would be unsound. Continue independent object-constructor analysis
-by joining original constant-tag stores to existing updater/initializer contracts.
+phase test would be unsound. That first directory-to-producer batch is completed above. Next: review the
+remaining capsule, sentinel and ballistic-object updater/producer families.
+Missing established contracts require actual body/field analysis; a tag or
+name alone is not a layout proof.
 
 A synthetic absolute-A6 case has no retained concrete address at its read; it
 therefore remains a fallback lead, explicitly not an admitted app reference.

@@ -10785,10 +10785,11 @@ try_buzz_bomber_type6_spawn:
 	move.b #$2,SG2ObjectCore_durability_or_negative(a2)
 	st.b SG2ObjectCore_retirement_phase_or_negative(a2)
 	move.b #$6,$001D(a2)
+    ; KNOWN: type A2=Target code-entry register seed:SG2WorldObject
 	move.w #$6,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
 	move.b #$6,SG2WorldObject_collision_ignored_object_type(a0)
-	move.b #$21,$002A(a2)
-	move.l #$FFFFFFFF,$003C(a2)
+	move.b #$21,SG2WorldObject_collision_ignored_object_type(a2)
+	move.l #$FFFFFFFF,SG2WorldObject_linked_record_or_sentinel(a2)
 	bra.w abs_0_000081D2
 abs_0_00009248:
 	move.b #$15,diagnostic_step_byte.l
@@ -11204,13 +11205,15 @@ spawn_ai_projectile_continuation:
 	asr.l d0,d2
 	tst.b ai_type12_projectile_request(a6)
 	beq.b initialize_ai_projectile_type25_tag
+    ; KNOWN: type A2=Target code-entry register seed:SG2SteeredProjectile
 	move.w #$C,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
-	move.b SG2ObjectCore_object_type+1(a0),$002A(a2)
+	move.b SG2ObjectCore_object_type+1(a0),SG2WorldObject_collision_ignored_object_type(a2)
 	move.b #$C,SG2WorldObject_collision_ignored_object_type(a0)
 	bra.b initialize_ai_projectile_pose_and_motion
+    ; KNOWN: type A2=Target code-entry register seed:SG2SteeredProjectile
 initialize_ai_projectile_type25_tag:
 	move.w #$19,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
-	move.b SG2ObjectCore_object_type+1(a0),$002A(a2)
+	move.b SG2ObjectCore_object_type+1(a0),SG2WorldObject_collision_ignored_object_type(a2)
 	move.b #$19,SG2WorldObject_collision_ignored_object_type(a0)
     ; Both tag stores produce12/25 before this join. BYTE22 was cleared: this constructor is untracked. Preserve duplicate lifetime100 stores and separate creator/child table selectors.
     ; KNOWN: type A2=Target code-entry register seed:SG2SteeredProjectile
@@ -11276,19 +11279,20 @@ abs_0_000098C4:
 	movea.l -(a1),a2
 	move.l a1,free_object_stack_cursor(a6)
 	subq.w #1,free_object_count(a6)
+    ; KNOWN: type A2=Target code-entry register seed:SG2WorldObject
 	move.w #$2,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
-	move.b SG2ObjectCore_object_type+1(a0),$002A(a2)
+	move.b SG2ObjectCore_object_type+1(a0),SG2WorldObject_collision_ignored_object_type(a2)
 	move.b #$2,SG2WorldObject_collision_ignored_object_type(a0)
 	move.b #$4,SG2ObjectCore_durability_or_negative(a2)
 	bclr.b #7,SG2ObjectCore_flags(a2)
-	move.b #$4,$001D(a2)
+	move.b #$4,SG2WorldObject_model_scale_shift(a2)
 	move.l SG2ObjectCore_world_x(a0),SG2ObjectCore_world_x(a2)
 	move.l SG2ObjectCore_world_z(a0),SG2ObjectCore_world_z(a2)
 	move.l SG2ObjectCore_world_y(a0),d3
 	addi.l #50,d3
 	move.l d3,SG2ObjectCore_world_y(a2)
-	move.w SG2WorldObject_rotation_0(a0),$0010(a2)
-	move.w SG2WorldObject_rotation_2(a0),$0014(a2)
+	move.w SG2WorldObject_rotation_0(a0),SG2WorldObject_rotation_0(a2)
+	move.w SG2WorldObject_rotation_2(a0),SG2WorldObject_rotation_2(a2)
 	move.b #$FF,SG2ObjectCore_retirement_phase_or_negative(a2)
 	bra.w abs_0_000081D2
 abs_0_0000992E:
@@ -11747,23 +11751,24 @@ abs_0_00009F02:
 	ext.l d2
 	move.b $001D(a0),d0
 	asr.l d0,d2
+    ; KNOWN: type A2=Target code-entry register seed:SG2VelocityProjectile
 	move.w #$48,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
-	move.b $0001(a0),$002A(a2)
+	move.b $0001(a0),SG2WorldObject_collision_ignored_object_type(a2)
 	move.b #$48,$002A(a0)
 	move.l $0004(a0),SG2ObjectCore_world_x(a2)
 	add.l $0008(a0),d2
 	move.l d2,SG2ObjectCore_world_y(a2)
 	move.l $000C(a0),SG2ObjectCore_world_z(a2)
-	clr.w $0010(a2)
+	clr.w SG2WorldObject_rotation_0(a2)
 	move.b #$FF,SG2ObjectCore_retirement_phase_or_negative(a2)
-	clr.b $0003(a2)
-	move.b #$4,$001D(a2)
-	move.w d1,$0012(a2)
-	clr.w $0014(a2)
+	clr.b SG2WorldObject_vertex_variant_selector(a2)
+	move.b #$4,SG2WorldObject_model_scale_shift(a2)
+	move.w d1,SG2WorldObject_rotation_1(a2)
+	clr.w SG2WorldObject_rotation_2(a2)
 	move.w #$FF9C,$0020(a2)
-	move.w #$64,$0024(a2)
+	move.w #$64,SG2VelocityProjectile_remaining_updates(a2)
 	move.b #$1,SG2ObjectCore_durability_or_negative(a2)
-	move.w $0012(a2),d1
+	move.w SG2WorldObject_rotation_1(a2),d1
 	andi.w #4095,d1
 	asl.w #1,d1
 	movea.l sine_lookup_pointer(a6),a1
@@ -11775,14 +11780,14 @@ abs_0_00009F02:
 	asl.l #1,d4
 	swap.w d4
 	neg.w d4
-	move.w d4,$002C(a2)
+	move.w d4,SG2WorldObject_velocity_x(a2)
 	move.w $0020(a2),d4
 	muls.w trig_cosine_scratch_1(a6),d4
 	asl.l #1,d4
 	swap.w d4
-	move.w d4,$0030(a2)
-	clr.w $002E(a2)
-	clr.b $0022(a2)
+	move.w d4,SG2WorldObject_velocity_z(a2)
+	clr.w SG2WorldObject_velocity_y(a2)
+	clr.b SG2VelocityProjectile_integration_service_byte(a2)
 	bra.w abs_0_000081D2
 abs_0_00009FEE:
 	move.b #$2B,diagnostic_step_byte.l
@@ -12145,53 +12150,54 @@ abs_0_0000A54A:
 	lea.l object_projectile_spawn_y_offsets.l,a1
 	move.w $0(a1,d0.w),d2
 	ext.l d2
+    ; KNOWN: type A2=Target code-entry register seed:SG2SteeredProjectile
 	move.w #$19,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
-	move.b SG2ObjectCore_object_type+1(a0),$002A(a2)
+	move.b SG2ObjectCore_object_type+1(a0),SG2WorldObject_collision_ignored_object_type(a2)
 	move.b #$19,SG2WorldObject_collision_ignored_object_type(a0)
 	move.l SG2ObjectCore_world_x(a0),SG2ObjectCore_world_x(a2)
 	add.l SG2ObjectCore_world_y(a0),d2
 	move.l d2,SG2ObjectCore_world_y(a2)
 	move.l SG2ObjectCore_world_z(a0),SG2ObjectCore_world_z(a2)
-	clr.w $0010(a2)
+	clr.w SG2WorldObject_rotation_0(a2)
 	move.b #$FF,SG2ObjectCore_retirement_phase_or_negative(a2)
 	move.w SG2WorldObject_rotation_1(a0),d1
-	move.b #$0,$0003(a2)
-	move.b #$4,$001D(a2)
+	move.b #$0,SG2WorldObject_vertex_variant_selector(a2)
+	move.b #$4,SG2WorldObject_model_scale_shift(a2)
 	lea.l heading_policy_word_storage(pc),a1
 	tst.w $0(a1,d0.w)
 	beq.b abs_0_0000A5BC
 	subi.w #2048,d1
 abs_0_0000A5BC:
 	andi.w #4095,d1
-	move.w d1,$0012(a2)
-	clr.w $0014(a2)
+	move.w d1,SG2WorldObject_rotation_1(a2)
+	clr.w SG2WorldObject_rotation_2(a2)
 	move.w (a2),d1	; operand 1: SG2ObjectCore_object_type at (a2)
 	add.w d1,d1
 	lea.l object_default_motion_words.l,a1
-	move.w $0(a1,d1.w),$0020(a2)
-	move.w #$64,$0024(a2)
+	move.w $0(a1,d1.w),SG2SteeredProjectile_horizontal_motion_scale(a2)
+	move.w #$64,SG2SteeredProjectile_remaining_updates(a2)
 	move.b #$2,SG2ObjectCore_durability_or_negative(a2)
-	move.w $0012(a2),d1
+	move.w SG2WorldObject_rotation_1(a2),d1
 	andi.w #4095,d1
 	asl.w #1,d1
 	movea.l sine_lookup_pointer(a6),a1
 	move.w $0(a1,d1.w),trig_sine_scratch_1(a6)
 	movea.l cosine_lookup_pointer(a6),a1
 	move.w $0(a1,d1.w),trig_cosine_scratch_1(a6)
-	move.w $0020(a2),d4
+	move.w SG2SteeredProjectile_horizontal_motion_scale(a2),d4
 	muls.w trig_sine_scratch_1(a6),d4
 	asl.l #1,d4
 	swap.w d4
 	neg.w d4
-	move.w d4,$002C(a2)
-	move.w $0020(a2),d4
+	move.w d4,SG2WorldObject_velocity_x(a2)
+	move.w SG2SteeredProjectile_horizontal_motion_scale(a2),d4
 	muls.w trig_cosine_scratch_1(a6),d4
 	asl.l #1,d4
 	swap.w d4
-	move.w d4,$0030(a2)
-	clr.w $002E(a2)
-	st.b $0022(a2)
-	move.l a4,$003C(a2)
+	move.w d4,SG2WorldObject_velocity_z(a2)
+	clr.w SG2WorldObject_velocity_y(a2)
+	st.b SG2SteeredProjectile_stored_target_tracking_byte(a2)
+	move.l a4,SG2WorldObject_linked_record_or_sentinel(a2)
 	bra.w abs_0_000081D2
 abs_0_0000A634:
 	move.w $002C(a0),d3
@@ -47364,13 +47370,14 @@ abs_0_00036F84:
 	movea.l -(a3),a4
 	move.l a3,free_object_stack_cursor(a6)
 	subq.w #1,free_object_count(a6)
+    ; KNOWN: type A4=Target code-entry register seed:SG2VelocityProjectile
 	move.w #$48,(a4)	; operand 2: SG2ObjectCore_object_type at (a4)
-	sf.b $0022(a4)
-	move.w #$C8,$0024(a4)
+	sf.b SG2VelocityProjectile_integration_service_byte(a4)
+	move.w #$C8,SG2VelocityProjectile_remaining_updates(a4)
 	move.l SG2ObjectCore_world_x(a0),SG2ObjectCore_world_x(a4)
 	move.l SG2ObjectCore_world_y(a0),SG2ObjectCore_world_y(a4)
 	move.l SG2ObjectCore_world_z(a0),SG2ObjectCore_world_z(a4)
-	move.w SG2WorldObject_rotation_0(a0),$0010(a4)
+	move.w SG2WorldObject_rotation_0(a0),SG2WorldObject_rotation_0(a4)
 	move.w SG2WorldObject_rotation_1(a0),d7
 	tst.w $0028(a0)
 	bmi.b abs_0_00036FD2
@@ -47380,17 +47387,17 @@ abs_0_00036FD2:
 	subi.w #1280,d7
 abs_0_00036FD6:
 	andi.w #4095,d7
-	move.w d7,$0012(a4)
-	move.w SG2WorldObject_rotation_2(a0),$0014(a4)
+	move.w d7,SG2WorldObject_rotation_1(a4)
+	move.w SG2WorldObject_rotation_2(a0),SG2WorldObject_rotation_2(a4)
 	move.w #$FE0C,d3
 	move.w d3,$0020(a4)
 	move.w SG2WorldObject_rotation_1(a0),d7
-	move.w $0012(a4),SG2WorldObject_rotation_1(a0)
+	move.w SG2WorldObject_rotation_1(a4),SG2WorldObject_rotation_1(a0)
 	bsr.w abs_0_00037264
 	move.w d7,SG2WorldObject_rotation_1(a0)
-	move.w d4,$002C(a4)
-	move.w d5,$002E(a4)
-	move.w d6,$0030(a4)
+	move.w d4,SG2WorldObject_velocity_x(a4)
+	move.w d5,SG2WorldObject_velocity_y(a4)
+	move.w d6,SG2WorldObject_velocity_z(a4)
 	ext.l d4
 	ext.l d5
 	ext.l d6
@@ -47399,10 +47406,10 @@ abs_0_00036FD6:
 	sub.l d6,SG2ObjectCore_world_z(a4)
 	move.b #$FF,SG2ObjectCore_retirement_phase_or_negative(a4)
 	move.b #$1,SG2ObjectCore_durability_or_negative(a4)
-	clr.b $0003(a4)
-	move.b #$3,$001D(a4)
+	clr.b SG2WorldObject_vertex_variant_selector(a4)
+	move.b #$3,SG2WorldObject_model_scale_shift(a4)
 	move.b #$48,SG2WorldObject_collision_ignored_object_type(a0)
-	move.b #$28,$002A(a4)
+	move.b #$28,SG2WorldObject_collision_ignored_object_type(a4)
 abs_0_0003703E:
 	bra.w abs_0_00039D56
 abs_0_00037042:

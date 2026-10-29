@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
   "kind": "committed_native_rendered_original_export",
-  "canonical_source_commit": "e0f739fa739043727425606099664403ef09b9e3",
-  "publication_base_commit": "e0f739fa739043727425606099664403ef09b9e3",
+  "canonical_source_commit": "754e91243088739be0cad9f3c711b84670e214fc",
+  "publication_base_commit": "754e91243088739be0cad9f3c711b84670e214fc",
   "native_export": "CListingArtifact.source_package_payload(64)",
-  "main_source_sha256": "813eb7a512e3ce1547fb653c7ff876b13da273170e7fc01a0cf89cbcd3b805fb",
+  "main_source_sha256": "2463f8158eceb1d279795931946f15d26b703f0acfea941c876cff4afa6e7a31",
   "asset_count": 57,
   "asset_bytes": 93633,
   "game_assembly_hand_edits": false,
@@ -24,13 +24,13 @@
     "assembler executable",
     "paused Pandora work"
   ],
-  "canonical_source_commit_role": "publication base; reviewed retirement-face contracts in this batch are bound by canonical_fact_sha256 and verification_receipt_id",
-  "canonical_source_subject_revision": "a7bf071366ae0acaf9d1f2020f6460c16122e0d3c69f6bfd01284ab95f94e4a0",
+  "canonical_source_commit_role": "publication base; reviewed projectile-producer contracts in this batch are bound by canonical_fact_sha256 and verification_receipt_id",
+  "canonical_source_subject_revision": "7c9b3bc55081a368e9f18fedc9d6beeba97d89932c4ee8e907328e35c16d7ccf",
   "canonical_fact_sha256": {
     "source_binary.json": "42d4a5758b3e8236af7f912aee85e9ee5323bcd0961faa338c4f864080a0a7d9",
     "target_metadata.json": "e7540b68c118c56aba8815b6722eefa067517cc865fe9841d6c01ce96551389c",
-    "manual_actions.jsonl": "ca29e77a00a1a96a38aac09b5d41894d758544b8124583febd95dc4c4a93473d",
-    "decision_journal.jsonl": "b11bca2142581b68e93aca586db662b0ed2d404c100c1dd6a31d5dfd85379172"
+    "manual_actions.jsonl": "8d75edc6346b28cc58a54072463ca1e55e13cc673e6375ff9a4e6abfcd48c9fb",
+    "decision_journal.jsonl": "f40543db60e08068a29ae7507bb3ff63200b60992eca088c3f2fb1b7c77a1996"
   },
   "headers": "14 unmodified required include files collected by source_package.collect_package_includes from ext/amiga_includes/ndk_2.0/include; header notices retained",
   "decoded_protection_view": {
@@ -46,5 +46,5 @@
     },
     "runtime_scope": "Seven CPU write-site windows match this reversible view; no whole runtime-view identity or parent plaintext promotion."
   },
-  "verification_receipt_id": "2a1914558b3781c884500f32e69613fd6a2ec8660e74e91dbb27f4f1e91458c9"
+  "verification_receipt_id": "54ceff888a4d74225b65acdf557b36cfcd9effe3787c001579acc0b2c699b3a6"
 }
