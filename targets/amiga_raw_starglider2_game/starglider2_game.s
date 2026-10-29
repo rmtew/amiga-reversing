@@ -12036,7 +12036,7 @@ abs_0_0000A004:
 	bsr.w advance_shared_random_state
 	andi.w #7,d0
 	move.b $0(a1,d0.w),d0
-    ; KNOWN: type A2=Target code-entry register seed:SG2WorldObject
+    ; KNOWN: type A2=Target code-entry register seed:SG2HorizontalMotionView
 	move.w d0,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
 	move.b #$5,SG2TargetingObject_collision_ignored_object_type(a2)
 	move.b d0,SG2TargetingObject_collision_ignored_object_type(a0)
@@ -12047,7 +12047,7 @@ abs_0_0000A004:
 	move.b $0(a1,d0.w),SG2ObjectCore_durability_or_negative(a2)
 	add.w d0,d0
 	lea.l object_default_motion_words.l,a1
-	move.w $0(a1,d0.w),$0020(a2)
+	move.w $0(a1,d0.w),SG2HorizontalMotionView_horizontal_motion_scale(a2)
 	move.w #$3FE,$0024(a2)
 	clr.w $0026(a2)
 	move.l SG2ObjectCore_world_x(a0),SG2ObjectCore_world_x(a2)
@@ -12204,7 +12204,7 @@ abs_0_0000A2CE:
 	andi.w #3,d0
 	clr.w d3
 	move.b $0(a1,d0.w),d3
-    ; KNOWN: type A2=Target code-entry register seed:SG2WorldObject
+    ; KNOWN: type A2=Target code-entry register seed:SG2HorizontalMotionView
 	move.w d3,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
 	move.b #$2E,SG2TargetingObject_collision_ignored_object_type(a2)
 	move.b d3,SG2TargetingObject_collision_ignored_object_type(a0)
@@ -12227,7 +12227,7 @@ abs_0_0000A2CE:
 	move.w (a2),d0	; operand 1: SG2ObjectCore_object_type at (a2)
 	add.w d0,d0
 	move.w $0(a1,d0.w),d0
-	move.w d0,$0020(a2)
+	move.w d0,SG2HorizontalMotionView_horizontal_motion_scale(a2)
 	move.b #$6,SG2ObjectCore_durability_or_negative(a2)
 	move.b #$1,$002B(a2)
 	move.l a0,SG2WorldObject_linked_record_or_sentinel(a2)
@@ -12489,7 +12489,7 @@ integrate_distant_actor_and_tick_behavior_counter:
 	subq.w #1,SG2ScheduledActor_behavior_update_counter(a0)
 	move.w SG2ScheduledActor_behavior_update_counter(a0),d0
 	andi.b #63,d0
-	beq.w abs_0_0000AC2C
+	beq.w blend_a0_heading_toward_player_and_build_horizontal_motion
 	bra.w abs_0_0000839C
 abs_0_0000A70E:
 	move.w #$FFFB,SG2WorldObject_velocity_y(a0)
@@ -12549,7 +12549,7 @@ update_distant_saucer_motion_and_heading:
 	and.l d3,SG2ObjectCore_world_z(a0)
 	bsr.w heading_from_world_xz_to_player
 	addi.w #2048,d1
-	bra.w abs_0_0000AC64
+	bra.w build_a0_horizontal_motion_from_d1_heading
 	dc.b $13,$FC,$00,$48,$00,$00,$E1,$03,$10,$28,$00,$1F,$B0,$28,$00,$1C
 	dc.b $67,$00,$DB,$98,$4A,$68,$00,$2E,$67,$00,$00,$5E,$30,$28,$00,$28
 	dc.b $D1,$68,$00,$12,$B0,$7C,$00,$F0,$67,$00,$00,$0A,$58,$68,$00,$28
@@ -12606,7 +12606,7 @@ abs_0_0000A8F2:
 	bsr.w abs_0_0000E9B4
 	andi.w #7,d0
 	move.b $0(a1,d0.w),d0
-    ; KNOWN: type A2=Target code-entry register seed:SG2WorldObject
+    ; KNOWN: type A2=Target code-entry register seed:SG2HorizontalMotionView
 	move.w d0,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
 	move.b #$5,SG2TargetingObject_collision_ignored_object_type(a2)
 	move.b d0,SG2TargetingObject_collision_ignored_object_type(a0)
@@ -12617,7 +12617,7 @@ abs_0_0000A8F2:
 	move.b $0(a1,d0.w),SG2ObjectCore_durability_or_negative(a2)
 	add.w d0,d0
 	lea.l object_default_motion_words.l,a1
-	move.w $0(a1,d0.w),$0020(a2)
+	move.w $0(a1,d0.w),SG2HorizontalMotionView_horizontal_motion_scale(a2)
 	move.w #$3FE,$0024(a2)
 	clr.w $0026(a2)
 	move.l SG2ObjectCore_world_x(a0),SG2ObjectCore_world_x(a2)
@@ -12685,7 +12685,7 @@ abs_0_0000AA3A:
 	andi.w #3,d0
 	clr.w d3
 	move.b $0(a1,d0.w),d3
-    ; KNOWN: type A2=Target code-entry register seed:SG2WorldObject
+    ; KNOWN: type A2=Target code-entry register seed:SG2HorizontalMotionView
 	move.w d3,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
 	move.b #$2E,SG2TargetingObject_collision_ignored_object_type(a2)
 	move.b d3,SG2TargetingObject_collision_ignored_object_type(a0)
@@ -12709,7 +12709,7 @@ abs_0_0000AA3A:
 	move.w (a2),d0	; operand 1: SG2ObjectCore_object_type at (a2)
 	add.w d0,d0
 	move.w $0(a1,d0.w),d0
-	move.w d0,$0020(a2)
+	move.w d0,SG2HorizontalMotionView_horizontal_motion_scale(a2)
 	move.b #$6,SG2ObjectCore_durability_or_negative(a2)
 	move.b #$1,$002B(a2)
 	move.l a0,SG2WorldObject_linked_record_or_sentinel(a2)
@@ -12793,7 +12793,8 @@ abs_0_0000ABD2:
 	lea.l abs_0_0000B41C.l,a1
 	bsr.w enqueue_unique_message_pointer
 	rts
-abs_0_0000AC2C:
+    ; KNOWN: type A0=Target code-entry register seed:SG2HorizontalMotionView
+blend_a0_heading_toward_player_and_build_horizontal_motion:
 	move.b #$37,diagnostic_step_byte.l
 	bsr.w heading_from_world_xz_to_player
 	andi.w #4095,d1
@@ -12806,21 +12807,22 @@ abs_0_0000AC2C:
 	add.w d1,SG2WorldObject_rotation_1(a0)
 	move.b #$39,diagnostic_step_byte.l
 	move.w SG2WorldObject_rotation_1(a0),d1
-abs_0_0000AC64:
+    ; KNOWN: type A0=Target code-entry register seed:SG2HorizontalMotionView
+build_a0_horizontal_motion_from_d1_heading:
 	andi.w #4095,d1
 	add.w d1,d1
 	movea.l sine_lookup_pointer(a6),a1
 	move.w $0(a1,d1.w),trig_sine_scratch_1(a6)
 	movea.l cosine_lookup_pointer(a6),a1
 	move.w $0(a1,d1.w),trig_cosine_scratch_1(a6)
-	move.w $0020(a0),d4
+	move.w SG2HorizontalMotionView_horizontal_motion_scale(a0),d4
 	muls.w trig_sine_scratch_1(a6),d4
 	asl.l #1,d4
 	swap.w d4
 	neg.w d4
 	move.w d4,SG2WorldObject_velocity_x(a0)
 	clr.w SG2WorldObject_velocity_y(a0)
-	move.w $0020(a0),d4
+	move.w SG2HorizontalMotionView_horizontal_motion_scale(a0),d4
 	muls.w trig_cosine_scratch_1(a6),d4
 	asl.l #1,d4
 	swap.w d4

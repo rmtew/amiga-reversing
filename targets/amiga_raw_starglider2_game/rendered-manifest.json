@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "source_commit": "0a9bd22432a361fd68833e1eea181d7ba42cae70",
+  "source_commit": "624b12e04f0a34d84a2ebe59fd319afd5a3da904",
   "source_assembly": "starglider2_game.s",
   "assets": [
     {
@@ -878,13 +878,13 @@
     },
     {
       "path": "rendered-provenance.json",
-      "bytes": 3011,
-      "sha256": "7c6f37c569aa473f8acb1d7b4887b8f740d5fae0a791bb88c4ab3048381d422c"
+      "bytes": 3004,
+      "sha256": "d6e4c85291b8b6c44557a15ac7660405577755d6f00ba494ceeabae1202f3357"
     },
     {
       "path": "starglider2_game.s",
-      "bytes": 1994605,
-      "sha256": "7959ef32a6785b0a0f4692d72411894cab1a6e0a5d4a297ca34b970d1d109f27"
+      "bytes": 1995191,
+      "sha256": "5586bbac765fcd13377b3235bbc54e0e34ceaf9d71f14dcb5ca2a40e3c5bb228"
     },
     {
       "path": "tools/starglider2_protection.py",
@@ -892,6 +892,6 @@
       "sha256": "81d3f66d36dbfbd5c77238b20c28e8b9abaa329777eb91f64669bbbf13703582"
     }
   ],
-  "source_commit_role": "publication base; reviewed tractor marker and projector producer contracts are bound by verification_receipt_id",
-  "source_subject_revision": "876d65f56af35bc13dc4077d3d93d683e6bfc72ef6f4df027724fb5ec4899567"
+  "source_commit_role": "publication base; reviewed shared planar-motion interface contracts are bound by verification_receipt_id",
+  "source_subject_revision": "e42f4a96c00abd1266d99f741db0004c2f57c7fc1ad81ecc4f0e6c00881254e3"
 }
