@@ -19,7 +19,7 @@ to their recorded closeout revision. See the current
 An on-demand systematic gap inventory (`amiga_reversing/tools/source_gap_inventory.py`)
 joins native identities/accesses with canonical layouts and actual rendered
 boundaries. It records 67 suffix signals (including numeric adjacent variants),
-21 lookup contracts, 523 remaining interior references, 31 generic app fields
+21 lookup contracts, 462 remaining interior references, 31 generic app fields
 and 207 unresolved record accesses. These are different denominators. Five
 suffixes name routines and one names text; neither is a pointer defect.
 Current restored object contracts connect original update/initializer directories,
@@ -96,13 +96,22 @@ remain supported. 62 related Python checks and all 832 native cases pass. One SG
 regeneration retained all five existing mask/compare records, unchanged counts and
 identical full-inline/INCBIN package sources. Prior exact builds therefore remain
 applicable; no extra assembler/runtime run or observation dump was needed.
-A follow-on masked pointer-directory fixture still has no pointee propagation:
-ordinary pointer-read transfer handles fixed input EAs, while closed indexed-field
-proof is consumed at final access recording. Next isolate a shared indexed-input
-EA/field-type projection using existing converged low-WORD facts; do not reinterpret
-legacy guard-local bounds as byte offsets, add a parallel value engine or infer
-immutable targets for mutable directories. Pure signed compare/retry constraints
-remain a separate unimplemented precision case. Independent distant-update callback contracts
+Exact indexed pointer-field loads now reuse the closed-index field resolver and
+retain the actual base-slot origin through existing transfers and call invalidation.
+Constant Dn/An indexes and displaced record fields are supported; bounds, complete
+LONG fields and exact storage coordinates are required. The focused suite has
+112 passes and three explicit expected failures; all 832 native cases pass.
+SGII gains **zero** accesses from this subset, and both generated source forms are
+identical, so its existing exact/standalone receipts remain applicable. This is a
+reproduced general precision repair, not additional game reconstruction.
+
+The three masked-index failures isolate a staging boundary: closed scalar sets are
+computed by the independent hardware/index solve after typed propagation. Its final
+access recorder can name the pointer field but cannot supply the earlier loaded
+pointee. The next experiment needs a sparse handoff of converged index inputs and
+an honest multi-cell dependency origin; choosing one cache cell or raising a value
+cap is invalid. Pure signed compare/retry constraints remain separate.
+Independent distant-update callback contracts
 can progress without that extension. All37 sprite/name/audio/
 text-reference gaps are indexed accesses. A four-entry fixture resolves a constant
 index but remains `indexed_dynamic` after signed0..3 guards; its unguarded negative

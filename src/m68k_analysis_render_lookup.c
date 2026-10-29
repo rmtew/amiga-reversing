@@ -4393,12 +4393,50 @@ static uint16_t lookup_policy_nested_struct_id_for_field(const M68kAnalysisPolic
   }
 }
 
+static int typed_resolve_word_index_field(const M68kRenderLookup *lookup,
+    const M68kRenderTypedState *state, const M68kRenderPlatformState *platform_state,
+    const M68kInstructionIR *instruction, uint8_t operand_index, uint8_t base_reg,
+    uint16_t struct_id, uint16_t struct_size, int32_t displacement, int32_t base_cursor,
+    M68kWordIndexAccessIR *out_evidence, M68kRenderResolvedStructField *out_field, int32_t *out_array_addend);
+
 static uint16_t typed_pointer_struct_id_for_field_read(const M68kRenderLookup *lookup,
-    const M68kRenderTypedState *state, const M68kOperandIR *operand) {
+    const M68kRenderTypedState *state, const M68kRenderPlatformState *platform_state,
+    const M68kInstructionIR *instruction, uint8_t operand_index, M68kRenderTypedStorageOrigin *out_origin) {
+  const M68kOperandIR *operand = &instruction->operands[operand_index];
   uint8_t base_reg = 0U;
   int16_t displacement = 0;
   int64_t effective_displacement;
   uint16_t struct_id = AMIGA_OS_STRUCT_ID_NONE;
+  if (lookup != NULL && state != NULL && operand->kind == M68K_ASM_OPERAND_EA &&
+      operand->value.ea_mode == 6U && operand->value.ea_reg < 8U) {
+    const M68kRenderTypedRegValue *base = &state->addr_regs[operand->value.ea_reg];
+    M68kWordIndexAccessIR evidence = {0};
+    M68kRenderResolvedStructField field = {0};
+    int32_t array_addend;
+    int32_t encoded = operand->value.full_ext_base_disp_size ?
+      (int32_t)operand->value.full_ext_base_disp_value : (int32_t)operand->value.value;
+    if (!base->known || base->type_conflicted || !typed_resolve_word_index_field(lookup, state,
+        platform_state, instruction, operand_index, operand->value.ea_reg, base->struct_id,
+        lookup_policy_struct_size_by_id(lookup->policy, base->struct_id), encoded, base->byte_cursor,
+        &evidence, &field, &array_addend) || evidence.access_width != 4U || field.size != 4U ||
+        evidence.value_count != 1U)
+      return AMIGA_OS_STRUCT_ID_NONE;
+    for (size_t i = 0U; i < evidence.value_count; ++i) {
+      int64_t actual = (int64_t)base->byte_cursor + encoded + evidence.byte_offsets[i];
+      if (actual % lookup_policy_struct_size_by_id(lookup->policy, base->struct_id) != field.offset)
+        return AMIGA_OS_STRUCT_ID_NONE;
+    }
+    effective_displacement = (int64_t)base->byte_cursor + encoded + evidence.byte_offsets[0];
+    if (effective_displacement < INT16_MIN || effective_displacement > INT16_MAX)
+      return AMIGA_OS_STRUCT_ID_NONE;
+    struct_id = lookup_policy_pointer_struct_id_for_field(lookup->policy, base->struct_id, field.offset);
+    if (struct_id != AMIGA_OS_STRUCT_ID_NONE && out_origin) {
+      out_origin->kind = M68K_RENDER_TYPED_ORIGIN_BASE_SLOT;
+      out_origin->base_reg = operand->value.ea_reg;
+      out_origin->displacement = (int32_t)effective_displacement;
+    }
+    return struct_id;
+  }
   if (lookup == NULL || state == NULL || operand == NULL ||
       !operand_is_address_memory_local(operand, &base_reg, &displacement) || base_reg >= 8U ||
       !state->addr_regs[base_reg].known) {
@@ -4409,15 +4447,22 @@ static uint16_t typed_pointer_struct_id_for_field_read(const M68kRenderLookup *l
   effective_displacement = (int64_t)state->addr_regs[base_reg].byte_cursor + displacement;
   if (effective_displacement < INT16_MIN || effective_displacement > INT16_MAX)
     return AMIGA_OS_STRUCT_ID_NONE;
-  return lookup_policy_pointer_struct_id_for_field(lookup->policy, struct_id, (int16_t)effective_displacement);
+  struct_id = lookup_policy_pointer_struct_id_for_field(lookup->policy, struct_id, (int16_t)effective_displacement);
+  if (struct_id != AMIGA_OS_STRUCT_ID_NONE && out_origin) {
+    out_origin->kind = M68K_RENDER_TYPED_ORIGIN_BASE_SLOT;
+    out_origin->base_reg = base_reg;
+    out_origin->displacement = (int32_t)effective_displacement;
+  }
+  return struct_id;
 }
 
 static int typed_stored_value_from_field_pointer_read(M68kRenderTypedStoredValue *value,
-    const M68kRenderLookup *lookup, const M68kRenderTypedState *state, const M68kOperandIR *operand,
-    size_t section_index, uint32_t offset) {
+    const M68kRenderLookup *lookup, const M68kRenderTypedState *state,
+    const M68kRenderPlatformState *platform_state, const M68kInstructionIR *instruction,
+    uint8_t operand_index, size_t section_index, uint32_t offset, M68kRenderTypedStorageOrigin *out_origin) {
   uint16_t struct_id;
   if (value == NULL) return 0;
-  struct_id = typed_pointer_struct_id_for_field_read(lookup, state, operand);
+  struct_id = typed_pointer_struct_id_for_field_read(lookup, state, platform_state, instruction, operand_index, out_origin);
   if (struct_id == AMIGA_OS_STRUCT_ID_NONE) return 0;
   typed_stored_value_clear(value);
   value->struct_id = struct_id;
@@ -5083,11 +5128,11 @@ static int typed_word_index_values(const M68kRenderTypedState *state,
   return evidence->value_count != 0U;
 }
 
-static int typed_record_word_index_access(M68kRenderLookup *lookup, size_t section_index,
+static int typed_resolve_word_index_field(const M68kRenderLookup *lookup,
     const M68kRenderTypedState *state, const M68kRenderPlatformState *platform_state,
-    const M68kInstructionIR *instruction, uint32_t offset, uint8_t operand_index, uint8_t base_reg,
+    const M68kInstructionIR *instruction, uint8_t operand_index, uint8_t base_reg,
     uint16_t struct_id, uint16_t struct_size, int32_t displacement, int32_t base_cursor,
-    const M68kRenderTypedProvenance *provenance, const M68kAddressValueTableOriginIR *table_origin) {
+    M68kWordIndexAccessIR *out_evidence, M68kRenderResolvedStructField *out_field, int32_t *out_array_addend) {
   const M68kOperandIR *operand = &instruction->operands[operand_index];
   const M68kSimFormMetadata *metadata = m68k_sim_metadata_for_instruction(instruction);
   const M68kRenderTypedRegValue *base = &state->addr_regs[base_reg];
@@ -5137,6 +5182,22 @@ static int typed_record_word_index_access(M68kRenderLookup *lookup, size_t secti
   evidence.encoded_symbol_correction = field_displacement - selected_field.offset;
   int64_t symbol_addend = -(int64_t)base_cursor + evidence.encoded_symbol_correction;
   if (symbol_addend < INT32_MIN || symbol_addend > INT32_MAX) return 0;
+  *out_evidence = evidence;
+  *out_field = selected_field;
+  *out_array_addend = array_addend;
+  return 1;
+}
+
+static int typed_record_word_index_access(M68kRenderLookup *lookup, size_t section_index,
+    const M68kRenderTypedState *state, const M68kRenderPlatformState *platform_state,
+    const M68kInstructionIR *instruction, uint32_t offset, uint8_t operand_index, uint8_t base_reg,
+    uint16_t struct_id, uint16_t struct_size, int32_t displacement, int32_t base_cursor,
+    const M68kRenderTypedProvenance *provenance, const M68kAddressValueTableOriginIR *table_origin) {
+  M68kWordIndexAccessIR evidence = {0};
+  M68kRenderResolvedStructField selected_field = {0};
+  int32_t array_addend;
+  if (!typed_resolve_word_index_field(lookup, state, platform_state, instruction, operand_index, base_reg,
+      struct_id, struct_size, displacement, base_cursor, &evidence, &selected_field, &array_addend)) return 0;
   if (render_lookup_add_typed_access_by_names(lookup, section_index, offset, operand_index, base_reg,
       (int16_t)displacement, struct_size, (int16_t)array_addend, base_cursor,
       0U, &selected_field, provenance, table_origin, &evidence) != 0)
@@ -6220,7 +6281,7 @@ static int render_lookup_record_typed_storage_store(M68kRenderLookup *lookup, M6
     (void)typed_value_for_memory_read_operand(lookup, state, platform_state, section_index, source_operand,
       metadata->operand_access_kinds[source_index], &value, NULL);
     if (!typed_stored_value_has_useful_info(&value) && instruction->size_suffix == 'l')
-      (void)typed_stored_value_from_field_pointer_read(&value, lookup, state, source_operand, section_index, offset);
+      (void)typed_stored_value_from_field_pointer_read(&value, lookup, state, platform_state, instruction, (uint8_t)source_index, section_index, offset, NULL);
   }
   if (instruction->size_suffix != 'l') {
     value.layout_base_id = 0U;
@@ -8207,19 +8268,10 @@ static void typed_state_update_after_instruction(M68kRenderTypedState *state, M6
             section_index, offset)) {
         source_provenance = stored_value.provenance;
       } else if (!typed_stored_value_has_useful_info(&stored_value) &&
-          typed_stored_value_from_field_pointer_read(&stored_value, lookup, state, source_operand,
-            section_index, offset)) {
-        uint8_t base_reg = 0U;
-        int16_t base_displacement = 0;
-        /* A field-pointer read is a cached value derived from its base input.
-         * Preserve that identity so a declared write/escape through the input
-         * can invalidate the derived register without discarding the input. */
-        if (operand_is_address_memory_local(source_operand, &base_reg, &base_displacement) &&
-            base_reg < 8U) {
-          source_origin.kind = M68K_RENDER_TYPED_ORIGIN_BASE_SLOT;
-          source_origin.base_reg = base_reg;
-          source_origin.displacement = state->addr_regs[base_reg].byte_cursor + base_displacement;
-        }
+          typed_stored_value_from_field_pointer_read(&stored_value, lookup, state, platform_state, instruction,
+            (uint8_t)source_index, section_index, offset, &source_origin)) {
+        /* The shared read projection retains the exact source cell so call
+         * writes invalidate it and refinement never chooses an arbitrary cell. */
         source_struct_id = stored_value.struct_id;
         source_provenance = stored_value.provenance;
       }
