@@ -9128,11 +9128,12 @@ abs_0_00007954:
 	movea.l -(a1),a2
 	move.l a1,free_object_stack_cursor(a6)
 	subq.w #1,free_object_count(a6)
+    ; KNOWN: type A2=Target code-entry register seed:SG2WorldObject
 	move.w #$5B,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
 	bsr.w initialize_launched_bomb_header
-	move.w #$1E,$002E(a2)
+	move.w #$1E,SG2WorldObject_velocity_y(a2)
 	addi.l #20,SG2ObjectCore_world_y(a2)
-	move.b #$5B,$002A(a2)
+	move.b #$5B,SG2WorldObject_collision_ignored_object_type(a2)
 	movea.l player_object_reference(a6),a0
 	move.b #$5B,$002A(a0)
 	move.w #$96,weapon_action_cooldown(a6)
@@ -9208,8 +9209,8 @@ abs_0_00007A6A:
 	rts
 initialize_launched_bomb_header:
 	st.b $0022(a2)
-	move.b #$5,$001D(a2)
-	clr.b $0003(a2)
+	move.b #$5,SG2WorldObject_model_scale_shift(a2)
+	clr.b SG2WorldObject_vertex_variant_selector(a2)
 	move.b #$FF,SG2ObjectCore_retirement_phase_or_negative(a2)
 	move.b #$1,SG2ObjectCore_durability_or_negative(a2)
 initialize_player_launched_bomb_motion:
@@ -42807,6 +42808,7 @@ abs_0_00033076:
 	subq.w #1,d0
 	movea.l nearby_objects_cursor(a6),a0
 	movea.l (a0)+,a2
+    ; KNOWN: type A2=Target code-entry register seed:SG2WorldObject
 abs_0_00033084:
 	move.w #$62,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
 	bsr.w abs_0_00039D4A
@@ -43203,6 +43205,7 @@ abs_0_0003359E:
 	add.l d0,SG2ObjectCore_world_z(a4)
 	asr.w #6,d0
 	move.w d0,$0030(a4)
+    ; KNOWN: type A4=Target code-entry register seed:SG2Asteroid
 	move.w #$49,(a4)	; operand 2: SG2ObjectCore_object_type at (a4)
 	move.b #$3,SG2ObjectCore_durability_or_negative(a4)
 	move.b #$FF,SG2ObjectCore_retirement_phase_or_negative(a4)
@@ -43210,11 +43213,11 @@ abs_0_0003359E:
 	move.w d0,d1
 	andi.w #63,d0
 	addi.w #10,d0
-	move.w d0,$0024(a4)
+	move.w d0,SG2Asteroid_rotation_2_spin_step(a4)
 	andi.b #3,d1
 	addq.b #5,d1
-	move.b d1,$001D(a4)
-	move.b #$49,$002A(a4)
+	move.b d1,SG2WorldObject_model_scale_shift(a4)
+	move.b #$49,SG2WorldObject_collision_ignored_object_type(a4)
 	bra.w abs_0_000338EE
 abs_0_0003367A:
 	addq.w #1,abs_0_00039998.l
@@ -43676,14 +43679,15 @@ abs_0_00033C9A:
 	movea.l -(a3),a4
 	move.l a3,free_object_stack_cursor(a6)
 	subq.w #1,free_object_count(a6)
+    ; KNOWN: type A4=Target code-entry register seed:SG2WorldObject
 	move.w #$2F,(a4)	; operand 2: SG2ObjectCore_object_type at (a4)
 	move.l d0,SG2ObjectCore_world_x(a4)
 	move.l d1,SG2ObjectCore_world_z(a4)
 	move.l #$FFFFFFEC,SG2ObjectCore_world_y(a4)
 	move.b #$2,SG2ObjectCore_retirement_phase_or_negative(a4)
-	move.b #$0,$0003(a4)
+	move.b #$0,SG2WorldObject_vertex_variant_selector(a4)
 	move.b #$0,SG2ObjectCore_durability_or_negative(a4)
-	move.b #$5,$001D(a4)
+	move.b #$5,SG2WorldObject_model_scale_shift(a4)
 	cmpi.l #4294966796,player_world_y(a6)
 	bmi.w update_point_field_flag_from_world_y
 	move.l SG2ObjectCore_world_x(a4),d0
@@ -43991,18 +43995,19 @@ abs_0_00034114:
 	beq.w abs_0_00034172
 	movea.l distant_objects_cursor(a6),a0
 	movea.l (a0)+,a4
+    ; KNOWN: type A4=Target code-entry register seed:SG2WorldObject
 abs_0_00034122:
 	move.w #$62,(a4)	; operand 2: SG2ObjectCore_object_type at (a4)
 	move.l #$A71E,SG2ObjectCore_world_x(a4)
 	move.l #$14D12,SG2ObjectCore_world_z(a4)
 	move.l #$FFFFFEA2,SG2ObjectCore_world_y(a4)
-	clr.w $0010(a4)
-	clr.w $0012(a4)
-	clr.w $0014(a4)
+	clr.w SG2WorldObject_rotation_0(a4)
+	clr.w SG2WorldObject_rotation_1(a4)
+	clr.w SG2WorldObject_rotation_2(a4)
 	bset.b #7,SG2ObjectCore_durability_or_negative(a4)
 	move.b #$FF,SG2ObjectCore_retirement_phase_or_negative(a4)
-	clr.b $0003(a4)
-	move.b #$5,$001D(a4)
+	clr.b SG2WorldObject_vertex_variant_selector(a4)
+	move.b #$5,SG2WorldObject_model_scale_shift(a4)
 	bset.b #7,SG2ObjectCore_flags(a4)
 abs_0_00034166:
 	st.b neutron_bomb_ready_flag(a6)
@@ -45978,7 +45983,9 @@ prepare_small_asteroid_fragment_pair:
 	movea.l -(a1),a3
 	move.l a1,free_object_stack_cursor(a6)
 	subq.w #1,free_object_count(a6)
+    ; KNOWN: type A2=Target code-entry register seed:SG2Asteroid
 	move.w #$4A,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
+    ; KNOWN: type A3=Target code-entry register seed:SG2Asteroid
 	move.w #$4A,(a3)	; operand 2: SG2ObjectCore_object_type at (a3)
     ; KNOWN: type A2=Target code-entry register seed:SG2Asteroid; type A3=Target code-entry register seed:SG2Asteroid
 	move.l SG2ObjectCore_world_x(a0),SG2ObjectCore_world_x(a2)
@@ -47175,6 +47182,7 @@ abs_0_00036C54:
 	subq.w #1,free_object_count(a6)
 	move.b #$58,$002A(a4)
 	move.b #$2F,SG2WorldObject_collision_ignored_object_type(a0)
+    ; KNOWN: type A4=Target code-entry register seed:SG2WorldObject
 	move.w #$2F,(a4)	; operand 2: SG2ObjectCore_object_type at (a4)
 	move.l SG2ObjectCore_world_x(a0),SG2ObjectCore_world_x(a4)
 	move.l SG2ObjectCore_world_z(a0),SG2ObjectCore_world_z(a4)
@@ -47184,23 +47192,23 @@ abs_0_00036C54:
 	move.l d0,SG2ObjectCore_world_y(a4)
 	bset.b #7,SG2ObjectCore_durability_or_negative(a4)
 	move.b #$FF,SG2ObjectCore_retirement_phase_or_negative(a4)
-	move.b #$0,$0003(a4)
+	move.b #$0,SG2WorldObject_vertex_variant_selector(a4)
 	bsr.w abs_0_00039D20
 	andi.b #1,d0
 	addi.b #6,d0
-	move.b d0,$001D(a4)
+	move.b d0,SG2WorldObject_model_scale_shift(a4)
 	bsr.w abs_0_00039D20
 	andi.w #14,d0
 	lea.l abs_0_0003992E.l,a1
-	move.w $0(a1,d0.w),$002C(a4)
+	move.w $0(a1,d0.w),SG2WorldObject_velocity_x(a4)
 	bsr.w abs_0_00039D20
 	andi.w #14,d0
 	lea.l abs_0_0003993E.l,a1
-	move.w $0(a1,d0.w),$0030(a4)
-	move.w #$FF9C,$002E(a4)
+	move.w $0(a1,d0.w),SG2WorldObject_velocity_z(a4)
+	move.w #$FF9C,SG2WorldObject_velocity_y(a4)
 	bsr.w abs_0_00039D20
 	andi.w #31,d0
-	sub.w d0,$002E(a4)
+	sub.w d0,SG2WorldObject_velocity_y(a4)
 abs_0_00036D14:
 	move.l #$C8,d2
 	move.l player_world_x(a6),d0

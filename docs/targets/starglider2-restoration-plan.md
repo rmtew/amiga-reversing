@@ -20,9 +20,21 @@ An on-demand systematic gap inventory (`amiga_reversing/tools/source_gap_invento
 joins native identities/accesses with canonical layouts and actual rendered
 boundaries. It records 67 suffix signals (including numeric adjacent variants),
 21 lookup contracts, 523 remaining interior references, 32 generic app fields
-and 438 unresolved record accesses. These are different denominators. Five
+and 418 unresolved record accesses. These are different denominators. Five
 suffixes name routines and one names text; neither is a pointer defect.
-Latest: capsule, tunnel-sentinel, flat-diamond and pilot-couch lifecycle views
+Latest: eight more producers now reuse the established leaf-updater views for
+bouncing/neutron bombs, asteroids and internal type47. Original CFG forwarding
+paths preserve A0; exact generated instruction flow and shared register-write
+evidence establish sequential prefixes without guessing from missing edges.
+Diagnostic/CCR effects are retained, not declared ABI-equivalent. This closes
+the inventoried 19 complete immediate WORD tag stores, not packed/partial or
+register-mediated headers. It adds 20 typed accesses and resolves 20 gaps, refines
+32 contexts, loses no accesses, changes no field meaning and exposes no gaps:
+**3495 app /1928 typed /418 unresolved**. C/vasm and the clean staged
+standalone export match all 412736 original bytes; 57 assets and 14 headers
+remain unchanged. No new schema or model identity was invented.
+
+Preceding: capsule, tunnel-sentinel, flat-diamond and pilot-couch lifecycle views
 now connect their unique original callbacks to literal-tag producers. Thirteen
 facts add one capsule schema, eight producer/updater views and four routine
 names; the sentinel reuses ScheduledActor rather than duplicating its counter.
@@ -88,7 +100,7 @@ starts. Their original producer really emits clipped horizon coordinates; a
 phase/width alias must remain distinct from the keyboard contract. Investigate
 existing canonical alias/view support before adding or renaming ownership. The
 third partial candidate is the already-documented LONG clear spanning a pending
-score WORD and following storage; that clear alone cannot name the extra bytes. Discovery leads and the 438 unresolved
+score WORD and following storage; that clear alone cannot name the extra bytes. Discovery leads and the 418 unresolved
 typed accesses remain different populations.
 A bounded alias reproducer found a shared renderer defect: an inferred
 same-origin conflict silently dropped the canonical app declaration while
@@ -100,9 +112,9 @@ SGII package source is byte-identical under this fix; existing exact/standalone
 qualification remains applicable. No target alias facts were added: ordinary
 width coverage does not establish phase attribution. The horizon/keyboard view
 still needs an explicit context/view contract; treating transfer width as a
-phase test would be unsound. That first directory-to-producer batch is completed above. The four following lifecycle families are now reviewed above. Next: trace the
-remaining bouncing-bomb, neutron-bomb, asteroid and internal type47 callback
-trampolines and their literal-tag producers. Missing established contracts
+phase test would be unsound. That first directory-to-producer batch is completed above. The four following lifecycle families are now reviewed above. The forwarding/producer correlation is completed above. Next: separate the
+remaining active field reads from class-agnostic clears, and investigate the
+complementary logical-layout/type-view contract needed for shared scratch. Missing established contracts
 require actual body/field analysis; a tag or name alone is not a layout proof.
 
 A synthetic absolute-A6 case has no retained concrete address at its read; it
