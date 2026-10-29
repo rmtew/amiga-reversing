@@ -7,8 +7,8 @@ that further analysis is exhausted. Current source remains byte exact: all
 with all 106034 accepted code bytes retained. No generated assembly was edited
 by hand and no interim archive was produced.
 
-The current ownership union leaves 12355 bytes in
-271 intervals unclassified. This is classification accounting,
+The current ownership union leaves 12280 bytes in
+272 intervals unclassified. This is classification accounting,
 not a semantic completion percentage. Earlier interval/site counts below belong
 to their recorded closeout revision. See the current
 [native memory-span receipt](../../runtime/observations/starglider2-app-memory-spans.json),
@@ -31,6 +31,20 @@ Original mixed constructor families use only their established common prefix.
 The energy-tower initializer's World chain view stays distinct from its updater
 view. Packed-header normalization, signed comparisons, wrap, PRNG transforms,
 nullable/sentinel links and unknown constructor parameters remain unchanged.
+
+The accepted port-interrupt entry now names its 16-LONG register snapshot,
+separate captured PC LONG and status WORD, and the existing handler. Its normal
+return reloads only D0-D7/A0-A6 and uses the original RTE stack; captured A7/PC/SR
+are not claimed as independently restored. Three raster-service fields identify
+the reload countdown, sampling-window threshold and inhibiting BYTE. Their
+original 50 seed/60 probe store and countdown ordering are unchanged. These
+75 newly classified bytes leave **12280 bytes /272 intervals** unknown; the
+extra interval comes from retaining neighbouring unexplained bytes separately.
+Native totals and accepted code remain unchanged; C/vasm and standalone output
+are exact. Adjacent raw monitor and display-toggle candidates retain their
+missing-incoming-path obligation: a raw JMP to the toggle body is not evidence
+that its wrapper is reached. Next inspect native incoming edges and the original
+wrapper/phase entry conditions before any code promotion; no deadness claim.
 
 The shared heading/text batch restores eight connected entities across original
 and alternate renderers: four negated-heading/quantized-sample WORD caches,

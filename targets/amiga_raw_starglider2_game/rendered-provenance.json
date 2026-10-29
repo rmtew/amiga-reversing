@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
   "kind": "committed_native_rendered_original_export",
-  "canonical_source_commit": "edc2af410a57cc0b0dfc37fe61ca581e21718744",
-  "publication_base_commit": "edc2af410a57cc0b0dfc37fe61ca581e21718744",
+  "canonical_source_commit": "b154b8630e137b99a0e138ac0c07178a4f4e18d5",
+  "publication_base_commit": "b154b8630e137b99a0e138ac0c07178a4f4e18d5",
   "native_export": "CListingArtifact.source_package_payload(64)",
-  "main_source_sha256": "b6211118ed769eae82df16bab29fcf33457eb83ade41e20a35b74d498fff67a6",
+  "main_source_sha256": "f7efb34a6dde37e2f3c1a1d41b1412ebee0281be734e81eeb188c6d643494671",
   "asset_count": 57,
   "asset_bytes": 93633,
   "game_assembly_hand_edits": false,
@@ -24,13 +24,13 @@
     "assembler executable",
     "paused Pandora work"
   ],
-  "canonical_source_commit_role": "publication base; reviewed original/alternate heading caches, byte-stride text deletion, score scratch and bounded heading prefix consumers are bound by canonical facts and verification",
-  "canonical_source_subject_revision": "7e74fe49173b62831b3de2a605fa5a351caf68d15f5722d591309829f8ce2a0a",
+  "canonical_source_commit_role": "publication base; reviewed port-interrupt snapshot producers, normal return and raster-service window consumers are bound by canonical facts and verification",
+  "canonical_source_subject_revision": "ce9c4b1ea82aadbae2237cb543c730798bc384a77a7402d9fa34bcba26445712",
   "canonical_fact_sha256": {
     "source_binary.json": "42d4a5758b3e8236af7f912aee85e9ee5323bcd0961faa338c4f864080a0a7d9",
     "target_metadata.json": "e7540b68c118c56aba8815b6722eefa067517cc865fe9841d6c01ce96551389c",
-    "manual_actions.jsonl": "389c8ddcd9a9d5fcb9e253beec87964bfb63aa11679cb940e59d95846df5a12d",
-    "decision_journal.jsonl": "0325ae0b43ff4eb4b1fbc2f02d29ebea8615bc6b1a15d53a48d900d90e3e8475"
+    "manual_actions.jsonl": "a64e7108216e4d4760f081133b314302720501c59a8bdbfef786e14eeb67c702",
+    "decision_journal.jsonl": "f98f58d10ce3abc255d26a39437023fdddd7ce39fb5d403c95e94655a6e71248"
   },
   "headers": "14 unmodified required include files collected by source_package.collect_package_includes from ext/amiga_includes/ndk_2.0/include; header notices retained",
   "decoded_protection_view": {
@@ -46,5 +46,5 @@
     },
     "runtime_scope": "Seven CPU write-site windows match this reversible view; no whole runtime-view identity or parent plaintext promotion."
   },
-  "verification_receipt_id": "be69dfaec8e107d373fc4db04690ad6322099ada172390cd86aa561208b2c15e"
+  "verification_receipt_id": "999c93391d4151ff93d186a1b29e8b731155cf19bbe12b62d69f836e777553ba"
 }

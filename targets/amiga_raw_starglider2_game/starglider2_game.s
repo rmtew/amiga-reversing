@@ -14678,12 +14678,13 @@ abs_0_0000C4D6:
 	jmp handle_neutron_bomb_detonation.l
 abs_0_0000C4DC:
 	dc.w $0000
-abs_0_0000C4DE:
+raster_probe_reload_countdown:
 	dc.w $0000
-abs_0_0000C4E0:
-	dc.b $00,$32
-abs_0_0000C4E2:
-	dc.w $0000
+frame_rate_sample_window_tick_limit:
+	dc.w $0032
+raster_probe_countdown_inhibit_flag:
+	dc.b $00
+	dc.b $00
 print_cursor_text:
 	jmp print_planar_text_at_cursor.l
 print_positioned_text:
@@ -14703,8 +14704,8 @@ draw_heading_indicator:
 	dc.b $4E,$F9,$00,$04,$C5,$E0,$4E,$F9,$00,$04,$C5,$E2
     ; Original Amiga raster probe polls VPOS and stores60 at C4E0. NOPs and hardware-dependent timing remain unchanged; not a new timing-equivalence claim.
 probe_amiga_raster_mode:
-	sf.b abs_0_0000C4E2.l
-	move.w #$5,abs_0_0000C4DE.l
+	sf.b raster_probe_countdown_inhibit_flag.l
+	move.w #$5,raster_probe_reload_countdown.l
 abs_0_0000C52E:
 	move.l _custom+vposr.l,d0
 	asr.l #8,d0
@@ -14734,7 +14735,7 @@ abs_0_0000C540:
 	nop
 	nop
 abs_0_0000C574:
-	move.w #$3C,abs_0_0000C4E0.l
+	move.w #$3C,frame_rate_sample_window_tick_limit.l
 	rts
 toggle_amiga_text_display_control:
 	dc.b $30,$39,$00,$00,$C4,$DC,$0A,$40,$01,$02,$33,$C0,$00,$00,$C4,$DC
@@ -14822,7 +14823,7 @@ abs_0_0000C712:
 	bsr.w poll_amiga_mouse_and_joystick_controls
 	bsr.w update_amiga_hud_sprites
 	move.w frame_service_ticks_in_window(a6),d0
-	cmp.w abs_0_0000C4E0.l,d0
+	cmp.w frame_rate_sample_window_tick_limit.l,d0
 	bcs.b abs_0_0000C738
 	subq.w #1,title_idle_rate_windows_remaining(a6)
 	move.w frame_handoffs_in_window(a6),frame_rate_display_sample(a6)
@@ -14895,11 +14896,11 @@ abs_0_0000C808:
 	bpl.b abs_0_0000C814
 	move.l player_world_y_lower_limit(a6),player_world_y(a6)
 abs_0_0000C814:
-	tst.b abs_0_0000C4E2.l
+	tst.b raster_probe_countdown_inhibit_flag.l
 	bne.b abs_0_0000C82C
-	subq.w #1,abs_0_0000C4DE.l
+	subq.w #1,raster_probe_reload_countdown.l
 	bpl.b abs_0_0000C82C
-	move.w #$5,abs_0_0000C4DE.l
+	move.w #$5,raster_probe_reload_countdown.l
 abs_0_0000C82C:
 	tst.b modal_command_input_flag(a6)
 	bne.b abs_0_0000C876
@@ -14949,11 +14950,11 @@ abs_0_0000C8A6:
 	rte
 abs_0_0000C8C2:
 	rte
-abs_0_0000C8C4:
+handle_amiga_port_interrupt_with_snapshot:
 	move.l #abs_0_0000C8C2,m68k_vector_level_2_interrupt_autovector.l
-	movem.l d0-d7/a0-a7,abs_0_0000E0BC.l
-	move.l $0002(a7),abs_0_0000E0FC.l
-	move.w (a7),abs_0_0000E100.l
+	movem.l d0-d7/a0-a7,port_interrupt_entry_register_snapshot.l
+	move.l $0002(a7),port_interrupt_captured_stacked_pc.l
+	move.w (a7),port_interrupt_captured_stacked_status.l
 	lea.l _custom.l,a5
 	movea.l game_workspace_base.l,a6
 	move.w intreqr(a5),d0	; interrupt request state
@@ -15011,8 +15012,8 @@ abs_0_0000C972:
 abs_0_0000C99A:
 	move.w #INTF_PORTS,intreq(a5)
 abs_0_0000C9A0:
-	movem.l abs_0_0000E0BC.l,d0-d7/a0-a6
-	move.l #abs_0_0000C8C4,m68k_vector_level_2_interrupt_autovector.l
+	movem.l port_interrupt_entry_register_snapshot.l,d0-d7/a0-a6
+	move.l #handle_amiga_port_interrupt_with_snapshot,m68k_vector_level_2_interrupt_autovector.l
 	rte
 abs_0_0000C9B4:
 	bra.w abs_0_0000C99A
@@ -15189,7 +15190,7 @@ abs_0_0000CDE4:
 	nop
 	st.b music_cache_flags.l
 	move.l #abs_0_0000CBE0,m68k_vector_level_1_interrupt_autovector.w
-	move.l #abs_0_0000C8C4,m68k_vector_level_2_interrupt_autovector.w
+	move.l #handle_amiga_port_interrupt_with_snapshot,m68k_vector_level_2_interrupt_autovector.w
 	move.l #amiga_vertical_blank_game_service,m68k_vector_level_3_interrupt_autovector.w
 	move.l #service_audio_ring_interrupt,m68k_vector_level_4_interrupt_autovector.w
 	move.l #abs_0_0000CBC4,m68k_vector_level_5_interrupt_autovector.w
@@ -16476,11 +16477,11 @@ pending_message_pointer_slots:
 	dcb.l $A,$00000000
 	dcb.b $A,$00
 	dc.b $FF,$FF,$00,$00,$00,$00
-abs_0_0000E0BC:
-	dcb.b $40,$00
-abs_0_0000E0FC:
-	dc.b $00,$00,$00,$00
-abs_0_0000E100:
+port_interrupt_entry_register_snapshot:
+	dcb.l $10,$00000000
+port_interrupt_captured_stacked_pc:
+	dc.l $00000000
+port_interrupt_captured_stacked_status:
 	dc.w $0000
     ; Combined exception diagnostic WORD: high BYTE stage, low BYTE step. Normal paths write bytes; exception reports read the complete WORD.
 diagnostic_stage_step_word:
