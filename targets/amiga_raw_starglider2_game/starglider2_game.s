@@ -38506,41 +38506,41 @@ abs_0_0002F9EE:
 	dcb.b $8,$00
     ; 32 original pointers, 14 distinct streams with aliases. Pointee contract is only the first 2-byte tag; empty streams do not contain a full placement record.
 world_placement_pointers:
-	dc.l world_surface_00_placements	; first_tag
-	dc.l world_surface_01_placements	; first_tag
-	dc.l world_surface_02_placements	; first_tag
-	dc.l world_surface_03_placements	; first_tag
-	dc.l world_surface_04_placements_end_tag	; first_tag
-	dc.l world_surface_05_placements	; first_tag
-	dc.l world_surface_06_placements	; first_tag
-	dc.l world_surface_07_placements	; first_tag
-	dc.l world_surface_08_placements	; first_tag
-	dc.l world_surface_08_placements	; first_tag
-	dc.l world_surface_08_placements	; first_tag
-	dc.l world_surface_08_placements	; first_tag
-	dc.l world_surface_08_placements	; first_tag
-	dc.l world_surface_08_placements	; first_tag
-	dc.l world_surface_08_placements	; first_tag
-	dc.l world_surface_15_placements	; first_tag
-	dc.l world_interior_16_placements_end_tag	; first_tag
-	dc.l world_interior_16_placements_end_tag	; first_tag
-	dc.l world_interior_16_placements_end_tag	; first_tag
-	dc.l world_interior_19_placements	; first_tag
-	dc.l world_interior_16_placements_end_tag	; first_tag
-	dc.l world_interior_16_placements_end_tag	; first_tag
-	dc.l world_interior_16_placements_end_tag	; first_tag
-	dc.l world_interior_23_placements	; first_tag
-	dc.l world_interior_24_placements	; first_tag
-	dc.l world_interior_24_placements	; first_tag
-	dc.l world_interior_24_placements	; first_tag
-	dc.l world_interior_24_placements	; first_tag
-	dc.l world_interior_24_placements	; first_tag
-	dc.l world_interior_24_placements	; first_tag
-	dc.l world_interior_24_placements	; first_tag
-	dc.l world_interior_16_placements_end_tag	; first_tag
-world_interior_16_placements_end_tag:
+	dc.l space_world_placements	; first_tag
+	dc.l dante_surface_placements	; first_tag
+	dc.l vista_surface_placements	; first_tag
+	dc.l apogee_surface_placements	; first_tag
+	dc.l millway_surface_placements_end_tag	; first_tag
+	dc.l aldos_surface_placements	; first_tag
+	dc.l enos_surface_placements	; first_tag
+	dc.l castron_surface_placements	; first_tag
+	dc.l shared_moon_surface_placements	; first_tag
+	dc.l shared_moon_surface_placements	; first_tag
+	dc.l shared_moon_surface_placements	; first_tag
+	dc.l shared_moon_surface_placements	; first_tag
+	dc.l shared_moon_surface_placements	; first_tag
+	dc.l shared_moon_surface_placements	; first_tag
+	dc.l shared_moon_surface_placements	; first_tag
+	dc.l q_beta_surface_placements	; first_tag
+	dc.l empty_interior_placements_end_tag	; first_tag
+	dc.l empty_interior_placements_end_tag	; first_tag
+	dc.l empty_interior_placements_end_tag	; first_tag
+	dc.l apogee_interior_placements	; first_tag
+	dc.l empty_interior_placements_end_tag	; first_tag
+	dc.l empty_interior_placements_end_tag	; first_tag
+	dc.l empty_interior_placements_end_tag	; first_tag
+	dc.l castron_interior_placements	; first_tag
+	dc.l shared_moon_interior_placements	; first_tag
+	dc.l shared_moon_interior_placements	; first_tag
+	dc.l shared_moon_interior_placements	; first_tag
+	dc.l shared_moon_interior_placements	; first_tag
+	dc.l shared_moon_interior_placements	; first_tag
+	dc.l shared_moon_interior_placements	; first_tag
+	dc.l shared_moon_interior_placements	; first_tag
+	dc.l empty_interior_placements_end_tag	; first_tag
+empty_interior_placements_end_tag:
 	dc.w $0000	; 0 original interior placements, stride 16, plus zero tag; aliases 16,17,18,20,21,22,31
-world_surface_00_placements:
+space_world_placements:
 	dc.w $0080	; type_and_map_flags
 	dc.l $01312D00	; world_x
 	dc.l $01312D00	; world_z
@@ -38616,9 +38616,9 @@ world_surface_00_placements:
 	dc.w $0025	; type_and_map_flags
 	dc.l $00000000	; world_x
 	dc.l $00000000	; world_z
-world_surface_00_placements_end_tag:
+space_world_placements_end_tag:
 	dc.w $0000	; 25 original surface placements, stride 10, plus zero tag; aliases 0
-world_surface_01_placements:
+dante_surface_placements:
 	dc.w $0091	; type_and_map_flags
 	dc.l $00008000	; world_x
 	dc.l $00008000	; world_z
@@ -38934,9 +38934,9 @@ world_surface_01_placements:
 	dc.w $0013	; type_and_map_flags
 	dc.l $00019640	; world_x
 	dc.l $000003E8	; world_z
-world_surface_01_placements_end_tag:
+dante_surface_placements_end_tag:
 	dc.w $0000	; 105 original surface placements, stride 10, plus zero tag; aliases 1
-world_surface_02_placements:
+vista_surface_placements:
 	dc.w $0091	; type_and_map_flags
 	dc.l $00008000	; world_x
 	dc.l $00008000	; world_z
@@ -39402,9 +39402,9 @@ world_surface_02_placements:
 	dc.w $0053	; type_and_map_flags
 	dc.l $00009C40	; world_x
 	dc.l $000007D0	; world_z
-world_surface_02_placements_end_tag:
+vista_surface_placements_end_tag:
 	dc.w $0000	; 155 original surface placements, stride 10, plus zero tag; aliases 2
-world_surface_03_placements:
+apogee_surface_placements:
 	dc.w $0091	; type_and_map_flags
 	dc.l $00008000	; world_x
 	dc.l $00008000	; world_z
@@ -39717,11 +39717,11 @@ world_surface_03_placements:
 	dc.w $0130	; type_and_map_flags
 	dc.l $0000D5EE	; world_x
 	dc.l $000186A0	; world_z
-world_surface_03_placements_end_tag:
+apogee_surface_placements_end_tag:
 	dc.w $0000	; 104 original surface placements, stride 10, plus zero tag; aliases 3
-world_surface_04_placements_end_tag:
+millway_surface_placements_end_tag:
 	dc.w $0000	; 0 original surface placements, stride 10, plus zero tag; aliases 4
-world_surface_05_placements:
+aldos_surface_placements:
 	dc.w $0091	; type_and_map_flags
 	dc.l $00008000	; world_x
 	dc.l $00008000	; world_z
@@ -40121,9 +40121,9 @@ world_surface_05_placements:
 	dc.w $0005	; type_and_map_flags
 	dc.l $0001D4C0	; world_x
 	dc.l $00000000	; world_z
-world_surface_05_placements_end_tag:
+aldos_surface_placements_end_tag:
 	dc.w $0000	; 133 original surface placements, stride 10, plus zero tag; aliases 5
-world_surface_06_placements:
+enos_surface_placements:
 	dc.w $0091	; type_and_map_flags
 	dc.l $00008000	; world_x
 	dc.l $00008000	; world_z
@@ -40457,9 +40457,9 @@ world_surface_06_placements:
 	dc.w $0018	; type_and_map_flags
 	dc.l $000003E8	; world_x
 	dc.l $000003E8	; world_z
-world_surface_06_placements_end_tag:
+enos_surface_placements_end_tag:
 	dc.w $0000	; 111 original surface placements, stride 10, plus zero tag; aliases 6
-world_surface_07_placements:
+castron_surface_placements:
 	dc.w $0091	; type_and_map_flags
 	dc.l $00008000	; world_x
 	dc.l $00008000	; world_z
@@ -40685,9 +40685,9 @@ world_surface_07_placements:
 	dc.w $0030	; type_and_map_flags
 	dc.l $0000BB80	; world_x
 	dc.l $00004E20	; world_z
-world_surface_07_placements_end_tag:
+castron_surface_placements_end_tag:
 	dc.w $0000	; 75 original surface placements, stride 10, plus zero tag; aliases 7
-world_surface_08_placements:
+shared_moon_surface_placements:
 	dc.w $0091	; type_and_map_flags
 	dc.l $00008000	; world_x
 	dc.l $00008000	; world_z
@@ -40988,9 +40988,9 @@ world_surface_08_placements:
 	dc.w $0008	; type_and_map_flags
 	dc.l $00009C40	; world_x
 	dc.l $0000C350	; world_z
-world_surface_08_placements_end_tag:
+shared_moon_surface_placements_end_tag:
 	dc.w $0000	; 100 original surface placements, stride 10, plus zero tag; aliases 8,9,10,11,12,13,14
-world_surface_15_placements:
+q_beta_surface_placements:
 	dc.w $0091	; type_and_map_flags
 	dc.l $00008000	; world_x
 	dc.l $00008000	; world_z
@@ -41261,7 +41261,7 @@ world_surface_15_placements:
 	dc.w $0005	; type_and_map_flags
 	dc.l $0000D2F0	; world_x
 	dc.l $00000000	; world_z
-world_surface_15_placements_end_tag:
+q_beta_surface_placements_end_tag:
 	dc.w $0000	; 90 original surface placements, stride 10, plus zero tag; aliases 15
 tug_placement_parameter_prefix:
 	dc.w $FF88	; velocity_z
@@ -41481,7 +41481,7 @@ tug_placement_parameter_prefix:
 	dc.w $0096	; velocity_x
 	dc.w $0400	; rotation_1
 	dc.w $0000
-world_interior_19_placements:
+apogee_interior_placements:
 	dc.w $0030	; type_and_map_flags
 	dc.l $0000CFB2	; world_x
 	dc.l $00005744	; world_z
@@ -41980,9 +41980,9 @@ world_interior_19_placements:
 	dc.w $0001	; opaque_object_parameter_24
 	dc.w $0000	; opaque_object_parameter_28
 	dc.w $0000	; orientation_or_type_parameter_12
-world_interior_19_placements_end_tag:
+apogee_interior_placements_end_tag:
 	dc.w $0000	; 83 original interior placements, stride 16, plus zero tag; aliases 19
-world_interior_23_placements:
+castron_interior_placements:
 	dc.w $0030	; type_and_map_flags
 	dc.l $0000BB80	; world_x
 	dc.l $00004E20	; world_z
@@ -42367,9 +42367,9 @@ world_interior_23_placements:
 	dc.w $0003	; opaque_object_parameter_24
 	dc.w $0001	; opaque_object_parameter_28
 	dc.w $0800	; orientation_or_type_parameter_12
-world_interior_23_placements_end_tag:
+castron_interior_placements_end_tag:
 	dc.w $0000	; 64 original interior placements, stride 16, plus zero tag; aliases 23
-world_interior_24_placements:
+shared_moon_interior_placements:
 	dc.w $0030	; type_and_map_flags
 	dc.l $0000EA60	; world_x
 	dc.l $00000AF0	; world_z
@@ -42934,7 +42934,7 @@ world_interior_24_placements:
 	dc.w $0003	; opaque_object_parameter_24
 	dc.w $0001	; opaque_object_parameter_28
 	dc.w $0800	; orientation_or_type_parameter_12
-world_interior_24_placements_end_tag:
+shared_moon_interior_placements_end_tag:
 	dc.w $0000	; 94 original interior placements, stride 16, plus zero tag; aliases 24,25,26,27,28,29,30
 	dc.w $0000
 update_world_and_mission_events:

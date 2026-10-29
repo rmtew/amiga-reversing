@@ -32,22 +32,21 @@ The energy-tower initializer's World chain view stays distinct from its updater
 view. Packed-header normalization, signed comparisons, wrap, PRNG transforms,
 nullable/sentinel links and unknown constructor parameters remain unchanged.
 
-Latest launch-state contracts connect the two finite original spawn tables to
-common producer-phase interfaces. All selected types already share a behavior
-update counter. Flying/Saucer readers establish the airborne capsule flag;
-Walking/LandTank/HoverCar readers establish the ground link-release countdown.
-The distant ground body retains its original second X/Z integration. Its loaded
-parent's BYTE 40 is an attached flag, not the child's countdown, so that pointee
-remains untyped. Only the explicit type-9 fallthroughs receive LandTank-specific
-proximity fields. Nine actions recover 12 accesses/12 gaps with no lost access or
-changed old field meaning: **3503 app /2589 typed /207 unresolved**. These are
-common launch-state views, not new model identities or replacements for nominal
-primary roles. BYTE 41 parameters and ground BYTE 43 writes remain unresolved.
+Latest world-data identity recovery joins original body selection and planetfall
+text through their shared index. Fourteen physical placement owners and 26 element
+labels now use established body names, space, shared-moon or empty-interior roles.
+All 32 logical slots, 1139 static placements, physical aliases and 10/16-byte formats
+remain intact. Shared streams are not attributed to one body; the empty interior
+remains only a two-byte terminator. No opaque parameter receives a guessed meaning,
+and static templates do not imply every world is visited. App/typed/gap records
+are exactly unchanged: **3503 app /2589 typed /207 unresolved**.
 
-Preceding batches recovered projectile vector-scale/countdown contracts, shared
-planar-motion interfaces, seven distant-update bodies/15 tags, and tractor/projector
-constructors. Signed arithmetic, partial initialization, opaque references,
-non-model particles and original integration quirks remain unchanged. C/vasm and
+Preceding launch-state contracts recover common behavior counters, airborne capsule
+flags and ground link-release countdowns, with LandTank-specific fields only after
+explicit type guards. Original linked parents remain untyped and distinct from
+child state. Projectile, planar-motion, distant-update and visual-constructor
+contracts preserve nominal actor roles, partial initialization, signed arithmetic,
+opaque references, non-model records and original integration quirks. C/vasm and
 clean staged standalone output match all 412736 bytes; 57 assets, 14 headers and
 106034 accepted code bytes remain unchanged. The ownership union leaves 13624
 bytes/264 intervals unclassified.

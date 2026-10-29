@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "source_commit": "9dd50f00bbfd347c79aada5dc9b0bd424a5a5a55",
+  "source_commit": "c290215f5884eeee74185c563530915f324c2684",
   "source_assembly": "starglider2_game.s",
   "assets": [
     {
@@ -878,13 +878,13 @@
     },
     {
       "path": "rendered-provenance.json",
-      "bytes": 3014,
-      "sha256": "ed00b8e8622c96f7447506757afe7aba6bdc66e833cf5da15c014cb7bb9c5464"
+      "bytes": 3010,
+      "sha256": "220339cea3b5613a22e963686e0fa41df3ea80381b187c5087f412c549d3260f"
     },
     {
       "path": "starglider2_game.s",
-      "bytes": 1996382,
-      "sha256": "90b58caede571f9fce229ecfccb09033c355c06fb6b295f40bf501f231b66f4c"
+      "bytes": 1996332,
+      "sha256": "1a81edcc190f1c3f5d92045fbf69bcf614d4f143bcb1fdadf0405d536fedec32"
     },
     {
       "path": "tools/starglider2_protection.py",
@@ -892,6 +892,6 @@
       "sha256": "81d3f66d36dbfbd5c77238b20c28e8b9abaa329777eb91f64669bbbf13703582"
     }
   ],
-  "source_commit_role": "publication base; reviewed common launch-state and guarded LandTank contracts are bound by verification_receipt_id",
-  "source_subject_revision": "e32f7e6d0b1a5b8c742a90b033c9b85710bf14b4e80241429e53349460f2c79f"
+  "source_commit_role": "publication base; reviewed original world and arrival-text identity links are bound by verification_receipt_id",
+  "source_subject_revision": "08e2db89f2706dac24c93e9a97f06d7120179d83cc2b84d125889350ebbd1b82"
 }
