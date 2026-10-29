@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
   "kind": "committed_native_rendered_original_export",
-  "canonical_source_commit": "d37d25ab72bd2c28fd5bc717e290d1f2c1667e09",
-  "publication_base_commit": "d37d25ab72bd2c28fd5bc717e290d1f2c1667e09",
+  "canonical_source_commit": "edc2af410a57cc0b0dfc37fe61ca581e21718744",
+  "publication_base_commit": "edc2af410a57cc0b0dfc37fe61ca581e21718744",
   "native_export": "CListingArtifact.source_package_payload(64)",
-  "main_source_sha256": "a27232e1d63b6c96d5c7bf0dcf161792edf7e761b599c3b19f16ebde4fc69ebd",
+  "main_source_sha256": "b6211118ed769eae82df16bab29fcf33457eb83ade41e20a35b74d498fff67a6",
   "asset_count": 57,
   "asset_bytes": 93633,
   "game_assembly_hand_edits": false,
@@ -24,13 +24,13 @@
     "assembler executable",
     "paused Pandora work"
   ],
-  "canonical_source_commit_role": "publication base; reviewed encoded-coordinate scratch, face admission and retirement fallback consumers are bound by canonical facts and verification",
-  "canonical_source_subject_revision": "b9dcd98ca1411712de28a8bda308ba46dd4a2229665d887b5534c08d386dc378",
+  "canonical_source_commit_role": "publication base; reviewed original/alternate heading caches, byte-stride text deletion, score scratch and bounded heading prefix consumers are bound by canonical facts and verification",
+  "canonical_source_subject_revision": "7e74fe49173b62831b3de2a605fa5a351caf68d15f5722d591309829f8ce2a0a",
   "canonical_fact_sha256": {
     "source_binary.json": "42d4a5758b3e8236af7f912aee85e9ee5323bcd0961faa338c4f864080a0a7d9",
     "target_metadata.json": "e7540b68c118c56aba8815b6722eefa067517cc865fe9841d6c01ce96551389c",
-    "manual_actions.jsonl": "c4dd8e7c3438ccf2095d3357abe02ab0c6296ae7a1bbb7b76a34c78e2747baa0",
-    "decision_journal.jsonl": "2db2ed8cd44a3dbaf480ab91d406b38bc931314bfd046a5b979ce3ccc07b682a"
+    "manual_actions.jsonl": "389c8ddcd9a9d5fcb9e253beec87964bfb63aa11679cb940e59d95846df5a12d",
+    "decision_journal.jsonl": "0325ae0b43ff4eb4b1fbc2f02d29ebea8615bc6b1a15d53a48d900d90e3e8475"
   },
   "headers": "14 unmodified required include files collected by source_package.collect_package_includes from ext/amiga_includes/ndk_2.0/include; header notices retained",
   "decoded_protection_view": {
@@ -46,5 +46,5 @@
     },
     "runtime_scope": "Seven CPU write-site windows match this reversible view; no whole runtime-view identity or parent plaintext promotion."
   },
-  "verification_receipt_id": "7d530bcedb5573f8c28aa4f8f78123ecaae97e6e002774b9d4393b82b49cdc92"
+  "verification_receipt_id": "be69dfaec8e107d373fc4db04690ad6322099ada172390cd86aa561208b2c15e"
 }

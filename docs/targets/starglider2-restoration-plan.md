@@ -7,7 +7,7 @@ that further analysis is exhausted. Current source remains byte exact: all
 with all 106034 accepted code bytes retained. No generated assembly was edited
 by hand and no interim archive was produced.
 
-The current ownership union leaves 12503 bytes in
+The current ownership union leaves 12355 bytes in
 271 intervals unclassified. This is classification accounting,
 not a semantic completion percentage. Earlier interval/site counts below belong
 to their recorded closeout revision. See the current
@@ -31,6 +31,19 @@ Original mixed constructor families use only their established common prefix.
 The energy-tower initializer's World chain view stays distinct from its updater
 view. Packed-header normalization, signed comparisons, wrap, PRNG transforms,
 nullable/sentinel links and unknown constructor parameters remain unchanged.
+
+The shared heading/text batch restores eight connected entities across original
+and alternate renderers: four negated-heading/quantized-sample WORD caches,
+two LONG glyph/backspace destination-byte strides, a LONG score-addend scratch
+and the stored 128-byte heading-strip prefix. All 148 consumed bytes are newly
+classified; the unknown union is now 12355 bytes /271 intervals. The original
+selector arithmetic yields even offsets 0..14. Its final row WORD can reach
+132 bytes from the prefix base, consuming four bytes of the following message
+directory; ownership still ends at byte 128. This original overlap is preserved,
+not treated as padding or certified safe. The 1/7-byte text-step changes, shared
+alternate cache lifetime and arbitrary score-addend behavior remain unchanged.
+C/vasm is exact; the native totals remain **3503 app /2650 typed /177 unresolved**.
+This adds source meaning rather than new runtime or register-typed coverage.
 
 The native unresolved-access projection now marks 36 scalar MOVE writes whose
 written bits are zero in the existing shared value state. These remain unresolved

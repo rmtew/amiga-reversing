@@ -15799,7 +15799,7 @@ abs_0_0000D600:
 null_sprite_seed:
 	dc.w $0000,$0000,$0000,$0000	; bitmap
 add_bcd_and_draw_amiga_digits:
-	lea.l abs_0_0000E000(pc),a0
+	lea.l score_addend_bcd_source_scratch(pc),a0
 	move.l d0,(a0)+
     ; One-past the four-byte score owner ($71C..$720), not another LONG slot. Three ABCD predecrements update only the low three bytes; the following -1(A1) LONG reloads all four.
 	lea.l player_score_bcd+4(a6),a1
@@ -15971,7 +15971,7 @@ abs_0_0000D7E8:
 	move.b d0,(a1)
 	move.b d0,(a0)+
 	bsr.w print_cursor_text
-	move.l abs_0_0000DFB2.l,abs_0_0000DFB6.l
+	move.l last_glyph_destination_byte_step.l,text_backspace_destination_byte_step.l
 	bra.b abs_0_0000D7E8
 abs_0_0000D862:
 	movea.l text_input_start_pointer.l,a0
@@ -15988,7 +15988,7 @@ abs_0_0000D870:
 	beq.b abs_0_0000D8EA
 	subq.b #2,d0
 	move.b d0,text_cursor_column.l
-	move.l abs_0_0000DFB6.l,d0
+	move.l text_backspace_destination_byte_step.l,d0
 	sub.l d0,text_cursor_destination_pointer.l
 abs_0_0000D89C:
 	subq.l #1,a0
@@ -16005,10 +16005,10 @@ abs_0_0000D89C:
 abs_0_0000D8C6:
 	tst.w platform_entry_flags.l
 	bmi.b abs_0_0000D8DC
-	move.l #$7,abs_0_0000DFB6.l
+	move.l #$7,text_backspace_destination_byte_step.l
 	bra.w abs_0_0000D7E8
 abs_0_0000D8DC:
-	move.l #$1,abs_0_0000DFB6.l
+	move.l #$1,text_backspace_destination_byte_step.l
 	bra.w abs_0_0000D7E8
 abs_0_0000D8EA:
 	move.b #$26,text_cursor_column.l
@@ -16020,19 +16020,19 @@ text_input_character_limit:
 draw_amiga_heading_strip:
 	move.w player_rotation_1(a6),d0
 	neg.w d0
-	cmp.w abs_0_0000DA00.l,d0
+	cmp.w amiga_heading_negated_rotation_cache.l,d0
 	beq.w abs_0_0000D9FE
-	move.w d0,abs_0_0000DA00.l
+	move.w d0,amiga_heading_negated_rotation_cache.l
 	andi.l #4095,d0
 	asl.l #5,d0
 	divs.w #$16D,d0
 	andi.l #511,d0
 	lsr.l #2,d0
-	cmp.w abs_0_0000DA02.l,d0
+	cmp.w amiga_heading_strip_sample_cache.l,d0
 	beq.w abs_0_0000D9FE
-	move.w d0,abs_0_0000DA02.l
+	move.w d0,amiga_heading_strip_sample_cache.l
 	lea.l absolute_slot_00071506.l,a0
-	lea.l abs_0_0000E004(pc),a1
+	lea.l heading_strip_bit_rows_prefix(pc),a1
 	moveq.l #0,d3
 	ror.l #3,d0
 	move.l d0,d1
@@ -16095,20 +16095,21 @@ draw_amiga_heading_strip:
 	move.l d2,$60A0(a0)
 abs_0_0000D9FE:
 	rts
-abs_0_0000DA00:
-	dc.b $FF,$FF
-abs_0_0000DA02:
-	dc.b $FF,$FF,$43,$F9,$00,$00,$DF,$8B,$61,$00,$00,$A6,$41,$F9,$00,$00
-	dc.b $DF,$D8,$61,$00,$00,$04,$4E,$75,$48,$E7,$00,$E0,$23,$C8,$00,$00
-	dc.b $DE,$74,$72,$00,$43,$F9,$00,$00,$DF,$BA,$24,$49,$42,$99,$42,$99
-	dc.b $42,$99,$42,$99,$42,$99,$42,$99,$42,$91,$61,$00,$FD,$6C,$B0,$3C
-	dc.b $00,$0D,$67,$38,$B0,$3C,$00,$1B,$67,$00,$00,$46,$B0,$3C,$00,$08
-	dc.b $67,$46,$B0,$3C,$00,$7F,$67,$40,$B2,$7C,$00,$1C,$67,$DC,$B0,$3C
-	dc.b $00,$20,$6B,$D6,$B0,$3C,$00,$7F,$6A,$D0,$52,$41,$14,$C0,$10,$C0
-	dc.b $43,$F9,$00,$00,$DF,$BA,$61,$00,$00,$38,$60,$BE,$42,$10,$43,$F9
-	dc.b $00,$00,$DF,$BA,$42,$11,$61,$00,$00,$28,$4C,$DF,$07,$00,$4E,$75
-	dc.b $4C,$DF,$07,$00,$70,$FF,$4E,$75,$4A,$41,$67,$00,$FF,$9E,$53,$41
-	dc.b $42,$22,$42,$20,$43,$F9,$00,$00,$DF,$BA,$61,$00,$00,$04,$60,$8A
+amiga_heading_negated_rotation_cache:
+	dc.w $FFFF
+amiga_heading_strip_sample_cache:
+	dc.w $FFFF
+	dc.b $43,$F9,$00,$00,$DF,$8B,$61,$00,$00,$A6,$41,$F9,$00,$00,$DF,$D8
+	dc.b $61,$00,$00,$04,$4E,$75,$48,$E7,$00,$E0,$23,$C8,$00,$00,$DE,$74
+	dc.b $72,$00,$43,$F9,$00,$00,$DF,$BA,$24,$49,$42,$99,$42,$99,$42,$99
+	dc.b $42,$99,$42,$99,$42,$99,$42,$91,$61,$00,$FD,$6C,$B0,$3C,$00,$0D
+	dc.b $67,$38,$B0,$3C,$00,$1B,$67,$00,$00,$46,$B0,$3C,$00,$08,$67,$46
+	dc.b $B0,$3C,$00,$7F,$67,$40,$B2,$7C,$00,$1C,$67,$DC,$B0,$3C,$00,$20
+	dc.b $6B,$D6,$B0,$3C,$00,$7F,$6A,$D0,$52,$41,$14,$C0,$10,$C0,$43,$F9
+	dc.b $00,$00,$DF,$BA,$61,$00,$00,$38,$60,$BE,$42,$10,$43,$F9,$00,$00
+	dc.b $DF,$BA,$42,$11,$61,$00,$00,$28,$4C,$DF,$07,$00,$4E,$75,$4C,$DF
+	dc.b $07,$00,$70,$FF,$4E,$75,$4A,$41,$67,$00,$FF,$9E,$53,$41,$42,$22
+	dc.b $42,$20,$43,$F9,$00,$00,$DF,$BA,$61,$00,$00,$04,$60,$8A
     ; Original cap10 and last-pointer dedup. At count0 the predecessor comparison reads the LONG before the array; no invented independent queue ownership or arbitrary-count safety.
 enqueue_unique_message_pointer:
 	movem.l d0/a0,-(a7)
@@ -16412,7 +16413,7 @@ draw_planar_glyph_rows:
 	move.b (a4)+,$4118(a0)
 	move.b (a5)+,$6118(a0)
 	addq.l #1,a0
-	move.l #$1,abs_0_0000DFB2.l
+	move.l #$1,last_glyph_destination_byte_step.l
 	rts
 text_input_start_pointer:
 	dc.l $00000000
@@ -16455,21 +16456,22 @@ periodic_display_bcd_step:
 	dc.w $0001	; Packed BCD increment WORD consumed backwards by two ABCD instructions
 abs_0_0000DFAE:
 	dc.b $00,$00,$00,$00
-abs_0_0000DFB2:
-	dc.b $00,$00,$00,$02
-abs_0_0000DFB6:
-	dcb.b $4A,$00
-abs_0_0000E000:
-	dc.b $00,$00,$00,$00
-abs_0_0000E004:
-	dc.b $00,$02,$20,$00,$0F,$80,$00,$1F,$00,$00,$44,$00,$01,$10,$00,$00
-	dc.b $00,$03,$20,$00,$08,$00,$00,$10,$00,$00,$44,$00,$01,$90,$00,$00
-	dc.b $04,$03,$20,$10,$08,$00,$40,$10,$00,$80,$44,$02,$01,$90,$08,$00
-	dc.b $00,$02,$A0,$00,$0E,$00,$00,$1F,$00,$00,$44,$00,$01,$50,$00,$00
-	dc.b $2E,$92,$A4,$BA,$4E,$12,$E4,$9F,$25,$D2,$44,$97,$49,$52,$5D,$00
-	dc.b $00,$02,$60,$00,$08,$00,$00,$01,$00,$00,$54,$00,$01,$30,$00,$00
-	dc.b $04,$02,$60,$10,$08,$00,$40,$01,$00,$80,$54,$02,$01,$30,$08,$00
-	dc.b $00,$02,$20,$00,$0F,$80,$00,$1F,$00,$00,$7C,$00,$01,$10,$00,$00
+last_glyph_destination_byte_step:
+	dc.l $00000002
+text_backspace_destination_byte_step:
+	dc.l $00000000
+	dcb.b $46,$00
+score_addend_bcd_source_scratch:
+	dc.l $00000000
+heading_strip_bit_rows_prefix:
+	dc.w $0002,$2000,$0F80,$001F,$0000,$4400,$0110,$0000
+	dc.w $0003,$2000,$0800,$0010,$0000,$4400,$0190,$0000
+	dc.w $0403,$2010,$0800,$4010,$0080,$4402,$0190,$0800
+	dc.w $0002,$A000,$0E00,$001F,$0000,$4400,$0150,$0000
+	dc.w $2E92,$A4BA,$4E12,$E49F,$25D2,$4497,$4952,$5D00
+	dc.w $0002,$6000,$0800,$0001,$0000,$5400,$0130,$0000
+	dc.w $0402,$6010,$0800,$4001,$0080,$5402,$0130,$0800
+	dc.w $0002,$2000,$0F80,$001F,$0000,$7C00,$0110,$0000
 pending_message_pointer_slots:
 	dcb.l $A,$00000000
 	dcb.b $A,$00
@@ -52064,11 +52066,11 @@ draw_alternate_glyph_planes_mode0:
 	btst #0,d7
 	beq.b abs_0_0003BC00
 	addq.l #7,a0
-	move.l #$7,abs_0_0000DFB2.l
+	move.l #$7,last_glyph_destination_byte_step.l
 	rts
 abs_0_0003BC00:
 	addq.l #1,a0
-	move.l #$1,abs_0_0000DFB2.l
+	move.l #$1,last_glyph_destination_byte_step.l
 	rts
 draw_double_pixel_glyph_mode1:
 	move.l a2,-(a7)
@@ -52556,7 +52558,7 @@ alternate_altitude_meter_skip_in_space_flag:
 alternate_meter_directory_byte_offset:
 	dc.w $0000
 add_bcd_and_draw_digits_mode0:
-	lea.l abs_0_0000E000.l,a0
+	lea.l score_addend_bcd_source_scratch.l,a0
 	move.l d0,(a0)+
 	lea.l player_score_bcd(a6),a1
 	addq.l #4,a1
@@ -52729,21 +52731,21 @@ increment_and_draw_periodic_bcd_alternate:
 draw_heading_strip_mode0:
 	move.w player_rotation_1(a6),d0
 	neg.w d0
-	cmp.w abs_0_0003CF1E.l,d0
+	cmp.w alternate_heading_negated_rotation_cache.l,d0
 	beq.w abs_0_0003CF1C
-	move.w d0,abs_0_0003CF1E.l
+	move.w d0,alternate_heading_negated_rotation_cache.l
 	andi.l #4095,d0
 	asl.l #5,d0
 	divs.w #$16D,d0
 	andi.l #511,d0
 	lsr.l #2,d0
-	cmp.w abs_0_0003CF20.l,d0
+	cmp.w alternate_heading_strip_sample_cache.l,d0
 	beq.w abs_0_0003CF1C
-	move.w d0,abs_0_0003CF20.l
+	move.w d0,alternate_heading_strip_sample_cache.l
 	lea.l absolute_slot_0006D418.l,a0
 	lea.l absolute_slot_00075418.l,a2
 	lea.l absolute_slot_0007D418.l,a3
-	lea.l abs_0_0000E004.l,a1
+	lea.l heading_strip_bit_rows_prefix.l,a1
 	moveq.l #0,d3
 	ror.l #3,d0
 	move.l d0,d1
@@ -52872,10 +52874,10 @@ draw_heading_strip_mode0:
 	move.l d3,$0284(a3)
 abs_0_0003CF1C:
 	rts
-abs_0_0003CF1E:
-	dc.b $FF,$FF
-abs_0_0003CF20:
-	dc.b $FF,$FF
+alternate_heading_negated_rotation_cache:
+	dc.w $FFFF
+alternate_heading_strip_sample_cache:
+	dc.w $FFFF
 draw_coordinate_digits_mode0:
 	movem.l d0-d2/a0-a3,-(a7)
 	lea.l absolute_slot_00068298.l,a0
@@ -53236,7 +53238,7 @@ abs_0_0003D37E:
 	movem.l (a7)+,d0-d1/a0-a3
 	rts
 add_bcd_and_draw_digits_mode1:
-	lea.l abs_0_0000E000.l,a0
+	lea.l score_addend_bcd_source_scratch.l,a0
 	move.l d0,(a0)+
 	lea.l player_score_bcd(a6),a1
 	addq.l #4,a1
@@ -53284,21 +53286,21 @@ draw_heading_strip_mode1:
 	movem.l d0-d5/a0-a3,-(a7)
 	move.w player_rotation_1(a6),d0
 	neg.w d0
-	cmp.w abs_0_0003CF1E.l,d0
+	cmp.w alternate_heading_negated_rotation_cache.l,d0
 	beq.w abs_0_0003D512
-	move.w d0,abs_0_0003CF1E.l
+	move.w d0,alternate_heading_negated_rotation_cache.l
 	andi.l #4095,d0
 	asl.l #5,d0
 	divs.w #$16D,d0
 	andi.l #511,d0
 	lsr.l #2,d0
-	cmp.w abs_0_0003CF20.l,d0
+	cmp.w alternate_heading_strip_sample_cache.l,d0
 	beq.w abs_0_0003D512
-	move.w d0,abs_0_0003CF20.l
+	move.w d0,alternate_heading_strip_sample_cache.l
 	lea.l absolute_slot_0006D3EC.l,a0
 	lea.l absolute_slot_000753EC.l,a2
 	lea.l absolute_slot_0007D3EC.l,a3
-	lea.l abs_0_0000E004.l,a1
+	lea.l heading_strip_bit_rows_prefix.l,a1
 	moveq.l #0,d3
 	ror.l #3,d0
 	move.l d0,d1
