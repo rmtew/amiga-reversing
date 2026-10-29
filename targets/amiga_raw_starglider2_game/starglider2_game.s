@@ -52041,7 +52041,7 @@ abs_0_0003C788:
 	add.w d2,d2
 	add.w d2,d2
 	lea.l hud_sprite_conversion_directory.l,a2
-	movea.l $0(a2,d2.w),a1
+	movea.l SG2SpriteControlReference_control_words(a2,d2.w),a1
 	bra.b abs_0_0003C7C6
 abs_0_0003C7B0:
 	dc.w $0000
@@ -52082,7 +52082,7 @@ abs_0_0003C7FE:
 	add.w d2,d2
 	add.w d2,d2
 	lea.l hud_sprite_conversion_directory.l,a2
-	movea.l $8(a2,d2.w),a1
+	movea.l SG2SpriteControlReference_control_words+2*SG2SpriteControlReference_SIZEOF(a2,d2.w),a1
 	bra.b abs_0_0003C83C
 abs_0_0003C826:
 	dc.w $0000
@@ -52123,7 +52123,7 @@ abs_0_0003C874:
 	add.w d2,d2
 	add.w d2,d2
 	lea.l hud_sprite_conversion_directory.l,a2
-	movea.l $10(a2,d2.w),a1
+	movea.l SG2SpriteControlReference_control_words+4*SG2SpriteControlReference_SIZEOF(a2,d2.w),a1
 	bra.b abs_0_0003C8B0
 abs_0_0003C89A:
 	dc.w $0000
@@ -52155,7 +52155,7 @@ abs_0_0003C8BE:
 	add.w d2,d2
 	add.w d2,d2
 	lea.l hud_sprite_conversion_directory.l,a2
-	movea.l $18(a2,d2.w),a1
+	movea.l SG2SpriteControlReference_control_words+6*SG2SpriteControlReference_SIZEOF(a2,d2.w),a1
 	bra.b abs_0_0003C916
 abs_0_0003C8EE:
 	dc.w $0000

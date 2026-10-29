@@ -9588,14 +9588,28 @@ static void hardware_relative_transfer(M68kRenderPlatformState *state, const M68
       state->word_values[dest] = result;
     } else if ((meta->operation_type == M68K_SIM_OP_ADD || meta->operation_type == M68K_SIM_OP_SUB) &&
         (instruction->size_suffix == 'w' || instruction->size_suffix == 'l')) {
-      if (!source.count) return;
-      for (i = 0U; i < before->word_values[dest].count; ++i)
-        for (uint8_t j = 0U; j < source.count; ++j) {
-          uint16_t value = meta->operation_type == M68K_SIM_OP_ADD
-            ? (uint16_t)(before->word_values[dest].values[i] + source.values[j])
-            : (uint16_t)(before->word_values[dest].values[i] - source.values[j]);
-          if (!hardware_word_set_add(&result, value)) return;
+      uint8_t source_reg;
+      /* Two reads of the same decoded register are one value, not two
+       * independent choices from its set. Equal sets in different registers
+       * do not establish that identity. Keep low-WORD wrap, not full addresses. */
+      if (operand_is_data_register_local(&instruction->operands[0], &source_reg) && source_reg == dest) {
+        if (meta->operation_type == M68K_SIM_OP_SUB) {
+          result.requires_input_contract = 0U;
+          (void)hardware_word_set_add(&result, 0U);
+        } else for (i = 0U; i < before->word_values[dest].count; ++i) {
+          uint16_t value = before->word_values[dest].values[i];
+          if (!hardware_word_set_add(&result, (uint16_t)(value + value))) return;
         }
+      } else {
+        if (!source.count) return;
+        for (i = 0U; i < before->word_values[dest].count; ++i)
+          for (uint8_t j = 0U; j < source.count; ++j) {
+            uint16_t value = meta->operation_type == M68K_SIM_OP_ADD
+              ? (uint16_t)(before->word_values[dest].values[i] + source.values[j])
+              : (uint16_t)(before->word_values[dest].values[i] - source.values[j]);
+            if (!hardware_word_set_add(&result, value)) return;
+          }
+      }
       state->word_values[dest] = result;
     } else if (((meta->operation_type == M68K_SIM_OP_SHIFT &&
                  meta->shift_direction == M68K_SIM_SHIFT_DIR_LEFT &&

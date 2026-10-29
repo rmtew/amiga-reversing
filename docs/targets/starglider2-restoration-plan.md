@@ -20,7 +20,7 @@ An on-demand systematic gap inventory (`amiga_reversing/tools/source_gap_invento
 joins native identities/accesses with canonical layouts and actual rendered
 boundaries. It records 67 suffix signals (including numeric adjacent variants),
 21 lookup contracts, 523 remaining interior references, 31 generic app fields
-and 286 unresolved record accesses. These are different denominators. Five
+and 282 unresolved record accesses. These are different denominators. Five
 suffixes name routines and one names text; neither is a pointer defect.
 Current restored object contracts connect original update/initializer directories,
 literal-tag producers and reviewed forwarding paths. Walking, flying, mechanical,
@@ -32,22 +32,27 @@ The energy-tower initializer's World chain view stays distinct from its updater
 view. Packed-header normalization, signed comparisons, wrap, PRNG transforms,
 nullable/sentinel links and unknown constructor parameters remain unchanged.
 
-Latest: the PirateShip role names motion-vector scale, approach countdown,
-mod8 raid cadence and signed paired-heading step. The original type40 contact
-comparison establishes the A4 view before its writes. Its shared Skim initializer
-keeps the common World prefix. A16-byte destruction table selects only three
-existing World cargo types after excluding zero; that constructor is now typed.
-The separate theft path doubles a BYTE index into an eight-byte ingredient table,
-so some selections read adjacent projector-table bytes. Its subtype remains
-unresolved; the owner is not enlarged and unchecked behavior is unchanged.
-Eight actions resolve18 gaps and refine47 contexts with no lost access or changed
-field meaning: **3503 app /2399 typed /286 unresolved**. The new16-byte owner leaves
-13624 unclassified bytes in264 intervals; accepted code remains106034 bytes.
-Original repeated X-velocity stores, signed/wrapped arithmetic and pointer/lifetime
-assumptions remain intact. C/vasm and clean staged standalone outputs match all
-412736 bytes, with57 assets and14 headers unchanged. No new runtime run or dump.
-Earlier connected actor, initializer, motion and volcano results remain in the
-canonical action history and Git; publication is a preservation checkpoint.
+Latest shared transfer fix: repeated reads of the same Dn in ADD/SUB now retain
+value correlation in the existing closed low-WORD domain. Different registers
+with equal sets stay independent; WORD wrap, partial-write/call invalidation,
+input-contract distinctions and the eight-value limit remain intact. No new state
+fields or target annotations. Four original HUD sprite-directory reads now select
+the established control-word field at proven index contributions 0/4 within 41 declared records:
+**3503 app /2403 typed /282 unresolved**. Their encoded offsets 0/8/16/24 and live
+index register are preserved. Only those four instruction renderings changed.
+Focused numeric/negative checks (including mixed-field and LONG-upper-bit refusal)
+and all 832 native cases pass. Current C/vasm and clean staged standalone output
+match all 412736 original bytes; 57 assets/14 headers are unchanged. This establishes
+field selection, not immutable sprite-buffer addresses or runtime/DMA coverage.
+
+The preceding PirateShip role binds four motion/raid fields and an explicit
+type 40 contact branch. A 16-byte destruction table excludes zero and selects three
+established World cargo types. Shared Skim initialization stays a common-prefix
+view. Its separate theft path doubles a BYTE index into an eight-byte ingredient
+table and can read adjacent projector bytes; that subtype remains unresolved.
+Original repeated X-slot stores, lookup behavior, arithmetic and lifecycle
+assumptions are preserved. Canonical histories retain the detailed evidence;
+there are no redundant observation dumps or interim archives.
 
 The shared framework now preserves canonical inline-object types through LEA
 and existing register/stack transfers. Five matrix consumers gained45 accesses;
@@ -59,13 +64,18 @@ The local index-domain scanner now rejects stale bounds after decoded register
 writes (including MOVEM), calls, alternative entry after the guard, unsupported
 LONG upper bits or signed WORD-index wrap. It reuses shared write masks and
 existing flow/entry facts; clean unrelated writes and guarded compare fallthrough
-remain supported.62 related Python checks and all832 native cases pass. One SGII
+remain supported. 62 related Python checks and all 832 native cases pass. One SGII
 regeneration retained all five existing mask/compare records, unchanged counts and
 identical full-inline/INCBIN package sources. Prior exact builds therefore remain
 applicable; no extra assembler/runtime run or observation dump was needed.
-Next test guard-local selector units versus scaled EA byte offsets with a
-noncontiguous mask and multi-step WORD scaling before extending typed pointer/range
-projection. This fix does not supply that conversion or general branch-value flow. All37 sprite/name/audio/
+A follow-on masked pointer-directory fixture still has no pointee propagation:
+ordinary pointer-read transfer handles fixed input EAs, while closed indexed-field
+proof is consumed at final access recording. Next isolate a shared indexed-input
+EA/field-type projection using existing converged low-WORD facts; do not reinterpret
+legacy guard-local bounds as byte offsets, add a parallel value engine or infer
+immutable targets for mutable directories. Pure signed compare/retry constraints
+remain a separate unimplemented precision case. Independent neutron-bomb/station
+field leads can progress without that extension. All37 sprite/name/audio/
 text-reference gaps are indexed accesses. A four-entry fixture resolves a constant
 index but remains `indexed_dynamic` after signed0..3 guards; its unguarded negative
 also stays unresolved. Branch/partial-WORD constraint transport needs shared-value
@@ -91,7 +101,7 @@ starts. Their original producer really emits clipped horizon coordinates; a
 phase/width alias must remain distinct from the keyboard contract. Investigate
 existing canonical alias/view support before adding or renaming ownership. The
 third partial candidate is the already-documented LONG clear spanning a pending
-score WORD and following storage; that clear alone cannot name the extra bytes. Discovery leads and the 286 unresolved
+score WORD and following storage; that clear alone cannot name the extra bytes. Discovery leads and the 282 unresolved
 typed accesses remain different populations.
 A bounded alias reproducer found a shared renderer defect: an inferred
 same-origin conflict silently dropped the canonical app declaration while

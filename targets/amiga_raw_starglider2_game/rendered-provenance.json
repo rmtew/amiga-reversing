@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
   "kind": "committed_native_rendered_original_export",
-  "canonical_source_commit": "86ea4ae2b0fe249a91b139756ae993ecff76675b",
-  "publication_base_commit": "86ea4ae2b0fe249a91b139756ae993ecff76675b",
+  "canonical_source_commit": "50c35d148fe287e3602562a2b0c202743622a797",
+  "publication_base_commit": "50c35d148fe287e3602562a2b0c202743622a797",
   "native_export": "CListingArtifact.source_package_payload(64)",
-  "main_source_sha256": "b978b4c816291be25279e48c47bf48f6be4df0ef43235b37294c40b365b5a928",
+  "main_source_sha256": "1faa2e0543750ad7505dd32cbe3a66a89b4286d2934bd28701ce5bbb526c4590",
   "asset_count": 57,
   "asset_bytes": 93633,
   "game_assembly_hand_edits": false,
@@ -24,8 +24,8 @@
     "assembler executable",
     "paused Pandora work"
   ],
-  "canonical_source_commit_role": "publication base; reviewed pirate role, guarded constructor and byte-table contracts in this batch are bound by canonical_fact_sha256 and verification_receipt_id",
-  "canonical_source_subject_revision": "99b0068bea39d8cc00b5deca7639b038c331c9c23e4f996a9c0f7da1b0d84876",
+  "canonical_source_commit_role": "publication base; shared low-WORD correlation correction and derived rendering co-committed, with unchanged canonical facts",
+  "canonical_source_subject_revision": "97032bb5b28292c367a27f20319d9efa36ed3fd7b12d381a4994b093158bdba4",
   "canonical_fact_sha256": {
     "source_binary.json": "42d4a5758b3e8236af7f912aee85e9ee5323bcd0961faa338c4f864080a0a7d9",
     "target_metadata.json": "e7540b68c118c56aba8815b6722eefa067517cc865fe9841d6c01ce96551389c",
@@ -46,5 +46,5 @@
     },
     "runtime_scope": "Seven CPU write-site windows match this reversible view; no whole runtime-view identity or parent plaintext promotion."
   },
-  "verification_receipt_id": "270df5e6a63c5872e8ac42dddff3d9245431569d9c85f25396d2f01d2135c149"
+  "verification_receipt_id": "56684e7bb1af4fa70f1f9d786e0ecae8c47adfa86cc11037aae5c9ff1b56d129"
 }
