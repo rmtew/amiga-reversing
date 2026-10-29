@@ -1615,7 +1615,7 @@ abs_0_00001003:
 initialize_game:
 	move.b #$0,diagnostic_stage_step_word.l
 	clr.b diagnostic_step_byte.l
-	lea.l abs_0_00003370.l,a7
+	lea.l initial_game_stack_top.l,a7
 	move.b #$1,diagnostic_stage_step_word.l
 	clr.b diagnostic_step_byte.l
 	btst.b #0,abs_0_00001003.l
@@ -1643,10 +1643,10 @@ clear_game_workspace_loop:
 	jsr initialize_drawing_lookup_tables.l
 	jsr initialize_ground_grid_quad_vertex_offsets.l
 	move.b #$3,diagnostic_step_byte.l
-	bsr.w abs_0_00001EC2
+	bsr.w initialize_startup_flags_and_subtract_novella_key
 	move.b #$4,diagnostic_step_byte.l
 	movea.l game_workspace_base.l,a6
-	lea.l abs_0_00003370.l,a7
+	lea.l initial_game_stack_top.l,a7
 	bsr.w abs_0_000034AA
 	jsr abs_0_0000261A.l
 	move.w #$0,title_page_cycle_counter(a6)
@@ -2593,7 +2593,7 @@ enqueue_game_over_reason_message:
 abs_0_00001EBA:
 	lea.l game_over_icarus_destroyed_message(pc),a1
 	bra.w abs_0_000049DA
-abs_0_00001EC2:
+initialize_startup_flags_and_subtract_novella_key:
 	st.b $0154(a6)
 	st.b $0155(a6)
 	sf.b model_face_culling_disabled_flag(a6)
@@ -2622,7 +2622,7 @@ install_sine_cosine_pointers:
 	lea.l cosine_lookup_view.l,a0
 	move.l a0,cosine_lookup_pointer(a6)
 	rts
-abs_0_00001F24:
+restore_cockpit_picture_from_encoded_state:
 	bsr.w abs_0_000034AA
 	tst.w cockpit_picture_palette.l
 	beq.b abs_0_00001F46
@@ -2765,7 +2765,7 @@ reset_gameplay_state_and_input_defaults:
 	bsr.w abs_0_000033F2
 	rts
 abs_0_0000217A:
-	bsr.w abs_0_00001F24
+	bsr.w restore_cockpit_picture_from_encoded_state
 	clr.b display_buffer_table_byte_offset(a6)
 	bsr.w count_and_present_frame_handoff
     ; Replace all three first Copper end markers with4A01/FF00 WAIT, exposing original continuation blocks. Final end markers remain unchanged.
@@ -3737,8 +3737,9 @@ announced_view_direction_index:
 	dc.w $0000
 abs_0_00002F6E:
 	rts
+initial_stack_zero_seed_bytes:
 	dcb.b $400,$00
-abs_0_00003370:
+initial_game_stack_top:
 	dc.b $00,$00,$00,$00
 abs_0_00003374:
 	jmp abs_0_00036372.l

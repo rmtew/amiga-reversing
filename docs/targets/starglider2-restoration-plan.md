@@ -7,7 +7,7 @@ that further analysis is exhausted. Current source remains byte exact: all
 with all 106034 accepted code bytes retained. No generated assembly was edited
 by hand and no interim archive was produced.
 
-The current ownership union leaves 12280 bytes in
+The current ownership union leaves 11256 bytes in
 272 intervals unclassified. This is classification accounting,
 not a semantic completion percentage. Earlier interval/site counts below belong
 to their recorded closeout revision. See the current
@@ -31,6 +31,19 @@ Original mixed constructor families use only their established common prefix.
 The energy-tower initializer's World chain view stays distinct from its updater
 view. Packed-header normalization, signed comparisons, wrap, PRNG transforms,
 nullable/sentinel links and unknown constructor parameters remain unchanged.
+
+Startup now names the two explicit A7 targets as `initial_game_stack_top`
+and the immediately preceding 1024 source-zero bytes as stack seed storage.
+The seed begins after the accepted RTS and stops at the top marker; its following
+four bytes remain unknown. This physical source extent is not a configured
+reservation, maximum stack depth, overflow bound or lifetime proof. Two original
+startup/cockpit helpers now expose their flag resets and guarded novella decode
+phases without changing encoded bytes, two untouched tail bytes, saved-state
+reloads or platform-specific picture copies. All 1024 seed bytes are newly
+classified: **11256 bytes /272 intervals** remain unknown. Accepted code and
+**3503 app /2650 typed /177 unresolved** access totals are unchanged; C/vasm
+and clean standalone output are exact. No guest state or protection behavior
+was modified.
 
 The exception-diagnostic text batch names the accepted WORD/D1 formatter
 entries, shared hexadecimal-nibble helper, platform trampoline and six existing

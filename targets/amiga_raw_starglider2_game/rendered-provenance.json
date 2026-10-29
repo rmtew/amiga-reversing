@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
   "kind": "committed_native_rendered_original_export",
-  "canonical_source_commit": "93fe1a103ac85073e5eb5e6e5cc8a4e747ba7442",
-  "publication_base_commit": "93fe1a103ac85073e5eb5e6e5cc8a4e747ba7442",
+  "canonical_source_commit": "09064332d8b4a7950b5c2c08e0e1150094810275",
+  "publication_base_commit": "09064332d8b4a7950b5c2c08e0e1150094810275",
   "native_export": "CListingArtifact.source_package_payload(64)",
-  "main_source_sha256": "027cd6da9230d62f4c9a3a1904a77c01a2780a465c2e7ad201cd4554c4855d97",
+  "main_source_sha256": "a08a1bb147b6bb5c5831f3795b4128f48b4fbf0fff15901cdd483896318828f5",
   "asset_count": 57,
   "asset_bytes": 93633,
   "game_assembly_hand_edits": false,
@@ -24,13 +24,13 @@
     "assembler executable",
     "paused Pandora work"
   ],
-  "canonical_source_commit_role": "publication base; reviewed hexadecimal formatter/helpers, platform trampoline and diagnostic stage text consumers are bound by canonical facts and verification",
-  "canonical_source_subject_revision": "38ed46ee7f896afe3af8e02cf2b8d17e4dc2850101bf638b5ea659e8ba70aba5",
+  "canonical_source_commit_role": "publication base; reviewed source stack seed, explicit initial SP boundary and original startup/decode helpers are bound by canonical facts and verification",
+  "canonical_source_subject_revision": "8c5f6ddb517679591fea435e7cc3707cd6d46c47d13324d189b0bfb1c5585b2c",
   "canonical_fact_sha256": {
     "source_binary.json": "42d4a5758b3e8236af7f912aee85e9ee5323bcd0961faa338c4f864080a0a7d9",
     "target_metadata.json": "e7540b68c118c56aba8815b6722eefa067517cc865fe9841d6c01ce96551389c",
-    "manual_actions.jsonl": "63c84fa9dc4bfa74dbe9edce36023bd05668451333edb1a635f5eab0986c86a9",
-    "decision_journal.jsonl": "957c42aa4810c2e56feb53a867b4590fe4d5af5a8d4f8c33d1c4bf6dd1c67520"
+    "manual_actions.jsonl": "fca75f214eeb88c2dcace46a91b03fafbab1507322210058a67d7620fd0a975f",
+    "decision_journal.jsonl": "c83298b5e2cfa30b96326c18a0dce068f3b25bb2260e7a4a4adfaa7978602a43"
   },
   "headers": "14 unmodified required include files collected by source_package.collect_package_includes from ext/amiga_includes/ndk_2.0/include; header notices retained",
   "decoded_protection_view": {
@@ -46,5 +46,5 @@
     },
     "runtime_scope": "Seven CPU write-site windows match this reversible view; no whole runtime-view identity or parent plaintext promotion."
   },
-  "verification_receipt_id": "1f035e5df0dbc83d64d6ca7fed721173f38cadfec64a231c43cf8395db082ed9"
+  "verification_receipt_id": "8a86f69fd1eb6ff4d4ebaf23b5d8959cac0ee1a58823e63ef37ebba5a04fe7cf"
 }
