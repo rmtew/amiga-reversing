@@ -1368,6 +1368,14 @@ SG2EmmaTransport_taymar_radio_enabled_flag RS.B 1
     RS.B 33
 SG2EmmaTransport_SIZEOF EQU __RS
 
+; STRUCT SG2GroundQuadVertexOffsets
+    RSRESET
+SG2GroundQuadVertexOffsets_first_vertex_byte_offset RS.W 1
+SG2GroundQuadVertexOffsets_second_vertex_byte_offset RS.W 1
+SG2GroundQuadVertexOffsets_third_vertex_byte_offset RS.W 1
+SG2GroundQuadVertexOffsets_fourth_vertex_byte_offset RS.W 1
+SG2GroundQuadVertexOffsets_SIZEOF EQU __RS
+
 ADKF_CLRALL	EQU	$7FFF
 BPLCON2_PF2P2	EQU	$20
 BPLCON2_PF2PRI	EQU	$40
@@ -1617,7 +1625,7 @@ clear_game_workspace_loop:
 	jsr initialize_display_and_view_state.l
 	jsr initialize_model_coordinate_extents.l
 	jsr initialize_drawing_lookup_tables.l
-	jsr abs_0_0002F4F8.l
+	jsr initialize_ground_grid_quad_vertex_offsets.l
 	move.b #$3,diagnostic_step_byte.l
 	bsr.w abs_0_00001EC2
 	move.b #$4,diagnostic_step_byte.l
@@ -37826,7 +37834,7 @@ abs_0_0002F022:
 	swap.w d1
 	swap.w d2
 	swap.w d3
-	movem.w d1-d3,abs_0_0002F52E.l
+	movem.w d1-d3,ground_grid_view_x_step.l
 	move.w d0,d1
 	muls.w view_rotation_matrix+SG2RotationMatrixWords_m02(a6),d1
 	move.w d0,d2
@@ -37836,7 +37844,7 @@ abs_0_0002F022:
 	swap.w d1
 	swap.w d2
 	swap.w d3
-	movem.w d1-d3,abs_0_0002F534.l
+	movem.w d1-d3,ground_grid_view_z_step.l
 	moveq.l #0,d1
 	moveq.l #0,d2
 	move.l #$1800,d3
@@ -37865,8 +37873,8 @@ abs_0_0002F0AA:
 	andi.l #4294963200,d3
 	sub.l d1,d4
 	sub.l d3,d5
-	move.l d1,abs_0_0002F566.l
-	move.l d3,abs_0_0002F56A.l
+	move.l d1,ground_grid_world_origin_x.l
+	move.l d3,ground_grid_world_origin_z.l
 	sub.l view_origin_x(a6),d1
 	sub.l view_origin_y(a6),d2
 	sub.l view_origin_z(a6),d3
@@ -37877,58 +37885,58 @@ abs_0_0002F0AA:
 	asl.w #3,d1
 	asl.w #3,d2
 	asl.w #3,d3
-	movem.w d1-d3,abs_0_0002F554.l
+	movem.w d1-d3,ground_grid_view_origin_delta.l
 	move.w #$C,d7
-	movem.w abs_0_0002F52E.l,d1-d3
+	movem.w ground_grid_view_x_step.l,d1-d3
 	muls.w d4,d1
 	asr.l d7,d1
 	muls.w d4,d2
 	asr.l d7,d2
 	muls.w d4,d3
 	asr.l d7,d3
-	movem.w d1-d3,abs_0_0002F53A.l
-	movem.w abs_0_0002F534.l,d1-d3
+	movem.w d1-d3,ground_grid_view_x_edge_offset.l
+	movem.w ground_grid_view_z_step.l,d1-d3
 	muls.w d5,d1
 	asr.l d7,d1
 	muls.w d5,d2
 	asr.l d7,d2
 	muls.w d5,d3
 	asr.l d7,d3
-	movem.w d1-d3,abs_0_0002F540.l
-	move.l abs_0_0002F566.l,d5
-	move.l abs_0_0002F56A.l,d6
+	movem.w d1-d3,ground_grid_view_z_edge_offset.l
+	move.l ground_grid_world_origin_x.l,d5
+	move.l ground_grid_world_origin_z.l,d6
 	moveq.l #12,d4
 	asr.l d4,d5
 	asr.l d4,d6
 	add.w d5,d6
 	andi.w #1,d6
 	neg.w d6
-	move.w d6,abs_0_0002F57A.l
+	move.w d6,ground_grid_checkerboard_phase.l
 	lea.l model_view_vertex_scratch_prefix(a6),a0
-	movem.w abs_0_0002F554.l,d1-d3
-	movem.w abs_0_0002F52E.l,d4-d6
+	movem.w ground_grid_view_origin_delta.l,d1-d3
+	movem.w ground_grid_view_x_step.l,d4-d6
 	moveq.l #5,d0
 abs_0_0002F17A:
 	movem.w d0-d3,-(a7)
 	cmp.w #$5,d0
 	bne.b abs_0_0002F19C
-	move.w abs_0_0002F540.l,d7
+	move.w ground_grid_view_z_edge_offset.l,d7
 	add.w d7,d1
-	move.w abs_0_0002F542.l,d7
+	move.w ground_grid_view_z_edge_offset_y_delta.l,d7
 	add.w d7,d2
-	move.w abs_0_0002F544.l,d7
+	move.w ground_grid_view_z_edge_offset_z_delta.l,d7
 	add.w d7,d3
 abs_0_0002F19C:
 	tst.w d0
 	bne.b abs_0_0002F1CA
-	move.w abs_0_0002F540.l,d7
-	sub.w abs_0_0002F534.l,d7
+	move.w ground_grid_view_z_edge_offset.l,d7
+	sub.w ground_grid_view_z_step.l,d7
 	add.w d7,d1
-	move.w abs_0_0002F542.l,d7
-	sub.w abs_0_0002F536.l,d7
+	move.w ground_grid_view_z_edge_offset_y_delta.l,d7
+	sub.w ground_grid_view_z_step_y_delta.l,d7
 	add.w d7,d2
-	move.w abs_0_0002F544.l,d7
-	sub.w abs_0_0002F538.l,d7
+	move.w ground_grid_view_z_edge_offset_z_delta.l,d7
+	sub.w ground_grid_view_z_step_z_delta.l,d7
 	add.w d7,d3
 abs_0_0002F1CA:
 	moveq.l #5,d7
@@ -37936,22 +37944,22 @@ abs_0_0002F1CC:
 	movem.w d1-d3,(a0)
 	cmp.w #$5,d7
 	bne.b abs_0_0002F1F2
-	move.w abs_0_0002F53A.l,d0
+	move.w ground_grid_view_x_edge_offset.l,d0
 	add.w d0,(a0)
-	move.w abs_0_0002F53C.l,d0
+	move.w ground_grid_view_x_edge_offset_y_delta.l,d0
 	add.w d0,$0002(a0)
-	move.w abs_0_0002F53E.l,d0
+	move.w ground_grid_view_x_edge_offset_z_delta.l,d0
 	add.w d0,$0004(a0)
 abs_0_0002F1F2:
 	tst.w d7
 	bne.b abs_0_0002F218
-	move.w abs_0_0002F53A.l,d0
+	move.w ground_grid_view_x_edge_offset.l,d0
 	sub.w d4,d0
 	add.w d0,(a0)
-	move.w abs_0_0002F53C.l,d0
+	move.w ground_grid_view_x_edge_offset_y_delta.l,d0
 	sub.w d5,d0
 	add.w d0,$0002(a0)
-	move.w abs_0_0002F53E.l,d0
+	move.w ground_grid_view_x_edge_offset_z_delta.l,d0
 	sub.w d6,d0
 	add.w d0,$0004(a0)
 abs_0_0002F218:
@@ -37961,9 +37969,9 @@ abs_0_0002F218:
 	add.w d6,d3
 	dbf.w d7,abs_0_0002F1CC
 	movem.w (a7)+,d0-d3
-	add.w abs_0_0002F534.l,d1
-	add.w abs_0_0002F536.l,d2
-	add.w abs_0_0002F538.l,d3
+	add.w ground_grid_view_z_step.l,d1
+	add.w ground_grid_view_z_step_y_delta.l,d2
+	add.w ground_grid_view_z_step_z_delta.l,d3
 	dbf.w d0,abs_0_0002F17A
 	move.w #$23,d0
 	lea.l model_view_vertex_scratch_prefix(a6),a3
@@ -38028,14 +38036,14 @@ abs_0_0002F2C8:
 	divs.w d3,d2
 	bra.b abs_0_0002F292
 emit_special_mesh_quads_continuation:
-	lea.l abs_0_0002F57C(pc),a5
+	lea.l ground_grid_quad_vertex_offsets(pc),a5
 	movea.l scene_reference_write_cursor.l,a3
 	movea.l scene_polygon_write_cursor.l,a4
 abs_0_0002F2E8:
 	movem.l a4-a5,-(a7)
 	move.w #$7FF0,(a4)+
 	movea.l a4,a1
-	not.w abs_0_0002F57A.l
+	not.w ground_grid_checkerboard_phase.l
 	beq.w abs_0_0002F364
 	move.w special_mesh_material_index.l,(a4)+
 	lea.l projected_vertex_scratch_prefix.l,a0
@@ -38219,8 +38227,8 @@ abs_0_0002F4EC:
 	movea.l -(a3),a4
 	subq.w #1,scene_packet_count.l
 	bra.w abs_0_0002F4D4
-abs_0_0002F4F8:
-	lea.l abs_0_0002F57C(pc),a0
+initialize_ground_grid_quad_vertex_offsets:
+	lea.l ground_grid_quad_vertex_offsets(pc),a0
 	moveq.l #0,d0
 	moveq.l #4,d7
 abs_0_0002F500:
@@ -38241,36 +38249,43 @@ abs_0_0002F502:
 special_mesh_material_index:
 	dc.w $0009
 	dcb.b $A,$00
-abs_0_0002F52E:
-	dc.b $00,$00,$00,$00,$00,$00
-abs_0_0002F534:
+ground_grid_view_x_step:
+	dc.w $0000	; x_delta
+	dc.w $0000	; y_delta
+	dc.w $0000	; z_delta
+ground_grid_view_z_step:
+	dc.w $0000	; x_delta
+ground_grid_view_z_step_y_delta:
+	dc.w $0000	; y_delta
+ground_grid_view_z_step_z_delta:
+	dc.w $0000	; z_delta
+ground_grid_view_x_edge_offset:
+	dc.w $0000	; x_delta
+ground_grid_view_x_edge_offset_y_delta:
+	dc.w $0000	; y_delta
+ground_grid_view_x_edge_offset_z_delta:
+	dc.w $0000	; z_delta
+ground_grid_view_z_edge_offset:
+	dc.w $0000	; x_delta
+ground_grid_view_z_edge_offset_y_delta:
+	dc.w $0000	; y_delta
+ground_grid_view_z_edge_offset_z_delta:
+	dc.w $0000	; z_delta
+	dcb.b $E,$00
+ground_grid_view_origin_delta:
+	dc.w $0000	; x_delta
+	dc.w $0000	; y_delta
+	dc.w $0000	; z_delta
+	dcb.b $C,$00
+ground_grid_world_origin_x:
+	dc.l $00000000
+ground_grid_world_origin_z:
+	dc.l $00000000
+	dcb.b $C,$00
+ground_grid_checkerboard_phase:
 	dc.w $0000
-abs_0_0002F536:
-	dc.w $0000
-abs_0_0002F538:
-	dc.w $0000
-abs_0_0002F53A:
-	dc.w $0000
-abs_0_0002F53C:
-	dc.w $0000
-abs_0_0002F53E:
-	dc.w $0000
-abs_0_0002F540:
-	dc.w $0000
-abs_0_0002F542:
-	dc.w $0000
-abs_0_0002F544:
-	dcb.b $10,$00
-abs_0_0002F554:
-	dcb.b $12,$00
-abs_0_0002F566:
-	dc.b $00,$00,$00,$00
-abs_0_0002F56A:
-	dcb.b $10,$00
-abs_0_0002F57A:
-	dc.w $0000
-abs_0_0002F57C:
-	dcb.b $C8,$00
+ground_grid_quad_vertex_offsets:	; ARRAY SG2GroundQuadVertexOffsets[25]
+	dcb.w $64,$0000
 abs_0_0002F644:
 	move.w view_rotation_1(a6),d0
 	neg.w d0

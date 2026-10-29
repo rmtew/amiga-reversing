@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "source_commit": "663e3b01d8b50763b419c3ea982f2bd0d39c75c8",
+  "source_commit": "68b8549b25a00f36e23d7af2240e57f114c2bd70",
   "source_assembly": "starglider2_game.s",
   "assets": [
     {
@@ -878,13 +878,13 @@
     },
     {
       "path": "rendered-provenance.json",
-      "bytes": 3009,
-      "sha256": "2a9ddbaf394682dca71cb3a68418d41f8fb5fb7d20964dd81c1cf36ffe57c3e2"
+      "bytes": 3011,
+      "sha256": "d7364b84c5b2a8b7539121a376f7c3f8f098feb284152ea5978b9e839208c94d"
     },
     {
       "path": "starglider2_game.s",
-      "bytes": 2003668,
-      "sha256": "3adf994bfc324ef9a892096ed044a0fa27fd34e2a757ccaac1a05e99fb8aedb0"
+      "bytes": 2005121,
+      "sha256": "9a59a4b0d3f75b3f6f4ad4ac8fae16cacda3f3b3f123ac6041ee88a46a71401f"
     },
     {
       "path": "tools/starglider2_protection.py",
@@ -892,6 +892,6 @@
       "sha256": "81d3f66d36dbfbd5c77238b20c28e8b9abaa329777eb91f64669bbbf13703582"
     }
   ],
-  "source_commit_role": "publication base; reviewed alternate PSG state and type-volume consumers are bound by verification_receipt_id",
-  "source_subject_revision": "ba9cde1be56ab5d9124e9c57cc95f26dcabadb193c689c812da952e6c617e300"
+  "source_commit_role": "publication base; reviewed ground-grid vector and generated quad ownership are bound by verification_receipt_id",
+  "source_subject_revision": "4bc0938961dd17738a5155d8fff7bacf904f586c049e8a6eee46f949f5ae414c"
 }

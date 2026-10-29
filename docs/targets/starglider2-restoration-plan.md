@@ -7,8 +7,8 @@ that further analysis is exhausted. Current source remains byte exact: all
 with all 106034 accepted code bytes retained. No generated assembly was edited
 by hand and no interim archive was produced.
 
-The current ownership union leaves 13410 bytes in
-266 intervals unclassified. This is classification accounting,
+The current ownership union leaves 13170 bytes in
+269 intervals unclassified. This is classification accounting,
 not a semantic completion percentage. Earlier interval/site counts below belong
 to their recorded closeout revision. See the current
 [native memory-span receipt](../../runtime/observations/starglider2-app-memory-spans.json),
@@ -32,6 +32,18 @@ The energy-tower initializer's World chain view stays distinct from its updater
 view. Packed-header normalization, signed comparisons, wrap, PRNG transforms,
 nullable/sentinel links and unknown constructor parameters remain unchanged.
 
+The ground-grid batch connects five six-byte XYZ deltas, aligned world-X/Z
+scalars, checkerboard phase and a mutable 25-record quad directory to their
+original writers/readers. The normal startup initializer emits four WORD vertex
+byte offsets per quad for the 6x6 grid; this is not an absolute pointer table.
+Nine storage entities and the initializer name account for 240 bytes and 35 native
+incoming references. Forty-eight neighbouring scratch/padding bytes remain unknown.
+C/vasm and clean standalone output remain exact. **3503 app /2623 typed /177
+unresolved** and accepted code are unchanged: ownership/geometry recovery is not
+additional loop-access proof. Compact arrays carry their native count directly;
+the known cursor-join boundary still applies to their loops. Next inspect the
+connected HUD polygon projection/scanline masks and their exact backing extents.
+
 The alternate PSG consumer batch identifies fourteen control scalars and the
 148-byte object-type volume/exclusion directory, with 42 native incoming references.
 Projectile modulation/reset state, shared noise phases, type-8 timing and nearest
@@ -39,8 +51,8 @@ sound selection retain original signed tests and widths. Three exact owners cove
 169 bytes; seven adjacent unexplained bytes stay unknown. These consumers write
 alternate PSG registers, so this is not an Amiga/Paula runtime-coverage claim.
 C/vasm and clean standalone output remain exact; 57 assets, 14 headers, accepted
-code and **3503 app /2623 typed /177 unresolved** remain unchanged. Next is the
-ground-grid scratch/quad producer-consumer contract, not another sound test run.
+code and **3503 app /2623 typed /177 unresolved** remain unchanged. The subsequent
+ground-grid contract is recorded above.
 
 The connected player-effects batch recovers nine scalar/table entities and four
 existing model-face identities, replacing 46 absolute references. Speed/stardrive
@@ -77,7 +89,7 @@ is added. Current C/vasm and clean standalone output are byte exact.
 Native source collection recovery now validates complete flat, tightly packed
 multi-field records independently of `struct` versus `array` presentation. Mixed
 widths, pointer domains and compatible aliases are checked; missing, conflicting,
-crossing or mismatched declarations refuse collection bounds. The target admits
+crossing or mismatched declarations refuse collection bounds. The leaf-derived pass admits
 143 collections from 155 candidates using 531008 index bytes and 11242 member visits.
 This proof repair alone changes no SGII source or access count. 104 focused checks
 and 832 native cases pass; two strict expected failures retain the distinct loop
