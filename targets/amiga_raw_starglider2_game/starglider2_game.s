@@ -58663,12 +58663,12 @@ abs_0_0004BFC2:
 	beq.w abs_0_0004C1A4
 	subq.w #1,d3
 	movea.l nearby_objects_cursor(a6),a0
-	move.w #$0,abs_0_0004D0A4.l
+	move.w #$0,paula_same_type_base_volume.l
 	movea.l #paula_object_sound_descriptors,a3
 	move.w (a2),d0
 	asl.w #4,d0
-	move.w $8(a3,d0.w),abs_0_0004D0A4.l
-	move.w #$0,abs_0_0004D08C.l
+	move.w $8(a3,d0.w),paula_same_type_base_volume.l
+	move.w #$0,paula_same_type_prefix_volume_sum.l
 abs_0_0004BFF2:
 	move.w (a2),d0
 	movea.l (a0)+,a1
@@ -58699,23 +58699,23 @@ abs_0_0004C01C:
 abs_0_0004C02A:
 	lsr.w #7,d0
 	neg.w d0
-	add.w abs_0_0004D0A4.l,d0
+	add.w paula_same_type_base_volume.l,d0
 	bpl.b abs_0_0004C03A
 	move.w #$0,d0
 abs_0_0004C03A:
-	add.w d0,abs_0_0004D08C.l
+	add.w d0,paula_same_type_prefix_volume_sum.l
 	dbf.w d3,abs_0_0004BFF2
 abs_0_0004C044:
-	move.w abs_0_0004D08E.l,d4
+	move.w paula_previous_selected_relative_delta.l,d4
 	bpl.b abs_0_0004C04E
 	neg.w d4
 abs_0_0004C04E:
-	move.w abs_0_0004D090.l,d1
+	move.w paula_previous_selected_relative_delta_y_delta.l,d1
 	bpl.b abs_0_0004C058
 	neg.w d1
 abs_0_0004C058:
 	add.w d1,d4
-	move.w abs_0_0004D092.l,d1
+	move.w paula_previous_selected_relative_delta_z_delta.l,d1
 	bpl.b abs_0_0004C064
 	neg.w d1
 abs_0_0004C064:
@@ -58736,9 +58736,9 @@ abs_0_0004C078:
 abs_0_0004C082:
 	add.w d1,d0
 	lsr.w #1,d0
-	move.w $0016(a2),abs_0_0004D08E.l
-	move.w $0018(a2),abs_0_0004D090.l
-	move.w $001A(a2),abs_0_0004D092.l
+	move.w $0016(a2),paula_previous_selected_relative_delta.l
+	move.w $0018(a2),paula_previous_selected_relative_delta_y_delta.l
+	move.w $001A(a2),paula_previous_selected_relative_delta_z_delta.l
 	move.w d0,d3
 	movea.l #paula_object_sound_descriptors,a0
 	move.w selected_object_sound_type.l,d5
@@ -58754,8 +58754,8 @@ abs_0_0004C082:
 	neg.w d2
 	neg.w d1
 abs_0_0004C0C8:
-	move.w d1,abs_0_0004D0C4.l
-	move.w d2,abs_0_0004D0C2.l
+	move.w d1,paula_object_period_bias_snapshot.l
+	move.w d2,paula_player_speed_period_bias_snapshot.l
 	add.w d1,d5
 	add.w d2,d5
 	move.w paula_object_sound_current_period.l,d6
@@ -58778,7 +58778,7 @@ abs_0_0004C106:
 	bpl.b abs_0_0004C116
 	move.w #$0,d3
 abs_0_0004C116:
-	move.w abs_0_0004D08C.l,d4
+	move.w paula_same_type_prefix_volume_sum.l,d4
 	add.w d4,d3
 	cmp.w #$40,d3
 	bmi.b abs_0_0004C128
@@ -58827,24 +58827,24 @@ abs_0_0004C1CA:
 	move.b $0003(a2),d0
 	cmp.b #$12,d0
 	bne.b abs_0_0004C1EA
-	move.w paula_object_sound_current_volume.l,abs_0_0004D0B4.l
+	move.w paula_object_sound_current_volume.l,paula_types1_15_volume_envelope.l
 	bra.b abs_0_0004C1FA
 abs_0_0004C1EA:
 	cmp.b #$8,d0
 	bne.b abs_0_0004C1FA
-	move.w paula_object_sound_current_volume.l,abs_0_0004D0B4.l
+	move.w paula_object_sound_current_volume.l,paula_types1_15_volume_envelope.l
 abs_0_0004C1FA:
 	cmpi.w #1,selected_object_sound_type.l
 	bne.b abs_0_0004C22A
 	move.b $0003(a2),d0
 	cmp.b #$16,d0
 	bne.b abs_0_0004C21A
-	move.w paula_object_sound_current_volume.l,abs_0_0004D0B4.l
+	move.w paula_object_sound_current_volume.l,paula_types1_15_volume_envelope.l
 	bra.b abs_0_0004C22A
 abs_0_0004C21A:
 	cmp.b #$A,d0
 	bne.b abs_0_0004C22A
-	move.w paula_object_sound_current_volume.l,abs_0_0004D0B4.l
+	move.w paula_object_sound_current_volume.l,paula_types1_15_volume_envelope.l
 abs_0_0004C22A:
 	cmpi.w #4,selected_object_sound_type.l
 	bne.b abs_0_0004C24C
@@ -58863,7 +58863,7 @@ abs_0_0004C258:
 	cmpi.w #5,selected_object_sound_type.l
 	bne.w abs_0_0004C2F6
 abs_0_0004C264:
-	lea.l abs_0_0004D130.l,a0
+	lea.l paula_types5_46_period_word_prefix.l,a0
 	move.b $0003(a2),d0
 	beq.b abs_0_0004C2AC
 	cmp.b #$9,d0
@@ -58911,19 +58911,19 @@ abs_0_0004C2F6:
 abs_0_0004C316:
 	move.w player_speed_target(a6),d0
 	beq.b abs_0_0004C33C
-	addq.w #1,abs_0_0004D0BE.l
+	addq.w #1,paula_types56_58_volume_envelope.l
 	move.w paula_object_sound_current_volume.l,d1
-	cmp.w abs_0_0004D0BE.l,d1
+	cmp.w paula_types56_58_volume_envelope.l,d1
 	bpl.b abs_0_0004C33A
-	move.w paula_object_sound_current_volume.l,abs_0_0004D0BE.l
+	move.w paula_object_sound_current_volume.l,paula_types56_58_volume_envelope.l
 abs_0_0004C33A:
 	bra.b abs_0_0004C34C
 abs_0_0004C33C:
-	subq.w #1,abs_0_0004D0BE.l
+	subq.w #1,paula_types56_58_volume_envelope.l
 	bpl.b abs_0_0004C34C
-	move.w #$0,abs_0_0004D0BE.l
+	move.w #$0,paula_types56_58_volume_envelope.l
 abs_0_0004C34C:
-	move.w abs_0_0004D0BC.l,d2
+	move.w paula_types56_58_current_period.l,d2
 	move.w #$28E,d1
 	sub.w d0,d1
 	cmp.w d2,d1
@@ -58931,18 +58931,18 @@ abs_0_0004C34C:
 	bmi.b abs_0_0004C360
 	bpl.b abs_0_0004C37A
 abs_0_0004C360:
-	subq.w #2,abs_0_0004D0BC.l
-	cmpi.w #174,abs_0_0004D0BC.l
+	subq.w #2,paula_types56_58_current_period.l
+	cmpi.w #174,paula_types56_58_current_period.l
 	bpl.b abs_0_0004C392
-	move.w #$AE,abs_0_0004D0BC.l
+	move.w #$AE,paula_types56_58_current_period.l
 	bra.b abs_0_0004C392
 abs_0_0004C37A:
-	addq.w #2,abs_0_0004D0BC.l
-	cmpi.w #654,abs_0_0004D0BC.l
+	addq.w #2,paula_types56_58_current_period.l
+	cmpi.w #654,paula_types56_58_current_period.l
 	bmi.b abs_0_0004C392
-	move.w #$28E,abs_0_0004D0BC.l
+	move.w #$28E,paula_types56_58_current_period.l
 abs_0_0004C392:
-	move.w abs_0_0004D0BC.l,_custom+aud3+ac_per.l	; audio period
+	move.w paula_types56_58_current_period.l,_custom+aud3+ac_per.l	; audio period
 	tst.b modal_command_input_flag(a6)
 	bmi.b abs_0_0004C3AC
 	tst.b audio_output_enable_sign_flag.l
@@ -58954,7 +58954,7 @@ abs_0_0004C3AC:
 abs_0_0004C3B6:
 	tst.w paula_object_sound_transition_phase.l
 	bpl.b abs_0_0004C3C8
-	move.w abs_0_0004D0BE.l,_custom+aud3+ac_vol.l
+	move.w paula_types56_58_volume_envelope.l,_custom+aud3+ac_vol.l
 abs_0_0004C3C8:
 	cmpi.w #11,selected_object_sound_type.l
 	bne.b abs_0_0004C3E8
@@ -58966,10 +58966,10 @@ abs_0_0004C3C8:
 abs_0_0004C3E8:
 	cmpi.w #10,selected_object_sound_type.l
 	bne.b abs_0_0004C43A
-	move.w abs_0_0004D0B2.l,d0
+	move.w paula_type10_decay_phase_mod32.l,d0
 	addq.w #1,d0
 	andi.w #31,d0
-	move.w d0,abs_0_0004D0B2.l
+	move.w d0,paula_type10_decay_phase_mod32.l
 	cmp.w #$A,d0
 	bmi.b abs_0_0004C41A
 	subq.w #4,paula_object_sound_smoothed_volume.l
@@ -58986,7 +58986,7 @@ abs_0_0004C41A:
 abs_0_0004C43A:
 	cmpi.w #17,selected_object_sound_type.l
 	bne.b abs_0_0004C474
-	movea.l #$4D15C,a0
+	movea.l #paula_type17_period_word_prefix,a0
 	move.b $0003(a2),d0
 	ext.w d0
 	move.w d0,d1
@@ -59001,7 +59001,7 @@ abs_0_0004C43A:
 abs_0_0004C474:
 	cmpi.w #19,selected_object_sound_type.l
 	bne.b abs_0_0004C49A
-	movea.l #$4D170,a0
+	movea.l #paula_type19_period_word_prefix,a0
 	move.b $0003(a2),d0
 	ext.w d0
 	add.w d0,d0
@@ -59011,7 +59011,7 @@ abs_0_0004C474:
 abs_0_0004C49A:
 	cmpi.w #36,selected_object_sound_type.l
 	bne.b abs_0_0004C4C0
-	movea.l #$4D190,a0
+	movea.l #paula_type36_period_word_prefix,a0
 	move.b $0003(a2),d0
 	ext.w d0
 	add.w d0,d0
@@ -59021,7 +59021,7 @@ abs_0_0004C49A:
 abs_0_0004C4C0:
 	cmpi.w #3,selected_object_sound_type.l
 	bne.b abs_0_0004C4D6
-	move.w $0012(a2),abs_0_0004D0C0.l
+	move.w $0012(a2),paula_type3_period_step_snapshot.l
 	bra.w abs_0_0004C5D8
 abs_0_0004C4D6:
 	cmpi.w #64,selected_object_sound_type.l
@@ -59041,9 +59041,9 @@ abs_0_0004C506:
 	cmpi.w #15,selected_object_sound_type.l
 	bne.b abs_0_0004C554
 abs_0_0004C510:
-	subq.w #4,abs_0_0004D0B4.l
+	subq.w #4,paula_types1_15_volume_envelope.l
 	bpl.b abs_0_0004C520
-	move.w #$0,abs_0_0004D0B4.l
+	move.w #$0,paula_types1_15_volume_envelope.l
 abs_0_0004C520:
 	tst.b modal_command_input_flag(a6)
 	bmi.b abs_0_0004C530
@@ -59056,7 +59056,7 @@ abs_0_0004C530:
 abs_0_0004C53C:
 	tst.w paula_object_sound_transition_phase.l
 	bpl.w abs_0_0004C5D8
-	move.w abs_0_0004D0B4.l,_custom+aud3+ac_vol.l
+	move.w paula_types1_15_volume_envelope.l,_custom+aud3+ac_vol.l
 	bra.w abs_0_0004C5D8
 abs_0_0004C554:
 	cmpi.w #88,selected_object_sound_type.l
@@ -59165,7 +59165,7 @@ restart_paula_object_sample_continuation:
 abs_0_0004C714:
 	cmpi.w #3,selected_object_sound_type.l
 	bne.w abs_0_0004C78E
-	move.w abs_0_0004D0C0.l,d3
+	move.w paula_type3_period_step_snapshot.l,d3
 	ori.w #1,d3
 	add.w d3,object_type3_rising_period_offset.l
 	andi.w #255,object_type3_rising_period_offset.l
@@ -60005,14 +60005,14 @@ paula_object_sound_target_volume:
 	dc.w $0000
 object_sound_selected_reference:
 	dc.l $00000000
-abs_0_0004D08C:
+paula_same_type_prefix_volume_sum:
 	dc.w $0000
-abs_0_0004D08E:
-	dc.w $0000
-abs_0_0004D090:
-	dc.w $0000
-abs_0_0004D092:
-	dc.w $0000
+paula_previous_selected_relative_delta:
+	dc.w $0000	; x_delta
+paula_previous_selected_relative_delta_y_delta:
+	dc.w $0000	; y_delta
+paula_previous_selected_relative_delta_z_delta:
+	dc.w $0000	; z_delta
 object_sound_candidate_found_flag:
 	dc.w $0000
 paula_object_sound_current_period:
@@ -60025,7 +60025,7 @@ paula_object_sound_base_period:
 	dc.b $00,$01
 paula_object_sound_base_volume:
 	dc.w $0000
-abs_0_0004D0A4:
+paula_same_type_base_volume:
 	dc.w $0000
 paula_object_sound_transition_phase:
 	dc.w $FFFF
@@ -60035,20 +60035,22 @@ paula_object_sound_requested_sample:
 	dc.l $00000000
 paula_object_sound_previous_sample:
 	dc.l $00000000
-abs_0_0004D0B2:
-	dc.b $00,$02
-abs_0_0004D0B4:
-	dcb.b $8,$00
-abs_0_0004D0BC:
-	dc.b $01,$66
-abs_0_0004D0BE:
+paula_type10_decay_phase_mod32:
+	dc.w $0002
+paula_types1_15_volume_envelope:
 	dc.w $0000
-abs_0_0004D0C0:
-	dc.w $0000
-abs_0_0004D0C2:
-	dc.w $0000
-abs_0_0004D0C4:
 	dc.b $00,$00,$00,$00,$00,$00
+paula_types56_58_current_period:
+	dc.w $0166
+paula_types56_58_volume_envelope:
+	dc.w $0000
+paula_type3_period_step_snapshot:
+	dc.w $0000
+paula_player_speed_period_bias_snapshot:
+	dc.w $0000
+paula_object_period_bias_snapshot:
+	dc.w $0000
+	dc.b $00,$00,$00,$00
 paula_initial_channel3_silence:
 	dcb.b $28,$00
 paula_descriptor_sample_fragment_00:
@@ -60058,18 +60060,21 @@ paula_descriptor_sample_fragment_00:
 	dc.b $79,$67,$4B,$27,$00,$D9,$B5,$99,$87,$81,$87,$99,$B5,$D9
 object_type5_sound_volume_ramp:
 	dc.w $0000
-abs_0_0004D130:
-	dc.b $02,$26,$01,$B8,$01,$36,$00,$FA,$00,$BE,$00,$AF,$00,$AE,$00,$AD
-	dc.b $00,$AC,$00,$AB,$00,$AC,$00,$AD,$00,$AE,$00,$AF,$00,$BE,$00,$FA
-	dc.b $01,$36,$02,$26
+paula_types5_46_period_word_prefix:
+	dc.w $0226,$01B8,$0136,$00FA,$00BE,$00AF,$00AE,$00AD
+	dc.w $00AC,$00AB,$00AC,$00AD,$00AE,$00AF,$00BE,$00FA
+	dc.w $0136,$0226
 	dcb.b $8,$00
-	dc.b $04,$10,$04,$06,$03,$FC,$03,$F2,$03,$D4,$03,$B6,$03,$8E,$03,$52
-	dc.b $03,$20,$02,$E4,$00,$D6,$00,$EB,$01,$00,$01,$10,$01,$20,$01,$40
-	dc.b $01,$54,$01,$68,$01,$86,$01,$68,$01,$54,$01,$40,$01,$20,$01,$10
-	dc.b $01,$00,$00,$EB,$05,$DC,$05,$D2,$05,$C8,$05,$BE,$05,$B4,$05,$AA
-	dc.b $05,$A0,$05,$96,$05,$82,$05,$64,$05,$3C,$05,$0A,$04,$CE,$04,$88
-	dc.b $04,$B0,$04,$F6,$05,$32,$05,$64,$05,$8C,$05,$AA,$05,$BE,$05,$C8
-	dc.b $05,$CD,$05,$D2
+paula_type17_period_word_prefix:
+	dc.w $0410,$0406,$03FC,$03F2,$03D4,$03B6,$038E,$0352
+	dc.w $0320,$02E4
+paula_type19_period_word_prefix:
+	dc.w $00D6,$00EB,$0100,$0110,$0120,$0140,$0154,$0168
+	dc.w $0186,$0168,$0154,$0140,$0120,$0110,$0100,$00EB
+paula_type36_period_word_prefix:
+	dc.w $05DC,$05D2,$05C8,$05BE,$05B4,$05AA,$05A0,$0596
+	dc.w $0582,$0564,$053C,$050A,$04CE,$0488,$04B0,$04F6
+	dc.w $0532,$0564,$058C,$05AA,$05BE,$05C8,$05CD,$05D2
 object_sound_type_exclusion_flags:
 	dc.b $00,$00,$FF,$00,$00,$00,$FF,$FF,$00,$00,$00,$00,$00,$00,$FF,$00
 	dc.b $00,$00,$00,$00,$FF,$00,$FF,$FF,$FF,$FF,$FF,$00,$00,$00,$FF,$00

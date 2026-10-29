@@ -51,7 +51,7 @@ ADF, full input `binary.bin`, captures or assembler executable is committed here
 ## Scope and analysis views
 
 This is the reviewed original absolute-address restoration with explicit
-unknowns: 106034 code bytes are accepted; 13624 bytes in 264 intervals remain
+unknowns: 106034 code bytes are accepted; 12682 bytes in 272 intervals remain
 unclassified. It is not full semantic/all-path restoration or a completed
 walkthrough. The source and assets preserve every original output byte.
 
@@ -91,7 +91,7 @@ private input is separate from this standalone build. Rendered outputs must be
 re-exported and their build manifest refreshed after source-fact changes.
 
 See [the restoration plan](../../docs/targets/starglider2-restoration-plan.md)
-and the [residual interval review](../../runtime/observations/starglider2-original-unknown-intervals.json).
+and the historical [residual interval review](../../runtime/observations/starglider2-original-unknown-intervals.json).
 The private final ZIP remains an earlier delivery; this committed tree now also
 contains its actual rendered source and required dependencies.
 

@@ -7,8 +7,8 @@ that further analysis is exhausted. Current source remains byte exact: all
 with all 106034 accepted code bytes retained. No generated assembly was edited
 by hand and no interim archive was produced.
 
-The current ownership union leaves 12842 bytes in
-273 intervals unclassified. This is classification accounting,
+The current ownership union leaves 12682 bytes in
+272 intervals unclassified. This is classification accounting,
 not a semantic completion percentage. Earlier interval/site counts below belong
 to their recorded closeout revision. See the current
 [native memory-span receipt](../../runtime/observations/starglider2-app-memory-spans.json),
@@ -31,6 +31,24 @@ Original mixed constructor families use only their established common prefix.
 The energy-tower initializer's World chain view stays distinct from its updater
 view. Packed-header normalization, signed comparisons, wrap, PRNG transforms,
 nullable/sentinel links and unknown constructor parameters remain unchanged.
+
+The Paula control/period batch identifies fourteen storage/table entities and
+160 bytes: a matching-prefix volume sum, previous selected relative XYZ, envelope
+and period controls, two write-only period-contribution snapshots, and four
+numeric period prefixes. Original early exits, signed BYTE selectors, 18/10/16/24
+physical WORD prefixes and intervening unknown bytes remain. No universal meaning
+is assigned to actor WORD at +$20, and no selector bound or exact period settling is
+asserted. C/vasm and clean standalone output remain exact; all prior native typed,
+gap, app and accepted-code records are identical (**3503 app / 2650 typed / 177 unresolved**).
+
+A private original-media scan experiment reached flight and selected mode 8 through
+normal W input. The 240-frame window completed with two visible objects, target
+type 0 and countdown 0; the table-load PC was not hit. This is not a timeout or a
+range proof. The failed initial weapon assumption (actual 4) is preserved too.
+Scalar-cell range work remains distinct: memory-value packets currently cover
+LONGs and the numeric pass uses finite WORD sets; a 0..56 countdown through WORD
+loads/BYTE updates needs a shared interval/cell contract, not a higher set cap or
+a per-reader seed. Progress independent data/field leads while that is designed.
 
 HUD attitude reconstruction connects the four source rectangle vectors to a
 normal scene header/corner packet and the alternate cyclic edge scan. Exact

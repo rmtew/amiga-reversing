@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "source_commit": "3e4694b7ef9aad81a72db5fecadfc0678049e7ac",
+  "source_commit": "4259f02006b8ee89564c67570c44b51b74ff5bfc",
   "source_assembly": "starglider2_game.s",
   "assets": [
     {
@@ -498,8 +498,8 @@
     },
     {
       "path": "README.md",
-      "bytes": 6535,
-      "sha256": "01080e988beb7b8bbc4f6873a591375fad83b92461ee3c879f02eca7187efad0"
+      "bytes": 6546,
+      "sha256": "70e4f7f897b5594062ace89745835706eece86720d62024388632a3d056e4ef0"
     },
     {
       "path": "analysis_views/boot-selector-installer-context.s",
@@ -878,13 +878,13 @@
     },
     {
       "path": "rendered-provenance.json",
-      "bytes": 3014,
-      "sha256": "0e38def67b49837a2406129d8fa9bed4017cff1067a21645801550f2b52df495"
+      "bytes": 3005,
+      "sha256": "75c423f6ca3bff404db34864b93b5fe25fd0012770a7d99cd51ab3ed39b7afb1"
     },
     {
       "path": "starglider2_game.s",
-      "bytes": 2006597,
-      "sha256": "1320ea48630e7fa4e9846e39f120be059a530349fb452467092308c94daba9f6"
+      "bytes": 2007730,
+      "sha256": "e9872a4b38f73704d38c59c79ffd928b86a73e8e330d2ec528d75ad654525f56"
     },
     {
       "path": "tools/starglider2_protection.py",
@@ -892,6 +892,6 @@
       "sha256": "81d3f66d36dbfbd5c77238b20c28e8b9abaa329777eb91f64669bbbf13703582"
     }
   ],
-  "source_commit_role": "publication base; reviewed HUD polygon projection, backing and mask ownership are bound by verification_receipt_id",
-  "source_subject_revision": "eac2485b6c09b0655d95bfe6a5ddfa2d56cf8000865ea79e734f63d6bdf4c843"
+  "source_commit_role": "publication base; reviewed Paula control and period-prefix consumers are bound by verification_receipt_id",
+  "source_subject_revision": "ee04c39c50b1cf9bb6134993de46ee0e2db4d4fd33cdf565969179f740a9d4e8"
 }
