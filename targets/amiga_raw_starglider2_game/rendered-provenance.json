@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
   "kind": "committed_native_rendered_original_export",
-  "canonical_source_commit": "9c3cfb6b25cc1e079bfb0cebe047760068fba6e3",
-  "publication_base_commit": "9c3cfb6b25cc1e079bfb0cebe047760068fba6e3",
+  "canonical_source_commit": "d37d25ab72bd2c28fd5bc717e290d1f2c1667e09",
+  "publication_base_commit": "d37d25ab72bd2c28fd5bc717e290d1f2c1667e09",
   "native_export": "CListingArtifact.source_package_payload(64)",
-  "main_source_sha256": "da4925da1918f5d4186ee10d2caa6c5de247cd859036beb5d445dcb5ca125f9c",
+  "main_source_sha256": "a27232e1d63b6c96d5c7bf0dcf161792edf7e761b599c3b19f16ebde4fc69ebd",
   "asset_count": 57,
   "asset_bytes": 93633,
   "game_assembly_hand_edits": false,
@@ -24,13 +24,13 @@
     "assembler executable",
     "paused Pandora work"
   ],
-  "canonical_source_commit_role": "publication base; reviewed alternate HUD capture, cache, redraw and directory consumers are bound by canonical facts and verification",
-  "canonical_source_subject_revision": "2ed2c3e2d58f69c49001f4acc6b30717e63b55f2251d948ccd80c4025448205d",
+  "canonical_source_commit_role": "publication base; reviewed encoded-coordinate scratch, face admission and retirement fallback consumers are bound by canonical facts and verification",
+  "canonical_source_subject_revision": "b9dcd98ca1411712de28a8bda308ba46dd4a2229665d887b5534c08d386dc378",
   "canonical_fact_sha256": {
     "source_binary.json": "42d4a5758b3e8236af7f912aee85e9ee5323bcd0961faa338c4f864080a0a7d9",
     "target_metadata.json": "e7540b68c118c56aba8815b6722eefa067517cc865fe9841d6c01ce96551389c",
-    "manual_actions.jsonl": "02d1e16540dd132b3eb1683a7f3bfd1524f4a70f206ff8b6b0d848a96106ba44",
-    "decision_journal.jsonl": "ba47b77f23adccc903423a3216cd0a75571560aec32355de25ad9eee1df075b2"
+    "manual_actions.jsonl": "c4dd8e7c3438ccf2095d3357abe02ab0c6296ae7a1bbb7b76a34c78e2747baa0",
+    "decision_journal.jsonl": "2db2ed8cd44a3dbaf480ab91d406b38bc931314bfd046a5b979ce3ccc07b682a"
   },
   "headers": "14 unmodified required include files collected by source_package.collect_package_includes from ext/amiga_includes/ndk_2.0/include; header notices retained",
   "decoded_protection_view": {
@@ -46,5 +46,5 @@
     },
     "runtime_scope": "Seven CPU write-site windows match this reversible view; no whole runtime-view identity or parent plaintext promotion."
   },
-  "verification_receipt_id": "dd53362686542ea63233a19720f3db7d34488b5f55d2b80d758a9f3330497a74"
+  "verification_receipt_id": "7d530bcedb5573f8c28aa4f8f78123ecaae97e6e002774b9d4393b82b49cdc92"
 }

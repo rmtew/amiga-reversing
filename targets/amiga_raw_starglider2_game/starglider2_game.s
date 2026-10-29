@@ -5645,31 +5645,31 @@ abs_0_00004AC8:
 	lea.l SG2ModelRenderView_face_admission_cache_bits(a4),a1
 	move.l (a1),model_face_admission_bits_scratch(a6)	; operand 1: SG2ModelRenderView_face_admission_cache_bits at (a1)
 	move.l a1,-(a7)
-	clr.w abs_0_000058A4.l
+	clr.w model_force_face_admission_word.l
 	move.w active_model_type_index(a6),d0
 	cmp.w #$31,d0
 	bne.b abs_0_00004AF2
-	move.w #$FFFF,abs_0_000058A4.l
+	move.w #$FFFF,model_force_face_admission_word.l
 abs_0_00004AF2:
 	cmp.w #$54,d0
 	bne.b abs_0_00004B00
-	move.w #$FFFF,abs_0_000058A4.l
+	move.w #$FFFF,model_force_face_admission_word.l
 abs_0_00004B00:
 	cmp.w #$1E,d0
 	bne.b abs_0_00004B0E
-	move.w #$FFFF,abs_0_000058A4.l
+	move.w #$FFFF,model_force_face_admission_word.l
 abs_0_00004B0E:
 	cmp.w #$2F,d0
 	bne.b abs_0_00004B1C
-	move.w #$FFFF,abs_0_000058A4.l
+	move.w #$FFFF,model_force_face_admission_word.l
 abs_0_00004B1C:
 	cmp.w #$5B,d0
 	bne.b abs_0_00004B2A
-	move.w #$FFFF,abs_0_000058A4.l
+	move.w #$FFFF,model_force_face_admission_word.l
 abs_0_00004B2A:
 	cmp.w #$3,d0
 	bne.b abs_0_00004B38
-	move.w #$FFFF,abs_0_000058A4.l
+	move.w #$FFFF,model_force_face_admission_word.l
 abs_0_00004B38:
 	move.w active_model_header_counts(a6),d0
 	beq.w transform_used_model_vertices_continuation
@@ -5688,7 +5688,7 @@ abs_0_00004B54:
 	cmpi.w #47,active_model_type_index(a6)
 	bne.b abs_0_00004B80
 	move.l a0,-(a7)
-	lea.l abs_0_00005894.l,a0
+	lea.l model47_random_face_styles.l,a0
 	bsr.w advance_shared_random_state
 	andi.w #14,d0
 	move.w $0(a0,d0.w),drawing_fill_style_word(a6)
@@ -5703,7 +5703,7 @@ abs_0_00004B80:
 	bne.w abs_0_00004C4E
 	tst.w d2
 	bmi.w abs_0_00004C4E
-	tst.w abs_0_000058A4.l
+	tst.w model_force_face_admission_word.l
 	bmi.b abs_0_00004BC2
 	move.w frame_handoff_counter(a6),d1
 	andi.w #3,d1
@@ -6237,9 +6237,9 @@ abs_0_00005142:
 abs_0_00005158:
 	movem.w $0(a1,d4.w),d1-d3
 abs_0_0000515E:
-	move.w d1,abs_0_000058A6.l
-	move.w d2,abs_0_000058A8.l
-	move.w d3,abs_0_000058AA.l
+	move.w d1,encoded_vertex_coordinate_reference_scratch.l
+	move.w d2,encoded_vertex_coordinate_reference_scratch_y_coordinate_ref.l
+	move.w d3,encoded_vertex_coordinate_reference_scratch_z_coordinate_ref.l
 	andi.w #32767,d1
 	andi.w #32767,d2
 	andi.w #32767,d3
@@ -6247,15 +6247,15 @@ abs_0_0000515E:
 	move.w $0(a2,d1.w),d1
 	move.w $0(a2,d2.w),d2
 	move.w $0(a2,d3.w),d3
-	tst.w abs_0_000058A6.l
+	tst.w encoded_vertex_coordinate_reference_scratch.l
 	bpl.b abs_0_00005196
 	neg.w d1
 abs_0_00005196:
-	tst.w abs_0_000058A8.l
+	tst.w encoded_vertex_coordinate_reference_scratch_y_coordinate_ref.l
 	bpl.b abs_0_000051A0
 	neg.w d2
 abs_0_000051A0:
-	tst.w abs_0_000058AA.l
+	tst.w encoded_vertex_coordinate_reference_scratch_z_coordinate_ref.l
 	bpl.b abs_0_000051AA
 	neg.w d3
 abs_0_000051AA:
@@ -6368,8 +6368,8 @@ abs_0_000052C2:
 	dcb.b $76,$00
 prepare_retirement_model_faces:
 	move.b #$21,diagnostic_step_byte.l
-	lea.l abs_0_000058AF.l,a0
-	move.b $0(a0,d0.w),abs_0_000058AE.l
+	lea.l model_retirement_fallback_suppression_prefix.l,a0
+	move.b $0(a0,d0.w),retirement_model_skip_fallback_flag.l
 	lea.l model_header_pointers.l,a0
 	add.w d0,d0
 	add.w d0,d0
@@ -6401,7 +6401,7 @@ abs_0_0000539A:
 	move.b #$22,diagnostic_step_byte.l
 	cmpi.b #3,active_model_retirement_phase_byte(a6)
 	bmi.w abs_0_00004FAA
-	tst.b abs_0_000058AE.l
+	tst.b retirement_model_skip_fallback_flag.l
 	bne.w abs_0_00004FAA
 	addq.w #1,active_model_scale_shift(a6)
 	lea.l model_header_pointers.l,a0
@@ -6644,9 +6644,9 @@ transform_encoded_vertex_coordinates:
 	movem.l d4/a0-a3,-(a7)
 	lea.l model_cache_x_negative_terms.l,a0
 	move.w #$7FFF,d4
-	move.w d1,abs_0_000058A6.l
-	move.w d2,abs_0_000058A8.l
-	move.w d3,abs_0_000058AA.l
+	move.w d1,encoded_vertex_coordinate_reference_scratch.l
+	move.w d2,encoded_vertex_coordinate_reference_scratch_y_coordinate_ref.l
+	move.w d3,encoded_vertex_coordinate_reference_scratch_z_coordinate_ref.l
 	and.w d4,d1
 	and.w d4,d2
 	and.w d4,d3
@@ -6743,15 +6743,15 @@ abs_0_0000579C:
 	neg.w d4
 	move.w d4,$0004(a3)
 abs_0_000057E4:
-	tst.w abs_0_000058A6.l
+	tst.w encoded_vertex_coordinate_reference_scratch.l
 	bmi.b abs_0_000057F2
 	adda.l #$960,a1
 abs_0_000057F2:
-	tst.w abs_0_000058A8.l
+	tst.w encoded_vertex_coordinate_reference_scratch_y_coordinate_ref.l
 	bmi.b abs_0_00005800
 	adda.l #$960,a2
 abs_0_00005800:
-	tst.w abs_0_000058AA.l
+	tst.w encoded_vertex_coordinate_reference_scratch_z_coordinate_ref.l
 	bmi.b abs_0_0000580E
 	adda.l #$960,a3
 abs_0_0000580E:
@@ -6801,19 +6801,20 @@ abs_0_00005884:
 	movem.l (a7)+,d5/a5
 	movem.w d1-d3,$0(a0,d4.w)
 	rts
-abs_0_00005894:
-	dc.b $00,$01,$00,$03,$00,$04,$00,$05,$00,$06,$00,$03,$00,$01,$00,$04
-abs_0_000058A4:
+model47_random_face_styles:
+	dc.w $0001,$0003,$0004,$0005,$0006,$0003,$0001,$0004
+model_force_face_admission_word:
 	dc.w $0000
-abs_0_000058A6:
+encoded_vertex_coordinate_reference_scratch:
+	dc.w $0000	; x_coordinate_ref
+encoded_vertex_coordinate_reference_scratch_y_coordinate_ref:
+	dc.w $0000	; y_coordinate_ref
+encoded_vertex_coordinate_reference_scratch_z_coordinate_ref:
+	dc.w $0000	; z_coordinate_ref
 	dc.w $0000
-abs_0_000058A8:
-	dc.w $0000
-abs_0_000058AA:
-	dc.b $00,$00,$00,$00
-abs_0_000058AE:
+retirement_model_skip_fallback_flag:
 	dc.b $00
-abs_0_000058AF:
+model_retirement_fallback_suppression_prefix:
 	dc.b $00,$01,$00,$00,$00,$00,$00,$01,$01,$00,$00,$00,$00,$01,$00,$01
 	dc.b $01,$00,$01,$01,$00,$01,$01,$00,$01,$00,$01,$01,$00,$00,$00,$01
 	dc.b $01,$01,$01,$01,$01,$01,$00,$01,$01,$01,$01,$00,$01,$01,$00,$01
@@ -6821,7 +6822,8 @@ abs_0_000058AF:
 	dc.b $00,$01,$01,$01,$01,$01,$01,$01,$00,$01,$01
 	dcb.b $8,$00
 	dc.b $01,$00,$01,$00,$01,$00,$00,$01,$01,$01,$01,$01,$00,$00,$01,$01
-	dc.b $01,$01,$01,$01,$01,$00
+	dc.b $01,$01,$01,$01,$01
+	dc.b $00
 model_maximum_signed_coordinates:
 	dcb.w $68,$0000
 	dc.b $13,$FC,$00,$11,$00,$00,$E1,$03,$48,$C1,$48,$C2,$48,$C4,$48,$C5

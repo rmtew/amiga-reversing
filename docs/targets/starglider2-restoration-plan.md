@@ -7,8 +7,8 @@ that further analysis is exhausted. Current source remains byte exact: all
 with all 106034 accepted code bytes retained. No generated assembly was edited
 by hand and no interim archive was produced.
 
-The current ownership union leaves 12632 bytes in
-270 intervals unclassified. This is classification accounting,
+The current ownership union leaves 12503 bytes in
+271 intervals unclassified. This is classification accounting,
 not a semantic completion percentage. Earlier interval/site counts below belong
 to their recorded closeout revision. See the current
 [native memory-span receipt](../../runtime/observations/starglider2-app-memory-spans.json),
@@ -31,6 +31,15 @@ Original mixed constructor families use only their established common prefix.
 The energy-tower initializer's World chain view stays distinct from its updater
 view. Packed-header normalization, signed comparisons, wrap, PRNG transforms,
 nullable/sentinel links and unknown constructor parameters remain unchanged.
+
+Encoded-coordinate scratch now uses existing `SG2CoordinateReferenceTriple`:
+twelve absolute WORD accesses name its raw X/Y/Z reference fields before sign
+masking. Five consumed entities also identify model47 random fill styles, forced
+face admission and the model-indexed retirement fallback gate/prefix. 129 bytes
+are classified; three adjacent bytes remain unknown. This is static-source field
+projection, not new register-based typed-access coverage: **3503 app /2650 typed /
+177 unresolved**. Original culling/clipping, model/object distinction and conditional
+index obligations remain. C/vasm and clean standalone output are exact.
 
 The main-view warning at source+$12BFC is a code/data boundary conflict in the
 intentional novella encoded payload, not an accepted original-phase instruction.

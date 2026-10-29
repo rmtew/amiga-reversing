@@ -121,6 +121,8 @@ def _page(items, offset, limit, scope=None, unknowns=None):
 
 
 def _pagination(body, revision, filters):
+    if "offset" in body:
+        raise ValueError("offset is not supported; use the returned next_cursor")
     limit = body.get("limit", 30)
     if type(limit) is not int or not 1 <= limit <= 100:
         raise ValueError("limit must be an integer from 1 to 100")

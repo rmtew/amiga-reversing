@@ -198,6 +198,15 @@ def test_stale_revision_blocks_reads_and_writes_without_changes(target):
     assert (target.directory / "manual_actions.jsonl").read_bytes() == raw
 
 
+@pytest.mark.parametrize("operation", ["query", "history"])
+@pytest.mark.parametrize("offset", [0, 1, 2650])
+def test_pagination_rejects_ignored_offset_without_reading_native_facts(target, operation, offset):
+    body = {"kind": "fields"} if operation == "query" else {}
+    with pytest.raises(ValueError, match="offset is not supported; use the returned next_cursor"):
+        invoke(operation, offset=offset, **body)
+    assert not target.calls
+
+
 def test_cursor_pages_are_bound_to_filters_and_revision(target):
     first = invoke("query", kind="symbols", limit=1)
     second = invoke("query", kind="symbols", limit=1, cursor=first["next_cursor"])

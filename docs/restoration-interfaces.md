@@ -227,6 +227,10 @@ The forward-only preview can retain a parent span for grouped data lines, so its
 metadata must not be used as per-line byte evidence. Use the persistent lookup
 for source-value validation and catalog mutations.
 
+Queries and history use the returned `next_cursor` for pagination. An input
+`offset` is rejected rather than silently starting again at the first page;
+native artifact queries retain their separate internal offset API.
+
 ## CLI
 
 ```sh
