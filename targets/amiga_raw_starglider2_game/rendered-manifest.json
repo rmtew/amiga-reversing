@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "source_commit": "ed5eac7aa078cfaf89da11d133e923dedbe6c951",
+  "source_commit": "fcca784ca6bad4358ceffc3a6ebc99fcb20ffb06",
   "source_assembly": "starglider2_game.s",
   "assets": [
     {
@@ -878,13 +878,13 @@
     },
     {
       "path": "rendered-provenance.json",
-      "bytes": 3007,
-      "sha256": "0940cabff59f726480c6f9ff0cac9f83cf1815c167ab7c2bddd1eb6f32c9866d"
+      "bytes": 3013,
+      "sha256": "b9cd1b71b8ff9af522dec91a05962a1f3633426970b9ec6b642a9e07ac47cd2d"
     },
     {
       "path": "starglider2_game.s",
-      "bytes": 1989591,
-      "sha256": "63df78a1646096b236176f1670d7077509908faf33005e40a6fbe40a28cd64fb"
+      "bytes": 1990560,
+      "sha256": "c9b5c5c0cfa8df66af9d5066506d279f39d56fe6dd45ee481c1d116a66b9f278"
     },
     {
       "path": "tools/starglider2_protection.py",
@@ -892,6 +892,6 @@
       "sha256": "81d3f66d36dbfbd5c77238b20c28e8b9abaa329777eb91f64669bbbf13703582"
     }
   ],
-  "source_commit_role": "publication base; reviewed bomb role and shared vector-scale contracts are bound by verification_receipt_id",
-  "source_subject_revision": "e4b4280eb59b602cdad24af8e1aac258d14ab55d5e1c7f699dc16ae8863ae98e"
+  "source_commit_role": "publication base; reviewed launcher producer and station lifecycle contracts are bound by verification_receipt_id",
+  "source_subject_revision": "0a1597c70435fddea509ece034161e732b7469579442332f6cd98a1ad6cd8ca7"
 }

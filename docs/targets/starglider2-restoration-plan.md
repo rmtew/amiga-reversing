@@ -20,7 +20,7 @@ An on-demand systematic gap inventory (`amiga_reversing/tools/source_gap_invento
 joins native identities/accesses with canonical layouts and actual rendered
 boundaries. It records 67 suffix signals (including numeric adjacent variants),
 21 lookup contracts, 523 remaining interior references, 31 generic app fields
-and 271 unresolved record accesses. These are different denominators. Five
+and 249 unresolved record accesses. These are different denominators. Five
 suffixes name routines and one names text; neither is a pointer defect.
 Current restored object contracts connect original update/initializer directories,
 literal-tag producers and reviewed forwarding paths. Walking, flying, mechanical,
@@ -32,21 +32,21 @@ The energy-tower initializer's World chain view stays distinct from its updater
 view. Packed-header normalization, signed comparisons, wrap, PRNG transforms,
 nullable/sentinel links and unknown constructor parameters remain unchanged.
 
-Latest bomb lifecycle contracts connect the original type 91/type 98 near/distant
-updates, literal producers and shared launch helpers. MotionVectorActor owns only
-the proven signed vector scale shared with Pirate; TimedMotionActor adds the update
-countdown. BouncingBomb keeps its phase/mask fields, and NeutronBomb keeps its
-sign-tested released-motion flag. Shared header high-byte writes and the opaque,
-rebased carried-reference slot do not acquire a universal phase/pointee meaning.
-Eighteen actions add 29 typed accesses, resolve 12 gaps and expose one shared launch
-WORD 38 clear whose meaning differs or remains unknown. Three existing Pirate
-scale accesses migrate owner only, with unchanged name/width/offset. No prior
-access is lost: **3503 app /2432 typed /271 unresolved**. Original repeated Y
-integration, detonation clobbers, counter wrap, bounce and sound behavior remain.
-C/vasm and clean staged standalone output match all 412736 original bytes;
-57 assets/14 headers and 106034 accepted code bytes are unchanged. The ownership
-union still leaves 13624 bytes in 264 intervals unclassified. Asset row indices
-shifted in the native listing; their bytes, source spans and paths did not change.
+Latest launcher/station contracts connect two finite original spawn tables
+(types 13/18/21/31/32/33/34/45 and 1/9/15/39) to producer-local World views.
+The station's literal type-99 construction, initializer and near/distant callbacks
+share a SpaceStation role; only its incremented/masked BYTE 34 emission phase
+is added. Its WORD 36 initializer remains unnamed, and emitted non-model type 146
+is not cast to a World record. Eight actions recover 22 typed accesses and resolve
+22 gaps, with no lost access or changed field meaning: **3503 app /2454 typed
+/249 unresolved**. C/vasm rebuilding matches all 412736 original bytes.
+
+The preceding bomb contracts retain the shared vector scale/countdown, bouncing
+phase/mask and neutron sign-tested released-motion fields. Three Pirate scale
+accesses changed owner only, preserving their names/widths/offsets. Header partial
+writes, opaque rebased carried references, repeated Y integration and detonation
+clobbers remain unchanged. The ownership union still leaves 13624 bytes in 264
+intervals unclassified; 57 assets, 14 headers and 106034 accepted code bytes remain.
 
 The preceding shared low-WORD transfer fix retains same-register ADD/SUB
 correlation without treating different registers with equal sets as identical.
@@ -78,8 +78,8 @@ proof is consumed at final access recording. Next isolate a shared indexed-input
 EA/field-type projection using existing converged low-WORD facts; do not reinterpret
 legacy guard-local bounds as byte offsets, add a parallel value engine or infer
 immutable targets for mutable directories. Pure signed compare/retry constraints
-remain a separate unimplemented precision case. Independent neutron-bomb/station
-field leads can progress without that extension. All37 sprite/name/audio/
+remain a separate unimplemented precision case. Independent distant-update callback contracts
+can progress without that extension. All37 sprite/name/audio/
 text-reference gaps are indexed accesses. A four-entry fixture resolves a constant
 index but remains `indexed_dynamic` after signed0..3 guards; its unguarded negative
 also stays unresolved. Branch/partial-WORD constraint transport needs shared-value

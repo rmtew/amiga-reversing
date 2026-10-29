@@ -1336,6 +1336,13 @@ SG2NeutronBomb_released_motion_negative_flag RS.B 1
     RS.B 36
 SG2NeutronBomb_SIZEOF EQU __RS
 
+; STRUCT SG2SpaceStation
+    RSRESET
+    RS.B 34
+SG2SpaceStation_emission_phase_mod8 RS.B 1
+    RS.B 33
+SG2SpaceStation_SIZEOF EQU __RS
+
 ADKF_CLRALL	EQU	$7FFF
 BPLCON2_PF2P2	EQU	$20
 BPLCON2_PF2PRI	EQU	$40
@@ -12593,12 +12600,13 @@ abs_0_0000A8F2:
 	bsr.w abs_0_0000E9B4
 	andi.w #7,d0
 	move.b $0(a1,d0.w),d0
+    ; KNOWN: type A2=Target code-entry register seed:SG2WorldObject
 	move.w d0,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
-	move.b #$5,$002A(a2)
+	move.b #$5,SG2TargetingObject_collision_ignored_object_type(a2)
 	move.b d0,$002A(a0)
-	clr.b $0003(a2)
+	clr.b SG2WorldObject_vertex_variant_selector(a2)
 	lea.l model_default_scale_shifts.l,a1
-	move.b $0(a1,d0.w),$001D(a2)
+	move.b $0(a1,d0.w),SG2TargetingObject_model_scale_shift(a2)
 	lea.l model_default_durability_bytes.l,a1
 	move.b $0(a1,d0.w),SG2ObjectCore_durability_or_negative(a2)
 	add.w d0,d0
@@ -12608,15 +12616,15 @@ abs_0_0000A8F2:
 	clr.w $0026(a2)
 	move.l $0004(a0),SG2ObjectCore_world_x(a2)
 	move.l $000C(a0),SG2ObjectCore_world_z(a2)
-	move.w #$FFFB,$002E(a2)
+	move.w #$FFFB,SG2WorldObject_velocity_y(a2)
 	move.b #$1,$002B(a2)
-	move.w #$1,$0014(a2)
+	move.w #$1,SG2WorldObject_rotation_2(a2)
 	move.b #$64,$0029(a2)
 	bsr.w heading_from_world_xz_to_player
-	move.w d1,$0012(a2)
+	move.w d1,SG2WorldObject_rotation_1(a2)
 	move.l #$FFFFFFEC,SG2ObjectCore_world_y(a2)
 	move.b #$FF,SG2ObjectCore_retirement_phase_or_negative(a2)
-	move.l a0,$003C(a2)
+	move.l a0,SG2WorldObject_linked_record_or_sentinel(a2)
 	move.l a2,$003C(a0)
 	bset.b #7,SG2ObjectCore_flags(a2)
 	bset.b #5,SG2ObjectCore_flags(a2)
@@ -12670,21 +12678,22 @@ abs_0_0000AA3A:
 	andi.w #3,d0
 	clr.w d3
 	move.b $0(a1,d0.w),d3
+    ; KNOWN: type A2=Target code-entry register seed:SG2WorldObject
 	move.w d3,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
-	move.b #$2E,$002A(a2)
+	move.b #$2E,SG2TargetingObject_collision_ignored_object_type(a2)
 	move.b d3,$002A(a0)
-	move.b #$3,$001D(a2)
-	clr.b $0003(a2)
+	move.b #$3,SG2TargetingObject_model_scale_shift(a2)
+	clr.b SG2WorldObject_vertex_variant_selector(a2)
 	move.l $0004(a0),SG2ObjectCore_world_x(a2)
 	move.l $000C(a0),SG2ObjectCore_world_z(a2)
 	move.l #$FFFFFFFB,SG2ObjectCore_world_y(a2)
 	move.b #$FF,SG2ObjectCore_retirement_phase_or_negative(a2)
-	move.w $0010(a0),$0010(a2)
+	move.w $0010(a0),SG2WorldObject_rotation_0(a2)
 	move.w $0012(a0),d3
 	addi.w #1024,d3
-	move.w d3,$0012(a2)
-	move.w $0014(a0),$0014(a2)
-	move.l a0,$003C(a2)
+	move.w d3,SG2WorldObject_rotation_1(a2)
+	move.w $0014(a0),SG2WorldObject_rotation_2(a2)
+	move.l a0,SG2WorldObject_linked_record_or_sentinel(a2)
 	move.l a2,$003C(a0)
 	bset.b #7,SG2ObjectCore_flags(a2)
 	st.b $0028(a0)
@@ -12696,7 +12705,7 @@ abs_0_0000AA3A:
 	move.w d0,$0020(a2)
 	move.b #$6,SG2ObjectCore_durability_or_negative(a2)
 	move.b #$1,$002B(a2)
-	move.l a0,$003C(a2)
+	move.l a0,SG2WorldObject_linked_record_or_sentinel(a2)
 	bclr.b #4,SG2ObjectCore_flags(a2)
 	move.b #$64,$0029(a2)
 	move.b #$AA,$0028(a2)
@@ -24405,7 +24414,7 @@ abs_0_0001890C:
 	bset.b #7,SG2ObjectCore_flags(a0)
 	move.l #$FFFFFEA2,SG2ObjectCore_world_y(a0)
 	rts
-    ; KNOWN: type A0=Target code-entry register seed:SG2WorldObject
+    ; KNOWN: type A0=Target code-entry register seed:SG2SpaceStation
 initialize_space_station_height_and_orientation:
 	bset.b #7,SG2ObjectCore_durability_or_negative(a0)
 	move.l #$FECED300,SG2ObjectCore_world_y(a0)
@@ -43095,20 +43104,21 @@ abs_0_00033106:
 	beq.b abs_0_00033184
 	movea.l distant_objects_cursor(a6),a0
 	movea.l (a0),a4
+    ; KNOWN: type A4=Target code-entry register seed:SG2SpaceStation
 abs_0_00033112:
 	lea.l model_default_scale_shifts.l,a0
 	move.w #$63,d0
-	move.b $0(a0,d0.w),$001D(a4)
+	move.b $0(a0,d0.w),SG2TargetingObject_model_scale_shift(a4)
 	move.w d0,(a4)	; operand 2: SG2ObjectCore_object_type at (a4)
 	move.b #$FF,SG2ObjectCore_retirement_phase_or_negative(a4)
 	bset.b #7,SG2ObjectCore_durability_or_negative(a4)
-	clr.b $0003(a4)
+	clr.b SG2WorldObject_vertex_variant_selector(a4)
 	move.l #$2255100,SG2ObjectCore_world_x(a4)
 	move.l #$1374780,SG2ObjectCore_world_z(a4)
 	move.l #$FECED300,SG2ObjectCore_world_y(a4)
-	move.w #$F00,$0010(a4)
-	clr.w $0012(a4)
-	clr.w $0014(a4)
+	move.w #$F00,SG2WorldObject_rotation_0(a4)
+	clr.w SG2WorldObject_rotation_1(a4)
+	clr.w SG2WorldObject_rotation_2(a4)
 	move.w #$C8,$0024(a4)
 	move.w station_construction_steps_remaining(a6),d0
 	bpl.b abs_0_00033168
@@ -46682,19 +46692,19 @@ abs_0_0003620C:
 	add.l millway_orbit_parent_z(a6),d4
 abs_0_00036214:
 	rts
-    ; KNOWN: type A0=Target code-entry register seed:SG2WorldObject
+    ; KNOWN: type A0=Target code-entry register seed:SG2SpaceStation
 update_nearby_space_station:
 	bsr.w advance_space_station_state
 	st.b space_station_nearby_flag(a6)
 	move.l a0,nearby_space_station_reference(a6)
 	bra.w abs_0_00039D56
-    ; KNOWN: type A0=Target code-entry register seed:SG2WorldObject
+    ; KNOWN: type A0=Target code-entry register seed:SG2SpaceStation
 update_distant_space_station:
 	bsr.w advance_space_station_state
 	sf.b space_station_nearby_flag(a6)
 	clr.l nearby_space_station_reference(a6)
 	bra.w abs_0_00039D3E
-    ; KNOWN: type A0=Target code-entry register seed:SG2WorldObject
+    ; KNOWN: type A0=Target code-entry register seed:SG2SpaceStation
 advance_space_station_state:
 	cmpi.w #$FFFF,station_charge_steps_remaining(a6)
 	bne.w abs_0_000362D2
@@ -46705,8 +46715,8 @@ advance_space_station_state:
 	addi.w #16,SG2WorldObject_rotation_0(a0)
 	andi.w #4095,SG2WorldObject_rotation_0(a0)
 	ori.w #1,SG2WorldObject_rotation_0(a0)
-	addi.b #1,$0022(a0)
-	andi.b #7,$0022(a0)
+	addi.b #1,SG2SpaceStation_emission_phase_mod8(a0)
+	andi.b #7,SG2SpaceStation_emission_phase_mod8(a0)
 	bne.b abs_0_000362D2
 	cmpi.w #2,free_object_count(a6)
 	bls.w abs_0_000362D2
