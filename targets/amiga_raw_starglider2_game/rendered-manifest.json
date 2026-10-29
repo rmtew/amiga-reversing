@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "source_commit": "09064332d8b4a7950b5c2c08e0e1150094810275",
+  "source_commit": "9b8d47afbdbe175053ab5cf73b892878222a84d0",
   "source_assembly": "starglider2_game.s",
   "assets": [
     {
@@ -878,13 +878,13 @@
     },
     {
       "path": "rendered-provenance.json",
-      "bytes": 3047,
-      "sha256": "67814e076325bee1215074b17efec320af13ffa73bafd7faa57ef39401565fb5"
+      "bytes": 3088,
+      "sha256": "186cb869ff440666336550b5ad51cf19e0bc7c7b598d88322d4e0243c21f142c"
     },
     {
       "path": "starglider2_game.s",
-      "bytes": 2013797,
-      "sha256": "a08a1bb147b6bb5c5831f3795b4128f48b4fbf0fff15901cdd483896318828f5"
+      "bytes": 2014246,
+      "sha256": "f29bca0ef7c4e9b952fb713b7f4b029c8ad486cf6ca766b791fc4f77115f6d9f"
     },
     {
       "path": "tools/starglider2_protection.py",
@@ -892,6 +892,6 @@
       "sha256": "81d3f66d36dbfbd5c77238b20c28e8b9abaa329777eb91f64669bbbf13703582"
     }
   ],
-  "source_commit_role": "publication base; reviewed source stack seed, explicit initial SP boundary and original startup/decode helpers are bound by verification_receipt_id",
-  "source_subject_revision": "8c5f6ddb517679591fea435e7cc3707cd6d46c47d13324d189b0bfb1c5585b2c"
+  "source_commit_role": "publication base; reviewed conditional reticle and type146 colour-path input contracts; original predicates and coarse contact-list boundaries retained are bound by verification_receipt_id",
+  "source_subject_revision": "d0efdf0ff821361c93999767f0efaefd702b4624aeda938b05439c19c6e9075f"
 }

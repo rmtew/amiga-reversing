@@ -7867,7 +7867,9 @@ abs_0_00006890:
 	beq.b select_star_point_colour
 	cmpi.w #146,(a4)	; operand 2: SG2ObjectCore_object_type at (a4)
 	bne.b abs_0_000068BC
-	tst.b $001F(a4)
+    ; KNOWN: type A4=Target code-entry register seed:SG2EnergySpheroid
+test_energy_spheroid_colour_mode:
+	tst.b SG2EnergySpheroid_expansion_mode_flag(a4)
 	bpl.b abs_0_000068BC
     ; KNOWN: type A4=Target code-entry register seed:SG2EnergySpheroid
 select_expanding_spheroid_primary_colour:
@@ -8967,9 +8969,11 @@ abs_0_0000741C:
 	move.w aim_reticle_screen_x(a6),d4
 	sub.w d1,d4
 	btst #8,d0
-	bne.b abs_0_00007500
+	bne.b test_nonmodel_reticle_extent
+    ; KNOWN: type A4=Target code-entry register seed:SG2TargetingObject
+test_model_reticle_extent:
 	move.w $0(a2,d0.w),d6
-	move.b $001D(a4),d5
+	move.b SG2TargetingObject_model_scale_shift(a4),d5
 	ext.l d6
 	asr.l d5,d6
 	muls.w $0(a0,d3.w),d6
@@ -9007,19 +9011,20 @@ abs_0_000074E6:
 abs_0_000074FA:
 	dbf.w d7,abs_0_0000741C
 	rts
-abs_0_00007500:
+    ; KNOWN: type A4=Target code-entry register seed:SG2RadialObject
+test_nonmodel_reticle_extent:
 	lea.l nonmodel_object_base_radii.l,a1
-	move.w $0026(a4),d1
+	move.w SG2RadialObject_projected_screen_x(a4),d1
 	add.w projection_screen_origin_x(a6),d1
 	move.w aim_reticle_screen_x(a6),d4
 	sub.w d1,d4
-	move.w $002A(a4),d6
+	move.w SG2RadialObject_projected_radius(a4),d6
 	cmp.w d6,d4
 	bpl.b abs_0_000074FA
 	neg.w d4
 	cmp.w d6,d4
 	bpl.b abs_0_000074FA
-	move.w $0028(a4),d2
+	move.w SG2RadialObject_projected_screen_y(a4),d2
 	add.w projection_screen_origin_y(a6),d2
 	move.w aim_reticle_screen_y(a6),d4
 	sub.w d2,d4
