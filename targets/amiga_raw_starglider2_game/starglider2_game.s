@@ -1034,7 +1034,9 @@ SG2Asteroid_SIZEOF EQU __RS
 SG2FlyingActor_horizontal_motion_scale RS.W 1
     RS.B 4
 SG2FlyingActor_proximity_maneuver_countdown RS.W 1
-    RS.B 28
+    RS.B 3
+SG2FlyingActor_escape_capsule_pending_flag RS.B 1
+    RS.B 24
 SG2FlyingActor_SIZEOF EQU __RS
 
 ; STRUCT SG2ScheduledActor
@@ -1206,6 +1208,38 @@ SG2BlowholeEmitter_SIZEOF EQU __RS
 SG2SaucerActor_escape_capsule_pending_flag RS.B 1
     RS.B 24
 SG2SaucerActor_SIZEOF EQU __RS
+
+; STRUCT SG2CapsuleCarrier
+    RSRESET
+    RS.B 43
+SG2CapsuleCarrier_escape_capsule_pending_flag RS.B 1
+    RS.B 24
+SG2CapsuleCarrier_SIZEOF EQU __RS
+
+; STRUCT SG2HoverCar
+    RSRESET
+    RS.B 40
+SG2HoverCar_link_release_countdown RS.B 1
+    RS.B 27
+SG2HoverCar_SIZEOF EQU __RS
+
+; STRUCT SG2BouncingActor
+    RSRESET
+    RS.B 32
+SG2BouncingActor_horizontal_motion_scale RS.W 1
+    RS.B 34
+SG2BouncingActor_SIZEOF EQU __RS
+
+; STRUCT SG2TunnelIndicator
+    RSRESET
+    RS.B 20
+SG2TunnelIndicator_rotation_2 RS.W 1
+    RS.B 16
+SG2TunnelIndicator_rotation_mode RS.B 1
+    RS.B 9
+SG2TunnelIndicator_angular_step RS.W 1
+    RS.B 18
+SG2TunnelIndicator_SIZEOF EQU __RS
 
 ADKF_CLRALL	EQU	$7FFF
 BPLCON2_PF2P2	EQU	$20
@@ -9409,7 +9443,7 @@ primary_object_update_offsets:
 	dc.w update_egron_silo_launch_cycle-primary_object_update_offsets
 	dc.w update_link_following_or_free_motion_object-primary_object_update_offsets
 	dc.w force_large_bird_base_frame_then_update-primary_object_update_offsets
-	dc.w abs_0_00009500-primary_object_update_offsets
+	dc.w integrate_and_steer_horizontal_actor-primary_object_update_offsets
 	dc.w update_nearby_egron_land_tank-primary_object_update_offsets
 	dc.w advance_mechanical_whale_vertex_cycle-primary_object_update_offsets
 	dc.w oscillate_duck_vertex_variant-primary_object_update_offsets
@@ -9440,7 +9474,7 @@ primary_object_update_offsets:
 	dc.w abs_0_00008A4E-primary_object_update_offsets
 	dc.w abs_0_00008484-primary_object_update_offsets
 	dc.w update_flat_diamond_ballistic_motion-primary_object_update_offsets
-	dc.w abs_0_000094C6-primary_object_update_offsets
+	dc.w release_hover_car_link_then_steer-primary_object_update_offsets
 	dc.w abs_0_00008618-primary_object_update_offsets
 	dc.w advance_space_ray_frame_then_update-primary_object_update_offsets
 	dc.w abs_0_000087BE-primary_object_update_offsets
@@ -9456,10 +9490,10 @@ primary_object_update_offsets:
 	dc.w abs_0_000081D2-primary_object_update_offsets
 	dc.w abs_0_000081D2-primary_object_update_offsets
 	dc.w abs_0_0000882E-primary_object_update_offsets
-	dc.w abs_0_00009436-primary_object_update_offsets
+	dc.w update_bouncing_ball_motion_and_vertex_phase-primary_object_update_offsets
 	dc.w abs_0_000081D2-primary_object_update_offsets
-	dc.w abs_0_000087C8-primary_object_update_offsets
-	dc.w abs_0_000087C8-primary_object_update_offsets
+	dc.w update_tunnel_indicator_rotation-primary_object_update_offsets
+	dc.w update_tunnel_indicator_rotation-primary_object_update_offsets
 	dc.w abs_0_000083D8-primary_object_update_offsets
 	dc.w abs_0_000083FE-primary_object_update_offsets
 	dc.w abs_0_000083D8-primary_object_update_offsets
@@ -9486,7 +9520,7 @@ primary_object_update_offsets:
 	dc.w abs_0_00008594-primary_object_update_offsets
 	dc.w update_link_following_or_free_motion_object-primary_object_update_offsets
 	dc.w update_nearby_bouncing_projectile-primary_object_update_offsets
-	dc.w abs_0_000087C8-primary_object_update_offsets
+	dc.w update_tunnel_indicator_rotation-primary_object_update_offsets
 	dc.w abs_0_000087AA-primary_object_update_offsets
 	dc.w abs_0_000081D2-primary_object_update_offsets
 	dc.w abs_0_0000849C-primary_object_update_offsets
@@ -10079,33 +10113,34 @@ abs_0_000087AA:
 abs_0_000087BE:
 	addi.w #32,$0012(a0)
 	bra.w abs_0_000081D2
-abs_0_000087C8:
-	cmpi.b #1,$0026(a0)
+    ; KNOWN: type A0=Target code-entry register seed:SG2TunnelIndicator
+update_tunnel_indicator_rotation:
+	cmpi.b #1,SG2TunnelIndicator_rotation_mode(a0)
 	beq.b abs_0_000087F0
-	cmpi.b #2,$0026(a0)
+	cmpi.b #2,SG2TunnelIndicator_rotation_mode(a0)
 	beq.b abs_0_00008800
-	cmpi.b #4,$0026(a0)
+	cmpi.b #4,SG2TunnelIndicator_rotation_mode(a0)
 	beq.b abs_0_00008810
-	addi.w #90,$0014(a0)
-	andi.w #4095,$0014(a0)
+	addi.w #90,SG2TunnelIndicator_rotation_2(a0)
+	andi.w #4095,SG2TunnelIndicator_rotation_2(a0)
 	bra.w abs_0_000081D2
 abs_0_000087F0:
-	addi.w #70,$0014(a0)
-	andi.w #4095,$0014(a0)
+	addi.w #70,SG2TunnelIndicator_rotation_2(a0)
+	andi.w #4095,SG2TunnelIndicator_rotation_2(a0)
 	bra.w abs_0_000081D2
 abs_0_00008800:
-	subi.w #70,$0014(a0)
-	andi.w #4095,$0014(a0)
+	subi.w #70,SG2TunnelIndicator_rotation_2(a0)
+	andi.w #4095,SG2TunnelIndicator_rotation_2(a0)
 	bra.w abs_0_000081D2
 abs_0_00008810:
-	move.w $0030(a0),d0
-	add.w d0,$0014(a0)
-	tst.w $0014(a0)
+	move.w SG2TunnelIndicator_angular_step(a0),d0
+	add.w d0,SG2TunnelIndicator_rotation_2(a0)
+	tst.w SG2TunnelIndicator_rotation_2(a0)
 	bpl.b abs_0_00008826
-	addq.w #4,$0030(a0)
+	addq.w #4,SG2TunnelIndicator_angular_step(a0)
 	bra.w abs_0_000081D2
 abs_0_00008826:
-	subq.w #4,$0030(a0)
+	subq.w #4,SG2TunnelIndicator_angular_step(a0)
 	bra.w abs_0_000081D2
 abs_0_0000882E:
 	subq.w #1,$0024(a0)
@@ -10274,10 +10309,10 @@ abs_0_00008A4E:
 	beq.b abs_0_00008A6A
 	cmp.b #$E,d2
 	bls.w abs_0_000081D2
-	bra.w abs_0_00009500
+	bra.w integrate_and_steer_horizontal_actor
 abs_0_00008A6A:
 	move.b #$0,$0003(a0)
-	bra.w abs_0_00009500
+	bra.w integrate_and_steer_horizontal_actor
     ; KNOWN: type A0=Target code-entry register seed:SG2WalkingActor
 update_stomper_motion_and_attack_cadence:
 	subq.w #1,SG2ScheduledActor_behavior_update_counter(a0)
@@ -10808,8 +10843,8 @@ abs_0_00009170:
 	move.w #$41,SG2FlyingActor_proximity_maneuver_countdown(a0)
 	bra.w blend_actor_toward_player_heading
 abs_0_00009182:
-	tst.b $002B(a0)
-	bne.w abs_0_0000992E
+	tst.b SG2FlyingActor_escape_capsule_pending_flag(a0)
+	bne.w try_spawn_escape_capsule_for_carrier
 	tst.b space_environment_flag(a6)
 	bne.w abs_0_000086D6
 	cmpi.w #13,(a0)	; operand 2: SG2ObjectCore_object_type at (a0)
@@ -10906,20 +10941,20 @@ update_horatio_vertex_cycle_and_drag:
 	beq.b abs_0_000092F4
 	asr SG2WorldObject_velocity_z(a0)
 	asr SG2WorldObject_velocity_x(a0)
-	bra.w abs_0_00009500
+	bra.w integrate_and_steer_horizontal_actor
 abs_0_000092F4:
 	clr.b SG2WorldObject_vertex_variant_selector(a0)
 	movea.l a0,a2
 	bsr.w abs_0_0000AE06
-	bra.w abs_0_00009500
+	bra.w integrate_and_steer_horizontal_actor
 	dc.b $52,$28,$00,$03,$0C,$28,$00,$13,$00,$03,$66,$00,$01,$F2,$42,$28
 	dc.b $00,$03,$60,$00,$01,$EA
 abs_0_00009318:
 	addq.b #1,$0003(a0)
 	cmpi.b #20,$0003(a0)
-	bne.w abs_0_00009500
+	bne.w integrate_and_steer_horizontal_actor
 	clr.b $0003(a0)
-	bra.w abs_0_00009500
+	bra.w integrate_and_steer_horizontal_actor
     ; KNOWN: type A0=Target code-entry register seed:SG2WorldObject
 update_flat_diamond_ballistic_motion:
 	addi.w #16,SG2WorldObject_rotation_1(a0)
@@ -10959,13 +10994,13 @@ oscillate_duck_vertex_variant:
 	cmp.b #$7,d0
 	beq.b abs_0_000093C4
 	move.b d0,SG2WorldObject_vertex_variant_selector(a0)
-	bra.w abs_0_00009500
+	bra.w integrate_and_steer_horizontal_actor
 abs_0_000093BA:
 	move.b #$1,SG2VertexOscillator_vertex_variant_step(a0)
 	bra.w abs_0_000081D2
 abs_0_000093C4:
 	move.b #$FF,SG2VertexOscillator_vertex_variant_step(a0)
-	bra.w abs_0_00009500
+	bra.w integrate_and_steer_horizontal_actor
     ; KNOWN: type A0=Target code-entry register seed:SG2ScheduledActor
 update_tunnel_sentinel_bounce_and_fire_gate:
 	addi.w #16,SG2WorldObject_rotation_1(a0)
@@ -10996,111 +11031,114 @@ abs_0_00009422:
 	andi.b #7,d2
 	beq.w abs_0_00009F02
 	bra.w abs_0_000081D2
-abs_0_00009436:
-	move.w #$28,$0020(a0)
-	addi.w #64,$0012(a0)
-	tst.b $0003(a0)
+    ; KNOWN: type A0=Target code-entry register seed:SG2BouncingActor
+update_bouncing_ball_motion_and_vertex_phase:
+	move.w #$28,SG2BouncingActor_horizontal_motion_scale(a0)
+	addi.w #64,SG2WorldObject_rotation_1(a0)
+	tst.b SG2WorldObject_vertex_variant_selector(a0)
 	bne.w abs_0_00009490
-	move.w $002C(a0),d3
+	move.w SG2WorldObject_velocity_x(a0),d3
 	ext.l d3
-	add.l d3,$0004(a0)
-	move.w $0030(a0),d3
+	add.l d3,SG2ObjectCore_world_x(a0)
+	move.w SG2WorldObject_velocity_z(a0),d3
 	ext.l d3
-	add.l d3,$000C(a0)
+	add.l d3,SG2ObjectCore_world_z(a0)
 	move.l horizontal_world_wrap_mask(a6),d3
-	and.l d3,$0004(a0)
-	and.l d3,$000C(a0)
-	move.w $002E(a0),d0
+	and.l d3,SG2ObjectCore_world_x(a0)
+	and.l d3,SG2ObjectCore_world_z(a0)
+	move.w SG2WorldObject_velocity_y(a0),d0
 	ext.l d0
-	add.l d0,$0008(a0)
+	add.l d0,SG2ObjectCore_world_y(a0)
 	bmi.b abs_0_0000947C
 	move.b #$3,d2
 	bra.b abs_0_000094A2
 abs_0_0000947C:
-	addq.w #4,$002E(a0)
-	cmpi.w #66,$002E(a0)
+	addq.w #4,SG2WorldObject_velocity_y(a0)
+	cmpi.w #66,SG2WorldObject_velocity_y(a0)
 	bne.w abs_0_000081D2
-	move.b #$1,$001F(a0)
+	move.b #$1,SG2VertexOscillator_vertex_variant_step(a0)
 abs_0_00009490:
-	move.b $001F(a0),d1
-	move.b $0003(a0),d2
+	move.b SG2VertexOscillator_vertex_variant_step(a0),d1
+	move.b SG2WorldObject_vertex_variant_selector(a0),d2
 	add.b d1,d2
 	cmp.b #$3,d2
 	bne.w abs_0_000094A8
 abs_0_000094A2:
-	move.b #$FF,$001F(a0)
+	move.b #$FF,SG2VertexOscillator_vertex_variant_step(a0)
 abs_0_000094A8:
-	move.l #$FFFFFFC9,$0008(a0)
-	move.b d2,$0003(a0)
+	move.l #$FFFFFFC9,SG2ObjectCore_world_y(a0)
+	move.b d2,SG2WorldObject_vertex_variant_selector(a0)
 	bne.w abs_0_000081D2
-	move.w #$FFC2,$002E(a0)
+	move.w #$FFC2,SG2WorldObject_velocity_y(a0)
 	bsr.w heading_with_player_as_reference
 	bra.w recompute_actor_horizontal_motion_from_angle
-abs_0_000094C6:
-	tst.b $0028(a0)
-	beq.b abs_0_00009500
-	subq.b #1,$0028(a0)
-	bne.b abs_0_00009500
-	tst.l $003C(a0)
-	beq.b abs_0_00009500
-	movea.l $003C(a0),a2
-	clr.l $003C(a0)
+    ; KNOWN: type A0=Target code-entry register seed:SG2HoverCar
+release_hover_car_link_then_steer:
+	tst.b SG2HoverCar_link_release_countdown(a0)
+	beq.b integrate_and_steer_horizontal_actor
+	subq.b #1,SG2HoverCar_link_release_countdown(a0)
+	bne.b integrate_and_steer_horizontal_actor
+	tst.l SG2WorldObject_linked_record_or_sentinel(a0)
+	beq.b integrate_and_steer_horizontal_actor
+	movea.l SG2WorldObject_linked_record_or_sentinel(a0),a2
+	clr.l SG2WorldObject_linked_record_or_sentinel(a0)
 	clr.b $0028(a2)
-	bra.b abs_0_00009500
+	bra.b integrate_and_steer_horizontal_actor
     ; KNOWN: type A0=Target code-entry register seed:SG2WorldObject
 advance_mechanical_whale_vertex_cycle:
 	move.b #$19,diagnostic_step_byte.l
 	addq.b #1,SG2WorldObject_vertex_variant_selector(a0)
 	move.b SG2WorldObject_vertex_variant_selector(a0),d0
 	cmp.b #$16,d0
-	bne.b abs_0_00009500
+	bne.b integrate_and_steer_horizontal_actor
 	clr.b SG2WorldObject_vertex_variant_selector(a0)
-abs_0_00009500:
+    ; KNOWN: type A0=Target code-entry register seed:SG2EvasiveActor
+integrate_and_steer_horizontal_actor:
 	move.b #$AF,diagnostic_step_byte.l
 	movea.l player_object_reference(a6),a4
-	move.w $002C(a0),d3
+	move.w SG2WorldObject_velocity_x(a0),d3
 	ext.l d3
-	add.l d3,$0004(a0)
-	move.w $0030(a0),d3
+	add.l d3,SG2ObjectCore_world_x(a0)
+	move.w SG2WorldObject_velocity_z(a0),d3
 	ext.l d3
-	add.l d3,$000C(a0)
+	add.l d3,SG2ObjectCore_world_z(a0)
 	move.l horizontal_world_wrap_mask(a6),d3
-	and.l d3,$0004(a0)
-	and.l d3,$000C(a0)
-	tst.w $0026(a0)
+	and.l d3,SG2ObjectCore_world_x(a0)
+	and.l d3,SG2ObjectCore_world_z(a0)
+	tst.w SG2EvasiveActor_proximity_evasion_countdown(a0)
 	beq.b abs_0_0000953A
-	subq.w #1,$0026(a0)
+	subq.w #1,SG2EvasiveActor_proximity_evasion_countdown(a0)
 	bne.w abs_0_00009590
 abs_0_0000953A:
-	move.w $0032(a0),d2
+	move.w SG2WorldObject_pre_view_relative_x(a0),d2
 	sub.w $0032(a4),d2
 	bpl.b abs_0_00009546
 	neg.w d2
 abs_0_00009546:
 	cmp.w #$320,d2
 	ble.b abs_0_0000958A
-	move.w $0036(a0),d2
+	move.w SG2WorldObject_pre_view_relative_z(a0),d2
 	sub.w $0036(a4),d2
 	bpl.b abs_0_00009558
 	neg.w d2
 abs_0_00009558:
 	cmp.w #$2BC,d2
 	ble.b abs_0_0000958A
-	subq.w #1,$0024(a0)
-	move.w $0024(a0),d0
+	subq.w #1,SG2ScheduledActor_behavior_update_counter(a0)
+	move.w SG2ScheduledActor_behavior_update_counter(a0),d0
 	andi.b #31,d0
 	beq.b abs_0_00009570
 	bra.w abs_0_000081D2
 abs_0_00009570:
 	bsr.w heading_with_player_as_reference
-	subq.w #1,$0024(a0)
-	move.w $0024(a0),d0
+	subq.w #1,SG2ScheduledActor_behavior_update_counter(a0)
+	move.w SG2ScheduledActor_behavior_update_counter(a0),d0
 	andi.b #31,d0
 	subi.w #16,d0
 	add.w d0,d1
 	bra.w blend_actor_heading_and_clear_other_rotations
 abs_0_0000958A:
-	move.w #$32,$0026(a0)
+	move.w #$32,SG2EvasiveActor_proximity_evasion_countdown(a0)
 abs_0_00009590:
 	bsr.w heading_with_player_as_reference
 	addi.w #1024,d1
@@ -11362,11 +11400,12 @@ abs_0_000098C4:
 	move.w SG2WorldObject_rotation_2(a0),SG2WorldObject_rotation_2(a2)
 	move.b #$FF,SG2ObjectCore_retirement_phase_or_negative(a2)
 	bra.w abs_0_000081D2
-abs_0_0000992E:
+    ; KNOWN: type A0=Target code-entry register seed:SG2CapsuleCarrier
+try_spawn_escape_capsule_for_carrier:
 	move.b #$20,diagnostic_step_byte.l
 	cmpi.w #10,free_object_count(a6)
 	bls.w abs_0_000081D2
-	sf.b $002B(a0)
+	sf.b SG2CapsuleCarrier_escape_capsule_pending_flag(a0)
 	movea.l free_object_stack_cursor(a6),a1
 	movea.l -(a1),a2
 	move.l a1,free_object_stack_cursor(a6)
@@ -12148,7 +12187,7 @@ update_saucer_motion_evasion_and_capsule:
 	and.l d3,SG2ObjectCore_world_x(a0)
 	and.l d3,SG2ObjectCore_world_z(a0)
 	tst.b SG2SaucerActor_escape_capsule_pending_flag(a0)
-	bne.w abs_0_0000992E
+	bne.w try_spawn_escape_capsule_for_carrier
 	bra.b abs_0_0000A4EE
 abs_0_0000A48E:
 	tst.w SG2EvasiveActor_proximity_evasion_countdown(a0)

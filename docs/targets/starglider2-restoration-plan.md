@@ -20,9 +20,25 @@ An on-demand systematic gap inventory (`amiga_reversing/tools/source_gap_invento
 joins native identities/accesses with canonical layouts and actual rendered
 boundaries. It records 67 suffix signals (including numeric adjacent variants),
 21 lookup contracts, 523 remaining interior references, 31 generic app fields
-and 309 unresolved record accesses. These are different denominators. Five
+and 307 unresolved record accesses. These are different denominators. Five
 suffixes name routines and one names text; neither is a pointer defect.
-Latest: five original silo/tunnel/blowhole/saucer callbacks and two bounded
+Latest: capsule-carrier, hover-car, bouncing-ball, tunnel-indicator and shared
+proximity-steering views now expose 56 more typed accesses: two replace capsule
+flag gaps and 54 were previously uncatalogued. Nine contexts refine without
+meaning changes, lost accesses or new gaps: **3503 app /2228 typed /307 unresolved**.
+The two capsule callers actually test BYTE43 before the helper branch; the role
+view and FlyingActor extension do not put that meaning on Scheduled/World parents.
+Tunnel-indicator WORD48 is angular feedback, explicitly not linear velocity;
+its schema therefore derives from ObjectCore. Fifteen actions preserve arbitrary
+mode/initial values, original masks, counter wraps and all link guards. Native
+admission initially rejected a 64-character description for a 63-character field,
+before any append; shortening that description resolved it without changing limits.
+C/vasm and the clean standalone export are checked before publication; 57 assets
+and 14 headers remain unchanged. Next connected leads are the mechanical/energy
+object callbacks, whose byte variants and rotation/counter roles need partial
+views rather than an unsupported World cast.
+
+Preceding: five original silo/tunnel/blowhole/saucer callbacks and two bounded
 child constructors gain four role layouts, seven entry views and five names.
 The original choice tables retain their eight aircraft/four ground-type sets;
 constructor views use only common World fields. Sixteen actions add 113 typed
@@ -30,8 +46,7 @@ accesses: 29 replace gaps and 84 were previously uncatalogued; 22 existing conte
 refine without meaning changes or lost accesses. One shared capsule-helper BYTE43
 access becomes an explicit gap under the common ScheduledActor ancestor; that
 byte is an emission allowance in other records, so it cannot be named globally.
-Next experiment: audit the capsule helper's incoming caller predicates and use a
-role-specific entry view alongside the next connected constructor batch.
+The capsule caller/role experiment is completed above.
 Current counts: **3503 app /2172 typed /309 unresolved**. C/vasm and clean staged
 standalone output are checked before publication, with assets/headers unchanged.
 Original modular counters, success-conditional allowances, scalar links and the
@@ -153,7 +168,7 @@ starts. Their original producer really emits clipped horizon coordinates; a
 phase/width alias must remain distinct from the keyboard contract. Investigate
 existing canonical alias/view support before adding or renaming ownership. The
 third partial candidate is the already-documented LONG clear spanning a pending
-score WORD and following storage; that clear alone cannot name the extra bytes. Discovery leads and the 309 unresolved
+score WORD and following storage; that clear alone cannot name the extra bytes. Discovery leads and the 307 unresolved
 typed accesses remain different populations.
 A bounded alias reproducer found a shared renderer defect: an inferred
 same-origin conflict silently dropped the canonical app declaration while
