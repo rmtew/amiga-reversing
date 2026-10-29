@@ -60131,7 +60131,7 @@ paula_sample_transition_volume_shifts:
 update_alternate_frame_effects:
 	move.b #$90,diagnostic_step_byte.l
 	movem.l d0-d7/a0-a6,-(a7)
-	move.w #$0,abs_0_0004DDA0.l
+	move.w #$0,alternate_nearby_event_active_word.l
 	move.w nearby_object_count(a6),d0
 	beq.w abs_0_0004D416
 	movea.l nearby_objects_cursor(a6),a0
@@ -60142,7 +60142,7 @@ abs_0_0004D38E:
 	movea.l (a0)+,a1
 	cmpi.b #1,SG2ObjectCore_retirement_phase_or_negative(a1)
 	bne.b abs_0_0004D3AE
-	move.w #$1,abs_0_0004DDA0.l
+	move.w #$1,alternate_nearby_event_active_word.l
 	move.w SG2ObjectCore_relative_z(a1),d2
 	bpl.b abs_0_0004D3A8
 	neg.w d2
@@ -60156,18 +60156,18 @@ abs_0_0004D3AE:
     ; Alternate: consume bounce request first and branch past generic request. With both pending, generic remains for a later update; preserve this backend-specific priority.
 	tst.b pending_bomb_bounce_sound(a6)
 	bpl.b abs_0_0004D3D2
-	move.w #$1,abs_0_0004DDA0.l
+	move.w #$1,alternate_nearby_event_active_word.l
 	move.w bomb_bounce_sound_argument(a6),d1
 	sf.b pending_bomb_bounce_sound(a6)
 	bra.b abs_0_0004D3E8
 abs_0_0004D3D2:
 	tst.b pending_transient_event_sound(a6)
 	bpl.b abs_0_0004D3E8
-	move.w #$1,abs_0_0004DDA0.l
+	move.w #$1,alternate_nearby_event_active_word.l
 	move.w #$1F4,d1
 	sf.b pending_transient_event_sound(a6)
 abs_0_0004D3E8:
-	tst.w abs_0_0004DDA0.l
+	tst.w alternate_nearby_event_active_word.l
 	beq.b abs_0_0004D416
 	move.b #$C,d3
 	lsr.w d3,d1
@@ -60176,31 +60176,31 @@ abs_0_0004D3E8:
 	bpl.b abs_0_0004D400
 	clr.w d1
 abs_0_0004D400:
-	cmp.w abs_0_0004DDA4.l,d1
+	cmp.w psg_nearby_event_volume_envelope.l,d1
 	bmi.b abs_0_0004D40E
-	move.w d1,abs_0_0004DDA4.l
+	move.w d1,psg_nearby_event_volume_envelope.l
 abs_0_0004D40E:
-	move.w #$F,abs_0_0004DDA2.l
+	move.w #$F,psg_nearby_event_noise_period.l
 abs_0_0004D416:
-	addq.w #1,abs_0_0004DDA6.l
-	andi.w #3,abs_0_0004DDA6.l
+	addq.w #1,psg_nearby_event_decay_phase_mod4.l
+	andi.w #3,psg_nearby_event_decay_phase_mod4.l
 	bne.b abs_0_0004D436
-	subq.w #1,abs_0_0004DDA4.l
+	subq.w #1,psg_nearby_event_volume_envelope.l
 	bpl.b abs_0_0004D436
-	move.w #$0,abs_0_0004DDA4.l
+	move.w #$0,psg_nearby_event_volume_envelope.l
 abs_0_0004D436:
-	addi.w #1,abs_0_0004DDA2.l
-	move.w abs_0_0004DDA2.l,d0
+	addi.w #1,psg_nearby_event_noise_period.l
+	move.w psg_nearby_event_noise_period.l,d0
 	cmp.w #$1F,d0
 	bmi.b abs_0_0004D452
-	move.w #$1F,abs_0_0004DDA2.l
+	move.w #$1F,psg_nearby_event_noise_period.l
 abs_0_0004D452:
 	move.w nearby_object_count(a6),d3
 	beq.w abs_0_0004D50A
 	subq.w #1,d3
 	movea.l nearby_objects_cursor(a6),a0
 	move.w #$7FFF,d2
-	clr.l abs_0_0004DDA8.l
+	clr.l psg_selected_object_reference.l
 	lea.l psg_object_type_base_volumes_or_negative.l,a3
 	sf.b psg_nearby_sound_candidate_found_flag.l
 abs_0_0004D476:
@@ -60234,11 +60234,11 @@ abs_0_0004D4B2:
 	bmi.b abs_0_0004D4CA
 	st.b psg_nearby_sound_candidate_found_flag.l
 	movea.l a1,a2
-	move.l a1,abs_0_0004DDA8.l
+	move.l a1,psg_selected_object_reference.l
 	move.w d0,d2
 abs_0_0004D4CA:
 	dbf.w d3,abs_0_0004D476
-	movea.l abs_0_0004DDA8.l,a0
+	movea.l psg_selected_object_reference.l,a0
 	cmpa.l #$0,a0
 	beq.b abs_0_0004D50A
 	tst.b psg_nearby_sound_candidate_found_flag.l
@@ -60266,9 +60266,9 @@ abs_0_0004D51E:
 	bpl.b abs_0_0004D52C
 	clr.b psg_type10_amplitude.l
 abs_0_0004D52C:
-	subq.w #1,abs_0_0004DE18.l
+	subq.w #1,psg_types1_15_volume_envelope.l
 	bpl.b abs_0_0004D53A
-	clr.w abs_0_0004DE18.l
+	clr.w psg_types1_15_volume_envelope.l
 abs_0_0004D53A:
 	movem.l (a7)+,d0-d7/a0-a6
 	rts
@@ -60305,7 +60305,7 @@ abs_0_0004D5AC:
 	move.w d1,alternate_projectile_modulated_period.l
 	tst.w stardrive_enabled_word(a6)
 	bmi.b abs_0_0004D5E0
-	tst.w abs_0_0004DD9C.l
+	tst.w psg_stardrive_noise_volume_envelope.l
 	bne.b abs_0_0004D5E0
 	bra.b abs_0_0004D624
 abs_0_0004D5E0:
@@ -60320,21 +60320,21 @@ abs_0_0004D5E0:
 	bsr.w advance_shared_random_state_effects_bridge
 	andi.w #3,d0
 	add.w d0,d1
-	move.w #$C,abs_0_0004DD9C.l
+	move.w #$C,psg_stardrive_noise_volume_envelope.l
 	bra.b abs_0_0004D614
 abs_0_0004D60C:
-	move.w #$6,abs_0_0004DD9C.l
+	move.w #$6,psg_stardrive_noise_volume_envelope.l
 abs_0_0004D614:
 	move.b #$6,$00FF8800.l
 	move.b d1,$00FF8802.l
 	bra.b abs_0_0004D642
 abs_0_0004D624:
-	addq.b #1,abs_0_0004DD9E.l
-	andi.b #15,abs_0_0004DD9E.l
+	addq.b #1,psg_stardrive_decay_phase_mod16.l
+	andi.b #15,psg_stardrive_decay_phase_mod16.l
 	bne.b abs_0_0004D642
-	subq.w #1,abs_0_0004DD9C.l
+	subq.w #1,psg_stardrive_noise_volume_envelope.l
 	bpl.b abs_0_0004D642
-	clr.w abs_0_0004DD9C.l
+	clr.w psg_stardrive_noise_volume_envelope.l
 abs_0_0004D642:
 	move.w selected_object_sound_type.l,d1
 	cmp.w #$31,d1
@@ -60405,7 +60405,7 @@ abs_0_0004D73E:
 	bra.b abs_0_0004D7BE
     ; Normal active count 127..0 selects 32 amplitude bytes. BYTE compare at volume WORD address reads its high byte; preserve original byte alias rather than normalizing it.
 abs_0_0004D758:
-	sf.b abs_0_0004DE16.l
+	sf.b psg_type10_pause_mute_flag.l
 	lea.l psg_type10_amplitude_steps.l,a0
 	move.w psg_type10_active_countdown.l,d0
 	lsr.w #2,d0
@@ -60434,7 +60434,7 @@ abs_0_0004D7A8:
 	move.w d1,psg_object_sound_period_word.l
 	bra.w abs_0_0004D9A6
 abs_0_0004D7BE:
-	st.b abs_0_0004DE16.l
+	st.b psg_type10_pause_mute_flag.l
 	bra.w abs_0_0004D9AC
 abs_0_0004D7C8:
 	bsr.w advance_shared_random_state_effects_bridge
@@ -60442,7 +60442,7 @@ abs_0_0004D7C8:
 	move.w d0,psg_object_sound_period_word.l
 	bra.w abs_0_0004D9A6
 abs_0_0004D7DA:
-	neg.b abs_0_0004DE1D.l
+	neg.b psg_types3_4_period_polarity.l
 	bpl.b abs_0_0004D7E8
 	move.w #$7D0,d1
 	bra.b abs_0_0004D7EC
@@ -60459,7 +60459,7 @@ abs_0_0004D7EC:
 	move.w d0,psg_object_sound_period_word.l
 	bra.w abs_0_0004D9A6
 abs_0_0004D816:
-	neg.b abs_0_0004DE1D.l
+	neg.b psg_types3_4_period_polarity.l
 	bpl.b abs_0_0004D824
 	move.w #$BB8,d0
 	bra.b abs_0_0004D828
@@ -60470,7 +60470,7 @@ abs_0_0004D828:
 	andi.w #31,psg_shared_object_period_phase.l
 	move.w psg_shared_object_period_phase.l,d2
 	add.w d2,d0
-	movea.l abs_0_0004DDA8.l,a0
+	movea.l psg_selected_object_reference.l,a0
 	move.b $0003(a0),d1
 	andi.w #255,d1
 	neg.w d1
@@ -60480,19 +60480,19 @@ abs_0_0004D828:
 	move.w d0,psg_object_sound_period_word.l
 	bra.w abs_0_0004D9A6
 abs_0_0004D860:
-	tst.b abs_0_0004DE1C.l
+	tst.b psg_type34_period_sweep_polarity.l
 	bmi.b abs_0_0004D880
-	addq.w #8,abs_0_0004DE1A.l
-	cmpi.w #300,abs_0_0004DE1A.l
+	addq.w #8,psg_type34_period_sweep.l
+	cmpi.w #300,psg_type34_period_sweep.l
 	bmi.b abs_0_0004D88E
-	neg.b abs_0_0004DE1C.l
+	neg.b psg_type34_period_sweep_polarity.l
 	bra.b abs_0_0004D88E
 abs_0_0004D880:
-	subq.w #8,abs_0_0004DE1A.l
+	subq.w #8,psg_type34_period_sweep.l
 	bpl.b abs_0_0004D88E
-	neg.b abs_0_0004DE1C.l
+	neg.b psg_type34_period_sweep_polarity.l
 abs_0_0004D88E:
-	move.w abs_0_0004DE1A.l,d1
+	move.w psg_type34_period_sweep.l,d1
 	bsr.w advance_shared_random_state_effects_bridge
 	andi.w #127,d0
 	add.w d0,d1
@@ -60502,31 +60502,31 @@ abs_0_0004D88E:
 abs_0_0004D8AC:
 	move.b #$6,$00FF8800.l
 	move.b #$1F,$00FF8802.l
-	movea.l abs_0_0004DDA8.l,a0
+	movea.l psg_selected_object_reference.l,a0
 	move.b $0003(a0),d0
 	cmp.b #$16,d0
 	bne.b abs_0_0004D8D8
-	move.w psg_object_sound_volume_word.l,abs_0_0004DE18.l
+	move.w psg_object_sound_volume_word.l,psg_types1_15_volume_envelope.l
 	bra.b abs_0_0004D8EA
 abs_0_0004D8D8:
 	cmp.b #$A,d0
 	bne.w abs_0_0004D97C
-	move.w psg_object_sound_volume_word.l,abs_0_0004DE18.l
+	move.w psg_object_sound_volume_word.l,psg_types1_15_volume_envelope.l
 abs_0_0004D8EA:
 	bra.w abs_0_0004D97C
 abs_0_0004D8EE:
 	move.b #$6,$00FF8800.l
 	move.b #$1F,$00FF8802.l
-	movea.l abs_0_0004DDA8.l,a0
+	movea.l psg_selected_object_reference.l,a0
 	move.b $0003(a0),d0
 	cmp.b #$12,d0
 	bne.b abs_0_0004D91A
-	move.w psg_object_sound_volume_word.l,abs_0_0004DE18.l
+	move.w psg_object_sound_volume_word.l,psg_types1_15_volume_envelope.l
 	bra.b abs_0_0004D97C
 abs_0_0004D91A:
 	cmp.b #$8,d0
 	bne.b abs_0_0004D97C
-	move.w psg_object_sound_volume_word.l,abs_0_0004DE18.l
+	move.w psg_object_sound_volume_word.l,psg_types1_15_volume_envelope.l
 	bra.b abs_0_0004D97C
 abs_0_0004D92C:
 	bsr.w abs_0_0004DD5E
@@ -60555,15 +60555,15 @@ abs_0_0004D952:
 abs_0_0004D97C:
 	bsr.w abs_0_0004DD5E
 	st.b psg_noise_uses_object_period_flag.l
-	addq.b #1,abs_0_0004DE1E.l
-	andi.b #7,abs_0_0004DE1E.l
+	addq.b #1,psg_types1_15_decay_phase_mod8.l
+	andi.b #7,psg_types1_15_decay_phase_mod8.l
 	bne.b abs_0_0004D9BC
-	subq.w #1,abs_0_0004DE18.l
+	subq.w #1,psg_types1_15_volume_envelope.l
 	bpl.b abs_0_0004D9BC
-	clr.w abs_0_0004DE18.l
+	clr.w psg_types1_15_volume_envelope.l
 	bra.b abs_0_0004D9BC
 abs_0_0004D9A6:
-	sf.b abs_0_0004DE16.l
+	sf.b psg_type10_pause_mute_flag.l
 abs_0_0004D9AC:
 	bsr.w abs_0_0004DD40
 	sf.b psg_noise_uses_object_period_flag.l
@@ -60571,15 +60571,15 @@ abs_0_0004D9AC:
 abs_0_0004D9BC:
 	cmpi.w #1,selected_object_sound_type.l
 	bne.b abs_0_0004D9CE
-	move.w abs_0_0004DE18.l,d0
+	move.w psg_types1_15_volume_envelope.l,d0
 	bra.b write_psg_object_sound_volume_and_period
 abs_0_0004D9CE:
 	cmpi.w #15,selected_object_sound_type.l
 	bne.b abs_0_0004D9E0
-	move.w abs_0_0004DE18.l,d0
+	move.w psg_types1_15_volume_envelope.l,d0
 	bra.b write_psg_object_sound_volume_and_period
 abs_0_0004D9E0:
-	tst.b abs_0_0004DE16.l
+	tst.b psg_type10_pause_mute_flag.l
 	bpl.b abs_0_0004D9EC
 	clr.w d0
 	bra.b write_psg_object_sound_volume_and_period
@@ -60624,12 +60624,12 @@ abs_0_0004DA64:
 	move.b d1,$00FF8802.l
 	tst.w stardrive_enabled_word(a6)
 	bmi.b abs_0_0004DAA4
-	tst.w abs_0_0004DD9C.l
+	tst.w psg_stardrive_noise_volume_envelope.l
 	bne.b abs_0_0004DAA4
-	move.w abs_0_0004DDA4.l,d0
+	move.w psg_nearby_event_volume_envelope.l,d0
 	bra.b abs_0_0004DAAC
 abs_0_0004DAA4:
-	move.w abs_0_0004DD9C.l,d0
+	move.w psg_stardrive_noise_volume_envelope.l,d0
 	bra.b abs_0_0004DABA
 abs_0_0004DAAC:
 	tst.b psg_noise_variation_polarity.l
@@ -60656,7 +60656,7 @@ abs_0_0004DACA:
 	move.w psg_object_sound_period_word.l,d1
 	bra.b abs_0_0004DB10
 abs_0_0004DAF6:
-	move.w abs_0_0004DDA2.l,d1
+	move.w psg_nearby_event_noise_period.l,d1
 	neg.b psg_noise_variation_polarity.l
 	bpl.b abs_0_0004DB06
 	addq.b #1,d1
@@ -60682,7 +60682,7 @@ abs_0_0004DB1E:
 	bpl.w abs_0_0004DC96
 	tst.b space_environment_flag(a6)
 	bne.w abs_0_0004DC52
-	tst.w abs_0_0004DDA0.l
+	tst.w alternate_nearby_event_active_word.l
 	beq.w abs_0_0004DBE4
 	move.l player_world_y(a6),d0
 	neg.l d0
@@ -60769,7 +60769,7 @@ abs_0_0004DC3E:
 	move.w d2,(a4)
 	bra.w abs_0_0004DD3A
 abs_0_0004DC52:
-	tst.w abs_0_0004DDA0.l
+	tst.w alternate_nearby_event_active_word.l
 	bne.b abs_0_0004DC6C
 	move.w abs_0_00039654.l,d0
 	lsr.w #1,d0
@@ -60783,7 +60783,7 @@ abs_0_0004DC6C:
 	move.w d0,(a4)
 	bra.w abs_0_0004DD3A
 abs_0_0004DC7E:
-	tst.w abs_0_0004DDA0.l
+	tst.w alternate_nearby_event_active_word.l
 	bne.b abs_0_0004DC8E
 	move.w #$112,(a4)
 	bra.w abs_0_0004DD3A
@@ -60870,20 +60870,21 @@ alternate_effect_grayscale_prefix:
 	dc.w $0FFF,$0EEE,$0DDD,$0CCC,$0BBB,$0AAA,$0999,$0888
 	dc.w $0777,$0666,$0555,$0444,$0333,$0222,$0111
 	dc.w $0000
-abs_0_0004DD9C:
+psg_stardrive_noise_volume_envelope:
 	dc.w $0000
-abs_0_0004DD9E:
-	dc.b $01,$00
-abs_0_0004DDA0:
+psg_stardrive_decay_phase_mod16:
+	dc.b $01
+	dc.b $00
+alternate_nearby_event_active_word:
 	dc.w $0000
-abs_0_0004DDA2:
+psg_nearby_event_noise_period:
 	dc.w $0000
-abs_0_0004DDA4:
+psg_nearby_event_volume_envelope:
 	dc.w $0000
-abs_0_0004DDA6:
+psg_nearby_event_decay_phase_mod4:
 	dc.w $0000
-abs_0_0004DDA8:
-	dc.b $00,$00,$00,$00
+psg_selected_object_reference:
+	dc.l $00000000	; pointer_table
 psg_object_sound_volume_word:
 	dc.w $0000
 psg_object_sound_period_word:
@@ -60904,18 +60905,20 @@ psg_type10_amplitude:
 	dc.b $00
 psg_type10_period_offset_polarity:
 	dc.b $01
-abs_0_0004DE16:
+psg_type10_pause_mute_flag:
+	dc.b $00
+	dc.b $00
+psg_types1_15_volume_envelope:
 	dc.w $0000
-abs_0_0004DE18:
+psg_type34_period_sweep:
 	dc.w $0000
-abs_0_0004DE1A:
-	dc.w $0000
-abs_0_0004DE1C:
+psg_type34_period_sweep_polarity:
 	dc.b $01
-abs_0_0004DE1D:
+psg_types3_4_period_polarity:
 	dc.b $01
-abs_0_0004DE1E:
-	dc.w $0000
+psg_types1_15_decay_phase_mod8:
+	dc.b $00
+	dc.b $00
 alternate_projectile_effect_volume:
 	dc.w $0000
 alternate_projectile_effect_period:

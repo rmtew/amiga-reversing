@@ -7,8 +7,8 @@ that further analysis is exhausted. Current source remains byte exact: all
 with all 106034 accepted code bytes retained. No generated assembly was edited
 by hand and no interim archive was produced.
 
-The current ownership union leaves 12682 bytes in
-272 intervals unclassified. This is classification accounting,
+The current ownership union leaves 12659 bytes in
+274 intervals unclassified. This is classification accounting,
 not a semantic completion percentage. Earlier interval/site counts below belong
 to their recorded closeout revision. See the current
 [native memory-span receipt](../../runtime/observations/starglider2-app-memory-spans.json),
@@ -31,6 +31,17 @@ Original mixed constructor families use only their established common prefix.
 The energy-tower initializer's World chain view stays distinct from its updater
 view. Packed-header normalization, signed comparisons, wrap, PRNG transforms,
 nullable/sentinel links and unknown constructor parameters remain unchanged.
+
+The alternate PSG selection/envelope batch identifies thirteen entities and
+23 consumed bytes across 60 native incoming references: nullable selected-object
+Core storage, event/noise envelopes, shared decay phases, type34 sweep state and
+type10 mute control. BYTE high-address updates stay BYTE-sized; three neighbouring
+bytes remain unclassified. All 597 reviewed instruction records retain their
+existing typed meanings, and accepted code is unchanged. This adds source meaning,
+not typed-access or runtime coverage: **3503 app /2650 typed /177 unresolved**.
+C/vasm and the clean standalone source rebuild remain exact. Next connect the
+alternate HUD meter caches, redraw countdowns, shared selector and saved pixel
+backgrounds through their original capture/restore consumers.
 
 The Paula control/period batch identifies fourteen storage/table entities and
 160 bytes: a matching-prefix volume sum, previous selected relative XYZ, envelope

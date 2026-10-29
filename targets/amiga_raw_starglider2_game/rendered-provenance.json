@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
   "kind": "committed_native_rendered_original_export",
-  "canonical_source_commit": "4259f02006b8ee89564c67570c44b51b74ff5bfc",
-  "publication_base_commit": "4259f02006b8ee89564c67570c44b51b74ff5bfc",
+  "canonical_source_commit": "d23a7a830a236565b828bcbae95749c86d8326a4",
+  "publication_base_commit": "d23a7a830a236565b828bcbae95749c86d8326a4",
   "native_export": "CListingArtifact.source_package_payload(64)",
-  "main_source_sha256": "e9872a4b38f73704d38c59c79ffd928b86a73e8e330d2ec528d75ad654525f56",
+  "main_source_sha256": "3f58ac72c6de3feaa32f422fda764b500a3d51f449ba1d928a38409e3572e644",
   "asset_count": 57,
   "asset_bytes": 93633,
   "game_assembly_hand_edits": false,
@@ -24,13 +24,13 @@
     "assembler executable",
     "paused Pandora work"
   ],
-  "canonical_source_commit_role": "publication base; reviewed Paula control and period-prefix consumers are bound by canonical facts and verification",
-  "canonical_source_subject_revision": "ee04c39c50b1cf9bb6134993de46ee0e2db4d4fd33cdf565969179f740a9d4e8",
+  "canonical_source_commit_role": "publication base; reviewed PSG selection, envelope and common-Core pointer consumers are bound by canonical facts and verification",
+  "canonical_source_subject_revision": "f62f31957ce38fbb1d8ef1faf7916751063ffb444fecc6ed3edc191efc1a0695",
   "canonical_fact_sha256": {
     "source_binary.json": "42d4a5758b3e8236af7f912aee85e9ee5323bcd0961faa338c4f864080a0a7d9",
     "target_metadata.json": "e7540b68c118c56aba8815b6722eefa067517cc865fe9841d6c01ce96551389c",
-    "manual_actions.jsonl": "78b83e8796e8e33bfc801a532b34f2ded9748bcde00e47e4f5c4388ae30e6174",
-    "decision_journal.jsonl": "191fda6ae6c1a81741bf21819f41ccd69e205846692c87364f8242c9926807dd"
+    "manual_actions.jsonl": "ba8c5f943a8f3e96bff1dbc635ae7d13e536a4b840787f35d3fdc8a9c3c87bd1",
+    "decision_journal.jsonl": "c6ad72bd6b59763b3add7c395d1fe4fbb1e548bcd7d4d1aa51d3a9dd3406ce98"
   },
   "headers": "14 unmodified required include files collected by source_package.collect_package_includes from ext/amiga_includes/ndk_2.0/include; header notices retained",
   "decoded_protection_view": {
@@ -46,5 +46,5 @@
     },
     "runtime_scope": "Seven CPU write-site windows match this reversible view; no whole runtime-view identity or parent plaintext promotion."
   },
-  "verification_receipt_id": "09ea3a4f6cdf88fe02b2dddaebc93bd36c098ff2583b0ac3fa7b4f53bdf4abf6"
+  "verification_receipt_id": "5bed7a9243cfc6571c521cc776985c1732203b90ae2c1f3a0d703e8ca761a6dc"
 }
