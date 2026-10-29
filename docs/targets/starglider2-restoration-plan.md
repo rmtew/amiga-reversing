@@ -20,9 +20,25 @@ An on-demand systematic gap inventory (`amiga_reversing/tools/source_gap_invento
 joins native identities/accesses with canonical layouts and actual rendered
 boundaries. It records 67 suffix signals (including numeric adjacent variants),
 21 lookup contracts, 523 remaining interior references, 31 generic app fields
-and 337 unresolved record accesses. These are different denominators. Five
+and 309 unresolved record accesses. These are different denominators. Five
 suffixes name routines and one names text; neither is a pointer defect.
-Latest: the title page-cycle counter and decimal post-NUL cursor now have
+Latest: five original silo/tunnel/blowhole/saucer callbacks and two bounded
+child constructors gain four role layouts, seven entry views and five names.
+The original choice tables retain their eight aircraft/four ground-type sets;
+constructor views use only common World fields. Sixteen actions add 113 typed
+accesses: 29 replace gaps and 84 were previously uncatalogued; 22 existing contexts
+refine without meaning changes or lost accesses. One shared capsule-helper BYTE43
+access becomes an explicit gap under the common ScheduledActor ancestor; that
+byte is an emission allowance in other records, so it cannot be named globally.
+Next experiment: audit the capsule helper's incoming caller predicates and use a
+role-specific entry view alongside the next connected constructor batch.
+Current counts: **3503 app /2172 typed /309 unresolved**. C/vasm and clean staged
+standalone output are checked before publication, with assets/headers unchanged.
+Original modular counters, success-conditional allowances, scalar links and the
+dome branch retaining earlier A2 state remain unchanged; no all-pool cast or
+nonnull child guarantee was added.
+
+Preceding: the title page-cycle counter and decimal post-NUL cursor now have
 explicit canonical extents, and six connected formatter/page/text labels expose
 the original consumers. Eight actions name eight previously raw app accesses:
 **3503 app /2059 typed /337 unresolved**. No typed access or prior meaning changes.
@@ -137,7 +153,7 @@ starts. Their original producer really emits clipped horizon coordinates; a
 phase/width alias must remain distinct from the keyboard contract. Investigate
 existing canonical alias/view support before adding or renaming ownership. The
 third partial candidate is the already-documented LONG clear spanning a pending
-score WORD and following storage; that clear alone cannot name the extra bytes. Discovery leads and the 337 unresolved
+score WORD and following storage; that clear alone cannot name the extra bytes. Discovery leads and the 309 unresolved
 typed accesses remain different populations.
 A bounded alias reproducer found a shared renderer defect: an inferred
 same-origin conflict silently dropped the canonical app declaration while
