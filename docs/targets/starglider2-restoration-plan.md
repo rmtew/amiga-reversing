@@ -20,7 +20,7 @@ An on-demand systematic gap inventory (`amiga_reversing/tools/source_gap_invento
 joins native identities/accesses with canonical layouts and actual rendered
 boundaries. It records 67 suffix signals (including numeric adjacent variants),
 21 lookup contracts, 523 remaining interior references, 31 generic app fields
-and 324 unresolved record accesses. These are different denominators. Five
+and 319 unresolved record accesses. These are different denominators. Five
 suffixes name routines and one names text; neither is a pointer defect.
 Current restored object contracts connect original update/initializer directories,
 literal-tag producers and reviewed forwarding paths. Walking, flying, mechanical,
@@ -32,16 +32,19 @@ The energy-tower initializer's World chain view stays distinct from its updater
 view. Packed-header normalization, signed comparisons, wrap, PRNG transforms,
 nullable/sentinel links and unknown constructor parameters remain unchanged.
 
-Latest batch: fourteen remaining nonempty initializer entries gain input contracts
-and thirteen routine names (27 actions). It adds 39 previously uncatalogued typed
-accesses and exposes eleven unknown constructor fields; no old access or meaning
-is lost. Current counts: **3503 app /2351 typed /324 unresolved**. All initializer
-directory entries now have reviewed entry contracts except the no-operation RTS;
-this does not prove arbitrary selector validity or complete field semantics.
-C/vasm and the clean staged standalone build match all 412736 original bytes;
+Latest: shared A2 horizontal-motion and A0/A4 heading callable inputs reuse the
+existing HorizontalMotion, Core and Targeting schemas (nine actions, three routine
+names). Four original A2 call/fallthrough paths and the player/linked-target heading
+callers establish the interfaces. This adds15 typed accesses, resolves five gaps,
+refines eight contexts and loses no access or field meaning. Current counts:
+**3503 app /2366 typed /319 unresolved**. No mid-body player-pointer seed or upgrade
+from declared-layout A6 fallback to register proof is introduced. Original divider,
+wrap, flags and conditional valid-record assumptions remain unchanged.
+All nonempty original initializer directory entries also have reviewed contracts;
+this does not establish arbitrary selector validity or complete field semantics.
+C/vasm and clean staged standalone builds reproduce all412736 original bytes;
 57 assets and14 headers remain unchanged. No new runtime run or interim archive.
-Canonical action histories and rendered provenance retain the detailed evidence;
-this current summary replaces repeated intermediate batch narratives.
+Canonical histories retain detailed evidence without duplicate observation dumps.
 
 The shared framework now preserves canonical inline-object types through LEA
 and existing register/stack transfers. Five matrix consumers gained45 accesses;
@@ -49,8 +52,8 @@ and existing register/stack transfers. Five matrix consumers gained45 accesses;
 foreign bases, conflicting phase views and incomplete extents remain conservative.
 Direct PEA typed stack construction is still separate.
 
-Next investigate shared A2 motion and A0/A4 heading helper input contracts from
-actual callers, then remaining constructor parameters. All37 sprite/name/audio/
+Next connect volcano colour/emission parameters and the mechanical constructors
+to their established steering-field consumers. All37 sprite/name/audio/
 text-reference gaps are indexed accesses. A four-entry fixture resolves a constant
 index but remains `indexed_dynamic` after signed0..3 guards; its unguarded negative
 also stays unresolved. Branch/partial-WORD constraint transport needs shared-value
@@ -76,7 +79,7 @@ starts. Their original producer really emits clipped horizon coordinates; a
 phase/width alias must remain distinct from the keyboard contract. Investigate
 existing canonical alias/view support before adding or renaming ownership. The
 third partial candidate is the already-documented LONG clear spanning a pending
-score WORD and following storage; that clear alone cannot name the extra bytes. Discovery leads and the 324 unresolved
+score WORD and following storage; that clear alone cannot name the extra bytes. Discovery leads and the 319 unresolved
 typed accesses remain different populations.
 A bounded alias reproducer found a shared renderer defect: an inferred
 same-origin conflict silently dropped the canonical app declaration while

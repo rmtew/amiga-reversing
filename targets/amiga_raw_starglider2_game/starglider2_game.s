@@ -10999,7 +10999,7 @@ update_horatio_vertex_cycle_and_drag:
 abs_0_000092F4:
 	clr.b SG2WorldObject_vertex_variant_selector(a0)
 	movea.l a0,a2
-	bsr.w abs_0_0000AE06
+	bsr.w steer_a2_heading_then_recompute_horizontal_motion
 	bra.w integrate_and_steer_horizontal_actor
 	dc.b $52,$28,$00,$03,$0C,$28,$00,$13,$00,$03,$66,$00,$01,$F2,$42,$28
 	dc.b $00,$03,$60,$00,$01,$EA
@@ -12107,7 +12107,7 @@ abs_0_0000A1DE:
 	move.w #$1,$0024(a2)
 	move.w #$1,$0026(a2)
 	move.w #$64,SG2BlowholeEmitter_emission_phase_counter(a0)
-	bsr.w abs_0_0000AE1E
+	bsr.w recompute_a2_horizontal_motion_from_heading
 	bra.w abs_0_000081D2
 abs_0_0000A298:
 	move.b SG2VertexOscillator_vertex_variant_step(a0),d1
@@ -12178,7 +12178,7 @@ abs_0_0000A2CE:
 	move.l #$FFFFFFFC,SG2ObjectCore_world_y(a2)
 	move.w #$3,$0024(a2)
 abs_0_0000A3B2:
-	bsr.w abs_0_0000AE1E
+	bsr.w recompute_a2_horizontal_motion_from_heading
 	bra.w abs_0_000081D2
 abs_0_0000A3BA:
 	clr.b SG2SiloLauncher_child_attached_flag(a0)
@@ -12481,7 +12481,7 @@ abs_0_0000A7B4:
 	move.l horizontal_world_wrap_mask(a6),d3
 	and.l d3,$0004(a0)
 	and.l d3,$000C(a0)
-	bsr.w abs_0_0000AF28
+	bsr.w heading_from_world_xz_to_player
 	addi.w #2048,d1
 	bra.w abs_0_0000AC64
 	dc.b $13,$FC,$00,$48,$00,$00,$E1,$03,$10,$28,$00,$1F,$B0,$28,$00,$1C
@@ -12557,7 +12557,7 @@ abs_0_0000A8F2:
 	move.b #$1,$002B(a2)
 	move.w #$1,$0014(a2)
 	move.b #$64,$0029(a2)
-	bsr.w abs_0_0000AF28
+	bsr.w heading_from_world_xz_to_player
 	move.w d1,$0012(a2)
 	move.l #$FFFFFFEC,SG2ObjectCore_world_y(a2)
 	move.b #$FF,SG2ObjectCore_retirement_phase_or_negative(a2)
@@ -12650,7 +12650,7 @@ abs_0_0000AA3A:
 	move.w #$64,$0026(a2)
 	move.w #$3,$0024(a2)
 abs_0_0000AB1C:
-	bsr.w abs_0_0000AE1E
+	bsr.w recompute_a2_horizontal_motion_from_heading
 	bra.w abs_0_0000839C
 	dc.b $0C,$52,$00,$27,$66,$00,$D8,$72,$25,$7C,$FF,$FF,$FF,$88,$00,$08
 	dc.b $60,$00,$D8,$66
@@ -12724,7 +12724,7 @@ abs_0_0000ABD2:
 	rts
 abs_0_0000AC2C:
 	move.b #$37,diagnostic_step_byte.l
-	bsr.w abs_0_0000AF28
+	bsr.w heading_from_world_xz_to_player
 	andi.w #4095,d1
 	move.b #$38,diagnostic_step_byte.l
 	move.w $0012(a0),d0
@@ -12878,7 +12878,8 @@ recompute_tracked_projectile_horizontal_motion:
 	swap.w d4
 	move.w d4,SG2WorldObject_velocity_z(a0)
 	bra.w abs_0_000081D2
-abs_0_0000AE06:
+    ; KNOWN: type A2=Target code-entry register seed:SG2HorizontalMotionView
+steer_a2_heading_then_recompute_horizontal_motion:
 	move.w SG2WorldObject_rotation_1(a2),d0
 	andi.w #4095,d0
 	move.w d0,SG2WorldObject_rotation_1(a2)
@@ -12886,25 +12887,26 @@ abs_0_0000AE06:
 	andi.w #4095,d1
 	asr.w #4,d1
 	add.w d1,SG2WorldObject_rotation_1(a2)
-abs_0_0000AE1E:
-	move.w $0012(a2),d3
+    ; KNOWN: type A2=Target code-entry register seed:SG2HorizontalMotionView
+recompute_a2_horizontal_motion_from_heading:
+	move.w SG2WorldObject_rotation_1(a2),d3
 	andi.w #4095,d3
 	add.w d3,d3
 	movea.l sine_lookup_pointer(a6),a1
 	move.w $0(a1,d3.w),trig_sine_scratch_1(a6)
 	movea.l cosine_lookup_pointer(a6),a1
 	move.w $0(a1,d3.w),trig_cosine_scratch_1(a6)
-	move.w $0020(a2),d4
+	move.w SG2HorizontalMotionView_horizontal_motion_scale(a2),d4
 	muls.w trig_sine_scratch_1(a6),d4
 	asl.l #1,d4
 	swap.w d4
 	neg.w d4
-	move.w d4,$002C(a2)
-	move.w $0020(a2),d4
+	move.w d4,SG2WorldObject_velocity_x(a2)
+	move.w SG2HorizontalMotionView_horizontal_motion_scale(a2),d4
 	muls.w trig_cosine_scratch_1(a6),d4
 	asl.l #1,d4
 	swap.w d4
-	move.w d4,$0030(a2)
+	move.w d4,SG2WorldObject_velocity_z(a2)
 	rts
     ; 200 stored bytes to next accepted routine; indexed WORD nonzero subtracts2048 from creator yaw. Zero suffix may include padding; no universal0..99 index or live-read coverage proof.
 heading_policy_word_storage:
@@ -12921,16 +12923,17 @@ heading_policy_word_storage:
 	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000
 	dc.w $0000,$0000,$0000,$0000,$0000,$0000,$0000,$0000
 	dc.w $0000,$0000,$0000,$0000
-abs_0_0000AF28:
+    ; KNOWN: type A0=Target code-entry register seed:SG2ObjectCore
+heading_from_world_xz_to_player:
 	move.b #$3D,diagnostic_step_byte.l
 	movea.l player_object_reference(a6),a4
 	move.b #$3E,diagnostic_step_byte.l
 	move.l $000C(a4),d0
-	move.l $000C(a0),d1
+	move.l SG2ObjectCore_world_z(a0),d1
 	cmp.l d0,d1
 	blt.b abs_0_0000AF60
 	move.l $0004(a4),d0
-	move.l $0004(a0),d1
+	move.l SG2ObjectCore_world_x(a0),d1
 	cmp.l d0,d1
 	blt.b abs_0_0000AF5A
 	move.b #$2,d4
@@ -12940,7 +12943,7 @@ abs_0_0000AF5A:
 	bra.b abs_0_0000AF76
 abs_0_0000AF60:
 	move.l $0004(a4),d0
-	move.l $0004(a0),d1
+	move.l SG2ObjectCore_world_x(a0),d1
 	cmp.l d0,d1
 	blt.b abs_0_0000AF72
 	move.b #$1,d4
@@ -12948,27 +12951,29 @@ abs_0_0000AF60:
 abs_0_0000AF72:
 	move.b #$4,d4
 abs_0_0000AF76:
-	move.l $0004(a0),d0
+	move.l SG2ObjectCore_world_x(a0),d0
 	sub.l $0004(a4),d0
 	bpl.b abs_0_0000AF82
 	neg.l d0
 abs_0_0000AF82:
-	move.l $000C(a0),d1
+	move.l SG2ObjectCore_world_z(a0),d1
 	sub.l $000C(a4),d1
 	bpl.b abs_0_0000AFF6
 	neg.l d1
 	bra.b abs_0_0000AFF6
+    ; KNOWN: type A0=Target code-entry register seed:SG2TargetingObject
 heading_with_player_as_reference:
 	move.b #$3D,diagnostic_step_byte.l
 	movea.l player_object_reference(a6),a4
     ; Quadrant-aware XZ heading from stored A0/A4+$32,$36 pairs; WORD D1 uses4096 units/turn. Masked table bounds do not prove all DIVS/absolute-value inputs safe.
+    ; KNOWN: type A0=Target code-entry register seed:SG2TargetingObject; type A4=Target code-entry register seed:SG2TargetingObject
 heading_from_stored_object_xz:
 	move.b #$3E,diagnostic_step_byte.l
-	move.w $0036(a4),d0
+	move.w SG2TargetingObject_pre_view_relative_z(a4),d0
 	move.w SG2TargetingObject_pre_view_relative_z(a0),d1
 	cmp.w d0,d1
 	blt.b abs_0_0000AFC8
-	move.w $0032(a4),d0
+	move.w SG2TargetingObject_pre_view_relative_x(a4),d0
 	move.w SG2TargetingObject_pre_view_relative_x(a0),d1
 	cmp.w d0,d1
 	blt.b abs_0_0000AFC2
@@ -12978,7 +12983,7 @@ abs_0_0000AFC2:
 	move.b #$3,d4
 	bra.b abs_0_0000AFDE
 abs_0_0000AFC8:
-	move.w $0032(a4),d0
+	move.w SG2TargetingObject_pre_view_relative_x(a4),d0
 	move.w SG2TargetingObject_pre_view_relative_x(a0),d1
 	cmp.w d0,d1
 	blt.b abs_0_0000AFDA
@@ -12988,12 +12993,12 @@ abs_0_0000AFDA:
 	move.b #$4,d4
 abs_0_0000AFDE:
 	move.w SG2TargetingObject_pre_view_relative_x(a0),d0
-	sub.w $0032(a4),d0
+	sub.w SG2TargetingObject_pre_view_relative_x(a4),d0
 	bpl.b abs_0_0000AFEA
 	neg.w d0
 abs_0_0000AFEA:
 	move.w SG2TargetingObject_pre_view_relative_z(a0),d1
-	sub.w $0036(a4),d1
+	sub.w SG2TargetingObject_pre_view_relative_z(a4),d1
 	bpl.b abs_0_0000AFF6
 	neg.w d1
 abs_0_0000AFF6:
