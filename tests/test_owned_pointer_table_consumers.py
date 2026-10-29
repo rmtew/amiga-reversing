@@ -7,7 +7,7 @@ from amiga_reversing.disasm.manual_actions import append_manual_actions, ManualA
 from amiga_reversing.disasm.target_metadata import TargetMetadata, write_target_metadata
 
 
-def table_artifact(tmp_path, owner):
+def table_artifact(tmp_path, owner, prefix='', index_width='w'):
     asm=''' SECTION code,code
  ORG $1000
  bsr.w first
@@ -26,6 +26,11 @@ def table_artifact(tmp_path, owner):
  directory:
  dc.l first,second,first
 '''
+    if prefix:
+        asm=asm.replace(' lea.l directory(pc),a0',prefix+'\n lea.l directory(pc),a0')
+        asm=asm.replace(' movea.l $0(a0,d0.w),a1',
+                        f'read:\n movea.l $0(a0,d0.{index_width}),a1')
+        asm=asm.replace(' jsr (a1)',' jsr (a1)\ndone:')
     if owner=='word_read':
         asm=asm.replace('movea.l $0(a0,d0.w),a1','move.w $0(a0,d0.w),d2').replace(
             'movea.l $0(a2,d1.w),a3','move.w $0(a2,d1.w),d2')
@@ -95,6 +100,88 @@ def test_conflicting_table_extents_do_not_create_consumer_proof(tmp_path):
     try:
         section=artifact.analysis_payload()[0]['sections'][0]
         assert not [r for r in section['table_consumers'] if r['table_start_offset']==table]
+    finally:artifact.close()
+
+
+@pytest.mark.c_backend
+@pytest.mark.parametrize('noise',[
+    '', 'moveq.l #100,d1', 'sub.w d0,d2',
+])
+def test_local_mask_domain_survives_only_unrelated_writes(tmp_path,noise):
+    prefix=' andi.w #3,d0\n '+noise+'\n add.w d0,d0\n add.w d0,d0'
+    artifact,original,_=table_artifact(tmp_path,'pointer',prefix)
+    try:
+        rows=artifact.analysis_payload()[0]['sections'][0]['table_consumers']
+        row=next(r for r in rows if r['index_register']==0)
+        assert row['index_mask_domain']==dict(min=0,max=3)
+        assert c_backend.assemble_platform_source_text_with_c_backend(
+            'amiga-raw',artifact.inline_source_text_with_profile()[0])[0]==original
+    finally:artifact.close()
+
+
+@pytest.mark.c_backend
+@pytest.mark.parametrize('noise',[
+    'moveq.l #100,d0', 'move.b #100,d0', 'addi.w #100,d0',
+    'exg d0,d1', 'movem.l (a7)+,d0-d1', 'bsr.w first',
+])
+def test_local_mask_domain_rejects_clobbers_and_calls(tmp_path,noise):
+    prefix=' andi.w #3,d0\n '+noise+'\n add.w d0,d0\n add.w d0,d0'
+    artifact,_,_=table_artifact(tmp_path,'pointer',prefix)
+    try:
+        rows=artifact.analysis_payload()[0]['sections'][0]['table_consumers']
+        assert next(r for r in rows if r['index_register']==0)['index_mask_domain']is None
+    finally:artifact.close()
+
+
+@pytest.mark.c_backend
+@pytest.mark.parametrize('target',['scale','read'])
+def test_local_mask_domain_rejects_alternative_entry_after_bound(tmp_path,target):
+    prefix=f' tst.w d1\n beq.s {target}\n andi.w #3,d0\nscale:\n add.w d0,d0\n add.w d0,d0'
+    artifact,_,_=table_artifact(tmp_path,'pointer',prefix)
+    try:
+        rows=artifact.analysis_payload()[0]['sections'][0]['table_consumers']
+        assert next(r for r in rows if r['index_register']==0)['index_mask_domain']is None
+    finally:artifact.close()
+
+
+@pytest.mark.c_backend
+@pytest.mark.parametrize('prefix,width',[
+    (' move.l (a7),d0\n andi.w #3,d0\n add.w d0,d0\n add.w d0,d0','l'),
+    (' andi.w #32767,d0\n add.w d0,d0\n add.w d0,d0','w'),
+])
+def test_local_word_domain_cannot_bound_long_upper_bits_or_wrapped_word_index(tmp_path,prefix,width):
+    artifact,_,_=table_artifact(tmp_path,'pointer',prefix,width)
+    try:
+        rows=artifact.analysis_payload()[0]['sections'][0]['table_consumers']
+        assert next(r for r in rows if r['index_register']==0)['index_mask_domain']is None
+    finally:artifact.close()
+
+
+@pytest.mark.c_backend
+@pytest.mark.parametrize('branch',['bhi','bgt'])
+def test_local_compare_domain_retains_guarded_fallthrough(tmp_path,branch):
+    prefix=f' andi.w #7,d0\n cmp.w #3,d0\n {branch}.s done\n add.w d0,d0\n add.w d0,d0'
+    artifact,_,_=table_artifact(tmp_path,'pointer',prefix)
+    try:
+        rows=artifact.analysis_payload()[0]['sections'][0]['table_consumers']
+        row=next(r for r in rows if r['index_register']==0)
+        assert row['index_compare_domain']['min']==0 and row['index_compare_domain']['max']==3
+    finally:artifact.close()
+
+
+@pytest.mark.c_backend
+@pytest.mark.parametrize('guard,expected',[
+    ('cmp.w #3,d0\n bhi.s done',True),
+    ('cmp.w #3,d0\n bgt.s done',False),
+    ('cmp.w #3,d0\n bgt.s done\n andi.w #7,d0',False),
+])
+def test_signed_compare_requires_prior_nonnegative_evidence(tmp_path,guard,expected):
+    artifact,_,_=table_artifact(tmp_path,'pointer',
+        ' '+guard+'\n add.w d0,d0\n add.w d0,d0')
+    try:
+        rows=artifact.analysis_payload()[0]['sections'][0]['table_consumers']
+        domain=next(r for r in rows if r['index_register']==0)['index_compare_domain']
+        assert (domain is not None)==expected
     finally:artifact.close()
 
 

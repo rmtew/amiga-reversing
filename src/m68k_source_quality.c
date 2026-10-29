@@ -4056,7 +4056,8 @@ typedef struct M68kSourceQualityTableIndexDomainEvidence {
 } M68kSourceQualityTableIndexDomainEvidence;
 
 static void source_quality_derive_index_domain_before_table_access(const M68kDecodeSectionIR *section,
-    const uint8_t *accepted_start, uint32_t table_access_offset, uint8_t index_register_kind,
+    const M68kSectionAnalysisIR *section_analysis, const uint8_t *accepted_start,
+    uint32_t table_access_offset, uint8_t index_register_kind,
     uint8_t index_register, M68kSourceQualityTableIndexDomainEvidence *out_domain);
 
 #define M68K_SOURCE_QUALITY_WORD_DISPATCH_LOCAL_LIMIT 0x2000
@@ -4254,18 +4255,10 @@ static int source_quality_instruction_sets_data_register_immediate(const M68kIns
 }
 
 static int source_quality_instruction_writes_data_register(const M68kInstructionIR *instruction, uint8_t reg) {
-  const M68kSimFormMetadata *metadata;
   size_t operand_index;
-  if (instruction == NULL) return 0;
-  metadata = m68k_sim_metadata_for_instruction(instruction);
-  if (metadata == NULL) return 0;
+  if (instruction == NULL || reg >= 8U) return 0;
   for (operand_index = 0U; operand_index < instruction->operand_count && operand_index < 4U; ++operand_index) {
-    uint8_t operand_reg = 0U;
-    if (metadata->operand_access_kinds[operand_index] != M68K_SIM_ACCESS_REGISTER_WRITE) continue;
-    if (source_quality_operand_data_register_index(&instruction->operands[operand_index], &operand_reg) &&
-        operand_reg == reg) {
-      return 1;
-    }
+    if (platform_operand_register_write_mask(instruction, operand_index) & (1U << reg)) return 1;
   }
   return 0;
 }
@@ -5657,7 +5650,7 @@ static int append_pc_relative_lookup_table_items(M68kSourceAnalysisIR *source_an
             if (!operand->value.index_is_address)
               source_quality_derive_loop_domain_around_table_access(section, accepted_start[decode_index],
                 candidate, table_index_reg, &index_domain);
-            source_quality_derive_index_domain_before_table_access(section, accepted_start[decode_index],
+            source_quality_derive_index_domain_before_table_access(section, consumer_analysis, accepted_start[decode_index],
               candidate->offset, operand->value.index_is_address ? M68K_ANALYSIS_REGISTER_ADDRESS :
                 M68K_ANALYSIS_REGISTER_DATA, table_index_reg, &pre_access_domain);
             if (pre_access_domain.has_mask) {
@@ -6050,7 +6043,7 @@ static int append_indexed_local_pointer_table_items(M68kSourceAnalysisIR *source
             accepted_bytes[target_section_index], target_section->size, table_offset, item_size);
           target_register_known = (uint8_t)source_quality_candidate_dest_direct_register_kind(candidate,
             &instruction, &target_register_kind, &target_register);
-          source_quality_derive_index_domain_before_table_access(section, accepted_start[decode_index],
+          source_quality_derive_index_domain_before_table_access(section, section_analysis, accepted_start[decode_index],
             candidate->offset, index_register_kind, index_register, &index_domain);
           if (consumers_only) {
             const M68kTableDescriptorIR *known_table = source_quality_clean_pointer_table_descriptor(
@@ -8716,21 +8709,75 @@ static int source_quality_branch_mnemonic_exits_above_compare(uint8_t mnemonic_i
   return mnemonic_id == M68K_ASM_MNEMONIC_BHI || mnemonic_id == M68K_ASM_MNEMONIC_BGT;
 }
 
+/* Local selector evidence is valid only along its surviving original path.
+ * Labels after the bound are possible alternative entries; calls/unknown flow
+ * and decoded writes invalidate it. This is not a replacement CFG solver. */
+static int source_quality_local_index_bound_survives(const M68kDecodeSectionIR *section,
+    const M68kSectionAnalysisIR *analysis, const M68kDecodeCandidate *const *candidates,
+    const M68kInstructionIR *instructions, size_t count, size_t bound_index,
+    uint32_t access_offset, uint8_t reg, uint32_t upper) {
+  size_t i;
+  if (analysis == NULL || upper > INT16_MAX ||
+      source_quality_section_has_label_at(analysis, access_offset)) return 0;
+  for (i = bound_index + 1U; i < count; ++i) {
+    const M68kDecodeCandidate *candidate = candidates[count - 1U - i];
+    const M68kSimFormMetadata *metadata = m68k_sim_metadata_for_instruction(&instructions[i]);
+    if (source_quality_section_has_label_at(analysis, candidate->offset) || metadata == NULL) return 0;
+    if (metadata->flow_kind != M68K_SIM_FLOW_SEQUENTIAL) {
+      size_t t;
+      int exits = 0;
+      if (metadata->flow_kind != M68K_SIM_FLOW_BRANCH) return 0;
+      for (t = 0U; t < candidate->target_count; ++t) {
+        const M68kDecodeTarget *target = &candidate->targets[t];
+        if (target->kind != M68K_DECODE_TARGET_BRANCH) continue;
+        if (!target->has_section || target->section_index != section->section_index ||
+            target->offset <= access_offset) return 0;
+        exits = 1;
+      }
+      if (!exits) return 0;
+    }
+    if (source_quality_instruction_scales_word_index_register(&instructions[i], reg)) {
+      if (upper > (uint32_t)INT16_MAX / 2U) return 0;
+      upper *= 2U;
+    } else if (source_quality_instruction_writes_data_register(&instructions[i], reg)) return 0;
+  }
+  return 1;
+}
+
 static void source_quality_derive_index_domain_before_table_access(const M68kDecodeSectionIR *section,
-    const uint8_t *accepted_start, uint32_t table_access_offset, uint8_t index_register_kind,
+    const M68kSectionAnalysisIR *section_analysis, const uint8_t *accepted_start,
+    uint32_t table_access_offset, uint8_t index_register_kind,
     uint8_t index_register, M68kSourceQualityTableIndexDomainEvidence *out_domain) {
   const M68kDecodeCandidate *candidates[8];
   M68kInstructionIR instructions[8];
   size_t count = 0U;
   size_t index;
   size_t scale_index = SIZE_MAX;
+  size_t mask_index = SIZE_MAX;
   uint32_t cursor;
+  const M68kDecodeCandidate *access;
+  M68kInstructionIR access_instruction;
+  int word_index = 0;
   if (out_domain == NULL) return;
   memset(out_domain, 0, sizeof(*out_domain));
-  if (section == NULL || accepted_start == NULL || index_register_kind != M68K_ANALYSIS_REGISTER_DATA ||
+  if (section == NULL || section_analysis == NULL || accepted_start == NULL ||
+      index_register_kind != M68K_ANALYSIS_REGISTER_DATA ||
       index_register >= 8U) {
     return;
   }
+  access = m68k_decode_ir_find_candidate_at_offset(section, table_access_offset);
+  if (access == NULL || m68k_decode_candidate_to_instruction(access, &access_instruction) != 0) return;
+  for (index = 0U; index < access_instruction.operand_count; ++index) {
+    const M68kOperandIR *operand = &access_instruction.operands[index];
+    if ((operand->kind == M68K_ASM_OPERAND_EA || operand->kind == M68K_ASM_OPERAND_BF_EA) &&
+        (operand->value.ea_mode == 6U || (operand->value.ea_mode == 7U && operand->value.ea_reg == 3U)) &&
+        !operand->value.index_is_address && operand->value.index_reg == index_register) {
+      /* A WORD mask says nothing about the upper half of a LONG index. */
+      if (operand->value.index_long) return;
+      word_index = 1;
+    }
+  }
+  if (!word_index) return;
   cursor = table_access_offset;
   while (count < sizeof(candidates) / sizeof(candidates[0])) {
     const M68kDecodeCandidate *previous = source_quality_previous_accepted_candidate(section, accepted_start, cursor);
@@ -8746,7 +8793,9 @@ static void source_quality_derive_index_domain_before_table_access(const M68kDec
   }
   if (count != 0U) {
     uint32_t mask = 0U;
-    if (source_quality_instruction_masks_index_register(&instructions[count - 1U], index_register, &mask)) {
+    if (source_quality_instruction_masks_index_register(&instructions[count - 1U], index_register, &mask) &&
+        source_quality_local_index_bound_survives(section, section_analysis, candidates, instructions,
+          count, count - 1U, table_access_offset, index_register, mask)) {
       out_domain->has_mask = 1U;
       out_domain->mask_min = 0U;
       out_domain->mask_max = mask;
@@ -8754,18 +8803,15 @@ static void source_quality_derive_index_domain_before_table_access(const M68kDec
     }
   }
   if (scale_index == SIZE_MAX) return;
-  for (index = scale_index + 1U; index < count; ++index) {
-    if (instructions[index].mnemonic_id != M68K_ASM_MNEMONIC_LEA &&
-        instructions[index].mnemonic_id != M68K_ASM_MNEMONIC_MOVEA) {
-      return;
-    }
-  }
   for (index = 0U; index < scale_index; ++index) {
     uint32_t mask = 0U;
-    if (source_quality_instruction_masks_index_register(&instructions[index], index_register, &mask)) {
+    if (source_quality_instruction_masks_index_register(&instructions[index], index_register, &mask) &&
+        source_quality_local_index_bound_survives(section, section_analysis, candidates, instructions,
+          count, index, table_access_offset, index_register, mask)) {
       out_domain->has_mask = 1U;
       out_domain->mask_min = 0U;
       out_domain->mask_max = mask;
+      mask_index = index;
     }
   }
   for (index = 0U; index + 1U < scale_index; ++index) {
@@ -8774,7 +8820,9 @@ static void source_quality_derive_index_domain_before_table_access(const M68kDec
         &limit) &&
         source_quality_branch_mnemonic_exits_above_compare(instructions[index + 1U].mnemonic_id) &&
         (instructions[index + 1U].mnemonic_id != M68K_ASM_MNEMONIC_BGT ||
-         (out_domain->has_mask && out_domain->mask_max <= 0x7FFFU && limit <= 0x7FFFU))) {
+         (out_domain->has_mask && mask_index < index)) &&
+        source_quality_local_index_bound_survives(section, section_analysis, candidates, instructions,
+          count, index, table_access_offset, index_register, limit)) {
       out_domain->has_compare = 1U;
       out_domain->compare_min = 0U;
       out_domain->compare_max = limit;
@@ -8871,7 +8919,9 @@ static int append_traced_word_dispatch_table_items(M68kSourceAnalysisIR *source_
             decode->sections[fact->table_section_index].size, cursor, 2U)) { conflict = 1; break; }
     }
     if (conflict) continue;
-    source_quality_derive_index_domain_before_table_access(section, accepted_start[fact->producer_section_index],
+    source_quality_derive_index_domain_before_table_access(section,
+      source_analysis_section_by_index(source_analysis, fact->producer_section_index),
+      accepted_start[fact->producer_section_index],
       producer->offset, index_kind, index_reg, &domain);
     segment = fact->table_offset;
     for (cursor = segment + 2U; cursor <= fact->table_offset + fact->table_size; cursor += 2U) {

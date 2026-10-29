@@ -55,10 +55,17 @@ and existing register/stack transfers. Five matrix consumers gained45 accesses;
 foreign bases, conflicting phase views and incomplete extents remain conservative.
 Direct PEA typed stack construction is still separate.
 
-Next fix the reproduced local index-domain scanner error: it retains a masked
-bound across register clobbers or a branch bypass. Positive and negative fixtures
-reproduce this independently; current target domains are being checked separately.
-Reuse shared write/flow/entry facts rather than add a competing range engine. All37 sprite/name/audio/
+The local index-domain scanner now rejects stale bounds after decoded register
+writes (including MOVEM), calls, alternative entry after the guard, unsupported
+LONG upper bits or signed WORD-index wrap. It reuses shared write masks and
+existing flow/entry facts; clean unrelated writes and guarded compare fallthrough
+remain supported.62 related Python checks and all832 native cases pass. One SGII
+regeneration retained all five existing mask/compare records, unchanged counts and
+identical full-inline/INCBIN package sources. Prior exact builds therefore remain
+applicable; no extra assembler/runtime run or observation dump was needed.
+Next test guard-local selector units versus scaled EA byte offsets with a
+noncontiguous mask and multi-step WORD scaling before extending typed pointer/range
+projection. This fix does not supply that conversion or general branch-value flow. All37 sprite/name/audio/
 text-reference gaps are indexed accesses. A four-entry fixture resolves a constant
 index but remains `indexed_dynamic` after signed0..3 guards; its unguarded negative
 also stays unresolved. Branch/partial-WORD constraint transport needs shared-value
