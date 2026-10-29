@@ -3,6 +3,24 @@ from copy import deepcopy
 from amiga_reversing.tools.source_gap_inventory import inventory
 
 
+def test_address_only_nominal_width_is_not_a_physical_record_overrun():
+    access = dict(root_struct_name='R', displacement=4, access_size=4,
+                  access='address', classification='field_gap')
+    analysis = dict(sections=[dict(section_index=0,
+                                  recovered_platform_unresolved_typed_accesses=[access])])
+    metadata = dict(custom_structs=[dict(name='R', size=4, fields=[])])
+    def mechanism():
+        return inventory(analysis, metadata, '')['unresolved_typed_accesses'][0]['mechanism']
+    assert mechanism() == 'address_formation'
+    access['displacement'] = -4
+    assert mechanism() == 'address_formation'
+    for role in ('memory_read', 'memory_write'):
+        access['access'] = role
+        assert mechanism() == 'outside_declared_record'
+    access.update(access_size=0, access='unknown')
+    assert mechanism() == 'address_formation_or_unknown_width'
+
+
 def test_zero_write_witness_keeps_field_hole_and_boundary_obligations():
     metadata = dict(custom_structs=[dict(name='R', size=16, fields=[])])
     access = dict(root_struct_name='R', displacement=4, access_size=4, classification='field_gap')

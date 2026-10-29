@@ -32,6 +32,24 @@ The energy-tower initializer's World chain view stays distinct from its updater
 view. Packed-header normalization, signed comparisons, wrap, PRNG transforms,
 nullable/sentinel links and unknown constructor parameters remain unchanged.
 
+The current native diagnostic projection exposes generated operand roles directly:
+61 read roles, 112 destination-write roles and four address formations across the
+177 unresolved records. These are not exhaustive RMW/bus effects or DMA evidence.
+Two field-gap cursor calculations retain their nominal width but are now correctly
+separated from the three physical outside-record cases. All roles match their
+native instruction operands; 832 C tests and 135 focused tests pass. Source and
+57 assets are unchanged and C/vasm remains exact (receipt
+`cc148d68468ee3a9594e120b6c38b5e67187339f88b0a3e4a87d6dad7ffd0dc2`);
+the previous identical-input standalone qualification remains applicable.
+
+Next: review the original model/nonmodel reticle branch contracts and the type146
+colour branch before adding more field names. Heterogeneous contact reads occur
+before their rejecting type guard; preserve that ordering and the common-list
+contract, rather than cast the whole list to a model subtype. The `$24` group has
+16 catalogued write roles and no naming justification from a corresponding read.
+
+### Recent validated batches (counts at each recorded revision)
+
 Startup now names the two explicit A7 targets as `initial_game_stack_top`
 and the immediately preceding 1024 source-zero bytes as stack seed storage.
 The seed begins after the accepted RTS and stops at the top marker; its following
@@ -92,8 +110,8 @@ The native unresolved-access projection now marks 36 scalar MOVE writes whose
 written bits are zero in the existing shared value state. These remain unresolved
 fields, not inferred purposes or complete initialization contracts. The current
 177 accesses split into 91 other declared field holes, 36 zero-write holes,
-39 dynamic indexed accesses, six auto-update cursors and five accesses outside
-the declared record. Source+$71AC/$738A are confirmed members of the original
+39 dynamic indexed accesses, six auto-update cursors, two address formations
+and three physical accesses outside the declared record. Source+$71AC/$738A are confirmed members of the original
 17-LONG zeroing runs; they are not evidence for projectile lifetime semantics.
 The new `field_gaps` query retrieves the 177 native records in two 100-item pages,
 without traversing all 2827 resolved/unresolved field records or materializing

@@ -14777,6 +14777,8 @@ int platform_file_facts_v2_listing_artifact_query_json_alloc(PlatformFileListing
         Q(json_builder_appendf(&b, ",\"field_offset\":null,\"displacement\":%d,\"operand_index\":%u,\"classification\":%u,\"status\":\"unresolved\",\"provenance\":{\"kind\":%u,\"section_index\":%u,\"source_offset\":%u}",
           (int)a->displacement, (unsigned)a->operand_index, (unsigned)a->classification,
           (unsigned)a->type_provenance_kind, (unsigned)a->type_provenance_section_index, (unsigned)a->type_provenance_offset));
+        if (a->access_kind != M68K_SIM_ACCESS_NONE) STR("access", m68k_sim_access_kind_name(a->access_kind));
+        Q(json_builder_appendf(&b, ",\"access_size\":%u", (unsigned)a->access_size));
         if (a->source_zero_write) Q(json_builder_append(&b, ",\"source_zero_write\":true"));
         Q(json_builder_append(&b, "}"));
       }

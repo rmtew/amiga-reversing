@@ -241,7 +241,14 @@ unrelated items. This is review navigation, not additional code/data admission.
 `query --kind field_gaps` pages the native unresolved field-access records
 directly. Source coordinates, `struct_name` and `field_offset` filter the same
 identities exposed by `fields`; resolved accesses and listing materialization are
-excluded. The optional `source_zero_write: true` records a scalar MOVE whose
+excluded. `access` transports the generated operand role (`address`,
+`memory_read` or `memory_write` when known); absent metadata stays absent.
+`access_size` keeps the existing decoded span or nominal address-formation width.
+An `address` role does not read that span, prove an array bound or admit a field.
+The role is not a complete RMW effect stream, CPU bus trace or DMA observation.
+The gap inventory separates address formation from physical outside-record
+accesses without changing native field admission or pointer-state propagation.
+The optional `source_zero_write: true` records a scalar MOVE whose
 written bits are zero in the shared singleton value state under source entry
 contracts. It currently requires unrelocated input and a contiguous BYTE, WORD
 or LONG transfer. Ambiguous values, pointer packets, unknown partial writes,

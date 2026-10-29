@@ -7,6 +7,22 @@
 #include <stdio.h>
 #include <string.h>
 
+const char *m68k_sim_access_kind_name(uint8_t access_kind) {
+  switch (access_kind) {
+  case M68K_SIM_ACCESS_NONE: return "none";
+  case M68K_SIM_ACCESS_REGISTER_READ: return "register_read";
+  case M68K_SIM_ACCESS_REGISTER_WRITE: return "register_write";
+  case M68K_SIM_ACCESS_MEMORY_READ: return "memory_read";
+  case M68K_SIM_ACCESS_MEMORY_WRITE: return "memory_write";
+  case M68K_SIM_ACCESS_COMPUTE_ADDRESS: return "address";
+  case M68K_SIM_ACCESS_IMMEDIATE: return "immediate";
+  case M68K_SIM_ACCESS_BRANCH_TARGET: return "branch_target";
+  case M68K_SIM_ACCESS_REGISTER_LIST_READ: return "register_list_read";
+  case M68K_SIM_ACCESS_REGISTER_LIST_WRITE: return "register_list_write";
+  default: return "unknown";
+  }
+}
+
 /* Scoped by the opt-in synchronous wrapper; separate host threads never share
  * an observer. Saving/restoring also permits nested observed executions. */
 #if defined(_MSC_VER)

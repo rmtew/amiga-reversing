@@ -16,8 +16,11 @@
 
 #include <time.h>
 
-static int append_source_zero_write_json(JsonBuilder *builder,
+static int append_unresolved_operand_evidence_json(JsonBuilder *builder,
     const M68kRecoveredPlatformUnresolvedTypedAccessIR *access) {
+  if (access->access_kind != M68K_SIM_ACCESS_NONE &&
+      (json_builder_append(builder, ",\"access\":") != 0 ||
+       json_builder_append_json_string(builder, m68k_sim_access_kind_name(access->access_kind)) != 0)) return -1;
   return access->source_zero_write ? json_builder_append(builder, ",\"source_zero_write\":true") : 0;
 }
 
@@ -80,7 +83,6 @@ static void address_observation_owner_symbols(const M68kAddressObservationIR *ob
   const char **out_symbol, const char **out_base_symbol);
 static int address_observation_owner_symbol_expr(const M68kAddressObservationIR *observation,
   char *buf, size_t buf_size);
-static const char *listing_operand_access_name(uint8_t access_kind);
 static int append_listing_operand_parts_json(JsonBuilder *builder, const M68kStatementIR *stmt);
 static int listing_operand_is_immediate_value(const M68kOperandIR *operand, uint32_t *out_value);
 
@@ -3517,7 +3519,7 @@ static int append_source_analysis_memory_layout_records_json(JsonBuilder *builde
           unresolved_typed_access_classification_name(access->classification)) != 0) return -1;
       if (json_builder_append(builder, ",\"root_struct_name\":") != 0) return -1;
       if (json_builder_append_nullable_string(builder, root_struct_name) != 0) return -1;
-      if (append_source_zero_write_json(builder, access) != 0) return -1;
+      if (append_unresolved_operand_evidence_json(builder, access) != 0) return -1;
       if (json_builder_append(builder, ",\"container_struct_name\":") != 0) return -1;
       if (json_builder_append_nullable_string(builder, container_struct_name) != 0) return -1;
       if (json_builder_append(builder, ",\"container_field_expr\":") != 0) return -1;
@@ -3641,7 +3643,7 @@ static int append_source_analysis_memory_layout_records_json(JsonBuilder *builde
           (unsigned)observation->operand_index) != 0) {
         return -1;
       }
-      if (json_builder_append_json_string(builder, listing_operand_access_name(observation->access_kind)) != 0)
+      if (json_builder_append_json_string(builder, m68k_sim_access_kind_name(observation->access_kind)) != 0)
         return -1;
       if (json_builder_appendf(builder,
           ",\"access_width\":%u,\"address\":%u,\"owner_kind_id\":%u,\"owner_kind\":",
@@ -4388,7 +4390,7 @@ static int source_analysis_to_json_impl(const M68kSourceAnalysisIR *source_analy
         (unsigned)range->access_kind) != 0)
       goto oom;
     if (json_builder_append_json_string(&builder,
-        listing_operand_access_name(range->access_kind)) != 0)
+        m68k_sim_access_kind_name(range->access_kind)) != 0)
       goto oom;
     if (json_builder_appendf(&builder,
         ",\"observation_count\":%u,\"read_count\":%u,\"write_count\":%u,"
@@ -4626,7 +4628,7 @@ static int source_analysis_to_json_impl(const M68kSourceAnalysisIR *source_analy
           (unsigned)observation->access_kind) != 0)
         goto oom;
       if (json_builder_append_json_string(&builder,
-          listing_operand_access_name(observation->access_kind)) != 0)
+          m68k_sim_access_kind_name(observation->access_kind)) != 0)
         goto oom;
       if (json_builder_appendf(&builder,
           ",\"access_width\":%u,\"raw_value\":%u",
@@ -5001,7 +5003,7 @@ static int source_analysis_to_json_impl(const M68kSourceAnalysisIR *source_analy
           ",\"access_kind_id\":%u,\"access_kind_name\":",
           (unsigned)use->access_kind) != 0)
         goto oom;
-      if (json_builder_append_json_string(&builder, listing_operand_access_name(use->access_kind)) != 0)
+      if (json_builder_append_json_string(&builder, m68k_sim_access_kind_name(use->access_kind)) != 0)
         goto oom;
       if (json_builder_appendf(&builder, ",\"access_width\":%u,\"confidence\":%u",
           (unsigned)use->access_width, (unsigned)use->confidence) != 0)
@@ -5925,7 +5927,7 @@ static int source_analysis_to_json_impl(const M68kSourceAnalysisIR *source_analy
         goto oom;
       if (json_builder_append_nullable_string(&builder, root_struct_name) != 0)
         goto oom;
-      if (append_source_zero_write_json(&builder, access) != 0) goto oom;
+      if (append_unresolved_operand_evidence_json(&builder, access) != 0) goto oom;
       if (json_builder_appendf(&builder, ",\"classification_id\":%u,\"classification\":",
           (unsigned)access->classification) != 0)
         goto oom;
@@ -6985,7 +6987,7 @@ static int append_listing_unresolved_typed_accesses_json(JsonBuilder *builder, c
         (unsigned)access->struct_size, (unsigned)access->access_size) != 0)
       return -1;
     if (json_builder_append_nullable_string(builder, root_struct_name) != 0) return -1;
-    if (append_source_zero_write_json(builder, access) != 0) return -1;
+    if (append_unresolved_operand_evidence_json(builder, access) != 0) return -1;
     if (json_builder_appendf(builder, ",\"classification_id\":%u,\"classification\":",
         (unsigned)access->classification) != 0) return -1;
     if (json_builder_append_json_string(builder,
@@ -7115,21 +7117,7 @@ static int append_listing_operand_parts_json(JsonBuilder *builder, const M68kSta
   return json_builder_append(builder, "]");
 }
 
-static const char *listing_operand_access_name(uint8_t access_kind) {
-  switch (access_kind) {
-  case M68K_SIM_ACCESS_NONE: return "none";
-  case M68K_SIM_ACCESS_REGISTER_READ: return "register_read";
-  case M68K_SIM_ACCESS_REGISTER_WRITE: return "register_write";
-  case M68K_SIM_ACCESS_MEMORY_READ: return "memory_read";
-  case M68K_SIM_ACCESS_MEMORY_WRITE: return "memory_write";
-  case M68K_SIM_ACCESS_COMPUTE_ADDRESS: return "address";
-  case M68K_SIM_ACCESS_IMMEDIATE: return "immediate";
-  case M68K_SIM_ACCESS_BRANCH_TARGET: return "branch_target";
-  case M68K_SIM_ACCESS_REGISTER_LIST_READ: return "register_list_read";
-  case M68K_SIM_ACCESS_REGISTER_LIST_WRITE: return "register_list_write";
-  default: return "unknown";
-  }
-}
+
 
 static const char *listing_operation_type_name(uint8_t operation_type) {
   switch (operation_type) {
@@ -7212,7 +7200,7 @@ static int append_listing_operand_accesses_json(JsonBuilder *builder, const M68k
   metadata = instruction_sim_metadata(instruction);
   for (operand_index = 0U; operand_index < instruction->operand_count && operand_index < 4U; ++operand_index) {
     const char *access_name = "unknown";
-    if (metadata != NULL) access_name = listing_operand_access_name(metadata->operand_access_kinds[operand_index]);
+    if (metadata != NULL) access_name = m68k_sim_access_kind_name(metadata->operand_access_kinds[operand_index]);
     if (operand_index != 0U && json_builder_append(builder, ",") != 0) return -1;
     if (json_builder_append_json_string(builder, access_name) != 0) return -1;
   }
@@ -7231,7 +7219,7 @@ static int append_instruction_operand_facts_json(JsonBuilder *b, const M68kInstr
     int indexed = shape == M68K_SIM_EA_SHAPE_INDEX || shape == M68K_SIM_EA_SHAPE_PC_INDEX;
     int an = shape >= M68K_SIM_EA_SHAPE_INDIRECT && shape <= M68K_SIM_EA_SHAPE_INDEX;
     int32_t disp = 0;
-    const char *access = meta ? listing_operand_access_name(meta->operand_access_kinds[i]) : "unknown";
+    const char *access = meta ? m68k_sim_access_kind_name(meta->operand_access_kinds[i]) : "unknown";
     if (shape == M68K_SIM_EA_SHAPE_DISPLACEMENT || shape == M68K_SIM_EA_SHAPE_PC_DISPLACEMENT)
       disp = (int32_t)m68k_sign_extend32(op->value.value, 16U);
     int displacement_known = !indexed || m68k_ir_operand_brief_index_displacement(op, &disp);
@@ -10775,7 +10763,7 @@ static int append_listing_navigation_unresolved_entry(JsonBuilder *builder, cons
       json_builder_appendf(builder, ",\"type_provenance_section\":%u,\"type_provenance_offset\":%u",
         (unsigned)access->type_provenance_section_index, (unsigned)access->type_provenance_offset) != 0)
     return -1;
-  if (append_source_zero_write_json(builder, access) != 0) return -1;
+  if (append_unresolved_operand_evidence_json(builder, access) != 0) return -1;
   return json_builder_append(builder, "}");
 }
 

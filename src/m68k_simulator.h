@@ -104,6 +104,9 @@ typedef enum M68kSimAccessKind {
   M68K_SIM_ACCESS_REGISTER_LIST_WRITE = 9
 } M68kSimAccessKind;
 
+/* Shared serialization of existing generated operand roles. */
+const char *m68k_sim_access_kind_name(uint8_t access_kind);
+
 typedef enum M68kSimMultiTransferDirection {
   M68K_SIM_MULTI_NONE = 0,
   M68K_SIM_MULTI_REGISTER_TO_MEMORY = 1,

@@ -3331,7 +3331,7 @@ int m68k_ir_section_analysis_append_recovered_platform_unresolved_typed_access(
     uint8_t classification, uint16_t container_candidate_count, const char *container_struct_name,
     const char *container_field_expr, uint8_t refinement_applied, const char *refined_struct_name,
     uint8_t type_provenance_kind, size_t type_provenance_section_index, uint32_t type_provenance_offset,
-    uint8_t source_zero_write) {
+    uint8_t source_zero_write, uint8_t access_kind) {
   size_t index;
   char *copy_root_struct_name;
   char *copy_container_struct_name = NULL;
@@ -3387,6 +3387,7 @@ int m68k_ir_section_analysis_append_recovered_platform_unresolved_typed_access(
         strcmp(existing->container_field_expr != NULL ? existing->container_field_expr : "",
           candidate_container_field_expr != NULL ? candidate_container_field_expr : "") == 0) {
       existing->source_zero_write &= source_zero_write != 0U;
+      if (existing->access_kind != access_kind) existing->access_kind = 0U;
       return 0;
     }
   }
@@ -3430,6 +3431,8 @@ int m68k_ir_section_analysis_append_recovered_platform_unresolved_typed_access(
     section_analysis->recovered_platform_unresolved_typed_access_count].classification = classification;
   section_analysis->recovered_platform_unresolved_typed_accesses[
     section_analysis->recovered_platform_unresolved_typed_access_count].source_zero_write = source_zero_write != 0U;
+  section_analysis->recovered_platform_unresolved_typed_accesses[
+    section_analysis->recovered_platform_unresolved_typed_access_count].access_kind = access_kind;
   section_analysis->recovered_platform_unresolved_typed_accesses[
     section_analysis->recovered_platform_unresolved_typed_access_count].container_candidate_count =
       container_candidate_count;
@@ -5591,7 +5594,7 @@ int m68k_ir_source_analysis_append_section(M68kSourceAnalysisIR *source_analysis
           access->struct_size, access->access_size, root_struct_name, access->classification, access->container_candidate_count,
           container_struct_name, access->container_field_expr, access->refinement_applied,
           refined_struct_name, access->type_provenance_kind, access->type_provenance_section_index,
-          access->type_provenance_offset, access->source_zero_write) != 0) {
+          access->type_provenance_offset, access->source_zero_write, access->access_kind) != 0) {
       m68k_ir_section_analysis_destroy(&copy);
       return -1;
     }

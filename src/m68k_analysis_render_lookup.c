@@ -2210,7 +2210,7 @@ static int render_lookup_add_unresolved_typed_access_by_names(M68kRenderLookup *
   uint32_t offset, uint8_t operand_index, uint8_t base_reg, int32_t displacement, const char *root_struct_name,
   uint16_t struct_size, uint8_t access_size, uint8_t classification, uint16_t container_candidate_count,
   const char *container_struct_name, const char *container_field_expr, uint8_t refinement_applied,
-  const char *refined_struct_name, const M68kRenderTypedProvenance *provenance, uint8_t source_zero_write);
+  const char *refined_struct_name, const M68kRenderTypedProvenance *provenance, uint8_t source_zero_write, uint8_t access_kind);
 static int render_lookup_pointer_value_to_object_source_location(const M68kRenderLookup *lookup, uint32_t value,
   size_t *out_section_index, uint32_t *out_source_offset);
 
@@ -5364,7 +5364,8 @@ static int render_lookup_record_typed_struct_accesses(M68kRenderLookup *lookup, 
             render_lookup_add_unresolved_typed_access_by_names(lookup, section_index, offset,
               (uint8_t)operand_index, base_reg, effective_displacement, root_struct_name, struct_size, access_size,
               M68K_PLATFORM_UNRESOLVED_TYPED_ACCESS_INDEXED_DYNAMIC, 0U, NULL, NULL, 0U, NULL,
-              provenance, source_zero_write && operand_index == zero_operand) != 0) {
+              provenance, source_zero_write && operand_index == zero_operand,
+              metadata != NULL ? metadata->operand_access_kinds[operand_index] : M68K_SIM_ACCESS_NONE) != 0) {
           return -1;
         }
       }
@@ -5378,7 +5379,8 @@ static int render_lookup_record_typed_struct_accesses(M68kRenderLookup *lookup, 
             render_lookup_add_unresolved_typed_access_by_names(lookup, section_index, offset,
               (uint8_t)operand_index, base_reg, effective_displacement, root_struct_name, struct_size, access_size,
               M68K_PLATFORM_UNRESOLVED_TYPED_ACCESS_TYPE_CONFLICT,
-              conflict_struct_name != NULL ? 2U : 1U, conflict_struct_name, NULL, 0U, NULL, provenance, source_zero_write && operand_index == zero_operand) != 0) {
+              conflict_struct_name != NULL ? 2U : 1U, conflict_struct_name, NULL, 0U, NULL, provenance, source_zero_write && operand_index == zero_operand,
+              metadata != NULL ? metadata->operand_access_kinds[operand_index] : M68K_SIM_ACCESS_NONE) != 0) {
           return -1;
         }
       }
@@ -5391,7 +5393,8 @@ static int render_lookup_record_typed_struct_accesses(M68kRenderLookup *lookup, 
             render_lookup_add_unresolved_typed_access_by_names(lookup, section_index, offset,
               (uint8_t)operand_index, base_reg, effective_displacement, root_struct_name, struct_size, access_size,
               M68K_PLATFORM_UNRESOLVED_TYPED_ACCESS_AUTO_UPDATE_CURSOR, 0U, NULL, NULL, 0U, NULL,
-              provenance, source_zero_write && operand_index == zero_operand) != 0) {
+              provenance, source_zero_write && operand_index == zero_operand,
+              metadata != NULL ? metadata->operand_access_kinds[operand_index] : M68K_SIM_ACCESS_NONE) != 0) {
           return -1;
         }
       }
@@ -5403,7 +5406,8 @@ static int render_lookup_record_typed_struct_accesses(M68kRenderLookup *lookup, 
         if (root_struct_name != NULL && render_lookup_add_unresolved_typed_access_by_names(lookup,
             section_index, offset, (uint8_t)operand_index, base_reg, effective_displacement, root_struct_name,
             struct_size, access_size, M68K_PLATFORM_UNRESOLVED_TYPED_ACCESS_FIELD_GAP, 0U, NULL, NULL,
-            0U, NULL, provenance, source_zero_write && operand_index == zero_operand) != 0) return -1;
+            0U, NULL, provenance, source_zero_write && operand_index == zero_operand,
+              metadata != NULL ? metadata->operand_access_kinds[operand_index] : M68K_SIM_ACCESS_NONE) != 0) return -1;
       }
       continue;
     }
@@ -5459,7 +5463,8 @@ static int render_lookup_record_typed_struct_accesses(M68kRenderLookup *lookup, 
                 container_candidate_count, container_struct_name, container_field_expr,
                 (uint8_t)(refinement_applied ? 1U : 0U),
                 refinement_applied ? lookup_policy_struct_name_by_id(lookup->policy, container_struct_id) : NULL,
-                provenance, source_zero_write && operand_index == zero_operand) != 0) {
+                provenance, source_zero_write && operand_index == zero_operand,
+              metadata != NULL ? metadata->operand_access_kinds[operand_index] : M68K_SIM_ACCESS_NONE) != 0) {
             return -1;
           }
         }
@@ -5472,7 +5477,8 @@ static int render_lookup_record_typed_struct_accesses(M68kRenderLookup *lookup, 
         if (root_struct_name != NULL &&
             render_lookup_add_unresolved_typed_access_by_names(lookup, section_index, offset,
               (uint8_t)operand_index, base_reg, effective_displacement, root_struct_name, struct_size, access_size,
-              M68K_PLATFORM_UNRESOLVED_TYPED_ACCESS_FIELD_GAP, 0U, NULL, NULL, 0U, NULL, provenance, source_zero_write && operand_index == zero_operand) != 0) {
+              M68K_PLATFORM_UNRESOLVED_TYPED_ACCESS_FIELD_GAP, 0U, NULL, NULL, 0U, NULL, provenance, source_zero_write && operand_index == zero_operand,
+              metadata != NULL ? metadata->operand_access_kinds[operand_index] : M68K_SIM_ACCESS_NONE) != 0) {
           return -1;
         }
       }
@@ -12352,7 +12358,7 @@ static int append_render_lookup_unresolved_typed_accesses_for_section(const M68k
         access->displacement, access->struct_size, access->access_size, access->root_struct_name, access->classification,
         access->container_candidate_count, access->container_struct_name, access->container_field_expr,
         access->refinement_applied, access->refined_struct_name, access->provenance.kind,
-        access->provenance.section_index, access->provenance.offset, access->source_zero_write) != 0) {
+        access->provenance.section_index, access->provenance.offset, access->source_zero_write, access->access_kind) != 0) {
       return -1;
     }
   }
@@ -14294,7 +14300,7 @@ static int render_lookup_add_unresolved_typed_access_by_names(M68kRenderLookup *
     uint32_t offset, uint8_t operand_index, uint8_t base_reg, int32_t displacement, const char *root_struct_name,
     uint16_t struct_size, uint8_t access_size, uint8_t classification, uint16_t container_candidate_count,
     const char *container_struct_name, const char *container_field_expr, uint8_t refinement_applied,
-    const char *refined_struct_name, const M68kRenderTypedProvenance *provenance, uint8_t source_zero_write) {
+    const char *refined_struct_name, const M68kRenderTypedProvenance *provenance, uint8_t source_zero_write, uint8_t access_kind) {
   size_t index;
   M68kRenderUnresolvedTypedAccess *grown;
   size_t next_capacity;
@@ -14305,6 +14311,7 @@ static int render_lookup_add_unresolved_typed_access_by_names(M68kRenderLookup *
     if (entry->section_index == section_index && entry->offset == offset &&
         entry->operand_index == operand_index) {
       entry->source_zero_write &= source_zero_write != 0U;
+      if (entry->access_kind != access_kind) entry->access_kind = M68K_SIM_ACCESS_NONE;
       return 0;
     }
   }
@@ -14329,6 +14336,7 @@ static int render_lookup_add_unresolved_typed_access_by_names(M68kRenderLookup *
   lookup->unresolved_typed_accesses[lookup->unresolved_typed_access_count].access_size = access_size;
   lookup->unresolved_typed_accesses[lookup->unresolved_typed_access_count].classification = classification;
   lookup->unresolved_typed_accesses[lookup->unresolved_typed_access_count].source_zero_write = source_zero_write != 0U;
+  lookup->unresolved_typed_accesses[lookup->unresolved_typed_access_count].access_kind = access_kind;
   lookup->unresolved_typed_accesses[lookup->unresolved_typed_access_count].container_candidate_count =
     container_candidate_count;
   if (container_struct_name != NULL && container_struct_name[0] != '\0')
@@ -14391,7 +14399,7 @@ int render_lookup_add_unresolved_typed_access(M68kRenderLookup *lookup, size_t s
   return render_lookup_add_unresolved_typed_access_by_names(lookup, section_index, offset, operand_index, base_reg,
     displacement, root_struct_name, struct_size, access_size, classification, container_candidate_count,
     container_struct_name,
-    container_field_expr, refinement_applied, refined_struct_name, provenance, 0U);
+    container_field_expr, refinement_applied, refined_struct_name, provenance, 0U, M68K_SIM_ACCESS_NONE);
 }
 
 int render_lookup_add_string_span(M68kRenderLookup *lookup, size_t section_index, uint32_t offset,

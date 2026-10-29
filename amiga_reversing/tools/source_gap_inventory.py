@@ -20,6 +20,8 @@ def _span(item):
 
 
 def _field_gap(access, structs):
+    if access.get('access') == 'address':
+        return 'address_formation'
     width = access.get('access_size', 0)
     if width == 0:
         return 'address_formation_or_unknown_width'
