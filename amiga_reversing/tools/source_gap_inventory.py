@@ -52,6 +52,8 @@ def _field_gap(access, structs):
             break
         end = max(end, stop)
     if end < hi:
+        if access.get('source_zero_write') is True:
+            return 'source_zero_write_to_field_hole'
         return 'declared_field_hole'
     return 'covered_inherited_span_requires_native_review' if inherited else 'covered_partial_or_composite_access'
 

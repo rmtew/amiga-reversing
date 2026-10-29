@@ -53,6 +53,7 @@ def main(argv: list[str] | None = None) -> int:
             "symbols",
             "references",
             "fields",
+            "field_gaps",
             "instructions",
             "expressions",
             "base_candidates",

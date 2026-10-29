@@ -231,6 +231,19 @@ Queries and history use the returned `next_cursor` for pagination. An input
 `offset` is rejected rather than silently starting again at the first page;
 native artifact queries retain their separate internal offset API.
 
+`query --kind field_gaps` pages the native unresolved field-access records
+directly. Source coordinates, `struct_name` and `field_offset` filter the same
+identities exposed by `fields`; resolved accesses and listing materialization are
+excluded. The optional `source_zero_write: true` records a scalar MOVE whose
+written bits are zero in the shared singleton value state under source entry
+contracts. It currently requires unrelocated input and a contiguous BYTE, WORD
+or LONG transfer. Ambiguous values, pointer packets, unknown partial writes,
+read/modify/write and unsupported bulk transfers retain their ordinary status.
+The field remains unresolved: this witness supplies neither its purpose nor
+complete record initialization, runtime lifetime or alias coverage. The gap
+inventory distinguishes these writes from unexplained field holes without
+inventing field names or retaining scalar RAM in the pointer state.
+
 ## CLI
 
 ```sh

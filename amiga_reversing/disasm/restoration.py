@@ -215,8 +215,10 @@ def _query(target_id, body, current):
     kind = filters.get("kind")
     if "exceptions_only" in filters and kind != "typed_pointers":
         raise ValueError("exceptions_only requires typed_pointers")
-    if filters.get("query") and kind in {"references", "fields", "edges", "gaps"}:
+    if filters.get("query") and kind in {"references", "fields", "field_gaps", "edges", "gaps"}:
         raise ValueError(f"query text is unsupported for {kind}")
+    if kind == "field_gaps" and set(filters) - {"kind", "section_index", "source_offset", "end_offset", "struct_name", "field_offset"}:
+        raise ValueError("field_gaps supports source coordinates, struct_name and field_offset")
     artifact = _artifact(target_id)
     if kind == "functions":
         from amiga_reversing.disasm.function_facts import analysis_function_facts
@@ -279,7 +281,7 @@ def _query(target_id, body, current):
         items = _server()._cached_analysis_review_items(target_id, artifact)
         page = _page(items, offset, limit, "native analysis review items",
                      ["Review items are candidates, not a complete inventory of semantic unknowns."])
-    elif kind in {"symbols", "references", "fields", "instructions", "edges", "expressions", "base_candidates"}:
+    elif kind in {"symbols", "references", "fields", "field_gaps", "instructions", "edges", "expressions", "base_candidates"}:
         page = artifact.query_payload(**filters, offset=offset, limit=limit)
         if kind == "expressions":
             for item in page["items"]:

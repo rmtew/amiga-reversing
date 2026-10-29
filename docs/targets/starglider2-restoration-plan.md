@@ -32,6 +32,28 @@ The energy-tower initializer's World chain view stays distinct from its updater
 view. Packed-header normalization, signed comparisons, wrap, PRNG transforms,
 nullable/sentinel links and unknown constructor parameters remain unchanged.
 
+The native unresolved-access projection now marks 36 scalar MOVE writes whose
+written bits are zero in the existing shared value state. These remain unresolved
+fields, not inferred purposes or complete initialization contracts. The current
+177 accesses split into 91 other declared field holes, 36 zero-write holes,
+39 dynamic indexed accesses, six auto-update cursors and five accesses outside
+the declared record. Source+$71AC/$738A are confirmed members of the original
+17-LONG zeroing runs; they are not evidence for projectile lifetime semantics.
+The new `field_gaps` query retrieves the 177 native records in two 100-item pages,
+without traversing all 2827 resolved/unresolved field records or materializing
+the listing. This adds one result flag, no per-node scalar-memory model.
+
+Qualification: 832 native tests and 104 focused tests passed, including conflicting
+joins, unknown/partial writes, pointer packets, relocation placeholders and
+unsupported bulk transfers. The same SGII generation is complete; rendered source
+and all 57 assets are unchanged, with exact C/vasm receipt
+`0887c80d6f567796207d36f7e184f3795ba8d88e1641561d194863d4ef088a6d`.
+The previous standalone source build remains applicable because its inputs are
+identical. Next prioritize the remaining field readers and their producers,
+especially the heterogeneous WORD+$24 constructors; do not assign one role to
+that offset merely because whole-record clearing touches it. Indexed/cursor
+obligations still require their original range and alias evidence.
+
 Encoded-coordinate scratch now uses existing `SG2CoordinateReferenceTriple`:
 twelve absolute WORD accesses name its raw X/Y/Z reference fields before sign
 masking. Five consumed entities also identify model47 random fill styles, forced

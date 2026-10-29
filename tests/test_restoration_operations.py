@@ -122,6 +122,23 @@ def current():
     return invoke("state")["revision"]
 
 
+def test_field_gap_query_forwards_native_filters_and_revision_cursor(target):
+    first = invoke('query', kind='field_gaps', struct_name='Record', field_offset=8, limit=1)
+    assert target.calls[-1]['kind'] == 'field_gaps'
+    assert target.calls[-1]['struct_name'] == 'Record' and target.calls[-1]['field_offset'] == 8
+    second = invoke('query', kind='field_gaps', struct_name='Record', field_offset=8,
+                    limit=1, cursor=first['next_cursor'])
+    assert len(second['items']) == 1 and second['next_cursor'] is None
+    with pytest.raises(ValueError, match='stale_cursor'):
+        invoke('query', kind='field_gaps', struct_name='Other', field_offset=8,
+               cursor=first['next_cursor'])
+    with pytest.raises(ValueError, match='query text is unsupported'):
+        invoke('query', kind='field_gaps', query='zero')
+    for extra in ({'symbol': 'Record'}, {'direction': 'incoming'}):
+        with pytest.raises(ValueError, match='field_gaps supports source coordinates'):
+            invoke('query', kind='field_gaps', **extra)
+
+
 def test_memory_layout_query_preserves_non_export_verdict(target, monkeypatch):
     artifact = target.backend._LISTING_PROJECTION_SERVICE.valid_artifact()
     item = {"layout_id": "diagnostic", "status": "placement_valid", "export_ready": False}

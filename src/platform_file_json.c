@@ -16,6 +16,11 @@
 
 #include <time.h>
 
+static int append_source_zero_write_json(JsonBuilder *builder,
+    const M68kRecoveredPlatformUnresolvedTypedAccessIR *access) {
+  return access->source_zero_write ? json_builder_append(builder, ",\"source_zero_write\":true") : 0;
+}
+
 static int append_word_index_access_json(JsonBuilder *builder, const M68kWordIndexAccessIR *index) {
   size_t value;
   if (!index->value_count) return 0;
@@ -3512,6 +3517,7 @@ static int append_source_analysis_memory_layout_records_json(JsonBuilder *builde
           unresolved_typed_access_classification_name(access->classification)) != 0) return -1;
       if (json_builder_append(builder, ",\"root_struct_name\":") != 0) return -1;
       if (json_builder_append_nullable_string(builder, root_struct_name) != 0) return -1;
+      if (append_source_zero_write_json(builder, access) != 0) return -1;
       if (json_builder_append(builder, ",\"container_struct_name\":") != 0) return -1;
       if (json_builder_append_nullable_string(builder, container_struct_name) != 0) return -1;
       if (json_builder_append(builder, ",\"container_field_expr\":") != 0) return -1;
@@ -5919,6 +5925,7 @@ static int source_analysis_to_json_impl(const M68kSourceAnalysisIR *source_analy
         goto oom;
       if (json_builder_append_nullable_string(&builder, root_struct_name) != 0)
         goto oom;
+      if (append_source_zero_write_json(&builder, access) != 0) goto oom;
       if (json_builder_appendf(&builder, ",\"classification_id\":%u,\"classification\":",
           (unsigned)access->classification) != 0)
         goto oom;
@@ -6978,6 +6985,7 @@ static int append_listing_unresolved_typed_accesses_json(JsonBuilder *builder, c
         (unsigned)access->struct_size, (unsigned)access->access_size) != 0)
       return -1;
     if (json_builder_append_nullable_string(builder, root_struct_name) != 0) return -1;
+    if (append_source_zero_write_json(builder, access) != 0) return -1;
     if (json_builder_appendf(builder, ",\"classification_id\":%u,\"classification\":",
         (unsigned)access->classification) != 0) return -1;
     if (json_builder_append_json_string(builder,
@@ -10767,6 +10775,7 @@ static int append_listing_navigation_unresolved_entry(JsonBuilder *builder, cons
       json_builder_appendf(builder, ",\"type_provenance_section\":%u,\"type_provenance_offset\":%u",
         (unsigned)access->type_provenance_section_index, (unsigned)access->type_provenance_offset) != 0)
     return -1;
+  if (append_source_zero_write_json(builder, access) != 0) return -1;
   return json_builder_append(builder, "}");
 }
 

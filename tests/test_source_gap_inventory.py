@@ -3,6 +3,23 @@ from copy import deepcopy
 from amiga_reversing.tools.source_gap_inventory import inventory
 
 
+def test_zero_write_witness_keeps_field_hole_and_boundary_obligations():
+    metadata = dict(custom_structs=[dict(name='R', size=16, fields=[])])
+    access = dict(root_struct_name='R', displacement=4, access_size=4, classification='field_gap')
+    section = dict(section_index=0, recovered_platform_unresolved_typed_accesses=[access])
+    analysis = dict(sections=[section])
+    def mechanism():
+        return inventory(analysis, metadata, '')['unresolved_typed_accesses'][0]['mechanism']
+    assert mechanism() == 'declared_field_hole'
+    access['source_zero_write'] = True
+    assert mechanism() == 'source_zero_write_to_field_hole'
+    assert inventory(analysis, metadata, '')['summary']['unresolved_typed_accesses'] == 1
+    access['displacement'] = 16
+    assert mechanism() == 'outside_declared_record'
+    access.update(displacement=4, classification='indexed_dynamic')
+    assert mechanism() == 'indexed_dynamic'
+
+
 def test_suffix_names_distinguish_code_storage_and_literal_text():
     section = dict(section_index=0, accepted_code_runs=[dict(start_offset=0, end_offset=4)],
                    rendered_symbol_accesses=[

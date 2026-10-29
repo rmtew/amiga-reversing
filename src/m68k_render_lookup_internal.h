@@ -583,6 +583,7 @@ typedef struct M68kRenderUnresolvedTypedAccess {
   uint16_t struct_size;
   uint8_t access_size;
   uint8_t classification;
+  uint8_t source_zero_write;
   uint16_t container_candidate_count;
   uint8_t refinement_applied;
   M68kRenderTypedProvenance provenance;

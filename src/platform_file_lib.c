@@ -14548,8 +14548,9 @@ int platform_file_facts_v2_listing_artifact_query_json_alloc(PlatformFileListing
       limit < 1 || limit > 100 || (has_end && (!has_start || end <= start)) ||
       (strcmp(direction, "incoming") && strcmp(direction, "outgoing") && strcmp(direction, "both")) ||
       (strcmp(kind, "symbols") && strcmp(kind, "references") && strcmp(kind, "fields") &&
-       strcmp(kind, "instructions") && strcmp(kind, "edges") && strcmp(kind, "expressions") &&
+       strcmp(kind, "instructions") && strcmp(kind, "edges") && strcmp(kind, "expressions") && strcmp(kind, "field_gaps") &&
        strcmp(kind, "base_candidates"))) return -1;
+  if (!strcmp(kind, "field_gaps") && (*query || *symbol || strcmp(direction, "both"))) return -1;
   incoming = strcmp(direction, "outgoing") != 0;
   outgoing = strcmp(direction, "incoming") != 0;
   plan = &artifact->source_plan;
@@ -14754,8 +14755,8 @@ int platform_file_facts_v2_listing_artifact_query_json_alloc(PlatformFileListing
         STR("status", resolved ? "resolved" : e->kind == M68K_CFG_EDGE_RETURN ? "dynamic_return" : "unresolved");
         Q(json_builder_append(&b, ",\"provenance\":\"native_cfg\"}"));
       }
-    } else if (!strcmp(kind, "fields")) {
-      for (j = 0; j < sec->recovered_platform_typed_access_count; ++j) {
+    } else if (!strcmp(kind, "fields") || !strcmp(kind, "field_gaps")) {
+      for (j = 0; !strcmp(kind, "fields") && j < sec->recovered_platform_typed_access_count; ++j) {
         const M68kRecoveredPlatformTypedAccessIR *a = &sec->recovered_platform_typed_accesses[j];
         const char *root = m68k_platform_name_ref_display_text(&a->root_struct_ref, a->root_struct_name);
         const char *owner = m68k_platform_name_ref_display_text(&a->owner_struct_ref, a->owner_struct_name);
@@ -14773,9 +14774,11 @@ int platform_file_facts_v2_listing_artifact_query_json_alloc(PlatformFileListing
         if (!COORD(sec->section_index, a->offset) || (has_field && field_offset != a->displacement) ||
             (*struct_name && (!root || strcmp(struct_name, root)))) continue;
         PAGE(); ID(sec->section_index, a->offset); STR("root_struct_name", root);
-        Q(json_builder_appendf(&b, ",\"field_offset\":null,\"displacement\":%d,\"operand_index\":%u,\"classification\":%u,\"status\":\"unresolved\",\"provenance\":{\"kind\":%u,\"section_index\":%u,\"source_offset\":%u}}",
+        Q(json_builder_appendf(&b, ",\"field_offset\":null,\"displacement\":%d,\"operand_index\":%u,\"classification\":%u,\"status\":\"unresolved\",\"provenance\":{\"kind\":%u,\"section_index\":%u,\"source_offset\":%u}",
           (int)a->displacement, (unsigned)a->operand_index, (unsigned)a->classification,
           (unsigned)a->type_provenance_kind, (unsigned)a->type_provenance_section_index, (unsigned)a->type_provenance_offset));
+        if (a->source_zero_write) Q(json_builder_append(&b, ",\"source_zero_write\":true"));
+        Q(json_builder_append(&b, "}"));
       }
     } else if (!strcmp(kind, "references")) {
       /* Data-element interpretations own canonical source xrefs even when

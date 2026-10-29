@@ -1459,6 +1459,9 @@ typedef struct M68kRecoveredPlatformUnresolvedTypedAccessIR {
   uint16_t struct_size;
   uint8_t access_size;
   uint8_t classification;
+  /* Scalar MOVE writes zero under source entry contracts; not field semantics
+   * or complete initialization/lifetime coverage. Unrelocated input only. */
+  uint8_t source_zero_write;
   uint16_t container_candidate_count;
   uint8_t refinement_applied;
   uint8_t type_provenance_kind;
@@ -3180,7 +3183,8 @@ int m68k_ir_section_analysis_append_recovered_platform_unresolved_typed_access(
     uint8_t base_reg, int32_t displacement, uint16_t struct_size, uint8_t access_size, const char *root_struct_name,
     uint8_t classification, uint16_t container_candidate_count, const char *container_struct_name,
     const char *container_field_expr, uint8_t refinement_applied, const char *refined_struct_name,
-    uint8_t type_provenance_kind, size_t type_provenance_section_index, uint32_t type_provenance_offset);
+    uint8_t type_provenance_kind, size_t type_provenance_section_index, uint32_t type_provenance_offset,
+    uint8_t source_zero_write);
 int m68k_ir_section_analysis_append_recovered_platform_base_slot(M68kSectionAnalysisIR *section_analysis,
     uint8_t platform_kind, int16_t displacement, const char *base_name);
 int m68k_ir_section_analysis_append_recovered_platform_effect(M68kSectionAnalysisIR *section_analysis,

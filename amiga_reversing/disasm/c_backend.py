@@ -2375,7 +2375,7 @@ class CListingArtifact:
         target; symbolic matching is exact. Ordering follows immutable native
         record order, so pagination is deterministic within an artifact revision.
         """
-        if kind not in {"symbols", "references", "fields", "instructions", "edges", "expressions", "base_candidates"}:
+        if kind not in {"symbols", "references", "fields", "field_gaps", "instructions", "edges", "expressions", "base_candidates"}:
             raise ValueError("Unknown native query kind")
         if direction not in {"incoming", "outgoing", "both"}:
             raise ValueError("direction must be incoming, outgoing, or both")
@@ -2392,6 +2392,8 @@ class CListingArtifact:
         for value in (query, symbol, struct_name):
             if not isinstance(value, str) or "\0" in value or len(value) > 256:
                 raise ValueError("query strings must contain at most 256 characters and no NUL")
+        if kind == "field_gaps" and (query or symbol or direction != "both"):
+            raise ValueError("field_gaps supports source coordinates, struct_name and field_offset")
         return cast(dict[str, object], json.loads(self._text_from_artifact_call(
             self._dll.platform_file_facts_v2_listing_artifact_query_json_alloc,
             kind, query, int(section_index is not None), section_index or 0,
