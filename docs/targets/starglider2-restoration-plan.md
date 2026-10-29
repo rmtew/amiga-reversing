@@ -20,7 +20,7 @@ An on-demand systematic gap inventory (`amiga_reversing/tools/source_gap_invento
 joins native identities/accesses with canonical layouts and actual rendered
 boundaries. It records 67 suffix signals (including numeric adjacent variants),
 21 lookup contracts, 523 remaining interior references, 31 generic app fields
-and 225 unresolved record accesses. These are different denominators. Five
+and 219 unresolved record accesses. These are different denominators. Five
 suffixes name routines and one names text; neither is a pointer defect.
 Current restored object contracts connect original update/initializer directories,
 literal-tag producers and reviewed forwarding paths. Walking, flying, mechanical,
@@ -32,25 +32,33 @@ The energy-tower initializer's World chain view stays distinct from its updater
 view. Packed-header normalization, signed comparisons, wrap, PRNG transforms,
 nullable/sentinel links and unknown constructor parameters remain unchanged.
 
-Latest shared planar-motion contracts connect four finite-tag silo producers
-and two A0 heading/vector continuations through the existing HorizontalMotionView.
-Eight actions add two continuation names, recover six typed accesses and resolve
-six gaps without losing an access or changing a prior field meaning:
-**3503 app /2571 typed /225 unresolved**. The A0 heading-difference arithmetic
-is intentionally distinct from the A2 implementation. Signed multiply/truncation,
-Y clearing and the secondary-exit continuation remain original; planar speed is
-not conflated with the bombs' three-dimensional vector scale.
+Latest projectile contracts reuse the existing signed vector coefficient and
+countdown hierarchy across three original producers: the player orientation
+matrix, a planar ground shot and the three-axis launch helper. VelocityProjectile
+now derives from TimedMotionActor, keeping its local integration-service byte.
+Two actions recover six typed accesses and resolve six gaps; five countdown
+accesses change owner only, retaining name/offset/width. No prior access is lost:
+**3503 app /2577 typed /219 unresolved**. Signed WORD wrap, multiplication,
+truncation, Y clearing and producer-specific partial initialization remain original.
+No physical units or universal initialization claim is added.
 
-The preceding visual-constructor batch recovered 23 accesses across two tractor
-markers and eight projector templates. Distant updates covered seven bodies/15
-tags, adding 88 accesses and seven names; three newly exposed gaps remain after
-resolving their two shared steering reads: ground-link BYTE 40 and dome BYTE 41.
-Mixed groups, selected tractor targets, saved-nearby records and non-model particles
-retain their narrower views. Partial initialization, opaque links, conditional
-double integration, bomb Y integration and detonation clobbers remain unchanged.
-C/vasm and the clean staged standalone export match all 412736 bytes; 57 assets,
-14 headers and 106034 accepted code bytes remain unchanged. The ownership union
-leaves 13624 bytes in 264 intervals unclassified.
+The preceding planar-motion batch recovered six accesses across four bounded
+silo producers and two A0 continuations. Distant updates covered seven bodies/15
+tags (88 accesses/seven names); tractor/projector constructors added 23 accesses.
+Mixed groups, selected tractor targets, saved-nearby records, non-model particles
+and unknown linked pointees retain narrow views. C/vasm and clean staged standalone
+output match all 412736 bytes; 57 assets, 14 headers and 106034 accepted code bytes
+remain unchanged. The ownership union leaves 13624 bytes/264 intervals unclassified.
+
+A bounded PEA experiment reproduces missing direct inline-object address transport:
+LEA plus MOVE preserves the typed stack value, direct PEA does not; endpoint
+negative cases remain untyped and all four fixtures rebuild exactly. SGII has one
+accepted PEA, in recursive scene sorting, stepping beyond its current single-cell
+contract. A PEA-only patch would not close that target gap: shared effective-address
+transport and an evidenced array/range input contract are both required. No private
+probe output or extra observation dump is committed. Remaining generic app slots
+mostly have isolated initialization writes; do not infer names or deadness from
+those alone. Prioritize actual consumers and retain unsupported paths explicitly.
 
 The preceding shared low-WORD transfer fix retains same-register ADD/SUB
 correlation without treating different registers with equal sets as identical.

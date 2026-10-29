@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
   "kind": "committed_native_rendered_original_export",
-  "canonical_source_commit": "624b12e04f0a34d84a2ebe59fd319afd5a3da904",
-  "publication_base_commit": "624b12e04f0a34d84a2ebe59fd319afd5a3da904",
+  "canonical_source_commit": "1d42eb4f1887351d6f4a0b8583e5c36252a0c124",
+  "publication_base_commit": "1d42eb4f1887351d6f4a0b8583e5c36252a0c124",
   "native_export": "CListingArtifact.source_package_payload(64)",
-  "main_source_sha256": "5586bbac765fcd13377b3235bbc54e0e34ceaf9d71f14dcb5ca2a40e3c5bb228",
+  "main_source_sha256": "6aab9be543abfdb22f93e1806ac0cf98f1e4c182353510d2f4d8d8f299f50d18",
   "asset_count": 57,
   "asset_bytes": 93633,
   "game_assembly_hand_edits": false,
@@ -24,13 +24,13 @@
     "assembler executable",
     "paused Pandora work"
   ],
-  "canonical_source_commit_role": "publication base; reviewed shared planar-motion interface contracts are bound by canonical facts and verification",
-  "canonical_source_subject_revision": "e42f4a96c00abd1266d99f741db0004c2f57c7fc1ad81ecc4f0e6c00881254e3",
+  "canonical_source_commit_role": "publication base; reviewed projectile vector-scale and countdown inheritance are bound by canonical facts and verification",
+  "canonical_source_subject_revision": "363fe028224e9f47850a06f6a4c5ff54a767561d06c3ec3d1c6a49c6599d33fd",
   "canonical_fact_sha256": {
     "source_binary.json": "42d4a5758b3e8236af7f912aee85e9ee5323bcd0961faa338c4f864080a0a7d9",
     "target_metadata.json": "e7540b68c118c56aba8815b6722eefa067517cc865fe9841d6c01ce96551389c",
-    "manual_actions.jsonl": "feefea351f52cd8fef729f5b98faac2646ff3aaa9423abfe8bc42e161f949ad1",
-    "decision_journal.jsonl": "4805cb3b2a2a0e30e7ce5a72b0f1685af9e08a1902629cb8141c361bacf6ed7f"
+    "manual_actions.jsonl": "3e99db1ad04133d23028ab6be125fbea1ab9592f31f887aff1b9705407ba91d8",
+    "decision_journal.jsonl": "82ae4ae7a2ba1ab9e328e65c5254a40fcd65ea8d0009027e6c1b0af0deedb847"
   },
   "headers": "14 unmodified required include files collected by source_package.collect_package_includes from ext/amiga_includes/ndk_2.0/include; header notices retained",
   "decoded_protection_view": {
@@ -46,5 +46,5 @@
     },
     "runtime_scope": "Seven CPU write-site windows match this reversible view; no whole runtime-view identity or parent plaintext promotion."
   },
-  "verification_receipt_id": "f74ec9d7a7f69f289aa5991d190a156d29b913519039473bc088a2404495be6a"
+  "verification_receipt_id": "28a818e79f28e67091daabd87fa7579254f11872b111decc26d139b7d72579d0"
 }

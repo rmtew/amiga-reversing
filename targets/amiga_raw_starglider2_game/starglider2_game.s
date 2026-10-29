@@ -1071,9 +1071,7 @@ SG2SkimMissile_SIZEOF EQU __RS
     RSRESET
     RS.B 34
 SG2VelocityProjectile_integration_service_byte RS.B 1
-    RS.B 1
-SG2VelocityProjectile_remaining_updates RS.W 1
-    RS.B 30
+    RS.B 33
 SG2VelocityProjectile_SIZEOF EQU __RS
 
 ; STRUCT SG2SteeredProjectile
@@ -8808,7 +8806,7 @@ abs_0_00007306:
 abs_0_0000730A:
 	move.b #$FF,SG2ObjectCore_retirement_phase_or_negative(a2)
 	move.b #$1,SG2ObjectCore_durability_or_negative(a2)
-	move.w #$64,SG2VelocityProjectile_remaining_updates(a2)
+	move.w #$64,SG2TimedMotionActor_remaining_updates(a2)
 	move.b SG2ObjectCore_object_type+1(a2),SG2TargetingObject_collision_ignored_object_type(a2)
 	move.l player_world_x(a6),SG2ObjectCore_world_x(a2)
 	move.l player_world_z(a6),SG2ObjectCore_world_z(a2)
@@ -8820,8 +8818,8 @@ abs_0_0000730A:
 	move.w player_speed_smoothed(a6),d4
 	add.w stardrive_speed_addend(a6),d4
 	add.w selected_projectile_forward_speed_addend.l,d4
-	move.w d4,$0020(a2)
-	move.w $0020(a2),d3
+	move.w d4,SG2MotionVectorActor_motion_vector_scale(a2)
+	move.w SG2MotionVectorActor_motion_vector_scale(a2),d3
 	lea.l player_orientation_matrix_words.l,a1
 	move.w d3,d4
 	muls.w SG2RotationMatrixWords_m02(a1),d4
@@ -11287,7 +11285,7 @@ advance_simple_projectile_variant_and_motion:
 	clr.w SG2WorldObject_rotation_0(a0)
 	clr.w SG2WorldObject_rotation_2(a0)
 age_simple_projectile:
-	subq.w #1,SG2VelocityProjectile_remaining_updates(a0)
+	subq.w #1,SG2TimedMotionActor_remaining_updates(a0)
 	ble.w retire_projectile_phase
 	bra.w abs_0_000081D2
     ; KNOWN: type A0=Target code-entry register seed:SG2VelocityProjectile
@@ -11321,7 +11319,7 @@ abs_0_00009656:
 	andi.w #4095,SG2WorldObject_rotation_2(a0)
 	addi.w #256,SG2WorldObject_rotation_0(a0)
 	andi.w #4095,SG2WorldObject_rotation_0(a0)
-	subq.w #1,SG2VelocityProjectile_remaining_updates(a0)
+	subq.w #1,SG2TimedMotionActor_remaining_updates(a0)
 	ble.w retire_projectile_phase
 	bra.w abs_0_000081D2
     ; KNOWN: type A0=Target code-entry register seed:SG2SteeredProjectile
@@ -11990,8 +11988,8 @@ abs_0_00009F02:
 	move.b #$4,SG2TargetingObject_model_scale_shift(a2)
 	move.w d1,SG2WorldObject_rotation_1(a2)
 	clr.w SG2WorldObject_rotation_2(a2)
-	move.w #$FF9C,$0020(a2)
-	move.w #$64,SG2VelocityProjectile_remaining_updates(a2)
+	move.w #$FF9C,SG2MotionVectorActor_motion_vector_scale(a2)
+	move.w #$64,SG2TimedMotionActor_remaining_updates(a2)
 	move.b #$1,SG2ObjectCore_durability_or_negative(a2)
 	move.w SG2WorldObject_rotation_1(a2),d1
 	andi.w #4095,d1
@@ -12000,13 +11998,13 @@ abs_0_00009F02:
 	move.w $0(a1,d1.w),trig_sine_scratch_1(a6)
 	movea.l cosine_lookup_pointer(a6),a1
 	move.w $0(a1,d1.w),trig_cosine_scratch_1(a6)
-	move.w $0020(a2),d4
+	move.w SG2MotionVectorActor_motion_vector_scale(a2),d4
 	muls.w trig_sine_scratch_1(a6),d4
 	asl.l #1,d4
 	swap.w d4
 	neg.w d4
 	move.w d4,SG2WorldObject_velocity_x(a2)
-	move.w $0020(a2),d4
+	move.w SG2MotionVectorActor_motion_vector_scale(a2),d4
 	muls.w trig_cosine_scratch_1(a6),d4
 	asl.l #1,d4
 	swap.w d4
@@ -47664,7 +47662,7 @@ abs_0_00036F84:
     ; KNOWN: type A4=Target code-entry register seed:SG2VelocityProjectile
 	move.w #$48,(a4)	; operand 2: SG2ObjectCore_object_type at (a4)
 	sf.b SG2VelocityProjectile_integration_service_byte(a4)
-	move.w #$C8,SG2VelocityProjectile_remaining_updates(a4)
+	move.w #$C8,SG2TimedMotionActor_remaining_updates(a4)
 	move.l SG2ObjectCore_world_x(a0),SG2ObjectCore_world_x(a4)
 	move.l SG2ObjectCore_world_y(a0),SG2ObjectCore_world_y(a4)
 	move.l SG2ObjectCore_world_z(a0),SG2ObjectCore_world_z(a4)
@@ -47681,7 +47679,7 @@ abs_0_00036FD6:
 	move.w d7,SG2WorldObject_rotation_1(a4)
 	move.w SG2WorldObject_rotation_2(a0),SG2WorldObject_rotation_2(a4)
 	move.w #$FE0C,d3
-	move.w d3,$0020(a4)
+	move.w d3,SG2MotionVectorActor_motion_vector_scale(a4)
 	move.w SG2WorldObject_rotation_1(a0),d7
 	move.w SG2WorldObject_rotation_1(a4),SG2WorldObject_rotation_1(a0)
 	bsr.w build_object_motion_vector_from_rotation
