@@ -37,18 +37,33 @@ reticle and type146 expansion-colour inputs using existing layouts. Native
 register-effect facts verify the doubled-tag selector; the original bit test is
 not replaced by a tag-range claim. Exactly five read gaps become typed under
 these conditional input contracts; 31 previously named fields in the reviewed
-ranges retain their meanings. Totals are **3503 app /2655 typed /172 unresolved**.
-Current unresolved roles are 56 reads, 112 destination writes and four address
+ranges retain their meanings. At that revision totals were **3503 app /2655 typed /172 unresolved**.
+Its unresolved roles were 56 reads, 112 destination writes and four address
 formations; these are not exhaustive instruction/bus/DMA effects. C/vasm and
 standalone source are exact; code, unknown-byte accounting and assets are
 unchanged. No automatic global discriminator inference is claimed.
 
-Next trace the complete contact-list producer/write paths before refining its
-coarse Core contract. Its early comparison reads precede the local rejecting
-type test; that ordering alone proves neither a model-only list nor actual
-heterogeneous membership. Keep original ordering and alias restrictions until
-producer evidence distinguishes those cases. The `$24` group still has only
-16 catalogued destination-write roles and no corresponding naming justification.
+The original primary directory and text catalogue connect tags22/44 to the
+Egron Space Tug/Tug Truck callback and their group/chain initializers. A scoped
+World-derived tug role now names BYTE40 `chain_release_settling_enabled`: the
+release loop sets it in following records; a live tug then damps X/Z velocity by
+four and increments Y velocity. Release, reciprocal detachment and the original
+signed-WORD damping helper are named. Raw nullable/sentinel link fields stay raw;
+chain validity, original order and initial flag state are not newly proven.
+Secondary integration retains its World view. Current totals are **3503 app
+/2656 typed /171 unresolved** (55 read roles, 112 destination writes, four address
+formations). Unknown-byte/code/asset accounting is unchanged; C/vasm and clean
+standalone output are exact. No new runtime coverage is claimed.
+
+Contact-list producer review found the active append before the later model and
+visibility tests, including the radial transform path. Therefore a global
+model-only contact-list cast would be unjustified; the five preguard inner reads
+remain raw. A bounded normal-input list/type observation is the next experiment
+if those mixed-path semantics are pursued; no new live run was needed for the
+separate guarded reticle/tug contracts. Independently, the alternate scan has an
+explicit low-tag sign guard and an existing targeting-layout consumer to review.
+The `$24` group still has only 16 catalogued destination-write roles and no
+corresponding naming justification.
 
 ### Recent validated batches (counts at each recorded revision)
 

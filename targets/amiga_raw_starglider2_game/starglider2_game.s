@@ -1387,6 +1387,13 @@ SG2ScreenPoint2W_screen_x RS.W 1
 SG2ScreenPoint2W_screen_y RS.W 1
 SG2ScreenPoint2W_SIZEOF EQU __RS
 
+; STRUCT SG2LinkedTug
+    RSRESET
+    RS.B 40
+SG2LinkedTug_chain_release_settling_enabled RS.B 1
+    RS.B 27
+SG2LinkedTug_SIZEOF EQU __RS
+
 ADKF_CLRALL	EQU	$7FFF
 BPLCON2_PF2P2	EQU	$20
 BPLCON2_PF2PRI	EQU	$40
@@ -10164,7 +10171,7 @@ abs_0_00008618:
 	bra.w abs_0_0000B494
 	dc.b $13,$FC,$00,$E6,$00,$00,$E1,$03,$60,$00,$2E,$C0,$33,$EE,$07,$56
 	dc.b $00,$DF,$F1,$80,$60,$00,$FB,$98
-    ; KNOWN: type A0=Target code-entry register seed:SG2WorldObject
+    ; KNOWN: type A0=Target code-entry register seed:SG2LinkedTug
 update_linked_tug_motion_and_retirement:
 	move.w SG2WorldObject_velocity_x(a0),d3
 	ext.l d3
@@ -10181,14 +10188,14 @@ update_linked_tug_motion_and_retirement:
 	tst.b SG2ObjectCore_retirement_phase_or_negative(a0)
 	bpl.w abs_0_000081D2
 	cmpi.b #3,SG2ObjectCore_durability_or_negative(a0)
-	bls.b abs_0_000086B8
+	bls.b mark_following_tug_chain_for_settling
 	cmpi.l #4294967256,SG2ObjectCore_world_y(a0)
-	bge.w abs_0_00008740
-	tst.b $0028(a0)
+	bge.w retire_tug_and_detach_reciprocal_links
+	tst.b SG2LinkedTug_chain_release_settling_enabled(a0)
 	beq.w abs_0_000081D2
 	move.w SG2WorldObject_velocity_x(a0),d0
 	beq.b abs_0_00008698
-	bsr.w abs_0_0000876E
+	bsr.w step_signed_velocity_word_toward_zero_by_four
 	move.w d0,SG2WorldObject_velocity_x(a0)
 abs_0_00008698:
 	move.w SG2WorldObject_velocity_y(a0),d0
@@ -10196,10 +10203,10 @@ abs_0_00008698:
 	move.w d0,SG2WorldObject_velocity_y(a0)
 	move.w SG2WorldObject_velocity_z(a0),d0
 	beq.w abs_0_000081D2
-	bsr.w abs_0_0000876E
+	bsr.w step_signed_velocity_word_toward_zero_by_four
 	move.w d0,SG2WorldObject_velocity_z(a0)
 	bra.w abs_0_000081D2
-abs_0_000086B8:
+mark_following_tug_chain_for_settling:
 	movea.l a0,a1
 abs_0_000086BA:
 	movea.l $003C(a1),a4
@@ -10210,10 +10217,10 @@ abs_0_000086BA:
 	bra.b abs_0_000086BA
 abs_0_000086CE:
 	cmpi.w #22,(a0)	; operand 2: SG2ObjectCore_object_type at (a0)
-	beq.w abs_0_00008740
+	beq.w retire_tug_and_detach_reciprocal_links
 abs_0_000086D6:
 	cmpi.w #50,free_object_count(a6)
-	bls.w abs_0_00008740
+	bls.w retire_tug_and_detach_reciprocal_links
 	movea.l free_object_stack_cursor(a6),a1
 	movea.l -(a1),a2
 	move.l a1,free_object_stack_cursor(a6)
@@ -10235,7 +10242,7 @@ abs_0_000086D6:
 	clr.w d3
 	move.b $0(a1,d0.w),d3
 	move.w d3,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
-abs_0_00008740:
+retire_tug_and_detach_reciprocal_links:
 	clr.b SG2ObjectCore_retirement_phase_or_negative(a0)
 	clr.b SG2ObjectCore_durability_or_negative(a0)
 	movea.l SG2WorldObject_linked_record_or_sentinel(a0),a4
@@ -10248,7 +10255,7 @@ abs_0_00008758:
 	beq.w abs_0_000081D2
 	clr.l $003C(a4)
 	bra.w abs_0_000081D2
-abs_0_0000876E:
+step_signed_velocity_word_toward_zero_by_four:
 	tst.w d0
 	bpl.b abs_0_0000877A
 	addq.w #4,d0
