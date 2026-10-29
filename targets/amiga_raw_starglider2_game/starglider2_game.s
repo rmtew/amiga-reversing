@@ -190,7 +190,12 @@ active_model_vertex_reference_records RS.L 1
     RS.B 4
 active_model_face_commands RS.L 1
 active_model_coordinate_pool RS.L 1
-    RS.B 12
+retirement_face_displacement_x RS.W 1
+    RS.B 2
+retirement_face_displacement_y RS.W 1
+    RS.B 2
+retirement_face_displacement_z RS.W 1
+    RS.B 2
 active_model_vertex_variant_data RS.L 1
     RS.B 12
 app_0034 RS.B 1
@@ -257,7 +262,8 @@ vblank_tick_counter RS.W 1
 model_viewer_rotation_step_0 RS.W 1
 model_viewer_rotation_step_1 RS.W 1
 model_viewer_rotation_step_2 RS.W 1
-    RS.B 12
+retirement_face_edge_delta RS.B 6
+    RS.B 6
 active_model_type_index RS.W 1
 type30_render_model_index RS.W 1
 projection_screen_origin_x RS.W 1
@@ -1138,6 +1144,13 @@ SG2ModelRenderView_SIZEOF EQU __RS
 SG2ModelHeaderCounts_face_count RS.W 1
 SG2ModelHeaderCounts_coordinate_word_count RS.W 1
 SG2ModelHeaderCounts_SIZEOF EQU __RS
+
+; STRUCT SG2SignedDelta3W
+    RSRESET
+SG2SignedDelta3W_x_delta RS.W 1
+SG2SignedDelta3W_y_delta RS.W 1
+SG2SignedDelta3W_z_delta RS.W 1
+SG2SignedDelta3W_SIZEOF EQU __RS
 
 ADKF_CLRALL	EQU	$7FFF
 BPLCON2_PF2P2	EQU	$20
@@ -6219,25 +6232,25 @@ abs_0_00005492:
 	sub.w d5,d1
 	sub.w d6,d2
 	sub.w d7,d3
-	movem.w d1-d3,$0184(a6)
+	movem.w d1-d3,retirement_face_edge_delta(a6)
 	move.w $0004(a4),d4
 	movem.w $0(a3,d4.w),d1-d3
 	sub.w d5,d1
 	sub.w d6,d2
 	sub.w d7,d3
 	move.w d3,d5
-	muls.w $0186(a6),d5
+	muls.w retirement_face_edge_delta+SG2SignedDelta3W_y_delta(a6),d5
 	move.w d2,d6
-	muls.w $0188(a6),d6
+	muls.w retirement_face_edge_delta+SG2SignedDelta3W_z_delta(a6),d6
 	sub.l d6,d5
 	asr.l #5,d5
 	muls.w active_model_retirement_phase_word(a6),d5
 	asr.l #3,d5
-	move.w d5,$0018(a6)
+	move.w d5,retirement_face_displacement_x(a6)
 	move.w d1,d5
-	muls.w $0188(a6),d5
+	muls.w retirement_face_edge_delta+SG2SignedDelta3W_z_delta(a6),d5
 	move.w d3,d6
-	muls.w $0184(a6),d6
+	muls.w retirement_face_edge_delta(a6),d6
 	sub.l d6,d5
 	asr.l #6,d5
 	muls.w active_model_retirement_phase_word(a6),d5
@@ -6249,7 +6262,7 @@ abs_0_00005492:
 	add.w $0(a5,d6.w),d5
 abs_0_00005508:
 	asr.l #3,d5
-	move.w d5,$001C(a6)
+	move.w d5,retirement_face_displacement_y(a6)
 	tst.b space_environment_flag(a6)
 	bmi.b abs_0_0000552E
 	tst.b abs_0_00039B78.l
@@ -6260,14 +6273,14 @@ abs_0_00005508:
 	bpl.w abs_0_0000565E
 abs_0_0000552E:
 	move.w d2,d5
-	muls.w $0184(a6),d5
+	muls.w retirement_face_edge_delta(a6),d5
 	move.w d1,d6
-	muls.w $0186(a6),d6
+	muls.w retirement_face_edge_delta+SG2SignedDelta3W_y_delta(a6),d6
 	sub.l d6,d5
 	asr.l #5,d5
 	muls.w active_model_retirement_phase_word(a6),d5
 	asr.l #3,d5
-	move.w d5,$0020(a6)
+	move.w d5,retirement_face_displacement_z(a6)
 	move.b #$24,diagnostic_step_byte.l
 	move.w model_face_vertex_count_scratch(a6),d7
 	lea.l model_view_vertex_scratch_prefix(a6),a3
@@ -6286,9 +6299,9 @@ abs_0_0000552E:
 abs_0_0000558A:
 	move.w (a4)+,d0
 	movem.w $0(a3,d0.w),d1-d3
-	add.w $0018(a6),d1
-	add.w $001C(a6),d2
-	add.w $0020(a6),d3
+	add.w retirement_face_displacement_x(a6),d1
+	add.w retirement_face_displacement_y(a6),d2
+	add.w retirement_face_displacement_z(a6),d3
 	cmp.w #$80,d3
 	ble.w abs_0_00005668
 	cmp.w #$2EE0,d3

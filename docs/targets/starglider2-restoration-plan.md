@@ -1,6 +1,6 @@
 # Starglider 2: original source restoration
 
-Status: **refinement resumed on 2026-10-28 at the user's request**. The earlier
+Status: **refinement resumed on 2026-10-29 at the user's request**. The earlier
 original-layout reviewed closeout and ZIP are historical milestones, not a claim
 that further analysis is exhausted. Current source remains byte exact: all
 412736 original bytes rebuild through C/vasm and a clean standalone export,
@@ -22,7 +22,18 @@ boundaries. It records 67 suffix signals (including numeric adjacent variants),
 21 lookup contracts, 523 remaining interior references, 32 generic app fields
 and 539 unresolved record accesses. These are different denominators. Five
 suffixes name routines and one names text; neither is a pointer defect.
-Latest: the model-projection workspace now names 70 previously raw scratch
+Latest: retirement-face scratch now has a six-byte signed edge-delta layout
+and three separate WORD displacement slots. All 13 original uses are connected
+from vertex differences through the signed cross product and phase/bias scaling
+to per-vertex projection. Intervening bytes remain unclaimed; overflow, shifts
+and the conditional Y bias are unchanged. Review corrects a leading-minus error
+in the initial rationale: the original products are edge1 cross edge2.
+This adds 13 app references with no prior access changed or lost, no new typed
+accesses or resolved typed gaps: **3495 app /1782 typed /539 unresolved**.
+C/vasm and the clean standalone export reproduce all 412736 original bytes;
+57 assets and 14 headers are unchanged. Discovery candidates decrease93 to80.
+
+Preceding: the model-projection workspace names 70 previously raw scratch
 accesses through existing declared-layout fallback, not a new base-propagation
 algorithm or physical-frame proof. The A4 render-only view resolves the three
 LONG40 face-admission-cache accesses; it is a scalar bit cache, not a pointer
@@ -31,7 +42,7 @@ four-byte owner. Phase-local header addresses remain scalar storage declarations
 so they do not promise persistent pointee types across phases. Fill style also
 covers its two original initializer/raster uses. No prior typed/app access was
 lost; three existing contexts were refined without field-meaning changes.
-Current counts: **3482 app references /1782 typed /539 unresolved**. C/vasm and
+That preceding batch had **3482 app references /1782 typed /539 unresolved**. C/vasm and
 clean standalone output are exact, with 57 assets and 14 headers unchanged.
 The source-header loop still has no admitted type-domain packet; its physical
 A6/return-link questions were not manufactured away by symbolic scratch names.
@@ -45,14 +56,17 @@ foreign-owner suppression therefore cannot change these measured rows. The query
 retains full supported footprints, source coordinates and assumption provenance;
 it creates no ownership, names or analysis facts and commits no observation dump.
 
-**Paused at the user's 2026-10-28 tie-off instruction.** Next suggested connected
-batch: the retirement-face edge-vector scratch at app184..189 and its scaled,
-phase-biased displacement components at app18/1C/20. Their original producer,
-signed cross-product terms and per-vertex consumers are connected; no annotations
-or semantic promotion for this next batch were started. These are not generic
-rotation fields. The three partial-coverage candidates also need review before
-any ownership expansion. Existing 539 unresolved typed accesses remain unresolved;
-93 discovery leads are a different population, not 93 new field meanings.
+The prior pause is lifted by the user's 2026-10-29 resume instruction. The
+retirement-face candidate group is now interpreted above; no automatic promotion
+was made for the other leads. The player-reference audit found its canonical pointee already is SG2WorldObject;
+no corrective annotation is needed, and the whole pool is not broadened. Next:
+the two horizon WORD writes at app138/13A overlap keyboard BYTE views at the same
+starts. Their original producer really emits clipped horizon coordinates; a
+phase/width alias must remain distinct from the keyboard contract. Investigate
+existing canonical alias/view support before adding or renaming ownership. The
+third partial candidate is the already-documented LONG clear spanning a pending
+score WORD and following storage; that clear alone cannot name the extra bytes. Discovery leads and the 539 unresolved
+typed accesses remain different populations.
 A synthetic absolute-A6 case has no retained concrete address at its read; it
 therefore remains a fallback lead, explicitly not an admitted app reference.
 Closing that analysis gap would require a separate value-flow experiment, not
