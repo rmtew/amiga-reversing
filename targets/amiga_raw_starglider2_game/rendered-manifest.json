@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "source_commit": "b154b8630e137b99a0e138ac0c07178a4f4e18d5",
+  "source_commit": "93fe1a103ac85073e5eb5e6e5cc8a4e747ba7442",
   "source_assembly": "starglider2_game.s",
   "assets": [
     {
@@ -878,13 +878,13 @@
     },
     {
       "path": "rendered-provenance.json",
-      "bytes": 3048,
-      "sha256": "9b3aff2b6fdb24216ef867be845d148fd9a53d7d60e0565cce2d5dd6e185785d"
+      "bytes": 3050,
+      "sha256": "b9d270f82f995ffca53a427a323eb233b44d94925742d7eef9a44e4b4748d112"
     },
     {
       "path": "starglider2_game.s",
-      "bytes": 2013258,
-      "sha256": "f7efb34a6dde37e2f3c1a1d41b1412ebee0281be734e81eeb188c6d643494671"
+      "bytes": 2013616,
+      "sha256": "027cd6da9230d62f4c9a3a1904a77c01a2780a465c2e7ad201cd4554c4855d97"
     },
     {
       "path": "tools/starglider2_protection.py",
@@ -892,6 +892,6 @@
       "sha256": "81d3f66d36dbfbd5c77238b20c28e8b9abaa329777eb91f64669bbbf13703582"
     }
   ],
-  "source_commit_role": "publication base; reviewed port-interrupt snapshot producers, normal return and raster-service window consumers are bound by verification_receipt_id",
-  "source_subject_revision": "ce9c4b1ea82aadbae2237cb543c730798bc384a77a7402d9fa34bcba26445712"
+  "source_commit_role": "publication base; reviewed hexadecimal formatter/helpers, platform trampoline and diagnostic stage text consumers are bound by verification_receipt_id",
+  "source_subject_revision": "38ed46ee7f896afe3af8e02cf2b8d17e4dc2850101bf638b5ea659e8ba70aba5"
 }

@@ -3016,24 +3016,24 @@ advance_shared_random_state:
 	dc.b $41,$EE,$00,$34,$10,$28,$00,$03,$E2,$10,$12,$28,$00,$02,$B3,$00
 	dc.b $E4,$10,$E4,$D0,$E4,$E8,$00,$02,$30,$28,$00,$02,$4E,$75,$10,$2E
 	dc.b $02,$03,$67,$FA,$4E,$75
-abs_0_000026A4:
+write_word_as_four_hex_digits:
 	move.w d0,d1
-	bra.b abs_0_000026BA
+	bra.b write_d1_as_four_hex_digits
 	dc.b $32,$00,$4E,$71,$3F,$01,$60,$1A,$22,$00,$48,$41,$61,$00,$00,$04
 	dc.b $48,$41
-abs_0_000026BA:
+write_d1_as_four_hex_digits:
 	move.w d1,-(a7)
 	lsr.w #8,d1
 	lsr.w #4,d1
-	bsr.b abs_0_000026D0
+	bsr.b write_low_nibble_as_hex_digit
 	move.w (a7),d1
 	lsr.w #8,d1
-	bsr.b abs_0_000026D0
+	bsr.b write_low_nibble_as_hex_digit
 	move.w (a7),d1
 	lsr.w #4,d1
-	bsr.b abs_0_000026D0
+	bsr.b write_low_nibble_as_hex_digit
 	move.w (a7)+,d1
-abs_0_000026D0:
+write_low_nibble_as_hex_digit:
 	andi.w #15,d1
 	cmp.b #$9,d1
 	bls.b abs_0_000026DE
@@ -14740,20 +14740,20 @@ abs_0_0000C574:
 toggle_amiga_text_display_control:
 	dc.b $30,$39,$00,$00,$C4,$DC,$0A,$40,$01,$02,$33,$C0,$00,$00,$C4,$DC
 	dc.b $33,$F9,$00,$00,$C4,$DC,$00,$DF,$F1,$00,$4E,$75
-abs_0_0000C59A:
+address_error_stage_message:
 	dc.b "Timewarp A "
-abs_0_0000C5A5:
+address_error_stage_hex_text:
 	dc.b "0000 press a key",$00
 	dc.b $00
-abs_0_0000C5B7:
+ram_corruption_stage_message:
 	dc.b "Ram corrupt "
-abs_0_0000C5C3:
+ram_corruption_stage_hex_text:
 	dc.b "0000 rebooting!",$00
 	dc.b $00
 	dcb.b $8,$20
-abs_0_0000C5DC:
+bus_error_stage_message:
 	dc.b "Timewarp B "
-abs_0_0000C5E7:
+bus_error_stage_hex_text:
 	dc.b "0000 press a key",$00
 	dc.b $00
 	dc.b "Currently in routine 0000",$00
@@ -14762,9 +14762,9 @@ abs_0_0000C5E7:
 bus_error_diagnostic_handler:
 	movea.l game_workspace_base.l,a6
 	move.w diagnostic_stage_step_word.l,d0
-	lea.l abs_0_0000C5E7.l,a1
-	bsr.w abs_0_0000E126
-	lea.l abs_0_0000C5DC.l,a1
+	lea.l bus_error_stage_hex_text.l,a1
+	bsr.w write_word_as_hex_text_platform_entry
+	lea.l bus_error_stage_message.l,a1
 	bsr.w display_timed_message_line
 	lea.l cockpit_picture_palette.l,a1
 	bsr.w abs_0_0000E9CC
@@ -14777,9 +14777,9 @@ abs_0_0000C64A:
 address_error_diagnostic_handler:
 	movea.l game_workspace_base.l,a6
 	move.w diagnostic_stage_step_word.l,d0
-	lea.l abs_0_0000C5A5.l,a1
-	bsr.w abs_0_0000E126
-	lea.l abs_0_0000C59A.l,a1
+	lea.l address_error_stage_hex_text.l,a1
+	bsr.w write_word_as_hex_text_platform_entry
+	lea.l address_error_stage_message.l,a1
 	bsr.w display_timed_message_line
 	lea.l cockpit_picture_palette.l,a1
 	bsr.w abs_0_0000E9CC
@@ -14792,9 +14792,9 @@ abs_0_0000C688:
 report_ram_corruption_and_reboot:
 	movea.l game_workspace_base.l,a6
 	move.w diagnostic_stage_step_word.l,d0
-	lea.l abs_0_0000C5C3.l,a1
-	bsr.w abs_0_0000E126
-	lea.l abs_0_0000C5B7.l,a1
+	lea.l ram_corruption_stage_hex_text.l,a1
+	bsr.w write_word_as_hex_text_platform_entry
+	lea.l ram_corruption_stage_message.l,a1
 	bsr.w display_timed_message_line
 	lea.l cockpit_picture_palette.l,a1
 	bsr.w abs_0_0000E9CC
@@ -16495,8 +16495,8 @@ abs_0_0000E11A:
 	jmp abs_0_0003B356.l
 abs_0_0000E120:
 	jmp abs_0_00001202.l
-abs_0_0000E126:
-	jmp abs_0_000026A4.l
+write_word_as_hex_text_platform_entry:
+	jmp write_word_as_four_hex_digits.l
     ; First4 ratings-tail bytes are saved autocentre/fixed-sight/one-hand/joystick controls. E6B6 writes same4 back; remaining180 copied tail bytes remain opaque.
 show_options_and_load_control_settings:
 	bsr.w abs_0_00012F6E

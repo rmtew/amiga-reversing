@@ -32,6 +32,15 @@ The energy-tower initializer's World chain view stays distinct from its updater
 view. Packed-header normalization, signed comparisons, wrap, PRNG transforms,
 nullable/sentinel links and unknown constructor parameters remain unchanged.
 
+The exception-diagnostic text batch names the accepted WORD/D1 formatter
+entries, shared hexadecimal-nibble helper, platform trampoline and six existing
+message/hex-text boundaries. The original formatter writes four uppercase hex
+bytes without a terminator; A1 advances four, D1/CCR are scratch, and writable
+buffer/stack inputs remain preconditions. Three diagnostics format the combined
+stage/step WORD, not the fault address or captured PC. Text extents, terminators,
+raw sibling entries, code and ownership accounting are unchanged. C/vasm and
+standalone output are exact; no runtime exception scenario was manufactured.
+
 The shared review-gap query now applies source/section filters before paging;
 it previously ignored them. Against the retained 303 native SGII review items,
 the requested source interval `$B400..$BC00` returns its 15 intersecting items,
