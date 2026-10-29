@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "source_commit": "4b1f40f17e884df959299521761dc9f4dbf7c045",
+  "source_commit": "061cc83d71d9910a03b6aeeb3701264e6f78e0c7",
   "source_assembly": "starglider2_game.s",
   "assets": [
     {
@@ -878,13 +878,13 @@
     },
     {
       "path": "rendered-provenance.json",
-      "bytes": 3030,
-      "sha256": "8e81f79c0a319f759af0ae508f41d963ebc6c4b710ee3a215b696d5e8c184146"
+      "bytes": 3001,
+      "sha256": "948c54f09155ea24aeed36b4f07af2e5c84eafa2ac70cb5a1dbb494168372ed5"
     },
     {
       "path": "starglider2_game.s",
-      "bytes": 2000772,
-      "sha256": "b8f42710b1b417a179beb4bf9e3562221c7e68727dd280a838e3cf292b4bfa8c"
+      "bytes": 2001671,
+      "sha256": "2f1c925c3eddab70b76eb9729c06be7e92b7667d5a35f0ad5c9f17aeda5200d1"
     },
     {
       "path": "tools/starglider2_protection.py",
@@ -892,6 +892,6 @@
       "sha256": "81d3f66d36dbfbd5c77238b20c28e8b9abaa329777eb91f64669bbbf13703582"
     }
   ],
-  "source_commit_role": "publication base; reviewed Emma2 radio state and complete source-record collection projection are bound by verification_receipt_id",
-  "source_subject_revision": "21bc5ff540b53fe4e84d25ff58f6ab4a3af3a40937f941351ca5419dbe1346db"
+  "source_commit_role": "publication base; reviewed independent scalar storage identities are bound by verification_receipt_id",
+  "source_subject_revision": "e44b798c0ea0f47c8a09f100deffb93e0197cee6bd6aa73216d8d4b77c692e0a"
 }

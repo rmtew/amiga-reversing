@@ -7,8 +7,8 @@ that further analysis is exhausted. Current source remains byte exact: all
 with all 106034 accepted code bytes retained. No generated assembly was edited
 by hand and no interim archive was produced.
 
-The current ownership union leaves 13624 bytes in
-264 intervals unclassified. This is classification accounting,
+The current ownership union leaves 13612 bytes in
+263 intervals unclassified. This is classification accounting,
 not a semantic completion percentage. Earlier interval/site counts below belong
 to their recorded closeout revision. See the current
 [native memory-span receipt](../../runtime/observations/starglider2-app-memory-spans.json),
@@ -31,6 +31,19 @@ Original mixed constructor families use only their established common prefix.
 The energy-tower initializer's World chain view stays distinct from its updater
 view. Packed-header normalization, signed comparisons, wrap, PRNG transforms,
 nullable/sentinel links and unknown constructor parameters remain unchanged.
+
+Direct consumer review now identifies eight independent scalar globals: surface
+braking/release delay, Novenia report cadence/count, Novenia palette flash, station
+notice phase, depot inventory mode, fatal-overheat latch and effect-colour fade.
+Forty-four original references now use exact scalar names and widths. Twelve
+initially zero bytes are classified; adjacency does not imply a shared semantic
+record, and countdown values are service-call state rather than wall-clock claims.
+The native catalogue retains **3503 app /2623 typed /177 unresolved**, all accepted
+code and previous access meanings. C/vasm and clean standalone output remain exact;
+no new runtime coverage is asserted. The bulk consumer scan found references to
+64 of the prior 264 unknown spans; those are investigation candidates, not automatic
+code/data promotions. The next connected lead is player-model material animation
+and its neighbouring asteroid-spawn mask consumers.
 
 The current Emma2 transport view connects the original type 8 initializer and
 explicit type 8 radio/boarding cases to the existing model name and radio texts.

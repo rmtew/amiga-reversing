@@ -1782,7 +1782,7 @@ abs_0_0000137E:
 	lea.l planetfall_message_apogee.l,a1
 	bsr.w abs_0_000049DA
 abs_0_000013D0:
-	tst.b abs_0_00039CD0.l
+	tst.b fatal_overheat_latched_flag.l
 	bmi.w abs_0_0000151E
 	tst.b app_07EE(a6)
 	bne.w abs_0_0000123E
@@ -1976,7 +1976,7 @@ abs_0_00001698:
 	move.b #$8,diagnostic_stage_step_word.l
 	clr.b diagnostic_step_byte.l
 abs_0_000016B0:
-	sf.b abs_0_00039CD0.l
+	sf.b fatal_overheat_latched_flag.l
 	move.b #$0,display_and_frame_service_flags(a6)
 	sf.b interrupted_game_available_flag(a6)
 	clr.w player_motion_x(a6)
@@ -13916,7 +13916,7 @@ abs_0_0000BA8C:
 	dbf.w d3,abs_0_0000BA28
 	move.b $0025(a2),interior_visibility_band_tag(a6)
 	movea.l player_object_reference(a6),a0
-	clr.w abs_0_00039CC6.l
+	clr.w surface_brake_hold_countdown.l
 	move.w (a2),d0
 	cmp.w #$30,d0
 	beq.w abs_0_0000BDAE
@@ -14286,7 +14286,7 @@ abs_0_0000BF84:
 	beq.w abs_0_0000B9C2
 	cmpi.w #48,(a0)
 	beq.w abs_0_0000B9C2
-	clr.w abs_0_00039CC6.l
+	clr.w surface_brake_hold_countdown.l
 	move.w (a2),d0
 	cmp.w #$42,d0
 	beq.b abs_0_0000BFEC
@@ -38405,7 +38405,7 @@ abs_0_0002F7C0:
 abs_0_0002F7C4:
 	tst.b player_structure_clamp_flag(a6)
 	bne.b abs_0_0002F7D2
-	tst.w abs_0_00039CC6.l
+	tst.w surface_brake_hold_countdown.l
 	beq.b abs_0_0002F7E6
 abs_0_0002F7D2:
 	subq.w #4,d0
@@ -43059,11 +43059,11 @@ abs_0_00032F12:
 	move.l player_world_y(a6),d0
 	cmp.l #$FFFFFF88,d0
 	bne.b abs_0_00032F32
-	move.w #$14,abs_0_00039CC6.l
+	move.w #$14,surface_brake_hold_countdown.l
 abs_0_00032F32:
-	subq.w #1,abs_0_00039CC6.l
+	subq.w #1,surface_brake_hold_countdown.l
 	bpl.b abs_0_00032F86
-	clr.w abs_0_00039CC6.l
+	clr.w surface_brake_hold_countdown.l
 	tst.b space_environment_flag(a6)
 	bmi.b abs_0_00032F86
 	lea.l released_object_tracking_references(a6),a0
@@ -43384,9 +43384,9 @@ abs_0_00033392:
 	movea.l SG2SourceTextReference_text(a1,d0.w),a1
 	bsr.w enqueue_event_message
 	bsr.w enqueue_blank_event_message_line
-	tst.b abs_0_00039CD0.l
+	tst.b fatal_overheat_latched_flag.l
 	bmi.b abs_0_00033434
-	st.b abs_0_00039CD0.l
+	st.b fatal_overheat_latched_flag.l
 	move.w nearby_object_count(a6),d0
 	beq.b abs_0_00033434
 	subq.w #1,d0
@@ -44155,7 +44155,7 @@ abs_0_00033E52:
 	cmp.b world_transition_space_snapshot(a6),d0
 	beq.w abs_0_00033FF8
 	move.b #$85,diagnostic_step_byte.l
-	move.b #$7F,abs_0_00039CD1.l
+	move.b #$7F,effect_colour_fade_counter.l
 	st.b abs_0_00039CD3.l
 	clr.w pending_message_count(a6)
 	move.w #$1,message_display_countdown(a6)
@@ -44421,7 +44421,7 @@ abs_0_00034230:
 	cmpi.w #10,current_structure_service_id(a6)
 	bne.b abs_0_0003425A
 	move.b #$55,diagnostic_step_byte.l
-	sf.b abs_0_00039CCF.l
+	sf.b depot_inventory_mode_flag.l
 	bsr.w reset_shared_inventory_scratch_prefixes
 	bsr.w build_depot_inventory_status_lists
 	clr.w depot_line_pointer_offset(a6)
@@ -44812,7 +44812,7 @@ abs_0_00034764:
 	cmpi.w #10,current_structure_service_id(a6)
 	bne.w abs_0_000349F4
 	move.b #$70,diagnostic_step_byte.l
-	tst.b abs_0_00039CCF.l
+	tst.b depot_inventory_mode_flag.l
 	bpl.w abs_0_000348E2
 	tst.b abs_0_00039B78.l
 	bmi.b abs_0_0003478C
@@ -44918,7 +44918,7 @@ abs_0_000348C8:
 	bsr.w recompute_counted_model_population
 	bra.w abs_0_000347D4
 abs_0_000348D0:
-	sf.b abs_0_00039CCF.l
+	sf.b depot_inventory_mode_flag.l
 	clr.w depot_line_pointer_offset(a6)
 	clr.w inventory_list_item_index(a6)
 	bra.w advance_projector_station_cycle_continuation
@@ -44950,7 +44950,7 @@ abs_0_0003492C:
 	bne.b abs_0_00034944
 	clr.w depot_line_pointer_offset(a6)
 	clr.w inventory_list_item_index(a6)
-	st.b abs_0_00039CCF.l
+	st.b depot_inventory_mode_flag.l
 	bra.w abs_0_000347A6
 abs_0_00034944:
 	move.b #$73,diagnostic_step_byte.l
@@ -45095,8 +45095,8 @@ scan_projector_parts_for_missing_entry:
 	asl.w #2,d0
 	movea.l SG2SourceTextReference_text(a1,d0.w),a1
 	bsr.w enqueue_message_if_outside_structure
-	addq.b #1,abs_0_00039CCE.l
-	andi.b #1,abs_0_00039CCE.l
+	addq.b #1,station_spawn_message_phase_mod2.l
+	andi.b #1,station_spawn_message_phase_mod2.l
 	bne.b advance_station_construction_continuation
 	lea.l event_message_pointers.l,a1
 	move.w #$10,d0
@@ -45160,7 +45160,7 @@ check_station_firing_completion_continuation:
 	tst.w station_firing_steps_remaining(a6)
 	bpl.b advance_station_firing_continuation
 	sf.b station_cycle_enabled_flag(a6)
-	move.w #$1FF,abs_0_00039CCC.l
+	move.w #$1FF,novenia_flash_countdown.l
 	bra.w report_novenia_destruction_continuation
 advance_station_firing_continuation:
 	clr.w pending_message_count(a6)
@@ -48103,7 +48103,7 @@ abs_0_00037428:
 	dbf.w d0,abs_0_00037428
 	move.l #$14,carried_neutron_bomb_y_offset.l
 	clr.w nearby_effect_or_override_present_word.l
-	clr.w abs_0_00039CC6.l
+	clr.w surface_brake_hold_countdown.l
 	move.b #$FF,audio_output_enable_sign_flag.l
 	clr.w pending_message_count(a6)
 	move.w #$1,message_display_countdown(a6)
@@ -48210,17 +48210,17 @@ abs_0_00037586:
 	move.w #$C8,abs_0_00039B7A.l
 	clr.w abs_0_00039652.l
 	st.b station_cycle_enabled_flag(a6)
-	clr.b abs_0_00039CCE.l
-	move.w #$FFFF,abs_0_00039CCC.l
-	clr.w abs_0_00039CC8.l
-	move.w #$3,abs_0_00039CCA.l
-	sf.b abs_0_00039CCF.l
-	sf.b abs_0_00039CD0.l
+	clr.b station_spawn_message_phase_mod2.l
+	move.w #$FFFF,novenia_flash_countdown.l
+	clr.w novenia_report_repeat_delay.l
+	move.w #$3,novenia_report_repeats_remaining.l
+	sf.b depot_inventory_mode_flag.l
+	sf.b fatal_overheat_latched_flag.l
 	sf.b skim_drone_follow_claim_flag.l
 	clr.l skim_drone_follow_reference.l
 	move.w #$FFFF,player_rotation2_spin_steps.l
 	clr.w player_rotation2_after_spin.l
-	move.b #$FF,abs_0_00039CD1.l
+	move.b #$FF,effect_colour_fade_counter.l
 	sf.b abs_0_00039CD3.l
 	clr.w stardrive_speed_addend(a6)
 	clr.w stardrive_enabled_word(a6)
@@ -48280,12 +48280,12 @@ abs_0_000376F0:
 	move.l d3,millway_proximity_metric(a6)
 	rts
 abs_0_000376F8:
-	subq.w #1,abs_0_00039CC8.l
+	subq.w #1,novenia_report_repeat_delay.l
 	bpl.b abs_0_00037778
-	move.w #$100,abs_0_00039CC8.l
-	subq.w #1,abs_0_00039CCA.l
+	move.w #$100,novenia_report_repeat_delay.l
+	subq.w #1,novenia_report_repeats_remaining.l
 	bpl.b report_novenia_destruction_continuation
-	move.w #$FFFF,abs_0_00039CCA.l
+	move.w #$FFFF,novenia_report_repeats_remaining.l
 	bra.b abs_0_00037778
     ; Queue scout report that Novenia was destroyed by a massive beam weapon, and retain its two status-message pointers. Do not infer a victory/ending condition from report text.
 report_novenia_destruction_continuation:
@@ -49556,22 +49556,22 @@ maximum_saved_nearby_terminator_slot:
 	dcb.b $A0,$00
 nearby_effect_or_override_present_word:
 	dc.w $0000
-abs_0_00039CC6:
-	dc.w $0000
-abs_0_00039CC8:
-	dc.w $0000
-abs_0_00039CCA:
-	dc.w $0000
-abs_0_00039CCC:
-	dc.w $0000
-abs_0_00039CCE:
-	dc.b $00
-abs_0_00039CCF:
-	dc.b $00
-abs_0_00039CD0:
-	dc.b $00
-abs_0_00039CD1:
-	dc.b $00
+surface_brake_hold_countdown:
+	dc.w $0000	; independent_runtime_scalars
+novenia_report_repeat_delay:
+	dc.w $0000	; independent_runtime_scalars
+novenia_report_repeats_remaining:
+	dc.w $0000	; independent_runtime_scalars
+novenia_flash_countdown:
+	dc.w $0000	; independent_runtime_scalars
+station_spawn_message_phase_mod2:
+	dc.b $00	; independent_runtime_scalars
+depot_inventory_mode_flag:
+	dc.b $00	; independent_runtime_scalars
+fatal_overheat_latched_flag:
+	dc.b $00	; independent_runtime_scalars
+effect_colour_fade_counter:
+	dc.b $00	; independent_runtime_scalars
 skim_drone_follow_claim_flag:
 	dc.b $00
 abs_0_00039CD3:
@@ -59160,13 +59160,13 @@ abs_0_0004C784:
 abs_0_0004C78E:
 	tst.w shared_grayscale_effect_countdown.l
 	bpl.w abs_0_0004CA26
-	tst.b abs_0_00039CD1.l
+	tst.b effect_colour_fade_counter.l
 	bpl.w abs_0_0004C9EC
 	tst.w player_rotation2_spin_steps.l
 	bpl.w abs_0_0004CA6C
 	tst.b inside_structure_flag(a6)
 	bne.w abs_0_0004C93A
-	tst.w abs_0_00039CCC.l
+	tst.w novenia_flash_countdown.l
 	bpl.w abs_0_0004C98E
 	tst.b space_environment_flag(a6)
 	bne.w abs_0_0004C8E2
@@ -59304,11 +59304,11 @@ abs_0_0004C968:
 	move.w d0,$000E(a0)
 	bra.w abs_0_0004CAC0
 abs_0_0004C98E:
-	subq.w #1,abs_0_00039CCC.l
+	subq.w #1,novenia_flash_countdown.l
 	bpl.b abs_0_0004C99E
-	move.w #$FFFF,abs_0_00039CCC.l
+	move.w #$FFFF,novenia_flash_countdown.l
 abs_0_0004C99E:
-	move.w abs_0_00039CCC.l,d0
+	move.w novenia_flash_countdown.l,d0
 	btst #0,d0
 	bne.w abs_0_0004C8E2
 	cmp.w #$1F4,d0
@@ -59332,11 +59332,11 @@ abs_0_0004C9CA:
 	move.w d0,$000E(a0)
 	bra.w abs_0_0004CAC0
 abs_0_0004C9EC:
-	subq.b #1,abs_0_00039CD1.l
+	subq.b #1,effect_colour_fade_counter.l
 	bpl.b abs_0_0004C9F8
 	bra.w abs_0_0004CAC0
 abs_0_0004C9F8:
-	move.b abs_0_00039CD1.l,d0
+	move.b effect_colour_fade_counter.l,d0
 	andi.w #255,d0
 	asr.w #3,d0
 	lea.l amiga_copper_list_a_effect_colours.l,a0
@@ -60633,13 +60633,13 @@ abs_0_0004DB1E:
 	adda.l #$14,a4
 	tst.w shared_grayscale_effect_countdown.l
 	bpl.w abs_0_0004DD0E
-	tst.b abs_0_00039CD1.l
+	tst.b effect_colour_fade_counter.l
 	bpl.w abs_0_0004DCF0
 	tst.w player_rotation2_spin_steps.l
 	bpl.w abs_0_0004DCDE
 	tst.b inside_structure_flag(a6)
 	bne.w abs_0_0004DC7E
-	tst.w abs_0_00039CCC.l
+	tst.w novenia_flash_countdown.l
 	bpl.w abs_0_0004DC96
 	tst.b space_environment_flag(a6)
 	bne.w abs_0_0004DC52
@@ -60752,11 +60752,11 @@ abs_0_0004DC8E:
 	move.w #$335,(a4)
 	bra.w abs_0_0004DD3A
 abs_0_0004DC96:
-	subq.w #1,abs_0_00039CCC.l
+	subq.w #1,novenia_flash_countdown.l
 	bpl.b abs_0_0004DCA6
-	move.w #$FFFF,abs_0_00039CCC.l
+	move.w #$FFFF,novenia_flash_countdown.l
 abs_0_0004DCA6:
-	move.w abs_0_00039CCC.l,d0
+	move.w novenia_flash_countdown.l,d0
 	btst #0,d0
 	bne.w abs_0_0004DC52
 	cmp.w #$1F4,d0
@@ -60784,11 +60784,11 @@ abs_0_0004DCDE:
 	move.w d0,(a4)
 	bra.b abs_0_0004DD3A
 abs_0_0004DCF0:
-	subq.b #1,abs_0_00039CD1.l
+	subq.b #1,effect_colour_fade_counter.l
 	bpl.b abs_0_0004DCFA
 	bra.b abs_0_0004DD3A
 abs_0_0004DCFA:
-	move.b abs_0_00039CD1.l,d0
+	move.b effect_colour_fade_counter.l,d0
 	andi.w #255,d0
 	asr.w #3,d0
 	lsr.w #1,d0
