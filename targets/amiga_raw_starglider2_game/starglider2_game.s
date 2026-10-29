@@ -10177,17 +10177,18 @@ abs_0_000086D6:
 	movea.l -(a1),a2
 	move.l a1,free_object_stack_cursor(a6)
 	subq.w #1,free_object_count(a6)
-	move.l #$FFFFFFFF,$003C(a2)
-	move.w SG2WorldObject_velocity_x(a0),$002C(a2)
-	move.w SG2WorldObject_velocity_y(a0),$002E(a2)
-	move.w SG2WorldObject_velocity_z(a0),$0030(a2)
+    ; KNOWN: type A2=Target code-entry register seed:SG2WorldObject
+	move.l #$FFFFFFFF,SG2WorldObject_linked_record_or_sentinel(a2)
+	move.w SG2WorldObject_velocity_x(a0),SG2WorldObject_velocity_x(a2)
+	move.w SG2WorldObject_velocity_y(a0),SG2WorldObject_velocity_y(a2)
+	move.w SG2WorldObject_velocity_z(a0),SG2WorldObject_velocity_z(a2)
 	move.l SG2ObjectCore_world_x(a0),SG2ObjectCore_world_x(a2)
 	move.l SG2ObjectCore_world_y(a0),SG2ObjectCore_world_y(a2)
 	move.l SG2ObjectCore_world_z(a0),SG2ObjectCore_world_z(a2)
 	move.b #$2,SG2ObjectCore_durability_or_negative(a2)
 	st.b SG2ObjectCore_retirement_phase_or_negative(a2)
-	move.b #$6,$001D(a2)
-	lea.l abs_0_0000B446.l,a1
+	move.b #$6,SG2TargetingObject_model_scale_shift(a2)
+	lea.l fragment_model_type_tags.l,a1
 	bsr.w advance_shared_random_state
 	andi.w #3,d0
 	clr.w d3
@@ -11004,16 +11005,17 @@ try_buzz_bomber_type6_spawn:
 	movea.l -(a1),a2
 	move.l a1,free_object_stack_cursor(a6)
 	subq.w #1,free_object_count(a6)
-	move.w SG2WorldObject_velocity_x(a0),$002C(a2)
-	move.w SG2WorldObject_velocity_y(a0),$002E(a2)
-	move.w SG2WorldObject_velocity_z(a0),$0030(a2)
+    ; KNOWN: type A2=Target code-entry register seed:SG2WorldObject
+	move.w SG2WorldObject_velocity_x(a0),SG2WorldObject_velocity_x(a2)
+	move.w SG2WorldObject_velocity_y(a0),SG2WorldObject_velocity_y(a2)
+	move.w SG2WorldObject_velocity_z(a0),SG2WorldObject_velocity_z(a2)
 	move.l SG2ObjectCore_world_x(a0),SG2ObjectCore_world_x(a2)
 	move.l SG2ObjectCore_world_y(a0),SG2ObjectCore_world_y(a2)
 	move.l SG2ObjectCore_world_z(a0),SG2ObjectCore_world_z(a2)
 	addi.l #20,SG2ObjectCore_world_y(a2)
 	move.b #$2,SG2ObjectCore_durability_or_negative(a2)
 	st.b SG2ObjectCore_retirement_phase_or_negative(a2)
-	move.b #$6,$001D(a2)
+	move.b #$6,SG2TargetingObject_model_scale_shift(a2)
     ; KNOWN: type A2=Target code-entry register seed:SG2WorldObject
 	move.w #$6,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
 	move.b #$6,SG2TargetingObject_collision_ignored_object_type(a0)
@@ -13355,7 +13357,7 @@ abs_0_0000B43A:
 	dc.b $0D,$12,$15,$1F,$20,$21,$22,$2D
 abs_0_0000B442:
 	dc.b $01,$09,$0F,$27
-abs_0_0000B446:
+fragment_model_type_tags:
 	dc.b $64,$65,$66,$53,$00,$00
 abs_0_0000B44C:
 	jmp update_nearby_neutron_bomb.l
@@ -43523,30 +43525,31 @@ abs_0_0003359E:
 	add.l player_world_x(a6),d4
 	add.l player_world_y(a6),d5
 	add.l player_world_z(a6),d6
+    ; KNOWN: type A4=Target code-entry register seed:SG2Asteroid
 	move.l d4,SG2ObjectCore_world_x(a4)
 	move.l d5,SG2ObjectCore_world_y(a4)
 	move.l d6,SG2ObjectCore_world_z(a4)
 	bsr.w abs_0_00039D20
 	andi.l #1023,d0
-	move.w d0,$0010(a4)
+	move.w d0,SG2WorldObject_rotation_0(a4)
 	subi.l #512,d0
 	add.l d0,SG2ObjectCore_world_x(a4)
 	asr.w #6,d0
-	move.w d0,$002C(a4)
+	move.w d0,SG2WorldObject_velocity_x(a4)
 	bsr.w abs_0_00039D20
 	andi.l #1023,d0
-	move.w d0,$0012(a4)
+	move.w d0,SG2WorldObject_rotation_1(a4)
 	subi.l #512,d0
 	add.l d0,SG2ObjectCore_world_y(a4)
 	asr.w #6,d0
-	move.w d0,$002E(a4)
+	move.w d0,SG2WorldObject_velocity_y(a4)
 	bsr.w abs_0_00039D20
 	andi.l #1023,d0
-	move.w d0,$0014(a4)
+	move.w d0,SG2WorldObject_rotation_2(a4)
 	subi.l #512,d0
 	add.l d0,SG2ObjectCore_world_z(a4)
 	asr.w #6,d0
-	move.w d0,$0030(a4)
+	move.w d0,SG2WorldObject_velocity_z(a4)
     ; KNOWN: type A4=Target code-entry register seed:SG2Asteroid
 	move.w #$49,(a4)	; operand 2: SG2ObjectCore_object_type at (a4)
 	move.b #$3,SG2ObjectCore_durability_or_negative(a4)
@@ -45571,13 +45574,14 @@ abs_0_000351C2:
 	subq.w #1,free_object_count(a6)
 	move.w #$92,d0
 	move.w d0,(a4)	; operand 2: SG2ObjectCore_object_type at (a4)
-	st.b $001F(a4)
-	move.l d2,$0022(a4)
+    ; KNOWN: type A4=Target code-entry register seed:SG2EnergySpheroid
+	st.b SG2EnergySpheroid_expansion_mode_flag(a4)
+	move.l d2,SG2RadialObject_base_radius(a4)
 	addq.w #8,d2
-	move.l $0022(a4),$0036(a4)
-	clr.w $0010(a4)
-	clr.w $0014(a4)
-	move.w #$40,$003C(a4)
+	move.l SG2RadialObject_base_radius(a4),SG2RadialObject_radius_work_value(a4)
+	clr.w SG2EnergySpheroid_colour_sequence_index(a4)
+	clr.w SG2EnergySpheroid_primary_colour_index(a4)
+	move.w #$40,SG2EnergySpheroid_expansion_steps_remaining(a4)
 	move.l $0004(a0),SG2ObjectCore_world_x(a4)
 	move.l $0008(a0),SG2ObjectCore_world_y(a4)
 	move.l $000C(a0),SG2ObjectCore_world_z(a4)
@@ -45593,7 +45597,7 @@ abs_0_00035256:
 	bsr.w abs_0_00039D20
 	andi.w #31,d0
 	addq.w #2,d0
-	move.w d0,$0012(a4)
+	move.w d0,SG2EnergySpheroid_expansion_delay_countdown(a4)
 	move.b #$FF,SG2ObjectCore_retirement_phase_or_negative(a4)
 	bset.b #7,SG2ObjectCore_durability_or_negative(a4)
 	clr.b $0003(a4)
@@ -46819,15 +46823,16 @@ advance_space_station_state:
 	subi.w #128,d0
 	asl.w #2,d0
 	lea.l nonmodel_object_base_radii.l,a1
-	move.l $0(a1,d0.w),$0022(a4)
-	move.l $0022(a4),$0036(a4)
+    ; KNOWN: type A4=Target code-entry register seed:SG2EnergySpheroid
+	move.l $0(a1,d0.w),SG2RadialObject_base_radius(a4)
+	move.l SG2RadialObject_base_radius(a4),SG2RadialObject_radius_work_value(a4)
 	move.l SG2ObjectCore_world_x(a0),SG2ObjectCore_world_x(a4)
 	move.l SG2ObjectCore_world_y(a0),SG2ObjectCore_world_y(a4)
 	move.l SG2ObjectCore_world_z(a0),SG2ObjectCore_world_z(a4)
 	move.b #$FF,SG2ObjectCore_retirement_phase_or_negative(a4)
 	bset.b #7,SG2ObjectCore_durability_or_negative(a4)
-	move.w #$32,$0010(a4)
-	sf.b $001F(a4)
+	move.w #$32,SG2EnergySpheroid_colour_sequence_index(a4)
+	sf.b SG2EnergySpheroid_expansion_mode_flag(a4)
 abs_0_000362D2:
 	cmpi.w #$FFFF,station_charge_steps_remaining(a6)
 	bne.b abs_0_000362DC

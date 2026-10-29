@@ -20,7 +20,7 @@ An on-demand systematic gap inventory (`amiga_reversing/tools/source_gap_invento
 joins native identities/accesses with canonical layouts and actual rendered
 boundaries. It records 67 suffix signals (including numeric adjacent variants),
 21 lookup contracts, 462 remaining interior references, 31 generic app fields
-and 207 unresolved record accesses. These are different denominators. Five
+and 179 unresolved record accesses. These are different denominators. Five
 suffixes name routines and one names text; neither is a pointer defect.
 Current restored object contracts connect original update/initializer directories,
 literal-tag producers and reviewed forwarding paths. Walking, flying, mechanical,
@@ -32,14 +32,25 @@ The energy-tower initializer's World chain view stays distinct from its updater
 view. Packed-header normalization, signed comparisons, wrap, PRNG transforms,
 nullable/sentinel links and unknown constructor parameters remain unchanged.
 
+The latest construction-phase batch joins two energy-spheroid producers, the
+asteroid constructor's earlier motion writes, and two bounded fragment/bomb
+producers to existing consumer schemas. Five register contracts and one fragment
+tag-table name recover **28 accesses**, with no new gaps or changed old field
+meanings: **3503 app /2617 typed /179 unresolved**. The fragment selector admits
+only tags 100/101/102/83; the other constructors store literal tags 6/73/146. These are
+partial construction views, not assertions that every field is initialized. The
+spheroid WORD colour reset still spans its two BYTE colour fields. C/vasm and a
+clean staged standalone build reproduce all 412736 bytes; assets, headers, accepted
+code and ownership ranges are unchanged. No new runtime coverage is claimed.
+
 Model-header identity recovery now joins the original model and object-name
 directories through their shared selector. Ninety-two physical headers gain names
 from established canonical text, without splitting compact arrays. Eleven anonymous
 headers and the model-0/1 alias remain; duplicate display names retain distinct type
 IDs. This identifies records, not visual shapes or universal runtime reachability.
 The preceding world-data batch names fourteen physical placement owners and 26
-elements while preserving 32 logical slots and 1139 static placements. App/typed/gap
-records remain exactly unchanged: **3503 app /2589 typed /207 unresolved**.
+elements while preserving 32 logical slots and 1139 static placements. That batch retained
+**3503 app /2589 typed /207 unresolved** before the construction-phase recovery.
 
 The shared native reference query now projects resolved typed data-pointer
 expressions from the frozen plan. Artifact navigation counts those source operands
