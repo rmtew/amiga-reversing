@@ -20,181 +20,43 @@ An on-demand systematic gap inventory (`amiga_reversing/tools/source_gap_invento
 joins native identities/accesses with canonical layouts and actual rendered
 boundaries. It records 67 suffix signals (including numeric adjacent variants),
 21 lookup contracts, 523 remaining interior references, 31 generic app fields
-and 313 unresolved record accesses. These are different denominators. Five
+and 324 unresolved record accesses. These are different denominators. Five
 suffixes name routines and one names text; neither is a pointer defect.
-Latest: sixteen initializer views now follow their exact original initializer /
-updater selector sets, with fifteen previously generic constructor names. Thirty-two
-actions add 46 typed accesses (two tower gaps resolved, 44 previously uncatalogued)
-and expose seven still-unknown constructor bytes/words. No old access or meaning
-changes: **3503 app /2312 typed /313 unresolved**. Type93's unique initializer
-STs the newly named primary-form restore-inhibit flag, then enters the existing
-World-view chain helper; the flag remains on EnergyTower rather than World.
-Both retained pool snapshots match their recorded hashes. No new emulator run
-was needed, and snapshot values are not claimed as writer attribution. Packed
-header-byte normalization, conditional mission motion, capsule random state,
-bounce-scale overwrite and unproved initialization elsewhere are preserved.
-C/vasm and clean staged standalone output are checked before publication; assets
-and headers are unchanged. Next inspect the exposed constructor parameters and
-forwarding paths before inferring more initializer contracts; the scalar guard
-transport limitation remains separate from this source-level recovery.
+Current restored object contracts connect original update/initializer directories,
+literal-tag producers and reviewed forwarding paths. Walking, flying, mechanical,
+emitter, capsule, radial/star and shared targeting layouts are conditional role
+views; the complete object pool is not cast to one subtype. Existing schema
+inheritance carries four shared scale/collision/cached-XZ fields through joins.
+Original mixed constructor families use only their established common prefix.
+The energy-tower initializer's World chain view stays distinct from its updater
+view. Packed-header normalization, signed comparisons, wrap, PRNG transforms,
+nullable/sentinel links and unknown constructor parameters remain unchanged.
 
-Preceding: four established scale/collision/cached-XZ fields now form the common
-TargetingObject base of World and GroundLaser. Seven canonical actions move only
-World-local copies (including an old separate overlay); inherited types, names,
-widths and offsets are identical. Existing joins recover all seven laser-callee
-gaps without per-reader seeds or asserting World velocity fields on the laser:
-**3503 app /2266 typed /308 unresolved**. Ninety existing typed accesses migrate
-owner World to Targeting only for those four exact signatures; no other meaning
-changes, lost accesses or new gaps. C/vasm and clean staged standalone output are
-checked before publication; 57 assets and 14 headers are unchanged. The tower
-gate remains separate: retained original-flight snapshots have one initial type93
-with BYTE34=FF and fourteen type90 records with zero; inspect its original
-initializer directory before launching another runtime pass. Snapshot values
-alone do not attribute a writer or prove the flag's broader meaning.
+Latest batch: fourteen remaining nonempty initializer entries gain input contracts
+and thirteen routine names (27 actions). It adds 39 previously uncatalogued typed
+accesses and exposes eleven unknown constructor fields; no old access or meaning
+is lost. Current counts: **3503 app /2351 typed /324 unresolved**. All initializer
+directory entries now have reviewed entry contracts except the no-operation RTS;
+this does not prove arbitrary selector validity or complete field semantics.
+C/vasm and the clean staged standalone build match all 412736 original bytes;
+57 assets and14 headers remain unchanged. No new runtime run or interim archive.
+Canonical action histories and rendered provenance retain the detailed evidence;
+this current summary replaces repeated intermediate batch narratives.
 
-Preceding: eight original mechanical/energy callbacks now have five small role
-layouts, eight entry views and eight names. Variant and heading-only views derive
-from Core rather than asserting unused World/velocity fields. Twenty-one actions
-add 31 previously uncatalogued typed accesses; eight further accesses become
-explicit gaps (the paired tower's unknown BYTE34 gate, and seven shared callee
-reads requiring more of the ground-laser input contract). No prior access or
-meaning changes: **3503 app /2259 typed /315 unresolved**. C/vasm and the clean
-staged standalone export are checked before publication; assets/headers unchanged.
-Original signed gate comparisons, counter wraps, PRNG bit transforms, type90/93
-changes and world-Z shifts remain intact, without universal range/timing claims.
-The seven shared-callee field requirements are recovered above. Next: the tower gate's writers. Separately, all 37 sprite/name/audio/text-reference gaps are indexed
-accesses: a tiny four-entry array resolves a constant index, but retains
-`indexed_dynamic` even after explicit signed 0..3 guards; the unguarded negative
-case remains unresolved. Investigate existing branch/value constraint transport,
-not extra per-reader array seeds or assumed bounds from storage extent.
+The shared framework now preserves canonical inline-object types through LEA
+and existing register/stack transfers. Five matrix consumers gained45 accesses;
+49 focused Python checks and832 native cases passed. Pointer-cell addresses,
+foreign bases, conflicting phase views and incomplete extents remain conservative.
+Direct PEA typed stack construction is still separate.
 
-Preceding: capsule-carrier, hover-car, bouncing-ball, tunnel-indicator and shared
-proximity-steering views now expose 56 more typed accesses: two replace capsule
-flag gaps and 54 were previously uncatalogued. Nine contexts refine without
-meaning changes, lost accesses or new gaps: **3503 app /2228 typed /307 unresolved**.
-The two capsule callers actually test BYTE43 before the helper branch; the role
-view and FlyingActor extension do not put that meaning on Scheduled/World parents.
-Tunnel-indicator WORD48 is angular feedback, explicitly not linear velocity;
-its schema therefore derives from ObjectCore. Fifteen actions preserve arbitrary
-mode/initial values, original masks, counter wraps and all link guards. Native
-admission initially rejected a 64-character description for a 63-character field,
-before any append; shortening that description resolved it without changing limits.
-C/vasm and the clean standalone export are checked before publication; 57 assets
-and 14 headers remain unchanged. Next connected leads are the mechanical/energy
-object callbacks, whose byte variants and rotation/counter roles need partial
-views rather than an unsupported World cast.
-
-Preceding: five original silo/tunnel/blowhole/saucer callbacks and two bounded
-child constructors gain four role layouts, seven entry views and five names.
-The original choice tables retain their eight aircraft/four ground-type sets;
-constructor views use only common World fields. Sixteen actions add 113 typed
-accesses: 29 replace gaps and 84 were previously uncatalogued; 22 existing contexts
-refine without meaning changes or lost accesses. One shared capsule-helper BYTE43
-access becomes an explicit gap under the common ScheduledActor ancestor; that
-byte is an emission allowance in other records, so it cannot be named globally.
-The capsule caller/role experiment is completed above.
-Current counts: **3503 app /2172 typed /309 unresolved**. C/vasm and clean staged
-standalone output are checked before publication, with assets/headers unchanged.
-Original modular counters, success-conditional allowances, scalar links and the
-dome branch retaining earlier A2 state remain unchanged; no all-pool cast or
-nonnull child guarantee was added.
-
-Preceding: the title page-cycle counter and decimal post-NUL cursor now have
-explicit canonical extents, and six connected formatter/page/text labels expose
-the original consumers. Eight actions name eight previously raw app accesses:
-**3503 app /2059 typed /337 unresolved**. No typed access or prior meaning changes.
-These new app references retain declared-layout A6 fallback, not register-state
-proof: the offsets collide with custom-register numbering. The cursor is opaque
-LONG storage, not a persistent typed string pointer. Four decimal positions do
-not promise valid digits for arbitrary WORD magnitudes; the frame-rate text
-storage gains no guessed extent and following raw bytes remain untouched.
-C/vasm is exact and the clean staged standalone export is checked for publication;
-57 assets and 14 headers remain unchanged.
-
-Preceding: eight original updater entries now expose Walker/Stomper, linked-tug,
-Horatio, mechanical-whale, duck/pyramid and Icarus contracts. The original type
-and name directories bind nine tags to these entries. Two small derived layouts
-express walking cadence/heading/link-release counters and signed vertex-variant
-steps; four entries reuse existing layouts. No global object-pool cast or linked
-pointee claim is made. Eighteen canonical actions recover 86 typed accesses and
-resolve 86 gaps, refining 43 contexts without field-meaning changes, lost accesses
-or new gaps: **3495 app /2059 typed /337 unresolved**. C/vasm is exact; the clean
-standalone export is qualified before publication. All 57 assets/14 headers are
-unchanged. Original counter wraps, signed branches, conditional doubled variant
-increments and uncertain initialization remain intact.
-
-Preceding: canonical inline-record addresses now use the same read-only projection
-as rendering, rather than losing their types after LEA. No target facts were
-added. Five existing rotation-matrix consumers gain 45 typed field accesses;
-five aggregate/cursor accesses become explicit unresolved records rather than
-being hidden. Current counts: **3495 app /1973 typed /423 unresolved**.
-49 focused Python checks and all 832 native cases pass; current C/vasm exactness
-and the clean staged standalone rebuild match all 412736 bytes. Target generation took 180s (no comparative speed claim).
-Same-origin conflicts, pointer-cell addresses, foreign bases, incomplete extents
-and larger-backing-as-array guesses remain conservative. Direct PEA address
-construction still lacks the corresponding typed stack value; arbitrary phase
-views remain a separate contract. Canonical facts, 57 assets and 14 headers are
-unchanged; the generated source exposes the recovered matrix fields.
-
-Preceding: eight more producers now reuse the established leaf-updater views for
-bouncing/neutron bombs, asteroids and internal type47. Original CFG forwarding
-paths preserve A0; exact generated instruction flow and shared register-write
-evidence establish sequential prefixes without guessing from missing edges.
-Diagnostic/CCR effects are retained, not declared ABI-equivalent. This closes
-the inventoried 19 complete immediate WORD tag stores, not packed/partial or
-register-mediated headers. It adds 20 typed accesses and resolves 20 gaps, refines
-32 contexts, loses no accesses, changes no field meaning and exposes no gaps:
-**3495 app /1928 typed /418 unresolved**. C/vasm and the clean staged
-standalone export match all 412736 original bytes; 57 assets and 14 headers
-remain unchanged. No new schema or model identity was invented.
-
-Preceding: capsule, tunnel-sentinel, flat-diamond and pilot-couch lifecycle views
-now connect their unique original callbacks to literal-tag producers. Thirteen
-facts add one capsule schema, eight producer/updater views and four routine
-names; the sentinel reuses ScheduledActor rather than duplicating its counter.
-Capsule spin and translation-gate fields preserve original logical velocity
-shifts and do not assert initialization or nonnegative countdown values.
-This adds 78 typed accesses: 53 resolved gaps plus 25 previously untracked uses,
-with 36 existing context refinements, no changed field meanings, lost accesses
-or new gaps. Current counts: **3495 app /1908 typed /438 unresolved**.
-C/vasm and the clean staged standalone export are exact for all 412736
-original bytes. All 57 assets and 14 headers remain unchanged.
-
-Preceding: seven original constant-tag producer views reuse established mine,
-Buzz Bomb, steered-projectile and velocity-projectile updater layouts. The scan
-found 19 actual immediate-tag writes; comparisons were excluded. Only seven had
-reviewed directory-to-updater contracts for this batch; others are untouched.
-This resolves 48 typed gaps, refines 32 existing contexts without changing field
-meanings, loses no accesses and exposes no gaps: **3495 app /1830 typed /491
-unresolved**. It is canonical target contract transfer through the existing
-engine, not automatic discriminant inference or a new global pool type.
-C/vasm and a clean staged standalone build match all 412736 original bytes;
-57 assets and 14 headers remain unchanged.
-
-Preceding: retirement-face scratch has a six-byte signed edge-delta layout
-and three separate WORD displacement slots. All 13 original uses are connected
-from vertex differences through the signed cross product and phase/bias scaling
-to per-vertex projection. Intervening bytes remain unclaimed; overflow, shifts
-and the conditional Y bias are unchanged. Review corrects a leading-minus error
-in the initial rationale: the original products are edge1 cross edge2.
-This adds 13 app references with no prior access changed or lost, no new typed
-accesses or resolved typed gaps: **3495 app /1782 typed /539 unresolved**.
-C/vasm and the clean standalone export reproduce all 412736 original bytes;
-57 assets and 14 headers are unchanged. Discovery candidates decrease 93 to 80.
-
-Preceding: the model-projection workspace names 70 previously raw scratch
-accesses through existing declared-layout fallback, not a new base-propagation
-algorithm or physical-frame proof. The A4 render-only view resolves the three
-LONG40 face-admission-cache accesses; it is a scalar bit cache, not a pointer
-or final visibility guarantee. Header face/coordinate counts share one packed
-four-byte owner. Phase-local header addresses remain scalar storage declarations
-so they do not promise persistent pointee types across phases. Fill style also
-covers its two original initializer/raster uses. No prior typed/app access was
-lost; three existing contexts were refined without field-meaning changes.
-That preceding batch had **3482 app references /1782 typed /539 unresolved**. C/vasm and
-clean standalone output are exact, with 57 assets and 14 headers unchanged.
-The source-header loop still has no admitted type-domain packet; its physical
-A6/return-link questions were not manufactured away by symbolic scratch names.
+Next investigate shared A2 motion and A0/A4 heading helper input contracts from
+actual callers, then remaining constructor parameters. All37 sprite/name/audio/
+text-reference gaps are indexed accesses. A four-entry fixture resolves a constant
+index but remains `indexed_dynamic` after signed0..3 guards; its unguarded negative
+also stays unresolved. Branch/partial-WORD constraint transport needs shared-value
+support, not guessed table extents or per-reader bounds. The existing affine
+entry relation is proof-local and cannot safely be switched into normal typed
+flow as a workaround. No convergence/value limits were raised.
 
 The native `base_candidates` query now complements the declared field inventory
 with non-admitting fixed-A6 operand leads. One unchanged target artifact yielded
@@ -214,7 +76,7 @@ starts. Their original producer really emits clipped horizon coordinates; a
 phase/width alias must remain distinct from the keyboard contract. Investigate
 existing canonical alias/view support before adding or renaming ownership. The
 third partial candidate is the already-documented LONG clear spanning a pending
-score WORD and following storage; that clear alone cannot name the extra bytes. Discovery leads and the 313 unresolved
+score WORD and following storage; that clear alone cannot name the extra bytes. Discovery leads and the 324 unresolved
 typed accesses remain different populations.
 A bounded alias reproducer found a shared renderer defect: an inferred
 same-origin conflict silently dropped the canonical app declaration while
