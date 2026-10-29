@@ -7,8 +7,8 @@ that further analysis is exhausted. Current source remains byte exact: all
 with all 106034 accepted code bytes retained. No generated assembly was edited
 by hand and no interim archive was produced.
 
-The current ownership union leaves 13170 bytes in
-269 intervals unclassified. This is classification accounting,
+The current ownership union leaves 12842 bytes in
+273 intervals unclassified. This is classification accounting,
 not a semantic completion percentage. Earlier interval/site counts below belong
 to their recorded closeout revision. See the current
 [native memory-span receipt](../../runtime/observations/starglider2-app-memory-spans.json),
@@ -18,7 +18,7 @@ to their recorded closeout revision. See the current
 
 An on-demand systematic gap inventory (`amiga_reversing/tools/source_gap_inventory.py`)
 joins native identities/accesses with canonical layouts and actual rendered
-boundaries. It records 67 suffix signals (including numeric adjacent variants),
+boundaries. It records 71 suffix signals (including numeric adjacent variants),
 21 lookup contracts, 462 remaining interior references, 31 generic app fields
 and 177 unresolved record accesses. These are different denominators. Five
 suffixes name routines and one names text; neither is a pointer defect.
@@ -32,6 +32,30 @@ The energy-tower initializer's World chain view stays distinct from its updater
 view. Packed-header normalization, signed comparisons, wrap, PRNG transforms,
 nullable/sentinel links and unknown constructor parameters remain unchanged.
 
+HUD attitude reconstruction connects the four source rectangle vectors to a
+normal scene header/corner packet and the alternate cyclic edge scan. Exact
+sentinel/backing words, edge-X state, roll/plane controls and mask prefixes account
+for 328 bytes and 23 native incoming data references. The left prefix has 31 LONGs
+and skips $00000FFF; the right table has 32. Index31 on the left would alias edge
+state, but its reach is unproved. No literal or selector is repaired. The existing
+framework recovers **27 new typed accesses** (23 XY WORD accesses, four header-style
+writes), with old meanings retained and no new gaps: **3503 app /2650 typed /177
+unresolved**. Three indirectly accessed marker/suffix names legitimately have no
+direct xref; their definitions and backing footprints are checked separately.
+Eight redundant generic owner comments are removed through canonical metadata.
+C/vasm and clean standalone output remain exact; no runtime coverage is added.
+
+The refreshed on-demand inventory retains 39 dynamic-index gaps, six auto-update
+cursors, 127 field holes and five outside-record accesses, plus 30 unresolved and
+five suppressed orphan signals. All ten homogeneous pointer-record collections
+are exposed natively. One concrete index lead is the seven-entry scan-sprite table:
+AND28 alone permits eight slots. The original producer stores56 and both services
+decrement the low BYTE and clear the WORD; a tighter range proof must also cover
+initial state and other/aliased writers. Do not widen the table or add
+a reader-specific index seed. Next examine shared scalar-cell range transport and
+the related HUD meter consumers, separating structural extent, original writer
+invariants and observed runtime index values.
+
 The ground-grid batch connects five six-byte XYZ deltas, aligned world-X/Z
 scalars, checkerboard phase and a mutable 25-record quad directory to their
 original writers/readers. The normal startup initializer emits four WORD vertex
@@ -41,8 +65,7 @@ incoming references. Forty-eight neighbouring scratch/padding bytes remain unkno
 C/vasm and clean standalone output remain exact. **3503 app /2623 typed /177
 unresolved** and accepted code are unchanged: ownership/geometry recovery is not
 additional loop-access proof. Compact arrays carry their native count directly;
-the known cursor-join boundary still applies to their loops. Next inspect the
-connected HUD polygon projection/scanline masks and their exact backing extents.
+the known cursor-join boundary still applies to their loops. The subsequent HUD polygon/mask batch is recorded above.
 
 The alternate PSG consumer batch identifies fourteen control scalars and the
 148-byte object-type volume/exclusion directory, with 42 native incoming references.

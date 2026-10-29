@@ -1376,6 +1376,12 @@ SG2GroundQuadVertexOffsets_third_vertex_byte_offset RS.W 1
 SG2GroundQuadVertexOffsets_fourth_vertex_byte_offset RS.W 1
 SG2GroundQuadVertexOffsets_SIZEOF EQU __RS
 
+; STRUCT SG2ScreenPoint2W
+    RSRESET
+SG2ScreenPoint2W_screen_x RS.W 1
+SG2ScreenPoint2W_screen_y RS.W 1
+SG2ScreenPoint2W_SIZEOF EQU __RS
+
 ADKF_CLRALL	EQU	$7FFF
 BPLCON2_PF2P2	EQU	$20
 BPLCON2_PF2PRI	EQU	$40
@@ -5530,7 +5536,7 @@ abs_0_000049AC:
 abs_0_000049B0:
 	jmp draw_nearby_point_field.l
 abs_0_000049B6:
-	jmp abs_0_00039D70.l
+	jmp draw_hud_attitude_polygon.l
 	dcb.b $C,$00
 abs_0_000049C8:
 	jmp sort_and_draw_scene_packets.l
@@ -49573,21 +49579,21 @@ maximum_saved_nearby_terminator_slot:
 nearby_effect_or_override_present_word:
 	dc.w $0000
 surface_brake_hold_countdown:
-	dc.w $0000	; independent_runtime_scalars
+	dc.w $0000
 novenia_report_repeat_delay:
-	dc.w $0000	; independent_runtime_scalars
+	dc.w $0000
 novenia_report_repeats_remaining:
-	dc.w $0000	; independent_runtime_scalars
+	dc.w $0000
 novenia_flash_countdown:
-	dc.w $0000	; independent_runtime_scalars
+	dc.w $0000
 station_spawn_message_phase_mod2:
-	dc.b $00	; independent_runtime_scalars
+	dc.b $00
 depot_inventory_mode_flag:
-	dc.b $00	; independent_runtime_scalars
+	dc.b $00
 fatal_overheat_latched_flag:
-	dc.b $00	; independent_runtime_scalars
+	dc.b $00
 effect_colour_fade_counter:
-	dc.b $00	; independent_runtime_scalars
+	dc.b $00
 skim_drone_follow_claim_flag:
 	dc.b $00
 abs_0_00039CD3:
@@ -49642,13 +49648,13 @@ abs_0_00039D62:
 enqueue_event_message:
 	jmp enqueue_unique_message_pointer.l
 	dc.w $0000
-abs_0_00039D70:
+draw_hud_attitude_polygon:
 	movem.l d0-d7/a0-a6,-(a7)
 	move.w player_rotation_2(a6),d1
 	andi.w #4095,d1
-	move.w d1,abs_0_0003A2D0.l
-	lea.l abs_0_0003A0B8.l,a2
-	lea.l abs_0_0003A0D6.l,a1
+	move.w d1,hud_attitude_roll_snapshot.l
+	lea.l hud_attitude_rectangle_vectors.l,a2
+	lea.l hud_attitude_projected_corners.l,a1
 	move.w #$3,d7
 abs_0_00039D92:
 	movem.w (a2)+,d1-d3
@@ -49676,30 +49682,30 @@ abs_0_00039DC6:
 	move.w d7,(a1)
 	tst.w platform_entry_flags.l
 	bpl.w abs_0_00039E02
-	lea.l abs_0_0003A0D6.l,a2
-	addi.w #4,(a2)+
-	subi.w #25,(a2)+
-	addi.w #4,(a2)+
-	subi.w #25,(a2)+
-	addi.w #4,(a2)+
-	subi.w #25,(a2)+
-	addi.w #4,(a2)+
-	subi.w #25,(a2)
+	lea.l hud_attitude_projected_corners.l,a2
+	addi.w #4,(a2)+	; operand 2: SG2ScreenPoint2W_screen_x at (a2)+
+	subi.w #25,(a2)+	; operand 2: SG2ScreenPoint2W_screen_y at (a2)+
+	addi.w #4,(a2)+	; operand 2: SG2ScreenPoint2W_screen_x at (a2)+
+	subi.w #25,(a2)+	; operand 2: SG2ScreenPoint2W_screen_y at (a2)+
+	addi.w #4,(a2)+	; operand 2: SG2ScreenPoint2W_screen_x at (a2)+
+	subi.w #25,(a2)+	; operand 2: SG2ScreenPoint2W_screen_y at (a2)+
+	addi.w #4,(a2)+	; operand 2: SG2ScreenPoint2W_screen_x at (a2)+
+	subi.w #25,(a2)	; operand 2: SG2ScreenPoint2W_screen_y at (a2)
 	bra.b abs_0_00039E2C
 abs_0_00039E02:
-	lea.l abs_0_0003A0D6.l,a2
-	addi.w #180,(a2)+
-	addi.w #121,(a2)+
-	addi.w #180,(a2)+
-	addi.w #121,(a2)+
-	addi.w #180,(a2)+
-	addi.w #121,(a2)+
-	addi.w #180,(a2)+
-	addi.w #121,(a2)
+	lea.l hud_attitude_projected_corners.l,a2
+	addi.w #180,(a2)+	; operand 2: SG2ScreenPoint2W_screen_x at (a2)+
+	addi.w #121,(a2)+	; operand 2: SG2ScreenPoint2W_screen_y at (a2)+
+	addi.w #180,(a2)+	; operand 2: SG2ScreenPoint2W_screen_x at (a2)+
+	addi.w #121,(a2)+	; operand 2: SG2ScreenPoint2W_screen_y at (a2)+
+	addi.w #180,(a2)+	; operand 2: SG2ScreenPoint2W_screen_x at (a2)+
+	addi.w #121,(a2)+	; operand 2: SG2ScreenPoint2W_screen_y at (a2)+
+	addi.w #180,(a2)+	; operand 2: SG2ScreenPoint2W_screen_x at (a2)+
+	addi.w #121,(a2)	; operand 2: SG2ScreenPoint2W_screen_y at (a2)
 	bra.w abs_0_0003A0B2
 abs_0_00039E2C:
-	lea.l abs_0_0003A0D6.l,a0
-	lea.l abs_0_0003A134.l,a1
+	lea.l hud_attitude_projected_corners.l,a0
+	lea.l hud_attitude_corner_cycle.l,a1
 	move.w #$FFF,d0
 	movea.l a0,a4
 	moveq.l #0,d4
@@ -49728,19 +49734,19 @@ abs_0_00039E62:
 	dbf.w d5,abs_0_00039E62
 abs_0_00039E68:
 	clr.l (a1)
-	lea.l abs_0_0003A134.l,a0
+	lea.l hud_attitude_corner_cycle.l,a0
 	lea.l polygon_edge_reciprocal_scales.l,a4
 	lea.l shared_workspace_prefix.l,a6
-	move.w $0002(a0),d0
-	cmp.w $0006(a0),d0
+	move.w SG2ScreenPoint2W_screen_y(a0),d0
+	cmp.w SG2ScreenPoint2W_screen_y+SG2ScreenPoint2W_SIZEOF(a0),d0
 	bne.b abs_0_00039EBE
-	cmp.w $000A(a0),d0
+	cmp.w SG2ScreenPoint2W_screen_y+2*SG2ScreenPoint2W_SIZEOF(a0),d0
 	bne.b abs_0_00039EBE
-	cmp.w $000E(a0),d0
+	cmp.w SG2ScreenPoint2W_screen_y+3*SG2ScreenPoint2W_SIZEOF(a0),d0
 	bne.b abs_0_00039EBE
 	move.w d0,d7
 	move.w #$2,d3
-	move.w (a0),d0
+	move.w (a0),d0	; operand 1: SG2ScreenPoint2W_screen_x at (a0)
 	addq.w #4,a0
 	move.w d0,d1
 abs_0_00039E9E:
@@ -49762,11 +49768,11 @@ abs_0_00039EB0:
 	bra.w abs_0_0003A062
 abs_0_00039EBE:
 	moveq.l #0,d0
-	move.w (a0)+,d0
+	move.w (a0)+,d0	; operand 1: SG2ScreenPoint2W_screen_x at (a0)+
 	move.l d0,d1
-	move.w d0,abs_0_0003A2C8.l
-	move.w d1,abs_0_0003A2CA.l
-	move.w (a0)+,d2
+	move.w d0,hud_attitude_forward_edge_x.l
+	move.w d1,hud_attitude_reverse_edge_x.l
+	move.w (a0)+,d2	; operand 1: SG2ScreenPoint2W_screen_y at (a0)+
 	move.w d2,d7
 	moveq.l #0,d3
 	moveq.l #0,d6
@@ -49774,9 +49780,9 @@ abs_0_00039ED8:
 	subq.w #1,d3
 	bpl.b abs_0_00039F10
 abs_0_00039EDC:
-	move.w abs_0_0003A2C8.l,d0
+	move.w hud_attitude_forward_edge_x.l,d0
 	move.w (a0)+,d4
-	move.w d4,abs_0_0003A2C8.l
+	move.w d4,hud_attitude_forward_edge_x.l
 	move.w (a0)+,d3
 	sub.w d2,d3
 	bmi.w abs_0_00039FC8
@@ -49800,10 +49806,10 @@ abs_0_00039F10:
 	subq.w #1,d6
 	bpl.b abs_0_00039F48
 abs_0_00039F14:
-	move.w abs_0_0003A2CA.l,d1
+	move.w hud_attitude_reverse_edge_x.l,d1
 	move.w -(a1),d6
 	move.w -(a1),d5
-	move.w d5,abs_0_0003A2CA.l
+	move.w d5,hud_attitude_reverse_edge_x.l
 	sub.w d2,d6
 	bmi.w abs_0_00039FC8
 	bne.b abs_0_00039F36
@@ -49884,14 +49890,14 @@ abs_0_00039FE0:
 	move.w d0,(a6)+
 abs_0_00039FE4:
 	move.w #$FFFF,(a6)
-	move.w abs_0_0003A2D0.l,d1
+	move.w hud_attitude_roll_snapshot.l,d1
 	cmp.w #$340,d1
 	bls.b abs_0_00039FFC
 	cmp.w #$B40,d1
 	bhi.b abs_0_00039FFC
 	bra.b abs_0_0003A030
 abs_0_00039FFC:
-	cmpi.w #1,abs_0_0003A2CE.l
+	cmpi.w #1,hud_attitude_active_plane_mode.l
 	beq.b abs_0_0003A022
 	lea.l absolute_slot_000736E6.l,a0
 	moveq.l #32,d0
@@ -49901,13 +49907,13 @@ abs_0_0003A012:
 	move.l d2,(a0)
 	adda.w d1,a0
 	dbf.w d0,abs_0_0003A012
-	move.w #$1,abs_0_0003A2CE.l
+	move.w #$1,hud_attitude_active_plane_mode.l
 abs_0_0003A022:
 	lea.l absolute_slot_000716E6.l,a0
 	lea.l absolute_slot_00071C0E.l,a4
 	bra.b abs_0_0003A062
 abs_0_0003A030:
-	cmpi.w #2,abs_0_0003A2CE.l
+	cmpi.w #2,hud_attitude_active_plane_mode.l
 	beq.b abs_0_0003A056
 	lea.l absolute_slot_000716E6.l,a0
 	moveq.l #32,d0
@@ -49917,13 +49923,13 @@ abs_0_0003A046:
 	move.l d2,(a0)
 	adda.w d1,a0
 	dbf.w d0,abs_0_0003A046
-	move.w #$2,abs_0_0003A2CE.l
+	move.w #$2,hud_attitude_active_plane_mode.l
 abs_0_0003A056:
 	lea.l absolute_slot_000736E6.l,a0
 	lea.l absolute_slot_00073C0E.l,a4
 abs_0_0003A062:
-	lea.l abs_0_0003A24C.l,a3
-	lea.l abs_0_0003A1CC.l,a2
+	lea.l hud_attitude_left_pixel_mask_prefix.l,a3
+	lea.l hud_attitude_right_pixel_masks.l,a2
 	lea.l shared_workspace_prefix.l,a1
 	moveq.l #0,d0
 	moveq.l #40,d1
@@ -49958,41 +49964,53 @@ abs_0_0003A0A8:
 abs_0_0003A0B2:
 	movem.l (a7)+,d0-d7/a0-a6
 	rts
-abs_0_0003A0B8:
-	dc.b $FF,$EF,$00,$00,$00,$08,$00,$11,$00,$00,$00,$08,$00,$11,$00,$00
-	dc.b $FF,$F8,$FF,$EF,$00,$00,$FF,$F8,$FF,$FF
-abs_0_0003A0D2:
-	dc.b $00,$00,$00,$00
-abs_0_0003A0D6:
-	dcb.b $5E,$00
-abs_0_0003A134:
-	dcb.b $98,$00
-abs_0_0003A1CC:
-	dc.b $80,$00,$00,$00,$C0,$00,$00,$00,$E0,$00,$00,$00,$F0,$00,$00,$00
-	dc.b $F8,$00,$00,$00,$FC,$00,$00,$00,$FE,$00,$00,$00,$FF,$00,$00,$00
-	dc.b $FF,$80,$00,$00,$FF,$C0,$00,$00,$FF,$E0,$00,$00,$FF,$F0,$00,$00
-	dc.b $FF,$F8,$00,$00,$FF,$FC,$00,$00,$FF,$FE,$00,$00,$FF,$FF,$00,$00
-	dc.b $FF,$FF,$80,$00,$FF,$FF,$C0,$00,$FF,$FF,$E0,$00,$FF,$FF,$F0,$00
-	dc.b $FF,$FF,$F8,$00,$FF,$FF,$FC,$00,$FF,$FF,$FE,$00,$FF,$FF,$FF,$00
-	dc.b $FF,$FF,$FF,$80,$FF,$FF,$FF,$C0,$FF,$FF,$FF,$E0,$FF,$FF,$FF,$F0
-	dc.b $FF,$FF,$FF,$F8,$FF,$FF,$FF,$FC,$FF,$FF,$FF,$FE,$FF,$FF,$FF,$FF
-abs_0_0003A24C:
-	dc.b $FF,$FF,$FF,$FF,$7F,$FF,$FF,$FF,$3F,$FF,$FF,$FF,$1F,$FF,$FF,$FF
-	dc.b $0F,$FF,$FF,$FF,$07,$FF,$FF,$FF,$03,$FF,$FF,$FF,$01,$FF,$FF,$FF
-	dc.b $00,$FF,$FF,$FF,$00,$7F,$FF,$FF,$00,$3F,$FF,$FF,$00,$1F,$FF,$FF
-	dc.b $00,$0F,$FF,$FF,$00,$07,$FF,$FF,$00,$03,$FF,$FF,$00,$01,$FF,$FF
-	dc.b $00,$00,$FF,$FF,$00,$00,$7F,$FF,$00,$00,$3F,$FF,$00,$00,$1F,$FF
-	dc.b $00,$00,$07,$FF,$00,$00,$03,$FF,$00,$00,$01,$FF,$00,$00,$00,$FF
-	dc.b $00,$00,$00,$7F,$00,$00,$00,$3F,$00,$00,$00,$1F,$00,$00,$00,$0F
-	dc.b $00,$00,$00,$07,$00,$00,$00,$03,$00,$00,$00,$01
-abs_0_0003A2C8:
+hud_attitude_rectangle_vectors:	; ARRAY SG2SignedDelta3W[4]
+	dc.w $FFEF,$0000,$0008,$0011,$0000,$0008,$0011,$0000
+	dc.w $FFF8,$FFEF,$0000,$FFF8
+	dc.b $FF,$FF
+hud_attitude_polygon_header:
+	dc.w $0000	; depth_sort_key
+	dc.w $0000	; fill_style
+hud_attitude_projected_corners:	; ARRAY SG2ScreenPoint2W[4]
+	dcb.w $8,$0000
+hud_attitude_polygon_negative_end:
 	dc.w $0000
-abs_0_0003A2CA:
-	dc.b $00,$00,$00,$00
-abs_0_0003A2CE:
+hud_attitude_polygon_end_low_seed:
 	dc.w $0000
-abs_0_0003A2D0:
-	dc.b $00,$00,$00,$00
+	dcb.b $4A,$00
+hud_attitude_corner_cycle:	; ARRAY SG2ScreenPoint2W[4]
+	dcb.w $8,$0000
+hud_attitude_corner_cycle_zero_suffix:
+	dc.l $00000000
+	dcb.b $84,$00
+hud_attitude_right_pixel_masks:
+	dc.l $80000000,$C0000000,$E0000000,$F0000000
+	dc.l $F8000000,$FC000000,$FE000000,$FF000000
+	dc.l $FF800000,$FFC00000,$FFE00000,$FFF00000
+	dc.l $FFF80000,$FFFC0000,$FFFE0000,$FFFF0000
+	dc.l $FFFF8000,$FFFFC000,$FFFFE000,$FFFFF000
+	dc.l $FFFFF800,$FFFFFC00,$FFFFFE00,$FFFFFF00
+	dc.l $FFFFFF80,$FFFFFFC0,$FFFFFFE0,$FFFFFFF0
+	dc.l $FFFFFFF8,$FFFFFFFC,$FFFFFFFE,$FFFFFFFF
+hud_attitude_left_pixel_mask_prefix:
+	dc.l $FFFFFFFF,$7FFFFFFF,$3FFFFFFF,$1FFFFFFF
+	dc.l $0FFFFFFF,$07FFFFFF,$03FFFFFF,$01FFFFFF
+	dc.l $00FFFFFF,$007FFFFF,$003FFFFF,$001FFFFF
+	dc.l $000FFFFF,$0007FFFF,$0003FFFF,$0001FFFF
+	dc.l $0000FFFF,$00007FFF,$00003FFF,$00001FFF
+	dc.l $000007FF,$000003FF,$000001FF,$000000FF
+	dc.l $0000007F,$0000003F,$0000001F,$0000000F
+	dc.l $00000007,$00000003,$00000001
+hud_attitude_forward_edge_x:
+	dc.w $0000
+hud_attitude_reverse_edge_x:
+	dc.w $0000
+	dc.w $0000
+hud_attitude_active_plane_mode:
+	dc.w $0000
+hud_attitude_roll_snapshot:
+	dc.w $0000
+	dc.w $0000
 abs_0_0003A2D4:
 	jmp rotate_horizon_vector_to_view.l
 	dc.w $0000
@@ -53588,16 +53606,16 @@ abs_0_0003DA32:
 abs_0_0003DA3C:
 	btst.b #1,scene_graphics_mode_snapshot.l
 	bne.w abs_0_0003DA82
-	lea.l abs_0_0003A0D2.l,a1
+	lea.l hud_attitude_polygon_header.l,a1
 	move.w scene_rotation2_snapshot.l,d1
 	cmp.w #$340,d1
 	bls.b abs_0_0003DA68
 	cmp.w #$B40,d1
 	bhi.b abs_0_0003DA68
-	move.w #$2,$0002(a1)
+	move.w #$2,SG2ScenePolygonHeader_fill_style(a1)
 	bra.b abs_0_0003DA6E
 abs_0_0003DA68:
-	move.w #$1,$0002(a1)
+	move.w #$1,SG2ScenePolygonHeader_fill_style(a1)
 abs_0_0003DA6E:
 	move.l a1,(a4)+
 	moveq.l #0,d0
@@ -53606,16 +53624,16 @@ abs_0_0003DA6E:
 	bsr.w abs_0_0003AF30
 	bra.b abs_0_0003DACE
 abs_0_0003DA82:
-	lea.l abs_0_0003A0D2.l,a1
+	lea.l hud_attitude_polygon_header.l,a1
 	move.w scene_rotation2_snapshot.l,d1
 	cmp.w #$340,d1
 	bls.b abs_0_0003DAA2
 	cmp.w #$B40,d1
 	bhi.b abs_0_0003DAA2
-	move.w #$7,$0002(a1)
+	move.w #$7,SG2ScenePolygonHeader_fill_style(a1)
 	bra.b abs_0_0003DAA8
 abs_0_0003DAA2:
-	move.w #$3,$0002(a1)
+	move.w #$3,SG2ScenePolygonHeader_fill_style(a1)
 abs_0_0003DAA8:
 	move.l a1,(a4)+
 	movea.l scene_draw_buffer_snapshot.l,a0

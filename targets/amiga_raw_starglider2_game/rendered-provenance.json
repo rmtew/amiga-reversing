@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
   "kind": "committed_native_rendered_original_export",
-  "canonical_source_commit": "68b8549b25a00f36e23d7af2240e57f114c2bd70",
-  "publication_base_commit": "68b8549b25a00f36e23d7af2240e57f114c2bd70",
+  "canonical_source_commit": "3e4694b7ef9aad81a72db5fecadfc0678049e7ac",
+  "publication_base_commit": "3e4694b7ef9aad81a72db5fecadfc0678049e7ac",
   "native_export": "CListingArtifact.source_package_payload(64)",
-  "main_source_sha256": "9a59a4b0d3f75b3f6f4ad4ac8fae16cacda3f3b3f123ac6041ee88a46a71401f",
+  "main_source_sha256": "1320ea48630e7fa4e9846e39f120be059a530349fb452467092308c94daba9f6",
   "asset_count": 57,
   "asset_bytes": 93633,
   "game_assembly_hand_edits": false,
@@ -24,13 +24,13 @@
     "assembler executable",
     "paused Pandora work"
   ],
-  "canonical_source_commit_role": "publication base; reviewed ground-grid vector and generated quad ownership are bound by canonical facts and verification",
-  "canonical_source_subject_revision": "4bc0938961dd17738a5155d8fff7bacf904f586c049e8a6eee46f949f5ae414c",
+  "canonical_source_commit_role": "publication base; reviewed HUD polygon projection, backing and mask ownership are bound by canonical facts and verification",
+  "canonical_source_subject_revision": "eac2485b6c09b0655d95bfe6a5ddfa2d56cf8000865ea79e734f63d6bdf4c843",
   "canonical_fact_sha256": {
     "source_binary.json": "42d4a5758b3e8236af7f912aee85e9ee5323bcd0961faa338c4f864080a0a7d9",
     "target_metadata.json": "e7540b68c118c56aba8815b6722eefa067517cc865fe9841d6c01ce96551389c",
-    "manual_actions.jsonl": "c8b927ac124de764ff1d365da3f4f66b4fb5a1427ace78526db04158151be477",
-    "decision_journal.jsonl": "d60b53edc12d328a5a24a1867b9b9ce9445fd0d04fe4c4f30084a2bae45a492e"
+    "manual_actions.jsonl": "3ea5b9b0f953307984806d44c8e3366946447629878dfa902421eaaba0e377aa",
+    "decision_journal.jsonl": "183053d07e49c273714d7587dcb8c479309b06aaf33fba6cd86551803faf8708"
   },
   "headers": "14 unmodified required include files collected by source_package.collect_package_includes from ext/amiga_includes/ndk_2.0/include; header notices retained",
   "decoded_protection_view": {
@@ -46,5 +46,5 @@
     },
     "runtime_scope": "Seven CPU write-site windows match this reversible view; no whole runtime-view identity or parent plaintext promotion."
   },
-  "verification_receipt_id": "ce2a32a177ca0d4b185773e9aec74bf38ef8247deee795f65350ec52021fa947"
+  "verification_receipt_id": "20eca43c23d3c0ac62b3a9234840e17698a17ccc28571a389b924d2a1ab0f25e"
 }

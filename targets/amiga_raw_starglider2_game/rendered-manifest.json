@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "source_commit": "68b8549b25a00f36e23d7af2240e57f114c2bd70",
+  "source_commit": "3e4694b7ef9aad81a72db5fecadfc0678049e7ac",
   "source_assembly": "starglider2_game.s",
   "assets": [
     {
@@ -878,13 +878,13 @@
     },
     {
       "path": "rendered-provenance.json",
-      "bytes": 3011,
-      "sha256": "d7364b84c5b2a8b7539121a376f7c3f8f098feb284152ea5978b9e839208c94d"
+      "bytes": 3014,
+      "sha256": "0e38def67b49837a2406129d8fa9bed4017cff1067a21645801550f2b52df495"
     },
     {
       "path": "starglider2_game.s",
-      "bytes": 2005121,
-      "sha256": "9a59a4b0d3f75b3f6f4ad4ac8fae16cacda3f3b3f123ac6041ee88a46a71401f"
+      "bytes": 2006597,
+      "sha256": "1320ea48630e7fa4e9846e39f120be059a530349fb452467092308c94daba9f6"
     },
     {
       "path": "tools/starglider2_protection.py",
@@ -892,6 +892,6 @@
       "sha256": "81d3f66d36dbfbd5c77238b20c28e8b9abaa329777eb91f64669bbbf13703582"
     }
   ],
-  "source_commit_role": "publication base; reviewed ground-grid vector and generated quad ownership are bound by verification_receipt_id",
-  "source_subject_revision": "4bc0938961dd17738a5155d8fff7bacf904f586c049e8a6eee46f949f5ae414c"
+  "source_commit_role": "publication base; reviewed HUD polygon projection, backing and mask ownership are bound by verification_receipt_id",
+  "source_subject_revision": "eac2485b6c09b0655d95bfe6a5ddfa2d56cf8000865ea79e734f63d6bdf4c843"
 }
