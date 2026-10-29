@@ -9426,7 +9426,10 @@ int base_layout_collect_slots(const M68kRenderLookup *lookup, const M68kDecodeIR
       const char *base_symbol = region->base_symbol[0] != '\0' ? region->base_symbol : M68K_APP_BASE_SYMBOL;
       uint8_t layout_kind = base_layout_policy_layout_kind(region);
       int conflict = 0;
-      if (base_layout_kind_is_app(layout_kind)) continue;
+      /* Inferred field identities can conflict when canonical views share an
+       * origin. That suppresses operand attribution, not the declarations.
+       * Keep every authored view; the exact name/layout/offset check below
+       * deduplicates app regions already emitted by the inferred lane. */
       if (region->symbol[0] == '\0' || region->offset > 0x7FFFU || region->size == 0U) continue;
       if (base_layout_slot_exists(slots, slot_count, region->symbol, layout_name, (int32_t)region->offset,
           &conflict)) {

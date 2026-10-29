@@ -446,6 +446,12 @@ output. This is a source-encoding contract, not a pointer lifetime, allocation,
 DMA extent or runtime reachability claim. The existing `base_displacement`
 scalar form remains restricted to a signed, unscaled WORD.
 
+Canonical RSSET declarations remain in the source even when inferred fields at
+the same base/origin conflict. Each authored layout keeps its name and extent;
+normal declaration deduplication still applies. This does not select a phase
+view, permit cross-layout ownership or turn an ambiguous access into a named
+reference. Conflicts continue to affect attribution and diagnostics separately.
+
 RSSET aggregate extents support 1..32767 bytes through the catalog, metadata
 projection and native policy; absolute-storage slots retain their separate limit.
 The file is an object of operation parameters, without `operation`. For example:

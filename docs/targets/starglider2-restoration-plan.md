@@ -67,6 +67,19 @@ existing canonical alias/view support before adding or renaming ownership. The
 third partial candidate is the already-documented LONG clear spanning a pending
 score WORD and following storage; that clear alone cannot name the extra bytes. Discovery leads and the 539 unresolved
 typed accesses remain different populations.
+A bounded alias reproducer found a shared renderer defect: an inferred
+same-origin conflict silently dropped the canonical app declaration while
+retaining the other named view. The collector now preserves all authored
+layouts without selecting ambiguous operands. 33 focused Python checks, including seven alias cases covering reversed order,
+equal-width ambiguity, exact declared offsets and foreign-base separation, plus
+all 832 native cases pass. Current
+SGII package source is byte-identical under this fix; existing exact/standalone
+qualification remains applicable. No target alias facts were added: ordinary
+width coverage does not establish phase attribution. The horizon/keyboard view
+still needs an explicit context/view contract; treating transfer width as a
+phase test would be unsound. Continue independent object-constructor analysis
+by joining original constant-tag stores to existing updater/initializer contracts.
+
 A synthetic absolute-A6 case has no retained concrete address at its read; it
 therefore remains a fallback lead, explicitly not an admitted app reference.
 Closing that analysis gap would require a separate value-flow experiment, not
