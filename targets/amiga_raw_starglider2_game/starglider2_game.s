@@ -1341,6 +1341,24 @@ SG2SpaceStation_emission_phase_mod8 RS.B 1
     RS.B 33
 SG2SpaceStation_SIZEOF EQU __RS
 
+; STRUCT SG2AirborneLaunchState
+    RSRESET
+    RS.B 36
+SG2AirborneLaunchState_behavior_update_counter RS.W 1
+    RS.B 5
+SG2AirborneLaunchState_escape_capsule_pending_flag RS.B 1
+    RS.B 24
+SG2AirborneLaunchState_SIZEOF EQU __RS
+
+; STRUCT SG2GroundLaunchState
+    RSRESET
+    RS.B 36
+SG2GroundLaunchState_behavior_update_counter RS.W 1
+    RS.B 2
+SG2GroundLaunchState_link_release_countdown RS.B 1
+    RS.B 27
+SG2GroundLaunchState_SIZEOF EQU __RS
+
 ADKF_CLRALL	EQU	$7FFF
 BPLCON2_PF2P2	EQU	$20
 BPLCON2_PF2PRI	EQU	$40
@@ -12034,7 +12052,7 @@ abs_0_0000A004:
 	bsr.w advance_shared_random_state
 	andi.w #7,d0
 	move.b $0(a1,d0.w),d0
-    ; KNOWN: type A2=Target code-entry register seed:SG2HorizontalMotionView
+    ; KNOWN: type A2=Target code-entry register seed:SG2AirborneLaunchState
 	move.w d0,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
 	move.b #$5,SG2TargetingObject_collision_ignored_object_type(a2)
 	move.b d0,SG2TargetingObject_collision_ignored_object_type(a0)
@@ -12046,12 +12064,12 @@ abs_0_0000A004:
 	add.w d0,d0
 	lea.l object_default_motion_words.l,a1
 	move.w $0(a1,d0.w),SG2HorizontalMotionView_horizontal_motion_scale(a2)
-	move.w #$3FE,$0024(a2)
+	move.w #$3FE,SG2AirborneLaunchState_behavior_update_counter(a2)
 	clr.w $0026(a2)
 	move.l SG2ObjectCore_world_x(a0),SG2ObjectCore_world_x(a2)
 	move.l SG2ObjectCore_world_z(a0),SG2ObjectCore_world_z(a2)
 	move.w #$FFFB,SG2WorldObject_velocity_y(a2)
-	move.b #$1,$002B(a2)
+	move.b #$1,SG2AirborneLaunchState_escape_capsule_pending_flag(a2)
 	move.w #$1,SG2WorldObject_rotation_2(a2)
 	move.b #$64,$0029(a2)
 	bsr.w heading_with_player_as_reference
@@ -12202,7 +12220,7 @@ abs_0_0000A2CE:
 	andi.w #3,d0
 	clr.w d3
 	move.b $0(a1,d0.w),d3
-    ; KNOWN: type A2=Target code-entry register seed:SG2HorizontalMotionView
+    ; KNOWN: type A2=Target code-entry register seed:SG2GroundLaunchState
 	move.w d3,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
 	move.b #$2E,SG2TargetingObject_collision_ignored_object_type(a2)
 	move.b d3,SG2TargetingObject_collision_ignored_object_type(a0)
@@ -12231,12 +12249,13 @@ abs_0_0000A2CE:
 	move.l a0,SG2WorldObject_linked_record_or_sentinel(a2)
 	bclr.b #4,SG2ObjectCore_flags(a2)
 	move.b #$64,$0029(a2)
-	move.b #$AA,$0028(a2)
+	move.b #$AA,SG2GroundLaunchState_link_release_countdown(a2)
 	cmpi.w #9,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
 	bne.b abs_0_0000A3B2
-	move.w #$64,$0026(a2)
+    ; KNOWN: type A2=Target code-entry register seed:SG2LandTank
+	move.w #$64,SG2EvasiveActor_proximity_evasion_countdown(a2)
 	move.l #$FFFFFFFC,SG2ObjectCore_world_y(a2)
-	move.w #$3,$0024(a2)
+	move.w #$3,SG2ScheduledActor_behavior_update_counter(a2)
 abs_0_0000A3B2:
 	bsr.w recompute_a2_horizontal_motion_from_heading
 	bra.w abs_0_000081D2
@@ -12498,7 +12517,7 @@ abs_0_0000A718:
 	dc.b $26,$3C,$00,$08,$00,$00,$28,$28,$00,$08,$B8,$83,$6F,$E8,$43,$F9
 	dc.b $00,$01,$7B,$5E,$36,$10,$D6,$43,$36,$31,$30,$00,$48,$C3,$B8,$83
 	dc.b $6C,$CA,$60,$00,$FF,$82
-    ; KNOWN: type A0=Target code-entry register seed:SG2WorldObject
+    ; KNOWN: type A0=Target code-entry register seed:SG2GroundLaunchState
 update_distant_linked_ground_actor_motion:
 	move.b #$46,diagnostic_step_byte.l
 	move.w SG2WorldObject_velocity_x(a0),d3
@@ -12510,7 +12529,7 @@ update_distant_linked_ground_actor_motion:
 	move.l horizontal_world_wrap_mask(a6),d3
 	and.l d3,SG2ObjectCore_world_x(a0)
 	and.l d3,SG2ObjectCore_world_z(a0)
-	tst.b $0028(a0)
+	tst.b SG2GroundLaunchState_link_release_countdown(a0)
 	bne.b abs_0_0000A78C
 	tst.l SG2WorldObject_linked_record_or_sentinel(a0)
 	beq.b abs_0_0000A78C
@@ -12519,7 +12538,7 @@ update_distant_linked_ground_actor_motion:
 	clr.b $0028(a2)
 	bra.w abs_0_0000839C
 abs_0_0000A78C:
-	subq.b #1,$0028(a0)
+	subq.b #1,SG2GroundLaunchState_link_release_countdown(a0)
 	move.w SG2WorldObject_velocity_x(a0),d3
 	ext.l d3
 	add.l d3,SG2ObjectCore_world_x(a0)
@@ -12604,7 +12623,7 @@ abs_0_0000A8F2:
 	bsr.w abs_0_0000E9B4
 	andi.w #7,d0
 	move.b $0(a1,d0.w),d0
-    ; KNOWN: type A2=Target code-entry register seed:SG2HorizontalMotionView
+    ; KNOWN: type A2=Target code-entry register seed:SG2AirborneLaunchState
 	move.w d0,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
 	move.b #$5,SG2TargetingObject_collision_ignored_object_type(a2)
 	move.b d0,SG2TargetingObject_collision_ignored_object_type(a0)
@@ -12616,12 +12635,12 @@ abs_0_0000A8F2:
 	add.w d0,d0
 	lea.l object_default_motion_words.l,a1
 	move.w $0(a1,d0.w),SG2HorizontalMotionView_horizontal_motion_scale(a2)
-	move.w #$3FE,$0024(a2)
+	move.w #$3FE,SG2AirborneLaunchState_behavior_update_counter(a2)
 	clr.w $0026(a2)
 	move.l SG2ObjectCore_world_x(a0),SG2ObjectCore_world_x(a2)
 	move.l SG2ObjectCore_world_z(a0),SG2ObjectCore_world_z(a2)
 	move.w #$FFFB,SG2WorldObject_velocity_y(a2)
-	move.b #$1,$002B(a2)
+	move.b #$1,SG2AirborneLaunchState_escape_capsule_pending_flag(a2)
 	move.w #$1,SG2WorldObject_rotation_2(a2)
 	move.b #$64,$0029(a2)
 	bsr.w heading_from_world_xz_to_player
@@ -12683,7 +12702,7 @@ abs_0_0000AA3A:
 	andi.w #3,d0
 	clr.w d3
 	move.b $0(a1,d0.w),d3
-    ; KNOWN: type A2=Target code-entry register seed:SG2HorizontalMotionView
+    ; KNOWN: type A2=Target code-entry register seed:SG2GroundLaunchState
 	move.w d3,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
 	move.b #$2E,SG2TargetingObject_collision_ignored_object_type(a2)
 	move.b d3,SG2TargetingObject_collision_ignored_object_type(a0)
@@ -12713,11 +12732,12 @@ abs_0_0000AA3A:
 	move.l a0,SG2WorldObject_linked_record_or_sentinel(a2)
 	bclr.b #4,SG2ObjectCore_flags(a2)
 	move.b #$64,$0029(a2)
-	move.b #$AA,$0028(a2)
+	move.b #$AA,SG2GroundLaunchState_link_release_countdown(a2)
 	cmpi.w #9,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
 	bne.b abs_0_0000AB1C
-	move.w #$64,$0026(a2)
-	move.w #$3,$0024(a2)
+    ; KNOWN: type A2=Target code-entry register seed:SG2LandTank
+	move.w #$64,SG2EvasiveActor_proximity_evasion_countdown(a2)
+	move.w #$3,SG2ScheduledActor_behavior_update_counter(a2)
 abs_0_0000AB1C:
 	bsr.w recompute_a2_horizontal_motion_from_heading
 	bra.w abs_0_0000839C

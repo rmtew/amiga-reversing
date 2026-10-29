@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "source_commit": "1d42eb4f1887351d6f4a0b8583e5c36252a0c124",
+  "source_commit": "9dd50f00bbfd347c79aada5dc9b0bd424a5a5a55",
   "source_assembly": "starglider2_game.s",
   "assets": [
     {
@@ -878,13 +878,13 @@
     },
     {
       "path": "rendered-provenance.json",
-      "bytes": 3013,
-      "sha256": "5451f9a5fd5e9bf0a61ff89142b3df88dc5fb65875e256aa3dba14e212cbff1c"
+      "bytes": 3014,
+      "sha256": "ed00b8e8622c96f7447506757afe7aba6bdc66e833cf5da15c014cb7bb9c5464"
     },
     {
       "path": "starglider2_game.s",
-      "bytes": 1995333,
-      "sha256": "6aab9be543abfdb22f93e1806ac0cf98f1e4c182353510d2f4d8d8f299f50d18"
+      "bytes": 1996382,
+      "sha256": "90b58caede571f9fce229ecfccb09033c355c06fb6b295f40bf501f231b66f4c"
     },
     {
       "path": "tools/starglider2_protection.py",
@@ -892,6 +892,6 @@
       "sha256": "81d3f66d36dbfbd5c77238b20c28e8b9abaa329777eb91f64669bbbf13703582"
     }
   ],
-  "source_commit_role": "publication base; reviewed projectile vector-scale and countdown inheritance are bound by verification_receipt_id",
-  "source_subject_revision": "363fe028224e9f47850a06f6a4c5ff54a767561d06c3ec3d1c6a49c6599d33fd"
+  "source_commit_role": "publication base; reviewed common launch-state and guarded LandTank contracts are bound by verification_receipt_id",
+  "source_subject_revision": "e32f7e6d0b1a5b8c742a90b033c9b85710bf14b4e80241429e53349460f2c79f"
 }

@@ -20,7 +20,7 @@ An on-demand systematic gap inventory (`amiga_reversing/tools/source_gap_invento
 joins native identities/accesses with canonical layouts and actual rendered
 boundaries. It records 67 suffix signals (including numeric adjacent variants),
 21 lookup contracts, 523 remaining interior references, 31 generic app fields
-and 219 unresolved record accesses. These are different denominators. Five
+and 207 unresolved record accesses. These are different denominators. Five
 suffixes name routines and one names text; neither is a pointer defect.
 Current restored object contracts connect original update/initializer directories,
 literal-tag producers and reviewed forwarding paths. Walking, flying, mechanical,
@@ -32,23 +32,25 @@ The energy-tower initializer's World chain view stays distinct from its updater
 view. Packed-header normalization, signed comparisons, wrap, PRNG transforms,
 nullable/sentinel links and unknown constructor parameters remain unchanged.
 
-Latest projectile contracts reuse the existing signed vector coefficient and
-countdown hierarchy across three original producers: the player orientation
-matrix, a planar ground shot and the three-axis launch helper. VelocityProjectile
-now derives from TimedMotionActor, keeping its local integration-service byte.
-Two actions recover six typed accesses and resolve six gaps; five countdown
-accesses change owner only, retaining name/offset/width. No prior access is lost:
-**3503 app /2577 typed /219 unresolved**. Signed WORD wrap, multiplication,
-truncation, Y clearing and producer-specific partial initialization remain original.
-No physical units or universal initialization claim is added.
+Latest launch-state contracts connect the two finite original spawn tables to
+common producer-phase interfaces. All selected types already share a behavior
+update counter. Flying/Saucer readers establish the airborne capsule flag;
+Walking/LandTank/HoverCar readers establish the ground link-release countdown.
+The distant ground body retains its original second X/Z integration. Its loaded
+parent's BYTE 40 is an attached flag, not the child's countdown, so that pointee
+remains untyped. Only the explicit type-9 fallthroughs receive LandTank-specific
+proximity fields. Nine actions recover 12 accesses/12 gaps with no lost access or
+changed old field meaning: **3503 app /2589 typed /207 unresolved**. These are
+common launch-state views, not new model identities or replacements for nominal
+primary roles. BYTE 41 parameters and ground BYTE 43 writes remain unresolved.
 
-The preceding planar-motion batch recovered six accesses across four bounded
-silo producers and two A0 continuations. Distant updates covered seven bodies/15
-tags (88 accesses/seven names); tractor/projector constructors added 23 accesses.
-Mixed groups, selected tractor targets, saved-nearby records, non-model particles
-and unknown linked pointees retain narrow views. C/vasm and clean staged standalone
-output match all 412736 bytes; 57 assets, 14 headers and 106034 accepted code bytes
-remain unchanged. The ownership union leaves 13624 bytes/264 intervals unclassified.
+Preceding batches recovered projectile vector-scale/countdown contracts, shared
+planar-motion interfaces, seven distant-update bodies/15 tags, and tractor/projector
+constructors. Signed arithmetic, partial initialization, opaque references,
+non-model particles and original integration quirks remain unchanged. C/vasm and
+clean staged standalone output match all 412736 bytes; 57 assets, 14 headers and
+106034 accepted code bytes remain unchanged. The ownership union leaves 13624
+bytes/264 intervals unclassified.
 
 A bounded PEA experiment reproduces missing direct inline-object address transport:
 LEA plus MOVE preserves the typed stack value, direct PEA does not; endpoint
