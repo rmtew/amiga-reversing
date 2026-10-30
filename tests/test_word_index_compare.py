@@ -9,6 +9,16 @@ from tests.test_base_candidates import candidate_artifact
     ('', 'cmpi.w #5,d0', '', 'bls', '', 'w', 6, True),
     ('', 'cmp.w #6,d0', '', 'bcs', '', 'w', 6, True),
     ('', 'cmp.w #2,d0', '', 'beq', '', 'w', 6, True),
+    ('', 'tst.w d0', '', 'beq', '', 'w', 1, True),
+    ('', 'tst.b d0', '', 'beq', '', 'w', 1, False),
+    ('', 'tst.l d0', '', 'beq', '', 'w', 1, False),
+    ('', 'tst.w (a1)', '', 'beq', '', 'w', 1, False),
+    ('', 'tst.w d1', '', 'beq', '', 'w', 1, False),
+    ('', 'tst.w d0', '', 'bne', '', 'w', 1, False),
+    ('', 'tst.w d0', '', 'bpl', '', 'w', 1, False),
+    ('', 'tst.w d0', 'tst.w d1', 'beq', '', 'w', 1, False),
+    ('', 'tst.w d0', '', 'beq', 'move.b d1,d0', 'w', 1, False),
+    ('tst.w d1\n beq.s within', 'tst.w d0', '', 'beq', '', 'w', 1, False),
     ('', 'cmp.w #5,d0', '', 'bls', '', 'w', 5, False),
     ('', 'cmp.w #5,d0', '', 'bls', '', 'l', 6, False),
     ('', 'cmp.b #5,d0', '', 'bls', '', 'w', 6, False),
@@ -46,7 +56,7 @@ def test_decrement_condition_branch_is_not_a_compare_only_predicate(tmp_path):
         assert c_backend.assemble_platform_source_text_with_c_backend('amiga-raw',a.inline_source_text_with_profile()[0])[0]==original
 
 
-@pytest.mark.parametrize('compare,exit_branch', [('cmp.w #5,d0','bhi'),('cmp.w #0,d0','bne')])
+@pytest.mark.parametrize('compare,exit_branch', [('cmp.w #5,d0','bhi'),('cmp.w #0,d0','bne'),('tst.w d0','bne')])
 def test_guard_on_fallthrough_edge(tmp_path,compare,exit_branch):
     extra=dict(custom_structs=[dict(name='Slot',size=4,fields=[
         dict(name='value',type='LONG',offset=0,size=4)])],entry_register_seeds=[
@@ -56,3 +66,24 @@ def test_guard_on_fallthrough_edge(tmp_path,compare,exit_branch):
     with candidate_artifact(tmp_path,code,[],extra)as(a,original):
         assert len(a.analysis_payload()[0]['sections'][0]['recovered_platform_typed_accesses'])==1
         assert c_backend.assemble_platform_source_text_with_c_backend('amiga-raw',a.inline_source_text_with_profile()[0])[0]==original
+
+
+@pytest.mark.parametrize('branch,offsets', [
+    ('beq', [0]), ('bne', [4, 8, 12]),
+    ('bhi', [4, 8, 12]), ('bls', [0]),
+])
+def test_word_test_partitions_existing_finite_values(tmp_path, branch, offsets):
+    extra = dict(custom_structs=[dict(name='Slot', size=4, fields=[
+        dict(name='value', type='LONG', offset=0, size=4)])],
+        entry_register_seeds=[dict(hunk=0, entry_offset=0, register='A0',
+            kind='struct_ptr', struct_name='Slot', array_length=4, note='Input array')])
+    code = (f'andi.w #3,d0\n tst.w d0\n {branch}.s within\n rts\nwithin:\n'
+            ' lsl.w #2,d0\n move.l 0(a0,d0.w),d2\n rts\n')
+    with candidate_artifact(tmp_path, code, [], extra) as (artifact, original):
+        payload = artifact.analysis_payload()[0]
+        assert not payload['incomplete_analysis']
+        refs = payload['sections'][0]['recovered_platform_typed_accesses']
+        assert len(refs) == 1
+        assert refs[0]['word_index']['byte_offsets'] == offsets
+        assert c_backend.assemble_platform_source_text_with_c_backend(
+            'amiga-raw', artifact.inline_source_text_with_profile()[0])[0] == original

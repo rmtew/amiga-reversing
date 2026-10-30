@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "source_commit": "d2ad3422b53a30d6dd9cdea0bd80e63362f38878",
+  "source_commit": "a48cebe2ebc2cb9665bbfac15a4cbbe40fc5ab9c",
   "source_assembly": "starglider2_game.s",
   "assets": [
     {
@@ -878,8 +878,8 @@
     },
     {
       "path": "rendered-provenance.json",
-      "bytes": 3121,
-      "sha256": "aca51a0dd7e3791721c439bbce8a5123402108bd1aeeccafbd8ea65ccee318e3"
+      "bytes": 3122,
+      "sha256": "a973fea29bcd87abcd2a963d203f608eb76204b6a38d2941122ec7881255fbdf"
     },
     {
       "path": "starglider2_game.s",
@@ -892,6 +892,6 @@
       "sha256": "81d3f66d36dbfbd5c77238b20c28e8b9abaa329777eb91f64669bbbf13703582"
     }
   ],
-  "source_commit_role": "publication base; canonical ground-face projection semantics are in the publishing commit and output is bound by verification_receipt_id",
-  "source_subject_revision": "d56b4bee76a966fc4e2f2bb07dda6dedb3de280086aecba9cde03949f208d98e"
+  "source_commit_role": "canonical source publication base; shared WORD-test edge analysis is in the publishing commit; output is bound by verification_receipt_id",
+  "source_subject_revision": "74b13a0f1fcc3f321ee003dce4639c478e1fbd355dd27b748891861815fc4d46"
 }

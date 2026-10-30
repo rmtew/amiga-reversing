@@ -214,6 +214,20 @@ to be diagnosed rather than attributed to rendering or a changed instruction
 queue (34689 iterations in both). No extra timing-only run or observation dump
 was produced.
 
+The shared unsigned-WORD edge helper now normalizes decoded register TEST to
+comparison with zero, consuming the existing generated condition semantics.
+Taken and fallthrough guards plus finite zero/nonzero partitions pass; BYTE,
+LONG, memory operands, another register, clobbers and alternate entries refuse
+unsupported certification. No new value packets, larger caps or target rules
+are added.128 focused Python cases and832 native C cases pass; three existing
+multi-record pointer-field expectations remain unresolved. SGII facts and source
+are identical, with exact C/vasm and clean standalone output. The fresh generation
+took175.85s. This is scalar predicate support, not field-to-record correlation:
+the next missing mechanism is a shared scalar read identity and branch relation
+carried through copies/storage/joins with root, mutation and call invalidation.
+The existing affine entry ID is proof-local; assigning it an unrelated meaning
+or adding a reader-specific derived type would bypass that obligation.
+
 An on-demand systematic gap inventory (`amiga_reversing/tools/source_gap_inventory.py`)
 joins native identities/accesses with canonical layouts and actual rendered
 boundaries. The previous whole-target snapshot records 71 suffix signals (including numeric adjacent variants),

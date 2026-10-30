@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
   "kind": "committed_native_rendered_original_export",
-  "canonical_source_commit": "d2ad3422b53a30d6dd9cdea0bd80e63362f38878",
-  "publication_base_commit": "d2ad3422b53a30d6dd9cdea0bd80e63362f38878",
+  "canonical_source_commit": "a48cebe2ebc2cb9665bbfac15a4cbbe40fc5ab9c",
+  "publication_base_commit": "a48cebe2ebc2cb9665bbfac15a4cbbe40fc5ab9c",
   "native_export": "CListingArtifact.source_package_payload(64)",
   "main_source_sha256": "c3631716a0d969f6d77831323d0c3e80d9252c33bea7546121bc81b886be8fa1",
   "asset_count": 57,
@@ -24,8 +24,8 @@
     "assembler executable",
     "paused Pandora work"
   ],
-  "canonical_source_commit_role": "publication base; canonical ground-face projection semantics are in the publishing commit and output is bound by verification_receipt_id",
-  "canonical_source_subject_revision": "d56b4bee76a966fc4e2f2bb07dda6dedb3de280086aecba9cde03949f208d98e",
+  "canonical_source_commit_role": "canonical source publication base; shared WORD-test edge analysis is in the publishing commit; output is bound by verification_receipt_id",
+  "canonical_source_subject_revision": "74b13a0f1fcc3f321ee003dce4639c478e1fbd355dd27b748891861815fc4d46",
   "canonical_fact_sha256": {
     "source_binary.json": "42d4a5758b3e8236af7f912aee85e9ee5323bcd0961faa338c4f864080a0a7d9",
     "target_metadata.json": "e7540b68c118c56aba8815b6722eefa067517cc865fe9841d6c01ce96551389c",
@@ -46,6 +46,6 @@
     },
     "runtime_scope": "Seven CPU write-site windows match this reversible view; no whole runtime-view identity or parent plaintext promotion."
   },
-  "verification_receipt_id": "75912f192f882dab003b65cf434076b77a8193e7e2fdb784d65ceb7eb344e0ba",
-  "render_native_sha256": "47561760cad5976c0dc0fe67d74bf8e3119bbacaa0c86dab388e4f9226bc31f7"
+  "verification_receipt_id": "0420bfbc91790394f741d86a8fd97cd95656a56f37e7c6468a4d38d8064b58ae",
+  "render_native_sha256": "4941816bf68aab5c17d435f177cc7e6df846921bc081ee213715a9d00817de6c"
 }

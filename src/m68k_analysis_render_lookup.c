@@ -11103,7 +11103,7 @@ static int hardware_relative_refine_dbf_edge(const M68kRenderTypedFlowNode *pred
 
 #include "m68k_call_entry_inputs.inc"
 
-/* Refine the existing finite WORD state only on a closed adjacent CMP/branch
+/* Refine the existing finite WORD state only on a closed adjacent compare/test-branch
  * edge. No extra per-node state, backward scanner, target rules or larger cap. */
 static int hardware_relative_refine_compare_edge(const M68kRenderLookup *lookup,
     const M68kRenderTypedFlowGraph *graph, size_t branch_index, size_t successor_index,

@@ -2337,15 +2337,26 @@ int m68k_sim_unsigned_word_compare_bounds(const M68kInstructionIR *compare,
   uint32_t immediate, starts[3], ends[3], lower = 0U, upper = 0U;
   uint8_t address, reg, found = 0U;
   if (!cm || !bm || !out_reg || !out_min || !out_max ||
-      cm->operation_type != M68K_SIM_OP_COMPARE ||
-      cm->source_operand_index >= compare->operand_count || cm->dest_operand_index >= compare->operand_count ||
-      m68k_sim_operand_width_bytes(compare, cm->source_operand_index) != 2U ||
-      m68k_sim_operand_width_bytes(compare, cm->dest_operand_index) != 2U ||
-      !m68k_ir_operand_immediate_value(&compare->operands[cm->source_operand_index], &immediate) ||
-      !m68k_instruction_operand_direct_register(&compare->operands[cm->dest_operand_index], &address, &reg) ||
-      address || reg >= 8U || bm->flow_kind != M68K_SIM_FLOW_BRANCH || !bm->flow_conditional ||
-      bm->operation_type == M68K_SIM_OP_DBCC ||
-      bm->condition_code >= 16U) return 0;
+      bm->flow_kind != M68K_SIM_FLOW_BRANCH || !bm->flow_conditional ||
+      bm->operation_type == M68K_SIM_OP_DBCC || bm->condition_code >= 16U) return 0;
+  if (cm->operation_type == M68K_SIM_OP_COMPARE) {
+    if (cm->source_operand_index >= compare->operand_count || cm->dest_operand_index >= compare->operand_count ||
+        m68k_sim_operand_width_bytes(compare, cm->source_operand_index) != 2U ||
+        m68k_sim_operand_width_bytes(compare, cm->dest_operand_index) != 2U ||
+        !m68k_ir_operand_immediate_value(&compare->operands[cm->source_operand_index], &immediate) ||
+        !m68k_instruction_operand_direct_register(&compare->operands[cm->dest_operand_index], &address, &reg))
+      return 0;
+  } else if (cm->operation_type == M68K_SIM_OP_TEST) {
+    /* A WORD test has the same N/Z/V/C result as comparing that WORD with
+     * zero. The branch model does not consume X. Normalize the decoded form,
+     * not a mnemonic spelling or a target-specific instruction sequence. */
+    if (cm->source_operand_index >= compare->operand_count ||
+        m68k_sim_operand_width_bytes(compare, cm->source_operand_index) != 2U ||
+        !m68k_instruction_operand_direct_register(&compare->operands[cm->source_operand_index], &address, &reg))
+      return 0;
+    immediate = 0U;
+  } else return 0;
+  if (address || reg >= 8U) return 0;
   immediate &= UINT16_MAX;
   starts[0] = 0U; ends[0] = immediate ? immediate - 1U : 0U;
   starts[1] = ends[1] = immediate;
