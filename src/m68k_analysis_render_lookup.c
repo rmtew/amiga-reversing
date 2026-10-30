@@ -3606,7 +3606,7 @@ static void typed_state_set_reg_origin(M68kRenderTypedState *state, uint8_t reg_
 }
 
 static int typed_stored_value_has_useful_info(const M68kRenderTypedStoredValue *value) {
-  return value != NULL && (value->entry_value_id != 0U ||
+  return value != NULL && (value->read_relation != 0U || value->entry_value_id != 0U ||
     (value->known != 0U && typed_stored_value_has_payload(value)));
 }
 
@@ -3621,6 +3621,7 @@ static M68kRenderTypedStoredValue typed_stored_value_for_operand(const M68kRende
   if (state != NULL && operand_is_data_register_local(operand, &reg)) {
     value.layout_base_id = state->data_regs[reg].layout_base_id;
     value.entry_value_id = state->data_regs[reg].entry_value_id;
+    value.read_relation = state->data_regs[reg].read_relation;
     value.provenance = state->data_regs[reg].provenance;
     value.array_element_count = state->data_regs[reg].array_element_count;
     value.array_element_index = state->data_regs[reg].array_element_index;
@@ -3641,6 +3642,7 @@ static M68kRenderTypedStoredValue typed_stored_value_for_operand(const M68kRende
   } else if (state != NULL && operand_address_register_index_local(operand, &reg)) {
     value.layout_base_id = state->addr_regs[reg].layout_base_id;
     value.entry_value_id = state->addr_regs[reg].entry_value_id;
+    value.read_relation = state->addr_regs[reg].read_relation;
     value.provenance = state->addr_regs[reg].provenance;
     value.array_element_count = state->addr_regs[reg].array_element_count;
     value.array_element_index = state->addr_regs[reg].array_element_index;
@@ -3675,7 +3677,7 @@ static void typed_state_restore_stored_register(M68kRenderTypedState *state, uin
   typed_state_clear_reg(state, kind, reg);
   target = kind == M68K_ANALYSIS_REGISTER_DATA ? &state->data_regs[reg] : &state->addr_regs[reg];
   app = kind == M68K_ANALYSIS_REGISTER_DATA ? &state->data_app_addr_regs[reg] : &state->app_addr_regs[reg];
-  if (value != NULL && (value->known || value->entry_value_id)) {
+  if (value != NULL && (value->known || value->entry_value_id || value->read_relation)) {
     target->known = value->known;
     target->output = value->output;
     target->struct_id = value->struct_id;
@@ -3684,6 +3686,7 @@ static void typed_state_restore_stored_register(M68kRenderTypedState *state, uin
     target->byte_cursor = value->byte_cursor;
     target->layout_base_id = value->layout_base_id;
     target->entry_value_id = value->entry_value_id;
+    target->read_relation = value->read_relation;
     target->pointer_value_known = value->pointer_value_known;
     target->pointer_candidate_count = value->pointer_candidate_count;
     target->pointer_value = value->pointer_value;
@@ -6350,6 +6353,8 @@ static int render_lookup_record_typed_storage_store(M68kRenderLookup *lookup, M6
     if (!typed_stored_value_has_useful_info(&value) && instruction->size_suffix == 'l')
       (void)typed_stored_value_from_field_pointer_read(&value, lookup, state, platform_state, instruction, (uint8_t)source_index, section_index, offset, NULL);
   }
+  if (instruction->size_suffix != 'l' &&
+      (instruction->size_suffix != 'w' || !(value.read_relation & 1U))) value.read_relation = 0U;
   if (instruction->size_suffix != 'l') {
     value.layout_base_id = 0U;
     value.entry_value_id = 0U;
@@ -8142,6 +8147,11 @@ static void affine_entry_transfer_after(M68kRenderTypedState *state, const M68kR
   }
 }
 
+static void typed_read_note_writes(M68kRenderLookup *, M68kRenderTypedState *, const M68kInstructionIR *);
+static uint16_t typed_read_capture(M68kRenderLookup *, M68kRenderTypedState *,
+    const M68kInstructionIR *, uint8_t, size_t, uint32_t);
+static void typed_read_predicate_after(M68kRenderTypedState *, const M68kInstructionIR *, uint16_t);
+
 static void typed_state_update_after_instruction(M68kRenderTypedState *state, M68kRenderLookup *lookup,
     const M68kRenderPlatformState *platform_state, size_t section_index, const M68kInstructionIR *instruction,
     const M68kDecodeCandidate *candidate, const M68kAnalysisFunctionSummary *local_effects, uint32_t offset,
@@ -8175,9 +8185,17 @@ static void typed_state_update_after_instruction(M68kRenderTypedState *state, M6
   M68kStackRegisterTransfer stack_transfer = {0};
   int has_stack_transfer;
   uint32_t entry_values_before[16] = {0};
+  uint16_t direct_test_relation = 0U;
   uint8_t alias_roots_before[16];
   if (state == NULL || instruction == NULL) return;
   typed_register_alias_roots(state, alias_roots_before);
+  if (lookup) typed_read_note_writes(lookup, state, instruction);
+  const M68kSimFormMetadata *test_meta = m68k_sim_metadata_for_instruction(instruction);
+  if (lookup && test_meta && test_meta->operation_type == M68K_SIM_OP_TEST &&
+      test_meta->source_operand_index < instruction->operand_count &&
+      test_meta->operand_access_kinds[test_meta->source_operand_index] == M68K_SIM_ACCESS_MEMORY_READ)
+    direct_test_relation = typed_read_capture(lookup, state, instruction, test_meta->source_operand_index,
+      section_index, offset);
   if (lookup != NULL && lookup->affine_entry_context != NULL) for (uint8_t reg = 0U; reg < 8U; ++reg) {
     entry_values_before[reg] = state->data_regs[reg].entry_value_id;
     entry_values_before[reg + 8U] = state->addr_regs[reg].entry_value_id;
@@ -8285,6 +8303,11 @@ static void typed_state_update_after_instruction(M68kRenderTypedState *state, M6
       stored_value.provenance.producer_operand_index = (uint8_t)source_index;
     } else {
       stored_value = typed_stored_value_for_operand(state, source_operand);
+    }
+    if (move_metadata->operand_access_kinds[source_index] == M68K_SIM_ACCESS_MEMORY_READ &&
+        m68k_sim_operand_width_bytes(instruction, (uint8_t)source_index) == 2U) {
+      uint16_t read = typed_read_capture(lookup, state, instruction, (uint8_t)source_index, section_index, offset);
+      if (read) stored_value.read_relation = read;
     }
     source_output = typed_state_output_for_operand(state, source_operand, NULL, NULL);
     source_struct_id = typed_state_struct_id_for_operand(state, source_operand);
@@ -8445,6 +8468,8 @@ static void typed_state_update_after_instruction(M68kRenderTypedState *state, M6
         source_origin.displacement = state->addr_regs[base_reg].byte_cursor + base_displacement;
       }
     }
+    if (instruction->size_suffix != 'l' &&
+        (instruction->size_suffix != 'w' || !(stored_value.read_relation & 1U))) stored_value.read_relation = 0U;
     if (instruction->size_suffix != 'l') {
       source_is_app_address = 0;
       stored_value.layout_base_id = 0U;
@@ -8479,6 +8504,7 @@ static void typed_state_update_after_instruction(M68kRenderTypedState *state, M6
       }
       state->data_regs[dest_reg].layout_base_id = stored_value.layout_base_id;
       state->data_regs[dest_reg].entry_value_id = stored_value.entry_value_id;
+      state->data_regs[dest_reg].read_relation = stored_value.read_relation;
       if (stored_value.layout_base_id != 0U) state->data_regs[dest_reg].known = 1U;
       state->data_regs[dest_reg].table_origin = stored_value.table_origin;
       state->data_regs[dest_reg].pointer_target_known = stored_value.pointer_target_known;
@@ -8520,6 +8546,7 @@ static void typed_state_update_after_instruction(M68kRenderTypedState *state, M6
       }
       state->addr_regs[dest_reg].layout_base_id = stored_value.layout_base_id;
       state->addr_regs[dest_reg].entry_value_id = stored_value.entry_value_id;
+      state->addr_regs[dest_reg].read_relation = stored_value.read_relation;
       if (stored_value.layout_base_id != 0U) state->addr_regs[dest_reg].known = 1U;
       state->addr_regs[dest_reg].table_origin = stored_value.table_origin;
       state->addr_regs[dest_reg].pointer_target_known = stored_value.pointer_target_known;
@@ -8817,6 +8844,10 @@ static void typed_state_update_after_instruction(M68kRenderTypedState *state, M6
               previous.struct_id, previous.array_element_count, next_index, &previous.provenance);
             state->addr_regs[operand->value.ea_reg].byte_cursor = (int32_t)next;
             state->addr_regs[operand->value.ea_reg].origin = previous.origin;
+            /* The relation identifies the same record, not merely an array
+             * whose next element happens to have a compatible prefix. */
+            if (next_index == previous.array_element_index)
+              state->addr_regs[operand->value.ea_reg].read_relation = previous.read_relation;
             state->addr_regs[operand->value.ea_reg].table_origin = previous.table_origin;
           }
         }
@@ -8870,6 +8901,7 @@ static void typed_state_update_after_instruction(M68kRenderTypedState *state, M6
   typed_register_alias_transfer(state, instruction, alias_roots_before);
   affine_entry_transfer_after(state, lookup, instruction, entry_values_before, &stack_transfer,
     has_stack_transfer);
+  typed_read_predicate_after(state, instruction, direct_test_relation);
 }
 
 static int typed_reg_values_equal(const M68kRenderTypedRegValue *left,
@@ -8887,7 +8919,7 @@ static int typed_reg_values_equal(const M68kRenderTypedRegValue *left,
     left->conflict_struct_id == right->conflict_struct_id &&
     left->array_element_count == right->array_element_count && left->array_element_index == right->array_element_index &&
     left->byte_cursor == right->byte_cursor && left->layout_base_id == right->layout_base_id &&
-    left->entry_value_id == right->entry_value_id &&
+    left->entry_value_id == right->entry_value_id && left->read_relation == right->read_relation &&
     typed_origins_equal(&left->origin, &right->origin) &&
     /* A provenance marker without any value cannot justify a consumer or a
      * new transfer. Do not schedule a loop merely because this dead marker
@@ -8906,7 +8938,7 @@ static int typed_stored_values_equal(const M68kRenderTypedStoredValue *left,
     const M68kRenderTypedStoredValue *right) {
   if (left == NULL || right == NULL) return 0;
   return left->known == right->known && left->output == right->output && left->struct_id == right->struct_id &&
-    left->layout_base_id == right->layout_base_id && left->entry_value_id == right->entry_value_id &&
+    left->layout_base_id == right->layout_base_id && left->entry_value_id == right->entry_value_id && left->read_relation == right->read_relation &&
     left->pointer_value_known == right->pointer_value_known && left->pointer_value == right->pointer_value &&
     left->pointer_candidate_count == right->pointer_candidate_count &&
     left->address_value_candidate_overflow == right->address_value_candidate_overflow &&
@@ -9006,7 +9038,9 @@ static int typed_state_equal(const M68kRenderTypedState *left, const M68kRenderT
   size_t index;
   if (left == NULL || right == NULL || left->stack_slot_count != right->stack_slot_count ||
       left->base_slot_count != right->base_slot_count || left->field_slot_count != right->field_slot_count ||
-      left->memory_write_barriers != right->memory_write_barriers) {
+      left->memory_write_barriers != right->memory_write_barriers ||
+      left->zero_read_relation != right->zero_read_relation ||
+      left->source_snapshot_entry != right->source_snapshot_entry) {
     return 0;
   }
   for (index = 0U; index < 8U; ++index) {
@@ -9283,14 +9317,17 @@ static int typed_reg_merge_payload(M68kRenderTypedRegValue *dest,
 static int typed_reg_merge(M68kRenderTypedRegValue *dest,
     const M68kRenderTypedRegValue *source, const M68kAnalysisPolicy *policy) {
   M68kRenderTypedRegValue old, payload;
-  uint32_t id;
+  uint32_t id; uint16_t relation;
   if (!dest || !source) return 0;
-  if (!dest->entry_value_id && !source->entry_value_id) return typed_reg_merge_payload(dest, source, policy);
+  if (!dest->entry_value_id && !source->entry_value_id && !dest->read_relation && !source->read_relation)
+    return typed_reg_merge_payload(dest, source, policy);
   old = *dest; payload = *source;
   id = dest->entry_value_id == source->entry_value_id ? dest->entry_value_id : 0U;
+  relation = dest->read_relation == source->read_relation ? dest->read_relation : 0U;
   dest->entry_value_id = payload.entry_value_id = 0U;
+  dest->read_relation = payload.read_relation = 0U;
   (void)typed_reg_merge_payload(dest, &payload, policy);
-  dest->entry_value_id = id;
+  dest->entry_value_id = id; dest->read_relation = relation;
   return !typed_reg_values_equal(dest, &old);
 }
 
@@ -9376,14 +9413,17 @@ static int typed_stored_value_merge_payload(M68kRenderTypedStoredValue *dest,
 static int typed_stored_value_merge(M68kRenderTypedStoredValue *dest,
     const M68kRenderTypedStoredValue *source, const M68kAnalysisPolicy *policy) {
   M68kRenderTypedStoredValue old, payload;
-  uint32_t id;
+  uint32_t id; uint16_t relation;
   if (!dest || !source) return 0;
-  if (!dest->entry_value_id && !source->entry_value_id) return typed_stored_value_merge_payload(dest, source, policy);
+  if (!dest->entry_value_id && !source->entry_value_id && !dest->read_relation && !source->read_relation)
+    return typed_stored_value_merge_payload(dest, source, policy);
   old = *dest; payload = *source;
   id = dest->entry_value_id == source->entry_value_id ? dest->entry_value_id : 0U;
+  relation = dest->read_relation == source->read_relation ? dest->read_relation : 0U;
   dest->entry_value_id = payload.entry_value_id = 0U;
+  dest->read_relation = payload.read_relation = 0U;
   (void)typed_stored_value_merge_payload(dest, &payload, policy);
-  dest->entry_value_id = id;
+  dest->entry_value_id = id; dest->read_relation = relation;
   return !typed_stored_values_equal(dest, &old);
 }
 
@@ -9482,6 +9522,12 @@ static int typed_state_merge_into(M68kRenderTypedState *dest,
   if (dest == NULL || source == NULL) return 0;
   if ((source->memory_write_barriers | dest->memory_write_barriers) != dest->memory_write_barriers) {
     dest->memory_write_barriers |= source->memory_write_barriers; changed = 1;
+  }
+  if (dest->source_snapshot_entry && !source->source_snapshot_entry) {
+    dest->source_snapshot_entry = 0U; changed = 1;
+  }
+  if (dest->zero_read_relation != source->zero_read_relation && dest->zero_read_relation) {
+    dest->zero_read_relation = 0U; changed = 1;
   }
   for (index = 0U; index < 8U; ++index) {
     M68kRenderTypedAppAddressValue old_data_app = dest->data_app_addr_regs[index];
@@ -9935,6 +9981,8 @@ static int platform_state_merge_into(M68kRenderPlatformState *dest, const M68kRe
   }
   return changed || !platform_states_equal(dest, &old_state);
 }
+
+#include "m68k_typed_read_relation.inc"
 
 static int typed_flow_merge_input(M68kRenderTypedFlowNode *node, const M68kRenderTypedState *typed_state,
     const M68kRenderPlatformState *platform_state, const M68kAnalysisPolicy *policy) {
@@ -10985,6 +11033,7 @@ static void typed_flow_reset_roots(const M68kRenderLookup *lookup, size_t sectio
     if (nodes[node_index].is_root) {
       typed_state_seed_declared_app_cells(&nodes[node_index].typed_in, lookup, section,
         nodes[node_index].candidate->offset);
+      nodes[node_index].typed_in.source_snapshot_entry = nodes[node_index].source_snapshot_root;
       nodes[node_index].has_in = 1U;
     }
   }
@@ -10997,6 +11046,16 @@ static int typed_flow_initialize_roots(const M68kRenderLookup *lookup, const M68
   if (typed_flow_mark_roots(policy, section, accepted_start, nodes, node_count, node_by_offset,
       node_by_offset_count, arena) != 0) {
     return -1;
+  }
+  /* Reuse canonical entry facts rather than reinterpret every code/function
+   * seed as a new copy of the original writable data image. */
+  for (size_t i = 0U; i < lookup->code_start_ref_count; ++i) {
+    const M68kFact *entry = lookup->code_start_refs[i].fact;
+    if (entry->section_index != section->section_index || entry->offset >= node_by_offset_count ||
+        (entry->reason != M68K_FACT_CODE_START_REASON_SECTION_ENTRY &&
+         entry->reason != M68K_FACT_CODE_START_REASON_POLICY_ENTRY_OFFSET)) continue;
+    size_t n = node_by_offset[entry->offset];
+    if (n < node_count) nodes[n].source_snapshot_root = 1U;
   }
   typed_flow_reset_roots(lookup, section->section_index, nodes, node_count);
   return 0;
@@ -11155,16 +11214,24 @@ static int typed_flow_recompute_node_input(M68kRenderTypedFlowGraph *graph, size
   memset(&typed_input, 0, sizeof(typed_input));
   memset(&platform_input, 0, sizeof(platform_input));
   has_input = node->is_root != 0U;
+  if (has_input) typed_input.source_snapshot_entry = node->source_snapshot_root;
   for (predecessor_index = graph->predecessor_offsets[node_index];
        predecessor_index < graph->predecessor_offsets[node_index + 1U]; ++predecessor_index) {
     const M68kRenderTypedFlowNode *predecessor = &graph->nodes[graph->predecessors[predecessor_index]];
     if (predecessor->has_out == 0U) continue;
+    const M68kRenderTypedState *edge = &predecessor->typed_out;
+    M68kRenderTypedState refined;
+    /* Ordinary edges borrow the converged packet. Copy only for an active
+     * read predicate; do not add a full state copy to every CFG predecessor. */
+    if (lookup && edge->zero_read_relation) {
+      refined = *edge; typed_read_refine_edge(lookup, predecessor, node, &refined); edge = &refined;
+    }
     if (!has_input) {
-      typed_input = predecessor->typed_out;
+      typed_input = *edge;
       platform_input = predecessor->platform_out;
       has_input = 1;
     } else {
-      (void)typed_state_merge_into(&typed_input, &predecessor->typed_out, lookup ? lookup->policy : NULL);
+      (void)typed_state_merge_into(&typed_input, edge, lookup ? lookup->policy : NULL);
       (void)platform_state_merge_into(&platform_input, &predecessor->platform_out);
     }
   }
@@ -14215,6 +14282,10 @@ int render_lookup_add_typed_storage_slot(M68kRenderLookup *lookup, uint8_t kind,
   size_t index;
   M68kRenderTypedStorageSlot *grown;
   size_t next_capacity;
+  /* A read relation is CFG-local must information, never a global writer
+   * summary that another entry or iteration can revive. */
+  M68kRenderTypedStoredValue stable_value;
+  if (value && value->read_relation) { stable_value = *value; stable_value.read_relation = 0U; value = &stable_value; }
   if (out_added != NULL) *out_added = 0;
   if (lookup == NULL || !typed_stored_value_has_useful_info(value)) return 0;
   if (kind != M68K_RENDER_TYPED_STORAGE_APP_SLOT && kind != M68K_RENDER_TYPED_STORAGE_ABSOLUTE &&

@@ -129,10 +129,10 @@ The optional-header proof has a second concrete dependency beyond type joins:
 the regular caller's low-byte sign check permits model indices104..127, whereas
 the directory has104 entries. The viewer's numeric-selection path has a tighter
 combined byte/word bound; that does not constrain every regular caller or the
-shared active-index cell. A two-record positive-layout probe still loses the
-count/type relation at its join and leaves the guarded extra LONG unresolved.
-Next test shared predicate refinement over a closed source-record domain with
-mutation, partial-write, conflicting-format and unknown-call negatives. Before
+shared active-index cell. Before the correlated-read repair below, a two-record positive-layout probe
+lost the count/type relation and left the guarded extra LONG unresolved.
+The closed-source mutation, partial-write, conflict and unknown-call experiments
+now pass; the original input obligations remain separate. Before
 promoting that to the original reader, establish its producer index domain or
 an explicit original-input contract. Do not enlarge the parent or assume all
 possible byte-sign-admitted indices designate headers.
@@ -174,11 +174,10 @@ artifact is relabelled as having executed a new implementation.
 The instrumented two-record fixture retains both original pointer candidates
 at its join. What is absent is the scalar field-read identity in D0 and a
 corresponding typed zero predicate at BEQ; the pointer set itself was not lost.
-The next minimal experiment is to retain that read relation through the shared
-value transfers and refine the existing record domain on the branch, refusing
-mutated fields, stale roots, partial writes and unknown calls. Only after that
-fixture passes should a writable-input guarded-format contract or the original
-104-entry reader be admitted. These mechanisms are not supplied by the two
+The shared read-relation repair below now passes that minimal experiment,
+including mutation, stale-root, partial-write and unknown-call refusals.
+Writable-input guarded-format contracts and the original104-entry reader are
+not supplied by that closed-source result. These mechanisms are not supplied by the two
 manually annotated structure-profile body inputs above.
 
 The connected disk/media family now names six existing helpers: head retry
@@ -227,6 +226,37 @@ the next missing mechanism is a shared scalar read identity and branch relation
 carried through copies/storage/joins with root, mutation and call invalidation.
 The existing affine entry ID is proof-local; assigning it an unrelated meaning
 or adding a reader-specific derived type would bypass that obligation.
+
+Closed source-record reads now carry correlated record/scalar projections in
+existing register and storage values. Generated condition masks select zero or
+nonzero edges before the normal must join. Equal candidate sets are not treated
+as equal selections; repeated reads kill earlier projections of the same site.
+Copies, bounded postincrement, mapped disjoint cells and stack/MOVEM transfers
+work. Unknown/overlapping writes, stale roots, partial updates, conflicting
+predicates/owners and unknown calls refuse. Relations never become global writer
+summaries.240 focused Python cases and832 native C cases pass, with three older
+multi-record pointer-field expectations retained. C/vasm and clean standalone
+output remain exact; SGII facts/source and57 assets/14 headers are unchanged.
+Stored packets grow248→256 bytes; typed state32616→33384 and node74688→76224.
+Descriptors use sparse arena/hash storage, with the existing four-candidate
+bound unchanged. Initial source bytes require a path from the canonical image
+entry; independent callable/code entries do not acquire that snapshot contract.
+The snapshot origin is a must-join component, with writes/calls separately guarded.
+These are sequential CPU-CFG proofs, not DMA or external-writer coverage. Ordinary edges avoid an extra full-state copy, and record advancement drops the
+earlier read relation. Final qualification after executor recovery took202.62s;
+preliminary generations took201.21s/220.93s before the snapshot guard and180.92s
+with it. These measurements do not establish a speedup.
+
+The original optional-header read is still unresolved. Private2-entry and104-entry
+loop experiments both obtain a validated bounded-source-cursor type domain, yet
+the guarded extra read remains a gap. That canonical domain is bound after the
+earlier typed CFG solve and is not available there as a correlated input. Next:
+feed validated source domains through the existing typed value machinery, then
+handle the guarded-format contract for writable inputs. Do not duplicate the
+binder, raise candidate limits, assume header bytes immutable after unknown
+effects, or annotate the reader as HeaderAux. The original caller's index domain
+also remains a separate producer obligation. These are concrete prerequisites,
+not a claim that the synthetic result has fixed the104-entry game reader.
 
 An on-demand systematic gap inventory (`amiga_reversing/tools/source_gap_inventory.py`)
 joins native identities/accesses with canonical layouts and actual rendered

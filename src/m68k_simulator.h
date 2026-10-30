@@ -613,6 +613,9 @@ int m68k_sim_operand_word_index_value(const M68kInstructionIR *instruction, uint
 int m68k_sim_unsigned_word_compare_bounds(const M68kInstructionIR *compare,
     const M68kInstructionIR *branch, int taken, uint8_t *out_reg,
     uint16_t *out_min, uint16_t *out_max);
+/* A conditional branch whose truth depends only on Z, from generated masks.
+ * Returns the required zero/nonzero outcome; DBcc and other flags refuse. */
+int m68k_sim_branch_zero_requirement(const M68kInstructionIR *branch, int taken, int *out_zero);
 int m68k_sim_fixed_sp_delta(const M68kSimFormMetadata *metadata, int32_t *out_delta);
 M68kSimMetadataStatus m68k_sim_metadata_for_canonical_form_id(M68kFormId form_id,
   const M68kSimFormMetadata **out_metadata);

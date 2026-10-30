@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "source_commit": "a48cebe2ebc2cb9665bbfac15a4cbbe40fc5ab9c",
+  "source_commit": "acbdbea9ae58a40d13617af443c51e7e3e00695c",
   "source_assembly": "starglider2_game.s",
   "assets": [
     {
@@ -878,8 +878,8 @@
     },
     {
       "path": "rendered-provenance.json",
-      "bytes": 3122,
-      "sha256": "a973fea29bcd87abcd2a963d203f608eb76204b6a38d2941122ec7881255fbdf"
+      "bytes": 3130,
+      "sha256": "d62c0f76ddb20214be09c0ca8cb0bee077e18cd6c985c1ca92a0155bebe39af9"
     },
     {
       "path": "starglider2_game.s",
@@ -892,6 +892,6 @@
       "sha256": "81d3f66d36dbfbd5c77238b20c28e8b9abaa329777eb91f64669bbbf13703582"
     }
   ],
-  "source_commit_role": "canonical source publication base; shared WORD-test edge analysis is in the publishing commit; output is bound by verification_receipt_id",
-  "source_subject_revision": "74b13a0f1fcc3f321ee003dce4639c478e1fbd355dd27b748891861815fc4d46"
+  "source_commit_role": "canonical source publication base; shared correlated source-read analysis is in the publishing commit; output is bound by verification_receipt_id",
+  "source_subject_revision": "e6f9a78a7f037f18e8ddbedfa15b395c102d08f41cbf727367c5999046274b3a"
 }

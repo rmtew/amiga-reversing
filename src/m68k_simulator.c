@@ -2329,6 +2329,25 @@ static int sim_condition_true(uint8_t condition_code, uint16_t sr) {
   return ((g_m68k_sim_condition_masks[condition_code] >> state) & 1U) != 0U;
 }
 
+int m68k_sim_branch_zero_requirement(const M68kInstructionIR *branch, int taken, int *out_zero) {
+  const M68kSimFormMetadata *meta = m68k_sim_metadata_for_instruction(branch);
+  int outcomes[2] = {-1, -1};
+  if (!meta || !out_zero || meta->flow_kind != M68K_SIM_FLOW_BRANCH || !meta->flow_conditional ||
+      meta->operation_type == M68K_SIM_OP_DBCC || meta->condition_code >= 16U) return 0;
+  for (uint16_t bits = 0U; bits < 16U; ++bits) {
+    uint16_t sr = (uint16_t)(((bits & 1U) != 0U) << g_m68k_sim_ccr_bit_c |
+      ((bits & 2U) != 0U) << g_m68k_sim_ccr_bit_v |
+      ((bits & 4U) != 0U) << g_m68k_sim_ccr_bit_z |
+      ((bits & 8U) != 0U) << g_m68k_sim_ccr_bit_n);
+    int zero = (bits & 4U) != 0U, truth = sim_condition_true(meta->condition_code, sr);
+    if (outcomes[zero] != -1 && outcomes[zero] != truth) return 0;
+    outcomes[zero] = truth;
+  }
+  if (outcomes[0] == outcomes[1]) return 0;
+  *out_zero = outcomes[1] == (taken != 0);
+  return 1;
+}
+
 int m68k_sim_unsigned_word_compare_bounds(const M68kInstructionIR *compare,
     const M68kInstructionIR *branch, int taken, uint8_t *out_reg,
     uint16_t *out_min, uint16_t *out_max) {

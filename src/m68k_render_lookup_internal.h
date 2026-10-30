@@ -384,6 +384,7 @@ typedef struct M68kRenderTypedRegValue {
   /* Exact unmodified runtime layout base. 0 unknown, 1 app, otherwise the
    * canonical RSSET region index + 2; artifact-local, never a guest address. */
   uint16_t layout_base_id;
+  uint16_t read_relation; /* Interned read projection: even record, odd scalar; zero unknown. */
   uint32_t entry_value_id; /* Orthogonal affine entry identity; never a guest address. */
   M68kRenderTypedStorageOrigin origin;
   M68kAddressValueTableOriginIR table_origin;
@@ -450,6 +451,7 @@ typedef struct M68kRenderTypedStoredValue {
   uint32_t entry_value_id;
   uint8_t app_address_known;
   int16_t app_displacement;
+  uint16_t read_relation;
   M68kAddressValueTableOriginIR table_origin;
   size_t pointer_target_section_index;
   uint32_t pointer_target_offset;
@@ -529,6 +531,8 @@ typedef struct M68kRenderTypedState {
   /* A local write/call prevents resurrecting a global writer-summary value.
    * Exact local reaching stores may still supply their own value. */
   uint8_t memory_write_barriers;
+  uint8_t source_snapshot_entry; /* Configured image-entry context, before separately guarded effects. */
+  uint16_t zero_read_relation; /* CCR.Z describes the scalar projection of this read. */
   M68kRenderTypedStackSlot stack_slots[M68K_RENDER_TYPED_STACK_SLOT_LIMIT];
   size_t stack_slot_count;
   M68kRenderTypedBaseSlot base_slots[M68K_RENDER_TYPED_BASE_SLOT_LIMIT];
@@ -550,6 +554,7 @@ typedef struct M68kRenderTypedFlowNode {
   uint8_t has_in;
   uint8_t has_out;
   uint8_t word_proof_ready; /* Converged scalar inputs/outputs occupy existing platform packets. */
+  uint8_t source_snapshot_root; /* Canonical image entry, not an arbitrary code seed. */
 } M68kRenderTypedFlowNode;
 
 typedef struct M68kRenderTypedAccess {
@@ -762,7 +767,22 @@ typedef struct M68kRenderStaticRecordArray {
   uint16_t element_count;
 } M68kRenderStaticRecordArray;
 
+/* Sparse immutable descriptors. Handles travel in the existing value packets;
+ * a repeated dynamic read kills earlier projections of the same descriptor. */
+typedef struct M68kRenderScalarReadRelation {
+  size_t section_index;
+  uint32_t offset;
+  int32_t field_cursor;
+  uint32_t roots[4], values[4];
+  uint16_t types[4];
+  uint8_t count;
+} M68kRenderScalarReadRelation;
+
 struct M68kRenderLookup {
+  M68kRenderScalarReadRelation *scalar_read_relations;
+  size_t scalar_read_relation_count, scalar_read_relation_capacity;
+  size_t *scalar_read_index;
+  size_t scalar_read_index_capacity;
   M68kRenderStaticRecordArray *static_record_arrays;
   size_t static_record_array_count;
   Arena *arena;
