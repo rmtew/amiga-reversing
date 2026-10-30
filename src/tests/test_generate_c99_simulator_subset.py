@@ -72,6 +72,25 @@ class GenerateC99SimulatorSubsetTests(unittest.TestCase):
         self.assertIn("M68K_SIM_FLOW_JUMP", self._tables)
         self.assertIn("M68K_SIM_WIDTH_EA_CATEGORY", self._tables)
 
+    def test_mul_div_destination_writes_reproduce_from_pdf_fields(self) -> None:
+        sys.path.insert(0, str(ROOT / "src" / "scripts"))
+        from kb.m68k_parser import _build_execution_metadata
+        from generate_c99_assembler_corpus import _item_forms
+        kb = self._generator._load_kb()
+        entries = [i for i in kb["instructions"] if i.get("operation_type") in {"multiply", "divide"}]
+        self.assertEqual({i["mnemonic"] for i in entries}, {"MULS", "MULU", "DIVS, DIVSL", "DIVU, DIVUL"})
+        for entry in entries:
+            expanded = copy.deepcopy(entry)
+            expanded["forms"] = _item_forms(kb, entry)
+            self.assertEqual(_build_execution_metadata(expanded), entry["execution"])
+            source, dest = entry["execution"]["operands"]
+            self.assertEqual(source["usage"], "value")
+            self.assertEqual(dest["usage"], "read_modify_write")
+            self.assertEqual(dest["access"]["kind"], "register_write")
+        # A comparison reads its destination without storing a scalar result.
+        compare = next(i for i in kb["instructions"] if i["mnemonic"] == "CMP")
+        self.assertEqual(compare["execution"]["operands"][1]["access"]["kind"], "register_read")
+
     def test_ea_width_binding_reproduces_from_extracted_fields(self) -> None:
         sys.path.insert(0, str(ROOT / "src" / "scripts"))
         from kb.m68k_parser import _build_execution_metadata

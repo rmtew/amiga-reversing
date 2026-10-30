@@ -69,7 +69,7 @@ field reads remain unresolved, not silently recast as model fields.
 The alternate scan's separate low-tag sign guard, exclusions and type12 flag
 path justify an existing Targeting input role after their join. Its BYTE29
 scale read now resolves; original logical shifts, zero-depth rejection and
-unchecked full-tag/index behavior remain. Current totals are **3503 app /2657
+unchecked full-tag/index behavior remain. At the contact/alternate-scan revision totals were **3503 app /2657
 typed /170 unresolved** (54 read roles, 112 destination writes, four address
 formations). Code, ownership accounting, assets and original output bytes are
 unchanged; C/vasm and a clean standalone export pass.
@@ -90,6 +90,33 @@ possible. A next bounded experiment can follow that same pair to the later
 type guard/return; this batch does not claim those later paths were observed.
 The `$24` group still has only 16 catalogued destination-write roles and no
 corresponding naming justification.
+
+Unsigned compare edges now refine the existing finite WORD sets in the shared
+native CFG solver. Adjacent immediate WORD comparisons with known branch edges
+use the simulator's generated condition truth tables and existing compare flags;
+N/V-dependent predicates, DBcc counters, clobbers, bypass/unknown entries, LONG
+indices and oversized domains retain their conservative limits. No target
+addresses, new per-node arrays or larger value/convergence caps were added.
+A negative regression exposed upstream multiply/divide destination metadata
+incorrectly marked read-only. The PDF-backed execution extraction now marks
+those destinations read/modify/write; generated tables and the shared decoded
+write helper invalidate stale WORD facts. Comparisons remain read-only.
+
+This recovers **eight** original resource/speed sprite-directory references
+across the Amiga and alternate-platform bodies, with no retracted facts:
+**3503 app /2665 typed /162 unresolved** (46 reads, 112 destination writes,
+four address formations). Source, assets and ownership accounting remain exact.
+Validation: 101 focused/parser-generator tests pass, three existing expected
+failures remain for late index-to-pointee transport, and all 832 native C tests
+pass. C/vasm and clean standalone output retain every original byte.
+
+Four indexed sprite reads remain for specific reasons: the two scan masks allow
+byte offset28 while their declared seven-pointer arrays end there; proving the
+normal countdown invariant requires its stored producer/update lifecycle rather
+than widening that array. The two altitude paths have signed/lower selection
+without a local upper bound. The next experiments are the known late
+index-to-pointee transport fixtures and a producer-complete countdown lifecycle;
+neither an arbitrary index assumption nor a larger finite-set cap is justified.
 
 ### Recent validated batches (counts at each recorded revision)
 

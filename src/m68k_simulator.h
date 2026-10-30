@@ -607,6 +607,12 @@ uint8_t m68k_sim_operand_ea_update(const M68kInstructionIR *instruction, uint8_t
  * indices. Returns zero for unsupported forms; no guest state is executed. */
 int m68k_sim_operand_word_index_value(const M68kInstructionIR *instruction, uint8_t operand_index,
     uint32_t raw_value, uint32_t *out_value);
+/* A contiguous unsigned-WORD compare edge domain from generated condition
+ * truth tables and the shared compare flags. Reject N/V-dependent predicates,
+ * unsupported operands and disjoint domains; this establishes no LONG bound. */
+int m68k_sim_unsigned_word_compare_bounds(const M68kInstructionIR *compare,
+    const M68kInstructionIR *branch, int taken, uint8_t *out_reg,
+    uint16_t *out_min, uint16_t *out_max);
 int m68k_sim_fixed_sp_delta(const M68kSimFormMetadata *metadata, int32_t *out_delta);
 M68kSimMetadataStatus m68k_sim_metadata_for_canonical_form_id(M68kFormId form_id,
   const M68kSimFormMetadata **out_metadata);

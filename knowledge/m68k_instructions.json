@@ -16582,7 +16582,7 @@
           {
             "index": 1,
             "role": "dest",
-            "usage": "value",
+            "usage": "read_modify_write",
             "expected_kind": "dn",
             "ea_address_formula": null,
             "ea_register_update": "none",
@@ -16599,7 +16599,7 @@
             "ea_pc_base_bias_bytes": 0,
             "ea_address_literal_width_bytes": 0,
             "access": {
-              "kind": "register_read",
+              "kind": "register_write",
               "width": null,
               "width_source": "instruction_size",
               "result_kind": "scalar"
@@ -17024,7 +17024,7 @@
           {
             "index": 1,
             "role": "dest",
-            "usage": "value",
+            "usage": "read_modify_write",
             "expected_kind": "dn",
             "ea_address_formula": null,
             "ea_register_update": "none",
@@ -17041,7 +17041,7 @@
             "ea_pc_base_bias_bytes": 0,
             "ea_address_literal_width_bytes": 0,
             "access": {
-              "kind": "register_read",
+              "kind": "register_write",
               "width": null,
               "width_source": "instruction_size",
               "result_kind": "scalar"
@@ -23984,7 +23984,7 @@
           {
             "index": 1,
             "role": "dest",
-            "usage": "value",
+            "usage": "read_modify_write",
             "expected_kind": "dn",
             "ea_address_formula": null,
             "ea_register_update": "none",
@@ -24001,7 +24001,7 @@
             "ea_pc_base_bias_bytes": 0,
             "ea_address_literal_width_bytes": 0,
             "access": {
-              "kind": "register_read",
+              "kind": "register_write",
               "width": null,
               "width_source": "instruction_size",
               "result_kind": "scalar"
@@ -24403,7 +24403,7 @@
           {
             "index": 1,
             "role": "dest",
-            "usage": "value",
+            "usage": "read_modify_write",
             "expected_kind": "dn",
             "ea_address_formula": null,
             "ea_register_update": "none",
@@ -24420,7 +24420,7 @@
             "ea_pc_base_bias_bytes": 0,
             "ea_address_literal_width_bytes": 0,
             "access": {
-              "kind": "register_read",
+              "kind": "register_write",
               "width": null,
               "width_source": "instruction_size",
               "result_kind": "scalar"

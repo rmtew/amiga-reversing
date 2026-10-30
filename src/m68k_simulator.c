@@ -2329,6 +2329,52 @@ static int sim_condition_true(uint8_t condition_code, uint16_t sr) {
   return ((g_m68k_sim_condition_masks[condition_code] >> state) & 1U) != 0U;
 }
 
+int m68k_sim_unsigned_word_compare_bounds(const M68kInstructionIR *compare,
+    const M68kInstructionIR *branch, int taken, uint8_t *out_reg,
+    uint16_t *out_min, uint16_t *out_max) {
+  const M68kSimFormMetadata *cm = m68k_sim_metadata_for_instruction(compare);
+  const M68kSimFormMetadata *bm = m68k_sim_metadata_for_instruction(branch);
+  uint32_t immediate, starts[3], ends[3], lower = 0U, upper = 0U;
+  uint8_t address, reg, found = 0U;
+  if (!cm || !bm || !out_reg || !out_min || !out_max ||
+      cm->operation_type != M68K_SIM_OP_COMPARE ||
+      cm->source_operand_index >= compare->operand_count || cm->dest_operand_index >= compare->operand_count ||
+      m68k_sim_operand_width_bytes(compare, cm->source_operand_index) != 2U ||
+      m68k_sim_operand_width_bytes(compare, cm->dest_operand_index) != 2U ||
+      !m68k_ir_operand_immediate_value(&compare->operands[cm->source_operand_index], &immediate) ||
+      !m68k_instruction_operand_direct_register(&compare->operands[cm->dest_operand_index], &address, &reg) ||
+      address || reg >= 8U || bm->flow_kind != M68K_SIM_FLOW_BRANCH || !bm->flow_conditional ||
+      bm->operation_type == M68K_SIM_OP_DBCC ||
+      bm->condition_code >= 16U) return 0;
+  immediate &= UINT16_MAX;
+  starts[0] = 0U; ends[0] = immediate ? immediate - 1U : 0U;
+  starts[1] = ends[1] = immediate;
+  starts[2] = immediate + 1U; ends[2] = UINT16_MAX;
+  for (uint8_t relation = 0U; relation < 3U; ++relation) {
+    uint16_t sr;
+    int allows;
+    if ((!relation && !immediate) || starts[relation] > ends[relation]) continue;
+    if (!sim_apply_abstract_compare_test_flags(0U, immediate, starts[relation], 2U, 1U, &sr)) return 0;
+    allows = sim_condition_true(bm->condition_code, sr);
+    /* C/Z come from the existing compare implementation. Require independence
+     * from N/V over every truth-table combination, rather than guessing signed
+     * bounds or maintaining a second mnemonic-to-condition mapping. */
+    for (uint8_t nv = 0U; nv < 4U; ++nv) {
+      uint16_t other = (uint16_t)(sr & ~((1U << g_m68k_sim_ccr_bit_n) | (1U << g_m68k_sim_ccr_bit_v)));
+      other |= (uint16_t)(((nv & 1U) != 0U) << g_m68k_sim_ccr_bit_n);
+      other |= (uint16_t)(((nv & 2U) != 0U) << g_m68k_sim_ccr_bit_v);
+      if (sim_condition_true(bm->condition_code, other) != allows) return 0;
+    }
+    if (allows != (taken != 0)) continue;
+    if (found && starts[relation] != upper + 1U) return 0;
+    if (!found) lower = starts[relation];
+    upper = ends[relation]; found = 1U;
+  }
+  if (!found) return 0;
+  *out_reg = reg; *out_min = (uint16_t)lower; *out_max = (uint16_t)upper;
+  return 1;
+}
+
 static int sim_concrete_read_register(const M68kSimConcreteState *state, uint8_t is_address, uint8_t reg,
     uint32_t *out_value) {
   if (state == NULL || out_value == NULL || reg >= 8U) return 0;

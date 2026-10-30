@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
   "kind": "committed_native_rendered_original_export",
-  "canonical_source_commit": "a94ad93def1aae2b29887ee2977c8b6e07714b07",
-  "publication_base_commit": "a94ad93def1aae2b29887ee2977c8b6e07714b07",
+  "canonical_source_commit": "17c1472ccfaba20f2c5e3d139ce4d119693b8cdd",
+  "publication_base_commit": "17c1472ccfaba20f2c5e3d139ce4d119693b8cdd",
   "native_export": "CListingArtifact.source_package_payload(64)",
-  "main_source_sha256": "410891ff23714589eba6067a8e3ec9a0ca51178013e44c63355c33f304eba62b",
+  "main_source_sha256": "6d082c35404e4fab94e7b19a992b39dcc218ea8e736d358a97604a9532ed1eaf",
   "asset_count": 57,
   "asset_bytes": 93633,
   "game_assembly_hand_edits": false,
@@ -24,8 +24,8 @@
     "assembler executable",
     "paused Pandora work"
   ],
-  "canonical_source_commit_role": "publication base; reviewed mixed-contact runtime witness and guarded alternate-scan input role; unchecked original table formula retained are bound by canonical facts and verification",
-  "canonical_source_subject_revision": "e89c82fc33919fb491bd46015250d9f3ce416162c8cf94020d97cecaa7a2b23b",
+  "canonical_source_commit_role": "publication base; shared finite WORD compare-edge refinement and PDF-backed destination-write metadata; canonical target facts unchanged are bound by canonical facts and verification",
+  "canonical_source_subject_revision": "171e0709047ad0be9d2464c67bb379e675689d0cdad3f4434d2e8bb74b4faf4c",
   "canonical_fact_sha256": {
     "source_binary.json": "42d4a5758b3e8236af7f912aee85e9ee5323bcd0961faa338c4f864080a0a7d9",
     "target_metadata.json": "e7540b68c118c56aba8815b6722eefa067517cc865fe9841d6c01ce96551389c",
@@ -46,5 +46,5 @@
     },
     "runtime_scope": "Seven CPU write-site windows match this reversible view; no whole runtime-view identity or parent plaintext promotion."
   },
-  "verification_receipt_id": "2f85dd449599e58915e1da1106ffc4ad084a4b7284f12deaf5b6a3c2331e70e5"
+  "verification_receipt_id": "5dafb39fc2da6c58a0536ecae9f70be4a07ac5aa5bd283d35691db4a723869fb"
 }

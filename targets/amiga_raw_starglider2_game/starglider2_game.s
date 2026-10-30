@@ -15683,7 +15683,7 @@ abs_0_0000D48E:
 	lea.l hud_resource_meter_0_sprite_pointers.l,a1
 	add.w d0,d0
 	add.w d0,d0
-	move.l $0(a1,d0.w),_custom+sprpt+$14.l	; sprite pointer
+	move.l SG2SpriteControlReference_control_words(a1,d0.w),_custom+sprpt+$14.l	; sprite pointer
 abs_0_0000D4A0:
 	move.w icarus_shield_strength(a6),d0
 	lsr.w #8,d0
@@ -15709,7 +15709,7 @@ abs_0_0000D4DC:
 	lea.l hud_resource_meter_1_sprite_pointers.l,a1
 	add.w d0,d0
 	add.w d0,d0
-	move.l $0(a1,d0.w),_custom+sprpt+$0C.l	; sprite pointer
+	move.l SG2SpriteControlReference_control_words(a1,d0.w),_custom+sprpt+$0C.l	; sprite pointer
 abs_0_0000D4EE:
 	move.w weapon_energy_reserve(a6),d0
 	lsr.w #8,d0
@@ -15735,7 +15735,7 @@ abs_0_0000D52A:
 	lea.l hud_resource_meter_2_sprite_pointers.l,a1
 	add.w d0,d0
 	add.w d0,d0
-	move.l $0(a1,d0.w),_custom+sprpt+$10.l	; sprite pointer
+	move.l SG2SpriteControlReference_control_words(a1,d0.w),_custom+sprpt+$10.l	; sprite pointer
 abs_0_0000D53C:
 	move.w player_speed_target(a6),d0
 	tst.w d0
@@ -15762,7 +15762,7 @@ abs_0_0000D57C:
 	lea.l hud_speed_meter_sprite_pointers.l,a1
 	add.w d0,d0
 	add.w d0,d0
-	move.l $0(a1,d0.w),_custom+sprpt+$08.l	; sprite pointer
+	move.l SG2SpriteControlReference_control_words(a1,d0.w),_custom+sprpt+$08.l	; sprite pointer
 abs_0_0000D58E:
 	tst.b space_environment_flag(a6)
 	bmi.b abs_0_0000D5FE
@@ -52267,7 +52267,7 @@ abs_0_0003C7B2:
 	lea.l hud_resource_meter_0_sprite_pointers.l,a1
 	add.w d2,d2
 	add.w d2,d2
-	movea.l $0(a1,d2.w),a1
+	movea.l SG2SpriteControlReference_control_words(a1,d2.w),a1
 	moveq.l #5,d4
 	addq.w #1,d0
 abs_0_0003C7C6:
@@ -52308,7 +52308,7 @@ abs_0_0003C828:
 	lea.l hud_resource_meter_1_sprite_pointers.l,a1
 	add.w d2,d2
 	add.w d2,d2
-	movea.l $0(a1,d2.w),a1
+	movea.l SG2SpriteControlReference_control_words(a1,d2.w),a1
 	addq.w #1,d0
 	moveq.l #5,d4
 abs_0_0003C83C:
@@ -52349,7 +52349,7 @@ abs_0_0003C89C:
 	lea.l hud_resource_meter_2_sprite_pointers.l,a1
 	add.w d2,d2
 	add.w d2,d2
-	movea.l $0(a1,d2.w),a1
+	movea.l SG2SpriteControlReference_control_words(a1,d2.w),a1
 	addq.w #1,d0
 	moveq.l #5,d4
 abs_0_0003C8B0:
@@ -52384,7 +52384,7 @@ abs_0_0003C8F0:
 	lea.l hud_speed_meter_sprite_pointers.l,a1
 	add.w d2,d2
 	add.w d2,d2
-	movea.l $0(a1,d2.w),a1
+	movea.l SG2SpriteControlReference_control_words(a1,d2.w),a1
 	addq.w #1,d0
 	bra.b abs_0_0003C916
 abs_0_0003C90C:

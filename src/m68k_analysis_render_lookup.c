@@ -9607,8 +9607,7 @@ static void hardware_relative_transfer(M68kRenderPlatformState *state, const M68
   }
   for (i = 0U; i < instruction->operand_count; ++i) {
     const M68kOperandIR *operand = &instruction->operands[i];
-    if (meta->operand_access_kinds[i] == M68K_SIM_ACCESS_REGISTER_WRITE ||
-        meta->operand_access_kinds[i] == M68K_SIM_ACCESS_MEMORY_WRITE) {
+    if (instruction_operand_writes_register_from_metadata(instruction, i)) {
       if (operand_is_data_register_local(operand, &reg))
         memset(&state->word_values[reg], 0, sizeof(state->word_values[reg]));
       if (operand_address_register_index_local(operand, &reg))
@@ -11016,6 +11015,45 @@ static int hardware_relative_refine_dbf_edge(const M68kRenderTypedFlowNode *pred
 
 #include "m68k_call_entry_inputs.inc"
 
+/* Refine the existing finite WORD state only on a closed adjacent CMP/branch
+ * edge. No extra per-node state, backward scanner, target rules or larger cap. */
+static int hardware_relative_refine_compare_edge(const M68kRenderLookup *lookup,
+    const M68kRenderTypedFlowGraph *graph, size_t branch_index, size_t successor_index,
+    M68kRenderPlatformState *state) {
+  const M68kRenderTypedFlowNode *branch = &graph->nodes[branch_index];
+  const M68kRenderTypedFlowNode *compare;
+  M68kInstructionIR ci, bi;
+  M68kHardwareWordSet result = {0};
+  uint16_t lower, upper;
+  uint8_t reg;
+  size_t begin = graph->predecessor_offsets[branch_index];
+  int taken;
+  if (!lookup->object || lookup->object->fixup_count || branch->successor_count != 2U ||
+      typed_flow_hardware_root(graph, branch_index) ||
+      graph->predecessor_offsets[branch_index + 1U] != begin + 1U) return 1;
+  compare = &graph->nodes[graph->predecessors[begin]];
+  if (compare->candidate->offset + compare->candidate->byte_count != branch->candidate->offset ||
+      m68k_decode_candidate_to_instruction(compare->candidate, &ci) != 0 ||
+      m68k_decode_candidate_to_instruction(branch->candidate, &bi) != 0) return 1;
+  taken = graph->nodes[successor_index].candidate->offset !=
+    branch->candidate->offset + branch->candidate->byte_count;
+  if (!m68k_sim_unsigned_word_compare_bounds(&ci, &bi, taken, &reg, &lower, &upper)) return 1;
+  if (!state->word_values[reg].count || state->word_values[reg].requires_input_contract) {
+    if ((uint32_t)upper - lower + 1U > M68K_HARDWARE_VALUE_LIMIT) return 1;
+    for (uint32_t value = lower; value <= upper; ++value)
+      (void)hardware_word_set_add(&result, (uint16_t)value);
+    /* The actual edge bounds these WORDs independently of an input contract. */
+  } else {
+    for (uint8_t i = 0U; i < state->word_values[reg].count; ++i) {
+      uint16_t value = state->word_values[reg].values[i];
+      if (value >= lower && value <= upper) (void)hardware_word_set_add(&result, value);
+    }
+    if (!result.count) return 0;
+  }
+  state->word_values[reg] = result;
+  return 1;
+}
+
 static int typed_flow_recompute_node_input(M68kRenderTypedFlowGraph *graph, size_t node_index,
     const M68kRenderLookup *lookup, const M68kDecodeSectionIR *section) {
   M68kRenderTypedFlowNode *node;
@@ -11139,6 +11177,7 @@ static int hardware_relative_analyze_graph(M68kRenderLookup *lookup, const M68kD
         if (!has_out[predecessor]) continue;
         edge = outputs[predecessor];
         if (!hardware_relative_refine_dbf_edge(&graph->nodes[predecessor], &graph->nodes[successor], &edge)) continue;
+        if (!hardware_relative_refine_compare_edge(lookup, graph, predecessor, successor, &edge)) continue;
         if (!found) input = edge;
         else (void)platform_state_merge_into(&input, &edge);
         found = 1;

@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "source_commit": "a94ad93def1aae2b29887ee2977c8b6e07714b07",
+  "source_commit": "17c1472ccfaba20f2c5e3d139ce4d119693b8cdd",
   "source_assembly": "starglider2_game.s",
   "assets": [
     {
@@ -878,13 +878,13 @@
     },
     {
       "path": "rendered-provenance.json",
-      "bytes": 3074,
-      "sha256": "026e9165c2ee43ee3a35f9643e01ff9be5ed58284e1ee5cd5e78a0faa72789f4"
+      "bytes": 3073,
+      "sha256": "17e34cbc23a72ad24bf17fe0caf420cea6dcef02ae0c9d1d571cec54ea7b5415"
     },
     {
       "path": "starglider2_game.s",
-      "bytes": 2014850,
-      "sha256": "410891ff23714589eba6067a8e3ec9a0ca51178013e44c63355c33f304eba62b"
+      "bytes": 2015146,
+      "sha256": "6d082c35404e4fab94e7b19a992b39dcc218ea8e736d358a97604a9532ed1eaf"
     },
     {
       "path": "tools/starglider2_protection.py",
@@ -892,6 +892,6 @@
       "sha256": "81d3f66d36dbfbd5c77238b20c28e8b9abaa329777eb91f64669bbbf13703582"
     }
   ],
-  "source_commit_role": "publication base; reviewed mixed-contact runtime witness and guarded alternate-scan input role; unchecked original table formula retained are bound by verification_receipt_id",
-  "source_subject_revision": "e89c82fc33919fb491bd46015250d9f3ce416162c8cf94020d97cecaa7a2b23b"
+  "source_commit_role": "publication base; shared finite WORD compare-edge refinement and PDF-backed destination-write metadata; canonical target facts unchanged are bound by verification_receipt_id",
+  "source_subject_revision": "171e0709047ad0be9d2464c67bb379e675689d0cdad3f4434d2e8bb74b4faf4c"
 }

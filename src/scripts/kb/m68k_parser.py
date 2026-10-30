@@ -7362,7 +7362,13 @@ def _execution_operand_usage(inst: JsonDict, operand_index: int, operand_type: s
         compute = cast(JsonDict, inst.get("compute_formula", {}))
         op_name = str(compute.get("op", "")) if isinstance(compute, dict) else ""
         return "value" if op_name == "bit_test" else "read_modify_write"
-    if op_type in ("compare", "test", "bounds_check", "multiply", "divide"):
+    if op_type in ("multiply", "divide"):
+        # PDF MULS/MULU pp239/242 and DIVS/DIVU pp196/200: the two-operand
+        # data-register destination is both the multiplicand/dividend and the
+        # stored product/quotient-remainder result. Keep this in extraction,
+        # not opcode-specific clobber exceptions in downstream analysis.
+        return "read_modify_write" if operand_index == op_count - 1 and operand_type == "dn" else "value"
+    if op_type in ("compare", "test", "bounds_check"):
         return "value"
     if mnemonic in ("CLR", "Scc"):
         return "write"
