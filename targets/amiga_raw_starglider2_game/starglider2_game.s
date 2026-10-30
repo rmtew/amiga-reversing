@@ -1446,6 +1446,12 @@ SG2_SAVE_NAME_INPUT_LIMIT	EQU	30
 SG2_SAVE_NAME_SLOT_BYTES	EQU	32
 SG2_SAVE_RESTORE_DBF_LAST	EQU	$17B8
 SG2_SAVE_TRACK_DBF_LAST	EQU	$4
+SG2_TEXT_CURSOR_COLUMNS	EQU	40
+SG2_TEXT_CURSOR_ROWS	EQU	25
+SG2_TEXT_DELETE_ROW_REWIND_BYTES	EQU	322
+SG2_TEXT_GLYPH_WRAP_TAIL_BYTES	EQU	280
+SG2_TEXT_ROW_BYTES	EQU	320
+SG2_TEXT_TAB_ADVANCE	EQU	6
 SG2_WORKSPACE_BELOW_DISPLAY_BYTES	EQU	$6998
 SG2_WORKSPACE_CLEAR_WORDS	EQU	$32CC
 _ciaa	EQU	$BFE001
@@ -16008,17 +16014,17 @@ abs_0_0000D792:
 wait_for_translated_key:
 	move.l a0,-(a7)
 	moveq.l #0,d0
-abs_0_0000D7AE:
+poll_editor_key_or_fire_release:
 	tst.b mouse_primary_button_flag(a6)
-	bne.b abs_0_0000D7CE
+	bne.b return_translated_editor_key
 	tst.b primary_fire_flag(a6)
-	bne.b abs_0_0000D7CE
+	bne.b return_translated_editor_key
 	move.b pending_key_scancode(a6),d0
-	beq.b abs_0_0000D7AE
+	beq.b poll_editor_key_or_fire_release
 	clr.b pending_key_scancode(a6)
 	lea.l keyboard_translation_seed.l,a0
 	move.b $0(a0,d0.w),d0
-abs_0_0000D7CE:
+return_translated_editor_key:
 	movea.l (a7)+,a0
 	rts
 	dc.b $60,$00,$FF,$D6,$4E,$75
@@ -16027,81 +16033,88 @@ read_editable_text:
 	movem.l d0-d2/a0-a1/a3,-(a7)
 	move.l a0,text_input_start_pointer.l
 	move.w text_input_character_limit.l,d1
-abs_0_0000D7E8:
-	lea.l abs_0_0000DE79(pc),a1
+    ; Show/hide markers restore the destination and subtract one column, but do not restore row changes caused by a boundary wrap. Arbitrary starting cursor states are not certified.
+show_text_input_cursor_and_wait:
+	lea.l text_input_cursor_show_sequence(pc),a1
 	move.l text_cursor_destination_pointer.l,-(a7)
 	bsr.w print_cursor_text
 	subq.b #1,text_cursor_column.l
 	move.l (a7)+,text_cursor_destination_pointer.l
 	bsr.w wait_for_translated_key
-	lea.l abs_0_0000DE7D(pc),a1
+hide_text_input_cursor_after_key:
+	lea.l text_input_cursor_hide_sequence(pc),a1
 	move.l text_cursor_destination_pointer.l,-(a7)
 	bsr.w print_cursor_text
 	subq.b #1,text_cursor_column.l
 	move.l (a7)+,text_cursor_destination_pointer.l
+dispatch_editable_text_key:
 	cmp.b #$D,d0
-	beq.b abs_0_0000D868
+	beq.b terminate_editable_text_and_restore
 	cmp.b #$1B,d0
-	beq.b abs_0_0000D862
+	beq.b empty_editable_text_on_escape
 	cmp.b #$8,d0
-	beq.b abs_0_0000D870
+	beq.b backspace_editable_text_if_nonempty
 	cmp.b #$7F,d0
-	beq.b abs_0_0000D870
+	beq.b backspace_editable_text_if_nonempty
 	tst.w d1
-	beq.b abs_0_0000D7E8
+	beq.b show_text_input_cursor_and_wait
 	cmp.b #$20,d0
-	bmi.b abs_0_0000D7E8
+	bmi.b show_text_input_cursor_and_wait
 	cmp.b #$7F,d0
-	bpl.b abs_0_0000D7E8
-	lea.l abs_0_0000DE84(pc),a1
+	bpl.b show_text_input_cursor_and_wait
+    ; Append only after key/control and remaining-capacity checks. Echo uses a mutable byte plus original NUL; remember the renderer step for later deletion.
+append_and_echo_editable_character:
+	lea.l text_input_echo_text(pc),a1
 	subq.w #1,d1
 	move.b d0,(a1)
 	move.b d0,(a0)+
 	bsr.w print_cursor_text
 	move.l last_glyph_destination_byte_step.l,text_backspace_destination_byte_step.l
-	bra.b abs_0_0000D7E8
-abs_0_0000D862:
+	bra.b show_text_input_cursor_and_wait
+empty_editable_text_on_escape:
 	movea.l text_input_start_pointer.l,a0
-abs_0_0000D868:
+terminate_editable_text_and_restore:
 	clr.b (a0)+
 	movem.l (a7)+,d0-d2/a0-a1/a3
 	rts
-abs_0_0000D870:
+backspace_editable_text_if_nonempty:
 	movea.l text_input_start_pointer.l,a3
 	cmpa.l a0,a3
-	beq.w abs_0_0000D7E8
+	beq.w show_text_input_cursor_and_wait
 	move.b text_cursor_column.l,d0
 	cmp.b #$0,d0
-	beq.b abs_0_0000D8EA
+	beq.b rewind_text_delete_to_previous_row
+rewind_text_cursor_by_saved_delete_step:
 	subq.b #2,d0
 	move.b d0,text_cursor_column.l
 	move.l text_backspace_destination_byte_step.l,d0
 	sub.l d0,text_cursor_destination_pointer.l
-abs_0_0000D89C:
+erase_last_editable_character:
 	subq.l #1,a0
-	lea.l abs_0_0000DE84(pc),a1
+	lea.l text_input_echo_text(pc),a1
 	addq.w #1,d1
 	move.b #$20,(a1)
 	bsr.w print_cursor_text
 	sub.l d0,text_cursor_destination_pointer.l
 	cmp.l #$7,d0
-	beq.b abs_0_0000D8DC
+	beq.b reset_text_delete_step_to_one
 	cmp.l #$1,d0
-	beq.b abs_0_0000D8C6
-	bra.w abs_0_0000D7E8
-abs_0_0000D8C6:
+	beq.b select_platform_text_delete_step
+	bra.w show_text_input_cursor_and_wait
+select_platform_text_delete_step:
 	tst.w platform_entry_flags.l
-	bmi.b abs_0_0000D8DC
+	bmi.b reset_text_delete_step_to_one
 	move.l #$7,text_backspace_destination_byte_step.l
-	bra.w abs_0_0000D7E8
-abs_0_0000D8DC:
+	bra.w show_text_input_cursor_and_wait
+reset_text_delete_step_to_one:
 	move.l #$1,text_backspace_destination_byte_step.l
-	bra.w abs_0_0000D7E8
-abs_0_0000D8EA:
+	bra.w show_text_input_cursor_and_wait
+    ; Keep the original 322-byte rewind and BYTE row decrement. Supplied column-zero state reaches initial destination minus 321 after blank echo; no caller-reach or correction claim.
+rewind_text_delete_to_previous_row:
 	move.b #$26,text_cursor_column.l
 	subq.b #1,text_cursor_row.l
-	subi.l #322,text_cursor_destination_pointer.l
-	bra.b abs_0_0000D89C
+	subi.l #SG2_TEXT_DELETE_ROW_REWIND_BYTES,text_cursor_destination_pointer.l
+	bra.b erase_last_editable_character
 text_input_character_limit:
 	dc.w $0008
 draw_amiga_heading_strip:
@@ -16280,6 +16293,7 @@ abs_0_0000DB5C:
 abs_0_0000DBB2:
 	movem.l (a7)+,d0-d1/a0-a3
 	rts
+    ; Position uses X bytes plus 40 times Y, with the original masked WORD arithmetic. CR is ignored; LF advances 320 without resetting X. Inverse controls transfer to the cursor loop.
 print_planar_text_at_position:
 	movem.l d0-d7/a0-a6,-(a7)
 	movea.l game_workspace_base.l,a6
@@ -16288,184 +16302,188 @@ print_planar_text_at_position:
 	andi.l #32766,d1
 	add.w d0,d1
 	lea.l $0(a0,d1.w),a0
-abs_0_0000DBD8:
+read_next_positioned_text_byte:
 	lea.l font_printable_ascii_rows.l,a2
 	clr.l d0
 	move.b (a1)+,d0
-	beq.w abs_0_0000DC5A
-	bpl.b abs_0_0000DBF4
+	beq.w return_from_positioned_text
+	bpl.b dispatch_positioned_text_control
+set_positioned_text_colour_mask:
 	andi.w #127,d0
 	move.b d0,text_colour_plane_mask.l
-	bra.b abs_0_0000DBD8
-abs_0_0000DBF4:
+	bra.b read_next_positioned_text_byte
+dispatch_positioned_text_control:
 	cmp.b #$D,d0
-	beq.b abs_0_0000DBD8
+	beq.b read_next_positioned_text_byte
 	cmp.b #$A,d0
-	beq.b abs_0_0000DC60
+	beq.b advance_positioned_text_line
 	cmp.b #$1,d0
-	beq.w abs_0_0000DDC4
+	beq.w enable_inverse_and_enter_cursor_text
 	cmp.b #$2,d0
-	beq.w abs_0_0000DDD0
+	beq.w disable_inverse_and_enter_cursor_text
+select_positioned_text_glyph_planes:
 	subi.b #32,d0
 	rol.l #3,d0
 	adda.l d0,a2
 	move.b text_colour_plane_mask.l,d1
 	btst #3,d1
-	beq.b abs_0_0000DC42
+	beq.b blank_positioned_text_plane_three
 	movea.l a2,a5
-abs_0_0000DC26:
+select_positioned_text_plane_two:
 	btst #2,d1
-	beq.b abs_0_0000DC48
+	beq.b blank_positioned_text_plane_two
 	movea.l a2,a4
-abs_0_0000DC2E:
+select_positioned_text_plane_one:
 	btst #1,d1
-	beq.b abs_0_0000DC4E
+	beq.b blank_positioned_text_plane_one
 	movea.l a2,a3
-abs_0_0000DC36:
+select_positioned_text_plane_zero:
 	btst #0,d1
-	beq.b abs_0_0000DC54
-abs_0_0000DC3C:
+	beq.b blank_positioned_text_plane_zero
+draw_positioned_text_glyph:
 	bsr.w draw_planar_glyph_rows
-	bra.b abs_0_0000DBD8
-abs_0_0000DC42:
+	bra.b read_next_positioned_text_byte
+blank_positioned_text_plane_three:
 	lea.l keyboard_translation_seed+118(pc),a5
-	bra.b abs_0_0000DC26
-abs_0_0000DC48:
+	bra.b select_positioned_text_plane_two
+blank_positioned_text_plane_two:
 	lea.l keyboard_translation_seed+118(pc),a4
-	bra.b abs_0_0000DC2E
-abs_0_0000DC4E:
+	bra.b select_positioned_text_plane_one
+blank_positioned_text_plane_one:
 	lea.l keyboard_translation_seed+118(pc),a3
-	bra.b abs_0_0000DC36
-abs_0_0000DC54:
+	bra.b select_positioned_text_plane_zero
+blank_positioned_text_plane_zero:
 	lea.l keyboard_translation_seed+118(pc),a2
-	bra.b abs_0_0000DC3C
-abs_0_0000DC5A:
+	bra.b draw_positioned_text_glyph
+return_from_positioned_text:
 	movem.l (a7)+,d0-d7/a0-a6
 	rts
-abs_0_0000DC60:
-	adda.w #$140,a0
-	bra.w abs_0_0000DBD8
-    ; Original 40-column/25-row text cursor and control codes. Inverse drawing modifies then restores8 font bytes; no immutable-font or arbitrary-string safety claim.
+advance_positioned_text_line:
+	adda.w #SG2_TEXT_ROW_BYTES,a0
+	bra.w read_next_positioned_text_byte
+    ; Four plane sources follow colour bits 0..3. Inverse glyph bytes are restored after each draw; TAB adds six without row normalization. CPU writes are not scanout or concurrency proof.
 print_planar_text_at_cursor:
 	movem.l d0-d7/a0-a6,-(a7)
 	movea.l text_cursor_destination_pointer.l,a0
-abs_0_0000DC72:
+read_next_cursor_text_byte:
 	lea.l font_printable_ascii_rows.l,a2
 	clr.l d0
 	move.b (a1)+,d0
-	beq.w abs_0_0000DD3C
-	bpl.b abs_0_0000DC8E
+	beq.w commit_text_cursor_pointer_and_return
+	bpl.b dispatch_cursor_text_control
+set_cursor_text_colour_mask:
 	andi.w #127,d0
 	move.b d0,text_colour_plane_mask.l
-	bra.b abs_0_0000DC72
-abs_0_0000DC8E:
+	bra.b read_next_cursor_text_byte
+dispatch_cursor_text_control:
 	cmp.b #$D,d0
-	beq.w abs_0_0000DD48
+	beq.w carriage_return_text_cursor
 	cmp.b #$A,d0
-	beq.w abs_0_0000DD60
+	beq.w line_feed_text_cursor
 	cmp.b #$9,d0
-	beq.w abs_0_0000DDDA
+	beq.w advance_text_cursor_six_columns
 	cmp.b #$1,d0
-	beq.w abs_0_0000DDC4
+	beq.w enable_inverse_and_enter_cursor_text
 	cmp.b #$2,d0
-	beq.w abs_0_0000DDD0
+	beq.w disable_inverse_and_enter_cursor_text
 	subi.l #32,d0
 	rol.l #3,d0
 	adda.l d0,a2
 	tst.b text_inverse_flag.l
-	beq.w abs_0_0000DCD2
+	beq.w select_cursor_text_glyph_planes
 	not.l (a2)
 	not.l $0004(a2)
 	move.l a2,-(a7)
-abs_0_0000DCD2:
+select_cursor_text_glyph_planes:
 	move.b text_colour_plane_mask.l,d1
 	btst #3,d1
-	beq.b abs_0_0000DD24
+	beq.b blank_cursor_text_plane_three
 	movea.l a2,a5
-abs_0_0000DCE0:
+select_cursor_text_plane_two:
 	btst #2,d1
-	beq.b abs_0_0000DD2A
+	beq.b blank_cursor_text_plane_two
 	movea.l a2,a4
-abs_0_0000DCE8:
+select_cursor_text_plane_one:
 	btst #1,d1
-	beq.b abs_0_0000DD30
+	beq.b blank_cursor_text_plane_one
 	movea.l a2,a3
-abs_0_0000DCF0:
+select_cursor_text_plane_zero:
 	btst #0,d1
-	beq.b abs_0_0000DD36
-abs_0_0000DCF6:
+	beq.b blank_cursor_text_plane_zero
+draw_cursor_glyph_and_restore_font:
 	bsr.w draw_planar_glyph_rows
 	tst.b text_inverse_flag.l
-	beq.b abs_0_0000DD0A
+	beq.b advance_text_cursor_after_glyph
 	movea.l (a7)+,a2
 	not.l (a2)
 	not.l $0004(a2)
-abs_0_0000DD0A:
+advance_text_cursor_after_glyph:
 	move.b text_cursor_column.l,d0
 	addq.b #1,d0
-	cmp.b #$28,d0
-	beq.w abs_0_0000DD94
+	cmp.b #SG2_TEXT_CURSOR_COLUMNS,d0
+	beq.w wrap_text_cursor_after_last_column
 	move.b d0,text_cursor_column.l
-	bra.w abs_0_0000DC72
-abs_0_0000DD24:
+	bra.w read_next_cursor_text_byte
+blank_cursor_text_plane_three:
 	lea.l keyboard_translation_seed+118(pc),a5
-	bra.b abs_0_0000DCE0
-abs_0_0000DD2A:
+	bra.b select_cursor_text_plane_two
+blank_cursor_text_plane_two:
 	lea.l keyboard_translation_seed+118(pc),a4
-	bra.b abs_0_0000DCE8
-abs_0_0000DD30:
+	bra.b select_cursor_text_plane_one
+blank_cursor_text_plane_one:
 	lea.l keyboard_translation_seed+118(pc),a3
-	bra.b abs_0_0000DCF0
-abs_0_0000DD36:
+	bra.b select_cursor_text_plane_zero
+blank_cursor_text_plane_zero:
 	lea.l keyboard_translation_seed+118(pc),a2
-	bra.b abs_0_0000DCF6
-abs_0_0000DD3C:
+	bra.b draw_cursor_glyph_and_restore_font
+commit_text_cursor_pointer_and_return:
 	move.l a0,text_cursor_destination_pointer.l
 	movem.l (a7)+,d0-d7/a0-a6
 	rts
-abs_0_0000DD48:
+carriage_return_text_cursor:
 	move.b text_cursor_column.l,d0
 	move.l a0,d7
 	suba.l d0,a0
 	clr.b text_cursor_column.l
-	bra.w abs_0_0000DC72
+	bra.w read_next_cursor_text_byte
 	dc.b $52,$88,$60,$F0
-abs_0_0000DD60:
+line_feed_text_cursor:
 	move.b text_cursor_row.l,d0
 	addq.b #1,d0
-	cmp.b #$19,d0
-	beq.w abs_0_0000DD80
+	cmp.b #SG2_TEXT_CURSOR_ROWS,d0
+	beq.w wrap_line_feed_cursor_to_display_base
 	move.b d0,text_cursor_row.l
-	adda.l #$140,a0
-	bra.w abs_0_0000DC72
-abs_0_0000DD80:
+	adda.l #SG2_TEXT_ROW_BYTES,a0
+	bra.w read_next_cursor_text_byte
+wrap_line_feed_cursor_to_display_base:
 	clr.b text_cursor_row.l
 	clr.b text_cursor_column.l
 	movea.l display_buffer_base(a6),a0
-	bra.w abs_0_0000DC72
-abs_0_0000DD94:
-	adda.w #$118,a0
+	bra.w read_next_cursor_text_byte
+wrap_text_cursor_after_last_column:
+	adda.w #SG2_TEXT_GLYPH_WRAP_TAIL_BYTES,a0
 	clr.b text_cursor_column.l
 	move.b text_cursor_row.l,d0
 	addq.b #1,d0
-	cmp.b #$19,d0
-	beq.b abs_0_0000DDB6
+	cmp.b #SG2_TEXT_CURSOR_ROWS,d0
+	beq.b wrap_glyph_cursor_to_display_base
 	move.b d0,text_cursor_row.l
-	bra.w abs_0_0000DC72
-abs_0_0000DDB6:
+	bra.w read_next_cursor_text_byte
+wrap_glyph_cursor_to_display_base:
 	movea.l display_buffer_base(a6),a0
 	clr.b text_cursor_row.l
-	bra.w abs_0_0000DC72
-abs_0_0000DDC4:
+	bra.w read_next_cursor_text_byte
+    ; Shared continuation: both text walkers saved the same register frame. Inverse controls continue in the cursor reader and may commit its globals even for positioned callers.
+enable_inverse_and_enter_cursor_text:
 	move.b #$FF,text_inverse_flag.l
-	bra.w abs_0_0000DC72
-abs_0_0000DDD0:
+	bra.w read_next_cursor_text_byte
+disable_inverse_and_enter_cursor_text:
 	clr.b text_inverse_flag.l
-	bra.w abs_0_0000DC72
-abs_0_0000DDDA:
-	addq.b #6,text_cursor_column.l
-	addq.l #6,a0
-	bra.w abs_0_0000DC72
+	bra.w read_next_cursor_text_byte
+advance_text_cursor_six_columns:
+	addq.b #SG2_TEXT_TAB_ADVANCE,text_cursor_column.l
+	addq.l #SG2_TEXT_TAB_ADVANCE,a0
+	bra.w read_next_cursor_text_byte
 draw_planar_glyph_rows:
 	move.b (a2)+,$0000(a0)
 	move.b (a3)+,$2000(a0)
@@ -16506,17 +16524,20 @@ text_input_start_pointer:
 	dc.l $00000000
 text_inverse_flag:
 	dc.b $00
-abs_0_0000DE79:
-	dc.b $01,$20,$02,$00
-abs_0_0000DE7D:
-	dc.b $02,$20,$02,$00
+text_input_cursor_show_sequence:
+	dc.b $01," ",$02,$00
+text_input_cursor_hide_sequence:
+	dc.b $02," ",$02,$00
 text_cursor_column:
 	dc.b $00
 text_cursor_row:
 	dc.b $00
 	dc.b $00
-abs_0_0000DE84:
-	dc.b $00,$00,$20,$20
+text_input_echo_text:
+	dc.b $00	; Mutable one-character echo followed by original NUL backing.
+text_input_echo_nul_backing:
+	dc.b $00	; Mutable one-character echo followed by original NUL backing.
+	dc.b $20,$20
 text_cursor_destination_pointer:
 	dc.l $00077B50
     ; 128 stored key flags. Amiga producer usesFF/0; alternate serial producer uses1/0 and startup clears only first112bytes. Shared consumers test truth values; no uniform press encoding claim.

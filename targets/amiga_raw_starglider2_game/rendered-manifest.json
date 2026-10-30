@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "source_commit": "7fd0b7cadda1e7a714c87e46356b334227fb2293",
+  "source_commit": "aec25358321b62290d60ea849a8406eef5bb596e",
   "source_assembly": "starglider2_game.s",
   "assets": [
     {
@@ -878,13 +878,13 @@
     },
     {
       "path": "rendered-provenance.json",
-      "bytes": 3339,
-      "sha256": "44fc9aeba97d15d5405229b672ec6226bc3b48a1e8a27baef85c856d167650e3"
+      "bytes": 3355,
+      "sha256": "59877191f818706b34915026acf16e25af57cadbff21e234781f85a2fa8bd2a3"
     },
     {
       "path": "starglider2_game.s",
-      "bytes": 2050021,
-      "sha256": "192a76de78acb84b81e5d56372c8c8930bebdf7a315c680ed0aad33fe53e54e0"
+      "bytes": 2053595,
+      "sha256": "bc4d4669e5baa423f2e4e0205311a033671969e7037c800bd1e500c029d4789d"
     },
     {
       "path": "tools/starglider2_protection.py",
@@ -892,6 +892,6 @@
       "sha256": "81d3f66d36dbfbd5c77238b20c28e8b9abaa329777eb91f64669bbbf13703582"
     }
   ],
-  "source_commit_role": "canonical source publication base; the publishing commit reconstructs original save-name directory lookup/copy/staging and derived runtime-alias provenance; no UI/disk/runtime or global bounds/lifetime proof; output is bound by verification_receipt_id",
-  "source_subject_revision": "9fe759f5f490bce536d4171a6baa261403917f665db2c32ae1c84e5ca72e832f"
+  "source_commit_role": "canonical source publication base; the publishing commit reconstructs original text editor and planar text continuations; isolated CPU/key/RAM fixtures only, no normal-media, hardware scanout or global buffer/lifetime proof; output is bound by verification_receipt_id",
+  "source_subject_revision": "9192e152b6308ffd418f127891346e9cd5e0411d38714770fca06de2fcaaf6e8"
 }

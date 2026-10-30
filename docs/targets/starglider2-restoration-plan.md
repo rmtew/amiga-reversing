@@ -7,7 +7,7 @@ that further analysis is exhausted. Current source remains byte exact: all
 with all 106034 accepted code bytes retained. No generated assembly was edited
 by hand and no interim archive was produced.
 
-The current ownership union leaves 11188 bytes in
+The current ownership union leaves 11178 bytes in
 271 intervals unclassified. This is classification accounting,
 not a semantic completion percentage. Earlier interval/site counts below belong
 to their recorded closeout revision. See the current
@@ -16,7 +16,7 @@ to their recorded closeout revision. See the current
 
 ## Current refinement and next evidence
 
-Current native totals: **3509 app /2716 typed /165 unresolved**, with **11188
+Current native totals: **3509 app /2716 typed /165 unresolved**, with **11178
 unclassified bytes /271 intervals**. The earlier counter-indexed source-array recovery reused
 the shared loop induction and interned linear entry values. Original inventory
 readers at source `$DD6` and `$339B4` expose the existing name-reference `text`
@@ -26,6 +26,27 @@ Its startup caller proof added five header reads and six app accesses,
 and strengthened 38 app-base attributions.
 Conditional skips mean104 outer iterations are not104 observed memory reads.
 Loaded pointer values remain subject to separate alias/target validation.
+
+The text-input/planar-text batch reconstructs 50 connected continuations,
+two control-prefixed cursor marker strings, the mutable echo byte/NUL backing,
+and six scoped geometry constants. Separate positioned/cursor readers now expose
+CR/LF differences, literal six-column TAB, plane selection, local font inversion
+and the shared inverse-control transfer into the cursor loop. The original
+keyboard-translation-tail alias for blank glyph rows remains explicit.
+
+59 original-instruction CPU fixtures pass: editor/key translation and register
+restoration, mouse/fire exit without key consumption, all 16 plane masks with
+inverse on/off, positioned control transfer, cursor wraps and deletion steps.
+The last-column marker fixture preserves the original column 255/row 1 drift
+for its supplied caller state. The previous-row deletion fixture retains the
+322-byte rewind; neither case proves a real game caller reaches that state.
+No arbitrary buffer/cursor safety, hardware scanout or interrupt-time font
+ownership is certified. No native implementation or proof rule changed.
+Access/address/CFG/summary vectors remain identical; C/vasm and clean standalone
+output preserve all 412736 bytes, with 57 assets and 14 headers unchanged.
+Ten newly classified bytes leave 11178 bytes in 271 intervals. Next connected
+lead: message-line/timed-message caller continuations, preserving their existing
+saved-frame and non-local control-flow distinctions.
 
 The save-directory batch reconstructs 20 entries/continuations, the 36-byte
 mutable input backing, three runtime address points and six scoped scalar
@@ -46,8 +67,7 @@ address, CFG and summary vectors are identical. The input layout accounts for
 36 previously unclassified bytes, leaving 11188 bytes in 271 intervals. These
 are isolated instruction/source checks, not UI, disk I/O or non-local save-return
 coverage. The earlier final blitter continuation still has no trailing completion
-wait. Next source lead: the connected text-input/backspace continuations; the
-unproven scene sequence/lifetime contract remains separate.
+wait. The unproven scene sequence/lifetime contract remains separate.
 
 Phase-specific scene headers now expose `vertices_end` and `fill_style` for
 cycled packets, and `fill_style` and `first_scanline` for spans. Source `$3CAF0`
