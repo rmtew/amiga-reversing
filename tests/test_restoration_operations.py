@@ -633,3 +633,25 @@ def test_expression_query_preserves_native_field_and_shared_source_identity(targ
     assert result['items'][0]['section_index']==0
     assert result['items'][0]['source_section_index']==0
     assert result['items'][0]['instruction_field']['extension_bytes']==4
+
+
+def test_function_query_projects_native_names_and_searches_original_alias(target, monkeypatch):
+    artifact = target.backend._LISTING_PROJECTION_SERVICE.valid_artifact()
+    monkeypatch.setattr(artifact, 'analysis_payload', lambda: ({'sections': [{
+        'section_index': 0, 'blocks': [{'start_offset': 0, 'end_offset': 4}], 'edges': [],
+        'code_start_refs': [{'offset': 0, 'reason_name': 'section_entry'}],
+        'symbol_origins': [{'offset': 0, 'symbol_name': 'loc_0_00000000'}]}]}, {}), raising=False)
+    target.native_symbols[:] = [dict(name='restored_start', section_index=0, source_offset=0,
+        name_is_generated=False,
+        declaration_kind=1, provenance='typed_render_declaration',
+        source_symbol=dict(section_index=0, source_offset=0))]
+    restoration._FUNCTION_CACHE.clear()
+    try:
+        for name in ['restored_start', 'loc_0_00000000']:
+            result = invoke('query', kind='functions', query=name)
+            assert result['total'] == 1
+            assert result['items'][0]['name'] == 'restored_start'
+            assert result['items'][0]['names'] == ['loc_0_00000000', 'restored_start']
+        assert len(target.calls) == 1  # projection is reused for the same subject revision
+    finally:
+        restoration._FUNCTION_CACHE.clear()

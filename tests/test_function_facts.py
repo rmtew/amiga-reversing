@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import pytest
+
 from amiga_reversing.disasm import function_facts
 
 
@@ -180,3 +182,62 @@ def test_analysis_function_resolved_offset_without_block_is_partial() -> None:
     fact = result["functions"][0]
     assert fact["ownership_status"] == "partial"
     assert "flow_target_not_accepted_block" in fact["unknowns"]
+
+
+def test_analysis_function_names_use_frozen_source_labels_without_adding_entries():
+    analysis = {"sections": [{"section_index": 0,
+        "blocks": [{"start_offset": 0, "end_offset": 4}], "edges": [],
+        "code_start_refs": [{"offset": 0, "reason_name": "section_entry"}],
+        "symbol_origins": [{"offset": 0, "symbol_name": "loc_0_00000000"},
+                           {"offset": 2, "symbol_name": "interior"}]}]}
+    calls = []
+    def symbol(name, **changes):
+        return dict(name=name, provenance="typed_render_declaration", declaration_kind=1,
+                    name_is_generated=False,
+                    section_index=0, source_offset=0,
+                    source_symbol=dict(section_index=0, source_offset=0), **changes)
+    good = symbol("restored_entry")
+    equate = symbol("not_a_label"); equate["declaration_kind"] = 2
+    wrong_domain = symbol("same_number_elsewhere"); wrong_domain["source_symbol"] = dict(section_index=1, source_offset=0)
+    interior = symbol("not_an_entry"); interior["source_offset"] = 2
+    def query(**options):
+        calls.append(options)
+        assert options["section_index"] == 0 and options["source_offset"] == 0
+        if options["offset"] == 0:
+            return dict(items=[equate, wrong_domain, interior], has_more=True)
+        assert options["offset"] == 3
+        return dict(items=[good], has_more=False)
+    before = function_facts.analysis_function_facts("test", analysis)
+    after = function_facts.analysis_function_facts("test", analysis, symbol_query=query)
+    assert len(after["functions"]) == 1
+    entry = after["functions"][0]
+    assert entry["name"] == "restored_entry"
+    assert entry["names"] == ["loc_0_00000000", "restored_entry"]
+    assert entry["name_evidence"][-1] == good
+    for key in before["functions"][0].keys() - {"name", "names", "name_evidence"}:
+        assert entry[key] == before["functions"][0][key]
+    assert len(calls) == 2
+
+
+def test_analysis_function_symbol_pagination_refuses_no_progress():
+    analysis = {"sections": [{"section_index": 0, "blocks": [], "edges": [],
+        "code_start_refs": [{"offset": 0, "reason_name": "section_entry"}]}]}
+    with pytest.raises(ValueError, match="no progress"):
+        function_facts.analysis_function_facts("test", analysis,
+            symbol_query=lambda **_: dict(items=[], has_more=True))
+
+
+@pytest.mark.parametrize('generated', [True, None])
+def test_generated_or_unversioned_render_name_keeps_existing_function_name(generated):
+    analysis = {'sections': [{'section_index': 0, 'blocks': [], 'edges': [],
+        'code_start_refs': [{'offset': 0, 'reason_name': 'section_entry'}],
+        'symbol_origins': [{'offset': 0, 'symbol_name': 'original_entry'}]}]}
+    row = dict(name='abs_0_00001000', provenance='typed_render_declaration',
+               declaration_kind=1, section_index=0, source_offset=0,
+               source_symbol=dict(section_index=0, source_offset=0))
+    if generated is not None:
+        row['name_is_generated'] = generated
+    result = function_facts.analysis_function_facts('test', analysis,
+        symbol_query=lambda **_: dict(items=[row], has_more=False))['functions'][0]
+    assert result['name'] == 'original_entry'
+    assert result['names'] == ['abs_0_00001000', 'original_entry']

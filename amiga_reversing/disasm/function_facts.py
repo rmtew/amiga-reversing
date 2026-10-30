@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections import defaultdict, deque
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 
 from amiga_reversing.disasm.manual_actions import load_manual_projection
 from amiga_reversing.disasm.project_paths import resolve_project_paths
@@ -181,11 +181,15 @@ _ENTRY_REASONS = frozenset({
 _EDGE_NAMES = {1: "fallthrough", 2: "branch", 3: "call", 4: "jump", 5: "return"}
 
 
-def analysis_function_facts(target_id: str, analysis: Mapping[str, object]) -> dict[str, object]:
+def analysis_function_facts(target_id: str, analysis: Mapping[str, object], *,
+                            symbol_query: Callable[..., dict[str, object]] | None = None) -> dict[str, object]:
     """Project exploratory function candidates from native entry and CFG facts.
 
-    Names (including accepted manual names) come from native symbol origins;
-    names never establish entry points. Ranges are reachable accepted blocks,
+    Names come from native symbol origins and, when supplied, frozen native
+    label declarations (which include accepted late renames). These declarations
+    name existing CFG candidates only; equates and numeric address coincidences
+    are not function identities. Names never establish entry points.
+    Ranges are reachable accepted blocks,
     not claimed exact function extents. This deliberately does not relax the
     stricter runtime ownership contract of ``canonical_function_facts``.
     """
@@ -270,10 +274,36 @@ def analysis_function_facts(target_id: str, analysis: Mapping[str, object]) -> d
                 unknowns.append("flow_target_not_accepted_block")
             origin_names = names.get(entry, [])
             aliases = sorted({str(n["symbol_name"]) for n in origin_names if n.get("symbol_name")})
+            original_name = aliases[0] if aliases else None
+            declared_names = []
+            if symbol_query is not None:
+                offset = 0
+                while True:
+                    page = symbol_query(kind="symbols", section_index=section_index,
+                                        source_offset=entry, offset=offset, limit=100)
+                    for item in page["items"]:
+                        identity = item.get("source_symbol")
+                        if (item.get("provenance") == "typed_render_declaration"
+                                and item.get("declaration_kind") == 1
+                                and item.get("section_index") == section_index
+                                and item.get("source_offset") == entry
+                                and isinstance(identity, Mapping)
+                                and identity.get("section_index") == section_index
+                                and identity.get("source_offset") == entry
+                                and isinstance(item.get("name"), str) and item["name"]):
+                            declared_names.append(dict(item))
+                    if not page.get("has_more"):
+                        break
+                    if not page["items"]:
+                        raise ValueError("Native symbol pagination made no progress.")
+                    offset += len(page["items"])
+            primary_names = sorted({item["name"] for item in declared_names
+                                    if item.get("name_is_generated") is False})
+            aliases = sorted(set(aliases) | {item["name"] for item in declared_names})
             facts.append({
                 "section_index": section_index, "source_offset": entry, "entry_offset": entry,
-                "name": aliases[0] if aliases else None, "names": aliases,
-                "name_evidence": origin_names, "entry_evidence": seeds[entry],
+                "name": primary_names[0] if primary_names else original_name or (aliases[0] if aliases else None), "names": aliases,
+                "name_evidence": origin_names + declared_names, "entry_evidence": seeds[entry],
                 "status": "candidate", "ownership_status": "unavailable" if not owned else "ambiguous" if shared else "partial" if unresolved or missing_blocks else "cfg_supported",
                 "ranges": _ranges([blocks[i] for i in sorted(owned)]),
                 "owned_blocks": [{"start_offset": blocks[i]["start_offset"], "end_offset": blocks[i]["end_offset"],

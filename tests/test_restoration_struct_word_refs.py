@@ -188,6 +188,8 @@ def test_normal_source_labels_anchor_word_fields_without_changing_struct_owner(t
                                                  end_offset=offset + 1, limit=100)
                 assert any(item["name"] == name and item["source_offset"] == offset
                            for item in symbols["items"])
+                assert any(item["name"] == name and item.get("name_is_generated") is False
+                           for item in symbols["items"])
             # Native symbol queries, rather than the accepted metadata alone,
             # must authorize these exact field anchors in the normal HTTP gate.
             _seed_c_listing_artifact(monkeypatch, "bloodwych", artifact)

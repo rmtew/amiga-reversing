@@ -232,11 +232,12 @@ def _query(target_id, body, current):
         if facts is None:
             analysis, _ = artifact.analysis_payload()
             _FUNCTION_CACHE.clear()  # one disposable projection; no unbounded revision retention
-            facts = analysis_function_facts(target_id, analysis)
+            facts = analysis_function_facts(target_id, analysis, symbol_query=artifact.query_payload)
             _FUNCTION_CACHE[key] = facts
         items = facts["functions"]
         if filters.get("query"):
-            items = [i for i in items if filters["query"].lower() in str(i.get("name", "")).lower()]
+            items = [i for i in items if any(filters["query"].lower() in name.lower()
+                                           for name in i.get("names", []))]
         if filters.get("section_index") is not None:
             items = [i for i in items if i["section_index"] == filters["section_index"]]
         if filters.get("source_offset") is not None:

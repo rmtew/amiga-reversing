@@ -373,7 +373,7 @@ canonical promotion. No generated inventory file is required.
 
 `query` text is a case-sensitive literal substring of symbol names for `symbols`
 and generated instruction text for `instructions`; it does not normalize numeric
-values or search instruction annotations. Function queries match names without
+values or search instruction annotations. Function queries match names and retained aliases without
 case sensitivity. Nonempty text queries for `references`, `fields`, `edges` and
 `gaps` are refused. Use their supported symbol, field or coordinate filters.
 
@@ -381,6 +381,14 @@ case sensitivity. Nonempty text queries for `references`, `fields`, `edges` and
 relations include `callers`, `callees`, `ranges`, `owned_blocks`,
 `unresolved_transfers`, `entry_evidence` and `name_evidence`. Ownership is a
 conservative candidate, not proof of a complete function boundary.
+
+Function names include source-bound label declarations from the frozen native
+render plan, so accepted late renames agree with the source export. The native
+`name_is_generated` flag keeps generated display aliases from replacing an
+existing descriptive name. Equates and mismatched source identities cannot name
+a function, and labels cannot create candidate entries. Original aliases and
+both kinds of name evidence remain inspectable. This does not strengthen CFG
+ownership, reachability or function-boundary claims.
 
 Native CFG queries include accepted traced destinations for indirect transfers,
 using each code-start fact's source section and instruction offset. A resolved

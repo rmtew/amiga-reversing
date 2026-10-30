@@ -134,6 +134,22 @@ unchanged. C/vasm and clean standalone output remain exact; no new PCM/DMA run
 was required for this source-ownership correction. Access totals remain
 **3503 app /2665 typed /162 unresolved**.
 
+The function inventory now projects accepted late names from frozen native label
+declarations, retaining original aliases and source-bound name evidence. This
+corrects **63** generated primary names among **514** existing CFG candidates;
+it adds no function entries, ownership, access meanings or runtime coverage.
+The native generated-name flag prevents display aliases from replacing existing
+descriptive names. Equates and mismatched source identities cannot name entries.
+All candidate ranges, callers, callees and uncertainty facts are unchanged.
+The target projection used 514 bounded native symbol queries in 4.08 seconds and
+is reused within the existing revision cache. Validation: 92 focused Python and
+832 native C tests; real restoration name/alias queries pass. The canonical
+source package matches the already byte-exact committed export, so no unchanged
+standalone rebuild or new dump was needed. Current totals remain
+**3503 app /2665 typed /162 unresolved**, with **11226 unknown bytes /271 intervals**.
+Use this corrected inventory before treating generated function names as a new
+semantic backlog; late-pointee and countdown-lifecycle leads remain separate.
+
 ### Recent validated batches (counts at each recorded revision)
 
 At the operand-role projection revision, native diagnostics expose generated operand roles directly:
