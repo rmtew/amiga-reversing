@@ -10829,6 +10829,12 @@ static void typed_flow_workflow_destroy(M68kRenderTypedFlowWorkflow *workflow) {
   memset(workflow, 0, sizeof(*workflow));
 }
 
+void m68k_analysis_render_lookup_release_source_flow(M68kRenderLookup *lookup) {
+  if (!lookup || !lookup->pending_source_flow) return;
+  typed_flow_workflow_destroy(lookup->pending_source_flow);
+  lookup->pending_source_flow = NULL;
+}
+
 static void typed_flow_graph_destroy(M68kRenderTypedFlowGraph *graph) {
   if (graph == NULL) return;
   memset(graph, 0, sizeof(*graph));
@@ -11727,6 +11733,8 @@ static int render_lookup_analyze_amiga_typed_refs(M68kRenderLookup *lookup,
       lookup->address_value_consumer_count = 0U;
       lookup->layout_field_use_count = 0U;
       lookup->typed_access_count = 0U;
+      lookup->unresolved_typed_access_count = 0U;
+      lookup->source_read_request_count = 0U;
       lookup->hardware_address_use_count = 0U;
       lookup->affine_address_use_count = 0U;
     }
@@ -11855,6 +11863,8 @@ static int typed_flow_record_final_accesses(M68kRenderLookup *lookup, const M68k
   if (workflow->section_count != decode->section_count) return -1;
   lookup->address_value_consumer_count = 0U;
   lookup->typed_access_count = 0U;
+  lookup->unresolved_typed_access_count = 0U;
+  lookup->source_read_request_count = 0U;
   lookup->hardware_address_use_count = 0U;
   lookup->affine_address_use_count = 0U;
   for (section_index = 0U; section_index < decode->section_count; ++section_index) {
@@ -12251,7 +12261,8 @@ static int source_analysis_has_exact_table_expression(const M68kSourceAnalysisIR
 
 static M68kRenderTableContractState source_analysis_table_contract_state(
     const M68kSourceAnalysisIR *source_analysis, const M68kRenderTypedProvenance *provenance,
-    M68kAddressValueTableOriginIR *access_origin) {
+    M68kAddressValueTableOriginIR *access_origin, const M68kAddressValueIR **out_match) {
+  if (out_match) *out_match = NULL;
   size_t section_index, value_index;
   const M68kAddressValueIR *match = NULL;
   if (source_analysis == NULL || provenance == NULL) {
@@ -12307,6 +12318,7 @@ static M68kRenderTableContractState source_analysis_table_contract_state(
     }
   }
   if (match == NULL) return M68K_RENDER_TABLE_CONTRACT_NOT_TABLE_DERIVED;
+  if (out_match) *out_match = match;
   if (match->origin_kind == M68K_PLATFORM_TYPE_PROVENANCE_STATIC_DATA &&
       match->table_origin.selection_kind == M68K_ADDRESS_VALUE_TABLE_SELECTION_BOUNDED_SOURCE_CURSOR &&
       match->resolution == M68K_ADDRESS_VALUE_RESOLUTION_TYPE_DOMAIN &&
@@ -12352,7 +12364,7 @@ void m68k_analysis_render_lookup_reconcile_typed_table_contracts(M68kRenderLooku
   retained = 0U;
   for (index = 0U; index < lookup->typed_access_count; ++index) {
     M68kRenderTypedAccess *access = &lookup->typed_accesses[index];
-    if (source_analysis_table_contract_state(source_analysis, &access->provenance, &access->table_origin) ==
+    if (source_analysis_table_contract_state(source_analysis, &access->provenance, &access->table_origin, NULL) ==
         M68K_RENDER_TABLE_CONTRACT_INVALID) continue;
     if (retained != index) lookup->typed_accesses[retained] = *access;
     ++retained;
@@ -12360,14 +12372,14 @@ void m68k_analysis_render_lookup_reconcile_typed_table_contracts(M68kRenderLooku
   lookup->typed_access_count = retained;
   for (index = 0U; index < lookup->typed_storage_slot_count; ++index) {
     M68kRenderTypedStorageSlot *slot = &lookup->typed_storage_slots[index];
-    if (source_analysis_table_contract_state(source_analysis, &slot->value.provenance, &slot->value.table_origin) !=
+    if (source_analysis_table_contract_state(source_analysis, &slot->value.provenance, &slot->value.table_origin, NULL) !=
         M68K_RENDER_TABLE_CONTRACT_INVALID) continue;
     slot->conflicted = 1U;
     typed_stored_value_clear(&slot->value);
   }
   for (index = 0U; index < lookup->address_value_consumer_count; ++index) {
     M68kRenderTypedAddressConsumer *consumer = &lookup->address_value_consumers[index];
-    if (source_analysis_table_contract_state(source_analysis, &consumer->provenance, &consumer->value.table_origin) !=
+    if (source_analysis_table_contract_state(source_analysis, &consumer->provenance, &consumer->value.table_origin, NULL) !=
         M68K_RENDER_TABLE_CONTRACT_INVALID) continue;
     typed_stored_value_clear(&consumer->value);
   }
@@ -12399,7 +12411,7 @@ void m68k_analysis_render_lookup_reconcile_typed_table_contracts(M68kRenderLooku
           table_origin.index_min = access->table_index_min;
           table_origin.index_max = access->table_index_max;
         }
-      if (source_analysis_table_contract_state(source_analysis, &provenance, &table_origin) ==
+      if (source_analysis_table_contract_state(source_analysis, &provenance, &table_origin, NULL) ==
           M68K_RENDER_TABLE_CONTRACT_INVALID) continue;
       if (table_origin.selection_kind == M68K_ADDRESS_VALUE_TABLE_SELECTION_BOUNDED_SOURCE_CURSOR) {
         access->table_selection_kind = table_origin.selection_kind;
@@ -17500,7 +17512,13 @@ int m68k_analysis_render_lookup_run_platform_passes(M68kRenderLookup *lookup, co
   typed_flow_filter_nonapp_fallbacks(lookup, decode, &typed_flow_workflow);
   /* Loop proof deliberately borrows node value storage after projection. */
   if (typed_flow_record_app_loop_ranges(lookup, decode, accepted_start, &typed_flow_workflow) != 0) goto typed_flow_fail;
-  if (typed_prune_resolved_indexed_diagnostics(lookup) != 0) goto typed_flow_fail;
+  if (typed_prune_resolved_indexed_diagnostics(lookup) != 0 || lookup->source_domain_error) goto typed_flow_fail;
+  if (lookup->source_read_request_count) {
+    lookup->pending_source_flow = arena_alloc(lookup->arena, sizeof(*lookup->pending_source_flow));
+    if (!lookup->pending_source_flow) goto typed_flow_fail;
+    *lookup->pending_source_flow = typed_flow_workflow;
+    memset(&typed_flow_workflow, 0, sizeof(typed_flow_workflow));
+  }
   typed_flow_workflow_destroy(&typed_flow_workflow);
   end = clock();
   if (stats != NULL) stats->typed_ref_seconds = elapsed_seconds_local(start, end);
@@ -18273,3 +18291,5 @@ fail:
   return -1;
 }
 
+
+#include "m68k_typed_source_domains.inc"

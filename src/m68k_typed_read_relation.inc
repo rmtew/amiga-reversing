@@ -90,6 +90,10 @@ static void typed_read_note_writes(M68kRenderLookup *lookup, M68kRenderTypedStat
   if (id && id <= lookup->scalar_read_relation_count) { \
     const M68kRenderScalarReadRelation *read = &lookup->scalar_read_relations[id - 1U]; \
     int kill = !known; \
+    if (!kill && read->source_domain_id) { \
+      const M68kRenderSourceDomain *domain = &lookup->source_domains[read->source_domain_id - 1U]; \
+      if ((uint64_t)address < domain->address_end && domain->address_min < (uint64_t)address + span) kill = 1; \
+    } \
     for (uint8_t i = 0U; !kill && i < read->count; ++i) { \
       uint64_t end = (uint64_t)read->roots[i] + lookup_policy_struct_size_by_id(lookup->policy, read->types[i]); \
       if ((uint64_t)address < end && (uint64_t)read->roots[i] < (uint64_t)address + span) kill = 1; \
@@ -104,6 +108,63 @@ static void typed_read_note_writes(M68kRenderLookup *lookup, M68kRenderTypedStat
 #undef INVALIDATE_READ
     if (opaque) break;
   }
+}
+
+static uint32_t typed_read_source_domain(const M68kRenderLookup *lookup,
+    const M68kRenderTypedRegValue *base) {
+  if (!base->table_origin.has_origin || base->provenance.kind != M68K_PLATFORM_TYPE_PROVENANCE_STATIC_DATA ||
+      base->provenance.merge_conflicted) return 0U;
+  for (size_t i = 0U; i < lookup->source_domain_count; ++i) {
+    const M68kRenderSourceDomain *domain = &lookup->source_domains[i];
+    if (domain->struct_id == base->struct_id &&
+        domain->producer.section_index == base->provenance.section_index &&
+        domain->producer.offset == base->provenance.offset &&
+        domain->producer.producer_operand_index == base->provenance.producer_operand_index &&
+        domain->origin.table_section_index == base->table_origin.table_section_index &&
+        domain->origin.table_start_offset == base->table_origin.table_start_offset) return (uint32_t)i + 1U;
+  }
+  return 0U;
+}
+
+static int typed_read_domain_partition(const M68kRenderLookup *lookup, const M68kRenderSourceDomain *domain,
+    int32_t cursor, uint16_t *zero_type, uint16_t *nonzero_type) {
+  int have_zero = 0, have_nonzero = 0;
+  *zero_type = *nonzero_type = AMIGA_OS_STRUCT_ID_NONE;
+  for (size_t i = 0U; i < domain->member_count; ++i) {
+    const M68kRenderSourceDomainMember *member = &domain->members[i];
+    const M68kSection *source = &lookup->object->sections[member->section_index];
+    if (cursor < 0 || (uint64_t)cursor + 2U > member->size || !source->data ||
+        member->offset > source->size || (uint64_t)cursor + 2U > source->size - member->offset) return 0;
+    const uint8_t *bytes = source->data + member->offset + cursor;
+    if (!bytes[0] && !bytes[1]) {
+      *zero_type = have_zero ? typed_struct_id_common_merge(lookup->policy, *zero_type, member->struct_id) : member->struct_id;
+      have_zero = 1;
+    } else {
+      *nonzero_type = have_nonzero ? typed_struct_id_common_merge(lookup->policy, *nonzero_type, member->struct_id) : member->struct_id;
+      have_nonzero = 1;
+    }
+  }
+  return (!have_zero || *zero_type != AMIGA_OS_STRUCT_ID_NONE) &&
+    (!have_nonzero || *nonzero_type != AMIGA_OS_STRUCT_ID_NONE);
+}
+
+static void typed_read_defer_source_domain(M68kRenderLookup *lookup, const M68kRenderTypedRegValue *base,
+    int32_t cursor) {
+  if (lookup->source_domain_pass_done || lookup->suppress_address_value_observations ||
+      !base->table_origin.has_origin || base->provenance.kind != M68K_PLATFORM_TYPE_PROVENANCE_STATIC_DATA ||
+      base->provenance.merge_conflicted) return;
+  /* Only the converged recording epoch appends requests; it visits each read
+   * once. Reset requests with that epoch, rather than quadratic dedup scans. */
+  if (lookup->source_read_request_count == lookup->source_read_request_capacity) {
+    size_t capacity = lookup->source_read_request_capacity ? lookup->source_read_request_capacity * 2U : 16U;
+    M68kRenderSourceReadRequest *grown = render_lookup_grow_array(lookup, lookup->source_read_requests,
+      lookup->source_read_request_count, sizeof(*grown), capacity);
+    if (!grown) { lookup->source_domain_error = 1U; return; }
+    lookup->source_read_requests = grown; lookup->source_read_request_capacity = capacity;
+  }
+  M68kRenderSourceReadRequest *request = &lookup->source_read_requests[lookup->source_read_request_count++];
+  memset(request, 0, sizeof(*request)); request->producer = base->provenance;
+  request->origin = base->table_origin; request->struct_id = base->struct_id; request->field_cursor = cursor;
 }
 
 static uint16_t typed_read_capture(M68kRenderLookup *lookup, M68kRenderTypedState *state,
@@ -128,15 +189,21 @@ static uint16_t typed_read_capture(M68kRenderLookup *lookup, M68kRenderTypedStat
   }
   if (base_reg >= 7U) return 0U;
   base = &state->addr_regs[base_reg];
-  if (!base->known || base->type_conflicted || !base->pointer_value_known ||
-      !base->pointer_candidate_count || base->pointer_candidate_count > 4U || base->address_value_candidate_overflow)
-    return 0U;
+  if (!base->known || base->type_conflicted || base->address_value_candidate_overflow) return 0U;
   field_cursor = (int64_t)base->byte_cursor + displacement;
   if (field_cursor < 0 || field_cursor > INT16_MAX ||
       !lookup_policy_resolve_struct_field(lookup->policy, base->struct_id, (int16_t)field_cursor, 2U, &field) ||
       field.offset != field_cursor || field.size != 2U) return 0U;
   read.section_index = section_index; read.offset = offset; read.field_cursor = (int32_t)field_cursor;
-  read.count = base->pointer_candidate_count;
+  if (!base->pointer_value_known || !base->pointer_candidate_count) {
+    read.source_domain_id = typed_read_source_domain(lookup, base);
+    if (!read.source_domain_id) { typed_read_defer_source_domain(lookup, base, (int32_t)field_cursor); return 0U; }
+    if (!typed_read_domain_partition(lookup, &lookup->source_domains[read.source_domain_id - 1U],
+        (int32_t)field_cursor, &read.zero_type, &read.nonzero_type)) return 0U;
+  } else {
+    if (base->pointer_candidate_count > 4U) return 0U;
+    read.count = base->pointer_candidate_count;
+  }
   for (uint8_t i = 0U; i < read.count; ++i) {
     uint32_t root = base->pointer_candidates[i], mapped = 0U;
     size_t source_section = SIZE_MAX; uint32_t source_offset = 0U;
@@ -223,8 +290,9 @@ static void typed_read_refine_edge(const M68kRenderLookup *lookup, const M68kRen
     roots[count++] = read->roots[i];
     type = count == 1U ? read->types[i] : typed_struct_id_common_merge(lookup->policy, type, read->types[i]);
   }
+  if (read->source_domain_id) type = zero ? read->zero_type : read->nonzero_type;
   /* Impossible edges remain conservatively unrefined; no reachability claim. */
-  if (!count || count == read->count || type == AMIGA_OS_STRUCT_ID_NONE) return;
+  if ((!read->source_domain_id && (!count || count == read->count)) || type == AMIGA_OS_STRUCT_ID_NONE) return;
 #define REFINE_READ(value) do { \
   if ((value)->read_relation == handle && !(value)->address_value_candidate_overflow) { \
     if ((value)->pointer_value_known) { \
@@ -238,8 +306,9 @@ static void typed_read_refine_edge(const M68kRenderLookup *lookup, const M68kRen
     } \
     (value)->struct_id = type; (value)->output = NULL; (value)->known = 1U; \
     (value)->pointer_target_known = 0U; (value)->array_element_count = 1U; (value)->array_element_index = 0U; \
-    (value)->provenance = typed_provenance_make(M68K_PLATFORM_TYPE_PROVENANCE_PREFIX_REFINEMENT, \
-      read->section_index, predecessor->candidate->offset); \
+    if (!(value)->table_origin.has_origin) \
+      (value)->provenance = typed_provenance_make(M68K_PLATFORM_TYPE_PROVENANCE_PREFIX_REFINEMENT, \
+        read->section_index, predecessor->candidate->offset); \
   } \
 } while (0)
   TYPED_READ_VISIT_VALUES(state, REFINE_READ);

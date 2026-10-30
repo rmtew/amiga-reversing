@@ -247,16 +247,34 @@ earlier read relation. Final qualification after executor recovery took202.62s;
 preliminary generations took201.21s/220.93s before the snapshot guard and180.92s
 with it. These measurements do not establish a speedup.
 
-The original optional-header read is still unresolved. Private2-entry and104-entry
-loop experiments both obtain a validated bounded-source-cursor type domain, yet
-the guarded extra read remains a gap. That canonical domain is bound after the
-earlier typed CFG solve and is not available there as a correlated input. Next:
-feed validated source domains through the existing typed value machinery, then
-handle the guarded-format contract for writable inputs. Do not duplicate the
-binder, raise candidate limits, assume header bytes immutable after unknown
-effects, or annotate the reader as HeaderAux. The original caller's index domain
-also remains a separate producer obligation. These are concrete prerequisites,
-not a claim that the synthetic result has fixed the104-entry game reader.
+Validated directory domains now feed back into the existing typed solver after
+canonical source binding. The native binder remains the sole owner of member,
+prefix, bounds and conflict validation; the transient projection retains exact
+source coordinates and types. The existing graph is reused for one explicit
+producer-validation/refinement phase, followed by revalidation of every consumed
+domain. Neither numeric pointer candidate limits nor reader-specific types are
+added. The closed2-entry and104-entry guarded-extension fixtures now recover the
+child field, including duplicate targets and direct-call transport. Null/invalid
+members, excluded children, mutation, exposed entries, clobbers and unsafe loop
+calls refuse. Source projection rebuilds do not replay decode or reachability.
+
+Qualification:282 focused Python cases pass with three existing expected failures;
+all832 native C cases pass. Original C/vasm and a clean standalone build remain
+exact;57 assets/14 headers, SGII source, access vectors, address values and CFG
+are unchanged. Fresh native analysis took226.97s (previous202.62s; single runs,
+not a performance improvement claim). End-to-end qualification peaked at
+2754824KiB RSS, including artifact and assembler/oracle work; this is not a
+measurement of the feedback graph alone. No observation dump is committed.
+
+The original optional-header read remains unresolved. SGII's current raw-binary
+policy has no canonical SECTION_ENTRY/POLICY_ENTRY_OFFSET snapshot root; the
+runtime entry is a policy entry point instead. A matching raw-binary refusal
+fixture prevents silently granting immutable initial bytes. Next distinguish a
+proven initial-image entry from callable/discovery entries in the existing
+canonical entry provenance, then test its mutation lifetime. Writable-input
+guarded-format contracts and the original caller index-domain proof remain
+separate obligations. A closed source fixture does not establish either for the
+104-entry game reader.
 
 An on-demand systematic gap inventory (`amiga_reversing/tools/source_gap_inventory.py`)
 joins native identities/accesses with canonical layouts and actual rendered

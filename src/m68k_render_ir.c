@@ -6572,6 +6572,7 @@ static void render_lookup_set_label(M68kRenderLookup *lookup, size_t section_ind
 
 void m68k_render_lookup_destroy(M68kRenderLookup *lookup) {
   if (lookup == NULL) return;
+  m68k_analysis_render_lookup_release_source_flow(lookup);
   arena_destroy(lookup->arena);
   memset(lookup, 0, sizeof(*lookup));
 }

@@ -11,20 +11,22 @@ from amiga_reversing.disasm.effective_metadata import effective_metadata_file
 def header_table_artifact(tmp_path, loop=True, count=2, trips=None, setup='', body='',
                           null=False, mixed=False, aliases=False, exposure=False,
                           indexed=False, index_code=None, index_register='d2',
-                          reference_records=False, derived=False, index_displacement=0):
+                          reference_records=False, derived=False, index_displacement=0, after_count='',
+                          zero_counts=False, null_prefix=False, code_tail='', target_type='program'):
     trips=count if trips is None else trips
     counter='move.w d5,d4'if trips=='unknown'else f'move.w #{trips-1},d4'
     directory=['first'if aliases else f'header_{i}'for i in range(count)]
     if null:directory[-1]='0'
     if mixed:directory[-1]='other_record'
     if derived:directory[-1]='derived_record'
+    if null_prefix:directory[0]='0'
     text=(' SECTION code,code\n ORG $1000\n'+(' lea.l again.l,a5\n'if exposure else'')+
           ' lea.l directory(pc),a3\n '+counter+'\n '+setup+'\nagain:\n '+body+
           ('\n '+(index_code or'move.w d4,d2\n lsl.w #2,d2')+
            f'\n movea.l {index_displacement}(a3,{index_register}.w),a0\n'if indexed
-           else'\n movea.l (a3)+,a0\n')+' move.w (a0)+,d0\n move.w (a0),d1\n'+
-          (' dbf d4,again\n'if loop else'')+' rts\ndirectory:\n'+''.join(' dc.l '+','.join(directory[i:i+8])+'\n'for i in range(0,count,8))+'first:\n'+
-          ''.join(f'header_{i}:dc.w {i+1},{i+2}\n'for i in range(count))+
+           else'\n movea.l (a3)+,a0\n')+' move.w (a0)+,d0\n'+after_count+' move.w (a0),d1\n'+
+          (' dbf d4,again\n'if loop else'')+' rts\n'+code_tail+'directory:\n'+''.join(' dc.l '+','.join(directory[i:i+8])+'\n'for i in range(0,count,8))+'first:\n'+
+          ''.join(f'header_{i}:dc.w {0 if zero_counts else i+1},{i+2}\n'for i in range(count))+
           ('other_record:dc.w 99,98\n'if mixed else'')+
           ('derived_record:dc.w 99,98\n dc.l 123\n'if derived else''))
     original,_=c_backend.assemble_platform_source_text_with_c_backend('amiga-raw',text)
@@ -33,7 +35,7 @@ def header_table_artifact(tmp_path, loop=True, count=2, trips=None, setup='', bo
     source=RawBinarySource(kind=BinarySourceKind.RAW_BINARY,path=binary,
         address_model=RawAddressModel.RUNTIME_ABSOLUTE,load_address=0x1000,entrypoint=0x1000,
         code_start_offset=0,display_path=str(binary),analysis_cache_path=tmp_path/'analysis')
-    write_target_metadata(tmp_path,TargetMetadata(target_type='program',entry_register_seeds=()))
+    write_target_metadata(tmp_path,TargetMetadata(target_type=target_type,entry_register_seeds=()))
     actions=[]
     def add(command,parameters):
         kind,payload=target_catalog_manual_payload(command,parameters)

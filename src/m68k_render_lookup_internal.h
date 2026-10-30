@@ -773,12 +773,45 @@ typedef struct M68kRenderScalarReadRelation {
   size_t section_index;
   uint32_t offset;
   int32_t field_cursor;
+  uint32_t source_domain_id;
+  uint16_t zero_type, nonzero_type;
   uint32_t roots[4], values[4];
   uint16_t types[4];
   uint8_t count;
 } M68kRenderScalarReadRelation;
 
+/* Transient projections of the canonical binder's accepted source domain.
+ * They preserve source coordinates/types; no numeric candidate cap is expanded. */
+typedef struct M68kRenderSourceDomainMember {
+  size_t section_index;
+  uint32_t offset, address, size;
+  uint16_t struct_id;
+} M68kRenderSourceDomainMember;
+
+typedef struct M68kRenderSourceDomain {
+  M68kRenderTypedProvenance producer;
+  M68kAddressValueTableOriginIR origin;
+  uint16_t struct_id;
+  M68kRenderSourceDomainMember *members;
+  size_t member_count;
+  uint32_t address_min;
+  uint64_t address_end;
+} M68kRenderSourceDomain;
+
+typedef struct M68kRenderSourceReadRequest {
+  M68kRenderTypedProvenance producer;
+  M68kAddressValueTableOriginIR origin;
+  uint16_t struct_id;
+  int32_t field_cursor;
+} M68kRenderSourceReadRequest;
+
 struct M68kRenderLookup {
+  struct M68kRenderTypedFlowWorkflow *pending_source_flow;
+  M68kRenderSourceReadRequest *source_read_requests;
+  size_t source_read_request_count, source_read_request_capacity;
+  M68kRenderSourceDomain *source_domains;
+  size_t source_domain_count, source_domain_capacity;
+  uint8_t source_domain_pass_done, source_domain_error;
   M68kRenderScalarReadRelation *scalar_read_relations;
   size_t scalar_read_relation_count, scalar_read_relation_capacity;
   size_t *scalar_read_index;
@@ -1212,6 +1245,10 @@ int m68k_analysis_render_lookup_run_platform_passes(M68kRenderLookup *lookup, co
 int m68k_render_lookup_build(M68kRenderLookup *lookup, const M68kObject *object, const M68kDecodeIR *decode,
   const M68kFactIR *facts, const M68kAnalysisPolicy *policy, uint8_t **accepted_start,
   const M68kAnalysisLabelPoint *analysis_labels, size_t analysis_label_count);
+void m68k_analysis_render_lookup_release_source_flow(M68kRenderLookup *lookup);
+/* 1: canonical domains changed typed input; 0: no eligible input; -1: failure. */
+int m68k_analysis_render_lookup_refine_source_domains(M68kRenderLookup *lookup,
+  const M68kDecodeIR *decode, uint8_t **accepted_start, M68kSourceAnalysisIR *source_analysis);
 void m68k_render_lookup_destroy(M68kRenderLookup *lookup);
 void m68k_render_lookup_materialize_relocation_target_labels(M68kRenderLookup *lookup);
 int m68k_analysis_render_lookup_import_source_analysis_structured_data(M68kRenderLookup *lookup,

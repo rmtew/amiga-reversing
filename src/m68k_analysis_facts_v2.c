@@ -87,7 +87,7 @@ static M68kTableDescriptorIR *find_table_descriptor_for_address_value(M68kSource
   return match;
 }
 
-static M68kTableEntryIR *find_table_entry_for_address_value(M68kSourceAnalysisIR *analysis,
+M68kTableEntryIR *m68k_source_analysis_table_entry_for_origin(M68kSourceAnalysisIR *analysis,
     const M68kAddressValueTableOriginIR *origin, uint32_t entry_index) {
   size_t entry_cursor;
   M68kSectionAnalysisIR *section;
@@ -176,8 +176,12 @@ static M68kAddressExpressionIR *find_indexed_table_expression_for_descriptor(
 
 /* Use the same canonical source-record view as register transfer. Compact
  * packed arrays are intentional typed owners, not contradictory scalar leaves. */
-static int source_loop_entry_has_pointee_contract(M68kSourceAnalysisIR *analysis,
-    const M68kTableEntryIR *entry, const char *type_name, const char **reason) {
+int m68k_source_analysis_entry_pointee_contract(M68kSourceAnalysisIR *analysis,
+    const M68kTableEntryIR *entry, const char *type_name, uint16_t *out_type, const char **reason) {
+  const char *unused_reason = NULL;
+  if (out_type) *out_type = AMIGA_OS_STRUCT_ID_NONE;
+  if (!analysis || !entry || !type_name || !type_name[0]) return 0;
+  if (!reason) reason = &unused_reason;
   const M68kAnalysisPolicy *policy = &analysis->policy;
   M68kSectionAnalysisIR *section = find_source_analysis_section(analysis, entry->target_section_index);
   const M68kAnalysisCustomStruct *actual, *parent;
@@ -202,7 +206,7 @@ static int source_loop_entry_has_pointee_contract(M68kSourceAnalysisIR *analysis
   *reason = "source-record type is incompatible with the pointee contract";
   parent = actual;
   for (uint16_t depth = 0U; parent && depth <= policy->custom_struct_count; ++depth) {
-    if (!strcmp(parent->name, type_name)) return 1;
+    if (!strcmp(parent->name, type_name)) { if (out_type) *out_type = id; return 1; }
     /* Validated custom inheritance keeps the parent at record offset zero.
      * base_offset bounds the child's own fields; it does not displace the
      * inherited prefix. */
@@ -228,11 +232,11 @@ static int bind_source_pointer_loop_type_domain(M68kSourceAnalysisIR *analysis,
     return 1;
   }
   for (uint32_t index = minimum / 4U; index <= maximum / 4U; ++index) {
-    const M68kTableEntryIR *entry = find_table_entry_for_address_value(analysis, &value->table_origin, index);
+    const M68kTableEntryIR *entry = m68k_source_analysis_table_entry_for_origin(analysis, &value->table_origin, index);
     const char *reason = "null, unresolved or unowned table entry";
     if (!entry || !entry->raw_value || !entry->has_target || entry->conflict_state ||
         entry->target_status != M68K_TABLE_ENTRY_TARGET_STATUS_ACCEPTED_TARGET ||
-        !source_loop_entry_has_pointee_contract(analysis, entry, value->pointee_struct_name, &reason)) {
+        !m68k_source_analysis_entry_pointee_contract(analysis, entry, value->pointee_struct_name, NULL, &reason)) {
       address_value_table_terminal(value, M68K_ADDRESS_VALUE_TERMINAL_NO_PROVEN_TRANSFER_CONTRACT, NULL);
       snprintf(value->terminal_reason, sizeof(value->terminal_reason), "source cursor entry %u: %s", index, reason);
       return 1;
@@ -311,7 +315,7 @@ int m68k_source_analysis_bind_address_value_table_contracts(M68kSourceAnalysisIR
           continue;
         }
         {
-          M68kTableEntryIR *entry = find_table_entry_for_address_value(analysis, &value->table_origin, entry_index);
+          M68kTableEntryIR *entry = m68k_source_analysis_table_entry_for_origin(analysis, &value->table_origin, entry_index);
           if (entry == NULL || entry->raw_value == 0U || entry->has_target == 0U ||
               entry->target_status != M68K_TABLE_ENTRY_TARGET_STATUS_ACCEPTED_TARGET) {
             address_value_table_terminal(value, entry != NULL && entry->raw_value == 0U ?
@@ -367,7 +371,7 @@ int m68k_source_analysis_bind_address_value_table_contracts(M68kSourceAnalysisIR
           continue;
         }
         for (entry_index = first_index; entry_index <= last_index; ++entry_index) {
-          M68kTableEntryIR *entry = find_table_entry_for_address_value(analysis, &value->table_origin, entry_index);
+          M68kTableEntryIR *entry = m68k_source_analysis_table_entry_for_origin(analysis, &value->table_origin, entry_index);
           if (entry == NULL || entry->raw_value == 0U || entry->has_target == 0U ||
               entry->target_status != M68K_TABLE_ENTRY_TARGET_STATUS_ACCEPTED_TARGET) {
             address_value_table_terminal(value, entry != NULL && entry->raw_value == 0U ?
@@ -11154,6 +11158,7 @@ static int facts_v2_collect_profile_internal(const M68kObject *object, const M68
     goto fail;
   }
   out_profile->source_analysis_typed_target_seconds = elapsed_seconds_local(start, clock());
+source_analysis_projection:
   start = clock();
   if (source_analysis != NULL &&
       m68k_analysis_render_lookup_build_source_analysis(&render_lookup, &decode, policy,
@@ -11162,7 +11167,7 @@ static int facts_v2_collect_profile_internal(const M68kObject *object, const M68
       "facts_v2 source analysis build failed");
     goto fail;
   }
-  out_profile->source_analysis_build_seconds = elapsed_seconds_local(start, clock());
+  add_elapsed_seconds_local(&out_profile->source_analysis_build_seconds, start, clock());
   start = clock();
   if (source_analysis != NULL &&
       append_symbol_facts_from_label_lookup(&decode, &label_lookup, &render_lookup, source_analysis) != 0) {
@@ -11223,6 +11228,29 @@ static int facts_v2_collect_profile_internal(const M68kObject *object, const M68
         "facts_v2 table-contract binding failed");
       goto fail;
     }
+    /* Structural/source domains are now canonical. Feed them to the existing
+     * typed graph once; refinement cannot introduce new declarations or code.
+     * Rebuild the derived projection, not decode/reachability or policy replay.
+     * The second binding must independently retain every consumed domain. */
+    int refined = m68k_analysis_render_lookup_refine_source_domains(&render_lookup, &decode,
+      accepted_start, source_analysis);
+    if (refined < 0) {
+      m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_RENDER_FAILED,
+        "facts_v2 validated source-domain refinement failed");
+      goto fail;
+    }
+    if (refined > 0) {
+      add_elapsed_seconds_local(&out_profile->source_analysis_finalize_seconds, start, clock());
+      m68k_ir_source_analysis_destroy(source_analysis); source_analysis_live = 0;
+      if (m68k_ir_source_analysis_create(source_analysis) != 0) goto fail;
+      source_analysis_live = 1;
+      source_analysis->file_kind = object->platform_file_kind;
+      source_analysis->platform_backend_kind = object->platform_backend_kind;
+      if (m68k_ir_source_analysis_set_policy(source_analysis, policy) != 0 ||
+          m68k_analysis_render_lookup_materialize_typed_address_targets(&render_lookup, &decode,
+            accepted_start, accepted_bytes) != 0) goto fail;
+      goto source_analysis_projection;
+    }
     if (render_asm_source &&
         m68k_analysis_render_lookup_import_source_analysis_structured_data(&render_lookup, source_analysis) != 0) {
       m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_RENDER_FAILED,
@@ -11250,7 +11278,7 @@ static int facts_v2_collect_profile_internal(const M68kObject *object, const M68
       goto fail;
     }
   }
-  out_profile->source_analysis_finalize_seconds = elapsed_seconds_local(start, clock());
+  add_elapsed_seconds_local(&out_profile->source_analysis_finalize_seconds, start, clock());
   out_profile->labels_created = (uint32_t)label_lookup.point_count;
   out_profile->labels_referenced = (uint32_t)facts.label_request_count;
   start = clock();

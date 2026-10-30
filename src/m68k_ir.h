@@ -3260,6 +3260,12 @@ int m68k_ir_section_analysis_append_address_value(M68kSectionAnalysisIR *section
  * offsets relative to the table, not numeric loaded-pointer candidates. */
 int m68k_ir_source_analysis_pointer_loop_domain(const M68kSourceAnalysisIR *analysis,
     const M68kAddressValueIR *value, uint32_t *out_min, uint32_t *out_max);
+/* The binder's own source-record ownership/prefix check, shared with typed
+ * feedback. A valid result returns the actual canonical source-record type. */
+M68kTableEntryIR *m68k_source_analysis_table_entry_for_origin(M68kSourceAnalysisIR *analysis,
+  const M68kAddressValueTableOriginIR *origin, uint32_t entry_index);
+int m68k_source_analysis_entry_pointee_contract(M68kSourceAnalysisIR *analysis,
+  const M68kTableEntryIR *entry, const char *type_name, uint16_t *out_type, const char **reason);
 int m68k_source_analysis_bind_address_value_table_contracts(M68kSourceAnalysisIR *source_analysis);
 int m68k_ir_section_analysis_append_platform_address_use(M68kSectionAnalysisIR *section_analysis,
     const M68kPlatformAddressUseIR *use);
