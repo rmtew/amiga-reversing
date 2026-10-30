@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "source_commit": "96e3737c8ad8daf32092067dd9b2fe29e7009c4a",
+  "source_commit": "e64dd5d9883e51e8afc542d35413c27d3ea7376c",
   "source_assembly": "starglider2_game.s",
   "assets": [
     {
@@ -878,13 +878,13 @@
     },
     {
       "path": "rendered-provenance.json",
-      "bytes": 3329,
-      "sha256": "a79a05e05b43f16757c5ab43fea4d31a10e548a90a33b78a37a1541f6f825412"
+      "bytes": 3314,
+      "sha256": "3b31479c86c74eb7a26b9bf4c804dd0a7c7cca2e19ec031cd1fd569538f74ad1"
     },
     {
       "path": "starglider2_game.s",
-      "bytes": 2041957,
-      "sha256": "4725593645d79e07fa73ac59c61e5e13de142cfd030e51b3ea13f6e2fda5cbdd"
+      "bytes": 2044005,
+      "sha256": "d6e51b9005ef6c0a8b5d22001e5f9aacfaebbb82288f39b9221312be17cd927c"
     },
     {
       "path": "tools/starglider2_protection.py",
@@ -892,6 +892,6 @@
       "sha256": "81d3f66d36dbfbd5c77238b20c28e8b9abaa329777eb91f64669bbbf13703582"
     }
   ],
-  "source_commit_role": "canonical source publication base; the publishing commit reconstructs interleaved colour kernels and mask/table roles and repairs inferred relative-label mapping; no new selector or sequence bounds; output is bound by verification_receipt_id",
-  "source_subject_revision": "4b8d65027fa80e4e94b9656ea8af2fb8119215c1139ce8f204f5db633798e87e"
+  "source_commit_role": "canonical source publication base; the publishing commit reconstructs player-view mode routines and their exact13 stored relative offsets; no new input-type or callable-closure proof; output is bound by verification_receipt_id",
+  "source_subject_revision": "134b0213486cc77623786c3e19e88ad29c9c300d20121ab1d16cc636dc0361e3"
 }

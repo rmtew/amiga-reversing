@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
   "kind": "committed_native_rendered_original_export",
-  "canonical_source_commit": "96e3737c8ad8daf32092067dd9b2fe29e7009c4a",
-  "publication_base_commit": "96e3737c8ad8daf32092067dd9b2fe29e7009c4a",
+  "canonical_source_commit": "e64dd5d9883e51e8afc542d35413c27d3ea7376c",
+  "publication_base_commit": "e64dd5d9883e51e8afc542d35413c27d3ea7376c",
   "native_export": "CListingArtifact.source_package_payload(64)",
-  "main_source_sha256": "4725593645d79e07fa73ac59c61e5e13de142cfd030e51b3ea13f6e2fda5cbdd",
+  "main_source_sha256": "d6e51b9005ef6c0a8b5d22001e5f9aacfaebbb82288f39b9221312be17cd927c",
   "asset_count": 57,
   "asset_bytes": 93633,
   "game_assembly_hand_edits": false,
@@ -24,13 +24,13 @@
     "assembler executable",
     "paused Pandora work"
   ],
-  "canonical_source_commit_role": "canonical source publication base; the publishing commit reconstructs interleaved colour kernels and mask/table roles and repairs inferred relative-label mapping; no new selector or sequence bounds; output is bound by verification_receipt_id",
-  "canonical_source_subject_revision": "4b8d65027fa80e4e94b9656ea8af2fb8119215c1139ce8f204f5db633798e87e",
+  "canonical_source_commit_role": "canonical source publication base; the publishing commit reconstructs player-view mode routines and their exact13 stored relative offsets; no new input-type or callable-closure proof; output is bound by verification_receipt_id",
+  "canonical_source_subject_revision": "134b0213486cc77623786c3e19e88ad29c9c300d20121ab1d16cc636dc0361e3",
   "canonical_fact_sha256": {
     "source_binary.json": "42d4a5758b3e8236af7f912aee85e9ee5323bcd0961faa338c4f864080a0a7d9",
     "target_metadata.json": "e7540b68c118c56aba8815b6722eefa067517cc865fe9841d6c01ce96551389c",
-    "manual_actions.jsonl": "37ea3293fcc912174201dc083da4fd3cf19516c619ddfcecb3e4d9eb43c1ed04",
-    "decision_journal.jsonl": "583a7c6d44e07089e8195e90e300928ab2b7fc5a128f472f66b620a97b8a3990"
+    "manual_actions.jsonl": "e5d929262a3c0dd5a1a56c0c6aaf3d656a4c97b6302eaf8da89803d81f5e762b",
+    "decision_journal.jsonl": "1d2592d86aa47e82f0291b02841250aabbba9af3a286caf2cd85b4b4c278f6c7"
   },
   "headers": "14 unmodified required include files collected by source_package.collect_package_includes from ext/amiga_includes/ndk_2.0/include; header notices retained",
   "decoded_protection_view": {
@@ -46,7 +46,7 @@
     },
     "runtime_scope": "Seven CPU write-site windows match this reversible view; no whole runtime-view identity or parent plaintext promotion."
   },
-  "verification_receipt_id": "e261672fded1c5a55c85e017cc62d8bd31e5e61e77da9dfa815f85bcd4824911",
+  "verification_receipt_id": "b500dea91e278df2b5f92fad1da4960089669f600c821454ff26b84d653f7a1c",
   "render_native_sha256": "b02ebe49e9f35bf0161c779a55e6ba97fe0e7a7327559a0ea2592af14e6a0573",
   "final_assembler_native_sha256": "b02ebe49e9f35bf0161c779a55e6ba97fe0e7a7327559a0ea2592af14e6a0573"
 }

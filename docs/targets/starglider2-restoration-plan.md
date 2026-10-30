@@ -101,6 +101,21 @@ remain unchanged. This is semantic reconstruction and a source-rendering repair,
 not a reduction of unresolved access counts. The aggregate span-storage/lifetime
 obligation above remains the next prerequisite for a sequence contract.
 
+The player-view batch reconstructs 14 mode routines/shared continuations and
+binds the 13 stored dispatch WORDs to exact source targets. The original BYTE
+guard uses only slots 0..7; larger values go directly to cockpit, independently
+of the five stored duplicate offsets. All 256 selectors and 216 pre-matrix
+mode/state combinations pass original-instruction fixtures. Cockpit Y limiting,
+interior angle/distance resets and numbered rotation overrides remain distinct.
+Mode 6 retains stored rotation 0 while zeroing only the offset helper's D1;
+mode 7 also clears the stored rotation. Both clear rotation 2.
+No player-pointer input type, physical axis convention or closed-call proof was
+introduced. The matrix helper is named from its original operations; fixtures
+stop before it and do not certify its trigonometry or gameplay behavior.
+40 focused tests pass; final C/vasm and clean standalone output preserve all
+412736 bytes. Access/CFG/summary vectors and the previous mode/world/save-game
+withdrawals remain unchanged; source relations are not new runtime coverage.
+
 The preceding access-name projection reuses the existing field-catalogue
 resolver in whole-analysis JSON.3270 records at292 exact offsets expose names
 already declared in source (for example `player_world_y` and

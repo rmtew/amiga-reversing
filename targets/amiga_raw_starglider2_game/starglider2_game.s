@@ -4596,14 +4596,25 @@ select_player_view_mode:
 	moveq.l #0,d0
 	move.b view_mode(a6),d0
 	cmp.w #$7,d0
-	bhi.b abs_0_00003C96
+	bhi.b set_cockpit_view_from_player
 	add.w d0,d0
 	move.w view_mode_dispatch_offsets(pc,d0.w),d0
 	jmp view_mode_dispatch_offsets(pc,d0.w)
 view_mode_dispatch_offsets:
-	dc.w $003C,$0160,$017E,$016C,$0120,$0128,$0150,$0138
-	dc.w $003C,$003C,$003C,$003C,$003C
-abs_0_00003C74:
+	dc.w set_cockpit_view_from_player-view_mode_dispatch_offsets	; 13 stored relative WORDs; BYTE selector uses slots0..7, otherwise direct cockpit.
+	dc.w set_cockpit_view_without_rotation_2-view_mode_dispatch_offsets
+	dc.w set_cockpit_view_without_rotation_0-view_mode_dispatch_offsets
+	dc.w set_cockpit_view_without_rotations_0_2-view_mode_dispatch_offsets
+	dc.w set_external_view_from_player-view_mode_dispatch_offsets
+	dc.w set_external_view_without_rotation_2-view_mode_dispatch_offsets
+	dc.w set_external_view_with_zero_offset_angle_0-view_mode_dispatch_offsets
+	dc.w set_external_view_without_rotations_0_2-view_mode_dispatch_offsets
+	dc.w set_cockpit_view_from_player-view_mode_dispatch_offsets
+	dc.w set_cockpit_view_from_player-view_mode_dispatch_offsets
+	dc.w set_cockpit_view_from_player-view_mode_dispatch_offsets
+	dc.w set_cockpit_view_from_player-view_mode_dispatch_offsets
+	dc.w set_cockpit_view_from_player-view_mode_dispatch_offsets
+apply_player_view_rotation_offsets:
 	move.w view_rotation_offset_1(a6),d2
 	add.w $0012(a0),d2
 	andi.w #4095,d2
@@ -4614,34 +4625,35 @@ abs_0_00003C74:
 	move.w d1,view_rotation_0(a6)
 	rts
     ; Cockpit view sets display/service bit 0 and player visibility bit 1. External-view continuation clears them. Other service bits are retained; this is not the whole display enable state.
-abs_0_00003C96:
+set_cockpit_view_from_player:
 	bset.b #0,display_and_frame_service_flags(a6)
 	bset.b #1,$0002(a0)
 	move.l $0004(a0),view_origin_x(a6)
 	move.l $0008(a0),d0
 	tst.b space_environment_flag(a6)
-	bmi.b abs_0_00003CBC
+	bmi.b store_cockpit_view_y
 	cmp.l #$FFFFFF88,d0
-	blt.b abs_0_00003CBC
+	blt.b store_cockpit_view_y
 	moveq.l #-120,d0
-abs_0_00003CBC:
+store_cockpit_view_y:
 	move.l d0,view_origin_y(a6)
 	move.l $000C(a0),view_origin_z(a6)
 	move.w $0010(a0),view_rotation_0(a6)
-	bsr.w abs_0_00003C74
+	bsr.w apply_player_view_rotation_offsets
 	move.w $0014(a0),view_rotation_2(a6)
 	rts
-abs_0_00003CD8:
+    ; Interior: clear offset 0. Unless offset 1 is 2048, clear it and set distance 800. Other entries skip this reset; arbitrary pointer validity is not established.
+initialize_external_view_from_player:
 	tst.b inside_structure_flag(a6)
-	beq.b abs_0_00003D00
+	beq.b copy_external_view_origin_and_rotations
 	cmpi.b #4,view_mode(a6)
-	blt.b abs_0_00003D00
+	blt.b copy_external_view_origin_and_rotations
 	move.w #$0,view_rotation_offset_0(a6)
 	cmpi.w #2048,view_rotation_offset_1(a6)
-	beq.b abs_0_00003D00
+	beq.b copy_external_view_origin_and_rotations
 	move.w #$0,view_rotation_offset_1(a6)
 	move.w #$320,view_offset_distance(a6)
-abs_0_00003D00:
+copy_external_view_origin_and_rotations:
 	bclr.b #0,display_and_frame_service_flags(a6)
 	bclr.b #1,$0002(a0)
 	move.l $0004(a0),view_origin_x(a6)
@@ -4650,8 +4662,9 @@ abs_0_00003D00:
 	move.w $0010(a0),view_rotation_0(a6)
 	move.w $0012(a0),view_rotation_1(a6)
 	move.w $0014(a0),view_rotation_2(a6)
-	bra.w abs_0_00003C74
-abs_0_00003D34:
+	bra.w apply_player_view_rotation_offsets
+    ; Transposed matrix of (-D1,D2,0) transforms (0,0,-distance). Signed result offsets XYZ; nonnegative space flag limits final Y to at most -120. Rotation axes remain numbered.
+offset_view_origin_from_view_angles:
 	neg.w d1
 	move.w #$0,d3
 	bsr.w build_and_transpose_rotation_matrix
@@ -4667,45 +4680,46 @@ abs_0_00003D34:
 	move.l view_origin_y(a6),d0
 	add.l d2,d0
 	tst.b space_environment_flag(a6)
-	bmi.b abs_0_00003D70
+	bmi.b store_external_view_y_and_add_z_offset
 	cmp.l #$FFFFFF88,d0
-	blt.b abs_0_00003D70
+	blt.b store_external_view_y_and_add_z_offset
 	moveq.l #-120,d0
-abs_0_00003D70:
+store_external_view_y_and_add_z_offset:
 	move.l d0,view_origin_y(a6)
 	add.l d3,view_origin_z(a6)
 	rts
-abs_0_00003D7A:
-	bsr.w abs_0_00003CD8
-	bra.w abs_0_00003D34
-abs_0_00003D82:
-	bsr.w abs_0_00003CD8
+set_external_view_from_player:
+	bsr.w initialize_external_view_from_player
+	bra.w offset_view_origin_from_view_angles
+set_external_view_without_rotation_2:
+	bsr.w initialize_external_view_from_player
 	move.w #$0,d3
 	move.w d3,view_rotation_2(a6)
-	bra.w abs_0_00003D34
-abs_0_00003D92:
-	bsr.w abs_0_00003CD8
+	bra.w offset_view_origin_from_view_angles
+set_external_view_without_rotations_0_2:
+	bsr.w initialize_external_view_from_player
 	move.w #$0,d1
 	move.w d1,view_rotation_0(a6)
 	move.w #$0,d3
 	move.w d3,view_rotation_2(a6)
-	bra.w abs_0_00003D34
-abs_0_00003DAA:
-	bsr.w abs_0_00003CD8
+	bra.w offset_view_origin_from_view_angles
+    ; Mode6 retains stored view rotation0 but passes zero D1 to the offset helper. It also clears stored rotation2; this is not the same effect as mode7.
+set_external_view_with_zero_offset_angle_0:
+	bsr.w initialize_external_view_from_player
 	move.w #$0,d1
 	move.w d1,view_rotation_2(a6)
-	bra.w abs_0_00003D34
-abs_0_00003DBA:
-	bsr.w abs_0_00003C96
+	bra.w offset_view_origin_from_view_angles
+set_cockpit_view_without_rotation_2:
+	bsr.w set_cockpit_view_from_player
 	move.w #$0,view_rotation_2(a6)
 	rts
-abs_0_00003DC6:
-	bsr.w abs_0_00003C96
+set_cockpit_view_without_rotations_0_2:
+	bsr.w set_cockpit_view_from_player
 	move.w #$0,view_rotation_0(a6)
 	move.w #$0,view_rotation_2(a6)
 	rts
-abs_0_00003DD8:
-	bsr.w abs_0_00003C96
+set_cockpit_view_without_rotation_0:
+	bsr.w set_cockpit_view_from_player
 	move.w #$0,view_rotation_0(a6)
 	rts
 	dc.b $60,$00,$FE,$B0
