@@ -1408,6 +1408,28 @@ SG2ProfiledStructure_collision_profile_selector RS.W 1
     RS.B 26
 SG2ProfiledStructure_SIZEOF EQU __RS
 
+; STRUCT SG2SceneCycledHeader
+    RSRESET
+SG2SceneCycledHeader_vertices_end RS.L 1
+SG2SceneCycledHeader_fill_style RS.W 1
+SG2SceneCycledHeader_SIZEOF EQU __RS
+
+; STRUCT SG2SceneSpanHeader
+    RSRESET
+SG2SceneSpanHeader_fill_style RS.W 1
+SG2SceneSpanHeader_first_scanline RS.W 1
+SG2SceneSpanHeader_SIZEOF EQU __RS
+
+; STRUCT SG2SceneCycledReference
+    RSRESET
+SG2SceneCycledReference_packet RS.L 1
+SG2SceneCycledReference_SIZEOF EQU __RS
+
+; STRUCT SG2SceneSpanReference
+    RSRESET
+SG2SceneSpanReference_span RS.L 1
+SG2SceneSpanReference_SIZEOF EQU __RS
+
 ADKF_CLRALL	EQU	$7FFF
 BPLCON2_PF2P2	EQU	$20
 BPLCON2_PF2PRI	EQU	$40
@@ -3468,11 +3490,11 @@ abs_0_00002B94:
 	lea.l view_rotation_matrix(a6),a1
 	lea.l model_view_matrix(a6),a2
 copy_nine_matrix_words:
-	move.l (a1)+,(a2)+
-	move.l (a1)+,(a2)+
-	move.l (a1)+,(a2)+
-	move.l (a1)+,(a2)+
-	move.w (a1)+,(a2)+
+	move.l (a1)+,(a2)+	; operand 1: SG2RotationMatrixWords_m00 at (a1)+ | operand 2: SG2RotationMatrixWords_m00 at (a2)+
+	move.l (a1)+,(a2)+	; operand 1: SG2RotationMatrixWords_m02 at (a1)+ | operand 2: SG2RotationMatrixWords_m02 at (a2)+
+	move.l (a1)+,(a2)+	; operand 1: SG2RotationMatrixWords_m11 at (a1)+ | operand 2: SG2RotationMatrixWords_m11 at (a2)+
+	move.l (a1)+,(a2)+	; operand 1: SG2RotationMatrixWords_m20 at (a1)+ | operand 2: SG2RotationMatrixWords_m20 at (a2)+
+	move.w (a1)+,(a2)+	; operand 1: SG2RotationMatrixWords_m22 at (a1)+ | operand 2: SG2RotationMatrixWords_m22 at (a2)+
 	rts
 transform_vector_by_built_matrix:
 	movem.l d4-d5/a5,-(a7)
@@ -53708,15 +53730,16 @@ abs_0_0003DACE:
 	move.b #$3,diagnostic_step_byte.l
 	lea.l scene_rotated_packet_workspace_prefix(pc),a1
 	movea.l a2,a6
-rotate_sorted_scene_packet_vertices:
-	move.l (a2),d0
+    ; KNOWN: type A2=Target code-entry register seed:SG2SceneSortReference; type A1=Target code-entry register seed:SG2SceneCycledHeader
+cycle_scene_vertices_from_min_y:
+	move.l (a2),d0	; operand 1: SG2SceneSortReference_polygon at (a2)
 	bmi.b draw_scene_packet_spans
 	movea.l d0,a0
-	move.l a1,(a2)+
+	move.l a1,(a2)+	; operand 2: SG2SceneSortReference_polygon at (a2)+
 	addq.l #2,a0
 	movea.l a1,a5
 	addq.l #4,a1
-	move.w (a0)+,(a1)+
+	move.w (a0)+,(a1)+	; operand 1: SG2ScenePolygonHeader_fill_style at (a0)+ | operand 2: SG2SceneCycledHeader_fill_style at (a1)+
 	move.w #$FFF,d0
 	movea.l a0,a4
 	moveq.l #0,d4
@@ -53744,9 +53767,9 @@ abs_0_0003DB1C:
 	move.l (a4)+,(a1)+
 	dbf.w d5,abs_0_0003DB1C
 abs_0_0003DB22:
-	move.l a1,(a5)
+	move.l a1,(a5)	; operand 2: SG2SceneCycledHeader_vertices_end at (a5)
 	clr.l (a1)+
-	bra.b rotate_sorted_scene_packet_vertices
+	bra.b cycle_scene_vertices_from_min_y
 draw_scene_packet_spans:
 	move.l a6,-(a7)
 	bsr.w interpolate_polygon_edge_spans
@@ -53756,15 +53779,16 @@ interpolate_polygon_edge_spans:
 	move.b #$4,diagnostic_step_byte.l
 	lea.l shared_workspace_prefix(pc),a3
 	lea.l polygon_edge_reciprocal_scales.l,a4
+    ; KNOWN: type A6=Target code-entry register seed:SG2SceneCycledReference; type A3=Target code-entry register seed:SG2SceneSpanHeader
 abs_0_0003DB46:
-	move.l (a6),d0
+	move.l (a6),d0	; operand 1: SG2SceneCycledReference_packet at (a6)
 	bpl.b abs_0_0003DB4C
 	rts
 abs_0_0003DB4C:
 	movea.l d0,a0
-	move.l a3,(a6)+
-	movea.l (a0)+,a1
-	move.w (a0)+,(a3)+
+	move.l a3,(a6)+	; operand 2: SG2SceneCycledReference_packet at (a6)+
+	movea.l (a0)+,a1	; operand 1: SG2SceneCycledHeader_vertices_end at (a0)+
+	move.w (a0)+,(a3)+	; operand 1: SG2SceneCycledHeader_fill_style at (a0)+ | operand 2: SG2SceneSpanHeader_fill_style at (a3)+
 	subq.w #8,a1
 	cmpa.l a0,a1
 	beq.w abs_0_0003DC58
@@ -53773,7 +53797,7 @@ abs_0_0003DB4C:
 	move.w (a0)+,d0
 	move.l d0,d1
 	movea.w (a0)+,a2
-	move.w a2,(a3)+
+	move.w a2,(a3)+	; operand 2: SG2SceneSpanHeader_first_scanline at (a3)+
 	movea.w a2,a5
 	moveq.l #0,d7
 abs_0_0003DB6C:
@@ -53872,7 +53896,7 @@ abs_0_0003DC50:
 	bra.w abs_0_0003DB46
 abs_0_0003DC58:
 	movem.w (a0)+,d0-d3
-	move.w d1,(a3)+
+	move.w d1,(a3)+	; operand 2: SG2SceneSpanHeader_first_scanline at (a3)+
 	cmp.w d1,d3
 	bne.b abs_0_0003DC7E
 	cmp.w d0,d2
@@ -53965,17 +53989,18 @@ draw_planar_4plane_span_records:
 	moveq.l #-1,d7
 	moveq.l #40,d0
 	moveq.l #32,d1
+    ; KNOWN: type A2=Target code-entry register seed:SG2SceneSpanReference
 abs_0_0003DD2C:
-	move.l (a2)+,d3
+	move.l (a2)+,d3	; operand 1: SG2SceneSpanReference_span at (a2)+
 	bmi.w abs_0_0003DD10
 	movea.l d3,a0
 	move a2,usp
-	move.w (a0)+,d3
+	move.w (a0)+,d3	; operand 1: SG2SceneSpanHeader_fill_style at (a0)+
 	bmi.w abs_0_0003EA3E
 	add.w d3,d3
 	move.w drawing_dispatch_offsets(pc,d3.w),d3
 	lea.l drawing_dispatch_offsets(pc,d3.w),a2
-	move.w (a0)+,d2
+	move.w (a0)+,d2	; operand 1: SG2SceneSpanHeader_first_scanline at (a0)+
 	add.w d2,d2
 	lea.l raster_row_byte_offsets(pc),a3
 	movea.l scene_draw_buffer_snapshot.l,a1
@@ -55373,7 +55398,7 @@ abs_0_0003EA3E:
 	andi.w #15,d3
 	add.w d3,d3
 	movea.w abs_0_0003EA92(pc,d3.w),a5
-	move.w (a0)+,d2
+	move.w (a0)+,d2	; operand 1: SG2SceneSpanHeader_first_scanline at (a0)+
 	add.w d2,d2
 	lea.l raster_row_byte_offsets(pc),a1
 	movea.l scene_draw_buffer_snapshot.l,a3
@@ -55754,7 +55779,7 @@ abs_0_0003ED68:
 abs_0_0003ED92:
 	add.w d3,d3
 	movea.w abs_0_0003EDC4(pc,d3.w),a5
-	move.w (a0)+,d2
+	move.w (a0)+,d2	; operand 1: SG2SceneSpanHeader_first_scanline at (a0)+
 	add.w d2,d2
 	lea.l raster_row_byte_offsets(pc),a1
 	movea.l scene_draw_buffer_snapshot.l,a3
@@ -56068,8 +56093,9 @@ draw_interleaved_4plane_span_records:
 	moveq.l #0,d5
 	moveq.l #-1,d7
 	movea.w #$A0,a5
+    ; KNOWN: type A2=Target code-entry register seed:SG2SceneSpanReference
 abs_0_0003F0AC:
-	move.l (a2)+,d2
+	move.l (a2)+,d2	; operand 1: SG2SceneSpanReference_span at (a2)+
 	bmi.w abs_0_0003D9D8
 abs_0_0003F0B2:
 	movea.l d2,a0
@@ -58087,8 +58113,9 @@ abs_0_00041394:
 	lea.l abs_0_000415BE(pc),a1
 	movea.w #$10,a3
 	lea.l raster_row_byte_offsets(pc),a5
+    ; KNOWN: type A2=Target code-entry register seed:SG2SceneSpanReference
 abs_0_000413A0:
-	move.l (a2)+,d0
+	move.l (a2)+,d0	; operand 1: SG2SceneSpanReference_span at (a2)+
 	bmi.b abs_0_0004134A
 abs_0_000413A4:
 	movea.l d0,a0

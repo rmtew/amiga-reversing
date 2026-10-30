@@ -44,8 +44,10 @@ typedef struct M68kRenderPolicy {
   M68kOsRenderPolicy os;
 } M68kRenderPolicy;
 
-/* Bounded entry contexts; native ingestion must refuse overflow, never truncate. */
-#define M68K_ANALYSIS_REGISTER_SEED_LIMIT 256U
+/* Entry contexts grow with policy facts; the stored count remains uint16_t.
+ * Native ingestion must refuse representational overflow, never truncate. */
+#define M68K_ANALYSIS_REGISTER_SEED_LIMIT UINT16_MAX
+#define M68K_ANALYSIS_REGISTER_SEED_INLINE_CAPACITY 256U
 #define M68K_ANALYSIS_ENTRY_POINT_LIMIT 256U
 /* Expanded field presentations count each leaf. Packed scalar arrays can use
  * one typed range and retain their shared schema without per-leaf labels. */
@@ -63,6 +65,7 @@ typedef struct M68kRenderPolicy {
 #define M68K_ANALYSIS_STORAGE_STRUCTURED_MIRROR_INCOMPLETE 3U
 #define M68K_ANALYSIS_STORAGE_CAPACITY_MANUAL_DATA_REFERENCES 4U
 #define M68K_ANALYSIS_STORAGE_CAPACITY_RSSET_LAYOUT_REGIONS 5U
+#define M68K_ANALYSIS_STORAGE_CAPACITY_REGISTER_SEEDS 6U
 /* Base identities reserve 0/1 and UINT16_MAX; storage grows with facts. */
 #define M68K_ANALYSIS_RSSET_LAYOUT_REGION_LIMIT (UINT16_MAX - 2U)
 #define M68K_ANALYSIS_ABSOLUTE_STORAGE_SLOT_LIMIT 128U
@@ -901,18 +904,21 @@ typedef struct M68kAnalysisPolicy {
   uint16_t named_label_capacity;
   uint16_t manual_representation_capacity;
   uint16_t rsset_layout_region_capacity;
+  uint16_t register_seed_capacity;
   uint8_t custom_struct_owner;
   uint8_t structured_data_items_owner;
   uint8_t named_labels_owner;
   uint8_t manual_representations_owner;
   uint8_t rsset_layout_regions_owner;
+  uint8_t register_seeds_owner;
   uint32_t entry_offset;
   char source_context_kind[M68K_ANALYSIS_SOURCE_CONTEXT_TEXT_SIZE];
   char source_context_disk_id[M68K_ANALYSIS_SOURCE_CONTEXT_TEXT_SIZE];
   char source_context_disk_path[M68K_ANALYSIS_SOURCE_CONTEXT_TEXT_SIZE];
   char source_context_entry_path[M68K_ANALYSIS_SOURCE_CONTEXT_TEXT_SIZE];
   char source_context_parent_disk_id[M68K_ANALYSIS_SOURCE_CONTEXT_TEXT_SIZE];
-  M68kAnalysisRegisterSeed register_seeds[M68K_ANALYSIS_REGISTER_SEED_LIMIT];
+  M68kAnalysisRegisterSeed register_seeds_inline[M68K_ANALYSIS_REGISTER_SEED_INLINE_CAPACITY];
+  M68kAnalysisRegisterSeed *register_seeds;
   M68kAnalysisFunctionSummary function_summaries[M68K_ANALYSIS_FUNCTION_SUMMARY_LIMIT];
   M68kAnalysisEntryPoint entry_points[M68K_ANALYSIS_ENTRY_POINT_LIMIT];
   /* These collections may contain thousands of facts.  Keep policy values
@@ -3037,6 +3043,8 @@ int m68k_analysis_policy_resolve_pointer_address(const M68kAnalysisPolicy *polic
   uint32_t *out_section, uint32_t *out_offset);
 void m68k_analysis_policy_destroy(M68kAnalysisPolicy *policy);
 int m68k_analysis_policy_copy(M68kAnalysisPolicy *dest, const M68kAnalysisPolicy *src);
+int m68k_analysis_policy_register_seeds_valid(const M68kAnalysisPolicy *policy);
+int m68k_analysis_policy_reserve_register_seeds(M68kAnalysisPolicy *policy, size_t required_count);
 int m68k_analysis_policy_structured_data_items_valid(const M68kAnalysisPolicy *policy);
 int m68k_analysis_policy_named_labels_valid(const M68kAnalysisPolicy *policy);
 int m68k_analysis_policy_rsset_layout_regions_valid(const M68kAnalysisPolicy *policy);

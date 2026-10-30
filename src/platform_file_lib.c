@@ -1753,8 +1753,7 @@ int platform_file_analysis_policy_add_register_seed_arg(M68kAnalysisPolicy *poli
   char *cursor;
   size_t part_count = 0U;
   M68kAnalysisRegisterSeed *seed;
-  if (text == NULL || policy == NULL ||
-      policy->register_seed_count >= M68K_ANALYSIS_REGISTER_SEED_LIMIT) return 0;
+  if (text == NULL || policy == NULL) return 0;
   if (!copy_policy_text(buffer, sizeof(buffer), text)) return 0;
   cursor = buffer;
   while (part_count < (sizeof(parts) / sizeof(parts[0]))) {
@@ -1765,6 +1764,7 @@ int platform_file_analysis_policy_add_register_seed_arg(M68kAnalysisPolicy *poli
     cursor = next + 1;
   }
   if (part_count < 4U || parts[0] == NULL || parts[1] == NULL || parts[2] == NULL || parts[3] == NULL) return 0;
+  if (m68k_analysis_policy_reserve_register_seeds(policy, (size_t)policy->register_seed_count + 1U) != 0) return 0;
   seed = &policy->register_seeds[policy->register_seed_count];
   memset(seed, 0, sizeof(*seed));
   if (strcmp(parts[0], "*") == 0) {
@@ -2059,6 +2059,13 @@ static int platform_file_add_policy_capacity_error_local(const M68kAnalysisPolic
     char message[96];
     snprintf(message, sizeof(message), "manual data reference capacity exceeded (%u)",
       (unsigned)M68K_ANALYSIS_MANUAL_DATA_REFERENCE_LIMIT);
+    platform_file_add_error(list, message);
+    return 1;
+  }
+  if (policy->storage_capacity_status == M68K_ANALYSIS_STORAGE_CAPACITY_REGISTER_SEEDS) {
+    char message[96];
+    snprintf(message, sizeof(message), "register input identity capacity exceeded (%u)",
+      (unsigned)M68K_ANALYSIS_REGISTER_SEED_LIMIT);
     platform_file_add_error(list, message);
     return 1;
   }
@@ -7420,7 +7427,7 @@ static int policy_add_register_seed_local(M68kAnalysisPolicy *policy, uint32_t s
   uint8_t reg_kind;
   uint8_t reg_index;
   uint16_t index;
-  if (policy == NULL || policy->register_seed_count >= M68K_ANALYSIS_REGISTER_SEED_LIMIT) return 0;
+  if (policy == NULL) return 0;
   if (register_name == NULL || register_name[0] == '\0') return 0;
   if (name == NULL || seed_kind == M68K_ANALYSIS_REGISTER_SEED_NONE) return 0;
   if ((register_name[0] == 'D' || register_name[0] == 'd') && register_name[1] >= '0' && register_name[1] <= '7' &&
@@ -7445,6 +7452,7 @@ static int policy_add_register_seed_local(M68kAnalysisPolicy *policy, uint32_t s
         strcmp(existing->context_name, context_name != NULL ? context_name : "") == 0)
       return 1;
   }
+  if (m68k_analysis_policy_reserve_register_seeds(policy, (size_t)policy->register_seed_count + 1U) != 0) return 0;
   seed_index = policy->register_seed_count;
   memset(&policy->register_seeds[seed_index], 0, sizeof(policy->register_seeds[seed_index]));
   policy->register_seeds[seed_index].has_entry_offset = has_entry_offset;

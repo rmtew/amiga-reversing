@@ -33,7 +33,7 @@ def _vasm(tmp_path: Path, name: str, text: str) -> bytes:
     return binary_path.read_bytes()
 
 
-def _artifact(tmp_path: Path, instructions: list[str], width: int = 2, register: str = "A0"):
+def _artifact(tmp_path: Path, instructions: list[str], width: int = 2, register: str = "A0", other_register: str | None = None):
     _requires_c_backend_dlls()
     original_source = "\n".join(["    SECTION section,code", *[f"    {line}" for line in instructions], "    rts", ""])
     original = _vasm(tmp_path, "original", original_source)
@@ -48,7 +48,8 @@ def _artifact(tmp_path: Path, instructions: list[str], width: int = 2, register:
         "entry_register_seeds": [{
             "entry_offset": 0, "hunk": 0, "register": register, "kind": "struct_ptr",
             "struct_name": "Triplet", "note": "Triplet", "context_name": None,
-        }],
+        }, *([dict(entry_offset=0,hunk=0,register=other_register,kind="struct_ptr",
+                   struct_name="Triplet",note="Triplet")] if other_register else [])],
         "custom_structs": [{"name": "Triplet", "size": width * 3, "fields": [
             {"name": name, "type": {1: "byte", 2: "word", 4: "long"}[width],
              "offset": index * width, "size": width}
@@ -144,7 +145,6 @@ def test_real_typed_destination_updates_retain_fields_and_original_modes(tmp_pat
 @pytest.mark.parametrize('instructions', [
     ['move.w d0,-(a0)', 'move.w (a0),d1'],
     ['move.l a0,(a0)+', 'move.w (a0),d1'],
-    ['move.w (a0)+,(a1)+', 'move.w (a0),d1'],
     ['adda.w #2,a0', 'cmpm.w (a0)+,(a0)+', 'move.w (a0),d1'],
     ['movem.w d0-d1,-(a0)', 'move.w (a0),d1'],
     ['clr.w (a7)+', 'move.w (a7),d1'],
@@ -167,3 +167,30 @@ def test_real_predecrement_read_uses_bounded_previous_field(tmp_path, suffix, wi
     rendered = c_backend.render_project_source_with_c_backend(source, metadata_path=metadata_path, project_root=PROJECT_ROOT)
     rebuilt, _ = c_backend.assemble_platform_source_text_with_c_backend('amiga-raw', rendered, project_root=PROJECT_ROOT)
     assert rebuilt == original and _vasm(tmp_path, 'predecrement', rendered) == original
+
+
+@pytest.mark.parametrize(('mode','prefix','field'), [
+    ('post', [], 'second'),
+    ('pre', ['adda.l #2,a0', 'adda.l #2,a1'], 'first'),
+])
+def test_distinct_auto_update_streams_keep_both_cursors(tmp_path, mode, prefix, field):
+    operands = '(a0)+,(a1)+' if mode == 'post' else '-(a0),-(a1)'
+    source, metadata_path, artifact, original = _artifact(tmp_path,
+        prefix + [f'move.w {operands}', 'move.w (a0),d0', 'move.w (a1),d1'], other_register='A1')
+    with closing(artifact):
+        fields=[f for f in artifact.query_payload('fields',limit=100)['items'] if f.get('field_name')]
+        assert [f['field_name'] for f in fields] == ['first','first',field,field]
+        assert [f['operand_index'] for f in fields[:2]] == [0,1]
+        assert all(f['root_struct_name']=='Triplet' for f in fields)
+        rendered=artifact.inline_source_text_with_profile()[0]
+        assert f'move.w {operands}' in rendered
+    rebuilt,_=c_backend.assemble_platform_source_text_with_c_backend('amiga-raw',rendered,project_root=PROJECT_ROOT)
+    assert rebuilt==original and _vasm(tmp_path,'two-stream',rendered)==original
+
+
+def test_independent_untyped_destination_does_not_erase_source_cursor(tmp_path):
+    _,_,artifact,_=_artifact(tmp_path,['move.w (a0)+,(a1)+','move.w (a0),d1'])
+    with closing(artifact):
+        fields=[f for f in artifact.query_payload('fields',limit=100)['items'] if f.get('field_name')]
+        assert [f['field_name'] for f in fields]==['first','second']
+        assert not any(f['operand_index']==1 for f in fields)

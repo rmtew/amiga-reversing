@@ -139,6 +139,7 @@ int main(void) {
  M68kAnalysisRegisterSeed seed={0};
  M68kAnalysisEntryPoint code_entry={0};
  seed.has_section_index=seed.has_entry_offset=1;seed.section_index=0;seed.entry_offset=8;
+ m68k_analysis_policy_init_default(&policy);
  policy.register_seeds[0]=seed;policy.register_seed_count=1;lookup.policy=&policy;
  assert(!typed_flow_exposed_entry(&lookup,0,8));
  code_entry.has_section_index=1;code_entry.section_index=0;code_entry.offset=8;

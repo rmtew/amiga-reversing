@@ -197,7 +197,7 @@ static uint16_t typed_read_capture(M68kRenderLookup *lookup, M68kRenderTypedStat
     uint8_t update_width;
     if (m68k_instruction_operand_decoded_ea_shape(&instruction->operands[operand_index]) !=
           M68K_SIM_EA_SHAPE_POSTINCREMENT ||
-        !typed_single_auto_update_cursor(lookup, state, instruction, operand_index, &base_reg, &update_width))
+        !typed_independent_auto_update_cursor(lookup, state, instruction, operand_index, &base_reg, &update_width))
       return 0U;
     displacement = 0;
   }

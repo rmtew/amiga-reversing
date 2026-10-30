@@ -16,31 +16,63 @@ to their recorded closeout revision. See the current
 
 ## Current refinement and next evidence
 
-Current native totals: **3509 app /2687 typed /158 unresolved**, with **11224
-unclassified bytes /271 intervals**. Counter-indexed source-array reads now reuse
+Current native totals: **3509 app /2716 typed /165 unresolved**, with **11224
+unclassified bytes /271 intervals**. The earlier counter-indexed source-array recovery reused
 the shared loop induction and interned linear entry values. Original inventory
 readers at source `$DD6` and `$339B4` expose the existing name-reference `text`
-field over the possible104-entry prefix of the148-record owner. All existing
-typed coordinates and unresolved diagnostics remain; canonical CFG blocks/edges
-are unchanged. Startup caller proof adds five header reads and six app accesses,
-and strengthens38 app-base attributions.
+field over the possible104-entry prefix of the148-record owner. That batch retained existing
+typed coordinates, unresolved diagnostics and canonical CFG blocks/edges.
+Its startup caller proof added five header reads and six app accesses,
+and strengthened 38 app-base attributions.
 Conditional skips mean104 outer iterations are not104 observed memory reads.
 Loaded pointer values remain subject to separate alias/target validation.
 
-Canonical access-name projection now reuses the existing field-catalogue
+Phase-specific scene headers now expose `vertices_end` and `fill_style` for
+cycled packets, and `fill_style` and `first_scanline` for spans. Source `$3CAF0`
+and `$3CB52` copy the style; `$3CB22` stores the vertex end before the zero marker;
+`$3CB66` and `$3CC5C` store the first row. Separate current-record contracts model
+the in-place reference transition without globally typing reused arenas. Cycled
+packets remain live during span production. `cycle_scene_vertices_from_min_y`
+describes cyclic ordering rather than a spatial rotation. Capacities, variable
+tails and universal style bounds remain unknown.
+
+Two reproduced shared transfer gaps are repaired: distinct auto-updated address
+registers no longer erase each other's cursor, and pointer-field loads preserve
+the pointee through postincrement/predecrement and data-register copies. Seven
+phase contracts require 262 native register inputs; policy storage now grows past
+its former 256-entry inline buffer, with checked copying, cleanup and count bounds.
+The storage-only baseline preserves every access/address/CFG record. There are
+29 added typed accesses: 19 scene accesses and 10 existing matrix-copy accesses.
+No prior typed record changes or disappears. Two matrix diagnostics resolve;
+nine new diagnostics concern accesses beyond these header prefixes, giving a
+net 165 unresolved. APP/address/CFG records, the mode-summary withdrawal and world/save-game
+refusals are unchanged. 101 focused Python and 834 native cases pass; C/vasm and
+clean standalone output match all 412736 bytes, with 57 assets and 14 headers unchanged.
+These are source-derived semantic inputs and shared transport gains, not new
+runtime coverage or inferred global memory safety.
+
+The interleaved retry joins at source `$3E0B2` and `$403A4` still lack complete
+pointee propagation from their initial queue loads; this batch does not claim
+all three reader bodies are typed. Their incoming kernel retries bypass the
+current-record entries. The next bounded experiment is to follow typed queue
+identity through the proven dispatch and next-reference reload, testing joins
+and end-of-prefix refusal rather than supplying per-reader types or a global
+array bound. Variable-tail layout remains a separate obligation.
+
+The preceding access-name projection reuses the existing field-catalogue
 resolver in whole-analysis JSON.3270 records at292 exact offsets expose names
 already declared in source (for example `player_world_y` and
 `free_object_stack_cursor`); all292 declarations were checked. No source label
 or semantic fact was invented. Generic API identities fall from3509 records
 at391 offsets to239 records at99 offsets; this is not an unknown-meaning count.
 All non-name access fields, base evidence, callable summaries, typed/unresolved
-rows and CFG facts are identical to a210f7d8, including its withdrawals. Rendered
-source and package are unchanged; fresh C/vasm comparison matches all412736 bytes.
+rows and CFG facts were identical to a210f7d8, including its withdrawals. In that
+batch, source and package were unchanged; C/vasm matched all 412736 bytes.
 132 focused cases and833 native cases pass. A cursor white-box expectation was
 corrected against the published implementation's weaker-evidence meet; unknown
 predecessors still remove the identity. Interior references retain their exact
-raw names: a base-only label would lose the addend. Next experiment is to reuse
-structured address expressions for those consumers, without inventing pointees.
+raw names: a base-only label would lose the addend. Structured interior-address
+expressions remain a separate recorded lead, without inventing pointees.
 No observation bundle, regenerated inventory or new archive is committed.
 
 The same pointer-origin preservation exposes one previously untyped unresolved

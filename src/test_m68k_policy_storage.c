@@ -4,6 +4,49 @@
 
 #include <string.h>
 
+static int test_register_seeds_growth_copy_and_count_bound(void) {
+  M68kAnalysisPolicy source = {0}, copy = {0};
+  M68kAnalysisRegisterSeed *saved;
+  M68K_C_ASSERT_INT(0, m68k_analysis_policy_reserve_register_seeds(&source, 256U));
+  M68K_C_ASSERT(source.register_seeds == source.register_seeds_inline);
+  source.register_seed_count = 256U;
+  source.register_seeds[255].entry_offset = 510U;
+  M68K_C_ASSERT_INT(0, m68k_analysis_policy_copy(&copy, &source));
+  M68K_C_ASSERT(copy.register_seeds == copy.register_seeds_inline);
+  M68K_C_ASSERT_U32(510U, copy.register_seeds[255].entry_offset);
+  m68k_analysis_policy_destroy(&copy);
+  M68K_C_ASSERT_INT(0, m68k_analysis_policy_reserve_register_seeds(&source, 262U));
+  M68K_C_ASSERT(source.register_seeds != source.register_seeds_inline);
+  M68K_C_ASSERT_U32(510U, source.register_seeds[255].entry_offset);
+  source.register_seed_count = 262U;
+  source.register_seeds[261].entry_offset = 522U;
+  M68K_C_ASSERT_INT(0, m68k_analysis_policy_copy(&copy, &source));
+  M68K_C_ASSERT(copy.register_seeds != source.register_seeds);
+  m68k_analysis_policy_destroy(&source);
+  M68K_C_ASSERT_U32(262U, copy.register_seed_count);
+  M68K_C_ASSERT_U32(522U, copy.register_seeds[261].entry_offset);
+  saved = copy.register_seeds;
+  M68K_C_ASSERT_INT(M68K_ANALYSIS_POLICY_CAPACITY_EXCEEDED,
+    m68k_analysis_policy_reserve_register_seeds(&copy, (size_t)UINT16_MAX + 1U));
+  M68K_C_ASSERT_U32(M68K_ANALYSIS_STORAGE_CAPACITY_REGISTER_SEEDS, copy.storage_capacity_status);
+  M68K_C_ASSERT(copy.register_seeds == saved);
+  M68K_C_ASSERT_U32(262U, copy.register_seed_count);
+  M68K_C_ASSERT_INT(M68K_ANALYSIS_POLICY_CAPACITY_EXCEEDED,
+    m68k_analysis_policy_reserve_register_seeds(&copy, SIZE_MAX));
+  m68k_analysis_policy_destroy(&copy);
+  m68k_analysis_policy_destroy(&copy);
+  m68k_analysis_policy_init_default(&source);
+  source.register_seed_count = 257U; /* Claimed facts exceed inline storage. */
+  copy.max_cpu = 42U;
+  M68K_C_ASSERT_INT(-1, m68k_analysis_policy_copy(&copy, &source));
+  M68K_C_ASSERT_U32(42U, copy.max_cpu);
+  source.register_seed_count = 0U;
+  source.register_seed_capacity = 512U;
+  M68K_C_ASSERT_INT(-1, m68k_analysis_policy_reserve_register_seeds(&source, 262U));
+  m68k_analysis_policy_destroy(&source);
+  return 0;
+}
+
 static int test_rsset_regions_inline_growth_clone_and_identity_bound(void) {
   M68kAnalysisPolicy source = {0}, copy = {0};
   M68kAnalysisRssetLayoutRegion *saved;
@@ -298,6 +341,7 @@ static int test_manual_representations_invalid_copy_preserves_destination(void) 
 
 int m68k_c_policy_storage_tests(void) {
   static const M68kCTestCase cases[] = {
+    {"register_seeds_growth_copy_and_count_bound", test_register_seeds_growth_copy_and_count_bound},
     {"rsset_regions_inline_growth_clone_and_identity_bound", test_rsset_regions_inline_growth_clone_and_identity_bound},
     {"manual_data_references_required_family_and_capacity_clone", test_manual_data_references_required_family_and_capacity_clone},
     {"data_and_labels_capacity_clone_and_wide_bounds", test_data_and_labels_capacity_clone_and_wide_bounds},

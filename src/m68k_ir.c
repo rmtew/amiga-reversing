@@ -1597,6 +1597,8 @@ void m68k_analysis_policy_init_default(M68kAnalysisPolicy *policy) {
 
   memset(policy, 0, sizeof(*policy));
   policy->max_cpu = M68K_ASM_CPU_68060;
+  policy->register_seeds = policy->register_seeds_inline;
+  policy->register_seed_capacity = M68K_ANALYSIS_REGISTER_SEED_INLINE_CAPACITY;
   policy->structured_data_items = policy->structured_data_items_inline;
   policy->structured_data_item_capacity = 4U;
   policy->named_labels = policy->named_labels_inline;
@@ -1610,6 +1612,11 @@ void m68k_analysis_policy_init_default(M68kAnalysisPolicy *policy) {
 void m68k_analysis_policy_destroy(M68kAnalysisPolicy *policy) {
   if (policy == NULL) return;
   policy->storage_capacity_status = M68K_ANALYSIS_STORAGE_CAPACITY_NONE;
+  if (policy->register_seeds_owner && policy->register_seeds) free(policy->register_seeds);
+  policy->register_seeds = policy->register_seeds_inline;
+  policy->register_seed_count = 0U;
+  policy->register_seed_capacity = M68K_ANALYSIS_REGISTER_SEED_INLINE_CAPACITY;
+  policy->register_seeds_owner = 0U;
   if (policy->custom_struct_owner != 0U && policy->custom_structs != NULL) free(policy->custom_structs);
   if (policy->structured_data_items_owner != 0U && policy->structured_data_items != NULL)
     free(policy->structured_data_items);
@@ -1764,6 +1771,45 @@ int m68k_analysis_policy_reserve_structured_data_items(M68kAnalysisPolicy *polic
   return 0;
 }
 
+int m68k_analysis_policy_register_seeds_valid(const M68kAnalysisPolicy *policy) {
+  if (!policy || policy->register_seed_count > policy->register_seed_capacity) return 0;
+  if (!policy->register_seeds)
+    return !policy->register_seed_count && !policy->register_seed_capacity && !policy->register_seeds_owner;
+  if (policy->register_seeds == policy->register_seeds_inline)
+    return policy->register_seed_capacity <= M68K_ANALYSIS_REGISTER_SEED_INLINE_CAPACITY && !policy->register_seeds_owner;
+  return 1;
+}
+
+int m68k_analysis_policy_reserve_register_seeds(M68kAnalysisPolicy *policy, size_t required_count) {
+  M68kAnalysisRegisterSeed *grown;
+  uint16_t capacity;
+  if (policy == NULL) return -1;
+  if (required_count > M68K_ANALYSIS_REGISTER_SEED_LIMIT) {
+    policy->storage_capacity_status = M68K_ANALYSIS_STORAGE_CAPACITY_REGISTER_SEEDS;
+    return M68K_ANALYSIS_POLICY_CAPACITY_EXCEEDED;
+  }
+  if (!m68k_analysis_policy_register_seeds_valid(policy)) return -1;
+  if (policy->register_seeds == NULL && required_count <= M68K_ANALYSIS_REGISTER_SEED_INLINE_CAPACITY) {
+    policy->register_seeds = policy->register_seeds_inline;
+    policy->register_seed_capacity = M68K_ANALYSIS_REGISTER_SEED_INLINE_CAPACITY;
+  }
+  if (required_count <= policy->register_seed_capacity) return 0;
+  capacity = policy->register_seed_capacity < M68K_ANALYSIS_REGISTER_SEED_INLINE_CAPACITY ? M68K_ANALYSIS_REGISTER_SEED_INLINE_CAPACITY : policy->register_seed_capacity;
+  while (capacity < required_count) {
+    size_t next = (size_t)capacity * 2U;
+    capacity = (uint16_t)(next <= M68K_ANALYSIS_REGISTER_SEED_LIMIT ? next : M68K_ANALYSIS_REGISTER_SEED_LIMIT);
+  }
+  grown = (M68kAnalysisRegisterSeed *)calloc(capacity, sizeof(*grown));
+  if (grown == NULL) return -1;
+  if (policy->register_seed_count != 0U && policy->register_seeds != NULL)
+    memcpy(grown, policy->register_seeds, (size_t)policy->register_seed_count * sizeof(*grown));
+  if (policy->register_seeds_owner != 0U) free(policy->register_seeds);
+  policy->register_seeds = grown;
+  policy->register_seed_capacity = capacity;
+  policy->register_seeds_owner = 1U;
+  return 0;
+}
+
 int m68k_analysis_policy_reserve_named_labels(M68kAnalysisPolicy *policy, size_t required_count) {
   M68kAnalysisNamedLabel *grown;
   uint16_t capacity;
@@ -1869,13 +1915,15 @@ int m68k_analysis_policy_copy(M68kAnalysisPolicy *dest, const M68kAnalysisPolicy
   uint16_t manual_representation_count;
   uint16_t rsset_layout_region_count;
   uint16_t index;
+  M68kAnalysisRegisterSeed *register_seeds = NULL;
   M68kAnalysisCustomStruct *custom_structs = NULL;
   M68kAnalysisStructuredDataItem *structured_data_items = NULL;
   M68kAnalysisNamedLabel *named_labels = NULL;
   M68kAnalysisManualRepresentation *manual_representations = NULL;
   M68kAnalysisRssetLayoutRegion *rsset_layout_regions = NULL;
   if (dest == NULL || src == NULL) return -1;
-  if (!m68k_analysis_policy_structured_data_items_valid(src) ||
+  if (!m68k_analysis_policy_register_seeds_valid(src) ||
+      !m68k_analysis_policy_structured_data_items_valid(src) ||
       !m68k_analysis_policy_named_labels_valid(src) ||
       !m68k_analysis_policy_rsset_layout_regions_valid(src) ||
       !m68k_analysis_policy_custom_structs_valid(src) ||
@@ -1887,6 +1935,11 @@ int m68k_analysis_policy_copy(M68kAnalysisPolicy *dest, const M68kAnalysisPolicy
     custom_structs = (M68kAnalysisCustomStruct *)calloc(custom_struct_count, sizeof(*custom_structs));
     if (custom_structs == NULL) return -1;
     memcpy(custom_structs, src->custom_structs, (size_t)custom_struct_count * sizeof(*custom_structs));
+  }
+  if (src->register_seed_count > M68K_ANALYSIS_REGISTER_SEED_INLINE_CAPACITY) {
+    register_seeds = calloc(src->register_seed_count, sizeof(*register_seeds));
+    if (!register_seeds) goto oom;
+    memcpy(register_seeds, src->register_seeds, (size_t)src->register_seed_count * sizeof(*register_seeds));
   }
   structured_data_item_count = src->structured_data_item_count;
   if (structured_data_item_count > M68K_ANALYSIS_STRUCTURED_DATA_ITEM_LIMIT ||
@@ -1924,6 +1977,17 @@ int m68k_analysis_policy_copy(M68kAnalysisPolicy *dest, const M68kAnalysisPolicy
       (size_t)manual_representation_count * sizeof(*manual_representations));
   }
   *dest = *src;
+  dest->register_seeds = dest->register_seeds_inline;
+  dest->register_seed_capacity = M68K_ANALYSIS_REGISTER_SEED_INLINE_CAPACITY;
+  dest->register_seeds_owner = 0U;
+  if (src->register_seed_count > M68K_ANALYSIS_REGISTER_SEED_INLINE_CAPACITY) {
+    dest->register_seeds = register_seeds;
+    dest->register_seed_capacity = src->register_seed_count;
+    dest->register_seeds_owner = 1U;
+  } else if (src->register_seed_count) {
+    memcpy(dest->register_seeds_inline, src->register_seeds,
+      (size_t)src->register_seed_count * sizeof(dest->register_seeds_inline[0]));
+  }
   dest->custom_structs = custom_structs;
   dest->custom_struct_capacity = custom_struct_count;
   dest->custom_struct_owner = custom_struct_count != 0U ? 1U : 0U;
@@ -1977,6 +2041,7 @@ int m68k_analysis_policy_copy(M68kAnalysisPolicy *dest, const M68kAnalysisPolicy
   }
   return 0;
 oom:
+  free(register_seeds);
   free(custom_structs);
   free(structured_data_items);
   free(named_labels);
