@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
   "kind": "committed_native_rendered_original_export",
-  "canonical_source_commit": "99e6351eb95d4b8fdd790b608c1d45397fc33a08",
-  "publication_base_commit": "99e6351eb95d4b8fdd790b608c1d45397fc33a08",
+  "canonical_source_commit": "e7511f30664f6b2ca6a832ff81e81d520e17002d",
+  "publication_base_commit": "e7511f30664f6b2ca6a832ff81e81d520e17002d",
   "native_export": "CListingArtifact.source_package_payload(64)",
   "main_source_sha256": "cb676b600f76f65e694c48f2a5adcfd89d2b6b679f03fd1b8b3987491581983f",
   "asset_count": 57,
@@ -24,8 +24,8 @@
     "assembler executable",
     "paused Pandora work"
   ],
-  "canonical_source_commit_role": "canonical source publication base; shared reaching scalar-cell repair is in the publishing commit; output is bound by verification_receipt_id",
-  "canonical_source_subject_revision": "266d0b7df1e0120dfd21de55b4c51ea428d9de0a6a549358b348e9887e93a1aa",
+  "canonical_source_commit_role": "canonical source publication base; shared concrete runtime-write invalidation repair is in the publishing commit; output is bound by verification_receipt_id",
+  "canonical_source_subject_revision": "cdefa9ce7d2f163f1288804bdfd03734fa24cd0505413c2f3ed91893dd749a5f",
   "canonical_fact_sha256": {
     "source_binary.json": "42d4a5758b3e8236af7f912aee85e9ee5323bcd0961faa338c4f864080a0a7d9",
     "target_metadata.json": "e7540b68c118c56aba8815b6722eefa067517cc865fe9841d6c01ce96551389c",
@@ -46,6 +46,6 @@
     },
     "runtime_scope": "Seven CPU write-site windows match this reversible view; no whole runtime-view identity or parent plaintext promotion."
   },
-  "verification_receipt_id": "f91862fb277def381b5aa0016eea3b11c39923c1dde485e409b392e61c431f18",
-  "render_native_sha256": "5089652d9e6af88c4aff8286b377b9cd6d0bf1a9c0a287efab4ea5ef3ca63c48"
+  "verification_receipt_id": "9e292ed342b26cb136b7897f7019a5f651b0e2b4ab84e239d383150638afc264",
+  "render_native_sha256": "ae34b04972fbebc362f746c03602d1c828d6819193e0236bbc9d5185f2b33c33"
 }

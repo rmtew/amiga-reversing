@@ -159,29 +159,8 @@ static uint32_t counter_loop_root_at_tail(const M68kRenderTypedState *state, con
   return 0U;
 }
 
-/* Conservative for 24-bit 68000 bus aliases, including sign-extended
- * absolute.W addresses. Wrapped envelopes are refused, never split/guessed. */
-static int counter_loop_bus_span(int64_t first, int64_t last, uint32_t width,
-    uint32_t *out_lo, uint32_t *out_hi) {
-  int64_t lo = first < last ? first : last, hi = (first > last ? first : last) + width;
-  if (!width || lo < 0 || hi > (int64_t)UINT32_MAX + 1 ||
-      ((uint64_t)lo >> 24) != ((uint64_t)(hi - 1) >> 24)) return 0;
-  *out_lo = (uint32_t)lo & 0xFFFFFFU;
-  *out_hi = *out_lo + (uint32_t)(hi - lo);
-  return 1;
-}
-
 static void counter_loop_capture_raw(M68kLoopEntryRoot *root, const M68kRenderTypedRegValue *value) {
-  if (value->address_value_candidate_overflow) return;
-  if (value->raw_long_value_known && value->raw_long_candidate_count <= 4U) {
-    root->raw_count = value->raw_long_candidate_count ? value->raw_long_candidate_count : 1U;
-    for (uint8_t i = 0U; i < root->raw_count; ++i)
-      root->raw_values[i] = value->raw_long_candidate_count ? value->raw_long_candidates[i] : value->raw_long_value;
-  } else if (value->pointer_value_known && value->pointer_candidate_count <= 4U) {
-    root->raw_count = value->pointer_candidate_count ? value->pointer_candidate_count : 1U;
-    for (uint8_t i = 0U; i < root->raw_count; ++i)
-      root->raw_values[i] = value->pointer_candidate_count ? value->pointer_candidates[i] : value->pointer_value;
-  }
+  root->raw_count = typed_runtime_address_candidates(value, root->raw_values);
 }
 
 static int counter_loop_source_write_disjoint(const M68kRenderLookup *lookup,
@@ -193,7 +172,7 @@ static int counter_loop_source_write_disjoint(const M68kRenderLookup *lookup,
   uint32_t lo, hi, address;
   if (operand_absolute_offset_local(&instruction->operands[operand], &address)) {
     if (!platform_operand_memory_span(instruction, operand, &element, &count, &width) ||
-        !counter_loop_bus_span(address, address, width, &lo, &hi)) return 0;
+        !typed_runtime_bus_span(address, address, width, &lo, &hi)) return 0;
     return hi <= protected_lo || lo >= protected_hi;
   }
   if (!typed_register_memory_span(instruction, operand, &reg, &displacement, &access, &width, &element, &count))
@@ -210,7 +189,7 @@ static int counter_loop_source_write_disjoint(const M68kRenderLookup *lookup,
     if (begin < 0 || end > (int64_t)UINT32_MAX + 1 || end - begin > UINT32_MAX ||
         !lookup_source_unique_runtime_span(lookup, root->source_base.section_index, (uint32_t)begin,
           (uint32_t)(end - begin), &address) ||
-        !counter_loop_bus_span(address, address, (uint32_t)(end - begin), &lo, &hi)) return 0;
+        !typed_runtime_bus_span(address, address, (uint32_t)(end - begin), &lo, &hi)) return 0;
     if (getenv("AMIGA_REVERSING_TRACE_SOURCE_CURSOR_DOMAINS"))
       fprintf(stderr, "source_write pc=%X reg=A%u root=%u source=%zu first=%lld last=%lld width=%u runtime=%X..%X protected=%X..%X\n",
         node->candidate->offset, reg, value->root, root->source_base.section_index,
@@ -221,7 +200,7 @@ static int counter_loop_source_write_disjoint(const M68kRenderLookup *lookup,
    * this pass. A first-iteration constant with no entry relation is not enough. */
   if ((root->app != 1U && root->address != 1U) || !root->raw_count) return 0;
   for (uint8_t i = 0U; i < root->raw_count; ++i) {
-    if (!counter_loop_bus_span((int64_t)root->raw_values[i] + relative,
+    if (!typed_runtime_bus_span((int64_t)root->raw_values[i] + relative,
           (int64_t)root->raw_values[i] + final_relative, width, &lo, &hi) ||
         (hi > protected_lo && lo < protected_hi)) return 0;
   }
@@ -239,7 +218,7 @@ static int counter_loop_source_range_stable(const M68kRenderLookup *lookup,
   uint64_t width = (row->source_first > last ? row->source_first : last) + row->width - first;
   if (first < 0 || width > UINT32_MAX ||
       !lookup_source_unique_runtime_span(lookup, row->source_section, (uint32_t)first, (uint32_t)width, &address) ||
-      !counter_loop_bus_span(address, address, (uint32_t)width, &table_lo, &table_hi)) return 0;
+      !typed_runtime_bus_span(address, address, (uint32_t)width, &table_lo, &table_hi)) return 0;
   for (size_t b = 0U; b < body_count; ++b) {
     const M68kRenderTypedFlowNode *node = &graph->nodes[body[b]];
     M68kInstructionIR instruction;
@@ -255,7 +234,7 @@ static int counter_loop_source_range_stable(const M68kRenderLookup *lookup,
         const M68kDecodeCandidate *code = graph->nodes[body[c]].candidate;
         uint32_t code_lo, code_hi;
         if (!lookup_source_unique_runtime_span(lookup, section->section_index, code->offset, code->byte_count, &address) ||
-            !counter_loop_bus_span(address, address, code->byte_count, &code_lo, &code_hi) ||
+            !typed_runtime_bus_span(address, address, code->byte_count, &code_lo, &code_hi) ||
             !counter_loop_source_write_disjoint(lookup, node, &instruction, operand, context, roots, root_count,
               iterations, code_lo, code_hi)) return 0;
       }

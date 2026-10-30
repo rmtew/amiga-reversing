@@ -365,14 +365,29 @@ Actual SGII coverage is unchanged:3503 app /2682 typed /158 unresolved; all six
 retained access/CFG vectors and rendered source are identical. Generation took
 200.85s; C/vasm and clean standalone remain byte exact, with57 assets/14 headers
 unchanged. This fixes a reusable prerequisite, not the original initializer.
-The next experiment is the intervening workspace-clear write: its raw runtime
-A0 address lacks a canonical source/app storage key, so alias invalidation can
-lose the saved frame even when the physical spans are disjoint. Reproduce that
-with known-disjoint, overlap,24-bit-alias and unknown-address negatives before
-changing shared invalidation. Later call transport still needs the original
-register/memory lifetime evidence; a concrete stack address alone did not
-recover the synthetic call cases. No per-reader frame seed, universal104 bound
-or immutable-header invariant is added.
+The intervening-write experiment also reproduced a shared invalidation gap:
+a raw runtime EA without a source/app storage key discarded all reaching cells.
+The shared instruction footprint now checks every existing concrete EA
+candidate against absolute cells, reusing the same24-bit bus-span and candidate
+helpers as counter-loop proof. MOVEM uses the full register-list width and
+predecrement adjustment. Unknown/app-relative owners, candidate aliases,
+wrapped envelopes and unknown addresses still discard the value. No extra
+per-node state or larger candidate cap is introduced.25 frame cases and the
+related suites cover211 Python checks; all832 native cases pass.
+
+The second SGII generation took206.41s and again changed no access/CFG vector,
+source, asset or header. C/vasm and clean standalone remain exact. The original
+workspace-clear prerequisite is now isolated to loop-wide preservation: an
+8-word DBF fixture loses its saved frame even though each first-iteration
+write is disjoint. The existing counter-loop pass proves ranges for catalogue
+projection but does not feed a preserved-cell invariant back into post-loop
+flow. The next minimal experiment must use its closed write envelope to retain
+only cells disjoint from every iteration, with overlapping, changed-counter,
+external-entry and unknown-call negatives; first-iteration constants are not
+enough. Later call transport still needs the original register/memory lifetime
+evidence; a concrete stack address alone did not recover the synthetic call
+cases. No per-reader frame seed, universal104 bound or immutable-header
+invariant is added.
 
 An on-demand systematic gap inventory (`amiga_reversing/tools/source_gap_inventory.py`)
 joins native identities/accesses with canonical layouts and actual rendered

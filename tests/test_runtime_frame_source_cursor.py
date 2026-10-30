@@ -62,3 +62,54 @@ def test_uncontracted_call_does_not_preserve_runtime_frame(tmp_path):
             'amiga-raw',artifact.inline_source_text_with_profile()[0])[0] == original
     finally:
         artifact.close()
+
+
+@pytest.mark.parametrize('write', [
+    'lea.l $68000.l,a1\nclr.w (a1)',
+    'lea.l $68000.l,a1\nclr.w (a1)+',
+    'lea.l $68000.l,a1\nmovem.l d0-d1,-(a1)',
+    'tst.w d7\nbeq other_runtime_frame\nlea.l $68000.l,a1\nbra clear_runtime_frame\nother_runtime_frame:lea.l $70000.l,a1\nclear_runtime_frame:clr.w (a1)',
+])
+def test_known_disjoint_runtime_write_preserves_saved_frame(tmp_path, write):
+    artifact, _ = header_table_artifact(tmp_path, count=104,
+        setup='lea.l $60000.l,a6\nmove.l a6,saved_frame.l\n'+write+'\nmovea.l saved_frame.l,a6',
+        record_access='move.w (a0)+,d0\nmove.w (a0),d1\nmove.w d0,$40(a6)\n',
+        code_tail='saved_frame:dc.l 0\n')
+    try:
+        assert {r['field_name'] for r in artifact.analysis_payload()[0]['sections'][0][
+            'recovered_platform_typed_accesses']} == {'count', 'flags'}
+    finally:
+        artifact.close()
+
+
+@pytest.mark.parametrize('write', [
+    'lea.l saved_frame.l,a1\nclr.w (a1)',
+    'lea.l saved_frame+8.l,a1\nmovem.l d0-d1,-(a1)',
+    'lea.l saved_frame.l,a1\nadda.l #$1000000,a1\nclr.w (a1)',
+    'lea.l $FFFFFE.l,a1\nmovem.l d0-d1,(a1)',
+    'movea.l d6,a1\nclr.w (a1)',
+    'tst.w d7\nbeq alias_frame\nlea.l $68000.l,a1\nbra clear_frame\nalias_frame:lea.l saved_frame.l,a1\nclear_frame:clr.w (a1)',
+])
+def test_runtime_write_alias_or_unknown_kills_saved_frame(tmp_path, write):
+    artifact, _ = header_table_artifact(tmp_path, count=104,
+        setup='lea.l $60000.l,a6\nmove.l a6,saved_frame.l\n'+write+'\nmovea.l saved_frame.l,a6',
+        record_access='move.w (a0)+,d0\nmove.w (a0),d1\nmove.w d0,$40(a6)\n',
+        code_tail='saved_frame:dc.l 0\n')
+    try:
+        assert not artifact.analysis_payload()[0]['sections'][0]['recovered_platform_typed_accesses']
+    finally:
+        artifact.close()
+
+
+def test_clear_loop_without_closed_runtime_envelope_refuses_frame(tmp_path):
+    # Per-instruction exact candidates cannot certify the full DBF write range.
+    artifact, _ = header_table_artifact(tmp_path, count=104,
+        setup='lea.l $60000.l,a6\nmove.l a6,saved_frame.l\nlea.l $68000.l,a1\n'
+              'move.w #7,d2\nclear_words:clr.w (a1)+\ndbf d2,clear_words\n'
+              'movea.l saved_frame.l,a6',
+        record_access='move.w (a0)+,d0\nmove.w (a0),d1\nmove.w d0,$40(a6)\n',
+        code_tail='saved_frame:dc.l 0\n')
+    try:
+        assert not artifact.analysis_payload()[0]['sections'][0]['recovered_platform_typed_accesses']
+    finally:
+        artifact.close()

@@ -4287,11 +4287,74 @@ static int typed_storage_write_is_hardware(const M68kRenderLookup *lookup,
     platform_facts_v2_address_has_hardware_owner(platform, address + width - 1U);
 }
 
+/* Conservative for 24-bit 68000 bus aliases, including sign-extended
+ * absolute.W addresses. Wrapped envelopes are refused, never split/guessed. */
+static int typed_runtime_bus_span(int64_t first, int64_t last, uint32_t width,
+    uint32_t *out_lo, uint32_t *out_hi) {
+  int64_t lo = first < last ? first : last, hi = (first > last ? first : last) + width;
+  if (!width || lo < 0 || hi > (int64_t)UINT32_MAX + 1 ||
+      ((uint64_t)lo >> 24) != ((uint64_t)(hi - 1) >> 24)) return 0;
+  *out_lo = (uint32_t)lo & 0xFFFFFFU;
+  *out_hi = *out_lo + (uint32_t)(hi - lo);
+  return 1;
+}
+
+static uint8_t typed_runtime_address_candidates(const M68kRenderTypedRegValue *value,
+    uint32_t values[4]) {
+  if (value->address_value_candidate_overflow) return 0U;
+  if (value->raw_long_value_known && value->raw_long_candidate_count <= 4U) {
+    uint8_t count = value->raw_long_candidate_count ? value->raw_long_candidate_count : 1U;
+    for (uint8_t i = 0U; i < count; ++i)
+      values[i] = value->raw_long_candidate_count ? value->raw_long_candidates[i] : value->raw_long_value;
+    return count;
+  }
+  if (value->pointer_value_known && value->pointer_candidate_count <= 4U) {
+    uint8_t count = value->pointer_candidate_count ? value->pointer_candidate_count : 1U;
+    for (uint8_t i = 0U; i < count; ++i)
+      values[i] = value->pointer_candidate_count ? value->pointer_candidates[i] : value->pointer_value;
+    return count;
+  }
+  return 0U;
+}
+
+/* Preserve only cells proved disjoint from every concrete EA candidate. This
+ * uses instruction footprints (including MOVEM/predecrement), not the width
+ * of one scalar element. Unknown owners and wrapped bus spans still kill. */
+static int typed_state_note_concrete_runtime_write(M68kRenderTypedState *state,
+    const M68kRenderLookup *lookup, const M68kInstructionIR *instruction, size_t operand_index) {
+  uint8_t reg, access, width, element, transfers;
+  int16_t displacement;
+  uint32_t addresses[4];
+  if (!typed_register_memory_span(instruction, operand_index, &reg, &displacement,
+      &access, &width, &element, &transfers)) return 0;
+  uint8_t count = typed_runtime_address_candidates(&state->addr_regs[reg], addresses);
+  if (!count) return 0;
+  for (size_t i = 0U; i < state->base_slot_count;) {
+    const M68kRenderTypedBaseSlot *cell = &state->base_slots[i];
+    if (!cell->storage_id) { ++i; continue; }
+    const M68kRenderTypedStorageSlot *owner = &lookup->typed_storage_slots[cell->storage_id - 1U];
+    uint32_t cell_lo, cell_hi;
+    int disjoint = owner->kind == M68K_RENDER_TYPED_STORAGE_ABSOLUTE &&
+      typed_runtime_bus_span(owner->address, owner->address, 4U, &cell_lo, &cell_hi);
+    for (uint8_t j = 0U; disjoint && j < count; ++j) {
+      uint32_t lo, hi;
+      int64_t first = (int64_t)addresses[j] + displacement;
+      disjoint = typed_runtime_bus_span(first, first, width, &lo, &hi) &&
+        (hi <= cell_lo || lo >= cell_hi);
+    }
+    if (!disjoint) state->base_slots[i] = state->base_slots[--state->base_slot_count];
+    else ++i;
+  }
+  return 1;
+}
+
 /* Both domains use the same canonical storage IDs and sparse must-value cells.
  * Cross-domain addresses are not assumed disjoint. Unknown aliases/calls kill
  * reaching cells; a known same-domain write retains only disjoint LONGs. */
 static void typed_state_note_storage_write(M68kRenderTypedState *state, const M68kRenderLookup *lookup,
-    const M68kRenderPlatformState *platform_state, size_t section, const M68kOperandIR *operand, uint8_t width) {
+    const M68kRenderPlatformState *platform_state, size_t section, const M68kInstructionIR *instruction,
+    size_t operand_index, uint8_t width) {
+  const M68kOperandIR *operand = &instruction->operands[operand_index];
   uint8_t kind = 0U;
   size_t owner_section = section, index = 0U;
   int32_t displacement = 0;
@@ -4312,7 +4375,9 @@ static void typed_state_note_storage_write(M68kRenderTypedState *state, const M6
         lookup_source_unique_runtime_span(lookup, effective.section_index, effective.offset, width, &address)) {
       kind = M68K_RENDER_TYPED_STORAGE_ABSOLUTE; runtime_address = 1;
     } else {
-      typed_state_forget_memory_cells(state); return;
+      if (!typed_state_note_concrete_runtime_write(state, lookup, instruction, operand_index))
+        typed_state_forget_memory_cells(state);
+      return;
     }
   }
   state->memory_write_barriers |= M68K_CELL_WRITTEN_ALL;
@@ -6375,7 +6440,7 @@ static int render_lookup_record_typed_storage_store(M68kRenderLookup *lookup, M6
   {
     uint8_t span = 0U;
     (void)platform_operand_memory_span(instruction, dest_index, NULL, NULL, &span);
-    typed_state_note_storage_write(state, lookup, platform_state, section_index, dest_operand, span);
+    typed_state_note_storage_write(state, lookup, platform_state, section_index, instruction, dest_index, span);
   }
   if (operand_is_stack_displacement_local(dest_operand, &stack_displacement)) {
     typed_state_clear_stack_write(state, stack_displacement,
@@ -6538,7 +6603,7 @@ static int render_lookup_record_untyped_memory_writes(M68kRenderLookup *lookup, 
           }
         }
       }
-      typed_state_note_storage_write(state, lookup, platform_state, section_index, operand, span);
+      typed_state_note_storage_write(state, lookup, platform_state, section_index, instruction, operand_index, span);
       typed_state_set_memory_cell(state, id, &updated);
     }
     if (operand_is_stack_displacement_local(operand, &stack_displacement)) {
