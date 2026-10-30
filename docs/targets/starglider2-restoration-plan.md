@@ -16,7 +16,7 @@ to their recorded closeout revision. See the current
 
 ## Current refinement and next evidence
 
-Current native totals: **3509 app /2687 typed /158 unresolved**, with **11224
+Current native totals: **3513 app /2687 typed /158 unresolved**, with **11224
 unclassified bytes /271 intervals**. Counter-indexed source-array reads now reuse
 the shared loop induction and interned linear entry values. Original inventory
 readers at source `$DD6` and `$339B4` expose the existing name-reference `text`
@@ -499,18 +499,57 @@ not another per-node value array.
 
 Validation:408 related Python cases pass with three existing expected failures;
 all21 new cases pass (including two additional namespace cases), and all833 native
-C cases pass. Original C/vasm and a clean standalone build are exact. Actual SGII
-gain remains **zero**, all six access/address/CFG vectors and the generated source
+C cases pass. Original C/vasm and a clean standalone build are exact. That transport batch produced **zero** SGII gain; all six access/address/CFG
+vectors and the generated source
 package are unchanged, and no nominal callable result is inferred for this target.
 Generation took255.41s; peak RSS2770280KiB. These are single host measurements,
 not a speedup claim. No observation dump or interim archive is committed.
 
-Next bounded experiment: carry proven selector domains into callable dispatch
-closure, beginning with the eight guarded entries of the thirteen-WORD view-mode
+That transport batch identified a bounded experiment: carry proven selector
+domains into callable dispatch closure, beginning with the eight guarded entries of the thirteen-WORD view-mode
 table. Its known targets alone are not an exhaustive control contract. Then test
 normal-return register preservation within the world-update SCC; do not assume
 recursive effects. Optional-header selector validity and preservation of +22
 remain separate obligations; the observed +2 mutation proves neither.
+
+Guarded callable dispatch now reuses converged WORD sets, canonical table
+entries and a dominating load-to-jump relation. Sparse requests are captured
+before loop analysis borrows node storage, then revalidated at final binding.
+Unknown selectors/targets, changed flags, alternate entries, partial writes,
+prior writes and conflicting returns refuse. The existing eight-value limit is
+unchanged; An/long/scaled/full-extension and nontrivial transfer forms are not
+silently generalized. The source CFG retains its broader unknown edges.
+
+`select_player_view_mode` at source `$2C40` now proves A6/A7 preservation across
+eight guarded entries of its thirteen-WORD table. Actual gains: four APP writes
+at `$2DCFA..$2DD06` and **182 register-base attribution upgrades**. Another 39
+fallback tags normalize to declared-layout fallback; they are still unproved.
+Typed accesses remain 2687 and the 158 unresolved diagnostics are unchanged as a
+multiset. Two of the four drawing WORD writes overlap existing key-code BYTE labels;
+this exposes a phase/alias question, not four newly established meanings.
+
+Late refinement exposed a stale renderer index: newly appended APP rows exceeded
+the earlier frozen index. A sub-second regression reproduced the crash. Freeze
+now occurs at final emission after all collectors and compaction. Validation:
+391 related Python cases; after the final shared brief-WORD form refusal, 87
+affected cases and all 833 native cases pass. Final C assembly and clean standalone
+vasm reproduce all 412736 original bytes. Assets 57 and headers 14 are unchanged.
+No observation dump or archive is committed.
+
+Generation took 529.03s, including 332.59s in source finalization, which now includes
+a whole-graph flow re-solve; call-graph reproving itself took 0.056s. Peak RSS was
+2813424KiB. Incremental invalidation is a measured performance debt, not a claimed
+speedup or another timing-only run.
+
+The +$856 index is still unresolved: the renderer, landscape bridge `$39D4` and
+sorting summaries remain unsupported after the view-mode repair. Next isolate
+those actual controls using retained CFG/callee evidence, without assuming a
+selector bound from table length. Separately, the world/input/options SCC includes
+a save-game path: the world frame is restored at `$344DA`, the return address is
+popped at `$F12E`, and control returns to the game loop via `$11F74`. It is not
+simply an ordinary recursive callable; its effects stay invalid. Its entry-input
+transport is distinct from proving its return effects. Optional-header selector
+validity and +22 preservation remain separate from the observed +2 mutation.
 
 An on-demand systematic gap inventory (`amiga_reversing/tools/source_gap_inventory.py`)
 joins native identities/accesses with canonical layouts and actual rendered

@@ -6099,8 +6099,10 @@ static int compare_app_slot_ref_source(const void *left, const void *right) {
 }
 
 int render_lookup_index_app_accesses(M68kRenderLookup *lookup) {
-  /* All collectors/compaction are finished. No pointer into the growable fact
-   * vector is retained until this freeze point; the arena owns both vectors. */
+  /* Freeze after late source/callable refinement and compaction, at emission.
+   * The source vector can grow after initial platform passes. Retaining that
+   * earlier index would give both dangling rows and the wrong search extent. */
+  lookup->app_slot_ref_index = NULL;
   if (lookup->app_slot_ref_count != 0U) {
     lookup->app_slot_ref_index = render_lookup_calloc(lookup, lookup->app_slot_ref_count,
       sizeof(*lookup->app_slot_ref_index));
@@ -7060,6 +7062,7 @@ int m68k_render_lookup_build(M68kRenderLookup *lookup, const M68kObject *object,
   lookup->section_count = decode->section_count;
   lookup->object = object;
   lookup->policy = policy;
+  lookup->control_facts = facts;
   lookup->labels = (uint8_t **)render_lookup_calloc(lookup, decode->section_count, sizeof(*lookup->labels));
   lookup->label_target_refs =
     (uint8_t **)render_lookup_calloc(lookup, decode->section_count, sizeof(*lookup->label_target_refs));
@@ -12088,6 +12091,7 @@ int m68k_render_ir_preview_emit_prepared(const M68kObject *object, const M68kDec
     return -1;
   if (render_asm_source && source_analysis == NULL) return -1;
   if (render_asm_source && out_preview->render_evidence == NULL) return -1;
+  if (render_lookup_index_app_accesses(lookup)) return -1;
   lookup->render_in_place_helper_contract=NULL;
   out_preview->platform_backend_kind = object->platform_backend_kind;
   out_preview->analysis_policy = policy;

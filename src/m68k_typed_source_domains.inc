@@ -110,8 +110,11 @@ static int typed_source_domains_still_valid(M68kRenderLookup *lookup, M68kSource
 int m68k_analysis_render_lookup_refine_source_domains(M68kRenderLookup *lookup,
     const M68kDecodeIR *decode, uint8_t **accepted_start, M68kSourceAnalysisIR *analysis) {
   if (!lookup || !decode || !accepted_start || !analysis) return -1;
+  int closed = callable_dispatch_collect(lookup, decode, accepted_start, analysis);
+  if (closed < 0) return -1;
   if (lookup->source_domain_pass_done)
     return typed_source_domains_still_valid(lookup, analysis) ? 0 : -1;
+  if (closed && callable_dispatch_reprove(lookup, decode, accepted_start)) return -1;
   lookup->source_domain_pass_done = 1U;
   if (!lookup->pending_source_flow) return 0;
   for (size_t i = 0U; i < lookup->source_read_request_count; ++i) {
@@ -127,7 +130,7 @@ int m68k_analysis_render_lookup_refine_source_domains(M68kRenderLookup *lookup,
           M68K_RENDER_TABLE_CONTRACT_VALID || !typed_source_domain_span(analysis, value, &minimum, &maximum)) continue;
     if (typed_source_domain_add(lookup, analysis, request, value) < 0) return -1;
   }
-  if (!lookup->source_domain_count) { m68k_analysis_render_lookup_release_source_flow(lookup); return 0; }
+  if (!lookup->source_domain_count && !closed) { m68k_analysis_render_lookup_release_source_flow(lookup); return 0; }
   /* The loop proof borrows node packets. The ordinary solver recomputes its
    * scalar proof and all input states; graph/index/CFG storage is reused. */
   M68kRenderTypedFlowWorkflow *flow = lookup->pending_source_flow;
@@ -136,6 +139,8 @@ int m68k_analysis_render_lookup_refine_source_domains(M68kRenderLookup *lookup,
       typed_flow_solve_call_inputs(lookup, decode, accepted_start, flow, 0) ||
       render_lookup_record_typed_app_slot_pointer_accesses(lookup, decode, accepted_start)) return -1;
   typed_flow_filter_nonapp_fallbacks(lookup, decode, flow);
+  if (callable_dispatch_capture(lookup, decode, flow) ||
+      callable_dispatch_collect(lookup, decode, accepted_start, analysis) < 0) return -1;
   if (typed_flow_record_app_loop_ranges(lookup, decode, accepted_start, flow, 0) ||
       typed_prune_resolved_indexed_diagnostics(lookup)) return -1;
   m68k_analysis_render_lookup_release_source_flow(lookup);

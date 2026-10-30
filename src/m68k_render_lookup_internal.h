@@ -810,7 +810,21 @@ typedef struct M68kRenderSourceReadRequest {
   int32_t field_cursor;
 } M68kRenderSourceReadRequest;
 
+/* Callable control closure borrows the validated trace relation and uses the
+ * existing finite WORD domain. It is not a second selector/value engine. */
+typedef struct M68kRenderClosedDispatch {
+  M68kRelativeDispatchFact relation;
+  M68kHardwareWordSet indices;
+  uint32_t targets[M68K_HARDWARE_VALUE_LIMIT];
+  uint8_t count;
+} M68kRenderClosedDispatch;
+
 struct M68kRenderLookup {
+  const M68kFactIR *control_facts; /* Borrowed for this source-analysis lifetime. */
+  M68kRenderClosedDispatch *dispatch_requests; /* Non-admitting snapshots before loop storage loans. */
+  size_t dispatch_request_count, dispatch_request_capacity;
+  M68kRenderClosedDispatch *closed_dispatches;
+  size_t closed_dispatch_count, closed_dispatch_capacity;
   struct M68kRenderTypedFlowWorkflow *pending_source_flow;
   M68kRenderSourceReadRequest *source_read_requests;
   size_t source_read_request_count, source_read_request_capacity;

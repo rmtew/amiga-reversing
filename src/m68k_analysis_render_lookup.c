@@ -6971,6 +6971,15 @@ static int typed_flow_first_local_control_target(const M68kRenderLookup *lookup,
   int found = 0;
   if (out_target != NULL) *out_target = 0U;
   if (section == NULL || candidate == NULL || out_target == NULL) return 0;
+  M68kInstructionIR instruction;
+  if (m68k_decode_candidate_to_instruction(candidate, &instruction)) return 0;
+  const M68kSimFormMetadata *metadata = m68k_sim_metadata_for_instruction(&instruction);
+  if (metadata && metadata->flow_kind == M68K_SIM_FLOW_JUMP &&
+      metadata->target_operand_index < instruction.operand_count) {
+    uint8_t shape = m68k_instruction_operand_decoded_ea_shape(&instruction.operands[metadata->target_operand_index]);
+    if (shape != M68K_SIM_EA_SHAPE_ABSOLUTE_WORD && shape != M68K_SIM_EA_SHAPE_ABSOLUTE_LONG &&
+        shape != M68K_SIM_EA_SHAPE_PC_DISPLACEMENT) return 0;
+  }
   {
     size_t target_section;
     uint32_t target_offset;
@@ -7158,6 +7167,16 @@ static uint8_t typed_flow_entry_origin_ordinal(uint8_t origin) {
   uint8_t kind = 0U, index = 0U;
   if (!typed_flow_entry_origin_decode(origin, &kind, &index)) return 0xffU;
   return kind == M68K_ANALYSIS_REGISTER_DATA ? (uint8_t)(8U + index) : index;
+}
+
+static const M68kRenderClosedDispatch *lookup_closed_dispatch(const M68kRenderLookup *lookup,
+    size_t section, uint32_t offset) {
+  for (size_t i = 0U; lookup && i < lookup->closed_dispatch_count; ++i) {
+    const M68kRenderClosedDispatch *closed = &lookup->closed_dispatches[i];
+    if (closed->relation.consumer_section_index == section && closed->relation.consumer_offset == offset)
+      return closed;
+  }
+  return NULL;
 }
 
 #include "m68k_direct_body_worklist.inc"
@@ -7595,6 +7614,16 @@ static int typed_flow_local_callee_effect_summary(const M68kRenderLookup *lookup
           if (returned_data_origin[reg] != state.data_origin[reg]) returned_data_origin[reg] = 0xffU;
         }
         returned = 1U;
+        break;
+      }
+      const M68kRenderClosedDispatch *closed = metadata->flow_kind == M68K_SIM_FLOW_JUMP ?
+        lookup_closed_dispatch(lookup, section_index, candidate->offset) : NULL;
+      if (closed && !memory_effects_unknown && !static_write_count) {
+        for (size_t target = 0U; target < closed->count; ++target) {
+          M68kTypedLocalCalleeState branch = state;
+          branch.offset = closed->targets[target];
+          if (local_callee_push(&worklist, &work_count, &work_capacity, &branch)) goto resource_limit;
+        }
         break;
       }
       if (typed_flow_first_local_control_target(lookup, section, candidate, &branch_target)) {
@@ -12043,6 +12072,8 @@ static int render_lookup_has_typed_flow_sources(const M68kRenderLookup *lookup, 
     uint8_t **accepted_start) {
   size_t index;
   if (lookup == NULL) return 0;
+  if (lookup->inferred_function_summary_count && lookup->control_facts &&
+      lookup->control_facts->relative_dispatch_count) return 1;
   if (lookup->typed_app_slot_count != 0U || lookup->typed_storage_slot_count != 0U ||
       lookup->typed_slot_effect_count != 0U || lookup->base_field_slot_count != 0U ||
       lookup->indexed_vector_wrapper_count != 0U || policy_has_typed_flow_metadata(lookup->policy) ||
@@ -12085,6 +12116,9 @@ static int render_lookup_has_typed_flow_sources(const M68kRenderLookup *lookup, 
   }
   return 0;
 }
+
+static int callable_dispatch_capture(M68kRenderLookup *lookup, const M68kDecodeIR *decode,
+    const M68kRenderTypedFlowWorkflow *flow);
 
 static int typed_flow_workflow_prepare(M68kRenderTypedFlowWorkflow *workflow,
     M68kRenderLookup *lookup, const M68kDecodeIR *decode, uint8_t **accepted_start) {
@@ -17937,10 +17971,11 @@ int m68k_analysis_render_lookup_run_platform_passes(M68kRenderLookup *lookup, co
     goto typed_flow_fail;
   if (render_lookup_record_typed_app_slot_pointer_accesses(lookup, decode, accepted_start) != 0) goto typed_flow_fail;
   typed_flow_filter_nonapp_fallbacks(lookup, decode, &typed_flow_workflow);
+  if (callable_dispatch_capture(lookup, decode, &typed_flow_workflow)) goto typed_flow_fail;
   /* Loop proof deliberately borrows node value storage after projection. */
   if (typed_flow_record_app_loop_ranges(lookup, decode, accepted_start, &typed_flow_workflow, 0) != 0) goto typed_flow_fail;
   if (typed_prune_resolved_indexed_diagnostics(lookup) != 0 || lookup->source_domain_error) goto typed_flow_fail;
-  if (lookup->source_read_request_count) {
+  if (typed_flow_workflow.graphs && (lookup->source_read_request_count || lookup->dispatch_request_count)) {
     lookup->pending_source_flow = arena_alloc(lookup->arena, sizeof(*lookup->pending_source_flow));
     if (!lookup->pending_source_flow) goto typed_flow_fail;
     *lookup->pending_source_flow = typed_flow_workflow;
@@ -17966,7 +18001,7 @@ int m68k_analysis_render_lookup_run_platform_passes(M68kRenderLookup *lookup, co
     stats->generic_data_seconds = elapsed_seconds_local(start, end);
     stats->pass_seconds = elapsed_seconds_local(pass_start, end);
   }
-  return render_lookup_index_app_accesses(lookup);
+  return 0;
 
 typed_flow_fail:
   typed_flow_workflow_destroy(&typed_flow_workflow);
@@ -18719,4 +18754,5 @@ fail:
 }
 
 
+#include "m68k_callable_dispatch.inc"
 #include "m68k_typed_source_domains.inc"
