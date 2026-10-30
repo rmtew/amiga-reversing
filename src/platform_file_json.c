@@ -4184,6 +4184,11 @@ oom:
   return -1;
 }
 
+/* The field catalogue and whole-analysis access projection share canonical
+ * exact-start APP names. Keep the internal observation identity unchanged. */
+static const char *listing_app_slot_ref_symbol_from_analysis(const M68kSourceAnalysisIR *source_analysis,
+    const M68kAppSlotRefIR *ref);
+
 static int source_analysis_to_json_impl(const M68kSourceAnalysisIR *source_analysis,
     const M68kRenderEvidenceIR *render_evidence, char **out_json, M68kDiagSink diagnostics) {
   JsonBuilder builder = {0};
@@ -5860,9 +5865,10 @@ static int source_analysis_to_json_impl(const M68kSourceAnalysisIR *source_analy
             app_slot_base_evidence_kind_name(ref->base_evidence_kind)) != 0)
         goto oom;
       if (append_app_slot_derived_json(&builder, ref) != 0) goto oom;
-      if (ref->symbol_name != NULL) {
+      const char *canonical_symbol = listing_app_slot_ref_symbol_from_analysis(source_analysis, ref);
+      if (canonical_symbol != NULL) {
         if (json_builder_append(&builder, ",\"symbol_name\":") != 0 ||
-            json_builder_append_json_string(&builder, ref->symbol_name) != 0)
+            json_builder_append_json_string(&builder, canonical_symbol) != 0)
           goto oom;
       }
       if (json_builder_append(&builder, "}") != 0)

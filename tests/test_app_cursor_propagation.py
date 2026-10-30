@@ -73,7 +73,10 @@ int main(void) {
   other.app_addr_regs[4].base_evidence_kind = M68K_APP_SLOT_BASE_REGISTER_STATE;
   typed_state_merge_into(&state, &other, NULL);
   assert(state.app_addr_regs[4].known);
-  assert(state.app_addr_regs[4].base_evidence_kind == M68K_APP_SLOT_BASE_UNSPECIFIED);
+  /* The shared evidence lattice retains the weaker fallback, not a proof.
+   * The following genuinely unknown predecessor still removes the identity. */
+  assert(state.app_addr_regs[4].base_evidence_kind == M68K_APP_SLOT_BASE_A6_FALLBACK);
+  assert(state.app_addr_regs[4].base_evidence_kind != M68K_APP_SLOT_BASE_REGISTER_STATE);
   memset(&other, 0, sizeof(other));
   typed_state_merge_into(&state, &other, NULL);
   assert(!state.app_addr_regs[4].known);

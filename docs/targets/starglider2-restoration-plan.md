@@ -27,6 +27,22 @@ and strengthens38 app-base attributions.
 Conditional skips mean104 outer iterations are not104 observed memory reads.
 Loaded pointer values remain subject to separate alias/target validation.
 
+Canonical access-name projection now reuses the existing field-catalogue
+resolver in whole-analysis JSON.3270 records at292 exact offsets expose names
+already declared in source (for example `player_world_y` and
+`free_object_stack_cursor`); all292 declarations were checked. No source label
+or semantic fact was invented. Generic API identities fall from3509 records
+at391 offsets to239 records at99 offsets; this is not an unknown-meaning count.
+All non-name access fields, base evidence, callable summaries, typed/unresolved
+rows and CFG facts are identical to a210f7d8, including its withdrawals. Rendered
+source and package are unchanged; fresh C/vasm comparison matches all412736 bytes.
+132 focused cases and833 native cases pass. A cursor white-box expectation was
+corrected against the published implementation's weaker-evidence meet; unknown
+predecessors still remove the identity. Interior references retain their exact
+raw names: a base-only label would lose the addend. Next experiment is to reuse
+structured address expressions for those consumers, without inventing pointees.
+No observation bundle, regenerated inventory or new archive is committed.
+
 The same pointer-origin preservation exposes one previously untyped unresolved
 read at source `$3A94`: a LONG at cursor24 beyond the declared24-byte model-header
 prefix. This is a new diagnostic, not a game-bug or runtime-access claim. The
