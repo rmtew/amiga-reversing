@@ -16,7 +16,7 @@ to their recorded closeout revision. See the current
 
 ## Current refinement and next evidence
 
-Current native totals: **3513 app /2687 typed /158 unresolved**, with **11224
+Current native totals: **3509 app /2687 typed /158 unresolved**, with **11224
 unclassified bytes /271 intervals**. Counter-indexed source-array reads now reuse
 the shared loop induction and interned linear entry values. Original inventory
 readers at source `$DD6` and `$339B4` expose the existing name-reference `text`
@@ -520,7 +520,8 @@ prior writes and conflicting returns refuse. The existing eight-value limit is
 unchanged; An/long/scaled/full-extension and nontrivial transfer forms are not
 silently generalized. The source CFG retains its broader unknown edges.
 
-`select_player_view_mode` at source `$2C40` now proves A6/A7 preservation across
+Historical result at01fd00f3, retracted by the image check below:
+`select_player_view_mode` at source `$2C40` had claimed A6/A7 preservation across
 eight guarded entries of its thirteen-WORD table. Actual gains: four APP writes
 at `$2DCFA..$2DD06` and **182 register-base attribution upgrades**. Another 39
 fallback tags normalize to declared-layout fallback; they are still unproved.
@@ -566,18 +567,55 @@ without a proved upper bound, while `$3DDC0` has the signed NEG/CMP/BLT case
 that admits `$8000`. Table length supplies neither missing invariant. Synthetic
 masked/guarded16-way cases now close, including separated load/LEA/jump paths;
 no actual SGII summary, access, attribution or CFG changes in this qualification.
-Totals remain3513/2687/158, and the entire generated package is unchanged.
+Totals at8d32f1af were3513/2687/158, and its generated package was unchanged.
 Prior possibly aliasing writes independently prevent callable table-preservation
 proof; that refusal, the world SCC and non-local save-game behavior remain intact.
-Next: trace the command-stream producers and the writes before these transfers,
-separating producer bounds from physical table non-aliasing. No reader-specific
-seed or initial-byte immutability assumption is justified by the current evidence.
+The bounded writer trace reaches ordinary model style extraction (`EXT.W` at
+`$3B5A`, hence a signed BYTE), the retirement four-bit mask, model47's indexed
+style table and the separate HUD/horizon producers. The style is copied without
+narrowing to rotated-packet +4 at `$3CAF0`, then span-record +0 at `$3CB52`.
+A signed BYTE is not a universal four-bit style domain; the already confirmed
+viewer selector counterexample also prevents declaring every possible face
+pointer one of the104 original directory entries. Next requires a closed,
+preserved writer/pointee domain, not more copies of a reader seed. Original
+bytes and table length alone supply neither that invariant nor non-aliasing.
 
 Validation:278 related Python cases and all833 native C cases pass. C/vasm and
 the clean standalone package reproduce all412736 original bytes;57 assets and14
 headers are unchanged. Generation took280.59s, peak RSS2821308KiB, a single
 host-dependent measurement rather than a performance claim. No observation dump
 or interim archive is added.
+
+The writer/alias review exposed a shared callable-proof defect: the worklist
+checked writes seen before a dispatch but did not recheck later targets/paths.
+A table or accepted-instruction write after the first transfer could leave an
+invalid original-image assumption in the published summary. Final body admission
+now rechecks all encountered writes and unknown call effects. Full decoded write
+footprints, including MOVEM and bit writes, permit exact disjoint static data
+writes in an unambiguous single source image. Runtime mapping must cover the
+whole span; indexed/input, ambiguous/inversely aliased/multi-section, unmapped, table and accepted
+code writes still refuse. Lookup costs O(R + log N + K + D) per static write, where
+R is runtime views,
+K is candidates within the uint8 byte-count bound and D is closed tables; no
+per-node alias state or new pointer scan is retained.
+
+This retracts the context-free view-mode summary: its targets write through
+input pointers, whose disjointness from the image is not an ABI fact. Four
+APP writes at `$2DCFA/$2DCFE/$2DD02/$2DD06` are withdrawn and182 register-base
+tags return to fallback; current totals are3509/2687/158. The generated horizon
+stores stop claiming keyboard-byte aliases and two unsupported auto EQU slots
+vanish. All typed/unresolved rows, address values and CFG edges remain identical.
+This is a corrected proof boundary, not evidence that the original game corrupts
+its tables. The fixed Amiga startup assigns workspace `$69668`, but that entry
+path/physical-region fact is not yet a caller-conditioned function-summary
+alias contract; no such contract is invented. World/save-game refusals remain.
+
+Validation:294 related Python cases and all833 native C cases pass, including
+writes on other return paths, after-dispatch calls, instruction interiors, bulk
+span overlap, disjoint data and a nonzero runtime base. C/vasm and clean standalone
+output match all412736 original bytes;57 assets/14 headers are unchanged.
+Final generation took285.29s, peak RSS2821260KiB (single host-dependent measurement).
+No new observation dump, interim archive or target-specific framework rule.
 
 An on-demand systematic gap inventory (`amiga_reversing/tools/source_gap_inventory.py`)
 joins native identities/accesses with canonical layouts and actual rendered

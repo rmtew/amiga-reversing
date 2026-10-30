@@ -5,7 +5,7 @@ from tests.test_absolute_layout_base import slot
 from amiga_reversing.disasm import c_backend
 
 
-def dispatch(tmp_path, *, count=4, guard=True, mutation='', between='', case='', expose=False, guard_gap='', guard_branch='bhi', annotated=True, main_loop=False, selector_mask=None, load_register="d0", transfer=None):
+def dispatch(tmp_path, *, count=4, guard=True, mutation='', between='', case='', expose=False, guard_gap='', guard_branch='bhi', annotated=True, main_loop=False, selector_mask=None, load_register="d0", transfer=None, extra_data=""):
     entries=','.join(f'case{i}-offsets'for i in range(count))
     cases='\n'.join(f'case{i}:\n '+(case if i==count-1 and case else f'moveq #{i},d1')+'\n rts'for i in range(count))
     code=(f'lea.l {expose if isinstance(expose,str)else "transfer"}(pc),a2\n'if expose else '')+'''movea.l $1800.l,a6
@@ -28,6 +28,7 @@ helper:
  moveq #3,d2
  rts
 '''
+    code+=extra_data
     code=code.replace('LOADED_REGISTER',load_register)
     if transfer is not None:code=code.replace('jmp offsets(pc,d0.w)',transfer)
     if main_loop:code=code.replace(' bsr.w select', ' moveq #1,d6\nagain:\n move.w $bc6(a6),d7\n dbf.w d6,again\n bsr.w select',1)
@@ -161,3 +162,88 @@ def test_word_wrap_is_preserved_but_signed_negative_guard_is_not_a_bound(tmp_pat
     mutation='neg.w d0\n cmpi.w #16,d0\n blt.s small\n andi.w #15,d0\nsmall:\n'
     with dispatch(tmp_path,count=16,guard=False,mutation=mutation)as(a,original):
         check(a,original,False)
+
+
+@pytest.mark.parametrize('write',[
+    'move.w #1,scratch.l',
+    'move.l #1,scratch.l',
+    'movem.l d1-d2,scratch.l',
+    'bset #0,scratch.l',
+])
+@pytest.mark.parametrize('after',[False,True])
+def test_exact_data_writes_disjoint_from_tables_and_code(tmp_path,write,after):
+    kw=dict(extra_data='scratch:\n dc.l 0,0\n')
+    kw['case'if after else'mutation']=write+'\n'
+    with dispatch(tmp_path,**kw)as(a,original):check(a,original,True)
+
+
+@pytest.mark.parametrize('write',[
+    'move.w #0,offsets.l',
+    'move.l #0,offsets-2.l',
+    'move.b #0,case0+1.l', # An instruction interior is still code.
+    'movem.w d1-d2,offsets-2.l',
+    'move.w #0,(a3)',
+])
+def test_writes_after_dispatch_cannot_escape_final_image_check(tmp_path,write):
+    with dispatch(tmp_path,case=write+'\n')as(a,original):check(a,original,False)
+
+
+def test_other_return_path_and_effectful_call_do_not_hide_table_mutation(tmp_path):
+    code='tst.w d5\n beq.s unchanged\n move.w #0,offsets.l\nunchanged:\n'
+    with dispatch(tmp_path,case=code)as(a,original):check(a,original,False)
+    # The helper preserves registers but writes through an unconstrained input.
+    with dispatch(tmp_path,case='bsr.w writer\n',extra_data='writer:\n move.w #0,(a3)\n rts\n')as(a,original):
+        check(a,original,False)
+
+
+@pytest.mark.parametrize("inverse_alias",[False,True])
+def test_disjoint_write_uses_runtime_mapping_not_numeric_source_coincidence(tmp_path,inverse_alias):
+    import json
+    from amiga_reversing.disasm.binary_source import BinarySourceKind,RawAddressModel,RawBinarySource
+    code=''' SECTION code,code
+ ORG $1000
+ movea.l $1800.l,a6
+ bsr.w select
+ move.w $bc6(a6),d0
+ rts
+select:
+ cmpi.w #1,d0
+ bhi.s default
+ move.w #1,scratch.l
+ add.w d0,d0
+ move.w offsets(pc,d0.w),d0
+ jmp offsets(pc,d0.w)
+offsets:
+ dc.w first-offsets,second-offsets
+first:
+ moveq #0,d1
+ rts
+second:
+ moveq #1,d1
+ rts
+default:
+ rts
+scratch:
+ dc.l 0
+'''
+    path=tmp_path/'runtime.bin'
+    original,_=c_backend.assemble_platform_source_text_with_c_backend('amiga-raw',code,output_path=path)
+    source=RawBinarySource(kind=BinarySourceKind.RAW_BINARY,path=path,
+        address_model=RawAddressModel.RUNTIME_ABSOLUTE,load_address=0x1000,entrypoint=0x1000,
+        code_start_offset=0,display_path=str(path),analysis_cache_path=tmp_path/'runtime.analysis')
+    metadata=tmp_path/'runtime.json'
+    settings=dict(target_type='program',entry_register_seeds=[],
+        absolute_storage_slots=[slot()],rsset_layout_regions=[dict(layout_name='app',offset=0xbc6,
+        size=2,symbol='field',storage_kind='scalar')])
+    if inverse_alias:
+        settings['execution_views']=[dict(source_start=0,source_end=6,
+            base_addr=0x1000+len(original)-4,name='aliased_instruction')]
+    metadata.write_text(json.dumps(settings))
+    a=c_backend.build_listing_artifact_profile_from_binary_source(source,metadata_path=metadata)[2]
+    try:
+        if not inverse_alias:check(a,original,True)
+        else:
+            p=a.analysis_payload()[0];assert not p["incomplete_analysis"]
+            refs=p["sections"][0]["app_slot_refs"]
+            assert all(r["base_evidence"]!="register_state"for r in refs if r["displacement"]==0xbc6)
+    finally:a.close()

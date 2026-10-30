@@ -248,10 +248,7 @@ model_origin_delta_z RS.W 1
 last_key_press_code RS.B 1
     RS.B 1
 last_key_release_code RS.B 1
-    RS.B 1
-app_013C RS.W 1
-app_013E RS.W 1
-    RS.B 20
+    RS.B 25
 app_0154 RS.B 1
 app_0155 RS.B 1
     RS.B 6
@@ -37623,10 +37620,10 @@ abs_0_0002ECD2:
 	bsr.w rotate_horizon_vector_to_view
 	bsr.w abs_0_0002EF02
 	bne.w abs_0_0002EEDC
-	move.w d4,last_key_press_code(a6)
-	move.w d5,app_013C(a6)
-	move.w d6,last_key_release_code(a6)
-	move.w d7,app_013E(a6)
+	move.w d4,$0138(a6)
+	move.w d5,$013C(a6)
+	move.w d6,$013A(a6)
+	move.w d7,$013E(a6)
 	cmp.w d7,d5
 	bne.b abs_0_0002ED14
 	cmp.w d4,d6

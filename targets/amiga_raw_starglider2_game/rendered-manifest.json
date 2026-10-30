@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "source_commit": "01fd00f317143a0c22a7eba52fd1b2d2eb1a8898",
+  "source_commit": "8d32f1afe72d461b33853331adda0093112d808d",
   "source_assembly": "starglider2_game.s",
   "assets": [
     {
@@ -878,13 +878,13 @@
     },
     {
       "path": "rendered-provenance.json",
-      "bytes": 3249,
-      "sha256": "c052840d0d506966a4eb336965c4ae3bd3a5535220f09d46ccec7c00af1c6f16"
+      "bytes": 3241,
+      "sha256": "ea847a93ae5eb27afa71058916787a3357841e04f5f1f5f81d0d446c6f70c349"
     },
     {
       "path": "starglider2_game.s",
-      "bytes": 2027182,
-      "sha256": "99c5746fb697578bb92b7d21e9851f03addc342da9d3535d6d966eca9944666f"
+      "bytes": 2027103,
+      "sha256": "10625f516bccd683fd3a2060dd6ef938d50d52af846b4bb4bfb3764851847840"
     },
     {
       "path": "tools/starglider2_protection.py",
@@ -892,6 +892,6 @@
       "sha256": "81d3f66d36dbfbd5c77238b20c28e8b9abaa329777eb91f64669bbbf13703582"
     }
   ],
-  "source_commit_role": "canonical source publication base; shared compact WORD bounds and CFG register transport are in the publishing commit; output is bound by verification_receipt_id",
-  "source_subject_revision": "f6f0f14409ff8daaa224dea66667e64533265393c6c99e69258d1985568cc34e"
+  "source_commit_role": "canonical source publication base; shared whole-body dispatch image preservation are in the publishing commit; output is bound by verification_receipt_id",
+  "source_subject_revision": "9fe52d7b860ca1b19d2394bd7463a129456b8461e981a6b16d34122ced6a6fbf"
 }

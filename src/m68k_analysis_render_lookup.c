@@ -7179,6 +7179,76 @@ static const M68kRenderClosedDispatch *lookup_closed_dispatch(const M68kRenderLo
   return NULL;
 }
 
+/* Closed table bytes and accepted instructions must survive every write in
+ * a callable body. Exact same-source, non-indexed writes can be checked without
+ * an alias assumption; register/input, cross-section and unmapped writes refuse.
+ * Candidate byte_count is uint8_t, so only the preceding UINT8_MAX source bytes
+ * can contain an overlapping accepted instruction (not an ISA length guess). */
+static int local_callee_write_preserves_dispatch_image(const M68kRenderLookup *lookup,
+    const M68kDecodeIR *decode, uint8_t **accepted_start,
+    const M68kDecodeCandidate *candidate, const M68kInstructionIR *instruction, uint8_t operand) {
+  uint8_t shape = m68k_instruction_operand_decoded_ea_shape(&instruction->operands[operand]);
+  uint8_t span;
+  size_t section_index; uint32_t offset;
+  /* A local-offset namespace in multiple sections is not a physical alias
+   * proof. Keep this precision path to an unambiguous single source image. */
+  if (!lookup->object || lookup->object->section_count != 1U) return 0;
+  if (shape != M68K_SIM_EA_SHAPE_ABSOLUTE_WORD && shape != M68K_SIM_EA_SHAPE_ABSOLUTE_LONG &&
+      shape != M68K_SIM_EA_SHAPE_PC_DISPLACEMENT) return 0;
+  if (!platform_operand_memory_span(instruction, operand, NULL, NULL, &span) || !span) return 0;
+  uint32_t absolute;
+  int literal = operand_absolute_offset_local(&instruction->operands[operand], &absolute);
+  if (!candidate_data_target_for_operand(candidate, operand, &section_index, &offset) &&
+      (!literal || !render_lookup_pointer_value_to_object_source_location(lookup, absolute,
+        &section_index, &offset))) return 0;
+  if (section_index >= decode->section_count || !accepted_start[section_index]) return 0;
+  uint32_t runtime;
+  if (!lookup_source_unique_runtime_span(lookup, section_index, offset, span, &runtime)) {
+    uint32_t last;
+    if (analysis_lookup_section_has_runtime_range(lookup, section_index) ||
+        offset > UINT32_MAX - (span - 1U) ||
+        !lookup_source_logical_address(lookup, section_index, offset, &runtime) ||
+        !lookup_source_logical_address(lookup, section_index, offset + span - 1U, &last) ||
+        (uint64_t)runtime + span - 1U != last) return 0;
+  }
+  if (literal && runtime != absolute) return 0;
+  /* Unique forward placement does not exclude a different source interval
+   * mapped onto these same physical bytes. A competing observed/pointer view
+   * is also an ambiguity, not proof that the other source is absent. */
+  for (size_t i = 0U; i < lookup->runtime_address_range_count; ++i) {
+    const M68kFact *range = lookup->runtime_address_ranges[i].fact;
+    if (!range || !range->has_runtime_address || !range->size ||
+        (uint64_t)runtime >= (uint64_t)range->runtime_address + range->size ||
+        (uint64_t)range->runtime_address >= (uint64_t)runtime + span) continue;
+    uint32_t first = runtime > range->runtime_address ? runtime : range->runtime_address;
+    if (range->section_index != section_index ||
+        (uint64_t)range->offset + first - range->runtime_address != (uint64_t)offset + first - runtime)
+      return 0;
+  }
+  const M68kDecodeSectionIR *section = &decode->sections[section_index];
+  if (offset > section->size || span > section->size - offset) return 0;
+  uint32_t end = offset + span;
+  size_t lo = 0U, hi = section->candidate_count;
+  while (lo < hi) {
+    size_t mid = lo + (hi - lo) / 2U;
+    if (section->candidates[mid].offset < end) lo = mid + 1U;
+    else hi = mid;
+  }
+  while (lo) {
+    const M68kDecodeCandidate *other = &section->candidates[--lo];
+    if ((uint64_t)other->offset + UINT8_MAX <= offset) break;
+    if (other->offset < section->size && accepted_start[section_index][other->offset] &&
+        (uint64_t)other->offset + other->byte_count > offset) return 0;
+  }
+  for (size_t i = 0U; i < lookup->closed_dispatch_count; ++i) {
+    const M68kRelativeDispatchFact *table = &lookup->closed_dispatches[i].relation;
+    if (table->table_section_index != section_index ||
+        ((uint64_t)offset < (uint64_t)table->table_offset + table->table_size && table->table_offset < end))
+      return 0;
+  }
+  return 1;
+}
+
 /* Lossless direct-register transport, shared by callable identities and
  * reaching definitions. Width is the identity requested, not destination size. */
 static int instruction_register_identity_copy(const M68kInstructionIR *instruction,
@@ -7213,6 +7283,7 @@ static int typed_flow_local_callee_effect_summary(const M68kRenderLookup *lookup
   uint8_t static_write_count = 0U;
   uint8_t escape_count = 0U;
   uint8_t memory_effects_unknown = 0U, escape_effects_unknown = 0U;
+  uint8_t dispatch_image_may_change = 0U, used_closed_dispatch = 0U;
   const uint8_t requested_mask = 0xffU;
   if (out_limit_hit != NULL) *out_limit_hit = 0U;
   if (out_summary == NULL || lookup == NULL || decode == NULL || accepted_start == NULL ||
@@ -7280,6 +7351,9 @@ static int typed_flow_local_callee_effect_summary(const M68kRenderLookup *lookup
         uint8_t source_reg = 0U;
         uint8_t source_origin = 0xffU;
         if (platform_operand_memory_access(&instruction, operand_index) != M68K_SIM_ACCESS_MEMORY_WRITE) continue;
+        if (lookup->closed_dispatch_count && !dispatch_image_may_change &&
+            !local_callee_write_preserves_dispatch_image(lookup, decode, accepted_start,
+              candidate, &instruction, operand_index)) dispatch_image_may_change = 1U;
         if (operand_is_predec_a7_local(&instruction.operands[operand_index]) ||
             operand_is_postinc_a7_local(&instruction.operands[operand_index])) {
           state.stack_entry_stable = 0U;
@@ -7628,7 +7702,8 @@ static int typed_flow_local_callee_effect_summary(const M68kRenderLookup *lookup
       }
       const M68kRenderClosedDispatch *closed = metadata->flow_kind == M68K_SIM_FLOW_JUMP ?
         lookup_closed_dispatch(lookup, section_index, candidate->offset) : NULL;
-      if (closed && !memory_effects_unknown && !static_write_count) {
+      if (closed && !memory_effects_unknown && !dispatch_image_may_change) {
+        used_closed_dispatch = 1U;
         for (size_t target = 0U; target < closed->count; ++target) {
           M68kTypedLocalCalleeState branch = state;
           branch.offset = closed->targets[target];
@@ -7656,7 +7731,10 @@ static int typed_flow_local_callee_effect_summary(const M68kRenderLookup *lookup
     }
 
   }
-  if (returned == 0U) goto cleanup;
+  /* The body worklist is not chronological across branches. A later-visited
+   * path or target may invalidate a table/code image already used above. */
+  if (returned == 0U || (used_closed_dispatch && (dispatch_image_may_change || memory_effects_unknown)))
+    goto cleanup;
   memset(out_summary, 0, sizeof(*out_summary));
   /* An untouched entry register is not, by itself, a callable input.  Admit
    * it only when a body effect consumed it or when it is the source of a

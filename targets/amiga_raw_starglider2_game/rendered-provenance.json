@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
   "kind": "committed_native_rendered_original_export",
-  "canonical_source_commit": "01fd00f317143a0c22a7eba52fd1b2d2eb1a8898",
-  "publication_base_commit": "01fd00f317143a0c22a7eba52fd1b2d2eb1a8898",
+  "canonical_source_commit": "8d32f1afe72d461b33853331adda0093112d808d",
+  "publication_base_commit": "8d32f1afe72d461b33853331adda0093112d808d",
   "native_export": "CListingArtifact.source_package_payload(64)",
-  "main_source_sha256": "99c5746fb697578bb92b7d21e9851f03addc342da9d3535d6d966eca9944666f",
+  "main_source_sha256": "10625f516bccd683fd3a2060dd6ef938d50d52af846b4bb4bfb3764851847840",
   "asset_count": 57,
   "asset_bytes": 93633,
   "game_assembly_hand_edits": false,
@@ -24,8 +24,8 @@
     "assembler executable",
     "paused Pandora work"
   ],
-  "canonical_source_commit_role": "canonical source publication base; shared compact WORD bounds and CFG register transport are in the publishing commit; output is bound by verification_receipt_id",
-  "canonical_source_subject_revision": "f6f0f14409ff8daaa224dea66667e64533265393c6c99e69258d1985568cc34e",
+  "canonical_source_commit_role": "canonical source publication base; shared whole-body dispatch image preservation are in the publishing commit; output is bound by verification_receipt_id",
+  "canonical_source_subject_revision": "9fe52d7b860ca1b19d2394bd7463a129456b8461e981a6b16d34122ced6a6fbf",
   "canonical_fact_sha256": {
     "source_binary.json": "42d4a5758b3e8236af7f912aee85e9ee5323bcd0961faa338c4f864080a0a7d9",
     "target_metadata.json": "e7540b68c118c56aba8815b6722eefa067517cc865fe9841d6c01ce96551389c",
@@ -46,7 +46,7 @@
     },
     "runtime_scope": "Seven CPU write-site windows match this reversible view; no whole runtime-view identity or parent plaintext promotion."
   },
-  "verification_receipt_id": "bc3a5e03692f971d1ce28395e221a3c22e33344a2b58bb291d113a554351a166",
-  "render_native_sha256": "b55ee6eb499dcaafb7e6c1087562132b0d9d0b807ad427a926a2c07c2c9f6bd8",
-  "final_assembler_native_sha256": "b55ee6eb499dcaafb7e6c1087562132b0d9d0b807ad427a926a2c07c2c9f6bd8"
+  "verification_receipt_id": "0131aecf811e8e817d75b4ff8d8d90471800f91c86de4a626aa57d19752d2484",
+  "render_native_sha256": "82b12a7bc3dbc913b151827557f5cd9ce644acbeb5d291596dda1f6cebb9400f",
+  "final_assembler_native_sha256": "82b12a7bc3dbc913b151827557f5cd9ce644acbeb5d291596dda1f6cebb9400f"
 }
