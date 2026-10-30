@@ -59540,14 +59540,14 @@ paula_object_sound_descriptors:
 	dc.w $0000	; opaque_0a
 	dc.w $0000	; opaque_0c
 	dc.w $0000	; object_effect_dispatch_gate
-	dc.l $00061BBC	; sample_base
+	dc.l paula_descriptor_sample_prefix_04	; sample_base
 	dc.w $0035	; sample_length_words
 	dc.w $020C	; base_period
 	dc.w $0030	; base_volume_parameter
 	dc.w $0000	; opaque_0a
 	dc.w $0000	; opaque_0c
 	dc.w $FFFF	; object_effect_dispatch_gate
-	dc.l $000612CC	; sample_base
+	dc.l paula_descriptor_sample_prefix_03	; sample_base
 	dc.w $046C	; sample_length_words
 	dc.w $012C	; base_period
 	dc.w $0030	; base_volume_parameter
@@ -59589,14 +59589,14 @@ paula_object_sound_descriptors:
 	dc.w $0000	; opaque_0a
 	dc.w $0000	; opaque_0c
 	dc.w $0000	; object_effect_dispatch_gate
-	dc.l $0006248C	; sample_base
+	dc.l paula_descriptor_sample_prefix_05	; sample_base
 	dc.w $1684	; sample_length_words
 	dc.w $01CA	; base_period
 	dc.w $0030	; base_volume_parameter
 	dc.w $0000	; opaque_0a
 	dc.w $0000	; opaque_0c
 	dc.w $FFFF	; object_effect_dispatch_gate
-	dc.l $00060A2C	; sample_base
+	dc.l paula_descriptor_sample_prefix_02	; sample_base
 	dc.w $0444	; sample_length_words
 	dc.w $01CA	; base_period
 	dc.w $0010	; base_volume_parameter
@@ -59638,7 +59638,7 @@ paula_object_sound_descriptors:
 	dc.w $0000	; opaque_0a
 	dc.w $0000	; opaque_0c
 	dc.w $0000	; object_effect_dispatch_gate
-	dc.l $00060A2C	; sample_base
+	dc.l paula_descriptor_sample_prefix_02	; sample_base
 	dc.w $0444	; sample_length_words
 	dc.w $01E0	; base_period
 	dc.w $0018	; base_volume_parameter
@@ -59652,7 +59652,7 @@ paula_object_sound_descriptors:
 	dc.w $0000	; opaque_0a
 	dc.w $0000	; opaque_0c
 	dc.w $0000	; object_effect_dispatch_gate
-	dc.l $000612CC	; sample_base
+	dc.l paula_descriptor_sample_prefix_03	; sample_base
 	dc.w $046C	; sample_length_words
 	dc.w $012C	; base_period
 	dc.w $0018	; base_volume_parameter
@@ -59708,7 +59708,7 @@ paula_object_sound_descriptors:
 	dc.w $0000	; opaque_0a
 	dc.w $0000	; opaque_0c
 	dc.w $0000	; object_effect_dispatch_gate
-	dc.l $000651AC	; sample_base
+	dc.l paula_descriptor_sample_prefix_06	; sample_base
 	dc.w $053C	; sample_length_words
 	dc.w $0166	; base_period
 	dc.w $0030	; base_volume_parameter
@@ -59771,7 +59771,7 @@ paula_object_sound_descriptors:
 	dc.w $0000	; opaque_0a
 	dc.w $0000	; opaque_0c
 	dc.w $0000	; object_effect_dispatch_gate
-	dc.l $00060A2C	; sample_base
+	dc.l paula_descriptor_sample_prefix_02	; sample_base
 	dc.w $0444	; sample_length_words
 	dc.w $0166	; base_period
 	dc.w $0010	; base_volume_parameter
@@ -59820,7 +59820,7 @@ paula_object_sound_descriptors:
 	dc.w $0000	; opaque_0a
 	dc.w $0000	; opaque_0c
 	dc.w $0000	; object_effect_dispatch_gate
-	dc.l $00061BBC	; sample_base
+	dc.l paula_descriptor_sample_prefix_04	; sample_base
 	dc.w $0035	; sample_length_words
 	dc.w $01FF	; base_period
 	dc.w $0030	; base_volume_parameter
@@ -59848,7 +59848,7 @@ paula_object_sound_descriptors:
 	dc.w $0000	; opaque_0a
 	dc.w $0000	; opaque_0c
 	dc.w $FFFF	; object_effect_dispatch_gate
-	dc.l $000651AC	; sample_base
+	dc.l paula_descriptor_sample_prefix_06	; sample_base
 	dc.w $053C	; sample_length_words
 	dc.w $0166	; base_period
 	dc.w $0030	; base_volume_parameter
@@ -59862,7 +59862,7 @@ paula_object_sound_descriptors:
 	dc.w $0000	; opaque_0a
 	dc.w $0000	; opaque_0c
 	dc.w $0000	; object_effect_dispatch_gate
-	dc.l $000651AC	; sample_base
+	dc.l paula_descriptor_sample_prefix_06	; sample_base
 	dc.w $053C	; sample_length_words
 	dc.w $0166	; base_period
 	dc.w $0030	; base_volume_parameter
@@ -59911,21 +59911,21 @@ paula_object_sound_descriptors:
 	dc.w $0000	; opaque_0a
 	dc.w $0000	; opaque_0c
 	dc.w $0000	; object_effect_dispatch_gate
-	dc.l $000651AC	; sample_base
+	dc.l paula_descriptor_sample_prefix_06	; sample_base
 	dc.w $053C	; sample_length_words
 	dc.w $0258	; base_period
 	dc.w $0030	; base_volume_parameter
 	dc.w $0000	; opaque_0a
 	dc.w $0000	; opaque_0c
 	dc.w $FFFF	; object_effect_dispatch_gate
-	dc.l $000651AC	; sample_base
+	dc.l paula_descriptor_sample_prefix_06	; sample_base
 	dc.w $053C	; sample_length_words
 	dc.w $0258	; base_period
 	dc.w $0030	; base_volume_parameter
 	dc.w $0000	; opaque_0a
 	dc.w $0000	; opaque_0c
 	dc.w $FFFF	; object_effect_dispatch_gate
-	dc.l $000651AC	; sample_base
+	dc.l paula_descriptor_sample_prefix_06	; sample_base
 	dc.w $053C	; sample_length_words
 	dc.w $0258	; base_period
 	dc.w $0030	; base_volume_parameter
@@ -59967,7 +59967,7 @@ paula_object_sound_descriptors:
 	dc.w $0000	; opaque_0a
 	dc.w $0000	; opaque_0c
 	dc.w $0000	; object_effect_dispatch_gate
-	dc.l $000651AC	; sample_base
+	dc.l paula_descriptor_sample_prefix_06	; sample_base
 	dc.w $053C	; sample_length_words
 	dc.w $0166	; base_period
 	dc.w $0030	; base_volume_parameter
@@ -59981,35 +59981,35 @@ paula_object_sound_descriptors:
 	dc.w $0000	; opaque_0a
 	dc.w $0000	; opaque_0c
 	dc.w $0000	; object_effect_dispatch_gate
-	dc.l $000651AC	; sample_base
+	dc.l paula_descriptor_sample_prefix_06	; sample_base
 	dc.w $053C	; sample_length_words
 	dc.w $0320	; base_period
 	dc.w $0028	; base_volume_parameter
 	dc.w $0000	; opaque_0a
 	dc.w $0000	; opaque_0c
 	dc.w $0000	; object_effect_dispatch_gate
-	dc.l $000651AC	; sample_base
+	dc.l paula_descriptor_sample_prefix_06	; sample_base
 	dc.w $053C	; sample_length_words
 	dc.w $0320	; base_period
 	dc.w $0028	; base_volume_parameter
 	dc.w $0000	; opaque_0a
 	dc.w $0000	; opaque_0c
 	dc.w $0000	; object_effect_dispatch_gate
-	dc.l $000651AC	; sample_base
+	dc.l paula_descriptor_sample_prefix_06	; sample_base
 	dc.w $053C	; sample_length_words
 	dc.w $0320	; base_period
 	dc.w $0028	; base_volume_parameter
 	dc.w $0000	; opaque_0a
 	dc.w $0000	; opaque_0c
 	dc.w $0000	; object_effect_dispatch_gate
-	dc.l $000651AC	; sample_base
+	dc.l paula_descriptor_sample_prefix_06	; sample_base
 	dc.w $053C	; sample_length_words
 	dc.w $0320	; base_period
 	dc.w $0028	; base_volume_parameter
 	dc.w $0000	; opaque_0a
 	dc.w $0000	; opaque_0c
 	dc.w $0000	; object_effect_dispatch_gate
-	dc.l $000651AC	; sample_base
+	dc.l paula_descriptor_sample_prefix_06	; sample_base
 	dc.w $053C	; sample_length_words
 	dc.w $0320	; base_period
 	dc.w $0028	; base_volume_parameter
@@ -62099,17 +62099,22 @@ paula_initial_channel2_sample:
 paula_descriptor_sample_fragment_01:
 	dc.b $1E,$09,$FF,$00,$09,$19,$27,$30,$34,$30,$25,$14,$01,$ED,$E0,$D8	; sound_sample
 	dc.b $D5,$D2,$D1,$D2,$D9,$E8,$F6,$00
+paula_descriptor_sample_prefix_02:
 	dc.b $00,$00,$08,$A0,$27,$10
 paula_descriptor_sample_fragment_02:
 	INCBIN "assets/paula_descriptor_sample_fragment_02.bin"
 ; sound_sample
 	dc.b $19,$DA,$DA,$E8,$DE,$DE,$06,$3D,$28,$1C,$21,$F2,$B9,$BF,$0D,$40
-	dc.b $63,$33,$00,$00,$08,$F6,$27,$10
+	dc.b $63,$33
+paula_descriptor_sample_prefix_03:
+	dc.b $00,$00,$08,$F6,$27,$10
 paula_descriptor_sample_fragment_03:
 	INCBIN "assets/paula_descriptor_sample_fragment_03.bin"
 ; sound_sample
 	dc.b $FD,$E5,$D3,$CC,$CB,$CC,$D1,$E2,$FC,$06,$1F,$2C,$3F,$4E,$05,$94
-	dc.b $A3,$D3,$00,$00,$00,$6A,$1B,$58
+	dc.b $A3,$D3
+paula_descriptor_sample_prefix_04:
+	dc.b $00,$00,$00,$6A,$1B,$58
 paula_descriptor_sample_fragment_04:
 	INCBIN "assets/paula_descriptor_sample_fragment_04.bin"
 ; sound_sample
@@ -62247,12 +62252,15 @@ paula_descriptor_sample_fragment_04:
 	dc.b $EC,$E4,$E4,$E1,$D8,$D3,$D9,$DF,$E1,$E4,$ED,$F4,$EF,$F2,$F3,$F8
 	dc.b $FB,$FE,$06,$08,$06,$01,$FD,$03,$05,$04,$0A,$0C,$07,$04,$05,$04
 	dc.b $03,$FD,$FC,$FE,$01,$04,$08,$0D,$11,$13,$15,$15,$01,$31,$10,$F0
+paula_descriptor_sample_prefix_05:
 	dc.b $00,$00,$2D,$22,$27,$10
 paula_descriptor_sample_fragment_05:
 	INCBIN "assets/paula_descriptor_sample_fragment_05.bin"
 ; sound_sample
 	dc.b $08,$04,$FF,$FF,$03,$02,$04,$09,$02,$00,$FA,$FC,$FE,$01,$00,$20
-	dc.b $7F,$FF,$00,$00,$0A,$8A,$27,$10
+	dc.b $7F,$FF
+paula_descriptor_sample_prefix_06:
+	dc.b $00,$00,$0A,$8A,$27,$10
 paula_descriptor_sample_fragment_06:
 	INCBIN "assets/paula_descriptor_sample_fragment_06.bin"
 ; sound_sample

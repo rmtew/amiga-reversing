@@ -7,8 +7,8 @@ that further analysis is exhausted. Current source remains byte exact: all
 with all 106034 accepted code bytes retained. No generated assembly was edited
 by hand and no interim archive was produced.
 
-The current ownership union leaves 11256 bytes in
-272 intervals unclassified. This is classification accounting,
+The current ownership union leaves 11226 bytes in
+271 intervals unclassified. This is classification accounting,
 not a semantic completion percentage. Earlier interval/site counts below belong
 to their recorded closeout revision. See the current
 [native memory-span receipt](../../runtime/observations/starglider2-app-memory-spans.json),
@@ -117,6 +117,22 @@ than widening that array. The two altitude paths have signed/lower selection
 without a local upper bound. The next experiments are the known late
 index-to-pointee transport fixtures and a producer-complete countdown lifecycle;
 neither an arbitrary index assumption nor a larger finite-set cap is justified.
+
+The declared-pointer audit found 20 source-base fields selecting five six-byte
+prefixes immediately before existing extracted sound fragments. Playback loads
+the stored base, adds six and programs AUD3. These prefixes now have opaque
+source owners; all 20 stored LONGs resolve to exact prefix labels with zero
+addends. Within the audited 1,035 declared fields there are now 871 symbolic
+and 164 null outcomes, with no remaining exceptions. This does not cover
+undeclared pointer candidates or runtime mutations.
+
+Only 30 bytes gained ownership: **11226 bytes /271 intervals** remain
+unclassified. The prefixes' word meanings, standardized file format, full
+container boundaries and exclusive lifetimes remain open. Existing shared DMA
+spans, descriptor lengths, selector restrictions, 57 assets and 14 headers stay
+unchanged. C/vasm and clean standalone output remain exact; no new PCM/DMA run
+was required for this source-ownership correction. Access totals remain
+**3503 app /2665 typed /162 unresolved**.
 
 ### Recent validated batches (counts at each recorded revision)
 
