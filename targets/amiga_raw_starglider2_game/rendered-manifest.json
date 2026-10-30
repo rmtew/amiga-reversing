@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "source_commit": "4247825d11146b67a824541d3b68629ce0afb771",
+  "source_commit": "93d363c288cbfe1c9756f3e30b48d2ef897ac018",
   "source_assembly": "starglider2_game.s",
   "assets": [
     {
@@ -878,13 +878,13 @@
     },
     {
       "path": "rendered-provenance.json",
-      "bytes": 3106,
-      "sha256": "9670ff872d18837c66414a89a39da4012b41c02d63e7166252d5d119ecf2f5c8"
+      "bytes": 3074,
+      "sha256": "892b34b6b70b1791238e04cbfcfdba086c7f547d8133e836d49dc76aecfb924a"
     },
     {
       "path": "starglider2_game.s",
-      "bytes": 2015819,
-      "sha256": "70215e7d955b99fbc2b42e68d96a4db17fd89bebac8fa075cb1bea38b14113e2"
+      "bytes": 2021225,
+      "sha256": "cf83caf02dd279cc0afab23f6a56435bad91641bdfc677e71270ae627f5b24dd"
     },
     {
       "path": "tools/starglider2_protection.py",
@@ -892,6 +892,6 @@
       "sha256": "81d3f66d36dbfbd5c77238b20c28e8b9abaa329777eb91f64669bbbf13703582"
     }
   ],
-  "source_commit_role": "publication base; five reviewed opaque skipped sample prefixes resolve existing declared pointer fields; payload boundaries and prefix word meanings remain unestablished are bound by verification_receipt_id",
-  "source_subject_revision": "5cacaf8d85a2edf16c0b8856aa084fce368f4fb719bf5345617c94ba0fb68dd2"
+  "source_commit_role": "publication base; 38 reviewed original one-JUMP forwarding entries name established destinations without new ABI or code ownership claims are bound by verification_receipt_id",
+  "source_subject_revision": "83dfaa0ebbc617c2c48fd730934dfbf83cb979df86ee5c9dda921799a3479d99"
 }

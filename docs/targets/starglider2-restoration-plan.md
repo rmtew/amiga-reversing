@@ -150,6 +150,19 @@ standalone rebuild or new dump was needed. Current totals remain
 Use this corrected inventory before treating generated function names as a new
 semantic backlog; late-pointee and countdown-lifecycle leads remain separate.
 
+The corrected callable inventory exposes 38 existing entries whose complete
+first basic block is one native-decoded absolute unconditional JUMP to an
+already named destination. Their original CFG edges and encoded runtime/source
+mapping agree. Canonical labels now expose that forwarding role, with source
+suffixes distinguishing repeated bridges. This includes the two high-use PRNG
+bridges (33 and 44 static callers) rather than pretending these are newly
+understood algorithm bodies. Original blocks/edges, all access counts, ownership
+and 57 assets stay unchanged. C/vasm and clean standalone builds remain exact.
+No callee ABI, complete callers, new execution or function-boundary proof is
+added. Other forwarding candidates still need final target-name binding or
+body interpretation; they are not classified as dead or automatically named
+from instruction-like bytes.
+
 ### Recent validated batches (counts at each recorded revision)
 
 At the operand-role projection revision, native diagnostics expose generated operand roles directly:

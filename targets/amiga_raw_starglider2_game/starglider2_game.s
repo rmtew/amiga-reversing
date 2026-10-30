@@ -1734,7 +1734,7 @@ abs_0_00001256:
 	bsr.w abs_0_0000339E
 	move.b #$8,diagnostic_step_byte.l
 	bsr.w abs_0_000034D4
-	bsr.w abs_0_000033AA
+	bsr.w invalidate_alternate_power_meter_cache_bridge_0023aa
 	move.b #$A,diagnostic_step_byte.l
 	move.b #$7F,display_and_frame_service_flags(a6)
 	move.l #$70000,draw_buffer_base.w(a6)
@@ -1811,7 +1811,7 @@ abs_0_0000137E:
 	subq.w #1,initial_resource_charge_steps(a6)
 	bne.b abs_0_000013D0
 	lea.l planetfall_message_apogee.l,a1
-	bsr.w abs_0_000049DA
+	bsr.w enqueue_unique_message_pointer_bridge_0039da
 abs_0_000013D0:
 	tst.b fatal_overheat_latched_flag.l
 	bmi.w abs_0_0000151E
@@ -2093,7 +2093,7 @@ process_frame_input_commands:
 	ble.b abs_0_00001816
 	bsr.w abs_0_00002C20
 abs_0_00001816:
-	bsr.w abs_0_000033EC
+	bsr.w poll_translated_command_key_bridge_0023ec
 	cmp.b #$8,d0
 	bne.b abs_0_0000186A
 	tst.w current_structure_service_id(a6)
@@ -2109,8 +2109,8 @@ abs_0_0000183A:
 	lea.l event_message_pointers.l,a1
 	move.w #$DC,d0
 	movea.l SG2SourceTextReference_text(a1,d0.w),a1
-	bsr.w abs_0_000033C2
-	bsr.w abs_0_000033FE
+	bsr.w display_timed_message_line_bridge_0023c2
+	bsr.w reset_shared_inventory_scratch_prefixes_bridge_0023fe
 	bsr.w build_inventory_status_lists
 	clr.w depot_line_pointer_offset(a6)
 	clr.w inventory_list_item_index(a6)
@@ -2203,13 +2203,13 @@ abs_0_00001964:
 	cmp.b #$54,d0
 	bne.b abs_0_00001992
 	move.w d0,-(a7)
-	bsr.w abs_0_00003386
+	bsr.w handle_tractor_toggle_command_bridge_002386
 	move.w (a7)+,d0
 abs_0_00001992:
 	tst.b tractor_input_override_flag(a6)
 	bpl.b abs_0_000019A4
 	movem.l d0-d7/a0-a6,-(a7)
-	bsr.w abs_0_000033C8
+	bsr.w process_tractor_target_keys_bridge_0023c8
 	movem.l (a7)+,d0-d7/a0-a6
 abs_0_000019A4:
 	cmp.b #$41,d0
@@ -2338,7 +2338,7 @@ modal_inventory_command_loop:
 	move.w #$0,_custom+aud2+ac_vol.l	; audio volume 0
 	move.w #$0,_custom+aud3+ac_vol.l	; audio volume 0
 abs_0_00001B42:
-	bsr.w abs_0_000033BC
+	bsr.w wait_for_translated_key_bridge_0023bc
 	cmp.b #$57,d0
 	beq.w abs_0_00001E06
 	tst.w current_structure_service_id(a6)
@@ -2402,14 +2402,14 @@ abs_0_00001C06:
 abs_0_00001C0E:
 	move.b #$0,(a3)+
 	lea.l inventory_line_text_start(a6),a1
-	bsr.w abs_0_000033C2
+	bsr.w display_timed_message_line_bridge_0023c2
 	bra.w modal_inventory_command_loop
 abs_0_00001C1E:
 	move.b #$74,diagnostic_step_byte.l
 	lea.l event_message_pointers.l,a1
 	move.w #$D0,d0
 	movea.l SG2SourceTextReference_text(a1,d0.w),a1
-	bsr.w abs_0_000033C2
+	bsr.w display_timed_message_line_bridge_0023c2
 	clr.w depot_line_pointer_offset(a6)
 	clr.w inventory_list_item_index(a6)
 	bra.w modal_inventory_command_loop
@@ -2478,7 +2478,7 @@ abs_0_00001D18:
 	moveq.l #13,d2
 	asl.w d2,d3
 	addi.w #8000,d3
-	bsr.w abs_0_00007FC0
+	bsr.w build_player_motion_vector_bridge_006fc0
 	ext.l d4
 	ext.l d5
 	ext.l d6
@@ -2540,20 +2540,20 @@ abs_0_00001DDA:
 	move.l #$FFFFFFFF,(a0)
 	rts
 abs_0_00001DEA:
-	bsr.w abs_0_00003404
+	bsr.w display_blank_event_message_line_bridge_002404
 	clr.w depot_line_pointer_offset(a6)
 	clr.w inventory_list_item_index(a6)
 	sf.b modal_command_input_flag(a6)
 	rts
 abs_0_00001DFC:
-	bsr.w abs_0_000033BC
+	bsr.w wait_for_translated_key_bridge_0023bc
 	dbf.w d7,abs_0_00001DFC
 	bra.b abs_0_00001DEA
 abs_0_00001E06:
 	lea.l abs_0_000024B1(pc),a0
 	moveq.l #25,d7
 abs_0_00001E0C:
-	bsr.w abs_0_000033BC
+	bsr.w wait_for_translated_key_bridge_0023bc
 	cmp.b (a0)+,d0
 	bne.b abs_0_00001DFC
 	dbf.w d7,abs_0_00001E0C
@@ -2575,7 +2575,7 @@ abs_0_00001E2A:
 	move.w d0,weapon_energy_reserve(a6)
 	not.b debug_features_enabled_flag(a6)
 abs_0_00001E50:
-	bsr.w abs_0_00003404
+	bsr.w display_blank_event_message_line_bridge_002404
 	clr.w depot_line_pointer_offset(a6)
 	clr.w inventory_list_item_index(a6)
 	sf.b modal_command_input_flag(a6)
@@ -2589,17 +2589,17 @@ abs_0_00001E76:
 	lea.l abs_0_0000278C(pc),a1
 	clr.w pending_message_count(a6)
 	move.w #$1,message_display_countdown(a6)
-	bra.w abs_0_000049DA
+	bra.w enqueue_unique_message_pointer_bridge_0039da
 	dc.b $46,$2E,$01,$55,$10,$2E,$01,$F4,$02,$00,$00,$FE,$1D,$40,$01,$F4
 	dc.b $4E,$75,$00,$2E,$00,$01,$01,$F4,$4E,$75,$46,$2E,$02,$04,$4E,$75
 enqueue_game_over_reason_message:
 	cmpi.w #1,icarus_game_over_reason(a6)
 	bne.w abs_0_00001EBA
 	lea.l game_over_power_drainage_message(pc),a1
-	bra.w abs_0_000049DA
+	bra.w enqueue_unique_message_pointer_bridge_0039da
 abs_0_00001EBA:
 	lea.l game_over_icarus_destroyed_message(pc),a1
-	bra.w abs_0_000049DA
+	bra.w enqueue_unique_message_pointer_bridge_0039da
 initialize_startup_flags_and_subtract_novella_key:
 	st.b $0154(a6)
 	st.b $0155(a6)
@@ -2674,7 +2674,7 @@ abs_0_00001FA2:
 	dbf.w d1,abs_0_00001FA2
 abs_0_00001FC2:
 	lea.l cockpit_picture_palette.l,a1
-	bra.w abs_0_000034A4
+	bra.w fade_in_amiga_palette_bridge_0024a4
 abs_0_00001FCC:
 	lea.l absolute_slot_00070000.l,a1
 	lea.l absolute_slot_00068000.l,a0
@@ -2769,7 +2769,7 @@ reset_gameplay_state_and_input_defaults:
 	move.b #$FF,free_flight_controls_enabled_flag(a6)
 	move.l #$1FFFF,horizontal_world_wrap_mask(a6)
 	move.w #$1E,type30_render_model_index(a6)
-	bsr.w abs_0_000033F2
+	bsr.w probe_platform_display_mode_bridge_0023f2
 	rts
 abs_0_0000217A:
 	bsr.w restore_cockpit_picture_from_encoded_state
@@ -2850,15 +2850,15 @@ show_argonaut_splash_page:
 	move.l a0,-(a7)
 	bsr.w decode_column_rle_picture
 	movea.l (a7)+,a1
-	bra.w abs_0_000034A4
+	bra.w fade_in_amiga_palette_bridge_0024a4
 show_title_credits_page:
-	bsr.w abs_0_000033E0
+	bsr.w clear_text_framebuffer_and_cursor_bridge_0023e0
 	movea.l display_buffer_base(a6),a0
 	lea.l title_credits_text(pc),a1
 	move.b #$F,text_colour_plane_mask.l
 	jsr print_cursor_text.l
 	lea.l cockpit_picture_palette.l,a1
-	bra.w abs_0_000034A4
+	bra.w fade_in_amiga_palette_bridge_0024a4
 title_credits_text:
 	dc.b $0D,$0A,$0A
 	dc.b "    Starglider 2 was written by....",$0D,$0A,$0A
@@ -3072,13 +3072,13 @@ prepare_and_print_protection_text:
 	clr.b display_buffer_table_byte_offset(a6)
 	bsr.w count_and_present_frame_handoff
 protection_text_clear_continuation:
-	bsr.w abs_0_000033E0
+	bsr.w clear_text_framebuffer_and_cursor_bridge_0023e0
 protection_text_restore_pointer_continuation:
 	movea.l (a7)+,a1
 	bsr.w print_cursor_text_bridge
 protection_text_palette_continuation:
 	lea.l options_menu_palette.l,a1
-	bra.w abs_0_000034A4
+	bra.w fade_in_amiga_palette_bridge_0024a4
 	dc.b $43,$FA,$00,$1A,$61,$00,$FE,$00,$43,$FA,$00,$12,$61,$00,$0C,$56
 	dc.b $43,$FA,$00,$06,$60,$00,$0C,$4E,$0D,$0A,$00,$00
 	dcb.b $10,$20
@@ -3754,7 +3754,7 @@ abs_0_0000337A:
 	jmp update_panel_animations.l
 abs_0_00003380:
 	jmp initialize_model_type_target_tags.l
-abs_0_00003386:
+handle_tractor_toggle_command_bridge_002386:
 	jmp handle_tractor_toggle_command.l
 abs_0_0000338C:
 	jmp try_toggle_stardrive.l
@@ -3766,17 +3766,17 @@ abs_0_0000339E:
 	jmp initialize_nearby_point_field.l
 refresh_counted_model_population:
 	jmp recompute_counted_model_population.l
-abs_0_000033AA:
+invalidate_alternate_power_meter_cache_bridge_0023aa:
 	jmp invalidate_alternate_power_meter_cache.l
 abs_0_000033B0:
 	jmp display_pilot_rating_results.l
 print_cursor_text_bridge:
 	jmp print_cursor_text.l
-abs_0_000033BC:
+wait_for_translated_key_bridge_0023bc:
 	jmp wait_for_translated_key.l
-abs_0_000033C2:
+display_timed_message_line_bridge_0023c2:
 	jmp display_timed_message_line.l
-abs_0_000033C8:
+process_tractor_target_keys_bridge_0023c8:
 	jmp process_tractor_target_keys.l
 abs_0_000033CE:
 	jmp process_object_contact_pairs.l
@@ -3784,19 +3784,19 @@ enqueue_nearby_sound_analysis_bridge:
 	jmp enqueue_nearby_sound_analysis.l
 abs_0_000033DA:
 	jmp update_world_and_mission_events.l
-abs_0_000033E0:
+clear_text_framebuffer_and_cursor_bridge_0023e0:
 	jmp clear_text_framebuffer_and_cursor.l
 abs_0_000033E6:
 	jmp save_game_to_disk.l
-abs_0_000033EC:
+poll_translated_command_key_bridge_0023ec:
 	jmp poll_translated_command_key.l
-abs_0_000033F2:
+probe_platform_display_mode_bridge_0023f2:
 	jmp probe_platform_display_mode.l
 abs_0_000033F8:
 	jmp update_player_flight_controls.l
-abs_0_000033FE:
+reset_shared_inventory_scratch_prefixes_bridge_0023fe:
 	jmp reset_shared_inventory_scratch_prefixes.l
-abs_0_00003404:
+display_blank_event_message_line_bridge_002404:
 	jmp display_blank_event_message_line.l
 	dc.b $74,$73,$0A,$0A,$09,$65
     ; Initialize display/view state and inclusive clip bounds X 16..303, Y 30..128. The adjacent 143/79 defaults remain unnamed: no consumer meaning is inferred from proximity.
@@ -3827,7 +3827,7 @@ initialize_display_and_view_state:
 	st.b app_01EF(a6)
 	move.w #$555,_custom+color.l
 	rts
-abs_0_000034A4:
+fade_in_amiga_palette_bridge_0024a4:
 	jmp fade_in_amiga_palette.l
 abs_0_000034AA:
 	jmp fade_out_amiga_palette.l
@@ -3835,7 +3835,7 @@ abs_0_000034B0:
 	jmp fill_amiga_horizon_bands.l
 abs_0_000034B6:
 	jmp clear_amiga_viewport.l
-abs_0_000034BC:
+rotate_amiga_display_buffers_bridge_0024bc:
 	jmp rotate_amiga_display_buffers.l
 abs_0_000034C2:
 	jmp draw_amiga_contact_panel.l
@@ -3849,7 +3849,7 @@ abs_0_000034D4:
 count_and_present_frame_handoff:
 	addq.w #1,frame_handoff_counter(a6)
 	addq.w #1,frame_handoffs_in_window(a6)
-	bsr.w abs_0_000034BC
+	bsr.w rotate_amiga_display_buffers_bridge_0024bc
 	rts
 abs_0_000034EA:
 	moveq.l #-1,d0
@@ -4721,7 +4721,7 @@ abs_0_00003EAA:
 	cmpi.w #30,docking_service_phase(a6)
 	beq.b abs_0_00003ED8
 	lea.l docking_interrogate_prompt(pc),a1
-	bsr.w abs_0_000049DA
+	bsr.w enqueue_unique_message_pointer_bridge_0039da
 abs_0_00003ED8:
 	move.w #$6C,app_0764(a6)
     ; Pending score WORD is zero-extended for original ABCD digit addition, then a LONG clear covers it and following storage. Ordinary ADD.W callers do not prove aggregate valid BCD.
@@ -4730,7 +4730,7 @@ abs_0_00003EDE:
 	move.w pending_bcd_score_addend(a6),d0
 	beq.b abs_0_00003EFA
 	andi.l #65535,d0
-	bsr.w abs_0_000049CE
+	bsr.w add_bcd_and_draw_digits_bridge_0039ce
 	clr.l $005C(a6)
 abs_0_00003EFA:
 	move.b #$8,diagnostic_step_byte.l
@@ -4840,7 +4840,7 @@ enqueue_docking_launch_ready_message:
 	cmpi.w #30,docking_service_phase(a6)
 	bne.b abs_0_000040DC
 	lea.l docking_ready_to_launch_message(pc),a1
-	bsr.w abs_0_000049DA
+	bsr.w enqueue_unique_message_pointer_bridge_0039da
 abs_0_000040DC:
 	rts
 docking_ready_to_launch_message:
@@ -5558,11 +5558,11 @@ abs_0_000049B6:
 	dcb.b $C,$00
 abs_0_000049C8:
 	jmp sort_and_draw_scene_packets.l
-abs_0_000049CE:
+add_bcd_and_draw_digits_bridge_0039ce:
 	jmp add_bcd_and_draw_digits.l
 abs_0_000049D4:
 	jmp build_landscape_horizon_and_grid.l
-abs_0_000049DA:
+enqueue_unique_message_pointer_bridge_0039da:
 	jmp enqueue_unique_message_pointer.l
 initialize_model_coordinate_extents:
 	lea.l model_header_pointers.l,a3
@@ -9056,14 +9056,14 @@ enqueue_reticle_target_identity:
 	lea.l object_name_pointers.l,a1
 	movea.l $0(a1,d0.w),a1
 	bsr.w enqueue_unique_message_pointer
-	bsr.w abs_0_00007FB4
+	bsr.w enqueue_blank_event_message_line_bridge_006fb4
 	rts
 scan_or_fire_homing_missile:
 	move.w visible_object_count(a6),d7
 	beq.w abs_0_000075B0
 	tst.w object_scan_sprite_countdown(a6)
 	bne.w abs_0_000075B2
-	bsr.w abs_0_00007FBA
+	bsr.w select_visible_scan_target_bridge_006fba
 	move.w scan_target_type(a6),d0
 	beq.w abs_0_000075B0
 	lsl.w #2,d0
@@ -9131,7 +9131,7 @@ abs_0_00007626:
 	addi.w #500,d4
 	move.w d4,SG2SteeredProjectile_horizontal_motion_scale(a2)
 	move.w SG2SteeredProjectile_horizontal_motion_scale(a2),d3
-	bsr.w abs_0_00007FC0
+	bsr.w build_player_motion_vector_bridge_006fc0
 	move.w d4,SG2WorldObject_velocity_x(a2)
 	move.w d5,SG2WorldObject_velocity_y(a2)
 	move.w d6,SG2WorldObject_velocity_z(a2)
@@ -9441,7 +9441,7 @@ abs_0_00007A3C:
 	bsr.w enqueue_unique_message_pointer
 	lea.l abs_0_00007F87.l,a1
 	bsr.w enqueue_unique_message_pointer
-	bsr.w abs_0_00007FB4
+	bsr.w enqueue_blank_event_message_line_bridge_006fb4
 	rts
 abs_0_00007A6A:
 	clr.w pending_message_count(a6)
@@ -9452,7 +9452,7 @@ abs_0_00007A6A:
 	bsr.w enqueue_unique_message_pointer
 	lea.l abs_0_00007F9E.l,a1
 	bsr.w enqueue_unique_message_pointer
-	bsr.w abs_0_00007FB4
+	bsr.w enqueue_blank_event_message_line_bridge_006fb4
 	rts
     ; KNOWN: type A2=Target code-entry register seed:SG2TimedMotionActor
 initialize_launched_bomb_header:
@@ -9475,7 +9475,7 @@ initialize_player_launched_bomb_motion:
 	addi.w #200,d4
 	move.w d4,SG2MotionVectorActor_motion_vector_scale(a2)
 	move.w SG2MotionVectorActor_motion_vector_scale(a2),d3
-	bsr.w abs_0_00007FC0
+	bsr.w build_player_motion_vector_bridge_006fc0
 	move.w d4,SG2WorldObject_velocity_x(a2)
 	move.w d5,SG2WorldObject_velocity_y(a2)
 	move.w d6,SG2WorldObject_velocity_z(a2)
@@ -9495,7 +9495,7 @@ abs_0_00007B22:
 	lea.l event_message_pointers.l,a1
 	movea.l SG2SourceTextReference_text(a1,d0.w),a1
 	bsr.w enqueue_unique_message_pointer
-	bsr.w abs_0_00007FB4
+	bsr.w enqueue_blank_event_message_line_bridge_006fb4
 	rts
 homing_missile_hud_saved_backgrounds:
 	dcb.w $E0,$0000	; Four112-byte HUD backing slots,14rows x8bytes, normal0..4 icon state
@@ -9565,11 +9565,11 @@ abs_0_00007F87:
 abs_0_00007F9E:
 	dc.b "..by Mini-Sentinels.",$00
 	dc.b $00
-abs_0_00007FB4:
+enqueue_blank_event_message_line_bridge_006fb4:
 	jmp enqueue_blank_event_message_line.l
-abs_0_00007FBA:
+select_visible_scan_target_bridge_006fba:
 	jmp select_visible_scan_target.l
-abs_0_00007FC0:
+build_player_motion_vector_bridge_006fc0:
 	jmp build_player_motion_vector.l
 	dc.w $0000
 update_world_objects:
@@ -12670,7 +12670,7 @@ abs_0_0000A8F2:
 	move.l a1,free_object_stack_cursor(a6)
 	subq.w #1,free_object_count(a6)
 	lea.l abs_0_0000B43A.l,a1
-	bsr.w abs_0_0000E9B4
+	bsr.w advance_shared_random_state_bridge_00d9b4
 	andi.w #7,d0
 	move.b $0(a1,d0.w),d0
     ; KNOWN: type A2=Target code-entry register seed:SG2AirborneLaunchState
@@ -12748,7 +12748,7 @@ abs_0_0000AA3A:
 	move.l a1,free_object_stack_cursor(a6)
 	subq.w #1,free_object_count(a6)
 	lea.l abs_0_0000B442.l,a1
-	bsr.w abs_0_0000E9B4
+	bsr.w advance_shared_random_state_bridge_00d9b4
 	andi.w #3,d0
 	clr.w d3
 	move.b $0(a1,d0.w),d3
@@ -13315,7 +13315,7 @@ abs_0_0000B1BC:
 	bsr.w print_cursor_text
 abs_0_0000B1CE:
 	lea.l cockpit_picture_palette.l,a1
-	bsr.w abs_0_000034A4
+	bsr.w fade_in_amiga_palette_bridge_0024a4
 	clr.b pending_key_scancode(a6)
 	bsr.w abs_0_0000B518
 	rts
@@ -14261,7 +14261,7 @@ abs_0_0000BE90:
 abs_0_0000BEAA:
 	tst.b abs_0_0000C4CC.l
 	bpl.b abs_0_0000BEB6
-	bsr.w abs_0_0000C4D6
+	bsr.w handle_neutron_bomb_detonation_bridge_00b4d6
 abs_0_0000BEB6:
 	rts
 abs_0_0000BEB8:
@@ -14687,7 +14687,7 @@ abs_0_0000C4CC:
 	dc.b $00,$00,$00,$00
 spawn_body_projectors_platform_entry:
 	jmp spawn_selected_body_projector_parts.l
-abs_0_0000C4D6:
+handle_neutron_bomb_detonation_bridge_00b4d6:
 	jmp handle_neutron_bomb_detonation.l
 abs_0_0000C4DC:
 	dc.w $0000
@@ -14783,7 +14783,7 @@ bus_error_diagnostic_handler:
 	bsr.w abs_0_0000E9CC
 	clr.b pending_key_scancode(a6)
 abs_0_0000C64A:
-	bsr.w abs_0_0000FD88
+	bsr.w count_and_present_frame_handoff_bridge_00ed88
 	tst.b pending_key_scancode(a6)
 	beq.w abs_0_0000C64A
 	bra.w abs_0_0000E120
@@ -14798,7 +14798,7 @@ address_error_diagnostic_handler:
 	bsr.w abs_0_0000E9CC
 	clr.b pending_key_scancode(a6)
 abs_0_0000C688:
-	bsr.w abs_0_0000FD88
+	bsr.w count_and_present_frame_handoff_bridge_00ed88
 	tst.b pending_key_scancode(a6)
 	beq.w abs_0_0000C688
 	bra.w abs_0_0000E120
@@ -14813,7 +14813,7 @@ report_ram_corruption_and_reboot:
 	bsr.w abs_0_0000E9CC
 	clr.b pending_key_scancode(a6)
 abs_0_0000C6C6:
-	bsr.w abs_0_0000FD88
+	bsr.w count_and_present_frame_handoff_bridge_00ed88
 	tst.b pending_key_scancode(a6)
 	beq.w abs_0_0000C6C6
 	movea.l $00000000.l,a7
@@ -16520,7 +16520,7 @@ show_options_and_load_control_settings:
 	move.b (a0)+,joystick_control_enabled_flag(a6)	; operand 1: SG2SavedControlSettings_joystick_flag at (a0)+
 	bsr.w clear_text_framebuffer_and_cursor
 	clr.b display_buffer_table_byte_offset(a6)
-	bsr.w abs_0_0000FD88
+	bsr.w count_and_present_frame_handoff_bridge_00ed88
 	lea.l options_joystick_status_text(pc),a1
 	tst.b joystick_control_enabled_flag(a6)
 	beq.b abs_0_0000E170
@@ -16601,7 +16601,7 @@ abs_0_0000E27A:
 	bsr.w redraw_options_text_at_origin
 	move.b #$13,diagnostic_step_byte.l
 poll_options_menu_choice:
-	bsr.w abs_0_0000E9B4
+	bsr.w advance_shared_random_state_bridge_00d9b4
 	tst.b mouse_primary_button_flag(a6)
 	bne.w store_control_settings_and_leave_options
 	tst.b primary_fire_flag(a6)
@@ -16640,10 +16640,10 @@ handle_painting_menu_choice:
 	move.b #$2,options_painting_choice.l
 	bsr.w abs_0_00012F6E
 	bsr.w abs_0_0000E9D8
-	bsr.w abs_0_0000E9D2
+	bsr.w reset_gameplay_state_and_input_defaults_bridge_00d9d2
 	st.b display_and_frame_service_flags(a6)
 	bsr.w enter_model_viewer
-	bsr.w abs_0_00012F7A
+	bsr.w disable_midframe_copper_blocks_continuation_bridge_011f7a
 	bsr.w clear_text_framebuffer_and_cursor
 	bra.w abs_0_0000E256
     ; Normal input limit1 accepts ASCII0..7. Decimal backing initially00000 plusNUL; formatter suppresses leading zeroes, so this is not fixed-width padded output or arbitrary-input capacity proof.
@@ -16654,7 +16654,7 @@ handle_mouse_scaling_menu_choice:
 	bsr.w abs_0_00012F6E
 	move.w mouse_input_scale_shift(a6),d0
 	lea.l mouse_scaling_decimal_text(pc),a1
-	bsr.w abs_0_00012F68
+	bsr.w format_signed_word_decimal_text_bridge_011f68
 	bsr.w clear_text_framebuffer_and_cursor
 	lea.l mouse_scaling_prompt_prefix(pc),a1
 	bsr.w print_cursor_text
@@ -16721,9 +16721,9 @@ rotate_protection_words_for_load:
 abs_0_0000E45C:
 	bsr.w abs_0_00012F6E
 	clr.b display_buffer_table_byte_offset(a6)
-	bsr.w abs_0_0000FD88
+	bsr.w count_and_present_frame_handoff_bridge_00ed88
 	move.w #$A,landscape_ground_colour_index(a6)
-	bsr.w abs_0_0000E9D2
+	bsr.w reset_gameplay_state_and_input_defaults_bridge_00d9d2
 	bsr.w abs_0_0000E9BA
 	bsr.w abs_0_0000E9C6
 	bsr.w abs_0_0000E9C0
@@ -16957,7 +16957,7 @@ options_menu_palette:
 	dc.w $0000,$0007,$0070,$0077,$0700,$0707,$0770,$0777	; palette
 	dc.w $0444,$000F,$00F0,$00FF,$0F00,$0F0F,$0FF0,$0FFF
 	dc.w $0000
-abs_0_0000E9B4:
+advance_shared_random_state_bridge_00d9b4:
 	jmp advance_shared_random_state.l
 abs_0_0000E9BA:
 	jmp initialize_model_type_target_tags.l
@@ -16966,8 +16966,8 @@ abs_0_0000E9C0:
 abs_0_0000E9C6:
 	jmp initialize_world_object_pool.l
 abs_0_0000E9CC:
-	jmp abs_0_000034A4.l
-abs_0_0000E9D2:
+	jmp fade_in_amiga_palette_bridge_0024a4.l
+reset_gameplay_state_and_input_defaults_bridge_00d9d2:
 	jmp reset_gameplay_state_and_input_defaults.l
 abs_0_0000E9D8:
 	jmp abs_0_0000217A.l
@@ -16976,10 +16976,10 @@ enter_model_viewer:
 	sf.b interrupted_game_available_flag(a6)
 	move.b #$E,display_and_frame_service_flags(a6)
 	clr.b display_buffer_table_byte_offset(a6)
-	bsr.w abs_0_0000FD88
+	bsr.w count_and_present_frame_handoff_bridge_00ed88
 	clr.w abs_0_000018B8.l
 	clr.w abs_0_0000FD4C.l
-	bsr.w abs_0_0000FD7C
+	bsr.w install_sine_cosine_pointers_bridge_00ed7c
 	clr.w view_rotation_0(a6)
 	clr.w view_rotation_1(a6)
 	clr.w view_rotation_2(a6)
@@ -17022,7 +17022,7 @@ abs_0_0000EA9C:
 	add.w d0,model_rotation_2(a6)
 	bsr.w service_model_viewer_controls
 	bsr.w abs_0_0000EACC
-	bsr.w abs_0_0000FD88
+	bsr.w count_and_present_frame_handoff_bridge_00ed88
 	bra.b abs_0_0000EA9C
 abs_0_0000EAC2:
 	dc.b $20,$20,$20,$20,$20,$20,$00,$00,$00,$00
@@ -17040,7 +17040,7 @@ abs_0_0000EAF2:
 	sub.w $000E(a0),d0
 	move.w d0,$000E(a0)
 	movem.l (a7)+,d0/a0
-	bsr.w abs_0_0000FD94
+	bsr.w display_frame_rate_if_enabled_bridge_00ed94
 	movem.l d0/a0,-(a7)
 	tst.w platform_entry_flags.l
 	bpl.b abs_0_0000EB28
@@ -17056,7 +17056,7 @@ abs_0_0000EB28:
 	beq.w abs_0_0000EBFC
 	move.w active_model_type_index(a6),d0
 	lea.l abs_0_0000EAC2(pc),a1
-	bsr.w abs_0_00012F68
+	bsr.w format_signed_word_decimal_text_bridge_011f68
 	moveq.l #12,d1
 	moveq.l #4,d0
 	bsr.w print_positioned_text
@@ -17118,7 +17118,7 @@ abs_0_0000EBFC:
 	move.l #scene_polygon_arena_prefix,scene_polygon_write_cursor.l
 	move.l #$FD14,(a0)+
 	move.l a0,scene_reference_write_cursor.l
-	bsr.w abs_0_0000FD76
+	bsr.w project_model_to_draw_records_bridge_00ed76
 	movea.l scene_reference_write_cursor.l,a2
 	move.l #$FD16,(a2)+
 	move.l #$FFFFFFFF,(a2)
@@ -18305,17 +18305,17 @@ abs_0_0000FD4D:
 	dc.b $00,$00,$00,$00
 abs_0_0000FD70:
 	jmp abs_0_00002836.l
-abs_0_0000FD76:
+project_model_to_draw_records_bridge_00ed76:
 	jmp project_model_to_draw_records.l
-abs_0_0000FD7C:
+install_sine_cosine_pointers_bridge_00ed7c:
 	jmp install_sine_cosine_pointers.l
 abs_0_0000FD82:
 	jmp sort_and_draw_scene_packets.l
-abs_0_0000FD88:
+count_and_present_frame_handoff_bridge_00ed88:
 	jmp count_and_present_frame_handoff.l
 abs_0_0000FD8E:
 	jmp format_signed_word_four_decimal_positions.l
-abs_0_0000FD94:
+display_frame_rate_if_enabled_bridge_00ed94:
 	jmp display_frame_rate_if_enabled.l
 abs_0_0000FD9A:
 	jmp abs_0_000034B6.l
@@ -18508,7 +18508,7 @@ abs_0_0000FFDE:
 	bra.b abs_0_0000FFCC
     ; Write five $1400-byte chunks from app+$6B4 after pointer rebasing. Only $5EE4 bytes are restored. In the original fixed layout the extra $51C includes $11C display bytes.
 save_game_to_disk:
-	bsr.w abs_0_00012F7A
+	bsr.w disable_midframe_copper_blocks_continuation_bridge_011f7a
 	bsr.w serialize_workspace_pointers_relative
 	move.l #disk_save_game_title,disk_service_state_operation_title_pointer.l
 abs_0_0000FFFE:
@@ -19398,7 +19398,7 @@ abs_0_00010C46:
 	clr.b $0004(a1)
 	clr.b $0005(a1)
 	move.w disk_service_state_current_cylinder.l,d0
-	bsr.w abs_0_00012F68
+	bsr.w format_signed_word_decimal_text_bridge_011f68
 	lea.l disk_format_track_text_prefix(pc),a1
 	bsr.w display_disk_operation_progress
 	lea.l runtime_code_0007E000.l,a1
@@ -22271,13 +22271,13 @@ pilot_rating_saved_control_settings:
 	dc.b $00	; joystick_flag
 	dcb.b $B6,$00
     ; Preceding2zero bytes12F66..12F68 lie outside512-byte ratings transfer12D66..12F66. A coalesced literal zero run does not enlarge the copied record.
-abs_0_00012F68:
+format_signed_word_decimal_text_bridge_011f68:
 	jmp format_signed_word_decimal_text.l
 abs_0_00012F6E:
 	jmp abs_0_000034AA.l
 abs_0_00012F74:
 	jmp abs_0_000011E0.l
-abs_0_00012F7A:
+disable_midframe_copper_blocks_continuation_bridge_011f7a:
 	jmp disable_midframe_copper_blocks_continuation.l
     ; Original encoded3484-byte storage, not instructions. Separate protection-view source restores decoded code/records and reverses exactly; bootstrap subtraction/conditional rotations remain unc
 novella_check_encoded_payload:
@@ -23931,7 +23931,7 @@ initialize_mini_sentinel_orbit_position:
 	move.l d4,SG2ObjectCore_world_z(a0)
 	move.l #$FECED300,SG2ObjectCore_world_y(a0)
     ; Random16..79 is stored at WORD26; its consumer role remains unresolved. Separate WORD28 initializes rotation increment24 and BYTE1F starts the high-byte-negation countdown.
-	bsr.w abs_0_00018968
+	bsr.w advance_shared_random_state_bridge_017968
 	andi.w #63,d0
 	addi.w #16,d0
 	move.w d0,$0026(a0)
@@ -23947,7 +23947,7 @@ initialize_proximity_mine_state:
 	bset.b #0,SG2ObjectCore_flags(a0)
 	move.l #$FFFFFDA8,SG2ObjectCore_world_y(a0)
 	move.w #$FFF1,$0026(a0)
-	bsr.w abs_0_00018968
+	bsr.w advance_shared_random_state_bridge_017968
 	move.w d0,$0024(a0)
 	andi.w #127,d0
 	move.b d0,$0028(a0)
@@ -23968,7 +23968,7 @@ initialize_solar_converter_chain_anchor:
 	rts
     ; KNOWN: type A0=Target code-entry register seed:SG2SiloLauncher
 initialize_silo_heading_and_status:
-	bsr.w abs_0_00018968
+	bsr.w advance_shared_random_state_bridge_017968
 	andi.w #4095,d0
 	move.w d0,SG2WorldObject_rotation_1(a0)
 	bset.b #7,SG2ObjectCore_durability_or_negative(a0)
@@ -23984,7 +23984,7 @@ initialize_buzz_bomb_surface_state:
 	rts
     ; KNOWN: type A0=Target code-entry register seed:SG2EvasiveActor
 initialize_large_bird_pose_and_motion:
-	bsr.w abs_0_00018968
+	bsr.w advance_shared_random_state_bridge_017968
 	andi.w #4095,d0
 	move.w d0,SG2WorldObject_rotation_1(a0)
 	move.l #$FFFFFE0C,SG2ObjectCore_world_y(a0)
@@ -23993,7 +23993,7 @@ initialize_large_bird_pose_and_motion:
 	rts
     ; KNOWN: type A0=Target code-entry register seed:SG2EmmaTransport
 initialize_emma2_mission_dependent_motion:
-	bsr.w abs_0_00018968
+	bsr.w advance_shared_random_state_bridge_017968
 	andi.w #4095,d0
 	move.w d0,SG2WorldObject_rotation_1(a0)
 	tst.b professor_taymar_delivered_flag(a6)
@@ -24011,14 +24011,14 @@ initialize_emma2_mission_dependent_motion:
 	sf.b abs_0_00018964.l
 	rts
 abs_0_000182DC:
-	bsr.w abs_0_00018968
+	bsr.w advance_shared_random_state_bridge_017968
 	move.w d0,SG2ScheduledActor_behavior_update_counter(a0)
 	move.w #$FE0C,SG2EmmaTransport_horizontal_motion_scale(a0)
 	sf.b SG2EmmaTransport_taymar_radio_enabled_flag(a0)
 	rts
     ; KNOWN: type A0=Target code-entry register seed:SG2EvasiveActor
 initialize_whale_and_duck_height_and_motion:
-	bsr.w abs_0_00018968
+	bsr.w advance_shared_random_state_bridge_017968
 	andi.w #4095,d0
 	move.w d0,SG2WorldObject_rotation_1(a0)
 	move.w #$FF7E,SG2EvasiveActor_horizontal_motion_scale(a0)
@@ -24028,11 +24028,11 @@ initialize_whale_and_duck_height_and_motion:
 	asl.w #2,d1
 	move.l $0(a1,d1.w),d1
 	addi.l #1024,d1
-	bsr.w abs_0_00018968
+	bsr.w advance_shared_random_state_bridge_017968
 	andi.l #8191,d0
 	add.l d0,d1
 	move.l d1,SG2ObjectCore_world_y(a0)
-	bsr.w abs_0_00018968
+	bsr.w advance_shared_random_state_bridge_017968
 	andi.w #1023,d0
 	move.w d0,SG2EvasiveActor_proximity_evasion_countdown(a0)
 	andi.w #7,d0
@@ -24046,7 +24046,7 @@ initialize_escape_capsule_spin_and_translation_state:
 	move.l #$FFFFFE70,SG2ObjectCore_world_y(a0)
 	move.w #$FFEC,SG2EscapeCapsule_spin_step(a0)
 	move.w #$C8,$0020(a0)
-	bsr.w abs_0_00018968
+	bsr.w advance_shared_random_state_bridge_017968
 	andi.w #63,d0
 	move.w d0,$0024(a0)
 	move.b d0,SG2EscapeCapsule_translation_stopped_flag(a0)
@@ -24059,7 +24059,7 @@ initialize_small_fighter_pose_and_motion:
 	rts
     ; KNOWN: type A0=Target code-entry register seed:SG2EvasiveActor
 initialize_horatio_heading_and_motion:
-	bsr.w abs_0_00018968
+	bsr.w advance_shared_random_state_bridge_017968
 	andi.w #4095,d0
 	move.w d0,SG2WorldObject_rotation_1(a0)
 	move.w #$FEA2,SG2EvasiveActor_horizontal_motion_scale(a0)
@@ -24067,7 +24067,7 @@ initialize_horatio_heading_and_motion:
 	rts
     ; KNOWN: type A0=Target code-entry register seed:SG2VertexOscillator
 initialize_pyramid_vertex_oscillation:
-	bsr.w abs_0_00018968
+	bsr.w advance_shared_random_state_bridge_017968
 	andi.w #4095,d0
 	move.w d0,SG2WorldObject_rotation_1(a0)
 	clr.b SG2WorldObject_vertex_variant_selector(a0)
@@ -24116,7 +24116,7 @@ initialize_ground_mover_phase_and_flags:
 initialize_petrified_tree_height_and_scale:
 	move.w #$400,$0010(a0)
 	bset.b #7,SG2ObjectCore_flags(a0)
-	bsr.w abs_0_00018968
+	bsr.w advance_shared_random_state_bridge_017968
 	andi.b #15,d0
 	beq.b abs_0_00018472
 	andi.b #7,d0
@@ -24136,7 +24136,7 @@ abs_0_00018482:
 	rts
     ; KNOWN: type A0=Target code-entry register seed:SG2Tripuss
 initialize_tripuss_pose_and_variant_step:
-	bsr.w abs_0_00018968
+	bsr.w advance_shared_random_state_bridge_017968
 	andi.w #4095,d0
 	move.w d0,SG2WorldObject_rotation_1(a0)
 	move.w #$C8,SG2Tripuss_horizontal_motion_scale(a0)
@@ -24145,7 +24145,7 @@ initialize_tripuss_pose_and_variant_step:
 	rts
     ; KNOWN: type A0=Target code-entry register seed:SG2EvasiveActor
 initialize_starglider_pose_and_motion:
-	bsr.w abs_0_00018968
+	bsr.w advance_shared_random_state_bridge_017968
 	andi.w #4095,d0
 	move.w d0,SG2WorldObject_rotation_1(a0)
 	move.l #$FFFFFD12,SG2ObjectCore_world_y(a0)
@@ -24154,12 +24154,12 @@ initialize_starglider_pose_and_motion:
 	rts
     ; KNOWN: type A0=Target code-entry register seed:SG2EvasiveActor
 initialize_bird_fighter_state:
-	bsr.w abs_0_00018968
+	bsr.w advance_shared_random_state_bridge_017968
 	andi.w #4095,d0
 	move.w d0,SG2WorldObject_rotation_1(a0)
 	bset.b #0,SG2ObjectCore_flags(a0)
 	move.b #$1,$001F(a0)
-	bsr.w abs_0_00018968
+	bsr.w advance_shared_random_state_bridge_017968
 	move.w d0,SG2ScheduledActor_behavior_update_counter(a0)
 	move.l #$FFFFFD12,SG2ObjectCore_world_y(a0)
 	move.w #$FFA6,SG2EvasiveActor_horizontal_motion_scale(a0)
@@ -24167,7 +24167,7 @@ initialize_bird_fighter_state:
 	rts
     ; KNOWN: type A0=Target code-entry register seed:SG2EvasiveActor
 initialize_pac_worm_heading_and_motion:
-	bsr.w abs_0_00018968
+	bsr.w advance_shared_random_state_bridge_017968
 	andi.w #4095,d0
 	move.w d0,SG2WorldObject_rotation_1(a0)
 	move.w #$FF38,SG2EvasiveActor_horizontal_motion_scale(a0)
@@ -24180,7 +24180,7 @@ initialize_flat_diamond_flags:
     ; KNOWN: type A0=Target code-entry register seed:SG2WorldObject
 initialize_pirate_or_skim_drone:
 	move.l #$FFFFB9B0,SG2ObjectCore_world_y(a0)
-	bsr.w abs_0_00018968
+	bsr.w advance_shared_random_state_bridge_017968
 	andi.w #1023,d0
 	btst #0,d0
 	beq.w abs_0_00018544
@@ -24192,7 +24192,7 @@ abs_0_00018544:
 	move.w #$1,$0026(a0)
 	move.w #$3,$0020(a0)
 abs_0_0001855A:
-	bsr.w abs_0_00018968
+	bsr.w advance_shared_random_state_bridge_017968
 	andi.w #31,d0
 	move.w d0,$0024(a0)
 	move.w #$FE0C,$0020(a0)
@@ -24200,12 +24200,12 @@ abs_0_0001855A:
     ; Shared Space Ray41/Asteroid73 initializer. Final WORD24 seed0..31 phases actor actions or sets asteroid spin; keep common WorldObject input, not one private field meaning.
     ; KNOWN: type A0=Target code-entry register seed:SG2WorldObject
 abs_0_0001856E:
-	bsr.w abs_0_00018968
+	bsr.w advance_shared_random_state_bridge_017968
 	andi.w #4095,d0
 	move.w d0,SG2WorldObject_rotation_1(a0)
 	bset.b #0,SG2ObjectCore_flags(a0)
 	move.l #$FFFFB9B0,SG2ObjectCore_world_y(a0)
-	bsr.w abs_0_00018968
+	bsr.w advance_shared_random_state_bridge_017968
 	andi.w #1023,d0
 	btst #0,d0
 	beq.w abs_0_0001859E
@@ -24217,7 +24217,7 @@ abs_0_0001859E:
 	move.w #$1,$0026(a0)
 	move.w #$3,$0020(a0)
 abs_0_000185B4:
-	bsr.w abs_0_00018968
+	bsr.w advance_shared_random_state_bridge_017968
 	andi.w #31,d0
 	move.w d0,$0024(a0)
 	move.w #$FE0C,$0020(a0)
@@ -24252,7 +24252,7 @@ initialize_blast_door_flags:
 	rts
     ; KNOWN: type A0=Target code-entry register seed:SG2BlowholeEmitter
 initialize_blowhole_emission_phase:
-	bsr.w abs_0_00018968
+	bsr.w advance_shared_random_state_bridge_017968
 	andi.w #4095,d0
 	move.w d0,SG2WorldObject_rotation_1(a0)
 	move.b #$3,SG2BlowholeEmitter_remaining_diamond_emissions(a0)
@@ -24291,14 +24291,14 @@ initialize_nodule_height_then_cargo_state:
     ; KNOWN: type A0=Target code-entry register seed:SG2WorldObject
 initialize_cargo_heading_flags_and_link_sentinel:
 	bset.b #7,SG2ObjectCore_flags(a0)
-	bsr.w abs_0_00018968
+	bsr.w advance_shared_random_state_bridge_017968
 	andi.w #4095,d0
 	move.w d0,SG2WorldObject_rotation_1(a0)
 	move.l #$FFFFFFFF,SG2WorldObject_linked_record_or_sentinel(a0)
 	rts
     ; KNOWN: type A0=Target code-entry register seed:SG2Volcano
 initialize_volcano_heading_and_phase_words:
-	bsr.w abs_0_00018968
+	bsr.w advance_shared_random_state_bridge_017968
 	andi.w #4095,d0
 	move.w d0,SG2WorldObject_rotation_1(a0)
 	bset.b #7,SG2ObjectCore_durability_or_negative(a0)
@@ -24307,7 +24307,7 @@ initialize_volcano_heading_and_phase_words:
 	rts
     ; KNOWN: type A0=Target code-entry register seed:SG2EvasiveActor
 initialize_columbus_height_and_motion:
-	bsr.w abs_0_00018968
+	bsr.w advance_shared_random_state_bridge_017968
 	andi.w #4095,d0
 	move.w d0,SG2WorldObject_rotation_1(a0)
 	move.w #$2,SG2ScheduledActor_behavior_update_counter(a0)
@@ -24316,7 +24316,7 @@ initialize_columbus_height_and_motion:
 	rts
     ; KNOWN: type A0=Target code-entry register seed:SG2WorldObject
 initialize_energy_tower_variant_and_link:
-	bsr.w abs_0_00018968
+	bsr.w advance_shared_random_state_bridge_017968
 	move.w d0,d1
 	andi.w #15,d0
 	rol.w #2,d1
@@ -24395,7 +24395,7 @@ initialize_square_rocket_attitude_and_y_high_word:
 	rts
     ; KNOWN: type A0=Target code-entry register seed:SG2MiniRocket
 initialize_mini_rocket_delay_and_link:
-	bsr.w abs_0_00018968
+	bsr.w advance_shared_random_state_bridge_017968
 	andi.w #31,d0
 	move.w d0,SG2MiniRocket_fall_acceleration_delay_updates(a0)
 	move.l #$FFFFFFFF,SG2WorldObject_linked_record_or_sentinel(a0)
@@ -24423,16 +24423,16 @@ initialize_star_radius_position_and_colour:
 	move.l $0(a2,d0.w),SG2RadialObject_base_radius(a0)
 	move.l SG2RadialObject_base_radius(a0),SG2RadialObject_radius_work_value(a0)
 	movem.l d3-d6/a1/a3,-(a7)
-	bsr.w abs_0_00018968
+	bsr.w advance_shared_random_state_bridge_017968
 	andi.w #511,d0
 	subi.w #256,d0
 	andi.w #4095,d0
 	move.w d0,d4
-	bsr.w abs_0_00018968
+	bsr.w advance_shared_random_state_bridge_017968
 	andi.w #4095,d0
 	move.w d0,d5
 	clr.w d6
-	bsr.w abs_0_00018968
+	bsr.w advance_shared_random_state_bridge_017968
 	andi.w #4095,d3
 	addi.w #20480,d3
 	bsr.w abs_0_0001896E
@@ -24449,7 +24449,7 @@ initialize_star_radius_position_and_colour:
 	move.l d4,SG2ObjectCore_world_x(a0)
 	move.l d5,SG2ObjectCore_world_y(a0)
 	move.l d6,SG2ObjectCore_world_z(a0)
-	bsr.w abs_0_00018968
+	bsr.w advance_shared_random_state_bridge_017968
 	lea.l abs_0_00018940.l,a1
 	andi.w #7,d0
 	move.b $0(a1,d0.w),d0
@@ -24514,7 +24514,7 @@ mini_sentinel_initial_orbit_angles:
 	dc.w $0000,$0200,$0400,$0600,$0800,$0A00,$0C00,$0E00
 abs_0_00018964:
 	dc.b $00,$00,$00,$00
-abs_0_00018968:
+advance_shared_random_state_bridge_017968:
 	jmp advance_shared_random_state.l
 abs_0_0001896E:
 	jmp build_motion_vector_from_angles.l
@@ -38196,7 +38196,7 @@ abs_0_0002F41A:
 	addq.w #2,a2
 	move.b #$10,diagnostic_step_byte.l
 	movem.l a3-a5,-(a7)
-	bsr.w abs_0_0002F684
+	bsr.w clip_polygon_in_view_volume_bridge_02e684
 	movem.l (a7)+,a3-a5
 	move.b #$B,diagnostic_step_byte.l
 	move.w d7,d4
@@ -38345,7 +38345,7 @@ abs_0_0002F644:
 	move.w d4,d3
 	move.w (a7)+,d1
 	rts
-abs_0_0002F684:
+clip_polygon_in_view_volume_bridge_02e684:
 	jmp clip_polygon_in_view_volume.l
 abs_0_0002F68A:
 	jmp clip_line_to_view_bounds.l
@@ -38601,14 +38601,14 @@ try_toggle_stardrive:
 	move.w #$1,d0
 	asl.w #2,d0
 	movea.l SG2SourceTextReference_text(a0,d0.w),a1
-	bsr.w abs_0_0002F9EE
+	bsr.w enqueue_unique_message_pointer_bridge_02e9ee
 	bra.b abs_0_0002F9DE
 abs_0_0002F9AA:
 	move.w #$FFFF,stardrive_enabled_word(a6)
 	lea.l event_message_pointers.l,a0
 	move.w #$0,d0
 	movea.l SG2SourceTextReference_text(a0,d0.w),a1
-	bsr.w abs_0_0002F9EE
+	bsr.w enqueue_unique_message_pointer_bridge_02e9ee
 	bra.b abs_0_0002F9DE
 abs_0_0002F9C4:
 	move.w #$0,stardrive_enabled_word(a6)
@@ -38616,13 +38616,13 @@ abs_0_0002F9C4:
 	move.w #$35,d0
 	asl.w #2,d0
 	movea.l SG2SourceTextReference_text(a0,d0.w),a1
-	bsr.w abs_0_0002F9EE
+	bsr.w enqueue_unique_message_pointer_bridge_02e9ee
 abs_0_0002F9DE:
 	bsr.w enqueue_blank_event_message_line
 	movem.l (a7)+,a0-a1
 	rts
 	dc.b $00,$00,$00,$00,$00,$00
-abs_0_0002F9EE:
+enqueue_unique_message_pointer_bridge_02e9ee:
 	jmp enqueue_unique_message_pointer.l
 	dcb.b $8,$00
     ; 32 original pointers, 14 distinct streams with aliases. Pointee contract is only the first 2-byte tag; empty streams do not contain a full placement record.
@@ -43092,7 +43092,7 @@ abs_0_00032EE0:
 	lea.l event_message_pointers.l,a1
 	movea.l SG2SourceTextReference_text(a1,d0.w),a1
 	bsr.w enqueue_event_message
-	bsr.w abs_0_00039D20
+	bsr.w advance_shared_random_state_bridge_038d20
 	andi.w #3,d0
 	addi.w #78,d0
 	asl.w #2,d0
@@ -43212,7 +43212,7 @@ abs_0_00033076:
     ; KNOWN: type A2=Target code-entry register seed:SG2NeutronBomb
 abs_0_00033084:
 	move.w #$62,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
-	bsr.w abs_0_00039D4A
+	bsr.w initialize_launched_bomb_header_bridge_038d4a
 	move.l carried_neutron_bomb_y_offset.l,d0
 	add.l d0,SG2ObjectCore_world_y(a2)
 	sf.b SG2NeutronBomb_released_motion_negative_flag(a2)
@@ -43540,7 +43540,7 @@ abs_0_00033528:
 	move.l system_center_proximity_metric(a6),d3
 	tst.w player_speed_target(a6)
 	beq.w abs_0_0003367A
-	bsr.w abs_0_00039D20
+	bsr.w advance_shared_random_state_bridge_038d20
 	andi.w #127,d0
 	beq.b abs_0_00033584
 	cmp.l #$19BFCC0,d3
@@ -43566,7 +43566,7 @@ abs_0_00033598:
 	lea.l asteroid_spawn_random_masks_normal.l,a0
 abs_0_0003359E:
 	move.b $0(a0,d1.w),d1
-	bsr.w abs_0_00039D20
+	bsr.w advance_shared_random_state_bridge_038d20
 	and.b d1,d0
 	bne.w abs_0_0003367A
 	cmpi.w #10,free_object_count(a6)
@@ -43587,21 +43587,21 @@ abs_0_0003359E:
 	move.l d4,SG2ObjectCore_world_x(a4)
 	move.l d5,SG2ObjectCore_world_y(a4)
 	move.l d6,SG2ObjectCore_world_z(a4)
-	bsr.w abs_0_00039D20
+	bsr.w advance_shared_random_state_bridge_038d20
 	andi.l #1023,d0
 	move.w d0,SG2WorldObject_rotation_0(a4)
 	subi.l #512,d0
 	add.l d0,SG2ObjectCore_world_x(a4)
 	asr.w #6,d0
 	move.w d0,SG2WorldObject_velocity_x(a4)
-	bsr.w abs_0_00039D20
+	bsr.w advance_shared_random_state_bridge_038d20
 	andi.l #1023,d0
 	move.w d0,SG2WorldObject_rotation_1(a4)
 	subi.l #512,d0
 	add.l d0,SG2ObjectCore_world_y(a4)
 	asr.w #6,d0
 	move.w d0,SG2WorldObject_velocity_y(a4)
-	bsr.w abs_0_00039D20
+	bsr.w advance_shared_random_state_bridge_038d20
 	andi.l #1023,d0
 	move.w d0,SG2WorldObject_rotation_2(a4)
 	subi.l #512,d0
@@ -43612,7 +43612,7 @@ abs_0_0003359E:
 	move.w #$49,(a4)	; operand 2: SG2ObjectCore_object_type at (a4)
 	move.b #$3,SG2ObjectCore_durability_or_negative(a4)
 	move.b #$FF,SG2ObjectCore_retirement_phase_or_negative(a4)
-	bsr.w abs_0_00039D20
+	bsr.w advance_shared_random_state_bridge_038d20
 	move.w d0,d1
 	andi.w #63,d0
 	addi.w #10,d0
@@ -43654,7 +43654,7 @@ abs_0_000336C4:
 	subq.w #1,abs_0_0003999C.l
 	bpl.w abs_0_000338EE
 	move.w #$FFFF,abs_0_0003999C.l
-	bsr.w abs_0_00039D20
+	bsr.w advance_shared_random_state_bridge_038d20
 	andi.w #511,d0
 	addi.w #64,d0
 	move.w d0,abs_0_0003999E.l
@@ -43662,7 +43662,7 @@ abs_0_00033702:
 	subq.w #1,abs_0_0003999E.l
 	bpl.b abs_0_00033724
 	move.w #$FFFF,abs_0_0003999E.l
-	bsr.w abs_0_00039D20
+	bsr.w advance_shared_random_state_bridge_038d20
 	andi.w #1023,d0
 	addi.w #256,d0
 	move.w d0,abs_0_0003999C.l
@@ -43677,7 +43677,7 @@ abs_0_00033736:
 abs_0_0003373A:
 	and.w d0,abs_0_00039996.l
 	bne.w abs_0_000338EE
-	bsr.w abs_0_00039D20
+	bsr.w advance_shared_random_state_bridge_038d20
 	andi.w #7,d0
 	bne.w abs_0_000338EE
 	cmpi.w #150,free_object_count(a6)
@@ -43697,23 +43697,23 @@ abs_0_0003373A:
 	move.l d4,SG2ObjectCore_world_x(a4)
 	move.l d5,SG2ObjectCore_world_y(a4)
 	move.l d6,SG2ObjectCore_world_z(a4)
-	bsr.w abs_0_00039D20
+	bsr.w advance_shared_random_state_bridge_038d20
 	andi.l #4095,d0
 	move.w d0,$0012(a4)
 	subi.l #2048,d0
 	add.l d0,SG2ObjectCore_world_x(a4)
 	clr.w $0010(a4)
 	ori.w #1,$0010(a4)
-	bsr.w abs_0_00039D20
+	bsr.w advance_shared_random_state_bridge_038d20
 	andi.l #1023,d0
 	subi.l #512,d0
 	add.l d0,SG2ObjectCore_world_y(a4)
-	bsr.w abs_0_00039D20
+	bsr.w advance_shared_random_state_bridge_038d20
 	andi.l #4095,d0
 	move.w d0,$0014(a4)
 	subi.l #2048,d0
 	add.l d0,SG2ObjectCore_world_z(a4)
-	bsr.w abs_0_00039D20
+	bsr.w advance_shared_random_state_bridge_038d20
 	andi.w #15,d0
 	add.w d0,d0
 	cmpi.l #300000000,system_center_proximity_metric(a6)
@@ -43780,7 +43780,7 @@ abs_0_000338C0:
 	add.w d0,d0
 	add.w d0,d0
 	move.w d0,SG2MotionVectorActor_motion_vector_scale(a4)
-	bsr.w abs_0_00039D20
+	bsr.w advance_shared_random_state_bridge_038d20
 	andi.w #511,d0
 	addi.w #64,d0
 	move.w d0,SG2PirateShip_raid_approach_updates_or_negative(a4)
@@ -43966,7 +43966,7 @@ abs_0_00033B36:
 	dbf.w d0,abs_0_00033B06
 abs_0_00033B3A:
 	bsr.w abs_0_00039D26
-	bsr.w abs_0_00039D2C
+	bsr.w invalidate_alternate_power_meter_cache_bridge_038d2c
 	bsr.w recreate_saved_nearby_objects
 	clr.l nearby_space_station_reference(a6)
 	lea.l released_object_tracking_references(a6),a0
@@ -44039,7 +44039,7 @@ abs_0_00033C4C:
 	bmi.b abs_0_00033C9A
 	cmpi.w #8,selected_celestial_body_index(a6)
 	bne.b abs_0_00033C9A
-	bsr.w abs_0_00039D20
+	bsr.w advance_shared_random_state_bridge_038d20
 	andi.w #2047,d0
 	bne.b abs_0_00033C66
 	bra.b abs_0_00033C6E
@@ -44064,12 +44064,12 @@ abs_0_00033C9A:
 	addq.w #1,abs_0_00037898.l
 	andi.w #3,abs_0_00037898.l
 	bne.w update_point_field_flag_from_world_y
-	bsr.w abs_0_00039D20
+	bsr.w advance_shared_random_state_bridge_038d20
 	andi.w #3,d0
 	bne.w update_point_field_flag_from_world_y
-	bsr.w abs_0_00039D20
+	bsr.w advance_shared_random_state_bridge_038d20
 	move.w d0,d1
-	bsr.w abs_0_00039D20
+	bsr.w advance_shared_random_state_bridge_038d20
 	move.w #$1FFF,d2
 	and.w d2,d0
 	and.w d2,d1
@@ -44517,7 +44517,7 @@ abs_0_000342CA:
 abs_0_000342DE:
 	move.b d7,$0(a0,d1.w)
 	movem.l d0-d7/a0-a6,-(a7)
-	bsr.w abs_0_00039D5C
+	bsr.w add_homing_missile_hud_icon_bridge_038d5c
 	movem.l (a7)+,d0-d7/a0-a6
 	bra.b abs_0_00034322
 abs_0_000342F0:
@@ -44530,7 +44530,7 @@ abs_0_000342F0:
 abs_0_00034304:
 	move.b d7,$0(a0,d1.w)
 	movem.l d0-d7/a0-a6,-(a7)
-	bsr.w abs_0_00039D62
+	bsr.w add_bouncing_bomb_hud_icon_bridge_038d62
 	movem.l (a7)+,d0-d7/a0-a6
 	bra.b abs_0_00034322
 abs_0_00034316:
@@ -44764,7 +44764,7 @@ abs_0_000345F2:
 	lea.l model_type_population_counts(a6),a4
 	tst.b $0062(a4)
 	bne.b abs_0_0003466C
-	bsr.w abs_0_00039D44
+	bsr.w poll_translated_command_key_bridge_038d44
 abs_0_0003460E:
 	cmp.b #$A0,d0
 	beq.w abs_0_000354DA
@@ -44865,7 +44865,7 @@ abs_0_00034764:
 	bpl.w abs_0_000348E2
 	tst.b player_ejection_active_flag.l
 	bmi.b abs_0_0003478C
-	bsr.w abs_0_00039D44
+	bsr.w poll_translated_command_key_bridge_038d44
 abs_0_0003478C:
 	cmp.b #$49,d0
 	beq.b abs_0_000347A6
@@ -44975,7 +44975,7 @@ abs_0_000348E2:
 	move.b #$72,diagnostic_step_byte.l
 	tst.b player_ejection_active_flag.l
 	bmi.b abs_0_000348F6
-	bsr.w abs_0_00039D44
+	bsr.w poll_translated_command_key_bridge_038d44
 abs_0_000348F6:
 	cmp.b #$A0,d0
 	beq.w abs_0_000354DA
@@ -45246,7 +45246,7 @@ abs_0_00034C8C:
 	move.l SG2SourceTextReference_text(a1,d0.w),station_report_secondary_message(a6)
 	cmpi.w #1,free_object_count(a6)
 	bls.w abs_0_00034E8A
-	bsr.w abs_0_00039D20
+	bsr.w advance_shared_random_state_bridge_038d20
 	move.w station_event_cadence_mask(a6),d1
 	and.w d1,d0
 	beq.w abs_0_00034E8A
@@ -45610,7 +45610,7 @@ abs_0_000351A8:
 	lea.l projector_part_presence_flags(a6),a0
 	move.w #$37,d7
 abs_0_000351B4:
-	bsr.w abs_0_00039D20
+	bsr.w advance_shared_random_state_bridge_038d20
 	andi.w #3,d0
 	bne.b abs_0_000351C2
 	sf.b $0(a0,d7.w)
@@ -45645,14 +45645,14 @@ abs_0_000351C2:
 	move.l $000C(a0),SG2ObjectCore_world_z(a4)
 	tst.w d7
 	beq.b abs_0_00035256
-	bsr.w abs_0_00039D20
+	bsr.w advance_shared_random_state_bridge_038d20
 	andi.l #1023,d0
 	subi.l #512,d0
 	add.l d0,SG2ObjectCore_world_x(a4)
 	add.l d0,SG2ObjectCore_world_y(a4)
 	add.l d0,SG2ObjectCore_world_z(a4)
 abs_0_00035256:
-	bsr.w abs_0_00039D20
+	bsr.w advance_shared_random_state_bridge_038d20
 	andi.w #31,d0
 	addq.w #2,d0
 	move.w d0,SG2EnergySpheroid_expansion_delay_countdown(a4)
@@ -45856,7 +45856,7 @@ process_tractor_target_keys:
 	move.w d0,d7
 	cmpi.w #73,(a0)
 	bne.w abs_0_0003557C
-	bsr.w abs_0_00039D20
+	bsr.w advance_shared_random_state_bridge_038d20
 	andi.w #127,d0
 	bne.b apply_asteroid_tractor_resource_pulse
 	clr.b $001E(a0)
@@ -46036,7 +46036,7 @@ abs_0_0003570C:
 	bgt.b abs_0_0003572A
 	move.b d1,$0(a1,d0.w)
 	movem.l d0-d7/a0-a6,-(a7)
-	bsr.w abs_0_00039D5C
+	bsr.w add_homing_missile_hud_icon_bridge_038d5c
 	movem.l (a7)+,d0-d7/a0-a6
 abs_0_00035728:
 	bra.b abs_0_0003574C
@@ -46049,7 +46049,7 @@ abs_0_0003572C:
 	bgt.b abs_0_0003574A
 	move.b d1,$0(a1,d0.w)
 	movem.l d0-d7/a0-a6,-(a7)
-	bsr.w abs_0_00039D62
+	bsr.w add_bouncing_bomb_hud_icon_bridge_038d62
 	movem.l (a7)+,d0-d7/a0-a6
 abs_0_00035748:
 	bra.b abs_0_0003574C
@@ -46403,7 +46403,7 @@ prepare_small_asteroid_fragment_pair:
 	move.l SG2ObjectCore_world_x(a0),SG2ObjectCore_world_x(a3)
 	move.l SG2ObjectCore_world_y(a0),SG2ObjectCore_world_y(a3)
 	move.l SG2ObjectCore_world_z(a0),SG2ObjectCore_world_z(a3)
-	bsr.w abs_0_00039D20
+	bsr.w advance_shared_random_state_bridge_038d20
 	andi.l #1023,d0
 	move.w d0,SG2WorldObject_rotation_0(a2)
 	subi.l #512,d0
@@ -46412,7 +46412,7 @@ prepare_small_asteroid_fragment_pair:
 	move.w d0,SG2WorldObject_velocity_x(a2)
 	neg.w d0
 	move.w d0,SG2WorldObject_velocity_x(a3)
-	bsr.w abs_0_00039D20
+	bsr.w advance_shared_random_state_bridge_038d20
 	andi.l #1023,d0
 	move.w d0,SG2WorldObject_rotation_1(a2)
 	subi.l #512,d0
@@ -46421,7 +46421,7 @@ prepare_small_asteroid_fragment_pair:
 	move.w d0,SG2WorldObject_velocity_y(a2)
 	neg.w d0
 	move.w d0,SG2WorldObject_velocity_y(a3)
-	bsr.w abs_0_00039D20
+	bsr.w advance_shared_random_state_bridge_038d20
 	andi.l #1023,d0
 	move.w d0,SG2WorldObject_rotation_2(a2)
 	subi.l #512,d0
@@ -46441,7 +46441,7 @@ prepare_small_asteroid_fragment_pair:
     ; Both type74 fragments ignore contact TYPE73, not a unique parent instance or each other. Both receive the same spin step10..73 and opposite velocity WORDs.
 	move.b #$49,SG2TargetingObject_collision_ignored_object_type(a2)
 	move.b #$49,SG2TargetingObject_collision_ignored_object_type(a3)
-	bsr.w abs_0_00039D20
+	bsr.w advance_shared_random_state_bridge_038d20
 	move.w d0,d1
 	andi.w #63,d0
 	addi.w #10,d0
@@ -46459,7 +46459,7 @@ update_nearby_mini_sentinel:
 	bsr.w advance_mini_sentinel_orbit
 	tst.w player_rotation2_spin_steps.l
 	bpl.b abs_0_00035D1A
-	bsr.w abs_0_00039D20
+	bsr.w advance_shared_random_state_bridge_038d20
 	andi.w #4095,d0
 	bne.b abs_0_00035D1A
 	clr.w pending_message_count(a6)
@@ -46570,7 +46570,7 @@ abs_0_00035DF4:
 	move.b #SG2_OBJECT_TYPE_SKIM_DRONE,SG2TargetingObject_collision_ignored_object_type(a2)
 	move.b #SG2_OBJECT_TYPE_SKIM_MISSILE,SG2TargetingObject_collision_ignored_object_type(a0)
 	move.w #$FFFF,SG2SkimLauncherDrone_follow_phase_countdown(a0)
-	bsr.w abs_0_00039D20
+	bsr.w advance_shared_random_state_bridge_038d20
 	andi.w #127,d0
 	addi.w #64,d0
 	move.w d0,SG2SkimLauncherDrone_idle_phase_countdown(a0)
@@ -46594,7 +46594,7 @@ advance_skim_drone_follow_countdown:
 	sf.b skim_drone_follow_claim_flag.l
 	clr.l skim_drone_follow_reference.l
 	move.w #$FFFF,SG2SkimLauncherDrone_follow_phase_countdown(a0)
-	bsr.w abs_0_00039D20
+	bsr.w advance_shared_random_state_bridge_038d20
 	andi.w #127,d0
 	addi.w #64,d0
 	move.w d0,SG2SkimLauncherDrone_idle_phase_countdown(a0)
@@ -46602,7 +46602,7 @@ advance_skim_drone_idle_countdown:
 	subq.w #1,SG2SkimLauncherDrone_idle_phase_countdown(a0)
 	bpl.b evade_player_and_spin_skim_drone
 	move.w #$FFFF,SG2SkimLauncherDrone_idle_phase_countdown(a0)
-	bsr.w abs_0_00039D20
+	bsr.w advance_shared_random_state_bridge_038d20
 	andi.w #255,d0
 	addi.w #64,d0
 	move.w d0,SG2SkimLauncherDrone_follow_phase_countdown(a0)
@@ -46920,7 +46920,7 @@ abs_0_00036306:
 	clr.w (a0)	; operand 1: SG2ObjectCore_object_type at (a0)
 	bra.w abs_0_00039D56
 abs_0_00036318:
-	bsr.w abs_0_00039D20
+	bsr.w advance_shared_random_state_bridge_038d20
 	andi.b #7,d0
 	bne.b abs_0_00036326
 	st.b pending_transient_event_sound(a6)
@@ -46994,7 +46994,7 @@ abs_0_000363F6:
 	move.w #$134,d0
 	movea.l SG2SourceTextReference_text(a1,d0.w),a1
 	bsr.w enqueue_event_message
-	bsr.w abs_0_00039D20
+	bsr.w advance_shared_random_state_bridge_038d20
 	andi.w #3,d0
 	addi.w #78,d0
 	asl.w #2,d0
@@ -47581,7 +47581,7 @@ abs_0_00036C54:
 	addq.w #1,SG2Volcano_eruption_attempt_mod4_index(a0)
 	andi.w #3,SG2Volcano_eruption_attempt_mod4_index(a0)
 	bne.w abs_0_00036D14
-	bsr.w abs_0_00039D20
+	bsr.w advance_shared_random_state_bridge_038d20
 	andi.w #7,d0
 	bne.w abs_0_00036D14
 	cmpi.w #10,free_object_count(a6)
@@ -47604,20 +47604,20 @@ abs_0_00036C54:
 	bset.b #7,SG2ObjectCore_durability_or_negative(a4)
 	move.b #$FF,SG2ObjectCore_retirement_phase_or_negative(a4)
 	move.b #$0,SG2WorldObject_vertex_variant_selector(a4)
-	bsr.w abs_0_00039D20
+	bsr.w advance_shared_random_state_bridge_038d20
 	andi.b #1,d0
 	addi.b #6,d0
 	move.b d0,SG2TargetingObject_model_scale_shift(a4)
-	bsr.w abs_0_00039D20
+	bsr.w advance_shared_random_state_bridge_038d20
 	andi.w #14,d0
 	lea.l abs_0_0003992E.l,a1
 	move.w $0(a1,d0.w),SG2WorldObject_velocity_x(a4)
-	bsr.w abs_0_00039D20
+	bsr.w advance_shared_random_state_bridge_038d20
 	andi.w #14,d0
 	lea.l abs_0_0003993E.l,a1
 	move.w $0(a1,d0.w),SG2WorldObject_velocity_z(a4)
 	move.w #$FF9C,SG2WorldObject_velocity_y(a4)
-	bsr.w abs_0_00039D20
+	bsr.w advance_shared_random_state_bridge_038d20
 	andi.w #31,d0
 	sub.w d0,SG2WorldObject_velocity_y(a4)
 abs_0_00036D14:
@@ -47636,7 +47636,7 @@ abs_0_00036D32:
 	bpl.b abs_0_00036D66
 	cmp.l d2,d1
 	bpl.b abs_0_00036D66
-	bsr.w abs_0_00039D20
+	bsr.w advance_shared_random_state_bridge_038d20
 	andi.w #15,d0
 	bne.b abs_0_00036D66
 	move.l player_world_y(a6),d1
@@ -47733,14 +47733,14 @@ abs_0_00036E58:
 	addq.w #1,SG2PirateShip_raid_attempt_mod8_index(a0)
 	andi.w #7,SG2PirateShip_raid_attempt_mod8_index(a0)
 	bne.w abs_0_0003703E
-	bsr.w abs_0_00039D20
+	bsr.w advance_shared_random_state_bridge_038d20
 	andi.b #7,d0
 	bne.w abs_0_00036F84
 	cmpi.w #20,free_object_count(a6)
 	bls.w abs_0_00036F84
 	lea.l model_type_population_counts(a6),a1
 	lea.l object_name_pointers.l,a4
-	bsr.w abs_0_00039D20
+	bsr.w advance_shared_random_state_bridge_038d20
 	andi.w #7,d0
 	add.w d0,d0
 	lea.l neutron_bomb_ingredient_model_types.l,a2
@@ -47853,7 +47853,7 @@ abs_0_00037042:
 	bra.w abs_0_00039D56
 abs_0_0003704C:
 	lea.l pirate_destruction_drop_choices.l,a1
-	bsr.w abs_0_00039D20
+	bsr.w advance_shared_random_state_bridge_038d20
 	andi.w #15,d0
 	move.b $0(a1,d0.w),d0
 	beq.w abs_0_00037114
@@ -48361,7 +48361,7 @@ report_novenia_destruction_continuation:
 	bsr.w enqueue_event_message
 	bsr.w enqueue_blank_event_message_line
 abs_0_00037778:
-	bsr.w abs_0_00039D20
+	bsr.w advance_shared_random_state_bridge_038d20
 	andi.w #127,d0
 	bne.b abs_0_000377A0
 	subq.w #1,projector_rebuild_cursor(a6)
@@ -49650,11 +49650,11 @@ nearby_sound_analysis_heading:
 nearby_sound_analysis_suffix:
 	dc.b " Detected Near Icarus.",$00
 	dc.w $0000
-abs_0_00039D20:
+advance_shared_random_state_bridge_038d20:
 	jmp advance_shared_random_state.l
 abs_0_00039D26:
 	jmp initialize_world_object_pool.l
-abs_0_00039D2C:
+invalidate_alternate_power_meter_cache_bridge_038d2c:
 	jmp invalidate_alternate_power_meter_cache.l
 display_event_message_line:
 	jmp display_timed_message_line.l
@@ -49662,17 +49662,17 @@ abs_0_00039D38:
 	jmp save_game_to_disk.l
 abs_0_00039D3E:
 	jmp abs_0_0000839C.l
-abs_0_00039D44:
+poll_translated_command_key_bridge_038d44:
 	jmp poll_translated_command_key.l
-abs_0_00039D4A:
+initialize_launched_bomb_header_bridge_038d4a:
 	jmp initialize_launched_bomb_header.l
 abs_0_00039D50:
 	jmp modal_inventory_command_loop.l
 abs_0_00039D56:
 	jmp abs_0_000081D2.l
-abs_0_00039D5C:
+add_homing_missile_hud_icon_bridge_038d5c:
 	jmp add_homing_missile_hud_icon.l
-abs_0_00039D62:
+add_bouncing_bomb_hud_icon_bridge_038d62:
 	jmp add_bouncing_bomb_hud_icon.l
 enqueue_event_message:
 	jmp enqueue_unique_message_pointer.l
@@ -49687,7 +49687,7 @@ draw_hud_attitude_polygon:
 	move.w #$3,d7
 abs_0_00039D92:
 	movem.w (a2)+,d1-d3
-	bsr.w abs_0_0003A2D4
+	bsr.w rotate_horizon_vector_to_view_bridge_0392d4
 	move.w #$19,d4
 	ext.l d1
 	ext.l d2
@@ -50040,7 +50040,7 @@ hud_attitude_active_plane_mode:
 hud_attitude_roll_snapshot:
 	dc.w $0000
 	dc.w $0000
-abs_0_0003A2D4:
+rotate_horizon_vector_to_view_bridge_0392d4:
 	jmp rotate_horizon_vector_to_view.l
 	dc.w $0000
 abs_0_0003A2DC:
@@ -50103,7 +50103,7 @@ abs_0_0003A37E:
 	btst #1,d0
 	bne.w select_alternate_graphics_and_convert_assets
 	clr.b alternate_graphics_mode(a6)
-	lea.l abs_0_000034A4.l,a0
+	lea.l fade_in_amiga_palette_bridge_0024a4.l,a0
 	move.l #fade_in_alternate_palette,$0002(a0)
 	move.l #fade_out_alternate_palette,$0008(a0)
 	move.l #fill_alternate_horizon_bands_mode0,$000E(a0)
@@ -50129,7 +50129,7 @@ abs_0_0003A3E2:
 	rts
 select_alternate_graphics_and_convert_assets:
 	move.b #$FF,alternate_graphics_mode(a6)
-	lea.l abs_0_000034A4.l,a0
+	lea.l fade_in_amiga_palette_bridge_0024a4.l,a0
 	move.l #return_without_palette_fade,$0002(a0)
 	move.l #return_without_palette_fade,$0008(a0)
 	move.l #fill_alternate_horizon_bands_mode1,$000E(a0)
@@ -50934,7 +50934,7 @@ abs_0_0003ACFC:
 	bne.b abs_0_0003AD0C
 	tst.w pending_message_count(a6)
 	beq.b abs_0_0003AD0C
-	bsr.w abs_0_0003B0CE
+	bsr.w advance_message_queue_bridge_03a0ce
 abs_0_0003AD0C:
 	bsr.w update_alternate_resource_meters
 	rts
@@ -51317,7 +51317,7 @@ abs_0_0003AF30:
 	dc.w $0000
 abs_0_0003B0C8:
 	jmp abs_0_000038C6.l
-abs_0_0003B0CE:
+advance_message_queue_bridge_03a0ce:
 	jmp advance_message_queue.l
 	dc.b $4E,$75,$4E,$75,$4E,$75,$4E,$75,$4E,$75,$3D,$7C,$13,$57,$01,$B0
 	dc.b $2D,$7C,$00,$07,$7B,$50,$00,$00,$3D,$7C,$00,$00,$07,$56,$3D,$7C
@@ -61421,7 +61421,7 @@ abs_0_0004E480:
 	move.b d3,d4
 	moveq.l #2,d7
 	lea.l abs_0_000052C0.l,a2
-	bsr.w abs_0_0004E5C4
+	bsr.w clip_polygon_in_view_volume_bridge_04d5c4
 	tst.w d7
 	beq.w abs_0_0004E34C
 	movem.w (a2),d1-d6
@@ -61499,7 +61499,7 @@ abs_0_0004E5A4:
 	dcb.b $10,$00
 abs_0_0004E5C0:
 	dc.b $00,$00,$00,$00
-abs_0_0004E5C4:
+clip_polygon_in_view_volume_bridge_04d5c4:
 	jmp clip_polygon_in_view_volume.l
 	dc.w $0000
 update_panel_animations:
