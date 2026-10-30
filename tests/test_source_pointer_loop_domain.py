@@ -12,7 +12,8 @@ def header_table_artifact(tmp_path, loop=True, count=2, trips=None, setup='', bo
                           null=False, mixed=False, aliases=False, exposure=False,
                           indexed=False, index_code=None, index_register='d2',
                           reference_records=False, derived=False, index_displacement=0, after_count='',
-                          zero_counts=False, null_prefix=False, code_tail='', target_type='program'):
+                          zero_counts=False, null_prefix=False, code_tail='', target_type='program',
+                          record_access=None):
     trips=count if trips is None else trips
     counter='move.w d5,d4'if trips=='unknown'else f'move.w #{trips-1},d4'
     directory=['first'if aliases else f'header_{i}'for i in range(count)]
@@ -24,7 +25,8 @@ def header_table_artifact(tmp_path, loop=True, count=2, trips=None, setup='', bo
           ' lea.l directory(pc),a3\n '+counter+'\n '+setup+'\nagain:\n '+body+
           ('\n '+(index_code or'move.w d4,d2\n lsl.w #2,d2')+
            f'\n movea.l {index_displacement}(a3,{index_register}.w),a0\n'if indexed
-           else'\n movea.l (a3)+,a0\n')+' move.w (a0)+,d0\n'+after_count+' move.w (a0),d1\n'+
+           else'\n movea.l (a3)+,a0\n')+
+          (record_access if record_access is not None else ' move.w (a0)+,d0\n'+after_count+' move.w (a0),d1\n')+
           (' dbf d4,again\n'if loop else'')+' rts\n'+code_tail+'directory:\n'+''.join(' dc.l '+','.join(directory[i:i+8])+'\n'for i in range(0,count,8))+'first:\n'+
           ''.join(f'header_{i}:dc.w {0 if zero_counts else i+1},{i+2}\n'for i in range(count))+
           ('other_record:dc.w 99,98\n'if mixed else'')+

@@ -199,3 +199,52 @@ def test_strided_intersection_is_compressed_not_filled_in():
     assert result['first_start'] == 0 and result['last_start'] == 393210
     assert result['count'] == 65536 and result['transfer_width'] == 2
     assert 'start' not in result  # Four-byte holes are not reported as touched.
+
+
+def test_exact_instruction_batch_matches_single_calls_and_checks_both_boundaries(monkeypatch):
+    from pathlib import Path
+    from amiga_reversing.disasm import c_backend
+    from amiga_reversing.disasm.app_access_audit import decode_retained_instruction, decode_retained_instructions
+    root = Path(__file__).resolve().parents[1]
+    samples = [bytes.fromhex(s) for s in ['4e71', '3010', '48d00003', '4e75']]
+    expected = [decode_retained_instruction(b, project_root=root) for b in samples]
+    checks = []
+    original = c_backend._require_loaded_native_identity
+    def checked(dll):
+        checks.append(dll)
+        return original(dll)
+    monkeypatch.setattr(c_backend, '_require_loaded_native_identity', checked)
+    assert decode_retained_instructions(samples, project_root=root) == expected
+    assert len(checks) == 2 and checks[0] is checks[1]
+
+
+def test_instruction_batch_does_not_release_results_after_identity_change(monkeypatch):
+    from pathlib import Path
+    from amiga_reversing.disasm import c_backend
+    from amiga_reversing.disasm.app_access_audit import decode_retained_instructions
+    original = c_backend._require_loaded_native_identity
+    checks = 0
+    def checked(dll):
+        nonlocal checks
+        checks += 1
+        if checks == 2:
+            raise c_backend.NativeBackendStale('changed during batch')
+        return original(dll)
+    monkeypatch.setattr(c_backend, '_require_loaded_native_identity', checked)
+    with pytest.raises(c_backend.NativeBackendStale, match='during batch'):
+        decode_retained_instructions([bytes.fromhex('4e71')], project_root=Path(__file__).resolve().parents[1])
+
+
+def test_instruction_batch_rejects_invalid_middle_and_rechecks_identity(monkeypatch):
+    from pathlib import Path
+    from amiga_reversing.disasm import c_backend
+    from amiga_reversing.disasm.app_access_audit import AuditIncomplete, decode_retained_instructions
+    checks = []
+    original = c_backend._require_loaded_native_identity
+    def checked(dll):
+        checks.append(dll)
+        return original(dll)
+    monkeypatch.setattr(c_backend, '_require_loaded_native_identity', checked)
+    with pytest.raises(AuditIncomplete):
+        decode_retained_instructions([bytes.fromhex('4e71'), b''], project_root=Path(__file__).resolve().parents[1])
+    assert len(checks) == 2

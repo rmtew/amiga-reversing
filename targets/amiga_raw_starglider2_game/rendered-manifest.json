@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "source_commit": "849df95c138bab5e37059292c0cfc6509622b917",
+  "source_commit": "904afb334ab0da1af6f722ecafbee413cb4845c3",
   "source_assembly": "starglider2_game.s",
   "assets": [
     {
@@ -878,8 +878,8 @@
     },
     {
       "path": "rendered-provenance.json",
-      "bytes": 3134,
-      "sha256": "764739ea00a01986a35ead34d2d0b65bb84870fdd367cf3b6f82294369195090"
+      "bytes": 3148,
+      "sha256": "ab7299219ae437e918b8e344097d8f7dfe21c14a48739843ca12fd2b7c8ac0be"
     },
     {
       "path": "starglider2_game.s",
@@ -892,6 +892,6 @@
       "sha256": "81d3f66d36dbfbd5c77238b20c28e8b9abaa329777eb91f64669bbbf13703582"
     }
   ],
-  "source_commit_role": "canonical source publication base; shared explicit raw-image entry provenance is in the publishing commit; output is bound by verification_receipt_id",
-  "source_subject_revision": "f6655c9221c7ad6998f49eb41835f553e082e2085b362a68be5b2eac1e7c5ba7"
+  "source_commit_role": "canonical source publication base; shared captured-predicate field lifetimes and MOVE flags is in the publishing commit; output is bound by verification_receipt_id",
+  "source_subject_revision": "bd2b9b1adff57fb21c03a27d0ce6cf8d7b1860ffbb6f227bc914f1fabdc999dc"
 }

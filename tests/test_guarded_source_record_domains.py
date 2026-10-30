@@ -70,3 +70,15 @@ def test_loop_call_does_not_assume_return_stack_disjoint_from_source_records(tmp
         after_count=' tst.w d0\n beq.w skip_extra\n bsr.w consume_extra\nskip_extra:\n',
         code_tail='consume_extra:\n move.l 2(a0),d2\n rts\n')
     assert not [r for r in section['recovered_platform_typed_accesses'] if r['field_name'] == 'extra']
+
+
+@pytest.mark.parametrize('store,expected', [('move.w #1,2(a1)', True),
+    ('move.b #1,2(a1)', True), ('move.l #1,2(a1)', False), ('move.b #1,1(a1)', False)])
+def test_directory_relation_survives_known_write_to_another_field(tmp_path, store, expected):
+    # Capture in the unchanged directory loop, then mutate another field after
+    # leaving it. Fresh snapshot reads on later mutated iterations are a
+    # separate obligation; this test concerns an already captured predicate.
+    access = ('move.w (a0)+,d0\n dbf.w d4,again\n'
+              'lea.l header_0(pc),a1\n' + store + '\n' + GUARD)
+    section, _ = check_directory(tmp_path, count=104, loop=False, record_access=access)
+    assert any(r['field_name'] == 'extra' for r in section['recovered_platform_typed_accesses']) == expected

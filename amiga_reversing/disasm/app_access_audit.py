@@ -264,10 +264,29 @@ def decode_retained_instruction(data, *, project_root):
     This is a decoder/evidence projection, not a simulator or base-flow proof.
     It intentionally returns no platform attribution without a target artifact.
     """
+    from amiga_reversing.disasm.c_backend import _platform_file_dll
+    return _decode_retained_instruction(_platform_file_dll(project_root), data)
+
+
+def decode_retained_instructions(items, *, project_root):
+    """Decode an exact-byte batch, releasing no results before identity recheck.
+
+    Rehashing the same library per instruction is redundant inside this bounded
+    operation. Keep the single-call guard and reject a changed implementation at
+    either batch boundary; this does not cache identity across operations.
+    """
+    from amiga_reversing.disasm.c_backend import _platform_file_dll, _require_loaded_native_identity
+    dll = _platform_file_dll(project_root)
+    try:
+        results = [_decode_retained_instruction(dll, data) for data in items]
+    finally:
+        _require_loaded_native_identity(dll)
+    return results
+
+
+def _decode_retained_instruction(dll, data):
     import ctypes as C
     import json
-    from amiga_reversing.disasm.c_backend import _platform_file_dll
-    dll = _platform_file_dll(project_root)
     fn = dll.platform_file_instruction_evidence_json_alloc
     fn.argtypes = [C.c_void_p, C.c_size_t, C.c_uint8, C.POINTER(C.c_void_p)]
     fn.restype = C.c_int

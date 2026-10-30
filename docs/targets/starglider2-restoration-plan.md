@@ -279,23 +279,52 @@ access vectors, address values and CFG are unchanged; its input-entry evidence
 is now visible. C/vasm and clean standalone output are exact. Fresh generation
 took240.16s alongside focused tests; this is not a controlled timing comparison.
 
-The optional-header read at source`$3A94` remains unresolved. Its table producer
-still has an invalid/unknown singleton: the ordinary caller's low-BYTE sign test
-does not establish the104-entry WORD selector domain.104..127 pass that test,
-and104 already selects byte offset416 outside the416-byte directory. The
-WORD30 override is another independent input. Next inspect the original object
-kind and override producers for a closed legal selector domain; do not insert a
-reader bound merely because the supplied data uses104 models.
+The source`$3A94` read remains unresolved. The ordinary caller tests only the
+low-BYTE sign;104..127 pass, and104 selects byte offset416 outside the416-byte
+directory. A native typed-writer audit finds55 object-kind stores:24 immediate,
+nine clears and22 register/memory inputs. It does not close the object-pool input
+domain. App`$192` has one explicit A6 WORD initializer to30, but bulk/derived
+aliases remain separate. App`$190` is also overwritten by the common renderer;
+viewer checks cannot be assigned to it as a global range. The viewer's numeric
+path at source`$E068` appears to accept zero; comma dispatches`$E092`, whose lower
+check excludes only one before decrement. Zero→`$FFFF` is a concrete source
+counterexample candidate, not yet a normal-input runtime failure. Next replay
+`/`, zero, Enter, comma in the original viewer and observe the stored index and
+subsequent lookup without guest-state changes. Do not infer legal object kinds
+from placeholder names or table length.
 
-The103 declared header owners occupy runtime`$18B14..$19570`;45 auxiliary-count
-values are nonzero in extended owners and58 are zero in base owners. This is a
-closed-source format observation, not a live invariant for arbitrary writable
-inputs. Intervening unknown effects prevent use of original scalar bytes. Next
-exercise a writable-input variant contract in a minimal fixture, keeping its
-semantic authority explicit: inheritance alone cannot imply that nonzero count
-means an extended allocation. Writes/partial writes, stale roots, conflicting
-owners and calls must invalidate unsupported predicates. Any such format
-contract remains distinct from the original selector-domain obligation.
+Header mutation is concrete: source`$11CE..$11DE` selects directory entry99
+(Egron Space Station) and writes its face-count WORD at +2. No direct absolute
+write into the103 header owners was found among8691 accepted explicit CPU
+memory-write operands;1425 have absolute addresses. Computed writes, implicit
+stack effects, opaque code and DMA prevent an immutability conclusion. The
+write-only pointee fixture already passes: its missing game attribution is not
+a read-only-consumer defect. Unknown mutation/alias context still refuses.
+The initializer's A6 workspace writes also lack a physical non-alias frame;
+separate output and nested-loop fixtures already preserve directory typing.
+Next bind that original frame/lifetime through existing canonical provenance;
+do not add reader-specific numeric seeds or grant a global immutable header.
+
+The mutation audit reproduced two shared predicate gaps, now repaired. A
+captured WORD predicate depends on its two-byte field, so proved disjoint field
+writes preserve its relation; overlap, cross-record and unknown writes still
+kill it. This neither permits fresh reads of modified source bytes nor invents
+a writable-format invariant. WORD MOVE stores now retain the transferred
+register's Z relation through generated MOVE flag semantics; wrong widths,
+CCR clobbers and aliasing stores refuse. Finite and canonical104-entry domains
+use the same span check, with no larger candidate caps or extra per-node state.
+345 focused checks pass (three existing expected failures remain), all832 C
+cases pass, and C/vasm plus clean standalone remain exact. SGII source/access
+vectors stay unchanged; fresh analysis took213.08s alongside tests. These are
+shared gains, not recovery of the original guarded read.
+
+The read-only audit also exposed repeated library hashing: the single decoder
+rehashes a12.3MB DLL per call. A batch API now validates at both boundaries and
+returns no results after a changed identity or invalid instruction.64 identical
+inputs produced identical evidence in1.3472s singly versus0.0255s batched;
+29665 accepted instructions decoded/audited in1.61s. The earlier owned read-only
+scan was interrupted inside hashing, with no project mutation. Only compact
+findings and regressions are committed, not the derived instruction dump.
 
 An on-demand systematic gap inventory (`amiga_reversing/tools/source_gap_inventory.py`)
 joins native identities/accesses with canonical layouts and actual rendered

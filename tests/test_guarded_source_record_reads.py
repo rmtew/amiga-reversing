@@ -313,3 +313,38 @@ def test_advancing_to_another_array_record_cannot_keep_the_previous_relation(tmp
     body = 'move.w (a0)+,d0\n tst.w d0\n beq.w done\n move.l 2(a0),d2\ndone:\n'
     with records(tmp_path, body, record_array=True) as (section, _):
         assert not extra_reads(section)
+
+
+@pytest.mark.parametrize('owner', ['base', 'extended'])
+def test_disjoint_field_write_preserves_captured_discriminator(tmp_path, owner):
+    body = f'move.w (a0),d0\n lea.l {owner}(pc),a1\n move.w #1,2(a1)\n tst.w d0\n beq.w done\n move.l 4(a0),d2\ndone:\n'
+    with records(tmp_path, body) as (section, _):
+        assert len(extra_reads(section)) == 1
+
+
+def test_known_mutation_before_capture_cannot_reuse_original_discriminator(tmp_path):
+    prefix = 'lea.l base(pc),a1\n move.w #1,(a1)\n' + SELECT
+    body = 'move.w (a0),d0\n beq.w done\n move.l 4(a0),d2\ndone:\n'
+    with records(tmp_path, body, prefix=prefix) as (section, _):
+        assert not extra_reads(section)
+
+
+@pytest.mark.parametrize('transport,source', [('', 'd0'), ('movea.w d0,a2', 'a2')])
+def test_word_store_flags_test_the_transferred_scalar_relation(tmp_path, transport, source):
+    body = (f'lea.l safe_stack(pc),a1\n move.w (a0),d0\n{transport}\n move.w {source},(a1)\n'
+            'beq.w done\n move.l 4(a0),d2\ndone:\n')
+    with records(tmp_path, body) as (section, _):
+        assert len(extra_reads(section)) == 1
+
+
+@pytest.mark.parametrize('setup,store,between', [
+    ('lea.l safe_stack(pc),a1', 'move.b d0,(a1)', ''),
+    ('lea.l safe_stack(pc),a1', 'move.l d0,(a1)', ''),
+    ('lea.l safe_stack(pc),a1', 'move.w d0,(a1)', 'tst.w d1'),
+    ('', 'move.w d0,(a1)', ''),
+    ('lea.l base(pc),a1', 'move.w d0,(a1)', ''),
+])
+def test_store_flags_do_not_bypass_width_clobber_or_alias_guards(tmp_path, setup, store, between):
+    body = f'{setup}\n move.w (a0),d0\n {store}\n {between}\n beq.w done\n move.l 4(a0),d2\ndone:\n'
+    with records(tmp_path, body) as (section, _):
+        assert not extra_reads(section)

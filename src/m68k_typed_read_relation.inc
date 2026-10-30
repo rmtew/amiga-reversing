@@ -53,8 +53,30 @@ static uint16_t typed_read_intern(M68kRenderLookup *lookup, const M68kRenderScal
   for (size_t r = 0U; r < (state)->field_slot_count; ++r) operation(&(state)->field_slots[r].value); \
 } while (0)
 
+/* A captured predicate depends on the scalar field that was read, not on every
+ * byte of its enclosing allocation. Ownership/type membership was established
+ * at capture; a disjoint data write neither moves that allocation nor changes
+ * the captured discriminator. This does not permit fresh source-byte reads
+ * after mutation or grant a writable-format invariant. */
+static int typed_read_overlaps_write(const M68kRenderLookup *lookup,
+    const M68kRenderScalarReadRelation *read, uint32_t address, uint8_t span) {
+  uint64_t end = (uint64_t)address + span;
+  if (read->source_domain_id) {
+    const M68kRenderSourceDomain *domain = &lookup->source_domains[read->source_domain_id - 1U];
+    if ((uint64_t)address >= domain->address_end || end <= domain->address_min) return 0;
+    for (size_t i = 0U; i < domain->member_count; ++i) {
+      uint64_t field = (uint64_t)domain->members[i].address + read->field_cursor;
+      if ((uint64_t)address < field + 2U && field < end) return 1;
+    }
+  } else for (uint8_t i = 0U; i < read->count; ++i) {
+    uint64_t field = (uint64_t)read->roots[i] + read->field_cursor;
+    if ((uint64_t)address < field + 2U && field < end) return 1;
+  }
+  return 0;
+}
+
 /* Ordinary writes kill correlations unless a canonical source-mapped footprint
- * proves disjointness from every contributing record. Unknown SP is not a
+ * proves disjointness from every contributing predicate field. Unknown SP is not a
  * non-alias promise. Shared stack normalization owns predecrement width/order. */
 static void typed_read_note_writes(M68kRenderLookup *lookup, M68kRenderTypedState *state,
     const M68kInstructionIR *instruction) {
@@ -89,15 +111,7 @@ static void typed_read_note_writes(M68kRenderLookup *lookup, M68kRenderTypedStat
   uint16_t id = (value)->read_relation / 2U; \
   if (id && id <= lookup->scalar_read_relation_count) { \
     const M68kRenderScalarReadRelation *read = &lookup->scalar_read_relations[id - 1U]; \
-    int kill = !known; \
-    if (!kill && read->source_domain_id) { \
-      const M68kRenderSourceDomain *domain = &lookup->source_domains[read->source_domain_id - 1U]; \
-      if ((uint64_t)address < domain->address_end && domain->address_min < (uint64_t)address + span) kill = 1; \
-    } \
-    for (uint8_t i = 0U; !kill && i < read->count; ++i) { \
-      uint64_t end = (uint64_t)read->roots[i] + lookup_policy_struct_size_by_id(lookup->policy, read->types[i]); \
-      if ((uint64_t)address < end && (uint64_t)read->roots[i] < (uint64_t)address + span) kill = 1; \
-    } \
+    int kill = !known || typed_read_overlaps_write(lookup, read, address, span); \
     if (kill) { \
       if (state->zero_read_relation / 2U == id) state->zero_read_relation = 0U; \
       (value)->read_relation = 0U; \
@@ -257,9 +271,17 @@ static void typed_read_predicate_after(M68kRenderTypedState *state, const M68kIn
       relation = state->data_regs[reg].read_relation;
   } else if (meta->operation_type == M68K_SIM_OP_MOVE && meta->ccr_formula == M68K_SIM_CCR_FORMULA_MOVE_FLAGS &&
       meta->dest_operand_index < instruction->operand_count &&
-      m68k_sim_operand_width_bytes(instruction, meta->dest_operand_index) == 2U &&
-      operand_is_data_register_local(&instruction->operands[meta->dest_operand_index], &reg)) {
-    relation = state->data_regs[reg].read_relation;
+      m68k_sim_operand_width_bytes(instruction, meta->dest_operand_index) == 2U) {
+    if (operand_is_data_register_local(&instruction->operands[meta->dest_operand_index], &reg))
+      relation = state->data_regs[reg].read_relation;
+    else if (meta->source_operand_index < instruction->operand_count) {
+      /* MOVE to memory sets Z from the transferred WORD too. The shared write
+       * footprint has already invalidated aliases; do not invent a relation
+       * for an unknown memory source or a partial-width transfer. */
+      const M68kOperandIR *source = &instruction->operands[meta->source_operand_index];
+      if (operand_is_data_register_local(source, &reg)) relation = state->data_regs[reg].read_relation;
+      else if (operand_address_register_index_local(source, &reg)) relation = state->addr_regs[reg].read_relation;
+    }
   } else if (meta->operation_type == M68K_SIM_OP_COMPARE && meta->source_operand_index < instruction->operand_count &&
       meta->dest_operand_index < instruction->operand_count &&
       m68k_sim_operand_width_bytes(instruction, meta->dest_operand_index) == 2U) {
