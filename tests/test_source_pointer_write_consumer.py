@@ -47,3 +47,18 @@ def test_byte_sign_guard_is_not_a_word_directory_bound(tmp_path, selector):
         assert c_backend.assemble_platform_source_text_with_c_backend('amiga-raw', source)[0] == original
     finally:
         artifact.close()
+
+
+def test_zero_selection_then_unless_one_decrement_does_not_certify_directory_index(tmp_path):
+    artifact, original = header_table_artifact(tmp_path, count=104, loop=False, indexed=True,
+        index_code='move.w #0,d1\n cmp.w #1,d1\n beq.w selector_done\n subq.w #1,d1\n lsl.w #2,d1',
+        index_register='d1', record_access='move.w #7,2(a0)\n',
+        code_tail='selector_done:\n rts\n')
+    try:
+        section = artifact.analysis_payload()[0]['sections'][0]
+        assert not section['recovered_platform_typed_accesses']
+        assert not any(r['resolution'] == 'resolved' for r in section['address_values'])
+        source = artifact.inline_source_text_with_profile()[0]
+        assert c_backend.assemble_platform_source_text_with_c_backend('amiga-raw', source)[0] == original
+    finally:
+        artifact.close()

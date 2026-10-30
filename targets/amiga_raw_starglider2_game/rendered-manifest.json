@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "source_commit": "904afb334ab0da1af6f722ecafbee413cb4845c3",
+  "source_commit": "3d3dade0144cb3dad33ba697361f189816dca5b2",
   "source_assembly": "starglider2_game.s",
   "assets": [
     {
@@ -878,13 +878,13 @@
     },
     {
       "path": "rendered-provenance.json",
-      "bytes": 3148,
-      "sha256": "ab7299219ae437e918b8e344097d8f7dfe21c14a48739843ca12fd2b7c8ac0be"
+      "bytes": 3128,
+      "sha256": "90ba78c046cfff0b9254e690ef386fb0bf15c75eaeebe593621526c04da19074"
     },
     {
       "path": "starglider2_game.s",
-      "bytes": 2026009,
-      "sha256": "c3631716a0d969f6d77831323d0c3e80d9252c33bea7546121bc81b886be8fa1"
+      "bytes": 2026736,
+      "sha256": "cb676b600f76f65e694c48f2a5adcfd89d2b6b679f03fd1b8b3987491581983f"
     },
     {
       "path": "tools/starglider2_protection.py",
@@ -892,6 +892,6 @@
       "sha256": "81d3f66d36dbfbd5c77238b20c28e8b9abaa329777eb91f64669bbbf13703582"
     }
   ],
-  "source_commit_role": "canonical source publication base; shared captured-predicate field lifetimes and MOVE flags is in the publishing commit; output is bound by verification_receipt_id",
-  "source_subject_revision": "bd2b9b1adff57fb21c03a27d0ce6cf8d7b1860ffbb6f227bc914f1fabdc999dc"
+  "source_commit_role": "canonical source publication base; viewer/keyline canonical annotations is in the publishing commit; output is bound by verification_receipt_id",
+  "source_subject_revision": "ae95466f99d35df7ded6f00b7855d43cc78fc28dd01610c3bd2d4dfe164045b7"
 }

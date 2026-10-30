@@ -285,16 +285,25 @@ directory. A native typed-writer audit finds55 object-kind stores:24 immediate,
 nine clears and22 register/memory inputs. It does not close the object-pool input
 domain. App`$192` has one explicit A6 WORD initializer to30, but bulk/derived
 aliases remain separate. App`$190` is also overwritten by the common renderer;
-viewer checks cannot be assigned to it as a global range. The viewer's numeric
-path at source`$E068` appears to accept zero; comma dispatches`$E092`, whose lower
-check excludes only one before decrement. Zero→`$FFFF` is a concrete source
-counterexample candidate, not yet a normal-input runtime failure. Next replay
-`/`, zero, Enter, comma in the original viewer and observe the stored index and
-subsequent lookup without guest-state changes. Do not infer legal object kinds
-from placeholder names or table length.
+viewer checks cannot be assigned to it as a global range. An original-media
+normal-key route now confirms zero→`$FFFF`: Options/Painting, then`/`, zero,
+Return and comma. At frame884 source`$E08C` stores zero; frame885 source`$E09C`
+decrements it to`$FFFF`. Source`$E0BE` then makes a CPU BYTE read at runtime
+`$EC9E`, four bytes before the`$ECA2` animation owner, using index`$FFFC`.
+Both loaded payloads and every observed PC window match original bytes. The
+probe stopped at that read: it proves neither a later crash nor that the common
+model projector is reached with the bad index. Its viewer-state invariant is
+false; the ordinary object-pool selector domain remains a separate open proof.
+The first attempt stopped at the protection prompt; only the revised route,
+using the already-authorized normal answer workflow, qualifies this result.
+No guest-memory/register writes or DMA/output-equivalence claim are involved.
+Do not infer legal object kinds from placeholder names or table length.
 
 Header mutation is concrete: source`$11CE..$11DE` selects directory entry99
-(Egron Space Station) and writes its face-count WORD at +2. No direct absolute
+(Egron Space Station) and writes its face-count WORD at +2. The same normal route
+observed this CPU WORD store at frame880, runtime`$21DE`, address`$194F6`, value52;
+the previous value was also52. This is execution of a write, not an observed
+count change or a write to auxiliary count +22. No direct absolute
 write into the103 header owners was found among8691 accepted explicit CPU
 memory-write operands;1425 have absolute addresses. Computed writes, implicit
 stack effects, opaque code and DMA prevent an immutability conclusion. The
@@ -325,6 +334,19 @@ inputs produced identical evidence in1.3472s singly versus0.0255s batched;
 29665 accepted instructions decoded/audited in1.61s. The earlier owned read-only
 scan was interrupted inside hashing, with no project mutation. Only compact
 findings and regressions are committed, not the derived instruction dump.
+
+The connected viewer/keyline restoration names ten existing code coordinates
+and records the two exact original behaviors above. The native analysis already
+refuses the zero→`$FFFF` directory case in the new exact-source regression; no
+new framework repair or caller bound is justified by this runtime finding.
+Original bytes/invalid-input behavior are preserved. No blanket immutable-header
+or guarded-format contract is added. C/vasm and clean standalone reconstruction remain exact; all57 assets and14
+headers are unchanged, as are access vectors, address values and CFG. The final
+post-edit generation took222.48s. Eight focused directory/negative-index cases
+pass; unchanged native semantics were not broadly retested for a label/comment
+batch. The next narrow inference experiment is
+physical A6 frame provenance across the initializer's known workspace stores,
+with alias/mutation negatives, rather than another reader-specific type seed.
 
 An on-demand systematic gap inventory (`amiga_reversing/tools/source_gap_inventory.py`)
 joins native identities/accesses with canonical layouts and actual rendered

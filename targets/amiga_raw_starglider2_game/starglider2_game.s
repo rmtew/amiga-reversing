@@ -2805,6 +2805,7 @@ abs_0_000021C8:
 	asl.w #2,d1
 	lea.l model_header_pointers.l,a0
 	movea.l $0(a0,d1.w),a0
+    ; Original entry99 station header face_count WORD is written here (52 observed at f880). This is not the ground_face_count field at +22; the header is mutable.
 	move.w d2,$0002(a0)
 	move.w #$C8,game_over_sequence_countdown.l
 	clr.l carried_neutron_bomb_reference(a6)
@@ -17584,16 +17585,16 @@ service_model_viewer_controls:
 	tst.b model_viewer_blocking_input_flag(a6)
 	beq.b abs_0_0000EE66
 	bsr.w wait_for_translated_key
-	bra.b abs_0_0000EE6A
+	bra.b dispatch_model_viewer_command_key
 abs_0_0000EE66:
 	bsr.w poll_translated_command_key
-abs_0_0000EE6A:
+dispatch_model_viewer_command_key:
 	cmp.b #$2C,d0
-	beq.w abs_0_0000F092
+	beq.w select_previous_model_viewer_index
 	cmp.b #$2E,d0
-	beq.w abs_0_0000F0D0
+	beq.w select_next_model_viewer_index
 	cmp.b #$2F,d0
-	beq.w abs_0_0000F068
+	beq.w read_model_viewer_index_selection
 	cmp.b #$51,d0
 	beq.w abs_0_0000F008
 	cmp.b #$1B,d0
@@ -17743,22 +17744,23 @@ display_model_viewer_name:
 	lea.l object_name_pointers.l,a0
 	movea.l $0(a0,d0.w),a1
 	bra.w display_timed_message_line
-abs_0_0000F068:
+read_model_viewer_index_selection:
 	lea.l abs_0_0000FD22.l,a1
-	bsr.w abs_0_0000F218
+	bsr.w read_model_viewer_decimal_keyline
 	bmi.w abs_0_0000F216
 	cmp.b #$67,d4
 	bgt.w abs_0_0000F216
 	andi.w #255,d4
 	cmp.w #$68,d4
-	bls.b abs_0_0000F08C
+	bls.b store_model_viewer_decimal_selection
 	move.w #$67,d4
-abs_0_0000F08C:
+store_model_viewer_decimal_selection:
 	move.w d4,active_model_type_index(a6)
 	bra.b reset_model_viewer_variant_selection
-abs_0_0000F092:
+select_previous_model_viewer_index:
 	cmpi.w #1,active_model_type_index(a6)
 	beq.w abs_0_0000F03C
+    ; Original normal keys /0 Return , wrap index0 toFFFF (f885); the next animation read is table-4. Preserve this edge; no global 1..103 invariant.
 	subq.w #1,active_model_type_index(a6)
 reset_model_viewer_variant_selection:
 	moveq.l #0,d0
@@ -17774,7 +17776,7 @@ reset_model_viewer_variant_selection:
 	move.b #$1,model_viewer_animation_state(a6)
 abs_0_0000F0CC:
 	bra.w display_model_viewer_name
-abs_0_0000F0D0:
+select_next_model_viewer_index:
 	move.w active_model_type_index(a6),d0
 	cmp.w #$67,d0
 	bpl.w abs_0_0000F03C
@@ -17853,7 +17855,7 @@ toggle_model_face_culling:
 	not.b model_face_culling_disabled_flag(a6)
 abs_0_0000F216:
 	rts
-abs_0_0000F218:
+read_model_viewer_decimal_keyline:
 	moveq.l #0,d4
 	move.l a1,abs_0_0000FD0C.l
 	bsr.w display_timed_message_line
@@ -17864,11 +17866,11 @@ abs_0_0000F218:
 abs_0_0000F234:
 	bsr.w wait_for_translated_key
 	cmp.b #$D,d0
-	beq.w abs_0_0000F286
+	beq.w finish_model_viewer_decimal_keyline
 	cmp.b #$1B,d0
-	beq.w abs_0_0000F284
+	beq.w cancel_model_viewer_decimal_keyline
 	cmp.b #$8,d0
-	beq.w abs_0_0000F296
+	beq.w erase_model_viewer_decimal_digit
 	cmp.b #$30,d0
 	blt.w abs_0_0000F234
 	cmp.b #$39,d0
@@ -17880,26 +17882,26 @@ abs_0_0000F234:
 	andi.w #15,d0
 	mulu.w #$A,d4
 	add.b d0,d4
-	bsr.w abs_0_0000F2BC
+	bsr.w redraw_model_viewer_decimal_keyline
 	bra.w abs_0_0000F234
-abs_0_0000F284:
+cancel_model_viewer_decimal_keyline:
 	moveq.l #-1,d4
-abs_0_0000F286:
+finish_model_viewer_decimal_keyline:
 	lea.l abs_0_0000FD10.l,a1
 	move.w d4,-(a7)
 	bsr.w display_timed_message_line
 	move.w (a7)+,d4
 	rts
-abs_0_0000F296:
+erase_model_viewer_decimal_digit:
 	movea.l abs_0_0000FD08.l,a1
 	cmpa.l #abs_0_0000FD18,a1
 	beq.w abs_0_0000F234
 	move.b #$0,-(a1)
 	move.l a1,abs_0_0000FD08.l
 	divu.w #$A,d4
-	bsr.w abs_0_0000F2BC
+	bsr.w redraw_model_viewer_decimal_keyline
 	bra.w abs_0_0000F234
-abs_0_0000F2BC:
+redraw_model_viewer_decimal_keyline:
 	movea.l abs_0_0000FD0C.l,a1
 	lea.l abs_0_0000FD4D.l,a0
 abs_0_0000F2C8:
