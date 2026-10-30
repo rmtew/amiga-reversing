@@ -10561,6 +10561,7 @@ static int attach_runtime_address_ref_symbols(M68kRenderIRPreview *preview, cons
               render_asm_define_runtime_address_symbol_once(preview, "runtime_code", fact->runtime_address, symbol,
                 sizeof(symbol))) {
             attach_generic_symbol(operand, symbol);
+            operand->symbol_ref.name_is_generated = 1U;
             continue;
           }
           record_numeric_runtime_ref(preview, fact);
@@ -10574,6 +10575,7 @@ static int attach_runtime_address_ref_symbols(M68kRenderIRPreview *preview, cons
             render_asm_define_runtime_address_symbol_once(preview, "runtime_code", fact->runtime_address, symbol,
               sizeof(symbol))) {
           attach_generic_symbol(operand, symbol);
+          operand->symbol_ref.name_is_generated = 1U;
           continue;
         }
         record_numeric_runtime_ref(preview, fact);

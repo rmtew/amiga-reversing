@@ -145,3 +145,70 @@ def test_real_absolute_symbol_output_preserves_width_and_oracle_bytes(tmp_path, 
         '-o', str(output), str(rendered_path)], capture_output=True, text=True, timeout=10, check=False)
     assert result.returncode == 0, result.stdout + result.stderr
     assert output.read_bytes() == original
+
+
+def test_suppressed_copy_alias_keeps_literal_available_for_canonical_naming(tmp_path):
+    """Derived runtime aliases are replaceable; deliberate strong symbols are not."""
+    import subprocess
+    from amiga_reversing.disasm import c_backend
+    from amiga_reversing.disasm.binary_source import BinarySourceKind, RawAddressModel, RawBinarySource
+    from amiga_reversing.disasm.target_metadata import TargetMetadata, write_target_metadata
+    from amiga_reversing.disasm.effective_metadata import effective_metadata_file
+    from amiga_reversing.disasm.listing_context import listing_element_contexts
+    from amiga_reversing.disasm.manual_actions import ManualActionKind, append_manual_actions
+    from amiga_reversing.disasm.project_paths import PROJECT_ROOT
+
+    binary = tmp_path / 'input.bin'
+    original, _ = c_backend.assemble_platform_source_text_with_c_backend('amiga-raw', ''' SECTION section,code
+ lea input(pc),a1
+ lea $400.l,a2
+ moveq #7,d1
+copy: move.l (a1)+,(a2)+
+ dbf d1,copy
+ lea $400.l,a0
+ rts
+input: dcb.b 32,0
+''', output_path=binary, project_root=PROJECT_ROOT)
+    source = RawBinarySource(kind=BinarySourceKind.RAW_BINARY, path=binary,
+        address_model=RawAddressModel.RUNTIME_ABSOLUTE, load_address=0x20000, entrypoint=0x20000,
+        code_start_offset=0, display_path=str(binary), analysis_cache_path=tmp_path / 'analysis')
+    write_target_metadata(tmp_path, TargetMetadata(target_type='program', entry_register_seeds=()))
+    with effective_metadata_file(tmp_path) as metadata:
+        _, _, artifact = c_backend.build_listing_artifact_profile_from_binary_source(source, metadata_path=metadata)
+        try:
+            rendered, _ = artifact.inline_source_text_with_profile()
+            assert 'discovered_copy suppressed' in rendered
+            assert 'lea.l runtime_code_00000400.l,a0' in rendered
+            row = artifact.row_for_source_offset(section_index=0, offset=18)
+            element = next(e for e in listing_element_contexts(row) if e['element_kind'] == 'absolute_address')
+            assert element['value'] == 0x400
+            assert row['operand_parts'][0]['width_bytes'] == 4
+            assert 'symbol' not in row['operand_parts'][0]
+            kind, payload = listing_catalog_manual_payload(row, 'representation.symbol',
+                element_context=element, parameters={'symbol': 'copy_work_start'})
+        finally:
+            artifact.close()
+    append_manual_actions(tmp_path, binary_source=source, actions=[
+        (ManualActionKind.CREATE_MANUAL_TARGET_EQUATE, {'target_equate': {'name': 'copy_work_start', 'value': 0x400}}),
+        (ManualActionKind(kind), payload)])
+    with effective_metadata_file(tmp_path) as metadata:
+        _, _, artifact = c_backend.build_listing_artifact_profile_from_binary_source(source, metadata_path=metadata)
+        try:
+            rendered, _ = artifact.inline_source_text_with_profile()
+            named_row = artifact.row_for_source_offset(section_index=0, offset=18)
+            assert named_row['operand_parts'][0]['symbol'] == 'copy_work_start'
+            assert not any(action['action_id'] == 'representation.symbol'
+                for action in listing_element_action_catalog(named_row, next(e for e in listing_element_contexts(named_row)
+                    if e['element_kind'] == 'symbol' and e.get('symbol') == 'copy_work_start')))
+        finally:
+            artifact.close()
+    assert 'lea.l copy_work_start.l,a0' in rendered
+    assert 'discovered_copy suppressed' in rendered  # naming does not promote copied bytes to code
+    rebuilt, _ = c_backend.assemble_platform_source_text_with_c_backend('amiga-raw', rendered)
+    assert rebuilt == original
+    path, output = tmp_path / 'rendered.s', tmp_path / 'oracle.bin'
+    path.write_text(rendered)
+    result = subprocess.run([str(PROJECT_ROOT / 'tools/vasmm68k_mot.exe'), '-quiet', '-Fbin',
+        '-o', str(output), str(path)], capture_output=True, text=True, timeout=10)
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert output.read_bytes() == original

@@ -7,7 +7,7 @@ that further analysis is exhausted. Current source remains byte exact: all
 with all 106034 accepted code bytes retained. No generated assembly was edited
 by hand and no interim archive was produced.
 
-The current ownership union leaves 11224 bytes in
+The current ownership union leaves 11188 bytes in
 271 intervals unclassified. This is classification accounting,
 not a semantic completion percentage. Earlier interval/site counts below belong
 to their recorded closeout revision. See the current
@@ -16,7 +16,7 @@ to their recorded closeout revision. See the current
 
 ## Current refinement and next evidence
 
-Current native totals: **3509 app /2716 typed /165 unresolved**, with **11224
+Current native totals: **3509 app /2716 typed /165 unresolved**, with **11188
 unclassified bytes /271 intervals**. The earlier counter-indexed source-array recovery reused
 the shared loop induction and interned linear entry values. Original inventory
 readers at source `$DD6` and `$339B4` expose the existing name-reference `text`
@@ -26,6 +26,28 @@ Its startup caller proof added five header reads and six app accesses,
 and strengthened 38 app-base attributions.
 Conditional skips mean104 outer iterations are not104 observed memory reads.
 Loaded pointer values remain subject to separate alias/target validation.
+
+The save-directory batch reconstructs 20 entries/continuations, the 36-byte
+mutable input backing, three runtime address points and six scoped scalar
+constants. Original instructions establish first-prefix bytewise matching,
+a 32-byte name copy and a 512-byte staging/restore image. The copy precedes
+the signed slot-limit test: index 15 writes eight bytes beyond that image into
+track backing before rejection. This does not establish disk corruption or an
+allocation overflow. Reader counts remain independently unbounded: the header
+checks a nonzero LONG, while iteration uses its low WORD. Empty-input status
+is not a universal cancellation contract.
+
+A shared renderer repair marks derived runtime aliases as generated, preserving
+the original absolute operand value/width for normal canonical naming. Deliberate
+symbols remain protected; no code promotion or pointer proof changes. 59 focused
+Python tests and all 834 native cases pass. C/vasm and clean standalone rebuilding
+preserve all 412736 bytes; 57 assets and 14 headers are unchanged. Protected access,
+address, CFG and summary vectors are identical. The input layout accounts for
+36 previously unclassified bytes, leaving 11188 bytes in 271 intervals. These
+are isolated instruction/source checks, not UI, disk I/O or non-local save-return
+coverage. The earlier final blitter continuation still has no trailing completion
+wait. Next source lead: the connected text-input/backspace continuations; the
+unproven scene sequence/lifetime contract remains separate.
 
 Phase-specific scene headers now expose `vertices_end` and `fill_style` for
 cycled packets, and `fill_style` and `first_scanline` for spans. Source `$3CAF0`

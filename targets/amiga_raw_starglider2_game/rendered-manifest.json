@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "source_commit": "78e46296ba98e05e712042286d2719be8159c483",
+  "source_commit": "7fd0b7cadda1e7a714c87e46356b334227fb2293",
   "source_assembly": "starglider2_game.s",
   "assets": [
     {
@@ -878,13 +878,13 @@
     },
     {
       "path": "rendered-provenance.json",
-      "bytes": 3311,
-      "sha256": "f81e728d3bd52b4d9d38d52b9dff05e2e4fbcc1b82bdc4afe48b0e5c282142e1"
+      "bytes": 3339,
+      "sha256": "44fc9aeba97d15d5405229b672ec6226bc3b48a1e8a27baef85c856d167650e3"
     },
     {
       "path": "starglider2_game.s",
-      "bytes": 2047070,
-      "sha256": "90c238490957217d22600a0ad54a4cef166c745df9d02cc58143b1f8961f51c9"
+      "bytes": 2050021,
+      "sha256": "192a76de78acb84b81e5d56372c8c8930bebdf7a315c680ed0aad33fe53e54e0"
     },
     {
       "path": "tools/starglider2_protection.py",
@@ -892,6 +892,6 @@
       "sha256": "81d3f66d36dbfbd5c77238b20c28e8b9abaa329777eb91f64669bbbf13703582"
     }
   ],
-  "source_commit_role": "canonical source publication base; the publishing commit reconstructs original viewport geometry and four-plane blitter programming; no DMA/runtime or global bounds/lifetime proof; output is bound by verification_receipt_id",
-  "source_subject_revision": "06b9dd6bcc8ebe6ee5471f70ef34ff2292848454a0859251d9e3ccb41a1a3f0a"
+  "source_commit_role": "canonical source publication base; the publishing commit reconstructs original save-name directory lookup/copy/staging and derived runtime-alias provenance; no UI/disk/runtime or global bounds/lifetime proof; output is bound by verification_receipt_id",
+  "source_subject_revision": "9fe759f5f490bce536d4171a6baa261403917f665db2c32ae1c84e5ca72e832f"
 }

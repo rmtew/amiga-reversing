@@ -1438,6 +1438,12 @@ SG2_OBJECT_TYPE_SKIM_DRONE	EQU	43
 SG2_OBJECT_TYPE_SKIM_MISSILE	EQU	60
 SG2_SAVE_CHUNK_BYTES	EQU	$1400
 SG2_SAVE_CHUNK_DBF_LAST	EQU	$4FF
+SG2_SAVE_DIRECTORY_COPY_DBF_LAST	EQU	127
+SG2_SAVE_DIRECTORY_MAGIC	EQU	$47414D45
+SG2_SAVE_DIRECTORY_SLOT_LIMIT	EQU	15
+SG2_SAVE_NAME_COPY_DBF_LAST	EQU	7
+SG2_SAVE_NAME_INPUT_LIMIT	EQU	30
+SG2_SAVE_NAME_SLOT_BYTES	EQU	32
 SG2_SAVE_RESTORE_DBF_LAST	EQU	$17B8
 SG2_SAVE_TRACK_DBF_LAST	EQU	$4
 SG2_WORKSPACE_BELOW_DISPLAY_BYTES	EQU	$6998
@@ -1631,6 +1637,9 @@ m68k_vector_spurious_interrupt	EQU	$60
 runtime_code_0007E000	EQU	$7E000
 runtime_code_0007E408	EQU	$7E408
 runtime_code_00DFF180	EQU	$DFF180
+save_directory_first_name_work	EQU	$7E408
+save_directory_work_count	EQU	$7E404
+save_directory_work_header	EQU	$7E400
 spr0	EQU	spr
 spr1	EQU	spr+sd_SIZEOF
 spr2	EQU	spr+sd_SIZEOF*2
@@ -18524,7 +18533,7 @@ load_game_from_disk:
 	move.l #disk_load_game_title,disk_service_state_operation_title_pointer.l
 	bsr.w check_adls_disk_identification
 	bne.w abs_0_0000FFDE
-	bsr.w abs_0_00010F02
+	bsr.w select_save_name_from_directory
 	bne.w abs_0_0000FFBC
 	bsr.w advance_disk_cylinders_in_five_step_groups
 	moveq.l #SG2_SAVE_TRACK_DBF_LAST,d1
@@ -18584,40 +18593,45 @@ abs_0_0000FFFE:
 	bne.w abs_0_00010122
 	bsr.w check_adls_disk_identification
 	bne.w abs_0_00010136
-	bsr.w abs_0_00010F02
-	move.w d0,abs_0_000121A4.l
+	bsr.w select_save_name_from_directory
+	move.w d0,save_directory_initial_lookup_status.l
 	beq.b abs_0_0001008E
 	cmp.w #$FFFE,d0
 	beq.w abs_0_00010148
 	tst.w d2
-	bne.b abs_0_00010054
-	lea.l abs_0_00012658(pc),a1
+	bne.b copy_entered_name_then_stage_directory
+	lea.l disk_directory_empty_prompt_text(pc),a1
 	bsr.w display_disk_operation_prompt
-	bsr.w abs_0_00010F42
+	bsr.w prompt_and_match_save_name
+    ; Reset to slot0 after the optional new-name prompt. Its returned D0 is not tested here; the earlier stored lookup status remains separate.
+select_first_save_name_slot_after_prompt:
 	moveq.l #0,d2
-	lea.l runtime_code_0007E408.l,a2
-abs_0_00010054:
-	lea.l abs_0_0001265A(pc),a1
-	moveq.l #7,d1
-abs_0_0001005A:
+	lea.l save_directory_first_name_work.l,a2
+    ; Copy32 bytes, including post-NUL backing, BEFORE the signed index15 check. No new directory image is staged on rejection.
+copy_entered_name_then_stage_directory:
+	lea.l save_name_input_buffer(pc),a1
+	moveq.l #SG2_SAVE_NAME_COPY_DBF_LAST,d1
+copy_save_name_slot_longs:
 	move.l (a1)+,(a2)+
-	dbf.w d1,abs_0_0001005A
-	cmp.w #$F,d2
-	bge.w abs_0_00010156
-	lea.l absolute_slot_0007E400.l,a0
-	move.l #$47414D45,(a0)+
+	dbf.w d1,copy_save_name_slot_longs
+	cmp.w #SG2_SAVE_DIRECTORY_SLOT_LIMIT,d2
+	bge.w prompt_after_save_directory_slot_limit
+    ; Stage512 bytes: 8-byte header plus32-byte names and retained tail. This image extent is not total track backing or a universal reader-count bound.
+update_save_directory_header:
+	lea.l save_directory_work_header.l,a0
+	move.l #SG2_SAVE_DIRECTORY_MAGIC,(a0)+
 	addq.l #1,d2
 	move.l d2,(a0)+
 	lea.l shared_workspace_prefix.l,a1
-	lea.l absolute_slot_0007E400.l,a0
-	moveq.l #127,d1
-abs_0_00010086:
+	lea.l save_directory_work_header.l,a0
+	moveq.l #SG2_SAVE_DIRECTORY_COPY_DBF_LAST,d1
+stage_save_directory_image_longs:
 	move.l (a0)+,(a1)+
-	dbf.w d1,abs_0_00010086
+	dbf.w d1,stage_save_directory_image_longs
 	subq.l #1,d2
 abs_0_0001008E:
 	bsr.w advance_disk_cylinders_in_five_step_groups
-	lea.l abs_0_00012658(pc),a1
+	lea.l disk_directory_empty_prompt_text(pc),a1
 	bsr.w display_disk_operation_prompt
 	lea.l savegame_prefix_rebased_long(a6),a0
 	move.l a0,disk_service_state_memory_transfer_source_cursor.l
@@ -18638,16 +18652,17 @@ stage_saved_workspace_track_chunk:
 	dbf.w d1,write_saved_workspace_track_loop
 	move.l #$7E000,disk_service_state_transfer_buffer_pointer.l
 	bsr.w seek_disk_backend_cylinder_zero
-	tst.w abs_0_000121A4.l
+	tst.w save_directory_initial_lookup_status.l
 	beq.b abs_0_00010122
 	bsr.w abs_0_0001099A
 	bne.b abs_0_00010136
+restore_staged_save_directory_image:
 	lea.l shared_workspace_prefix.l,a1
-	lea.l absolute_slot_0007E400.l,a0
-	moveq.l #127,d1
-abs_0_00010104:
+	lea.l save_directory_work_header.l,a0
+	moveq.l #SG2_SAVE_DIRECTORY_COPY_DBF_LAST,d1
+restore_save_directory_image_longs:
 	move.l (a1)+,(a0)+
-	dbf.w d1,abs_0_00010104
+	dbf.w d1,restore_save_directory_image_longs
 	lea.l adls_disk_identification_bytes(pc),a1
 	lea.l runtime_code_0007E000.l,a0
 	moveq.l #85,d1
@@ -18674,7 +18689,8 @@ abs_0_00010148:
 	move.l (a7)+,d1
 	bsr.w deselect_disk_backend
 	bra.w abs_0_00012F74
-abs_0_00010156:
+    ; Index15 was already copied before this prompt: eight bytes lie beyond the512-byte directory image in track backing. This prefix does not stage/write that rejected update.
+prompt_after_save_directory_slot_limit:
 	lea.l disk_full_retry_prompt(pc),a1
 	bsr.w prompt_disk_retry_or_abort
 	beq.w abs_0_0000FFFE
@@ -18684,7 +18700,7 @@ load_high_scores_from_disk:
 	move.w #$1,disk_service_state_first_sector_id.l
 	move.l #$7E000,disk_service_state_transfer_buffer_pointer.l
 	move.l #disk_load_ratings_title,disk_service_state_operation_title_pointer.l
-	lea.l abs_0_00012658(pc),a1
+	lea.l disk_directory_empty_prompt_text(pc),a1
 	bsr.w display_disk_operation_prompt
 	lea.l absolute_slot_0007E200.l,a0
 	clr.l (a0)
@@ -19707,65 +19723,72 @@ display_disk_operation_progress:
 	bsr.w print_cursor_text
 	movea.l (a7)+,a1
 	bra.w print_cursor_text
-abs_0_00010F02:
+    ; Candidate header: GAME then nonzero LONG count. Listing/search decrement only its low WORD. The writer limit15 does not validate loaded counts or prove an array bound.
+select_save_name_from_directory:
 	moveq.l #0,d2
-	lea.l absolute_slot_0007E400.l,a0
-	cmpi.l #1195461957,(a0)+
-	bne.w abs_0_00010F9A
+	lea.l save_directory_work_header.l,a0
+	cmpi.l #SG2_SAVE_DIRECTORY_MAGIC,(a0)+
+	bne.w return_save_name_not_found
 	move.l (a0)+,d1
-	beq.w abs_0_00010F9A
+	beq.w return_save_name_not_found
 	subq.w #1,d1
 	movem.l d1/a0,-(a7)
-	lea.l abs_0_00012658(pc),a1
+	lea.l disk_directory_empty_prompt_text(pc),a1
 	bsr.w display_disk_operation_prompt
 	movem.l (a7)+,d1/a0
-abs_0_00010F2C:
-	lea.l abs_0_00012CA8(pc),a1
+print_save_directory_name_slot:
+	lea.l save_directory_name_line_prefix(pc),a1
 	bsr.w print_cursor_text
 	movea.l a0,a1
 	bsr.w print_cursor_text
-	lea.l $0020(a0),a0
-	dbf.w d1,abs_0_00010F2C
-abs_0_00010F42:
+	lea.l SG2_SAVE_NAME_SLOT_BYTES(a0),a0
+	dbf.w d1,print_save_directory_name_slot
+prompt_and_match_save_name:
 	lea.l disk_filename_entry_prompt(pc),a1
 	bsr.w print_cursor_text
-	move.w #$1E,text_input_character_limit.l
-	lea.l abs_0_0001265A(pc),a0
+	move.w #SG2_SAVE_NAME_INPUT_LIMIT,text_input_character_limit.l
+	lea.l save_name_input_buffer(pc),a0
 	bsr.w read_editable_text
-	lea.l abs_0_0001265A(pc),a0
+    ; Empty text returns -2. Otherwise match entered bytes only, bytewise and case-sensitive here; the slot NUL need not coincide. Input/UI normalization is separate.
+match_entered_save_name_prefix:
+	lea.l save_name_input_buffer(pc),a0
 	tst.b (a0)
-	beq.w abs_0_00010F9E
+	beq.w return_empty_save_name
+prepare_save_name_prefix_search:
 	moveq.l #0,d3
-abs_0_00010F66:
+    ; Count includes the input NUL, then subtract2 prepares length-1 for DBNE. This compares an input prefix, not the complete stored slot name.
+count_entered_save_name_bytes:
 	addq.w #1,d3
 	tst.b (a0)+
-	bne.b abs_0_00010F66
+	bne.b count_entered_save_name_bytes
 	subq.w #2,d3
-	lea.l absolute_slot_0007E404.l,a2
+	lea.l save_directory_work_count.l,a2
 	move.l (a2)+,d1
 	moveq.l #0,d2
 	subq.w #1,d1
 	move.w d3,d4
-abs_0_00010F7C:
+match_save_name_slot_prefix:
 	movea.l a2,a0
 	move.w d4,d3
-	lea.l abs_0_0001265A(pc),a1
-abs_0_00010F84:
+	lea.l save_name_input_buffer(pc),a1
+compare_save_name_prefix_bytes:
 	cmpm.b (a1)+,(a0)+
-	dbne.w d3,abs_0_00010F84
-	beq.b abs_0_00010FA2
-	lea.l $0020(a2),a2
+	dbne.w d3,compare_save_name_prefix_bytes
+	beq.b return_save_name_found
+    ; Advance32, increment slot index, test the NEXT slot leading NUL, then DBF on count low WORD. An initial empty slot is not checked by this continuation.
+advance_save_name_search_slot:
+	lea.l SG2_SAVE_NAME_SLOT_BYTES(a2),a2
 	addq.w #1,d2
 	tst.b (a2)
-	beq.b abs_0_00010F9A
-	dbf.w d1,abs_0_00010F7C
-abs_0_00010F9A:
+	beq.b return_save_name_not_found
+	dbf.w d1,match_save_name_slot_prefix
+return_save_name_not_found:
 	moveq.l #-1,d0
 	rts
-abs_0_00010F9E:
+return_empty_save_name:
 	moveq.l #-2,d0
 	rts
-abs_0_00010FA2:
+return_save_name_found:
 	moveq.l #0,d0
 	rts
 select_alternate_disk_surface_a:
@@ -22102,7 +22125,7 @@ disk_service_state_expected_sector_count:
 	dc.w $000A	; expected_sector_count
 disk_service_state_gap_C:
 	dc.w $0000
-abs_0_000121A4:
+save_directory_initial_lookup_status:
 	dc.w $0000
 disk_service_state_scan_error_count:
 	dc.w $0000	; scan_error_count
@@ -22169,10 +22192,12 @@ crc16_1021_low_table:
 disk_sector_seen_flags:
 	dcb.b $C,$00
 	dcb.b $1C,$00
-abs_0_00012658:
+disk_directory_empty_prompt_text:
 	dc.w $0000
-abs_0_0001265A:
-	dcb.b $24,$00
+save_name_input_buffer:
+	dcb.b $20,$00	; Mutable 36-byte input backing; name writer copies the first32 bytes, not just the NUL text.
+save_name_input_tail_backing:
+	dc.b $00,$00,$00,$00	; Mutable 36-byte input backing; name writer copies the first32 bytes, not just the NUL text.
 adls_disk_identification_bytes:
 	dc.b "ADLS data disk",$0D,$0A
 	dc.b "ADLS By Richard P Clucas",$0D,$0A
@@ -22254,7 +22279,7 @@ disk_format_track_text_prefix:
 	dc.b $09,"    Formatting track "
 disk_format_track_digits:
 	dc.b $00,$00,$00,$00,$00,$00,$00
-abs_0_00012CA8:
+save_directory_name_line_prefix:
 	dc.b $8F,$0D,$0A,$00
 pilot_ratings_heading_text:
 	dc.b $8C,$0D,$0A,$0A,$0A
