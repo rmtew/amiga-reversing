@@ -594,14 +594,7 @@ SG2ModelHeader_SIZEOF EQU __RS
 
 ; STRUCT SG2ModelHeaderAux
     RSRESET
-SG2ModelHeaderAux_last_vertex_index RS.W 1
-SG2ModelHeaderAux_face_count RS.W 1
-SG2ModelHeaderAux_coordinate_word_count RS.W 1
-SG2ModelHeaderAux_face_commands RS.L 1
-SG2ModelHeaderAux_vertex_reference_records RS.L 1
-SG2ModelHeaderAux_coordinate_pool RS.L 1
-SG2ModelHeaderAux_vertex_variant_table RS.L 1
-SG2ModelHeaderAux_auxiliary_face_count RS.W 1
+    RS.B 24
 SG2ModelHeaderAux_auxiliary_face_commands RS.L 1
 SG2ModelHeaderAux_SIZEOF EQU __RS
 

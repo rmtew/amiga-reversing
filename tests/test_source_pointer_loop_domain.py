@@ -11,12 +11,13 @@ from amiga_reversing.disasm.effective_metadata import effective_metadata_file
 def header_table_artifact(tmp_path, loop=True, count=2, trips=None, setup='', body='',
                           null=False, mixed=False, aliases=False, exposure=False,
                           indexed=False, index_code=None, index_register='d2',
-                          reference_records=False):
+                          reference_records=False, derived=False):
     trips=count if trips is None else trips
     counter='move.w d5,d4'if trips=='unknown'else f'move.w #{trips-1},d4'
     directory=['first'if aliases else f'header_{i}'for i in range(count)]
     if null:directory[-1]='0'
     if mixed:directory[-1]='other_record'
+    if derived:directory[-1]='derived_record'
     text=(' SECTION code,code\n ORG $1000\n'+(' lea.l again.l,a5\n'if exposure else'')+
           ' lea.l directory(pc),a3\n '+counter+'\n '+setup+'\nagain:\n '+body+
           ('\n '+(index_code or'move.w d4,d2\n lsl.w #2,d2')+
@@ -24,9 +25,10 @@ def header_table_artifact(tmp_path, loop=True, count=2, trips=None, setup='', bo
            else'\n movea.l (a3)+,a0\n')+' move.w (a0)+,d0\n move.w (a0),d1\n'+
           (' dbf d4,again\n'if loop else'')+' rts\ndirectory:\n'+''.join(' dc.l '+','.join(directory[i:i+8])+'\n'for i in range(0,count,8))+'first:\n'+
           ''.join(f'header_{i}:dc.w {i+1},{i+2}\n'for i in range(count))+
-          ('other_record:dc.w 99,98\n'if mixed else''))
+          ('other_record:dc.w 99,98\n'if mixed else'')+
+          ('derived_record:dc.w 99,98\n dc.l 123\n'if derived else''))
     original,_=c_backend.assemble_platform_source_text_with_c_backend('amiga-raw',text)
-    start=len(original)-count*8-(4 if mixed else 0)
+    start=len(original)-count*8-(4 if mixed else 0)-(8 if derived else 0)
     binary=tmp_path/'input.bin';binary.write_bytes(original)
     source=RawBinarySource(kind=BinarySourceKind.RAW_BINARY,path=binary,
         address_model=RawAddressModel.RUNTIME_ABSOLUTE,load_address=0x1000,entrypoint=0x1000,
@@ -43,21 +45,51 @@ def header_table_artifact(tmp_path, loop=True, count=2, trips=None, setup='', bo
             dict(name='entry',type='APTR',offset=0,size=4)]))
     if mixed:add('target.custom_struct.add',dict(name='Other',size=4,fields=[
         dict(name='different',type='WORD',offset=0,size=2),dict(name='flags',type='WORD',offset=2,size=2)]))
+    if derived:add('target.custom_struct.add',dict(name='ExtendedHeader',size=8,
+        base_struct='Header',base_offset=4,fields=[
+            dict(name='extra',type='LONG',offset=4,size=4)]))
     declarations=[(start,start+count*4,'directory','custom_struct'if reference_records else'pointer_struct',
                    'Reference'if reference_records else'Header',count),
                   (start+count*4,start+count*8,'headers','custom_struct','Header',count)]
     if mixed:declarations.append((start+count*8,start+count*8+4,'other','custom_struct','Other',1))
+    if derived:declarations.append((start+count*8,start+count*8+8,'extended','custom_struct','ExtendedHeader',1))
     for lo,hi,name,kind,type_name,n in declarations:
         payload=add('target.data_block.layout.create',dict(hunk=0,source_start=lo,source_end=hi,
             name=name,role='pointer_table'if kind=='pointer_struct'else'records',
             default_unit='long'if kind=='pointer_struct'else'word'))
         add('target.data_block.element.set',dict(layout_id=payload['data_block_layout']['layout_id'],
-            offset=0,width=hi-lo,kind='array',name=name,array_count=n,array_stride=4,
+            offset=0,width=hi-lo,kind='array',name=name,array_count=n,
+            array_stride=8 if type_name=='ExtendedHeader'else 4,
             binding_kind=kind,type_id=type_name))
     append_manual_actions(tmp_path,binary_source=source,actions=actions)
     with effective_metadata_file(tmp_path) as metadata:
         artifact=c_backend.build_listing_artifact_profile_from_binary_source(source,metadata_path=metadata)[2]
     return artifact,original
+
+
+@pytest.mark.parametrize('indexed', [False, True])
+def test_directory_pointee_contract_accepts_validated_prefix_subtype(tmp_path,indexed):
+    a,original=header_table_artifact(tmp_path,count=104,indexed=indexed,derived=True)
+    try:
+        assert typed_fields(a)=={('A0','count'),('A0','flags')}
+        section=a.analysis_payload()[0]['sections'][0]
+        assert any(v['resolution']=='type_domain'for v in section['address_values'])
+        source=a.inline_source_text_with_profile()[0]
+        assert c_backend.assemble_platform_source_text_with_c_backend('amiga-raw',source)[0]==original
+    finally:a.close()
+
+
+@pytest.mark.parametrize('changes', [
+    {'body':'move.b #0,(a2)'}, {'body':'move.l #0,directory.l'},
+    {'exposure':True}, {'trips':105},
+])
+def test_prefix_subtype_does_not_override_loop_stability_or_extent(tmp_path,changes):
+    a,_=header_table_artifact(tmp_path,count=104,indexed=True,derived=True,**changes)
+    try:
+        assert not typed_fields(a)
+        assert not any(v['resolution']=='type_domain'for v in
+                       a.analysis_payload()[0]['sections'][0]['address_values'])
+    finally:a.close()
 
 
 def typed_fields(artifact):

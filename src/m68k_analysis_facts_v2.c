@@ -203,7 +203,9 @@ static int source_loop_entry_has_pointee_contract(M68kSourceAnalysisIR *analysis
   parent = actual;
   for (uint16_t depth = 0U; parent && depth <= policy->custom_struct_count; ++depth) {
     if (!strcmp(parent->name, type_name)) return 1;
-    if (parent->base_offset) return 0;
+    /* Validated custom inheritance keeps the parent at record offset zero.
+     * base_offset bounds the child's own fields; it does not displace the
+     * inherited prefix. */
     parent = m68k_analysis_policy_custom_struct_parent(policy, parent);
   }
   return 0;

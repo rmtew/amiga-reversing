@@ -28,8 +28,12 @@ Loaded pointer values remain subject to separate alias/target validation.
 The same pointer-origin preservation exposes one previously untyped unresolved
 read at source `$3A94`: a LONG at cursor24 beyond the declared24-byte model-header
 prefix. This is a new diagnostic, not a game-bug or runtime-access claim. The
-known28-byte HeaderAux layout and the reader's nonzero auxiliary-count branch
-are the next connected lead; do not widen every header or assume a subtype.
+known28-byte HeaderAux layout now canonically inherits the24-byte prefix,
+with one own APTR at +24. All104 directory pointers reach103 declared records:
+58 base headers have zero auxiliary count and45 extended headers have nonzero
+count. Their original reader skips the extra LONG when that count is zero.
+This establishes the source format, not automatic dynamic subtype refinement;
+the read at +24 remains unresolved rather than widening every header.
 A private first-player-record producer contract recovered construction accesses
 but no camera reads; it was not promoted as a fix or replaced with reader seeds.
 
@@ -41,6 +45,20 @@ bytes; its interned-expression allocation grows448 to512 bytes. Structural rows
 add scratch proportional to qualifying accesses; the existing per-node value
 packets and four/eight-value caps stay unchanged. No new observation dump is
 committed. Earlier totals below belong to their recorded batches.
+
+Source-backed prefix projection now retains inherited fields, and the loop
+pointee-contract check accepts validated zero-offset parent prefixes regardless
+of the child own-field boundary. Mixed base/derived directory fixtures fail
+against the previous backend and pass with the repair; incompatible records,
+unknown writes, alias exposure and overruns still refuse. This batch passes161
+focused Python tests and all832 native C cases. Target access totals and typed
+meanings are unchanged; eight duplicate HeaderAux field declarations become one
+prefix extent. C/vasm and clean standalone builds remain exact, with57 assets
+and14 headers unchanged. The necessary pre-annotation and annotated generations
+took151.77s and133.15s, respectively; these are not controlled speedup evidence.
+Next: test conditional source-record refinement at the auxiliary-count gate
+using mixed24/28-byte records and conservative conflicting/writable cases.
+Directory-wide format agreement alone must not defeat live alias barriers.
 
 An on-demand systematic gap inventory (`amiga_reversing/tools/source_gap_inventory.py`)
 joins native identities/accesses with canonical layouts and actual rendered

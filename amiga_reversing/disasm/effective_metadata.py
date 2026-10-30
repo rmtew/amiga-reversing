@@ -1339,6 +1339,32 @@ def _data_block_custom_struct_gap_entity(
     )
 
 
+def _custom_struct_prefix_fields(
+    struct: CustomStructMetadata,
+    custom_structs: Mapping[str, CustomStructMetadata],
+) -> tuple[CustomStructFieldMetadata, ...] | None:
+    """Project declared prefix fields at their canonical record coordinates.
+
+    Native admission validates the inheritance contract. Missing or cyclic
+    parents cannot supply invented leaf data while that validation runs.
+    ``base_offset`` marks the child's own-field boundary, not a parent shift.
+    """
+    fields: list[CustomStructFieldMetadata] = []
+    seen: set[str] = set()
+    current: CustomStructMetadata | None = struct
+    while current is not None:
+        if current.name in seen:
+            return None
+        seen.add(current.name)
+        fields.extend(current.fields)
+        if not current.base_struct:
+            break
+        current = custom_structs.get(current.base_struct)
+        if current is None:
+            return None
+    return tuple(sorted(fields, key=lambda item: item.offset))
+
+
 def _data_block_bound_struct_entities(
     layout: DataBlockLayoutMetadata,
     element: DataBlockElementMetadata,
@@ -1348,6 +1374,9 @@ def _data_block_bound_struct_entities(
 ) -> tuple[SeededEntityMetadata, ...]:
     struct = _data_block_bound_struct(element, custom_structs)
     if struct is None or struct.size <= 0 or struct.name in _seen:
+        return ()
+    fields = _custom_struct_prefix_fields(struct, custom_structs)
+    if fields is None:
         return ()
     binding = element.type_binding if isinstance(element.type_binding, dict) else {}
     array_count = _manual_seed_int(binding, "array_count") or element.array_count or 1
@@ -1365,7 +1394,7 @@ def _data_block_bound_struct_entities(
         instance_offset = index * stride
         instance_index = index if array_count > 1 else None
         cursor = 0
-        for field in sorted(struct.fields, key=lambda item: item.offset):
+        for field in fields:
             if field.offset < cursor:
                 return ()
             if field.offset + field.size > struct.size:
