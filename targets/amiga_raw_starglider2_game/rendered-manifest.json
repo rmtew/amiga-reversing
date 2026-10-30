@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "source_commit": "269515996b5ee8936ad4f07f635518970fa5f4b2",
+  "source_commit": "540dc29cb276ca304bb433f76a7e5baccb87ff77",
   "source_assembly": "starglider2_game.s",
   "assets": [
     {
@@ -878,8 +878,8 @@
     },
     {
       "path": "rendered-provenance.json",
-      "bytes": 3188,
-      "sha256": "783b34d7e1abb1133fa12293308cd28f43f7d06fb0aa8451240e37387ba0f790"
+      "bytes": 3175,
+      "sha256": "27788f1b44bfc655a62845844aa980b5e9017254630daf64c65cb03333d16f48"
     },
     {
       "path": "starglider2_game.s",
@@ -892,6 +892,6 @@
       "sha256": "81d3f66d36dbfbd5c77238b20c28e8b9abaa329777eb91f64669bbbf13703582"
     }
   ],
-  "source_commit_role": "canonical source publication base; shared guarded startup/call-prefix, evidence-meet, bus-alias and inline-field rendering repairs are in the publishing commit; output is bound by verification_receipt_id",
-  "source_subject_revision": "ea7104c0238d478288904c0527c16de763124725d24ed3b94a81d8bc96782287"
+  "source_commit_role": "canonical source publication base; shared canonical scalar-WORD cell transfer and independent WORD-solver integration are in the publishing commit; output is bound by verification_receipt_id",
+  "source_subject_revision": "9c93f5821ea3832ea35c241d85c1a6dce136a9f6a08643233d85c3115771ec17"
 }

@@ -500,6 +500,7 @@ typedef struct M68kRenderTypedBaseSlot {
    * Uses existing alignment padding. Canonical app/absolute cells use base_reg=UINT8_MAX. */
   uint32_t storage_id;
   M68kRenderTypedStoredValue value;
+  uint16_t scalar_word_value, scalar_word_mask; /* Local first WORD, known bits only. */
 } M68kRenderTypedBaseSlot;
 
 /* A field slot is local control-flow state, not a global alias claim.  Its
@@ -640,6 +641,7 @@ enum {
 };
 
 typedef struct M68kRenderTypedStorageSlot {
+  uint8_t scalar_word_cell; /* Discovered bounded scalar writer, never a value/type summary. */
   uint8_t kind;
   uint8_t conflicted;
   size_t section_index;

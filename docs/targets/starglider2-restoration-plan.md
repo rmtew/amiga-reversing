@@ -443,6 +443,42 @@ costs to investigate from the retained profile, not grounds for another timing-o
 run. Only generated source and minimal provenance are published; no observation
 dump or intermediate archive is added.
 
+The optional-header follow-up keeps two distinct obligations open: the original
+reader must select a valid directory member, and the auxiliary-count WORD at +22
+must retain its format meaning. The observed mutation is face count +2, not +22.
+A closed104-entry probe recovers the extension before writes but refuses a fresh
+discriminator read after a disjoint field write: the source-snapshot barrier is
+still allocation-wide. Preserving an already captured predicate is different.
+Neither the original viewer counterexample nor opaque/computed writers justify
+a universal selector bound or immutable header contract.
+
+A separate shared gap is now repaired: a memory WORD mask/reload can feed the
+existing finite register/index domain. Known bits live in canonical sparse cells,
+not in the global writer/type summary; the existing WORD fixed-point solver owns
+transport, joins and convergence. Partial/unknown/alias writes, calls and implicit
+stack effects invalidate cells. App cells require proved register-base evidence;
+a fallback layout cannot silently supply a numeric invariant. The eight-value
+and32-cell caps remain unchanged. Immediate masks discover these scalar cells;
+subsequent WORD stores/clears/copies update them without pointer promotion.
+
+The24 focused scalar cases and related suites pass271 tests with three existing
+expected failures; all833 native C cases pass. Original C/vasm and clean standalone
+output are exact. **Actual SGII gain: zero accesses and zero attribution changes**;
+all six retained access/address/CFG vectors and the complete source package,
+including57 assets/14 headers, are identical. Source `$33EBA..$33ED0` is a concrete
+remaining mask/reload consumer: app+$856 still has fallback-only A6 evidence.
+Next trace its original caller/base identity through the existing call solver;
+do not add a reader-specific numeric seed. Larger masked sets still need a
+compressed domain rather than a larger enumeration cap.
+
+The necessary generation took251.89s (previous243.90s; not a controlled timing
+comparison), with73.35s typed callback analysis and43.31s source finalization.
+Typed state grows33384→33640 bytes and node76224→76736; the added cell bits do not
+add another register-value engine. Each WORD solve uses474640 bytes of temporary
+pointer indexes and25632 bytes of sparse packet payload, at most two live cells;
+these scratch packets are released after the solve. Peak end-to-end RSS was
+2771172KiB, including verification. No observation dump or interim archive is added.
+
 An on-demand systematic gap inventory (`amiga_reversing/tools/source_gap_inventory.py`)
 joins native identities/accesses with canonical layouts and actual rendered
 boundaries. The previous whole-target snapshot records 71 suffix signals (including numeric adjacent variants),

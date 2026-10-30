@@ -3914,9 +3914,11 @@ static void typed_state_set_base_slot(M68kRenderTypedState *state, uint8_t base_
       continue;
     }
     state->base_slots[index].value = *value;
+    state->base_slots[index].scalar_word_value=state->base_slots[index].scalar_word_mask=0U;
     return;
   }
   if (state->base_slot_count >= M68K_RENDER_TYPED_BASE_SLOT_LIMIT) return;
+  memset(&state->base_slots[state->base_slot_count],0,sizeof(state->base_slots[0]));
   state->base_slots[state->base_slot_count].known = 1U;
   state->base_slots[state->base_slot_count].storage_id = 0U;
   state->base_slots[state->base_slot_count].base_reg = base_reg;
@@ -9116,6 +9118,7 @@ static int typed_base_slots_equal(const M68kRenderTypedBaseSlot *left,
   if (left == NULL || right == NULL) return 0;
   return left->known == right->known && left->base_reg == right->base_reg &&
     left->displacement == right->displacement && left->storage_id == right->storage_id &&
+    left->scalar_word_mask == right->scalar_word_mask && left->scalar_word_value == right->scalar_word_value &&
     typed_stored_values_equal(&left->value, &right->value);
 }
 
@@ -9589,9 +9592,14 @@ static int typed_state_merge_base_slots(M68kRenderTypedState *dest,
     const M68kRenderTypedBaseSlot *source_slot = dest_slot->storage_id != 0U ?
       typed_state_memory_cell(source, dest_slot->storage_id) :
       typed_state_base_slot_entry(source, dest_slot->base_reg, dest_slot->displacement);
+    uint16_t mask=source_slot ? (uint16_t)(dest_slot->scalar_word_mask & source_slot->scalar_word_mask &
+      (uint16_t)~(dest_slot->scalar_word_value^source_slot->scalar_word_value)) : 0U;
+    uint16_t value=dest_slot->scalar_word_value&mask;
+    if(mask!=dest_slot->scalar_word_mask || value!=dest_slot->scalar_word_value)changed=1;
+    dest_slot->scalar_word_mask=mask;dest_slot->scalar_word_value=value;
     if (source_slot == NULL || typed_stored_value_merge(&dest_slot->value, &source_slot->value, policy) ||
-        !typed_stored_value_has_useful_info(&dest_slot->value)) {
-      if (source_slot == NULL || !typed_stored_value_has_useful_info(&dest_slot->value)) {
+        (!typed_stored_value_has_useful_info(&dest_slot->value) && !dest_slot->scalar_word_mask)) {
+      if (source_slot == NULL || (!typed_stored_value_has_useful_info(&dest_slot->value) && !dest_slot->scalar_word_mask)) {
         dest->base_slots[dest_index] = dest->base_slots[dest->base_slot_count - 1U];
         --dest->base_slot_count;
         changed = 1;
@@ -10578,6 +10586,8 @@ static void typed_state_apply_produced_storage_contracts(M68kRenderTypedState *s
   }
 }
 
+#include "m68k_scalar_word_cells.inc"
+
 static int typed_flow_guarded_call_prefix(M68kRenderLookup *,const M68kDecodeIR *,uint8_t **,
     size_t,uint32_t,M68kRenderTypedState *,M68kRenderPlatformState *,M68kAnalysisFunctionSummary *,int,int *);
 
@@ -11486,8 +11496,10 @@ static int typed_flow_note_incomplete(M68kRenderLookup *lookup, size_t section_i
 static int hardware_relative_analyze_graph(M68kRenderLookup *lookup, const M68kDecodeSectionIR *section,
     M68kRenderTypedFlowGraph *graph, Arena *arena, int record_accesses) {
   M68kRenderPlatformState *inputs, *outputs;
+  M68kScalarWordPacket **cell_inputs, **cell_outputs;
   uint8_t *has_in, *has_out, *queued;
   size_t *queue, head = 0U, count = 0U, visits = 0U, index;
+  size_t scalar_packet_bytes=0U,scalar_max_cells=0U;
   size_t limit = typed_flow_limit_from_env("AMIGA_REVERSING_TYPED_FLOW_MAX_NODE_VISITS",
     M68K_RENDER_TYPED_FLOW_DEFAULT_NODE_VISIT_LIMIT);
   ArenaMark mark;
@@ -11503,11 +11515,13 @@ static int hardware_relative_analyze_graph(M68kRenderLookup *lookup, const M68kD
   mark = arena_mark(arena);
   inputs = arena_calloc(arena, graph->node_count, sizeof(*inputs));
   outputs = arena_calloc(arena, graph->node_count, sizeof(*outputs));
+  cell_inputs=arena_calloc(arena,graph->node_count,sizeof(*cell_inputs));
+  cell_outputs=arena_calloc(arena,graph->node_count,sizeof(*cell_outputs));
   has_in = arena_calloc(arena, graph->node_count, 1U);
   has_out = arena_calloc(arena, graph->node_count, 1U);
   queued = arena_calloc(arena, graph->node_count, 1U);
   queue = arena_alloc(arena, graph->node_count * sizeof(*queue));
-  if (inputs == NULL || outputs == NULL || has_in == NULL || has_out == NULL || queued == NULL || queue == NULL)
+  if (!cell_inputs || !cell_outputs || inputs == NULL || outputs == NULL || has_in == NULL || has_out == NULL || queued == NULL || queue == NULL)
     goto done;
   for (index = 0U; index < graph->node_count; ++index) if (typed_flow_hardware_root(graph, index)) {
     has_in[index] = 1U;
@@ -11528,24 +11542,40 @@ static int hardware_relative_analyze_graph(M68kRenderLookup *lookup, const M68kD
       node->candidate->offset);
     hardware_relative_apply_policy_inputs(&before, lookup->policy, section->section_index, node->candidate->offset);
     if (m68k_decode_candidate_to_instruction(node->candidate, &instruction) != 0) goto done;
+    M68kRenderTypedState scalar_state={0};
+    scalar_word_packet_unpack(&scalar_state,cell_inputs[index]);
+    M68kScalarWordTransfer scalar=scalar_word_prepare(lookup,&scalar_state,&before,
+      section->section_index,&instruction,1,NULL);
+    scalar_word_note_writes(&scalar_state,lookup,&before,section->section_index,&instruction);
+    scalar_word_commit(&scalar_state,&scalar);
     next = before;
     platform_state_update_after_instruction(&next, lookup, &instruction);
     /* Calls are top in this solver. Existing exact-address call proofs remain
      * separate; no new preservation assumption is made for a relative base. */
     hardware_relative_transfer(&next, &before, &instruction);
+    if(scalar.has_read)next.word_values[scalar.read_register]=scalar.read_values;
     memset(&normalized, 0, sizeof(normalized));
+    normalized.data_app_base_known=next.data_app_base_known;
+    normalized.address_app_base_known=next.address_app_base_known;
     normalized.data_hardware_base_known = next.data_hardware_base_known;
     normalized.address_hardware_base_known = next.address_hardware_base_known;
     memcpy(normalized.data_hardware_base_id, next.data_hardware_base_id, sizeof(next.data_hardware_base_id));
     memcpy(normalized.address_hardware_base_id, next.address_hardware_base_id, sizeof(next.address_hardware_base_id));
     memcpy(normalized.word_values, next.word_values, sizeof(next.word_values));
     memcpy(normalized.relative_hardware, next.relative_hardware, sizeof(next.relative_hardware));
-    if (has_out[index] && platform_states_equal(&outputs[index], &normalized)) continue;
+    if (has_out[index] && platform_states_equal(&outputs[index], &normalized) &&
+        scalar_word_packet_equal(cell_outputs[index],&scalar_state)) continue;
+    if(!scalar_word_packet_store(arena,&cell_outputs[index],&scalar_state))goto done;
+    if(cell_outputs[index]) {
+      scalar_packet_bytes+=sizeof(M68kScalarWordPacket)+cell_outputs[index]->count*sizeof(cell_outputs[index]->cells[0]);
+      if(cell_outputs[index]->count>scalar_max_cells)scalar_max_cells=cell_outputs[index]->count;
+    }
     outputs[index] = normalized;
     has_out[index] = 1U;
     for (successor_index = 0U; successor_index < node->successor_count; ++successor_index) {
       size_t successor = node->successors[successor_index], predecessor_index;
       M68kRenderPlatformState input;
+      M68kRenderTypedState scalar_input={0};
       int found = typed_flow_hardware_root(graph, successor);
       memset(&input, 0, sizeof(input));
       for (predecessor_index = graph->predecessor_offsets[successor];
@@ -11556,11 +11586,20 @@ static int hardware_relative_analyze_graph(M68kRenderLookup *lookup, const M68kD
         edge = outputs[predecessor];
         if (!hardware_relative_refine_dbf_edge(&graph->nodes[predecessor], &graph->nodes[successor], &edge)) continue;
         if (!hardware_relative_refine_compare_edge(lookup, graph, predecessor, successor, &edge)) continue;
-        if (!found) input = edge;
-        else (void)platform_state_merge_into(&input, &edge);
+        M68kRenderTypedState scalar_edge={0};
+        scalar_word_packet_unpack(&scalar_edge,cell_outputs[predecessor]);
+        if (!found) {input = edge;scalar_input=scalar_edge;}
+        else {(void)platform_state_merge_into(&input, &edge);
+          (void)typed_state_merge_base_slots(&scalar_input,&scalar_edge,lookup->policy);}
         found = 1;
       }
-      if (has_in[successor] == (uint8_t)found && platform_states_equal(&inputs[successor], &input)) continue;
+      if (has_in[successor] == (uint8_t)found && platform_states_equal(&inputs[successor], &input) &&
+          scalar_word_packet_equal(cell_inputs[successor],&scalar_input)) continue;
+      if(!scalar_word_packet_store(arena,&cell_inputs[successor],&scalar_input))goto done;
+      if(cell_inputs[successor]) {
+        scalar_packet_bytes+=sizeof(M68kScalarWordPacket)+cell_inputs[successor]->count*sizeof(cell_inputs[successor]->cells[0]);
+        if(cell_inputs[successor]->count>scalar_max_cells)scalar_max_cells=cell_inputs[successor]->count;
+      }
       inputs[successor] = input;
       has_in[successor] = (uint8_t)found;
       if (found && typed_flow_enqueue_node(queue, queued, graph->node_count, &head, &count, successor) != 0) goto done;
@@ -11614,6 +11653,9 @@ static int hardware_relative_analyze_graph(M68kRenderLookup *lookup, const M68kD
   }
   result = 0;
 done:
+  if(getenv("AMIGA_REVERSING_PROFILE_TYPED_FLOW"))
+    fprintf(stderr,"word_cell_flow section=%zu visits=%zu pending=%zu sparse_packet_bytes=%zu max_live_cells=%zu pointer_index_bytes=%zu\n",
+      section->section_index,visits,count,scalar_packet_bytes,scalar_max_cells,2U*graph->node_count*sizeof(void*));
   arena_rewind(arena, mark);
   return result;
 }
@@ -11911,7 +11953,7 @@ static int render_lookup_has_typed_flow_sources(const M68kRenderLookup *lookup, 
 }
 
 static int typed_flow_workflow_prepare(M68kRenderTypedFlowWorkflow *workflow,
-    const M68kRenderLookup *lookup, const M68kDecodeIR *decode, uint8_t **accepted_start) {
+    M68kRenderLookup *lookup, const M68kDecodeIR *decode, uint8_t **accepted_start) {
   size_t section_index;
   if (workflow == NULL || lookup == NULL || decode == NULL || accepted_start == NULL) return -1;
   memset(workflow, 0, sizeof(*workflow));
