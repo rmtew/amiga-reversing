@@ -103,6 +103,38 @@ tag-to-subtype inference or a bound on arbitrary signed selectors. C/vasm and
 clean standalone output remain exact; assets/headers are unchanged. Native
 regeneration took159.84s; unchanged framework suites were not repeated.
 
+The exploratory function catalogue now follows native single-instruction
+unconditional jump entries through accepted CFG targets, including chains and
+PC-relative direct jumps. This exposes514→558 candidate entries:44 additional
+entries,37 already named in canonical source. The105 forwarding relationships
+are distinct from CALL callers; reachable accepted-block coverage is unchanged.
+Names alone never create entries, and candidate ranges remain distinct from
+proven function ownership. Indexed/unknown targets, setup-before-jump blocks,
+conditional edges and inconsistent native coordinates refuse this closure.
+Six newly exposed helpers now describe the input/tick wait, drive0 side-bit
+selection, custom MFM write/status-check, media retry prompt and common
+mission/flight initialization;36 generic bridge entries are named from their
+proven terminal relationships. Physical disk-side polarity, byte-for-byte
+readback and universal initialization/ABI guarantees are not inferred.
+Validation:130 focused Python tests pass (three optional checks skip), all832
+native C cases pass, and original C/vasm is byte exact. App, typed, unresolved,
+address-value and CFG facts are identical. The42-action source batch needs one
+157.74-second generation;57 INCBIN assets and14 headers remain unchanged.
+The read-only entry projection itself took under one second in both warm-cache
+measurements; this is not evidence of a full-generation speedup.
+
+The optional-header proof has a second concrete dependency beyond type joins:
+the regular caller's low-byte sign check permits model indices104..127, whereas
+the directory has104 entries. The viewer's numeric-selection path has a tighter
+combined byte/word bound; that does not constrain every regular caller or the
+shared active-index cell. A two-record positive-layout probe still loses the
+count/type relation at its join and leaves the guarded extra LONG unresolved.
+Next test shared predicate refinement over a closed source-record domain with
+mutation, partial-write, conflicting-format and unknown-call negatives. Before
+promoting that to the original reader, establish its producer index domain or
+an explicit original-input contract. Do not enlarge the parent or assume all
+possible byte-sign-admitted indices designate headers.
+
 An on-demand systematic gap inventory (`amiga_reversing/tools/source_gap_inventory.py`)
 joins native identities/accesses with canonical layouts and actual rendered
 boundaries. The previous whole-target snapshot records 71 suffix signals (including numeric adjacent variants),

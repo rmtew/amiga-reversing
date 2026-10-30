@@ -7249,9 +7249,10 @@ static int append_instruction_operand_facts_json(JsonBuilder *b, const M68kInstr
         (unsigned)i, (unsigned)shape, shape != M68K_SIM_EA_SHAPE_NONE ? "true" : "false",
         indexed ? "true" : "false", (int)disp, displacement_known ? "true" : "false") ||
         json_builder_append_json_string(b, access ? access : "unknown") ||
-        json_builder_appendf(b, ",\"width_bytes\":%u,\"bulk_transfer\":%s,\"base_register\":",
+        json_builder_appendf(b, ",\"width_bytes\":%u,\"bulk_transfer\":%s,\"pc_relative\":%s,\"base_register\":",
           (unsigned)m68k_sim_operand_width_bytes(ins, (uint8_t)i),
-          meta && meta->operation_class == M68K_SIM_CLASS_MULTI_REGISTER_TRANSFER ? "true" : "false")) return -1;
+          meta && meta->operation_class == M68K_SIM_CLASS_MULTI_REGISTER_TRANSFER ? "true" : "false",
+          shape == M68K_SIM_EA_SHAPE_PC_DISPLACEMENT || shape == M68K_SIM_EA_SHAPE_PC_INDEX ? "true" : "false")) return -1;
     if (an) {
       if (json_builder_appendf(b, "\"A%u\"", (unsigned)op->value.ea_reg)) return -1;
     } else if (json_builder_append(b, "null")) return -1;

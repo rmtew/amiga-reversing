@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "source_commit": "666c2b2b840c455d592f91c3129b98c4542036c6",
+  "source_commit": "195c3de2946ae8d9246bf200e331d0c0ebe8cde4",
   "source_assembly": "starglider2_game.s",
   "assets": [
     {
@@ -878,13 +878,13 @@
     },
     {
       "path": "rendered-provenance.json",
-      "bytes": 3138,
-      "sha256": "bcd6b8ec80c2431a863310b8b83dacdf74d6f04dfe6c5623b06f1ddff5f0676d"
+      "bytes": 3132,
+      "sha256": "edb1d71a4d6850e3e28d38cd42a1877e5c632e6c26eea9d2b75e7def4f432623"
     },
     {
       "path": "starglider2_game.s",
-      "bytes": 2021998,
-      "sha256": "ba89a2a3ddcb56b48cb74e3a87744d1cfc06d4e53c0468ba4689b12c24e3e6e2"
+      "bytes": 2025651,
+      "sha256": "f68ec4713c59fe9144e4744c28779c1591a54f50bc672887267d7abd1ad64d90"
     },
     {
       "path": "tools/starglider2_protection.py",
@@ -892,6 +892,6 @@
       "sha256": "81d3f66d36dbfbd5c77238b20c28e8b9abaa329777eb91f64669bbbf13703582"
     }
   ],
-  "source_commit_role": "publication base; canonical type-gated structure-profile role and input facts are in the publishing commit and output is bound by verification_receipt_id",
-  "source_subject_revision": "aa11f84b836818a65edf71a3c0a158e6bae2e63511dde0699e513dfd9243427f"
+  "source_commit_role": "publication base; canonical native-forwarding and reviewed helper facts are in the publishing commit and output is bound by verification_receipt_id",
+  "source_subject_revision": "bb60ce497ce16d97cb7b2d66ba2d407184d60e3ded90fd385b476a56c4454207"
 }

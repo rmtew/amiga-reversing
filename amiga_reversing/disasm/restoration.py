@@ -232,7 +232,7 @@ def _query(target_id, body, current):
         if facts is None:
             analysis, _ = artifact.analysis_payload()
             _FUNCTION_CACHE.clear()  # one disposable projection; no unbounded revision retention
-            facts = analysis_function_facts(target_id, analysis, symbol_query=artifact.query_payload)
+            facts = analysis_function_facts(target_id, analysis, artifact_query=artifact.query_payload)
             _FUNCTION_CACHE[key] = facts
         items = facts["functions"]
         if filters.get("query"):

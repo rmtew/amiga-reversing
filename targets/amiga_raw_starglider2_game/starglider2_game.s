@@ -1663,7 +1663,7 @@ clear_game_workspace_loop:
 	move.b #$4,diagnostic_step_byte.l
 	movea.l game_workspace_base.l,a6
 	lea.l initial_game_stack_top.l,a7
-	bsr.w abs_0_000034AA
+	bsr.w fade_out_amiga_palette_bridge_0024aa
 	jsr abs_0_0000261A.l
 	move.w #$0,title_page_cycle_counter(a6)
 	clr.b pending_key_scancode(a6)
@@ -1701,7 +1701,7 @@ abs_0_0000118A:
 	andi.w #1,d6
 	beq.b abs_0_0000116A
 	move.b #$D,diagnostic_step_byte.l
-	bsr.w abs_0_000034AA
+	bsr.w fade_out_amiga_palette_bridge_0024aa
 	jsr show_title_credits_page.l
 	bra.w abs_0_0000117A
 abs_0_000011C6:
@@ -1721,14 +1721,14 @@ abs_0_000011EE:
 	bne.b abs_0_000011EE
 	tst.b primary_fire_flag(a6)
 	bne.b abs_0_000011EE
-	bsr.w abs_0_000034AA
+	bsr.w fade_out_amiga_palette_bridge_0024aa
 abs_0_00001202:
 	move.b #$14,diagnostic_stage_step_word.l
 	clr.b diagnostic_step_byte.l
 	sf.b app_0204(a6)
 	bsr.w reset_gameplay_state_and_input_defaults
 	move.b #$2,diagnostic_step_byte.l
-	bsr.w abs_0_00003392
+	bsr.w initialize_mission_and_flight_state_bridge_002392
 	bsr.w abs_0_0000217A
 	move.b #$6,diagnostic_step_byte.l
 	moveq.l #0,d0
@@ -1736,13 +1736,13 @@ abs_0_00001202:
 	move.w #$A,landscape_ground_colour_index(a6)
 abs_0_0000123E:
 	move.b #$4,diagnostic_step_byte.l
-	bsr.w abs_0_00003380
+	bsr.w initialize_model_type_target_tags_bridge_002380
 	move.b #$5,diagnostic_step_byte.l
-	bsr.w abs_0_00003398
+	bsr.w initialize_world_object_pool_bridge_002398
 abs_0_00001256:
-	bsr.w abs_0_0000339E
+	bsr.w initialize_nearby_point_field_bridge_00239e
 	move.b #$8,diagnostic_step_byte.l
-	bsr.w abs_0_000034D4
+	bsr.w initialize_paula_sample_channels_bridge_0024d4
 	bsr.w invalidate_alternate_power_meter_cache_bridge_0023aa
 	move.b #$A,diagnostic_step_byte.l
 	move.b #$7F,display_and_frame_service_flags(a6)
@@ -1757,16 +1757,16 @@ gameplay_frame_loop:
 	bsr.w render_world_view
 	move.b #$40,diagnostic_stage_step_word.l
 	clr.b diagnostic_step_byte.l
-	bsr.w abs_0_000034CE
+	bsr.w update_amiga_frame_effects_bridge_0024ce
 	move.b #$41,diagnostic_stage_step_word.l
 	clr.b diagnostic_step_byte.l
-	bsr.w abs_0_000033DA
+	bsr.w update_world_and_mission_events_bridge_0023da
 	move.b #$C,diagnostic_stage_step_word.l
 	clr.b diagnostic_step_byte.l
 	bsr.w process_frame_input_commands
 	move.b #$3,diagnostic_stage_step_word.l
 	clr.b diagnostic_step_byte.l
-	bsr.w abs_0_000033F8
+	bsr.w update_player_flight_controls_bridge_0023f8
 	tst.b world_object_update_enabled_flag(a6)
 	beq.b abs_0_00001300
 	move.b #$4,diagnostic_stage_step_word.l
@@ -1776,7 +1776,7 @@ abs_0_00001300:
 	bsr.w dispatch_selected_weapon_action
 	move.b #$5,diagnostic_stage_step_word.l
 	clr.b diagnostic_step_byte.l
-	bsr.w abs_0_000033CE
+	bsr.w process_object_contact_pairs_bridge_0023ce
 	move.b #$7,diagnostic_stage_step_word.l
 	clr.b diagnostic_step_byte.l
 	movem.l d0/a0,-(a7)
@@ -1792,7 +1792,7 @@ abs_0_00001344:
 	move.w d0,$000E(a0)
 	movem.l (a7)+,d0/a0
 	bsr.w display_frame_rate_if_enabled
-	bsr.w abs_0_0000337A
+	bsr.w update_panel_animations_bridge_00237a
 	movem.l d0/a0,-(a7)
 	tst.w platform_entry_flags.l
 	bpl.b abs_0_0000137E
@@ -2025,8 +2025,8 @@ abs_0_000016B0:
 	bsr.w disable_midframe_copper_blocks_continuation
 	move.b #$9,diagnostic_stage_step_word.l
 	clr.b diagnostic_step_byte.l
-	bsr.w abs_0_000033B0
-	bsr.w abs_0_000034AA
+	bsr.w display_pilot_rating_results_bridge_0023b0
+	bsr.w fade_out_amiga_palette_bridge_0024aa
 	move.b #$A,diagnostic_stage_step_word.l
 	clr.b diagnostic_step_byte.l
 	jsr insert_qualifying_pilot_rating.l
@@ -2042,7 +2042,7 @@ abs_0_000016B0:
 abs_0_0000171C:
 	clr.w title_page_cycle_counter(a6)
 	bra.w abs_0_00001202
-abs_0_00001724:
+wait_for_input_or_tick_deadline:
 	move.w vblank_tick_counter(a6),d7
 	addi.w #300,d7
 abs_0_0000172C:
@@ -2639,7 +2639,7 @@ install_sine_cosine_pointers:
 	move.l a0,cosine_lookup_pointer(a6)
 	rts
 restore_cockpit_picture_from_encoded_state:
-	bsr.w abs_0_000034AA
+	bsr.w fade_out_amiga_palette_bridge_0024aa
 	tst.w cockpit_picture_palette.l
 	beq.b abs_0_00001F46
 	lea.l novella_decode_saved_state(a6),a3
@@ -3072,7 +3072,7 @@ abs_0_0000271A:
 	move.b #$7,$FFFF8800.w
 	move.b #$FF,$FFFF8802.w
 abs_0_00002726:
-	bsr.w abs_0_000034AA
+	bsr.w fade_out_amiga_palette_bridge_0024aa
 	clr.b display_buffer_table_byte_offset(a6)
 	bsr.w count_and_present_frame_handoff
 	rts
@@ -3540,7 +3540,7 @@ abs_0_00002C20:
 	cmp.b view_mode(a6),d0
 	beq.b abs_0_00002C4A
 	move.w d0,-(a7)
-	bsr.w abs_0_0000339E
+	bsr.w initialize_nearby_point_field_bridge_00239e
 	move.w (a7)+,d0
 abs_0_00002C4A:
 	move.b d0,view_mode(a6)
@@ -3648,7 +3648,7 @@ abs_0_00002D78:
 abs_0_00002D7C:
 	bra.w abs_0_00002F6E
 abs_0_00002D80:
-	bsr.w abs_0_0000339E
+	bsr.w initialize_nearby_point_field_bridge_00239e
 	moveq.l #8,d0
 	bra.b abs_0_00002DC2
 abs_0_00002D88:
@@ -3659,7 +3659,7 @@ abs_0_00002D88:
 abs_0_00002D96:
 	move.w d0,view_rotation_offset_1(a6)
 	move.w #$0,view_rotation_offset_0(a6)
-	bsr.w abs_0_0000339E
+	bsr.w initialize_nearby_point_field_bridge_00239e
     ; Original comparison is against view_rotation_offset_1 after deriving masked direction index; it is not a comparison with stored announced direction. Preserve this exact behavior.
 queue_view_direction_message:
 	move.w view_rotation_offset_1(a6),d0
@@ -3759,25 +3759,25 @@ initial_game_stack_top:
 	dc.b $00,$00,$00,$00
 abs_0_00003374:
 	jmp abs_0_00036372.l
-abs_0_0000337A:
+update_panel_animations_bridge_00237a:
 	jmp update_panel_animations.l
-abs_0_00003380:
+initialize_model_type_target_tags_bridge_002380:
 	jmp initialize_model_type_target_tags.l
 handle_tractor_toggle_command_bridge_002386:
 	jmp handle_tractor_toggle_command.l
 abs_0_0000338C:
 	jmp try_toggle_stardrive.l
-abs_0_00003392:
-	jmp abs_0_00037410.l
-abs_0_00003398:
+initialize_mission_and_flight_state_bridge_002392:
+	jmp initialize_mission_and_flight_state.l
+initialize_world_object_pool_bridge_002398:
 	jmp initialize_world_object_pool.l
-abs_0_0000339E:
+initialize_nearby_point_field_bridge_00239e:
 	jmp initialize_nearby_point_field.l
 refresh_counted_model_population:
 	jmp recompute_counted_model_population.l
 invalidate_alternate_power_meter_cache_bridge_0023aa:
 	jmp invalidate_alternate_power_meter_cache.l
-abs_0_000033B0:
+display_pilot_rating_results_bridge_0023b0:
 	jmp display_pilot_rating_results.l
 print_cursor_text_bridge:
 	jmp print_cursor_text.l
@@ -3787,11 +3787,11 @@ display_timed_message_line_bridge_0023c2:
 	jmp display_timed_message_line.l
 process_tractor_target_keys_bridge_0023c8:
 	jmp process_tractor_target_keys.l
-abs_0_000033CE:
+process_object_contact_pairs_bridge_0023ce:
 	jmp process_object_contact_pairs.l
 enqueue_nearby_sound_analysis_bridge:
 	jmp enqueue_nearby_sound_analysis.l
-abs_0_000033DA:
+update_world_and_mission_events_bridge_0023da:
 	jmp update_world_and_mission_events.l
 clear_text_framebuffer_and_cursor_bridge_0023e0:
 	jmp clear_text_framebuffer_and_cursor.l
@@ -3801,7 +3801,7 @@ poll_translated_command_key_bridge_0023ec:
 	jmp poll_translated_command_key.l
 probe_platform_display_mode_bridge_0023f2:
 	jmp probe_platform_display_mode.l
-abs_0_000033F8:
+update_player_flight_controls_bridge_0023f8:
 	jmp update_player_flight_controls.l
 reset_shared_inventory_scratch_prefixes_bridge_0023fe:
 	jmp reset_shared_inventory_scratch_prefixes.l
@@ -3838,20 +3838,20 @@ initialize_display_and_view_state:
 	rts
 fade_in_amiga_palette_bridge_0024a4:
 	jmp fade_in_amiga_palette.l
-abs_0_000034AA:
+fade_out_amiga_palette_bridge_0024aa:
 	jmp fade_out_amiga_palette.l
-abs_0_000034B0:
+fill_amiga_horizon_bands_bridge_0024b0:
 	jmp fill_amiga_horizon_bands.l
-abs_0_000034B6:
+clear_amiga_viewport_bridge_0024b6:
 	jmp clear_amiga_viewport.l
 rotate_amiga_display_buffers_bridge_0024bc:
 	jmp rotate_amiga_display_buffers.l
-abs_0_000034C2:
+draw_amiga_contact_panel_bridge_0024c2:
 	jmp draw_amiga_contact_panel.l
 	dc.b $4E,$F9,$00,$00,$34,$DA
-abs_0_000034CE:
+update_amiga_frame_effects_bridge_0024ce:
 	jmp update_amiga_frame_effects.l
-abs_0_000034D4:
+initialize_paula_sample_channels_bridge_0024d4:
 	jmp initialize_paula_sample_channels.l
 	dc.b $4E,$75
     ; Counts calls to the presentation handoff helper, then rotates buffers. This is not proof that each count is one physical frame or one gameplay update.
@@ -4690,7 +4690,7 @@ render_world_view:
 	move.b #$8,diagnostic_step_byte.l
 	bsr.w build_player_orientation_matrix
 	move.b #$9,diagnostic_step_byte.l
-	bsr.w abs_0_000049B6
+	bsr.w draw_hud_attitude_polygon_bridge_0039b6
 	move.b #$BB,diagnostic_stage_step_word.l
 	clr.b diagnostic_step_byte.l
 	move.b #$1,diagnostic_step_byte.l
@@ -4712,14 +4712,14 @@ render_world_view:
 	move.b #$6F,diagnostic_step_byte.l
 	tst.b space_environment_flag(a6)
 	bmi.b abs_0_00003E9C
-	bsr.w abs_0_000049D4
+	bsr.w build_landscape_horizon_and_grid_bridge_0039d4
 abs_0_00003E9C:
 	moveq.l #0,d0
-	bsr.w abs_0_000034B0
+	bsr.w fill_amiga_horizon_bands_bridge_0024b0
 	bra.b abs_0_00003EAA
 abs_0_00003EA4:
 	moveq.l #0,d0
-	bsr.w abs_0_000034B0
+	bsr.w fill_amiga_horizon_bands_bridge_0024b0
 abs_0_00003EAA:
 	move.b #$2,diagnostic_step_byte.l
 	move.b #$3,diagnostic_step_byte.l
@@ -4797,7 +4797,7 @@ abs_0_00003FD2:
 abs_0_00003FD6:
 	tst.b flight_point_field_active_flag(a6)
 	bpl.b abs_0_00003FE0
-	bsr.w abs_0_000049B0
+	bsr.w draw_nearby_point_field_bridge_0039b0
 abs_0_00003FE0:
 	move.b #$D,diagnostic_stage_step_word.l
 	clr.b diagnostic_step_byte.l
@@ -4820,9 +4820,9 @@ abs_0_00003FE0:
 	movem.l (a7)+,a1-a2
 	movem.l d0-d7/a0-a6,-(a7)
 	moveq.l #-1,d0
-	bsr.w abs_0_000034B0
+	bsr.w fill_amiga_horizon_bands_bridge_0024b0
 	movem.l (a7)+,d0-d7/a0-a6
-	bsr.w abs_0_000049C8
+	bsr.w sort_and_draw_scene_packets_bridge_0039c8
 	movea.l (a7)+,a6
 	move.b #$2,diagnostic_stage_step_word.l
 	clr.b diagnostic_step_byte.l
@@ -5263,7 +5263,7 @@ abs_0_00004522:
 	move.l a2,contact_objects_cursor(a6)
 	rts
 abs_0_0000452C:
-	bsr.w abs_0_000034C2
+	bsr.w draw_amiga_contact_panel_bridge_0024c2
 	tst.b space_environment_flag(a6)
 	bpl.b abs_0_0000453A
 	moveq.l #16,d3
@@ -5560,16 +5560,16 @@ abs_0_000049AA:
 	dc.w $0000
 abs_0_000049AC:
 	dc.b $00,$00,$00,$00
-abs_0_000049B0:
+draw_nearby_point_field_bridge_0039b0:
 	jmp draw_nearby_point_field.l
-abs_0_000049B6:
+draw_hud_attitude_polygon_bridge_0039b6:
 	jmp draw_hud_attitude_polygon.l
 	dcb.b $C,$00
-abs_0_000049C8:
+sort_and_draw_scene_packets_bridge_0039c8:
 	jmp sort_and_draw_scene_packets.l
 add_bcd_and_draw_digits_bridge_0039ce:
 	jmp add_bcd_and_draw_digits.l
-abs_0_000049D4:
+build_landscape_horizon_and_grid_bridge_0039d4:
 	jmp build_landscape_horizon_and_grid.l
 enqueue_unique_message_pointer_bridge_0039da:
 	jmp enqueue_unique_message_pointer.l
@@ -13326,7 +13326,7 @@ abs_0_0000B1CE:
 	lea.l cockpit_picture_palette.l,a1
 	bsr.w fade_in_amiga_palette_bridge_0024a4
 	clr.b pending_key_scancode(a6)
-	bsr.w abs_0_0000B518
+	bsr.w wait_for_input_or_tick_deadline_bridge_00a518
 	rts
 pilot_rating_heading:
 	dc.b $0D,$0A,$0A
@@ -13404,7 +13404,7 @@ abs_0_0000B3CC:
 format_and_print_rating_label:
 	move.l a1,-(a7)
 	adda.w #$22,a1
-	bsr.w abs_0_0000B4A0
+	bsr.w format_signed_long_nine_decimal_places_bridge_00a4a0
 	movea.l (a7)+,a1
 	bra.w print_cursor_text
 abs_0_0000B41C:
@@ -13444,7 +13444,7 @@ abs_0_0000B494:
 	jmp update_nearby_pirate_ship.l
 abs_0_0000B49A:
 	jmp finish_distant_skim_launcher_drone_update.l
-abs_0_0000B4A0:
+format_signed_long_nine_decimal_places_bridge_00a4a0:
 	jmp format_signed_long_nine_decimal_places.l
 abs_0_0000B4A6:
 	jmp update_nearby_falling_type47.l
@@ -13480,8 +13480,8 @@ abs_0_0000B50C:
 	jmp update_nearby_projector_mount.l
 abs_0_0000B512:
 	jmp update_distant_apogee_moons.l
-abs_0_0000B518:
-	jmp abs_0_00001724.l
+wait_for_input_or_tick_deadline_bridge_00a518:
+	jmp wait_for_input_or_tick_deadline.l
 abs_0_0000B51E:
 	jmp update_nearby_planetary_bodies.l
 abs_0_0000B524:
@@ -14262,7 +14262,7 @@ return_to_surface_layout:
 	beq.b abs_0_0000BE90
 	st.b abs_0_0000C4CC.l
 abs_0_0000BE90:
-	bsr.w abs_0_0000E9C6
+	bsr.w initialize_world_object_pool_bridge_00d9c6
 	lea.l world_projector_presence_flags.l,a2
 	move.w selected_celestial_body_index(a6),d0
 	tst.b $0(a2,d0.w)
@@ -14323,7 +14323,7 @@ select_structure_interior_layout:
 	andi.w #31,world_layout_index(a6)
 	lea.l world_horizontal_wrap_masks.l,a1
 	move.l (a1),horizontal_world_wrap_mask(a6)
-	bsr.w abs_0_0000E9C6
+	bsr.w initialize_world_object_pool_bridge_00d9c6
 abs_0_0000BF78:
 	movem.l (a7)+,d0-d7/a0-a6
 	movea.l game_workspace_base.l,a6
@@ -14791,7 +14791,7 @@ bus_error_diagnostic_handler:
 	lea.l bus_error_stage_message.l,a1
 	bsr.w display_timed_message_line
 	lea.l cockpit_picture_palette.l,a1
-	bsr.w abs_0_0000E9CC
+	bsr.w fade_in_amiga_palette_bridge_0024a4_bridge_00d9cc
 	clr.b pending_key_scancode(a6)
 abs_0_0000C64A:
 	bsr.w count_and_present_frame_handoff_bridge_00ed88
@@ -14806,7 +14806,7 @@ address_error_diagnostic_handler:
 	lea.l address_error_stage_message.l,a1
 	bsr.w display_timed_message_line
 	lea.l cockpit_picture_palette.l,a1
-	bsr.w abs_0_0000E9CC
+	bsr.w fade_in_amiga_palette_bridge_0024a4_bridge_00d9cc
 	clr.b pending_key_scancode(a6)
 abs_0_0000C688:
 	bsr.w count_and_present_frame_handoff_bridge_00ed88
@@ -14821,7 +14821,7 @@ report_ram_corruption_and_reboot:
 	lea.l ram_corruption_stage_message.l,a1
 	bsr.w display_timed_message_line
 	lea.l cockpit_picture_palette.l,a1
-	bsr.w abs_0_0000E9CC
+	bsr.w fade_in_amiga_palette_bridge_0024a4_bridge_00d9cc
 	clr.b pending_key_scancode(a6)
 abs_0_0000C6C6:
 	bsr.w count_and_present_frame_handoff_bridge_00ed88
@@ -14864,7 +14864,7 @@ abs_0_0000C738:
 	bne.b abs_0_0000C754
 	bsr.w increment_and_draw_periodic_bcd_amiga
 abs_0_0000C754:
-	bsr.w abs_0_0000E114
+	bsr.w advance_paula_sample_transition_continuation_bridge_00d114
 	tst.w message_display_countdown(a6)
 	beq.b abs_0_0000C764
 	subq.w #1,message_display_countdown(a6)
@@ -16513,7 +16513,7 @@ diagnostic_stage_step_word:
 diagnostic_step_byte:
 	dc.b $01,$01,$01
 	dcb.b $E,$00
-abs_0_0000E114:
+advance_paula_sample_transition_continuation_bridge_00d114:
 	jmp advance_paula_sample_transition_continuation.l
 abs_0_0000E11A:
 	jmp abs_0_0003B356.l
@@ -16523,7 +16523,7 @@ write_word_as_hex_text_platform_entry:
 	jmp write_word_as_four_hex_digits.l
     ; First4 ratings-tail bytes are saved autocentre/fixed-sight/one-hand/joystick controls. E6B6 writes same4 back; remaining180 copied tail bytes remain opaque.
 show_options_and_load_control_settings:
-	bsr.w abs_0_00012F6E
+	bsr.w fade_out_amiga_palette_bridge_011f6e
 	lea.l pilot_rating_saved_control_settings.l,a0
 	move.b (a0)+,crosshair_autocentre_mode(a6)	; operand 1: SG2SavedControlSettings_autocentre_mode at (a0)+
 	move.b (a0)+,fixed_sight_mode_flag(a6)	; operand 1: SG2SavedControlSettings_fixed_sight_flag at (a0)+
@@ -16603,7 +16603,7 @@ abs_0_0000E256:
 	bsr.w print_cursor_text
 	move.b #$11,diagnostic_step_byte.l
 	lea.l options_menu_palette(pc),a1
-	bsr.w abs_0_0000E9CC
+	bsr.w fade_in_amiga_palette_bridge_0024a4_bridge_00d9cc
 abs_0_0000E276:
 	move.w #$FFFF,d1
 abs_0_0000E27A:
@@ -16649,7 +16649,7 @@ handle_painting_menu_choice:
 	move.b #$1,options_painting_choice.l
 	bsr.w redraw_options_text_at_origin
 	move.b #$2,options_painting_choice.l
-	bsr.w abs_0_00012F6E
+	bsr.w fade_out_amiga_palette_bridge_011f6e
 	bsr.w abs_0_0000E9D8
 	bsr.w reset_gameplay_state_and_input_defaults_bridge_00d9d2
 	st.b display_and_frame_service_flags(a6)
@@ -16662,7 +16662,7 @@ handle_mouse_scaling_menu_choice:
 	move.b #$1,options_mouse_scale_choice.l
 	bsr.w redraw_options_text_at_origin
 	move.b #$2,options_mouse_scale_choice.l
-	bsr.w abs_0_00012F6E
+	bsr.w fade_out_amiga_palette_bridge_011f6e
 	move.w mouse_input_scale_shift(a6),d0
 	lea.l mouse_scaling_decimal_text(pc),a1
 	bsr.w format_signed_word_decimal_text_bridge_011f68
@@ -16672,11 +16672,11 @@ handle_mouse_scaling_menu_choice:
 	lea.l mouse_scaling_input_prompt(pc),a1
 	bsr.w print_cursor_text
 	lea.l options_menu_palette.l,a1
-	bsr.w abs_0_0000E9CC
+	bsr.w fade_in_amiga_palette_bridge_0024a4_bridge_00d9cc
 	lea.l mouse_scale_input_prefix(pc),a0
 	move.w #$1,text_input_character_limit.l
 	bsr.w read_editable_text
-	bsr.w abs_0_00012F6E
+	bsr.w fade_out_amiga_palette_bridge_011f6e
 	bsr.w clear_text_framebuffer_and_cursor
 	lea.l mouse_scale_input_prefix(pc),a0
 	tst.b (a0)
@@ -16694,7 +16694,7 @@ handle_restart_menu_choice:
 	move.b #$1,options_resume_game_choice.l
 	bsr.w redraw_options_text_at_origin
 	move.b #$2,options_resume_game_choice.l
-	bsr.w abs_0_00012F6E
+	bsr.w fade_out_amiga_palette_bridge_011f6e
 	tst.b interrupted_game_available_flag(a6)
 	beq.b abs_0_0000E3F2
 	move.l (a7)+,d1
@@ -16704,9 +16704,9 @@ abs_0_0000E3F2:
 	lea.l options_no_interrupted_game_message(pc),a1
 	bsr.w print_cursor_text
 	lea.l options_menu_palette.l,a1
-	bsr.w abs_0_0000E9CC
+	bsr.w fade_in_amiga_palette_bridge_0024a4_bridge_00d9cc
 	bsr.w wait_for_translated_key
-	bsr.w abs_0_00012F6E
+	bsr.w fade_out_amiga_palette_bridge_011f6e
 	bsr.w clear_text_framebuffer_and_cursor
 	bra.w abs_0_0000E256
     ; Load-game choice retains first cockpit-palette WORD as a protection gate and original rotate/call13BFC path. Static entry condition known; actual execution/provider380 remains unqualified.
@@ -16715,7 +16715,7 @@ handle_load_game_menu_choice:
 	move.b #$1,options_load_game_choice.l
 	bsr.w redraw_options_text_at_origin
 	move.b #$2,options_load_game_choice.l
-	bsr.w abs_0_00012F6E
+	bsr.w fade_out_amiga_palette_bridge_011f6e
 	tst.w cockpit_picture_palette.l
 	beq.b abs_0_0000E45C
 	lea.l novella_decode_saved_state(a6),a3
@@ -16730,35 +16730,35 @@ rotate_protection_words_for_load:
 	bsr.w novella_check_transformed_entry_storage
 	clr.w cockpit_picture_palette.l
 abs_0_0000E45C:
-	bsr.w abs_0_00012F6E
+	bsr.w fade_out_amiga_palette_bridge_011f6e
 	clr.b display_buffer_table_byte_offset(a6)
 	bsr.w count_and_present_frame_handoff_bridge_00ed88
 	move.w #$A,landscape_ground_colour_index(a6)
 	bsr.w reset_gameplay_state_and_input_defaults_bridge_00d9d2
-	bsr.w abs_0_0000E9BA
-	bsr.w abs_0_0000E9C6
-	bsr.w abs_0_0000E9C0
+	bsr.w initialize_model_type_target_tags_bridge_00d9ba
+	bsr.w initialize_world_object_pool_bridge_00d9c6
+	bsr.w initialize_mission_and_flight_state_bridge_00d9c0
 	bsr.w load_game_from_disk
-	bsr.w abs_0_00012F6E
+	bsr.w fade_out_amiga_palette_bridge_011f6e
 	bsr.w clear_text_framebuffer_and_cursor
 	bra.w abs_0_0000E256
 handle_load_ratings_menu_choice:
 	move.b #$1,options_load_ratings_choice.l
 	bsr.w redraw_options_text_at_origin
 	move.b #$2,options_load_ratings_choice.l
-	bsr.w abs_0_00012F6E
+	bsr.w fade_out_amiga_palette_bridge_011f6e
 	bsr.w load_high_scores_from_disk
-	bsr.w abs_0_00012F6E
+	bsr.w fade_out_amiga_palette_bridge_011f6e
 	bsr.w clear_text_framebuffer_and_cursor
 	bra.w abs_0_0000E256
 handle_show_ratings_menu_choice:
 	move.b #$1,options_show_ratings_choice.l
 	bsr.w redraw_options_text_at_origin
 	move.b #$2,options_show_ratings_choice.l
-	bsr.w abs_0_00012F6E
+	bsr.w fade_out_amiga_palette_bridge_011f6e
 	bsr.w clear_text_framebuffer_and_cursor
 	bsr.w display_pilot_ratings
-	bsr.w abs_0_00012F6E
+	bsr.w fade_out_amiga_palette_bridge_011f6e
 	bsr.w clear_text_framebuffer_and_cursor
 	bra.w abs_0_0000E256
 toggle_joystick_menu_choice:
@@ -16970,13 +16970,13 @@ options_menu_palette:
 	dc.w $0000
 advance_shared_random_state_bridge_00d9b4:
 	jmp advance_shared_random_state.l
-abs_0_0000E9BA:
+initialize_model_type_target_tags_bridge_00d9ba:
 	jmp initialize_model_type_target_tags.l
-abs_0_0000E9C0:
-	jmp abs_0_00037410.l
-abs_0_0000E9C6:
+initialize_mission_and_flight_state_bridge_00d9c0:
+	jmp initialize_mission_and_flight_state.l
+initialize_world_object_pool_bridge_00d9c6:
 	jmp initialize_world_object_pool.l
-abs_0_0000E9CC:
+fade_in_amiga_palette_bridge_0024a4_bridge_00d9cc:
 	jmp fade_in_amiga_palette_bridge_0024a4.l
 reset_gameplay_state_and_input_defaults_bridge_00d9d2:
 	jmp reset_gameplay_state_and_input_defaults.l
@@ -17074,21 +17074,21 @@ abs_0_0000EB28:
 	move.w model_rotation_0(a6),d0
 	andi.w #4095,d0
 	lea.l abs_0_000049A0.l,a1
-	bsr.w abs_0_0000FD8E
+	bsr.w format_signed_word_four_decimal_positions_bridge_00ed8e
 	moveq.l #12,d1
 	moveq.l #10,d0
 	bsr.w print_positioned_text
 	move.w model_rotation_1(a6),d0
 	andi.w #4095,d0
 	lea.l abs_0_000049A0.l,a1
-	bsr.w abs_0_0000FD8E
+	bsr.w format_signed_word_four_decimal_positions_bridge_00ed8e
 	moveq.l #12,d1
 	moveq.l #16,d0
 	bsr.w print_positioned_text
 	move.w model_rotation_2(a6),d0
 	andi.w #4095,d0
 	lea.l abs_0_000049A0.l,a1
-	bsr.w abs_0_0000FD8E
+	bsr.w format_signed_word_four_decimal_positions_bridge_00ed8e
 	moveq.l #12,d1
 	moveq.l #24,d0
 	bsr.w print_positioned_text
@@ -17096,13 +17096,13 @@ abs_0_0000EB28:
 	moveq.l #0,d0
 	move.b $0003(a4),d0
 	lea.l abs_0_000049A0.l,a1
-	bsr.w abs_0_0000FD8E
+	bsr.w format_signed_word_four_decimal_positions_bridge_00ed8e
 	moveq.l #0,d0
 	moveq.l #0,d1
 	bsr.w print_positioned_text
 	move.w abs_0_0000FD12.l,d0
 	lea.l abs_0_000049A0.l,a1
-	bsr.w abs_0_0000FD8E
+	bsr.w format_signed_word_four_decimal_positions_bridge_00ed8e
 	moveq.l #0,d1
 	moveq.l #8,d0
 	bsr.w print_positioned_text
@@ -17113,7 +17113,7 @@ abs_0_0000EB28:
 	movea.l $0(a0,d0.w),a0
 	move.w $0004(a0),d0
 	lea.l abs_0_000049A0.l,a1
-	bsr.w abs_0_0000FD8E
+	bsr.w format_signed_word_four_decimal_positions_bridge_00ed8e
 	moveq.l #0,d1
 	moveq.l #16,d0
 	bsr.w print_positioned_text
@@ -17137,7 +17137,7 @@ abs_0_0000EC46:
 	move.w drawing_fill_style_word(a6),d0
 	andi.w #4095,d0
 	lea.l abs_0_000049A0.l,a1
-	bsr.w abs_0_0000FD8E
+	bsr.w format_signed_word_four_decimal_positions_bridge_00ed8e
 	lea.l absolute_slot_00070000.l,a0
 	adda.w #$7D4,a0
 	move.w frame_handoff_counter(a6),d0
@@ -17148,12 +17148,12 @@ abs_0_0000EC46:
 	tst.b abs_0_0000FD4C.l
 	bne.b abs_0_0000EC8C
 	move.w #$0,d0
-	bsr.w abs_0_0000FD9A
+	bsr.w clear_amiga_viewport_bridge_00ed9a
 abs_0_0000EC8C:
 	lea.l scene_draw_reference_cells.l,a2
 	move.w scene_packet_count.l,d0
 	move.l a6,-(a7)
-	bsr.w abs_0_0000FD82
+	bsr.w sort_and_draw_scene_packets_bridge_00ed82
 	movea.l (a7)+,a6
 	rts
 model_viewer_animation_bounds:
@@ -18320,20 +18320,20 @@ project_model_to_draw_records_bridge_00ed76:
 	jmp project_model_to_draw_records.l
 install_sine_cosine_pointers_bridge_00ed7c:
 	jmp install_sine_cosine_pointers.l
-abs_0_0000FD82:
+sort_and_draw_scene_packets_bridge_00ed82:
 	jmp sort_and_draw_scene_packets.l
 count_and_present_frame_handoff_bridge_00ed88:
 	jmp count_and_present_frame_handoff.l
-abs_0_0000FD8E:
+format_signed_word_four_decimal_positions_bridge_00ed8e:
 	jmp format_signed_word_four_decimal_positions.l
 display_frame_rate_if_enabled_bridge_00ed94:
 	jmp display_frame_rate_if_enabled.l
-abs_0_0000FD9A:
-	jmp abs_0_000034B6.l
+clear_amiga_viewport_bridge_00ed9a:
+	jmp clear_amiga_viewport_bridge_0024b6.l
 select_disk_surface_a:
-	jmp abs_0_00010792.l
+	jmp select_amiga_drive0_side_bit_set.l
 select_disk_surface_b:
-	jmp abs_0_000107B2.l
+	jmp select_amiga_drive0_side_bit_clear.l
 deselect_disk_backend:
 	jmp deselect_disk_and_stop_motor.l
 advance_disk_backend_cylinder:
@@ -18345,9 +18345,9 @@ seek_disk_backend_cylinder_zero:
 read_disk_backend_blocks:
 	jmp read_and_decode_mfm_track.l
 write_disk_backend_track:
-	jmp abs_0_000107EA.l
+	jmp write_and_check_amiga_mfm_track.l
 check_disk_backend_change:
-	jmp abs_0_00010B26.l
+	jmp check_amiga_media_or_prompt_retry.l
     ; Compare15 displayed scores; insertion shifts into a16th score/name scratch slot. Original signed comparison and loaded-score assumptions remain; scratch is not a16th displayed rating.
 insert_qualifying_pilot_rating:
 	bsr.w probe_platform_display_mode
@@ -18361,7 +18361,7 @@ abs_0_0000FDE4:
 	rts
 abs_0_0000FDEE:
 	move.w d0,-(a7)
-	bsr.w abs_0_00012F6E
+	bsr.w fade_out_amiga_palette_bridge_011f6e
 	bsr.w clear_text_framebuffer_and_cursor
 	lea.l pilot_rating_name_entry_prompt(pc),a1
 	bsr.w print_cursor_text
@@ -18385,12 +18385,12 @@ abs_0_0000FE1C:
 	adda.l #$10,a1
 	move.l a1,-(a7)
 	lea.l options_menu_palette.l,a1
-	bsr.w abs_0_0000E9CC
+	bsr.w fade_in_amiga_palette_bridge_0024a4_bridge_00d9cc
 	movea.l (a7)+,a0
 	move.w #$F,text_input_character_limit.l
 	bsr.w read_editable_text
 	bsr.w save_high_scores_to_disk
-	bsr.w abs_0_00012F6E
+	bsr.w fade_out_amiga_palette_bridge_011f6e
 	rts
     ; Display15 score/name pairs; names advance16 bytes, score formatter consumes4. Mutable insertion backing has16 slots; do not confuse storage capacity with visible count.
 display_pilot_ratings:
@@ -18412,7 +18412,7 @@ abs_0_0000FE78:
 	adda.l #$10,a4
 	dbf.w d3,abs_0_0000FE78
 	lea.l options_menu_palette.l,a1
-	bsr.w abs_0_0000E9CC
+	bsr.w fade_in_amiga_palette_bridge_0024a4_bridge_00d9cc
 	bsr.w wait_for_translated_key
 	rts
 	dc.b $1A,$2E,$07,$F2,$4E,$75
@@ -18605,7 +18605,7 @@ abs_0_00010116:
 abs_0_00010122:
 	bsr.w restore_workspace_pointers_absolute
 	bsr.w deselect_disk_backend
-	bsr.w abs_0_00012F6E
+	bsr.w fade_out_amiga_palette_bridge_011f6e
 	move.l (a7)+,d2
 	bra.w abs_0_00012F74
 	dc.b $22,$1F
@@ -18684,7 +18684,7 @@ abs_0_00010236:
 	bsr.w prompt_disk_retry_or_abort
 	beq.b save_high_scores_to_disk
 abs_0_00010240:
-	bsr.w abs_0_00012F6E
+	bsr.w fade_out_amiga_palette_bridge_011f6e
 abs_0_00010244:
 	bsr.w deselect_disk_backend
 abs_0_00010248:
@@ -19061,7 +19061,7 @@ abs_0_00010788:
 	adda.w #$44,a0
 	dbf.w d1,abs_0_0001075A
 	rts
-abs_0_00010792:
+select_amiga_drive0_side_bit_set:
 	move.b #$4,disk_service_state_retry_reload.l
 	lea.l _ciab+ciaprb.l,a5
 	bset.b #3,(a5)
@@ -19069,7 +19069,7 @@ abs_0_00010792:
 	bclr.b #3,(a5)
 	bset.b #2,(a5)
 	rts
-abs_0_000107B2:
+select_amiga_drive0_side_bit_clear:
 	move.b #$4,disk_service_state_retry_reload.l
 	lea.l _ciab+ciaprb.l,a5
 	bset.b #3,(a5)
@@ -19084,13 +19084,13 @@ deselect_disk_and_stop_motor:
 	bclr.b #3,(a5)
 	bset.b #3,(a5)
 	rts
-abs_0_000107EA:
+write_and_check_amiga_mfm_track:
 	move.b #$4,disk_service_state.l
 	btst.b #CIAB_DSKPROT,_ciaa+ciapra.l
 	bne.b encode_and_write_mfm_track
 	lea.l disk_write_protected_retry_prompt(pc),a1
 	bsr.w prompt_disk_retry_or_abort
-	beq.b abs_0_000107EA
+	beq.b write_and_check_amiga_mfm_track
 	moveq.l #-2,d0
 	rts
 encode_and_write_mfm_track:
@@ -19314,7 +19314,7 @@ abs_0_00010B1A:
 	tst.w d0
 	bne.b abs_0_00010B74
 	bra.w retreat_disk_backend_cylinder
-abs_0_00010B26:
+check_amiga_media_or_prompt_retry:
 	bsr.w abs_0_00010B0E
 	btst.b #CIAB_DSKCHANGE,_ciaa+ciapra.l
 	bne.b abs_0_00010B06
@@ -19637,7 +19637,7 @@ abs_0_00010E9E:
 	dbf.w d1,abs_0_00010E9E
 	rts
 display_disk_operation_prompt:
-	bsr.w abs_0_00012F6E
+	bsr.w fade_out_amiga_palette_bridge_011f6e
 	move.l a1,-(a7)
 	bsr.w clear_text_framebuffer_and_cursor
 	movea.l disk_service_state_operation_title_pointer.l,a1
@@ -19645,7 +19645,7 @@ display_disk_operation_prompt:
 	movea.l (a7)+,a1
 	bsr.w print_cursor_text
 	lea.l options_menu_palette.l,a1
-	bra.w abs_0_0000E9CC
+	bra.w fade_in_amiga_palette_bridge_0024a4_bridge_00d9cc
 display_disk_operation_progress:
 	move.l a1,-(a7)
 	bsr.w clear_text_framebuffer_and_cursor
@@ -22285,8 +22285,8 @@ pilot_rating_saved_control_settings:
     ; Preceding2zero bytes12F66..12F68 lie outside512-byte ratings transfer12D66..12F66. A coalesced literal zero run does not enlarge the copied record.
 format_signed_word_decimal_text_bridge_011f68:
 	jmp format_signed_word_decimal_text.l
-abs_0_00012F6E:
-	jmp abs_0_000034AA.l
+fade_out_amiga_palette_bridge_011f6e:
+	jmp fade_out_amiga_palette_bridge_0024aa.l
 abs_0_00012F74:
 	jmp abs_0_000011E0.l
 disable_midframe_copper_blocks_continuation_bridge_011f7a:
@@ -22531,7 +22531,7 @@ protection_external_selector_bridge:
 protection_decimal_word_bridge:
 	jmp format_signed_word_decimal_text.l
 protection_palette_fade_out_bridge:
-	jmp abs_0_000034AA.l
+	jmp fade_out_amiga_palette_bridge_0024aa.l
 protection_key_wait_bridge:
 	jmp wait_for_translated_key.l
 protection_input_character_limit_pointer:
@@ -24447,7 +24447,7 @@ initialize_star_radius_position_and_colour:
 	bsr.w advance_shared_random_state_bridge_017968
 	andi.w #4095,d3
 	addi.w #20480,d3
-	bsr.w abs_0_0001896E
+	bsr.w build_motion_vector_from_angles_bridge_01796e
 	ext.l d4
 	ext.l d5
 	ext.l d6
@@ -24528,7 +24528,7 @@ abs_0_00018964:
 	dc.b $00,$00,$00,$00
 advance_shared_random_state_bridge_017968:
 	jmp advance_shared_random_state.l
-abs_0_0001896E:
+build_motion_vector_from_angles_bridge_01796e:
 	jmp build_motion_vector_from_angles.l
     ; Type 0: No records found. Shares header with type1; zero is skipped in visible-object drawing.
 model_header_pointers:
@@ -37927,7 +37927,7 @@ abs_0_0002F0AA:
 	asr.w #3,d1
 	asr.w #3,d2
 	asr.w #3,d3
-	bsr.w abs_0_0002F696
+	bsr.w transform_vector_by_view_matrix_bridge_02e696
 	asl.w #3,d1
 	asl.w #3,d2
 	asl.w #3,d3
@@ -38363,7 +38363,7 @@ abs_0_0002F68A:
 	jmp clip_line_to_view_bounds.l
 abs_0_0002F690:
 	jmp sort_and_draw_scene_packets.l
-abs_0_0002F696:
+transform_vector_by_view_matrix_bridge_02e696:
 	jmp transform_vector_by_view_matrix.l
     ; Smooth speed toward its requested value, build the original motion vector, and update flight orientation/control state. Settling and forced-view modes retain their original branches.
 update_player_flight_controls:
@@ -43977,7 +43977,7 @@ abs_0_00033B06:
 abs_0_00033B36:
 	dbf.w d0,abs_0_00033B06
 abs_0_00033B3A:
-	bsr.w abs_0_00039D26
+	bsr.w initialize_world_object_pool_bridge_038d26
 	bsr.w invalidate_alternate_power_meter_cache_bridge_038d2c
 	bsr.w recreate_saved_nearby_objects
 	clr.l nearby_space_station_reference(a6)
@@ -44242,7 +44242,7 @@ abs_0_00033EA0:
 	move.b #$86,diagnostic_step_byte.l
 	bsr.w capture_nearby_relative_objects
 	move.b #$87,diagnostic_step_byte.l
-	bsr.w abs_0_00039D26
+	bsr.w initialize_world_object_pool_bridge_038d26
 	bsr.w invalidate_alternate_power_meter_cache
 	move.b #$88,diagnostic_step_byte.l
 	move.w #$0,selected_object_sound_type.l
@@ -44993,7 +44993,7 @@ abs_0_000348F6:
 	beq.w abs_0_000354DA
 	cmp.b #$8,d0
 	bne.b abs_0_00034908
-	bsr.w abs_0_00039D50
+	bsr.w modal_inventory_command_loop_bridge_038d50
 abs_0_00034908:
 	cmp.b #$54,d0
 	bne.b abs_0_0003491A
@@ -48154,7 +48154,7 @@ abs_0_00037406:
 	dbf.w d7,abs_0_0003731A
 	movem.l (a7)+,a0-a5
 	rts
-abs_0_00037410:
+initialize_mission_and_flight_state:
 	sf.b modal_command_input_flag(a6)
 	move.w #$3,type128_disc_outer_layer_index(a6)
 	move.w #$8,station_mini_sentinel_count(a6)
@@ -49664,7 +49664,7 @@ nearby_sound_analysis_suffix:
 	dc.w $0000
 advance_shared_random_state_bridge_038d20:
 	jmp advance_shared_random_state.l
-abs_0_00039D26:
+initialize_world_object_pool_bridge_038d26:
 	jmp initialize_world_object_pool.l
 invalidate_alternate_power_meter_cache_bridge_038d2c:
 	jmp invalidate_alternate_power_meter_cache.l
@@ -49678,7 +49678,7 @@ poll_translated_command_key_bridge_038d44:
 	jmp poll_translated_command_key.l
 initialize_launched_bomb_header_bridge_038d4a:
 	jmp initialize_launched_bomb_header.l
-abs_0_00039D50:
+modal_inventory_command_loop_bridge_038d50:
 	jmp modal_inventory_command_loop.l
 abs_0_00039D56:
 	jmp abs_0_000081D2.l
@@ -51348,7 +51348,7 @@ alternate_vertical_blank_game_service:
 	move.b #$E,$FFFF8800.w
 	move.b #$5,$FFFF8802.w
 	move.w $00000080.l,$FFFF8606.w
-	bsr.w abs_0_0003D9C4
+	bsr.w read_alternate_disk_status_bridge_03c9c4
 	btst #7,d0
 	bne.b abs_0_0003B17C
 	move.b #$E,$FFFF8800.w
@@ -51382,7 +51382,7 @@ abs_0_0003B1C8:
 	beq.b abs_0_0003B1D2
 	subq.w #1,message_display_countdown(a6)
 abs_0_0003B1D2:
-	bsr.w abs_0_0003D9D0
+	bsr.w update_alternate_sound_and_display_effects_bridge_03c9d0
 	tst.b modal_command_input_flag(a6)
 	bne.w abs_0_0003B28C
 	tst.b space_environment_flag(a6)
@@ -53612,10 +53612,10 @@ glyph_byte_double_pixel_words:
 	dc.w $FF00,$FF03,$FF0C,$FF0F,$FF30,$FF33,$FF3C,$FF3F
 	dc.w $FFC0,$FFC3,$FFCC,$FFCF,$FFF0,$FFF3,$FFFC,$FFFF
 	dc.w $0000
-abs_0_0003D9C4:
+read_alternate_disk_status_bridge_03c9c4:
 	jmp read_alternate_disk_status.l
 	dc.b $4E,$F9,$00,$00,$38,$B2
-abs_0_0003D9D0:
+update_alternate_sound_and_display_effects_bridge_03c9d0:
 	jmp update_alternate_sound_and_display_effects.l
 	dc.w $0000
 abs_0_0003D9D8:

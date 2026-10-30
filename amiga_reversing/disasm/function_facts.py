@@ -181,12 +181,81 @@ _ENTRY_REASONS = frozenset({
 _EDGE_NAMES = {1: "fallthrough", 2: "branch", 3: "call", 4: "jump", 5: "return"}
 
 
+def _forwarding_entries(section_index, blocks, by_start, outgoing, seeds, artifact_query):
+    """Follow existing entry stubs using native instructions and accepted edges.
+
+    A destination is an exploratory entry, potentially a shared tail. Neither
+    names nor a jump somewhere inside an ordinary function establish entries.
+    No bytes are decoded here and no new code ownership is admitted.
+    """
+    links = {}
+    if artifact_query is None:
+        return links
+    pending = deque(sorted(seeds))
+    visited = set()
+    while pending:
+        entry = pending.popleft()
+        if entry in visited or entry not in by_start:
+            continue
+        visited.add(entry)
+        block_index = by_start[entry]
+        edges = outgoing.get(block_index, [])
+        if len(edges) != 1:
+            continue
+        edge = edges[0]
+        target_index, target = edge.get("target_block_index"), edge.get("target_offset")
+        if (edge.get("kind") != 4 or edge.get("source_offset") != entry
+                or not isinstance(target_index, int) or not 0 <= target_index < len(blocks)
+                or target != blocks[target_index]["start_offset"] or target == entry):
+            continue
+        page = artifact_query(kind="instructions", section_index=section_index,
+                              source_offset=entry, limit=2)
+        rows = page.get("items", [])
+        if page.get("has_more") or len(rows) != 1:
+            continue
+        row = rows[0]
+        operands = row.get("operand_facts", [])
+        if (row.get("provenance") != "accepted_instruction"
+                or row.get("section_index") != section_index or row.get("source_offset") != entry
+                or row.get("size") != blocks[block_index]["end_offset"] - entry
+                or len(operands) != 1):
+            continue
+        operand = operands[0]
+        if (operand.get("access") != "branch_target" or operand.get("indexed") is not False
+                or operand.get("base_register") is not None
+                or not (isinstance(operand.get("absolute_address"), int)
+                        or operand.get("pc_relative") is True
+                        and operand.get("displacement_known") is True)):
+            continue
+        # Bind the instruction and supplied analysis to the same native edge;
+        # do not resolve runtime addresses again in a Python address model.
+        page = artifact_query(kind="edges", section_index=section_index,
+                              source_offset=entry, direction="outgoing", limit=2)
+        rows = page.get("items", [])
+        if (page.get("has_more") or len(rows) != 1
+                or rows[0].get("provenance") != "native_cfg"
+                or rows[0].get("kind") != "jump" or rows[0].get("status") != "resolved"
+                or rows[0].get("section_index") != section_index
+                or rows[0].get("source_offset") != entry
+                or rows[0].get("target_section_index") != section_index
+                or rows[0].get("target_offset") != target):
+            continue
+        links[entry] = target
+        if target not in seeds:
+            pending.append(target)
+        seeds[target].append({"reason_name": "native_forwarding_target", "source_offset": entry,
+                              "instruction_size": row["size"], "provenance": "native_single_jump_entry"})
+    return links
+
+
 def analysis_function_facts(target_id: str, analysis: Mapping[str, object], *,
-                            symbol_query: Callable[..., dict[str, object]] | None = None) -> dict[str, object]:
+                            artifact_query: Callable[..., dict[str, object]] | None = None) -> dict[str, object]:
     """Project exploratory function candidates from native entry and CFG facts.
 
     Names come from native symbol origins and, when supplied, frozen native
-    label declarations (which include accepted late renames). These declarations
+    label declarations (which include accepted late renames). Native instruction
+    queries also close transparent single-jump entries over accepted CFG targets.
+    These declarations
     name existing CFG candidates only; equates and numeric address coincidences
     are not function identities. Names never establish entry points.
     Ranges are reachable accepted blocks,
@@ -218,6 +287,10 @@ def analysis_function_facts(target_id: str, analysis: Mapping[str, object], *,
             if edge.get("kind") == 3 and isinstance(target, int) and 0 <= target < 0xFFFFFFFF:
                 seeds[target].append({"reason_name": "native_call_target", "source_offset": edge["source_offset"]})
                 calls_to[target].append(edge)
+        forwarding = _forwarding_entries(section_index, blocks, by_start, outgoing, seeds, artifact_query)
+        forwarders_to: dict[int, list[int]] = defaultdict(list)
+        for source, target in forwarding.items():
+            forwarders_to[target].append(source)
         ownership: dict[int, set[int]] = {}
         for entry in sorted(seeds):
             owned: set[int] = set()
@@ -272,14 +345,16 @@ def analysis_function_facts(target_id: str, analysis: Mapping[str, object], *,
                 unknowns.append("unresolved_control_transfers")
             if missing_blocks:
                 unknowns.append("flow_target_not_accepted_block")
+            if forwarders_to.get(entry):
+                unknowns.append("forwarding_target_may_be_shared_entry")
             origin_names = names.get(entry, [])
             aliases = sorted({str(n["symbol_name"]) for n in origin_names if n.get("symbol_name")})
             original_name = aliases[0] if aliases else None
             declared_names = []
-            if symbol_query is not None:
+            if artifact_query is not None:
                 offset = 0
                 while True:
-                    page = symbol_query(kind="symbols", section_index=section_index,
+                    page = artifact_query(kind="symbols", section_index=section_index,
                                         source_offset=entry, offset=offset, limit=100)
                     for item in page["items"]:
                         identity = item.get("source_symbol")
@@ -310,6 +385,9 @@ def analysis_function_facts(target_id: str, analysis: Mapping[str, object], *,
                                   "certainty": blocks[i].get("certainty")} for i in sorted(owned)],
                 "shared_block_starts": [blocks[i]["start_offset"] for i in shared],
                 "callers": [transfer(e) for e in calls_to[entry]],
+                "forwarding_target": ({"section_index": section_index, "source_offset": forwarding[entry]}
+                                      if entry in forwarding else None),
+                "incoming_forwarding_entries": sorted(forwarders_to.get(entry, [])),
                 "callees": [transfer(e) for e in local_edges if e.get("kind") == 3],
                 "unresolved_transfers": unresolved, "unknowns": unknowns, "provenance": "native_cfg_projection",
             })
