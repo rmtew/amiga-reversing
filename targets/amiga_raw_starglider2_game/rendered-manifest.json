@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "source_commit": "e867f81782d7a4b2f556d3c31a61c7a8ead2d55c",
+  "source_commit": "96e3737c8ad8daf32092067dd9b2fe29e7009c4a",
   "source_assembly": "starglider2_game.s",
   "assets": [
     {
@@ -878,13 +878,13 @@
     },
     {
       "path": "rendered-provenance.json",
-      "bytes": 3276,
-      "sha256": "20c6a6b6988434aef66f87afb1bf44568a489419427797e5552e72f969d1d620"
+      "bytes": 3329,
+      "sha256": "a79a05e05b43f16757c5ab43fea4d31a10e548a90a33b78a37a1541f6f825412"
     },
     {
       "path": "starglider2_game.s",
-      "bytes": 2030697,
-      "sha256": "038a2aada2513922f7577f235d8ffd5e076f0c0dc680b2ee3ea1c93d8292d681"
+      "bytes": 2041957,
+      "sha256": "4725593645d79e07fa73ac59c61e5e13de142cfd030e51b3ea13f6e2fda5cbdd"
     },
     {
       "path": "tools/starglider2_protection.py",
@@ -892,6 +892,6 @@
       "sha256": "81d3f66d36dbfbd5c77238b20c28e8b9abaa329777eb91f64669bbbf13703582"
     }
   ],
-  "source_commit_role": "canonical source publication base; the publishing commit names and documents interleaved retry interfaces without new type or sequence contracts; output is bound by verification_receipt_id",
-  "source_subject_revision": "cd188603e651e78d74be91ce64f6feb185932af8ea1223763b70e94f2d9e516b"
+  "source_commit_role": "canonical source publication base; the publishing commit reconstructs interleaved colour kernels and mask/table roles and repairs inferred relative-label mapping; no new selector or sequence bounds; output is bound by verification_receipt_id",
+  "source_subject_revision": "4b8d65027fa80e4e94b9656ea8af2fb8119215c1139ce8f204f5db633798e87e"
 }

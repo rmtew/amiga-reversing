@@ -56104,12 +56104,12 @@ draw_interleaved_span_header:
 	bpl.b abs_0_0003F0C4
 	neg.w d2
 	cmp.w #$10,d2
-	blt.w abs_0_0003FF62
+	blt.w prepare_interleaved_single_cell_span
 	and.w d0,d2
 abs_0_0003F0C4:
 	add.w d2,d2
-	move.w drawing_dispatch_masked_offsets(pc,d2.w),d2
-	lea.l drawing_dispatch_masked_offsets(pc,d2.w),a6
+	move.w drawing_dispatch_interleaved_color_offsets(pc,d2.w),d2
+	lea.l drawing_dispatch_interleaved_color_offsets(pc,d2.w),a6
 	lea.l raster_row_byte_offsets(pc),a1
 	move.w (a0)+,d2
 	add.w d2,d2
@@ -56129,48 +56129,50 @@ abs_0_0003F0EC:
 	and.w d0,d4
 	add.w d4,d4
 	add.w d4,d4
-	move.l abs_0_0003F172(pc,d4.w),d4
+	move.l interleaved_span_left_masks(pc,d4.w),d4
 	move.w d3,d6
 	and.w d0,d6
 	add.w d6,d6
 	add.w d6,d6
-	move.l abs_0_0003F132(pc,d6.w),d6
+	move.l interleaved_span_right_masks(pc,d6.w),d6
 	lsr.w #1,d2
 	andi.w #65528,d2
 	adda.w d2,a1
 	lsr.w #1,d3
 	sub.w d2,d3
 	jmp (a6)
-drawing_dispatch_masked_offsets:
-	dc.w abs_0_0003F1B2-drawing_dispatch_masked_offsets	; relative WORD dispatch table consumed by indexed PC load and LEA
-	dc.w abs_0_0003F282-drawing_dispatch_masked_offsets
-	dc.w abs_0_0003F358-drawing_dispatch_masked_offsets
-	dc.w abs_0_0003F434-drawing_dispatch_masked_offsets
-	dc.w abs_0_0003F504-drawing_dispatch_masked_offsets
-	dc.w abs_0_0003F5E0-drawing_dispatch_masked_offsets
-	dc.w abs_0_0003F6C2-drawing_dispatch_masked_offsets
-	dc.w abs_0_0003F79E-drawing_dispatch_masked_offsets
-	dc.w abs_0_0003F874-drawing_dispatch_masked_offsets
-	dc.w abs_0_0003F950-drawing_dispatch_masked_offsets
-	dc.w abs_0_0003FA2C-drawing_dispatch_masked_offsets
-	dc.w abs_0_0003FB0E-drawing_dispatch_masked_offsets
-	dc.w abs_0_0003FBEA-drawing_dispatch_masked_offsets
-	dc.w abs_0_0003FCC0-drawing_dispatch_masked_offsets
-	dc.w abs_0_0003FD9C-drawing_dispatch_masked_offsets
-	dc.w abs_0_0003FE78-drawing_dispatch_masked_offsets
-abs_0_0003F132:
+drawing_dispatch_interleaved_color_offsets:
+	dc.w draw_interleaved_span_color_0-drawing_dispatch_interleaved_color_offsets	; Four interleaved WORD planes, colour bits0..3. Relative WORD offsets; structural extent16, no...
+	dc.w draw_interleaved_span_color_1-drawing_dispatch_interleaved_color_offsets
+	dc.w draw_interleaved_span_color_2-drawing_dispatch_interleaved_color_offsets
+	dc.w draw_interleaved_span_color_3-drawing_dispatch_interleaved_color_offsets
+	dc.w draw_interleaved_span_color_4-drawing_dispatch_interleaved_color_offsets
+	dc.w draw_interleaved_span_color_5-drawing_dispatch_interleaved_color_offsets
+	dc.w draw_interleaved_span_color_6-drawing_dispatch_interleaved_color_offsets
+	dc.w draw_interleaved_span_color_7-drawing_dispatch_interleaved_color_offsets
+	dc.w draw_interleaved_span_color_8-drawing_dispatch_interleaved_color_offsets
+	dc.w draw_interleaved_span_color_9-drawing_dispatch_interleaved_color_offsets
+	dc.w draw_interleaved_span_color_10-drawing_dispatch_interleaved_color_offsets
+	dc.w draw_interleaved_span_color_11-drawing_dispatch_interleaved_color_offsets
+	dc.w draw_interleaved_span_color_12-drawing_dispatch_interleaved_color_offsets
+	dc.w draw_interleaved_span_color_13-drawing_dispatch_interleaved_color_offsets
+	dc.w draw_interleaved_span_color_14-drawing_dispatch_interleaved_color_offsets
+	dc.w draw_interleaved_span_color_15-drawing_dispatch_interleaved_color_offsets
+    ; 16 LONGs: ((FFFF<<(15-right))&FFFF), duplicated in both WORDs. Covers pixels up to and including the right endpoint.
+interleaved_span_right_masks:
 	dc.l $80008000,$C000C000,$E000E000,$F000F000	; lookup_table
 	dc.l $F800F800,$FC00FC00,$FE00FE00,$FF00FF00
 	dc.l $FF80FF80,$FFC0FFC0,$FFE0FFE0,$FFF0FFF0
 	dc.l $FFF8FFF8,$FFFCFFFC,$FFFEFFFE,$FFFFFFFF
-abs_0_0003F172:
+    ; 16 LONGs: (FFFF>>left), duplicated in both WORDs. AND with the inclusive right mask for the regular interleaved boundary cell.
+interleaved_span_left_masks:
 	dc.l $FFFFFFFF,$7FFF7FFF,$3FFF3FFF,$1FFF1FFF	; lookup_table
 	dc.l $0FFF0FFF,$07FF07FF,$03FF03FF,$01FF01FF
 	dc.l $00FF00FF,$007F007F,$003F003F,$001F001F
 	dc.l $000F000F,$00070007,$00030003,$00010001
-abs_0_0003F1B2:
+draw_interleaved_span_color_0:
 	subq.w #8,d3
-	bpl.b abs_0_0003F1D0
+	bpl.b draw_interleaved_span_color_0_multi_cell
 	and.l d4,d6
 	not.l d6
 	and.l d6,(a1)+
@@ -56182,83 +56184,83 @@ abs_0_0003F1B2:
 	move.l (a2)+,d2
 	bpl.w draw_interleaved_span_header
 	rts
-abs_0_0003F1D0:
+draw_interleaved_span_color_0_multi_cell:
 	not.l d4
 	and.l d4,(a1)+
 	and.l d4,(a1)+
 	subq.w #8,d3
-	bmi.w abs_0_0003F26A
+	bmi.w draw_interleaved_span_color_0_last_cell
 	move.l d5,(a1)+
 	move.l d5,(a1)+
 	subq.w #8,d3
-	bmi.w abs_0_0003F26A
+	bmi.w draw_interleaved_span_color_0_last_cell
 	move.l d5,(a1)+
 	move.l d5,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003F26A
+	bmi.b draw_interleaved_span_color_0_last_cell
 	move.l d5,(a1)+
 	move.l d5,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003F26A
+	bmi.b draw_interleaved_span_color_0_last_cell
 	move.l d5,(a1)+
 	move.l d5,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003F26A
+	bmi.b draw_interleaved_span_color_0_last_cell
 	move.l d5,(a1)+
 	move.l d5,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003F26A
+	bmi.b draw_interleaved_span_color_0_last_cell
 	move.l d5,(a1)+
 	move.l d5,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003F26A
+	bmi.b draw_interleaved_span_color_0_last_cell
 	move.l d5,(a1)+
 	move.l d5,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003F26A
+	bmi.b draw_interleaved_span_color_0_last_cell
 	move.l d5,(a1)+
 	move.l d5,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003F26A
+	bmi.b draw_interleaved_span_color_0_last_cell
 	move.l d5,(a1)+
 	move.l d5,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003F26A
+	bmi.b draw_interleaved_span_color_0_last_cell
 	move.l d5,(a1)+
 	move.l d5,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003F26A
+	bmi.b draw_interleaved_span_color_0_last_cell
 	move.l d5,(a1)+
 	move.l d5,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003F26A
+	bmi.b draw_interleaved_span_color_0_last_cell
 	move.l d5,(a1)+
 	move.l d5,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003F26A
+	bmi.b draw_interleaved_span_color_0_last_cell
 	move.l d5,(a1)+
 	move.l d5,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003F26A
+	bmi.b draw_interleaved_span_color_0_last_cell
 	move.l d5,(a1)+
 	move.l d5,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003F26A
+	bmi.b draw_interleaved_span_color_0_last_cell
 	move.l d5,(a1)+
 	move.l d5,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003F26A
+	bmi.b draw_interleaved_span_color_0_last_cell
 	move.l d5,(a1)+
 	move.l d5,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003F26A
+	bmi.b draw_interleaved_span_color_0_last_cell
 	move.l d5,(a1)+
 	move.l d5,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003F26A
+	bmi.b draw_interleaved_span_color_0_last_cell
 	move.l d5,(a1)+
 	move.l d5,(a1)+
-abs_0_0003F26A:
+draw_interleaved_span_color_0_last_cell:
 	not.l d6
 	and.l d6,(a1)+
 	and.l d6,(a1)+
@@ -56269,9 +56271,9 @@ abs_0_0003F26A:
 	move.l (a2)+,d2
 	bpl.w draw_interleaved_span_header
 	rts
-abs_0_0003F282:
+draw_interleaved_span_color_1:
 	subq.w #8,d3
-	bpl.b abs_0_0003F2A2
+	bpl.b draw_interleaved_span_color_1_multi_cell
 	and.l d6,d4
 	or.w d4,(a1)+
 	not.l d4
@@ -56284,84 +56286,84 @@ abs_0_0003F282:
 	move.l (a2)+,d2
 	bpl.w draw_interleaved_span_header
 	rts
-abs_0_0003F2A2:
+draw_interleaved_span_color_1_multi_cell:
 	or.w d4,(a1)+
 	not.l d4
 	and.w d4,(a1)+
 	and.l d4,(a1)+
 	subq.w #8,d3
-	bmi.w abs_0_0003F33E
+	bmi.w draw_interleaved_span_color_1_last_cell
 	move.l a3,(a1)+
 	move.l d5,(a1)+
 	subq.w #8,d3
-	bmi.w abs_0_0003F33E
+	bmi.w draw_interleaved_span_color_1_last_cell
 	move.l a3,(a1)+
 	move.l d5,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003F33E
+	bmi.b draw_interleaved_span_color_1_last_cell
 	move.l a3,(a1)+
 	move.l d5,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003F33E
+	bmi.b draw_interleaved_span_color_1_last_cell
 	move.l a3,(a1)+
 	move.l d5,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003F33E
+	bmi.b draw_interleaved_span_color_1_last_cell
 	move.l a3,(a1)+
 	move.l d5,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003F33E
+	bmi.b draw_interleaved_span_color_1_last_cell
 	move.l a3,(a1)+
 	move.l d5,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003F33E
+	bmi.b draw_interleaved_span_color_1_last_cell
 	move.l a3,(a1)+
 	move.l d5,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003F33E
+	bmi.b draw_interleaved_span_color_1_last_cell
 	move.l a3,(a1)+
 	move.l d5,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003F33E
+	bmi.b draw_interleaved_span_color_1_last_cell
 	move.l a3,(a1)+
 	move.l d5,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003F33E
+	bmi.b draw_interleaved_span_color_1_last_cell
 	move.l a3,(a1)+
 	move.l d5,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003F33E
+	bmi.b draw_interleaved_span_color_1_last_cell
 	move.l a3,(a1)+
 	move.l d5,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003F33E
+	bmi.b draw_interleaved_span_color_1_last_cell
 	move.l a3,(a1)+
 	move.l d5,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003F33E
+	bmi.b draw_interleaved_span_color_1_last_cell
 	move.l a3,(a1)+
 	move.l d5,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003F33E
+	bmi.b draw_interleaved_span_color_1_last_cell
 	move.l a3,(a1)+
 	move.l d5,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003F33E
+	bmi.b draw_interleaved_span_color_1_last_cell
 	move.l a3,(a1)+
 	move.l d5,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003F33E
+	bmi.b draw_interleaved_span_color_1_last_cell
 	move.l a3,(a1)+
 	move.l d5,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003F33E
+	bmi.b draw_interleaved_span_color_1_last_cell
 	move.l a3,(a1)+
 	move.l d5,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003F33E
+	bmi.b draw_interleaved_span_color_1_last_cell
 	move.l a3,(a1)+
 	move.l d5,(a1)+
-abs_0_0003F33E:
+draw_interleaved_span_color_1_last_cell:
 	or.w d6,(a1)+
 	not.l d6
 	and.w d6,(a1)+
@@ -56373,9 +56375,9 @@ abs_0_0003F33E:
 	move.l (a2)+,d2
 	bpl.w draw_interleaved_span_header
 	rts
-abs_0_0003F358:
+draw_interleaved_span_color_2:
 	subq.w #8,d3
-	bpl.b abs_0_0003F37A
+	bpl.b draw_interleaved_span_color_2_multi_cell
 	and.l d6,d4
 	move.w d4,d2
 	not.l d4
@@ -56389,85 +56391,85 @@ abs_0_0003F358:
 	move.l (a2)+,d2
 	bpl.w draw_interleaved_span_header
 	rts
-abs_0_0003F37A:
+draw_interleaved_span_color_2_multi_cell:
 	move.w d4,d2
 	not.l d4
 	and.w d4,(a1)+
 	or.w d2,(a1)+
 	and.l d4,(a1)+
 	subq.w #8,d3
-	bmi.w abs_0_0003F418
+	bmi.w draw_interleaved_span_color_2_last_cell
 	move.l d1,(a1)+
 	move.l d5,(a1)+
 	subq.w #8,d3
-	bmi.w abs_0_0003F418
+	bmi.w draw_interleaved_span_color_2_last_cell
 	move.l d1,(a1)+
 	move.l d5,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003F418
+	bmi.b draw_interleaved_span_color_2_last_cell
 	move.l d1,(a1)+
 	move.l d5,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003F418
+	bmi.b draw_interleaved_span_color_2_last_cell
 	move.l d1,(a1)+
 	move.l d5,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003F418
+	bmi.b draw_interleaved_span_color_2_last_cell
 	move.l d1,(a1)+
 	move.l d5,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003F418
+	bmi.b draw_interleaved_span_color_2_last_cell
 	move.l d1,(a1)+
 	move.l d5,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003F418
+	bmi.b draw_interleaved_span_color_2_last_cell
 	move.l d1,(a1)+
 	move.l d5,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003F418
+	bmi.b draw_interleaved_span_color_2_last_cell
 	move.l d1,(a1)+
 	move.l d5,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003F418
+	bmi.b draw_interleaved_span_color_2_last_cell
 	move.l d1,(a1)+
 	move.l d5,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003F418
+	bmi.b draw_interleaved_span_color_2_last_cell
 	move.l d1,(a1)+
 	move.l d5,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003F418
+	bmi.b draw_interleaved_span_color_2_last_cell
 	move.l d1,(a1)+
 	move.l d5,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003F418
+	bmi.b draw_interleaved_span_color_2_last_cell
 	move.l d1,(a1)+
 	move.l d5,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003F418
+	bmi.b draw_interleaved_span_color_2_last_cell
 	move.l d1,(a1)+
 	move.l d5,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003F418
+	bmi.b draw_interleaved_span_color_2_last_cell
 	move.l d1,(a1)+
 	move.l d5,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003F418
+	bmi.b draw_interleaved_span_color_2_last_cell
 	move.l d1,(a1)+
 	move.l d5,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003F418
+	bmi.b draw_interleaved_span_color_2_last_cell
 	move.l d1,(a1)+
 	move.l d5,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003F418
+	bmi.b draw_interleaved_span_color_2_last_cell
 	move.l d1,(a1)+
 	move.l d5,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003F418
+	bmi.b draw_interleaved_span_color_2_last_cell
 	move.l d1,(a1)+
 	move.l d5,(a1)+
-abs_0_0003F418:
+draw_interleaved_span_color_2_last_cell:
 	move.w d6,d2
 	not.l d6
 	and.w d6,(a1)+
@@ -56480,9 +56482,9 @@ abs_0_0003F418:
 	move.l (a2)+,d2
 	bpl.w draw_interleaved_span_header
 	rts
-abs_0_0003F434:
+draw_interleaved_span_color_3:
 	subq.w #8,d3
-	bpl.b abs_0_0003F452
+	bpl.b draw_interleaved_span_color_3_multi_cell
 	and.l d6,d4
 	or.l d4,(a1)+
 	not.l d4
@@ -56494,83 +56496,83 @@ abs_0_0003F434:
 	move.l (a2)+,d2
 	bpl.w draw_interleaved_span_header
 	rts
-abs_0_0003F452:
+draw_interleaved_span_color_3_multi_cell:
 	or.l d4,(a1)+
 	not.l d4
 	and.l d4,(a1)+
 	subq.w #8,d3
-	bmi.w abs_0_0003F4EC
+	bmi.w draw_interleaved_span_color_3_last_cell
 	move.l d7,(a1)+
 	move.l d5,(a1)+
 	subq.w #8,d3
-	bmi.w abs_0_0003F4EC
+	bmi.w draw_interleaved_span_color_3_last_cell
 	move.l d7,(a1)+
 	move.l d5,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003F4EC
+	bmi.b draw_interleaved_span_color_3_last_cell
 	move.l d7,(a1)+
 	move.l d5,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003F4EC
+	bmi.b draw_interleaved_span_color_3_last_cell
 	move.l d7,(a1)+
 	move.l d5,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003F4EC
+	bmi.b draw_interleaved_span_color_3_last_cell
 	move.l d7,(a1)+
 	move.l d5,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003F4EC
+	bmi.b draw_interleaved_span_color_3_last_cell
 	move.l d7,(a1)+
 	move.l d5,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003F4EC
+	bmi.b draw_interleaved_span_color_3_last_cell
 	move.l d7,(a1)+
 	move.l d5,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003F4EC
+	bmi.b draw_interleaved_span_color_3_last_cell
 	move.l d7,(a1)+
 	move.l d5,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003F4EC
+	bmi.b draw_interleaved_span_color_3_last_cell
 	move.l d7,(a1)+
 	move.l d5,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003F4EC
+	bmi.b draw_interleaved_span_color_3_last_cell
 	move.l d7,(a1)+
 	move.l d5,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003F4EC
+	bmi.b draw_interleaved_span_color_3_last_cell
 	move.l d7,(a1)+
 	move.l d5,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003F4EC
+	bmi.b draw_interleaved_span_color_3_last_cell
 	move.l d7,(a1)+
 	move.l d5,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003F4EC
+	bmi.b draw_interleaved_span_color_3_last_cell
 	move.l d7,(a1)+
 	move.l d5,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003F4EC
+	bmi.b draw_interleaved_span_color_3_last_cell
 	move.l d7,(a1)+
 	move.l d5,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003F4EC
+	bmi.b draw_interleaved_span_color_3_last_cell
 	move.l d7,(a1)+
 	move.l d5,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003F4EC
+	bmi.b draw_interleaved_span_color_3_last_cell
 	move.l d7,(a1)+
 	move.l d5,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003F4EC
+	bmi.b draw_interleaved_span_color_3_last_cell
 	move.l d7,(a1)+
 	move.l d5,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003F4EC
+	bmi.b draw_interleaved_span_color_3_last_cell
 	move.l d7,(a1)+
 	move.l d5,(a1)+
-abs_0_0003F4EC:
+draw_interleaved_span_color_3_last_cell:
 	or.l d6,(a1)+
 	not.l d6
 	and.l d6,(a1)+
@@ -56581,9 +56583,9 @@ abs_0_0003F4EC:
 	move.l (a2)+,d2
 	bpl.w draw_interleaved_span_header
 	rts
-abs_0_0003F504:
+draw_interleaved_span_color_4:
 	subq.w #8,d3
-	bpl.b abs_0_0003F526
+	bpl.b draw_interleaved_span_color_4_multi_cell
 	and.l d6,d4
 	move.w d4,d2
 	not.l d4
@@ -56597,85 +56599,85 @@ abs_0_0003F504:
 	move.l (a2)+,d2
 	bpl.w draw_interleaved_span_header
 	rts
-abs_0_0003F526:
+draw_interleaved_span_color_4_multi_cell:
 	move.w d4,d2
 	not.l d4
 	and.l d4,(a1)+
 	or.w d2,(a1)+
 	and.w d4,(a1)+
 	subq.w #8,d3
-	bmi.w abs_0_0003F5C4
+	bmi.w draw_interleaved_span_color_4_last_cell
 	move.l d5,(a1)+
 	move.l a3,(a1)+
 	subq.w #8,d3
-	bmi.w abs_0_0003F5C4
+	bmi.w draw_interleaved_span_color_4_last_cell
 	move.l d5,(a1)+
 	move.l a3,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003F5C4
+	bmi.b draw_interleaved_span_color_4_last_cell
 	move.l d5,(a1)+
 	move.l a3,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003F5C4
+	bmi.b draw_interleaved_span_color_4_last_cell
 	move.l d5,(a1)+
 	move.l a3,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003F5C4
+	bmi.b draw_interleaved_span_color_4_last_cell
 	move.l d5,(a1)+
 	move.l a3,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003F5C4
+	bmi.b draw_interleaved_span_color_4_last_cell
 	move.l d5,(a1)+
 	move.l a3,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003F5C4
+	bmi.b draw_interleaved_span_color_4_last_cell
 	move.l d5,(a1)+
 	move.l a3,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003F5C4
+	bmi.b draw_interleaved_span_color_4_last_cell
 	move.l d5,(a1)+
 	move.l a3,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003F5C4
+	bmi.b draw_interleaved_span_color_4_last_cell
 	move.l d5,(a1)+
 	move.l a3,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003F5C4
+	bmi.b draw_interleaved_span_color_4_last_cell
 	move.l d5,(a1)+
 	move.l a3,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003F5C4
+	bmi.b draw_interleaved_span_color_4_last_cell
 	move.l d5,(a1)+
 	move.l a3,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003F5C4
+	bmi.b draw_interleaved_span_color_4_last_cell
 	move.l d5,(a1)+
 	move.l a3,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003F5C4
+	bmi.b draw_interleaved_span_color_4_last_cell
 	move.l d5,(a1)+
 	move.l a3,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003F5C4
+	bmi.b draw_interleaved_span_color_4_last_cell
 	move.l d5,(a1)+
 	move.l a3,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003F5C4
+	bmi.b draw_interleaved_span_color_4_last_cell
 	move.l d5,(a1)+
 	move.l a3,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003F5C4
+	bmi.b draw_interleaved_span_color_4_last_cell
 	move.l d5,(a1)+
 	move.l a3,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003F5C4
+	bmi.b draw_interleaved_span_color_4_last_cell
 	move.l d5,(a1)+
 	move.l a3,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003F5C4
+	bmi.b draw_interleaved_span_color_4_last_cell
 	move.l d5,(a1)+
 	move.l a3,(a1)+
-abs_0_0003F5C4:
+draw_interleaved_span_color_4_last_cell:
 	move.w d6,d2
 	not.l d6
 	and.l d6,(a1)+
@@ -56688,9 +56690,9 @@ abs_0_0003F5C4:
 	move.l (a2)+,d2
 	bpl.w draw_interleaved_span_header
 	rts
-abs_0_0003F5E0:
+draw_interleaved_span_color_5:
 	subq.w #8,d3
-	bpl.b abs_0_0003F604
+	bpl.b draw_interleaved_span_color_5_multi_cell
 	and.l d6,d4
 	move.w d4,d2
 	not.w d4
@@ -56705,7 +56707,7 @@ abs_0_0003F5E0:
 	move.l (a2)+,d2
 	bpl.w draw_interleaved_span_header
 	rts
-abs_0_0003F604:
+draw_interleaved_span_color_5_multi_cell:
 	move.w d4,d2
 	not.w d4
 	or.w d2,(a1)+
@@ -56713,78 +56715,78 @@ abs_0_0003F604:
 	or.w d2,(a1)+
 	and.w d4,(a1)+
 	subq.w #8,d3
-	bmi.w abs_0_0003F6A4
+	bmi.w draw_interleaved_span_color_5_last_cell
 	move.l a3,(a1)+
 	move.l a3,(a1)+
 	subq.w #8,d3
-	bmi.w abs_0_0003F6A4
+	bmi.w draw_interleaved_span_color_5_last_cell
 	move.l a3,(a1)+
 	move.l a3,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003F6A4
+	bmi.b draw_interleaved_span_color_5_last_cell
 	move.l a3,(a1)+
 	move.l a3,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003F6A4
+	bmi.b draw_interleaved_span_color_5_last_cell
 	move.l a3,(a1)+
 	move.l a3,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003F6A4
+	bmi.b draw_interleaved_span_color_5_last_cell
 	move.l a3,(a1)+
 	move.l a3,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003F6A4
+	bmi.b draw_interleaved_span_color_5_last_cell
 	move.l a3,(a1)+
 	move.l a3,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003F6A4
+	bmi.b draw_interleaved_span_color_5_last_cell
 	move.l a3,(a1)+
 	move.l a3,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003F6A4
+	bmi.b draw_interleaved_span_color_5_last_cell
 	move.l a3,(a1)+
 	move.l a3,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003F6A4
+	bmi.b draw_interleaved_span_color_5_last_cell
 	move.l a3,(a1)+
 	move.l a3,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003F6A4
+	bmi.b draw_interleaved_span_color_5_last_cell
 	move.l a3,(a1)+
 	move.l a3,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003F6A4
+	bmi.b draw_interleaved_span_color_5_last_cell
 	move.l a3,(a1)+
 	move.l a3,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003F6A4
+	bmi.b draw_interleaved_span_color_5_last_cell
 	move.l a3,(a1)+
 	move.l a3,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003F6A4
+	bmi.b draw_interleaved_span_color_5_last_cell
 	move.l a3,(a1)+
 	move.l a3,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003F6A4
+	bmi.b draw_interleaved_span_color_5_last_cell
 	move.l a3,(a1)+
 	move.l a3,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003F6A4
+	bmi.b draw_interleaved_span_color_5_last_cell
 	move.l a3,(a1)+
 	move.l a3,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003F6A4
+	bmi.b draw_interleaved_span_color_5_last_cell
 	move.l a3,(a1)+
 	move.l a3,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003F6A4
+	bmi.b draw_interleaved_span_color_5_last_cell
 	move.l a3,(a1)+
 	move.l a3,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003F6A4
+	bmi.b draw_interleaved_span_color_5_last_cell
 	move.l a3,(a1)+
 	move.l a3,(a1)+
-abs_0_0003F6A4:
+draw_interleaved_span_color_5_last_cell:
 	move.w d6,d2
 	not.w d6
 	or.w d2,(a1)+
@@ -56798,9 +56800,9 @@ abs_0_0003F6A4:
 	move.l (a2)+,d2
 	bpl.w draw_interleaved_span_header
 	rts
-abs_0_0003F6C2:
+draw_interleaved_span_color_6:
 	subq.w #8,d3
-	bpl.b abs_0_0003F6E4
+	bpl.b draw_interleaved_span_color_6_multi_cell
 	and.l d6,d4
 	move.l d4,d2
 	not.w d4
@@ -56814,85 +56816,85 @@ abs_0_0003F6C2:
 	move.l (a2)+,d2
 	bpl.w draw_interleaved_span_header
 	rts
-abs_0_0003F6E4:
+draw_interleaved_span_color_6_multi_cell:
 	move.l d4,d2
 	not.w d4
 	and.w d4,(a1)+
 	or.l d2,(a1)+
 	and.w d4,(a1)+
 	subq.w #8,d3
-	bmi.w abs_0_0003F782
+	bmi.w draw_interleaved_span_color_6_last_cell
 	move.l d1,(a1)+
 	move.l a3,(a1)+
 	subq.w #8,d3
-	bmi.w abs_0_0003F782
+	bmi.w draw_interleaved_span_color_6_last_cell
 	move.l d1,(a1)+
 	move.l a3,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003F782
+	bmi.b draw_interleaved_span_color_6_last_cell
 	move.l d1,(a1)+
 	move.l a3,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003F782
+	bmi.b draw_interleaved_span_color_6_last_cell
 	move.l d1,(a1)+
 	move.l a3,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003F782
+	bmi.b draw_interleaved_span_color_6_last_cell
 	move.l d1,(a1)+
 	move.l a3,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003F782
+	bmi.b draw_interleaved_span_color_6_last_cell
 	move.l d1,(a1)+
 	move.l a3,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003F782
+	bmi.b draw_interleaved_span_color_6_last_cell
 	move.l d1,(a1)+
 	move.l a3,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003F782
+	bmi.b draw_interleaved_span_color_6_last_cell
 	move.l d1,(a1)+
 	move.l a3,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003F782
+	bmi.b draw_interleaved_span_color_6_last_cell
 	move.l d1,(a1)+
 	move.l a3,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003F782
+	bmi.b draw_interleaved_span_color_6_last_cell
 	move.l d1,(a1)+
 	move.l a3,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003F782
+	bmi.b draw_interleaved_span_color_6_last_cell
 	move.l d1,(a1)+
 	move.l a3,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003F782
+	bmi.b draw_interleaved_span_color_6_last_cell
 	move.l d1,(a1)+
 	move.l a3,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003F782
+	bmi.b draw_interleaved_span_color_6_last_cell
 	move.l d1,(a1)+
 	move.l a3,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003F782
+	bmi.b draw_interleaved_span_color_6_last_cell
 	move.l d1,(a1)+
 	move.l a3,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003F782
+	bmi.b draw_interleaved_span_color_6_last_cell
 	move.l d1,(a1)+
 	move.l a3,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003F782
+	bmi.b draw_interleaved_span_color_6_last_cell
 	move.l d1,(a1)+
 	move.l a3,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003F782
+	bmi.b draw_interleaved_span_color_6_last_cell
 	move.l d1,(a1)+
 	move.l a3,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003F782
+	bmi.b draw_interleaved_span_color_6_last_cell
 	move.l d1,(a1)+
 	move.l a3,(a1)+
-abs_0_0003F782:
+draw_interleaved_span_color_6_last_cell:
 	move.l d6,d2
 	not.w d6
 	and.w d6,(a1)+
@@ -56905,9 +56907,9 @@ abs_0_0003F782:
 	move.l (a2)+,d2
 	bpl.w draw_interleaved_span_header
 	rts
-abs_0_0003F79E:
+draw_interleaved_span_color_7:
 	subq.w #8,d3
-	bpl.b abs_0_0003F7BE
+	bpl.b draw_interleaved_span_color_7_multi_cell
 	and.l d6,d4
 	or.l d4,(a1)+
 	or.w d4,(a1)+
@@ -56920,84 +56922,84 @@ abs_0_0003F79E:
 	move.l (a2)+,d2
 	bpl.w draw_interleaved_span_header
 	rts
-abs_0_0003F7BE:
+draw_interleaved_span_color_7_multi_cell:
 	or.l d4,(a1)+
 	or.w d4,(a1)+
 	not.w d4
 	and.w d4,(a1)+
 	subq.w #8,d3
-	bmi.w abs_0_0003F85A
+	bmi.w draw_interleaved_span_color_7_last_cell
 	move.l d7,(a1)+
 	move.l a3,(a1)+
 	subq.w #8,d3
-	bmi.w abs_0_0003F85A
+	bmi.w draw_interleaved_span_color_7_last_cell
 	move.l d7,(a1)+
 	move.l a3,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003F85A
+	bmi.b draw_interleaved_span_color_7_last_cell
 	move.l d7,(a1)+
 	move.l a3,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003F85A
+	bmi.b draw_interleaved_span_color_7_last_cell
 	move.l d7,(a1)+
 	move.l a3,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003F85A
+	bmi.b draw_interleaved_span_color_7_last_cell
 	move.l d7,(a1)+
 	move.l a3,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003F85A
+	bmi.b draw_interleaved_span_color_7_last_cell
 	move.l d7,(a1)+
 	move.l a3,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003F85A
+	bmi.b draw_interleaved_span_color_7_last_cell
 	move.l d7,(a1)+
 	move.l a3,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003F85A
+	bmi.b draw_interleaved_span_color_7_last_cell
 	move.l d7,(a1)+
 	move.l a3,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003F85A
+	bmi.b draw_interleaved_span_color_7_last_cell
 	move.l d7,(a1)+
 	move.l a3,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003F85A
+	bmi.b draw_interleaved_span_color_7_last_cell
 	move.l d7,(a1)+
 	move.l a3,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003F85A
+	bmi.b draw_interleaved_span_color_7_last_cell
 	move.l d7,(a1)+
 	move.l a3,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003F85A
+	bmi.b draw_interleaved_span_color_7_last_cell
 	move.l d7,(a1)+
 	move.l a3,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003F85A
+	bmi.b draw_interleaved_span_color_7_last_cell
 	move.l d7,(a1)+
 	move.l a3,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003F85A
+	bmi.b draw_interleaved_span_color_7_last_cell
 	move.l d7,(a1)+
 	move.l a3,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003F85A
+	bmi.b draw_interleaved_span_color_7_last_cell
 	move.l d7,(a1)+
 	move.l a3,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003F85A
+	bmi.b draw_interleaved_span_color_7_last_cell
 	move.l d7,(a1)+
 	move.l a3,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003F85A
+	bmi.b draw_interleaved_span_color_7_last_cell
 	move.l d7,(a1)+
 	move.l a3,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003F85A
+	bmi.b draw_interleaved_span_color_7_last_cell
 	move.l d7,(a1)+
 	move.l a3,(a1)+
-abs_0_0003F85A:
+draw_interleaved_span_color_7_last_cell:
 	or.l d6,(a1)+
 	or.w d6,(a1)+
 	not.w d6
@@ -57009,9 +57011,9 @@ abs_0_0003F85A:
 	move.l (a2)+,d2
 	bpl.w draw_interleaved_span_header
 	rts
-abs_0_0003F874:
+draw_interleaved_span_color_8:
 	subq.w #8,d3
-	bpl.b abs_0_0003F896
+	bpl.b draw_interleaved_span_color_8_multi_cell
 	and.l d6,d4
 	move.w d4,d2
 	not.l d4
@@ -57025,85 +57027,85 @@ abs_0_0003F874:
 	move.l (a2)+,d2
 	bpl.w draw_interleaved_span_header
 	rts
-abs_0_0003F896:
+draw_interleaved_span_color_8_multi_cell:
 	move.w d4,d2
 	not.l d4
 	and.l d4,(a1)+
 	and.w d4,(a1)+
 	or.w d2,(a1)+
 	subq.w #8,d3
-	bmi.w abs_0_0003F934
+	bmi.w draw_interleaved_span_color_8_last_cell
 	move.l d5,(a1)+
 	move.l d1,(a1)+
 	subq.w #8,d3
-	bmi.w abs_0_0003F934
+	bmi.w draw_interleaved_span_color_8_last_cell
 	move.l d5,(a1)+
 	move.l d1,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003F934
+	bmi.b draw_interleaved_span_color_8_last_cell
 	move.l d5,(a1)+
 	move.l d1,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003F934
+	bmi.b draw_interleaved_span_color_8_last_cell
 	move.l d5,(a1)+
 	move.l d1,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003F934
+	bmi.b draw_interleaved_span_color_8_last_cell
 	move.l d5,(a1)+
 	move.l d1,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003F934
+	bmi.b draw_interleaved_span_color_8_last_cell
 	move.l d5,(a1)+
 	move.l d1,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003F934
+	bmi.b draw_interleaved_span_color_8_last_cell
 	move.l d5,(a1)+
 	move.l d1,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003F934
+	bmi.b draw_interleaved_span_color_8_last_cell
 	move.l d5,(a1)+
 	move.l d1,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003F934
+	bmi.b draw_interleaved_span_color_8_last_cell
 	move.l d5,(a1)+
 	move.l d1,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003F934
+	bmi.b draw_interleaved_span_color_8_last_cell
 	move.l d5,(a1)+
 	move.l d1,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003F934
+	bmi.b draw_interleaved_span_color_8_last_cell
 	move.l d5,(a1)+
 	move.l d1,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003F934
+	bmi.b draw_interleaved_span_color_8_last_cell
 	move.l d5,(a1)+
 	move.l d1,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003F934
+	bmi.b draw_interleaved_span_color_8_last_cell
 	move.l d5,(a1)+
 	move.l d1,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003F934
+	bmi.b draw_interleaved_span_color_8_last_cell
 	move.l d5,(a1)+
 	move.l d1,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003F934
+	bmi.b draw_interleaved_span_color_8_last_cell
 	move.l d5,(a1)+
 	move.l d1,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003F934
+	bmi.b draw_interleaved_span_color_8_last_cell
 	move.l d5,(a1)+
 	move.l d1,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003F934
+	bmi.b draw_interleaved_span_color_8_last_cell
 	move.l d5,(a1)+
 	move.l d1,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003F934
+	bmi.b draw_interleaved_span_color_8_last_cell
 	move.l d5,(a1)+
 	move.l d1,(a1)+
-abs_0_0003F934:
+draw_interleaved_span_color_8_last_cell:
 	move.w d6,d2
 	not.l d6
 	and.l d6,(a1)+
@@ -57116,9 +57118,9 @@ abs_0_0003F934:
 	move.l (a2)+,d2
 	bpl.w draw_interleaved_span_header
 	rts
-abs_0_0003F950:
+draw_interleaved_span_color_9:
 	subq.w #8,d3
-	bpl.b abs_0_0003F972
+	bpl.b draw_interleaved_span_color_9_multi_cell
 	and.l d6,d4
 	move.w d4,d2
 	not.l d4
@@ -57132,85 +57134,85 @@ abs_0_0003F950:
 	move.l (a2)+,d2
 	bpl.w draw_interleaved_span_header
 	rts
-abs_0_0003F972:
+draw_interleaved_span_color_9_multi_cell:
 	move.w d4,d2
 	not.l d4
 	or.w d2,(a1)+
 	and.l d4,(a1)+
 	or.w d2,(a1)+
 	subq.w #8,d3
-	bmi.w abs_0_0003FA10
+	bmi.w draw_interleaved_span_color_9_last_cell
 	move.l a3,(a1)+
 	move.l d1,(a1)+
 	subq.w #8,d3
-	bmi.w abs_0_0003FA10
+	bmi.w draw_interleaved_span_color_9_last_cell
 	move.l a3,(a1)+
 	move.l d1,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003FA10
+	bmi.b draw_interleaved_span_color_9_last_cell
 	move.l a3,(a1)+
 	move.l d1,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003FA10
+	bmi.b draw_interleaved_span_color_9_last_cell
 	move.l a3,(a1)+
 	move.l d1,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003FA10
+	bmi.b draw_interleaved_span_color_9_last_cell
 	move.l a3,(a1)+
 	move.l d1,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003FA10
+	bmi.b draw_interleaved_span_color_9_last_cell
 	move.l a3,(a1)+
 	move.l d1,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003FA10
+	bmi.b draw_interleaved_span_color_9_last_cell
 	move.l a3,(a1)+
 	move.l d1,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003FA10
+	bmi.b draw_interleaved_span_color_9_last_cell
 	move.l a3,(a1)+
 	move.l d1,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003FA10
+	bmi.b draw_interleaved_span_color_9_last_cell
 	move.l a3,(a1)+
 	move.l d1,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003FA10
+	bmi.b draw_interleaved_span_color_9_last_cell
 	move.l a3,(a1)+
 	move.l d1,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003FA10
+	bmi.b draw_interleaved_span_color_9_last_cell
 	move.l a3,(a1)+
 	move.l d1,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003FA10
+	bmi.b draw_interleaved_span_color_9_last_cell
 	move.l a3,(a1)+
 	move.l d1,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003FA10
+	bmi.b draw_interleaved_span_color_9_last_cell
 	move.l a3,(a1)+
 	move.l d1,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003FA10
+	bmi.b draw_interleaved_span_color_9_last_cell
 	move.l a3,(a1)+
 	move.l d1,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003FA10
+	bmi.b draw_interleaved_span_color_9_last_cell
 	move.l a3,(a1)+
 	move.l d1,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003FA10
+	bmi.b draw_interleaved_span_color_9_last_cell
 	move.l a3,(a1)+
 	move.l d1,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003FA10
+	bmi.b draw_interleaved_span_color_9_last_cell
 	move.l a3,(a1)+
 	move.l d1,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003FA10
+	bmi.b draw_interleaved_span_color_9_last_cell
 	move.l a3,(a1)+
 	move.l d1,(a1)+
-abs_0_0003FA10:
+draw_interleaved_span_color_9_last_cell:
 	move.w d6,d2
 	not.l d6
 	or.w d2,(a1)+
@@ -57223,9 +57225,9 @@ abs_0_0003FA10:
 	move.l (a2)+,d2
 	bpl.w draw_interleaved_span_header
 	rts
-abs_0_0003FA2C:
+draw_interleaved_span_color_10:
 	subq.w #8,d3
-	bpl.b abs_0_0003FA50
+	bpl.b draw_interleaved_span_color_10_multi_cell
 	and.l d6,d4
 	move.w d4,d2
 	not.w d4
@@ -57240,7 +57242,7 @@ abs_0_0003FA2C:
 	move.l (a2)+,d2
 	bpl.w draw_interleaved_span_header
 	rts
-abs_0_0003FA50:
+draw_interleaved_span_color_10_multi_cell:
 	move.w d4,d2
 	not.w d4
 	and.w d4,(a1)+
@@ -57248,78 +57250,78 @@ abs_0_0003FA50:
 	and.w d4,(a1)+
 	or.w d2,(a1)+
 	subq.w #8,d3
-	bmi.w abs_0_0003FAF0
+	bmi.w draw_interleaved_span_color_10_last_cell
 	move.l d1,(a1)+
 	move.l d1,(a1)+
 	subq.w #8,d3
-	bmi.w abs_0_0003FAF0
+	bmi.w draw_interleaved_span_color_10_last_cell
 	move.l d1,(a1)+
 	move.l d1,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003FAF0
+	bmi.b draw_interleaved_span_color_10_last_cell
 	move.l d1,(a1)+
 	move.l d1,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003FAF0
+	bmi.b draw_interleaved_span_color_10_last_cell
 	move.l d1,(a1)+
 	move.l d1,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003FAF0
+	bmi.b draw_interleaved_span_color_10_last_cell
 	move.l d1,(a1)+
 	move.l d1,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003FAF0
+	bmi.b draw_interleaved_span_color_10_last_cell
 	move.l d1,(a1)+
 	move.l d1,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003FAF0
+	bmi.b draw_interleaved_span_color_10_last_cell
 	move.l d1,(a1)+
 	move.l d1,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003FAF0
+	bmi.b draw_interleaved_span_color_10_last_cell
 	move.l d1,(a1)+
 	move.l d1,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003FAF0
+	bmi.b draw_interleaved_span_color_10_last_cell
 	move.l d1,(a1)+
 	move.l d1,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003FAF0
+	bmi.b draw_interleaved_span_color_10_last_cell
 	move.l d1,(a1)+
 	move.l d1,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003FAF0
+	bmi.b draw_interleaved_span_color_10_last_cell
 	move.l d1,(a1)+
 	move.l d1,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003FAF0
+	bmi.b draw_interleaved_span_color_10_last_cell
 	move.l d1,(a1)+
 	move.l d1,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003FAF0
+	bmi.b draw_interleaved_span_color_10_last_cell
 	move.l d1,(a1)+
 	move.l d1,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003FAF0
+	bmi.b draw_interleaved_span_color_10_last_cell
 	move.l d1,(a1)+
 	move.l d1,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003FAF0
+	bmi.b draw_interleaved_span_color_10_last_cell
 	move.l d1,(a1)+
 	move.l d1,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003FAF0
+	bmi.b draw_interleaved_span_color_10_last_cell
 	move.l d1,(a1)+
 	move.l d1,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003FAF0
+	bmi.b draw_interleaved_span_color_10_last_cell
 	move.l d1,(a1)+
 	move.l d1,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003FAF0
+	bmi.b draw_interleaved_span_color_10_last_cell
 	move.l d1,(a1)+
 	move.l d1,(a1)+
-abs_0_0003FAF0:
+draw_interleaved_span_color_10_last_cell:
 	move.w d6,d2
 	not.w d6
 	and.w d6,(a1)+
@@ -57333,9 +57335,9 @@ abs_0_0003FAF0:
 	move.l (a2)+,d2
 	bpl.w draw_interleaved_span_header
 	rts
-abs_0_0003FB0E:
+draw_interleaved_span_color_11:
 	subq.w #8,d3
-	bpl.b abs_0_0003FB30
+	bpl.b draw_interleaved_span_color_11_multi_cell
 	and.l d6,d4
 	move.l d4,d2
 	not.w d4
@@ -57349,85 +57351,85 @@ abs_0_0003FB0E:
 	move.l (a2)+,d2
 	bpl.w draw_interleaved_span_header
 	rts
-abs_0_0003FB30:
+draw_interleaved_span_color_11_multi_cell:
 	move.l d4,d2
 	not.w d4
 	or.l d2,(a1)+
 	and.w d4,(a1)+
 	or.w d2,(a1)+
 	subq.w #8,d3
-	bmi.w abs_0_0003FBCE
+	bmi.w draw_interleaved_span_color_11_last_cell
 	move.l d7,(a1)+
 	move.l d1,(a1)+
 	subq.w #8,d3
-	bmi.w abs_0_0003FBCE
+	bmi.w draw_interleaved_span_color_11_last_cell
 	move.l d7,(a1)+
 	move.l d1,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003FBCE
+	bmi.b draw_interleaved_span_color_11_last_cell
 	move.l d7,(a1)+
 	move.l d1,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003FBCE
+	bmi.b draw_interleaved_span_color_11_last_cell
 	move.l d7,(a1)+
 	move.l d1,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003FBCE
+	bmi.b draw_interleaved_span_color_11_last_cell
 	move.l d7,(a1)+
 	move.l d1,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003FBCE
+	bmi.b draw_interleaved_span_color_11_last_cell
 	move.l d7,(a1)+
 	move.l d1,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003FBCE
+	bmi.b draw_interleaved_span_color_11_last_cell
 	move.l d7,(a1)+
 	move.l d1,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003FBCE
+	bmi.b draw_interleaved_span_color_11_last_cell
 	move.l d7,(a1)+
 	move.l d1,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003FBCE
+	bmi.b draw_interleaved_span_color_11_last_cell
 	move.l d7,(a1)+
 	move.l d1,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003FBCE
+	bmi.b draw_interleaved_span_color_11_last_cell
 	move.l d7,(a1)+
 	move.l d1,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003FBCE
+	bmi.b draw_interleaved_span_color_11_last_cell
 	move.l d7,(a1)+
 	move.l d1,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003FBCE
+	bmi.b draw_interleaved_span_color_11_last_cell
 	move.l d7,(a1)+
 	move.l d1,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003FBCE
+	bmi.b draw_interleaved_span_color_11_last_cell
 	move.l d7,(a1)+
 	move.l d1,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003FBCE
+	bmi.b draw_interleaved_span_color_11_last_cell
 	move.l d7,(a1)+
 	move.l d1,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003FBCE
+	bmi.b draw_interleaved_span_color_11_last_cell
 	move.l d7,(a1)+
 	move.l d1,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003FBCE
+	bmi.b draw_interleaved_span_color_11_last_cell
 	move.l d7,(a1)+
 	move.l d1,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003FBCE
+	bmi.b draw_interleaved_span_color_11_last_cell
 	move.l d7,(a1)+
 	move.l d1,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003FBCE
+	bmi.b draw_interleaved_span_color_11_last_cell
 	move.l d7,(a1)+
 	move.l d1,(a1)+
-abs_0_0003FBCE:
+draw_interleaved_span_color_11_last_cell:
 	move.l d6,d2
 	not.w d6
 	or.l d2,(a1)+
@@ -57440,9 +57442,9 @@ abs_0_0003FBCE:
 	move.l (a2)+,d2
 	bpl.w draw_interleaved_span_header
 	rts
-abs_0_0003FBEA:
+draw_interleaved_span_color_12:
 	subq.w #8,d3
-	bpl.b abs_0_0003FC0A
+	bpl.b draw_interleaved_span_color_12_multi_cell
 	and.l d6,d4
 	move.l d4,d2
 	not.l d4
@@ -57455,84 +57457,84 @@ abs_0_0003FBEA:
 	move.l (a2)+,d2
 	bpl.w draw_interleaved_span_header
 	rts
-abs_0_0003FC0A:
+draw_interleaved_span_color_12_multi_cell:
 	move.l d4,d2
 	not.l d4
 	and.l d4,(a1)+
 	or.l d2,(a1)+
 	subq.w #8,d3
-	bmi.w abs_0_0003FCA6
+	bmi.w draw_interleaved_span_color_12_last_cell
 	move.l d5,(a1)+
 	move.l d7,(a1)+
 	subq.w #8,d3
-	bmi.w abs_0_0003FCA6
+	bmi.w draw_interleaved_span_color_12_last_cell
 	move.l d5,(a1)+
 	move.l d7,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003FCA6
+	bmi.b draw_interleaved_span_color_12_last_cell
 	move.l d5,(a1)+
 	move.l d7,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003FCA6
+	bmi.b draw_interleaved_span_color_12_last_cell
 	move.l d5,(a1)+
 	move.l d7,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003FCA6
+	bmi.b draw_interleaved_span_color_12_last_cell
 	move.l d5,(a1)+
 	move.l d7,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003FCA6
+	bmi.b draw_interleaved_span_color_12_last_cell
 	move.l d5,(a1)+
 	move.l d7,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003FCA6
+	bmi.b draw_interleaved_span_color_12_last_cell
 	move.l d5,(a1)+
 	move.l d7,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003FCA6
+	bmi.b draw_interleaved_span_color_12_last_cell
 	move.l d5,(a1)+
 	move.l d7,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003FCA6
+	bmi.b draw_interleaved_span_color_12_last_cell
 	move.l d5,(a1)+
 	move.l d7,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003FCA6
+	bmi.b draw_interleaved_span_color_12_last_cell
 	move.l d5,(a1)+
 	move.l d7,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003FCA6
+	bmi.b draw_interleaved_span_color_12_last_cell
 	move.l d5,(a1)+
 	move.l d7,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003FCA6
+	bmi.b draw_interleaved_span_color_12_last_cell
 	move.l d5,(a1)+
 	move.l d7,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003FCA6
+	bmi.b draw_interleaved_span_color_12_last_cell
 	move.l d5,(a1)+
 	move.l d7,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003FCA6
+	bmi.b draw_interleaved_span_color_12_last_cell
 	move.l d5,(a1)+
 	move.l d7,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003FCA6
+	bmi.b draw_interleaved_span_color_12_last_cell
 	move.l d5,(a1)+
 	move.l d7,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003FCA6
+	bmi.b draw_interleaved_span_color_12_last_cell
 	move.l d5,(a1)+
 	move.l d7,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003FCA6
+	bmi.b draw_interleaved_span_color_12_last_cell
 	move.l d5,(a1)+
 	move.l d7,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003FCA6
+	bmi.b draw_interleaved_span_color_12_last_cell
 	move.l d5,(a1)+
 	move.l d7,(a1)+
-abs_0_0003FCA6:
+draw_interleaved_span_color_12_last_cell:
 	move.l d6,d2
 	not.l d6
 	and.l d6,(a1)+
@@ -57544,9 +57546,9 @@ abs_0_0003FCA6:
 	move.l (a2)+,d2
 	bpl.w draw_interleaved_span_header
 	rts
-abs_0_0003FCC0:
+draw_interleaved_span_color_13:
 	subq.w #8,d3
-	bpl.b abs_0_0003FCE2
+	bpl.b draw_interleaved_span_color_13_multi_cell
 	and.l d6,d4
 	move.l d4,d2
 	not.w d4
@@ -57560,85 +57562,85 @@ abs_0_0003FCC0:
 	move.l (a2)+,d2
 	bpl.w draw_interleaved_span_header
 	rts
-abs_0_0003FCE2:
+draw_interleaved_span_color_13_multi_cell:
 	move.l d4,d2
 	not.w d4
 	or.w d2,(a1)+
 	and.w d4,(a1)+
 	or.l d2,(a1)+
 	subq.w #8,d3
-	bmi.w abs_0_0003FD80
+	bmi.w draw_interleaved_span_color_13_last_cell
 	move.l a3,(a1)+
 	move.l d7,(a1)+
 	subq.w #8,d3
-	bmi.w abs_0_0003FD80
+	bmi.w draw_interleaved_span_color_13_last_cell
 	move.l a3,(a1)+
 	move.l d7,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003FD80
+	bmi.b draw_interleaved_span_color_13_last_cell
 	move.l a3,(a1)+
 	move.l d7,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003FD80
+	bmi.b draw_interleaved_span_color_13_last_cell
 	move.l a3,(a1)+
 	move.l d7,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003FD80
+	bmi.b draw_interleaved_span_color_13_last_cell
 	move.l a3,(a1)+
 	move.l d7,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003FD80
+	bmi.b draw_interleaved_span_color_13_last_cell
 	move.l a3,(a1)+
 	move.l d7,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003FD80
+	bmi.b draw_interleaved_span_color_13_last_cell
 	move.l a3,(a1)+
 	move.l d7,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003FD80
+	bmi.b draw_interleaved_span_color_13_last_cell
 	move.l a3,(a1)+
 	move.l d7,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003FD80
+	bmi.b draw_interleaved_span_color_13_last_cell
 	move.l a3,(a1)+
 	move.l d7,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003FD80
+	bmi.b draw_interleaved_span_color_13_last_cell
 	move.l a3,(a1)+
 	move.l d7,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003FD80
+	bmi.b draw_interleaved_span_color_13_last_cell
 	move.l a3,(a1)+
 	move.l d7,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003FD80
+	bmi.b draw_interleaved_span_color_13_last_cell
 	move.l a3,(a1)+
 	move.l d7,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003FD80
+	bmi.b draw_interleaved_span_color_13_last_cell
 	move.l a3,(a1)+
 	move.l d7,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003FD80
+	bmi.b draw_interleaved_span_color_13_last_cell
 	move.l a3,(a1)+
 	move.l d7,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003FD80
+	bmi.b draw_interleaved_span_color_13_last_cell
 	move.l a3,(a1)+
 	move.l d7,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003FD80
+	bmi.b draw_interleaved_span_color_13_last_cell
 	move.l a3,(a1)+
 	move.l d7,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003FD80
+	bmi.b draw_interleaved_span_color_13_last_cell
 	move.l a3,(a1)+
 	move.l d7,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003FD80
+	bmi.b draw_interleaved_span_color_13_last_cell
 	move.l a3,(a1)+
 	move.l d7,(a1)+
-abs_0_0003FD80:
+draw_interleaved_span_color_13_last_cell:
 	move.l d6,d2
 	not.w d6
 	or.w d2,(a1)+
@@ -57651,9 +57653,9 @@ abs_0_0003FD80:
 	move.l (a2)+,d2
 	bpl.w draw_interleaved_span_header
 	rts
-abs_0_0003FD9C:
+draw_interleaved_span_color_14:
 	subq.w #8,d3
-	bpl.b abs_0_0003FDBE
+	bpl.b draw_interleaved_span_color_14_multi_cell
 	and.l d6,d4
 	move.l d4,d2
 	not.w d4
@@ -57667,85 +57669,85 @@ abs_0_0003FD9C:
 	move.l (a2)+,d2
 	bpl.w draw_interleaved_span_header
 	rts
-abs_0_0003FDBE:
+draw_interleaved_span_color_14_multi_cell:
 	move.l d4,d2
 	not.l d4
 	and.w d4,(a1)+
 	or.l d2,(a1)+
 	or.w d2,(a1)+
 	subq.w #8,d3
-	bmi.w abs_0_0003FE5C
+	bmi.w draw_interleaved_span_color_14_last_cell
 	move.l d1,(a1)+
 	move.l d7,(a1)+
 	subq.w #8,d3
-	bmi.w abs_0_0003FE5C
+	bmi.w draw_interleaved_span_color_14_last_cell
 	move.l d1,(a1)+
 	move.l d7,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003FE5C
+	bmi.b draw_interleaved_span_color_14_last_cell
 	move.l d1,(a1)+
 	move.l d7,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003FE5C
+	bmi.b draw_interleaved_span_color_14_last_cell
 	move.l d1,(a1)+
 	move.l d7,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003FE5C
+	bmi.b draw_interleaved_span_color_14_last_cell
 	move.l d1,(a1)+
 	move.l d7,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003FE5C
+	bmi.b draw_interleaved_span_color_14_last_cell
 	move.l d1,(a1)+
 	move.l d7,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003FE5C
+	bmi.b draw_interleaved_span_color_14_last_cell
 	move.l d1,(a1)+
 	move.l d7,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003FE5C
+	bmi.b draw_interleaved_span_color_14_last_cell
 	move.l d1,(a1)+
 	move.l d7,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003FE5C
+	bmi.b draw_interleaved_span_color_14_last_cell
 	move.l d1,(a1)+
 	move.l d7,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003FE5C
+	bmi.b draw_interleaved_span_color_14_last_cell
 	move.l d1,(a1)+
 	move.l d7,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003FE5C
+	bmi.b draw_interleaved_span_color_14_last_cell
 	move.l d1,(a1)+
 	move.l d7,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003FE5C
+	bmi.b draw_interleaved_span_color_14_last_cell
 	move.l d1,(a1)+
 	move.l d7,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003FE5C
+	bmi.b draw_interleaved_span_color_14_last_cell
 	move.l d1,(a1)+
 	move.l d7,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003FE5C
+	bmi.b draw_interleaved_span_color_14_last_cell
 	move.l d1,(a1)+
 	move.l d7,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003FE5C
+	bmi.b draw_interleaved_span_color_14_last_cell
 	move.l d1,(a1)+
 	move.l d7,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003FE5C
+	bmi.b draw_interleaved_span_color_14_last_cell
 	move.l d1,(a1)+
 	move.l d7,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003FE5C
+	bmi.b draw_interleaved_span_color_14_last_cell
 	move.l d1,(a1)+
 	move.l d7,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003FE5C
+	bmi.b draw_interleaved_span_color_14_last_cell
 	move.l d1,(a1)+
 	move.l d7,(a1)+
-abs_0_0003FE5C:
+draw_interleaved_span_color_14_last_cell:
 	move.l d6,d2
 	not.w d6
 	and.w d6,(a1)+
@@ -57758,9 +57760,9 @@ abs_0_0003FE5C:
 	move.l (a2)+,d2
 	bpl.w draw_interleaved_span_header
 	rts
-abs_0_0003FE78:
+draw_interleaved_span_color_15:
 	subq.w #8,d3
-	bpl.b abs_0_0003FE94
+	bpl.b draw_interleaved_span_color_15_multi_cell
 	and.l d6,d4
 	or.l d4,(a1)+
 	or.l d4,(a1)+
@@ -57771,82 +57773,82 @@ abs_0_0003FE78:
 	move.l (a2)+,d2
 	bpl.w draw_interleaved_span_header
 	rts
-abs_0_0003FE94:
+draw_interleaved_span_color_15_multi_cell:
 	or.l d4,(a1)+
 	or.l d4,(a1)+
 	subq.w #8,d3
-	bmi.w abs_0_0003FF2C
+	bmi.w draw_interleaved_span_color_15_last_cell
 	move.l d7,(a1)+
 	move.l d7,(a1)+
 	subq.w #8,d3
-	bmi.w abs_0_0003FF2C
+	bmi.w draw_interleaved_span_color_15_last_cell
 	move.l d7,(a1)+
 	move.l d7,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003FF2C
+	bmi.b draw_interleaved_span_color_15_last_cell
 	move.l d7,(a1)+
 	move.l d7,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003FF2C
+	bmi.b draw_interleaved_span_color_15_last_cell
 	move.l d7,(a1)+
 	move.l d7,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003FF2C
+	bmi.b draw_interleaved_span_color_15_last_cell
 	move.l d7,(a1)+
 	move.l d7,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003FF2C
+	bmi.b draw_interleaved_span_color_15_last_cell
 	move.l d7,(a1)+
 	move.l d7,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003FF2C
+	bmi.b draw_interleaved_span_color_15_last_cell
 	move.l d7,(a1)+
 	move.l d7,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003FF2C
+	bmi.b draw_interleaved_span_color_15_last_cell
 	move.l d7,(a1)+
 	move.l d7,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003FF2C
+	bmi.b draw_interleaved_span_color_15_last_cell
 	move.l d7,(a1)+
 	move.l d7,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003FF2C
+	bmi.b draw_interleaved_span_color_15_last_cell
 	move.l d7,(a1)+
 	move.l d7,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003FF2C
+	bmi.b draw_interleaved_span_color_15_last_cell
 	move.l d7,(a1)+
 	move.l d7,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003FF2C
+	bmi.b draw_interleaved_span_color_15_last_cell
 	move.l d7,(a1)+
 	move.l d7,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003FF2C
+	bmi.b draw_interleaved_span_color_15_last_cell
 	move.l d7,(a1)+
 	move.l d7,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003FF2C
+	bmi.b draw_interleaved_span_color_15_last_cell
 	move.l d7,(a1)+
 	move.l d7,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003FF2C
+	bmi.b draw_interleaved_span_color_15_last_cell
 	move.l d7,(a1)+
 	move.l d7,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003FF2C
+	bmi.b draw_interleaved_span_color_15_last_cell
 	move.l d7,(a1)+
 	move.l d7,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003FF2C
+	bmi.b draw_interleaved_span_color_15_last_cell
 	move.l d7,(a1)+
 	move.l d7,(a1)+
 	subq.w #8,d3
-	bmi.b abs_0_0003FF2C
+	bmi.b draw_interleaved_span_color_15_last_cell
 	move.l d7,(a1)+
 	move.l d7,(a1)+
-abs_0_0003FF2C:
+draw_interleaved_span_color_15_last_cell:
 	or.l d6,(a1)+
 	or.l d6,(a1)+
 	move usp,a1
@@ -57856,28 +57858,29 @@ abs_0_0003FF2C:
 	move.l (a2)+,d2
 	bpl.w draw_interleaved_span_header
 	rts
-abs_0_0003FF42:
-	dc.w abs_0_000411BA-abs_0_0003FF42	; lookup_table
-	dc.w abs_0_000411D0-abs_0_0003FF42
-	dc.w abs_0_000411E8-abs_0_0003FF42
-	dc.w abs_0_00041202-abs_0_0003FF42
-	dc.w abs_0_00041218-abs_0_0003FF42
-	dc.w abs_0_00041232-abs_0_0003FF42
-	dc.w abs_0_0004124E-abs_0_0003FF42
-	dc.w abs_0_00041268-abs_0_0003FF42
-	dc.w abs_0_00041280-abs_0_0003FF42
-	dc.w abs_0_0004129A-abs_0_0003FF42
-	dc.w abs_0_000412B4-abs_0_0003FF42
-	dc.w abs_0_000412D0-abs_0_0003FF42
-	dc.w abs_0_000412EA-abs_0_0003FF42
-	dc.w abs_0_00041302-abs_0_0003FF42
-	dc.w abs_0_0004131C-abs_0_0003FF42
-	dc.w abs_0_00041336-abs_0_0003FF42
-abs_0_0003FF62:
+    ; 16 relative WORD colour kernels for one interleaved cell. D4 supplies repeated-WORD coverage; selector validity and row/queue lifetimes are separate.
+drawing_dispatch_interleaved_cell_color_offsets:
+	dc.w draw_interleaved_cell_color_0-drawing_dispatch_interleaved_cell_color_offsets	; lookup_table
+	dc.w draw_interleaved_cell_color_1-drawing_dispatch_interleaved_cell_color_offsets
+	dc.w draw_interleaved_cell_color_2-drawing_dispatch_interleaved_cell_color_offsets
+	dc.w draw_interleaved_cell_color_3-drawing_dispatch_interleaved_cell_color_offsets
+	dc.w draw_interleaved_cell_color_4-drawing_dispatch_interleaved_cell_color_offsets
+	dc.w draw_interleaved_cell_color_5-drawing_dispatch_interleaved_cell_color_offsets
+	dc.w draw_interleaved_cell_color_6-drawing_dispatch_interleaved_cell_color_offsets
+	dc.w draw_interleaved_cell_color_7-drawing_dispatch_interleaved_cell_color_offsets
+	dc.w draw_interleaved_cell_color_8-drawing_dispatch_interleaved_cell_color_offsets
+	dc.w draw_interleaved_cell_color_9-drawing_dispatch_interleaved_cell_color_offsets
+	dc.w draw_interleaved_cell_color_10-drawing_dispatch_interleaved_cell_color_offsets
+	dc.w draw_interleaved_cell_color_11-drawing_dispatch_interleaved_cell_color_offsets
+	dc.w draw_interleaved_cell_color_12-drawing_dispatch_interleaved_cell_color_offsets
+	dc.w draw_interleaved_cell_color_13-drawing_dispatch_interleaved_cell_color_offsets
+	dc.w draw_interleaved_cell_color_14-drawing_dispatch_interleaved_cell_color_offsets
+	dc.w draw_interleaved_cell_color_15-drawing_dispatch_interleaved_cell_color_offsets
+prepare_interleaved_single_cell_span:
 	move.w #$98,d6
 	add.w d2,d2
-	move.w abs_0_0003FF42(pc,d2.w),d2
-	lea.l abs_0_0003FF42(pc,d2.w),a6
+	move.w drawing_dispatch_interleaved_cell_color_offsets(pc,d2.w),d2
+	lea.l drawing_dispatch_interleaved_cell_color_offsets(pc,d2.w),a6
 	lea.l raster_row_byte_offsets(pc),a1
 	move.w (a0)+,d2
 	add.w d2,d2
@@ -57899,7 +57902,7 @@ abs_0_0003FF62:
 	andi.w #65528,d2
 	adda.w d2,a1
 	jmp (a6)
-abs_0_0003FFA4:
+prepare_next_interleaved_cell_span:
 	move.w (a0)+,d3
 	move.w d2,d4
 	and.w d0,d4
@@ -57914,28 +57917,28 @@ generated_outside_span_masks32:
 	dcb.l $400,$00000000	; Amiga initializer writes all 32x32 LONG combinations. Other platform path writes only first10...
 generated_outside_span_masks16:
 	dcb.w $100,$0000	; Amiga initializer writes all 16x16 WORD combinations from min/max indexed masks; original see...
-abs_0_000411BA:
+draw_interleaved_cell_color_0:
 	not.l d4
 	and.l d4,(a1)+
 	and.l d4,(a1)+
 	adda.w d6,a1
 	move.w (a0)+,d2
-	bpl.w abs_0_0003FFA4
+	bpl.w prepare_next_interleaved_cell_span
 	move.l (a2)+,d2
 	bpl.w draw_interleaved_span_header
 	rts
-abs_0_000411D0:
+draw_interleaved_cell_color_1:
 	or.w d4,(a1)+
 	not.l d4
 	and.w d4,(a1)+
 	and.l d4,(a1)+
 	adda.w d6,a1
 	move.w (a0)+,d2
-	bpl.w abs_0_0003FFA4
+	bpl.w prepare_next_interleaved_cell_span
 	move.l (a2)+,d2
 	bpl.w draw_interleaved_span_header
 	rts
-abs_0_000411E8:
+draw_interleaved_cell_color_2:
 	move.w d4,d2
 	not.l d4
 	and.w d4,(a1)+
@@ -57943,21 +57946,21 @@ abs_0_000411E8:
 	and.l d4,(a1)+
 	adda.w d6,a1
 	move.w (a0)+,d2
-	bpl.w abs_0_0003FFA4
+	bpl.w prepare_next_interleaved_cell_span
 	move.l (a2)+,d2
 	bpl.w draw_interleaved_span_header
 	rts
-abs_0_00041202:
+draw_interleaved_cell_color_3:
 	or.l d4,(a1)+
 	not.l d4
 	and.l d4,(a1)+
 	adda.w d6,a1
 	move.w (a0)+,d2
-	bpl.w abs_0_0003FFA4
+	bpl.w prepare_next_interleaved_cell_span
 	move.l (a2)+,d2
 	bpl.w draw_interleaved_span_header
 	rts
-abs_0_00041218:
+draw_interleaved_cell_color_4:
 	move.w d4,d2
 	not.l d4
 	and.l d4,(a1)+
@@ -57965,11 +57968,11 @@ abs_0_00041218:
 	and.w d4,(a1)+
 	adda.w d6,a1
 	move.w (a0)+,d2
-	bpl.w abs_0_0003FFA4
+	bpl.w prepare_next_interleaved_cell_span
 	move.l (a2)+,d2
 	bpl.w draw_interleaved_span_header
 	rts
-abs_0_00041232:
+draw_interleaved_cell_color_5:
 	move.w d4,d2
 	not.w d4
 	or.w d2,(a1)+
@@ -57978,11 +57981,11 @@ abs_0_00041232:
 	and.w d4,(a1)+
 	adda.w d6,a1
 	move.w (a0)+,d2
-	bpl.w abs_0_0003FFA4
+	bpl.w prepare_next_interleaved_cell_span
 	move.l (a2)+,d2
 	bpl.w draw_interleaved_span_header
 	rts
-abs_0_0004124E:
+draw_interleaved_cell_color_6:
 	move.l d4,d2
 	not.w d4
 	and.w d4,(a1)+
@@ -57990,22 +57993,22 @@ abs_0_0004124E:
 	and.w d4,(a1)+
 	adda.w d6,a1
 	move.w (a0)+,d2
-	bpl.w abs_0_0003FFA4
+	bpl.w prepare_next_interleaved_cell_span
 	move.l (a2)+,d2
 	bpl.w draw_interleaved_span_header
 	rts
-abs_0_00041268:
+draw_interleaved_cell_color_7:
 	or.l d4,(a1)+
 	or.w d4,(a1)+
 	not.w d4
 	and.w d4,(a1)+
 	adda.w d6,a1
 	move.w (a0)+,d2
-	bpl.w abs_0_0003FFA4
+	bpl.w prepare_next_interleaved_cell_span
 	move.l (a2)+,d2
 	bpl.w draw_interleaved_span_header
 	rts
-abs_0_00041280:
+draw_interleaved_cell_color_8:
 	move.w d4,d2
 	not.l d4
 	and.l d4,(a1)+
@@ -58013,11 +58016,11 @@ abs_0_00041280:
 	or.w d2,(a1)+
 	adda.w d6,a1
 	move.w (a0)+,d2
-	bpl.w abs_0_0003FFA4
+	bpl.w prepare_next_interleaved_cell_span
 	move.l (a2)+,d2
 	bpl.w draw_interleaved_span_header
 	rts
-abs_0_0004129A:
+draw_interleaved_cell_color_9:
 	move.w d4,d2
 	not.l d4
 	or.w d2,(a1)+
@@ -58025,11 +58028,11 @@ abs_0_0004129A:
 	or.w d2,(a1)+
 	adda.w d6,a1
 	move.w (a0)+,d2
-	bpl.w abs_0_0003FFA4
+	bpl.w prepare_next_interleaved_cell_span
 	move.l (a2)+,d2
 	bpl.w draw_interleaved_span_header
 	rts
-abs_0_000412B4:
+draw_interleaved_cell_color_10:
 	move.w d4,d2
 	not.w d4
 	and.w d4,(a1)+
@@ -58038,11 +58041,11 @@ abs_0_000412B4:
 	or.w d2,(a1)+
 	adda.w d6,a1
 	move.w (a0)+,d2
-	bpl.w abs_0_0003FFA4
+	bpl.w prepare_next_interleaved_cell_span
 	move.l (a2)+,d2
 	bpl.w draw_interleaved_span_header
 	rts
-abs_0_000412D0:
+draw_interleaved_cell_color_11:
 	move.l d4,d2
 	not.w d4
 	or.l d2,(a1)+
@@ -58050,22 +58053,22 @@ abs_0_000412D0:
 	or.w d2,(a1)+
 	adda.w d6,a1
 	move.w (a0)+,d2
-	bpl.w abs_0_0003FFA4
+	bpl.w prepare_next_interleaved_cell_span
 	move.l (a2)+,d2
 	bpl.w draw_interleaved_span_header
 	rts
-abs_0_000412EA:
+draw_interleaved_cell_color_12:
 	move.l d4,d2
 	not.l d4
 	and.l d4,(a1)+
 	or.l d2,(a1)+
 	adda.w d6,a1
 	move.w (a0)+,d2
-	bpl.w abs_0_0003FFA4
+	bpl.w prepare_next_interleaved_cell_span
 	move.l (a2)+,d2
 	bpl.w draw_interleaved_span_header
 	rts
-abs_0_00041302:
+draw_interleaved_cell_color_13:
 	move.l d4,d2
 	not.w d4
 	or.w d2,(a1)+
@@ -58073,11 +58076,11 @@ abs_0_00041302:
 	or.l d2,(a1)+
 	adda.w d6,a1
 	move.w (a0)+,d2
-	bpl.w abs_0_0003FFA4
+	bpl.w prepare_next_interleaved_cell_span
 	move.l (a2)+,d2
 	bpl.w draw_interleaved_span_header
 	rts
-abs_0_0004131C:
+draw_interleaved_cell_color_14:
 	move.l d4,d2
 	not.w d4
 	and.w d4,(a1)+
@@ -58085,16 +58088,16 @@ abs_0_0004131C:
 	or.w d2,(a1)+
 	adda.w d6,a1
 	move.w (a0)+,d2
-	bpl.w abs_0_0003FFA4
+	bpl.w prepare_next_interleaved_cell_span
 	move.l (a2)+,d2
 	bpl.w draw_interleaved_span_header
 	rts
-abs_0_00041336:
+draw_interleaved_cell_color_15:
 	or.l d4,(a1)+
 	or.l d4,(a1)+
 	adda.w d6,a1
 	move.w (a0)+,d2
-	bpl.w abs_0_0003FFA4
+	bpl.w prepare_next_interleaved_cell_span
 	move.l (a2)+,d2
 	bpl.w draw_interleaved_span_header
 	rts

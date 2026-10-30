@@ -3762,17 +3762,20 @@ static uint8_t resolve_rendered_canonical_relative_expression(const M68kRenderLo
   return out_expression->outcome;
 }
 
-static int inferred_relative_label_names_share_address_domain(const M68kRenderLookup *lookup,
-    uint32_t section_index, uint32_t base_offset, uint32_t target_offset,
-    const M68kRenderPlannedExpression *expression) {
-  char target_storage_name[96];
-  char base_storage_name[96];
-  (void)format_storage_asm_label_with_generation(lookup, target_storage_name, sizeof(target_storage_name),
-    section_index, target_offset);
-  (void)format_storage_asm_label_with_generation(lookup, base_storage_name, sizeof(base_storage_name),
-    section_index, base_offset);
-  return (strcmp(expression->target_symbol, target_storage_name) != 0) ==
-    (strcmp(expression->base_symbol, base_storage_name) != 0);
+/* Labels named in the source domain can be emitted under the same runtime
+ * ORG as generated/runtime aliases. Spelling is not an address-domain fact.
+ * Compare the renderer's selected canonical mappings, just as for an explicit
+ * source-coordinate relation, and retain numeric bytes across incompatible
+ * mappings. */
+static int relative_source_labels_preserve_displacement(const M68kRenderLookup *lookup,
+    uint32_t section_index, uint32_t base_offset, uint32_t target_offset, int32_t displacement) {
+  uint32_t base_runtime = 0U, target_runtime = 0U;
+  int base_mapped = lookup_source_should_render_runtime_label(lookup, section_index,
+    base_offset, &base_runtime);
+  int target_mapped = lookup_source_should_render_runtime_label(lookup, section_index,
+    target_offset, &target_runtime);
+  return base_mapped == target_mapped && (!base_mapped ||
+    (int64_t)target_runtime - (int64_t)base_runtime == displacement);
 }
 
 static uint8_t resolve_rendered_relative_lookup_expression(const M68kRenderLookup *lookup,
@@ -3843,12 +3846,9 @@ static uint8_t resolve_rendered_relative_lookup_expression(const M68kRenderLooku
   {
     uint8_t outcome = resolve_rendered_canonical_relative_expression(lookup, item->target_section,
       item->target_offset, (uint32_t)target_offset, key, keyed_long, out_expression);
-    /* Preserve the inference lane's existing conservative spelling check.
-     * Explicit manual relations instead validate canonical coordinates and
-     * encoded values before entering the shared expression formatter. */
     if (outcome == M68K_RENDER_PLANNED_EXPRESSION_SYMBOLIC &&
-        !inferred_relative_label_names_share_address_domain(lookup, item->target_section,
-          item->target_offset, (uint32_t)target_offset, out_expression)) {
+        !relative_source_labels_preserve_displacement(lookup, item->target_section,
+          item->target_offset, (uint32_t)target_offset, displacement)) {
       out_expression->outcome = M68K_RENDER_PLANNED_EXPRESSION_NUMERIC;
       out_expression->has_target = 0U;
       out_expression->has_base_target = 0U;
@@ -3949,17 +3949,10 @@ static uint8_t resolve_rendered_manual_base_displacement(const M68kRenderLookup 
     snprintf(expression->reason, sizeof(expression->reason), "manual relative relation lacks exact source labels");
     return expression->outcome;
   }
-  {
-    uint32_t base_runtime = 0U, target_runtime = 0U;
-    int base_mapped = lookup_source_should_render_runtime_label(lookup, ref->base_section_index,
-      ref->base_offset, &base_runtime);
-    int target_mapped = lookup_source_should_render_runtime_label(lookup, ref->target_section_index,
-      ref->target_offset, &target_runtime);
-    if (base_mapped != target_mapped || (base_mapped &&
-        (int64_t)target_runtime - (int64_t)base_runtime != (int16_t)ref->raw_value)) {
-      snprintf(expression->reason, sizeof(expression->reason), "relative operands use different address mappings");
-      return expression->outcome;
-    }
+  if (!relative_source_labels_preserve_displacement(lookup, ref->base_section_index,
+      ref->base_offset, ref->target_offset, (int16_t)ref->raw_value)) {
+    snprintf(expression->reason, sizeof(expression->reason), "relative operands use different address mappings");
+    return expression->outcome;
   }
   return resolve_rendered_canonical_relative_expression(lookup, ref->base_section_index, ref->base_offset,
     ref->target_offset, 0U, 0U, expression);

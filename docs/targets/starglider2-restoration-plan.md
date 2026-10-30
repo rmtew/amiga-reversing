@@ -65,10 +65,41 @@ Partial writes and unknown calls still erase the value. No reader-specific type,
 sequence assumption or global count was added, and no C analysis rule changed.
 28 focused regression cases pass; C/vasm and a clean standalone build match all
 412736 bytes with unchanged assets/headers. All access/address/CFG/summary vectors
-remain identical. The next inference prerequisite is an explicit live homogeneous
-reference-sequence contract, grounded in the phase producer
-and preserved through aliasing/writes. A one-record seed or sentinel check alone
-cannot supply it. Variable-tail layout and global style bounds remain separate.
+remain identical. The sequence prerequisite remains open: the producer loads a cycled pointer
+before replacing its reference with the span address, but variable two-byte span
+writes advance A3 without an aggregate end check in the examined converter. The
+declared source prefixes are span storage `$40848`/16000 bytes, live cycled packets
+`$446C8`/4002 bytes, and references `$4660A`/600 bytes (150 LONGs). The packet-count
+guards alone do not establish an aggregate span size or preservation of live storage
+(including any safe overlap). This is a missing proof, not an observed reachable overflow. No new
+sequence contract or generic contract engine was introduced.
+
+The interleaved colour batch reconstructs both 16-entry kernel families, 32
+boundary paths and two single-cell frontends. It names the existing constant
+left/right mask tables and distinguishes regular spans from single-cell spans.
+The generated-simulator tests cover 960 supplied-register cases across all 16
+indices, zero/one/mixed pixels, endpoint masks and 1/2/3/20-cell regular spans,
+checking all four WORD planes and every byte outside the requested cells. A
+separate original-instruction fixture checks all 256 normalized endpoint pairs
+in the interleaved mask initializer, including the untouched remainder of its
+shared allocation. Platform/mode dispatch is unchanged. These are isolated
+instruction-semantic fixtures, not normal-input gameplay, caller validity,
+selector bounds or queue/lifetime proof.
+
+Source review reproduced a shared renderer defect: source-named targets and a
+runtime-named base in one execution view caused an inferred relative table to
+fall back to numeric words. Address domains were being guessed from label
+spelling. Inferred and explicit relative expressions now share the existing
+canonical mapping/displacement check, retaining numeric output for incompatible
+or partly mapped endpoints. Both 16-slot colour tables remain symbolic after
+naming. Four end-to-end naming combinations and a bidirectional mapping-refusal
+fixture cover the repair; existing non-code/interior-target refusals remain.
+75 focused cases plus the new mapping refusal pass, as do all 834 native cases.
+Final source C/vasm and clean standalone qualification bind the published output;
+all 3509 APP /2716 typed /165 unresolved records and address/CFG/summary vectors
+remain unchanged. This is semantic reconstruction and a source-rendering repair,
+not a reduction of unresolved access counts. The aggregate span-storage/lifetime
+obligation above remains the next prerequisite for a sequence contract.
 
 The preceding access-name projection reuses the existing field-catalogue
 resolver in whole-analysis JSON.3270 records at292 exact offsets expose names
