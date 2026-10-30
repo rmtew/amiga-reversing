@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
   "kind": "committed_native_rendered_original_export",
-  "canonical_source_commit": "179153ccc3a34f706def2cb242b6a2dd41c52a28",
-  "publication_base_commit": "179153ccc3a34f706def2cb242b6a2dd41c52a28",
+  "canonical_source_commit": "38fc792154b17517e2ef73081ce3dc2b4ef1b372",
+  "publication_base_commit": "38fc792154b17517e2ef73081ce3dc2b4ef1b372",
   "native_export": "CListingArtifact.source_package_payload(64)",
-  "main_source_sha256": "8605a01bc9f73717b2df391db044315ec3c9d58afb34ef08510832ec78907adc",
+  "main_source_sha256": "6f76d53879c6b8dde135c66c45e177ef32a623deaf448dcc3f27f3f6db0a63d2",
   "asset_count": 57,
   "asset_bytes": 93633,
   "game_assembly_hand_edits": false,
@@ -24,13 +24,13 @@
     "assembler executable",
     "paused Pandora work"
   ],
-  "canonical_source_commit_role": "publication base; canonical prefix annotation and shared inherited-field projection changes are in the publishing commit and output is bound by verification_receipt_id",
-  "canonical_source_subject_revision": "347411cb90db370ce6253eafde0a4d2961453ea75f2d7c9bc4f49622f083318c",
+  "canonical_source_commit_role": "publication base; canonical MFM prefix, source bindings and shared authored-label selection changes are in the publishing commit and output is bound by verification_receipt_id",
+  "canonical_source_subject_revision": "b601fccda9db8faae3e3446b32d8dc2ec3350589426659fc4156ab1031417016",
   "canonical_fact_sha256": {
     "source_binary.json": "42d4a5758b3e8236af7f912aee85e9ee5323bcd0961faa338c4f864080a0a7d9",
     "target_metadata.json": "e7540b68c118c56aba8815b6722eefa067517cc865fe9841d6c01ce96551389c",
-    "manual_actions.jsonl": "f3003d915b480679cb8e7dd948e720e2707d5c607006f62cdd9cfa2088d8942e",
-    "decision_journal.jsonl": "86634b878ac1d0f12009fbcdcc9aa3637f843fecd9a2ac87b23136545b3888ef"
+    "manual_actions.jsonl": "4f05051dde0f628bd6278ef0f473b299de27d0cc40c58030ac292fbf8b404845",
+    "decision_journal.jsonl": "31a563f3e07e81afad2791b2d8cb4e7082fa6da3b046f188489d88672310ce16"
   },
   "headers": "14 unmodified required include files collected by source_package.collect_package_includes from ext/amiga_includes/ndk_2.0/include; header notices retained",
   "decoded_protection_view": {
@@ -46,6 +46,6 @@
     },
     "runtime_scope": "Seven CPU write-site windows match this reversible view; no whole runtime-view identity or parent plaintext promotion."
   },
-  "verification_receipt_id": "e67c14009a1bbb3a7f4a42672aa3c9c1ac67d6c017d492a4bc5080aab00c0008",
-  "render_native_sha256": "29275c18f9b2865a448c103d8a6c3979160905c6b77cead9e8c947d40ac824d7"
+  "verification_receipt_id": "c7e5ce6c8c06d49bca131858be211a5b2f2f9f448778d55117e6bb63e0a4522a",
+  "render_native_sha256": "556cff82e9a5165319003beb5bd32b4da154629a69def6a3c09b5f8ba16b4d2e"
 }

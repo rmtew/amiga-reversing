@@ -6579,6 +6579,7 @@ void m68k_render_lookup_destroy(M68kRenderLookup *lookup) {
 static const char *lookup_policy_label_name(const M68kRenderLookup *lookup, size_t section_index,
     uint32_t offset, uint8_t domain) {
   uint16_t index;
+  const char *fallback = NULL;
   const M68kAnalysisPolicy *policy = lookup != NULL ? lookup->policy : NULL;
   if (policy == NULL) return NULL;
   for (index = 0U; index < policy->named_label_count && index < M68K_ANALYSIS_NAMED_LABEL_LIMIT; ++index) {
@@ -6590,9 +6591,10 @@ static const char *lookup_policy_label_name(const M68kRenderLookup *lookup, size
     } else if (section_index != 0U) {
       continue;
     }
-    return label->name;
+    if (label->is_source_declaration) return label->name;
+    if (!fallback) fallback = label->name;
   }
-  return NULL;
+  return fallback;
 }
 
 static const char *lookup_object_symbol_label_name(const M68kRenderLookup *lookup, size_t section_index,

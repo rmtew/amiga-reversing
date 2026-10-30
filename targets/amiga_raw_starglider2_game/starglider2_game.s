@@ -1387,6 +1387,15 @@ SG2LinkedTug_chain_release_settling_enabled RS.B 1
     RS.B 27
 SG2LinkedTug_SIZEOF EQU __RS
 
+; STRUCT SG2MfmSectorPrefix
+    RSRESET
+    RS.B 20
+SG2MfmSectorPrefix_post_id_gap RS.B 22
+SG2MfmSectorPrefix_data_sync_zero_seed RS.B 12
+SG2MfmSectorPrefix_data_sync_mark_bytes RS.B 3
+SG2MfmSectorPrefix_data_address_mark RS.B 1
+SG2MfmSectorPrefix_SIZEOF EQU __RS
+
 ADKF_CLRALL	EQU	$7FFF
 BPLCON2_PF2P2	EQU	$20
 BPLCON2_PF2PRI	EQU	$40
@@ -19877,9 +19886,9 @@ abs_0_0001128C:
 	move.b #$F5,SG2MfmIdTemplate_sync_mark_bytes(a1)
 	move.b #$F5,SG2MfmIdTemplate_sync_mark_bytes+1(a1)
 	move.b #$F5,SG2MfmIdTemplate_sync_mark_bytes+2(a1)
-	move.b #$F5,$0036(a1)
-	move.b #$F5,$0037(a1)
-	move.b #$F5,$0038(a1)
+	move.b #$F5,SG2MfmSectorPrefix_data_sync_mark_bytes(a1)
+	move.b #$F5,SG2MfmSectorPrefix_data_sync_mark_bytes+1(a1)
+	move.b #$F5,SG2MfmSectorPrefix_data_sync_mark_bytes+2(a1)
 	move.b d0,SG2MfmIdTemplate_cylinder(a1)
 	adda.w #$3C,a0
 	move.w #$A,disk_service_state_sector_work_index.l
@@ -22077,9 +22086,10 @@ mfm_id_template:
 	dc.b $02	; size_code
     ; Shared template: Amiga software MFM uses originalA1 marks; alternate formatter mutates sync bytes toF5 and insertsF7 CRC tokens. Preserve profile-specific mutation/lifetime.
 mfm_post_id_template:
-	dcb.b $16,$4E
-	dcb.b $C,$00
-	dc.b $A1,$A1,$A1,$FB
+	dcb.b $16,$4E	; post_id_gap
+	dcb.b $C,$00	; data_sync_zero_seed
+	dc.b $A1,$A1,$A1	; data_sync_mark_bytes
+	dc.b $FB	; data_address_mark
     ; Alternate formatter skips514 template bytes and emits512 bytes from real input plusF7 token. This is template backing, not proven unused data or independent input ownership.
 mfm_data_crc_template_placeholder:
 	dcb.b $137,$00

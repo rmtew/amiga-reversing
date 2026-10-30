@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "source_commit": "179153ccc3a34f706def2cb242b6a2dd41c52a28",
+  "source_commit": "38fc792154b17517e2ef73081ce3dc2b4ef1b372",
   "source_assembly": "starglider2_game.s",
   "assets": [
     {
@@ -878,13 +878,13 @@
     },
     {
       "path": "rendered-provenance.json",
-      "bytes": 3152,
-      "sha256": "1a315613bd066b957e913802b3f91369903aa98d7db81f928cf2f6ba4db4026e"
+      "bytes": 3160,
+      "sha256": "f1143d66dd9ccbe4b51212c25a9e68b8ce058b5ac93ff958119c5b7dada2a8e5"
     },
     {
       "path": "starglider2_game.s",
-      "bytes": 2020939,
-      "sha256": "8605a01bc9f73717b2df391db044315ec3c9d58afb34ef08510832ec78907adc"
+      "bytes": 2021395,
+      "sha256": "6f76d53879c6b8dde135c66c45e177ef32a623deaf448dcc3f27f3f6db0a63d2"
     },
     {
       "path": "tools/starglider2_protection.py",
@@ -892,6 +892,6 @@
       "sha256": "81d3f66d36dbfbd5c77238b20c28e8b9abaa329777eb91f64669bbbf13703582"
     }
   ],
-  "source_commit_role": "publication base; canonical prefix annotation and shared inherited-field projection changes are in the publishing commit and output is bound by verification_receipt_id",
-  "source_subject_revision": "347411cb90db370ce6253eafde0a4d2961453ea75f2d7c9bc4f49622f083318c"
+  "source_commit_role": "publication base; canonical MFM prefix, source bindings and shared authored-label selection changes are in the publishing commit and output is bound by verification_receipt_id",
+  "source_subject_revision": "b601fccda9db8faae3e3446b32d8dc2ec3350589426659fc4156ab1031417016"
 }

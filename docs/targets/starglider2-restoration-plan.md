@@ -16,7 +16,7 @@ to their recorded closeout revision. See the current
 
 ## Current refinement and next evidence
 
-Current native totals: **3503 app /2667 typed /161 unresolved**, with **11226
+Current native totals: **3503 app /2670 typed /158 unresolved**, with **11226
 unclassified bytes /271 intervals**. Counter-indexed source-array reads now reuse
 the shared loop induction and interned linear entry values. Original inventory
 readers at source `$DD6` and `$339B4` expose the existing name-reference `text`
@@ -56,9 +56,39 @@ meanings are unchanged; eight duplicate HeaderAux field declarations become one
 prefix extent. C/vasm and clean standalone builds remain exact, with57 assets
 and14 headers unchanged. The necessary pre-annotation and annotated generations
 took151.77s and133.15s, respectively; these are not controlled speedup evidence.
-Next: test conditional source-record refinement at the auxiliary-count gate
-using mixed24/28-byte records and conservative conflicting/writable cases.
-Directory-wide format agreement alone must not defeat live alias barriers.
+The optional model-header experiment now isolates the missing contract: a
+104-entry mixed base/extended fixture retains its two common-prefix reads, but
+the nonzero-count branch leaves the extra LONG unresolved. Static directory
+bytes do not establish a live discriminator invariant for writable records.
+A reusable extension needs an explicit guarded-format fact plus field/value
+predicate transport, root identity and alias/call/partial-write invalidation;
+adding a per-reader seed or widening the parent is not a sound substitute.
+The experiment is byte exact; no conditional subtype promotion is claimed.
+
+The connected MFM family now exposes one58-byte sector prefix: the existing
+20-byte ID format,22 gap bytes,12 zero-sync bytes,three data-sync marks and a
+data-address mark. Original alternate formatting copies20 then38 bytes with an
+inserted CRC token and substitutes actual sector input afterwards. Three byte
+writes at source `$102BE/$102C4/$102CA` now name the data-sync field. The separate
+514-byte payload/CRC backing, post-data gap and existing post-ID alias remain;
+Amiga software MFM and alternate-controller mutation profiles stay distinct.
+Five existing ID accesses retain their exact field meanings under the larger
+inherited root. App facts, CFG, unknown-byte accounting and all prior typed
+accesses are preserved. No new runtime or immutable-template claim is made.
+
+This also reproduced an ordering defect: an expanded field label could hide a
+separately authored data alias at the same source coordinate. Shared native
+import/selection now distinguishes public typed-owner and standalone source
+names from expanded field names, reusing the existing declaration flag. The
+minimal test covers both input orders, ordinary field suppression and a public
+owner beside an older raw alias. Every prior emitted target label is retained;
+no planet/control names are replaced by generic raw labels.93 focused Python
+checks and all832 native C cases pass. Full C/vasm and clean standalone builds
+remain exact, with57 assets and14 headers unchanged. No extra observation dump,
+interim archive, arbitrary pointer target or guest-state change is introduced.
+Next: exercise the guarded-format contract design against writable/conflicting
+records before promotion, while following independent producer/consumer leads.
+
 
 An on-demand systematic gap inventory (`amiga_reversing/tools/source_gap_inventory.py`)
 joins native identities/accesses with canonical layouts and actual rendered
