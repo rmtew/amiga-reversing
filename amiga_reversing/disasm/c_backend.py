@@ -1581,8 +1581,16 @@ def _c_arg(value: object) -> object:
     raise TypeError(f"Unsupported C backend argument: {value!r}")
 
 
-@cache
 def _platform_file_dll(project_root: Path) -> CDLL:
+    dll = _cached_platform_file_dll(project_root)
+    # Reusing configured ctypes signatures must not skip implementation
+    # identity checks when an owning process creates another artifact.
+    _require_loaded_native_identity(dll)
+    return dll
+
+
+@cache
+def _cached_platform_file_dll(project_root: Path) -> CDLL:
     dll = _load_dll(project_root, "platform_file_lib.dll")
     dll.platform_file_free_text.argtypes = [c_void_p]
     dll.platform_file_free_text.restype = None

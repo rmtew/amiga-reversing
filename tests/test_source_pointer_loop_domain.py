@@ -11,7 +11,7 @@ from amiga_reversing.disasm.effective_metadata import effective_metadata_file
 def header_table_artifact(tmp_path, loop=True, count=2, trips=None, setup='', body='',
                           null=False, mixed=False, aliases=False, exposure=False,
                           indexed=False, index_code=None, index_register='d2',
-                          reference_records=False, derived=False):
+                          reference_records=False, derived=False, index_displacement=0):
     trips=count if trips is None else trips
     counter='move.w d5,d4'if trips=='unknown'else f'move.w #{trips-1},d4'
     directory=['first'if aliases else f'header_{i}'for i in range(count)]
@@ -21,7 +21,7 @@ def header_table_artifact(tmp_path, loop=True, count=2, trips=None, setup='', bo
     text=(' SECTION code,code\n ORG $1000\n'+(' lea.l again.l,a5\n'if exposure else'')+
           ' lea.l directory(pc),a3\n '+counter+'\n '+setup+'\nagain:\n '+body+
           ('\n '+(index_code or'move.w d4,d2\n lsl.w #2,d2')+
-           f'\n movea.l 0(a3,{index_register}.w),a0\n'if indexed
+           f'\n movea.l {index_displacement}(a3,{index_register}.w),a0\n'if indexed
            else'\n movea.l (a3)+,a0\n')+' move.w (a0)+,d0\n move.w (a0),d1\n'+
           (' dbf d4,again\n'if loop else'')+' rts\ndirectory:\n'+''.join(' dc.l '+','.join(directory[i:i+8])+'\n'for i in range(0,count,8))+'first:\n'+
           ''.join(f'header_{i}:dc.w {i+1},{i+2}\n'for i in range(count))+
@@ -97,6 +97,76 @@ def typed_fields(artifact):
             artifact.analysis_payload()[0]['sections'][0]['recovered_platform_typed_accesses']}
 
 
+@pytest.mark.parametrize('index_code,index_register,displacement,expected', [
+    ('move.w #99,d2\n asl.w #2,d2', 'd2', 0, 99),
+    ('move.w #102,d2\n lsl.w #2,d2', 'd2', 4, 103),
+    ('movea.l #396,a5', 'a5', 0, 99),
+])
+def test_closed_singleton_index_uses_existing_word_value_in_owned_directory(
+        tmp_path,index_code,index_register,displacement,expected):
+    a,original=header_table_artifact(tmp_path,loop=False,count=104,indexed=True,
+        index_code=index_code,index_register=index_register,index_displacement=displacement)
+    try:
+        assert typed_fields(a)=={('A0','count'),('A0','flags')}
+        values=a.analysis_payload()[0]['sections'][0]['address_values']
+        singleton=[v for v in values if v['table_origin']['has_origin']]
+        assert len(singleton)==1
+        assert singleton[0]['resolution']=='resolved'
+        assert singleton[0]['table_origin']['entry_index']==expected
+        assert singleton[0]['candidate_target_count']==1
+        assert c_backend.assemble_platform_source_text_with_c_backend(
+            'amiga-raw',a.inline_source_text_with_profile()[0])[0]==original
+    finally:a.close()
+
+
+@pytest.mark.parametrize('index_code,displacement,body', [
+    ('move.w #104,d2\n asl.w #2,d2',0,''),
+    ('move.w #-4,d2',0,''),
+    ('move.w #2,d2',0,''),
+    ('move.w #103,d2\n asl.w #2,d2',4,''),
+    ('move.w #99,d2\n asl.w #2,d2\n move.w d7,d2',0,''),
+    ('move.w #99,d2\n asl.w #2,d2',0,'move.l #0,directory+396.l'),
+    ('move.w #99,d2\n asl.w #2,d2',0,'move.b #0,(a2)'),
+])
+def test_singleton_index_does_not_admit_outside_partial_or_clobbered_eas(
+        tmp_path,index_code,displacement,body):
+    a,_=header_table_artifact(tmp_path,loop=False,count=104,indexed=True,
+        index_code=index_code,index_displacement=displacement,body=body)
+    try:
+        assert not typed_fields(a)
+        assert not any(v['resolution']=='resolved' for v in
+                       a.analysis_payload()[0]['sections'][0]['address_values'])
+    finally:a.close()
+
+
+def test_single_selection_does_not_require_or_claim_a_loop_domain(tmp_path):
+    a,original=header_table_artifact(tmp_path,loop=False,count=2,indexed=True)
+    try:
+        assert typed_fields(a)=={('A0','count'),('A0','flags')}
+        values=a.analysis_payload()[0]['sections'][0]['address_values']
+        assert len(values)==1 and values[0]['resolution']=='resolved'
+        assert values[0]['table_origin']['entry_index']==1
+        assert not any(v['resolution']=='type_domain' for v in values)
+        assert c_backend.assemble_platform_source_text_with_c_backend(
+            'amiga-raw',a.inline_source_text_with_profile()[0])[0]==original
+    finally:a.close()
+
+
+def test_incomplete_scalar_proof_does_not_publish_singleton_hint(tmp_path,monkeypatch):
+    monkeypatch.setenv('AMIGA_REVERSING_TYPED_FLOW_MAX_NODE_VISITS','6')
+    a,_=header_table_artifact(tmp_path,loop=False,count=104,indexed=True,
+        index_code='move.w #99,d2\n asl.w #2,d2')
+    try:
+        analysis=a.analysis_payload()[0]
+        assert analysis['incomplete_analysis']
+        # An exhausted typed pass may retain local discovery/type facts; it
+        # must not certify a source selection from a partial scalar solve.
+        assert any(w['source_kind_name']=='typed_flow_worklist'and w['capacity']==6
+                   for w in analysis['incomplete_analysis'])
+        assert not any(v['resolution']=='resolved'for v in analysis['sections'][0]['address_values'])
+    finally:a.close()
+
+
 @pytest.mark.parametrize('count,index_code,index_register', [
     (2, None, 'd2'), (104, None, 'd2'),
     (104, 'move.w d4,d2\n add.w d2,d2\n add.w d2,d2', 'd2'),
@@ -122,7 +192,8 @@ def test_counter_indexed_directory_uses_shared_induction(tmp_path,count,index_co
 
 
 @pytest.mark.parametrize('changes', [
-    {'loop':False}, {'trips':3}, {'trips':'unknown'}, {'null':True}, {'mixed':True},
+    {'loop':False,'index_code':'move.w d5,d2\n lsl.w #2,d2'},
+    {'trips':3}, {'trips':'unknown'}, {'null':True}, {'mixed':True},
     {'exposure':True}, {'body':'move.w d5,d4'}, {'body':'move.l #0,directory.l'},
     {'body':'move.b #0,(a2)'},
     {'index_code':'move.w d4,d2\n lsl.w #2,d2\n move.w d5,d2'},

@@ -6573,6 +6573,7 @@ static int typed_pointer_read_operand_supported(const M68kInstructionIR *instruc
 }
 
 static int typed_memory_base_for_pointer_read(const M68kRenderTypedState *state,
+    const M68kRenderPlatformState *platform_state,
     const M68kInstructionIR *instruction, size_t operand_index, M68kRenderTypedMemoryBaseValue *out) {
   const M68kOperandIR *operand;
   uint8_t shape, reg;
@@ -6586,6 +6587,27 @@ static int typed_memory_base_for_pointer_read(const M68kRenderTypedState *state,
         operand->value.ea_reg >= 8U) return 0;
     *out = state->memory_base_regs[operand->value.ea_reg];
     if (!out->pointer_table_known) return 0;
+    if (out->known && out->affine_known) {
+      M68kWordIndexAccessIR evidence = {0};
+      if (typed_word_index_values(state, platform_state, instruction, (uint8_t)operand_index,
+          &evidence) && evidence.value_count == 1U) {
+        /* This lane binds a value from original source bytes, not merely a
+         * nominal pointee type. A prior write/opaque call can invalidate
+         * those bytes; the existing conservative barrier must still win. */
+        if (state->memory_write_barriers & M68K_CELL_WRITTEN_ABSOLUTE) return 0;
+        int64_t delta = (int64_t)(int32_t)operand->value.value + evidence.byte_offsets[0];
+        int64_t address = (int64_t)out->offset + delta;
+        uint32_t start = out->pointer_table_offset, size = out->pointer_table_size;
+        /* A concrete EA must remain a complete aligned LONG in this same
+         * canonical owner. Never switch to an adjacent owner after adding
+         * the index, or silently fall back to its unindexed base. */
+        if (delta < INT32_MIN || delta > INT32_MAX || address < start ||
+            address - start > size || size - (address - start) < 4U ||
+            ((address - start) & 3U) != 0U ||
+            !typed_memory_base_apply_affine_delta(out, (int32_t)delta)) return 0;
+        return 1;
+      }
+    }
     /* Preserve the source-table identity, never substitute its base for the
      * unknown indexed entry. The canonical binder must independently admit
      * a singleton or a fully checked loop domain before consumers use it. */
@@ -6607,7 +6629,8 @@ static int typed_memory_base_for_pointer_read(const M68kRenderTypedState *state,
 }
 
 static int typed_stored_value_from_pointer_table_read(M68kRenderTypedStoredValue *value,
-    const M68kRenderLookup *lookup, const M68kRenderTypedState *state, const M68kOperandIR *operand,
+    const M68kRenderLookup *lookup, const M68kRenderTypedState *state,
+    const M68kRenderPlatformState *platform_state, const M68kOperandIR *operand,
     size_t section_index, uint32_t offset, const M68kRenderTypedMemoryBaseValue *override_memory_base,
     const M68kInstructionIR *read_instruction, size_t read_operand_index) {
   M68kRenderTypedMemoryBaseValue memory_base;
@@ -6616,13 +6639,15 @@ static int typed_stored_value_from_pointer_table_read(M68kRenderTypedStoredValue
   uint32_t entry_stride = 4U;
   uint32_t domain_min = 0U, domain_max = 0U, entry_index;
   uint8_t has_domain = 0U;
-  int pending_index = read_instruction && !override_memory_base &&
+  int pending_index = read_instruction &&
     read_operand_index < read_instruction->operand_count &&
     m68k_instruction_operand_decoded_ea_shape(&read_instruction->operands[read_operand_index]) == M68K_SIM_EA_SHAPE_INDEX;
   if (value == NULL || lookup == NULL || state == NULL || operand == NULL) return 0;
   if (read_instruction && !typed_pointer_read_operand_supported(read_instruction, read_operand_index)) return 0;
-  if (override_memory_base != NULL) memory_base = *override_memory_base;
-  else if (!typed_memory_base_for_pointer_read(state, read_instruction, read_operand_index, &memory_base)) return 0;
+  if (override_memory_base != NULL && !pending_index) memory_base = *override_memory_base;
+  else if (!typed_memory_base_for_pointer_read(state, platform_state, read_instruction,
+      read_operand_index, &memory_base)) return 0;
+  if (pending_index && memory_base.known) pending_index = 0;
   item = memory_base.pointer_table_known ?
     lookup_pointer_table_item_for_contract(lookup, memory_base.pointer_table_section_index,
       memory_base.pointer_table_offset, memory_base.pointer_table_size) :
@@ -6770,7 +6795,7 @@ static int typed_stored_value_from_direct_pointer_table_read(M68kRenderTypedStor
   memory_base.pointer_table_section_index = item->section_index;
   memory_base.pointer_table_offset = item->offset;
   memory_base.pointer_table_size = item->size;
-  return typed_stored_value_from_pointer_table_read(value, lookup, &empty_state, operand,
+  return typed_stored_value_from_pointer_table_read(value, lookup, &empty_state, NULL, operand,
     section_index, offset, &memory_base, NULL, 0U);
 }
 
@@ -8338,7 +8363,7 @@ static void typed_state_update_after_instruction(M68kRenderTypedState *state, M6
       /* A table base is retained as memory-base bookkeeping. That bookkeeping
        * is useful, but is not the pointee type of the long read from the
        * table, so it must not suppress pointer-table propagation. */
-      if (typed_stored_value_from_pointer_table_read(&table_value, lookup, state, source_operand,
+      if (typed_stored_value_from_pointer_table_read(&table_value, lookup, state, platform_state, source_operand,
           section_index, offset, source_has_memory_base ? &source_memory_base : NULL, instruction, source_index)) {
         table_value.provenance.producer_operand_index = (uint8_t)source_index;
         if (source_struct_id == AMIGA_OS_STRUCT_ID_NONE && !typed_stored_value_has_useful_info(&stored_value))
@@ -10667,6 +10692,9 @@ static int typed_flow_process_node(M68kRenderLookup *lookup, const M68kDecodeIR 
   lookup->suppress_address_value_observations = before || !record_typed_accesses;
   result = typed_flow_process_node_impl(lookup, decode, accepted_start, section, node,
     allow_lookup_storage, record_typed_accesses, out_typed_state, out_platform_state, io_changed);
+  if (result == 0 && node->word_proof_ready)
+    memcpy(out_platform_state->word_values, node->platform_out.word_values,
+      sizeof(out_platform_state->word_values));
   lookup->suppress_address_value_observations = before;
   return result;
 }
@@ -10939,10 +10967,19 @@ static void typed_flow_reset_roots(const M68kRenderLookup *lookup, size_t sectio
     M68kRenderTypedFlowNode *nodes, size_t node_count) {
   size_t node_index;
   for (node_index = 0U; node_index < node_count; ++node_index) {
+    M68kHardwareWordSet input_words[8], output_words[8];
+    if (nodes[node_index].word_proof_ready) {
+      memcpy(input_words, nodes[node_index].platform_in.word_values, sizeof(input_words));
+      memcpy(output_words, nodes[node_index].platform_out.word_values, sizeof(output_words));
+    }
     typed_state_clear_all(&nodes[node_index].typed_in);
     typed_state_clear_all(&nodes[node_index].typed_out);
     memset(&nodes[node_index].platform_in, 0, sizeof(nodes[node_index].platform_in));
     memset(&nodes[node_index].platform_out, 0, sizeof(nodes[node_index].platform_out));
+    if (nodes[node_index].word_proof_ready) {
+      memcpy(nodes[node_index].platform_in.word_values, input_words, sizeof(input_words));
+      memcpy(nodes[node_index].platform_out.word_values, output_words, sizeof(output_words));
+    }
     nodes[node_index].has_in = 0U;
     nodes[node_index].has_out = 0U;
     if (nodes[node_index].is_root) {
@@ -11144,6 +11181,10 @@ static int typed_flow_recompute_node_input(M68kRenderTypedFlowGraph *graph, size
         (void)platform_state_merge_into(&platform_input, &platform); }
     }
   }
+  /* Scalar proofs have their own converged CFG solve. Typed memory joins do
+   * not replace them with stale or transient word packets. */
+  if (node->word_proof_ready)
+    memcpy(platform_input.word_values, node->platform_in.word_values, sizeof(platform_input.word_values));
   if ((node->has_in != 0U) == has_input && (!has_input ||
       (typed_state_equal(&node->typed_in, &typed_input) && platform_states_equal(&node->platform_in, &platform_input)))) {
     return 0;
@@ -11160,7 +11201,7 @@ static int typed_flow_note_incomplete(M68kRenderLookup *lookup, size_t section_i
     uint32_t offset, size_t visit_limit, size_t pending);
 
 static int hardware_relative_analyze_graph(M68kRenderLookup *lookup, const M68kDecodeSectionIR *section,
-    M68kRenderTypedFlowGraph *graph, Arena *arena) {
+    M68kRenderTypedFlowGraph *graph, Arena *arena, int record_accesses) {
   M68kRenderPlatformState *inputs, *outputs;
   uint8_t *has_in, *has_out, *queued;
   size_t *queue, head = 0U, count = 0U, visits = 0U, index;
@@ -11171,8 +11212,11 @@ static int hardware_relative_analyze_graph(M68kRenderLookup *lookup, const M68kD
   if (graph->node_count == 0U) return 0;
   /* Reuse existing node storage, not a second retained scalar-state array.
    * Failed/incomplete solves leave unknown values, never a stale proof. */
-  for (index = 0U; index < graph->node_count; ++index)
+  for (index = 0U; index < graph->node_count; ++index) {
+    graph->nodes[index].word_proof_ready = 0U;
+    memset(graph->nodes[index].platform_in.word_values, 0, sizeof(graph->nodes[index].platform_in.word_values));
     memset(graph->nodes[index].platform_out.word_values, 0, sizeof(graph->nodes[index].platform_out.word_values));
+  }
   mark = arena_mark(arena);
   inputs = arena_calloc(arena, graph->node_count, sizeof(*inputs));
   outputs = arena_calloc(arena, graph->node_count, sizeof(*outputs));
@@ -11241,11 +11285,16 @@ static int hardware_relative_analyze_graph(M68kRenderLookup *lookup, const M68kD
   }
   if (count != 0U && typed_flow_note_incomplete(lookup, section->section_index,
       graph->nodes[queue[head]].candidate->offset, limit, count) != 0) goto done;
-  if (count == 0U) for (index = 0U; index < graph->node_count; ++index) if (has_in[index]) {
-    /* Publish only the converged post-instruction scalar proof. Counter users
-     * still reject unknown or input-contract-dependent values. */
+  if (count == 0U) for (index = 0U; index < graph->node_count; ++index) {
+    /* Reuse both existing packets. No dense second retained scalar array.
+     * Unknown/unreachable inputs stay unknown, and incomplete solves publish
+     * no hint. Consumers still refuse input-contract-dependent values. */
+    memcpy(graph->nodes[index].platform_in.word_values, inputs[index].word_values,
+      sizeof(inputs[index].word_values));
     memcpy(graph->nodes[index].platform_out.word_values, outputs[index].word_values,
       sizeof(outputs[index].word_values));
+    graph->nodes[index].word_proof_ready = 1U;
+    if (!record_accesses || !has_in[index]) continue;
     M68kRenderPlatformState proof = inputs[index];
     M68kInstructionIR instruction;
     uint8_t reg;
@@ -11428,7 +11477,7 @@ static int render_lookup_analyze_amiga_typed_refs_for_section(M68kRenderLookup *
         goto cleanup;
       }
     }
-    if (hardware_relative_analyze_graph(lookup, section, graph, arena) != 0) goto cleanup;
+    if (hardware_relative_analyze_graph(lookup, section, graph, arena, 1) != 0) goto cleanup;
   }
   result = 0;
 
@@ -11601,6 +11650,9 @@ static int render_lookup_analyze_amiga_typed_refs(M68kRenderLookup *lookup,
   if (lookup == NULL || decode == NULL || accepted_start == NULL || workflow == NULL) return -1;
   if (workflow->graphs == NULL) return 0;
   if (workflow->section_count != decode->section_count) return -1;
+  for (section_index = 0U; section_index < decode->section_count; ++section_index)
+    if (hardware_relative_analyze_graph(lookup, &decode->sections[section_index],
+        &workflow->graphs[section_index], workflow->arena, 0) != 0) return -1;
   for (pass = 0; pass < (record_final_accesses ? 5 : 4); ++pass) {
     int final_pass = record_final_accesses != 0 && pass == 4;
     changed = 0;
@@ -11640,6 +11692,11 @@ static int typed_flow_solve_call_inputs(M68kRenderLookup *lookup, const M68kDeco
   size_t epochs = 0U;
   int exposed;
   do {
+    /* Caller exposure can change independent roots. Recompute before using
+     * a scalar hint under this epoch's root set; never retain an old proof. */
+    for (size_t i = 0U; i < workflow->section_count; ++i)
+      if (hardware_relative_analyze_graph(lookup, &decode->sections[i], &workflow->graphs[i],
+          workflow->arena, 0) != 0) return -1;
     lookup->address_value_consumer_count = lookup->typed_access_count = 0U;
     lookup->hardware_address_use_count = lookup->affine_address_use_count = 0U;
     lookup->layout_field_use_count = 0U;
@@ -11746,7 +11803,7 @@ static int typed_flow_record_final_accesses(M68kRenderLookup *lookup, const M68k
         return -1;
       }
     }
-    if (hardware_relative_analyze_graph(lookup, section, graph, workflow->arena) != 0) return -1;
+    if (hardware_relative_analyze_graph(lookup, section, graph, workflow->arena, 1) != 0) return -1;
   }
   return 0;
 }

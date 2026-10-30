@@ -122,11 +122,16 @@ def test_native_load_identity_cannot_be_relabelled_after_file_replacement(tmp_pa
         subprocess.run([compiler,'-shared','-fPIC','-o',str(path),str(source)],check=True,capture_output=True)
     loaded=c_backend._load_dll(tmp_path,'probe.dll')
     assert loaded.probe()==1
+    # The configured ctypes cache may return this same loaded object. A new
+    # artifact request still has to validate its captured implementation.
+    monkeypatch.setattr(c_backend,'_cached_platform_file_dll',lambda root:loaded)
+    assert c_backend._platform_file_dll(tmp_path)is loaded
     identity=c_backend._require_loaded_native_identity(loaded)
     b.replace(a)
     assert loaded.probe()==1
     with pytest.raises(c_backend.NativeBackendStale):c_backend._require_loaded_native_identity(loaded)
     with pytest.raises(c_backend.NativeBackendStale):c_backend._load_dll(tmp_path,'probe.dll')
+    with pytest.raises(c_backend.NativeBackendStale):c_backend._platform_file_dll(tmp_path)
     assert identity['sha256']!=hashlib.sha256(a.read_bytes()).hexdigest()
 
 

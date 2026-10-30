@@ -60,9 +60,11 @@ The optional model-header experiment now isolates the missing contract: a
 104-entry mixed base/extended fixture retains its two common-prefix reads, but
 the nonzero-count branch leaves the extra LONG unresolved. Static directory
 bytes do not establish a live discriminator invariant for writable records.
-A reusable extension needs an explicit guarded-format fact plus field/value
-predicate transport, root identity and alias/call/partial-write invalidation;
-adding a per-reader seed or widening the parent is not a sound substitute.
+A reusable extension needs field/value predicate transport, root identity and
+alias/call/partial-write invalidation. A closed, unchanged source-record domain
+can filter its existing source types; abstract writable inputs additionally
+need an explicit guarded-format invariant. Adding a per-reader seed or widening
+the parent is not a sound substitute.
 The experiment is byte exact; no conditional subtype promotion is claimed.
 
 The connected MFM family now exposes one58-byte sector prefix: the existing
@@ -134,6 +136,50 @@ mutation, partial-write, conflicting-format and unknown-call negatives. Before
 promoting that to the original reader, establish its producer index domain or
 an explicit original-input contract. Do not enlarge the parent or assume all
 possible byte-sign-admitted indices designate headers.
+
+Closed singleton directory reads now consume the existing WORD-index proof:
+the shared scalar solve previously ran after typed pointer transfer, and the
+table reader discarded even an exact index. Converged input/output WORD sets
+now remain in the existing node packets across typed passes. Root changes
+recompute the proof; incomplete solves publish no singleton certification.
+Only a complete aligned LONG in the same table owner admits this lane. Prior
+memory effects retain the existing conservative refusal of static contents;
+an exact index alone does not prove an unchanged table. Positive fixtures cover
+ASL/LSL, encoded displacement, a raw An index and a non-loop singleton. Unknown,
+clobbered, misaligned, one-past and overwritten/unknown-write cases refuse.
+The three late multi-record pointer-field fixtures remain expected failures;
+WORD-to-An scalar transport is not supplied by the Dn-only finite WORD domain.
+
+Actual SGII result: no added/changed typed accesses, source text or CFG. Four
+unsupported out-of-bounds diagnoses at `$11DA/$3217A/$33BC2/$36548` disappear;
+their preceding writes prevent static-content binding, and no replacement
+target/type-domain claim is made. Remaining address-value meanings are identical
+apart from IDs. This is a shared proof handoff/refusal repair, not recovered
+conditional-header semantics. Node/state sizes remain74688/32616 bytes on this
+host; the readiness bit fits existing padding. Fresh generation took158.97s.
+Validation:226 focused tests plus two final singleton/incomplete-pass guards
+pass, with three retained expected failures; all832 native C cases pass.
+Original C/vasm and the clean staged standalone build remain byte exact.
+
+Qualification correction: the previous retained process used the earlier
+native library despite a rebuild; the configured ctypes cache skipped the
+identity recheck when creating another artifact. Cached retrieval now checks
+the captured loaded identity and refuses changed libraries. The replacement
+regression uses an actual loaded shared library. The fresh-process run checks
+loaded and on-disk identities and reproduces the preceding558-entry/105-link
+result and identical generated source. It supersedes the previous run's native
+hash claim, while confirming its byte equality and restored names. No old
+artifact is relabelled as having executed a new implementation.
+
+The instrumented two-record fixture retains both original pointer candidates
+at its join. What is absent is the scalar field-read identity in D0 and a
+corresponding typed zero predicate at BEQ; the pointer set itself was not lost.
+The next minimal experiment is to retain that read relation through the shared
+value transfers and refine the existing record domain on the branch, refusing
+mutated fields, stale roots, partial writes and unknown calls. Only after that
+fixture passes should a writable-input guarded-format contract or the original
+104-entry reader be admitted. These mechanisms are not supplied by the two
+manually annotated structure-profile body inputs above.
 
 An on-demand systematic gap inventory (`amiga_reversing/tools/source_gap_inventory.py`)
 joins native identities/accesses with canonical layouts and actual rendered
