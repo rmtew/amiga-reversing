@@ -51,13 +51,24 @@ clean standalone output match all 412736 bytes, with 57 assets and 14 headers un
 These are source-derived semantic inputs and shared transport gains, not new
 runtime coverage or inferred global memory safety.
 
-The interleaved retry joins at source `$3E0B2` and `$403A4` still lack complete
-pointee propagation from their initial queue loads; this batch does not claim
-all three reader bodies are typed. Their incoming kernel retries bypass the
-current-record entries. The next bounded experiment is to follow typed queue
-identity through the proven dispatch and next-reference reload, testing joins
-and end-of-prefix refusal rather than supplying per-reader types or a global
-array bound. Variable-tail layout remains a separate obligation.
+The retry investigation checked all 49 known incoming edges at source `$3E0B2`
+and all three at `$403A4`: each selects the nonnegative result of an immediate
+LONG `(A2)+` load into D2 or D0. The shared interfaces are now named
+`draw_interleaved_span_header` and `draw_alternate_interleaved_span_header`,
+with their style/first-row protocol documented in generated source. This names
+50 explicit retry branch targets; the two initial entries arrive by fallthrough.
+
+The pointee loss is a correct contract-scope refusal, not a demonstrated join
+bug. A same-cell reload preserves both header fields; an advancing reload past
+the single four-byte reference contract cannot establish the next record's type.
+Partial writes and unknown calls still erase the value. No reader-specific type,
+sequence assumption or global count was added, and no C analysis rule changed.
+28 focused regression cases pass; C/vasm and a clean standalone build match all
+412736 bytes with unchanged assets/headers. All access/address/CFG/summary vectors
+remain identical. The next inference prerequisite is an explicit live homogeneous
+reference-sequence contract, grounded in the phase producer
+and preserved through aliasing/writes. A one-record seed or sentinel check alone
+cannot supply it. Variable-tail layout and global style bounds remain separate.
 
 The preceding access-name projection reuses the existing field-catalogue
 resolver in whole-analysis JSON.3270 records at292 exact offsets expose names

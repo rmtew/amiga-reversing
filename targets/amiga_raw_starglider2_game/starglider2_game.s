@@ -56097,7 +56097,8 @@ draw_interleaved_4plane_span_records:
 abs_0_0003F0AC:
 	move.l (a2)+,d2	; operand 1: SG2SceneSpanReference_span at (a2)+
 	bmi.w abs_0_0003D9D8
-abs_0_0003F0B2:
+    ; Nonnegative span reference in D2; read signed fill style then first scanline, followed by X pairs. Phase interface only; no stream bound.
+draw_interleaved_span_header:
 	movea.l d2,a0
 	move.w (a0)+,d2
 	bpl.b abs_0_0003F0C4
@@ -56179,7 +56180,7 @@ abs_0_0003F1B2:
 	move.w (a0)+,d2
 	bpl.w abs_0_0003F0E2
 	move.l (a2)+,d2
-	bpl.w abs_0_0003F0B2
+	bpl.w draw_interleaved_span_header
 	rts
 abs_0_0003F1D0:
 	not.l d4
@@ -56266,7 +56267,7 @@ abs_0_0003F26A:
 	move.w (a0)+,d2
 	bpl.w abs_0_0003F0E2
 	move.l (a2)+,d2
-	bpl.w abs_0_0003F0B2
+	bpl.w draw_interleaved_span_header
 	rts
 abs_0_0003F282:
 	subq.w #8,d3
@@ -56281,7 +56282,7 @@ abs_0_0003F282:
 	move.w (a0)+,d2
 	bpl.w abs_0_0003F0E2
 	move.l (a2)+,d2
-	bpl.w abs_0_0003F0B2
+	bpl.w draw_interleaved_span_header
 	rts
 abs_0_0003F2A2:
 	or.w d4,(a1)+
@@ -56370,7 +56371,7 @@ abs_0_0003F33E:
 	move.w (a0)+,d2
 	bpl.w abs_0_0003F0E2
 	move.l (a2)+,d2
-	bpl.w abs_0_0003F0B2
+	bpl.w draw_interleaved_span_header
 	rts
 abs_0_0003F358:
 	subq.w #8,d3
@@ -56386,7 +56387,7 @@ abs_0_0003F358:
 	move.w (a0)+,d2
 	bpl.w abs_0_0003F0E2
 	move.l (a2)+,d2
-	bpl.w abs_0_0003F0B2
+	bpl.w draw_interleaved_span_header
 	rts
 abs_0_0003F37A:
 	move.w d4,d2
@@ -56477,7 +56478,7 @@ abs_0_0003F418:
 	move.w (a0)+,d2
 	bpl.w abs_0_0003F0E2
 	move.l (a2)+,d2
-	bpl.w abs_0_0003F0B2
+	bpl.w draw_interleaved_span_header
 	rts
 abs_0_0003F434:
 	subq.w #8,d3
@@ -56491,7 +56492,7 @@ abs_0_0003F434:
 	move.w (a0)+,d2
 	bpl.w abs_0_0003F0E2
 	move.l (a2)+,d2
-	bpl.w abs_0_0003F0B2
+	bpl.w draw_interleaved_span_header
 	rts
 abs_0_0003F452:
 	or.l d4,(a1)+
@@ -56578,7 +56579,7 @@ abs_0_0003F4EC:
 	move.w (a0)+,d2
 	bpl.w abs_0_0003F0E2
 	move.l (a2)+,d2
-	bpl.w abs_0_0003F0B2
+	bpl.w draw_interleaved_span_header
 	rts
 abs_0_0003F504:
 	subq.w #8,d3
@@ -56594,7 +56595,7 @@ abs_0_0003F504:
 	move.w (a0)+,d2
 	bpl.w abs_0_0003F0E2
 	move.l (a2)+,d2
-	bpl.w abs_0_0003F0B2
+	bpl.w draw_interleaved_span_header
 	rts
 abs_0_0003F526:
 	move.w d4,d2
@@ -56685,7 +56686,7 @@ abs_0_0003F5C4:
 	move.w (a0)+,d2
 	bpl.w abs_0_0003F0E2
 	move.l (a2)+,d2
-	bpl.w abs_0_0003F0B2
+	bpl.w draw_interleaved_span_header
 	rts
 abs_0_0003F5E0:
 	subq.w #8,d3
@@ -56702,7 +56703,7 @@ abs_0_0003F5E0:
 	move.w (a0)+,d2
 	bpl.w abs_0_0003F0E2
 	move.l (a2)+,d2
-	bpl.w abs_0_0003F0B2
+	bpl.w draw_interleaved_span_header
 	rts
 abs_0_0003F604:
 	move.w d4,d2
@@ -56795,7 +56796,7 @@ abs_0_0003F6A4:
 	move.w (a0)+,d2
 	bpl.w abs_0_0003F0E2
 	move.l (a2)+,d2
-	bpl.w abs_0_0003F0B2
+	bpl.w draw_interleaved_span_header
 	rts
 abs_0_0003F6C2:
 	subq.w #8,d3
@@ -56811,7 +56812,7 @@ abs_0_0003F6C2:
 	move.w (a0)+,d2
 	bpl.w abs_0_0003F0E2
 	move.l (a2)+,d2
-	bpl.w abs_0_0003F0B2
+	bpl.w draw_interleaved_span_header
 	rts
 abs_0_0003F6E4:
 	move.l d4,d2
@@ -56902,7 +56903,7 @@ abs_0_0003F782:
 	move.w (a0)+,d2
 	bpl.w abs_0_0003F0E2
 	move.l (a2)+,d2
-	bpl.w abs_0_0003F0B2
+	bpl.w draw_interleaved_span_header
 	rts
 abs_0_0003F79E:
 	subq.w #8,d3
@@ -56917,7 +56918,7 @@ abs_0_0003F79E:
 	move.w (a0)+,d2
 	bpl.w abs_0_0003F0E2
 	move.l (a2)+,d2
-	bpl.w abs_0_0003F0B2
+	bpl.w draw_interleaved_span_header
 	rts
 abs_0_0003F7BE:
 	or.l d4,(a1)+
@@ -57006,7 +57007,7 @@ abs_0_0003F85A:
 	move.w (a0)+,d2
 	bpl.w abs_0_0003F0E2
 	move.l (a2)+,d2
-	bpl.w abs_0_0003F0B2
+	bpl.w draw_interleaved_span_header
 	rts
 abs_0_0003F874:
 	subq.w #8,d3
@@ -57022,7 +57023,7 @@ abs_0_0003F874:
 	move.w (a0)+,d2
 	bpl.w abs_0_0003F0E2
 	move.l (a2)+,d2
-	bpl.w abs_0_0003F0B2
+	bpl.w draw_interleaved_span_header
 	rts
 abs_0_0003F896:
 	move.w d4,d2
@@ -57113,7 +57114,7 @@ abs_0_0003F934:
 	move.w (a0)+,d2
 	bpl.w abs_0_0003F0E2
 	move.l (a2)+,d2
-	bpl.w abs_0_0003F0B2
+	bpl.w draw_interleaved_span_header
 	rts
 abs_0_0003F950:
 	subq.w #8,d3
@@ -57129,7 +57130,7 @@ abs_0_0003F950:
 	move.w (a0)+,d2
 	bpl.w abs_0_0003F0E2
 	move.l (a2)+,d2
-	bpl.w abs_0_0003F0B2
+	bpl.w draw_interleaved_span_header
 	rts
 abs_0_0003F972:
 	move.w d4,d2
@@ -57220,7 +57221,7 @@ abs_0_0003FA10:
 	move.w (a0)+,d2
 	bpl.w abs_0_0003F0E2
 	move.l (a2)+,d2
-	bpl.w abs_0_0003F0B2
+	bpl.w draw_interleaved_span_header
 	rts
 abs_0_0003FA2C:
 	subq.w #8,d3
@@ -57237,7 +57238,7 @@ abs_0_0003FA2C:
 	move.w (a0)+,d2
 	bpl.w abs_0_0003F0E2
 	move.l (a2)+,d2
-	bpl.w abs_0_0003F0B2
+	bpl.w draw_interleaved_span_header
 	rts
 abs_0_0003FA50:
 	move.w d4,d2
@@ -57330,7 +57331,7 @@ abs_0_0003FAF0:
 	move.w (a0)+,d2
 	bpl.w abs_0_0003F0E2
 	move.l (a2)+,d2
-	bpl.w abs_0_0003F0B2
+	bpl.w draw_interleaved_span_header
 	rts
 abs_0_0003FB0E:
 	subq.w #8,d3
@@ -57346,7 +57347,7 @@ abs_0_0003FB0E:
 	move.w (a0)+,d2
 	bpl.w abs_0_0003F0E2
 	move.l (a2)+,d2
-	bpl.w abs_0_0003F0B2
+	bpl.w draw_interleaved_span_header
 	rts
 abs_0_0003FB30:
 	move.l d4,d2
@@ -57437,7 +57438,7 @@ abs_0_0003FBCE:
 	move.w (a0)+,d2
 	bpl.w abs_0_0003F0E2
 	move.l (a2)+,d2
-	bpl.w abs_0_0003F0B2
+	bpl.w draw_interleaved_span_header
 	rts
 abs_0_0003FBEA:
 	subq.w #8,d3
@@ -57452,7 +57453,7 @@ abs_0_0003FBEA:
 	move.w (a0)+,d2
 	bpl.w abs_0_0003F0E2
 	move.l (a2)+,d2
-	bpl.w abs_0_0003F0B2
+	bpl.w draw_interleaved_span_header
 	rts
 abs_0_0003FC0A:
 	move.l d4,d2
@@ -57541,7 +57542,7 @@ abs_0_0003FCA6:
 	move.w (a0)+,d2
 	bpl.w abs_0_0003F0E2
 	move.l (a2)+,d2
-	bpl.w abs_0_0003F0B2
+	bpl.w draw_interleaved_span_header
 	rts
 abs_0_0003FCC0:
 	subq.w #8,d3
@@ -57557,7 +57558,7 @@ abs_0_0003FCC0:
 	move.w (a0)+,d2
 	bpl.w abs_0_0003F0E2
 	move.l (a2)+,d2
-	bpl.w abs_0_0003F0B2
+	bpl.w draw_interleaved_span_header
 	rts
 abs_0_0003FCE2:
 	move.l d4,d2
@@ -57648,7 +57649,7 @@ abs_0_0003FD80:
 	move.w (a0)+,d2
 	bpl.w abs_0_0003F0E2
 	move.l (a2)+,d2
-	bpl.w abs_0_0003F0B2
+	bpl.w draw_interleaved_span_header
 	rts
 abs_0_0003FD9C:
 	subq.w #8,d3
@@ -57664,7 +57665,7 @@ abs_0_0003FD9C:
 	move.w (a0)+,d2
 	bpl.w abs_0_0003F0E2
 	move.l (a2)+,d2
-	bpl.w abs_0_0003F0B2
+	bpl.w draw_interleaved_span_header
 	rts
 abs_0_0003FDBE:
 	move.l d4,d2
@@ -57755,7 +57756,7 @@ abs_0_0003FE5C:
 	move.w (a0)+,d2
 	bpl.w abs_0_0003F0E2
 	move.l (a2)+,d2
-	bpl.w abs_0_0003F0B2
+	bpl.w draw_interleaved_span_header
 	rts
 abs_0_0003FE78:
 	subq.w #8,d3
@@ -57768,7 +57769,7 @@ abs_0_0003FE78:
 	move.w (a0)+,d2
 	bpl.w abs_0_0003F0E2
 	move.l (a2)+,d2
-	bpl.w abs_0_0003F0B2
+	bpl.w draw_interleaved_span_header
 	rts
 abs_0_0003FE94:
 	or.l d4,(a1)+
@@ -57853,7 +57854,7 @@ abs_0_0003FF2C:
 	move.w (a0)+,d2
 	bpl.w abs_0_0003F0E2
 	move.l (a2)+,d2
-	bpl.w abs_0_0003F0B2
+	bpl.w draw_interleaved_span_header
 	rts
 abs_0_0003FF42:
 	dc.w abs_0_000411BA-abs_0_0003FF42	; lookup_table
@@ -57921,7 +57922,7 @@ abs_0_000411BA:
 	move.w (a0)+,d2
 	bpl.w abs_0_0003FFA4
 	move.l (a2)+,d2
-	bpl.w abs_0_0003F0B2
+	bpl.w draw_interleaved_span_header
 	rts
 abs_0_000411D0:
 	or.w d4,(a1)+
@@ -57932,7 +57933,7 @@ abs_0_000411D0:
 	move.w (a0)+,d2
 	bpl.w abs_0_0003FFA4
 	move.l (a2)+,d2
-	bpl.w abs_0_0003F0B2
+	bpl.w draw_interleaved_span_header
 	rts
 abs_0_000411E8:
 	move.w d4,d2
@@ -57944,7 +57945,7 @@ abs_0_000411E8:
 	move.w (a0)+,d2
 	bpl.w abs_0_0003FFA4
 	move.l (a2)+,d2
-	bpl.w abs_0_0003F0B2
+	bpl.w draw_interleaved_span_header
 	rts
 abs_0_00041202:
 	or.l d4,(a1)+
@@ -57954,7 +57955,7 @@ abs_0_00041202:
 	move.w (a0)+,d2
 	bpl.w abs_0_0003FFA4
 	move.l (a2)+,d2
-	bpl.w abs_0_0003F0B2
+	bpl.w draw_interleaved_span_header
 	rts
 abs_0_00041218:
 	move.w d4,d2
@@ -57966,7 +57967,7 @@ abs_0_00041218:
 	move.w (a0)+,d2
 	bpl.w abs_0_0003FFA4
 	move.l (a2)+,d2
-	bpl.w abs_0_0003F0B2
+	bpl.w draw_interleaved_span_header
 	rts
 abs_0_00041232:
 	move.w d4,d2
@@ -57979,7 +57980,7 @@ abs_0_00041232:
 	move.w (a0)+,d2
 	bpl.w abs_0_0003FFA4
 	move.l (a2)+,d2
-	bpl.w abs_0_0003F0B2
+	bpl.w draw_interleaved_span_header
 	rts
 abs_0_0004124E:
 	move.l d4,d2
@@ -57991,7 +57992,7 @@ abs_0_0004124E:
 	move.w (a0)+,d2
 	bpl.w abs_0_0003FFA4
 	move.l (a2)+,d2
-	bpl.w abs_0_0003F0B2
+	bpl.w draw_interleaved_span_header
 	rts
 abs_0_00041268:
 	or.l d4,(a1)+
@@ -58002,7 +58003,7 @@ abs_0_00041268:
 	move.w (a0)+,d2
 	bpl.w abs_0_0003FFA4
 	move.l (a2)+,d2
-	bpl.w abs_0_0003F0B2
+	bpl.w draw_interleaved_span_header
 	rts
 abs_0_00041280:
 	move.w d4,d2
@@ -58014,7 +58015,7 @@ abs_0_00041280:
 	move.w (a0)+,d2
 	bpl.w abs_0_0003FFA4
 	move.l (a2)+,d2
-	bpl.w abs_0_0003F0B2
+	bpl.w draw_interleaved_span_header
 	rts
 abs_0_0004129A:
 	move.w d4,d2
@@ -58026,7 +58027,7 @@ abs_0_0004129A:
 	move.w (a0)+,d2
 	bpl.w abs_0_0003FFA4
 	move.l (a2)+,d2
-	bpl.w abs_0_0003F0B2
+	bpl.w draw_interleaved_span_header
 	rts
 abs_0_000412B4:
 	move.w d4,d2
@@ -58039,7 +58040,7 @@ abs_0_000412B4:
 	move.w (a0)+,d2
 	bpl.w abs_0_0003FFA4
 	move.l (a2)+,d2
-	bpl.w abs_0_0003F0B2
+	bpl.w draw_interleaved_span_header
 	rts
 abs_0_000412D0:
 	move.l d4,d2
@@ -58051,7 +58052,7 @@ abs_0_000412D0:
 	move.w (a0)+,d2
 	bpl.w abs_0_0003FFA4
 	move.l (a2)+,d2
-	bpl.w abs_0_0003F0B2
+	bpl.w draw_interleaved_span_header
 	rts
 abs_0_000412EA:
 	move.l d4,d2
@@ -58062,7 +58063,7 @@ abs_0_000412EA:
 	move.w (a0)+,d2
 	bpl.w abs_0_0003FFA4
 	move.l (a2)+,d2
-	bpl.w abs_0_0003F0B2
+	bpl.w draw_interleaved_span_header
 	rts
 abs_0_00041302:
 	move.l d4,d2
@@ -58074,7 +58075,7 @@ abs_0_00041302:
 	move.w (a0)+,d2
 	bpl.w abs_0_0003FFA4
 	move.l (a2)+,d2
-	bpl.w abs_0_0003F0B2
+	bpl.w draw_interleaved_span_header
 	rts
 abs_0_0004131C:
 	move.l d4,d2
@@ -58086,7 +58087,7 @@ abs_0_0004131C:
 	move.w (a0)+,d2
 	bpl.w abs_0_0003FFA4
 	move.l (a2)+,d2
-	bpl.w abs_0_0003F0B2
+	bpl.w draw_interleaved_span_header
 	rts
 abs_0_00041336:
 	or.l d4,(a1)+
@@ -58095,7 +58096,7 @@ abs_0_00041336:
 	move.w (a0)+,d2
 	bpl.w abs_0_0003FFA4
 	move.l (a2)+,d2
-	bpl.w abs_0_0003F0B2
+	bpl.w draw_interleaved_span_header
 	rts
 abs_0_0004134A:
 	movea.l scene_draw_buffer_snapshot.l,a0
@@ -58117,7 +58118,8 @@ abs_0_00041394:
 abs_0_000413A0:
 	move.l (a2)+,d0	; operand 1: SG2SceneSpanReference_span at (a2)+
 	bmi.b abs_0_0004134A
-abs_0_000413A4:
+    ; Nonnegative span reference in D0; read signed fill style then first scanline, followed by X pairs. Phase interface only; no stream bound.
+draw_alternate_interleaved_span_header:
 	movea.l d0,a0
 	move.w (a0)+,d0
 	bpl.b abs_0_000413B0
@@ -58172,7 +58174,7 @@ abs_0_000413D6:
 	move.w (a0)+,d2
 	bpl.b abs_0_000413CC
 	move.l (a2)+,d0
-	bpl.w abs_0_000413A4
+	bpl.w draw_alternate_interleaved_span_header
 	movea.l scene_draw_buffer_snapshot.l,a0
 	adda.w #$700C,a0
 	move.l #$33333333,(a0)
@@ -58284,7 +58286,7 @@ abs_0_00041552:
 	move.w (a0)+,d2
 	bpl.w abs_0_000413CC
 	move.l (a2)+,d0
-	bpl.w abs_0_000413A4
+	bpl.w draw_alternate_interleaved_span_header
 	movea.l scene_draw_buffer_snapshot.l,a0
 	adda.w #$700C,a0
 	move.l #$33333333,(a0)

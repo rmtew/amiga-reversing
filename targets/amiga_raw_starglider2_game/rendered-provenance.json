@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
   "kind": "committed_native_rendered_original_export",
-  "canonical_source_commit": "6ef85a95554fcaabe8d33b878e949e13a9eb35ee",
-  "publication_base_commit": "6ef85a95554fcaabe8d33b878e949e13a9eb35ee",
+  "canonical_source_commit": "e867f81782d7a4b2f556d3c31a61c7a8ead2d55c",
+  "publication_base_commit": "e867f81782d7a4b2f556d3c31a61c7a8ead2d55c",
   "native_export": "CListingArtifact.source_package_payload(64)",
-  "main_source_sha256": "5dcb21098ec75a09770fd3cfab5471a58f566c37b83db29452e1e0389a3c017a",
+  "main_source_sha256": "038a2aada2513922f7577f235d8ffd5e076f0c0dc680b2ee3ea1c93d8292d681",
   "asset_count": 57,
   "asset_bytes": 93633,
   "game_assembly_hand_edits": false,
@@ -24,13 +24,13 @@
     "assembler executable",
     "paused Pandora work"
   ],
-  "canonical_source_commit_role": "canonical source publication base; phase-specific scene headers, shared cursor/pointee transport and growable policy inputs are in the publishing commit; output is bound by verification_receipt_id",
-  "canonical_source_subject_revision": "19e9d3b7088dbed1748d02b5b5dcc368a626fd52cb332e4612921bba96446a2e",
+  "canonical_source_commit_role": "canonical source publication base; the publishing commit names and documents interleaved retry interfaces without new type or sequence contracts; output is bound by verification_receipt_id",
+  "canonical_source_subject_revision": "cd188603e651e78d74be91ce64f6feb185932af8ea1223763b70e94f2d9e516b",
   "canonical_fact_sha256": {
     "source_binary.json": "42d4a5758b3e8236af7f912aee85e9ee5323bcd0961faa338c4f864080a0a7d9",
     "target_metadata.json": "e7540b68c118c56aba8815b6722eefa067517cc865fe9841d6c01ce96551389c",
-    "manual_actions.jsonl": "0fca103e9753937d5d537a61e761c1bb24c1310ce0750302d8811345c16bd418",
-    "decision_journal.jsonl": "d6235f08134eb8ec9b470f7106946780b79123c34e2c2b43afc99fba7574648c"
+    "manual_actions.jsonl": "8d0671ed121c5ca964a59ed1a338ea7754019dcf3ec9978e317a15da0baddf2f",
+    "decision_journal.jsonl": "c0cd60061b96024350bb92d85ed99bc4e9d71c38ac0c024c63a3255464d10159"
   },
   "headers": "14 unmodified required include files collected by source_package.collect_package_includes from ext/amiga_includes/ndk_2.0/include; header notices retained",
   "decoded_protection_view": {
@@ -46,7 +46,7 @@
     },
     "runtime_scope": "Seven CPU write-site windows match this reversible view; no whole runtime-view identity or parent plaintext promotion."
   },
-  "verification_receipt_id": "748c6df5fddc3718747aff8e983155cda0d5e2e73b60cfa06d89040e74d4f2dc",
+  "verification_receipt_id": "3a1733afd45d2202321ed055c8329381a0541539816f2096019a35f165819fcb",
   "render_native_sha256": "d948618910f5935bc4a3b30c96cb8a3ab67a59167bfaaee88841452e729440cb",
   "final_assembler_native_sha256": "d948618910f5935bc4a3b30c96cb8a3ab67a59167bfaaee88841452e729440cb"
 }

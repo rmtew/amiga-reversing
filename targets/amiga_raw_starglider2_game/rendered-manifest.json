@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "source_commit": "6ef85a95554fcaabe8d33b878e949e13a9eb35ee",
+  "source_commit": "e867f81782d7a4b2f556d3c31a61c7a8ead2d55c",
   "source_assembly": "starglider2_game.s",
   "assets": [
     {
@@ -878,13 +878,13 @@
     },
     {
       "path": "rendered-provenance.json",
-      "bytes": 3284,
-      "sha256": "383560ef20f9b5400129666c2c5e0ccf9b81ed51b7c101ddaa602315e4ded48b"
+      "bytes": 3276,
+      "sha256": "20c6a6b6988434aef66f87afb1bf44568a489419427797e5552e72f969d1d620"
     },
     {
       "path": "starglider2_game.s",
-      "bytes": 2029651,
-      "sha256": "5dcb21098ec75a09770fd3cfab5471a58f566c37b83db29452e1e0389a3c017a"
+      "bytes": 2030697,
+      "sha256": "038a2aada2513922f7577f235d8ffd5e076f0c0dc680b2ee3ea1c93d8292d681"
     },
     {
       "path": "tools/starglider2_protection.py",
@@ -892,6 +892,6 @@
       "sha256": "81d3f66d36dbfbd5c77238b20c28e8b9abaa329777eb91f64669bbbf13703582"
     }
   ],
-  "source_commit_role": "canonical source publication base; phase-specific scene headers, shared cursor/pointee transport and growable policy inputs are in the publishing commit; output is bound by verification_receipt_id",
-  "source_subject_revision": "19e9d3b7088dbed1748d02b5b5dcc368a626fd52cb332e4612921bba96446a2e"
+  "source_commit_role": "canonical source publication base; the publishing commit names and documents interleaved retry interfaces without new type or sequence contracts; output is bound by verification_receipt_id",
+  "source_subject_revision": "cd188603e651e78d74be91ce64f6feb185932af8ea1223763b70e94f2d9e516b"
 }

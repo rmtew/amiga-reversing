@@ -41,3 +41,26 @@ def test_partial_overrun_shared_base_and_clobbered_pointer_do_not_promote_header
     with candidate_artifact(tmp_path,code,[],metadata())as(a,_):
         fields=a.analysis_payload()[0]['sections'][0]['recovered_platform_typed_accesses']
         assert not any(r['root_struct_name']=='Header'for r in fields)
+
+
+@pytest.mark.parametrize(('reload', 'known'), [
+    ('move.l -4(a2),d3', True),
+    ('move.l (a2)+,d3', False),
+    ('move.w -4(a2),d3', False),
+    ('move.l -4(a2),d3\n move.w #0,d3', False),
+    ('move.l -4(a2),d3\n jsr (a5)', False),
+])
+def test_retry_join_distinguishes_same_cell_from_unproved_next_record(tmp_path,reload,known):
+    # The declared input describes one Record, not arbitrary adjacent storage.
+    # The positive reload returns to that same cell using the retained one-past
+    # cursor; the advancing case cannot manufacture a homogeneous stream.
+    code=('move.l (a2)+,d3\n bmi.w done\nheader:\n movea.l d3,a0\n'
+          ' move.w (a0)+,d0\n move.w (a0)+,d1\n '+reload+'\n bpl.w header\ndone:\n rts')
+    with candidate_artifact(tmp_path,code,[],metadata())as(a,original):
+        payload=a.analysis_payload()[0]
+        assert not payload['incomplete_analysis']
+        fields=[r['field_name']for r in payload['sections'][0]['recovered_platform_typed_accesses']
+                if r['root_struct_name']=='Header']
+        assert fields==(['style','first_row']if known else[])
+        assert c_backend.assemble_platform_source_text_with_c_backend(
+            'amiga-raw',a.inline_source_text_with_profile()[0])[0]==original
