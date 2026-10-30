@@ -4846,6 +4846,15 @@ static int source_analysis_to_json_impl(const M68kSourceAnalysisIR *source_analy
                   (unsigned)result->hardware_base_id) != 0) goto oom;
             continue;
           }
+          if (result->kind == M68K_FUNCTION_SUMMARY_RESULT_BASE_REGISTER) {
+            if (json_builder_append(&builder, "{\"kind\":\"base_register\",\"location\":") != 0 ||
+                append_function_summary_abi_location_json(&builder, &result->location) != 0 ||
+                json_builder_append(&builder, ",\"base_name\":") != 0 ||
+                json_builder_append_json_string(&builder, m68k_platform_name_ref_display_text(
+                  &result->payload.named_base.base_ref, result->payload.named_base.base_name)) != 0 ||
+                json_builder_append(&builder, "}") != 0) goto oom;
+            continue;
+          }
           if (result->kind == M68K_FUNCTION_SUMMARY_RESULT_IDENTITY_INPUT) {
             if (json_builder_append(&builder, "{\"kind\":\"identity_input\",\"location\":") != 0 ||
                 append_function_summary_abi_location_json(&builder, &result->location) != 0 ||

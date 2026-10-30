@@ -14,7 +14,7 @@ typedef struct M68kTypedLocalCalleeState {
      * value. It is otherwise unknown, so scalar Dn values never manufacture
      * pointer ABI inputs. */
     uint8_t data_origin[8];
-    M68kLocalHardwareValues hardware;
+    M68kLocalBaseValues hardware;
   } M68kTypedLocalCalleeState;
 
 typedef struct M68kLocalCalleeFrame {
@@ -49,6 +49,8 @@ static int local_callee_input_join(M68kTypedLocalCalleeState *dest,
     dest->hardware.known[kind] &= source->hardware.known[kind];
     for (reg = 0U; reg < 8U; ++reg) {
       uint32_t bit = (uint32_t)1U << reg;
+      if (dest->hardware.layouts[kind][reg] != source->hardware.layouts[kind][reg])
+        dest->hardware.layouts[kind][reg] = 0U;
       if (dest->hardware.ids[kind][reg] != source->hardware.ids[kind][reg])
         dest->hardware.known[kind] &= ~bit;
       if (!(dest->hardware.known[kind] & bit)) dest->hardware.ids[kind][reg] = 0U;

@@ -2946,6 +2946,9 @@ static void typed_state_copy_register_identity_result(M68kRenderTypedState *stat
       &source->provenance);
 }
 
+static uint16_t typed_layout_base_id(const M68kRenderLookup *lookup, const char *symbol);
+static const char *typed_layout_base_symbol(const M68kRenderLookup *lookup, uint16_t id);
+
 static void typed_state_apply_function_summary_results(M68kRenderTypedState *state,
     const M68kRenderTypedState *before_call, const M68kRenderLookup *lookup,
     const M68kAnalysisFunctionSummary *summary, size_t section_index, uint32_t offset) {
@@ -2958,6 +2961,21 @@ static void typed_state_apply_function_summary_results(M68kRenderTypedState *sta
     const M68kAnalysisFunctionSummaryInput *input;
     uint8_t member_index;
     uint16_t input_struct_id;
+    if (result->kind == M68K_ANALYSIS_FUNCTION_SUMMARY_RESULT_LAYOUT_BASE) {
+      uint8_t kind = result->location.registers[0].register_kind;
+      uint8_t reg = result->location.registers[0].register_index;
+      M68kRenderTypedRegValue *value;
+      if (result->location.kind != M68K_FUNCTION_SUMMARY_ABI_LOCATION_REGISTER ||
+          result->location.width != 4U || result->location.register_count != 1U || reg >= 8U ||
+          (kind != M68K_ANALYSIS_REGISTER_DATA && kind != M68K_ANALYSIS_REGISTER_ADDRESS) ||
+          !typed_layout_base_symbol(lookup, result->layout_base_id)) continue;
+      value = kind == M68K_ANALYSIS_REGISTER_DATA ? &state->data_regs[reg] : &state->addr_regs[reg];
+      memset(value, 0, sizeof(*value));
+      value->known = 1U;
+      value->layout_base_id = result->layout_base_id;
+      value->provenance = typed_provenance_make(M68K_PLATFORM_TYPE_PROVENANCE_BASE_SLOT, section_index, offset);
+      continue;
+    }
     if (result->kind == M68K_ANALYSIS_FUNCTION_SUMMARY_RESULT_PLATFORM_OUTPUT) {
       const AmigaOsLibraryVectorInfo *vector;
       M68kRenderTypedProvenance api_provenance;
@@ -7042,29 +7060,47 @@ static int typed_flow_local_absolute_jump_target(const M68kRenderLookup *lookup,
   return typed_flow_local_absolute_control_target(lookup, candidate, M68K_SIM_FLOW_JUMP, out_section, out_offset);
 }
 
-/* A bounded callee proof starts with no hardware constants. These compact
- * values are independent of caller origins and cannot manufacture inputs. */
-typedef struct M68kLocalHardwareValues {
+/* A bounded callee proof starts with no hardware constants or nominal layout
+ * roles. Both use the existing platform transfer and must agree at all exits;
+ * a role does not assert that the numeric address was preserved. */
+typedef struct M68kLocalBaseValues {
   uint32_t known[2];
   uint16_t ids[2][8];
-} M68kLocalHardwareValues;
+  uint16_t layouts[2][8];
+} M68kLocalBaseValues;
 
-static void local_hardware_unpack(M68kRenderPlatformState *state, const M68kLocalHardwareValues *values) {
+static void local_base_unpack(M68kRenderPlatformState *state, const M68kLocalBaseValues *values,
+    const M68kRenderLookup *lookup) {
   memset(state, 0, sizeof(*state));
   state->data_hardware_base_known = values->known[0];
   state->address_hardware_base_known = values->known[1];
   memcpy(state->data_hardware_base_id, values->ids[0], sizeof(values->ids[0]));
   memcpy(state->address_hardware_base_id, values->ids[1], sizeof(values->ids[1]));
+  for (uint8_t kind = 0U; kind < 2U; ++kind)
+    for (uint8_t reg = 0U; reg < 8U; ++reg) {
+      const char *symbol = typed_layout_base_symbol(lookup, values->layouts[kind][reg]);
+      if (symbol) (void)platform_state_set_named_base_value(state, lookup->policy,
+        kind == 0U ? M68K_ANALYSIS_REGISTER_DATA : M68K_ANALYSIS_REGISTER_ADDRESS, reg, symbol);
+    }
 }
 
-static void local_hardware_pack(M68kLocalHardwareValues *values, const M68kRenderPlatformState *state) {
+static void local_base_pack(M68kLocalBaseValues *values, const M68kRenderPlatformState *state,
+    const M68kRenderLookup *lookup) {
   values->known[0] = state->data_hardware_base_known;
   values->known[1] = state->address_hardware_base_known;
   memcpy(values->ids[0], state->data_hardware_base_id, sizeof(values->ids[0]));
   memcpy(values->ids[1], state->address_hardware_base_id, sizeof(values->ids[1]));
+  for (uint8_t kind = 0U; kind < 2U; ++kind)
+    for (uint8_t reg = 0U; reg < 8U; ++reg) {
+      uint32_t bit = (uint32_t)1U << reg;
+      uint32_t app = kind ? state->address_app_base_known : state->data_app_base_known;
+      uint32_t layouts = kind ? state->address_layout_base_known : state->data_layout_base_known;
+      const char *symbol = kind ? state->address_layout_base_symbol[reg] : state->data_layout_base_symbol[reg];
+      values->layouts[kind][reg] = app & bit ? 1U : layouts & bit ? typed_layout_base_id(lookup, symbol) : 0U;
+    }
 }
 
-static void local_hardware_apply_call(M68kLocalHardwareValues *values,
+static void local_base_apply_call(M68kLocalBaseValues *values,
     const M68kAnalysisFunctionSummary *summary) {
   uint8_t kind, reg, index;
   if (summary != NULL && summary->effects_invalid != 0U) summary = NULL;
@@ -7075,20 +7111,26 @@ static void local_hardware_apply_call(M68kLocalHardwareValues *values,
           M68K_FUNCTION_SUMMARY_LOCATION_PRESERVED) {
         values->known[kind] &= ~((uint32_t)1U << reg);
         values->ids[kind][reg] = PLATFORM_FACTS_V2_HARDWARE_BASE_ID_NONE;
+        values->layouts[kind][reg] = 0U;
       }
     }
   }
   if (summary == NULL || summary->result_contract_invalid != 0U) return;
   for (index = 0U; index < summary->result_count; ++index) {
     const M68kAnalysisFunctionSummaryResult *result = &summary->results[index];
-    if (result->kind != M68K_ANALYSIS_FUNCTION_SUMMARY_RESULT_HARDWARE_BASE ||
+    if ((result->kind != M68K_ANALYSIS_FUNCTION_SUMMARY_RESULT_HARDWARE_BASE &&
+         result->kind != M68K_ANALYSIS_FUNCTION_SUMMARY_RESULT_LAYOUT_BASE) ||
         result->location.kind != M68K_FUNCTION_SUMMARY_ABI_LOCATION_REGISTER ||
         result->location.width != 4U || result->location.register_count != 1U) continue;
     reg = result->location.registers[0].register_index;
     kind = result->location.registers[0].register_kind == M68K_ANALYSIS_REGISTER_DATA ? 0U : 1U;
     if (reg >= 8U) continue;
-    values->known[kind] |= (uint32_t)1U << reg;
-    values->ids[kind][reg] = result->hardware_base_id;
+    if (result->kind == M68K_ANALYSIS_FUNCTION_SUMMARY_RESULT_LAYOUT_BASE)
+      values->layouts[kind][reg] = result->layout_base_id;
+    else {
+      values->known[kind] |= (uint32_t)1U << reg;
+      values->ids[kind][reg] = result->hardware_base_id;
+    }
   }
 }
 
@@ -7131,7 +7173,7 @@ static int typed_flow_local_callee_effect_summary(const M68kRenderLookup *lookup
   uint8_t returned = 0U, returned_mask = 0U;
   uint16_t input_origin_mask = 0U;
   uint8_t returned_origin[8], returned_data_origin[8];
-  M68kLocalHardwareValues returned_hardware;
+  M68kLocalBaseValues returned_hardware;
   M68kFunctionSummaryMemoryEffectIR static_writes[M68K_ANALYSIS_FUNCTION_SUMMARY_MEMORY_EFFECT_LIMIT] = {0};
   M68kFunctionSummaryEscapeIR escapes[M68K_ANALYSIS_FUNCTION_SUMMARY_ESCAPE_LIMIT] = {0};
   uint8_t static_write_count = 0U;
@@ -7489,9 +7531,9 @@ static int typed_flow_local_callee_effect_summary(const M68kRenderLookup *lookup
       if (metadata->flow_kind != M68K_SIM_FLOW_CALL && metadata->flow_kind != M68K_SIM_FLOW_RETURN &&
           metadata->flow_kind != M68K_SIM_FLOW_JUMP) {
         M68kRenderPlatformState hardware;
-        local_hardware_unpack(&hardware, &state.hardware);
+        local_base_unpack(&hardware, &state.hardware, lookup);
         platform_state_update_after_instruction(&hardware, lookup, &instruction);
-        local_hardware_pack(&state.hardware, &hardware);
+        local_base_pack(&state.hardware, &hardware, lookup);
       }
       if (metadata->flow_kind == M68K_SIM_FLOW_CALL) {
         size_t callee_section = 0U;
@@ -7513,7 +7555,7 @@ static int typed_flow_local_callee_effect_summary(const M68kRenderLookup *lookup
         }
         if (function_summary_register_effect(callee_summary,
             M68K_ANALYSIS_REGISTER_ADDRESS, 7U) != M68K_FUNCTION_SUMMARY_LOCATION_PRESERVED) goto cleanup;
-        local_hardware_apply_call(&state.hardware, callee_summary);
+        local_base_apply_call(&state.hardware, callee_summary);
         local_callee_identity_call(&state, callee_summary, before_origins);
         if (live_mask != 0U) {
           uint8_t callee_preserved = 0U;
@@ -7537,6 +7579,8 @@ static int typed_flow_local_callee_effect_summary(const M68kRenderLookup *lookup
         else for (uint8_t kind = 0U; kind < 2U; ++kind) {
           returned_hardware.known[kind] &= state.hardware.known[kind];
           for (uint8_t reg = 0U; reg < 8U; ++reg) {
+            if (returned_hardware.layouts[kind][reg] != state.hardware.layouts[kind][reg])
+              returned_hardware.layouts[kind][reg] = 0U;
             if (returned_hardware.ids[kind][reg] != state.hardware.ids[kind][reg])
               returned_hardware.known[kind] &= ~((uint32_t)1U << reg);
           }
@@ -7679,6 +7723,21 @@ static int typed_flow_local_callee_effect_summary(const M68kRenderLookup *lookup
       result->location.registers[0].register_index = reg;
     }
   }
+  for (uint8_t kind = 0U; kind < 2U; ++kind)
+    for (uint8_t reg = 0U; reg < 8U; ++reg) {
+      M68kAnalysisFunctionSummaryResult *result;
+      if (!returned_hardware.layouts[kind][reg] ||
+          out_summary->result_count >= M68K_ANALYSIS_FUNCTION_SUMMARY_RESULT_LIMIT) continue;
+      result = &out_summary->results[out_summary->result_count++];
+      memset(result, 0, sizeof(*result));
+      result->kind = M68K_ANALYSIS_FUNCTION_SUMMARY_RESULT_LAYOUT_BASE;
+      result->layout_base_id = returned_hardware.layouts[kind][reg];
+      result->location.kind = M68K_FUNCTION_SUMMARY_ABI_LOCATION_REGISTER;
+      result->location.width = 4U;
+      result->location.register_count = 1U;
+      result->location.registers[0].register_kind = kind ? M68K_ANALYSIS_REGISTER_ADDRESS : M68K_ANALYSIS_REGISTER_DATA;
+      result->location.registers[0].register_index = reg;
+    }
   {
     uint8_t preserved_data = 0U;
     for (uint8_t reg = 0U; reg < 8U; ++reg)
@@ -10831,11 +10890,11 @@ static int typed_flow_process_node_impl(M68kRenderLookup *lookup, const M68kDeco
       }
     }
     if (metadata != NULL && metadata->flow_kind == M68K_SIM_FLOW_CALL) {
-      M68kLocalHardwareValues values;
+      M68kLocalBaseValues values;
       M68kRenderPlatformState hardware;
-      local_hardware_pack(&values, &before);
-      local_hardware_apply_call(&values, selected_local_effects);
-      local_hardware_unpack(&hardware, &values);
+      local_base_pack(&values, &before, lookup);
+      local_base_apply_call(&values, selected_local_effects);
+      local_base_unpack(&hardware, &values, lookup);
       out_platform_state->data_hardware_base_known = hardware.data_hardware_base_known;
       out_platform_state->address_hardware_base_known = hardware.address_hardware_base_known;
       memcpy(out_platform_state->data_hardware_base_id, hardware.data_hardware_base_id,
@@ -11493,11 +11552,57 @@ static int typed_flow_recompute_node_input(M68kRenderTypedFlowGraph *graph, size
 static int typed_flow_note_incomplete(M68kRenderLookup *lookup, size_t section_index,
     uint32_t offset, size_t visit_limit, size_t pending);
 
+/* Reuse closed-call entry dependencies for nominal layout roles only.
+ * WORD values, caller stack and scalar cells are never imported here. Call
+ * roots used by the independent WORD solve are not unknown nominal entries:
+ * track nominal reachability separately so an unvisited recursive call cannot
+ * alternate top and a delayed predecessor fact around the cycle. */
+static void scalar_named_bases_copy(M68kRenderPlatformState *dest, const M68kRenderPlatformState *source) {
+  dest->data_app_base_known = source->data_app_base_known;
+  dest->address_app_base_known = source->address_app_base_known;
+  dest->data_layout_base_known = source->data_layout_base_known;
+  dest->address_layout_base_known = source->address_layout_base_known;
+  memcpy(dest->data_layout_base_symbol, source->data_layout_base_symbol, sizeof(dest->data_layout_base_symbol));
+  memcpy(dest->address_layout_base_symbol, source->address_layout_base_symbol, sizeof(dest->address_layout_base_symbol));
+}
+
+static int scalar_named_bases_input(const M68kRenderLookup *lookup, const M68kDecodeSectionIR *section,
+    const M68kRenderTypedFlowGraph *graph, size_t node, const M68kRenderPlatformState *inputs,
+    const M68kRenderPlatformState *outputs, const uint8_t *has_in, const uint8_t *has_out,
+    M68kRenderPlatformState *dest) {
+  M68kRenderPlatformState joined = {0};
+  int found = graph->nodes[node].is_root;
+  for (size_t p = graph->predecessor_offsets[node]; p < graph->predecessor_offsets[node + 1U]; ++p) {
+    size_t pred = graph->predecessors[p];
+    if (!has_out[pred]) continue;
+    M68kRenderPlatformState edge = {0};
+    scalar_named_bases_copy(&edge, &outputs[pred]);
+    if (!found) joined = edge; else (void)platform_state_merge_into(&joined, &edge);
+    found = 1;
+  }
+  if (graph->call_inputs_enabled && graph->call_predecessor_offsets)
+    for (size_t p = graph->call_predecessor_offsets[node]; p < graph->call_predecessor_offsets[node + 1U]; ++p) {
+      size_t pred = graph->call_predecessors[p];
+      if (!has_in[pred]) continue;
+      M68kRenderPlatformState edge = {0}, before = inputs[pred];
+      platform_state_apply_policy_register_seeds(&before, lookup->policy, section->section_index,
+        graph->nodes[pred].candidate->offset);
+      scalar_named_bases_copy(&edge, &before);
+      edge.address_app_base_known &= ~UINT32_C(0x80);
+      edge.address_layout_base_known &= ~UINT32_C(0x80);
+      edge.address_layout_base_symbol[7][0] = '\0';
+      if (!found) joined = edge; else (void)platform_state_merge_into(&joined, &edge);
+      found = 1;
+    }
+  scalar_named_bases_copy(dest, &joined);
+  return found;
+}
+
 static int hardware_relative_analyze_graph(M68kRenderLookup *lookup, const M68kDecodeSectionIR *section,
     M68kRenderTypedFlowGraph *graph, Arena *arena, int record_accesses) {
   M68kRenderPlatformState *inputs, *outputs;
   M68kScalarWordPacket **cell_inputs, **cell_outputs;
-  uint8_t *has_in, *has_out, *queued;
+  uint8_t *has_in, *has_out, *queued, *named_has_in, *named_has_out;
   size_t *queue, head = 0U, count = 0U, visits = 0U, index;
   size_t scalar_packet_bytes=0U,scalar_max_cells=0U;
   size_t limit = typed_flow_limit_from_env("AMIGA_REVERSING_TYPED_FLOW_MAX_NODE_VISITS",
@@ -11520,11 +11625,14 @@ static int hardware_relative_analyze_graph(M68kRenderLookup *lookup, const M68kD
   has_in = arena_calloc(arena, graph->node_count, 1U);
   has_out = arena_calloc(arena, graph->node_count, 1U);
   queued = arena_calloc(arena, graph->node_count, 1U);
+  named_has_in = arena_calloc(arena, graph->node_count, 1U);
+  named_has_out = arena_calloc(arena, graph->node_count, 1U);
   queue = arena_alloc(arena, graph->node_count * sizeof(*queue));
-  if (!cell_inputs || !cell_outputs || inputs == NULL || outputs == NULL || has_in == NULL || has_out == NULL || queued == NULL || queue == NULL)
+  if (!named_has_in || !named_has_out || !cell_inputs || !cell_outputs || inputs == NULL || outputs == NULL || has_in == NULL || has_out == NULL || queued == NULL || queue == NULL)
     goto done;
   for (index = 0U; index < graph->node_count; ++index) if (typed_flow_hardware_root(graph, index)) {
     has_in[index] = 1U;
+    named_has_in[index] = graph->nodes[index].is_root;
     if (typed_flow_enqueue_node(queue, queued, graph->node_count, &head, &count, index) != 0) goto done;
   }
   while (count != 0U && visits++ < limit) {
@@ -11550,30 +11658,52 @@ static int hardware_relative_analyze_graph(M68kRenderLookup *lookup, const M68kD
     scalar_word_commit(&scalar_state,&scalar);
     next = before;
     platform_state_update_after_instruction(&next, lookup, &instruction);
-    /* Calls are top in this solver. Existing exact-address call proofs remain
-     * separate; no new preservation assumption is made for a relative base. */
+    /* Relative hardware values and WORD cells remain top across calls.
+     * Nominal roles below use the same independently proved callable effects. */
     hardware_relative_transfer(&next, &before, &instruction);
+    const M68kSimFormMetadata *named_metadata = m68k_sim_metadata_for_instruction(&instruction);
+    if (named_metadata && named_metadata->flow_kind == M68K_SIM_FLOW_CALL) {
+      size_t target_section; uint32_t target_offset;
+      const M68kAnalysisFunctionSummary *summary = NULL;
+      M68kLocalBaseValues values; M68kRenderPlatformState result;
+      if (typed_flow_local_call_target(lookup, node->candidate, &target_section, &target_offset)) {
+        summary = lookup_configured_direct_function_summary(lookup, target_section, target_offset);
+        if (!summary) summary = lookup_inferred_direct_function_summary(lookup, target_section, target_offset);
+      }
+      local_base_pack(&values, &before, lookup);
+      local_base_apply_call(&values, summary);
+      local_base_unpack(&result, &values, lookup);
+      scalar_named_bases_copy(&next, &result);
+    } else if (named_metadata && named_metadata->flow_kind == M68K_SIM_FLOW_JUMP)
+      scalar_named_bases_copy(&next, &before);
+
     if(scalar.has_read)next.word_values[scalar.read_register]=scalar.read_values;
     memset(&normalized, 0, sizeof(normalized));
-    normalized.data_app_base_known=next.data_app_base_known;
-    normalized.address_app_base_known=next.address_app_base_known;
+    scalar_named_bases_copy(&normalized, &next);
     normalized.data_hardware_base_known = next.data_hardware_base_known;
     normalized.address_hardware_base_known = next.address_hardware_base_known;
     memcpy(normalized.data_hardware_base_id, next.data_hardware_base_id, sizeof(next.data_hardware_base_id));
     memcpy(normalized.address_hardware_base_id, next.address_hardware_base_id, sizeof(next.address_hardware_base_id));
     memcpy(normalized.word_values, next.word_values, sizeof(next.word_values));
     memcpy(normalized.relative_hardware, next.relative_hardware, sizeof(next.relative_hardware));
-    if (has_out[index] && platform_states_equal(&outputs[index], &normalized) &&
-        scalar_word_packet_equal(cell_outputs[index],&scalar_state)) continue;
-    if(!scalar_word_packet_store(arena,&cell_outputs[index],&scalar_state))goto done;
-    if(cell_outputs[index]) {
+    int output_changed = !has_out[index] || named_has_out[index] != named_has_in[index] || !platform_states_equal(&outputs[index], &normalized) ||
+      !scalar_word_packet_equal(cell_outputs[index], &scalar_state);
+    if (output_changed && !scalar_word_packet_store(arena,&cell_outputs[index],&scalar_state))goto done;
+    if(output_changed && cell_outputs[index]) {
       scalar_packet_bytes+=sizeof(M68kScalarWordPacket)+cell_outputs[index]->count*sizeof(cell_outputs[index]->cells[0]);
       if(cell_outputs[index]->count>scalar_max_cells)scalar_max_cells=cell_outputs[index]->count;
     }
     outputs[index] = normalized;
     has_out[index] = 1U;
-    for (successor_index = 0U; successor_index < node->successor_count; ++successor_index) {
-      size_t successor = node->successors[successor_index], predecessor_index;
+    named_has_out[index] = named_has_in[index];
+    size_t successor_count = node->successor_count +
+      (graph->call_inputs_enabled && node->call_target < graph->node_count ? 1U : 0U);
+    /* Ordinary edges depend only on outputs. A call dependency instead reads
+     * pre-call roles, which may change even when the call still outputs top. */
+    for (successor_index = output_changed ? 0U : node->successor_count;
+         successor_index < successor_count; ++successor_index) {
+      size_t successor = successor_index < node->successor_count ? node->successors[successor_index] : node->call_target;
+      size_t predecessor_index;
       M68kRenderPlatformState input;
       M68kRenderTypedState scalar_input={0};
       int found = typed_flow_hardware_root(graph, successor);
@@ -11593,7 +11723,10 @@ static int hardware_relative_analyze_graph(M68kRenderLookup *lookup, const M68kD
           (void)typed_state_merge_base_slots(&scalar_input,&scalar_edge,lookup->policy);}
         found = 1;
       }
-      if (has_in[successor] == (uint8_t)found && platform_states_equal(&inputs[successor], &input) &&
+      int named_found = scalar_named_bases_input(lookup, section, graph, successor, inputs, outputs,
+        named_has_in, named_has_out, &input);
+      if (has_in[successor] == (uint8_t)found && named_has_in[successor] == (uint8_t)named_found &&
+          platform_states_equal(&inputs[successor], &input) &&
           scalar_word_packet_equal(cell_inputs[successor],&scalar_input)) continue;
       if(!scalar_word_packet_store(arena,&cell_inputs[successor],&scalar_input))goto done;
       if(cell_inputs[successor]) {
@@ -11602,6 +11735,7 @@ static int hardware_relative_analyze_graph(M68kRenderLookup *lookup, const M68kD
       }
       inputs[successor] = input;
       has_in[successor] = (uint8_t)found;
+      named_has_in[successor] = (uint8_t)named_found;
       if (found && typed_flow_enqueue_node(queue, queued, graph->node_count, &head, &count, successor) != 0) goto done;
     }
   }
@@ -12783,6 +12917,10 @@ static int append_render_lookup_function_summaries_for_section(const M68kRenderL
       result->kind = inferred_result->kind == M68K_ANALYSIS_FUNCTION_SUMMARY_RESULT_HARDWARE_BASE ?
         M68K_FUNCTION_SUMMARY_RESULT_HARDWARE_BASE : M68K_FUNCTION_SUMMARY_RESULT_IDENTITY_INPUT;
       result->hardware_base_id = inferred_result->hardware_base_id;
+      if (inferred_result->kind == M68K_ANALYSIS_FUNCTION_SUMMARY_RESULT_LAYOUT_BASE) {
+        result->kind = M68K_FUNCTION_SUMMARY_RESULT_BASE_REGISTER;
+        result->payload.named_base.base_name = typed_layout_base_symbol(lookup, inferred_result->layout_base_id);
+      }
       result->location = inferred_result->location;
       result->identity_input_index = inferred_result->input_index;
     }

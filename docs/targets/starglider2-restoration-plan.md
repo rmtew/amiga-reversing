@@ -479,6 +479,39 @@ pointer indexes and25632 bytes of sparse packet payload, at most two live cells;
 these scratch packets are released after the solve. Peak end-to-end RSS was
 2771172KiB, including verification. No observation dump or interim archive is added.
 
+The +$856 caller investigation locates the earlier loss: the main-loop A6
+reload precedes `render_world_view` (source `$2DE8`), whose summary refuses
+unclosed indirect dispatches, starting with `select_player_view_mode` (`$2C40`).
+The later frame-effects bridge preserves A6; both message-enqueue calls before
+the mask/reload preserve A6/A7. The world-update bridge also has a three-function
+recursive SCC with no proved effects. Neither fallback layout nor plausible
+known jump targets closes these original call paths.
+
+Two shared transport gaps now have executable regressions: nominal layout-base
+results from declared holder reloads, and those roles entering the independent
+WORD solve through the existing closed-call dependencies. Results use existing
+platform transfers and must agree at all returns; numeric identity is not
+asserted. Partial values, adjustments, unknown calls, conflicting namespaces and
+independent entries refuse. Separate nominal reachability fixes the reproduced
+recursive scheduling oscillation, without changing visit/value caps. Scratch
+adds two byte flags per instruction and32 bytes per local-callee proof state,
+not another per-node value array.
+
+Validation:408 related Python cases pass with three existing expected failures;
+all21 new cases pass (including two additional namespace cases), and all833 native
+C cases pass. Original C/vasm and a clean standalone build are exact. Actual SGII
+gain remains **zero**, all six access/address/CFG vectors and the generated source
+package are unchanged, and no nominal callable result is inferred for this target.
+Generation took255.41s; peak RSS2770280KiB. These are single host measurements,
+not a speedup claim. No observation dump or interim archive is committed.
+
+Next bounded experiment: carry proven selector domains into callable dispatch
+closure, beginning with the eight guarded entries of the thirteen-WORD view-mode
+table. Its known targets alone are not an exhaustive control contract. Then test
+normal-return register preservation within the world-update SCC; do not assume
+recursive effects. Optional-header selector validity and preservation of +22
+remain separate obligations; the observed +2 mutation proves neither.
+
 An on-demand systematic gap inventory (`amiga_reversing/tools/source_gap_inventory.py`)
 joins native identities/accesses with canonical layouts and actual rendered
 boundaries. The previous whole-target snapshot records 71 suffix signals (including numeric adjacent variants),

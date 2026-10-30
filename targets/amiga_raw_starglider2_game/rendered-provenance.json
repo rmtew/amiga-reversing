@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
   "kind": "committed_native_rendered_original_export",
-  "canonical_source_commit": "540dc29cb276ca304bb433f76a7e5baccb87ff77",
-  "publication_base_commit": "540dc29cb276ca304bb433f76a7e5baccb87ff77",
+  "canonical_source_commit": "d04eec004e0eef34cb20b6af33b7cb56d66b1da2",
+  "publication_base_commit": "d04eec004e0eef34cb20b6af33b7cb56d66b1da2",
   "native_export": "CListingArtifact.source_package_payload(64)",
   "main_source_sha256": "10625f516bccd683fd3a2060dd6ef938d50d52af846b4bb4bfb3764851847840",
   "asset_count": 57,
@@ -24,8 +24,8 @@
     "assembler executable",
     "paused Pandora work"
   ],
-  "canonical_source_commit_role": "canonical source publication base; shared canonical scalar-WORD cell transfer and independent WORD-solver integration are in the publishing commit; output is bound by verification_receipt_id",
-  "canonical_source_subject_revision": "9c93f5821ea3832ea35c241d85c1a6dce136a9f6a08643233d85c3115771ec17",
+  "canonical_source_commit_role": "canonical source publication base; shared nominal layout results and closed-call WORD-solver role transport are in the publishing commit; output is bound by verification_receipt_id",
+  "canonical_source_subject_revision": "6a7dd0c8a44019bd28bc98abdc74cb2eaa661f3da8ec6c1fc37eec9ca2ad2d9f",
   "canonical_fact_sha256": {
     "source_binary.json": "42d4a5758b3e8236af7f912aee85e9ee5323bcd0961faa338c4f864080a0a7d9",
     "target_metadata.json": "e7540b68c118c56aba8815b6722eefa067517cc865fe9841d6c01ce96551389c",
@@ -46,6 +46,6 @@
     },
     "runtime_scope": "Seven CPU write-site windows match this reversible view; no whole runtime-view identity or parent plaintext promotion."
   },
-  "verification_receipt_id": "6d512ee290756e4ea0d4f9ffe649d9260074a080a03b9f853c6201830ce546b2",
-  "render_native_sha256": "4f7bc90d836f15b00c0cca566a13ebbcc0555cbdae40c85cd48abcbd88c9a617"
+  "verification_receipt_id": "27c7e4aa430746f4dc95eb49c5963a7f4fc5563d557135169e6a0d5f90f11825",
+  "render_native_sha256": "1a919315b64f144089e14587feb43bd4e237e26163ab95e4fffa7439e2b36ffb"
 }
