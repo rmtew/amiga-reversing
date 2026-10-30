@@ -3888,54 +3888,56 @@ count_and_present_frame_handoff:
 	addq.w #1,frame_handoffs_in_window(a6)
 	bsr.w rotate_amiga_display_buffers_bridge_0024bc
 	rts
-abs_0_000034EA:
+select_all_plane_bits_for_viewport_fill:
 	moveq.l #-1,d0
 clear_amiga_viewport:
 	move.w view_clip_min_y(a6),d3
 	move.w view_clip_max_y(a6),d4
 	bra.w fill_amiga_view_rows_continuation
+    ; Upper selects min Y..split-1; lower selects split..max Y. Negative split falls back only for upper. Original guards do not clamp every split or validate all resulting row counts.
 fill_amiga_horizon_bands:
 	tst.w d0
-	bne.b abs_0_00003522
+	bne.b select_amiga_lower_horizon_band
 	tst.b space_environment_flag(a6)
-	bmi.b abs_0_000034EA
+	bmi.b select_all_plane_bits_for_viewport_fill
 	move.w horizon_upper_fill_colour.l,d0
 	move.w horizon_ground_split_row.l,d1
 	bmi.b clear_amiga_viewport
 	move.w view_clip_min_y(a6),d3
 	subq.w #1,d1
 	cmp.w d3,d1
-	blt.b abs_0_00003520
+	blt.b return_without_amiga_horizon_fill
 	move.w d1,d4
 	bra.w fill_amiga_view_rows_continuation
-abs_0_00003520:
+return_without_amiga_horizon_fill:
 	rts
-abs_0_00003522:
+select_amiga_lower_horizon_band:
 	tst.b space_environment_flag(a6)
-	bmi.b abs_0_00003520
+	bmi.b return_without_amiga_horizon_fill
 	move.w horizon_lower_fill_colour.l,d0
 	move.w horizon_ground_split_row.l,d3
-	bmi.b abs_0_00003520
+	bmi.b return_without_amiga_horizon_fill
 	move.w view_clip_max_y(a6),d4
-    ; Shared clear/horizon continuation: D0 fill pattern, D3/D4 inclusive rows; view bounds supply X range. Requires the original caller return frame.
+    ; Inclusive rows and view X bounds. Geometry rounds X to whole words. Four plane writes reuse plane-0 control setup; each waits for the original busy flag.
 fill_amiga_view_rows_continuation:
 	move.w view_clip_min_x(a6),d1
 	move.w view_clip_max_x(a6),d2
 	movea.l draw_buffer_base.w(a6),a0
-	bsr.w abs_0_00003608
-	bsr.w abs_0_0000355A
-	bsr.w abs_0_0000359C
-	bsr.w abs_0_000035C0
-	bra.w abs_0_000035E4
-abs_0_0000355A:
+	bsr.w prepare_amiga_word_aligned_blit_geometry
+	bsr.w program_amiga_fill_plane_0
+	bsr.w program_amiga_fill_plane_1_continuation
+	bsr.w program_amiga_fill_plane_2_continuation
+	bra.w program_amiga_fill_plane_3_continuation
+    ; Low four D0 bits select zero/FFFF per-plane data. Full WORD masks accompany outward X rounding; this is not partial-pixel edge clipping.
+program_amiga_fill_plane_0:
 	lea.l _custom.l,a5
 	moveq.l #0,d7
 	btst #0,d0
-	beq.b abs_0_0000356A
+	beq.b wait_for_amiga_fill_plane_0_idle
 	moveq.l #-1,d7
-abs_0_0000356A:
+wait_for_amiga_fill_plane_0_idle:
 	btst.b #DMAB_BLITTER,dmaconr(a5)
-	bne.b abs_0_0000356A
+	bne.b wait_for_amiga_fill_plane_0_idle
 	move.w #BC0F_DEST|ABC|ABNC|ANBC|ANBNC,bltcon0(a5)
 	move.w #$0,bltcon1(a5)
 	move.w #$FFFF,bltafwm(a5)
@@ -3945,49 +3947,51 @@ abs_0_0000356A:
 	move.w d7,bltadat(a5)
 	move.w d6,bltsize(a5)
 	rts
-abs_0_0000359C:
+    ; Planes 1..3 require the earlier A5/control/mask/modulo setup. Each advances the destination by 8192 bytes and programs only destination, data and size after its busy wait.
+program_amiga_fill_plane_1_continuation:
 	moveq.l #0,d7
 	btst #1,d0
-	beq.b abs_0_000035A6
+	beq.b advance_to_amiga_fill_plane_1
 	moveq.l #-1,d7
-abs_0_000035A6:
+advance_to_amiga_fill_plane_1:
 	adda.w #$2000,a0
-abs_0_000035AA:
+wait_for_amiga_fill_plane_1_idle:
 	btst.b #DMAB_BLITTER,dmaconr(a5)
-	bne.b abs_0_000035AA
+	bne.b wait_for_amiga_fill_plane_1_idle
 	move.l a0,bltdpt(a5)	; blitter_destination pointer
 	move.w d7,bltadat(a5)
 	move.w d6,bltsize(a5)
 	rts
-abs_0_000035C0:
+program_amiga_fill_plane_2_continuation:
 	moveq.l #0,d7
 	btst #2,d0
-	beq.b abs_0_000035CA
+	beq.b advance_to_amiga_fill_plane_2
 	moveq.l #-1,d7
-abs_0_000035CA:
+advance_to_amiga_fill_plane_2:
 	adda.w #$2000,a0
-abs_0_000035CE:
+wait_for_amiga_fill_plane_2_idle:
 	btst.b #DMAB_BLITTER,dmaconr(a5)
-	bne.b abs_0_000035CE
+	bne.b wait_for_amiga_fill_plane_2_idle
 	move.l a0,bltdpt(a5)	; blitter_destination pointer
 	move.w d7,bltadat(a5)
 	move.w d6,bltsize(a5)
 	rts
-abs_0_000035E4:
+program_amiga_fill_plane_3_continuation:
 	moveq.l #0,d7
 	btst #3,d0
-	beq.b abs_0_000035EE
+	beq.b advance_to_amiga_fill_plane_3
 	moveq.l #-1,d7
-abs_0_000035EE:
+advance_to_amiga_fill_plane_3:
 	adda.w #$2000,a0
-abs_0_000035F2:
+wait_for_amiga_fill_plane_3_idle:
 	btst.b #DMAB_BLITTER,dmaconr(a5)
-	bne.b abs_0_000035F2
+	bne.b wait_for_amiga_fill_plane_3_idle
 	move.l a0,bltdpt(a5)	; blitter_destination pointer
 	move.w d7,bltadat(a5)
 	move.w d6,bltsize(a5)
 	rts
-abs_0_00003608:
+    ; D5.W modulo, D6.W packed height/word count, advanced A0; D0-D4 restored. X rounds outward to words. Low16-bit row/column offset is zero-extended; bounds are not validated.
+prepare_amiga_word_aligned_blit_geometry:
 	movem.l d0-d4,-(a7)
 	andi.w #65520,d1
 	andi.w #65520,d2

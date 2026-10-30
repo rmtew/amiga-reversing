@@ -140,6 +140,24 @@ write: hardware, outer frame/palette/protection handling and normal-input gamepl
 are not exercised. C/vasm and clean standalone rebuilding remain byte exact;
 all access/address/CFG/summary vectors and prior withdrawals are unchanged.
 
+The viewport/horizon batch reconstructs 15 programming/geometry continuations
+and five concise contracts. X expands to whole 16-pixel words; inclusive row
+bounds produce the original D5.W modulo and D6.W packed size. The A0 adjustment
+zero-extends its low 16-bit row/column offset, while D0-D4 are restored. Original
+WORD wrap and absent general validation remain intact, including horizon split
+values that are not independently clamped by these selectors.
+The four low colour bits choose zero/FFFF data for successive 8192-byte planes.
+Later planes reuse plane-0 controls, masks and modulo; every plane retains its
+original busy gate. The last continuation returns after its size write with no
+trailing completion wait. No standalone complete-setup or quiescent-return
+contract is invented for a later-plane continuation.
+31 focused fixtures pass, including 192 four-plane programming combinations,
+geometry/wrap cases, four busy waits and the original horizon guards. Device
+registers have plain byte backing with explicit idle/busy inputs; there is no
+DMA, device-completion, interrupt, pixel-output or gameplay claim. No shared-code
+change was needed. Final C/vasm and clean standalone output remain exact for
+all 412736 bytes; access/address/CFG/summary vectors are unchanged.
+
 The preceding access-name projection reuses the existing field-catalogue
 resolver in whole-analysis JSON.3270 records at292 exact offsets expose names
 already declared in source (for example `player_world_y` and
