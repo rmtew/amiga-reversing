@@ -628,6 +628,8 @@ const char *m68k_code_origin_evidence_kind_name(uint32_t evidence_kind) {
       return "manual_action_log_entry_point";
     case M68K_CODE_ORIGIN_EVIDENCE_DECISION_JOURNAL_ENTRY_POINT:
       return "decision_journal_entry_point";
+    case M68K_CODE_ORIGIN_EVIDENCE_RAW_IMAGE_ENTRY:
+      return "raw_image_entry";
     default:
       return "unknown";
   }

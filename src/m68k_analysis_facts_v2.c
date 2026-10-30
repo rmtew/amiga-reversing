@@ -1558,6 +1558,8 @@ static uint32_t code_start_evidence_from_entry_point_provenance_local(uint8_t pr
       return M68K_CODE_ORIGIN_EVIDENCE_MANUAL_ACTION_LOG_ENTRY_POINT;
     case M68K_ANALYSIS_ENTRY_POINT_PROVENANCE_DECISION_JOURNAL:
       return M68K_CODE_ORIGIN_EVIDENCE_DECISION_JOURNAL_ENTRY_POINT;
+    case M68K_ANALYSIS_ENTRY_POINT_PROVENANCE_RAW_IMAGE:
+      return M68K_CODE_ORIGIN_EVIDENCE_RAW_IMAGE_ENTRY;
     default:
       return M68K_CODE_ORIGIN_EVIDENCE_POLICY_ENTRY_POINT;
   }
@@ -1997,9 +1999,10 @@ static int seed_facts_from_object(const M68kObject *object, const M68kAnalysisPo
     }
     trace_state_init_unknown(&trace_state);
     trace_state.established_entry_lineage = 1U;
-    if (enqueue_code_start_runtime(facts, queue, profile, target_section, target_offset,
+    if (enqueue_code_start_runtime_evidence_ex(facts, queue, profile, target_section, target_offset,
         M68K_FACT_CONFIDENCE_REQUIRED, M68K_FACT_CODE_START_REASON_POLICY_ENTRY_POINT,
-        target_section, target_offset, 1U, entry->runtime_address, &trace_state) != 0) return -1;
+        code_start_evidence_from_entry_point_provenance_local(entry->provenance),
+        target_section, target_offset, 1U, entry->runtime_address, &trace_state, 0U) != 0) return -1;
     if (label_lookup_create_label(label_lookup, target_section, target_offset,
         M68K_FACT_CONFIDENCE_REQUIRED) != 0) return -1;
   }

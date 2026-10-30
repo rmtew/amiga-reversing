@@ -1855,6 +1855,8 @@ static const char *analysis_entry_point_provenance_name_local(uint8_t provenance
       return "manual_action_log";
     case M68K_ANALYSIS_ENTRY_POINT_PROVENANCE_DECISION_JOURNAL:
       return "decision_journal";
+    case M68K_ANALYSIS_ENTRY_POINT_PROVENANCE_RAW_IMAGE:
+      return "raw_image";
     default:
       return "default";
   }
@@ -3382,13 +3384,19 @@ static int policy_add_runtime_entry_point_local(M68kAnalysisPolicy *policy, uint
   uint16_t index;
   if (policy == NULL || policy->runtime_entry_point_count >= M68K_ANALYSIS_RUNTIME_ENTRY_POINT_LIMIT) return 0;
   for (index = 0U; index < policy->runtime_entry_point_count; ++index) {
-    const M68kAnalysisRuntimeEntryPoint *existing = &policy->runtime_entry_points[index];
+    M68kAnalysisRuntimeEntryPoint *existing = &policy->runtime_entry_points[index];
     if (existing->has_section_index && existing->section_index == section_index &&
-        existing->runtime_address == runtime_address) return 1;
+        existing->runtime_address == runtime_address) {
+      existing->provenance = M68K_ANALYSIS_ENTRY_POINT_PROVENANCE_RAW_IMAGE;
+      return 1;
+    }
   }
   entry = &policy->runtime_entry_points[policy->runtime_entry_point_count++];
   memset(entry, 0, sizeof(*entry));
   entry->has_section_index = 1U;
+  /* This private helper is called only for the explicit raw image load/entry
+   * API. Metadata discovery/callable entries must not acquire this origin. */
+  entry->provenance = M68K_ANALYSIS_ENTRY_POINT_PROVENANCE_RAW_IMAGE;
   entry->section_index = section_index;
   entry->runtime_address = runtime_address;
   return 1;
@@ -10812,7 +10820,8 @@ static int append_effective_analysis_policy_json_local(JsonBuilder *builder, con
     if (index != 0U && json_builder_append(builder, ",") != 0) return -1;
     if (json_builder_append(builder, "{\"section_index\":") != 0) return -1;
     if (append_nullable_u32_json_local(builder, entry->has_section_index, entry->section_index) != 0) return -1;
-    if (json_builder_appendf(builder, ",\"runtime_address\":%u}", (unsigned)entry->runtime_address) != 0)
+    if (json_builder_appendf(builder, ",\"runtime_address\":%u,\"provenance\":\"%s\"}",
+        (unsigned)entry->runtime_address, analysis_entry_point_provenance_name_local(entry->provenance)) != 0)
       return -1;
   }
   if (json_builder_append(builder, "],\"abstract_regions\":[") != 0) return -1;

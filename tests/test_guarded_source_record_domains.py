@@ -41,7 +41,6 @@ def test_guarded_extension_from_a_validated_source_cursor_domain(tmp_path, count
     dict(count=2, null_prefix=True), dict(count=3, aliases=True, trips=2),
     dict(count=2, trips=1),  # The selected prefix excludes the later child.
     dict(count=2, exposure=True),
-    dict(count=2, target_type='raw_binary'),  # No implicit initial-image entry contract.
     dict(count=2, body='move.w #1,(a1)'),
     dict(count=2, after_count='move.w #1,(a0)\n' + GUARD),
     dict(count=2, after_count='jsr (a1)\n' + GUARD),

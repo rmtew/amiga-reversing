@@ -11059,7 +11059,8 @@ static int typed_flow_initialize_roots(const M68kRenderLookup *lookup, const M68
     const M68kFact *entry = lookup->code_start_refs[i].fact;
     if (entry->section_index != section->section_index || entry->offset >= node_by_offset_count ||
         (entry->reason != M68K_FACT_CODE_START_REASON_SECTION_ENTRY &&
-         entry->reason != M68K_FACT_CODE_START_REASON_POLICY_ENTRY_OFFSET)) continue;
+         entry->reason != M68K_FACT_CODE_START_REASON_POLICY_ENTRY_OFFSET &&
+         entry->code_start_evidence_kind != M68K_CODE_ORIGIN_EVIDENCE_RAW_IMAGE_ENTRY)) continue;
     size_t n = node_by_offset[entry->offset];
     if (n < node_count) nodes[n].source_snapshot_root = 1U;
   }

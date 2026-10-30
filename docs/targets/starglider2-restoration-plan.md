@@ -266,15 +266,36 @@ not a performance improvement claim). End-to-end qualification peaked at
 2754824KiB RSS, including artifact and assembler/oracle work; this is not a
 measurement of the feedback graph alone. No observation dump is committed.
 
-The original optional-header read remains unresolved. SGII's current raw-binary
-policy has no canonical SECTION_ENTRY/POLICY_ENTRY_OFFSET snapshot root; the
-runtime entry is a policy entry point instead. A matching raw-binary refusal
-fixture prevents silently granting immutable initial bytes. Next distinguish a
-proven initial-image entry from callable/discovery entries in the existing
-canonical entry provenance, then test its mutation lifetime. Writable-input
-guarded-format contracts and the original caller index-domain proof remain
-separate obligations. A closed source fixture does not establish either for the
-104-entry game reader.
+The explicit raw-image API now retains its input-entry provenance when runtime
+mapping replaces a local entry offset. Native code-origin facts expose
+`raw_image_entry`; metadata/discovered callable entries do not acquire it. The
+previous raw-binary refusal was the reproduced provenance defect, not an intended
+reason to discard an explicitly loaded image. Entry structs reuse reserved ABI
+space, and CFG entry/trace behavior is unchanged. Initial-image information still
+must-joins and remains subject to mutation, alias and call invalidation. The new
+raw positive and four conservative negatives pass;286 focused Python cases and
+832 native C cases pass, with three existing expected failures. SGII source,
+access vectors, address values and CFG are unchanged; its input-entry evidence
+is now visible. C/vasm and clean standalone output are exact. Fresh generation
+took240.16s alongside focused tests; this is not a controlled timing comparison.
+
+The optional-header read at source`$3A94` remains unresolved. Its table producer
+still has an invalid/unknown singleton: the ordinary caller's low-BYTE sign test
+does not establish the104-entry WORD selector domain.104..127 pass that test,
+and104 already selects byte offset416 outside the416-byte directory. The
+WORD30 override is another independent input. Next inspect the original object
+kind and override producers for a closed legal selector domain; do not insert a
+reader bound merely because the supplied data uses104 models.
+
+The103 declared header owners occupy runtime`$18B14..$19570`;45 auxiliary-count
+values are nonzero in extended owners and58 are zero in base owners. This is a
+closed-source format observation, not a live invariant for arbitrary writable
+inputs. Intervening unknown effects prevent use of original scalar bytes. Next
+exercise a writable-input variant contract in a minimal fixture, keeping its
+semantic authority explicit: inheritance alone cannot imply that nonzero count
+means an extended allocation. Writes/partial writes, stale roots, conflicting
+owners and calls must invalidate unsupported predicates. Any such format
+contract remains distinct from the original selector-domain obligation.
 
 An on-demand systematic gap inventory (`amiga_reversing/tools/source_gap_inventory.py`)
 joins native identities/accesses with canonical layouts and actual rendered
