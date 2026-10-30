@@ -7,7 +7,7 @@ that further analysis is exhausted. Current source remains byte exact: all
 with all 106034 accepted code bytes retained. No generated assembly was edited
 by hand and no interim archive was produced.
 
-The current ownership union leaves 11226 bytes in
+The current ownership union leaves 11224 bytes in
 271 intervals unclassified. This is classification accounting,
 not a semantic completion percentage. Earlier interval/site counts below belong
 to their recorded closeout revision. See the current
@@ -16,7 +16,7 @@ to their recorded closeout revision. See the current
 
 ## Current refinement and next evidence
 
-Current native totals: **3503 app /2682 typed /158 unresolved**, with **11226
+Current native totals: **3503 app /2682 typed /158 unresolved**, with **11224
 unclassified bytes /271 intervals**. Counter-indexed source-array reads now reuse
 the shared loop induction and interned linear entry values. Original inventory
 readers at source `$DD6` and `$339B4` expose the existing name-reference `text`
@@ -192,6 +192,27 @@ actual source references; native access/CFG/address-value facts are identical.
 C/vasm and clean standalone output remain byte exact with unchanged57 assets
 and14 headers. One generation took182.35s; unchanged framework tests were not
 repeated. There is no new runtime, media-validity or physical timing claim.
+
+The model consumer now identifies the former auxiliary faces as ground-plane
+projection commands. It subtracts the object-Y and rotated/scaled vertex-Y
+contributions through the view-matrix Y column, preserving separate fixed-point
+rounding and WORD wrap. Two header fields, three app fields, two code labels and
+the embedded S-key toggle WORD now expose this role. Existing structural
+component aliases remain; no global meaning is imposed on phase-shared scratch.
+All45 extended records use this consumer, but the bounded normal-media CPU
+observation covers selector50 only (GBML with Cannon), twelve nonzero-count
+reads and no zero-count case. This neither proves every index valid nor repairs
+automatic conditional typing. The extra header read remains unresolved.
+
+Eight canonical actions preserve all native access, address-value and CFG facts.
+Classifying the embedded toggle accounts for two bytes:11224 bytes remain
+unclassified in271 intervals. C/vasm and the clean standalone build reproduce
+all412736 bytes;57 assets and14 headers are unchanged. Generation took281.12s.
+Retained profiles locate the increase in typed callback analysis (121.72s versus
+32.77s in the previous batch), while render IR stayed near35s; causation remains
+to be diagnosed rather than attributed to rendering or a changed instruction
+queue (34689 iterations in both). No extra timing-only run or observation dump
+was produced.
 
 An on-demand systematic gap inventory (`amiga_reversing/tools/source_gap_inventory.py`)
 joins native identities/accesses with canonical layouts and actual rendered

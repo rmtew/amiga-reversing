@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
   "kind": "committed_native_rendered_original_export",
-  "canonical_source_commit": "864b7ce32b69a00342e50ad0e4488de3eda5d055",
-  "publication_base_commit": "864b7ce32b69a00342e50ad0e4488de3eda5d055",
+  "canonical_source_commit": "d2ad3422b53a30d6dd9cdea0bd80e63362f38878",
+  "publication_base_commit": "d2ad3422b53a30d6dd9cdea0bd80e63362f38878",
   "native_export": "CListingArtifact.source_package_payload(64)",
-  "main_source_sha256": "f3bd2192eadb8fd7fe9050d0ba5331a10775851ef9a42c956356ddb02e2f9352",
+  "main_source_sha256": "c3631716a0d969f6d77831323d0c3e80d9252c33bea7546121bc81b886be8fa1",
   "asset_count": 57,
   "asset_bytes": 93633,
   "game_assembly_hand_edits": false,
@@ -24,13 +24,13 @@
     "assembler executable",
     "paused Pandora work"
   ],
-  "canonical_source_commit_role": "publication base; canonical disk/media helper and shared service-state facts are in the publishing commit and output is bound by verification_receipt_id",
-  "canonical_source_subject_revision": "80a06bb2a7526b9052f883fc7f5900dca0f20cd531a63ac18ba8c86af7c0b54f",
+  "canonical_source_commit_role": "publication base; canonical ground-face projection semantics are in the publishing commit and output is bound by verification_receipt_id",
+  "canonical_source_subject_revision": "d56b4bee76a966fc4e2f2bb07dda6dedb3de280086aecba9cde03949f208d98e",
   "canonical_fact_sha256": {
     "source_binary.json": "42d4a5758b3e8236af7f912aee85e9ee5323bcd0961faa338c4f864080a0a7d9",
     "target_metadata.json": "e7540b68c118c56aba8815b6722eefa067517cc865fe9841d6c01ce96551389c",
-    "manual_actions.jsonl": "7087b04bf42dd66004ebac71ffdf0faf126c8eb9baee70759ccb6ac65197e1fe",
-    "decision_journal.jsonl": "15f9b61133495c3a1c573cf41bc95da308234b3ad92363aa9595a002cab70251"
+    "manual_actions.jsonl": "caa4f496568cdbcd536a4832109a92254d47ddaf71581c3330355d41b5ec782e",
+    "decision_journal.jsonl": "5ce6710058684e08440d47424b35a978670cf8a1ef900d7e9a25b0e0a484b634"
   },
   "headers": "14 unmodified required include files collected by source_package.collect_package_includes from ext/amiga_includes/ndk_2.0/include; header notices retained",
   "decoded_protection_view": {
@@ -46,6 +46,6 @@
     },
     "runtime_scope": "Seven CPU write-site windows match this reversible view; no whole runtime-view identity or parent plaintext promotion."
   },
-  "verification_receipt_id": "803860219bea328af97b393e6e482cbf607c2c82bbf81868e449b90b261b2027",
+  "verification_receipt_id": "75912f192f882dab003b65cf434076b77a8193e7e2fdb784d65ceb7eb344e0ba",
   "render_native_sha256": "47561760cad5976c0dc0fe67d74bf8e3119bbacaa0c86dab388e4f9226bc31f7"
 }

@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "source_commit": "864b7ce32b69a00342e50ad0e4488de3eda5d055",
+  "source_commit": "d2ad3422b53a30d6dd9cdea0bd80e63362f38878",
   "source_assembly": "starglider2_game.s",
   "assets": [
     {
@@ -878,13 +878,13 @@
     },
     {
       "path": "rendered-provenance.json",
-      "bytes": 3137,
-      "sha256": "b69c5b212461b62dac00614cbfddf22006af207bc58b4865d1ee03da48ae8b60"
+      "bytes": 3121,
+      "sha256": "aca51a0dd7e3791721c439bbce8a5123402108bd1aeeccafbd8ea65ccee318e3"
     },
     {
       "path": "starglider2_game.s",
-      "bytes": 2026364,
-      "sha256": "f3bd2192eadb8fd7fe9050d0ba5331a10775851ef9a42c956356ddb02e2f9352"
+      "bytes": 2026009,
+      "sha256": "c3631716a0d969f6d77831323d0c3e80d9252c33bea7546121bc81b886be8fa1"
     },
     {
       "path": "tools/starglider2_protection.py",
@@ -892,6 +892,6 @@
       "sha256": "81d3f66d36dbfbd5c77238b20c28e8b9abaa329777eb91f64669bbbf13703582"
     }
   ],
-  "source_commit_role": "publication base; canonical disk/media helper and shared service-state facts are in the publishing commit and output is bound by verification_receipt_id",
-  "source_subject_revision": "80a06bb2a7526b9052f883fc7f5900dca0f20cd531a63ac18ba8c86af7c0b54f"
+  "source_commit_role": "publication base; canonical ground-face projection semantics are in the publishing commit and output is bound by verification_receipt_id",
+  "source_subject_revision": "d56b4bee76a966fc4e2f2bb07dda6dedb3de280086aecba9cde03949f208d98e"
 }
