@@ -16,7 +16,7 @@ to their recorded closeout revision. See the current
 
 ## Current refinement and next evidence
 
-Current native totals: **3503 app /2670 typed /158 unresolved**, with **11226
+Current native totals: **3503 app /2682 typed /158 unresolved**, with **11226
 unclassified bytes /271 intervals**. Counter-indexed source-array reads now reuse
 the shared loop induction and interned linear entry values. Original inventory
 readers at source `$DD6` and `$339B4` expose the existing name-reference `text`
@@ -89,6 +89,19 @@ interim archive, arbitrary pointer target or guest-state change is introduced.
 Next: exercise the guarded-format contract design against writable/conflicting
 records before promotion, while following independent producer/consumer leads.
 
+
+The reviewed structure-profile meaning is now a structured role rather than
+only prose. Both original dispatches send types66/85 to the wide profiles and
+67/68/69/70 to the narrow profiles. Two shared body-input contracts expose
+`SG2ProfiledStructure`, a World-derived view with WORD40
+`collision_profile_selector`. This recovers12 previously untyped accesses:
+four selector reads and eight inherited world X/Z reads, all within those two
+profile bodies. No prior typed fact, unresolved diagnostic, app fact or CFG
+changes. The depot's different WORD40 meaning and actor BYTE41 initializers
+remain separate. This is an explicit conditional role contract, not automatic
+tag-to-subtype inference or a bound on arbitrary signed selectors. C/vasm and
+clean standalone output remain exact; assets/headers are unchanged. Native
+regeneration took159.84s; unchanged framework suites were not repeated.
 
 An on-demand systematic gap inventory (`amiga_reversing/tools/source_gap_inventory.py`)
 joins native identities/accesses with canonical layouts and actual rendered

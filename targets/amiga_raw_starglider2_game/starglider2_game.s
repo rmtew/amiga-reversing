@@ -1396,6 +1396,13 @@ SG2MfmSectorPrefix_data_sync_mark_bytes RS.B 3
 SG2MfmSectorPrefix_data_address_mark RS.B 1
 SG2MfmSectorPrefix_SIZEOF EQU __RS
 
+; STRUCT SG2ProfiledStructure
+    RSRESET
+    RS.B 40
+SG2ProfiledStructure_collision_profile_selector RS.W 1
+    RS.B 26
+SG2ProfiledStructure_SIZEOF EQU __RS
+
 ADKF_CLRALL	EQU	$7FFF
 BPLCON2_PF2P2	EQU	$20
 BPLCON2_PF2PRI	EQU	$40
@@ -13984,6 +13991,7 @@ abs_0_0000BAE0:
 abs_0_0000BAEE:
 	lea.l narrow_structure_profile_x_offsets.l,a1
 	lea.l narrow_structure_profile_z_offsets.l,a3
+    ; KNOWN: type A2=Target code-entry register seed:SG2ProfiledStructure
 abs_0_0000BAFA:
 	tst.b player_collision_response_flag(a6)
 	beq.b abs_0_0000BB26
@@ -14011,16 +14019,16 @@ abs_0_0000BB26:
 	and.l d2,player_world_z(a6)
 apply_player_structure_profile_constraints:
 	moveq.l #0,d0
-	move.w $0028(a2),d1
+	move.w SG2ProfiledStructure_collision_profile_selector(a2),d1
 	add.w d1,d1
 	add.w d1,d1
 	move.l $0(a1,d1.w),d2
 	move.l $0(a3,d1.w),d3
-	move.w $0028(a2),d1
+	move.w SG2ProfiledStructure_collision_profile_selector(a2),d1
 	beq.b abs_0_0000BB7E
 	cmp.w #$2,d1
 	bgt.b abs_0_0000BBC0
-	add.l $000C(a2),d3
+	add.l SG2ObjectCore_world_z(a2),d3
 	move.l player_world_z(a6),d0
 	sub.l d3,d0
 	cmp.w #$1,d1
@@ -14030,7 +14038,7 @@ abs_0_0000BB7A:
 	asr.l #1,d0
 	ext.l d0
 abs_0_0000BB7E:
-	add.l $0004(a2),d2
+	add.l SG2ObjectCore_world_x(a2),d2
 	add.l d0,d2
 	move.l d2,d4
 	sub.l player_world_x(a6),d4
@@ -14053,7 +14061,7 @@ abs_0_0000BBB0:
 abs_0_0000BBC0:
 	cmp.w #$4,d1
 	beq.b abs_0_0000BBDA
-	add.l $0004(a2),d2
+	add.l SG2ObjectCore_world_x(a2),d2
 	move.l player_world_x(a6),d0
 	sub.l d2,d0
 	cmp.w #$3,d1
@@ -14062,7 +14070,7 @@ abs_0_0000BBC0:
 abs_0_0000BBD8:
 	asr.l #1,d0
 abs_0_0000BBDA:
-	add.l $000C(a2),d3
+	add.l SG2ObjectCore_world_z(a2),d3
 	add.l d0,d3
 	move.l d3,d4
 	sub.l player_world_z(a6),d4
@@ -14356,18 +14364,19 @@ abs_0_0000BFEC:
 abs_0_0000BFFA:
 	lea.l narrow_structure_profile_x_offsets.l,a1
 	lea.l narrow_structure_profile_z_offsets.l,a3
+    ; KNOWN: type A2=Target code-entry register seed:SG2ProfiledStructure
 apply_object_structure_profile_constraints:
 	moveq.l #0,d0
-	move.w $0028(a2),d1
+	move.w SG2ProfiledStructure_collision_profile_selector(a2),d1
 	add.w d1,d1
 	add.w d1,d1
 	move.l $0(a1,d1.w),d2
 	move.l $0(a3,d1.w),d3
-	move.w $0028(a2),d1
+	move.w SG2ProfiledStructure_collision_profile_selector(a2),d1
 	beq.b abs_0_0000C03A
 	cmp.w #$2,d1
 	bgt.b abs_0_0000C088
-	add.l $000C(a2),d3
+	add.l SG2ObjectCore_world_z(a2),d3
 	move.l $000C(a0),d0
 	sub.l d3,d0
 	cmp.w #$1,d1
@@ -14377,7 +14386,7 @@ abs_0_0000C036:
 	asr.l #1,d0
 	ext.l d0
 abs_0_0000C03A:
-	add.l $0004(a2),d2
+	add.l SG2ObjectCore_world_x(a2),d2
 	add.l d0,d2
 	move.l d2,d4
 	sub.l $0004(a0),d4
@@ -14405,7 +14414,7 @@ abs_0_0000C082:
 abs_0_0000C088:
 	cmp.w #$4,d1
 	beq.b abs_0_0000C0A2
-	add.l $0004(a2),d2
+	add.l SG2ObjectCore_world_x(a2),d2
 	move.l $0004(a0),d0
 	sub.l d2,d0
 	cmp.w #$3,d1
@@ -14414,7 +14423,7 @@ abs_0_0000C088:
 abs_0_0000C0A0:
 	asr.l #1,d0
 abs_0_0000C0A2:
-	add.l $000C(a2),d3
+	add.l SG2ObjectCore_world_z(a2),d3
 	add.l d0,d3
 	move.l d3,d4
 	sub.l $000C(a0),d4
