@@ -8,6 +8,9 @@
 
 #include "m68k_affine_entry_value.inc"
 
+static M68kRenderTypedStorageSlot *typed_storage_reserve_identity(M68kRenderLookup *lookup,
+    uint8_t kind, size_t section_index, int32_t displacement, uint32_t address, int *out_added);
+
 /* Shared platform/source-analysis enrichment for M68kRenderLookup. */
 uint32_t render_section_extent(const M68kDecodeSectionIR *section) {
   if (section == NULL) return 0U;
@@ -6382,9 +6385,11 @@ static int render_lookup_record_typed_storage_store(M68kRenderLookup *lookup, M6
         M68K_FUNCTION_SUMMARY_ABI_STACK_CALLER_ARGUMENT, &value, NULL);
     return 0;
   }
-  /* Raw scalar identity may cross registers and stack temporaries, where a
-   * later typed parameter or field can establish its meaning.  It must not
-   * turn arbitrary persistent RAM into an inferred pointer slot. */
+  /* Exact LONG bits belong in the reaching sparse cell even without pointer
+   * intent. Keep them separate from the cross-program writer/type summary:
+   * a later read may use this must-definition, never a writer elsewhere.
+   * No pointee or address-value fact is inferred for an untyped RAM slot. */
+  M68kRenderTypedStoredValue local_value = value;
   if (!destination_requires_address && value.raw_long_value_known != 0U &&
       value.pointer_value_known == 0U && value.output == NULL &&
       value.struct_id == AMIGA_OS_STRUCT_ID_NONE && value.app_address_known == 0U) {
@@ -6409,7 +6414,7 @@ static int render_lookup_record_typed_storage_store(M68kRenderLookup *lookup, M6
   }
   if (!allow_lookup_storage) {
     if (instruction->size_suffix == 'l')
-      typed_state_cache_storage_store(state, lookup, platform_state, section_index, dest_operand, &value);
+      typed_state_cache_storage_store(state, lookup, platform_state, section_index, dest_operand, &local_value);
     return 0;
   }
   {
@@ -6424,6 +6429,12 @@ static int render_lookup_record_typed_storage_store(M68kRenderLookup *lookup, M6
       return 0;
     }
     if (!typed_stored_value_has_useful_info(&value)) {
+      if (instruction->size_suffix == 'l' && typed_stored_value_has_useful_info(&local_value)) {
+        int reserved = 0;
+        if (typed_storage_reserve_identity(lookup, storage_kind, storage_section,
+            storage_displacement, storage_address, &reserved) == NULL) return -1;
+        if (reserved && io_changed != NULL) *io_changed = 1;
+      }
       if (render_lookup_conflict_typed_storage_slot(lookup, storage_kind, storage_section, storage_displacement,
           storage_address, section_index, offset, &added) != 0) {
         return -1;
@@ -6440,6 +6451,8 @@ static int render_lookup_record_typed_storage_store(M68kRenderLookup *lookup, M6
           if (io_changed != NULL) *io_changed = 1;
         }
       }
+      if (instruction->size_suffix == 'l')
+        typed_state_cache_storage_store(state, lookup, platform_state, section_index, dest_operand, &local_value);
       return 0;
     }
     if (render_lookup_add_typed_storage_slot(lookup, storage_kind, storage_section, storage_displacement,
@@ -6447,7 +6460,7 @@ static int render_lookup_record_typed_storage_store(M68kRenderLookup *lookup, M6
       return -1;
     }
     if (instruction->size_suffix == 'l')
-      typed_state_cache_storage_store(state, lookup, platform_state, section_index, dest_operand, &value);
+      typed_state_cache_storage_store(state, lookup, platform_state, section_index, dest_operand, &local_value);
     if (added && io_changed != NULL) *io_changed = 1;
     if (storage_kind == M68K_RENDER_TYPED_STORAGE_APP_SLOT && value.struct_id != AMIGA_OS_STRUCT_ID_NONE) {
       added = 0;
@@ -14289,12 +14302,36 @@ static int typed_storage_merge_value(M68kRenderTypedStorageSlot *slot,
   return changed;
 }
 
+static M68kRenderTypedStorageSlot *typed_storage_reserve_identity(M68kRenderLookup *lookup,
+    uint8_t kind, size_t section_index, int32_t displacement, uint32_t address, int *out_added) {
+  M68kRenderTypedStorageSlot *grown;
+  size_t next_capacity;
+  if (out_added != NULL) *out_added = 0;
+  for (size_t i = 0U; i < lookup->typed_storage_slot_count; ++i)
+    if (typed_storage_keys_match(&lookup->typed_storage_slots[i], kind, section_index, displacement, address))
+      return &lookup->typed_storage_slots[i];
+  if (lookup->typed_storage_slot_count == lookup->typed_storage_slot_capacity) {
+    next_capacity = lookup->typed_storage_slot_capacity == 0U ? 16U : lookup->typed_storage_slot_capacity * 2U;
+    grown = (M68kRenderTypedStorageSlot *)render_lookup_grow_array(lookup, lookup->typed_storage_slots,
+      lookup->typed_storage_slot_count, sizeof(*grown), next_capacity);
+    if (grown == NULL) return NULL;
+    lookup->typed_storage_slots = grown;
+    lookup->typed_storage_slot_capacity = next_capacity;
+  }
+  memset(&lookup->typed_storage_slots[lookup->typed_storage_slot_count], 0,
+    sizeof(lookup->typed_storage_slots[lookup->typed_storage_slot_count]));
+  lookup->typed_storage_slots[lookup->typed_storage_slot_count].kind = kind;
+  lookup->typed_storage_slots[lookup->typed_storage_slot_count].section_index = section_index;
+  lookup->typed_storage_slots[lookup->typed_storage_slot_count].displacement = displacement;
+  lookup->typed_storage_slots[lookup->typed_storage_slot_count].address = address;
+  if (out_added != NULL) *out_added = 1;
+  return &lookup->typed_storage_slots[lookup->typed_storage_slot_count++];
+}
+
 int render_lookup_add_typed_storage_slot(M68kRenderLookup *lookup, uint8_t kind, size_t section_index,
     int32_t displacement, uint32_t address, const M68kRenderTypedStoredValue *value,
     size_t source_section_index, uint32_t source_offset, int *out_added) {
   size_t index;
-  M68kRenderTypedStorageSlot *grown;
-  size_t next_capacity;
   /* A read relation is CFG-local must information, never a global writer
    * summary that another entry or iteration can revive. */
   M68kRenderTypedStoredValue stable_value;
@@ -14317,25 +14354,13 @@ int render_lookup_add_typed_storage_slot(M68kRenderLookup *lookup, uint8_t kind,
     }
     return 0;
   }
-  if (lookup->typed_storage_slot_count == lookup->typed_storage_slot_capacity) {
-    next_capacity = lookup->typed_storage_slot_capacity == 0U ? 16U : lookup->typed_storage_slot_capacity * 2U;
-    grown = (M68kRenderTypedStorageSlot *)render_lookup_grow_array(lookup, lookup->typed_storage_slots,
-      lookup->typed_storage_slot_count, sizeof(*grown), next_capacity);
-    if (grown == NULL) return -1;
-    lookup->typed_storage_slots = grown;
-    lookup->typed_storage_slot_capacity = next_capacity;
-  }
-  memset(&lookup->typed_storage_slots[lookup->typed_storage_slot_count], 0,
-    sizeof(lookup->typed_storage_slots[lookup->typed_storage_slot_count]));
-  lookup->typed_storage_slots[lookup->typed_storage_slot_count].kind = kind;
-  lookup->typed_storage_slots[lookup->typed_storage_slot_count].section_index = section_index;
-  lookup->typed_storage_slots[lookup->typed_storage_slot_count].displacement = displacement;
-  lookup->typed_storage_slots[lookup->typed_storage_slot_count].address = address;
-  lookup->typed_storage_slots[lookup->typed_storage_slot_count].source_section_index = source_section_index;
-  lookup->typed_storage_slots[lookup->typed_storage_slot_count].source_offset = source_offset;
-  lookup->typed_storage_slots[lookup->typed_storage_slot_count].value = *value;
-  lookup->typed_storage_slots[lookup->typed_storage_slot_count].value.known = 1U;
-  ++lookup->typed_storage_slot_count;
+  M68kRenderTypedStorageSlot *created = typed_storage_reserve_identity(lookup, kind, section_index,
+    displacement, address, NULL);
+  if (created == NULL) return -1;
+  created->source_section_index = source_section_index;
+  created->source_offset = source_offset;
+  created->value = *value;
+  created->value.known = 1U;
   if (out_added != NULL) *out_added = 1;
   return 0;
 }

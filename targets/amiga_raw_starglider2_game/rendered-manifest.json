@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "source_commit": "3d3dade0144cb3dad33ba697361f189816dca5b2",
+  "source_commit": "99e6351eb95d4b8fdd790b608c1d45397fc33a08",
   "source_assembly": "starglider2_game.s",
   "assets": [
     {
@@ -878,8 +878,8 @@
     },
     {
       "path": "rendered-provenance.json",
-      "bytes": 3128,
-      "sha256": "90ba78c046cfff0b9254e690ef386fb0bf15c75eaeebe593621526c04da19074"
+      "bytes": 3126,
+      "sha256": "3b51b3d2fbb06a43da152d983d648fd224ddb907bdb5cda4fc3a251928869b89"
     },
     {
       "path": "starglider2_game.s",
@@ -892,6 +892,6 @@
       "sha256": "81d3f66d36dbfbd5c77238b20c28e8b9abaa329777eb91f64669bbbf13703582"
     }
   ],
-  "source_commit_role": "canonical source publication base; viewer/keyline canonical annotations is in the publishing commit; output is bound by verification_receipt_id",
-  "source_subject_revision": "ae95466f99d35df7ded6f00b7855d43cc78fc28dd01610c3bd2d4dfe164045b7"
+  "source_commit_role": "canonical source publication base; shared reaching scalar-cell repair is in the publishing commit; output is bound by verification_receipt_id",
+  "source_subject_revision": "266d0b7df1e0120dfd21de55b4c51ea428d9de0a6a549358b348e9887e93a1aa"
 }

@@ -29329,7 +29329,7 @@ static int test_facts_v2_analysis_propagates_generic_pointer_store_through_typed
   return 0;
 }
 
-static int test_facts_v2_analysis_does_not_promote_untyped_absolute_scalar_store(void) {
+static int test_facts_v2_analysis_transports_reaching_scalar_without_typing_intermediate_slot(void) {
   M68kObject object;
   M68kSection section;
   M68kObjectAddResult added;
@@ -29385,10 +29385,22 @@ static int test_facts_v2_analysis_does_not_promote_untyped_absolute_scalar_store
   M68K_C_ASSERT_U32(1U, (uint32_t)analysis.sections[0].pointer_store_count);
   store = &analysis.sections[0].pointer_stores[0];
   M68K_C_ASSERT_U32(14U, store->offset);
+  /* The untyped intermediate slot is not a pointer store. Its exact reaching
+   * LONG bits nevertheless reach the explicitly typed final pointer field. */
+  M68K_C_ASSERT_U32(16U, analysis.sections[0].address_values[0].source_value);
+  M68K_C_ASSERT_U32(1U, analysis.sections[0].address_values[0].candidate_target_count);
+  m68k_ir_source_analysis_destroy(&analysis);
+  memset(&analysis, 0, sizeof(analysis));
+  /* A WORD reload does not establish the upper half of D1 for the LONG store. */
+  object.sections[0].data[10] = 0x32U;
+  M68K_C_ASSERT_INT(0, m68k_facts_v2_collect_source_analysis_profile(&object, &policy, &profile,
+    &analysis, m68k_diag_sink(NULL)));
+  M68K_C_ASSERT_U32(1U, (uint32_t)analysis.sections[0].pointer_store_count);
   M68K_C_ASSERT_U32(0U, analysis.sections[0].address_values[0].source_value);
   M68K_C_ASSERT_U32(M68K_ADDRESS_VALUE_RESOLUTION_UNKNOWN_TARGET, analysis.sections[0].address_values[0].resolution);
   M68K_C_ASSERT_U32(0U, analysis.sections[0].address_values[0].candidate_target_count);
   m68k_ir_source_analysis_destroy(&analysis);
+  object.sections[0].data[10] = 0x22U;
   memset(&analysis, 0, sizeof(analysis));
   policy.absolute_storage_slot_count = 1U;
   policy.absolute_storage_slots[0].address = 0x100U;
@@ -41076,8 +41088,8 @@ int m68k_c_ir_tests(void) {
       test_facts_v2_render_asm_source_propagates_custom_field_pointer_type},
     {"facts_v2_analysis_propagates_generic_pointer_store_through_typed_field_reload",
       test_facts_v2_analysis_propagates_generic_pointer_store_through_typed_field_reload},
-    {"facts_v2_analysis_does_not_promote_untyped_absolute_scalar_store",
-      test_facts_v2_analysis_does_not_promote_untyped_absolute_scalar_store},
+    {"facts_v2_analysis_transports_reaching_scalar_without_typing_intermediate_slot",
+      test_facts_v2_analysis_transports_reaching_scalar_without_typing_intermediate_slot},
     {"facts_v2_render_asm_source_resolves_generic_pointer_field_store",
       test_facts_v2_render_asm_source_resolves_generic_pointer_field_store},
     {"render_pointer_candidates_merge_reports_overflow_without_mutating_destination",

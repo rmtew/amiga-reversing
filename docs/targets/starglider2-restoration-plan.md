@@ -348,6 +348,32 @@ batch. The next narrow inference experiment is
 physical A6 frame provenance across the initializer's known workspace stores,
 with alias/mutation negatives, rather than another reader-specific type seed.
 
+The A6 prerequisite experiment found and repaired a shared reaching-value loss:
+LONG bits stored to an untyped absolute/app cell were discarded together with
+the global writer summary, and an untyped cell had no canonical storage ID.
+Storage identity now exists independently of inferred pointee type. Only the
+local reaching packet retains the exact bits; unrelated reads cannot recover a
+numeric value from the global summary. A later explicitly typed pointer
+consumer may establish intent without classifying the intermediate slot.
+Four positive frame/branch fixtures and ten refusal fixtures cover unknown or
+aliasing frames, partial writes/reloads, unknown writes, calls and unreachable
+writers. Related suites pass169 Python checks; all832 native C cases pass.
+The old scalar-store expectation was replaced by a stronger delayed-intent
+check plus WORD-reload refusal, not by promoting an untyped RAM slot.
+
+Actual SGII coverage is unchanged:3503 app /2682 typed /158 unresolved; all six
+retained access/CFG vectors and rendered source are identical. Generation took
+200.85s; C/vasm and clean standalone remain byte exact, with57 assets/14 headers
+unchanged. This fixes a reusable prerequisite, not the original initializer.
+The next experiment is the intervening workspace-clear write: its raw runtime
+A0 address lacks a canonical source/app storage key, so alias invalidation can
+lose the saved frame even when the physical spans are disjoint. Reproduce that
+with known-disjoint, overlap,24-bit-alias and unknown-address negatives before
+changing shared invalidation. Later call transport still needs the original
+register/memory lifetime evidence; a concrete stack address alone did not
+recover the synthetic call cases. No per-reader frame seed, universal104 bound
+or immutable-header invariant is added.
+
 An on-demand systematic gap inventory (`amiga_reversing/tools/source_gap_inventory.py`)
 joins native identities/accesses with canonical layouts and actual rendered
 boundaries. The previous whole-target snapshot records 71 suffix signals (including numeric adjacent variants),
