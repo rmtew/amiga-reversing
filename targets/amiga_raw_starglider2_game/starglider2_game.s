@@ -3951,7 +3951,7 @@ abs_0_0000359C:
 	beq.b abs_0_000035A6
 	moveq.l #-1,d7
 abs_0_000035A6:
-	adda.w #reset_gameplay_state_and_input_defaults,a0
+	adda.w #$2000,a0
 abs_0_000035AA:
 	btst.b #DMAB_BLITTER,dmaconr(a5)
 	bne.b abs_0_000035AA
@@ -3965,7 +3965,7 @@ abs_0_000035C0:
 	beq.b abs_0_000035CA
 	moveq.l #-1,d7
 abs_0_000035CA:
-	adda.w #reset_gameplay_state_and_input_defaults,a0
+	adda.w #$2000,a0
 abs_0_000035CE:
 	btst.b #DMAB_BLITTER,dmaconr(a5)
 	bne.b abs_0_000035CE
@@ -3979,7 +3979,7 @@ abs_0_000035E4:
 	beq.b abs_0_000035EE
 	moveq.l #-1,d7
 abs_0_000035EE:
-	adda.w #reset_gameplay_state_and_input_defaults,a0
+	adda.w #$2000,a0
 abs_0_000035F2:
 	btst.b #DMAB_BLITTER,dmaconr(a5)
 	bne.b abs_0_000035F2
@@ -4016,11 +4016,11 @@ abs_0_00003608:
 	adda.l d0,a0
 	movem.l (a7)+,d0-d4
 	rts
-abs_0_0000364E:
+run_picture_protection_then_clear_control:
 	bsr.w enter_conditionally_decoded_protection
 	movea.l (a7),a0
 	clr.w $0000(a0)
-	bra.w abs_0_00003A58
+	bra.w prepare_column_rle_picture_frame
 abs_0_0000365C:
 	lea.l absolute_slot_00070000.l,a0
 	move.w #$0,d0
@@ -4400,12 +4400,12 @@ abs_0_00003A42:
 	dbf.w d4,abs_0_00003A1A
 	dbf.w d3,abs_0_00003A0A
 	rts
-    ; Four column-major planar RLE streams after32-byte palette/control header. Some original planes write7999/8000bytes; preserve underfill and mutable control WORD.
+    ; 32-byte control/palette header, then four zero-terminated column streams. Nonzero control invokes the original protection callback; output layout is selected later. Underfill is retained.
 decode_column_rle_picture:
 	move.l a0,-(a7)
 	tst.w (a0)
-	bne.w abs_0_0000364E
-abs_0_00003A58:
+	bne.w run_picture_protection_then_clear_control
+prepare_column_rle_picture_frame:
 	move.b #$0,display_buffer_table_byte_offset(a6)
 	bsr.w count_and_present_frame_handoff
 	movea.l (a7),a0
@@ -4414,41 +4414,42 @@ abs_0_00003A58:
 	movea.l a1,a4
 	moveq.l #0,d4
 	tst.w platform_entry_flags.l
-	bpl.w abs_0_00003AFC
+	bpl.w select_alternate_picture_layout
 	move.l (a7)+,d0
-abs_0_00003A7E:
+decode_four_planar_picture_streams:
 	move.l d0,-(a7)
 decode_picture_plane:
 	moveq.l #0,d2
 	moveq.l #0,d3
-abs_0_00003A84:
+read_planar_picture_run:
 	moveq.l #0,d0
 	moveq.l #0,d1
 	move.b (a0)+,d1
 	beq.w advance_picture_plane
 	btst #7,d1
-	bne.w abs_0_00003AC6
+	bne.w decode_planar_picture_literal_run
 	move.b (a0)+,d0
 	subq.w #1,d1
 repeat_picture_byte_down_column:
 	move.b d0,$0(a1,d2.w)
 	addi.w #40,d2
 	cmp.w #$1F40,d2
-	beq.w abs_0_00003AB2
-abs_0_00003AAA:
+	beq.w advance_planar_repeat_column
+continue_planar_picture_repeat:
 	dbf.w d1,repeat_picture_byte_down_column
-	bra.w abs_0_00003A84
-abs_0_00003AB2:
+	bra.w read_planar_picture_run
+advance_planar_repeat_column:
 	addq.w #1,d3
 	addq.l #1,a1
 	moveq.l #0,d2
-	bra.w abs_0_00003AAA
-abs_0_00003ABC:
+	bra.w continue_planar_picture_repeat
+advance_planar_literal_column:
 	addq.w #1,d3
 	addq.l #1,a1
 	moveq.l #0,d2
-	bra.w abs_0_00003ADE
-abs_0_00003AC6:
+	bra.w continue_planar_picture_literals
+    ; Literal count: byte NEG, AND127, SUBQ1 then DBF. Control $80 yields 65536 bytes, not zero. Original behavior is retained; malformed-stream bounds are not certified.
+decode_planar_picture_literal_run:
 	neg.b d1
 	andi.w #127,d1
 	subq.w #1,d1
@@ -4456,123 +4457,129 @@ copy_picture_literals_down_column:
 	move.b (a0)+,$0(a1,d2.w)
 	addi.w #40,d2
 	cmp.w #$1F40,d2
-	beq.w abs_0_00003ABC
-abs_0_00003ADE:
+	beq.w advance_planar_literal_column
+continue_planar_picture_literals:
 	dbf.w d1,copy_picture_literals_down_column
-	bra.w abs_0_00003A84
+	bra.w read_planar_picture_run
+    ; Planar storage stride 8192; column bytes use row stride 40 and wrap at 8000. Underfilled bytes and storage gaps remain untouched.
 advance_picture_plane:
 	addq.b #1,d4
-	adda.l #reset_gameplay_state_and_input_defaults,a4
+	adda.l #$2000,a4
 	movea.l a4,a1
 	cmp.w #$4,d4
 	bne.w decode_picture_plane
 	movea.l (a7)+,a0
 	rts
-abs_0_00003AFC:
+select_alternate_picture_layout:
 	btst.b #1,alternate_graphics_mode(a6)
-	beq.w abs_0_00003B80
+	beq.w decode_interleaved_picture_plane
 	lea.l absolute_slot_00078000.l,a1
 	movea.l a1,a4
-	bsr.w abs_0_00003A7E
+	bsr.w decode_four_planar_picture_streams
 	lea.l absolute_slot_00078000.l,a1
 	lea.l absolute_slot_00070000.l,a0
 	lea.l $2000(a1),a2
 	lea.l $2000(a2),a3
 	lea.l $2000(a3),a4
 	move.w #$C7,d5
-abs_0_00003B2E:
+    ; Each of 200 rows merges planes 0/1 then 2/3 into two 80-byte halves. A source WORD pair yields 32 packed bits, MSB first.
+convert_picture_row_to_bit_pairs:
 	moveq.l #19,d4
-abs_0_00003B30:
+merge_picture_planes_0_1_word:
 	move.w (a1)+,d0
 	move.w (a2)+,d3
 	moveq.l #0,d2
 	moveq.l #15,d1
 	moveq.l #0,d6
-abs_0_00003B3A:
+pack_picture_planes_0_1_bits:
 	add.l d2,d2
 	add.w d0,d0
 	addx.l d6,d2
 	add.l d2,d2
 	add.w d3,d3
 	addx.l d6,d2
-	dbf.w d1,abs_0_00003B3A
+	dbf.w d1,pack_picture_planes_0_1_bits
 	move.l d2,(a0)+
-	dbf.w d4,abs_0_00003B30
+	dbf.w d4,merge_picture_planes_0_1_word
 	moveq.l #19,d4
-abs_0_00003B52:
+merge_picture_planes_2_3_word:
 	move.w (a3)+,d0
 	move.w (a4)+,d3
 	moveq.l #0,d2
 	moveq.l #15,d1
 	moveq.l #0,d6
-abs_0_00003B5C:
+pack_picture_planes_2_3_bits:
 	add.l d2,d2
 	add.w d0,d0
 	addx.l d6,d2
 	add.l d2,d2
 	add.w d3,d3
 	addx.l d6,d2
-	dbf.w d1,abs_0_00003B5C
+	dbf.w d1,pack_picture_planes_2_3_bits
 	move.l d2,(a0)+
-	dbf.w d4,abs_0_00003B52
-	dbf.w d5,abs_0_00003B2E
+	dbf.w d4,merge_picture_planes_2_3_word
+	dbf.w d5,convert_picture_row_to_bit_pairs
+    ; Write zero WORD to $FFFF8240, then restore the original picture pointer and return.
+finish_paired_bit_picture:
 	move.w #$0,$FFFF8240.w
 	movea.l (a7)+,a0
 	rts
-abs_0_00003B80:
+    ; 160-byte rows, WORD-plane byte lanes 0/2/4/6. Columns step 0,1,8,9,...; each next plane starts two bytes later. Original underfill is not padded.
+decode_interleaved_picture_plane:
 	moveq.l #0,d2
 	moveq.l #0,d3
-abs_0_00003B84:
+read_interleaved_picture_run:
 	moveq.l #0,d0
 	moveq.l #1,d1
 	move.b (a0)+,d1
-	beq.w abs_0_00003BF0
+	beq.w advance_interleaved_picture_plane
 	btst #7,d1
-	bne.b abs_0_00003BD0
+	bne.b decode_interleaved_picture_literal_run
 	move.b (a0)+,d0
 	subq.w #1,d1
-abs_0_00003B98:
+repeat_picture_byte_in_interleaved_column:
 	move.b d0,$0(a1,d2.w)
 	addi.w #160,d2
 	cmp.w #$7D00,d2
-	beq.w abs_0_00003BB0
-abs_0_00003BA8:
-	dbf.w d1,abs_0_00003B98
-	bra.w abs_0_00003B84
-abs_0_00003BB0:
+	beq.w advance_interleaved_repeat_column
+continue_interleaved_picture_repeat:
+	dbf.w d1,repeat_picture_byte_in_interleaved_column
+	bra.w read_interleaved_picture_run
+advance_interleaved_repeat_column:
 	addq.l #1,a1
 	addq.w #1,d3
 	moveq.l #0,d2
 	btst #0,d3
-	bne.b abs_0_00003BA8
+	bne.b continue_interleaved_picture_repeat
 	addq.l #6,a1
-	bra.b abs_0_00003BA8
-abs_0_00003BC0:
+	bra.b continue_interleaved_picture_repeat
+advance_interleaved_literal_column:
 	addq.l #1,a1
 	addq.w #1,d3
 	moveq.l #0,d2
 	btst #0,d3
-	bne.b abs_0_00003BE8
+	bne.b continue_interleaved_picture_literals
 	addq.l #6,a1
-	bra.b abs_0_00003BE8
-abs_0_00003BD0:
+	bra.b continue_interleaved_picture_literals
+    ; Literal count retains byte NEG/AND127/SUBQ1/DBF, including the $80 edge. This is not normalized to conventional PackBits.
+decode_interleaved_picture_literal_run:
 	neg.b d1
 	andi.w #127,d1
 	subq.w #1,d1
-abs_0_00003BD8:
+copy_picture_literals_in_interleaved_column:
 	move.b (a0)+,$0(a1,d2.w)
 	addi.w #160,d2
 	cmp.w #$7D00,d2
-	beq.w abs_0_00003BC0
-abs_0_00003BE8:
-	dbf.w d1,abs_0_00003BD8
-	bra.w abs_0_00003B84
-abs_0_00003BF0:
+	beq.w advance_interleaved_literal_column
+continue_interleaved_picture_literals:
+	dbf.w d1,copy_picture_literals_in_interleaved_column
+	bra.w read_interleaved_picture_run
+advance_interleaved_picture_plane:
 	addq.b #1,d4
 	addq.l #2,a4
 	movea.l a4,a1
 	cmp.w #$4,d4
-	bne.w abs_0_00003B80
+	bne.w decode_interleaved_picture_plane
 	movea.l (a7)+,a0
 	rts
 	dc.w $0000

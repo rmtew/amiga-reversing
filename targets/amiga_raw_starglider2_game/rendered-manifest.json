@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "source_commit": "e64dd5d9883e51e8afc542d35413c27d3ea7376c",
+  "source_commit": "53f73a613a61e5e11133dc05c527e6c5f6ac4f26",
   "source_assembly": "starglider2_game.s",
   "assets": [
     {
@@ -878,13 +878,13 @@
     },
     {
       "path": "rendered-provenance.json",
-      "bytes": 3314,
-      "sha256": "3b31479c86c74eb7a26b9bf4c804dd0a7c7cca2e19ec031cd1fd569538f74ad1"
+      "bytes": 3325,
+      "sha256": "5e24f1aa6a394bc649ef7aa36a5b402429a28e4954c90a9ea80f372a117e4a5d"
     },
     {
       "path": "starglider2_game.s",
-      "bytes": 2044005,
-      "sha256": "d6e51b9005ef6c0a8b5d22001e5f9aacfaebbb82288f39b9221312be17cd927c"
+      "bytes": 2045739,
+      "sha256": "0b272a48e244e4447e621bb7a58ee13c3ccedff5713dd6cfe33ea88ef84b40b4"
     },
     {
       "path": "tools/starglider2_protection.py",
@@ -892,6 +892,6 @@
       "sha256": "81d3f66d36dbfbd5c77238b20c28e8b9abaa329777eb91f64669bbbf13703582"
     }
   ],
-  "source_commit_role": "canonical source publication base; the publishing commit reconstructs player-view mode routines and their exact13 stored relative offsets; no new input-type or callable-closure proof; output is bound by verification_receipt_id",
-  "source_subject_revision": "134b0213486cc77623786c3e19e88ad29c9c300d20121ab1d16cc636dc0361e3"
+  "source_commit_role": "canonical source publication base; the publishing commit reconstructs original picture RLE/conversion paths and repairs inferred scalar/pointer spelling; no new runtime, frame or lifetime proof; output is bound by verification_receipt_id",
+  "source_subject_revision": "8a150bb94efe8bc8228ff7bb07786ccf15e22eb9161970f1024ec6f96026fe66"
 }

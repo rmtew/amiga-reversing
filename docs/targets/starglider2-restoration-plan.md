@@ -116,6 +116,30 @@ stop before it and do not certify its trigonometry or gameplay behavior.
 412736 bytes. Access/CFG/summary vectors and the previous mode/world/save-game
 withdrawals remain unchanged; source relations are not new runtime coverage.
 
+The picture batch reconstructs 26 decoder/conversion entries and seven concise
+format/continuation comments. Both planar and interleaved column loops retain
+zero terminators, original repeat/literal counters and underfill. Planar storage
+strides 8192 bytes with 40-byte rows; interleaved WORD-plane lanes use 160-byte
+rows. The alternate conversion merges planes 0/1 and 2/3 into two packed row
+halves. Control $80 retains its original 65536-literal counter behavior; neither
+format normalization nor arbitrary malformed-stream safety is asserted.
+A shared renderer fallback had mistaken address destinations and long memory
+writes for evidence that arithmetic immediates were pointers. Generated
+assignment/comparison semantics now gate that fallback; explicit address facts,
+representations and existing pointer comparisons remain intact. Four misleading
+`#reset_gameplay_state_and_input_defaults` strides become numeric constants;
+the two explicitly named scalar constants remain. No instruction metadata or
+analysis proof rule was weakened.
+60 focused tests and all 834 native cases pass. Two counter fixtures check all
+128 negative controls in each original decoder, stopping before literal writes.
+Nine original-instruction picture
+fixtures cover both shipped streams and column-crossing synthetic runs in three
+layouts, comparing complete output/storage gaps and preserving the original
+7999/8000-byte counts. Paired-bit fixtures stop before the final `$FFFF8240`
+write: hardware, outer frame/palette/protection handling and normal-input gameplay
+are not exercised. C/vasm and clean standalone rebuilding remain byte exact;
+all access/address/CFG/summary vectors and prior withdrawals are unchanged.
+
 The preceding access-name projection reuses the existing field-catalogue
 resolver in whole-analysis JSON.3270 records at292 exact offsets expose names
 already declared in source (for example `player_world_y` and

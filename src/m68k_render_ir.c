@@ -10657,7 +10657,12 @@ static int instruction_immediate_operand_is_address_like(const M68kInstructionIR
       metadata->operand_result_kinds[operand_index] == M68K_SIM_RESULT_CONTROL_TARGET) {
     return 1;
   }
-  if (metadata->source_operand_index != operand_index ||
+  /* A pointer destination does not make an arithmetic source a pointer.
+   * Use generated assignment/comparison semantics; explicit address-value facts and
+   * operand representations are attached independently of this fallback. */
+  if ((metadata->operation_type != M68K_SIM_OP_MOVE &&
+       metadata->operation_type != M68K_SIM_OP_COMPARE) ||
+      metadata->source_operand_index != operand_index ||
       metadata->dest_operand_index >= instruction->operand_count ||
       metadata->dest_operand_index >= 4U) {
     return 0;
@@ -10676,7 +10681,8 @@ static int instruction_immediate_operand_stores_long_to_memory(const M68kInstruc
   if (instruction == NULL || operand_index >= instruction->operand_count || instruction->size_suffix != 'l')
     return 0;
   metadata = m68k_sim_metadata_for_instruction(instruction);
-  if (metadata == NULL || metadata->source_operand_index != operand_index ||
+  if (metadata == NULL || metadata->operation_type != M68K_SIM_OP_MOVE ||
+      metadata->source_operand_index != operand_index ||
       metadata->dest_operand_index >= instruction->operand_count || metadata->dest_operand_index >= 4U) {
     return 0;
   }
