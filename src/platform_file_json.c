@@ -7221,7 +7221,7 @@ static int append_listing_operand_accesses_json(JsonBuilder *builder, const M68k
   metadata = instruction_sim_metadata(instruction);
   for (operand_index = 0U; operand_index < instruction->operand_count && operand_index < 4U; ++operand_index) {
     const char *access_name = "unknown";
-    if (metadata != NULL) access_name = m68k_sim_access_kind_name(metadata->operand_access_kinds[operand_index]);
+    if (metadata != NULL) access_name = m68k_sim_access_kind_name(platform_operand_access_kind(instruction, operand_index));
     if (operand_index != 0U && json_builder_append(builder, ",") != 0) return -1;
     if (json_builder_append_json_string(builder, access_name) != 0) return -1;
   }
@@ -7240,7 +7240,7 @@ static int append_instruction_operand_facts_json(JsonBuilder *b, const M68kInstr
     int indexed = shape == M68K_SIM_EA_SHAPE_INDEX || shape == M68K_SIM_EA_SHAPE_PC_INDEX;
     int an = shape >= M68K_SIM_EA_SHAPE_INDIRECT && shape <= M68K_SIM_EA_SHAPE_INDEX;
     int32_t disp = 0;
-    const char *access = meta ? m68k_sim_access_kind_name(meta->operand_access_kinds[i]) : "unknown";
+    const char *access = meta ? m68k_sim_access_kind_name(platform_operand_access_kind(ins, i)) : "unknown";
     if (shape == M68K_SIM_EA_SHAPE_DISPLACEMENT || shape == M68K_SIM_EA_SHAPE_PC_DISPLACEMENT)
       disp = (int32_t)m68k_sign_extend32(op->value.value, 16U);
     int displacement_known = !indexed || m68k_ir_operand_brief_index_displacement(op, &disp);

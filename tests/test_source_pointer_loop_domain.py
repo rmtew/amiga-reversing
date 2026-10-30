@@ -13,7 +13,7 @@ def header_table_artifact(tmp_path, loop=True, count=2, trips=None, setup='', bo
                           indexed=False, index_code=None, index_register='d2',
                           reference_records=False, derived=False, index_displacement=0, after_count='',
                           zero_counts=False, null_prefix=False, code_tail='', target_type='program',
-                          record_access=None):
+                          record_access=None, extra_actions=(), load_via_data=False):
     trips=count if trips is None else trips
     counter='move.w d5,d4'if trips=='unknown'else f'move.w #{trips-1},d4'
     directory=['first'if aliases else f'header_{i}'for i in range(count)]
@@ -25,7 +25,7 @@ def header_table_artifact(tmp_path, loop=True, count=2, trips=None, setup='', bo
           ' lea.l directory(pc),a3\n '+counter+'\n '+setup+'\nagain:\n '+body+
           ('\n '+(index_code or'move.w d4,d2\n lsl.w #2,d2')+
            f'\n movea.l {index_displacement}(a3,{index_register}.w),a0\n'if indexed
-           else'\n movea.l (a3)+,a0\n')+
+           else('\n move.l (a3)+,d2\n movea.l d2,a0\n'if load_via_data else'\n movea.l (a3)+,a0\n'))+
           (record_access if record_access is not None else ' move.w (a0)+,d0\n'+after_count+' move.w (a0),d1\n')+
           (' dbf d4,again\n'if loop else'')+' rts\n'+code_tail+'directory:\n'+''.join(' dc.l '+','.join(directory[i:i+8])+'\n'for i in range(0,count,8))+'first:\n'+
           ''.join(f'header_{i}:dc.w {0 if zero_counts else i+1},{i+2}\n'for i in range(count))+
@@ -65,6 +65,8 @@ def header_table_artifact(tmp_path, loop=True, count=2, trips=None, setup='', bo
             offset=0,width=hi-lo,kind='array',name=name,array_count=n,
             array_stride=8 if type_name=='ExtendedHeader'else 4,
             binding_kind=kind,type_id=type_name))
+    for command, parameters in (extra_actions(start) if callable(extra_actions) else extra_actions):
+        add(command, parameters)
     append_manual_actions(tmp_path,binary_source=source,actions=actions)
     with effective_metadata_file(tmp_path) as metadata:
         artifact=c_backend.build_listing_artifact_profile_from_binary_source(source,metadata_path=metadata)[2]
@@ -376,4 +378,21 @@ def test_counter_word_sign_extension_keeps_interior_base_offset(tmp_path,referen
             assert row['word_index']['loop_domain']['index_stride']==-4
         source=a.inline_source_text_with_profile()[0]
         assert c_backend.assemble_platform_source_text_with_c_backend('amiga-raw',source)[0]==original
+    finally:a.close()
+
+
+@pytest.mark.parametrize('changes,expected', [({}, True), ({'derived':True}, True),
+    ({'null':True}, False), ({'mixed':True}, False),
+    ({'body':'move.b #0,(a2)'}, False), ({'exposure':True}, False)])
+def test_data_register_table_load_has_canonical_producer_not_orphan_type(tmp_path,changes,expected):
+    a,original=header_table_artifact(tmp_path,count=104,load_via_data=True,**changes)
+    try:
+        payload=a.analysis_payload()[0];section=payload['sections'][0]
+        assert bool(typed_fields(a))==expected
+        assert not payload['incomplete_analysis']
+        if expected:
+            assert section['address_values']
+            assert any(v['resolution']=='type_domain' for v in section['address_values'])
+            assert c_backend.assemble_platform_source_text_with_c_backend(
+                'amiga-raw',a.inline_source_text_with_profile()[0])[0]==original
     finally:a.close()

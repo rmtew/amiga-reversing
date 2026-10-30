@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "source_commit": "e7511f30664f6b2ca6a832ff81e81d520e17002d",
+  "source_commit": "bb514c11627360a77ab09406039efad118b1f476",
   "source_assembly": "starglider2_game.s",
   "assets": [
     {
@@ -878,8 +878,8 @@
     },
     {
       "path": "rendered-provenance.json",
-      "bytes": 3141,
-      "sha256": "db8a5eb869f26f27f46ed85c94d5afdac90a79425ea23e092580826634bb1929"
+      "bytes": 3157,
+      "sha256": "90a4bf26967f53565d996cad8b4bbd68cedd02397e8fb95a4bfc4f0cf5908068"
     },
     {
       "path": "starglider2_game.s",
@@ -892,6 +892,6 @@
       "sha256": "81d3f66d36dbfbd5c77238b20c28e8b9abaa329777eb91f64669bbbf13703582"
     }
   ],
-  "source_commit_role": "canonical source publication base; shared concrete runtime-write invalidation repair is in the publishing commit; output is bound by verification_receipt_id",
-  "source_subject_revision": "cdefa9ce7d2f163f1288804bdfd03734fa24cd0505413c2f3ed91893dd749a5f"
+  "source_commit_role": "canonical source publication base; shared loop-cell, raw-entry and decoded-access provenance repairs is in the publishing commit; output is bound by verification_receipt_id",
+  "source_subject_revision": "c5c90304f1f4fdedb640589c06ef018b985d9fa79db89059a9314fd70edc2d25"
 }

@@ -376,18 +376,45 @@ per-node state or larger candidate cap is introduced.25 frame cases and the
 related suites cover211 Python checks; all832 native cases pass.
 
 The second SGII generation took206.41s and again changed no access/CFG vector,
-source, asset or header. C/vasm and clean standalone remain exact. The original
-workspace-clear prerequisite is now isolated to loop-wide preservation: an
-8-word DBF fixture loses its saved frame even though each first-iteration
-write is disjoint. The existing counter-loop pass proves ranges for catalogue
-projection but does not feed a preserved-cell invariant back into post-loop
-flow. The next minimal experiment must use its closed write envelope to retain
-only cells disjoint from every iteration, with overlapping, changed-counter,
-external-entry and unknown-call negatives; first-iteration constants are not
-enough. Later call transport still needs the original register/memory lifetime
-evidence; a concrete stack address alone did not recover the synthetic call
-cases. No per-reader frame seed, universal104 bound or immutable-header
-invariant is added.
+source, asset or header. C/vasm and clean standalone remain exact.
+
+The loop-wide cell invariant now feeds the existing counter induction back into
+the ordinary CFG worklist. Sparse contracts store cell IDs and guarded entry
+requirements, never cached values. Changed entries reschedule exits; complete
+write envelopes, code stability and all outside entries must agree. Alias,
+unknown/calling/implicit-stack effects and conflicting entries refuse recovery.
+Exact initial LONG bits seed only canonical cells at a raw-image entry. The real
+source `$BE` clear loop preserves22 cells, not22 newly typed reads. A common-layout
+join also now forgets unsupported numeric bits without oscillating between a
+base and a conflict. The declared-holder/call fixture converges; its initial
+frame-alias variant refuses.
+
+Canonical table-producer recording now covers Dn loads before Dn-to-An transport;
+missing producers cannot survive as orphaned types. Two legacy C positives are
+retracted: they lacked canonical table/index contracts, and the callback fixture
+also declared its table two bytes past the pointer. They remain refusal tests;
+independent register seeds still pass. Bounded104-entry Dn positives and subtype,
+null/mixed, mutation and exposed-entry negatives exercise actual producer binding.
+The shared inspection projection also corrects14485 operand roles across29665
+SGII decodes:6121 direct-register reads,5383 direct-register writes and2981 immediate
+values were reported as memory. Actual primary memory reads/writes are5591/8691;
+the previous8691-write audit is unchanged. No instruction encoding is changed.
+
+The original A6 reader remains blocked at the platform initialization call: its
+context-free summary includes the alternate-platform TRAP, while the original
+image's Amiga branch predicate is not transported into that proof. A matching
+flags/TRAP fixture refuses whole-callee preservation. Next experiment: carry the
+actual caller predicate into shared context-sensitive call proof, with mutation
+and alternate-entry negatives. Nearby A6 uses or a numeric stack are insufficient.
+No reader seed, immutable-header assumption or universal104-selector bound is added.
+
+Validation:363 focused Python tests and all832 native C tests pass. SGII retains
+3503 app /2682 typed /158 unresolved, identical access identities/attributions,
+address values and CFG vectors (app-row ordering changed only); packaged source,
+57 assets and14 headers are unchanged. Generation took235.90s in this measured
+run, including66.28s typed callback analysis and38.76s source finalization; these
+host-dependent timings are not a speedup claim. C/vasm and clean standalone both
+rebuild all412736 original bytes exactly. No observation dump is committed.
 
 An on-demand systematic gap inventory (`amiga_reversing/tools/source_gap_inventory.py`)
 joins native identities/accesses with canonical layouts and actual rendered

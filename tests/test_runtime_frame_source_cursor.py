@@ -101,8 +101,8 @@ def test_runtime_write_alias_or_unknown_kills_saved_frame(tmp_path, write):
         artifact.close()
 
 
-def test_clear_loop_without_closed_runtime_envelope_refuses_frame(tmp_path):
-    # Per-instruction exact candidates cannot certify the full DBF write range.
+def test_closed_clear_loop_preserves_saved_runtime_frame(tmp_path):
+    # The closed induction envelope, not first-iteration constants, is required.
     artifact, _ = header_table_artifact(tmp_path, count=104,
         setup='lea.l $60000.l,a6\nmove.l a6,saved_frame.l\nlea.l $68000.l,a1\n'
               'move.w #7,d2\nclear_words:clr.w (a1)+\ndbf d2,clear_words\n'
@@ -110,6 +110,7 @@ def test_clear_loop_without_closed_runtime_envelope_refuses_frame(tmp_path):
         record_access='move.w (a0)+,d0\nmove.w (a0),d1\nmove.w d0,$40(a6)\n',
         code_tail='saved_frame:dc.l 0\n')
     try:
-        assert not artifact.analysis_payload()[0]['sections'][0]['recovered_platform_typed_accesses']
+        assert {r['field_name'] for r in artifact.analysis_payload()[0]['sections'][0][
+            'recovered_platform_typed_accesses']} == {'count', 'flags'}
     finally:
         artifact.close()

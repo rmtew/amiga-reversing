@@ -4267,6 +4267,16 @@ static int typed_storage_key_for_lookup_memory_operand(const M68kRenderLookup *l
   return 0;
 }
 
+/* Generated implicit SP effects include PEA/LINK-style writes absent from
+ * syntax operands. Unknown stack placement cannot preserve a RAM must cell.
+ * CALL effects retain their separate original-call/stack contract. */
+static int typed_instruction_implicit_stack_write(const M68kInstructionIR *instruction) {
+  const M68kSimFormMetadata *metadata = m68k_sim_metadata_for_instruction(instruction);
+  int32_t delta;
+  return metadata && metadata->sp_effect_count &&
+    (!m68k_sim_fixed_sp_delta(metadata, &delta) || delta < 0);
+}
+
 static int typed_storage_write_is_hardware(const M68kRenderLookup *lookup,
     const M68kRenderPlatformState *platform_state, const M68kOperandIR *operand, uint8_t width) {
   uint32_t address, base;
@@ -6223,7 +6233,7 @@ static int render_lookup_record_typed_call_consumer(M68kRenderLookup *lookup, si
  * candidate values and targets from canonical table entries after rendering;
  * this path deliberately contributes identity and contract context only. */
 static int render_lookup_record_typed_table_load(M68kRenderLookup *lookup, size_t section_index,
-    uint32_t offset, size_t source_operand_index, uint8_t destination_register,
+    uint32_t offset, size_t source_operand_index, uint8_t destination_is_address, uint8_t destination_register,
     const char *pointee_struct_name, const M68kRenderTypedStoredValue *value) {
   M68kAddressValueConsumerIR fact;
   if (lookup == NULL || value == NULL || value->table_origin.has_origin == 0U) return 0;
@@ -6231,7 +6241,7 @@ static int render_lookup_record_typed_table_load(M68kRenderLookup *lookup, size_
   fact.offset = offset;
   fact.operand_index = (uint8_t)source_operand_index;
   fact.kind = M68K_ADDRESS_VALUE_CONSUMER_STORAGE;
-  fact.register_kind = AMIGA_OS_REGISTER_ADDRESS;
+  fact.register_kind = destination_is_address ? AMIGA_OS_REGISTER_ADDRESS : AMIGA_OS_REGISTER_DATA;
   fact.register_index = destination_register;
   snprintf(fact.pointee_struct_name, sizeof(fact.pointee_struct_name), "%s",
     pointee_struct_name != NULL ? pointee_struct_name : "");
@@ -6565,6 +6575,8 @@ static int render_lookup_record_untyped_memory_writes(M68kRenderLookup *lookup, 
     return 0;
   metadata = m68k_sim_metadata_for_instruction(instruction);
   if (metadata == NULL) return 0;
+  if (!instruction_has_call_flow_local(instruction) && typed_instruction_implicit_stack_write(instruction))
+    typed_state_forget_memory_cells(state);
   for (operand_index = 0U; operand_index < instruction->operand_count && operand_index < 4U; ++operand_index) {
     const M68kOperandIR *operand = &instruction->operands[operand_index];
     uint8_t storage_kind = 0U;
@@ -8245,7 +8257,7 @@ static void typed_state_update_after_instruction(M68kRenderTypedState *state, M6
   uint8_t dest_reg = 0U, bit;
   uint8_t source_addr_reg = 0U;
   uint8_t source_data_reg = 0U;
-  uint8_t table_load_dest_reg = 0U;
+  uint8_t table_load_dest_reg = 0U, table_load_dest_address = 0U;
   uint16_t source_array_element_count = 0U;
   uint16_t source_array_element_index = 0U;
   int32_t source_byte_cursor = 0;
@@ -8477,9 +8489,10 @@ static void typed_state_update_after_instruction(M68kRenderTypedState *state, M6
         }
         if (source_struct_id == AMIGA_OS_STRUCT_ID_NONE) source_struct_id = table_value.struct_id;
         source_provenance = table_value.provenance;
-        if (record_table_load_consumers != 0 && operand_address_register_index_local(dest_operand, &table_load_dest_reg)) {
+        if (record_table_load_consumers != 0 &&
+            m68k_instruction_operand_direct_register(dest_operand, &table_load_dest_address, &table_load_dest_reg)) {
           (void)render_lookup_record_typed_table_load(lookup, section_index, offset, source_index,
-            table_load_dest_reg, lookup_policy_struct_name_by_id(lookup->policy, table_value.struct_id), &table_value);
+            table_load_dest_address, table_load_dest_reg, lookup_policy_struct_name_by_id(lookup->policy, table_value.struct_id), &table_value);
         }
         /* An entry yields the pointee, not another copy of its source table.
          * Only an independently bound concrete target can establish a new
@@ -9293,7 +9306,11 @@ static int typed_reg_merge_payload(M68kRenderTypedRegValue *dest,
       typed_provenance_merge(&dest->provenance, &source->provenance);
       return !typed_reg_values_equal(dest, &old_value);
     }
-    if (pointer_merged == M68K_RENDER_POINTER_CANDIDATE_MERGE_EXACT ||
+    /* A shared symbolic root is independent of numeric address precision.
+     * Joining root+bits with root-only must forget the bits, not manufacture
+     * a type conflict that the platform root transfer then reintroduces. */
+    if (dest->layout_base_id != 0U ||
+        pointer_merged == M68K_RENDER_POINTER_CANDIDATE_MERGE_EXACT ||
         raw_merged == M68K_RENDER_POINTER_CANDIDATE_MERGE_EXACT) {
       typed_origin_clear(&dest->origin);
       typed_provenance_merge(&dest->provenance, &source->provenance);
@@ -10874,6 +10891,9 @@ oom:
   return -1;
 }
 
+typedef struct M68kLoopCellSummary M68kLoopCellSummary;
+typedef struct M68kLoopCellDependency { size_t entry, exit; } M68kLoopCellDependency;
+
 typedef struct M68kRenderTypedFlowGraph {
   M68kRenderTypedFlowNode *nodes;
   size_t node_count;
@@ -10886,7 +10906,27 @@ typedef struct M68kRenderTypedFlowGraph {
   size_t *call_predecessors;
   uint8_t call_inputs_enabled;
   uint8_t *call_independent_entries;
+  M68kLoopCellSummary *loop_cells;
+  size_t loop_cell_count, loop_cell_capacity;
+  M68kLoopCellDependency *loop_cell_dependencies;
+  size_t loop_cell_dependency_count;
 } M68kRenderTypedFlowGraph;
+
+static void typed_flow_loop_cells_destroy(M68kRenderTypedFlowGraph *graph);
+static int typed_flow_has_loop_cell_edge(const M68kRenderTypedFlowGraph *graph, size_t tail, size_t next);
+static void typed_flow_refine_loop_cell_edge(const M68kRenderTypedFlowGraph *graph,
+    const M68kRenderLookup *lookup, size_t tail, size_t next, M68kRenderTypedState *state);
+
+/* Sparse entry-to-exit dependencies are sorted once, not scanned at every PC. */
+static size_t typed_flow_loop_cell_dependency_start(const M68kRenderTypedFlowGraph *graph, size_t entry) {
+  size_t lo = 0U, hi = graph->loop_cell_dependency_count;
+  while (lo < hi) {
+    size_t mid = lo + (hi - lo) / 2U;
+    if (graph->loop_cell_dependencies[mid].entry < entry) lo = mid + 1U;
+    else hi = mid;
+  }
+  return lo;
+}
 
 static void typed_flow_graph_destroy(M68kRenderTypedFlowGraph *graph);
 
@@ -10894,6 +10934,7 @@ typedef struct M68kRenderTypedFlowWorkflow {
   Arena *arena;
   M68kRenderTypedFlowGraph *graphs;
   size_t section_count;
+  uint8_t loop_cells_loaned;
 } M68kRenderTypedFlowWorkflow;
 
 static void typed_flow_workflow_destroy(M68kRenderTypedFlowWorkflow *workflow) {
@@ -10915,6 +10956,7 @@ void m68k_analysis_render_lookup_release_source_flow(M68kRenderLookup *lookup) {
 
 static void typed_flow_graph_destroy(M68kRenderTypedFlowGraph *graph) {
   if (graph == NULL) return;
+  typed_flow_loop_cells_destroy(graph);
   memset(graph, 0, sizeof(*graph));
 }
 
@@ -11095,6 +11137,36 @@ static void typed_state_seed_declared_app_cells(M68kRenderTypedState *state,
   }
 }
 
+enum { TYPED_SOURCE_SNAPSHOT_ENTRY = 1U, TYPED_SOURCE_RAW_IMAGE_ENTRY = 2U };
+
+/* Only a canonical RAW_IMAGE_ENTRY denotes these exact loaded bytes. Seed
+ * existing canonical LONG cell identities, not guessed pointers or every word
+ * in the image. Ordinary sparse-cell writes/joins/calls own their lifetime. */
+static void typed_state_seed_raw_image_cells(M68kRenderTypedState *state, const M68kRenderLookup *lookup) {
+  if (!lookup || !lookup->object) return;
+  for (size_t i = 0U; i < lookup->typed_storage_slot_count && i < UINT32_MAX; ++i) {
+    const M68kRenderTypedStorageSlot *slot = &lookup->typed_storage_slots[i];
+    size_t source_section = SIZE_MAX; uint32_t source_offset = 0U, runtime;
+    if (slot->kind != M68K_RENDER_TYPED_STORAGE_ABSOLUTE ||
+        typed_state_memory_cell(state, (uint32_t)i + 1U)) continue;
+    for (size_t section = 0U; section < lookup->section_count; ++section) {
+      uint32_t offset;
+      if (!analysis_lookup_materialized_runtime_address_source_offset(lookup, section, slot->address, &offset)) continue;
+      if (source_section != SIZE_MAX) { source_section = SIZE_MAX; break; }
+      source_section = section; source_offset = offset;
+    }
+    if (source_section == SIZE_MAX || source_section >= lookup->object->section_count ||
+        !lookup_source_unique_runtime_span(lookup, source_section, source_offset, 4U, &runtime) ||
+        runtime != slot->address) continue;
+    const M68kSection *source = &lookup->object->sections[source_section];
+    if (!source->data || source_offset > source->size || source->size - source_offset < 4U) continue;
+    M68kRenderTypedStoredValue value; typed_stored_value_clear(&value);
+    typed_stored_value_set_raw_long(&value, m68k_read_u32be(source->data + source_offset));
+    value.provenance = typed_provenance_make(M68K_PLATFORM_TYPE_PROVENANCE_STATIC_DATA, source_section, source_offset);
+    typed_state_set_memory_cell(state, (uint32_t)i + 1U, &value);
+  }
+}
+
 static void typed_flow_reset_roots(const M68kRenderLookup *lookup, size_t section,
     M68kRenderTypedFlowNode *nodes, size_t node_count) {
   size_t node_index;
@@ -11117,7 +11189,9 @@ static void typed_flow_reset_roots(const M68kRenderLookup *lookup, size_t sectio
     if (nodes[node_index].is_root) {
       typed_state_seed_declared_app_cells(&nodes[node_index].typed_in, lookup, section,
         nodes[node_index].candidate->offset);
-      nodes[node_index].typed_in.source_snapshot_entry = nodes[node_index].source_snapshot_root;
+      nodes[node_index].typed_in.source_snapshot_entry = nodes[node_index].source_snapshot_root != 0U;
+      if (nodes[node_index].source_snapshot_root & TYPED_SOURCE_RAW_IMAGE_ENTRY)
+        typed_state_seed_raw_image_cells(&nodes[node_index].typed_in, lookup);
       nodes[node_index].has_in = 1U;
     }
   }
@@ -11140,7 +11214,8 @@ static int typed_flow_initialize_roots(const M68kRenderLookup *lookup, const M68
          entry->reason != M68K_FACT_CODE_START_REASON_POLICY_ENTRY_OFFSET &&
          entry->code_start_evidence_kind != M68K_CODE_ORIGIN_EVIDENCE_RAW_IMAGE_ENTRY)) continue;
     size_t n = node_by_offset[entry->offset];
-    if (n < node_count) nodes[n].source_snapshot_root = 1U;
+    if (n < node_count) nodes[n].source_snapshot_root |=
+      entry->code_start_evidence_kind == M68K_CODE_ORIGIN_EVIDENCE_RAW_IMAGE_ENTRY ? TYPED_SOURCE_RAW_IMAGE_ENTRY : TYPED_SOURCE_SNAPSHOT_ENTRY;
   }
   typed_flow_reset_roots(lookup, section->section_index, nodes, node_count);
   return 0;
@@ -11299,7 +11374,11 @@ static int typed_flow_recompute_node_input(M68kRenderTypedFlowGraph *graph, size
   memset(&typed_input, 0, sizeof(typed_input));
   memset(&platform_input, 0, sizeof(platform_input));
   has_input = node->is_root != 0U;
-  if (has_input) typed_input.source_snapshot_entry = node->source_snapshot_root;
+  if (has_input) {
+    typed_state_seed_declared_app_cells(&typed_input, lookup, section->section_index, node->candidate->offset);
+    typed_input.source_snapshot_entry = node->source_snapshot_root != 0U;
+    if (node->source_snapshot_root & TYPED_SOURCE_RAW_IMAGE_ENTRY) typed_state_seed_raw_image_cells(&typed_input, lookup);
+  }
   for (predecessor_index = graph->predecessor_offsets[node_index];
        predecessor_index < graph->predecessor_offsets[node_index + 1U]; ++predecessor_index) {
     const M68kRenderTypedFlowNode *predecessor = &graph->nodes[graph->predecessors[predecessor_index]];
@@ -11308,8 +11387,14 @@ static int typed_flow_recompute_node_input(M68kRenderTypedFlowGraph *graph, size
     M68kRenderTypedState refined;
     /* Ordinary edges borrow the converged packet. Copy only for an active
      * read predicate; do not add a full state copy to every CFG predecessor. */
-    if (lookup && edge->zero_read_relation) {
-      refined = *edge; typed_read_refine_edge(lookup, predecessor, node, &refined); edge = &refined;
+    size_t pred_index = graph->predecessors[predecessor_index];
+    int loop_cells = predecessor->candidate->mnemonic_id == M68K_ASM_MNEMONIC_DBF &&
+      typed_flow_has_loop_cell_edge(graph, pred_index, node_index);
+    if ((lookup && edge->zero_read_relation) || loop_cells) {
+      refined = *edge;
+      if (lookup && edge->zero_read_relation) typed_read_refine_edge(lookup, predecessor, node, &refined);
+      if (loop_cells) typed_flow_refine_loop_cell_edge(graph, lookup, pred_index, node_index, &refined);
+      edge = &refined;
     }
     if (!has_input) {
       typed_input = *edge;
@@ -11607,6 +11692,15 @@ static int render_lookup_analyze_amiga_typed_refs_for_section(M68kRenderLookup *
       node->typed_out = next_typed_state;
       node->platform_out = next_platform_state;
       node->has_out = 1U;
+      /* A changed loop entry may not change its already-widened header.
+       * Its exit must nevertheless retract/recompute the guarded cell packet. */
+      for (size_t d = typed_flow_loop_cell_dependency_start(graph, node_index);
+          d < graph->loop_cell_dependency_count && graph->loop_cell_dependencies[d].entry == node_index; ++d) {
+        size_t exit = graph->loop_cell_dependencies[d].exit;
+        if (typed_flow_recompute_node_input(graph, exit, lookup, section) &&
+            typed_flow_enqueue_node(queue, queued, graph->node_count, &queue_head, &queue_count, exit) != 0)
+          goto cleanup;
+      }
       for (successor_index = 0U; successor_index < node->successor_count; ++successor_index) {
         size_t successor = node->successors[successor_index];
         if (successor >= graph->node_count) continue;
@@ -11838,9 +11932,9 @@ cleanup:
 /* Only changed entry contexts need another solve, not discovery/policy replay.
  * There is one existing CFG worklist and one converged recording epoch. */
 static int typed_flow_solve_call_inputs(M68kRenderLookup *lookup, const M68kDecodeIR *decode,
-    uint8_t **accepted, M68kRenderTypedFlowWorkflow *workflow) {
+    uint8_t **accepted, M68kRenderTypedFlowWorkflow *workflow, int force) {
   if (!workflow->graphs) return 0;
-  int any = 0;
+  int any = force;
   for (size_t i = 0U; i < workflow->section_count; ++i) any |= workflow->graphs[i].call_inputs_enabled;
   if (!any) return 0;
   size_t epochs = 0U;
@@ -12396,7 +12490,10 @@ static M68kRenderTableContractState source_analysis_table_contract_state(
       match = value;
     }
   }
-  if (match == NULL) return M68K_RENDER_TABLE_CONTRACT_NOT_TABLE_DERIVED;
+  /* Losing/pruning the producer must not turn an explicitly table-derived
+   * fact into an independent pointee contract on the next recording epoch. */
+  if (match == NULL) return access_origin && access_origin->has_origin
+    ? M68K_RENDER_TABLE_CONTRACT_INVALID : M68K_RENDER_TABLE_CONTRACT_NOT_TABLE_DERIVED;
   if (out_match) *out_match = match;
   if (match->origin_kind == M68K_PLATFORM_TYPE_PROVENANCE_STATIC_DATA &&
       match->table_origin.selection_kind == M68K_ADDRESS_VALUE_TABLE_SELECTION_BOUNDED_SOURCE_CURSOR &&
@@ -17597,12 +17694,19 @@ int m68k_analysis_render_lookup_run_platform_passes(M68kRenderLookup *lookup, co
     }
   }
   if (typed_flow_enable_call_inputs(lookup, decode, accepted_start, &typed_flow_workflow) != 0 ||
-      typed_flow_solve_call_inputs(lookup, decode, accepted_start, &typed_flow_workflow) != 0)
+      typed_flow_solve_call_inputs(lookup, decode, accepted_start, &typed_flow_workflow, 0) != 0)
+    goto typed_flow_fail;
+  /* The induction pass loans existing node storage. Re-solve afterwards;
+   * summaries guard their actual entry roots and retrieve fresh must cells. */
+  if (typed_flow_record_app_loop_ranges(lookup, decode, accepted_start, &typed_flow_workflow, 1) != 0)
+    goto typed_flow_fail;
+  if (typed_flow_workflow.loop_cells_loaned &&
+      typed_flow_solve_call_inputs(lookup, decode, accepted_start, &typed_flow_workflow, 1) != 0)
     goto typed_flow_fail;
   if (render_lookup_record_typed_app_slot_pointer_accesses(lookup, decode, accepted_start) != 0) goto typed_flow_fail;
   typed_flow_filter_nonapp_fallbacks(lookup, decode, &typed_flow_workflow);
   /* Loop proof deliberately borrows node value storage after projection. */
-  if (typed_flow_record_app_loop_ranges(lookup, decode, accepted_start, &typed_flow_workflow) != 0) goto typed_flow_fail;
+  if (typed_flow_record_app_loop_ranges(lookup, decode, accepted_start, &typed_flow_workflow, 0) != 0) goto typed_flow_fail;
   if (typed_prune_resolved_indexed_diagnostics(lookup) != 0 || lookup->source_domain_error) goto typed_flow_fail;
   if (lookup->source_read_request_count) {
     lookup->pending_source_flow = arena_alloc(lookup->arena, sizeof(*lookup->pending_source_flow));

@@ -225,14 +225,27 @@ uint16_t platform_operand_register_write_mask(const M68kInstructionIR *instructi
 
 /* Generic EA roles include direct Dn/An encodings. Resolve the decoded
  * location before treating a read/write role as an actual memory access. */
-uint8_t platform_operand_memory_access(const M68kInstructionIR *instruction, size_t operand_index) {
+/* Generic EA form metadata is specialized by the decoded operand. A MOVE
+ * form's memory role does not make its immediate or Dn/An alternative a memory access. */
+uint8_t platform_operand_access_kind(const M68kInstructionIR *instruction, size_t operand_index) {
   const M68kSimFormMetadata *metadata;
   uint8_t address, reg, access;
   if (!instruction || operand_index >= instruction->operand_count || operand_index >= 4U ||
       !(metadata = m68k_sim_metadata_for_instruction(instruction))) return M68K_SIM_ACCESS_NONE;
-  if (m68k_instruction_operand_direct_register(&instruction->operands[operand_index], &address, &reg))
-    return M68K_SIM_ACCESS_NONE;
   access = metadata->operand_access_kinds[operand_index];
+  uint32_t immediate;
+  if (access == M68K_SIM_ACCESS_MEMORY_READ &&
+      m68k_ir_operand_immediate_value(&instruction->operands[operand_index], &immediate))
+    return M68K_SIM_ACCESS_IMMEDIATE;
+  if (m68k_instruction_operand_direct_register(&instruction->operands[operand_index], &address, &reg)) {
+    if (access == M68K_SIM_ACCESS_MEMORY_READ) return M68K_SIM_ACCESS_REGISTER_READ;
+    if (access == M68K_SIM_ACCESS_MEMORY_WRITE) return M68K_SIM_ACCESS_REGISTER_WRITE;
+  }
+  return access;
+}
+
+uint8_t platform_operand_memory_access(const M68kInstructionIR *instruction, size_t operand_index) {
+  uint8_t access = platform_operand_access_kind(instruction, operand_index);
   return access == M68K_SIM_ACCESS_MEMORY_READ || access == M68K_SIM_ACCESS_MEMORY_WRITE
     ? access : M68K_SIM_ACCESS_NONE;
 }

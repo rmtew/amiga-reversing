@@ -32212,7 +32212,8 @@ static int pointer_table_pointee_loop_fixture(int known_one_past, uint8_t seed_r
       break;
     }
   }
-  if (known_one_past) M68K_C_ASSERT(typed == NULL);
+  /* A pointee name without canonical table/index proof is not an independent register contract. */
+  if (known_one_past || seed_reg_kind == 0U) M68K_C_ASSERT(typed == NULL);
   else {
     M68K_C_ASSERT(typed != NULL);
     M68K_C_ASSERT(strcmp(typed->field_name, "world_y") == 0);
@@ -32225,7 +32226,8 @@ static int pointer_table_pointee_loop_fixture(int known_one_past, uint8_t seed_r
   M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
     m68k_diag_sink(NULL)));
   M68K_C_ASSERT(source != NULL);
-  if (!known_one_past) M68K_C_ASSERT(strstr(source, "world_object_shared_prefix_world_y") != NULL);
+  if (!known_one_past && seed_reg_kind != 0U) M68K_C_ASSERT(strstr(source, "world_object_shared_prefix_world_y") != NULL);
+  else M68K_C_ASSERT(strstr(source, "world_object_shared_prefix_world_y(a5)") == NULL);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
   m68k_facts_v2_free_text(source);
   m68k_analysis_policy_destroy(&policy);
@@ -32233,7 +32235,7 @@ static int pointer_table_pointee_loop_fixture(int known_one_past, uint8_t seed_r
   return 0;
 }
 
-static int test_facts_v2_render_asm_source_propagates_pointer_table_pointee_type(void) {
+static int test_facts_v2_pointer_table_pointee_name_requires_canonical_producer(void) {
   return pointer_table_pointee_loop_fixture(0, 0U);
 }
 
@@ -33678,7 +33680,7 @@ static int test_facts_v2_callback_input_escape_invalidates_derived_field_pointer
   return 0;
 }
 
-static int test_facts_v2_render_asm_source_preserves_pointer_table_cursor_through_movem_saved_callback(void) {
+static int test_facts_v2_saved_callback_cursor_requires_canonical_table_binding(void) {
   M68kObject object;
   M68kSection section;
   M68kObjectAddResult added;
@@ -33748,7 +33750,10 @@ static int test_facts_v2_render_asm_source_preserves_pointer_table_cursor_throug
   M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_alloc(&object, &policy, &source, &profile,
     m68k_diag_sink(NULL)));
   M68K_C_ASSERT(source != NULL);
-  M68K_C_ASSERT(strstr(source, "world_object_shared_prefix_world_y(a5)") != NULL);
+  /* Saving the cursor across an unknown callback does not create missing
+   * canonical ownership or a selector proof. The pointer starts at30,
+   * while the declared table starts at32. */
+  M68K_C_ASSERT(strstr(source, "world_object_shared_prefix_world_y(a5)") == NULL);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
   m68k_facts_v2_free_text(source);
   m68k_analysis_policy_destroy(&policy);
@@ -41166,8 +41171,8 @@ int m68k_c_ir_tests(void) {
       test_facts_v2_address_register_seed_replaces_table_origin},
     {"facts_v2_data_register_seed_replaces_table_origin",
       test_facts_v2_data_register_seed_replaces_table_origin},
-    {"facts_v2_render_asm_source_propagates_pointer_table_pointee_type",
-      test_facts_v2_render_asm_source_propagates_pointer_table_pointee_type},
+    {"facts_v2_pointer_table_pointee_name_requires_canonical_producer",
+      test_facts_v2_pointer_table_pointee_name_requires_canonical_producer},
     {"facts_v2_pointer_table_one_past_cursor_is_not_a_typed_load",
       test_facts_v2_pointer_table_one_past_cursor_is_not_a_typed_load},
     {"facts_v2_render_asm_source_indexed_pointer_table_plan_links_origin",
@@ -41190,8 +41195,8 @@ int m68k_c_ir_tests(void) {
       test_facts_v2_static_write_effect_invalidates_matching_storage_reload},
     {"facts_v2_callback_input_escape_invalidates_derived_field_pointer",
       test_facts_v2_callback_input_escape_invalidates_derived_field_pointer},
-    {"facts_v2_render_asm_source_preserves_pointer_table_cursor_through_movem_saved_callback",
-      test_facts_v2_render_asm_source_preserves_pointer_table_cursor_through_movem_saved_callback},
+    {"facts_v2_saved_callback_cursor_requires_canonical_table_binding",
+      test_facts_v2_saved_callback_cursor_requires_canonical_table_binding},
     {"facts_v2_render_asm_source_propagates_static_struct_pointer_chain",
       test_facts_v2_render_asm_source_propagates_static_struct_pointer_chain},
     {"facts_v2_render_asm_source_rejects_conflicting_static_struct_types",

@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
   "kind": "committed_native_rendered_original_export",
-  "canonical_source_commit": "e7511f30664f6b2ca6a832ff81e81d520e17002d",
-  "publication_base_commit": "e7511f30664f6b2ca6a832ff81e81d520e17002d",
+  "canonical_source_commit": "bb514c11627360a77ab09406039efad118b1f476",
+  "publication_base_commit": "bb514c11627360a77ab09406039efad118b1f476",
   "native_export": "CListingArtifact.source_package_payload(64)",
   "main_source_sha256": "cb676b600f76f65e694c48f2a5adcfd89d2b6b679f03fd1b8b3987491581983f",
   "asset_count": 57,
@@ -24,8 +24,8 @@
     "assembler executable",
     "paused Pandora work"
   ],
-  "canonical_source_commit_role": "canonical source publication base; shared concrete runtime-write invalidation repair is in the publishing commit; output is bound by verification_receipt_id",
-  "canonical_source_subject_revision": "cdefa9ce7d2f163f1288804bdfd03734fa24cd0505413c2f3ed91893dd749a5f",
+  "canonical_source_commit_role": "canonical source publication base; shared loop-cell, raw-entry and decoded-access provenance repairs is in the publishing commit; output is bound by verification_receipt_id",
+  "canonical_source_subject_revision": "c5c90304f1f4fdedb640589c06ef018b985d9fa79db89059a9314fd70edc2d25",
   "canonical_fact_sha256": {
     "source_binary.json": "42d4a5758b3e8236af7f912aee85e9ee5323bcd0961faa338c4f864080a0a7d9",
     "target_metadata.json": "e7540b68c118c56aba8815b6722eefa067517cc865fe9841d6c01ce96551389c",
@@ -46,6 +46,6 @@
     },
     "runtime_scope": "Seven CPU write-site windows match this reversible view; no whole runtime-view identity or parent plaintext promotion."
   },
-  "verification_receipt_id": "9e292ed342b26cb136b7897f7019a5f651b0e2b4ab84e239d383150638afc264",
-  "render_native_sha256": "ae34b04972fbebc362f746c03602d1c828d6819193e0236bbc9d5185f2b33c33"
+  "verification_receipt_id": "72aed32ec6afb523686d3b40b0cbe12b11203347739a5fa1f30972a03dd87d71",
+  "render_native_sha256": "2458a64cd4cd62da28b1430521d0324541c0e2b7a02615a630f383d5d2cb2b81"
 }

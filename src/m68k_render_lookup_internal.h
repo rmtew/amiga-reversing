@@ -554,7 +554,7 @@ typedef struct M68kRenderTypedFlowNode {
   uint8_t has_in;
   uint8_t has_out;
   uint8_t word_proof_ready; /* Converged scalar inputs/outputs occupy existing platform packets. */
-  uint8_t source_snapshot_root; /* Canonical image entry, not an arbitrary code seed. */
+  uint8_t source_snapshot_root; /* Canonical snapshot/RAW-image bits; never an arbitrary code seed. */
 } M68kRenderTypedFlowNode;
 
 typedef struct M68kRenderTypedAccess {
