@@ -715,7 +715,7 @@ SG2DiskServiceState_current_sector_id RS.B 1
 SG2DiskServiceState_drive_port_bits RS.B 1
 SG2DiskServiceState_retry_reload RS.B 1
 SG2DiskServiceState_current_cylinder RS.W 1
-    RS.B 2
+SG2DiskServiceState_format_tracks_remaining RS.W 1
 SG2DiskServiceState_sector_work_index RS.W 1
 SG2DiskServiceState_expected_sector_count RS.W 1
     RS.B 4
@@ -728,7 +728,7 @@ SG2DiskServiceState_crc_high RS.B 1
 SG2DiskServiceState_crc_low RS.B 1
     RS.B 2
 SG2DiskServiceState_operation_title_pointer RS.L 1
-    RS.B 4
+SG2DiskServiceState_alternate_audio_block_bytes RS.L 1
 SG2DiskServiceState_memory_transfer_source_cursor RS.L 1
 SG2DiskServiceState_transfer_buffer_pointer RS.L 1
 SG2DiskServiceState_dma_transfer_cursor RS.L 1
@@ -18468,11 +18468,11 @@ load_game_from_disk:
 	move.w #$1,disk_service_state_first_sector_id.l
 	move.l #$7E000,disk_service_state_transfer_buffer_pointer.l
 	move.l #disk_load_game_title,disk_service_state_operation_title_pointer.l
-	bsr.w abs_0_00010CD8
+	bsr.w check_adls_disk_identification
 	bne.w abs_0_0000FFDE
 	bsr.w abs_0_00010F02
 	bne.w abs_0_0000FFBC
-	bsr.w abs_0_00010BCC
+	bsr.w advance_disk_cylinders_in_five_step_groups
 	moveq.l #SG2_SAVE_TRACK_DBF_LAST,d1
 	lea.l shared_workspace_prefix.l,a0
 	move.l a0,disk_service_state_transfer_buffer_pointer.l
@@ -18526,9 +18526,9 @@ abs_0_0000FFFE:
 	move.w #$A,disk_service_state_expected_sector_count.l
 	move.w #$1,disk_service_state_first_sector_id.l
 	move.l #$7E000,disk_service_state_transfer_buffer_pointer.l
-	bsr.w abs_0_00010C1E
+	bsr.w check_or_offer_adls_disk_format
 	bne.w abs_0_00010122
-	bsr.w abs_0_00010CD8
+	bsr.w check_adls_disk_identification
 	bne.w abs_0_00010136
 	bsr.w abs_0_00010F02
 	move.w d0,abs_0_000121A4.l
@@ -18562,7 +18562,7 @@ abs_0_00010086:
 	dbf.w d1,abs_0_00010086
 	subq.l #1,d2
 abs_0_0001008E:
-	bsr.w abs_0_00010BCC
+	bsr.w advance_disk_cylinders_in_five_step_groups
 	lea.l abs_0_00012658(pc),a1
 	bsr.w display_disk_operation_prompt
 	lea.l savegame_prefix_rebased_long(a6),a0
@@ -18634,7 +18634,7 @@ load_high_scores_from_disk:
 	bsr.w display_disk_operation_prompt
 	lea.l absolute_slot_0007E200.l,a0
 	clr.l (a0)
-	bsr.w abs_0_00010CD8
+	bsr.w check_adls_disk_identification
 	beq.b abs_0_000101B6
 	cmp.w #$FFFE,d0
 	beq.w deselect_disk_backend
@@ -18666,7 +18666,7 @@ save_high_scores_to_disk:
 	move.w #$1,disk_service_state_first_sector_id.l
 	move.l #$7E000,disk_service_state_transfer_buffer_pointer.l
 	move.l #disk_save_ratings_title,disk_service_state_operation_title_pointer.l
-	bsr.w abs_0_00010C1E
+	bsr.w check_or_offer_adls_disk_format
 	bne.b abs_0_00010240
 	bsr.w seek_disk_backend_cylinder_zero
 	bsr.w abs_0_0001099A
@@ -19188,7 +19188,7 @@ abs_0_0001095E:
 	move.w #DMAF_DISK,dmacon(a5)
 	bsr.w read_disk_backend_blocks
 	beq.b abs_0_00010996
-	bsr.w abs_0_00010B0E
+	bsr.w attempt_disk_head_retry_cycle
 	subq.b #1,disk_service_state.l
 	bpl.w encode_and_write_mfm_track
 	moveq.l #-1,d0
@@ -19204,7 +19204,7 @@ abs_0_000109A0:
 abs_0_000109AA:
 	bsr.w read_disk_backend_blocks
 	beq.b abs_0_00010996
-	bsr.w abs_0_00010B0E
+	bsr.w attempt_disk_head_retry_cycle
 	tst.w platform_entry_flags.l
 	bpl.b abs_0_000109C6
 	btst.b #CIAB_DSKCHANGE,_ciaa+ciapra.l
@@ -19305,7 +19305,7 @@ abs_0_00010B06:
 	rts
 abs_0_00010B0A:
 	bra.w abs_0_00010A7E
-abs_0_00010B0E:
+attempt_disk_head_retry_cycle:
 	move.w disk_service_state_current_cylinder.l,d0
 	beq.b abs_0_00010B1A
 	bsr.w retreat_disk_backend_cylinder
@@ -19315,7 +19315,7 @@ abs_0_00010B1A:
 	bne.b abs_0_00010B74
 	bra.w retreat_disk_backend_cylinder
 check_amiga_media_or_prompt_retry:
-	bsr.w abs_0_00010B0E
+	bsr.w attempt_disk_head_retry_cycle
 	btst.b #CIAB_DSKCHANGE,_ciaa+ciapra.l
 	bne.b abs_0_00010B06
 	lea.l disk_missing_media_retry_prompt(pc),a1
@@ -19332,9 +19332,9 @@ seek_disk_cylinder_zero:
 	bset.b #1,(a5)
 	btst.b #CIAB_DSKTRACK0,_ciaa+ciapra.l
 	beq.b abs_0_00010B74
-	bsr.w abs_0_00010BEA
+	bsr.w wait_for_disk_step_tod_deadline
 	bclr.b #0,(a5)
-	bsr.w abs_0_00010BEA
+	bsr.w wait_for_disk_step_tod_deadline
 	bset.b #0,(a5)
 	bra.w seek_disk_backend_cylinder_zero
 abs_0_00010B74:
@@ -19344,9 +19344,9 @@ advance_disk_cylinder:
 	bge.b abs_0_00010B74
 	lea.l _ciab+ciaprb.l,a5
 	bclr.b #1,(a5)
-	bsr.w abs_0_00010BEA
+	bsr.w wait_for_disk_step_tod_deadline
 	bclr.b #0,(a5)
-	bsr.w abs_0_00010BEA
+	bsr.w wait_for_disk_step_tod_deadline
 	bset.b #0,(a5)
 	addq.w #1,disk_service_state_current_cylinder.l
 	rts
@@ -19356,12 +19356,12 @@ retreat_disk_cylinder:
 	subq.w #1,disk_service_state_current_cylinder.l
 	lea.l _ciab+ciaprb.l,a5
 	bset.b #1,(a5)
-	bsr.w abs_0_00010BEA
+	bsr.w wait_for_disk_step_tod_deadline
 	bclr.b #0,(a5)
-	bsr.w abs_0_00010BEA
+	bsr.w wait_for_disk_step_tod_deadline
 	bset.b #0,(a5)
 	rts
-abs_0_00010BCC:
+advance_disk_cylinders_in_five_step_groups:
 	subq.w #1,d2
 	bmi.b abs_0_00010B74
 abs_0_00010BD0:
@@ -19372,7 +19372,7 @@ abs_0_00010BD0:
 	bsr.w advance_disk_backend_cylinder
 	dbf.w d2,abs_0_00010BD0
 	rts
-abs_0_00010BEA:
+wait_for_disk_step_tod_deadline:
 	movem.l d1/a5,-(a7)
 	lea.l _ciab.l,a5
 	move.b ciatodhi(a5),d1
@@ -19390,8 +19390,8 @@ abs_0_00010C06:
 	movem.l (a7)+,d1/a5
 abs_0_00010C1C:
 	rts
-abs_0_00010C1E:
-	bsr.w abs_0_00010CD8
+check_or_offer_adls_disk_format:
+	bsr.w check_adls_disk_identification
 	beq.w abs_0_00010CBA
 	cmp.w #$FFFE,d0
 	beq.w abs_0_00010C1C
@@ -19399,7 +19399,7 @@ abs_0_00010C1E:
 	bsr.w prompt_disk_retry_or_abort
 	bne.w abs_0_00010D38
 	bsr.w seek_disk_backend_cylinder_zero
-	move.w #$50,disk_service_state_gap_6.l
+	move.w #$50,disk_service_state_format_tracks_remaining.l
 abs_0_00010C46:
 	lea.l disk_format_track_digits(pc),a1
 	clr.b (a1)
@@ -19434,7 +19434,7 @@ abs_0_00010CA6:
 	bne.b abs_0_00010CBE
 abs_0_00010CAC:
 	bsr.w advance_disk_backend_cylinder
-	subq.w #1,disk_service_state_gap_6.l
+	subq.w #1,disk_service_state_format_tracks_remaining.l
 	bne.w abs_0_00010C46
 abs_0_00010CBA:
 	moveq.l #0,d0
@@ -19444,12 +19444,12 @@ abs_0_00010CBE:
 	beq.b abs_0_00010D38
 	lea.l disk_format_error_retry_prompt(pc),a1
 	bsr.w prompt_disk_retry_or_abort
-	beq.w abs_0_00010C1E
+	beq.w check_or_offer_adls_disk_format
 	bra.b abs_0_00010D38
 abs_0_00010CD4:
 	moveq.l #-1,d0
 	rts
-abs_0_00010CD8:
+check_adls_disk_identification:
 	bsr.w initialize_crc16_1021_tables
 	bsr.w select_disk_surface_a
 	move.b disk_service_state_retry_reload.l,disk_service_state.l
@@ -19475,11 +19475,11 @@ abs_0_00010D16:
 	subq.b #1,disk_service_state.l
 	bpl.b abs_0_00010CEA
 abs_0_00010D26:
-	bsr.w abs_0_00010D58
+	bsr.w matches_starglider_master_media_signature
 	beq.b abs_0_00010CD4
 	lea.l disk_master_media_retry_prompt(pc),a1
 	bsr.w prompt_disk_retry_or_abort
-	beq.w abs_0_00010CD8
+	beq.w check_adls_disk_identification
 abs_0_00010D38:
 	moveq.l #-2,d0
 	rts
@@ -19496,7 +19496,7 @@ abs_0_00010D40:
 abs_0_00010D54:
 	moveq.l #0,d0
 	rts
-abs_0_00010D58:
+matches_starglider_master_media_signature:
 	movea.l disk_service_state_transfer_buffer_pointer.l,a0
 	lea.l $001E(a0),a0
 	cmpi.l #1400136050,(a0)+
@@ -20122,11 +20122,11 @@ abs_0_000115C4:
 	rts
     ; Normal setup patches absolute operand11684 with ring buffer pointer and initializes byte count before timer installation. Literal12345 is a startup placeholder, not established live source me
 start_alternate_buffered_sample_playback:
-	move.l #$1600,disk_service_state_gap_22.l
+	move.l #$1600,disk_service_state_alternate_audio_block_bytes.l
 	lea.l audio_ring_buffer_pointers(pc),a0
 	move.w audio_ring_control.l,d0
 	move.l $0(a0,d0.w),abs_0_00011682+2.l
-	move.l disk_service_state_gap_22.l,alternate_sample_bytes_remaining.l
+	move.l disk_service_state_alternate_audio_block_bytes.l,alternate_sample_bytes_remaining.l
     ; Install original sample interrupt at vector134 and configure alternate hardware timer. Entry preserves original exception frame; no actual alternate-platform run is claimed.
 install_alternate_sample_timer:
 	lea.l alternate_buffered_sample_interrupt(pc),a1
@@ -21982,7 +21982,7 @@ abs_0_00011EEA:
 	lea.l audio_ring_buffer_pointers(pc),a0
 	move.w audio_ring_control.l,d0
 	move.l $0(a0,d0.w),abs_0_00011682+2.l
-	move.l disk_service_state_gap_22.l,alternate_sample_bytes_remaining.l
+	move.l disk_service_state_alternate_audio_block_bytes.l,alternate_sample_bytes_remaining.l
 	bra.w abs_0_000116BA
 abs_0_00011F0A:
 	move.b #$0,$FFFFFA19.w
@@ -22040,8 +22040,8 @@ disk_service_state_retry_reload:
 	dc.b $00	; retry_reload
 disk_service_state_current_cylinder:
 	dc.w $0000	; current_cylinder
-disk_service_state_gap_6:
-	dc.w $0000	; typed data block gap
+disk_service_state_format_tracks_remaining:
+	dc.w $0000	; format_tracks_remaining
 disk_service_state_sector_work_index:
 	dc.w $0000	; sector_work_index
 disk_service_state_expected_sector_count:
@@ -22068,8 +22068,8 @@ disk_service_state_gap_1C:
 	dc.w $0000	; typed data block gap
 disk_service_state_operation_title_pointer:
 	dc.l $00000000	; operation_title_pointer
-disk_service_state_gap_22:
-	dc.l $00000000	; typed data block gap
+disk_service_state_alternate_audio_block_bytes:
+	dc.l $00000000	; alternate_audio_block_bytes
 disk_service_state_memory_transfer_source_cursor:
 	dc.l $00000000	; memory_transfer_source_cursor
 disk_service_state_transfer_buffer_pointer:

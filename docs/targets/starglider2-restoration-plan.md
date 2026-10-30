@@ -181,6 +181,18 @@ fixture passes should a writable-input guarded-format contract or the original
 104-entry reader be admitted. These mechanisms are not supplied by the two
 manually annotated structure-profile body inputs above.
 
+The connected disk/media family now names six existing helpers: head retry
+cycling, five-step advance groups, the CIAB TOD deadline, ADLS format offering,
+86-byte identification checking and the14-byte master-media signature check.
+Two reserved service-state spans become fields: WORD6 counts80 format cycles;
+LONG34 reloads5632 alternate playback bytes initially and on ring advancement.
+The latter is a shared disk/audio role, not disk geometry or an Amiga playback
+claim. Other unused gaps stay unknown. Eight canonical actions regenerate the
+actual source references; native access/CFG/address-value facts are identical.
+C/vasm and clean standalone output remain byte exact with unchanged57 assets
+and14 headers. One generation took182.35s; unchanged framework tests were not
+repeated. There is no new runtime, media-validity or physical timing claim.
+
 An on-demand systematic gap inventory (`amiga_reversing/tools/source_gap_inventory.py`)
 joins native identities/accesses with canonical layouts and actual rendered
 boundaries. The previous whole-target snapshot records 71 suffix signals (including numeric adjacent variants),

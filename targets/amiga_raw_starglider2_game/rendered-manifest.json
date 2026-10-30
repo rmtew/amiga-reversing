@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "source_commit": "75d775313579d951c002b69b6cf8ce6ba781aa0b",
+  "source_commit": "864b7ce32b69a00342e50ad0e4488de3eda5d055",
   "source_assembly": "starglider2_game.s",
   "assets": [
     {
@@ -878,13 +878,13 @@
     },
     {
       "path": "rendered-provenance.json",
-      "bytes": 3135,
-      "sha256": "72e99bf17db96500878ae4815ee583f2506326a8e014304973581a9383d47d0c"
+      "bytes": 3137,
+      "sha256": "b69c5b212461b62dac00614cbfddf22006af207bc58b4865d1ee03da48ae8b60"
     },
     {
       "path": "starglider2_game.s",
-      "bytes": 2025651,
-      "sha256": "f68ec4713c59fe9144e4744c28779c1591a54f50bc672887267d7abd1ad64d90"
+      "bytes": 2026364,
+      "sha256": "f3bd2192eadb8fd7fe9050d0ba5331a10775851ef9a42c956356ddb02e2f9352"
     },
     {
       "path": "tools/starglider2_protection.py",
@@ -892,6 +892,6 @@
       "sha256": "81d3f66d36dbfbd5c77238b20c28e8b9abaa329777eb91f64669bbbf13703582"
     }
   ],
-  "source_commit_role": "publication base; native closed-index proof handoff and stale-loader guard are in the publishing commit and output is bound by verification_receipt_id",
-  "source_subject_revision": "035eb91f085bc5d0d8800fd602ce884f70871f3b5568dd5ec4d24098f03c99fa"
+  "source_commit_role": "publication base; canonical disk/media helper and shared service-state facts are in the publishing commit and output is bound by verification_receipt_id",
+  "source_subject_revision": "80a06bb2a7526b9052f883fc7f5900dca0f20cd531a63ac18ba8c86af7c0b54f"
 }
