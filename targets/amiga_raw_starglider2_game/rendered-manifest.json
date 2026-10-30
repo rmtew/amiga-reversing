@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "source_commit": "bb514c11627360a77ab09406039efad118b1f476",
+  "source_commit": "269515996b5ee8936ad4f07f635518970fa5f4b2",
   "source_assembly": "starglider2_game.s",
   "assets": [
     {
@@ -878,13 +878,13 @@
     },
     {
       "path": "rendered-provenance.json",
-      "bytes": 3157,
-      "sha256": "90a4bf26967f53565d996cad8b4bbd68cedd02397e8fb95a4bfc4f0cf5908068"
+      "bytes": 3188,
+      "sha256": "783b34d7e1abb1133fa12293308cd28f43f7d06fb0aa8451240e37387ba0f790"
     },
     {
       "path": "starglider2_game.s",
-      "bytes": 2026736,
-      "sha256": "cb676b600f76f65e694c48f2a5adcfd89d2b6b679f03fd1b8b3987491581983f"
+      "bytes": 2027103,
+      "sha256": "10625f516bccd683fd3a2060dd6ef938d50d52af846b4bb4bfb3764851847840"
     },
     {
       "path": "tools/starglider2_protection.py",
@@ -892,6 +892,6 @@
       "sha256": "81d3f66d36dbfbd5c77238b20c28e8b9abaa329777eb91f64669bbbf13703582"
     }
   ],
-  "source_commit_role": "canonical source publication base; shared loop-cell, raw-entry and decoded-access provenance repairs is in the publishing commit; output is bound by verification_receipt_id",
-  "source_subject_revision": "c5c90304f1f4fdedb640589c06ef018b985d9fa79db89059a9314fd70edc2d25"
+  "source_commit_role": "canonical source publication base; shared guarded startup/call-prefix, evidence-meet, bus-alias and inline-field rendering repairs are in the publishing commit; output is bound by verification_receipt_id",
+  "source_subject_revision": "ea7104c0238d478288904c0527c16de763124725d24ed3b94a81d8bc96782287"
 }

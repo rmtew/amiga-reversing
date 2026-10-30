@@ -58,6 +58,30 @@ static int test_word_index_adapter_uses_decoded_width_and_refuses_unsupported_fo
   return 0;
 }
 
+static int test_known_value_predicate_uses_generated_flags_and_refuses_unknown_bits(void) {
+  static const struct { const char *producer,*branch; uint32_t value,mask; int admitted,taken; } cases[] = {
+    {"move.w $1002.l,d0","bpl 4",0x8001U,0xffffU,1,0},
+    {"move.w $1002.l,d0","bmi 4",0x8001U,0xffffU,1,1},
+    {"tst.w d0","bpl 4",0xffffU,0xffffU,1,0},
+    {"move.w d0,d1","beq 4",0U,0xffffU,1,1},
+    {"btst #0,d0","bne 4",0x8001U,0xffffU,1,1},
+    {"btst #0,d0","beq 4",0x8000U,0xffffU,1,1},
+    {"btst #16,d0","beq 4",0U,0xffffU,0,0},
+    {"btst #0,d0","bpl 4",1U,0xffffU,0,0},
+    {"move.l d0,d1","bpl 4",0x8001U,0xffffU,0,0},
+    {"movea.l d0,a0","beq 4",0U,0xffffffffU,0,0},
+    {"add.w d0,d1","beq 4",0U,0xffffU,0,0},
+  };
+  for(size_t i=0U;i<sizeof(cases)/sizeof(cases[0]);++i) {
+    M68kInstructionIR p=m68k_plain_parse_instruction_to_ir(cases[i].producer,M68K_ASM_CPU_68000,m68k_diag_sink(NULL));
+    M68kInstructionIR b=m68k_plain_parse_instruction_to_ir(cases[i].branch,M68K_ASM_CPU_68000,m68k_diag_sink(NULL));
+    int taken=-1,admitted=m68k_sim_known_value_branch(&p,&b,cases[i].value,cases[i].mask,&taken);
+    M68K_C_ASSERT_INT(cases[i].admitted,admitted);
+    if(admitted) M68K_C_ASSERT_INT(cases[i].taken,taken);
+  }
+  return 0;
+}
+
 static int test_concrete_subi_word_preserves_upper_and_sets_ccr(void) {
   uint8_t memory[] = {0x04U, 0x40U, 0x03U, 0x48U}; /* subi.w #840,d0 */
   M68kSimConcreteState state;
@@ -626,6 +650,8 @@ static int test_concrete_run_sign_extends_index_word_address(void) {
 
 int m68k_c_simulator_tests(void) {
   static const M68kCTestCase cases[] = {
+    {"known_value_predicate_uses_generated_flags_and_refuses_unknown_bits",
+      test_known_value_predicate_uses_generated_flags_and_refuses_unknown_bits},
     {"metadata_lookup_uses_canonical_form_id", test_metadata_lookup_uses_canonical_form_id},
     {"metadata_lookup_uses_generated_ccr_formulas", test_metadata_lookup_uses_generated_ccr_formulas},
     {"metadata_lookup_reports_missing_generated_semantics",

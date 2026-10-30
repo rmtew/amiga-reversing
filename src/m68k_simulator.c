@@ -2348,6 +2348,32 @@ int m68k_sim_branch_zero_requirement(const M68kInstructionIR *branch, int taken,
   return 1;
 }
 
+int m68k_sim_known_value_branch(const M68kInstructionIR *producer,
+    const M68kInstructionIR *branch, uint32_t value, uint32_t known_mask, int *out_taken) {
+  const M68kSimFormMetadata *p = m68k_sim_metadata_for_instruction(producer);
+  const M68kSimFormMetadata *b = m68k_sim_metadata_for_instruction(branch);
+  uint16_t sr = 0U;
+  if (!p || !b || !out_taken || b->flow_kind != M68K_SIM_FLOW_BRANCH || !b->flow_conditional ||
+      b->operation_type == M68K_SIM_OP_DBCC || b->condition_code >= 16U) return 0;
+  if (p->ccr_formula == M68K_SIM_CCR_FORMULA_MOVE_FLAGS || p->ccr_formula == M68K_SIM_CCR_FORMULA_TEST_FLAGS) {
+    uint8_t operand = p->source_operand_index;
+    if (operand >= producer->operand_count) return 0;
+    uint8_t width = m68k_sim_operand_width_bytes(producer, operand);
+    if (!width || width > 4U || (known_mask & sim_mask_for_width(width)) != sim_mask_for_width(width) ||
+        !sim_apply_abstract_nz_flags(0U,value,width,&sr)) return 0;
+  } else if (p->operation_type == M68K_SIM_OP_BIT_TEST && p->ccr_formula == M68K_SIM_CCR_FORMULA_BIT_TEST_FLAGS) {
+    uint32_t raw; M68kSimValue bit = {0}; uint32_t index; int zero;
+    if (p->source_operand_index >= producer->operand_count || p->dest_operand_index >= producer->operand_count ||
+        !m68k_ir_operand_immediate_value(&producer->operands[p->source_operand_index],&raw) ||
+        !m68k_sim_branch_zero_requirement(branch,1,&zero)) return 0;
+    bit.kind = M68K_SIM_VALUE_CONSTANT; bit.value = raw;
+    if (!sim_bit_index_from_value(&bit,m68k_sim_operand_width_bytes(producer,p->dest_operand_index),&index) ||
+        index >= 32U || !(known_mask & ((uint32_t)1U << index))) return 0;
+    *out_taken = (((value >> index) & 1U) == 0U) == zero; return 1;
+  } else return 0;
+  *out_taken = sim_condition_true(b->condition_code,sr); return 1;
+}
+
 int m68k_sim_unsigned_word_compare_bounds(const M68kInstructionIR *compare,
     const M68kInstructionIR *branch, int taken, uint8_t *out_reg,
     uint16_t *out_min, uint16_t *out_max) {

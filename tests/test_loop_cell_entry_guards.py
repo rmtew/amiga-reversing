@@ -15,6 +15,7 @@ def test_loop_cell_guards_use_current_entries_and_strip_stale_predicates(tmp_pat
     source=tmp_path/'loop-entry.c'
     source.write_text(r'''#include "m68k_analysis_render_lookup.c"
 #include <assert.h>
+#include "m68k_plain_parse.h"
 int main(void) {
  M68kRenderTypedFlowNode nodes[5]={0}; M68kRenderTypedStorageSlot storage={0};
  M68kRenderTypedFlowGraph graph={0}; M68kRenderLookup lookup={0};
@@ -87,6 +88,44 @@ int main(void) {
  precise.layout_base_id=2;typed_reg_merge(&joined,&precise,NULL);assert(!joined.layout_base_id);
  memset(&precise,0,sizeof(precise));typed_reg_merge(&symbolic,&precise,NULL);
  assert(!symbolic.known && !symbolic.layout_base_id);
+ /* Evidence levels have a meet, not an incomparable conflict that later
+  * appears to refine from unspecified back to declared fallback. */
+ for(uint8_t a=0;a<=M68K_APP_SLOT_BASE_LIBRARY_EXTENSION;++a)
+  for(uint8_t b=0;b<=M68K_APP_SLOT_BASE_LIBRARY_EXTENSION;++b)
+   for(uint8_t c=0;c<=M68K_APP_SLOT_BASE_LIBRARY_EXTENSION;++c) {
+    assert(typed_app_base_evidence_meet(a,b)==typed_app_base_evidence_meet(b,a));
+    assert(typed_app_base_evidence_meet(a,a)==a);
+    assert(typed_app_base_evidence_meet(typed_app_base_evidence_meet(a,b),c)==
+      typed_app_base_evidence_meet(a,typed_app_base_evidence_meet(b,c)));
+    assert(!typed_app_base_evidence_meet(a,0));
+   }
+ M68kRenderTypedState ea={0},eb={0};
+ ea.app_addr_regs[3]=(M68kRenderTypedAppAddressValue){1,M68K_APP_SLOT_BASE_REGISTER_STATE,172};
+ eb.app_addr_regs[3]=(M68kRenderTypedAppAddressValue){1,M68K_APP_SLOT_BASE_DECLARED_LAYOUT_A6_FALLBACK,172};
+ typed_state_merge_into(&ea,&eb,NULL);
+ assert(ea.app_addr_regs[3].known && ea.app_addr_regs[3].base_evidence_kind==M68K_APP_SLOT_BASE_DECLARED_LAYOUT_A6_FALLBACK);
+ assert(!typed_state_merge_into(&ea,&eb,NULL));
+ eb.app_addr_regs[3].displacement=174;typed_state_merge_into(&ea,&eb,NULL);assert(!ea.app_addr_regs[3].known);
+ /* BYTE predicates may use a containing known LONG; dead or conflicting
+  * packets never supply a scalar, and physical read aliases share the span. */
+ M68kRenderTypedStorageSlot backing[2]={{0}};M68kRenderLookup bits_lookup={0};
+ M68kRenderTypedState bits={0};M68kPrefixScalar words[8]={{0}};
+ backing[0].kind=backing[1].kind=M68K_RENDER_TYPED_STORAGE_ABSOLUTE;
+ backing[0].address=0x1002;backing[1].address=0x1003;
+ bits_lookup.typed_storage_slots=backing;bits_lookup.typed_storage_slot_count=2;
+ typed_stored_value_set_raw_long(&value,0x80010000);typed_state_set_memory_cell(&bits,1,&value);
+ M68kInstructionIR bit=m68k_plain_parse_instruction_to_ir("btst #0,$01001003.l",M68K_ASM_CPU_68000,m68k_diag_sink(NULL));
+ M68kPrefixScalar scalar=guarded_prefix_value(&bits_lookup,&bits,&bit,1,words,0);
+ assert(scalar.mask==255 && scalar.value==1);
+ bits.base_slots[0].known=0;assert(!guarded_prefix_value(&bits_lookup,&bits,&bit,1,words,0).mask);
+ bits.base_slots[0].known=1;typed_stored_value_set_raw_long(&value,0x02000000);
+ typed_state_set_memory_cell(&bits,2,&value);assert(!guarded_prefix_value(&bits_lookup,&bits,&bit,1,words,0).mask);
+ /* Joining/calling cannot regain the initial-entry control context. */
+ ea.source_snapshot_entry=M68K_TYPED_SOURCE_CONTEXT_IMAGE|M68K_TYPED_SOURCE_CONTEXT_INITIAL_PREFIX;
+ eb.source_snapshot_entry=M68K_TYPED_SOURCE_CONTEXT_IMAGE;
+ typed_state_merge_into(&ea,&eb,NULL);assert(ea.source_snapshot_entry==M68K_TYPED_SOURCE_CONTEXT_IMAGE);
+ eb.source_snapshot_entry|=M68K_TYPED_SOURCE_CONTEXT_INITIAL_PREFIX;
+ typed_state_merge_into(&ea,&eb,NULL);assert(ea.source_snapshot_entry==M68K_TYPED_SOURCE_CONTEXT_IMAGE);
  return 0;
 }''')
     exe=tmp_path/'loop-entry'

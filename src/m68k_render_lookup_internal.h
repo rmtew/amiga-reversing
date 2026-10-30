@@ -517,6 +517,9 @@ typedef struct M68kRenderTypedFieldSlot {
 #define M68K_RENDER_TYPED_BASE_SLOT_LIMIT 32U
 #define M68K_RENDER_TYPED_FIELD_SLOT_LIMIT 32U
 
+#define M68K_TYPED_SOURCE_CONTEXT_IMAGE 1U
+#define M68K_TYPED_SOURCE_CONTEXT_INITIAL_PREFIX 2U
+
 typedef struct M68kRenderTypedState {
   M68kRenderTypedRegValue data_regs[8];
   M68kRenderTypedRegValue addr_regs[8];
@@ -531,7 +534,7 @@ typedef struct M68kRenderTypedState {
   /* A local write/call prevents resurrecting a global writer-summary value.
    * Exact local reaching stores may still supply their own value. */
   uint8_t memory_write_barriers;
-  uint8_t source_snapshot_entry; /* Configured image-entry context, before separately guarded effects. */
+  uint8_t source_snapshot_entry; /* Must-context flags above; INITIAL_PREFIX ends at calls/hardware. */
   uint16_t zero_read_relation; /* CCR.Z describes the scalar projection of this read. */
   M68kRenderTypedStackSlot stack_slots[M68K_RENDER_TYPED_STACK_SLOT_LIMIT];
   size_t stack_slot_count;

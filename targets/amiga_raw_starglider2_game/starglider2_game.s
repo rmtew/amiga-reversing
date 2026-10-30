@@ -248,7 +248,10 @@ model_origin_delta_z RS.W 1
 last_key_press_code RS.B 1
     RS.B 1
 last_key_release_code RS.B 1
-    RS.B 33
+    RS.B 25
+app_0154 RS.B 1
+app_0155 RS.B 1
+    RS.B 6
 joystick_direction_bits RS.W 1
 frame_rate_display_sample RS.W 1
 frame_service_ticks_in_window RS.W 1
@@ -274,7 +277,8 @@ active_model_type_index RS.W 1
 type30_render_model_index RS.W 1
 projection_screen_origin_x RS.W 1
 projection_screen_origin_y RS.W 1
-    RS.B 4
+app_0198 RS.W 1
+app_019A RS.W 1
 reticle_neutral_screen_x RS.W 1
 reticle_neutral_screen_y RS.W 1
 drawing_fill_style_word RS.W 1
@@ -282,8 +286,7 @@ point_field_plane_byte_stride RS.W 1
     RS.B 6
 active_model_scale_shift RS.W 1
     RS.B 4
-app_01B0 RS.B 1
-app_01B1 RS.B 1
+app_01B0 RS.W 1
     RS.B 6
 model_face_vertex_count_scratch RS.W 1
     RS.B 30
@@ -575,6 +578,8 @@ world_object_pool RS.B 17000
 app_0062 RS.B 1
     RSSET $0067
 app_0067 RS.B 1
+    RSSET $01B1
+app_01B1 RS.B 1
     RSSET $0779
 active_model_retirement_phase_byte RS.B 1
     RSSET $6598
@@ -2610,14 +2615,14 @@ abs_0_00001EBA:
 	lea.l game_over_icarus_destroyed_message(pc),a1
 	bra.w enqueue_unique_message_pointer_bridge_0039da
 initialize_startup_flags_and_subtract_novella_key:
-	st.b $0154(a6)
-	st.b $0155(a6)
+	st.b app_0154(a6)
+	st.b app_0155(a6)
 	sf.b model_face_culling_disabled_flag(a6)
 	st.b app_01F4(a6)
 	sf.b app_0204(a6)
 	move.b #$0,app_07F4(a6)
     ; Protection phase1:871 LONGs at$12F80..$13D1C, subtract key$32597635+i. Declared end$13D1E leaves2bytes untouched. Exact observed normal boot.
-	move.w #$0,$01DA(a6)
+	move.w #$0,app_01DA(a6)
 	lea.l novella_decode_saved_state(a6),a3
 	movem.l (a3)+,d0-d1/a1-a2
 	lea.l novella_check_encoded_payload.l,a2
@@ -3811,7 +3816,7 @@ display_blank_event_message_line_bridge_002404:
 	dc.b $74,$73,$0A,$0A,$09,$65
     ; Initialize display/view state and inclusive clip bounds X 16..303, Y 30..128. The adjacent 143/79 defaults remain unnamed: no consumer meaning is inferred from proximity.
 initialize_display_and_view_state:
-	move.w #$1357,$01B0(a6)
+	move.w #$1357,app_01B0(a6)
     ; Draw/display base slots deliberately alias $77B50 during setup. Rotation later selects table entries; these are phase roles, not exclusive front/back allocation owners.
 	move.l #$77B50,draw_buffer_base.w(a6)
 	move.l #$77B50,display_buffer_base(a6)
@@ -3822,9 +3827,9 @@ initialize_display_and_view_state:
 	move.w #$12F,view_clip_max_x(a6)
 	move.w #$1E,view_clip_min_y(a6)
 	move.w #$80,view_clip_max_y(a6)
-	move.w #$8F,$0198(a6)
+	move.w #$8F,app_0198(a6)
 	move.w #$9F,projection_screen_origin_x(a6)
-	move.w #$4F,$019A(a6)
+	move.w #$4F,app_019A(a6)
 	move.w #$4F,projection_screen_origin_y(a6)
 	move.w #$A0,reticle_neutral_screen_x(a6)
 	move.w #$4F,reticle_neutral_screen_y(a6)
@@ -5581,11 +5586,11 @@ initialize_model_coordinate_extents:
     ; 104 model headers. Scan signed coordinate pool from seed$8000 and store maximum signed WORD; this is not maximum absolute coordinate or a guaranteed enclosing radius.
 abs_0_000049F0:
 	movea.l (a3)+,a0
-	move.w (a0)+,model_last_vertex_index(a6)
-	move.l (a0)+,active_model_header_counts(a6)
-	move.l (a0)+,active_model_face_commands(a6)
-	move.l (a0)+,active_model_vertex_reference_records(a6)
-	move.l (a0)+,active_model_coordinate_pool(a6)
+	move.w (a0)+,model_last_vertex_index(a6)	; operand 1: SG2ModelHeader_last_vertex_index at (a0)+
+	move.l (a0)+,active_model_header_counts(a6)	; operand 1: SG2ModelHeader_face_count at (a0)+
+	move.l (a0)+,active_model_face_commands(a6)	; operand 1: SG2ModelHeader_face_commands at (a0)+
+	move.l (a0)+,active_model_vertex_reference_records(a6)	; operand 1: SG2ModelHeader_vertex_reference_records at (a0)+
+	move.l (a0)+,active_model_coordinate_pool(a6)	; operand 1: SG2ModelHeader_coordinate_pool at (a0)+
 	move.w active_model_header_counts+SG2ModelHeaderCounts_coordinate_word_count(a6),d0
 	subq.w #1,d0
 	movea.l active_model_coordinate_pool(a6),a1

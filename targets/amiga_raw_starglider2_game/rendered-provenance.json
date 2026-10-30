@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
   "kind": "committed_native_rendered_original_export",
-  "canonical_source_commit": "bb514c11627360a77ab09406039efad118b1f476",
-  "publication_base_commit": "bb514c11627360a77ab09406039efad118b1f476",
+  "canonical_source_commit": "269515996b5ee8936ad4f07f635518970fa5f4b2",
+  "publication_base_commit": "269515996b5ee8936ad4f07f635518970fa5f4b2",
   "native_export": "CListingArtifact.source_package_payload(64)",
-  "main_source_sha256": "cb676b600f76f65e694c48f2a5adcfd89d2b6b679f03fd1b8b3987491581983f",
+  "main_source_sha256": "10625f516bccd683fd3a2060dd6ef938d50d52af846b4bb4bfb3764851847840",
   "asset_count": 57,
   "asset_bytes": 93633,
   "game_assembly_hand_edits": false,
@@ -24,8 +24,8 @@
     "assembler executable",
     "paused Pandora work"
   ],
-  "canonical_source_commit_role": "canonical source publication base; shared loop-cell, raw-entry and decoded-access provenance repairs is in the publishing commit; output is bound by verification_receipt_id",
-  "canonical_source_subject_revision": "c5c90304f1f4fdedb640589c06ef018b985d9fa79db89059a9314fd70edc2d25",
+  "canonical_source_commit_role": "canonical source publication base; shared guarded startup/call-prefix, evidence-meet, bus-alias and inline-field rendering repairs are in the publishing commit; output is bound by verification_receipt_id",
+  "canonical_source_subject_revision": "ea7104c0238d478288904c0527c16de763124725d24ed3b94a81d8bc96782287",
   "canonical_fact_sha256": {
     "source_binary.json": "42d4a5758b3e8236af7f912aee85e9ee5323bcd0961faa338c4f864080a0a7d9",
     "target_metadata.json": "e7540b68c118c56aba8815b6722eefa067517cc865fe9841d6c01ce96551389c",
@@ -46,6 +46,6 @@
     },
     "runtime_scope": "Seven CPU write-site windows match this reversible view; no whole runtime-view identity or parent plaintext promotion."
   },
-  "verification_receipt_id": "72aed32ec6afb523686d3b40b0cbe12b11203347739a5fa1f30972a03dd87d71",
-  "render_native_sha256": "2458a64cd4cd62da28b1430521d0324541c0e2b7a02615a630f383d5d2cb2b81"
+  "verification_receipt_id": "8474ad9a9b92d8d0bac9ec8e89dd930be661d85b78df724485efb647fd7cc413",
+  "render_native_sha256": "cc8d14735b4a116002d9d0c46d70b79d6272432464bdd05bc8e39291f3534d50"
 }

@@ -6085,7 +6085,7 @@ static int32_t lookup_typed_app_slot_region_size(const M68kRenderLookup *lookup,
 
 static int lookup_rsset_use_site_binding_symbol_name(const M68kRenderLookup *lookup, size_t section_index,
     uint32_t offset, uint8_t operand_index, uint8_t base_reg, int16_t displacement,
-    char *symbol_name, size_t symbol_name_size, int32_t *out_addend);
+    char *symbol_name, size_t symbol_name_size, int32_t *out_addend, int *out_explicit);
 
 static const M68kRenderTypedAccess *lookup_typed_access_for_operand(const M68kRenderLookup *lookup,
     size_t section_index, uint32_t offset, uint8_t operand_index);
@@ -6162,16 +6162,31 @@ static int attach_amiga_app_base_slot_symbols(const M68kRenderLookup *lookup,
     char symbol_name[64], field_expr[96];
     int32_t field_offset = 0;
     int32_t symbol_addend = 0;
+    int explicit_binding = 0;
     if (operand->symbol_ref.has_name != 0U) continue;
     if (!operand_is_address_displacement_local(operand, &base_reg, &displacement)) continue;
     if (lookup_rsset_use_site_binding_symbol_name(lookup, section_index, offset, (uint8_t)operand_index,
-        base_reg, displacement, symbol_name, sizeof(symbol_name), &symbol_addend)) {
+        base_reg, displacement, symbol_name, sizeof(symbol_name), &symbol_addend, &explicit_binding)) {
       m68k_ir_symbol_ref_init(&operand->symbol_ref);
       operand->symbol_ref.has_name = 1U;
       operand->symbol_ref.name_is_generated = 0U;
       operand->symbol_ref.name_provenance = M68K_IR_SYMBOL_PROVENANCE_PLATFORM_AMIGA;
       operand->symbol_ref.kind = M68K_IR_SYMBOL_REF_NONE;
       operand->symbol_ref.addend = symbol_addend;
+      /* Stronger CFG base evidence must not hide an existing inline field.
+       * Preserve explicit view choices; enrich only the same automatic owner. */
+      char inline_symbol[64];
+      if (!explicit_binding && symbol_addend != 0 &&
+          lookup_typed_app_slot_field_symbol_name(lookup, displacement, inline_symbol,
+            sizeof(inline_symbol), field_expr, sizeof(field_expr), &field_offset) &&
+          !strcmp(inline_symbol,symbol_name) && field_offset == symbol_addend) {
+        operand->symbol_ref.addend = 0;
+        operand->symbol_ref.has_symbolic_addend = 1U;
+        operand->symbol_ref.symbolic_addend_provenance = M68K_IR_SYMBOL_PROVENANCE_PLATFORM_AMIGA;
+        operand->symbol_ref.symbolic_addend_value = field_offset;
+        snprintf(operand->symbol_ref.symbolic_addend_name,sizeof(operand->symbol_ref.symbolic_addend_name),
+          "%s",field_expr);
+      }
       snprintf(operand->symbol_ref.name, sizeof(operand->symbol_ref.name), "%s", symbol_name);
       attached = 1;
       continue;
@@ -8975,7 +8990,7 @@ int lookup_app_base_field_slot_symbol_name(const M68kRenderLookup *lookup, int16
 
 static int lookup_rsset_use_site_binding_symbol_name(const M68kRenderLookup *lookup, size_t section_index,
     uint32_t offset, uint8_t operand_index, uint8_t base_reg, int16_t displacement,
-    char *symbol_name, size_t symbol_name_size, int32_t *out_addend) {
+    char *symbol_name, size_t symbol_name_size, int32_t *out_addend, int *out_explicit) {
   const M68kAnalysisPolicy *policy;
   uint16_t binding_index;
   int found = 0;
@@ -8985,6 +9000,7 @@ static int lookup_rsset_use_site_binding_symbol_name(const M68kRenderLookup *loo
   if (out_addend != NULL) *out_addend = 0;
   if (lookup == NULL || lookup->policy == NULL || displacement < 0) return 0;
   policy = lookup->policy;
+  if (out_explicit != NULL) *out_explicit = 0;
   found_symbol[0] = '\0';
   for (binding_index = 0U; binding_index < policy->rsset_use_site_binding_count &&
        binding_index < M68K_ANALYSIS_RSSET_USE_SITE_BINDING_LIMIT; ++binding_index) {
@@ -9017,6 +9033,7 @@ static int lookup_rsset_use_site_binding_symbol_name(const M68kRenderLookup *loo
       found = 1;
     }
   }
+  if (out_explicit != NULL) *out_explicit = found;
   if (found == 0) {
     size_t lo = 0U, hi = lookup->layout_field_use_count;
     while (lo < hi) {

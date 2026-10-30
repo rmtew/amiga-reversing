@@ -616,6 +616,10 @@ int m68k_sim_unsigned_word_compare_bounds(const M68kInstructionIR *compare,
 /* A conditional branch whose truth depends only on Z, from generated masks.
  * Returns the required zero/nonzero outcome; DBcc and other flags refuse. */
 int m68k_sim_branch_zero_requirement(const M68kInstructionIR *branch, int taken, int *out_zero);
+/* Evaluate only flags established by a known MOVE/TEST value or immediate
+ * bit test, using generated forms/truth tables. Unknown required bits refuse. */
+int m68k_sim_known_value_branch(const M68kInstructionIR *producer,
+    const M68kInstructionIR *branch, uint32_t value, uint32_t known_mask, int *out_taken);
 int m68k_sim_fixed_sp_delta(const M68kSimFormMetadata *metadata, int32_t *out_delta);
 M68kSimMetadataStatus m68k_sim_metadata_for_canonical_form_id(M68kFormId form_id,
   const M68kSimFormMetadata **out_metadata);

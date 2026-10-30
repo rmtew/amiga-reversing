@@ -16,12 +16,14 @@ to their recorded closeout revision. See the current
 
 ## Current refinement and next evidence
 
-Current native totals: **3503 app /2682 typed /158 unresolved**, with **11224
+Current native totals: **3509 app /2687 typed /158 unresolved**, with **11224
 unclassified bytes /271 intervals**. Counter-indexed source-array reads now reuse
 the shared loop induction and interned linear entry values. Original inventory
 readers at source `$DD6` and `$339B4` expose the existing name-reference `text`
-field over the possible104-entry prefix of the148-record owner. No existing
-typed coordinates, meanings, app facts, CFG blocks or edges were lost/changed.
+field over the possible104-entry prefix of the148-record owner. All existing
+typed coordinates and unresolved diagnostics remain; canonical CFG blocks/edges
+are unchanged. Startup caller proof adds five header reads and six app accesses,
+and strengthens38 app-base attributions.
 Conditional skips mean104 outer iterations are not104 observed memory reads.
 Loaded pointer values remain subject to separate alias/target validation.
 
@@ -37,7 +39,7 @@ the read at +24 remains unresolved rather than widening every header.
 A private first-player-record producer contract recovered construction accesses
 but no camera reads; it was not promoted as a fix or replaced with reader seeds.
 
-Validation:196 focused Python tests, three unchanged expected failures, all832
+Historical counter-indexed validation:196 focused Python tests, three unchanged expected failures, all832
 native C cases, original C/vasm and clean standalone exactness. The paired native
 builds took150.64s before and151.18s after (single host-dependent measurements,
 not a speedup claim). The small six-node proof fixture retains37328 snapshot
@@ -400,21 +402,46 @@ SGII decodes:6121 direct-register reads,5383 direct-register writes and2981 imme
 values were reported as memory. Actual primary memory reads/writes are5591/8691;
 the previous8691-write audit is unchanged. No instruction encoding is changed.
 
-The original A6 reader remains blocked at the platform initialization call: its
-context-free summary includes the alternate-platform TRAP, while the original
-image's Amiga branch predicate is not transported into that proof. A matching
-flags/TRAP fixture refuses whole-callee preservation. Next experiment: carry the
-actual caller predicate into shared context-sensitive call proof, with mutation
-and alternate-entry negatives. Nearby A6 uses or a numeric stack are insufficient.
-No reader seed, immutable-header assumption or universal104-selector bound is added.
+The original startup A6 dependency is now closed without a reader override.
+Known entry flags choose the frame writer in the canonical RAW initialization
+prefix. This ordinary edge refinement ends at the first call, trap or known
+hardware interaction; later gameplay/callback reachability stays conservative.
+At the platform call, a separate caller-local MOVE/TEST/BTST prefix proves the
+branch choices, reloads A6 from its reaching frame cell, then uses the existing
+suffix-effect proof. The context-free callable remains unsupported because its
+alternate TRAP path still exists. Unknown/mutated values, conflicting entries,
+opaque calls and stack-dependent prefixes refuse specialization.
 
-Validation:363 focused Python tests and all832 native C tests pass. SGII retains
-3503 app /2682 typed /158 unresolved, identical access identities/attributions,
-address values and CFG vectors (app-row ordering changed only); packaged source,
-57 assets and14 headers are unchanged. Generation took235.90s in this measured
-run, including66.28s typed callback analysis and38.76s source finalization; these
-host-dependent timings are not a speedup claim. C/vasm and clean standalone both
-rebuild all412736 original bytes exactly. No observation dump is committed.
+The shared fixes also cover BYTE/WORD reads within known LONG cells and absolute
+24-bit bus-alias writes, using the existing bus-span model. Conflicting or dead
+backings cannot supply a predicate. A non-monotone app-evidence join exposed by
+this stronger context now retains the weaker applicable fallback rather than
+oscillating. The final worklist finishes in61095 visits with no pending nodes;
+the failed candidate exhausted1898560 visits. No budget was raised. An overly
+broad later-phase pruning candidate was rejected, not published as dead-code proof.
+
+The initializer load at source `$39F0` now has a validated source-cursor domain
+`0..412` (104 LONG entries), exposing `last_vertex_index`, `face_count`,
+`face_commands`, `vertex_reference_records` and `coordinate_pool` at `$39F2..$3A02`.
+All prior typed/unresolved accesses remain. The separate `$3A42` selector remains
+unbounded/invalid; the original viewer underflow and mutable/optional-header
+obligations are unchanged. This is startup-context proof, not a universal104 bound.
+
+Stronger CFG base evidence also exposed a shared renderer precedence defect:
+automatic region-use bindings replaced an existing inline field expression with
+a numeric interior offset. Automatic bindings now retain an unambiguous field
+from the same owner; explicit view selections, padding, foreign/pointer views
+and conflicting inline layouts keep their existing behavior. The earlier
+contents-cache hypothesis was ruled out and its tentative patch discarded.
+
+Validation:383 analysis cases and93 renderer/related cases pass, as do all833
+native C cases. Original C/vasm and a
+clean standalone build reproduce all412736 bytes exactly. Packaged assets57 and
+headers14 are unchanged. Final generation took243.90s in this host-dependent run:
+67.30s typed callback analysis and50.70s source finalization remain measured
+costs to investigate from the retained profile, not grounds for another timing-only
+run. Only generated source and minimal provenance are published; no observation
+dump or intermediate archive is added.
 
 An on-demand systematic gap inventory (`amiga_reversing/tools/source_gap_inventory.py`)
 joins native identities/accesses with canonical layouts and actual rendered

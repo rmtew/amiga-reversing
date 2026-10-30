@@ -4369,7 +4369,6 @@ static void typed_state_note_storage_write(M68kRenderTypedState *state, const M6
   size_t owner_section = section, index = 0U;
   int32_t displacement = 0;
   uint32_t address = 0U;
-  int runtime_address = 0;
   int has_cells = 0;
   if (typed_storage_write_is_hardware(lookup, platform_state, operand, width)) return;
   state->memory_write_barriers |= M68K_CELL_WRITTEN_ALL;
@@ -4383,7 +4382,7 @@ static void typed_state_note_storage_write(M68kRenderTypedState *state, const M6
     if (operand_is_address_memory_local(operand, &reg, &delta) && reg < 8U &&
         typed_memory_base_with_displacement(&state->memory_base_regs[reg], delta, &effective) &&
         lookup_source_unique_runtime_span(lookup, effective.section_index, effective.offset, width, &address)) {
-      kind = M68K_RENDER_TYPED_STORAGE_ABSOLUTE; runtime_address = 1;
+      kind = M68K_RENDER_TYPED_STORAGE_ABSOLUTE;
     } else {
       if (!typed_state_note_concrete_runtime_write(state, lookup, instruction, operand_index))
         typed_state_forget_memory_cells(state);
@@ -4398,9 +4397,14 @@ static void typed_state_note_storage_write(M68kRenderTypedState *state, const M6
       int overlap = owner->kind != kind;
       if (kind == M68K_RENDER_TYPED_STORAGE_APP_SLOT && owner->kind == kind)
         overlap = typed_long_cell_overlaps_write(owner->displacement, displacement, width);
-      else if (kind == M68K_RENDER_TYPED_STORAGE_ABSOLUTE && owner->kind == kind)
-        overlap = (runtime_address || owner->section_index == owner_section) &&
-          typed_long_cell_overlaps_write(owner->address, address, width);
+      else if (kind == M68K_RENDER_TYPED_STORAGE_ABSOLUTE && owner->kind == kind) {
+        uint32_t write_lo,write_hi,cell_lo,cell_hi;
+        /* Absolute operands and register EAs share the same physical bus.
+         * A source-section tag is not proof that aliases are disjoint. */
+        overlap = !typed_runtime_bus_span(address,address,width,&write_lo,&write_hi) ||
+          !typed_runtime_bus_span(owner->address,owner->address,4U,&cell_lo,&cell_hi) ||
+          (write_hi>cell_lo && write_lo<cell_hi);
+      }
       if (overlap) { *cell = state->base_slots[--state->base_slot_count]; continue; }
     }
     ++index;
@@ -9044,6 +9048,22 @@ static int typed_stored_values_equal(const M68kRenderTypedStoredValue *left,
     typed_provenances_equal(&left->provenance, &right->provenance);
 }
 
+/* These existing root evidences form a conservative chain: a register
+ * witness entails the declared-layout fallback, which entails the generic
+ * A6 fallback. Site/library contracts are not interchangeable with that
+ * chain. Preserve the weaker reason, never upgrade an unknown join. */
+static uint8_t typed_app_base_evidence_meet(uint8_t left, uint8_t right) {
+  if (left == right) return left;
+  uint8_t l = left == M68K_APP_SLOT_BASE_REGISTER_STATE ? 3U :
+    left == M68K_APP_SLOT_BASE_DECLARED_LAYOUT_A6_FALLBACK ? 2U :
+    left == M68K_APP_SLOT_BASE_A6_FALLBACK ? 1U : 0U;
+  uint8_t r = right == M68K_APP_SLOT_BASE_REGISTER_STATE ? 3U :
+    right == M68K_APP_SLOT_BASE_DECLARED_LAYOUT_A6_FALLBACK ? 2U :
+    right == M68K_APP_SLOT_BASE_A6_FALLBACK ? 1U : 0U;
+  if (!l || !r) return M68K_APP_SLOT_BASE_UNSPECIFIED;
+  return l < r ? left : right;
+}
+
 static int typed_app_addresses_equal(const M68kRenderTypedAppAddressValue *left,
     const M68kRenderTypedAppAddressValue *right) {
   if (left == NULL || right == NULL) return 0;
@@ -9445,9 +9465,8 @@ static int typed_stored_value_merge_payload(M68kRenderTypedStoredValue *dest,
     dest->app_address_known = 0U;
     dest->app_displacement = 0;
     dest->app_base_evidence_kind = M68K_APP_SLOT_BASE_UNSPECIFIED;
-  } else if (dest->app_base_evidence_kind != source->app_base_evidence_kind) {
-    dest->app_base_evidence_kind = M68K_APP_SLOT_BASE_UNSPECIFIED;
-  }
+  } else dest->app_base_evidence_kind = typed_app_base_evidence_meet(
+    dest->app_base_evidence_kind,source->app_base_evidence_kind);
   if (typed_pointer_position_disagrees(dest->array_element_count, dest->array_element_index, dest->byte_cursor,
       source->array_element_count, source->array_element_index, source->byte_cursor) ||
       (dest->array_element_index != 0U &&
@@ -9618,8 +9637,8 @@ static int typed_state_merge_into(M68kRenderTypedState *dest,
   if ((source->memory_write_barriers | dest->memory_write_barriers) != dest->memory_write_barriers) {
     dest->memory_write_barriers |= source->memory_write_barriers; changed = 1;
   }
-  if (dest->source_snapshot_entry && !source->source_snapshot_entry) {
-    dest->source_snapshot_entry = 0U; changed = 1;
+  if ((dest->source_snapshot_entry & source->source_snapshot_entry) != dest->source_snapshot_entry) {
+    dest->source_snapshot_entry &= source->source_snapshot_entry; changed = 1;
   }
   if (dest->zero_read_relation != source->zero_read_relation && dest->zero_read_relation) {
     dest->zero_read_relation = 0U; changed = 1;
@@ -9637,18 +9656,16 @@ static int typed_state_merge_into(M68kRenderTypedState *dest,
       dest->data_app_addr_regs[index].known = 0U;
       dest->data_app_addr_regs[index].displacement = 0;
       dest->data_app_addr_regs[index].base_evidence_kind = M68K_APP_SLOT_BASE_UNSPECIFIED;
-    } else if (dest->data_app_addr_regs[index].base_evidence_kind != source->data_app_addr_regs[index].base_evidence_kind) {
-      dest->data_app_addr_regs[index].base_evidence_kind = M68K_APP_SLOT_BASE_UNSPECIFIED;
-    }
+    } else dest->data_app_addr_regs[index].base_evidence_kind = typed_app_base_evidence_meet(
+      dest->data_app_addr_regs[index].base_evidence_kind,source->data_app_addr_regs[index].base_evidence_kind);
     if (!typed_app_addresses_equal(&old_data_app, &dest->data_app_addr_regs[index])) changed = 1;
     if (dest->app_addr_regs[index].known == 0U || source->app_addr_regs[index].known == 0U ||
         dest->app_addr_regs[index].displacement != source->app_addr_regs[index].displacement) {
       dest->app_addr_regs[index].known = 0U;
       dest->app_addr_regs[index].displacement = 0;
       dest->app_addr_regs[index].base_evidence_kind = M68K_APP_SLOT_BASE_UNSPECIFIED;
-    } else if (dest->app_addr_regs[index].base_evidence_kind != source->app_addr_regs[index].base_evidence_kind) {
-      dest->app_addr_regs[index].base_evidence_kind = M68K_APP_SLOT_BASE_UNSPECIFIED;
-    }
+    } else dest->app_addr_regs[index].base_evidence_kind = typed_app_base_evidence_meet(
+      dest->app_addr_regs[index].base_evidence_kind,source->app_addr_regs[index].base_evidence_kind);
     if (!typed_app_addresses_equal(&old_app, &dest->app_addr_regs[index])) changed = 1;
     if (dest->data_memory_base_regs[index].known == 0U || source->data_memory_base_regs[index].known == 0U ||
         dest->data_memory_base_regs[index].section_index != source->data_memory_base_regs[index].section_index ||
@@ -10561,6 +10578,9 @@ static void typed_state_apply_produced_storage_contracts(M68kRenderTypedState *s
   }
 }
 
+static int typed_flow_guarded_call_prefix(M68kRenderLookup *,const M68kDecodeIR *,uint8_t **,
+    size_t,uint32_t,M68kRenderTypedState *,M68kRenderPlatformState *,M68kAnalysisFunctionSummary *,int,int *);
+
 static int typed_flow_process_node_impl(M68kRenderLookup *lookup, const M68kDecodeIR *decode, uint8_t **accepted_start,
     const M68kDecodeSectionIR *section, const M68kRenderTypedFlowNode *node, int allow_lookup_storage,
     int record_typed_accesses, M68kRenderTypedState *out_typed_state, M68kRenderPlatformState *out_platform_state,
@@ -10572,7 +10592,7 @@ static int typed_flow_process_node_impl(M68kRenderLookup *lookup, const M68kDeco
   int16_t slot_displacement = 0;
   const M68kAnalysisFunctionSummary *selected_local_effects = NULL;
   const M68kAnalysisFunctionSummary *result_summary = NULL;
-  M68kAnalysisFunctionSummary generated_platform_summary;
+  M68kAnalysisFunctionSummary generated_platform_summary, guarded_local_summary;
   M68kRenderTypedState call_input_state;
   M68kRenderTypedStoredValue direct_table_value;
   uint8_t direct_table_value_known = 0U;
@@ -10587,6 +10607,16 @@ static int typed_flow_process_node_impl(M68kRenderLookup *lookup, const M68kDeco
   }
   typed_flow_instruction_input(lookup, section, node, out_typed_state, out_platform_state);
   if (m68k_decode_candidate_to_instruction(node->candidate, &instruction) != 0) return -1;
+  const M68kSimFormMetadata *phase_metadata = m68k_sim_metadata_for_instruction(&instruction);
+  if (phase_metadata && phase_metadata->flow_kind == M68K_SIM_FLOW_TRAP)
+    out_typed_state->source_snapshot_entry &= M68K_TYPED_SOURCE_CONTEXT_IMAGE;
+  for (uint8_t i=0U;i<instruction.operand_count && i<4U;++i) {
+    if (platform_operand_memory_access(&instruction,i) != M68K_SIM_ACCESS_NONE &&
+        /* A known hardware byte ends this phase; unlike a RAM-disjointness
+         * proof, the complete operand need not be owned by one register. */
+        typed_storage_write_is_hardware(lookup,out_platform_state,&instruction.operands[i],1U))
+      out_typed_state->source_snapshot_entry &= M68K_TYPED_SOURCE_CONTEXT_IMAGE;
+  }
   attach_known_instruction_relocations(lookup, section->section_index, node->candidate, &instruction);
   typed_stored_value_clear(&direct_table_value);
   if (instruction_has_call_flow_local(&instruction) && instruction.operand_count == 1U &&
@@ -10609,6 +10639,13 @@ static int typed_flow_process_node_impl(M68kRenderLookup *lookup, const M68kDeco
       selected_local_effects = lookup_configured_direct_function_summary(lookup, target_section_index, target_offset);
       if (selected_local_effects == NULL)
         selected_local_effects = lookup_inferred_direct_function_summary(lookup, target_section_index, target_offset);
+      if (selected_local_effects &&
+          function_summary_register_effect(selected_local_effects,M68K_ANALYSIS_REGISTER_ADDRESS,7U) !=
+            M68K_FUNCTION_SUMMARY_LOCATION_PRESERVED &&
+          !lookup_configured_direct_function_summary(lookup,target_section_index,target_offset) &&
+          typed_flow_guarded_call_prefix(lookup,decode,accepted_start,target_section_index,target_offset,
+            out_typed_state,out_platform_state,&guarded_local_summary,allow_lookup_storage,io_changed))
+        selected_local_effects = &guarded_local_summary;
     } else {
       size_t table_section_index = 0U;
       uint32_t table_offset = 0U;
@@ -10798,6 +10835,7 @@ static int typed_flow_process_node_impl(M68kRenderLookup *lookup, const M68kDeco
     }
   }
   if (instruction_has_call_flow_local(&instruction)) {
+    out_typed_state->source_snapshot_entry &= M68K_TYPED_SOURCE_CONTEXT_IMAGE;
     const M68kAnalysisFunctionSummary *effects = selected_local_effects;
     uint8_t index;
     int writes = effects == NULL || effects->effects_invalid ||
@@ -11189,7 +11227,9 @@ static void typed_flow_reset_roots(const M68kRenderLookup *lookup, size_t sectio
     if (nodes[node_index].is_root) {
       typed_state_seed_declared_app_cells(&nodes[node_index].typed_in, lookup, section,
         nodes[node_index].candidate->offset);
-      nodes[node_index].typed_in.source_snapshot_entry = nodes[node_index].source_snapshot_root != 0U;
+      nodes[node_index].typed_in.source_snapshot_entry = nodes[node_index].source_snapshot_root ? M68K_TYPED_SOURCE_CONTEXT_IMAGE : 0U;
+      if (nodes[node_index].source_snapshot_root & TYPED_SOURCE_RAW_IMAGE_ENTRY)
+        nodes[node_index].typed_in.source_snapshot_entry |= M68K_TYPED_SOURCE_CONTEXT_INITIAL_PREFIX;
       if (nodes[node_index].source_snapshot_root & TYPED_SOURCE_RAW_IMAGE_ENTRY)
         typed_state_seed_raw_image_cells(&nodes[node_index].typed_in, lookup);
       nodes[node_index].has_in = 1U;
@@ -11223,7 +11263,9 @@ static int typed_flow_initialize_roots(const M68kRenderLookup *lookup, const M68
 
 static int typed_flow_build_predecessors(M68kRenderTypedFlowGraph *graph, Arena *arena);
 
-static int typed_flow_graph_build(M68kRenderTypedFlowGraph *graph, const M68kRenderLookup *lookup,
+#include "m68k_guarded_call_prefix.inc"
+
+static int typed_flow_graph_build(M68kRenderTypedFlowGraph *graph, M68kRenderLookup *lookup,
     const M68kAnalysisPolicy *policy,
     const M68kDecodeSectionIR *section,
     const uint8_t *accepted_start, Arena *arena) {
@@ -11242,6 +11284,7 @@ static int typed_flow_graph_build(M68kRenderTypedFlowGraph *graph, const M68kRen
     typed_flow_graph_destroy(graph);
     return -1;
   }
+  guarded_branch_reserve_cells(lookup,graph,section->section_index);
   if (typed_flow_initialize_roots(lookup, policy, section, accepted_start, graph->nodes, graph->node_count,
       graph->node_by_offset, graph->node_by_offset_count, arena) != 0) {
     typed_flow_graph_destroy(graph);
@@ -11376,13 +11419,16 @@ static int typed_flow_recompute_node_input(M68kRenderTypedFlowGraph *graph, size
   has_input = node->is_root != 0U;
   if (has_input) {
     typed_state_seed_declared_app_cells(&typed_input, lookup, section->section_index, node->candidate->offset);
-    typed_input.source_snapshot_entry = node->source_snapshot_root != 0U;
+    typed_input.source_snapshot_entry = node->source_snapshot_root ? M68K_TYPED_SOURCE_CONTEXT_IMAGE : 0U;
+    if (node->source_snapshot_root & TYPED_SOURCE_RAW_IMAGE_ENTRY)
+      typed_input.source_snapshot_entry |= M68K_TYPED_SOURCE_CONTEXT_INITIAL_PREFIX;
     if (node->source_snapshot_root & TYPED_SOURCE_RAW_IMAGE_ENTRY) typed_state_seed_raw_image_cells(&typed_input, lookup);
   }
   for (predecessor_index = graph->predecessor_offsets[node_index];
        predecessor_index < graph->predecessor_offsets[node_index + 1U]; ++predecessor_index) {
     const M68kRenderTypedFlowNode *predecessor = &graph->nodes[graph->predecessors[predecessor_index]];
-    if (predecessor->has_out == 0U) continue;
+    if (predecessor->has_out == 0U || !guarded_branch_allows_edge(lookup,graph,
+        graph->predecessors[predecessor_index],node_index,section->section_index)) continue;
     const M68kRenderTypedState *edge = &predecessor->typed_out;
     M68kRenderTypedState refined;
     /* Ordinary edges borrow the converged packet. Copy only for an active
@@ -11655,8 +11701,11 @@ static int render_lookup_analyze_amiga_typed_refs_for_section(M68kRenderLookup *
     --queue_count;
     queued[node_index] = 0U;
     node = &graph->nodes[node_index];
-    if (node->has_in == 0U) continue;
+    int inactive=node->has_in==0U;
+    if(inactive && !node->has_out) continue;
     ++node_visit_count;
+    if(inactive) node->has_out=0U;
+    else {
     if (typed_flow_process_node(lookup, decode, accepted_start, section, node, !final_pass,
         0, &next_typed_state, &next_platform_state, io_changed) != 0) {
       goto cleanup;
@@ -11683,15 +11732,18 @@ static int render_lookup_analyze_amiga_typed_refs_for_section(M68kRenderLookup *
         trace_node->platform_first_changed_byte = byte_index;
       }
     }
+    }
     if (graph->call_inputs_enabled && node->call_target < graph->node_count &&
         typed_flow_recompute_node_input(graph, node->call_target, lookup, section) &&
         typed_flow_enqueue_node(queue, queued, graph->node_count, &queue_head, &queue_count,
           node->call_target) != 0) goto cleanup;
-    if (node->has_out == 0U || !typed_state_equal(&node->typed_out, &next_typed_state) ||
+    if (inactive || node->has_out == 0U || !typed_state_equal(&node->typed_out, &next_typed_state) ||
         !platform_states_equal(&node->platform_out, &next_platform_state)) {
-      node->typed_out = next_typed_state;
-      node->platform_out = next_platform_state;
-      node->has_out = 1U;
+      if(!inactive) {
+        node->typed_out = next_typed_state;
+        node->platform_out = next_platform_state;
+        node->has_out = 1U;
+      }
       /* A changed loop entry may not change its already-widened header.
        * Its exit must nevertheless retract/recompute the guarded cell packet. */
       for (size_t d = typed_flow_loop_cell_dependency_start(graph, node_index);

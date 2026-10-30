@@ -6,6 +6,7 @@ static void typed_flow_call_entry_input(const M68kRenderLookup *lookup,
     const M68kDecodeSectionIR *section, const M68kRenderTypedFlowNode *caller,
     M68kRenderTypedState *typed, M68kRenderPlatformState *platform) {
   typed_flow_instruction_input(lookup, section, caller, typed, platform);
+  typed->source_snapshot_entry &= M68K_TYPED_SOURCE_CONTEXT_IMAGE;
   memset(typed->stack_slots, 0, sizeof(typed->stack_slots)); typed->stack_slot_count = 0U;
   /* Canonical cells name memory independently of the caller's registers and
    * stack frame. Transport their reaching packets through the ordinary call
