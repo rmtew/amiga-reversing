@@ -7179,6 +7179,21 @@ static const M68kRenderClosedDispatch *lookup_closed_dispatch(const M68kRenderLo
   return NULL;
 }
 
+/* Lossless direct-register transport, shared by callable identities and
+ * reaching definitions. Width is the identity requested, not destination size. */
+static int instruction_register_identity_copy(const M68kInstructionIR *instruction,
+    uint8_t width, uint8_t *source, uint8_t *dest) {
+  const M68kSimFormMetadata *meta = m68k_sim_metadata_for_instruction(instruction);
+  uint8_t sk, sr, dk, dr;
+  if (!meta || meta->operation_type != M68K_SIM_OP_MOVE || instruction->operand_count != 2U ||
+      m68k_sim_operand_width_bytes(instruction, 0U) < width ||
+      m68k_sim_operand_width_bytes(instruction, 1U) < width ||
+      !m68k_instruction_operand_direct_register(&instruction->operands[0], &sk, &sr) ||
+      !m68k_instruction_operand_direct_register(&instruction->operands[1], &dk, &dr) || sr >= 8U || dr >= 8U)
+    return 0;
+  *source = sr + (sk ? 8U : 0U); *dest = dr + (dk ? 8U : 0U); return 1;
+}
+
 #include "m68k_direct_body_worklist.inc"
 
 static int typed_flow_local_callee_effect_summary(const M68kRenderLookup *lookup,
@@ -7483,16 +7498,11 @@ static int typed_flow_local_callee_effect_summary(const M68kRenderLookup *lookup
           if (writes & (1U << (reg + 8U))) state.entry_origin[reg] = 0xffU;
         }
       }
-      if (metadata->operation_type == M68K_SIM_OP_MOVE && instruction.size_suffix == 'l' &&
-          instruction.operand_count == 2U) {
-        uint8_t source_kind, source_reg, dest_kind, dest_reg;
-        if (m68k_instruction_operand_direct_register(&instruction.operands[0], &source_kind, &source_reg) &&
-            m68k_instruction_operand_direct_register(&instruction.operands[1], &dest_kind, &dest_reg) &&
-            source_reg < 8U && dest_reg < 8U) {
-          uint8_t origin = before_origins[source_reg + (source_kind ? 8U : 0U)];
-          if (dest_kind) state.entry_origin[dest_reg] = origin;
-          else state.data_origin[dest_reg] = origin;
-        }
+      uint8_t copy_source, copy_dest;
+      if (instruction_register_identity_copy(&instruction, 4U, &copy_source, &copy_dest)) {
+        uint8_t origin = before_origins[copy_source];
+        if (copy_dest >= 8U) state.entry_origin[copy_dest - 8U] = origin;
+        else state.data_origin[copy_dest] = origin;
       }
       if (instruction.mnemonic_id == M68K_ASM_MNEMONIC_LINK || instruction.mnemonic_id == M68K_ASM_MNEMONIC_UNLK)
         state.stack_entry_stable = 0U;
@@ -9881,16 +9891,7 @@ static int hardware_word_set_add(M68kHardwareWordSet *set, uint16_t value) {
   return 1;
 }
 
-static void hardware_word_set_merge(M68kHardwareWordSet *dest, const M68kHardwareWordSet *source) {
-  uint8_t i;
-  if (dest->count == 0U || source->count == 0U) goto unknown;
-  dest->requires_input_contract |= source->requires_input_contract;
-  for (i = 0U; i < source->count; ++i)
-    if (!hardware_word_set_add(dest, source->values[i])) goto unknown;
-  return;
-unknown:
-  memset(dest, 0, sizeof(*dest));
-}
+#include "m68k_word_value_domain.inc"
 
 static M68kHardwareWordSet hardware_operand_word_values(const M68kRenderPlatformState *state,
     const M68kOperandIR *operand) {
@@ -9906,7 +9907,7 @@ static M68kHardwareWordSet hardware_operand_word_values(const M68kRenderPlatform
 
 static M68kHardwareRelativeBase hardware_relative_register(const M68kRenderPlatformState *state, uint8_t reg) {
   M68kHardwareRelativeBase result = state->relative_hardware[reg];
-  if (result.offsets.count == 0U && m68k_bitset_u32_has(state->address_hardware_base_known, reg)) {
+  if (result.offsets.count == 0U && !result.offsets.known_bits_mask && m68k_bitset_u32_has(state->address_hardware_base_known, reg)) {
     result.base_id = state->address_hardware_base_id[reg];
     result.offsets.count = 1U;
     result.offsets.values[0] = 0U;
@@ -10016,23 +10017,30 @@ static void hardware_relative_transfer(M68kRenderPlatformState *state, const M68
     } else if (meta->operation_type == M68K_SIM_OP_LOGIC_AND && source.count == 1U &&
         (m68k_sim_operand_width_bytes(instruction, 1U) == 2U ||
          m68k_sim_operand_width_bytes(instruction, 1U) == 4U)) {
-      uint16_t mask = source.values[0];
-      if (before->word_values[dest].count) {
+      uint16_t mask = source.values[0], known, value;
+      if (before->word_values[dest].count && !before->word_values[dest].requires_input_contract) {
         for (i = 0U; i < before->word_values[dest].count; ++i)
           if (!hardware_word_set_add(&result, before->word_values[dest].values[i] & mask)) return;
+        state->word_values[dest] = result;
       } else {
-        /* For an unknown input, AND's image is exactly the submasks. Only
-         * enumerate a closed set that fits the existing scalar abstraction. */
-        uint16_t bits = mask, value = mask;
-        unsigned bit_count = 0U;
-        while (bits) { bits &= (uint16_t)(bits - 1U); ++bit_count; }
-        if ((1U << bit_count) > M68K_HARDWARE_VALUE_LIMIT) return;
-        for (;;) {
-          if (!hardware_word_set_add(&result, value)) return;
-          if (!value) break;
-          value = (uint16_t)((value - 1U) & mask);
-        }
+        hardware_word_known_bits(&before->word_values[dest], &known, &value);
+        if (before->word_values[dest].requires_input_contract) known = value = 0U;
+        hardware_word_from_bits(&result, (uint16_t)(known | (uint16_t)~mask), (uint16_t)(value & mask));
+        result.requires_input_contract = source.requires_input_contract;
+        state->word_values[dest] = result;
       }
+    } else if (meta->operation_type == M68K_SIM_OP_LOGIC_OR && source.count == 1U &&
+        (m68k_sim_operand_width_bytes(instruction, 1U) == 2U ||
+         m68k_sim_operand_width_bytes(instruction, 1U) == 4U)) {
+      uint16_t known, value, mask = source.values[0];
+      if (before->word_values[dest].count) {
+        for (i = 0U; i < before->word_values[dest].count; ++i)
+          if (!hardware_word_set_add(&result, before->word_values[dest].values[i] | mask)) return;
+      } else {
+        hardware_word_known_bits(&before->word_values[dest], &known, &value);
+        hardware_word_from_bits(&result, (uint16_t)(known | mask), (uint16_t)(value | mask));
+      }
+      result.requires_input_contract = source.requires_input_contract | before->word_values[dest].requires_input_contract;
       state->word_values[dest] = result;
     } else if ((meta->operation_type == M68K_SIM_OP_ADD || meta->operation_type == M68K_SIM_OP_SUB) &&
         (instruction->size_suffix == 'w' || instruction->size_suffix == 'l')) {
@@ -10044,9 +10052,15 @@ static void hardware_relative_transfer(M68kRenderPlatformState *state, const M68
         if (meta->operation_type == M68K_SIM_OP_SUB) {
           result.requires_input_contract = 0U;
           (void)hardware_word_set_add(&result, 0U);
-        } else for (i = 0U; i < before->word_values[dest].count; ++i) {
-          uint16_t value = before->word_values[dest].values[i];
-          if (!hardware_word_set_add(&result, (uint16_t)(value + value))) return;
+        } else if (before->word_values[dest].count) {
+          for (i = 0U; i < before->word_values[dest].count; ++i) {
+            uint16_t value = before->word_values[dest].values[i];
+            if (!hardware_word_set_add(&result, (uint16_t)(value + value))) return;
+          }
+        } else {
+          uint16_t known, value;
+          hardware_word_known_bits(&before->word_values[dest], &known, &value);
+          hardware_word_from_bits(&result, (uint16_t)((known << 1U) | 1U), (uint16_t)(value << 1U));
         }
       } else {
         if (!source.count) return;
@@ -10071,11 +10085,17 @@ static void hardware_relative_transfer(M68kRenderPlatformState *state, const M68
        * enter this value-only domain. Keep the existing narrow count bound. */
       int shift = meta->operation_type == M68K_SIM_OP_SHIFT;
       if (shift && amount > 15U) return;
-      for (i = 0U; i < before->word_values[dest].count; ++i) {
+      if (!before->word_values[dest].count && shift) {
+        uint16_t known, value;
+        hardware_word_known_bits(&before->word_values[dest], &known, &value);
+        hardware_word_from_bits(&result, (uint16_t)((known << amount) | ((1U << amount) - 1U)),
+          (uint16_t)(value << amount));
+      } else for (i = 0U; i < before->word_values[dest].count; ++i) {
         uint32_t value = before->word_values[dest].values[i];
         value = shift ? value << amount : value * amount;
         if (!hardware_word_set_add(&result, (uint16_t)value)) return;
       }
+      result.requires_input_contract = source.requires_input_contract | before->word_values[dest].requires_input_contract;
       state->word_values[dest] = result;
     }
   }
@@ -10148,7 +10168,8 @@ static int platform_state_merge_into(M68kRenderPlatformState *dest, const M68kRe
       memset(&dest->relative_hardware[index], 0, sizeof(dest->relative_hardware[index]));
     else {
       hardware_word_set_merge(&dest->relative_hardware[index].offsets, &source->relative_hardware[index].offsets);
-      if (dest->relative_hardware[index].offsets.count == 0U) dest->relative_hardware[index].base_id = 0U;
+      if (!dest->relative_hardware[index].offsets.count && !dest->relative_hardware[index].offsets.known_bits_mask)
+        dest->relative_hardware[index].base_id = 0U;
     }
     platform_state_merge_register_base(&dest->data_base_known, (uint8_t)index, &dest->data_base_id[index],
       dest->data_base_library[index], sizeof(dest->data_base_library[index]), source->data_base_known,
@@ -11487,8 +11508,16 @@ static int hardware_relative_refine_compare_edge(const M68kRenderLookup *lookup,
     branch->candidate->offset + branch->candidate->byte_count;
   if (!m68k_sim_unsigned_word_compare_bounds(&ci, &bi, taken, &reg, &lower, &upper)) return 1;
   if (!state->word_values[reg].count || state->word_values[reg].requires_input_contract) {
-    if ((uint32_t)upper - lower + 1U > M68K_HARDWARE_VALUE_LIMIT) return 1;
-    for (uint32_t value = lower; value <= upper; ++value)
+    if ((uint32_t)upper - lower + 1U > M68K_HARDWARE_VALUE_LIMIT) {
+      uint16_t unknown = (uint16_t)(lower ^ upper), mask, value, prior_mask, prior_value;
+      unknown |= unknown >> 1U; unknown |= unknown >> 2U;
+      unknown |= unknown >> 4U; unknown |= unknown >> 8U;
+      mask = (uint16_t)~unknown; value = (uint16_t)(lower & mask);
+      hardware_word_known_bits(&state->word_values[reg], &prior_mask, &prior_value);
+      if (state->word_values[reg].requires_input_contract) prior_mask = prior_value = 0U;
+      if (((value ^ prior_value) & mask & prior_mask) != 0U) return 0;
+      hardware_word_from_bits(&result, (uint16_t)(mask | prior_mask), (uint16_t)(value | prior_value));
+    } else for (uint32_t value = lower; value <= upper; ++value)
       (void)hardware_word_set_add(&result, (uint16_t)value);
     /* The actual edge bounds these WORDs independently of an input contract. */
   } else {

@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "source_commit": "401b8828a84cbe88151520e887cd5fb22911ddc1",
+  "source_commit": "01fd00f317143a0c22a7eba52fd1b2d2eb1a8898",
   "source_assembly": "starglider2_game.s",
   "assets": [
     {
@@ -878,8 +878,8 @@
     },
     {
       "path": "rendered-provenance.json",
-      "bytes": 3270,
-      "sha256": "6811ffef167da0f432b8ad890502624fd6916053415bf1ab96f2d7e9c3af37e9"
+      "bytes": 3249,
+      "sha256": "c052840d0d506966a4eb336965c4ae3bd3a5535220f09d46ccec7c00af1c6f16"
     },
     {
       "path": "starglider2_game.s",
@@ -892,6 +892,6 @@
       "sha256": "81d3f66d36dbfbd5c77238b20c28e8b9abaa329777eb91f64669bbbf13703582"
     }
   ],
-  "source_commit_role": "canonical source publication base; shared guarded callable-dispatch closure and final app-access index freeze are in the publishing commit; output is bound by verification_receipt_id",
-  "source_subject_revision": "ef8ee2bfeb758cc481a4434d9052386f9567d5fd193996e7ea40a6d87257393e"
+  "source_commit_role": "canonical source publication base; shared compact WORD bounds and CFG register transport are in the publishing commit; output is bound by verification_receipt_id",
+  "source_subject_revision": "f6f0f14409ff8daaa224dea66667e64533265393c6c99e69258d1985568cc34e"
 }

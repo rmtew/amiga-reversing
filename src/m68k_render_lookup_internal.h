@@ -98,13 +98,15 @@ typedef struct M68kRenderPlatformLocalBaseSlot {
   char library_name[64];
 } M68kRenderPlatformLocalBaseSlot;
 
-/* Closed low-WORD sets, capped to ensure loop convergence. Zero count is top.
+/* Closed low-WORD values: bounded finite sets or a compact known-bit hull.
+ * Zero count and zero known_bits_mask is top. The finite cap is unchanged.
  * Relative hardware sets never assert a single absolute register identity. */
 #define M68K_HARDWARE_VALUE_LIMIT M68K_WORD_INDEX_VALUE_LIMIT
 typedef struct M68kHardwareWordSet {
   uint16_t values[M68K_HARDWARE_VALUE_LIMIT];
   uint8_t count;
   uint8_t requires_input_contract;
+  uint16_t known_bits_mask, known_bits_value;
 } M68kHardwareWordSet;
 
 typedef struct M68kHardwareRelativeBase {
@@ -815,8 +817,8 @@ typedef struct M68kRenderSourceReadRequest {
 typedef struct M68kRenderClosedDispatch {
   M68kRelativeDispatchFact relation;
   M68kHardwareWordSet indices;
-  uint32_t targets[M68K_HARDWARE_VALUE_LIMIT];
-  uint8_t count;
+  uint32_t *targets; /* Sized by a proved source-table domain, not the finite-value cap. */
+  size_t count;
 } M68kRenderClosedDispatch;
 
 struct M68kRenderLookup {

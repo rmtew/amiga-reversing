@@ -551,6 +551,34 @@ simply an ordinary recursive callable; its effects stay invalid. Its entry-input
 transport is distinct from proving its return effects. Optional-header selector
 validity and +22 preservation remain separate from the observed +2 mutation.
 
+Landscape dispatch follow-on (2026-10-30): the shared low-WORD domain now
+retains known bits when a finite union exceeds eight values, rather than raising
+the candidate cap. AND/OR, doubling, left shifts, joins and scalar-cell reloads
+reuse it. Callable target storage is sized from the independently proved index
+domain and validated canonical table entries. A backward CFG definition query
+supports Dn/An offsets, PC-relative LEA targets, lossless copies and preserving
+branches/retries; partial writes, alternate entries and unknown calls refuse.
+The older transfer restrictions above describe the preceding revision.
+
+The seven landscape transfers are not seven interchangeable cap failures.
+Five sites have four-bit masks; `$3CD8C` consumes a nonnegative stream command
+without a proved upper bound, while `$3DDC0` has the signed NEG/CMP/BLT case
+that admits `$8000`. Table length supplies neither missing invariant. Synthetic
+masked/guarded16-way cases now close, including separated load/LEA/jump paths;
+no actual SGII summary, access, attribution or CFG changes in this qualification.
+Totals remain3513/2687/158, and the entire generated package is unchanged.
+Prior possibly aliasing writes independently prevent callable table-preservation
+proof; that refusal, the world SCC and non-local save-game behavior remain intact.
+Next: trace the command-stream producers and the writes before these transfers,
+separating producer bounds from physical table non-aliasing. No reader-specific
+seed or initial-byte immutability assumption is justified by the current evidence.
+
+Validation:278 related Python cases and all833 native C cases pass. C/vasm and
+the clean standalone package reproduce all412736 original bytes;57 assets and14
+headers are unchanged. Generation took280.59s, peak RSS2821308KiB, a single
+host-dependent measurement rather than a performance claim. No observation dump
+or interim archive is added.
+
 An on-demand systematic gap inventory (`amiga_reversing/tools/source_gap_inventory.py`)
 joins native identities/accesses with canonical layouts and actual rendered
 boundaries. The previous whole-target snapshot records 71 suffix signals (including numeric adjacent variants),

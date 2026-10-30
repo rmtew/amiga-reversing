@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
   "kind": "committed_native_rendered_original_export",
-  "canonical_source_commit": "401b8828a84cbe88151520e887cd5fb22911ddc1",
-  "publication_base_commit": "401b8828a84cbe88151520e887cd5fb22911ddc1",
+  "canonical_source_commit": "01fd00f317143a0c22a7eba52fd1b2d2eb1a8898",
+  "publication_base_commit": "01fd00f317143a0c22a7eba52fd1b2d2eb1a8898",
   "native_export": "CListingArtifact.source_package_payload(64)",
   "main_source_sha256": "99c5746fb697578bb92b7d21e9851f03addc342da9d3535d6d966eca9944666f",
   "asset_count": 57,
@@ -24,8 +24,8 @@
     "assembler executable",
     "paused Pandora work"
   ],
-  "canonical_source_commit_role": "canonical source publication base; shared guarded callable-dispatch closure and final app-access index freeze are in the publishing commit; output is bound by verification_receipt_id",
-  "canonical_source_subject_revision": "ef8ee2bfeb758cc481a4434d9052386f9567d5fd193996e7ea40a6d87257393e",
+  "canonical_source_commit_role": "canonical source publication base; shared compact WORD bounds and CFG register transport are in the publishing commit; output is bound by verification_receipt_id",
+  "canonical_source_subject_revision": "f6f0f14409ff8daaa224dea66667e64533265393c6c99e69258d1985568cc34e",
   "canonical_fact_sha256": {
     "source_binary.json": "42d4a5758b3e8236af7f912aee85e9ee5323bcd0961faa338c4f864080a0a7d9",
     "target_metadata.json": "e7540b68c118c56aba8815b6722eefa067517cc865fe9841d6c01ce96551389c",
@@ -46,7 +46,7 @@
     },
     "runtime_scope": "Seven CPU write-site windows match this reversible view; no whole runtime-view identity or parent plaintext promotion."
   },
-  "verification_receipt_id": "b998cd9a451181613bbaf333a13ca0d62bd8ece98a8c1cd9e7d0232dc35e70f6",
-  "render_native_sha256": "dc60eda759be22a8fd9b8a2c0fb948472e47ffdfc8b581e9e8ceff8e8bf9caf5",
-  "final_assembler_native_sha256": "18813d3bd377eccbb7be34820df8a0544915d80d99ad467af0586ff609350655"
+  "verification_receipt_id": "bc3a5e03692f971d1ce28395e221a3c22e33344a2b58bb291d113a554351a166",
+  "render_native_sha256": "b55ee6eb499dcaafb7e6c1087562132b0d9d0b807ad427a926a2c07c2c9f6bd8",
+  "final_assembler_native_sha256": "b55ee6eb499dcaafb7e6c1087562132b0d9d0b807ad427a926a2c07c2c9f6bd8"
 }

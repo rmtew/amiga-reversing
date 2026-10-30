@@ -1,6 +1,6 @@
 /* Local scalar WORD definitions in the existing canonical sparse cells. These
  * bits are neither pointer intent nor a cross-program writer summary. Register
- * values and indexed consumers still use the shared finite WORD abstraction. */
+ * values and indexed consumers use the same finite/known-bit WORD abstraction. */
 typedef struct M68kScalarWordTransfer {
   uint32_t storage_id;
   uint16_t value, mask;
@@ -35,22 +35,15 @@ static uint32_t scalar_word_cell_id(M68kRenderLookup *lookup,const M68kRenderTyp
 }
 
 static M68kHardwareWordSet scalar_word_values(uint16_t value,uint16_t mask) {
-  M68kHardwareWordSet result={0};uint16_t free_bits=(uint16_t)~mask,bits=free_bits;
-  unsigned count=0;while(bits) {bits&=(uint16_t)(bits-1U);++count;}
-  if((1U<<count)>M68K_HARDWARE_VALUE_LIMIT)return result;
-  uint16_t subset=free_bits;
-  for(;;) {
-    if(!hardware_word_set_add(&result,(uint16_t)((value&mask)|subset)))return (M68kHardwareWordSet){0};
-    if(!subset)break;
-    subset=(uint16_t)((subset-1U)&free_bits);
-  }
+  M68kHardwareWordSet result;
+  hardware_word_from_bits(&result,mask,value);
   return result;
 }
 
 static M68kHardwareWordSet scalar_word_operand(M68kRenderLookup *lookup,const M68kRenderTypedState *state,
     const M68kRenderPlatformState *platform,size_t section,const M68kOperandIR *operand) {
   M68kHardwareWordSet result=hardware_operand_word_values(platform,operand);
-  if(result.count)return result;
+  if(result.count || result.known_bits_mask)return result;
   uint32_t id=scalar_word_cell_id(lookup,state,platform,section,operand,0,NULL);
   const M68kRenderTypedBaseSlot *cell=typed_state_memory_cell(state,id);
   return cell && cell->scalar_word_mask ? scalar_word_values(cell->scalar_word_value,cell->scalar_word_mask) : result;
@@ -70,7 +63,7 @@ static M68kScalarWordTransfer scalar_word_prepare(M68kRenderLookup *lookup,
       platform_operand_memory_access(instruction,source)==M68K_SIM_ACCESS_MEMORY_READ &&
       m68k_instruction_operand_direct_register(&instruction->operands[dest],&address,&reg) && !address) {
     result.read_values=scalar_word_operand(lookup,state,platform,section,&instruction->operands[source]);
-    result.has_read=result.read_values.count!=0U;result.read_register=reg;
+    result.has_read=result.read_values.count!=0U || result.read_values.known_bits_mask!=0U;result.read_register=reg;
   }
   if(dest>=instruction->operand_count ||
       platform_operand_memory_access(instruction,dest)!=M68K_SIM_ACCESS_MEMORY_WRITE ||
@@ -88,10 +81,8 @@ static M68kScalarWordTransfer scalar_word_prepare(M68kRenderLookup *lookup,
   } else if(meta->operation_type==M68K_SIM_OP_CLEAR)result.mask=UINT16_MAX;
   else if(move) {
     M68kHardwareWordSet values=scalar_word_operand(lookup,state,platform,section,&instruction->operands[source]);
-    if(values.count && !values.requires_input_contract) {
-      result.mask=UINT16_MAX;result.value=values.values[0];
-      for(size_t i=1;i<values.count;++i)result.mask&=(uint16_t)~(result.value^values.values[i]);
-    }
+    if(!values.requires_input_contract)
+      hardware_word_known_bits(&values,&result.mask,&result.value);
   }
   result.value&=result.mask;
   return result;

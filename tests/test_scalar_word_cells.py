@@ -82,3 +82,15 @@ def test_closed_scalar_cell_loop_converges_without_restoring_original_bytes(tmp_
         refs=[r for r in p['sections'][0]['recovered_platform_typed_accesses']if r['field_name']=='value']
         assert len(refs)==1
         assert refs[0]['word_index']['byte_offsets']==[84,88,92,96]
+
+@pytest.mark.parametrize('load',[
+    'move.w $100(a6),d0\n andi.w #7,d0',
+    'move.w $100(a6),d2\n move.w d2,d0\n andi.w #7,d0',
+])
+def test_compact_cell_domain_can_be_narrowed_after_reload(tmp_path,load):
+    with scalar_fixture(tmp_path,before='andi.w #15,$100(a6)',load=load)as(a,original):
+        p=a.analysis_payload()[0];assert not p['incomplete_analysis']
+        refs=[r for r in p['sections'][0]['recovered_platform_typed_accesses']if r['field_name']=='value']
+        assert len(refs)==1
+        assert refs[0]['word_index']['byte_offsets']==list(range(84,113,4))
+        assert c_backend.assemble_platform_source_text_with_c_backend('amiga-raw',a.inline_source_text_with_profile()[0])[0]==original
