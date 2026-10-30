@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
   "kind": "committed_native_rendered_original_export",
-  "canonical_source_commit": "93d363c288cbfe1c9756f3e30b48d2ef897ac018",
-  "publication_base_commit": "93d363c288cbfe1c9756f3e30b48d2ef897ac018",
+  "canonical_source_commit": "bd59c00646180695f0652ff6c47aa2aff1106ef8",
+  "publication_base_commit": "bd59c00646180695f0652ff6c47aa2aff1106ef8",
   "native_export": "CListingArtifact.source_package_payload(64)",
-  "main_source_sha256": "cf83caf02dd279cc0afab23f6a56435bad91641bdfc677e71270ae627f5b24dd",
+  "main_source_sha256": "8e17bd89cdae6bf81a8e6a544ec60829e9273f13b6dd9e966908a0ba92dd0d1c",
   "asset_count": 57,
   "asset_bytes": 93633,
   "game_assembly_hand_edits": false,
@@ -24,8 +24,8 @@
     "assembler executable",
     "paused Pandora work"
   ],
-  "canonical_source_commit_role": "publication base; 38 reviewed original one-JUMP forwarding entries name established destinations without new ABI or code ownership claims are bound by canonical facts and verification",
-  "canonical_source_subject_revision": "83dfaa0ebbc617c2c48fd730934dfbf83cb979df86ee5c9dda921799a3479d99",
+  "canonical_source_commit_role": "publication base; canonical target facts unchanged; shared counter-index proof and rendering changes are in the publishing commit and output is bound by verification_receipt_id",
+  "canonical_source_subject_revision": "664a34d3e9d1922ac749b8b521778286c2a53df072f9080c0c9bdd1aa6c3173c",
   "canonical_fact_sha256": {
     "source_binary.json": "42d4a5758b3e8236af7f912aee85e9ee5323bcd0961faa338c4f864080a0a7d9",
     "target_metadata.json": "e7540b68c118c56aba8815b6722eefa067517cc865fe9841d6c01ce96551389c",
@@ -46,5 +46,6 @@
     },
     "runtime_scope": "Seven CPU write-site windows match this reversible view; no whole runtime-view identity or parent plaintext promotion."
   },
-  "verification_receipt_id": "f22470fbf3a2787ad42d3389ae7199960a5df4e22095b8ea437397307797a23c"
+  "verification_receipt_id": "f52ff4a1bf2b5c2ddfa4a386511cf02e56c55f9cc3963007215f8b3a05192416",
+  "render_native_sha256": "c320088965359155179dfdff967450a1c41d1c2143c2a78bad2f39747a26783a"
 }

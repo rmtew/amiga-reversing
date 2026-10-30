@@ -26,7 +26,19 @@ static int append_unresolved_operand_evidence_json(JsonBuilder *builder,
 
 static int append_word_index_access_json(JsonBuilder *builder, const M68kWordIndexAccessIR *index) {
   size_t value;
-  if (!index->value_count) return 0;
+  if (!m68k_word_index_access_has_domain(index)) return 0;
+  if (index->loop_domain.state) {
+    const M68kAffineLoopDomainIR *loop = &index->loop_domain;
+    return json_builder_appendf(builder,
+      ",\"word_index\":{\"register\":\"%c%u\",\"index_width\":2,\"scale\":1,"
+      "\"access_width\":%u,\"record_count\":%u,\"base_record_index\":%u,\"encoded_symbol_correction\":%d,"
+      "\"evidence\":\"bounded_counter_index\",\"loop_domain\":{\"header_offset\":%u,\"tail_offset\":%u,"
+      "\"iteration_count\":%u,\"index_first\":%d,\"index_stride\":%d,\"counter_register\":%u}}",
+      index->reg_kind == M68K_ANALYSIS_REGISTER_ADDRESS ? 'A' : 'D', (unsigned)index->reg_index,
+      (unsigned)index->access_width, (unsigned)index->record_count, (unsigned)index->base_record_index,
+      index->encoded_symbol_correction, loop->header_offset, loop->tail_offset, loop->iteration_count,
+      index->loop_index_first, loop->iteration_stride, (unsigned)loop->counter_register);
+  }
   if (index->value_count > M68K_WORD_INDEX_VALUE_LIMIT) return -1;
   if (json_builder_appendf(builder,
       ",\"word_index\":{\"register\":\"%c%u\",\"index_width\":2,\"scale\":1,"
@@ -2888,7 +2900,7 @@ static int platform_typed_access_owner_range(const M68kRecoveredPlatformTypedAcc
     owner_range_start = (int64_t)access->displacement - (int64_t)access->field_offset;
     owner_range_size = access->struct_size;
   }
-  if (access->word_index.value_count && access->word_index.record_count && access->struct_size) {
+  if (m68k_word_index_access_has_domain(&access->word_index) && access->word_index.record_count && access->struct_size) {
     owner_range_start = -(int64_t)access->word_index.base_record_index * access->struct_size - access->base_cursor;
     owner_range_size = (uint32_t)access->word_index.record_count * access->struct_size;
   }
@@ -3428,7 +3440,7 @@ static int append_source_analysis_memory_layout_records_json(JsonBuilder *builde
       (void)platform_typed_access_owner_range(access, &owner_range_start, &owner_range_size);
       /* A pointee selected through an index is not a direct app-base slot.
        * Its finite EA set remains relative to the actual base register. */
-      conflicted = !access->word_index.value_count && access->type_provenance_kind == M68K_PLATFORM_TYPE_PROVENANCE_APP_SLOT
+      conflicted = !m68k_word_index_access_has_domain(&access->word_index) && access->type_provenance_kind == M68K_PLATFORM_TYPE_PROVENANCE_APP_SLOT
         ? (uint8_t)source_analysis_app_slot_range_conflicts_with_non_app_layout(source_analysis,
             owner_range_start, owner_range_size)
         : 0U;
@@ -3475,6 +3487,15 @@ static int append_source_analysis_memory_layout_records_json(JsonBuilder *builde
                 access->word_index.access_width) != 0 || json_builder_append(builder, "}") != 0) return -1;
         }
         if (json_builder_append(builder, "]") != 0) return -1;
+      } else if (access->word_index.loop_domain.state) {
+        const M68kAffineLoopDomainIR *loop = &access->word_index.loop_domain;
+        int64_t first = (int64_t)access->displacement + access->word_index.loop_index_first;
+        int64_t last = first + (int64_t)loop->iteration_stride * (loop->iteration_count - 1U);
+        int64_t lo = first < last ? first : last, hi = first > last ? first : last;
+        if (json_builder_append(builder, ",\"indexed_access_envelope\":{\"strided_possible_accesses\":true") != 0 ||
+            append_memory_layout_range_json(builder, MEMORY_LAYOUT_RANGE_SPACE_BASE_RELATIVE,
+              lo, (uint32_t)(hi - lo + access->word_index.access_width)) != 0 ||
+            json_builder_append(builder, "}") != 0) return -1;
       } else if (append_memory_layout_range_json(builder, MEMORY_LAYOUT_RANGE_SPACE_BASE_RELATIVE,
           (int64_t)access->displacement, access->field_size) != 0) return -1;
       if (json_builder_appendf(builder,

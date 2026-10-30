@@ -16,6 +16,32 @@ to their recorded closeout revision. See the current
 
 ## Current refinement and next evidence
 
+Current native totals: **3503 app /2667 typed /161 unresolved**, with **11226
+unclassified bytes /271 intervals**. Counter-indexed source-array reads now reuse
+the shared loop induction and interned linear entry values. Original inventory
+readers at source `$DD6` and `$339B4` expose the existing name-reference `text`
+field over the possible104-entry prefix of the148-record owner. No existing
+typed coordinates, meanings, app facts, CFG blocks or edges were lost/changed.
+Conditional skips mean104 outer iterations are not104 observed memory reads.
+Loaded pointer values remain subject to separate alias/target validation.
+
+The same pointer-origin preservation exposes one previously untyped unresolved
+read at source `$3A94`: a LONG at cursor24 beyond the declared24-byte model-header
+prefix. This is a new diagnostic, not a game-bug or runtime-access claim. The
+known28-byte HeaderAux layout and the reader's nonzero auxiliary-count branch
+are the next connected lead; do not widen every header or assume a subtype.
+A private first-player-record producer contract recovered construction accesses
+but no camera reads; it was not promoted as a fix or replaced with reader seeds.
+
+Validation:196 focused Python tests, three unchanged expected failures, all832
+native C cases, original C/vasm and clean standalone exactness. The paired native
+builds took150.64s before and151.18s after (single host-dependent measurements,
+not a speedup claim). The small six-node proof fixture retains37328 snapshot
+bytes; its interned-expression allocation grows448 to512 bytes. Structural rows
+add scratch proportional to qualifying accesses; the existing per-node value
+packets and four/eight-value caps stay unchanged. No new observation dump is
+committed. Earlier totals below belong to their recorded batches.
+
 An on-demand systematic gap inventory (`amiga_reversing/tools/source_gap_inventory.py`)
 joins native identities/accesses with canonical layouts and actual rendered
 boundaries. The previous whole-target snapshot records 71 suffix signals (including numeric adjacent variants),
@@ -145,7 +171,7 @@ The target projection used 514 bounded native symbol queries in 4.08 seconds and
 is reused within the existing revision cache. Validation: 92 focused Python and
 832 native C tests; real restoration name/alias queries pass. The canonical
 source package matches the already byte-exact committed export, so no unchanged
-standalone rebuild or new dump was needed. Current totals remain
+standalone rebuild or new dump was needed. At that projection revision totals remained
 **3503 app /2665 typed /162 unresolved**, with **11226 unknown bytes /271 intervals**.
 Use this corrected inventory before treating generated function names as a new
 semantic backlog; late-pointee and countdown-lifecycle leads remain separate.

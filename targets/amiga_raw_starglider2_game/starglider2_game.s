@@ -2533,7 +2533,7 @@ abs_0_00001DC8:
 	move.b d1,(a2)+
 	move.w d0,d1
 	asl.w #2,d1
-	move.l $0(a4,d1.w),(a0)+
+	move.l SG2ObjectNameReference_text(a4,d1.w),(a0)+
 abs_0_00001DDA:
 	dbf.w d0,abs_0_00001DC8
 	move.b #$FF,(a2)
@@ -45033,7 +45033,7 @@ abs_0_000349A6:
 	move.b d1,(a2)+
 	move.w d0,d1
 	asl.w #2,d1
-	move.l $0(a4,d1.w),(a0)+
+	move.l SG2ObjectNameReference_text(a4,d1.w),(a0)+
 abs_0_000349B8:
 	dbf.w d0,abs_0_000349A6
 	move.b #$FF,(a2)

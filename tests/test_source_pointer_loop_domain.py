@@ -9,7 +9,9 @@ from amiga_reversing.disasm.effective_metadata import effective_metadata_file
 
 
 def header_table_artifact(tmp_path, loop=True, count=2, trips=None, setup='', body='',
-                          null=False, mixed=False, aliases=False, exposure=False):
+                          null=False, mixed=False, aliases=False, exposure=False,
+                          indexed=False, index_code=None, index_register='d2',
+                          reference_records=False):
     trips=count if trips is None else trips
     counter='move.w d5,d4'if trips=='unknown'else f'move.w #{trips-1},d4'
     directory=['first'if aliases else f'header_{i}'for i in range(count)]
@@ -17,7 +19,9 @@ def header_table_artifact(tmp_path, loop=True, count=2, trips=None, setup='', bo
     if mixed:directory[-1]='other_record'
     text=(' SECTION code,code\n ORG $1000\n'+(' lea.l again.l,a5\n'if exposure else'')+
           ' lea.l directory(pc),a3\n '+counter+'\n '+setup+'\nagain:\n '+body+
-          '\n movea.l (a3)+,a0\n move.w (a0)+,d0\n move.w (a0),d1\n'+
+          ('\n '+(index_code or'move.w d4,d2\n lsl.w #2,d2')+
+           f'\n movea.l 0(a3,{index_register}.w),a0\n'if indexed
+           else'\n movea.l (a3)+,a0\n')+' move.w (a0)+,d0\n move.w (a0),d1\n'+
           (' dbf d4,again\n'if loop else'')+' rts\ndirectory:\n'+''.join(' dc.l '+','.join(directory[i:i+8])+'\n'for i in range(0,count,8))+'first:\n'+
           ''.join(f'header_{i}:dc.w {i+1},{i+2}\n'for i in range(count))+
           ('other_record:dc.w 99,98\n'if mixed else''))
@@ -34,9 +38,13 @@ def header_table_artifact(tmp_path, loop=True, count=2, trips=None, setup='', bo
         actions.append((ManualActionKind(kind),payload));return payload
     add('target.custom_struct.add',dict(name='Header',size=4,fields=[
         dict(name='count',type='WORD',offset=0,size=2),dict(name='flags',type='WORD',offset=2,size=2)]))
+    if reference_records:
+        add('target.custom_struct.add',dict(name='Reference',size=4,fields=[
+            dict(name='entry',type='APTR',offset=0,size=4)]))
     if mixed:add('target.custom_struct.add',dict(name='Other',size=4,fields=[
         dict(name='different',type='WORD',offset=0,size=2),dict(name='flags',type='WORD',offset=2,size=2)]))
-    declarations=[(start,start+count*4,'directory','pointer_struct','Header',count),
+    declarations=[(start,start+count*4,'directory','custom_struct'if reference_records else'pointer_struct',
+                   'Reference'if reference_records else'Header',count),
                   (start+count*4,start+count*8,'headers','custom_struct','Header',count)]
     if mixed:declarations.append((start+count*8,start+count*8+4,'other','custom_struct','Other',1))
     for lo,hi,name,kind,type_name,n in declarations:
@@ -55,6 +63,96 @@ def header_table_artifact(tmp_path, loop=True, count=2, trips=None, setup='', bo
 def typed_fields(artifact):
     return {(r['base_register'],r['field_name'])for r in
             artifact.analysis_payload()[0]['sections'][0]['recovered_platform_typed_accesses']}
+
+
+@pytest.mark.parametrize('count,index_code,index_register', [
+    (2, None, 'd2'), (104, None, 'd2'),
+    (104, 'move.w d4,d2\n add.w d2,d2\n add.w d2,d2', 'd2'),
+    (104, 'move.w d4,d2\n asl.w #2,d2\n movea.w d2,a5', 'a5'),
+    (104, 'tst.w d6\n beq.w other\n move.w d4,d2\n lsl.w #2,d2\n bra.w ready\n'
+          'other:\n move.w d4,d2\n add.w d2,d2\n add.w d2,d2\nready:', 'd2'),
+])
+def test_counter_indexed_directory_uses_shared_induction(tmp_path,count,index_code,index_register):
+    a,original=header_table_artifact(tmp_path,count=count,indexed=True,
+                                   index_code=index_code,index_register=index_register)
+    try:
+        assert typed_fields(a)=={('A0','count'),('A0','flags')}
+        domains=[x for x in a.analysis_payload()[0]['sections'][0]['address_values']
+                 if x['resolution']=='type_domain']
+        assert len(domains)==1
+        assert domains[0]['table_origin']['index_min']==0
+        assert domains[0]['table_origin']['index_max']==(count-1)*4
+        assert not domains[0]['has_source_expression'] and not domains[0]['candidate_target_count']
+        source=a.inline_source_text_with_profile()[0]
+        assert f'0(a3,{index_register}.w)' in source or f'$0(a3,{index_register}.w)' in source
+        assert c_backend.assemble_platform_source_text_with_c_backend('amiga-raw',source)[0]==original
+    finally:a.close()
+
+
+@pytest.mark.parametrize('changes', [
+    {'loop':False}, {'trips':3}, {'trips':'unknown'}, {'null':True}, {'mixed':True},
+    {'exposure':True}, {'body':'move.w d5,d4'}, {'body':'move.l #0,directory.l'},
+    {'body':'move.b #0,(a2)'},
+    {'index_code':'move.w d4,d2\n lsl.w #2,d2\n move.w d5,d2'},
+    {'index_code':'move.w d4,d2\n lsl.w #15,d2'},
+    {'loop':False, 'setup':'lea.l directory+4(pc),a3',
+     'index_code':'move.w d5,d2\n andi.w #4,d2'},
+    {'index_code':'tst.w d6\n beq.w other\n move.w d4,d2\n lsl.w #2,d2\n bra.w ready\n'
+                  'other:\n move.w d4,d2\n lsl.w #3,d2\nready:'},
+])
+def test_counter_indexed_directory_keeps_refusal_boundaries(tmp_path,changes):
+    a,_=header_table_artifact(tmp_path,count=2,indexed=True,**changes)
+    try:
+        assert not typed_fields(a)
+        assert not [x for x in a.analysis_payload()[0]['sections'][0]['address_values']
+                    if x['resolution']=='type_domain']
+        assert not a.analysis_payload()[0]['incomplete_analysis']
+    finally:a.close()
+
+
+@pytest.mark.parametrize('body', [
+    '', 'move.l #0,directory.l',
+    'tst.w d6\n beq.w unchanged\n addq.l #4,a2\nunchanged:',
+])
+@pytest.mark.parametrize('count', [104,148])
+def test_indexed_record_fields_are_not_loaded_pointer_values(tmp_path,body,count):
+    a,original=header_table_artifact(tmp_path,count=count,trips=104,indexed=True,reference_records=True,
+                                   setup='lea.l $200(a6),a2',body=body)
+    try:
+        assert typed_fields(a)=={('A3','entry')}
+        analysis=a.analysis_payload()[0];section=analysis['sections'][0]
+        row=next(x for x in section['recovered_platform_typed_accesses']if x['field_name']=='entry')
+        domain=row['word_index']
+        assert domain['evidence']=='bounded_counter_index'
+        assert domain['record_count']==count
+        assert 'byte_offsets' not in domain
+        assert domain['loop_domain']['iteration_count']==104
+        assert domain['loop_domain']['index_first']==412 and domain['loop_domain']['index_stride']==-4
+        assert not [x for x in section['address_values']if x['resolution']=='type_domain']
+        assert not [x for x in section['recovered_platform_unresolved_typed_accesses']
+                    if x['root_struct_name']=='Reference']
+        footprint=next(x for x in analysis['memory_layout_records']
+                       if x.get('record_kind')=='platform_typed_access'and x.get('field_name')=='entry')
+        assert footprint['owner_range_size']==count*4
+        assert footprint['indexed_access_envelope']['strided_possible_accesses'] is True
+        assert footprint['indexed_access_envelope']['range_size']==104*4
+        source=a.inline_source_text_with_profile()[0]
+        assert 'Reference_entry(a3,d2.w)' in source
+        assert c_backend.assemble_platform_source_text_with_c_backend('amiga-raw',source)[0]==original
+    finally:a.close()
+
+
+@pytest.mark.parametrize('changes', [
+    {'trips':105}, {'trips':'unknown'}, {'body':'move.w d5,d4'},
+    {'index_code':'move.w d4,d2\n lsl.w #2,d2\n move.w d5,d2'},
+    {'index_code':'move.w d4,d2\n lsl.w #1,d2'},
+    {'index_code':'move.w d4,d2\n lsl.w #2,d2\n addq.w #1,d2'},
+])
+def test_record_field_domain_is_not_assumed_from_its_array_extent(tmp_path,changes):
+    a,_=header_table_artifact(tmp_path,count=104,indexed=True,reference_records=True,**changes)
+    try:
+        assert not typed_fields(a)
+    finally:a.close()
 
 
 @pytest.mark.parametrize('loop,count',[(False,2),(True,2),(True,104)])
@@ -153,4 +251,22 @@ def test_source_loop_requires_a_disjoint_physical_write_frame(tmp_path,known_fra
         domains=[v for v in a.analysis_payload()[0]['sections'][0]['address_values']
                  if v['resolution']=='type_domain']
         assert bool(domains)==known_frame
+    finally:a.close()
+
+
+@pytest.mark.parametrize('reference_records', [False,True])
+def test_counter_word_sign_extension_keeps_interior_base_offset(tmp_path,reference_records):
+    a,original=header_table_artifact(tmp_path,count=104,indexed=True,reference_records=reference_records,
+        setup='lea.l directory+412(pc),a3',
+        index_code='move.w d4,d2\n lsl.w #2,d2\n subi.w #412,d2')
+    try:
+        assert typed_fields(a)==({('A3','entry')}if reference_records else{('A0','count'),('A0','flags')})
+        if reference_records:
+            row=next(r for r in a.analysis_payload()[0]['sections'][0]['recovered_platform_typed_accesses']
+                     if r['field_name']=='entry')
+            assert row['word_index']['base_record_index']==103
+            assert row['word_index']['loop_domain']['index_first']==0
+            assert row['word_index']['loop_domain']['index_stride']==-4
+        source=a.inline_source_text_with_profile()[0]
+        assert c_backend.assemble_platform_source_text_with_c_backend('amiga-raw',source)[0]==original
     finally:a.close()

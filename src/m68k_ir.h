@@ -1370,8 +1370,20 @@ typedef struct M68kAppSlotRefIR {
   uint8_t loop_counter_register;
 } M68kAppSlotRefIR;
 
-/* Sparse access evidence from a closed CFG input-value set. Offsets are the
- * signed contribution of a non-scaled brief WORD index, not guest addresses. */
+typedef struct M68kAffineLoopDomainIR {
+  uint32_t header_offset;
+  uint32_t tail_offset;
+  uint32_t iteration_count;
+  int32_t iteration_stride;
+  uint32_t access_width;
+  uint8_t state; /* 0: scalar, 1: proved loop envelope, 2: conflicting proofs. */
+  uint8_t counter_register;
+  uint8_t access_kind;
+  uint8_t reserved;
+} M68kAffineLoopDomainIR;
+
+/* A closed value set or compressed counter-loop domain. Offsets describe
+ * signed WORD-index contributions, not guest addresses or loaded values. */
 #define M68K_WORD_INDEX_VALUE_LIMIT 8U
 typedef struct M68kWordIndexAccessIR {
   uint8_t value_count;
@@ -1382,7 +1394,13 @@ typedef struct M68kWordIndexAccessIR {
   uint16_t base_record_index;
   int32_t encoded_symbol_correction; /* Keep the encoded displacement; the index stays live. */
   int32_t byte_offsets[M68K_WORD_INDEX_VALUE_LIMIT];
+  M68kAffineLoopDomainIR loop_domain;
+  int32_t loop_index_first;
 } M68kWordIndexAccessIR;
+
+static inline int m68k_word_index_access_has_domain(const M68kWordIndexAccessIR *index) {
+  return index && (index->value_count || index->loop_domain.state);
+}
 
 typedef struct M68kRecoveredPlatformTypedAccessIR {
   M68kWordIndexAccessIR word_index;
@@ -2441,17 +2459,7 @@ typedef struct M68kAddressExpressionIR {
  * arithmetic. */
 /* A loop envelope is an admission proof, not an exact loaded address. It is
  * attached only after the shared CFG induction and full span checks succeed. */
-typedef struct M68kAffineLoopDomainIR {
-  uint32_t header_offset;
-  uint32_t tail_offset;
-  uint32_t iteration_count;
-  int32_t iteration_stride;
-  uint32_t access_width;
-  uint8_t state; /* 0: scalar, 1: proved loop envelope, 2: conflicting proofs. */
-  uint8_t counter_register;
-  uint8_t access_kind;
-  uint8_t reserved;
-} M68kAffineLoopDomainIR;
+
 
 typedef struct M68kAffineAddressEvidenceIR {
   uint32_t consumer_section_index;

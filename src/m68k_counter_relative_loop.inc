@@ -1,7 +1,8 @@
 /* Counter-relative ranges are an induction over shared affine entry values.
- * One body traversal must translate every carried input by one fixed offset;
- * its counter and stack pointer must retain their entry identities. Retry
- * edges join at the same PC, so unequal potentials lose the identity. */
+ * A contributing root must have one fixed translation through the body;
+ * unrelated lost roots cannot provide ranges. Counter and stack identities
+ * remain mandatory. Retry edges join at the same PC, so unequal potentials
+ * lose the identity. */
 typedef struct M68kLoopEntrySnapshot {
   M68kRenderTypedState typed;
   M68kRenderPlatformState platform;
@@ -47,6 +48,60 @@ typedef struct M68kLoopRangeRow {
   uint32_t source_first;
 } M68kLoopRangeRow;
 
+/* Structural field addresses and loaded pointer values are separate claims.
+ * These rows retain the former only; they do not bypass the table-content
+ * stability and canonical pointee binding used by source value domains. */
+typedef struct M68kLoopFieldRow {
+  uint32_t offset;
+  uint8_t operand, reg;
+  int16_t displacement, array_addend;
+  uint16_t struct_size;
+  int32_t base_cursor;
+  M68kRenderResolvedStructField field;
+  M68kRenderTypedProvenance provenance;
+  M68kAddressValueTableOriginIR table_origin;
+  M68kWordIndexAccessIR index;
+} M68kLoopFieldRow;
+
+static int counter_loop_field_row(const M68kRenderLookup *lookup,
+    const M68kRenderTypedFlowNode *node, const M68kInstructionIR *instruction,
+    size_t operand, uint8_t reg, int16_t displacement, uint8_t width,
+    int64_t first_index, int64_t index_stride, uint32_t iterations,
+    uint8_t counter, uint32_t header, uint32_t tail, M68kLoopFieldRow *row) {
+  const M68kRenderTypedRegValue *base = &node->typed_in.addr_regs[reg];
+  uint16_t size = lookup_policy_struct_size_by_id(lookup->policy, base->struct_id);
+  uint16_t records = base->array_element_count ? base->array_element_count : 1U;
+  uint16_t record = base->array_element_count ? base->array_element_index : 0U;
+  int64_t encoded = (int64_t)record * size + base->byte_cursor + displacement;
+  int64_t first = encoded + first_index;
+  int64_t last = first + index_stride * (iterations - 1U);
+  int64_t lo = first < last ? first : last, hi = first > last ? first : last;
+  int64_t array_addend;
+  if (!base->known || base->type_conflicted || !size || record >= records ||
+      index_stride % size || lo < 0 || hi + width > (int64_t)records * size ||
+      first % size > INT16_MAX ||
+      !lookup_policy_resolve_struct_field(lookup->policy, base->struct_id, (int16_t)(first % size), width, &row->field) ||
+      !row->field.field_expr[0]) return 0;
+  array_addend = ((int64_t)base->byte_cursor + displacement) / size;
+  if (array_addend < INT16_MIN || array_addend > INT16_MAX) return 0;
+  row->offset = node->candidate->offset; row->operand = (uint8_t)operand; row->reg = reg;
+  row->displacement = displacement; row->struct_size = size; row->base_cursor = base->byte_cursor;
+  row->array_addend = (int16_t)array_addend; row->provenance = base->provenance;
+  row->table_origin = base->table_origin;
+  row->index.reg_kind = instruction->operands[operand].value.index_is_address
+    ? M68K_ANALYSIS_REGISTER_ADDRESS : M68K_ANALYSIS_REGISTER_DATA;
+  row->index.reg_index = instruction->operands[operand].value.index_reg;
+  row->index.access_width = width; row->index.record_count = records; row->index.base_record_index = record;
+  row->index.encoded_symbol_correction = (int32_t)((int64_t)base->byte_cursor + displacement -
+    array_addend * size - row->field.offset);
+  int64_t symbol_addend = -(int64_t)base->byte_cursor + row->index.encoded_symbol_correction;
+  if (symbol_addend < INT32_MIN || symbol_addend > INT32_MAX) return 0;
+  row->index.loop_index_first = (int32_t)first_index;
+  row->index.loop_domain = (M68kAffineLoopDomainIR){header, tail, iterations,
+    (int32_t)index_stride, width, 1U, counter, M68K_APP_SLOT_ACCESS_READ, 0U};
+  return 1;
+}
+
 static int counter_loop_append_index(size_t **items, size_t *count, size_t *capacity, size_t item) {
   if (*count == *capacity) {
     size_t next = *capacity ? *capacity * 2U : 16U;
@@ -73,14 +128,14 @@ static void counter_loop_project_registers(M68kRenderTypedState *state,
     M68kRenderTypedAppAddressValue *app = kind ? &state->app_addr_regs[reg] : &state->data_app_addr_regs[reg];
     const M68kAffineEntryValue *entry = affine_entry_value(context, value->entry_value_id);
     memset(app, 0, sizeof(*app));
-    if (entry && entry->width == 4U && entry->root <= root_count && roots[entry->root - 1U].source == 1U) {
+    if (entry && entry->coefficient == 1 && entry->width == 4U && entry->root <= root_count && roots[entry->root - 1U].source == 1U) {
       M68kRenderTypedMemoryBaseValue base = roots[entry->root - 1U].source_base;
       if (typed_memory_base_apply_affine_delta(&base, entry->offset)) {
         if (kind) state->memory_base_regs[reg] = base;
         else state->data_memory_base_regs[reg] = base;
       }
     }
-    if (entry && entry->width == 4U && entry->root <= root_count && roots[entry->root - 1U].app) {
+    if (entry && entry->coefficient == 1 && entry->width == 4U && entry->root <= root_count && roots[entry->root - 1U].app == 1U) {
       const M68kLoopEntryRoot *root = &roots[entry->root - 1U];
       int64_t displacement = (int64_t)root->app_displacement + entry->offset;
       if (displacement >= INT16_MIN && displacement <= INT16_MAX) {
@@ -144,7 +199,7 @@ static int counter_loop_source_write_disjoint(const M68kRenderLookup *lookup,
   if (!typed_register_memory_span(instruction, operand, &reg, &displacement, &access, &width, &element, &count))
     return 0;
   const M68kAffineEntryValue *value = affine_entry_value(context, node->typed_in.addr_regs[reg].entry_value_id);
-  if (!value || !value->root || value->root > root_count) return 0;
+  if (!value || value->coefficient != 1 || !value->root || value->root > root_count) return 0;
   const M68kLoopEntryRoot *root = &roots[value->root - 1U];
   int64_t relative = (int64_t)value->offset + displacement;
   int64_t final_relative = relative + (int64_t)root->stride * (iterations - 1U);
@@ -164,7 +219,7 @@ static int counter_loop_source_write_disjoint(const M68kRenderLookup *lookup,
   }
   /* Raw addresses are used only with a carried app root proved invariant by
    * this pass. A first-iteration constant with no entry relation is not enough. */
-  if ((!root->app && root->address != 1U) || !root->raw_count) return 0;
+  if ((root->app != 1U && root->address != 1U) || !root->raw_count) return 0;
   for (uint8_t i = 0U; i < root->raw_count; ++i) {
     if (!counter_loop_bus_span((int64_t)root->raw_values[i] + relative,
           (int64_t)root->raw_values[i] + final_relative, width, &lo, &hi) ||
@@ -217,6 +272,8 @@ static int counter_loop_prove(M68kRenderLookup *lookup, const M68kDecodeIR *deco
   M68kLoopEntryRoot roots[M68K_LOOP_ROOT_LIMIT];
   M68kLoopEntrySnapshot entry;
   M68kLoopRangeRow *rows = NULL;
+  M68kLoopFieldRow *fields = NULL;
+  size_t field_count = 0U, field_capacity = 0U;
   size_t row_count = 0U, row_capacity = 0U;
   size_t *body = NULL, body_count = 0U, body_capacity = 0U, *queue = NULL;
   size_t queue_head = 0U, queue_count = 0U, peak_queue = 0U, transfers = 0U, root_count = 0U;
@@ -398,10 +455,11 @@ static int counter_loop_prove(M68kRenderLookup *lookup, const M68kDecodeIR *deco
   for (size_t i = 0U; i < root_count; ++i) {
     const M68kAffineEntryValue *value = affine_entry_value(&context,
       counter_loop_root_at_tail(&graph->nodes[candidate->tail].typed_in, &roots[i]));
-    if (!value || value->root != i + 1U) {
-      if (roots[i].source || roots[i].address) {
+    if (!value || value->coefficient != 1 || value->root != i + 1U) {
+      if (roots[i].source || roots[i].address || roots[i].app) {
         if (roots[i].source) roots[i].source = 2U;
         if (roots[i].address) roots[i].address = 2U;
+        if (roots[i].app) roots[i].app = 2U;
         continue;
       }
       lost_root = i + 1U; reason = "carried_value_lost_or_reassigned"; goto cleanup;
@@ -421,12 +479,57 @@ static int counter_loop_prove(M68kRenderLookup *lookup, const M68kDecodeIR *deco
     for (size_t operand = 0U; operand < instruction.operand_count; ++operand) {
       uint8_t reg, access, width, element, count; int16_t displacement;
       const M68kAffineEntryValue *value;
-      int64_t first, last, lo, hi;
+      int64_t first, last, lo, hi, index_first = 0, index_stride = 0;
+      int indexed = 0;
       if (!typed_register_memory_span(&instruction, operand, &reg, &displacement,
-          &access, &width, &element, &count) || access == M68K_APP_SLOT_ACCESS_ADDRESS) continue;
+          &access, &width, &element, &count)) {
+        const M68kOperandIR *ea = &instruction.operands[operand];
+        const M68kAffineEntryValue *index;
+        uint32_t contribution;
+        int32_t encoded = (int32_t)ea->value.value;
+        if (m68k_instruction_operand_decoded_ea_shape(ea) != M68K_SIM_EA_SHAPE_INDEX ||
+            !m68k_sim_operand_word_index_value(&instruction, operand, 0U, &contribution) ||
+            ea->value.ea_reg >= 7U || encoded < INT16_MIN || encoded > INT16_MAX ||
+            !platform_operand_memory_span(&instruction, operand, &width, &count, NULL) ||
+            width != 4U || count != 1U) continue;
+        access = app_slot_access_kind_from_instruction(&instruction, operand);
+        if (access != M68K_APP_SLOT_ACCESS_READ) continue;
+        index = affine_entry_value(&context, ea->value.index_is_address
+          ? node->typed_in.addr_regs[ea->value.index_reg].entry_value_id
+          : node->typed_in.data_regs[ea->value.index_reg].entry_value_id);
+        if (!index || index->root != counter_root || index->width != 2U) continue;
+        /* The body leaves the WORD counter unchanged; DBF decrements it at
+         * the boundary. Keep the signed WORD contribution linear only when
+         * the entire proven sequence avoids sign/wrap discontinuities. */
+        index_first = (int64_t)index->coefficient * (iterations - 1U) + index->offset;
+        if (index_first < INT16_MIN || index_first > INT16_MAX ||
+            !m68k_sim_operand_word_index_value(&instruction, operand, (uint32_t)index_first, &contribution) ||
+            (int32_t)contribution != index_first ||
+            !m68k_sim_operand_word_index_value(&instruction, operand, (uint32_t)index->offset, &contribution) ||
+            (int32_t)contribution != index->offset) continue;
+        index_stride = -(int64_t)index->coefficient;
+        reg = ea->value.ea_reg; displacement = (int16_t)encoded; indexed = 1;
+      }
+      if (access == M68K_APP_SLOT_ACCESS_ADDRESS) continue;
       value = affine_entry_value(&context, node->typed_in.addr_regs[reg].entry_value_id);
-      if (!value || value->root > root_count) continue;
+      if (!value || value->coefficient != 1 || value->root > root_count) continue;
       const M68kLoopEntryRoot *root = &roots[value->root - 1U];
+      if (indexed && root->source == 1U && root->stride == 0) {
+        M68kLoopFieldRow field = {0};
+        if (counter_loop_field_row(lookup, node, &instruction, operand, reg, displacement, width,
+            index_first, index_stride, iterations, candidate->counter,
+            graph->nodes[candidate->header].candidate->offset,
+            graph->nodes[candidate->tail].candidate->offset, &field)) {
+          if (field_count == field_capacity) {
+            size_t capacity = field_capacity ? field_capacity * 2U : 16U;
+            M68kLoopFieldRow *grown;
+            if (capacity < field_capacity || capacity > SIZE_MAX / sizeof(*grown)) goto allocation;
+            grown = realloc(fields, capacity * sizeof(*grown)); if (!grown) goto allocation;
+            fields = grown; field_capacity = capacity;
+          }
+          fields[field_count++] = field;
+        }
+      }
       if (root->source == 1U) {
         const M68kAnalysisStructuredDataItem *table;
         if (source_call || access != M68K_APP_SLOT_ACCESS_READ || width != 4U || count != 1U ||
@@ -434,11 +537,13 @@ static int counter_loop_prove(M68kRenderLookup *lookup, const M68kDecodeIR *deco
         table = lookup_pointer_table_item_for_contract(lookup, root->source_base.pointer_table_section_index,
           root->source_base.pointer_table_offset, root->source_base.pointer_table_size);
         if (!root->source_base.pointer_table_known || !table) continue;
-        first = (int64_t)root->source_base.offset + value->offset + displacement;
-        last = first + (int64_t)root->stride * (iterations - 1U);
+        int64_t stride = (int64_t)root->stride + index_stride;
+        if (stride < INT32_MIN || stride > INT32_MAX) continue;
+        first = (int64_t)root->source_base.offset + value->offset + displacement + index_first;
+        last = first + stride * (iterations - 1U);
         lo = first < last ? first : last; hi = (first > last ? first : last) + width;
         if (lo < table->offset || hi > (int64_t)table->offset + table->size ||
-            ((first - table->offset) % 4) || root->stride % 4) continue;
+            ((first - table->offset) % 4) || stride % 4) continue;
         if (row_count == row_capacity) {
           size_t capacity = row_capacity ? row_capacity * 2U : 16U;
           M68kLoopRangeRow *grown;
@@ -447,12 +552,13 @@ static int counter_loop_prove(M68kRenderLookup *lookup, const M68kDecodeIR *deco
           rows = grown; row_capacity = capacity;
         }
         M68kLoopRangeRow row = {0}; row.node = index; row.operand = operand; row.reg = reg;
-        row.access = access; row.width = width; row.stride = root->stride; row.source = 1U;
+        row.access = access; row.width = width; row.stride = (int32_t)stride; row.source = 1U;
         row.source_section = root->source_base.section_index; row.source_first = (uint32_t)first;
         rows[row_count++] = row;
         continue;
       }
-      if (!root->app || !typed_app_memory_span(lookup, &node->typed_in, &instruction, operand, &reg,
+      if (indexed) continue; /* No new app-owner/index inference in this slice. */
+      if (root->app != 1U || !typed_app_memory_span(lookup, &node->typed_in, &instruction, operand, &reg,
           &displacement, &access, &width, &element, &count)) continue;
       first = (int64_t)root->app_displacement + value->offset + displacement;
       last = first + (int64_t)root->stride * (iterations - 1U);
@@ -470,6 +576,13 @@ static int counter_loop_prove(M68kRenderLookup *lookup, const M68kDecodeIR *deco
       }
       rows[row_count++] = (M68kLoopRangeRow){index, operand, reg, access, width, root->evidence, (int16_t)first, root->stride};
     }
+  }
+  for (size_t i = 0U; i < field_count; ++i) {
+    const M68kLoopFieldRow *field = &fields[i];
+    if (render_lookup_add_typed_access_by_names(lookup, section->section_index, field->offset,
+        field->operand, field->reg, field->displacement, field->struct_size, field->array_addend,
+        field->base_cursor, 0U, &field->field, &field->provenance, &field->table_origin,
+        &field->index) != 0) goto allocation;
   }
   for (size_t i = 0U; i < row_count; ++i) {
     const M68kLoopRangeRow *row = &rows[i];
@@ -528,7 +641,7 @@ cleanup:
   }
   lookup->affine_entry_context = NULL;
   for (size_t i = 0U; i < body_count; ++i) graph->nodes[body[i]].has_in = graph->nodes[body[i]].has_out = 0U;
-  affine_entry_destroy(&context); free(body); free(queue); free(rows); return result;
+  affine_entry_destroy(&context); free(body); free(queue); free(rows); free(fields); return result;
 }
 
 static int typed_flow_record_app_loop_ranges(M68kRenderLookup *lookup, const M68kDecodeIR *decode,

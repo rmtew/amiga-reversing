@@ -18,7 +18,7 @@ static void step(M68kRenderTypedState *state,M68kRenderLookup *lookup,const char
   typed_state_update_after_instruction(state,lookup,&platform,0,&instruction,NULL,NULL,0,0);
 }
 static void expect(M68kAffineEntryContext *c,uint32_t id,uint32_t root,int offset) {
-  const M68kAffineEntryValue *v=affine_entry_value(c,id);assert(v && v->root==root && v->offset==offset);
+  const M68kAffineEntryValue *v=affine_entry_value(c,id);assert(v && v->root==root && v->offset==offset && v->coefficient==1);
 }
 int main(void) {
   M68kAffineEntryContext context={0}; M68kRenderLookup lookup={0};
@@ -79,6 +79,34 @@ int main(void) {
   expect(&context,state.addr_regs[0].entry_value_id,1,0);
   function_summary_set_register_partition(&summary,0,0);
   typed_state_apply_function_summary_effects(&state,&summary);assert(!state.addr_regs[4].entry_value_id);
+  state.data_regs[6].entry_value_id=affine_entry_intern(&context,7,3,2);
+  step(&state,&lookup,"move.w d6,d2");
+  step(&state,&lookup,"add.w d6,d2");
+  const M68kAffineEntryValue *sum=affine_entry_value(&context,state.data_regs[2].entry_value_id);
+  assert(sum && sum->coefficient==2 && sum->offset==6);
+  step(&state,&lookup,"sub.w d6,d2");expect(&context,state.data_regs[2].entry_value_id,7,3);
+  step(&state,&lookup,"move.w d6,d0");expect(&context,state.data_regs[0].entry_value_id,7,3);
+  step(&state,&lookup,"lsl.w #2,d0");
+  const M68kAffineEntryValue *scaled=affine_entry_value(&context,state.data_regs[0].entry_value_id);
+  assert(scaled && scaled->root==7 && scaled->coefficient==4 && scaled->offset==12 && scaled->width==2);
+  uint32_t four=state.data_regs[0].entry_value_id;
+  assert(four==affine_entry_intern_scaled(&context,7,4,12,2));
+  step(&state,&lookup,"add.w d0,d0");
+  scaled=affine_entry_value(&context,state.data_regs[0].entry_value_id);
+  assert(scaled && scaled->coefficient==8 && scaled->offset==24);
+  step(&state,&lookup,"subq.w #2,d0");
+  scaled=affine_entry_value(&context,state.data_regs[0].entry_value_id);
+  assert(scaled && scaled->coefficient==8 && scaled->offset==22);
+  step(&state,&lookup,"movea.w d0,a0");
+  scaled=affine_entry_value(&context,state.addr_regs[0].entry_value_id);
+  assert(scaled && scaled->width==2 && scaled->coefficient==8 && !state.addr_regs[0].known);
+  step(&state,&lookup,"lsr.w #1,d0");assert(!state.data_regs[0].entry_value_id);
+  state.data_regs[0].entry_value_id=four;
+  step(&state,&lookup,"move.b #0,d0");assert(!state.data_regs[0].entry_value_id);
+  state.data_regs[0].entry_value_id=a;
+  step(&state,&lookup,"lsl.w #2,d0");assert(!state.data_regs[0].entry_value_id);
+  assert(!affine_entry_scale(&context,affine_entry_intern(&context,7,INT32_MAX,4),2));
+  assert(!affine_entry_intern_scaled(&context,7,0,0,2));
   assert(!context.failed);
   printf("sizes reg=%zu stored=%zu state=%zu node=%zu\n",sizeof(M68kRenderTypedRegValue),sizeof(M68kRenderTypedStoredValue),sizeof(M68kRenderTypedState),sizeof(M68kRenderTypedFlowNode));
   affine_entry_destroy(&context);m68k_analysis_policy_destroy(&policy);return 0;

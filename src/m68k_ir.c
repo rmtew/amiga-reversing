@@ -3203,11 +3203,13 @@ int m68k_ir_section_analysis_append_app_slot_ref(M68kSectionAnalysisIR *section_
 }
 
 static int word_index_access_equal(const M68kWordIndexAccessIR *left, const M68kWordIndexAccessIR *right) {
-  if (!right || !right->value_count) return !left->value_count;
+  if (!m68k_word_index_access_has_domain(right)) return !m68k_word_index_access_has_domain(left);
   return left->value_count == right->value_count && left->reg_kind == right->reg_kind &&
     left->reg_index == right->reg_index && left->access_width == right->access_width &&
     left->record_count == right->record_count && left->base_record_index == right->base_record_index &&
     left->encoded_symbol_correction == right->encoded_symbol_correction &&
+    left->loop_index_first == right->loop_index_first &&
+    !memcmp(&left->loop_domain, &right->loop_domain, sizeof(left->loop_domain)) &&
     !memcmp(left->byte_offsets, right->byte_offsets, left->value_count * sizeof(*left->byte_offsets));
 }
 
@@ -3235,11 +3237,23 @@ int m68k_ir_section_analysis_append_recovered_platform_typed_access(M68kSectionA
   field_ref.platform_kind = platform_kind;
   field_ref.domain_kind = M68K_PLATFORM_NAME_FIELD;
   field_ref.id = m68k_platform_name_id_from_text(platform_kind, M68K_PLATFORM_NAME_FIELD, field_name);
-  if (word_index && word_index->value_count &&
+  if (m68k_word_index_access_has_domain(word_index) &&
       (word_index->value_count > M68K_WORD_INDEX_VALUE_LIMIT || word_index->reg_index >= 8U ||
        (word_index->reg_kind != M68K_ANALYSIS_REGISTER_DATA && word_index->reg_kind != M68K_ANALYSIS_REGISTER_ADDRESS) ||
        (word_index->access_width != 1U && word_index->access_width != 2U && word_index->access_width != 4U) ||
        !word_index->record_count || word_index->base_record_index >= word_index->record_count)) return -1;
+  if (word_index && word_index->loop_domain.state) {
+    const M68kAffineLoopDomainIR *loop = &word_index->loop_domain;
+    int64_t last;
+    if (word_index->value_count || loop->state != 1U || !loop->iteration_count ||
+        loop->iteration_count > 65536U || loop->header_offset >= loop->tail_offset ||
+        loop->counter_register >= 8U || loop->access_width != word_index->access_width ||
+        loop->access_kind != M68K_APP_SLOT_ACCESS_READ) return -1;
+    last = (int64_t)word_index->loop_index_first +
+      (int64_t)loop->iteration_stride * (loop->iteration_count - 1U);
+    if (word_index->loop_index_first < INT16_MIN || word_index->loop_index_first > INT16_MAX ||
+        last < INT16_MIN || last > INT16_MAX) return -1;
+  }
   for (index = 0; index < section_analysis->recovered_platform_typed_access_count; ++index) {
     M68kRecoveredPlatformTypedAccessIR *existing = &section_analysis->recovered_platform_typed_accesses[index];
     if (existing->offset == offset && existing->operand_index == operand_index &&
@@ -3286,7 +3300,7 @@ int m68k_ir_section_analysis_append_recovered_platform_typed_access(M68kSectionA
    * newly allocated slot.  The optional table-origin fields must therefore
    * start absent rather than inherit bytes from a prior arena allocation. */
   memset(new_access, 0, sizeof(*new_access));
-  if (word_index && word_index->value_count) new_access->word_index = *word_index;
+  if (m68k_word_index_access_has_domain(word_index)) new_access->word_index = *word_index;
   new_access->offset = offset;
   new_access->operand_index = operand_index;
   new_access->base_reg = base_reg;

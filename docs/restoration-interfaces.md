@@ -890,6 +890,24 @@ multi-register transfers, multiple EA updates, conflicting base uses, pointer-ta
 cursors and accesses outside the known record keep their conservative boundary.
 This is type/field evidence, not memory ownership or alias-exclusion proof.
 
+The shared counter-loop induction also covers non-scaled WORD-indexed LONG
+reads from declared source record arrays. It retains WORD copies (including
+An.W indices), constant left shifts and same-root addition/subtraction in the
+existing interned entry-value component. Bounds, signed contributions and
+homogeneous field offsets are checked without enumerating a large index set.
+Lost unrelated roots cannot supply ranges; counter and stack identities remain
+mandatory. Unknown/clobbered counters, conflicting paths, partial fields and
+owner overruns retain refusal. This slice requires an invariant source base.
+
+These structural facts expose `word_index.evidence = bounded_counter_index`
+and a compressed `loop_domain`, rather than a list of index values. The
+memory-layout `indexed_access_envelope` explicitly describes strided possible
+accesses; an outer loop count is not a physical read count when paths skip the
+access. The encoded displacement and live index stay unchanged. Naming a field
+does not prove its contents or a loaded pointer. Source-pointee domains still
+require the separate alias/code-stability and canonical target checks; neither
+the exact-candidate cap nor the eight-value WORD set cap is raised.
+
 A bounded record cursor may retain its one-past-end value after reading the
 last field. A later predecrement can reenter that same record and resolve its
 fields, including after the cursor is stored as an address. Reads or writes at

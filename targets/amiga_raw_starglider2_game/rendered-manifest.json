@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "source_commit": "93d363c288cbfe1c9756f3e30b48d2ef897ac018",
+  "source_commit": "bd59c00646180695f0652ff6c47aa2aff1106ef8",
   "source_assembly": "starglider2_game.s",
   "assets": [
     {
@@ -878,13 +878,13 @@
     },
     {
       "path": "rendered-provenance.json",
-      "bytes": 3074,
-      "sha256": "892b34b6b70b1791238e04cbfcfdba086c7f547d8133e836d49dc76aecfb924a"
+      "bytes": 3161,
+      "sha256": "122f1f67b706c053202c16dbe3b7445d7f1670bbde7ea1c82d355a51318969dc"
     },
     {
       "path": "starglider2_game.s",
-      "bytes": 2021225,
-      "sha256": "cf83caf02dd279cc0afab23f6a56435bad91641bdfc677e71270ae627f5b24dd"
+      "bytes": 2021275,
+      "sha256": "8e17bd89cdae6bf81a8e6a544ec60829e9273f13b6dd9e966908a0ba92dd0d1c"
     },
     {
       "path": "tools/starglider2_protection.py",
@@ -892,6 +892,6 @@
       "sha256": "81d3f66d36dbfbd5c77238b20c28e8b9abaa329777eb91f64669bbbf13703582"
     }
   ],
-  "source_commit_role": "publication base; 38 reviewed original one-JUMP forwarding entries name established destinations without new ABI or code ownership claims are bound by verification_receipt_id",
-  "source_subject_revision": "83dfaa0ebbc617c2c48fd730934dfbf83cb979df86ee5c9dda921799a3479d99"
+  "source_commit_role": "publication base; canonical target facts unchanged; shared counter-index proof and rendering changes are in the publishing commit and output is bound by verification_receipt_id",
+  "source_subject_revision": "664a34d3e9d1922ac749b8b521778286c2a53df072f9080c0c9bdd1aa6c3173c"
 }

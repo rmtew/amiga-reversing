@@ -6580,6 +6580,18 @@ static int typed_memory_base_for_pointer_read(const M68kRenderTypedState *state,
   if (!state || !out || !typed_pointer_read_operand_supported(instruction, operand_index)) return 0;
   operand = &instruction->operands[operand_index];
   shape = m68k_instruction_operand_decoded_ea_shape(operand);
+  if (shape == M68K_SIM_EA_SHAPE_INDEX) {
+    uint32_t ignored;
+    if (!m68k_sim_operand_word_index_value(instruction, operand_index, 0U, &ignored) ||
+        operand->value.ea_reg >= 8U) return 0;
+    *out = state->memory_base_regs[operand->value.ea_reg];
+    if (!out->pointer_table_known) return 0;
+    /* Preserve the source-table identity, never substitute its base for the
+     * unknown indexed entry. The canonical binder must independently admit
+     * a singleton or a fully checked loop domain before consumers use it. */
+    out->known = 0U; out->affine_known = 0U;
+    return 1;
+  }
   if (shape == M68K_SIM_EA_SHAPE_PREDECREMENT || shape == M68K_SIM_EA_SHAPE_POSTINCREMENT) {
     reg = operand->value.ea_reg;
     if (shape == M68K_SIM_EA_SHAPE_PREDECREMENT) {
@@ -6604,6 +6616,9 @@ static int typed_stored_value_from_pointer_table_read(M68kRenderTypedStoredValue
   uint32_t entry_stride = 4U;
   uint32_t domain_min = 0U, domain_max = 0U, entry_index;
   uint8_t has_domain = 0U;
+  int pending_index = read_instruction && !override_memory_base &&
+    read_operand_index < read_instruction->operand_count &&
+    m68k_instruction_operand_decoded_ea_shape(&read_instruction->operands[read_operand_index]) == M68K_SIM_EA_SHAPE_INDEX;
   if (value == NULL || lookup == NULL || state == NULL || operand == NULL) return 0;
   if (read_instruction && !typed_pointer_read_operand_supported(read_instruction, read_operand_index)) return 0;
   if (override_memory_base != NULL) memory_base = *override_memory_base;
@@ -6664,7 +6679,11 @@ static int typed_stored_value_from_pointer_table_read(M68kRenderTypedStoredValue
       domain_max = item->index_loop_max;
       has_domain = 1U;
     }
-    if (item->has_consumer && item->has_index_register && has_domain) {
+    if (pending_index) {
+      /* A preserved table identity is not a live entry or a finite-domain
+       * contract. Only the source-bound loop envelope can admit this lane. */
+      value->table_origin.selection_kind = M68K_ADDRESS_VALUE_TABLE_SELECTION_SINGLETON;
+    } else if (item->has_consumer && item->has_index_register && has_domain) {
       value->table_origin.selection_kind = M68K_ADDRESS_VALUE_TABLE_SELECTION_FINITE;
       value->table_origin.index_min = domain_min;
       value->table_origin.index_max = domain_max;
@@ -7999,7 +8018,7 @@ static int render_lookup_collect_inferred_callback_table_function_summaries(M68k
 
 /* Affine entry identity is an orthogonal shared value component. MOVE,
  * storage, stack and callable paths transport it with the existing packet;
- * only the arithmetic offset operations need this component-specific rule. */
+ * only linear arithmetic needs this component-specific rule. */
 static void affine_entry_transfer_after(M68kRenderTypedState *state, const M68kRenderLookup *lookup,
     const M68kInstructionIR *instruction, const uint32_t before[16],
     const M68kStackRegisterTransfer *stack, int has_stack) {
@@ -8011,6 +8030,38 @@ static void affine_entry_transfer_after(M68kRenderTypedState *state, const M68kR
   if (instruction->operand_count == 2U &&
       m68k_instruction_operand_direct_register(&instruction->operands[1], &address, &reg) && reg < 8U) {
     const M68kAffineEntryValue *input = affine_entry_value(context, before[reg + (address ? 8U : 0U)]);
+    /* WORD identities describe only the low WORD, never a reconstructed LONG
+     * pointer. This also permits an An.W index after MOVEA.W without treating
+     * the sign-extended address register as a source/app base. */
+    if (metadata->operation_type == M68K_SIM_OP_MOVE && instruction->size_suffix == 'w') {
+      uint8_t source_address, source_reg;
+      if (m68k_instruction_operand_direct_register(&instruction->operands[0], &source_address, &source_reg) && source_reg < 8U) {
+        const M68kAffineEntryValue *source = affine_entry_value(context,
+          before[source_reg + (source_address ? 8U : 0U)]);
+        if (source && source->width == 2U) {
+          if (address) state->addr_regs[reg].entry_value_id = before[source_reg + (source_address ? 8U : 0U)];
+          else state->data_regs[reg].entry_value_id = before[source_reg + (source_address ? 8U : 0U)];
+        }
+      }
+    }
+    if (!address && input && ((instruction->size_suffix == 'w' && input->width == 2U) ||
+        (instruction->size_suffix == 'l' && input->width == 4U))) {
+      uint8_t source_address, source_reg;
+      uint32_t count;
+      if ((metadata->operation_type == M68K_SIM_OP_ADD || metadata->operation_type == M68K_SIM_OP_SUB) &&
+          m68k_instruction_operand_direct_register(&instruction->operands[0], &source_address, &source_reg) &&
+          source_reg < 8U)
+        state->data_regs[reg].entry_value_id = affine_entry_sum(context, before[reg],
+          before[source_reg + (source_address ? 8U : 0U)], metadata->operation_type == M68K_SIM_OP_SUB);
+      else if (metadata->operation_type == M68K_SIM_OP_SHIFT &&
+          metadata->shift_direction == M68K_SIM_SHIFT_DIR_LEFT &&
+          metadata->shift_count_source == M68K_SIM_SHIFT_COUNT_OPERAND &&
+          m68k_ir_operand_immediate_value(&instruction->operands[0], &count)) {
+        if (metadata->shift_count_modulus) count %= metadata->shift_count_modulus;
+        if (count < (uint32_t)input->width * 8U)
+          state->data_regs[reg].entry_value_id = affine_entry_scale(context, before[reg], (int32_t)(UINT32_C(1) << count));
+      }
+    }
     if (input && (instruction->size_suffix == 'l' ||
         (instruction->size_suffix == 'w' && (address || input->width == 2U))) &&
         typed_app_cursor_immediate_delta(instruction, &delta)) {
@@ -17219,13 +17270,13 @@ static int typed_prune_resolved_indexed_diagnostics(M68kRenderLookup *lookup) {
   const M68kRenderTypedAccess **resolved;
   size_t count = 0U, index, kept = 0U;
   for (index = 0U; index < lookup->typed_access_count; ++index)
-    count += lookup->typed_accesses[index].word_index.value_count != 0U;
+    count += m68k_word_index_access_has_domain(&lookup->typed_accesses[index].word_index);
   if (!count) return 0;
   resolved = malloc(count * sizeof(*resolved));
   if (!resolved) return -1;
   count = 0U;
   for (index = 0U; index < lookup->typed_access_count; ++index)
-    if (lookup->typed_accesses[index].word_index.value_count) resolved[count++] = &lookup->typed_accesses[index];
+    if (m68k_word_index_access_has_domain(&lookup->typed_accesses[index].word_index)) resolved[count++] = &lookup->typed_accesses[index];
   qsort(resolved, count, sizeof(*resolved), typed_index_site_compare);
   for (index = 0U; index < lookup->unresolved_typed_access_count; ++index) {
     const M68kRenderUnresolvedTypedAccess *entry = &lookup->unresolved_typed_accesses[index];
