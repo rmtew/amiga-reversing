@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "source_commit": "95f02c19a27653a0554135c0740299d6bfa64256",
+  "source_commit": "092588ec73bf564b82bcf54878a9643825f24926",
   "source_assembly": "starglider2_game.s",
   "assets": [
     {
@@ -878,13 +878,13 @@
     },
     {
       "path": "rendered-provenance.json",
-      "bytes": 3432,
-      "sha256": "174bb574be0fa8005506aec235fff703a23649b031931fcb6ceb88906ce1bc63"
+      "bytes": 3462,
+      "sha256": "b7f71838786030cdc2cc9dc095151a439a7fda300df3f31fbe4118a5a0135b63"
     },
     {
       "path": "starglider2_game.s",
-      "bytes": 2115335,
-      "sha256": "16c48d1df1b4a286860ce6ba06f5d4024f29f52005f98bb4093954db8381f172"
+      "bytes": 2117066,
+      "sha256": "29d5f47d5b0f33aeb693e7178492bd02820d76ad3adf1a7aa57a4207bea474cd"
     },
     {
       "path": "tools/starglider2_protection.py",
@@ -892,6 +892,6 @@
       "sha256": "81d3f66d36dbfbd5c77238b20c28e8b9abaa329777eb91f64669bbbf13703582"
     }
   ],
-  "source_commit_role": "canonical reconstruction base; local transition source preserves original WORD gates, distinct entry/exit coordinate and layout effects, and saved-frame behavior; supplied CPU paths stop at pool/helper handoffs or test later guards separately, not full world-rebuild/gameplay or global lifetime proof; output is bound by verification_receipt_id",
-  "source_subject_revision": "b8a85ae139a4a0a8e492db7b5e9323f2b46a39df683d55f3fab153c1f91b5c50"
+  "source_commit_role": "canonical source publication base; world rebuild, signed/LIFO/partial projector initialization and detonation dedup reconstructed from original code and supplied CPU cases;32 original placement streams and12 selected full helper transition returns, not normal-game reachability, arbitrary selector/pointer or global lifetime proof; output is bound by verification_receipt_id",
+  "source_subject_revision": "855ac6d880cbdf3239f5d0b73144339a253ba3ebd0833d1b7da21e82d25565ac"
 }

@@ -1507,6 +1507,9 @@ SG2_PLAYER_PROFILE_HALF_WIDTH	EQU	500
 SG2_PLAYER_SOLID_CONTACT_RESPONSE_PASSES	EQU	4
 SG2_PROJECTILE_BASE_ENERGY_COST	EQU	256
 SG2_PROJECTILE_FREE_SLOT_RESERVE	EQU	2
+SG2_PROJECTOR_RESERVED_FREE_FLOOR	EQU	1
+SG2_PROJECTOR_TEMPLATE_DBF_LAST	EQU	7
+SG2_PROJECTOR_TURRET_PART_TYPE	EQU	78
 SG2_RADIAL_FIRST_SHIFT_THRESHOLD	EQU	524288
 SG2_RADIAL_SHIFT_DBF_LAST	EQU	9
 SG2_SAVE_CHUNK_BYTES	EQU	$1400
@@ -1546,6 +1549,7 @@ SG2_WORKSPACE_BELOW_DISPLAY_BYTES	EQU	$6998
 SG2_WORKSPACE_CLEAR_WORDS	EQU	$32CC
 SG2_WORLD_FREE_FILL_LAST_INDEX	EQU	250
 SG2_WORLD_POOL_CLEAR_DBF_LAST	EQU	249
+SG2_WORLD_RECORD_BYTES	EQU	68
 _ciaa	EQU	$BFE001
 _ciab	EQU	$BFD000
 _custom	EQU	$DFF000
@@ -24126,6 +24130,7 @@ abs_0_00017D88:
 	move.b (a3)+,(a1)+
 	dbf.w d7,abs_0_00017D88
 	rts
+    ; Rebuild clears250 records before recreating player/type placements. Player record XYZ becomes zero; workspace XYZ survives. Do not read pre-rebuild copied record coordinates as final state.
 initialize_world_object_pool:
 	move.l #tug_placement_parameter_prefix,tug_placement_parameter_cursor.l
 	move.l #$FFFFF830,tug_placement_group_world_y.l
@@ -24160,7 +24165,7 @@ clear_one_world_record_with_seventeen_longs:
 	dbf.w d0,clear_one_world_record_with_seventeen_longs
 reset_initializer_chain_before_world_placements:
 	clr.l object_initializer_chain_tail(a6)
-	moveq.l #68,d2
+	moveq.l #SG2_WORLD_RECORD_BYTES,d2
 	lea.l world_object_pool(a6),a0
 	lea.l model_default_durability_bytes.l,a3
 	lea.l model_default_scale_shifts.l,a4
@@ -24184,7 +24189,7 @@ seed_player_record_before_world_placements:
 	move.w player_rotation_0(a6),$0010(a0)
 	move.w player_rotation_1(a6),$0012(a0)
 	move.w player_rotation_2(a6),$0014(a0)
-	bra.b abs_0_00017E6E
+	bra.b set_world_placement_scale_phase_and_variant
     ; Type WORD zero ends stream. Nonzero: copy LONG X/Z. Surface records: 10 bytes; interior records: 16 bytes. Original map high-byte flags may be split later.
     ; KNOWN: type A0=Target code-entry register seed:SG2ObjectCore
 read_next_world_object_placement:
@@ -24197,17 +24202,19 @@ read_next_world_object_placement:
 	tst.w d4
 	bpl.b read_interior_placement_parameters
     ; Copy original type-indexed durability default into signed BYTE1C. Stored model prefix has104 entries; high-type aliases are unchanged and are not established table bounds.
-abs_0_00017E68:
+load_placement_type_default_durability_byte:
 	move.b $0(a3,d0.w),SG2ObjectCore_durability_or_negative(a0)
     ; Model shift comes from original type-indexed BYTE defaults at172CE. Known model prefix has104entries; high/out-of-domain selectors retain original unchecked aliases.
-abs_0_00017E6E:
+set_world_placement_scale_phase_and_variant:
 	move.b $0(a4,d0.w),$001D(a0)
 	move.b #$FF,$001E(a0)
 	clr.b $0003(a0)
 	add.w d0,d0
 	add.w d0,d0
+resolve_world_placement_initializer_pointer:
 	lea.l world_object_type_initializer_pointers(pc),a5
 	movea.l $0(a5,d0.w),a5
+invoke_world_placement_initializer:
 	jsr (a5)
 advance_world_record_and_one_based_slot_index:
 	adda.w d2,a0
@@ -24222,13 +24229,15 @@ read_interior_placement_parameters:
 	move.w (a1)+,$0028(a0)
 	move.w (a1)+,$0012(a0)
 	bset.b #7,SG2ObjectCore_flags(a0)
+test_interior_type_header_high_byte:
 	tst.b (a0)	; operand 1: SG2ObjectCore_object_type at (a0)
-	beq.b abs_0_00017E68
+	beq.b load_placement_type_default_durability_byte
+extract_packed_interior_header_high_byte:
 	bclr.b #7,SG2ObjectCore_flags(a0)
 	move.b (a0),$0026(a0)	; operand 1: SG2ObjectCore_object_type at (a0)
 	clr.b (a0)	; operand 1: SG2ObjectCore_object_type at (a0)
 	move.w (a0),d0	; operand 1: SG2ObjectCore_object_type at (a0)
-	bra.b abs_0_00017E68
+	bra.b load_placement_type_default_durability_byte
     ; D7 is one-based: player prefix advances 1 to 2. With matching A0 and D7 in 1..250, inclusive fill writes 251-D7 entries; empty placement leaves 249 free. No enlarged pool is declared.
 initialize_free_stack_from_one_based_slot_index:
 	lea.l free_object_stack_storage(a6),a1
@@ -47670,7 +47679,7 @@ abs_0_0003661A:
     ; Eight projector templates, no terminator. Spawn only presence-marked parts for selected original body, copy literal X/Z, use default model shift. No arbitrary body-index proof.
 spawn_selected_body_projector_parts:
 	clr.w growing_projector_part_type(a6)
-	move.w #$7,d7
+	move.w #SG2_PROJECTOR_TEMPLATE_DBF_LAST,d7
 	lea.l projector_part_presence_flags(a6),a0
 	lea.l projector_part_placement_templates.l,a1
 	move.w selected_celestial_body_index(a6),d1
@@ -47678,20 +47687,24 @@ spawn_selected_body_projector_parts:
 	move.w #$6,d0
 	sub.w d1,d0
 	asl.w #3,d0
-abs_0_0003664E:
+read_next_projector_template_and_presence_flag:
 	move.w (a1)+,d1
 	move.w d1,d4
 	subi.w #75,d1
 	add.w d0,d1
 	tst.b $0(a0,d1.w)
-	bpl.w abs_0_000366E0
-	cmpi.w #1,free_object_count(a6)
-	ble.w abs_0_000366E0
+	bpl.w skip_unspawned_projector_template_coordinates
+    ; Signed free count must exceed1, preserving one reserved slot. Each negative presence BYTE may pop one LIFO record; only listed fields are initialized, so unrelated record bytes remain stale.
+require_more_than_one_signed_free_projector_slot:
+	cmpi.w #SG2_PROJECTOR_RESERVED_FREE_FLOOR,free_object_count(a6)
+	ble.w skip_unspawned_projector_template_coordinates
+pop_projector_part_record_from_free_stack:
 	movea.l free_object_stack_cursor(a6),a3
 	movea.l -(a3),a4
 	move.l a3,free_object_stack_cursor(a6)
 	subq.w #1,free_object_count(a6)
     ; KNOWN: type A4=Target code-entry register seed:SG2ProjectorPart
+initialize_projector_part_without_full_record_clear:
 	move.w d4,(a4)	; operand 2: SG2ObjectCore_object_type at (a4)
 	move.l (a1)+,SG2ObjectCore_world_x(a4)
 	move.l (a1)+,SG2ObjectCore_world_z(a4)
@@ -47703,21 +47716,23 @@ abs_0_0003664E:
 	move.b #$0,SG2WorldObject_vertex_variant_selector(a4)
 	move.b #$0,SG2ProjectorPart_network_animation_step(a4)
 	tst.b projector_network_complete_flag(a6)
-	bpl.b abs_0_000366BA
+	bpl.b clear_projector_euler_rotation_words
+mark_projector_network_animation_complete:
 	move.b #$1,SG2ProjectorPart_network_animation_step(a4)
-abs_0_000366BA:
+clear_projector_euler_rotation_words:
 	move.w #$0,SG2WorldObject_rotation_0(a4)
 	move.w #$0,SG2WorldObject_rotation_1(a4)
 	move.w #$0,SG2WorldObject_rotation_2(a4)
-	cmp.w #$4E,d4
-	bne.b abs_0_000366E2
+	cmp.w #SG2_PROJECTOR_TURRET_PART_TYPE,d4
+	bne.b continue_eight_projector_template_walk
+remember_spawned_projector_turret_position:
 	move.l SG2ObjectCore_world_x(a4),projector_turret_world_x(a6)
 	move.l SG2ObjectCore_world_z(a4),projector_turret_world_z(a6)
-	bra.b abs_0_000366E2
-abs_0_000366E0:
+	bra.b continue_eight_projector_template_walk
+skip_unspawned_projector_template_coordinates:
 	addq.l #8,a1
-abs_0_000366E2:
-	dbf.w d7,abs_0_0003664E
+continue_eight_projector_template_walk:
+	dbf.w d7,read_next_projector_template_and_presence_flag
 	rts
     ; KNOWN: type A0=Target code-entry register seed:SG2NeutronBomb
 update_nearby_neutron_bomb:
@@ -47815,7 +47830,7 @@ abs_0_0003682A:
 	clr.w (a0)	; operand 1: SG2ObjectCore_object_type at (a0)
 	clr.l carried_neutron_bomb_reference(a6)
 	rts
-    ; Neutron detonation queues message twice, clears player resourceWORD776, sets event flag and clears retirement phase of all250records except type30. Original blast scope preserved.
+    ; Requests same pointer twice via adjacent dedup: normally message, blank, message; matching preceding storage can suppress both. Shield clears; all250 phases except type30 clear.
 handle_neutron_bomb_detonation:
 	clr.w pending_message_count(a6)
 	move.w #$1,message_display_countdown(a6)
@@ -47823,21 +47838,24 @@ handle_neutron_bomb_detonation:
 	move.w #$154,d0
 	movea.l SG2SourceTextReference_text(a1,d0.w),a1
 	bsr.w enqueue_event_message
+request_second_detonation_message_pointer:
 	lea.l event_message_pointers.l,a1
 	move.w #$154,d0
 	movea.l SG2SourceTextReference_text(a1,d0.w),a1
 	bsr.w enqueue_event_message
+clear_shield_and_raise_detonation_sound_flag:
 	clr.w icarus_shield_strength(a6)
 	st.b pending_transient_event_sound(a6)
 	lea.l world_object_pool(a6),a0
-	move.w #$F9,d0
-abs_0_0003687A:
+	move.w #SG2_WORLD_POOL_CLEAR_DBF_LAST,d0
+test_pool_record_for_player_phase_exemption:
 	cmpi.w #30,(a0)
-	beq.b abs_0_00036884
+	beq.b advance_fixed_pool_detonation_scan
+retire_nonplayer_record_during_detonation:
 	clr.b $001E(a0)
-abs_0_00036884:
-	adda.w #$44,a0
-	dbf.w d0,abs_0_0003687A
+advance_fixed_pool_detonation_scan:
+	adda.w #SG2_WORLD_RECORD_BYTES,a0
+	dbf.w d0,test_pool_record_for_player_phase_exemption
 	rts
     ; KNOWN: type A0=Target code-entry register seed:SG2BouncingBomb
 update_nearby_bouncing_bomb:

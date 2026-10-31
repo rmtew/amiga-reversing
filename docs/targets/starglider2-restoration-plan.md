@@ -27,6 +27,30 @@ and strengthened 38 app-base attributions.
 Conditional skips mean104 outer iterations are not104 observed memory reads.
 Loaded pointer values remain subject to separate alias/target validation.
 
+The connected world-rebuild batch reconstructs 20 continuations and four
+constants with 146 original-CPU cases. All 32 original placement streams return
+with their expected occupied/free suffix split. The initializer clears 250
+records, recreating player record XYZ as zero while workspace XYZ survives.
+Consequently the earlier exit copy into the player record is a pre-rebuild
+phase effect, not the final record position.
+
+Projector restoration preserves the signed free-count >1 reservation, negative
+presence flags, eight-template walk and LIFO pops. It writes selected fields
+without clearing the entire record; unrelated bytes and lower durability bits
+remain stale. Only a spawned type 78 updates the turret-position cache. The
+network-complete test uses a sign bit, not any nonzero value.
+
+Detonation requests the same message pointer twice through adjacent dedup.
+Normally the queue contains message, blank, message; matching pre-slot storage
+can suppress both requests. It clears shield and 250 retirement-phase bytes
+except records whose type WORD is 30; power and weapon energy are preserved.
+Eight entry and four surface-return fixtures execute original pool/projector/
+bomb helpers to return without replacement or state forcing during execution.
+These supplied-RAM cases do not certify normal-game reachability, arbitrary
+selectors/pointers, general lifetime safety, DMA or hardware behavior. Native
+proof/reference identities and 3509 app / 2716 typed / 165 unresolved counts remain
+unchanged; C/vasm and clean standalone rebuilding remain byte-exact.
+
 The entry/exit transition batch reconstructs 27 continuations and six domain
 constants with 188 original-CPU cases. Exit sign-extends MOVEM.W motion before
 LONG doubling and masking X/Z; both approach directions compare only signed
