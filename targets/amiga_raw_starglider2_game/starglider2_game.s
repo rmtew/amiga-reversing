@@ -1465,6 +1465,8 @@ SG2_OVERLAY_MIN_LEFT	EQU	16
 SG2_OVERLAY_MIN_TOP	EQU	30
 SG2_OVERLAY_ROWS_DBF_LAST	EQU	15
 SG2_OVERLAY_ROW_BYTE_STEP	EQU	160
+SG2_PROJECTILE_BASE_ENERGY_COST	EQU	256
+SG2_PROJECTILE_FREE_SLOT_RESERVE	EQU	2
 SG2_RADIAL_FIRST_SHIFT_THRESHOLD	EQU	524288
 SG2_RADIAL_SHIFT_DBF_LAST	EQU	9
 SG2_SAVE_CHUNK_BYTES	EQU	$1400
@@ -1477,7 +1479,9 @@ SG2_SAVE_NAME_INPUT_LIMIT	EQU	30
 SG2_SAVE_NAME_SLOT_BYTES	EQU	32
 SG2_SAVE_RESTORE_DBF_LAST	EQU	$17B8
 SG2_SAVE_TRACK_DBF_LAST	EQU	$4
+SG2_SCAN_EVEN_DEPTH_MASK	EQU	65534
 SG2_SCAN_FRAME_BYTE_OFFSET_MASK	EQU	28
+SG2_SCAN_INITIAL_DEPTH_LIMIT	EQU	32767
 SG2_SCAN_OVERLAY_RELOAD	EQU	56
 SG2_SPRITE_CONTROL_PREFIX_BYTES	EQU	4
 SG2_TEXT_CURSOR_COLUMNS	EQU	40
@@ -8926,7 +8930,7 @@ dispatch_selected_weapon_action:
 abs_0_000071AE:
 	andi.w #31,d1
 	tst.w weapon_action_cooldown(a6)
-	bne.w abs_0_000075B0
+	bne.w return_from_weapon_or_scan_action
 	move.b weapon_selection_and_status(a6),d1
 	cmp.w #$8,d1
 	beq.w scan_or_fire_homing_missile
@@ -8934,7 +8938,7 @@ abs_0_000071AE:
 	beq.b abs_0_000071DE
 	move.w joystick_direction_bits(a6),d0
 	andi.w #3,d0
-	bne.w abs_0_000075B0
+	bne.w return_from_weapon_or_scan_action
 	tst.b primary_fire_flag(a6)
 	bne.b abs_0_000071F8
     ; With one-hand mode off, port2 primary fire does not directly satisfy this gate. Original port1/shared action flag or configured keyboard scancode does; Space reached counter increment7278.
@@ -8946,7 +8950,7 @@ abs_0_000071DE:
 	move.b fire_key_scancode(a6),d0
 	tst.b $0(a0,d0.w)
 	bne.b abs_0_000071F8
-	bra.w abs_0_000075B0
+	bra.w return_from_weapon_or_scan_action
 abs_0_000071F8:
 	lea.l weapon_action_dispatch_targets(pc),a0
 	movea.l $0(a0,d1.w),a0
@@ -8969,32 +8973,36 @@ load_projectile_profile_and_try_spawn:
 	move.w (a0)+,selected_projectile_alternate_effect_period.l	; operand 1: SG2ProjectileProfile_alternate_effect_period at (a0)+
 	move.b (a0)+,selected_projectile_model_scale_shift.l	; operand 1: SG2ProjectileProfile_model_scale_shift at (a0)+
 	tst.b d0
-	beq.b abs_0_00007256
+	beq.b check_energy_before_projectile_attempt
 	lea.l model_type_population_counts(a6),a1
 	tst.b $0054(a1)
 	beq.w abs_0_000073DA
     ; Reticle coordinates are sampled before resource/object-allocation checks finish. A changed snapshot is not proof a projectile was spawned, nor proof its trajectory follows that screen point.
-abs_0_00007256:
+check_energy_before_projectile_attempt:
 	tst.w weapon_energy_reserve(a6)
 	beq.w abs_0_000073DA
 	move.w selected_projectile_action_cooldown.l,weapon_action_cooldown(a6)
 	st.b alternate_projectile_effect_reset_request.l
+    ; Snapshot aim WORDs and count/spend the attempt before free-slot admission. Free<=2 can return with those effects and no allocation. No trajectory or actual-spawn claim.
+snapshot_unclipped_aim_before_projectile_allocation:
 	move.w aim_reticle_screen_x(a6),last_projectile_reticle_x(a6)
 	move.w aim_reticle_screen_y(a6),last_projectile_reticle_y(a6)
+count_projectile_attempt_before_slot_check:
 	addq.l #1,pilot_shots_fired(a6)
-	move.w #$100,d1
+	move.w #SG2_PROJECTILE_BASE_ENERGY_COST,d1
 	cmpi.w #84,selected_projectile_type.l
-	bne.b abs_0_0000728C
+	bne.b subtract_loaded_projectile_energy_cost
 	add.w d1,d1
-abs_0_0000728C:
+subtract_loaded_projectile_energy_cost:
 	move.w weapon_energy_reserve(a6),d0
 	sub.w d1,d0
-	bcc.b abs_0_00007296
+	bcc.b store_saturated_projectile_energy
 	moveq.l #0,d0
-abs_0_00007296:
+store_saturated_projectile_energy:
 	move.w d0,weapon_energy_reserve(a6)
-	cmpi.w #2,free_object_count(a6)
-	bls.w abs_0_000075B0
+require_more_than_two_free_projectile_slots:
+	cmpi.w #SG2_PROJECTILE_FREE_SLOT_RESERVE,free_object_count(a6)
+	bls.w return_from_weapon_or_scan_action
 	movea.l free_object_stack_cursor(a6),a1
 	movea.l -(a1),a2
 	move.l a1,free_object_stack_cursor(a6)
@@ -9080,6 +9088,7 @@ abs_0_000073DA:
 abs_0_000073EE:
 	move.w #$110,d0
 	bra.w abs_0_00007B22
+    ; Positive-count selector clears type/reference, retains old coordinates and requires Z>0. Saved limits are evenized: even ties may replace; odd ties can reject. No new type/table bound.
 select_reticle_target_candidate:
 	subq.w #1,d7
 	movea.l visible_objects_cursor(a6),a5
@@ -9087,36 +9096,41 @@ select_reticle_target_candidate:
 	lea.l model_horizontal_contact_extents.l,a2
 	lea.l model_negative_y_contact_extents.l,a3
 	lea.l projection_scale_lookup.l,a0
-	move.w #$7FFF,scan_target_depth_limit(a6)
+	move.w #SG2_SCAN_INITIAL_DEPTH_LIMIT,scan_target_depth_limit(a6)
 	clr.w scan_target_type(a6)
 	clr.l scan_target_reference(a6)
-abs_0_0000741C:
+test_next_identity_scan_record:
 	movea.l (a5)+,a4
 	btst.b #6,SG2ObjectCore_flags(a4)
-	bne.w abs_0_000074FA
+	bne.w advance_identity_scan_visible_list
 	tst.b SG2ObjectCore_retirement_phase_or_negative(a4)
-	bpl.w abs_0_000074FA
+	bpl.w advance_identity_scan_visible_list
+filter_identity_scan_object_types:
 	cmpi.w #30,(a4)	; operand 2: SG2ObjectCore_object_type at (a4)
-	beq.w abs_0_000074FA
+	beq.w advance_identity_scan_visible_list
 	cmpi.w #12,(a4)	; operand 2: SG2ObjectCore_object_type at (a4)
-	beq.w abs_0_000074FA
+	beq.w advance_identity_scan_visible_list
 	cmpi.w #84,(a4)	; operand 2: SG2ObjectCore_object_type at (a4)
-	beq.w abs_0_000074FA
+	beq.w advance_identity_scan_visible_list
 	cmpi.w #72,(a4)	; operand 2: SG2ObjectCore_object_type at (a4)
-	beq.w abs_0_000074FA
+	beq.w advance_identity_scan_visible_list
 	cmpi.w #103,(a4)	; operand 2: SG2ObjectCore_object_type at (a4)
-	beq.w abs_0_000074FA
+	beq.w advance_identity_scan_visible_list
 	cmpi.w #25,(a4)	; operand 2: SG2ObjectCore_object_type at (a4)
-	beq.w abs_0_000074FA
+	beq.w advance_identity_scan_visible_list
+load_identity_scan_type_and_relative_xyz:
 	move.w (a4),d0	; operand 1: SG2ObjectCore_object_type at (a4)
 	add.w d0,d0
 	move.w SG2ObjectCore_relative_x(a4),d1
 	move.w SG2ObjectCore_relative_y(a4),d2
 	move.w SG2ObjectCore_relative_z(a4),d3
-	ble.w abs_0_000074FA
+reject_nonpositive_identity_scan_depth:
+	ble.w advance_identity_scan_visible_list
 	cmp.w scan_target_depth_limit(a6),d3
-	bgt.w abs_0_000074FA
-	andi.w #65534,d3
+	bgt.w advance_identity_scan_visible_list
+evenize_identity_scan_depth:
+	andi.w #SG2_SCAN_EVEN_DEPTH_MASK,d3
+project_identity_scan_horizontal_center:
 	ext.l d1
 	muls.w $0(a0,d3.w),d1
 	add.l d1,d1
@@ -9136,10 +9150,11 @@ test_model_reticle_extent:
 	add.l d6,d6
 	swap.w d6
 	cmp.w d6,d4
-	bpl.b abs_0_000074FA
+	bpl.b advance_identity_scan_visible_list
 	neg.w d4
 	cmp.w d6,d4
-	bpl.b abs_0_000074FA
+	bpl.b advance_identity_scan_visible_list
+project_identity_scan_vertical_center:
 	ext.l d2
 	muls.w $0(a0,d3.w),d2
 	add.l d2,d2
@@ -9147,6 +9162,7 @@ test_model_reticle_extent:
 	add.w projection_screen_origin_y(a6),d2
 	move.w aim_reticle_screen_y(a6),d4
 	sub.w d2,d4
+load_identity_scan_vertical_extent:
 	move.w $0(a3,d0.w),d6
 	ext.l d6
 	asr.l d5,d6
@@ -9154,18 +9170,19 @@ test_model_reticle_extent:
 	add.l d6,d6
 	swap.w d6
 	cmp.w d6,d4
-	bpl.b abs_0_000074FA
+	bpl.b advance_identity_scan_visible_list
 	neg.w d4
 	cmp.w d6,d4
-	bpl.b abs_0_000074FA
-abs_0_000074E6:
+	bpl.b advance_identity_scan_visible_list
+commit_identity_scan_candidate_at_even_depth:
 	move.w d3,scan_target_depth_limit(a6)
 	move.w (a4),scan_target_type(a6)	; operand 1: SG2ObjectCore_object_type at (a4)
 	move.l a4,scan_target_reference(a6)
 	move.w d1,scan_target_screen_x(a6)
 	move.w d2,scan_target_screen_y(a6)
-abs_0_000074FA:
-	dbf.w d7,abs_0_0000741C
+advance_identity_scan_visible_list:
+	dbf.w d7,test_next_identity_scan_record
+return_from_identity_scan_selection:
 	rts
     ; KNOWN: type A4=Target code-entry register seed:SG2RadialObject
 test_nonmodel_reticle_extent:
@@ -9176,53 +9193,63 @@ test_nonmodel_reticle_extent:
 	sub.w d1,d4
 	move.w SG2RadialObject_projected_radius(a4),d6
 	cmp.w d6,d4
-	bpl.b abs_0_000074FA
+	bpl.b advance_identity_scan_visible_list
 	neg.w d4
 	cmp.w d6,d4
-	bpl.b abs_0_000074FA
+	bpl.b advance_identity_scan_visible_list
 	move.w SG2RadialObject_projected_screen_y(a4),d2
 	add.w projection_screen_origin_y(a6),d2
 	move.w aim_reticle_screen_y(a6),d4
 	sub.w d2,d4
 	cmp.w d6,d4
-	bpl.b abs_0_000074FA
+	bpl.b advance_identity_scan_visible_list
 	neg.w d4
 	cmp.w d6,d4
-	bpl.b abs_0_000074FA
-	bra.b abs_0_000074E6
+	bpl.b advance_identity_scan_visible_list
+	bra.b commit_identity_scan_candidate_at_even_depth
+    ; Clear message queue, set countdown 1 and guard visible count before selection. Enqueue header, inserted empty text, type-name (including 0 on miss) and event blank; no-visible exits earlier.
 enqueue_reticle_target_identity:
 	clr.w pending_message_count(a6)
 	move.w #$1,message_display_countdown(a6)
 	move.w visible_object_count(a6),d7
-	beq.w abs_0_000075B0
+	beq.w return_from_weapon_or_scan_action
 	bsr.w select_reticle_target_candidate
-	lea.l abs_0_00007F02.l,a1
+enqueue_computer_analysis_header:
+	lea.l analysis_and_missile_message_pointers.l,a1
 	move.w #$0,d0
 	movea.l $0(a1,d0.w),a1
 	bsr.w enqueue_message_unless_previous_pointer
+enqueue_identity_name_from_selected_type:
 	move.w scan_target_type(a6),d0
 	lsl.w #2,d0
 	lea.l object_name_pointers.l,a1
 	movea.l $0(a1,d0.w),a1
 	bsr.w enqueue_message_unless_previous_pointer
+enqueue_identity_blank_event_line:
 	bsr.w enqueue_blank_event_message_line_bridge_006fb4
 	rts
+    ; Idle caller uses saved-frame selector without clearing old type/reference. Nonzero returned type presents a name and reloads 56; stale supplied-state cases are not gameplay proof.
 scan_or_fire_homing_missile:
 	move.w visible_object_count(a6),d7
-	beq.w abs_0_000075B0
+	beq.w return_from_weapon_or_scan_action
+choose_scan_acquisition_or_lock_service:
 	tst.w object_scan_sprite_countdown(a6)
-	bne.w abs_0_000075B2
+	bne.w service_existing_scan_lock_inputs
+acquire_idle_scan_target_via_saved_frame_selector:
 	bsr.w select_visible_scan_target_bridge_006fba
+skip_scan_name_and_reload_for_zero_type:
 	move.w scan_target_type(a6),d0
-	beq.w abs_0_000075B0
+	beq.w return_from_weapon_or_scan_action
 	lsl.w #2,d0
+lookup_scan_target_name_for_presentation:
 	lea.l object_name_pointers.l,a1
 	movea.l $0(a1,d0.w),a1
 	bsr.w display_timed_message_line
+reload_scan_overlay_after_name_presentation:
 	move.w #SG2_SCAN_OVERLAY_RELOAD,object_scan_sprite_countdown(a6)
-abs_0_000075B0:
+return_from_weapon_or_scan_action:
 	rts
-abs_0_000075B2:
+service_existing_scan_lock_inputs:
 	tst.w weapon_action_cooldown(a6)
 	bne.w update_locked_scan_target_projection
 	tst.b one_hand_control_flag(a6)
@@ -9247,7 +9274,7 @@ try_launch_homing_missile_after_input:
 	lea.l homing_missile_hud_saved_backgrounds.l,a0
 	movea.l homing_missile_hud_screen_origin.l,a1
 	cmpi.w #2,free_object_count(a6)
-	bls.w abs_0_000075B0
+	bls.w return_from_weapon_or_scan_action
 	bsr.w restore_weapon_hud_icon_background
 	lea.l model_type_population_counts(a6),a0
 	subq.b #1,$000C(a0)
@@ -9299,28 +9326,35 @@ abs_0_00007626:
 	move.w #$64,weapon_action_cooldown(a6)
 abs_0_000076D2:
 	rts
+    ; Use stored pointer without local null/type/liveness checks. Z==0 retains coordinates; negative Z still projects. No per-reader type seed is added to hide that missing validity obligation.
 update_locked_scan_target_projection:
 	movea.l scan_target_reference(a6),a4
 	move.w (a4),d0
 	add.w d0,d0
 	lea.l projection_scale_lookup.l,a0
+load_locked_scan_relative_xyz:
 	move.w $0016(a4),d1
 	move.w $0018(a4),d2
 	move.w $001A(a4),d3
-	beq.w abs_0_000075B0
-	andi.w #65534,d3
+	beq.w return_from_weapon_or_scan_action
+evenize_locked_scan_projection_depth:
+	andi.w #SG2_SCAN_EVEN_DEPTH_MASK,d3
+reproject_locked_scan_horizontal_center:
 	ext.l d1
 	muls.w $0(a0,d3.w),d1
 	add.l d1,d1
 	swap.w d1
 	add.w projection_screen_origin_x(a6),d1
+reproject_locked_scan_vertical_center:
 	ext.l d2
 	muls.w $0(a0,d3.w),d2
 	add.l d2,d2
 	swap.w d2
 	add.w projection_screen_origin_y(a6),d2
+store_locked_scan_projected_center:
 	move.w d1,scan_target_screen_x(a6)
 	move.w d2,scan_target_screen_y(a6)
+return_from_locked_scan_projection:
 	rts
 add_bouncing_bomb_hud_icon:
 	cmpi.w #4,bouncing_bomb_hud_icon_count(a6)
@@ -9692,18 +9726,18 @@ type103_projectile_variant_sign:
 projectile_spawn_side_sign:
 	dc.w $0400
 	dc.b $00,$00,$20,$20,$20,$20,$00,$00,$00,$00,$00,$00
-abs_0_00007F02:
-	dc.l abs_0_00007F1E	; pointer_table
-	dc.l abs_0_00007F39
+analysis_and_missile_message_pointers:
+	dc.l computer_visual_analysis_header_text	; pointer_table
+	dc.l homing_missile_launched_text
 weapon_action_dispatch_targets:
 	dc.l try_spawn_type84_projectile	; pointer_table
 	dc.l try_spawn_type103_projectile
 	dc.l scan_or_fire_homing_missile
 	dc.l try_launch_bouncing_bomb
 	dc.l try_launch_carried_neutron_bomb
-abs_0_00007F1E:
+computer_visual_analysis_header_text:
 	dc.b "Computer Visual Analysis -",$00
-abs_0_00007F39:
+homing_missile_launched_text:
 	dc.b "Homing Missile Launched.",$00
 abs_0_00007F52:
 	dc.b "Neutron Bomb not launched!",$00
@@ -48283,6 +48317,7 @@ build_motion_vector_from_angles:
 	add.l d6,d6
 	swap.w d6
 	rts
+    ; Scan variant saves A0-A5 and resets only depth. Type 12 needs flag 7; type 25 is not excluded. Z==0 rejects, negative Z is not locally barred; old target state can remain on miss.
 select_visible_scan_target:
 	movem.l a0-a5,-(a7)
 	subq.w #1,d7
@@ -48291,29 +48326,30 @@ select_visible_scan_target:
 	lea.l model_horizontal_contact_extents.l,a2
 	lea.l model_negative_y_contact_extents.l,a3
 	lea.l projection_scale_lookup.l,a0
-	move.w #$7FFF,scan_target_depth_limit(a6)
-abs_0_0003731A:
+	move.w #SG2_SCAN_INITIAL_DEPTH_LIMIT,scan_target_depth_limit(a6)
+test_next_saved_frame_scan_record:
 	movea.l (a5)+,a4
 	tst.b SG2ObjectCore_retirement_phase_or_negative(a4)
-	bpl.w abs_0_00037406
+	bpl.w advance_saved_frame_scan_visible_list
 	btst.b #6,SG2ObjectCore_flags(a4)
-	bne.w abs_0_00037406
+	bne.w advance_saved_frame_scan_visible_list
 	tst.b SG2ObjectCore_object_type+1(a4)
-	bmi.w abs_0_00037406
+	bmi.w advance_saved_frame_scan_visible_list
+filter_saved_frame_scan_object_types:
 	cmpi.w #30,(a4)	; operand 2: SG2ObjectCore_object_type at (a4)
-	beq.w abs_0_00037406
+	beq.w advance_saved_frame_scan_visible_list
 	cmpi.w #12,(a4)	; operand 2: SG2ObjectCore_object_type at (a4)
-	beq.w abs_0_00037360
+	beq.w require_flag7_for_type12_scan_candidate
 	cmpi.w #84,(a4)	; operand 2: SG2ObjectCore_object_type at (a4)
-	beq.w abs_0_00037406
+	beq.w advance_saved_frame_scan_visible_list
 	cmpi.w #72,(a4)	; operand 2: SG2ObjectCore_object_type at (a4)
-	beq.w abs_0_00037406
+	beq.w advance_saved_frame_scan_visible_list
 	cmpi.w #103,(a4)	; operand 2: SG2ObjectCore_object_type at (a4)
-	beq.w abs_0_00037406
+	beq.w advance_saved_frame_scan_visible_list
 	bra.b test_alternate_model_scan_extent
-abs_0_00037360:
+require_flag7_for_type12_scan_candidate:
 	btst.b #7,SG2ObjectCore_flags(a4)
-	beq.w abs_0_00037406
+	beq.w advance_saved_frame_scan_visible_list
     ; KNOWN: type A4=Target code-entry register seed:SG2TargetingObject
 test_alternate_model_scan_extent:
 	move.w (a4),d0	; operand 1: SG2ObjectCore_object_type at (a4)
@@ -48321,10 +48357,13 @@ test_alternate_model_scan_extent:
 	move.w SG2ObjectCore_relative_x(a4),d1
 	move.w SG2ObjectCore_relative_y(a4),d2
 	move.w SG2ObjectCore_relative_z(a4),d3
-	beq.w abs_0_00037406
+reject_zero_saved_frame_scan_depth:
+	beq.w advance_saved_frame_scan_visible_list
 	cmp.w scan_target_depth_limit(a6),d3
-	bgt.w abs_0_00037406
-	andi.w #65534,d3
+	bgt.w advance_saved_frame_scan_visible_list
+evenize_saved_frame_scan_depth:
+	andi.w #SG2_SCAN_EVEN_DEPTH_MASK,d3
+project_saved_frame_scan_horizontal_center:
 	ext.l d1
 	muls.w $0(a0,d3.w),d1
 	add.l d1,d1
@@ -48334,16 +48373,19 @@ test_alternate_model_scan_extent:
 	sub.w d1,d4
 	move.w $0(a2,d0.w),d6
 	move.b SG2TargetingObject_model_scale_shift(a4),d5
+    ; This variant uses LSR.W extents; first selector uses ASR.L. Keep WORD/count and N-only hit-test behavior; current initial positive extents do not justify merging the routines.
+shift_saved_frame_scan_horizontal_extent:
 	ext.l d6
 	lsr.w d5,d6
 	muls.w $0(a0,d3.w),d6
 	add.l d6,d6
 	swap.w d6
 	cmp.w d6,d4
-	bpl.w abs_0_00037406
+	bpl.w advance_saved_frame_scan_visible_list
 	neg.w d4
 	cmp.w d6,d4
-	bpl.w abs_0_00037406
+	bpl.w advance_saved_frame_scan_visible_list
+project_saved_frame_scan_vertical_center:
 	ext.l d2
 	muls.w $0(a0,d3.w),d2
 	add.l d2,d2
@@ -48352,23 +48394,26 @@ test_alternate_model_scan_extent:
 	move.w aim_reticle_screen_y(a6),d4
 	sub.w d2,d4
 	move.w $0(a3,d0.w),d6
+shift_saved_frame_scan_vertical_extent:
 	ext.l d6
 	lsr.w d5,d6
 	muls.w $0(a0,d3.w),d6
 	add.l d6,d6
 	swap.w d6
 	cmp.w d6,d4
-	bpl.w abs_0_00037406
+	bpl.w advance_saved_frame_scan_visible_list
 	neg.w d4
 	cmp.w d6,d4
-	bpl.w abs_0_00037406
+	bpl.w advance_saved_frame_scan_visible_list
+commit_saved_frame_scan_candidate:
 	move.w d3,scan_target_depth_limit(a6)
 	move.w (a4),scan_target_type(a6)	; operand 1: SG2ObjectCore_object_type at (a4)
 	move.l a4,scan_target_reference(a6)
 	move.w d1,scan_target_screen_x(a6)
 	move.w d2,scan_target_screen_y(a6)
-abs_0_00037406:
-	dbf.w d7,abs_0_0003731A
+advance_saved_frame_scan_visible_list:
+	dbf.w d7,test_next_saved_frame_scan_record
+restore_saved_frame_scan_address_registers:
 	movem.l (a7)+,a0-a5
 	rts
 initialize_mission_and_flight_state:

@@ -27,6 +27,34 @@ and strengthened 38 app-base attributions.
 Conditional skips mean104 outer iterations are not104 observed memory reads.
 Loaded pointer values remain subject to separate alias/target validation.
 
+The scan-acquisition batch reconstructs 45 connected eligibility, projection,
+commit, aim-snapshot and caller continuations, plus the analysis/missile message
+pointer pair and its two existing text labels. These are two shared-program
+algorithms, not hardware profiles. The identification selector clears type and
+reference, rejects nonpositive Z and uses ASR.L extents; the saved-frame selector
+retains stale target state on a miss, permits negative Z locally and uses LSR.W.
+Their type filters differ. Evenized depth limits preserve the original even/odd
+tie ordering, and extent hits retain wrapped WORD arithmetic with N-only tests.
+
+164 original-CPU cases cover eligibility, retirement, extent edges, depth ties,
+shift widths/counts, cached radial geometry, locked-pointer projection, pre-slot
+energy/snapshot effects and the identification/idle-scan callers. The locked
+projection has no local null/type/liveness check; no reader-specific type seed
+was added. Aim snapshots and shot/energy changes precede the free-slot guard;
+these effects do not prove a projectile was allocated or establish trajectory.
+Identification queues header, inserted empty text, selected type name and blank
+line, with a separate no-visible early exit. Idle scan reloads 56 only after a
+nonzero returned type, including supplied stale-state cases; ordinary gameplay
+reachability of that stale state is not established.
+
+No framework change or new pointer-domain/selector bound was needed. Native
+proof/reference identities and ownership totals remain unchanged. Tests use
+supplied valid records/profile state and stop before allocation or error
+presentation; they do not validate object lifetimes, normal gameplay, DMA or
+scanout. C/vasm and clean standalone rebuilding remain byte exact. Next connected
+lead: existing-lock input and homing-launch continuations, keeping pointer
+lifetime and actual spawning separate from these prefix results.
+
 The overlay batch reconstructs 39 connected bitmap/scan/aim continuations and
 72 bytes of shared row scratch and rotate-split masks. The bitmap helper reads
 sixteen two-WORD rows after four control bytes; all nine shipped overlay assets
@@ -49,7 +77,7 @@ fixtures stop before message/meter service. No gameplay, sprite DMA, RGB or
 scanout qualification is added. Protected native proof/reference identities are
 unchanged. Backing classification leaves 10851 bytes in 272 intervals; this is not
 semantic completion. C/vasm and clean standalone rebuilding remain exact. Next:
-scan-target acquisition and consumers of the stored aim coordinates.
+scan-target acquisition and aim consumers, addressed above.
 
 The contact-plot batch reconstructs 40 connected plotting/fill/radial continuations
 and the 182-byte mask backing before the coordinate cache. Amiga and mode 0 read

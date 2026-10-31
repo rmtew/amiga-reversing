@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "source_commit": "2722a1d4a2862be917198eb47cad3f2ffabe6fa9",
+  "source_commit": "353d28d2d183f72c6b5da7c54d76069dec1498dc",
   "source_assembly": "starglider2_game.s",
   "assets": [
     {
@@ -878,13 +878,13 @@
     },
     {
       "path": "rendered-provenance.json",
-      "bytes": 3386,
-      "sha256": "5194c41fa1bf16aba3143e8730caea8693e1e45a80e305dda3fe459489b16262"
+      "bytes": 3392,
+      "sha256": "9fc89f69bd99b701cbe9c738e6218bbeb400d794872cb6830dad9c1f1bb8a6bc"
     },
     {
       "path": "starglider2_game.s",
-      "bytes": 2071103,
-      "sha256": "457bc23a51bc00a33ed7f5e0500de9f8041dbe76b9e8f8ae643e4a4f724fb205"
+      "bytes": 2075459,
+      "sha256": "f21e77f4465a6d8e554a749059873cd4d1735c2cc4ba2e0b92620bc72c45c650"
     },
     {
       "path": "tools/starglider2_protection.py",
@@ -892,6 +892,6 @@
       "sha256": "81d3f66d36dbfbd5c77238b20c28e8b9abaa329777eb91f64669bbbf13703582"
     }
   ],
-  "source_commit_role": "canonical source publication base; the publishing commit reconstructs overlay bitmap geometry, shared scratch/masks, scan selection and profile-specific aim arithmetic; isolated original-CPU prefix fixtures only, not gameplay, sprite DMA or scanout proof; output is bound by verification_receipt_id",
-  "source_subject_revision": "9ec20962885409882d2c95c9d25683047f7b8cbe9fe8f304fa26f4cb96a394e7"
+  "source_commit_role": "canonical source publication base; the publishing commit reconstructs scan acquisition, locked projection, aim snapshots and identification/idle-scan callers; supplied original-CPU fixtures only, not gameplay, pointer lifetime, actual spawning or scanout proof; output is bound by verification_receipt_id",
+  "source_subject_revision": "f02eaa2695fee2332e6da5023e70723a63359b65f47b1d5064c3af1b76409177"
 }
