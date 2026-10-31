@@ -1644,7 +1644,20 @@ SG2_PLAYER_FOLLOW_Y_SMOOTH_SHIFT	EQU	2
 SG2_PLAYER_PROFILE_EDGE_THRESHOLD	EQU	501
 SG2_PLAYER_PROFILE_HALF_WIDTH	EQU	500
 SG2_PLAYER_SOLID_CONTACT_RESPONSE_PASSES	EQU	4
+SG2_POINT_DEPTH_SCRATCH_WORD_OFFSET	EQU	84
+SG2_POINT_FIELD_BUFFER_BYTES	EQU	120
+SG2_POINT_FIELD_DBF_LAST	EQU	19
 SG2_POINT_FIELD_MIN_PLAYER_SPEED	EQU	300
+SG2_POINT_INITIAL_HALF_RANGE	EQU	8192
+SG2_POINT_INITIAL_RANDOM_MASK	EQU	16383
+SG2_POINT_NEAR_DEPTH_WORD	EQU	128
+SG2_POINT_PROJECTION_LEFT_SHIFT	EQU	7
+SG2_POINT_RECYCLE_HALF_RANGE	EQU	16384
+SG2_POINT_RECYCLE_RANDOM_MASK	EQU	32767
+SG2_POINT_STYLE_BYTE_OFFSET_MASK	EQU	14
+SG2_POINT_TRAIL_SPEED_THRESHOLD	EQU	500
+SG2_POINT_XYZ_BYTES	EQU	6
+SG2_POINT_X_SCRATCH_WORD_OFFSET	EQU	300
 SG2_PROJECTILE_BASE_ENERGY_COST	EQU	256
 SG2_PROJECTILE_FREE_SLOT_RESERVE	EQU	2
 SG2_PROJECTOR_RESERVED_FREE_FLOOR	EQU	1
@@ -62166,10 +62179,10 @@ clear_alternate_projectile_request_byte_only:
 	rts
     ; Initialize 20 XYZ WORD triplets at app+$BC6 and clear 20 previous-view triplets at app+$C3E. Positions are randomized around the player; no model or object identity is inferred.
 initialize_nearby_point_field:
-	move.w #$13,d7
+	move.w #SG2_POINT_FIELD_DBF_LAST,d7
 	lea.l point_field_world_positions(a6),a4
-	lea.l $0078(a4),a5
-abs_0_0004DFD4:
+	lea.l SG2_POINT_FIELD_BUFFER_BYTES(a4),a5
+initialize_next_nearby_point_xyz:
 	move.l shared_random_state_a(a6),d0
 	move.l shared_random_state_b(a6),d1
 	rol.l #3,d0
@@ -62177,8 +62190,8 @@ abs_0_0004DFD4:
 	eor.w d1,d0
 	move.l d1,shared_random_state_a(a6)
 	move.l d0,shared_random_state_b(a6)
-	andi.w #16383,d0
-	subi.w #8192,d0
+	andi.w #SG2_POINT_INITIAL_RANDOM_MASK,d0
+	subi.w #SG2_POINT_INITIAL_HALF_RANGE,d0
 	add.l player_world_x(a6),d0
 	move.w d0,(a4)+
 	move.l shared_random_state_a(a6),d0
@@ -62188,8 +62201,8 @@ abs_0_0004DFD4:
 	eor.w d1,d0
 	move.l d1,shared_random_state_a(a6)
 	move.l d0,shared_random_state_b(a6)
-	andi.w #16383,d0
-	subi.w #8192,d0
+	andi.w #SG2_POINT_INITIAL_RANDOM_MASK,d0
+	subi.w #SG2_POINT_INITIAL_HALF_RANGE,d0
 	add.l player_world_y(a6),d0
 	move.w d0,(a4)+
 	move.l shared_random_state_a(a6),d0
@@ -62199,13 +62212,13 @@ abs_0_0004DFD4:
 	eor.w d1,d0
 	move.l d1,shared_random_state_a(a6)
 	move.l d0,shared_random_state_b(a6)
-	andi.w #16383,d0
-	subi.w #8192,d0
+	andi.w #SG2_POINT_INITIAL_RANDOM_MASK,d0
+	subi.w #SG2_POINT_INITIAL_HALF_RANGE,d0
 	add.l player_world_z(a6),d0
 	move.w d0,(a4)+
 	clr.l (a5)+
 	clr.w (a5)+
-	dbf.w d7,abs_0_0004DFD4
+	dbf.w d7,initialize_next_nearby_point_xyz
 	rts
     ; Project 20 points, cache view XYZ for fast-flight trails, and recycle rejected points. Plane WORD stride is $2000/2/0 by platform/mode. Original bounds and arithmetic remain.
 draw_nearby_point_field:
@@ -62215,21 +62228,22 @@ draw_nearby_point_field:
 	lea.l projection_scale_lookup.l,a2
 	lea.l screen_x_word_pixel_masks.l,a5
 	lea.l point_field_world_positions(a6),a4
-	lea.l $0078(a4),a1
-	move.l a1,abs_0_0004E5C0.l
+	lea.l SG2_POINT_FIELD_BUFFER_BYTES(a4),a1
+	move.l a1,point_field_previous_view_cursor.l
 	lea.l raster_row_byte_offsets.l,a1
 	lea.l screen_x_word_byte_offsets.l,a3
-	move.w #$13,d7
+	move.w #SG2_POINT_FIELD_DBF_LAST,d7
 	tst.w platform_entry_flags.l
-	bmi.b abs_0_0004E0A6
+	bmi.b select_amiga_point_plane_stride
 	move.w #$2,point_field_plane_byte_stride(a6)
 	tst.b alternate_graphics_mode(a6)
-	beq.b abs_0_0004E0AC
+	beq.b transform_next_nearby_point
 	move.w #$0,point_field_plane_byte_stride(a6)
-	bra.b abs_0_0004E0AC
-abs_0_0004E0A6:
+	bra.b transform_next_nearby_point
+select_amiga_point_plane_stride:
 	move.w #$2000,point_field_plane_byte_stride(a6)
-abs_0_0004E0AC:
+    ; MOVEM.W sign-extends stored XYZ, then player LONG subtraction feeds signed low-WORD multiplies. Each product is extracted before WORD addition, unlike the object sum-first path.
+transform_next_nearby_point:
 	move.b #$8,diagnostic_step_byte.l
 	movem.w (a4)+,d1-d3
 	sub.l player_world_x(a6),d1
@@ -62250,7 +62264,7 @@ abs_0_0004E0AC:
 	asl.l #2,d5
 	swap.w d5
 	add.w d5,d4
-	move.w d4,$0054(a6)
+	move.w d4,SG2_POINT_DEPTH_SCRATCH_WORD_OFFSET(a6)
 	move.b #$17,diagnostic_step_byte.l
 	move.w view_rotation_matrix(a6),d4
 	muls.w d1,d4
@@ -62266,7 +62280,7 @@ abs_0_0004E0AC:
 	asl.l #2,d5
 	swap.w d5
 	add.w d5,d4
-	move.w d4,$012C(a6)
+	move.w d4,SG2_POINT_X_SCRATCH_WORD_OFFSET(a6)
 	move.b #$18,diagnostic_step_byte.l
 	move.w view_rotation_matrix+SG2RotationMatrixWords_m10(a6),d4
 	muls.w d1,d4
@@ -62282,33 +62296,38 @@ abs_0_0004E0AC:
 	asl.l #2,d5
 	swap.w d5
 	add.w d5,d4
-	move.w $012C(a6),d1
+	move.w SG2_POINT_X_SCRATCH_WORD_OFFSET(a6),d1
 	move.w d4,d2
-	move.w $0054(a6),d3
+	move.w SG2_POINT_DEPTH_SCRATCH_WORD_OFFSET(a6),d3
 	move.b #$16,diagnostic_step_byte.l
-	movea.l abs_0_0004E5C0.l,a0
+    ; Load old view XYZ, overwrite it with the new triplet and advance its cursor before testing old X. Old X zero suppresses trails even if old Y/Z are nonzero.
+replace_point_previous_view_xyz:
+	movea.l point_field_previous_view_cursor.l,a0
 	movem.w (a0),d4-d6
 	movem.w d1-d3,(a0)
-	addq.w #6,a0
-	move.l a0,abs_0_0004E5C0.l
+	addq.w #SG2_POINT_XYZ_BYTES,a0
+	move.l a0,point_field_previous_view_cursor.l
 	ext.l d1
 	ext.l d2
 	ext.l d3
+test_point_previous_x_for_trail:
 	tst.w d4
-	beq.w abs_0_0004E298
-	cmpi.w #500,stardrive_speed_addend(a6)
-	bmi.w abs_0_0004E298
+	beq.w project_single_nearby_point
+    ; Threshold500 uses subtraction N, not a general signed inequality. At the simple-point stage the same test skips all pixel writes; plane stride0 makes all four addresses alias.
+	cmpi.w #SG2_POINT_TRAIL_SPEED_THRESHOLD,stardrive_speed_addend(a6)
+	bmi.w project_single_nearby_point
+save_previous_point_xyz_for_trail:
 	movem.w d4-d6,-(a7)
-	cmp.w #$80,d3
-	ble.w abs_0_0004E338
-	asl.l #7,d1
-	asl.l #7,d2
+	cmp.w #SG2_POINT_NEAR_DEPTH_WORD,d3
+	ble.w mark_current_trail_endpoint_near
+	asl.l #SG2_POINT_PROJECTION_LEFT_SHIFT,d1
+	asl.l #SG2_POINT_PROJECTION_LEFT_SHIFT,d2
 	andi.w #65534,d3
-	bmi.b abs_0_0004E1A4
-	beq.b abs_0_0004E1A4
+	bmi.b offset_current_point_trail_endpoint
+	beq.b offset_current_point_trail_endpoint
 	divs.w d3,d1
 	divs.w d3,d2
-abs_0_0004E1A4:
+offset_current_point_trail_endpoint:
 	add.w projection_screen_origin_x(a6),d1
 	add.w projection_screen_origin_y(a6),d2
 	clr.b d3
@@ -62328,61 +62347,63 @@ abs_0_0004E1C6:
 	ble.b abs_0_0004E1CE
 	addq.b #8,d3
 abs_0_0004E1CE:
-	cmp.w #$80,d6
-	ble.w abs_0_0004E340
-	asl.l #7,d4
-	asl.l #7,d5
+	cmp.w #SG2_POINT_NEAR_DEPTH_WORD,d6
+	ble.w mark_previous_trail_endpoint_near
+	asl.l #SG2_POINT_PROJECTION_LEFT_SHIFT,d4
+	asl.l #SG2_POINT_PROJECTION_LEFT_SHIFT,d5
 	andi.w #65534,d6
-	bmi.b abs_0_0004E1E6
-	beq.b abs_0_0004E1E6
+	bmi.b offset_previous_point_trail_endpoint
+	beq.b offset_previous_point_trail_endpoint
 	divs.w d6,d4
 	divs.w d6,d5
-abs_0_0004E1E6:
+offset_previous_point_trail_endpoint:
 	add.w projection_screen_origin_x(a6),d4
 	add.w projection_screen_origin_y(a6),d5
 	cmp.w view_clip_min_x(a6),d4
 	bge.b abs_0_0004E1FC
 	bset #0,d3
-	bne.w abs_0_0004E348
+	bne.w discard_point_xyz_before_recycle
 abs_0_0004E1FC:
 	cmp.w view_clip_max_x(a6),d4
 	ble.b abs_0_0004E20A
 	bset #1,d3
-	bne.w abs_0_0004E348
+	bne.w discard_point_xyz_before_recycle
 abs_0_0004E20A:
 	cmp.w view_clip_min_y(a6),d5
 	bge.b abs_0_0004E218
 	bset #2,d3
-	bne.w abs_0_0004E348
+	bne.w discard_point_xyz_before_recycle
 abs_0_0004E218:
 	cmp.w view_clip_max_y(a6),d5
-	ble.b abs_0_0004E226
+	ble.b test_combined_point_trail_clip_mask
 	bset #3,d3
-	bne.w abs_0_0004E348
-abs_0_0004E226:
+	bne.w discard_point_xyz_before_recycle
+test_combined_point_trail_clip_mask:
 	tst.b d3
-	bne.w abs_0_0004E480
-	addq.w #6,a7
-abs_0_0004E22E:
+	bne.w clip_point_trail_from_original_view_xyz
+	addq.w #SG2_POINT_XYZ_BYTES,a7
+    ; Negative previous depth loads14 before the shifts, so it selects index0. Nonnegative WORD depth yields even byte offsets0..14. This proves only eight consumed WORDs per style prefix.
+select_point_trail_style_by_previous_depth:
 	move.w d6,d3
-	bpl.b abs_0_0004E234
+	bpl.b shift_point_trail_depth_style_index
 	moveq.l #14,d3
-abs_0_0004E234:
+shift_point_trail_depth_style_index:
 	asr.w #8,d3
 	asr.w #3,d3
-	andi.w #14,d3
+	andi.w #SG2_POINT_STYLE_BYTE_OFFSET_MASK,d3
 	cmpi.w #1,selected_celestial_body_index(a6)
-	ble.b abs_0_0004E258
+	ble.b select_low_body_point_trail_styles
 	cmpi.w #5,selected_celestial_body_index(a6)
-	bne.b abs_0_0004E252
-	lea.l abs_0_0004E588(pc),a0
-	bra.b abs_0_0004E25C
-abs_0_0004E252:
-	lea.l abs_0_0004E56C(pc),a0
-	bra.b abs_0_0004E25C
-abs_0_0004E258:
-	lea.l abs_0_0004E5A4(pc),a0
-abs_0_0004E25C:
+	bne.b select_other_body_point_trail_styles
+	lea.l point_trail_styles_body5(pc),a0
+	bra.b emit_fourteen_byte_point_trail_packet
+select_other_body_point_trail_styles:
+	lea.l point_trail_styles_other_bodies(pc),a0
+	bra.b emit_fourteen_byte_point_trail_packet
+select_low_body_point_trail_styles:
+	lea.l point_trail_styles_body_le1(pc),a0
+    ; Append one scene reference and14 command bytes: previous depth, style, current XY, previous XY, negative WORD terminator. WORD count wraps; no capacity or allocation bound is implied.
+emit_fourteen_byte_point_trail_packet:
 	move.w $0(a0,d3.w),d3
 	movea.l scene_reference_write_cursor.l,a0
 	move.l scene_polygon_write_cursor.l,(a0)+
@@ -62397,28 +62418,28 @@ abs_0_0004E25C:
 	move.w #$FFFF,(a0)+
 	move.l a0,scene_polygon_write_cursor.l
 	addq.w #1,scene_packet_count.l
-	bra.w abs_0_0004E332
-abs_0_0004E298:
-	cmp.w #$80,d3
-	ble.w abs_0_0004E350
-	asl.l #7,d1
-	asl.l #7,d2
+	bra.w advance_nearby_point_loop
+project_single_nearby_point:
+	cmp.w #SG2_POINT_NEAR_DEPTH_WORD,d3
+	ble.w recycle_current_point_and_retry
+	asl.l #SG2_POINT_PROJECTION_LEFT_SHIFT,d1
+	asl.l #SG2_POINT_PROJECTION_LEFT_SHIFT,d2
 	andi.w #65534,d3
-	bmi.b abs_0_0004E2B0
-	beq.b abs_0_0004E2B0
+	bmi.b offset_single_point_screen_position
+	beq.b offset_single_point_screen_position
 	divs.w d3,d1
 	divs.w d3,d2
-abs_0_0004E2B0:
+offset_single_point_screen_position:
 	add.w projection_screen_origin_x(a6),d1
 	add.w projection_screen_origin_y(a6),d2
 	cmp.w view_clip_min_x(a6),d1
-	blt.w abs_0_0004E350
+	blt.w recycle_current_point_and_retry
 	cmp.w view_clip_max_x(a6),d1
-	bgt.w abs_0_0004E350
+	bgt.w recycle_current_point_and_retry
 	cmp.w view_clip_min_y(a6),d2
-	blt.w abs_0_0004E350
+	blt.w recycle_current_point_and_retry
 	cmp.w view_clip_max_y(a6),d2
-	bgt.b abs_0_0004E350
+	bgt.b recycle_current_point_and_retry
 	move.b #$14,diagnostic_step_byte.l
 	movea.l draw_buffer_base.w(a6),a0
 	add.w d2,d2
@@ -62428,43 +62449,44 @@ abs_0_0004E2B0:
 	move.w $0(a5,d1.w),d2
 	move.w point_field_plane_byte_stride(a6),d1
 	not.w d2
-	cmpi.w #500,stardrive_speed_addend(a6)
-	bpl.b abs_0_0004E302
+	cmpi.w #SG2_POINT_TRAIL_SPEED_THRESHOLD,stardrive_speed_addend(a6)
+	bpl.b advance_to_point_set_plane
 	and.w d2,(a0)
-abs_0_0004E302:
+advance_to_point_set_plane:
 	lea.l $0(a0,d1.w),a0
 	move.l a0,d3
 	lea.l $0(a0,d1.w),a0
-	cmpi.w #500,stardrive_speed_addend(a6)
-	bpl.b abs_0_0004E316
+	cmpi.w #SG2_POINT_TRAIL_SPEED_THRESHOLD,stardrive_speed_addend(a6)
+	bpl.b advance_to_last_point_clear_plane
 	and.w d2,(a0)
-abs_0_0004E316:
+advance_to_last_point_clear_plane:
 	lea.l $0(a0,d1.w),a0
-	cmpi.w #500,stardrive_speed_addend(a6)
-	bpl.b abs_0_0004E324
+	cmpi.w #SG2_POINT_TRAIL_SPEED_THRESHOLD,stardrive_speed_addend(a6)
+	bpl.b apply_point_set_plane_mask
 	and.w d2,(a0)
-abs_0_0004E324:
+apply_point_set_plane_mask:
 	not.w d2
 	movea.l d3,a0
-	cmpi.w #500,stardrive_speed_addend(a6)
-	bpl.b abs_0_0004E332
+	cmpi.w #SG2_POINT_TRAIL_SPEED_THRESHOLD,stardrive_speed_addend(a6)
+	bpl.b advance_nearby_point_loop
 	or.w d2,(a0)
-abs_0_0004E332:
-	dbf.w d7,abs_0_0004E0AC
+advance_nearby_point_loop:
+	dbf.w d7,transform_next_nearby_point
 	rts
-abs_0_0004E338:
+mark_current_trail_endpoint_near:
 	move.b #$80,d3
 	bra.w abs_0_0004E1CE
-abs_0_0004E340:
+mark_previous_trail_endpoint_near:
 	bset #7,d3
-	beq.w abs_0_0004E226
-abs_0_0004E348:
-	addq.l #6,a7
-	bra.b abs_0_0004E350
-abs_0_0004E34C:
+	beq.w test_combined_point_trail_clip_mask
+discard_point_xyz_before_recycle:
+	addq.l #SG2_POINT_XYZ_BYTES,a7
+	bra.b recycle_current_point_and_retry
+restore_point_clip_frame_before_recycle:
 	movem.l (a7)+,d7/a0-a6
-abs_0_0004E350:
-	subq.l #6,abs_0_0004E5C0.l
+    ; Rewind the previous-view cursor, generate three new random WORD offsets, clear this cached triplet, then rewind A4 and retry without decrementing D7. Universal retry termination is unproved.
+recycle_current_point_and_retry:
+	subq.l #SG2_POINT_XYZ_BYTES,point_field_previous_view_cursor.l
 	move.b #$13,diagnostic_step_byte.l
 	move.l shared_random_state_a(a6),d0
 	move.l shared_random_state_b(a6),d1
@@ -62473,11 +62495,12 @@ abs_0_0004E350:
 	eor.w d1,d0
 	move.l d1,shared_random_state_a(a6)
 	move.l d0,shared_random_state_b(a6)
-	andi.w #32767,d0
-	subi.w #16384,d0
+	andi.w #SG2_POINT_RECYCLE_RANDOM_MASK,d0
+	subi.w #SG2_POINT_RECYCLE_HALF_RANGE,d0
 	move.w d0,d1
 	add.l player_world_y(a6),d0
-	move.w d0,$0054(a6)
+    ; The first WORD at app+$54 is phase scratch for new Y; the second WORD remains. Projection also reuses app+$12C. Do not globally rename the text-cursor/model-origin storage.
+	move.w d0,SG2_POINT_DEPTH_SCRATCH_WORD_OFFSET(a6)
 	move.w d0,-$0004(a4)
 	move.w player_rotation_1(a6),d1
 	add.w d1,d1
@@ -62492,8 +62515,8 @@ abs_0_0004E350:
 	eor.w d1,d0
 	move.l d1,shared_random_state_a(a6)
 	move.l d0,shared_random_state_b(a6)
-	andi.w #32767,d0
-	subi.w #16384,d0
+	andi.w #SG2_POINT_RECYCLE_RANDOM_MASK,d0
+	subi.w #SG2_POINT_RECYCLE_HALF_RANGE,d0
 	move.w d0,d3
 	move.l shared_random_state_a(a6),d0
 	move.l shared_random_state_b(a6),d1
@@ -62502,8 +62525,8 @@ abs_0_0004E350:
 	eor.w d1,d0
 	move.l d1,shared_random_state_a(a6)
 	move.l d0,shared_random_state_b(a6)
-	andi.w #32767,d0
-	subi.w #16384,d0
+	andi.w #SG2_POINT_RECYCLE_RANDOM_MASK,d0
+	subi.w #SG2_POINT_RECYCLE_HALF_RANGE,d0
 	move.w d0,d1
 	move.w d1,d4
 	muls.w trig_cosine_scratch_1(a6),d4
@@ -62527,14 +62550,16 @@ abs_0_0004E350:
 	add.l player_world_z(a6),d5
 	move.w d4,-$0006(a4)
 	move.w d5,-$0002(a4)
-	movea.l abs_0_0004E5C0.l,a0
+	movea.l point_field_previous_view_cursor.l,a0
 	clr.l (a0)+
 	clr.w (a0)+
-	subq.l #6,a4
-	bra.w abs_0_0004E0AC
+rewind_recycled_world_point_cursor:
+	subq.l #SG2_POINT_XYZ_BYTES,a4
+	bra.w transform_next_nearby_point
 	dcb.b $50,$00
-abs_0_0004E480:
-	movea.l abs_0_0004E5C0.l,a0
+    ; Clipping saves original view endpoints and uses the shared clipper, then the packet path. CPU qualification here covers packet writes, not all clipping callbacks or the raw MOVE-like bytes.
+clip_point_trail_from_original_view_xyz:
+	movea.l point_field_previous_view_cursor.l,a0
 	subq.w #6,a0
 	movem.w (a0),d4-d6
 	lea.l abs_0_000052C0.l,a0
@@ -62547,7 +62572,7 @@ abs_0_0004E480:
 	lea.l abs_0_000052C0.l,a2
 	bsr.w clip_polygon_in_view_volume_bridge_04d5c4
 	tst.w d7
-	beq.w abs_0_0004E34C
+	beq.w restore_point_clip_frame_before_recycle
 	movem.w (a2),d1-d6
 	movem.l (a7)+,d7/a0-a6
 	lsl.w #1,d3
@@ -62564,21 +62589,21 @@ abs_0_0004E4D6:
 	cmp.w view_clip_min_x(a6),d1
 	bpl.b abs_0_0004E4EC
 	move.w view_clip_min_x(a6),d1
-	bra.w abs_0_0004E350
+	bra.w recycle_current_point_and_retry
 abs_0_0004E4EC:
 	cmp.w view_clip_max_x(a6),d1
 	bmi.b abs_0_0004E4FA
-	bra.w abs_0_0004E350
+	bra.w recycle_current_point_and_retry
 	dc.b $32,$2E,$00,$E6
 abs_0_0004E4FA:
 	cmp.w view_clip_min_y(a6),d2
 	bpl.b abs_0_0004E508
-	bra.w abs_0_0004E350
+	bra.w recycle_current_point_and_retry
 	dc.b $34,$2E,$00,$E8
 abs_0_0004E508:
 	cmp.w view_clip_max_y(a6),d2
 	bmi.b abs_0_0004E516
-	bra.w abs_0_0004E350
+	bra.w recycle_current_point_and_retry
 	dc.b $34,$2E,$00,$EA
 abs_0_0004E516:
 	lsl.w #1,d6
@@ -62594,35 +62619,35 @@ abs_0_0004E52C:
 	add.w projection_screen_origin_y(a6),d5
 	cmp.w view_clip_min_x(a6),d4
 	bpl.b abs_0_0004E542
-	bra.w abs_0_0004E350
+	bra.w recycle_current_point_and_retry
 	dc.b $38,$2E,$00,$E4
 abs_0_0004E542:
 	cmp.w view_clip_max_x(a6),d4
 	bmi.b abs_0_0004E550
-	bra.w abs_0_0004E350
+	bra.w recycle_current_point_and_retry
 	dc.b $38,$2E,$00,$E6
 abs_0_0004E550:
 	cmp.w view_clip_min_y(a6),d5
 	bpl.b abs_0_0004E55A
-	bra.w abs_0_0004E350
+	bra.w recycle_current_point_and_retry
 abs_0_0004E55A:
 	cmp.w view_clip_max_y(a6),d5
-	bmi.b abs_0_0004E568
-	bra.w abs_0_0004E350
+	bmi.b emit_clipped_point_trail_packet
+	bra.w recycle_current_point_and_retry
 	dc.b $3A,$2E,$00,$EA
-abs_0_0004E568:
-	bra.w abs_0_0004E22E
-abs_0_0004E56C:
-	dc.b $00,$02,$00,$0E,$00,$0D,$00,$0C,$00,$0B,$00,$0B
-	dcb.b $10,$00
-abs_0_0004E588:
-	dc.b $00,$02,$00,$08,$00,$09,$00,$0A,$00,$07,$00,$07
-	dcb.b $10,$00
-abs_0_0004E5A4:
-	dc.b $00,$03,$00,$01,$00,$06,$00,$05,$00,$04,$00,$04
-	dcb.b $10,$00
-abs_0_0004E5C0:
-	dc.b $00,$00,$00,$00
+emit_clipped_point_trail_packet:
+	bra.w select_point_trail_style_by_previous_depth
+point_trail_styles_other_bodies:
+	dc.w $0002,$000E,$000D,$000C,$000B,$000B,$0000,$0000
+	dcb.b $C,$00
+point_trail_styles_body5:
+	dc.w $0002,$0008,$0009,$000A,$0007,$0007,$0000,$0000
+	dcb.b $C,$00
+point_trail_styles_body_le1:
+	dc.w $0003,$0001,$0006,$0005,$0004,$0004,$0000,$0000
+	dcb.b $C,$00
+point_field_previous_view_cursor:
+	dc.l $00000000
 clip_polygon_in_view_volume_bridge_04d5c4:
 	jmp clip_polygon_in_view_volume.l
 	dc.w $0000

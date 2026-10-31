@@ -7,8 +7,8 @@ that further analysis is exhausted. Current source remains byte exact: all
 with all 106154 accepted code bytes retained. No generated assembly was edited
 by hand and no interim archive was produced.
 
-The current ownership union leaves 10299 bytes in
-274 intervals unclassified. This is classification accounting,
+The current ownership union leaves 10247 bytes in
+276 intervals unclassified. This is classification accounting,
 not a semantic completion percentage. Earlier interval/site counts below belong
 to their recorded closeout revision. See the current
 [native memory-span receipt](../../runtime/observations/starglider2-app-memory-spans.json),
@@ -16,8 +16,8 @@ to their recorded closeout revision. See the current
 
 ## Current refinement and next evidence
 
-Current native totals: **3514 app /2716 typed /166 unresolved**, with **10299
-unclassified bytes /274 intervals**. The earlier counter-indexed source-array recovery reused
+Current native totals: **3514 app /2716 typed /166 unresolved**, with **10247
+unclassified bytes /276 intervals**. The earlier counter-indexed source-array recovery reused
 the shared loop induction and interned linear entry values. Original inventory
 readers at source `$DD6` and `$339B4` expose the existing name-reference `text`
 field over the possible104-entry prefix of the148-record owner. That batch retained existing
@@ -26,6 +26,24 @@ Its startup caller proof added five header reads and six app accesses,
 and strengthened 38 app-base attributions.
 Conditional skips mean104 outer iterations are not104 observed memory reads.
 Loaded pointer values remain subject to separate alias/target validation.
+
+The point-field batch follows per-product view projection, cache replacement,
+plane strides, point plotting, 14-byte scene packets and same-point recycling.
+941 original CPU cases include six complete 20-point passes. Each matrix
+product is extracted before WORD addition; object projection instead extracts
+its combined sum. Old cached X zero suppresses trails, and speed gates retain
+subtraction-N behavior. Scratch operand names preserve the first-WORD alias
+inside app `$54` and the separate model-origin alias at `$12C`.
+
+The depth mask proves eight consumed WORDs per style prefix, including the
+negative-depth pre-shift reset that selects index zero. Three 16-byte prefixes
+and the four-byte mutable previous-view cursor gain data ownership; each
+following 12-byte zero tail and the MOVE-like clipping slots remain unknown.
+The cursor is dynamic state, not a constant source pointer. A recycle clears
+one cache triplet and rewinds both cursors without consuming the point count;
+no universal retry bound follows. Alternate tests retain shipped X tables,
+not complete installed encodings. Clipping-caller closure, buffer capacity,
+DMA and scanout remain outside this CPU qualification.
 
 The view-input batch connects the anonymous keyboard handler to the existing
 view selectors, real point-field reset and message queue. 427 CPU cases retain

@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "source_commit": "f4111b5393f1041bb4b316039b9ca9b8f661882a",
+  "source_commit": "a878e623ff9bfae5454300a8f3892ab88a4fc45c",
   "source_assembly": "starglider2_game.s",
   "assets": [
     {
@@ -878,13 +878,13 @@
     },
     {
       "path": "rendered-provenance.json",
-      "bytes": 3610,
-      "sha256": "ab40e3adbe17c3b5eba50e22c2bd83f8c3314887562df7e0b0eef9edbace1a5d"
+      "bytes": 3664,
+      "sha256": "8def2b77f4de6188b79c0c263ac2ebec761421f14fde81ff2359245125437d0a"
     },
     {
       "path": "starglider2_game.s",
-      "bytes": 2205186,
-      "sha256": "c94a2824436d2ab28205e95f5086d8dfd96718828d569969cdc6c131938cc34b"
+      "bytes": 2209859,
+      "sha256": "07958ce707a3f3278bd8b5638272921985721031a1c03643737d8ba04f8c08db"
     },
     {
       "path": "tools/starglider2_protection.py",
@@ -892,6 +892,6 @@
       "sha256": "81d3f66d36dbfbd5c77238b20c28e8b9abaa329777eb91f64669bbbf13703582"
     }
   ],
-  "source_commit_role": "canonical source publication base; view-key input, ordered distance/angle steps, preset/toggle/below paths and actual point/message helpers restored through 427 original CPU cases. Two compact typed relative-table range contracts expose17 pre-existing text references; not a new inference algorithm or global index bound. Preserve raw-angle comparison and same-pitch early return. Supplied root-boundary chain includes original view controls, not normal-input gameplay reachability; output bound by verification_receipt_id",
-  "source_subject_revision": "913dee83aff2ca2e1b84ce68d6f5bd4b833d55e897bf5a2db424f71696a24bb6"
+  "source_commit_role": "canonical source publication base; point-field product rounding/cache replacement, RAM plane masks,14-byte scene packets and recycle handoff reconstructed through941 original CPU cases. Recover only three consumed16-byte style prefixes and one4-byte dynamic cursor; trailing12-byte zero regions and MOVE-like slots remain unknown. Preserve N-only speed gates, WORD aliases and same-point retries. Alternate tests retain shipped X tables, not complete installed encodings; no clipping-caller, capacity, retry bound, DMA or scanout claim; output bound by verification_receipt_id",
+  "source_subject_revision": "f1d56cac414dd4b0beee773d69f81beeeb4a152442bef27ea8625f4411d8329f"
 }
