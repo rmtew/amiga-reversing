@@ -7,7 +7,7 @@ that further analysis is exhausted. Current source remains byte exact: all
 with all 106154 accepted code bytes retained. No generated assembly was edited
 by hand and no interim archive was produced.
 
-The current ownership union leaves 10247 bytes in
+The current ownership union leaves 10243 bytes in
 276 intervals unclassified. This is classification accounting,
 not a semantic completion percentage. Earlier interval/site counts below belong
 to their recorded closeout revision. See the current
@@ -16,7 +16,7 @@ to their recorded closeout revision. See the current
 
 ## Current refinement and next evidence
 
-Current native totals: **3514 app /2716 typed /166 unresolved**, with **10247
+Current native totals: **3514 app /2716 typed /166 unresolved**, with **10243
 unclassified bytes /276 intervals**. The earlier counter-indexed source-array recovery reused
 the shared loop induction and interned linear entry values. Original inventory
 readers at source `$DD6` and `$339B4` expose the existing name-reference `text`
@@ -27,6 +27,24 @@ and strengthened 38 app-base attributions.
 Conditional skips mean104 outer iterations are not104 observed memory reads.
 Loaded pointer values remain subject to separate alias/target validation.
 
+The scene-packet batch restores 24 continuations, six arithmetic constants and
+two depth WORDs (four bytes), using existing RS/SIZEOF bindings for references
+and header fields. 172 CPU cases cover descending unsigned sorting with a
+preceding high guard, last-equal-minimum-Y cycling, end-pointer packet format,
+and actual horizontal/vertical span consumers. Sorting uses A6 as a reference
+cursor. No eligible Y leaves the cycle cursor unestablished; its vertex count
+wraps as a BYTE, while sort-range construction wraps as a WORD. These observed
+limits are preserved, not converted into invented global bounds.
+
+Three-profile preparation retains the heading band's exclusive lower and
+inclusive upper edge. Mode0 clears 34 rows of 16 bytes; mode1 clears 33 rows
+with two eight-byte windows per row. The Amiga empty queue returns after
+snapshot updates. Protected native facts and access totals are unchanged;
+the four recovered bytes are the queue's high-guard and zero-depth WORDs.
+Next: sloped-line and multi-edge span consumers, testing reciprocal indexing
+and carry/row transitions. This batch does not qualify those paths, arbitrary
+input coordinates, queue capacity, shared lifetimes or hardware scanout.
+
 The five-plane polygon-clipper batch restores 47 continuations, seven arithmetic
 constants and three scratch-base names without inventing buffer extents.
 139 original CPU cases cover WORD/Q15 rounding, alternating buffers,
@@ -35,10 +53,10 @@ point-trail caller paths through 14-byte packet emission or recycling. Near clip
 all side passes; a supplied exact-near-endpoint reverse edge overflows DIVS.W,
 and the original unchecked behavior is retained. The trail caller uses
 inclusive lower and exclusive upper screen bounds in the tested ranges.
-Counts and ownership remain unchanged. Normal-game reachability of arithmetic
+In that batch counts and ownership remained unchanged. Normal-game reachability of arithmetic
 edges, maximum scratch usage, all clipping callers and hardware output remain
-unqualified; raw MOVE-like slots still lack entry evidence. Next connected
-source work is the scene-reference sorter and packet-cycling consumers.
+unqualified; raw MOVE-like slots still lack entry evidence. The subsequent
+scene-packet batch now qualifies its sorting and cycling consumers as above.
 
 The point-field batch follows per-product view projection, cache replacement,
 plane strides, point plotting, 14-byte scene packets and same-point recycling.

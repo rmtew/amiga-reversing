@@ -1703,6 +1703,12 @@ SG2_SCAN_EVEN_DEPTH_MASK	EQU	65534
 SG2_SCAN_FRAME_BYTE_OFFSET_MASK	EQU	28
 SG2_SCAN_INITIAL_DEPTH_LIMIT	EQU	32767
 SG2_SCAN_OVERLAY_RELOAD	EQU	56
+SG2_SCENE_HEADING_BAND_LOWER	EQU	832
+SG2_SCENE_HEADING_BAND_UPPER	EQU	2880
+SG2_SCENE_MIN_Y_SCAN_SEED	EQU	4095
+SG2_SCENE_MODE1_HUD_CLEAR_DBF_LAST	EQU	32
+SG2_SCENE_MODE1_HUD_CLEAR_POSTINC_ADVANCE	EQU	156
+SG2_SCENE_SCREEN_VERTEX_BYTES	EQU	4
 SG2_SCORE_BCD_DIGITS_DBF_LAST	EQU	5
 SG2_SPACE_EFFECT_DEFAULT_OVERRIDE_RGB	EQU	$27
 SG2_SPACE_EFFECT_OVERRIDE_RGB_BITS	EQU	$4C
@@ -4970,7 +4976,10 @@ scene_reference_write_cursor:
 	dc.l $00000000
 scene_polygon_write_cursor:
 	dc.l $00000000
-	dc.b $FF,$FF,$00,$00
+scene_sort_high_guard_depth:
+	dc.w $FFFF
+scene_queue_zero_depth_word:
+	dc.w $0000
 abs_0_00003C38:
 	dc.b $FF,$FF,$1D,$40,$07,$EB,$4E,$75
     ; Player view selector: modes 0..7 use the relative table; larger BYTE values take the default path. Stored extra default entries are retained, not declared unused.
@@ -5121,7 +5130,7 @@ render_world_view:
 	move.b #$1,diagnostic_step_byte.l
 	move.l #scene_polygon_arena_prefix,scene_polygon_write_cursor.l
 	movea.l #scene_draw_reference_cells,a0
-	move.l #$3C34,(a0)+
+	move.l #scene_sort_high_guard_depth,(a0)+
 	move.l a0,scene_reference_write_cursor.l
 	move.w #$FFFF,horizon_ground_split_row.l
 	move.w #$FFFF,horizon_clip_max_y_snapshot.l
@@ -5227,7 +5236,7 @@ abs_0_00003FE0:
 	move.b #$D,diagnostic_stage_step_word.l
 	clr.b diagnostic_step_byte.l
 	movea.l scene_reference_write_cursor.l,a2
-	move.l #$3C36,(a2)+
+	move.l #scene_queue_zero_depth_word,(a2)+
 	move.l a2,scene_reference_write_cursor.l
 	move.l #$FFFFFFFF,(a2)
 	move.w scene_packet_count.l,d0
@@ -7358,7 +7367,7 @@ load_near_plane_edge_endpoint:
 test_near_plane_edge_crossing:
 	tst.b d0
 	beq.w deduplicate_near_plane_output_start
-    ; Near crossing uses signed Q15 division and extracts each interpolated product separately. Exact-boundary reverse edges can yield32768: original DIVS overflow is unchecked and preserved.
+    ; Near crossing uses signed Q15 division and extracts each interpolated product separately. Exact-boundary reverse edges can yield 32768: original DIVS overflow is unchecked and preserved.
 interpolate_near_plane_intersection:
 	move.w #SG2_CLIP_NEAR_DEPTH,d0
 	sub.w d3,d0
@@ -54650,24 +54659,25 @@ read_alternate_disk_status_bridge_03c9c4:
 update_alternate_sound_and_display_effects_bridge_03c9d0:
 	jmp update_alternate_sound_and_display_effects.l
 	dc.w $0000
-abs_0_0003D9D8:
+return_if_amiga_scene_queue_empty:
 	rts
 sort_and_draw_scene_packets:
 	move.b #$1,diagnostic_step_byte.l
 	move.l draw_buffer_base.w(a6),scene_draw_buffer_snapshot.l
 	move.b alternate_graphics_mode(a6),scene_graphics_mode_snapshot.l
 	move.w player_rotation_2(a6),d7
-	andi.w #4095,d7
+	andi.w #SG2_HEADING_ANGLE_MASK,d7
 	move.w d7,scene_rotation2_snapshot.l
 	tst.w d0
-	bne.b abs_0_0003DA10
+	bne.b prepare_nonempty_scene_sort_range
 	tst.w platform_entry_flags.l
-	bmi.b abs_0_0003D9D8
+	bmi.b return_if_amiga_scene_queue_empty
 	movea.l a2,a4
-	bra.b abs_0_0003DA3C
-abs_0_0003DA10:
+	bra.b prepare_mode0_scene_hud_polygon
+    ; Skip the leading guard reference, then form last/end cursors with a twice-doubled WORD offset. Large counts wrap and ADDA.W sign-extends; queue length alone is not a capacity proof.
+prepare_nonempty_scene_sort_range:
 	move.b #$2,diagnostic_step_byte.l
-	addq.l #4,a2
+	addq.l #SG2SceneSortReference_SIZEOF,a2
 	movea.l a2,a0
 	movea.l a2,a1
 	subq.w #1,d0
@@ -54675,64 +54685,67 @@ abs_0_0003DA10:
 	add.w d0,d0
 	adda.w d0,a1
 	movea.l a1,a4
-	addq.w #4,a4
+	addq.w #SG2SceneSortReference_SIZEOF,a4
 	tst.w d0
-	beq.b abs_0_0003DA32
+	beq.b test_scene_profile_after_depth_sort
 	bsr.w sort_scene_references_by_depth_key
-abs_0_0003DA32:
+test_scene_profile_after_depth_sort:
 	tst.w platform_entry_flags.l
-	bmi.w abs_0_0003DACE
-abs_0_0003DA3C:
+	bmi.w terminate_scene_reference_list
+    ; Non-Amiga preparation appends the HUD polygon. Heading band is lower-exclusive and upper-inclusive; mode0 styles are 1/2, mode1 styles 3/7. Amiga bypasses this addition.
+prepare_mode0_scene_hud_polygon:
 	btst.b #1,scene_graphics_mode_snapshot.l
-	bne.w abs_0_0003DA82
+	bne.w prepare_mode1_scene_hud_polygon
 	lea.l hud_attitude_polygon_header.l,a1
 	move.w scene_rotation2_snapshot.l,d1
-	cmp.w #$340,d1
-	bls.b abs_0_0003DA68
-	cmp.w #$B40,d1
-	bhi.b abs_0_0003DA68
+	cmp.w #SG2_SCENE_HEADING_BAND_LOWER,d1
+	bls.b select_mode0_hud_fill_outside_heading_band
+	cmp.w #SG2_SCENE_HEADING_BAND_UPPER,d1
+	bhi.b select_mode0_hud_fill_outside_heading_band
 	move.w #$2,SG2ScenePolygonHeader_fill_style(a1)
-	bra.b abs_0_0003DA6E
-abs_0_0003DA68:
+	bra.b append_mode0_scene_hud_polygon
+select_mode0_hud_fill_outside_heading_band:
 	move.w #$1,SG2ScenePolygonHeader_fill_style(a1)
-abs_0_0003DA6E:
+append_mode0_scene_hud_polygon:
 	move.l a1,(a4)+
 	moveq.l #0,d0
 	movea.l scene_draw_buffer_snapshot.l,a0
 	lea.l $5B98(a0),a0
 	bsr.w fill_34_rows_of_16_bytes_mode0
-	bra.b abs_0_0003DACE
-abs_0_0003DA82:
+	bra.b terminate_scene_reference_list
+prepare_mode1_scene_hud_polygon:
 	lea.l hud_attitude_polygon_header.l,a1
 	move.w scene_rotation2_snapshot.l,d1
-	cmp.w #$340,d1
-	bls.b abs_0_0003DAA2
-	cmp.w #$B40,d1
-	bhi.b abs_0_0003DAA2
+	cmp.w #SG2_SCENE_HEADING_BAND_LOWER,d1
+	bls.b select_mode1_hud_fill_outside_heading_band
+	cmp.w #SG2_SCENE_HEADING_BAND_UPPER,d1
+	bhi.b select_mode1_hud_fill_outside_heading_band
 	move.w #$7,SG2ScenePolygonHeader_fill_style(a1)
-	bra.b abs_0_0003DAA8
-abs_0_0003DAA2:
+	bra.b append_mode1_scene_hud_polygon
+select_mode1_hud_fill_outside_heading_band:
 	move.w #$3,SG2ScenePolygonHeader_fill_style(a1)
-abs_0_0003DAA8:
+append_mode1_scene_hud_polygon:
 	move.l a1,(a4)+
 	movea.l scene_draw_buffer_snapshot.l,a0
 	adda.w #$5B6C,a0
 	moveq.l #0,d0
-	move.w #$9C,d1
-	moveq.l #32,d2
-abs_0_0003DABC:
+	move.w #SG2_SCENE_MODE1_HUD_CLEAR_POSTINC_ADVANCE,d1
+	moveq.l #SG2_SCENE_MODE1_HUD_CLEAR_DBF_LAST,d2
+    ; Mode1 clears 33 rows at stride160: two 8-byte windows separated by80 bytes. Postincrement4 plus advance156 forms the stride. Mode0 instead clears34 rows of16 bytes.
+clear_next_mode1_scene_hud_row:
 	move.l d0,(a0)+
 	move.l d0,$004C(a0)
 	move.l d0,(a0)
 	move.l d0,$0050(a0)
 	adda.w d1,a0
-	dbf.w d2,abs_0_0003DABC
+	dbf.w d2,clear_next_mode1_scene_hud_row
     ; Reuse shared reference cells: original polygons become rotated packets here, then edge/span pointers. Shared disk/audio lifetimes are not proven disjoint.
-abs_0_0003DACE:
+terminate_scene_reference_list:
 	move.l #$FFFFFFFF,(a4)
 	move.b #$3,diagnostic_step_byte.l
 	lea.l scene_rotated_packet_workspace_prefix(pc),a1
 	movea.l a2,a6
+    ; Replace each reference with its cycled packet. Skip depth, retain style, rotate XY records and store an end pointer plus zero LONG. This is a workspace phase change, not a lifetime proof.
     ; KNOWN: type A2=Target code-entry register seed:SG2SceneSortReference; type A1=Target code-entry register seed:SG2SceneCycledHeader
 cycle_scene_vertices_from_min_y:
 	move.l (a2),d0	; operand 1: SG2SceneSortReference_polygon at (a2)
@@ -54741,35 +54754,38 @@ cycle_scene_vertices_from_min_y:
 	move.l a1,(a2)+	; operand 2: SG2SceneSortReference_polygon at (a2)+
 	addq.l #2,a0
 	movea.l a1,a5
-	addq.l #4,a1
+	addq.l #SG2SceneCycledHeader_fill_style,a1
 	move.w (a0)+,(a1)+	; operand 1: SG2ScenePolygonHeader_fill_style at (a0)+ | operand 2: SG2SceneCycledHeader_fill_style at (a1)+
-	move.w #$FFF,d0
+	move.w #SG2_SCENE_MIN_Y_SCAN_SEED,d0
 	movea.l a0,a4
 	moveq.l #0,d4
-abs_0_0003DAFA:
+    ; Negative X ends the scan. Y comparison is unsigned, seeded4095; equal minima select the last vertex. The vertex counter increments as a BYTE. No selected Y leaves A3 unestablished.
+scan_next_scene_vertex_for_minimum_y:
 	move.w (a0)+,d2
-	bmi.b abs_0_0003DB0E
+	bmi.b begin_scene_vertex_cycle_from_last_minimum_y
 	move.w (a0)+,d3
 	addq.b #1,d4
 	cmp.w d3,d0
-	bcs.b abs_0_0003DAFA
+	bcs.b scan_next_scene_vertex_for_minimum_y
 	move.w d3,d0
 	move.w d4,d5
 	movea.l a0,a3
-	bra.b abs_0_0003DAFA
-abs_0_0003DB0E:
-	subq.l #4,a3
+	bra.b scan_next_scene_vertex_for_minimum_y
+begin_scene_vertex_cycle_from_last_minimum_y:
+	subq.l #SG2_SCENE_SCREEN_VERTEX_BYTES,a3
 	movea.l a3,a0
-abs_0_0003DB12:
+    ; Copy LONG XY records through the negative-X terminator, then rewind and replace that LONG with zero. The extra WORD after the source terminator is read but does not affect the output.
+copy_scene_vertices_from_selected_minimum:
 	move.l (a3)+,(a1)+
-	bpl.b abs_0_0003DB12
-	subq.l #4,a1
+	bpl.b copy_scene_vertices_from_selected_minimum
+	subq.l #SG2_SCENE_SCREEN_VERTEX_BYTES,a1
 	subq.w #2,d5
-	bmi.b abs_0_0003DB22
-abs_0_0003DB1C:
+	bmi.b finish_cycled_scene_packet
+copy_scene_vertex_prefix_after_wrap:
 	move.l (a4)+,(a1)+
-	dbf.w d5,abs_0_0003DB1C
-abs_0_0003DB22:
+	dbf.w d5,copy_scene_vertex_prefix_after_wrap
+    ; End pointer names the first byte after rotated XY records, before the zero LONG. The span consumer uses this pointer; the new packet does not retain the original negative-X terminator.
+finish_cycled_scene_packet:
 	move.l a1,(a5)	; operand 2: SG2SceneCycledHeader_vertices_end at (a5)
 	clr.l (a1)+
 	bra.b cycle_scene_vertices_from_min_y
@@ -54794,7 +54810,7 @@ abs_0_0003DB4C:
 	move.w (a0)+,(a3)+	; operand 1: SG2SceneCycledHeader_fill_style at (a0)+ | operand 2: SG2SceneSpanHeader_fill_style at (a3)+
 	subq.w #8,a1
 	cmpa.l a0,a1
-	beq.w abs_0_0003DC58
+	beq.w emit_two_vertex_scene_span_packet
 	addq.w #8,a1
 	moveq.l #0,d0
 	move.w (a0)+,d0
@@ -54897,30 +54913,31 @@ abs_0_0003DC3A:
 abs_0_0003DC50:
 	move.w #$FFFF,(a3)+
 	bra.w abs_0_0003DB46
-abs_0_0003DC58:
+    ; The end-pointer test selects exactly two vertices. Equal-Y endpoints emit one unsigned-X-ordered span; equal-X endpoints emit dy+1 rows via WORD DBF. Sloped cases remain separate.
+emit_two_vertex_scene_span_packet:
 	movem.w (a0)+,d0-d3
 	move.w d1,(a3)+	; operand 2: SG2SceneSpanHeader_first_scanline at (a3)+
 	cmp.w d1,d3
-	bne.b abs_0_0003DC7E
+	bne.b test_two_vertex_scene_line_for_vertical
 	cmp.w d0,d2
-	bcc.b abs_0_0003DC72
+	bcc.b emit_horizontal_scene_line_in_input_x_order
 	move.w d2,(a3)+
 	move.w d0,(a3)+
 	move.w #$FFFF,(a3)+
 	bra.w abs_0_0003DB46
-abs_0_0003DC72:
+emit_horizontal_scene_line_in_input_x_order:
 	move.w d0,(a3)+
 	move.w d2,(a3)+
 	move.w #$FFFF,(a3)+
 	bra.w abs_0_0003DB46
-abs_0_0003DC7E:
+test_two_vertex_scene_line_for_vertical:
 	cmp.w d0,d2
 	bne.w abs_0_0003DC94
 	sub.w d1,d3
-abs_0_0003DC86:
+emit_next_vertical_scene_line_span:
 	move.w d0,(a3)+
 	move.w d0,(a3)+
-	dbf.w d3,abs_0_0003DC86
+	dbf.w d3,emit_next_vertical_scene_line_span
 	move.w d3,(a3)+
 	bra.w abs_0_0003DB46
 abs_0_0003DC94:
@@ -57099,7 +57116,7 @@ draw_interleaved_4plane_span_records:
     ; KNOWN: type A2=Target code-entry register seed:SG2SceneSpanReference
 abs_0_0003F0AC:
 	move.l (a2)+,d2	; operand 1: SG2SceneSpanReference_span at (a2)+
-	bmi.w abs_0_0003D9D8
+	bmi.w return_if_amiga_scene_queue_empty
     ; Nonnegative span reference in D2; read signed fill style then first scanline, followed by X pairs. Phase interface only; no stream bound.
 draw_interleaved_span_header:
 	movea.l d2,a0
@@ -59322,41 +59339,42 @@ abs_0_000415BE:
 sort_scene_reference_saved_range:
 	movea.l $0004(a7),a0
 	movea.l $0008(a7),a1
-    ; Sort original polygon references by unsigned depth key. A0 first/A1 last; recursive valid-range/stack contract. A6 is a reference cursor here, not app base.
+    ; Sort depth WORDs in descending unsigned order. A0/A1 are first/last reference addresses. Backward scanning reads the preceding cell; the world caller supplies the FFFF depth guard.
 sort_scene_references_by_depth_key:
 	cmpa.l a1,a0
-	bgt.b abs_0_0004168E
+	bgt.b return_from_scene_depth_partition
 	movea.l (a1),a5	; operand 1: SG2SceneSortReference_polygon at (a1)
 	move.w (a5),d0	; operand 1: SG2ScenePolygonHeader_depth_sort_key at (a5)
 	movea.l a0,a6
 	movea.l a1,a3
-abs_0_00041652:
+scan_scene_partition_left_cursor:
 	movea.l (a6)+,a5
 	cmp.w (a5),d0
-	bcs.b abs_0_00041652
-	suba.l #$4,a6
+	bcs.b scan_scene_partition_left_cursor
+	suba.l #SG2SceneSortReference_SIZEOF,a6
+    ; Predecrement before testing the depth key. Even a singleton needs a suitable preceding reference. A low guard allows scanning farther backward; no arbitrary caller-range safety is implied.
     ; KNOWN: type A6=Target code-entry register seed:SG2SceneSortReference
-abs_0_0004165E:
+scan_scene_partition_right_cursor:
 	movea.l -(a3),a5
 	cmp.w (a5),d0
-	bhi.b abs_0_0004165E
+	bhi.b scan_scene_partition_right_cursor
 	cmpa.l a3,a6
-	bgt.b abs_0_00041670
+	bgt.b place_scene_depth_pivot_and_recurse
 	move.l (a6),d1	; operand 1: SG2SceneSortReference_polygon at (a6)
 	move.l (a3),(a6)	; operand 2: SG2SceneSortReference_polygon at (a6)
 	move.l d1,(a3)
-	bra.b abs_0_00041652
-abs_0_00041670:
+	bra.b scan_scene_partition_left_cursor
+place_scene_depth_pivot_and_recurse:
 	move.l (a6),d1	; operand 1: SG2SceneSortReference_polygon at (a6)
 	move.l (a1),(a6)	; operand 1: SG2SceneSortReference_polygon at (a1) | operand 2: SG2SceneSortReference_polygon at (a6)
 	move.l d1,(a1)	; operand 2: SG2SceneSortReference_polygon at (a1)
 	move.l a1,-(a7)
-	pea.l $0004(a6)
+	pea.l SG2SceneSortReference_SIZEOF(a6)
 	lea.l -$0004(a6),a1
 	bsr.w sort_scene_references_by_depth_key
 	bsr.w sort_scene_reference_saved_range
 	adda.l #$8,a7
-abs_0_0004168E:
+return_from_scene_depth_partition:
 	rts
 polygon_forward_edge_end_x:
 	dc.w $0000
@@ -62573,7 +62591,7 @@ rewind_recycled_world_point_cursor:
 	subq.l #SG2_POINT_XYZ_BYTES,a4
 	bra.w transform_next_nearby_point
 	dcb.b $50,$00
-    ; Consume two saved endpoints through the real clipper, then project its first two XYZ records.139 CPU cases include acceptance/recycling, not raw slots, normal-game reachability or scanout.
+    ; Consume two saved endpoints through the real clipper, then project its first two XYZ records. 139 CPU cases include acceptance/recycling, not raw slots, normal-game reachability or scanout.
 clip_point_trail_from_original_view_xyz:
 	movea.l point_field_previous_view_cursor.l,a0
 	subq.w #6,a0

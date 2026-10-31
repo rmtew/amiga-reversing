@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "source_commit": "91e78aee8d5c8f535f87bb00791306d6e084260e",
+  "source_commit": "50ccf4c2909c53f62ef81a1273e0565896d818e5",
   "source_assembly": "starglider2_game.s",
   "assets": [
     {
@@ -878,13 +878,13 @@
     },
     {
       "path": "rendered-provenance.json",
-      "bytes": 3685,
-      "sha256": "f409226c600cfe520de3265f61ca8c78344cf557860c29a8fbda92976f3ba2cb"
+      "bytes": 3639,
+      "sha256": "064f024e844fae379bc31bb6c7165b76bb9751c2bf9436bd4637876a3f70af09"
     },
     {
       "path": "starglider2_game.s",
-      "bytes": 2214114,
-      "sha256": "84ace63af2b9919a9436e9be64492c2c7a774ecced3b2f25016f1eb93ff0cf3f"
+      "bytes": 2217675,
+      "sha256": "5a05de7bbb05763ad3a1ff7b1307dff8562db0ec3443b476b84d0fce67fba428"
     },
     {
       "path": "tools/starglider2_protection.py",
@@ -892,6 +892,6 @@
       "sha256": "81d3f66d36dbfbd5c77238b20c28e8b9abaa329777eb91f64669bbbf13703582"
     }
   ],
-  "source_commit_role": "canonical source publication base; five-plane XYZ clipping and the real point-trail handoff reconstructed through 139 original CPU cases, with 941 prior point cases retained. 47 continuations, 7 constants and 3 scratch names preserve signed Q15 rounding/DIVS overflow, edge order, alternating buffers, consecutive-only deduplication, zero-count underflow and exclusive upper screen bounds. Names grant no scratch extent/capacity; raw MOVE-like slots remain unknown. No normal-game reachability, retry-termination, hardware or complete clipping-caller claim; output bound by verification_receipt_id",
-  "source_subject_revision": "29f94ee641400a2088219e8d512ee8060c97b301206cf29101ebb68aec8fe06b"
+  "source_commit_role": "canonical source publication base; scene depth sorting, vertex cycling and horizontal/vertical span handoffs reconstructed through 172 original CPU cases. 24 continuations, six arithmetic constants, two depth WORDs and existing RS/SIZEOF bindings retain descending unsigned keys, preceding high guard, WORD-wrapped ranges, BYTE counting, last equal minimum, distinct packet phases and profile-specific HUD clears. No global capacity, lifetime, arbitrary-coordinate, sloped-span, full-renderer or hardware claim; output bound by verification_receipt_id",
+  "source_subject_revision": "2704ad077f1d26b2e578c3f8bbdaa12fbf3138bb07e704193ed1f2e1add3303d"
 }
