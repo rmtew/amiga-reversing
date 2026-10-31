@@ -1435,6 +1435,8 @@ BPLCON2_PF2P2	EQU	$20
 BPLCON2_PF2PRI	EQU	$40
 INTF_CLRALL	EQU	$7FFF
 SG2_AIM_CONTROL_PHASE_MASK	EQU	4095
+SG2_ALTERNATE_WEAPON_HUD_ICON_PITCH_BYTES	EQU	1920
+SG2_AMIGA_WEAPON_HUD_ICON_PITCH_BYTES	EQU	480
 SG2_CONTACT_COORDINATE_SHIFT	EQU	9
 SG2_CONTACT_PIXEL_CENTER_X	EQU	144
 SG2_CONTACT_PIXEL_CENTER_Y	EQU	160
@@ -1447,6 +1449,9 @@ SG2_HEADING_FINE_SHIFT_MASK	EQU	15
 SG2_HEADING_QUOTIENT_MASK	EQU	511
 SG2_HEADING_SAMPLE_SHIFT	EQU	2
 SG2_HEADING_SCALE_SHIFT	EQU	5
+SG2_HOMING_INITIAL_UPDATES	EQU	400
+SG2_HOMING_LAUNCH_COOLDOWN	EQU	100
+SG2_HOMING_LAUNCH_SPEED_BIAS	EQU	500
 SG2_HUD_COORDINATE_BYTE_MASK	EQU	255
 SG2_HUD_COORDINATE_DIGIT_DBF_LAST	EQU	3
 SG2_HUD_DIGIT_PAIR_DBF_LAST	EQU	1
@@ -1457,6 +1462,7 @@ SG2_MESSAGE_QUEUE_POINTER_LIMIT	EQU	10
 SG2_MESSAGE_ROWS_DBF_LAST	EQU	7
 SG2_MESSAGE_ROW_LONGS_DBF_LAST	EQU	6
 SG2_MESSAGE_ROW_SKIP_BYTES	EQU	12
+SG2_OBJECT_TYPE_HOMING_MISSILE	EQU	12
 SG2_OBJECT_TYPE_SKIM_DRONE	EQU	43
 SG2_OBJECT_TYPE_SKIM_MISSILE	EQU	60
 SG2_OVERLAY_MAX_LEFT	EQU	288
@@ -1490,6 +1496,9 @@ SG2_TEXT_DELETE_ROW_REWIND_BYTES	EQU	322
 SG2_TEXT_GLYPH_WRAP_TAIL_BYTES	EQU	280
 SG2_TEXT_ROW_BYTES	EQU	320
 SG2_TEXT_TAB_ADVANCE	EQU	6
+SG2_WEAPON_HUD_ICON_ROWS_DBF_LAST	EQU	13
+SG2_WEAPON_HUD_ICON_SAVED_BYTES	EQU	112
+SG2_WEAPON_HUD_ICON_SLOT_MASK	EQU	7
 SG2_WORKSPACE_BELOW_DISPLAY_BYTES	EQU	$6998
 SG2_WORKSPACE_CLEAR_WORDS	EQU	$32CC
 _ciaa	EQU	$BFE001
@@ -9249,82 +9258,108 @@ reload_scan_overlay_after_name_presentation:
 	move.w #SG2_SCAN_OVERLAY_RELOAD,object_scan_sprite_countdown(a6)
 return_from_weapon_or_scan_action:
 	rts
+    ; Cooldown or gated direction bypasses launch and reprojects the old pointer. Otherwise mouse, primary-fire or configured key can attempt launch; no target revalidation occurs here.
 service_existing_scan_lock_inputs:
 	tst.w weapon_action_cooldown(a6)
 	bne.w update_locked_scan_target_projection
+gate_homing_launch_by_one_hand_directions:
 	tst.b one_hand_control_flag(a6)
-	beq.b abs_0_000075CC
+	beq.b test_homing_mouse_primary_button
 	move.w joystick_direction_bits(a6),d0
 	andi.w #3,d0
 	bne.w update_locked_scan_target_projection
-abs_0_000075CC:
+test_homing_mouse_primary_button:
 	tst.b mouse_primary_button_flag(a6)
 	bne.b try_launch_homing_missile_after_input
+test_homing_primary_fire_flag:
 	tst.b primary_fire_flag(a6)
 	bne.b try_launch_homing_missile_after_input
+test_configured_homing_fire_key:
 	lea.l keyboard_down_flags(pc),a0
 	clr.l d0
 	move.b fire_key_scancode(a6),d0
 	tst.b $0(a0,d0.w)
 	beq.w update_locked_scan_target_projection
+    ; No icons returns. Otherwise consume one icon before requiring free count>2; failed reserve keeps that loss but does not restore HUD, change the type counter or pop the pool.
 try_launch_homing_missile_after_input:
 	move.w homing_missile_hud_icon_count(a6),d0
-	beq.w abs_0_000076D2
+	beq.w return_from_homing_launch
+consume_homing_hud_icon_before_slot_guard:
 	subq.w #1,homing_missile_hud_icon_count(a6)
+prepare_homing_hud_background_restore:
 	lea.l homing_missile_hud_saved_backgrounds.l,a0
 	movea.l homing_missile_hud_screen_origin.l,a1
-	cmpi.w #2,free_object_count(a6)
+require_homing_free_slot_reserve:
+	cmpi.w #SG2_PROJECTILE_FREE_SLOT_RESERVE,free_object_count(a6)
 	bls.w return_from_weapon_or_scan_action
+restore_homing_hud_before_type_counter_check:
 	bsr.w restore_weapon_hud_icon_background
+    ; HUD is already restored. Decrement type-12 BYTE and test N: negative result clamps to zero and reports error 114; this is not just unsigned-underflow detection.
+decrement_type12_counter_before_homing_allocation:
 	lea.l model_type_population_counts(a6),a0
 	subq.b #1,$000C(a0)
-	bpl.b abs_0_00007626
+	bpl.b take_homing_record_from_free_stack
+clamp_negative_type12_counter_and_report_error:
 	clr.b $000C(a0)
 	move.w #$114,d0
 	bra.w abs_0_00007B22
-abs_0_00007626:
+    ; Successful allocation initializes only selected record bytes and copies the target without validation. Dirty supplied-record and null/sentinel cases are not normal-game lifetime proofs.
+take_homing_record_from_free_stack:
 	movea.l free_object_stack_cursor(a6),a1
 	movea.l -(a1),a2
 	move.l a1,free_object_stack_cursor(a6)
 	subq.w #1,free_object_count(a6)
     ; KNOWN: type A2=Target code-entry register seed:SG2SteeredProjectile
+initialize_homing_tracking_and_type:
 	st.b SG2SteeredProjectile_stored_target_tracking_byte(a2)
-	move.w #$C,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
+	move.w #SG2_OBJECT_TYPE_HOMING_MISSILE,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
 	move.b #$3,SG2TargetingObject_model_scale_shift(a2)
 	clr.b SG2WorldObject_vertex_variant_selector(a2)
 	bset.b #7,SG2ObjectCore_durability_or_negative(a2)
 	move.b #$FF,SG2ObjectCore_retirement_phase_or_negative(a2)
-	move.w #$190,SG2SteeredProjectile_remaining_updates(a2)
+initialize_homing_update_budget:
+	move.w #SG2_HOMING_INITIAL_UPDATES,SG2SteeredProjectile_remaining_updates(a2)
+copy_stored_scan_reference_into_homing_record:
 	move.l scan_target_reference(a6),SG2WorldObject_linked_record_or_sentinel(a2)
+initialize_homing_world_position:
 	move.l player_world_x(a6),SG2ObjectCore_world_x(a2)
 	move.l player_world_y(a6),SG2ObjectCore_world_y(a2)
 	move.l player_world_z(a6),SG2ObjectCore_world_z(a2)
+initialize_homing_rotation_with_odd_first_angle:
 	move.w player_rotation_0(a6),SG2WorldObject_rotation_0(a2)
 	ori.w #1,SG2WorldObject_rotation_0(a2)
 	move.w player_rotation_1(a6),SG2WorldObject_rotation_1(a2)
 	move.w player_rotation_2(a6),SG2WorldObject_rotation_2(a2)
+    ; Speed + 500 wraps as WORD. Store velocity WORDs, double them as WORDs, sign-extend and add to XYZ LONGs; mask X/Z only. No unbounded arithmetic replacement.
+derive_homing_speed_from_player_word:
 	move.w player_speed_smoothed(a6),d4
-	addi.w #500,d4
+	addi.w #SG2_HOMING_LAUNCH_SPEED_BIAS,d4
 	move.w d4,SG2SteeredProjectile_horizontal_motion_scale(a2)
 	move.w SG2SteeredProjectile_horizontal_motion_scale(a2),d3
+build_homing_launch_motion_vector:
 	bsr.w build_player_motion_vector_bridge_006fc0
+store_homing_velocity_words:
 	move.w d4,SG2WorldObject_velocity_x(a2)
 	move.w d5,SG2WorldObject_velocity_y(a2)
 	move.w d6,SG2WorldObject_velocity_z(a2)
+double_homing_displacement_in_word_precision:
 	add.w d4,d4
 	add.w d5,d5
 	add.w d6,d6
 	ext.l d4
 	ext.l d5
 	ext.l d6
+advance_homing_position_by_doubled_signed_velocity:
 	add.l d4,SG2ObjectCore_world_x(a2)
 	add.l d5,SG2ObjectCore_world_y(a2)
 	add.l d6,SG2ObjectCore_world_z(a2)
+wrap_homing_horizontal_world_position:
 	move.l horizontal_world_wrap_mask(a6),d0
 	and.l d0,SG2ObjectCore_world_x(a2)
 	and.l d0,SG2ObjectCore_world_z(a2)
-	move.w #$64,weapon_action_cooldown(a6)
-abs_0_000076D2:
+set_homing_launch_cooldown:
+	move.w #SG2_HOMING_LAUNCH_COOLDOWN,weapon_action_cooldown(a6)
+return_from_homing_launch:
 	rts
     ; Use stored pointer without local null/type/liveness checks. Z==0 retains coordinates; negative Z still projects. No per-reader type seed is added to hide that missing validity obligation.
 update_locked_scan_target_projection:
@@ -9479,36 +9514,40 @@ abs_0_0000784E:
 	lea.l $00A0(a4),a4
 	dbf.w d1,abs_0_0000784E
 	rts
-    ; Restore saved slot((oldcount-1)&7)*112 after caller decrements icon count. Keep free-object/inventory guard order and original invalid-state behavior.
+    ; Restore fourteen rows from slot(count-1)&7, but destination uses unmasked count and twelve-row pitch. Keep two-row overlap and MULU/SUBA.W truncation in all three encodings.
 restore_weapon_hud_icon_background:
 	move.w d0,d1
 	subq.w #1,d1
-	andi.l #7,d1
-	mulu.w #$70,d1
+mask_weapon_hud_saved_slot_to_eight:
+	andi.l #SG2_WEAPON_HUD_ICON_SLOT_MASK,d1
+	mulu.w #SG2_WEAPON_HUD_ICON_SAVED_BYTES,d1
 	lea.l $0(a0,d1.w),a0
-	moveq.l #13,d1
+prepare_fourteen_row_weapon_hud_restore:
+	moveq.l #SG2_WEAPON_HUD_ICON_ROWS_DBF_LAST,d1
 	tst.w platform_entry_flags.l
-	bpl.w abs_0_000078BE
-	mulu.w #$1E0,d0
+	bpl.w position_alternate_weapon_hud_restore
+position_amiga_weapon_hud_restore:
+	mulu.w #SG2_AMIGA_WEAPON_HUD_ICON_PITCH_BYTES,d0
 	suba.w d0,a1
-abs_0_000078A6:
+restore_amiga_weapon_hud_four_plane_row:
 	move.w (a0)+,(a1)
 	move.w (a0)+,$2000(a1)
 	move.w (a0)+,$4000(a1)
 	move.w (a0)+,$6000(a1)
 	lea.l $0028(a1),a1
-	dbf.w d1,abs_0_000078A6
+	dbf.w d1,restore_amiga_weapon_hud_four_plane_row
 	rts
-abs_0_000078BE:
-	mulu.w #$780,d0
+position_alternate_weapon_hud_restore:
+	mulu.w #SG2_ALTERNATE_WEAPON_HUD_ICON_PITCH_BYTES,d0
 	suba.w d0,a1
 	movea.l a1,a3
 	adda.l #$8000,a3
 	movea.l a3,a4
 	adda.l #$8000,a4
+select_alternate_weapon_hud_encoding:
 	tst.b alternate_graphics_mode(a6)
-	bmi.b abs_0_000078F8
-abs_0_000078DA:
+	bmi.b restore_alternate_mono_weapon_hud_row
+restore_alternate_color_weapon_hud_row:
 	move.l (a0),(a1)+
 	move.l (a0),(a3)+
 	move.l (a0)+,(a4)+
@@ -9518,9 +9557,9 @@ abs_0_000078DA:
 	lea.l $0098(a1),a1
 	lea.l $0098(a3),a3
 	lea.l $0098(a4),a4
-	dbf.w d1,abs_0_000078DA
+	dbf.w d1,restore_alternate_color_weapon_hud_row
 	rts
-abs_0_000078F8:
+restore_alternate_mono_weapon_hud_row:
 	move.l (a0)+,d0
 	move.l d0,(a1)
 	move.l d0,(a3)
@@ -9532,7 +9571,7 @@ abs_0_000078F8:
 	lea.l $00A0(a1),a1
 	lea.l $00A0(a3),a3
 	lea.l $00A0(a4),a4
-	dbf.w d1,abs_0_000078F8
+	dbf.w d1,restore_alternate_mono_weapon_hud_row
 	rts
 homing_missile_hud_screen_origin:
 	dc.l $00071BFE

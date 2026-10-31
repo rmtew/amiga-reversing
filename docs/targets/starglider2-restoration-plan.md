@@ -27,6 +27,36 @@ and strengthened 38 app-base attributions.
 Conditional skips mean104 outer iterations are not104 observed memory reads.
 Loaded pointer values remain subject to separate alias/target validation.
 
+The existing-lock/homing batch reconstructs 32 connected input, inventory,
+allocation, motion and shared HUD-restore continuations. Cooldown takes precedence;
+one-hand mode additionally gates on the low two direction bits, before mouse,
+primary-fire or configured-key input. No icon returns immediately. A nonzero
+icon count is decremented before requiring more than two free records. With
+space available, HUD restoration precedes the type-12 BYTE decrement; a negative
+post-decrement result is clamped and reported, without undoing prior effects.
+This signed-result test is not merely unsigned underflow detection.
+
+229 original-CPU cases cover input precedence, rejected reserves, counter sign
+boundaries, all three HUD encodings and successful record allocation through the
+original sine/cosine motion helper. Launch copies the stored target without
+validation, initializes only selected reused-record bytes, adds 500 at WORD
+precision, stores velocity WORDs, then doubles those WORDs before sign-extending
+displacements. The record's first angle is forced odd, but velocity uses the
+player angles. X/Z are masked; Y retains its LONG sum. Null/sentinel pointer and
+dirty-record fixtures establish local behavior, not normal-game reachability or
+lifetime safety. Successful launch sets cooldown 100; no trajectory or later
+steering/expiry assertion follows from this initialization.
+
+The shared HUD helper restores fourteen logical rows from 112-byte saved slots,
+using `(count-1)&7` only for the source. Destination positioning retains the
+unmasked count, twelve-row pitch and original MULU/SUBA.W truncation. Thus
+adjacent restores overlap two logical rows. Native proof/reference identities,
+access totals and ownership accounting are unchanged; no framework or type-proof
+relaxation was needed. C/vasm and clean standalone output remain byte exact;
+these supplied-state CPU tests add no gameplay, DMA or scanout qualification.
+Next connected lead: stored-target steering and update-budget consumers, keeping
+pointer lifetime and later retirement separate from launch initialization.
+
 The scan-acquisition batch reconstructs 45 connected eligibility, projection,
 commit, aim-snapshot and caller continuations, plus the analysis/missile message
 pointer pair and its two existing text labels. These are two shared-program
@@ -52,8 +82,8 @@ proof/reference identities and ownership totals remain unchanged. Tests use
 supplied valid records/profile state and stop before allocation or error
 presentation; they do not validate object lifetimes, normal gameplay, DMA or
 scanout. C/vasm and clean standalone rebuilding remain byte exact. Next connected
-lead: existing-lock input and homing-launch continuations, keeping pointer
-lifetime and actual spawning separate from these prefix results.
+lead: existing-lock input and homing-launch continuations, addressed above;
+its prefix results alone do not prove pointer lifetime or spawning.
 
 The overlay batch reconstructs 39 connected bitmap/scan/aim continuations and
 72 bytes of shared row scratch and rotate-split masks. The bitmap helper reads
