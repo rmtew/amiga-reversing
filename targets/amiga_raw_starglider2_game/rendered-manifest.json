@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "source_commit": "54991fb812baab6d8c70e7c1b2f03809dcb911c4",
+  "source_commit": "59e1104d80b57b3b3fc63fdb563c4a4ec1451073",
   "source_assembly": "starglider2_game.s",
   "assets": [
     {
@@ -878,13 +878,13 @@
     },
     {
       "path": "rendered-provenance.json",
-      "bytes": 3572,
-      "sha256": "928b6c7773099629cdb1bdeb58f50feca8c8bafaff4673440457b0315d59e36c"
+      "bytes": 3533,
+      "sha256": "e0564358bde0e01081207d18bfa08ae27a593f3b7f5d450acfd3fa00c22fb1cd"
     },
     {
       "path": "starglider2_game.s",
-      "bytes": 2158691,
-      "sha256": "6afaa1b3a817830a46b119f0f5c2cd3abfa7c22ee7b7245d04f9a0d723ffa953"
+      "bytes": 2161608,
+      "sha256": "ff80bd4feebba2c3d2cdfbfabc89266ee575617b1de156cf086ec9624119e6b2"
     },
     {
       "path": "tools/starglider2_protection.py",
@@ -892,6 +892,6 @@
       "sha256": "81d3f66d36dbfbd5c77238b20c28e8b9abaa329777eb91f64669bbbf13703582"
     }
   ],
-  "source_commit_role": "canonical source publication base; extentless naming repair preserves inferred ownership/consumers (144 guards); sprite two-WORD to paired AND/OR packet conversion and alternate meter capture/restore/draw formats reconstructed through 195 original-CPU cases; preserve capture56/restore51 rows, DBF/header inclusion and original converter alias; no global caller bound, clipping, startup alias lifetime, scanout, hardware timing or PCM proof; output is bound by verification_receipt_id",
-  "source_subject_revision": "abeb99e93f6220978d815fa04ae0b01540d83dfe67c316147cf56e5e07f811d4"
+  "source_commit_role": "canonical source publication base; packed-BCD score/periodic field boundaries and three digit layouts reconstructed through 522 independent Musashi CPU cases; native concrete ABCD unsupported and unchanged; preserve score leading BYTE, normal caller zero gate, direct-entry MOVE/ADD countdown distinction and fixed output points; no all-caller BCD validity, IRQ cadence, mode lifetime or scanout proof; output is bound by verification_receipt_id",
+  "source_subject_revision": "0b4b52552d191bc1c53655a0da5014ebf2136fe9452da3883fbe380ae77a70a0"
 }

@@ -1567,6 +1567,8 @@ SG2_PAULA_TYPE5_PRIORITY_LIMIT	EQU	500
 SG2_PAULA_TYPE8_PRIORITY_LIMIT	EQU	1000
 SG2_PAULA_TYPE91_PRIORITY_LIMIT	EQU	1200
 SG2_PAULA_VOLUME_STEP	EQU	2
+SG2_PERIODIC_BCD_DIGITS_DBF_LAST	EQU	3
+SG2_PERIODIC_BCD_RELOAD_TICKS	EQU	432
 SG2_PLAYER_CORNER_BASE_OFFSET	EQU	401
 SG2_PLAYER_CORNER_SLOPE_FACTOR	EQU	17
 SG2_PLAYER_DEPOT_APPROACH_LIMIT	EQU	575
@@ -1609,6 +1611,7 @@ SG2_SCAN_EVEN_DEPTH_MASK	EQU	65534
 SG2_SCAN_FRAME_BYTE_OFFSET_MASK	EQU	28
 SG2_SCAN_INITIAL_DEPTH_LIMIT	EQU	32767
 SG2_SCAN_OVERLAY_RELOAD	EQU	56
+SG2_SCORE_BCD_DIGITS_DBF_LAST	EQU	5
 SG2_SPACE_EFFECT_DEFAULT_OVERRIDE_RGB	EQU	$27
 SG2_SPACE_EFFECT_OVERRIDE_RGB_BITS	EQU	$4C
 SG2_SPRITE_CONTROL_PREFIX_BYTES	EQU	4
@@ -1826,6 +1829,20 @@ hud_coordinates_mode0_bank2_anchor	EQU	$78298
 hud_coordinates_mode1_bank0_anchor	EQU	$681EC
 hud_coordinates_mode1_bank1_anchor	EQU	$701EC
 hud_coordinates_mode1_bank2_anchor	EQU	$781EC
+hud_periodic_bcd_amiga_anchor	EQU	$702E2
+hud_periodic_bcd_mode0_bank0_anchor	EQU	$68C28
+hud_periodic_bcd_mode0_bank1_anchor	EQU	$70C28
+hud_periodic_bcd_mode0_bank2_anchor	EQU	$78C28
+hud_periodic_bcd_mode1_bank0_anchor	EQU	$68B64
+hud_periodic_bcd_mode1_bank1_anchor	EQU	$70B64
+hud_periodic_bcd_mode1_bank2_anchor	EQU	$78B64
+hud_score_amiga_anchor	EQU	$70094
+hud_score_mode0_bank0_anchor	EQU	$682F0
+hud_score_mode0_bank1_anchor	EQU	$702F0
+hud_score_mode0_bank2_anchor	EQU	$782F0
+hud_score_mode1_bank0_anchor	EQU	$68218
+hud_score_mode1_bank1_anchor	EQU	$70218
+hud_score_mode1_bank2_anchor	EQU	$78218
 m68k_vector_address_error	EQU	$C
 m68k_vector_bus_error	EQU	$8
 m68k_vector_division_by_zero	EQU	$14
@@ -15358,6 +15375,7 @@ abs_0_0000C738:
 	tst.b modal_command_input_flag(a6)
 	bne.b abs_0_0000C754
 	addq.w #1,panel_animation_service_ticks(a6)
+    ; Sign/modal gates precede this WORD decrement. Only old countdown 1 calls the updater with zero. Old zero wraps to $FFFF without a call. Preserve BNE, not a negative-expiry clamp.
 	subq.w #1,periodic_display_update_countdown(a6)
 	bne.b abs_0_0000C754
 	bsr.w increment_and_draw_periodic_bcd_amiga
@@ -16339,18 +16357,18 @@ add_bcd_and_draw_amiga_digits:
 	abcd -(a0),-(a1)
 	abcd -(a0),-(a1)
 	abcd -(a0),-(a1)
-	lea.l absolute_slot_00070094.l,a0
-	moveq.l #5,d2
+	lea.l hud_score_amiga_anchor.l,a0
+	moveq.l #SG2_SCORE_BCD_DIGITS_DBF_LAST,d2
 	move.l -$0001(a1),d0
 	rol.l #8,d0
-abs_0_0000D642:
+prepare_amiga_bcd_nibble_glyph_stream:
 	rol.l #3,d0
 	moveq.l #0,d1
 	lea.l font_numeric_nibble_glyph_view.l,a2
-abs_0_0000D64C:
+draw_next_amiga_bcd_digit:
 	rol.l #4,d0
 	move.b d0,d1
-	andi.w #120,d1
+	andi.w #SG2_HUD_NIBBLE_GLYPH_OFFSET_MASK,d1
 	lea.l $0(a2,d1.w),a1
 	move.b (a1),$6000(a0)
 	move.b (a1)+,$4000(a0)
@@ -16369,25 +16387,25 @@ abs_0_0000D64C:
 	move.b (a1),$6118(a0)
 	move.b (a1)+,$4118(a0)
 	addq.l #1,a0
-	dbf.w d2,abs_0_0000D64C
-abs_0_0000D69E:
+	dbf.w d2,draw_next_amiga_bcd_digit
+return_from_amiga_bcd_digit_stream:
 	rts
 increment_and_draw_periodic_bcd_amiga:
 	lea.l abs_0_00013C9A.l,a1
 	cmpi.w #45080,$0008(a1)
 	lea.l periodic_display_update_countdown(a6),a1
-	lea.l abs_0_0000DFAE(pc),a0
+	lea.l periodic_display_bcd_step_end(pc),a0
 	moveq.l #0,d2
 	sub.w d2,d2
 	abcd -(a0),-(a1)
 	abcd -(a0),-(a1)
-	move.w #$1B0,periodic_display_update_countdown(a6)
+	move.w #SG2_PERIODIC_BCD_RELOAD_TICKS,periodic_display_update_countdown(a6)
 	btst.b #1,display_and_frame_service_flags(a6)
-	beq.w abs_0_0000D69E
+	beq.w return_from_amiga_bcd_digit_stream
 	move.l (a1),d0
-	moveq.l #3,d2
-	lea.l absolute_slot_000702E2.l,a0
-	bra.w abs_0_0000D642
+	moveq.l #SG2_PERIODIC_BCD_DIGITS_DBF_LAST,d2
+	lea.l hud_periodic_bcd_amiga_anchor.l,a0
+	bra.w prepare_amiga_bcd_nibble_glyph_stream
     ; First two nibbles write font bytes into planes 2/3; last two only plane 3. Original D0-D2/A0-A2 frame and all sixteen nibble glyphs are retained.
 draw_amiga_coordinate_digits:
 	movem.l d0-d2/a0-a2,-(a7)
@@ -17016,7 +17034,7 @@ text_colour_plane_mask:
 	dcb.b $9,$00
 periodic_display_bcd_step:
 	dc.w $0001	; Packed BCD increment WORD consumed backwards by two ABCD instructions
-abs_0_0000DFAE:
+periodic_display_bcd_step_end:
 	dc.b $00,$00,$00,$00
 last_glyph_destination_byte_step:
 	dc.l $00000002
@@ -52043,6 +52061,7 @@ abs_0_0003B1AC:
 	tst.b modal_command_input_flag(a6)
 	bne.b tick_alternate_message_countdown
 	addq.w #1,panel_animation_service_ticks(a6)
+    ; This caller enters the periodic updater only at zero; reload forms agree here. Supplied nonzero direct entries differ. Mode switching and physical IRQ cadence remain unqualified.
 	subq.w #1,periodic_display_update_countdown(a6)
 	bne.b tick_alternate_message_countdown
 	bsr.w increment_and_draw_periodic_bcd_alternate
@@ -53293,6 +53312,7 @@ alternate_altitude_meter_skip_in_space_flag:
 	dc.b $00
 alternate_meter_directory_byte_offset:
 	dc.w $0000
+    ; Store all four addend bytes. Three ABCD predecrements update the low three score bytes, retaining its leading BYTE. Six nibbles are drawn. Caller addends are not universally proved BCD.
 add_bcd_and_draw_digits_mode0:
 	lea.l score_addend_bcd_source_scratch.l,a0
 	move.l d0,(a0)+
@@ -53303,20 +53323,21 @@ add_bcd_and_draw_digits_mode0:
 	abcd -(a0),-(a1)
 	abcd -(a0),-(a1)
 	abcd -(a0),-(a1)
-	lea.l absolute_slot_000682F0.l,a0
-	lea.l absolute_slot_000702F0.l,a3
-	lea.l absolute_slot_000782F0.l,a4
-	moveq.l #5,d2
+	lea.l hud_score_mode0_bank0_anchor.l,a0
+	lea.l hud_score_mode0_bank1_anchor.l,a3
+	lea.l hud_score_mode0_bank2_anchor.l,a4
+	moveq.l #SG2_SCORE_BCD_DIGITS_DBF_LAST,d2
 	move.l -$0001(a1),d3
 	rol.l #8,d3
-abs_0_0003CB24:
+    ; Six/four glyphs share this writer. Each pair fills high/low BYTEs of two plane WORDs in three banks; columns advance 1 then 7. Original font bytes; no clipping or cache.
+prepare_mode0_bcd_nibble_glyph_stream:
 	rol.l #3,d3
 	moveq.l #0,d1
 	lea.l font_numeric_nibble_glyph_view.l,a2
-abs_0_0003CB2E:
+draw_first_mode0_bcd_digit_in_pair:
 	rol.l #4,d3
 	move.b d3,d1
-	andi.w #120,d1
+	andi.w #SG2_HUD_NIBBLE_GLYPH_OFFSET_MASK,d1
 	lea.l $0(a2,d1.w),a1
 	move.b (a1)+,d0
 	move.b d0,$0004(a0)
@@ -53378,10 +53399,11 @@ abs_0_0003CB2E:
 	addq.l #1,a3
 	addq.l #1,a4
 	subq.w #1,d2
-	bmi.w abs_0_0003CCFC
+	bmi.w return_from_mode0_bcd_digit_stream
+draw_second_mode0_bcd_digit_in_pair:
 	rol.l #4,d3
 	move.b d3,d1
-	andi.w #120,d1
+	andi.w #SG2_HUD_NIBBLE_GLYPH_OFFSET_MASK,d1
 	lea.l $0(a2,d1.w),a1
 	move.b (a1)+,d0
 	move.b d0,$0004(a0)
@@ -53442,9 +53464,10 @@ abs_0_0003CB2E:
 	addq.l #7,a0
 	addq.l #7,a3
 	addq.l #7,a4
-	dbf.w d2,abs_0_0003CB2E
-abs_0_0003CCFC:
+	dbf.w d2,draw_first_mode0_bcd_digit_in_pair
+return_from_mode0_bcd_digit_stream:
 	rts
+    ; Graphics bit 1 selects mode 1, not sign. Two ABCDs update the preceding BCD WORD; mode 0 MOVEs countdown 432, mode 1 ADDs 432. Display bit 1 gates drawing after both updates.
 increment_and_draw_periodic_bcd_alternate:
 	btst.b #1,alternate_graphics_mode(a6)
 	bne.w increment_and_draw_periodic_bcd_mode1
@@ -53455,15 +53478,15 @@ increment_and_draw_periodic_bcd_alternate:
 	sub.w d2,d2
 	abcd -(a0),-(a1)
 	abcd -(a0),-(a1)
-	move.w #$1B0,periodic_display_update_countdown(a6)
+	move.w #SG2_PERIODIC_BCD_RELOAD_TICKS,periodic_display_update_countdown(a6)
 	btst.b #1,display_and_frame_service_flags(a6)
-	beq.w abs_0_0003CCFC
+	beq.w return_from_mode0_bcd_digit_stream
 	move.l (a1),d3
-	moveq.l #3,d2
-	lea.l absolute_slot_00068C28.l,a0
-	lea.l absolute_slot_00070C28.l,a3
-	lea.l absolute_slot_00078C28.l,a4
-	bra.w abs_0_0003CB24
+	moveq.l #SG2_PERIODIC_BCD_DIGITS_DBF_LAST,d2
+	lea.l hud_periodic_bcd_mode0_bank0_anchor.l,a0
+	lea.l hud_periodic_bcd_mode0_bank1_anchor.l,a3
+	lea.l hud_periodic_bcd_mode0_bank2_anchor.l,a4
+	bra.w prepare_mode0_bcd_nibble_glyph_stream
     ; Same quantization as Amiga; writes interleaved planes 2/3 words to all three banks. Both alternate routines share one cache pair; actual mode-change invalidation is not qualified.
 draw_heading_strip_mode0:
 	move.w player_rotation_1(a6),d0
@@ -53982,6 +54005,7 @@ abs_0_0003D1AA:
 abs_0_0003D37E:
 	movem.l (a7)+,d0-d1/a0-a3
 	rts
+    ; Update the same three score bytes, retaining the leading BYTE. Mode 1 doubles each glyph BYTE to a WORD and repeats rows in three banks. Invalid BCD award inputs are not normalized.
 add_bcd_and_draw_digits_mode1:
 	lea.l score_addend_bcd_source_scratch.l,a0
 	move.l d0,(a0)+
@@ -53992,23 +54016,23 @@ add_bcd_and_draw_digits_mode1:
 	abcd -(a0),-(a1)
 	abcd -(a0),-(a1)
 	abcd -(a0),-(a1)
-	lea.l absolute_slot_00068218.l,a0
-	lea.l absolute_slot_00070218.l,a3
-	lea.l absolute_slot_00078218.l,a4
-	moveq.l #5,d2
+	lea.l hud_score_mode1_bank0_anchor.l,a0
+	lea.l hud_score_mode1_bank1_anchor.l,a3
+	lea.l hud_score_mode1_bank2_anchor.l,a4
+	moveq.l #SG2_SCORE_BCD_DIGITS_DBF_LAST,d2
 	move.l -$0001(a1),d3
 	rol.l #8,d3
-abs_0_0003D3B6:
+prepare_mode1_bcd_nibble_glyph_stream:
 	rol.l #3,d3
 	moveq.l #0,d0
 	lea.l font_numeric_nibble_glyph_view.l,a2
-abs_0_0003D3C0:
+draw_next_mode1_bcd_digit:
 	rol.l #4,d3
 	move.b d3,d0
-	andi.w #120,d0
+	andi.w #SG2_HUD_NIBBLE_GLYPH_OFFSET_MASK,d0
 	bsr.w draw_double_pixel_digit_mode1
-	dbf.w d2,abs_0_0003D3C0
-abs_0_0003D3D0:
+	dbf.w d2,draw_next_mode1_bcd_digit
+return_from_mode1_bcd_digit_stream:
 	rts
 increment_and_draw_periodic_bcd_mode1:
 	lea.l periodic_display_update_countdown(a6),a1
@@ -54018,15 +54042,15 @@ increment_and_draw_periodic_bcd_mode1:
 	sub.w d2,d2
 	abcd -(a0),-(a1)
 	abcd -(a0),-(a1)
-	addi.w #432,periodic_display_update_countdown(a6)
+	addi.w #SG2_PERIODIC_BCD_RELOAD_TICKS,periodic_display_update_countdown(a6)
 	btst.b #1,display_and_frame_service_flags(a6)
-	beq.w abs_0_0003D3D0
+	beq.w return_from_mode1_bcd_digit_stream
 	move.l (a1),d3
-	moveq.l #3,d2
-	lea.l absolute_slot_00068B64.l,a0
-	lea.l absolute_slot_00070B64.l,a3
-	lea.l absolute_slot_00078B64.l,a4
-	bra.w abs_0_0003D3B6
+	moveq.l #SG2_PERIODIC_BCD_DIGITS_DBF_LAST,d2
+	lea.l hud_periodic_bcd_mode1_bank0_anchor.l,a0
+	lea.l hud_periodic_bcd_mode1_bank1_anchor.l,a3
+	lea.l hud_periodic_bcd_mode1_bank2_anchor.l,a4
+	bra.w prepare_mode1_bcd_nibble_glyph_stream
     ; Save/restore the original caller frame. OR each interior plane pair, retain shared borders, then double each bit horizontally and repeat each output row vertically.
 draw_heading_strip_mode1:
 	movem.l d0-d5/a0-a3,-(a7)
@@ -54204,6 +54228,7 @@ abs_0_0003D61E:
 	movea.l (a7)+,a4
 	movem.l (a7)+,d0-d1/a0-a3
 	rts
+    ; Eight glyph BYTEs become doubled WORDs at +0/+80 in three banks. Restore A2/A5; advance A0/A3/A4 by 2. D0 is clobbered. These are CPU RAM effects, not hardware scanout proof.
 draw_double_pixel_digit_mode1:
 	movem.l a2/a5,-(a7)
 	lea.l $0(a2,d0.w),a2

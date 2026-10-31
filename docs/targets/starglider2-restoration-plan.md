@@ -43,6 +43,27 @@ fifteen WORDs; following zero and other outside-prefix reads remain distinct.
 CPU fixtures stop before the caller's saved-register restore and check RAM
 preparation only; no interrupt, scanout, hardware timing or PCM qualification.
 
+The BCD-display batch connects the four-byte score owner, three-byte addition
+chain, two-byte periodic counter and adjacent WORD countdown to all three glyph
+backends. 522 independent Musashi CPU cases check valid packed-BCD carry/wrap,
+retained score leading BYTE and addend scratch, six/four displayed digits,
+whole-memory and stack effects, bit-specific dispatch and the caller zero gate.
+The generated concrete executor explicitly refuses ABCD; it was not modified or
+silently emulated in Python. Musashi executes the unpatched original routines.
+Invalid BCD award inputs and ordinary caller ADD.W behavior remain unnormalized.
+
+The known caller fragments decrement a WORD and call only on zero after their
+sign/modal gates. Thus the mode0 MOVE-432 and mode1 ADD-432 reload forms agree at
+those calls; supplied nonzero direct-entry cases differ, including WORD wrap.
+Display flag bit 1 gates drawing after field updates. Graphics flag bit 1 chooses
+periodic mode1, independently of its sign. These are supplied CPU contexts,
+not physical IRQ cadence, complete startup, concurrent-writer or mode-lifetime
+proofs. The Amiga source pointer gets a one-past increment-WORD boundary name;
+the following four zero bytes remain separate unknown storage, with no new owner.
+Fourteen fixed destination point names describe the one-/three-bank layouts;
+their one-byte extent is not a framebuffer allocation or ownership contract.
+No additional legacy bounded name-only declarations were found in this check.
+
 The alternate-meter batch connects the sprite converter to both row consumers.
 Two source WORDs become a 12-byte packet: keep mask, first OR LONG, second OR
 LONG. Zero/negative converter modes match the two adjacent-WORD kernels selected
