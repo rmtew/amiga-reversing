@@ -1442,6 +1442,7 @@ SG2_ANGLE_HALF_TURN	EQU	2048
 SG2_ANGLE_QUARTER_TURN	EQU	1024
 SG2_ANGLE_THREE_QUARTER_TURN	EQU	3072
 SG2_CONTACT_COORDINATE_SHIFT	EQU	9
+SG2_CONTACT_PAIR_DBF_SUBTRACT	EQU	2
 SG2_CONTACT_PIXEL_CENTER_X	EQU	144
 SG2_CONTACT_PIXEL_CENTER_Y	EQU	160
 SG2_CONTACT_RELATIVE_UPPER_BOUND	EQU	8192
@@ -1470,6 +1471,7 @@ SG2_MESSAGE_ROW_LONGS_DBF_LAST	EQU	6
 SG2_MESSAGE_ROW_SKIP_BYTES	EQU	12
 SG2_OBJECT_TYPE_EGRON_MINI_SENTINEL	EQU	37
 SG2_OBJECT_TYPE_HOMING_MISSILE	EQU	12
+SG2_OBJECT_TYPE_ICARUS	EQU	30
 SG2_OBJECT_TYPE_SKIM_DRONE	EQU	43
 SG2_OBJECT_TYPE_SKIM_MISSILE	EQU	60
 SG2_OVERLAY_MAX_LEFT	EQU	288
@@ -1479,6 +1481,7 @@ SG2_OVERLAY_MIN_TOP	EQU	30
 SG2_OVERLAY_ROWS_DBF_LAST	EQU	15
 SG2_OVERLAY_ROW_BYTE_STEP	EQU	160
 SG2_PLAYER_FOLLOW_Y_SMOOTH_SHIFT	EQU	2
+SG2_PLAYER_SOLID_CONTACT_RESPONSE_PASSES	EQU	4
 SG2_PROJECTILE_BASE_ENERGY_COST	EQU	256
 SG2_PROJECTILE_FREE_SLOT_RESERVE	EQU	2
 SG2_RADIAL_FIRST_SHIFT_THRESHOLD	EQU	524288
@@ -13766,29 +13769,35 @@ process_object_contact_pairs:
 	clr.b structure_contact_pose_mode(a6)
 	clr.w last_player_contact_type(a6)
 	tst.b player_structure_clamp_flag(a6)
-	beq.b abs_0_0000B574
+	beq.b prepare_contact_pair_dbf_seed
+seed_contact_type_from_existing_structure_clamp:
 	move.w #$42,last_player_contact_type(a6)
-abs_0_0000B574:
+    ; Subtract 2 at WORD precision then BMI. Ordinary bounded counts below 2 return before borrowing A6 or aging response steps; malformed high-bit counts can wrap into traversal.
+prepare_contact_pair_dbf_seed:
 	move.w contact_object_count(a6),d7
-	subq.w #2,d7
-	bmi.w abs_0_0000B924
+	subq.w #SG2_CONTACT_PAIR_DBF_SUBTRACT,d7
+	bmi.w return_from_contact_pair_processing
+load_contact_list_before_borrowing_extent_tables:
 	movea.l contact_objects_cursor(a6),a1
 	lea.l model_horizontal_contact_extents.l,a4
 	lea.l model_negative_y_contact_extents.l,a5
 	lea.l model_positive_y_contact_extents.l,a6
-abs_0_0000B594:
+read_next_outer_contact_record:
 	movea.l (a1)+,a0
+test_outer_contact_flag3_phase_bypass:
 	btst.b #3,SG2ObjectCore_flags(a0)
-	bne.b abs_0_0000B5A6
+	bne.b reject_outer_nonmodel_tag_before_extent_reads
 	tst.b SG2ObjectCore_retirement_phase_or_negative(a0)
 	bpl.w continue_outer_contact_pair_loop
-abs_0_0000B5A6:
+reject_outer_nonmodel_tag_before_extent_reads:
 	tst.b SG2ObjectCore_object_type+1(a0)
 	bmi.w continue_outer_contact_pair_loop
+    ; Outer eligibility precedes extents; inner tag/phase checks follow them. A6 is the positive-Y table here. X/Z use WORD LSR/sums; vertical extents use sign-extension then logical LONG shifts.
     ; KNOWN: type A0=Target code-entry register seed:SG2WorldObject
 begin_model_contact_extent_comparison:
 	movea.l a1,a3
 	move.w d7,d6
+load_outer_contact_type_extents:
 	move.w (a0),d3	; operand 1: SG2ObjectCore_object_type at (a0)
 	add.w d3,d3
 	move.w $0(a4,d3.w),d4
@@ -13796,6 +13805,7 @@ begin_model_contact_extent_comparison:
 	move.w $0(a6,d3.w),d3
 	ext.l d3
 	ext.l d5
+scale_outer_contact_word_and_long_extents:
 	move.b SG2TargetingObject_model_scale_shift(a0),d0
 	lsr.w d0,d4
 	lsr.l d0,d5
@@ -13813,9 +13823,10 @@ read_inner_contact_before_type_filter:
 	swap.w d4
 	move.w $0032(a2),d4
 	sub.w d4,d0
-	bpl.b abs_0_0000B5F2
+	bpl.b compare_inclusive_contact_x_extent
 	neg.w d0
-abs_0_0000B5F2:
+    ; Edges are inclusive via signed BGT. Keep WORD extent-sum wrap and subtraction/NEG minimum behavior; this is not unbounded absolute-distance geometry.
+compare_inclusive_contact_x_extent:
 	swap.w d4
 	cmp.w d1,d0
 	bgt.w continue_inner_contact_pair_loop
@@ -13823,68 +13834,72 @@ abs_0_0000B5F2:
 	swap.w d4
 	move.w $0036(a2),d4
 	sub.w d4,d0
-	bpl.b abs_0_0000B60A
+	bpl.b compare_inclusive_contact_z_extent
 	neg.w d0
-abs_0_0000B60A:
+compare_inclusive_contact_z_extent:
 	swap.w d4
 	cmp.w d1,d0
 	bgt.w continue_inner_contact_pair_loop
+form_wrapped_contact_world_y_difference:
 	move.l SG2ObjectCore_world_y(a0),d0
 	sub.l SG2ObjectCore_world_y(a2),d0
-	bpl.b abs_0_0000B630
+	bpl.b combine_inner_positive_y_with_outer_negative_extent
 	neg.l d0
+combine_inner_negative_y_with_outer_positive_extent:
 	move.w $0(a5,d2.w),d1
 	ext.l d1
 	swap.w d4
 	move.b $001D(a2),d4
 	lsr.l d4,d1
 	add.l d3,d1
-	bra.b abs_0_0000B640
-    ; For signed world-Y separation, add positive extent of lower object and negative extent of upper object; retain original shift widths, sign extension and overflow behavior.
-abs_0_0000B630:
+	bra.b compare_inclusive_contact_y_extent
+    ; Nonnegative wrapped outerY-innerY uses inner positive-Y plus outer negative-Y extent; opposite sign swaps them. Logical LONG shifts of sign-extended WORDs and overflow remain unchanged.
+combine_inner_positive_y_with_outer_negative_extent:
 	move.w $0(a6,d2.w),d1
 	ext.l d1
 	swap.w d4
 	move.b $001D(a2),d4
 	lsr.l d4,d1
 	add.l d5,d1
-abs_0_0000B640:
+compare_inclusive_contact_y_extent:
 	swap.w d4
 	cmp.l d1,d0
 	bgt.w continue_inner_contact_pair_loop
+test_inner_contact_flag3_phase_bypass:
 	btst.b #3,SG2ObjectCore_flags(a2)
-	bne.b abs_0_0000B658
+	bne.b reject_type95_after_contact_extent_reads
 	tst.b SG2ObjectCore_retirement_phase_or_negative(a2)
 	bpl.w continue_inner_contact_pair_loop
-abs_0_0000B658:
+reject_type95_after_contact_extent_reads:
 	cmpi.w #95,(a0)	; operand 2: SG2ObjectCore_object_type at (a0)
 	beq.w continue_inner_contact_pair_loop
 	cmpi.w #95,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
 	beq.w continue_inner_contact_pair_loop
+reject_inner_nonmodel_tag_after_extent_reads:
 	tst.b SG2ObjectCore_object_type+1(a2)
 	bmi.w continue_inner_contact_pair_loop
     ; KNOWN: type A2=Target code-entry register seed:SG2WorldObject
 dispatch_model_pair_contact_response:
 	cmpi.w #30,(a0)	; operand 2: SG2ObjectCore_object_type at (a0)
-	beq.w abs_0_0000B92E
+	beq.w enter_special_contact_with_saved_context
 	cmpi.w #30,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
-	beq.w abs_0_0000B926
+	beq.w enter_swapped_special_contact_with_saved_context
 	cmpi.w #90,(a0)	; operand 2: SG2ObjectCore_object_type at (a0)
-	beq.w abs_0_0000B926
+	beq.w enter_swapped_special_contact_with_saved_context
 	cmpi.w #93,(a0)	; operand 2: SG2ObjectCore_object_type at (a0)
-	beq.w abs_0_0000B926
+	beq.w enter_swapped_special_contact_with_saved_context
 	cmpi.w #90,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
-	beq.w abs_0_0000B92E
+	beq.w enter_special_contact_with_saved_context
 	cmpi.w #93,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
-	beq.w abs_0_0000B92E
+	beq.w enter_special_contact_with_saved_context
 filter_contact_by_ignored_object_type:
 	move.b SG2TargetingObject_collision_ignored_object_type(a0),d0
 	cmp.b SG2ObjectCore_object_type+1(a2),d0
 	beq.w continue_inner_contact_pair_loop
 	btst.b #6,SG2ObjectCore_flags(a0)
-	bne.w abs_0_0000B926
+	bne.w enter_swapped_special_contact_with_saved_context
 	btst.b #6,SG2ObjectCore_flags(a2)
-	bne.w abs_0_0000B92E
+	bne.w enter_special_contact_with_saved_context
 	cmpi.w #91,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
 	beq.w filter_outer_tracking_award_special_types
 	cmpi.w #98,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
@@ -13984,13 +13999,13 @@ clear_outer_retirement_phase_byte:
 	clr.b SG2ObjectCore_retirement_phase_or_negative(a0)
 dispatch_reciprocal_inner_contact_response:
 	btst.b #6,SG2ObjectCore_flags(a2)
-	bne.w abs_0_0000B92E
+	bne.w enter_special_contact_with_saved_context
 	btst.b #6,SG2ObjectCore_flags(a0)
-	bne.w abs_0_0000B926
+	bne.w enter_swapped_special_contact_with_saved_context
 	cmpi.w #30,(a0)	; operand 2: SG2ObjectCore_object_type at (a0)
-	beq.w abs_0_0000B92E
+	beq.w enter_special_contact_with_saved_context
 	cmpi.w #30,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
-	beq.w abs_0_0000B926
+	beq.w enter_swapped_special_contact_with_saved_context
 	cmpi.w #91,(a0)	; operand 2: SG2ObjectCore_object_type at (a0)
 	beq.w filter_inner_tracking_award_special_types
 	cmpi.w #98,(a0)	; operand 2: SG2ObjectCore_object_type at (a0)
@@ -14081,48 +14096,53 @@ continue_inner_contact_pair_loop:
 	dbf.w d6,read_inner_contact_before_type_filter
     ; Collision response decrements in this update pass, not proved physical frames. IRQ response reverses motion and clears speed at step1; preserve the original3/4-step producers.
 continue_outer_contact_pair_loop:
-	dbf.w d7,abs_0_0000B594
+	dbf.w d7,read_next_outer_contact_record
+restore_workspace_after_contact_pair_loops:
 	movea.l game_workspace_base.l,a6
+test_contact_response_pass_counter:
 	tst.b player_collision_response_steps(a6)
-	beq.b abs_0_0000B914
+	beq.b clear_expired_or_negative_collision_response_flag
+    ; Age BYTE once at pair-pass end. A newly started 4 becomes 3 in that same pass; zero/negative-result handling preserves wrap. No physical-frame or timer-IRQ equivalence claim.
+age_contact_response_pass_counter_byte:
 	subq.b #1,player_collision_response_steps(a6)
-	bmi.b abs_0_0000B914
-	bne.b abs_0_0000B918
-abs_0_0000B914:
+	bmi.b clear_expired_or_negative_collision_response_flag
+	bne.b handoff_inside_structure_contact_clamping
+clear_expired_or_negative_collision_response_flag:
 	sf.b player_collision_response_flag(a6)
-abs_0_0000B918:
+handoff_inside_structure_contact_clamping:
 	tst.b inside_structure_flag(a6)
 	bne.w constrain_player_to_structure_contacts
-abs_0_0000B920:
+clear_outside_structure_contact_clamp_flag:
 	sf.b player_structure_clamp_flag(a6)
-abs_0_0000B924:
+return_from_contact_pair_processing:
 	rts
-abs_0_0000B926:
+enter_swapped_special_contact_with_saved_context:
 	movem.l d0-d7/a0-a6,-(a7)
 	exg a2,a0
-	bra.b abs_0_0000B932
-abs_0_0000B92E:
+	bra.b bind_workspace_for_special_contact
+enter_special_contact_with_saved_context:
 	movem.l d0-d7/a0-a6,-(a7)
-abs_0_0000B932:
+    ; Save wrapper retains geometry registers, then reload workspace A6. Ordinary exits restore all D0-D7/A0-A6. Specialized handoffs are entry-only tests, not complete response qualification.
+bind_workspace_for_special_contact:
 	movea.l game_workspace_base.l,a6
 	move.w (a2),d0
-	cmpi.w #30,(a0)
-	beq.b abs_0_0000B94C
+	cmpi.w #SG2_OBJECT_TYPE_ICARUS,(a0)
+	beq.b filter_special_player_contact_types
 	btst.b #6,$0002(a2)
 	bne.w abs_0_0000BF84
-	bra.b abs_0_0000B974
-abs_0_0000B94C:
+	bra.b dispatch_special_contact_object_handlers
+filter_special_player_contact_types:
 	cmp.w #$54,d0
-	beq.w abs_0_0000B9EC
-	cmp.w #$C,d0
-	beq.w abs_0_0000B9EC
+	beq.w suppress_player_contact_for_nonzero_byte22
+	cmp.w #SG2_OBJECT_TYPE_HOMING_MISSILE,d0
+	beq.w suppress_player_contact_for_nonzero_byte22
 	cmp.w #$67,d0
-	beq.w abs_0_0000B9EC
+	beq.w suppress_player_contact_for_nonzero_byte22
 	cmp.w #$5B,d0
-	beq.w abs_0_0000B9C2
+	beq.w restore_contact_context_and_clear_structure_clamp
 	cmp.w #$62,d0
-	beq.w abs_0_0000B9EC
-abs_0_0000B974:
+	beq.w suppress_player_contact_for_nonzero_byte22
+dispatch_special_contact_object_handlers:
 	cmp.w #$5D,d0
 	beq.w abs_0_0000C1DA
 	cmp.w #$5A,d0
@@ -14132,51 +14152,58 @@ abs_0_0000B974:
 	cmp.w #$3F,d0
 	beq.w abs_0_0000BD90
 	tst.b inside_structure_flag(a6)
-	bne.b abs_0_0000B9C2
+	bne.b restore_contact_context_and_clear_structure_clamp
 	cmp.w #$30,d0
 	beq.w abs_0_0000BECC
-abs_0_0000B9A2:
-	cmpi.w #30,(a0)
-	bne.b abs_0_0000B9F6
-abs_0_0000B9A8:
+select_player_or_nonplayer_common_contact_effects:
+	cmpi.w #SG2_OBJECT_TYPE_ICARUS,(a0)
+	bne.b test_nonplayer_special_contact_durability
+    ; Player hit count and last type update before signed durability handling. Nonnegative durability retires the other without decrement; negative durability can start a gated surface response.
+record_player_hit_and_contact_type:
 	addq.l #1,icarus_hits_received(a6)
 	move.w (a2),d0
 	move.w d0,last_player_contact_type(a6)
+test_contact_signed_durability_before_retirement:
 	tst.b $001C(a2)
-	bmi.b abs_0_0000B9CE
+	bmi.b gate_surface_collision_response_for_solid_contact
+retire_nonnegative_durability_player_contact:
 	clr.b $001E(a2)
 	bclr.b #3,$0002(a2)
-abs_0_0000B9C2:
+restore_contact_context_and_clear_structure_clamp:
 	sf.b player_structure_clamp_flag(a6)
 	movem.l (a7)+,d0-d7/a0-a6
 	bra.w continue_inner_contact_pair_loop
-abs_0_0000B9CE:
+gate_surface_collision_response_for_solid_contact:
 	tst.b inside_structure_flag(a6)
-	bne.b abs_0_0000B9C2
+	bne.b restore_contact_context_and_clear_structure_clamp
 	tst.b space_environment_flag(a6)
-	bne.b abs_0_0000B9C2
+	bne.b restore_contact_context_and_clear_structure_clamp
 	tst.b player_collision_response_steps(a6)
-	bne.b abs_0_0000B9C2
+	bne.b restore_contact_context_and_clear_structure_clamp
+start_four_pass_solid_contact_response:
 	st.b player_collision_response_flag(a6)
-	move.b #$4,player_collision_response_steps(a6)
-	bra.b abs_0_0000B9C2
-abs_0_0000B9EC:
+	move.b #SG2_PLAYER_SOLID_CONTACT_RESPONSE_PASSES,player_collision_response_steps(a6)
+	bra.b restore_contact_context_and_clear_structure_clamp
+    ; These routed types share a nonzero BYTE22 suppression gate, not one field meaning. Zero reaches the hit path even inside; generic inside-object contacts exit earlier.
+suppress_player_contact_for_nonzero_byte22:
 	tst.b $0022(a2)
-	bne.b abs_0_0000B9C2
-	bra.w abs_0_0000B9A8
-abs_0_0000B9F6:
+	bne.b restore_contact_context_and_clear_structure_clamp
+	bra.w record_player_hit_and_contact_type
+    ; Nonplayer branch skips negative durability, otherwise decrements BYTE; old 0 wraps FF. Exact zero retires the other; accepted branch always retires actor and clears other flag 3.
+test_nonplayer_special_contact_durability:
 	tst.b $001C(a2)
-	bmi.b abs_0_0000B9C2
+	bmi.b restore_contact_context_and_clear_structure_clamp
 	subq.b #1,$001C(a2)
-	bne.b abs_0_0000BA06
+	bne.b retire_special_actor_and_clear_other_flag3
+retire_other_record_on_zero_post_damage_byte:
 	clr.b $001E(a2)
-abs_0_0000BA06:
+retire_special_actor_and_clear_other_flag3:
 	bclr.b #3,$0002(a2)
 	clr.b $001E(a0)
-	bra.w abs_0_0000B9C2
+	bra.w restore_contact_context_and_clear_structure_clamp
 constrain_player_to_structure_contacts:
 	move.w contact_object_count(a6),d3
-	beq.w abs_0_0000B924
+	beq.w return_from_contact_pair_processing
 	subq.w #1,d3
 	movea.l contact_objects_cursor(a6),a1
 	move.l #$FFFFFFF,d2
@@ -14246,7 +14273,7 @@ abs_0_0000BA8C:
 	cmp.w #$5E,d0
 	beq.w abs_0_0000BD02
 	cmp.w #$55,d0
-	bne.w abs_0_0000B920
+	bne.w clear_outside_structure_contact_clamp_flag
 abs_0_0000BAE0:
 	lea.l wide_structure_profile_x_offsets.l,a1
 	lea.l wide_structure_profile_z_offsets.l,a3
@@ -14456,18 +14483,18 @@ abs_0_0000BD46:
 	bra.w abs_0_0000BAE0
 abs_0_0000BD72:
 	cmpi.b #6,$0003(a2)
-	beq.w abs_0_0000B9C2
+	beq.w restore_contact_context_and_clear_structure_clamp
 	st.b player_collision_response_flag(a6)
 	move.b #$3,player_collision_response_steps(a6)
 	move.w #$41,last_player_contact_type(a6)
-	bra.w abs_0_0000B9A2
+	bra.w select_player_or_nonplayer_common_contact_effects
 abs_0_0000BD90:
 	cmpi.b #9,$0003(a2)
-	beq.w abs_0_0000B9C2
+	beq.w restore_contact_context_and_clear_structure_clamp
 	st.b player_collision_response_flag(a6)
 	move.b #$3,player_collision_response_steps(a6)
 	move.w #$3F,last_player_contact_type(a6)
-	bra.w abs_0_0000B9A2
+	bra.w select_player_or_nonplayer_common_contact_effects
 abs_0_0000BDAE:
 	tst.b player_collision_response_flag(a6)
 	beq.b abs_0_0000BDDA
@@ -14549,21 +14576,21 @@ abs_0_0000BECC:
 	neg.w d0
 abs_0_0000BED4:
 	cmp.w #$C8,d0
-	bls.w abs_0_0000B9A2
+	bls.w select_player_or_nonplayer_common_contact_effects
 	move.l $0004(a2),d0
 	sub.l player_world_x(a6),d0
 	bpl.b abs_0_0000BEE8
 	neg.w d0
 abs_0_0000BEE8:
 	cmp.w #$2C6,d0
-	bgt.w abs_0_0000B9A2
+	bgt.w select_player_or_nonplayer_common_contact_effects
 	move.l $000C(a2),d0
 	sub.l player_world_z(a6),d0
 	bpl.b abs_0_0000BEFC
 	neg.w d0
 abs_0_0000BEFC:
 	cmp.w #$2C6,d0
-	bgt.w abs_0_0000B9A2
+	bgt.w select_player_or_nonplayer_common_contact_effects
 	cmpi.l #4294967006,player_world_y(a6)
 	blt.w abs_0_0000BF78
 	move.b #$90,diagnostic_stage_step_word.l
@@ -14593,11 +14620,11 @@ abs_0_0000BF78:
 	rts
 abs_0_0000BF84:
 	btst.b #6,$0002(a0)
-	bne.w abs_0_0000B9C2
+	bne.w restore_contact_context_and_clear_structure_clamp
 	cmpi.w #91,(a0)
-	beq.w abs_0_0000B9C2
+	beq.w restore_contact_context_and_clear_structure_clamp
 	cmpi.w #48,(a0)
-	beq.w abs_0_0000B9C2
+	beq.w restore_contact_context_and_clear_structure_clamp
 	clr.w surface_brake_hold_countdown.l
 	move.w (a2),d0
 	cmp.w #$42,d0
@@ -14619,7 +14646,7 @@ abs_0_0000BF84:
 	cmp.w #$41,d0
 	beq.w abs_0_0000C1CC
 	cmp.w #$55,d0
-	bne.w abs_0_0000B9F6
+	bne.w test_nonplayer_special_contact_durability
 abs_0_0000BFEC:
 	lea.l wide_structure_profile_x_offsets.l,a1
 	lea.l wide_structure_profile_z_offsets.l,a3
@@ -14716,7 +14743,7 @@ abs_0_0000C0EA:
 	ble.b abs_0_0000C102
 	cmp.l #$0,d1
 	bgt.b abs_0_0000C10E
-	bra.w abs_0_0000B9C2
+	bra.w restore_contact_context_and_clear_structure_clamp
 abs_0_0000C102:
 	move.l #$FFFFF538,$0008(a0)
 	bra.w abs_0_0000C116
@@ -14726,10 +14753,10 @@ abs_0_0000C116:
 	cmpi.w #103,(a0)
 	beq.b abs_0_0000C124
 	cmpi.w #84,(a0)
-	bne.w abs_0_0000B9C2
+	bne.w restore_contact_context_and_clear_structure_clamp
 abs_0_0000C124:
 	neg.w $002E(a0)
-	bra.w abs_0_0000B9C2
+	bra.w restore_contact_context_and_clear_structure_clamp
 abs_0_0000C12C:
 	tst.w $0012(a2)
 	beq.b abs_0_0000C142
@@ -14773,78 +14800,78 @@ abs_0_0000C198:
 	bra.w abs_0_0000BFEC
 abs_0_0000C1BE:
 	cmpi.b #3,$0003(a2)
-	ble.w abs_0_0000B9F6
-	bra.w abs_0_0000B9C2
+	ble.w test_nonplayer_special_contact_durability
+	bra.w restore_contact_context_and_clear_structure_clamp
 abs_0_0000C1CC:
 	cmpi.b #6,$0003(a2)
-	beq.w abs_0_0000B9C2
-	bra.w abs_0_0000B9F6
+	beq.w restore_contact_context_and_clear_structure_clamp
+	bra.w test_nonplayer_special_contact_durability
 abs_0_0000C1DA:
 	cmpi.w #90,(a0)
-	beq.w abs_0_0000B9C2
+	beq.w restore_contact_context_and_clear_structure_clamp
 	cmpi.w #93,(a0)
-	beq.w abs_0_0000B9C2
+	beq.w restore_contact_context_and_clear_structure_clamp
 	cmpi.w #4,(a0)
-	beq.w abs_0_0000B9C2
+	beq.w restore_contact_context_and_clear_structure_clamp
 	cmpi.w #96,(a0)
-	beq.w abs_0_0000B9C2
+	beq.w restore_contact_context_and_clear_structure_clamp
 	cmpi.w #97,(a0)
-	beq.w abs_0_0000B9C2
+	beq.w restore_contact_context_and_clear_structure_clamp
 	tst.w $0012(a2)
 	bne.b abs_0_0000C240
 	move.l $000C(a2),d0
 	addi.l #1800,d0
 	cmp.l $000C(a0),d0
-	bgt.w abs_0_0000B9C2
+	bgt.w restore_contact_context_and_clear_structure_clamp
 	movea.l $0038(a2),a4
 	cmpa.l #$0,a4
-	beq.w abs_0_0000B9A2
+	beq.w select_player_or_nonplayer_common_contact_effects
 	cmpi.w #90,(a4)
-	bne.w abs_0_0000B9A2
+	bne.w select_player_or_nonplayer_common_contact_effects
 	sf.b $0003(a4)
 	st.b $0022(a4)
 	st.b $0028(a4)
-	bra.w abs_0_0000B9A2
+	bra.w select_player_or_nonplayer_common_contact_effects
 abs_0_0000C240:
 	move.l $0004(a2),d0
 	addi.l #1800,d0
 	cmp.l $0004(a0),d0
-	bgt.w abs_0_0000B9C2
+	bgt.w restore_contact_context_and_clear_structure_clamp
 	movea.l $0038(a2),a4
 	cmpa.l #$0,a4
-	beq.w abs_0_0000B9A2
+	beq.w select_player_or_nonplayer_common_contact_effects
 	tst.w (a4)
-	beq.w abs_0_0000B9A2
+	beq.w select_player_or_nonplayer_common_contact_effects
 	clr.l $003C(a4)
-	bra.w abs_0_0000B9A2
+	bra.w select_player_or_nonplayer_common_contact_effects
 abs_0_0000C26E:
 	cmpi.l #4294966296,$0008(a0)
-	blt.w abs_0_0000B9C2
+	blt.w restore_contact_context_and_clear_structure_clamp
 	move.l $0004(a2),d0
 	addi.l #200,d0
 	cmp.l $0004(a0),d0
-	blt.w abs_0_0000B9C2
+	blt.w restore_contact_context_and_clear_structure_clamp
 	subi.l #400,d0
 	cmp.l $0004(a0),d0
 	blt.w abs_0_0000C2CE
-	bra.w abs_0_0000B9C2
+	bra.w restore_contact_context_and_clear_structure_clamp
 abs_0_0000C29E:
 	cmpi.l #4294966296,$0008(a0)
-	blt.w abs_0_0000B9C2
+	blt.w restore_contact_context_and_clear_structure_clamp
 	move.l $000C(a2),d0
 	addi.l #200,d0
 	cmp.l $000C(a0),d0
-	blt.w abs_0_0000B9C2
+	blt.w restore_contact_context_and_clear_structure_clamp
 	subi.l #400,d0
 	cmp.l $000C(a0),d0
 	blt.w abs_0_0000C2CE
-	bra.w abs_0_0000B9C2
+	bra.w restore_contact_context_and_clear_structure_clamp
 abs_0_0000C2CE:
 	movea.l $0038(a2),a4
 	cmpa.l #$0,a4
-	beq.w abs_0_0000B9A2
+	beq.w select_player_or_nonplayer_common_contact_effects
 	cmpi.w #90,(a4)
-	bne.w abs_0_0000B9A2
+	bne.w select_player_or_nonplayer_common_contact_effects
 	sf.b $0003(a4)
 	st.b $0022(a4)
 	st.b $0028(a4)
@@ -14852,9 +14879,9 @@ abs_0_0000C2CE:
 abs_0_0000C2F2:
 	movea.l $003C(a1),a4
 	cmpa.l #$0,a4
-	beq.w abs_0_0000B9A2
+	beq.w select_player_or_nonplayer_common_contact_effects
 	cmpi.w #90,(a4)
-	bne.w abs_0_0000B9A2
+	bne.w select_player_or_nonplayer_common_contact_effects
 	st.b $0028(a4)
 	movea.l a4,a1
 	bra.b abs_0_0000C2F2
@@ -14862,15 +14889,15 @@ abs_0_0000C2F2:
 	dc.b $67,$00,$F6,$80,$42,$AC,$00,$3C,$60,$00,$F6,$78
 abs_0_0000C32C:
 	cmpi.w #93,(a0)
-	beq.w abs_0_0000B9C2
+	beq.w restore_contact_context_and_clear_structure_clamp
 	cmpi.w #90,(a0)
-	beq.w abs_0_0000B9C2
+	beq.w restore_contact_context_and_clear_structure_clamp
 	cmpi.w #4,(a0)
-	beq.w abs_0_0000B9C2
+	beq.w restore_contact_context_and_clear_structure_clamp
 	cmpi.w #96,(a0)
-	beq.w abs_0_0000B9C2
+	beq.w restore_contact_context_and_clear_structure_clamp
 	cmpi.w #97,(a0)
-	beq.w abs_0_0000B9C2
+	beq.w restore_contact_context_and_clear_structure_clamp
 	tst.w $0012(a2)
 	bne.b abs_0_0000C386
 	move.l $0004(a2),d0
@@ -14879,7 +14906,7 @@ abs_0_0000C32C:
 	neg.l d0
 abs_0_0000C366:
 	cmp.l #$258,d0
-	bgt.w abs_0_0000B9C2
+	bgt.w restore_contact_context_and_clear_structure_clamp
 	move.l $000C(a2),d0
 	subi.l #1800,d0
 	cmp.l $000C(a0),d0
@@ -14892,7 +14919,7 @@ abs_0_0000C386:
 	neg.l d0
 abs_0_0000C392:
 	cmp.l #$258,d0
-	bgt.w abs_0_0000B9C2
+	bgt.w restore_contact_context_and_clear_structure_clamp
 	move.l $0004(a2),d0
 	addi.l #1800,d0
 	cmp.l $0004(a0),d0
@@ -14901,7 +14928,7 @@ abs_0_0000C392:
 abs_0_0000C3B2:
 	st.b panel_fast_animation_request(a6)
 	cmpi.w #30,(a0)
-	bne.w abs_0_0000B9C2
+	bne.w restore_contact_context_and_clear_structure_clamp
 	move.w player_speed_smoothed(a6),d1
 	add.w d1,d1
 	move.w icarus_power_reserve(a6),d0
@@ -14910,7 +14937,7 @@ abs_0_0000C3B2:
 	add.w d1,d0
 	bcs.b abs_0_0000C3DA
 	move.w d0,icarus_power_reserve(a6)
-	bra.w abs_0_0000B9C2
+	bra.w restore_contact_context_and_clear_structure_clamp
 abs_0_0000C3DA:
 	move.w #$FFFF,icarus_power_reserve(a6)
 abs_0_0000C3E0:
@@ -14920,29 +14947,29 @@ abs_0_0000C3E0:
 	add.w d1,d0
 	bcs.b abs_0_0000C3F8
 	move.w d0,icarus_shield_strength(a6)
-	bra.w abs_0_0000B9C2
+	bra.w restore_contact_context_and_clear_structure_clamp
 abs_0_0000C3F8:
 	move.w #$FFFF,icarus_shield_strength(a6)
 abs_0_0000C3FE:
 	move.w weapon_energy_reserve(a6),d0
 	cmp.w #$FFFF,d0
-	beq.w abs_0_0000B9C2
+	beq.w restore_contact_context_and_clear_structure_clamp
 	add.w d1,d0
 	bcs.b abs_0_0000C416
 	move.w d0,weapon_energy_reserve(a6)
-	bra.w abs_0_0000B9C2
+	bra.w restore_contact_context_and_clear_structure_clamp
     ; Incremented only after weapon-energy addition carries and saturates to $FFFF. Rating uses this counter for bonuses; it is not a kill counter.
 abs_0_0000C416:
 	move.w #$FFFF,weapon_energy_reserve(a6)
 	addq.l #1,weapon_energy_overflow_bonus_count(a6)
-	bra.w abs_0_0000B9C2
+	bra.w restore_contact_context_and_clear_structure_clamp
 abs_0_0000C424:
 	cmpi.w #30,(a0)
-	bne.w abs_0_0000B9C2
+	bne.w restore_contact_context_and_clear_structure_clamp
 	move.w icarus_power_reserve(a6),d0
 	addi.w #400,d0
 	move.w d0,icarus_power_reserve(a6)
-	bra.w abs_0_0000B9C2
+	bra.w restore_contact_context_and_clear_structure_clamp
 wide_structure_profile_x_offsets:
 	dc.l $00000000,$FFFFFC18,$000003E8,$FFFFF93C	; Six original indexed LONG X/Z profile offsets, conditional constructor domain0..5
 	dc.l $FFFFF830,$FFFFF93C

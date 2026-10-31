@@ -27,6 +27,39 @@ and strengthened 38 app-base attributions.
 Conditional skips mean104 outer iterations are not104 observed memory reads.
 Loaded pointer values remain subject to separate alias/target validation.
 
+The contact-eligibility/common-response batch reconstructs 40 connected extent,
+filter, saved-context, player/nonplayer and pass-end continuations. 223 original-
+CPU cases cover inclusive X/Z WORD and Y LONG edges, width/count masking,
+sign-extension plus logical shifts, wrapped sums/NEG minima, phase/flag bypasses
+and the late inner tag filter. Inner type extents are read before the later
+phase/tag exclusions; the original observed tag145 adjacent-data read remains
+retained. Neither this observation nor supplied backed CPU probes promote a
+universal 104-entry type domain or enlarge the horizontal table owner.
+
+A6 is borrowed as the positive-Y table after app reads. The special wrapper saves
+D0-D7/A0-A6 before optional operand swap and workspace reload; ordinary exits
+restore that context. The routed type group uses nonzero BYTE22 to suppress a
+player hit before counters change; that BYTE has type-dependent tracking,
+integration or service roles. Otherwise received hits/last type precede signed
+durability
+handling: nonnegative durability retires the other without decrement; solid
+negative durability can start a gated outside/surface response. Generic inside
+contacts exit earlier, while a routed zero-BYTE22 contact can bypass that early
+exit. The nonplayer branch retains old-zero durability wrapping to FF and
+its separate actor/other phase effects.
+
+A complete supplied two-record pass starts response count 4 and ages it to 3 in the
+same pass. Aging uses original BYTE N/zero tests after pair traversal; early low-
+count returns skip it. This is a contact-pass counter, not a physical-frame or
+IRQ timing guarantee. Five specialized object handlers and the inside-structure
+clamp are qualified only as handoffs; their bodies are not newly certified.
+Native proofs, references, CFG, summaries, counts and ownership remain unchanged;
+C/vasm and clean standalone output remain exact. No framework rule or game
+behavior was altered. This adds no normal-game, global lifetime, DMA or scanout
+certification. Next connected lead: structure/contact profile clamping and the
+specific special-player response consumers, keeping each handoff's bounds and
+side effects explicit.
+
 The collision/recycling batch reconstructs 42 connected post-filter response,
 near/distant retirement, record clearing and free-stack initialization
 continuations. 175 original-CPU cases cover both response directions, original
@@ -56,8 +89,8 @@ Upper placement-count/capacity obligations remain; malformed/wrapped indices are
 not certified safe. Native proofs, references, counts and ownership are unchanged.
 No framework rule or game behavior was altered. C/vasm and clean standalone output
 remain exact, without new normal-game, lifetime, DMA or scanout certification.
-Next connected lead: geometric contact eligibility and special-player response
-consumers, keeping their bounds and side effects separate from these responses.
+The geometric contact eligibility and common special-player response lead is
+addressed above; specialized handlers remain separate qualification work.
 
 The stored-target/update batch reconstructs 39 connected integration, retirement,
 Y-following, heading-cadence and integer-ratio continuations. Null or sign-set
