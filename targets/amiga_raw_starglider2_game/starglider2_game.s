@@ -1441,6 +1441,7 @@ SG2_ANGLE_FULL_TURN	EQU	4096
 SG2_ANGLE_HALF_TURN	EQU	2048
 SG2_ANGLE_QUARTER_TURN	EQU	1024
 SG2_ANGLE_THREE_QUARTER_TURN	EQU	3072
+SG2_BLAST_DOOR_OBJECT_VARIANT_THRESHOLD	EQU	3
 SG2_BLAST_DOOR_PLAYER_SKIP_VARIANT	EQU	9
 SG2_CONTACT_COORDINATE_SHIFT	EQU	9
 SG2_CONTACT_PAIR_DBF_SUBTRACT	EQU	2
@@ -1448,6 +1449,9 @@ SG2_CONTACT_PIXEL_CENTER_X	EQU	144
 SG2_CONTACT_PIXEL_CENTER_Y	EQU	160
 SG2_CONTACT_RELATIVE_UPPER_BOUND	EQU	8192
 SG2_CONTACT_SKIP_FLAG_BIT	EQU	4
+SG2_CORNER_APPROACH_OFFSET	EQU	3120
+SG2_CORNER_SLOPE_SHIFT	EQU	6
+SG2_ENERGY_GATE_OBJECT_SKIP_VARIANT	EQU	6
 SG2_ENERGY_GATE_PLAYER_SKIP_VARIANT	EQU	6
 SG2_GATE_CONTACT_RESPONSE_PASSES	EQU	3
 SG2_HEADING_ANGLE_MASK	EQU	4095
@@ -1467,11 +1471,16 @@ SG2_HUD_COORDINATE_DIGIT_DBF_LAST	EQU	3
 SG2_HUD_DIGIT_PAIR_DBF_LAST	EQU	1
 SG2_HUD_NIBBLE_GLYPH_OFFSET_MASK	EQU	120
 SG2_HUD_SPACE_COORDINATE_SHIFT	EQU	16
+SG2_LINKED_CONTACT_AXIS_OFFSET	EQU	1800
 SG2_MESSAGE_COUNTDOWN_RELOAD	EQU	75
 SG2_MESSAGE_QUEUE_POINTER_LIMIT	EQU	10
 SG2_MESSAGE_ROWS_DBF_LAST	EQU	7
 SG2_MESSAGE_ROW_LONGS_DBF_LAST	EQU	6
 SG2_MESSAGE_ROW_SKIP_BYTES	EQU	12
+SG2_OBJECT_CORNER_BASE_OFFSET	EQU	501
+SG2_OBJECT_CORNER_SLOPE_FACTOR	EQU	19
+SG2_OBJECT_DEPOT_APPROACH_LIMIT	EQU	455
+SG2_OBJECT_DEPOT_Z_SNAP_OFFSET	EQU	450
 SG2_OBJECT_PROFILE_EDGE_THRESHOLD	EQU	551
 SG2_OBJECT_PROFILE_HALF_WIDTH	EQU	550
 SG2_OBJECT_TYPE_EGRON_MINI_SENTINEL	EQU	37
@@ -1485,6 +1494,10 @@ SG2_OVERLAY_MIN_LEFT	EQU	16
 SG2_OVERLAY_MIN_TOP	EQU	30
 SG2_OVERLAY_ROWS_DBF_LAST	EQU	15
 SG2_OVERLAY_ROW_BYTE_STEP	EQU	160
+SG2_PLAYER_CORNER_BASE_OFFSET	EQU	401
+SG2_PLAYER_CORNER_SLOPE_FACTOR	EQU	17
+SG2_PLAYER_DEPOT_APPROACH_LIMIT	EQU	575
+SG2_PLAYER_DEPOT_Z_SNAP_OFFSET	EQU	570
 SG2_PLAYER_FOLLOW_Y_SMOOTH_SHIFT	EQU	2
 SG2_PLAYER_PROFILE_EDGE_THRESHOLD	EQU	501
 SG2_PLAYER_PROFILE_HALF_WIDTH	EQU	500
@@ -14151,7 +14164,7 @@ filter_special_player_contact_types:
 	beq.w suppress_player_contact_for_nonzero_byte22
 dispatch_special_contact_object_handlers:
 	cmp.w #$5D,d0
-	beq.w abs_0_0000C1DA
+	beq.w filter_linked_type93_contact_actors
 	cmp.w #$5A,d0
 	beq.w abs_0_0000C32C
 	cmp.w #$41,d0
@@ -14281,9 +14294,9 @@ clear_brake_hold_before_structure_dispatch:
 	cmp.w #$46,d0
 	beq.b select_narrow_player_structure_profiles
 	cmp.w #$5C,d0
-	beq.w abs_0_0000BC4A
+	beq.w reverse_player_corner_motion_for_collision_response
 	cmp.w #$5E,d0
-	beq.w abs_0_0000BD02
+	beq.w read_depot_service_id_and_select_player_approach
 	cmp.w #$55,d0
 	bne.w clear_outside_structure_contact_clamp_flag
 select_wide_player_structure_profiles:
@@ -14349,7 +14362,7 @@ form_player_x_profile_plane:
 	sub.l player_world_x(a6),d4
 	bpl.b clamp_player_x_for_positive_profile_difference
 	cmp.l #$FFFFFE0B,d4
-	ble.b clamp_player_x_for_negative_profile_difference
+	ble.b store_player_x_plane_plus500_and_mark_clamp
 	bra.w apply_player_profile_vertical_limits
     ; Player horizontal clamp triggers at signed plane difference +/-501, stores plane +/-500 and sets clamp flag. Preserve LONG wrap and asymmetric vertical endpoint behavior.
 clamp_player_x_for_positive_profile_difference:
@@ -14359,7 +14372,8 @@ clamp_player_x_for_positive_profile_difference:
 	move.l d2,player_world_x(a6)
 	st.b player_structure_clamp_flag(a6)
 	bra.b apply_player_profile_vertical_limits
-clamp_player_x_for_negative_profile_difference:
+    ; Shared store X=D2+500, mark clamp. Six-way profile and corner upper-edge branches reach this with different preconditions; the join name describes effect only.
+store_player_x_plane_plus500_and_mark_clamp:
 	addi.l #SG2_PLAYER_PROFILE_HALF_WIDTH,d2
 	move.l d2,player_world_x(a6)
 	st.b player_structure_clamp_flag(a6)
@@ -14411,9 +14425,9 @@ clamp_player_y_above_minus410:
 	move.l #$FFFFFE65,player_world_y(a6)
 	st.b player_structure_clamp_flag(a6)
 	rts
-abs_0_0000BC4A:
+reverse_player_corner_motion_for_collision_response:
 	tst.b player_collision_response_flag(a6)
-	beq.b abs_0_0000BC76
+	beq.b advance_player_motion_before_corner_constraints
 	movem.w player_motion_x(a6),d0-d2
 	add.l d0,d0
 	add.l d1,d1
@@ -14424,8 +14438,8 @@ abs_0_0000BC4A:
 	move.l horizontal_world_wrap_mask(a6),d2
 	and.l d2,player_world_x(a6)
 	and.l d2,player_world_z(a6)
-	bra.b abs_0_0000BC9A
-abs_0_0000BC76:
+	bra.b choose_player_corner_axis_word
+advance_player_motion_before_corner_constraints:
 	movem.w player_motion_x(a6),d0-d2
 	add.l d0,d0
 	add.l d1,d1
@@ -14436,67 +14450,77 @@ abs_0_0000BC76:
 	move.l horizontal_world_wrap_mask(a6),d2
 	and.l d2,player_world_x(a6)
 	and.l d2,player_world_z(a6)
-abs_0_0000BC9A:
+    ; Player corner uses signed lowWORD delta *17, absolute product then LSR6. Upper violation stores upper+500; lower equality/violation stores lower-500. Preserve push-outs, not an inside clamp.
+choose_player_corner_axis_word:
 	tst.w $0012(a2)
-	beq.b abs_0_0000BCB0
+	beq.b form_player_corner_negative_anchor_delta
+form_player_corner_positive_anchor_delta:
 	move.l $000C(a2),d0
-	addi.l #3120,d0
+	addi.l #SG2_CORNER_APPROACH_OFFSET,d0
 	sub.l player_world_z(a6),d0
-	bra.b abs_0_0000BCC0
-abs_0_0000BCB0:
+	bra.b scale_player_corner_low_word_delta
+form_player_corner_negative_anchor_delta:
 	move.l $000C(a2),d3
-	subi.l #3120,d3
+	subi.l #SG2_CORNER_APPROACH_OFFSET,d3
 	move.l player_world_z(a6),d0
 	sub.l d3,d0
-abs_0_0000BCC0:
-	muls.w #$11,d0
-	bpl.b abs_0_0000BCC8
+scale_player_corner_low_word_delta:
+	muls.w #SG2_PLAYER_CORNER_SLOPE_FACTOR,d0
+	bpl.b shift_player_corner_absolute_product
+negate_negative_player_corner_product:
 	neg.l d0
-abs_0_0000BCC8:
-	lsr.l #6,d0
+shift_player_corner_absolute_product:
+	lsr.l #SG2_CORNER_SLOPE_SHIFT,d0
+derive_player_corner_x_bounds:
 	move.l $0004(a2),d1
-	move.l #$191,d2
+	move.l #SG2_PLAYER_CORNER_BASE_OFFSET,d2
 	add.l d1,d2
-	subi.l #401,d1
+	subi.l #SG2_PLAYER_CORNER_BASE_OFFSET,d1
 	sub.l d0,d1
 	add.l d0,d2
+test_player_corner_upper_boundary_first:
 	cmp.l player_world_x(a6),d2
-	blt.w clamp_player_x_for_negative_profile_difference
+	blt.w store_player_x_plane_plus500_and_mark_clamp
+test_player_corner_lower_boundary_second:
 	cmp.l player_world_x(a6),d1
 	blt.w apply_player_profile_vertical_limits
+place_player_below_corner_lower_bound:
 	addi.l #4294966796,d1
 	move.l d1,player_world_x(a6)
 	st.b player_structure_clamp_flag(a6)
 	bra.w apply_player_profile_vertical_limits
-    ; Type94 Tunnel Depot: widen BYTE26 service ID; WORD28 selects the original Z-approach test. IDs0..10 come from static world instances, not arbitrary constructor inputs.
+    ; Widen BYTE26 service ID without inferring an ID bound. Player approach compares signed lowWORD to575; both directions snap to structureZ+570, but only the zero-selector path records63.
     ; KNOWN: type A2=Target code-entry register seed:SG2TunnelDepot
-abs_0_0000BD02:
+read_depot_service_id_and_select_player_approach:
 	clr.w d6
 	move.b SG2TunnelDepot_service_id(a2),d6
 	move.w d6,current_structure_service_id(a6)
 	tst.w SG2TunnelDepot_z_approach_test_selector(a2)
-	bne.w abs_0_0000BD46
+	bne.w test_player_depot_reverse_approach_low_word
+test_player_depot_forward_approach_low_word:
 	move.l player_world_z(a6),d0
 	sub.l SG2ObjectCore_world_z(a2),d0
-	cmp.w #$23F,d0
+	cmp.w #SG2_PLAYER_DEPOT_APPROACH_LIMIT,d0
 	ble.w select_wide_player_structure_profiles
+snap_forward_depot_player_z_and_tag_contact:
 	move.l SG2ObjectCore_world_z(a2),d0
-	addi.l #570,d0
+	addi.l #SG2_PLAYER_DEPOT_Z_SNAP_OFFSET,d0
 	move.l d0,player_world_z(a6)
 	st.b player_collision_response_flag(a6)
-	move.b #$3,player_collision_response_steps(a6)
+	move.b #SG2_GATE_CONTACT_RESPONSE_PASSES,player_collision_response_steps(a6)
 	move.w #$3F,last_player_contact_type(a6)
 	bra.w select_wide_player_structure_profiles
-abs_0_0000BD46:
+test_player_depot_reverse_approach_low_word:
 	move.l SG2ObjectCore_world_z(a2),d0
 	sub.l player_world_z(a6),d0
-	cmp.w #$23F,d0
+	cmp.w #SG2_PLAYER_DEPOT_APPROACH_LIMIT,d0
 	ble.w select_wide_player_structure_profiles
+snap_reverse_depot_player_to_same_positive_z:
 	move.l SG2ObjectCore_world_z(a2),d0
-	addi.l #570,d0
+	addi.l #SG2_PLAYER_DEPOT_Z_SNAP_OFFSET,d0
 	move.l d0,player_world_z(a6)
 	st.b player_collision_response_flag(a6)
-	move.b #$3,player_collision_response_steps(a6)
+	move.b #SG2_GATE_CONTACT_RESPONSE_PASSES,player_collision_response_steps(a6)
 	bra.w select_wide_player_structure_profiles
     ; Energy gate player contact skips exactly variant6, otherwise sets response3 before common response. Type/variant are observed values, not an inferred globally open/closed state.
 test_energy_gate_player_contact_variant:
@@ -14659,13 +14683,13 @@ abs_0_0000BF84:
 	cmp.w #$46,d0
 	beq.b select_narrow_object_structure_profiles
 	cmp.w #$5C,d0
-	beq.w abs_0_0000C12C
+	beq.w choose_object_corner_axis_word
 	cmp.w #$5E,d0
-	beq.w abs_0_0000C198
+	beq.w test_object_depot_approach_low_word
 	cmp.w #$3F,d0
-	beq.w abs_0_0000C1BE
+	beq.w test_blast_door_object_signed_variant_gate
 	cmp.w #$41,d0
-	beq.w abs_0_0000C1CC
+	beq.w test_energy_gate_object_exact_variant_gate
 	cmp.w #$55,d0
 	bne.w test_nonplayer_special_contact_durability
 select_wide_object_structure_profiles:
@@ -14704,7 +14728,7 @@ form_object_x_profile_plane:
 	sub.l $0004(a0),d4
 	bpl.b clamp_object_x_for_positive_profile_difference
 	cmp.l #$FFFFFDD9,d4
-	ble.b clamp_object_x_for_negative_profile_difference
+	ble.b store_object_x_plane_plus550
 	bra.w apply_object_profile_vertical_limits
 clamp_object_x_for_positive_profile_difference:
 	cmp.l #SG2_OBJECT_PROFILE_EDGE_THRESHOLD,d4
@@ -14712,7 +14736,8 @@ clamp_object_x_for_positive_profile_difference:
 	addi.l #4294966746,d2
 	move.l d2,$0004(a0)
 	bra.b test_selected_types_for_x_velocity_reversal
-clamp_object_x_for_negative_profile_difference:
+    ; Shared store X=D2+550, then conditionally reverse84/103 X velocity. Six-way and corner branches have different incoming predicates; do not merge their eligibility.
+store_object_x_plane_plus550:
 	addi.l #SG2_OBJECT_PROFILE_HALF_WIDTH,d2
 	move.l d2,$0004(a0)
 test_selected_types_for_x_velocity_reversal:
@@ -14780,56 +14805,69 @@ test_selected_types_for_y_velocity_reversal:
 reverse_clamped_object_y_velocity_word:
 	neg.w $002E(a0)
 	bra.w restore_contact_context_and_clear_structure_clamp
-abs_0_0000C12C:
+    ; Object corner uses signed lowWORD delta *19 then ASR6, with no absolute value. Bounds can invert. Upper path uses +550/reversal; lower uses -500 and retires only type103, then shared Y clamp.
+choose_object_corner_axis_word:
 	tst.w $0012(a2)
-	beq.b abs_0_0000C142
+	beq.b form_object_corner_negative_anchor_delta
+form_object_corner_positive_anchor_delta:
 	move.l $000C(a2),d0
-	addi.l #3120,d0
+	addi.l #SG2_CORNER_APPROACH_OFFSET,d0
 	sub.l $000C(a0),d0
-	bra.b abs_0_0000C152
-abs_0_0000C142:
+	bra.b scale_object_corner_low_word_delta
+form_object_corner_negative_anchor_delta:
 	move.l $000C(a2),d3
-	subi.l #3120,d3
+	subi.l #SG2_CORNER_APPROACH_OFFSET,d3
 	move.l $000C(a0),d0
 	sub.l d3,d0
-abs_0_0000C152:
-	muls.w #$13,d0
-	asr.l #6,d0
+scale_object_corner_low_word_delta:
+	muls.w #SG2_OBJECT_CORNER_SLOPE_FACTOR,d0
+shift_signed_object_corner_product:
+	asr.l #SG2_CORNER_SLOPE_SHIFT,d0
+derive_object_corner_x_bounds:
 	move.l $0004(a2),d1
-	move.l #$1F5,d2
+	move.l #SG2_OBJECT_CORNER_BASE_OFFSET,d2
 	add.l d1,d2
-	subi.l #501,d1
+	subi.l #SG2_OBJECT_CORNER_BASE_OFFSET,d1
 	sub.l d0,d1
 	add.l d0,d2
+test_object_corner_upper_boundary_first:
 	cmp.l $0004(a0),d2
-	blt.w clamp_object_x_for_negative_profile_difference
+	blt.w store_object_x_plane_plus550
+test_object_corner_lower_boundary_second:
 	cmp.l $0004(a0),d1
 	blt.w apply_object_profile_vertical_limits
+place_object_below_corner_lower_bound:
 	addi.l #4294966796,d1
 	move.l d1,$0004(a0)
+retire_type103_after_corner_lower_pushout:
 	cmpi.w #103,(a0)
 	bne.w apply_object_profile_vertical_limits
 	clr.b $001E(a0)
 	bra.w apply_object_profile_vertical_limits
-abs_0_0000C198:
+    ; Object depot compares lowWORD to455, then reverses Z velocity for all types and snaps to structureZ+450. The following profile can reverse84/103 again; preserve the ordered effects.
+test_object_depot_approach_low_word:
 	move.l $000C(a0),d0
 	sub.l $000C(a2),d0
-	cmp.w #$1C7,d0
+	cmp.w #SG2_OBJECT_DEPOT_APPROACH_LIMIT,d0
 	ble.w select_wide_object_structure_profiles
+reverse_depot_z_velocity_before_common_profile:
 	neg.w $0030(a0)
+place_depot_object_at_positive_z_snap:
 	move.l $000C(a2),d0
-	addi.l #450,d0
+	addi.l #SG2_OBJECT_DEPOT_Z_SNAP_OFFSET,d0
 	move.l d0,$000C(a0)
 	bra.w select_wide_object_structure_profiles
-abs_0_0000C1BE:
-	cmpi.b #3,$0003(a2)
+    ; Object Blast Doors gate is signed BYTE<=3, including negative values. Player handler instead skips exact9. These are distinct context predicates, not a shared globally open/closed state.
+test_blast_door_object_signed_variant_gate:
+	cmpi.b #SG2_BLAST_DOOR_OBJECT_VARIANT_THRESHOLD,$0003(a2)
 	ble.w test_nonplayer_special_contact_durability
 	bra.w restore_contact_context_and_clear_structure_clamp
-abs_0_0000C1CC:
-	cmpi.b #6,$0003(a2)
+test_energy_gate_object_exact_variant_gate:
+	cmpi.b #SG2_ENERGY_GATE_OBJECT_SKIP_VARIANT,$0003(a2)
 	beq.w restore_contact_context_and_clear_structure_clamp
 	bra.w test_nonplayer_special_contact_durability
-abs_0_0000C1DA:
+    ; Linked type93 contact has distinct tests. Null guard is not pointer ownership/lifetime proof. Z path requires type90 and writes three bytes; X path accepts nonzero type and clears LONG3C.
+filter_linked_type93_contact_actors:
 	cmpi.w #90,(a0)
 	beq.w restore_contact_context_and_clear_structure_clamp
 	cmpi.w #93,(a0)
@@ -14840,31 +14878,39 @@ abs_0_0000C1DA:
 	beq.w restore_contact_context_and_clear_structure_clamp
 	cmpi.w #97,(a0)
 	beq.w restore_contact_context_and_clear_structure_clamp
+select_type93_linked_contact_orientation:
 	tst.w $0012(a2)
-	bne.b abs_0_0000C240
+	bne.b test_linked_contact_positive_x_threshold
+test_linked_contact_positive_z_threshold:
 	move.l $000C(a2),d0
-	addi.l #1800,d0
+	addi.l #SG2_LINKED_CONTACT_AXIS_OFFSET,d0
 	cmp.l $000C(a0),d0
 	bgt.w restore_contact_context_and_clear_structure_clamp
+load_z_oriented_linked_record_reference:
 	movea.l $0038(a2),a4
 	cmpa.l #$0,a4
 	beq.w select_player_or_nonplayer_common_contact_effects
+require_type90_before_linked_byte_mutation:
 	cmpi.w #90,(a4)
 	bne.w select_player_or_nonplayer_common_contact_effects
+write_z_oriented_linked_type90_marker_bytes:
 	sf.b $0003(a4)
 	st.b $0022(a4)
 	st.b $0028(a4)
 	bra.w select_player_or_nonplayer_common_contact_effects
-abs_0_0000C240:
+test_linked_contact_positive_x_threshold:
 	move.l $0004(a2),d0
-	addi.l #1800,d0
+	addi.l #SG2_LINKED_CONTACT_AXIS_OFFSET,d0
 	cmp.l $0004(a0),d0
 	bgt.w restore_contact_context_and_clear_structure_clamp
+load_x_oriented_linked_record_reference:
 	movea.l $0038(a2),a4
 	cmpa.l #$0,a4
 	beq.w select_player_or_nonplayer_common_contact_effects
+require_nonzero_type_before_linked_long_clear:
 	tst.w (a4)
 	beq.w select_player_or_nonplayer_common_contact_effects
+clear_x_oriented_linked_record_long3c:
 	clr.l $003C(a4)
 	bra.w select_player_or_nonplayer_common_contact_effects
 abs_0_0000C26E:

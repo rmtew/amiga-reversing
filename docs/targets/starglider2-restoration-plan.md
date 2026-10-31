@@ -27,6 +27,40 @@ and strengthened 38 app-base attributions.
 Conditional skips mean104 outer iterations are not104 observed memory reads.
 Loaded pointer values remain subject to separate alias/target validation.
 
+The corner/depot/linked-contact batch reconstructs 44 new or renamed
+continuations, with 482 original-CPU cases. Type 92 player corner width uses
+signed low-WORD delta *17, absolute product and logical shift6; the object path
+uses *19 and arithmetic shift6 without absolute value. Preserve inverted object
+bounds and the original branch order. Player upper push-out is upper+500 and
+lower equality/violation is lower-500. Object upper uses +550 and conditional
+84/103 X reversal; lower uses -500 and retires only 103 before the independent
+shared Y clamp. Effect-based names now describe the two shared X result stores,
+rather than implying the eligibility of only one incoming path.
+
+Player Tunnel Depot approach compares signed low WORD to 575; both directions
+snap to structureZ+570, but only the zero-selector branch updates last-contact
+type 63. BYTE service ID is widened; static IDs 0..10 remain evidence about known
+instances, not arbitrary input admission. Object approach uses low-WORD 455 and
++450, reversing Z velocity for every accepted type before the existing conditional
+profile tail. The profile can independently reverse 84/103 again. WORD aliases,
+minimum NEG values, six conditional tail selectors and saved context are retained.
+
+Type 93 linked contact excludes the original five actor IDs, uses orientation-
+specific signed LONG 1800 thresholds, and only null-checks the link before reads.
+The Z-oriented branch requires type 90 and changes BYTE3/22/28; the X-oriented
+branch accepts nonzero type and clears LONG3C. Tests supply readable records:
+nonzero/type checks are not alignment, ownership or lifetime proof, and no global
+controller activation/open-state meaning is inferred from those writes. Object
+Blast Doors gate uses signed variant <= 3 (including negative BYTEs), unlike player
+exact 9; Energy gate retains its context-specific exact 6 skip.
+
+Native proofs, reference identities, CFG, summaries, counts and ownership remain
+unchanged. No shared framework or game behavior was altered. C/vasm and clean
+standalone output remain exact. This adds no normal-game, arbitrary-constructor,
+linked-chain termination, global lifetime, DMA or scanout certification. Remaining
+connected work includes type90 linked-chain/service effects, bounded entrance/
+exit transitions and the unproven inbound status of nearby code-like bytes.
+
 The structure-profile/gate batch reconstructs 51 connected selection, player and
 object profile, motion-prefix and variant-gate continuations. 385 original-CPU
 cases cover both six-entry table families under conditional selectors 0..5,
@@ -54,9 +88,8 @@ remain phase/type-specific. Native proofs, reference identities, CFG, summaries,
 counts and ownership are unchanged. No framework rule or original behavior was
 altered. C/vasm and clean standalone output remain byte exact, without new normal-
 game, arbitrary-constructor, global lifetime, DMA or scanout certification.
-Next connected leads: the remaining type92/type94/player-entry clamp variants
-and specialized linked-structure contact handlers, retaining their distinct
-arithmetic, gates and lifetime obligations.
+Type92/type94 and one linked-structure handler are addressed above; remaining
+player-entry transitions and type90 chain/service effects stay separate.
 
 The contact-eligibility/common-response batch reconstructs 40 connected extent,
 filter, saved-context, player/nonplayer and pass-end continuations. 223 original-

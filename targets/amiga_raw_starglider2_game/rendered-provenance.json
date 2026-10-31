@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
   "kind": "committed_native_rendered_original_export",
-  "canonical_source_commit": "930f9f6a2cd2a6d5113123b0ab6c8a4818a1ed17",
-  "publication_base_commit": "930f9f6a2cd2a6d5113123b0ab6c8a4818a1ed17",
+  "canonical_source_commit": "27834072a7f510540b4eaed3e1857bfcc58acc52",
+  "publication_base_commit": "27834072a7f510540b4eaed3e1857bfcc58acc52",
   "native_export": "CListingArtifact.source_package_payload(64)",
-  "main_source_sha256": "ae1892526ad8f72d3a6089a18fac6b562b2f0f1441086dad713575256d409297",
+  "main_source_sha256": "d2a1ea266b2e21e447040be9292c5e9bec42bf7c7ec3d8f6a9ac8a50ad778e3e",
   "asset_count": 57,
   "asset_bytes": 93633,
   "game_assembly_hand_edits": false,
@@ -24,13 +24,13 @@
     "assembler executable",
     "paused Pandora work"
   ],
-  "canonical_source_commit_role": "canonical source publication base; the publishing commit reconstructs structure selection, conditional player/object profiles and two variant-gated player contacts; supplied original-CPU cases, not universal selectors, normal gameplay, global lifetime or scanout proof; output is bound by verification_receipt_id",
-  "canonical_source_subject_revision": "311aae4c40d0d651a47ec3b60f04277fbc85f966b9877d95e8393c846b531471",
+  "canonical_source_commit_role": "canonical source publication base; the publishing commit reconstructs corner/depot clamps, context-specific object gates and one orientation-dependent linked-contact handler; supplied original-CPU cases, not arbitrary pointers/selectors, normal gameplay, global lifetime or scanout proof; output is bound by verification_receipt_id",
+  "canonical_source_subject_revision": "0e3f9c770d2caf1a4194131b62efab7cacd35e3347b84d5153e9b7850fee4876",
   "canonical_fact_sha256": {
     "source_binary.json": "42d4a5758b3e8236af7f912aee85e9ee5323bcd0961faa338c4f864080a0a7d9",
     "target_metadata.json": "e7540b68c118c56aba8815b6722eefa067517cc865fe9841d6c01ce96551389c",
-    "manual_actions.jsonl": "28868a69eb526af4631a6fe1f9b48d1d788e1ec1d44dd758731530afc63ad880",
-    "decision_journal.jsonl": "ac317e40003a0aa2ea967f21d160261547f3c94dd0d89b55568384d8416782cb"
+    "manual_actions.jsonl": "1255d15c53f9d2206db4c23f39b836dd18cf364202c6c3292ebbf8a08111e0be",
+    "decision_journal.jsonl": "6b6be4efc67ded199042f0e9cce60a2d83302b8ee517859aa2ab3ffa92401776"
   },
   "headers": "14 unmodified required include files collected by source_package.collect_package_includes from ext/amiga_includes/ndk_2.0/include; header notices retained",
   "decoded_protection_view": {
@@ -46,7 +46,7 @@
     },
     "runtime_scope": "Seven CPU write-site windows match this reversible view; no whole runtime-view identity or parent plaintext promotion."
   },
-  "verification_receipt_id": "f01a0094c2053f08d2de714c028055c88e01a79f39ec583d78e56c8525a11227",
+  "verification_receipt_id": "b8fcca60d957ffc1a46d288049d4120e832d52a53e381824a0a5391b40529a70",
   "render_native_sha256": "568c70b4211bc381c13ef363736a590bae24a5e4e53b23258595678e9316020b",
   "final_assembler_native_sha256": "568c70b4211bc381c13ef363736a590bae24a5e4e53b23258595678e9316020b"
 }
