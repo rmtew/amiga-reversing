@@ -1530,6 +1530,13 @@ SG2_ENCOUNTER_CHOICE_INDEX_MASK	EQU	15
 SG2_ENERGY_GATE_OBJECT_SKIP_VARIANT	EQU	6
 SG2_ENERGY_GATE_PLAYER_SKIP_VARIANT	EQU	6
 SG2_GATE_CONTACT_RESPONSE_PASSES	EQU	3
+SG2_GROUND_FACE_DEPTH_SORT_KEY	EQU	$7FE0
+SG2_GROUND_FACE_FAR_DIVIDE_DEPTH	EQU	12000
+SG2_GROUND_FACE_NEAR_DEPTH_WORD	EQU	128
+SG2_GROUND_FACE_SCREEN_CACHE_MARKER	EQU	$FEDC
+SG2_GROUND_FACE_VERTEX_COUNT_MASK	EQU	15
+SG2_GROUND_FACE_VIEW_READY_BYTE	EQU	1
+SG2_GROUND_FACE_WORLD_Y_CUTOFF_WORD	EQU	$D120
 SG2_HEADING_ANGLE_MASK	EQU	4095
 SG2_HEADING_COARSE_BYTE_MASK	EQU	254
 SG2_HEADING_DIVISOR	EQU	365
@@ -6610,6 +6617,7 @@ withdraw_face_reference_after_invalid_depth:
 	bra.b test_model_polygon_count_before_next_candidate
 return_without_more_model_polygons:
 	rts
+    ; Ground faces have separate gates and count predicates. D120 means signed -12000. Centre/radius rejection uses maximum-signed-coordinate data, not a proven enclosing volume.
 append_model_ground_plane_faces:
 	movea.l scene_polygon_write_cursor.l,a4
 	movea.l scene_reference_write_cursor.l,a3
@@ -6626,7 +6634,7 @@ append_model_ground_plane_faces:
 	cmpi.w #103,active_model_type_index(a6)
 	beq.w publish_model_polygon_and_reference_cursors
 	move.w active_ground_face_world_y_word(a6),d4
-	cmp.w #$D120,d4
+	cmp.w #SG2_GROUND_FACE_WORLD_Y_CUTOFF_WORD,d4
 	blt.w publish_model_polygon_and_reference_cursors
 	cmpi.w #SG2_SCENE_PACKET_COUNT_THRESHOLD,scene_packet_count.l
 	bge.w publish_model_polygon_and_reference_cursors
@@ -6649,18 +6657,18 @@ append_model_ground_plane_faces:
 	add.w model_origin_delta_x(a6),d1
 	add.w model_origin_delta_y(a6),d2
 	add.w model_origin_delta_z(a6),d3
-	cmp.w #$80,d3
+	cmp.w #SG2_GROUND_FACE_NEAR_DEPTH_WORD,d3
 	ble.w publish_model_polygon_and_reference_cursors
-	cmp.w #$2EE0,d3
-	blt.b abs_0_0000505A
+	cmp.w #SG2_GROUND_FACE_FAR_DIVIDE_DEPTH,d3
+	blt.b project_ground_face_centre_using_reciprocal
 	ext.l d1
 	ext.l d2
 	asl.l #7,d1
 	asl.l #7,d2
 	divs.w d3,d1
 	divs.w d3,d2
-	bra.b abs_0_00005074
-abs_0_0000505A:
+	bra.b test_ground_face_centre_and_radius_against_view
+project_ground_face_centre_using_reciprocal:
 	lea.l projection_scale_lookup.l,a0
 	andi.w #65534,d3
 	muls.w $0(a0,d3.w),d1
@@ -6669,7 +6677,7 @@ abs_0_0000505A:
 	add.l d2,d2
 	swap.w d1
 	swap.w d2
-abs_0_00005074:
+test_ground_face_centre_and_radius_against_view:
 	add.w projection_screen_origin_x(a6),d1
 	add.w projection_screen_origin_y(a6),d2
 	moveq.l #0,d0
@@ -6702,51 +6710,54 @@ abs_0_00005074:
 	movea.l active_model_ground_face_commands(a6),a5
 	lea.l model_view_vertex_scratch_prefix(a6),a0
 	movea.l active_model_vertex_reference_records(a6),a1
+    ; Bits8..11 supply vertex count; low BYTE ignored. Zero becomes DBF indexFFFF after publication of a reference and header. Packets use fixed depth key7FE0 and style0, not averaged face depth.
 project_ground_plane_faces_loop:
 	move.w d0,saved_model_face_loop_index(a6)
 	move.w (a5)+,d0
 	lsr.w #8,d0
-	andi.w #15,d0
+	andi.w #SG2_GROUND_FACE_VERTEX_COUNT_MASK,d0
 	subq.w #1,d0
 	move.l a4,(a3)+
-	move.w #$7FE0,(a4)+
+	move.w #SG2_GROUND_FACE_DEPTH_SORT_KEY,(a4)+
 	clr.w (a4)+
 	addq.w #1,scene_packet_count.l
-abs_0_000050F6:
+    ; FEDC in the final cache WORD copies screen XY directly, bypassing transform, near-depth and clamp checks. BYTE6==1 reuses view XYZ; all other BYTE values recompute base view.
+read_next_ground_face_vertex_reference:
 	move.w (a5)+,d4
-	cmpi.w #65244,$6(a0,d4.w)
-	bne.w abs_0_0000510C
-	movem.w $0(a0,d4.w),d1-d2
-	bra.w abs_0_00005278
-abs_0_0000510C:
+	cmpi.w #SG2_GROUND_FACE_SCREEN_CACHE_MARKER,SG2ProjectedVertex_mode_dependent_flags(a0,d4.w)
+	bne.w test_ground_vertex_view_ready_byte
+	movem.w SG2ProjectedVertex_screen_x(a0,d4.w),d1-d2
+	bra.w append_ground_cached_screen_xy
+test_ground_vertex_view_ready_byte:
 	move.w d4,-(a7)
-	move.b $6(a0,d4.w),d1
-	subq.b #1,d1
-	beq.b abs_0_00005142
-	move.b #$1,$6(a0,d4.w)
-	move.w $6(a1,d4.w),d5
-	bmi.b abs_0_00005132
+	move.b SG2ViewVertex_used_flag(a0,d4.w),d1
+	subq.b #SG2_GROUND_FACE_VIEW_READY_BYTE,d1
+	beq.b select_ground_displacement_vertex_references
+	move.b #SG2_GROUND_FACE_VIEW_READY_BYTE,SG2ViewVertex_used_flag(a0,d4.w)
+	move.w SG2VertexReferences_variant_offset_or_negative(a1,d4.w),d5
+	bmi.b load_default_ground_base_vertex_references
 	move.l active_model_vertex_variant_data(a6),d1
-	beq.b abs_0_00005132
+	beq.b load_default_ground_base_vertex_references
 	movea.l d1,a2
 	movem.w $0(a2,d5.w),d1-d3
-	bra.b abs_0_00005138
-abs_0_00005132:
+	bra.b transform_ground_base_vertex_if_needed
+load_default_ground_base_vertex_references:
 	movem.w $0(a1,d4.w),d1-d3
-abs_0_00005138:
+transform_ground_base_vertex_if_needed:
 	bsr.w transform_encoded_vertex_coordinates
 	movem.w d1-d3,$0(a0,d4.w)
-abs_0_00005142:
-	move.w $6(a1,d4.w),d5
-	bmi.b abs_0_00005158
+    ; Base-view and vertical-drop loads select variants only for nonnegative offset and nonzero variant pointer. Decode sign bits before rotation and scale; no index bound follows.
+select_ground_displacement_vertex_references:
+	move.w SG2VertexReferences_variant_offset_or_negative(a1,d4.w),d5
+	bmi.b load_default_ground_displacement_references
 	move.l active_model_vertex_variant_data(a6),d1
-	beq.b abs_0_00005158
+	beq.b load_default_ground_displacement_references
 	movea.l d1,a2
 	movem.w $0(a2,d5.w),d1-d3
-	bra.b abs_0_0000515E
-abs_0_00005158:
+	bra.b decode_signed_ground_displacement_coordinates
+load_default_ground_displacement_references:
 	movem.w $0(a1,d4.w),d1-d3
-abs_0_0000515E:
+decode_signed_ground_displacement_coordinates:
 	move.w d1,encoded_vertex_coordinate_reference_scratch.l
 	move.w d2,encoded_vertex_coordinate_reference_scratch_y_coordinate_ref.l
 	move.w d3,encoded_vertex_coordinate_reference_scratch_z_coordinate_ref.l
@@ -6758,22 +6769,23 @@ abs_0_0000515E:
 	move.w $0(a2,d2.w),d2
 	move.w $0(a2,d3.w),d3
 	tst.w encoded_vertex_coordinate_reference_scratch.l
-	bpl.b abs_0_00005196
+	bpl.b apply_ground_y_coordinate_reference_sign
 	neg.w d1
-abs_0_00005196:
+apply_ground_y_coordinate_reference_sign:
 	tst.w encoded_vertex_coordinate_reference_scratch_y_coordinate_ref.l
-	bpl.b abs_0_000051A0
+	bpl.b apply_ground_z_coordinate_reference_sign
 	neg.w d2
-abs_0_000051A0:
+apply_ground_z_coordinate_reference_sign:
 	tst.w encoded_vertex_coordinate_reference_scratch_z_coordinate_ref.l
-	bpl.b abs_0_000051AA
+	bpl.b conditionally_rotate_ground_displacement
 	neg.w d3
-abs_0_000051AA:
+conditionally_rotate_ground_displacement:
 	move.w model_rotation_0(a6),d7
 	or.w model_rotation_2(a6),d7
-	beq.b abs_0_000051B8
+	beq.b derive_vertical_ground_drop_view_vector
 	bsr.w transform_vector_by_built_matrix
-abs_0_000051B8:
+    ; After optional built-matrix rotation, arithmetic-shift Y by model scale and negate it. Multiply this drop by the view matrix Y column, then add base view and the earlier world-Y plane offset.
+derive_vertical_ground_drop_view_vector:
 	move.w active_model_scale_shift(a6),d7
 	asr.w d7,d2
 	neg.w d2
@@ -6801,18 +6813,19 @@ abs_0_000051B8:
 	add.w d5,d2
 	add.w d6,d3
 	move.w (a7)+,d4
-	cmp.w #$80,d3
-	ble.w abs_0_00005298
-	cmp.w #$2EE0,d3
-	blt.b abs_0_0000521C
+	cmp.w #SG2_GROUND_FACE_NEAR_DEPTH_WORD,d3
+	ble.w withdraw_ground_face_and_skip_unread_references
+	cmp.w #SG2_GROUND_FACE_FAR_DIVIDE_DEPTH,d3
+	blt.b project_ground_vertex_using_reciprocal
 	ext.l d1
 	ext.l d2
 	asl.l #7,d1
 	asl.l #7,d2
 	divs.w d3,d1
 	divs.w d3,d2
-	bra.b abs_0_00005236
-abs_0_0000521C:
+	bra.b offset_and_clamp_ground_vertex_screen_xy
+    ; Near depth is tested before even masking: supplied129 projects using entry128 and caches depth128. Far depth>=12000 instead uses signed division. Original rounding and thresholds remain.
+project_ground_vertex_using_reciprocal:
 	lea.l projection_scale_lookup.l,a2
 	andi.w #65534,d3
 	muls.w $0(a2,d3.w),d1
@@ -6821,41 +6834,44 @@ abs_0_0000521C:
 	add.l d2,d2
 	swap.w d1
 	swap.w d2
-abs_0_00005236:
+offset_and_clamp_ground_vertex_screen_xy:
 	add.w projection_screen_origin_x(a6),d1
 	add.w projection_screen_origin_y(a6),d2
 	cmp.w view_clip_min_x(a6),d1
-	bge.b abs_0_00005248
+	bge.b clamp_ground_vertex_to_maximum_x
 	move.w view_clip_min_x(a6),d1
-abs_0_00005248:
+clamp_ground_vertex_to_maximum_x:
 	cmp.w view_clip_max_x(a6),d1
-	ble.b abs_0_00005252
+	ble.b clamp_ground_vertex_to_minimum_y
 	move.w view_clip_max_x(a6),d1
-abs_0_00005252:
+clamp_ground_vertex_to_minimum_y:
 	cmp.w view_clip_min_y(a6),d2
-	bge.b abs_0_0000525C
+	bge.b clamp_ground_vertex_to_maximum_y
 	move.w view_clip_min_y(a6),d2
-abs_0_0000525C:
+clamp_ground_vertex_to_maximum_y:
 	cmp.w view_clip_max_y(a6),d2
-	ble.b abs_0_00005266
+	ble.b publish_ground_projected_cache_record
 	move.w view_clip_max_y(a6),d2
-abs_0_00005266:
-	move.w d1,$0(a0,d4.w)
-	move.w d2,$2(a0,d4.w)
-	move.w d3,$4(a0,d4.w)
-	move.w #$FEDC,$6(a0,d4.w)
-abs_0_00005278:
+    ; Cache phase changes here: view XYZ becomes screen XY plus projected depth, and the final WORD becomes FEDC. Operand-local field names do not declare a live homogeneous array or exclusion.
+publish_ground_projected_cache_record:
+	move.w d1,SG2ProjectedVertex_screen_x(a0,d4.w)
+	move.w d2,SG2ProjectedVertex_screen_y(a0,d4.w)
+	move.w d3,SG2ProjectedVertex_depth(a0,d4.w)
+	move.w #SG2_GROUND_FACE_SCREEN_CACHE_MARKER,SG2ProjectedVertex_mode_dependent_flags(a0,d4.w)
+append_ground_cached_screen_xy:
 	move.w d1,(a4)+
 	move.w d2,(a4)+
-	dbf.w d0,abs_0_000050F6
+	dbf.w d0,read_next_ground_face_vertex_reference
 	move.w #$FFFF,(a4)+
-abs_0_00005284:
+    ; This post-face check is signed count>145, while entry rejects count>=145. A finite multi-face call can advance count to146. Preserve the distinction; neither check proves arena capacity.
+test_ground_count_before_next_face:
 	move.w saved_model_face_loop_index(a6),d0
 	cmpi.w #SG2_SCENE_PACKET_COUNT_THRESHOLD,scene_packet_count.l
 	bgt.b publish_model_polygon_and_reference_cursors
 	dbf.w d0,project_ground_plane_faces_loop
 	bra.b publish_model_polygon_and_reference_cursors
-abs_0_00005298:
+    ; On depth<=128, skip unread vertex offsets using remaining DBF state, withdraw the reference and restore its start. Earlier cache and partial packet writes remain for the next face.
+withdraw_ground_face_and_skip_unread_references:
 	addq.w #1,d0
 	add.w d0,d0
 	adda.w d0,a5
@@ -6863,7 +6879,7 @@ abs_0_00005298:
 	subq.w #1,scene_packet_count.l
 	subq.w #4,a3
 	movea.l (a3),a4
-	bra.b abs_0_00005284
+	bra.b test_ground_count_before_next_face
 publish_model_polygon_and_reference_cursors:
 	move.l a4,scene_polygon_write_cursor.l
 	move.l a3,scene_reference_write_cursor.l

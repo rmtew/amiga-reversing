@@ -27,6 +27,21 @@ and strengthened 38 app-base attributions.
 Conditional skips mean104 outer iterations are not104 observed memory reads.
 Loaded pointer values remain subject to separate alias/target validation.
 
+The ground-face batch qualifies 215 CPU cases with actual encoded-coordinate
+cache transforms and built-matrix calls, variant selection and ground drop.
+It adds 22 continuations, seven constants and ten operand-local field bindings.
+Byte6==1 reuses view XYZ; other bytes recompute it. WORD marker FEDC instead
+copies screen XY directly, bypassing depth/clamp checks. Projection overwrites
+the view record with screen XY/depth/marker, so field bindings describe phases,
+not a homogeneous array or new inferred accesses. Near depth129 can cache128
+after masking; the far branch divides instead. Count entry rejects>=145 but the
+post-face check rejects>145, allowing finite calls to reach146. Rejection skips
+unread offsets and withdraws the reference while retaining prior cache/scratch
+writes. Header vertex nibble0 reaches original DBF indexFFFF; it is not admitted
+as a safe count. No model/index bound, lifetime, arena capacity, normal-game,
+pixel or hardware claim is added. Next: admitted face-command creation and
+backface/cache producers, retaining the separate phase and count contracts.
+
 The face-packet batch qualifies 115 CPU cases and restores 31 continuations,
 four scalars and two state cells totaling six bytes. Fast packets copy projected
 XY and average signed cached depth. Clipped packets gather view XYZ, remove at
@@ -36,8 +51,8 @@ and count but leaves partial scratch stores. Post-face count>=145 bypasses the
 pending decrement; model entry instead rejects count>145. The remaining
 candidate WORD is reused for 25 ground-grid quads, not a new exclusive owner.
 Finite records do not prove model/index domains, arena capacity, shared lifetime,
-all clipping paths, normal-game reachability or pixel output. Next: connected
-ground-face command/cache producers and their distinct count/rollback paths.
+all clipping paths, normal-game reachability or pixel output. Ground-face
+command/cache consumers are reconstructed in the subsequent batch above.
 
 The snapshot-handoff batch qualifies 288 CPU cases through common display
 initialization, original rotation, empty scene/disc paths and finite setup-prefix
