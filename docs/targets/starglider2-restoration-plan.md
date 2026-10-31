@@ -7,8 +7,8 @@ that further analysis is exhausted. Current source remains byte exact: all
 with all 106034 accepted code bytes retained. No generated assembly was edited
 by hand and no interim archive was produced.
 
-The current ownership union leaves 11178 bytes in
-271 intervals unclassified. This is classification accounting,
+The current ownership union leaves 11123 bytes in
+273 intervals unclassified. This is classification accounting,
 not a semantic completion percentage. Earlier interval/site counts below belong
 to their recorded closeout revision. See the current
 [native memory-span receipt](../../runtime/observations/starglider2-app-memory-spans.json),
@@ -16,8 +16,8 @@ to their recorded closeout revision. See the current
 
 ## Current refinement and next evidence
 
-Current native totals: **3509 app /2716 typed /165 unresolved**, with **11178
-unclassified bytes /271 intervals**. The earlier counter-indexed source-array recovery reused
+Current native totals: **3509 app /2716 typed /165 unresolved**, with **11123
+unclassified bytes /273 intervals**. The earlier counter-indexed source-array recovery reused
 the shared loop induction and interned linear entry values. Original inventory
 readers at source `$DD6` and `$339B4` expose the existing name-reference `text`
 field over the possible104-entry prefix of the148-record owner. That batch retained existing
@@ -26,6 +26,30 @@ Its startup caller proof added five header reads and six app accesses,
 and strengthened 38 app-base attributions.
 Conditional skips mean104 outer iterations are not104 observed memory reads.
 Loaded pointer values remain subject to separate alias/target validation.
+
+The message batch reconstructs 22 continuations and corrects enqueue/bridge
+names to describe preceding-pointer comparison rather than global uniqueness.
+Viewer prompt/cursor slots, digit and drawing backing, empty text and the
+original pointer initializer now have canonical identities. The initializer
+renders as `dc.l model_viewer_digit_buffer`. Its reference was admitted only
+after the owner existed in the current native projection, retaining exact byte
+and unique-runtime-mapping checks; no validator or native implementation changed.
+
+65 original-instruction CPU fixtures cover real drawing frames, queue insertion
+and inactive-tail shifting, separate Amiga/alternate service gates, two-plane
+output and viewer input/redraw. The 28-byte clear does not clip glyph output.
+Zero/negative-count behavior remains, including prefix access and DBF underflow;
+no eleventh queue slot is invented. Viewer BYTE addition retains carry loss
+(`259` produces numeric 3), and deletion retains the DIVU remainder high WORD.
+The eight-byte digit clear, ten-byte digit backing and 35-byte drawing backing
+are not input bounds. Service counts are not wall-clock timing proof.
+
+C/vasm and clean standalone rebuilding preserve all 412736 bytes; 57 assets and
+14 headers are unchanged. Protected access/address/CFG/summary vectors remain
+identical. Classification accounts for 55 bytes, leaving 11123 in 273 intervals
+(the new boundaries split gaps). No normal-media, IRQ timing, scanout or global
+capacity coverage is added. Next connected lead: the heading-strip sampler and
+its bitmap/cache consumers adjacent to the queue.
 
 The text-input/planar-text batch reconstructs 50 connected continuations,
 two control-prefixed cursor marker strings, the mutable echo byte/NUL backing,
@@ -44,9 +68,7 @@ No arbitrary buffer/cursor safety, hardware scanout or interrupt-time font
 ownership is certified. No native implementation or proof rule changed.
 Access/address/CFG/summary vectors remain identical; C/vasm and clean standalone
 output preserve all 412736 bytes, with 57 assets and 14 headers unchanged.
-Ten newly classified bytes leave 11178 bytes in 271 intervals. Next connected
-lead: message-line/timed-message caller continuations, preserving their existing
-saved-frame and non-local control-flow distinctions.
+Ten newly classified bytes leave 11178 bytes in 271 intervals at that revision.
 
 The save-directory batch reconstructs 20 entries/continuations, the 36-byte
 mutable input backing, three runtime address points and six scoped scalar

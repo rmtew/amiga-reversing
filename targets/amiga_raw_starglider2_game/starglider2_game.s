@@ -1434,6 +1434,11 @@ ADKF_CLRALL	EQU	$7FFF
 BPLCON2_PF2P2	EQU	$20
 BPLCON2_PF2PRI	EQU	$40
 INTF_CLRALL	EQU	$7FFF
+SG2_MESSAGE_COUNTDOWN_RELOAD	EQU	75
+SG2_MESSAGE_QUEUE_POINTER_LIMIT	EQU	10
+SG2_MESSAGE_ROWS_DBF_LAST	EQU	7
+SG2_MESSAGE_ROW_LONGS_DBF_LAST	EQU	6
+SG2_MESSAGE_ROW_SKIP_BYTES	EQU	12
 SG2_OBJECT_TYPE_SKIM_DRONE	EQU	43
 SG2_OBJECT_TYPE_SKIM_MISSILE	EQU	60
 SG2_SAVE_CHUNK_BYTES	EQU	$1400
@@ -1556,6 +1561,7 @@ bitmap_0007E000_lo	EQU	bitmap_0007E000-(bitmap_0007E000_hi*$10000)
 bitmap_0007F000	EQU	$7F000
 bitmap_0007F000_hi	EQU	bitmap_0007F000/$10000
 bitmap_0007F000_lo	EQU	bitmap_0007F000-(bitmap_0007F000_hi*$10000)
+dblk_ref_h0_0000ED18_runtime_0000FD18	EQU	$FD18
 dblk_ref_h0_0003346A_runtime_0003446A	EQU	$3446A
 dblk_ref_h0_000334E0_runtime_000344E0	EQU	$344E0
 dblk_ref_h0_0003350E_runtime_0003450E	EQU	$3450E
@@ -1640,6 +1646,7 @@ m68k_vector_level_5_interrupt_autovector	EQU	$74
 m68k_vector_level_6_interrupt_autovector	EQU	$78
 m68k_vector_level_7_interrupt_autovector	EQU	$7C
 m68k_vector_spurious_interrupt	EQU	$60
+message_line_planar_row_anchor	EQU	$71D8E
 runtime_code_0007E000	EQU	$7E000
 runtime_code_0007E408	EQU	$7E408
 runtime_code_00DFF180	EQU	$DFF180
@@ -1862,7 +1869,7 @@ abs_0_0000137E:
 	subq.w #1,initial_resource_charge_steps(a6)
 	bne.b abs_0_000013D0
 	lea.l planetfall_message_apogee.l,a1
-	bsr.w enqueue_unique_message_pointer_bridge_0039da
+	bsr.w enqueue_message_pointer_bridge
 abs_0_000013D0:
 	tst.b fatal_overheat_latched_flag.l
 	bmi.w abs_0_0000151E
@@ -2640,17 +2647,17 @@ abs_0_00001E76:
 	lea.l abs_0_0000278C(pc),a1
 	clr.w pending_message_count(a6)
 	move.w #$1,message_display_countdown(a6)
-	bra.w enqueue_unique_message_pointer_bridge_0039da
+	bra.w enqueue_message_pointer_bridge
 	dc.b $46,$2E,$01,$55,$10,$2E,$01,$F4,$02,$00,$00,$FE,$1D,$40,$01,$F4
 	dc.b $4E,$75,$00,$2E,$00,$01,$01,$F4,$4E,$75,$46,$2E,$02,$04,$4E,$75
 enqueue_game_over_reason_message:
 	cmpi.w #1,icarus_game_over_reason(a6)
 	bne.w abs_0_00001EBA
 	lea.l game_over_power_drainage_message(pc),a1
-	bra.w enqueue_unique_message_pointer_bridge_0039da
+	bra.w enqueue_message_pointer_bridge
 abs_0_00001EBA:
 	lea.l game_over_icarus_destroyed_message(pc),a1
-	bra.w enqueue_unique_message_pointer_bridge_0039da
+	bra.w enqueue_message_pointer_bridge
 initialize_startup_flags_and_subtract_novella_key:
 	st.b app_0154(a6)
 	st.b app_0155(a6)
@@ -3731,7 +3738,7 @@ abs_0_00002DDA:
 	lea.l view_direction_message_offsets(pc,d0.w),a1
 	clr.w pending_message_count(a6)
 	move.w #$1,message_display_countdown(a6)
-	jmp enqueue_unique_message_pointer.l
+	jmp enqueue_message_unless_previous_pointer.l
     ; Nine stored relative WORD offsets, followed by separateNULmessages. Normal masked selector reaches0..7; ninth View Below text is stored, not certified unused.
 view_direction_message_offsets:
 	dc.w $0012,$001D,$002D,$0037,$0046,$0050,$0060,$006B
@@ -3771,7 +3778,7 @@ abs_0_00002E86:
 abs_0_00002EA4:
 	clr.w pending_message_count(a6)
 	move.w #$1,message_display_countdown(a6)
-	jmp enqueue_unique_message_pointer.l
+	jmp enqueue_message_unless_previous_pointer.l
 view_mode_message_offsets:
 	dc.w $0010,$001D,$0033,$0049,$0063,$0070,$0086,$009C
 view_mode_message_0:
@@ -4798,7 +4805,7 @@ abs_0_00003EAA:
 	cmpi.w #30,docking_service_phase(a6)
 	beq.b abs_0_00003ED8
 	lea.l docking_interrogate_prompt(pc),a1
-	bsr.w enqueue_unique_message_pointer_bridge_0039da
+	bsr.w enqueue_message_pointer_bridge
 abs_0_00003ED8:
 	move.w #$6C,app_0764(a6)
     ; Pending score WORD is zero-extended for original ABCD digit addition, then a LONG clear covers it and following storage. Ordinary ADD.W callers do not prove aggregate valid BCD.
@@ -4917,7 +4924,7 @@ enqueue_docking_launch_ready_message:
 	cmpi.w #30,docking_service_phase(a6)
 	bne.b abs_0_000040DC
 	lea.l docking_ready_to_launch_message(pc),a1
-	bsr.w enqueue_unique_message_pointer_bridge_0039da
+	bsr.w enqueue_message_pointer_bridge
 abs_0_000040DC:
 	rts
 docking_ready_to_launch_message:
@@ -5639,8 +5646,8 @@ add_bcd_and_draw_digits_bridge_0039ce:
 	jmp add_bcd_and_draw_digits.l
 build_landscape_horizon_and_grid_bridge_0039d4:
 	jmp build_landscape_horizon_and_grid.l
-enqueue_unique_message_pointer_bridge_0039da:
-	jmp enqueue_unique_message_pointer.l
+enqueue_message_pointer_bridge:
+	jmp enqueue_message_unless_previous_pointer.l
 initialize_model_coordinate_extents:
 	lea.l model_header_pointers.l,a3
 	lea.l model_maximum_signed_coordinates.l,a2
@@ -9127,12 +9134,12 @@ enqueue_reticle_target_identity:
 	lea.l abs_0_00007F02.l,a1
 	move.w #$0,d0
 	movea.l $0(a1,d0.w),a1
-	bsr.w enqueue_unique_message_pointer
+	bsr.w enqueue_message_unless_previous_pointer
 	move.w scan_target_type(a6),d0
 	lsl.w #2,d0
 	lea.l object_name_pointers.l,a1
 	movea.l $0(a1,d0.w),a1
-	bsr.w enqueue_unique_message_pointer
+	bsr.w enqueue_message_unless_previous_pointer
 	bsr.w enqueue_blank_event_message_line_bridge_006fb4
 	rts
 scan_or_fire_homing_missile:
@@ -9513,22 +9520,22 @@ abs_0_00007A3C:
 	clr.w pending_message_count(a6)
 	move.w #$1,message_display_countdown(a6)
 	lea.l abs_0_00007F52.l,a1
-	bsr.w enqueue_unique_message_pointer
+	bsr.w enqueue_message_unless_previous_pointer
 	lea.l abs_0_00007F6D.l,a1
-	bsr.w enqueue_unique_message_pointer
+	bsr.w enqueue_message_unless_previous_pointer
 	lea.l abs_0_00007F87.l,a1
-	bsr.w enqueue_unique_message_pointer
+	bsr.w enqueue_message_unless_previous_pointer
 	bsr.w enqueue_blank_event_message_line_bridge_006fb4
 	rts
 abs_0_00007A6A:
 	clr.w pending_message_count(a6)
 	move.w #$1,message_display_countdown(a6)
 	lea.l abs_0_00007F52.l,a1
-	bsr.w enqueue_unique_message_pointer
+	bsr.w enqueue_message_unless_previous_pointer
 	lea.l abs_0_00007F6D.l,a1
-	bsr.w enqueue_unique_message_pointer
+	bsr.w enqueue_message_unless_previous_pointer
 	lea.l abs_0_00007F9E.l,a1
-	bsr.w enqueue_unique_message_pointer
+	bsr.w enqueue_message_unless_previous_pointer
 	bsr.w enqueue_blank_event_message_line_bridge_006fb4
 	rts
     ; KNOWN: type A2=Target code-entry register seed:SG2TimedMotionActor
@@ -9571,7 +9578,7 @@ abs_0_00007B22:
 	move.w #$1,message_display_countdown(a6)
 	lea.l event_message_pointers.l,a1
 	movea.l SG2SourceTextReference_text(a1,d0.w),a1
-	bsr.w enqueue_unique_message_pointer
+	bsr.w enqueue_message_unless_previous_pointer
 	bsr.w enqueue_blank_event_message_line_bridge_006fb4
 	rts
 homing_missile_hud_saved_backgrounds:
@@ -12936,7 +12943,7 @@ abs_0_0000ABD2:
 	ori.b #48,d3
 	move.b d3,(a3)+
 	lea.l abs_0_0000B41C.l,a1
-	bsr.w enqueue_unique_message_pointer
+	bsr.w enqueue_message_unless_previous_pointer
 	rts
     ; KNOWN: type A0=Target code-entry register seed:SG2HorizontalMotionView
 blend_a0_heading_toward_player_and_build_horizontal_motion:
@@ -14933,16 +14940,18 @@ abs_0_0000C738:
 	bsr.w increment_and_draw_periodic_bcd_amiga
 abs_0_0000C754:
 	bsr.w advance_paula_sample_transition_continuation_bridge_00d114
+    ; Amiga expiration requires a positive signed queue count. Alternate countdown and polling are separate; its poll rejects zero only. These CPU gates do not certify IRQ timing.
+tick_and_service_amiga_message_countdown:
 	tst.w message_display_countdown(a6)
-	beq.b abs_0_0000C764
+	beq.b advance_expired_positive_message_queue
 	subq.w #1,message_display_countdown(a6)
-	bne.b abs_0_0000C770
-abs_0_0000C764:
+	bne.b continue_amiga_modal_service_after_messages
+advance_expired_positive_message_queue:
 	tst.w pending_message_count(a6)
-	beq.b abs_0_0000C770
-	bmi.b abs_0_0000C770
+	beq.b continue_amiga_modal_service_after_messages
+	bmi.b continue_amiga_modal_service_after_messages
 	bsr.w advance_message_queue
-abs_0_0000C770:
+continue_amiga_modal_service_after_messages:
 	tst.b modal_command_input_flag(a6)
 	bne.w abs_0_0000C814
 	tst.b space_environment_flag(a6)
@@ -16210,31 +16219,34 @@ amiga_heading_strip_sample_cache:
 	dc.b $DF,$BA,$42,$11,$61,$00,$00,$28,$4C,$DF,$07,$00,$4E,$75,$4C,$DF
 	dc.b $07,$00,$70,$FF,$4E,$75,$4A,$41,$67,$00,$FF,$9E,$53,$41,$42,$22
 	dc.b $42,$20,$43,$F9,$00,$00,$DF,$BA,$61,$00,$00,$04,$60,$8A
-    ; Original cap10 and last-pointer dedup. At count0 the predecessor comparison reads the LONG before the array; no invented independent queue ownership or arbitrary-count safety.
-enqueue_unique_message_pointer:
+    ; Dedup compares only the preceding pointer. Count zero reads before the ten slots; negative counts still pass the signed limit check. Preserve these edges without asserting reachability.
+enqueue_message_unless_previous_pointer:
 	movem.l d0/a0,-(a7)
-	cmpi.w #10,pending_message_count(a6)
-	bge.b abs_0_0000DAEE
+	cmpi.w #SG2_MESSAGE_QUEUE_POINTER_LIMIT,pending_message_count(a6)
+	bge.b return_from_message_enqueue
 	move.w pending_message_count(a6),d0
 	lsl.w #2,d0
 	lea.l pending_message_pointer_slots.l,a0
 	cmpa.l -$4(a0,d0.w),a1
-	beq.b abs_0_0000DAEE
+	beq.b return_from_message_enqueue
+append_nonadjacent_message_pointer:
 	move.l a1,$0(a0,d0.w)
 	addq.w #1,pending_message_count(a6)
 	tst.w d0
-	bne.b abs_0_0000DAEE
+	bne.b return_from_message_enqueue
+    ; First insertion appends empty text and zeroes countdown. Eligible service draws the message, then the empty text after 75 service steps; this is not a wall-clock duration guarantee.
+append_empty_message_after_first_pointer:
 	addq.w #1,pending_message_count(a6)
-	move.l #$E0B8,$4(a0,d0.w)
+	move.l #queued_empty_message_text,$4(a0,d0.w)
 	move.w #$0,message_display_countdown(a6)
-abs_0_0000DAEE:
+return_from_message_enqueue:
 	movem.l (a7)+,d0/a0
 	rts
 display_timed_message_line:
 	movem.l d0-d1/a0-a3,-(a7)
-	move.w #$4B,message_display_countdown(a6)
+	move.w #SG2_MESSAGE_COUNTDOWN_RELOAD,message_display_countdown(a6)
 	bra.w draw_message_line_continuation
-    ; Advance assumes a nonempty pending queue; original DBF/copy and decrement have no zero-count guard. Preserve that precondition and failure behavior.
+    ; Caller frame feeds the drawing continuation. DBF shifts count LONGs, including the inactive trailing value; count zero underflows. Do not expand the ten-slot owner to hide that read.
 advance_message_queue:
 	movem.l d0-d1/a0-a3,-(a7)
 	lea.l pending_message_pointer_slots.l,a0
@@ -16242,33 +16254,34 @@ advance_message_queue:
 	lea.l $0004(a0),a2
 	move.w pending_message_count(a6),d0
 	subq.w #1,d0
-	move.w #$4B,message_display_countdown(a6)
-abs_0_0000DB1E:
+	move.w #SG2_MESSAGE_COUNTDOWN_RELOAD,message_display_countdown(a6)
+shift_message_queue_including_inactive_tail:
 	move.l (a2)+,(a0)+
-	dbf.w d0,abs_0_0000DB1E
+	dbf.w d0,shift_message_queue_including_inactive_tail
 	subq.w #1,pending_message_count(a6)
 	bra.w draw_message_line_continuation
+    ; Consumes the caller D0-D1/A0-A3 frame. Clear eight rows of 28 bytes in planes 2/3, then draw until NUL with no 28-character clip. Cursor colour/inverse controls are ignored here.
 draw_two_plane_message_line:
-	lea.l absolute_slot_00071D8E.l,a0
+	lea.l message_line_planar_row_anchor.l,a0
 	movea.l a0,a2
 	movea.l a0,a3
 	adda.w #$6000,a2
 	adda.w #$4000,a3
-	moveq.l #7,d1
-abs_0_0000DB40:
-	moveq.l #6,d0
-abs_0_0000DB42:
+	moveq.l #SG2_MESSAGE_ROWS_DBF_LAST,d1
+clear_message_line_row:
+	moveq.l #SG2_MESSAGE_ROW_LONGS_DBF_LAST,d0
+clear_message_line_plane_long_pair:
 	clr.l (a2)+
 	clr.l (a3)+
-	dbf.w d0,abs_0_0000DB42
-	adda.w #$C,a2
-	adda.w #$C,a3
-	dbf.w d1,abs_0_0000DB40
+	dbf.w d0,clear_message_line_plane_long_pair
+	adda.w #SG2_MESSAGE_ROW_SKIP_BYTES,a2
+	adda.w #SG2_MESSAGE_ROW_SKIP_BYTES,a3
+	dbf.w d1,clear_message_line_row
 	lea.l font_printable_ascii_rows.l,a3
-abs_0_0000DB5C:
+read_message_line_glyph_byte:
 	clr.l d0
 	move.b (a1)+,d0
-	beq.w abs_0_0000DBB2
+	beq.w restore_message_line_caller_frame
 	subi.b #32,d0
 	rol.l #3,d0
 	lea.l $0(a3,d0.w),a2
@@ -16289,8 +16302,8 @@ abs_0_0000DB5C:
 	move.b (a2),$4118(a0)
 	move.b (a2)+,$6118(a0)
 	addq.l #1,a0
-	bra.b abs_0_0000DB5C
-abs_0_0000DBB2:
+	bra.b read_message_line_glyph_byte
+restore_message_line_caller_frame:
 	movem.l (a7)+,d0-d1/a0-a3
 	rts
     ; Position uses X bytes plus 40 times Y, with the original masked WORD arithmetic. CR is ignored; LF advances 320 without resetting X. Inverse controls transfer to the cursor loop.
@@ -16583,7 +16596,10 @@ heading_strip_bit_rows_prefix:
 pending_message_pointer_slots:
 	dcb.l $A,$00000000
 	dcb.b $A,$00
-	dc.b $FF,$FF,$00,$00,$00,$00
+	dc.b $FF,$FF
+queued_empty_message_text:
+	dc.b $00
+	dc.b $00,$00,$00
 port_interrupt_entry_register_snapshot:
 	dcb.l $10,$00000000
 port_interrupt_captured_stacked_pc:
@@ -17827,7 +17843,7 @@ display_model_viewer_name:
 	movea.l $0(a0,d0.w),a1
 	bra.w display_timed_message_line
 read_model_viewer_index_selection:
-	lea.l abs_0_0000FD22.l,a1
+	lea.l model_viewer_index_prompt_text.l,a1
 	bsr.w read_model_viewer_decimal_keyline
 	bmi.w abs_0_0000F216
 	cmp.b #$67,d4
@@ -17937,15 +17953,16 @@ toggle_model_face_culling:
 	not.b model_face_culling_disabled_flag(a6)
 abs_0_0000F216:
 	rts
+    ; Clear eight bytes of ten stored digit backing bytes, then accept unbounded digit appends. ADD.B after MULU discards carry; do not infer a buffer limit or ordinary decimal arithmetic.
 read_model_viewer_decimal_keyline:
 	moveq.l #0,d4
-	move.l a1,abs_0_0000FD0C.l
+	move.l a1,model_viewer_keyline_prompt_pointer.l
 	bsr.w display_timed_message_line
-	movea.l #abs_0_0000FD18,a1
-	move.l a1,abs_0_0000FD08.l
+	movea.l #model_viewer_digit_buffer,a1
+	move.l a1,model_viewer_digit_write_pointer.l
 	clr.l (a1)+
 	clr.l (a1)+
-abs_0_0000F234:
+wait_viewer_keyline_digit_or_control:
 	bsr.w wait_for_translated_key
 	cmp.b #$D,d0
 	beq.w finish_model_viewer_decimal_keyline
@@ -17954,53 +17971,57 @@ abs_0_0000F234:
 	cmp.b #$8,d0
 	beq.w erase_model_viewer_decimal_digit
 	cmp.b #$30,d0
-	blt.w abs_0_0000F234
+	blt.w wait_viewer_keyline_digit_or_control
 	cmp.b #$39,d0
-	bgt.w abs_0_0000F234
-	movea.l abs_0_0000FD08.l,a0
+	bgt.w wait_viewer_keyline_digit_or_control
+append_viewer_keyline_digit:
+	movea.l model_viewer_digit_write_pointer.l,a0
 	move.b d0,(a0)+
-	move.l a0,abs_0_0000FD08.l
+	move.l a0,model_viewer_digit_write_pointer.l
 	subi.b #48,d0
 	andi.w #15,d0
+accumulate_viewer_keyline_digit_low_byte:
 	mulu.w #$A,d4
 	add.b d0,d4
 	bsr.w redraw_model_viewer_decimal_keyline
-	bra.w abs_0_0000F234
+	bra.w wait_viewer_keyline_digit_or_control
 cancel_model_viewer_decimal_keyline:
 	moveq.l #-1,d4
 finish_model_viewer_decimal_keyline:
-	lea.l abs_0_0000FD10.l,a1
+	lea.l model_viewer_keyline_done_text.l,a1
 	move.w d4,-(a7)
 	bsr.w display_timed_message_line
 	move.w (a7)+,d4
 	rts
+    ; Erase the last stored byte and DIVU by ten. Quotient is low WORD and remainder stays high; later MULU reads only the low WORD. No correction of the original numeric result.
 erase_model_viewer_decimal_digit:
-	movea.l abs_0_0000FD08.l,a1
-	cmpa.l #abs_0_0000FD18,a1
-	beq.w abs_0_0000F234
+	movea.l model_viewer_digit_write_pointer.l,a1
+	cmpa.l #model_viewer_digit_buffer,a1
+	beq.w wait_viewer_keyline_digit_or_control
 	move.b #$0,-(a1)
-	move.l a1,abs_0_0000FD08.l
+	move.l a1,model_viewer_digit_write_pointer.l
 	divu.w #$A,d4
 	bsr.w redraw_model_viewer_decimal_keyline
-	bra.w abs_0_0000F234
+	bra.w wait_viewer_keyline_digit_or_control
+    ; Concatenate saved prompt and entered digits with no end check, then add NUL and use timed drawing. The 35-byte source backing is not an arbitrary-input capacity proof.
 redraw_model_viewer_decimal_keyline:
-	movea.l abs_0_0000FD0C.l,a1
-	lea.l abs_0_0000FD4D.l,a0
-abs_0_0000F2C8:
+	movea.l model_viewer_keyline_prompt_pointer.l,a1
+	lea.l model_viewer_keyline_draw_buffer.l,a0
+copy_viewer_prompt_into_draw_buffer:
 	move.b (a1)+,d0
-	beq.w abs_0_0000F2D4
+	beq.w begin_viewer_digit_string_append
 	move.b d0,(a0)+
-	bra.w abs_0_0000F2C8
-abs_0_0000F2D4:
-	lea.l abs_0_0000FD18.l,a1
-abs_0_0000F2DA:
+	bra.w copy_viewer_prompt_into_draw_buffer
+begin_viewer_digit_string_append:
+	lea.l model_viewer_digit_buffer.l,a1
+copy_viewer_digits_into_draw_buffer:
 	move.b (a1)+,d0
-	beq.w abs_0_0000F2E6
+	beq.w terminate_and_draw_viewer_keyline
 	move.b d0,(a0)+
-	bra.w abs_0_0000F2DA
-abs_0_0000F2E6:
+	bra.w copy_viewer_digits_into_draw_buffer
+terminate_and_draw_viewer_keyline:
 	clr.b (a0)+
-	lea.l abs_0_0000FD4D.l,a1
+	lea.l model_viewer_keyline_draw_buffer.l,a1
 	bra.w display_timed_message_line
 	dc.b $48,$E7,$80,$40,$13,$FC,$00,$FF,$00,$BF,$E3,$01,$13,$FC,$00,$18
 	dc.b $00,$BF,$ED,$01,$10,$19,$67,$00,$00,$1C,$13,$C0,$00,$BF,$E1,$01
@@ -18380,24 +18401,29 @@ str_wackfunk_7th_moon_of_mil_s0_0000ECCF:
 str_q_beta_lone_moon_of_aldo_s0_0000ECEC:
 	dc.b "Q-Beta -Lone Moon of Aldos",$00
 	dc.b $00
-abs_0_0000FD08:
-	dc.b $00,$00,$FD,$18
-abs_0_0000FD0C:
-	dc.b $00,$00,$00,$00
-abs_0_0000FD10:
-	dc.w $0000
+model_viewer_digit_write_pointer:
+	dc.l model_viewer_digit_buffer
+model_viewer_keyline_prompt_pointer:
+	dc.l $00000000
+model_viewer_keyline_done_text:
+	dc.b $00
+	dc.b $00
 abs_0_0000FD12:
 	dc.b $00,$00,$FF,$FF,$00,$00
-abs_0_0000FD18:
-	dcb.b $A,$00
-abs_0_0000FD22:
+model_viewer_digit_buffer:
+	dcb.b $8,$00
+model_viewer_digit_tail_backing:
+	dc.b $00,$00
+model_viewer_index_prompt_text:
 	dc.b "Enter shape number:",$00
 	dc.b "Face number too High!",$00
 abs_0_0000FD4C:
 	dc.b $00
-abs_0_0000FD4D:
-	dcb.b $1F,$20
-	dc.b $00,$00,$00,$00
+model_viewer_keyline_draw_buffer:
+	dcb.b $10,$20
+	dcb.b $F,$20
+	dc.b $00
+	dc.b $00,$00,$00
 abs_0_0000FD70:
 	jmp abs_0_00002836.l
 project_model_to_draw_records_bridge_00ed76:
@@ -38735,7 +38761,7 @@ abs_0_0002F9DE:
 	rts
 	dc.b $00,$00,$00,$00,$00,$00
 enqueue_unique_message_pointer_bridge_02e9ee:
-	jmp enqueue_unique_message_pointer.l
+	jmp enqueue_message_unless_previous_pointer.l
 	dcb.b $8,$00
     ; 32 original pointers, 14 distinct streams with aliases. Pointee contract is only the first 2-byte tag; empty streams do not contain a full placement record.
 world_placement_pointers:
@@ -49787,7 +49813,7 @@ add_homing_missile_hud_icon_bridge_038d5c:
 add_bouncing_bomb_hud_icon_bridge_038d62:
 	jmp add_bouncing_bomb_hud_icon.l
 enqueue_event_message:
-	jmp enqueue_unique_message_pointer.l
+	jmp enqueue_message_unless_previous_pointer.l
 	dc.w $0000
 draw_hud_attitude_polygon:
 	movem.l d0-d7/a0-a6,-(a7)
@@ -50953,7 +50979,7 @@ alternate_contact_dot_masks:
 	dc.w $C000,$3000,$0C00,$0300,$00C0,$0030,$000C,$0003
 abs_0_0003ABF0:
 	btst.b #0,display_and_frame_service_flags(a6)
-	beq.w abs_0_0003ACFC
+	beq.w poll_alternate_expired_message_queue
 	cmpi.b #8,weapon_selection_and_status(a6)
 	bne.b abs_0_0003AC6C
 	move.w object_scan_sprite_countdown(a6),d0
@@ -51041,13 +51067,13 @@ abs_0_0003ACF0:
 	move.w aim_reticle_screen_x(a6),d1
 	move.w aim_reticle_screen_y(a6),d2
 	bsr.w abs_0_0003A542
-abs_0_0003ACFC:
+poll_alternate_expired_message_queue:
 	tst.w message_display_countdown(a6)
-	bne.b abs_0_0003AD0C
+	bne.b continue_alternate_meter_service_after_messages
 	tst.w pending_message_count(a6)
-	beq.b abs_0_0003AD0C
+	beq.b continue_alternate_meter_service_after_messages
 	bsr.w advance_message_queue_bridge_03a0ce
-abs_0_0003AD0C:
+continue_alternate_meter_service_after_messages:
 	bsr.w update_alternate_resource_meters
 	rts
 abs_0_0003AD12:
@@ -51472,16 +51498,16 @@ abs_0_0003B1AC:
 	tst.b display_and_frame_service_flags(a6)
 	bpl.w abs_0_0003B28C
 	tst.b modal_command_input_flag(a6)
-	bne.b abs_0_0003B1C8
+	bne.b tick_alternate_message_countdown
 	addq.w #1,panel_animation_service_ticks(a6)
 	subq.w #1,periodic_display_update_countdown(a6)
-	bne.b abs_0_0003B1C8
+	bne.b tick_alternate_message_countdown
 	bsr.w increment_and_draw_periodic_bcd_alternate
-abs_0_0003B1C8:
+tick_alternate_message_countdown:
 	tst.w message_display_countdown(a6)
-	beq.b abs_0_0003B1D2
+	beq.b continue_alternate_sound_service_after_message_tick
 	subq.w #1,message_display_countdown(a6)
-abs_0_0003B1D2:
+continue_alternate_sound_service_after_message_tick:
 	bsr.w update_alternate_sound_and_display_effects_bridge_03c9d0
 	tst.b modal_command_input_flag(a6)
 	bne.w abs_0_0003B28C
