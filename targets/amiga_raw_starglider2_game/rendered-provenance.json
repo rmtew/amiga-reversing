@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
   "kind": "committed_native_rendered_original_export",
-  "canonical_source_commit": "50ccf4c2909c53f62ef81a1273e0565896d818e5",
-  "publication_base_commit": "50ccf4c2909c53f62ef81a1273e0565896d818e5",
+  "canonical_source_commit": "33490336a1a3ad0804d5ccab93bf49dc8a04814d",
+  "publication_base_commit": "33490336a1a3ad0804d5ccab93bf49dc8a04814d",
   "native_export": "CListingArtifact.source_package_payload(64)",
-  "main_source_sha256": "5a05de7bbb05763ad3a1ff7b1307dff8562db0ec3443b476b84d0fce67fba428",
+  "main_source_sha256": "f0ecd8ee9094c08418b4d2102eb1384280f9d844008409acacb388f7201e0a9a",
   "asset_count": 57,
   "asset_bytes": 93633,
   "game_assembly_hand_edits": false,
@@ -24,13 +24,13 @@
     "assembler executable",
     "paused Pandora work"
   ],
-  "canonical_source_commit_role": "canonical source publication base; scene depth sorting, vertex cycling and horizontal/vertical span handoffs reconstructed through 172 original CPU cases. 24 continuations, six arithmetic constants, two depth WORDs and existing RS/SIZEOF bindings retain descending unsigned keys, preceding high guard, WORD-wrapped ranges, BYTE counting, last equal minimum, distinct packet phases and profile-specific HUD clears. No global capacity, lifetime, arbitrary-coordinate, sloped-span, full-renderer or hardware claim; output bound by verification_receipt_id",
-  "canonical_source_subject_revision": "2704ad077f1d26b2e578c3f8bbdaa12fbf3138bb07e704193ed1f2e1add3303d",
+  "canonical_source_commit_role": "canonical source publication base; sloped-line and multi-edge polygon span interpolation reconstructed through 181 original CPU cases. Twenty continuations and two byte-count/bias constants retain Q16 rounding, D5 high-WORD descending-line fraction, D2.W reverse-edge fraction, edge-restart asymmetry and signed doubled-WORD reciprocal addressing. Preserve the 300-WORD table owner and original out-of-domain behavior; no normal-game coordinate, capacity, lifetime, full raster or hardware claim; output bound by verification_receipt_id",
+  "canonical_source_subject_revision": "5c6d30ab0d81cdd41b63433e38bc3baabe0186c87d7530871b9712cfe5e68175",
   "canonical_fact_sha256": {
     "source_binary.json": "42d4a5758b3e8236af7f912aee85e9ee5323bcd0961faa338c4f864080a0a7d9",
     "target_metadata.json": "e7540b68c118c56aba8815b6722eefa067517cc865fe9841d6c01ce96551389c",
-    "manual_actions.jsonl": "e734d3c8656423c57620ce46fa4a28c2e0af842af51031576c007bbfea374fac",
-    "decision_journal.jsonl": "4f753333ff4b48063bd0f75cfb681766aa58c611d46dd56cf59ec9fce56268a1"
+    "manual_actions.jsonl": "055ffb2b23f1bcb64c1d168120f2d248e31c28badd4062d938c0968416e0a2e2",
+    "decision_journal.jsonl": "8a45daa46a10914b1632d643b3f124c6a63f2749c42b66762972e2b9e89862b7"
   },
   "headers": "14 unmodified required include files collected by source_package.collect_package_includes from ext/amiga_includes/ndk_2.0/include; header notices retained",
   "decoded_protection_view": {
@@ -46,7 +46,7 @@
     },
     "runtime_scope": "Seven CPU write-site windows match this reversible view; no whole runtime-view identity or parent plaintext promotion."
   },
-  "verification_receipt_id": "038b726fa4212a896c1abdec57b77aacc7e2568c2306c9d0b70554a17c426117",
+  "verification_receipt_id": "d91d45eaaa19afcae7e83dbfe6b25c41876879f24acc7ae4f6e29c0f66040ca6",
   "render_native_sha256": "5c53c7d8bee53bbd52ecdd970f145d3d175e39fbabd25d559e11f2f6c36f7440",
   "final_assembler_native_sha256": "5c53c7d8bee53bbd52ecdd970f145d3d175e39fbabd25d559e11f2f6c36f7440"
 }

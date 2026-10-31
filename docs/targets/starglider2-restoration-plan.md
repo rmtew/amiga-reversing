@@ -27,6 +27,22 @@ and strengthened 38 app-base attributions.
 Conditional skips mean104 outer iterations are not104 observed memory reads.
 Loaded pointer values remain subject to separate alias/target validation.
 
+The span-interpolation batch adds 181 CPU cases, 20 continuations and two
+byte-count/bias constants. Descending lines inherit D5's high-WORD fraction;
+polygon reverse edges inherit D2.W, initially the last source marker at the
+cycling handoff. Identical cycled packet bytes therefore do not establish
+identical downstream register state. Forward edge restarts clear their fraction;
+reverse restarts and later polygon packets retain theirs. Within the nonwrapping
+index domain, initial edges use `dy+1` reciprocal entries/rows, later edges use `dy`.
+
+The 300-WORD reciprocal owner stays unchanged. Supplied initial-edge `dy=299`
+and line `dy=300` cases read the following zero WORD; doubled-WORD indices can
+also wrap before the table. Large-counter cases stop before the long loops.
+These are preserved machine behaviors, not established normal-game inputs or
+new extent/capacity proofs. Access and ownership totals remain unchanged.
+Next: planar span-reader and drawing callbacks with explicit RAM/row-table
+fixtures; full raster, shared lifetime and hardware behavior remain unqualified.
+
 The scene-packet batch restores 24 continuations, six arithmetic constants and
 two depth WORDs (four bytes), using existing RS/SIZEOF bindings for references
 and header fields. 172 CPU cases cover descending unsigned sorting with a
@@ -41,9 +57,9 @@ inclusive upper edge. Mode0 clears 34 rows of 16 bytes; mode1 clears 33 rows
 with two eight-byte windows per row. The Amiga empty queue returns after
 snapshot updates. Protected native facts and access totals are unchanged;
 the four recovered bytes are the queue's high-guard and zero-depth WORDs.
-Next: sloped-line and multi-edge span consumers, testing reciprocal indexing
-and carry/row transitions. This batch does not qualify those paths, arbitrary
-input coordinates, queue capacity, shared lifetimes or hardware scanout.
+Sloped-line and multi-edge qualification is recorded above. Neither batch
+establishes arbitrary input coordinates, queue capacity, shared lifetimes or
+hardware scanout.
 
 The five-plane polygon-clipper batch restores 47 continuations, seven arithmetic
 constants and three scratch-base names without inventing buffer extents.

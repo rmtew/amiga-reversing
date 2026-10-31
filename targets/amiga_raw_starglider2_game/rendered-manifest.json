@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "source_commit": "50ccf4c2909c53f62ef81a1273e0565896d818e5",
+  "source_commit": "33490336a1a3ad0804d5ccab93bf49dc8a04814d",
   "source_assembly": "starglider2_game.s",
   "assets": [
     {
@@ -878,13 +878,13 @@
     },
     {
       "path": "rendered-provenance.json",
-      "bytes": 3639,
-      "sha256": "064f024e844fae379bc31bb6c7165b76bb9751c2bf9436bd4637876a3f70af09"
+      "bytes": 3624,
+      "sha256": "8e06fa8ea27cf791ad66ba5b8d29ddbe1fcf77dddf225251ade8dd75bc168782"
     },
     {
       "path": "starglider2_game.s",
-      "bytes": 2217675,
-      "sha256": "5a05de7bbb05763ad3a1ff7b1307dff8562db0ec3443b476b84d0fce67fba428"
+      "bytes": 2220672,
+      "sha256": "f0ecd8ee9094c08418b4d2102eb1384280f9d844008409acacb388f7201e0a9a"
     },
     {
       "path": "tools/starglider2_protection.py",
@@ -892,6 +892,6 @@
       "sha256": "81d3f66d36dbfbd5c77238b20c28e8b9abaa329777eb91f64669bbbf13703582"
     }
   ],
-  "source_commit_role": "canonical source publication base; scene depth sorting, vertex cycling and horizontal/vertical span handoffs reconstructed through 172 original CPU cases. 24 continuations, six arithmetic constants, two depth WORDs and existing RS/SIZEOF bindings retain descending unsigned keys, preceding high guard, WORD-wrapped ranges, BYTE counting, last equal minimum, distinct packet phases and profile-specific HUD clears. No global capacity, lifetime, arbitrary-coordinate, sloped-span, full-renderer or hardware claim; output bound by verification_receipt_id",
-  "source_subject_revision": "2704ad077f1d26b2e578c3f8bbdaa12fbf3138bb07e704193ed1f2e1add3303d"
+  "source_commit_role": "canonical source publication base; sloped-line and multi-edge polygon span interpolation reconstructed through 181 original CPU cases. Twenty continuations and two byte-count/bias constants retain Q16 rounding, D5 high-WORD descending-line fraction, D2.W reverse-edge fraction, edge-restart asymmetry and signed doubled-WORD reciprocal addressing. Preserve the 300-WORD table owner and original out-of-domain behavior; no normal-game coordinate, capacity, lifetime, full raster or hardware claim; output bound by verification_receipt_id",
+  "source_subject_revision": "5c6d30ab0d81cdd41b63433e38bc3baabe0186c87d7530871b9712cfe5e68175"
 }

@@ -1705,10 +1705,12 @@ SG2_SCAN_INITIAL_DEPTH_LIMIT	EQU	32767
 SG2_SCAN_OVERLAY_RELOAD	EQU	56
 SG2_SCENE_HEADING_BAND_LOWER	EQU	832
 SG2_SCENE_HEADING_BAND_UPPER	EQU	2880
+SG2_SCENE_INITIAL_EDGE_RECIPROCAL_BIAS_BYTES	EQU	2
 SG2_SCENE_MIN_Y_SCAN_SEED	EQU	4095
 SG2_SCENE_MODE1_HUD_CLEAR_DBF_LAST	EQU	32
 SG2_SCENE_MODE1_HUD_CLEAR_POSTINC_ADVANCE	EQU	156
 SG2_SCENE_SCREEN_VERTEX_BYTES	EQU	4
+SG2_SCENE_TWO_SCREEN_VERTICES_BYTES	EQU	8
 SG2_SCORE_BCD_DIGITS_DBF_LAST	EQU	5
 SG2_SPACE_EFFECT_DEFAULT_OVERRIDE_RGB	EQU	$27
 SG2_SPACE_EFFECT_OVERRIDE_RGB_BITS	EQU	$4C
@@ -54731,7 +54733,7 @@ append_mode1_scene_hud_polygon:
 	moveq.l #0,d0
 	move.w #SG2_SCENE_MODE1_HUD_CLEAR_POSTINC_ADVANCE,d1
 	moveq.l #SG2_SCENE_MODE1_HUD_CLEAR_DBF_LAST,d2
-    ; Mode1 clears 33 rows at stride160: two 8-byte windows separated by80 bytes. Postincrement4 plus advance156 forms the stride. Mode0 instead clears34 rows of16 bytes.
+    ; Mode1 clears 33 rows at stride 160: two 8-byte windows separated by 80 bytes. Postincrement 4 plus advance 156 forms the stride. Mode0 instead clears 34 rows of 16 bytes.
 clear_next_mode1_scene_hud_row:
 	move.l d0,(a0)+
 	move.l d0,$004C(a0)
@@ -54759,7 +54761,7 @@ cycle_scene_vertices_from_min_y:
 	move.w #SG2_SCENE_MIN_Y_SCAN_SEED,d0
 	movea.l a0,a4
 	moveq.l #0,d4
-    ; Negative X ends the scan. Y comparison is unsigned, seeded4095; equal minima select the last vertex. The vertex counter increments as a BYTE. No selected Y leaves A3 unestablished.
+    ; Negative X ends the scan. Y comparison is unsigned, seeded at 4095; equal minima select the last vertex. The vertex counter increments as a BYTE. No selected Y leaves A3 unestablished.
 scan_next_scene_vertex_for_minimum_y:
 	move.w (a0)+,d2
 	bmi.b begin_scene_vertex_cycle_from_last_minimum_y
@@ -54789,6 +54791,7 @@ finish_cycled_scene_packet:
 	move.l a1,(a5)	; operand 2: SG2SceneCycledHeader_vertices_end at (a5)
 	clr.l (a1)+
 	bra.b cycle_scene_vertices_from_min_y
+    ; At first handoff, D2.W retains the last source marker; later records can change it. Descending line setup also inherits D5 high WORD as fractional state. No zero seed is assumed.
 draw_scene_packet_spans:
 	move.l a6,-(a7)
 	bsr.w interpolate_polygon_edge_spans
@@ -54799,19 +54802,19 @@ interpolate_polygon_edge_spans:
 	lea.l shared_workspace_prefix(pc),a3
 	lea.l polygon_edge_reciprocal_scales.l,a4
     ; KNOWN: type A6=Target code-entry register seed:SG2SceneCycledReference; type A3=Target code-entry register seed:SG2SceneSpanHeader
-abs_0_0003DB46:
+interpolate_next_cycled_scene_packet:
 	move.l (a6),d0	; operand 1: SG2SceneCycledReference_packet at (a6)
-	bpl.b abs_0_0003DB4C
+	bpl.b begin_span_packet_from_cycled_header
 	rts
-abs_0_0003DB4C:
+begin_span_packet_from_cycled_header:
 	movea.l d0,a0
 	move.l a3,(a6)+	; operand 2: SG2SceneCycledReference_packet at (a6)+
 	movea.l (a0)+,a1	; operand 1: SG2SceneCycledHeader_vertices_end at (a0)+
 	move.w (a0)+,(a3)+	; operand 1: SG2SceneCycledHeader_fill_style at (a0)+ | operand 2: SG2SceneSpanHeader_fill_style at (a3)+
-	subq.w #8,a1
+	subq.w #SG2_SCENE_TWO_SCREEN_VERTICES_BYTES,a1
 	cmpa.l a0,a1
 	beq.w emit_two_vertex_scene_span_packet
-	addq.w #8,a1
+	addq.w #SG2_SCENE_TWO_SCREEN_VERTICES_BYTES,a1
 	moveq.l #0,d0
 	move.w (a0)+,d0
 	move.l d0,d1
@@ -54819,64 +54822,69 @@ abs_0_0003DB4C:
 	move.w a2,(a3)+	; operand 2: SG2SceneSpanHeader_first_scanline at (a3)+
 	movea.w a2,a5
 	moveq.l #0,d7
-abs_0_0003DB6C:
+    ; Walk forward past horizontal edges. A negative WORD height ends the packet at this local descent, not necessarily the global maximum Y. No general contour-validity proof is implied.
+select_initial_forward_polygon_edge:
 	move.w (a0)+,d4
 	move.w d4,polygon_forward_edge_end_x.l
 	move.w (a0)+,d3
 	move.w d3,polygon_forward_edge_end_y.l
 	sub.w a2,d3
-	bmi.w abs_0_0003DC50
-	bne.b abs_0_0003DB88
+	bmi.w terminate_scene_span_packet
+	bne.b initialize_forward_polygon_edge_step
 	move.w d4,d0
-	bra.b abs_0_0003DB6C
-abs_0_0003DB88:
+	bra.b select_initial_forward_polygon_edge
+    ; Initial forward step uses signed dx times reciprocal[dy+1], doubled to Q16. Start fraction D7.W is zero; advance both edge positions before emitting the first row.
+initialize_forward_polygon_edge_step:
 	sub.w d0,d4
 	movea.w d3,a2
 	adda.w a2,a2
-	muls.w $2(a4,a2.w),d4
+	muls.w SG2_SCENE_INITIAL_EDGE_RECIPROCAL_BIAS_BYTES(a4,a2.w),d4
 	add.l d4,d4
 	movea.w d4,a2
 	swap.w d4
-abs_0_0003DB98:
+select_initial_reverse_polygon_edge:
 	move.w -(a1),d6
 	move.w -(a1),d5
 	move.w d6,polygon_reverse_edge_end_y.l
 	move.w d5,polygon_reverse_edge_end_x.l
 	sub.w a5,d6
-	bmi.w abs_0_0003DC50
-	bne.b abs_0_0003DBB4
+	bmi.w terminate_scene_span_packet
+	bne.b initialize_reverse_polygon_edge_step
 	move.w d5,d1
-	bra.b abs_0_0003DB98
-abs_0_0003DBB4:
+	bra.b select_initial_reverse_polygon_edge
+    ; Initial reverse step also uses reciprocal[dy+1], but its accumulator is inherited D2.W. Original marker values can affect spans even when the cycled packet bytes match.
+initialize_reverse_polygon_edge_step:
 	sub.w d1,d5
 	movea.w d6,a5
 	adda.w a5,a5
-	muls.w $2(a4,a5.w),d5
+	muls.w SG2_SCENE_INITIAL_EDGE_RECIPROCAL_BIAS_BYTES(a4,a5.w),d5
 	add.l d5,d5
 	movea.w d5,a5
 	swap.w d5
-abs_0_0003DBC4:
+    ; ADD.W accumulates each fraction; ADDX.W consumes its carry into X. Emit forward X then reverse X without sorting the pair. Forward counter/reload is processed before reverse.
+emit_next_polygon_edge_span:
 	add.w a2,d7
 	addx.w d4,d0
 	add.w a5,d2
 	addx.w d5,d1
 	move.w d0,(a3)+
 	move.w d1,(a3)+
-	dbf.w d3,abs_0_0003DC0E
+	dbf.w d3,advance_reverse_polygon_edge_row_counter
 	move.w polygon_forward_edge_end_x.l,d0
 	clr.w d7
 	movea.w polygon_forward_edge_end_y.l,a2
-abs_0_0003DBE2:
+select_next_forward_polygon_edge:
 	move.w (a0)+,d4
 	move.w d4,polygon_forward_edge_end_x.l
 	move.w (a0)+,d3
 	move.w d3,polygon_forward_edge_end_y.l
 	sub.w a2,d3
-	bmi.b abs_0_0003DC50
-	bne.b abs_0_0003DBFC
+	bmi.b terminate_scene_span_packet
+	bne.b restart_forward_polygon_edge_step
 	move.w d4,d0
-	bra.b abs_0_0003DBE2
-abs_0_0003DBFC:
+	bra.b select_next_forward_polygon_edge
+    ; Later forward edges use reciprocal[dy] and dy rows. Snap to the exact cached endpoint and clear D7.W before restart; the initial edge instead emits dy+1 rows.
+restart_forward_polygon_edge_step:
 	sub.w d0,d4
 	movea.w d3,a2
 	adda.w a2,a2
@@ -54885,22 +54893,23 @@ abs_0_0003DBFC:
 	movea.w d4,a2
 	swap.w d4
 	subq.w #1,d3
-abs_0_0003DC0E:
-	dbf.w d6,abs_0_0003DBC4
+advance_reverse_polygon_edge_row_counter:
+	dbf.w d6,emit_next_polygon_edge_span
 	move.w polygon_reverse_edge_end_x.l,d1
 	ext.l d1
 	movea.w polygon_reverse_edge_end_y.l,a5
-abs_0_0003DC20:
+select_next_reverse_polygon_edge:
 	move.w -(a1),d6
 	move.w -(a1),d5
 	move.w d6,polygon_reverse_edge_end_y.l
 	move.w d5,polygon_reverse_edge_end_x.l
 	sub.w a5,d6
-	bmi.b abs_0_0003DC50
-	bne.b abs_0_0003DC3A
+	bmi.b terminate_scene_span_packet
+	bne.b restart_reverse_polygon_edge_step
 	move.w d5,d1
-	bra.b abs_0_0003DC20
-abs_0_0003DC3A:
+	bra.b select_next_reverse_polygon_edge
+    ; Later reverse edges use reciprocal[dy] and dy rows. Restore the cached X/Y endpoint but retain D2.W fraction, including transport into later polygon packets.
+restart_reverse_polygon_edge_step:
 	sub.w d1,d5
 	movea.w d6,a5
 	adda.w a5,a5
@@ -54909,10 +54918,10 @@ abs_0_0003DC3A:
 	movea.w d5,a5
 	swap.w d5
 	subq.w #1,d6
-	bra.w abs_0_0003DBC4
-abs_0_0003DC50:
+	bra.w emit_next_polygon_edge_span
+terminate_scene_span_packet:
 	move.w #$FFFF,(a3)+
-	bra.w abs_0_0003DB46
+	bra.w interpolate_next_cycled_scene_packet
     ; The end-pointer test selects exactly two vertices. Equal-Y endpoints emit one unsigned-X-ordered span; equal-X endpoints emit dy+1 rows via WORD DBF. Sloped cases remain separate.
 emit_two_vertex_scene_span_packet:
 	movem.w (a0)+,d0-d3
@@ -54924,28 +54933,31 @@ emit_two_vertex_scene_span_packet:
 	move.w d2,(a3)+
 	move.w d0,(a3)+
 	move.w #$FFFF,(a3)+
-	bra.w abs_0_0003DB46
+	bra.w interpolate_next_cycled_scene_packet
 emit_horizontal_scene_line_in_input_x_order:
 	move.w d0,(a3)+
 	move.w d2,(a3)+
 	move.w #$FFFF,(a3)+
-	bra.w abs_0_0003DB46
+	bra.w interpolate_next_cycled_scene_packet
 test_two_vertex_scene_line_for_vertical:
 	cmp.w d0,d2
-	bne.w abs_0_0003DC94
+	bne.w select_sloped_scene_line_direction
 	sub.w d1,d3
 emit_next_vertical_scene_line_span:
 	move.w d0,(a3)+
 	move.w d0,(a3)+
 	dbf.w d3,emit_next_vertical_scene_line_span
 	move.w d3,(a3)+
-	bra.w abs_0_0003DB46
-abs_0_0003DC94:
+	bra.w interpolate_next_cycled_scene_packet
+select_sloped_scene_line_direction:
 	cmp.w d0,d2
-	bcc.b abs_0_0003DCD0
+	bcc.b initialize_ascending_x_scene_line
+    ; MOVE.W replaces only D5 low WORD with start X; its old high WORD seeds the Q16 fraction after SWAP. Subtract unsigned slope steps and avoid repeating crossed endpoint pixels.
+initialize_descending_x_scene_line:
 	move.w d0,d5
 	sub.w d2,d0
 	sub.w d1,d3
+    ; Double dy as a WORD, use its signed WORD as a byte index, then shift it back for DBF. Dy=$4000 indexes before the table; dy=$8000 enters DBF with $FFFF. These paths are not run to completion.
 	add.w d3,d3
 	mulu.w $0(a4,d3.w),d0
 	add.l d0,d0
@@ -54954,22 +54966,23 @@ abs_0_0003DC94:
 	move.w d5,d4
 	move.w d5,(a3)+
 	move.w d4,(a3)+
-abs_0_0003DCB2:
+emit_next_descending_x_scene_line_span:
 	move.w d5,d4
 	subq.w #1,d4
 	swap.w d5
 	sub.l d0,d5
 	swap.w d5
 	cmp.w d5,d4
-	bcc.b abs_0_0003DCC2
+	bcc.b store_descending_x_scene_line_span
 	addq.w #1,d4
-abs_0_0003DCC2:
+store_descending_x_scene_line_span:
 	move.w d5,(a3)+
 	move.w d4,(a3)+
-	dbf.w d3,abs_0_0003DCB2
+	dbf.w d3,emit_next_descending_x_scene_line_span
 	move.w d3,(a3)+
-	bra.w abs_0_0003DB46
-abs_0_0003DCD0:
+	bra.w interpolate_next_cycled_scene_packet
+    ; For nonnegative start X, MOVEM.W gives ascending lines a zero fractional seed. Add unsigned Q16 steps; the next span starts at prior X+1 only when X advances.
+initialize_ascending_x_scene_line:
 	sub.w d0,d2
 	sub.w d1,d3
 	add.w d3,d3
@@ -54980,21 +54993,21 @@ abs_0_0003DCD0:
 	move.w d0,d4
 	move.w d4,(a3)+
 	move.w d0,(a3)+
-abs_0_0003DCE8:
+emit_next_ascending_x_scene_line_span:
 	move.w d0,d4
 	addq.w #1,d4
 	swap.w d0
 	add.l d2,d0
 	swap.w d0
 	cmp.w d4,d0
-	bcc.b abs_0_0003DCF8
+	bcc.b store_ascending_x_scene_line_span
 	subq.w #1,d4
-abs_0_0003DCF8:
+store_ascending_x_scene_line_span:
 	move.w d4,(a3)+
 	move.w d0,(a3)+
-	dbf.w d3,abs_0_0003DCE8
+	dbf.w d3,emit_next_ascending_x_scene_line_span
 	move.w d3,(a3)+
-	bra.w abs_0_0003DB46
+	bra.w interpolate_next_cycled_scene_packet
 	dc.b $00,$00,$00,$00
 abs_0_0003DD0A:
 	move usp,a2
@@ -59445,7 +59458,7 @@ shared_workspace_tail:
 projected_vertex_scratch_prefix:
 	dcb.w $C0,$0000
 	dcb.b $4C0,$00
-    ; 300 original WORD reciprocal entries: [0]=0,[1]=$7FFF, otherwise floor($8000/index). Edge code indexes by2*dY+2; no arbitrary-edge bounds proof. Following10zero bytes unclaimed.
+    ; 300 WORDs: [0]=0, [1]=$7FFF, then floor($8000/i). Initial polygon edges use dy+1; continuations and lines use dy via signed doubled-WORD offsets. Following 10 zero bytes remain unclaimed.
 polygon_edge_reciprocal_scales:
 	dc.w $0000,$7FFF,$4000,$2AAA,$2000,$1999,$1555,$1249
 	dc.w $1000,$0E38,$0CCC,$0BA2,$0AAA,$09D8,$0924,$0888
