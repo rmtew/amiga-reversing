@@ -27,6 +27,37 @@ and strengthened 38 app-base attributions.
 Conditional skips mean104 outer iterations are not104 observed memory reads.
 Loaded pointer values remain subject to separate alias/target validation.
 
+The motion/space-integration batch connects the object and player vector
+entries, the real player caller's wrapped speed sum and stores, and the space
+ramp/integration continuation. 1483 original CPU tests cover supplied lookup
+backing and signed coefficients, dirty register high WORDs, staged multiply/
+double/SWAP truncation, sign gates, threshold wrap and surrounding workspace.
+The vector depends on rotation 0/1; rotation 2 supplies a sine scratch value
+for the later heading-drift reader. Intermediate products are not combined or
+saturated, and only low WORDs become stored motion components.
+
+The point-field notice reads incoming addend/speed before the ramp and collision
+response. Ramp selection tests nonzero speed and enabled WORD, retaining other
+consumers' separate sign-based rules. Its 100/300 steps and 16000 comparison use
+original WORD wrap and N-only tests, not universal arbitrary-input clamps.
+Space integration sign-extends three motion WORDs and doubles LONGs. Negative
+collision response subtracts them, then clears requested/smoothed speed; the
+current ramp has already run, so decay begins on the next call. The horizontal
+mask applies to X/Z only. The paired caller/consumer fixture supplies the latter
+context explicitly; it does not prove intervening game writers absent.
+
+Eighteen continuation names and five role-specific constants expose these
+relationships. Decoded absolute write spans overlapping the after-spin WORD still identify
+only the initializer clear at $37664, not a captured-heading writer. The raw A2-entry variant at
+$37272 has no recovered CFG/data-reference entry and remains unpromoted. No
+shared analysis rule, ownership, physical-unit or hardware-cadence claim was
+added. Next: continue the connected space-event/transition callers or another
+substantial source region with established incoming and consumer evidence.
+Final generation took 230.06 seconds. App/typed/unresolved totals remain
+3509/2716/165; protected facts, exact reference identities, CFG, function summaries
+and ownership accounting are unchanged. C/vasm and clean standalone builds
+retain all 412736 original bytes, 57 assets and 14 headers.
+
 The rotation/settling batch connects three damage-jitter writers with the
 rotation consumer, reticle calculation, mode-selection gates, spin expiry and
 contact/settling continuations. 1952 original CPU tests include every 12-bit
@@ -50,9 +81,9 @@ free flight through this path alone. app_07A6 retains its generic name: reset
 and halving do not establish an axis or an active normal-control consumer.
 Fourteen continuation names and four distinct jitter/spin constants expose the
 relations without new ownership, type, cadence or hardware claims. Direct pose
-zero behavior remains separate from the caller's nonzero gate. Next: connect
-the identified spin-trigger and damage-event callers, preserving their actual
-guards and the unresolved after-spin provenance rather than assuming capture.
+zero behavior remains separate from the caller's nonzero gate. The independent
+motion/space-integration follow-up is documented above; no captured-heading
+contract was added.
 Generation took 232.83 seconds. App/typed/unresolved totals remain
 3509/2716/165, with protected native facts, exact reference identities, CFG,
 function summaries and ownership accounting unchanged. C/vasm and clean

@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "source_commit": "36a8f7912136f6ce8f0795e9a6587da256d06f23",
+  "source_commit": "92f51f54e763e6e00c24d2b95447b3975c50cd0d",
   "source_assembly": "starglider2_game.s",
   "assets": [
     {
@@ -878,13 +878,13 @@
     },
     {
       "path": "rendered-provenance.json",
-      "bytes": 3516,
-      "sha256": "4f7dc385c6baa1830377e3429d650e8e996b4bba2e3ccc658fd6d0ded5638b45"
+      "bytes": 3559,
+      "sha256": "11f26d1df38a108628b73e47e0d512a06af6c65cf26d41e4b5d1cff7709d5c42"
     },
     {
       "path": "starglider2_game.s",
-      "bytes": 2169232,
-      "sha256": "0fa66e4e3447a28c2c979c6eecfb47ed433efc38d3f96eb7eed2737c5fbfbe5c"
+      "bytes": 2171996,
+      "sha256": "469b76fbb3710fc1f2063dca1a0448483f9faafe0fb3ac6d35ea449cd557ed4b"
     },
     {
       "path": "tools/starglider2_protection.py",
@@ -892,6 +892,6 @@
       "sha256": "81d3f66d36dbfbd5c77238b20c28e8b9abaa329777eb91f64669bbbf13703582"
     }
   ],
-  "source_commit_role": "canonical source publication base; rotation damage, jitter writers, mode gates, spin and settling reconstructed through 1952 original CPU tests including all 4096 settling phases and bounded sequences; preserve unmasked impulse addition, odd cycles, negative arithmetic halving and separate spin expiry call; no global parity, captured-heading, hardware cadence or full gameplay proof; output is bound by verification_receipt_id",
-  "source_subject_revision": "38a5e7ace8d53a6d5155f7aba3cb6e252e1e47f94d4d725d4fac8ecf72e1454c"
+  "source_commit_role": "canonical source publication base; motion-vector callers, staged fixed-point products, space stardrive thresholds and signed world integration reconstructed through 1483 original CPU tests; preserve WORD wrap, N-only comparisons, pre-ramp notice, collision order and X/Z-only masking; explicit lookup and consumer contexts do not establish universal ownership, unchanged intervening writers, physical units or complete gameplay; output is bound by verification_receipt_id",
+  "source_subject_revision": "33a2f85c697ee78bf4407ecc79b8011caec84ad74d52423a2714458f88370166"
 }

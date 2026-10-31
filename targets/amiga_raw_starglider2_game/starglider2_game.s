@@ -1494,6 +1494,7 @@ SG2_MESSAGE_QUEUE_POINTER_LIMIT	EQU	10
 SG2_MESSAGE_ROWS_DBF_LAST	EQU	7
 SG2_MESSAGE_ROW_LONGS_DBF_LAST	EQU	6
 SG2_MESSAGE_ROW_SKIP_BYTES	EQU	12
+SG2_MOTION_VECTOR_PHASE_MASK	EQU	4095
 SG2_NEUTRON_ACTION_COOLDOWN	EQU	200
 SG2_NEUTRON_CARRIED_MAX_OFFSET	EQU	120
 SG2_NEUTRON_CARRIED_MIN_OFFSET	EQU	20
@@ -1578,6 +1579,7 @@ SG2_PLAYER_FOLLOW_Y_SMOOTH_SHIFT	EQU	2
 SG2_PLAYER_PROFILE_EDGE_THRESHOLD	EQU	501
 SG2_PLAYER_PROFILE_HALF_WIDTH	EQU	500
 SG2_PLAYER_SOLID_CONTACT_RESPONSE_PASSES	EQU	4
+SG2_POINT_FIELD_MIN_PLAYER_SPEED	EQU	300
 SG2_PROJECTILE_BASE_ENERGY_COST	EQU	256
 SG2_PROJECTILE_FREE_SLOT_RESERVE	EQU	2
 SG2_PROJECTOR_RESERVED_FREE_FLOOR	EQU	1
@@ -1620,6 +1622,9 @@ SG2_SCORE_BCD_DIGITS_DBF_LAST	EQU	5
 SG2_SPACE_EFFECT_DEFAULT_OVERRIDE_RGB	EQU	$27
 SG2_SPACE_EFFECT_OVERRIDE_RGB_BITS	EQU	$4C
 SG2_SPRITE_CONTROL_PREFIX_BYTES	EQU	4
+SG2_STARDRIVE_ADDEND_FALL_STEP	EQU	300
+SG2_STARDRIVE_ADDEND_LIMIT	EQU	16000
+SG2_STARDRIVE_ADDEND_RISE_STEP	EQU	100
 SG2_STORED_HEADING_RATIO_BYTE_LIMIT	EQU	255
 SG2_STORED_TARGET_Y_SMOOTH_SHIFT	EQU	5
 SG2_TEXT_CURSOR_COLUMNS	EQU	40
@@ -39001,25 +39006,25 @@ select_player_control_continuation:
 update_speed_from_requested_word:
 	move.w player_speed_target(a6),d3
 	cmp.w player_speed_smoothed(a6),d3
-	beq.b abs_0_0002F700
+	beq.b build_player_motion_from_wrapped_speed_sum
 	bmi.b decelerate_player_speed_word
 	addq.w #6,player_speed_smoothed(a6)
 	cmp.w player_speed_smoothed(a6),d3
-	bmi.b abs_0_0002F700
+	bmi.b build_player_motion_from_wrapped_speed_sum
 	move.w d3,player_speed_smoothed(a6)
-	bra.b abs_0_0002F700
+	bra.b build_player_motion_from_wrapped_speed_sum
     ; Space sign selects subtract 16. Otherwise subtract 24; only a negative result subtracts another 16. Clear a final negative WORD. Do not clamp against the requested target.
 decelerate_player_speed_word:
 	tst.b space_environment_flag(a6)
 	bmi.b apply_sixteen_unit_speed_subtraction
 	subi.w #24,player_speed_smoothed(a6)
-	bpl.b abs_0_0002F700
+	bpl.b build_player_motion_from_wrapped_speed_sum
 apply_sixteen_unit_speed_subtraction:
 	subi.w #16,player_speed_smoothed(a6)
-	bpl.b abs_0_0002F700
+	bpl.b build_player_motion_from_wrapped_speed_sum
 	clr.w player_speed_smoothed(a6)
-    ; Input accumulators feed numbered rotations and speed, not universal world axes. Rotation2 negates7A2; rotation0 arithmetic-shifts7A4; negative7A8 feeds requested speed after original clamps.
-abs_0_0002F700:
+    ; Add smoothed speed and stardrive addend as a WORD before the actual vector call. Store only D4/D5/D6 low WORDs as X/Y/Z; later space integration sign-extends and doubles these.
+build_player_motion_from_wrapped_speed_sum:
 	move.w player_speed_smoothed(a6),d3
 	add.w stardrive_speed_addend(a6),d3
 	bsr.w build_player_motion_vector
@@ -44536,7 +44541,7 @@ abs_0_000339E0:
 abs_0_000339E4:
 	move.b space_environment_flag(a6),d0
 	cmp.b world_transition_space_snapshot(a6),d0
-	beq.w abs_0_00033FF8
+	beq.w update_space_stardrive_and_motion
 	clr.w pending_message_count(a6)
 	move.w #$1,message_display_countdown(a6)
 	tst.w stardrive_enabled_word(a6)
@@ -44859,7 +44864,7 @@ abs_0_00033E52:
 	move.b #$83,diagnostic_step_byte.l
 	move.b space_environment_flag(a6),d0
 	cmp.b world_transition_space_snapshot(a6),d0
-	beq.w abs_0_00033FF8
+	beq.w update_space_stardrive_and_motion
 	move.b #$85,diagnostic_step_byte.l
 	move.b #$7F,effect_colour_fade_counter.l
 	st.b abs_0_00039CD3.l
@@ -44964,64 +44969,70 @@ abs_0_00033FD8:
 	bsr.w enqueue_event_message
 abs_0_00033FF4:
 	bra.w advance_taymar_bomb_ready_timer_continuation
-abs_0_00033FF8:
+    ; Nonnegative space flag skips this entire ramp/integration region. Negative space evaluates the point-field notice from incoming values before changing addend or collision speed state.
+update_space_stardrive_and_motion:
 	move.b #$5,diagnostic_step_byte.l
 	tst.b space_environment_flag(a6)
 	bpl.w advance_taymar_bomb_ready_timer_continuation
+    ; Only a negative point-field BYTE tests exit thresholds. Both comparisons use subtraction N alone. A notice writes grayscale 15 and sound $FF before the later enable/speed gate.
+test_point_field_exit_notice:
 	tst.b flight_point_field_active_flag(a6)
-	bpl.b abs_0_00034034
-	cmpi.w #16000,stardrive_speed_addend(a6)
-	bmi.b abs_0_00034030
-	cmpi.w #300,player_speed_smoothed(a6)
-	bmi.b abs_0_00034030
+	bpl.b select_stardrive_speed_addend_update
+	cmpi.w #SG2_STARDRIVE_ADDEND_LIMIT,stardrive_speed_addend(a6)
+	bmi.b keep_space_point_field_active
+	cmpi.w #SG2_POINT_FIELD_MIN_PLAYER_SPEED,player_speed_smoothed(a6)
+	bmi.b keep_space_point_field_active
 	sf.b flight_point_field_active_flag(a6)
 	move.w #$F,shared_grayscale_effect_countdown.l
 	st.b pending_transient_event_sound(a6)
-	bra.b abs_0_00034034
-abs_0_00034030:
+	bra.b select_stardrive_speed_addend_update
+keep_space_point_field_active:
 	st.b flight_point_field_active_flag(a6)
     ; In space: add100 up to16000 with stardrive/speed active; otherwise subtract300 down to zero. Also contributes to projectile speed and event thresholds; no unit conversion claimed.
-abs_0_00034034:
+select_stardrive_speed_addend_update:
 	tst.w player_speed_smoothed(a6)
-	beq.b abs_0_00034040
+	beq.b decay_stardrive_speed_addend
 	tst.w stardrive_enabled_word(a6)
-	bne.b abs_0_00034056
-abs_0_00034040:
+	bne.b increase_stardrive_speed_addend
+    ; Zero speed or zero enabled WORD selects subtract 300, then clears a negative WORD result. Preserve wrap and N testing; arbitrary inputs do not obey a universal floor rule.
+decay_stardrive_speed_addend:
 	st.b flight_point_field_active_flag(a6)
 	move.w stardrive_speed_addend(a6),d3
-	subi.w #300,d3
-	bpl.b abs_0_00034050
+	subi.w #SG2_STARDRIVE_ADDEND_FALL_STEP,d3
+	bpl.b store_decayed_stardrive_speed_addend
 	clr.w d3
-abs_0_00034050:
+store_decayed_stardrive_speed_addend:
 	move.w d3,stardrive_speed_addend(a6)
-	bra.b abs_0_0003406C
-abs_0_00034056:
+	bra.b integrate_signed_player_motion_words
+    ; Any nonzero speed and enabled WORD selects add 100. Compare against 16000 using N alone; preserve wrapped results and distinguish this nonzero gate from sign-tested consumers.
+increase_stardrive_speed_addend:
 	move.w stardrive_speed_addend(a6),d3
-	addi.w #100,d3
-	cmp.w #$3E80,d3
-	bmi.b abs_0_00034068
-	move.w #$3E80,d3
-abs_0_00034068:
+	addi.w #SG2_STARDRIVE_ADDEND_RISE_STEP,d3
+	cmp.w #SG2_STARDRIVE_ADDEND_LIMIT,d3
+	bmi.b store_increased_stardrive_speed_addend
+	move.w #SG2_STARDRIVE_ADDEND_LIMIT,d3
+store_increased_stardrive_speed_addend:
 	move.w d3,stardrive_speed_addend(a6)
-    ; MOVEM.W sign-extends the three player-motion WORDs; each is doubled before original add/subtract integration. The original horizontal mask is applied to X/Z.
-abs_0_0003406C:
+    ; MOVEM.W sign-extends all three motion components, then doubles LONGs. Negative collision flag subtracts them and clears requested/smoothed speed only after the ramp decision.
+integrate_signed_player_motion_words:
 	movem.w player_motion_x(a6),d0-d2
 	add.l d0,d0
 	add.l d1,d1
 	add.l d2,d2
 	tst.b player_collision_response_flag(a6)
-	bmi.b abs_0_0003408C
+	bmi.b reverse_player_motion_and_clear_speed
 	add.l d0,player_world_x(a6)
 	add.l d1,player_world_y(a6)
 	add.l d2,player_world_z(a6)
-	bra.b abs_0_000340A0
-abs_0_0003408C:
+	bra.b wrap_player_horizontal_world_coordinates
+reverse_player_motion_and_clear_speed:
 	sub.l d0,player_world_x(a6)
 	sub.l d1,player_world_y(a6)
 	sub.l d2,player_world_z(a6)
 	clr.w player_speed_target(a6)
 	clr.w player_speed_smoothed(a6)
-abs_0_000340A0:
+    ; Apply the horizontal mask to X and Z only, after wrapped LONG add/subtract. Y remains unmasked. No physical units, universal world extent or collision-lifetime claim is implied.
+wrap_player_horizontal_world_coordinates:
 	move.l horizontal_world_wrap_mask(a6),d2
 	and.l d2,player_world_x(a6)
 	and.l d2,player_world_z(a6)
@@ -48711,17 +48722,23 @@ build_player_motion_vector:
 build_motion_vector_from_angles:
 	movea.l sine_lookup_pointer(a6),a3
 	movea.l cosine_lookup_pointer(a6),a1
-	andi.w #4095,d4
+sample_rotation0_motion_lookup_words:
+	andi.w #SG2_MOTION_VECTOR_PHASE_MASK,d4
 	add.w d4,d4
 	move.w $0(a3,d4.w),trig_sine_scratch_0(a6)
 	move.w $0(a1,d4.w),trig_cosine_scratch_0(a6)
-	andi.w #4095,d5
+sample_rotation1_motion_lookup_words:
+	andi.w #SG2_MOTION_VECTOR_PHASE_MASK,d5
 	add.w d5,d5
 	move.w $0(a3,d5.w),trig_sine_scratch_1(a6)
 	move.w $0(a1,d5.w),trig_cosine_scratch_1(a6)
-	andi.w #4095,d6
+    ; Rotation 2 supplies only this sine scratch for the later heading-drift reader; it does not enter vector components. Rotation 0/1 indices and this index are each masked then doubled.
+sample_rotation2_heading_sine:
+	andi.w #SG2_MOTION_VECTOR_PHASE_MASK,d6
 	add.w d6,d6
 	move.w $0(a3,d6.w),trig_sine_scratch_2(a6)
+    ; Each MULS reads low WORDs, doubles its LONG product, then SWAPs before the next multiplication. Preserve every intermediate truncation and WORD negation; do not combine or saturate.
+derive_motion_x_from_rotation1_sine:
 	move.w d3,d4
 	muls.w trig_sine_scratch_1(a6),d4
 	add.l d4,d4
@@ -48730,11 +48747,14 @@ build_motion_vector_from_angles:
 	add.l d4,d4
 	swap.w d4
 	neg.w d4
+    ; The vector low WORDs are -q(q(speed,sin1),cos0), -q(speed,sin0), q(q(speed,cos1),cos0). Here q is signed multiply, wrapped LONG doubling, then the resulting high WORD.
+derive_motion_y_from_rotation0_sine:
 	move.w d3,d5
 	muls.w trig_sine_scratch_0(a6),d5
 	add.l d5,d5
 	swap.w d5
 	neg.w d5
+derive_motion_z_from_rotation1_cosine:
 	move.w d3,d6
 	muls.w trig_cosine_scratch_1(a6),d6
 	add.l d6,d6
