@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "source_commit": "ccececa9f9073234447b4c0974ff0ae1abe13ca2",
+  "source_commit": "6aa224df90a3276caf1d35d1bf32d6fc1302f712",
   "source_assembly": "starglider2_game.s",
   "assets": [
     {
@@ -878,13 +878,13 @@
     },
     {
       "path": "rendered-provenance.json",
-      "bytes": 3616,
-      "sha256": "ce5a6f9d3b6e9ec98f14c1cec99c19da1a54c269fb79ffe5f7f3d28a8c6b7083"
+      "bytes": 3686,
+      "sha256": "0420bc49e8532266e8f77653b468b98da395b250c85fc54108d3c7fba6ff7005"
     },
     {
       "path": "starglider2_game.s",
-      "bytes": 2231001,
-      "sha256": "4e1685aef35a58c284fc6eece5d6d9bb5d89339eb4d58eac489896d3f51dbf40"
+      "bytes": 2234893,
+      "sha256": "e1e67e9f7696a46daf5e483373b525ca43c3b2e3393bd6d6301413c7d5475db2"
     },
     {
       "path": "tools/starglider2_protection.py",
@@ -892,6 +892,6 @@
       "sha256": "81d3f66d36dbfbd5c77238b20c28e8b9abaa329777eb91f64669bbbf13703582"
     }
   ],
-  "source_commit_role": "canonical source publication base; planar span readers and regular/cell32/cell16 callbacks reconstructed through 687 original CPU cases with original Amiga lookup initialization. Seventy-two reader/callback labels, two existing dispatch-table names and three constants preserve inclusive writes, fixed-column masked cells, USP transport, NEG.W8000 slot-zero selection and unclamped regular selectors. No new code, extent, input bound, shared lifetime, palette RGB, boot or hardware claim; output bound by verification_receipt_id",
-  "source_subject_revision": "699d0ba352e1691bb9c20b996a0c4086f547caee77969825459c0c79f0e9fd96"
+  "source_commit_role": "canonical source publication base; interleaved raw-profile reader and initialization context reconstructed through 397 original CPU cases. Nineteen continuations and five scalar constants preserve signed endpoint order, style masking, row-start USP transport, fixed-cell column behavior, partial mask initialization and retained prior state. A finite cycle/interpolate/draw fixture is not a homogeneous production-sequence, bounds or lifetime proof. Existing native facts remain unchanged; full alternate startup, palette RGB and hardware remain unqualified; output bound by verification_receipt_id",
+  "source_subject_revision": "2c6179b91a6598d605ddc51148a2adae2827cadc12c73d8f248fce570724be45"
 }

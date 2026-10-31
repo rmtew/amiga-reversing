@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
   "kind": "committed_native_rendered_original_export",
-  "canonical_source_commit": "ccececa9f9073234447b4c0974ff0ae1abe13ca2",
-  "publication_base_commit": "ccececa9f9073234447b4c0974ff0ae1abe13ca2",
+  "canonical_source_commit": "6aa224df90a3276caf1d35d1bf32d6fc1302f712",
+  "publication_base_commit": "6aa224df90a3276caf1d35d1bf32d6fc1302f712",
   "native_export": "CListingArtifact.source_package_payload(64)",
-  "main_source_sha256": "4e1685aef35a58c284fc6eece5d6d9bb5d89339eb4d58eac489896d3f51dbf40",
+  "main_source_sha256": "e1e67e9f7696a46daf5e483373b525ca43c3b2e3393bd6d6301413c7d5475db2",
   "asset_count": 57,
   "asset_bytes": 93633,
   "game_assembly_hand_edits": false,
@@ -24,13 +24,13 @@
     "assembler executable",
     "paused Pandora work"
   ],
-  "canonical_source_commit_role": "canonical source publication base; planar span readers and regular/cell32/cell16 callbacks reconstructed through 687 original CPU cases with original Amiga lookup initialization. Seventy-two reader/callback labels, two existing dispatch-table names and three constants preserve inclusive writes, fixed-column masked cells, USP transport, NEG.W8000 slot-zero selection and unclamped regular selectors. No new code, extent, input bound, shared lifetime, palette RGB, boot or hardware claim; output bound by verification_receipt_id",
-  "canonical_source_subject_revision": "699d0ba352e1691bb9c20b996a0c4086f547caee77969825459c0c79f0e9fd96",
+  "canonical_source_commit_role": "canonical source publication base; interleaved raw-profile reader and initialization context reconstructed through 397 original CPU cases. Nineteen continuations and five scalar constants preserve signed endpoint order, style masking, row-start USP transport, fixed-cell column behavior, partial mask initialization and retained prior state. A finite cycle/interpolate/draw fixture is not a homogeneous production-sequence, bounds or lifetime proof. Existing native facts remain unchanged; full alternate startup, palette RGB and hardware remain unqualified; output bound by verification_receipt_id",
+  "canonical_source_subject_revision": "2c6179b91a6598d605ddc51148a2adae2827cadc12c73d8f248fce570724be45",
   "canonical_fact_sha256": {
     "source_binary.json": "42d4a5758b3e8236af7f912aee85e9ee5323bcd0961faa338c4f864080a0a7d9",
     "target_metadata.json": "e7540b68c118c56aba8815b6722eefa067517cc865fe9841d6c01ce96551389c",
-    "manual_actions.jsonl": "9452d7cb08bafa601f49060dc74e266d10e4076867a7ef082cece50c99707711",
-    "decision_journal.jsonl": "1f4ed51bb2db2d3c81f0c9a910f5ab76f57c3713ece137e06c023cb8d6d8d51e"
+    "manual_actions.jsonl": "1dba8a687ba989ce145b2e93dd1121703df8aa01253939711e314bd942971281",
+    "decision_journal.jsonl": "6520f705a04d8ce0880eee90138671096c5522203c8ca700d12b5472164c907e"
   },
   "headers": "14 unmodified required include files collected by source_package.collect_package_includes from ext/amiga_includes/ndk_2.0/include; header notices retained",
   "decoded_protection_view": {
@@ -46,7 +46,7 @@
     },
     "runtime_scope": "Seven CPU write-site windows match this reversible view; no whole runtime-view identity or parent plaintext promotion."
   },
-  "verification_receipt_id": "495be11ef2bd04aebe3406fef80117d56668e210cb7bf9b1db6bebf91e1ce790",
+  "verification_receipt_id": "3d0682685388fc80e958f9a12d7007df951db3a6bd7401ca2be2f8c04bb65ddc",
   "render_native_sha256": "5c53c7d8bee53bbd52ecdd970f145d3d175e39fbabd25d559e11f2f6c36f7440",
   "final_assembler_native_sha256": "5c53c7d8bee53bbd52ecdd970f145d3d175e39fbabd25d559e11f2f6c36f7440"
 }

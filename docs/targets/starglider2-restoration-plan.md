@@ -27,6 +27,21 @@ and strengthened 38 app-base attributions.
 Conditional skips mean104 outer iterations are not104 observed memory reads.
 Loaded pointer values remain subject to separate alias/target validation.
 
+The interleaved-context batch adds 397 CPU cases, 19 continuations and five
+scalar constants. Nonnegative setup writes 256 repeated-WORD inside masks,
+retaining old row offsets and the unwritten mask tail. Raw rows are 160 bytes
+apart; calling setup after Amiga initialization leaves its 40-byte offsets.
+A2 carries the reference cursor while USP carries regular row start; A3's
+`$FFFF0000` is pixel data. A finite cycle/interpolate/draw pipeline is qualified.
+
+The earlier single-record/sequence limitation remains: a current-reference seed
+does not prove following cells' initialized type, count/extent or live phase.
+No homogeneous sequence or lifetime contract was added. Production admission
+still needs producer coverage/count and shared-storage phase evidence, beyond
+the finite fixture queues. Native facts and ownership are unchanged. Next:
+alternate pattern-reader addressing and original setup relationships; its gate
+alone does not qualify full alternate startup or the mode0 state for that reader.
+
 The planar-reader batch qualifies 687 CPU cases with original Amiga row/mask
 initialization and exact RAM comparison. It names 72 reader/callback labels,
 two existing relative dispatch tables and three row/cell constants. Regular
@@ -40,8 +55,8 @@ ordinary nonnegative styles remain unclamped. Table extents and their original
 domain evidence are retained, including the cell16 structural-scan limitation.
 All native access/function/table facts and ownership remain unchanged. CPU
 fixtures do not establish global coordinates, capacity, lifetime, RGB or scanout.
-Next: interleaved-reader entry/header context and its original initialization
-requirements, keeping retained raw profiles separate from full alternate startup.
+The subsequent interleaved-context batch qualifies its raw entry/header and
+initialization requirements above; full alternate startup remains separate.
 
 The span-interpolation batch adds 181 CPU cases, 20 continuations and two
 byte-count/bias constants. Descending lines inherit D5's high-WORD fraction;

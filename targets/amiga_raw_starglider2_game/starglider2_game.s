@@ -1558,7 +1558,12 @@ SG2_INSIDE_OVERRIDE_EFFECT_RGB	EQU	$66A
 SG2_INTERIOR_ENTRY_NEGATIVE_Z_OFFSET	EQU	500
 SG2_INTERIOR_ENTRY_POSITIVE_Z_OFFSET	EQU	1600
 SG2_INTERIOR_LAYOUT_BIAS	EQU	16
+SG2_INTERLEAVED_CELL_ROW_REMAINDER_BYTES	EQU	152
+SG2_INTERLEAVED_NIBBLE_MASK	EQU	15
+SG2_INTERLEAVED_ROW_BYTES	EQU	160
 SG2_LINKED_CONTACT_AXIS_OFFSET	EQU	1800
+SG2_MASK16_SOURCE_TABLE_BYTES	EQU	32
+SG2_MASK32_SOURCE_TABLE_BYTES	EQU	128
 SG2_MESSAGE_COUNTDOWN_RELOAD	EQU	75
 SG2_MESSAGE_QUEUE_POINTER_LIMIT	EQU	10
 SG2_MESSAGE_ROWS_DBF_LAST	EQU	7
@@ -56351,87 +56356,89 @@ initialize_drawing_lookup_tables:
 	moveq.l #99,d0
 	moveq.l #0,d2
 	tst.w platform_entry_flags.l
-	bpl.w abs_0_0003EA00
+	bpl.w initialize_interleaved_inside_cell_masks
 	moveq.l #SG2_AMIGA_PLANAR_ROW_BYTES,d1
-abs_0_0003E982:
+initialize_next_amiga_raster_row_pair:
 	move.w d2,(a0)+
 	add.w d1,d2
 	move.w d2,(a0)+
 	add.w d1,d2
-	dbf.w d0,abs_0_0003E982
+	dbf.w d0,initialize_next_amiga_raster_row_pair
 	lea.l generated_outside_span_masks32(pc),a2
 	lea.l span_prefix_masks_32(pc),a0
 	moveq.l #0,d0
-abs_0_0003E998:
+select_next_amiga_mask32_left_index:
 	lea.l span_suffix_masks_32(pc),a1
 	moveq.l #0,d1
-abs_0_0003E99E:
+compose_next_amiga_mask32_entry:
 	cmp.w d0,d1
-	bmi.b abs_0_0003E9AC
+	bmi.b swap_amiga_mask32_endpoint_order
 	move.l $0(a0,d0.w),d3
 	or.l $0(a1,d1.w),d3
-	bra.b abs_0_0003E9B4
-abs_0_0003E9AC:
+	bra.b store_amiga_outside_mask32_entry
+swap_amiga_mask32_endpoint_order:
 	move.l $0(a0,d1.w),d3
 	or.l $0(a1,d0.w),d3
-abs_0_0003E9B4:
+store_amiga_outside_mask32_entry:
 	move.l d3,(a2)+
 	addq.w #4,d1
-	cmp.w #$80,d1
-	bne.b abs_0_0003E99E
+	cmp.w #SG2_MASK32_SOURCE_TABLE_BYTES,d1
+	bne.b compose_next_amiga_mask32_entry
 	addq.w #4,d0
-	cmp.w #$80,d0
-	bne.b abs_0_0003E998
+	cmp.w #SG2_MASK32_SOURCE_TABLE_BYTES,d0
+	bne.b select_next_amiga_mask32_left_index
 	lea.l generated_outside_span_masks16(pc),a2
 	lea.l span_prefix_masks_16(pc),a0
 	moveq.l #0,d0
-abs_0_0003E9D0:
+select_next_amiga_mask16_left_index:
 	lea.l span_suffix_masks_16(pc),a1
 	moveq.l #0,d1
-abs_0_0003E9D6:
+compose_next_amiga_mask16_entry:
 	cmp.w d0,d1
-	bmi.b abs_0_0003E9E4
+	bmi.b swap_amiga_mask16_endpoint_order
 	move.w $0(a0,d0.w),d3
 	or.w $0(a1,d1.w),d3
-	bra.b abs_0_0003E9EC
-abs_0_0003E9E4:
+	bra.b store_amiga_outside_mask16_entry
+swap_amiga_mask16_endpoint_order:
 	move.w $0(a0,d1.w),d3
 	or.w $0(a1,d0.w),d3
-abs_0_0003E9EC:
+store_amiga_outside_mask16_entry:
 	move.w d3,(a2)+
 	addq.w #2,d1
-	cmp.w #$20,d1
-	bne.b abs_0_0003E9D6
+	cmp.w #SG2_MASK16_SOURCE_TABLE_BYTES,d1
+	bne.b compose_next_amiga_mask16_entry
 	addq.w #2,d0
-	cmp.w #$20,d0
-	bne.b abs_0_0003E9D0
+	cmp.w #SG2_MASK16_SOURCE_TABLE_BYTES,d0
+	bne.b select_next_amiga_mask16_left_index
 	rts
-abs_0_0003EA00:
+    ; Nonnegative platform setup writes only the first 256 LONGs of shared mask storage. It does not rewrite row offsets or clear the remaining mask storage, including the separate WORD-mask area.
+initialize_interleaved_inside_cell_masks:
 	lea.l generated_outside_span_masks32(pc),a2
 	lea.l span_prefix_masks_16(pc),a0
 	moveq.l #0,d0
-abs_0_0003EA0A:
+select_next_interleaved_inside_mask_left_index:
 	lea.l span_suffix_masks_16(pc),a1
 	moveq.l #0,d1
-abs_0_0003EA10:
+compose_next_interleaved_inside_mask:
 	cmp.w d0,d1
-	bmi.b abs_0_0003EA1E
+	bmi.b swap_interleaved_inside_mask_endpoint_order
 	move.w $0(a0,d0.w),d3
 	or.w $0(a1,d1.w),d3
-	bra.b abs_0_0003EA26
-abs_0_0003EA1E:
+	bra.b store_repeated_interleaved_inside_mask
+swap_interleaved_inside_mask_endpoint_order:
 	move.w $0(a0,d1.w),d3
 	or.w $0(a1,d0.w),d3
-abs_0_0003EA26:
+    ; Form an inclusive inside mask from min/max endpoint WORD masks, then write it twice as one LONG. Sixteen-by-sixteen pairs produce 1024 bytes; this is not the Amiga outside-mask format.
+store_repeated_interleaved_inside_mask:
 	not.w d3
 	move.w d3,(a2)+
 	move.w d3,(a2)+
 	addq.w #2,d1
-	cmp.w #$20,d1
-	bne.b abs_0_0003EA10
+	cmp.w #SG2_MASK16_SOURCE_TABLE_BYTES,d1
+	bne.b compose_next_interleaved_inside_mask
 	addq.w #2,d0
-	cmp.w #$20,d0
-	bne.b abs_0_0003EA0A
+	cmp.w #SG2_MASK16_SOURCE_TABLE_BYTES,d0
+	bne.b select_next_interleaved_inside_mask_left_index
 	rts
     ; NEG.W $8000 stays $8000. Signed comparison selects cell16, whose doubled selector wraps to slot 0. Other negative selectors choose a masked family; nonnegative styles are not clamped.
 select_negative_planar_span_family:
@@ -57130,30 +57137,33 @@ draw_planar_cell16_color_15:
 	move.w (a0)+,d2
 	bpl.b draw_planar_cell16_color_15
 	bra.w restore_next_planar_span_reference_from_usp
+    ; Mode bit 1 selects the alternate reader. Here A3=$FFFF0000 is pixel data, A4 the frame base, A5 row stride and A6 a callback. USP carries row start; A2 retains the reference cursor.
 draw_interleaved_4plane_span_records:
 	btst.b #1,scene_graphics_mode_snapshot.l
-	bne.w abs_0_00041394
+	bne.w enter_alternate_interleaved_span_reader
 	movea.l scene_draw_buffer_snapshot.l,a4
 	movea.l #$FFFF0000,a3
 	move.l #$FFFF,d1
-	moveq.l #15,d0
+	moveq.l #SG2_INTERLEAVED_NIBBLE_MASK,d0
 	moveq.l #0,d5
 	moveq.l #-1,d7
-	movea.w #$A0,a5
+	movea.w #SG2_INTERLEAVED_ROW_BYTES,a5
+    ; The entry seed describes one current reference. A2 advancing by 4 does not prove later cells are initialized span references, within bounds or live. Finite CPU queues are fixture inputs.
     ; KNOWN: type A2=Target code-entry register seed:SG2SceneSpanReference
-abs_0_0003F0AC:
+read_next_interleaved_span_reference:
 	move.l (a2)+,d2	; operand 1: SG2SceneSpanReference_span at (a2)+
 	bmi.w return_if_amiga_scene_queue_empty
-    ; Nonnegative span reference in D2; read signed fill style then first scanline, followed by X pairs. Phase interface only; no stream bound.
+    ; Read signed style and first row. After NEG.W, signed values below 16 select fixed cells; larger values rejoin regular colours after nibble masking. Original nonnegative styles are unclamped.
 draw_interleaved_span_header:
 	movea.l d2,a0
 	move.w (a0)+,d2
-	bpl.b abs_0_0003F0C4
+	bpl.b select_interleaved_regular_colour_callback
 	neg.w d2
 	cmp.w #$10,d2
+    ; NEG.W $8000 remains negative, so signed BLT takes the fixed-cell path; doubled selector wraps to slot 0. This machine edge is preserved, not established as normal-game input.
 	blt.w prepare_interleaved_single_cell_span
 	and.w d0,d2
-abs_0_0003F0C4:
+select_interleaved_regular_colour_callback:
 	add.w d2,d2
 	move.w drawing_dispatch_interleaved_color_offsets(pc,d2.w),d2
 	lea.l drawing_dispatch_interleaved_color_offsets(pc,d2.w),a6
@@ -57164,14 +57174,15 @@ abs_0_0003F0C4:
 	movea.l a4,a1
 	adda.w d2,a1
 	move.w (a0)+,d2
-	bmi.b abs_0_0003F0AC
-abs_0_0003F0E2:
+	bmi.b read_next_interleaved_span_reference
+    ; Save row start in USP, then order endpoints with signed BGT, unlike the planar unsigned comparison. The row table is read once per header; later regular rows advance 160 bytes.
+load_next_interleaved_span_endpoints:
 	move.w (a0)+,d3
 	move a1,usp
 	cmp.w d2,d3
-	bgt.b abs_0_0003F0EC
+	bgt.b prepare_interleaved_span_boundary_masks
 	exg d2,d3
-abs_0_0003F0EC:
+prepare_interleaved_span_boundary_masks:
 	move.w d2,d4
 	and.w d0,d4
 	add.w d4,d4
@@ -57227,7 +57238,7 @@ draw_interleaved_span_color_0:
 	move usp,a1
 	adda.w a5,a1
 	move.w (a0)+,d2
-	bpl.w abs_0_0003F0E2
+	bpl.w load_next_interleaved_span_endpoints
 	move.l (a2)+,d2
 	bpl.w draw_interleaved_span_header
 	rts
@@ -57314,7 +57325,7 @@ draw_interleaved_span_color_0_last_cell:
 	move usp,a1
 	adda.w a5,a1
 	move.w (a0)+,d2
-	bpl.w abs_0_0003F0E2
+	bpl.w load_next_interleaved_span_endpoints
 	move.l (a2)+,d2
 	bpl.w draw_interleaved_span_header
 	rts
@@ -57329,7 +57340,7 @@ draw_interleaved_span_color_1:
 	move usp,a1
 	adda.w a5,a1
 	move.w (a0)+,d2
-	bpl.w abs_0_0003F0E2
+	bpl.w load_next_interleaved_span_endpoints
 	move.l (a2)+,d2
 	bpl.w draw_interleaved_span_header
 	rts
@@ -57418,7 +57429,7 @@ draw_interleaved_span_color_1_last_cell:
 	move usp,a1
 	adda.w a5,a1
 	move.w (a0)+,d2
-	bpl.w abs_0_0003F0E2
+	bpl.w load_next_interleaved_span_endpoints
 	move.l (a2)+,d2
 	bpl.w draw_interleaved_span_header
 	rts
@@ -57434,7 +57445,7 @@ draw_interleaved_span_color_2:
 	move usp,a1
 	adda.w a5,a1
 	move.w (a0)+,d2
-	bpl.w abs_0_0003F0E2
+	bpl.w load_next_interleaved_span_endpoints
 	move.l (a2)+,d2
 	bpl.w draw_interleaved_span_header
 	rts
@@ -57525,7 +57536,7 @@ draw_interleaved_span_color_2_last_cell:
 	move usp,a1
 	adda.w a5,a1
 	move.w (a0)+,d2
-	bpl.w abs_0_0003F0E2
+	bpl.w load_next_interleaved_span_endpoints
 	move.l (a2)+,d2
 	bpl.w draw_interleaved_span_header
 	rts
@@ -57539,7 +57550,7 @@ draw_interleaved_span_color_3:
 	move usp,a1
 	adda.w a5,a1
 	move.w (a0)+,d2
-	bpl.w abs_0_0003F0E2
+	bpl.w load_next_interleaved_span_endpoints
 	move.l (a2)+,d2
 	bpl.w draw_interleaved_span_header
 	rts
@@ -57626,7 +57637,7 @@ draw_interleaved_span_color_3_last_cell:
 	move usp,a1
 	adda.w a5,a1
 	move.w (a0)+,d2
-	bpl.w abs_0_0003F0E2
+	bpl.w load_next_interleaved_span_endpoints
 	move.l (a2)+,d2
 	bpl.w draw_interleaved_span_header
 	rts
@@ -57642,7 +57653,7 @@ draw_interleaved_span_color_4:
 	move usp,a1
 	adda.w a5,a1
 	move.w (a0)+,d2
-	bpl.w abs_0_0003F0E2
+	bpl.w load_next_interleaved_span_endpoints
 	move.l (a2)+,d2
 	bpl.w draw_interleaved_span_header
 	rts
@@ -57733,7 +57744,7 @@ draw_interleaved_span_color_4_last_cell:
 	move usp,a1
 	adda.w a5,a1
 	move.w (a0)+,d2
-	bpl.w abs_0_0003F0E2
+	bpl.w load_next_interleaved_span_endpoints
 	move.l (a2)+,d2
 	bpl.w draw_interleaved_span_header
 	rts
@@ -57750,7 +57761,7 @@ draw_interleaved_span_color_5:
 	move usp,a1
 	adda.w a5,a1
 	move.w (a0)+,d2
-	bpl.w abs_0_0003F0E2
+	bpl.w load_next_interleaved_span_endpoints
 	move.l (a2)+,d2
 	bpl.w draw_interleaved_span_header
 	rts
@@ -57843,7 +57854,7 @@ draw_interleaved_span_color_5_last_cell:
 	move usp,a1
 	adda.w a5,a1
 	move.w (a0)+,d2
-	bpl.w abs_0_0003F0E2
+	bpl.w load_next_interleaved_span_endpoints
 	move.l (a2)+,d2
 	bpl.w draw_interleaved_span_header
 	rts
@@ -57859,7 +57870,7 @@ draw_interleaved_span_color_6:
 	move usp,a1
 	adda.w a5,a1
 	move.w (a0)+,d2
-	bpl.w abs_0_0003F0E2
+	bpl.w load_next_interleaved_span_endpoints
 	move.l (a2)+,d2
 	bpl.w draw_interleaved_span_header
 	rts
@@ -57950,7 +57961,7 @@ draw_interleaved_span_color_6_last_cell:
 	move usp,a1
 	adda.w a5,a1
 	move.w (a0)+,d2
-	bpl.w abs_0_0003F0E2
+	bpl.w load_next_interleaved_span_endpoints
 	move.l (a2)+,d2
 	bpl.w draw_interleaved_span_header
 	rts
@@ -57965,7 +57976,7 @@ draw_interleaved_span_color_7:
 	move usp,a1
 	adda.w a5,a1
 	move.w (a0)+,d2
-	bpl.w abs_0_0003F0E2
+	bpl.w load_next_interleaved_span_endpoints
 	move.l (a2)+,d2
 	bpl.w draw_interleaved_span_header
 	rts
@@ -58054,7 +58065,7 @@ draw_interleaved_span_color_7_last_cell:
 	move usp,a1
 	adda.w a5,a1
 	move.w (a0)+,d2
-	bpl.w abs_0_0003F0E2
+	bpl.w load_next_interleaved_span_endpoints
 	move.l (a2)+,d2
 	bpl.w draw_interleaved_span_header
 	rts
@@ -58070,7 +58081,7 @@ draw_interleaved_span_color_8:
 	move usp,a1
 	adda.w a5,a1
 	move.w (a0)+,d2
-	bpl.w abs_0_0003F0E2
+	bpl.w load_next_interleaved_span_endpoints
 	move.l (a2)+,d2
 	bpl.w draw_interleaved_span_header
 	rts
@@ -58161,7 +58172,7 @@ draw_interleaved_span_color_8_last_cell:
 	move usp,a1
 	adda.w a5,a1
 	move.w (a0)+,d2
-	bpl.w abs_0_0003F0E2
+	bpl.w load_next_interleaved_span_endpoints
 	move.l (a2)+,d2
 	bpl.w draw_interleaved_span_header
 	rts
@@ -58177,7 +58188,7 @@ draw_interleaved_span_color_9:
 	move usp,a1
 	adda.w a5,a1
 	move.w (a0)+,d2
-	bpl.w abs_0_0003F0E2
+	bpl.w load_next_interleaved_span_endpoints
 	move.l (a2)+,d2
 	bpl.w draw_interleaved_span_header
 	rts
@@ -58268,7 +58279,7 @@ draw_interleaved_span_color_9_last_cell:
 	move usp,a1
 	adda.w a5,a1
 	move.w (a0)+,d2
-	bpl.w abs_0_0003F0E2
+	bpl.w load_next_interleaved_span_endpoints
 	move.l (a2)+,d2
 	bpl.w draw_interleaved_span_header
 	rts
@@ -58285,7 +58296,7 @@ draw_interleaved_span_color_10:
 	move usp,a1
 	adda.w a5,a1
 	move.w (a0)+,d2
-	bpl.w abs_0_0003F0E2
+	bpl.w load_next_interleaved_span_endpoints
 	move.l (a2)+,d2
 	bpl.w draw_interleaved_span_header
 	rts
@@ -58378,7 +58389,7 @@ draw_interleaved_span_color_10_last_cell:
 	move usp,a1
 	adda.w a5,a1
 	move.w (a0)+,d2
-	bpl.w abs_0_0003F0E2
+	bpl.w load_next_interleaved_span_endpoints
 	move.l (a2)+,d2
 	bpl.w draw_interleaved_span_header
 	rts
@@ -58394,7 +58405,7 @@ draw_interleaved_span_color_11:
 	move usp,a1
 	adda.w a5,a1
 	move.w (a0)+,d2
-	bpl.w abs_0_0003F0E2
+	bpl.w load_next_interleaved_span_endpoints
 	move.l (a2)+,d2
 	bpl.w draw_interleaved_span_header
 	rts
@@ -58485,7 +58496,7 @@ draw_interleaved_span_color_11_last_cell:
 	move usp,a1
 	adda.w a5,a1
 	move.w (a0)+,d2
-	bpl.w abs_0_0003F0E2
+	bpl.w load_next_interleaved_span_endpoints
 	move.l (a2)+,d2
 	bpl.w draw_interleaved_span_header
 	rts
@@ -58500,7 +58511,7 @@ draw_interleaved_span_color_12:
 	move usp,a1
 	adda.w a5,a1
 	move.w (a0)+,d2
-	bpl.w abs_0_0003F0E2
+	bpl.w load_next_interleaved_span_endpoints
 	move.l (a2)+,d2
 	bpl.w draw_interleaved_span_header
 	rts
@@ -58589,7 +58600,7 @@ draw_interleaved_span_color_12_last_cell:
 	move usp,a1
 	adda.w a5,a1
 	move.w (a0)+,d2
-	bpl.w abs_0_0003F0E2
+	bpl.w load_next_interleaved_span_endpoints
 	move.l (a2)+,d2
 	bpl.w draw_interleaved_span_header
 	rts
@@ -58605,7 +58616,7 @@ draw_interleaved_span_color_13:
 	move usp,a1
 	adda.w a5,a1
 	move.w (a0)+,d2
-	bpl.w abs_0_0003F0E2
+	bpl.w load_next_interleaved_span_endpoints
 	move.l (a2)+,d2
 	bpl.w draw_interleaved_span_header
 	rts
@@ -58696,7 +58707,7 @@ draw_interleaved_span_color_13_last_cell:
 	move usp,a1
 	adda.w a5,a1
 	move.w (a0)+,d2
-	bpl.w abs_0_0003F0E2
+	bpl.w load_next_interleaved_span_endpoints
 	move.l (a2)+,d2
 	bpl.w draw_interleaved_span_header
 	rts
@@ -58712,7 +58723,7 @@ draw_interleaved_span_color_14:
 	move usp,a1
 	adda.w a5,a1
 	move.w (a0)+,d2
-	bpl.w abs_0_0003F0E2
+	bpl.w load_next_interleaved_span_endpoints
 	move.l (a2)+,d2
 	bpl.w draw_interleaved_span_header
 	rts
@@ -58803,7 +58814,7 @@ draw_interleaved_span_color_14_last_cell:
 	move usp,a1
 	adda.w a5,a1
 	move.w (a0)+,d2
-	bpl.w abs_0_0003F0E2
+	bpl.w load_next_interleaved_span_endpoints
 	move.l (a2)+,d2
 	bpl.w draw_interleaved_span_header
 	rts
@@ -58816,7 +58827,7 @@ draw_interleaved_span_color_15:
 	move usp,a1
 	adda.w a5,a1
 	move.w (a0)+,d2
-	bpl.w abs_0_0003F0E2
+	bpl.w load_next_interleaved_span_endpoints
 	move.l (a2)+,d2
 	bpl.w draw_interleaved_span_header
 	rts
@@ -58901,7 +58912,7 @@ draw_interleaved_span_color_15_last_cell:
 	move usp,a1
 	adda.w a5,a1
 	move.w (a0)+,d2
-	bpl.w abs_0_0003F0E2
+	bpl.w load_next_interleaved_span_endpoints
 	move.l (a2)+,d2
 	bpl.w draw_interleaved_span_header
 	rts
@@ -58923,8 +58934,9 @@ drawing_dispatch_interleaved_cell_color_offsets:
 	dc.w draw_interleaved_cell_color_13-drawing_dispatch_interleaved_cell_color_offsets
 	dc.w draw_interleaved_cell_color_14-drawing_dispatch_interleaved_cell_color_offsets
 	dc.w draw_interleaved_cell_color_15-drawing_dispatch_interleaved_cell_color_offsets
+    ; Fixed cells retain their first column. Writing 8 bytes then adding 152 advances a row; later X values use residues modulo 16. Shared storage must hold repeated-WORD inside masks.
 prepare_interleaved_single_cell_span:
-	move.w #$98,d6
+	move.w #SG2_INTERLEAVED_CELL_ROW_REMAINDER_BYTES,d6
 	add.w d2,d2
 	move.w drawing_dispatch_interleaved_cell_color_offsets(pc,d2.w),d2
 	lea.l drawing_dispatch_interleaved_cell_color_offsets(pc,d2.w),a6
@@ -58935,7 +58947,7 @@ prepare_interleaved_single_cell_span:
 	movea.l a4,a1
 	adda.w d2,a1
 	move.w (a0)+,d2
-	bmi.w abs_0_0003F0AC
+	bmi.w read_next_interleaved_span_reference
 	move.w (a0)+,d3
 	move.w d2,d4
 	and.w d0,d4
@@ -58960,8 +58972,10 @@ prepare_next_interleaved_cell_span:
 	add.w d4,d4
 	move.l generated_outside_span_masks32(pc,d4.w),d4
 	jmp (a6)
+    ; Amiga fills 1024 outside LONG masks. Nonnegative setup replaces the first 256 with repeated-WORD inside masks, preserving later cells and row offsets. The format is profile-dependent.
 generated_outside_span_masks32:
 	dcb.l $400,$00000000	; Amiga initializer writes all 32x32 LONG combinations. Other platform path writes only first10...
+    ; Amiga writes all 256 outside WORD masks here. Nonnegative setup leaves this separate buffer unchanged. Contents depend on the initialization path and previous state.
 generated_outside_span_masks16:
 	dcb.w $100,$0000	; Amiga initializer writes all 16x16 WORD combinations from min/max indexed masks; original see...
 draw_interleaved_cell_color_0:
@@ -59160,7 +59174,8 @@ abs_0_0004134A:
 	move.l #$55555555,$00F0(a0)
 	move.l #$55555555,$00F4(a0)
 	rts
-abs_0_00041394:
+    ; Only this alternate-reader entry gate is newly qualified. Mode0/raw row and mask state is not proof of full alternate startup or the pattern reader input contract.
+enter_alternate_interleaved_span_reader:
 	lea.l abs_0_000415BE(pc),a1
 	movea.w #$10,a3
 	lea.l raster_row_byte_offsets(pc),a5
