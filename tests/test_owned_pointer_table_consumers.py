@@ -7,7 +7,7 @@ from amiga_reversing.disasm.manual_actions import append_manual_actions, ManualA
 from amiga_reversing.disasm.target_metadata import TargetMetadata, write_target_metadata
 
 
-def table_artifact(tmp_path, owner, prefix='', index_width='w'):
+def table_artifact(tmp_path, owner, prefix='', index_width='w', entries=3):
     asm=''' SECTION code,code
  ORG $1000
  bsr.w first
@@ -26,6 +26,8 @@ def table_artifact(tmp_path, owner, prefix='', index_width='w'):
  directory:
  dc.l first,second,first
 '''
+    if entries==5:asm=asm.replace('dc.l first,second,first','dc.l first,second,first,second,first')
+    table_size=4*entries
     if prefix:
         asm=asm.replace(' lea.l directory(pc),a0',prefix+'\n lea.l directory(pc),a0')
         asm=asm.replace(' movea.l $0(a0,d0.w),a1',
@@ -38,7 +40,7 @@ def table_artifact(tmp_path, owner, prefix='', index_width='w'):
         asm=asm.replace('lea.l directory(pc),a0','movea.l a4,a0').replace(
             'lea.l directory(pc),a2','movea.l a4,a2')
     original,_=c_backend.assemble_platform_source_text_with_c_backend('amiga-raw',asm)
-    table=len(original)-12
+    table=len(original)-table_size
     binary=tmp_path/'table.bin';binary.write_bytes(original)
     source=RawBinarySource(kind=BinarySourceKind.RAW_BINARY,path=binary,
         address_model=RawAddressModel.RUNTIME_ABSOLUTE,load_address=0x1000,entrypoint=0x1000,
@@ -49,7 +51,7 @@ def table_artifact(tmp_path, owner, prefix='', index_width='w'):
         unit='long'
         role='lookup_table' if owner=='scalar' else 'pointer_table'
         actions.append((Kind.CREATE_MANUAL_SEED,{'seed':dict(seed_id='owner',kind='data',mode='required',
-            hunk=0,addr=table,end=table+12,name='named_callbacks',unit=unit,data_role=role)}))
+            hunk=0,addr=table,end=table+table_size,name='named_callbacks',unit=unit,data_role=role)}))
     if owner=='ambiguous_extent':
         actions.append((Kind.CREATE_MANUAL_SEED,{'seed':dict(seed_id='other-owner',kind='data',mode='required',
             hunk=0,addr=table,end=table+8,name='other_callbacks',unit='long',data_role='pointer_table')}))
@@ -224,3 +226,35 @@ int main(void) {
         '-L'+str(PROJECT_ROOT/'src/build'),'-lamiga_backend',
         '-Wl,-rpath,'+str(PROJECT_ROOT/'src/build'),'-o',str(executable)],check=True,capture_output=True)
     subprocess.run([str(executable)],check=True,capture_output=True)
+
+
+@pytest.mark.c_backend
+@pytest.mark.parametrize('command',['row','target'])
+def test_naming_a_slice_of_an_inferred_table_preserves_all_consumers(tmp_path,command):
+    from amiga_reversing.disasm.manual_action_catalog import listing_catalog_manual_payload,target_catalog_manual_payload
+    before,original,table=table_artifact(tmp_path,'inferred',entries=5)
+    try:
+        prior=before.analysis_payload()[0]
+        row=before.row_for_source_offset(section_index=0,offset=table)
+        assert row['structured_data']['size']==20 and row['end_offset']<table+20
+        if command=='row':
+            kind,payload=listing_catalog_manual_payload(row,'data_symbol.rename',parameters=dict(name='dispatch_rows'))
+        else:kind,payload=target_catalog_manual_payload('target.data.name',dict(hunk=0,addr=table,name='dispatch_rows'))
+        assert 'end'not in payload['data_symbol']
+    finally:before.close()
+    binary=tmp_path/'table.bin'
+    source=RawBinarySource(kind=BinarySourceKind.RAW_BINARY,path=binary,
+        address_model=RawAddressModel.RUNTIME_ABSOLUTE,load_address=0x1000,entrypoint=0x1000,
+        code_start_offset=0,display_path=str(binary),analysis_cache_path=tmp_path/'analysis')
+    append_manual_actions(tmp_path,binary_source=source,actions=[(Kind(kind),payload)])
+    with effective_metadata_file(tmp_path)as metadata:
+        after=c_backend.build_listing_artifact_profile_from_binary_source(source,metadata_path=metadata)[2]
+    try:
+        current=after.analysis_payload()[0]
+        assert current['analysis_policy']['structured_data_items']==prior['analysis_policy']['structured_data_items']
+        for key in ['table_consumers','data_references','blocks','edges','range_ownerships']:
+            assert current['sections'][0][key]==prior['sections'][0][key],key
+        text=after.inline_source_text_with_profile()[0]
+        assert 'dispatch_rows:'in text and text.count('dispatch_rows')>=3
+        assert c_backend.assemble_platform_source_text_with_c_backend('amiga-raw',text)[0]==original
+    finally:after.close()

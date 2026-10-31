@@ -132,6 +132,7 @@ def target_action_catalog() -> list[dict[str, object]]:
         _target_runtime_data_range_remove_action(),
         _target_code_seed_action(),
         _target_data_seed_action(),
+        _target_data_name_action(),
         _target_string_seed_action(),
         _target_seed_remove_action(),
         _target_code_label_action(),
@@ -217,6 +218,8 @@ def target_catalog_manual_payload(
         return "create_manual_runtime_data_range", {"runtime_data_range": _runtime_data_range_payload(params)}
     if action.get("action") == "remove_manual_runtime_data_range":
         return "remove_manual_runtime_data_range", {"runtime_data_range": _runtime_data_range_identity_payload(params)}
+    if action_id == "target.data.name":
+        return "rename_data_symbol", {"data_symbol": _target_data_name_payload(params)}
     if action.get("action") == "create_manual_seed":
         if action_id == "target.data.seed":
             return "create_manual_seed", {"seed": _target_data_seed_payload(params)}
@@ -2374,11 +2377,10 @@ def _row_data_symbol_identity(row: Mapping[str, object]) -> dict[str, object] | 
     if hunk is None or addr is None:
         return None
     identity: dict[str, object] = {"hunk": hunk, "addr": addr}
-    end = _optional_int(row.get("end_offset"))
-    if end is None:
-        end = _optional_int(row.get("end"))
-    if end is not None and end > addr:
-        identity["end"] = end
+    # A rendered row is not an ownership range (one LONG can be the first
+    # element of a much larger inferred table). Naming must not add a raw seed
+    # that clips or replaces native ownership. Explicit seeded entities retain
+    # their declared bounds through the separate seeded-identity path above.
     label = row.get("label")
     if isinstance(label, str) and label:
         identity["previous_name"] = label
@@ -6035,6 +6037,27 @@ def _target_code_seed_action() -> dict[str, object]:
             "required": ["hunk", "addr", "name"],
         },
     )
+
+
+def _target_data_name_action() -> dict[str, object]:
+    return _target_log_action(
+        "target.data.name", "Name source data without changing ownership", "rename_data_symbol",
+        {"type": "object", "properties": {
+            "hunk": {"type": "integer", "minimum": 0},
+            "addr": {"type": "integer", "minimum": 0},
+            "name": {"type": "string"}}, "required": ["hunk", "addr", "name"],
+         "additionalProperties": False})
+
+
+def _target_data_name_payload(params: Mapping[str, object]) -> dict[str, object]:
+    if set(params) - {"hunk", "addr", "name"}:
+        raise ValueError("target.data.name does not declare an extent or type")
+    hunk, addr = params.get("hunk"), params.get("addr")
+    name = _data_seed_name(params)
+    if type(hunk) is not int or hunk < 0 or type(addr) is not int or not 0 <= addr <= 0xFFFFFFFF or name is None:
+        raise ValueError("target.data.name requires source hunk, addr and name")
+    symbol = {"hunk": hunk, "addr": addr, "name": name}
+    return {"data_symbol_id": _data_symbol_id(symbol), **symbol}
 
 
 def _target_data_seed_action() -> dict[str, object]:

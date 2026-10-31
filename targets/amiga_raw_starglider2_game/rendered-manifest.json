@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "source_commit": "c0af6d24a956b31ca3d06ed8bdcaf708bc75cc28",
+  "source_commit": "54991fb812baab6d8c70e7c1b2f03809dcb911c4",
   "source_assembly": "starglider2_game.s",
   "assets": [
     {
@@ -878,13 +878,13 @@
     },
     {
       "path": "rendered-provenance.json",
-      "bytes": 3506,
-      "sha256": "ec7a37b8d2c278adf74f01727a53d9744e871db142c8dfc0b56bd9802dc5f5cd"
+      "bytes": 3572,
+      "sha256": "928b6c7773099629cdb1bdeb58f50feca8c8bafaff4673440457b0315d59e36c"
     },
     {
       "path": "starglider2_game.s",
-      "bytes": 2155664,
-      "sha256": "81662dda42205f6a13dde30546cf275ebe7588d8b662a62d52962bfbdf58797d"
+      "bytes": 2158691,
+      "sha256": "6afaa1b3a817830a46b119f0f5c2cd3abfa7c22ee7b7245d04f9a0d723ffa953"
     },
     {
       "path": "tools/starglider2_protection.py",
@@ -892,6 +892,6 @@
       "sha256": "81d3f66d36dbfbd5c77238b20c28e8b9abaa329777eb91f64669bbbf13703582"
     }
   ],
-  "source_commit_role": "canonical source publication base; original alternate-platform palette interrupt entry recovered from exact vector store and Timer-B installer; ten CPU cases cover gated store ordering, both palette phases, A0/A1 preservation and supplied-supervisor-frame RTE; inherited vector-base setup, hardware delivery/timing, PCM and arbitrary caller/lifetime behavior are unqualified; output is bound by verification_receipt_id",
-  "source_subject_revision": "1bb0bd501644ba23f961ce3d1340e9d53ebf3bec060f9a02d8edb4d944867783"
+  "source_commit_role": "canonical source publication base; extentless naming repair preserves inferred ownership/consumers (144 guards); sprite two-WORD to paired AND/OR packet conversion and alternate meter capture/restore/draw formats reconstructed through 195 original-CPU cases; preserve capture56/restore51 rows, DBF/header inclusion and original converter alias; no global caller bound, clipping, startup alias lifetime, scanout, hardware timing or PCM proof; output is bound by verification_receipt_id",
+  "source_subject_revision": "abeb99e93f6220978d815fa04ae0b01540d83dfe67c316147cf56e5e07f811d4"
 }

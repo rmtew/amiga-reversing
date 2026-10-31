@@ -75,6 +75,11 @@ the existing required data-seed fact; ordinary `target.seed.remove`/undo apply.
 It does not establish pointer targets or semantic truth, and partial units refuse.
 Use a data-block layout separately for structure and interpreted references.
 
+`target.data.name` takes only source `hunk`, `addr` and `name`. It adds a
+name without declaring a type or extent. Inferred data-row renames use this same
+extentless identity: a rendered slice is not an ownership range. Renaming an
+explicit seeded entity still retains that entity's declared bounds.
+
 `target.string.seed` uses the same source coordinates and optional `role`, with
 ASCII byte encoding instead of raw units. It appends the existing required
 `data_role: string` fact used by row/range string commands; no new persistence or

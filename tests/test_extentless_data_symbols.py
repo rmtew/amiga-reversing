@@ -22,15 +22,22 @@ def source(tmp_path,base=0):
         display_path=str(binary),analysis_cache_path=tmp_path/'analysis')
 
 
+@pytest.mark.parametrize('entry',['row','target'])
 @pytest.mark.parametrize('base',[0,0x4000])
 @pytest.mark.parametrize('null_end',[False,True])
 @pytest.mark.parametrize('owned',[False,True])
-def test_extentless_data_name_renders_definition_and_reference_without_new_ownership(tmp_path,base,null_end,owned):
+def test_extentless_data_name_renders_definition_and_reference_without_new_ownership(tmp_path,base,null_end,owned,entry):
     raw,binary=source(tmp_path,base)
     owners=[dict(type='data',hunk=0,addr=8,end=12,unit='byte')]if owned else[]
     before=None;before_flow=None
     for named in[False,True]:
-        entity=dict(type='data',hunk=0,addr=8,name='named_bytes')
+        from amiga_reversing.disasm.manual_action_catalog import listing_catalog_manual_payload,target_catalog_manual_payload
+        if entry=='row':
+            _,payload=listing_catalog_manual_payload(dict(kind='data',section_index=0,start_offset=8,end_offset=12),
+                'data_symbol.rename',parameters=dict(name='named_bytes'))
+        else:_,payload=target_catalog_manual_payload('target.data.name',dict(hunk=0,addr=8,name='named_bytes'))
+        symbol=payload['data_symbol'];assert 'end'not in symbol
+        entity=dict(type='data',**{k:symbol[k]for k in['hunk','addr','name']})
         if null_end:entity['end']=None
         metadata=tmp_path/'metadata.json';metadata.write_text(json.dumps(dict(seeded_entities=owners+([entity]if named else[]))))
         _,_,artifact=build_listing_artifact_profile_from_binary_source(binary,

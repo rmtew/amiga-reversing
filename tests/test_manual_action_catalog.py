@@ -656,10 +656,9 @@ def test_data_symbol_rename_command_uses_data_row_identity_without_seeded_entity
     assert kind == "rename_data_symbol"
     assert payload == {
         "data_symbol": {
-            "data_symbol_id": "data-symbol:h1:00000120:00000128",
+            "data_symbol_id": "data-symbol:h1:00000120",
             "hunk": 1,
             "addr": 0x120,
-            "end": 0x128,
             "previous_name": "loc_1_00000120",
             "name": "player_table",
         }
@@ -684,7 +683,7 @@ def test_data_symbol_rename_command_uses_data_row_identity_without_seeded_entity
     )
 
     assert kind == "rename_data_symbol"
-    assert payload["data_symbol"]["data_symbol_id"] == "data-symbol:h1:00000120:00000128"
+    assert payload["data_symbol"]["data_symbol_id"] == "data-symbol:h1:00000120"
 
 
 def test_data_block_element_commands_infer_active_layout_identity() -> None:
@@ -2067,3 +2066,21 @@ def test_rsset_region_retains_supported_storage_kind(storage_kind):
         "storage_kind": storage_kind,
     })
     assert payload["rsset_layout_region"]["storage_kind"] == storage_kind
+
+
+@pytest.mark.parametrize("row_end", [0x124, 0x128, 0x134])
+def test_native_data_row_name_does_not_seed_the_rendered_slice(row_end):
+    row = dict(kind="data", section_index=0, start_offset=0x120, end_offset=row_end,
+               structured_data=dict(section_index=0, offset=0x120, size=20, semantic_role="pointer_table"))
+    kind, payload = listing_catalog_manual_payload(row, "data_symbol.rename", parameters=dict(name="dispatch"))
+    assert kind == "rename_data_symbol"
+    assert payload == {"data_symbol": dict(data_symbol_id="data-symbol:h0:00000120", hunk=0, addr=0x120, name="dispatch")}
+
+
+def test_target_name_only_uses_the_same_extentless_data_identity():
+    kind, payload = target_catalog_manual_payload("target.data.name", dict(hunk=0, addr=0x120, name="dispatch"))
+    assert kind == "rename_data_symbol"
+    assert payload == {"data_symbol": dict(data_symbol_id="data-symbol:h0:00000120", hunk=0, addr=0x120, name="dispatch")}
+    for invalid in [dict(end=0x134), dict(unit="long"), dict(hunk=-1), dict(addr=True), dict(name=" ")]:
+        with pytest.raises(ValueError):
+            target_catalog_manual_payload("target.data.name", dict(hunk=0, addr=0x120, name="dispatch") | invalid)

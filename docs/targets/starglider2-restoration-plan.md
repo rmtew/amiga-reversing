@@ -43,6 +43,36 @@ fifteen WORDs; following zero and other outside-prefix reads remain distinct.
 CPU fixtures stop before the caller's saved-register restore and check RAM
 preparation only; no interrupt, scanout, hardware timing or PCM qualification.
 
+The alternate-meter batch connects the sprite converter to both row consumers.
+Two source WORDs become a 12-byte packet: keep mask, first OR LONG, second OR
+LONG. Zero/negative converter modes match the two adjacent-WORD kernels selected
+by the existing five-entry directory; positive mode supplies the separate
+0/1-word mapping. Existing 40-interval DBF/header inclusion, 648-row output and
+sample-prefix alias remain unchanged; the new CPU fixtures do not prove that
+startup alias safe under arbitrary runtime writes.
+
+195 CPU cases check the actual converter-to-consumer chain, exact per-bit WORD
+mappings, all five supplied directory slots, both framebuffer formats, whole
+memory guards, signed row lookup, DBF high-WORD retention and sign-based skip.
+Capture saves 56 rows of two LONGs at pitch160, while restore copies 51; the skip
+test follows restoration. A negative skip BYTE is cleared before testing the
+space flag's sign. Mode0 skips four source control bytes; mode1 consumes packet
+start and writes LONGs 80 bytes apart. No general clipping, selector or draw-count
+bound, physical scanout, timing or PCM claim follows from these fixtures. Raw
+reset-like bytes nearby remain unpromoted without an established incoming edge.
+Qualification reproduced a shared naming defect: naming the first rendered
+LONG added a four-byte raw seed inside the inferred 20-byte pointer table and
+removed both indexed target references. The inferred-row naming path now uses
+an extentless source identity, and `target.data.name` exposes that operation
+programmatically. Explicit seeded ranges retain their bounds. 144 catalog/native
+guards include the five-entry, multi-row table through both public paths.
+The erroneous pending declaration is rejected/retired in canonical history;
+final inference restores both indexed target references and the exact original
+reference identities. App/typed/unresolved totals stay 3509/2716/165; ownership
+remains 10731 unknown bytes in 273 intervals. No shared transfer engine or
+manual body type override was added.
+
+
 The alternate palette callback at runtime $3BCD2 (source $3ACD2) is now a
 canonical 33-instruction interrupt entry: 120 formerly unclassified bytes. The
 remaining unknown total falls 10851 ->10731; splitting an interval raises the

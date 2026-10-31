@@ -1437,6 +1437,8 @@ INTF_CLRALL	EQU	$7FFF
 SG2_AIM_CONTROL_PHASE_MASK	EQU	4095
 SG2_ALTERNATE_EFFECT_PALETTE_BYTE_OFFSET	EQU	20
 SG2_ALTERNATE_GENERIC_EVENT_ARGUMENT	EQU	500
+SG2_ALTERNATE_METER_CAPTURE_ROWS_MINUS1	EQU	55
+SG2_ALTERNATE_METER_RESTORE_ROWS_MINUS1	EQU	50
 SG2_ALTERNATE_PALETTE_RGB_MASK	EQU	1911
 SG2_ALTERNATE_WEAPON_HUD_ICON_PITCH_BYTES	EQU	1920
 SG2_AMIGA_WEAPON_HUD_ICON_PITCH_BYTES	EQU	480
@@ -50832,77 +50834,79 @@ abs_0_0003A48C:
 	move.l a1,(a0)+	; operand 2: SG2SpriteControlReference_control_words at (a0)+
 	move.l (a0),d0	; operand 1: SG2SpriteControlReference_control_words at (a0)
     ; For each of 40 directory intervals: skip 4 bytes, then DBF consumes span/4 rows, including next header. 648 rows produce 7776 bytes at $59F2C..$5BD8C; original alias retained.
-abs_0_0003A4BA:
+begin_alternate_sprite_conversion_interval:
 	movea.l d0,a2
 	movea.l a2,a3
 	addq.w #4,a5
 	suba.l a5,a2
 	move.w a2,d5
 	lsr.w #2,d5
-abs_0_0003A4C6:
+    ; Two source WORDs become keep/OR-first/OR-second LONGs. Mode 0 maps to output WORDs 0/3, negative to 0/2, positive to 0/1. Preserve 40-span DBF/header inclusion and original output alias.
+convert_sprite_row_to_paired_and_or_packet:
 	move.w (a5)+,d0
 	move.w (a5)+,d7
 	moveq.l #15,d3
 	moveq.l #0,d4
 	move.w d0,d1
 	or.w d7,d1
-abs_0_0003A4D2:
+expand_sprite_transparency_to_keep_bit_pairs:
 	add.l d4,d4
 	add.l d4,d4
 	add.w d1,d1
-	bcs.b abs_0_0003A4DC
+	bcs.b iterate_sprite_transparency_mask_bits
 	addq.l #3,d4
-abs_0_0003A4DC:
-	dbf.w d3,abs_0_0003A4D2
+iterate_sprite_transparency_mask_bits:
+	dbf.w d3,expand_sprite_transparency_to_keep_bit_pairs
 	move.l d4,(a1)+
 	moveq.l #0,d3
 	moveq.l #0,d4
 	tst.b (a4)
-	bmi.b abs_0_0003A4F8
-	bne.b abs_0_0003A4F4
+	bmi.b select_sprite_colour_bits_for_words_zero_and_two
+	bne.b select_direct_two_word_sprite_colour_bits
 	and.w d0,d7
 	eor.w d7,d0
 	or.w d0,d7
-	bra.b abs_0_0003A500
-abs_0_0003A4F4:
+	bra.b pack_first_sprite_word_pair_into_long
+select_direct_two_word_sprite_colour_bits:
 	exg d7,d3
-	bra.b abs_0_0003A500
-abs_0_0003A4F8:
+	bra.b pack_first_sprite_word_pair_into_long
+select_sprite_colour_bits_for_words_zero_and_two:
 	and.w d0,d7
 	eor.w d0,d7
 	exg d7,d4
 	eor.w d4,d0
-abs_0_0003A500:
+pack_first_sprite_word_pair_into_long:
 	moveq.l #0,d2
 	moveq.l #15,d1
 	moveq.l #0,d6
-abs_0_0003A506:
+interleave_first_sprite_word_pair_bits:
 	add.l d2,d2
 	add.w d0,d0
 	addx.l d6,d2
 	add.l d2,d2
 	add.w d3,d3
 	addx.l d6,d2
-	dbf.w d1,abs_0_0003A506
+	dbf.w d1,interleave_first_sprite_word_pair_bits
 	move.l d2,(a1)+
 	moveq.l #0,d2
 	moveq.l #15,d1
 	moveq.l #0,d6
-abs_0_0003A51E:
+interleave_second_sprite_word_pair_bits:
 	add.l d2,d2
 	add.w d4,d4
 	addx.l d6,d2
 	add.l d2,d2
 	add.w d7,d7
 	addx.l d6,d2
-	dbf.w d1,abs_0_0003A51E
+	dbf.w d1,interleave_second_sprite_word_pair_bits
 	move.l d2,(a1)+
-	dbf.w d5,abs_0_0003A4C6
+	dbf.w d5,convert_sprite_row_to_paired_and_or_packet
+advance_alternate_sprite_conversion_directory:
 	addq.w #1,a4
 	movea.l a3,a5
 	move.l a1,(a0)+
 	move.l (a0),d0
-	bpl.w abs_0_0003A4BA
+	bpl.w begin_alternate_sprite_conversion_interval
     ; Shared RTS selected by one original graphics profile for both palette-fade stubs. Preserve the disabled-fade behavior.
 return_without_palette_fade:
 	rts
@@ -52876,6 +52880,7 @@ invalidate_alternate_power_meter_cache:
 	dc.b $70,$03,$33,$C0,$00,$03,$C7,$B0,$33,$C0,$00,$03,$C8,$26,$33,$C0
 	dc.b $00,$03,$C8,$9A,$33,$C0,$00,$03,$C8,$EE,$33,$C0,$00,$03,$C9,$90
 	dc.b $4E,$75
+    ; Capture five backgrounds: 56 rows of two LONGs, source pitch160 from fixed $68000. Mode0 reads adjacent +0/+4; mode1 reads +0/+80. The later restore copies only 51 rows.
 capture_alternate_meter_backgrounds:
 	clr.w alternate_power_meter_cached_level.l
 	clr.w alternate_power_meter_redraw_countdown.l
@@ -52889,29 +52894,29 @@ capture_alternate_meter_backgrounds:
 	clr.w alternate_altitude_meter_redraw_countdown.l
 	clr.w alternate_meter_directory_byte_offset.l
 	moveq.l #4,d4
-abs_0_0003BDF8:
-	moveq.l #55,d0
+capture_next_alternate_meter_background:
+	moveq.l #SG2_ALTERNATE_METER_CAPTURE_ROWS_MINUS1,d0
 	move.w alternate_meter_directory_byte_offset.l,d1
 	addq.w #4,alternate_meter_directory_byte_offset.l
 	movea.l alternate_meter_background_pointers(pc,d1.w),a0
 	tst.b alternate_graphics_mode(a6)
-	bmi.b abs_0_0003BE20
+	bmi.b address_separated_alternate_meter_capture_columns
 	movea.l alternate_meter_framebuffer_offsets_mode0(pc,d1.w),a1
 	adda.l #$68000,a1
 	lea.l $0004(a1),a2
-	bra.b abs_0_0003BE2E
+	bra.b capture_alternate_meter_background_row_pair
     ; LONG table values are BYTE offsets: add fixed $68000 before reading framebuffer. Numeric matches to source instructions are coincidences, not pointer targets.
-abs_0_0003BE20:
+address_separated_alternate_meter_capture_columns:
 	movea.l alternate_meter_framebuffer_offsets_mode1(pc,d1.w),a1
 	adda.l #$68000,a1
 	lea.l $0050(a1),a2
-abs_0_0003BE2E:
+capture_alternate_meter_background_row_pair:
 	move.l (a1),(a0)+
 	move.l (a2),(a0)+
 	adda.w #$A0,a1
 	adda.w #$A0,a2
-	dbf.w d0,abs_0_0003BE2E
-	dbf.w d4,abs_0_0003BDF8
+	dbf.w d0,capture_alternate_meter_background_row_pair
+	dbf.w d4,capture_next_alternate_meter_background
 	rts
 alternate_meter_background_pointers:
 	dc.l alternate_weapon_energy_meter_background
@@ -52925,12 +52930,12 @@ alternate_meter_framebuffer_offsets_mode0:
 alternate_meter_framebuffer_offsets_mode1:
 	dc.l $00005150,$00005154,$00005158,$00005178	; Five literal BYTE offsets; consumer adds fixed framebuffer base$68000, not source pointers
 	dc.l $0000517C
-abs_0_0003BE80:
-	dc.l abs_0_0003CA4A	; pointer_table
-	dc.l abs_0_0003CA26
-	dc.l abs_0_0003CA4A
-	dc.l abs_0_0003CA26
-	dc.l abs_0_0003CA4A
+alternate_meter_adjacent_word_row_kernel_pointers:
+	dc.l blend_meter_rows_into_words_zero_and_two	; pointer_table
+	dc.l blend_meter_rows_into_words_zero_and_three
+	dc.l blend_meter_rows_into_words_zero_and_two
+	dc.l blend_meter_rows_into_words_zero_and_three
+	dc.l blend_meter_rows_into_words_zero_and_two
 alternate_weapon_energy_meter_background:
 	dcb.l $70,$00000000
 alternate_shield_meter_background:
@@ -53158,12 +53163,13 @@ abs_0_0003C99A:
 abs_0_0003C9B8:
 	rts
 	dc.b $78,$FF
+    ; WORD 46-level selects a signed-WORD row offset. Mode0 skips four source control bytes; mode1 uses packet start. Caller D4 drives DBF; no general clipping or row-count guard is added.
 draw_alternate_meter:
 	moveq.l #46,d1
 	sub.w d0,d1
 	move.w d1,d0
 	tst.b alternate_graphics_mode(a6)
-	bmi.w abs_0_0003CA72
+	bmi.w address_separated_alternate_meter_background
 	addq.l #4,a1
 	move.w alternate_meter_directory_byte_offset.l,d5
 	lea.l alternate_meter_background_pointers(pc),a2
@@ -53172,28 +53178,30 @@ draw_alternate_meter:
 	movea.l $0(a2,d5.w),a2
 	adda.l draw_buffer_base.w(a6),a2
 	move.l a2,-(a7)
-	moveq.l #50,d1
-abs_0_0003C9EA:
+	moveq.l #SG2_ALTERNATE_METER_RESTORE_ROWS_MINUS1,d1
+restore_adjacent_alternate_meter_background_rows:
 	move.l (a0)+,(a2)+
 	move.l (a0)+,(a2)
 	lea.l $009C(a2),a2
-	dbf.w d1,abs_0_0003C9EA
+	dbf.w d1,restore_adjacent_alternate_meter_background_rows
 	movea.l (a7)+,a2
+    ; Restore precedes altitude skip. Only a negative skip BYTE is cleared; negative space flag then returns. Positive nonzero flags do not take that early return. Mode1 repeats this order.
 	tst.b alternate_altitude_meter_skip_in_space_flag.l
-	bpl.b abs_0_0003CA0E
+	bpl.b address_meter_row_and_select_adjacent_word_kernel
 	clr.b alternate_altitude_meter_skip_in_space_flag.l
 	tst.b space_environment_flag(a6)
-	bpl.b abs_0_0003CA0E
+	bpl.b address_meter_row_and_select_adjacent_word_kernel
 	rts
-abs_0_0003CA0E:
+address_meter_row_and_select_adjacent_word_kernel:
 	lea.l raster_row_byte_offsets.l,a5
 	add.w d0,d0
 	move.w $0(a5,d0.w),d0
 	adda.w d0,a2
-	lea.l abs_0_0003BE80(pc),a5
+	lea.l alternate_meter_adjacent_word_row_kernel_pointers(pc),a5
 	movea.l $0(a5,d5.w),a5
 	jmp (a5)
-abs_0_0003CA26:
+    ; Each row reads WORDs A/B: keep=~(A|B); all four destination WORDs are masked. WORD0 receives A&~B, WORD3 receives A. Selector 00 retains pixels; 01 clears them. Pitch160, DBF D4.
+blend_meter_rows_into_words_zero_and_three:
 	move.w (a1)+,d3
 	move.w (a1)+,d7
 	move.w d7,d5
@@ -53208,9 +53216,10 @@ abs_0_0003CA26:
 	and.w d5,(a2)
 	or.w d3,(a2)
 	lea.l $009A(a2),a2
-	dbf.w d4,abs_0_0003CA26
+	dbf.w d4,blend_meter_rows_into_words_zero_and_three
 	rts
-abs_0_0003CA4A:
+    ; Same two-WORD packet and keep mask; WORD0 receives A&B, WORD2 receives A&~B. Directory slots0/2/4 use this kernel; slots1/3 use the 0/3 kernel. This is not a global index bound.
+blend_meter_rows_into_words_zero_and_two:
 	move.w (a1)+,d3
 	move.w (a1)+,d7
 	move.w d7,d5
@@ -53227,9 +53236,9 @@ abs_0_0003CA4A:
 	or.w d7,(a2)+
 	and.w d5,(a2)
 	lea.l $009A(a2),a2
-	dbf.w d4,abs_0_0003CA4A
+	dbf.w d4,blend_meter_rows_into_words_zero_and_two
 	rts
-abs_0_0003CA72:
+address_separated_alternate_meter_background:
 	move.w alternate_meter_directory_byte_offset.l,d5
 	lea.l alternate_meter_background_pointers(pc),a2
 	movea.l $0(a2,d5.w),a0
@@ -53237,25 +53246,26 @@ abs_0_0003CA72:
 	movea.l $0(a2,d5.w),a2
 	adda.l draw_buffer_base.w(a6),a2
 	move.l a2,-(a7)
-	moveq.l #50,d1
-abs_0_0003CA90:
+	moveq.l #SG2_ALTERNATE_METER_RESTORE_ROWS_MINUS1,d1
+restore_separated_alternate_meter_background_rows:
 	move.l (a0)+,(a2)
 	move.l (a0)+,$0050(a2)
 	lea.l $00A0(a2),a2
-	dbf.w d1,abs_0_0003CA90
+	dbf.w d1,restore_separated_alternate_meter_background_rows
 	movea.l (a7)+,a2
 	tst.b alternate_altitude_meter_skip_in_space_flag.l
-	bpl.b abs_0_0003CAB6
+	bpl.b address_separated_alternate_meter_draw_row
 	clr.b alternate_altitude_meter_skip_in_space_flag.l
 	tst.b space_environment_flag(a6)
-	bpl.b abs_0_0003CAB6
+	bpl.b address_separated_alternate_meter_draw_row
 	rts
-abs_0_0003CAB6:
+address_separated_alternate_meter_draw_row:
 	lea.l raster_row_byte_offsets.l,a5
 	add.w d0,d0
 	move.w $0(a5,d0.w),d0
 	adda.w d0,a2
-abs_0_0003CAC4:
+    ; Each row consumes three LONGs: keep mask, OR-first, OR-second. Apply the same keep to destinations +0/+80, then each OR. Advance source12/destination160; no four-byte header skip here.
+blend_separated_meter_and_or_long_packets:
 	move.l (a1)+,d5
 	move.l (a2),d6
 	and.l d5,d6
@@ -53266,7 +53276,7 @@ abs_0_0003CAC4:
 	or.l (a1)+,d6
 	move.l d6,$0050(a2)
 	lea.l $00A0(a2),a2
-	dbf.w d4,abs_0_0003CAC4
+	dbf.w d4,blend_separated_meter_and_or_long_packets
 	rts
 alternate_power_meter_cached_level:
 	dc.w $0000
