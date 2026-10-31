@@ -7,8 +7,8 @@ that further analysis is exhausted. Current source remains byte exact: all
 with all 106154 accepted code bytes retained. No generated assembly was edited
 by hand and no interim archive was produced.
 
-The current ownership union leaves 10307 bytes in
-273 intervals unclassified. This is classification accounting,
+The current ownership union leaves 10299 bytes in
+274 intervals unclassified. This is classification accounting,
 not a semantic completion percentage. Earlier interval/site counts below belong
 to their recorded closeout revision. See the current
 [native memory-span receipt](../../runtime/observations/starglider2-app-memory-spans.json),
@@ -16,8 +16,8 @@ to their recorded closeout revision. See the current
 
 ## Current refinement and next evidence
 
-Current native totals: **3509 app /2716 typed /166 unresolved**, with **10307
-unclassified bytes /273 intervals**. The earlier counter-indexed source-array recovery reused
+Current native totals: **3509 app /2716 typed /166 unresolved**, with **10299
+unclassified bytes /274 intervals**. The earlier counter-indexed source-array recovery reused
 the shared loop induction and interned linear entry values. Original inventory
 readers at source `$DD6` and `$339B4` expose the existing name-reference `text`
 field over the possible104-entry prefix of the148-record owner. That batch retained existing
@@ -26,6 +26,22 @@ Its startup caller proof added five header reads and six app accesses,
 and strengthened 38 app-base attributions.
 Conditional skips mean104 outer iterations are not104 observed memory reads.
 Loaded pointer values remain subject to separate alias/target validation.
+
+The disc queue/span batch follows signed-depth sorting, ten-byte record
+unpacking, midpoint spans, fixed clipping and the eight-byte submission packet.
+1028 original CPU cases retain non-stable swap ties, WORD sign extension and
+low-WORD colour masking. The header is written before radius capping; supplied
+zero-radius entries can overwrite their header/marker before clipping. This is
+not a demonstrated normal-game occurrence or a new valid-radius assumption.
+Twenty-five continuations and six constants expose the operations. Only the
+packet address LONG and negative end-reference LONG gain a layout; twelve
+following zero bytes remain unclassified. Larger code/sample-looking gaps are
+not promoted from appearance. Downstream pixel rendering, phase lifetime and
+arbitrary queue/radius safety remain outside the CPU result. Next: the radial
+object record producers, integer-root helper and layered disc consumers. An
+original CPU probe at $6B32 returns D0=$10000 (low WORD zero) for input $10000;
+$FFFF/$10001 return low WORDs 255/256. Caller reachability and the resulting
+full-call behavior remain to be established, not normalized or assumed safe.
 
 The alternate-profile setup batch follows the mode BYTE into both 320-WORD
 screen-X tables, eight callback-target patches, palette conversion and the

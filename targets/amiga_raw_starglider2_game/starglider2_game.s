@@ -1488,6 +1488,12 @@ SG2_CONTACT_RELATIVE_UPPER_BOUND	EQU	8192
 SG2_CONTACT_SKIP_FLAG_BIT	EQU	4
 SG2_CORNER_APPROACH_OFFSET	EQU	3120
 SG2_CORNER_SLOPE_SHIFT	EQU	6
+SG2_DISC_COLOUR_LOW_MASK	EQU	15
+SG2_DISC_MAX_X	EQU	303
+SG2_DISC_MAX_Y	EQU	128
+SG2_DISC_MIN_X	EQU	16
+SG2_DISC_MIN_Y	EQU	30
+SG2_DISC_RADIUS_LIMIT	EQU	2000
 SG2_DISTANT_RETIREMENT_CURSOR_MASK	EQU	31
 SG2_DISTANT_RETIREMENT_TICK_MASK	EQU	255
 SG2_EFFECT_FADE_BYTE_SHIFT	EQU	3
@@ -7918,74 +7924,78 @@ sort_and_draw_disc_queue:
 	movem.l d0-d7/a0-a6,-(a7)
 	suba.l a2,a1
 	move.w a1,d0
-	beq.b abs_0_0000631E
+	beq.b restore_disc_queue_registers_and_return
 	lsr.w #2,d0
 	movea.l a2,a0
 	subq.w #2,d0
-	bmi.b abs_0_000062FC
-abs_0_000062DA:
+	bmi.b snapshot_disc_queue_draw_buffer
+    ; Sort pointers by descending signed depth. A direct equal-depth comparison does not swap, but swaps with a deeper later record can reorder ties. Keep the original non-stable result.
+select_next_disc_depth_sort_slot:
 	movea.l a0,a1
 	addq.l #4,a1
 	move.w d0,d2
 	movea.l (a0),a4
-abs_0_000062E2:
+compare_later_disc_signed_depth:
 	movea.l (a1),a3
 	move.w (a3),d3
 	cmp.w (a4),d3
-	ble.b abs_0_000062F0
+	ble.b advance_later_disc_depth_reference
 	move.l a4,(a1)
 	move.l a3,(a0)
 	movea.l a3,a4
-abs_0_000062F0:
+advance_later_disc_depth_reference:
 	addq.l #4,a1
-	dbf.w d2,abs_0_000062E2
+	dbf.w d2,compare_later_disc_signed_depth
 	addq.l #4,a0
-	dbf.w d0,abs_0_000062DA
-abs_0_000062FC:
+	dbf.w d0,select_next_disc_depth_sort_slot
+snapshot_disc_queue_draw_buffer:
 	move.l draw_buffer_base.w(a6),scene_draw_buffer_snapshot.l
-abs_0_00006304:
+    ; Skip depth, sign-extend radius/colour/X/Y WORDs with MOVEM, and mask only the colour low WORD to 15. The supplied record does not prove global queue bounds or pointee lifetime.
+read_next_sorted_disc_reference:
 	move.l (a2)+,d0
-	bmi.b abs_0_0000631E
+	bmi.b restore_disc_queue_registers_and_return
 	movea.l d0,a0
 	addq.w #2,a0
 	movem.w (a0)+,d0-d3
-	andi.w #15,d1
+	andi.w #SG2_DISC_COLOUR_LOW_MASK,d1
 	move.l a2,-(a7)
 	bsr.w draw_clipped_disc_spans
 	movea.l (a7)+,a2
-	bra.b abs_0_00006304
-abs_0_0000631E:
+	bra.b read_next_sorted_disc_reference
+restore_disc_queue_registers_and_return:
 	movem.l (a7)+,d0-d7/a0-a6
 	rts
-abs_0_00006324:
+return_without_disc_span_submission:
 	rts
     ; Build clipped integer circle spans from radius D0, colour D1 and centre D2/D3. Original clipping, radius cap and shared span-storage writes remain unchanged.
 draw_clipped_disc_spans:
 	lea.l shared_workspace_prefix.l,a0
 	move.w d3,d4
 	add.w d0,d4
-	cmp.w #$1E,d4
-	blt.b abs_0_00006324
+	cmp.w #SG2_DISC_MIN_Y,d4
+	blt.b return_without_disc_span_submission
 	move.w d3,d4
 	sub.w d0,d4
-	cmp.w #$80,d4
-	bgt.b abs_0_00006324
+	cmp.w #SG2_DISC_MAX_Y,d4
+	bgt.b return_without_disc_span_submission
 	move.w d2,d4
 	add.w d0,d4
-	cmp.w #$10,d4
-	ble.b abs_0_00006324
+	cmp.w #SG2_DISC_MIN_X,d4
+	ble.b return_without_disc_span_submission
 	move.w d2,d4
 	sub.w d0,d4
-	cmp.w #$12F,d4
-	bgt.b abs_0_00006324
+	cmp.w #SG2_DISC_MAX_X,d4
+	bgt.b return_without_disc_span_submission
+    ; Store colour and centre-Y minus the original radius before capping radius at 2000. Initial rejection tests also use uncapped WORD arithmetic. Fixed bounds do not read configured view limits.
 	movea.l a0,a1
 	move.w d1,(a1)+
 	sub.w d0,d3
 	move.w d3,(a1)+
-	cmp.w #$7D0,d0
-	ble.b abs_0_00006366
-	move.w #$7D0,d0
-abs_0_00006366:
+	cmp.w #SG2_DISC_RADIUS_LIMIT,d0
+	ble.b initialize_disc_midpoint_counters
+	move.w #SG2_DISC_RADIUS_LIMIT,d0
+    ; Construct 2*r span pairs by integer midpoint updates and mirrored stores, with X endpoints clamped to 16..303. Zero radius can overwrite the header and marker; no valid-stream claim follows.
+initialize_disc_midpoint_counters:
 	moveq.l #1,d6
 	sub.w d0,d6
 	moveq.l #1,d7
@@ -8003,9 +8013,9 @@ abs_0_00006366:
 	adda.l d0,a4
 	move.w #$FFFF,(a4)
 	movea.l a4,a6
-abs_0_0000638A:
+choose_disc_midpoint_update:
 	tst.w d6
-	bge.b abs_0_000063C2
+	bge.b build_disc_outer_symmetric_spans
 	addq.w #1,d4
 	addq.w #2,d7
 	addq.w #2,d3
@@ -8013,37 +8023,37 @@ abs_0_0000638A:
 	move.w d5,d1
 	neg.w d1
 	add.w d2,d1
-	cmp.w #$10,d1
-	bgt.b abs_0_000063A6
-	move.w #$10,d1
-abs_0_000063A6:
+	cmp.w #SG2_DISC_MIN_X,d1
+	bgt.b clamp_disc_primary_right_endpoint
+	move.w #SG2_DISC_MIN_X,d1
+clamp_disc_primary_right_endpoint:
 	movea.w d5,a5
 	adda.w d2,a5
-	cmpa.w #$12F,a5
-	blt.b abs_0_000063B4
-	movea.w #$12F,a5
-abs_0_000063B4:
+	cmpa.w #SG2_DISC_MAX_X,a5
+	blt.b store_disc_primary_mirrored_spans
+	movea.w #SG2_DISC_MAX_X,a5
+store_disc_primary_mirrored_spans:
 	move.w a5,-(a2)
 	move.w d1,-(a2)
 	move.w d1,(a3)+
 	move.w a5,(a3)+
 	cmp.w d5,d4
-	blt.b abs_0_0000638A
-	bra.b abs_0_0000641E
-abs_0_000063C2:
+	blt.b choose_disc_midpoint_update
+	bra.b prepare_disc_span_packet_clipping
+build_disc_outer_symmetric_spans:
 	move.w d4,d1
 	neg.w d1
 	add.w d2,d1
-	cmp.w #$10,d1
-	bgt.b abs_0_000063D2
-	move.w #$10,d1
-abs_0_000063D2:
+	cmp.w #SG2_DISC_MIN_X,d1
+	bgt.b clamp_disc_outer_right_endpoint
+	move.w #SG2_DISC_MIN_X,d1
+clamp_disc_outer_right_endpoint:
 	movea.w d4,a5
 	adda.w d2,a5
-	cmpa.w #$12F,a5
-	blt.b abs_0_000063E0
-	movea.w #$12F,a5
-abs_0_000063E0:
+	cmpa.w #SG2_DISC_MAX_X,a5
+	blt.b store_disc_outer_symmetric_spans
+	movea.w #SG2_DISC_MAX_X,a5
+store_disc_outer_symmetric_spans:
 	move.w d1,(a1)+
 	move.w a5,(a1)+
 	move.w a5,-(a4)
@@ -8056,33 +8066,34 @@ abs_0_000063E0:
 	move.w d5,d1
 	neg.w d1
 	add.w d2,d1
-	cmp.w #$10,d1
-	bgt.b abs_0_00006402
-	move.w #$10,d1
-abs_0_00006402:
+	cmp.w #SG2_DISC_MIN_X,d1
+	bgt.b clamp_disc_stepped_right_endpoint
+	move.w #SG2_DISC_MIN_X,d1
+clamp_disc_stepped_right_endpoint:
 	movea.w d5,a5
 	adda.w d2,a5
-	cmpa.w #$12F,a5
-	blt.b abs_0_00006410
-	movea.w #$12F,a5
-abs_0_00006410:
+	cmpa.w #SG2_DISC_MAX_X,a5
+	blt.b store_disc_stepped_mirrored_spans
+	movea.w #SG2_DISC_MAX_X,a5
+store_disc_stepped_mirrored_spans:
 	move.w a5,-(a2)
 	move.w d1,-(a2)
 	move.w d1,(a3)+
 	move.w a5,(a3)+
 	cmp.w d5,d4
-	blt.w abs_0_0000638A
-abs_0_0000641E:
+	blt.w choose_disc_midpoint_update
+prepare_disc_span_packet_clipping:
 	move.l (a0),d3
 	lsr.w #1,d0
-	cmp.w #$10,d2
-	blt.b abs_0_00006478
-	cmp.w #$12F,d2
-	bgt.w abs_0_000064A0
-abs_0_00006430:
+	cmp.w #SG2_DISC_MIN_X,d2
+	blt.b trim_disc_with_center_left_of_view
+	cmp.w #SG2_DISC_MAX_X,d2
+	bgt.w trim_disc_with_center_right_of_view
+    ; Top clipping rebases the header by 4*(30-oldRow)-4 and writes row 30. Bottom clipping retains the original row/count arithmetic and writes the negative WORD at its computed marker.
+clip_disc_span_packet_top:
 	move.w d3,d4
-	subi.w #30,d4
-	bge.b abs_0_00006456
+	subi.w #SG2_DISC_MIN_Y,d4
+	bge.b clip_disc_span_packet_bottom
 	neg.w d4
 	add.w d4,d4
 	add.w d4,d4
@@ -8091,31 +8102,31 @@ abs_0_00006430:
 	swap.w d3
 	move.w d3,(a0)
 	swap.w d3
-	move.w #$1E,$0002(a0)
+	move.w #SG2_DISC_MIN_Y,$0002(a0)
 	cmpa.l a0,a6
-	ble.w abs_0_00006324
-abs_0_00006456:
-	cmp.w #$80,d3
-	bgt.w abs_0_00006324
+	ble.w return_without_disc_span_submission
+clip_disc_span_packet_bottom:
+	cmp.w #SG2_DISC_MAX_Y,d3
+	bgt.w return_without_disc_span_submission
 	move.w d3,d4
 	add.w d0,d4
-	subi.w #128,d4
-	ble.w abs_0_000064C6
+	subi.w #SG2_DISC_MAX_Y,d4
+	ble.w submit_single_disc_span_reference
 	add.w d4,d4
 	add.w d4,d4
 	suba.w d4,a6
 	move.w #$FFFF,(a6)
-	bra.w abs_0_000064C6
-abs_0_00006478:
+	bra.w submit_single_disc_span_reference
+trim_disc_with_center_left_of_view:
 	lea.l $0002(a0),a1
-	move.w #$10,d6
-abs_0_00006480:
+	move.w #SG2_DISC_MIN_X,d6
+skip_disc_rows_left_of_view:
 	addq.w #4,a1
 	addq.w #1,d3
 	subq.w #2,d0
 	subq.w #4,a6
 	cmp.w (a1),d6
-	bgt.b abs_0_00006480
+	bgt.b skip_disc_rows_left_of_view
 	subq.w #1,d3
 	subq.w #6,a1
 	addq.w #2,d0
@@ -8123,17 +8134,17 @@ abs_0_00006480:
 	movea.l a1,a0
 	addq.w #4,a6
 	move.w #$FFFF,(a6)
-	bra.w abs_0_00006430
-abs_0_000064A0:
+	bra.w clip_disc_span_packet_top
+trim_disc_with_center_right_of_view:
 	movea.l a0,a1
-	move.w #$12F,d6
-abs_0_000064A6:
+	move.w #SG2_DISC_MAX_X,d6
+skip_disc_rows_right_of_view:
 	addq.w #4,a1
 	addq.w #1,d3
 	subq.w #4,a6
 	subq.w #2,d0
 	cmp.w (a1),d6
-	blt.b abs_0_000064A6
+	blt.b skip_disc_rows_right_of_view
 	subq.w #1,d3
 	subq.w #4,a1
 	addq.w #2,d0
@@ -8141,19 +8152,22 @@ abs_0_000064A6:
 	movea.l a1,a0
 	addq.w #4,a6
 	move.w #$FFFF,(a6)
-	bra.w abs_0_00006430
-abs_0_000064C6:
+	bra.w clip_disc_span_packet_top
+    ; Write the span address to the first packet LONG; the next original LONG is the negative list end. Tail-transfer to the shared renderer. Twelve following zero bytes remain unclassified.
+submit_single_disc_span_reference:
 	move.b #$10,diagnostic_step_byte.l
-	move.l a0,abs_0_00006524.l
-	lea.l abs_0_00006524.l,a2
+	move.l a0,span_records_address.l
+	lea.l span_records_address.l,a2
 	move.b #$D,diagnostic_stage_step_word.l
 	clr.b diagnostic_step_byte.l
-	bra.w abs_0_00006538
+	bra.w draw_disc_span_packet_bridge_005538
 	dcb.b $38,$00
-abs_0_00006524:
-	dc.b $00,$00,$00,$00,$FF,$FF,$FF,$FF
+span_records_address:
+	dc.l $00000000	; Original eight-byte submission packet: mutable address LONG then negative end-reference LONG....
+negative_end_reference:
+	dc.l $FFFFFFFF	; Original eight-byte submission packet: mutable address LONG then negative end-reference LONG....
 	dcb.b $C,$00
-abs_0_00006538:
+draw_disc_span_packet_bridge_005538:
 	jmp draw_planar_4plane_span_records.l
 	dc.b $00,$00,$4A,$80,$67,$50,$B0,$BC,$00,$01,$00,$00,$6C,$00,$01,$1A
 	dc.b $B0,$7C,$02,$71,$62,$42,$2F,$02,$74,$FF,$54,$42,$90,$42,$6B,$30

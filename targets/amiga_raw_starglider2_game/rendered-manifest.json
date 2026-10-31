@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "source_commit": "449a2da1b73edf39bd64c5e50d2fc42447a69bec",
+  "source_commit": "20e2c164250f84a1d67eb22ee58fa65aace8a855",
   "source_assembly": "starglider2_game.s",
   "assets": [
     {
@@ -878,13 +878,13 @@
     },
     {
       "path": "rendered-provenance.json",
-      "bytes": 3510,
-      "sha256": "ca43b0dcb8d11a4c5112110e00b9bbe2d1c0af6d75d023afc475812f69da03f8"
+      "bytes": 3503,
+      "sha256": "778bae6532264df4c6a6ef32f6d140adf24fc80f7fb6f35bb29ea6142f53f09b"
     },
     {
       "path": "starglider2_game.s",
-      "bytes": 2189723,
-      "sha256": "f20cb95852a9f3d47aee6c1f5d134553b6c18f090b0cfa4b8d50433e77047e03"
+      "bytes": 2192633,
+      "sha256": "0d30dc9ce4e79a3089c9c06389801f44e3702082ae42fabcd9580c883d086cce"
     },
     {
       "path": "tools/starglider2_protection.py",
@@ -892,6 +892,6 @@
       "sha256": "81d3f66d36dbfbd5c77238b20c28e8b9abaa329777eb91f64669bbbf13703582"
     }
   ],
-  "source_commit_role": "canonical source publication base; alternate-profile X tables, callback patches, palette transforms and full 18848-byte in-place animation conversion reconstructed through 357 original CPU cases; preserve reentry transforms and original bit/WORD order; hardware mode register, asynchronous tick delivery, full alternate startup and subsequent sprite conversion are not certified; output is bound by verification_receipt_id",
-  "source_subject_revision": "9f781ac35efad6b066fe34acf68ad2a52f6158d8f1fe393d772245ccee12bfd0"
+  "source_commit_role": "canonical source publication base; signed-depth disc queue, integer midpoint spans, clipping and eight-byte submission packet reconstructed through 1028 original CPU cases; preserve WORD sign extension, swap ties, cap/header ordering, packet offsets and zero-radius alias; no arbitrary queue/radius safety, downstream pixel output, phase lifetime, scanout or timing proof; output is bound by verification_receipt_id",
+  "source_subject_revision": "39c1cb7077a56ab0a4f319fb63fdd7572d19442d3cbdba6e70cebe9d58e84ba7"
 }
