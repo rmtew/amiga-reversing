@@ -7,7 +7,7 @@ that further analysis is exhausted. Current source remains byte exact: all
 with all 106154 accepted code bytes retained. No generated assembly was edited
 by hand and no interim archive was produced.
 
-The current ownership union leaves 10731 bytes in
+The current ownership union leaves 10307 bytes in
 273 intervals unclassified. This is classification accounting,
 not a semantic completion percentage. Earlier interval/site counts below belong
 to their recorded closeout revision. See the current
@@ -16,7 +16,7 @@ to their recorded closeout revision. See the current
 
 ## Current refinement and next evidence
 
-Current native totals: **3509 app /2716 typed /165 unresolved**, with **10731
+Current native totals: **3509 app /2716 typed /166 unresolved**, with **10307
 unclassified bytes /273 intervals**. The earlier counter-indexed source-array recovery reused
 the shared loop induction and interned linear entry values. Original inventory
 readers at source `$DD6` and `$339B4` expose the existing name-reference `text`
@@ -26,6 +26,21 @@ Its startup caller proof added five header reads and six app accesses,
 and strengthened 38 app-base attributions.
 Conditional skips mean104 outer iterations are not104 observed memory reads.
 Loaded pointer values remain subject to separate alias/target validation.
+
+The encounter scheduler now exposes an 18-cell source-pointer directory prefix,
+six body-choice blocks, three metric-choice blocks and a 32-WORD retirement
+cycle: 424 previously raw bytes. Duplicate choices retain encoded weights;
+existing object-name records ground the role names, without assuming a uniform
+random distribution. The directory prefix is not a universal selector bound. Its newly typed
+indexed reader adds one honest unresolved diagnostic; prior access facts,
+reference identities, summaries and CFG remain unchanged.
+696 original CPU cases cover all stored choices, N-only wrapped metric gates,
+partial constructor writes, retirement tick/count cases and cursor 32 reading
+the adjacent table before masking its increment. Retirement clears only type
+WORDs; allocation, release/lifetime, full gameplay and hardware timing are not
+proved. Shared pointer/array support suffices; no framework rule was weakened.
+Next: the connected HUD attitude polygon projection, scan conversion and plane
+selection, retaining raw alternatives without incoming-edge evidence.
 
 The body-cache/surface-exit batch follows the capture and fixed restore walk,
 their shared 16-byte logical slot and the exit height/angle consumers. 1881

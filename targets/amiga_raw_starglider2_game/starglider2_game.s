@@ -1430,6 +1430,11 @@ SG2SceneCycledReference_SIZEOF EQU __RS
 SG2SceneSpanReference_span RS.L 1
 SG2SceneSpanReference_SIZEOF EQU __RS
 
+; STRUCT SG2EncounterChoiceReference
+    RSRESET
+SG2EncounterChoiceReference_choices RS.L 1
+SG2EncounterChoiceReference_SIZEOF EQU __RS
+
 ADKF_CLRALL	EQU	$7FFF
 BPLCON2_PF2P2	EQU	$20
 BPLCON2_PF2PRI	EQU	$40
@@ -1469,8 +1474,11 @@ SG2_CONTACT_RELATIVE_UPPER_BOUND	EQU	8192
 SG2_CONTACT_SKIP_FLAG_BIT	EQU	4
 SG2_CORNER_APPROACH_OFFSET	EQU	3120
 SG2_CORNER_SLOPE_SHIFT	EQU	6
+SG2_DISTANT_RETIREMENT_CURSOR_MASK	EQU	31
+SG2_DISTANT_RETIREMENT_TICK_MASK	EQU	255
 SG2_EFFECT_FADE_BYTE_SHIFT	EQU	3
 SG2_EFFECT_RANDOM_RGB_MASK	EQU	$FFF
+SG2_ENCOUNTER_CHOICE_INDEX_MASK	EQU	15
 SG2_ENERGY_GATE_OBJECT_SKIP_VARIANT	EQU	6
 SG2_ENERGY_GATE_PLAYER_SKIP_VARIANT	EQU	6
 SG2_GATE_CONTACT_RESPONSE_PASSES	EQU	3
@@ -44218,22 +44226,22 @@ abs_0_00033528:
 	bpl.w snapshot_world_transition_space_state
 	move.l system_center_proximity_metric(a6),d3
 	tst.w player_speed_target(a6)
-	beq.w abs_0_0003367A
+	beq.w advance_distant_retirement_tick
 	bsr.w advance_shared_random_state_bridge_038d20
 	andi.w #127,d0
 	beq.b abs_0_00033584
 	cmp.l #$19BFCC0,d3
-	bls.w abs_0_0003367A
+	bls.w advance_distant_retirement_tick
 	cmp.l #$1F78A40,d3
-	bgt.w abs_0_0003367A
+	bgt.w advance_distant_retirement_tick
 	move.l player_world_y(a6),d3
 	cmp.l #$FF48E500,d3
-	bpl.w abs_0_0003367A
+	bpl.w advance_distant_retirement_tick
 	cmp.l #$FE54C100,d3
-	bmi.w abs_0_0003367A
+	bmi.w advance_distant_retirement_tick
 	addq.b #1,asteroid_spawn_region_phase_mod2.l
 	andi.b #1,asteroid_spawn_region_phase_mod2.l
-	bne.w abs_0_0003367A
+	bne.w advance_distant_retirement_tick
 abs_0_00033584:
 	move.w player_speed_target(a6),d1
 	lsr.w #6,d1
@@ -44247,9 +44255,9 @@ abs_0_0003359E:
 	move.b $0(a0,d1.w),d1
 	bsr.w advance_shared_random_state_bridge_038d20
 	and.b d1,d0
-	bne.w abs_0_0003367A
+	bne.w advance_distant_retirement_tick
 	cmpi.w #10,free_object_count(a6)
-	bls.w abs_0_0003367A
+	bls.w advance_distant_retirement_tick
 	movea.l free_object_stack_cursor(a6),a3
 	movea.l -(a3),a4
 	move.l a3,free_object_stack_cursor(a6)
@@ -44301,60 +44309,62 @@ abs_0_0003359E:
 	move.b d1,SG2TargetingObject_model_scale_shift(a4)
 	move.b #$49,SG2TargetingObject_collision_ignored_object_type(a4)
 	bra.w snapshot_world_transition_space_state
-abs_0_0003367A:
-	addq.w #1,abs_0_00039998.l
-	andi.w #255,abs_0_00039998.l
-	bne.b abs_0_000336C4
+advance_distant_retirement_tick:
+	addq.w #1,distant_retirement_tick_mod256.l
+	andi.w #SG2_DISTANT_RETIREMENT_TICK_MASK,distant_retirement_tick_mod256.l
+	bne.b test_encounter_station_and_body_gates
 	move.w distant_object_count(a6),d0
-	beq.b abs_0_000336C4
+	beq.b test_encounter_station_and_body_gates
 	subq.w #1,d0
 	movea.l distant_objects_cursor(a6),a0
-	lea.l abs_0_00039AA8.l,a2
-	move.w abs_0_0003999A.l,d1
+    ; Read the current retirement cursor before masking its increment to 31. Cursor 32 aliases the adjacent first metric-choice WORD. Matches lose only their type WORD; no free-stack release.
+	lea.l distant_retirement_type_cycle.l,a2
+	move.w distant_retirement_type_cursor.l,d1
 	add.w d1,d1
 	move.w $0(a2,d1.w),d1
-abs_0_000336A8:
+clear_distant_records_matching_cycle_type:
 	movea.l (a0)+,a1
 	move.w (a1),d2	; operand 1: SG2ObjectCore_object_type at (a1)
 	cmp.w d1,d2
-	bne.b abs_0_000336B2
+	bne.b advance_distant_retirement_record
 	clr.w (a1)	; operand 1: SG2ObjectCore_object_type at (a1)
-abs_0_000336B2:
-	dbf.w d0,abs_0_000336A8
-	addq.w #1,abs_0_0003999A.l
-	andi.w #31,abs_0_0003999A.l
-abs_0_000336C4:
+advance_distant_retirement_record:
+	dbf.w d0,clear_distant_records_matching_cycle_type
+	addq.w #1,distant_retirement_type_cursor.l
+	andi.w #SG2_DISTANT_RETIREMENT_CURSOR_MASK,distant_retirement_type_cursor.l
+test_encounter_station_and_body_gates:
 	tst.b space_station_nearby_flag(a6)
 	bmi.w snapshot_world_transition_space_state
 	cmpi.w #16,selected_celestial_body_index(a6)
 	beq.w snapshot_world_transition_space_state
-	tst.w abs_0_0003999C.l
-	bmi.b abs_0_00033702
-	subq.w #1,abs_0_0003999C.l
+	tst.w encounter_gap_countdown_or_negative.l
+	bmi.b advance_encounter_burst_countdown
+	subq.w #1,encounter_gap_countdown_or_negative.l
 	bpl.w snapshot_world_transition_space_state
-	move.w #$FFFF,abs_0_0003999C.l
+	move.w #$FFFF,encounter_gap_countdown_or_negative.l
 	bsr.w advance_shared_random_state_bridge_038d20
 	andi.w #511,d0
 	addi.w #64,d0
-	move.w d0,abs_0_0003999E.l
-abs_0_00033702:
-	subq.w #1,abs_0_0003999E.l
-	bpl.b abs_0_00033724
-	move.w #$FFFF,abs_0_0003999E.l
+	move.w d0,encounter_burst_countdown_or_negative.l
+advance_encounter_burst_countdown:
+	subq.w #1,encounter_burst_countdown_or_negative.l
+	bpl.b advance_encounter_attempt_phase
+	move.w #$FFFF,encounter_burst_countdown_or_negative.l
 	bsr.w advance_shared_random_state_bridge_038d20
 	andi.w #1023,d0
 	addi.w #256,d0
-	move.w d0,abs_0_0003999C.l
-abs_0_00033724:
-	addq.w #1,abs_0_00039996.l
+	move.w d0,encounter_gap_countdown_or_negative.l
+advance_encounter_attempt_phase:
+	addq.w #1,encounter_attempt_phase.l
 	tst.w player_speed_smoothed(a6)
-	beq.w abs_0_00033736
+	beq.w set_encounter_stationary_low_byte_mask
 	moveq.l #3,d0
-	bra.b abs_0_0003373A
-abs_0_00033736:
+	bra.b mask_encounter_attempt_phase
+    ; MOVE.B replaces only D0 low BYTE with 7; higher bits of its WORD survive into the phase mask. The moving branch instead uses MOVEQ 3. Do not infer a universal stationary modulo-8 counter.
+set_encounter_stationary_low_byte_mask:
 	move.b #$7,d0
-abs_0_0003373A:
-	and.w d0,abs_0_00039996.l
+mask_encounter_attempt_phase:
+	and.w d0,encounter_attempt_phase.l
 	bne.w snapshot_world_transition_space_state
 	bsr.w advance_shared_random_state_bridge_038d20
 	andi.w #7,d0
@@ -44393,31 +44403,34 @@ abs_0_0003373A:
 	subi.l #2048,d0
 	add.l d0,SG2ObjectCore_world_z(a4)
 	bsr.w advance_shared_random_state_bridge_038d20
-	andi.w #15,d0
+	andi.w #SG2_ENCOUNTER_CHOICE_INDEX_MASK,d0
 	add.w d0,d0
+    ; Metric comparisons branch on subtraction N alone. Preserve wrapped LONG differences, not a universal signed-order partition. The chosen WORD index is masked to 15 before doubling.
 	cmpi.l #300000000,system_center_proximity_metric(a6)
-	bpl.b abs_0_00033806
+	bpl.b select_encounter_scrap_bomb_choices
 	cmpi.l #150000000,system_center_proximity_metric(a6)
-	bpl.b abs_0_0003380E
+	bpl.b select_encounter_scrap_mine_choices
 	cmpi.l #90000000,system_center_proximity_metric(a6)
-	bpl.b abs_0_00033816
-	bra.b abs_0_0003381E
-abs_0_00033806:
-	lea.l abs_0_00039B28.l,a0
-	bra.b abs_0_00033830
-abs_0_0003380E:
-	lea.l abs_0_00039B08.l,a0
-	bra.b abs_0_00033830
-abs_0_00033816:
-	lea.l abs_0_00039AE8.l,a0
-	bra.b abs_0_00033830
-abs_0_0003381E:
+	bpl.b select_encounter_metric_mine_choices
+	bra.b select_encounter_body_choice_pointer
+select_encounter_scrap_bomb_choices:
+	lea.l encounter_choices_scrap_bombs.l,a0
+	bra.b initialize_encounter_choice_type_defaults
+select_encounter_scrap_mine_choices:
+	lea.l encounter_choices_scrap_and_mines.l,a0
+	bra.b initialize_encounter_choice_type_defaults
+select_encounter_metric_mine_choices:
+	lea.l encounter_choices_metric_mine_mix.l,a0
+	bra.b initialize_encounter_choice_type_defaults
+select_encounter_body_choice_pointer:
 	move.w selected_celestial_body_index(a6),d1
 	add.w d1,d1
 	add.w d1,d1
-	lea.l abs_0_000399A0.l,a0
+    ; Stored directory prefix has 18 source pointers before the first choice block. This read uses the original doubled WORD arithmetic; the prefix does not prove every caller selector in range.
+	lea.l encounter_choice_directory_prefix.l,a0
 	movea.l $0(a0,d1.w),a0
-abs_0_00033830:
+    ; Type WORD selects scale, durability and motion defaults. Preserve partial record writes, signed motion halving, type 91 flag and type 10 field36. Pirate continuation remains separate.
+initialize_encounter_choice_type_defaults:
 	move.w $0(a0,d0.w),d0
 	move.w d0,(a4)	; operand 2: SG2ObjectCore_object_type at (a4)
 	lea.l model_default_scale_shifts.l,a0
@@ -49020,8 +49033,8 @@ abs_0_00037586:
 	move.w #$3,station_proximity_disc_colour_index(a6)
 	move.w #$0,station_proximity_colour_ramp_step(a6)
 	move.w #$FFFF,pirate_warning_cooldown_or_negative.l
-	move.w #$FFFF,abs_0_0003999C.l
-	move.w #$80,abs_0_0003999E.l
+	move.w #$FFFF,encounter_gap_countdown_or_negative.l
+	move.w #$80,encounter_burst_countdown_or_negative.l
 	clr.l nearby_space_station_reference(a6)
 	sf.b player_ejection_active_flag.l
 	move.w #$C8,game_over_sequence_countdown.l
@@ -50217,48 +50230,67 @@ abs_0_00039992:
 	dc.b $01,$03
 abs_0_00039994:
 	dc.b $01,$03
-abs_0_00039996:
+encounter_attempt_phase:
 	dc.w $0000
-abs_0_00039998:
+distant_retirement_tick_mod256:
 	dc.w $0000
-abs_0_0003999A:
+distant_retirement_type_cursor:
 	dc.w $0000
-abs_0_0003999C:
+encounter_gap_countdown_or_negative:
 	dc.w $0000
-abs_0_0003999E:
+encounter_burst_countdown_or_negative:
 	dc.w $0000
-abs_0_000399A0:
-	dc.b $00,$03,$99,$E8,$00,$03,$9A,$08,$00,$03,$9A,$08,$00,$03,$9A,$08
-	dc.b $00,$03,$9A,$28,$00,$03,$9A,$88,$00,$03,$9A,$08,$00,$03,$9A,$88
-	dc.b $00,$03,$9A,$08,$00,$03,$9A,$08,$00,$03,$9A,$08,$00,$03,$9A,$08
-	dc.b $00,$03,$9A,$08,$00,$03,$9A,$08,$00,$03,$9A,$48,$00,$03,$9A,$68
-	dc.b $00,$03,$9A,$88,$00,$03,$9A,$28,$00,$59,$00,$11,$00,$59,$00,$11
-	dc.b $00,$59,$00,$1A,$00,$11,$00,$10,$00,$23,$00,$07,$00,$59,$00,$23
-	dc.b $00,$07,$00,$29,$00,$59,$00,$59,$00,$28,$00,$28,$00,$28,$00,$28
-	dc.b $00,$28,$00,$28,$00,$28,$00,$15,$00,$28,$00,$2D,$00,$28,$00,$22
-	dc.b $00,$28,$00,$10,$00,$28,$00,$10,$00,$0A,$00,$0B,$00,$0A,$00,$0A
-	dc.b $00,$0A,$00,$0B,$00,$28,$00,$0A,$00,$0A,$00,$0B,$00,$0A,$00,$0A
-	dc.b $00,$28,$00,$0B,$00,$0A,$00,$0A,$00,$0A,$00,$59,$00,$28,$00,$59
-	dc.b $00,$0A,$00,$59,$00,$0A,$00,$59,$00,$28,$00,$59,$00,$59,$00,$0A
-	dc.b $00,$28,$00,$59,$00,$59,$00,$59,$00,$1B,$00,$28,$00,$28,$00,$28
-	dc.b $00,$1B,$00,$28,$00,$1B,$00,$15,$00,$28,$00,$2D,$00,$28,$00,$22
-	dc.b $00,$28,$00,$10,$00,$28,$00,$1B,$00,$02,$00,$0A,$00,$02,$00,$1B
-	dc.b $00,$02,$00,$0A,$00,$02,$00,$02,$00,$10,$00,$02,$00,$23,$00,$02
-	dc.b $00,$2D,$00,$02,$00,$0B,$00,$59
-abs_0_00039AA8:
-	dc.b $00,$59,$00,$28,$00,$02,$00,$2D,$00,$29,$00,$15,$00,$1B,$00,$28
-	dc.b $00,$28,$00,$02,$00,$0A,$00,$11,$00,$07,$00,$0A,$00,$22,$00,$10
-	dc.b $00,$28,$00,$02,$00,$29,$00,$1A,$00,$59,$00,$3B,$00,$1B,$00,$28
-	dc.b $00,$28,$00,$28,$00,$0A,$00,$3D,$00,$3E,$00,$0B,$00,$28,$00,$23
-abs_0_00039AE8:
-	dc.b $00,$0A,$00,$02,$00,$02,$00,$0A,$00,$02,$00,$28,$00,$02,$00,$59
-	dc.b $00,$02,$00,$02,$00,$0B,$00,$0A,$00,$10,$00,$02,$00,$02,$00,$02
-abs_0_00039B08:
-	dc.b $00,$3B,$00,$3D,$00,$3E,$00,$02,$00,$3B,$00,$3D,$00,$3E,$00,$02
-	dc.b $00,$3B,$00,$3D,$00,$3E,$00,$02,$00,$3B,$00,$3D,$00,$3E,$00,$02
-abs_0_00039B28:
-	dc.b $00,$1B,$00,$3B,$00,$3D,$00,$3E,$00,$5B,$00,$3B,$00,$3D,$00,$3E
-	dc.b $00,$5B,$00,$10,$00,$1B,$00,$3B,$00,$3D,$00,$3E,$00,$3B,$00,$3D
+encounter_choice_directory_prefix:
+	dc.l encounter_choices_columbus_horatio	; choices
+	dc.l encounter_choices_pirate_heavy	; choices
+	dc.l encounter_choices_pirate_heavy	; choices
+	dc.l encounter_choices_pirate_heavy	; choices
+	dc.l encounter_choices_whales_ducks	; choices
+	dc.l encounter_choices_mine_heavy	; choices
+	dc.l encounter_choices_pirate_heavy	; choices
+	dc.l encounter_choices_mine_heavy	; choices
+	dc.l encounter_choices_pirate_heavy	; choices
+	dc.l encounter_choices_pirate_heavy	; choices
+	dc.l encounter_choices_pirate_heavy	; choices
+	dc.l encounter_choices_pirate_heavy	; choices
+	dc.l encounter_choices_pirate_heavy	; choices
+	dc.l encounter_choices_pirate_heavy	; choices
+	dc.l encounter_choices_columbus_whales	; choices
+	dc.l encounter_choices_pirates_stargliders	; choices
+	dc.l encounter_choices_mine_heavy	; choices
+	dc.l encounter_choices_whales_ducks	; choices
+encounter_choices_columbus_horatio:
+	dc.w $0059,$0011,$0059,$0011,$0059,$001A,$0011,$0010
+	dc.w $0023,$0007,$0059,$0023,$0007,$0029,$0059,$0059
+encounter_choices_pirate_heavy:
+	dc.w $0028,$0028,$0028,$0028,$0028,$0028,$0028,$0015
+	dc.w $0028,$002D,$0028,$0022,$0028,$0010,$0028,$0010
+encounter_choices_whales_ducks:
+	dc.w $000A,$000B,$000A,$000A,$000A,$000B,$0028,$000A
+	dc.w $000A,$000B,$000A,$000A,$0028,$000B,$000A,$000A
+encounter_choices_columbus_whales:
+	dc.w $000A,$0059,$0028,$0059,$000A,$0059,$000A,$0059
+	dc.w $0028,$0059,$0059,$000A,$0028,$0059,$0059,$0059
+encounter_choices_pirates_stargliders:
+	dc.w $001B,$0028,$0028,$0028,$001B,$0028,$001B,$0015
+	dc.w $0028,$002D,$0028,$0022,$0028,$0010,$0028,$001B
+encounter_choices_mine_heavy:
+	dc.w $0002,$000A,$0002,$001B,$0002,$000A,$0002,$0002
+	dc.w $0010,$0002,$0023,$0002,$002D,$0002,$000B,$0059
+distant_retirement_type_cycle:
+	dc.w $0059,$0028,$0002,$002D,$0029,$0015,$001B,$0028
+	dc.w $0028,$0002,$000A,$0011,$0007,$000A,$0022,$0010
+	dc.w $0028,$0002,$0029,$001A,$0059,$003B,$001B,$0028
+	dc.w $0028,$0028,$000A,$003D,$003E,$000B,$0028,$0023
+encounter_choices_metric_mine_mix:
+	dc.w $000A,$0002,$0002,$000A,$0002,$0028,$0002,$0059
+	dc.w $0002,$0002,$000B,$000A,$0010,$0002,$0002,$0002
+encounter_choices_scrap_and_mines:
+	dc.w $003B,$003D,$003E,$0002,$003B,$003D,$003E,$0002
+	dc.w $003B,$003D,$003E,$0002,$003B,$003D,$003E,$0002
+encounter_choices_scrap_bombs:
+	dc.w $001B,$003B,$003D,$003E,$005B,$003B,$003D,$003E
+	dc.w $005B,$0010,$001B,$003B,$003D,$003E,$003B,$003D
 pirate_destruction_drop_choices:
 	dc.b $00,$00,$64,$00,$00,$00,$00,$65,$00,$00,$53,$00,$00,$00,$00,$00
 icarus_speed_colour_max_step:
