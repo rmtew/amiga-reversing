@@ -1468,6 +1468,7 @@ SG2_MESSAGE_QUEUE_POINTER_LIMIT	EQU	10
 SG2_MESSAGE_ROWS_DBF_LAST	EQU	7
 SG2_MESSAGE_ROW_LONGS_DBF_LAST	EQU	6
 SG2_MESSAGE_ROW_SKIP_BYTES	EQU	12
+SG2_OBJECT_TYPE_EGRON_MINI_SENTINEL	EQU	37
 SG2_OBJECT_TYPE_HOMING_MISSILE	EQU	12
 SG2_OBJECT_TYPE_SKIM_DRONE	EQU	43
 SG2_OBJECT_TYPE_SKIM_MISSILE	EQU	60
@@ -1510,6 +1511,8 @@ SG2_WEAPON_HUD_ICON_SAVED_BYTES	EQU	112
 SG2_WEAPON_HUD_ICON_SLOT_MASK	EQU	7
 SG2_WORKSPACE_BELOW_DISPLAY_BYTES	EQU	$6998
 SG2_WORKSPACE_CLEAR_WORDS	EQU	$32CC
+SG2_WORLD_FREE_FILL_LAST_INDEX	EQU	250
+SG2_WORLD_POOL_CLEAR_DBF_LAST	EQU	249
 _ciaa	EQU	$BFE001
 _ciab	EQU	$BFD000
 _custom	EQU	$DFF000
@@ -9827,14 +9830,14 @@ abs_0_0000800A:
 	beq.w clear_and_release_world_object
 	add.w d1,d1
 	tst.b SG2ObjectCore_flags(a0)
-	bmi.w abs_0_000081D2
+	bmi.w continue_primary_object_update_loop
     ; Signed durability: zero suppresses this ordinary primary dispatch. Negative values bypass ordinary model-contact damage, not explicit bomb/projector retirement.
 	tst.b SG2ObjectCore_durability_or_negative(a0)
-	beq.w abs_0_000081D2
+	beq.w continue_primary_object_update_loop
 	move.w primary_object_update_offsets(pc,d1.w),d1
 	jmp primary_object_update_offsets(pc,d1.w)
 primary_object_update_offsets:
-	dc.w abs_0_000081D2-primary_object_update_offsets	; 148 relative WORD type-update targets; conditional original type domain 0..147
+	dc.w continue_primary_object_update_loop-primary_object_update_offsets	; 148 relative WORD type-update targets; conditional original type domain 0..147
 	dc.w update_walker_motion_and_attack_cadence-primary_object_update_offsets
 	dc.w update_proximity_mine_warning_and_damage-primary_object_update_offsets
 	dc.w update_egron_spire_collapse-primary_object_update_offsets
@@ -9858,7 +9861,7 @@ primary_object_update_offsets:
 	dc.w update_shared_flying_actor-primary_object_update_offsets
 	dc.w update_linked_tug_motion_and_retirement-primary_object_update_offsets
 	dc.w update_gbml_heading_and_target_scan-primary_object_update_offsets
-	dc.w abs_0_000081D2-primary_object_update_offsets
+	dc.w continue_primary_object_update_loop-primary_object_update_offsets
 	dc.w update_nearby_steered_projectile-primary_object_update_offsets
 	dc.w update_nearby_tripuss-primary_object_update_offsets
 	dc.w advance_starglider_frame_then_update-primary_object_update_offsets
@@ -9885,12 +9888,12 @@ primary_object_update_offsets:
 	dc.w try_tunnel_sentinel_emission-primary_object_update_offsets
 	dc.w advance_bt_tower_vertex_cycle-primary_object_update_offsets
 	dc.w update_gbml_cannon_heading_and_attack-primary_object_update_offsets
-	dc.w abs_0_000081D2-primary_object_update_offsets
-	dc.w abs_0_000081D2-primary_object_update_offsets
-	dc.w abs_0_000081D2-primary_object_update_offsets
+	dc.w continue_primary_object_update_loop-primary_object_update_offsets
+	dc.w continue_primary_object_update_loop-primary_object_update_offsets
+	dc.w continue_primary_object_update_loop-primary_object_update_offsets
 	dc.w step_energy_transmitter_heading_phase-primary_object_update_offsets
 	dc.w update_bouncing_ball_motion_and_vertex_phase-primary_object_update_offsets
-	dc.w abs_0_000081D2-primary_object_update_offsets
+	dc.w continue_primary_object_update_loop-primary_object_update_offsets
 	dc.w update_tunnel_indicator_rotation-primary_object_update_offsets
 	dc.w update_tunnel_indicator_rotation-primary_object_update_offsets
 	dc.w abs_0_000083D8-primary_object_update_offsets
@@ -9900,11 +9903,11 @@ primary_object_update_offsets:
 	dc.w update_blast_door_variant-primary_object_update_offsets
 	dc.w update_blowhole_diamond_emission-primary_object_update_offsets
 	dc.w update_energy_gate_vertex_variant-primary_object_update_offsets
-	dc.w abs_0_000081D2-primary_object_update_offsets
-	dc.w abs_0_000081D2-primary_object_update_offsets
-	dc.w abs_0_000081D2-primary_object_update_offsets
-	dc.w abs_0_000081D2-primary_object_update_offsets
-	dc.w abs_0_000081D2-primary_object_update_offsets
+	dc.w continue_primary_object_update_loop-primary_object_update_offsets
+	dc.w continue_primary_object_update_loop-primary_object_update_offsets
+	dc.w continue_primary_object_update_loop-primary_object_update_offsets
+	dc.w continue_primary_object_update_loop-primary_object_update_offsets
+	dc.w continue_primary_object_update_loop-primary_object_update_offsets
 	dc.w update_pilot_couch_bounce_and_spin-primary_object_update_offsets
 	dc.w update_nearby_type72_or_type103_projectile-primary_object_update_offsets
 	dc.w abs_0_000083FA-primary_object_update_offsets
@@ -9921,48 +9924,48 @@ primary_object_update_offsets:
 	dc.w update_nearby_bouncing_projectile-primary_object_update_offsets
 	dc.w update_tunnel_indicator_rotation-primary_object_update_offsets
 	dc.w step_ground_laser_fire_phase-primary_object_update_offsets
-	dc.w abs_0_000081D2-primary_object_update_offsets
+	dc.w continue_primary_object_update_loop-primary_object_update_offsets
 	dc.w abs_0_0000849C-primary_object_update_offsets
 	dc.w abs_0_00009318-primary_object_update_offsets
 	dc.w update_energy_tower_variant_and_alternate_form-primary_object_update_offsets
 	dc.w abs_0_000085E8-primary_object_update_offsets
-	dc.w abs_0_000081D2-primary_object_update_offsets
+	dc.w continue_primary_object_update_loop-primary_object_update_offsets
 	dc.w restore_energy_tower_primary_form-primary_object_update_offsets
-	dc.w abs_0_000081D2-primary_object_update_offsets
+	dc.w continue_primary_object_update_loop-primary_object_update_offsets
 	dc.w abs_0_000084C0-primary_object_update_offsets
-	dc.w abs_0_000081D2-primary_object_update_offsets
-	dc.w abs_0_000081D2-primary_object_update_offsets
+	dc.w continue_primary_object_update_loop-primary_object_update_offsets
+	dc.w continue_primary_object_update_loop-primary_object_update_offsets
 	dc.w abs_0_00008600-primary_object_update_offsets
 	dc.w abs_0_000085B8-primary_object_update_offsets
 	dc.w update_link_following_or_free_motion_object-primary_object_update_offsets
 	dc.w update_link_following_or_free_motion_object-primary_object_update_offsets
 	dc.w update_link_following_or_free_motion_object-primary_object_update_offsets
 	dc.w update_nearby_type72_or_type103_projectile-primary_object_update_offsets
-	dc.w abs_0_000081D2-primary_object_update_offsets
-	dc.w abs_0_000081D2-primary_object_update_offsets
-	dc.w abs_0_000081D2-primary_object_update_offsets
-	dc.w abs_0_000081D2-primary_object_update_offsets
-	dc.w abs_0_000081D2-primary_object_update_offsets
-	dc.w abs_0_000081D2-primary_object_update_offsets
-	dc.w abs_0_000081D2-primary_object_update_offsets
-	dc.w abs_0_000081D2-primary_object_update_offsets
-	dc.w abs_0_000081D2-primary_object_update_offsets
-	dc.w abs_0_000081D2-primary_object_update_offsets
-	dc.w abs_0_000081D2-primary_object_update_offsets
-	dc.w abs_0_000081D2-primary_object_update_offsets
-	dc.w abs_0_000081D2-primary_object_update_offsets
-	dc.w abs_0_000081D2-primary_object_update_offsets
-	dc.w abs_0_000081D2-primary_object_update_offsets
-	dc.w abs_0_000081D2-primary_object_update_offsets
-	dc.w abs_0_000081D2-primary_object_update_offsets
-	dc.w abs_0_000081D2-primary_object_update_offsets
-	dc.w abs_0_000081D2-primary_object_update_offsets
-	dc.w abs_0_000081D2-primary_object_update_offsets
-	dc.w abs_0_000081D2-primary_object_update_offsets
-	dc.w abs_0_000081D2-primary_object_update_offsets
-	dc.w abs_0_000081D2-primary_object_update_offsets
-	dc.w abs_0_000081D2-primary_object_update_offsets
-	dc.w abs_0_000081D2-primary_object_update_offsets
+	dc.w continue_primary_object_update_loop-primary_object_update_offsets
+	dc.w continue_primary_object_update_loop-primary_object_update_offsets
+	dc.w continue_primary_object_update_loop-primary_object_update_offsets
+	dc.w continue_primary_object_update_loop-primary_object_update_offsets
+	dc.w continue_primary_object_update_loop-primary_object_update_offsets
+	dc.w continue_primary_object_update_loop-primary_object_update_offsets
+	dc.w continue_primary_object_update_loop-primary_object_update_offsets
+	dc.w continue_primary_object_update_loop-primary_object_update_offsets
+	dc.w continue_primary_object_update_loop-primary_object_update_offsets
+	dc.w continue_primary_object_update_loop-primary_object_update_offsets
+	dc.w continue_primary_object_update_loop-primary_object_update_offsets
+	dc.w continue_primary_object_update_loop-primary_object_update_offsets
+	dc.w continue_primary_object_update_loop-primary_object_update_offsets
+	dc.w continue_primary_object_update_loop-primary_object_update_offsets
+	dc.w continue_primary_object_update_loop-primary_object_update_offsets
+	dc.w continue_primary_object_update_loop-primary_object_update_offsets
+	dc.w continue_primary_object_update_loop-primary_object_update_offsets
+	dc.w continue_primary_object_update_loop-primary_object_update_offsets
+	dc.w continue_primary_object_update_loop-primary_object_update_offsets
+	dc.w continue_primary_object_update_loop-primary_object_update_offsets
+	dc.w continue_primary_object_update_loop-primary_object_update_offsets
+	dc.w continue_primary_object_update_loop-primary_object_update_offsets
+	dc.w continue_primary_object_update_loop-primary_object_update_offsets
+	dc.w continue_primary_object_update_loop-primary_object_update_offsets
+	dc.w continue_primary_object_update_loop-primary_object_update_offsets
 	dc.w abs_0_000084C8-primary_object_update_offsets
 	dc.w abs_0_000084C8-primary_object_update_offsets
 	dc.w abs_0_000084C8-primary_object_update_offsets
@@ -9978,10 +9981,10 @@ primary_object_update_offsets:
 	dc.w abs_0_000084E0-primary_object_update_offsets
 	dc.w abs_0_000084E0-primary_object_update_offsets
 	dc.w abs_0_000084EC-primary_object_update_offsets
-	dc.w abs_0_000081D2-primary_object_update_offsets
+	dc.w continue_primary_object_update_loop-primary_object_update_offsets
 	dc.w abs_0_00008528-primary_object_update_offsets
 	dc.w abs_0_000085D0-primary_object_update_offsets
-	dc.w abs_0_000081D2-primary_object_update_offsets
+	dc.w continue_primary_object_update_loop-primary_object_update_offsets
 abs_0_00008152:
 	subi.l #18,SG2ObjectCore_world_y(a0)
 	bclr.b #2,SG2ObjectCore_flags(a0)
@@ -9991,20 +9994,23 @@ abs_0_0000816A:
 	addi.l #18,SG2ObjectCore_world_y(a0)
 	bclr.b #3,SG2ObjectCore_flags(a0)
 	bra.w abs_0_0000800A
-    ; Compare phase BYTE for equality with type limit; release on equal, otherwise increment. Preserve equality/wrap semantics and original model/type assumptions.
+    ; Release on phase BYTE equality with the type limit; otherwise increment with wrap. Normal dispatcher separately selects nonnegative phases. No saturation or universal type-bound assertion.
 advance_object_retirement_phase:
 	move.w SG2ObjectCore_object_type.w(a0),d0
 	movea.l #object_retirement_phase_limits,a3
 	move.b $0(a3,d0.w),d0
+compare_nearby_retirement_phase_to_type_limit:
 	cmp.b SG2ObjectCore_retirement_phase_or_negative(a0),d0
 	beq.b clear_and_release_world_object
+increment_nearby_retirement_phase_byte:
 	addq.b #1,SG2ObjectCore_retirement_phase_or_negative(a0)
-	bra.b abs_0_000081D2
-    ; Clear all 17 LONGs of a 68-byte world record, mark phase negative, then push its pointer on the free-object stack. Other field meanings remain unknown.
+	bra.b continue_primary_object_update_loop
+    ; Clear exactly 68 bytes, then write phase FF and push one free pointer. Incoming references elsewhere are untouched; count/capacity and unique release remain caller obligations.
     ; KNOWN: type A0=Target code-entry register seed:SG2ObjectCore
 clear_and_release_world_object:
 	move.l a0,-(a7)
 	moveq.l #0,d0
+clear_nearby_recycled_record_longs:
 	move.l d0,(a0)+	; operand 2: SG2ObjectCore_object_type at (a0)+
 	move.l d0,(a0)+	; operand 2: SG2ObjectCore_world_x at (a0)+
 	move.l d0,(a0)+	; operand 2: SG2ObjectCore_world_y at (a0)+
@@ -10022,13 +10028,16 @@ clear_and_release_world_object:
 	move.l d0,(a0)+
 	move.l d0,(a0)+
 	move.l d0,(a0)+
+restore_nearby_object_pointer_after_clear:
 	movea.l (a7)+,a0
+set_negative_phase_after_nearby_record_clear:
 	move.b #$FF,SG2ObjectCore_retirement_phase_or_negative(a0)
+push_cleared_nearby_record_to_free_stack:
 	addq.w #1,free_object_count(a6)
 	movea.l free_object_stack_cursor(a6),a1
 	move.l a0,(a1)+
 	move.l a1,free_object_stack_cursor(a6)
-abs_0_000081D2:
+continue_primary_object_update_loop:
 	sf.b ai_type12_projectile_request(a6)
 	move.w object_update_dbf_index(a6),d6
 	dbf.w d6,abs_0_00007FE0
@@ -10044,22 +10053,22 @@ secondary_object_update_loop:
 	move.l a3,object_update_cursor(a6)
     ; KNOWN: type A0=Target code-entry register seed:SG2ObjectCore
 	tst.b SG2ObjectCore_retirement_phase_or_negative(a0)
-	bpl.w abs_0_00008344
+	bpl.w advance_distant_object_retirement_phase
 	move.w (a0),d1	; operand 1: SG2ObjectCore_object_type at (a0)
-	beq.w abs_0_0000835C
+	beq.w release_distant_world_object
 	add.w d1,d1
 	tst.b SG2ObjectCore_flags(a0)
-	bmi.w abs_0_0000839C
+	bmi.w continue_secondary_object_update_loop
 	move.w secondary_object_update_offsets(pc,d1.w),d1
 	jmp secondary_object_update_offsets(pc,d1.w)
 secondary_object_update_offsets:
-	dc.w abs_0_0000839C-secondary_object_update_offsets	; 148 relative WORD object-type update targets; conditional original type domain0..147
+	dc.w continue_secondary_object_update_loop-secondary_object_update_offsets	; 148 relative WORD object-type update targets; conditional original type domain0..147
 	dc.w update_distant_linked_ground_actor_motion-secondary_object_update_offsets
-	dc.w abs_0_0000839C-secondary_object_update_offsets
-	dc.w abs_0_0000839C-secondary_object_update_offsets
+	dc.w continue_secondary_object_update_loop-secondary_object_update_offsets
+	dc.w continue_secondary_object_update_loop-secondary_object_update_offsets
 	dc.w advance_distant_solar_converter_and_release_chain-secondary_object_update_offsets
 	dc.w update_distant_egron_silo_launch_cycle-secondary_object_update_offsets
-	dc.w abs_0_0000839C-secondary_object_update_offsets
+	dc.w continue_secondary_object_update_loop-secondary_object_update_offsets
 	dc.w update_secondary_actor_motion_and_counter-secondary_object_update_offsets
 	dc.w integrate_distant_actor_and_tick_behavior_counter-secondary_object_update_offsets
 	dc.w update_distant_linked_ground_actor_motion-secondary_object_update_offsets
@@ -10067,23 +10076,23 @@ secondary_object_update_offsets:
 	dc.w integrate_distant_actor_and_tick_behavior_counter-secondary_object_update_offsets
 	dc.w abs_0_0000A8CE-secondary_object_update_offsets
 	dc.w update_secondary_actor_motion_and_counter-secondary_object_update_offsets
-	dc.w abs_0_0000839C-secondary_object_update_offsets
+	dc.w continue_secondary_object_update_loop-secondary_object_update_offsets
 	dc.w update_distant_linked_ground_actor_motion-secondary_object_update_offsets
 	dc.w update_secondary_actor_motion_and_counter-secondary_object_update_offsets
-	dc.w abs_0_0000839C-secondary_object_update_offsets
+	dc.w continue_secondary_object_update_loop-secondary_object_update_offsets
 	dc.w update_secondary_actor_motion_and_counter-secondary_object_update_offsets
-	dc.w abs_0_0000839C-secondary_object_update_offsets
-	dc.w abs_0_0000839C-secondary_object_update_offsets
+	dc.w continue_secondary_object_update_loop-secondary_object_update_offsets
+	dc.w continue_secondary_object_update_loop-secondary_object_update_offsets
 	dc.w update_secondary_actor_motion_and_counter-secondary_object_update_offsets
 	dc.w integrate_distant_actor_velocity-secondary_object_update_offsets
-	dc.w abs_0_0000839C-secondary_object_update_offsets
-	dc.w abs_0_0000839C-secondary_object_update_offsets
+	dc.w continue_secondary_object_update_loop-secondary_object_update_offsets
+	dc.w continue_secondary_object_update_loop-secondary_object_update_offsets
 	dc.w abs_0_0000A8CE-secondary_object_update_offsets
 	dc.w integrate_distant_actor_and_tick_behavior_counter-secondary_object_update_offsets
 	dc.w update_secondary_actor_motion_and_counter-secondary_object_update_offsets
 	dc.w update_secondary_actor_motion_and_counter-secondary_object_update_offsets
 	dc.w update_secondary_actor_motion_and_counter-secondary_object_update_offsets
-	dc.w abs_0_0000839C-secondary_object_update_offsets
+	dc.w continue_secondary_object_update_loop-secondary_object_update_offsets
 	dc.w update_secondary_actor_motion_and_counter-secondary_object_update_offsets
 	dc.w update_secondary_actor_motion_and_counter-secondary_object_update_offsets
 	dc.w update_secondary_actor_motion_and_counter-secondary_object_update_offsets
@@ -10091,97 +10100,97 @@ secondary_object_update_offsets:
 	dc.w update_secondary_actor_motion_and_counter-secondary_object_update_offsets
 	dc.w integrate_distant_actor_and_tick_behavior_counter-secondary_object_update_offsets
 	dc.w abs_0_00008490-secondary_object_update_offsets
-	dc.w abs_0_0000839C-secondary_object_update_offsets
+	dc.w continue_secondary_object_update_loop-secondary_object_update_offsets
 	dc.w update_distant_linked_ground_actor_motion-secondary_object_update_offsets
-	dc.w abs_0_0000839C-secondary_object_update_offsets
+	dc.w continue_secondary_object_update_loop-secondary_object_update_offsets
 	dc.w update_secondary_actor_motion_and_counter-secondary_object_update_offsets
-	dc.w abs_0_0000839C-secondary_object_update_offsets
+	dc.w continue_secondary_object_update_loop-secondary_object_update_offsets
 	dc.w abs_0_00008422-secondary_object_update_offsets
 	dc.w integrate_distant_actor_velocity-secondary_object_update_offsets
 	dc.w update_secondary_actor_motion_and_counter-secondary_object_update_offsets
 	dc.w update_distant_dome_silo_launch_cycle-secondary_object_update_offsets
 	dc.w abs_0_000084B4-secondary_object_update_offsets
-	dc.w abs_0_0000839C-secondary_object_update_offsets
-	dc.w abs_0_0000839C-secondary_object_update_offsets
-	dc.w abs_0_0000839C-secondary_object_update_offsets
-	dc.w abs_0_0000839C-secondary_object_update_offsets
-	dc.w abs_0_0000839C-secondary_object_update_offsets
-	dc.w abs_0_0000839C-secondary_object_update_offsets
-	dc.w abs_0_0000839C-secondary_object_update_offsets
-	dc.w abs_0_0000839C-secondary_object_update_offsets
-	dc.w abs_0_0000839C-secondary_object_update_offsets
-	dc.w abs_0_0000839C-secondary_object_update_offsets
-	dc.w abs_0_0000839C-secondary_object_update_offsets
-	dc.w abs_0_0000839C-secondary_object_update_offsets
+	dc.w continue_secondary_object_update_loop-secondary_object_update_offsets
+	dc.w continue_secondary_object_update_loop-secondary_object_update_offsets
+	dc.w continue_secondary_object_update_loop-secondary_object_update_offsets
+	dc.w continue_secondary_object_update_loop-secondary_object_update_offsets
+	dc.w continue_secondary_object_update_loop-secondary_object_update_offsets
+	dc.w continue_secondary_object_update_loop-secondary_object_update_offsets
+	dc.w continue_secondary_object_update_loop-secondary_object_update_offsets
+	dc.w continue_secondary_object_update_loop-secondary_object_update_offsets
+	dc.w continue_secondary_object_update_loop-secondary_object_update_offsets
+	dc.w continue_secondary_object_update_loop-secondary_object_update_offsets
+	dc.w continue_secondary_object_update_loop-secondary_object_update_offsets
+	dc.w continue_secondary_object_update_loop-secondary_object_update_offsets
 	dc.w abs_0_0000840A-secondary_object_update_offsets
-	dc.w abs_0_0000839C-secondary_object_update_offsets
-	dc.w abs_0_0000839C-secondary_object_update_offsets
-	dc.w abs_0_0000839C-secondary_object_update_offsets
-	dc.w abs_0_0000839C-secondary_object_update_offsets
-	dc.w abs_0_0000839C-secondary_object_update_offsets
-	dc.w abs_0_0000839C-secondary_object_update_offsets
-	dc.w abs_0_0000839C-secondary_object_update_offsets
-	dc.w abs_0_0000839C-secondary_object_update_offsets
-	dc.w abs_0_0000839C-secondary_object_update_offsets
-	dc.w abs_0_0000839C-secondary_object_update_offsets
-	dc.w abs_0_0000839C-secondary_object_update_offsets
+	dc.w continue_secondary_object_update_loop-secondary_object_update_offsets
+	dc.w continue_secondary_object_update_loop-secondary_object_update_offsets
+	dc.w continue_secondary_object_update_loop-secondary_object_update_offsets
+	dc.w continue_secondary_object_update_loop-secondary_object_update_offsets
+	dc.w continue_secondary_object_update_loop-secondary_object_update_offsets
+	dc.w continue_secondary_object_update_loop-secondary_object_update_offsets
+	dc.w continue_secondary_object_update_loop-secondary_object_update_offsets
+	dc.w continue_secondary_object_update_loop-secondary_object_update_offsets
+	dc.w continue_secondary_object_update_loop-secondary_object_update_offsets
+	dc.w continue_secondary_object_update_loop-secondary_object_update_offsets
+	dc.w continue_secondary_object_update_loop-secondary_object_update_offsets
 	dc.w abs_0_0000A8CE-secondary_object_update_offsets
 	dc.w abs_0_0000A8CE-secondary_object_update_offsets
 	dc.w abs_0_0000A8CE-secondary_object_update_offsets
-	dc.w abs_0_0000839C-secondary_object_update_offsets
-	dc.w abs_0_0000839C-secondary_object_update_offsets
-	dc.w abs_0_0000839C-secondary_object_update_offsets
-	dc.w abs_0_0000839C-secondary_object_update_offsets
-	dc.w abs_0_0000839C-secondary_object_update_offsets
-	dc.w abs_0_0000839C-secondary_object_update_offsets
-	dc.w abs_0_0000839C-secondary_object_update_offsets
-	dc.w abs_0_0000839C-secondary_object_update_offsets
-	dc.w abs_0_0000839C-secondary_object_update_offsets
-	dc.w abs_0_0000835C-secondary_object_update_offsets
-	dc.w abs_0_0000839C-secondary_object_update_offsets
-	dc.w abs_0_0000839C-secondary_object_update_offsets
-	dc.w abs_0_0000839C-secondary_object_update_offsets
-	dc.w abs_0_0000839C-secondary_object_update_offsets
-	dc.w abs_0_0000839C-secondary_object_update_offsets
-	dc.w abs_0_0000839C-secondary_object_update_offsets
+	dc.w continue_secondary_object_update_loop-secondary_object_update_offsets
+	dc.w continue_secondary_object_update_loop-secondary_object_update_offsets
+	dc.w continue_secondary_object_update_loop-secondary_object_update_offsets
+	dc.w continue_secondary_object_update_loop-secondary_object_update_offsets
+	dc.w continue_secondary_object_update_loop-secondary_object_update_offsets
+	dc.w continue_secondary_object_update_loop-secondary_object_update_offsets
+	dc.w continue_secondary_object_update_loop-secondary_object_update_offsets
+	dc.w continue_secondary_object_update_loop-secondary_object_update_offsets
+	dc.w continue_secondary_object_update_loop-secondary_object_update_offsets
+	dc.w release_distant_world_object-secondary_object_update_offsets
+	dc.w continue_secondary_object_update_loop-secondary_object_update_offsets
+	dc.w continue_secondary_object_update_loop-secondary_object_update_offsets
+	dc.w continue_secondary_object_update_loop-secondary_object_update_offsets
+	dc.w continue_secondary_object_update_loop-secondary_object_update_offsets
+	dc.w continue_secondary_object_update_loop-secondary_object_update_offsets
+	dc.w continue_secondary_object_update_loop-secondary_object_update_offsets
 	dc.w abs_0_000085F4-secondary_object_update_offsets
-	dc.w abs_0_0000839C-secondary_object_update_offsets
-	dc.w abs_0_0000839C-secondary_object_update_offsets
-	dc.w abs_0_0000839C-secondary_object_update_offsets
+	dc.w continue_secondary_object_update_loop-secondary_object_update_offsets
+	dc.w continue_secondary_object_update_loop-secondary_object_update_offsets
+	dc.w continue_secondary_object_update_loop-secondary_object_update_offsets
 	dc.w abs_0_000084C4-secondary_object_update_offsets
-	dc.w abs_0_0000839C-secondary_object_update_offsets
-	dc.w abs_0_0000839C-secondary_object_update_offsets
+	dc.w continue_secondary_object_update_loop-secondary_object_update_offsets
+	dc.w continue_secondary_object_update_loop-secondary_object_update_offsets
 	dc.w abs_0_0000860C-secondary_object_update_offsets
 	dc.w abs_0_000085C4-secondary_object_update_offsets
-	dc.w abs_0_0000839C-secondary_object_update_offsets
-	dc.w abs_0_0000839C-secondary_object_update_offsets
-	dc.w abs_0_0000839C-secondary_object_update_offsets
+	dc.w continue_secondary_object_update_loop-secondary_object_update_offsets
+	dc.w continue_secondary_object_update_loop-secondary_object_update_offsets
+	dc.w continue_secondary_object_update_loop-secondary_object_update_offsets
 	dc.w abs_0_0000A8CE-secondary_object_update_offsets
-	dc.w abs_0_0000839C-secondary_object_update_offsets
-	dc.w abs_0_0000839C-secondary_object_update_offsets
-	dc.w abs_0_0000839C-secondary_object_update_offsets
-	dc.w abs_0_0000839C-secondary_object_update_offsets
-	dc.w abs_0_0000839C-secondary_object_update_offsets
-	dc.w abs_0_0000839C-secondary_object_update_offsets
-	dc.w abs_0_0000839C-secondary_object_update_offsets
-	dc.w abs_0_0000839C-secondary_object_update_offsets
-	dc.w abs_0_0000839C-secondary_object_update_offsets
-	dc.w abs_0_0000839C-secondary_object_update_offsets
-	dc.w abs_0_0000839C-secondary_object_update_offsets
-	dc.w abs_0_0000839C-secondary_object_update_offsets
-	dc.w abs_0_0000839C-secondary_object_update_offsets
-	dc.w abs_0_0000839C-secondary_object_update_offsets
-	dc.w abs_0_0000839C-secondary_object_update_offsets
-	dc.w abs_0_0000839C-secondary_object_update_offsets
-	dc.w abs_0_0000839C-secondary_object_update_offsets
-	dc.w abs_0_0000839C-secondary_object_update_offsets
-	dc.w abs_0_0000839C-secondary_object_update_offsets
-	dc.w abs_0_0000839C-secondary_object_update_offsets
-	dc.w abs_0_0000839C-secondary_object_update_offsets
-	dc.w abs_0_0000839C-secondary_object_update_offsets
-	dc.w abs_0_0000839C-secondary_object_update_offsets
-	dc.w abs_0_0000839C-secondary_object_update_offsets
-	dc.w abs_0_0000839C-secondary_object_update_offsets
+	dc.w continue_secondary_object_update_loop-secondary_object_update_offsets
+	dc.w continue_secondary_object_update_loop-secondary_object_update_offsets
+	dc.w continue_secondary_object_update_loop-secondary_object_update_offsets
+	dc.w continue_secondary_object_update_loop-secondary_object_update_offsets
+	dc.w continue_secondary_object_update_loop-secondary_object_update_offsets
+	dc.w continue_secondary_object_update_loop-secondary_object_update_offsets
+	dc.w continue_secondary_object_update_loop-secondary_object_update_offsets
+	dc.w continue_secondary_object_update_loop-secondary_object_update_offsets
+	dc.w continue_secondary_object_update_loop-secondary_object_update_offsets
+	dc.w continue_secondary_object_update_loop-secondary_object_update_offsets
+	dc.w continue_secondary_object_update_loop-secondary_object_update_offsets
+	dc.w continue_secondary_object_update_loop-secondary_object_update_offsets
+	dc.w continue_secondary_object_update_loop-secondary_object_update_offsets
+	dc.w continue_secondary_object_update_loop-secondary_object_update_offsets
+	dc.w continue_secondary_object_update_loop-secondary_object_update_offsets
+	dc.w continue_secondary_object_update_loop-secondary_object_update_offsets
+	dc.w continue_secondary_object_update_loop-secondary_object_update_offsets
+	dc.w continue_secondary_object_update_loop-secondary_object_update_offsets
+	dc.w continue_secondary_object_update_loop-secondary_object_update_offsets
+	dc.w continue_secondary_object_update_loop-secondary_object_update_offsets
+	dc.w continue_secondary_object_update_loop-secondary_object_update_offsets
+	dc.w continue_secondary_object_update_loop-secondary_object_update_offsets
+	dc.w continue_secondary_object_update_loop-secondary_object_update_offsets
+	dc.w continue_secondary_object_update_loop-secondary_object_update_offsets
+	dc.w continue_secondary_object_update_loop-secondary_object_update_offsets
 	dc.w abs_0_000084F8-secondary_object_update_offsets
 	dc.w abs_0_000084F8-secondary_object_update_offsets
 	dc.w abs_0_000084F8-secondary_object_update_offsets
@@ -10197,27 +10206,32 @@ secondary_object_update_offsets:
 	dc.w abs_0_00008510-secondary_object_update_offsets
 	dc.w abs_0_00008510-secondary_object_update_offsets
 	dc.w abs_0_0000851C-secondary_object_update_offsets
-	dc.w abs_0_0000839C-secondary_object_update_offsets
+	dc.w continue_secondary_object_update_loop-secondary_object_update_offsets
 	dc.w abs_0_00008534-secondary_object_update_offsets
-	dc.w abs_0_0000839C-secondary_object_update_offsets
-	dc.w abs_0_0000839C-secondary_object_update_offsets
-abs_0_00008344:
+	dc.w continue_secondary_object_update_loop-secondary_object_update_offsets
+	dc.w continue_secondary_object_update_loop-secondary_object_update_offsets
+    ; Distant retirement uses the same equality/increment rule, but its release ordering differs: FF phase is written before clearing and does not survive.
+advance_distant_object_retirement_phase:
 	move.w (a0),d0	; operand 1: SG2ObjectCore_object_type at (a0)
 	movea.l #object_retirement_phase_limits,a3
 	move.b $0(a3,d0.w),d0
 	cmp.b SG2ObjectCore_retirement_phase_or_negative(a0),d0
-	beq.b abs_0_0000835C
+	beq.b release_distant_world_object
+increment_distant_retirement_phase_byte:
 	addq.b #1,SG2ObjectCore_retirement_phase_or_negative(a0)
-	bra.b abs_0_0000839C
-abs_0_0000835C:
+	bra.b continue_secondary_object_update_loop
+    ; Push the pointer before clearing all 68 bytes. Final distant record is entirely zero, including phase, unlike nearby final FF. No global alias invalidation or deduplication is done here.
+release_distant_world_object:
 	move.b #$FF,SG2ObjectCore_retirement_phase_or_negative(a0)
 	clr.b $0003(a0)
+push_distant_record_before_clearing:
 	addq.w #1,free_object_count(a6)
 	movea.l free_object_stack_cursor(a6),a1
 	move.l a0,(a1)+
 	move.l a1,free_object_stack_cursor(a6)
 	move.l a0,-(a7)
 	moveq.l #0,d0
+clear_distant_recycled_record_longs:
 	move.l d0,(a0)+	; operand 2: SG2ObjectCore_object_type at (a0)+
 	move.l d0,(a0)+	; operand 2: SG2ObjectCore_world_x at (a0)+
 	move.l d0,(a0)+	; operand 2: SG2ObjectCore_world_y at (a0)+
@@ -10236,7 +10250,7 @@ abs_0_0000835C:
 	move.l d0,(a0)+
 	move.l d0,(a0)+
 	movea.l (a7)+,a0
-abs_0_0000839C:
+continue_secondary_object_update_loop:
 	sf.b ai_type12_projectile_request(a6)
 	move.w object_update_dbf_index(a6),d6
 	dbf.w d6,secondary_object_update_loop
@@ -10253,7 +10267,7 @@ abs_0_000083D8:
 	addi.w #16,$0014(a0)
 	andi.w #4095,$0014(a0)
 abs_0_000083F6:
-	bra.w abs_0_000081D2
+	bra.w continue_primary_object_update_loop
 abs_0_000083FA:
 	bra.w abs_0_0000B45E
 abs_0_000083FE:
@@ -10285,17 +10299,17 @@ abs_0_0000843E:
 	asr.w #1,d0
 	ext.l d0
 	add.l d0,SG2ObjectCore_world_y(a0)
-	bra.w abs_0_000081D2
+	bra.w continue_primary_object_update_loop
 abs_0_00008466:
 	tst.b space_environment_flag(a6)
 	bmi.b abs_0_00008474
 	addq.w #4,SG2WorldObject_velocity_y(a0)
-	bra.w abs_0_000081D2
+	bra.w continue_primary_object_update_loop
 abs_0_00008474:
 	addi.w #16,SG2WorldObject_rotation_1(a0)
 	andi.w #4095,SG2WorldObject_rotation_1(a0)
 abs_0_00008480:
-	bra.w abs_0_000081D2
+	bra.w continue_primary_object_update_loop
 abs_0_00008484:
 	move.b #$C4,diagnostic_step_byte.l
 	bra.w abs_0_0000B4E2
@@ -10417,13 +10431,13 @@ update_linked_tug_motion_and_retirement:
 	and.l d3,SG2ObjectCore_world_x(a0)
 	and.l d3,SG2ObjectCore_world_z(a0)
 	tst.b SG2ObjectCore_retirement_phase_or_negative(a0)
-	bpl.w abs_0_000081D2
+	bpl.w continue_primary_object_update_loop
 	cmpi.b #3,SG2ObjectCore_durability_or_negative(a0)
 	bls.b mark_following_tug_chain_for_settling
 	cmpi.l #4294967256,SG2ObjectCore_world_y(a0)
 	bge.w retire_tug_and_detach_reciprocal_links
 	tst.b SG2LinkedTug_chain_release_settling_enabled(a0)
-	beq.w abs_0_000081D2
+	beq.w continue_primary_object_update_loop
 	move.w SG2WorldObject_velocity_x(a0),d0
 	beq.b abs_0_00008698
 	bsr.w step_signed_velocity_word_toward_zero_by_four
@@ -10433,10 +10447,10 @@ abs_0_00008698:
 	addi.w #1,d0
 	move.w d0,SG2WorldObject_velocity_y(a0)
 	move.w SG2WorldObject_velocity_z(a0),d0
-	beq.w abs_0_000081D2
+	beq.w continue_primary_object_update_loop
 	bsr.w step_signed_velocity_word_toward_zero_by_four
 	move.w d0,SG2WorldObject_velocity_z(a0)
-	bra.w abs_0_000081D2
+	bra.w continue_primary_object_update_loop
 mark_following_tug_chain_for_settling:
 	movea.l a0,a1
 abs_0_000086BA:
@@ -10483,9 +10497,9 @@ retire_tug_and_detach_reciprocal_links:
 abs_0_00008758:
 	movea.l SG2WorldObject_back_link_or_sentinel(a0),a4
 	cmpa.l #$0,a4
-	beq.w abs_0_000081D2
+	beq.w continue_primary_object_update_loop
 	clr.l $003C(a4)
-	bra.w abs_0_000081D2
+	bra.w continue_primary_object_update_loop
 step_signed_velocity_word_toward_zero_by_four:
 	tst.w d0
 	bpl.b abs_0_0000877A
@@ -10507,18 +10521,18 @@ copy_player_pose_to_icarus_object:
 	move.w player_rotation_0(a6),SG2WorldObject_rotation_0(a0)
 	move.w player_rotation_1(a6),SG2WorldObject_rotation_1(a0)
 	move.w player_rotation_2(a6),SG2WorldObject_rotation_2(a0)
-	bra.w abs_0_000081D2
+	bra.w continue_primary_object_update_loop
     ; KNOWN: type A0=Target code-entry register seed:SG2GroundLaser
 step_ground_laser_fire_phase:
 	subq.b #1,SG2GroundLaser_fire_phase_counter(a0)
 	move.b SG2GroundLaser_fire_phase_counter(a0),d0
 	andi.b #7,d0
 	beq.w abs_0_00009F02
-	bra.w abs_0_000081D2
+	bra.w continue_primary_object_update_loop
     ; KNOWN: type A0=Target code-entry register seed:SG2HeadingRotor
 step_satellite_dish_heading:
 	addi.w #32,SG2HeadingRotor_rotation_1(a0)
-	bra.w abs_0_000081D2
+	bra.w continue_primary_object_update_loop
     ; KNOWN: type A0=Target code-entry register seed:SG2TunnelIndicator
 update_tunnel_indicator_rotation:
 	cmpi.b #1,SG2TunnelIndicator_rotation_mode(a0)
@@ -10529,36 +10543,36 @@ update_tunnel_indicator_rotation:
 	beq.b abs_0_00008810
 	addi.w #90,SG2TunnelIndicator_rotation_2(a0)
 	andi.w #4095,SG2TunnelIndicator_rotation_2(a0)
-	bra.w abs_0_000081D2
+	bra.w continue_primary_object_update_loop
 abs_0_000087F0:
 	addi.w #70,SG2TunnelIndicator_rotation_2(a0)
 	andi.w #4095,SG2TunnelIndicator_rotation_2(a0)
-	bra.w abs_0_000081D2
+	bra.w continue_primary_object_update_loop
 abs_0_00008800:
 	subi.w #70,SG2TunnelIndicator_rotation_2(a0)
 	andi.w #4095,SG2TunnelIndicator_rotation_2(a0)
-	bra.w abs_0_000081D2
+	bra.w continue_primary_object_update_loop
 abs_0_00008810:
 	move.w SG2TunnelIndicator_angular_step(a0),d0
 	add.w d0,SG2TunnelIndicator_rotation_2(a0)
 	tst.w SG2TunnelIndicator_rotation_2(a0)
 	bpl.b abs_0_00008826
 	addq.w #4,SG2TunnelIndicator_angular_step(a0)
-	bra.w abs_0_000081D2
+	bra.w continue_primary_object_update_loop
 abs_0_00008826:
 	subq.w #4,SG2TunnelIndicator_angular_step(a0)
-	bra.w abs_0_000081D2
+	bra.w continue_primary_object_update_loop
     ; KNOWN: type A0=Target code-entry register seed:SG2TimedHeadingRotor
 step_energy_transmitter_heading_phase:
 	subq.w #1,SG2TimedHeadingRotor_rotation_trigger_counter(a0)
 	beq.b abs_0_00008846
 	tst.b SG2ObjectCore_durability_or_negative(a0)
-	bne.w abs_0_000081D2
+	bne.w continue_primary_object_update_loop
 	addi.w #112,SG2HeadingRotor_rotation_1(a0)
-	bra.w abs_0_000081D2
+	bra.w continue_primary_object_update_loop
 abs_0_00008846:
 	addi.w #112,SG2HeadingRotor_rotation_1(a0)
-	bra.w abs_0_000081D2
+	bra.w continue_primary_object_update_loop
     ; KNOWN: type A0=Target code-entry register seed:SG2WalkingActor
 update_walker_motion_and_attack_cadence:
 	subq.w #1,SG2ScheduledActor_behavior_update_counter(a0)
@@ -10611,7 +10625,7 @@ abs_0_000088BC:
 	beq.w try_ai_projectile_attack_if_aligned
 	andi.b #7,d0
 	beq.w abs_0_00009F02
-	bra.w abs_0_000081D2
+	bra.w continue_primary_object_update_loop
 abs_0_00008908:
 	move.w SG2WorldObject_velocity_x(a0),d3
 	ext.l d3
@@ -10667,20 +10681,20 @@ update_energy_gate_vertex_variant:
 	addq.b #1,SG2VariantObject_vertex_variant_selector(a0)
 	move.b SG2VariantObject_vertex_variant_selector(a0),d0
 	cmp.b #$6,d0
-	blt.w abs_0_000081D2
+	blt.w continue_primary_object_update_loop
 	clr.b SG2VariantObject_vertex_variant_selector(a0)
-	bra.w abs_0_000081D2
+	bra.w continue_primary_object_update_loop
 abs_0_000089BE:
 	move.b #$6,SG2VariantObject_vertex_variant_selector(a0)
-	bra.w abs_0_000081D2
+	bra.w continue_primary_object_update_loop
     ; KNOWN: type A0=Target code-entry register seed:SG2VariantObject
 advance_bt_tower_vertex_cycle:
 	addq.b #1,SG2VariantObject_vertex_variant_selector(a0)
 	move.b SG2VariantObject_vertex_variant_selector(a0),d0
 	cmp.b #$C,d0
-	bne.w abs_0_000081D2
+	bne.w continue_primary_object_update_loop
 	move.b #$0,SG2VariantObject_vertex_variant_selector(a0)
-	bra.w abs_0_000081D2
+	bra.w continue_primary_object_update_loop
     ; KNOWN: type A0=Target code-entry register seed:SG2EnergyTower
 update_energy_tower_variant_and_alternate_form:
 	bsr.w advance_shared_random_state
@@ -10691,20 +10705,20 @@ update_energy_tower_variant_and_alternate_form:
 	add.w d1,d0
 	move.b d0,SG2VariantObject_vertex_variant_selector(a0)
 	tst.b SG2EnergyTower_alternate_form_request(a0)
-	beq.w abs_0_000081D2
+	beq.w continue_primary_object_update_loop
 	move.w #$5D,(a0)	; operand 2: SG2ObjectCore_object_type at (a0)
 	sf.b SG2VariantObject_vertex_variant_selector(a0)
 	subi.l #4000,SG2ObjectCore_world_z(a0)
-	bra.w abs_0_000081D2
+	bra.w continue_primary_object_update_loop
     ; KNOWN: type A0=Target code-entry register seed:SG2EnergyTower
 restore_energy_tower_primary_form:
 	tst.b SG2EnergyTower_primary_form_restore_inhibit_flag(a0)
-	bne.w abs_0_000081D2
+	bne.w continue_primary_object_update_loop
 	tst.b SG2EnergyTower_alternate_form_request(a0)
-	bne.w abs_0_000081D2
+	bne.w continue_primary_object_update_loop
 	move.w #$5A,(a0)	; operand 2: SG2ObjectCore_object_type at (a0)
 	addi.l #4000,SG2ObjectCore_world_z(a0)
-	bra.w abs_0_000081D2
+	bra.w continue_primary_object_update_loop
     ; KNOWN: type A0=Target code-entry register seed:SG2FlyingActor
 advance_space_ray_frame_then_update:
 	addq.b #1,SG2WorldObject_vertex_variant_selector(a0)
@@ -10720,7 +10734,7 @@ advance_pac_worm_vertex_and_motion_phase:
 	cmp.b #$18,d2
 	beq.b abs_0_00008A6A
 	cmp.b #$E,d2
-	bls.w abs_0_000081D2
+	bls.w continue_primary_object_update_loop
 	bra.w integrate_and_steer_horizontal_actor
 abs_0_00008A6A:
 	move.b #$0,SG2WorldObject_vertex_variant_selector(a0)
@@ -10777,7 +10791,7 @@ abs_0_00008AE8:
 	sf.b ai_type12_projectile_request(a6)
 	andi.b #7,d0
 	beq.w try_ai_projectile_attack_if_aligned
-	bra.w abs_0_000081D2
+	bra.w continue_primary_object_update_loop
 abs_0_00008B2C:
 	move.w SG2WorldObject_velocity_x(a0),d3
 	ext.l d3
@@ -10957,7 +10971,7 @@ retire_low_durability_evasive_actor:
 	addi.l #10,SG2ObjectCore_world_y(a0)
 abs_0_00008D62:
 	clr.b SG2ObjectCore_retirement_phase_or_negative(a0)
-	bra.w abs_0_000081D2
+	bra.w continue_primary_object_update_loop
 steer_near_opposite_player_heading:
 	bsr.w heading_with_player_as_reference
 	addi.w #2000,d1
@@ -11010,7 +11024,7 @@ abs_0_00008DF2:
 	bls.b abs_0_00008E02
 abs_0_00008DF8:
 	addi.w #64,SG2WorldObject_rotation_1(a0)
-	bra.w abs_0_000081D2
+	bra.w continue_primary_object_update_loop
 abs_0_00008E02:
 	cmpi.w #768,SG2ObjectCore_relative_z(a0)
 	bpl.b abs_0_00008E34
@@ -11046,7 +11060,7 @@ update_egron_spire_collapse:
 abs_0_00008E88:
 	move.b SG2CollapsingSpire_collapse_durability_marker(a0),d0
 	cmp.b SG2ObjectCore_durability_or_negative(a0),d0
-	beq.w abs_0_000081D2
+	beq.w continue_primary_object_update_loop
 	tst.w SG2WorldObject_velocity_y(a0)
 	beq.w wind_down_spire_rotation_and_start_fall
 	move.w SG2CollapsingSpire_collapse_rotation_step(a0),d0
@@ -11054,7 +11068,7 @@ abs_0_00008E88:
 	cmp.w #$F0,d0
 	beq.w abs_0_00008EB4
 	addq.w #4,SG2CollapsingSpire_collapse_rotation_step(a0)
-	bra.w abs_0_000081D2
+	bra.w continue_primary_object_update_loop
 abs_0_00008EB4:
 	move.l horizontal_world_wrap_mask(a6),d3
 	addi.l #90,SG2ObjectCore_world_x(a0)
@@ -11066,17 +11080,17 @@ abs_0_00008EB4:
 	add.l d0,SG2ObjectCore_world_y(a0)
 	addq.w #4,SG2WorldObject_velocity_y(a0)
 	cmpi.w #66,SG2WorldObject_velocity_y(a0)
-	bne.w abs_0_000081D2
+	bne.w continue_primary_object_update_loop
 	clr.w SG2WorldObject_velocity_y(a0)
-	bra.w abs_0_000081D2
+	bra.w continue_primary_object_update_loop
 wind_down_spire_rotation_and_start_fall:
 	move.w SG2CollapsingSpire_collapse_rotation_step(a0),d0
 	add.w d0,SG2WorldObject_rotation_1(a0)
 	subq.w #4,SG2CollapsingSpire_collapse_rotation_step(a0)
-	bne.w abs_0_000081D2
+	bne.w continue_primary_object_update_loop
 	move.w #$FFC2,SG2WorldObject_velocity_y(a0)
 	subq.b #1,SG2CollapsingSpire_collapse_durability_marker(a0)
-	bra.w abs_0_000081D2
+	bra.w continue_primary_object_update_loop
     ; Type4 Converter: durability>2 counts variant down and signals guarded LONG3C links at17; durability<=2 uses signed BYTE1F ping-pong step. Linked pointee type remains unknown.
     ; KNOWN: type A0=Target code-entry register seed:SG2SolarConverter
 update_solar_converter_variant_and_chain:
@@ -11088,21 +11102,21 @@ update_solar_converter_variant_and_chain:
 	beq.b abs_0_00008F36
 	lea.l model_type_target_selection_tags_prefix(a6),a1
 	tst.b $0004(a1)
-	beq.w abs_0_000081D2
+	beq.w continue_primary_object_update_loop
 abs_0_00008F36:
 	subq.b #1,d0
-	beq.w abs_0_000081D2
+	beq.w continue_primary_object_update_loop
 	move.b d0,SG2WorldObject_vertex_variant_selector(a0)
 	cmp.b #$11,d0
-	bne.w abs_0_000081D2
+	bne.w continue_primary_object_update_loop
 	movea.l SG2WorldObject_linked_record_or_sentinel(a0),a4
 	cmpa.l #$0,a4
-	beq.w abs_0_000081D2
+	beq.w continue_primary_object_update_loop
 	movea.l a0,a1
 propagate_solar_converter_link_signal:
 	movea.l $003C(a1),a4
 	cmpa.l #$0,a4
-	beq.w abs_0_000081D2
+	beq.w continue_primary_object_update_loop
 	st.b $0028(a4)
 	movea.l a4,a1
 	bra.b propagate_solar_converter_link_signal
@@ -11114,27 +11128,27 @@ advance_solar_converter_ping_pong_variant:
 	beq.b abs_0_00008F88
 	cmp.b #$11,d0
 	beq.b abs_0_00008F92
-	bra.w abs_0_000081D2
+	bra.w continue_primary_object_update_loop
 abs_0_00008F88:
 	move.b #$1,SG2SolarConverter_variant_ping_pong_step(a0)
-	bra.w abs_0_000081D2
+	bra.w continue_primary_object_update_loop
 abs_0_00008F92:
 	move.b #$FF,SG2SolarConverter_variant_ping_pong_step(a0)
-	bra.w abs_0_000081D2
+	bra.w continue_primary_object_update_loop
     ; Type63 Blast Doors: durability6 holds vertex variant0; otherwise increment until9. No open/closed geometry or passability claim follows from these state transitions.
     ; KNOWN: type A0=Target code-entry register seed:SG2WorldObject
 update_blast_door_variant:
 	cmpi.b #6,SG2ObjectCore_durability_or_negative(a0)
 	bne.b abs_0_00008FAC
 	clr.b SG2WorldObject_vertex_variant_selector(a0)
-	bra.w abs_0_000081D2
+	bra.w continue_primary_object_update_loop
 abs_0_00008FAC:
 	move.b SG2WorldObject_vertex_variant_selector(a0),d0
 	cmp.b #$9,d0
-	beq.w abs_0_000081D2
+	beq.w continue_primary_object_update_loop
 	addq.b #1,d0
 	move.b d0,SG2WorldObject_vertex_variant_selector(a0)
-	bra.w abs_0_000081D2
+	bra.w continue_primary_object_update_loop
 	dc.b $60,$00,$F2,$0E,$16,$28,$00,$1F,$67,$00,$00,$2C,$10,$28,$00,$03
 	dc.b $D0,$03,$B0,$3C,$00,$00,$67,$0E,$B0,$3C,$00,$14,$67,$12,$11,$40
 	dc.b $00,$03,$60,$00,$00,$12,$11,$7C,$00,$01,$00,$1F,$60,$00,$00,$08
@@ -11236,7 +11250,7 @@ abs_0_0000913A:
 	tst.w SG2FlyingActor_proximity_maneuver_countdown(a0)
 	beq.b abs_0_00009150
 	subq.w #1,SG2FlyingActor_proximity_maneuver_countdown(a0)
-	bne.w abs_0_000081D2
+	bne.w continue_primary_object_update_loop
 abs_0_00009150:
 	move.w SG2TargetingObject_pre_view_relative_x(a0),d2
 	sub.w $0032(a4),d2
@@ -11266,7 +11280,7 @@ abs_0_00009182:
 	cmpi.l #4294967271,SG2ObjectCore_world_y(a0)
 	blt.b abs_0_000091B4
 	clr.b SG2ObjectCore_retirement_phase_or_negative(a0)
-	bra.w abs_0_000081D2
+	bra.w continue_primary_object_update_loop
 abs_0_000091B4:
 	addq.w #4,SG2WorldObject_velocity_y(a0)
 	bsr.w heading_with_player_as_reference
@@ -11300,7 +11314,7 @@ try_buzz_bomber_type6_spawn:
 	move.b #$6,SG2TargetingObject_collision_ignored_object_type(a0)
 	move.b #$21,SG2TargetingObject_collision_ignored_object_type(a2)
 	move.l #$FFFFFFFF,SG2WorldObject_linked_record_or_sentinel(a2)
-	bra.w abs_0_000081D2
+	bra.w continue_primary_object_update_loop
 abs_0_00009248:
 	move.b #$15,diagnostic_step_byte.l
 	bsr.w heading_with_player_as_reference
@@ -11391,15 +11405,15 @@ update_flat_diamond_ballistic_motion:
 abs_0_00009378:
 	addq.w #4,SG2WorldObject_velocity_y(a0)
 	cmpi.w #66,SG2WorldObject_velocity_y(a0)
-	bne.w abs_0_000081D2
+	bne.w continue_primary_object_update_loop
 abs_0_00009386:
 	move.w #$FFC2,SG2WorldObject_velocity_y(a0)
-	bra.w abs_0_000081D2
+	bra.w continue_primary_object_update_loop
     ; KNOWN: type A0=Target code-entry register seed:SG2VertexOscillator
 oscillate_duck_vertex_variant:
 	move.b #$17,diagnostic_step_byte.l
 	move.b SG2VertexOscillator_vertex_variant_step(a0),d3
-	beq.w abs_0_000081D2
+	beq.w continue_primary_object_update_loop
 	move.b SG2WorldObject_vertex_variant_selector(a0),d0
 	add.b d3,d0
 	cmp.b #$0,d0
@@ -11410,7 +11424,7 @@ oscillate_duck_vertex_variant:
 	bra.w integrate_and_steer_horizontal_actor
 abs_0_000093BA:
 	move.b #$1,SG2VertexOscillator_vertex_variant_step(a0)
-	bra.w abs_0_000081D2
+	bra.w continue_primary_object_update_loop
 abs_0_000093C4:
 	move.b #$FF,SG2VertexOscillator_vertex_variant_step(a0)
 	bra.w integrate_and_steer_horizontal_actor
@@ -11431,7 +11445,7 @@ abs_0_000093F8:
 	bne.w abs_0_00009410
 abs_0_00009406:
 	move.w #$FF84,SG2WorldObject_velocity_y(a0)
-	bra.w abs_0_000081D2
+	bra.w continue_primary_object_update_loop
 abs_0_00009410:
 	subq.w #1,SG2ScheduledActor_behavior_update_counter(a0)
 	move.w SG2ScheduledActor_behavior_update_counter(a0),d2
@@ -11440,10 +11454,10 @@ abs_0_00009410:
 	neg.w d1
 abs_0_00009422:
 	cmp.w #$58,d1
-	bpl.w abs_0_000081D2
+	bpl.w continue_primary_object_update_loop
 	andi.b #7,d2
 	beq.w abs_0_00009F02
-	bra.w abs_0_000081D2
+	bra.w continue_primary_object_update_loop
     ; KNOWN: type A0=Target code-entry register seed:SG2BouncingActor
 update_bouncing_ball_motion_and_vertex_phase:
 	move.w #$28,SG2BouncingActor_horizontal_motion_scale(a0)
@@ -11468,7 +11482,7 @@ update_bouncing_ball_motion_and_vertex_phase:
 abs_0_0000947C:
 	addq.w #4,SG2WorldObject_velocity_y(a0)
 	cmpi.w #66,SG2WorldObject_velocity_y(a0)
-	bne.w abs_0_000081D2
+	bne.w continue_primary_object_update_loop
 	move.b #$1,SG2VertexOscillator_vertex_variant_step(a0)
 abs_0_00009490:
 	move.b SG2VertexOscillator_vertex_variant_step(a0),d1
@@ -11481,7 +11495,7 @@ abs_0_000094A2:
 abs_0_000094A8:
 	move.l #$FFFFFFC9,SG2ObjectCore_world_y(a0)
 	move.b d2,SG2WorldObject_vertex_variant_selector(a0)
-	bne.w abs_0_000081D2
+	bne.w continue_primary_object_update_loop
 	move.w #$FFC2,SG2WorldObject_velocity_y(a0)
 	bsr.w heading_with_player_as_reference
 	bra.w recompute_actor_horizontal_motion_from_angle
@@ -11541,7 +11555,7 @@ abs_0_00009558:
 	move.w SG2ScheduledActor_behavior_update_counter(a0),d0
 	andi.b #31,d0
 	beq.b abs_0_00009570
-	bra.w abs_0_000081D2
+	bra.w continue_primary_object_update_loop
 abs_0_00009570:
 	bsr.w heading_with_player_as_reference
 	subq.w #1,SG2ScheduledActor_behavior_update_counter(a0)
@@ -11586,7 +11600,7 @@ advance_simple_projectile_variant_and_motion:
 age_simple_projectile:
 	subq.w #1,SG2TimedMotionActor_remaining_updates(a0)
 	ble.w retire_projectile_phase
-	bra.w abs_0_000081D2
+	bra.w continue_primary_object_update_loop
     ; KNOWN: type A0=Target code-entry register seed:SG2VelocityProjectile
 update_nearby_bouncing_projectile:
 	tst.b SG2VelocityProjectile_integration_service_byte(a0)
@@ -11620,7 +11634,7 @@ abs_0_00009656:
 	andi.w #4095,SG2WorldObject_rotation_0(a0)
 	subq.w #1,SG2TimedMotionActor_remaining_updates(a0)
 	ble.w retire_projectile_phase
-	bra.w abs_0_000081D2
+	bra.w continue_primary_object_update_loop
     ; Variant BYTE increments and resets only when equal to 5; this is not general modulo 5. Original position integration precedes tracking checks and budget/retirement handling.
     ; KNOWN: type A0=Target code-entry register seed:SG2SteeredProjectile
 animate_nearby_homing_projectile:
@@ -11670,14 +11684,14 @@ continue_player_projectile_horizontal_motion:
     ; Clear only the retirement phase here, then continue the object loop. This local path does not free/unlink the record or undo inventory; type and linked reference remain.
 retire_projectile_phase:
 	clr.b SG2ObjectCore_retirement_phase_or_negative(a0)
-	bra.w abs_0_000081D2
+	bra.w continue_primary_object_update_loop
     ; Skip zero/negative stored references. Positive refs require readable caller backing; type zero or nonnegative target phase retires before budget. BLS budget test differs from player BLE.
 steer_projectile_toward_stored_target:
 	move.b #$1D,diagnostic_step_byte.l
 reject_null_or_negative_stored_target_reference:
 	tst.l SG2WorldObject_linked_record_or_sentinel(a0)
-	beq.w abs_0_000081D2
-	bmi.w abs_0_000081D2
+	beq.w continue_primary_object_update_loop
+	bmi.w continue_primary_object_update_loop
 load_stored_target_for_local_record_checks:
 	movea.l SG2WorldObject_linked_record_or_sentinel(a0),a4
 retire_for_zero_stored_target_type:
@@ -11721,7 +11735,7 @@ try_ai_projectile_attack_if_aligned:
 	neg.w d1
 abs_0_0000977C:
 	cmp.w #$2D,d1
-	bpl.w abs_0_000081D2
+	bpl.w continue_primary_object_update_loop
     ; A0 is creator, not allocated child. Nonzero tag and unsigned freeCount>26 gate allocation; transient request selects12/25. Both paths set reciprocal collision-ignore type bytes.
     ; KNOWN: type A0=Target code-entry register seed:SG2WorldObject
 spawn_ai_projectile_continuation:
@@ -11729,9 +11743,9 @@ spawn_ai_projectile_continuation:
 	move.w (a0),d3	; operand 1: SG2ObjectCore_object_type at (a0)
 	lea.l model_type_target_selection_tags_prefix(a6),a1
 	tst.b $0(a1,d3.w)
-	beq.w abs_0_000081D2
+	beq.w continue_primary_object_update_loop
 	cmpi.w #26,free_object_count(a6)
-	bls.w abs_0_000081D2
+	bls.w continue_primary_object_update_loop
 	movea.l free_object_stack_cursor(a6),a1
 	movea.l -(a1),a2
 	move.l a1,free_object_stack_cursor(a6)
@@ -11803,18 +11817,18 @@ abs_0_0000982E:
 	clr.w SG2WorldObject_velocity_y(a2)
 	clr.b SG2SteeredProjectile_stored_target_tracking_byte(a2)
 	tst.b inside_structure_flag(a6)
-	beq.w abs_0_000081D2
+	beq.w continue_primary_object_update_loop
 	bset.b #6,SG2ObjectCore_flags(a2)
-	bra.w abs_0_000081D2
+	bra.w continue_primary_object_update_loop
 try_transport_or_buzz_bomber_type2_spawn:
 	move.w (a0),d0	; operand 1: SG2ObjectCore_object_type at (a0)
 	cmp.w #$12,d0
 	beq.b abs_0_000098C4
 	cmp.w #$21,d0
-	bne.w abs_0_000081D2
+	bne.w continue_primary_object_update_loop
 abs_0_000098C4:
 	cmpi.w #29,free_object_count(a6)
-	bls.w abs_0_000081D2
+	bls.w continue_primary_object_update_loop
 	movea.l free_object_stack_cursor(a6),a1
 	movea.l -(a1),a2
 	move.l a1,free_object_stack_cursor(a6)
@@ -11834,12 +11848,12 @@ abs_0_000098C4:
 	move.w SG2WorldObject_rotation_0(a0),SG2WorldObject_rotation_0(a2)
 	move.w SG2WorldObject_rotation_2(a0),SG2WorldObject_rotation_2(a2)
 	move.b #$FF,SG2ObjectCore_retirement_phase_or_negative(a2)
-	bra.w abs_0_000081D2
+	bra.w continue_primary_object_update_loop
     ; KNOWN: type A0=Target code-entry register seed:SG2CapsuleCarrier
 try_spawn_escape_capsule_for_carrier:
 	move.b #$20,diagnostic_step_byte.l
 	cmpi.w #10,free_object_count(a6)
-	bls.w abs_0_000081D2
+	bls.w continue_primary_object_update_loop
 	sf.b SG2CapsuleCarrier_escape_capsule_pending_flag(a0)
 	movea.l free_object_stack_cursor(a6),a1
 	movea.l -(a1),a2
@@ -11866,7 +11880,7 @@ abs_0_0000998C:
 	move.w #$90,SG2EscapeCapsule_spin_step(a2)
 	move.b #$FF,SG2ObjectCore_retirement_phase_or_negative(a2)
 	sf.b SG2WorldObject_vertex_variant_selector(a2)
-	bra.w abs_0_000081D2
+	bra.w continue_primary_object_update_loop
     ; KNOWN: type A0=Target code-entry register seed:SG2EscapeCapsule
 update_escape_capsule_spin_and_motion:
 	move.b #$21,diagnostic_step_byte.l
@@ -11879,9 +11893,9 @@ abs_0_000099D4:
 	tst.b SG2EscapeCapsule_translation_stopped_flag(a0)
 	beq.b abs_0_000099EA
 	tst.w SG2EscapeCapsule_spin_step(a0)
-	beq.w abs_0_000081D2
+	beq.w continue_primary_object_update_loop
 	subq.w #2,SG2EscapeCapsule_spin_step(a0)
-	bra.w abs_0_000081D2
+	bra.w continue_primary_object_update_loop
 abs_0_000099EA:
 	lsr SG2WorldObject_velocity_x(a0)
 	lsr SG2WorldObject_velocity_z(a0)
@@ -11900,14 +11914,14 @@ abs_0_000099EA:
 	cmpi.l #4294967251,d0
 	bge.b abs_0_00009A30
 	addi.l #8,SG2ObjectCore_world_y(a0)
-	bra.w abs_0_000081D2
+	bra.w continue_primary_object_update_loop
 abs_0_00009A30:
 	tst.w SG2EscapeCapsule_spin_step(a0)
 	beq.b abs_0_00009A3A
 	subq.w #2,SG2EscapeCapsule_spin_step(a0)
 abs_0_00009A3A:
 	st.b SG2EscapeCapsule_translation_stopped_flag(a0)
-	bra.w abs_0_000081D2
+	bra.w continue_primary_object_update_loop
     ; Buzz Bomb/cargo: only signed-positive 3C dereferences a linked record. Inactive link sets -1 and clears velocities. Zero/negative links use free motion; valid lifetime remains assumed.
     ; KNOWN: type A0=Target code-entry register seed:SG2WorldObject
 update_link_following_or_free_motion_object:
@@ -11943,7 +11957,7 @@ approach_active_linked_record:
 	sub.l d0,SG2ObjectCore_world_x(a0)
 	sub.l d1,SG2ObjectCore_world_y(a0)
 	sub.l d2,SG2ObjectCore_world_z(a0)
-	bra.w abs_0_000081D2
+	bra.w continue_primary_object_update_loop
 integrate_free_motion_and_surface_retirement:
 	move.w SG2WorldObject_velocity_x(a0),d3
 	ext.l d3
@@ -11958,18 +11972,18 @@ integrate_free_motion_and_surface_retirement:
 	and.l d3,SG2ObjectCore_world_x(a0)
 	and.l d3,SG2ObjectCore_world_z(a0)
 	tst.b space_environment_flag(a6)
-	bne.w abs_0_000081D2
+	bne.w continue_primary_object_update_loop
 	tst.b inside_structure_flag(a6)
-	bne.w abs_0_000081D2
+	bne.w continue_primary_object_update_loop
 	cmpi.l #4294967246,SG2ObjectCore_world_y(a0)
 	bge.b abs_0_00009B0E
 	asr SG2WorldObject_velocity_x(a0)
 	addq.w #2,SG2WorldObject_velocity_y(a0)
 	asr SG2WorldObject_velocity_z(a0)
-	bra.w abs_0_000081D2
+	bra.w continue_primary_object_update_loop
 abs_0_00009B0E:
 	sf.b SG2ObjectCore_retirement_phase_or_negative(a0)
-	bra.w abs_0_000081D2
+	bra.w continue_primary_object_update_loop
     ; Type29: negative space flag uses shared link/free-motion path; otherwise WORD24 delays downward acceleration. Distinct from flying-actor phase and asteroid spin counters.
     ; KNOWN: type A0=Target code-entry register seed:SG2MiniRocket
 update_mini_rocket_delay_then_fall:
@@ -11979,7 +11993,7 @@ update_mini_rocket_delay_then_fall:
 	beq.b accelerate_mini_rocket_after_delay
 	subq.w #1,SG2MiniRocket_fall_acceleration_delay_updates(a0)
 	clr.w SG2WorldObject_velocity_y(a0)
-	bra.w abs_0_000081D2
+	bra.w continue_primary_object_update_loop
 accelerate_mini_rocket_after_delay:
 	addi.w #16,SG2WorldObject_rotation_1(a0)
 	subq.w #2,SG2WorldObject_velocity_y(a0)
@@ -11987,7 +12001,7 @@ accelerate_mini_rocket_after_delay:
 	ext.l d0
 	add.l SG2ObjectCore_world_y(a0),d0
 	move.l d0,SG2ObjectCore_world_y(a0)
-	bra.w abs_0_000081D2
+	bra.w continue_primary_object_update_loop
     ; Type9 Land Tank: preserve repeated X/Z integration and signed WORD26 evasion gate. BYTE28 delay can release nonzero LONG3C peer; zero check does not prove peer type or lifetime.
     ; KNOWN: type A0=Target code-entry register seed:SG2LandTank
 update_nearby_egron_land_tank:
@@ -12033,7 +12047,7 @@ move_land_tank_during_link_delay:
 	beq.w try_ai_projectile_attack_if_aligned
 	andi.b #7,d0
 	beq.w abs_0_00009F02
-	bra.w abs_0_000081D2
+	bra.w continue_primary_object_update_loop
 move_land_tank_without_link_delay:
 	move.w SG2WorldObject_velocity_x(a0),d3
 	ext.l d3
@@ -12121,7 +12135,7 @@ set_gbml_cannon_altitude_variant:
 	andi.b #7,d0
 	move.b d0,SG2WorldObject_vertex_variant_selector(a0)
 	subq.w #1,SG2ScheduledActor_behavior_update_counter(a0)
-	bne.w abs_0_000081D2
+	bne.w continue_primary_object_update_loop
 	move.w #$F,SG2ScheduledActor_behavior_update_counter(a0)
 	sf.b ai_type12_projectile_request(a6)
 	bra.w try_ai_projectile_attack_if_aligned
@@ -12167,9 +12181,9 @@ abs_0_00009D4A:
 	bra.w abs_0_0000A52A
 abs_0_00009D70:
 	andi.b #15,d0
-	bne.w abs_0_000081D2
+	bne.w continue_primary_object_update_loop
 	cmpi.l #4294967046,player_world_y(a6)
-	bge.w abs_0_000081D2
+	bge.w continue_primary_object_update_loop
 	bra.w abs_0_00009F02
     ; Type26 Tripuss: zero BYTE1F step skips later timer/motion. Sums0/9 change step without storing boundary variant; preserve asymmetric X/Z comparisons, not a radius/AABB test.
     ; KNOWN: type A0=Target code-entry register seed:SG2Tripuss
@@ -12183,7 +12197,7 @@ update_nearby_tripuss:
 	clr.l SG2ObjectCore_world_y(a0)
 abs_0_00009DAE:
 	move.b SG2Tripuss_variant_ping_pong_step(a0),d3
-	beq.w abs_0_000081D2
+	beq.w continue_primary_object_update_loop
 	move.b SG2WorldObject_vertex_variant_selector(a0),d0
 	add.b d3,d0
 	beq.b abs_0_00009DCC
@@ -12229,7 +12243,7 @@ abs_0_00009E3E:
 	bgt.b abs_0_00009E6E
 	move.w #$C00,SG2WorldObject_rotation_0(a0)
 	move.l #$FFFFFF60,SG2ObjectCore_world_y(a0)
-	bra.w abs_0_000081D2
+	bra.w continue_primary_object_update_loop
 abs_0_00009E6E:
 	andi.w #4095,SG2WorldObject_rotation_0(a0)
 	move.w SG2ScheduledActor_behavior_update_counter(a0),d3
@@ -12248,32 +12262,32 @@ abs_0_00009E6E:
 abs_0_00009EA4:
 	andi.b #7,d3
 	beq.w abs_0_00009F02
-	bra.w abs_0_000081D2
+	bra.w continue_primary_object_update_loop
 abs_0_00009EB0:
 	move.w SG2ScheduledActor_behavior_update_counter(a0),d3
 	andi.b #31,d3
 	beq.w blend_actor_toward_player_heading
 	andi.b #7,d3
 	beq.w abs_0_00009248
-	bra.w abs_0_000081D2
+	bra.w continue_primary_object_update_loop
     ; KNOWN: type A0=Target code-entry register seed:SG2VertexOscillator
 oscillate_pyramid_vertex_variant:
 	move.b #$27,diagnostic_step_byte.l
 	move.b SG2VertexOscillator_vertex_variant_step(a0),d3
-	beq.w abs_0_000081D2
+	beq.w continue_primary_object_update_loop
 	move.b SG2WorldObject_vertex_variant_selector(a0),d0
 	add.b d3,d0
 	beq.b abs_0_00009EEE
 	cmp.b #$F,d0
 	beq.b abs_0_00009EF8
 	move.b d0,SG2WorldObject_vertex_variant_selector(a0)
-	bra.w abs_0_000081D2
+	bra.w continue_primary_object_update_loop
 abs_0_00009EEE:
 	move.b #$1,SG2VertexOscillator_vertex_variant_step(a0)
-	bra.w abs_0_000081D2
+	bra.w continue_primary_object_update_loop
 abs_0_00009EF8:
 	move.b #$FF,SG2VertexOscillator_vertex_variant_step(a0)
-	bra.w abs_0_000081D2
+	bra.w continue_primary_object_update_loop
 abs_0_00009F02:
 	move.b #$28,diagnostic_step_byte.l
 	bsr.w heading_with_player_as_reference
@@ -12282,9 +12296,9 @@ abs_0_00009F02:
 	move.w (a0),d3	; operand 1: SG2ObjectCore_object_type at (a0)
 	lea.l model_type_target_selection_tags_prefix(a6),a1
 	tst.b $0(a1,d3.w)
-	beq.w abs_0_000081D2
+	beq.w continue_primary_object_update_loop
 	cmpi.w #25,free_object_count(a6)
-	bls.w abs_0_000081D2
+	bls.w continue_primary_object_update_loop
 	movea.l free_object_stack_cursor(a6),a1
 	movea.l -(a1),a2
 	move.l a1,free_object_stack_cursor(a6)
@@ -12332,21 +12346,21 @@ abs_0_00009F02:
 	move.w d4,SG2WorldObject_velocity_z(a2)
 	clr.w SG2WorldObject_velocity_y(a2)
 	clr.b SG2VelocityProjectile_integration_service_byte(a2)
-	bra.w abs_0_000081D2
+	bra.w continue_primary_object_update_loop
     ; KNOWN: type A0=Target code-entry register seed:SG2SiloLauncher
 update_egron_silo_launch_cycle:
 	move.b #$2B,diagnostic_step_byte.l
 	tst.w SG2SiloLauncher_spawn_cooldown(a0)
 	beq.b abs_0_0000A004
 	subq.w #1,SG2SiloLauncher_spawn_cooldown(a0)
-	bra.w abs_0_000081D2
+	bra.w continue_primary_object_update_loop
 abs_0_0000A004:
 	tst.b SG2SiloLauncher_child_attached_flag(a0)
 	bne.w abs_0_0000A0F0
 	tst.b SG2WorldObject_vertex_variant_selector(a0)
 	bne.w abs_0_0000A0D8
 	cmpi.w #70,free_object_count(a6)
-	bls.w abs_0_000081D2
+	bls.w continue_primary_object_update_loop
 	movea.l free_object_stack_cursor(a6),a1
 	movea.l -(a1),a2
 	move.l a1,free_object_stack_cursor(a6)
@@ -12384,15 +12398,15 @@ abs_0_0000A004:
 	bset.b #7,SG2ObjectCore_flags(a2)
 	bset.b #5,SG2ObjectCore_flags(a2)
 	st.b SG2SiloLauncher_child_attached_flag(a0)
-	bra.w abs_0_000081D2
+	bra.w continue_primary_object_update_loop
 abs_0_0000A0D4:
 	clr.b SG2SiloLauncher_child_attached_flag(a0)
 abs_0_0000A0D8:
 	subq.b #1,SG2WorldObject_vertex_variant_selector(a0)
-	bne.w abs_0_000081D2
+	bne.w continue_primary_object_update_loop
 	move.w #$12C,SG2SiloLauncher_spawn_cooldown(a0)
 	bset.b #7,SG2ObjectCore_durability_or_negative(a0)
-	bra.w abs_0_000081D2
+	bra.w continue_primary_object_update_loop
 abs_0_0000A0F0:
 	movea.l SG2WorldObject_linked_record_or_sentinel(a0),a2
 	tst.w (a2)
@@ -12401,22 +12415,22 @@ abs_0_0000A0F0:
 	beq.b abs_0_0000A110
 	addq.b #1,SG2WorldObject_vertex_variant_selector(a0)
 	lea.l model_default_durability_bytes.l,a1
-	bra.w abs_0_000081D2
+	bra.w continue_primary_object_update_loop
 abs_0_0000A110:
 	cmpi.l #4294966156,$0008(a2)
 	bls.w abs_0_0000A128
 	subi.l #40,$0008(a2)
-	bra.w abs_0_000081D2
+	bra.w continue_primary_object_update_loop
 abs_0_0000A128:
 	bclr.b #7,$0002(a2)
 	clr.b SG2SiloLauncher_child_attached_flag(a0)
-	bra.w abs_0_000081D2
+	bra.w continue_primary_object_update_loop
     ; KNOWN: type A0=Target code-entry register seed:SG2TunnelEmitter
 try_tunnel_sentinel_emission:
 	tst.b SG2TunnelEmitter_remaining_sentinel_emissions(a0)
-	beq.w abs_0_000081D2
+	beq.w continue_primary_object_update_loop
 	cmpi.w #50,free_object_count(a6)
-	bls.w abs_0_000081D2
+	bls.w continue_primary_object_update_loop
 	movea.l free_object_stack_cursor(a6),a1
 	movea.l -(a1),a2
 	move.l a1,free_object_stack_cursor(a6)
@@ -12443,7 +12457,7 @@ try_tunnel_sentinel_emission:
 	clr.w SG2WorldObject_velocity_x(a2)
 	move.w #$FF84,SG2WorldObject_velocity_y(a2)
 	clr.w SG2WorldObject_velocity_z(a2)
-	bra.w abs_0_000081D2
+	bra.w continue_primary_object_update_loop
     ; KNOWN: type A0=Target code-entry register seed:SG2BlowholeEmitter
 update_blowhole_diamond_emission:
 	tst.w SG2BlowholeEmitter_emission_phase_counter(a0)
@@ -12489,31 +12503,31 @@ abs_0_0000A1DE:
 	move.w #$1,$0026(a2)
 	move.w #$64,SG2BlowholeEmitter_emission_phase_counter(a0)
 	bsr.w recompute_a2_horizontal_motion_from_heading
-	bra.w abs_0_000081D2
+	bra.w continue_primary_object_update_loop
 abs_0_0000A298:
 	move.b SG2VertexOscillator_vertex_variant_step(a0),d1
 	add.b d1,SG2WorldObject_vertex_variant_selector(a0)
 	beq.b abs_0_0000A2B6
 	cmpi.b #9,SG2WorldObject_vertex_variant_selector(a0)
-	bne.w abs_0_000081D2
+	bne.w continue_primary_object_update_loop
 	move.b #$FF,SG2VertexOscillator_vertex_variant_step(a0)
-	bra.w abs_0_000081D2
+	bra.w continue_primary_object_update_loop
 abs_0_0000A2B6:
 	move.b #$1,SG2VertexOscillator_vertex_variant_step(a0)
-	bra.w abs_0_000081D2
+	bra.w continue_primary_object_update_loop
     ; KNOWN: type A0=Target code-entry register seed:SG2SiloLauncher
 update_dome_silo_launch_cycle:
 	tst.w SG2SiloLauncher_spawn_cooldown(a0)
 	beq.b abs_0_0000A2CE
 	subq.w #1,SG2SiloLauncher_spawn_cooldown(a0)
-	bra.w abs_0_000081D2
+	bra.w continue_primary_object_update_loop
 abs_0_0000A2CE:
 	tst.b SG2SiloLauncher_child_attached_flag(a0)
 	bne.w abs_0_0000A3D6
 	tst.b SG2WorldObject_vertex_variant_selector(a0)
 	bne.w abs_0_0000A3BE
 	cmpi.w #70,free_object_count(a6)
-	bls.w abs_0_000081D2
+	bls.w continue_primary_object_update_loop
 	movea.l free_object_stack_cursor(a6),a1
 	movea.l -(a1),a2
 	move.l a1,free_object_stack_cursor(a6)
@@ -12561,15 +12575,15 @@ abs_0_0000A2CE:
 	move.w #$3,SG2ScheduledActor_behavior_update_counter(a2)
 abs_0_0000A3B2:
 	bsr.w recompute_a2_horizontal_motion_from_heading
-	bra.w abs_0_000081D2
+	bra.w continue_primary_object_update_loop
 abs_0_0000A3BA:
 	clr.b SG2SiloLauncher_child_attached_flag(a0)
 abs_0_0000A3BE:
 	subq.b #1,SG2WorldObject_vertex_variant_selector(a0)
-	bne.w abs_0_000081D2
+	bne.w continue_primary_object_update_loop
 	move.w #$12C,SG2SiloLauncher_spawn_cooldown(a0)
 	bset.b #7,SG2ObjectCore_durability_or_negative(a0)
-	bra.w abs_0_000081D2
+	bra.w continue_primary_object_update_loop
 abs_0_0000A3D6:
 	tst.l SG2WorldObject_linked_record_or_sentinel(a0)
 	beq.b abs_0_0000A3E6
@@ -12580,10 +12594,10 @@ abs_0_0000A3E6:
 	cmpi.b #7,SG2WorldObject_vertex_variant_selector(a0)
 	beq.b abs_0_0000A3F6
 	addq.b #1,SG2WorldObject_vertex_variant_selector(a0)
-	bra.w abs_0_000081D2
+	bra.w continue_primary_object_update_loop
 abs_0_0000A3F6:
 	bclr.b #7,$0002(a2)
-	bra.w abs_0_000081D2
+	bra.w continue_primary_object_update_loop
     ; KNOWN: type A0=Target code-entry register seed:SG2SaucerActor
 update_saucer_motion_evasion_and_capsule:
 	addi.w #96,SG2WorldObject_rotation_1(a0)
@@ -12686,7 +12700,7 @@ abs_0_0000A528:
 abs_0_0000A52A:
 	move.b #$2E,diagnostic_step_byte.l
 	cmpi.w #24,free_object_count(a6)
-	bls.w abs_0_000081D2
+	bls.w continue_primary_object_update_loop
 	move.w SG2WorldObject_rotation_1(a0),d0
 	andi.w #4095,d0
 	sub.w d0,d1
@@ -12694,7 +12708,7 @@ abs_0_0000A52A:
 	neg.w d1
 abs_0_0000A54A:
 	cmp.w #$64,d1
-	bpl.w abs_0_000081D2
+	bpl.w continue_primary_object_update_loop
 	movea.l free_object_stack_cursor(a6),a1
 	movea.l -(a1),a2
 	move.l a1,free_object_stack_cursor(a6)
@@ -12752,7 +12766,7 @@ abs_0_0000A5BC:
 	clr.w SG2WorldObject_velocity_y(a2)
 	st.b SG2SteeredProjectile_stored_target_tracking_byte(a2)
 	move.l a4,SG2WorldObject_linked_record_or_sentinel(a2)
-	bra.w abs_0_000081D2
+	bra.w continue_primary_object_update_loop
     ; KNOWN: type A0=Target code-entry register seed:SG2WorldObject
 integrate_distant_actor_velocity:
 	move.w SG2WorldObject_velocity_x(a0),d3
@@ -12767,7 +12781,7 @@ integrate_distant_actor_velocity:
 	move.l horizontal_world_wrap_mask(a6),d3
 	and.l d3,SG2ObjectCore_world_x(a0)
 	and.l d3,SG2ObjectCore_world_z(a0)
-	bra.w abs_0_0000839C
+	bra.w continue_secondary_object_update_loop
 	dc.b $61,$00,$00,$10,$91,$A8,$00,$04,$93,$A8,$00,$08,$95,$A8,$00,$0C
 	dc.b $4E,$75,$20,$28,$00,$04,$22,$28,$00,$08,$24,$28,$00,$0C,$90,$AE
 	dc.b $07,$04,$92,$AE,$07,$08,$94,$AE,$07,$0C,$EE,$A0,$EE,$A1,$EE,$A2
@@ -12810,7 +12824,7 @@ integrate_distant_actor_and_tick_behavior_counter:
 	move.w SG2ScheduledActor_behavior_update_counter(a0),d0
 	andi.b #63,d0
 	beq.w blend_a0_heading_toward_player_and_build_horizontal_motion
-	bra.w abs_0_0000839C
+	bra.w continue_secondary_object_update_loop
 abs_0_0000A70E:
 	move.w #$FFFB,SG2WorldObject_velocity_y(a0)
 	bra.w integrate_distant_actor_and_tick_behavior_counter
@@ -12839,7 +12853,7 @@ update_distant_linked_ground_actor_motion:
 	movea.l SG2WorldObject_linked_record_or_sentinel(a0),a2
 	clr.l SG2WorldObject_linked_record_or_sentinel(a0)
 	clr.b $0028(a2)
-	bra.w abs_0_0000839C
+	bra.w continue_secondary_object_update_loop
 abs_0_0000A78C:
 	subq.b #1,SG2GroundLaunchState_link_release_countdown(a0)
 	move.w SG2WorldObject_velocity_x(a0),d3
@@ -12851,7 +12865,7 @@ abs_0_0000A78C:
 	move.l horizontal_world_wrap_mask(a6),d3
 	and.l d3,SG2ObjectCore_world_x(a0)
 	and.l d3,SG2ObjectCore_world_z(a0)
-	bra.w abs_0_0000839C
+	bra.w continue_secondary_object_update_loop
     ; KNOWN: type A0=Target code-entry register seed:SG2SaucerActor
 update_distant_saucer_motion_and_heading:
 	move.b #$47,diagnostic_step_byte.l
@@ -12884,40 +12898,40 @@ update_distant_saucer_motion_and_heading:
 advance_distant_solar_converter_and_release_chain:
 	move.b #$4A,diagnostic_step_byte.l
 	cmpi.b #30,SG2WorldObject_vertex_variant_selector(a0)
-	beq.w abs_0_0000839C
+	beq.w continue_secondary_object_update_loop
 	addq.b #1,SG2WorldObject_vertex_variant_selector(a0)
 	cmpi.b #24,SG2WorldObject_vertex_variant_selector(a0)
-	bne.w abs_0_0000839C
+	bne.w continue_secondary_object_update_loop
 	movea.l a0,a1
 abs_0_0000A8AA:
 	movea.l $003C(a1),a4
 	cmpa.l #$0,a4
-	beq.w abs_0_0000839C
+	beq.w continue_secondary_object_update_loop
 	tst.w (a4)
-	beq.w abs_0_0000839C
+	beq.w continue_secondary_object_update_loop
 	tst.b $0022(a4)
-	bne.w abs_0_0000839C
+	bne.w continue_secondary_object_update_loop
 	sf.b $0028(a4)
 	movea.l a4,a1
 	bra.b abs_0_0000A8AA
 abs_0_0000A8CE:
 	move.b #$4B,diagnostic_step_byte.l
 	clr.w (a0)
-	bra.w abs_0_0000839C
+	bra.w continue_secondary_object_update_loop
     ; KNOWN: type A0=Target code-entry register seed:SG2SiloLauncher
 update_distant_egron_silo_launch_cycle:
 	move.b #$4C,diagnostic_step_byte.l
 	tst.w SG2SiloLauncher_spawn_cooldown(a0)
 	beq.b abs_0_0000A8F2
 	subq.w #1,SG2SiloLauncher_spawn_cooldown(a0)
-	bra.w abs_0_0000839C
+	bra.w continue_secondary_object_update_loop
 abs_0_0000A8F2:
 	tst.b SG2SiloLauncher_child_attached_flag(a0)
 	bne.w abs_0_0000A9DE
 	tst.b SG2WorldObject_vertex_variant_selector(a0)
 	bne.w abs_0_0000A9C6
 	cmpi.w #40,free_object_count(a6)
-	bls.w abs_0_0000839C
+	bls.w continue_secondary_object_update_loop
 	movea.l free_object_stack_cursor(a6),a1
 	movea.l -(a1),a2
 	move.l a1,free_object_stack_cursor(a6)
@@ -12955,15 +12969,15 @@ abs_0_0000A8F2:
 	bset.b #7,SG2ObjectCore_flags(a2)
 	bset.b #5,SG2ObjectCore_flags(a2)
 	st.b SG2SiloLauncher_child_attached_flag(a0)
-	bra.w abs_0_0000839C
+	bra.w continue_secondary_object_update_loop
 abs_0_0000A9C2:
 	clr.b SG2SiloLauncher_child_attached_flag(a0)
 abs_0_0000A9C6:
 	subq.b #1,SG2WorldObject_vertex_variant_selector(a0)
-	bne.w abs_0_0000839C
+	bne.w continue_secondary_object_update_loop
 	move.w #$384,SG2SiloLauncher_spawn_cooldown(a0)
 	bset.b #7,SG2ObjectCore_durability_or_negative(a0)
-	bra.w abs_0_0000839C
+	bra.w continue_secondary_object_update_loop
 abs_0_0000A9DE:
 	movea.l SG2WorldObject_linked_record_or_sentinel(a0),a2
 	tst.w (a2)
@@ -12972,30 +12986,30 @@ abs_0_0000A9DE:
 	beq.b abs_0_0000A9FE
 	addq.b #1,SG2WorldObject_vertex_variant_selector(a0)
 	lea.l model_default_durability_bytes.l,a1
-	bra.w abs_0_0000839C
+	bra.w continue_secondary_object_update_loop
 abs_0_0000A9FE:
 	cmpi.l #4294966156,$0008(a2)
 	bls.w abs_0_0000AA16
 	subi.l #40,$0008(a2)
-	bra.w abs_0_0000839C
+	bra.w continue_secondary_object_update_loop
 abs_0_0000AA16:
 	bclr.b #7,$0002(a2)
 	clr.b SG2SiloLauncher_child_attached_flag(a0)
-	bra.w abs_0_0000839C
+	bra.w continue_secondary_object_update_loop
     ; KNOWN: type A0=Target code-entry register seed:SG2SiloLauncher
 update_distant_dome_silo_launch_cycle:
 	move.b #$4D,diagnostic_step_byte.l
 	tst.w SG2SiloLauncher_spawn_cooldown(a0)
 	beq.b abs_0_0000AA3A
 	subq.w #1,SG2SiloLauncher_spawn_cooldown(a0)
-	bra.w abs_0_0000839C
+	bra.w continue_secondary_object_update_loop
 abs_0_0000AA3A:
 	tst.b SG2SiloLauncher_child_attached_flag(a0)
 	bne.w abs_0_0000AB54
 	tst.b SG2WorldObject_vertex_variant_selector(a0)
 	bne.w abs_0_0000AB3C
 	cmpi.w #70,free_object_count(a6)
-	bls.w abs_0_0000839C
+	bls.w continue_secondary_object_update_loop
 	movea.l free_object_stack_cursor(a6),a1
 	movea.l -(a1),a2
 	move.l a1,free_object_stack_cursor(a6)
@@ -13043,17 +13057,17 @@ abs_0_0000AA3A:
 	move.w #$3,SG2ScheduledActor_behavior_update_counter(a2)
 abs_0_0000AB1C:
 	bsr.w recompute_a2_horizontal_motion_from_heading
-	bra.w abs_0_0000839C
+	bra.w continue_secondary_object_update_loop
 	dc.b $0C,$52,$00,$27,$66,$00,$D8,$72,$25,$7C,$FF,$FF,$FF,$88,$00,$08
 	dc.b $60,$00,$D8,$66
 abs_0_0000AB38:
 	clr.b SG2SiloLauncher_child_attached_flag(a0)
 abs_0_0000AB3C:
 	subq.b #1,SG2WorldObject_vertex_variant_selector(a0)
-	bne.w abs_0_0000839C
+	bne.w continue_secondary_object_update_loop
 	move.w #$12C,SG2SiloLauncher_spawn_cooldown(a0)
 	bset.b #7,SG2ObjectCore_durability_or_negative(a0)
-	bra.w abs_0_0000839C
+	bra.w continue_secondary_object_update_loop
 abs_0_0000AB54:
 	movea.l SG2WorldObject_linked_record_or_sentinel(a0),a2
 	tst.w (a2)
@@ -13062,13 +13076,13 @@ abs_0_0000AB54:
 	beq.b abs_0_0000AB74
 	addq.b #1,SG2WorldObject_vertex_variant_selector(a0)
 	lea.l model_default_durability_bytes.l,a1
-	bra.w abs_0_0000839C
+	bra.w continue_secondary_object_update_loop
 abs_0_0000AB74:
 	bclr.b #7,$0002(a2)
 	tst.w (a2)
-	bne.w abs_0_0000839C
+	bne.w continue_secondary_object_update_loop
 	clr.b SG2SiloLauncher_child_attached_flag(a0)
-	bra.w abs_0_0000839C
+	bra.w continue_secondary_object_update_loop
 	dc.b $33,$EE,$07,$56,$00,$DF,$F1,$80,$60,$00,$D8,$0A
 abs_0_0000AB94:
 	lea.l abs_0_0000B41C.l,a3
@@ -13148,7 +13162,7 @@ build_a0_horizontal_motion_from_d1_heading:
 	asl.l #1,d4
 	swap.w d4
 	move.w d4,SG2WorldObject_velocity_z(a0)
-	bra.w abs_0_0000839C
+	bra.w continue_secondary_object_update_loop
     ; Opposite-heading entry adds2048 before the original blend. Other entries accept caller D1 or derive heading. Preserve exact branches and shifts; no idealized shortest-turn claim.
     ; KNOWN: type A0=Target code-entry register seed:SG2HorizontalMotionView
 blend_actor_toward_opposite_player_heading:
@@ -13248,7 +13262,7 @@ recompute_actor_horizontal_motion_from_angle:
 	asl.l #1,d4
 	swap.w d4
 	move.w d4,SG2WorldObject_velocity_z(a0)
-	bra.w abs_0_000081D2
+	bra.w continue_primary_object_update_loop
     ; Tracked12/25 helper: signed WORD20 scales sine/cosine through original MULS, ASL.L1 and SWAP; X velocity is negated. No physical-unit or arbitrary mover-layout claim.
     ; KNOWN: type A0=Target code-entry register seed:SG2SteeredProjectile
 recompute_tracked_projectile_horizontal_motion:
@@ -13271,7 +13285,7 @@ recompute_tracked_projectile_horizontal_motion:
 	asl.l #1,d4
 	swap.w d4
 	move.w d4,SG2WorldObject_velocity_z(a0)
-	bra.w abs_0_000081D2
+	bra.w continue_primary_object_update_loop
     ; KNOWN: type A2=Target code-entry register seed:SG2HorizontalMotionView
 steer_a2_heading_then_recompute_horizontal_motion:
 	move.w SG2WorldObject_rotation_1(a2),d0
@@ -13767,10 +13781,10 @@ abs_0_0000B594:
 	btst.b #3,SG2ObjectCore_flags(a0)
 	bne.b abs_0_0000B5A6
 	tst.b SG2ObjectCore_retirement_phase_or_negative(a0)
-	bpl.w abs_0_0000B8FC
+	bpl.w continue_outer_contact_pair_loop
 abs_0_0000B5A6:
 	tst.b SG2ObjectCore_object_type+1(a0)
-	bmi.w abs_0_0000B8FC
+	bmi.w continue_outer_contact_pair_loop
     ; KNOWN: type A0=Target code-entry register seed:SG2WorldObject
 begin_model_contact_extent_comparison:
 	movea.l a1,a3
@@ -13804,7 +13818,7 @@ read_inner_contact_before_type_filter:
 abs_0_0000B5F2:
 	swap.w d4
 	cmp.w d1,d0
-	bgt.w abs_0_0000B8F8
+	bgt.w continue_inner_contact_pair_loop
 	move.w SG2TargetingObject_pre_view_relative_z(a0),d0
 	swap.w d4
 	move.w $0036(a2),d4
@@ -13814,7 +13828,7 @@ abs_0_0000B5F2:
 abs_0_0000B60A:
 	swap.w d4
 	cmp.w d1,d0
-	bgt.w abs_0_0000B8F8
+	bgt.w continue_inner_contact_pair_loop
 	move.l SG2ObjectCore_world_y(a0),d0
 	sub.l SG2ObjectCore_world_y(a2),d0
 	bpl.b abs_0_0000B630
@@ -13837,18 +13851,18 @@ abs_0_0000B630:
 abs_0_0000B640:
 	swap.w d4
 	cmp.l d1,d0
-	bgt.w abs_0_0000B8F8
+	bgt.w continue_inner_contact_pair_loop
 	btst.b #3,SG2ObjectCore_flags(a2)
 	bne.b abs_0_0000B658
 	tst.b SG2ObjectCore_retirement_phase_or_negative(a2)
-	bpl.w abs_0_0000B8F8
+	bpl.w continue_inner_contact_pair_loop
 abs_0_0000B658:
 	cmpi.w #95,(a0)	; operand 2: SG2ObjectCore_object_type at (a0)
-	beq.w abs_0_0000B8F8
+	beq.w continue_inner_contact_pair_loop
 	cmpi.w #95,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
-	beq.w abs_0_0000B8F8
+	beq.w continue_inner_contact_pair_loop
 	tst.b SG2ObjectCore_object_type+1(a2)
-	bmi.w abs_0_0000B8F8
+	bmi.w continue_inner_contact_pair_loop
     ; KNOWN: type A2=Target code-entry register seed:SG2WorldObject
 dispatch_model_pair_contact_response:
 	cmpi.w #30,(a0)	; operand 2: SG2ObjectCore_object_type at (a0)
@@ -13866,88 +13880,90 @@ dispatch_model_pair_contact_response:
 filter_contact_by_ignored_object_type:
 	move.b SG2TargetingObject_collision_ignored_object_type(a0),d0
 	cmp.b SG2ObjectCore_object_type+1(a2),d0
-	beq.w abs_0_0000B8F8
+	beq.w continue_inner_contact_pair_loop
 	btst.b #6,SG2ObjectCore_flags(a0)
 	bne.w abs_0_0000B926
 	btst.b #6,SG2ObjectCore_flags(a2)
 	bne.w abs_0_0000B92E
 	cmpi.w #91,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
-	beq.w abs_0_0000B772
+	beq.w filter_outer_tracking_award_special_types
 	cmpi.w #98,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
-	beq.w abs_0_0000B784
+	beq.w award_outer_contact_and_optional_mini_sentinel
 	cmpi.w #84,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
 	beq.b apply_outer_cube_launcher_contact
 	cmpi.w #103,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
 	beq.b test_outer_laser_contact_durability
 	cmpi.w #12,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
-	beq.b abs_0_0000B714
-	bra.w abs_0_0000B7C0
+	beq.b test_outer_type12_contact_retirement
+	bra.w test_outer_generic_contact_durability
 apply_outer_cube_launcher_contact:
 	tst.b SG2ObjectCore_durability_or_negative(a0)
-	bmi.w abs_0_0000B7D6
-	beq.w abs_0_0000B766
+	bmi.w dispatch_reciprocal_inner_contact_response
+	beq.w choose_outer_tracking_retirement_or_award
 	cmpi.w #12,(a0)	; operand 2: SG2ObjectCore_object_type at (a0)
 	bne.b decrement_outer_cube_contact_durability
 	tst.b $0022(a0)
 	beq.b decrement_outer_cube_contact_durability
 	clr.b SG2ObjectCore_durability_or_negative(a0)
-	bra.w abs_0_0000B784
+	bra.w award_outer_contact_and_optional_mini_sentinel
     ; Cube-launcher contact may decrement twice via the following shared damage path. Preserve BYTE wrap, both branch tests and the outer missile shortcut; not one hit per contact.
 decrement_outer_cube_contact_durability:
 	subq.b #1,SG2ObjectCore_durability_or_negative(a0)
-	beq.w abs_0_0000B784
-	bmi.w abs_0_0000B784
+	beq.w award_outer_contact_and_optional_mini_sentinel
+	bmi.w award_outer_contact_and_optional_mini_sentinel
 	bra.b decrement_outer_contact_durability
-abs_0_0000B714:
-	cmpi.w #37,(a0)	; operand 2: SG2ObjectCore_object_type at (a0)
-	beq.b abs_0_0000B766
+    ; Post-filter type-12 response: type 37 bypasses the durability-sign gate. Tracking controls award versus direct retirement; 98/99 exceptions and original ordered reciprocal handling remain.
+test_outer_type12_contact_retirement:
+	cmpi.w #SG2_OBJECT_TYPE_EGRON_MINI_SENTINEL,(a0)	; operand 2: SG2ObjectCore_object_type at (a0)
+	beq.b choose_outer_tracking_retirement_or_award
 	tst.b SG2ObjectCore_durability_or_negative(a0)
-	bmi.w abs_0_0000B7D6
-	bra.b abs_0_0000B766
+	bmi.w dispatch_reciprocal_inner_contact_response
+	bra.b choose_outer_tracking_retirement_or_award
 test_outer_laser_contact_durability:
 	tst.b SG2ObjectCore_durability_or_negative(a0)
-	beq.b abs_0_0000B766
-	bmi.w abs_0_0000B7D6
+	beq.b choose_outer_tracking_retirement_or_award
+	bmi.w dispatch_reciprocal_inner_contact_response
 decrement_outer_contact_durability:
 	subq.b #1,SG2ObjectCore_durability_or_negative(a0)
-	beq.b abs_0_0000B766
-	bmi.b abs_0_0000B766
+	beq.b choose_outer_tracking_retirement_or_award
+	bmi.b choose_outer_tracking_retirement_or_award
 	bset.b #2,SG2ObjectCore_flags(a0)
 	tst.b $0022(a2)
-	beq.w abs_0_0000B7D2
+	beq.w clear_outer_retirement_phase_byte
 	movem.l d0/a1/a6,-(a7)
 	movea.l game_workspace_base.l,a6
 	addq.l #1,pilot_hits_scored(a6)
 	lea.l model_type_target_selection_tags_prefix(a6),a1
 	move.w (a0),d0	; operand 1: SG2ObjectCore_object_type at (a0)
-abs_0_0000B758:
+increment_outer_hit_tag_skipping_zero:
 	addq.b #1,$0(a1,d0.w)
-	beq.b abs_0_0000B758
+	beq.b increment_outer_hit_tag_skipping_zero
 	movem.l (a7)+,d0/a1/a6
-	bra.w abs_0_0000B7D6
-abs_0_0000B766:
+	bra.w dispatch_reciprocal_inner_contact_response
+choose_outer_tracking_retirement_or_award:
 	tst.b $0022(a2)
 	beq.b start_outer_contact_retirement
-	cmpi.w #37,(a0)	; operand 2: SG2ObjectCore_object_type at (a0)
-	beq.b abs_0_0000B784
-abs_0_0000B772:
+	cmpi.w #SG2_OBJECT_TYPE_EGRON_MINI_SENTINEL,(a0)	; operand 2: SG2ObjectCore_object_type at (a0)
+	beq.b award_outer_contact_and_optional_mini_sentinel
+filter_outer_tracking_award_special_types:
 	cmpi.w #99,(a0)	; operand 2: SG2ObjectCore_object_type at (a0)
-	beq.b abs_0_0000B7D6
-	cmpi.w #37,(a0)	; operand 2: SG2ObjectCore_object_type at (a0)
-	beq.b abs_0_0000B7D6
+	beq.b dispatch_reciprocal_inner_contact_response
+	cmpi.w #SG2_OBJECT_TYPE_EGRON_MINI_SENTINEL,(a0)	; operand 2: SG2ObjectCore_object_type at (a0)
+	beq.b dispatch_reciprocal_inner_contact_response
 	cmpi.w #98,(a0)	; operand 2: SG2ObjectCore_object_type at (a0)
-	beq.b abs_0_0000B7D6
-abs_0_0000B784:
+	beq.b dispatch_reciprocal_inner_contact_response
+    ; Add the stored award with ordinary WORD ADD to the pending BCD word, then increment LONG hits. Mini counter uses post-decrement N-only clamp, preserving overflow; no decimal normalization.
+award_outer_contact_and_optional_mini_sentinel:
 	movem.l d0/a1/a6,-(a7)
 	movea.l game_workspace_base.l,a6
-	cmpi.w #12,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
-	bne.b abs_0_0000B7A4
-	cmpi.w #37,(a0)	; operand 2: SG2ObjectCore_object_type at (a0)
-	bne.b abs_0_0000B7A4
+	cmpi.w #SG2_OBJECT_TYPE_HOMING_MISSILE,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
+	bne.b accumulate_outer_destruction_award_and_hit
+	cmpi.w #SG2_OBJECT_TYPE_EGRON_MINI_SENTINEL,(a0)	; operand 2: SG2ObjectCore_object_type at (a0)
+	bne.b accumulate_outer_destruction_award_and_hit
 	subq.w #1,station_mini_sentinel_count(a6)
-	bpl.b abs_0_0000B7A4
+	bpl.b accumulate_outer_destruction_award_and_hit
 	clr.w station_mini_sentinel_count(a6)
-abs_0_0000B7A4:
+accumulate_outer_destruction_award_and_hit:
 	lea.l object_destruction_bcd_awards.l,a1
 	move.w (a0),d0	; operand 1: SG2ObjectCore_object_type at (a0)
 	add.w d0,d0
@@ -13956,16 +13972,17 @@ abs_0_0000B7A4:
 	addq.l #1,pilot_hits_scored(a6)
 	movem.l (a7)+,d0/a1/a6
 	bra.b start_outer_contact_retirement
-abs_0_0000B7C0:
+test_outer_generic_contact_durability:
 	tst.b SG2ObjectCore_durability_or_negative(a0)
-	bmi.b abs_0_0000B7D6
+	bmi.b dispatch_reciprocal_inner_contact_response
+    ; Clear flag 3, then reset phase only if negative. The direct surviving-damage phase-clear shortcut bypasses this flag change; existing nonnegative retirement phases are retained.
 start_outer_contact_retirement:
 	bclr.b #3,SG2ObjectCore_flags(a0)
 	tst.b SG2ObjectCore_retirement_phase_or_negative(a0)
-	bpl.b abs_0_0000B7D6
-abs_0_0000B7D2:
+	bpl.b dispatch_reciprocal_inner_contact_response
+clear_outer_retirement_phase_byte:
 	clr.b SG2ObjectCore_retirement_phase_or_negative(a0)
-abs_0_0000B7D6:
+dispatch_reciprocal_inner_contact_response:
 	btst.b #6,SG2ObjectCore_flags(a2)
 	bne.w abs_0_0000B92E
 	btst.b #6,SG2ObjectCore_flags(a0)
@@ -13975,73 +13992,74 @@ abs_0_0000B7D6:
 	cmpi.w #30,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
 	beq.w abs_0_0000B926
 	cmpi.w #91,(a0)	; operand 2: SG2ObjectCore_object_type at (a0)
-	beq.w abs_0_0000B894
+	beq.w filter_inner_tracking_award_special_types
 	cmpi.w #98,(a0)	; operand 2: SG2ObjectCore_object_type at (a0)
-	beq.w abs_0_0000B8A6
+	beq.w award_inner_contact_and_optional_mini_sentinel
 	cmpi.w #84,(a0)	; operand 2: SG2ObjectCore_object_type at (a0)
 	beq.b apply_inner_cube_launcher_contact
 	cmpi.w #103,(a0)	; operand 2: SG2ObjectCore_object_type at (a0)
 	beq.b test_inner_laser_contact_durability
 	cmpi.w #12,(a0)	; operand 2: SG2ObjectCore_object_type at (a0)
-	beq.b abs_0_0000B836
-	bra.w abs_0_0000B8E2
+	beq.b test_inner_type12_contact_retirement
+	bra.w test_inner_generic_contact_durability
 apply_inner_cube_launcher_contact:
 	tst.b SG2ObjectCore_durability_or_negative(a2)
-	bmi.w abs_0_0000B8F8
+	bmi.w continue_inner_contact_pair_loop
 	subq.b #1,SG2ObjectCore_durability_or_negative(a2)
-	beq.w abs_0_0000B8A6
-	bmi.w abs_0_0000B8A6
+	beq.w award_inner_contact_and_optional_mini_sentinel
+	bmi.w award_inner_contact_and_optional_mini_sentinel
 	bra.b decrement_inner_contact_durability
-abs_0_0000B836:
-	cmpi.w #37,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
-	beq.b abs_0_0000B888
+test_inner_type12_contact_retirement:
+	cmpi.w #SG2_OBJECT_TYPE_EGRON_MINI_SENTINEL,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
+	beq.b choose_inner_tracking_retirement_or_award
 	tst.b SG2ObjectCore_durability_or_negative(a2)
-	bmi.w abs_0_0000B8F8
-	bra.b abs_0_0000B888
+	bmi.w continue_inner_contact_pair_loop
+	bra.b choose_inner_tracking_retirement_or_award
 test_inner_laser_contact_durability:
 	tst.b SG2ObjectCore_durability_or_negative(a2)
-	beq.w abs_0_0000B888
-	bmi.w abs_0_0000B8F8
+	beq.w choose_inner_tracking_retirement_or_award
+	bmi.w continue_inner_contact_pair_loop
 decrement_inner_contact_durability:
 	subq.b #1,SG2ObjectCore_durability_or_negative(a2)
-	beq.b abs_0_0000B888
-	bmi.b abs_0_0000B888
+	beq.b choose_inner_tracking_retirement_or_award
+	bmi.b choose_inner_tracking_retirement_or_award
 	bset.b #2,SG2ObjectCore_flags(a2)
 	tst.b $0022(a0)
-	beq.w abs_0_0000B8F4
+	beq.w clear_inner_retirement_phase_byte
 	movem.l d0/a1/a6,-(a7)
 	movea.l game_workspace_base.l,a6
 	addq.l #1,pilot_hits_scored(a6)
 	lea.l model_type_target_selection_tags_prefix(a6),a1
 	move.w (a2),d0	; operand 1: SG2ObjectCore_object_type at (a2)
-abs_0_0000B87C:
+increment_inner_hit_tag_skipping_zero:
 	addq.b #1,$0(a1,d0.w)
-	beq.b abs_0_0000B87C
+	beq.b increment_inner_hit_tag_skipping_zero
 	movem.l (a7)+,d0/a1/a6
-	bra.b abs_0_0000B8F8
-abs_0_0000B888:
+	bra.b continue_inner_contact_pair_loop
+choose_inner_tracking_retirement_or_award:
 	tst.b $0022(a0)
 	beq.b start_inner_contact_retirement
-	cmpi.w #37,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
-	beq.b abs_0_0000B8A6
-abs_0_0000B894:
+	cmpi.w #SG2_OBJECT_TYPE_EGRON_MINI_SENTINEL,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
+	beq.b award_inner_contact_and_optional_mini_sentinel
+filter_inner_tracking_award_special_types:
 	cmpi.w #99,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
-	beq.b abs_0_0000B8F8
-	cmpi.w #37,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
-	beq.b abs_0_0000B8F8
+	beq.b continue_inner_contact_pair_loop
+	cmpi.w #SG2_OBJECT_TYPE_EGRON_MINI_SENTINEL,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
+	beq.b continue_inner_contact_pair_loop
 	cmpi.w #98,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
-	beq.b abs_0_0000B8F8
-abs_0_0000B8A6:
+	beq.b continue_inner_contact_pair_loop
+    ; Reciprocal award uses the same WORD add/LONG hit wrap and type-12/type-37 station-counter special case. Response fixtures do not qualify contact geometry or player/hardware handlers.
+award_inner_contact_and_optional_mini_sentinel:
 	movem.l d0/a1/a6,-(a7)
 	movea.l game_workspace_base.l,a6
-	cmpi.w #12,(a0)	; operand 2: SG2ObjectCore_object_type at (a0)
-	bne.b abs_0_0000B8C6
-	cmpi.w #37,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
-	bne.b abs_0_0000B8C6
+	cmpi.w #SG2_OBJECT_TYPE_HOMING_MISSILE,(a0)	; operand 2: SG2ObjectCore_object_type at (a0)
+	bne.b accumulate_inner_destruction_award_and_hit
+	cmpi.w #SG2_OBJECT_TYPE_EGRON_MINI_SENTINEL,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
+	bne.b accumulate_inner_destruction_award_and_hit
 	subq.w #1,station_mini_sentinel_count(a6)
-	bpl.b abs_0_0000B8C6
+	bpl.b accumulate_inner_destruction_award_and_hit
 	clr.w station_mini_sentinel_count(a6)
-abs_0_0000B8C6:
+accumulate_inner_destruction_award_and_hit:
 	lea.l object_destruction_bcd_awards.l,a1
 	move.w (a2),d0	; operand 1: SG2ObjectCore_object_type at (a2)
 	add.w d0,d0
@@ -14050,19 +14068,19 @@ abs_0_0000B8C6:
 	addq.l #1,pilot_hits_scored(a6)
 	movem.l (a7)+,d0/a1/a6
 	bra.b start_inner_contact_retirement
-abs_0_0000B8E2:
+test_inner_generic_contact_durability:
 	tst.b SG2ObjectCore_durability_or_negative(a2)
-	bmi.b abs_0_0000B8F8
+	bmi.b continue_inner_contact_pair_loop
 start_inner_contact_retirement:
 	bclr.b #3,SG2ObjectCore_flags(a2)
 	tst.b SG2ObjectCore_retirement_phase_or_negative(a2)
-	bpl.b abs_0_0000B8F8
-abs_0_0000B8F4:
+	bpl.b continue_inner_contact_pair_loop
+clear_inner_retirement_phase_byte:
 	clr.b SG2ObjectCore_retirement_phase_or_negative(a2)
-abs_0_0000B8F8:
+continue_inner_contact_pair_loop:
 	dbf.w d6,read_inner_contact_before_type_filter
     ; Collision response decrements in this update pass, not proved physical frames. IRQ response reverses motion and clears speed at step1; preserve the original3/4-step producers.
-abs_0_0000B8FC:
+continue_outer_contact_pair_loop:
 	dbf.w d7,abs_0_0000B594
 	movea.l game_workspace_base.l,a6
 	tst.b player_collision_response_steps(a6)
@@ -14131,7 +14149,7 @@ abs_0_0000B9A8:
 abs_0_0000B9C2:
 	sf.b player_structure_clamp_flag(a6)
 	movem.l (a7)+,d0-d7/a0-a6
-	bra.w abs_0_0000B8F8
+	bra.w continue_inner_contact_pair_loop
 abs_0_0000B9CE:
 	tst.b inside_structure_flag(a6)
 	bne.b abs_0_0000B9C2
@@ -23972,12 +23990,13 @@ initialize_world_object_pool:
 	clr.w mini_sentinel_initial_orbit_byte_offset.l
 	clr.w mini_sentinel_initialization_attempt_count.l
 	clr.b display_buffer_table_byte_offset(a6)
+prepare_world_pool_record_clear:
 	lea.l world_object_pool(a6),a0
-	move.w #$F9,d0
+	move.w #SG2_WORLD_POOL_CLEAR_DBF_LAST,d0
 	moveq.l #0,d1
     ; 250 records x 17 LONGs = 17000 bytes at app+$2330..$6598. This pool extent is not the complete $6998-byte cleared workspace.
     ; KNOWN: type A0=Target code-entry register seed:SG2ObjectCore
-abs_0_00017DC4:
+clear_one_world_record_with_seventeen_longs:
 	move.l d1,(a0)+	; operand 2: SG2ObjectCore_object_type at (a0)+
 	move.l d1,(a0)+	; operand 2: SG2ObjectCore_world_x at (a0)+
 	move.l d1,(a0)+	; operand 2: SG2ObjectCore_world_y at (a0)+
@@ -23995,7 +24014,8 @@ abs_0_00017DC4:
 	move.l d1,(a0)+
 	move.l d1,(a0)+
 	move.l d1,(a0)+
-	dbf.w d0,abs_0_00017DC4
+	dbf.w d0,clear_one_world_record_with_seventeen_longs
+reset_initializer_chain_before_world_placements:
 	clr.l object_initializer_chain_tail(a6)
 	moveq.l #68,d2
 	lea.l world_object_pool(a6),a0
@@ -24009,7 +24029,9 @@ abs_0_00017DC4:
 	add.w d1,d1
 	add.w d1,d1
 	movea.l $0(a1,d1.w),a1
+seed_one_based_player_slot_index:
 	move.w #$1,d7
+seed_player_record_before_world_placements:
 	move.w #$1E,(a0)
 	moveq.l #30,d0
 	move.l a0,player_object_reference(a6)
@@ -24024,7 +24046,7 @@ abs_0_00017DC4:
     ; KNOWN: type A0=Target code-entry register seed:SG2ObjectCore
 read_next_world_object_placement:
 	move.w (a1)+,d0
-	beq.b abs_0_00017EC2
+	beq.b initialize_free_stack_from_one_based_slot_index
 	move.w d0,(a0)	; operand 2: SG2ObjectCore_object_type at (a0)
 	andi.w #255,d0
 	move.l (a1)+,SG2ObjectCore_world_x(a0)
@@ -24044,6 +24066,7 @@ abs_0_00017E6E:
 	lea.l world_object_type_initializer_pointers(pc),a5
 	movea.l $0(a5,d0.w),a5
 	jsr (a5)
+advance_world_record_and_one_based_slot_index:
 	adda.w d2,a0
 	addq.w #1,d7
 	bra.b read_next_world_object_placement
@@ -24063,18 +24086,20 @@ read_interior_placement_parameters:
 	clr.b (a0)	; operand 1: SG2ObjectCore_object_type at (a0)
 	move.w (a0),d0	; operand 1: SG2ObjectCore_object_type at (a0)
 	bra.b abs_0_00017E68
-abs_0_00017EC2:
+    ; D7 is one-based: player prefix advances 1 to 2. With matching A0 and D7 in 1..250, inclusive fill writes 251-D7 entries; empty placement leaves 249 free. No enlarged pool is declared.
+initialize_free_stack_from_one_based_slot_index:
 	lea.l free_object_stack_storage(a6),a1
 	clr.w free_object_count(a6)
-abs_0_00017ECA:
+push_next_unused_world_record:
 	addq.w #1,free_object_count(a6)
 	move.l a0,(a1)+
-	cmp.w #$FA,d7
-	beq.b abs_0_00017EDC
+	cmp.w #SG2_WORLD_FREE_FILL_LAST_INDEX,d7
+	beq.b finalize_world_slot_count_after_free_fill
+advance_next_one_based_free_record:
 	addq.w #1,d7
 	adda.w d2,a0
-	bra.b abs_0_00017ECA
-abs_0_00017EDC:
+	bra.b push_next_unused_world_record
+finalize_world_slot_count_after_free_fill:
 	move.l a1,free_object_stack_cursor(a6)
 	move.w d7,world_object_slot_count(a6)
 	sf.b app_07EE(a6)
@@ -50006,7 +50031,7 @@ display_event_message_line:
 abs_0_00039D38:
 	jmp save_game_to_disk.l
 abs_0_00039D3E:
-	jmp abs_0_0000839C.l
+	jmp continue_secondary_object_update_loop.l
 poll_translated_command_key_bridge_038d44:
 	jmp poll_translated_command_key.l
 initialize_launched_bomb_header_bridge_038d4a:
@@ -50014,7 +50039,7 @@ initialize_launched_bomb_header_bridge_038d4a:
 modal_inventory_command_loop_bridge_038d50:
 	jmp modal_inventory_command_loop.l
 abs_0_00039D56:
-	jmp abs_0_000081D2.l
+	jmp continue_primary_object_update_loop.l
 add_homing_missile_hud_icon_bridge_038d5c:
 	jmp add_homing_missile_hud_icon.l
 add_bouncing_bomb_hud_icon_bridge_038d62:

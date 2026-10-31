@@ -27,6 +27,38 @@ and strengthened 38 app-base attributions.
 Conditional skips mean104 outer iterations are not104 observed memory reads.
 Loaded pointer values remain subject to separate alias/target validation.
 
+The collision/recycling batch reconstructs 42 connected post-filter response,
+near/distant retirement, record clearing and free-stack initialization
+continuations. 175 original-CPU cases cover both response directions, original
+special-type/tracking branches, BYTE durability/tag behavior, WORD pending-award
+and LONG hit wrap, phase retention and the separate recycling paths. The stored
+award is added with ordinary ADD.W to a pending BCD word; the later decimal-score
+application is not part of this qualification. Mini-sentinel count clamps on N
+after decrement, preserving the original overflow case. Surviving tracked damage
+increments selection tags while skipping zero; the untracked phase-clear shortcut
+can bypass flag-3 clearing. Ordinary retirement preserves existing nonnegative
+phases. These are post-filter fixtures, not contact geometry or special-player
+handler coverage.
+
+Retirement compares the phase BYTE for equality with the type limit, then either
+increments with wrap or recycles. Nearby recycling clears all 68 bytes before
+writing phase FF and pushing the pointer. Distant recycling pushes first and
+clears afterward, leaving all 68 bytes zero, including phase. Local routines do
+not traverse incoming references; supplied scan/record aliases remain unchanged.
+This is not proof of global alias safety, unique release or later reuse validity.
+
+The initializer's D7 is one-based, not the occupied count: the player prefix
+advances 1 to 2. With matching A0 and D7 in 1..250, inclusive fill writes 251-D7
+pointers; a supplied empty placement stream runs the original player initializer
+and leaves 249 free slots in the 250-record pool. Index zero is a direct
+out-of-contract probe with extra fixture backing, not an enlarged storage claim.
+Upper placement-count/capacity obligations remain; malformed/wrapped indices are
+not certified safe. Native proofs, references, counts and ownership are unchanged.
+No framework rule or game behavior was altered. C/vasm and clean standalone output
+remain exact, without new normal-game, lifetime, DMA or scanout certification.
+Next connected lead: geometric contact eligibility and special-player response
+consumers, keeping their bounds and side effects separate from these responses.
+
 The stored-target/update batch reconstructs 39 connected integration, retirement,
 Y-following, heading-cadence and integer-ratio continuations. Null or sign-set
 stored references skip target reads and aging after position integration. Positive
@@ -55,8 +87,8 @@ No game behavior was repaired or analysis guard relaxed. Native proof/reference
 identities, counts and ownership remain unchanged; C/vasm and clean standalone
 output remain exact. These supplied-record CPU tests do not add normal-game,
 target-lifetime, DMA or scanout certification. Next connected lead: original
-projectile/target collision and retirement consumers, distinguishing phase change
-from eventual pool recycling and reference invalidation.
+projectile/target collision and retirement consumers, addressed above; phase
+change alone still does not establish pool recycling or reference invalidation.
 
 The existing-lock/homing batch reconstructs 32 connected input, inventory,
 allocation, motion and shared HUD-restore continuations. Cooldown takes precedence;
