@@ -1453,6 +1453,7 @@ SG2_BOUNCE_MOTION_SCALE_LOSS	EQU	20
 SG2_BOUNCE_REFLECTION_BIAS	EQU	10
 SG2_BOUNCE_SURFACE_Y	EQU	-25
 SG2_BOUNCE_VERTEX_RELOAD	EQU	11
+SG2_CELESTIAL_TYPE_BASE	EQU	128
 SG2_CONTACT_COORDINATE_SHIFT	EQU	9
 SG2_CONTACT_PAIR_DBF_SUBTRACT	EQU	2
 SG2_CONTACT_PIXEL_CENTER_X	EQU	144
@@ -1627,6 +1628,9 @@ SG2_STARDRIVE_ADDEND_LIMIT	EQU	16000
 SG2_STARDRIVE_ADDEND_RISE_STEP	EQU	100
 SG2_STORED_HEADING_RATIO_BYTE_LIMIT	EQU	255
 SG2_STORED_TARGET_Y_SMOOTH_SHIFT	EQU	5
+SG2_SURFACE_ENTRY_DEPTH_ORIGIN	EQU	305
+SG2_SURFACE_ENTRY_X_BASE_LIMIT	EQU	144
+SG2_SURFACE_ENTRY_Y_BASE_LIMIT	EQU	49
 SG2_TEXT_CURSOR_COLUMNS	EQU	40
 SG2_TEXT_CURSOR_ROWS	EQU	25
 SG2_TEXT_DELETE_ROW_REWIND_BYTES	EQU	322
@@ -1645,6 +1649,8 @@ SG2_WEAPON_HUD_ICON_SAVED_BYTES	EQU	112
 SG2_WEAPON_HUD_ICON_SLOT_MASK	EQU	7
 SG2_WORKSPACE_BELOW_DISPLAY_BYTES	EQU	$6998
 SG2_WORKSPACE_CLEAR_WORDS	EQU	$32CC
+SG2_WORLD_ENTRY_PITCH_PHASE	EQU	$F0A
+SG2_WORLD_ENTRY_Y_BIAS	EQU	200
 SG2_WORLD_FREE_FILL_LAST_INDEX	EQU	250
 SG2_WORLD_POOL_CLEAR_DBF_LAST	EQU	249
 SG2_WORLD_RECORD_BYTES	EQU	68
@@ -44195,10 +44201,10 @@ abs_0_0003350C:
 	move.w #$3,type128_disc_outer_layer_index(a6)
 	bra.b abs_0_00033528
 abs_0_00033524:
-	bra.w abs_0_000338EE
+	bra.w snapshot_world_transition_space_state
 abs_0_00033528:
 	tst.b space_environment_flag(a6)
-	bpl.w abs_0_000338EE
+	bpl.w snapshot_world_transition_space_state
 	move.l system_center_proximity_metric(a6),d3
 	tst.w player_speed_target(a6)
 	beq.w abs_0_0003367A
@@ -44283,7 +44289,7 @@ abs_0_0003359E:
 	addq.b #5,d1
 	move.b d1,SG2TargetingObject_model_scale_shift(a4)
 	move.b #$49,SG2TargetingObject_collision_ignored_object_type(a4)
-	bra.w abs_0_000338EE
+	bra.w snapshot_world_transition_space_state
 abs_0_0003367A:
 	addq.w #1,abs_0_00039998.l
 	andi.w #255,abs_0_00039998.l
@@ -44308,13 +44314,13 @@ abs_0_000336B2:
 	andi.w #31,abs_0_0003999A.l
 abs_0_000336C4:
 	tst.b space_station_nearby_flag(a6)
-	bmi.w abs_0_000338EE
+	bmi.w snapshot_world_transition_space_state
 	cmpi.w #16,selected_celestial_body_index(a6)
-	beq.w abs_0_000338EE
+	beq.w snapshot_world_transition_space_state
 	tst.w abs_0_0003999C.l
 	bmi.b abs_0_00033702
 	subq.w #1,abs_0_0003999C.l
-	bpl.w abs_0_000338EE
+	bpl.w snapshot_world_transition_space_state
 	move.w #$FFFF,abs_0_0003999C.l
 	bsr.w advance_shared_random_state_bridge_038d20
 	andi.w #511,d0
@@ -44338,12 +44344,12 @@ abs_0_00033736:
 	move.b #$7,d0
 abs_0_0003373A:
 	and.w d0,abs_0_00039996.l
-	bne.w abs_0_000338EE
+	bne.w snapshot_world_transition_space_state
 	bsr.w advance_shared_random_state_bridge_038d20
 	andi.w #7,d0
-	bne.w abs_0_000338EE
+	bne.w snapshot_world_transition_space_state
 	cmpi.w #150,free_object_count(a6)
-	bls.w abs_0_000338EE
+	bls.w snapshot_world_transition_space_state
 	movea.l free_object_stack_cursor(a6),a3
 	movea.l -(a3),a4
 	move.l a3,free_object_stack_cursor(a6)
@@ -44426,7 +44432,7 @@ abs_0_0003388A:
 	move.w #$3E8,$0024(a4)
 abs_0_00033896:
 	cmpi.w #40,(a4)	; operand 2: SG2ObjectCore_object_type at (a4)
-	bne.b abs_0_000338EE
+	bne.b snapshot_world_transition_space_state
     ; KNOWN: type A4=Target code-entry register seed:SG2PirateShip
 	tst.w pirate_warning_cooldown_or_negative.l
 	bpl.b abs_0_000338C0
@@ -44448,106 +44454,112 @@ abs_0_000338C0:
 	move.w d0,SG2PirateShip_raid_approach_updates_or_negative(a4)
 	move.w #$10,SG2PirateShip_paired_heading_rotation_step(a4)
 	btst #0,d0
-	bne.b abs_0_000338EE
+	bne.b snapshot_world_transition_space_state
 	neg.w SG2PirateShip_paired_heading_rotation_step(a4)
-    ; Snapshot the space/surface flag before this world-transition procedure; compare after selection and surface tests. This byte is not necessarily the previous physical frame.
-abs_0_000338EE:
+    ; Snapshot this procedure entry BYTE, not a physical frame. Only zero skips celestial selection; positive nonzero also enters, unlike later sign-gated space integration.
+snapshot_world_transition_space_state:
 	move.b #$1,diagnostic_step_byte.l
 	move.b space_environment_flag(a6),world_transition_space_snapshot(a6)
 	tst.b space_environment_flag(a6)
 	beq.w abs_0_00033C4C
 	move.b #$2,diagnostic_step_byte.l
 	move.w nearby_object_count(a6),d0
-	beq.w abs_0_0003396C
+	beq.w test_selected_body_surface_entry
 	movea.l nearby_objects_cursor(a6),a0
 	subq.w #1,d0
 	move.l #$7FFFFFFF,d4
-    ; Original space selector considers types128..144, stores type-128 (0..16) and chosen record. Surface-entry checks narrow the domain;16-entry world tables are not universal bounds.
-abs_0_00033920:
+    ; Normal zero-high-byte tags $80..$90 compete here. CMP/BPL then TST.B is not a universal WORD tag bound. Last equal metric wins. With no winner, keep the prior selection.
+inspect_nearby_celestial_candidate:
 	movea.l (a0)+,a1
 	move.w (a1),d5	; operand 1: SG2ObjectCore_object_type at (a1)
 	cmp.w #$91,d5
-	bpl.b abs_0_00033968
+	bpl.b advance_celestial_candidate_list
 	tst.b d5
-	bpl.b abs_0_00033968
+	bpl.b advance_celestial_candidate_list
 	move.l SG2ObjectCore_world_x(a1),d1
 	move.l SG2ObjectCore_world_y(a1),d2
 	move.l SG2ObjectCore_world_z(a1),d3
 	sub.l player_world_x(a6),d1
-	bpl.b abs_0_00033942
+	bpl.b accumulate_celestial_y_separation
 	neg.l d1
-abs_0_00033942:
+accumulate_celestial_y_separation:
 	sub.l player_world_y(a6),d2
-	bpl.b abs_0_0003394A
+	bpl.b accumulate_celestial_z_separation
 	neg.l d2
-abs_0_0003394A:
+accumulate_celestial_z_separation:
 	sub.l player_world_z(a6),d3
-	bpl.b abs_0_00033952
+	bpl.b compare_wrapped_celestial_distance
 	neg.l d3
-abs_0_00033952:
+    ; Sum unwrapped XYZ LONG separations after N-based negation, retaining minimum-LONG overflow. Candidate comparison also uses N alone; do not replace this with normalized distance.
+compare_wrapped_celestial_distance:
 	add.l d3,d1
 	add.l d2,d1
 	cmp.l d1,d4
-	bmi.b abs_0_00033968
+	bmi.b advance_celestial_candidate_list
+retain_celestial_candidate_on_tie:
 	move.l d1,d4
-	subi.w #128,d5
+	subi.w #SG2_CELESTIAL_TYPE_BASE,d5
 	move.w d5,selected_celestial_body_index(a6)
 	move.l a1,selected_celestial_body_reference(a6)
-abs_0_00033968:
-	dbf.w d0,abs_0_00033920
-abs_0_0003396C:
+advance_celestial_candidate_list:
+	dbf.w d0,inspect_nearby_celestial_candidate
+    ; Dereference the saved selection even if this scan found no candidate. Tags $80/$84 and the original $90 CMP/BPL reject before the flag/depth checks. No nullable/lifetime guard is added.
+test_selected_body_surface_entry:
 	move.b #$3,diagnostic_step_byte.l
 	movea.l selected_celestial_body_reference(a6),a0
 	lea.l nonmodel_projection_rejected_flags.l,a1
 	move.w (a0),d0
 	cmp.w #$90,d0
-	bpl.b abs_0_000339E4
+	bpl.b compare_world_transition_space_snapshot
 	cmp.w #$84,d0
-	beq.b abs_0_000339E4
-	cmp.w #$80,d0
-	beq.b abs_0_000339E4
-	subi.w #128,d0
+	beq.b compare_world_transition_space_snapshot
+	cmp.w #SG2_CELESTIAL_TYPE_BASE,d0
+	beq.b compare_world_transition_space_snapshot
+	subi.w #SG2_CELESTIAL_TYPE_BASE,d0
 	tst.b $0(a1,d0.w)
-	bmi.w abs_0_000339E4
+	bmi.w compare_world_transition_space_snapshot
 	move.w $002A(a0),d7
-	cmp.w #$131,d7
-	bmi.b abs_0_000339E4
+	cmp.w #SG2_SURFACE_ENTRY_DEPTH_ORIGIN,d7
+	bmi.b compare_world_transition_space_snapshot
 	move.w $0026(a0),d0
-	bpl.b abs_0_000339B0
+	bpl.b take_selected_body_projected_y_magnitude
 	neg.w d0
-abs_0_000339B0:
+take_selected_body_projected_y_magnitude:
 	move.w $0028(a0),d1
-	bpl.b abs_0_000339B8
+	bpl.b expand_surface_entry_window_with_depth
 	neg.w d1
-abs_0_000339B8:
-	move.w #$90,d2
-	move.w #$31,d3
-	subi.w #305,d7
-	bmi.b abs_0_000339E4
+    ; Depth subtracts 305; add its WORD result to 144/49 window limits. Projected X/Y magnitudes retain NEG.W wrap. Both strict edge comparisons use N, not signed ordering.
+expand_surface_entry_window_with_depth:
+	move.w #SG2_SURFACE_ENTRY_X_BASE_LIMIT,d2
+	move.w #SG2_SURFACE_ENTRY_Y_BASE_LIMIT,d3
+	subi.w #SG2_SURFACE_ENTRY_DEPTH_ORIGIN,d7
+	bmi.b compare_world_transition_space_snapshot
 	add.w d7,d2
 	add.w d7,d3
 	cmp.w d2,d0
-	bmi.b abs_0_000339D0
-	bra.b abs_0_000339E4
-abs_0_000339D0:
+	bmi.b test_surface_entry_vertical_window
+	bra.b compare_world_transition_space_snapshot
+test_surface_entry_vertical_window:
 	cmp.w d3,d1
-	bpl.b abs_0_000339E4
+	bpl.b compare_world_transition_space_snapshot
 	tst.w selected_celestial_body_index(a6)
-	bne.b abs_0_000339E0
+	bne.b clear_space_state_for_surface_entry
+    ; An accepted window with saved index zero clears shields but retains space state. Otherwise clear space state. The index and reference are not locally cross-validated.
+apply_zero_index_surface_shield_response:
 	clr.w icarus_shield_strength(a6)
-	bra.b abs_0_000339E4
-abs_0_000339E0:
+	bra.b compare_world_transition_space_snapshot
+clear_space_state_for_surface_entry:
 	sf.b space_environment_flag(a6)
-abs_0_000339E4:
+compare_world_transition_space_snapshot:
 	move.b space_environment_flag(a6),d0
 	cmp.b world_transition_space_snapshot(a6),d0
 	beq.w update_space_stardrive_and_motion
 	clr.w pending_message_count(a6)
 	move.w #$1,message_display_countdown(a6)
 	tst.w stardrive_enabled_word(a6)
-	bpl.b abs_0_00033A3A
+	bpl.b clear_drive_and_motion_for_world_entry
 	cmpi.w #11904,stardrive_speed_addend(a6)
-	bmi.b abs_0_00033A3A
+	bmi.b clear_drive_and_motion_for_world_entry
 	subi.w #4096,icarus_shield_strength(a6)
 	bcs.b abs_0_00033A12
 	bra.b abs_0_00033A16
@@ -44562,7 +44574,8 @@ abs_0_00033A16:
 	move.w #$100,d0
 	movea.l SG2SourceTextReference_text(a1,d0.w),a1
 	bsr.w enqueue_event_message
-abs_0_00033A3A:
+    ; Clear drive/addend, station-nearby and motion WORDs before the actual nearby-state capture call. The bounded fixture uses an empty list; later object rebuilding is outside it.
+clear_drive_and_motion_for_world_entry:
 	clr.w stardrive_enabled_word(a6)
 	clr.w stardrive_speed_addend(a6)
 	sf.b space_station_nearby_flag(a6)
@@ -44571,6 +44584,7 @@ abs_0_00033A3A:
 	move.w #$0,player_motion_y(a6)
 	move.w #$0,player_motion_z(a6)
 	bsr.w capture_nearby_relative_objects
+load_selected_world_entry_palette_and_material:
 	lea.l disc_primary_colours.l,a0
 	move.w selected_celestial_body_index(a6),d0
 	add.w d0,d0
@@ -44581,6 +44595,8 @@ abs_0_00033A3A:
 	move.w d0,world_layout_index(a6)
 	move.w world_layout_index(a6),d1
 	asl.w #2,d1
+    ; Use the selected world mask; logical half places player X/Z and record X/Z at centre. Reference Y plus 200 supplies both Y values. Supplied table-prefix cases are not universal bounds.
+centre_player_in_selected_world_mask:
 	lea.l world_horizontal_wrap_masks.l,a1
 	move.l $0(a1,d1.w),d7
 	move.l d7,horizontal_world_wrap_mask(a6)
@@ -44591,16 +44607,19 @@ abs_0_00033A3A:
 	move.l d7,$000C(a4)
 	move.w selected_celestial_body_index(a6),d0
 	asl.w #2,d0
+derive_selected_world_entry_height:
 	lea.l world_reference_y_coordinates.l,a0
 	move.l $0(a0,d0.w),d0
-	addi.l #200,d0
+	addi.l #SG2_WORLD_ENTRY_Y_BIAS,d0
 	move.l d0,player_world_y(a6)
 	move.l d0,$0008(a4)
+    ; Write positive free-flight BYTE 1 and pitch phase $F0A to player and record, clearing rotations 1/2. The real caller then settles for 41 calls before enabling $FF; no frame cadence proof.
+initialize_world_entry_settling_pose:
 	move.b #$1,free_flight_controls_enabled_flag(a6)
-	move.w #$F0A,player_rotation_0(a6)
+	move.w #SG2_WORLD_ENTRY_PITCH_PHASE,player_rotation_0(a6)
 	move.w #$0,player_rotation_1(a6)
 	move.w #$0,player_rotation_2(a6)
-	move.w #$F0A,$0010(a4)
+	move.w #SG2_WORLD_ENTRY_PITCH_PHASE,$0010(a4)
 	move.w #$0,$0012(a4)
 	move.w #$0,$0014(a4)
 	move.w nearby_object_count(a6),d0

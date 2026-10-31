@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "source_commit": "92f51f54e763e6e00c24d2b95447b3975c50cd0d",
+  "source_commit": "c29f6cbd38783b3529b48d4b568f88ad7409a82c",
   "source_assembly": "starglider2_game.s",
   "assets": [
     {
@@ -878,13 +878,13 @@
     },
     {
       "path": "rendered-provenance.json",
-      "bytes": 3559,
-      "sha256": "11f26d1df38a108628b73e47e0d512a06af6c65cf26d41e4b5d1cff7709d5c42"
+      "bytes": 3541,
+      "sha256": "3265dff997555538b64dec27d5ad2ca4af435516d0b637ce14097379a9534f34"
     },
     {
       "path": "starglider2_game.s",
-      "bytes": 2171996,
-      "sha256": "469b76fbb3710fc1f2063dca1a0448483f9faafe0fb3ac6d35ea449cd557ed4b"
+      "bytes": 2175000,
+      "sha256": "35b4e85003d1cd289252557f55c04bdf8790f51ca4b48017d2a270e58e357b4f"
     },
     {
       "path": "tools/starglider2_protection.py",
@@ -892,6 +892,6 @@
       "sha256": "81d3f66d36dbfbd5c77238b20c28e8b9abaa329777eb91f64669bbbf13703582"
     }
   ],
-  "source_commit_role": "canonical source publication base; motion-vector callers, staged fixed-point products, space stardrive thresholds and signed world integration reconstructed through 1483 original CPU tests; preserve WORD wrap, N-only comparisons, pre-ramp notice, collision order and X/Z-only masking; explicit lookup and consumer contexts do not establish universal ownership, unchanged intervening writers, physical units or complete gameplay; output is bound by verification_receipt_id",
-  "source_subject_revision": "33a2f85c697ee78bf4407ecc79b8011caec84ad74d52423a2714458f88370166"
+  "source_commit_role": "canonical source publication base; celestial selection, projected surface gates and world-entry pose reconstructed through 927 original CPU tests; preserve full-WORD N predicates, last ties, stale selection and strict wrapped edges; actual empty-list capture and supplied entry-prefix states do not establish universal bounds, pointer lifetime, unchanged intervening pose writes, cadence or full world rebuild; output is bound by verification_receipt_id",
+  "source_subject_revision": "dd675562101171d4c501e21ad0052e7e16c69c0c27ab75a21d23fbda56e9cfa8"
 }

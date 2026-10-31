@@ -27,6 +27,37 @@ and strengthened 38 app-base attributions.
 Conditional skips mean104 outer iterations are not104 observed memory reads.
 Loaded pointer values remain subject to separate alias/target validation.
 
+The world-selection batch connects the nearby celestial scan, projected
+surface-entry tests and the world-entry pose producer. 927 original CPU tests
+cover supplied list/record backing, high-WORD tag counterexamples, wrapped LONG
+metrics, strict projected WORD edges and actual empty-list capture. Selection
+skips only a zero space BYTE; this differs from later sign-gated integration.
+It keeps the prior index/reference when no candidate wins and chooses the last
+equal wrapped metric. Neither path adds nullable or lifetime validation.
+
+The normal zero-high-byte tags $80..$90 are not a universal WORD domain: the
+original CMP/BPL plus TST.B also admits other tested WORD values. Surface entry
+has separate $80/$84/$90 gates, a rejection BYTE and N-only depth/window tests.
+Depth minus 305 expands the 144/49 projected limits; NEG.W and comparison wrap
+are retained. An accepted window with saved index zero clears shields without
+clearing space; index/reference consistency is not locally checked. The stale
+pair fixture is supplied evidence of that code path, not a normal-game bug claim.
+
+Sixteen supplied table-prefix cases execute the actual empty-list capture and
+entry setup: clear drive/motion, centre X/Z using the world's logical half-mask,
+use reference Y plus 200 and write player/record pitch $F0A. Positive free-flight
+BYTE 1 selects settling. Immediately invoking the real caller on this produced
+state enables $FF after 41 calls; the fixture does not execute the later world
+rebuild or prove intervening pose writes absent. No physical cadence or global
+phase/selector invariant follows. Nineteen continuation names and six exact
+role constants expose these relationships without broader ownership/type facts.
+Next: review the connected world-rebuild/cache and transition-message consumers
+with their actual incoming paths, preserving original replay/alias behavior.
+After executor recovery, all 927 focused tests passed again. Completed native
+generation took 191.70 seconds; counts remain 3509/2716/165 and the ownership
+union retains 10731 unknown bytes in 273 intervals. C/vasm and clean standalone
+building preserve all 412736 original bytes, 57 assets and 14 headers.
+
 The motion/space-integration batch connects the object and player vector
 entries, the real player caller's wrapped speed sum and stores, and the space
 ramp/integration continuation. 1483 original CPU tests cover supplied lookup
@@ -51,8 +82,7 @@ relationships. Decoded absolute write spans overlapping the after-spin WORD stil
 only the initializer clear at $37664, not a captured-heading writer. The raw A2-entry variant at
 $37272 has no recovered CFG/data-reference entry and remains unpromoted. No
 shared analysis rule, ownership, physical-unit or hardware-cadence claim was
-added. Next: continue the connected space-event/transition callers or another
-substantial source region with established incoming and consumer evidence.
+added. The connected world-selection/entry follow-up is documented above.
 Final generation took 230.06 seconds. App/typed/unresolved totals remain
 3509/2716/165; protected facts, exact reference identities, CFG, function summaries
 and ownership accounting are unchanged. C/vasm and clean standalone builds
