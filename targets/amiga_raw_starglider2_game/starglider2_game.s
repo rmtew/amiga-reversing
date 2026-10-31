@@ -1508,7 +1508,14 @@ SG2_OVERLAY_MIN_LEFT	EQU	16
 SG2_OVERLAY_MIN_TOP	EQU	30
 SG2_OVERLAY_ROWS_DBF_LAST	EQU	15
 SG2_OVERLAY_ROW_BYTE_STEP	EQU	160
+SG2_PAULA_PERIOD_STEP	EQU	4
 SG2_PAULA_TRANSIENT_BASE_PERIOD	EQU	358
+SG2_PAULA_TYPE12_PRIORITY_LIMIT	EQU	1100
+SG2_PAULA_TYPE46_PRIORITY_LIMIT	EQU	350
+SG2_PAULA_TYPE5_PRIORITY_LIMIT	EQU	500
+SG2_PAULA_TYPE8_PRIORITY_LIMIT	EQU	1000
+SG2_PAULA_TYPE91_PRIORITY_LIMIT	EQU	1200
+SG2_PAULA_VOLUME_STEP	EQU	2
 SG2_PLAYER_CORNER_BASE_OFFSET	EQU	401
 SG2_PLAYER_CORNER_SLOPE_FACTOR	EQU	17
 SG2_PLAYER_DEPOT_APPROACH_LIMIT	EQU	575
@@ -1522,6 +1529,7 @@ SG2_PROJECTILE_FREE_SLOT_RESERVE	EQU	2
 SG2_PROJECTOR_RESERVED_FREE_FLOOR	EQU	1
 SG2_PROJECTOR_TEMPLATE_DBF_LAST	EQU	7
 SG2_PROJECTOR_TURRET_PART_TYPE	EQU	78
+SG2_PSG_OBJECT_METRIC_SHIFT	EQU	11
 SG2_RADIAL_FIRST_SHIFT_THRESHOLD	EQU	524288
 SG2_RADIAL_SHIFT_DBF_LAST	EQU	9
 SG2_SAVE_CHUNK_BYTES	EQU	$1400
@@ -59217,27 +59225,33 @@ abs_0_0004BE46:
 	move.w #$0,_custom+aud2+ac_vol.l	; audio volume 0
 abs_0_0004BE4E:
 	move.w paula_channel2_effect_base_period.l,_custom+aud2+ac_per.l	; audio period
+    ; Metric is a wrapped WORD sum of three WORD magnitudes, then LSR2. Last ordinary tie wins; first table-eligible special threshold preempts scan. No universal physical-distance ABI.
+gate_paula_object_selection_on_nearby_count:
 	move.w nearby_object_count(a6),d3
-	beq.w abs_0_0004C1A4
+	beq.w fade_paula_volume_without_clearing_selected_identity
+reset_paula_candidate_flag_for_nonempty_list:
 	move.w #$0,object_sound_candidate_found_flag.l
 	subq.w #1,d3
 	movea.l nearby_objects_cursor(a6),a0
 	move.w #$7FFF,d2
-abs_0_0004BE72:
+scan_next_paula_sound_candidate:
 	movea.l (a0)+,a1
 	btst.b #2,SG2ObjectCore_flags(a1)
-	bne.b abs_0_0004BE92
+	bne.b filter_paula_sound_type_before_wrapped_metric
 	btst.b #3,SG2ObjectCore_flags(a1)
-	bne.b abs_0_0004BE92
+	bne.b filter_paula_sound_type_before_wrapped_metric
+allow_paula_type16_without_negative_phase:
 	cmpi.w #16,(a1)	; operand 2: SG2ObjectCore_object_type at (a1)
-	beq.b abs_0_0004BE92
+	beq.b filter_paula_sound_type_before_wrapped_metric
+require_negative_phase_without_forced_flags_or_type16:
 	tst.b SG2ObjectCore_retirement_phase_or_negative(a1)
-	bpl.w abs_0_0004BF26
-abs_0_0004BE92:
+	bpl.w continue_paula_scan_or_fade_without_candidate
+filter_paula_sound_type_before_wrapped_metric:
 	lea.l object_sound_type_exclusion_flags.l,a3
 	move.w (a1),d4	; operand 1: SG2ObjectCore_object_type at (a1)
 	tst.b $0(a3,d4.w)
-	bmi.w abs_0_0004BF26
+	bmi.w continue_paula_scan_or_fade_without_candidate
+form_paula_wrapped_relative_word_metric:
 	move.w SG2ObjectCore_relative_x(a1),d0
 	bpl.b abs_0_0004BEAA
 	neg.w d0
@@ -59253,59 +59267,63 @@ abs_0_0004BEB2:
 abs_0_0004BEBC:
 	add.w d1,d0
 	lsr.w #2,d0
+reset_paula_special_flag_for_eligible_candidate:
 	move.w #$0,object_sound_special_distance_flag.l
+test_type91_paula_priority_metric:
 	cmp.w #$5B,d4
-	bne.b abs_0_0004BED4
-	cmp.w #$4B0,d0
-	bmi.b abs_0_0004BF06
-abs_0_0004BED4:
+	bne.b test_type12_paula_priority_metric
+	cmp.w #SG2_PAULA_TYPE91_PRIORITY_LIMIT,d0
+	bmi.b accept_first_paula_special_metric_candidate
+test_type12_paula_priority_metric:
 	cmp.w #$C,d4
-	bne.b abs_0_0004BEE0
-	cmp.w #$44C,d0
-	bmi.b abs_0_0004BF06
-abs_0_0004BEE0:
+	bne.b test_type8_paula_priority_metric
+	cmp.w #SG2_PAULA_TYPE12_PRIORITY_LIMIT,d0
+	bmi.b accept_first_paula_special_metric_candidate
+test_type8_paula_priority_metric:
 	cmp.w #$8,d4
-	bne.b abs_0_0004BEEC
-	cmp.w #$3E8,d0
-	bmi.b abs_0_0004BF06
-abs_0_0004BEEC:
+	bne.b test_type5_paula_priority_metric
+	cmp.w #SG2_PAULA_TYPE8_PRIORITY_LIMIT,d0
+	bmi.b accept_first_paula_special_metric_candidate
+test_type5_paula_priority_metric:
 	cmp.w #$5,d4
-	bne.b abs_0_0004BEF8
-	cmp.w #$1F4,d0
-	bmi.b abs_0_0004BF06
-abs_0_0004BEF8:
+	bne.b test_type46_paula_priority_metric
+	cmp.w #SG2_PAULA_TYPE5_PRIORITY_LIMIT,d0
+	bmi.b accept_first_paula_special_metric_candidate
+test_type46_paula_priority_metric:
 	cmp.w #$2E,d4
 	bne.b abs_0_0004BF04
-	cmp.w #$15E,d0
-	bmi.b abs_0_0004BF06
+	cmp.w #SG2_PAULA_TYPE46_PRIORITY_LIMIT,d0
+	bmi.b accept_first_paula_special_metric_candidate
 abs_0_0004BF04:
-	bra.b abs_0_0004BF10
-abs_0_0004BF06:
+	bra.b compare_paula_ordinary_metric_and_accept_last_tie
+accept_first_paula_special_metric_candidate:
 	move.w #$FFFF,object_sound_special_distance_flag.l
-	bra.b abs_0_0004BF36
-abs_0_0004BF10:
+	bra.b bind_paula_special_reference_before_descriptor_selection
+compare_paula_ordinary_metric_and_accept_last_tie:
 	cmp.w d0,d2
-	bmi.b abs_0_0004BF26
+	bmi.b continue_paula_scan_or_fade_without_candidate
 	movea.l a1,a2
 	move.l a1,object_sound_selected_reference.l
 	move.w d0,d2
 	move.w #$FFFF,object_sound_candidate_found_flag.l
-abs_0_0004BF26:
-	dbf.w d3,abs_0_0004BE72
+continue_paula_scan_or_fade_without_candidate:
+	dbf.w d3,scan_next_paula_sound_candidate
 	tst.w object_sound_candidate_found_flag.l
-	bmi.b abs_0_0004BF36
-	bra.w abs_0_0004C1A4
-abs_0_0004BF36:
+	bmi.b bind_paula_special_reference_before_descriptor_selection
+	bra.w fade_paula_volume_without_clearing_selected_identity
+bind_paula_special_reference_before_descriptor_selection:
 	tst.w object_sound_special_distance_flag.l
 	beq.b select_nearby_object_sound_continuation
 	movea.l a1,a2
 	move.l a1,object_sound_selected_reference.l
+    ; Type change updates requested sample. A matching previous-request snapshot loads base period/volume; a different pointer arms restart but retains base state for later service.
 select_nearby_object_sound_continuation:
 	move.w (a2),d4
 	move.w selected_object_sound_type.l,d3
 	move.w d4,selected_object_sound_type.l
 	cmp.w d4,d3
-	beq.b abs_0_0004BFAA
+	beq.b rearm_pending_paula_restart_for_unchanged_type
+index_paula_descriptor_after_selected_type_change:
 	movea.l #paula_object_sound_descriptors,a0
 	move.w d4,d0
 	asl.w #4,d0
@@ -59313,27 +59331,29 @@ select_nearby_object_sound_continuation:
 	move.l (a0),d0
 	move.l d0,paula_object_sound_requested_sample.l
 	cmp.l paula_object_sound_previous_sample.l,d0
-	bne.b abs_0_0004BF90
+	bne.b request_paula_sample_restart_for_changed_pointer
+load_period_and_volume_when_sample_pointer_matches:
 	addq.l #6,a0
 	move.w (a0)+,paula_object_sound_base_period.l
 	move.w paula_object_sound_base_period.l,paula_object_sound_current_period.l
 	move.w (a0)+,paula_object_sound_base_volume.l
-	bra.b abs_0_0004BFC2
-abs_0_0004BF90:
+	bra.b reload_nearby_list_for_same_type_prefix_volume
+request_paula_sample_restart_for_changed_pointer:
 	move.w #$FFFF,paula_object_sound_restart_flag.l
 	tst.w paula_object_sound_transition_phase.l
-	bpl.b abs_0_0004BFC2
+	bpl.b reload_nearby_list_for_same_type_prefix_volume
 	move.w #$B,paula_object_sound_transition_phase.l
-	bra.b abs_0_0004BFC2
-abs_0_0004BFAA:
+	bra.b reload_nearby_list_for_same_type_prefix_volume
+rearm_pending_paula_restart_for_unchanged_type:
 	tst.w paula_object_sound_restart_flag.l
-	bpl.b abs_0_0004BFC2
+	bpl.b reload_nearby_list_for_same_type_prefix_volume
 	tst.w paula_object_sound_transition_phase.l
-	bpl.b abs_0_0004BFC2
+	bpl.b reload_nearby_list_for_same_type_prefix_volume
 	move.w #$B,paula_object_sound_transition_phase.l
-abs_0_0004BFC2:
+    ; Volume accumulation stops at the first different type or selected pointer, not all matches. This prefix pass does not repeat phase/flag filtering; preserve order and WORD arithmetic.
+reload_nearby_list_for_same_type_prefix_volume:
 	move.w nearby_object_count(a6),d3
-	beq.w abs_0_0004C1A4
+	beq.w fade_paula_volume_without_clearing_selected_identity
 	subq.w #1,d3
 	movea.l nearby_objects_cursor(a6),a0
 	move.w #$0,paula_same_type_base_volume.l
@@ -59342,15 +59362,16 @@ abs_0_0004BFC2:
 	asl.w #4,d0
 	move.w $8(a3,d0.w),paula_same_type_base_volume.l
 	move.w #$0,paula_same_type_prefix_volume_sum.l
-abs_0_0004BFF2:
+scan_same_type_prefix_until_mismatch_or_selected:
 	move.w (a2),d0
 	movea.l (a0)+,a1
 	cmp.w (a1),d0	; operand 1: SG2ObjectCore_object_type at (a1)
-	beq.b abs_0_0004BFFE
-	bra.w abs_0_0004C044
-abs_0_0004BFFE:
+	beq.b stop_prefix_sum_when_reaching_selected_record
+	bra.w form_previous_selected_vector_word_magnitude
+stop_prefix_sum_when_reaching_selected_record:
 	cmpa.l a1,a2
-	beq.b abs_0_0004C044
+	beq.b form_previous_selected_vector_word_magnitude
+form_same_type_prefix_word_magnitude:
 	move.w SG2ObjectCore_relative_x(a1),d0
 	bpl.b abs_0_0004C00A
 	neg.w d0
@@ -59367,33 +59388,35 @@ abs_0_0004C01C:
 	add.w d1,d0
 	lsr.w #1,d0
 	cmp.w #$1,d0
-	bpl.b abs_0_0004C02A
+	bpl.b attenuate_same_type_prefix_volume_parameter
 	move.w #$1,d0
-abs_0_0004C02A:
+attenuate_same_type_prefix_volume_parameter:
 	lsr.w #7,d0
 	neg.w d0
 	add.w paula_same_type_base_volume.l,d0
-	bpl.b abs_0_0004C03A
+	bpl.b accumulate_wrapping_paula_prefix_volume_word
 	move.w #$0,d0
-abs_0_0004C03A:
+accumulate_wrapping_paula_prefix_volume_word:
 	add.w d0,paula_same_type_prefix_volume_sum.l
-	dbf.w d3,abs_0_0004BFF2
-abs_0_0004C044:
-	move.w paula_previous_selected_relative_delta.l,d4
+	dbf.w d3,scan_same_type_prefix_until_mismatch_or_selected
+    ; Snapshot holds previous selected relative coordinates, not per-instance frame differences. Metric change signs WORD+$20/speed biases. Period steps of 4 can overshoot without target clamp.
+form_previous_selected_vector_word_magnitude:
+	move.w paula_previous_selected_relative_vector.l,d4
 	bpl.b abs_0_0004C04E
 	neg.w d4
 abs_0_0004C04E:
-	move.w paula_previous_selected_relative_delta_y_delta.l,d1
+	move.w paula_previous_selected_relative_vector_y_delta.l,d1
 	bpl.b abs_0_0004C058
 	neg.w d1
 abs_0_0004C058:
 	add.w d1,d4
-	move.w paula_previous_selected_relative_delta_z_delta.l,d1
+	move.w paula_previous_selected_relative_vector_z_delta.l,d1
 	bpl.b abs_0_0004C064
 	neg.w d1
 abs_0_0004C064:
 	add.w d1,d4
 	lsr.w #1,d4
+form_current_selected_vector_word_magnitude:
 	move.w $0016(a2),d0
 	bpl.b abs_0_0004C070
 	neg.w d0
@@ -59409,76 +59432,81 @@ abs_0_0004C078:
 abs_0_0004C082:
 	add.w d1,d0
 	lsr.w #1,d0
-	move.w $0016(a2),paula_previous_selected_relative_delta.l
-	move.w $0018(a2),paula_previous_selected_relative_delta_y_delta.l
-	move.w $001A(a2),paula_previous_selected_relative_delta_z_delta.l
+store_current_relative_vector_as_next_snapshot:
+	move.w $0016(a2),paula_previous_selected_relative_vector.l
+	move.w $0018(a2),paula_previous_selected_relative_vector_y_delta.l
+	move.w $001A(a2),paula_previous_selected_relative_vector_z_delta.l
 	move.w d0,d3
+load_selected_descriptor_period_for_bias_target:
 	movea.l #paula_object_sound_descriptors,a0
 	move.w selected_object_sound_type.l,d5
 	asl.w #4,d5
 	move.w $6(a0,d5.w),d5
+derive_word20_and_player_speed_period_biases:
 	move.w $0020(a2),d1
 	neg.w d1
 	move.w player_speed_target(a6),d2
 	neg.w d2
 	asr.w #2,d2
 	sub.w d4,d0
-	bpl.b abs_0_0004C0C8
+	bpl.b store_signed_period_bias_snapshots
+reverse_period_biases_when_current_metric_is_lower:
 	neg.w d2
 	neg.w d1
-abs_0_0004C0C8:
+store_signed_period_bias_snapshots:
 	move.w d1,paula_object_period_bias_snapshot.l
 	move.w d2,paula_player_speed_period_bias_snapshot.l
 	add.w d1,d5
 	add.w d2,d5
+step_current_paula_period_without_target_clamp:
 	move.w paula_object_sound_current_period.l,d6
 	cmp.w d5,d6
-	beq.b abs_0_0004C0F2
-	bpl.b abs_0_0004C0EC
-	addq.w #4,paula_object_sound_current_period.l
-	bra.b abs_0_0004C0F2
-abs_0_0004C0EC:
-	subq.w #4,paula_object_sound_current_period.l
-abs_0_0004C0F2:
+	beq.b publish_current_period_before_volume_attenuation
+	bpl.b subtract_four_from_current_paula_period
+	addq.w #SG2_PAULA_PERIOD_STEP,paula_object_sound_current_period.l
+	bra.b publish_current_period_before_volume_attenuation
+subtract_four_from_current_paula_period:
+	subq.w #SG2_PAULA_PERIOD_STEP,paula_object_sound_current_period.l
+publish_current_period_before_volume_attenuation:
 	move.w paula_object_sound_current_period.l,paula_object_sound_base_period.l
 	cmp.w #$1,d3
-	bpl.b abs_0_0004C106
+	bpl.b attenuate_selected_base_volume_by_word_metric
 	move.w #$1,d3
-abs_0_0004C106:
+attenuate_selected_base_volume_by_word_metric:
 	lsr.w #7,d3
 	neg.w d3
 	add.w paula_object_sound_base_volume.l,d3
-	bpl.b abs_0_0004C116
+	bpl.b add_prefix_volume_then_apply_signed_cap64
 	move.w #$0,d3
-abs_0_0004C116:
+add_prefix_volume_then_apply_signed_cap64:
 	move.w paula_same_type_prefix_volume_sum.l,d4
 	add.w d4,d3
 	cmp.w #$40,d3
-	bmi.b abs_0_0004C128
+	bmi.b approach_paula_target_volume_in_two_unit_steps
 	move.w #$40,d3
-abs_0_0004C128:
+approach_paula_target_volume_in_two_unit_steps:
 	move.w d3,paula_object_sound_target_volume.l
 	move.w paula_object_sound_smoothed_volume.l,d0
 	move.w paula_object_sound_target_volume.l,d1
 	cmp.w d0,d1
-	beq.b abs_0_0004C182
-	bpl.b abs_0_0004C162
-	subq.w #2,paula_object_sound_smoothed_volume.l
+	beq.b publish_smoothed_volume_before_descriptor_dispatch
+	bpl.b raise_paula_smoothed_volume_then_limit_overshoot
+	subq.w #SG2_PAULA_VOLUME_STEP,paula_object_sound_smoothed_volume.l
 	move.w paula_object_sound_smoothed_volume.l,d0
 	move.w paula_object_sound_target_volume.l,d1
 	cmp.w d0,d1
-	bmi.b abs_0_0004C182
+	bmi.b publish_smoothed_volume_before_descriptor_dispatch
 	move.w paula_object_sound_target_volume.l,paula_object_sound_smoothed_volume.l
-	bra.b abs_0_0004C182
-abs_0_0004C162:
-	addq.w #2,paula_object_sound_smoothed_volume.l
+	bra.b publish_smoothed_volume_before_descriptor_dispatch
+raise_paula_smoothed_volume_then_limit_overshoot:
+	addq.w #SG2_PAULA_VOLUME_STEP,paula_object_sound_smoothed_volume.l
 	move.w paula_object_sound_smoothed_volume.l,d0
 	move.w paula_object_sound_target_volume.l,d1
 	cmp.w d0,d1
-	bpl.b abs_0_0004C182
+	bpl.b publish_smoothed_volume_before_descriptor_dispatch
 	move.w paula_object_sound_target_volume.l,paula_object_sound_smoothed_volume.l
     ; Descriptor WORD14 gates object-specific sound handling. WORD10/12 remain opaque, not declared padding. Preserve special-type branches and original unchecked selectors.
-abs_0_0004C182:
+publish_smoothed_volume_before_descriptor_dispatch:
 	move.w paula_object_sound_smoothed_volume.l,paula_object_sound_current_volume.l
 	movea.l #paula_object_sound_descriptors,a0
 	move.w selected_object_sound_type.l,d0
@@ -59486,12 +59514,13 @@ abs_0_0004C182:
 	tst.w $E(a0,d0.w)
 	beq.w abs_0_0004C572
 	bra.b abs_0_0004C1CA
-abs_0_0004C1A4:
+    ; No-candidate fade leaves selected pointer/type intact. Empty count also bypasses candidate-flag reset. Retained state is not an ownership/lifetime proof.
+fade_paula_volume_without_clearing_selected_identity:
 	move.w #$0,paula_object_sound_target_volume.l
-	subq.w #2,paula_object_sound_smoothed_volume.l
-	bpl.b abs_0_0004C1BC
+	subq.w #SG2_PAULA_VOLUME_STEP,paula_object_sound_smoothed_volume.l
+	bpl.b publish_fading_paula_current_volume
 	move.w #$0,paula_object_sound_smoothed_volume.l
-abs_0_0004C1BC:
+publish_fading_paula_current_volume:
 	move.w paula_object_sound_smoothed_volume.l,paula_object_sound_current_volume.l
 	bra.w abs_0_0004C5AC
 abs_0_0004C1CA:
@@ -60680,11 +60709,11 @@ object_sound_selected_reference:
 	dc.l $00000000
 paula_same_type_prefix_volume_sum:
 	dc.w $0000
-paula_previous_selected_relative_delta:
+paula_previous_selected_relative_vector:
 	dc.w $0000	; x_delta
-paula_previous_selected_relative_delta_y_delta:
+paula_previous_selected_relative_vector_y_delta:
 	dc.w $0000	; y_delta
-paula_previous_selected_relative_delta_z_delta:
+paula_previous_selected_relative_vector_z_delta:
 	dc.w $0000	; z_delta
 object_sound_candidate_found_flag:
 	dc.w $0000
@@ -60868,29 +60897,32 @@ advance_alternate_event_noise_period_with_n_only_cap:
 	addi.w #1,psg_nearby_event_noise_period.l
 	move.w psg_nearby_event_noise_period.l,d0
 	cmp.w #$1F,d0
-	bmi.b abs_0_0004D452
+	bmi.b gate_psg_object_selection_on_nearby_count
 	move.w #$1F,psg_nearby_event_noise_period.l
-abs_0_0004D452:
+    ; BYTE table filters before flags/phase; no Paula type 16 exception or special cutoffs. Last metric tie wins. Empty count skips reference/flag clearing but still clears type.
+gate_psg_object_selection_on_nearby_count:
 	move.w nearby_object_count(a6),d3
-	beq.w abs_0_0004D50A
+	beq.w clear_psg_selected_type_and_decay_without_candidate
 	subq.w #1,d3
 	movea.l nearby_objects_cursor(a6),a0
 	move.w #$7FFF,d2
+clear_psg_selected_reference_only_for_nonempty_list:
 	clr.l psg_selected_object_reference.l
 	lea.l psg_object_type_base_volumes_or_negative.l,a3
 	sf.b psg_nearby_sound_candidate_found_flag.l
-abs_0_0004D476:
+scan_psg_candidates_after_original_type_volume_filter:
 	movea.l (a0)+,a1
 	move.w (a1),d0	; operand 1: SG2ObjectCore_object_type at (a1)
 	tst.b $0(a3,d0.w)
 	bmi.b abs_0_0004D4CA
+test_psg_forced_flags_before_negative_phase_gate:
 	btst.b #2,SG2ObjectCore_flags(a1)
-	bne.b abs_0_0004D498
+	bne.b form_psg_wrapped_relative_word_metric
 	btst.b #3,SG2ObjectCore_flags(a1)
-	bne.b abs_0_0004D498
+	bne.b form_psg_wrapped_relative_word_metric
 	tst.b SG2ObjectCore_retirement_phase_or_negative(a1)
 	bpl.w abs_0_0004D4CA
-abs_0_0004D498:
+form_psg_wrapped_relative_word_metric:
 	move.w SG2ObjectCore_relative_x(a1),d0
 	bpl.b abs_0_0004D4A0
 	neg.w d0
@@ -60906,6 +60938,7 @@ abs_0_0004D4A8:
 abs_0_0004D4B2:
 	add.w d1,d0
 	lsr.w #2,d0
+accept_psg_minimum_metric_with_last_tie_precedence:
 	cmp.w d0,d2
 	bmi.b abs_0_0004D4CA
 	st.b psg_nearby_sound_candidate_found_flag.l
@@ -60913,35 +60946,38 @@ abs_0_0004D4B2:
 	move.l a1,psg_selected_object_reference.l
 	move.w d0,d2
 abs_0_0004D4CA:
-	dbf.w d3,abs_0_0004D476
+	dbf.w d3,scan_psg_candidates_after_original_type_volume_filter
+guard_psg_selected_reference_and_candidate_sign:
 	movea.l psg_selected_object_reference.l,a0
 	cmpa.l #$0,a0
-	beq.b abs_0_0004D50A
+	beq.b clear_psg_selected_type_and_decay_without_candidate
 	tst.b psg_nearby_sound_candidate_found_flag.l
-	bpl.b abs_0_0004D50A
+	bpl.b clear_psg_selected_type_and_decay_without_candidate
+publish_psg_selected_type_and_lookup_base_volume:
 	move.w (a0),d4
 	move.w d4,selected_object_sound_type.l
 	move.b $0(a3,d4.w),d4
 	andi.w #255,d4
-	move.b #$B,d3
+attenuate_psg_base_volume_by_metric_shift11:
+	move.b #SG2_PSG_OBJECT_METRIC_SHIFT,d3
 	lsr.w d3,d2
 	neg.w d2
 	add.w d4,d2
-	bpl.b abs_0_0004D502
+	bpl.b store_psg_object_volume_and_finish_selection
 	clr.w d2
-abs_0_0004D502:
+store_psg_object_volume_and_finish_selection:
 	move.w d2,psg_object_sound_volume_word.l
 	bra.b abs_0_0004D53A
-abs_0_0004D50A:
+clear_psg_selected_type_and_decay_without_candidate:
 	clr.w selected_object_sound_type.l
 	subq.w #1,psg_object_sound_volume_word.l
-	bpl.b abs_0_0004D51E
+	bpl.b decay_psg_type10_amplitude_by_byte_sign
 	clr.w psg_object_sound_volume_word.l
-abs_0_0004D51E:
+decay_psg_type10_amplitude_by_byte_sign:
 	subq.b #1,psg_type10_amplitude.l
-	bpl.b abs_0_0004D52C
+	bpl.b decay_psg_types1_15_envelope_by_word_sign
 	clr.b psg_type10_amplitude.l
-abs_0_0004D52C:
+decay_psg_types1_15_envelope_by_word_sign:
 	subq.w #1,psg_types1_15_volume_envelope.l
 	bpl.b abs_0_0004D53A
 	clr.w psg_types1_15_volume_envelope.l

@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "source_commit": "83cf62e0955f31f337fef38898fc7d22bde9726d",
+  "source_commit": "e07d0adc8e23eff93be7281144df1223d34b59d1",
   "source_assembly": "starglider2_game.s",
   "assets": [
     {
@@ -878,13 +878,13 @@
     },
     {
       "path": "rendered-provenance.json",
-      "bytes": 3506,
-      "sha256": "5341156d9641fca47b2aa2a75eada3e14defa58d2db0dcd08f732a5aadce0a55"
+      "bytes": 3499,
+      "sha256": "c01aab231566edea398e41f40f7e927e7c55255f0d6545b523ae43140f80b544"
     },
     {
       "path": "starglider2_game.s",
-      "bytes": 2124005,
-      "sha256": "4b6a4d9c372011127e289d6c6e913140e869a85df00cf4acf63bce2230fe2fad"
+      "bytes": 2129485,
+      "sha256": "0bb16ba9e03d3e7348b2e49eb2dfcaad5bf0557ed231ac0a6f18c38b60acb236"
     },
     {
       "path": "tools/starglider2_protection.py",
@@ -892,6 +892,6 @@
       "sha256": "81d3f66d36dbfbd5c77238b20c28e8b9abaa329777eb91f64669bbbf13703582"
     }
   ],
-  "source_commit_role": "canonical source publication base; bouncing-bomb response and both software sound consumers reconstructed through942 original-CPU cases; retain WORD/BYTE overflow, latch overwrite, request priority and empty-list/projector bypass; sound continuations stop before device-writing phases, not PCM, complete frame effects, normal-game reachability, concurrency or lifetime proof; output is bound by verification_receipt_id",
-  "source_subject_revision": "793128099f35e8939f4f710320664a760ea81d84aca07ce85c97b1d3cde95556"
+  "source_commit_role": "canonical source publication base; nearby-object software selectors, descriptor transitions, prefix accumulation, vector snapshot and period/volume steps reconstructed through 939 original-CPU cases; sound stages stop before device-writing continuations, not PCM, complete frame effects, normal-game reachability, arbitrary ownership/index bounds or concurrency proof; output is bound by verification_receipt_id",
+  "source_subject_revision": "ecee83b600583f054b8e4fcb7127dddd34c1becd3e631cdd0f3b8078826c713b"
 }

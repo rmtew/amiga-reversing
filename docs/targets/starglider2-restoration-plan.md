@@ -27,6 +27,34 @@ and strengthened 38 app-base attributions.
 Conditional skips mean104 outer iterations are not104 observed memory reads.
 Loaded pointer values remain subject to separate alias/target validation.
 
+The nearby-object sound batch reconstructs 57 continuations, eight constants
+and the previous-selected-vector name with 939 original-CPU cases. Both metrics
+use wrapped WORD magnitudes/sums followed by LSR2, not universal mathematical
+distance. Ordinary equal metrics select the last eligible record. Paula has a
+type 16 phase exception and first-match special thresholds for types 91/12/8/5/46;
+the alternate selector has neither. Original type 91 exclusion prevents its coded
+priority branch in these fixtures; it was not forced or declared globally dead.
+
+Paula type changes publish a requested sample. Only a matching previous-request
+snapshot loads descriptor period/volume immediately; otherwise restart is armed
+while old base state remains for later service. Same-type volume sums only the
+prefix before the first different type or selected pointer, without repeating
+eligibility checks. The six-byte vector stores previous selected relative
+coordinates, not per-instance frame differences; canonical name-only rename
+retains its owner/type binding. Metric change signs WORD+$20/player-speed biases.
+Period steps of 4 have no target clamp and can overshoot in serial continuation
+cases. Volume steps of 2 include overshoot limiting; all WORD/sign edges remain.
+
+No-candidate Paula fade retains selected reference/type. The alternate clears
+type and decays envelopes; empty count bypasses reference/candidate-flag reset,
+whereas a nonempty rejected list clears them. Descriptor WORD+$0A/+$0C remain opaque.
+Paula fixtures enter $4BE58 after preceding device writes and stop at descriptor-
+gated continuations or $4C5AC; alternate fixtures stop at $4D53A before frame
+restoration. These supplied software-stage states prove no normal-game caller,
+arbitrary-index/ownership, concurrency, complete frame-effect or PCM contract.
+Native reference/proof identities and 3509 app / 2716 typed / 165 unresolved
+counts remain unchanged, with byte-exact C/vasm and standalone output retained.
+
 The bouncing-bomb/effect batch reconstructs the response and both software
 sound consumers with 942 original-CPU cases. Gravity adds 4 as WORD, reflection
 forms 10-VY as WORD and motion scale subtracts 20 before testing N. A result of
