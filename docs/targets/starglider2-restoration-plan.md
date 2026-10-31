@@ -7,7 +7,7 @@ that further analysis is exhausted. Current source remains byte exact: all
 with all 106154 accepted code bytes retained. No generated assembly was edited
 by hand and no interim archive was produced.
 
-The current ownership union leaves 10115 bytes in
+The current ownership union leaves 10109 bytes in
 275 intervals unclassified. This is classification accounting,
 not a semantic completion percentage. Earlier interval/site counts below belong
 to their recorded closeout revision. See the current
@@ -16,7 +16,7 @@ to their recorded closeout revision. See the current
 
 ## Current refinement and next evidence
 
-Current native totals: **3514 app /2716 typed /166 unresolved**, with **10115
+Current native totals: **3514 app /2716 typed /166 unresolved**, with **10109
 unclassified bytes /275 intervals**. The earlier counter-indexed source-array recovery reused
 the shared loop induction and interned linear entry values. Original inventory
 readers at source `$DD6` and `$339B4` expose the existing name-reference `text`
@@ -27,6 +27,18 @@ and strengthened 38 app-base attributions.
 Conditional skips mean104 outer iterations are not104 observed memory reads.
 Loaded pointer values remain subject to separate alias/target validation.
 
+The face-packet batch qualifies 115 CPU cases and restores 31 continuations,
+four scalars and two state cells totaling six bytes. Fast packets copy projected
+XY and average signed cached depth. Clipped packets gather view XYZ, remove at
+most one matching closing vertex, project using doubled WORD depth and can
+emit a single remaining vertex. Invalid doubled depth withdraws the reference
+and count but leaves partial scratch stores. Post-face count>=145 bypasses the
+pending decrement; model entry instead rejects count>145. The remaining
+candidate WORD is reused for 25 ground-grid quads, not a new exclusive owner.
+Finite records do not prove model/index domains, arena capacity, shared lifetime,
+all clipping paths, normal-game reachability or pixel output. Next: connected
+ground-face command/cache producers and their distinct count/rollback paths.
+
 The snapshot-handoff batch qualifies 288 CPU cases through common display
 initialization, original rotation, empty scene/disc paths and finite setup-prefix
 to HUD drawing. Eight continuations and four scalars expose the initial
@@ -36,8 +48,8 @@ Scene entry captures buffer, full mode BYTE and masked rotation before count
 handling. Nonempty disc submission refreshes buffer only; empty submission does
 not. This is phase state, not synchronized ownership. Mode1 stops before asset
 conversion in the setup prefix; ports are RAM, not hardware models. Native
-facts and ownership remain unchanged. Next: connected raw polygon projection
-and packet-emission producers, preserving the existing capacity/lifetime limits.
+facts and ownership were unchanged in that batch. Connected packet producers
+are reconstructed in the subsequent face-packet batch above.
 
 The alternate pattern-reader batch adds 356 CPU cases, nine continuations,
 three constants and 128 bytes of identified two-LONG pattern pairs. Each pixel

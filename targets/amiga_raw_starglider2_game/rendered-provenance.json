@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
   "kind": "committed_native_rendered_original_export",
-  "canonical_source_commit": "8ed6ea4699b82da13a1f537bf4c4479670f55b00",
-  "publication_base_commit": "8ed6ea4699b82da13a1f537bf4c4479670f55b00",
+  "canonical_source_commit": "8cd707d886ca2c3971a0d23f2a78a71a404fd186",
+  "publication_base_commit": "8cd707d886ca2c3971a0d23f2a78a71a404fd186",
   "native_export": "CListingArtifact.source_package_payload(64)",
-  "main_source_sha256": "cb773145f76f55060bc53d97b7ee70ec755941645b95f43ae26304bd4d8d219e",
+  "main_source_sha256": "0d68c55de2cdd8207174691739d57ac4d5bc9c248034b62343402578fddcf097",
   "asset_count": 57,
   "asset_bytes": 93633,
   "game_assembly_hand_edits": false,
@@ -24,13 +24,13 @@
     "assembler executable",
     "paused Pandora work"
   ],
-  "canonical_source_commit_role": "canonical source publication base; display initialization, buffer rotation and scene snapshot handoffs qualified through 288 original CPU cases. Eight continuations and four scalars expose initial draw/display aliasing, exact12-only wrap and WORD/full-register differences, pre-count snapshot capture, disc-only stale mode/rotation and finite setup-prefix-to-HUD drawing. Device addresses are RAM; mode1 asset conversion, full startup, scanout, production queue bounds and shared lifetime remain unqualified; native facts and ownership unchanged; output bound by verification_receipt_id",
-  "canonical_source_subject_revision": "d16053c26d0ea832a0b035838d12c5b8c46f2b459f0cea9add287846bc16905a",
+  "canonical_source_commit_role": "canonical source publication base; admitted and clipped face packet producers reconstructed through 115 original CPU cases. Thirty-one continuations, two state cells totaling 6 bytes and four scalars expose signed cached versus doubled clipped depth, finite style classification, outcode gathering, single closing-duplicate removal, partial-write rollback and count/pending order. The pending counter is phase-reused by ground-grid candidates. No model/selector domain, arena capacity, shared lifetime, all clipper paths, normal-game reachability or pixel equivalence is asserted; output bound by verification_receipt_id",
+  "canonical_source_subject_revision": "bad2a84e4c4043dc5e093dd918f575cee1f95e811dea39e327c4415700a3a15a",
   "canonical_fact_sha256": {
     "source_binary.json": "42d4a5758b3e8236af7f912aee85e9ee5323bcd0961faa338c4f864080a0a7d9",
     "target_metadata.json": "e7540b68c118c56aba8815b6722eefa067517cc865fe9841d6c01ce96551389c",
-    "manual_actions.jsonl": "9c193877f61e316fba09e1a65f5517497b8a540bfd32a48e6f3c12acea2ec058",
-    "decision_journal.jsonl": "e81364116abed1cad503079feb558e75f1ebec0b08fb9b7952e9aab3704d9a63"
+    "manual_actions.jsonl": "16d85636245df0f55b341233377d5ec4136e7e4f7ea852ab1f4a550fcd2f1359",
+    "decision_journal.jsonl": "a686fbf8a1b4101dde99cc563dcd759e941c924dc06dfac61d3d1eee304f4490"
   },
   "headers": "14 unmodified required include files collected by source_package.collect_package_includes from ext/amiga_includes/ndk_2.0/include; header notices retained",
   "decoded_protection_view": {
@@ -46,7 +46,7 @@
     },
     "runtime_scope": "Seven CPU write-site windows match this reversible view; no whole runtime-view identity or parent plaintext promotion."
   },
-  "verification_receipt_id": "1408036e7c4c1c89c6e8dec1dd210b28970f5e3e995115bf22100040aa362876",
+  "verification_receipt_id": "2b570048754e2b7103bd25fec9f2c7cb1e3701065c8527cf0e741fd49f49dbdd",
   "render_native_sha256": "5c53c7d8bee53bbd52ecdd970f145d3d175e39fbabd25d559e11f2f6c36f7440",
   "final_assembler_native_sha256": "5c53c7d8bee53bbd52ecdd970f145d3d175e39fbabd25d559e11f2f6c36f7440"
 }

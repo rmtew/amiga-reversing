@@ -1490,6 +1490,8 @@ SG2_BUFFER_ROTATION_END_OFFSET	EQU	12
 SG2_BUFFER_ROTATION_ENTRY_BYTES	EQU	4
 SG2_BUFFER_ROTATION_INPUT_MASK	EQU	255
 SG2_CELESTIAL_TYPE_BASE	EQU	128
+SG2_CLIPPED_POLYGON_X_MULTIPLIER	EQU	288
+SG2_CLIPPED_POLYGON_Y_MULTIPLIER	EQU	98
 SG2_CLIPPED_TRAIL_X_MULTIPLIER	EQU	288
 SG2_CLIPPED_TRAIL_Y_MULTIPLIER	EQU	98
 SG2_CLIP_INITIAL_PRODUCT_SHIFT	EQU	8
@@ -1680,6 +1682,7 @@ SG2_POINT_STYLE_BYTE_OFFSET_MASK	EQU	14
 SG2_POINT_TRAIL_SPEED_THRESHOLD	EQU	500
 SG2_POINT_XYZ_BYTES	EQU	6
 SG2_POINT_X_SCRATCH_WORD_OFFSET	EQU	300
+SG2_POLYGON_STYLE_X_CELL_MASK	EQU	$FFF0
 SG2_PROJECTILE_BASE_ENERGY_COST	EQU	256
 SG2_PROJECTILE_FREE_SLOT_RESERVE	EQU	2
 SG2_PROJECTOR_RESERVED_FREE_FLOOR	EQU	1
@@ -1724,6 +1727,7 @@ SG2_SCENE_INITIAL_EDGE_RECIPROCAL_BIAS_BYTES	EQU	2
 SG2_SCENE_MIN_Y_SCAN_SEED	EQU	4095
 SG2_SCENE_MODE1_HUD_CLEAR_DBF_LAST	EQU	32
 SG2_SCENE_MODE1_HUD_CLEAR_POSTINC_ADVANCE	EQU	156
+SG2_SCENE_PACKET_COUNT_THRESHOLD	EQU	145
 SG2_SCENE_SCREEN_VERTEX_BYTES	EQU	4
 SG2_SCENE_TWO_SCREEN_VERTICES_BYTES	EQU	8
 SG2_SCORE_BCD_DIGITS_DBF_LAST	EQU	5
@@ -6083,7 +6087,7 @@ abs_0_00004A28:
     ; Original callers supply A4 world-object record: visible list or model viewer first pool slot. Entry is4A2A; preceding4A28 isRTS. Model index/normal-return preconditions remain.
     ; KNOWN: type A4=Target code-entry register seed:SG2ModelRenderView
 project_model_to_draw_records:
-	cmpi.w #145,scene_packet_count.l
+	cmpi.w #SG2_SCENE_PACKET_COUNT_THRESHOLD,scene_packet_count.l
 	bgt.b abs_0_00004A28
 	move.w d0,active_model_type_index(a6)
 	lea.l model_header_pointers.l,a0
@@ -6127,7 +6131,7 @@ abs_0_00004AA4:
 	move.w d0,$2580(a0)
 	addq.l #8,a0
 	dbf.w d1,abs_0_00004AA4
-	clr.w abs_0_000052BE.l
+	clr.w polygon_candidates_remaining.l
 	bsr.w build_model_view_rotation_matrix
 	lea.l model_view_vertex_scratch_prefix(a6),a3
 	moveq.l #0,d1
@@ -6283,7 +6287,7 @@ abs_0_00004C56:
 abs_0_00004C64:
 	subq.w #1,d2
 	bne.b abs_0_00004C56
-	addq.w #1,abs_0_000052BE.l
+	addq.w #1,polygon_candidates_remaining.l
 	move.w #$FFFF,(a5)+
 	move.l (a7)+,d0
 	move.l model_face_admission_bits_scratch(a6),d1
@@ -6373,12 +6377,13 @@ abs_0_00004D58:
 	addq.w #8,a4
 	addq.w #8,a3
 	dbf.w d0,project_model_vertex_screen_loop
-	tst.w abs_0_000052BE.l
-	beq.w abs_0_00004FAA
+	tst.w polygon_candidates_remaining.l
+	beq.w return_without_more_model_polygons
 	lea.l shared_workspace_tail.l,a5
 	movea.l scene_reference_write_cursor.l,a3
 	movea.l scene_polygon_write_cursor.l,a4
-abs_0_00004D80:
+    ; Admitted scratch is style WORD, vertex byte offsets, then negative WORD. Fast path uses projected XY/depth; any nonzero outcode rewinds output and gathers view XYZ. No extent is inferred.
+emit_next_admitted_model_face:
 	move.b #$20,diagnostic_step_byte.l
 	movem.l a4-a5,-(a7)
 	moveq.l #0,d4
@@ -6390,53 +6395,55 @@ abs_0_00004D80:
 	movea.l a4,a1
 	move.w (a5)+,(a4)+
 	move.w (a5)+,d0
-	bmi.b abs_0_00004DD4
-abs_0_00004DA6:
+	bmi.b classify_unclipped_face_fill_style_by_x_cells
+copy_next_unclipped_projected_face_vertex:
 	tst.b $7(a0,d0.w)
-	bne.w abs_0_00004E2A
+	bne.w rewind_face_output_and_gather_clip_input
 	lea.l projected_vertex_scratch_prefix.l,a2
 	adda.w d0,a2
 	move.w (a2)+,d2
 	move.w d2,(a4)+
 	cmp.w d2,d6
-	ble.b abs_0_00004DC0
+	ble.b test_projected_face_maximum_screen_x
 	move.w d2,d6
-abs_0_00004DC0:
+test_projected_face_maximum_screen_x:
 	cmp.w d2,d7
-	bge.b abs_0_00004DC6
+	bge.b append_projected_face_y_and_accumulate_depth
 	move.w d2,d7
-abs_0_00004DC6:
+append_projected_face_y_and_accumulate_depth:
 	move.w (a2)+,(a4)+
 	move.w (a2)+,d1
 	ext.l d1
 	add.l d1,d4
 	addq.w #1,d5
 	move.w (a5)+,d0
-	bpl.b abs_0_00004DA6
-abs_0_00004DD4:
-	andi.w #65520,d6
-	andi.w #65520,d7
+	bpl.b copy_next_unclipped_projected_face_vertex
+    ; Round minimum and maximum X down to16-pixel cells before style classification. Same-cell spans negate the style; original bias branches and WORD overflow are retained.
+classify_unclipped_face_fill_style_by_x_cells:
+	andi.w #SG2_POLYGON_STYLE_X_CELL_MASK,d6
+	andi.w #SG2_POLYGON_STYLE_X_CELL_MASK,d7
 	sub.w d6,d7
 	beq.b abs_0_00004DEC
 	addq.w #1,d7
 	beq.b abs_0_00004DE8
 	subq.w #2,d7
-	bne.b abs_0_00004DEE
+	bne.b average_unclipped_face_depth_if_nonempty
 abs_0_00004DE8:
 	addi.w #16,(a1)
 abs_0_00004DEC:
 	neg.w (a1)
-abs_0_00004DEE:
+average_unclipped_face_depth_if_nonempty:
 	tst.w d5
-	beq.b abs_0_00004DF4
+	beq.b publish_unclipped_face_reference
 	divs.w d5,d4
-abs_0_00004DF4:
+    ; Fast path averages sign-extended cached depth WORDs, writes negative-X terminator and publishes a reference. Even an empty command emits a packet; clipped empty output differs.
+publish_unclipped_face_reference:
 	move.w #$FFFF,(a4)+
 	movem.l (a7)+,a0/a2
 	move.w d4,(a0)
 	move.l a0,(a3)+
 	addq.w #1,scene_packet_count.l
-	bra.w abs_0_00004F7C
+	bra.w test_model_polygon_count_before_next_candidate
 abs_0_00004E0A:
 	asl.l #7,d1
 	asl.l #7,d2
@@ -6449,7 +6456,8 @@ abs_0_00004E0A:
 abs_0_00004E22:
 	move.b #$80,d3
 	bra.w abs_0_00004D58
-abs_0_00004E2A:
+    ; Restore speculative output start, but leave its prior scratch stores intact. Gather all view XYZ records and original style. A2 becomes clip output only after later conditional setup.
+rewind_face_output_and_gather_clip_input:
 	movem.l (a7)+,a4-a5
 	lea.l polygon_clip_input_workspace.l,a1
 	moveq.l #0,d7
@@ -6457,34 +6465,35 @@ abs_0_00004E2A:
 	moveq.l #15,d1
 	moveq.l #0,d2
 	moveq.l #0,d4
-abs_0_00004E3E:
+gather_next_admitted_face_view_vertex:
 	move.w (a5)+,d0
-	bmi.b abs_0_00004E5E
+	bmi.b test_face_outcode_aggregate_for_side_rejection
 	addq.w #1,d7
 	move.b $7(a0,d0.w),d3
-	beq.b abs_0_00004E50
+	beq.b copy_face_view_xyz_to_clip_workspace
 	addq.w #1,d2
 	and.b d3,d1
 	or.b d3,d4
-abs_0_00004E50:
+copy_face_view_xyz_to_clip_workspace:
 	lea.l model_view_vertex_scratch_prefix(a6),a2
 	adda.w d0,a2
 	move.l (a2)+,(a1)+
 	move.w (a2)+,(a1)+
 abs_0_00004E5A:
-	bra.b abs_0_00004E3E
+	bra.b gather_next_admitted_face_view_vertex
 abs_0_00004E5C:
-	bra.b abs_0_00004E9C
-abs_0_00004E5E:
+	bra.b remove_single_repeated_closing_face_vertex
+    ; AND seed15 handles common side bits; common near bit80 alone proceeds to clipping. Empty gathered input is rejected. The clipper enable BYTE and caller state remain separate obligations.
+test_face_outcode_aggregate_for_side_rejection:
 	tst.w d7
-	beq.w abs_0_00004F7C
+	beq.w test_model_polygon_count_before_next_candidate
 	tst.w d4
-	bmi.b abs_0_00004E72
+	bmi.b conditionally_clip_gathered_face_vertices
 	cmp.b d7,d2
-	bne.b abs_0_00004E72
+	bne.b conditionally_clip_gathered_face_vertices
 	tst.b d1
-	bne.w abs_0_00004F7C
-abs_0_00004E72:
+	bne.w test_model_polygon_count_before_next_candidate
+conditionally_clip_gathered_face_vertices:
 	lea.l abs_0_000052C2.l,a2
 	tst.b abs_0_00003C38.l
 	beq.b abs_0_00004E5C
@@ -6493,25 +6502,26 @@ abs_0_00004E72:
 	bsr.w clip_polygon_in_view_volume
 	movem.l (a7)+,a3-a5
 	move.b #$B,diagnostic_step_byte.l
-abs_0_00004E9C:
+    ; Remove at most one closing XYZ equal to the first. One remaining vertex can still emit; a singleton input removes itself. This is not polygon validation or full duplicate removal.
+remove_single_repeated_closing_face_vertex:
 	move.w d7,d4
 	add.w d4,d4
 	add.w d7,d4
 	add.w d4,d4
 	movem.w -$6(a2,d4.w),d1-d3
 	cmp.w (a2),d1
-	bne.b abs_0_00004EBC
+	bne.b begin_clipped_face_packet_if_vertex_remains
 	cmp.w $0002(a2),d2
-	bne.b abs_0_00004EBC
+	bne.b begin_clipped_face_packet_if_vertex_remains
 	cmp.w $0004(a2),d3
-	bne.b abs_0_00004EBC
+	bne.b begin_clipped_face_packet_if_vertex_remains
 	subq.w #1,d7
-abs_0_00004EBC:
+begin_clipped_face_packet_if_vertex_remains:
 	subq.w #1,d7
-	bmi.w abs_0_00004F7C
+	bmi.w test_model_polygon_count_before_next_candidate
 	move.l a4,(a3)+
 	addq.w #1,scene_packet_count.l
-	move.l a4,abs_0_000052BA.l
+	move.l a4,clipped_polygon_packet_start.l
 	clr.w (a4)+
 	movea.l a4,a1
 	move.w polygon_clip_input_workspace.l,(a4)+
@@ -6520,102 +6530,106 @@ abs_0_00004EBC:
 	move.w #$7FFF,d6
 	move.w #$8000,d0
 	lea.l projection_scale_lookup.l,a0
-abs_0_00004EEC:
+    ; Double depth as a WORD before sign/zero tests, accumulation and DIVS. Multiply X by288 and Y by98, add origins, then retain original N-only clamp predicates. No common scale is assumed.
+project_next_clipped_face_vertex:
 	movem.w (a2)+,d1-d3
 	add.w d3,d3
 	add.l d3,d4
 	addq.w #1,d5
-	muls.w #$120,d1
-	muls.w #$62,d2
+	muls.w #SG2_CLIPPED_POLYGON_X_MULTIPLIER,d1
+	muls.w #SG2_CLIPPED_POLYGON_Y_MULTIPLIER,d2
 	tst.w d3
-	bmi.w abs_0_00004FA0
-	beq.w abs_0_00004FA0
+	bmi.w withdraw_face_reference_after_invalid_depth
+	beq.w withdraw_face_reference_after_invalid_depth
 	divs.w d3,d1
 	divs.w d3,d2
 	add.w projection_screen_origin_x(a6),d1
 	add.w projection_screen_origin_y(a6),d2
 	cmp.w view_clip_min_x(a6),d1
-	bpl.b abs_0_00004F1E
+	bpl.b clamp_clipped_face_x_to_maximum
 	move.w view_clip_min_x(a6),d1
-abs_0_00004F1E:
+clamp_clipped_face_x_to_maximum:
 	cmp.w view_clip_max_x(a6),d1
-	bmi.b abs_0_00004F28
+	bmi.b clamp_clipped_face_y_to_minimum
 	move.w view_clip_max_x(a6),d1
-abs_0_00004F28:
+clamp_clipped_face_y_to_minimum:
 	cmp.w view_clip_min_y(a6),d2
-	bpl.b abs_0_00004F32
+	bpl.b clamp_clipped_face_y_to_maximum
 	move.w view_clip_min_y(a6),d2
-abs_0_00004F32:
+clamp_clipped_face_y_to_maximum:
 	cmp.w view_clip_max_y(a6),d2
-	bmi.b abs_0_00004F3C
+	bmi.b accumulate_clipped_face_screen_x_range
 	move.w view_clip_max_y(a6),d2
-abs_0_00004F3C:
+accumulate_clipped_face_screen_x_range:
 	cmp.w d1,d6
-	ble.b abs_0_00004F42
+	ble.b test_clipped_face_maximum_screen_x
 	move.w d1,d6
-abs_0_00004F42:
+test_clipped_face_maximum_screen_x:
 	cmp.w d1,d0
-	bge.b abs_0_00004F48
+	bge.b append_clipped_face_screen_xy
 	move.w d1,d0
-abs_0_00004F48:
+append_clipped_face_screen_xy:
 	move.w d1,(a4)+
 	move.w d2,(a4)+
-	dbf.w d7,abs_0_00004EEC
-	andi.w #65520,d6
-	andi.w #65520,d0
+	dbf.w d7,project_next_clipped_face_vertex
+	andi.w #SG2_POLYGON_STYLE_X_CELL_MASK,d6
+	andi.w #SG2_POLYGON_STYLE_X_CELL_MASK,d0
 	sub.w d6,d0
-	beq.b abs_0_00004F68
+	beq.b negate_clipped_face_fill_style
 	addq.w #1,d0
-	beq.b abs_0_00004F64
+	beq.b add_cell_style_bias_before_clipped_negation
 	subq.w #2,d0
-	bne.b abs_0_00004F6A
-abs_0_00004F64:
+	bne.b average_clipped_face_doubled_depth
+add_cell_style_bias_before_clipped_negation:
 	addi.w #16,(a1)
-abs_0_00004F68:
+negate_clipped_face_fill_style:
 	neg.w (a1)
-abs_0_00004F6A:
-	movea.l abs_0_000052BA.l,a2
+average_clipped_face_doubled_depth:
+	movea.l clipped_polygon_packet_start.l,a2
 	tst.w d5
-	beq.b abs_0_00004F76
+	beq.b finish_clipped_face_packet
 	divs.w d5,d4
-abs_0_00004F76:
+finish_clipped_face_packet:
 	move.w d4,(a2)
 	move.w #$FFFF,(a4)+
-abs_0_00004F7C:
-	cmpi.w #145,scene_packet_count.l
-	bge.w abs_0_00004F92
-	subq.w #1,abs_0_000052BE.l
-	bne.w abs_0_00004D80
-abs_0_00004F92:
+    ; Post-face signed count>=145 exits before decrementing pending candidates. Model entry instead rejects count>145. WORD wrap and phase predicates remain; no capacity is proved.
+test_model_polygon_count_before_next_candidate:
+	cmpi.w #SG2_SCENE_PACKET_COUNT_THRESHOLD,scene_packet_count.l
+	bge.w handoff_emitted_faces_to_ground_projection
+consume_pending_model_polygon_candidate:
+	subq.w #1,polygon_candidates_remaining.l
+	bne.w emit_next_admitted_model_face
+handoff_emitted_faces_to_ground_projection:
 	move.l a4,scene_polygon_write_cursor.l
 	move.l a3,scene_reference_write_cursor.l
 	bra.b append_model_ground_plane_faces
-abs_0_00004FA0:
+    ; Withdraw the last reference and restore its packet start after invalid doubled depth. Count is decremented; partial header/XY stores and the saved start cell remain. Scratch is not erased.
+withdraw_face_reference_after_invalid_depth:
 	movea.l -(a3),a4
 	subq.w #1,scene_packet_count.l
-	bra.b abs_0_00004F7C
-abs_0_00004FAA:
+	bra.b test_model_polygon_count_before_next_candidate
+return_without_more_model_polygons:
 	rts
 append_model_ground_plane_faces:
 	movea.l scene_polygon_write_cursor.l,a4
 	movea.l scene_reference_write_cursor.l,a3
 	tst.w active_model_ground_face_count(a6)
-	beq.w abs_0_000052AC
+	beq.w publish_model_polygon_and_reference_cursors
 	tst.w ground_face_projection_enabled_word.l
-	beq.w abs_0_000052AC
+	beq.w publish_model_polygon_and_reference_cursors
 	tst.b space_environment_flag(a6)
-	bmi.w abs_0_000052AC
+	bmi.w publish_model_polygon_and_reference_cursors
 	tst.b inside_structure_flag(a6)
-	bmi.w abs_0_000052AC
+	bmi.w publish_model_polygon_and_reference_cursors
 	cmpi.w #72,active_model_type_index(a6)
-	beq.w abs_0_000052AC
+	beq.w publish_model_polygon_and_reference_cursors
 	cmpi.w #103,active_model_type_index(a6)
-	beq.w abs_0_000052AC
+	beq.w publish_model_polygon_and_reference_cursors
 	move.w active_ground_face_world_y_word(a6),d4
 	cmp.w #$D120,d4
-	blt.w abs_0_000052AC
-	cmpi.w #145,scene_packet_count.l
-	bge.w abs_0_000052AC
+	blt.w publish_model_polygon_and_reference_cursors
+	cmpi.w #SG2_SCENE_PACKET_COUNT_THRESHOLD,scene_packet_count.l
+	bge.w publish_model_polygon_and_reference_cursors
 	neg.w d4
 	move.w view_rotation_matrix+SG2RotationMatrixWords_m01(a6),d1
 	muls.w d4,d1
@@ -6636,7 +6650,7 @@ append_model_ground_plane_faces:
 	add.w model_origin_delta_y(a6),d2
 	add.w model_origin_delta_z(a6),d3
 	cmp.w #$80,d3
-	ble.w abs_0_000052AC
+	ble.w publish_model_polygon_and_reference_cursors
 	cmp.w #$2EE0,d3
 	blt.b abs_0_0000505A
 	ext.l d1
@@ -6670,19 +6684,19 @@ abs_0_00005074:
 	move.w d1,d4
 	add.w d0,d4
 	cmp.w view_clip_min_x(a6),d4
-	blt.w abs_0_000052AC
+	blt.w publish_model_polygon_and_reference_cursors
 	move.w d1,d4
 	sub.w d0,d4
 	cmp.w view_clip_max_x(a6),d4
-	bgt.w abs_0_000052AC
+	bgt.w publish_model_polygon_and_reference_cursors
 	move.w d2,d4
 	add.w d0,d4
 	cmp.w view_clip_min_y(a6),d4
-	blt.w abs_0_000052AC
+	blt.w publish_model_polygon_and_reference_cursors
 	move.w d2,d4
 	sub.w d0,d4
 	cmp.w view_clip_max_y(a6),d4
-	bgt.w abs_0_000052AC
+	bgt.w publish_model_polygon_and_reference_cursors
 	move.w active_model_ground_face_count(a6),d0
 	subq.w #1,d0
 	movea.l active_model_ground_face_commands(a6),a5
@@ -6837,10 +6851,10 @@ abs_0_00005278:
 	move.w #$FFFF,(a4)+
 abs_0_00005284:
 	move.w saved_model_face_loop_index(a6),d0
-	cmpi.w #145,scene_packet_count.l
-	bgt.b abs_0_000052AC
+	cmpi.w #SG2_SCENE_PACKET_COUNT_THRESHOLD,scene_packet_count.l
+	bgt.b publish_model_polygon_and_reference_cursors
 	dbf.w d0,project_ground_plane_faces_loop
-	bra.b abs_0_000052AC
+	bra.b publish_model_polygon_and_reference_cursors
 abs_0_00005298:
 	addq.w #1,d0
 	add.w d0,d0
@@ -6850,13 +6864,14 @@ abs_0_00005298:
 	subq.w #4,a3
 	movea.l (a3),a4
 	bra.b abs_0_00005284
-abs_0_000052AC:
+publish_model_polygon_and_reference_cursors:
 	move.l a4,scene_polygon_write_cursor.l
 	move.l a3,scene_reference_write_cursor.l
 	rts
-abs_0_000052BA:
-	dc.b $00,$00,$00,$00
-abs_0_000052BE:
+clipped_polygon_packet_start:
+	dc.l $00000000
+    ; Phase-local pending candidates: admitted model faces here,25 grid quads in ground preparation. Rejections still consume a candidate below the packet threshold. Lifetime exclusion is unproved.
+polygon_candidates_remaining:
 	dc.w $0000
     ; Shared workspace: polygon callers store a style WORD then XYZ triples; trails write XYZ directly at the base. This is not one common layout, capacity or lifetime contract.
 polygon_clip_input_workspace:
@@ -6897,9 +6912,9 @@ abs_0_0000539A:
 	movea.l (a7)+,a4
 	move.b #$22,diagnostic_step_byte.l
 	cmpi.b #3,active_model_retirement_phase_byte(a6)
-	bmi.w abs_0_00004FAA
+	bmi.w return_without_more_model_polygons
 	tst.b retirement_model_skip_fallback_flag.l
-	bne.w abs_0_00004FAA
+	bne.w return_without_more_model_polygons
 	addq.w #1,active_model_scale_shift(a6)
 	lea.l model_header_pointers.l,a0
 	movea.l $00BC(a0),a0
@@ -6910,7 +6925,7 @@ abs_0_0000539A:
 	move.l (a0)+,active_model_coordinate_pool(a6)	; operand 1: SG2ModelHeader_coordinate_pool at (a0)+
 	clr.l active_model_vertex_variant_data(a6)
 transform_retirement_vertices_and_faces:
-	cmpi.w #145,scene_packet_count.l
+	cmpi.w #SG2_SCENE_PACKET_COUNT_THRESHOLD,scene_packet_count.l
 	bgt.w abs_0_00004A28
 	moveq.l #0,d0
 	lea.l model_cache_x_negative_terms.l,a0
@@ -7113,7 +7128,7 @@ abs_0_0000563C:
 	move.l a1,scene_polygon_write_cursor.l
 	move.w d3,-$0002(a2)
 abs_0_0000564A:
-	cmpi.w #145,scene_packet_count.l
+	cmpi.w #SG2_SCENE_PACKET_COUNT_THRESHOLD,scene_packet_count.l
 	bgt.b abs_0_0000565C
 	move.w saved_model_face_loop_index(a6),d0
 	dbf.w d0,abs_0_00005460
@@ -38675,7 +38690,7 @@ abs_0_0002F022:
 	move.l view_origin_y(a6),d0
 	cmp.l #$FFFFE0C0,d0
 	bmi.b abs_0_0002F020
-	move.w #$19,abs_0_000052BE.l
+	move.w #$19,polygon_candidates_remaining.l
 	move.w #$4000,d0
 	move.w d0,d1
 	muls.w view_rotation_matrix(a6),d1
@@ -39070,7 +39085,7 @@ abs_0_0002F4C8:
 	dbf.w d7,abs_0_0002F482
 	move.w #$FFFF,(a4)+
 abs_0_0002F4D4:
-	subq.w #1,abs_0_000052BE.l
+	subq.w #1,polygon_candidates_remaining.l
 	bne.w abs_0_0002F2E8
 	move.l a4,scene_polygon_write_cursor.l
 	move.l a3,scene_reference_write_cursor.l
