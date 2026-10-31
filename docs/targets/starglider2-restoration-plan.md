@@ -27,6 +27,20 @@ and strengthened 38 app-base attributions.
 Conditional skips mean104 outer iterations are not104 observed memory reads.
 Loaded pointer values remain subject to separate alias/target validation.
 
+The alternate-profile setup batch follows the mode BYTE into both 320-WORD
+screen-X tables, eight callback-target patches, palette conversion and the
+18848-byte animation conversion extent. 357 original CPU cases cover all mode
+BYTEs, exact table/palette/code-memory effects, bit order, full original data
+conversion and reentry. Mode0 palettes are transformed again on each call;
+mode1 reinterleaves the current animation bytes rather than reloading originals.
+The existing end WORD is named as a conversion boundary, not a sentinel read.
+The shared tick-wait names follow the original counter/RNG loop; the hardware
+mode-register prefix and asynchronous delivery are outside the CPU cases.
+Eighteen continuations and sixteen constants expose the connected operations.
+Native counts/classification remain unchanged; no shared rule or ownership
+contract is broadened. Next: connected alternate display/interrupt consumers,
+with actual entry and platform state established before any raw-code promotion.
+
 The HUD attitude batch connects view-angle projection, corner cycling,
 fixed-point span construction and the player-roll-selected plane. 1069 original
 CPU cases include nine full entry-to-return calls with register restoration.

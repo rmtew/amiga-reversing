@@ -1442,9 +1442,23 @@ INTF_CLRALL	EQU	$7FFF
 SG2_AIM_CONTROL_PHASE_MASK	EQU	4095
 SG2_ALTERNATE_EFFECT_PALETTE_BYTE_OFFSET	EQU	20
 SG2_ALTERNATE_GENERIC_EVENT_ARGUMENT	EQU	500
+SG2_ALTERNATE_GRAPHICS_MODE_BIT	EQU	$1
 SG2_ALTERNATE_METER_CAPTURE_ROWS_MINUS1	EQU	55
 SG2_ALTERNATE_METER_RESTORE_ROWS_MINUS1	EQU	50
+SG2_ALTERNATE_MODE0_BOUNCING_HUD_OFFSET	EQU	$6F50
+SG2_ALTERNATE_MODE0_GROUP_DBF_LAST	EQU	$13
+SG2_ALTERNATE_MODE0_HOMING_HUD_OFFSET	EQU	$6F58
+SG2_ALTERNATE_MODE0_X_OFFSET_STEP	EQU	$8
+SG2_ALTERNATE_MODE0_X_REPEAT_DBF_LAST	EQU	$F
+SG2_ALTERNATE_MODE1_BOUNCING_HUD_OFFSET	EQU	$6FE8
+SG2_ALTERNATE_MODE1_GROUP_DBF_LAST	EQU	$27
+SG2_ALTERNATE_MODE1_HOMING_HUD_OFFSET	EQU	$6FEC
+SG2_ALTERNATE_MODE1_X_OFFSET_STEP	EQU	$2
+SG2_ALTERNATE_MODE1_X_REPEAT_DBF_LAST	EQU	$7
+SG2_ALTERNATE_PALETTE_COMPONENT_MASK	EQU	$777
+SG2_ALTERNATE_PALETTE_DBF_LAST	EQU	$F
 SG2_ALTERNATE_PALETTE_RGB_MASK	EQU	1911
+SG2_ALTERNATE_PROFILE_SCREEN_BASE	EQU	$68000
 SG2_ALTERNATE_WEAPON_HUD_ICON_PITCH_BYTES	EQU	1920
 SG2_AMIGA_WEAPON_HUD_ICON_PITCH_BYTES	EQU	480
 SG2_ANGLE_FULL_TURN	EQU	4096
@@ -1553,6 +1567,8 @@ SG2_OVERLAY_MIN_LEFT	EQU	16
 SG2_OVERLAY_MIN_TOP	EQU	30
 SG2_OVERLAY_ROWS_DBF_LAST	EQU	15
 SG2_OVERLAY_ROW_BYTE_STEP	EQU	160
+SG2_PANEL_INTERLEAVE_GROUP_BYTE_SHIFT	EQU	$3
+SG2_PANEL_WORD_PAIR_BITS_DBF_LAST	EQU	$F
 SG2_PAULA_CHANNEL0_INITIAL_SKIP_BYTES	EQU	8
 SG2_PAULA_CHANNEL0_OFFSET_MASK	EQU	$7F
 SG2_PAULA_CHANNEL0_OFFSET_STEP	EQU	1
@@ -4566,17 +4582,18 @@ abs_0_000038A0:
 	move.l d6,shared_random_state_a(a6)
 	move.l d7,shared_random_state_b(a6)
 	rts
-abs_0_000038B2:
+    ; Capture the current tick WORD, repeatedly advance shared RNG, and return only when the tick differs. Equality polling does not prove the source, rate or delivery of counter changes.
+wait_for_vblank_counter_change_with_rng:
 	move.w vblank_tick_counter(a6),d0
-abs_0_000038B6:
+advance_rng_until_vblank_counter_differs:
 	move.l d0,-(a7)
 	bsr.w advance_shared_random_state
 	move.l (a7)+,d0
 	cmp.w vblank_tick_counter(a6),d0
-	beq.b abs_0_000038B6
+	beq.b advance_rng_until_vblank_counter_differs
 	rts
-abs_0_000038C6:
-	bra.b abs_0_000038B2
+wait_for_vblank_counter_change_bridge_0038c6:
+	bra.b wait_for_vblank_counter_change_with_rng
 abs_0_000038C8:
 	move.w vblank_tick_counter(a6),d0
 	addq.w #2,d0
@@ -4627,7 +4644,7 @@ fade_in_amiga_palette:
 	moveq.l #15,d3
 abs_0_00003970:
 	movem.l a0-a2,-(a7)
-	bsr.w abs_0_000038C6
+	bsr.w wait_for_vblank_counter_change_bridge_0038c6
 	moveq.l #15,d4
 abs_0_0000397A:
 	move.w (a1)+,d0
@@ -4665,7 +4682,7 @@ fade_out_amiga_palette:
 abs_0_00003A0A:
 	lea.l _custom+color.l,a0
 	lea.l amiga_palette_fade_work(pc),a2
-	bsr.w abs_0_000038C6
+	bsr.w wait_for_vblank_counter_change_bridge_0038c6
 	moveq.l #15,d4
 abs_0_00003A1A:
 	clr.w d1
@@ -4876,7 +4893,7 @@ advance_interleaved_picture_plane:
 enter_conditionally_decoded_protection:
 	jmp novella_check_transformed_entry_storage.l
 abs_0_00003C0A:
-	jmp abs_0_0003A2DC.l
+	jmp initialize_alternate_graphics_profile.l
 	dc.b $20,$20,$20,$20,$00,$00
 	dcb.b $14,$20
 	dc.b $00,$00
@@ -50864,64 +50881,67 @@ hud_attitude_roll_snapshot:
 rotate_horizon_vector_to_view_bridge_0392d4:
 	jmp rotate_horizon_vector_to_view.l
 	dc.w $0000
-abs_0_0003A2DC:
+    ; Read the alternate mode register. If bit 1 is clear, wait for a tick change, clear the register BYTE and set app+1EF; otherwise retain its BYTE. Hardware side effects are not modeled here.
+initialize_alternate_graphics_profile:
 	clr.b app_01EF(a6)
 	move.b $FFFF8260.w,d0
-	btst #1,d0
-	bne.b abs_0_0003A2F8
-	bsr.w abs_0_0003B0C8
+	btst #SG2_ALTERNATE_GRAPHICS_MODE_BIT,d0
+	bne.b build_alternate_x_tables_from_mode_byte
+	bsr.w wait_for_vblank_counter_change_bridge_03a0c8
 	clr.b d0
 	move.b d0,$FFFF8260.w
 	st.b app_01EF(a6)
-abs_0_0003A2F8:
+    ; Build 320 X offsets: mode0 repeats (x//16)*8; bit-1 mode repeats (x//8)*2. Mode1 backfills 320 masks immediately before the BCD table, leaving BCD bytes intact.
+build_alternate_x_tables_from_mode_byte:
 	move.b d0,alternate_graphics_mode(a6)
 	lea.l screen_x_word_byte_offsets.l,a0
 	moveq.l #0,d0
-	btst.b #1,alternate_graphics_mode(a6)
-	bne.b abs_0_0003A33A
-	lea.l absolute_slot_00068000.l,a1
-	lea.l $6F58(a1),a2
+	btst.b #SG2_ALTERNATE_GRAPHICS_MODE_BIT,alternate_graphics_mode(a6)
+	bne.b build_alternate_mode1_x_offset_and_mask_tables
+	lea.l SG2_ALTERNATE_PROFILE_SCREEN_BASE.l,a1
+	lea.l SG2_ALTERNATE_MODE0_HOMING_HUD_OFFSET(a1),a2
 	move.l a2,homing_missile_hud_screen_origin.l
-	lea.l $6F50(a1),a2
+	lea.l SG2_ALTERNATE_MODE0_BOUNCING_HUD_OFFSET(a1),a2
 	move.l a2,bouncing_bomb_hud_screen_origin.l
-	moveq.l #15,d2
-	moveq.l #19,d4
-abs_0_0003A32A:
+	moveq.l #SG2_ALTERNATE_MODE0_X_REPEAT_DBF_LAST,d2
+	moveq.l #SG2_ALTERNATE_MODE0_GROUP_DBF_LAST,d4
+repeat_alternate_mode0_x_word_offset:
 	move.w d2,d3
-abs_0_0003A32C:
+store_next_alternate_mode0_x_offset:
 	move.w d0,(a0)+
-	dbf.w d3,abs_0_0003A32C
-	addq.w #8,d0
-	dbf.w d4,abs_0_0003A32A
-	bra.b abs_0_0003A37E
-abs_0_0003A33A:
-	lea.l absolute_slot_00068000.l,a1
-	lea.l $6FEC(a1),a2
+	dbf.w d3,store_next_alternate_mode0_x_offset
+	addq.w #SG2_ALTERNATE_MODE0_X_OFFSET_STEP,d0
+	dbf.w d4,repeat_alternate_mode0_x_word_offset
+	bra.b install_alternate_profile_callback_targets
+build_alternate_mode1_x_offset_and_mask_tables:
+	lea.l SG2_ALTERNATE_PROFILE_SCREEN_BASE.l,a1
+	lea.l SG2_ALTERNATE_MODE1_HOMING_HUD_OFFSET(a1),a2
 	move.l a2,homing_missile_hud_screen_origin.l
-	lea.l $6FE8(a1),a2
+	lea.l SG2_ALTERNATE_MODE1_BOUNCING_HUD_OFFSET(a1),a2
 	move.l a2,bouncing_bomb_hud_screen_origin.l
-	moveq.l #39,d4
-abs_0_0003A356:
-	moveq.l #7,d3
-abs_0_0003A358:
+	moveq.l #SG2_ALTERNATE_MODE1_GROUP_DBF_LAST,d4
+repeat_alternate_mode1_x_word_offset:
+	moveq.l #SG2_ALTERNATE_MODE1_X_REPEAT_DBF_LAST,d3
+store_next_alternate_mode1_x_offset:
 	move.w d0,(a0)+
-	dbf.w d3,abs_0_0003A358
-	addq.w #2,d0
-	dbf.w d4,abs_0_0003A356
+	dbf.w d3,store_next_alternate_mode1_x_offset
+	addq.w #SG2_ALTERNATE_MODE1_X_OFFSET_STEP,d0
+	dbf.w d4,repeat_alternate_mode1_x_word_offset
 	lea.l coordinate_byte_to_bcd_digits.l,a0
-	moveq.l #39,d1
-abs_0_0003A36C:
-	moveq.l #7,d2
+	moveq.l #SG2_ALTERNATE_MODE1_GROUP_DBF_LAST,d1
+restart_alternate_paired_pixel_mask_group:
+	moveq.l #SG2_ALTERNATE_MODE1_X_REPEAT_DBF_LAST,d2
 	moveq.l #2,d0
-abs_0_0003A370:
+backfill_alternate_paired_pixel_mask_word:
 	move.w d0,-(a0)
 	add.w d0,d0
 	add.w d0,d0
-	dbf.w d2,abs_0_0003A370
-	dbf.w d1,abs_0_0003A36C
-abs_0_0003A37E:
+	dbf.w d2,backfill_alternate_paired_pixel_mask_word
+	dbf.w d1,restart_alternate_paired_pixel_mask_group
+    ; Patch eight JMP target LONGs; the slot at +38 is retained. Mode0 halves/masks both 16-WORD palettes and sets the cockpit control WORD to 1. Reentry transforms current palette data again.
+install_alternate_profile_callback_targets:
 	move.b alternate_graphics_mode(a6),d0
-	btst #1,d0
+	btst #SG2_ALTERNATE_GRAPHICS_MODE_BIT,d0
 	bne.w select_alternate_graphics_and_convert_assets
 	clr.b alternate_graphics_mode(a6)
 	lea.l fade_in_amiga_palette_bridge_0024a4.l,a0
@@ -50935,17 +50955,17 @@ abs_0_0003A37E:
 	move.l #initialize_alternate_sound_control,$0032(a0)
 	lea.l cockpit_picture_palette.l,a1
 	lea.l argonaut_splash_picture_palette.l,a2
-	moveq.l #15,d1
-abs_0_0003A3E2:
+	moveq.l #SG2_ALTERNATE_PALETTE_DBF_LAST,d1
+halve_and_mask_next_alternate_palette_word:
 	move.w (a1),d0
 	lsr.w #1,d0
-	andi.w #1911,d0
+	andi.w #SG2_ALTERNATE_PALETTE_COMPONENT_MASK,d0
 	move.w d0,(a1)+
 	move.w (a2),d0
 	lsr.w #1,d0
-	andi.w #1911,d0
+	andi.w #SG2_ALTERNATE_PALETTE_COMPONENT_MASK,d0
 	move.w d0,(a2)+
-	dbf.w d1,abs_0_0003A3E2
+	dbf.w d1,halve_and_mask_next_alternate_palette_word
 	move.w #$1,cockpit_picture_palette.l
 	rts
 select_alternate_graphics_and_convert_assets:
@@ -50959,43 +50979,45 @@ select_alternate_graphics_and_convert_assets:
 	move.l #draw_alternate_contact_panel,$0020(a0)
 	move.l #update_alternate_frame_effects,$002C(a0)
 	move.l #initialize_alternate_sound_control,$0032(a0)
+    ; End minus frame00 gives 18848 bytes, or 2356 eight-byte groups. Convert current data in place; reentry is a second transform, not a reload. The end WORD is outside the converted range.
 	lea.l panel_animation_frame_00.l,a0
-	lea.l abs_0_0005341A.l,a1
+	lea.l panel_animation_conversion_end.l,a1
 	suba.l a0,a1
 	move.w a1,d5
 	movea.l a0,a1
-	lsr.w #3,d5
+	lsr.w #SG2_PANEL_INTERLEAVE_GROUP_BYTE_SHIFT,d5
 	subq.w #1,d5
-abs_0_0003A466:
+    ; Each pair of source WORDs becomes one LONG: first-WORD bit k goes to bit 2k+1, second-WORD bit k to bit 2k. Repeat for the next pair, then advance the eight-byte group. Keep forward order.
+convert_next_panel_group_in_place:
 	move.w (a0)+,d0
 	move.w (a0)+,d3
 	moveq.l #0,d2
-	moveq.l #15,d1
+	moveq.l #SG2_PANEL_WORD_PAIR_BITS_DBF_LAST,d1
 	moveq.l #0,d6
-abs_0_0003A470:
+interleave_first_panel_word_pair:
 	add.l d2,d2
 	add.w d0,d0
 	addx.l d6,d2
 	add.l d2,d2
 	add.w d3,d3
 	addx.l d6,d2
-	dbf.w d1,abs_0_0003A470
+	dbf.w d1,interleave_first_panel_word_pair
 	move.l d2,(a1)+
 	move.w (a0)+,d0
 	move.w (a0)+,d3
 	moveq.l #0,d2
-	moveq.l #15,d1
+	moveq.l #SG2_PANEL_WORD_PAIR_BITS_DBF_LAST,d1
 	moveq.l #0,d6
-abs_0_0003A48C:
+interleave_second_panel_word_pair:
 	add.l d2,d2
 	add.w d0,d0
 	addx.l d6,d2
 	add.l d2,d2
 	add.w d3,d3
 	addx.l d6,d2
-	dbf.w d1,abs_0_0003A48C
+	dbf.w d1,interleave_second_panel_word_pair
 	move.l d2,(a1)+
-	dbf.w d5,abs_0_0003A466
+	dbf.w d5,convert_next_panel_group_in_place
 	lea.l paula_sample0_skipped_seed_prefix.l,a1
 	lea.l alternate_sprite_colour_modes.l,a4
 	lea.l hud_sprite_conversion_directory.l,a0
@@ -51466,7 +51488,7 @@ fade_in_alternate_palette:
 	moveq.l #7,d3
 abs_0_0003A976:
 	movem.l a0-a1,-(a7)
-	bsr.w abs_0_0003B0C8
+	bsr.w wait_for_vblank_counter_change_bridge_03a0c8
 	moveq.l #15,d4
 abs_0_0003A980:
 	move.w (a1)+,d0
@@ -51498,7 +51520,7 @@ fade_out_alternate_palette:
 	moveq.l #7,d3
 abs_0_0003A9C2:
 	lea.l absolute_slot_FFFF8240.l,a0
-	bsr.w abs_0_0003B0C8
+	bsr.w wait_for_vblank_counter_change_bridge_03a0c8
 	moveq.l #15,d4
 abs_0_0003A9CE:
 	clr.w d1
@@ -52165,8 +52187,8 @@ fill_34_rows_of_16_bytes_mode0:
 	move.l d0,(a0)+
 	rts
 	dc.w $0000
-abs_0_0003B0C8:
-	jmp abs_0_000038C6.l
+wait_for_vblank_counter_change_bridge_03a0c8:
+	jmp wait_for_vblank_counter_change_bridge_0038c6.l
 advance_message_queue_bridge_03a0ce:
 	jmp advance_message_queue.l
 	dc.b $4E,$75,$4E,$75,$4E,$75,$4E,$75,$4E,$75,$3D,$7C,$13,$57,$01,$B0
@@ -63090,7 +63112,7 @@ panel_animation_frame_52:
 panel_animation_frame_53:
 	dc.b $AF,$FF,$A3,$06,$58,$F9,$6C,$FD,$5D,$FF,$54,$00,$AA,$AE,$A7,$DF	; bitmap
 	dc.b $7B,$DE,$60,$9A,$97,$65,$4D,$CE,$55,$7F,$10,$46,$EF,$B1,$EF,$7B
-abs_0_0005341A:
+panel_animation_conversion_end:
 	dc.w $0000
     ; Cockpit palette/control WORDs; first WORD mutable. Four RLE streams follow. Original plane writes7999,8000,7999,7999bytes; unwritten byte retains prior memory.
 cockpit_picture_palette:
