@@ -52218,8 +52218,8 @@ abs_0_0003B3D8:
 abs_0_0003B3E6:
 	dbf.w d1,abs_0_0003B3E6
 	dbf.w d2,abs_0_0003B3D8
-    ; Install alternate serial root at vector118. Startup clears112 key-flag bytes (28 LONGs), not all128 stored bytes. Original hardware/profile behavior retained.
-	move.l #abs_0_0003B5B2,$0118.w
+    ; Install the serial root at $118; clear 112 key bytes, retaining the last 16 of 128. MFP channel-6 routing needs inherited vector base $40; local setup/delivery is not proved.
+	move.l #alternate_serial_input_exception,$0118.w
 	lea.l keyboard_down_flags.l,a0
 	moveq.l #27,d1
 abs_0_0003B3FE:
@@ -52308,53 +52308,57 @@ check_alternate_mode_or_reset:
 	movea.l $00000004.l,a0
 	jmp (a0)
     ; Original vector118 serial entry; packet handlers replace and later restore this vector. Key flags use1/0 here versus AmigaFF/0. No new alternate-hardware execution claim.
-abs_0_0003B5B2:
+    ; Serial root saves D0/A0-A1/A6 and reloads the workspace. Vector $118 stores parser phase. Key flags are 1/0; $FE/$FF select joystick before $F8..$FD mouse headers.
+alternate_serial_input_exception:
 	movem.l d0/a0-a1/a6,-(a7)
 	movea.l game_workspace_base.l,a6
 	clr.l d0
 	move.b $FFFFFC02.w,d0
 	cmp.b #$FF,d0
-	beq.w abs_0_0003B714
+	beq.w begin_alternate_joystick_packet
 	cmp.b #$FE,d0
-	beq.w abs_0_0003B714
+	beq.w begin_alternate_joystick_packet
 	cmp.w #$F8,d0
-	bpl.b abs_0_0003B61E
+	bpl.b begin_alternate_mouse_packet
 	lea.l keyboard_down_flags.l,a0
 	btst #7,d0
-	bne.b abs_0_0003B608
+	bne.b release_translated_alternate_key
 	bclr #7,d0
 	lea.l alternate_scancode_translation_prefix.l,a1
 	move.b $0(a1,d0.w),d0
 	move.b #$1,$0(a0,d0.w)
 	move.b d0,pending_key_scancode(a6)
-abs_0_0003B5FC:
+acknowledge_and_return_serial_root_frame:
 	move.b #$BF,$FFFFFA11.w
 	movem.l (a7)+,d0/a0-a1/a6
 	rte
-abs_0_0003B608:
+    ; Break bytes $80..$F7 translate indices 0..119 and clear flags without changing pending_key_scancode. Press indices 120..127 alias the next LUT; their breaks are packet headers.
+release_translated_alternate_key:
 	bclr #7,d0
 	lea.l alternate_scancode_translation_prefix.l,a1
 	move.b $0(a1,d0.w),d0
 	move.b #$0,$0(a0,d0.w)
-	bra.b abs_0_0003B5FC
-abs_0_0003B61E:
+	bra.b acknowledge_and_return_serial_root_frame
+    ; Button bits 0/1 become secondary/primary $FF-or-zero flags. Bit 0 selects yaw+speed versus scaled-yaw+pitch readers; bit 1 takes a redundant join. Preserve $FC/$FD handling.
+begin_alternate_mouse_packet:
 	btst #0,d0
 	sne.b mouse_secondary_button_flag(a6)
 	btst #1,d0
 	sne.b mouse_primary_button_flag(a6)
-	bne.w abs_0_0003B710
-abs_0_0003B632:
+	bne.w join_mouse_primary_button_selection
+select_alternate_mouse_delta_readers:
 	btst #0,d0
-	bne.w abs_0_0003B6AC
-	lea.l abs_0_0003B650.l,a0
+	bne.w install_unscaled_mouse_yaw_reader
+	lea.l read_scaled_mouse_yaw_delta_exception.l,a0
 	move.l a0,$0118.w
 	move.b #$BF,$FFFFFA11.w
 	movem.l (a7)+,d0/a0-a1/a6
 	rte
-abs_0_0003B650:
+    ; Own D0-D1/A1/A6 frame; reload workspace. Signed BYTE times 16, LONG arithmetic shift by scale low 6 bits, then wrapping yaw WORD addition. Next byte goes to pitch.
+read_scaled_mouse_yaw_delta_exception:
 	movem.l d0-d1/a1/a6,-(a7)
 	movea.l game_workspace_base.l,a6
-	lea.l abs_0_0003B684.l,a1
+	lea.l read_mouse_pitch_delta_exception.l,a1
 	move.l a1,$0118.w
 	move.b $FFFFFC02.w,d0
 	ext.w d0
@@ -52366,10 +52370,11 @@ abs_0_0003B650:
 	move.b #$BF,$FFFFFA11.w
 	movem.l (a7)+,d0-d1/a1/a6
 	rte
-abs_0_0003B684:
+    ; Own D0/A1/A6 frame; reload workspace. Sign-extend BYTE to WORD and add to pitch, restoring the serial root. Upper D0 WORD is irrelevant and preserved by the saved frame.
+read_mouse_pitch_delta_exception:
 	movem.l d0/a1/a6,-(a7)
 	movea.l game_workspace_base.l,a6
-	lea.l abs_0_0003B5B2(pc),a1
+	lea.l alternate_serial_input_exception(pc),a1
 	move.l a1,$0118.w
 	move.b $FFFFFC02.w,d0
 	ext.w d0
@@ -52377,55 +52382,57 @@ abs_0_0003B684:
 	move.b #$BF,$FFFFFA11.w
 	movem.l (a7)+,d0/a1/a6
 	rte
-abs_0_0003B6AC:
-	lea.l abs_0_0003B6C0(pc),a1
+install_unscaled_mouse_yaw_reader:
+	lea.l read_unscaled_mouse_yaw_delta_exception(pc),a1
 	move.l a1,$0118.w
 	movem.l (a7)+,d0/a0-a1/a6
 	move.b #$BF,$FFFFFA11.w
 	rte
-abs_0_0003B6C0:
+    ; Own D0/A1/A6 frame; reload workspace. Add signed BYTE to yaw without scaling; next byte adds to speed, not pitch. Both WORD additions wrap; each callback restores its frame.
+read_unscaled_mouse_yaw_delta_exception:
 	movem.l d0/a1/a6,-(a7)
 	movea.l game_workspace_base.l,a6
 	move.b $FFFFFC02.w,d0
 	ext.w d0
 	add.w d0,rotation_2_control_accumulator(a6)
-	lea.l abs_0_0003B6E8(pc),a1
+	lea.l read_mouse_speed_delta_exception(pc),a1
 	move.l a1,$0118.w
 	movem.l (a7)+,d0/a1/a6
 	move.b #$BF,$FFFFFA11.w
 	rte
-abs_0_0003B6E8:
+read_mouse_speed_delta_exception:
 	movem.l d0/a1/a6,-(a7)
 	movea.l game_workspace_base.l,a6
 	move.b $FFFFFC02.w,d0
 	ext.w d0
 	add.w d0,negative_speed_control_accumulator(a6)
-	lea.l abs_0_0003B5B2(pc),a1
+	lea.l alternate_serial_input_exception(pc),a1
 	move.l a1,$0118.w
 	movem.l (a7)+,d0/a1/a6
 	move.b #$BF,$FFFFFA11.w
 	rte
-abs_0_0003B710:
-	bra.w abs_0_0003B632
-abs_0_0003B714:
+join_mouse_primary_button_selection:
+	bra.w select_alternate_mouse_delta_readers
+begin_alternate_joystick_packet:
 	move.b d0,alternate_joystick_packet_header.l
-	lea.l abs_0_0003B730.l,a0
+	lea.l read_alternate_joystick_payload_exception.l,a0
 	move.l a0,$0118.w
 	move.b #$BF,$FFFFFA11.w
 	movem.l (a7)+,d0/a0-a1/a6
 	rte
-abs_0_0003B730:
+    ; Own D0/A0/A6 frame; reload workspace. Header $FF publishes fire from bit 7 and direction low nibble; $FE consumes but ignores payload. Both restore the root and write $BF to MFP ISRB.
+read_alternate_joystick_payload_exception:
 	movem.l d0/a0/a6,-(a7)
 	movea.l game_workspace_base.l,a6
 	move.b $FFFFFC02.w,d0
 	btst.b #0,alternate_joystick_packet_header.l
-	beq.w abs_0_0003B75A
+	beq.w finish_joystick_packet_and_restore_root
 	btst #7,d0
 	sne.b primary_fire_flag(a6)
 	andi.w #15,d0
 	move.w d0,joystick_direction_bits(a6)
-abs_0_0003B75A:
-	lea.l abs_0_0003B5B2.l,a0
+finish_joystick_packet_and_restore_root:
+	lea.l alternate_serial_input_exception.l,a0
 	move.l a0,$0118.w
 	move.b #$BF,$FFFFFA11.w
 	movem.l (a7)+,d0/a0/a6

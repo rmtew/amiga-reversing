@@ -27,6 +27,33 @@ and strengthened 38 app-base attributions.
 Conditional skips mean104 outer iterations are not104 observed memory reads.
 Loaded pointer values remain subject to separate alias/target validation.
 
+The alternate serial-input batch reconstructs the installed vector-$118 root
+and thirteen connected reader/return continuations. 1070 original CPU cases
+cover all 256 root bytes, integrated vector-selected mouse/joystick phases,
+scale low-six-bit shifts, wrapping WORD accumulators, workspace reload and
+reader-specific register saves plus supplied six-byte supervisor-frame returns.
+The installer clears 112 of 128 key flag bytes. Press indices120..127 read the
+first eight bytes of the following glyph LUT; the corresponding break bytes
+are packet headers. The original 120-byte translation owner is not broadened.
+
+Mouse header bit0 selects scaled-yaw/pitch versus unscaled-yaw/speed readers;
+bit1 updates the primary button flag but does not choose that reader pair.
+Joystick $FE consumes and ignores data, while $FF publishes fire and directions.
+The vector itself stores packet phase. Internal joins inherit the root or
+joystick frame; they are not new independent interrupt entries. All callbacks
+reload game_workspace_base and restore the interrupted A6. Ports are RAM in
+these supplied fixtures: writing $BF to MFP ISRB is observed, not a hardware
+register-state or interrupt-delivery model. MFP channel6 routing to $118 needs
+inherited vector base $40; local setup, hardware timing and normal-game packet
+coverage remain unqualified. Next connected lead: common control readers and
+normalization of the mouse-produced yaw, pitch and negative-speed accumulators.
+
+Final generation took 233.15 seconds. App/typed/unresolved totals remain
+3509/2716/165; accepted code, ownership union, CFG, function summaries and exact
+data-reference identities are unchanged. This batch supplies source semantics,
+not new code classification or a framework-inference gain. C/vasm and clean
+standalone rebuilding retain all 412736 original bytes and 57 unchanged assets.
+
 The alternate-palette batch reconstructs 21 continuations, the common $777
 conversion mask and the palette-buffer byte offset, plus the existing backing's
 role. 194 original-CPU cases cover priority, independent nearby-event state,

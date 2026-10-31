@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "source_commit": "59e1104d80b57b3b3fc63fdb563c4a4ec1451073",
+  "source_commit": "4c972fc7a3bd19da7618b1f00f84c02cbcaa1ed0",
   "source_assembly": "starglider2_game.s",
   "assets": [
     {
@@ -878,13 +878,13 @@
     },
     {
       "path": "rendered-provenance.json",
-      "bytes": 3533,
-      "sha256": "e0564358bde0e01081207d18bfa08ae27a593f3b7f5d450acfd3fa00c22fb1cd"
+      "bytes": 3540,
+      "sha256": "c79303d52c3f52cdf638dc77941a3bf3ef62c2604fcfdc009f9e0f8a2a2f7186"
     },
     {
       "path": "starglider2_game.s",
-      "bytes": 2161608,
-      "sha256": "ff80bd4feebba2c3d2cdfbfabc89266ee575617b1de156cf086ec9624119e6b2"
+      "bytes": 2163526,
+      "sha256": "e5e44edc6ff234391773e0168abb1797b972a73e1e372946846c486ecf7ef8cd"
     },
     {
       "path": "tools/starglider2_protection.py",
@@ -892,6 +892,6 @@
       "sha256": "81d3f66d36dbfbd5c77238b20c28e8b9abaa329777eb91f64669bbbf13703582"
     }
   ],
-  "source_commit_role": "canonical source publication base; packed-BCD score/periodic field boundaries and three digit layouts reconstructed through 522 independent Musashi CPU cases; native concrete ABCD unsupported and unchanged; preserve score leading BYTE, normal caller zero gate, direct-entry MOVE/ADD countdown distinction and fixed output points; no all-caller BCD validity, IRQ cadence, mode lifetime or scanout proof; output is bound by verification_receipt_id",
-  "source_subject_revision": "0b4b52552d191bc1c53655a0da5014ebf2136fe9452da3883fbe380ae77a70a0"
+  "source_commit_role": "canonical source publication base; alternate serial vector $118 root and mouse/joystick reader phases reconstructed through 1070 original CPU cases with supplied supervisor frames and RAM ports; preserve 112-byte key clear, 120-byte translation prefix plus high-press aliases, workspace reload and reader-specific saved frames; no physical interrupt delivery, inherited routing setup or hardware timing proof; output is bound by verification_receipt_id",
+  "source_subject_revision": "6f53705e0c32f188fdbdfab77c2537cb7e6aa8e2f0f6d3e6fe6abeb351dca06c"
 }
