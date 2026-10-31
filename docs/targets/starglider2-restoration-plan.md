@@ -27,6 +27,37 @@ and strengthened 38 app-base attributions.
 Conditional skips mean104 outer iterations are not104 observed memory reads.
 Loaded pointer values remain subject to separate alias/target validation.
 
+The audio-cadence batch reconstructs 32 continuations, sixteen constants and ten
+name-only WORD-state identities with 538 original-CPU cases. NOT.W controls the
+alternate projectile-volume decrement; period adds 40 and resets to 300 only
+when the result equals 1700. It is not an upper clamp. NEG.W separately selects
+the optional +10 output bias, retaining zero/$8000 fixed-sign cases and WORD wrap.
+
+Two nested NEG.W signs gate channel 0 offset updates; only an update masks the
+opposed offsets to 127. Initial signs 1/1 produce updates on serial service calls
+3,7,...; this is not a physical frame rate or an invariant under unknown writes.
+The selector can consume retained unmasked WORDs when an update is skipped.
+Nonzero stardrive WORDs update opposed offsets by 8/mask 255 and write channel 2;
+zero leaves that state and register untouched by this continuation. Register
+order is channel 1 volume/period, channel 0 period, then optional channel 2 period.
+Muting changes the volume write without suppressing state or period updates.
+
+Connected speed producers retain BYTE(view-4) subtraction-sign selection and
+NEG.W idle decay. Base-period steps use directional floor 124/ceiling 604 with
+equality bypass, not a global range/settling guarantee; the prior convergence
+comment was narrowed accordingly. The stardrive producer additionally requires
+negative space/field BYTEs, forms WORD volume*4 and logical base-period/4+300 with original
+WORD arithmetic, and has an exact speed 479 override. The later modulator does
+not repeat those space/field guards. Field names preserve existing extents and
+adjacent unknown bytes, including the leading WORD at $4D278.
+
+CPU fixtures enter the connected continuations with supplied RAM and check
+ordered register stores/return. They prove no audio device, DMA, timing, complete
+frame, normal-caller or lifetime equivalence. Type 88 remains unqualified.
+Native proof/reference identities and 3509 app /2716 typed /165 unresolved totals
+remain unchanged; C/vasm and clean standalone output are byte exact. Next: the
+remaining connected alternate-backend and initialization consumers.
+
 The palette-priority batch reconstructs 29 continuations, twelve constants and
 four existing data symbols with 480 original-CPU cases. Priority is grayscale,
 BYTE fade, spin-selected random RGB, inside, Novenia flash, then environment.

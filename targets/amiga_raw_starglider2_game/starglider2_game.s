@@ -1518,10 +1518,20 @@ SG2_OVERLAY_MIN_LEFT	EQU	16
 SG2_OVERLAY_MIN_TOP	EQU	30
 SG2_OVERLAY_ROWS_DBF_LAST	EQU	15
 SG2_OVERLAY_ROW_BYTE_STEP	EQU	160
+SG2_PAULA_CHANNEL0_OFFSET_MASK	EQU	$7F
+SG2_PAULA_CHANNEL0_OFFSET_STEP	EQU	1
+SG2_PAULA_CHANNEL0_PERIOD_FLOOR	EQU	124
+SG2_PAULA_CHANNEL0_PERIOD_STEP	EQU	4
+SG2_PAULA_CHANNEL0_SPEED_PERIOD_BASE	EQU	604
 SG2_PAULA_COMMON_PERIOD_FLOOR	EQU	124
 SG2_PAULA_COMMON_PHASE_PERIOD_SHIFT	EQU	5
 SG2_PAULA_DESCRIPTOR_STRIDE_SHIFT	EQU	4
 SG2_PAULA_PERIOD_STEP	EQU	4
+SG2_PAULA_PROJECTILE_PERIOD_BIAS	EQU	10
+SG2_PAULA_PROJECTILE_PERIOD_RESET_BASE	EQU	300
+SG2_PAULA_PROJECTILE_PERIOD_RESET_MATCH	EQU	1700
+SG2_PAULA_PROJECTILE_PERIOD_STEP	EQU	40
+SG2_PAULA_PROJECTILE_VOLUME_DECAY_STEP	EQU	2
 SG2_PAULA_SAMPLE_POINTER_SKIP	EQU	6
 SG2_PAULA_SAMPLE_RELOAD_PHASE	EQU	6
 SG2_PAULA_SAMPLE_RESTART_PHASE	EQU	11
@@ -1529,6 +1539,12 @@ SG2_PAULA_SAMPLE_STOP_PHASE	EQU	7
 SG2_PAULA_SPEED_PERIOD_BASE	EQU	654
 SG2_PAULA_SPEED_PERIOD_FLOOR	EQU	174
 SG2_PAULA_SPEED_PERIOD_STEP	EQU	2
+SG2_PAULA_STARDRIVE_BASE_PERIOD_BIAS	EQU	300
+SG2_PAULA_STARDRIVE_OFFSET_MASK	EQU	$FF
+SG2_PAULA_STARDRIVE_OFFSET_STEP	EQU	8
+SG2_PAULA_STARDRIVE_OVERRIDE_CHANNEL0_VOLUME	EQU	32
+SG2_PAULA_STARDRIVE_OVERRIDE_CHANNEL2_VOLUME	EQU	64
+SG2_PAULA_STARDRIVE_SPEED_MATCH	EQU	479
 SG2_PAULA_TRANSIENT_BASE_PERIOD	EQU	358
 SG2_PAULA_TYPE10_DECAY_PHASE_MASK	EQU	31
 SG2_PAULA_TYPE10_DECAY_START_PHASE	EQU	10
@@ -59093,50 +59109,52 @@ update_amiga_frame_effects:
 	movem.l d0-d7/a0-a6,-(a7)
 	move.l paula_object_sound_requested_sample.l,paula_object_sound_previous_sample.l
 	move.b #$FF,diagnostic_step_byte.l
+    ; Moving volume uses N of BYTE(view-4), not an unsigned comparison on all inputs. Idle NEG.W zero/$8000 signs do not alternate. Muting does not suppress the later period steps.
+derive_speed_volume_from_original_speed_and_view:
 	move.w player_speed_target(a6),d0
-	beq.b abs_0_0004BC38
+	beq.b decay_stopped_speed_volume_by_negated_word_sign
 	cmpi.b #4,view_mode(a6)
-	bpl.b abs_0_0004BC2E
+	bpl.b set_speed_volume24_after_nonnegative_view_difference
 	move.w #$8,paula_speed_sound_volume.l
-	bra.b abs_0_0004BC50
-abs_0_0004BC2E:
+	bra.b gate_channel0_speed_volume_output
+set_speed_volume24_after_nonnegative_view_difference:
 	move.w #$18,paula_speed_sound_volume.l
-	bra.b abs_0_0004BC50
-    ; Stopped-speed volume decays on alternate NEG.W polarity phases. Base period converges toward 604-speed with original 124..604 clamp; this state is not a sample pointer.
-abs_0_0004BC38:
+	bra.b gate_channel0_speed_volume_output
+    ; Zero speed negates decay sign before decrement/clamp. Period target is 604-speed: only downward floor 124 or upward ceiling 604 applies; equality bypasses both. Preserve WORD overflow.
+decay_stopped_speed_volume_by_negated_word_sign:
 	neg.w paula_idle_volume_decay_polarity.l
-	bmi.b abs_0_0004BC50
+	bmi.b gate_channel0_speed_volume_output
 	subq.w #1,paula_speed_sound_volume.l
-	bpl.b abs_0_0004BC50
+	bpl.b gate_channel0_speed_volume_output
 	move.w #$0,paula_speed_sound_volume.l
-abs_0_0004BC50:
+gate_channel0_speed_volume_output:
 	tst.b modal_command_input_flag(a6)
-	bmi.b abs_0_0004BC6A
+	bmi.b mute_channel0_speed_volume_output
 	tst.b audio_output_enable_sign_flag.l
-	bpl.b abs_0_0004BC6A
+	bpl.b mute_channel0_speed_volume_output
 	move.w paula_speed_sound_volume.l,_custom+aud0+ac_vol.l
-	bra.b abs_0_0004BC72
-abs_0_0004BC6A:
+	bra.b step_channel0_speed_period_with_directional_limits
+mute_channel0_speed_volume_output:
 	move.w #$0,_custom+aud0+ac_vol.l	; audio volume 0
-abs_0_0004BC72:
+step_channel0_speed_period_with_directional_limits:
 	move.w paula_speed_sound_base_period.l,d2
-	move.w #$25C,d1
+	move.w #SG2_PAULA_CHANNEL0_SPEED_PERIOD_BASE,d1
 	sub.w d0,d1
 	cmp.w d2,d1
 	beq.b clear_paula_nearby_override_and_gate_list_count
-	bmi.b abs_0_0004BC86
-	bpl.b abs_0_0004BCA0
-abs_0_0004BC86:
-	subq.w #4,paula_speed_sound_base_period.l
-	cmpi.w #124,paula_speed_sound_base_period.l
+	bmi.b lower_channel0_speed_period_with_conditional_floor
+	bpl.b raise_channel0_speed_period_with_conditional_ceiling
+lower_channel0_speed_period_with_conditional_floor:
+	subq.w #SG2_PAULA_CHANNEL0_PERIOD_STEP,paula_speed_sound_base_period.l
+	cmpi.w #SG2_PAULA_CHANNEL0_PERIOD_FLOOR,paula_speed_sound_base_period.l
 	bpl.b clear_paula_nearby_override_and_gate_list_count
-	move.w #$7C,paula_speed_sound_base_period.l
+	move.w #SG2_PAULA_CHANNEL0_PERIOD_FLOOR,paula_speed_sound_base_period.l
 	bra.b clear_paula_nearby_override_and_gate_list_count
-abs_0_0004BCA0:
-	addq.w #4,paula_speed_sound_base_period.l
-	cmpi.w #604,paula_speed_sound_base_period.l
+raise_channel0_speed_period_with_conditional_ceiling:
+	addq.w #SG2_PAULA_CHANNEL0_PERIOD_STEP,paula_speed_sound_base_period.l
+	cmpi.w #SG2_PAULA_CHANNEL0_SPEED_PERIOD_BASE,paula_speed_sound_base_period.l
 	bmi.b clear_paula_nearby_override_and_gate_list_count
-	move.w #$25C,paula_speed_sound_base_period.l
+	move.w #SG2_PAULA_CHANNEL0_SPEED_PERIOD_BASE,paula_speed_sound_base_period.l
 clear_paula_nearby_override_and_gate_list_count:
 	move.w #$0,nearby_effect_or_override_present_word.l
 	move.w nearby_object_count(a6),d0
@@ -59218,43 +59236,45 @@ decay_paula_effect_volume_using_word_sign:
 advance_paula_effect_period_with_n_only_cap:
 	addi.w #30,paula_channel2_effect_base_period.l
 	cmpi.w #1000,paula_channel2_effect_base_period.l
-	bmi.b abs_0_0004BDCE
+	bmi.b gate_stardrive_base_from_space_field_and_enable_word
 	move.w #$3E8,paula_channel2_effect_base_period.l
-abs_0_0004BDCE:
+    ; Producer requires negative space/field BYTEs and nonzero stardrive WORD. Later modulation tests only stardrive zero/nonzero. Speed 479 exactly overrides volume/period; keep gates distinct.
+gate_stardrive_base_from_space_field_and_enable_word:
 	tst.b space_environment_flag(a6)
-	bpl.b abs_0_0004BE2C
+	bpl.b gate_channel2_effect_volume_output
 	tst.w stardrive_enabled_word(a6)
-	beq.b abs_0_0004BE2C
+	beq.b gate_channel2_effect_volume_output
 	tst.b flight_point_field_active_flag(a6)
-	bpl.b abs_0_0004BE2C
+	bpl.b gate_channel2_effect_volume_output
 	move.w paula_speed_sound_volume.l,d0
-	beq.b abs_0_0004BDEA
+	beq.b retain_max_by_word_sign_for_stardrive_volume
 	asl.w #2,d0
-abs_0_0004BDEA:
+retain_max_by_word_sign_for_stardrive_volume:
 	cmp.w paula_channel2_effect_volume.l,d0
-	bmi.b abs_0_0004BDF8
+	bmi.b derive_stardrive_base_period_from_speed_sound_base
 	move.w d0,paula_channel2_effect_volume.l
-abs_0_0004BDF8:
+derive_stardrive_base_period_from_speed_sound_base:
 	move.w paula_speed_sound_base_period.l,d0
 	lsr.w #2,d0
-	addi.w #300,d0
+	addi.w #SG2_PAULA_STARDRIVE_BASE_PERIOD_BIAS,d0
 	move.w d0,paula_channel2_effect_base_period.l
 	move.w player_speed_target(a6),d0
-	cmp.w #$1DF,d0
-	bne.b abs_0_0004BE2C
-	move.w #$40,paula_channel2_effect_volume.l
-	move.w #$20,paula_speed_sound_volume.l
-	move.w #$12C,paula_channel2_effect_base_period.l
-abs_0_0004BE2C:
+	cmp.w #SG2_PAULA_STARDRIVE_SPEED_MATCH,d0
+	bne.b gate_channel2_effect_volume_output
+override_stardrive_volumes_and_period_at_speed479:
+	move.w #SG2_PAULA_STARDRIVE_OVERRIDE_CHANNEL2_VOLUME,paula_channel2_effect_volume.l
+	move.w #SG2_PAULA_STARDRIVE_OVERRIDE_CHANNEL0_VOLUME,paula_speed_sound_volume.l
+	move.w #SG2_PAULA_STARDRIVE_BASE_PERIOD_BIAS,paula_channel2_effect_base_period.l
+gate_channel2_effect_volume_output:
 	tst.b modal_command_input_flag(a6)
-	bmi.b abs_0_0004BE46
+	bmi.b mute_channel2_effect_volume_output
 	tst.b audio_output_enable_sign_flag.l
-	bpl.b abs_0_0004BE46
+	bpl.b mute_channel2_effect_volume_output
 	move.w paula_channel2_effect_volume.l,_custom+aud2+ac_vol.l
-	bra.b abs_0_0004BE4E
-abs_0_0004BE46:
+	bra.b write_channel2_effect_period_before_object_selection
+mute_channel2_effect_volume_output:
 	move.w #$0,_custom+aud2+ac_vol.l	; audio volume 0
-abs_0_0004BE4E:
+write_channel2_effect_period_before_object_selection:
 	move.w paula_channel2_effect_base_period.l,_custom+aud2+ac_per.l	; audio period
     ; Metric is a wrapped WORD sum of three WORD magnitudes, then LSR2. Last ordinary tie wins; first table-eligible special threshold preempts scan. No universal physical-distance ABI.
 gate_paula_object_selection_on_nearby_count:
@@ -60175,74 +60195,82 @@ publish_spin_selected_shared_random_rgb:
 	dc.b $30,$39,$00,$04,$D3,$5A,$32,$39,$00,$04,$D3,$5C,$D0,$41,$67,$08
 	dc.b $B0,$7C,$00,$07,$67,$02,$60,$06,$44,$79,$00,$04,$D3,$5C,$33,$C0
 	dc.b $00,$04,$D3,$5A,$E1,$40,$33,$C0,$00,$DF,$F1,$80
+    ; NOT.W flips decay N each call; negative phase skips sub 2. Period adds 40 and resets 300 only at equality 1700, not as a ceiling. Preserve WORD wrap and mute-independent period writes.
 advance_audio_modulators_after_palette_service:
-	not.w abs_0_0004D068.l
-	bmi.w abs_0_0004CADA
-	subq.w #2,paula_projectile_effect_volume.l
-	bpl.b abs_0_0004CADA
+	not.w paula_projectile_volume_decay_toggle.l
+	bmi.w step_projectile_period_with_exact_reset_match
+decay_projectile_volume_on_nonnegative_not_phase:
+	subq.w #SG2_PAULA_PROJECTILE_VOLUME_DECAY_STEP,paula_projectile_effect_volume.l
+	bpl.b step_projectile_period_with_exact_reset_match
 	move.w #$0,paula_projectile_effect_volume.l
-abs_0_0004CADA:
-	addi.w #40,paula_projectile_effect_period.l
-	cmpi.w #1700,paula_projectile_effect_period.l
-	bne.b abs_0_0004CAF4
-	move.w #$12C,paula_projectile_effect_period.l
-abs_0_0004CAF4:
+step_projectile_period_with_exact_reset_match:
+	addi.w #SG2_PAULA_PROJECTILE_PERIOD_STEP,paula_projectile_effect_period.l
+	cmpi.w #SG2_PAULA_PROJECTILE_PERIOD_RESET_MATCH,paula_projectile_effect_period.l
+	bne.b gate_projectile_channel1_volume_output
+	move.w #SG2_PAULA_PROJECTILE_PERIOD_RESET_BASE,paula_projectile_effect_period.l
+gate_projectile_channel1_volume_output:
 	tst.b modal_command_input_flag(a6)
-	bmi.b abs_0_0004CB0E
+	bmi.b mute_projectile_channel1_volume_output
 	tst.b audio_output_enable_sign_flag.l
-	bpl.b abs_0_0004CB0E
+	bpl.b mute_projectile_channel1_volume_output
 	move.w paula_projectile_effect_volume.l,_custom+aud1+ac_vol.l
-	bra.b abs_0_0004CB16
-abs_0_0004CB0E:
+	bra.b select_projectile_period_bias_by_negated_word_sign
+mute_projectile_channel1_volume_output:
 	move.w #$0,_custom+aud1+ac_vol.l	; audio volume 0
-abs_0_0004CB16:
-	neg.w abs_0_0004D25C.l
-	bmi.b abs_0_0004CB30
+select_projectile_period_bias_by_negated_word_sign:
+	neg.w paula_projectile_period_bias_sign.l
+	bmi.b write_unbiased_projectile_channel1_period
 	move.w paula_projectile_effect_period.l,d0
-	addi.w #10,d0
+	addi.w #SG2_PAULA_PROJECTILE_PERIOD_BIAS,d0
 	move.w d0,_custom+aud1+ac_per.l	; audio period
-	bra.b abs_0_0004CB3A
-abs_0_0004CB30:
+	bra.b gate_channel0_offset_update_by_outer_negated_sign
+write_unbiased_projectile_channel1_period:
 	move.w paula_projectile_effect_period.l,_custom+aud1+ac_per.l	; audio period
-abs_0_0004CB3A:
-	neg.w abs_0_0004D270.l
-	bmi.b abs_0_0004CB44
-	bra.b abs_0_0004CB68
-abs_0_0004CB44:
-	neg.w abs_0_0004D272.l
-	bmi.b abs_0_0004CB68
-	addq.w #1,abs_0_0004D26C.l
-	andi.w #127,abs_0_0004D26C.l
-	subq.w #1,abs_0_0004D26E.l
-	andi.w #127,abs_0_0004D26E.l
-abs_0_0004CB68:
-	neg.w abs_0_0004D26A.l
-	bmi.b abs_0_0004CB78
-	move.w abs_0_0004D26C.l,d0
-	bra.b abs_0_0004CB7E
-abs_0_0004CB78:
-	move.w abs_0_0004D26E.l,d0
-abs_0_0004CB7E:
+    ; Two NEG.W gates update offsets by 1/mask 127 only for outer N and inner nonnegative. Initial 1/1 yields service calls 3,7,...; no physical frame-rate claim or invariant under other writes.
+gate_channel0_offset_update_by_outer_negated_sign:
+	neg.w paula_speed_offset_update_outer_sign.l
+	bmi.b gate_channel0_offset_update_by_inner_negated_sign
+	bra.b select_channel0_offset_by_negated_word_sign
+gate_channel0_offset_update_by_inner_negated_sign:
+	neg.w paula_speed_offset_update_inner_sign.l
+	bmi.b select_channel0_offset_by_negated_word_sign
+advance_channel0_offsets_then_mask_to_seven_bits:
+	addq.w #SG2_PAULA_CHANNEL0_OFFSET_STEP,paula_speed_rising_period_offset.l
+	andi.w #SG2_PAULA_CHANNEL0_OFFSET_MASK,paula_speed_rising_period_offset.l
+	subq.w #SG2_PAULA_CHANNEL0_OFFSET_STEP,paula_speed_falling_period_offset.l
+	andi.w #SG2_PAULA_CHANNEL0_OFFSET_MASK,paula_speed_falling_period_offset.l
+    ; NEG.W selectors degenerate at zero/$8000. Offsets are masked only on update; skipped updates can output retained unmasked WORDs. Period addition wraps without an extra clamp.
+select_channel0_offset_by_negated_word_sign:
+	neg.w paula_speed_period_offset_select_sign.l
+	bmi.b load_channel0_falling_period_offset
+	move.w paula_speed_rising_period_offset.l,d0
+	bra.b write_channel0_base_plus_selected_period_offset
+load_channel0_falling_period_offset:
+	move.w paula_speed_falling_period_offset.l,d0
+write_channel0_base_plus_selected_period_offset:
 	move.w paula_speed_sound_base_period.l,d1
 	add.w d0,d1
 	move.w d1,_custom+aud0+ac_per.l	; audio period
+    ; Any nonzero stardrive WORD advances +/-8/mask 255 before sign selection. Zero preserves offset state and AUD2 period. The earlier producer has separate space/field guards.
+gate_stardrive_offsets_by_nonzero_enable_word:
 	tst.w stardrive_enabled_word(a6)
-	beq.b abs_0_0004CBD2
-	addq.w #8,abs_0_0004D276.l
-	andi.w #255,abs_0_0004D276.l
-	subq.w #8,abs_0_0004D278.l
-	andi.w #255,abs_0_0004D278.l
-	neg.w abs_0_0004D274.l
-	bmi.b abs_0_0004CBBE
-	move.w abs_0_0004D276.l,d0
-	bra.b abs_0_0004CBC4
-abs_0_0004CBBE:
-	move.w abs_0_0004D278.l,d0
-abs_0_0004CBC4:
+	beq.b return_after_paula_modulation_continuation
+advance_stardrive_offsets_then_mask_to_eight_bits:
+	addq.w #SG2_PAULA_STARDRIVE_OFFSET_STEP,paula_stardrive_rising_period_offset.l
+	andi.w #SG2_PAULA_STARDRIVE_OFFSET_MASK,paula_stardrive_rising_period_offset.l
+	subq.w #SG2_PAULA_STARDRIVE_OFFSET_STEP,paula_stardrive_falling_period_offset.l
+	andi.w #SG2_PAULA_STARDRIVE_OFFSET_MASK,paula_stardrive_falling_period_offset.l
+	neg.w paula_stardrive_period_offset_select_sign.l
+	bmi.b load_stardrive_falling_period_offset
+	move.w paula_stardrive_rising_period_offset.l,d0
+	bra.b write_channel2_base_plus_stardrive_offset
+load_stardrive_falling_period_offset:
+	move.w paula_stardrive_falling_period_offset.l,d0
+write_channel2_base_plus_stardrive_offset:
 	move.w paula_channel2_effect_base_period.l,d1
 	add.w d0,d1
 	move.w d1,_custom+aud2+ac_per.l	; audio period
-abs_0_0004CBD2:
+return_after_paula_modulation_continuation:
 	rts
 effect_grayscale_ramp:
 	dc.w $0FFF,$0EEE,$0DDD,$0CCC,$0BBB,$0AAA,$0999,$0888
@@ -60749,7 +60777,7 @@ paula_projectile_effect_volume:
 	dc.w $0000
 paula_projectile_effect_period:
 	dc.w $0514
-abs_0_0004D068:
+paula_projectile_volume_decay_toggle:
 	dc.b $00,$01
 paula_speed_sound_volume:
 	dc.w $0010
@@ -60851,7 +60879,7 @@ object_sound_type_exclusion_flags:
 object_sound_special_distance_flag:
 	dc.w $0000
 	dc.b $00,$01,$00,$00
-abs_0_0004D25C:
+paula_projectile_period_bias_sign:
 	dc.b $00,$01,$00,$00,$00,$00,$00,$00
 object_type3_period_phase_sign:
 	dc.w $0001
@@ -60859,21 +60887,21 @@ object_type3_rising_period_offset:
 	dc.w $0000
 object_type3_falling_period_offset:
 	dc.w $0000
-abs_0_0004D26A:
+paula_speed_period_offset_select_sign:
 	dc.b $00,$01
-abs_0_0004D26C:
+paula_speed_rising_period_offset:
 	dc.w $0000
-abs_0_0004D26E:
+paula_speed_falling_period_offset:
 	dc.w $0000
-abs_0_0004D270:
+paula_speed_offset_update_outer_sign:
 	dc.b $00,$01
-abs_0_0004D272:
+paula_speed_offset_update_inner_sign:
 	dc.b $00,$01
-abs_0_0004D274:
+paula_stardrive_period_offset_select_sign:
 	dc.b $00,$01
-abs_0_0004D276:
+paula_stardrive_rising_period_offset:
 	dc.w $0000
-abs_0_0004D278:
+paula_stardrive_falling_period_offset:
 	dc.b $00,$00,$00,$00,$00,$00,$02,$80,$02,$80,$02,$80,$02,$80,$02,$80
 	dc.b $02,$80,$02,$80,$02,$80,$02,$80,$02,$80,$02,$80,$02,$80,$02,$1A
 	dc.b $02,$3A,$02,$3A,$02,$80,$02,$80,$02,$A6,$02,$80,$01,$40,$01,$68

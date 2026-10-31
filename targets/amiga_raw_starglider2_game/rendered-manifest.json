@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "source_commit": "a3cab290fe2173f04b1a62a65eaf29493ec58b08",
+  "source_commit": "34d03497c2e9d265305ab2867bb779a818d5b768",
   "source_assembly": "starglider2_game.s",
   "assets": [
     {
@@ -878,13 +878,13 @@
     },
     {
       "path": "rendered-provenance.json",
-      "bytes": 3483,
-      "sha256": "492b8f70f49192177047cedab72c94b9864f151df4561b689f68d4bab9253749"
+      "bytes": 3551,
+      "sha256": "2eaee0cef34ae0e27febc8f3c75de6cc85af27efd568c71e98b5b6fb7809e226"
     },
     {
       "path": "starglider2_game.s",
-      "bytes": 2141498,
-      "sha256": "0c6c16aed646a762dfbb58f1ad201c8c84680dc96a606b6edaae0a79e3473945"
+      "bytes": 2146783,
+      "sha256": "606167401e760dd09d6b967ca5d0036f8578a4bcc978664f2769e7582f88db40"
     },
     {
       "path": "tools/starglider2_protection.py",
@@ -892,6 +892,6 @@
       "sha256": "81d3f66d36dbfbd5c77238b20c28e8b9abaa329777eb91f64669bbbf13703582"
     }
   ],
-  "source_commit_role": "canonical source publication base; palette priority, expiry suppression, wrapped colour arithmetic, proximity byte producers and EOR.W PRNG behavior reconstructed through 480 original-CPU cases; Copper-list RAM only, not scanout, Copper execution, DMA, PCM, timing, complete-frame, original-caller or lifetime proof; type 88 remains outside this batch; output is bound by verification_receipt_id",
-  "source_subject_revision": "8328a66581368d2cd236de6d5cccb9dcd7e0f96c6197954c571c6793e066abe3"
+  "source_commit_role": "canonical source publication base; audio modulation continuations and connected speed/stardrive producers reconstructed through 538 original-CPU cases, preserving NOT/NEG distinctions, exact reset, directional limits, retained offsets and ordered register writes; device registers as RAM, not audio/DMA, timing, physical frame cadence, complete-frame, normal-caller or lifetime proof; type 88 remains outside this batch; output is bound by verification_receipt_id",
+  "source_subject_revision": "d1c756bb92eaedfa4de938d60b278f36319d0d82043b016169f747d3f7dfcfa6"
 }
