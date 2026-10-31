@@ -2493,6 +2493,23 @@ def _validate_candidate_equate_capacity(
     if not representations:
         return
     equates = {e.name: e.value for e in metadata.target_equates} if metadata else {}
+    # Obtain RS-field/SIZEOF values from the same native declaration planner as
+    # rendering. This policy projection does not build a CFG or source artifact.
+    if metadata is not None and metadata.custom_structs:
+        import tempfile
+        from amiga_reversing.disasm.c_backend import effective_policy_project_source_with_c_backend
+        from amiga_reversing.disasm.effective_metadata import effective_metadata_text
+        text = effective_metadata_text(target_dir, pending_actions=[a for a in pending_actions
+            if a.get("kind") != ManualActionKind.CREATE_MANUAL_REPRESENTATION], binary_source=binary_source)
+        with tempfile.TemporaryDirectory(prefix="representation-layout-") as directory:
+            path = Path(directory) / "metadata.json"
+            path.write_text(text or "{}", encoding="utf-8")
+            constants = effective_policy_project_source_with_c_backend(binary_source, metadata_path=path)["analysis_policy"].get("layout_constants", [])
+        for constant in constants:
+            name, value = constant["name"], constant["value"]
+            if name in equates:
+                raise ValueError("ambiguous canonical layout/EQU symbol")
+            equates[name] = value
     source_choices = []
     for representation in representations:
         representation.pop("source_symbol", None)  # Never trust a caller-supplied identity.
@@ -2500,10 +2517,10 @@ def _validate_candidate_equate_capacity(
         width = representation.get("width_bytes")
         if representation.get("element_kind") == "indexed_displacement":
             if width != 1 or type(value) is not int or not -128 <= value <= 127 or symbol not in equates or equates[symbol] != value:
-                raise ValueError("indexed displacement requires an equal-valued canonical EQU")
+                raise ValueError("indexed displacement requires an equal-valued canonical EQU or layout constant")
         elif representation.get("element_kind") == "displacement":
             if width != 2 or type(value) is not int or not -32768 <= value <= 32767 or symbol not in equates or equates[symbol] != value:
-                raise ValueError("displacement requires an equal-valued canonical EQU")
+                raise ValueError("displacement requires an equal-valued canonical EQU or layout constant")
         elif representation.get("element_kind") == "absolute_address" and symbol in equates:
             if width not in {2, 4} or equates[symbol] != value:
                 raise ValueError("absolute symbol representation EQU value must match the decoded address")

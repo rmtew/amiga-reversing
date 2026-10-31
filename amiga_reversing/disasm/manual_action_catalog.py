@@ -5171,6 +5171,11 @@ def _representation_payload(
         if not isinstance(symbol, str) or not symbol.strip():
             raise ValueError("symbol representation requires parameter symbol")
         representation["symbol"] = symbol.strip()
+        if element_kind == "immediate":
+            # Selectors can omit literal details (UI/API callers supply only the
+            # operand identity). Persist the decoded native value, not an
+            # incomplete or caller-supplied copy of its scalar provenance.
+            element_context = selected_listing_element_context(row, element_context or {})
         if element_kind == "indexed_displacement":
             element_context = selected_listing_element_context(row, element_context or {})
             value = _optional_int((element_context or {}).get("value"))

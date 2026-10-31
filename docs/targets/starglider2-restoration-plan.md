@@ -27,6 +27,30 @@ and strengthened 38 app-base attributions.
 Conditional skips mean104 outer iterations are not104 observed memory reads.
 Loaded pointer values remain subject to separate alias/target validation.
 
+The radial-producer batch connects metric/colour selection, signed projection,
+root/radius calculation and layered ten-byte disc records. 2088 original CPU
+cases include full producer returns, failed-link scratch reuse and layer index 4
+reading the flags after four stored colours. Type 145 ground layers retain the
+root result as their depth base; type 128 reloads the stored primary depth.
+Defined in-range radius division coerces ordinary zero to 1 and rejects zero for
+type 146. Only the first record is capped at 1999; object/layer WORD radii retain
+their own values and wrap. Direct spheroid-stage $8000 doubles to zero, but that
+is excluded by the defined primary quotient guard, not evidence of live use.
+
+The root WORD path sign-extends D1-D4 on MOVEM.W restoration; its LONG path
+preserves full registers. The exact $10000 input retains the original zero low
+WORD. A supplied type 128 entry with relative XYZ=(0,0,256) reaches DIVS.W with
+that zero divisor; exception delivery and normal-game reachability are not
+claimed. Thirty-eight continuations, nine constants and 22 existing record-field
+symbols clarify source; operand presentation does not add base/type proofs.
+The shared presentation path now accepts emitted custom-layout RS fields and
+SIZEOF, checking exact decoded values and widths without duplicate EQU proxies.
+Missing, overlapping and invented inherited field symbols are refused. It also
+retains native immediate values when catalog selectors omit literal details.
+No radius domain or pointer lifetime contract is broadened. Next:
+follow the originating relative-coordinate producer and actual caller guards
+for the root boundary, keeping unproved original behavior intact.
+
 The disc queue/span batch follows signed-depth sorting, ten-byte record
 unpacking, midpoint spans, fixed clipping and the eight-byte submission packet.
 1028 original CPU cases retain non-stable swap ties, WORD sign extension and

@@ -76,6 +76,9 @@ def test_immediate_symbol_representation_preserves_target_equate_name() -> None:
         "element_kind": "immediate",
         "operand_index": 0,
         "symbol": "ITEM_ID_LASER_RIFLE",
+        "element_id": "row:immediate:0:18",
+        "value": 0x12,
+        "width_bytes": 1,
     }
 
 

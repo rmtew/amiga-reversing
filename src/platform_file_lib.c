@@ -3646,7 +3646,8 @@ static int policy_add_manual_representation_local(M68kAnalysisPolicy *policy, ui
   M68kAnalysisManualRepresentation *slot;
   uint16_t index;
   uint16_t symbol_id = 0U;
-  uint16_t target_equate_index = 0U;
+  uint16_t target_equate_index = 0U, layout_struct_index = 0U, layout_field_index = 0U;
+  uint32_t layout_value;
   if (policy == NULL || size == 0U || style_id == M68K_ANALYSIS_REPRESENTATION_STYLE_NONE ||
       !m68k_analysis_policy_manual_representations_valid(policy)) {
     return 0;
@@ -3655,7 +3656,9 @@ static int policy_add_manual_representation_local(M68kAnalysisPolicy *policy, ui
     symbol_id = amiga_os_name_id(M68K_PLATFORM_NAME_SYMBOL, symbol_name);
     if (amiga_os_name(M68K_PLATFORM_NAME_SYMBOL, symbol_id) == NULL) {
       symbol_id = 0U;
-      if (!policy_find_target_equate_index_local(policy, symbol_name, &target_equate_index)) return 0;
+      if (!policy_find_target_equate_index_local(policy, symbol_name, &target_equate_index) &&
+          m68k_analysis_policy_find_layout_constant(policy, symbol_name, &layout_struct_index,
+            &layout_field_index, &layout_value) != 1) return 0;
     }
   }
   for (index = 0U; index < policy->manual_representation_count; ++index) {
@@ -3665,7 +3668,8 @@ static int policy_add_manual_representation_local(M68kAnalysisPolicy *policy, ui
         existing->has_operand_index == has_operand_index &&
         (!has_operand_index || existing->operand_index == operand_index)) {
       return existing->style_id == style_id && existing->symbol_id == symbol_id &&
-        existing->target_equate_index == target_equate_index;
+        existing->target_equate_index == target_equate_index &&
+        existing->layout_struct_index == layout_struct_index && existing->layout_field_index == layout_field_index;
     }
   }
   if (m68k_analysis_policy_reserve_manual_representations(policy,
@@ -3681,6 +3685,7 @@ static int policy_add_manual_representation_local(M68kAnalysisPolicy *policy, ui
   slot->size = size;
   slot->symbol_id = symbol_id;
   slot->target_equate_index = target_equate_index;
+  slot->layout_struct_index = layout_struct_index; slot->layout_field_index = layout_field_index;
   return 1;
 }
 
@@ -10921,6 +10926,21 @@ static int append_effective_analysis_policy_json_local(JsonBuilder *builder, con
     }
     if (json_builder_append(builder, "]}") != 0) return -1;
   }
+  if (json_builder_append(builder, "],\"layout_constants\":[") != 0) return -1;
+  {
+    int emitted = 0;
+    for (uint16_t si = 0U; si < policy->custom_struct_count; ++si) {
+      const M68kAnalysisCustomStruct *record = &policy->custom_structs[si];
+      for (uint16_t fi = 0U; fi <= record->field_count; ++fi) {
+        char name[192]; uint32_t value;
+        if (!m68k_analysis_policy_layout_constant(policy, (uint16_t)(si + 1U), fi, name, sizeof(name), &value)) continue;
+        if (emitted++ && json_builder_append(builder, ",") != 0) return -1;
+        if (json_builder_append(builder, "{\"name\":") != 0 ||
+            json_builder_append_json_string(builder, name) != 0 ||
+            json_builder_appendf(builder, ",\"value\":%u}", (unsigned)value) != 0) return -1;
+      }
+    }
+  }
   if (json_builder_append(builder, "],\"target_equates\":[") != 0) return -1;
   for (index = 0U; index < policy->target_equate_count && index < M68K_ANALYSIS_TARGET_EQUATE_LIMIT; ++index) {
     const M68kAnalysisTargetEquate *equate = &policy->target_equates[index];
@@ -10983,6 +11003,13 @@ static int append_effective_analysis_policy_json_local(JsonBuilder *builder, con
           (json_builder_append(builder, ",\"symbol\":") != 0 ||
            json_builder_append_json_string(builder, equate->name) != 0))
         return -1;
+    }
+    if (representation->layout_struct_index) {
+      char name[192]; uint32_t value;
+      if (!m68k_analysis_policy_layout_constant(policy, representation->layout_struct_index,
+          representation->layout_field_index, name, sizeof(name), &value) ||
+          json_builder_append(builder, ",\"symbol\":") != 0 ||
+          json_builder_append_json_string(builder, name) != 0) return -1;
     }
     if (json_builder_append(builder, "}") != 0) return -1;
   }

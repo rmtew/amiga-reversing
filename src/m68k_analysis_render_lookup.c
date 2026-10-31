@@ -16282,7 +16282,7 @@ static void render_lookup_materialize_typed_address_target(M68kRenderLookup *loo
     /* Keep the resolved analysis target, but a value EQU does not require a
      * source declaration inside the target's data owner. */
     if (representation == NULL || representation->style_id != M68K_ANALYSIS_REPRESENTATION_STYLE_SYMBOL ||
-        representation->target_equate_index == 0U) {
+        (representation->target_equate_index == 0U && representation->layout_struct_index == 0U)) {
       render_lookup_mark_label(lookup, target_section_index, target_offset);
       render_lookup_mark_label_target_ref(lookup, target_section_index, target_offset);
       render_lookup_mark_label_statement_ref(lookup, target_section_index, target_offset);

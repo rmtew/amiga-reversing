@@ -1681,6 +1681,75 @@ const M68kAnalysisCustomStructField *m68k_analysis_policy_custom_struct_field_at
   return NULL;
 }
 
+int m68k_analysis_custom_struct_layout_fields(const M68kAnalysisCustomStruct *record,
+    uint16_t *indices, size_t capacity) {
+  uint16_t sorted[M68K_ANALYSIS_CUSTOM_STRUCT_FIELD_LIMIT];
+  uint16_t count = 0U, emitted = 0U;
+  uint32_t cursor = 0U;
+  if (!record || !indices || record->field_count > M68K_ANALYSIS_CUSTOM_STRUCT_FIELD_LIMIT ||
+      capacity < record->field_count) return -1;
+  for (uint16_t f = 0U; f < record->field_count; ++f) {
+    uint16_t at = count;
+    while (at && record->fields[f].offset < record->fields[sorted[at - 1U]].offset) {
+      sorted[at] = sorted[at - 1U]; --at;
+    }
+    sorted[at] = f; ++count;
+  }
+  for (uint16_t f = 0U; f < count; ++f) {
+    const M68kAnalysisCustomStructField *field = &record->fields[sorted[f]];
+    if (!field->name[0] || !field->size || field->offset < cursor ||
+        field->offset > record->size || field->size > record->size - field->offset) continue;
+    indices[emitted++] = sorted[f];
+    cursor = field->offset + field->size;
+  }
+  return emitted;
+}
+
+int m68k_analysis_policy_layout_constant(const M68kAnalysisPolicy *policy,
+    uint16_t struct_index, uint16_t field_index, char *name, size_t name_capacity,
+    uint32_t *value) {
+  const M68kAnalysisCustomStruct *record;
+  int length;
+  if (!policy || !policy->custom_structs || !struct_index || struct_index > policy->custom_struct_count ||
+      !name || !name_capacity || !value) return 0;
+  record = &policy->custom_structs[struct_index - 1U];
+  if (!record->name[0] || !record->size) return 0;
+  if (!field_index) {
+    length = snprintf(name, name_capacity, "%s_SIZEOF", record->name);
+    *value = record->size;
+  } else {
+    uint16_t indices[M68K_ANALYSIS_CUSTOM_STRUCT_FIELD_LIMIT];
+    int count = m68k_analysis_custom_struct_layout_fields(record, indices,
+      M68K_ANALYSIS_CUSTOM_STRUCT_FIELD_LIMIT), found = 0;
+    if (count < 0 || field_index > record->field_count) return 0;
+    for (int f = 0; f < count; ++f) if (indices[f] + 1U == field_index) found = 1;
+    if (!found) return 0;
+    length = snprintf(name, name_capacity, "%s_%s", record->name, record->fields[field_index - 1U].name);
+    *value = record->fields[field_index - 1U].offset;
+  }
+  return length > 0 && (size_t)length < name_capacity;
+}
+
+int m68k_analysis_policy_find_layout_constant(const M68kAnalysisPolicy *policy,
+    const char *name, uint16_t *struct_index, uint16_t *field_index, uint32_t *value) {
+  int found = 0;
+  if (!policy || !policy->custom_structs || !name || !struct_index || !field_index || !value ||
+      policy->custom_struct_count > M68K_ANALYSIS_CUSTOM_STRUCT_LIMIT) return 0;
+  for (uint16_t s = 0U; s < policy->custom_struct_count; ++s) {
+    const M68kAnalysisCustomStruct *record = &policy->custom_structs[s];
+    if (record->field_count > M68K_ANALYSIS_CUSTOM_STRUCT_FIELD_LIMIT) return 0;
+    for (uint16_t f = 0U; f <= record->field_count; ++f) {
+      char candidate[sizeof(((M68kOperandIR *)0)->symbol_ref.name)];
+      uint32_t candidate_value;
+      if (!m68k_analysis_policy_layout_constant(policy, (uint16_t)(s + 1U), f,
+          candidate, sizeof(candidate), &candidate_value) || strcmp(candidate, name)) continue;
+      if (found) return -1;
+      *struct_index = (uint16_t)(s + 1U); *field_index = f; *value = candidate_value; found = 1;
+    }
+  }
+  return found;
+}
+
 int m68k_analysis_policy_custom_structs_valid(const M68kAnalysisPolicy *policy) {
   if (!policy || policy->custom_struct_count > M68K_ANALYSIS_CUSTOM_STRUCT_LIMIT ||
       (policy->custom_struct_count && !policy->custom_structs)) return 0;

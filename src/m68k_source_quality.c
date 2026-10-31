@@ -11159,19 +11159,23 @@ static int append_expected_manual_equate_symbol_accesses(M68kSourceAnalysisIR *s
   if (!m68k_analysis_policy_manual_representations_valid(policy)) return -1;
   for (index = 0U; index < policy->manual_representation_count; ++index) {
     const M68kAnalysisManualRepresentation *representation = &policy->manual_representations[index];
-    const M68kAnalysisTargetEquate *equate;
+    const char *name;
+    char layout_name[192]; uint32_t layout_value;
     M68kSectionAnalysisIR *section_analysis;
     if (!representation->has_section_index || !representation->has_operand_index ||
         representation->style_id != M68K_ANALYSIS_REPRESENTATION_STYLE_SYMBOL ||
-        representation->target_equate_index == 0U ||
-        representation->target_equate_index > policy->target_equate_count ||
-        representation->target_equate_index > M68K_ANALYSIS_TARGET_EQUATE_LIMIT) {
-      continue;
+        (!representation->target_equate_index && !representation->layout_struct_index)) continue;
+    if (representation->layout_struct_index) {
+      if (!m68k_analysis_policy_layout_constant(policy, representation->layout_struct_index,
+          representation->layout_field_index, layout_name, sizeof(layout_name), &layout_value)) return -1;
+      name = layout_name;
+    } else {
+      if (representation->target_equate_index > policy->target_equate_count) return -1;
+      name = policy->target_equates[representation->target_equate_index - 1U].name;
     }
-    equate = &policy->target_equates[representation->target_equate_index - 1U];
     section_analysis = source_analysis_section_by_index(source_analysis, representation->section_index);
     if (section_analysis == NULL) continue;
-    if (source_quality_append_expected_equate_symbol_access(section_analysis, equate->name,
+    if (source_quality_append_expected_equate_symbol_access(section_analysis, name,
         representation->offset, representation->operand_index) != 0) {
       return -1;
     }

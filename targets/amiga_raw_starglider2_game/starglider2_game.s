@@ -1489,11 +1489,20 @@ SG2_CONTACT_SKIP_FLAG_BIT	EQU	4
 SG2_CORNER_APPROACH_OFFSET	EQU	3120
 SG2_CORNER_SLOPE_SHIFT	EQU	6
 SG2_DISC_COLOUR_LOW_MASK	EQU	15
+SG2_DISC_COORDINATE_SCALE_SHIFT	EQU	7
 SG2_DISC_MAX_X	EQU	303
 SG2_DISC_MAX_Y	EQU	128
+SG2_DISC_METRIC_ORIGIN	EQU	20000000
 SG2_DISC_MIN_X	EQU	16
 SG2_DISC_MIN_Y	EQU	30
+SG2_DISC_PRIMARY_RADIUS_CAP	EQU	1999
 SG2_DISC_RADIUS_LIMIT	EQU	2000
+SG2_DISC_RADIUS_NUMERATOR_SCALE	EQU	144
+SG2_DISC_ROOT_LONG_PAIR_DBF_LAST	EQU	13
+SG2_DISC_ROOT_LONG_PATH_THRESHOLD	EQU	65536
+SG2_DISC_ROOT_SMALL_WORD_THRESHOLD	EQU	1573
+SG2_DISC_ROOT_WORD_PAIR_DBF_LAST	EQU	7
+SG2_DISC_SORT_DEPTH_SHIFT	EQU	14
 SG2_DISTANT_RETIREMENT_CURSOR_MASK	EQU	31
 SG2_DISTANT_RETIREMENT_TICK_MASK	EQU	255
 SG2_EFFECT_FADE_BYTE_SHIFT	EQU	3
@@ -8218,116 +8227,118 @@ queue_nonmodel_disc_object:
 	move.b #$98,diagnostic_step_byte.l
 	movem.l d0-d7/a0-a6,-(a7)
 	cmpi.w #128,(a4)	; operand 2: SG2ObjectCore_object_type at (a4)
-	beq.w abs_0_00006880
-	move.l #$1312D00,d0
+	beq.w select_same_primary_disc_colours
+	move.l #SG2_DISC_METRIC_ORIGIN,d0
 	move.l d0,d1
 	move.l SG2ObjectCore_world_x(a4),d2
 	move.l SG2ObjectCore_world_z(a4),d3
 	sub.l d0,d2
-	bpl.b abs_0_0000681E
+	bpl.b take_disc_metric_z_magnitude
 	neg.l d2
-abs_0_0000681E:
+take_disc_metric_z_magnitude:
 	sub.l d1,d3
-	bpl.b abs_0_00006824
+	bpl.b form_disc_colour_comparison_metric
 	neg.l d3
-abs_0_00006824:
+    ; Ordinary values form 3*max(|dx|,|dz|)+min(|dx|,|dz|) around the fixed X/Z origin. Keep LONG wrap and N-only comparisons; both-primary selection retains the old direction BYTE.
+form_disc_colour_comparison_metric:
 	move.l d2,d0
 	add.l d3,d0
 	cmp.l d2,d3
-	bpl.b abs_0_00006832
+	bpl.b double_disc_metric_z_term
 	add.l d2,d2
 	move.l d2,d3
-	bra.b abs_0_00006834
-abs_0_00006832:
+	bra.b add_disc_metric_magnitude_sum
+double_disc_metric_z_term:
 	add.l d3,d3
-abs_0_00006834:
+add_disc_metric_magnitude_sum:
 	add.l d0,d3
 	move.l system_center_proximity_metric(a6),d4
 	move.l d4,d2
 	sub.l d3,d4
-	bpl.b abs_0_00006842
+	bpl.b compare_disc_metric_radius_band
 	neg.l d4
-abs_0_00006842:
+compare_disc_metric_radius_band:
 	move.l SG2RadialObject_radius_work_value(a4),d1
 	add.l d1,d1
 	cmp.l d1,d4
-	bmi.b abs_0_00006880
+	bmi.b select_same_primary_disc_colours
 	cmp.l d3,d2
-	bpl.b abs_0_00006868
+	bpl.b select_normal_disc_colour_order
 	st.b disc_offset_direction_flag.l
 	move.l #disc_secondary_colours,disc_primary_colour_cursor(a6)
 	move.l #disc_primary_colours,disc_secondary_colour_cursor(a6)
-	bra.b abs_0_00006890
-abs_0_00006868:
+	bra.b select_primary_radial_disc_colour
+select_normal_disc_colour_order:
 	sf.b disc_offset_direction_flag.l
 	move.l #disc_primary_colours,disc_primary_colour_cursor(a6)
 	move.l #disc_secondary_colours,disc_secondary_colour_cursor(a6)
-	bra.b abs_0_00006890
-abs_0_00006880:
+	bra.b select_primary_radial_disc_colour
+select_same_primary_disc_colours:
 	move.l #disc_primary_colours,disc_primary_colour_cursor(a6)
 	move.l #disc_primary_colours,disc_secondary_colour_cursor(a6)
-abs_0_00006890:
+select_primary_radial_disc_colour:
 	movea.l disc_record_write_cursor(a6),a1
 	cmpi.w #147,(a4)	; operand 2: SG2ObjectCore_object_type at (a4)
 	beq.b select_star_point_colour
 	cmpi.w #146,(a4)	; operand 2: SG2ObjectCore_object_type at (a4)
-	bne.b abs_0_000068BC
+	bne.b test_station_disc_colour_or_table
     ; KNOWN: type A4=Target code-entry register seed:SG2EnergySpheroid
 test_energy_spheroid_colour_mode:
 	tst.b SG2EnergySpheroid_expansion_mode_flag(a4)
-	bpl.b abs_0_000068BC
+	bpl.b test_station_disc_colour_or_table
     ; KNOWN: type A4=Target code-entry register seed:SG2EnergySpheroid
 select_expanding_spheroid_primary_colour:
 	move.b SG2EnergySpheroid_primary_colour_index(a4),d0
 	andi.w #255,d0
-	move.w d0,$0004(a1)
-	bra.b abs_0_000068E2
+	move.w d0,SG2DiscCommand_colour_index(a1)
+	bra.b project_radial_disc_with_positive_depth
     ; KNOWN: type A4=Target code-entry register seed:SG2StarObject
 select_star_point_colour:
-	move.w SG2StarObject_primary_colour_index(a4),$0004(a1)
-	bra.b abs_0_000068E2
-abs_0_000068BC:
+	move.w SG2StarObject_primary_colour_index(a4),SG2DiscCommand_colour_index(a1)
+	bra.b project_radial_disc_with_positive_depth
+test_station_disc_colour_or_table:
 	cmpi.w #144,(a4)	; operand 2: SG2ObjectCore_object_type at (a4)
-	bne.b abs_0_000068D0
+	bne.b index_primary_disc_colour_table
 	move.w station_proximity_disc_colour_index(a6),d0
-	beq.w abs_0_00006AF6
-	move.w d0,$0004(a1)
-	bra.b abs_0_000068E2
-abs_0_000068D0:
+	beq.w mark_radial_projection_rejected
+	move.w d0,SG2DiscCommand_colour_index(a1)
+	bra.b project_radial_disc_with_positive_depth
+index_primary_disc_colour_table:
 	movea.l disc_primary_colour_cursor(a6),a2
 	move.w (a4),d0	; operand 1: SG2ObjectCore_object_type at (a4)
 	subi.w #128,d0
 	add.w d0,d0
-	move.w $0(a2,d0.w),$0004(a1)
-abs_0_000068E2:
+	move.w $0(a2,d0.w),SG2DiscCommand_colour_index(a1)
+    ; Positive depth is required before projection. Sort depth uses the object shift then arithmetic >>14; screen coordinates use signed (relative*128)/depth. Their origins are added afterward.
+project_radial_disc_with_positive_depth:
 	move.w SG2ObjectCore_relative_z(a4),d3
-	bmi.w abs_0_00006AF6
-	beq.w abs_0_00006AF6
+	bmi.w mark_radial_projection_rejected
+	beq.w mark_radial_projection_rejected
 	move.w SG2ObjectCore_relative_x(a4),d1
 	move.w SG2ObjectCore_relative_y(a4),d2
 	move.w SG2ObjectCore_relative_z(a4),d4
 	ext.l d4
 	move.w SG2RadialObject_projection_radius_shift(a4),d6
 	asl.l d6,d4
-	move.w #$E,d5
+	move.w #SG2_DISC_SORT_DEPTH_SHIFT,d5
 	asr.l d5,d4
-	move.w d4,$0000(a1)
+	move.w d4,SG2DiscCommand_sort_depth.w(a1)
 	ext.l d1
 	ext.l d2
-	asl.l #7,d1
-	asl.l #7,d2
+	asl.l #SG2_DISC_COORDINATE_SCALE_SHIFT,d1
+	asl.l #SG2_DISC_COORDINATE_SCALE_SHIFT,d2
 	tst.w d3
-	bmi.b abs_0_00006926
-	beq.b abs_0_00006926
+	bmi.b add_radial_disc_screen_origin
+	beq.b add_radial_disc_screen_origin
 	divs.w d3,d1
 	divs.w d3,d2
 	move.w d1,SG2RadialObject_projected_screen_x(a4)
 	move.w d2,SG2RadialObject_projected_screen_y(a4)
-abs_0_00006926:
+add_radial_disc_screen_origin:
 	add.w projection_screen_origin_x(a6),d1
 	add.w projection_screen_origin_y(a6),d2
-	move.w d1,$0006(a1)
-	move.w d2,$0008(a1)
+	move.w d1,SG2DiscCommand_centre_x(a1)
+	move.w d2,SG2DiscCommand_centre_y(a1)
 	move.w SG2ObjectCore_relative_x(a4),d0
 	muls.w d0,d0
 	move.w SG2ObjectCore_relative_y(a4),d1
@@ -8336,79 +8347,82 @@ abs_0_00006926:
 	muls.w d2,d2
 	add.l d2,d0
 	add.l d1,d0
-	bsr.w abs_0_00006B32
+	bsr.w compute_radial_norm_root_word
+    ; MULS uses only the signed low WORD of base_radius, times 144; DIVS uses the root low WORD. Defined zero becomes 1 except type146 rejects it. Only the first record is capped to1999.
 	move.l SG2RadialObject_base_radius(a4),d4
-	muls.w #$90,d4
+	muls.w #SG2_DISC_RADIUS_NUMERATOR_SCALE,d4
 	divs.w d0,d4
-	bmi.w abs_0_00006AF6
+	bmi.w mark_radial_projection_rejected
 	cmpi.w #146,(a4)	; operand 2: SG2ObjectCore_object_type at (a4)
-	bne.b abs_0_0000696C
+	bne.b coerce_ordinary_zero_disc_radius
 	tst.w d4
-	beq.w abs_0_00006AF6
-	bra.b abs_0_00006974
-abs_0_0000696C:
+	beq.w mark_radial_projection_rejected
+	bra.b store_full_radial_object_radius
+coerce_ordinary_zero_disc_radius:
 	tst.w d4
-	bne.b abs_0_00006974
+	bne.b store_full_radial_object_radius
 	move.w #$1,d4
-abs_0_00006974:
+store_full_radial_object_radius:
 	move.w d4,SG2RadialObject_projected_radius(a4)
 	move.b #$68,diagnostic_step_byte.l
-	move.w d4,$0002(a1)
-	beq.w abs_0_00006AF6
-	cmp.w #$7CF,d4
-	bmi.b abs_0_00006994
-	move.w #$7CF,$0002(a1)
-abs_0_00006994:
+	move.w d4,SG2DiscCommand_radius(a1)
+	beq.w mark_radial_projection_rejected
+	cmp.w #SG2_DISC_PRIMARY_RADIUS_CAP,d4
+	bmi.b append_primary_disc_and_choose_layers
+	move.w #SG2_DISC_PRIMARY_RADIUS_CAP,SG2DiscCommand_radius(a1)
+append_primary_disc_and_choose_layers:
 	bsr.w append_disc_queue_reference
 	tst.b space_environment_flag(a6)
-	bmi.b abs_0_000069BA
+	bmi.b select_radial_disc_layer_family
 	cmpi.w #145,(a4)	; operand 2: SG2ObjectCore_object_type at (a4)
-	bne.b abs_0_000069BA
+	bne.b select_radial_disc_layer_family
 	tst.w station_proximity_colour_ramp_step(a6)
-	bne.w abs_0_00006AE0
+	bne.w mark_radial_projection_accepted
 	tst.b atmosphere_detected_flag(a6)
-	bmi.w abs_0_00006AE0
+	bmi.w mark_radial_projection_accepted
 	move.w #$1,d7
-	bra.b abs_0_000069D2
-abs_0_000069BA:
+	bra.b append_radial_disc_outer_colour_layer
+select_radial_disc_layer_family:
 	cmpi.w #147,(a4)	; operand 2: SG2ObjectCore_object_type at (a4)
-	beq.w abs_0_00006AE0
+	beq.w mark_radial_projection_accepted
 	cmpi.w #128,(a4)	; operand 2: SG2ObjectCore_object_type at (a4)
-	bne.b abs_0_00006A30
+	bne.b build_offset_secondary_radial_disc
 	move.w (a1),d0
 	move.w type128_disc_outer_layer_index(a6),d7
-	bmi.w abs_0_00006AE0
-abs_0_000069D2:
+	bmi.w mark_radial_projection_accepted
+    ; Type145 ground layers keep the root result as depth base; type128 reloads primary record depth. Layer radii wrap as WORDs. Index4 reads the flags following the four stored layer colours.
+append_radial_disc_outer_colour_layer:
 	movea.l disc_record_write_cursor(a6),a1
 	move.w d0,d1
 	addi.w #1,d1
 	add.w d7,d1
 	cmp.w #$1,d7
-	ble.b abs_0_000069EA
+	ble.b derive_shallow_disc_layer_sort_depth
 	move.w #$7FFF,(a1)
-	bra.b abs_0_000069EC
-abs_0_000069EA:
+	bra.b derive_disc_layer_radius_and_position
+derive_shallow_disc_layer_sort_depth:
 	move.w d1,(a1)
-abs_0_000069EC:
+derive_disc_layer_radius_and_position:
 	move.w SG2RadialObject_projected_radius(a4),d3
 	move.w d7,d6
 	addi.w #1,d6
 	add.w d6,d3
-	move.w d3,$0002(a1)
+	move.w d3,SG2DiscCommand_radius(a1)
 	move.w SG2RadialObject_projected_screen_x(a4),d1
 	move.w SG2RadialObject_projected_screen_y(a4),d2
 	add.w projection_screen_origin_x(a6),d1
 	add.w projection_screen_origin_y(a6),d2
-	move.w d1,$0006(a1)
-	move.w d2,$0008(a1)
+	move.w d1,SG2DiscCommand_centre_x(a1)
+	move.w d2,SG2DiscCommand_centre_y(a1)
 	lea.l disc_layer_colours.l,a3
 	move.w d7,d6
 	add.w d6,d6
-	move.w $0(a3,d6.w),$0004(a1)
+	move.w $0(a3,d6.w),SG2DiscCommand_colour_index(a1)
 	bsr.w append_disc_queue_reference
-	dbf.w d7,abs_0_000069D2
-	bra.w abs_0_00006AE0
-abs_0_00006A30:
+	dbf.w d7,append_radial_disc_outer_colour_layer
+	bra.w mark_radial_projection_accepted
+    ; Secondary offsets use ASR.W(radius,3), signed multiply by projected X/Y, then ASR.L by7. Negate only for a nonnegative direction BYTE; add low-WORD deltas to origin-adjusted centres.
+build_offset_secondary_radial_disc:
 	move.w (a1),d0
 	movea.l disc_record_write_cursor(a6),a1
 	move.w d0,d1
@@ -8417,15 +8431,15 @@ abs_0_00006A30:
 	move.w SG2RadialObject_projected_radius(a4),d3
 	cmpi.w #146,(a4)	; operand 2: SG2ObjectCore_object_type at (a4)
 	beq.b append_energy_spheroid_outer_disc
-	move.w d3,$0002(a1)
+	move.w d3,SG2DiscCommand_radius(a1)
 	move.w SG2RadialObject_projected_screen_x(a4),d1
 	asr.w #3,d3
 	muls.w d1,d3
 	asr.l #7,d3
 	tst.b disc_offset_direction_flag.l
-	bmi.b abs_0_00006A60
+	bmi.b add_secondary_disc_x_offset
 	neg.l d3
-abs_0_00006A60:
+add_secondary_disc_x_offset:
 	add.w projection_screen_origin_x(a6),d1
 	add.w d3,d1
 	move.w SG2RadialObject_projected_radius(a4),d3
@@ -8434,90 +8448,93 @@ abs_0_00006A60:
 	muls.w d2,d3
 	asr.l #7,d3
 	tst.b disc_offset_direction_flag.l
-	bmi.b abs_0_00006A7E
+	bmi.b add_secondary_disc_y_offset
 	neg.l d3
-abs_0_00006A7E:
+add_secondary_disc_y_offset:
 	add.w projection_screen_origin_y(a6),d2
 	add.w d3,d2
-	move.w d1,$0006(a1)
-	move.w d2,$0008(a1)
+	move.w d1,SG2DiscCommand_centre_x(a1)
+	move.w d2,SG2DiscCommand_centre_y(a1)
 	movea.l disc_secondary_colour_cursor(a6),a3
 	move.w (a4),d1	; operand 1: SG2ObjectCore_object_type at (a4)
 	subi.w #128,d1
 	add.w d1,d1
-	move.w $0(a3,d1.w),$0004(a1)
+	move.w $0(a3,d1.w),SG2DiscCommand_colour_index(a1)
 	bsr.w append_disc_queue_reference
-	bra.b abs_0_00006AE0
+	bra.b mark_radial_projection_accepted
+    ; Double the spheroid outer radius as a WORD. Direct-stage $8000 becomes zero; defined primary quotients reject that signed value. Normal-game reachability remains separate.
     ; KNOWN: type A4=Target code-entry register seed:SG2EnergySpheroid
 append_energy_spheroid_outer_disc:
 	add.w d3,d3
-	move.w d3,$0002(a1)
+	move.w d3,SG2DiscCommand_radius(a1)
 	tst.b SG2EnergySpheroid_expansion_mode_flag(a4)
-	bmi.b abs_0_00006AB8
-	move.w #$B,$0004(a1)
-	bra.b abs_0_00006AC4
-abs_0_00006AB8:
+	bmi.b load_expanding_spheroid_secondary_colour
+	move.w #$B,SG2DiscCommand_colour_index(a1)
+	bra.b center_spheroid_outer_disc_record
+load_expanding_spheroid_secondary_colour:
 	move.b SG2EnergySpheroid_secondary_colour_index(a4),d0
 	andi.w #255,d0
-	move.w d0,$0004(a1)
-abs_0_00006AC4:
+	move.w d0,SG2DiscCommand_colour_index(a1)
+center_spheroid_outer_disc_record:
 	move.w SG2RadialObject_projected_screen_x(a4),d1
 	add.w projection_screen_origin_x(a6),d1
 	move.w SG2RadialObject_projected_screen_y(a4),d2
 	add.w projection_screen_origin_y(a6),d2
-	move.w d1,$0006(a1)
-	move.w d2,$0008(a1)
+	move.w d1,SG2DiscCommand_centre_x(a1)
+	move.w d2,SG2DiscCommand_centre_y(a1)
 	bsr.w append_disc_queue_reference
     ; Projection accepted: clear this original type-128 flag. This does not prove the disc was linked or drawn after the queue guard.
-abs_0_00006AE0:
+mark_radial_projection_accepted:
 	move.w (a4),d0	; operand 1: SG2ObjectCore_object_type at (a4)
 	subi.w #128,d0
 	lea.l nonmodel_projection_rejected_flags.l,a0
 	sf.b $0(a0,d0.w)
 	movem.l (a7)+,d0-d7/a0-a6
 	rts
-abs_0_00006AF6:
+mark_radial_projection_rejected:
 	move.w (a4),d0	; operand 1: SG2ObjectCore_object_type at (a4)
 	subi.w #128,d0
 	lea.l nonmodel_projection_rejected_flags.l,a0
 	st.b $0(a0,d0.w)
 	movem.l (a7)+,d0-d7/a0-a6
 	rts
-    ; Attempt count increments before signed CMP94/BPL. First 93 references link; the next record is unlinked scratch. Preserve original count-wrap/input assumptions.
+    ; Increment the attempt WORD before the N-only comparison with94. Refused links retain cursors, so later layers overwrite the same scratch record. Acceptance still clears the projection flag.
 append_disc_queue_reference:
 	addq.w #1,disc_queue_attempt_count(a6)
 	cmpi.w #94,disc_queue_attempt_count(a6)
-	bpl.b abs_0_00006B30
+	bpl.b return_after_disc_queue_link_attempt
 	movea.l disc_reference_write_cursor(a6),a2
 	move.l disc_record_write_cursor(a6),(a2)
-	addi.l #10,disc_record_write_cursor(a6)
+	addi.l #SG2DiscCommand_SIZEOF,disc_record_write_cursor(a6)
 	addi.l #4,disc_reference_write_cursor(a6)
-abs_0_00006B30:
+return_after_disc_queue_link_attempt:
 	rts
-abs_0_00006B32:
+    ; LONG values strictly above $10000 use the wide path; otherwise only the low WORD selects small work. Exactly $10000 returns D0=$10000, whose zero low WORD reaches the caller DIVS operand.
+compute_radial_norm_root_word:
 	tst.l d0
-	beq.b abs_0_00006B56
-	cmp.l #$10000,d0
-	bhi.b abs_0_00006B88
-	cmp.w #$625,d0
-	bhi.b abs_0_00006B58
+	beq.b return_small_radial_root_word
+	cmp.l #SG2_DISC_ROOT_LONG_PATH_THRESHOLD,d0
+	bhi.b compute_long_radial_root_pairs
+	cmp.w #SG2_DISC_ROOT_SMALL_WORD_THRESHOLD,d0
+	bhi.b compute_word_radial_root_pairs
 	move.w d1,-(a7)
 	move.w #$FFFF,d1
-abs_0_00006B4A:
+subtract_next_odd_disc_root_term:
 	addq.w #2,d1
 	sub.w d1,d0
-	bpl.b abs_0_00006B4A
+	bpl.b subtract_next_odd_disc_root_term
 	asr.w #1,d1
 	move.w d1,d0
 	move.w (a7)+,d1
-abs_0_00006B56:
+return_small_radial_root_word:
 	rts
-abs_0_00006B58:
+    ; Eight WORD bit-pair iterations restore D1-D4 with MOVEM.W, sign-extending saved low WORDs rather than preserving high halves. The wide path saves/restores full LONG registers.
+compute_word_radial_root_pairs:
 	movem.w d1-d4,-(a7)
-	move.w #$7,d4
+	move.w #SG2_DISC_ROOT_WORD_PAIR_DBF_LAST,d4
 	clr.w d1
 	clr.w d2
-abs_0_00006B64:
+consume_next_word_radial_root_pair:
 	add.w d0,d0
 	addx.w d1,d1
 	add.w d0,d0
@@ -8526,21 +8543,21 @@ abs_0_00006B64:
 	move.w d2,d3
 	add.w d3,d3
 	cmp.w d3,d1
-	bls.b abs_0_00006B7C
+	bls.b advance_word_radial_root_pair_loop
 	addq.w #1,d2
 	addq.w #1,d3
 	sub.w d3,d1
-abs_0_00006B7C:
-	dbf.w d4,abs_0_00006B64
+advance_word_radial_root_pair_loop:
+	dbf.w d4,consume_next_word_radial_root_pair
 	move.w d2,d0
 	movem.w (a7)+,d1-d4
 	rts
-abs_0_00006B88:
+compute_long_radial_root_pairs:
 	movem.l d1-d4,-(a7)
-	moveq.l #13,d4
+	moveq.l #SG2_DISC_ROOT_LONG_PAIR_DBF_LAST,d4
 	moveq.l #0,d1
 	moveq.l #0,d2
-abs_0_00006B92:
+consume_next_long_radial_root_pair:
 	add.l d0,d0
 	addx.w d1,d1
 	add.l d0,d0
@@ -8549,12 +8566,12 @@ abs_0_00006B92:
 	move.w d2,d3
 	add.w d3,d3
 	cmp.w d3,d1
-	bls.b abs_0_00006BAA
+	bls.b advance_long_radial_root_pair_loop
 	addq.w #1,d2
 	addq.w #1,d3
 	sub.w d3,d1
-abs_0_00006BAA:
-	dbf.w d4,abs_0_00006B92
+advance_long_radial_root_pair_loop:
+	dbf.w d4,consume_next_long_radial_root_pair
 	add.l d0,d0
 	addx.w d1,d1
 	add.l d0,d0
@@ -8563,11 +8580,11 @@ abs_0_00006BAA:
 	move.l d2,d3
 	add.w d3,d3
 	cmp.l d3,d1
-	bls.b abs_0_00006BC6
+	bls.b consume_final_radial_root_pair
 	addq.w #1,d2
 	addq.w #1,d3
 	sub.l d3,d1
-abs_0_00006BC6:
+consume_final_radial_root_pair:
 	add.l d0,d0
 	addx.l d1,d1
 	add.l d0,d0
@@ -8576,9 +8593,9 @@ abs_0_00006BC6:
 	move.l d2,d3
 	add.l d3,d3
 	cmp.l d3,d1
-	bls.b abs_0_00006BDA
+	bls.b return_long_radial_root_with_full_registers
 	addq.w #1,d2
-abs_0_00006BDA:
+return_long_radial_root_with_full_registers:
 	move.w d2,d0
 	movem.l (a7)+,d1-d4
 	rts

@@ -29,7 +29,7 @@
 
 
 static const char *manual_representation_symbol_name(const M68kRenderLookup *lookup,
-    const M68kAnalysisManualRepresentation *representation);
+    const M68kAnalysisManualRepresentation *representation, char *buffer, size_t capacity);
 static void render_asm_dc_symbol_expr(M68kRenderIRPreview *preview, uint32_t size, const char *expr,
     const char *comment);
 static void render_lookup_set_label(M68kRenderLookup *lookup, size_t section_index, uint32_t offset);
@@ -1107,16 +1107,11 @@ static int render_asm_declare_custom_struct_layouts(M68kRenderIRPreview *preview
     hash_asm_text(preview, custom_struct->name);
     hash_asm_text(preview, "\n    RSRESET\n");
     preview->asm_source_lines += 2U;
-    for (field_index = 0U; field_index < custom_struct->field_count &&
-         field_index < M68K_ANALYSIS_CUSTOM_STRUCT_FIELD_LIMIT; ++field_index) {
-      uint16_t insert_index = sorted_field_count;
-      while (insert_index > 0U &&
-          custom_struct->fields[field_index].offset < custom_struct->fields[sorted_field_indices[insert_index - 1U]].offset) {
-        sorted_field_indices[insert_index] = sorted_field_indices[insert_index - 1U];
-        --insert_index;
-      }
-      sorted_field_indices[insert_index] = field_index;
-      ++sorted_field_count;
+    {
+      int count = m68k_analysis_custom_struct_layout_fields(custom_struct, sorted_field_indices,
+        M68K_ANALYSIS_CUSTOM_STRUCT_FIELD_LIMIT);
+      if (count < 0) return 0;
+      sorted_field_count = (uint16_t)count;
     }
     for (field_index = 0U; field_index < sorted_field_count; ++field_index) {
       const M68kAnalysisCustomStructField *field = &custom_struct->fields[sorted_field_indices[field_index]];
@@ -2838,7 +2833,8 @@ static void render_asm_manual_representation_dc_b(M68kRenderIRPreview *preview,
   (void)accepted_start;
   if (preview == NULL || data == NULL || size == 0U) return;
   if (style_id == M68K_ANALYSIS_REPRESENTATION_STYLE_SYMBOL && (size == 1U || size == 2U || size == 4U)) {
-    const char *symbol_name = manual_representation_symbol_name(lookup, representation);
+    char symbol_buffer[192];
+    const char *symbol_name = manual_representation_symbol_name(lookup, representation, symbol_buffer, sizeof(symbol_buffer));
     if (symbol_name != NULL && asm_symbol_name_is_safe_local(symbol_name)) {
       render_asm_dc_symbol_expr(preview, size, symbol_name, comment);
       return;
@@ -2923,13 +2919,14 @@ static int render_asm_manual_symbol_representation(M68kRenderIRPreview *preview,
     size_t section_index, uint32_t offset, uint32_t size, const char *comment) {
   const M68kAnalysisManualRepresentation *representation;
   const char *symbol_name;
+  char symbol_buffer[192];
   if (size != 1U && size != 2U && size != 4U) return 0;
   representation = lookup_manual_representation_at(lookup, section_index, offset);
   if (representation == NULL || representation->size != size ||
       representation->style_id != M68K_ANALYSIS_REPRESENTATION_STYLE_SYMBOL) {
     return 0;
   }
-  symbol_name = manual_representation_symbol_name(lookup, representation);
+  symbol_name = manual_representation_symbol_name(lookup, representation, symbol_buffer, sizeof(symbol_buffer));
   {
     const M68kRenderPlannedExpression *expression = m68k_render_plan_find_expression(
       &preview->asm_source_plan, (uint32_t)section_index, offset, UINT32_MAX,
@@ -5860,16 +5857,36 @@ static int attach_amiga_hardware_register_symbols(const M68kRenderPlatformState 
 }
 
 static const char *manual_representation_symbol_name(const M68kRenderLookup *lookup,
-    const M68kAnalysisManualRepresentation *representation) {
+    const M68kAnalysisManualRepresentation *representation, char *buffer, size_t capacity) {
   const M68kAnalysisPolicy *policy;
+  uint32_t layout_value;
   if (representation == NULL) return NULL;
   if (representation->symbol_id != 0U) return amiga_os_name(M68K_PLATFORM_NAME_SYMBOL, representation->symbol_id);
-  if (lookup == NULL || lookup->policy == NULL || representation->target_equate_index == 0U) return NULL;
+  if (lookup == NULL || lookup->policy == NULL) return NULL;
   policy = lookup->policy;
+  if (representation->layout_struct_index)
+    return m68k_analysis_policy_layout_constant(policy, representation->layout_struct_index,
+      representation->layout_field_index, buffer, capacity, &layout_value) ? buffer : NULL;
+  if (!representation->target_equate_index) return NULL;
   if (representation->target_equate_index > policy->target_equate_count ||
       representation->target_equate_index > M68K_ANALYSIS_TARGET_EQUATE_LIMIT)
     return NULL;
   return policy->target_equates[representation->target_equate_index - 1U].name;
+}
+
+static int manual_representation_scalar_value(const M68kAnalysisPolicy *policy,
+    const M68kAnalysisManualRepresentation *representation, int64_t *value) {
+  char name[192];
+  uint32_t layout_value;
+  if (!policy || !representation || !value) return 0;
+  if (representation->layout_struct_index) {
+    if (!m68k_analysis_policy_layout_constant(policy, representation->layout_struct_index,
+        representation->layout_field_index, name, sizeof(name), &layout_value)) return 0;
+    *value = layout_value; return 1;
+  }
+  if (!representation->target_equate_index || representation->target_equate_index > policy->target_equate_count)
+    return 0;
+  *value = policy->target_equates[representation->target_equate_index - 1U].value; return 1;
 }
 
 static int apply_manual_operand_representations(const M68kRenderLookup *lookup, size_t section_index,
@@ -5889,15 +5906,13 @@ static int apply_manual_operand_representations(const M68kRenderLookup *lookup, 
     int is_absolute = operand_absolute_offset_local(operand, &value);
     int manual_displacement_symbol;
     representation = lookup_manual_operand_representation(lookup, section_index, offset, operand_index);
+    int64_t scalar_value = 0;
+    int has_scalar = manual_representation_scalar_value(lookup ? lookup->policy : NULL, representation, &scalar_value);
     manual_displacement_symbol = representation != NULL &&
-      representation->style_id == M68K_ANALYSIS_REPRESENTATION_STYLE_SYMBOL &&
-      lookup != NULL && lookup->policy != NULL && representation->target_equate_index != 0U &&
-      representation->target_equate_index <= lookup->policy->target_equate_count &&
+      representation->style_id == M68K_ANALYSIS_REPRESENTATION_STYLE_SYMBOL && has_scalar &&
       ((is_base_displacement && m68k_instruction_operand_decoded_ea_shape(operand) ==
-          M68K_SIM_EA_SHAPE_DISPLACEMENT &&
-        lookup->policy->target_equates[representation->target_equate_index - 1U].value == displacement) ||
-       (is_indexed_displacement &&
-        lookup->policy->target_equates[representation->target_equate_index - 1U].value == indexed_displacement));
+          M68K_SIM_EA_SHAPE_DISPLACEMENT && scalar_value == displacement) ||
+       (is_indexed_displacement && scalar_value == indexed_displacement));
     if (representation != NULL && representation->style_id == M68K_ANALYSIS_REPRESENTATION_STYLE_HARDWARE_OFFSET) {
       char field[96];
       const char *symbol;
@@ -5946,20 +5961,14 @@ static int apply_manual_operand_representations(const M68kRenderLookup *lookup, 
     representation = lookup_manual_operand_representation(lookup, section_index, offset, operand_index);
     if (representation == NULL) continue;
     if (representation->style_id == M68K_ANALYSIS_REPRESENTATION_STYLE_SYMBOL) {
-      const char *symbol_name = manual_representation_symbol_name(lookup, representation);
+      char symbol_buffer[192];
+      const char *symbol_name = manual_representation_symbol_name(lookup, representation, symbol_buffer, sizeof(symbol_buffer));
       if (symbol_name == NULL || !asm_symbol_name_is_safe_local(symbol_name)) continue;
-      if (is_indexed_displacement && (lookup == NULL || lookup->policy == NULL ||
-          representation->target_equate_index == 0U ||
-          representation->target_equate_index > lookup->policy->target_equate_count ||
-          lookup->policy->target_equates[representation->target_equate_index - 1U].value != indexed_displacement)) return -1;
+      if (is_indexed_displacement && (!has_scalar || scalar_value != indexed_displacement)) return -1;
       if (is_base_displacement && (m68k_instruction_operand_decoded_ea_shape(operand) != M68K_SIM_EA_SHAPE_DISPLACEMENT ||
-          lookup == NULL || lookup->policy == NULL || representation->target_equate_index == 0U ||
-          representation->target_equate_index > lookup->policy->target_equate_count ||
-          lookup->policy->target_equates[representation->target_equate_index - 1U].value != displacement)) return -1;
-      if (is_absolute && (lookup == NULL || lookup->policy == NULL ||
-          representation->target_equate_index == 0U ||
-          representation->target_equate_index > lookup->policy->target_equate_count ||
-          lookup->policy->target_equates[representation->target_equate_index - 1U].value != (int64_t)value)) continue;
+          !has_scalar || scalar_value != displacement)) return -1;
+      if (is_absolute && (!has_scalar || scalar_value != (int64_t)value)) continue;
+      if (is_immediate && representation->layout_struct_index && scalar_value != (int64_t)value) return -1;
       m68k_ir_symbol_ref_init(&operand->symbol_ref);
       operand->symbol_ref.has_name = 1U;
       operand->symbol_ref.name_is_generated = 0U;
@@ -8217,7 +8226,7 @@ static int runtime_address_ref_operand_can_render_materialized_label(const M68kR
   representation = lookup_manual_operand_representation(lookup, fact->section_index,
     fact->offset, fact->reason);
   if (representation != NULL && representation->style_id == M68K_ANALYSIS_REPRESENTATION_STYLE_SYMBOL &&
-      representation->target_equate_index != 0U) return 0;
+      (representation->target_equate_index != 0U || representation->layout_struct_index != 0U)) return 0;
   return !amiga_abs_exec_base_load_should_stay_absolute(lookup, &instruction, fact->reason, operand, fact);
 }
 
@@ -10755,7 +10764,7 @@ static void attach_planned_address_value_source_symbols(const M68kRenderLookup *
       /* A value EQU does not consume this automatic source label. Do not leave
        * an unused interior label behind when the final presentation replaces it. */
       if (representation != NULL && representation->style_id == M68K_ANALYSIS_REPRESENTATION_STYLE_SYMBOL &&
-          representation->target_equate_index != 0U) continue;
+          (representation->target_equate_index != 0U || representation->layout_struct_index != 0U)) continue;
       attach_operand_label_symbol(lookup, instruction, fact->producer_operand_index, section->section_index,
         candidate->offset, fact->target_section_index, fact->target_offset);
     }
@@ -11926,7 +11935,7 @@ static int plan_rendered_instruction_symbol_accesses(M68kRenderIRPreview *previe
     representation = lookup_manual_operand_representation(lookup, section_index, candidate->offset, operand_index);
     if (access.access_kind != M68K_RENDERED_SYMBOL_ACCESS_EQUATE && representation != NULL &&
         representation->style_id == M68K_ANALYSIS_REPRESENTATION_STYLE_SYMBOL &&
-        representation->target_equate_index != 0U) {
+        (representation->target_equate_index != 0U || representation->layout_struct_index != 0U)) {
       access.access_kind = M68K_RENDERED_SYMBOL_ACCESS_EQUATE;
     }
     /* An EQU is a value identity, not a source-address assertion. In

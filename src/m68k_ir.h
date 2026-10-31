@@ -696,6 +696,10 @@ typedef struct M68kAnalysisManualRepresentation {
   uint8_t operand_index;
   uint16_t symbol_id;
   uint16_t target_equate_index;
+  /* One-based canonical custom-layout identity; field zero means SIZEOF.
+   * These are scalar declarations, never register/pointee evidence. */
+  uint16_t layout_struct_index;
+  uint16_t layout_field_index;
   uint8_t has_source_symbol;
   uint8_t source_symbol_runtime_view;
   /* The representation style tags these alternative identities. A hardware
@@ -3049,6 +3053,14 @@ int m68k_analysis_policy_entry_comments_valid(const M68kAnalysisPolicy *policy);
 int m68k_analysis_policy_named_labels_valid(const M68kAnalysisPolicy *policy);
 int m68k_analysis_policy_rsset_layout_regions_valid(const M68kAnalysisPolicy *policy);
 int m68k_analysis_policy_custom_structs_valid(const M68kAnalysisPolicy *policy);
+int m68k_analysis_custom_struct_layout_fields(const M68kAnalysisCustomStruct *record,
+    uint16_t *indices, size_t capacity);
+int m68k_analysis_policy_layout_constant(const M68kAnalysisPolicy *policy,
+    uint16_t struct_index, uint16_t field_index, char *name, size_t name_capacity,
+    uint32_t *value);
+/* 1 unique emitted declaration, 0 absent, -1 ambiguous. */
+int m68k_analysis_policy_find_layout_constant(const M68kAnalysisPolicy *policy,
+    const char *name, uint16_t *struct_index, uint16_t *field_index, uint32_t *value);
 const M68kAnalysisCustomStruct *m68k_analysis_policy_custom_struct_parent(
     const M68kAnalysisPolicy *policy, const M68kAnalysisCustomStruct *record);
 const M68kAnalysisCustomStructField *m68k_analysis_policy_custom_struct_field_at(
