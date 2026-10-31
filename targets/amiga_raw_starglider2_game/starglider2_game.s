@@ -1598,6 +1598,10 @@ SG2_PSG_PROJECTILE_VOLUME_REGISTER	EQU	8
 SG2_PSG_TYPES1_15_DECAY_PHASE_MASK	EQU	7
 SG2_RADIAL_FIRST_SHIFT_THRESHOLD	EQU	524288
 SG2_RADIAL_SHIFT_DBF_LAST	EQU	9
+SG2_ROTATION2_DAMAGE_JITTER_BIAS	EQU	32
+SG2_ROTATION2_DAMAGE_JITTER_MASK	EQU	62
+SG2_ROTATION2_SPIN_PHASE_STEP	EQU	64
+SG2_ROTATION2_SPIN_START_STEPS	EQU	64
 SG2_SAVE_CHUNK_BYTES	EQU	$1400
 SG2_SAVE_CHUNK_DBF_LAST	EQU	$4FF
 SG2_SAVE_DIRECTORY_COPY_DBF_LAST	EQU	127
@@ -2143,8 +2147,10 @@ abs_0_00001466:
 	move.w d0,icarus_shield_strength(a6)
 	movem.l d0-d7/a0-a5,-(a7)
 	bsr.w advance_shared_random_state
-	andi.w #62,d0
-	subi.w #32,d0
+    ; These three direct jitter writers mask 62 then subtract 32: even addends -32..30. Reset stores zero. This is not an all-writer/alias proof that the runtime impulse stays even.
+add_environment_rotation2_jitter:
+	andi.w #SG2_ROTATION2_DAMAGE_JITTER_MASK,d0
+	subi.w #SG2_ROTATION2_DAMAGE_JITTER_BIAS,d0
 	add.w d0,player_rotation2_damage_impulse(a6)
 	movem.l (a7)+,d0-d7/a0-a5
 abs_0_000014B2:
@@ -2162,8 +2168,9 @@ abs_0_000014B6:
 	bne.b abs_0_000014F0
 	move.l d0,-(a7)
 	bsr.w advance_shared_random_state
-	andi.w #62,d0
-	subi.w #32,d0
+add_contact_rotation2_jitter:
+	andi.w #SG2_ROTATION2_DAMAGE_JITTER_MASK,d0
+	subi.w #SG2_ROTATION2_DAMAGE_JITTER_BIAS,d0
 	add.w d0,player_rotation2_damage_impulse(a6)
 	move.l (a7)+,d0
 abs_0_000014F0:
@@ -11175,8 +11182,9 @@ abs_0_00008E02:
 	bpl.b abs_0_00008E34
 	clr.b SG2ObjectCore_retirement_phase_or_negative(a0)
 	bsr.w advance_shared_random_state
-	andi.w #62,d0
-	subi.w #32,d0
+add_mine_rotation2_jitter:
+	andi.w #SG2_ROTATION2_DAMAGE_JITTER_MASK,d0
+	subi.w #SG2_ROTATION2_DAMAGE_JITTER_BIAS,d0
 	add.w d0,player_rotation2_damage_impulse(a6)
 	move.w icarus_shield_strength(a6),d0
 	subi.w #1500,d0
@@ -38976,9 +38984,10 @@ transform_vector_by_view_matrix_bridge_02e696:
     ; Smooth speed toward its requested value, build the original motion vector, and update flight orientation/control state. Settling and forced-view modes retain their original branches.
 update_player_flight_controls:
 	tst.b player_ejection_active_flag.l
-	bpl.b abs_0_0002F6A6
+	bpl.b select_player_control_continuation
 	rts
-abs_0_0002F6A6:
+    ; After the ejection sign gate: nonnegative free-flight flag selects settling; otherwise nonzero contact pose wins, then nonnegative spin WORD. Only negative spin reaches normal controls.
+select_player_control_continuation:
 	tst.b free_flight_controls_enabled_flag(a6)
 	bpl.w settle_player_flight_controls_continuation
 	tst.b structure_contact_pose_mode(a6)
@@ -39097,7 +39106,7 @@ publish_player_speed_target:
     ; Docking skips heading drift and height correction. Otherwise sine scratch shifts by 8, or 6 in space; heading wraps to 4095. Height guard uses original subtraction N, not N xor V.
 update_heading_and_pitch_height_correction:
 	tst.b docking_control_override_flag(a6)
-	bne.b abs_0_0002F82E
+	bne.b apply_rotation2_damage_impulse
 	move.w trig_sine_scratch_2(a6),d1
 	tst.b space_environment_flag(a6)
 	bmi.b derive_space_heading_drift
@@ -39109,31 +39118,33 @@ add_wrapped_player_heading_drift:
 	add.w d1,player_rotation_1(a6)
 	andi.w #4095,player_rotation_1(a6)
 	tst.b space_environment_flag(a6)
-	bmi.b abs_0_0002F82E
+	bmi.b apply_rotation2_damage_impulse
 	move.l player_world_y(a6),d0
 	cmp.l #$FFFFFF88,d0
-	bmi.b abs_0_0002F82E
+	bmi.b apply_rotation2_damage_impulse
 	cmpi.w #65528,player_speed_target(a6)
-	bmi.b abs_0_0002F82E
+	bmi.b apply_rotation2_damage_impulse
 	move.w SG2_PITCH_HEIGHT_STEP_OFFSET(a6),d1
 	ext.l d1
 	add.l d1,player_world_y(a6)
-abs_0_0002F82E:
+    ; Add the full impulse WORD after the earlier phase mask; do not mask again. Then move impulse by 2 toward zero. Supplied odd values reach a +1/-1 cycle, not zero.
+apply_rotation2_damage_impulse:
 	move.w player_rotation2_damage_impulse(a6),d0
 	add.w d0,player_rotation_2(a6)
 	tst.w player_rotation2_damage_impulse(a6)
-	beq.b abs_0_0002F848
-	bpl.b abs_0_0002F844
+	beq.b derive_flight_rotation0_and_control_aim
+	bpl.b reduce_positive_rotation2_damage_impulse
 	addq.w #2,player_rotation2_damage_impulse(a6)
-	bra.b abs_0_0002F848
-abs_0_0002F844:
+	bra.b derive_flight_rotation0_and_control_aim
+reduce_positive_rotation2_damage_impulse:
 	subq.w #2,player_rotation2_damage_impulse(a6)
-abs_0_0002F848:
+    ; Rotation 0 is pitch ASR 1. Unfixed aim uses yaw ASR 2 and pitch NEG.W before ASR 3, then wrapping neutral additions. Fixed aim copies neutral coordinates and clears both offsets.
+derive_flight_rotation0_and_control_aim:
 	move.w rotation_0_control_accumulator(a6),d0
 	asr.w #1,d0
 	move.w d0,player_rotation_0(a6)
 	tst.b fixed_sight_mode_flag(a6)
-	bne.w abs_0_0002F882
+	bne.w store_fixed_control_aim_position
 	move.w rotation_2_control_accumulator(a6),d6
 	asr.w #2,d6
 	move.w d6,aim_reticle_offset_x(a6)
@@ -39146,7 +39157,7 @@ abs_0_0002F848:
 	add.w reticle_neutral_screen_y(a6),d7
 	move.w d7,aim_reticle_screen_y(a6)
 	rts
-abs_0_0002F882:
+store_fixed_control_aim_position:
 	move.w #$0,aim_reticle_offset_y(a6)
 	move.w #$0,aim_reticle_offset_x(a6)
 	move.w reticle_neutral_screen_x(a6),aim_reticle_screen_x(a6)
@@ -39155,19 +39166,22 @@ abs_0_0002F882:
     ; Signed spin countdown: negative selects normal controls. Expiry restores rotation 2 and writes -1; otherwise add 64 modulo 4096. Counter units are service calls, not proven frames.
 advance_player_rotation2_spin_continuation:
 	subq.w #1,player_rotation2_spin_steps.l
-	bpl.b abs_0_0002F8B6
+	bpl.b advance_player_rotation2_spin_phase
+    ; Spin expiry loads the after-spin WORD verbatim, without a phase mask, then stores -1. The identified initializer clears this WORD; no captured-heading writer is established.
+finish_player_rotation2_spin:
 	move.w player_rotation2_after_spin.l,player_rotation_2(a6)
 	move.w #$FFFF,player_rotation2_spin_steps.l
 	rts
-abs_0_0002F8B6:
+advance_player_rotation2_spin_phase:
 	move.w player_rotation_2(a6),d0
-	addi.w #64,d0
+	addi.w #SG2_ROTATION2_SPIN_PHASE_STEP,d0
 	andi.w #4095,d0
 	move.w d0,player_rotation_2(a6)
 	rts
     ; Settling continuation: halve control and speed WORDs; add 6 to rotation 0 modulo 4096. Only when it reaches zero write $FF to enable free flight. Original entry pose matters.
 settle_player_flight_controls_continuation:
 	move.w rotation_2_control_accumulator(a6),d0
+    ; Six control/speed WORDs use arithmetic halving: -1 remains -1. app_07A6 has only an identified reset/halving role here; do not invent an axis or a live normal-control consumer.
 	asr.w #1,d0
 	move.w d0,rotation_2_control_accumulator(a6)
 	move.w rotation_0_control_accumulator(a6),d0
@@ -39185,30 +39199,33 @@ settle_player_flight_controls_continuation:
 	move.w player_speed_smoothed(a6),d0
 	asr.w #1,d0
 	move.w d0,player_speed_smoothed(a6)
+    ; Add 6 modulo 4096; only exact zero enables free flight. All even supplied phases reach zero within 2048 calls; odd phases cannot. These are calls, not proven frames.
 	addi.w #6,player_rotation_0(a6)
 	andi.w #4095,player_rotation_0(a6)
-	bne.b abs_0_0002F91E
+	bne.b return_from_player_control_settling
 	move.b #$FF,free_flight_controls_enabled_flag(a6)
 	move.w #$0,player_rotation_0(a6)
-abs_0_0002F91E:
+return_from_player_control_settling:
 	rts
     ; Contact-pose continuation: $FF clears rotations 0/1/2; $FE clears 0/2 and sets rotation 1=$800. Other nonzero modes force rotation 0=$3FC. Contact collection clears the mode each frame.
 apply_structure_contact_pose_continuation:
 	cmpi.b #255,structure_contact_pose_mode(a6)
-	beq.b abs_0_0002F93E
+	beq.b clear_contact_pose_rotations
 	cmpi.b #254,structure_contact_pose_mode(a6)
-	beq.b abs_0_0002F954
+	beq.b clear_contact_pose_with_half_turn_heading
+    ; The normal caller excludes pose zero. A supplied direct zero entry also forces pitch $3FC, like other values except $FE/$FF. Preserve direct-entry behavior and caller distinction.
+force_contact_pitch_control_pose:
 	move.w #$3FC,rotation_0_control_accumulator(a6)
 	move.w #$3FC,player_rotation_0(a6)
 	rts
-abs_0_0002F93E:
+clear_contact_pose_rotations:
 	clr.w rotation_2_control_accumulator(a6)
 	clr.w rotation_0_control_accumulator(a6)
 	clr.w player_rotation_0(a6)
 	clr.w player_rotation_2(a6)
 	clr.w player_rotation_1(a6)
 	rts
-abs_0_0002F954:
+clear_contact_pose_with_half_turn_heading:
 	clr.w rotation_2_control_accumulator(a6)
 	clr.w rotation_0_control_accumulator(a6)
 	clr.w player_rotation_0(a6)
@@ -44690,7 +44707,7 @@ abs_0_00033C6E:
 	st.b pending_transient_event_sound(a6)
 	clr.w pending_message_count(a6)
 	move.w #$1,message_display_countdown(a6)
-	move.w #$40,player_rotation2_spin_steps.l
+	move.w #SG2_ROTATION2_SPIN_START_STEPS,player_rotation2_spin_steps.l
 	move.w #$E0,d0
 	lea.l event_message_pointers.l,a1
 	movea.l SG2SourceTextReference_text(a1,d0.w),a1
@@ -47105,7 +47122,7 @@ update_nearby_mini_sentinel:
 	clr.w pending_message_count(a6)
 	move.w #$1,message_display_countdown(a6)
 	st.b pending_transient_event_sound(a6)
-	move.w #$40,player_rotation2_spin_steps.l
+	move.w #SG2_ROTATION2_SPIN_START_STEPS,player_rotation2_spin_steps.l
 	move.w #$E0,d0
 	lea.l event_message_pointers.l,a1
 	movea.l SG2SourceTextReference_text(a1,d0.w),a1

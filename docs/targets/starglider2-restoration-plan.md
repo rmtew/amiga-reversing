@@ -27,6 +27,37 @@ and strengthened 38 app-base attributions.
 Conditional skips mean104 outer iterations are not104 observed memory reads.
 Loaded pointer values remain subject to separate alias/target validation.
 
+The rotation/settling batch connects three damage-jitter writers with the
+rotation consumer, reticle calculation, mode-selection gates, spin expiry and
+contact/settling continuations. 1952 original CPU tests include every 12-bit
+settling phase and bounded repeated-call sequences, with surrounding workspace
+guards. Ejection sign wins first; then nonnegative free-flight selects settling,
+nonzero contact pose wins over spin, and only a negative spin WORD reaches
+normal controls. These are supplied CPU contexts, not a normal-game route.
+
+Damage is added to rotation 2 after the prior phase mask, without a new mask.
+The impulse then changes by two toward zero: odd supplied values reach a +/-1
+cycle. Three direct jitter writers contribute even values -32..30 and reset
+stores zero, but unclosed aliases/save paths prevent a global parity claim.
+Normal aim preserves NEG.W-before-ASR rounding; fixed aim copies neutral values.
+Spin starts at 64 in the two identified event writers: 64 update calls precede
+one expiry call, which loads the after-spin WORD without masking. Only a clear
+initializer is identified for that WORD; no saved-heading producer is assumed.
+
+Settling arithmetically halves six WORDs, retaining -1. Adding six modulo 4096
+reaches zero from every even phase within 2048 calls; odd phases never enable
+free flight through this path alone. app_07A6 retains its generic name: reset
+and halving do not establish an axis or an active normal-control consumer.
+Fourteen continuation names and four distinct jitter/spin constants expose the
+relations without new ownership, type, cadence or hardware claims. Direct pose
+zero behavior remains separate from the caller's nonzero gate. Next: connect
+the identified spin-trigger and damage-event callers, preserving their actual
+guards and the unresolved after-spin provenance rather than assuming capture.
+Generation took 232.83 seconds. App/typed/unresolved totals remain
+3509/2716/165, with protected native facts, exact reference identities, CFG,
+function summaries and ownership accounting unchanged. C/vasm and clean
+standalone builds retain all 412736 original bytes and 57 unchanged assets.
+
 The control-normalization batch connects joystick/fire-modified accumulation,
 autocentre, requested/smoothed speed and the flight normalization/height reader.
 1051 original CPU cases verify the supplied continuations, surrounding workspace
@@ -52,8 +83,8 @@ Native generation took 228.80 seconds. Existing app/typed/unresolved totals
 remain 3509/2716/165, with all reference identities, CFG, function summaries and
 ownership accounting unchanged. C/vasm and clean standalone rebuilding retain
 all 412736 original bytes and 57 unchanged INCBIN assets.
-Next: inspect rotation-damage and settling consumers against their original
-caller gates; no all-input damping claim follows from the current fixtures.
+The connected rotation-damage/settling follow-up is documented above; no
+all-input damping claim follows from either batch.
 
 The alternate serial-input batch reconstructs the installed vector-$118 root
 and thirteen connected reader/return continuations. 1070 original CPU cases

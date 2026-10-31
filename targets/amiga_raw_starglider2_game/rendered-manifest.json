@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "source_commit": "c3f9ca6276a23aef430b3d33496ea9514f609d2d",
+  "source_commit": "36a8f7912136f6ce8f0795e9a6587da256d06f23",
   "source_assembly": "starglider2_game.s",
   "assets": [
     {
@@ -878,13 +878,13 @@
     },
     {
       "path": "rendered-provenance.json",
-      "bytes": 3482,
-      "sha256": "6a66bcc5d5102dd4cd0ece96199f3d4aaf25f8734e955a4b4a2036906cafd697"
+      "bytes": 3516,
+      "sha256": "4f7dc385c6baa1830377e3429d650e8e996b4bba2e3ccc658fd6d0ded5638b45"
     },
     {
       "path": "starglider2_game.s",
-      "bytes": 2166764,
-      "sha256": "2bf7a636ddb6b0487a5e2801310bf4907afaf39cf250f6244eec0c888fdb6036"
+      "bytes": 2169232,
+      "sha256": "0fa66e4e3447a28c2c979c6eecfb47ed433efc38d3f96eb7eed2737c5fbfbe5c"
     },
     {
       "path": "tools/starglider2_protection.py",
@@ -892,6 +892,6 @@
       "sha256": "81d3f66d36dbfbd5c77238b20c28e8b9abaa329777eb91f64669bbbf13703582"
     }
   ],
-  "source_commit_role": "canonical source publication base; control accumulation, autocentre, speed update, normalization and pitch-height consumers reconstructed through 1051 original CPU cases; preserve N-only comparisons, pre-bias step and pre-increment braking target; exact displacement names do not add global base/type claims; no full gameplay or hardware timing proof; output is bound by verification_receipt_id",
-  "source_subject_revision": "b6f3d82a745470876c140284ef612ddd055ef8512814add3786502050b91b718"
+  "source_commit_role": "canonical source publication base; rotation damage, jitter writers, mode gates, spin and settling reconstructed through 1952 original CPU tests including all 4096 settling phases and bounded sequences; preserve unmasked impulse addition, odd cycles, negative arithmetic halving and separate spin expiry call; no global parity, captured-heading, hardware cadence or full gameplay proof; output is bound by verification_receipt_id",
+  "source_subject_revision": "38a5e7ace8d53a6d5155f7aba3cb6e252e1e47f94d4d725d4fac8ecf72e1454c"
 }
