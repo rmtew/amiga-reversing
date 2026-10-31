@@ -27,6 +27,21 @@ and strengthened 38 app-base attributions.
 Conditional skips mean104 outer iterations are not104 observed memory reads.
 Loaded pointer values remain subject to separate alias/target validation.
 
+The view-input batch connects the anonymous keyboard handler to the existing
+view selectors, real point-field reset and message queue. 427 CPU cases retain
+ordered held controls, WORD angle wrap, distance-step overshoot, the raw-angle
+versus derived-sector comparison, and the same-pitch early return for Below.
+Interior-message filtering uses a negative flag and signed mode comparison;
+matching mode-announcement cache returns before distance/queue changes.
+Thirty-two continuations and seven constants expose the producer logic.
+
+Both message-offset tables were still raw WORD seeds. Two typed array/range
+contracts now express their 17 stored signed relative text references through
+the existing generic native projection; this is semantic input, not an inference
+algorithm repair or a universal caller-index bound. Original Front preset,
+view selector and matrix construction also admit the supplied root-boundary
+chain. World/player state and normal-input reachability remain separate.
+
 The radial-caller batch follows world-list partitioning through original view
 matrix construction, scaling, rotation, contact/visibility and draw dispatch.
 211 CPU cases preserve X/Z wrap versus signed Y rejection, partial coordinate

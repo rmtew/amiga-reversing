@@ -1712,6 +1712,13 @@ SG2_TYPE90_CHAIN_STRIP_FULL_WIDTH	EQU	400
 SG2_TYPE90_CHAIN_STRIP_HALF_WIDTH	EQU	200
 SG2_TYPE90_CROSS_LIMIT	EQU	600
 SG2_TYPE90_FIXED_POWER_ADD	EQU	400
+SG2_VIEW_ANGLE_KEY_STEP	EQU	32
+SG2_VIEW_BELOW_OFFSET_WORD	EQU	64512
+SG2_VIEW_DIRECTION_INDEX_MASK	EQU	7
+SG2_VIEW_DIRECTION_ROUNDING_BIAS	EQU	256
+SG2_VIEW_DISTANCE_KEY_STEP	EQU	64
+SG2_VIEW_DISTANCE_SOFT_MAXIMUM	EQU	10000
+SG2_VIEW_DISTANCE_SOFT_MINIMUM	EQU	800
 SG2_VIEW_DOT_EXTRACTION_LEFT_SHIFT	EQU	2
 SG2_WEAPON_HUD_ICON_ROWS_DBF_LAST	EQU	13
 SG2_WEAPON_HUD_ICON_SAVED_BYTES	EQU	112
@@ -2446,7 +2453,7 @@ frame_rate_decimal_text_storage:
 process_frame_input_commands:
 	cmpi.w #199,game_over_sequence_countdown.l
 	ble.b abs_0_00001816
-	bsr.w abs_0_00002C20
+	bsr.w poll_view_mode_distance_and_angle_keys
 abs_0_00001816:
 	bsr.w poll_translated_command_key_bridge_0023ec
 	cmp.b #$8,d0
@@ -3879,161 +3886,167 @@ player_orientation_matrix_words:
 	dc.w $0000	; m20
 	dc.w $0000	; m21
 	dc.w $0000	; m22
-abs_0_00002C20:
+    ; Number keys1..8 select modes0..7 and bypass held controls. Changed mode rebuilds the nearby points first, preserving D0.W across that call; unchanged mode can still announce.
+poll_view_mode_distance_and_angle_keys:
 	lea.l keyboard_down_flags.l,a0
 	moveq.l #0,d0
 	move.b pending_key_scancode(a6),d0
 	cmp.b #$8,d0
-	bhi.b abs_0_00002C56
+	bhi.b test_view_distance_decrease_keys
 	cmp.b #$1,d0
-	bcs.b abs_0_00002C56
+	bcs.b test_view_distance_decrease_keys
 	subi.b #1,d0
 	cmp.b view_mode(a6),d0
-	beq.b abs_0_00002C4A
+	beq.b store_number_key_view_and_announce
 	move.w d0,-(a7)
 	bsr.w initialize_nearby_point_field_bridge_00239e
 	move.w (a7)+,d0
-abs_0_00002C4A:
+store_number_key_view_and_announce:
 	move.b d0,view_mode(a6)
 	bsr.w queue_view_mode_message
-	bra.w abs_0_00002F6E
-abs_0_00002C56:
+	bra.w return_from_view_key_poll
+test_view_distance_decrease_keys:
 	tst.b $000F(a0)
-	bne.b abs_0_00002C62
+	bne.b decrease_view_distance_above_soft_minimum
 	tst.b $005E(a0)
-	beq.b abs_0_00002C70
-abs_0_00002C62:
-	cmpi.w #800,view_offset_distance(a6)
-	ble.b abs_0_00002C70
-	subi.w #64,view_offset_distance(a6)
-abs_0_00002C70:
+	beq.b test_view_distance_increase_key
+    ; Decrease only above800, then test increase at or below10000. Steps are64 and can overshoot either soft gate. Both held directions run in this order; these are not clamp operations.
+decrease_view_distance_above_soft_minimum:
+	cmpi.w #SG2_VIEW_DISTANCE_SOFT_MINIMUM,view_offset_distance(a6)
+	ble.b test_view_distance_increase_key
+	subi.w #SG2_VIEW_DISTANCE_KEY_STEP,view_offset_distance(a6)
+test_view_distance_increase_key:
 	tst.b $004A(a0)
-	beq.b abs_0_00002C84
-	cmpi.w #10000,view_offset_distance(a6)
-	bgt.b abs_0_00002C84
-	addi.w #64,view_offset_distance(a6)
-abs_0_00002C84:
+	beq.b test_held_view_yaw_decrease
+	cmpi.w #SG2_VIEW_DISTANCE_SOFT_MAXIMUM,view_offset_distance(a6)
+	bgt.b test_held_view_yaw_decrease
+	addi.w #SG2_VIEW_DISTANCE_KEY_STEP,view_offset_distance(a6)
+    ; Yaw decrease then increase each calls direction messaging; pitch changes do not. Offsets wrap as WORDs. Opposing held keys can leave a message even when their net angle change is zero.
+test_held_view_yaw_decrease:
 	tst.b $004F(a0)
-	beq.b abs_0_00002C94
-	subi.w #32,view_rotation_offset_1(a6)
+	beq.b test_held_view_yaw_increase
+	subi.w #SG2_VIEW_ANGLE_KEY_STEP,view_rotation_offset_1(a6)
 	bsr.w queue_view_direction_message
-abs_0_00002C94:
+test_held_view_yaw_increase:
 	tst.b $004E(a0)
-	beq.b abs_0_00002CA4
-	addi.w #32,view_rotation_offset_1(a6)
+	beq.b test_held_view_pitch_decrease
+	addi.w #SG2_VIEW_ANGLE_KEY_STEP,view_rotation_offset_1(a6)
 	bsr.w queue_view_direction_message
-abs_0_00002CA4:
+test_held_view_pitch_decrease:
 	tst.b $004C(a0)
-	beq.b abs_0_00002CB0
-	subi.w #32,view_rotation_offset_0(a6)
-abs_0_00002CB0:
+	beq.b test_held_view_pitch_increase
+	subi.w #SG2_VIEW_ANGLE_KEY_STEP,view_rotation_offset_0(a6)
+test_held_view_pitch_increase:
 	tst.b $004D(a0)
-	beq.b abs_0_00002CBC
-	addi.w #32,view_rotation_offset_0(a6)
-abs_0_00002CBC:
+	beq.b select_view_direction_preset_key
+	addi.w #SG2_VIEW_ANGLE_KEY_STEP,view_rotation_offset_0(a6)
+select_view_direction_preset_key:
 	moveq.l #0,d0
 	move.b pending_key_scancode(a6),d0
 	cmp.b #$3E,d0
-	bne.b abs_0_00002CD0
+	bne.b test_view_front_right_preset_key
 	move.w #$0,d0
-	bra.w abs_0_00002D88
-abs_0_00002CD0:
+	bra.w test_unchanged_yaw_preset_and_zero_pitch
+test_view_front_right_preset_key:
 	cmp.b #$3F,d0
-	bne.b abs_0_00002CDE
+	bne.b test_view_right_preset_key
 	move.w #$E00,d0
-	bra.w abs_0_00002D88
-abs_0_00002CDE:
+	bra.w test_unchanged_yaw_preset_and_zero_pitch
+test_view_right_preset_key:
 	cmp.b #$2F,d0
-	bne.b abs_0_00002CEC
+	bne.b test_view_rear_right_preset_key
 	move.w #$C00,d0
-	bra.w abs_0_00002D88
-abs_0_00002CEC:
+	bra.w test_unchanged_yaw_preset_and_zero_pitch
+test_view_rear_right_preset_key:
 	cmp.b #$1F,d0
-	bne.b abs_0_00002CFA
+	bne.b test_view_rear_preset_key
 	move.w #$A00,d0
-	bra.w abs_0_00002D88
-abs_0_00002CFA:
+	bra.w test_unchanged_yaw_preset_and_zero_pitch
+test_view_rear_preset_key:
 	cmp.b #$1E,d0
-	bne.b abs_0_00002D08
+	bne.b test_view_rear_left_preset_key
 	move.w #$800,d0
-	bra.w abs_0_00002D88
-abs_0_00002D08:
+	bra.w test_unchanged_yaw_preset_and_zero_pitch
+test_view_rear_left_preset_key:
 	cmp.b #$1D,d0
-	bne.b abs_0_00002D16
+	bne.b test_view_left_preset_key
 	move.w #$600,d0
-	bra.w abs_0_00002D88
-abs_0_00002D16:
+	bra.w test_unchanged_yaw_preset_and_zero_pitch
+test_view_left_preset_key:
 	cmp.b #$2D,d0
-	bne.b abs_0_00002D24
+	bne.b test_view_front_left_preset_key
 	move.w #$400,d0
-	bra.w abs_0_00002D88
-abs_0_00002D24:
+	bra.w test_unchanged_yaw_preset_and_zero_pitch
+test_view_front_left_preset_key:
 	cmp.b #$3D,d0
-	bne.b abs_0_00002D32
+	bne.b test_view_below_preset_key
 	move.w #$200,d0
-	bra.w abs_0_00002D88
-abs_0_00002D32:
+	bra.w test_unchanged_yaw_preset_and_zero_pitch
+    ; Below preset returns early when pitch is already $FC00, even if yaw differs. Otherwise it clears yaw, rebuilds points and uses stored message slot8 without changing the direction cache.
+test_view_below_preset_key:
 	cmp.b #$2E,d0
-	bne.b abs_0_00002D50
-	move.w #$FC00,d1
+	bne.b test_cockpit_external_toggle_key
+	move.w #SG2_VIEW_BELOW_OFFSET_WORD,d1
 	cmp.w view_rotation_offset_0(a6),d1
-	beq.b abs_0_00002D50
+	beq.b test_cockpit_external_toggle_key
 	move.w d1,view_rotation_offset_0(a6)
 	move.w #$0,view_rotation_offset_1(a6)
-	bra.w abs_0_00002D80
-abs_0_00002D50:
+	bra.w rebuild_points_for_below_view_message
+    ; Toggle goes from mode0 to4, and every other BYTE to0. The mode-message path imposes a soft minimum only on its changed-cache path; point positions are not rebuilt here.
+test_cockpit_external_toggle_key:
 	cmp.b #$43,d0
-	bne.b abs_0_00002D7C
+	bne.b return_after_nonmatching_view_key
 	moveq.l #0,d0
 	cmpi.b #0,view_mode(a6)
-	bne.b abs_0_00002D70
+	bne.b store_toggled_view_and_announce
 	moveq.l #4,d0
-	cmpi.w #800,view_offset_distance(a6)
-	bgt.b abs_0_00002D70
-	move.w #$320,view_offset_distance(a6)
-abs_0_00002D70:
+	cmpi.w #SG2_VIEW_DISTANCE_SOFT_MINIMUM,view_offset_distance(a6)
+	bgt.b store_toggled_view_and_announce
+	move.w #SG2_VIEW_DISTANCE_SOFT_MINIMUM,view_offset_distance(a6)
+store_toggled_view_and_announce:
 	move.b d0,view_mode(a6)
 	bsr.w queue_view_mode_message
-abs_0_00002D78:
-	bra.w abs_0_00002F6E
-abs_0_00002D7C:
-	bra.w abs_0_00002F6E
-abs_0_00002D80:
+return_after_view_toggle:
+	bra.w return_from_view_key_poll
+return_after_nonmatching_view_key:
+	bra.w return_from_view_key_poll
+rebuild_points_for_below_view_message:
 	bsr.w initialize_nearby_point_field_bridge_00239e
 	moveq.l #8,d0
-	bra.b abs_0_00002DC2
-abs_0_00002D88:
+	bra.b filter_interior_view_direction_message
+test_unchanged_yaw_preset_and_zero_pitch:
 	cmp.w view_rotation_offset_1(a6),d0
-	bne.b abs_0_00002D96
+	bne.b store_yaw_preset_and_rebuild_points
 	tst.w view_rotation_offset_0(a6)
-	beq.w abs_0_00002F6E
-abs_0_00002D96:
+	beq.w return_from_view_key_poll
+store_yaw_preset_and_rebuild_points:
 	move.w d0,view_rotation_offset_1(a6)
 	move.w #$0,view_rotation_offset_0(a6)
 	bsr.w initialize_nearby_point_field_bridge_00239e
     ; Original comparison is against view_rotation_offset_1 after deriving masked direction index; it is not a comparison with stored announced direction. Preserve this exact behavior.
 queue_view_direction_message:
 	move.w view_rotation_offset_1(a6),d0
-	addi.w #256,d0
+	addi.w #SG2_VIEW_DIRECTION_ROUNDING_BIAS,d0
 	lsr.w #5,d0
 	lsr.w #4,d0
-	andi.w #7,d0
+	andi.w #SG2_VIEW_DIRECTION_INDEX_MASK,d0
 	cmp.w view_rotation_offset_1(a6),d0
-	bne.b abs_0_00002DBC
-abs_0_00002DBA:
+	bne.b store_derived_view_direction_index
+return_from_view_direction_message:
 	rts
-abs_0_00002DBC:
+store_derived_view_direction_index:
 	move.w d0,announced_view_direction_index.l
-abs_0_00002DC2:
+    ; Only a negative interior BYTE applies this filter. Signed mode BYTE below4 bypasses it; otherwise direction0 or4 is allowed. Special below index8 is suppressed in that interior path.
+filter_interior_view_direction_message:
 	tst.b inside_structure_flag(a6)
-	bpl.b abs_0_00002DDA
+	bpl.b enqueue_selected_view_direction_text
 	cmpi.b #4,view_mode(a6)
-	blt.b abs_0_00002DDA
+	blt.b enqueue_selected_view_direction_text
 	tst.w d0
-	beq.b abs_0_00002DDA
+	beq.b enqueue_selected_view_direction_text
 	cmp.w #$4,d0
-	bne.b abs_0_00002DBA
-abs_0_00002DDA:
+	bne.b return_from_view_direction_message
+enqueue_selected_view_direction_text:
 	add.w d0,d0
 	move.w view_direction_message_offsets(pc,d0.w),d0
 	lea.l view_direction_message_offsets(pc,d0.w),a1
@@ -4042,8 +4055,15 @@ abs_0_00002DDA:
 	jmp enqueue_message_unless_previous_pointer.l
     ; Nine stored relative WORD offsets, followed by separateNULmessages. Normal masked selector reaches0..7; ninth View Below text is stored, not certified unused.
 view_direction_message_offsets:
-	dc.w $0012,$001D,$002D,$0037,$0046,$0050,$0060,$006B
-	dc.w $007C
+	dc.w view_direction_message_0-view_direction_message_offsets	; Stored signed WORD displacements from this table base to separately named view-message text....
+	dc.w view_direction_message_1-view_direction_message_offsets
+	dc.w view_direction_message_2-view_direction_message_offsets
+	dc.w view_direction_message_3-view_direction_message_offsets
+	dc.w view_direction_message_4-view_direction_message_offsets
+	dc.w view_direction_message_5-view_direction_message_offsets
+	dc.w view_direction_message_6-view_direction_message_offsets
+	dc.w view_direction_message_7-view_direction_message_offsets
+	dc.w view_direction_message_8-view_direction_message_offsets
 view_direction_message_0:
 	dc.b "View Front",$00
 view_direction_message_1:
@@ -4066,22 +4086,30 @@ view_direction_message_8:
     ; On changed mode: enforce minimum view distance800, reset message count/countdown and enqueue original Cockpit/Outside lock text. D0 index still assumes original valid mode.
 queue_view_mode_message:
 	cmp.w announced_view_mode_index.l,d0
-	bne.b abs_0_00002E86
+	bne.b store_announced_view_mode_index
 	rts
-abs_0_00002E86:
+store_announced_view_mode_index:
 	move.w d0,announced_view_mode_index.l
 	add.w d0,d0
 	move.w view_mode_message_offsets(pc,d0.w),d0
 	lea.l view_mode_message_offsets(pc,d0.w),a1
-	cmpi.w #800,view_offset_distance(a6)
-	bgt.b abs_0_00002EA4
-	move.w #$320,view_offset_distance(a6)
-abs_0_00002EA4:
+	cmpi.w #SG2_VIEW_DISTANCE_SOFT_MINIMUM,view_offset_distance(a6)
+	bgt.b enqueue_selected_view_mode_text
+	move.w #SG2_VIEW_DISTANCE_SOFT_MINIMUM,view_offset_distance(a6)
+enqueue_selected_view_mode_text:
 	clr.w pending_message_count(a6)
 	move.w #$1,message_display_countdown(a6)
 	jmp enqueue_message_unless_previous_pointer.l
+    ; Eight stored signed WORD text references. Mode helpers index them without a local universal bound; actual number-key and toggle callers supply supported modes. Retain the physical extent.
 view_mode_message_offsets:
-	dc.w $0010,$001D,$0033,$0049,$0063,$0070,$0086,$009C
+	dc.w view_mode_message_0-view_mode_message_offsets	; Stored signed WORD displacements from this table base to separately named view-message text....
+	dc.w view_mode_message_1-view_mode_message_offsets
+	dc.w view_mode_message_2-view_mode_message_offsets
+	dc.w view_mode_message_3-view_mode_message_offsets
+	dc.w view_mode_message_4-view_mode_message_offsets
+	dc.w view_mode_message_5-view_mode_message_offsets
+	dc.w view_mode_message_6-view_mode_message_offsets
+	dc.w view_mode_message_7-view_mode_message_offsets
 view_mode_message_0:
 	dc.b "Cockpit view",$00
 view_mode_message_1:
@@ -4102,7 +4130,7 @@ announced_view_mode_index:
 	dc.w $0000
 announced_view_direction_index:
 	dc.w $0000
-abs_0_00002F6E:
+return_from_view_key_poll:
 	rts
 initial_stack_zero_seed_bytes:
 	dcb.b $400,$00
