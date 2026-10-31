@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "source_commit": "52e98e3806e6fff82b8359c9008238595e8989de",
+  "source_commit": "e440179fefb339b82d70522138d58b34e9b72659",
   "source_assembly": "starglider2_game.s",
   "assets": [
     {
@@ -878,13 +878,13 @@
     },
     {
       "path": "rendered-provenance.json",
-      "bytes": 3500,
-      "sha256": "22cc8584da6768a96d2f1a924fbf7dba42302d72c5370f7daf95941a2cdcb5b0"
+      "bytes": 3543,
+      "sha256": "aa48c34656cbf24ac003096cf652bb636f89d76e4aba0b88f4aed3d408cee3bf"
     },
     {
       "path": "starglider2_game.s",
-      "bytes": 2181156,
-      "sha256": "3c647fe391c50c4e0fc967cc58cb6cab1b80a47bcd8c8aded564b680b692fcc1"
+      "bytes": 2186147,
+      "sha256": "884738a20c175d66bd159507fd8a6145737b15a310456418a5c9a11bf16daec5"
     },
     {
       "path": "tools/starglider2_protection.py",
@@ -892,6 +892,6 @@
       "sha256": "81d3f66d36dbfbd5c77238b20c28e8b9abaa329777eb91f64669bbbf13703582"
     }
   ],
-  "source_commit_role": "canonical source publication base; encounter directory and weighted type WORD blocks restored through original readers and 696 CPU tests; preserve the 18-cell physical prefix separately from caller bounds, wrapped N-only metric gates, partial constructor writes and retirement post-read cursor mask; no allocation/lifetime, uniform RNG, hardware or full gameplay proof; output is bound by verification_receipt_id",
-  "source_subject_revision": "a3e701ec2d9a5c995ef549bff67154eacf1743da291901d0591a6f83f4a6f116"
+  "source_commit_role": "canonical source publication base; HUD attitude projection, corner cycling, fixed-point spans, plane selection and CPU stores reconstructed through 1069 original CPU cases including nine full entry-to-return cases; retain flat-row plane-binding bypass, inclusive heights, matching-edge tails, mask aliases and preclear overshoot; no arbitrary polygon safety, lifetime, device scanout or timing equivalence proof; output is bound by verification_receipt_id",
+  "source_subject_revision": "3217608442b7c27ed1a9414621222cc00cc8acbc89fb3c897fc107e156a69045"
 }

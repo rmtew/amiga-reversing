@@ -27,6 +27,21 @@ and strengthened 38 app-base attributions.
 Conditional skips mean104 outer iterations are not104 observed memory reads.
 Loaded pointer values remain subject to separate alias/target validation.
 
+The HUD attitude batch connects view-angle projection, corner cycling,
+fixed-point span construction and the player-roll-selected plane. 1069 original
+CPU cases include nine full entry-to-return calls with register restoration.
+The flat-row branch bypasses plane-address binding; this is a supplied-state
+result, not proof of its normal-game reachability. Spans use reciprocals of
+inclusive heights, matching-edge tails preserve their distinct bounds, and
+leading-row clears precede the end-pointer test. The 31-LONG left-mask prefix
+retains its edge-scratch alias. Forty-two continuations and fourteen logical
+constants expose the actual operations without changing shared analysis rules,
+existing data layouts or promoting the nearby raw byte sequence. Counts
+remain 3509 app /2716 typed /166 unresolved; classification stays 10307 bytes
+in 273 intervals. No arbitrary polygon safety, interrupt lifetime, scanout or
+hardware timing claim follows. Next: the connected alternate display-mode
+initialization and row/address translation consumers, if evidence supports it.
+
 The encounter scheduler now exposes an 18-cell source-pointer directory prefix,
 six body-choice blocks, three metric-choice blocks and a 32-WORD retirement
 cycle: 424 previously raw bytes. Duplicate choices retain encoded weights;

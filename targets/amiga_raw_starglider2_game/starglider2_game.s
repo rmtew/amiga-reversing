@@ -1494,6 +1494,20 @@ SG2_HOMING_HEADING_CADENCE_MASK	EQU	7
 SG2_HOMING_INITIAL_UPDATES	EQU	400
 SG2_HOMING_LAUNCH_COOLDOWN	EQU	100
 SG2_HOMING_LAUNCH_SPEED_BIAS	EQU	500
+SG2_HUD_ATTITUDE_ALTERNATE_X_ADD	EQU	$B4
+SG2_HUD_ATTITUDE_ALTERNATE_Y_ADD	EQU	$79
+SG2_HUD_ATTITUDE_AMIGA_X_ADD	EQU	$4
+SG2_HUD_ATTITUDE_AMIGA_Y_SUBTRACT	EQU	$19
+SG2_HUD_ATTITUDE_CLEAR_DBF_LAST	EQU	$20
+SG2_HUD_ATTITUDE_PLANE1_ROLL_MAX	EQU	$340
+SG2_HUD_ATTITUDE_PLANE1_ROW_BASE	EQU	$716E6
+SG2_HUD_ATTITUDE_PLANE1_ROW_END	EQU	$71C0E
+SG2_HUD_ATTITUDE_PLANE2_ROLL_MAX	EQU	$B40
+SG2_HUD_ATTITUDE_PLANE2_ROW_BASE	EQU	$736E6
+SG2_HUD_ATTITUDE_PLANE2_ROW_END	EQU	$73C0E
+SG2_HUD_ATTITUDE_PROJECTION_SCALE	EQU	$19
+SG2_HUD_ATTITUDE_ROW_STRIDE	EQU	$28
+SG2_HUD_ATTITUDE_VECTOR_DBF_LAST	EQU	$3
 SG2_HUD_COORDINATE_BYTE_MASK	EQU	255
 SG2_HUD_COORDINATE_DIGIT_DBF_LAST	EQU	3
 SG2_HUD_DIGIT_PAIR_DBF_LAST	EQU	1
@@ -50476,6 +50490,7 @@ add_bouncing_bomb_hud_icon_bridge_038d62:
 enqueue_event_message:
 	jmp enqueue_message_unless_previous_pointer.l
 	dc.w $0000
+    ; Save player rotation 2 masked to 4095 for plane selection; project four stored vectors using view rotation 0 and negated view rotation 2. Each signed product is quadrupled and SWAP-truncated.
 draw_hud_attitude_polygon:
 	movem.l d0-d7/a0-a6,-(a7)
 	move.w player_rotation_2(a6),d1
@@ -50483,118 +50498,121 @@ draw_hud_attitude_polygon:
 	move.w d1,hud_attitude_roll_snapshot.l
 	lea.l hud_attitude_rectangle_vectors.l,a2
 	lea.l hud_attitude_projected_corners.l,a1
-	move.w #$3,d7
-abs_0_00039D92:
+	move.w #SG2_HUD_ATTITUDE_VECTOR_DBF_LAST,d7
+project_next_hud_attitude_vector:
 	movem.w (a2)+,d1-d3
 	bsr.w rotate_horizon_vector_to_view_bridge_0392d4
-	move.w #$19,d4
+    ; Add 19 to projected X, 70 to Y and 45 to depth. Each nonzero-depth path multiplies the low WORD by 25 and uses DIVS.W. Platform paths then apply their distinct corner translations.
+	move.w #SG2_HUD_ATTITUDE_PROJECTION_SCALE,d4
 	ext.l d1
 	ext.l d2
 	ext.l d3
 	addi.l #19,d1
 	addi.l #45,d3
 	tst.l d3
-	beq.b abs_0_00039DB8
+	beq.b add_hud_attitude_y_projection_bias
 	muls.w d4,d1
 	divs.w d3,d1
-abs_0_00039DB8:
+add_hud_attitude_y_projection_bias:
 	addi.l #70,d2
 	tst.l d3
-	beq.b abs_0_00039DC6
+	beq.b store_hud_attitude_projected_corner
 	muls.w d4,d2
 	divs.w d3,d2
-abs_0_00039DC6:
+store_hud_attitude_projected_corner:
 	move.w d1,(a1)+
 	move.w d2,(a1)+
-	dbf.w d7,abs_0_00039D92
+	dbf.w d7,project_next_hud_attitude_vector
 	move.w d7,(a1)
 	tst.w platform_entry_flags.l
-	bpl.w abs_0_00039E02
+	bpl.w translate_hud_attitude_alternate_corners
 	lea.l hud_attitude_projected_corners.l,a2
-	addi.w #4,(a2)+	; operand 2: SG2ScreenPoint2W_screen_x at (a2)+
-	subi.w #25,(a2)+	; operand 2: SG2ScreenPoint2W_screen_y at (a2)+
-	addi.w #4,(a2)+	; operand 2: SG2ScreenPoint2W_screen_x at (a2)+
-	subi.w #25,(a2)+	; operand 2: SG2ScreenPoint2W_screen_y at (a2)+
-	addi.w #4,(a2)+	; operand 2: SG2ScreenPoint2W_screen_x at (a2)+
-	subi.w #25,(a2)+	; operand 2: SG2ScreenPoint2W_screen_y at (a2)+
-	addi.w #4,(a2)+	; operand 2: SG2ScreenPoint2W_screen_x at (a2)+
-	subi.w #25,(a2)	; operand 2: SG2ScreenPoint2W_screen_y at (a2)
-	bra.b abs_0_00039E2C
-abs_0_00039E02:
+	addi.w #SG2_HUD_ATTITUDE_AMIGA_X_ADD,(a2)+	; operand 2: SG2ScreenPoint2W_screen_x at (a2)+
+	subi.w #SG2_HUD_ATTITUDE_AMIGA_Y_SUBTRACT,(a2)+	; operand 2: SG2ScreenPoint2W_screen_y at (a2)+
+	addi.w #SG2_HUD_ATTITUDE_AMIGA_X_ADD,(a2)+	; operand 2: SG2ScreenPoint2W_screen_x at (a2)+
+	subi.w #SG2_HUD_ATTITUDE_AMIGA_Y_SUBTRACT,(a2)+	; operand 2: SG2ScreenPoint2W_screen_y at (a2)+
+	addi.w #SG2_HUD_ATTITUDE_AMIGA_X_ADD,(a2)+	; operand 2: SG2ScreenPoint2W_screen_x at (a2)+
+	subi.w #SG2_HUD_ATTITUDE_AMIGA_Y_SUBTRACT,(a2)+	; operand 2: SG2ScreenPoint2W_screen_y at (a2)+
+	addi.w #SG2_HUD_ATTITUDE_AMIGA_X_ADD,(a2)+	; operand 2: SG2ScreenPoint2W_screen_x at (a2)+
+	subi.w #SG2_HUD_ATTITUDE_AMIGA_Y_SUBTRACT,(a2)	; operand 2: SG2ScreenPoint2W_screen_y at (a2)
+	bra.b cycle_hud_attitude_corners_from_lowest_row
+translate_hud_attitude_alternate_corners:
 	lea.l hud_attitude_projected_corners.l,a2
-	addi.w #180,(a2)+	; operand 2: SG2ScreenPoint2W_screen_x at (a2)+
-	addi.w #121,(a2)+	; operand 2: SG2ScreenPoint2W_screen_y at (a2)+
-	addi.w #180,(a2)+	; operand 2: SG2ScreenPoint2W_screen_x at (a2)+
-	addi.w #121,(a2)+	; operand 2: SG2ScreenPoint2W_screen_y at (a2)+
-	addi.w #180,(a2)+	; operand 2: SG2ScreenPoint2W_screen_x at (a2)+
-	addi.w #121,(a2)+	; operand 2: SG2ScreenPoint2W_screen_y at (a2)+
-	addi.w #180,(a2)+	; operand 2: SG2ScreenPoint2W_screen_x at (a2)+
-	addi.w #121,(a2)	; operand 2: SG2ScreenPoint2W_screen_y at (a2)
-	bra.w abs_0_0003A0B2
-abs_0_00039E2C:
+	addi.w #SG2_HUD_ATTITUDE_ALTERNATE_X_ADD,(a2)+	; operand 2: SG2ScreenPoint2W_screen_x at (a2)+
+	addi.w #SG2_HUD_ATTITUDE_ALTERNATE_Y_ADD,(a2)+	; operand 2: SG2ScreenPoint2W_screen_y at (a2)+
+	addi.w #SG2_HUD_ATTITUDE_ALTERNATE_X_ADD,(a2)+	; operand 2: SG2ScreenPoint2W_screen_x at (a2)+
+	addi.w #SG2_HUD_ATTITUDE_ALTERNATE_Y_ADD,(a2)+	; operand 2: SG2ScreenPoint2W_screen_y at (a2)+
+	addi.w #SG2_HUD_ATTITUDE_ALTERNATE_X_ADD,(a2)+	; operand 2: SG2ScreenPoint2W_screen_x at (a2)+
+	addi.w #SG2_HUD_ATTITUDE_ALTERNATE_Y_ADD,(a2)+	; operand 2: SG2ScreenPoint2W_screen_y at (a2)+
+	addi.w #SG2_HUD_ATTITUDE_ALTERNATE_X_ADD,(a2)+	; operand 2: SG2ScreenPoint2W_screen_x at (a2)+
+	addi.w #SG2_HUD_ATTITUDE_ALTERNATE_Y_ADD,(a2)	; operand 2: SG2ScreenPoint2W_screen_y at (a2)
+	bra.w restore_hud_attitude_registers_and_return
+    ; Cycle supplied corners from the first unsigned minimum Y; negative X ends the input. Copy the tail then prefix and append a zero LONG. These fixtures do not prove arbitrary polygon safety.
+cycle_hud_attitude_corners_from_lowest_row:
 	lea.l hud_attitude_projected_corners.l,a0
 	lea.l hud_attitude_corner_cycle.l,a1
 	move.w #$FFF,d0
 	movea.l a0,a4
 	moveq.l #0,d4
-abs_0_00039E40:
+scan_hud_attitude_lowest_unsigned_row:
 	move.w (a0)+,d2
-	bmi.b abs_0_00039E54
+	bmi.b start_hud_attitude_corner_cycle
 	move.w (a0)+,d3
 	addq.w #1,d4
 	cmp.w d3,d0
-	bls.b abs_0_00039E40
+	bls.b scan_hud_attitude_lowest_unsigned_row
 	move.w d3,d0
 	move.w d4,d5
 	movea.l a0,a3
-	bra.b abs_0_00039E40
-abs_0_00039E54:
+	bra.b scan_hud_attitude_lowest_unsigned_row
+start_hud_attitude_corner_cycle:
 	subq.l #4,a3
 	movea.l a3,a0
-abs_0_00039E58:
+copy_hud_attitude_corner_tail:
 	move.l (a3)+,(a1)+
-	bpl.b abs_0_00039E58
+	bpl.b copy_hud_attitude_corner_tail
 	subq.l #4,a1
 	subq.w #2,d5
-	bmi.b abs_0_00039E68
-abs_0_00039E62:
+	bmi.b begin_hud_attitude_span_construction
+copy_hud_attitude_corner_prefix:
 	move.l (a4)+,(a1)+
-	dbf.w d5,abs_0_00039E62
-abs_0_00039E68:
+	dbf.w d5,copy_hud_attitude_corner_prefix
+    ; Equal Y uses unsigned X extrema and jumps to row output before plane binding. A0 retains the corner-cycle end; A4 remains the reciprocal table. Do not assume framebuffer setup.
+begin_hud_attitude_span_construction:
 	clr.l (a1)
 	lea.l hud_attitude_corner_cycle.l,a0
 	lea.l polygon_edge_reciprocal_scales.l,a4
 	lea.l shared_workspace_prefix.l,a6
 	move.w SG2ScreenPoint2W_screen_y(a0),d0
 	cmp.w SG2ScreenPoint2W_screen_y+SG2ScreenPoint2W_SIZEOF(a0),d0
-	bne.b abs_0_00039EBE
+	bne.b initialize_hud_attitude_edge_walks
 	cmp.w SG2ScreenPoint2W_screen_y+2*SG2ScreenPoint2W_SIZEOF(a0),d0
-	bne.b abs_0_00039EBE
+	bne.b initialize_hud_attitude_edge_walks
 	cmp.w SG2ScreenPoint2W_screen_y+3*SG2ScreenPoint2W_SIZEOF(a0),d0
-	bne.b abs_0_00039EBE
+	bne.b initialize_hud_attitude_edge_walks
 	move.w d0,d7
 	move.w #$2,d3
 	move.w (a0),d0	; operand 1: SG2ScreenPoint2W_screen_x at (a0)
 	addq.w #4,a0
 	move.w d0,d1
-abs_0_00039E9E:
+scan_flat_hud_attitude_x_extrema:
 	move.w (a0),d2
 	addq.w #4,a0
 	cmp.w d2,d0
-	bls.b abs_0_00039EAA
+	bls.b compare_flat_hud_attitude_maximum_x
 	move.w d2,d0
-	bra.b abs_0_00039EB0
-abs_0_00039EAA:
+	bra.b advance_flat_hud_attitude_corner
+compare_flat_hud_attitude_maximum_x:
 	cmp.w d2,d1
-	bhi.b abs_0_00039EB0
+	bhi.b advance_flat_hud_attitude_corner
 	move.w d2,d1
-abs_0_00039EB0:
-	dbf.w d3,abs_0_00039E9E
+advance_flat_hud_attitude_corner:
+	dbf.w d3,scan_flat_hud_attitude_x_extrema
 	move.w d0,(a6)+
 	move.w d1,(a6)+
 	move.w d3,(a6)
-	bra.w abs_0_0003A062
-abs_0_00039EBE:
+	bra.w write_hud_attitude_spans_to_selected_rows
+initialize_hud_attitude_edge_walks:
 	moveq.l #0,d0
 	move.w (a0)+,d0	; operand 1: SG2ScreenPoint2W_screen_x at (a0)+
 	move.l d0,d1
@@ -50604,64 +50622,65 @@ abs_0_00039EBE:
 	move.w d2,d7
 	moveq.l #0,d3
 	moveq.l #0,d6
-abs_0_00039ED8:
+advance_hud_attitude_forward_edge_count:
 	subq.w #1,d3
-	bpl.b abs_0_00039F10
-abs_0_00039EDC:
+	bpl.b advance_hud_attitude_reverse_edge_count
+load_next_hud_attitude_forward_edge:
 	move.w hud_attitude_forward_edge_x.l,d0
 	move.w (a0)+,d4
 	move.w d4,hud_attitude_forward_edge_x.l
 	move.w (a0)+,d3
 	sub.w d2,d3
-	bmi.w abs_0_00039FC8
-	bne.b abs_0_00039EFE
+	bmi.w finish_hud_attitude_span_walk
+	bne.b scale_hud_attitude_forward_edge_step
 	move.w d4,d0
-	bra.b abs_0_00039EDC
-abs_0_00039EF8:
+	bra.b load_next_hud_attitude_forward_edge
+extend_zero_hud_attitude_forward_slope:
 	ext.l d4
 	subq.w #1,d3
-	bra.b abs_0_00039F10
-abs_0_00039EFE:
+	bra.b advance_hud_attitude_reverse_edge_count
+    ; Use the reciprocal indexed by vertical difference plus one. Multiply the signed X difference, double, and transport its fixed-point fraction through SWAP/add/SWAP. Keep inclusive row counts.
+scale_hud_attitude_forward_edge_step:
 	addq.w #1,d3
 	sub.w d0,d4
-	beq.b abs_0_00039EF8
+	beq.b extend_zero_hud_attitude_forward_slope
 	add.w d3,d3
 	muls.w $0(a4,d3.w),d4
 	add.l d4,d4
 	lsr.w #1,d3
 	subq.w #1,d3
-abs_0_00039F10:
+advance_hud_attitude_reverse_edge_count:
 	subq.w #1,d6
-	bpl.b abs_0_00039F48
-abs_0_00039F14:
+	bpl.b compare_hud_attitude_edge_states
+load_next_hud_attitude_reverse_edge:
 	move.w hud_attitude_reverse_edge_x.l,d1
 	move.w -(a1),d6
 	move.w -(a1),d5
 	move.w d5,hud_attitude_reverse_edge_x.l
 	sub.w d2,d6
-	bmi.w abs_0_00039FC8
-	bne.b abs_0_00039F36
+	bmi.w finish_hud_attitude_span_walk
+	bne.b scale_hud_attitude_reverse_edge_step
 	move.w d5,d1
-	bra.b abs_0_00039F14
-abs_0_00039F30:
+	bra.b load_next_hud_attitude_reverse_edge
+extend_zero_hud_attitude_reverse_slope:
 	ext.l d5
 	subq.w #1,d6
-	bra.b abs_0_00039F48
-abs_0_00039F36:
+	bra.b compare_hud_attitude_edge_states
+scale_hud_attitude_reverse_edge_step:
 	addq.w #1,d6
 	sub.w d1,d5
-	beq.b abs_0_00039F30
+	beq.b extend_zero_hud_attitude_reverse_slope
 	add.w d6,d6
 	muls.w $0(a4,d6.w),d5
 	add.l d5,d5
 	lsr.w #1,d6
 	subq.w #1,d6
-abs_0_00039F48:
+compare_hud_attitude_edge_states:
 	cmp.w d0,d1
-	bne.b abs_0_00039F50
+	bne.b step_hud_attitude_edge_accumulators
 	cmp.l d4,d5
-	beq.b abs_0_00039F72
-abs_0_00039F50:
+	beq.b emit_matching_hud_attitude_edge_tail
+step_hud_attitude_edge_accumulators:
 	swap.w d0
 	add.l d4,d0
 	swap.w d1
@@ -50670,18 +50689,19 @@ abs_0_00039F50:
 	swap.w d0
 	swap.w d1
 	cmp.w d0,d1
-	bcs.b abs_0_00039F6A
+	bcs.b store_crossed_hud_attitude_span
 	move.w d0,(a6)+
 	move.w d1,(a6)+
-	bra.w abs_0_00039ED8
-abs_0_00039F6A:
+	bra.w advance_hud_attitude_forward_edge_count
+store_crossed_hud_attitude_span:
 	move.w d1,(a6)+
 	move.w d0,(a6)+
-	bra.w abs_0_00039ED8
-abs_0_00039F72:
+	bra.w advance_hud_attitude_forward_edge_count
+    ; Matching X/step use a separate tail. Negative steps pair the next X with old X minus one; nonnegative steps pair old X plus one with next X. A stationary single-X edge emits reversed bounds.
+emit_matching_hud_attitude_edge_tail:
 	tst.l d4
-	bpl.b abs_0_00039F8A
-abs_0_00039F76:
+	bpl.b emit_nonnegative_hud_attitude_edge_tail
+emit_negative_hud_attitude_edge_tail:
 	move.w d0,d1
 	subq.w #1,d1
 	swap.w d0
@@ -50689,9 +50709,9 @@ abs_0_00039F76:
 	swap.w d0
 	move.w d0,(a6)+
 	move.w d1,(a6)+
-	dbf.w d3,abs_0_00039F76
-	bra.b abs_0_00039FC8
-abs_0_00039F8A:
+	dbf.w d3,emit_negative_hud_attitude_edge_tail
+	bra.b finish_hud_attitude_span_walk
+emit_nonnegative_hud_attitude_edge_tail:
 	move.w d1,d0
 	addq.w #1,d0
 	swap.w d1
@@ -50699,79 +50719,81 @@ abs_0_00039F8A:
 	swap.w d1
 	move.w d0,(a6)+
 	move.w d1,(a6)+
-	dbf.w d3,abs_0_00039F8A
-	bra.b abs_0_00039FC8
+	dbf.w d3,emit_nonnegative_hud_attitude_edge_tail
+	bra.b finish_hud_attitude_span_walk
 	dc.b $4A,$84,$6A,$14,$30,$01,$53,$40,$48,$41,$D2,$85,$48,$41,$3C,$C1
 	dc.b $3C,$C0,$51,$CB,$FF,$F0,$60,$12,$32,$00,$52,$41,$48,$40,$D0,$84
 	dc.b $48,$40,$3C,$C1,$3C,$C0,$51,$CB,$FF,$F0
-abs_0_00039FC8:
+finish_hud_attitude_span_walk:
 	cmpa.l #shared_workspace_prefix,a6
-	bne.b abs_0_00039FE4
+	bne.b terminate_hud_attitude_spans_and_select_plane
 	cmp.w d0,d1
-	bcs.b abs_0_00039FE0
+	bcs.b store_crossed_single_hud_attitude_span
 	move.w d0,(a6)+
 	move.w d1,(a6)+
 	move.w #$FFFF,(a6)
-	bra.w abs_0_0003A062
-abs_0_00039FE0:
+	bra.w write_hud_attitude_spans_to_selected_rows
+store_crossed_single_hud_attitude_span:
 	move.w d1,(a6)+
 	move.w d0,(a6)+
-abs_0_00039FE4:
+    ; Player roll 833..2880 selects plane 2; other WORDs select plane 1. Changing mode clears 33 opposite-plane LONGs at stride 40; unchanged modes preserve the opposite plane.
+terminate_hud_attitude_spans_and_select_plane:
 	move.w #$FFFF,(a6)
 	move.w hud_attitude_roll_snapshot.l,d1
-	cmp.w #$340,d1
-	bls.b abs_0_00039FFC
-	cmp.w #$B40,d1
-	bhi.b abs_0_00039FFC
-	bra.b abs_0_0003A030
-abs_0_00039FFC:
+	cmp.w #SG2_HUD_ATTITUDE_PLANE1_ROLL_MAX,d1
+	bls.b select_hud_attitude_plane1_mode
+	cmp.w #SG2_HUD_ATTITUDE_PLANE2_ROLL_MAX,d1
+	bhi.b select_hud_attitude_plane1_mode
+	bra.b select_hud_attitude_plane2_mode
+select_hud_attitude_plane1_mode:
 	cmpi.w #1,hud_attitude_active_plane_mode.l
-	beq.b abs_0_0003A022
-	lea.l absolute_slot_000736E6.l,a0
-	moveq.l #32,d0
-	moveq.l #40,d1
+	beq.b bind_hud_attitude_plane1_rows
+	lea.l SG2_HUD_ATTITUDE_PLANE2_ROW_BASE.l,a0
+	moveq.l #SG2_HUD_ATTITUDE_CLEAR_DBF_LAST,d0
+	moveq.l #SG2_HUD_ATTITUDE_ROW_STRIDE,d1
 	moveq.l #0,d2
-abs_0_0003A012:
+clear_hud_attitude_plane2_rows:
 	move.l d2,(a0)
 	adda.w d1,a0
-	dbf.w d0,abs_0_0003A012
+	dbf.w d0,clear_hud_attitude_plane2_rows
 	move.w #$1,hud_attitude_active_plane_mode.l
-abs_0_0003A022:
-	lea.l absolute_slot_000716E6.l,a0
-	lea.l absolute_slot_00071C0E.l,a4
-	bra.b abs_0_0003A062
-abs_0_0003A030:
+bind_hud_attitude_plane1_rows:
+	lea.l SG2_HUD_ATTITUDE_PLANE1_ROW_BASE.l,a0
+	lea.l SG2_HUD_ATTITUDE_PLANE1_ROW_END.l,a4
+	bra.b write_hud_attitude_spans_to_selected_rows
+select_hud_attitude_plane2_mode:
 	cmpi.w #2,hud_attitude_active_plane_mode.l
-	beq.b abs_0_0003A056
-	lea.l absolute_slot_000716E6.l,a0
-	moveq.l #32,d0
-	moveq.l #40,d1
+	beq.b bind_hud_attitude_plane2_rows
+	lea.l SG2_HUD_ATTITUDE_PLANE1_ROW_BASE.l,a0
+	moveq.l #SG2_HUD_ATTITUDE_CLEAR_DBF_LAST,d0
+	moveq.l #SG2_HUD_ATTITUDE_ROW_STRIDE,d1
 	moveq.l #0,d2
-abs_0_0003A046:
+clear_hud_attitude_plane1_rows:
 	move.l d2,(a0)
 	adda.w d1,a0
-	dbf.w d0,abs_0_0003A046
+	dbf.w d0,clear_hud_attitude_plane1_rows
 	move.w #$2,hud_attitude_active_plane_mode.l
-abs_0_0003A056:
-	lea.l absolute_slot_000736E6.l,a0
-	lea.l absolute_slot_00073C0E.l,a4
-abs_0_0003A062:
+bind_hud_attitude_plane2_rows:
+	lea.l SG2_HUD_ATTITUDE_PLANE2_ROW_BASE.l,a0
+	lea.l SG2_HUD_ATTITUDE_PLANE2_ROW_END.l,a4
+    ; Leading clears precede the row-end test: first rows 33/34 overshoot in supplied cases. Masks retain original backing; left index 31 aliases edge scratch. No global clipping/lifetime proof.
+write_hud_attitude_spans_to_selected_rows:
 	lea.l hud_attitude_left_pixel_mask_prefix.l,a3
 	lea.l hud_attitude_right_pixel_masks.l,a2
 	lea.l shared_workspace_prefix.l,a1
 	moveq.l #0,d0
-	moveq.l #40,d1
+	moveq.l #SG2_HUD_ATTITUDE_ROW_STRIDE,d1
 	subi.w #1,d7
-	bmi.b abs_0_0003A086
-abs_0_0003A07E:
+	bmi.b read_next_hud_attitude_mask_span
+clear_hud_attitude_leading_rows:
 	move.l d0,(a0)
 	adda.w d1,a0
-	dbf.w d7,abs_0_0003A07E
-abs_0_0003A086:
+	dbf.w d7,clear_hud_attitude_leading_rows
+read_next_hud_attitude_mask_span:
 	move.w (a1)+,d2
-	bmi.b abs_0_0003A0A8
+	bmi.b clear_hud_attitude_remaining_rows
 	cmpa.l a4,a0
-	bcc.b abs_0_0003A0B2
+	bcc.b restore_hud_attitude_registers_and_return
 	add.w d2,d2
 	add.w d2,d2
 	move.l $0(a3,d2.w),d2
@@ -50782,14 +50804,14 @@ abs_0_0003A086:
 	and.l d3,d2
 	move.l d2,(a0)
 	adda.w d1,a0
-	bra.b abs_0_0003A086
-abs_0_0003A0A8:
+	bra.b read_next_hud_attitude_mask_span
+clear_hud_attitude_remaining_rows:
 	cmpa.l a4,a0
-	bcc.b abs_0_0003A0B2
+	bcc.b restore_hud_attitude_registers_and_return
 	move.l d0,(a0)
 	adda.w d1,a0
-	bra.b abs_0_0003A0A8
-abs_0_0003A0B2:
+	bra.b clear_hud_attitude_remaining_rows
+restore_hud_attitude_registers_and_return:
 	movem.l (a7)+,d0-d7/a0-a6
 	rts
 hud_attitude_rectangle_vectors:	; ARRAY SG2SignedDelta3W[4]
