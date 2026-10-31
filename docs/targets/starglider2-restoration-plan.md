@@ -27,6 +27,34 @@ and strengthened 38 app-base attributions.
 Conditional skips mean104 outer iterations are not104 observed memory reads.
 Loaded pointer values remain subject to separate alias/target validation.
 
+The bouncing-bomb/effect batch reconstructs the response and both software
+sound consumers with 942 original-CPU cases. Gravity adds 4 as WORD, reflection
+forms 10-VY as WORD and motion scale subtracts 20 before testing N. A result of
+exactly zero still rebuilds horizontal motion and publishes sound, before the
+later zero-scale resting test can snap Y=-25 and mark retirement. Negative
+space mode skips surface response but still executes common X/Z masking,
+rest/countdown and vertex-cycle logic. Wrapped WORD countdown and BYTE selector
+sign tests remain; selector update is not a universal modulo 12 operation.
+
+The producer overwrites a single pending raw relative-Z WORD; two original
+updates confirm last-writer behavior even when both records retire that pass.
+Paula takes WORD magnitude (including the $8000 edge), then applies its volume/
+period arithmetic. Generic event consumption follows bounce and wins when both
+are negative. The alternate consumer gives bounce priority, retains generic,
+and uses the raw argument's top nibble rather than magnitude. Empty nearby
+lists bypass request consumption in both paths; Paula's selected phase 1 types
+76..82 also bypass it. Software decay phases, WORD wrap and N-only caps remain.
+No cross-backend distance or wall-clock ABI is introduced.
+
+Paula fixtures enter at $4BCB8, skipping preceding device writes, and stop at
+$4BDCE. Alternate fixtures enter at $4D36C and stop at $4D452. Stored envelope
+and request state is qualified; device phases, complete frame effects and
+audible PCM are not executed.
+Serial supplied-RAM fixtures prove no normal-game reachability, interrupt-time
+latch ordering, global lifetime or hardware behavior. Native proof/reference
+identities and 3509 app / 2716 typed / 165 unresolved counts remain unchanged;
+C/vasm and clean standalone rebuilding retain all original bytes.
+
 The neutron-state batch follows launch, shared request service and nearby/
 distant record updates, with 371 original-CPU cases. Released motion adds signed
 WORD velocity; surface Y adds the same velocity twice before an N-only ground

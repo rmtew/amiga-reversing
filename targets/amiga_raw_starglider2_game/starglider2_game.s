@@ -1435,6 +1435,7 @@ BPLCON2_PF2P2	EQU	$20
 BPLCON2_PF2PRI	EQU	$40
 INTF_CLRALL	EQU	$7FFF
 SG2_AIM_CONTROL_PHASE_MASK	EQU	4095
+SG2_ALTERNATE_GENERIC_EVENT_ARGUMENT	EQU	500
 SG2_ALTERNATE_WEAPON_HUD_ICON_PITCH_BYTES	EQU	1920
 SG2_AMIGA_WEAPON_HUD_ICON_PITCH_BYTES	EQU	480
 SG2_ANGLE_FULL_TURN	EQU	4096
@@ -1443,6 +1444,11 @@ SG2_ANGLE_QUARTER_TURN	EQU	1024
 SG2_ANGLE_THREE_QUARTER_TURN	EQU	3072
 SG2_BLAST_DOOR_OBJECT_VARIANT_THRESHOLD	EQU	3
 SG2_BLAST_DOOR_PLAYER_SKIP_VARIANT	EQU	9
+SG2_BOUNCE_GRAVITY_STEP	EQU	4
+SG2_BOUNCE_MOTION_SCALE_LOSS	EQU	20
+SG2_BOUNCE_REFLECTION_BIAS	EQU	10
+SG2_BOUNCE_SURFACE_Y	EQU	-25
+SG2_BOUNCE_VERTEX_RELOAD	EQU	11
 SG2_CONTACT_COORDINATE_SHIFT	EQU	9
 SG2_CONTACT_PAIR_DBF_SUBTRACT	EQU	2
 SG2_CONTACT_PIXEL_CENTER_X	EQU	144
@@ -1502,6 +1508,7 @@ SG2_OVERLAY_MIN_LEFT	EQU	16
 SG2_OVERLAY_MIN_TOP	EQU	30
 SG2_OVERLAY_ROWS_DBF_LAST	EQU	15
 SG2_OVERLAY_ROW_BYTE_STEP	EQU	160
+SG2_PAULA_TRANSIENT_BASE_PERIOD	EQU	358
 SG2_PLAYER_CORNER_BASE_OFFSET	EQU	401
 SG2_PLAYER_CORNER_SLOPE_FACTOR	EQU	17
 SG2_PLAYER_DEPOT_APPROACH_LIMIT	EQU	575
@@ -47893,44 +47900,53 @@ update_distant_bouncing_bomb:
 	move.b #$92,diagnostic_step_byte.l
 	bsr.w advance_bouncing_bomb_state
 	bra.w abs_0_00039D3E
+    ; Negative space mode skips surface gravity/reflection, but common X/Z/rest/countdown still runs. Motion scale 20 reaches zero yet can publish sound before immediate retirement.
     ; KNOWN: type A0=Target code-entry register seed:SG2BouncingBomb
 advance_bouncing_bomb_state:
 	tst.b space_environment_flag(a6)
-	bmi.w abs_0_00036934
+	bmi.w integrate_bounce_horizontal_motion_and_wrap
+halve_bouncing_bomb_pitch_word:
 	move.w SG2WorldObject_rotation_0(a0),d0
 	asr.w #1,d0
 	move.w d0,SG2WorldObject_rotation_0(a0)
+halve_bouncing_bomb_roll_word:
 	move.w SG2WorldObject_rotation_2(a0),d0
 	asr.w #1,d0
 	move.w d0,SG2WorldObject_rotation_2(a0)
-	addq.w #4,SG2WorldObject_velocity_y(a0)
+add_wrapping_bounce_gravity_to_vertical_velocity:
+	addq.w #SG2_BOUNCE_GRAVITY_STEP,SG2WorldObject_velocity_y(a0)
 	move.w SG2WorldObject_velocity_y(a0),d3
 	ext.l d3
 	add.l d3,SG2ObjectCore_world_y(a0)
-	cmpi.l #4294967271,SG2ObjectCore_world_y(a0)
-	bmi.w abs_0_00036934
+test_bounce_surface_y_using_result_sign:
+	cmpi.l #SG2_BOUNCE_SURFACE_Y,SG2ObjectCore_world_y(a0)
+	bmi.w integrate_bounce_horizontal_motion_and_wrap
+advance_bounce_vertex_mask_and_reflect_velocity:
 	addq.w #3,SG2BouncingBomb_vertex_cycle_mask(a0)
 	move.w SG2WorldObject_velocity_y(a0),d3
-	subi.w #10,d3
+	subi.w #SG2_BOUNCE_REFLECTION_BIAS,d3
 	neg.w d3
 	move.w d3,SG2WorldObject_velocity_y(a0)
 	ext.l d3
 	add.l d3,SG2ObjectCore_world_y(a0)
-	subi.w #20,SG2MotionVectorActor_motion_vector_scale(a0)
-	bpl.b abs_0_0003691A
+reduce_bounce_motion_scale_and_test_word_sign:
+	subi.w #SG2_BOUNCE_MOTION_SCALE_LOSS,SG2MotionVectorActor_motion_vector_scale(a0)
+	bpl.b rebuild_bounce_horizontal_motion_from_rotation
+zero_negative_bounce_scale_and_horizontal_velocity:
 	move.w #$0,SG2MotionVectorActor_motion_vector_scale(a0)
 	move.w #$0,SG2WorldObject_velocity_x(a0)
 	move.w #$0,SG2WorldObject_velocity_z(a0)
-	bra.w abs_0_00036934
-abs_0_0003691A:
+	bra.w integrate_bounce_horizontal_motion_and_wrap
+rebuild_bounce_horizontal_motion_from_rotation:
 	move.w SG2MotionVectorActor_motion_vector_scale(a0),d3
 	bsr.w build_object_motion_vector_from_rotation
 	move.w d4,SG2WorldObject_velocity_x(a0)
 	move.w d6,SG2WorldObject_velocity_z(a0)
-    ; Bouncing-bomb update copies object WORD+$1A as the sound argument and sets a sign-bit pending BYTE. The two audio backends interpret the argument differently; no generic distance ABI claimed.
+    ; Publish raw relative-Z WORD, overwriting any pending argument. Zero scale after a nonnegative subtraction still reaches this point; the stop test runs later. Backends consume it differently.
+publish_bounce_sound_request_and_raw_relative_z:
 	st.b pending_bomb_bounce_sound(a6)
 	move.w SG2ObjectCore_relative_z(a0),bomb_bounce_sound_argument(a6)
-abs_0_00036934:
+integrate_bounce_horizontal_motion_and_wrap:
 	move.w SG2WorldObject_velocity_x(a0),d3
 	ext.l d3
 	add.l d3,SG2ObjectCore_world_x(a0)
@@ -47940,26 +47956,31 @@ abs_0_00036934:
 	move.l horizontal_world_wrap_mask(a6),d3
 	and.l d3,SG2ObjectCore_world_x(a0)
 	and.l d3,SG2ObjectCore_world_z(a0)
+test_zero_scale_bounce_for_resting_retirement:
 	tst.w SG2MotionVectorActor_motion_vector_scale(a0)
-	bne.b abs_0_00036974
-	cmpi.l #4294967271,SG2ObjectCore_world_y(a0)
-	bmi.b abs_0_00036974
-	move.l #$FFFFFFE7,SG2ObjectCore_world_y(a0)
+	bne.b decrement_bounce_countdown_and_test_result_sign
+	cmpi.l #SG2_BOUNCE_SURFACE_Y,SG2ObjectCore_world_y(a0)
+	bmi.b decrement_bounce_countdown_and_test_result_sign
+snap_resting_bounce_y_and_mark_retirement:
+	move.l #SG2_BOUNCE_SURFACE_Y,SG2ObjectCore_world_y(a0)
 	move.b #$0,SG2ObjectCore_retirement_phase_or_negative(a0)
 	rts
-abs_0_00036974:
+decrement_bounce_countdown_and_test_result_sign:
 	subq.w #1,SG2TimedMotionActor_remaining_updates(a0)
-	bmi.b abs_0_00036998
+	bmi.b mark_expired_bounce_for_retirement
+advance_masked_bounce_vertex_cycle:
 	move.w SG2BouncingBomb_vertex_cycle_mask(a0),d0
 	addq.w #1,SG2BouncingBomb_vertex_cycle_phase(a0)
 	and.w d0,SG2BouncingBomb_vertex_cycle_phase(a0)
-	bne.b abs_0_00036996
+	bne.b return_from_bouncing_bomb_update
+decrement_bounce_vertex_selector_and_test_byte_sign:
 	subi.b #1,SG2WorldObject_vertex_variant_selector(a0)
-	bpl.b abs_0_00036996
-	move.b #$B,SG2WorldObject_vertex_variant_selector(a0)
-abs_0_00036996:
+	bpl.b return_from_bouncing_bomb_update
+reload_bounce_vertex_selector_after_negative_result:
+	move.b #SG2_BOUNCE_VERTEX_RELOAD,SG2WorldObject_vertex_variant_selector(a0)
+return_from_bouncing_bomb_update:
 	rts
-abs_0_00036998:
+mark_expired_bounce_for_retirement:
 	move.b #$0,SG2ObjectCore_retirement_phase_or_negative(a0)
 	rts
 	dc.b $30,$28,$00,$2C,$48,$C0,$D1,$A8,$00,$04,$30,$28,$00,$30,$48,$C0
@@ -59063,97 +59084,99 @@ abs_0_0004BC72:
 	move.w #$25C,d1
 	sub.w d0,d1
 	cmp.w d2,d1
-	beq.b abs_0_0004BCB8
+	beq.b clear_paula_nearby_override_and_gate_list_count
 	bmi.b abs_0_0004BC86
 	bpl.b abs_0_0004BCA0
 abs_0_0004BC86:
 	subq.w #4,paula_speed_sound_base_period.l
 	cmpi.w #124,paula_speed_sound_base_period.l
-	bpl.b abs_0_0004BCB8
+	bpl.b clear_paula_nearby_override_and_gate_list_count
 	move.w #$7C,paula_speed_sound_base_period.l
-	bra.b abs_0_0004BCB8
+	bra.b clear_paula_nearby_override_and_gate_list_count
 abs_0_0004BCA0:
 	addq.w #4,paula_speed_sound_base_period.l
 	cmpi.w #604,paula_speed_sound_base_period.l
-	bmi.b abs_0_0004BCB8
+	bmi.b clear_paula_nearby_override_and_gate_list_count
 	move.w #$25C,paula_speed_sound_base_period.l
-abs_0_0004BCB8:
+clear_paula_nearby_override_and_gate_list_count:
 	move.w #$0,nearby_effect_or_override_present_word.l
 	move.w nearby_object_count(a6),d0
-	beq.w abs_0_0004BDA4
+	beq.w decay_paula_effect_volume_using_word_sign
 	movea.l nearby_objects_cursor(a6),a0
 	subq.w #1,d0
 	move.w #$7FFF,d1
 	move.w #$0,d7
-abs_0_0004BCD6:
+scan_paula_phase_one_nearby_effect_candidates:
 	movea.l (a0)+,a1
 	cmpi.b #1,SG2ObjectCore_retirement_phase_or_negative(a1)
 	bne.b abs_0_0004BCF4
 	move.w #$1,nearby_effect_or_override_present_word.l
+compare_paula_candidate_relative_z_with_result_sign:
 	move.w SG2ObjectCore_relative_z(a1),d2
 	cmp.w d1,d2
 	bpl.b abs_0_0004BCF4
 	move.w d2,d1
 	move.w (a1),d7	; operand 1: SG2ObjectCore_object_type at (a1)
 abs_0_0004BCF4:
-	dbf.w d0,abs_0_0004BCD6
+	dbf.w d0,scan_paula_phase_one_nearby_effect_candidates
+test_selected_paula_type_for_projector_override:
 	tst.w d7
-	beq.b abs_0_0004BD1E
+	beq.b consume_paula_bounce_then_generic_requests
 	cmp.w #$4B,d7
-	ble.b abs_0_0004BD1E
+	ble.b consume_paula_bounce_then_generic_requests
 	cmp.w #$52,d7
-	ble.b abs_0_0004BD0A
-	bra.b abs_0_0004BD1E
-abs_0_0004BD0A:
+	ble.b set_paula_projector_effect_without_consuming_requests
+	bra.b consume_paula_bounce_then_generic_requests
+set_paula_projector_effect_without_consuming_requests:
 	move.w #$40,paula_channel2_effect_volume.l
 	move.w #$186,paula_channel2_effect_base_period.l
-	bra.w abs_0_0004BDA4
-    ; Paula: consume bounce request/argument, then consume generic event request. If both are pending, generic wins and both flags clear. This differs from the alternate backend.
-abs_0_0004BD1E:
+	bra.w decay_paula_effect_volume_using_word_sign
+    ; Paula consumes bounce then generic, so generic wins when both are negative. Empty nearby lists and selected types 76..82 bypass consumption. Tests cover stored envelope state, not PCM.
+consume_paula_bounce_then_generic_requests:
 	tst.b pending_bomb_bounce_sound(a6)
-	bpl.b abs_0_0004BD3C
+	bpl.b consume_paula_generic_request_after_bounce
 	move.w #$1,nearby_effect_or_override_present_word.l
 	move.w bomb_bounce_sound_argument(a6),d1
-	move.w #$166,paula_channel2_effect_base_period.l
+	move.w #SG2_PAULA_TRANSIENT_BASE_PERIOD,paula_channel2_effect_base_period.l
 	sf.b pending_bomb_bounce_sound(a6)
-abs_0_0004BD3C:
+consume_paula_generic_request_after_bounce:
 	tst.b pending_transient_event_sound(a6)
-	bpl.b abs_0_0004BD5A
+	bpl.b gate_paula_event_attenuation_on_active_word
 	move.w #$1,nearby_effect_or_override_present_word.l
 	move.w #$1,d1
-	move.w #$166,paula_channel2_effect_base_period.l
+	move.w #SG2_PAULA_TRANSIENT_BASE_PERIOD,paula_channel2_effect_base_period.l
 	sf.b pending_transient_event_sound(a6)
-abs_0_0004BD5A:
+gate_paula_event_attenuation_on_active_word:
 	tst.w nearby_effect_or_override_present_word.l
-	beq.b abs_0_0004BDA4
+	beq.b decay_paula_effect_volume_using_word_sign
 	tst.w d1
-	bpl.b abs_0_0004BD68
+	bpl.b derive_paula_volume_from_word_magnitude
 	neg.w d1
-abs_0_0004BD68:
+derive_paula_volume_from_word_magnitude:
 	move.w d1,d2
 	lsr.w #7,d1
 	neg.w d1
 	addi.w #64,d1
 	cmp.w paula_channel2_effect_volume.l,d1
-	bmi.b abs_0_0004BD80
+	bmi.b retest_pending_bounce_before_paula_pitch_adjustment
 	move.w d1,paula_channel2_effect_volume.l
-abs_0_0004BD80:
+retest_pending_bounce_before_paula_pitch_adjustment:
 	tst.b pending_bomb_bounce_sound(a6)
-	bmi.b abs_0_0004BDA4
+	bmi.b decay_paula_effect_volume_using_word_sign
 	lsr.w #4,d2
 	addi.w #124,d2
 	move.w paula_channel2_effect_base_period.l,d3
 	sub.w d2,d3
 	cmp.w #$7C,d3
-	bpl.b abs_0_0004BD9E
+	bpl.b store_paula_effect_period_after_minimum_gate
 	move.w #$7C,d3
-abs_0_0004BD9E:
+store_paula_effect_period_after_minimum_gate:
 	move.w d3,paula_channel2_effect_base_period.l
-abs_0_0004BDA4:
+decay_paula_effect_volume_using_word_sign:
 	subq.w #1,paula_channel2_effect_volume.l
-	bpl.b abs_0_0004BDB4
+	bpl.b advance_paula_effect_period_with_n_only_cap
 	move.w #$0,paula_channel2_effect_volume.l
-abs_0_0004BDB4:
+advance_paula_effect_period_with_n_only_cap:
 	addi.w #30,paula_channel2_effect_base_period.l
 	cmpi.w #1000,paula_channel2_effect_base_period.l
 	bmi.b abs_0_0004BDCE
@@ -60781,64 +60804,67 @@ paula_sample_transition_volume_shifts:
 update_alternate_frame_effects:
 	move.b #$90,diagnostic_step_byte.l
 	movem.l d0-d7/a0-a6,-(a7)
+clear_alternate_event_active_and_gate_list_count:
 	move.w #$0,alternate_nearby_event_active_word.l
 	move.w nearby_object_count(a6),d0
-	beq.w abs_0_0004D416
+	beq.w advance_alternate_event_decay_phase_mod4
 	movea.l nearby_objects_cursor(a6),a0
 	move.b #$91,diagnostic_step_byte.l
 	subq.w #1,d0
 	move.w #$7FFF,d1
-abs_0_0004D38E:
+scan_alternate_phase_one_nearby_effect_candidates:
 	movea.l (a0)+,a1
 	cmpi.b #1,SG2ObjectCore_retirement_phase_or_negative(a1)
 	bne.b abs_0_0004D3AE
 	move.w #$1,alternate_nearby_event_active_word.l
 	move.w SG2ObjectCore_relative_z(a1),d2
-	bpl.b abs_0_0004D3A8
+	bpl.b compare_alternate_word_magnitude_with_result_sign
 	neg.w d2
-abs_0_0004D3A8:
+compare_alternate_word_magnitude_with_result_sign:
 	cmp.w d1,d2
 	bpl.b abs_0_0004D3AE
 	move.w d2,d1
 abs_0_0004D3AE:
-	dbf.w d0,abs_0_0004D38E
+	dbf.w d0,scan_alternate_phase_one_nearby_effect_candidates
 	move.b #$92,diagnostic_step_byte.l
-    ; Alternate: consume bounce request first and branch past generic request. With both pending, generic remains for a later update; preserve this backend-specific priority.
+    ; Alternate bounce wins and leaves generic pending. Empty nearby lists bypass consumption. Raw argument top nibble controls candidate volume; quarter-rate decay is a software phase, not time.
+consume_alternate_bounce_before_generic_request:
 	tst.b pending_bomb_bounce_sound(a6)
-	bpl.b abs_0_0004D3D2
+	bpl.b consume_alternate_generic_if_no_bounce_request
 	move.w #$1,alternate_nearby_event_active_word.l
 	move.w bomb_bounce_sound_argument(a6),d1
 	sf.b pending_bomb_bounce_sound(a6)
-	bra.b abs_0_0004D3E8
-abs_0_0004D3D2:
+	bra.b gate_alternate_envelope_update_on_active_word
+consume_alternate_generic_if_no_bounce_request:
 	tst.b pending_transient_event_sound(a6)
-	bpl.b abs_0_0004D3E8
+	bpl.b gate_alternate_envelope_update_on_active_word
 	move.w #$1,alternate_nearby_event_active_word.l
-	move.w #$1F4,d1
+	move.w #SG2_ALTERNATE_GENERIC_EVENT_ARGUMENT,d1
 	sf.b pending_transient_event_sound(a6)
-abs_0_0004D3E8:
+gate_alternate_envelope_update_on_active_word:
 	tst.w alternate_nearby_event_active_word.l
-	beq.b abs_0_0004D416
+	beq.b advance_alternate_event_decay_phase_mod4
 	move.b #$C,d3
 	lsr.w d3,d1
 	neg.w d1
 	addi.w #15,d1
-	bpl.b abs_0_0004D400
+	bpl.b raise_alternate_event_volume_candidate
 	clr.w d1
-abs_0_0004D400:
+raise_alternate_event_volume_candidate:
 	cmp.w psg_nearby_event_volume_envelope.l,d1
-	bmi.b abs_0_0004D40E
+	bmi.b reset_alternate_event_noise_period_after_activity
 	move.w d1,psg_nearby_event_volume_envelope.l
-abs_0_0004D40E:
+reset_alternate_event_noise_period_after_activity:
 	move.w #$F,psg_nearby_event_noise_period.l
-abs_0_0004D416:
+advance_alternate_event_decay_phase_mod4:
 	addq.w #1,psg_nearby_event_decay_phase_mod4.l
 	andi.w #3,psg_nearby_event_decay_phase_mod4.l
-	bne.b abs_0_0004D436
+	bne.b advance_alternate_event_noise_period_with_n_only_cap
+decay_alternate_event_volume_on_zero_phase:
 	subq.w #1,psg_nearby_event_volume_envelope.l
-	bpl.b abs_0_0004D436
+	bpl.b advance_alternate_event_noise_period_with_n_only_cap
 	move.w #$0,psg_nearby_event_volume_envelope.l
-abs_0_0004D436:
+advance_alternate_event_noise_period_with_n_only_cap:
 	addi.w #1,psg_nearby_event_noise_period.l
 	move.w psg_nearby_event_noise_period.l,d0
 	cmp.w #$1F,d0

@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "source_commit": "cf155e67df254c5d308418fbbb3820f92b885bc7",
+  "source_commit": "83cf62e0955f31f337fef38898fc7d22bde9726d",
   "source_assembly": "starglider2_game.s",
   "assets": [
     {
@@ -878,13 +878,13 @@
     },
     {
       "path": "rendered-provenance.json",
-      "bytes": 3485,
-      "sha256": "216acaa06ae47e1cbef835b8a145eaa64c265fcbfb8bfc1fb3e218389bd29c51"
+      "bytes": 3506,
+      "sha256": "5341156d9641fca47b2aa2a75eada3e14defa58d2db0dcd08f732a5aadce0a55"
     },
     {
       "path": "starglider2_game.s",
-      "bytes": 2120618,
-      "sha256": "86420ddae6970cc68e68e1ee9d74bb0de00298c095a58f620928c3dd1488142c"
+      "bytes": 2124005,
+      "sha256": "4b6a4d9c372011127e289d6c6e913140e869a85df00cf4acf63bce2230fe2fad"
     },
     {
       "path": "tools/starglider2_protection.py",
@@ -892,6 +892,6 @@
       "sha256": "81d3f66d36dbfbd5c77238b20c28e8b9abaa329777eb91f64669bbbf13703582"
     }
   ],
-  "source_commit_role": "canonical source publication base; neutron launch, request service and carried/released update reconstructed through371 original-CPU cases and3 signed-scalar catalog cases; preserve N-only overflow aliases, partial fallback reuse, null and nonidentity distinctions; supplied RAM, not normal-game reachability, arbitrary pointers or global lifetime proof; output is bound by verification_receipt_id",
-  "source_subject_revision": "8addcecc154530191eaa78b93f02621488142b154b7feaec573babab3a12a6f9"
+  "source_commit_role": "canonical source publication base; bouncing-bomb response and both software sound consumers reconstructed through942 original-CPU cases; retain WORD/BYTE overflow, latch overwrite, request priority and empty-list/projector bypass; sound continuations stop before device-writing phases, not PCM, complete frame effects, normal-game reachability, concurrency or lifetime proof; output is bound by verification_receipt_id",
+  "source_subject_revision": "793128099f35e8939f4f710320664a760ea81d84aca07ce85c97b1d3cde95556"
 }
