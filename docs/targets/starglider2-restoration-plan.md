@@ -27,6 +27,25 @@ and strengthened 38 app-base attributions.
 Conditional skips mean104 outer iterations are not104 observed memory reads.
 Loaded pointer values remain subject to separate alias/target validation.
 
+The heading batch reconstructs 23 connected sampling/return/helper continuations,
+eight 16-byte bitmap streams, seven shared arithmetic constants and seven fixed
+destination points across the three original rendering paths. Eight streams form
+five logical rows: shared borders and three pairs of plane streams. The alternate
+mode 0 emits interleaved plane words; mode 1 ORs each pair and doubles pixels
+horizontally and vertically. Destination points do not declare framebuffer leases.
+
+33 isolated original-instruction CPU fixtures include all 4096 normalized inputs
+in each renderer (12288 calls), with persistent caches, 90 distinct samples and
+91 repaints per renderer. Independent bitstring/output models check the supplied
+RAM writes. The divisor remains 365. The prior claim below of sampling beyond the
+128-byte strip is retracted: sample 0..89 yields coarse offsets 0..10, so every
+six-byte window fits its 16-byte stream. The separate count-zero queue predecessor
+still aliases the strip's final LONG; the strip is not declared immutable.
+Initial FFFF cache collisions and shared alternate caches remain unchanged.
+These fixtures do not establish actual mode-switch invalidation, gameplay entry,
+DMA accesses or hardware scanout. Access/CFG/summary and data-reference identities
+are preserved; this is source reconstruction, not additional typed coverage.
+
 The message batch reconstructs 22 continuations and corrects enqueue/bridge
 names to describe preceding-pointer comparison rather than global uniqueness.
 Viewer prompt/cursor slots, digit and drawing backing, empty text and the
@@ -48,8 +67,8 @@ C/vasm and clean standalone rebuilding preserve all 412736 bytes; 57 assets and
 14 headers are unchanged. Protected access/address/CFG/summary vectors remain
 identical. Classification accounts for 55 bytes, leaving 11123 in 273 intervals
 (the new boundaries split gaps). No normal-media, IRQ timing, scanout or global
-capacity coverage is added. Next connected lead: the heading-strip sampler and
-its bitmap/cache consumers adjacent to the queue.
+capacity coverage is added. That lead is addressed by the heading batch above. The next connected lead is
+the original callers and reset paths of the alternate heading cache pair.
 
 The text-input/planar-text batch reconstructs 50 connected continuations,
 two control-prefixed cursor marker strings, the mutable echo byte/NUL backing,
@@ -1035,10 +1054,11 @@ and alternate renderers: four negated-heading/quantized-sample WORD caches,
 two LONG glyph/backspace destination-byte strides, a LONG score-addend scratch
 and the stored 128-byte heading-strip prefix. All 148 consumed bytes are newly
 classified; the unknown union is now 12355 bytes /271 intervals. The original
-selector arithmetic yields even offsets 0..14. Its final row WORD can reach
-132 bytes from the prefix base, consuming four bytes of the following message
-directory; ownership still ends at byte 128. This original overlap is preserved,
-not treated as padding or certified safe. The 1/7-byte text-step changes, shared
+selector arithmetic was previously interpreted as even offsets 0..14 and an
+out-of-strip read. That interpretation is retracted by the exhaustive heading
+fixtures above: coarse offsets are 0..10 and every stream read stays in bounds.
+Ownership still ends at byte 128; no queue ownership or immutable asset contract
+is inferred from adjacency. The 1/7-byte text-step changes, shared
 alternate cache lifetime and arbitrary score-addend behavior remain unchanged.
 C/vasm is exact; the native totals remain **3503 app /2650 typed /177 unresolved**.
 This adds source meaning rather than new runtime or register-typed coverage.

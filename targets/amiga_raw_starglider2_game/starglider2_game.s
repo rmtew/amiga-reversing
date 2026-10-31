@@ -1434,6 +1434,13 @@ ADKF_CLRALL	EQU	$7FFF
 BPLCON2_PF2P2	EQU	$20
 BPLCON2_PF2PRI	EQU	$40
 INTF_CLRALL	EQU	$7FFF
+SG2_HEADING_ANGLE_MASK	EQU	4095
+SG2_HEADING_COARSE_BYTE_MASK	EQU	254
+SG2_HEADING_DIVISOR	EQU	365
+SG2_HEADING_FINE_SHIFT_MASK	EQU	15
+SG2_HEADING_QUOTIENT_MASK	EQU	511
+SG2_HEADING_SAMPLE_SHIFT	EQU	2
+SG2_HEADING_SCALE_SHIFT	EQU	5
 SG2_MESSAGE_COUNTDOWN_RELOAD	EQU	75
 SG2_MESSAGE_QUEUE_POINTER_LIMIT	EQU	10
 SG2_MESSAGE_ROWS_DBF_LAST	EQU	7
@@ -1634,6 +1641,13 @@ dblk_ref_h0_0003B054_runtime_0003C054	EQU	$3C054
 dblk_ref_h0_0003B214_runtime_0003C214	EQU	$3C214
 dblk_ref_h0_0003B3D4_runtime_0003C3D4	EQU	$3C3D4
 dblk_ref_h0_0003B594_runtime_0003C594	EQU	$3C594
+heading_amiga_row_anchor	EQU	$71506
+heading_mode0_bank0_anchor	EQU	$6D418
+heading_mode0_bank1_anchor	EQU	$75418
+heading_mode0_bank2_anchor	EQU	$7D418
+heading_mode1_bank0_anchor	EQU	$6D3EC
+heading_mode1_bank1_anchor	EQU	$753EC
+heading_mode1_bank2_anchor	EQU	$7D3EC
 m68k_vector_address_error	EQU	$C
 m68k_vector_bus_error	EQU	$8
 m68k_vector_division_by_zero	EQU	$14
@@ -16126,32 +16140,35 @@ rewind_text_delete_to_previous_row:
 	bra.b erase_last_editable_character
 text_input_character_limit:
 	dc.w $0008
+    ; First cache compares raw negated WORD before masking; second compares sample 0..89. Initial FFFF collides with rotation 1 and can skip a supplied first call. No game-startup assumption.
 draw_amiga_heading_strip:
 	move.w player_rotation_1(a6),d0
 	neg.w d0
 	cmp.w amiga_heading_negated_rotation_cache.l,d0
-	beq.w abs_0_0000D9FE
+	beq.w return_from_amiga_heading_strip
 	move.w d0,amiga_heading_negated_rotation_cache.l
-	andi.l #4095,d0
-	asl.l #5,d0
-	divs.w #$16D,d0
-	andi.l #511,d0
-	lsr.l #2,d0
+	andi.l #SG2_HEADING_ANGLE_MASK,d0
+	asl.l #SG2_HEADING_SCALE_SHIFT,d0
+	divs.w #SG2_HEADING_DIVISOR,d0
+	andi.l #SG2_HEADING_QUOTIENT_MASK,d0
+	lsr.l #SG2_HEADING_SAMPLE_SHIFT,d0
 	cmp.w amiga_heading_strip_sample_cache.l,d0
-	beq.w abs_0_0000D9FE
+	beq.w return_from_amiga_heading_strip
 	move.w d0,amiga_heading_strip_sample_cache.l
-	lea.l absolute_slot_00071506.l,a0
-	lea.l heading_strip_bit_rows_prefix(pc),a1
+	lea.l heading_amiga_row_anchor.l,a0
+	lea.l heading_strip_row_streams(pc),a1
 	moveq.l #0,d3
 	ror.l #3,d0
 	move.l d0,d1
-	andi.l #254,d0
+	andi.l #SG2_HEADING_COARSE_BYTE_MASK,d0
 	rol.l #3,d1
-	andi.l #15,d1
+	andi.l #SG2_HEADING_FINE_SHIFT_MASK,d1
 	move.l d1,d4
 	moveq.l #16,d2
 	sub.w d1,d2
 	move.w d2,d4
+    ; Sample=(normalized*32/365 masked 511)>>2. Coarse=2*(sample>>4), shift=sample&15; six-byte windows fit each 16-byte stream. Bounds here concern original CPU inputs, not DMA.
+sample_amiga_heading_top_row:
 	move.w $4(a1,d0.w),d3
 	move.l $0(a1,d0.w),d2
 	lsl.l d1,d2
@@ -16159,42 +16176,49 @@ draw_amiga_heading_strip:
 	or.l d3,d2
 	move.l d2,$4000(a0)
 	move.l d2,$6000(a0)
+sample_amiga_heading_plane2_row1:
 	move.w $14(a1,d0.w),d3
 	move.l $10(a1,d0.w),d2
 	lsl.l d1,d2
 	lsr.w d4,d3
 	or.l d3,d2
 	move.l d2,$4028(a0)
+sample_amiga_heading_plane3_row1:
 	move.w $24(a1,d0.w),d3
 	move.l $20(a1,d0.w),d2
 	lsl.l d1,d2
 	lsr.w d4,d3
 	or.l d3,d2
 	move.l d2,$6028(a0)
+sample_amiga_heading_plane2_row2:
 	move.w $34(a1,d0.w),d3
 	move.l $30(a1,d0.w),d2
 	lsl.l d1,d2
 	lsr.w d4,d3
 	or.l d3,d2
 	move.l d2,$4050(a0)
+sample_amiga_heading_plane3_row2:
 	move.w $44(a1,d0.w),d3
 	move.l $40(a1,d0.w),d2
 	lsl.l d1,d2
 	lsr.w d4,d3
 	or.l d3,d2
 	move.l d2,$6050(a0)
+sample_amiga_heading_plane2_row3:
 	move.w $54(a1,d0.w),d3
 	move.l $50(a1,d0.w),d2
 	lsl.l d1,d2
 	lsr.w d4,d3
 	or.l d3,d2
 	move.l d2,$4078(a0)
+sample_amiga_heading_plane3_row3:
 	move.w $64(a1,d0.w),d3
 	move.l $60(a1,d0.w),d2
 	lsl.l d1,d2
 	lsr.w d4,d3
 	or.l d3,d2
 	move.l d2,$6078(a0)
+sample_amiga_heading_bottom_row:
 	move.w $74(a1,d0.w),d3
 	move.l $70(a1,d0.w),d2
 	lsl.l d1,d2
@@ -16202,8 +16226,9 @@ draw_amiga_heading_strip:
 	or.l d3,d2
 	move.l d2,$40A0(a0)
 	move.l d2,$60A0(a0)
-abs_0_0000D9FE:
+return_from_amiga_heading_strip:
 	rts
+    ; Mutable raw-negation/sample cache pair, initially FFFF/FFFF. These are not out-of-domain valid bits; a first raw-cache hit leaves the second cache untouched.
 amiga_heading_negated_rotation_cache:
 	dc.w $FFFF
 amiga_heading_strip_sample_cache:
@@ -16584,14 +16609,22 @@ text_backspace_destination_byte_step:
 	dcb.b $46,$00
 score_addend_bcd_source_scratch:
 	dc.l $00000000
-heading_strip_bit_rows_prefix:
+    ; Eight 16-byte streams: 0/7 shared borders; 1/2,3/4,5/6 planes 2/3 interiors. The queue count-zero predecessor aliases the last LONG. Preserve that relation without inventing queue ownership.
+heading_strip_row_streams:
 	dc.w $0002,$2000,$0F80,$001F,$0000,$4400,$0110,$0000
+heading_strip_plane2_row1:
 	dc.w $0003,$2000,$0800,$0010,$0000,$4400,$0190,$0000
+heading_strip_plane3_row1:
 	dc.w $0403,$2010,$0800,$4010,$0080,$4402,$0190,$0800
+heading_strip_plane2_row2:
 	dc.w $0002,$A000,$0E00,$001F,$0000,$4400,$0150,$0000
+heading_strip_plane3_row2:
 	dc.w $2E92,$A4BA,$4E12,$E49F,$25D2,$4497,$4952,$5D00
+heading_strip_plane2_row3:
 	dc.w $0002,$6000,$0800,$0001,$0000,$5400,$0130,$0000
+heading_strip_plane3_row3:
 	dc.w $0402,$6010,$0800,$4001,$0080,$5402,$0130,$0800
+heading_strip_shared_bottom_row:
 	dc.w $0002,$2000,$0F80,$001F,$0000,$7C00,$0110,$0000
 pending_message_pointer_slots:
 	dcb.l $A,$00000000
@@ -52881,34 +52914,36 @@ increment_and_draw_periodic_bcd_alternate:
 	lea.l absolute_slot_00070C28.l,a3
 	lea.l absolute_slot_00078C28.l,a4
 	bra.w abs_0_0003CB24
+    ; Same quantization as Amiga; writes interleaved planes 2/3 words to all three banks. Both alternate routines share one cache pair; actual mode-change invalidation is not qualified.
 draw_heading_strip_mode0:
 	move.w player_rotation_1(a6),d0
 	neg.w d0
 	cmp.w alternate_heading_negated_rotation_cache.l,d0
-	beq.w abs_0_0003CF1C
+	beq.w return_from_heading_strip_mode0
 	move.w d0,alternate_heading_negated_rotation_cache.l
-	andi.l #4095,d0
-	asl.l #5,d0
-	divs.w #$16D,d0
-	andi.l #511,d0
-	lsr.l #2,d0
+	andi.l #SG2_HEADING_ANGLE_MASK,d0
+	asl.l #SG2_HEADING_SCALE_SHIFT,d0
+	divs.w #SG2_HEADING_DIVISOR,d0
+	andi.l #SG2_HEADING_QUOTIENT_MASK,d0
+	lsr.l #SG2_HEADING_SAMPLE_SHIFT,d0
 	cmp.w alternate_heading_strip_sample_cache.l,d0
-	beq.w abs_0_0003CF1C
+	beq.w return_from_heading_strip_mode0
 	move.w d0,alternate_heading_strip_sample_cache.l
-	lea.l absolute_slot_0006D418.l,a0
-	lea.l absolute_slot_00075418.l,a2
-	lea.l absolute_slot_0007D418.l,a3
-	lea.l heading_strip_bit_rows_prefix.l,a1
+	lea.l heading_mode0_bank0_anchor.l,a0
+	lea.l heading_mode0_bank1_anchor.l,a2
+	lea.l heading_mode0_bank2_anchor.l,a3
+	lea.l heading_strip_row_streams.l,a1
 	moveq.l #0,d3
 	ror.l #3,d0
 	move.l d0,d1
-	andi.l #254,d0
+	andi.l #SG2_HEADING_COARSE_BYTE_MASK,d0
 	rol.l #3,d1
-	andi.l #15,d1
+	andi.l #SG2_HEADING_FINE_SHIFT_MASK,d1
 	move.l d1,d4
 	moveq.l #16,d2
 	sub.w d1,d2
 	move.w d2,d4
+sample_mode0_heading_top_row:
 	move.w $4(a1,d0.w),d3
 	move.l $0(a1,d0.w),d2
 	lsl.l d1,d2
@@ -52927,6 +52962,7 @@ draw_heading_strip_mode0:
 	move.l d3,$0004(a2)
 	move.l d3,$0004(a3)
 	moveq.l #0,d3
+sample_mode0_heading_inner_row1:
 	move.w $14(a1,d0.w),d3
 	move.l $10(a1,d0.w),d2
 	lsl.l d1,d2
@@ -52954,6 +52990,7 @@ draw_heading_strip_mode0:
 	move.w d2,$00A6(a2)
 	move.w d2,$00A6(a3)
 	moveq.l #0,d3
+sample_mode0_heading_inner_row2:
 	move.w $34(a1,d0.w),d3
 	move.l $30(a1,d0.w),d2
 	lsl.l d1,d2
@@ -52981,6 +53018,7 @@ draw_heading_strip_mode0:
 	move.w d2,$014E(a2)
 	move.w d2,$014E(a3)
 	moveq.l #0,d3
+sample_mode0_heading_inner_row3:
 	move.w $54(a1,d0.w),d3
 	move.l $50(a1,d0.w),d2
 	lsl.l d1,d2
@@ -53008,6 +53046,7 @@ draw_heading_strip_mode0:
 	move.w d2,$01EE(a2)
 	move.w d2,$01EE(a3)
 	moveq.l #0,d3
+sample_mode0_heading_bottom_row:
 	move.w $74(a1,d0.w),d3
 	move.l $70(a1,d0.w),d2
 	lsl.l d1,d2
@@ -53025,8 +53064,9 @@ draw_heading_strip_mode0:
 	move.l d3,$0284(a0)
 	move.l d3,$0284(a2)
 	move.l d3,$0284(a3)
-abs_0_0003CF1C:
+return_from_heading_strip_mode0:
 	rts
+    ; Shared by alternate mode 0 and mode 1. Direct transition with the same cached angle skips repaint; do not invent per-mode caches or claim real mode-switch behavior.
 alternate_heading_negated_rotation_cache:
 	dc.w $FFFF
 alternate_heading_strip_sample_cache:
@@ -53435,41 +53475,44 @@ increment_and_draw_periodic_bcd_mode1:
 	lea.l absolute_slot_00070B64.l,a3
 	lea.l absolute_slot_00078B64.l,a4
 	bra.w abs_0_0003D3B6
+    ; Save/restore the original caller frame. OR each interior plane pair, retain shared borders, then double each bit horizontally and repeat each output row vertically.
 draw_heading_strip_mode1:
 	movem.l d0-d5/a0-a3,-(a7)
 	move.w player_rotation_1(a6),d0
 	neg.w d0
 	cmp.w alternate_heading_negated_rotation_cache.l,d0
-	beq.w abs_0_0003D512
+	beq.w restore_heading_mode1_caller_frame
 	move.w d0,alternate_heading_negated_rotation_cache.l
-	andi.l #4095,d0
-	asl.l #5,d0
-	divs.w #$16D,d0
-	andi.l #511,d0
-	lsr.l #2,d0
+	andi.l #SG2_HEADING_ANGLE_MASK,d0
+	asl.l #SG2_HEADING_SCALE_SHIFT,d0
+	divs.w #SG2_HEADING_DIVISOR,d0
+	andi.l #SG2_HEADING_QUOTIENT_MASK,d0
+	lsr.l #SG2_HEADING_SAMPLE_SHIFT,d0
 	cmp.w alternate_heading_strip_sample_cache.l,d0
-	beq.w abs_0_0003D512
+	beq.w restore_heading_mode1_caller_frame
 	move.w d0,alternate_heading_strip_sample_cache.l
-	lea.l absolute_slot_0006D3EC.l,a0
-	lea.l absolute_slot_000753EC.l,a2
-	lea.l absolute_slot_0007D3EC.l,a3
-	lea.l heading_strip_bit_rows_prefix.l,a1
+	lea.l heading_mode1_bank0_anchor.l,a0
+	lea.l heading_mode1_bank1_anchor.l,a2
+	lea.l heading_mode1_bank2_anchor.l,a3
+	lea.l heading_strip_row_streams.l,a1
 	moveq.l #0,d3
 	ror.l #3,d0
 	move.l d0,d1
-	andi.l #254,d0
+	andi.l #SG2_HEADING_COARSE_BYTE_MASK,d0
 	rol.l #3,d1
-	andi.l #15,d1
+	andi.l #SG2_HEADING_FINE_SHIFT_MASK,d1
 	move.l d1,d4
 	moveq.l #16,d2
 	sub.w d1,d2
 	move.w d2,d4
+sample_mode1_heading_top_row:
 	move.w $4(a1,d0.w),d3
 	move.l $0(a1,d0.w),d2
 	lsl.l d1,d2
 	lsr.w d4,d3
 	or.l d3,d2
-	bsr.w abs_0_0003D518
+	bsr.w expand_heading_sample_double_pixels
+sample_mode1_heading_inner_row1:
 	move.w $14(a1,d0.w),d3
 	move.l $10(a1,d0.w),d2
 	lsl.l d1,d2
@@ -53482,7 +53525,8 @@ draw_heading_strip_mode1:
 	lsr.w d4,d3
 	or.l d3,d2
 	or.l d5,d2
-	bsr.w abs_0_0003D518
+	bsr.w expand_heading_sample_double_pixels
+sample_mode1_heading_inner_row2:
 	move.w $34(a1,d0.w),d3
 	move.l $30(a1,d0.w),d2
 	lsl.l d1,d2
@@ -53495,7 +53539,8 @@ draw_heading_strip_mode1:
 	lsr.w d4,d3
 	or.l d3,d2
 	or.l d5,d2
-	bsr.w abs_0_0003D518
+	bsr.w expand_heading_sample_double_pixels
+sample_mode1_heading_inner_row3:
 	move.w $54(a1,d0.w),d3
 	move.l $50(a1,d0.w),d2
 	lsl.l d1,d2
@@ -53508,22 +53553,24 @@ draw_heading_strip_mode1:
 	lsr.w d4,d3
 	or.l d3,d2
 	or.l d5,d2
-	bsr.w abs_0_0003D518
+	bsr.w expand_heading_sample_double_pixels
+sample_mode1_heading_bottom_row:
 	move.w $74(a1,d0.w),d3
 	move.l $70(a1,d0.w),d2
 	lsl.l d1,d2
 	lsr.w d4,d3
 	or.l d3,d2
-	bsr.w abs_0_0003D518
-abs_0_0003D512:
+	bsr.w expand_heading_sample_double_pixels
+restore_heading_mode1_caller_frame:
 	movem.l (a7)+,d0-d5/a0-a3
 	rts
-abs_0_0003D518:
+    ; Eight high-first nibbles become eight bytes in two scanlines per bank. Helper preserves D0/D4/A1, advances destinations 160, rotates D2 four bits and leaves D3.W=FFFF.
+expand_heading_sample_double_pixels:
 	move.w #$7,d3
 	movem.l d0/d4/a1,-(a7)
 	rol.l #4,d2
 	lea.l nibble_double_pixel_bytes.l,a1
-abs_0_0003D528:
+expand_next_heading_sample_nibble:
 	move.l d2,d4
 	andi.l #15,d2
 	move.b $0(a1,d2.l),d0
@@ -53538,7 +53585,7 @@ abs_0_0003D528:
 	addq.l #1,a3
 	move.l d4,d2
 	rol.l #4,d2
-	dbf.w d3,abs_0_0003D528
+	dbf.w d3,expand_next_heading_sample_nibble
 	adda.l #$98,a0
 	adda.l #$98,a2
 	adda.l #$98,a3

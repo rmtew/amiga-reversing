@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "source_commit": "5a63873a5cbc942f2697a3f9b21146086c8c1dee",
+  "source_commit": "3cbe4cfb39fe9bf8e3c9edcb996f979d3809f146",
   "source_assembly": "starglider2_game.s",
   "assets": [
     {
@@ -878,13 +878,13 @@
     },
     {
       "path": "rendered-provenance.json",
-      "bytes": 3356,
-      "sha256": "8cb8ef969bed4583214bffe97da56750a44e792d4f4ba6e9c129929f475642cc"
+      "bytes": 3383,
+      "sha256": "dcaae58f2f2f589208182905c3aa93144c084c9c43d0d59a84943360ad065ec8"
     },
     {
       "path": "starglider2_game.s",
-      "bytes": 2056855,
-      "sha256": "c5673708081d4f734459b07a02f7e36ad479ece8f46bcc4d9a3caf0e582a4815"
+      "bytes": 2060352,
+      "sha256": "2fa55e6ca9eca69f816eb959df2fd2cf43ed60e42355538f3a5db0c600058de7"
     },
     {
       "path": "tools/starglider2_protection.py",
@@ -892,6 +892,6 @@
       "sha256": "81d3f66d36dbfbd5c77238b20c28e8b9abaa329777eb91f64669bbbf13703582"
     }
   ],
-  "source_commit_role": "canonical source publication base; the publishing commit reconstructs original message queue, caller frames and viewer keyline backing; isolated CPU/key/RAM fixtures only, no normal-media, IRQ timing or global capacity proof; output is bound by verification_receipt_id",
-  "source_subject_revision": "0f717aa9cf0643c35cf914d4370710b549cf3ed3a3256fe8273a74939c02d456"
+  "source_commit_role": "canonical source publication base; the publishing commit reconstructs heading sampling, eight bitmap streams, shared caches and three output encodings; isolated original-instruction CPU fixtures only, no hardware scanout, DMA or real mode-switch proof; output is bound by verification_receipt_id",
+  "source_subject_revision": "8a1aa051bf4c18648f03be8b64de6ae114311048aeb092f1e92aa8f31411c754"
 }
