@@ -1472,6 +1472,8 @@ SG2_ANGLE_FULL_TURN	EQU	4096
 SG2_ANGLE_HALF_TURN	EQU	2048
 SG2_ANGLE_QUARTER_TURN	EQU	1024
 SG2_ANGLE_THREE_QUARTER_TURN	EQU	3072
+SG2_BACKFACE_CROSS_RIGHT_SHIFT	EQU	6
+SG2_BACKFACE_POSITION_RIGHT_SHIFT	EQU	5
 SG2_BLAST_DOOR_OBJECT_VARIANT_THRESHOLD	EQU	3
 SG2_BLAST_DOOR_PLAYER_SKIP_VARIANT	EQU	9
 SG2_BODY_CACHE_RECORD_SHIFT	EQU	4
@@ -1529,6 +1531,9 @@ SG2_EFFECT_RANDOM_RGB_MASK	EQU	$FFF
 SG2_ENCOUNTER_CHOICE_INDEX_MASK	EQU	15
 SG2_ENERGY_GATE_OBJECT_SKIP_VARIANT	EQU	6
 SG2_ENERGY_GATE_PLAYER_SKIP_VARIANT	EQU	6
+SG2_FACE_CACHE_REFRESH_PHASE_MASK	EQU	3
+SG2_FACE_HEADER_VERTEX_COUNT_MASK	EQU	7
+SG2_FACE_RANDOM_STYLE_BYTE_OFFSET_MASK	EQU	14
 SG2_GATE_CONTACT_RESPONSE_PASSES	EQU	3
 SG2_GROUND_FACE_DEPTH_SORT_KEY	EQU	$7FE0
 SG2_GROUND_FACE_FAR_DIVIDE_DEPTH	EQU	12000
@@ -6152,32 +6157,34 @@ abs_0_00004AC8:
 	lea.l SG2ModelRenderView_face_admission_cache_bits(a4),a1
 	move.l (a1),model_face_admission_bits_scratch(a6)	; operand 1: SG2ModelRenderView_face_admission_cache_bits at (a1)
 	move.l a1,-(a7)
-	clr.w model_force_face_admission_word.l
+    ; Models49/84/30/47/91/3 set the negative refresh word. This forces the geometric test, not admission. The old admission interpretation is withdrawn; accept/reject cases are qualified.
+select_model_backface_refresh_policy:
+	clr.w model_force_backface_refresh_word.l
 	move.w active_model_type_index(a6),d0
 	cmp.w #$31,d0
 	bne.b abs_0_00004AF2
-	move.w #$FFFF,model_force_face_admission_word.l
+	move.w #$FFFF,model_force_backface_refresh_word.l
 abs_0_00004AF2:
 	cmp.w #$54,d0
 	bne.b abs_0_00004B00
-	move.w #$FFFF,model_force_face_admission_word.l
+	move.w #$FFFF,model_force_backface_refresh_word.l
 abs_0_00004B00:
 	cmp.w #$1E,d0
 	bne.b abs_0_00004B0E
-	move.w #$FFFF,model_force_face_admission_word.l
+	move.w #$FFFF,model_force_backface_refresh_word.l
 abs_0_00004B0E:
 	cmp.w #$2F,d0
 	bne.b abs_0_00004B1C
-	move.w #$FFFF,model_force_face_admission_word.l
+	move.w #$FFFF,model_force_backface_refresh_word.l
 abs_0_00004B1C:
 	cmp.w #$5B,d0
 	bne.b abs_0_00004B2A
-	move.w #$FFFF,model_force_face_admission_word.l
+	move.w #$FFFF,model_force_backface_refresh_word.l
 abs_0_00004B2A:
 	cmp.w #$3,d0
-	bne.b abs_0_00004B38
-	move.w #$FFFF,model_force_face_admission_word.l
-abs_0_00004B38:
+	bne.b initialize_model_face_admission_scan
+	move.w #$FFFF,model_force_backface_refresh_word.l
+initialize_model_face_admission_scan:
 	move.w active_model_header_counts(a6),d0
 	beq.w transform_used_model_vertices_continuation
 	subq.w #1,d0
@@ -6185,42 +6192,45 @@ abs_0_00004B38:
 	movea.l active_model_face_commands(a6),a4
 	movea.l active_model_vertex_reference_records(a6),a1
 	lea.l model_view_vertex_scratch_prefix(a6),a0
-    ; Forced face visibility bypasses cached/backface rejection, not later projection or screen clipping. The original negative face-header path also reaches admission independently.
-abs_0_00004B54:
+    ; Nonzero culling-disable BYTE or negative header bypasses backface testing. Negative refresh word instead recomputes geometry. Handoff-counter low bits0 refresh; phases1..3 reuse cache.
+admit_next_model_face_command:
 	move.l d0,-(a7)
 	move.w (a4)+,d2
 	move.w d2,d1
 	ext.w d1
 	move.w d1,drawing_fill_style_word(a6)
 	cmpi.w #47,active_model_type_index(a6)
-	bne.b abs_0_00004B80
+	bne.b decode_model_face_header_copy_count
 	move.l a0,-(a7)
 	lea.l model47_random_face_styles.l,a0
 	bsr.w advance_shared_random_state
-	andi.w #14,d0
+    ; Model47 consumes the actual shared RNG and selects eight stored styles by even offset0..14. The loop index is saved before RNG use and restored for the final cache-bit write.
+	andi.w #SG2_FACE_RANDOM_STYLE_BYTE_OFFSET_MASK,d0
 	move.w $0(a0,d0.w),drawing_fill_style_word(a6)
 	movea.l (a7)+,a0
-abs_0_00004B80:
+    ; Count is header bits8..10; style is sign-extended low BYTE unless model47 selects an original RNG style. Geometry reads three offsets even for smaller counts. Zero copy count is not guarded.
+decode_model_face_header_copy_count:
 	move.w d2,d1
 	lsr.w #8,d1
-	andi.w #7,d1
+	andi.w #SG2_FACE_HEADER_VERTEX_COUNT_MASK,d1
 	move.w d1,model_face_vertex_count_scratch(a6)
 	move.b #$12,diagnostic_step_byte.l
 	tst.b model_face_culling_disabled_flag(a6)
-	bne.w abs_0_00004C4E
+	bne.w append_admitted_face_style_and_vertices
 	tst.w d2
-	bmi.w abs_0_00004C4E
-	tst.w model_force_face_admission_word.l
-	bmi.b abs_0_00004BC2
+	bmi.w append_admitted_face_style_and_vertices
+	tst.w model_force_backface_refresh_word.l
+	bmi.b refresh_backface_test_from_three_view_vertices
 	move.w frame_handoff_counter(a6),d1
-	andi.w #3,d1
-	beq.b abs_0_00004BC2
+	andi.w #SG2_FACE_CACHE_REFRESH_PHASE_MASK,d1
+	beq.b refresh_backface_test_from_three_view_vertices
     ; Cached face admission is reused except refresh phases/forced models. Original BTST/BSET/BCLR indexing and later projection/clipping remain unchanged.
 	move.l model_face_admission_bits_scratch(a6),d1
 	btst d0,d1
-	bne.w abs_0_00004C4E
-	bra.w abs_0_00004C32
-abs_0_00004BC2:
+	bne.w append_admitted_face_style_and_vertices
+	bra.w reject_face_command_and_clear_cache_bit
+    ; Read three cached/transformed view vertices. Edge subtraction wraps as WORDs; cross terms shift6 then use low WORDs in dot with third-point XYZ shifted5. Negative admits; zero rejects.
+refresh_backface_test_from_three_view_vertices:
 	move.w (a4),d4
 	bsr.w resolve_cached_model_vertex
 	move.w d1,d5
@@ -6242,9 +6252,9 @@ abs_0_00004BC2:
 	neg.w d5
 	neg.w d6
 	neg.w d7
-	asr.w #5,d1
-	asr.w #5,d2
-	asr.w #5,d3
+	asr.w #SG2_BACKFACE_POSITION_RIGHT_SHIFT,d1
+	asr.w #SG2_BACKFACE_POSITION_RIGHT_SHIFT,d2
+	asr.w #SG2_BACKFACE_POSITION_RIGHT_SHIFT,d3
 	swap.w d1
 	swap.w d2
 	swap.w d3
@@ -6253,16 +6263,16 @@ abs_0_00004BC2:
 	move.w d6,d4
 	muls.w d3,d4
 	sub.l d4,d0
-	asr.l #6,d0
+	asr.l #SG2_BACKFACE_CROSS_RIGHT_SHIFT,d0
 	move.w d5,d4
 	muls.w d3,d4
 	muls.w d1,d7
 	sub.l d7,d4
-	asr.l #6,d4
+	asr.l #SG2_BACKFACE_CROSS_RIGHT_SHIFT,d4
 	muls.w d1,d6
 	muls.w d2,d5
 	sub.l d5,d6
-	asr.l #6,d6
+	asr.l #SG2_BACKFACE_CROSS_RIGHT_SHIFT,d6
 	swap.w d1
 	swap.w d2
 	swap.w d3
@@ -6271,8 +6281,9 @@ abs_0_00004BC2:
 	add.l d4,d6
 	muls.w d0,d1
 	add.l d1,d6
-	bmi.b abs_0_00004C4E
-abs_0_00004C32:
+	bmi.b append_admitted_face_style_and_vertices
+    ; Reject skips the declared vertex offsets and clears the descending face-index bit. Register bit operations alias modulo32; the cache does not provide independent bits for larger face counts.
+reject_face_command_and_clear_cache_bit:
 	move.w model_face_vertex_count_scratch(a6),d2
 	adda.w d2,a4
 	adda.w d2,a4
@@ -6280,27 +6291,28 @@ abs_0_00004C32:
 	move.l model_face_admission_bits_scratch(a6),d1
 	bclr d0,d1
 	move.l d1,model_face_admission_bits_scratch(a6)
-	dbf.w d0,abs_0_00004B54
+	dbf.w d0,admit_next_model_face_command
 	bra.w transform_used_model_vertices_continuation
-abs_0_00004C4E:
+    ; Append signed style and counted offsets, marking only zero usage BYTEs as FF; all nonzero tags remain. Add one pending candidate and negative terminator, then set the saved index bit.
+append_admitted_face_style_and_vertices:
 	move.w model_face_vertex_count_scratch(a6),d2
 	move.w drawing_fill_style_word(a6),(a5)+
-abs_0_00004C56:
+copy_admitted_vertex_and_mark_if_unused:
 	move.w (a4)+,d1
 	move.w d1,(a5)+
-	tst.b $6(a0,d1.w)
-	bne.b abs_0_00004C64
-	st.b $6(a0,d1.w)
-abs_0_00004C64:
+	tst.b SG2ViewVertex_used_flag(a0,d1.w)
+	bne.b advance_admitted_vertex_copy_count
+	st.b SG2ViewVertex_used_flag(a0,d1.w)
+advance_admitted_vertex_copy_count:
 	subq.w #1,d2
-	bne.b abs_0_00004C56
+	bne.b copy_admitted_vertex_and_mark_if_unused
 	addq.w #1,polygon_candidates_remaining.l
 	move.w #$FFFF,(a5)+
 	move.l (a7)+,d0
 	move.l model_face_admission_bits_scratch(a6),d1
 	bset d0,d1
 	move.l d1,model_face_admission_bits_scratch(a6)
-	dbf.w d0,abs_0_00004B54
+	dbf.w d0,admit_next_model_face_command
 	move.b #$30,diagnostic_step_byte.l
     ; Internal continuation pops saved A3, transforms only source vertices whose flagBYTE6 is negative. Original caller frame and variant-offset preconditions remain.
 transform_used_model_vertices_continuation:
@@ -6309,27 +6321,27 @@ transform_used_model_vertices_continuation:
 	move.w model_last_vertex_index(a6),d0
 	movea.l active_model_vertex_reference_records(a6),a4
 	lea.l model_view_vertex_scratch_prefix(a6),a3
-    ; Current app view-vertex record: test used BYTE, transform source XYZ and store three view WORDs. Loop advances eight bytes; original model/caller and variant-offset contracts remain.
+    ; Bulk pass transforms only negative usage BYTEs. Positive view-ready values remain cached; zero is skipped. Caller frame supplies the cache-owner address popped by the preceding continuation.
     ; KNOWN: type A3=Target code-entry register seed:SG2ViewVertex
-abs_0_00004C9C:
+transform_next_negatively_marked_model_vertex:
 	tst.b SG2ViewVertex_used_flag(a3)
-	bpl.b abs_0_00004CC4
+	bpl.b advance_marked_vertex_source_and_cache
 	move.w $0006(a4),d4
-	bmi.b abs_0_00004CB8
+	bmi.b load_default_negatively_marked_vertex_refs
 	move.l active_model_vertex_variant_data(a6),d1
-	beq.b abs_0_00004CB8
+	beq.b load_default_negatively_marked_vertex_refs
 	movea.l d1,a1
 	movem.w $0(a1,d4.w),d1-d3
-	bra.b abs_0_00004CBC
-abs_0_00004CB8:
+	bra.b transform_and_store_marked_model_vertex
+load_default_negatively_marked_vertex_refs:
 	movem.w (a4),d1-d3
-abs_0_00004CBC:
+transform_and_store_marked_model_vertex:
 	bsr.w transform_encoded_vertex_coordinates
 	movem.w d1-d3,(a3)	; operand 2: SG2ViewVertex_view_x at (a3)
-abs_0_00004CC4:
+advance_marked_vertex_source_and_cache:
 	addq.l #8,a3
 	addq.l #8,a4
-	dbf.w d0,abs_0_00004C9C
+	dbf.w d0,transform_next_negatively_marked_model_vertex
 	move.b #$31,diagnostic_step_byte.l
 	move.b #$32,diagnostic_step_byte.l
 	move.w model_last_vertex_index(a6),d0
@@ -7301,38 +7313,39 @@ abs_0_0000580E:
 	add.w model_origin_delta_z(a6),d3
 	movem.l (a7)+,d4/a0-a3
 	rts
+    ; Resolver trusts any positive signed usage BYTE as view XYZ. Zero or negative tags recompute and set BYTE1; this differs from the ground phase test for exactly1 and its separate FEDC marker.
 resolve_cached_model_vertex:
-	tst.b $6(a0,d4.w)
-	ble.b abs_0_00005850
-	move.w $0(a0,d4.w),d1
-	move.w $2(a0,d4.w),d2
-	move.w $4(a0,d4.w),d3
+	tst.b SG2ViewVertex_used_flag(a0,d4.w)
+	ble.b compute_nonpositive_flag_model_view_vertex
+	move.w SG2ViewVertex_view_x(a0,d4.w),d1
+	move.w SG2ViewVertex_view_y(a0,d4.w),d2
+	move.w SG2ViewVertex_view_depth(a0,d4.w),d3
 	rts
-abs_0_00005850:
-	move.b #$1,$6(a0,d4.w)
+compute_nonpositive_flag_model_view_vertex:
+	move.b #$1,SG2ViewVertex_used_flag(a0,d4.w)
 	movem.l d5/a5,-(a7)
-	move.w $6(a1,d4.w),d5
-	bmi.b abs_0_00005878
+	move.w SG2VertexReferences_variant_offset_or_negative(a1,d4.w),d5
+	bmi.b load_default_model_view_vertex_references
 	move.l active_model_vertex_variant_data(a6),d0
-	beq.b abs_0_00005878
+	beq.b load_default_model_view_vertex_references
 	movea.l d0,a5
 	move.w $0(a5,d5.w),d1
 	move.w $2(a5,d5.w),d2
 	move.w $4(a5,d5.w),d3
-	bra.w abs_0_00005884
-abs_0_00005878:
-	move.w $0(a1,d4.w),d1
-	move.w $2(a1,d4.w),d2
-	move.w $4(a1,d4.w),d3
-abs_0_00005884:
+	bra.w transform_refs_for_cached_model_view_vertex
+load_default_model_view_vertex_references:
+	move.w SG2VertexReferences_x_coordinate_ref(a1,d4.w),d1
+	move.w SG2VertexReferences_y_coordinate_ref(a1,d4.w),d2
+	move.w SG2VertexReferences_z_coordinate_ref(a1,d4.w),d3
+transform_refs_for_cached_model_view_vertex:
 	bsr.w transform_encoded_vertex_coordinates
 	movem.l (a7)+,d5/a5
-	movem.w d1-d3,$0(a0,d4.w)
+	movem.w d1-d3,SG2ViewVertex_view_x(a0,d4.w)
 	rts
 model47_random_face_styles:
 	dc.w $0001,$0003,$0004,$0005,$0006,$0003,$0001,$0004
-model_force_face_admission_word:
-	dc.w $0000
+model_force_backface_refresh_word:
+	dc.w $0000	; Backface-refresh control WORD, then three encoded-reference scratch WORDs. Negative control f...
 encoded_vertex_coordinate_reference_scratch:
 	dc.w $0000	; x_coordinate_ref
 encoded_vertex_coordinate_reference_scratch_y_coordinate_ref:

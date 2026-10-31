@@ -1,6 +1,7 @@
 # Starglider 2: original source restoration
 
-Status: **refinement resumed on 2026-10-29 at the user's request**. The earlier
+Status: **paused after the current admission/backface batch on 2026-10-31, at
+the user's request**. Do not start another batch without resumption. The earlier
 original-layout reviewed closeout and ZIP are historical milestones, not a claim
 that further analysis is exhausted. Current source remains byte exact: all
 412736 original bytes rebuild through C/vasm and a clean standalone export,
@@ -27,6 +28,21 @@ and strengthened 38 app-base attributions.
 Conditional skips mean104 outer iterations are not104 observed memory reads.
 Loaded pointer values remain subject to separate alias/target validation.
 
+The admission/backface closeout qualifies 415 CPU cases and restores 16
+continuations, five constants and twelve instruction-local field bindings.
+**Correction:** the old `model_force_face_admission_word` name and bypass claim
+were wrong. It is now `model_force_backface_refresh_word`: negative control
+recomputes geometry and can reject. Disabled culling or a negative face header
+instead bypasses the test. Header copy count is three bits; refresh reads three
+vertex offsets even for smaller counts, and zero copy count is not guarded.
+Original WORD edges, shifted/truncated cross terms and scaled integer dot are
+retained. Cache bits use descending indices modulo32, not independent bits for
+all faces. Actual cache misses, model47 RNG and admission-to-packet handoff are
+qualified; positive view tags and negative bulk-transform tags retain distinct
+roles. No new model/index bound, lifetime, capacity, final visibility, normal-game
+or hardware claim is added. Remaining unresolved accesses, caller/domain and
+phase obligations are deferred while paused; no follow-on batch has begun.
+
 The ground-face batch qualifies 215 CPU cases with actual encoded-coordinate
 cache transforms and built-matrix calls, variant selection and ground drop.
 It adds 22 continuations, seven constants and ten operand-local field bindings.
@@ -39,8 +55,9 @@ post-face check rejects>145, allowing finite calls to reach146. Rejection skips
 unread offsets and withdraws the reference while retaining prior cache/scratch
 writes. Header vertex nibble0 reaches original DBF indexFFFF; it is not admitted
 as a safe count. No model/index bound, lifetime, arena capacity, normal-game,
-pixel or hardware claim is added. Next: admitted face-command creation and
-backface/cache producers, retaining the separate phase and count contracts.
+pixel or hardware claim is added. The subsequent admission/backface closeout
+above reconstructs the connected command/cache producers and corrects the
+misleading force-admission interpretation.
 
 The face-packet batch qualifies 115 CPU cases and restores 31 continuations,
 four scalars and two state cells totaling six bytes. Fast packets copy projected

@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "source_commit": "3d41fbb1b8f7af38d314557c01b8a50bf7b97290",
+  "source_commit": "ba2a386fc9226d7021bb5e473c560b752b306cde",
   "source_assembly": "starglider2_game.s",
   "assets": [
     {
@@ -878,13 +878,13 @@
     },
     {
       "path": "rendered-provenance.json",
-      "bytes": 3735,
-      "sha256": "6c71e5dc66c7135a899dc7a1a3503503a5191c8075f90eb68ecd5812d3ba25df"
+      "bytes": 3678,
+      "sha256": "5b71bbcb9ecdb8b75ca543001a48950a97fac309327937ceca766dff9239bd3f"
     },
     {
       "path": "starglider2_game.s",
-      "bytes": 2247093,
-      "sha256": "17c041ef3469f0ba93941964f6be241d2dbc92172c79acc75586b4f675bef4d4"
+      "bytes": 2250328,
+      "sha256": "a3cddd5ff019170386abdd5a0999e7e212f1de008011827c792951a15110ccc5"
     },
     {
       "path": "tools/starglider2_protection.py",
@@ -892,6 +892,6 @@
       "sha256": "81d3f66d36dbfbd5c77238b20c28e8b9abaa329777eb91f64669bbbf13703582"
     }
   ],
-  "source_commit_role": "canonical source publication base; connected ground-face producers qualified through 215 original CPU cases, including actual encoded-coordinate cache transforms and built-matrix calls. Twenty-two continuations, seven scalars and ten operand-local field bindings expose variant selection, vertical drop, near/far projection, view-to-screen cache phases, partial-write rollback and the distinct post-face count predicate. Field bindings are source descriptions, not inferred whole-array types or lifetime/bounds facts; no global model/index domain, capacity, normal-game, pixel or hardware equivalence claim; output bound by verification_receipt_id",
-  "source_subject_revision": "087b3af78692ea94c50e0cfe89b66595da9427074052fe0e09df700fb4e585d1"
+  "source_commit_role": "canonical source publication base; face-command admission, refresh/cache and backface producers qualified through 415 original CPU cases. Sixteen continuations, five scalars and twelve instruction-local field bindings expose exact integer tests, descending modulo32 cache bits, actual RNG/coordinate transformations and a finite packet handoff. Corrects the misleading force-admission name: negative control forces geometric refresh and can reject. No new model/index domain, arena capacity, lifetime, final visibility, normal-game or hardware proof; output bound by verification_receipt_id",
+  "source_subject_revision": "f3e26bf038747a5f57dc8d6dda27f09802808b1b800706154f6b13ac21a9b9f9"
 }
