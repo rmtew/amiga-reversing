@@ -16,7 +16,7 @@ to their recorded closeout revision. See the current
 
 ## Current refinement and next evidence
 
-Current native totals: **3509 app /2716 typed /166 unresolved**, with **10299
+Current native totals: **3514 app /2716 typed /166 unresolved**, with **10299
 unclassified bytes /274 intervals**. The earlier counter-indexed source-array recovery reused
 the shared loop induction and interned linear entry values. Original inventory
 readers at source `$DD6` and `$339B4` expose the existing name-reference `text`
@@ -26,6 +26,25 @@ Its startup caller proof added five header reads and six app accesses,
 and strengthened 38 app-base attributions.
 Conditional skips mean104 outer iterations are not104 observed memory reads.
 Loaded pointer values remain subject to separate alias/target validation.
+
+The radial-caller batch follows world-list partitioning through original view
+matrix construction, scaling, rotation, contact/visibility and draw dispatch.
+211 CPU cases preserve X/Z wrap versus signed Y rejection, partial coordinate
+stores, model caches at `$32/$34/$36`, and the count gate (1 skips; 0 enters
+with DBF `$FFFF`). Contact collection precedes model hiding; radial objects
+bypass the model visibility/hidden-bit tests and check positive depth later.
+Forty-four continuations, two constants and two per-object app scratch names
+expose that flow. Scratch attributions use the existing declared-layout A6
+fallback, not newly inferred base provenance.
+
+With supplied wrap mask `$0FFFFFFF`, world delta `(1,0,257)` and zero view
+angles, the original trig/matrix constructor and full local caller chain produce
+`(0,0,256)` and reach the zero divisor. Thus these local guards do not exclude
+the boundary. This does not establish normal-input flight reachability or
+exception delivery. The remaining question is whether actual world/view-state
+producers jointly permit those conditions; a supplied matrix or direct disc
+entry is insufficient evidence. Preserve the original behavior while following
+concrete world-state producers, without requiring a universal safety proof.
 
 The radial-producer batch connects metric/colour selection, signed projection,
 root/radius calculation and layered ten-byte disc records. 2088 original CPU
@@ -47,9 +66,8 @@ The shared presentation path now accepts emitted custom-layout RS fields and
 SIZEOF, checking exact decoded values and widths without duplicate EQU proxies.
 Missing, overlapping and invented inherited field symbols are refused. It also
 retains native immediate values when catalog selectors omit literal details.
-No radius domain or pointer lifetime contract is broadened. Next:
-follow the originating relative-coordinate producer and actual caller guards
-for the root boundary, keeping unproved original behavior intact.
+No radius domain or pointer lifetime contract is broadened. The caller batch
+above follows this producer chain while retaining the normal-game uncertainty.
 
 The disc queue/span batch follows signed-depth sorting, ten-byte record
 unpacking, midpoint spans, fixed clipping and the eight-byte submission packet.

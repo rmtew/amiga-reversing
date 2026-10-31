@@ -289,7 +289,10 @@ active_model_scale_shift RS.W 1
 app_01B0 RS.W 1
     RS.B 6
 model_face_vertex_count_scratch RS.W 1
-    RS.B 30
+    RS.B 16
+visibility_type_before_projection RS.W 1
+visibility_depth_before_projection RS.W 1
+    RS.B 10
 title_page_cycle_counter RS.W 1
 app_01DA RS.W 1
     RS.B 4
@@ -1553,6 +1556,7 @@ SG2_MESSAGE_QUEUE_POINTER_LIMIT	EQU	10
 SG2_MESSAGE_ROWS_DBF_LAST	EQU	7
 SG2_MESSAGE_ROW_LONGS_DBF_LAST	EQU	6
 SG2_MESSAGE_ROW_SKIP_BYTES	EQU	12
+SG2_MODEL_VISIBILITY_HIDDEN_BIT	EQU	1
 SG2_MOTION_VECTOR_PHASE_MASK	EQU	4095
 SG2_NEUTRON_ACTION_COOLDOWN	EQU	200
 SG2_NEUTRON_CARRIED_MAX_OFFSET	EQU	120
@@ -1708,6 +1712,7 @@ SG2_TYPE90_CHAIN_STRIP_FULL_WIDTH	EQU	400
 SG2_TYPE90_CHAIN_STRIP_HALF_WIDTH	EQU	200
 SG2_TYPE90_CROSS_LIMIT	EQU	600
 SG2_TYPE90_FIXED_POWER_ADD	EQU	400
+SG2_VIEW_DOT_EXTRACTION_LEFT_SHIFT	EQU	2
 SG2_WEAPON_HUD_ICON_ROWS_DBF_LAST	EQU	13
 SG2_WEAPON_HUD_ICON_SAVED_BYTES	EQU	112
 SG2_WEAPON_HUD_ICON_SLOT_MASK	EQU	7
@@ -3489,7 +3494,8 @@ transform_vector_by_view_matrix:
 	move.w (a7)+,d1
 	movem.l (a7)+,d4-d5/a5
 	rts
-abs_0_00002836:
+    ; Build the view matrix from original angle/trig words and copy it to app storage. Zero angles produce small rounding terms; this is not an exact mathematical identity contract.
+build_and_store_view_rotation_matrix:
 	move.w view_rotation_0(a6),d1
 	neg.w d1
 	move.w view_rotation_1(a6),d2
@@ -5057,7 +5063,7 @@ render_world_view:
 	bsr.w select_player_view_mode
 	move.b #$5,diagnostic_step_byte.l
 	move.b #$7,diagnostic_step_byte.l
-	bsr.w abs_0_00002836
+	bsr.w build_and_store_view_rotation_matrix
 	move.b #$8,diagnostic_step_byte.l
 	bsr.w build_player_orientation_matrix
 	move.b #$9,diagnostic_step_byte.l
@@ -5128,27 +5134,27 @@ abs_0_00003EFA:
 	beq.w abs_0_00003FD6
 	movea.l visible_objects_cursor(a6),a5
 	subq.w #1,d7
-abs_0_00003F50:
+draw_next_visible_object:
 	move.b #$B,diagnostic_step_byte.l
 	movea.l (a5)+,a4
 	moveq.l #0,d0
 	move.w $0000(a4),d0
-	beq.b abs_0_00003FD2
+	beq.b advance_visible_object_draw_loop
 	cmp.w #$1E,d0
-	bne.b abs_0_00003F6C
+	bne.b select_visible_object_draw_path
 	move.w type30_render_model_index(a6),d0
-    ; Low-BYTE sign selects disc versus model after type30 override. Natural type145 reached disc entry67F4; it is not an invalid 104-entry model index. Do not mask it into a model ID.
-abs_0_00003F6C:
+    ; The type30 override affects this draw selector; the radial callee still reads the actual record type. Supplied caller states are not a universal type-table bound.
+select_visible_object_draw_path:
 	tst.b d0
-	bpl.b abs_0_00003F94
+	bpl.b load_visible_model_pose
 	move.b #$2D,diagnostic_stage_step_word.l
 	clr.b diagnostic_step_byte.l
 	bsr.w queue_nonmodel_disc_object
 	move.b #$2,diagnostic_stage_step_word.l
 	clr.b diagnostic_step_byte.l
-	bra.w abs_0_00003FD2
+	bra.w advance_visible_object_draw_loop
     ; KNOWN: type A4=Target code-entry register seed:SG2WorldObject
-abs_0_00003F94:
+load_visible_model_pose:
 	move.w SG2ObjectCore_relative_x(a4),model_origin_delta_x(a6)
 	move.w SG2ObjectCore_relative_y(a4),model_origin_delta_y(a6)
 	move.w SG2ObjectCore_relative_z(a4),model_origin_delta_z(a6)
@@ -5163,8 +5169,8 @@ abs_0_00003F94:
 	movem.l d7/a5,-(a7)
 	bsr.w project_model_to_draw_records
 	movem.l (a7)+,d7/a5
-abs_0_00003FD2:
-	dbf.w d7,abs_0_00003F50
+advance_visible_object_draw_loop:
+	dbf.w d7,draw_next_visible_object
 abs_0_00003FD6:
 	tst.b flight_point_field_active_flag(a6)
 	bpl.b abs_0_00003FE0
@@ -5212,7 +5218,7 @@ abs_0_00004096:
 	movem.l d7/a4-a5,-(a7)
 	bsr.w prepare_retirement_model_faces
 	movem.l (a7)+,d7/a4-a5
-	bra.w abs_0_00003FD2
+	bra.w advance_visible_object_draw_loop
 	dc.b $4F,$62,$6A
 	dcb.b $10,$20
 	dc.b $00
@@ -5233,7 +5239,7 @@ docking_interrogate_prompt:
 	dc.b $00,$00
 	dcb.b $8,$30
 	dc.b $00,$00,$4E,$75
-    ; Partition 250 original 68-byte world records into nearby/distant lists, free stack and a selected velocity-integration list. Bounds depend on original pool/count inputs.
+    ; Subtract one from the slot count, then skip only if the result is zero. Count1 skips; count0 enters with DBF=$FFFF. This is not a zero-count safety guard or a proven pool bound.
 partition_world_object_lists:
 	lea.l nearby_object_list_end_slot(a6),a3
 	lea.l integrating_object_list_end_slot(a6),a2
@@ -5245,30 +5251,31 @@ partition_world_object_lists:
 	lea.l free_object_stack_storage(a6),a1
 	clr.w free_object_count(a6)
 	clr.w integrating_object_count(a6)
-	movea.w #$44,a5
+	movea.w #SG2_WORLD_RECORD_BYTES,a5
 	clr.w nearby_object_count(a6)
 	subq.w #1,d7
-	beq.w abs_0_00004292
+	beq.w publish_partitioned_world_lists
 	lea.l object_type_distance_limits.l,a0
     ; 68-byte heterogeneous records share core fields; low-type branch caches model distances. High types reuse the same words for radial state. Parent holes are variant storage, not padding.
     ; KNOWN: type A4=Target code-entry register seed:SG2ObjectCore
-abs_0_0000417C:
+partition_next_world_object:
 	move.w (a4),d0	; operand 1: SG2ObjectCore_object_type at (a4)
-	beq.w abs_0_000042A0
+	beq.w append_free_world_object_slot
 	tst.b inside_structure_flag(a6)
-	beq.b abs_0_000041A8
+	beq.b load_type_distance_and_wrap_threshold
 	btst.b #6,SG2ObjectCore_flags(a4)
-	beq.b abs_0_000041A8
+	beq.b load_type_distance_and_wrap_threshold
 	move.b interior_visibility_band_tag(a6),d5
-	beq.b abs_0_000041A8
+	beq.b load_type_distance_and_wrap_threshold
 	sub.b $0025(a4),d5
-	beq.b abs_0_000041A8
-	bpl.b abs_0_000041A0
+	beq.b load_type_distance_and_wrap_threshold
+	bpl.b test_adjacent_interior_visibility_band
 	neg.b d5
-abs_0_000041A0:
+test_adjacent_interior_visibility_band:
 	cmpi.b #1,d5
-	bne.w abs_0_00004286
-abs_0_000041A8:
+	bne.w append_distant_world_object
+    ; Index the original LONG distance table by the shifted type WORD. X/Z may wrap by mask+1 beyond period-limit; Y uses signed limits. Local code does not bound all type indices.
+load_type_distance_and_wrap_threshold:
 	move.l horizontal_world_wrap_mask(a6),d4
 	addq.l #1,d4
 	move.l d4,d3
@@ -5278,156 +5285,157 @@ abs_0_000041A8:
 	move.l d5,d6
 	neg.l d6
 	tst.b SG2ObjectCore_object_type+1(a4)
-	bmi.w abs_0_000042A8
-    ; Low-type path caches wrapped origin-relative WORDs at32/34/36 before view rotation. High-type records reuse LONG36 differently; these are not universal record fields.
+	bmi.w prepare_radial_origin_relative_x
+    ; Model path stores origin-relative WORDs at $16/$18/$1A and caches $32/$34/$36. Radial variants reuse those latter bytes for other state; do not merge the phase layouts.
     ; KNOWN: type A4=Target code-entry register seed:SG2WorldObject
 cache_model_origin_relative_coordinates:
 	move.l SG2ObjectCore_world_x(a4),d1
 	sub.l view_origin_x(a6),d1
 	move.l d1,d0
-	bpl.b abs_0_000041D2
+	bpl.b test_model_x_wrap_or_distance
 	neg.l d1
-abs_0_000041D2:
+test_model_x_wrap_or_distance:
 	cmp.l d3,d1
-	ble.b abs_0_000041F2
+	ble.b keep_or_reject_unwrapped_model_x
 	tst.l d0
-	bpl.b abs_0_000041E6
+	bpl.b wrap_positive_model_relative_x
 	add.l d4,d0
 	move.w d0,SG2ObjectCore_relative_x(a4)
 	move.w d0,SG2TargetingObject_pre_view_relative_x(a4)
-	bra.b abs_0_00004200
-abs_0_000041E6:
+	bra.b prepare_model_origin_relative_z
+wrap_positive_model_relative_x:
 	sub.l d4,d0
 	move.w d0,SG2ObjectCore_relative_x(a4)
 	move.w d0,SG2TargetingObject_pre_view_relative_x(a4)
-	bra.b abs_0_00004200
-abs_0_000041F2:
+	bra.b prepare_model_origin_relative_z
+keep_or_reject_unwrapped_model_x:
 	cmp.l d5,d1
-	bgt.w abs_0_00004286
+	bgt.w append_distant_world_object
 	move.w d0,SG2ObjectCore_relative_x(a4)
 	move.w d0,SG2TargetingObject_pre_view_relative_x(a4)
-abs_0_00004200:
+prepare_model_origin_relative_z:
 	move.l SG2ObjectCore_world_z(a4),d1
 	sub.l view_origin_z(a6),d1
 	move.l d1,d0
-	bpl.b abs_0_0000420E
+	bpl.b test_model_z_wrap_or_distance
 	neg.l d1
-abs_0_0000420E:
+test_model_z_wrap_or_distance:
 	cmp.l d3,d1
-	ble.b abs_0_0000422E
+	ble.b keep_or_reject_unwrapped_model_z
 	tst.l d0
-	bpl.b abs_0_00004222
+	bpl.b wrap_positive_model_relative_z
 	add.l d4,d0
 	move.w d0,SG2ObjectCore_relative_z(a4)
 	move.w d0,SG2TargetingObject_pre_view_relative_z(a4)
-	bra.b abs_0_0000423A
-abs_0_00004222:
+	bra.b test_model_vertical_distance
+wrap_positive_model_relative_z:
 	sub.l d4,d0
 	move.w d0,SG2ObjectCore_relative_z(a4)
 	move.w d0,SG2TargetingObject_pre_view_relative_z(a4)
-	bra.b abs_0_0000423A
-abs_0_0000422E:
+	bra.b test_model_vertical_distance
+keep_or_reject_unwrapped_model_z:
 	cmp.l d5,d1
-	bgt.b abs_0_00004286
+	bgt.b append_distant_world_object
 	move.w d0,SG2ObjectCore_relative_z(a4)
 	move.w d0,SG2TargetingObject_pre_view_relative_z(a4)
-abs_0_0000423A:
+test_model_vertical_distance:
 	move.l SG2ObjectCore_world_y(a4),d1
 	sub.l view_origin_y(a6),d1
 	cmp.l d5,d1
-	bgt.b abs_0_00004286
+	bgt.b append_distant_world_object
 	cmp.l d6,d1
-	blt.b abs_0_00004286
+	blt.b append_distant_world_object
 	move.w d1,SG2ObjectCore_relative_y(a4)
 	move.w d1,SG2WorldObject_pre_view_relative_y(a4)
-abs_0_00004252:
+append_nearby_world_object:
 	move.l a4,-(a3)
 	addq.w #1,nearby_object_count(a6)
 	move.w (a4),d0	; operand 1: SG2ObjectCore_object_type at (a4)
 	cmpi.w #103,d0
-	beq.b abs_0_0000426C
+	beq.b test_integrating_object_phase
 	cmpi.w #84,d0
-	beq.b abs_0_0000426C
+	beq.b test_integrating_object_phase
 	cmpi.w #72,d0
-	bne.b abs_0_0000428C
-abs_0_0000426C:
+	bne.b advance_partition_world_slot
+test_integrating_object_phase:
 	tst.b $0022(a4)
-	beq.b abs_0_0000428C
+	beq.b advance_partition_world_slot
 	move a5,usp
 	movea.l integrating_objects_cursor(a6),a5
 	move.l a4,-(a5)
 	move.l a5,integrating_objects_cursor(a6)
 	addq.w #1,integrating_object_count(a6)
 	move usp,a5
-	bra.b abs_0_0000428C
-abs_0_00004286:
+	bra.b advance_partition_world_slot
+append_distant_world_object:
 	move.l a4,-(a2)
 	addq.w #1,distant_object_count(a6)
-abs_0_0000428C:
+advance_partition_world_slot:
 	adda.w a5,a4
-	dbf.w d7,abs_0_0000417C
-abs_0_00004292:
+	dbf.w d7,partition_next_world_object
+publish_partitioned_world_lists:
 	move.l a3,nearby_objects_cursor(a6)
 	move.l a2,distant_objects_cursor(a6)
 	move.l a1,free_object_stack_cursor(a6)
 	rts
-abs_0_000042A0:
+append_free_world_object_slot:
 	addq.w #1,free_object_count(a6)
 	move.l a4,(a1)+
-	bra.b abs_0_0000428C
-abs_0_000042A8:
+	bra.b advance_partition_world_slot
+    ; Radial partition stores only relative XYZ WORDs, then appends nearby. X/Z wrap can bypass the ordinary magnitude rejection; signed MIN survives NEG. Earlier stores remain on later rejection.
+prepare_radial_origin_relative_x:
 	move.l SG2ObjectCore_world_x(a4),d1
 	sub.l view_origin_x(a6),d1
 	move.l d1,d0
-	bpl.b abs_0_000042B6
+	bpl.b test_radial_x_wrap_or_distance
 	neg.l d1
-abs_0_000042B6:
+test_radial_x_wrap_or_distance:
 	cmp.l d3,d1
-	ble.b abs_0_000042CE
+	ble.b keep_or_reject_unwrapped_radial_x
 	tst.l d0
-	bpl.b abs_0_000042C6
+	bpl.b wrap_positive_radial_relative_x
 	add.l d4,d0
 	move.w d0,SG2ObjectCore_relative_x(a4)
-	bra.b abs_0_000042D6
-abs_0_000042C6:
+	bra.b prepare_radial_origin_relative_z
+wrap_positive_radial_relative_x:
 	sub.l d4,d0
 	move.w d0,SG2ObjectCore_relative_x(a4)
-	bra.b abs_0_000042D6
-abs_0_000042CE:
+	bra.b prepare_radial_origin_relative_z
+keep_or_reject_unwrapped_radial_x:
 	cmp.l d5,d1
-	bgt.b abs_0_00004286
+	bgt.b append_distant_world_object
 	move.w d0,SG2ObjectCore_relative_x(a4)
-abs_0_000042D6:
+prepare_radial_origin_relative_z:
 	move.l SG2ObjectCore_world_z(a4),d1
 	sub.l view_origin_z(a6),d1
 	move.l d1,d0
-	bpl.b abs_0_000042E4
+	bpl.b test_radial_z_wrap_or_distance
 	neg.l d1
-abs_0_000042E4:
+test_radial_z_wrap_or_distance:
 	cmp.l d3,d1
-	ble.b abs_0_000042FC
+	ble.b keep_or_reject_unwrapped_radial_z
 	tst.l d0
-	bpl.b abs_0_000042F4
+	bpl.b wrap_positive_radial_relative_z
 	add.l d4,d0
 	move.w d0,SG2ObjectCore_relative_z(a4)
-	bra.b abs_0_00004304
-abs_0_000042F4:
+	bra.b test_radial_vertical_distance
+wrap_positive_radial_relative_z:
 	sub.l d4,d0
 	move.w d0,SG2ObjectCore_relative_z(a4)
-	bra.b abs_0_00004304
-abs_0_000042FC:
+	bra.b test_radial_vertical_distance
+keep_or_reject_unwrapped_radial_z:
 	cmp.l d5,d1
-	bgt.b abs_0_00004286
+	bgt.b append_distant_world_object
 	move.w d0,SG2ObjectCore_relative_z(a4)
-abs_0_00004304:
+test_radial_vertical_distance:
 	move.l SG2ObjectCore_world_y(a4),d1
 	sub.l view_origin_y(a6),d1
 	cmp.l d5,d1
-	bgt.w abs_0_00004286
+	bgt.w append_distant_world_object
 	cmp.l d6,d1
-	blt.w abs_0_00004286
+	blt.w append_distant_world_object
 	move.w d1,SG2ObjectCore_relative_y(a4)
-	bra.w abs_0_00004252
+	bra.w append_nearby_world_object
     ; Build backwards pointer lists from nearby objects: contact eligibility precedes visibility culling. Store separate cursors/counts; lists may share objects and are not exclusive owners.
 prepare_visible_and_contact_objects:
 	movea.l nearby_objects_cursor(a6),a3
@@ -5436,17 +5444,18 @@ prepare_visible_and_contact_objects:
 	lea.l contact_object_list_end_slot(a6),a2
 	clr.w contact_object_count(a6)
 	move.w nearby_object_count(a6),d7
-	beq.w abs_0_00004522
+	beq.w publish_visible_and_contact_lists
 	subq.w #1,d7
-abs_0_0000433E:
+rotate_next_nearby_world_object:
 	movea.l (a3)+,a4
 	move.w (a4),d0	; operand 1: SG2ObjectCore_object_type at (a4)
-	beq.w abs_0_0000451E
+	beq.w advance_nearby_rotation_loop
 	move.w SG2ObjectCore_relative_x(a4),d1
 	move.w SG2ObjectCore_relative_y(a4),d2
 	move.w SG2ObjectCore_relative_z(a4),d3
 	tst.b SG2ObjectCore_object_type+1(a4)
-	bpl.b abs_0_0000439C
+	bpl.b rotate_object_delta_by_view_matrix
+    ; Reload radial world deltas as LONGs, choose the original right shift, then rotate their low WORDs. Type145 substitutes its display radius; other variants use the copied work radius.
     ; KNOWN: type A4=Target code-entry register seed:SG2RadialObject
 prepare_radial_object_projection_scale:
 	move.l SG2ObjectCore_world_x(a4),d1
@@ -5459,18 +5468,19 @@ prepare_radial_object_projection_scale:
 	bsr.w choose_radial_projection_right_shift
 	move.w d6,SG2RadialObject_projection_radius_shift(a4)
 	cmpi.w #145,SG2ObjectCore_object_type.w(a4)
-	bne.b abs_0_0000438C
+	bne.b load_regular_radial_base_radius
 	move.l solice_display_radius(a6),d4
-	bra.b abs_0_00004390
-abs_0_0000438C:
+	bra.b scale_radial_world_delta_and_radius
+load_regular_radial_base_radius:
 	move.l SG2RadialObject_base_radius(a4),d4
-abs_0_00004390:
+scale_radial_world_delta_and_radius:
 	asr.l d6,d1
 	asr.l d6,d2
 	asr.l d6,d3
 	asr.l d6,d4
 	move.l d4,SG2RadialObject_base_radius(a4)
-abs_0_0000439C:
+    ; Three signed WORD dot products use wrapped LONG sums, ASL by2 and SWAP. Original zero-angle output is near identity, with rounding terms; do not replace it with exact identity.
+rotate_object_delta_by_view_matrix:
 	lea.l view_rotation_matrix(a6),a0
 	move.w (a0)+,d4	; operand 1: SG2RotationMatrixWords_m00 at (a0)+
 	muls.w d1,d4
@@ -5480,7 +5490,7 @@ abs_0_0000439C:
 	move.w (a0)+,d5	; operand 1: SG2RotationMatrixWords_m02 at (a0)+
 	muls.w d3,d5
 	add.l d5,d4
-	asl.l #2,d4
+	asl.l #SG2_VIEW_DOT_EXTRACTION_LEFT_SHIFT,d4
 	swap.w d4
 	move.w d4,-(a7)
 	move.w (a0)+,d4	; operand 1: SG2RotationMatrixWords_m10 at (a0)+
@@ -5491,7 +5501,7 @@ abs_0_0000439C:
 	move.w (a0)+,d5	; operand 1: SG2RotationMatrixWords_m12 at (a0)+
 	muls.w d3,d5
 	add.l d5,d4
-	asl.l #2,d4
+	asl.l #SG2_VIEW_DOT_EXTRACTION_LEFT_SHIFT,d4
 	swap.w d4
 	move.w d4,-(a7)
 	move.w (a0)+,d4	; operand 1: SG2RotationMatrixWords_m20 at (a0)+
@@ -5502,7 +5512,7 @@ abs_0_0000439C:
 	move.w (a0)+,d5	; operand 1: SG2RotationMatrixWords_m22 at (a0)+
 	muls.w d3,d5
 	add.l d5,d4
-	asl.l #2,d4
+	asl.l #SG2_VIEW_DOT_EXTRACTION_LEFT_SHIFT,d4
 	swap.w d4
 	move.w d4,d3
 	move.w (a7)+,d2
@@ -5511,15 +5521,16 @@ abs_0_0000439C:
 	move.w d2,SG2ObjectCore_relative_y(a4)
 	move.w d3,SG2ObjectCore_relative_z(a4)
 	tst.b SG2ObjectCore_retirement_phase_or_negative(a4)
-	bpl.b abs_0_000043FE
+	bpl.b save_visibility_type_and_depth
     ; Active-phase objects enter the contact list before the later model visibility filter. Preserve common pointee fields here; narrow to a variant only after its original guard.
 	move.l a4,-(a2)
 	addq.w #1,contact_object_count(a6)
-abs_0_000043FE:
-	move.w d0,$01CA(a6)
-	move.w d3,$01CC(a6)
+    ; Contact collection precedes this type/depth snapshot. Negative low-type BYTE then bypasses all model visibility and hidden-bit tests; disc entry later checks positive rotated depth.
+save_visibility_type_and_depth:
+	move.w d0,visibility_type_before_projection(a6)
+	move.w d3,visibility_depth_before_projection(a6)
 	tst.b SG2ObjectCore_object_type+1(a4)
-	bmi.w abs_0_00004518
+	bmi.w append_visible_world_object
     ; KNOWN: type A4=Target code-entry register seed:SG2WorldObject
 test_model_visibility_extents:
 	add.w d0,d0
@@ -5529,37 +5540,37 @@ test_model_visibility_extents:
 	lsr.w d4,d0
 	neg.w d0
 	sub.w d0,d3
-	ble.w abs_0_0000451E
-	move.w $01CA(a6),d0
+	ble.w advance_nearby_rotation_loop
+	move.w visibility_type_before_projection(a6),d0
 	tst.b inside_structure_flag(a6)
-	bne.w abs_0_00004510
+	bne.w test_model_hidden_flag
 	add.w d3,d3
 	move.w d3,d5
 	neg.w d5
 	cmp.w d5,d1
-	blt.w abs_0_0000451E
+	blt.w advance_nearby_rotation_loop
 	cmp.w d3,d1
-	bgt.w abs_0_0000451E
+	bgt.w advance_nearby_rotation_loop
 	cmp.w d5,d2
-	blt.w abs_0_0000451E
+	blt.w advance_nearby_rotation_loop
 	cmp.w d3,d2
-	bgt.w abs_0_0000451E
-	move.w $01CC(a6),d3
+	bgt.w advance_nearby_rotation_loop
+	move.w visibility_depth_before_projection(a6),d3
 	move.w d1,d5
 	ext.l d5
-	bpl.b abs_0_0000445E
+	bpl.b take_model_visibility_depth_magnitude
 	neg.l d5
-abs_0_0000445E:
+take_model_visibility_depth_magnitude:
 	move.w d3,d6
 	ext.l d6
-	bpl.b abs_0_00004466
+	bpl.b choose_model_visibility_larger_component
 	neg.l d6
-abs_0_00004466:
+choose_model_visibility_larger_component:
 	move.l d5,d4
 	cmp.l d6,d5
-	bgt.b abs_0_0000446E
+	bgt.b form_model_visibility_weighted_metric
 	move.l d6,d4
-abs_0_0000446E:
+form_model_visibility_weighted_metric:
 	add.l d4,d4
 	add.l d5,d4
 	add.l d6,d4
@@ -5572,9 +5583,9 @@ abs_0_0000446E:
 	add.l d5,d5
 	add.l d6,d5
 	cmp.l d5,d4
-	bgt.w abs_0_0000451E
+	bgt.w advance_nearby_rotation_loop
 	cmp.w #$80,d3
-	ble.b abs_0_00004510
+	ble.b test_model_hidden_flag
 	cmp.w #$2EE0,d3
 	blt.b project_xy_with_scale_lookup
 	ext.l d1
@@ -5583,7 +5594,7 @@ abs_0_0000446E:
 	asl.l #7,d2
 	divs.w d3,d1
 	divs.w d3,d2
-	bra.b abs_0_000044C4
+	bra.b offset_projected_model_centre
 project_xy_with_scale_lookup:
 	lea.l projection_scale_lookup.l,a0
 	andi.w #65534,d3
@@ -5593,11 +5604,11 @@ project_xy_with_scale_lookup:
 	add.l d2,d2
 	swap.w d1
 	swap.w d2
-abs_0_000044C4:
+offset_projected_model_centre:
 	add.w projection_screen_origin_x(a6),d1
 	add.w projection_screen_origin_y(a6),d2
 	moveq.l #0,d0
-	move.w $01CA(a6),d0
+	move.w visibility_type_before_projection(a6),d0
 	lea.l model_maximum_signed_coordinates.l,a0
 	add.w d0,d0
 	move.w $0(a0,d0.w),d0
@@ -5608,28 +5619,29 @@ abs_0_000044C4:
 	move.w d1,d4
 	add.w d0,d4
 	cmp.w view_clip_min_x(a6),d4
-	blt.b abs_0_0000451E
+	blt.b advance_nearby_rotation_loop
 	move.w d1,d4
 	sub.w d0,d4
 	cmp.w view_clip_max_x(a6),d4
-	bgt.b abs_0_0000451E
+	bgt.b advance_nearby_rotation_loop
 	move.w d2,d4
 	add.w d0,d4
 	cmp.w view_clip_min_y(a6),d4
-	blt.b abs_0_0000451E
+	blt.b advance_nearby_rotation_loop
 	move.w d2,d4
 	sub.w d0,d4
 	cmp.w view_clip_max_y(a6),d4
-	bgt.b abs_0_0000451E
-abs_0_00004510:
-	btst.b #1,SG2ObjectCore_flags(a4)
-	bne.b abs_0_0000451E
-abs_0_00004518:
+	bgt.b advance_nearby_rotation_loop
+    ; Model-only flag bit1 can reject a visible reference after contact collection. Radial types bypass it. Contact/visible lists can share records; neither list proves exclusive ownership.
+test_model_hidden_flag:
+	btst.b #SG2_MODEL_VISIBILITY_HIDDEN_BIT,SG2ObjectCore_flags(a4)
+	bne.b advance_nearby_rotation_loop
+append_visible_world_object:
 	move.l a4,-(a5)
 	addq.w #1,visible_object_count(a6)
-abs_0_0000451E:
-	dbf.w d7,abs_0_0000433E
-abs_0_00004522:
+advance_nearby_rotation_loop:
+	dbf.w d7,rotate_next_nearby_world_object
+publish_visible_and_contact_lists:
 	move.l a5,visible_objects_cursor(a6)
 	move.l a2,contact_objects_cursor(a6)
 	rts
@@ -18995,7 +19007,7 @@ model_viewer_keyline_draw_buffer:
 	dc.b $00
 	dc.b $00,$00,$00
 abs_0_0000FD70:
-	jmp abs_0_00002836.l
+	jmp build_and_store_view_rotation_matrix.l
 project_model_to_draw_records_bridge_00ed76:
 	jmp project_model_to_draw_records.l
 install_sine_cosine_pointers_bridge_00ed7c:

@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "source_commit": "b68580473253662de1b26e517a11033e3ffa3313",
+  "source_commit": "ba358882aad945f6a8bb00b91b184e366ace30af",
   "source_assembly": "starglider2_game.s",
   "assets": [
     {
@@ -878,13 +878,13 @@
     },
     {
       "path": "rendered-provenance.json",
-      "bytes": 3583,
-      "sha256": "90bce29032ef7cce9479991398804f434dfb09b80bccfde623b3b384f6f7f2f0"
+      "bytes": 3614,
+      "sha256": "e83426ad97049f75f4e4937166e65cdf2f0437a312f6ca1ffa48ff13e2fbec6c"
     },
     {
       "path": "starglider2_game.s",
-      "bytes": 2196993,
-      "sha256": "628024c2f253bc077946e83e332699a4e7ca0baa3a8b7520567784135311941f"
+      "bytes": 2200750,
+      "sha256": "ae6dedd878e84aff902c6fea7b2297b3bc669c00730f75f0fb466468ae52b3b7"
     },
     {
       "path": "tools/starglider2_protection.py",
@@ -892,6 +892,6 @@
       "sha256": "81d3f66d36dbfbd5c77238b20c28e8b9abaa329777eb91f64669bbbf13703582"
     }
   ],
-  "source_commit_role": "canonical source publication base; radial norm, projection, radius and layered disc producers reconstructed through 2088 original CPU cases; preserve root $10000 zero-divisor operand, WORD register restores, primary zero/cap rules, distinct depth producers, layer palette aliases and failed-link scratch; logical record symbols add no base proof; normal-game reachability, DIVS overflow flags, exception delivery, scanout and timing remain unqualified; output is bound by verification_receipt_id",
-  "source_subject_revision": "df17d80406f080b54a1468934423b3418f2ab129924859f162fa6842b44e94a3"
+  "source_commit_role": "canonical source publication base; world-list partition, radial scaling, Q14 rotation, visibility/contact and draw guards reconstructed through 211 original CPU cases. Actual local caller chain admits supplied world delta(1,0,257) after original zero-angle matrix construction and reaches the root zero divisor. No normal-input flight reachability, exception delivery, selector bound or lifetime claim. Five scratch attributions use declared app-layout fallback, not new base inference; output bound by verification_receipt_id",
+  "source_subject_revision": "64be94366af75c03ad07eb1a2c27ea0eeebac9f76cb20475cb8d4ed7ad5fc205"
 }

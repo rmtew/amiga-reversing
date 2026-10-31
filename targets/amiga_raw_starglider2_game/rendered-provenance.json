@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
   "kind": "committed_native_rendered_original_export",
-  "canonical_source_commit": "b68580473253662de1b26e517a11033e3ffa3313",
-  "publication_base_commit": "b68580473253662de1b26e517a11033e3ffa3313",
+  "canonical_source_commit": "ba358882aad945f6a8bb00b91b184e366ace30af",
+  "publication_base_commit": "ba358882aad945f6a8bb00b91b184e366ace30af",
   "native_export": "CListingArtifact.source_package_payload(64)",
-  "main_source_sha256": "628024c2f253bc077946e83e332699a4e7ca0baa3a8b7520567784135311941f",
+  "main_source_sha256": "ae6dedd878e84aff902c6fea7b2297b3bc669c00730f75f0fb466468ae52b3b7",
   "asset_count": 57,
   "asset_bytes": 93633,
   "game_assembly_hand_edits": false,
@@ -24,13 +24,13 @@
     "assembler executable",
     "paused Pandora work"
   ],
-  "canonical_source_commit_role": "canonical source publication base; radial norm, projection, radius and layered disc producers reconstructed through 2088 original CPU cases; preserve root $10000 zero-divisor operand, WORD register restores, primary zero/cap rules, distinct depth producers, layer palette aliases and failed-link scratch; logical record symbols add no base proof; normal-game reachability, DIVS overflow flags, exception delivery, scanout and timing remain unqualified; output is bound by verification_receipt_id",
-  "canonical_source_subject_revision": "df17d80406f080b54a1468934423b3418f2ab129924859f162fa6842b44e94a3",
+  "canonical_source_commit_role": "canonical source publication base; world-list partition, radial scaling, Q14 rotation, visibility/contact and draw guards reconstructed through 211 original CPU cases. Actual local caller chain admits supplied world delta(1,0,257) after original zero-angle matrix construction and reaches the root zero divisor. No normal-input flight reachability, exception delivery, selector bound or lifetime claim. Five scratch attributions use declared app-layout fallback, not new base inference; output bound by verification_receipt_id",
+  "canonical_source_subject_revision": "64be94366af75c03ad07eb1a2c27ea0eeebac9f76cb20475cb8d4ed7ad5fc205",
   "canonical_fact_sha256": {
     "source_binary.json": "42d4a5758b3e8236af7f912aee85e9ee5323bcd0961faa338c4f864080a0a7d9",
     "target_metadata.json": "e7540b68c118c56aba8815b6722eefa067517cc865fe9841d6c01ce96551389c",
-    "manual_actions.jsonl": "ad7f43fa28c33be7a57fb4074a6bb9d20fba93be76f7e54ac4e5825d64af9368",
-    "decision_journal.jsonl": "2df6476c845a757a47ad7e13258a3e4a40e6d86f3e1fe1f01483d83e70753267"
+    "manual_actions.jsonl": "1be6acc53dfb7c2cb0977f2af6b008101b6113670d051bc9b22e101685e632e9",
+    "decision_journal.jsonl": "7e651fd5e1741b00358b6e1b57e8127d018d4a28340dfb8742257dedb28d6a5b"
   },
   "headers": "14 unmodified required include files collected by source_package.collect_package_includes from ext/amiga_includes/ndk_2.0/include; header notices retained",
   "decoded_protection_view": {
@@ -46,7 +46,7 @@
     },
     "runtime_scope": "Seven CPU write-site windows match this reversible view; no whole runtime-view identity or parent plaintext promotion."
   },
-  "verification_receipt_id": "025e11e967ff16f4d1b0038e2c4e51b3f1a3877e45baeec71fa0fb4c64eb13a8",
+  "verification_receipt_id": "82bc0d0cbc2be1040e2b6822669c9244a96665a9b2b8190c5a9f30869e0cb9f5",
   "render_native_sha256": "5c53c7d8bee53bbd52ecdd970f145d3d175e39fbabd25d559e11f2f6c36f7440",
   "final_assembler_native_sha256": "5c53c7d8bee53bbd52ecdd970f145d3d175e39fbabd25d559e11f2f6c36f7440"
 }
