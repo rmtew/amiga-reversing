@@ -27,6 +27,34 @@ and strengthened 38 app-base attributions.
 Conditional skips mean104 outer iterations are not104 observed memory reads.
 Loaded pointer values remain subject to separate alias/target validation.
 
+The control-normalization batch connects joystick/fire-modified accumulation,
+autocentre, requested/smoothed speed and the flight normalization/height reader.
+1051 original CPU cases verify the supplied continuations, surrounding workspace
+guards and arithmetic boundaries. Autocentre's CMP/BMI/BPL uses N alone, not
+signed ordering: retain overflow at extreme WORDs and the ordinary -31..31 band.
+An exactly zero direction WORD permits autocentre; fire plus either vertical
+direction changes speed instead of rotation, with bit0 winning when both are set.
+
+Pitch clamps to -1600..1600, while its inclusive -48..48 height-step dead band
+changes only the temporary value. Surface-exit bias runs after that step is
+stored. Docking override follows the -479..0 speed clamp; braking derives the
+requested speed before advancing stored control by two. The later height reader
+uses the pre-bias step and original N-only world-Y guard. The speed-update path
+also uses N-only comparisons and preserves its six/24/16 arithmetic; it is not a
+universal rate-limited approach to target. Space and docking branches stay distinct.
+
+Thirty connected continuation names and one exact displacement constant expose
+these relationships. Naming the two pitch-height-step operands does not assert
+a new global app-base, type or lifetime contract. No shared analysis rule was
+changed. CPU fixtures stop at the inspected handoffs; complete gameplay,
+concurrent interrupt ordering and hardware delivery/timing remain unqualified.
+Native generation took 228.80 seconds. Existing app/typed/unresolved totals
+remain 3509/2716/165, with all reference identities, CFG, function summaries and
+ownership accounting unchanged. C/vasm and clean standalone rebuilding retain
+all 412736 original bytes and 57 unchanged INCBIN assets.
+Next: inspect rotation-damage and settling consumers against their original
+caller gates; no all-input damping claim follows from the current fixtures.
+
 The alternate serial-input batch reconstructs the installed vector-$118 root
 and thirteen connected reader/return continuations. 1070 original CPU cases
 cover all 256 root bytes, integrated vector-selected mouse/joystick phases,
@@ -45,8 +73,8 @@ reload game_workspace_base and restore the interrupted A6. Ports are RAM in
 these supplied fixtures: writing $BF to MFP ISRB is observed, not a hardware
 register-state or interrupt-delivery model. MFP channel6 routing to $118 needs
 inherited vector base $40; local setup, hardware timing and normal-game packet
-coverage remain unqualified. Next connected lead: common control readers and
-normalization of the mouse-produced yaw, pitch and negative-speed accumulators.
+coverage remain unqualified. Its control-normalization follow-up is documented
+above.
 
 Final generation took 233.15 seconds. App/typed/unresolved totals remain
 3509/2716/165; accepted code, ownership union, CFG, function summaries and exact

@@ -1569,6 +1569,7 @@ SG2_PAULA_TYPE91_PRIORITY_LIMIT	EQU	1200
 SG2_PAULA_VOLUME_STEP	EQU	2
 SG2_PERIODIC_BCD_DIGITS_DBF_LAST	EQU	3
 SG2_PERIODIC_BCD_RELOAD_TICKS	EQU	432
+SG2_PITCH_HEIGHT_STEP_OFFSET	EQU	$1C8
 SG2_PLAYER_CORNER_BASE_OFFSET	EQU	401
 SG2_PLAYER_CORNER_SLOPE_FACTOR	EQU	17
 SG2_PLAYER_DEPOT_APPROACH_LIMIT	EQU	575
@@ -2401,7 +2402,7 @@ abs_0_0000188A:
 	subi.b #48,d0
 	andi.w #15,d0
 	move.w d0,active_model_scale_shift(a6)
-	bra.w abs_0_000019B4
+	bra.w apply_joystick_control_accumulators
 abs_0_000018AA:
 	cmp.b #$53,d0
 	bne.b abs_0_000018BC
@@ -2483,14 +2484,15 @@ abs_0_000019A4:
 	beq.w enqueue_nearby_sound_analysis_bridge
 	cmp.b #$52,d0
 	beq.w abs_0_00003374
-abs_0_000019B4:
+    ; Fire plus direction bit 0/1 changes speed by -16/+16; bit 0 wins if both set, and either skips rotation updates. Otherwise direction bits 2/3 change yaw and 0/1 change pitch by 32.
+apply_joystick_control_accumulators:
 	tst.b primary_fire_flag(a6)
 	beq.b abs_0_000019CE
 	move.w joystick_direction_bits(a6),d0
 	btst #0,d0
-	bne.w abs_0_00001ADE
+	bne.w subtract_fire_modified_speed_step
 	btst #1,d0
-	bne.w abs_0_00001AE8
+	bne.w add_fire_modified_speed_step
 abs_0_000019CE:
 	lea.l keyboard_down_flags.l,a0
 	clr.l d0
@@ -2499,56 +2501,57 @@ abs_0_000019D6:
 	beq.b abs_0_000019E8
 	move.w joystick_direction_bits(a6),d0
 	andi.w #3,d0
-	bne.w abs_0_00001A74
+	bne.w return_from_joystick_control_updates
 abs_0_000019E8:
 	move.w joystick_direction_bits(a6),d0
 	btst #2,d0
-	bne.w abs_0_00001AB6
+	bne.w subtract_joystick_yaw_control_step
 abs_0_000019F4:
 	move.w joystick_direction_bits(a6),d0
 	btst #3,d0
-	bne.w abs_0_00001AC0
+	bne.w add_joystick_yaw_control_step
 abs_0_00001A00:
 	move.w joystick_direction_bits(a6),d0
 	btst #0,d0
-	bne.w abs_0_00001ACA
+	bne.w subtract_joystick_pitch_control_step
 abs_0_00001A0C:
 	move.w joystick_direction_bits(a6),d0
 	btst #1,d0
-	bne.w abs_0_00001AD4
-abs_0_00001A18:
+	bne.w add_joystick_pitch_control_step
+    ; Only an exactly zero direction WORD allows autocentre. Mode bits 0/1 select yaw/pitch. CMP then BMI/BPL tests N alone; preserve extreme-WORD overflow, not a signed clamp.
+autocentre_idle_control_accumulators:
 	tst.w joystick_direction_bits(a6)
-	bne.b abs_0_00001A74
+	bne.b return_from_joystick_control_updates
 	move.b crosshair_autocentre_mode(a6),d7
-	beq.b abs_0_00001A74
+	beq.b return_from_joystick_control_updates
 	btst #0,d7
-	beq.b abs_0_00001A4C
+	beq.b autocentre_idle_pitch_control
 	move.w rotation_2_control_accumulator(a6),d0
 	cmp.w #$20,d0
-	bmi.b abs_0_00001A3E
+	bmi.b test_yaw_autocentre_lower_threshold
 	subi.w #32,d0
 	move.w d0,rotation_2_control_accumulator(a6)
-	bra.b abs_0_00001A4C
-abs_0_00001A3E:
+	bra.b autocentre_idle_pitch_control
+test_yaw_autocentre_lower_threshold:
 	cmp.w #$FFE1,d0
-	bpl.b abs_0_00001A4C
+	bpl.b autocentre_idle_pitch_control
 	addi.w #32,d0
 	move.w d0,rotation_2_control_accumulator(a6)
-abs_0_00001A4C:
+autocentre_idle_pitch_control:
 	btst #1,d7
-	beq.b abs_0_00001A74
+	beq.b return_from_joystick_control_updates
 	move.w rotation_0_control_accumulator(a6),d0
 	cmp.w #$20,d0
-	bmi.b abs_0_00001A66
+	bmi.b test_pitch_autocentre_lower_threshold
 	subi.w #32,d0
 	move.w d0,rotation_0_control_accumulator(a6)
-	bra.b abs_0_00001A74
-abs_0_00001A66:
+	bra.b return_from_joystick_control_updates
+test_pitch_autocentre_lower_threshold:
 	cmp.w #$FFE1,d0
-	bpl.b abs_0_00001A74
+	bpl.b return_from_joystick_control_updates
 	addi.w #32,d0
 	move.w d0,rotation_0_control_accumulator(a6)
-abs_0_00001A74:
+return_from_joystick_control_updates:
 	rts
 cycle_selected_weapon:
 	move.b weapon_selection_and_status(a6),d0
@@ -2574,22 +2577,22 @@ abs_0_00001AAC:
 	st.b neutron_bomb_retract_request(a6)
 	sf.b neutron_bomb_spawn_request(a6)
 	rts
-abs_0_00001AB6:
+subtract_joystick_yaw_control_step:
 	subi.w #32,rotation_2_control_accumulator(a6)
 	bra.w abs_0_000019F4
-abs_0_00001AC0:
+add_joystick_yaw_control_step:
 	addi.w #32,rotation_2_control_accumulator(a6)
 	bra.w abs_0_00001A00
-abs_0_00001ACA:
+subtract_joystick_pitch_control_step:
 	subi.w #32,rotation_0_control_accumulator(a6)
 	bra.w abs_0_00001A0C
-abs_0_00001AD4:
+add_joystick_pitch_control_step:
 	addi.w #32,rotation_0_control_accumulator(a6)
-	bra.w abs_0_00001A18
-abs_0_00001ADE:
+	bra.w autocentre_idle_control_accumulators
+subtract_fire_modified_speed_step:
 	subi.w #16,negative_speed_control_accumulator(a6)
 	bra.w abs_0_000019D6
-abs_0_00001AE8:
+add_fire_modified_speed_step:
 	addi.w #16,negative_speed_control_accumulator(a6)
 	bra.w abs_0_000019D6
 	dc.b $4A,$2E,$01,$F6,$67,$04,$46,$2E,$01,$F0,$4E,$75,$4A,$2E,$01,$F6
@@ -38983,24 +38986,26 @@ abs_0_0002F6A6:
 	tst.w player_rotation2_spin_steps.l
 	bpl.w advance_player_rotation2_spin_continuation
 	tst.w player_speed_smoothed(a6)
-	bne.b abs_0_0002F6CA
+	bne.b update_speed_from_requested_word
 	sf.b model_viewer_animation_state(a6)
-abs_0_0002F6CA:
+    ; CMP/BMI uses N alone. Increasing path adds 6, then keeps that value if target-minus-new is negative, else stores target. This is not a general bounded approach-to-target rule.
+update_speed_from_requested_word:
 	move.w player_speed_target(a6),d3
 	cmp.w player_speed_smoothed(a6),d3
 	beq.b abs_0_0002F700
-	bmi.b abs_0_0002F6E6
+	bmi.b decelerate_player_speed_word
 	addq.w #6,player_speed_smoothed(a6)
 	cmp.w player_speed_smoothed(a6),d3
 	bmi.b abs_0_0002F700
 	move.w d3,player_speed_smoothed(a6)
 	bra.b abs_0_0002F700
-abs_0_0002F6E6:
+    ; Space sign selects subtract 16. Otherwise subtract 24; only a negative result subtracts another 16. Clear a final negative WORD. Do not clamp against the requested target.
+decelerate_player_speed_word:
 	tst.b space_environment_flag(a6)
-	bmi.b abs_0_0002F6F4
+	bmi.b apply_sixteen_unit_speed_subtraction
 	subi.w #24,player_speed_smoothed(a6)
 	bpl.b abs_0_0002F700
-abs_0_0002F6F4:
+apply_sixteen_unit_speed_subtraction:
 	subi.w #16,player_speed_smoothed(a6)
 	bpl.b abs_0_0002F700
 	clr.w player_speed_smoothed(a6)
@@ -39013,6 +39018,8 @@ abs_0_0002F700:
 	move.w d4,player_motion_x(a6)
 	move.w d5,player_motion_y(a6)
 	move.w d6,player_motion_z(a6)
+    ; Negate yaw and mask rotation 2 to 4095; retain the duplicate original store. Signed pitch clamps to +/-1600. The height-step dead band changes only D0, not the stored pitch.
+normalize_player_control_accumulators:
 	move.w rotation_2_control_accumulator(a6),d0
 	neg.w d0
 	move.w d0,player_rotation_2(a6)
@@ -39020,79 +39027,85 @@ abs_0_0002F700:
 	andi.w #4095,player_rotation_2(a6)
 	move.w rotation_0_control_accumulator(a6),d0
 	cmp.w #$640,d0
-	ble.b abs_0_0002F742
+	ble.b test_pitch_control_lower_limit
 	move.w #$640,rotation_0_control_accumulator(a6)
-	bra.b abs_0_0002F74E
-abs_0_0002F742:
+	bra.b derive_pre_bias_pitch_height_step
+test_pitch_control_lower_limit:
 	cmp.w #$F9C0,d0
-	bge.b abs_0_0002F74E
+	bge.b derive_pre_bias_pitch_height_step
 	move.w #$F9C0,rotation_0_control_accumulator(a6)
-abs_0_0002F74E:
+    ; Inclusive pitch -48..48 yields zero height step; otherwise negate its arithmetic shift by 4. Store this WORD before the later surface-exit bias changes the pitch accumulator.
+derive_pre_bias_pitch_height_step:
 	move.w rotation_0_control_accumulator(a6),d0
 	cmp.w #$30,d0
-	bgt.b abs_0_0002F760
+	bgt.b quantize_pitch_height_step
 	cmp.w #$FFD0,d0
-	blt.b abs_0_0002F760
+	blt.b quantize_pitch_height_step
 	clr.w d0
-abs_0_0002F760:
+quantize_pitch_height_step:
 	asr.w #4,d0
 	neg.w d0
-	move.w d0,$01C8(a6)
+	move.w d0,SG2_PITCH_HEIGHT_STEP_OFFSET(a6)
 	move.w negative_speed_control_accumulator(a6),d0
 	cmp.w #$FE21,d0
-	bgt.b abs_0_0002F77A
+	bgt.b test_negative_speed_control_upper_limit
 	move.w #$FE21,negative_speed_control_accumulator(a6)
-	bra.b abs_0_0002F786
-abs_0_0002F77A:
+	bra.b apply_docking_speed_control_override
+test_negative_speed_control_upper_limit:
 	cmp.w #$0,d0
-	ble.b abs_0_0002F786
+	ble.b apply_docking_speed_control_override
 	move.w #$0,negative_speed_control_accumulator(a6)
-abs_0_0002F786:
+    ; Nonzero docking override stores speed control 0 at service phase 30, otherwise -10, after its ordinary -479..0 clamp. Requested speed is the negated control WORD.
+apply_docking_speed_control_override:
 	tst.b docking_control_override_flag(a6)
-	beq.b abs_0_0002F7A2
+	beq.b apply_surface_exit_pitch_bias
 	cmpi.w #30,docking_service_phase(a6)
-	bne.b abs_0_0002F79C
+	bne.b force_docking_speed_control_minus_ten
 	move.w #$0,negative_speed_control_accumulator(a6)
-	bra.b abs_0_0002F7A2
-abs_0_0002F79C:
+	bra.b apply_surface_exit_pitch_bias
+force_docking_speed_control_minus_ten:
 	move.w #$FFF6,negative_speed_control_accumulator(a6)
-abs_0_0002F7A2:
+    ; Nonzero bias with nonnegative pitch decrements the BYTE and subtracts 10 from pitch; negative pitch clears it. Height correction still uses the previously computed step.
+apply_surface_exit_pitch_bias:
 	move.w negative_speed_control_accumulator(a6),d0
 	neg.w d0
 	tst.b surface_exit_pitch_bias_steps(a6)
-	beq.b abs_0_0002F7C4
+	beq.b apply_player_braking_control
 	tst.w rotation_0_control_accumulator(a6)
-	bmi.b abs_0_0002F7C0
+	bmi.b clear_pitch_bias_on_negative_pitch
 	subq.b #1,surface_exit_pitch_bias_steps(a6)
 	subi.w #10,rotation_0_control_accumulator(a6)
-	bra.b abs_0_0002F7C4
-abs_0_0002F7C0:
+	bra.b apply_player_braking_control
+clear_pitch_bias_on_negative_pitch:
 	clr.b surface_exit_pitch_bias_steps(a6)
-abs_0_0002F7C4:
+    ; Clamp flag or nonzero hold applies braking: requested speed subtracts 4, floored at zero, before stored negative speed advances by 2 toward zero. Preserve that ordering.
+apply_player_braking_control:
 	tst.b player_structure_clamp_flag(a6)
 	bne.b abs_0_0002F7D2
 	tst.w surface_brake_hold_countdown.l
-	beq.b abs_0_0002F7E6
+	beq.b publish_player_speed_target
 abs_0_0002F7D2:
 	subq.w #4,d0
-	bpl.b abs_0_0002F7DA
+	bpl.b advance_negative_speed_control_toward_zero
 	move.w #$0,d0
-abs_0_0002F7DA:
+advance_negative_speed_control_toward_zero:
 	addq.w #2,negative_speed_control_accumulator(a6)
-	bmi.b abs_0_0002F7E6
+	bmi.b publish_player_speed_target
 	move.w #$0,negative_speed_control_accumulator(a6)
-abs_0_0002F7E6:
+publish_player_speed_target:
 	move.w d0,player_speed_target(a6)
+    ; Docking skips heading drift and height correction. Otherwise sine scratch shifts by 8, or 6 in space; heading wraps to 4095. Height guard uses original subtraction N, not N xor V.
+update_heading_and_pitch_height_correction:
 	tst.b docking_control_override_flag(a6)
 	bne.b abs_0_0002F82E
 	move.w trig_sine_scratch_2(a6),d1
 	tst.b space_environment_flag(a6)
-	bmi.b abs_0_0002F7FE
+	bmi.b derive_space_heading_drift
 	asr.w #8,d1
-	bra.b abs_0_0002F800
-abs_0_0002F7FE:
+	bra.b add_wrapped_player_heading_drift
+derive_space_heading_drift:
 	asr.w #6,d1
-abs_0_0002F800:
+add_wrapped_player_heading_drift:
 	add.w d1,player_rotation_1(a6)
 	andi.w #4095,player_rotation_1(a6)
 	tst.b space_environment_flag(a6)
@@ -39102,7 +39115,7 @@ abs_0_0002F800:
 	bmi.b abs_0_0002F82E
 	cmpi.w #65528,player_speed_target(a6)
 	bmi.b abs_0_0002F82E
-	move.w $01C8(a6),d1
+	move.w SG2_PITCH_HEIGHT_STEP_OFFSET(a6),d1
 	ext.l d1
 	add.l d1,player_world_y(a6)
 abs_0_0002F82E:

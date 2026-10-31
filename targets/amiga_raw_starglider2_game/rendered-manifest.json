@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "source_commit": "4c972fc7a3bd19da7618b1f00f84c02cbcaa1ed0",
+  "source_commit": "c3f9ca6276a23aef430b3d33496ea9514f609d2d",
   "source_assembly": "starglider2_game.s",
   "assets": [
     {
@@ -878,13 +878,13 @@
     },
     {
       "path": "rendered-provenance.json",
-      "bytes": 3540,
-      "sha256": "c79303d52c3f52cdf638dc77941a3bf3ef62c2604fcfdc009f9e0f8a2a2f7186"
+      "bytes": 3482,
+      "sha256": "6a66bcc5d5102dd4cd0ece96199f3d4aaf25f8734e955a4b4a2036906cafd697"
     },
     {
       "path": "starglider2_game.s",
-      "bytes": 2163526,
-      "sha256": "e5e44edc6ff234391773e0168abb1797b972a73e1e372946846c486ecf7ef8cd"
+      "bytes": 2166764,
+      "sha256": "2bf7a636ddb6b0487a5e2801310bf4907afaf39cf250f6244eec0c888fdb6036"
     },
     {
       "path": "tools/starglider2_protection.py",
@@ -892,6 +892,6 @@
       "sha256": "81d3f66d36dbfbd5c77238b20c28e8b9abaa329777eb91f64669bbbf13703582"
     }
   ],
-  "source_commit_role": "canonical source publication base; alternate serial vector $118 root and mouse/joystick reader phases reconstructed through 1070 original CPU cases with supplied supervisor frames and RAM ports; preserve 112-byte key clear, 120-byte translation prefix plus high-press aliases, workspace reload and reader-specific saved frames; no physical interrupt delivery, inherited routing setup or hardware timing proof; output is bound by verification_receipt_id",
-  "source_subject_revision": "6f53705e0c32f188fdbdfab77c2537cb7e6aa8e2f0f6d3e6fe6abeb351dca06c"
+  "source_commit_role": "canonical source publication base; control accumulation, autocentre, speed update, normalization and pitch-height consumers reconstructed through 1051 original CPU cases; preserve N-only comparisons, pre-bias step and pre-increment braking target; exact displacement names do not add global base/type claims; no full gameplay or hardware timing proof; output is bound by verification_receipt_id",
+  "source_subject_revision": "b6f3d82a745470876c140284ef612ddd055ef8512814add3786502050b91b718"
 }
