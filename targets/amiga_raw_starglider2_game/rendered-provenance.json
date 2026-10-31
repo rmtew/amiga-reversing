@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
   "kind": "committed_native_rendered_original_export",
-  "canonical_source_commit": "a96e276c6fd395ab7b59136db59aaec2c71787f4",
-  "publication_base_commit": "a96e276c6fd395ab7b59136db59aaec2c71787f4",
+  "canonical_source_commit": "94712a6cd6dde1c083faf056a8c894583137aeae",
+  "publication_base_commit": "94712a6cd6dde1c083faf056a8c894583137aeae",
   "native_export": "CListingArtifact.source_package_payload(64)",
-  "main_source_sha256": "c3321003ef16d43c3e0aadd25f34c6257b5fda9aac0d45177f0755cd15aabf02",
+  "main_source_sha256": "f89065bd0d352a0a131f0957a0f612e8150b69b572ed6290381f1fa9f4a0988b",
   "asset_count": 57,
   "asset_bytes": 93633,
   "game_assembly_hand_edits": false,
@@ -24,13 +24,13 @@
     "assembler executable",
     "paused Pandora work"
   ],
-  "canonical_source_commit_role": "canonical source publication base; alternate sound-output priority, raw byte packing, noise writer gates/RNG order, control-helper callers and exact initialization stores reconstructed through 671 original-CPU cases; ports represented as RAM, not device/DMA, PCM, timing, complete-frame, normal-startup caller or sample-lifetime proof; type 88 random branch remains outside this batch; output is bound by verification_receipt_id",
-  "canonical_source_subject_revision": "041416da967ca5220499fa2229bd489bf100c10c0bd38c80ad519dc977b9c334",
+  "canonical_source_commit_role": "canonical source publication base; alternate palette priority, signed colour arithmetic, conversion and fade-to-grayscale fall-through reconstructed with 194 original-CPU cases; stop before saved-frame restoration, no normal caller, interrupt, scanout, hardware timing, PCM or lifetime proof; type88 random branch remains outside this batch; output is bound by verification_receipt_id",
+  "canonical_source_subject_revision": "21aef237d049d0ddcb88e0b192c10d8d0bacce6e6b302ea5e9c654480a4b1ca6",
   "canonical_fact_sha256": {
     "source_binary.json": "42d4a5758b3e8236af7f912aee85e9ee5323bcd0961faa338c4f864080a0a7d9",
     "target_metadata.json": "e7540b68c118c56aba8815b6722eefa067517cc865fe9841d6c01ce96551389c",
-    "manual_actions.jsonl": "b2d24e86dd8657f8171e59f51e7cf575802933a39f73ac47954600fe607eea17",
-    "decision_journal.jsonl": "316a48e40889d8c758b746a5761ef8b935b3c52dd218978d5aa12a9e087e2942"
+    "manual_actions.jsonl": "1c0f39db23ef51cfbf2604753da587e9e2698c5a20809d8cce0057b8e49be194",
+    "decision_journal.jsonl": "c51ffdaf056aaeac19e89299f2638f675fae6271493f80bcf074175d37f6f67b"
   },
   "headers": "14 unmodified required include files collected by source_package.collect_package_includes from ext/amiga_includes/ndk_2.0/include; header notices retained",
   "decoded_protection_view": {
@@ -46,7 +46,7 @@
     },
     "runtime_scope": "Seven CPU write-site windows match this reversible view; no whole runtime-view identity or parent plaintext promotion."
   },
-  "verification_receipt_id": "4b9d85f7cd5536d02646522d096d8fd86b203d5244690dbd18dcecf1a6644680",
+  "verification_receipt_id": "f7421b1d8c4e241691c5771091a486be7eba87324fa6d4a630032a3a430956b4",
   "render_native_sha256": "04666bf24b58d87343b498d732da9d8d075d28d69d43d7e49ed162b065af581a",
   "final_assembler_native_sha256": "04666bf24b58d87343b498d732da9d8d075d28d69d43d7e49ed162b065af581a"
 }

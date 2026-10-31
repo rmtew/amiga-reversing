@@ -1435,7 +1435,9 @@ BPLCON2_PF2P2	EQU	$20
 BPLCON2_PF2PRI	EQU	$40
 INTF_CLRALL	EQU	$7FFF
 SG2_AIM_CONTROL_PHASE_MASK	EQU	4095
+SG2_ALTERNATE_EFFECT_PALETTE_BYTE_OFFSET	EQU	20
 SG2_ALTERNATE_GENERIC_EVENT_ARGUMENT	EQU	500
+SG2_ALTERNATE_PALETTE_RGB_MASK	EQU	1911
 SG2_ALTERNATE_WEAPON_HUD_ICON_PITCH_BYTES	EQU	1920
 SG2_AMIGA_WEAPON_HUD_ICON_PITCH_BYTES	EQU	480
 SG2_ANGLE_FULL_TURN	EQU	4096
@@ -52832,7 +52834,7 @@ abs_0_0003BCAA:
 	dc.b $00,$00,$FA,$07,$08,$B8,$00,$00,$FA,$0F,$4C,$DF,$03,$00,$4E,$73
 abs_0_0003BD4A:
 	dc.w $0000
-abs_0_0003BD4C:
+alternate_interrupt_palette_word_buffer:
 	dc.b $00,$00,$07,$01,$07,$60,$03,$00,$04,$01,$06,$01,$00,$24,$00,$35
 	dc.b $00,$36,$00,$47,$00,$00,$00,$00,$00,$00
 invalidate_alternate_power_meter_cache:
@@ -61491,23 +61493,24 @@ add_shared_random_low_two_bits_to_noise_period_byte:
 write_psg_noise_period_byte_to_register6:
 	move.b #SG2_PSG_NOISE_PERIOD_REGISTER,$00FF8800.l
 	move.b d1,$00FF8802.l
+    ; Alternate backend writes palette buffer +20, not the three Amiga Copper WORDs. Event override is independent. Convert RGB by LSR.W 1 then mask $777; inside constants are preconverted.
 dispatch_alternate_palette_after_sound_output:
-	lea.l abs_0_0003BD4C.l,a4
-	adda.l #$14,a4
+	lea.l alternate_interrupt_palette_word_buffer.l,a4
+	adda.l #SG2_ALTERNATE_EFFECT_PALETTE_BYTE_OFFSET,a4
 	tst.w shared_grayscale_effect_countdown.l
-	bpl.w abs_0_0004DD0E
+	bpl.w decrement_alternate_grayscale_before_lookup
 	tst.b effect_colour_fade_counter.l
-	bpl.w abs_0_0004DCF0
+	bpl.w decrement_alternate_fade_before_expiry_test
 	tst.w player_rotation2_spin_steps.l
-	bpl.w abs_0_0004DCDE
+	bpl.w advance_rng_and_store_alternate_random_colour
 	tst.b inside_structure_flag(a6)
-	bne.w abs_0_0004DC7E
+	bne.w select_alternate_inside_colour_by_nearby_event
 	tst.w novenia_flash_countdown.l
-	bpl.w abs_0_0004DC96
+	bpl.w decrement_alternate_flash_before_parity_selection
 	tst.b space_environment_flag(a6)
-	bne.w abs_0_0004DC52
+	bne.w select_alternate_space_colour_by_nearby_event
 	tst.w alternate_nearby_event_active_word.l
-	beq.w abs_0_0004DBE4
+	beq.w shade_alternate_surface_colour_by_altitude
 	move.l player_world_y(a6),d0
 	neg.l d0
 	lea.l world_atmosphere_altitude_shifts.l,a0
@@ -61522,18 +61525,18 @@ dispatch_alternate_palette_after_sound_output:
 	move.w d1,d7
 	andi.w #15,d1
 	sub.w d0,d1
-	bpl.b abs_0_0004DBA2
+	bpl.b clamp_alternate_world_blue_component
 	move.w #$0,d1
-abs_0_0004DBA2:
+clamp_alternate_world_blue_component:
 	andi.w #15,d1
 	or.w d1,d2
 	move.w d7,d1
 	andi.w #240,d1
 	lsr.w #4,d1
 	sub.w d0,d1
-	bpl.b abs_0_0004DBB8
+	bpl.b clamp_alternate_world_green_component
 	move.w #$0,d1
-abs_0_0004DBB8:
+clamp_alternate_world_green_component:
 	andi.w #15,d1
 	asl.w #4,d1
 	or.w d1,d2
@@ -61541,17 +61544,18 @@ abs_0_0004DBB8:
 	andi.w #3840,d1
 	lsr.w #8,d1
 	sub.w d0,d1
-	bpl.b abs_0_0004DBD0
+	bpl.b pack_alternate_world_colour_to_palette_word
 	move.w #$0,d1
-abs_0_0004DBD0:
+pack_alternate_world_colour_to_palette_word:
 	andi.w #15,d1
 	asl.w #8,d1
 	or.w d1,d2
 	lsr.w #1,d2
-	andi.w #1911,d2
+	andi.w #SG2_ALTERNATE_PALETTE_RGB_MASK,d2
 	move.w d2,(a4)
-	bra.w abs_0_0004DD3A
-abs_0_0004DBE4:
+	bra.w restore_sound_palette_service_saved_frame
+    ; Surface and world shading subtract low WORD of shifted negative Y per nibble; signed N selects zero before nibble masking. Preserve wrap and selector accesses outside known prefixes.
+shade_alternate_surface_colour_by_altitude:
 	move.l player_world_y(a6),d0
 	neg.l d0
 	lea.l world_atmosphere_altitude_shifts.l,a0
@@ -61563,18 +61567,18 @@ abs_0_0004DBE4:
 	move.w d1,d7
 	andi.w #15,d1
 	sub.w d0,d1
-	bpl.b abs_0_0004DC10
+	bpl.b clamp_alternate_surface_blue_component
 	move.w #$0,d1
-abs_0_0004DC10:
+clamp_alternate_surface_blue_component:
 	andi.w #15,d1
 	or.w d1,d2
 	move.w d7,d1
 	andi.w #240,d1
 	lsr.w #4,d1
 	sub.w d0,d1
-	bpl.b abs_0_0004DC26
+	bpl.b clamp_alternate_surface_green_component
 	move.w #$0,d1
-abs_0_0004DC26:
+clamp_alternate_surface_green_component:
 	andi.w #15,d1
 	asl.w #4,d1
 	or.w d1,d2
@@ -61582,86 +61586,88 @@ abs_0_0004DC26:
 	andi.w #3840,d1
 	lsr.w #8,d1
 	sub.w d0,d1
-	bpl.b abs_0_0004DC3E
+	bpl.b pack_alternate_surface_colour_to_palette_word
 	move.w #$0,d1
-abs_0_0004DC3E:
+pack_alternate_surface_colour_to_palette_word:
 	andi.w #15,d1
 	asl.w #8,d1
 	or.w d1,d2
 	lsr.w #1,d2
-	andi.w #1911,d2
+	andi.w #SG2_ALTERNATE_PALETTE_RGB_MASK,d2
 	move.w d2,(a4)
-	bra.w abs_0_0004DD3A
-abs_0_0004DC52:
+	bra.w restore_sound_palette_service_saved_frame
+select_alternate_space_colour_by_nearby_event:
 	tst.w alternate_nearby_event_active_word.l
-	bne.b abs_0_0004DC6C
+	bne.b write_alternate_space_override_colour
 	move.w space_effect_base_rgb_word.l,d0
 	lsr.w #1,d0
-	andi.w #1911,d0
+	andi.w #SG2_ALTERNATE_PALETTE_RGB_MASK,d0
 	move.w d0,(a4)
-	bra.w abs_0_0004DD3A
-abs_0_0004DC6C:
+	bra.w restore_sound_palette_service_saved_frame
+write_alternate_space_override_colour:
 	move.w space_effect_override_rgb_word.l,d0
 	lsr.w #1,d0
-	andi.w #1911,d0
+	andi.w #SG2_ALTERNATE_PALETTE_RGB_MASK,d0
 	move.w d0,(a4)
-	bra.w abs_0_0004DD3A
-abs_0_0004DC7E:
+	bra.w restore_sound_palette_service_saved_frame
+select_alternate_inside_colour_by_nearby_event:
 	tst.w alternate_nearby_event_active_word.l
-	bne.b abs_0_0004DC8E
+	bne.b write_alternate_inside_event_colour
 	move.w #$112,(a4)
-	bra.w abs_0_0004DD3A
-abs_0_0004DC8E:
+	bra.w restore_sound_palette_service_saved_frame
+write_alternate_inside_event_colour:
 	move.w #$335,(a4)
-	bra.w abs_0_0004DD3A
-abs_0_0004DC96:
+	bra.w restore_sound_palette_service_saved_frame
+    ; Flash decrements before parity test. Odd (including expiry $FFFF) uses space colours even outside space; even selects white/pink/red. Convert to $777 only after selection.
+decrement_alternate_flash_before_parity_selection:
 	subq.w #1,novenia_flash_countdown.l
-	bpl.b abs_0_0004DCA6
+	bpl.b select_alternate_flash_colour_by_count_and_parity
 	move.w #$FFFF,novenia_flash_countdown.l
-abs_0_0004DCA6:
+select_alternate_flash_colour_by_count_and_parity:
 	move.w novenia_flash_countdown.l,d0
 	btst #0,d0
-	bne.w abs_0_0004DC52
+	bne.w select_alternate_space_colour_by_nearby_event
 	cmp.w #$1F4,d0
-	bmi.b abs_0_0004DCC0
+	bmi.b test_alternate_flash_pink_threshold
 	move.w #$FFF,d0
-	bra.b abs_0_0004DCD2
-abs_0_0004DCC0:
+	bra.b convert_and_store_alternate_flash_colour
+test_alternate_flash_pink_threshold:
 	cmp.w #$1E0,d0
-	bmi.b abs_0_0004DCCC
+	bmi.b derive_alternate_flash_red_from_count
 	move.w #$F07,d0
-	bra.b abs_0_0004DCD2
-abs_0_0004DCCC:
+	bra.b convert_and_store_alternate_flash_colour
+derive_alternate_flash_red_from_count:
 	asl.w #3,d0
 	andi.w #3840,d0
-abs_0_0004DCD2:
+convert_and_store_alternate_flash_colour:
 	lsr.w #1,d0
-	andi.w #1911,d0
+	andi.w #SG2_ALTERNATE_PALETTE_RGB_MASK,d0
 	move.w d0,(a4)
-	bra.w abs_0_0004DD3A
-abs_0_0004DCDE:
+	bra.w restore_sound_palette_service_saved_frame
+advance_rng_and_store_alternate_random_colour:
 	bsr.w advance_shared_random_state_effects_bridge
 	andi.w #4095,d0
 	lsr.w #1,d0
-	andi.w #1911,d0
+	andi.w #SG2_ALTERNATE_PALETTE_RGB_MASK,d0
 	move.w d0,(a4)
-	bra.b abs_0_0004DD3A
-abs_0_0004DCF0:
+	bra.b restore_sound_palette_service_saved_frame
+    ; Fade expiry exits without grayscale update. Otherwise fade write falls through to grayscale decrement; supplied gray $8000 becomes $7FFF and indexes -2 after WORD doubling, overwriting fade.
+decrement_alternate_fade_before_expiry_test:
 	subq.b #1,effect_colour_fade_counter.l
-	bpl.b abs_0_0004DCFA
-	bra.b abs_0_0004DD3A
-abs_0_0004DCFA:
+	bpl.b write_alternate_fade_then_fall_through_grayscale
+	bra.b restore_sound_palette_service_saved_frame
+write_alternate_fade_then_fall_through_grayscale:
 	move.b effect_colour_fade_counter.l,d0
 	andi.w #255,d0
 	asr.w #3,d0
 	lsr.w #1,d0
-	andi.w #1911,d0
+	andi.w #SG2_ALTERNATE_PALETTE_RGB_MASK,d0
 	move.w d0,(a4)
-abs_0_0004DD0E:
+decrement_alternate_grayscale_before_lookup:
 	subq.w #1,shared_grayscale_effect_countdown.l
 	bpl.b write_alternate_grayscale_effect_step
 	move.w #$FFFF,shared_grayscale_effect_countdown.l
-	bra.b abs_0_0004DD3A
+	bra.b restore_sound_palette_service_saved_frame
     ; 15-WORD consumed grayscale prefix, not sound data. Initial 15 is decremented before read, yielding indices 14..0; following zero WORD remains unassigned.
 write_alternate_grayscale_effect_step:
 	lea.l alternate_effect_grayscale_prefix.l,a0
@@ -61669,9 +61675,10 @@ write_alternate_grayscale_effect_step:
 	add.w d0,d0
 	move.w $0(a0,d0.w),d0
 	lsr.w #1,d0
-	andi.w #1911,d0
+	andi.w #SG2_ALTERNATE_PALETTE_RGB_MASK,d0
 	move.w d0,(a4)
-abs_0_0004DD3A:
+    ; This continuation restores the caller saved register frame. Palette CPU tests stop before restore; they prove RAM preparation only, not the original caller, interrupt delivery or scanout.
+restore_sound_palette_service_saved_frame:
 	movem.l (a7)+,d0-d7/a0-a6
 	rts
     ; These helpers construct D0=$28/$08, write selector 7/data and return with D0 clobbered. They are software control-byte writers, not a device or audible-mode proof.

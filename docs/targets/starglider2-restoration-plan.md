@@ -27,6 +27,32 @@ and strengthened 38 app-base attributions.
 Conditional skips mean104 outer iterations are not104 observed memory reads.
 Loaded pointer values remain subject to separate alias/target validation.
 
+The alternate-palette batch reconstructs 21 continuations, the common $777
+conversion mask and the palette-buffer byte offset, plus the existing backing's
+role. 194 original-CPU cases cover priority, independent nearby-event state,
+world/surface signed-WORD component wrap, space/inside selection, flash parity,
+shared RNG and grayscale-prefix indexing. This backend writes the buffer at
+$3BD4C+$14, rather than the three Amiga Copper-list colour WORDs.
+
+Unlike the Amiga fade path, a successful alternate fade write falls through to
+the grayscale decrement. Fade expiry exits directly. A supplied grayscale WORD
+$8000 becomes $7FFF and its doubled WORD index becomes -2, causing another write
+from before the known prefix. This is preserved original arithmetic, not a claim
+of normal-game reachability or a newly repaired game defect. The stored ramp is
+fifteen WORDs; following zero and other outside-prefix reads remain distinct.
+CPU fixtures stop before the caller's saved-register restore and check RAM
+preparation only; no interrupt, scanout, hardware timing or PCM qualification.
+
+Next connected lead: the installer stores $3BCD2 into vector $120, but the handler
+remains raw within the block beginning $3BCAA. The first 40 bytes are a numeric
+table, followed by the candidate handler reading this palette backing and a
+second palette at $5341C. Current automatic vector recovery accepts CPU-classified
+exception/interrupt/trap slots; $120 is a platform-programmed vector, not covered
+by that classification. Establish a narrowly evidenced platform vector contract
+and account for the coarse data owner before promoting the handler. Do not
+reinterpret arbitrary low-memory writes as callbacks or assume hardware effects
+from the palette-preparation fixtures.
+
 The sound-setup/alternate-output batch reconstructs 33 continuations and fifteen
 constants with 671 original-CPU cases. Object types 1/15 choose the envelope
 before pause preselection; an unmuted type 10 later substitutes its amplitude
@@ -56,7 +82,7 @@ including connected helper callers; they do not simulate a device, DMA, PCM,
 timing, complete frame, normal-startup caller or sample lifetime. Type 88's random
 branch remains outside this batch. Native proof/reference identities and
 3509 app /2716 typed /165 unresolved totals remain unchanged; C/vasm and clean
-standalone output are byte exact. Next: alternate palette consumers after $4DB1E.
+standalone output are byte exact. Its alternate palette continuation is now reconstructed above.
 
 The audio-cadence batch reconstructs 32 continuations, sixteen constants and ten
 name-only WORD-state identities with 538 original-CPU cases. NOT.W controls the
