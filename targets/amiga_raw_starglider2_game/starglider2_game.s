@@ -1471,6 +1471,9 @@ SG2_HUD_COORDINATE_DIGIT_DBF_LAST	EQU	3
 SG2_HUD_DIGIT_PAIR_DBF_LAST	EQU	1
 SG2_HUD_NIBBLE_GLYPH_OFFSET_MASK	EQU	120
 SG2_HUD_SPACE_COORDINATE_SHIFT	EQU	16
+SG2_INTERIOR_ENTRY_NEGATIVE_Z_OFFSET	EQU	500
+SG2_INTERIOR_ENTRY_POSITIVE_Z_OFFSET	EQU	1600
+SG2_INTERIOR_LAYOUT_BIAS	EQU	16
 SG2_LINKED_CONTACT_AXIS_OFFSET	EQU	1800
 SG2_MESSAGE_COUNTDOWN_RELOAD	EQU	75
 SG2_MESSAGE_QUEUE_POINTER_LIMIT	EQU	10
@@ -1529,6 +1532,9 @@ SG2_TEXT_DELETE_ROW_REWIND_BYTES	EQU	322
 SG2_TEXT_GLYPH_WRAP_TAIL_BYTES	EQU	280
 SG2_TEXT_ROW_BYTES	EQU	320
 SG2_TEXT_TAB_ADVANCE	EQU	6
+SG2_TUNNEL_ENTRY_CROSS_LIMIT	EQU	710
+SG2_TUNNEL_ENTRY_HEADING_GATE	EQU	200
+SG2_TUNNEL_EXIT_APPROACH_LIMIT	EQU	575
 SG2_TYPE90_CHAIN_STRIP_FULL_WIDTH	EQU	400
 SG2_TYPE90_CHAIN_STRIP_HALF_WIDTH	EQU	200
 SG2_TYPE90_CROSS_LIMIT	EQU	600
@@ -14178,7 +14184,7 @@ dispatch_special_contact_object_handlers:
 	tst.b inside_structure_flag(a6)
 	bne.b restore_contact_context_and_clear_structure_clamp
 	cmp.w #$30,d0
-	beq.w abs_0_0000BECC
+	beq.w gate_tunnel_entry_heading_word
 select_player_or_nonplayer_common_contact_effects:
 	cmpi.w #SG2_OBJECT_TYPE_ICARUS,(a0)
 	bne.b test_nonplayer_special_contact_durability
@@ -14286,7 +14292,7 @@ clear_brake_hold_before_structure_dispatch:
 	clr.w surface_brake_hold_countdown.l
 	move.w (a2),d0
 	cmp.w #$30,d0
-	beq.w abs_0_0000BDAE
+	beq.w reverse_player_motion_before_tunnel_exit_test
 	cmp.w #$42,d0
 	beq.b select_wide_player_structure_profiles
 	cmp.w #$43,d0
@@ -14544,9 +14550,10 @@ start_blast_door_player_contact_response:
 	move.b #SG2_GATE_CONTACT_RESPONSE_PASSES,player_collision_response_steps(a6)
 	move.w #$3F,last_player_contact_type(a6)
 	bra.w select_player_or_nonplayer_common_contact_effects
-abs_0_0000BDAE:
+    ; MOVEM.W sign-extends motion, doubled as LONG before add/subtract; mask X/Z afterward. Exit compares signed lowWORD to575 in either direction, so distant aliases remain possible.
+reverse_player_motion_before_tunnel_exit_test:
 	tst.b player_collision_response_flag(a6)
-	beq.b abs_0_0000BDDA
+	beq.b advance_player_motion_before_tunnel_exit_test
 	movem.w player_motion_x(a6),d0-d2
 	add.l d0,d0
 	add.l d1,d1
@@ -14557,8 +14564,8 @@ abs_0_0000BDAE:
 	move.l horizontal_world_wrap_mask(a6),d2
 	and.l d2,player_world_x(a6)
 	and.l d2,player_world_z(a6)
-	bra.b abs_0_0000BDFE
-abs_0_0000BDDA:
+	bra.b select_tunnel_exit_approach_direction
+advance_player_motion_before_tunnel_exit_test:
 	movem.w player_motion_x(a6),d0-d2
 	add.l d0,d0
 	add.l d1,d1
@@ -14569,15 +14576,18 @@ abs_0_0000BDDA:
 	move.l horizontal_world_wrap_mask(a6),d2
 	and.l d2,player_world_x(a6)
 	and.l d2,player_world_z(a6)
-abs_0_0000BDFE:
+select_tunnel_exit_approach_direction:
 	tst.w $0012(a2)
-	bne.w abs_0_0000BEB8
+	bne.w test_reverse_tunnel_exit_signed_low_word
+test_forward_tunnel_exit_signed_low_word:
 	move.l player_world_z(a6),d0
 	sub.l $000C(a2),d0
-	cmp.w #$23F,d0
+	cmp.w #SG2_TUNNEL_EXIT_APPROACH_LIMIT,d0
 	ble.w select_wide_player_structure_profiles
+    ; Exit copies structure X/Z to workspace and player record, Y=-1200 and rotation=1023. Layout becomes (old-16)&15 and selects its mask. Entry has different record, mask and return effects.
 return_to_surface_layout:
 	sf.b inside_structure_flag(a6)
+copy_surface_position_to_player_record:
 	movea.l player_object_reference(a6),a1
 	move.l $0004(a2),player_world_x(a6)
 	move.l $000C(a2),player_world_z(a6)
@@ -14589,81 +14599,97 @@ return_to_surface_layout:
 	move.b #$66,surface_exit_pitch_bias_steps(a6)
 	move.w #$3FF,player_rotation_0(a6)
 	move.w #$3FF,$0010(a1)
-	subi.w #16,world_layout_index(a6)
+map_interior_layout_back_to_surface_index:
+	subi.w #SG2_INTERIOR_LAYOUT_BIAS,world_layout_index(a6)
 	andi.w #15,world_layout_index(a6)
 	move.w world_layout_index(a6),d0
 	add.w d0,d0
 	add.w d0,d0
 	lea.l world_horizontal_wrap_masks.l,a1
 	move.l $0(a1,d0.w),horizontal_world_wrap_mask(a6)
+    ; Snapshot nonnull carried-bomb presence before pool rebuild. Signed BYTE projector test then precedes signed snapshot test; tests stop at helper calls, not full rebuild or spawn proof.
+snapshot_carried_bomb_presence_before_pool_rebuild:
 	sf.b abs_0_0000C4CC.l
 	tst.l carried_neutron_bomb_reference(a6)
-	beq.b abs_0_0000BE90
+	beq.b rebuild_surface_objects_before_optional_spawns
 	st.b abs_0_0000C4CC.l
-abs_0_0000BE90:
+rebuild_surface_objects_before_optional_spawns:
 	bsr.w initialize_world_object_pool_bridge_00d9c6
+select_body_projector_spawn_after_surface_rebuild:
 	lea.l world_projector_presence_flags.l,a2
 	move.w selected_celestial_body_index(a6),d0
 	tst.b $0(a2,d0.w)
-	bpl.w abs_0_0000BEAA
+	bpl.w test_saved_bomb_presence_after_projector_spawn
 	bsr.w spawn_body_projectors_platform_entry
-abs_0_0000BEAA:
+test_saved_bomb_presence_after_projector_spawn:
 	tst.b abs_0_0000C4CC.l
-	bpl.b abs_0_0000BEB6
+	bpl.b return_after_surface_rebuild_requests
 	bsr.w handle_neutron_bomb_detonation_bridge_00b4d6
-abs_0_0000BEB6:
+return_after_surface_rebuild_requests:
 	rts
-abs_0_0000BEB8:
+test_reverse_tunnel_exit_signed_low_word:
 	move.l $000C(a2),d0
 	sub.l player_world_z(a6),d0
-	cmp.w #$23F,d0
+	cmp.w #SG2_TUNNEL_EXIT_APPROACH_LIMIT,d0
 	ble.w select_wide_player_structure_profiles
 	bra.w return_to_surface_layout
-abs_0_0000BECC:
+    ; Heading uses unsigned WORD magnitude >200. X/Z separation tests LONG sign, NEG.W only, then signed WORD <=710: preserve aliases, not a global distance bound. Height must be >=-290.
+gate_tunnel_entry_heading_word:
 	move.w player_rotation_0(a6),d0
-	bpl.b abs_0_0000BED4
+	bpl.b test_tunnel_entry_unsigned_heading_magnitude
 	neg.w d0
-abs_0_0000BED4:
-	cmp.w #$C8,d0
+test_tunnel_entry_unsigned_heading_magnitude:
+	cmp.w #SG2_TUNNEL_ENTRY_HEADING_GATE,d0
 	bls.w select_player_or_nonplayer_common_contact_effects
+form_tunnel_entry_x_separation:
 	move.l $0004(a2),d0
 	sub.l player_world_x(a6),d0
-	bpl.b abs_0_0000BEE8
+	bpl.b test_tunnel_entry_x_signed_low_word
 	neg.w d0
-abs_0_0000BEE8:
-	cmp.w #$2C6,d0
+test_tunnel_entry_x_signed_low_word:
+	cmp.w #SG2_TUNNEL_ENTRY_CROSS_LIMIT,d0
 	bgt.w select_player_or_nonplayer_common_contact_effects
+form_tunnel_entry_z_separation:
 	move.l $000C(a2),d0
 	sub.l player_world_z(a6),d0
-	bpl.b abs_0_0000BEFC
+	bpl.b test_tunnel_entry_z_signed_low_word
 	neg.w d0
-abs_0_0000BEFC:
-	cmp.w #$2C6,d0
+test_tunnel_entry_z_signed_low_word:
+	cmp.w #SG2_TUNNEL_ENTRY_CROSS_LIMIT,d0
 	bgt.w select_player_or_nonplayer_common_contact_effects
+gate_tunnel_entry_player_height:
 	cmpi.l #4294967006,player_world_y(a6)
-	blt.w abs_0_0000BF78
+	blt.w restore_contact_frame_then_reload_workspace
+set_interior_transition_stage_and_flags:
 	move.b #$90,diagnostic_stage_step_word.l
 	clr.b diagnostic_step_byte.l
 	st.b inside_structure_flag(a6)
 	clr.b interior_visibility_band_tag(a6)
+    ; Entry changes workspace position, not the player record here: Y=-1384; BYTE24 zero selects Z+1600/modeFF, otherwise Z-500/modeFE. Layout=(old+16)&31 but wrap mask always uses first entry.
+set_interior_workspace_position:
 	move.l $0004(a2),player_world_x(a6)
 	move.l $000C(a2),player_world_z(a6)
 	move.l #$FFFFFA98,player_world_y(a6)
+select_interior_entry_z_offset_from_byte24:
 	tst.b $0024(a2)
-	bne.b abs_0_0000BF50
+	bne.b place_interior_player_on_negative_z_side
+place_interior_player_on_positive_z_side:
 	move.b #$FF,structure_contact_pose_mode(a6)
-	addi.l #1600,player_world_z(a6)
+	addi.l #SG2_INTERIOR_ENTRY_POSITIVE_Z_OFFSET,player_world_z(a6)
 	bra.b select_structure_interior_layout
-abs_0_0000BF50:
+place_interior_player_on_negative_z_side:
 	move.b #$FE,structure_contact_pose_mode(a6)
-	subi.l #500,player_world_z(a6)
+	subi.l #SG2_INTERIOR_ENTRY_NEGATIVE_Z_OFFSET,player_world_z(a6)
 select_structure_interior_layout:
-	addi.w #16,world_layout_index(a6)
+	addi.w #SG2_INTERIOR_LAYOUT_BIAS,world_layout_index(a6)
 	andi.w #31,world_layout_index(a6)
+load_first_wrap_mask_for_interior_transition:
 	lea.l world_horizontal_wrap_masks.l,a1
 	move.l (a1),horizontal_world_wrap_mask(a6)
+rebuild_interior_objects_before_saved_frame_return:
 	bsr.w initialize_world_object_pool_bridge_00d9c6
-abs_0_0000BF78:
+    ; Restore saved D0-D7/A0-A6, then reload workspace A6 before RTS. This differs from ordinary contact continuation; low-height rejection reaches it without world-pool rebuild.
+restore_contact_frame_then_reload_workspace:
 	movem.l (a7)+,d0-d7/a0-a6
 	movea.l game_workspace_base.l,a6
 	rts

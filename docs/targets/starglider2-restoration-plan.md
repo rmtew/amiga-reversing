@@ -27,6 +27,33 @@ and strengthened 38 app-base attributions.
 Conditional skips mean104 outer iterations are not104 observed memory reads.
 Loaded pointer values remain subject to separate alias/target validation.
 
+The entry/exit transition batch reconstructs 27 continuations and six domain
+constants with 188 original-CPU cases. Exit sign-extends MOVEM.W motion before
+LONG doubling and masking X/Z; both approach directions compare only signed
+lowWORD against575. Entry takes an unsigned WORD heading magnitude >200, but
+cross separation uses LONG sign, NEG.W and signed WORD comparison against710.
+Distant coordinate aliases remain possible; these are not global distance bounds.
+
+Exit copies structure X/Z and Y=-1200 into both workspace and player record,
+sets rotation1023 and uses `(old_layout-16)&15` to index the wrap-mask table.
+Entry changes workspace coordinates only before the pool handoff, Y=-1384 with
+BYTE24 selecting Z+1600/modeFF or Z-500/modeFE. Its layout is
+`(old_layout+16)&31`, yet its wrap mask is always the first table entry. Entry's
+low-height return restores the saved frame then reloads workspace A6. Exit saves
+only nonnull bomb presence before rebuilding; later signed BYTE projector and
+bomb-snapshot tests retain their order. Tests stop at initializer/helper calls
+or exercise post-initializer guards separately: no full world rebuild, normal
+entry/exit gameplay, DMA or global lifetime safety is certified.
+
+Comment storage now follows the policy's existing owned growable collection
+pattern instead of embedding512 slots. Inline storage holds four annotations;
+heap capacity follows admitted input, deep copies own their storage and destroy
+resets it. The uint16 native count still refuses unrepresentable requests.
+Native storage tests cover growth beyond512, independent copies, repeated cleanup,
+invalid copies and the representable boundary. All513 distinct quoted-delimiter
+comments render and rebuild exactly; all835 C cases and21 comment/metadata cases
+pass. The six new transition comments exercise517 real target annotations.
+
 The type90 chain/service batch reconstructs 25 continuations with 102 original-
 CPU cases. The chain corridor retains its 600-unit cross gate, Y>=-1000 and open
 lower/closed upper strip `(centre-200, centre+200]`. The contact's $38 reference
@@ -49,15 +76,16 @@ quoted metadata text could end an array/object early and drop this batch's seven
 comments. The scanner now skips escaped quoted strings when matching delimiters.
 Four focused cases failed before the repair and pass afterward; the comment,
 metadata-admission and type90 suites pass 123 cases. No storage/convergence limit
-was raised. The current effective comment set uses 511 of 512 native slots, so
-future annotations must respect admission capacity rather than silently drop.
+was raised in that batch. Its effective comment set used511 of512 native slots;
+the transition batch above replaces that fixed-array constraint with growable
+storage.
 
 Native proof/reference identities, CFG, summaries, counts and ownership remain
 unchanged. Original game behavior was not altered. C/vasm and clean standalone
-output remain exact, including all seven new comments. Remaining connected
-work includes bounded world-entry/exit transition effects and unproven inbound
-code-like bytes after the
-chain; neither normal gameplay nor global lifetime/termination is certified.
+output remain exact, including all seven new comments. Entry/exit local effects
+are addressed above; complete world rebuilds and unproven inbound code-like
+bytes after the chain remain separate. Neither normal gameplay nor global
+lifetime/termination is certified.
 
 The corner/depot/linked-contact batch reconstructs 44 new or renamed
 continuations, with 482 original-CPU cases. Type 92 player corner width uses
@@ -90,8 +118,8 @@ Native proofs, reference identities, CFG, summaries, counts and ownership remain
 unchanged. No shared framework or game behavior was altered. C/vasm and clean
 standalone output remain exact. This adds no normal-game, arbitrary-constructor,
 linked-chain termination, global lifetime, DMA or scanout certification. The
-type90 chain/service effects are addressed above; bounded entrance/exit
-transitions and the unproven inbound code-like bytes remain separate.
+type90 chain/service and local entrance/exit effects are addressed above; full
+world rebuilds and the unproven inbound code-like bytes remain separate.
 
 The structure-profile/gate batch reconstructs 51 connected selection, player and
 object profile, motion-prefix and variant-gate continuations. 385 original-CPU

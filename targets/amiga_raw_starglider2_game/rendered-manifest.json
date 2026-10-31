@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "source_commit": "bf6860e04f54e471ea9ffeab23ee11e4ce669a99",
+  "source_commit": "95f02c19a27653a0554135c0740299d6bfa64256",
   "source_assembly": "starglider2_game.s",
   "assets": [
     {
@@ -878,13 +878,13 @@
     },
     {
       "path": "rendered-provenance.json",
-      "bytes": 3423,
-      "sha256": "96ec792dc5397de62cbe6275fa3cb8b6b50e618d4a9391edb452c669dc6dbadc"
+      "bytes": 3432,
+      "sha256": "174bb574be0fa8005506aec235fff703a23649b031931fcb6ceb88906ce1bc63"
     },
     {
       "path": "starglider2_game.s",
-      "bytes": 2112471,
-      "sha256": "85f87983c768c1673f923070ab65e52107b7f82a436702fbc903a04c01c871aa"
+      "bytes": 2115335,
+      "sha256": "16c48d1df1b4a286860ce6ba06f5d4024f29f52005f98bb4093954db8381f172"
     },
     {
       "path": "tools/starglider2_protection.py",
@@ -892,6 +892,6 @@
       "sha256": "81d3f66d36dbfbd5c77238b20c28e8b9abaa329777eb91f64669bbbf13703582"
     }
   ],
-  "source_commit_role": "canonical source publication base; the publishing commit reconstructs type90 chain/service routing, finite link effects, bounded cycle witness and distinct resource arithmetic; supplied original-CPU cases, not arbitrary pointers, general termination, normal gameplay or global lifetime proof; output is bound by verification_receipt_id",
-  "source_subject_revision": "1d6c61c24fa89c741bd5d5e83eee8ce8f3a9db14587f34677af0b759a4792d67"
+  "source_commit_role": "canonical reconstruction base; local transition source preserves original WORD gates, distinct entry/exit coordinate and layout effects, and saved-frame behavior; supplied CPU paths stop at pool/helper handoffs or test later guards separately, not full world-rebuild/gameplay or global lifetime proof; output is bound by verification_receipt_id",
+  "source_subject_revision": "b8a85ae139a4a0a8e492db7b5e9323f2b46a39df683d55f3fab153c1f91b5c50"
 }

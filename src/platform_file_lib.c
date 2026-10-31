@@ -2083,6 +2083,10 @@ static int platform_file_add_policy_capacity_error_local(const M68kAnalysisPolic
     platform_file_add_error(list, message);
     return 1;
   }
+  if (policy->storage_capacity_status == M68K_ANALYSIS_STORAGE_CAPACITY_ENTRY_COMMENTS) {
+    platform_file_add_error(list, "entry comment count exceeds serialized uint16 capacity");
+    return 1;
+  }
   if (policy->storage_capacity_status == M68K_ANALYSIS_STORAGE_CAPACITY_NAMED_LABELS) {
     char message[96];
     snprintf(message, sizeof(message), "named label capacity exceeded (%u)",
@@ -7364,15 +7368,15 @@ static int policy_add_entry_comment_local(M68kAnalysisPolicy *policy, uint32_t s
     const char *comment) {
   M68kAnalysisEntryComment *entry;
   uint16_t index;
-  if (policy == NULL || comment == NULL || comment[0] == '\0' ||
-      policy->entry_comment_count >= M68K_ANALYSIS_ENTRY_COMMENT_LIMIT)
-    return 0;
+  if (policy == NULL || comment == NULL || comment[0] == '\0') return 0;
   for (index = 0U; index < policy->entry_comment_count; ++index) {
     const M68kAnalysisEntryComment *existing = &policy->entry_comments[index];
     if (existing->has_section_index && existing->section_index == section_index && existing->offset == offset &&
         strcmp(existing->comment, comment) == 0)
       return 1;
   }
+  if (m68k_analysis_policy_reserve_entry_comments(policy, (size_t)policy->entry_comment_count + 1U) != 0)
+    return 0;
   entry = &policy->entry_comments[policy->entry_comment_count++];
   memset(entry, 0, sizeof(*entry));
   entry->has_section_index = 1U;

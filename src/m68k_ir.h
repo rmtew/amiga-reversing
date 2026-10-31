@@ -70,13 +70,9 @@ typedef struct M68kRenderPolicy {
 #define M68K_ANALYSIS_RSSET_LAYOUT_REGION_LIMIT (UINT16_MAX - 2U)
 #define M68K_ANALYSIS_ABSOLUTE_STORAGE_SLOT_LIMIT 128U
 #define M68K_ANALYSIS_RSSET_USE_SITE_BINDING_LIMIT 128U
-/* Source restoration retains annotations across many subsystems. Keep this
- * checked policy mirror large enough for them; the exported capacity API is
- * authoritative for clients, and overflow still refuses the entire append. */
-#define M68K_ANALYSIS_ENTRY_COMMENT_LIMIT 512U
-#if M68K_ANALYSIS_ENTRY_COMMENT_LIMIT > UINT16_MAX
-#error Entry comment limit must fit its uint16_t counter
-#endif
+/* Storage grows with admitted facts; only the serialized counter width bounds it. */
+#define M68K_ANALYSIS_ENTRY_COMMENT_LIMIT UINT16_MAX
+#define M68K_ANALYSIS_STORAGE_CAPACITY_ENTRY_COMMENTS 7U
 #define M68K_ANALYSIS_MANUAL_REPRESENTATION_LIMIT 4096U
 /* Whole-game restoration accumulates named constants across subsystems.
  * Keep the bounded policy mirror and exported client capacity coordinated. */
@@ -902,12 +898,14 @@ typedef struct M68kAnalysisPolicy {
   uint16_t custom_struct_capacity;
   uint16_t structured_data_item_capacity;
   uint16_t named_label_capacity;
+  uint16_t entry_comment_capacity;
   uint16_t manual_representation_capacity;
   uint16_t rsset_layout_region_capacity;
   uint16_t register_seed_capacity;
   uint8_t custom_struct_owner;
   uint8_t structured_data_items_owner;
   uint8_t named_labels_owner;
+  uint8_t entry_comments_owner;
   uint8_t manual_representations_owner;
   uint8_t rsset_layout_regions_owner;
   uint8_t register_seeds_owner;
@@ -927,7 +925,8 @@ typedef struct M68kAnalysisPolicy {
   M68kAnalysisStructuredDataItem *structured_data_items;
   M68kAnalysisNamedLabel named_labels_inline[4];
   M68kAnalysisNamedLabel *named_labels;
-  M68kAnalysisEntryComment entry_comments[M68K_ANALYSIS_ENTRY_COMMENT_LIMIT];
+  M68kAnalysisEntryComment entry_comments_inline[4];
+  M68kAnalysisEntryComment *entry_comments;
   M68kAnalysisRuntimeRange runtime_ranges[M68K_ANALYSIS_RUNTIME_RANGE_LIMIT];
   M68kAnalysisRuntimeEntryPoint runtime_entry_points[M68K_ANALYSIS_RUNTIME_ENTRY_POINT_LIMIT];
   M68kAnalysisRssetLayoutRegion rsset_layout_regions_inline[4];
@@ -3046,6 +3045,7 @@ int m68k_analysis_policy_copy(M68kAnalysisPolicy *dest, const M68kAnalysisPolicy
 int m68k_analysis_policy_register_seeds_valid(const M68kAnalysisPolicy *policy);
 int m68k_analysis_policy_reserve_register_seeds(M68kAnalysisPolicy *policy, size_t required_count);
 int m68k_analysis_policy_structured_data_items_valid(const M68kAnalysisPolicy *policy);
+int m68k_analysis_policy_entry_comments_valid(const M68kAnalysisPolicy *policy);
 int m68k_analysis_policy_named_labels_valid(const M68kAnalysisPolicy *policy);
 int m68k_analysis_policy_rsset_layout_regions_valid(const M68kAnalysisPolicy *policy);
 int m68k_analysis_policy_custom_structs_valid(const M68kAnalysisPolicy *policy);
@@ -3058,6 +3058,7 @@ int m68k_analysis_policy_reserve_rsset_layout_regions(M68kAnalysisPolicy *policy
 /* 0: reserved, -1: invalid storage/allocation failure, -2: capacity exceeded.
    Accept wide requests so a caller cannot implicitly narrow an oversized count. */
 int m68k_analysis_policy_reserve_structured_data_items(M68kAnalysisPolicy *policy, size_t required_count);
+int m68k_analysis_policy_reserve_entry_comments(M68kAnalysisPolicy *policy, size_t required_count);
 int m68k_analysis_policy_reserve_named_labels(M68kAnalysisPolicy *policy, size_t required_count);
 /* Initialize before indexed writes; reserve before exceeding the inline capacity.
    Zero-initialized policies support reserve/copy/destroy. Copy destinations must

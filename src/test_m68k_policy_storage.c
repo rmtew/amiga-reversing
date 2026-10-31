@@ -339,8 +339,41 @@ static int test_manual_representations_invalid_copy_preserves_destination(void) 
   return 0;
 }
 
+static int test_comments_grow_clone_and_representable_boundary(void) {
+  M68kAnalysisPolicy source = {0}, copy = {0};
+  M68kAnalysisEntryComment *saved;
+  M68K_C_ASSERT_INT(0, m68k_analysis_policy_reserve_entry_comments(&source, 4U));
+  M68K_C_ASSERT(source.entry_comments == source.entry_comments_inline);
+  M68K_C_ASSERT_INT(0, m68k_analysis_policy_reserve_entry_comments(&source, 513U));
+  source.entry_comment_count = 513U;
+  snprintf(source.entry_comments[512].comment, sizeof(source.entry_comments[512].comment), "last ] } \" annotation");
+  M68K_C_ASSERT_INT(0, m68k_analysis_policy_copy(&copy, &source));
+  M68K_C_ASSERT(source.entry_comments != copy.entry_comments);
+  source.entry_comments[512].comment[0] = 0;
+  m68k_analysis_policy_destroy(&source);
+  M68K_C_ASSERT_STR("last ] } \" annotation", copy.entry_comments[512].comment);
+  saved = copy.entry_comments;
+  M68K_C_ASSERT_INT(M68K_ANALYSIS_POLICY_CAPACITY_EXCEEDED,
+    m68k_analysis_policy_reserve_entry_comments(&copy, (size_t)UINT16_MAX + 1U));
+  M68K_C_ASSERT(copy.entry_comments == saved);
+  M68K_C_ASSERT_U32(513U, copy.entry_comment_count);
+  M68K_C_ASSERT_INT(0, m68k_analysis_policy_reserve_entry_comments(&copy, UINT16_MAX));
+  M68K_C_ASSERT_U32(UINT16_MAX, copy.entry_comment_capacity);
+  m68k_analysis_policy_destroy(&copy);
+  m68k_analysis_policy_destroy(&copy);
+  M68K_C_ASSERT(copy.entry_comments == copy.entry_comments_inline);
+  copy.max_cpu = 42U;
+  source.entry_comment_count = 5U; /* Inline storage cannot hold this count. */
+  M68K_C_ASSERT_INT(-1, m68k_analysis_policy_copy(&copy, &source));
+  M68K_C_ASSERT_U32(42U, copy.max_cpu);
+  source.entry_comment_count = 0U;
+  m68k_analysis_policy_destroy(&source);
+  return 0;
+}
+
 int m68k_c_policy_storage_tests(void) {
   static const M68kCTestCase cases[] = {
+    {"comments_grow_clone_and_representable_boundary", test_comments_grow_clone_and_representable_boundary},
     {"register_seeds_growth_copy_and_count_bound", test_register_seeds_growth_copy_and_count_bound},
     {"rsset_regions_inline_growth_clone_and_identity_bound", test_rsset_regions_inline_growth_clone_and_identity_bound},
     {"manual_data_references_required_family_and_capacity_clone", test_manual_data_references_required_family_and_capacity_clone},

@@ -1601,6 +1601,8 @@ void m68k_analysis_policy_init_default(M68kAnalysisPolicy *policy) {
   policy->register_seed_capacity = M68K_ANALYSIS_REGISTER_SEED_INLINE_CAPACITY;
   policy->structured_data_items = policy->structured_data_items_inline;
   policy->structured_data_item_capacity = 4U;
+  policy->entry_comments = policy->entry_comments_inline;
+  policy->entry_comment_capacity = 4U;
   policy->named_labels = policy->named_labels_inline;
   policy->named_label_capacity = 4U;
   policy->manual_representations = policy->manual_representations_inline;
@@ -1620,6 +1622,7 @@ void m68k_analysis_policy_destroy(M68kAnalysisPolicy *policy) {
   if (policy->custom_struct_owner != 0U && policy->custom_structs != NULL) free(policy->custom_structs);
   if (policy->structured_data_items_owner != 0U && policy->structured_data_items != NULL)
     free(policy->structured_data_items);
+  if (policy->entry_comments_owner && policy->entry_comments) free(policy->entry_comments);
   if (policy->named_labels_owner != 0U && policy->named_labels != NULL) free(policy->named_labels);
   if (policy->manual_representations_owner != 0U && policy->manual_representations != NULL)
     free(policy->manual_representations);
@@ -1633,6 +1636,10 @@ void m68k_analysis_policy_destroy(M68kAnalysisPolicy *policy) {
   policy->structured_data_items = policy->structured_data_items_inline;
   policy->structured_data_item_capacity = 4U;
   policy->structured_data_items_owner = 0U;
+  policy->entry_comments = policy->entry_comments_inline;
+  policy->entry_comment_count = 0U;
+  policy->entry_comment_capacity = 4U;
+  policy->entry_comments_owner = 0U;
   policy->named_label_count = 0U;
   policy->named_labels = policy->named_labels_inline;
   policy->named_label_capacity = 4U;
@@ -1715,6 +1722,15 @@ int m68k_analysis_policy_structured_data_items_valid(const M68kAnalysisPolicy *p
     return policy->structured_data_item_capacity == 0U && policy->structured_data_items_owner == 0U;
   if (policy->structured_data_items == policy->structured_data_items_inline)
     return policy->structured_data_item_capacity <= 4U && policy->structured_data_items_owner == 0U;
+  return 1;
+}
+
+int m68k_analysis_policy_entry_comments_valid(const M68kAnalysisPolicy *policy) {
+  if (policy == NULL || policy->entry_comment_count > policy->entry_comment_capacity) return 0;
+  if (policy->entry_comments == NULL)
+    return policy->entry_comment_capacity == 0U && policy->entry_comments_owner == 0U;
+  if (policy->entry_comments == policy->entry_comments_inline)
+    return policy->entry_comment_capacity <= 4U && policy->entry_comments_owner == 0U;
   return 1;
 }
 
@@ -1807,6 +1823,36 @@ int m68k_analysis_policy_reserve_register_seeds(M68kAnalysisPolicy *policy, size
   policy->register_seeds = grown;
   policy->register_seed_capacity = capacity;
   policy->register_seeds_owner = 1U;
+  return 0;
+}
+
+int m68k_analysis_policy_reserve_entry_comments(M68kAnalysisPolicy *policy, size_t required_count) {
+  M68kAnalysisEntryComment *grown;
+  uint16_t capacity;
+  if (policy == NULL) return -1;
+  if (required_count > M68K_ANALYSIS_ENTRY_COMMENT_LIMIT) {
+    policy->storage_capacity_status = M68K_ANALYSIS_STORAGE_CAPACITY_ENTRY_COMMENTS;
+    return M68K_ANALYSIS_POLICY_CAPACITY_EXCEEDED;
+  }
+  if (!m68k_analysis_policy_entry_comments_valid(policy)) return -1;
+  if (policy->entry_comments == NULL && required_count <= 4U) {
+    policy->entry_comments = policy->entry_comments_inline;
+    policy->entry_comment_capacity = 4U;
+  }
+  if (required_count <= policy->entry_comment_capacity) return 0;
+  capacity = policy->entry_comment_capacity < 4U ? 4U : policy->entry_comment_capacity;
+  while (capacity < required_count) {
+    size_t next = (size_t)capacity * 2U;
+    capacity = (uint16_t)(next <= M68K_ANALYSIS_ENTRY_COMMENT_LIMIT ? next : M68K_ANALYSIS_ENTRY_COMMENT_LIMIT);
+  }
+  grown = (M68kAnalysisEntryComment *)calloc(capacity, sizeof(*grown));
+  if (grown == NULL) return -1;
+  if (policy->entry_comment_count != 0U && policy->entry_comments != NULL)
+    memcpy(grown, policy->entry_comments, (size_t)policy->entry_comment_count * sizeof(*grown));
+  if (policy->entry_comments_owner != 0U) free(policy->entry_comments);
+  policy->entry_comments = grown;
+  policy->entry_comment_capacity = capacity;
+  policy->entry_comments_owner = 1U;
   return 0;
 }
 
@@ -1919,12 +1965,14 @@ int m68k_analysis_policy_copy(M68kAnalysisPolicy *dest, const M68kAnalysisPolicy
   M68kAnalysisCustomStruct *custom_structs = NULL;
   M68kAnalysisStructuredDataItem *structured_data_items = NULL;
   M68kAnalysisNamedLabel *named_labels = NULL;
+  M68kAnalysisEntryComment *entry_comments = NULL;
   M68kAnalysisManualRepresentation *manual_representations = NULL;
   M68kAnalysisRssetLayoutRegion *rsset_layout_regions = NULL;
   if (dest == NULL || src == NULL) return -1;
   if (!m68k_analysis_policy_register_seeds_valid(src) ||
       !m68k_analysis_policy_structured_data_items_valid(src) ||
       !m68k_analysis_policy_named_labels_valid(src) ||
+      !m68k_analysis_policy_entry_comments_valid(src) ||
       !m68k_analysis_policy_rsset_layout_regions_valid(src) ||
       !m68k_analysis_policy_custom_structs_valid(src) ||
       src->manual_data_reference_count > M68K_ANALYSIS_MANUAL_DATA_REFERENCE_LIMIT) return -1;
@@ -1950,6 +1998,11 @@ int m68k_analysis_policy_copy(M68kAnalysisPolicy *dest, const M68kAnalysisPolicy
     if (structured_data_items == NULL) goto oom;
     memcpy(structured_data_items, src->structured_data_items,
       (size_t)structured_data_item_count * sizeof(*structured_data_items));
+  }
+  if (src->entry_comment_count > 4U) {
+    entry_comments = calloc(src->entry_comment_count, sizeof(*entry_comments));
+    if (!entry_comments) goto oom;
+    memcpy(entry_comments, src->entry_comments, (size_t)src->entry_comment_count * sizeof(*entry_comments));
   }
   named_label_count = src->named_label_count;
   if (named_label_count > M68K_ANALYSIS_NAMED_LABEL_LIMIT ||
@@ -2002,6 +2055,17 @@ int m68k_analysis_policy_copy(M68kAnalysisPolicy *dest, const M68kAnalysisPolicy
     memcpy(dest->structured_data_items_inline, src->structured_data_items,
       (size_t)structured_data_item_count * sizeof(dest->structured_data_items_inline[0]));
   }
+  dest->entry_comments = dest->entry_comments_inline;
+  dest->entry_comment_capacity = 4U;
+  dest->entry_comments_owner = 0U;
+  if (src->entry_comment_count > 4U) {
+    dest->entry_comments = entry_comments;
+    dest->entry_comment_capacity = src->entry_comment_count;
+    dest->entry_comments_owner = 1U;
+  } else if (src->entry_comment_count) {
+    memcpy(dest->entry_comments_inline, src->entry_comments,
+      (size_t)src->entry_comment_count * sizeof(dest->entry_comments_inline[0]));
+  }
   dest->named_labels = dest->named_labels_inline;
   dest->named_label_capacity = 4U;
   dest->named_labels_owner = 0U;
@@ -2045,6 +2109,7 @@ oom:
   free(custom_structs);
   free(structured_data_items);
   free(named_labels);
+  free(entry_comments);
   free(manual_representations);
   free(rsset_layout_regions);
   return -1;
