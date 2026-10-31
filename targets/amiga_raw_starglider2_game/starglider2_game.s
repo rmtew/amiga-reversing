@@ -1518,11 +1518,14 @@ SG2_OVERLAY_MIN_LEFT	EQU	16
 SG2_OVERLAY_MIN_TOP	EQU	30
 SG2_OVERLAY_ROWS_DBF_LAST	EQU	15
 SG2_OVERLAY_ROW_BYTE_STEP	EQU	160
+SG2_PAULA_CHANNEL0_INITIAL_SKIP_BYTES	EQU	8
 SG2_PAULA_CHANNEL0_OFFSET_MASK	EQU	$7F
 SG2_PAULA_CHANNEL0_OFFSET_STEP	EQU	1
 SG2_PAULA_CHANNEL0_PERIOD_FLOOR	EQU	124
 SG2_PAULA_CHANNEL0_PERIOD_STEP	EQU	4
 SG2_PAULA_CHANNEL0_SPEED_PERIOD_BASE	EQU	604
+SG2_PAULA_CHANNEL1_INITIAL_SKIP_BYTES	EQU	4
+SG2_PAULA_CHANNEL2_INITIAL_SKIP_BYTES	EQU	4
 SG2_PAULA_COMMON_PERIOD_FLOOR	EQU	124
 SG2_PAULA_COMMON_PHASE_PERIOD_SHIFT	EQU	5
 SG2_PAULA_DESCRIPTOR_STRIDE_SHIFT	EQU	4
@@ -1573,7 +1576,19 @@ SG2_PROJECTILE_FREE_SLOT_RESERVE	EQU	2
 SG2_PROJECTOR_RESERVED_FREE_FLOOR	EQU	1
 SG2_PROJECTOR_TEMPLATE_DBF_LAST	EQU	7
 SG2_PROJECTOR_TURRET_PART_TYPE	EQU	78
+SG2_PSG_CONTROL_REGISTER	EQU	7
+SG2_PSG_NOISE_JITTER_MASK	EQU	3
+SG2_PSG_NOISE_PERIOD_REGISTER	EQU	6
+SG2_PSG_NOISE_VOLUME_REGISTER	EQU	9
 SG2_PSG_OBJECT_METRIC_SHIFT	EQU	11
+SG2_PSG_OBJECT_PERIOD_HIGH_REGISTER	EQU	5
+SG2_PSG_OBJECT_PERIOD_LOW_REGISTER	EQU	4
+SG2_PSG_OBJECT_VOLUME_REGISTER	EQU	10
+SG2_PSG_PERIOD_HIGH_BYTE_SHIFT	EQU	8
+SG2_PSG_PROJECTILE_PERIOD_HIGH_REGISTER	EQU	1
+SG2_PSG_PROJECTILE_PERIOD_LOW_REGISTER	EQU	0
+SG2_PSG_PROJECTILE_VOLUME_REGISTER	EQU	8
+SG2_PSG_TYPES1_15_DECAY_PHASE_MASK	EQU	7
 SG2_RADIAL_FIRST_SHIFT_THRESHOLD	EQU	524288
 SG2_RADIAL_SHIFT_DBF_LAST	EQU	9
 SG2_SAVE_CHUNK_BYTES	EQU	$1400
@@ -61173,7 +61188,7 @@ abs_0_0004D642:
 	beq.w abs_0_0004D92C
 	cmp.w #$A,d1
 	beq.b update_psg_type10_sound_phase
-	bra.w abs_0_0004D9A6
+	bra.w clear_psg_pause_flag_before_control28
 abs_0_0004D6D2:
 	tst.b psg_type8_period_phase_mod4.l
 	bne.b abs_0_0004D6EA
@@ -61186,12 +61201,12 @@ abs_0_0004D6EA:
 	move.w d0,psg_object_sound_period_word.l
 	addq.b #1,psg_type8_period_phase_mod4.l
 	andi.b #3,psg_type8_period_phase_mod4.l
-	bra.w abs_0_0004D9A6
+	bra.w clear_psg_pause_flag_before_control28
 abs_0_0004D70A:
 	move.w #$2EE,d0
 	add.w player_speed_smoothed(a6),d0
 	move.w d0,psg_object_sound_period_word.l
-	bra.w abs_0_0004D9A6
+	bra.w clear_psg_pause_flag_before_control28
 update_psg_type10_sound_phase:
 	tst.w psg_type10_active_countdown.l
 	bpl.b abs_0_0004D73E
@@ -61234,15 +61249,15 @@ abs_0_0004D7A8:
 	andi.w #3,d0
 	add.w d0,d1
 	move.w d1,psg_object_sound_period_word.l
-	bra.w abs_0_0004D9A6
+	bra.w clear_psg_pause_flag_before_control28
 abs_0_0004D7BE:
 	st.b psg_type10_pause_mute_flag.l
-	bra.w abs_0_0004D9AC
+	bra.w write_control28_then_clear_noise_writer_flags
 abs_0_0004D7C8:
 	bsr.w advance_shared_random_state_effects_bridge
 	andi.w #127,d0
 	move.w d0,psg_object_sound_period_word.l
-	bra.w abs_0_0004D9A6
+	bra.w clear_psg_pause_flag_before_control28
 abs_0_0004D7DA:
 	neg.b psg_types3_4_period_polarity.l
 	bpl.b abs_0_0004D7E8
@@ -61259,7 +61274,7 @@ abs_0_0004D7EC:
 	move.w psg_shared_object_period_phase.l,d1
 	add.w d1,d0
 	move.w d0,psg_object_sound_period_word.l
-	bra.w abs_0_0004D9A6
+	bra.w clear_psg_pause_flag_before_control28
 abs_0_0004D816:
 	neg.b psg_types3_4_period_polarity.l
 	bpl.b abs_0_0004D824
@@ -61280,7 +61295,7 @@ abs_0_0004D828:
 	asl.w #5,d1
 	add.w d1,d0
 	move.w d0,psg_object_sound_period_word.l
-	bra.w abs_0_0004D9A6
+	bra.w clear_psg_pause_flag_before_control28
 abs_0_0004D860:
 	tst.b psg_type34_period_sweep_polarity.l
 	bmi.b abs_0_0004D880
@@ -61300,9 +61315,9 @@ abs_0_0004D88E:
 	add.w d0,d1
 	addi.w #127,d1
 	move.w d1,psg_object_sound_period_word.l
-	bra.w abs_0_0004D9A6
+	bra.w clear_psg_pause_flag_before_control28
 abs_0_0004D8AC:
-	move.b #$6,$00FF8800.l
+	move.b #SG2_PSG_NOISE_PERIOD_REGISTER,$00FF8800.l
 	move.b #$1F,$00FF8802.l
 	movea.l psg_selected_object_reference.l,a0
 	move.b $0003(a0),d0
@@ -61312,26 +61327,26 @@ abs_0_0004D8AC:
 	bra.b abs_0_0004D8EA
 abs_0_0004D8D8:
 	cmp.b #$A,d0
-	bne.w abs_0_0004D97C
+	bne.w set_object_noise_source_and_step_mod8_envelope
 	move.w psg_object_sound_volume_word.l,psg_types1_15_volume_envelope.l
 abs_0_0004D8EA:
-	bra.w abs_0_0004D97C
+	bra.w set_object_noise_source_and_step_mod8_envelope
 abs_0_0004D8EE:
-	move.b #$6,$00FF8800.l
+	move.b #SG2_PSG_NOISE_PERIOD_REGISTER,$00FF8800.l
 	move.b #$1F,$00FF8802.l
 	movea.l psg_selected_object_reference.l,a0
 	move.b $0003(a0),d0
 	cmp.b #$12,d0
 	bne.b abs_0_0004D91A
 	move.w psg_object_sound_volume_word.l,psg_types1_15_volume_envelope.l
-	bra.b abs_0_0004D97C
+	bra.b set_object_noise_source_and_step_mod8_envelope
 abs_0_0004D91A:
 	cmp.b #$8,d0
-	bne.b abs_0_0004D97C
+	bne.b set_object_noise_source_and_step_mod8_envelope
 	move.w psg_object_sound_volume_word.l,psg_types1_15_volume_envelope.l
-	bra.b abs_0_0004D97C
+	bra.b set_object_noise_source_and_step_mod8_envelope
 abs_0_0004D92C:
-	bsr.w abs_0_0004DD5E
+	bsr.w write_psg_object_control_byte08
 	move.w psg_object_noise_period_direction.l,d0
 	move.w psg_object_noise_period_step.l,d1
 	add.w d0,d1
@@ -61349,127 +61364,134 @@ abs_0_0004D952:
 	asr.w #3,d0
 	add.w d0,d1
 	tst.w stardrive_enabled_word(a6)
-	bmi.b abs_0_0004D9BC
+	bmi.b select_psg_object_volume_before_output_gates
 	st.b psg_object_sets_noise_period_flag.l
-	move.b #$6,$00FF8800.l
+	move.b #SG2_PSG_NOISE_PERIOD_REGISTER,$00FF8800.l
 	move.b d1,$00FF8802.l
-	bra.b abs_0_0004D9BC
-abs_0_0004D97C:
-	bsr.w abs_0_0004DD5E
+	bra.b select_psg_object_volume_before_output_gates
+    ; Control $08 caller sets object-period source and BYTE phase modulo 8; new zero phase decrements/clamps WORD envelope. Control $28 caller clears both flags; pause clear depends on entry.
+set_object_noise_source_and_step_mod8_envelope:
+	bsr.w write_psg_object_control_byte08
 	st.b psg_noise_uses_object_period_flag.l
 	addq.b #1,psg_types1_15_decay_phase_mod8.l
-	andi.b #7,psg_types1_15_decay_phase_mod8.l
-	bne.b abs_0_0004D9BC
+	andi.b #SG2_PSG_TYPES1_15_DECAY_PHASE_MASK,psg_types1_15_decay_phase_mod8.l
+	bne.b select_psg_object_volume_before_output_gates
 	subq.w #1,psg_types1_15_volume_envelope.l
-	bpl.b abs_0_0004D9BC
+	bpl.b select_psg_object_volume_before_output_gates
 	clr.w psg_types1_15_volume_envelope.l
-	bra.b abs_0_0004D9BC
-abs_0_0004D9A6:
+	bra.b select_psg_object_volume_before_output_gates
+clear_psg_pause_flag_before_control28:
 	sf.b psg_type10_pause_mute_flag.l
-abs_0_0004D9AC:
-	bsr.w abs_0_0004DD40
+write_control28_then_clear_noise_writer_flags:
+	bsr.w write_psg_object_control_byte28
 	sf.b psg_noise_uses_object_period_flag.l
 	sf.b psg_object_sets_noise_period_flag.l
-abs_0_0004D9BC:
+    ; Types 1/15 choose envelope before pause test. Unmuted type 10 later overwrites low BYTE with amplitude, even after preselection zero. This flag alone is not the final mute condition.
+select_psg_object_volume_before_output_gates:
 	cmpi.w #1,selected_object_sound_type.l
-	bne.b abs_0_0004D9CE
+	bne.b test_psg_type15_for_shared_volume_envelope
 	move.w psg_types1_15_volume_envelope.l,d0
 	bra.b write_psg_object_sound_volume_and_period
-abs_0_0004D9CE:
+test_psg_type15_for_shared_volume_envelope:
 	cmpi.w #15,selected_object_sound_type.l
-	bne.b abs_0_0004D9E0
+	bne.b test_psg_pause_flag_before_default_volume
 	move.w psg_types1_15_volume_envelope.l,d0
 	bra.b write_psg_object_sound_volume_and_period
-abs_0_0004D9E0:
+test_psg_pause_flag_before_default_volume:
 	tst.b psg_type10_pause_mute_flag.l
-	bpl.b abs_0_0004D9EC
+	bpl.b load_psg_default_object_volume_word
 	clr.w d0
 	bra.b write_psg_object_sound_volume_and_period
-abs_0_0004D9EC:
+load_psg_default_object_volume_word:
 	move.w psg_object_sound_volume_word.l,d0
 write_psg_object_sound_volume_and_period:
-	move.b #$A,$00FF8800.l
+	move.b #SG2_PSG_OBJECT_VOLUME_REGISTER,$00FF8800.l
 	tst.b modal_command_input_flag(a6)
-	bmi.b abs_0_0004DA08
+	bmi.b zero_psg_object_output_byte_for_mute
 	tst.b audio_output_enable_sign_flag.l
-	bmi.b abs_0_0004DA0C
-abs_0_0004DA08:
+	bmi.b override_type10_output_with_amplitude_byte
+zero_psg_object_output_byte_for_mute:
 	clr.b d0
-	bra.b abs_0_0004DA1C
-abs_0_0004DA0C:
+	bra.b write_psg_object_volume_then_raw_period_bytes
+override_type10_output_with_amplitude_byte:
 	cmpi.w #10,selected_object_sound_type.l
-	bne.b abs_0_0004DA1C
+	bne.b write_psg_object_volume_then_raw_period_bytes
 	move.b psg_type10_amplitude.l,d0
-abs_0_0004DA1C:
+    ; Emit raw volume low BYTE and period low/high BYTEs. Do not impose an amplitude or high-nibble clamp. Muting zeroes volume writes, not period writes; this phase does not simulate the device.
+write_psg_object_volume_then_raw_period_bytes:
 	move.b d0,$00FF8802.l
 	move.w psg_object_sound_period_word.l,d1
-	move.b #$4,$00FF8800.l
+	move.b #SG2_PSG_OBJECT_PERIOD_LOW_REGISTER,$00FF8800.l
 	move.b d1,$00FF8802.l
-	move.b #$5,$00FF8800.l
-	lsr.w #8,d1
+	move.b #SG2_PSG_OBJECT_PERIOD_HIGH_REGISTER,$00FF8800.l
+	lsr.w #SG2_PSG_PERIOD_HIGH_BYTE_SHIFT,d1
 	move.b d1,$00FF8802.l
+load_psg_projectile_volume_before_output_gates:
 	move.w alternate_projectile_effect_volume.l,d0
-	move.b #$8,$00FF8800.l
+	move.b #SG2_PSG_PROJECTILE_VOLUME_REGISTER,$00FF8800.l
 	tst.b modal_command_input_flag(a6)
-	bmi.b abs_0_0004DA62
+	bmi.b zero_psg_projectile_output_byte_for_mute
 	tst.b audio_output_enable_sign_flag.l
-	bmi.b abs_0_0004DA64
-abs_0_0004DA62:
+	bmi.b write_psg_projectile_volume_then_raw_period_bytes
+zero_psg_projectile_output_byte_for_mute:
 	clr.b d0
-abs_0_0004DA64:
+write_psg_projectile_volume_then_raw_period_bytes:
 	move.b d0,$00FF8802.l
 	move.w alternate_projectile_modulated_period.l,d1
-	move.b #$0,$00FF8800.l
+	move.b #SG2_PSG_PROJECTILE_PERIOD_LOW_REGISTER,$00FF8800.l
 	move.b d1,$00FF8802.l
-	move.b #$1,$00FF8800.l
-	lsr.w #8,d1
+	move.b #SG2_PSG_PROJECTILE_PERIOD_HIGH_REGISTER,$00FF8800.l
+	lsr.w #SG2_PSG_PERIOD_HIGH_BYTE_SHIFT,d1
 	move.b d1,$00FF8802.l
+    ; Negative stardrive WORD or nonzero stardrive envelope selects that volume; otherwise event volume uses the previous variation sign. Its later noise-period path can negate that BYTE sign.
+select_psg_noise_volume_by_stardrive_sign_and_envelope:
 	tst.w stardrive_enabled_word(a6)
-	bmi.b abs_0_0004DAA4
+	bmi.b use_stardrive_noise_volume_word
 	tst.w psg_stardrive_noise_volume_envelope.l
-	bne.b abs_0_0004DAA4
+	bne.b use_stardrive_noise_volume_word
 	move.w psg_nearby_event_volume_envelope.l,d0
-	bra.b abs_0_0004DAAC
-abs_0_0004DAA4:
+	bra.b adjust_event_noise_volume_with_previous_variation_sign
+use_stardrive_noise_volume_word:
 	move.w psg_stardrive_noise_volume_envelope.l,d0
-	bra.b abs_0_0004DABA
-abs_0_0004DAAC:
+	bra.b gate_psg_noise_volume_output_byte
+adjust_event_noise_volume_with_previous_variation_sign:
 	tst.b psg_noise_variation_polarity.l
-	bpl.b abs_0_0004DABA
+	bpl.b gate_psg_noise_volume_output_byte
 	subq.b #1,d0
-	bpl.b abs_0_0004DABA
+	bpl.b gate_psg_noise_volume_output_byte
 	clr.b d0
-abs_0_0004DABA:
+gate_psg_noise_volume_output_byte:
 	tst.b modal_command_input_flag(a6)
-	bmi.b abs_0_0004DAC8
+	bmi.b zero_psg_noise_volume_output_byte_for_mute
 	tst.b audio_output_enable_sign_flag.l
-	bmi.b abs_0_0004DACA
-abs_0_0004DAC8:
+	bmi.b write_noise_volume_before_period_writer_guards
+zero_psg_noise_volume_output_byte_for_mute:
 	clr.b d0
-abs_0_0004DACA:
-	move.b #$9,$00FF8800.l
+write_noise_volume_before_period_writer_guards:
+	move.b #SG2_PSG_NOISE_VOLUME_REGISTER,$00FF8800.l
 	move.b d0,$00FF8802.l
+    ; Stardrive WORD N or sets-noise BYTE N skips this writer. Object-source N selects object low BYTE without RNG; else flip variation, add optional 1 and RNG low 2 bits with BYTE wrap.
 	tst.w stardrive_enabled_word(a6)
-	bmi.b abs_0_0004DB1E
+	bmi.b dispatch_alternate_palette_after_sound_output
 	tst.b psg_object_sets_noise_period_flag.l
-	bmi.b abs_0_0004DB1E
+	bmi.b dispatch_alternate_palette_after_sound_output
 	tst.b psg_noise_uses_object_period_flag.l
-	bpl.b abs_0_0004DAF6
+	bpl.b derive_event_noise_period_and_flip_variation_sign
 	move.w psg_object_sound_period_word.l,d1
-	bra.b abs_0_0004DB10
-abs_0_0004DAF6:
+	bra.b write_psg_noise_period_byte_to_register6
+derive_event_noise_period_and_flip_variation_sign:
 	move.w psg_nearby_event_noise_period.l,d1
 	neg.b psg_noise_variation_polarity.l
-	bpl.b abs_0_0004DB06
+	bpl.b add_shared_random_low_two_bits_to_noise_period_byte
 	addq.b #1,d1
-abs_0_0004DB06:
+add_shared_random_low_two_bits_to_noise_period_byte:
 	bsr.w advance_shared_random_state_effects_bridge
-	andi.b #3,d0
+	andi.b #SG2_PSG_NOISE_JITTER_MASK,d0
 	add.b d0,d1
-abs_0_0004DB10:
-	move.b #$6,$00FF8800.l
+write_psg_noise_period_byte_to_register6:
+	move.b #SG2_PSG_NOISE_PERIOD_REGISTER,$00FF8800.l
 	move.b d1,$00FF8802.l
-abs_0_0004DB1E:
+dispatch_alternate_palette_after_sound_output:
 	lea.l abs_0_0003BD4C.l,a4
 	adda.l #$14,a4
 	tst.w shared_grayscale_effect_countdown.l
@@ -61652,20 +61674,21 @@ write_alternate_grayscale_effect_step:
 abs_0_0004DD3A:
 	movem.l (a7)+,d0-d7/a0-a6
 	rts
-abs_0_0004DD40:
+    ; These helpers construct D0=$28/$08, write selector 7/data and return with D0 clobbered. They are software control-byte writers, not a device or audible-mode proof.
+write_psg_object_control_byte28:
 	moveq.l #0,d0
 	bset #3,d0
 	bclr #4,d0
 	bset #5,d0
-	move.b #$7,$00FF8800.l
+	move.b #SG2_PSG_CONTROL_REGISTER,$00FF8800.l
 	move.b d0,$00FF8802.l
 	rts
-abs_0_0004DD5E:
+write_psg_object_control_byte08:
 	moveq.l #0,d0
 	bset #3,d0
 	bclr #4,d0
 	bclr #5,d0
-	move.b #$7,$00FF8800.l
+	move.b #SG2_PSG_CONTROL_REGISTER,$00FF8800.l
 	move.b d0,$00FF8802.l
 	rts
 alternate_effect_grayscale_prefix:
@@ -61766,44 +61789,54 @@ psg_object_type_base_volumes_or_negative:
 advance_shared_random_state_effects_bridge:
 	jmp advance_shared_random_state.l
 	dc.w $0000
+    ; Sample skips: channel 0 +8, channels 1/2 +4, channel 3 +0. Four setups precede selected-type clear and DMA-set command. Request/transition state is retained; no DMA-lifetime proof.
 initialize_paula_sample_channels:
 	lea.l paula_sample0_skipped_seed_prefix.l,a0
-	adda.l #$8,a0
+	adda.l #SG2_PAULA_CHANNEL0_INITIAL_SKIP_BYTES,a0
 	move.l a0,_custom+aud0+ac_ptr.l	; source paula_sample0_skipped_seed_prefix + dynamic offset | sound_sample pointer
 	move.w #$2168,_custom+aud0+ac_len.l	; sound sample length 17104 bytes
 	move.w #$18,_custom+aud0+ac_vol.l	; audio volume 24
 	move.w #$166,_custom+aud0+ac_per.l	; audio period 358
+initialize_paula_channel1_sample_registers:
 	lea.l paula_sample1_skipped_seed_prefix.l,a0
-	adda.l #$4,a0
+	adda.l #SG2_PAULA_CHANNEL1_INITIAL_SKIP_BYTES,a0
 	move.l a0,_custom+aud1+ac_ptr.l	; source paula_sample1_skipped_seed_prefix + dynamic offset | sound_sample pointer
 	move.w #$1DA,_custom+aud1+ac_len.l	; sound sample length 948 bytes
 	move.w #$0,_custom+aud1+ac_vol.l	; audio volume 0
 	move.w #$5DC,_custom+aud1+ac_per.l	; audio period 1500
+initialize_paula_channel2_sample_registers:
 	lea.l paula_sample2_skipped_seed_prefix.l,a0
-	adda.l #$4,a0
+	adda.l #SG2_PAULA_CHANNEL2_INITIAL_SKIP_BYTES,a0
 	move.l a0,_custom+aud2+ac_ptr.l	; source paula_sample2_skipped_seed_prefix + dynamic offset | sound_sample pointer
 	move.w #$1212,_custom+aud2+ac_len.l	; sound sample length 9252 bytes
 	move.w #$0,_custom+aud2+ac_vol.l	; audio volume 0
 	move.w #$292,_custom+aud2+ac_per.l	; audio period 658
+initialize_paula_channel3_sample_registers:
 	lea.l paula_initial_channel3_silence.l,a0
 	move.l a0,_custom+aud3+ac_ptr.l	; source paula_initial_channel3_silence | sound_sample pointer
 	move.w #$14,_custom+aud3+ac_len.l	; sound sample length 40 bytes
 	move.w #$0,_custom+aud3+ac_vol.l	; audio volume 0
 	move.w #$1404,_custom+aud3+ac_per.l	; audio period 5124
+clear_selected_type_before_initial_audio_dma_command:
 	clr.w selected_object_sound_type.l
+issue_initial_audio_dma_set_command:
 	move.w #DMAF_SETCLR|DMAF_MASTER|DMAF_AUDIO,_custom+dmacon.l
 	rts
+    ; Preserve D0; clear selected type, object volume/period WORDs and one projectile-request BYTE; write control $28. Other envelopes/flags remain. This is not a complete software or device reset.
 initialize_alternate_sound_control:
 	move.l d0,-(a7)
+clear_alternate_selected_type_volume_and_period:
 	clr.w selected_object_sound_type.l
 	clr.w psg_object_sound_volume_word.l
 	clr.w psg_object_sound_period_word.l
+construct_initial_psg_control_byte28:
 	moveq.l #0,d0
 	bset #3,d0
 	bclr #4,d0
 	bset #5,d0
-	move.b #$7,$00FF8800.l
+	move.b #SG2_PSG_CONTROL_REGISTER,$00FF8800.l
 	move.b d0,$00FF8802.l
+clear_alternate_projectile_request_byte_only:
 	sf.b alternate_projectile_effect_reset_request.l
 	move.l (a7)+,d0
 	rts

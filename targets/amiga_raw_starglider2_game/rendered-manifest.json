@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "source_commit": "34d03497c2e9d265305ab2867bb779a818d5b768",
+  "source_commit": "a96e276c6fd395ab7b59136db59aaec2c71787f4",
   "source_assembly": "starglider2_game.s",
   "assets": [
     {
@@ -878,13 +878,13 @@
     },
     {
       "path": "rendered-provenance.json",
-      "bytes": 3551,
-      "sha256": "2eaee0cef34ae0e27febc8f3c75de6cc85af27efd568c71e98b5b6fb7809e226"
+      "bytes": 3516,
+      "sha256": "fc69713e84b21860332f5735641de08586facedaddec74b15d7dfb07f0094ab2"
     },
     {
       "path": "starglider2_game.s",
-      "bytes": 2146783,
-      "sha256": "606167401e760dd09d6b967ca5d0036f8578a4bcc978664f2769e7582f88db40"
+      "bytes": 2151781,
+      "sha256": "c3321003ef16d43c3e0aadd25f34c6257b5fda9aac0d45177f0755cd15aabf02"
     },
     {
       "path": "tools/starglider2_protection.py",
@@ -892,6 +892,6 @@
       "sha256": "81d3f66d36dbfbd5c77238b20c28e8b9abaa329777eb91f64669bbbf13703582"
     }
   ],
-  "source_commit_role": "canonical source publication base; audio modulation continuations and connected speed/stardrive producers reconstructed through 538 original-CPU cases, preserving NOT/NEG distinctions, exact reset, directional limits, retained offsets and ordered register writes; device registers as RAM, not audio/DMA, timing, physical frame cadence, complete-frame, normal-caller or lifetime proof; type 88 remains outside this batch; output is bound by verification_receipt_id",
-  "source_subject_revision": "d1c756bb92eaedfa4de938d60b278f36319d0d82043b016169f747d3f7dfcfa6"
+  "source_commit_role": "canonical source publication base; alternate sound-output priority, raw byte packing, noise writer gates/RNG order, control-helper callers and exact initialization stores reconstructed through 671 original-CPU cases; ports represented as RAM, not device/DMA, PCM, timing, complete-frame, normal-startup caller or sample-lifetime proof; type 88 random branch remains outside this batch; output is bound by verification_receipt_id",
+  "source_subject_revision": "041416da967ca5220499fa2229bd489bf100c10c0bd38c80ad519dc977b9c334"
 }

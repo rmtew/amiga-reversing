@@ -27,6 +27,37 @@ and strengthened 38 app-base attributions.
 Conditional skips mean104 outer iterations are not104 observed memory reads.
 Loaded pointer values remain subject to separate alias/target validation.
 
+The sound-setup/alternate-output batch reconstructs 33 continuations and fifteen
+constants with 671 original-CPU cases. Object types 1/15 choose the envelope
+before pause preselection; an unmuted type 10 later substitutes its amplitude
+BYTE, even after preselection zero. This is writer ordering, not a demonstrated
+normal-game pause defect. Volume WORDs emit their raw low BYTE; period WORDs emit
+low/high BYTEs without an added amplitude or high-nibble clamp.
+
+Noise volume uses stardrive WORD sign and envelope nonzero tests, unlike the
+Paula nonzero-only modulation gate. Event volume uses the old variation sign;
+the later period path may negate that BYTE, optionally increment the period
+BYTE, and add shared-RNG low two bits with BYTE wrap. Negative stardrive or
+sets-noise flags suppress that period writer; object-source selection bypasses
+RNG. Control $08 callers set the source flag and step the modulo-8 envelope;
+control $28 callers clear both writer flags, with pause clearing entry-dependent.
+The small control writers clobber D0; alternate initialization preserves it.
+
+Paula initialization writes four channel setups, clears selected type, then
+issues DMA-set. Pointer skips are separately +8/+4/+4/+0; lengths are stored
+WORD counts. Request/transition state remains. Alternate initialization clears
+only selected-type/object-volume/object-period WORDs and one projectile-request
+BYTE before returning; other software envelopes and flags remain. Neither is
+treated as an OS lifecycle or complete device reset. Existing EOR.W and
+name-only-data ownership semantics are preserved.
+
+Fixtures trace ordered CPU stores to RAM-backed ports and supplied-stack returns,
+including connected helper callers; they do not simulate a device, DMA, PCM,
+timing, complete frame, normal-startup caller or sample lifetime. Type 88's random
+branch remains outside this batch. Native proof/reference identities and
+3509 app /2716 typed /165 unresolved totals remain unchanged; C/vasm and clean
+standalone output are byte exact. Next: alternate palette consumers after $4DB1E.
+
 The audio-cadence batch reconstructs 32 continuations, sixteen constants and ten
 name-only WORD-state identities with 538 original-CPU cases. NOT.W controls the
 alternate projectile-volume decrement; period adds 40 and resets to 300 only
