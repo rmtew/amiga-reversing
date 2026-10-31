@@ -1508,10 +1508,21 @@ SG2_OVERLAY_MIN_LEFT	EQU	16
 SG2_OVERLAY_MIN_TOP	EQU	30
 SG2_OVERLAY_ROWS_DBF_LAST	EQU	15
 SG2_OVERLAY_ROW_BYTE_STEP	EQU	160
+SG2_PAULA_COMMON_PERIOD_FLOOR	EQU	124
+SG2_PAULA_COMMON_PHASE_PERIOD_SHIFT	EQU	5
 SG2_PAULA_PERIOD_STEP	EQU	4
+SG2_PAULA_SPEED_PERIOD_BASE	EQU	654
+SG2_PAULA_SPEED_PERIOD_FLOOR	EQU	174
+SG2_PAULA_SPEED_PERIOD_STEP	EQU	2
 SG2_PAULA_TRANSIENT_BASE_PERIOD	EQU	358
+SG2_PAULA_TYPE10_DECAY_PHASE_MASK	EQU	31
+SG2_PAULA_TYPE10_DECAY_START_PHASE	EQU	10
+SG2_PAULA_TYPE10_PERIOD_BIAS_OFFSET	EQU	50
 SG2_PAULA_TYPE12_PRIORITY_LIMIT	EQU	1100
+SG2_PAULA_TYPE17_VOLUME_BIAS_BASE	EQU	9
 SG2_PAULA_TYPE46_PRIORITY_LIMIT	EQU	350
+SG2_PAULA_TYPE4_PERIOD_BASE	EQU	728
+SG2_PAULA_TYPE4_VARIANT_SHIFT	EQU	4
 SG2_PAULA_TYPE5_PRIORITY_LIMIT	EQU	500
 SG2_PAULA_TYPE8_PRIORITY_LIMIT	EQU	1000
 SG2_PAULA_TYPE91_PRIORITY_LIMIT	EQU	1200
@@ -59512,8 +59523,8 @@ publish_smoothed_volume_before_descriptor_dispatch:
 	move.w selected_object_sound_type.l,d0
 	asl.w #4,d0
 	tst.w $E(a0,d0.w)
-	beq.w abs_0_0004C572
-	bra.b abs_0_0004C1CA
+	beq.w apply_common_paula_period_phase_adjustment
+	bra.b handle_paula_type15_variant_volume_latch
     ; No-candidate fade leaves selected pointer/type intact. Empty count also bypasses candidate-flag reset. Retained state is not an ownership/lifetime proof.
 fade_paula_volume_without_clearing_selected_identity:
 	move.w #$0,paula_object_sound_target_volume.l
@@ -59522,172 +59533,177 @@ fade_paula_volume_without_clearing_selected_identity:
 	move.w #$0,paula_object_sound_smoothed_volume.l
 publish_fading_paula_current_volume:
 	move.w paula_object_sound_smoothed_volume.l,paula_object_sound_current_volume.l
-	bra.w abs_0_0004C5AC
-abs_0_0004C1CA:
+	bra.w gate_common_paula_object_volume_output
+    ; Descriptor WORD14 zero takes the common period path; nonzero enters this chain. Unhandled types here restore the frame without common output. BYTE3 meanings remain type-dependent.
+handle_paula_type15_variant_volume_latch:
 	cmpi.w #15,selected_object_sound_type.l
-	bne.b abs_0_0004C1FA
+	bne.b handle_paula_type1_variant_volume_latch
 	move.b $0003(a2),d0
 	cmp.b #$12,d0
-	bne.b abs_0_0004C1EA
+	bne.b test_paula_type15_second_volume_latch_variant
 	move.w paula_object_sound_current_volume.l,paula_types1_15_volume_envelope.l
-	bra.b abs_0_0004C1FA
-abs_0_0004C1EA:
+	bra.b handle_paula_type1_variant_volume_latch
+test_paula_type15_second_volume_latch_variant:
 	cmp.b #$8,d0
-	bne.b abs_0_0004C1FA
+	bne.b handle_paula_type1_variant_volume_latch
 	move.w paula_object_sound_current_volume.l,paula_types1_15_volume_envelope.l
-abs_0_0004C1FA:
+handle_paula_type1_variant_volume_latch:
 	cmpi.w #1,selected_object_sound_type.l
-	bne.b abs_0_0004C22A
+	bne.b derive_paula_type4_period_from_signed_variant
 	move.b $0003(a2),d0
 	cmp.b #$16,d0
-	bne.b abs_0_0004C21A
+	bne.b test_paula_type1_second_volume_latch_variant
 	move.w paula_object_sound_current_volume.l,paula_types1_15_volume_envelope.l
-	bra.b abs_0_0004C22A
-abs_0_0004C21A:
+	bra.b derive_paula_type4_period_from_signed_variant
+test_paula_type1_second_volume_latch_variant:
 	cmp.b #$A,d0
-	bne.b abs_0_0004C22A
+	bne.b derive_paula_type4_period_from_signed_variant
 	move.w paula_object_sound_current_volume.l,paula_types1_15_volume_envelope.l
-abs_0_0004C22A:
+derive_paula_type4_period_from_signed_variant:
 	cmpi.w #4,selected_object_sound_type.l
-	bne.b abs_0_0004C24C
+	bne.b test_paula_type46_for_shared_ramp_handler
 	move.b $0003(a2),d0
 	ext.w d0
-	asl.w #4,d0
+	asl.w #SG2_PAULA_TYPE4_VARIANT_SHIFT,d0
 	neg.w d0
-	addi.w #728,d0
+	addi.w #SG2_PAULA_TYPE4_PERIOD_BASE,d0
 	move.w d0,paula_object_sound_base_period.l
-	bra.w abs_0_0004C572
-abs_0_0004C24C:
+	bra.w apply_common_paula_period_phase_adjustment
+test_paula_type46_for_shared_ramp_handler:
 	cmpi.w #46,selected_object_sound_type.l
-	bne.b abs_0_0004C258
-	bra.b abs_0_0004C264
-abs_0_0004C258:
+	bne.b test_paula_type5_for_shared_ramp_handler
+	bra.b index_shared_types5_46_period_and_volume_ramp
+test_paula_type5_for_shared_ramp_handler:
 	cmpi.w #5,selected_object_sound_type.l
-	bne.w abs_0_0004C2F6
-abs_0_0004C264:
+	bne.w select_shared_types56_57_58_speed_sound_handler
+    ; Signed BYTE3 indexes this prefix after the ramp update. Index -1 aliases the live ramp WORD immediately before the table. Variants 0/9 decay without a period write; no runtime bounds proof.
+index_shared_types5_46_period_and_volume_ramp:
 	lea.l paula_types5_46_period_word_prefix.l,a0
 	move.b $0003(a2),d0
-	beq.b abs_0_0004C2AC
+	beq.b decay_types5_46_ramp_for_variants_zero_or_nine
 	cmp.b #$9,d0
-	beq.b abs_0_0004C2AC
+	beq.b decay_types5_46_ramp_for_variants_zero_or_nine
+increment_types5_46_volume_ramp_before_table_read:
 	addq.w #1,object_type5_sound_volume_ramp.l
 	move.w object_type5_sound_volume_ramp.l,d1
 	move.w paula_object_sound_current_volume.l,d2
 	cmp.w d2,d1
-	bmi.b abs_0_0004C292
+	bmi.b read_signed_types5_46_period_after_ramp_update
 	move.w d2,object_type5_sound_volume_ramp.l
-abs_0_0004C292:
+read_signed_types5_46_period_after_ramp_update:
 	ext.w d0
 	add.w d0,d0
 	move.w $0(a0,d0.w),d1
 	move.w d1,paula_object_sound_base_period.l
 	move.w paula_object_sound_base_period.l,_custom+aud3+ac_per.l	; audio period
-	bra.b abs_0_0004C2BC
-abs_0_0004C2AC:
+	bra.b publish_types5_46_ramp_as_current_volume
+decay_types5_46_ramp_for_variants_zero_or_nine:
 	subq.w #4,object_type5_sound_volume_ramp.l
-	bpl.b abs_0_0004C2BC
+	bpl.b publish_types5_46_ramp_as_current_volume
 	move.w #$0,object_type5_sound_volume_ramp.l
-abs_0_0004C2BC:
+publish_types5_46_ramp_as_current_volume:
 	move.w object_type5_sound_volume_ramp.l,paula_object_sound_current_volume.l
 	tst.b modal_command_input_flag(a6)
-	bmi.b abs_0_0004C2D6
+	bmi.b mute_paula_types5_46_output
 	tst.b audio_output_enable_sign_flag.l
-	bpl.b abs_0_0004C2D6
-	bra.b abs_0_0004C2E0
-abs_0_0004C2D6:
+	bpl.b mute_paula_types5_46_output
+	bra.b gate_types5_46_volume_on_transition_sign
+mute_paula_types5_46_output:
 	move.w #$0,_custom+aud3+ac_vol.l	; audio volume 0
-	bra.b abs_0_0004C2F2
-abs_0_0004C2E0:
+	bra.b finish_types5_46_specific_sound_handler
+gate_types5_46_volume_on_transition_sign:
 	tst.w paula_object_sound_transition_phase.l
-	bpl.b abs_0_0004C2F2
+	bpl.b finish_types5_46_specific_sound_handler
 	move.w paula_object_sound_current_volume.l,_custom+aud3+ac_vol.l
-abs_0_0004C2F2:
-	bra.w abs_0_0004C5D8
-abs_0_0004C2F6:
+finish_types5_46_specific_sound_handler:
+	bra.w restore_paula_sound_frame_registers_and_return
+select_shared_types56_57_58_speed_sound_handler:
 	cmpi.w #56,selected_object_sound_type.l
-	beq.b abs_0_0004C316
+	beq.b step_types56_58_envelope_from_player_speed
 	cmpi.w #57,selected_object_sound_type.l
-	beq.b abs_0_0004C316
+	beq.b step_types56_58_envelope_from_player_speed
 	cmpi.w #58,selected_object_sound_type.l
-	bne.w abs_0_0004C3C8
-abs_0_0004C316:
+	bne.w add_type11_signed_variant_to_current_volume
+step_types56_58_envelope_from_player_speed:
 	move.w player_speed_target(a6),d0
-	beq.b abs_0_0004C33C
+	beq.b decay_types56_58_envelope_at_zero_speed
 	addq.w #1,paula_types56_58_volume_envelope.l
 	move.w paula_object_sound_current_volume.l,d1
 	cmp.w paula_types56_58_volume_envelope.l,d1
-	bpl.b abs_0_0004C33A
+	bpl.b continue_after_types56_58_envelope_growth
 	move.w paula_object_sound_current_volume.l,paula_types56_58_volume_envelope.l
-abs_0_0004C33A:
-	bra.b abs_0_0004C34C
-abs_0_0004C33C:
+continue_after_types56_58_envelope_growth:
+	bra.b derive_types56_58_period_target_from_speed
+decay_types56_58_envelope_at_zero_speed:
 	subq.w #1,paula_types56_58_volume_envelope.l
-	bpl.b abs_0_0004C34C
+	bpl.b derive_types56_58_period_target_from_speed
 	move.w #$0,paula_types56_58_volume_envelope.l
-abs_0_0004C34C:
+    ; Target is 654-speed as WORD. Downward step applies only floor174; upward step only ceiling654. Equality bypasses both; these are not global range or exact-settling guarantees.
+derive_types56_58_period_target_from_speed:
 	move.w paula_types56_58_current_period.l,d2
-	move.w #$28E,d1
+	move.w #SG2_PAULA_SPEED_PERIOD_BASE,d1
 	sub.w d0,d1
 	cmp.w d2,d1
-	beq.b abs_0_0004C392
-	bmi.b abs_0_0004C360
-	bpl.b abs_0_0004C37A
-abs_0_0004C360:
-	subq.w #2,paula_types56_58_current_period.l
-	cmpi.w #174,paula_types56_58_current_period.l
-	bpl.b abs_0_0004C392
-	move.w #$AE,paula_types56_58_current_period.l
-	bra.b abs_0_0004C392
-abs_0_0004C37A:
-	addq.w #2,paula_types56_58_current_period.l
-	cmpi.w #654,paula_types56_58_current_period.l
-	bmi.b abs_0_0004C392
-	move.w #$28E,paula_types56_58_current_period.l
-abs_0_0004C392:
+	beq.b write_types56_58_current_period_to_aud3
+	bmi.b lower_types56_58_period_with_conditional_floor
+	bpl.b raise_types56_58_period_with_conditional_ceiling
+lower_types56_58_period_with_conditional_floor:
+	subq.w #SG2_PAULA_SPEED_PERIOD_STEP,paula_types56_58_current_period.l
+	cmpi.w #SG2_PAULA_SPEED_PERIOD_FLOOR,paula_types56_58_current_period.l
+	bpl.b write_types56_58_current_period_to_aud3
+	move.w #SG2_PAULA_SPEED_PERIOD_FLOOR,paula_types56_58_current_period.l
+	bra.b write_types56_58_current_period_to_aud3
+raise_types56_58_period_with_conditional_ceiling:
+	addq.w #SG2_PAULA_SPEED_PERIOD_STEP,paula_types56_58_current_period.l
+	cmpi.w #SG2_PAULA_SPEED_PERIOD_BASE,paula_types56_58_current_period.l
+	bmi.b write_types56_58_current_period_to_aud3
+	move.w #SG2_PAULA_SPEED_PERIOD_BASE,paula_types56_58_current_period.l
+write_types56_58_current_period_to_aud3:
 	move.w paula_types56_58_current_period.l,_custom+aud3+ac_per.l	; audio period
 	tst.b modal_command_input_flag(a6)
-	bmi.b abs_0_0004C3AC
+	bmi.b mute_paula_types56_58_output
 	tst.b audio_output_enable_sign_flag.l
-	bpl.b abs_0_0004C3AC
-	bra.b abs_0_0004C3B6
-abs_0_0004C3AC:
+	bpl.b mute_paula_types56_58_output
+	bra.b gate_types56_58_volume_on_transition_sign
+mute_paula_types56_58_output:
 	move.w #$0,_custom+aud3+ac_vol.l	; audio volume 0
-	bra.b abs_0_0004C3C8
-abs_0_0004C3B6:
+	bra.b add_type11_signed_variant_to_current_volume
+gate_types56_58_volume_on_transition_sign:
 	tst.w paula_object_sound_transition_phase.l
-	bpl.b abs_0_0004C3C8
+	bpl.b add_type11_signed_variant_to_current_volume
 	move.w paula_types56_58_volume_envelope.l,_custom+aud3+ac_vol.l
-abs_0_0004C3C8:
+add_type11_signed_variant_to_current_volume:
 	cmpi.w #11,selected_object_sound_type.l
-	bne.b abs_0_0004C3E8
+	bne.b advance_type10_mod32_decay_and_period_bias
 	move.b $0003(a2),d0
 	ext.w d0
 	add.w paula_object_sound_current_volume.l,d0
 	move.w d0,paula_object_sound_current_volume.l
-	bra.w abs_0_0004C572
-abs_0_0004C3E8:
+	bra.w apply_common_paula_period_phase_adjustment
+advance_type10_mod32_decay_and_period_bias:
 	cmpi.w #10,selected_object_sound_type.l
-	bne.b abs_0_0004C43A
+	bne.b load_type17_signed_variant_period_and_volume_bias
 	move.w paula_type10_decay_phase_mod32.l,d0
 	addq.w #1,d0
-	andi.w #31,d0
+	andi.w #SG2_PAULA_TYPE10_DECAY_PHASE_MASK,d0
 	move.w d0,paula_type10_decay_phase_mod32.l
-	cmp.w #$A,d0
-	bmi.b abs_0_0004C41A
+	cmp.w #SG2_PAULA_TYPE10_DECAY_START_PHASE,d0
+	bmi.b publish_type10_decay_before_signed_period_bias
 	subq.w #4,paula_object_sound_smoothed_volume.l
-	bpl.b abs_0_0004C41A
+	bpl.b publish_type10_decay_before_signed_period_bias
 	move.w #$0,paula_object_sound_smoothed_volume.l
-abs_0_0004C41A:
+publish_type10_decay_before_signed_period_bias:
 	move.w paula_object_sound_smoothed_volume.l,paula_object_sound_current_volume.l
 	move.b $0003(a2),d0
 	ext.w d0
 	asl.w #2,d0
-	subi.w #50,d0
+	subi.w #SG2_PAULA_TYPE10_PERIOD_BIAS_OFFSET,d0
 	add.w d0,paula_object_sound_base_period.l
-	bra.w abs_0_0004C572
-abs_0_0004C43A:
+	bra.w apply_common_paula_period_phase_adjustment
+    ; Signed BYTE3 indexes period prefixes; type17 also adds 9-index to volume. Stored extents do not prove runtime selector bounds; preceding/following bytes retain original meaning.
+load_type17_signed_variant_period_and_volume_bias:
 	cmpi.w #17,selected_object_sound_type.l
-	bne.b abs_0_0004C474
+	bne.b load_type19_signed_variant_period_prefix
 	movea.l #paula_type17_period_word_prefix,a0
 	move.b $0003(a2),d0
 	ext.w d0
@@ -59696,111 +59712,113 @@ abs_0_0004C43A:
 	move.w $0(a0,d0.w),d2
 	move.w d2,paula_object_sound_base_period.l
 	neg.w d1
-	addi.w #9,d1
+	addi.w #SG2_PAULA_TYPE17_VOLUME_BIAS_BASE,d1
 	add.w paula_object_sound_current_volume.l,d1
 	move.w d1,paula_object_sound_current_volume.l
-	bra.w abs_0_0004C572
-abs_0_0004C474:
+	bra.w apply_common_paula_period_phase_adjustment
+load_type19_signed_variant_period_prefix:
 	cmpi.w #19,selected_object_sound_type.l
-	bne.b abs_0_0004C49A
+	bne.b load_type36_signed_variant_period_prefix
 	movea.l #paula_type19_period_word_prefix,a0
 	move.b $0003(a2),d0
 	ext.w d0
 	add.w d0,d0
 	move.w $0(a0,d0.w),d1
 	move.w d1,paula_object_sound_base_period.l
-	bra.w abs_0_0004C572
-abs_0_0004C49A:
+	bra.w apply_common_paula_period_phase_adjustment
+load_type36_signed_variant_period_prefix:
 	cmpi.w #36,selected_object_sound_type.l
-	bne.b abs_0_0004C4C0
+	bne.b snapshot_type3_word18_for_later_period_service
 	movea.l #paula_type36_period_word_prefix,a0
 	move.b $0003(a2),d0
 	ext.w d0
 	add.w d0,d0
 	move.w $0(a0,d0.w),d1
 	move.w d1,paula_object_sound_base_period.l
-	bra.w abs_0_0004C572
-abs_0_0004C4C0:
+	bra.w apply_common_paula_period_phase_adjustment
+snapshot_type3_word18_for_later_period_service:
 	cmpi.w #3,selected_object_sound_type.l
-	bne.b abs_0_0004C4D6
+	bne.b write_type64_signed_variant_period_without_common_floor
 	move.w $0012(a2),paula_type3_period_step_snapshot.l
-	bra.w abs_0_0004C5D8
-abs_0_0004C4D6:
+	bra.w restore_paula_sound_frame_registers_and_return
+    ; Type64 writes base plus signed BYTE3 times16, bypassing the common floor. Type3 only snapshots WORD18 here; later transition service consumes it. Keep these paths distinct.
+write_type64_signed_variant_period_without_common_floor:
 	cmpi.w #64,selected_object_sound_type.l
-	bne.b abs_0_0004C4FA
+	bne.b test_type1_for_shared_volume_envelope_decay
 	move.b $0003(a2),d0
 	ext.w d0
 	asl.w #4,d0
 	move.w paula_object_sound_base_period.l,d1
 	add.w d1,d0
 	move.w d0,_custom+aud3+ac_per.l	; audio period
-	bra.w abs_0_0004C5AC
-abs_0_0004C4FA:
+	bra.w gate_common_paula_object_volume_output
+test_type1_for_shared_volume_envelope_decay:
 	cmpi.w #1,selected_object_sound_type.l
-	bne.b abs_0_0004C506
-	bra.b abs_0_0004C510
-abs_0_0004C506:
+	bne.b test_type15_for_shared_volume_envelope_decay
+	bra.b decay_types1_15_volume_envelope_by_four
+test_type15_for_shared_volume_envelope_decay:
 	cmpi.w #15,selected_object_sound_type.l
-	bne.b abs_0_0004C554
-abs_0_0004C510:
+	bne.b test_type88_before_shared_random_period_call
+decay_types1_15_volume_envelope_by_four:
 	subq.w #4,paula_types1_15_volume_envelope.l
-	bpl.b abs_0_0004C520
+	bpl.b gate_types1_15_volume_output
 	move.w #$0,paula_types1_15_volume_envelope.l
-abs_0_0004C520:
+gate_types1_15_volume_output:
 	tst.b modal_command_input_flag(a6)
-	bmi.b abs_0_0004C530
+	bmi.b mute_paula_types1_15_output
 	tst.b audio_output_enable_sign_flag.l
-	bpl.b abs_0_0004C530
-	bra.b abs_0_0004C53C
-abs_0_0004C530:
+	bpl.b mute_paula_types1_15_output
+	bra.b gate_types1_15_volume_on_transition_sign
+mute_paula_types1_15_output:
 	move.w #$0,_custom+aud3+ac_vol.l	; audio volume 0
-	bra.w abs_0_0004C5D8
-abs_0_0004C53C:
+	bra.w restore_paula_sound_frame_registers_and_return
+gate_types1_15_volume_on_transition_sign:
 	tst.w paula_object_sound_transition_phase.l
-	bpl.w abs_0_0004C5D8
+	bpl.w restore_paula_sound_frame_registers_and_return
 	move.w paula_types1_15_volume_envelope.l,_custom+aud3+ac_vol.l
-	bra.w abs_0_0004C5D8
-abs_0_0004C554:
+	bra.w restore_paula_sound_frame_registers_and_return
+test_type88_before_shared_random_period_call:
 	cmpi.w #88,selected_object_sound_type.l
-	bne.b abs_0_0004C5D8
+	bne.b restore_paula_sound_frame_registers_and_return
 	bsr.w advance_shared_random_state_effects_bridge
 	andi.w #511,d0
 	addi.w #200,d0
 	move.w d0,_custom+aud3+ac_per.l	; audio period
-	bra.b abs_0_0004C5D8
-abs_0_0004C572:
+	bra.b restore_paula_sound_frame_registers_and_return
+    ; Common path skips phase adjustment for type16. Other types with flags2/3 subtract signed BYTE30 times32. Floor uses WORD subtraction N, not an unbounded signed comparison; preserve wrap.
+apply_common_paula_period_phase_adjustment:
 	move.w paula_object_sound_base_period.l,d0
 	cmpi.w #16,selected_object_sound_type.l
-	beq.b abs_0_0004C59C
+	beq.b apply_common_period_floor_by_word_subtraction_sign
 	btst.b #2,$0002(a2)
-	bne.b abs_0_0004C592
+	bne.b subtract_signed_phase_times32_from_common_period
 	btst.b #3,$0002(a2)
-	beq.b abs_0_0004C59C
-abs_0_0004C592:
+	beq.b apply_common_period_floor_by_word_subtraction_sign
+subtract_signed_phase_times32_from_common_period:
 	move.b $001E(a2),d1
 	ext.w d1
-	asl.w #5,d1
+	asl.w #SG2_PAULA_COMMON_PHASE_PERIOD_SHIFT,d1
 	sub.w d1,d0
-abs_0_0004C59C:
-	cmp.w #$7C,d0
-	bpl.b abs_0_0004C5A6
-	move.w #$7C,d0
-abs_0_0004C5A6:
+apply_common_period_floor_by_word_subtraction_sign:
+	cmp.w #SG2_PAULA_COMMON_PERIOD_FLOOR,d0
+	bpl.b write_common_object_period_to_aud3
+	move.w #SG2_PAULA_COMMON_PERIOD_FLOOR,d0
+write_common_object_period_to_aud3:
 	move.w d0,_custom+aud3+ac_per.l	; audio period
-abs_0_0004C5AC:
+gate_common_paula_object_volume_output:
 	tst.b modal_command_input_flag(a6)
-	bmi.b abs_0_0004C5BC
+	bmi.b mute_common_paula_object_volume
 	tst.b audio_output_enable_sign_flag.l
-	bpl.b abs_0_0004C5BC
-	bra.b abs_0_0004C5C6
-abs_0_0004C5BC:
+	bpl.b mute_common_paula_object_volume
+	bra.b gate_common_volume_on_transition_sign
+mute_common_paula_object_volume:
 	move.w #$0,_custom+aud3+ac_vol.l	; audio volume 0
-	bra.b abs_0_0004C5D8
-abs_0_0004C5C6:
+	bra.b restore_paula_sound_frame_registers_and_return
+gate_common_volume_on_transition_sign:
 	tst.w paula_object_sound_transition_phase.l
-	bpl.b abs_0_0004C5D8
+	bpl.b restore_paula_sound_frame_registers_and_return
 	move.w paula_object_sound_current_volume.l,_custom+aud3+ac_vol.l
-abs_0_0004C5D8:
+restore_paula_sound_frame_registers_and_return:
 	movem.l (a7)+,d0-d7/a0-a6
 	rts
 	dc.b $4E,$73,$4E,$75,$33,$FC,$00,$00,$00,$DF,$F0,$A8,$33,$FC,$00,$00

@@ -27,6 +27,33 @@ and strengthened 38 app-base attributions.
 Conditional skips mean104 outer iterations are not104 observed memory reads.
 Loaded pointer values remain subject to separate alias/target validation.
 
+The descriptor-gated handler batch reconstructs 48 continuations and eleven
+constants with 643 original-CPU cases. Descriptor WORD14 zero selects the common
+period path; nonzero enters the type-specific chain. An unhandled type in that
+chain restores the frame without common output. Signed BYTE3 drives distinct
+period/volume calculations and unchecked prefix reads. For types 5/46, index -1
+aliases the preceding ramp WORD after its update; variants 0/9 decay the ramp
+without writing a period. No selector bound or intended musical meaning is inferred.
+
+Types 56/57/58 approach 654-player speed in steps of 2: the downward path applies
+only floor 174, the upward path only ceiling 654, and equality bypasses both.
+These conditional limits are not a global output-range guarantee. Types 1/15
+latch volume for specific BYTE3 values, then decay by 4. Type 10 wraps its decay
+phase modulo 32 and adjusts its base period using signed BYTE3. Type 17 adds
+9-index to volume; types 19/36 only load a period. Type 3 snapshots WORD18 for the
+later service; type 64 directly writes its signed-variant period without the
+common floor. Common phase adjustment skips type 16 and otherwise depends on
+flags 2/3. All WORD subtraction-sign and overflow behavior is retained.
+
+Fixtures run the descriptor gate/handlers and stop before saved-frame restore,
+with device addresses treated as RAM. They check calculated register
+write values and output gates, not device operation, DMA, PCM, timing, a complete
+frame, normal-game caller reachability or lifetime safety. Type 88's shared-random
+period call remains outside this CPU batch. Native proof/reference identities and
+3509 app /2716 typed /165 unresolved totals remain unchanged. C/vasm and clean
+standalone output are byte exact. The next connected lead is the later sample
+transition/type 3 service, keeping sample ownership and hardware effects separate.
+
 The nearby-object sound batch reconstructs 57 continuations, eight constants
 and the previous-selected-vector name with 939 original-CPU cases. Both metrics
 use wrapped WORD magnitudes/sums followed by LSR2, not universal mathematical

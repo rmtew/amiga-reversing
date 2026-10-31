@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "source_commit": "e07d0adc8e23eff93be7281144df1223d34b59d1",
+  "source_commit": "07b25e7ad450ebab7f7b73c03c4e9d7097f03873",
   "source_assembly": "starglider2_game.s",
   "assets": [
     {
@@ -878,13 +878,13 @@
     },
     {
       "path": "rendered-provenance.json",
-      "bytes": 3499,
-      "sha256": "c01aab231566edea398e41f40f7e927e7c55255f0d6545b523ae43140f80b544"
+      "bytes": 3507,
+      "sha256": "40612669c0c035f684208ced4fcfbdc861f2d4337e971944d6c8d742076f4253"
     },
     {
       "path": "starglider2_game.s",
-      "bytes": 2129485,
-      "sha256": "0bb16ba9e03d3e7348b2e49eb2dfcaad5bf0557ed231ac0a6f18c38b60acb236"
+      "bytes": 2135044,
+      "sha256": "8066846b12285c807349604b243a26e85e91718220963fd338e971cb6b30fed8"
     },
     {
       "path": "tools/starglider2_protection.py",
@@ -892,6 +892,6 @@
       "sha256": "81d3f66d36dbfbd5c77238b20c28e8b9abaa329777eb91f64669bbbf13703582"
     }
   ],
-  "source_commit_role": "canonical source publication base; nearby-object software selectors, descriptor transitions, prefix accumulation, vector snapshot and period/volume steps reconstructed through 939 original-CPU cases; sound stages stop before device-writing continuations, not PCM, complete frame effects, normal-game reachability, arbitrary ownership/index bounds or concurrency proof; output is bound by verification_receipt_id",
-  "source_subject_revision": "ecee83b600583f054b8e4fcb7127dddd34c1becd3e631cdd0f3b8078826c713b"
+  "source_commit_role": "canonical source publication base; descriptor-gated object sound handlers, signed prefix aliases, period/envelope calculations and output gates reconstructed through 643 original-CPU cases with device addresses treated as RAM; not DMA, PCM, timing, complete-frame, normal-caller, arbitrary selector bounds or lifetime proof; shared-random type88 branch outside this CPU batch; output is bound by verification_receipt_id",
+  "source_subject_revision": "90aed64965b6ee1189c9616372f9bf65ab1ac4c2537d160562633fdcd5c69e9a"
 }
