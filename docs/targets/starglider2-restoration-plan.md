@@ -27,6 +27,37 @@ and strengthened 38 app-base attributions.
 Conditional skips mean104 outer iterations are not104 observed memory reads.
 Loaded pointer values remain subject to separate alias/target validation.
 
+The stored-target/update batch reconstructs 39 connected integration, retirement,
+Y-following, heading-cadence and integer-ratio continuations. Null or sign-set
+stored references skip target reads and aging after position integration. Positive
+references still require readable caller backing: nonzero type and negative
+phase are local tests, not ownership/lifetime proof. Failed local checks clear
+only the projectile retirement phase, without aging, unlinking or freeing it.
+The player-following budget uses signed BLE after WORD decrement; stored-target
+aging uses unsigned BLS. Consequently original high-bit budgets behave differently.
+
+91 original-CPU cases cover those boundaries, wrapped LONG Y smoothing and N-only
+cutoff/clamp checks, cadence, motion reconstruction and animation. Stored-target
+Y uses ASR 5; player-following uses ASR 2. Only cadence wrap recomputes the heading;
+other accepted phases retain heading but rebuild X/Z velocity. Launch leaves the
+cadence field untouched. Animation clears only incremented BYTE value 5, rather
+than applying a general modulo-five operation.
+
+The `heading_from_stored_object_xz` entry uses pre-view X/Z WORDs. Its shared
+ratio/axis tail also accepts world-coordinate callers, not newly qualified here.
+WORD loads preserve upper D0/D1 halves that DIVS consumes as full-LONG numerator
+state. Direct and integrated fixtures
+retain context-dependent results, including quotient overflow leaving the
+register unchanged before the original comparison/mask. This is not a pure
+atan2 replacement or proof that arbitrary callers are arithmetically safe.
+Zero-axis/coincident results and wrapped WORD NEG retain the original sector rules.
+No game behavior was repaired or analysis guard relaxed. Native proof/reference
+identities, counts and ownership remain unchanged; C/vasm and clean standalone
+output remain exact. These supplied-record CPU tests do not add normal-game,
+target-lifetime, DMA or scanout certification. Next connected lead: original
+projectile/target collision and retirement consumers, distinguishing phase change
+from eventual pool recycling and reference invalidation.
+
 The existing-lock/homing batch reconstructs 32 connected input, inventory,
 allocation, motion and shared HUD-restore continuations. Cooldown takes precedence;
 one-hand mode additionally gates on the low two direction bits, before mouse,
@@ -54,8 +85,8 @@ adjacent restores overlap two logical rows. Native proof/reference identities,
 access totals and ownership accounting are unchanged; no framework or type-proof
 relaxation was needed. C/vasm and clean standalone output remain byte exact;
 these supplied-state CPU tests add no gameplay, DMA or scanout qualification.
-Next connected lead: stored-target steering and update-budget consumers, keeping
-pointer lifetime and later retirement separate from launch initialization.
+The stored-target steering and update-budget lead is addressed above; launch
+initialization alone still does not prove later pointer lifetime or retirement.
 
 The scan-acquisition batch reconstructs 45 connected eligibility, projection,
 commit, aim-snapshot and caller continuations, plus the analysis/missile message

@@ -1437,6 +1437,10 @@ INTF_CLRALL	EQU	$7FFF
 SG2_AIM_CONTROL_PHASE_MASK	EQU	4095
 SG2_ALTERNATE_WEAPON_HUD_ICON_PITCH_BYTES	EQU	1920
 SG2_AMIGA_WEAPON_HUD_ICON_PITCH_BYTES	EQU	480
+SG2_ANGLE_FULL_TURN	EQU	4096
+SG2_ANGLE_HALF_TURN	EQU	2048
+SG2_ANGLE_QUARTER_TURN	EQU	1024
+SG2_ANGLE_THREE_QUARTER_TURN	EQU	3072
 SG2_CONTACT_COORDINATE_SHIFT	EQU	9
 SG2_CONTACT_PIXEL_CENTER_X	EQU	144
 SG2_CONTACT_PIXEL_CENTER_Y	EQU	160
@@ -1449,6 +1453,8 @@ SG2_HEADING_FINE_SHIFT_MASK	EQU	15
 SG2_HEADING_QUOTIENT_MASK	EQU	511
 SG2_HEADING_SAMPLE_SHIFT	EQU	2
 SG2_HEADING_SCALE_SHIFT	EQU	5
+SG2_HOMING_ANIMATION_RESET_VALUE	EQU	5
+SG2_HOMING_HEADING_CADENCE_MASK	EQU	7
 SG2_HOMING_INITIAL_UPDATES	EQU	400
 SG2_HOMING_LAUNCH_COOLDOWN	EQU	100
 SG2_HOMING_LAUNCH_SPEED_BIAS	EQU	500
@@ -1471,6 +1477,7 @@ SG2_OVERLAY_MIN_LEFT	EQU	16
 SG2_OVERLAY_MIN_TOP	EQU	30
 SG2_OVERLAY_ROWS_DBF_LAST	EQU	15
 SG2_OVERLAY_ROW_BYTE_STEP	EQU	160
+SG2_PLAYER_FOLLOW_Y_SMOOTH_SHIFT	EQU	2
 SG2_PROJECTILE_BASE_ENERGY_COST	EQU	256
 SG2_PROJECTILE_FREE_SLOT_RESERVE	EQU	2
 SG2_RADIAL_FIRST_SHIFT_THRESHOLD	EQU	524288
@@ -1490,6 +1497,8 @@ SG2_SCAN_FRAME_BYTE_OFFSET_MASK	EQU	28
 SG2_SCAN_INITIAL_DEPTH_LIMIT	EQU	32767
 SG2_SCAN_OVERLAY_RELOAD	EQU	56
 SG2_SPRITE_CONTROL_PREFIX_BYTES	EQU	4
+SG2_STORED_HEADING_RATIO_BYTE_LIMIT	EQU	255
+SG2_STORED_TARGET_Y_SMOOTH_SHIFT	EQU	5
 SG2_TEXT_CURSOR_COLUMNS	EQU	40
 SG2_TEXT_CURSOR_ROWS	EQU	25
 SG2_TEXT_DELETE_ROW_REWIND_BYTES	EQU	322
@@ -11612,11 +11621,14 @@ abs_0_00009656:
 	subq.w #1,SG2TimedMotionActor_remaining_updates(a0)
 	ble.w retire_projectile_phase
 	bra.w abs_0_000081D2
+    ; Variant BYTE increments and resets only when equal to 5; this is not general modulo 5. Original position integration precedes tracking checks and budget/retirement handling.
     ; KNOWN: type A0=Target code-entry register seed:SG2SteeredProjectile
 animate_nearby_homing_projectile:
 	move.b #$1C,diagnostic_step_byte.l
+advance_homing_model_variant_byte:
 	addi.b #1,SG2WorldObject_vertex_variant_selector(a0)
-	cmpi.b #5,SG2WorldObject_vertex_variant_selector(a0)
+test_homing_variant_reset_value:
+	cmpi.b #SG2_HOMING_ANIMATION_RESET_VALUE,SG2WorldObject_vertex_variant_selector(a0)
 	bne.b update_nearby_steered_projectile
 	clr.b SG2WorldObject_vertex_variant_selector(a0)
     ; KNOWN: type A0=Target code-entry register seed:SG2SteeredProjectile
@@ -11633,51 +11645,70 @@ update_nearby_steered_projectile:
 	move.l horizontal_world_wrap_mask(a6),d3
 	and.l d3,SG2ObjectCore_world_x(a0)
 	and.l d3,SG2ObjectCore_world_z(a0)
+choose_stored_target_or_player_following:
 	tst.b SG2SteeredProjectile_stored_target_tracking_byte(a0)
 	bne.w steer_projectile_toward_stored_target
+    ; Player-following Y uses wrapped LONG delta ASR 2. Budget uses signed BLE after decrement, then Y cutoff tests N only. Stored-target path instead uses unsigned BLS and ASR 5.
+smooth_projectile_y_toward_player:
 	move.l player_world_y(a6),d0
 	sub.l SG2ObjectCore_world_y(a0),d0
-	asr.l #2,d0
+	asr.l #SG2_PLAYER_FOLLOW_Y_SMOOTH_SHIFT,d0
 	add.l d0,SG2ObjectCore_world_y(a0)
+age_player_following_projectile_signed:
 	subq.w #1,SG2SteeredProjectile_remaining_updates(a0)
 	ble.b retire_projectile_phase
+test_player_following_negative_y_cutoff:
 	cmpi.l #4294965596,SG2ObjectCore_world_y(a0)
 	bmi.b retire_projectile_phase
+face_away_from_player_stored_xz:
 	bsr.w heading_with_player_as_reference
-	addi.w #2048,d1
-	andi.w #4095,d1
+	addi.w #SG2_ANGLE_HALF_TURN,d1
+	andi.w #SG2_HEADING_ANGLE_MASK,d1
 	move.w d1,SG2WorldObject_rotation_1(a0)
+continue_player_projectile_horizontal_motion:
 	bra.w recompute_actor_horizontal_motion_from_heading
+    ; Clear only the retirement phase here, then continue the object loop. This local path does not free/unlink the record or undo inventory; type and linked reference remain.
 retire_projectile_phase:
 	clr.b SG2ObjectCore_retirement_phase_or_negative(a0)
 	bra.w abs_0_000081D2
-    ; Tracking requires positive LONG3C and a live original target. Preserve unsigned BLS lifetime test, deltaY>>5, -10 clamp and modulo8 heading cadence. Zero22 uses the separate player path.
+    ; Skip zero/negative stored references. Positive refs require readable caller backing; type zero or nonnegative target phase retires before budget. BLS budget test differs from player BLE.
 steer_projectile_toward_stored_target:
 	move.b #$1D,diagnostic_step_byte.l
+reject_null_or_negative_stored_target_reference:
 	tst.l SG2WorldObject_linked_record_or_sentinel(a0)
 	beq.w abs_0_000081D2
 	bmi.w abs_0_000081D2
+load_stored_target_for_local_record_checks:
 	movea.l SG2WorldObject_linked_record_or_sentinel(a0),a4
+retire_for_zero_stored_target_type:
 	tst.w (a4)
 	beq.b retire_projectile_phase
+retire_for_nonnegative_stored_target_phase:
 	tst.b $001E(a4)
 	bpl.b retire_projectile_phase
+age_stored_target_projectile_unsigned:
 	subq.w #1,SG2SteeredProjectile_remaining_updates(a0)
 	bls.b retire_projectile_phase
+smooth_projectile_y_toward_stored_target:
 	move.l $0008(a4),d0
 	sub.l SG2ObjectCore_world_y(a0),d0
-	asr.l #5,d0
+	asr.l #SG2_STORED_TARGET_Y_SMOOTH_SHIFT,d0
 	add.l d0,SG2ObjectCore_world_y(a0)
+clamp_tracked_projectile_y_using_n_flag:
 	cmpi.l #4294967286,SG2ObjectCore_world_y(a0)
-	bmi.b abs_0_00009748
+	bmi.b advance_tracked_heading_cadence
 	move.l #$FFFFFFF6,SG2ObjectCore_world_y(a0)
-abs_0_00009748:
+    ; Increment and mask cadence to 3 bits; only zero recomputes heading. Launch left this reused-record field untouched. Accepted updates always rebuild horizontal velocity, not Y velocity.
+advance_tracked_heading_cadence:
 	addq.w #1,SG2SteeredProjectile_heading_recompute_mod8_index(a0)
-	andi.w #7,SG2SteeredProjectile_heading_recompute_mod8_index(a0)
+	andi.w #SG2_HOMING_HEADING_CADENCE_MASK,SG2SteeredProjectile_heading_recompute_mod8_index(a0)
 	bne.w recompute_tracked_projectile_horizontal_motion
+recompute_tracked_heading_when_cadence_wraps:
 	bsr.w heading_from_stored_object_xz
-	andi.w #4095,d1
+	andi.w #SG2_HEADING_ANGLE_MASK,d1
+store_tracked_projectile_heading_word:
 	move.w d1,SG2WorldObject_rotation_1(a0)
+continue_tracked_projectile_horizontal_motion:
 	bra.w recompute_tracked_projectile_horizontal_motion
     ; Creator World yaw gate uses raw difference/NEG, not shortest wrapped angle. Direct9784 path intentionally bypasses alignment; normal creator/index/free-list preconditions remain.
     ; KNOWN: type A0=Target code-entry register seed:SG2WorldObject
@@ -13321,132 +13352,133 @@ abs_0_0000AF76:
 abs_0_0000AF82:
 	move.l SG2ObjectCore_world_z(a0),d1
 	sub.l $000C(a4),d1
-	bpl.b abs_0_0000AFF6
+	bpl.b select_stored_heading_axis_or_ratio_path
 	neg.l d1
-	bra.b abs_0_0000AFF6
+	bra.b select_stored_heading_axis_or_ratio_path
     ; KNOWN: type A0=Target code-entry register seed:SG2TargetingObject
 heading_with_player_as_reference:
 	move.b #$3D,diagnostic_step_byte.l
 	movea.l player_object_reference(a6),a4
-    ; Quadrant-aware XZ heading from stored A0/A4+$32,$36 pairs; WORD D1 uses4096 units/turn. Masked table bounds do not prove all DIVS/absolute-value inputs safe.
+    ; Heading uses stored X/Z WORDs. WORD loads preserve upper D0/D1 halves used by full-LONG DIVS numerators; output depends on caller context. Masked indices do not prove arbitrary inputs safe.
     ; KNOWN: type A0=Target code-entry register seed:SG2TargetingObject; type A4=Target code-entry register seed:SG2TargetingObject
 heading_from_stored_object_xz:
 	move.b #$3E,diagnostic_step_byte.l
 	move.w SG2TargetingObject_pre_view_relative_z(a4),d0
 	move.w SG2TargetingObject_pre_view_relative_z(a0),d1
 	cmp.w d0,d1
-	blt.b abs_0_0000AFC8
+	blt.b compare_stored_x_for_negative_z_heading_sector
 	move.w SG2TargetingObject_pre_view_relative_x(a4),d0
 	move.w SG2TargetingObject_pre_view_relative_x(a0),d1
 	cmp.w d0,d1
-	blt.b abs_0_0000AFC2
+	blt.b select_stored_xz_heading_sector_three
 	move.b #$2,d4
-	bra.b abs_0_0000AFDE
-abs_0_0000AFC2:
+	bra.b form_wrapped_stored_x_heading_difference
+select_stored_xz_heading_sector_three:
 	move.b #$3,d4
-	bra.b abs_0_0000AFDE
-abs_0_0000AFC8:
+	bra.b form_wrapped_stored_x_heading_difference
+compare_stored_x_for_negative_z_heading_sector:
 	move.w SG2TargetingObject_pre_view_relative_x(a4),d0
 	move.w SG2TargetingObject_pre_view_relative_x(a0),d1
 	cmp.w d0,d1
-	blt.b abs_0_0000AFDA
+	blt.b select_stored_xz_heading_sector_four
 	move.b #$1,d4
-	bra.b abs_0_0000AFDE
-abs_0_0000AFDA:
+	bra.b form_wrapped_stored_x_heading_difference
+select_stored_xz_heading_sector_four:
 	move.b #$4,d4
-abs_0_0000AFDE:
+form_wrapped_stored_x_heading_difference:
 	move.w SG2TargetingObject_pre_view_relative_x(a0),d0
 	sub.w SG2TargetingObject_pre_view_relative_x(a4),d0
-	bpl.b abs_0_0000AFEA
+	bpl.b form_wrapped_stored_z_heading_difference
 	neg.w d0
-abs_0_0000AFEA:
+form_wrapped_stored_z_heading_difference:
 	move.w SG2TargetingObject_pre_view_relative_z(a0),d1
 	sub.w SG2TargetingObject_pre_view_relative_z(a4),d1
-	bpl.b abs_0_0000AFF6
+	bpl.b select_stored_heading_axis_or_ratio_path
 	neg.w d1
-abs_0_0000AFF6:
+select_stored_heading_axis_or_ratio_path:
 	tst.w d1
-	beq.w abs_0_0000B024
+	beq.w return_stored_heading_horizontal_axis_result
 	tst.w d0
-	beq.b abs_0_0000B014
+	beq.b return_stored_heading_vertical_axis_result
 	cmp.w d1,d0
-	bgt.w abs_0_0000B06E
+	bgt.w divide_stored_heading_x_by_z
 	lea.l atan_integer_ratio_words.l,a1
 	divs.w d0,d1
-	cmp.w #$FF,d1
-	blt.b abs_0_0000B036
-abs_0_0000B014:
+	cmp.w #SG2_STORED_HEADING_RATIO_BYTE_LIMIT,d1
+	blt.b lookup_stored_heading_z_over_x_word
+return_stored_heading_vertical_axis_result:
 	cmp.b #$1,d4
-	bne.b abs_0_0000B01E
+	bne.b return_stored_heading_half_turn
 	clr.w d1
 	rts
-abs_0_0000B01E:
-	move.w #$800,d1
+return_stored_heading_half_turn:
+	move.w #SG2_ANGLE_HALF_TURN,d1
 	rts
-abs_0_0000B024:
+    ; Zero-axis/coincident and clamped-ratio results retain original sector rules. Wrapped WORD NEG and unchecked DIVS overflow are preserved; no context-free atan2 replacement.
+return_stored_heading_horizontal_axis_result:
 	cmp.b #$1,d4
-	bne.b abs_0_0000B030
-	move.w #$400,d1
+	bne.b return_stored_heading_three_quarter_turn
+	move.w #SG2_ANGLE_QUARTER_TURN,d1
 	rts
-abs_0_0000B030:
-	move.w #$C00,d1
+return_stored_heading_three_quarter_turn:
+	move.w #SG2_ANGLE_THREE_QUARTER_TURN,d1
 	rts
-abs_0_0000B036:
-	andi.w #255,d1
+lookup_stored_heading_z_over_x_word:
+	andi.w #SG2_STORED_HEADING_RATIO_BYTE_LIMIT,d1
 	add.w d1,d1
 	move.w $0(a1,d1.w),d1
 	cmp.b #$2,d4
-	beq.b abs_0_0000B05A
+	beq.b offset_z_over_x_heading_by_quarter_turn
 	cmp.b #$3,d4
-	beq.b abs_0_0000B060
+	beq.b reflect_z_over_x_heading_about_three_quarters
 	cmp.b #$4,d4
-	beq.b abs_0_0000B068
+	beq.b offset_z_over_x_heading_by_three_quarters
 	neg.w d1
-	addi.w #1024,d1
+	addi.w #SG2_ANGLE_QUARTER_TURN,d1
 	rts
-abs_0_0000B05A:
-	addi.w #1024,d1
+offset_z_over_x_heading_by_quarter_turn:
+	addi.w #SG2_ANGLE_QUARTER_TURN,d1
 	rts
-abs_0_0000B060:
+reflect_z_over_x_heading_about_three_quarters:
 	neg.w d1
-	addi.w #3072,d1
+	addi.w #SG2_ANGLE_THREE_QUARTER_TURN,d1
 	rts
-abs_0_0000B068:
-	addi.w #3072,d1
+offset_z_over_x_heading_by_three_quarters:
+	addi.w #SG2_ANGLE_THREE_QUARTER_TURN,d1
 	rts
-abs_0_0000B06E:
+divide_stored_heading_x_by_z:
 	lea.l atan_integer_ratio_words.l,a1
 	divs.w d1,d0
-	cmp.w #$FF,d0
-	blt.b abs_0_0000B08E
+	cmp.w #SG2_STORED_HEADING_RATIO_BYTE_LIMIT,d0
+	blt.b lookup_stored_heading_x_over_z_word
 	cmp.b #$1,d4
-	bne.b abs_0_0000B088
-	move.w #$400,d1
+	bne.b return_clamped_x_over_z_three_quarter_turn
+	move.w #SG2_ANGLE_QUARTER_TURN,d1
 	rts
-abs_0_0000B088:
-	move.w #$C00,d1
+return_clamped_x_over_z_three_quarter_turn:
+	move.w #SG2_ANGLE_THREE_QUARTER_TURN,d1
 	rts
-abs_0_0000B08E:
-	andi.w #255,d0
+lookup_stored_heading_x_over_z_word:
+	andi.w #SG2_STORED_HEADING_RATIO_BYTE_LIMIT,d0
 	add.w d0,d0
 	move.w $0(a1,d0.w),d1
 	cmp.b #$2,d4
-	beq.b abs_0_0000B0AC
+	beq.b reflect_x_over_z_heading_about_half_turn
 	cmp.b #$3,d4
-	beq.b abs_0_0000B0B4
+	beq.b offset_x_over_z_heading_by_half_turn
 	cmp.b #$4,d4
-	beq.b abs_0_0000B0BA
+	beq.b reflect_x_over_z_heading_about_full_turn
 	rts
-abs_0_0000B0AC:
+reflect_x_over_z_heading_about_half_turn:
 	neg.w d1
-	addi.w #2048,d1
+	addi.w #SG2_ANGLE_HALF_TURN,d1
 	rts
-abs_0_0000B0B4:
-	addi.w #2048,d1
+offset_x_over_z_heading_by_half_turn:
+	addi.w #SG2_ANGLE_HALF_TURN,d1
 	rts
-abs_0_0000B0BA:
+reflect_x_over_z_heading_about_full_turn:
 	neg.w d1
-	addi.w #4096,d1
+	addi.w #SG2_ANGLE_FULL_TURN,d1
 	rts
     ; Results labels contain writable nine-digit slots at text+34. Accuracy uses signed WORD MULS/DIVS and masks to255; original zero-shot path prints the hint.
 display_pilot_rating_results:

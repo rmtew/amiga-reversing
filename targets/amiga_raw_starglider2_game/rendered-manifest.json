@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "source_commit": "ff68aeb4efff451d653cd3253a383d5df643ac8b",
+  "source_commit": "0305a8e92e85fccac2d6ee03d7029a55790db1c4",
   "source_assembly": "starglider2_game.s",
   "assets": [
     {
@@ -878,13 +878,13 @@
     },
     {
       "path": "rendered-provenance.json",
-      "bytes": 3401,
-      "sha256": "39beaccf86e932329595e731278e1d90759546df3f7b37ee032ed9d763540ff5"
+      "bytes": 3383,
+      "sha256": "e3c00d22143e90214b32ecc55e5bb945aab06b160ee5ce75a0db8a3d66587230"
     },
     {
       "path": "starglider2_game.s",
-      "bytes": 2078312,
-      "sha256": "ab6a692228741b1f166dd3682248fdce77d7329255f4f4e4bcd7e6e6f14053fe"
+      "bytes": 2081970,
+      "sha256": "7d381991fa54cbc0310e85f6d99154832f59e6bf7155602e2c533c0147196db2"
     },
     {
       "path": "tools/starglider2_protection.py",
@@ -892,6 +892,6 @@
       "sha256": "81d3f66d36dbfbd5c77238b20c28e8b9abaa329777eb91f64669bbbf13703582"
     }
   ],
-  "source_commit_role": "canonical source publication base; the publishing commit reconstructs existing-lock input, homing allocation and original motion, plus three shared HUD restore encodings; supplied original-CPU cases, not normal gameplay, target lifetime, later steering or scanout proof; output is bound by verification_receipt_id",
-  "source_subject_revision": "75e093704bcd15697808beaef83f085d50333076ab13122b0dcef8326987dad5"
+  "source_commit_role": "canonical source publication base; the publishing commit reconstructs steered-update, budget, local retirement and context-dependent stored-XZ heading paths; supplied original-CPU cases, not normal gameplay, target lifetime, recycling or scanout proof; output is bound by verification_receipt_id",
+  "source_subject_revision": "c036d0825c567dd215c47fa7276f1a1185a685c5834607742a7ab3c1ace9a2bb"
 }
