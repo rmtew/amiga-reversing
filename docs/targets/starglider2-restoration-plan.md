@@ -7,8 +7,8 @@ that further analysis is exhausted. Current source remains byte exact: all
 with all 106034 accepted code bytes retained. No generated assembly was edited
 by hand and no interim archive was produced.
 
-The current ownership union leaves 10923 bytes in
-273 intervals unclassified. This is classification accounting,
+The current ownership union leaves 10851 bytes in
+272 intervals unclassified. This is classification accounting,
 not a semantic completion percentage. Earlier interval/site counts below belong
 to their recorded closeout revision. See the current
 [native memory-span receipt](../../runtime/observations/starglider2-app-memory-spans.json),
@@ -16,8 +16,8 @@ to their recorded closeout revision. See the current
 
 ## Current refinement and next evidence
 
-Current native totals: **3509 app /2716 typed /165 unresolved**, with **10923
-unclassified bytes /273 intervals**. The earlier counter-indexed source-array recovery reused
+Current native totals: **3509 app /2716 typed /165 unresolved**, with **10851
+unclassified bytes /272 intervals**. The earlier counter-indexed source-array recovery reused
 the shared loop induction and interned linear entry values. Original inventory
 readers at source `$DD6` and `$339B4` expose the existing name-reference `text`
 field over the possible104-entry prefix of the148-record owner. That batch retained existing
@@ -26,6 +26,30 @@ Its startup caller proof added five header reads and six app accesses,
 and strengthened 38 app-base attributions.
 Conditional skips mean104 outer iterations are not104 observed memory reads.
 Loaded pointer values remain subject to separate alias/target validation.
+
+The overlay batch reconstructs 39 connected bitmap/scan/aim continuations and
+72 bytes of shared row scratch and rotate-split masks. The bitmap helper reads
+sixteen two-WORD rows after four control bytes; all nine shipped overlay assets
+contain that payload. Nonnegative mode BYTEs replace opaque interleaved pixels
+in planes 0/2 while clearing the other planes. Negative BYTEs OR interleaved
+source-plane bit pairs into two scanlines. This tests the sign, whereas the
+contact prefix tests bit 1; normal setup writes 0/FF. The shared eight-byte scratch
+has phase-dependent WORD/LONG views, without a reentrancy or IRQ-safety contract.
+
+179 original-CPU cases cover all alignments, all nine payloads, WORD clamp wrap,
+8192 horizontal-angle prefix calls, vertical rounding/overflow, fixed sight and
+scan/aim gating. Alternate Y negates before shifting; Amiga shifts before
+negation. Aim fields remain unclipped while drawing registers are clamped.
+Producer 75AA writes 56, covering seven scan pointers under ordinary countdown;
+malformed WORDs can select offset 28 and are stopped before that dereference.
+The mask is not promoted to proof of an eighth frame or exhaustive writer bounds.
+
+Amiga arithmetic fixtures exclude surrounding hardware sprite writes; alternate
+fixtures stop before message/meter service. No gameplay, sprite DMA, RGB or
+scanout qualification is added. Protected native proof/reference identities are
+unchanged. Backing classification leaves 10851 bytes in 272 intervals; this is not
+semantic completion. C/vasm and clean standalone rebuilding remain exact. Next:
+scan-target acquisition and consumers of the stored aim coordinates.
 
 The contact-plot batch reconstructs 40 connected plotting/fill/radial continuations
 and the 182-byte mask backing before the coordinate cache. Amiga and mode 0 read

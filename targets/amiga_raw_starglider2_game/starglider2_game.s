@@ -1434,6 +1434,7 @@ ADKF_CLRALL	EQU	$7FFF
 BPLCON2_PF2P2	EQU	$20
 BPLCON2_PF2PRI	EQU	$40
 INTF_CLRALL	EQU	$7FFF
+SG2_AIM_CONTROL_PHASE_MASK	EQU	4095
 SG2_CONTACT_COORDINATE_SHIFT	EQU	9
 SG2_CONTACT_PIXEL_CENTER_X	EQU	144
 SG2_CONTACT_PIXEL_CENTER_Y	EQU	160
@@ -1458,6 +1459,12 @@ SG2_MESSAGE_ROW_LONGS_DBF_LAST	EQU	6
 SG2_MESSAGE_ROW_SKIP_BYTES	EQU	12
 SG2_OBJECT_TYPE_SKIM_DRONE	EQU	43
 SG2_OBJECT_TYPE_SKIM_MISSILE	EQU	60
+SG2_OVERLAY_MAX_LEFT	EQU	288
+SG2_OVERLAY_MAX_TOP	EQU	112
+SG2_OVERLAY_MIN_LEFT	EQU	16
+SG2_OVERLAY_MIN_TOP	EQU	30
+SG2_OVERLAY_ROWS_DBF_LAST	EQU	15
+SG2_OVERLAY_ROW_BYTE_STEP	EQU	160
 SG2_RADIAL_FIRST_SHIFT_THRESHOLD	EQU	524288
 SG2_RADIAL_SHIFT_DBF_LAST	EQU	9
 SG2_SAVE_CHUNK_BYTES	EQU	$1400
@@ -1470,6 +1477,9 @@ SG2_SAVE_NAME_INPUT_LIMIT	EQU	30
 SG2_SAVE_NAME_SLOT_BYTES	EQU	32
 SG2_SAVE_RESTORE_DBF_LAST	EQU	$17B8
 SG2_SAVE_TRACK_DBF_LAST	EQU	$4
+SG2_SCAN_FRAME_BYTE_OFFSET_MASK	EQU	28
+SG2_SCAN_OVERLAY_RELOAD	EQU	56
+SG2_SPRITE_CONTROL_PREFIX_BYTES	EQU	4
 SG2_TEXT_CURSOR_COLUMNS	EQU	40
 SG2_TEXT_CURSOR_ROWS	EQU	25
 SG2_TEXT_DELETE_ROW_REWIND_BYTES	EQU	322
@@ -9209,7 +9219,7 @@ scan_or_fire_homing_missile:
 	lea.l object_name_pointers.l,a1
 	movea.l $0(a1,d0.w),a1
 	bsr.w display_timed_message_line
-	move.w #$38,object_scan_sprite_countdown(a6)
+	move.w #SG2_SCAN_OVERLAY_RELOAD,object_scan_sprite_countdown(a6)
 abs_0_000075B0:
 	rts
 abs_0_000075B2:
@@ -15661,7 +15671,7 @@ abs_0_0000D29C:
 	beq.w abs_0_0000D340
 	move.w d0,object_scan_sprite_countdown(a6)
 	lsr.w #1,d0
-	andi.w #28,d0
+	andi.w #SG2_SCAN_FRAME_BYTE_OFFSET_MASK,d0
 	lea.l object_scan_sprite_pointers.l,a0
 	movea.l $0(a0,d0.w),a0
 	move.l a0,_custom+sprpt.l	; sprite pointer
@@ -15712,47 +15722,52 @@ abs_0_0000D354:
     ; Derive reticle offsets from control angles, add neutral screen position, then clamp drawing registers separately. Stored aim coordinates retain their original unclipped values.
 abs_0_0000D35A:
 	move.l a0,_custom+sprpt+$04.l	; sprite pointer
+derive_amiga_aim_after_sprite_pointer_write:
 	clr.l d1
 	clr.l d2
 	clr.l d3
 	tst.b fixed_sight_mode_flag(a6)
-	bne.w abs_0_0000D3CA
+	bne.w store_fixed_amiga_aim_position
+derive_amiga_aim_horizontal_offset:
 	move.w rotation_2_control_accumulator(a6),d6
 	neg.w d6
-	andi.w #4095,d6
+	andi.w #SG2_AIM_CONTROL_PHASE_MASK,d6
 	cmp.w #$400,d6
-	bcs.w abs_0_0000D39E
+	bcs.w quantize_amiga_aim_horizontal_offset
 	cmp.w #$C00,d6
-	bcc.w abs_0_0000D39E
+	bcc.w quantize_amiga_aim_horizontal_offset
 	cmp.w #$800,d6
-	bcs.w abs_0_0000D398
+	bcs.w fold_amiga_aim_below_half_turn
+fold_amiga_aim_above_half_turn:
 	addi.w #2048,d6
 	neg.w d6
-	bra.b abs_0_0000D39E
-abs_0_0000D398:
+	bra.b quantize_amiga_aim_horizontal_offset
+fold_amiga_aim_below_half_turn:
 	subi.w #2048,d6
 	neg.w d6
-abs_0_0000D39E:
-	andi.w #4095,d6
+quantize_amiga_aim_horizontal_offset:
+	andi.w #SG2_AIM_CONTROL_PHASE_MASK,d6
 	neg.w d6
 	asl.w #4,d6
 	asr.w #7,d6
 	move.w d6,aim_reticle_offset_x(a6)
 	add.w reticle_neutral_screen_x(a6),d6
 	move.w d6,aim_reticle_screen_x(a6)
+    ; Amiga shifts before negation; alternate negates before shifting. Keep both original rounding/overflow behaviors. CPU arithmetic fixtures exclude surrounding hardware sprite writes.
+derive_amiga_aim_vertical_offset:
 	move.w rotation_0_control_accumulator(a6),d7
 	asr.w #4,d7
 	neg.w d7
 	move.w d7,aim_reticle_offset_y(a6)
 	add.w reticle_neutral_screen_y(a6),d7
 	move.w d7,aim_reticle_screen_y(a6)
-	bra.b abs_0_0000D3E2
-abs_0_0000D3CA:
+	bra.b clamp_amiga_sight_from_stored_position
+store_fixed_amiga_aim_position:
 	move.w #$0,aim_reticle_offset_y(a6)
 	move.w #$0,aim_reticle_offset_x(a6)
 	move.w reticle_neutral_screen_x(a6),aim_reticle_screen_x(a6)
 	move.w reticle_neutral_screen_y(a6),aim_reticle_screen_y(a6)
-abs_0_0000D3E2:
+clamp_amiga_sight_from_stored_position:
 	move.w aim_reticle_screen_x(a6),d1
 	move.w aim_reticle_screen_y(a6),d2
 	move.w view_clip_min_y(a6),d4
@@ -50470,33 +50485,35 @@ abs_0_0003A51E:
     ; Shared RTS selected by one original graphics profile for both palette-fade stubs. Preserve the disabled-fade behavior.
 return_without_palette_fade:
 	rts
-abs_0_0003A542:
+    ; Read 16 two-WORD rows after caller skips 4 control bytes. Nonnegative mode replaces opaque interleaved pixels; negative mode ORs paired bits into two scanlines. Preserve WORD clamps.
+draw_alternate_16row_overlay:
 	movea.l draw_buffer_base.w(a6),a1
 	subq.w #8,d2
 	subq.w #8,d1
-	cmp.w #$10,d1
-	bgt.b abs_0_0003A554
-	move.w #$10,d1
-abs_0_0003A554:
-	cmp.w #$120,d1
-	blt.b abs_0_0003A55E
-	move.w #$120,d1
-abs_0_0003A55E:
-	cmp.w #$1E,d2
-	bgt.b abs_0_0003A568
-	move.w #$1E,d2
-abs_0_0003A568:
-	cmp.w #$70,d2
-	blt.b abs_0_0003A572
-	move.w #$70,d2
-abs_0_0003A572:
+	cmp.w #SG2_OVERLAY_MIN_LEFT,d1
+	bgt.b clamp_overlay_left_to_upper_limit
+	move.w #SG2_OVERLAY_MIN_LEFT,d1
+clamp_overlay_left_to_upper_limit:
+	cmp.w #SG2_OVERLAY_MAX_LEFT,d1
+	blt.b clamp_overlay_top_to_lower_limit
+	move.w #SG2_OVERLAY_MAX_LEFT,d1
+clamp_overlay_top_to_lower_limit:
+	cmp.w #SG2_OVERLAY_MIN_TOP,d2
+	bgt.b clamp_overlay_top_to_upper_limit
+	move.w #SG2_OVERLAY_MIN_TOP,d2
+clamp_overlay_top_to_upper_limit:
+	cmp.w #SG2_OVERLAY_MAX_TOP,d2
+	blt.b address_overlay_first_raster_row
+	move.w #SG2_OVERLAY_MAX_TOP,d2
+address_overlay_first_raster_row:
 	lea.l raster_row_byte_offsets.l,a2
 	add.w d2,d2
 	adda.w $0(a2,d2.w),a1
-	movea.w #$A0,a3
-	move.w #$F,d6
+	movea.w #SG2_OVERLAY_ROW_BYTE_STEP,a3
+	move.w #SG2_OVERLAY_ROWS_DBF_LAST,d6
 	tst.b alternate_graphics_mode(a6)
-	bmi.w abs_0_0003A688
+	bmi.w address_paired_overlay_column
+address_interleaved_overlay_column:
 	move.w d1,d2
 	lsr.w #1,d2
 	andi.w #248,d2
@@ -50504,14 +50521,14 @@ abs_0_0003A572:
 	move.w d1,d5
 	andi.w #15,d5
 	tst.w d5
-	beq.w abs_0_0003A61A
-	lea.l abs_0_0003A648.l,a2
+	beq.w draw_aligned_interleaved_overlay_row
+	lea.l overlay_rotate_split_masks.l,a2
 	move.w d5,d4
 	add.w d4,d4
 	move.w $0(a2,d4.w),d7
 	move.w $20(a2,d4.w),d4
-	lea.l abs_0_0003A640(pc),a2
-abs_0_0003A5BA:
+	lea.l alternate_overlay_row_scratch(pc),a2
+draw_shifted_interleaved_overlay_row:
 	move.w (a0)+,d0
 	ror.w d5,d0
 	move.w d0,d2
@@ -50545,9 +50562,9 @@ abs_0_0003A5BA:
 	or.w d1,$0004(a1)
 	or.w d0,$000C(a1)
 	adda.l a3,a1
-	dbf.w d6,abs_0_0003A5BA
+	dbf.w d6,draw_shifted_interleaved_overlay_row
 	rts
-abs_0_0003A61A:
+draw_aligned_interleaved_overlay_row:
 	move.w (a0)+,d0
 	move.w (a0)+,d1
 	move.w d1,d2
@@ -50560,16 +50577,19 @@ abs_0_0003A61A:
 	or.w d1,(a1)
 	or.w d0,$0004(a1)
 	adda.w a3,a1
-	dbf.w d6,abs_0_0003A61A
+	dbf.w d6,draw_aligned_interleaved_overlay_row
 	rts
-abs_0_0003A640:
-	dcb.b $8,$00
-abs_0_0003A648:
-	dc.b $FF,$FF,$7F,$FF,$3F,$FF,$1F,$FF,$0F,$FF,$07,$FF,$03,$FF,$01,$FF
-	dc.b $00,$FF,$00,$7F,$00,$3F,$00,$1F,$00,$0F,$00,$07,$00,$03,$00,$01
-	dc.b $00,$00,$80,$00,$C0,$00,$E0,$00,$F0,$00,$F8,$00,$FC,$00,$FE,$00
-	dc.b $FF,$00,$FF,$80,$FF,$C0,$FF,$E0,$FF,$F0,$FF,$F8,$FF,$FC,$FF,$FE
-abs_0_0003A688:
+    ; Shared 8-byte scratch: shifted colour uses four split WORDs; paired path reuses a LONG view. Aligned paths bypass it. No IRQ or reentrancy protection is established.
+alternate_overlay_row_scratch:
+	dc.w $0000,$0000,$0000,$0000
+    ; Sixteen low masks FFFF>>n, then sixteen high complements. Shift is masked to 0..15; zero takes aligned code. Keep original WORDs and shared colour/paired readers.
+overlay_rotate_split_masks:
+	dc.w $FFFF,$7FFF,$3FFF,$1FFF,$0FFF,$07FF,$03FF,$01FF
+	dc.w $00FF,$007F,$003F,$001F,$000F,$0007,$0003,$0001
+overlay_rotate_high_masks:
+	dc.w $0000,$8000,$C000,$E000,$F000,$F800,$FC00,$FE00
+	dc.w $FF00,$FF80,$FFC0,$FFE0,$FFF0,$FFF8,$FFFC,$FFFE
+address_paired_overlay_column:
 	move.w d1,d2
 	lsr.w #2,d2
 	andi.w #124,d2
@@ -50577,14 +50597,14 @@ abs_0_0003A688:
 	move.w d1,d5
 	andi.w #15,d5
 	tst.w d5
-	beq.w abs_0_0003A72A
-	lea.l abs_0_0003A648(pc),a2
+	beq.w draw_aligned_paired_overlay_row
+	lea.l overlay_rotate_split_masks(pc),a2
 	move.w d5,d4
 	add.w d4,d4
 	move.w $0(a2,d4.w),d7
 	move.w $20(a2,d4.w),d4
-	lea.l abs_0_0003A640(pc),a2
-abs_0_0003A6B2:
+	lea.l alternate_overlay_row_scratch(pc),a2
+draw_shifted_paired_overlay_row:
 	move.w (a0)+,d0
 	ror.w d5,d0
 	move.w d0,d2
@@ -50605,27 +50625,27 @@ abs_0_0003A6B2:
 	move.w (a2),d2
 	move.w $0002(a2),d1
 	moveq.l #15,d0
-abs_0_0003A6E2:
+interleave_overlay_spill_plane_bits:
 	add.l d3,d3
 	add.w d2,d2
 	addx.l d4,d3
 	add.l d3,d3
 	add.w d1,d1
 	addx.l d4,d3
-	dbf.w d0,abs_0_0003A6E2
+	dbf.w d0,interleave_overlay_spill_plane_bits
 	move.l d3,(a2)
 	moveq.l #0,d3
 	move.w $0004(a2),d2
 	move.w $0006(a2),d1
 	moveq.l #15,d0
-abs_0_0003A700:
+interleave_overlay_current_plane_bits:
 	add.l d3,d3
 	add.w d2,d2
 	addx.l d4,d3
 	add.l d3,d3
 	add.w d1,d1
 	addx.l d4,d3
-	dbf.w d0,abs_0_0003A700
+	dbf.w d0,interleave_overlay_current_plane_bits
 	move.l (a7)+,d4
 	move.l (a2),d0
 	or.l d3,(a1)
@@ -50633,26 +50653,26 @@ abs_0_0003A700:
 	or.l d0,$0004(a1)
 	or.l d0,$0054(a1)
 	adda.w a3,a1
-	dbf.w d6,abs_0_0003A6B2
+	dbf.w d6,draw_shifted_paired_overlay_row
 	rts
-abs_0_0003A72A:
+draw_aligned_paired_overlay_row:
 	moveq.l #0,d4
 	moveq.l #0,d3
 	move.w (a0)+,d2
 	move.w (a0)+,d1
 	moveq.l #15,d0
-abs_0_0003A734:
+interleave_overlay_aligned_plane_bits:
 	add.l d3,d3
 	add.w d2,d2
 	addx.l d4,d3
 	add.l d3,d3
 	add.w d1,d1
 	addx.l d4,d3
-	dbf.w d0,abs_0_0003A734
+	dbf.w d0,interleave_overlay_aligned_plane_bits
 	or.l d3,(a1)
 	or.l d3,$0050(a1)
 	adda.w a3,a1
-	dbf.w d6,abs_0_0003A72A
+	dbf.w d6,draw_aligned_paired_overlay_row
 	rts
 abs_0_0003A752:
 	move.w #$FFFF,d0
@@ -51061,96 +51081,108 @@ skip_flagged_mode1_contact_record:
 	bra.b advance_mode1_contact_plot_loop
 alternate_contact_dot_masks:
 	dc.w $C000,$3000,$0C00,$0300,$00C0,$0030,$000C,$0003
+    ; Bit 0 gates scan/aim only; disabled still joins message/meter service. Bitmap mode selection uses the BYTE sign; normal setup writes 0/FF. No hardware transition is tested here.
 continue_after_alternate_contact_plot:
 	btst.b #0,display_and_frame_service_flags(a6)
 	beq.w poll_alternate_expired_message_queue
+select_alternate_scan_or_default_aim:
 	cmpi.b #8,weapon_selection_and_status(a6)
-	bne.b abs_0_0003AC6C
+	bne.b select_default_aim_overlay
+    ; Producer 75AA loads 56; only low BYTE decrements. Seven pointers cover ordinary 2..56. Offset 28 is outside the directory; malformed WORDs do not gain an eighth frame.
+advance_alternate_scan_overlay_countdown:
 	move.w object_scan_sprite_countdown(a6),d0
-	beq.b abs_0_0003AC5A
+	beq.b cancel_alternate_scan_overlay
 	subq.b #1,d0
-	beq.b abs_0_0003AC5A
+	beq.b cancel_alternate_scan_overlay
+store_scan_count_after_low_byte_step:
 	move.w d0,object_scan_sprite_countdown(a6)
 	lsr.w #1,d0
-	andi.w #28,d0
+	andi.w #SG2_SCAN_FRAME_BYTE_OFFSET_MASK,d0
+select_scan_frame_from_masked_byte_offset:
 	lea.l object_scan_sprite_pointers.l,a0
 	movea.l $0(a0,d0.w),a0
-	addq.l #4,a0
+	addq.l #SG2_SPRITE_CONTROL_PREFIX_BYTES,a0
+test_alternate_scan_view_margins:
 	move.w scan_target_screen_x(a6),d1
 	move.w scan_target_screen_y(a6),d2
 	move.w view_clip_min_y(a6),d4
 	addq.w #8,d4
 	cmp.w d4,d2
-	bmi.b abs_0_0003AC5A
+	bmi.b cancel_alternate_scan_overlay
 	move.w view_clip_max_y(a6),d4
 	subq.w #7,d4
 	cmp.w d4,d2
-	bpl.b abs_0_0003AC5A
+	bpl.b cancel_alternate_scan_overlay
 	move.w view_clip_min_x(a6),d4
 	addq.w #7,d4
 	cmp.w d4,d1
-	bmi.b abs_0_0003AC5A
+	bmi.b cancel_alternate_scan_overlay
 	move.w view_clip_max_x(a6),d4
 	subq.w #8,d4
 	cmp.w d4,d1
-	bpl.b abs_0_0003AC5A
+	bpl.b cancel_alternate_scan_overlay
 	move.w d2,d3
-	bsr.w abs_0_0003A542
-	bra.b abs_0_0003AC64
-abs_0_0003AC5A:
+draw_admitted_alternate_scan_overlay:
+	bsr.w draw_alternate_16row_overlay
+	bra.b select_scan_mode_aim_overlay
+cancel_alternate_scan_overlay:
 	move.b #$8,weapon_selection_and_status(a6)
 	clr.w object_scan_sprite_countdown(a6)
-abs_0_0003AC64:
+select_scan_mode_aim_overlay:
 	lea.l hud_scan_reticle_sprite.l,a0
-	bra.b abs_0_0003AC72
-abs_0_0003AC6C:
+	bra.b prepare_aim_overlay_payload
+select_default_aim_overlay:
 	lea.l hud_default_reticle_sprite.l,a0
-abs_0_0003AC72:
-	addq.l #4,a0
+prepare_aim_overlay_payload:
+	addq.l #SG2_SPRITE_CONTROL_PREFIX_BYTES,a0
 	moveq.l #0,d1
 	moveq.l #0,d2
 	moveq.l #0,d3
 	tst.b fixed_sight_mode_flag(a6)
-	bne.w abs_0_0003ACD8
+	bne.w store_fixed_alternate_aim_position
+derive_alternate_aim_horizontal_offset:
 	move.w rotation_2_control_accumulator(a6),d6
 	neg.w d6
-	andi.w #4095,d6
+	andi.w #SG2_AIM_CONTROL_PHASE_MASK,d6
 	cmp.w #$400,d6
-	bcs.b abs_0_0003ACAC
+	bcs.b quantize_alternate_aim_horizontal_offset
 	cmp.w #$C00,d6
-	bcc.b abs_0_0003ACAC
+	bcc.b quantize_alternate_aim_horizontal_offset
 	cmp.w #$800,d6
-	bcs.b abs_0_0003ACA6
+	bcs.b fold_alternate_aim_below_half_turn
+fold_alternate_aim_above_half_turn:
 	addi.w #2048,d6
 	neg.w d6
-	bra.b abs_0_0003ACAC
-abs_0_0003ACA6:
+	bra.b quantize_alternate_aim_horizontal_offset
+fold_alternate_aim_below_half_turn:
 	subi.w #2048,d6
 	neg.w d6
-abs_0_0003ACAC:
-	andi.w #4095,d6
+quantize_alternate_aim_horizontal_offset:
+	andi.w #SG2_AIM_CONTROL_PHASE_MASK,d6
 	neg.w d6
 	asl.w #4,d6
 	asr.w #7,d6
 	move.w d6,aim_reticle_offset_x(a6)
 	add.w reticle_neutral_screen_x(a6),d6
 	move.w d6,aim_reticle_screen_x(a6)
+    ; NEG.W then ASR.W4 differs from Amiga ASR.W4 then NEG.W, including rounding and MIN. Store unclipped aim fields; bitmap clamp changes drawing registers only.
+derive_alternate_aim_vertical_offset:
 	move.w rotation_0_control_accumulator(a6),d7
 	neg.w d7
 	asr.w #4,d7
 	move.w d7,aim_reticle_offset_y(a6)
 	add.w reticle_neutral_screen_y(a6),d7
 	move.w d7,aim_reticle_screen_y(a6)
-	bra.b abs_0_0003ACF0
-abs_0_0003ACD8:
+	bra.b draw_alternate_aim_from_stored_position
+store_fixed_alternate_aim_position:
 	move.w #$0,aim_reticle_offset_y(a6)
 	move.w #$0,aim_reticle_offset_x(a6)
 	move.w reticle_neutral_screen_x(a6),aim_reticle_screen_x(a6)
 	move.w reticle_neutral_screen_y(a6),aim_reticle_screen_y(a6)
-abs_0_0003ACF0:
+draw_alternate_aim_from_stored_position:
 	move.w aim_reticle_screen_x(a6),d1
 	move.w aim_reticle_screen_y(a6),d2
-	bsr.w abs_0_0003A542
+	bsr.w draw_alternate_16row_overlay
 poll_alternate_expired_message_queue:
 	tst.w message_display_countdown(a6)
 	bne.b continue_alternate_meter_service_after_messages

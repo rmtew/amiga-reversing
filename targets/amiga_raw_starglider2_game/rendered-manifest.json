@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "source_commit": "86258f59cab32aa3a4aaf5f2819f1877cde4a375",
+  "source_commit": "2722a1d4a2862be917198eb47cad3f2ffabe6fa9",
   "source_assembly": "starglider2_game.s",
   "assets": [
     {
@@ -878,13 +878,13 @@
     },
     {
       "path": "rendered-provenance.json",
-      "bytes": 3381,
-      "sha256": "2da561f59920be0e9dddb57c75989abb4e2455398ab73c71c60cd29bc218f139"
+      "bytes": 3386,
+      "sha256": "5194c41fa1bf16aba3143e8730caea8693e1e45a80e305dda3fe459489b16262"
     },
     {
       "path": "starglider2_game.s",
-      "bytes": 2067387,
-      "sha256": "0249cacf36c48643b5cdc242b1bf557950fb566fb32a52d3fe45b9123202d1d2"
+      "bytes": 2071103,
+      "sha256": "457bc23a51bc00a33ed7f5e0500de9f8041dbe76b9e8f8ae643e4a4f724fb205"
     },
     {
       "path": "tools/starglider2_protection.py",
@@ -892,6 +892,6 @@
       "sha256": "81d3f66d36dbfbd5c77238b20c28e8b9abaa329777eb91f64669bbbf13703582"
     }
   ],
-  "source_commit_role": "canonical source publication base; the publishing commit reconstructs three contact-plot prefixes, source mask bytes, fill geometry and radial shift semantics; isolated original-CPU fixtures only, not gameplay, palette, DMA or hardware scanout proof; output is bound by verification_receipt_id",
-  "source_subject_revision": "34af3394dbd76927fb019b4c9a432494dc6d4fa0371c133f91accbebf1a91fa9"
+  "source_commit_role": "canonical source publication base; the publishing commit reconstructs overlay bitmap geometry, shared scratch/masks, scan selection and profile-specific aim arithmetic; isolated original-CPU prefix fixtures only, not gameplay, sprite DMA or scanout proof; output is bound by verification_receipt_id",
+  "source_subject_revision": "9ec20962885409882d2c95c9d25683047f7b8cbe9fe8f304fa26f4cb96a394e7"
 }
