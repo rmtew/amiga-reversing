@@ -27,6 +27,22 @@ and strengthened 38 app-base attributions.
 Conditional skips mean104 outer iterations are not104 observed memory reads.
 Loaded pointer values remain subject to separate alias/target validation.
 
+The planar-reader batch qualifies 687 CPU cases with original Amiga row/mask
+initialization and exact RAM comparison. It names 72 reader/callback labels,
+two existing relative dispatch tables and three row/cell constants. Regular
+spans include both endpoints and recompute their column per row; masked cell32
+and cell16 callbacks keep the first column and use endpoint residues within it.
+USP transports the next reference while A2 serves other roles; callbacks may
+clobber A4/A5/A6. Shipped zero masks differ from initialized masks.
+
+`NEG.W $8000` reaches cell16 slot zero after overflow and doubled-WORD wrap;
+ordinary nonnegative styles remain unclamped. Table extents and their original
+domain evidence are retained, including the cell16 structural-scan limitation.
+All native access/function/table facts and ownership remain unchanged. CPU
+fixtures do not establish global coordinates, capacity, lifetime, RGB or scanout.
+Next: interleaved-reader entry/header context and its original initialization
+requirements, keeping retained raw profiles separate from full alternate startup.
+
 The span-interpolation batch adds 181 CPU cases, 20 continuations and two
 byte-count/bias constants. Descending lines inherit D5's high-WORD fraction;
 polygon reverse edges inherit D2.W, initially the last source marker at the
@@ -40,8 +56,8 @@ and line `dy=300` cases read the following zero WORD; doubled-WORD indices can
 also wrap before the table. Large-counter cases stop before the long loops.
 These are preserved machine behaviors, not established normal-game inputs or
 new extent/capacity proofs. Access and ownership totals remain unchanged.
-Next: planar span-reader and drawing callbacks with explicit RAM/row-table
-fixtures; full raster, shared lifetime and hardware behavior remain unqualified.
+The subsequent planar-reader batch now supplies the explicit RAM/row-table
+qualification above; shared lifetime and hardware behavior remain unqualified.
 
 The scene-packet batch restores 24 continuations, six arithmetic constants and
 two depth WORDs (four bytes), using existing RS/SIZEOF bindings for references

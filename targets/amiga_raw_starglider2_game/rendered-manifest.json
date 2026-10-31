@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "source_commit": "33490336a1a3ad0804d5ccab93bf49dc8a04814d",
+  "source_commit": "ccececa9f9073234447b4c0974ff0ae1abe13ca2",
   "source_assembly": "starglider2_game.s",
   "assets": [
     {
@@ -878,13 +878,13 @@
     },
     {
       "path": "rendered-provenance.json",
-      "bytes": 3624,
-      "sha256": "8e06fa8ea27cf791ad66ba5b8d29ddbe1fcf77dddf225251ade8dd75bc168782"
+      "bytes": 3616,
+      "sha256": "ce5a6f9d3b6e9ec98f14c1cec99c19da1a54c269fb79ffe5f7f3d28a8c6b7083"
     },
     {
       "path": "starglider2_game.s",
-      "bytes": 2220672,
-      "sha256": "f0ecd8ee9094c08418b4d2102eb1384280f9d844008409acacb388f7201e0a9a"
+      "bytes": 2231001,
+      "sha256": "4e1685aef35a58c284fc6eece5d6d9bb5d89339eb4d58eac489896d3f51dbf40"
     },
     {
       "path": "tools/starglider2_protection.py",
@@ -892,6 +892,6 @@
       "sha256": "81d3f66d36dbfbd5c77238b20c28e8b9abaa329777eb91f64669bbbf13703582"
     }
   ],
-  "source_commit_role": "canonical source publication base; sloped-line and multi-edge polygon span interpolation reconstructed through 181 original CPU cases. Twenty continuations and two byte-count/bias constants retain Q16 rounding, D5 high-WORD descending-line fraction, D2.W reverse-edge fraction, edge-restart asymmetry and signed doubled-WORD reciprocal addressing. Preserve the 300-WORD table owner and original out-of-domain behavior; no normal-game coordinate, capacity, lifetime, full raster or hardware claim; output bound by verification_receipt_id",
-  "source_subject_revision": "5c6d30ab0d81cdd41b63433e38bc3baabe0186c87d7530871b9712cfe5e68175"
+  "source_commit_role": "canonical source publication base; planar span readers and regular/cell32/cell16 callbacks reconstructed through 687 original CPU cases with original Amiga lookup initialization. Seventy-two reader/callback labels, two existing dispatch-table names and three constants preserve inclusive writes, fixed-column masked cells, USP transport, NEG.W8000 slot-zero selection and unclamped regular selectors. No new code, extent, input bound, shared lifetime, palette RGB, boot or hardware claim; output bound by verification_receipt_id",
+  "source_subject_revision": "699d0ba352e1691bb9c20b996a0c4086f547caee77969825459c0c79f0e9fd96"
 }

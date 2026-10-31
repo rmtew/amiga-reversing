@@ -1463,6 +1463,7 @@ SG2_ALTERNATE_PALETTE_DBF_LAST	EQU	$F
 SG2_ALTERNATE_PALETTE_RGB_MASK	EQU	1911
 SG2_ALTERNATE_PROFILE_SCREEN_BASE	EQU	$68000
 SG2_ALTERNATE_WEAPON_HUD_ICON_PITCH_BYTES	EQU	1920
+SG2_AMIGA_PLANAR_ROW_BYTES	EQU	40
 SG2_AMIGA_WEAPON_HUD_ICON_PITCH_BYTES	EQU	480
 SG2_ANGLE_FULL_TURN	EQU	4096
 SG2_ANGLE_HALF_TURN	EQU	2048
@@ -1643,6 +1644,8 @@ SG2_PAULA_VOLUME_STEP	EQU	2
 SG2_PERIODIC_BCD_DIGITS_DBF_LAST	EQU	3
 SG2_PERIODIC_BCD_RELOAD_TICKS	EQU	432
 SG2_PITCH_HEIGHT_STEP_OFFSET	EQU	$1C8
+SG2_PLANAR_CELL_LAST_PIXEL	EQU	31
+SG2_PLANAR_SPAN_CELL_BITS	EQU	32
 SG2_PLAYER_CORNER_BASE_OFFSET	EQU	401
 SG2_PLAYER_CORNER_SLOPE_FACTOR	EQU	17
 SG2_PLAYER_DEPOT_APPROACH_LIMIT	EQU	575
@@ -55009,27 +55012,30 @@ store_ascending_x_scene_line_span:
 	move.w d3,(a3)+
 	bra.w interpolate_next_cycled_scene_packet
 	dc.b $00,$00,$00,$00
-abs_0_0003DD0A:
+    ; Recover the next list cursor from USP after a row terminator or empty packet. Four-plane callbacks may clobber A4/A5/A6; A6 is not an app base here.
+restore_next_planar_span_reference_from_usp:
 	move usp,a2
-	bra.w abs_0_0003DD2C
-abs_0_0003DD10:
+	bra.w read_next_planar_span_reference
+return_from_planar_span_reference_list:
 	rts
+    ; Negative platform flag selects this reader; otherwise delegate before planar setup. CPU cases supply Amiga row/mask initialization and supervisor state, not boot or scanout proof.
 draw_planar_4plane_span_records:
 	tst.w platform_entry_flags.l
 	bpl.w draw_interleaved_4plane_span_records
 	move.b #$5,diagnostic_step_byte.l
 	moveq.l #0,d6
 	moveq.l #-1,d7
-	moveq.l #40,d0
-	moveq.l #32,d1
+	moveq.l #SG2_AMIGA_PLANAR_ROW_BYTES,d0
+	moveq.l #SG2_PLANAR_SPAN_CELL_BITS,d1
+    ; Read a LONG reference; any negative LONG ends the list. USP holds the next reference while A2 becomes a callback or mask-table pointer. No general register-preservation contract is implied.
     ; KNOWN: type A2=Target code-entry register seed:SG2SceneSpanReference
-abs_0_0003DD2C:
+read_next_planar_span_reference:
 	move.l (a2)+,d3	; operand 1: SG2SceneSpanReference_span at (a2)+
-	bmi.w abs_0_0003DD10
+	bmi.w return_from_planar_span_reference_list
 	movea.l d3,a0
 	move a2,usp
 	move.w (a0)+,d3	; operand 1: SG2SceneSpanHeader_fill_style at (a0)+
-	bmi.w abs_0_0003EA3E
+	bmi.w select_negative_planar_span_family
 	add.w d3,d3
 	move.w drawing_dispatch_offsets(pc,d3.w),d3
 	lea.l drawing_dispatch_offsets(pc,d3.w),a2
@@ -55039,20 +55045,21 @@ abs_0_0003DD2C:
 	movea.l scene_draw_buffer_snapshot.l,a1
 	adda.w $0(a3,d2.w),a1
 	move.w (a0)+,d2
-	bmi.w abs_0_0003DD0A
-abs_0_0003DD5E:
+	bmi.w restore_next_planar_span_reference_from_usp
+order_next_planar_span_endpoints:
 	move.w (a0)+,d3
 	cmp.w d2,d3
-	bhi.b abs_0_0003DD66
+	bhi.b prepare_planar_span_masks_and_cell_cursor
 	exg d2,d3
-abs_0_0003DD66:
+    ; Order endpoints unsigned, then prepare outside masks and the aligned LONG column. Qualified ordinary spans include both endpoints and may cross cells. Recompute the column for every row.
+prepare_planar_span_masks_and_cell_cursor:
 	moveq.l #0,d5
-	moveq.l #31,d4
+	moveq.l #SG2_PLANAR_CELL_LAST_PIXEL,d4
 	sub.w d3,d4
 	bset d4,d5
 	subq.l #1,d5
 	move.w d2,d4
-	andi.w #31,d4
+	andi.w #SG2_PLANAR_CELL_LAST_PIXEL,d4
 	sub.w d4,d2
 	add.w d4,d4
 	add.w d4,d4
@@ -55106,7 +55113,7 @@ span_suffix_masks_16:
 	dc.w $7FFF,$3FFF,$1FFF,$0FFF,$07FF,$03FF,$01FF,$00FF	; 16 constant masks; suffix; producer of generated outside-span masks and indexed drawing consu...
 	dc.w $007F,$003F,$001F,$000F,$0007,$0003,$0001,$0000
 draw_planar_span_color_0:
-	bpl.b abs_0_0003DF0C
+	bpl.b draw_planar_span_color_0_multi_cell
 	or.l d4,d5
 	and.l d5,(a3)
 	and.l d5,$2000(a3)
@@ -55114,9 +55121,10 @@ draw_planar_span_color_0:
 	and.l d5,$6000(a3)
 	not.l d5
 	move.w (a0)+,d2
-	bpl.w abs_0_0003DD5E
-	bra.w abs_0_0003DD0A
-abs_0_0003DF0C:
+	bpl.w order_next_planar_span_endpoints
+	bra.w restore_next_planar_span_reference_from_usp
+    ; All 16 regular colours share this layout: first LONG, up to eight unrolled interior LONGs, then final LONG. Tested X=0..319 does not establish a safe arbitrary-width contract.
+draw_planar_span_color_0_multi_cell:
 	lea.l $2000(a3),a4
 	lea.l $2000(a4),a5
 	lea.l $2000(a5),a6
@@ -55126,64 +55134,64 @@ abs_0_0003DF0C:
 	and.l d4,(a6)+
 	not.l d4
 	sub.w d1,d3
-	bmi.b abs_0_0003DF82
+	bmi.b draw_planar_span_color_0_last_cell
 	move.l d6,(a3)+
 	move.l d6,(a4)+
 	move.l d6,(a5)+
 	move.l d6,(a6)+
 	sub.w d1,d3
-	bmi.b abs_0_0003DF82
+	bmi.b draw_planar_span_color_0_last_cell
 	move.l d6,(a3)+
 	move.l d6,(a4)+
 	move.l d6,(a5)+
 	move.l d6,(a6)+
 	sub.w d1,d3
-	bmi.b abs_0_0003DF82
+	bmi.b draw_planar_span_color_0_last_cell
 	move.l d6,(a3)+
 	move.l d6,(a4)+
 	move.l d6,(a5)+
 	move.l d6,(a6)+
 	sub.w d1,d3
-	bmi.b abs_0_0003DF82
+	bmi.b draw_planar_span_color_0_last_cell
 	move.l d6,(a3)+
 	move.l d6,(a4)+
 	move.l d6,(a5)+
 	move.l d6,(a6)+
 	sub.w d1,d3
-	bmi.b abs_0_0003DF82
+	bmi.b draw_planar_span_color_0_last_cell
 	move.l d6,(a3)+
 	move.l d6,(a4)+
 	move.l d6,(a5)+
 	move.l d6,(a6)+
 	sub.w d1,d3
-	bmi.b abs_0_0003DF82
+	bmi.b draw_planar_span_color_0_last_cell
 	move.l d6,(a3)+
 	move.l d6,(a4)+
 	move.l d6,(a5)+
 	move.l d6,(a6)+
 	sub.w d1,d3
-	bmi.b abs_0_0003DF82
+	bmi.b draw_planar_span_color_0_last_cell
 	move.l d6,(a3)+
 	move.l d6,(a4)+
 	move.l d6,(a5)+
 	move.l d6,(a6)+
 	sub.w d1,d3
-	bmi.b abs_0_0003DF82
+	bmi.b draw_planar_span_color_0_last_cell
 	move.l d6,(a3)+
 	move.l d6,(a4)+
 	move.l d6,(a5)+
 	move.l d6,(a6)+
-abs_0_0003DF82:
+draw_planar_span_color_0_last_cell:
 	and.l d5,(a3)+
 	and.l d5,(a4)+
 	and.l d5,(a5)+
 	and.l d5,(a6)+
 	not.l d5
 	move.w (a0)+,d2
-	bpl.w abs_0_0003DD5E
-	bra.w abs_0_0003DD0A
+	bpl.w order_next_planar_span_endpoints
+	bra.w restore_next_planar_span_reference_from_usp
 draw_planar_span_color_1:
-	bpl.b abs_0_0003DFB4
+	bpl.b draw_planar_span_color_1_multi_cell
 	or.l d4,d5
 	and.l d5,$2000(a3)
 	and.l d5,$4000(a3)
@@ -55191,9 +55199,9 @@ draw_planar_span_color_1:
 	not.l d5
 	or.l d5,(a3)
 	move.w (a0)+,d2
-	bpl.w abs_0_0003DD5E
-	bra.w abs_0_0003DD0A
-abs_0_0003DFB4:
+	bpl.w order_next_planar_span_endpoints
+	bra.w restore_next_planar_span_reference_from_usp
+draw_planar_span_color_1_multi_cell:
 	lea.l $2000(a3),a4
 	lea.l $2000(a4),a5
 	lea.l $2000(a5),a6
@@ -55203,64 +55211,64 @@ abs_0_0003DFB4:
 	not.l d4
 	or.l d4,(a3)+
 	sub.w d1,d3
-	bmi.b abs_0_0003E02A
+	bmi.b draw_planar_span_color_1_last_cell
 	move.l d7,(a3)+
 	move.l d6,(a4)+
 	move.l d6,(a5)+
 	move.l d6,(a6)+
 	sub.w d1,d3
-	bmi.b abs_0_0003E02A
+	bmi.b draw_planar_span_color_1_last_cell
 	move.l d7,(a3)+
 	move.l d6,(a4)+
 	move.l d6,(a5)+
 	move.l d6,(a6)+
 	sub.w d1,d3
-	bmi.b abs_0_0003E02A
+	bmi.b draw_planar_span_color_1_last_cell
 	move.l d7,(a3)+
 	move.l d6,(a4)+
 	move.l d6,(a5)+
 	move.l d6,(a6)+
 	sub.w d1,d3
-	bmi.b abs_0_0003E02A
+	bmi.b draw_planar_span_color_1_last_cell
 	move.l d7,(a3)+
 	move.l d6,(a4)+
 	move.l d6,(a5)+
 	move.l d6,(a6)+
 	sub.w d1,d3
-	bmi.b abs_0_0003E02A
+	bmi.b draw_planar_span_color_1_last_cell
 	move.l d7,(a3)+
 	move.l d6,(a4)+
 	move.l d6,(a5)+
 	move.l d6,(a6)+
 	sub.w d1,d3
-	bmi.b abs_0_0003E02A
+	bmi.b draw_planar_span_color_1_last_cell
 	move.l d7,(a3)+
 	move.l d6,(a4)+
 	move.l d6,(a5)+
 	move.l d6,(a6)+
 	sub.w d1,d3
-	bmi.b abs_0_0003E02A
+	bmi.b draw_planar_span_color_1_last_cell
 	move.l d7,(a3)+
 	move.l d6,(a4)+
 	move.l d6,(a5)+
 	move.l d6,(a6)+
 	sub.w d1,d3
-	bmi.b abs_0_0003E02A
+	bmi.b draw_planar_span_color_1_last_cell
 	move.l d7,(a3)+
 	move.l d6,(a4)+
 	move.l d6,(a5)+
 	move.l d6,(a6)+
-abs_0_0003E02A:
+draw_planar_span_color_1_last_cell:
 	and.l d5,(a4)+
 	and.l d5,(a5)+
 	and.l d5,(a6)+
 	not.l d5
 	or.l d5,(a3)+
 	move.w (a0)+,d2
-	bpl.w abs_0_0003DD5E
-	bra.w abs_0_0003DD0A
+	bpl.w order_next_planar_span_endpoints
+	bra.w restore_next_planar_span_reference_from_usp
 draw_planar_span_color_2:
-	bpl.b abs_0_0003E05C
+	bpl.b draw_planar_span_color_2_multi_cell
 	or.l d4,d5
 	and.l d5,(a3)
 	and.l d5,$4000(a3)
@@ -55268,9 +55276,9 @@ draw_planar_span_color_2:
 	not.l d5
 	or.l d5,$2000(a3)
 	move.w (a0)+,d2
-	bpl.w abs_0_0003DD5E
-	bra.w abs_0_0003DD0A
-abs_0_0003E05C:
+	bpl.w order_next_planar_span_endpoints
+	bra.w restore_next_planar_span_reference_from_usp
+draw_planar_span_color_2_multi_cell:
 	lea.l $2000(a3),a4
 	lea.l $2000(a4),a5
 	lea.l $2000(a5),a6
@@ -55280,64 +55288,64 @@ abs_0_0003E05C:
 	not.l d4
 	or.l d4,(a4)+
 	sub.w d1,d3
-	bmi.b abs_0_0003E0D2
+	bmi.b draw_planar_span_color_2_last_cell
 	move.l d6,(a3)+
 	move.l d7,(a4)+
 	move.l d6,(a5)+
 	move.l d6,(a6)+
 	sub.w d1,d3
-	bmi.b abs_0_0003E0D2
+	bmi.b draw_planar_span_color_2_last_cell
 	move.l d6,(a3)+
 	move.l d7,(a4)+
 	move.l d6,(a5)+
 	move.l d6,(a6)+
 	sub.w d1,d3
-	bmi.b abs_0_0003E0D2
+	bmi.b draw_planar_span_color_2_last_cell
 	move.l d6,(a3)+
 	move.l d7,(a4)+
 	move.l d6,(a5)+
 	move.l d6,(a6)+
 	sub.w d1,d3
-	bmi.b abs_0_0003E0D2
+	bmi.b draw_planar_span_color_2_last_cell
 	move.l d6,(a3)+
 	move.l d7,(a4)+
 	move.l d6,(a5)+
 	move.l d6,(a6)+
 	sub.w d1,d3
-	bmi.b abs_0_0003E0D2
+	bmi.b draw_planar_span_color_2_last_cell
 	move.l d6,(a3)+
 	move.l d7,(a4)+
 	move.l d6,(a5)+
 	move.l d6,(a6)+
 	sub.w d1,d3
-	bmi.b abs_0_0003E0D2
+	bmi.b draw_planar_span_color_2_last_cell
 	move.l d6,(a3)+
 	move.l d7,(a4)+
 	move.l d6,(a5)+
 	move.l d6,(a6)+
 	sub.w d1,d3
-	bmi.b abs_0_0003E0D2
+	bmi.b draw_planar_span_color_2_last_cell
 	move.l d6,(a3)+
 	move.l d7,(a4)+
 	move.l d6,(a5)+
 	move.l d6,(a6)+
 	sub.w d1,d3
-	bmi.b abs_0_0003E0D2
+	bmi.b draw_planar_span_color_2_last_cell
 	move.l d6,(a3)+
 	move.l d7,(a4)+
 	move.l d6,(a5)+
 	move.l d6,(a6)+
-abs_0_0003E0D2:
+draw_planar_span_color_2_last_cell:
 	and.l d5,(a3)+
 	and.l d5,(a5)+
 	and.l d5,(a6)+
 	not.l d5
 	or.l d5,(a4)+
 	move.w (a0)+,d2
-	bpl.w abs_0_0003DD5E
-	bra.w abs_0_0003DD0A
+	bpl.w order_next_planar_span_endpoints
+	bra.w restore_next_planar_span_reference_from_usp
 draw_planar_span_color_3:
-	bpl.b abs_0_0003E104
+	bpl.b draw_planar_span_color_3_multi_cell
 	or.l d4,d5
 	and.l d5,$4000(a3)
 	and.l d5,$6000(a3)
@@ -55345,9 +55353,9 @@ draw_planar_span_color_3:
 	or.l d5,(a3)
 	or.l d5,$2000(a3)
 	move.w (a0)+,d2
-	bpl.w abs_0_0003DD5E
-	bra.w abs_0_0003DD0A
-abs_0_0003E104:
+	bpl.w order_next_planar_span_endpoints
+	bra.w restore_next_planar_span_reference_from_usp
+draw_planar_span_color_3_multi_cell:
 	lea.l $2000(a3),a4
 	lea.l $2000(a4),a5
 	lea.l $2000(a5),a6
@@ -55357,64 +55365,64 @@ abs_0_0003E104:
 	or.l d4,(a3)+
 	or.l d4,(a4)+
 	sub.w d1,d3
-	bmi.b abs_0_0003E17A
+	bmi.b draw_planar_span_color_3_last_cell
 	move.l d7,(a3)+
 	move.l d7,(a4)+
 	move.l d6,(a5)+
 	move.l d6,(a6)+
 	sub.w d1,d3
-	bmi.b abs_0_0003E17A
+	bmi.b draw_planar_span_color_3_last_cell
 	move.l d7,(a3)+
 	move.l d7,(a4)+
 	move.l d6,(a5)+
 	move.l d6,(a6)+
 	sub.w d1,d3
-	bmi.b abs_0_0003E17A
+	bmi.b draw_planar_span_color_3_last_cell
 	move.l d7,(a3)+
 	move.l d7,(a4)+
 	move.l d6,(a5)+
 	move.l d6,(a6)+
 	sub.w d1,d3
-	bmi.b abs_0_0003E17A
+	bmi.b draw_planar_span_color_3_last_cell
 	move.l d7,(a3)+
 	move.l d7,(a4)+
 	move.l d6,(a5)+
 	move.l d6,(a6)+
 	sub.w d1,d3
-	bmi.b abs_0_0003E17A
+	bmi.b draw_planar_span_color_3_last_cell
 	move.l d7,(a3)+
 	move.l d7,(a4)+
 	move.l d6,(a5)+
 	move.l d6,(a6)+
 	sub.w d1,d3
-	bmi.b abs_0_0003E17A
+	bmi.b draw_planar_span_color_3_last_cell
 	move.l d7,(a3)+
 	move.l d7,(a4)+
 	move.l d6,(a5)+
 	move.l d6,(a6)+
 	sub.w d1,d3
-	bmi.b abs_0_0003E17A
+	bmi.b draw_planar_span_color_3_last_cell
 	move.l d7,(a3)+
 	move.l d7,(a4)+
 	move.l d6,(a5)+
 	move.l d6,(a6)+
 	sub.w d1,d3
-	bmi.b abs_0_0003E17A
+	bmi.b draw_planar_span_color_3_last_cell
 	move.l d7,(a3)+
 	move.l d7,(a4)+
 	move.l d6,(a5)+
 	move.l d6,(a6)+
-abs_0_0003E17A:
+draw_planar_span_color_3_last_cell:
 	and.l d5,(a5)+
 	and.l d5,(a6)+
 	not.l d5
 	or.l d5,(a3)+
 	or.l d5,(a4)+
 	move.w (a0)+,d2
-	bpl.w abs_0_0003DD5E
-	bra.w abs_0_0003DD0A
+	bpl.w order_next_planar_span_endpoints
+	bra.w restore_next_planar_span_reference_from_usp
 draw_planar_span_color_4:
-	bpl.b abs_0_0003E1AC
+	bpl.b draw_planar_span_color_4_multi_cell
 	or.l d4,d5
 	and.l d5,(a3)
 	and.l d5,$2000(a3)
@@ -55422,9 +55430,9 @@ draw_planar_span_color_4:
 	not.l d5
 	or.l d5,$4000(a3)
 	move.w (a0)+,d2
-	bpl.w abs_0_0003DD5E
-	bra.w abs_0_0003DD0A
-abs_0_0003E1AC:
+	bpl.w order_next_planar_span_endpoints
+	bra.w restore_next_planar_span_reference_from_usp
+draw_planar_span_color_4_multi_cell:
 	lea.l $2000(a3),a4
 	lea.l $2000(a4),a5
 	lea.l $2000(a5),a6
@@ -55434,64 +55442,64 @@ abs_0_0003E1AC:
 	not.l d4
 	or.l d4,(a5)+
 	sub.w d1,d3
-	bmi.b abs_0_0003E222
+	bmi.b draw_planar_span_color_4_last_cell
 	move.l d6,(a3)+
 	move.l d6,(a4)+
 	move.l d7,(a5)+
 	move.l d6,(a6)+
 	sub.w d1,d3
-	bmi.b abs_0_0003E222
+	bmi.b draw_planar_span_color_4_last_cell
 	move.l d6,(a3)+
 	move.l d6,(a4)+
 	move.l d7,(a5)+
 	move.l d6,(a6)+
 	sub.w d1,d3
-	bmi.b abs_0_0003E222
+	bmi.b draw_planar_span_color_4_last_cell
 	move.l d6,(a3)+
 	move.l d6,(a4)+
 	move.l d7,(a5)+
 	move.l d6,(a6)+
 	sub.w d1,d3
-	bmi.b abs_0_0003E222
+	bmi.b draw_planar_span_color_4_last_cell
 	move.l d6,(a3)+
 	move.l d6,(a4)+
 	move.l d7,(a5)+
 	move.l d6,(a6)+
 	sub.w d1,d3
-	bmi.b abs_0_0003E222
+	bmi.b draw_planar_span_color_4_last_cell
 	move.l d6,(a3)+
 	move.l d6,(a4)+
 	move.l d7,(a5)+
 	move.l d6,(a6)+
 	sub.w d1,d3
-	bmi.b abs_0_0003E222
+	bmi.b draw_planar_span_color_4_last_cell
 	move.l d6,(a3)+
 	move.l d6,(a4)+
 	move.l d7,(a5)+
 	move.l d6,(a6)+
 	sub.w d1,d3
-	bmi.b abs_0_0003E222
+	bmi.b draw_planar_span_color_4_last_cell
 	move.l d6,(a3)+
 	move.l d6,(a4)+
 	move.l d7,(a5)+
 	move.l d6,(a6)+
 	sub.w d1,d3
-	bmi.b abs_0_0003E222
+	bmi.b draw_planar_span_color_4_last_cell
 	move.l d6,(a3)+
 	move.l d6,(a4)+
 	move.l d7,(a5)+
 	move.l d6,(a6)+
-abs_0_0003E222:
+draw_planar_span_color_4_last_cell:
 	and.l d5,(a3)+
 	and.l d5,(a4)+
 	and.l d5,(a6)+
 	not.l d5
 	or.l d5,(a5)+
 	move.w (a0)+,d2
-	bpl.w abs_0_0003DD5E
-	bra.w abs_0_0003DD0A
+	bpl.w order_next_planar_span_endpoints
+	bra.w restore_next_planar_span_reference_from_usp
 draw_planar_span_color_5:
-	bpl.b abs_0_0003E254
+	bpl.b draw_planar_span_color_5_multi_cell
 	or.l d4,d5
 	and.l d5,$2000(a3)
 	and.l d5,$6000(a3)
@@ -55499,9 +55507,9 @@ draw_planar_span_color_5:
 	or.l d5,(a3)
 	or.l d5,$4000(a3)
 	move.w (a0)+,d2
-	bpl.w abs_0_0003DD5E
-	bra.w abs_0_0003DD0A
-abs_0_0003E254:
+	bpl.w order_next_planar_span_endpoints
+	bra.w restore_next_planar_span_reference_from_usp
+draw_planar_span_color_5_multi_cell:
 	lea.l $2000(a3),a4
 	lea.l $2000(a4),a5
 	lea.l $2000(a5),a6
@@ -55511,64 +55519,64 @@ abs_0_0003E254:
 	or.l d4,(a3)+
 	or.l d4,(a5)+
 	sub.w d1,d3
-	bmi.b abs_0_0003E2CA
+	bmi.b draw_planar_span_color_5_last_cell
 	move.l d7,(a3)+
 	move.l d6,(a4)+
 	move.l d7,(a5)+
 	move.l d6,(a6)+
 	sub.w d1,d3
-	bmi.b abs_0_0003E2CA
+	bmi.b draw_planar_span_color_5_last_cell
 	move.l d7,(a3)+
 	move.l d6,(a4)+
 	move.l d7,(a5)+
 	move.l d6,(a6)+
 	sub.w d1,d3
-	bmi.b abs_0_0003E2CA
+	bmi.b draw_planar_span_color_5_last_cell
 	move.l d7,(a3)+
 	move.l d6,(a4)+
 	move.l d7,(a5)+
 	move.l d6,(a6)+
 	sub.w d1,d3
-	bmi.b abs_0_0003E2CA
+	bmi.b draw_planar_span_color_5_last_cell
 	move.l d7,(a3)+
 	move.l d6,(a4)+
 	move.l d7,(a5)+
 	move.l d6,(a6)+
 	sub.w d1,d3
-	bmi.b abs_0_0003E2CA
+	bmi.b draw_planar_span_color_5_last_cell
 	move.l d7,(a3)+
 	move.l d6,(a4)+
 	move.l d7,(a5)+
 	move.l d6,(a6)+
 	sub.w d1,d3
-	bmi.b abs_0_0003E2CA
+	bmi.b draw_planar_span_color_5_last_cell
 	move.l d7,(a3)+
 	move.l d6,(a4)+
 	move.l d7,(a5)+
 	move.l d6,(a6)+
 	sub.w d1,d3
-	bmi.b abs_0_0003E2CA
+	bmi.b draw_planar_span_color_5_last_cell
 	move.l d7,(a3)+
 	move.l d6,(a4)+
 	move.l d7,(a5)+
 	move.l d6,(a6)+
 	sub.w d1,d3
-	bmi.b abs_0_0003E2CA
+	bmi.b draw_planar_span_color_5_last_cell
 	move.l d7,(a3)+
 	move.l d6,(a4)+
 	move.l d7,(a5)+
 	move.l d6,(a6)+
-abs_0_0003E2CA:
+draw_planar_span_color_5_last_cell:
 	and.l d5,(a4)+
 	and.l d5,(a6)+
 	not.l d5
 	or.l d5,(a3)+
 	or.l d5,(a5)+
 	move.w (a0)+,d2
-	bpl.w abs_0_0003DD5E
-	bra.w abs_0_0003DD0A
+	bpl.w order_next_planar_span_endpoints
+	bra.w restore_next_planar_span_reference_from_usp
 draw_planar_span_color_6:
-	bpl.b abs_0_0003E2FC
+	bpl.b draw_planar_span_color_6_multi_cell
 	or.l d4,d5
 	and.l d5,(a3)
 	and.l d5,$6000(a3)
@@ -55576,9 +55584,9 @@ draw_planar_span_color_6:
 	or.l d5,$2000(a3)
 	or.l d5,$4000(a3)
 	move.w (a0)+,d2
-	bpl.w abs_0_0003DD5E
-	bra.w abs_0_0003DD0A
-abs_0_0003E2FC:
+	bpl.w order_next_planar_span_endpoints
+	bra.w restore_next_planar_span_reference_from_usp
+draw_planar_span_color_6_multi_cell:
 	lea.l $2000(a3),a4
 	lea.l $2000(a4),a5
 	lea.l $2000(a5),a6
@@ -55588,64 +55596,64 @@ abs_0_0003E2FC:
 	or.l d4,(a4)+
 	or.l d4,(a5)+
 	sub.w d1,d3
-	bmi.b abs_0_0003E372
+	bmi.b draw_planar_span_color_6_last_cell
 	move.l d6,(a3)+
 	move.l d7,(a4)+
 	move.l d7,(a5)+
 	move.l d6,(a6)+
 	sub.w d1,d3
-	bmi.b abs_0_0003E372
+	bmi.b draw_planar_span_color_6_last_cell
 	move.l d6,(a3)+
 	move.l d7,(a4)+
 	move.l d7,(a5)+
 	move.l d6,(a6)+
 	sub.w d1,d3
-	bmi.b abs_0_0003E372
+	bmi.b draw_planar_span_color_6_last_cell
 	move.l d6,(a3)+
 	move.l d7,(a4)+
 	move.l d7,(a5)+
 	move.l d6,(a6)+
 	sub.w d1,d3
-	bmi.b abs_0_0003E372
+	bmi.b draw_planar_span_color_6_last_cell
 	move.l d6,(a3)+
 	move.l d7,(a4)+
 	move.l d7,(a5)+
 	move.l d6,(a6)+
 	sub.w d1,d3
-	bmi.b abs_0_0003E372
+	bmi.b draw_planar_span_color_6_last_cell
 	move.l d6,(a3)+
 	move.l d7,(a4)+
 	move.l d7,(a5)+
 	move.l d6,(a6)+
 	sub.w d1,d3
-	bmi.b abs_0_0003E372
+	bmi.b draw_planar_span_color_6_last_cell
 	move.l d6,(a3)+
 	move.l d7,(a4)+
 	move.l d7,(a5)+
 	move.l d6,(a6)+
 	sub.w d1,d3
-	bmi.b abs_0_0003E372
+	bmi.b draw_planar_span_color_6_last_cell
 	move.l d6,(a3)+
 	move.l d7,(a4)+
 	move.l d7,(a5)+
 	move.l d6,(a6)+
 	sub.w d1,d3
-	bmi.b abs_0_0003E372
+	bmi.b draw_planar_span_color_6_last_cell
 	move.l d6,(a3)+
 	move.l d7,(a4)+
 	move.l d7,(a5)+
 	move.l d6,(a6)+
-abs_0_0003E372:
+draw_planar_span_color_6_last_cell:
 	and.l d5,(a3)+
 	and.l d5,(a6)+
 	not.l d5
 	or.l d5,(a4)+
 	or.l d5,(a5)+
 	move.w (a0)+,d2
-	bpl.w abs_0_0003DD5E
-	bra.w abs_0_0003DD0A
+	bpl.w order_next_planar_span_endpoints
+	bra.w restore_next_planar_span_reference_from_usp
 draw_planar_span_color_7:
-	bpl.b abs_0_0003E3A4
+	bpl.b draw_planar_span_color_7_multi_cell
 	or.l d4,d5
 	and.l d5,$6000(a3)
 	not.l d5
@@ -55653,9 +55661,9 @@ draw_planar_span_color_7:
 	or.l d5,$2000(a3)
 	or.l d5,$4000(a3)
 	move.w (a0)+,d2
-	bpl.w abs_0_0003DD5E
-	bra.w abs_0_0003DD0A
-abs_0_0003E3A4:
+	bpl.w order_next_planar_span_endpoints
+	bra.w restore_next_planar_span_reference_from_usp
+draw_planar_span_color_7_multi_cell:
 	lea.l $2000(a3),a4
 	lea.l $2000(a4),a5
 	lea.l $2000(a5),a6
@@ -55665,64 +55673,64 @@ abs_0_0003E3A4:
 	or.l d4,(a4)+
 	or.l d4,(a5)+
 	sub.w d1,d3
-	bmi.b abs_0_0003E41A
+	bmi.b draw_planar_span_color_7_last_cell
 	move.l d7,(a3)+
 	move.l d7,(a4)+
 	move.l d7,(a5)+
 	move.l d6,(a6)+
 	sub.w d1,d3
-	bmi.b abs_0_0003E41A
+	bmi.b draw_planar_span_color_7_last_cell
 	move.l d7,(a3)+
 	move.l d7,(a4)+
 	move.l d7,(a5)+
 	move.l d6,(a6)+
 	sub.w d1,d3
-	bmi.b abs_0_0003E41A
+	bmi.b draw_planar_span_color_7_last_cell
 	move.l d7,(a3)+
 	move.l d7,(a4)+
 	move.l d7,(a5)+
 	move.l d6,(a6)+
 	sub.w d1,d3
-	bmi.b abs_0_0003E41A
+	bmi.b draw_planar_span_color_7_last_cell
 	move.l d7,(a3)+
 	move.l d7,(a4)+
 	move.l d7,(a5)+
 	move.l d6,(a6)+
 	sub.w d1,d3
-	bmi.b abs_0_0003E41A
+	bmi.b draw_planar_span_color_7_last_cell
 	move.l d7,(a3)+
 	move.l d7,(a4)+
 	move.l d7,(a5)+
 	move.l d6,(a6)+
 	sub.w d1,d3
-	bmi.b abs_0_0003E41A
+	bmi.b draw_planar_span_color_7_last_cell
 	move.l d7,(a3)+
 	move.l d7,(a4)+
 	move.l d7,(a5)+
 	move.l d6,(a6)+
 	sub.w d1,d3
-	bmi.b abs_0_0003E41A
+	bmi.b draw_planar_span_color_7_last_cell
 	move.l d7,(a3)+
 	move.l d7,(a4)+
 	move.l d7,(a5)+
 	move.l d6,(a6)+
 	sub.w d1,d3
-	bmi.b abs_0_0003E41A
+	bmi.b draw_planar_span_color_7_last_cell
 	move.l d7,(a3)+
 	move.l d7,(a4)+
 	move.l d7,(a5)+
 	move.l d6,(a6)+
-abs_0_0003E41A:
+draw_planar_span_color_7_last_cell:
 	and.l d5,(a6)+
 	not.l d5
 	or.l d5,(a3)+
 	or.l d5,(a4)+
 	or.l d5,(a5)+
 	move.w (a0)+,d2
-	bpl.w abs_0_0003DD5E
-	bra.w abs_0_0003DD0A
+	bpl.w order_next_planar_span_endpoints
+	bra.w restore_next_planar_span_reference_from_usp
 draw_planar_span_color_8:
-	bpl.b abs_0_0003E44C
+	bpl.b draw_planar_span_color_8_multi_cell
 	or.l d4,d5
 	and.l d5,(a3)
 	and.l d5,$2000(a3)
@@ -55730,9 +55738,9 @@ draw_planar_span_color_8:
 	not.l d5
 	or.l d5,$6000(a3)
 	move.w (a0)+,d2
-	bpl.w abs_0_0003DD5E
-	bra.w abs_0_0003DD0A
-abs_0_0003E44C:
+	bpl.w order_next_planar_span_endpoints
+	bra.w restore_next_planar_span_reference_from_usp
+draw_planar_span_color_8_multi_cell:
 	lea.l $2000(a3),a4
 	lea.l $2000(a4),a5
 	lea.l $2000(a5),a6
@@ -55742,64 +55750,64 @@ abs_0_0003E44C:
 	not.l d4
 	or.l d4,(a6)+
 	sub.w d1,d3
-	bmi.b abs_0_0003E4C2
+	bmi.b draw_planar_span_color_8_last_cell
 	move.l d6,(a3)+
 	move.l d6,(a4)+
 	move.l d6,(a5)+
 	move.l d7,(a6)+
 	sub.w d1,d3
-	bmi.b abs_0_0003E4C2
+	bmi.b draw_planar_span_color_8_last_cell
 	move.l d6,(a3)+
 	move.l d6,(a4)+
 	move.l d6,(a5)+
 	move.l d7,(a6)+
 	sub.w d1,d3
-	bmi.b abs_0_0003E4C2
+	bmi.b draw_planar_span_color_8_last_cell
 	move.l d6,(a3)+
 	move.l d6,(a4)+
 	move.l d6,(a5)+
 	move.l d7,(a6)+
 	sub.w d1,d3
-	bmi.b abs_0_0003E4C2
+	bmi.b draw_planar_span_color_8_last_cell
 	move.l d6,(a3)+
 	move.l d6,(a4)+
 	move.l d6,(a5)+
 	move.l d7,(a6)+
 	sub.w d1,d3
-	bmi.b abs_0_0003E4C2
+	bmi.b draw_planar_span_color_8_last_cell
 	move.l d6,(a3)+
 	move.l d6,(a4)+
 	move.l d6,(a5)+
 	move.l d7,(a6)+
 	sub.w d1,d3
-	bmi.b abs_0_0003E4C2
+	bmi.b draw_planar_span_color_8_last_cell
 	move.l d6,(a3)+
 	move.l d6,(a4)+
 	move.l d6,(a5)+
 	move.l d7,(a6)+
 	sub.w d1,d3
-	bmi.b abs_0_0003E4C2
+	bmi.b draw_planar_span_color_8_last_cell
 	move.l d6,(a3)+
 	move.l d6,(a4)+
 	move.l d6,(a5)+
 	move.l d7,(a6)+
 	sub.w d1,d3
-	bmi.b abs_0_0003E4C2
+	bmi.b draw_planar_span_color_8_last_cell
 	move.l d6,(a3)+
 	move.l d6,(a4)+
 	move.l d6,(a5)+
 	move.l d7,(a6)+
-abs_0_0003E4C2:
+draw_planar_span_color_8_last_cell:
 	and.l d5,(a3)+
 	and.l d5,(a4)+
 	and.l d5,(a5)+
 	not.l d5
 	or.l d5,(a6)+
 	move.w (a0)+,d2
-	bpl.w abs_0_0003DD5E
-	bra.w abs_0_0003DD0A
+	bpl.w order_next_planar_span_endpoints
+	bra.w restore_next_planar_span_reference_from_usp
 draw_planar_span_color_9:
-	bpl.b abs_0_0003E4F4
+	bpl.b draw_planar_span_color_9_multi_cell
 	or.l d4,d5
 	and.l d5,$2000(a3)
 	and.l d5,$4000(a3)
@@ -55807,9 +55815,9 @@ draw_planar_span_color_9:
 	or.l d5,(a3)
 	or.l d5,$6000(a3)
 	move.w (a0)+,d2
-	bpl.w abs_0_0003DD5E
-	bra.w abs_0_0003DD0A
-abs_0_0003E4F4:
+	bpl.w order_next_planar_span_endpoints
+	bra.w restore_next_planar_span_reference_from_usp
+draw_planar_span_color_9_multi_cell:
 	lea.l $2000(a3),a4
 	lea.l $2000(a4),a5
 	lea.l $2000(a5),a6
@@ -55819,64 +55827,64 @@ abs_0_0003E4F4:
 	or.l d4,(a3)+
 	or.l d4,(a6)+
 	sub.w d1,d3
-	bmi.b abs_0_0003E56A
+	bmi.b draw_planar_span_color_9_last_cell
 	move.l d7,(a3)+
 	move.l d6,(a4)+
 	move.l d6,(a5)+
 	move.l d7,(a6)+
 	sub.w d1,d3
-	bmi.b abs_0_0003E56A
+	bmi.b draw_planar_span_color_9_last_cell
 	move.l d7,(a3)+
 	move.l d6,(a4)+
 	move.l d6,(a5)+
 	move.l d7,(a6)+
 	sub.w d1,d3
-	bmi.b abs_0_0003E56A
+	bmi.b draw_planar_span_color_9_last_cell
 	move.l d7,(a3)+
 	move.l d6,(a4)+
 	move.l d6,(a5)+
 	move.l d7,(a6)+
 	sub.w d1,d3
-	bmi.b abs_0_0003E56A
+	bmi.b draw_planar_span_color_9_last_cell
 	move.l d7,(a3)+
 	move.l d6,(a4)+
 	move.l d6,(a5)+
 	move.l d7,(a6)+
 	sub.w d1,d3
-	bmi.b abs_0_0003E56A
+	bmi.b draw_planar_span_color_9_last_cell
 	move.l d7,(a3)+
 	move.l d6,(a4)+
 	move.l d6,(a5)+
 	move.l d7,(a6)+
 	sub.w d1,d3
-	bmi.b abs_0_0003E56A
+	bmi.b draw_planar_span_color_9_last_cell
 	move.l d7,(a3)+
 	move.l d6,(a4)+
 	move.l d6,(a5)+
 	move.l d7,(a6)+
 	sub.w d1,d3
-	bmi.b abs_0_0003E56A
+	bmi.b draw_planar_span_color_9_last_cell
 	move.l d7,(a3)+
 	move.l d6,(a4)+
 	move.l d6,(a5)+
 	move.l d7,(a6)+
 	sub.w d1,d3
-	bmi.b abs_0_0003E56A
+	bmi.b draw_planar_span_color_9_last_cell
 	move.l d7,(a3)+
 	move.l d6,(a4)+
 	move.l d6,(a5)+
 	move.l d7,(a6)+
-abs_0_0003E56A:
+draw_planar_span_color_9_last_cell:
 	and.l d5,(a4)+
 	and.l d5,(a5)+
 	not.l d5
 	or.l d5,(a3)+
 	or.l d5,(a6)+
 	move.w (a0)+,d2
-	bpl.w abs_0_0003DD5E
-	bra.w abs_0_0003DD0A
+	bpl.w order_next_planar_span_endpoints
+	bra.w restore_next_planar_span_reference_from_usp
 draw_planar_span_color_10:
-	bpl.b abs_0_0003E59C
+	bpl.b draw_planar_span_color_10_multi_cell
 	or.l d4,d5
 	and.l d5,(a3)
 	and.l d5,$4000(a3)
@@ -55884,9 +55892,9 @@ draw_planar_span_color_10:
 	or.l d5,$2000(a3)
 	or.l d5,$6000(a3)
 	move.w (a0)+,d2
-	bpl.w abs_0_0003DD5E
-	bra.w abs_0_0003DD0A
-abs_0_0003E59C:
+	bpl.w order_next_planar_span_endpoints
+	bra.w restore_next_planar_span_reference_from_usp
+draw_planar_span_color_10_multi_cell:
 	lea.l $2000(a3),a4
 	lea.l $2000(a4),a5
 	lea.l $2000(a5),a6
@@ -55896,64 +55904,64 @@ abs_0_0003E59C:
 	or.l d4,(a4)+
 	or.l d4,(a6)+
 	sub.w d1,d3
-	bmi.b abs_0_0003E612
+	bmi.b draw_planar_span_color_10_last_cell
 	move.l d6,(a3)+
 	move.l d7,(a4)+
 	move.l d6,(a5)+
 	move.l d7,(a6)+
 	sub.w d1,d3
-	bmi.b abs_0_0003E612
+	bmi.b draw_planar_span_color_10_last_cell
 	move.l d6,(a3)+
 	move.l d7,(a4)+
 	move.l d6,(a5)+
 	move.l d7,(a6)+
 	sub.w d1,d3
-	bmi.b abs_0_0003E612
+	bmi.b draw_planar_span_color_10_last_cell
 	move.l d6,(a3)+
 	move.l d7,(a4)+
 	move.l d6,(a5)+
 	move.l d7,(a6)+
 	sub.w d1,d3
-	bmi.b abs_0_0003E612
+	bmi.b draw_planar_span_color_10_last_cell
 	move.l d6,(a3)+
 	move.l d7,(a4)+
 	move.l d6,(a5)+
 	move.l d7,(a6)+
 	sub.w d1,d3
-	bmi.b abs_0_0003E612
+	bmi.b draw_planar_span_color_10_last_cell
 	move.l d6,(a3)+
 	move.l d7,(a4)+
 	move.l d6,(a5)+
 	move.l d7,(a6)+
 	sub.w d1,d3
-	bmi.b abs_0_0003E612
+	bmi.b draw_planar_span_color_10_last_cell
 	move.l d6,(a3)+
 	move.l d7,(a4)+
 	move.l d6,(a5)+
 	move.l d7,(a6)+
 	sub.w d1,d3
-	bmi.b abs_0_0003E612
+	bmi.b draw_planar_span_color_10_last_cell
 	move.l d6,(a3)+
 	move.l d7,(a4)+
 	move.l d6,(a5)+
 	move.l d7,(a6)+
 	sub.w d1,d3
-	bmi.b abs_0_0003E612
+	bmi.b draw_planar_span_color_10_last_cell
 	move.l d6,(a3)+
 	move.l d7,(a4)+
 	move.l d6,(a5)+
 	move.l d7,(a6)+
-abs_0_0003E612:
+draw_planar_span_color_10_last_cell:
 	and.l d5,(a3)+
 	and.l d5,(a5)+
 	not.l d5
 	or.l d5,(a4)+
 	or.l d5,(a6)+
 	move.w (a0)+,d2
-	bpl.w abs_0_0003DD5E
-	bra.w abs_0_0003DD0A
+	bpl.w order_next_planar_span_endpoints
+	bra.w restore_next_planar_span_reference_from_usp
 draw_planar_span_color_11:
-	bpl.b abs_0_0003E644
+	bpl.b draw_planar_span_color_11_multi_cell
 	or.l d4,d5
 	and.l d5,$4000(a3)
 	not.l d5
@@ -55961,9 +55969,9 @@ draw_planar_span_color_11:
 	or.l d5,$2000(a3)
 	or.l d5,$6000(a3)
 	move.w (a0)+,d2
-	bpl.w abs_0_0003DD5E
-	bra.w abs_0_0003DD0A
-abs_0_0003E644:
+	bpl.w order_next_planar_span_endpoints
+	bra.w restore_next_planar_span_reference_from_usp
+draw_planar_span_color_11_multi_cell:
 	lea.l $2000(a3),a4
 	lea.l $2000(a4),a5
 	lea.l $2000(a5),a6
@@ -55973,64 +55981,64 @@ abs_0_0003E644:
 	or.l d4,(a4)+
 	or.l d4,(a6)+
 	sub.w d1,d3
-	bmi.b abs_0_0003E6BA
+	bmi.b draw_planar_span_color_11_last_cell
 	move.l d7,(a3)+
 	move.l d7,(a4)+
 	move.l d6,(a5)+
 	move.l d7,(a6)+
 	sub.w d1,d3
-	bmi.b abs_0_0003E6BA
+	bmi.b draw_planar_span_color_11_last_cell
 	move.l d7,(a3)+
 	move.l d7,(a4)+
 	move.l d6,(a5)+
 	move.l d7,(a6)+
 	sub.w d1,d3
-	bmi.b abs_0_0003E6BA
+	bmi.b draw_planar_span_color_11_last_cell
 	move.l d7,(a3)+
 	move.l d7,(a4)+
 	move.l d6,(a5)+
 	move.l d7,(a6)+
 	sub.w d1,d3
-	bmi.b abs_0_0003E6BA
+	bmi.b draw_planar_span_color_11_last_cell
 	move.l d7,(a3)+
 	move.l d7,(a4)+
 	move.l d6,(a5)+
 	move.l d7,(a6)+
 	sub.w d1,d3
-	bmi.b abs_0_0003E6BA
+	bmi.b draw_planar_span_color_11_last_cell
 	move.l d7,(a3)+
 	move.l d7,(a4)+
 	move.l d6,(a5)+
 	move.l d7,(a6)+
 	sub.w d1,d3
-	bmi.b abs_0_0003E6BA
+	bmi.b draw_planar_span_color_11_last_cell
 	move.l d7,(a3)+
 	move.l d7,(a4)+
 	move.l d6,(a5)+
 	move.l d7,(a6)+
 	sub.w d1,d3
-	bmi.b abs_0_0003E6BA
+	bmi.b draw_planar_span_color_11_last_cell
 	move.l d7,(a3)+
 	move.l d7,(a4)+
 	move.l d6,(a5)+
 	move.l d7,(a6)+
 	sub.w d1,d3
-	bmi.b abs_0_0003E6BA
+	bmi.b draw_planar_span_color_11_last_cell
 	move.l d7,(a3)+
 	move.l d7,(a4)+
 	move.l d6,(a5)+
 	move.l d7,(a6)+
-abs_0_0003E6BA:
+draw_planar_span_color_11_last_cell:
 	and.l d5,(a5)+
 	not.l d5
 	or.l d5,(a3)+
 	or.l d5,(a4)+
 	or.l d5,(a6)+
 	move.w (a0)+,d2
-	bpl.w abs_0_0003DD5E
-	bra.w abs_0_0003DD0A
+	bpl.w order_next_planar_span_endpoints
+	bra.w restore_next_planar_span_reference_from_usp
 draw_planar_span_color_12:
-	bpl.b abs_0_0003E6EC
+	bpl.b draw_planar_span_color_12_multi_cell
 	or.l d4,d5
 	and.l d5,(a3)
 	and.l d5,$2000(a3)
@@ -56038,9 +56046,9 @@ draw_planar_span_color_12:
 	or.l d5,$4000(a3)
 	or.l d5,$6000(a3)
 	move.w (a0)+,d2
-	bpl.w abs_0_0003DD5E
-	bra.w abs_0_0003DD0A
-abs_0_0003E6EC:
+	bpl.w order_next_planar_span_endpoints
+	bra.w restore_next_planar_span_reference_from_usp
+draw_planar_span_color_12_multi_cell:
 	lea.l $2000(a3),a4
 	lea.l $2000(a4),a5
 	lea.l $2000(a5),a6
@@ -56050,64 +56058,64 @@ abs_0_0003E6EC:
 	or.l d4,(a5)+
 	or.l d4,(a6)+
 	sub.w d1,d3
-	bmi.b abs_0_0003E762
+	bmi.b draw_planar_span_color_12_last_cell
 	move.l d6,(a3)+
 	move.l d6,(a4)+
 	move.l d7,(a5)+
 	move.l d7,(a6)+
 	sub.w d1,d3
-	bmi.b abs_0_0003E762
+	bmi.b draw_planar_span_color_12_last_cell
 	move.l d6,(a3)+
 	move.l d6,(a4)+
 	move.l d7,(a5)+
 	move.l d7,(a6)+
 	sub.w d1,d3
-	bmi.b abs_0_0003E762
+	bmi.b draw_planar_span_color_12_last_cell
 	move.l d6,(a3)+
 	move.l d6,(a4)+
 	move.l d7,(a5)+
 	move.l d7,(a6)+
 	sub.w d1,d3
-	bmi.b abs_0_0003E762
+	bmi.b draw_planar_span_color_12_last_cell
 	move.l d6,(a3)+
 	move.l d6,(a4)+
 	move.l d7,(a5)+
 	move.l d7,(a6)+
 	sub.w d1,d3
-	bmi.b abs_0_0003E762
+	bmi.b draw_planar_span_color_12_last_cell
 	move.l d6,(a3)+
 	move.l d6,(a4)+
 	move.l d7,(a5)+
 	move.l d7,(a6)+
 	sub.w d1,d3
-	bmi.b abs_0_0003E762
+	bmi.b draw_planar_span_color_12_last_cell
 	move.l d6,(a3)+
 	move.l d6,(a4)+
 	move.l d7,(a5)+
 	move.l d7,(a6)+
 	sub.w d1,d3
-	bmi.b abs_0_0003E762
+	bmi.b draw_planar_span_color_12_last_cell
 	move.l d6,(a3)+
 	move.l d6,(a4)+
 	move.l d7,(a5)+
 	move.l d7,(a6)+
 	sub.w d1,d3
-	bmi.b abs_0_0003E762
+	bmi.b draw_planar_span_color_12_last_cell
 	move.l d6,(a3)+
 	move.l d6,(a4)+
 	move.l d7,(a5)+
 	move.l d7,(a6)+
-abs_0_0003E762:
+draw_planar_span_color_12_last_cell:
 	and.l d5,(a3)+
 	and.l d5,(a4)+
 	not.l d5
 	or.l d5,(a5)+
 	or.l d5,(a6)+
 	move.w (a0)+,d2
-	bpl.w abs_0_0003DD5E
-	bra.w abs_0_0003DD0A
+	bpl.w order_next_planar_span_endpoints
+	bra.w restore_next_planar_span_reference_from_usp
 draw_planar_span_color_13:
-	bpl.b abs_0_0003E794
+	bpl.b draw_planar_span_color_13_multi_cell
 	or.l d4,d5
 	and.l d5,$2000(a3)
 	not.l d5
@@ -56115,9 +56123,9 @@ draw_planar_span_color_13:
 	or.l d5,$4000(a3)
 	or.l d5,$6000(a3)
 	move.w (a0)+,d2
-	bpl.w abs_0_0003DD5E
-	bra.w abs_0_0003DD0A
-abs_0_0003E794:
+	bpl.w order_next_planar_span_endpoints
+	bra.w restore_next_planar_span_reference_from_usp
+draw_planar_span_color_13_multi_cell:
 	lea.l $2000(a3),a4
 	lea.l $2000(a4),a5
 	lea.l $2000(a5),a6
@@ -56127,64 +56135,64 @@ abs_0_0003E794:
 	or.l d4,(a5)+
 	or.l d4,(a6)+
 	sub.w d1,d3
-	bmi.b abs_0_0003E80A
+	bmi.b draw_planar_span_color_13_last_cell
 	move.l d7,(a3)+
 	move.l d6,(a4)+
 	move.l d7,(a5)+
 	move.l d7,(a6)+
 	sub.w d1,d3
-	bmi.b abs_0_0003E80A
+	bmi.b draw_planar_span_color_13_last_cell
 	move.l d7,(a3)+
 	move.l d6,(a4)+
 	move.l d7,(a5)+
 	move.l d7,(a6)+
 	sub.w d1,d3
-	bmi.b abs_0_0003E80A
+	bmi.b draw_planar_span_color_13_last_cell
 	move.l d7,(a3)+
 	move.l d6,(a4)+
 	move.l d7,(a5)+
 	move.l d7,(a6)+
 	sub.w d1,d3
-	bmi.b abs_0_0003E80A
+	bmi.b draw_planar_span_color_13_last_cell
 	move.l d7,(a3)+
 	move.l d6,(a4)+
 	move.l d7,(a5)+
 	move.l d7,(a6)+
 	sub.w d1,d3
-	bmi.b abs_0_0003E80A
+	bmi.b draw_planar_span_color_13_last_cell
 	move.l d7,(a3)+
 	move.l d6,(a4)+
 	move.l d7,(a5)+
 	move.l d7,(a6)+
 	sub.w d1,d3
-	bmi.b abs_0_0003E80A
+	bmi.b draw_planar_span_color_13_last_cell
 	move.l d7,(a3)+
 	move.l d6,(a4)+
 	move.l d7,(a5)+
 	move.l d7,(a6)+
 	sub.w d1,d3
-	bmi.b abs_0_0003E80A
+	bmi.b draw_planar_span_color_13_last_cell
 	move.l d7,(a3)+
 	move.l d6,(a4)+
 	move.l d7,(a5)+
 	move.l d7,(a6)+
 	sub.w d1,d3
-	bmi.b abs_0_0003E80A
+	bmi.b draw_planar_span_color_13_last_cell
 	move.l d7,(a3)+
 	move.l d6,(a4)+
 	move.l d7,(a5)+
 	move.l d7,(a6)+
-abs_0_0003E80A:
+draw_planar_span_color_13_last_cell:
 	and.l d5,(a4)+
 	not.l d5
 	or.l d5,(a3)+
 	or.l d5,(a5)+
 	or.l d5,(a6)+
 	move.w (a0)+,d2
-	bpl.w abs_0_0003DD5E
-	bra.w abs_0_0003DD0A
+	bpl.w order_next_planar_span_endpoints
+	bra.w restore_next_planar_span_reference_from_usp
 draw_planar_span_color_14:
-	bpl.b abs_0_0003E83C
+	bpl.b draw_planar_span_color_14_multi_cell
 	or.l d4,d5
 	and.l d5,(a3)
 	not.l d5
@@ -56192,9 +56200,9 @@ draw_planar_span_color_14:
 	or.l d5,$4000(a3)
 	or.l d5,$6000(a3)
 	move.w (a0)+,d2
-	bpl.w abs_0_0003DD5E
-	bra.w abs_0_0003DD0A
-abs_0_0003E83C:
+	bpl.w order_next_planar_span_endpoints
+	bra.w restore_next_planar_span_reference_from_usp
+draw_planar_span_color_14_multi_cell:
 	lea.l $2000(a3),a4
 	lea.l $2000(a4),a5
 	lea.l $2000(a5),a6
@@ -56204,64 +56212,64 @@ abs_0_0003E83C:
 	or.l d4,(a5)+
 	or.l d4,(a6)+
 	sub.w d1,d3
-	bmi.b abs_0_0003E8B2
+	bmi.b draw_planar_span_color_14_last_cell
 	move.l d6,(a3)+
 	move.l d7,(a4)+
 	move.l d7,(a5)+
 	move.l d7,(a6)+
 	sub.w d1,d3
-	bmi.b abs_0_0003E8B2
+	bmi.b draw_planar_span_color_14_last_cell
 	move.l d6,(a3)+
 	move.l d7,(a4)+
 	move.l d7,(a5)+
 	move.l d7,(a6)+
 	sub.w d1,d3
-	bmi.b abs_0_0003E8B2
+	bmi.b draw_planar_span_color_14_last_cell
 	move.l d6,(a3)+
 	move.l d7,(a4)+
 	move.l d7,(a5)+
 	move.l d7,(a6)+
 	sub.w d1,d3
-	bmi.b abs_0_0003E8B2
+	bmi.b draw_planar_span_color_14_last_cell
 	move.l d6,(a3)+
 	move.l d7,(a4)+
 	move.l d7,(a5)+
 	move.l d7,(a6)+
 	sub.w d1,d3
-	bmi.b abs_0_0003E8B2
+	bmi.b draw_planar_span_color_14_last_cell
 	move.l d6,(a3)+
 	move.l d7,(a4)+
 	move.l d7,(a5)+
 	move.l d7,(a6)+
 	sub.w d1,d3
-	bmi.b abs_0_0003E8B2
+	bmi.b draw_planar_span_color_14_last_cell
 	move.l d6,(a3)+
 	move.l d7,(a4)+
 	move.l d7,(a5)+
 	move.l d7,(a6)+
 	sub.w d1,d3
-	bmi.b abs_0_0003E8B2
+	bmi.b draw_planar_span_color_14_last_cell
 	move.l d6,(a3)+
 	move.l d7,(a4)+
 	move.l d7,(a5)+
 	move.l d7,(a6)+
 	sub.w d1,d3
-	bmi.b abs_0_0003E8B2
+	bmi.b draw_planar_span_color_14_last_cell
 	move.l d6,(a3)+
 	move.l d7,(a4)+
 	move.l d7,(a5)+
 	move.l d7,(a6)+
-abs_0_0003E8B2:
+draw_planar_span_color_14_last_cell:
 	and.l d5,(a3)+
 	not.l d5
 	or.l d5,(a4)+
 	or.l d5,(a5)+
 	or.l d5,(a6)+
 	move.w (a0)+,d2
-	bpl.w abs_0_0003DD5E
-	bra.w abs_0_0003DD0A
+	bpl.w order_next_planar_span_endpoints
+	bra.w restore_next_planar_span_reference_from_usp
 draw_planar_span_color_15:
-	bpl.b abs_0_0003E8E4
+	bpl.b draw_planar_span_color_15_multi_cell
 	or.l d4,d5
 	not.l d5
 	or.l d5,(a3)
@@ -56269,9 +56277,9 @@ draw_planar_span_color_15:
 	or.l d5,$4000(a3)
 	or.l d5,$6000(a3)
 	move.w (a0)+,d2
-	bpl.w abs_0_0003DD5E
-	bra.w abs_0_0003DD0A
-abs_0_0003E8E4:
+	bpl.w order_next_planar_span_endpoints
+	bra.w restore_next_planar_span_reference_from_usp
+draw_planar_span_color_15_multi_cell:
 	lea.l $2000(a3),a4
 	lea.l $2000(a4),a5
 	lea.l $2000(a5),a6
@@ -56281,69 +56289,70 @@ abs_0_0003E8E4:
 	or.l d4,(a5)+
 	or.l d4,(a6)+
 	sub.w d1,d3
-	bmi.b abs_0_0003E95A
+	bmi.b draw_planar_span_color_15_last_cell
 	move.l d7,(a3)+
 	move.l d7,(a4)+
 	move.l d7,(a5)+
 	move.l d7,(a6)+
 	sub.w d1,d3
-	bmi.b abs_0_0003E95A
+	bmi.b draw_planar_span_color_15_last_cell
 	move.l d7,(a3)+
 	move.l d7,(a4)+
 	move.l d7,(a5)+
 	move.l d7,(a6)+
 	sub.w d1,d3
-	bmi.b abs_0_0003E95A
+	bmi.b draw_planar_span_color_15_last_cell
 	move.l d7,(a3)+
 	move.l d7,(a4)+
 	move.l d7,(a5)+
 	move.l d7,(a6)+
 	sub.w d1,d3
-	bmi.b abs_0_0003E95A
+	bmi.b draw_planar_span_color_15_last_cell
 	move.l d7,(a3)+
 	move.l d7,(a4)+
 	move.l d7,(a5)+
 	move.l d7,(a6)+
 	sub.w d1,d3
-	bmi.b abs_0_0003E95A
+	bmi.b draw_planar_span_color_15_last_cell
 	move.l d7,(a3)+
 	move.l d7,(a4)+
 	move.l d7,(a5)+
 	move.l d7,(a6)+
 	sub.w d1,d3
-	bmi.b abs_0_0003E95A
+	bmi.b draw_planar_span_color_15_last_cell
 	move.l d7,(a3)+
 	move.l d7,(a4)+
 	move.l d7,(a5)+
 	move.l d7,(a6)+
 	sub.w d1,d3
-	bmi.b abs_0_0003E95A
+	bmi.b draw_planar_span_color_15_last_cell
 	move.l d7,(a3)+
 	move.l d7,(a4)+
 	move.l d7,(a5)+
 	move.l d7,(a6)+
 	sub.w d1,d3
-	bmi.b abs_0_0003E95A
+	bmi.b draw_planar_span_color_15_last_cell
 	move.l d7,(a3)+
 	move.l d7,(a4)+
 	move.l d7,(a5)+
 	move.l d7,(a6)+
-abs_0_0003E95A:
+draw_planar_span_color_15_last_cell:
 	not.l d5
 	or.l d5,(a3)+
 	or.l d5,(a4)+
 	or.l d5,(a5)+
 	or.l d5,(a6)+
 	move.w (a0)+,d2
-	bpl.w abs_0_0003DD5E
-	bra.w abs_0_0003DD0A
+	bpl.w order_next_planar_span_endpoints
+	bra.w restore_next_planar_span_reference_from_usp
+    ; Amiga setup writes 200 row offsets and 32x32 LONG /16x16 WORD masks, ordering each endpoint pair. Shipped zero masks are a different entry state; other startup paths remain separate.
 initialize_drawing_lookup_tables:
 	lea.l raster_row_byte_offsets(pc),a0
 	moveq.l #99,d0
 	moveq.l #0,d2
 	tst.w platform_entry_flags.l
 	bpl.w abs_0_0003EA00
-	moveq.l #40,d1
+	moveq.l #SG2_AMIGA_PLANAR_ROW_BYTES,d1
 abs_0_0003E982:
 	move.w d2,(a0)+
 	add.w d1,d2
@@ -56424,56 +56433,59 @@ abs_0_0003EA26:
 	cmp.w #$20,d0
 	bne.b abs_0_0003EA0A
 	rts
-abs_0_0003EA3E:
+    ; NEG.W $8000 stays $8000. Signed comparison selects cell16, whose doubled selector wraps to slot 0. Other negative selectors choose a masked family; nonnegative styles are not clamped.
+select_negative_planar_span_family:
 	neg.w d3
 	cmp.w #$10,d3
-	blt.w abs_0_0003ED92
+	blt.w prepare_planar_cell16_header
 	andi.w #15,d3
 	add.w d3,d3
-	movea.w abs_0_0003EA92(pc,d3.w),a5
+	movea.w planar_cell32_dispatch_offsets(pc,d3.w),a5
 	move.w (a0)+,d2	; operand 1: SG2SceneSpanHeader_first_scanline at (a0)+
 	add.w d2,d2
 	lea.l raster_row_byte_offsets(pc),a1
 	movea.l scene_draw_buffer_snapshot.l,a3
 	adda.w $0(a1,d2.w),a3
 	lea.l generated_outside_span_masks32(pc),a2
-	moveq.l #31,d4
+	moveq.l #SG2_PLANAR_CELL_LAST_PIXEL,d4
 	move.w (a0)+,d2
-	bmi.w abs_0_0003DD0A
+	bmi.w restore_next_planar_span_reference_from_usp
 	move.w (a0)+,d3
 	cmp.w d2,d3
-	bmi.b abs_0_0003EA84
+	bmi.b align_cell32_column_from_second_endpoint
 	move.w d2,d5
 	and.w d4,d2
 	sub.w d2,d5
 	lsr.w #3,d5
 	adda.w d5,a3
-	jmp abs_0_0003EA92(pc,a5.w)
-abs_0_0003EA84:
+	jmp planar_cell32_dispatch_offsets(pc,a5.w)
+align_cell32_column_from_second_endpoint:
 	move.w d3,d5
 	and.w d4,d3
 	sub.w d3,d5
 	lsr.w #3,d5
 	adda.w d5,a3
-	jmp abs_0_0003EA92(pc,a5.w)
-abs_0_0003EA92:
-	dc.w abs_0_0003EAB2-abs_0_0003EA92	; lookup_table
-	dc.w abs_0_0003EAE0-abs_0_0003EA92
-	dc.w abs_0_0003EB0E-abs_0_0003EA92
-	dc.w abs_0_0003EB3C-abs_0_0003EA92
-	dc.w abs_0_0003EB6A-abs_0_0003EA92
-	dc.w abs_0_0003EB98-abs_0_0003EA92
-	dc.w abs_0_0003EBC6-abs_0_0003EA92
-	dc.w abs_0_0003EBF4-abs_0_0003EA92
-	dc.w abs_0_0003EC22-abs_0_0003EA92
-	dc.w abs_0_0003EC50-abs_0_0003EA92
-	dc.w abs_0_0003EC7E-abs_0_0003EA92
-	dc.w abs_0_0003ECAC-abs_0_0003EA92
-	dc.w abs_0_0003ECDA-abs_0_0003EA92
-	dc.w abs_0_0003ED08-abs_0_0003EA92
-	dc.w abs_0_0003ED36-abs_0_0003EA92
-	dc.w abs_0_0003ED64-abs_0_0003EA92
-abs_0_0003EAB2:
+	jmp planar_cell32_dispatch_offsets(pc,a5.w)
+    ; 16 relative WORD callbacks for cell32. Wide negative styles mask the negated colour to four bits. Existing native mask-domain evidence is retained; no positive-style bound is added.
+planar_cell32_dispatch_offsets:
+	dc.w draw_planar_cell32_color_0-planar_cell32_dispatch_offsets	; lookup_table
+	dc.w draw_planar_cell32_color_1-planar_cell32_dispatch_offsets
+	dc.w draw_planar_cell32_color_2-planar_cell32_dispatch_offsets
+	dc.w draw_planar_cell32_color_3-planar_cell32_dispatch_offsets
+	dc.w draw_planar_cell32_color_4-planar_cell32_dispatch_offsets
+	dc.w draw_planar_cell32_color_5-planar_cell32_dispatch_offsets
+	dc.w draw_planar_cell32_color_6-planar_cell32_dispatch_offsets
+	dc.w draw_planar_cell32_color_7-planar_cell32_dispatch_offsets
+	dc.w draw_planar_cell32_color_8-planar_cell32_dispatch_offsets
+	dc.w draw_planar_cell32_color_9-planar_cell32_dispatch_offsets
+	dc.w draw_planar_cell32_color_10-planar_cell32_dispatch_offsets
+	dc.w draw_planar_cell32_color_11-planar_cell32_dispatch_offsets
+	dc.w draw_planar_cell32_color_12-planar_cell32_dispatch_offsets
+	dc.w draw_planar_cell32_color_13-planar_cell32_dispatch_offsets
+	dc.w draw_planar_cell32_color_14-planar_cell32_dispatch_offsets
+	dc.w draw_planar_cell32_color_15-planar_cell32_dispatch_offsets
+    ; Cell32 chooses its initial column from the lower endpoint in tested nonwrapping X ranges. Later rows keep that column and use symmetric min/max masks on endpoint residues modulo 32.
+draw_planar_cell32_color_0:
 	bra.b abs_0_0003EAB6
 abs_0_0003EAB4:
 	move.w (a0)+,d3
@@ -56493,8 +56505,8 @@ abs_0_0003EAB6:
 	adda.w d0,a3
 	move.w (a0)+,d2
 	bpl.b abs_0_0003EAB4
-	bra.w abs_0_0003DD0A
-abs_0_0003EAE0:
+	bra.w restore_next_planar_span_reference_from_usp
+draw_planar_cell32_color_1:
 	bra.b abs_0_0003EAE4
 abs_0_0003EAE2:
 	move.w (a0)+,d3
@@ -56514,8 +56526,8 @@ abs_0_0003EAE4:
 	adda.w d0,a3
 	move.w (a0)+,d2
 	bpl.b abs_0_0003EAE2
-	bra.w abs_0_0003DD0A
-abs_0_0003EB0E:
+	bra.w restore_next_planar_span_reference_from_usp
+draw_planar_cell32_color_2:
 	bra.b abs_0_0003EB12
 abs_0_0003EB10:
 	move.w (a0)+,d3
@@ -56535,8 +56547,8 @@ abs_0_0003EB12:
 	adda.w d0,a3
 	move.w (a0)+,d2
 	bpl.b abs_0_0003EB10
-	bra.w abs_0_0003DD0A
-abs_0_0003EB3C:
+	bra.w restore_next_planar_span_reference_from_usp
+draw_planar_cell32_color_3:
 	bra.b abs_0_0003EB40
 abs_0_0003EB3E:
 	move.w (a0)+,d3
@@ -56556,8 +56568,8 @@ abs_0_0003EB40:
 	adda.w d0,a3
 	move.w (a0)+,d2
 	bpl.b abs_0_0003EB3E
-	bra.w abs_0_0003DD0A
-abs_0_0003EB6A:
+	bra.w restore_next_planar_span_reference_from_usp
+draw_planar_cell32_color_4:
 	bra.b abs_0_0003EB6E
 abs_0_0003EB6C:
 	move.w (a0)+,d3
@@ -56577,8 +56589,8 @@ abs_0_0003EB6E:
 	adda.w d0,a3
 	move.w (a0)+,d2
 	bpl.b abs_0_0003EB6C
-	bra.w abs_0_0003DD0A
-abs_0_0003EB98:
+	bra.w restore_next_planar_span_reference_from_usp
+draw_planar_cell32_color_5:
 	bra.b abs_0_0003EB9C
 abs_0_0003EB9A:
 	move.w (a0)+,d3
@@ -56598,8 +56610,8 @@ abs_0_0003EB9C:
 	adda.w d0,a3
 	move.w (a0)+,d2
 	bpl.b abs_0_0003EB9A
-	bra.w abs_0_0003DD0A
-abs_0_0003EBC6:
+	bra.w restore_next_planar_span_reference_from_usp
+draw_planar_cell32_color_6:
 	bra.b abs_0_0003EBCA
 abs_0_0003EBC8:
 	move.w (a0)+,d3
@@ -56619,8 +56631,8 @@ abs_0_0003EBCA:
 	adda.w d0,a3
 	move.w (a0)+,d2
 	bpl.b abs_0_0003EBC8
-	bra.w abs_0_0003DD0A
-abs_0_0003EBF4:
+	bra.w restore_next_planar_span_reference_from_usp
+draw_planar_cell32_color_7:
 	bra.b abs_0_0003EBF8
 abs_0_0003EBF6:
 	move.w (a0)+,d3
@@ -56640,8 +56652,8 @@ abs_0_0003EBF8:
 	adda.w d0,a3
 	move.w (a0)+,d2
 	bpl.b abs_0_0003EBF6
-	bra.w abs_0_0003DD0A
-abs_0_0003EC22:
+	bra.w restore_next_planar_span_reference_from_usp
+draw_planar_cell32_color_8:
 	bra.b abs_0_0003EC26
 abs_0_0003EC24:
 	move.w (a0)+,d3
@@ -56661,8 +56673,8 @@ abs_0_0003EC26:
 	adda.w d0,a3
 	move.w (a0)+,d2
 	bpl.b abs_0_0003EC24
-	bra.w abs_0_0003DD0A
-abs_0_0003EC50:
+	bra.w restore_next_planar_span_reference_from_usp
+draw_planar_cell32_color_9:
 	bra.b abs_0_0003EC54
 abs_0_0003EC52:
 	move.w (a0)+,d3
@@ -56682,8 +56694,8 @@ abs_0_0003EC54:
 	adda.w d0,a3
 	move.w (a0)+,d2
 	bpl.b abs_0_0003EC52
-	bra.w abs_0_0003DD0A
-abs_0_0003EC7E:
+	bra.w restore_next_planar_span_reference_from_usp
+draw_planar_cell32_color_10:
 	bra.b abs_0_0003EC82
 abs_0_0003EC80:
 	move.w (a0)+,d3
@@ -56703,8 +56715,8 @@ abs_0_0003EC82:
 	adda.w d0,a3
 	move.w (a0)+,d2
 	bpl.b abs_0_0003EC80
-	bra.w abs_0_0003DD0A
-abs_0_0003ECAC:
+	bra.w restore_next_planar_span_reference_from_usp
+draw_planar_cell32_color_11:
 	bra.b abs_0_0003ECB0
 abs_0_0003ECAE:
 	move.w (a0)+,d3
@@ -56724,8 +56736,8 @@ abs_0_0003ECB0:
 	adda.w d0,a3
 	move.w (a0)+,d2
 	bpl.b abs_0_0003ECAE
-	bra.w abs_0_0003DD0A
-abs_0_0003ECDA:
+	bra.w restore_next_planar_span_reference_from_usp
+draw_planar_cell32_color_12:
 	bra.b abs_0_0003ECDE
 abs_0_0003ECDC:
 	move.w (a0)+,d3
@@ -56745,8 +56757,8 @@ abs_0_0003ECDE:
 	adda.w d0,a3
 	move.w (a0)+,d2
 	bpl.b abs_0_0003ECDC
-	bra.w abs_0_0003DD0A
-abs_0_0003ED08:
+	bra.w restore_next_planar_span_reference_from_usp
+draw_planar_cell32_color_13:
 	bra.b abs_0_0003ED0C
 abs_0_0003ED0A:
 	move.w (a0)+,d3
@@ -56766,8 +56778,8 @@ abs_0_0003ED0C:
 	adda.w d0,a3
 	move.w (a0)+,d2
 	bpl.b abs_0_0003ED0A
-	bra.w abs_0_0003DD0A
-abs_0_0003ED36:
+	bra.w restore_next_planar_span_reference_from_usp
+draw_planar_cell32_color_14:
 	bra.b abs_0_0003ED3A
 abs_0_0003ED38:
 	move.w (a0)+,d3
@@ -56787,8 +56799,8 @@ abs_0_0003ED3A:
 	adda.w d0,a3
 	move.w (a0)+,d2
 	bpl.b abs_0_0003ED38
-	bra.w abs_0_0003DD0A
-abs_0_0003ED64:
+	bra.w restore_next_planar_span_reference_from_usp
+draw_planar_cell32_color_15:
 	bra.b abs_0_0003ED68
 abs_0_0003ED66:
 	move.w (a0)+,d3
@@ -56808,17 +56820,17 @@ abs_0_0003ED68:
 	adda.w d0,a3
 	move.w (a0)+,d2
 	bpl.b abs_0_0003ED66
-	bra.w abs_0_0003DD0A
-abs_0_0003ED92:
+	bra.w restore_next_planar_span_reference_from_usp
+prepare_planar_cell16_header:
 	add.w d3,d3
-	movea.w abs_0_0003EDC4(pc,d3.w),a5
+	movea.w planar_cell16_dispatch_offsets(pc,d3.w),a5
 	move.w (a0)+,d2	; operand 1: SG2SceneSpanHeader_first_scanline at (a0)+
 	add.w d2,d2
 	lea.l raster_row_byte_offsets(pc),a1
 	movea.l scene_draw_buffer_snapshot.l,a3
 	adda.w $0(a1,d2.w),a3
 	move.w (a0)+,d2
-	bmi.w abs_0_0003DD0A
+	bmi.w restore_next_planar_span_reference_from_usp
 	moveq.l #15,d4
 	move.w d2,d5
 	and.w d4,d2
@@ -56826,25 +56838,27 @@ abs_0_0003ED92:
 	lsr.w #3,d5
 	adda.w d5,a3
 	lea.l generated_outside_span_masks16(pc),a2
-	jmp abs_0_0003EDC4(pc,a5.w)
-abs_0_0003EDC4:
-	dc.w abs_0_0003EDE4-abs_0_0003EDC4	; lookup_table
-	dc.w abs_0_0003EE0E-abs_0_0003EDC4
-	dc.w abs_0_0003EE38-abs_0_0003EDC4
-	dc.w abs_0_0003EE62-abs_0_0003EDC4
-	dc.w abs_0_0003EE8C-abs_0_0003EDC4
-	dc.w abs_0_0003EEB6-abs_0_0003EDC4
-	dc.w abs_0_0003EEE0-abs_0_0003EDC4
-	dc.w abs_0_0003EF0A-abs_0_0003EDC4
-	dc.w abs_0_0003EF34-abs_0_0003EDC4
-	dc.w abs_0_0003EF5E-abs_0_0003EDC4
-	dc.w abs_0_0003EF88-abs_0_0003EDC4
-	dc.w abs_0_0003EFB2-abs_0_0003EDC4
-	dc.w abs_0_0003EFDC-abs_0_0003EDC4
-	dc.w abs_0_0003F006-abs_0_0003EDC4
-	dc.w abs_0_0003F030-abs_0_0003EDC4
-	dc.w abs_0_0003F05A-abs_0_0003EDC4
-abs_0_0003EDE4:
+	jmp planar_cell16_dispatch_offsets(pc,a5.w)
+    ; 16 relative WORD callbacks for cell16. Tested -1..-15 use slots 1..15; -$8000 reaches slot 0 after overflow/doubling. Structural extent does not prove ordinary positive-style bounds.
+planar_cell16_dispatch_offsets:
+	dc.w draw_planar_cell16_color_0-planar_cell16_dispatch_offsets	; lookup_table
+	dc.w draw_planar_cell16_color_1-planar_cell16_dispatch_offsets
+	dc.w draw_planar_cell16_color_2-planar_cell16_dispatch_offsets
+	dc.w draw_planar_cell16_color_3-planar_cell16_dispatch_offsets
+	dc.w draw_planar_cell16_color_4-planar_cell16_dispatch_offsets
+	dc.w draw_planar_cell16_color_5-planar_cell16_dispatch_offsets
+	dc.w draw_planar_cell16_color_6-planar_cell16_dispatch_offsets
+	dc.w draw_planar_cell16_color_7-planar_cell16_dispatch_offsets
+	dc.w draw_planar_cell16_color_8-planar_cell16_dispatch_offsets
+	dc.w draw_planar_cell16_color_9-planar_cell16_dispatch_offsets
+	dc.w draw_planar_cell16_color_10-planar_cell16_dispatch_offsets
+	dc.w draw_planar_cell16_color_11-planar_cell16_dispatch_offsets
+	dc.w draw_planar_cell16_color_12-planar_cell16_dispatch_offsets
+	dc.w draw_planar_cell16_color_13-planar_cell16_dispatch_offsets
+	dc.w draw_planar_cell16_color_14-planar_cell16_dispatch_offsets
+	dc.w draw_planar_cell16_color_15-planar_cell16_dispatch_offsets
+    ; Cell16 chooses the first X column once. Later rows retain it and mask endpoint residues modulo 16; these are fixed-column cells, not a general cross-cell span renderer.
+draw_planar_cell16_color_0:
 	move.w (a0)+,d3
 	and.w d4,d2
 	and.w d4,d3
@@ -56859,9 +56873,9 @@ abs_0_0003EDE4:
 	not.w d5
 	adda.w d0,a3
 	move.w (a0)+,d2
-	bpl.b abs_0_0003EDE4
-	bra.w abs_0_0003DD0A
-abs_0_0003EE0E:
+	bpl.b draw_planar_cell16_color_0
+	bra.w restore_next_planar_span_reference_from_usp
+draw_planar_cell16_color_1:
 	move.w (a0)+,d3
 	and.w d4,d2
 	and.w d4,d3
@@ -56876,9 +56890,9 @@ abs_0_0003EE0E:
 	or.w d5,(a3)
 	adda.w d0,a3
 	move.w (a0)+,d2
-	bpl.b abs_0_0003EE0E
-	bra.w abs_0_0003DD0A
-abs_0_0003EE38:
+	bpl.b draw_planar_cell16_color_1
+	bra.w restore_next_planar_span_reference_from_usp
+draw_planar_cell16_color_2:
 	move.w (a0)+,d3
 	and.w d4,d2
 	and.w d4,d3
@@ -56893,9 +56907,9 @@ abs_0_0003EE38:
 	or.w d5,$2000(a3)
 	adda.w d0,a3
 	move.w (a0)+,d2
-	bpl.b abs_0_0003EE38
-	bra.w abs_0_0003DD0A
-abs_0_0003EE62:
+	bpl.b draw_planar_cell16_color_2
+	bra.w restore_next_planar_span_reference_from_usp
+draw_planar_cell16_color_3:
 	move.w (a0)+,d3
 	and.w d4,d2
 	and.w d4,d3
@@ -56910,9 +56924,9 @@ abs_0_0003EE62:
 	or.w d5,$2000(a3)
 	adda.w d0,a3
 	move.w (a0)+,d2
-	bpl.b abs_0_0003EE62
-	bra.w abs_0_0003DD0A
-abs_0_0003EE8C:
+	bpl.b draw_planar_cell16_color_3
+	bra.w restore_next_planar_span_reference_from_usp
+draw_planar_cell16_color_4:
 	move.w (a0)+,d3
 	and.w d4,d2
 	and.w d4,d3
@@ -56927,9 +56941,9 @@ abs_0_0003EE8C:
 	or.w d5,$4000(a3)
 	adda.w d0,a3
 	move.w (a0)+,d2
-	bpl.b abs_0_0003EE8C
-	bra.w abs_0_0003DD0A
-abs_0_0003EEB6:
+	bpl.b draw_planar_cell16_color_4
+	bra.w restore_next_planar_span_reference_from_usp
+draw_planar_cell16_color_5:
 	move.w (a0)+,d3
 	and.w d4,d2
 	and.w d4,d3
@@ -56944,9 +56958,9 @@ abs_0_0003EEB6:
 	or.w d5,$4000(a3)
 	adda.w d0,a3
 	move.w (a0)+,d2
-	bpl.b abs_0_0003EEB6
-	bra.w abs_0_0003DD0A
-abs_0_0003EEE0:
+	bpl.b draw_planar_cell16_color_5
+	bra.w restore_next_planar_span_reference_from_usp
+draw_planar_cell16_color_6:
 	move.w (a0)+,d3
 	and.w d4,d2
 	and.w d4,d3
@@ -56961,9 +56975,9 @@ abs_0_0003EEE0:
 	or.w d5,$4000(a3)
 	adda.w d0,a3
 	move.w (a0)+,d2
-	bpl.b abs_0_0003EEE0
-	bra.w abs_0_0003DD0A
-abs_0_0003EF0A:
+	bpl.b draw_planar_cell16_color_6
+	bra.w restore_next_planar_span_reference_from_usp
+draw_planar_cell16_color_7:
 	move.w (a0)+,d3
 	and.w d4,d2
 	and.w d4,d3
@@ -56978,9 +56992,9 @@ abs_0_0003EF0A:
 	or.w d5,$4000(a3)
 	adda.w d0,a3
 	move.w (a0)+,d2
-	bpl.b abs_0_0003EF0A
-	bra.w abs_0_0003DD0A
-abs_0_0003EF34:
+	bpl.b draw_planar_cell16_color_7
+	bra.w restore_next_planar_span_reference_from_usp
+draw_planar_cell16_color_8:
 	move.w (a0)+,d3
 	and.w d4,d2
 	and.w d4,d3
@@ -56995,9 +57009,9 @@ abs_0_0003EF34:
 	or.w d5,$6000(a3)
 	adda.w d0,a3
 	move.w (a0)+,d2
-	bpl.b abs_0_0003EF34
-	bra.w abs_0_0003DD0A
-abs_0_0003EF5E:
+	bpl.b draw_planar_cell16_color_8
+	bra.w restore_next_planar_span_reference_from_usp
+draw_planar_cell16_color_9:
 	move.w (a0)+,d3
 	and.w d4,d2
 	and.w d4,d3
@@ -57012,9 +57026,9 @@ abs_0_0003EF5E:
 	or.w d5,$6000(a3)
 	adda.w d0,a3
 	move.w (a0)+,d2
-	bpl.b abs_0_0003EF5E
-	bra.w abs_0_0003DD0A
-abs_0_0003EF88:
+	bpl.b draw_planar_cell16_color_9
+	bra.w restore_next_planar_span_reference_from_usp
+draw_planar_cell16_color_10:
 	move.w (a0)+,d3
 	and.w d4,d2
 	and.w d4,d3
@@ -57029,9 +57043,9 @@ abs_0_0003EF88:
 	or.w d5,$6000(a3)
 	adda.w d0,a3
 	move.w (a0)+,d2
-	bpl.b abs_0_0003EF88
-	bra.w abs_0_0003DD0A
-abs_0_0003EFB2:
+	bpl.b draw_planar_cell16_color_10
+	bra.w restore_next_planar_span_reference_from_usp
+draw_planar_cell16_color_11:
 	move.w (a0)+,d3
 	and.w d4,d2
 	and.w d4,d3
@@ -57046,9 +57060,9 @@ abs_0_0003EFB2:
 	or.w d5,$6000(a3)
 	adda.w d0,a3
 	move.w (a0)+,d2
-	bpl.b abs_0_0003EFB2
-	bra.w abs_0_0003DD0A
-abs_0_0003EFDC:
+	bpl.b draw_planar_cell16_color_11
+	bra.w restore_next_planar_span_reference_from_usp
+draw_planar_cell16_color_12:
 	move.w (a0)+,d3
 	and.w d4,d2
 	and.w d4,d3
@@ -57063,9 +57077,9 @@ abs_0_0003EFDC:
 	or.w d5,$6000(a3)
 	adda.w d0,a3
 	move.w (a0)+,d2
-	bpl.b abs_0_0003EFDC
-	bra.w abs_0_0003DD0A
-abs_0_0003F006:
+	bpl.b draw_planar_cell16_color_12
+	bra.w restore_next_planar_span_reference_from_usp
+draw_planar_cell16_color_13:
 	move.w (a0)+,d3
 	and.w d4,d2
 	and.w d4,d3
@@ -57080,9 +57094,9 @@ abs_0_0003F006:
 	or.w d5,$6000(a3)
 	adda.w d0,a3
 	move.w (a0)+,d2
-	bpl.b abs_0_0003F006
-	bra.w abs_0_0003DD0A
-abs_0_0003F030:
+	bpl.b draw_planar_cell16_color_13
+	bra.w restore_next_planar_span_reference_from_usp
+draw_planar_cell16_color_14:
 	move.w (a0)+,d3
 	and.w d4,d2
 	and.w d4,d3
@@ -57097,9 +57111,9 @@ abs_0_0003F030:
 	or.w d5,$6000(a3)
 	adda.w d0,a3
 	move.w (a0)+,d2
-	bpl.b abs_0_0003F030
-	bra.w abs_0_0003DD0A
-abs_0_0003F05A:
+	bpl.b draw_planar_cell16_color_14
+	bra.w restore_next_planar_span_reference_from_usp
+draw_planar_cell16_color_15:
 	move.w (a0)+,d3
 	and.w d4,d2
 	and.w d4,d3
@@ -57114,8 +57128,8 @@ abs_0_0003F05A:
 	or.w d5,$6000(a3)
 	adda.w d0,a3
 	move.w (a0)+,d2
-	bpl.b abs_0_0003F05A
-	bra.w abs_0_0003DD0A
+	bpl.b draw_planar_cell16_color_15
+	bra.w restore_next_planar_span_reference_from_usp
 draw_interleaved_4plane_span_records:
 	btst.b #1,scene_graphics_mode_snapshot.l
 	bne.w abs_0_00041394
