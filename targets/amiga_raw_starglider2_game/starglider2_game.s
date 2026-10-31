@@ -1434,6 +1434,11 @@ ADKF_CLRALL	EQU	$7FFF
 BPLCON2_PF2P2	EQU	$20
 BPLCON2_PF2PRI	EQU	$40
 INTF_CLRALL	EQU	$7FFF
+SG2_CONTACT_COORDINATE_SHIFT	EQU	9
+SG2_CONTACT_PIXEL_CENTER_X	EQU	144
+SG2_CONTACT_PIXEL_CENTER_Y	EQU	160
+SG2_CONTACT_RELATIVE_UPPER_BOUND	EQU	8192
+SG2_CONTACT_SKIP_FLAG_BIT	EQU	4
 SG2_HEADING_ANGLE_MASK	EQU	4095
 SG2_HEADING_COARSE_BYTE_MASK	EQU	254
 SG2_HEADING_DIVISOR	EQU	365
@@ -1453,6 +1458,8 @@ SG2_MESSAGE_ROW_LONGS_DBF_LAST	EQU	6
 SG2_MESSAGE_ROW_SKIP_BYTES	EQU	12
 SG2_OBJECT_TYPE_SKIM_DRONE	EQU	43
 SG2_OBJECT_TYPE_SKIM_MISSILE	EQU	60
+SG2_RADIAL_FIRST_SHIFT_THRESHOLD	EQU	524288
+SG2_RADIAL_SHIFT_DBF_LAST	EQU	9
 SG2_SAVE_CHUNK_BYTES	EQU	$1400
 SG2_SAVE_CHUNK_DBF_LAST	EQU	$4FF
 SG2_SAVE_DIRECTORY_COPY_DBF_LAST	EQU	127
@@ -1525,6 +1532,8 @@ absolute_slot_0007F638	EQU	$7F638
 absolute_slot_FFFF8000	EQU	$FFFF8000
 absolute_slot_FFFF8240	EQU	$FFFF8240
 absolute_slot_FFFF8800	EQU	$FFFF8800
+amiga_contact_framebuffer_origin	EQU	$70000
+amiga_contact_panel_clear_anchor	EQU	$71690
 bitmap_00070000	EQU	$70000
 bitmap_00070000_hi	EQU	bitmap_00070000/$10000
 bitmap_00070000_lo	EQU	bitmap_00070000-(bitmap_00070000_hi*$10000)
@@ -5187,7 +5196,7 @@ prepare_radial_object_projection_scale:
 	move.l SG2ObjectCore_world_z(a4),d3
 	sub.l view_origin_z(a6),d3
 	move.l SG2RadialObject_radius_work_value(a4),SG2RadialObject_base_radius(a4)
-	bsr.w abs_0_0000489A
+	bsr.w choose_radial_projection_right_shift
 	move.w d6,SG2RadialObject_projection_radius_shift(a4)
 	cmpi.w #145,SG2ObjectCore_object_type.w(a4)
 	bne.b abs_0_0000438C
@@ -5394,8 +5403,9 @@ cache_and_draw_changed_hud_coordinates:
 update_heading_after_coordinate_cache_check:
 	bsr.w draw_heading_indicator
 	rts
+    ; Clear 35 planar rows and retain marker row 161. Plot signed X/Z strictly inside +/-8192; Y is loaded but discarded. Null/odd references end the loop; flag bit 4 skips one entry.
 draw_amiga_contact_panel:
-	lea.l absolute_slot_00071690.l,a0
+	lea.l amiga_contact_panel_clear_anchor.l,a0
 	moveq.l #0,d0
 	move.l d0,(a0)
 	move.l d0,$2000(a0)
@@ -5465,11 +5475,13 @@ draw_amiga_contact_panel:
 	move.l d0,$2280(a0)
 	move.l d0,$4280(a0)
 	move.l d0,$6280(a0)
+draw_amiga_contact_reference_marker:
 	move.l #$8000,d6
 	move.l d6,$02A8(a0)
 	move.l d6,$22A8(a0)
 	move.l d6,$42A8(a0)
 	move.l d6,$62A8(a0)
+clear_amiga_contact_panel_below_marker:
 	lea.l $02D0(a0),a0
 	move.l d0,(a0)
 	move.l d0,$2000(a0)
@@ -5539,122 +5551,134 @@ draw_amiga_contact_panel:
 	move.l d0,$2280(a0)
 	move.l d0,$4280(a0)
 	move.l d0,$6280(a0)
+begin_amiga_contact_list_plotting:
 	move.w contact_object_count(a6),d7
-	beq.w abs_0_00004898
+	beq.w return_from_amiga_contact_panel
 	tst.l contact_objects_cursor(a6)
-	beq.w abs_0_00004898
+	beq.w return_from_amiga_contact_panel
 	movea.l contact_objects_cursor(a6),a3
 	subq.w #1,d7
-	lea.l abs_0_000048E8(pc),a1
+	lea.l contact_type_plane_masks(pc),a1
 	lea.l screen_x_word_byte_offsets.l,a4
 	lea.l raster_row_byte_offsets.l,a2
 	lea.l screen_x_word_pixel_masks.l,a5
-abs_0_000047EE:
+plot_next_amiga_contact_reference:
 	move.l (a3),d0
-	beq.w abs_0_00004898
+	beq.w return_from_amiga_contact_panel
 	andi.w #1,d0
-	bne.w abs_0_00004898
+	bne.w return_from_amiga_contact_panel
 	move.l a4,-(a7)
 	movea.l (a3)+,a4
-	btst.b #4,SG2ObjectCore_flags(a4)
-	bne.w abs_0_00004894
+	btst.b #SG2_CONTACT_SKIP_FLAG_BIT,SG2ObjectCore_flags(a4)
+	bne.w skip_flagged_amiga_contact_record
+load_amiga_contact_plot_record:
 	move.w SG2ObjectCore_object_type.w(a4),d0
 	move.w SG2ObjectCore_relative_x(a4),d1
 	move.w SG2ObjectCore_relative_y(a4),d2
 	move.w SG2ObjectCore_relative_z(a4),d3
 	movea.l (a7)+,a4
-	cmp.w #$2000,d1
-	bge.w abs_0_0000488E
+clip_amiga_contact_relative_xz:
+	cmp.w #SG2_CONTACT_RELATIVE_UPPER_BOUND,d1
+	bge.w advance_amiga_contact_plot_loop
 	cmp.w #$E000,d1
-	ble.w abs_0_0000488E
-	cmp.w #$2000,d3
-	bge.w abs_0_0000488E
+	ble.w advance_amiga_contact_plot_loop
+	cmp.w #SG2_CONTACT_RELATIVE_UPPER_BOUND,d3
+	bge.w advance_amiga_contact_plot_loop
 	cmp.w #$E000,d3
-	ble.w abs_0_0000488E
+	ble.w advance_amiga_contact_plot_loop
+map_amiga_contact_xz_to_panel_pixel:
 	neg.w d3
-	move.w #$9,d2
+	move.w #SG2_CONTACT_COORDINATE_SHIFT,d2
 	asr.w d2,d1
 	asr.w d2,d3
-	addi.w #144,d1
-	addi.w #160,d3
-	lea.l absolute_slot_00070000.l,a0
+	addi.w #SG2_CONTACT_PIXEL_CENTER_X,d1
+	addi.w #SG2_CONTACT_PIXEL_CENTER_Y,d3
+	lea.l amiga_contact_framebuffer_origin.l,a0
 	add.w d3,d3
 	adda.w $0(a2,d3.w),a0
 	add.w d1,d1
 	adda.w $0(a4,d1.w),a0
 	move.w $0(a5,d1.w),d3
+read_amiga_contact_type_plane_mask:
 	move.b $0(a1,d0.w),d2
+plot_contact_mask_plane0:
 	btst #0,d2
-	beq.b abs_0_00004870
+	beq.b plot_contact_mask_plane1
 	or.w d3,(a0)
-abs_0_00004870:
+plot_contact_mask_plane1:
 	btst #1,d2
-	beq.b abs_0_0000487A
+	beq.b plot_contact_mask_plane2
 	or.w d3,$2000(a0)
-abs_0_0000487A:
+plot_contact_mask_plane2:
 	btst #2,d2
-	beq.b abs_0_00004884
+	beq.b plot_contact_mask_plane3
 	or.w d3,$4000(a0)
-abs_0_00004884:
+plot_contact_mask_plane3:
 	btst #3,d2
-	beq.b abs_0_0000488E
+	beq.b advance_amiga_contact_plot_loop
 	or.w d3,$6000(a0)
-abs_0_0000488E:
-	dbf.w d7,abs_0_000047EE
-	bra.b abs_0_00004898
-abs_0_00004894:
+advance_amiga_contact_plot_loop:
+	dbf.w d7,plot_next_amiga_contact_reference
+	bra.b return_from_amiga_contact_panel
+skip_flagged_amiga_contact_record:
 	movea.l (a7)+,a4
-	bra.b abs_0_0000488E
-abs_0_00004898:
+	bra.b advance_amiga_contact_plot_loop
+return_from_amiga_contact_panel:
 	rts
-abs_0_0000489A:
+    ; D6.W chooses radial scaling; high WORD retained. Wrapped NEG and N-only subtraction branches are not mathematical abs/max: MIN/zero order can change the shift. D1-D3 are restored.
+choose_radial_projection_right_shift:
 	movem.l d1-d3,-(a7)
 	tst.l d1
-	bpl.b abs_0_000048A4
+	bpl.b take_wrapped_radial_y_magnitude
 	neg.l d1
-abs_0_000048A4:
+take_wrapped_radial_y_magnitude:
 	tst.l d2
-	bpl.b abs_0_000048AA
+	bpl.b take_wrapped_radial_z_magnitude
 	neg.l d2
-abs_0_000048AA:
+take_wrapped_radial_z_magnitude:
 	tst.l d3
-	bpl.b abs_0_000048B0
+	bpl.b select_radial_xy_by_subtraction_sign
 	neg.l d3
-abs_0_000048B0:
+select_radial_xy_by_subtraction_sign:
 	cmp.l d1,d2
-	bmi.b abs_0_000048B6
+	bmi.b select_radial_xyz_by_subtraction_sign
 	exg d1,d2
-abs_0_000048B6:
+select_radial_xyz_by_subtraction_sign:
 	cmp.l d1,d3
-	bmi.b abs_0_000048BC
+	bmi.b start_radial_projection_thresholds
 	exg d1,d3
-abs_0_000048BC:
-	move.l #$80000,d4
-	move.w #$9,d6
-abs_0_000048C6:
+start_radial_projection_thresholds:
+	move.l #SG2_RADIAL_FIRST_SHIFT_THRESHOLD,d4
+	move.w #SG2_RADIAL_SHIFT_DBF_LAST,d6
+reduce_radial_projection_threshold:
 	cmp.l d4,d1
-	bpl.b abs_0_000048D0
+	bpl.b return_radial_shift_word_and_threshold
 	lsr.l #1,d4
-	dbf.w d6,abs_0_000048C6
-abs_0_000048D0:
+	dbf.w d6,reduce_radial_projection_threshold
+return_radial_shift_word_and_threshold:
 	addq.w #1,d6
 	movem.l (a7)+,d1-d3
 	rts
     ; Sixteen stored shift BYTEs, all 8. No local selector bound: index 16 reads the next block zero BYTE. This source owner is not a universal caller-domain contract.
 body_hud_coordinate_right_shifts:
 	dcb.b $10,$08
-abs_0_000048E8:
+    ; Mask BYTEs end before the coordinate cache. Low four bits select Amiga/mode 0 planes. Mode 1 prepares A1 but does not read it here. Zero-tail use and selector bounds remain unknown.
+contact_type_plane_masks:
 	dc.b $00,$07,$06,$01,$07,$05,$0D,$06,$0D,$0F,$07,$0F,$01,$05,$03,$08
 	dc.b $0B,$0C,$0D,$0E,$05,$06,$09,$08,$08,$05,$05,$0C,$0A,$0A,$0F,$09
 	dc.b $0D,$0D,$0D,$05,$05,$0E,$0F,$0C,$04,$0D,$07,$0E,$09,$0C,$0A,$03
-	dc.b $0E,$0D,$08,$0C,$0A,$0D,$06,$06,$0F,$04,$0F,$0F,$0F,$0F,$0F
-	dcb.b $8,$00
-	dcb.b $15,$0F
-	dc.b $00,$0F,$00
-	dcb.b $21,$0F
+	dc.b $0E,$0D,$08,$0C,$0A,$0D,$06,$06,$0F,$04,$0F,$0F,$0F,$0F,$0F,$00
+	dc.b $00,$00,$00,$00,$00,$00,$00
+	dcb.b $9,$0F
+	dcb.b $C,$0F
+	dc.b $00,$0F,$00,$0F
+	dcb.b $10,$0F
+	dcb.b $10,$0F
 	dc.b $01,$04,$0C,$0A,$05,$0E,$07,$09,$04,$04,$04,$04,$04,$04,$04,$0C
 	dc.b $03,$03,$0E,$01,$0F,$0F
-	dcb.b $20,$00
+	dcb.b $A,$00
+	dcb.b $10,$00
+	dc.b $00,$00,$00,$00,$00,$00
     ; Shared packed X/Z digit-pair cache. Cockpit continuation clears it to 0; a computed zero pair still skips coordinate drawing. This is not an invalid sentinel or per-bank repaint contract.
 hud_coordinate_bcd_pair_cache:
 	dc.w $0000
@@ -50884,56 +50908,59 @@ abs_0_0003A9F6:
 	dbf.w d4,abs_0_0003A9CE
 	dbf.w d3,abs_0_0003A9C2
 	rts
-    ; Plot original contact-list relative X/Z into the cockpit contact panel; preserve range culling, flags and mode-specific pixel masks. Same path also draws scan/aim overlays.
+    ; Current draw bank: bit 1 selects paired mode 1. Mode 0 clears 34 rows; mode 1 clears 68 scanlines. Preserve markers and clipping. Tests stop before scan/aim/message service.
 draw_alternate_contact_panel:
 	moveq.l #0,d0
 	movea.l draw_buffer_base.w(a6),a0
 	btst.b #1,alternate_graphics_mode(a6)
-	bne.w abs_0_0003AB04
+	bne.w draw_mode1_contact_panel_prefix
 	lea.l $5A40(a0),a0
-	bsr.w abs_0_0003AF30
+	bsr.w fill_34_rows_of_16_bytes_mode0
 	lea.l -$0B50(a0),a0
 	move.l d0,(a0)+
 	move.l d0,(a0)+
 	move.l #$80008000,(a0)+
 	move.l #$80008000,(a0)+
 	move.w contact_object_count(a6),d7
-	beq.w abs_0_0003ABF0
+	beq.w continue_after_alternate_contact_plot
 	tst.l contact_objects_cursor(a6)
-	beq.w abs_0_0003ABF0
+	beq.w continue_after_alternate_contact_plot
 	movea.l contact_objects_cursor(a6),a3
 	subq.w #1,d7
-	lea.l abs_0_000048E8.l,a1
+	lea.l contact_type_plane_masks.l,a1
 	lea.l raster_row_byte_offsets.l,a2
 	lea.l screen_x_word_pixel_masks.l,a5
-abs_0_0003AA56:
+plot_next_mode0_contact_reference:
 	move.l (a3),d0
-	beq.w abs_0_0003ABF0
+	beq.w continue_after_alternate_contact_plot
 	andi.w #1,d0
-	bne.w abs_0_0003ABF0
+	bne.w continue_after_alternate_contact_plot
 	move.l a4,-(a7)
 	movea.l (a3)+,a4
-	btst.b #4,SG2ObjectCore_flags(a4)
-	bne.w abs_0_0003AB00
+	btst.b #SG2_CONTACT_SKIP_FLAG_BIT,SG2ObjectCore_flags(a4)
+	bne.w skip_flagged_mode0_contact_record
+load_mode0_contact_plot_record:
 	move.w SG2ObjectCore_object_type.w(a4),d0
 	move.w SG2ObjectCore_relative_x(a4),d1
 	move.w SG2ObjectCore_relative_y(a4),d2
 	move.w SG2ObjectCore_relative_z(a4),d3
 	movea.l (a7)+,a4
-	cmp.w #$2000,d1
-	bge.w abs_0_0003AAF8
+clip_mode0_contact_relative_xz:
+	cmp.w #SG2_CONTACT_RELATIVE_UPPER_BOUND,d1
+	bge.w advance_mode0_contact_plot_loop
 	cmp.w #$E000,d1
-	ble.w abs_0_0003AAF8
-	cmp.w #$2000,d3
-	bge.w abs_0_0003AAF8
+	ble.w advance_mode0_contact_plot_loop
+	cmp.w #SG2_CONTACT_RELATIVE_UPPER_BOUND,d3
+	bge.w advance_mode0_contact_plot_loop
 	cmp.w #$E000,d3
-	ble.w abs_0_0003AAF8
+	ble.w advance_mode0_contact_plot_loop
+map_mode0_contact_xz_to_pixel:
 	neg.w d3
-	move.w #$9,d2
+	move.w #SG2_CONTACT_COORDINATE_SHIFT,d2
 	asr.w d2,d1
 	asr.w d2,d3
-	addi.w #144,d1
-	addi.w #160,d3
+	addi.w #SG2_CONTACT_PIXEL_CENTER_X,d1
+	addi.w #SG2_CONTACT_PIXEL_CENTER_Y,d3
 	movea.l draw_buffer_base.w(a6),a0
 	add.w d3,d3
 	adda.w $0(a2,d3.w),a0
@@ -50942,6 +50969,7 @@ abs_0_0003AA56:
 	lsr.w #2,d1
 	andi.w #65528,d1
 	adda.w d1,a0
+read_mode0_contact_type_plane_mask:
 	move.b $0(a1,d0.w),d2
 	btst #0,d2
 	beq.b abs_0_0003AADA
@@ -50956,17 +50984,18 @@ abs_0_0003AAE4:
 	or.w d3,$0004(a0)
 abs_0_0003AAEE:
 	btst #3,d2
-	beq.b abs_0_0003AAF8
+	beq.b advance_mode0_contact_plot_loop
 	or.w d3,$0006(a0)
-abs_0_0003AAF8:
-	dbf.w d7,abs_0_0003AA56
-	bra.w abs_0_0003ABF0
-abs_0_0003AB00:
+advance_mode0_contact_plot_loop:
+	dbf.w d7,plot_next_mode0_contact_reference
+	bra.w continue_after_alternate_contact_plot
+skip_flagged_mode0_contact_record:
 	movea.l (a7)+,a4
-	bra.b abs_0_0003AAF8
-abs_0_0003AB04:
+	bra.b advance_mode0_contact_plot_loop
+    ; Mode 1 does not read the prepared plane-mask BYTE. Keep x&14 mask index and (x>>2)&FFFE WORD-byte offset, including odd/even aliases; do not smooth the original mapping.
+draw_mode1_contact_panel_prefix:
 	lea.l $5A20(a0),a0
-	bsr.w abs_0_0003AD12
+	bsr.w fill_68_rows_of_8_bytes_mode1
 	lea.l -$0B48(a0),a0
 	move.l #$1,(a0)+
 	move.l #$80000000,(a0)+
@@ -50974,42 +51003,45 @@ abs_0_0003AB04:
 	move.l #$1,(a0)+
 	move.l #$80000000,(a0)+
 	move.w contact_object_count(a6),d7
-	beq.w abs_0_0003ABF0
+	beq.w continue_after_alternate_contact_plot
 	tst.l contact_objects_cursor(a6)
-	beq.w abs_0_0003ABF0
+	beq.w continue_after_alternate_contact_plot
 	movea.l contact_objects_cursor(a6),a3
 	subq.w #1,d7
-	lea.l abs_0_000048E8.l,a1
+	lea.l contact_type_plane_masks.l,a1
 	lea.l raster_row_byte_offsets.l,a2
 	lea.l alternate_contact_dot_masks.l,a5
-abs_0_0003AB54:
+plot_next_mode1_contact_reference:
 	move.l (a3),d0
-	beq.w abs_0_0003ABF0
+	beq.w continue_after_alternate_contact_plot
 	andi.w #1,d0
-	bne.w abs_0_0003ABF0
+	bne.w continue_after_alternate_contact_plot
 	move.l a4,-(a7)
 	movea.l (a3)+,a4
-	btst.b #4,SG2ObjectCore_flags(a4)
-	bne.w abs_0_0003ABDC
+	btst.b #SG2_CONTACT_SKIP_FLAG_BIT,SG2ObjectCore_flags(a4)
+	bne.w skip_flagged_mode1_contact_record
+load_mode1_contact_plot_record:
 	move.w SG2ObjectCore_object_type.w(a4),d0
 	move.w SG2ObjectCore_relative_x(a4),d1
 	move.w SG2ObjectCore_relative_y(a4),d2
 	move.w SG2ObjectCore_relative_z(a4),d3
 	movea.l (a7)+,a4
-	cmp.w #$2000,d1
-	bge.w abs_0_0003ABD6
+clip_mode1_contact_relative_xz:
+	cmp.w #SG2_CONTACT_RELATIVE_UPPER_BOUND,d1
+	bge.w advance_mode1_contact_plot_loop
 	cmp.w #$E000,d1
-	ble.w abs_0_0003ABD6
-	cmp.w #$2000,d3
-	bge.w abs_0_0003ABD6
+	ble.w advance_mode1_contact_plot_loop
+	cmp.w #SG2_CONTACT_RELATIVE_UPPER_BOUND,d3
+	bge.w advance_mode1_contact_plot_loop
 	cmp.w #$E000,d3
-	ble.w abs_0_0003ABD6
+	ble.w advance_mode1_contact_plot_loop
+map_mode1_contact_xz_to_paired_dot:
 	neg.w d3
-	move.w #$9,d2
+	move.w #SG2_CONTACT_COORDINATE_SHIFT,d2
 	asr.w d2,d1
 	asr.w d2,d3
-	addi.w #144,d1
-	addi.w #160,d3
+	addi.w #SG2_CONTACT_PIXEL_CENTER_X,d1
+	addi.w #SG2_CONTACT_PIXEL_CENTER_Y,d3
 	movea.l draw_buffer_base.w(a6),a0
 	add.w d3,d3
 	adda.w $0(a2,d3.w),a0
@@ -51021,15 +51053,15 @@ abs_0_0003AB54:
 	adda.w d1,a0
 	or.w d3,(a0)
 	or.w d3,$0050(a0)
-abs_0_0003ABD6:
-	dbf.w d7,abs_0_0003AB54
-	bra.b abs_0_0003ABF0
-abs_0_0003ABDC:
+advance_mode1_contact_plot_loop:
+	dbf.w d7,plot_next_mode1_contact_reference
+	bra.b continue_after_alternate_contact_plot
+skip_flagged_mode1_contact_record:
 	movea.l (a7)+,a4
-	bra.b abs_0_0003ABD6
+	bra.b advance_mode1_contact_plot_loop
 alternate_contact_dot_masks:
 	dc.w $C000,$3000,$0C00,$0300,$00C0,$0030,$000C,$0003
-abs_0_0003ABF0:
+continue_after_alternate_contact_plot:
 	btst.b #0,display_and_frame_service_flags(a6)
 	beq.w poll_alternate_expired_message_queue
 	cmpi.b #8,weapon_selection_and_status(a6)
@@ -51128,7 +51160,8 @@ poll_alternate_expired_message_queue:
 continue_alternate_meter_service_after_messages:
 	bsr.w update_alternate_resource_meters
 	rts
-abs_0_0003AD12:
+    ; D0 LONG pattern fills 68 rows of 8 bytes at stride 80. A0 ends just after the final stores, not at the next row. Caller zeroes D0 for its clear; this helper does not.
+fill_68_rows_of_8_bytes_mode1:
 	move.l d0,(a0)+
 	move.l d0,(a0)+
 	lea.l $0048(a0),a0
@@ -51333,7 +51366,8 @@ abs_0_0003AD12:
 	move.l d0,(a0)+
 	move.l d0,(a0)+
 	rts
-abs_0_0003AF30:
+    ; D0 LONG pattern fills 34 rows of 16 bytes at stride 160. The contact caller uses the exact final cursor to place its marker; preserve that arithmetic.
+fill_34_rows_of_16_bytes_mode0:
 	move.l d0,(a0)+
 	move.l d0,(a0)+
 	move.l d0,(a0)+
@@ -53867,7 +53901,7 @@ abs_0_0003DA6E:
 	moveq.l #0,d0
 	movea.l scene_draw_buffer_snapshot.l,a0
 	lea.l $5B98(a0),a0
-	bsr.w abs_0_0003AF30
+	bsr.w fill_34_rows_of_16_bytes_mode0
 	bra.b abs_0_0003DACE
 abs_0_0003DA82:
 	lea.l hud_attitude_polygon_header.l,a1

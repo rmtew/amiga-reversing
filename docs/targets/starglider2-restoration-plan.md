@@ -7,8 +7,8 @@ that further analysis is exhausted. Current source remains byte exact: all
 with all 106034 accepted code bytes retained. No generated assembly was edited
 by hand and no interim archive was produced.
 
-The current ownership union leaves 11105 bytes in
-274 intervals unclassified. This is classification accounting,
+The current ownership union leaves 10923 bytes in
+273 intervals unclassified. This is classification accounting,
 not a semantic completion percentage. Earlier interval/site counts below belong
 to their recorded closeout revision. See the current
 [native memory-span receipt](../../runtime/observations/starglider2-app-memory-spans.json),
@@ -16,8 +16,8 @@ to their recorded closeout revision. See the current
 
 ## Current refinement and next evidence
 
-Current native totals: **3509 app /2716 typed /165 unresolved**, with **11105
-unclassified bytes /274 intervals**. The earlier counter-indexed source-array recovery reused
+Current native totals: **3509 app /2716 typed /165 unresolved**, with **10923
+unclassified bytes /273 intervals**. The earlier counter-indexed source-array recovery reused
 the shared loop induction and interned linear entry values. Original inventory
 readers at source `$DD6` and `$339B4` expose the existing name-reference `text`
 field over the possible104-entry prefix of the148-record owner. That batch retained existing
@@ -26,6 +26,30 @@ Its startup caller proof added five header reads and six app accesses,
 and strengthened 38 app-base attributions.
 Conditional skips mean104 outer iterations are not104 observed memory reads.
 Loaded pointer values remain subject to separate alias/target validation.
+
+The contact-plot batch reconstructs 40 connected plotting/fill/radial continuations
+and the 182-byte mask backing before the coordinate cache. Amiga and mode 0 read
+its low four bits as plane enables; mode 1 prepares A1 but never reads that mask
+in the tested prefix. Stored extent is not a bound or 182 live types; use of the
+trailing zero bytes remains unknown. Record flag 4 skips one entry, whereas null
+or odd references end plotting. Y is loaded but not used in pixel placement.
+
+662 original-CPU cases include 3072 quantized pixel bins across the three paths,
+strict clipping edges, coincident ORs, mutable masks, list termination, unrolled
+fill geometry and radial thresholds. Amiga fixtures execute the original 200-WORD
+row initialization to 40-byte strides; alternates retain the shipped 160-byte rows.
+Amiga clears 35 rows with marker row 161; mode 0 clears 34 rows with marker row 159;
+mode 1 clears 68 scanlines with marker rows 319/320. Paired-dot X indexing retains
+its parity aliases and original WORD-byte formula, not uniform doubling.
+The radial helper's wrapped NEG and N-only BMI/BPL comparisons preserve MIN/zero
+ordering effects. Only D6.W is the shift; the upper WORD remains unchanged.
+
+The fixtures stop before alternate scan/aim/message service; they certify neither
+normal gameplay, palette RGB nor scanout. No framework change was needed.
+The mask-byte declaration leaves 10923 unclassified bytes in 273 intervals; access
+resolution and protected analysis/reference identities remain unchanged. Exact
+C/vasm and clean standalone rebuilding retain the original payload. Next lead:
+the contact panel's scan/aim overlays and their geometry/backing consumers.
 
 The HUD caller batch reconstructs 16 connected continuations, the shared packed
 X/Z coordinate-cache WORD, sixteen stored body shift BYTEs, the selected text/HUD
@@ -47,7 +71,7 @@ and mode 1 stops before its trailing external-register write. Actual mode
 switching, nonempty contact behavior, scanout and cache lifetimes remain open.
 C/vasm and clean standalone builds retain all original bytes and assets. The
 18-byte declarations leave 11105 unclassified bytes in 274 intervals; access
-resolution totals are unchanged. Next connected source lead: the contact-plot type-color lookup and position mapping.
+resolution totals are unchanged. That connected contact-plot lead is addressed above.
 
 The heading batch reconstructs 23 connected sampling/return/helper continuations,
 eight 16-byte bitmap streams, seven shared arithmetic constants and seven fixed
