@@ -1510,7 +1510,12 @@ SG2_OVERLAY_ROWS_DBF_LAST	EQU	15
 SG2_OVERLAY_ROW_BYTE_STEP	EQU	160
 SG2_PAULA_COMMON_PERIOD_FLOOR	EQU	124
 SG2_PAULA_COMMON_PHASE_PERIOD_SHIFT	EQU	5
+SG2_PAULA_DESCRIPTOR_STRIDE_SHIFT	EQU	4
 SG2_PAULA_PERIOD_STEP	EQU	4
+SG2_PAULA_SAMPLE_POINTER_SKIP	EQU	6
+SG2_PAULA_SAMPLE_RELOAD_PHASE	EQU	6
+SG2_PAULA_SAMPLE_RESTART_PHASE	EQU	11
+SG2_PAULA_SAMPLE_STOP_PHASE	EQU	7
 SG2_PAULA_SPEED_PERIOD_BASE	EQU	654
 SG2_PAULA_SPEED_PERIOD_FLOOR	EQU	174
 SG2_PAULA_SPEED_PERIOD_STEP	EQU	2
@@ -1520,6 +1525,8 @@ SG2_PAULA_TYPE10_DECAY_START_PHASE	EQU	10
 SG2_PAULA_TYPE10_PERIOD_BIAS_OFFSET	EQU	50
 SG2_PAULA_TYPE12_PRIORITY_LIMIT	EQU	1100
 SG2_PAULA_TYPE17_VOLUME_BIAS_BASE	EQU	9
+SG2_PAULA_TYPE3_ODD_STEP_BIT	EQU	1
+SG2_PAULA_TYPE3_PERIOD_OFFSET_MASK	EQU	255
 SG2_PAULA_TYPE46_PRIORITY_LIMIT	EQU	350
 SG2_PAULA_TYPE4_PERIOD_BASE	EQU	728
 SG2_PAULA_TYPE4_VARIANT_SHIFT	EQU	4
@@ -59353,14 +59360,14 @@ request_paula_sample_restart_for_changed_pointer:
 	move.w #$FFFF,paula_object_sound_restart_flag.l
 	tst.w paula_object_sound_transition_phase.l
 	bpl.b reload_nearby_list_for_same_type_prefix_volume
-	move.w #$B,paula_object_sound_transition_phase.l
+	move.w #SG2_PAULA_SAMPLE_RESTART_PHASE,paula_object_sound_transition_phase.l
 	bra.b reload_nearby_list_for_same_type_prefix_volume
 rearm_pending_paula_restart_for_unchanged_type:
 	tst.w paula_object_sound_restart_flag.l
 	bpl.b reload_nearby_list_for_same_type_prefix_volume
 	tst.w paula_object_sound_transition_phase.l
 	bpl.b reload_nearby_list_for_same_type_prefix_volume
-	move.w #$B,paula_object_sound_transition_phase.l
+	move.w #SG2_PAULA_SAMPLE_RESTART_PHASE,paula_object_sound_transition_phase.l
     ; Volume accumulation stops at the first different type or selected pointer, not all matches. This prefix pass does not repeat phase/flag filtering; preserve order and WORD arithmetic.
 reload_nearby_list_for_same_type_prefix_volume:
 	move.w nearby_object_count(a6),d3
@@ -59826,21 +59833,23 @@ restore_paula_sound_frame_registers_and_return:
 	dc.b $00,$DF,$F0,$D8,$33,$FC,$00,$01,$00,$DF,$F0,$A6,$33,$FC,$00,$01
 	dc.b $00,$DF,$F0,$B6,$33,$FC,$00,$01,$00,$DF,$F0,$C6,$33,$FC,$00,$01
 	dc.b $00,$DF,$F0,$D6,$33,$FC,$00,$0F,$00,$DF,$F0,$96,$4E,$75
+    ; Positive phases retain restart. Expiry skips type 3; a later negative-phase pending-flag clear decrements and skips again. Serial service fixtures do not establish normal frame scheduling.
 advance_paula_sample_transition_continuation:
 	tst.w paula_object_sound_transition_phase.l
-	bpl.b abs_0_0004C648
+	bpl.b decrement_paula_sample_phase_before_shift_lookup
 	tst.w paula_object_sound_restart_flag.l
-	bmi.b abs_0_0004C640
-	bra.w abs_0_0004C714
-abs_0_0004C640:
+	bmi.b clear_pending_paula_restart_on_negative_phase
+	bra.w advance_type3_period_offsets_with_odd_snapshot_step
+clear_pending_paula_restart_on_negative_phase:
 	move.w #$0,paula_object_sound_restart_flag.l
-abs_0_0004C648:
+decrement_paula_sample_phase_before_shift_lookup:
 	subq.w #1,paula_object_sound_transition_phase.l
-	bpl.b abs_0_0004C65C
+	bpl.b shift_transition_volume_from_decremented_phase
+retain_negative_sample_phase_and_skip_type3_this_call:
 	move.w #$FFFF,paula_object_sound_transition_phase.l
-	bra.w abs_0_0004C78E
-    ; Restart sets phase11; decrement precedes this table read, so normal sequence uses11 WORD shifts for indices10..0. Preserve special DMA phases6/7, signed stop and original output gates.
-abs_0_0004C65C:
+	bra.w dispatch_effect_palette_after_sample_service
+    ; Decrement precedes WORD shift lookup; restart phase 11 uses indices 10..0. LSR.W uses count low 6 bits. Volume write precedes phase 7/6 DMA commands and any later type 3 volume write.
+shift_transition_volume_from_decremented_phase:
 	move.w paula_object_sound_transition_phase.l,d0
 	add.w d0,d0
 	lea.l paula_sample_transition_volume_shifts.l,a0
@@ -59848,70 +59857,80 @@ abs_0_0004C65C:
 	move.w paula_object_sound_current_volume.l,d1
 	lsr.w d0,d1
 	tst.b modal_command_input_flag(a6)
-	bmi.b abs_0_0004C686
+	bmi.b mute_transition_volume_output
 	tst.b audio_output_enable_sign_flag.l
-	bpl.b abs_0_0004C686
-	bra.b abs_0_0004C690
-abs_0_0004C686:
+	bpl.b mute_transition_volume_output
+	bra.b write_phase_scaled_paula_object_volume
+mute_transition_volume_output:
 	move.w #$0,_custom+aud3+ac_vol.l	; audio volume 0
-	bra.b abs_0_0004C696
-abs_0_0004C690:
+	bra.b test_decremented_phase_for_sample_dma_stop
+write_phase_scaled_paula_object_volume:
 	move.w d1,_custom+aud3+ac_vol.l
-abs_0_0004C696:
-	cmpi.w #7,paula_object_sound_transition_phase.l
+test_decremented_phase_for_sample_dma_stop:
+	cmpi.w #SG2_PAULA_SAMPLE_STOP_PHASE,paula_object_sound_transition_phase.l
 	bne.b restart_paula_object_sample_continuation
+clear_smoothing_before_phase_seven_dma_stop:
 	move.w #$0,paula_object_sound_smoothed_volume.l
+issue_phase_seven_sample_dma_stop:
 	move.w #DMAF_AUD3,_custom+dmacon.l
-	bra.b abs_0_0004C714
-    ; Phase6 loads descriptor at base+16*original type. DMA begins stored pointer+6 and length is in WORDs. Stored71-record prefix is not a universal bounds proof; shared sample aliases remain.
+	bra.b advance_type3_period_offsets_with_odd_snapshot_step
+    ; Phase 6 copies pointer+6, WORD length, period/volume. Snapshot old request before replacement. The 71-record prefix and copied pointers establish no runtime bounds or DMA lifetime.
 restart_paula_object_sample_continuation:
-	cmpi.w #6,paula_object_sound_transition_phase.l
-	bne.b abs_0_0004C714
+	cmpi.w #SG2_PAULA_SAMPLE_RELOAD_PHASE,paula_object_sound_transition_phase.l
+	bne.b advance_type3_period_offsets_with_odd_snapshot_step
+load_selected_descriptor_for_phase_six_restart:
 	movea.l #paula_object_sound_descriptors,a0
 	move.w selected_object_sound_type.l,d0
-	asl.w #4,d0
+	asl.w #SG2_PAULA_DESCRIPTOR_STRIDE_SHIFT,d0
 	lea.l $0(a0,d0.w),a0
 	move.l (a0)+,d0
-	addq.l #6,d0
+	addq.l #SG2_PAULA_SAMPLE_POINTER_SKIP,d0
+publish_adjusted_sample_pointer_then_snapshot_request:
 	move.l d0,_custom+aud3+ac_ptr.l	; sound_sample pointer
 	move.l paula_object_sound_requested_sample.l,paula_object_sound_previous_sample.l
 	move.l d0,paula_object_sound_requested_sample.l
 	move.w (a0)+,_custom+aud3+ac_len.l
+load_descriptor_period_into_base_and_current_state:
 	move.w (a0)+,paula_object_sound_base_period.l
 	move.w paula_object_sound_base_period.l,paula_object_sound_current_period.l
+load_descriptor_volume_then_clear_smoothed_volume:
 	move.w (a0)+,paula_object_sound_base_volume.l
 	move.w #$0,paula_object_sound_smoothed_volume.l
+write_sample_restart_dma_command:
 	move.w #DMAF_SETCLR|DMAF_MASTER|DMAF_AUD3,_custom+dmacon.l
-abs_0_0004C714:
+    ; WORD18 snapshot is ORed with 1; rising/falling offsets wrap then mask 255. NEG.W selects the offset by N: zero and $8000 signs do not alternate. Preserve original state, not a waveform claim.
+advance_type3_period_offsets_with_odd_snapshot_step:
 	cmpi.w #3,selected_object_sound_type.l
-	bne.w abs_0_0004C78E
+	bne.w dispatch_effect_palette_after_sample_service
 	move.w paula_type3_period_step_snapshot.l,d3
-	ori.w #1,d3
+	ori.w #SG2_PAULA_TYPE3_ODD_STEP_BIT,d3
 	add.w d3,object_type3_rising_period_offset.l
-	andi.w #255,object_type3_rising_period_offset.l
+	andi.w #SG2_PAULA_TYPE3_PERIOD_OFFSET_MASK,object_type3_rising_period_offset.l
 	sub.w d3,object_type3_falling_period_offset.l
-	andi.w #255,object_type3_falling_period_offset.l
+	andi.w #SG2_PAULA_TYPE3_PERIOD_OFFSET_MASK,object_type3_falling_period_offset.l
+negate_type3_period_selector_sign:
 	neg.w object_type3_period_phase_sign.l
-	bmi.b abs_0_0004C756
+	bmi.b select_type3_falling_period_offset
 	move.w object_type3_rising_period_offset.l,d0
-	bra.b abs_0_0004C75C
-abs_0_0004C756:
+	bra.b write_type3_modulated_period_without_common_floor
+select_type3_falling_period_offset:
 	move.w object_type3_falling_period_offset.l,d0
-abs_0_0004C75C:
+    ; Type 3 writes base+selected offset as WORD without the common floor; stored current period is unchanged by this write. Its later gated full-volume store can replace phase-scaled volume.
+write_type3_modulated_period_without_common_floor:
 	move.w paula_object_sound_base_period.l,d1
 	add.w d0,d1
 	move.w d1,_custom+aud3+ac_per.l	; audio period
 	tst.b modal_command_input_flag(a6)
-	bmi.b abs_0_0004C77A
+	bmi.b mute_type3_volume_after_period_write
 	tst.b audio_output_enable_sign_flag.l
-	bpl.b abs_0_0004C77A
-	bra.b abs_0_0004C784
-abs_0_0004C77A:
+	bpl.b mute_type3_volume_after_period_write
+	bra.b overwrite_phase_volume_with_type3_current_volume
+mute_type3_volume_after_period_write:
 	move.w #$0,_custom+aud3+ac_vol.l	; audio volume 0
-	bra.b abs_0_0004C78E
-abs_0_0004C784:
+	bra.b dispatch_effect_palette_after_sample_service
+overwrite_phase_volume_with_type3_current_volume:
 	move.w paula_object_sound_current_volume.l,_custom+aud3+ac_vol.l
-abs_0_0004C78E:
+dispatch_effect_palette_after_sample_service:
 	tst.w shared_grayscale_effect_countdown.l
 	bpl.w abs_0_0004CA26
 	tst.b effect_colour_fade_counter.l

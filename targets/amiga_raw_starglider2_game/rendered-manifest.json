@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "source_commit": "07b25e7ad450ebab7f7b73c03c4e9d7097f03873",
+  "source_commit": "7ff38b5d34fe61bc921b007a61b69f79791d3be6",
   "source_assembly": "starglider2_game.s",
   "assets": [
     {
@@ -878,13 +878,13 @@
     },
     {
       "path": "rendered-provenance.json",
-      "bytes": 3507,
-      "sha256": "40612669c0c035f684208ced4fcfbdc861f2d4337e971944d6c8d742076f4253"
+      "bytes": 3479,
+      "sha256": "74503c3ad89b6a2a8f9262781ae167fd4655100043de93c097cea11ec5011fa8"
     },
     {
       "path": "starglider2_game.s",
-      "bytes": 2135044,
-      "sha256": "8066846b12285c807349604b243a26e85e91718220963fd338e971cb6b30fed8"
+      "bytes": 2137407,
+      "sha256": "2b1655f6256a6a5bb03b5a5179f5ba7fc41c1c8f16e3203a1a52b2a2174f2b9c"
     },
     {
       "path": "tools/starglider2_protection.py",
@@ -892,6 +892,6 @@
       "sha256": "81d3f66d36dbfbd5c77238b20c28e8b9abaa329777eb91f64669bbbf13703582"
     }
   ],
-  "source_commit_role": "canonical source publication base; descriptor-gated object sound handlers, signed prefix aliases, period/envelope calculations and output gates reconstructed through 643 original-CPU cases with device addresses treated as RAM; not DMA, PCM, timing, complete-frame, normal-caller, arbitrary selector bounds or lifetime proof; shared-random type88 branch outside this CPU batch; output is bound by verification_receipt_id",
-  "source_subject_revision": "90aed64965b6ee1189c9616372f9bf65ab1ac4c2537d160562633fdcd5c69e9a"
+  "source_commit_role": "canonical source publication base; sample-transition and type 3 service, descriptor copies, original snapshot producer and ordered CPU register stores reconstructed through 368 cases with device addresses treated as RAM; not DMA, PCM, timing, complete-frame, normal-caller or sample-lifetime proof; type 88 random branch remains outside this batch; output is bound by verification_receipt_id",
+  "source_subject_revision": "7bc3156738d56f20fd439055e4428c1abaa9a44b30016e84270c348659773a8d"
 }

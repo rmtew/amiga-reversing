@@ -27,6 +27,31 @@ and strengthened 38 app-base attributions.
 Conditional skips mean104 outer iterations are not104 observed memory reads.
 Loaded pointer values remain subject to separate alias/target validation.
 
+The sample-transition/type 3 batch reconstructs 21 continuations and seven
+constants with 368 original-CPU cases. Positive phases retain the restart flag.
+Decrement precedes the WORD shift lookup; starting at phase 11 consumes indices
+10..0. Expiry skips type 3 service. A later negative-phase entry with pending
+restart clears that flag, decrements and exits again. Serial service-only cases
+establish this sequence, not its frequency or normal-game caller scheduling.
+
+Phase 7 clears smoothing and writes the AUD3 DMA-clear command. Phase 6 copies
+the selected descriptor pointer plus 6, WORD length, period and volume, then
+writes the DMA-set command. The previous-request state receives the old request
+before replacement with the adjusted pointer. All 71 stored prefix records were
+checked; this is not a universal selector, sample-extent or DMA-lifetime proof.
+Output muting does not suppress these DMA command writes in the tested paths.
+
+Type 3 consumes the original WORD18 snapshot, ORs the step with 1, updates both
+offsets and masks each to 255. NEG.W selects by N; zero and $8000 selector signs
+do not alternate. Its period write adds the selected offset without the common
+floor and leaves the stored current period unchanged. A subsequent full-volume
+write can replace the earlier transition-scaled value. Ordered CPU store checks
+treat register addresses as RAM, with no device, DMA, PCM, timing, whole-frame,
+normal-caller or sample-lifetime simulation. Type 88 remains outside this batch.
+Native proof/reference identities and 3509 app /2716 typed /165 unresolved totals
+remain unchanged; C/vasm and clean standalone output are byte exact. The next
+connected source region is the prioritized palette/effect service after $4C78E.
+
 The descriptor-gated handler batch reconstructs 48 continuations and eleven
 constants with 643 original-CPU cases. Descriptor WORD14 zero selects the common
 period path; nonzero enters the type-specific chain. An unhandled type in that
