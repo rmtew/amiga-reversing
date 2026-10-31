@@ -27,6 +27,18 @@ and strengthened 38 app-base attributions.
 Conditional skips mean104 outer iterations are not104 observed memory reads.
 Loaded pointer values remain subject to separate alias/target validation.
 
+The snapshot-handoff batch qualifies 288 CPU cases through common display
+initialization, original rotation, empty scene/disc paths and finite setup-prefix
+to HUD drawing. Eight continuations and four scalars expose the initial
+`$77B50` draw/display alias, exact-12 rotation wrap and different D0 clearing.
+Other even BYTE offsets read adjacent bytes; table length is not an input guard.
+Scene entry captures buffer, full mode BYTE and masked rotation before count
+handling. Nonempty disc submission refreshes buffer only; empty submission does
+not. This is phase state, not synchronized ownership. Mode1 stops before asset
+conversion in the setup prefix; ports are RAM, not hardware models. Native
+facts and ownership remain unchanged. Next: connected raw polygon projection
+and packet-emission producers, preserving the existing capacity/lifetime limits.
+
 The alternate pattern-reader batch adds 356 CPU cases, nine continuations,
 three constants and 128 bytes of identified two-LONG pattern pairs. Each pixel
 uses two bits per bank, with banks 80 bytes apart. The reader uses retained
@@ -36,8 +48,8 @@ unclamped and WORD-wrapping. Every completion path writes the fixed four-row
 sample block, including empty queues. Tests compare complete RAM for finite
 queues and X=0..319; they do not prove production bounds/lifetime, full alternate
 startup, palette RGB or scanout. The single-reference/sequence gap remains.
-Next: connected scene mode/snapshot producers and alternate table/setup callers,
-without assuming phase exclusion or a universal selector domain.
+The subsequent snapshot-handoff batch qualifies connected producers and setup
+relationships above without assuming phase exclusion or universal selectors.
 
 The interleaved-context batch adds 397 CPU cases, 19 continuations and five
 scalar constants. Nonnegative setup writes 256 repeated-WORD inside masks,

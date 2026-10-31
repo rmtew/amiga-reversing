@@ -1486,6 +1486,9 @@ SG2_BOUNCE_MOTION_SCALE_LOSS	EQU	20
 SG2_BOUNCE_REFLECTION_BIAS	EQU	10
 SG2_BOUNCE_SURFACE_Y	EQU	-25
 SG2_BOUNCE_VERTEX_RELOAD	EQU	11
+SG2_BUFFER_ROTATION_END_OFFSET	EQU	12
+SG2_BUFFER_ROTATION_ENTRY_BYTES	EQU	4
+SG2_BUFFER_ROTATION_INPUT_MASK	EQU	255
 SG2_CELESTIAL_TYPE_BASE	EQU	128
 SG2_CLIPPED_TRAIL_X_MULTIPLIER	EQU	288
 SG2_CLIPPED_TRAIL_Y_MULTIPLIER	EQU	98
@@ -1556,6 +1559,7 @@ SG2_HUD_COORDINATE_DIGIT_DBF_LAST	EQU	3
 SG2_HUD_DIGIT_PAIR_DBF_LAST	EQU	1
 SG2_HUD_NIBBLE_GLYPH_OFFSET_MASK	EQU	120
 SG2_HUD_SPACE_COORDINATE_SHIFT	EQU	16
+SG2_INITIAL_DRAW_DISPLAY_ALIAS_BASE	EQU	$77B50
 SG2_INSIDE_BASE_EFFECT_RGB	EQU	$224
 SG2_INSIDE_OVERRIDE_EFFECT_RGB	EQU	$66A
 SG2_INTERIOR_ENTRY_NEGATIVE_Z_OFFSET	EQU	500
@@ -4229,9 +4233,10 @@ display_blank_event_message_line_bridge_002404:
     ; Initialize display/view state and inclusive clip bounds X 16..303, Y 30..128. The adjacent 143/79 defaults remain unnamed: no consumer meaning is inferred from proximity.
 initialize_display_and_view_state:
 	move.w #$1357,app_01B0(a6)
-    ; Draw/display base slots deliberately alias $77B50 during setup. Rotation later selects table entries; these are phase roles, not exclusive front/back allocation owners.
-	move.l #$77B50,draw_buffer_base.w(a6)
-	move.l #$77B50,display_buffer_base(a6)
+    ; Both base slots receive $77B50 before profile selection. Common setup retains the graphics-mode BYTE; the alternate setup later selects0/FF. Initialization alias, not exclusive owners.
+initialize_aliased_draw_and_display_bases:
+	move.l #SG2_INITIAL_DRAW_DISPLAY_ALIAS_BASE,draw_buffer_base.w(a6)
+	move.l #SG2_INITIAL_DRAW_DISPLAY_ALIAS_BASE,display_buffer_base(a6)
 	move.w #$0,frame_handoff_counter(a6)
 	move.w #$0,vblank_tick_counter(a6)
 	move.w #$1,drawing_fill_style_word(a6)
@@ -4250,7 +4255,7 @@ initialize_display_and_view_state:
 	move.w #$0,message_display_countdown(a6)
 	move.w #$4,mouse_input_scale_shift(a6)
 	tst.w platform_entry_flags.l
-	bpl.w abs_0_00003C0A
+	bpl.w initialize_alternate_graphics_profile_bridge_002c0a
 	st.b app_01EF(a6)
 	move.w #$555,_custom+color.l
 	rts
@@ -4695,18 +4700,20 @@ abs_0_000038CE:
 	cmp.w vblank_tick_counter(a6),d0
 	bne.b abs_0_000038CE
 	rts
+    ; Read BYTE offset, mask D0.W, then fetch copper/display/draw entries. Wrap only when next offset equals12; other offsets are not clamped. Amiga wrap clears D0.W, retaining its upper WORD.
 rotate_amiga_display_buffers:
 	move.b display_buffer_table_byte_offset(a6),d0
-	andi.w #255,d0
+	andi.w #SG2_BUFFER_ROTATION_INPUT_MASK,d0
 	lea.l _custom.l,a5
 	move.l amiga_rotating_copper_lists(pc,d0.w),cop1lc(a5)	; copper_list pointer
 	move.l amiga_display_buffer_bases(pc,d0.w),display_buffer_base(a6)
 	move.l amiga_draw_buffer_bases(pc,d0.w),draw_buffer_base.w(a6)
-	addq.w #4,d0
-	cmp.w #$C,d0
-	bne.w abs_0_0000391C
+	addq.w #SG2_BUFFER_ROTATION_ENTRY_BYTES,d0
+	cmp.w #SG2_BUFFER_ROTATION_END_OFFSET,d0
+	bne.w store_next_amiga_buffer_table_byte_offset
+wrap_amiga_buffer_offset_word_to_zero:
 	move.w #$0,d0
-abs_0_0000391C:
+store_next_amiga_buffer_table_byte_offset:
 	move.b d0,display_buffer_table_byte_offset(a6)
 	rts
 amiga_rotating_copper_lists:
@@ -4980,7 +4987,7 @@ advance_interleaved_picture_plane:
 	dc.w $0000
 enter_conditionally_decoded_protection:
 	jmp novella_check_transformed_entry_storage.l
-abs_0_00003C0A:
+initialize_alternate_graphics_profile_bridge_002c0a:
 	jmp initialize_alternate_graphics_profile.l
 	dc.b $20,$20,$20,$20,$00,$00
 	dcb.b $14,$20
@@ -51574,20 +51581,21 @@ abs_0_0003A8DC:
 abs_0_0003A8EC:
 	movea.l (a7)+,a6
 	rts
-    ; Three slots: offset advances0/4/8, wraps at12. Store display base to app+4 and drawing base to app+0; hardware base uses high/middle BYTEs, not a shifted LONG pointer.
+    ; Normal offsets0/4/8 select three banks. Other even BYTE offsets read adjacent original bytes; no modulo-three guard exists. Exact wrap clears full D0 here, unlike the Amiga WORD clear.
 rotate_alternate_display_buffers:
 	move.b display_buffer_table_byte_offset(a6),d0
-	andi.w #255,d0
+	andi.w #SG2_BUFFER_ROTATION_INPUT_MASK,d0
 	lea.l alternate_display_base_register_bytes.l,a0
 	move.b $0(a0,d0.w),$FFFF8201.l
 	move.b $1(a0,d0.w),$FFFF8203.l
 	move.l alternate_display_buffer_bases(pc,d0.w),display_buffer_base(a6)
 	move.l alternate_draw_buffer_bases(pc,d0.w),draw_buffer_base.w(a6)
-	addq.w #4,d0
-	cmp.w #$C,d0
-	bne.w abs_0_0003A926
+	addq.w #SG2_BUFFER_ROTATION_ENTRY_BYTES,d0
+	cmp.w #SG2_BUFFER_ROTATION_END_OFFSET,d0
+	bne.w store_next_alternate_buffer_table_byte_offset
+wrap_alternate_buffer_offset_and_register:
 	moveq.l #0,d0
-abs_0_0003A926:
+store_next_alternate_buffer_table_byte_offset:
 	move.b d0,display_buffer_table_byte_offset(a6)
 	rts
 alternate_display_buffer_bases:
@@ -54676,11 +54684,15 @@ return_if_amiga_scene_queue_empty:
 	rts
 sort_and_draw_scene_packets:
 	move.b #$1,diagnostic_step_byte.l
+    ; Copy framebuffer LONG and full mode BYTE, then masked player rotation2 WORD before testing count. Phase snapshots do not prove queue capacity, synchronization or ownership.
+snapshot_scene_buffer_mode_and_rotation:
 	move.l draw_buffer_base.w(a6),scene_draw_buffer_snapshot.l
 	move.b alternate_graphics_mode(a6),scene_graphics_mode_snapshot.l
 	move.w player_rotation_2(a6),d7
 	andi.w #SG2_HEADING_ANGLE_MASK,d7
 	move.w d7,scene_rotation2_snapshot.l
+    ; Even an empty Amiga scene refreshes all three snapshots before returning, without writing a queue terminator. Nonnegative profiles instead append and draw the supplied HUD polygon.
+test_scene_count_after_snapshot:
 	tst.w d0
 	bne.b prepare_nonempty_scene_sort_range
 	tst.w platform_entry_flags.l
@@ -59435,6 +59447,7 @@ scene_graphics_mode_snapshot:
 	dc.b $00
 scene_rotation2_snapshot:
 	dc.w $0000
+    ; Scene entry refreshes buffer, mode and rotation snapshots. Nonempty disc submission refreshes this LONG alone; empty submission retains it. Mode/rotation may retain prior values.
 scene_draw_buffer_snapshot:
 	dc.l $00078000
 	dc.b $00,$07,$A0,$00,$00,$07,$C0,$00,$00,$07,$E0,$00

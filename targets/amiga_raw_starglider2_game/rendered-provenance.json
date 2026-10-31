@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
   "kind": "committed_native_rendered_original_export",
-  "canonical_source_commit": "0c5e982819eba44cfe0bb89ee0b2f439ce1f90c5",
-  "publication_base_commit": "0c5e982819eba44cfe0bb89ee0b2f439ce1f90c5",
+  "canonical_source_commit": "8ed6ea4699b82da13a1f537bf4c4479670f55b00",
+  "publication_base_commit": "8ed6ea4699b82da13a1f537bf4c4479670f55b00",
   "native_export": "CListingArtifact.source_package_payload(64)",
-  "main_source_sha256": "915e59f9101d8d10f8ff09e18ca1ce177d8ff7806422c65b1432a7e2cebbb6df",
+  "main_source_sha256": "cb773145f76f55060bc53d97b7ee70ec755941645b95f43ae26304bd4d8d219e",
   "asset_count": 57,
   "asset_bytes": 93633,
   "game_assembly_hand_edits": false,
@@ -24,13 +24,13 @@
     "assembler executable",
     "paused Pandora work"
   ],
-  "canonical_source_commit_role": "canonical source publication base; alternate pattern reader reconstructed through 356 original CPU cases. Nine continuations, a native mask-table name,128 bytes of two-LONG pattern pairs and three constants expose two-bit pixels,80-byte bank separation,160-byte subsequent rows, masked negative and unclamped wrapping positive selectors, and fixed sample writes on all returns. No production sequence bounds/lifetime, full alternate startup, palette RGB or hardware equivalence is asserted; output bound by verification_receipt_id",
-  "canonical_source_subject_revision": "7b68b72b686c718ee8a1b14d5f10ae77c8f7e7a9ba0520c1cb923e5dcf757356",
+  "canonical_source_commit_role": "canonical source publication base; display initialization, buffer rotation and scene snapshot handoffs qualified through 288 original CPU cases. Eight continuations and four scalars expose initial draw/display aliasing, exact12-only wrap and WORD/full-register differences, pre-count snapshot capture, disc-only stale mode/rotation and finite setup-prefix-to-HUD drawing. Device addresses are RAM; mode1 asset conversion, full startup, scanout, production queue bounds and shared lifetime remain unqualified; native facts and ownership unchanged; output bound by verification_receipt_id",
+  "canonical_source_subject_revision": "d16053c26d0ea832a0b035838d12c5b8c46f2b459f0cea9add287846bc16905a",
   "canonical_fact_sha256": {
     "source_binary.json": "42d4a5758b3e8236af7f912aee85e9ee5323bcd0961faa338c4f864080a0a7d9",
     "target_metadata.json": "e7540b68c118c56aba8815b6722eefa067517cc865fe9841d6c01ce96551389c",
-    "manual_actions.jsonl": "a29b6124e5afe8484c87be81aef942249fca377c42078cac4776a1463e32d706",
-    "decision_journal.jsonl": "2afe6473daf098a2b7ed6ebcd02f647e2806d4fd34cde1ebfcb4cf953e1f5c6c"
+    "manual_actions.jsonl": "9c193877f61e316fba09e1a65f5517497b8a540bfd32a48e6f3c12acea2ec058",
+    "decision_journal.jsonl": "e81364116abed1cad503079feb558e75f1ebec0b08fb9b7952e9aab3704d9a63"
   },
   "headers": "14 unmodified required include files collected by source_package.collect_package_includes from ext/amiga_includes/ndk_2.0/include; header notices retained",
   "decoded_protection_view": {
@@ -46,7 +46,7 @@
     },
     "runtime_scope": "Seven CPU write-site windows match this reversible view; no whole runtime-view identity or parent plaintext promotion."
   },
-  "verification_receipt_id": "0f90035c07981ba78d8cfa976c9f894423433c1121a7321921edf151e643aa37",
+  "verification_receipt_id": "1408036e7c4c1c89c6e8dec1dd210b28970f5e3e995115bf22100040aa362876",
   "render_native_sha256": "5c53c7d8bee53bbd52ecdd970f145d3d175e39fbabd25d559e11f2f6c36f7440",
   "final_assembler_native_sha256": "5c53c7d8bee53bbd52ecdd970f145d3d175e39fbabd25d559e11f2f6c36f7440"
 }
