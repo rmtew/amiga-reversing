@@ -1529,6 +1529,10 @@ SG2_TEXT_DELETE_ROW_REWIND_BYTES	EQU	322
 SG2_TEXT_GLYPH_WRAP_TAIL_BYTES	EQU	280
 SG2_TEXT_ROW_BYTES	EQU	320
 SG2_TEXT_TAB_ADVANCE	EQU	6
+SG2_TYPE90_CHAIN_STRIP_FULL_WIDTH	EQU	400
+SG2_TYPE90_CHAIN_STRIP_HALF_WIDTH	EQU	200
+SG2_TYPE90_CROSS_LIMIT	EQU	600
+SG2_TYPE90_FIXED_POWER_ADD	EQU	400
 SG2_WEAPON_HUD_ICON_ROWS_DBF_LAST	EQU	13
 SG2_WEAPON_HUD_ICON_SAVED_BYTES	EQU	112
 SG2_WEAPON_HUD_ICON_SLOT_MASK	EQU	7
@@ -14166,7 +14170,7 @@ dispatch_special_contact_object_handlers:
 	cmp.w #$5D,d0
 	beq.w filter_linked_type93_contact_actors
 	cmp.w #$5A,d0
-	beq.w abs_0_0000C32C
+	beq.w filter_type90_contact_actor_ids
 	cmp.w #$41,d0
 	beq.w test_energy_gate_player_contact_variant
 	cmp.w #$3F,d0
@@ -14913,50 +14917,57 @@ require_nonzero_type_before_linked_long_clear:
 clear_x_oriented_linked_record_long3c:
 	clr.l $003C(a4)
 	bra.w select_player_or_nonplayer_common_contact_effects
-abs_0_0000C26E:
+    ; Chain strip uses Y>=-1000 and (centre-200,centre+200], after the cross-corridor gate. Preserve open lower/closed upper edges and original LONG wrap; no global contact eligibility claim.
+test_type90_z_side_chain_height_and_strip:
 	cmpi.l #4294966296,$0008(a0)
 	blt.w restore_contact_context_and_clear_structure_clamp
+form_type90_chain_x_strip_upper:
 	move.l $0004(a2),d0
-	addi.l #200,d0
+	addi.l #SG2_TYPE90_CHAIN_STRIP_HALF_WIDTH,d0
 	cmp.l $0004(a0),d0
 	blt.w restore_contact_context_and_clear_structure_clamp
-	subi.l #400,d0
+	subi.l #SG2_TYPE90_CHAIN_STRIP_FULL_WIDTH,d0
 	cmp.l $0004(a0),d0
-	blt.w abs_0_0000C2CE
+	blt.w load_type90_chain_back_reference
 	bra.w restore_contact_context_and_clear_structure_clamp
-abs_0_0000C29E:
+test_type90_x_side_chain_height_and_strip:
 	cmpi.l #4294966296,$0008(a0)
 	blt.w restore_contact_context_and_clear_structure_clamp
+form_type90_chain_z_strip_upper:
 	move.l $000C(a2),d0
-	addi.l #200,d0
+	addi.l #SG2_TYPE90_CHAIN_STRIP_HALF_WIDTH,d0
 	cmp.l $000C(a0),d0
 	blt.w restore_contact_context_and_clear_structure_clamp
-	subi.l #400,d0
+	subi.l #SG2_TYPE90_CHAIN_STRIP_FULL_WIDTH,d0
 	cmp.l $000C(a0),d0
-	blt.w abs_0_0000C2CE
+	blt.w load_type90_chain_back_reference
 	bra.w restore_contact_context_and_clear_structure_clamp
-abs_0_0000C2CE:
+    ; First mark type90 through contact+$38, then walk forward starting at contact+$3C, not the back-reference tail. Only null/type checks precede reads; valid backing remains a caller duty.
+load_type90_chain_back_reference:
 	movea.l $0038(a2),a4
 	cmpa.l #$0,a4
 	beq.w select_player_or_nonplayer_common_contact_effects
 	cmpi.w #90,(a4)
 	bne.w select_player_or_nonplayer_common_contact_effects
+mark_type90_back_reference_bytes:
 	sf.b $0003(a4)
 	st.b $0022(a4)
 	st.b $0028(a4)
 	movea.l a2,a1
-abs_0_0000C2F2:
+    ; Forward type90 nodes get BYTE28 set. No visited-set or local cycle guard exists: a supplied backed cycle repeats in a bounded CPU witness. Finite fixtures do not prove general termination.
+walk_type90_forward_link_chain:
 	movea.l $003C(a1),a4
 	cmpa.l #$0,a4
 	beq.w select_player_or_nonplayer_common_contact_effects
 	cmpi.w #90,(a4)
 	bne.w select_player_or_nonplayer_common_contact_effects
+mark_forward_type90_record_byte28:
 	st.b $0028(a4)
 	movea.l a4,a1
-	bra.b abs_0_0000C2F2
+	bra.b walk_type90_forward_link_chain
 	dc.b $28,$6A,$00,$38,$B9,$FC,$00,$00,$00,$00,$67,$00,$F6,$86,$4A,$54
 	dc.b $67,$00,$F6,$80,$42,$AC,$00,$3C,$60,$00,$F6,$78
-abs_0_0000C32C:
+filter_type90_contact_actor_ids:
 	cmpi.w #93,(a0)
 	beq.w restore_contact_context_and_clear_structure_clamp
 	cmpi.w #90,(a0)
@@ -14968,75 +14979,85 @@ abs_0_0000C32C:
 	cmpi.w #97,(a0)
 	beq.w restore_contact_context_and_clear_structure_clamp
 	tst.w $0012(a2)
-	bne.b abs_0_0000C386
+	bne.b form_nonzero_orientation_type90_cross_distance
+form_zero_orientation_type90_cross_distance:
 	move.l $0004(a2),d0
 	sub.l $0004(a0),d0
-	bpl.b abs_0_0000C366
+	bpl.b test_type90_x_cross_corridor
 	neg.l d0
-abs_0_0000C366:
-	cmp.l #$258,d0
+test_type90_x_cross_corridor:
+	cmp.l #SG2_TYPE90_CROSS_LIMIT,d0
 	bgt.w restore_contact_context_and_clear_structure_clamp
+select_type90_z_chain_or_service_side:
 	move.l $000C(a2),d0
-	subi.l #1800,d0
+	subi.l #SG2_LINKED_CONTACT_AXIS_OFFSET,d0
 	cmp.l $000C(a0),d0
-	bge.w abs_0_0000C26E
-	bra.w abs_0_0000C3B2
-abs_0_0000C386:
+	bge.w test_type90_z_side_chain_height_and_strip
+	bra.w request_fast_panel_before_zero_side_service
+form_nonzero_orientation_type90_cross_distance:
 	move.l $000C(a2),d0
 	sub.l $000C(a0),d0
-	bpl.b abs_0_0000C392
+	bpl.b test_type90_z_cross_corridor
 	neg.l d0
-abs_0_0000C392:
-	cmp.l #$258,d0
+test_type90_z_cross_corridor:
+	cmp.l #SG2_TYPE90_CROSS_LIMIT,d0
 	bgt.w restore_contact_context_and_clear_structure_clamp
+select_type90_x_chain_or_service_side:
 	move.l $0004(a2),d0
-	addi.l #1800,d0
+	addi.l #SG2_LINKED_CONTACT_AXIS_OFFSET,d0
 	cmp.l $0004(a0),d0
-	bge.w abs_0_0000C29E
-	bra.w abs_0_0000C424
-abs_0_0000C3B2:
+	bge.w test_type90_x_side_chain_height_and_strip
+	bra.w service_nonzero_side_player_power_only
+    ; Request fast panel before the player-type test. Player adds doubled speed WORD through power, shield, energy priority; others receive no resource change here.
+request_fast_panel_before_zero_side_service:
 	st.b panel_fast_animation_request(a6)
 	cmpi.w #30,(a0)
 	bne.w restore_contact_context_and_clear_structure_clamp
+double_player_speed_word_for_staged_service:
 	move.w player_speed_smoothed(a6),d1
 	add.w d1,d1
+    ; Full FFFF skips to the next resource. Otherwise only carry saturates and falls through; an exact FFFF fill without carry stores and exits. Preserve WORD doubling/wrap and staged priority.
+service_power_before_shield_or_weapon:
 	move.w icarus_power_reserve(a6),d0
 	cmp.w #$FFFF,d0
-	beq.b abs_0_0000C3E0
+	beq.b service_shield_after_full_or_carried_power
 	add.w d1,d0
-	bcs.b abs_0_0000C3DA
+	bcs.b saturate_carried_power_then_continue_service
 	move.w d0,icarus_power_reserve(a6)
 	bra.w restore_contact_context_and_clear_structure_clamp
-abs_0_0000C3DA:
+saturate_carried_power_then_continue_service:
 	move.w #$FFFF,icarus_power_reserve(a6)
-abs_0_0000C3E0:
+service_shield_after_full_or_carried_power:
 	move.w icarus_shield_strength(a6),d0
 	cmp.w #$FFFF,d0
-	beq.w abs_0_0000C3FE
+	beq.w service_weapon_after_prior_resources
 	add.w d1,d0
-	bcs.b abs_0_0000C3F8
+	bcs.b saturate_carried_shield_then_continue_service
 	move.w d0,icarus_shield_strength(a6)
 	bra.w restore_contact_context_and_clear_structure_clamp
-abs_0_0000C3F8:
+saturate_carried_shield_then_continue_service:
 	move.w #$FFFF,icarus_shield_strength(a6)
-abs_0_0000C3FE:
+service_weapon_after_prior_resources:
 	move.w weapon_energy_reserve(a6),d0
 	cmp.w #$FFFF,d0
 	beq.w restore_contact_context_and_clear_structure_clamp
 	add.w d1,d0
-	bcs.b abs_0_0000C416
+	bcs.b saturate_weapon_and_count_energy_carry_bonus
 	move.w d0,weapon_energy_reserve(a6)
 	bra.w restore_contact_context_and_clear_structure_clamp
     ; Incremented only after weapon-energy addition carries and saturates to $FFFF. Rating uses this counter for bonuses; it is not a kill counter.
-abs_0_0000C416:
+saturate_weapon_and_count_energy_carry_bonus:
 	move.w #$FFFF,weapon_energy_reserve(a6)
+    ; LONG bonus increments only on weapon-energy addition carry. Full energy skips it; exact fill without carry does not earn it. Preserve LONG wrap; this is not a kill counter.
 	addq.l #1,weapon_energy_overflow_bonus_count(a6)
 	bra.w restore_contact_context_and_clear_structure_clamp
-abs_0_0000C424:
+    ; Nonzero-orientation service is different: player power +=400 wraps as WORD, with no saturation, shield/energy update or fast-panel request. Preserve distinct side effects.
+service_nonzero_side_player_power_only:
 	cmpi.w #30,(a0)
 	bne.w restore_contact_context_and_clear_structure_clamp
 	move.w icarus_power_reserve(a6),d0
-	addi.w #400,d0
+add_wrapping400_to_power_word:
+	addi.w #SG2_TYPE90_FIXED_POWER_ADD,d0
 	move.w d0,icarus_power_reserve(a6)
 	bra.w restore_contact_context_and_clear_structure_clamp
 wide_structure_profile_x_offsets:

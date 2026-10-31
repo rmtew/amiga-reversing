@@ -157,3 +157,16 @@ def test_more_than_128_distinct_comments_render_and_rebuild(tmp_path):
             source, metadata_path=metadata, compare_original=True,
         )
     assert rebuilt == original
+
+
+@pytest.mark.parametrize('text', [
+    'range (left,right]', 'brace } and later { text',
+    'quote " followed by ] and }', 'path \\ then [ and { punctuation',
+])
+def test_quoted_delimiters_do_not_end_metadata_arrays_or_objects(target, text):
+    directory, source = target
+    _append(target, _comment(text, 'first'), _comment('Following comment remains.', 'following'))
+    with effective_metadata_file(directory) as metadata:
+        rendered = c_backend.render_project_source_with_c_backend(source, metadata_path=metadata)
+    assert text in rendered
+    assert 'Following comment remains.' in rendered

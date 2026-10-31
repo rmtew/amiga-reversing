@@ -27,6 +27,38 @@ and strengthened 38 app-base attributions.
 Conditional skips mean104 outer iterations are not104 observed memory reads.
 Loaded pointer values remain subject to separate alias/target validation.
 
+The type90 chain/service batch reconstructs 25 continuations with 102 original-
+CPU cases. The chain corridor retains its 600-unit cross gate, Y>=-1000 and open
+lower/closed upper strip `(centre-200, centre+200]`. The contact's $38 reference
+must name type90 before BYTE3/22/28 marking; forward traversal then starts from
+the contact's $3C, marking only BYTE28 on each type90 node. Null/type stops are
+preserved. A supplied backed self-cycle repeats under a bounded observer, so no
+general termination, alignment, ownership or lifetime guarantee is claimed.
+
+Zero-orientation service requests fast panel before checking player type. Player
+speed doubles as WORD and services power, shield then weapon energy. Existing
+FFFF skips ahead; otherwise carry alone saturates/falls through. Exact fill to
+FFFF without carry stores and exits. The LONG bonus increments only on weapon-
+energy carry, including wrap; full energy and exact non-carry fill do not earn it.
+Nonzero-orientation service instead adds 400 to power with WORD wrap, no saturation,
+no shield/energy update and no fast-panel request. Tests preserve the five actor
+exclusions, side-specific routing, finite/null/type-break chains and saved context.
+
+Source review reproduced a shared native JSON scanner defect: `]` or `}` inside
+quoted metadata text could end an array/object early and drop this batch's seven
+comments. The scanner now skips escaped quoted strings when matching delimiters.
+Four focused cases failed before the repair and pass afterward; the comment,
+metadata-admission and type90 suites pass 123 cases. No storage/convergence limit
+was raised. The current effective comment set uses 511 of 512 native slots, so
+future annotations must respect admission capacity rather than silently drop.
+
+Native proof/reference identities, CFG, summaries, counts and ownership remain
+unchanged. Original game behavior was not altered. C/vasm and clean standalone
+output remain exact, including all seven new comments. Remaining connected
+work includes bounded world-entry/exit transition effects and unproven inbound
+code-like bytes after the
+chain; neither normal gameplay nor global lifetime/termination is certified.
+
 The corner/depot/linked-contact batch reconstructs 44 new or renamed
 continuations, with 482 original-CPU cases. Type 92 player corner width uses
 signed low-WORD delta *17, absolute product and logical shift6; the object path
@@ -57,9 +89,9 @@ exact 9; Energy gate retains its context-specific exact 6 skip.
 Native proofs, reference identities, CFG, summaries, counts and ownership remain
 unchanged. No shared framework or game behavior was altered. C/vasm and clean
 standalone output remain exact. This adds no normal-game, arbitrary-constructor,
-linked-chain termination, global lifetime, DMA or scanout certification. Remaining
-connected work includes type90 linked-chain/service effects, bounded entrance/
-exit transitions and the unproven inbound status of nearby code-like bytes.
+linked-chain termination, global lifetime, DMA or scanout certification. The
+type90 chain/service effects are addressed above; bounded entrance/exit
+transitions and the unproven inbound code-like bytes remain separate.
 
 The structure-profile/gate batch reconstructs 51 connected selection, player and
 object profile, motion-prefix and variant-gate continuations. 385 original-CPU

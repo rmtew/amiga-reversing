@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "source_commit": "27834072a7f510540b4eaed3e1857bfcc58acc52",
+  "source_commit": "bf6860e04f54e471ea9ffeab23ee11e4ce669a99",
   "source_assembly": "starglider2_game.s",
   "assets": [
     {
@@ -878,13 +878,13 @@
     },
     {
       "path": "rendered-provenance.json",
-      "bytes": 3419,
-      "sha256": "47b20c422ca8bfbef82db6a5b33ca9cb97145156310c631c2f5cc5b9ac5f000b"
+      "bytes": 3423,
+      "sha256": "96ec792dc5397de62cbe6275fa3cb8b6b50e618d4a9391edb452c669dc6dbadc"
     },
     {
       "path": "starglider2_game.s",
-      "bytes": 2109687,
-      "sha256": "d2a1ea266b2e21e447040be9292c5e9bec42bf7c7ec3d8f6a9ac8a50ad778e3e"
+      "bytes": 2112471,
+      "sha256": "85f87983c768c1673f923070ab65e52107b7f82a436702fbc903a04c01c871aa"
     },
     {
       "path": "tools/starglider2_protection.py",
@@ -892,6 +892,6 @@
       "sha256": "81d3f66d36dbfbd5c77238b20c28e8b9abaa329777eb91f64669bbbf13703582"
     }
   ],
-  "source_commit_role": "canonical source publication base; the publishing commit reconstructs corner/depot clamps, context-specific object gates and one orientation-dependent linked-contact handler; supplied original-CPU cases, not arbitrary pointers/selectors, normal gameplay, global lifetime or scanout proof; output is bound by verification_receipt_id",
-  "source_subject_revision": "0e3f9c770d2caf1a4194131b62efab7cacd35e3347b84d5153e9b7850fee4876"
+  "source_commit_role": "canonical source publication base; the publishing commit reconstructs type90 chain/service routing, finite link effects, bounded cycle witness and distinct resource arithmetic; supplied original-CPU cases, not arbitrary pointers, general termination, normal gameplay or global lifetime proof; output is bound by verification_receipt_id",
+  "source_subject_revision": "1d6c61c24fa89c741bd5d5e83eee8ce8f3a9db14587f34677af0b759a4792d67"
 }

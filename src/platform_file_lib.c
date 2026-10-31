@@ -2185,6 +2185,21 @@ static int json_bool_field_local(const char *object_start, const char *object_en
   return 0;
 }
 
+/* Delimiters inside JSON strings are payload, including after escaped quotes. */
+static const char *json_skip_quoted_local(const char *cursor, const char *end) {
+  if (cursor >= end || *cursor != '"') return cursor;
+  ++cursor;
+  while (cursor < end) {
+    if (*cursor == '\\') {
+      ++cursor;
+      if (cursor < end) ++cursor;
+    } else if (*cursor++ == '"') {
+      return cursor;
+    }
+  }
+  return end;
+}
+
 static const char *json_find_array_local(const char *text, const char *key, const char **out_end) {
   const char *end = text + strlen(text);
   const char *cursor = json_find_key_local(text, end, key);
@@ -2194,6 +2209,12 @@ static const char *json_find_array_local(const char *text, const char *key, cons
   cursor = json_skip_ws_local(cursor, end);
   if (cursor >= end || *cursor != '[') return NULL;
   for (; cursor < end; ++cursor) {
+    if (*cursor == '"') {
+      cursor = json_skip_quoted_local(cursor, end);
+      if (cursor >= end) break;
+      --cursor;
+      continue;
+    }
     if (*cursor == '[') ++depth;
     else if (*cursor == ']') {
       --depth;
@@ -2209,11 +2230,20 @@ static const char *json_find_array_local(const char *text, const char *key, cons
 static const char *json_next_object_local(const char *cursor, const char *end, const char **out_object_end) {
   int depth = 0;
   if (out_object_end != NULL) *out_object_end = NULL;
-  while (cursor < end && *cursor != '{') ++cursor;
+  while (cursor < end && *cursor != '{') {
+    if (*cursor == '"') cursor = json_skip_quoted_local(cursor, end);
+    else ++cursor;
+  }
   if (cursor >= end) return NULL;
   {
     const char *object_start = cursor;
     for (; cursor < end; ++cursor) {
+      if (*cursor == '"') {
+        cursor = json_skip_quoted_local(cursor, end);
+        if (cursor >= end) break;
+        --cursor;
+        continue;
+      }
       if (*cursor == '{') ++depth;
       else if (*cursor == '}') {
         --depth;
