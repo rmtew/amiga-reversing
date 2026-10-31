@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
   "kind": "committed_native_rendered_original_export",
-  "canonical_source_commit": "a878e623ff9bfae5454300a8f3892ab88a4fc45c",
-  "publication_base_commit": "a878e623ff9bfae5454300a8f3892ab88a4fc45c",
+  "canonical_source_commit": "91e78aee8d5c8f535f87bb00791306d6e084260e",
+  "publication_base_commit": "91e78aee8d5c8f535f87bb00791306d6e084260e",
   "native_export": "CListingArtifact.source_package_payload(64)",
-  "main_source_sha256": "07958ce707a3f3278bd8b5638272921985721031a1c03643737d8ba04f8c08db",
+  "main_source_sha256": "84ace63af2b9919a9436e9be64492c2c7a774ecced3b2f25016f1eb93ff0cf3f",
   "asset_count": 57,
   "asset_bytes": 93633,
   "game_assembly_hand_edits": false,
@@ -24,13 +24,13 @@
     "assembler executable",
     "paused Pandora work"
   ],
-  "canonical_source_commit_role": "canonical source publication base; point-field product rounding/cache replacement, RAM plane masks,14-byte scene packets and recycle handoff reconstructed through941 original CPU cases. Recover only three consumed16-byte style prefixes and one4-byte dynamic cursor; trailing12-byte zero regions and MOVE-like slots remain unknown. Preserve N-only speed gates, WORD aliases and same-point retries. Alternate tests retain shipped X tables, not complete installed encodings; no clipping-caller, capacity, retry bound, DMA or scanout claim; output bound by verification_receipt_id",
-  "canonical_source_subject_revision": "f1d56cac414dd4b0beee773d69f81beeeb4a152442bef27ea8625f4411d8329f",
+  "canonical_source_commit_role": "canonical source publication base; five-plane XYZ clipping and the real point-trail handoff reconstructed through 139 original CPU cases, with 941 prior point cases retained. 47 continuations, 7 constants and 3 scratch names preserve signed Q15 rounding/DIVS overflow, edge order, alternating buffers, consecutive-only deduplication, zero-count underflow and exclusive upper screen bounds. Names grant no scratch extent/capacity; raw MOVE-like slots remain unknown. No normal-game reachability, retry-termination, hardware or complete clipping-caller claim; output bound by verification_receipt_id",
+  "canonical_source_subject_revision": "29f94ee641400a2088219e8d512ee8060c97b301206cf29101ebb68aec8fe06b",
   "canonical_fact_sha256": {
     "source_binary.json": "42d4a5758b3e8236af7f912aee85e9ee5323bcd0961faa338c4f864080a0a7d9",
     "target_metadata.json": "e7540b68c118c56aba8815b6722eefa067517cc865fe9841d6c01ce96551389c",
-    "manual_actions.jsonl": "55d8c603c540de9acd7cd49a38d6017e37c3b08ef59f73932ecab1dc5aad93e0",
-    "decision_journal.jsonl": "0a20897aa75f4dd5eb58e15c7d75685daf39413e5853330760795347dd247679"
+    "manual_actions.jsonl": "38b97a1c89d7c6a295ab6c008acf56c8864ef0ac3171c49df034acfd7e2e5acf",
+    "decision_journal.jsonl": "181c1ed6c0ff8bb4b11889496f9dca05d7d65354ff6e6d5c4b64b43860bf2a93"
   },
   "headers": "14 unmodified required include files collected by source_package.collect_package_includes from ext/amiga_includes/ndk_2.0/include; header notices retained",
   "decoded_protection_view": {
@@ -46,7 +46,7 @@
     },
     "runtime_scope": "Seven CPU write-site windows match this reversible view; no whole runtime-view identity or parent plaintext promotion."
   },
-  "verification_receipt_id": "efc9dc1637db22d7bd312206a7ae747ae0bed0d70f27fa3750ae7ab5ad91d7db",
+  "verification_receipt_id": "c0e92a5447703185e04eb601a217836203ed33424f46a261c42af4e097d1d726",
   "render_native_sha256": "5c53c7d8bee53bbd52ecdd970f145d3d175e39fbabd25d559e11f2f6c36f7440",
   "final_assembler_native_sha256": "5c53c7d8bee53bbd52ecdd970f145d3d175e39fbabd25d559e11f2f6c36f7440"
 }

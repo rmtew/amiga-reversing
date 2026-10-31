@@ -1483,6 +1483,13 @@ SG2_BOUNCE_REFLECTION_BIAS	EQU	10
 SG2_BOUNCE_SURFACE_Y	EQU	-25
 SG2_BOUNCE_VERTEX_RELOAD	EQU	11
 SG2_CELESTIAL_TYPE_BASE	EQU	128
+SG2_CLIPPED_TRAIL_X_MULTIPLIER	EQU	288
+SG2_CLIPPED_TRAIL_Y_MULTIPLIER	EQU	98
+SG2_CLIP_INITIAL_PRODUCT_SHIFT	EQU	8
+SG2_CLIP_INITIAL_X_MULTIPLIER	EQU	113
+SG2_CLIP_INITIAL_Y_MULTIPLIER	EQU	334
+SG2_CLIP_NEAR_DEPTH	EQU	128
+SG2_CLIP_VERTEX_BYTES	EQU	6
 SG2_CONTACT_COORDINATE_SHIFT	EQU	9
 SG2_CONTACT_PAIR_DBF_SUBTRACT	EQU	2
 SG2_CONTACT_PIXEL_CENTER_X	EQU	144
@@ -6415,7 +6422,7 @@ abs_0_00004E22:
 	bra.w abs_0_00004D58
 abs_0_00004E2A:
 	movem.l (a7)+,a4-a5
-	lea.l abs_0_000052C0.l,a1
+	lea.l polygon_clip_input_workspace.l,a1
 	moveq.l #0,d7
 	move.w (a5)+,(a1)+
 	moveq.l #15,d1
@@ -6478,7 +6485,7 @@ abs_0_00004EBC:
 	move.l a4,abs_0_000052BA.l
 	clr.w (a4)+
 	movea.l a4,a1
-	move.w abs_0_000052C0.l,(a4)+
+	move.w polygon_clip_input_workspace.l,(a4)+
 	moveq.l #0,d4
 	moveq.l #0,d5
 	move.w #$7FFF,d6
@@ -6822,7 +6829,8 @@ abs_0_000052BA:
 	dc.b $00,$00,$00,$00
 abs_0_000052BE:
 	dc.w $0000
-abs_0_000052C0:
+    ; Shared workspace: polygon callers store a style WORD then XYZ triples; trails write XYZ directly at the base. This is not one common layout, capacity or lifetime contract.
+polygon_clip_input_workspace:
 	dc.w $0000
 abs_0_000052C2:
 	dcb.b $76,$00
@@ -7303,53 +7311,56 @@ model_maximum_signed_coordinates:
 	dc.b $C3,$F2,$30,$00,$C5,$F2,$30,$00,$B6,$7C,$01,$00,$62,$06,$EE,$81
 	dc.b $EE,$82,$60,$04,$48,$41,$48,$42,$D2,$6E,$01,$94,$D4,$6E,$01,$94
 	dc.b $4E,$75,$7E,$04,$24,$7C,$00,$00,$60,$6E
-    ; Clip combined polygon plane mask: near bit 7 enables near clipping and all four side passes. Input triples are scaled in this service; original arithmetic and scratch-buffer limits remain.
+    ; A2 holds XYZ WORDs, D7 the count, D4 the plane mask. Scale X*113>>8, Y*334>>8, Z ASR.W1. Zero count underflows before copying; no local empty-input or capacity guard.
 clip_polygon_in_view_volume:
 	move.b d4,polygon_clip_plane_mask(a6)
 	movea.w d7,a3
 	subq.w #1,d7
-	lea.l abs_0_00005EEC.l,a4
-	lea.l abs_0_00005FAE.l,a5
+	lea.l polygon_clip_xyz_scratch_a.l,a4
+	lea.l polygon_clip_xyz_scratch_b.l,a5
 	movea.l a4,a0
 	move.w d7,d0
-	move.w #$71,d1
-	move.w #$14E,d2
-abs_0_00005B12:
+	move.w #SG2_CLIP_INITIAL_X_MULTIPLIER,d1
+	move.w #SG2_CLIP_INITIAL_Y_MULTIPLIER,d2
+scale_next_clip_input_xyz:
 	move.w (a2)+,d3
 	move.w (a2)+,d4
 	move.w (a2)+,d5
 	muls.w d1,d3
 	muls.w d2,d4
-	asr.l #8,d3
-	asr.l #8,d4
+	asr.l #SG2_CLIP_INITIAL_PRODUCT_SHIFT,d3
+	asr.l #SG2_CLIP_INITIAL_PRODUCT_SHIFT,d4
 	asr.w #1,d5
 	move.w d3,(a0)+
 	move.w d4,(a0)+
 	move.w d5,(a0)+
-	dbf.w d0,abs_0_00005B12
+	dbf.w d0,scale_next_clip_input_xyz
+    ; Near bit7 enables all four side passes. Each requested pass consumes a closed edge cycle and swaps the XYZ scratch bases. Side order is negative X, positive X, negative Y, positive Y.
 	btst.b #7,polygon_clip_plane_mask(a6)
-	beq.w abs_0_00005BE8
+	beq.w test_negative_x_clip_plane
 	ori.b #15,polygon_clip_plane_mask(a6)
 	movea.l a4,a2
 	movea.l a5,a0
 	suba.l a3,a3
-abs_0_00005B42:
+clip_next_near_plane_edge:
 	movem.w (a2)+,d1-d3
 	tst.w d7
-	bne.w abs_0_00005B4E
+	bne.w load_near_plane_edge_endpoint
 	movea.l a4,a2
-abs_0_00005B4E:
+load_near_plane_edge_endpoint:
 	movem.w (a2),d4-d6
-	cmp.w #$80,d3
+	cmp.w #SG2_CLIP_NEAR_DEPTH,d3
 	slt.b d0
-	cmp.w #$80,d6
-	bge.w abs_0_00005B68
+	cmp.w #SG2_CLIP_NEAR_DEPTH,d6
+	bge.w test_near_plane_edge_crossing
 	bset #7,d0
-	bne.w abs_0_00005BE2
-abs_0_00005B68:
+	bne.w advance_near_plane_edge
+test_near_plane_edge_crossing:
 	tst.b d0
-	beq.w abs_0_00005BA8
-	move.w #$80,d0
+	beq.w deduplicate_near_plane_output_start
+    ; Near crossing uses signed Q15 division and extracts each interpolated product separately. Exact-boundary reverse edges can yield32768: original DIVS overflow is unchecked and preserved.
+interpolate_near_plane_intersection:
+	move.w #SG2_CLIP_NEAR_DEPTH,d0
 	sub.w d3,d0
 	sub.w d3,d6
 	swap.w d0
@@ -7366,14 +7377,15 @@ abs_0_00005B68:
 	asl.l #1,d5
 	swap.w d5
 	add.w d2,d5
-	move.w #$80,d6
-	cmp.w #$80,d3
-	bge.w abs_0_00005BA8
+	move.w #SG2_CLIP_NEAR_DEPTH,d6
+	cmp.w #SG2_CLIP_NEAR_DEPTH,d3
+	bge.w deduplicate_near_plane_output_start
 	move.w d4,d1
 	move.w d5,d2
 	move.w d6,d3
 	movem.w (a2),d4-d6
-abs_0_00005BA8:
+    ; Suppress only consecutive equal XYZ triplets. A closed edge cycle can retain the first vertex again at its end; this is not global deduplication or a maximum-output-count proof.
+deduplicate_near_plane_output_start:
 	move.w a3,d0
 	beq.b abs_0_00005BC4
 	add.w d0,d0
@@ -7384,51 +7396,52 @@ abs_0_00005BA8:
 	cmp.w -$4(a0,d0.w),d2
 	bne.b abs_0_00005BC4
 	cmp.w -$2(a0,d0.w),d3
-	beq.b abs_0_00005BCE
+	beq.b append_distinct_near_plane_edge_end
 abs_0_00005BC4:
 	movem.w d1-d3,$0(a0,d0.w)
 	addq.w #1,a3
-	addq.w #6,d0
-abs_0_00005BCE:
+	addq.w #SG2_CLIP_VERTEX_BYTES,d0
+append_distinct_near_plane_edge_end:
 	cmp.w d1,d4
 	bne.b abs_0_00005BDA
 	cmp.w d2,d5
 	bne.b abs_0_00005BDA
 	cmp.w d3,d6
-	beq.b abs_0_00005BE2
+	beq.b advance_near_plane_edge
 abs_0_00005BDA:
 	movem.w d4-d6,$0(a0,d0.w)
 	addq.w #1,a3
-abs_0_00005BE2:
-	dbf.w d7,abs_0_00005B42
+advance_near_plane_edge:
+	dbf.w d7,clip_next_near_plane_edge
 	exg a5,a4
-abs_0_00005BE8:
+test_negative_x_clip_plane:
 	btst.b #0,polygon_clip_plane_mask(a6)
-	beq.w abs_0_00005CAC
+	beq.w test_positive_x_clip_plane
 	movea.l a4,a2
 	movea.l a5,a0
 	move.w a3,d7
-	beq.w abs_0_00005EE8
+	beq.w return_from_view_volume_clipping
 	subq.w #1,d7
 	suba.l a3,a3
-abs_0_00005C00:
+clip_next_negative_x_edge:
 	movem.w (a2)+,d1-d3
 	neg.w d1
 	tst.w d7
-	bne.w abs_0_00005C0E
+	bne.w load_negative_x_edge_endpoint
 	movea.l a4,a2
-abs_0_00005C0E:
+load_negative_x_edge_endpoint:
 	movem.w (a2),d4-d6
 	neg.w d4
 	cmp.w d3,d1
 	sgt.b d0
 	cmp.w d6,d4
-	ble.w abs_0_00005C26
+	ble.w test_negative_x_edge_crossing
 	bset #7,d0
-	bne.w abs_0_00005CA6
-abs_0_00005C26:
+	bne.w advance_negative_x_clip_edge
+    ; Negate X for the negative-X plane. Interpolate X/Y against X=Z in that temporary view, set depth from intersection X, then undo X negation before output.
+test_negative_x_edge_crossing:
 	tst.b d0
-	beq.w abs_0_00005C68
+	beq.w deduplicate_negative_x_output_start
 	move.w d3,d0
 	sub.w d1,d0
 	neg.w d6
@@ -7451,13 +7464,13 @@ abs_0_00005C26:
 	add.w d2,d5
 	move.w d4,d6
 	cmp.w d3,d1
-	ble.w abs_0_00005C68
+	ble.w deduplicate_negative_x_output_start
 	move.w d4,d1
 	move.w d5,d2
 	move.w d6,d3
 	movem.w (a2),d4-d6
 	neg.w d4
-abs_0_00005C68:
+deduplicate_negative_x_output_start:
 	neg.w d1
 	neg.w d4
 	move.w a3,d0
@@ -7470,49 +7483,50 @@ abs_0_00005C68:
 	cmp.w -$4(a0,d0.w),d2
 	bne.b abs_0_00005C88
 	cmp.w -$2(a0,d0.w),d3
-	beq.b abs_0_00005C92
+	beq.b append_distinct_negative_x_edge_end
 abs_0_00005C88:
 	movem.w d1-d3,$0(a0,d0.w)
 	addq.w #1,a3
-	addq.w #6,d0
-abs_0_00005C92:
+	addq.w #SG2_CLIP_VERTEX_BYTES,d0
+append_distinct_negative_x_edge_end:
 	cmp.w d1,d4
 	bne.b abs_0_00005C9E
 	cmp.w d2,d5
 	bne.b abs_0_00005C9E
 	cmp.w d3,d6
-	beq.b abs_0_00005CA6
+	beq.b advance_negative_x_clip_edge
 abs_0_00005C9E:
 	movem.w d4-d6,$0(a0,d0.w)
 	addq.w #1,a3
-abs_0_00005CA6:
-	dbf.w d7,abs_0_00005C00
+advance_negative_x_clip_edge:
+	dbf.w d7,clip_next_negative_x_edge
 	exg a5,a4
-abs_0_00005CAC:
+test_positive_x_clip_plane:
 	btst.b #1,polygon_clip_plane_mask(a6)
-	beq.w abs_0_00005D66
+	beq.w test_negative_y_clip_plane
 	movea.l a4,a2
 	movea.l a5,a0
 	move.w a3,d7
-	beq.w abs_0_00005EE8
+	beq.w return_from_view_volume_clipping
 	subq.w #1,d7
 	suba.l a3,a3
-abs_0_00005CC4:
+clip_next_positive_x_edge:
 	movem.w (a2)+,d1-d3
 	tst.w d7
-	bne.w abs_0_00005CD0
+	bne.w load_positive_x_edge_endpoint
 	movea.l a4,a2
-abs_0_00005CD0:
+load_positive_x_edge_endpoint:
 	movem.w (a2),d4-d6
 	cmp.w d3,d1
 	sgt.b d0
 	cmp.w d6,d4
-	ble.w abs_0_00005CE6
+	ble.w test_positive_x_edge_crossing
 	bset #7,d0
-	bne.w abs_0_00005D60
-abs_0_00005CE6:
+	bne.w advance_positive_x_clip_edge
+    ; Positive-X crossing interpolates X/Y and takes the clipped X as depth. WORD deltas and signed Q15 truncation/rounding remain original; no general input-range invariant is assumed.
+test_positive_x_edge_crossing:
 	tst.b d0
-	beq.w abs_0_00005D26
+	beq.w deduplicate_positive_x_output_start
 	move.w d3,d0
 	sub.w d1,d0
 	neg.w d6
@@ -7535,12 +7549,12 @@ abs_0_00005CE6:
 	add.w d2,d5
 	move.w d4,d6
 	cmp.w d3,d1
-	ble.w abs_0_00005D26
+	ble.w deduplicate_positive_x_output_start
 	move.w d4,d1
 	move.w d5,d2
 	move.w d6,d3
 	movem.w (a2),d4-d6
-abs_0_00005D26:
+deduplicate_positive_x_output_start:
 	move.w a3,d0
 	beq.b abs_0_00005D42
 	add.w d0,d0
@@ -7551,51 +7565,52 @@ abs_0_00005D26:
 	cmp.w -$4(a0,d0.w),d2
 	bne.b abs_0_00005D42
 	cmp.w -$2(a0,d0.w),d3
-	beq.b abs_0_00005D4C
+	beq.b append_distinct_positive_x_edge_end
 abs_0_00005D42:
 	movem.w d1-d3,$0(a0,d0.w)
 	addq.w #1,a3
-	addq.w #6,d0
-abs_0_00005D4C:
+	addq.w #SG2_CLIP_VERTEX_BYTES,d0
+append_distinct_positive_x_edge_end:
 	cmp.w d1,d4
 	bne.b abs_0_00005D58
 	cmp.w d2,d5
 	bne.b abs_0_00005D58
 	cmp.w d3,d6
-	beq.b abs_0_00005D60
+	beq.b advance_positive_x_clip_edge
 abs_0_00005D58:
 	movem.w d4-d6,$0(a0,d0.w)
 	addq.w #1,a3
-abs_0_00005D60:
-	dbf.w d7,abs_0_00005CC4
+advance_positive_x_clip_edge:
+	dbf.w d7,clip_next_positive_x_edge
 	exg a5,a4
-abs_0_00005D66:
+test_negative_y_clip_plane:
 	btst.b #2,polygon_clip_plane_mask(a6)
-	beq.w abs_0_00005E2A
+	beq.w test_positive_y_clip_plane
 	movea.l a4,a2
 	movea.l a5,a0
 	move.w a3,d7
-	beq.w abs_0_00005EE8
+	beq.w return_from_view_volume_clipping
 	subq.w #1,d7
 	suba.l a3,a3
-abs_0_00005D7E:
+clip_next_negative_y_edge:
 	movem.w (a2)+,d1-d3
 	neg.w d2
 	tst.w d7
-	bne.w abs_0_00005D8C
+	bne.w load_negative_y_edge_endpoint
 	movea.l a4,a2
-abs_0_00005D8C:
+load_negative_y_edge_endpoint:
 	movem.w (a2),d4-d6
 	neg.w d5
 	cmp.w d3,d2
 	sgt.b d0
 	cmp.w d6,d5
-	ble.w abs_0_00005DA4
+	ble.w test_negative_y_edge_crossing
 	bset #7,d0
-	bne.w abs_0_00005E24
-abs_0_00005DA4:
+	bne.w advance_negative_y_clip_edge
+    ; Negative-Y clipping negates Y while testing Y<=Z; intersection Y becomes depth before Y sign is restored. This is a separate pass and scratch-buffer phase.
+test_negative_y_edge_crossing:
 	tst.b d0
-	beq.w abs_0_00005DE6
+	beq.w deduplicate_negative_y_output_start
 	move.w d3,d0
 	sub.w d2,d0
 	neg.w d6
@@ -7618,13 +7633,13 @@ abs_0_00005DA4:
 	add.w d2,d5
 	move.w d5,d6
 	cmp.w d3,d2
-	ble.w abs_0_00005DE6
+	ble.w deduplicate_negative_y_output_start
 	move.w d4,d1
 	move.w d5,d2
 	move.w d6,d3
 	movem.w (a2),d4-d6
 	neg.w d5
-abs_0_00005DE6:
+deduplicate_negative_y_output_start:
 	neg.w d2
 	neg.w d5
 	move.w a3,d0
@@ -7637,49 +7652,49 @@ abs_0_00005DE6:
 	cmp.w -$4(a0,d0.w),d2
 	bne.b abs_0_00005E06
 	cmp.w -$2(a0,d0.w),d3
-	beq.b abs_0_00005E10
+	beq.b append_distinct_negative_y_edge_end
 abs_0_00005E06:
 	movem.w d1-d3,$0(a0,d0.w)
 	addq.w #1,a3
-	addq.w #6,d0
-abs_0_00005E10:
+	addq.w #SG2_CLIP_VERTEX_BYTES,d0
+append_distinct_negative_y_edge_end:
 	cmp.w d1,d4
 	bne.b abs_0_00005E1C
 	cmp.w d2,d5
 	bne.b abs_0_00005E1C
 	cmp.w d3,d6
-	beq.b abs_0_00005E24
+	beq.b advance_negative_y_clip_edge
 abs_0_00005E1C:
 	movem.w d4-d6,$0(a0,d0.w)
 	addq.w #1,a3
-abs_0_00005E24:
-	dbf.w d7,abs_0_00005D7E
+advance_negative_y_clip_edge:
+	dbf.w d7,clip_next_negative_y_edge
 	exg a5,a4
-abs_0_00005E2A:
+test_positive_y_clip_plane:
 	btst.b #3,polygon_clip_plane_mask(a6)
-	beq.w abs_0_00005EE4
+	beq.w return_clipped_xyz_and_count
 	movea.l a4,a2
 	movea.l a5,a0
 	move.w a3,d7
-	beq.w abs_0_00005EE8
+	beq.w return_from_view_volume_clipping
 	subq.w #1,d7
 	suba.l a3,a3
-abs_0_00005E42:
+clip_next_positive_y_edge:
 	movem.w (a2)+,d1-d3
 	tst.w d7
-	bne.w abs_0_00005E4E
+	bne.w load_positive_y_edge_endpoint
 	movea.l a4,a2
-abs_0_00005E4E:
+load_positive_y_edge_endpoint:
 	movem.w (a2),d4-d6
 	cmp.w d3,d2
 	sgt.b d0
 	cmp.w d6,d5
-	ble.w abs_0_00005E64
+	ble.w test_positive_y_edge_crossing
 	bset #7,d0
-	bne.w abs_0_00005EDE
-abs_0_00005E64:
+	bne.w advance_positive_y_clip_edge
+test_positive_y_edge_crossing:
 	tst.b d0
-	beq.w abs_0_00005EA4
+	beq.w deduplicate_positive_y_output_start
 	move.w d3,d0
 	sub.w d2,d0
 	neg.w d6
@@ -7702,12 +7717,12 @@ abs_0_00005E64:
 	add.w d2,d5
 	move.w d5,d6
 	cmp.w d3,d2
-	ble.w abs_0_00005EA4
+	ble.w deduplicate_positive_y_output_start
 	move.w d4,d1
 	move.w d5,d2
 	move.w d6,d3
 	movem.w (a2),d4-d6
-abs_0_00005EA4:
+deduplicate_positive_y_output_start:
 	move.w a3,d0
 	beq.b abs_0_00005EC0
 	add.w d0,d0
@@ -7718,33 +7733,34 @@ abs_0_00005EA4:
 	cmp.w -$4(a0,d0.w),d2
 	bne.b abs_0_00005EC0
 	cmp.w -$2(a0,d0.w),d3
-	beq.b abs_0_00005ECA
+	beq.b append_distinct_positive_y_edge_end
 abs_0_00005EC0:
 	movem.w d1-d3,$0(a0,d0.w)
 	addq.w #1,a3
-	addq.w #6,d0
-abs_0_00005ECA:
+	addq.w #SG2_CLIP_VERTEX_BYTES,d0
+append_distinct_positive_y_edge_end:
 	cmp.w d1,d4
 	bne.b abs_0_00005ED6
 	cmp.w d2,d5
 	bne.b abs_0_00005ED6
 	cmp.w d3,d6
-	beq.b abs_0_00005EDE
+	beq.b advance_positive_y_clip_edge
 abs_0_00005ED6:
 	movem.w d4-d6,$0(a0,d0.w)
 	addq.w #1,a3
-abs_0_00005EDE:
-	dbf.w d7,abs_0_00005E42
+advance_positive_y_clip_edge:
+	dbf.w d7,clip_next_positive_y_edge
 	exg a5,a4
-abs_0_00005EE4:
+    ; Return A2=current XYZ buffer and D7.W=count. Empty results may return before later passes. Scratch-base names describe observed use, not inferred extents or safe maximum vertex counts.
+return_clipped_xyz_and_count:
 	movea.l a4,a2
 	move.w a3,d7
-abs_0_00005EE8:
+return_from_view_volume_clipping:
 	rts
 	dc.w $0000
-abs_0_00005EEC:
+polygon_clip_xyz_scratch_a:
 	dcb.b $C2,$00
-abs_0_00005FAE:
+polygon_clip_xyz_scratch_b:
 	dcb.b $C0,$00
 	dc.b $01,$90,$01,$90,$02,$58,$FE,$70,$01,$90,$02,$58,$FE,$70,$FE,$70
 	dc.b $02,$58,$01,$90,$FE,$70,$02,$58
@@ -38890,7 +38906,7 @@ abs_0_0002F364:
 	bra.w abs_0_0002F4D4
 abs_0_0002F370:
 	movem.l (a7)+,a4-a5
-	lea.l abs_0_000052C0.l,a1
+	lea.l polygon_clip_input_workspace.l,a1
 	moveq.l #4,d7
 	move.w $0002(a4),(a1)+
 	moveq.l #15,d1
@@ -38965,7 +38981,7 @@ abs_0_0002F3FE:
 	tst.w d1
 	bne.w abs_0_0002F4D4
 abs_0_0002F41A:
-	lea.l abs_0_000052C0.l,a2
+	lea.l polygon_clip_input_workspace.l,a2
 	addq.w #2,a2
 	move.b #$10,diagnostic_step_byte.l
 	movem.l a3-a5,-(a7)
@@ -38992,7 +39008,7 @@ abs_0_0002F462:
 	addq.w #1,scene_packet_count.l
 	move.w #$7FF0,(a4)+
 	movea.l a4,a1
-	move.w abs_0_000052C0.l,(a4)+
+	move.w polygon_clip_input_workspace.l,(a4)+
 	lea.l projection_scale_lookup.l,a0
 abs_0_0002F482:
 	movem.w (a2)+,d1-d3
@@ -62557,80 +62573,81 @@ rewind_recycled_world_point_cursor:
 	subq.l #SG2_POINT_XYZ_BYTES,a4
 	bra.w transform_next_nearby_point
 	dcb.b $50,$00
-    ; Clipping saves original view endpoints and uses the shared clipper, then the packet path. CPU qualification here covers packet writes, not all clipping callbacks or the raw MOVE-like bytes.
+    ; Consume two saved endpoints through the real clipper, then project its first two XYZ records.139 CPU cases include acceptance/recycling, not raw slots, normal-game reachability or scanout.
 clip_point_trail_from_original_view_xyz:
 	movea.l point_field_previous_view_cursor.l,a0
 	subq.w #6,a0
 	movem.w (a0),d4-d6
-	lea.l abs_0_000052C0.l,a0
+	lea.l polygon_clip_input_workspace.l,a0
 	movem.w d4-d6,(a0)
 	movem.w (a7)+,d4-d6
 	movem.w d4-d6,$0006(a0)
 	movem.l d7/a0-a6,-(a7)
 	move.b d3,d4
 	moveq.l #2,d7
-	lea.l abs_0_000052C0.l,a2
+	lea.l polygon_clip_input_workspace.l,a2
 	bsr.w clip_polygon_in_view_volume_bridge_04d5c4
 	tst.w d7
 	beq.w restore_point_clip_frame_before_recycle
 	movem.w (a2),d1-d6
 	movem.l (a7)+,d7/a0-a6
 	lsl.w #1,d3
-	muls.w #$120,d1
-	muls.w #$62,d2
+	muls.w #SG2_CLIPPED_TRAIL_X_MULTIPLIER,d1
+	muls.w #SG2_CLIPPED_TRAIL_Y_MULTIPLIER,d2
 	andi.w #65534,d3
-	bmi.b abs_0_0004E4D6
-	beq.b abs_0_0004E4D6
+	bmi.b offset_clipped_trail_current_endpoint
+	beq.b offset_clipped_trail_current_endpoint
 	divs.w d3,d1
 	divs.w d3,d2
-abs_0_0004E4D6:
+offset_clipped_trail_current_endpoint:
 	add.w projection_screen_origin_x(a6),d1
 	add.w projection_screen_origin_y(a6),d2
 	cmp.w view_clip_min_x(a6),d1
-	bpl.b abs_0_0004E4EC
+	bpl.b test_clipped_trail_current_upper_x
 	move.w view_clip_min_x(a6),d1
 	bra.w recycle_current_point_and_retry
-abs_0_0004E4EC:
+    ; Screen bounds use subtraction N: lower bounds inclusive, upper bounds exclusive for tested ranges. Failure recycles the point; apparent MOVE slots after unconditional branches remain raw.
+test_clipped_trail_current_upper_x:
 	cmp.w view_clip_max_x(a6),d1
-	bmi.b abs_0_0004E4FA
+	bmi.b test_clipped_trail_current_lower_y
 	bra.w recycle_current_point_and_retry
 	dc.b $32,$2E,$00,$E6
-abs_0_0004E4FA:
+test_clipped_trail_current_lower_y:
 	cmp.w view_clip_min_y(a6),d2
-	bpl.b abs_0_0004E508
+	bpl.b test_clipped_trail_current_upper_y
 	bra.w recycle_current_point_and_retry
 	dc.b $34,$2E,$00,$E8
-abs_0_0004E508:
+test_clipped_trail_current_upper_y:
 	cmp.w view_clip_max_y(a6),d2
-	bmi.b abs_0_0004E516
+	bmi.b project_clipped_trail_previous_endpoint
 	bra.w recycle_current_point_and_retry
 	dc.b $34,$2E,$00,$EA
-abs_0_0004E516:
+project_clipped_trail_previous_endpoint:
 	lsl.w #1,d6
-	muls.w #$120,d4
-	muls.w #$62,d5
+	muls.w #SG2_CLIPPED_TRAIL_X_MULTIPLIER,d4
+	muls.w #SG2_CLIPPED_TRAIL_Y_MULTIPLIER,d5
 	andi.w #65534,d6
-	bmi.b abs_0_0004E52C
-	beq.b abs_0_0004E52C
+	bmi.b offset_clipped_trail_previous_endpoint
+	beq.b offset_clipped_trail_previous_endpoint
 	divs.w d6,d4
 	divs.w d6,d5
-abs_0_0004E52C:
+offset_clipped_trail_previous_endpoint:
 	add.w projection_screen_origin_x(a6),d4
 	add.w projection_screen_origin_y(a6),d5
 	cmp.w view_clip_min_x(a6),d4
-	bpl.b abs_0_0004E542
+	bpl.b test_clipped_trail_previous_upper_x
 	bra.w recycle_current_point_and_retry
 	dc.b $38,$2E,$00,$E4
-abs_0_0004E542:
+test_clipped_trail_previous_upper_x:
 	cmp.w view_clip_max_x(a6),d4
-	bmi.b abs_0_0004E550
+	bmi.b test_clipped_trail_previous_lower_y
 	bra.w recycle_current_point_and_retry
 	dc.b $38,$2E,$00,$E6
-abs_0_0004E550:
+test_clipped_trail_previous_lower_y:
 	cmp.w view_clip_min_y(a6),d5
-	bpl.b abs_0_0004E55A
+	bpl.b test_clipped_trail_previous_upper_y
 	bra.w recycle_current_point_and_retry
-abs_0_0004E55A:
+test_clipped_trail_previous_upper_y:
 	cmp.w view_clip_max_y(a6),d5
 	bmi.b emit_clipped_point_trail_packet
 	bra.w recycle_current_point_and_retry

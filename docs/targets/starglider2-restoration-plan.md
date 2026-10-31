@@ -27,6 +27,19 @@ and strengthened 38 app-base attributions.
 Conditional skips mean104 outer iterations are not104 observed memory reads.
 Loaded pointer values remain subject to separate alias/target validation.
 
+The five-plane polygon-clipper batch restores 47 continuations, seven arithmetic
+constants and three scratch-base names without inventing buffer extents.
+139 original CPU cases cover WORD/Q15 rounding, alternating buffers,
+consecutive-only vertex deduplication, zero-count underflow and ten real
+point-trail caller paths through 14-byte packet emission or recycling. Near clipping enables
+all side passes; a supplied exact-near-endpoint reverse edge overflows DIVS.W,
+and the original unchecked behavior is retained. The trail caller uses
+inclusive lower and exclusive upper screen bounds in the tested ranges.
+Counts and ownership remain unchanged. Normal-game reachability of arithmetic
+edges, maximum scratch usage, all clipping callers and hardware output remain
+unqualified; raw MOVE-like slots still lack entry evidence. Next connected
+source work is the scene-reference sorter and packet-cycling consumers.
+
 The point-field batch follows per-product view projection, cache replacement,
 plane strides, point plotting, 14-byte scene packets and same-point recycling.
 941 original CPU cases include six complete 20-point passes. Each matrix
@@ -42,8 +55,9 @@ following 12-byte zero tail and the MOVE-like clipping slots remain unknown.
 The cursor is dynamic state, not a constant source pointer. A recycle clears
 one cache triplet and rewinds both cursors without consuming the point count;
 no universal retry bound follows. Alternate tests retain shipped X tables,
-not complete installed encodings. Clipping-caller closure, buffer capacity,
-DMA and scanout remain outside this CPU qualification.
+not complete installed encodings. Complete clipping-caller closure, buffer
+capacity, DMA and scanout remain outside this CPU qualification; the subsequent
+clipper batch qualifies the specific point-trail handoff described above.
 
 The view-input batch connects the anonymous keyboard handler to the existing
 view selectors, real point-field reset and message queue. 427 CPU cases retain

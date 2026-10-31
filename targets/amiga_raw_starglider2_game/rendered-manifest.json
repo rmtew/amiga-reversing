@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "source_commit": "a878e623ff9bfae5454300a8f3892ab88a4fc45c",
+  "source_commit": "91e78aee8d5c8f535f87bb00791306d6e084260e",
   "source_assembly": "starglider2_game.s",
   "assets": [
     {
@@ -878,13 +878,13 @@
     },
     {
       "path": "rendered-provenance.json",
-      "bytes": 3664,
-      "sha256": "8def2b77f4de6188b79c0c263ac2ebec761421f14fde81ff2359245125437d0a"
+      "bytes": 3685,
+      "sha256": "f409226c600cfe520de3265f61ca8c78344cf557860c29a8fbda92976f3ba2cb"
     },
     {
       "path": "starglider2_game.s",
-      "bytes": 2209859,
-      "sha256": "07958ce707a3f3278bd8b5638272921985721031a1c03643737d8ba04f8c08db"
+      "bytes": 2214114,
+      "sha256": "84ace63af2b9919a9436e9be64492c2c7a774ecced3b2f25016f1eb93ff0cf3f"
     },
     {
       "path": "tools/starglider2_protection.py",
@@ -892,6 +892,6 @@
       "sha256": "81d3f66d36dbfbd5c77238b20c28e8b9abaa329777eb91f64669bbbf13703582"
     }
   ],
-  "source_commit_role": "canonical source publication base; point-field product rounding/cache replacement, RAM plane masks,14-byte scene packets and recycle handoff reconstructed through941 original CPU cases. Recover only three consumed16-byte style prefixes and one4-byte dynamic cursor; trailing12-byte zero regions and MOVE-like slots remain unknown. Preserve N-only speed gates, WORD aliases and same-point retries. Alternate tests retain shipped X tables, not complete installed encodings; no clipping-caller, capacity, retry bound, DMA or scanout claim; output bound by verification_receipt_id",
-  "source_subject_revision": "f1d56cac414dd4b0beee773d69f81beeeb4a152442bef27ea8625f4411d8329f"
+  "source_commit_role": "canonical source publication base; five-plane XYZ clipping and the real point-trail handoff reconstructed through 139 original CPU cases, with 941 prior point cases retained. 47 continuations, 7 constants and 3 scratch names preserve signed Q15 rounding/DIVS overflow, edge order, alternating buffers, consecutive-only deduplication, zero-count underflow and exclusive upper screen bounds. Names grant no scratch extent/capacity; raw MOVE-like slots remain unknown. No normal-game reachability, retry-termination, hardware or complete clipping-caller claim; output bound by verification_receipt_id",
+  "source_subject_revision": "29f94ee641400a2088219e8d512ee8060c97b301206cf29101ebb68aec8fe06b"
 }
