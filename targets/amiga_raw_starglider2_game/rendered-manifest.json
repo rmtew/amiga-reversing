@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "source_commit": "6aa224df90a3276caf1d35d1bf32d6fc1302f712",
+  "source_commit": "0c5e982819eba44cfe0bb89ee0b2f439ce1f90c5",
   "source_assembly": "starglider2_game.s",
   "assets": [
     {
@@ -878,13 +878,13 @@
     },
     {
       "path": "rendered-provenance.json",
-      "bytes": 3686,
-      "sha256": "0420bc49e8532266e8f77653b468b98da395b250c85fc54108d3c7fba6ff7005"
+      "bytes": 3618,
+      "sha256": "d5d5e9463afb27c2884a4661b9de260c2e64d0aa2c89b638d147b4ca5a018680"
     },
     {
       "path": "starglider2_game.s",
-      "bytes": 2234893,
-      "sha256": "e1e67e9f7696a46daf5e483373b525ca43c3b2e3393bd6d6301413c7d5475db2"
+      "bytes": 2237137,
+      "sha256": "915e59f9101d8d10f8ff09e18ca1ce177d8ff7806422c65b1432a7e2cebbb6df"
     },
     {
       "path": "tools/starglider2_protection.py",
@@ -892,6 +892,6 @@
       "sha256": "81d3f66d36dbfbd5c77238b20c28e8b9abaa329777eb91f64669bbbf13703582"
     }
   ],
-  "source_commit_role": "canonical source publication base; interleaved raw-profile reader and initialization context reconstructed through 397 original CPU cases. Nineteen continuations and five scalar constants preserve signed endpoint order, style masking, row-start USP transport, fixed-cell column behavior, partial mask initialization and retained prior state. A finite cycle/interpolate/draw fixture is not a homogeneous production-sequence, bounds or lifetime proof. Existing native facts remain unchanged; full alternate startup, palette RGB and hardware remain unqualified; output bound by verification_receipt_id",
-  "source_subject_revision": "2c6179b91a6598d605ddc51148a2adae2827cadc12c73d8f248fce570724be45"
+  "source_commit_role": "canonical source publication base; alternate pattern reader reconstructed through 356 original CPU cases. Nine continuations, a native mask-table name,128 bytes of two-LONG pattern pairs and three constants expose two-bit pixels,80-byte bank separation,160-byte subsequent rows, masked negative and unclamped wrapping positive selectors, and fixed sample writes on all returns. No production sequence bounds/lifetime, full alternate startup, palette RGB or hardware equivalence is asserted; output bound by verification_receipt_id",
+  "source_subject_revision": "7b68b72b686c718ee8a1b14d5f10ae77c8f7e7a9ba0520c1cb923e5dcf757356"
 }

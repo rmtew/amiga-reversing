@@ -7,8 +7,8 @@ that further analysis is exhausted. Current source remains byte exact: all
 with all 106154 accepted code bytes retained. No generated assembly was edited
 by hand and no interim archive was produced.
 
-The current ownership union leaves 10243 bytes in
-276 intervals unclassified. This is classification accounting,
+The current ownership union leaves 10115 bytes in
+275 intervals unclassified. This is classification accounting,
 not a semantic completion percentage. Earlier interval/site counts below belong
 to their recorded closeout revision. See the current
 [native memory-span receipt](../../runtime/observations/starglider2-app-memory-spans.json),
@@ -16,8 +16,8 @@ to their recorded closeout revision. See the current
 
 ## Current refinement and next evidence
 
-Current native totals: **3514 app /2716 typed /166 unresolved**, with **10243
-unclassified bytes /276 intervals**. The earlier counter-indexed source-array recovery reused
+Current native totals: **3514 app /2716 typed /166 unresolved**, with **10115
+unclassified bytes /275 intervals**. The earlier counter-indexed source-array recovery reused
 the shared loop induction and interned linear entry values. Original inventory
 readers at source `$DD6` and `$339B4` expose the existing name-reference `text`
 field over the possible104-entry prefix of the148-record owner. That batch retained existing
@@ -26,6 +26,18 @@ Its startup caller proof added five header reads and six app accesses,
 and strengthened 38 app-base attributions.
 Conditional skips mean104 outer iterations are not104 observed memory reads.
 Loaded pointer values remain subject to separate alias/target validation.
+
+The alternate pattern-reader batch adds 356 CPU cases, nine continuations,
+three constants and 128 bytes of identified two-LONG pattern pairs. Each pixel
+uses two bits per bank, with banks 80 bytes apart. The reader uses retained
+first-row offsets, then advances 160 bytes per row without generated masks.
+Negative styles mask negation to four bits; positive shifted selectors remain
+unclamped and WORD-wrapping. Every completion path writes the fixed four-row
+sample block, including empty queues. Tests compare complete RAM for finite
+queues and X=0..319; they do not prove production bounds/lifetime, full alternate
+startup, palette RGB or scanout. The single-reference/sequence gap remains.
+Next: connected scene mode/snapshot producers and alternate table/setup callers,
+without assuming phase exclusion or a universal selector domain.
 
 The interleaved-context batch adds 397 CPU cases, 19 continuations and five
 scalar constants. Nonnegative setup writes 256 repeated-WORD inside masks,
@@ -38,9 +50,9 @@ The earlier single-record/sequence limitation remains: a current-reference seed
 does not prove following cells' initialized type, count/extent or live phase.
 No homogeneous sequence or lifetime contract was added. Production admission
 still needs producer coverage/count and shared-storage phase evidence, beyond
-the finite fixture queues. Native facts and ownership are unchanged. Next:
-alternate pattern-reader addressing and original setup relationships; its gate
-alone does not qualify full alternate startup or the mode0 state for that reader.
+the finite fixture queues. Native facts and ownership were unchanged in that
+batch. The subsequent alternate-reader batch qualifies finite pattern drawing above; full alternate
+startup remains separate.
 
 The planar-reader batch qualifies 687 CPU cases with original Amiga row/mask
 initialization and exact RAM comparison. It names 72 reader/callback labels,

@@ -1443,6 +1443,7 @@ BPLCON2_PF2P2	EQU	$20
 BPLCON2_PF2PRI	EQU	$40
 INTF_CLRALL	EQU	$7FFF
 SG2_AIM_CONTROL_PHASE_MASK	EQU	4095
+SG2_ALTERNATE_COMPLETION_SAMPLE_OFFSET	EQU	28684
 SG2_ALTERNATE_EFFECT_PALETTE_BYTE_OFFSET	EQU	20
 SG2_ALTERNATE_GENERIC_EVENT_ARGUMENT	EQU	500
 SG2_ALTERNATE_GRAPHICS_MODE_BIT	EQU	$1
@@ -1461,6 +1462,8 @@ SG2_ALTERNATE_MODE1_X_REPEAT_DBF_LAST	EQU	$7
 SG2_ALTERNATE_PALETTE_COMPONENT_MASK	EQU	$777
 SG2_ALTERNATE_PALETTE_DBF_LAST	EQU	$F
 SG2_ALTERNATE_PALETTE_RGB_MASK	EQU	1911
+SG2_ALTERNATE_PATTERN_BANK_BYTES	EQU	80
+SG2_ALTERNATE_PATTERN_CELL_PIXELS	EQU	16
 SG2_ALTERNATE_PROFILE_SCREEN_BASE	EQU	$68000
 SG2_ALTERNATE_WEAPON_HUD_ICON_PITCH_BYTES	EQU	1920
 SG2_AMIGA_PLANAR_ROW_BYTES	EQU	40
@@ -51528,7 +51531,7 @@ abs_0_0003A868:
 	sub.w d3,d2
 	bmi.w abs_0_0003A8EC
 	exg d0,d2
-	lea.l abs_0_000415BE.l,a0
+	lea.l alternate_span_pattern_pairs.l,a0
 	lsl.w #3,d2
 	movem.l $0(a0,d2.w),d1-d2
 	movem.l d0/d2/a6,-(a7)
@@ -59162,9 +59165,10 @@ draw_interleaved_cell_color_15:
 	move.l (a2)+,d2
 	bpl.w draw_interleaved_span_header
 	rts
-abs_0_0004134A:
+    ; Empty input still writes the fixed sample block at frame+$700C: two LONGs per row,80-byte stride, patterns $33333333,$22222222,0,$55555555. Both nonempty completion paths repeat these stores.
+write_alternate_empty_queue_sample_block:
 	movea.l scene_draw_buffer_snapshot.l,a0
-	adda.w #$700C,a0
+	adda.w #SG2_ALTERNATE_COMPLETION_SAMPLE_OFFSET,a0
 	move.l #$33333333,(a0)
 	move.l #$33333333,$0004(a0)
 	move.l #$22222222,$0050(a0)
@@ -59174,23 +59178,24 @@ abs_0_0004134A:
 	move.l #$55555555,$00F0(a0)
 	move.l #$55555555,$00F4(a0)
 	rts
-    ; Only this alternate-reader entry gate is newly qualified. Mode0/raw row and mask state is not proof of full alternate startup or the pattern reader input contract.
+    ; Alternate reader loads two pattern LONGs per style. A2 remains the reference cursor, A5 the retained row table, A6 row cursor and USP its saved start; A3 is the 16-pixel cell size.
 enter_alternate_interleaved_span_reader:
-	lea.l abs_0_000415BE(pc),a1
-	movea.w #$10,a3
+	lea.l alternate_span_pattern_pairs(pc),a1
+	movea.w #SG2_ALTERNATE_PATTERN_CELL_PIXELS,a3
 	lea.l raster_row_byte_offsets(pc),a5
     ; KNOWN: type A2=Target code-entry register seed:SG2SceneSpanReference
-abs_0_000413A0:
+read_next_alternate_pattern_reference:
 	move.l (a2)+,d0	; operand 1: SG2SceneSpanReference_span at (a2)+
-	bmi.b abs_0_0004134A
+	bmi.b write_alternate_empty_queue_sample_block
     ; Nonnegative span reference in D0; read signed fill style then first scanline, followed by X pairs. Phase interface only; no stream bound.
 draw_alternate_interleaved_span_header:
 	movea.l d0,a0
+    ; Negative styles use NEG.W then low-nibble masking, including -$8000 to slot 0. Nonnegative styles are not clamped; LSL.W by 3 wraps before signed indexed pattern reads.
 	move.w (a0)+,d0
-	bpl.b abs_0_000413B0
+	bpl.b load_alternate_span_pattern_pair
 	neg.w d0
-	andi.w #15,d0
-abs_0_000413B0:
+	andi.w #SG2_INTERLEAVED_NIBBLE_MASK,d0
+load_alternate_span_pattern_pair:
 	lsl.w #3,d0
 	move.l $0(a1,d0.w),d7
 	move.l $4(a1,d0.w),d6
@@ -59199,14 +59204,15 @@ abs_0_000413B0:
 	movea.l scene_draw_buffer_snapshot.l,a6
 	adda.w $0(a5,d1.w),a6
 	move.w (a0)+,d2
-	bmi.b abs_0_000413A0
-abs_0_000413CC:
+	bmi.b read_next_alternate_pattern_reference
+load_next_alternate_pattern_endpoints:
 	move.w (a0)+,d3
 	move a6,usp
 	cmp.w d2,d3
-	bgt.b abs_0_000413D6
+	bgt.b prepare_alternate_two_bit_boundary_masks
 	exg d2,d3
-abs_0_000413D6:
+    ; Order X signed. Each pixel occupies two bits in each bank; bank addresses differ by 80 bytes. First row uses the retained WORD table, later rows add160. Generated span masks are not read.
+prepare_alternate_two_bit_boundary_masks:
 	moveq.l #0,d5
 	moveq.l #31,d4
 	sub.w d3,d4
@@ -59214,17 +59220,17 @@ abs_0_000413D6:
 	bset d4,d5
 	subq.l #1,d5
 	move.w d2,d4
-	andi.w #15,d4
+	andi.w #SG2_INTERLEAVED_NIBBLE_MASK,d4
 	sub.w d4,d2
 	add.w d4,d4
 	add.w d4,d4
-	move.l abs_0_0004146E(pc,d4.w),d4
+	move.l alternate_two_bit_pixel_prefix_masks(pc,d4.w),d4
 	sub.w d2,d3
 	lsr.w #2,d2
 	adda.w d2,a6
-	lea.l $0050(a6),a4
+	lea.l SG2_ALTERNATE_PATTERN_BANK_BYTES(a6),a4
 	sub.w a3,d3
-	bpl.w abs_0_000414AE
+	bpl.w draw_alternate_pattern_span_first_cell
 	or.l d4,d5
 	and.l d5,(a6)
 	and.l d5,(a4)
@@ -59235,13 +59241,14 @@ abs_0_000413D6:
 	or.l d5,(a4)
 	or.l d4,(a6)
 	move usp,a6
-	adda.w #$A0,a6
+	adda.w #SG2_INTERLEAVED_ROW_BYTES,a6
 	move.w (a0)+,d2
-	bpl.b abs_0_000413CC
+	bpl.b load_next_alternate_pattern_endpoints
 	move.l (a2)+,d0
 	bpl.w draw_alternate_interleaved_span_header
+write_alternate_single_cell_sample_block:
 	movea.l scene_draw_buffer_snapshot.l,a0
-	adda.w #$700C,a0
+	adda.w #SG2_ALTERNATE_COMPLETION_SAMPLE_OFFSET,a0
 	move.l #$33333333,(a0)
 	move.l #$33333333,$0004(a0)
 	move.l #$22222222,$0050(a0)
@@ -59251,12 +59258,13 @@ abs_0_000413D6:
 	move.l #$55555555,$00F0(a0)
 	move.l #$55555555,$00F4(a0)
 	rts
-abs_0_0004146E:
+alternate_two_bit_pixel_prefix_masks:
 	dc.l $00000000,$C0000000,$F0000000,$FC000000	; lookup_table
 	dc.l $FF000000,$FFC00000,$FFF00000,$FFFC0000
 	dc.l $FFFF0000,$FFFFC000,$FFFFF000,$FFFFFC00
 	dc.l $FFFFFF00,$FFFFFFC0,$FFFFFFF0,$FFFFFFFC
-abs_0_000414AE:
+    ; Write the masked first cell, then at most18 unrolled complete cells, then the masked last cell. Tests cover X=0..319; original wider spans are not given an arbitrary-width safety contract.
+draw_alternate_pattern_span_first_cell:
 	and.l d4,(a6)
 	and.l d4,(a4)
 	not.l d4
@@ -59266,78 +59274,78 @@ abs_0_000414AE:
 	or.l d4,(a6)+
 	or.l d1,(a4)+
 	sub.w a3,d3
-	bmi.w abs_0_00041552
+	bmi.w draw_alternate_pattern_span_last_cell
 	move.l d6,(a4)+
 	move.l d7,(a6)+
 	sub.w a3,d3
-	bmi.w abs_0_00041552
+	bmi.w draw_alternate_pattern_span_last_cell
 	move.l d6,(a4)+
 	move.l d7,(a6)+
 	sub.w a3,d3
-	bmi.b abs_0_00041552
+	bmi.b draw_alternate_pattern_span_last_cell
 	move.l d6,(a4)+
 	move.l d7,(a6)+
 	sub.w a3,d3
-	bmi.b abs_0_00041552
+	bmi.b draw_alternate_pattern_span_last_cell
 	move.l d6,(a4)+
 	move.l d7,(a6)+
 	sub.w a3,d3
-	bmi.b abs_0_00041552
+	bmi.b draw_alternate_pattern_span_last_cell
 	move.l d6,(a4)+
 	move.l d7,(a6)+
 	sub.w a3,d3
-	bmi.b abs_0_00041552
+	bmi.b draw_alternate_pattern_span_last_cell
 	move.l d6,(a4)+
 	move.l d7,(a6)+
 	sub.w a3,d3
-	bmi.b abs_0_00041552
+	bmi.b draw_alternate_pattern_span_last_cell
 	move.l d6,(a4)+
 	move.l d7,(a6)+
 	sub.w a3,d3
-	bmi.b abs_0_00041552
+	bmi.b draw_alternate_pattern_span_last_cell
 	move.l d6,(a4)+
 	move.l d7,(a6)+
 	sub.w a3,d3
-	bmi.b abs_0_00041552
+	bmi.b draw_alternate_pattern_span_last_cell
 	move.l d6,(a4)+
 	move.l d7,(a6)+
 	sub.w a3,d3
-	bmi.b abs_0_00041552
+	bmi.b draw_alternate_pattern_span_last_cell
 	move.l d6,(a4)+
 	move.l d7,(a6)+
 	sub.w a3,d3
-	bmi.b abs_0_00041552
+	bmi.b draw_alternate_pattern_span_last_cell
 	move.l d6,(a4)+
 	move.l d7,(a6)+
 	sub.w a3,d3
-	bmi.b abs_0_00041552
+	bmi.b draw_alternate_pattern_span_last_cell
 	move.l d6,(a4)+
 	move.l d7,(a6)+
 	sub.w a3,d3
-	bmi.b abs_0_00041552
+	bmi.b draw_alternate_pattern_span_last_cell
 	move.l d6,(a4)+
 	move.l d7,(a6)+
 	sub.w a3,d3
-	bmi.b abs_0_00041552
+	bmi.b draw_alternate_pattern_span_last_cell
 	move.l d6,(a4)+
 	move.l d7,(a6)+
 	sub.w a3,d3
-	bmi.b abs_0_00041552
+	bmi.b draw_alternate_pattern_span_last_cell
 	move.l d6,(a4)+
 	move.l d7,(a6)+
 	sub.w a3,d3
-	bmi.b abs_0_00041552
+	bmi.b draw_alternate_pattern_span_last_cell
 	move.l d6,(a4)+
 	move.l d7,(a6)+
 	sub.w a3,d3
-	bmi.b abs_0_00041552
+	bmi.b draw_alternate_pattern_span_last_cell
 	move.l d6,(a4)+
 	move.l d7,(a6)+
 	sub.w a3,d3
-	bmi.b abs_0_00041552
+	bmi.b draw_alternate_pattern_span_last_cell
 	move.l d6,(a4)+
 	move.l d7,(a6)+
-abs_0_00041552:
+draw_alternate_pattern_span_last_cell:
 	and.l d5,(a6)
 	and.l d5,(a4)
 	not.l d5
@@ -59347,13 +59355,14 @@ abs_0_00041552:
 	or.l d5,(a6)+
 	or.l d1,(a4)+
 	move usp,a6
-	adda.w #$A0,a6
+	adda.w #SG2_INTERLEAVED_ROW_BYTES,a6
 	move.w (a0)+,d2
-	bpl.w abs_0_000413CC
+	bpl.w load_next_alternate_pattern_endpoints
 	move.l (a2)+,d0
 	bpl.w draw_alternate_interleaved_span_header
+write_alternate_multi_cell_sample_block:
 	movea.l scene_draw_buffer_snapshot.l,a0
-	adda.w #$700C,a0
+	adda.w #SG2_ALTERNATE_COMPLETION_SAMPLE_OFFSET,a0
 	move.l #$33333333,(a0)
 	move.l #$33333333,$0004(a0)
 	move.l #$22222222,$0050(a0)
@@ -59363,21 +59372,16 @@ abs_0_00041552:
 	move.l #$55555555,$00F0(a0)
 	move.l #$55555555,$00F4(a0)
 	rts
-abs_0_000415BE:
-	dcb.b $8,$00
-	dc.b $55,$55,$55,$55
-	dcb.b $8,$FF
-	dc.b $AA,$AA,$AA,$AA
-	dcb.b $8,$FF
-	dc.b $00,$00,$00,$00,$AA,$AA,$AA,$AA,$FF,$FF,$FF,$FF,$00,$00,$00,$00
-	dcb.b $C,$55
-	dc.b $00,$00,$00,$00,$AA,$AA,$AA,$AA
-	dcb.b $8,$FF
-	dcb.b $8,$55
-	dc.b $AA,$AA,$AA,$AA,$00,$00,$00,$00,$55,$55,$55,$55,$AA,$AA,$AA,$AA
-	dcb.b $8,$00
-	dc.b $FF,$FF,$FF,$FF,$AA,$AA,$AA,$AA,$55,$55,$55,$55
-	dcb.b $8,$FF
+    ; Sixteen pairs of LONG patterns, first bank then second bank. Masked negative styles address this range; positive styles can address beyond it. Pattern bits do not prove palette/RGB mapping.
+alternate_span_pattern_pairs:
+	dc.l $00000000,$00000000,$55555555,$FFFFFFFF
+	dc.l $FFFFFFFF,$AAAAAAAA,$FFFFFFFF,$FFFFFFFF
+	dc.l $00000000,$AAAAAAAA,$FFFFFFFF,$00000000
+	dc.l $55555555,$55555555,$55555555,$00000000
+	dc.l $AAAAAAAA,$FFFFFFFF,$FFFFFFFF,$55555555
+	dc.l $55555555,$AAAAAAAA,$00000000,$55555555
+	dc.l $AAAAAAAA,$00000000,$00000000,$FFFFFFFF
+	dc.l $AAAAAAAA,$55555555,$FFFFFFFF,$FFFFFFFF
 sort_scene_reference_saved_range:
 	movea.l $0004(a7),a0
 	movea.l $0008(a7),a1
