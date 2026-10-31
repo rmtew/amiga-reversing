@@ -27,6 +27,36 @@ and strengthened 38 app-base attributions.
 Conditional skips mean104 outer iterations are not104 observed memory reads.
 Loaded pointer values remain subject to separate alias/target validation.
 
+The neutron-state batch follows launch, shared request service and nearby/
+distant record updates, with 371 original-CPU cases. Released motion adds signed
+WORD velocity; surface Y adds the same velocity twice before an N-only ground
+comparison. Station attraction uses ASR5 and does not reapply the world mask.
+Construction step 52 suppresses attraction; the wrapped WORD countdown tests N,
+so input $8000 decrements to $7FFF without expiry. No physical-time duration follows.
+
+Attached updates require only a nonnull global carried reference, not identity
+with A0. Null clears the current type without free-stack release. A surface
+impact clears carried reference and inventory, requests retraction and cooldown,
+and detonates. Phase 1 detection in the separate service also detonates/clears
+reference, but still adjusts offset afterward. Offset steps use wrapped LONG
+N-only bounds, ordinarily 20..120; retraction clears type only at exactly 20.
+
+A negative spawn request and zero shared cooldown clear request/reference before
+allocation, even if no candidate exists. The free-count gate is unsigned >1,
+unlike the projector signed gate. Fallback overwrites the first distant, then
+first nearby record, without list-count/free-count updates or teardown. Launch
+clears inventory before checking the carried pointer; open-space guards use
+nonzero projector/minis values. CMPI.L #70 followed by BMI retains signed-overflow aliases, so
+"offset>=70" is not a universal signed bound. Disjoint successful-launch fixtures
+end with spawn clear and retract set, preserving the original later cleanup.
+Ground Y uses the canonical signed scalar -120. Three catalog/render regressions
+check exact signed-immediate binding and refuse mismatched or unsigned scalar
+forms without persisting history. These supplied-RAM cases establish no normal-
+game reachability, arbitrary-pointer ownership, general lifetime, concurrency or
+hardware guarantee. Native proof/
+reference identities and 3509 app / 2716 typed / 165 unresolved counts remain
+unchanged, with original byte-exact output retained.
+
 The connected world-rebuild batch reconstructs 20 continuations and four
 constants with 146 original-CPU cases. All 32 original placement streams return
 with their expected occupied/free suffix split. The initializer clears 250

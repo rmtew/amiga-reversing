@@ -1480,6 +1480,11 @@ SG2_MESSAGE_QUEUE_POINTER_LIMIT	EQU	10
 SG2_MESSAGE_ROWS_DBF_LAST	EQU	7
 SG2_MESSAGE_ROW_LONGS_DBF_LAST	EQU	6
 SG2_MESSAGE_ROW_SKIP_BYTES	EQU	12
+SG2_NEUTRON_ACTION_COOLDOWN	EQU	200
+SG2_NEUTRON_CARRIED_MAX_OFFSET	EQU	120
+SG2_NEUTRON_CARRIED_MIN_OFFSET	EQU	20
+SG2_NEUTRON_LAUNCH_OFFSET_GATE	EQU	70
+SG2_NEUTRON_SURFACE_GROUND_Y	EQU	-120
 SG2_OBJECT_CORNER_BASE_OFFSET	EQU	501
 SG2_OBJECT_CORNER_SLOPE_FACTOR	EQU	19
 SG2_OBJECT_DEPOT_APPROACH_LIMIT	EQU	455
@@ -9660,50 +9665,53 @@ abs_0_0000799E:
 abs_0_000079A0:
 	move.w #$118,d0
 	bra.w abs_0_00007B22
-    ; Launch requires inventory type98, carried offset>=70 and, in open space, no projector guard or mini-sentinels. Original failure messages distinguish guards. No fabricated success path.
+    ; Inventory clears before the carried-pointer null guard. Open-space guards use any nonzero projector/minis. Offset CMP70 uses N only, retaining overflow aliases; nonnull is not ownership.
 try_launch_carried_neutron_bomb:
 	lea.l model_type_population_counts(a6),a0
 	tst.b $0062(a0)
-	beq.b abs_0_00007A1A
+	beq.b handle_missing_neutron_inventory
 	tst.b space_environment_flag(a6)
-	bpl.b abs_0_000079CC
+	bpl.b test_neutron_launch_offset_comparison_sign
 	tst.b inside_structure_flag(a6)
-	bmi.b abs_0_000079CC
+	bmi.b test_neutron_launch_offset_comparison_sign
 	tst.b projector_network_complete_flag(a6)
-	bne.b abs_0_00007A3C
+	bne.b queue_neutron_launch_projector_guard_messages
 	tst.w station_mini_sentinel_count(a6)
-	bne.w abs_0_00007A6A
-abs_0_000079CC:
-	cmpi.l #70,carried_neutron_bomb_y_offset.l
-	bmi.b abs_0_00007A3A
+	bne.w queue_neutron_launch_sentinel_guard_messages
+test_neutron_launch_offset_comparison_sign:
+	cmpi.l #SG2_NEUTRON_LAUNCH_OFFSET_GATE,carried_neutron_bomb_y_offset.l
+	bmi.b return_from_neutron_launch_attempt
+clear_neutron_inventory_before_pointer_guard:
 	clr.b $0062(a0)
 	movea.l carried_neutron_bomb_reference(a6),a2
 	cmpa.l #$0,a2
-	beq.b abs_0_00007A3A
+	beq.b return_from_neutron_launch_attempt
+initialize_released_neutron_motion_from_player:
 	bsr.w initialize_player_launched_bomb_motion
 	move.l carried_neutron_bomb_y_offset.l,d0
 	add.l d0,$0008(a2)
+set_neutron_released_flag_before_request_cleanup:
 	st.b $001F(a2)
 	st.b neutron_bomb_spawn_request(a6)
 	clr.l carried_neutron_bomb_reference(a6)
-	move.l #$14,carried_neutron_bomb_y_offset.l
-	move.w #$C8,weapon_action_cooldown(a6)
+	move.l #SG2_NEUTRON_CARRIED_MIN_OFFSET,carried_neutron_bomb_y_offset.l
+	move.w #SG2_NEUTRON_ACTION_COOLDOWN,weapon_action_cooldown(a6)
 	tst.b $0062(a0)
-	beq.b abs_0_00007A2E
-	bra.b abs_0_00007A3A
-abs_0_00007A1A:
+	beq.b clear_spawn_and_request_retraction_after_neutron_release
+	bra.b return_from_neutron_launch_attempt
+handle_missing_neutron_inventory:
 	move.w #$11C,d0
 	sf.b neutron_bomb_spawn_request(a6)
 	st.b neutron_bomb_retract_request(a6)
 	clr.l carried_neutron_bomb_reference(a6)
 	bra.w abs_0_00007B22
-abs_0_00007A2E:
+clear_spawn_and_request_retraction_after_neutron_release:
 	sf.b neutron_bomb_spawn_request(a6)
 	st.b neutron_bomb_retract_request(a6)
 	clr.l carried_neutron_bomb_reference(a6)
-abs_0_00007A3A:
+return_from_neutron_launch_attempt:
 	rts
-abs_0_00007A3C:
+queue_neutron_launch_projector_guard_messages:
 	clr.w pending_message_count(a6)
 	move.w #$1,message_display_countdown(a6)
 	lea.l abs_0_00007F52.l,a1
@@ -9714,7 +9722,7 @@ abs_0_00007A3C:
 	bsr.w enqueue_message_unless_previous_pointer
 	bsr.w enqueue_blank_event_message_line_bridge_006fb4
 	rts
-abs_0_00007A6A:
+queue_neutron_launch_sentinel_guard_messages:
 	clr.w pending_message_count(a6)
 	move.w #$1,message_display_countdown(a6)
 	lea.l abs_0_00007F52.l,a1
@@ -43650,7 +43658,7 @@ abs_0_00032F86:
 	bsr.w clear_stardrive_below_speed_threshold
 abs_0_00032F9E:
 	tst.w last_player_contact_type(a6)
-	beq.b abs_0_00032FE0
+	beq.b service_carried_neutron_reference_before_requests
 	tst.w stardrive_enabled_word(a6)
 	bpl.b abs_0_00032FDC
 	clr.w pending_message_count(a6)
@@ -43666,77 +43674,86 @@ abs_0_00032F9E:
 	bsr.w enqueue_blank_event_message_line
 abs_0_00032FDC:
 	clr.w stardrive_enabled_word(a6)
-abs_0_00032FE0:
+service_carried_neutron_reference_before_requests:
 	tst.l carried_neutron_bomb_reference(a6)
-	beq.b abs_0_0003303A
+	beq.b gate_neutron_spawn_request_and_shared_cooldown
 	movea.l carried_neutron_bomb_reference(a6),a0
 	cmpi.b #1,$001E(a0)
-	bne.b abs_0_00032FFA
+	bne.b select_carried_neutron_offset_direction
+detonate_phase_one_carried_neutron_reference:
 	bsr.w handle_neutron_bomb_detonation
 	clr.l carried_neutron_bomb_reference(a6)
-abs_0_00032FFA:
+    ; Offset changes by +/-2 with wrapped LONG N-only bounds, ordinarily 20..120. Phase 1 detonation clears ref but still reaches this step. Retraction removes type only at exact 20.
+select_carried_neutron_offset_direction:
 	tst.b neutron_bomb_retract_request(a6)
-	bmi.b abs_0_0003301E
+	bmi.b retract_carried_neutron_offset_with_n_only_floor
+extend_carried_neutron_offset_with_n_only_cap:
 	move.l carried_neutron_bomb_y_offset.l,d0
 	addq.l #2,d0
-	cmp.l #$78,d0
-	bmi.b abs_0_00033016
-	move.l #$78,d0
-abs_0_00033016:
+	cmp.l #SG2_NEUTRON_CARRIED_MAX_OFFSET,d0
+	bmi.b store_extended_carried_neutron_offset
+set_carried_neutron_offset_upper_value:
+	move.l #SG2_NEUTRON_CARRIED_MAX_OFFSET,d0
+store_extended_carried_neutron_offset:
 	move.l d0,carried_neutron_bomb_y_offset.l
-	bra.b abs_0_0003303A
-abs_0_0003301E:
+	bra.b gate_neutron_spawn_request_and_shared_cooldown
+retract_carried_neutron_offset_with_n_only_floor:
 	move.l carried_neutron_bomb_y_offset.l,d0
 	subq.l #2,d0
-	cmp.l #$14,d0
-	bpl.b abs_0_00033034
-	move.l #$14,d0
-abs_0_00033034:
+	cmp.l #SG2_NEUTRON_CARRIED_MIN_OFFSET,d0
+	bpl.b store_retracted_carried_neutron_offset
+set_carried_neutron_offset_lower_value:
+	move.l #SG2_NEUTRON_CARRIED_MIN_OFFSET,d0
+store_retracted_carried_neutron_offset:
 	move.l d0,carried_neutron_bomb_y_offset.l
-    ; Spawn carried type98 only when requested and shared cooldown iszero. Prefer free stack, else reuse original distant/nearby candidate; preserve retry/drop and original accounting.
-abs_0_0003303A:
+    ; Negative spawn request and zero cooldown clear request/ref before allocation. Unsigned free count >1 pops stack; else first distant then first nearby record is overwritten without teardown.
+gate_neutron_spawn_request_and_shared_cooldown:
 	tst.b neutron_bomb_spawn_request(a6)
-	bpl.b abs_0_0003309E
+	bpl.b gate_exact_lower_offset_carried_neutron_removal
 	tst.w weapon_action_cooldown(a6)
-	bne.b abs_0_0003309E
+	bne.b gate_exact_lower_offset_carried_neutron_removal
+clear_carried_ref_and_spawn_request_before_allocation:
 	clr.l carried_neutron_bomb_reference(a6)
 	sf.b neutron_bomb_spawn_request(a6)
 	cmpi.w #1,free_object_count(a6)
-	bls.w abs_0_00033068
+	bls.w reuse_first_distant_record_for_carried_neutron
+pop_carried_neutron_record_from_unsigned_free_count:
 	movea.l free_object_stack_cursor(a6),a3
 	movea.l -(a3),a2
 	move.l a3,free_object_stack_cursor(a6)
 	subq.w #1,free_object_count(a6)
-	bra.b abs_0_00033084
-abs_0_00033068:
+	bra.b initialize_and_bind_carried_neutron_record
+reuse_first_distant_record_for_carried_neutron:
 	move.w distant_object_count(a6),d0
-	beq.b abs_0_00033076
+	beq.b reuse_first_nearby_record_for_carried_neutron
 	movea.l distant_objects_cursor(a6),a0
 	movea.l (a0)+,a2
-	bra.b abs_0_00033084
-abs_0_00033076:
+	bra.b initialize_and_bind_carried_neutron_record
+reuse_first_nearby_record_for_carried_neutron:
 	move.w nearby_object_count(a6),d0
-	beq.b abs_0_0003309E
+	beq.b gate_exact_lower_offset_carried_neutron_removal
 	subq.w #1,d0
 	movea.l nearby_objects_cursor(a6),a0
 	movea.l (a0)+,a2
     ; KNOWN: type A2=Target code-entry register seed:SG2NeutronBomb
-abs_0_00033084:
+initialize_and_bind_carried_neutron_record:
 	move.w #$62,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
 	bsr.w initialize_launched_bomb_header_bridge_038d4a
 	move.l carried_neutron_bomb_y_offset.l,d0
 	add.l d0,SG2ObjectCore_world_y(a2)
 	sf.b SG2NeutronBomb_released_motion_negative_flag(a2)
 	move.l a2,carried_neutron_bomb_reference(a6)
-abs_0_0003309E:
+gate_exact_lower_offset_carried_neutron_removal:
 	tst.b neutron_bomb_retract_request(a6)
 	bpl.b abs_0_000330C6
-	cmpi.l #20,carried_neutron_bomb_y_offset.l
+	cmpi.l #SG2_NEUTRON_CARRIED_MIN_OFFSET,carried_neutron_bomb_y_offset.l
 	bne.b abs_0_000330C6
+clear_retract_request_before_nullable_record_removal:
 	sf.b neutron_bomb_retract_request(a6)
 	movea.l carried_neutron_bomb_reference(a6),a2
 	cmpa.l #$0,a2
 	beq.b abs_0_000330C6
+clear_carried_neutron_type_without_free_stack_release:
 	clr.w (a2)
 	clr.l carried_neutron_bomb_reference(a6)
     ; Spawn-request scan checks all250 records for type99; create station only if absent. Original fallback reuse/retry remains; not new exclusive lifetime/allocation proof.
@@ -47744,10 +47761,12 @@ update_distant_neutron_bomb:
 	move.b #$57,diagnostic_step_byte.l
 	bsr.w advance_neutron_bomb_state
 	bra.w abs_0_00039D3E
+    ; Released motion adds signed WORD velocities; surface Y adds VY twice before an N-only ground test. Station pull uses ASR5 without rewrap. Countdown tests the wrapped WORD sign.
     ; KNOWN: type A0=Target code-entry register seed:SG2NeutronBomb
 advance_neutron_bomb_state:
 	tst.b SG2NeutronBomb_released_motion_negative_flag(a0)
-	bpl.w abs_0_000367BA
+	bpl.w follow_player_for_any_nonnull_carried_reference
+integrate_released_neutron_signed_word_velocity:
 	move.w SG2WorldObject_velocity_x(a0),d3
 	ext.l d3
 	add.l d3,SG2ObjectCore_world_x(a0)
@@ -47761,23 +47780,27 @@ advance_neutron_bomb_state:
 	and.l d3,SG2ObjectCore_world_x(a0)
 	and.l d3,SG2ObjectCore_world_z(a0)
 	tst.b space_environment_flag(a6)
-	bmi.b abs_0_0003675A
+	bmi.b wrap_released_neutron_rotation_words
+apply_second_surface_neutron_y_velocity_step:
 	move.w SG2WorldObject_velocity_y(a0),d0
 	ext.l d0
 	add.l d0,SG2ObjectCore_world_y(a0)
-	cmpi.l #4294967176,SG2ObjectCore_world_y(a0)
-	bpl.b abs_0_000367B0
+	cmpi.l #SG2_NEUTRON_SURFACE_GROUND_Y,SG2ObjectCore_world_y(a0)
+	bpl.b retire_neutron_phase_and_request_detonation
+increment_surface_neutron_vertical_velocity_word:
 	addq.w #1,d0
 	move.w d0,SG2WorldObject_velocity_y(a0)
-abs_0_0003675A:
+wrap_released_neutron_rotation_words:
 	subq.w #8,SG2WorldObject_rotation_0(a0)
 	andi.w #4095,SG2WorldObject_rotation_0(a0)
 	subq.w #8,SG2WorldObject_rotation_2(a0)
 	andi.w #4095,SG2WorldObject_rotation_2(a0)
 	tst.b space_station_nearby_flag(a6)
-	bpl.b abs_0_000367AA
+	bpl.b decrement_neutron_countdown_and_test_result_sign
+skip_neutron_station_pull_at_construction_step52:
 	cmpi.w #52,station_construction_steps_remaining(a6)
-	beq.b abs_0_000367AA
+	beq.b decrement_neutron_countdown_and_test_result_sign
+attract_released_neutron_to_unchecked_station_reference:
 	movea.l nearby_space_station_reference(a6),a1
 	move.l SG2ObjectCore_world_x(a0),d0
 	move.l SG2ObjectCore_world_y(a0),d1
@@ -47791,17 +47814,19 @@ abs_0_0003675A:
 	sub.l d0,SG2ObjectCore_world_x(a0)
 	sub.l d1,SG2ObjectCore_world_y(a0)
 	sub.l d2,SG2ObjectCore_world_z(a0)
-abs_0_000367AA:
+decrement_neutron_countdown_and_test_result_sign:
 	subq.w #1,SG2TimedMotionActor_remaining_updates(a0)
-	bpl.b abs_0_000367B8
-abs_0_000367B0:
+	bpl.b return_from_released_neutron_update
+retire_neutron_phase_and_request_detonation:
 	clr.b SG2ObjectCore_retirement_phase_or_negative(a0)
 	bsr.w handle_neutron_bomb_detonation
-abs_0_000367B8:
+return_from_released_neutron_update:
 	rts
-abs_0_000367BA:
+    ; Any nonnull carried ref makes this A0 follow player; identity is not checked. Surface ground hit clears ref/inventory, sets retract/cooldown and detonates. Null ref clears the type only.
+follow_player_for_any_nonnull_carried_reference:
 	tst.l carried_neutron_bomb_reference(a6)
-	beq.b abs_0_0003682A
+	beq.b clear_attached_neutron_type_for_null_global_reference
+copy_player_pose_to_attached_neutron_record:
 	move.l player_world_x(a6),SG2ObjectCore_world_x(a0)
 	move.l player_world_y(a6),d0
 	add.l carried_neutron_bomb_y_offset.l,d0
@@ -47811,22 +47836,23 @@ abs_0_000367BA:
 	move.w player_rotation_1(a6),SG2WorldObject_rotation_1(a0)
 	move.w player_rotation_2(a6),SG2WorldObject_rotation_2(a0)
 	tst.b space_environment_flag(a6)
-	bmi.b abs_0_00036828
-	cmpi.l #4294967176,SG2ObjectCore_world_y(a0)
-	bmi.b abs_0_00036828
-	move.l #$14,carried_neutron_bomb_y_offset.l
+	bmi.b return_from_attached_neutron_update
+	cmpi.l #SG2_NEUTRON_SURFACE_GROUND_Y,SG2ObjectCore_world_y(a0)
+	bmi.b return_from_attached_neutron_update
+reset_grounded_carried_neutron_offset_and_requests:
+	move.l #SG2_NEUTRON_CARRIED_MIN_OFFSET,carried_neutron_bomb_y_offset.l
 	clr.b SG2ObjectCore_retirement_phase_or_negative(a0)
 	clr.l carried_neutron_bomb_reference(a6)
 	lea.l model_type_population_counts(a6),a1
 	clr.b $0062(a1)
 	st.b neutron_bomb_retract_request(a6)
 	sf.b neutron_bomb_spawn_request(a6)
-	move.w #$C8,weapon_action_cooldown(a6)
+	move.w #SG2_NEUTRON_ACTION_COOLDOWN,weapon_action_cooldown(a6)
 	bsr.w handle_neutron_bomb_detonation
-abs_0_00036828:
+return_from_attached_neutron_update:
 	rts
-abs_0_0003682A:
-	move.l #$14,carried_neutron_bomb_y_offset.l
+clear_attached_neutron_type_for_null_global_reference:
+	move.l #SG2_NEUTRON_CARRIED_MIN_OFFSET,carried_neutron_bomb_y_offset.l
 	clr.w (a0)	; operand 1: SG2ObjectCore_object_type at (a0)
 	clr.l carried_neutron_bomb_reference(a6)
 	rts

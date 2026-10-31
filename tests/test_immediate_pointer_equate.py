@@ -123,3 +123,43 @@ def test_bit_number_equate_without_byte_width_accepts_only_equal_value(tmp_path,
         '-o', str(output), str(assembly)], capture_output=True, text=True, timeout=10)
     assert result.returncode == 0, result.stdout+result.stderr
     assert output.read_bytes() == original
+
+
+@pytest.mark.parametrize('equate_value', [-120, -119, 0xFFFFFF88])
+def test_long_immediate_uses_signed_scalar_equate_and_refuses_mismatch(tmp_path, equate_value):
+    binary = tmp_path / 'input.bin'
+    original = bytes.fromhex('0CA8FFFFFF8800084E75')  # CMPI.L #-120,8(A0); RTS
+    binary.write_bytes(original)
+    source = RawBinarySource(kind=BinarySourceKind.RAW_BINARY, path=binary,
+        address_model=RawAddressModel.LOCAL_OFFSET, load_address=0, entrypoint=0,
+        code_start_offset=0, display_path=str(binary), analysis_cache_path=tmp_path/'analysis')
+    write_target_metadata(tmp_path, TargetMetadata(target_type='program', entry_register_seeds=()))
+    with effective_metadata_file(tmp_path) as metadata:
+        _, _, artifact = c_backend.build_listing_artifact_profile_from_binary_source(source, metadata_path=metadata)
+    try:
+        row = artifact.row_for_source_offset(section_index=0, offset=0)
+        element = next(e for e in listing_element_contexts(row) if e['element_kind']=='immediate')
+        kind, payload = listing_catalog_manual_payload(row, 'representation.symbol',
+            element_context=element, parameters={'symbol':'GROUND_Y'})
+    finally:
+        artifact.close()
+    actions = [(ManualActionKind.CREATE_MANUAL_TARGET_EQUATE,
+        {'target_equate':{'name':'GROUND_Y','value':equate_value,'value_representation':'decimal'}}),
+        (ManualActionKind(kind), payload)]
+    if equate_value != -120:
+        error, message = (RuntimeError, 'failed parsing target metadata target equate') if equate_value>0 else (ValueError, 'EQU value must match')
+        with pytest.raises(error, match=message):
+            append_manual_actions(tmp_path, binary_source=source, actions=actions)
+        assert not manual_action_log_path(tmp_path).exists()
+        return
+    append_manual_actions(tmp_path, binary_source=source, actions=actions)
+    with effective_metadata_file(tmp_path) as metadata:
+        rendered = c_backend.render_project_source_with_c_backend(source, metadata_path=metadata)
+    assert '#GROUND_Y' in rendered
+    assert c_backend.assemble_platform_source_text_with_c_backend('amiga-raw', rendered)[0] == original
+    assembly, output = tmp_path/'signed.s', tmp_path/'signed.bin'
+    assembly.write_text(rendered)
+    result = subprocess.run([str(PROJECT_ROOT/'tools/vasmm68k_mot.exe'), '-quiet', '-no-opt', '-Fbin',
+        '-o', str(output), str(assembly)], capture_output=True, text=True, timeout=10)
+    assert result.returncode == 0, result.stdout+result.stderr
+    assert output.read_bytes() == original
