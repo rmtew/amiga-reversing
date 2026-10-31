@@ -27,6 +27,39 @@ and strengthened 38 app-base attributions.
 Conditional skips mean104 outer iterations are not104 observed memory reads.
 Loaded pointer values remain subject to separate alias/target validation.
 
+The palette-priority batch reconstructs 29 continuations, twelve constants and
+four existing data symbols with 480 original-CPU cases. Priority is grayscale,
+BYTE fade, spin-selected random RGB, inside, Novenia flash, then environment.
+Grayscale/fade expiry leaves the prior colour and still suppresses lower effects.
+Inside and palette-space tests accept any nonzero BYTE; the connected proximity
+producer's space guard instead tests sign. No global Boolean invariant is added.
+
+Flash decrement precedes parity and thresholds: odd steps use the space colour
+words even on a surface; even steps select FFF at >=500, F07 at >=480, or masked
+red bits below that. BYTE fade produces low blue-nibble values, not a full RGB
+grayscale word. Altitude shading logically shifts negated LONG Y, then subtracts
+only its low WORD from each component, clips by subtraction N and masks nibbles.
+This is not an unbounded-height clamp. Stored grayscale/world prefixes remain
+distinct from runtime index bounds; out-of-prefix fixture reads stay explicit.
+
+System-centre/Millway byte producers feed the space base/override WORDs: BYTE << 4,
+then OR $4C, with default pair $0000/$0027. Four names expose these connected consumers
+without changing ownership or asserting caller bounds. The 24-byte producer
+fixtures enter after original proximity/index guards. Both original frame-effect
+backends retain their existing references. Native import had silently discarded
+name-only data entities lacking an end; it now declares their source labels
+without creating a range or type. Seventeen regression cases cover ambiguous
+absolute values, explicit invalid ranges and bound-owner validation. The shared PRNG comment was corrected
+from EOR.L to EOR.W: seed cases verify preservation of the rotated high WORD,
+state updates and D1 restoration; the algorithm and original bytes are unchanged.
+
+CPU checks preserve neighbouring Copper words and stop before later audio
+modulators. They prove no Copper execution, scanout, DMA, PCM, timing, complete
+frame, original-caller or lifetime contract. Type 88 remains outside this batch.
+Native proof/reference identities and 3509 app /2716 typed /165 unresolved totals
+remain unchanged; C/vasm and clean standalone output are byte exact. Next: the
+connected audio cadence/modulation state after $4CAC0 and its producers.
+
 The sample-transition/type 3 batch reconstructs 21 continuations and seven
 constants with 368 original-CPU cases. Positive phases retain the restart flag.
 Decrement precedes the WORD shift lookup; starting at phase 11 consumes indices

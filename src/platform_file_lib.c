@@ -7928,13 +7928,21 @@ static int append_metadata_seeded_entity_local(const char *object_start, const c
         sizeof(value_domain))) {
     return 0;
   }
-  if (!has_addr || !has_end || end <= addr) return (has_source_owner_start || has_source_owner_size) ? 0 : 1;
+  classification = metadata_seeded_entity_classify_local(entity_type, subtype, unit, pointer_struct, value_kind);
+  if (!has_addr || !has_end || end <= addr) {
+    if (has_source_owner_start || has_source_owner_size) return 0;
+    /* A canonical data-symbol rename may supply a name without a range.
+       Preserve that declaration; do not invent structured-data ownership,
+       a pointee type or an extent. An explicitly invalid end is not this case. */
+    if (has_addr && !has_end && classification.type_id == METADATA_SEEDED_ENTITY_TYPE_DATA && name[0] != '\0')
+      return policy_add_declared_label_local(policy, has_hunk ? hunk : 0U, addr, name);
+    return 1;
+  }
   if (has_source_owner_start || has_source_owner_size) {
     if (!has_source_owner_start || !has_source_owner_size || name[0] == '\0' || source_owner_start != addr ||
         source_owner_size == 0U || source_owner_size < end - addr ||
         (uint64_t)addr + source_owner_size > UINT32_MAX) return 0;
   }
-  classification = metadata_seeded_entity_classify_local(entity_type, subtype, unit, pointer_struct, value_kind);
   if (classification.type_id != METADATA_SEEDED_ENTITY_TYPE_DATA) return 1;
   copy_data_role_preview_local(policy_comment, sizeof(policy_comment), comment);
   item_index = policy->structured_data_item_count;

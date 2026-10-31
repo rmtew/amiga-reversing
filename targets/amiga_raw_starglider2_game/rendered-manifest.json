@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "source_commit": "7ff38b5d34fe61bc921b007a61b69f79791d3be6",
+  "source_commit": "a3cab290fe2173f04b1a62a65eaf29493ec58b08",
   "source_assembly": "starglider2_game.s",
   "assets": [
     {
@@ -878,13 +878,13 @@
     },
     {
       "path": "rendered-provenance.json",
-      "bytes": 3479,
-      "sha256": "74503c3ad89b6a2a8f9262781ae167fd4655100043de93c097cea11ec5011fa8"
+      "bytes": 3483,
+      "sha256": "492b8f70f49192177047cedab72c94b9864f151df4561b689f68d4bab9253749"
     },
     {
       "path": "starglider2_game.s",
-      "bytes": 2137407,
-      "sha256": "2b1655f6256a6a5bb03b5a5179f5ba7fc41c1c8f16e3203a1a52b2a2174f2b9c"
+      "bytes": 2141498,
+      "sha256": "0c6c16aed646a762dfbb58f1ad201c8c84680dc96a606b6edaae0a79e3473945"
     },
     {
       "path": "tools/starglider2_protection.py",
@@ -892,6 +892,6 @@
       "sha256": "81d3f66d36dbfbd5c77238b20c28e8b9abaa329777eb91f64669bbbf13703582"
     }
   ],
-  "source_commit_role": "canonical source publication base; sample-transition and type 3 service, descriptor copies, original snapshot producer and ordered CPU register stores reconstructed through 368 cases with device addresses treated as RAM; not DMA, PCM, timing, complete-frame, normal-caller or sample-lifetime proof; type 88 random branch remains outside this batch; output is bound by verification_receipt_id",
-  "source_subject_revision": "7bc3156738d56f20fd439055e4428c1abaa9a44b30016e84270c348659773a8d"
+  "source_commit_role": "canonical source publication base; palette priority, expiry suppression, wrapped colour arithmetic, proximity byte producers and EOR.W PRNG behavior reconstructed through 480 original-CPU cases; Copper-list RAM only, not scanout, Copper execution, DMA, PCM, timing, complete-frame, original-caller or lifetime proof; type 88 remains outside this batch; output is bound by verification_receipt_id",
+  "source_subject_revision": "8328a66581368d2cd236de6d5cccb9dcd7e0f96c6197954c571c6793e066abe3"
 }

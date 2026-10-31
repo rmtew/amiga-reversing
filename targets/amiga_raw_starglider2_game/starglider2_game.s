@@ -1457,6 +1457,8 @@ SG2_CONTACT_RELATIVE_UPPER_BOUND	EQU	8192
 SG2_CONTACT_SKIP_FLAG_BIT	EQU	4
 SG2_CORNER_APPROACH_OFFSET	EQU	3120
 SG2_CORNER_SLOPE_SHIFT	EQU	6
+SG2_EFFECT_FADE_BYTE_SHIFT	EQU	3
+SG2_EFFECT_RANDOM_RGB_MASK	EQU	$FFF
 SG2_ENERGY_GATE_OBJECT_SKIP_VARIANT	EQU	6
 SG2_ENERGY_GATE_PLAYER_SKIP_VARIANT	EQU	6
 SG2_GATE_CONTACT_RESPONSE_PASSES	EQU	3
@@ -1477,6 +1479,8 @@ SG2_HUD_COORDINATE_DIGIT_DBF_LAST	EQU	3
 SG2_HUD_DIGIT_PAIR_DBF_LAST	EQU	1
 SG2_HUD_NIBBLE_GLYPH_OFFSET_MASK	EQU	120
 SG2_HUD_SPACE_COORDINATE_SHIFT	EQU	16
+SG2_INSIDE_BASE_EFFECT_RGB	EQU	$224
+SG2_INSIDE_OVERRIDE_EFFECT_RGB	EQU	$66A
 SG2_INTERIOR_ENTRY_NEGATIVE_Z_OFFSET	EQU	500
 SG2_INTERIOR_ENTRY_POSITIVE_Z_OFFSET	EQU	1600
 SG2_INTERIOR_LAYOUT_BIAS	EQU	16
@@ -1491,6 +1495,12 @@ SG2_NEUTRON_CARRIED_MAX_OFFSET	EQU	120
 SG2_NEUTRON_CARRIED_MIN_OFFSET	EQU	20
 SG2_NEUTRON_LAUNCH_OFFSET_GATE	EQU	70
 SG2_NEUTRON_SURFACE_GROUND_Y	EQU	-120
+SG2_NOVENIA_FLASH_RED_MASK	EQU	$F00
+SG2_NOVENIA_FLASH_RED_SHIFT	EQU	3
+SG2_NOVENIA_MAGENTA_FLASH_MIN	EQU	480
+SG2_NOVENIA_MAGENTA_FLASH_RGB	EQU	$F07
+SG2_NOVENIA_WHITE_FLASH_MIN	EQU	500
+SG2_NOVENIA_WHITE_FLASH_RGB	EQU	$FFF
 SG2_OBJECT_CORNER_BASE_OFFSET	EQU	501
 SG2_OBJECT_CORNER_SLOPE_FACTOR	EQU	19
 SG2_OBJECT_DEPOT_APPROACH_LIMIT	EQU	455
@@ -1564,6 +1574,8 @@ SG2_SCAN_EVEN_DEPTH_MASK	EQU	65534
 SG2_SCAN_FRAME_BYTE_OFFSET_MASK	EQU	28
 SG2_SCAN_INITIAL_DEPTH_LIMIT	EQU	32767
 SG2_SCAN_OVERLAY_RELOAD	EQU	56
+SG2_SPACE_EFFECT_DEFAULT_OVERRIDE_RGB	EQU	$27
+SG2_SPACE_EFFECT_OVERRIDE_RGB_BITS	EQU	$4C
 SG2_SPRITE_CONTROL_PREFIX_BYTES	EQU	4
 SG2_STORED_HEADING_RATIO_BYTE_LIMIT	EQU	255
 SG2_STORED_TARGET_Y_SMOOTH_SHIFT	EQU	5
@@ -3213,7 +3225,7 @@ abs_0_0000261A:
 	move.b d0,app_0039(a6)
 	move.l #$314159,app_003C(a6)
 	rts
-    ; Shared PRNG: ROL.L 3, SUBQ.W 7, EOR.L; updates A6+$60/$64, preserves D1, returns D0. Original $380 shim and $4DED4 bridge forward here; byte perturbations remain aliases.
+    ; ROL.L 3, SUBQ.W 7, EOR.W with B; rotated high WORD survives. State at A6+$60/$64; preserve D1, return D0. Shim/effects bridge forward here; BYTE perturbations remain aliases.
 advance_shared_random_state:
 	move.l d1,-(a7)
 	move.l shared_random_state_a(a6),d0
@@ -43965,13 +43977,14 @@ abs_0_0003333C:
 	swap.w d0
 	move.w d0,d4
 	lsr.w #2,d0
-	lea.l abs_0_00039658.l,a1
+    ; 24 stored BYTE prefix supplies value<<4 for base RGB, then OR4C for override RGB. The Millway producer uses its own prefix. Original proximity/index guards are outside these CPU fixtures.
+	lea.l system_center_space_colour_bytes.l,a1
 	move.b $0(a1,d0.w),d2
 	andi.w #255,d2
 	asl.w #4,d2
-	move.w d2,abs_0_00039654.l
-	ori.w #76,d2
-	move.w d2,abs_0_00039656.l
+	move.w d2,space_effect_base_rgb_word.l
+	ori.w #SG2_SPACE_EFFECT_OVERRIDE_RGB_BITS,d2
+	move.w d2,space_effect_override_rgb_word.l
 	add.w d0,d0
 	lea.l type128_disc_layers_by_proximity.l,a1
 	move.w $0(a1,d0.w),type128_disc_outer_layer_index(a6)
@@ -44046,13 +44059,13 @@ abs_0_0003345C:
 	cmp.l #$61A80,d1
 	bpl.w abs_0_0003350C
 	swap.w d0
-	lea.l abs_0_00039670.l,a1
+	lea.l millway_space_colour_bytes.l,a1
 	move.b $0(a1,d0.w),d2
 	andi.w #255,d2
 	asl.w #4,d2
-	move.w d2,abs_0_00039654.l
-	ori.w #76,d2
-	move.w d2,abs_0_00039656.l
+	move.w d2,space_effect_base_rgb_word.l
+	ori.w #SG2_SPACE_EFFECT_OVERRIDE_RGB_BITS,d2
+	move.w d2,space_effect_override_rgb_word.l
 	add.w d0,d0
 	lea.l type128_disc_layers_by_proximity.l,a1
 	move.w $0(a1,d0.w),type128_disc_outer_layer_index(a6)
@@ -44089,8 +44102,8 @@ abs_0_000334DA:
 abs_0_0003350A:
 	bra.b abs_0_00033524
 abs_0_0003350C:
-	move.w #$0,abs_0_00039654.l
-	move.w #$27,abs_0_00039656.l
+	move.w #$0,space_effect_base_rgb_word.l
+	move.w #SG2_SPACE_EFFECT_DEFAULT_OVERRIDE_RGB,space_effect_override_rgb_word.l
 	move.w #$3,type128_disc_outer_layer_index(a6)
 	bra.b abs_0_00033528
 abs_0_00033524:
@@ -49932,14 +49945,14 @@ energy_spheroid_secondary_colour_sequence:
 	dc.b $05,$04,$0B,$0C,$0D,$0E,$0D,$0E,$0D,$0E,$0D,$0E,$0D,$02
 abs_0_00039652:
 	dc.w $0000
-abs_0_00039654:
+space_effect_base_rgb_word:
 	dc.w $0000
-abs_0_00039656:
+space_effect_override_rgb_word:
 	dc.w $0000
-abs_0_00039658:
+system_center_space_colour_bytes:
 	dcb.b $9,$F0
 	dc.b $E0,$D0,$C0,$B0,$A0,$90,$80,$70,$60,$50,$40,$30,$20,$10,$00
-abs_0_00039670:
+millway_space_colour_bytes:
 	dc.b "ppppppppppppppppp`P@0 "
 	dc.b $10,$00
 type128_disc_layers_by_proximity:
@@ -59930,21 +59943,30 @@ mute_type3_volume_after_period_write:
 	bra.b dispatch_effect_palette_after_sample_service
 overwrite_phase_volume_with_type3_current_volume:
 	move.w paula_object_sound_current_volume.l,_custom+aud3+ac_vol.l
+    ; Priority: grayscale, BYTE fade, spin random, inside, flash, environment. Grayscale/fade expiry preserves prior colour but still suppresses lower effects; keep original sign/nonzero tests.
 dispatch_effect_palette_after_sample_service:
 	tst.w shared_grayscale_effect_countdown.l
-	bpl.w abs_0_0004CA26
+	bpl.w decrement_grayscale_or_preserve_previous_colour
+test_byte_fade_after_inactive_grayscale:
 	tst.b effect_colour_fade_counter.l
-	bpl.w abs_0_0004C9EC
+	bpl.w decrement_byte_fade_or_preserve_previous_colour
+test_spin_random_colour_after_inactive_fade:
 	tst.w player_rotation2_spin_steps.l
-	bpl.w abs_0_0004CA6C
+	bpl.w publish_spin_selected_shared_random_rgb
+test_inside_colour_before_novenia_flash:
 	tst.b inside_structure_flag(a6)
-	bne.w abs_0_0004C93A
+	bne.w select_inside_effect_rgb_by_override_word
+test_novenia_flash_before_environment_palette:
 	tst.w novenia_flash_countdown.l
-	bpl.w abs_0_0004C98E
+	bpl.w decrement_novenia_flash_before_parity_selection
+select_space_or_surface_palette_by_nonzero_flag:
 	tst.b space_environment_flag(a6)
-	bne.w abs_0_0004C8E2
+	bne.w select_space_effect_rgb_by_override_word
+select_world_or_solice_surface_colour_source:
 	tst.w nearby_effect_or_override_present_word.l
-	beq.w abs_0_0004C85E
+	beq.w shade_solice_rgb_by_wrapped_altitude_word
+    ; Shift negated Y as logical LONG, then subtract its low WORD from each component. Clip by subtraction N and mask nibbles; no unbounded height clamp or universal 16-world selector bound.
+shade_world_rgb_by_wrapped_altitude_word:
 	move.l player_world_y(a6),d0
 	neg.l d0
 	lea.l world_atmosphere_altitude_shifts.l,a0
@@ -59959,18 +59981,18 @@ dispatch_effect_palette_after_sample_service:
 	move.w d1,d7
 	andi.w #15,d1
 	sub.w d0,d1
-	bpl.b abs_0_0004C806
+	bpl.b pack_world_blue_after_word_sign_clip
 	move.w #$0,d1
-abs_0_0004C806:
+pack_world_blue_after_word_sign_clip:
 	andi.w #15,d1
 	or.w d1,d2
 	move.w d7,d1
 	andi.w #240,d1
 	lsr.w #4,d1
 	sub.w d0,d1
-	bpl.b abs_0_0004C81C
+	bpl.b pack_world_green_after_word_sign_clip
 	move.w #$0,d1
-abs_0_0004C81C:
+pack_world_green_after_word_sign_clip:
 	andi.w #15,d1
 	asl.w #4,d1
 	or.w d1,d2
@@ -59978,10 +60000,10 @@ abs_0_0004C81C:
 	andi.w #3840,d1
 	lsr.w #8,d1
 	sub.w d0,d1
-	bpl.b abs_0_0004C834
+	bpl.b publish_shaded_world_colour15_to_three_lists
 	move.w #$0,d1
     ; Each effect-colour base+0E is COLOR15 data (register019E), across all three physical lists. Keep original RGB arithmetic and status/fade producers.
-abs_0_0004C834:
+publish_shaded_world_colour15_to_three_lists:
 	andi.w #15,d1
 	asl.w #8,d1
 	or.w d1,d2
@@ -59991,8 +60013,8 @@ abs_0_0004C834:
 	move.w d2,$000E(a0)
 	movea.l #amiga_copper_list_c_effect_colours,a0
 	move.w d2,$000E(a0)
-	bra.w abs_0_0004CAC0
-abs_0_0004C85E:
+	bra.w advance_audio_modulators_after_palette_service
+shade_solice_rgb_by_wrapped_altitude_word:
 	move.l player_world_y(a6),d0
 	neg.l d0
 	lea.l world_atmosphere_altitude_shifts.l,a0
@@ -60004,18 +60026,18 @@ abs_0_0004C85E:
 	move.w d1,d7
 	andi.w #15,d1
 	sub.w d0,d1
-	bpl.b abs_0_0004C88A
+	bpl.b pack_solice_blue_after_word_sign_clip
 	move.w #$0,d1
-abs_0_0004C88A:
+pack_solice_blue_after_word_sign_clip:
 	andi.w #15,d1
 	or.w d1,d2
 	move.w d7,d1
 	andi.w #240,d1
 	lsr.w #4,d1
 	sub.w d0,d1
-	bpl.b abs_0_0004C8A0
+	bpl.b pack_solice_green_after_word_sign_clip
 	move.w #$0,d1
-abs_0_0004C8A0:
+pack_solice_green_after_word_sign_clip:
 	andi.w #15,d1
 	asl.w #4,d1
 	or.w d1,d2
@@ -60023,9 +60045,9 @@ abs_0_0004C8A0:
 	andi.w #3840,d1
 	lsr.w #8,d1
 	sub.w d0,d1
-	bpl.b abs_0_0004C8B8
+	bpl.b publish_shaded_solice_colour15_to_three_lists
 	move.w #$0,d1
-abs_0_0004C8B8:
+publish_shaded_solice_colour15_to_three_lists:
 	andi.w #15,d1
 	asl.w #8,d1
 	or.w d1,d2
@@ -60035,97 +60057,100 @@ abs_0_0004C8B8:
 	move.w d2,$000E(a0)
 	lea.l amiga_copper_list_c_effect_colours.l,a0
 	move.w d2,$000E(a0)
-	bra.w abs_0_0004CAC0
-abs_0_0004C8E2:
+	bra.w advance_audio_modulators_after_palette_service
+    ; Override uses WORD zero/nonzero. This palette path treats any nonzero space flag as space; its proximity producers test sign. Odd Novenia steps reach these space words even on a surface.
+select_space_effect_rgb_by_override_word:
 	tst.w nearby_effect_or_override_present_word.l
-	bne.b abs_0_0004C912
-	move.w abs_0_00039654.l,d0
+	bne.b publish_space_override_rgb_to_three_lists
+	move.w space_effect_base_rgb_word.l,d0
 	lea.l amiga_copper_list_a_effect_colours.l,a0
 	move.w d0,$000E(a0)
 	lea.l amiga_copper_list_b_effect_colours.l,a0
 	move.w d0,$000E(a0)
 	lea.l amiga_copper_list_c_effect_colours.l,a0
 	move.w d0,$000E(a0)
-	bra.w abs_0_0004CAC0
-abs_0_0004C912:
-	move.w abs_0_00039656.l,d0
+	bra.w advance_audio_modulators_after_palette_service
+publish_space_override_rgb_to_three_lists:
+	move.w space_effect_override_rgb_word.l,d0
 	lea.l amiga_copper_list_a_effect_colours.l,a0
 	move.w d0,$000E(a0)
 	lea.l amiga_copper_list_b_effect_colours.l,a0
 	move.w d0,$000E(a0)
 	lea.l amiga_copper_list_c_effect_colours.l,a0
 	move.w d0,$000E(a0)
-	bra.w abs_0_0004CAC0
-abs_0_0004C93A:
+	bra.w advance_audio_modulators_after_palette_service
+select_inside_effect_rgb_by_override_word:
 	tst.w nearby_effect_or_override_present_word.l
-	bne.b abs_0_0004C968
-	move.w #$224,d0
+	bne.b publish_inside_override_rgb_to_three_lists
+	move.w #SG2_INSIDE_BASE_EFFECT_RGB,d0
 	lea.l amiga_copper_list_a_effect_colours.l,a0
 	move.w d0,$000E(a0)
 	lea.l amiga_copper_list_b_effect_colours.l,a0
 	move.w d0,$000E(a0)
 	lea.l amiga_copper_list_c_effect_colours.l,a0
 	move.w d0,$000E(a0)
-	bra.w abs_0_0004CAC0
-abs_0_0004C968:
-	move.w #$66A,d0
+	bra.w advance_audio_modulators_after_palette_service
+publish_inside_override_rgb_to_three_lists:
+	move.w #SG2_INSIDE_OVERRIDE_EFFECT_RGB,d0
 	lea.l amiga_copper_list_a_effect_colours.l,a0
 	move.w d0,$000E(a0)
 	lea.l amiga_copper_list_b_effect_colours.l,a0
 	move.w d0,$000E(a0)
 	lea.l amiga_copper_list_c_effect_colours.l,a0
 	move.w d0,$000E(a0)
-	bra.w abs_0_0004CAC0
-abs_0_0004C98E:
+	bra.w advance_audio_modulators_after_palette_service
+    ; Decrement flash before parity: odd values use space RGB words. Even values >=500 use FFF, >=480 use F07; lower values shift/mask red bits. Preserve original expiry and priority.
+decrement_novenia_flash_before_parity_selection:
 	subq.w #1,novenia_flash_countdown.l
-	bpl.b abs_0_0004C99E
+	bpl.b select_novenia_flash_or_space_rgb_from_new_count
 	move.w #$FFFF,novenia_flash_countdown.l
-abs_0_0004C99E:
+select_novenia_flash_or_space_rgb_from_new_count:
 	move.w novenia_flash_countdown.l,d0
 	btst #0,d0
-	bne.w abs_0_0004C8E2
-	cmp.w #$1F4,d0
-	bmi.b abs_0_0004C9B8
-	move.w #$FFF,d0
-	bra.b abs_0_0004C9CA
-abs_0_0004C9B8:
-	cmp.w #$1E0,d0
-	bmi.b abs_0_0004C9C4
-	move.w #$F07,d0
-	bra.b abs_0_0004C9CA
-abs_0_0004C9C4:
-	asl.w #3,d0
-	andi.w #3840,d0
-abs_0_0004C9CA:
+	bne.w select_space_effect_rgb_by_override_word
+	cmp.w #SG2_NOVENIA_WHITE_FLASH_MIN,d0
+	bmi.b test_novenia_midrange_flash_colour
+	move.w #SG2_NOVENIA_WHITE_FLASH_RGB,d0
+	bra.b publish_novenia_flash_rgb_to_three_lists
+test_novenia_midrange_flash_colour:
+	cmp.w #SG2_NOVENIA_MAGENTA_FLASH_MIN,d0
+	bmi.b pack_novenia_low_flash_red_bits
+	move.w #SG2_NOVENIA_MAGENTA_FLASH_RGB,d0
+	bra.b publish_novenia_flash_rgb_to_three_lists
+pack_novenia_low_flash_red_bits:
+	asl.w #SG2_NOVENIA_FLASH_RED_SHIFT,d0
+	andi.w #SG2_NOVENIA_FLASH_RED_MASK,d0
+publish_novenia_flash_rgb_to_three_lists:
 	lea.l amiga_copper_list_a_effect_colours.l,a0
 	move.w d0,$000E(a0)
 	lea.l amiga_copper_list_b_effect_colours.l,a0
 	move.w d0,$000E(a0)
 	lea.l amiga_copper_list_c_effect_colours.l,a0
 	move.w d0,$000E(a0)
-	bra.w abs_0_0004CAC0
-abs_0_0004C9EC:
+	bra.w advance_audio_modulators_after_palette_service
+    ; BYTE fade decrements before output. Expiry keeps the old colour without falling through. Other steps zero-extend then ASR3, producing low blue-nibble values, not a grayscale RGB word.
+decrement_byte_fade_or_preserve_previous_colour:
 	subq.b #1,effect_colour_fade_counter.l
-	bpl.b abs_0_0004C9F8
-	bra.w abs_0_0004CAC0
-abs_0_0004C9F8:
+	bpl.b publish_shifted_fade_byte_to_colour15
+	bra.w advance_audio_modulators_after_palette_service
+publish_shifted_fade_byte_to_colour15:
 	move.b effect_colour_fade_counter.l,d0
 	andi.w #255,d0
-	asr.w #3,d0
+	asr.w #SG2_EFFECT_FADE_BYTE_SHIFT,d0
 	lea.l amiga_copper_list_a_effect_colours.l,a0
 	move.w d0,$000E(a0)
 	lea.l amiga_copper_list_b_effect_colours.l,a0
 	move.w d0,$000E(a0)
 	lea.l amiga_copper_list_c_effect_colours.l,a0
 	move.w d0,$000E(a0)
-	bra.w abs_0_0004CAC0
-abs_0_0004CA26:
+	bra.w advance_audio_modulators_after_palette_service
+decrement_grayscale_or_preserve_previous_colour:
 	subq.w #1,shared_grayscale_effect_countdown.l
-	bpl.b abs_0_0004CA3A
+	bpl.b publish_indexed_grayscale_prefix_word
 	move.w #$FFFF,shared_grayscale_effect_countdown.l
-	bra.w abs_0_0004CAC0
-    ; Use16 grayscale WORDs to update original display colour words. Values descendFFF..000 in111 steps; this table is separate from the adjacent sound descriptors.
-abs_0_0004CA3A:
+	bra.w advance_audio_modulators_after_palette_service
+    ; 16 stored WORD grayscale prefix descends FFF..000. Decrement precedes unchecked signed-WORD indexing; the prefix is not a universal count bound. Write COLOR15 data in all three list backings.
+publish_indexed_grayscale_prefix_word:
 	lea.l effect_grayscale_ramp.l,a0
 	move.w shared_grayscale_effect_countdown.l,d0
 	add.w d0,d0
@@ -60136,21 +60161,21 @@ abs_0_0004CA3A:
 	move.w d0,$000E(a0)
 	lea.l amiga_copper_list_c_effect_colours.l,a0
 	move.w d0,$000E(a0)
-	bra.b abs_0_0004CAC0
-abs_0_0004CA6C:
+	bra.b advance_audio_modulators_after_palette_service
+publish_spin_selected_shared_random_rgb:
 	bsr.w advance_shared_random_state_effects_bridge
-	andi.w #4095,d0
+	andi.w #SG2_EFFECT_RANDOM_RGB_MASK,d0
 	lea.l amiga_copper_list_a_effect_colours.l,a0
 	move.w d0,$000E(a0)
 	lea.l amiga_copper_list_b_effect_colours.l,a0
 	move.w d0,$000E(a0)
 	lea.l amiga_copper_list_c_effect_colours.l,a0
 	move.w d0,$000E(a0)
-	bra.b abs_0_0004CAC0
+	bra.b advance_audio_modulators_after_palette_service
 	dc.b $30,$39,$00,$04,$D3,$5A,$32,$39,$00,$04,$D3,$5C,$D0,$41,$67,$08
 	dc.b $B0,$7C,$00,$07,$67,$02,$60,$06,$44,$79,$00,$04,$D3,$5C,$33,$C0
 	dc.b $00,$04,$D3,$5A,$E1,$40,$33,$C0,$00,$DF,$F1,$80
-abs_0_0004CAC0:
+advance_audio_modulators_after_palette_service:
 	not.w abs_0_0004D068.l
 	bmi.w abs_0_0004CADA
 	subq.w #2,paula_projectile_effect_volume.l
@@ -61520,13 +61545,13 @@ abs_0_0004DC3E:
 abs_0_0004DC52:
 	tst.w alternate_nearby_event_active_word.l
 	bne.b abs_0_0004DC6C
-	move.w abs_0_00039654.l,d0
+	move.w space_effect_base_rgb_word.l,d0
 	lsr.w #1,d0
 	andi.w #1911,d0
 	move.w d0,(a4)
 	bra.w abs_0_0004DD3A
 abs_0_0004DC6C:
-	move.w abs_0_00039656.l,d0
+	move.w space_effect_override_rgb_word.l,d0
 	lsr.w #1,d0
 	andi.w #1911,d0
 	move.w d0,(a4)
