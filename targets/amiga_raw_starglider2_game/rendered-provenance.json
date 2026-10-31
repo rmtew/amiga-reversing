@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
   "kind": "committed_native_rendered_original_export",
-  "canonical_source_commit": "94712a6cd6dde1c083faf056a8c894583137aeae",
-  "publication_base_commit": "94712a6cd6dde1c083faf056a8c894583137aeae",
+  "canonical_source_commit": "c0af6d24a956b31ca3d06ed8bdcaf708bc75cc28",
+  "publication_base_commit": "c0af6d24a956b31ca3d06ed8bdcaf708bc75cc28",
   "native_export": "CListingArtifact.source_package_payload(64)",
-  "main_source_sha256": "f89065bd0d352a0a131f0957a0f612e8150b69b572ed6290381f1fa9f4a0988b",
+  "main_source_sha256": "81662dda42205f6a13dde30546cf275ebe7588d8b662a62d52962bfbdf58797d",
   "asset_count": 57,
   "asset_bytes": 93633,
   "game_assembly_hand_edits": false,
@@ -24,13 +24,13 @@
     "assembler executable",
     "paused Pandora work"
   ],
-  "canonical_source_commit_role": "canonical source publication base; alternate palette priority, signed colour arithmetic, conversion and fade-to-grayscale fall-through reconstructed with 194 original-CPU cases; stop before saved-frame restoration, no normal caller, interrupt, scanout, hardware timing, PCM or lifetime proof; type88 random branch remains outside this batch; output is bound by verification_receipt_id",
-  "canonical_source_subject_revision": "21aef237d049d0ddcb88e0b192c10d8d0bacce6e6b302ea5e9c654480a4b1ca6",
+  "canonical_source_commit_role": "canonical source publication base; original alternate-platform palette interrupt entry recovered from exact vector store and Timer-B installer; ten CPU cases cover gated store ordering, both palette phases, A0/A1 preservation and supplied-supervisor-frame RTE; inherited vector-base setup, hardware delivery/timing, PCM and arbitrary caller/lifetime behavior are unqualified; output is bound by verification_receipt_id",
+  "canonical_source_subject_revision": "1bb0bd501644ba23f961ce3d1340e9d53ebf3bec060f9a02d8edb4d944867783",
   "canonical_fact_sha256": {
     "source_binary.json": "42d4a5758b3e8236af7f912aee85e9ee5323bcd0961faa338c4f864080a0a7d9",
     "target_metadata.json": "e7540b68c118c56aba8815b6722eefa067517cc865fe9841d6c01ce96551389c",
-    "manual_actions.jsonl": "1c0f39db23ef51cfbf2604753da587e9e2698c5a20809d8cce0057b8e49be194",
-    "decision_journal.jsonl": "c51ffdaf056aaeac19e89299f2638f675fae6271493f80bcf074175d37f6f67b"
+    "manual_actions.jsonl": "bc730ac0bdfc83f26315349b3074056bbcee1a1d1cee5cf89bf8e263d881f67d",
+    "decision_journal.jsonl": "385158759b66d639239614813ee2093408a1b33ad3ca1344c82426afda46b3da"
   },
   "headers": "14 unmodified required include files collected by source_package.collect_package_includes from ext/amiga_includes/ndk_2.0/include; header notices retained",
   "decoded_protection_view": {
@@ -46,7 +46,7 @@
     },
     "runtime_scope": "Seven CPU write-site windows match this reversible view; no whole runtime-view identity or parent plaintext promotion."
   },
-  "verification_receipt_id": "f7421b1d8c4e241691c5771091a486be7eba87324fa6d4a630032a3a430956b4",
+  "verification_receipt_id": "76580b0d7a09fedc54013d9d4c8b379f41a36d02988a5630aa2b76050751148a",
   "render_native_sha256": "04666bf24b58d87343b498d732da9d8d075d28d69d43d7e49ed162b065af581a",
   "final_assembler_native_sha256": "04666bf24b58d87343b498d732da9d8d075d28d69d43d7e49ed162b065af581a"
 }

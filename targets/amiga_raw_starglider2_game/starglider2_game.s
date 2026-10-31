@@ -150,7 +150,7 @@
 ;     absolute[$FFFF8000] refs=1 access=a
 ;     absolute[$FFFF8201-$FFFF8202] refs=1 access=w
 ;     absolute[$FFFF8203-$FFFF8204] refs=1 access=w
-;     absolute[$FFFF8240-$FFFF8242] refs=5 access=wa
+;     absolute[$FFFF8240-$FFFF8242] refs=6 access=wa
 ;     absolute[$FFFF8260-$FFFF8261] refs=3 access=rw
 ;     absolute[$FFFF8604-$FFFF8608] refs=23 access=rw
 ;     absolute[$FFFF8609-$FFFF860A] refs=3 access=w
@@ -159,15 +159,15 @@
 ;     absolute[$FFFF8800-$FFFF8801] refs=31 access=rwa
 ;     absolute[$FFFF8802-$FFFF8803] refs=23 access=w
 ;     absolute[$FFFFFA01] refs=1 access=r
-;     absolute[$FFFFFA07-$FFFFFA08] refs=4 access=rw
+;     absolute[$FFFFFA07-$FFFFFA08] refs=5 access=rw
 ;     absolute[$FFFFFA09] refs=1 access=w
-;     absolute[$FFFFFA0F-$FFFFFA10] refs=1 access=w
+;     absolute[$FFFFFA0F-$FFFFFA10] refs=2 access=w
 ;     absolute[$FFFFFA11-$FFFFFA12] refs=10 access=w
-;     absolute[$FFFFFA13-$FFFFFA14] refs=3 access=rw
+;     absolute[$FFFFFA13-$FFFFFA14] refs=4 access=rw
 ;     absolute[$FFFFFA19-$FFFFFA1A] refs=2 access=w
-;     absolute[$FFFFFA1B-$FFFFFA1C] refs=1 access=w
+;     absolute[$FFFFFA1B-$FFFFFA1C] refs=3 access=w
 ;     absolute[$FFFFFA1F-$FFFFFA20] refs=1 access=w
-;     absolute[$FFFFFA21-$FFFFFA22] refs=2 access=w
+;     absolute[$FFFFFA21-$FFFFFA22] refs=3 access=w
 ;     absolute[$FFFFFC00] refs=1 access=r
 ;     absolute[$FFFFFC02-$FFFFFC03] refs=13 access=rw
 ;     absolute[$FFFFFFFF] refs=13 access=r
@@ -52035,7 +52035,7 @@ abs_0_0003B190:
 	clr.w frame_service_ticks_in_window(a6)
 abs_0_0003B1AC:
 	tst.b display_and_frame_service_flags(a6)
-	bpl.w abs_0_0003B28C
+	bpl.w install_alternate_timer_b_palette_interrupt
 	tst.b modal_command_input_flag(a6)
 	bne.b tick_alternate_message_countdown
 	addq.w #1,panel_animation_service_ticks(a6)
@@ -52049,9 +52049,9 @@ tick_alternate_message_countdown:
 continue_alternate_sound_service_after_message_tick:
 	bsr.w update_alternate_sound_and_display_effects_bridge_03c9d0
 	tst.b modal_command_input_flag(a6)
-	bne.w abs_0_0003B28C
+	bne.w install_alternate_timer_b_palette_interrupt
 	tst.b space_environment_flag(a6)
-	bmi.w abs_0_0003B28C
+	bmi.w install_alternate_timer_b_palette_interrupt
 	tst.b player_collision_response_flag(a6)
 	beq.b abs_0_0003B230
 	tst.b inside_structure_flag(a6)
@@ -52070,17 +52070,17 @@ abs_0_0003B202:
 	and.l d2,player_world_z(a6)
 abs_0_0003B21A:
 	cmpi.b #1,player_collision_response_steps(a6)
-	bne.b abs_0_0003B28C
+	bne.b install_alternate_timer_b_palette_interrupt
 	clr.w negative_speed_control_accumulator(a6)
 	clr.w player_speed_target(a6)
 	clr.w player_speed_smoothed(a6)
-	bra.b abs_0_0003B28C
+	bra.b install_alternate_timer_b_palette_interrupt
 abs_0_0003B230:
 	bclr.b #0,$FFFFFA07.l
 	tst.b display_and_frame_service_flags(a6)
 	beq.w abs_0_0003B350
 	tst.b inside_structure_flag(a6)
-	bne.b abs_0_0003B28C
+	bne.b install_alternate_timer_b_palette_interrupt
 	movem.w player_motion_x(a6),d0-d2
 	add.l d0,player_world_x(a6)
 	add.l d1,player_world_y(a6)
@@ -52089,17 +52089,18 @@ abs_0_0003B230:
 	and.l d2,player_world_x(a6)
 	and.l d2,player_world_z(a6)
 	tst.b space_environment_flag(a6)
-	bmi.b abs_0_0003B28C
+	bmi.b install_alternate_timer_b_palette_interrupt
 	move.l player_world_y(a6),d1
 	cmp.l #$FFFFFF88,d1
 	bmi.b abs_0_0003B280
 	move.l #$FFFFFF88,player_world_y(a6)
-	bra.b abs_0_0003B28C
+	bra.b install_alternate_timer_b_palette_interrupt
 abs_0_0003B280:
 	cmp.l player_world_y_lower_limit(a6),d1
-	bpl.b abs_0_0003B28C
+	bpl.b install_alternate_timer_b_palette_interrupt
 	move.l player_world_y_lower_limit(a6),player_world_y(a6)
-abs_0_0003B28C:
+    ; Alternate path programs Timer B and stores its entry at vector $120. MFP vector-base setup is inherited/unproven here. Entry needs a supervisor exception frame, not a JSR return.
+install_alternate_timer_b_palette_interrupt:
 	tst.b display_and_frame_service_flags(a6)
 	beq.w abs_0_0003B350
 	move.b #$1D,$FFFFFA21.w
@@ -52107,8 +52108,8 @@ abs_0_0003B28C:
 	bset.b #0,$FFFFFA07.w
 	bset.b #0,$FFFFFA13.w
 	move.b #$64,$FFFFFA21.w
-	clr.b abs_0_0003BD4A.l
-	move.l #$3BCD2,$00000120.l
+	clr.b alternate_palette_second_phase_flag.l
+	move.l #alternate_timer_b_palette_interrupt,$00000120.l
 	tst.b modal_command_input_flag(a6)
 	bne.b abs_0_0003B30C
 	tst.b abs_0_000049AA.l
@@ -52537,7 +52538,7 @@ print_alternate_positioned_text_mode0:
 	movem.l d0-d7/a0-a6,-(a7)
 	movea.l game_workspace_base.l,a6
 	mulu.w #$A0,d1
-	lea.l abs_0_0003BCAA.l,a0
+	lea.l alternate_text_column_byte_offsets.l,a0
 	move.b $0(a0,d0.w),d0
 	andi.l #255,d0
 	movea.l display_buffer_base(a6),a0
@@ -52821,18 +52822,48 @@ draw_double_pixel_glyph_mode1:
 	movea.l (a7)+,a2
 	addq.w #2,a0
 	rts
-abs_0_0003BCAA:
+alternate_text_column_byte_offsets:
 	dc.b $00,$01,$08,$09,$10,$11,$18,$19,$20,$21,$28,$29,$30,$31,$38,$39
 	dc.b $40,$41,$48,$49,$50,$51,$58,$59,$60,$61,$68,$69,$70,$71,$78,$79
-	dc.b $80,$81,$88,$89,$90,$91,$98,$99,$48,$E7,$00,$C0,$41,$F8,$82,$40
-	dc.b $4A,$39,$00,$03,$BD,$4A,$66,$00,$00,$2E,$13,$FC,$00,$01,$00,$03
-	dc.b $BD,$4A,$43,$F9,$00,$03,$BD,$4C,$20,$D9,$54,$48,$20,$D9,$20,$D9
-	dc.b $50,$88,$20,$D9,$20,$D9,$30,$D9,$11,$FC,$00,$C8,$FA,$21,$11,$FC
-	dc.b $00,$08,$FA,$1B,$60,$2E,$43,$F9,$00,$05,$34,$1C,$20,$D9,$20,$D9
-	dc.b $20,$D9,$20,$D9,$20,$D9,$20,$D9,$20,$D9,$20,$D9,$42,$39,$00,$03
-	dc.b $BD,$4A,$11,$FC,$00,$00,$FA,$1B,$08,$B8,$00,$00,$FA,$13,$08,$B8
-	dc.b $00,$00,$FA,$07,$08,$B8,$00,$00,$FA,$0F,$4C,$DF,$03,$00,$4E,$73
-abs_0_0003BD4A:
+	dc.b $80,$81,$88,$89,$90,$91,$98,$99
+alternate_timer_b_palette_interrupt:
+	movem.l a0-a1,-(a7)
+	lea.l absolute_slot_FFFF8240.w,a0
+	tst.b alternate_palette_second_phase_flag.l
+	bne.w write_cockpit_palette_and_disable_timer_b
+	move.b #$1,alternate_palette_second_phase_flag.l
+	lea.l alternate_interrupt_palette_word_buffer.l,a1
+	move.l (a1)+,(a0)+
+	addq.w #2,a0
+	move.l (a1)+,(a0)+
+	move.l (a1)+,(a0)+
+	addq.l #8,a0
+	move.l (a1)+,(a0)+
+	move.l (a1)+,(a0)+
+	move.w (a1)+,(a0)+
+	move.b #$C8,$FFFFFA21.w
+	move.b #$8,$FFFFFA1B.w
+	bra.b acknowledge_timer_b_before_exception_return
+write_cockpit_palette_and_disable_timer_b:
+	lea.l cockpit_picture_palette.l,a1
+	move.l (a1)+,(a0)+
+	move.l (a1)+,(a0)+
+	move.l (a1)+,(a0)+
+	move.l (a1)+,(a0)+
+	move.l (a1)+,(a0)+
+	move.l (a1)+,(a0)+
+	move.l (a1)+,(a0)+
+	move.l (a1)+,(a0)+
+	clr.b alternate_palette_second_phase_flag.l
+	move.b #$0,$FFFFFA1B.w
+	bclr.b #0,$FFFFFA13.w
+	bclr.b #0,$FFFFFA07.w
+acknowledge_timer_b_before_exception_return:
+	bclr.b #0,$FFFFFA0F.w
+restore_palette_interrupt_address_registers:
+	movem.l (a7)+,a0-a1
+	rte
+alternate_palette_second_phase_flag:
 	dc.w $0000
 alternate_interrupt_palette_word_buffer:
 	dc.b $00,$00,$07,$01,$07,$60,$03,$00,$04,$01,$06,$01,$00,$24,$00,$35

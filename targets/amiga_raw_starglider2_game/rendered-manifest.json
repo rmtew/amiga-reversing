@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "source_commit": "94712a6cd6dde1c083faf056a8c894583137aeae",
+  "source_commit": "c0af6d24a956b31ca3d06ed8bdcaf708bc75cc28",
   "source_assembly": "starglider2_game.s",
   "assets": [
     {
@@ -878,13 +878,13 @@
     },
     {
       "path": "rendered-provenance.json",
-      "bytes": 3472,
-      "sha256": "8d17e0b4a125e2d70bdc946fb325ea4adb8d5862a8366c814a427174828bb53e"
+      "bytes": 3506,
+      "sha256": "ec7a37b8d2c278adf74f01727a53d9744e871db142c8dfc0b56bd9802dc5f5cd"
     },
     {
       "path": "starglider2_game.s",
-      "bytes": 2154570,
-      "sha256": "f89065bd0d352a0a131f0957a0f612e8150b69b572ed6290381f1fa9f4a0988b"
+      "bytes": 2155664,
+      "sha256": "81662dda42205f6a13dde30546cf275ebe7588d8b662a62d52962bfbdf58797d"
     },
     {
       "path": "tools/starglider2_protection.py",
@@ -892,6 +892,6 @@
       "sha256": "81d3f66d36dbfbd5c77238b20c28e8b9abaa329777eb91f64669bbbf13703582"
     }
   ],
-  "source_commit_role": "canonical source publication base; alternate palette priority, signed colour arithmetic, conversion and fade-to-grayscale fall-through reconstructed with 194 original-CPU cases; stop before saved-frame restoration, no normal caller, interrupt, scanout, hardware timing, PCM or lifetime proof; type88 random branch remains outside this batch; output is bound by verification_receipt_id",
-  "source_subject_revision": "21aef237d049d0ddcb88e0b192c10d8d0bacce6e6b302ea5e9c654480a4b1ca6"
+  "source_commit_role": "canonical source publication base; original alternate-platform palette interrupt entry recovered from exact vector store and Timer-B installer; ten CPU cases cover gated store ordering, both palette phases, A0/A1 preservation and supplied-supervisor-frame RTE; inherited vector-base setup, hardware delivery/timing, PCM and arbitrary caller/lifetime behavior are unqualified; output is bound by verification_receipt_id",
+  "source_subject_revision": "1bb0bd501644ba23f961ce3d1340e9d53ebf3bec060f9a02d8edb4d944867783"
 }

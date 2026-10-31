@@ -4,11 +4,11 @@ Status: **refinement resumed on 2026-10-29 at the user's request**. The earlier
 original-layout reviewed closeout and ZIP are historical milestones, not a claim
 that further analysis is exhausted. Current source remains byte exact: all
 412736 original bytes rebuild through C/vasm and a clean standalone export,
-with all 106034 accepted code bytes retained. No generated assembly was edited
+with all 106154 accepted code bytes retained. No generated assembly was edited
 by hand and no interim archive was produced.
 
-The current ownership union leaves 10851 bytes in
-272 intervals unclassified. This is classification accounting,
+The current ownership union leaves 10731 bytes in
+273 intervals unclassified. This is classification accounting,
 not a semantic completion percentage. Earlier interval/site counts below belong
 to their recorded closeout revision. See the current
 [native memory-span receipt](../../runtime/observations/starglider2-app-memory-spans.json),
@@ -16,8 +16,8 @@ to their recorded closeout revision. See the current
 
 ## Current refinement and next evidence
 
-Current native totals: **3509 app /2716 typed /165 unresolved**, with **10851
-unclassified bytes /272 intervals**. The earlier counter-indexed source-array recovery reused
+Current native totals: **3509 app /2716 typed /165 unresolved**, with **10731
+unclassified bytes /273 intervals**. The earlier counter-indexed source-array recovery reused
 the shared loop induction and interned linear entry values. Original inventory
 readers at source `$DD6` and `$339B4` expose the existing name-reference `text`
 field over the possible104-entry prefix of the148-record owner. That batch retained existing
@@ -43,15 +43,38 @@ fifteen WORDs; following zero and other outside-prefix reads remain distinct.
 CPU fixtures stop before the caller's saved-register restore and check RAM
 preparation only; no interrupt, scanout, hardware timing or PCM qualification.
 
-Next connected lead: the installer stores $3BCD2 into vector $120, but the handler
-remains raw within the block beginning $3BCAA. The first 40 bytes are a numeric
-table, followed by the candidate handler reading this palette backing and a
-second palette at $5341C. Current automatic vector recovery accepts CPU-classified
-exception/interrupt/trap slots; $120 is a platform-programmed vector, not covered
-by that classification. Establish a narrowly evidenced platform vector contract
-and account for the coarse data owner before promoting the handler. Do not
-reinterpret arbitrary low-memory writes as callbacks or assume hardware effects
-from the palette-preparation fixtures.
+The alternate palette callback at runtime $3BCD2 (source $3ACD2) is now a
+canonical 33-instruction interrupt entry: 120 formerly unclassified bytes. The
+remaining unknown total falls 10851 ->10731; splitting an interval raises the
+interval count 272 ->273. App/typed/unresolved totals stay 3509/2716/165 and
+existing pointer-reference identities are unchanged. This entry is based on the actual installer at $3B28C storing it
+at $120 and its saved-A0/A1, RTE body. The mixed raw block's first 40 bytes remain
+text column offsets; they are not code. The phase flag is a BYTE, with the
+adjacent byte retained. The other source is the already typed cockpit palette
+at $5341C; no new palette owner or lifetime assumption was invented.
+
+Ten focused CPU cases cover the flag-gated installer, exact store order, both
+callback paths, nonzero flags of either sign, repeated supplied entries,
+register preservation and a supplied six-byte supervisor exception-frame return.
+The sparse virtual test mapping backs only touched pages and treats ports as
+RAM; it is not a machine memory requirement or a peripheral model. First phase
+writes 22 source bytes to palette offsets 0,6,10,22,26,30, retaining the gaps;
+it sets the phase BYTE and writes Timer-B data/control 200/8. Second phase
+copies all 32 cockpit-palette bytes, zeroes phase/control and clears bit 0 of
+enable/mask, preserving their other bits.
+Both paths clear the in-service bit before restoring A0/A1 and RTE.
+
+The installer writes data 29, control 8, enable/mask bits, data 100, phase zero,
+then the vector. Preserve this ordering; CPU tests do not prove absence of an
+interrupt interleaving. It does not establish the MFP vector register's high
+nibble. Routing Timer B through $120 therefore remains conditional on inherited
+platform setup. The controller's programmable vector format is documented in
+[Motorola's MFP manual, section 4.1](https://www.nxp.com/docs/en/reference-manual/MC68901UM.pdf).
+No Amiga fixed-vector rule was widened: this missing platform contract is supplied
+through the existing canonical code-entry operation, not a guessed low-memory
+store recognizer. The entry fact and explicit source-label declaration are
+separate; the vector operand binds to that natively validated source identity. Hardware delivery, scanline timing, end-to-end gameplay and
+PCM are unqualified by these fixtures. Type 88's random branch is untouched.
 
 The sound-setup/alternate-output batch reconstructs 33 continuations and fifteen
 constants with 671 original-CPU cases. Object types 1/15 choose the envelope
