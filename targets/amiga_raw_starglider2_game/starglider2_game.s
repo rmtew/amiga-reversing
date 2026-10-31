@@ -1441,12 +1441,15 @@ SG2_ANGLE_FULL_TURN	EQU	4096
 SG2_ANGLE_HALF_TURN	EQU	2048
 SG2_ANGLE_QUARTER_TURN	EQU	1024
 SG2_ANGLE_THREE_QUARTER_TURN	EQU	3072
+SG2_BLAST_DOOR_PLAYER_SKIP_VARIANT	EQU	9
 SG2_CONTACT_COORDINATE_SHIFT	EQU	9
 SG2_CONTACT_PAIR_DBF_SUBTRACT	EQU	2
 SG2_CONTACT_PIXEL_CENTER_X	EQU	144
 SG2_CONTACT_PIXEL_CENTER_Y	EQU	160
 SG2_CONTACT_RELATIVE_UPPER_BOUND	EQU	8192
 SG2_CONTACT_SKIP_FLAG_BIT	EQU	4
+SG2_ENERGY_GATE_PLAYER_SKIP_VARIANT	EQU	6
+SG2_GATE_CONTACT_RESPONSE_PASSES	EQU	3
 SG2_HEADING_ANGLE_MASK	EQU	4095
 SG2_HEADING_COARSE_BYTE_MASK	EQU	254
 SG2_HEADING_DIVISOR	EQU	365
@@ -1469,6 +1472,8 @@ SG2_MESSAGE_QUEUE_POINTER_LIMIT	EQU	10
 SG2_MESSAGE_ROWS_DBF_LAST	EQU	7
 SG2_MESSAGE_ROW_LONGS_DBF_LAST	EQU	6
 SG2_MESSAGE_ROW_SKIP_BYTES	EQU	12
+SG2_OBJECT_PROFILE_EDGE_THRESHOLD	EQU	551
+SG2_OBJECT_PROFILE_HALF_WIDTH	EQU	550
 SG2_OBJECT_TYPE_EGRON_MINI_SENTINEL	EQU	37
 SG2_OBJECT_TYPE_HOMING_MISSILE	EQU	12
 SG2_OBJECT_TYPE_ICARUS	EQU	30
@@ -1481,6 +1486,8 @@ SG2_OVERLAY_MIN_TOP	EQU	30
 SG2_OVERLAY_ROWS_DBF_LAST	EQU	15
 SG2_OVERLAY_ROW_BYTE_STEP	EQU	160
 SG2_PLAYER_FOLLOW_Y_SMOOTH_SHIFT	EQU	2
+SG2_PLAYER_PROFILE_EDGE_THRESHOLD	EQU	501
+SG2_PLAYER_PROFILE_HALF_WIDTH	EQU	500
 SG2_PLAYER_SOLID_CONTACT_RESPONSE_PASSES	EQU	4
 SG2_PROJECTILE_BASE_ENERGY_COST	EQU	256
 SG2_PROJECTILE_FREE_SLOT_RESERVE	EQU	2
@@ -14148,9 +14155,9 @@ dispatch_special_contact_object_handlers:
 	cmp.w #$5A,d0
 	beq.w abs_0_0000C32C
 	cmp.w #$41,d0
-	beq.w abs_0_0000BD72
+	beq.w test_energy_gate_player_contact_variant
 	cmp.w #$3F,d0
-	beq.w abs_0_0000BD90
+	beq.w test_blast_door_player_contact_variant
 	tst.b inside_structure_flag(a6)
 	bne.b restore_contact_context_and_clear_structure_clamp
 	cmp.w #$30,d0
@@ -14201,90 +14208,96 @@ retire_special_actor_and_clear_other_flag3:
 	bclr.b #3,$0002(a2)
 	clr.b $001E(a0)
 	bra.w restore_contact_context_and_clear_structure_clamp
+    ; Select eligible type by sum of signed-extended WORD magnitudes; MIN stays negative and last equal score wins. No winner leaves incoming A2 unchanged; valid backing remains a caller duty.
 constrain_player_to_structure_contacts:
 	move.w contact_object_count(a6),d3
 	beq.w return_from_contact_pair_processing
 	subq.w #1,d3
 	movea.l contact_objects_cursor(a6),a1
+seed_structure_candidate_distance_limit:
 	move.l #$FFFFFFF,d2
-abs_0_0000BA28:
+read_next_structure_contact_candidate:
 	movea.l (a1)+,a4
 	move.w (a4),d4	; operand 1: SG2ObjectCore_object_type at (a4)
 	cmp.w #$42,d4
-	beq.b abs_0_0000BA62
+	beq.b score_structure_candidate_relative_words
 	cmp.w #$43,d4
-	beq.b abs_0_0000BA62
+	beq.b score_structure_candidate_relative_words
 	cmp.w #$44,d4
-	beq.b abs_0_0000BA62
+	beq.b score_structure_candidate_relative_words
 	cmp.w #$45,d4
-	beq.b abs_0_0000BA62
+	beq.b score_structure_candidate_relative_words
 	cmp.w #$46,d4
-	beq.b abs_0_0000BA62
+	beq.b score_structure_candidate_relative_words
 	cmp.w #$55,d4
-	beq.b abs_0_0000BA62
+	beq.b score_structure_candidate_relative_words
 	cmp.w #$5C,d4
-	beq.b abs_0_0000BA62
+	beq.b score_structure_candidate_relative_words
 	cmp.w #$30,d4
-	beq.b abs_0_0000BA62
+	beq.b score_structure_candidate_relative_words
 	cmp.w #$5E,d4
-	bne.b abs_0_0000BA8C
-abs_0_0000BA62:
+	bne.b continue_structure_candidate_selection
+score_structure_candidate_relative_words:
 	move.w SG2ObjectCore_relative_x(a4),d0
-	bpl.b abs_0_0000BA6A
+	bpl.b add_structure_relative_z_word_magnitude
 	neg.w d0
-abs_0_0000BA6A:
+add_structure_relative_z_word_magnitude:
 	move.w SG2ObjectCore_relative_z(a4),d1
-	bpl.b abs_0_0000BA72
+	bpl.b add_structure_relative_y_word_magnitude
 	neg.w d1
-abs_0_0000BA72:
+add_structure_relative_y_word_magnitude:
 	move.w SG2ObjectCore_relative_y(a4),d5
-	bpl.b abs_0_0000BA7A
+	bpl.b sum_signed_word_structure_magnitudes
 	neg.w d5
-abs_0_0000BA7A:
+sum_signed_word_structure_magnitudes:
 	ext.l d5
 	ext.l d0
 	ext.l d1
 	add.l d1,d0
 	add.l d5,d0
 	cmp.l d0,d2
-	bmi.b abs_0_0000BA8C
+	bmi.b continue_structure_candidate_selection
 	movea.l a4,a2
 	move.l d0,d2
-abs_0_0000BA8C:
-	dbf.w d3,abs_0_0000BA28
+continue_structure_candidate_selection:
+	dbf.w d3,read_next_structure_contact_candidate
+copy_selected_structure_visibility_band_byte:
 	move.b $0025(a2),interior_visibility_band_tag(a6)
+load_player_reference_after_structure_selection:
 	movea.l player_object_reference(a6),a0
+clear_brake_hold_before_structure_dispatch:
 	clr.w surface_brake_hold_countdown.l
 	move.w (a2),d0
 	cmp.w #$30,d0
 	beq.w abs_0_0000BDAE
 	cmp.w #$42,d0
-	beq.b abs_0_0000BAE0
+	beq.b select_wide_player_structure_profiles
 	cmp.w #$43,d0
-	beq.b abs_0_0000BAEE
+	beq.b select_narrow_player_structure_profiles
 	cmp.w #$44,d0
-	beq.b abs_0_0000BAEE
+	beq.b select_narrow_player_structure_profiles
 	cmp.w #$45,d0
-	beq.b abs_0_0000BAEE
+	beq.b select_narrow_player_structure_profiles
 	cmp.w #$46,d0
-	beq.b abs_0_0000BAEE
+	beq.b select_narrow_player_structure_profiles
 	cmp.w #$5C,d0
 	beq.w abs_0_0000BC4A
 	cmp.w #$5E,d0
 	beq.w abs_0_0000BD02
 	cmp.w #$55,d0
 	bne.w clear_outside_structure_contact_clamp_flag
-abs_0_0000BAE0:
+select_wide_player_structure_profiles:
 	lea.l wide_structure_profile_x_offsets.l,a1
 	lea.l wide_structure_profile_z_offsets.l,a3
-	bra.b abs_0_0000BAFA
-abs_0_0000BAEE:
+	bra.b reverse_player_profile_motion_for_collision_response
+select_narrow_player_structure_profiles:
 	lea.l narrow_structure_profile_x_offsets.l,a1
 	lea.l narrow_structure_profile_z_offsets.l,a3
+    ; MOVEM.W sign-extends motion before LONG doubling and add/subtract. Mask X/Z afterward; Y is unmasked. This differs from a WORD-double displacement and is not physical-frame qualification.
     ; KNOWN: type A2=Target code-entry register seed:SG2ProfiledStructure
-abs_0_0000BAFA:
+reverse_player_profile_motion_for_collision_response:
 	tst.b player_collision_response_flag(a6)
-	beq.b abs_0_0000BB26
+	beq.b advance_player_motion_before_profile_clamping
 	movem.w player_motion_x(a6),d0-d2
 	add.l d0,d0
 	add.l d1,d1
@@ -14296,7 +14309,7 @@ abs_0_0000BAFA:
 	and.l d2,player_world_x(a6)
 	and.l d2,player_world_z(a6)
 	bra.b apply_player_structure_profile_constraints
-abs_0_0000BB26:
+advance_player_motion_before_profile_clamping:
 	movem.w player_motion_x(a6),d0-d2
 	add.l d0,d0
 	add.l d1,d1
@@ -14307,90 +14320,94 @@ abs_0_0000BB26:
 	move.l horizontal_world_wrap_mask(a6),d2
 	and.l d2,player_world_x(a6)
 	and.l d2,player_world_z(a6)
+    ; Conditional selectors 0..5 use stored X/Z LONG offsets. X-oriented correction truncates to signed lowWORD after ASR; Z-oriented correction keeps the full LONG. No universal index proof.
 apply_player_structure_profile_constraints:
 	moveq.l #0,d0
+load_player_profile_selector_before_indexed_offsets:
 	move.w SG2ProfiledStructure_collision_profile_selector(a2),d1
 	add.w d1,d1
 	add.w d1,d1
 	move.l $0(a1,d1.w),d2
 	move.l $0(a3,d1.w),d3
 	move.w SG2ProfiledStructure_collision_profile_selector(a2),d1
-	beq.b abs_0_0000BB7E
+	beq.b form_player_x_profile_plane
 	cmp.w #$2,d1
-	bgt.b abs_0_0000BBC0
+	bgt.b select_player_z_profile_correction
 	add.l SG2ObjectCore_world_z(a2),d3
 	move.l player_world_z(a6),d0
 	sub.l d3,d0
 	cmp.w #$1,d1
-	beq.b abs_0_0000BB7A
+	beq.b halve_and_truncate_player_x_profile_correction
 	neg.l d0
-abs_0_0000BB7A:
+halve_and_truncate_player_x_profile_correction:
 	asr.l #1,d0
 	ext.l d0
-abs_0_0000BB7E:
+form_player_x_profile_plane:
 	add.l SG2ObjectCore_world_x(a2),d2
 	add.l d0,d2
 	move.l d2,d4
 	sub.l player_world_x(a6),d4
-	bpl.b abs_0_0000BB98
+	bpl.b clamp_player_x_for_positive_profile_difference
 	cmp.l #$FFFFFE0B,d4
-	ble.b abs_0_0000BBB0
-	bra.w abs_0_0000BC18
-abs_0_0000BB98:
-	cmp.l #$1F5,d4
-	blt.b abs_0_0000BC18
+	ble.b clamp_player_x_for_negative_profile_difference
+	bra.w apply_player_profile_vertical_limits
+    ; Player horizontal clamp triggers at signed plane difference +/-501, stores plane +/-500 and sets clamp flag. Preserve LONG wrap and asymmetric vertical endpoint behavior.
+clamp_player_x_for_positive_profile_difference:
+	cmp.l #SG2_PLAYER_PROFILE_EDGE_THRESHOLD,d4
+	blt.b apply_player_profile_vertical_limits
 	addi.l #4294966796,d2
 	move.l d2,player_world_x(a6)
 	st.b player_structure_clamp_flag(a6)
-	bra.b abs_0_0000BC18
-abs_0_0000BBB0:
-	addi.l #500,d2
+	bra.b apply_player_profile_vertical_limits
+clamp_player_x_for_negative_profile_difference:
+	addi.l #SG2_PLAYER_PROFILE_HALF_WIDTH,d2
 	move.l d2,player_world_x(a6)
 	st.b player_structure_clamp_flag(a6)
-	bra.b abs_0_0000BC18
-abs_0_0000BBC0:
+	bra.b apply_player_profile_vertical_limits
+select_player_z_profile_correction:
 	cmp.w #$4,d1
-	beq.b abs_0_0000BBDA
+	beq.b form_player_z_profile_plane
 	add.l SG2ObjectCore_world_x(a2),d2
 	move.l player_world_x(a6),d0
 	sub.l d2,d0
 	cmp.w #$3,d1
-	beq.b abs_0_0000BBD8
+	beq.b halve_player_z_profile_correction_as_long
 	neg.l d0
-abs_0_0000BBD8:
+halve_player_z_profile_correction_as_long:
 	asr.l #1,d0
-abs_0_0000BBDA:
+form_player_z_profile_plane:
 	add.l SG2ObjectCore_world_z(a2),d3
 	add.l d0,d3
 	move.l d3,d4
 	sub.l player_world_z(a6),d4
-	bpl.b abs_0_0000BBF2
+	bpl.b clamp_player_z_for_positive_profile_difference
 	cmp.l #$FFFFFE0B,d4
-	ble.b abs_0_0000BC0A
-	bra.b abs_0_0000BC18
-abs_0_0000BBF2:
-	cmp.l #$1F5,d4
-	blt.b abs_0_0000BC18
+	ble.b clamp_player_z_for_negative_profile_difference
+	bra.b apply_player_profile_vertical_limits
+clamp_player_z_for_positive_profile_difference:
+	cmp.l #SG2_PLAYER_PROFILE_EDGE_THRESHOLD,d4
+	blt.b apply_player_profile_vertical_limits
 	addi.l #4294966796,d3
 	move.l d3,player_world_z(a6)
 	st.b player_structure_clamp_flag(a6)
-	bra.b abs_0_0000BC18
-abs_0_0000BC0A:
-	addi.l #500,d3
+	bra.b apply_player_profile_vertical_limits
+clamp_player_z_for_negative_profile_difference:
+	addi.l #SG2_PLAYER_PROFILE_HALF_WIDTH,d3
 	move.l d3,player_world_z(a6)
 	st.b player_structure_clamp_flag(a6)
-abs_0_0000BC18:
+    ; Player Y<=-590 stores-589; Y>-410 stores-411, while exact-410 remains. Object profile limits differ; do not merge the two clamp contracts.
+apply_player_profile_vertical_limits:
 	move.l player_world_y(a6),d1
 	cmp.l #$FFFFFDB2,d1
-	ble.b abs_0_0000BC2E
+	ble.b clamp_player_y_at_or_below_minus590
 	cmp.l #$FFFFFE66,d1
-	bgt.b abs_0_0000BC3C
+	bgt.b clamp_player_y_above_minus410
 	rts
-abs_0_0000BC2E:
+clamp_player_y_at_or_below_minus590:
 	move.l #$FFFFFDB3,player_world_y(a6)
 	st.b player_structure_clamp_flag(a6)
 	rts
-abs_0_0000BC3C:
+clamp_player_y_above_minus410:
 	move.l #$FFFFFE65,player_world_y(a6)
 	st.b player_structure_clamp_flag(a6)
 	rts
@@ -14444,13 +14461,13 @@ abs_0_0000BCC8:
 	sub.l d0,d1
 	add.l d0,d2
 	cmp.l player_world_x(a6),d2
-	blt.w abs_0_0000BBB0
+	blt.w clamp_player_x_for_negative_profile_difference
 	cmp.l player_world_x(a6),d1
-	blt.w abs_0_0000BC18
+	blt.w apply_player_profile_vertical_limits
 	addi.l #4294966796,d1
 	move.l d1,player_world_x(a6)
 	st.b player_structure_clamp_flag(a6)
-	bra.w abs_0_0000BC18
+	bra.w apply_player_profile_vertical_limits
     ; Type94 Tunnel Depot: widen BYTE26 service ID; WORD28 selects the original Z-approach test. IDs0..10 come from static world instances, not arbitrary constructor inputs.
     ; KNOWN: type A2=Target code-entry register seed:SG2TunnelDepot
 abs_0_0000BD02:
@@ -14462,37 +14479,41 @@ abs_0_0000BD02:
 	move.l player_world_z(a6),d0
 	sub.l SG2ObjectCore_world_z(a2),d0
 	cmp.w #$23F,d0
-	ble.w abs_0_0000BAE0
+	ble.w select_wide_player_structure_profiles
 	move.l SG2ObjectCore_world_z(a2),d0
 	addi.l #570,d0
 	move.l d0,player_world_z(a6)
 	st.b player_collision_response_flag(a6)
 	move.b #$3,player_collision_response_steps(a6)
 	move.w #$3F,last_player_contact_type(a6)
-	bra.w abs_0_0000BAE0
+	bra.w select_wide_player_structure_profiles
 abs_0_0000BD46:
 	move.l SG2ObjectCore_world_z(a2),d0
 	sub.l player_world_z(a6),d0
 	cmp.w #$23F,d0
-	ble.w abs_0_0000BAE0
+	ble.w select_wide_player_structure_profiles
 	move.l SG2ObjectCore_world_z(a2),d0
 	addi.l #570,d0
 	move.l d0,player_world_z(a6)
 	st.b player_collision_response_flag(a6)
 	move.b #$3,player_collision_response_steps(a6)
-	bra.w abs_0_0000BAE0
-abs_0_0000BD72:
-	cmpi.b #6,$0003(a2)
+	bra.w select_wide_player_structure_profiles
+    ; Energy gate player contact skips exactly variant6, otherwise sets response3 before common response. Type/variant are observed values, not an inferred globally open/closed state.
+test_energy_gate_player_contact_variant:
+	cmpi.b #SG2_ENERGY_GATE_PLAYER_SKIP_VARIANT,$0003(a2)
 	beq.w restore_contact_context_and_clear_structure_clamp
+start_energy_gate_player_contact_response:
 	st.b player_collision_response_flag(a6)
-	move.b #$3,player_collision_response_steps(a6)
+	move.b #SG2_GATE_CONTACT_RESPONSE_PASSES,player_collision_response_steps(a6)
 	move.w #$41,last_player_contact_type(a6)
 	bra.w select_player_or_nonplayer_common_contact_effects
-abs_0_0000BD90:
-	cmpi.b #9,$0003(a2)
+    ; Blast Doors player contact skips exactly variant9. The separate object handler uses different phase tests; do not globalize this player-only gate or equate response3 with physical frames.
+test_blast_door_player_contact_variant:
+	cmpi.b #SG2_BLAST_DOOR_PLAYER_SKIP_VARIANT,$0003(a2)
 	beq.w restore_contact_context_and_clear_structure_clamp
+start_blast_door_player_contact_response:
 	st.b player_collision_response_flag(a6)
-	move.b #$3,player_collision_response_steps(a6)
+	move.b #SG2_GATE_CONTACT_RESPONSE_PASSES,player_collision_response_steps(a6)
 	move.w #$3F,last_player_contact_type(a6)
 	bra.w select_player_or_nonplayer_common_contact_effects
 abs_0_0000BDAE:
@@ -14526,7 +14547,7 @@ abs_0_0000BDFE:
 	move.l player_world_z(a6),d0
 	sub.l $000C(a2),d0
 	cmp.w #$23F,d0
-	ble.w abs_0_0000BAE0
+	ble.w select_wide_player_structure_profiles
 return_to_surface_layout:
 	sf.b inside_structure_flag(a6)
 	movea.l player_object_reference(a6),a1
@@ -14568,7 +14589,7 @@ abs_0_0000BEB8:
 	move.l $000C(a2),d0
 	sub.l player_world_z(a6),d0
 	cmp.w #$23F,d0
-	ble.w abs_0_0000BAE0
+	ble.w select_wide_player_structure_profiles
 	bra.w return_to_surface_layout
 abs_0_0000BECC:
 	move.w player_rotation_0(a6),d0
@@ -14628,15 +14649,15 @@ abs_0_0000BF84:
 	clr.w surface_brake_hold_countdown.l
 	move.w (a2),d0
 	cmp.w #$42,d0
-	beq.b abs_0_0000BFEC
+	beq.b select_wide_object_structure_profiles
 	cmp.w #$43,d0
-	beq.b abs_0_0000BFFA
+	beq.b select_narrow_object_structure_profiles
 	cmp.w #$44,d0
-	beq.b abs_0_0000BFFA
+	beq.b select_narrow_object_structure_profiles
 	cmp.w #$45,d0
-	beq.b abs_0_0000BFFA
+	beq.b select_narrow_object_structure_profiles
 	cmp.w #$46,d0
-	beq.b abs_0_0000BFFA
+	beq.b select_narrow_object_structure_profiles
 	cmp.w #$5C,d0
 	beq.w abs_0_0000C12C
 	cmp.w #$5E,d0
@@ -14647,13 +14668,14 @@ abs_0_0000BF84:
 	beq.w abs_0_0000C1CC
 	cmp.w #$55,d0
 	bne.w test_nonplayer_special_contact_durability
-abs_0_0000BFEC:
+select_wide_object_structure_profiles:
 	lea.l wide_structure_profile_x_offsets.l,a1
 	lea.l wide_structure_profile_z_offsets.l,a3
 	bra.b apply_object_structure_profile_constraints
-abs_0_0000BFFA:
+select_narrow_object_structure_profiles:
 	lea.l narrow_structure_profile_x_offsets.l,a1
 	lea.l narrow_structure_profile_z_offsets.l,a3
+    ; Object profile uses550-unit half-width and551 thresholds. Only84/103 reverse the clamped velocity WORD; other types retain velocity. X correction truncation still differs from Z.
     ; KNOWN: type A2=Target code-entry register seed:SG2ProfiledStructure
 apply_object_structure_profile_constraints:
 	moveq.l #0,d0
@@ -14663,98 +14685,99 @@ apply_object_structure_profile_constraints:
 	move.l $0(a1,d1.w),d2
 	move.l $0(a3,d1.w),d3
 	move.w SG2ProfiledStructure_collision_profile_selector(a2),d1
-	beq.b abs_0_0000C03A
+	beq.b form_object_x_profile_plane
 	cmp.w #$2,d1
-	bgt.b abs_0_0000C088
+	bgt.b select_object_z_profile_correction
 	add.l SG2ObjectCore_world_z(a2),d3
 	move.l $000C(a0),d0
 	sub.l d3,d0
 	cmp.w #$1,d1
-	beq.b abs_0_0000C036
+	beq.b halve_and_truncate_object_x_profile_correction
 	neg.l d0
-abs_0_0000C036:
+halve_and_truncate_object_x_profile_correction:
 	asr.l #1,d0
 	ext.l d0
-abs_0_0000C03A:
+form_object_x_profile_plane:
 	add.l SG2ObjectCore_world_x(a2),d2
 	add.l d0,d2
 	move.l d2,d4
 	sub.l $0004(a0),d4
-	bpl.b abs_0_0000C054
+	bpl.b clamp_object_x_for_positive_profile_difference
 	cmp.l #$FFFFFDD9,d4
-	ble.b abs_0_0000C06A
-	bra.w abs_0_0000C0EA
-abs_0_0000C054:
-	cmp.l #$227,d4
-	blt.w abs_0_0000C0EA
+	ble.b clamp_object_x_for_negative_profile_difference
+	bra.w apply_object_profile_vertical_limits
+clamp_object_x_for_positive_profile_difference:
+	cmp.l #SG2_OBJECT_PROFILE_EDGE_THRESHOLD,d4
+	blt.w apply_object_profile_vertical_limits
 	addi.l #4294966746,d2
 	move.l d2,$0004(a0)
-	bra.b abs_0_0000C074
-abs_0_0000C06A:
-	addi.l #550,d2
+	bra.b test_selected_types_for_x_velocity_reversal
+clamp_object_x_for_negative_profile_difference:
+	addi.l #SG2_OBJECT_PROFILE_HALF_WIDTH,d2
 	move.l d2,$0004(a0)
-abs_0_0000C074:
+test_selected_types_for_x_velocity_reversal:
 	cmpi.w #103,(a0)
-	beq.b abs_0_0000C082
+	beq.b reverse_clamped_object_x_velocity_word
 	cmpi.w #84,(a0)
-	bne.w abs_0_0000C0EA
-abs_0_0000C082:
+	bne.w apply_object_profile_vertical_limits
+reverse_clamped_object_x_velocity_word:
 	neg.w $002C(a0)
-	bra.b abs_0_0000C0EA
-abs_0_0000C088:
+	bra.b apply_object_profile_vertical_limits
+select_object_z_profile_correction:
 	cmp.w #$4,d1
-	beq.b abs_0_0000C0A2
+	beq.b form_object_z_profile_plane
 	add.l SG2ObjectCore_world_x(a2),d2
 	move.l $0004(a0),d0
 	sub.l d2,d0
 	cmp.w #$3,d1
-	beq.b abs_0_0000C0A0
+	beq.b halve_object_z_profile_correction_as_long
 	neg.l d0
-abs_0_0000C0A0:
+halve_object_z_profile_correction_as_long:
 	asr.l #1,d0
-abs_0_0000C0A2:
+form_object_z_profile_plane:
 	add.l SG2ObjectCore_world_z(a2),d3
 	add.l d0,d3
 	move.l d3,d4
 	sub.l $000C(a0),d4
-	bpl.b abs_0_0000C0BA
+	bpl.b clamp_object_z_for_positive_profile_difference
 	cmp.l #$FFFFFDD9,d4
-	ble.b abs_0_0000C0CE
-	bra.b abs_0_0000C0EA
-abs_0_0000C0BA:
-	cmp.l #$227,d4
-	blt.b abs_0_0000C0EA
+	ble.b clamp_object_z_for_negative_profile_difference
+	bra.b apply_object_profile_vertical_limits
+clamp_object_z_for_positive_profile_difference:
+	cmp.l #SG2_OBJECT_PROFILE_EDGE_THRESHOLD,d4
+	blt.b apply_object_profile_vertical_limits
 	addi.l #4294966746,d3
 	move.l d3,$000C(a0)
-	bra.b abs_0_0000C0D8
-abs_0_0000C0CE:
-	addi.l #550,d3
+	bra.b test_selected_types_for_z_velocity_reversal
+clamp_object_z_for_negative_profile_difference:
+	addi.l #SG2_OBJECT_PROFILE_HALF_WIDTH,d3
 	move.l d3,$000C(a0)
-abs_0_0000C0D8:
+test_selected_types_for_z_velocity_reversal:
 	cmpi.w #103,(a0)
-	beq.b abs_0_0000C0E6
+	beq.b reverse_clamped_object_z_velocity_word
 	cmpi.w #84,(a0)
-	bne.w abs_0_0000C0EA
-abs_0_0000C0E6:
+	bne.w apply_object_profile_vertical_limits
+reverse_clamped_object_z_velocity_word:
 	neg.w $0030(a0)
-abs_0_0000C0EA:
+    ; Object Y<=-2768 stores-2760; Y>0 stores-4. Only84/103 negate Y velocity on these clamps. Preserve WORD NEG minimum behavior; no general bounce or lifetime claim.
+apply_object_profile_vertical_limits:
 	move.l $0008(a0),d1
 	cmp.l #$FFFFF530,d1
-	ble.b abs_0_0000C102
+	ble.b clamp_object_y_at_or_below_minus2768
 	cmp.l #$0,d1
-	bgt.b abs_0_0000C10E
+	bgt.b clamp_object_y_above_zero
 	bra.w restore_contact_context_and_clear_structure_clamp
-abs_0_0000C102:
+clamp_object_y_at_or_below_minus2768:
 	move.l #$FFFFF538,$0008(a0)
-	bra.w abs_0_0000C116
-abs_0_0000C10E:
+	bra.w test_selected_types_for_y_velocity_reversal
+clamp_object_y_above_zero:
 	move.l #$FFFFFFFC,$0008(a0)
-abs_0_0000C116:
+test_selected_types_for_y_velocity_reversal:
 	cmpi.w #103,(a0)
-	beq.b abs_0_0000C124
+	beq.b reverse_clamped_object_y_velocity_word
 	cmpi.w #84,(a0)
 	bne.w restore_contact_context_and_clear_structure_clamp
-abs_0_0000C124:
+reverse_clamped_object_y_velocity_word:
 	neg.w $002E(a0)
 	bra.w restore_contact_context_and_clear_structure_clamp
 abs_0_0000C12C:
@@ -14779,25 +14802,25 @@ abs_0_0000C152:
 	sub.l d0,d1
 	add.l d0,d2
 	cmp.l $0004(a0),d2
-	blt.w abs_0_0000C06A
+	blt.w clamp_object_x_for_negative_profile_difference
 	cmp.l $0004(a0),d1
-	blt.w abs_0_0000C0EA
+	blt.w apply_object_profile_vertical_limits
 	addi.l #4294966796,d1
 	move.l d1,$0004(a0)
 	cmpi.w #103,(a0)
-	bne.w abs_0_0000C0EA
+	bne.w apply_object_profile_vertical_limits
 	clr.b $001E(a0)
-	bra.w abs_0_0000C0EA
+	bra.w apply_object_profile_vertical_limits
 abs_0_0000C198:
 	move.l $000C(a0),d0
 	sub.l $000C(a2),d0
 	cmp.w #$1C7,d0
-	ble.w abs_0_0000BFEC
+	ble.w select_wide_object_structure_profiles
 	neg.w $0030(a0)
 	move.l $000C(a2),d0
 	addi.l #450,d0
 	move.l d0,$000C(a0)
-	bra.w abs_0_0000BFEC
+	bra.w select_wide_object_structure_profiles
 abs_0_0000C1BE:
 	cmpi.b #3,$0003(a2)
 	ble.w test_nonplayer_special_contact_durability

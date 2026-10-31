@@ -27,6 +27,37 @@ and strengthened 38 app-base attributions.
 Conditional skips mean104 outer iterations are not104 observed memory reads.
 Loaded pointer values remain subject to separate alias/target validation.
 
+The structure-profile/gate batch reconstructs 51 connected selection, player and
+object profile, motion-prefix and variant-gate continuations. 385 original-CPU
+cases cover both six-entry table families under conditional selectors 0..5,
+threshold edges, X-versus-Z correction width, Y endpoints, velocity effects and
+saved-context exits. Player planes clamp at differences +/-501 to +/-500; object
+planes use +/-551 to +/-550. The X-oriented ASR.L correction is truncated by
+EXT.L to a signed WORD, while the Z-oriented branch retains the LONG. Player Y
+uses original -590/-589 and -410/-411 boundaries; object Y uses -2768/-2760 and
+0/-4. Only types 84/103 negate the velocity WORD of a clamped object axis.
+
+The player motion prefix sign-extends MOVEM.W inputs, doubles as LONGs, adds or
+subtracts by collision-response flag, then masks X/Z; this is distinct from
+WORD-double displacement. Selection scores signed-extended relative WORD
+magnitudes, preserving MIN as negative and the last equal-score winner. A
+nonempty list with no eligible type retains incoming A2 before band/type reads;
+valid fallback backing remains a caller obligation. Empty list returns before
+that read and before the absolute brake latch clear. No selector/lifetime proof
+is inferred from table size or supplied backing.
+
+Energy gate and Blast Doors player handlers suppress only exact model variants 6
+and 9 respectively. Other values start producer count 3 before the existing common
+response; no globally open/closed state, physical-frame unit or equivalence with
+their separate object-handler phase tests is inferred. These fields and profiles
+remain phase/type-specific. Native proofs, reference identities, CFG, summaries,
+counts and ownership are unchanged. No framework rule or original behavior was
+altered. C/vasm and clean standalone output remain byte exact, without new normal-
+game, arbitrary-constructor, global lifetime, DMA or scanout certification.
+Next connected leads: the remaining type92/type94/player-entry clamp variants
+and specialized linked-structure contact handlers, retaining their distinct
+arithmetic, gates and lifetime obligations.
+
 The contact-eligibility/common-response batch reconstructs 40 connected extent,
 filter, saved-context, player/nonplayer and pass-end continuations. 223 original-
 CPU cases cover inclusive X/Z WORD and Y LONG edges, width/count masking,
@@ -56,9 +87,8 @@ clamp are qualified only as handoffs; their bodies are not newly certified.
 Native proofs, references, CFG, summaries, counts and ownership remain unchanged;
 C/vasm and clean standalone output remain exact. No framework rule or game
 behavior was altered. This adds no normal-game, global lifetime, DMA or scanout
-certification. Next connected lead: structure/contact profile clamping and the
-specific special-player response consumers, keeping each handoff's bounds and
-side effects explicit.
+certification. Structure-profile clamping and the two variant-gated player
+handlers are addressed above; other specialized handlers remain separate.
 
 The collision/recycling batch reconstructs 42 connected post-filter response,
 near/distant retirement, record clearing and free-stack initialization

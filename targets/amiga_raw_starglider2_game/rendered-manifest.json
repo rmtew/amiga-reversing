@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "source_commit": "5ba1042639e3f736d9cca7531f2360a80bfbac18",
+  "source_commit": "930f9f6a2cd2a6d5113123b0ab6c8a4818a1ed17",
   "source_assembly": "starglider2_game.s",
   "assets": [
     {
@@ -878,13 +878,13 @@
     },
     {
       "path": "rendered-provenance.json",
-      "bytes": 3380,
-      "sha256": "8a2543f7a679969327389dbb7f33a3286fedbaba52b33955065e5174538425d0"
+      "bytes": 3400,
+      "sha256": "ed9675564ec66bdf2ca0915e6c36ccf277f7a147ef0c1ad97b3dfef8204b94ac"
     },
     {
       "path": "starglider2_game.s",
-      "bytes": 2099663,
-      "sha256": "fda04073413ae501c7c5f753e26162b68a1b964be20bc5b19886146acf0b8b7e"
+      "bytes": 2105414,
+      "sha256": "ae1892526ad8f72d3a6089a18fac6b562b2f0f1441086dad713575256d409297"
     },
     {
       "path": "tools/starglider2_protection.py",
@@ -892,6 +892,6 @@
       "sha256": "81d3f66d36dbfbd5c77238b20c28e8b9abaa329777eb91f64669bbbf13703582"
     }
   ],
-  "source_commit_role": "canonical source publication base; the publishing commit reconstructs contact extent/filter arithmetic, common player response and pass aging; supplied original-CPU cases, not full special handlers, normal gameplay, global lifetime or scanout proof; output is bound by verification_receipt_id",
-  "source_subject_revision": "7078219e573bba414a87c1827035ee2cc689ac4da31b16ff4bc695d5244e0aa8"
+  "source_commit_role": "canonical source publication base; the publishing commit reconstructs structure selection, conditional player/object profiles and two variant-gated player contacts; supplied original-CPU cases, not universal selectors, normal gameplay, global lifetime or scanout proof; output is bound by verification_receipt_id",
+  "source_subject_revision": "311aae4c40d0d651a47ec3b60f04277fbc85f966b9877d95e8393c846b531471"
 }
