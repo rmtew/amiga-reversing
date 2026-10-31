@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "source_commit": "c29f6cbd38783b3529b48d4b568f88ad7409a82c",
+  "source_commit": "8813cdafd2122c0ef17782fd127076b0ff6d389a",
   "source_assembly": "starglider2_game.s",
   "assets": [
     {
@@ -878,13 +878,13 @@
     },
     {
       "path": "rendered-provenance.json",
-      "bytes": 3541,
-      "sha256": "3265dff997555538b64dec27d5ad2ca4af435516d0b637ce14097379a9534f34"
+      "bytes": 3515,
+      "sha256": "5ab057f3cbd610931b31809d73a9ad7af63e359ab454b12c4ca94552bc28a895"
     },
     {
       "path": "starglider2_game.s",
-      "bytes": 2175000,
-      "sha256": "35b4e85003d1cd289252557f55c04bdf8790f51ca4b48017d2a270e58e357b4f"
+      "bytes": 2178166,
+      "sha256": "c8322fecbb8e4d365079a1c189d94f31446c7e4085c05cdd61c2eb4f3f9d2d33"
     },
     {
       "path": "tools/starglider2_protection.py",
@@ -892,6 +892,6 @@
       "sha256": "81d3f66d36dbfbd5c77238b20c28e8b9abaa329777eb91f64669bbbf13703582"
     }
   ],
-  "source_commit_role": "canonical source publication base; celestial selection, projected surface gates and world-entry pose reconstructed through 927 original CPU tests; preserve full-WORD N predicates, last ties, stale selection and strict wrapped edges; actual empty-list capture and supplied entry-prefix states do not establish universal bounds, pointer lifetime, unchanged intervening pose writes, cadence or full world rebuild; output is bound by verification_receipt_id",
-  "source_subject_revision": "dd675562101171d4c501e21ad0052e7e16c69c0c27ab75a21d23fbda56e9cfa8"
+  "source_commit_role": "canonical source publication base; logical body-cache fields, capture/restore aliases, fixed walk and surface-exit consumers reconstructed through 1881 original CPU tests; preserve signed indexing, exact type 147 skip, WORD20 extension/truncation, LONG height arithmetic and N-only exit gates; no enlarged owner, universal domain, lifetime, physical-unit or complete transition proof; output is bound by verification_receipt_id",
+  "source_subject_revision": "1677c0deafea40cb32dd6698bf44d11263885e89ae0456b495378f663cdd6e18"
 }

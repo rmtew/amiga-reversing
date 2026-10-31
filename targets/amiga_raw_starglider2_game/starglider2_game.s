@@ -1448,6 +1448,13 @@ SG2_ANGLE_QUARTER_TURN	EQU	1024
 SG2_ANGLE_THREE_QUARTER_TURN	EQU	3072
 SG2_BLAST_DOOR_OBJECT_VARIANT_THRESHOLD	EQU	3
 SG2_BLAST_DOOR_PLAYER_SKIP_VARIANT	EQU	9
+SG2_BODY_CACHE_RECORD_SHIFT	EQU	4
+SG2_BODY_CACHE_RESTORE_DBF_LAST	EQU	20
+SG2_BODY_CACHE_SKIPPED_TYPE	EQU	147
+SG2_BODY_CACHE_WORD20_OFFSET	EQU	12
+SG2_BODY_CACHE_X_OFFSET	EQU	0
+SG2_BODY_CACHE_Y_OFFSET	EQU	4
+SG2_BODY_CACHE_Z_OFFSET	EQU	8
 SG2_BOUNCE_GRAVITY_STEP	EQU	4
 SG2_BOUNCE_MOTION_SCALE_LOSS	EQU	20
 SG2_BOUNCE_REFLECTION_BIAS	EQU	10
@@ -1631,6 +1638,10 @@ SG2_STORED_TARGET_Y_SMOOTH_SHIFT	EQU	5
 SG2_SURFACE_ENTRY_DEPTH_ORIGIN	EQU	305
 SG2_SURFACE_ENTRY_X_BASE_LIMIT	EQU	144
 SG2_SURFACE_ENTRY_Y_BASE_LIMIT	EQU	49
+SG2_SURFACE_EXIT_PHASE_FOLD_MASK	EQU	2047
+SG2_SURFACE_EXIT_PHASE_MIDPOINT	EQU	2048
+SG2_SURFACE_EXIT_ROTATION0_BASE	EQU	239
+SG2_SURFACE_EXIT_SPEED_THRESHOLD	EQU	460
 SG2_TEXT_CURSOR_COLUMNS	EQU	40
 SG2_TEXT_CURSOR_ROWS	EQU	25
 SG2_TEXT_DELETE_ROW_REWIND_BYTES	EQU	322
@@ -44622,29 +44633,34 @@ initialize_world_entry_settling_pose:
 	move.w #SG2_WORLD_ENTRY_PITCH_PHASE,$0010(a4)
 	move.w #$0,$0012(a4)
 	move.w #$0,$0014(a4)
+    ; Capture supplied nearby records with a negative type low BYTE, excluding exact WORD 147. Shift the subtracted WORD by 4 with wrap; do not infer the 17-slot seed bounds all accesses.
+capture_celestial_cache_before_world_rebuild:
 	move.w nearby_object_count(a6),d0
 	beq.b abs_0_00033B3A
 	subq.w #1,d0
 	movea.l nearby_objects_cursor(a6),a0
 	lea.l cached_body_state_prefix(a6),a2
     ; Cache XYZ and sign-extended WORD20 in16-byte slots keyed by type-128. Seed has17records; loop excludes147 but not145/146, retaining higher-index aliases into following workspace.
-abs_0_00033B06:
+capture_next_nearby_body_cache_record:
 	movea.l (a0)+,a1
 	move.w (a1),d1	; operand 1: SG2ObjectCore_object_type at (a1)
 	tst.b d1
-	bpl.b abs_0_00033B36
-	cmp.w #$93,d1
-	beq.b abs_0_00033B36
-	subi.w #128,d1
-	asl.w #4,d1
-	move.l SG2ObjectCore_world_x(a1),$0(a2,d1.w)
-	move.l SG2ObjectCore_world_y(a1),$4(a2,d1.w)
-	move.l SG2ObjectCore_world_z(a1),$8(a2,d1.w)
+	bpl.b advance_body_cache_capture_list
+	cmp.w #SG2_BODY_CACHE_SKIPPED_TYPE,d1
+	beq.b advance_body_cache_capture_list
+index_body_cache_with_wrapped_tag_word:
+	subi.w #SG2_CELESTIAL_TYPE_BASE,d1
+	asl.w #SG2_BODY_CACHE_RECORD_SHIFT,d1
+	move.l SG2ObjectCore_world_x(a1),SG2_BODY_CACHE_X_OFFSET(a2,d1.w)
+	move.l SG2ObjectCore_world_y(a1),SG2_BODY_CACHE_Y_OFFSET(a2,d1.w)
+	move.l SG2ObjectCore_world_z(a1),SG2_BODY_CACHE_Z_OFFSET(a2,d1.w)
+    ; Sign-extend record WORD20 into the fourth cached LONG. XYZ occupy the first three LONGs. Later duplicate/aliased indices overwrite earlier slots in list order.
+extend_record_word20_into_cached_long:
 	move.w $0020(a1),d3
 	ext.l d3
-	move.l d3,$C(a2,d1.w)
-abs_0_00033B36:
-	dbf.w d0,abs_0_00033B06
+	move.l d3,SG2_BODY_CACHE_WORD20_OFFSET(a2,d1.w)
+advance_body_cache_capture_list:
+	dbf.w d0,capture_next_nearby_body_cache_record
 abs_0_00033B3A:
 	bsr.w initialize_world_object_pool_bridge_038d26
 	bsr.w invalidate_alternate_power_meter_cache_bridge_038d2c
@@ -44848,38 +44864,42 @@ update_point_field_flag_from_world_y:
 	move.l $0(a0,d0.w),d0
 	move.l player_world_y(a6),d1
 	cmp.l d1,d0
-	bmi.b abs_0_00033DF6
+	bmi.b clear_surface_point_field_flag
 	st.b flight_point_field_active_flag(a6)
-	bra.b abs_0_00033E02
-abs_0_00033DF6:
+	bra.b test_surface_exit_reference_height
+    ; Point-field comparison uses subtraction N alone. The exit reference-height test separately uses N, then folded rotation 2 plus 239, rotation 0 and speed 460. Preserve all WORD/LONG wrap.
+clear_surface_point_field_flag:
 	sf.b flight_point_field_active_flag(a6)
 	move.b #$80,diagnostic_step_byte.l
-abs_0_00033E02:
+test_surface_exit_reference_height:
 	lea.l world_reference_y_coordinates.l,a0
 	move.w selected_celestial_body_index(a6),d0
 	asl.w #2,d0
 	move.l $0(a0,d0.w),d0
 	move.l d0,d7
 	cmp.l d1,d0
-	bmi.b abs_0_00033E52
+	bmi.b compare_surface_exit_space_snapshot
 	move.b #$81,diagnostic_step_byte.l
 	move.w player_rotation_0(a6),d0
 	move.w player_rotation_2(a6),d1
-	cmp.w #$800,d1
-	bmi.b abs_0_00033E3C
-	andi.w #2047,d1
+	cmp.w #SG2_SURFACE_EXIT_PHASE_MIDPOINT,d1
+	bmi.b test_surface_exit_rotation0_and_speed
+    ; This branch folds low 11 bits by negation modulo 2048. The CMP/BMI bypass retains the original whole WORD for other values; do not impose a global 0..4095 input bound.
+fold_surface_exit_rotation2_phase:
+	andi.w #SG2_SURFACE_EXIT_PHASE_FOLD_MASK,d1
 	neg.w d1
-	addi.w #2048,d1
-	andi.w #2047,d1
-abs_0_00033E3C:
-	move.w #$EF,d2
+	addi.w #SG2_SURFACE_EXIT_PHASE_MIDPOINT,d1
+	andi.w #SG2_SURFACE_EXIT_PHASE_FOLD_MASK,d1
+test_surface_exit_rotation0_and_speed:
+	move.w #SG2_SURFACE_EXIT_ROTATION0_BASE,d2
 	add.w d1,d2
 	cmp.w d2,d0
-	bmi.b abs_0_00033E52
-	cmpi.w #460,player_speed_smoothed(a6)
-	bmi.b abs_0_00033E52
+	bmi.b compare_surface_exit_space_snapshot
+	cmpi.w #SG2_SURFACE_EXIT_SPEED_THRESHOLD,player_speed_smoothed(a6)
+	bmi.b compare_surface_exit_space_snapshot
+set_space_state_after_surface_exit_gate:
 	st.b space_environment_flag(a6)
-abs_0_00033E52:
+compare_surface_exit_space_snapshot:
 	move.b #$83,diagnostic_step_byte.l
 	move.b space_environment_flag(a6),d0
 	cmp.b world_transition_space_snapshot(a6),d0
@@ -44917,44 +44937,52 @@ abs_0_00033EA0:
 	move.w #$0,selected_object_sound_type.l
 	move.w #$FFFF,paula_object_sound_transition_phase.l
 	move.w #$0,paula_object_sound_restart_flag.l
+    ; Skip the first pool record and visit exactly 21 following 68-byte records. Apply the same negative-low-BYTE/exact 147 filter. The fixed walk is not a 17-cache-slot safety proof.
+restore_fixed_body_cache_record_walk:
 	move.w selected_celestial_body_index(a6),d7
 	lea.l world_object_pool(a6),a1
-	adda.l #$44,a1
-	move.w #$14,d0
+	adda.l #SG2_WORLD_RECORD_BYTES,a1
+	move.w #SG2_BODY_CACHE_RESTORE_DBF_LAST,d0
 	lea.l cached_body_state_prefix(a6),a2
     ; Restore cached XYZ and low WORD20. Original high-type loop excludes147 only; do not infer17-entry safety from initialization extent. Existing alias behavior is preserved.
-abs_0_00033F18:
+restore_next_cached_body_record:
 	move.w (a1),d1
 	tst.b d1
-	bpl.b abs_0_00033F5C
-	cmp.w #$93,d1
-	beq.b abs_0_00033F5C
-	subi.w #128,d1
+	bpl.b advance_fixed_body_restore_record
+	cmp.w #SG2_BODY_CACHE_SKIPPED_TYPE,d1
+	beq.b advance_fixed_body_restore_record
+	subi.w #SG2_CELESTIAL_TYPE_BASE,d1
 	move.w d1,d3
-	asl.w #4,d1
-	move.l $0(a2,d1.w),d4
+	asl.w #SG2_BODY_CACHE_RECORD_SHIFT,d1
+	move.l SG2_BODY_CACHE_X_OFFSET(a2,d1.w),d4
 	move.l d4,$0004(a1)
-	move.l $4(a2,d1.w),d5
+	move.l SG2_BODY_CACHE_Y_OFFSET(a2,d1.w),d5
 	move.l d5,$0008(a1)
-	move.l $8(a2,d1.w),d6
+	move.l SG2_BODY_CACHE_Z_OFFSET(a2,d1.w),d6
 	move.l d6,$000C(a1)
 	cmp.w d3,d7
-	bne.b abs_0_00033F54
+	bne.b restore_cached_low_record_word20
+    ; Matching tag-minus-128 updates player XYZ. Compare the pre-shift WORD index, not merely its wrapped cache byte offset: distinct tag WORDs can share a cache slot.
+copy_selected_cached_body_xyz_to_player:
 	move.l d4,player_world_x(a6)
 	move.l d5,player_world_y(a6)
 	move.l d6,player_world_z(a6)
-abs_0_00033F54:
-	move.l $C(a2,d1.w),d3
+    ; Restore only the low WORD of the fourth cached LONG into record WORD20. The capture sign extension is not a new wider record field or a global object-property interpretation.
+restore_cached_low_record_word20:
+	move.l SG2_BODY_CACHE_WORD20_OFFSET(a2,d1.w),d3
 	move.w d3,$0020(a1)
-abs_0_00033F5C:
-	adda.l #$44,a1
-	dbf.w d0,abs_0_00033F18
+advance_fixed_body_restore_record:
+	adda.l #SG2_WORLD_RECORD_BYTES,a1
+	dbf.w d0,restore_next_cached_body_record
+    ; Use incoming saved D7 for table indices. Player Y plus twice reference Y, minus arithmetic half-radius, minus 200 forms the result; preserve LONG wrap and signed halving.
+derive_post_restore_player_height:
 	move.l player_world_y(a6),d0
 	asl.w #2,d7
 	lea.l world_reference_y_coordinates.l,a2
 	move.l $0(a2,d7.w),d2
 	add.l d2,d2
 	add.l d2,d0
+subtract_body_radius_half_from_exit_height:
 	lea.l nonmodel_object_base_radii.l,a2
 	move.l $0(a2,d7.w),d2
 	asr.l #1,d2

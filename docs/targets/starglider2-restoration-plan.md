@@ -27,6 +27,38 @@ and strengthened 38 app-base attributions.
 Conditional skips mean104 outer iterations are not104 observed memory reads.
 Loaded pointer values remain subject to separate alias/target validation.
 
+The body-cache/surface-exit batch follows the capture and fixed restore walk,
+their shared 16-byte logical slot and the exit height/angle consumers. 1881
+original CPU tests cover whole-RAM effects, supplied alias backing, exact walk
+limits, selected-index copying and the actual capture-to-restore data format.
+Capture sign-extends record WORD20 into the fourth LONG; restore copies only its
+low WORD back. XYZ remain the first three LONGs. Negative type low BYTE passes
+unless the whole WORD equals 147; WORD subtraction and shifting retain wrap.
+
+The 272-byte seed remains 17 records. Types 145/146 writes enter following orbit
+storage; later accepted tags and negative offsets retain other aliases. Full
+WORD tags can share a shifted slot while retaining different pre-shift indices
+for the selected-player comparison. Capture ordering can overwrite prior slots.
+Restore skips the first pool record, visits exactly 21 subsequent 68-byte records,
+and leaves the next record untouched. Neither loop gains a global owner/domain
+or lifetime proof. The logical field-offset names do not enlarge the seed.
+
+After restore, incoming D7 selects the reference/radius reads: old player Y plus
+twice reference Y, minus arithmetic radius half and 200, with LONG wrap. Surface
+point-field and exit comparisons use subtraction N alone. The rotation 2 fold
+branch differs from its whole-WORD bypass; rotation 0 and speed 460 are separately
+gated. Supplied table-prefix/continuation cases do not establish all callers,
+physical units, uninterrupted transition lifetime or hardware cadence.
+Eighteen anonymous continuations and eleven logical field/step constants now
+expose these relations; the existing point-field routine name is preserved.
+No shared transfer rules or wider cache/type contracts were added. Next: follow
+the connected transition messages, event/initialization consumers or another
+substantial incoming-backed region without assuming the cache aliases safe.
+Generation took 218.12 seconds. All protected native facts, function summaries
+and exact reference identities remain unchanged: 3509 app /2716 typed /165
+unresolved. C/vasm and clean standalone building retain all 412736 original
+bytes, 57 assets and 14 headers.
+
 The world-selection batch connects the nearby celestial scan, projected
 surface-entry tests and the world-entry pose producer. 927 original CPU tests
 cover supplied list/record backing, high-WORD tag counterexamples, wrapped LONG
@@ -51,8 +83,8 @@ state enables $FF after 41 calls; the fixture does not execute the later world
 rebuild or prove intervening pose writes absent. No physical cadence or global
 phase/selector invariant follows. Nineteen continuation names and six exact
 role constants expose these relationships without broader ownership/type facts.
-Next: review the connected world-rebuild/cache and transition-message consumers
-with their actual incoming paths, preserving original replay/alias behavior.
+The connected cache/surface-exit follow-up is documented above; transition
+messages and later rebuild consumers retain their separate review obligations.
 After executor recovery, all 927 focused tests passed again. Completed native
 generation took 191.70 seconds; counts remain 3509/2716/165 and the ownership
 union retains 10731 unknown bytes in 273 intervals. C/vasm and clean standalone
