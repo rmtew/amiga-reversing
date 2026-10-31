@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "source_commit": "3cbe4cfb39fe9bf8e3c9edcb996f979d3809f146",
+  "source_commit": "94f92a928bade252c4a7a89753219bfea4daf9d8",
   "source_assembly": "starglider2_game.s",
   "assets": [
     {
@@ -878,13 +878,13 @@
     },
     {
       "path": "rendered-provenance.json",
-      "bytes": 3383,
-      "sha256": "dcaae58f2f2f589208182905c3aa93144c084c9c43d0d59a84943360ad065ec8"
+      "bytes": 3427,
+      "sha256": "a99f14877fe150caec0a8db9b66ef5211b86aab77b348f0d9fe9eca412ce994c"
     },
     {
       "path": "starglider2_game.s",
-      "bytes": 2060352,
-      "sha256": "2fa55e6ca9eca69f816eb959df2fd2cf43ed60e42355538f3a5db0c600058de7"
+      "bytes": 2063389,
+      "sha256": "f3b159518933e58dedda1a2c67cba68cc52b0b8ef5a10750b2e7a94582c8f01c"
     },
     {
       "path": "tools/starglider2_protection.py",
@@ -892,6 +892,6 @@
       "sha256": "81d3f66d36dbfbd5c77238b20c28e8b9abaa329777eb91f64669bbbf13703582"
     }
   ],
-  "source_commit_role": "canonical source publication base; the publishing commit reconstructs heading sampling, eight bitmap streams, shared caches and three output encodings; isolated original-instruction CPU fixtures only, no hardware scanout, DMA or real mode-switch proof; output is bound by verification_receipt_id",
-  "source_subject_revision": "8a1aa051bf4c18648f03be8b64de6ae114311048aeb092f1e92aa8f31411c754"
+  "source_commit_role": "canonical source publication base; the publishing commit reconstructs HUD coordinate/heading callers, cache clearing, selected writable JMP bindings and three coordinate encodings; isolated original-instruction CPU/RAM fixtures only, no hardware selection, scanout, DMA or real mode-switch proof; output is bound by verification_receipt_id",
+  "source_subject_revision": "2938340dafeecded15ba80a45f4b3d4b6228d5af1980f92648aedf6e7383301a"
 }

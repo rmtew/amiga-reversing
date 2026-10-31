@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
   "kind": "committed_native_rendered_original_export",
-  "canonical_source_commit": "3cbe4cfb39fe9bf8e3c9edcb996f979d3809f146",
-  "publication_base_commit": "3cbe4cfb39fe9bf8e3c9edcb996f979d3809f146",
+  "canonical_source_commit": "94f92a928bade252c4a7a89753219bfea4daf9d8",
+  "publication_base_commit": "94f92a928bade252c4a7a89753219bfea4daf9d8",
   "native_export": "CListingArtifact.source_package_payload(64)",
-  "main_source_sha256": "2fa55e6ca9eca69f816eb959df2fd2cf43ed60e42355538f3a5db0c600058de7",
+  "main_source_sha256": "f3b159518933e58dedda1a2c67cba68cc52b0b8ef5a10750b2e7a94582c8f01c",
   "asset_count": 57,
   "asset_bytes": 93633,
   "game_assembly_hand_edits": false,
@@ -24,13 +24,13 @@
     "assembler executable",
     "paused Pandora work"
   ],
-  "canonical_source_commit_role": "canonical source publication base; the publishing commit reconstructs heading sampling, eight bitmap streams, shared caches and three output encodings; isolated original-instruction CPU fixtures only, no hardware scanout, DMA or real mode-switch proof; output is bound by verification_receipt_id",
-  "canonical_source_subject_revision": "8a1aa051bf4c18648f03be8b64de6ae114311048aeb092f1e92aa8f31411c754",
+  "canonical_source_commit_role": "canonical source publication base; the publishing commit reconstructs HUD coordinate/heading callers, cache clearing, selected writable JMP bindings and three coordinate encodings; isolated original-instruction CPU/RAM fixtures only, no hardware selection, scanout, DMA or real mode-switch proof; output is bound by verification_receipt_id",
+  "canonical_source_subject_revision": "2938340dafeecded15ba80a45f4b3d4b6228d5af1980f92648aedf6e7383301a",
   "canonical_fact_sha256": {
     "source_binary.json": "42d4a5758b3e8236af7f912aee85e9ee5323bcd0961faa338c4f864080a0a7d9",
     "target_metadata.json": "e7540b68c118c56aba8815b6722eefa067517cc865fe9841d6c01ce96551389c",
-    "manual_actions.jsonl": "afdaf03fea988dd107699adea3e33ab58f79d89b24fdf9f8ea2d3e9cb3521757",
-    "decision_journal.jsonl": "066cb9cd56079298853743d5336963acc12f8eed01b319be49b57935451b17e3"
+    "manual_actions.jsonl": "dcc5883015a3c3dc80aefcc8d363a19ae34b93c59b3f5aa58401763ecd6ff2cb",
+    "decision_journal.jsonl": "f10319c5fa36a2f4a58d12483778544aa48eb34b8d759be4d8b0addb429c0b00"
   },
   "headers": "14 unmodified required include files collected by source_package.collect_package_includes from ext/amiga_includes/ndk_2.0/include; header notices retained",
   "decoded_protection_view": {
@@ -46,7 +46,7 @@
     },
     "runtime_scope": "Seven CPU write-site windows match this reversible view; no whole runtime-view identity or parent plaintext promotion."
   },
-  "verification_receipt_id": "9cf26590f6d653b6dee11222081907c458bd863d6c9a95953ce88c485f3ff84b",
+  "verification_receipt_id": "d38fff6be7475f4ddfa5c462678509e24da48d64645e618d891e031c447b9bfb",
   "render_native_sha256": "568c70b4211bc381c13ef363736a590bae24a5e4e53b23258595678e9316020b",
   "final_assembler_native_sha256": "568c70b4211bc381c13ef363736a590bae24a5e4e53b23258595678e9316020b"
 }

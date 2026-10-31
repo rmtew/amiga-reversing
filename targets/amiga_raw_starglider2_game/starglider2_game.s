@@ -1441,6 +1441,11 @@ SG2_HEADING_FINE_SHIFT_MASK	EQU	15
 SG2_HEADING_QUOTIENT_MASK	EQU	511
 SG2_HEADING_SAMPLE_SHIFT	EQU	2
 SG2_HEADING_SCALE_SHIFT	EQU	5
+SG2_HUD_COORDINATE_BYTE_MASK	EQU	255
+SG2_HUD_COORDINATE_DIGIT_DBF_LAST	EQU	3
+SG2_HUD_DIGIT_PAIR_DBF_LAST	EQU	1
+SG2_HUD_NIBBLE_GLYPH_OFFSET_MASK	EQU	120
+SG2_HUD_SPACE_COORDINATE_SHIFT	EQU	16
 SG2_MESSAGE_COUNTDOWN_RELOAD	EQU	75
 SG2_MESSAGE_QUEUE_POINTER_LIMIT	EQU	10
 SG2_MESSAGE_ROWS_DBF_LAST	EQU	7
@@ -1648,6 +1653,13 @@ heading_mode0_bank2_anchor	EQU	$7D418
 heading_mode1_bank0_anchor	EQU	$6D3EC
 heading_mode1_bank1_anchor	EQU	$753EC
 heading_mode1_bank2_anchor	EQU	$7D3EC
+hud_coordinates_amiga_anchor	EQU	$7007E
+hud_coordinates_mode0_bank0_anchor	EQU	$68298
+hud_coordinates_mode0_bank1_anchor	EQU	$70298
+hud_coordinates_mode0_bank2_anchor	EQU	$78298
+hud_coordinates_mode1_bank0_anchor	EQU	$681EC
+hud_coordinates_mode1_bank1_anchor	EQU	$701EC
+hud_coordinates_mode1_bank2_anchor	EQU	$781EC
 m68k_vector_address_error	EQU	$C
 m68k_vector_bus_error	EQU	$8
 m68k_vector_division_by_zero	EQU	$14
@@ -2855,7 +2867,8 @@ enable_midframe_copper_blocks_continuation:
 	move.w #$1,periodic_display_update_countdown(a6)
 	clr.w message_display_countdown(a6)
 	clr.w pending_message_count(a6)
-	clr.w abs_0_0000499E.l
+clear_cached_hud_coordinate_pair:
+	clr.w hud_coordinate_bcd_pair_cache.l
 	bsr.w install_sine_cosine_pointers
 	sf.b modal_command_input_flag(a6)
 	move.w station_construction_steps_remaining(a6),d0
@@ -4916,7 +4929,7 @@ abs_0_00003FE0:
 	move.b #$2,diagnostic_stage_step_word.l
 	clr.b diagnostic_step_byte.l
 	move.b #$C,diagnostic_step_byte.l
-	bsr.w abs_0_0000452C
+	bsr.w update_hud_contacts_coordinates_and_heading
 	move.b #$D,diagnostic_step_byte.l
 	bsr.w enqueue_docking_launch_ready_message
 	move.b #$F,diagnostic_step_byte.l
@@ -5351,32 +5364,34 @@ abs_0_00004522:
 	move.l a5,visible_objects_cursor(a6)
 	move.l a2,contact_objects_cursor(a6)
 	rts
-abs_0_0000452C:
+    ; Draw contacts first. Negative space flag selects shift 16; otherwise a BYTE table uses the body WORD without a local bound. Cache packed X/Z digits; heading runs even on a coordinate hit.
+update_hud_contacts_coordinates_and_heading:
 	bsr.w draw_amiga_contact_panel_bridge_0024c2
 	tst.b space_environment_flag(a6)
-	bpl.b abs_0_0000453A
-	moveq.l #16,d3
-	bra.b abs_0_00004548
-abs_0_0000453A:
+	bpl.b select_body_hud_coordinate_shift
+	moveq.l #SG2_HUD_SPACE_COORDINATE_SHIFT,d3
+	bra.b quantize_world_xz_for_hud_digits
+select_body_hud_coordinate_shift:
 	move.w selected_celestial_body_index(a6),d3
-	lea.l abs_0_000048D8.l,a1
+	lea.l body_hud_coordinate_right_shifts.l,a1
 	move.b $0(a1,d3.w),d3
-abs_0_00004548:
+quantize_world_xz_for_hud_digits:
 	move.l player_world_x(a6),d2
 	move.l player_world_z(a6),d1
 	lsr.l d3,d2
-	andi.w #255,d2
+	andi.w #SG2_HUD_COORDINATE_BYTE_MASK,d2
 	lea.l coordinate_byte_to_bcd_digits.l,a2
 	move.b $0(a2,d2.w),d0
 	lsr.l d3,d1
-	andi.w #255,d1
+	andi.w #SG2_HUD_COORDINATE_BYTE_MASK,d1
 	lsl.w #8,d0
 	move.b $0(a2,d1.w),d0
-	cmp.w abs_0_0000499E.l,d0
-	beq.b abs_0_0000457E
-	move.w d0,abs_0_0000499E.l
+	cmp.w hud_coordinate_bcd_pair_cache.l,d0
+	beq.b update_heading_after_coordinate_cache_check
+cache_and_draw_changed_hud_coordinates:
+	move.w d0,hud_coordinate_bcd_pair_cache.l
 	bsr.w draw_coordinate_digit_pairs
-abs_0_0000457E:
+update_heading_after_coordinate_cache_check:
 	bsr.w draw_heading_indicator
 	rts
 draw_amiga_contact_panel:
@@ -5625,7 +5640,8 @@ abs_0_000048D0:
 	addq.w #1,d6
 	movem.l (a7)+,d1-d3
 	rts
-abs_0_000048D8:
+    ; Sixteen stored shift BYTEs, all 8. No local selector bound: index 16 reads the next block zero BYTE. This source owner is not a universal caller-domain contract.
+body_hud_coordinate_right_shifts:
 	dcb.b $10,$08
 abs_0_000048E8:
 	dc.b $00,$07,$06,$01,$07,$05,$0D,$06,$0D,$0F,$07,$0F,$01,$05,$03,$08
@@ -5639,7 +5655,8 @@ abs_0_000048E8:
 	dc.b $01,$04,$0C,$0A,$05,$0E,$07,$09,$04,$04,$04,$04,$04,$04,$04,$0C
 	dc.b $03,$03,$0E,$01,$0F,$0F
 	dcb.b $20,$00
-abs_0_0000499E:
+    ; Shared packed X/Z digit-pair cache. Cockpit continuation clears it to 0; a computed zero pair still skips coordinate drawing. This is not an invalid sentinel or per-bank repaint contract.
+hud_coordinate_bcd_pair_cache:
 	dc.w $0000
 abs_0_000049A0:
 	dc.b $20,$20,$20,$20,$00,$00,$00,$00
@@ -15974,17 +15991,18 @@ increment_and_draw_periodic_bcd_amiga:
 	moveq.l #3,d2
 	lea.l absolute_slot_000702E2.l,a0
 	bra.w abs_0_0000D642
+    ; First two nibbles write font bytes into planes 2/3; last two only plane 3. Original D0-D2/A0-A2 frame and all sixteen nibble glyphs are retained.
 draw_amiga_coordinate_digits:
 	movem.l d0-d2/a0-a2,-(a7)
-	lea.l absolute_slot_0007007E.l,a0
+	lea.l hud_coordinates_amiga_anchor.l,a0
 	moveq.l #0,d1
-	moveq.l #1,d2
+	moveq.l #SG2_HUD_DIGIT_PAIR_DBF_LAST,d2
 	rol.w #3,d0
 	lea.l font_numeric_nibble_glyph_view.l,a2
-abs_0_0000D6F0:
+draw_amiga_hud_x_digit_pair:
 	rol.w #4,d0
 	move.b d0,d1
-	andi.w #120,d1
+	andi.w #SG2_HUD_NIBBLE_GLYPH_OFFSET_MASK,d1
 	lea.l $0(a2,d1.w),a1
 	move.b (a1),$6000(a0)
 	move.b (a1)+,$4000(a0)
@@ -16003,12 +16021,12 @@ abs_0_0000D6F0:
 	move.b (a1),$6118(a0)
 	move.b (a1)+,$4118(a0)
 	addq.l #1,a0
-	dbf.w d2,abs_0_0000D6F0
-	moveq.l #1,d2
-abs_0_0000D744:
+	dbf.w d2,draw_amiga_hud_x_digit_pair
+	moveq.l #SG2_HUD_DIGIT_PAIR_DBF_LAST,d2
+draw_amiga_hud_z_digit_pair:
 	rol.w #4,d0
 	move.b d0,d1
-	andi.w #120,d1
+	andi.w #SG2_HUD_NIBBLE_GLYPH_OFFSET_MASK,d1
 	lea.l $0(a2,d1.w),a1
 	move.b (a1)+,$6000(a0)
 	move.b (a1)+,$6028(a0)
@@ -16019,7 +16037,8 @@ abs_0_0000D744:
 	move.b (a1)+,$60F0(a0)
 	move.b (a1)+,$6118(a0)
 	addq.l #1,a0
-	dbf.w d2,abs_0_0000D744
+	dbf.w d2,draw_amiga_hud_z_digit_pair
+restore_amiga_coordinate_digit_frame:
 	movem.l (a7)+,d0-d2/a0-a2
 	rts
 clear_text_framebuffer_and_cursor:
@@ -51728,7 +51747,9 @@ abs_0_0003B3FE:
 	move.l #write_alternate_disk_track_blocks,$002C(a0)
 	move.l #return_without_disk_change_check,$0032(a0)
 	btst.b #1,$FFFF8260.w
-	bne.w abs_0_0003B51E
+	bne.w install_mode1_text_and_hud_jump_targets
+    ; Rewrite ten JMP operands for alternate mode 0 after the hardware test. This block does not reset coordinate or heading caches. Fixtures exercise CPU binding, not hardware-mode selection.
+install_mode0_text_and_hud_jump_targets:
 	lea.l print_cursor_text.l,a0
 	move.l #print_alternate_cursor_text_mode0,$0002(a0)
 	move.l #print_alternate_positioned_text_mode0,$0008(a0)
@@ -51741,7 +51762,8 @@ abs_0_0003B3FE:
 	move.l #return_disabled_alternate_service,$0032(a0)
 	move.l #return_disabled_alternate_service,$0038(a0)
 	rts
-abs_0_0003B51E:
+    ; Rewrite the same ten JMP operands for mode 1. Caches remain unchanged. CPU fixtures stop before the trailing external-register write; no full mode-switch or scanout claim.
+install_mode1_text_and_hud_jump_targets:
 	lea.l print_cursor_text.l,a0
 	move.l #print_alternate_cursor_text_mode1,$0002(a0)
 	move.l #print_alternate_positioned_text_mode1,$0008(a0)
@@ -53071,20 +53093,21 @@ alternate_heading_negated_rotation_cache:
 	dc.w $FFFF
 alternate_heading_strip_sample_cache:
 	dc.w $FFFF
+    ; Three-bank interleaved output: first pair writes two plane positions, last pair one. Original frame excludes D3 and A4; the used A4 is not preserved.
 draw_coordinate_digits_mode0:
 	movem.l d0-d2/a0-a3,-(a7)
-	lea.l absolute_slot_00068298.l,a0
-	lea.l absolute_slot_00070298.l,a4
-	lea.l absolute_slot_00078298.l,a3
+	lea.l hud_coordinates_mode0_bank0_anchor.l,a0
+	lea.l hud_coordinates_mode0_bank1_anchor.l,a4
+	lea.l hud_coordinates_mode0_bank2_anchor.l,a3
 	move.l d0,d3
-	moveq.l #1,d2
+	moveq.l #SG2_HUD_DIGIT_PAIR_DBF_LAST,d2
 	moveq.l #0,d1
 	rol.w #3,d3
 	lea.l font_numeric_nibble_glyph_view.l,a2
-abs_0_0003CF46:
+draw_mode0_hud_x_digit_pair:
 	rol.w #4,d3
 	move.b d3,d1
-	andi.w #120,d1
+	andi.w #SG2_HUD_NIBBLE_GLYPH_OFFSET_MASK,d1
 	lea.l $0(a2,d1.w),a1
 	move.b (a1)+,d0
 	move.b d0,$0004(a0)
@@ -53145,15 +53168,15 @@ abs_0_0003CF46:
 	addq.l #1,a0
 	addq.l #1,a3
 	addq.l #1,a4
-	dbf.w d2,abs_0_0003CF46
+	dbf.w d2,draw_mode0_hud_x_digit_pair
 	addq.l #6,a0
 	addq.l #6,a3
 	addq.l #6,a4
-	moveq.l #1,d2
-abs_0_0003D034:
+	moveq.l #SG2_HUD_DIGIT_PAIR_DBF_LAST,d2
+draw_mode0_hud_z_digit_pair:
 	rol.w #4,d3
 	move.b d3,d1
-	andi.w #120,d1
+	andi.w #SG2_HUD_NIBBLE_GLYPH_OFFSET_MASK,d1
 	lea.l $0(a2,d1.w),a1
 	move.b (a1)+,d0
 	move.b d0,$0006(a0)
@@ -53190,7 +53213,8 @@ abs_0_0003D034:
 	addq.l #1,a0
 	addq.l #1,a3
 	addq.l #1,a4
-	dbf.w d2,abs_0_0003D034
+	dbf.w d2,draw_mode0_hud_z_digit_pair
+restore_mode0_coordinate_digit_frame:
 	movem.l (a7)+,d0-d2/a0-a3
 	rts
 	dc.b $48,$E7,$C0,$F0
@@ -53594,22 +53618,24 @@ expand_next_heading_sample_nibble:
     ; 16 BYTEs duplicate each nibble bit horizontally. Heading-strip reader indexes AND15; original literal entries retained.
 nibble_double_pixel_bytes:
 	dc.b $00,$03,$0C,$0F,$30,$33,$3C,$3F,$C0,$C3,$CC,$CF,$F0,$F3,$FC,$FF
+    ; Four original nibble glyphs expand horizontally and repeat vertically in three banks. Original frame saves D0-D2/A0-A4; D3 remains clobbered.
 draw_coordinate_digits_mode1:
 	movem.l d0-d2/a0-a4,-(a7)
 	move.w d0,d3
-	lea.l absolute_slot_000681EC.l,a0
-	lea.l absolute_slot_000701EC.l,a3
-	lea.l absolute_slot_000781EC.l,a4
-	moveq.l #3,d2
+	lea.l hud_coordinates_mode1_bank0_anchor.l,a0
+	lea.l hud_coordinates_mode1_bank1_anchor.l,a3
+	lea.l hud_coordinates_mode1_bank2_anchor.l,a4
+	moveq.l #SG2_HUD_COORDINATE_DIGIT_DBF_LAST,d2
 	moveq.l #0,d0
 	rol.w #3,d3
 	lea.l font_numeric_nibble_glyph_view.l,a2
-abs_0_0003D5A0:
+draw_next_mode1_hud_coordinate_digit:
 	rol.w #4,d3
 	move.b d3,d0
-	andi.w #120,d0
+	andi.w #SG2_HUD_NIBBLE_GLYPH_OFFSET_MASK,d0
 	bsr.w draw_double_pixel_digit_mode1
-	dbf.w d2,abs_0_0003D5A0
+	dbf.w d2,draw_next_mode1_hud_coordinate_digit
+restore_mode1_coordinate_digit_frame:
 	movem.l (a7)+,d0-d2/a0-a4
 	rts
 	dc.b $48,$E7,$C0,$F0

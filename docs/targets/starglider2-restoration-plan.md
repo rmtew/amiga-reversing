@@ -7,8 +7,8 @@ that further analysis is exhausted. Current source remains byte exact: all
 with all 106034 accepted code bytes retained. No generated assembly was edited
 by hand and no interim archive was produced.
 
-The current ownership union leaves 11123 bytes in
-273 intervals unclassified. This is classification accounting,
+The current ownership union leaves 11105 bytes in
+274 intervals unclassified. This is classification accounting,
 not a semantic completion percentage. Earlier interval/site counts below belong
 to their recorded closeout revision. See the current
 [native memory-span receipt](../../runtime/observations/starglider2-app-memory-spans.json),
@@ -16,8 +16,8 @@ to their recorded closeout revision. See the current
 
 ## Current refinement and next evidence
 
-Current native totals: **3509 app /2716 typed /165 unresolved**, with **11123
-unclassified bytes /273 intervals**. The earlier counter-indexed source-array recovery reused
+Current native totals: **3509 app /2716 typed /165 unresolved**, with **11105
+unclassified bytes /274 intervals**. The earlier counter-indexed source-array recovery reused
 the shared loop induction and interned linear entry values. Original inventory
 readers at source `$DD6` and `$339B4` expose the existing name-reference `text`
 field over the possible104-entry prefix of the148-record owner. That batch retained existing
@@ -26,6 +26,28 @@ Its startup caller proof added five header reads and six app accesses,
 and strengthened 38 app-base attributions.
 Conditional skips mean104 outer iterations are not104 observed memory reads.
 Loaded pointer values remain subject to separate alias/target validation.
+
+The HUD caller batch reconstructs 16 connected continuations, the shared packed
+X/Z coordinate-cache WORD, sixteen stored body shift BYTEs, the selected text/HUD
+JMP installers and three coordinate-digit encodings. Coordinates redraw only
+when their packed pair changes; heading is evaluated on either branch. The
+cockpit continuation clears the coordinate cache to zero, which remains a valid
+cache hit. No separate heading reset appears in recovered direct references or
+the selected installer blocks; that is not exhaustive indirect-write coverage.
+The body lookup has no local bound: selector 16 reads the next block's zero BYTE.
+The stored sixteen-byte extent is not promoted to a universal selector domain.
+
+31 original-instruction CPU fixtures cover all three glyph encodings, repeated
+caller frames, original saved/clobbered registers and both alternate rebinding
+orders. Instruction fetch from RAM follows the JMP operands written by the
+original CPU, without host opcode patches. Rebinding alone preserves both caches
+and can skip repaint. Mode 0 leaves its used A4 unsaved. These are supplied
+empty-contact/CPU cases: the installer entries follow the hardware predicate,
+and mode 1 stops before its trailing external-register write. Actual mode
+switching, nonempty contact behavior, scanout and cache lifetimes remain open.
+C/vasm and clean standalone builds retain all original bytes and assets. The
+18-byte declarations leave 11105 unclassified bytes in 274 intervals; access
+resolution totals are unchanged. Next connected source lead: the contact-plot type-color lookup and position mapping.
 
 The heading batch reconstructs 23 connected sampling/return/helper continuations,
 eight 16-byte bitmap streams, seven shared arithmetic constants and seven fixed
@@ -67,8 +89,8 @@ C/vasm and clean standalone rebuilding preserve all 412736 bytes; 57 assets and
 14 headers are unchanged. Protected access/address/CFG/summary vectors remain
 identical. Classification accounts for 55 bytes, leaving 11123 in 273 intervals
 (the new boundaries split gaps). No normal-media, IRQ timing, scanout or global
-capacity coverage is added. That lead is addressed by the heading batch above. The next connected lead is
-the original callers and reset paths of the alternate heading cache pair.
+capacity coverage is added. That lead is addressed by the heading batch above. Those callers and the bounded cache-reset question are addressed above; no
+full hardware-mode lifecycle is inferred.
 
 The text-input/planar-text batch reconstructs 50 connected continuations,
 two control-prefixed cursor marker strings, the mutable echo byte/NUL backing,
