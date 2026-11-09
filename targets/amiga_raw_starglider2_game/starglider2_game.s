@@ -50199,14 +50199,29 @@ abs_0_00038E38:
 	dc.l abs_0_00038F15
 	dc.b $FF,$FF,$FF,$FF
 abs_0_00038E50:
-	dc.b $00,$03,$8E,$C8,$00,$03,$88,$60,$00,$03,$8E,$DF,$00,$03,$8E,$F9
-	dc.b $00,$03,$8F,$30,$00,$03,$8F,$4C,$FF,$FF,$FF,$FF
+	dc.l abs_0_00038EC8	; pointer_table
+	dc.l depot_text_jaysan_katra_and_agro
+	dc.l abs_0_00038EDF
+	dc.l abs_0_00038EF9
+	dc.l abs_0_00038F30
+	dc.l abs_0_00038F4C
+	dc.b $FF,$FF,$FF,$FF
 abs_0_00038E6C:
-	dc.b $00,$03,$8E,$C8,$00,$03,$88,$60,$00,$03,$8F,$67,$00,$03,$8F,$80
-	dc.b $00,$03,$8F,$9B,$00,$03,$8F,$B4,$00,$03,$8E,$F9,$00,$03,$8F,$CB
-	dc.b $00,$03,$8F,$E4,$FF,$FF,$FF,$FF
+	dc.l abs_0_00038EC8	; pointer_table
+	dc.l depot_text_jaysan_katra_and_agro
+	dc.l abs_0_00038F67
+	dc.l abs_0_00038F80
+	dc.l abs_0_00038F9B
+	dc.l abs_0_00038FB4
+	dc.l abs_0_00038EF9
+	dc.l abs_0_00038FCB
+	dc.l abs_0_00038FE4
+	dc.b $FF,$FF,$FF,$FF
 abs_0_00038E94:
-	dc.b $00,$03,$8E,$C8,$00,$03,$88,$60,$00,$03,$8F,$FD,$00,$03,$90,$16
+	dc.l abs_0_00038EC8	; pointer_table
+	dc.l depot_text_jaysan_katra_and_agro
+	dc.l abs_0_00038FFD
+	dc.l abs_0_00039016
 	dc.b $FF,$FF,$FF,$FF
 depot_inventory_help_line_pointers:
 	dc.l abs_0_00039031	; pointer_table
@@ -50225,16 +50240,26 @@ abs_0_00038EF9:
 	dc.b "..Professor Halsen Taymar..",$00
 abs_0_00038F15:
 	dc.b "...you took him to Apogee.",$00
+abs_0_00038F30:
 	dc.b ".he is out burning rubber..",$00
+abs_0_00038F4C:
 	dc.b "..in his souped up Emma 2.",$00
+abs_0_00038F67:
 	dc.b "...this depot is used...",$00
+abs_0_00038F80:
 	dc.b "..as a research facility..",$00
+abs_0_00038F9B:
 	dc.b "..designing new weapons.",$00
+abs_0_00038FB4:
 	dc.b $20,$49,$66,$20,$79,$6F,$75,$20,$73,$68,$6F,$75,$6C,$64,$20,$66
 	dc.b $69,$6E,$64,$2E,$2E,$2E,$00
+abs_0_00038FCB:
 	dc.b "..he said that he had...",$00
+abs_0_00038FE4:
 	dc.b "..a useful gift for you.",$00
+abs_0_00038FFD:
 	dc.b "..we see that you have..",$00
+abs_0_00039016:
 	dc.b "..Professor Taymar aboard.",$00
 abs_0_00039031:
 	dc.b "Welcome to Wackfunk Depot.",$00

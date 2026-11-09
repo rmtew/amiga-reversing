@@ -457,6 +457,7 @@ static const char *address_value_consumer_kind_name(uint8_t kind) {
   case M68K_ADDRESS_VALUE_CONSUMER_LOCAL_FUNCTION_INPUT: return "local_function_input";
   case M68K_ADDRESS_VALUE_CONSUMER_PLATFORM_API_INPUT: return "platform_api_input";
   case M68K_ADDRESS_VALUE_CONSUMER_CALLBACK_INPUT: return "callback_input";
+  case M68K_ADDRESS_VALUE_CONSUMER_INDEXED_BASE: return "indexed_base";
   default: return "unknown";
   }
 }

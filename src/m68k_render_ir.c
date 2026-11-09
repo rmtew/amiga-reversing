@@ -7003,7 +7003,51 @@ static int materialized_runtime_code_operand_patch_anchor_offset(const M68kRende
   return 1;
 }
 
-static void render_lookup_mark_materialized_runtime_code_operand_patch_labels(M68kRenderLookup *lookup,
+static const M68kDecodeTarget *candidate_data_target_for_operand(const M68kDecodeCandidate *candidate,
+    size_t operand_index);
+static void attach_operand_label_addend_symbol(const M68kRenderLookup *lookup, M68kInstructionIR *instruction,
+    size_t operand_index, size_t target_section_index, uint32_t target_offset, int32_t addend);
+
+/* A PC-relative address may name an extension byte without making that byte
+ * an entry point. Use the enclosing accepted instruction plus an addend, never
+ * a bare displacement that external absolute-ORG assemblers read as a target. */
+static int pc_relative_code_interior_anchor(const M68kRenderLookup *lookup,
+    const M68kDecodeSectionIR *section, const uint8_t *accepted_start,
+    const M68kDecodeCandidate *candidate, size_t operand_index, uint32_t *out_anchor, int32_t *out_addend) {
+  const M68kDecodeTarget *target;
+  uint32_t anchor, source_runtime, target_runtime, anchor_runtime;
+  int source_mapped, target_mapped;
+  if (!lookup || !section || !candidate || operand_index >= candidate->operand_count ||
+      candidate->operand_kinds[operand_index] != M68K_ASM_OPERAND_EA ||
+      candidate->operands[operand_index].ea_mode != 7U || candidate->operands[operand_index].ea_reg != 2U)
+    return 0;
+  target = candidate_data_target_for_operand(candidate, operand_index);
+  if (!target || !target->has_section || target->section_index != section->section_index ||
+      !materialized_runtime_code_operand_patch_anchor_offset(lookup, section, accepted_start,
+        target->offset, 1U, &anchor)) return 0;
+  source_mapped = lookup_source_runtime_address(lookup, section->section_index, candidate->offset, &source_runtime);
+  target_mapped = lookup_source_runtime_address(lookup, section->section_index, target->offset, &target_runtime);
+  if (source_mapped != target_mapped || (source_mapped &&
+      ((int64_t)target_runtime - source_runtime != (int64_t)target->offset - candidate->offset ||
+       !lookup_source_runtime_address(lookup, section->section_index, anchor, &anchor_runtime) ||
+       (int64_t)target_runtime - anchor_runtime != (int64_t)target->offset - anchor))) return 0;
+  *out_anchor = anchor; *out_addend = (int32_t)(target->offset - anchor);
+  return 1;
+}
+
+static void attach_pc_relative_code_interior_symbols(const M68kRenderLookup *lookup,
+    const M68kDecodeSectionIR *section, const uint8_t *accepted_start,
+    const M68kDecodeCandidate *candidate, M68kInstructionIR *instruction) {
+  for (size_t i = 0U; i < instruction->operand_count; ++i) {
+    uint32_t anchor; int32_t addend;
+    if (!instruction->operands[i].symbol_ref.has_name &&
+        pc_relative_code_interior_anchor(lookup, section, accepted_start, candidate, i, &anchor, &addend) &&
+        lookup_has_renderable_label(lookup, section->section_index, anchor))
+      attach_operand_label_addend_symbol(lookup, instruction, i, section->section_index, anchor, addend);
+  }
+}
+
+static void render_lookup_mark_code_interior_operand_anchor_labels(M68kRenderLookup *lookup,
     const M68kDecodeIR *decode, uint8_t **accepted_start) {
   size_t section_index;
   uint8_t platform_kind = M68K_PLATFORM_BACKEND_UNKNOWN;
@@ -7029,6 +7073,12 @@ static void render_lookup_mark_materialized_runtime_code_operand_patch_labels(M6
         uint32_t source_offset = 0U;
         uint32_t access_width = 0U;
         uint32_t anchor_offset = 0U;
+        int32_t pc_addend;
+        if (pc_relative_code_interior_anchor(lookup, section, section_accepted_start, candidate,
+            operand_index, &anchor_offset, &pc_addend)) {
+          render_lookup_set_label(lookup, section->section_index, anchor_offset);
+          render_lookup_mark_label_target_ref(lookup, section->section_index, anchor_offset);
+        }
         if (metadata->operand_access_kinds[operand_index] != M68K_SIM_ACCESS_MEMORY_WRITE ||
             operand->symbol_ref.has_name != 0U ||
             !operand_absolute_offset_local(operand, &runtime_address)) {
@@ -7348,7 +7398,7 @@ int m68k_render_lookup_build(M68kRenderLookup *lookup, const M68kObject *object,
       }
     }
   }
-  render_lookup_mark_materialized_runtime_code_operand_patch_labels(lookup, decode, accepted_start);
+  render_lookup_mark_code_interior_operand_anchor_labels(lookup, decode, accepted_start);
   render_lookup_build_block_start_before_maps(lookup);
   if (render_lookup_add_pc_relative_xrefs(lookup, decode, accepted_start) != 0) goto oom;
   lookup->build_complete = 1U;
@@ -11243,6 +11293,8 @@ static int plan_rendered_instruction_expressions(M68kRenderIRPreview *preview, M
       (void)attach_platform_pc_relative_section_anchor_symbols(lookup, section->section_index, candidate,
         &instruction);
       attach_source_analysis_static_interior_expression_symbols(lookup, source_analysis, section, candidate,
+        &instruction);
+      attach_pc_relative_code_interior_symbols(lookup, section, accepted_start_all[section_index], candidate,
         &instruction);
       attach_source_analysis_indexed_table_expression_symbols(lookup, source_analysis, section, candidate,
         &instruction);

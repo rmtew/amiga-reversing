@@ -1923,14 +1923,15 @@ typedef enum M68kAddressValueReviewClass {
   M68K_ADDRESS_VALUE_REVIEW_INVALID = 3
 } M68kAddressValueReviewClass;
 
-/* A consumer is the durable contract that permits an address-valued fact to
- * exist.  Storage writes and call inputs share this model, but retain their
- * distinct semantics rather than pretending every input is a memory store. */
+/* Address intent comes from storage, call inputs or an indexed pointer-read
+ * base. These roles remain distinct; base intent does not certify loaded
+ * entries, a unique table, or the caller's dynamic index domain. */
 typedef enum M68kAddressValueConsumerKind {
   M68K_ADDRESS_VALUE_CONSUMER_STORAGE = 1,
   M68K_ADDRESS_VALUE_CONSUMER_LOCAL_FUNCTION_INPUT = 2,
   M68K_ADDRESS_VALUE_CONSUMER_PLATFORM_API_INPUT = 3,
-  M68K_ADDRESS_VALUE_CONSUMER_CALLBACK_INPUT = 4
+  M68K_ADDRESS_VALUE_CONSUMER_CALLBACK_INPUT = 4,
+  M68K_ADDRESS_VALUE_CONSUMER_INDEXED_BASE = 5
 } M68kAddressValueConsumerKind;
 
 typedef struct M68kAddressValueConsumerIR {
@@ -1942,6 +1943,8 @@ typedef struct M68kAddressValueConsumerIR {
   char function_summary_id[96];
   uint32_t id;
   uint32_t offset;
+  /* An INDEXED_BASE consumer with value_id zero records covered-but-unknown
+   * flow. It is not a known null pointer or absence of value-analysis coverage. */
   uint32_t address_value_id;
   uint32_t contract_section_index;
   uint32_t contract_offset;

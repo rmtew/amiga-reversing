@@ -138,7 +138,9 @@ def test_local_mask_domain_rejects_clobbers_and_calls(tmp_path,noise):
 @pytest.mark.c_backend
 @pytest.mark.parametrize('target',['scale','read'])
 def test_local_mask_domain_rejects_alternative_entry_after_bound(tmp_path,target):
-    prefix=f' tst.w d1\n beq.s {target}\n andi.w #3,d0\nscale:\n add.w d0,d0\n add.w d0,d0'
+    # Prove the base on both paths; this case isolates bypass of the index bound.
+    # Branching over the only LEA instead leaves an unknown base, tested separately.
+    prefix=f' lea.l directory(pc),a0\n tst.w d1\n beq.s {target}\n andi.w #3,d0\nscale:\n add.w d0,d0\n add.w d0,d0'
     artifact,_,_=table_artifact(tmp_path,'pointer',prefix)
     try:
         rows=artifact.analysis_payload()[0]['sections'][0]['table_consumers']

@@ -8,8 +8,8 @@ that further analysis is exhausted. Current source remains byte exact: all
 with all 106154 accepted code bytes retained. No generated assembly was edited
 by hand and no interim archive was produced.
 
-The current ownership union leaves 10109 bytes in
-275 intervals unclassified. This is classification accounting,
+The current ownership union leaves 10033 bytes in
+278 intervals unclassified. This is classification accounting,
 not a semantic completion percentage. Earlier interval/site counts below belong
 to their recorded closeout revision. See the current
 [native memory-span receipt](../../runtime/observations/starglider2-app-memory-spans.json),
@@ -17,8 +17,8 @@ to their recorded closeout revision. See the current
 
 ## Current refinement and next evidence
 
-Current native totals: **3514 app /2749 typed /158 unresolved**, with **10109
-unclassified bytes /275 intervals**. The earlier counter-indexed source-array recovery reused
+Current native totals: **3514 app /2749 typed /158 unresolved**, with **10033
+unclassified bytes /278 intervals**. The earlier counter-indexed source-array recovery reused
 the shared loop induction and interned linear entry values. Original inventory
 readers at source `$DD6` and `$339B4` expose the existing name-reference `text`
 field over the possible104-entry prefix of the148-record owner. That batch retained existing
@@ -28,15 +28,21 @@ and strengthened 38 app-base attributions.
 Conditional skips mean104 outer iterations are not104 observed memory reads.
 Loaded pointer values remain subject to separate alias/target validation.
 
-Code-pointer discovery now shares canonical address mapping with text-pointer
-resolution. A paired reproducer showed false table admission for small numeric
-source offsets and ambiguous mappings; both are refused. Eight independent
-C/vasm fixtures, 90 related Python tests and 838 native C cases pass. SGII source,
-assets and all protected native records remain unchanged (3514/2749/158);
-C/vasm and clean standalone bytes are exact. This is a correctness repair, not
-new target coverage. A separate two-branch fixture recovers only the final
-fallthrough directory: shared-reader base provenance needs conditional origins,
-not manual table seeds or a claim that table extent proves caller bounds.
+Pointer-table address mapping rejects numeric source-offset coincidences and
+ambiguous mappings. Indexed pointer reads now expose the existing converged CFG
+base candidates to discovery, preserving unknown, partial-write, call and overflow
+refusals without a second transfer engine or a larger candidate cap. SGII gains
+three dialogue directories ($38E50/$38E6C/$38E94), 19 symbolic LONG fields and
+76 classified bytes. Native reference records grow 1121 to 1140: ten new encoded
+coordinate/value identities, none withdrawn. The shared reader has four possible
+bases; no exact base expression or caller index bound is asserted. App, typed,
+unresolved and CFG records are unchanged. Unclassified bytes fall to 10033;
+278 remaining intervals reflect splitting three old gaps, not lost coverage.
+Validation: 113 focused Python cases, 838 C cases and exact C/vasm/standalone
+output. A paired assembler failure also repaired same-view d16-PC references
+into instruction extensions, using enclosing-label addends without code promotion.
+Mixed source/raw joins remain unknown; source-only workflows retain their existing
+discovery path. This is static recovery, not gameplay or hardware verification.
 
 Inventory source now exposes the command/list/formatting/refill chain through
 34 named continuations, one existing help-pointer table name, seven constants,

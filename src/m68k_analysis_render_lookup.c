@@ -6283,6 +6283,27 @@ static int render_lookup_record_typed_table_load(M68kRenderLookup *lookup, size_
   return render_lookup_add_typed_address_consumer(lookup, section_index, &fact, value, NULL);
 }
 
+/* Record the base held before an indexed address-valued read. The existing
+ * converged CFG value carries alternatives and conservative unknown joins;
+ * this is neither a claim about loaded entries nor a caller index bound. */
+static int render_lookup_record_indexed_pointer_base(M68kRenderLookup *lookup, size_t section_index,
+    uint32_t offset, size_t operand_index, const M68kOperandIR *operand,
+    const M68kRenderTypedState *state) {
+  M68kAddressValueConsumerIR fact = {0};
+  M68kRenderTypedStoredValue value;
+  if (operand->kind != M68K_ASM_OPERAND_EA || operand->value.ea_mode != 6U ||
+      operand->value.ea_reg >= 8U) return 0;
+  value = typed_stored_value_for_address_register(state, operand->value.ea_reg);
+  typed_stored_value_activate_address(&value);
+  fact.kind = M68K_ADDRESS_VALUE_CONSUMER_INDEXED_BASE;
+  fact.offset = offset;
+  fact.operand_index = (uint8_t)operand_index;
+  fact.register_kind = AMIGA_OS_REGISTER_ADDRESS;
+  fact.register_index = operand->value.ea_reg;
+  snprintf(fact.contract_name, sizeof(fact.contract_name), "indexed_pointer_read_base");
+  return render_lookup_add_typed_address_consumer(lookup, section_index, &fact, &value, NULL);
+}
+
 static int typed_memory_destination_requires_address_value(const M68kRenderLookup *lookup,
     const M68kRenderTypedState *state, const M68kRenderPlatformState *platform_state,
     const M68kOperandIR *operand) {
@@ -8673,6 +8694,9 @@ static void typed_state_update_after_instruction(M68kRenderTypedState *state, M6
      * identity. Only an EA's read-address identity is dereferenced here. */
     if (!source_memory_base_is_value && instruction->size_suffix == 'l' &&
         platform_operand_memory_access(instruction, source_index) == M68K_SIM_ACCESS_MEMORY_READ) {
+      if (record_table_load_consumers && dest_operand->kind == M68K_ASM_OPERAND_AN)
+        (void)render_lookup_record_indexed_pointer_base(lookup, section_index, offset, source_index,
+          source_operand, state);
       /* A table base is retained as memory-base bookkeeping. That bookkeeping
        * is useful, but is not the pointee type of the long read from the
        * table, so it must not suppress pointer-table propagation. */
@@ -13319,6 +13343,15 @@ static int append_render_lookup_address_value_consumers_for_section(const M68kRe
     if (observed->section_index != section_analysis->section_index) continue;
     consumer = observed->fact;
     consumer.id = (uint32_t)section_analysis->address_value_consumer_count + 1U;
+    if (consumer.kind == M68K_ADDRESS_VALUE_CONSUMER_INDEXED_BASE &&
+        !observed->value.pointer_value_known && !observed->value.raw_long_value_known &&
+        !observed->value.address_value_candidate_overflow) {
+      /* Coverage with an unknown base is not a known null pointer. Keep the
+       * consumer, without manufacturing a value from zero-initialized bits. */
+      consumer.address_value_id = 0U;
+      if (m68k_ir_section_analysis_append_address_value_consumer(section_analysis, &consumer) != 0) return -1;
+      continue;
+    }
     consumer.address_value_id = (uint32_t)section_analysis->address_value_count + 1U;
     memset(&address_value, 0, sizeof(address_value));
     address_value.id = consumer.address_value_id;
