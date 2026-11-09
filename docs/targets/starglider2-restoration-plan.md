@@ -8,8 +8,8 @@ that further analysis is exhausted. Current source remains byte exact: all
 with all 106154 accepted code bytes retained. No generated assembly was edited
 by hand and no interim archive was produced.
 
-The current ownership union leaves 10009 bytes in
-279 intervals unclassified. This is classification accounting,
+The current ownership union leaves 9977 bytes in
+278 intervals unclassified. This is classification accounting,
 not a semantic completion percentage. Earlier interval/site counts below belong
 to their recorded closeout revision. See the current
 [native memory-span receipt](../../runtime/observations/starglider2-app-memory-spans.json),
@@ -17,8 +17,8 @@ to their recorded closeout revision. See the current
 
 ## Current refinement and next evidence
 
-Current native totals: **3514 app /2749 typed /158 unresolved**, with **10009
-unclassified bytes /279 intervals**. The earlier counter-indexed source-array recovery reused
+Current native totals: **3514 app /2749 typed /158 unresolved**, with **9977
+unclassified bytes /278 intervals**. The earlier counter-indexed source-array recovery reused
 the shared loop induction and interned linear entry values. Original inventory
 readers at source `$DD6` and `$339B4` expose the existing name-reference `text`
 field over the possible104-entry prefix of the148-record owner. That batch retained existing
@@ -27,6 +27,14 @@ Its startup caller proof added five header reads and six app accesses,
 and strengthened 38 app-base attributions.
 Conditional skips mean104 outer iterations are not104 observed memory reads.
 Loaded pointer values remain subject to separate alias/target validation.
+
+The same index-bit mechanism now recovers aligned WORD prefixes, after
+established relative/dispatch-table owners have priority. Two 8-entry volcano
+X/Z velocity arrays recover 32 bytes; mask 14 describes even byte offsets.
+83 Python, 96 original CPU and 838 C cases pass, including unaligned/signed/
+LONG-index and ownership refusals. Velocity Y retains -100-(next PRNG WORD
+AND31). Existing access/CFG/reference facts remain unchanged; no statistical,
+spawn, capacity or lifetime guarantee is inferred. Exact C/vasm and standalone.
 
 Converged, unconditional Dn.W index bits now recover numeric BYTE prefixes
 without a local mask recognizer or manual extent. Four SGII prefixes recover

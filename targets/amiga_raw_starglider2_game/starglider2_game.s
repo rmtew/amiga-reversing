@@ -48673,13 +48673,18 @@ abs_0_00036C54:
 	addi.b #6,d0
 	move.b d0,SG2ObjectCore_model_scale_shift(a4)
 	bsr.w advance_shared_random_state_bridge_038d20
+    ; Mask 14 selects eight aligned velocity WORDs at byte offsets 0,2,...,14. X and Z use separate PRNG calls.
+choose_volcano_eruption_velocity_x:
 	andi.w #14,d0
-	lea.l abs_0_0003992E.l,a1
+	lea.l volcano_eruption_velocity_x_choices.l,a1
 	move.w $0(a1,d0.w),SG2WorldObject_velocity_x(a4)
 	bsr.w advance_shared_random_state_bridge_038d20
+choose_volcano_eruption_velocity_z:
 	andi.w #14,d0
-	lea.l abs_0_0003993E.l,a1
+	lea.l volcano_eruption_velocity_z_choices.l,a1
 	move.w $0(a1,d0.w),SG2WorldObject_velocity_z(a4)
+    ; Velocity Y is -100-(next PRNG WORD AND 31), retaining WORD arithmetic. This is another PRNG call after the X/Z selections.
+choose_volcano_eruption_velocity_y:
 	move.w #$FF9C,SG2WorldObject_velocity_y(a4)
 	bsr.w advance_shared_random_state_bridge_038d20
 	andi.w #31,d0
@@ -50522,10 +50527,10 @@ world_high_altitude_mesh_material_indices:
 	dc.w $0003,$0005,$000D,$0009,$0007,$000C,$000A,$000A
 	dc.w $0007,$0007,$0007,$0007,$0007,$0007,$0007,$000A
 	dc.w $0007
-abs_0_0003992E:
-	dc.b $00,$20,$FF,$E7,$00,$0F,$FF,$EF,$00,$0F,$FF,$E2,$00,$1E,$FF,$E7
-abs_0_0003993E:
-	dc.b $FF,$E7,$FF,$DD,$00,$0F,$00,$0C,$FF,$F1,$FF,$E6,$00,$12,$00,$1F
+volcano_eruption_velocity_x_choices:
+	dc.w $0020,$FFE7,$000F,$FFEF,$000F,$FFE2,$001E,$FFE7	; lookup_table
+volcano_eruption_velocity_z_choices:
+	dc.w $FFE7,$FFDD,$000F,$000C,$FFF1,$FFE6,$0012,$001F	; lookup_table
 world_atmosphere_base_rgb_words:
 	dc.w $0FFA,$0D90,$04EF,$04EF,$0A52,$03FF,$0445,$0445
 	dc.w $0FAA,$0FAA,$0FAA,$0FAA,$0FAA,$0FAA,$0FAA,$0720

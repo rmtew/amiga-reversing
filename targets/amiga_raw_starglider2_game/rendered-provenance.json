@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
   "kind": "committed_native_rendered_original_export",
-  "canonical_source_commit": "20c22c57600c0993c32c7427248dbf10bd05d039",
-  "publication_base_commit": "20c22c57600c0993c32c7427248dbf10bd05d039",
+  "canonical_source_commit": "d0513739e302ffdc27f75d8ebfe793c19f7ba393",
+  "publication_base_commit": "d0513739e302ffdc27f75d8ebfe793c19f7ba393",
   "native_export": "CListingArtifact.source_package_payload(64)",
-  "main_source_sha256": "e69144209a37f7babbd91ba11fbcefefe9bd4aae7cee29942e4da861f08fedaa",
+  "main_source_sha256": "2eeb591a3517d1e19ba3c4afeebf996c0593186625cc0690ec31d50d7be77e7b",
   "asset_count": 57,
   "asset_bytes": 93633,
   "game_assembly_hand_edits": false,
@@ -24,13 +24,13 @@
     "assembler executable",
     "paused Pandora work"
   ],
-  "canonical_source_commit_role": "Canonical publication base; radial/star source exposes inherited D3 magnitude, four PRNG advances, position conversion, colour choices and saved registers. 43 original CPU cases; C/vasm and standalone exact. Existing access/CFG/reference facts unchanged. Supplied types/tables are not global caller or gameplay proof.",
-  "canonical_source_subject_revision": "810f2886ae81470cf1860569b66d7eefb191625a4795aad4aa9d6a083a9776d5",
+  "canonical_source_commit_role": "Canonical publication base; shared index-bit recovery includes aligned WORD prefixes and preserves established table/dispatch owners. Volcano velocity choices become signed WORD arrays. 83 Python, 96 original CPU and 838 C cases; C/vasm and standalone exact. No spawn, distribution or lifetime guarantee.",
+  "canonical_source_subject_revision": "fdc611d6554e5ba979e9d5ffd20aa1f591ea80cbc47ff4d9fa62b6bebb476400",
   "canonical_fact_sha256": {
     "source_binary.json": "42d4a5758b3e8236af7f912aee85e9ee5323bcd0961faa338c4f864080a0a7d9",
     "target_metadata.json": "e7540b68c118c56aba8815b6722eefa067517cc865fe9841d6c01ce96551389c",
-    "manual_actions.jsonl": "9908478bfbd7ad6e77c91d69524fbca5a518def19e5af2f8dfff4c26d0195019",
-    "decision_journal.jsonl": "4ef36ffa4e725f93d1c1a516b912c42c04f9c497f4905bacf287b09c5167d7ea"
+    "manual_actions.jsonl": "dbd2e8a000de6894323d722550b4d8ea81c5068aeb46e11105f3c52f3834912e",
+    "decision_journal.jsonl": "0c3a59ab27ff930f4d3e2867b534b1b0ad45b145940e0eda84aa98d083c06d0f"
   },
   "headers": "14 unmodified required include files collected by source_package.collect_package_includes from ext/amiga_includes/ndk_2.0/include; header notices retained",
   "decoded_protection_view": {
@@ -46,7 +46,7 @@
     },
     "runtime_scope": "Seven CPU write-site windows match this reversible view; no whole runtime-view identity or parent plaintext promotion."
   },
-  "verification_receipt_id": "58b8946f048f026be9c32752153e64e1ac33ebc38fcd9c8f174b27bc13318bc9",
-  "render_native_sha256": "683120c62cfadea5e39038a0c295936e2e4e8127cad84186c61a251dddc0c6c5",
-  "final_assembler_native_sha256": "683120c62cfadea5e39038a0c295936e2e4e8127cad84186c61a251dddc0c6c5"
+  "verification_receipt_id": "5a7863ba915eda3365f537eec3551a730f8b0b9e78fec9f762db5f9e3f6221cc",
+  "render_native_sha256": "06c138a2cca1aaa8f5b619d309fa52fb6722965617e5079b1fca6eedf4206a6d",
+  "final_assembler_native_sha256": "06c138a2cca1aaa8f5b619d309fa52fb6722965617e5079b1fca6eedf4206a6d"
 }
