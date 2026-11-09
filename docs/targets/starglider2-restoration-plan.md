@@ -17,7 +17,7 @@ to their recorded closeout revision. See the current
 
 ## Current refinement and next evidence
 
-Current native totals: **3514 app /2716 typed /166 unresolved**, with **10109
+Current native totals: **3514 app /2749 typed /158 unresolved**, with **10109
 unclassified bytes /275 intervals**. The earlier counter-indexed source-array recovery reused
 the shared loop induction and interned linear entry values. Original inventory
 readers at source `$DD6` and `$339B4` expose the existing name-reference `text`
@@ -27,6 +27,20 @@ Its startup caller proof added five header reads and six app accesses,
 and strengthened 38 app-base attributions.
 Conditional skips mean104 outer iterations are not104 observed memory reads.
 Loaded pointer values remain subject to separate alias/target validation.
+
+Common object-header normalization adds 33 typed accesses without losing any
+previous typed site or changing app/CFG facts. Generic readers and constructor
+writes establish BYTE 03 vertex selection and BYTE 1D model shifting; both now
+inherit from ObjectCore, preserving three old exported symbols as aliases.
+The unchanged 17000-byte world-pool owner exposes only its first 68-byte common
+prefix, using existing inline-instance semantics rather than declaring a record
+array. Eleven old gaps resolve; three player rotation writes become newly
+visible gaps, so unresolved accesses fall from 166 to 158. Offsets 16..21 have
+other meanings in energy-spheroid/star layouts and cannot move into the common
+header. Next: investigate player-specific producer context and remaining
+subtype-dependent contact/update readers; do not infer a stable runtime tag or
+a homogeneous pool. Validation: 658 relevant inheritance/inline and original
+viewer/cockpit/placement/contact cases, C/vasm and clean standalone byte equality.
 
 Cockpit re-entry and weapon-HUD reconstruction now have named entry/bridge,
 seven internal continuations, eight constants and 14 operand names. Forty-five
