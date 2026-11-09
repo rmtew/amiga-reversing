@@ -1,6 +1,6 @@
 # Starglider 2: original source restoration
 
-Status: **resumed on 2026-11-09 at the user's request**. The batches below
+Status: **active under the user's standing continuation instruction**. The batches below
 continue the original absolute-source restoration. The earlier
 original-layout reviewed closeout and ZIP are historical milestones, not a claim
 that further analysis is exhausted. Current source remains byte exact: all
@@ -27,6 +27,20 @@ Its startup caller proof added five header reads and six app accesses,
 and strengthened 38 app-base attributions.
 Conditional skips mean104 outer iterations are not104 observed memory reads.
 Loaded pointer values remain subject to separate alias/target validation.
+
+Inventory source now exposes the command/list/formatting/refill chain through
+34 named continuations, one existing help-pointer table name, seven constants,
+24 local operands and six concise notes. 205 new original CPU cases (359 with
+linked exchange cases) establish descending nonzero model scans, pointer and
+quantity sentinels without a type sentinel, independent preincremented I cursors,
+quantity-independent plural suffixes, exact I/G/E handling and GIVE exclusions.
+GIVE debits inventory and adds unsigned WORD 2048 to power, weapon energy and
+shield, independently saturating on carry or existing FFFF; it does not spawn
+an object. Original aliases remain: a supplied 25-byte type-86 name with 255
+writes 32 bytes across quantity scratch, and dense supplied lists overlap other
+scratch prefixes. These tests do not establish normal-game reachability,
+capacity, lifetime, complete UI execution or hardware timing. Native totals
+remain 3514 app /2749 typed /158 unresolved; original bytes rebuild exactly.
 
 Pointer-string discovery now resolves encoded addresses through the shared
 unique canonical mapper rather than taking any small number as a local offset.

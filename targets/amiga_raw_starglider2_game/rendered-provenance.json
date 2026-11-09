@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
   "kind": "committed_native_rendered_original_export",
-  "canonical_source_commit": "ddbe29aba1a5d5a0a3e4dcbc3d81fac05cd76c0b",
-  "publication_base_commit": "ddbe29aba1a5d5a0a3e4dcbc3d81fac05cd76c0b",
+  "canonical_source_commit": "07cfe97ea6ce70a65d9f7e06f6b41f1bdaa3b58e",
+  "publication_base_commit": "07cfe97ea6ce70a65d9f7e06f6b41f1bdaa3b58e",
   "native_export": "CListingArtifact.source_package_payload(64)",
-  "main_source_sha256": "8bca97d9fe24c44c70fb7277d61139a7099d7c623cfa8174e431e519e98607b1",
+  "main_source_sha256": "28a840dd932fac2f39dab0d19e2d7ee5bb4750767cd2d78330d1a8f644910623",
   "asset_count": 57,
   "asset_bytes": 93633,
   "game_assembly_hand_edits": false,
@@ -24,13 +24,13 @@
     "assembler executable",
     "paused Pandora work"
   ],
-  "canonical_source_commit_role": "Canonical publication base; shared pointer-string discovery now uses unique canonical address mapping, not numeric containment. Seven paired C/vasm fixtures cover image-size coincidence, numeric local values, ambiguity, duplicate maps, owned spans and suffixes; 109 related Python and 838 C tests pass. Explicit mapped-source and runtime-only domains are guarded, with legacy zero-origin data retained. Three SGII strings become quoted text; prior strings, access/CFG facts and reference identities remain intact. Existing generic-data ownership already covered these bytes, so classification totals are unchanged. No runtime reader or gameplay coverage claim.",
-  "canonical_source_subject_revision": "7919d1dc6a83d90581f95455db18758079533257424963b22ada352bd1db6cba",
+  "canonical_source_commit_role": "Canonical publication base; inventory list/command/formatting and reserve-refill continuations restored with 34 names, one existing pointer-table name, seven constants, 24 local operands and six comments. 205 original CPU cases and 359 linked cases establish descending list construction, I/G/E behavior, plural/quantity formatting, debit/refill and unsigned WORD saturation. Supplied long/dense scratch aliases and stale selected-zero behavior are retained, without normal-game reachability, capacity, lifetime, complete UI or hardware claims. Native access/CFG facts remain unchanged; original C/vasm and clean standalone bytes exact.",
+  "canonical_source_subject_revision": "32905cf2eee606990d05fdb2167bf19919f7a620c67a6b48bfc94400e36db15b",
   "canonical_fact_sha256": {
     "source_binary.json": "42d4a5758b3e8236af7f912aee85e9ee5323bcd0961faa338c4f864080a0a7d9",
     "target_metadata.json": "e7540b68c118c56aba8815b6722eefa067517cc865fe9841d6c01ce96551389c",
-    "manual_actions.jsonl": "543e7415330dfe4ad135c1d93befc7623ac000bd43dbb2191b52caf33acd8cf9",
-    "decision_journal.jsonl": "4facfe37d68e14ecca9aa7f1e9b881b6b73ed3faaf10c3757346e9b9c8fd0495"
+    "manual_actions.jsonl": "3469342c20414cbbdc91efca94456dcef41ec64ac8ee2e01d21e2d6e82a9ac15",
+    "decision_journal.jsonl": "96ca816c2f4ac467c64af1feb1f607a44852adac38b702932d2e3a0aaa5fdeac"
   },
   "headers": "14 unmodified required include files collected by source_package.collect_package_includes from ext/amiga_includes/ndk_2.0/include; header notices retained",
   "decoded_protection_view": {
@@ -46,7 +46,7 @@
     },
     "runtime_scope": "Seven CPU write-site windows match this reversible view; no whole runtime-view identity or parent plaintext promotion."
   },
-  "verification_receipt_id": "89c0ca26912264127eb4e555edda37eca7a5ed119e699d949209ff696e16dca2",
+  "verification_receipt_id": "261192023c4034670ba43e0745761f594fdbdda65091673818f8699dfe168840",
   "render_native_sha256": "62966821860f865c9491bd89901c06c579cd61dbe2efab67c39711c94a2f58d4",
   "final_assembler_native_sha256": "62966821860f865c9491bd89901c06c579cd61dbe2efab67c39711c94a2f58d4"
 }

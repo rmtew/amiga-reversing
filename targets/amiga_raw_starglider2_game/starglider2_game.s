@@ -1512,6 +1512,8 @@ SG2_CONTACT_SKIP_FLAG_BIT	EQU	4
 SG2_CORNER_APPROACH_OFFSET	EQU	3120
 SG2_CORNER_SLOPE_SHIFT	EQU	6
 SG2_DEPOT_COUNT_NEGATIVE_RESULT_CLAMP	EQU	127
+SG2_DEPOT_MESSAGE_TICK_MASK	EQU	31
+SG2_DEPOT_SERVICE_INVENTORY	EQU	10
 SG2_DEPOT_TRADE_COUNT_GATE	EQU	3
 SG2_DEPOT_TRADE_SERVICE_INDEX_BIAS	EQU	3
 SG2_DEPOT_WEAPON_COUNTER_FALLBACK	EQU	4
@@ -1589,6 +1591,9 @@ SG2_INTERIOR_LAYOUT_BIAS	EQU	16
 SG2_INTERLEAVED_CELL_ROW_REMAINDER_BYTES	EQU	152
 SG2_INTERLEAVED_NIBBLE_MASK	EQU	15
 SG2_INTERLEAVED_ROW_BYTES	EQU	160
+SG2_INVENTORY_GIVE_RESERVE_INCREMENT	EQU	2048
+SG2_INVENTORY_SCRATCH_PREFIX_DBF_LAST	EQU	9
+SG2_INVENTORY_TYPE_SCAN_DBF_LAST	EQU	103
 SG2_LINKED_CONTACT_AXIS_OFFSET	EQU	1800
 SG2_MASK16_SOURCE_TABLE_BYTES	EQU	32
 SG2_MASK32_SOURCE_TABLE_BYTES	EQU	128
@@ -1629,6 +1634,7 @@ SG2_OBJECT_PROFILE_EDGE_THRESHOLD	EQU	551
 SG2_OBJECT_PROFILE_HALF_WIDTH	EQU	550
 SG2_OBJECT_TYPE_BOUNCING_BOMB	EQU	91
 SG2_OBJECT_TYPE_EGRON_MINI_SENTINEL	EQU	37
+SG2_OBJECT_TYPE_ENERGY_CUBE_LAUNCHER	EQU	84
 SG2_OBJECT_TYPE_HOMING_MISSILE	EQU	12
 SG2_OBJECT_TYPE_ICARUS	EQU	30
 SG2_OBJECT_TYPE_NEUTRON_BOMB	EQU	98
@@ -1735,6 +1741,7 @@ SG2_PSG_PROJECTILE_VOLUME_REGISTER	EQU	8
 SG2_PSG_TYPES1_15_DECAY_PHASE_MASK	EQU	7
 SG2_RADIAL_FIRST_SHIFT_THRESHOLD	EQU	524288
 SG2_RADIAL_SHIFT_DBF_LAST	EQU	9
+SG2_RESERVE_SATURATED_WORD	EQU	65535
 SG2_RETIREMENT_FACE_COUNT_MASK	EQU	7
 SG2_RETIREMENT_FALLBACK_HEADER_OFFSET	EQU	$BC
 SG2_RETIREMENT_FAR_DIVIDE_DEPTH	EQU	12000
@@ -45095,39 +45102,40 @@ abs_0_00033D64:
 	bmi.b abs_0_00033D7A
 	st.b pending_transient_event_sound(a6)
 abs_0_00033D7A:
-	bsr.w abs_0_00033D80
+	bsr.w add_word_to_icarus_reserves_with_saturation
 	bra.b update_point_field_flag_from_world_y
-abs_0_00033D80:
+    ; Add unsigned low WORD D3 independently to power, weapon energy and shield. FFFF skips; carry saturates FFFF. GIVE supplies 2048. Physical units remain unestablished.
+add_word_to_icarus_reserves_with_saturation:
 	move.w icarus_power_reserve(a6),d0
-	cmp.w #$FFFF,d0
-	beq.b abs_0_00033D9A
+	cmp.w #SG2_RESERVE_SATURATED_WORD,d0
+	beq.b add_word_to_weapon_energy_reserve
 	add.w d3,d0
-	bcs.b abs_0_00033D94
+	bcs.b saturate_icarus_power_reserve
 	move.w d0,icarus_power_reserve(a6)
-	bra.b abs_0_00033D9A
-abs_0_00033D94:
-	move.w #$FFFF,icarus_power_reserve(a6)
-abs_0_00033D9A:
+	bra.b add_word_to_weapon_energy_reserve
+saturate_icarus_power_reserve:
+	move.w #SG2_RESERVE_SATURATED_WORD,icarus_power_reserve(a6)
+add_word_to_weapon_energy_reserve:
 	move.w weapon_energy_reserve(a6),d0
-	cmp.w #$FFFF,d0
-	beq.b abs_0_00033DB4
+	cmp.w #SG2_RESERVE_SATURATED_WORD,d0
+	beq.b add_word_to_icarus_shield_strength
 	add.w d3,d0
-	bcs.b abs_0_00033DAE
+	bcs.b saturate_weapon_energy_reserve
 	move.w d0,weapon_energy_reserve(a6)
-	bra.b abs_0_00033DB4
-abs_0_00033DAE:
-	move.w #$FFFF,weapon_energy_reserve(a6)
-abs_0_00033DB4:
+	bra.b add_word_to_icarus_shield_strength
+saturate_weapon_energy_reserve:
+	move.w #SG2_RESERVE_SATURATED_WORD,weapon_energy_reserve(a6)
+add_word_to_icarus_shield_strength:
 	move.w icarus_shield_strength(a6),d0
-	cmp.w #$FFFF,d0
-	beq.b abs_0_00033DCE
+	cmp.w #SG2_RESERVE_SATURATED_WORD,d0
+	beq.b return_from_icarus_reserve_refill
 	add.w d3,d0
-	bcs.b abs_0_00033DC8
+	bcs.b saturate_icarus_shield_strength
 	move.w d0,icarus_shield_strength(a6)
-	bra.b abs_0_00033DCE
-abs_0_00033DC8:
-	move.w #$FFFF,icarus_shield_strength(a6)
-abs_0_00033DCE:
+	bra.b return_from_icarus_reserve_refill
+saturate_icarus_shield_strength:
+	move.w #SG2_RESERVE_SATURATED_WORD,icarus_shield_strength(a6)
+return_from_icarus_reserve_refill:
 	rts
 update_point_field_flag_from_world_y:
 	move.b #$4,diagnostic_step_byte.l
@@ -45411,10 +45419,10 @@ abs_0_00034172:
 	tst.w d0
 	bne.b abs_0_0003419A
 	tst.b abs_0_00039CD4.l
-	bpl.w abs_0_00034A46
+	bpl.w reset_depot_intro_and_service_entry_latches
 	bsr.w display_blank_event_message_line
 	sf.b abs_0_00039CD4.l
-	bra.w abs_0_00034A46
+	bra.w reset_depot_intro_and_service_entry_latches
 abs_0_0003419A:
 	st.b abs_0_00039CD4.l
 	lea.l structure_service_entry_latches(a6),a1
@@ -45818,7 +45826,7 @@ abs_0_000346D0:
 	bra.w advance_projector_station_cycle_continuation
 abs_0_000346F2:
 	cmpi.w #2,current_structure_service_id(a6)
-	bne.b abs_0_00034764
+	bne.b service_depot_inventory_or_help_page
 	addq.w #1,depot_dialogue_tick.l
 	andi.w #31,depot_dialogue_tick.l
 	bne.w advance_projector_station_cycle_continuation
@@ -45851,24 +45859,25 @@ abs_0_00034758:
 	addq.w #4,depot_line_pointer_offset(a6)
 abs_0_00034760:
 	bra.w advance_projector_station_cycle_continuation
-abs_0_00034764:
-	cmpi.w #10,current_structure_service_id(a6)
-	bne.w abs_0_000349F4
+service_depot_inventory_or_help_page:
+	cmpi.w #SG2_DEPOT_SERVICE_INVENTORY,current_structure_service_id(a6)
+	bne.w advance_shared_depot_message_cadence
 	move.b #$70,diagnostic_step_byte.l
 	tst.b depot_inventory_mode_flag.l
-	bpl.w abs_0_000348E2
+	bpl.w dispatch_depot_help_mode_commands
 	tst.b player_ejection_active_flag.l
-	bmi.b abs_0_0003478C
+	bmi.b dispatch_active_inventory_command
 	bsr.w poll_translated_command_key_bridge_038d44
-abs_0_0003478C:
-	cmp.b #$49,d0
-	beq.b abs_0_000347A6
-	cmp.b #$47,d0
-	beq.w abs_0_00034866
-	cmp.b #$45,d0
-	beq.w abs_0_000348D0
+dispatch_active_inventory_command:
+	cmp.b #'I',d0
+	beq.b advance_inventory_selection_before_display
+	cmp.b #'G',d0
+	beq.w give_selected_inventory_item_for_reserve_refill
+	cmp.b #'E',d0
+	beq.w leave_depot_inventory_mode
 	bra.w advance_projector_station_cycle_continuation
-abs_0_000347A6:
+    ; I advances both independent WORD cursors before display, including mode entry. Pointer sentinel resets both. No consistency check ties the two cursor values together.
+advance_inventory_selection_before_display:
 	move.b #$71,diagnostic_step_byte.l
 	lea.l shared_inventory_depot_message_pointers(a6),a0
 	addq.w #4,depot_line_pointer_offset(a6)
@@ -45876,46 +45885,47 @@ abs_0_000347A6:
 	move.w depot_line_pointer_offset(a6),d0
 	movea.l $0(a0,d0.w),a1
 	cmpa.l #$FFFFFFFF,a1
-	bne.w abs_0_000347D4
+	bne.w format_selected_inventory_name_and_quantity
 	clr.w depot_line_pointer_offset(a6)
 	clr.w inventory_list_item_index(a6)
-abs_0_000347D4:
+    ; Quantity is masked to a BYTE; plural suffix depends only on final lowercase s. Original 25-byte type-86 name with 255 writes 32 bytes, crossing into quantity scratch.
+format_selected_inventory_name_and_quantity:
 	lea.l shared_inventory_depot_message_pointers(a6),a0
 	lea.l inventory_list_quantity_prefix(a6),a2
 	move.w depot_line_pointer_offset(a6),d0
 	movea.l $0(a0,d0.w),a1
 	cmpa.l #$FFFFFFFF,a1
-	beq.w abs_0_00034840
+	beq.w display_empty_inventory_notice_and_reset_selection
 	move.w inventory_list_item_index(a6),d0
 	move.b $0(a2,d0.w),d0
 	lea.l inventory_line_text_start(a6),a3
-abs_0_000347FA:
+copy_inventory_object_name_to_line:
 	move.b (a1)+,d1
-	beq.b abs_0_00034802
+	beq.b append_inventory_plural_suffix_if_needed
 	move.b d1,(a3)+
-	bra.b abs_0_000347FA
-abs_0_00034802:
-	cmpi.b #115,-$0001(a3)
-	beq.b abs_0_0003480E
-	move.b #$73,(a3)+
-abs_0_0003480E:
-	move.b #$3A,(a3)+
-	move.b #$20,(a3)+
+	bra.b copy_inventory_object_name_to_line
+append_inventory_plural_suffix_if_needed:
+	cmpi.b #'s',-$0001(a3)
+	beq.b append_inventory_quantity_separator
+	move.b #'s',(a3)+
+append_inventory_quantity_separator:
+	move.b #':',(a3)+
+	move.b #' ',(a3)+
 	lea.l inventory_quantity_decimal_prefix(a6),a1
 	andi.w #255,d0
 	jsr format_signed_word_decimal_text.l
 	lea.l inventory_quantity_decimal_prefix(a6),a1
-abs_0_00034828:
+copy_inventory_decimal_quantity_to_line:
 	move.b (a1)+,d0
-	beq.b abs_0_00034830
+	beq.b terminate_and_display_inventory_line
 	move.b d0,(a3)+
-	bra.b abs_0_00034828
-abs_0_00034830:
+	bra.b copy_inventory_decimal_quantity_to_line
+terminate_and_display_inventory_line:
 	move.b #$0,(a3)+
 	lea.l inventory_line_text_start(a6),a1
 	bsr.w display_event_message_line
 	bra.w advance_projector_station_cycle_continuation
-abs_0_00034840:
+display_empty_inventory_notice_and_reset_selection:
 	move.b #$74,diagnostic_step_byte.l
 	lea.l event_message_pointers.l,a1
 	move.w #$D0,d0
@@ -45924,48 +45934,49 @@ abs_0_00034840:
 	clr.w depot_line_pointer_offset(a6)
 	clr.w inventory_list_item_index(a6)
 	bra.w advance_projector_station_cycle_continuation
-abs_0_00034866:
+    ; Only total population is tested nonzero. Four special types skip debit/refill. Other selections debit BYTE counts with N-only clamps, then refill reserves; selected zero is not checked.
+give_selected_inventory_item_for_reserve_refill:
 	bsr.w recompute_counted_model_population
 	tst.w d7
-	bne.b abs_0_00034878
+	bne.b filter_special_items_before_inventory_give
 	clr.w depot_line_pointer_offset(a6)
 	clr.w inventory_list_item_index(a6)
-	bra.b abs_0_00034840
-abs_0_00034878:
+	bra.b display_empty_inventory_notice_and_reset_selection
+filter_special_items_before_inventory_give:
 	lea.l inventory_list_model_type_prefix(a6),a1
 	move.w inventory_list_item_index(a6),d0
 	move.b $0(a1,d0.w),d0
 	andi.w #255,d0
-	cmp.w #$C,d0
-	beq.b abs_0_000348C8
-	cmp.w #$5B,d0
-	beq.b abs_0_000348C8
-	cmp.w #$62,d0
-	beq.b abs_0_000348C8
-	cmp.w #$54,d0
-	beq.b abs_0_000348C8
+	cmp.w #SG2_OBJECT_TYPE_HOMING_MISSILE,d0
+	beq.b refresh_population_after_inventory_give
+	cmp.w #SG2_OBJECT_TYPE_BOUNCING_BOMB,d0
+	beq.b refresh_population_after_inventory_give
+	cmp.w #SG2_OBJECT_TYPE_NEUTRON_BOMB,d0
+	beq.b refresh_population_after_inventory_give
+	cmp.w #SG2_OBJECT_TYPE_ENERGY_CUBE_LAUNCHER,d0
+	beq.b refresh_population_after_inventory_give
 	move.w inventory_list_item_index(a6),d1
 	lea.l inventory_list_quantity_prefix(a6),a1
 	subq.b #1,$0(a1,d1.w)
-	bpl.b abs_0_000348B2
+	bpl.b decrement_selected_model_inventory_count
 	clr.b $0(a1,d1.w)
-abs_0_000348B2:
+decrement_selected_model_inventory_count:
 	lea.l model_type_population_counts(a6),a0
 	subq.b #1,$0(a0,d0.w)
-	bpl.b abs_0_000348C0
+	bpl.b refill_reserves_after_inventory_debit
 	clr.b $0(a0,d0.w)
-abs_0_000348C0:
-	move.w #$800,d3
-	bsr.w abs_0_00033D80
-abs_0_000348C8:
+refill_reserves_after_inventory_debit:
+	move.w #SG2_INVENTORY_GIVE_RESERVE_INCREMENT,d3
+	bsr.w add_word_to_icarus_reserves_with_saturation
+refresh_population_after_inventory_give:
 	bsr.w recompute_counted_model_population
-	bra.w abs_0_000347D4
-abs_0_000348D0:
+	bra.w format_selected_inventory_name_and_quantity
+leave_depot_inventory_mode:
 	sf.b depot_inventory_mode_flag.l
 	clr.w depot_line_pointer_offset(a6)
 	clr.w inventory_list_item_index(a6)
 	bra.w advance_projector_station_cycle_continuation
-abs_0_000348E2:
+dispatch_depot_help_mode_commands:
 	move.b #$72,diagnostic_step_byte.l
 	tst.b player_ejection_active_flag.l
 	bmi.b abs_0_000348F6
@@ -45984,82 +45995,83 @@ abs_0_00034908:
 	movem.l (a7)+,d0-d7/a0-a6
 abs_0_0003491A:
 	tst.b tractor_input_override_flag(a6)
-	bpl.b abs_0_0003492C
+	bpl.b enter_inventory_mode_on_i_key
 	movem.l d0-d7/a0-a6,-(a7)
 	bsr.w process_tractor_target_keys
 	movem.l (a7)+,d0-d7/a0-a6
-abs_0_0003492C:
-	cmp.b #$49,d0
-	bne.b abs_0_00034944
+enter_inventory_mode_on_i_key:
+	cmp.b #'I',d0
+	bne.b advance_depot_help_message_cadence
 	clr.w depot_line_pointer_offset(a6)
 	clr.w inventory_list_item_index(a6)
 	st.b depot_inventory_mode_flag.l
-	bra.w abs_0_000347A6
-abs_0_00034944:
+	bra.w advance_inventory_selection_before_display
+advance_depot_help_message_cadence:
 	move.b #$73,diagnostic_step_byte.l
 	addq.w #1,depot_dialogue_tick.l
-	andi.w #31,depot_dialogue_tick.l
+	andi.w #SG2_DEPOT_MESSAGE_TICK_MASK,depot_dialogue_tick.l
 	bne.w advance_projector_station_cycle_continuation
-	lea.l abs_0_00038EA8.l,a1
+	lea.l depot_inventory_help_line_pointers.l,a1
 	move.w depot_line_pointer_offset(a6),d0
 	movea.l $0(a1,d0.w),a1
 	cmpa.l #$FFFFFFFF,a1
-	bne.b abs_0_00034980
+	bne.b display_next_depot_inventory_help_line
 	move.w #$0,depot_line_pointer_offset(a6)
 	bsr.w display_blank_event_message_line
 	bra.b abs_0_00034988
-abs_0_00034980:
+display_next_depot_inventory_help_line:
 	bsr.w display_event_message_line
 	addq.w #4,depot_line_pointer_offset(a6)
 abs_0_00034988:
 	bra.w advance_projector_station_cycle_continuation
+    ; Scan types 103 down to 0 and collect every nonzero count, including GIVE-excluded types. Terminate pointers and quantities, not model types. No capacity check is added.
 build_depot_inventory_status_lists:
 	lea.l shared_inventory_depot_message_pointers(a6),a0
 	lea.l inventory_list_quantity_prefix(a6),a2
 	lea.l model_type_population_counts(a6),a1
 	lea.l inventory_list_model_type_prefix(a6),a3
 	lea.l object_name_pointers.l,a4
-	move.w #$67,d0
-abs_0_000349A6:
+	move.w #SG2_INVENTORY_TYPE_SCAN_DBF_LAST,d0
+collect_next_nonzero_inventory_model_type:
 	move.b $0(a1,d0.w),d1
-	beq.b abs_0_000349B8
+	beq.b advance_inventory_model_type_scan
 	move.b d0,(a3)+
 	move.b d1,(a2)+
 	move.w d0,d1
 	asl.w #2,d1
 	move.l SG2ObjectNameReference_text(a4,d1.w),(a0)+
-abs_0_000349B8:
-	dbf.w d0,abs_0_000349A6
+advance_inventory_model_type_scan:
+	dbf.w d0,collect_next_nonzero_inventory_model_type
 	move.b #$FF,(a2)
 	move.l #$FFFFFFFF,(a0)
 	rts
-    ; Initializes ten LONG message slots and ten BYTEs at each scratch prefix to all ones. These are observed initialization extents, not inferred full buffer capacities.
+    ; Initialize ten LONG pointer slots and ten bytes at each scratch prefix. These are reset extents, not capacities. Supplied dense lists can overwrite adjacent line, decimal and index state.
 reset_shared_inventory_scratch_prefixes:
 	lea.l shared_inventory_depot_message_pointers(a6),a0
 	lea.l inventory_quantity_decimal_prefix(a6),a1
 	lea.l inventory_list_quantity_prefix(a6),a2
 	lea.l inventory_list_model_type_prefix(a6),a3
-	move.w #$9,d0
-abs_0_000349DC:
+	move.w #SG2_INVENTORY_SCRATCH_PREFIX_DBF_LAST,d0
+initialize_next_inventory_scratch_prefix_slot:
 	move.l #$FFFFFFFF,(a0)+
 	move.b #$FF,(a1)+
 	move.b #$FF,(a2)+
 	move.b #$FF,(a3)+
-	dbf.w d0,abs_0_000349DC
+	dbf.w d0,initialize_next_inventory_scratch_prefix_slot
 	rts
-abs_0_000349F4:
+advance_shared_depot_message_cadence:
 	addq.w #1,depot_dialogue_tick.l
-	andi.w #31,depot_dialogue_tick.l
+	andi.w #SG2_DEPOT_MESSAGE_TICK_MASK,depot_dialogue_tick.l
 	bne.b advance_projector_station_cycle_continuation
 	lea.l shared_inventory_depot_message_pointers(a6),a1
 	move.w depot_line_pointer_offset(a6),d0
 	movea.l $0(a1,d0.w),a1
 	cmpa.l #$FFFFFFFF,a1
-	bne.b abs_0_00034A24
+	bne.b display_next_shared_depot_message
 	move.w #$0,depot_line_pointer_offset(a6)
 	bsr.w display_blank_event_message_line
 	bra.b abs_0_00034A2C
-abs_0_00034A24:
+display_next_shared_depot_message:
 	bsr.w display_event_message_line
 	addq.w #4,depot_line_pointer_offset(a6)
 abs_0_00034A2C:
@@ -46071,14 +46083,14 @@ abs_0_00034A30:
 	movea.l SG2SourceTextReference_text(a1,d0.w),a1
 	bsr.w display_event_message_line
 	bra.b advance_projector_station_cycle_continuation
-abs_0_00034A46:
+reset_depot_intro_and_service_entry_latches:
 	clr.w taymar_intro_message_index.l
 	move.w #$FFFF,depot_dialogue_pause_countdown.l
 	lea.l structure_service_entry_latches(a6),a0
 	move.w #$B,d0
-abs_0_00034A5C:
+clear_next_depot_service_entry_latch:
 	clr.b (a0)+
-	dbf.w d0,abs_0_00034A5C
+	dbf.w d0,clear_next_depot_service_entry_latch
     ; Within original growth path, decrement object1D shift toward model default; a smaller shift means larger rendered/contact geometry. Retain branch cadence and clear-reference failure behavior.
 advance_projector_station_cycle_continuation:
 	move.b #$58,diagnostic_step_byte.l
@@ -50196,7 +50208,7 @@ abs_0_00038E6C:
 abs_0_00038E94:
 	dc.b $00,$03,$8E,$C8,$00,$03,$88,$60,$00,$03,$8F,$FD,$00,$03,$90,$16
 	dc.b $FF,$FF,$FF,$FF
-abs_0_00038EA8:
+depot_inventory_help_line_pointers:
 	dc.l abs_0_00039031	; pointer_table
 	dc.l abs_0_0003904C
 	dc.l abs_0_00039065
