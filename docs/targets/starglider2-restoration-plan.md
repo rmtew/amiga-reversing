@@ -1,7 +1,7 @@
 # Starglider 2: original source restoration
 
-Status: **resumed on 2026-11-09 at the user's request**. The retirement-face and model-viewer
-batches below continue the original absolute-source restoration. The earlier
+Status: **resumed on 2026-11-09 at the user's request**. The batches below
+continue the original absolute-source restoration. The earlier
 original-layout reviewed closeout and ZIP are historical milestones, not a claim
 that further analysis is exhausted. Current source remains byte exact: all
 412736 original bytes rebuild through C/vasm and a clean standalone export,
@@ -27,6 +27,20 @@ Its startup caller proof added five header reads and six app accesses,
 and strengthened 38 app-base attributions.
 Conditional skips mean104 outer iterations are not104 observed memory reads.
 Loaded pointer values remain subject to separate alias/target validation.
+
+Cockpit re-entry and weapon-HUD reconstruction now have named entry/bridge,
+seven internal continuations, eight constants and 14 operand names. Forty-five
+CPU cases enter after the picture/frame-handoff prelude and execute the actual
+remaining helpers with supplied RAM/sprite backing. Model 99 face_count becomes
+52-minus-remaining with WORD wrap; negative remaining steps clamp to 0, while
+positive values are not bounded here. Transient references are cleared. A type 98
+population counter enables a 250-record type-only search that ignores retirement
+phase; existing spawn/retract latches survive unless no matching record exists.
+Both weapon HUD banks start at 0 and stop at 4 through their add helpers, but the
+caller still invokes a helper 255 times for counter 255. The counter is not checked
+against pool contents. C/vasm and a clean standalone export preserve every original
+byte; access/CFG facts and classification totals are unchanged. Picture restore,
+frame handoff, full startup, lifetime and hardware remain outside these cases.
 
 The shared conditional-record analysis now handles immediate WORD equality,
 including direct memory comparisons, transported reads and nonzero directory

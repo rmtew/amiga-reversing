@@ -1501,6 +1501,11 @@ SG2_CLIP_INITIAL_X_MULTIPLIER	EQU	113
 SG2_CLIP_INITIAL_Y_MULTIPLIER	EQU	334
 SG2_CLIP_NEAR_DEPTH	EQU	128
 SG2_CLIP_VERTEX_BYTES	EQU	6
+SG2_COCKPIT_BOMB_RESTORE_Y_OFFSET	EQU	120
+SG2_COCKPIT_COPPER_GATE_WAIT_LONG	EQU	$4A01FF00
+SG2_COCKPIT_GAME_OVER_RESET_COUNT	EQU	200
+SG2_COCKPIT_STATION_BASE_FACE_COUNT	EQU	52
+SG2_COCKPIT_STATION_MODEL_INDEX	EQU	99
 SG2_CONTACT_COORDINATE_SHIFT	EQU	9
 SG2_CONTACT_PAIR_DBF_SUBTRACT	EQU	2
 SG2_CONTACT_PIXEL_CENTER_X	EQU	144
@@ -1609,9 +1614,11 @@ SG2_OBJECT_DEPOT_APPROACH_LIMIT	EQU	455
 SG2_OBJECT_DEPOT_Z_SNAP_OFFSET	EQU	450
 SG2_OBJECT_PROFILE_EDGE_THRESHOLD	EQU	551
 SG2_OBJECT_PROFILE_HALF_WIDTH	EQU	550
+SG2_OBJECT_TYPE_BOUNCING_BOMB	EQU	91
 SG2_OBJECT_TYPE_EGRON_MINI_SENTINEL	EQU	37
 SG2_OBJECT_TYPE_HOMING_MISSILE	EQU	12
 SG2_OBJECT_TYPE_ICARUS	EQU	30
+SG2_OBJECT_TYPE_NEUTRON_BOMB	EQU	98
 SG2_OBJECT_TYPE_SKIM_DRONE	EQU	43
 SG2_OBJECT_TYPE_SKIM_MISSILE	EQU	60
 SG2_OVERLAY_MAX_LEFT	EQU	288
@@ -1799,6 +1806,7 @@ SG2_WORLD_ENTRY_PITCH_PHASE	EQU	$F0A
 SG2_WORLD_ENTRY_Y_BIAS	EQU	200
 SG2_WORLD_FREE_FILL_LAST_INDEX	EQU	250
 SG2_WORLD_POOL_CLEAR_DBF_LAST	EQU	249
+SG2_WORLD_POOL_SCAN_DBF_LAST	EQU	249
 SG2_WORLD_RECORD_BYTES	EQU	68
 _ciaa	EQU	$BFE001
 _ciab	EQU	$BFD000
@@ -2131,7 +2139,7 @@ abs_0_000011C6:
 	jsr show_options_and_load_control_settings.l
 	bra.b abs_0_00001202
 abs_0_000011E0:
-	bsr.w abs_0_0000217A
+	bsr.w restore_cockpit_and_weapon_hud_state
 	clr.l d0
 	jsr add_bcd_and_draw_digits.l
 	bra.b abs_0_00001256
@@ -2149,7 +2157,7 @@ abs_0_00001202:
 	bsr.w reset_gameplay_state_and_input_defaults
 	move.b #$2,diagnostic_step_byte.l
 	bsr.w initialize_mission_and_flight_state_bridge_002392
-	bsr.w abs_0_0000217A
+	bsr.w restore_cockpit_and_weapon_hud_state
 	move.b #$6,diagnostic_step_byte.l
 	moveq.l #0,d0
 	jsr add_bcd_and_draw_digits.l
@@ -3205,15 +3213,16 @@ reset_gameplay_state_and_input_defaults:
 	move.w #$1E,type30_render_model_index(a6)
 	bsr.w probe_platform_display_mode_bridge_0023f2
 	rts
-abs_0_0000217A:
+    ; Restore encoded cockpit picture and present, reopen Copper continuations, reset transient references, update station faces and rebuild weapon HUD banks from type counters.
+restore_cockpit_and_weapon_hud_state:
 	bsr.w restore_cockpit_picture_from_encoded_state
 	clr.b display_buffer_table_byte_offset(a6)
 	bsr.w count_and_present_frame_handoff
     ; Replace all three first Copper end markers with4A01/FF00 WAIT, exposing original continuation blocks. Final end markers remain unchanged.
 enable_midframe_copper_blocks_continuation:
-	move.l #$4A01FF00,amiga_copper_list_c_mode_gate.l
-	move.l #$4A01FF00,amiga_copper_list_a_mode_gate.l
-	move.l #$4A01FF00,amiga_copper_list_b_mode_gate.l
+	move.l #SG2_COCKPIT_COPPER_GATE_WAIT_LONG,amiga_copper_list_c_mode_gate.l
+	move.l #SG2_COCKPIT_COPPER_GATE_WAIT_LONG,amiga_copper_list_a_mode_gate.l
+	move.l #SG2_COCKPIT_COPPER_GATE_WAIT_LONG,amiga_copper_list_b_mode_gate.l
 	move.w #$1,periodic_display_update_countdown(a6)
 	clr.w message_display_countdown(a6)
 	clr.w pending_message_count(a6)
@@ -3222,18 +3231,18 @@ clear_cached_hud_coordinate_pair:
 	bsr.w install_sine_cosine_pointers
 	sf.b modal_command_input_flag(a6)
 	move.w station_construction_steps_remaining(a6),d0
-	bpl.b abs_0_000021C8
+	bpl.b update_station_model_face_count_from_remaining_steps
 	clr.w d0
-abs_0_000021C8:
-	move.w #$34,d2
+update_station_model_face_count_from_remaining_steps:
+	move.w #SG2_COCKPIT_STATION_BASE_FACE_COUNT,d2
 	sub.w d0,d2
-	move.w #$63,d1
+	move.w #SG2_COCKPIT_STATION_MODEL_INDEX,d1
 	asl.w #2,d1
 	lea.l model_header_pointers.l,a0
 	movea.l $0(a0,d1.w),a0
-    ; Original entry99 station header face_count WORD is written here (52 observed at f880). This is not the ground_face_count field at +22; the header is mutable.
-	move.w d2,$0002(a0)
-	move.w #$C8,game_over_sequence_countdown.l
+    ; Model 99 face_count becomes52-remaining; ground_face_count is unchanged. Negative steps clamp to0; positive inputs are unbounded here and subtraction can wrap. The header is mutable.
+	move.w d2,SG2ModelHeader_face_count(a0)
+	move.w #SG2_COCKPIT_GAME_OVER_RESET_COUNT,game_over_sequence_countdown.l
 	clr.l carried_neutron_bomb_reference(a6)
 	clr.l tractor_target_reference(a6)
 	clr.l previous_tractor_target_reference(a6)
@@ -3242,44 +3251,46 @@ abs_0_000021C8:
 	clr.l station_report_primary_message(a6)
 	clr.l station_report_secondary_message(a6)
 	lea.l model_type_population_counts(a6),a0
-	tst.b $0062(a0)
-	beq.b abs_0_0000223E
+	tst.b SG2_OBJECT_TYPE_NEUTRON_BOMB(a0)
+	beq.b rebuild_weapon_hud_banks_from_type_counters
 	lea.l world_object_pool(a6),a0
-	move.w #$F9,d0
-abs_0_00002218:
-	cmpi.w #98,(a0)
-	beq.b abs_0_0000223E
-	adda.l #$44,a0
-	dbf.w d0,abs_0_00002218
+	move.w #SG2_WORLD_POOL_SCAN_DBF_LAST,d0
+    ; Scan 250 WORD type tags; phase is ignored. Preserve spawn/retract latches unless the type98 counter is nonzero and no type98 record is found. The carried reference was cleared first.
+find_existing_neutron_bomb_record:
+	cmpi.w #SG2_OBJECT_TYPE_NEUTRON_BOMB,(a0)
+	beq.b rebuild_weapon_hud_banks_from_type_counters
+	adda.l #SG2_WORLD_RECORD_BYTES,a0
+	dbf.w d0,find_existing_neutron_bomb_record
 	clr.l carried_neutron_bomb_reference(a6)
 	st.b neutron_bomb_spawn_request(a6)
 	sf.b neutron_bomb_retract_request(a6)
-	move.l #$78,carried_neutron_bomb_y_offset.l
-abs_0_0000223E:
+	move.l #SG2_COCKPIT_BOMB_RESTORE_Y_OFFSET,carried_neutron_bomb_y_offset.l
+    ; Reset banks to 0, then call add helpers once per BYTE type counter. Helpers stop count at 4; callers still make every call, including 255. No counter/pool consistency check occurs.
+rebuild_weapon_hud_banks_from_type_counters:
 	clr.w homing_missile_hud_icon_count(a6)
 	clr.w bouncing_bomb_hud_icon_count(a6)
 	lea.l model_type_population_counts(a6),a0
 	clr.w d0
-	move.b $000C(a0),d0
-	beq.b abs_0_00002260
+	move.b SG2_OBJECT_TYPE_HOMING_MISSILE(a0),d0
+	beq.b read_bouncing_bomb_hud_type_counter
 	subq.w #1,d0
-abs_0_00002254:
+rebuild_next_homing_missile_hud_icon:
 	move.w d0,-(a7)
 	bsr.w add_homing_missile_hud_icon
 	move.w (a7)+,d0
-	dbf.w d0,abs_0_00002254
-abs_0_00002260:
+	dbf.w d0,rebuild_next_homing_missile_hud_icon
+read_bouncing_bomb_hud_type_counter:
 	lea.l model_type_population_counts(a6),a0
 	clr.w d0
-	move.b $005B(a0),d0
-	beq.b abs_0_0000227A
+	move.b SG2_OBJECT_TYPE_BOUNCING_BOMB(a0),d0
+	beq.b return_from_cockpit_weapon_hud_restore
 	subq.w #1,d0
-abs_0_0000226E:
+rebuild_next_bouncing_bomb_hud_icon:
 	move.w d0,-(a7)
 	bsr.w add_bouncing_bomb_hud_icon
 	move.w (a7)+,d0
-	dbf.w d0,abs_0_0000226E
-abs_0_0000227A:
+	dbf.w d0,rebuild_next_bouncing_bomb_hud_icon
+return_from_cockpit_weapon_hud_restore:
 	rts
 show_argonaut_splash_page:
 	lea.l argonaut_splash_picture_palette.l,a0
@@ -17483,7 +17494,7 @@ handle_painting_menu_choice:
 	bsr.w redraw_options_text_at_origin
 	move.b #$2,options_painting_choice.l
 	bsr.w fade_out_amiga_palette_bridge_011f6e
-	bsr.w abs_0_0000E9D8
+	bsr.w restore_cockpit_and_weapon_hud_state_bridge
 	bsr.w reset_gameplay_state_and_input_defaults_bridge_00d9d2
 	st.b display_and_frame_service_flags(a6)
 	bsr.w enter_model_viewer
@@ -17813,8 +17824,8 @@ fade_in_amiga_palette_bridge_0024a4_bridge_00d9cc:
 	jmp fade_in_amiga_palette_bridge_0024a4.l
 reset_gameplay_state_and_input_defaults_bridge_00d9d2:
 	jmp reset_gameplay_state_and_input_defaults.l
-abs_0_0000E9D8:
-	jmp abs_0_0000217A.l
+restore_cockpit_and_weapon_hud_state_bridge:
+	jmp restore_cockpit_and_weapon_hud_state.l
 	dc.w $0000
 enter_model_viewer:
 	sf.b interrupted_game_available_flag(a6)

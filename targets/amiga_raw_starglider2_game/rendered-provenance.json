@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
   "kind": "committed_native_rendered_original_export",
-  "canonical_source_commit": "8a73b2fb0b07e7bfadc45dc0a61e16e7136249ed",
-  "publication_base_commit": "8a73b2fb0b07e7bfadc45dc0a61e16e7136249ed",
+  "canonical_source_commit": "fcb166386c3cc37c4c0cbc3ace3b7e966539b2a5",
+  "publication_base_commit": "fcb166386c3cc37c4c0cbc3ace3b7e966539b2a5",
   "native_export": "CListingArtifact.source_package_payload(64)",
-  "main_source_sha256": "cffbe2b5cf24661bbe5dab4e5b1c71a71f403a1db5e5bbba1a03c554b87c352e",
+  "main_source_sha256": "6faa26c8baf912e65992a273801f3b6b4cf52714b846120257b5d3f6e0a1f2e7",
   "asset_count": 57,
   "asset_bytes": 93633,
   "game_assembly_hand_edits": false,
@@ -24,13 +24,13 @@
     "assembler executable",
     "paused Pandora work"
   ],
-  "canonical_source_commit_role": "Canonical publication base; shared immediate-WORD equality predicates qualified by 99 focused cases, 92 source-domain/startup regressions and 835 C unit cases. Includes direct memory compares, transported reads, distinct-value joins and nonzero directory partitions with duplicate-tag refusal. Actual SGII access/CFG facts and generated assembly are identical to the publication base. Source and assets are unchanged from the clean standalone build; fresh C/vasm verification is bound by verification_receipt_id. This does not infer a writable runtime tagged layout.",
-  "canonical_source_subject_revision": "250118e4e20690287d63cddb962ce0e769332394fb0729bb599abf15a20a9d59",
+  "canonical_source_commit_role": "Canonical publication base; post-picture cockpit continuation qualified by 45 original CPU cases with supplied RAM/sprite backing. Nine continuations, eight constants and 14 operand names expose station face-count wrap, transient resets, 250-slot bomb search, conditional request-latch preservation and actual weapon-HUD reconstruction calls. Helpers cap bank state at 4 while callers still run every BYTE-count iteration. Native access/CFG facts are unchanged. Picture restore/frame-handoff prelude, full startup, inventory consistency, lifetime and hardware are not qualified by this batch.",
+  "canonical_source_subject_revision": "630631bffe721af9b72ba24d443360ed57d437ba540ccd917dcc6ad0aad38e07",
   "canonical_fact_sha256": {
     "source_binary.json": "42d4a5758b3e8236af7f912aee85e9ee5323bcd0961faa338c4f864080a0a7d9",
     "target_metadata.json": "e7540b68c118c56aba8815b6722eefa067517cc865fe9841d6c01ce96551389c",
-    "manual_actions.jsonl": "603cfb762aaad5434c06bacdaa05f7a43b54a9e1b7d319c16af17bfd819d610f",
-    "decision_journal.jsonl": "1807c70d9d2fc830626320248d353d01e34eb25f5480ffaaa2838f12e55a137d"
+    "manual_actions.jsonl": "0eb0792af919f5ef14a528a96cf31c666f019f9da8b47c38e5e36b81d8eb0364",
+    "decision_journal.jsonl": "75c27adf08c0ded0916f038eefd05872393e1a457dd664c5ccbc059560d6fe9e"
   },
   "headers": "14 unmodified required include files collected by source_package.collect_package_includes from ext/amiga_includes/ndk_2.0/include; header notices retained",
   "decoded_protection_view": {
@@ -46,7 +46,7 @@
     },
     "runtime_scope": "Seven CPU write-site windows match this reversible view; no whole runtime-view identity or parent plaintext promotion."
   },
-  "verification_receipt_id": "0dc03303bd193235477707d18bec5e8b2f06638c08976ba46e6cc16c8d865c2e",
+  "verification_receipt_id": "95237ac810684edb8d04d82530f29fa26679ceb3a9c4c030795ca9042942d909",
   "render_native_sha256": "27610fd0e1139b1c2c42639e136f248aafb2acf128eceae11afa8e8243eea881",
   "final_assembler_native_sha256": "27610fd0e1139b1c2c42639e136f248aafb2acf128eceae11afa8e8243eea881"
 }
