@@ -4106,7 +4106,7 @@ static int test_facts_v2_pointer_table_targets_promote_short_strings(void) {
   return 0;
 }
 
-static int test_facts_v2_pointer_table_targets_infer_dense_short_string_pool(void) {
+static int check_pointer_table_dense_short_strings(uint8_t domain, uint8_t mapped, uint32_t expected) {
   M68kObject object;
   M68kSection section;
   M68kObjectAddResult added;
@@ -4140,14 +4140,34 @@ static int test_facts_v2_pointer_table_targets_infer_dense_short_string_pool(voi
   policy.structured_data_items[0].offset = 0U;
   policy.structured_data_items[0].size = 12U;
   policy.structured_data_items[0].kind = M68K_ANALYSIS_STRUCTURED_DATA_LONGS;
+  policy.structured_data_items[0].pointer_address_domain = domain;
+  if (mapped) {
+    policy.runtime_range_count = 1U;
+    policy.runtime_ranges[0].has_section_index = 1U;
+    policy.runtime_ranges[0].section_index = 0U;
+    policy.runtime_ranges[0].size = sizeof(bytes);
+    policy.runtime_ranges[0].use_mask = M68K_ANALYSIS_RUNTIME_RANGE_USE_POINTER_TARGET;
+  }
   m68k_analysis_structured_data_item_set_semantic_role_flags(&policy.structured_data_items[0],
     M68K_ANALYSIS_STRUCTURED_DATA_ROLE_POINTER_TABLE);
   M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_analysis_profile_alloc(&object, &policy, &source,
     &profile, &source_analysis, 1U, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(source != NULL);
-  M68K_C_ASSERT(strstr(source, "\tdc.b \"JAN\",$00\n") != NULL);
-  M68K_C_ASSERT(strstr(source, "\tdc.b \"FEB\",$00\n") != NULL);
-  M68K_C_ASSERT(strstr(source, "\tdc.b \"MAR\",$00\n") != NULL);
+  if (expected) {
+    M68K_C_ASSERT(strstr(source, "\tdc.b \"JAN\",$00\n") != NULL);
+  } else {
+    M68K_C_ASSERT(strstr(source, "\tdc.b \"JAN\",$00\n") == NULL);
+  }
+  if (expected) {
+    M68K_C_ASSERT(strstr(source, "\tdc.b \"FEB\",$00\n") != NULL);
+  } else {
+    M68K_C_ASSERT(strstr(source, "\tdc.b \"FEB\",$00\n") == NULL);
+  }
+  if (expected) {
+    M68K_C_ASSERT(strstr(source, "\tdc.b \"MAR\",$00\n") != NULL);
+  } else {
+    M68K_C_ASSERT(strstr(source, "\tdc.b \"MAR\",$00\n") == NULL);
+  }
   for (index = 0U; index < source_analysis.structured_data_item_count; ++index) {
     const M68kAnalysisStructuredDataItem *item = &source_analysis.structured_data_items[index];
     if (item->has_section_index && item->section_index == 0U &&
@@ -4156,13 +4176,29 @@ static int test_facts_v2_pointer_table_targets_infer_dense_short_string_pool(voi
       ++pointer_string_items;
     }
   }
-  M68K_C_ASSERT_U32(3U, pointer_string_items);
+  M68K_C_ASSERT_U32(expected, pointer_string_items);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
   M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
   m68k_facts_v2_free_text(source);
   m68k_ir_source_analysis_destroy(&source_analysis);
   m68k_object_destroy(&object);
   return 0;
+}
+
+static int test_facts_v2_pointer_table_targets_infer_dense_short_string_pool(void) {
+  return check_pointer_table_dense_short_strings(M68K_ANALYSIS_POINTER_DOMAIN_LEGACY, 0U, 3U);
+}
+
+static int test_facts_v2_runtime_only_table_does_not_infer_source_strings(void) {
+  return check_pointer_table_dense_short_strings(M68K_ANALYSIS_POINTER_DOMAIN_RUNTIME_ONLY, 1U, 0U);
+}
+
+static int test_facts_v2_mapped_table_strings_require_mapping(void) {
+  return check_pointer_table_dense_short_strings(M68K_ANALYSIS_POINTER_DOMAIN_MAPPED_SOURCE, 0U, 0U);
+}
+
+static int test_facts_v2_mapped_table_strings_accept_explicit_zero_origin(void) {
+  return check_pointer_table_dense_short_strings(M68K_ANALYSIS_POINTER_DOMAIN_MAPPED_SOURCE, 1U, 3U);
 }
 
 static int test_facts_v2_pointer_table_targets_reject_isolated_printable_code_prefix(void) {
@@ -41254,6 +41290,11 @@ int m68k_c_ir_tests(void) {
       test_facts_v2_pointer_table_targets_promote_short_strings},
     {"facts_v2_pointer_table_targets_infer_dense_short_string_pool",
       test_facts_v2_pointer_table_targets_infer_dense_short_string_pool},
+    {"facts_v2_mapped_table_strings_require_mapping", test_facts_v2_mapped_table_strings_require_mapping},
+    {"facts_v2_mapped_table_strings_accept_explicit_zero_origin",
+      test_facts_v2_mapped_table_strings_accept_explicit_zero_origin},
+    {"facts_v2_runtime_only_table_does_not_infer_source_strings",
+      test_facts_v2_runtime_only_table_does_not_infer_source_strings},
     {"facts_v2_pointer_table_targets_reject_isolated_printable_code_prefix",
       test_facts_v2_pointer_table_targets_reject_isolated_printable_code_prefix},
     {"facts_v2_relocation_pointer_target_promotes_single_dense_short_string",

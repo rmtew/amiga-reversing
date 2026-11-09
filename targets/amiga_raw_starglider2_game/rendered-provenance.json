@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
   "kind": "committed_native_rendered_original_export",
-  "canonical_source_commit": "8ad3112047fd9616ac167c49e9f2173ac1757847",
-  "publication_base_commit": "8ad3112047fd9616ac167c49e9f2173ac1757847",
+  "canonical_source_commit": "ddbe29aba1a5d5a0a3e4dcbc3d81fac05cd76c0b",
+  "publication_base_commit": "ddbe29aba1a5d5a0a3e4dcbc3d81fac05cd76c0b",
   "native_export": "CListingArtifact.source_package_payload(64)",
-  "main_source_sha256": "e7476f54dd0877a0f4833bd6207b93eb00406808aadef4c93b6e8287fdfb4315",
+  "main_source_sha256": "8bca97d9fe24c44c70fb7277d61139a7099d7c623cfa8174e431e519e98607b1",
   "asset_count": 57,
   "asset_bytes": 93633,
   "game_assembly_hand_edits": false,
@@ -24,8 +24,8 @@
     "assembler executable",
     "paused Pandora work"
   ],
-  "canonical_source_commit_role": "Canonical publication base; depot exchange reconstructed with 12 continuations, two nine-byte model-type table names, five constants, nine operands and four comments. 154 new original CPU cases and 199 linked tests qualify structural recipe slots, population gate/debit/reward, six-LONG messages and direct weapon/HUD overflow subpaths. Original rewards do not select weapon branches; upstream service 10 normally uses inventory. No universal service bound, complete dialogue/gameplay or lifetime proof. Native access/CFG facts retained and all original bytes exact.",
-  "canonical_source_subject_revision": "f83df59f9850c83bdb1a2b253e45b822613e0cf05a4b17f6078087af26334cd1",
+  "canonical_source_commit_role": "Canonical publication base; shared pointer-string discovery now uses unique canonical address mapping, not numeric containment. Seven paired C/vasm fixtures cover image-size coincidence, numeric local values, ambiguity, duplicate maps, owned spans and suffixes; 109 related Python and 838 C tests pass. Explicit mapped-source and runtime-only domains are guarded, with legacy zero-origin data retained. Three SGII strings become quoted text; prior strings, access/CFG facts and reference identities remain intact. Existing generic-data ownership already covered these bytes, so classification totals are unchanged. No runtime reader or gameplay coverage claim.",
+  "canonical_source_subject_revision": "7919d1dc6a83d90581f95455db18758079533257424963b22ada352bd1db6cba",
   "canonical_fact_sha256": {
     "source_binary.json": "42d4a5758b3e8236af7f912aee85e9ee5323bcd0961faa338c4f864080a0a7d9",
     "target_metadata.json": "e7540b68c118c56aba8815b6722eefa067517cc865fe9841d6c01ce96551389c",
@@ -46,7 +46,7 @@
     },
     "runtime_scope": "Seven CPU write-site windows match this reversible view; no whole runtime-view identity or parent plaintext promotion."
   },
-  "verification_receipt_id": "1466857b2673848e23261ec205e26504eb2c07ad602e1b14cdbcad4708f8e27a",
-  "render_native_sha256": "27610fd0e1139b1c2c42639e136f248aafb2acf128eceae11afa8e8243eea881",
-  "final_assembler_native_sha256": "27610fd0e1139b1c2c42639e136f248aafb2acf128eceae11afa8e8243eea881"
+  "verification_receipt_id": "89c0ca26912264127eb4e555edda37eca7a5ed119e699d949209ff696e16dca2",
+  "render_native_sha256": "62966821860f865c9491bd89901c06c579cd61dbe2efab67c39711c94a2f58d4",
+  "final_assembler_native_sha256": "62966821860f865c9491bd89901c06c579cd61dbe2efab67c39711c94a2f58d4"
 }

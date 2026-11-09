@@ -28,6 +28,19 @@ and strengthened 38 app-base attributions.
 Conditional skips mean104 outer iterations are not104 observed memory reads.
 Loaded pointer values remain subject to separate alias/target validation.
 
+Pointer-string discovery now resolves encoded addresses through the shared
+unique canonical mapper rather than taking any small number as a local offset.
+Paired regressions reproduce missed real pointers in larger images and false
+numeric-local text promotion. Ambiguous mappings, unmapped explicit domains,
+runtime-only pointers, owned spans and suffixes retain conservative handling;
+legacy unmapped zero-origin data remains supported. Validation: 109 Python
+regressions, 838 C cases and seven independent vasm fixtures. SGII gains three
+string records at $3907E/$39095/$390AB and readable quoted output, preserving
+all previous strings, access/CFG facts and reference identities. Already-owned
+bytes mean the 10109-byte/275-interval classification total is unchanged.
+C/vasm and a clean standalone build retain all 412736 bytes. This repairs address
+binding in discovery; the earlier field-projection suspicion was not the cause.
+
 Depot exchange now exposes required/reward model-type tables, twelve
 continuations, five constants and nine local operands. 154 new original CPU
 cases (199 linked cases total) qualify all nine structural recipe slots,
