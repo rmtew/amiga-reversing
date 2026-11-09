@@ -1594,6 +1594,17 @@ SG2_MESSAGE_ROW_LONGS_DBF_LAST	EQU	6
 SG2_MESSAGE_ROW_SKIP_BYTES	EQU	12
 SG2_MODEL_VISIBILITY_HIDDEN_BIT	EQU	1
 SG2_MOTION_VECTOR_PHASE_MASK	EQU	4095
+SG2_MUSIC_ALTERNATE_INITIAL_BLOCK_COUNT	EQU	79
+SG2_MUSIC_AMIGA_INITIAL_BLOCK_COUNT	EQU	80
+SG2_MUSIC_AMIGA_PERIOD	EQU	358
+SG2_MUSIC_BLOCK_BYTES	EQU	5632
+SG2_MUSIC_BLOCK_WORDS	EQU	2816
+SG2_MUSIC_PREFILL_DBF_LAST	EQU	3
+SG2_MUSIC_REMAINING_READ_DBF_LAST	EQU	75
+SG2_MUSIC_RING_LAST_BYTE_OFFSET	EQU	24
+SG2_MUSIC_RING_POINTER_BYTES	EQU	4
+SG2_MUSIC_RING_SLOT_DBF_LAST	EQU	6
+SG2_MUSIC_RING_WRAP_BYTE_OFFSET	EQU	28
 SG2_NEUTRON_ACTION_COOLDOWN	EQU	200
 SG2_NEUTRON_CARRIED_MAX_OFFSET	EQU	120
 SG2_NEUTRON_CARRIED_MIN_OFFSET	EQU	20
@@ -19553,9 +19564,9 @@ abs_0_00010244:
 	bsr.w deselect_disk_backend
 abs_0_00010248:
 	rts
-abs_0_0001024A:
+request_music_stop_after_cancel:
 	move.w #$1,audio_ring_control_remaining_blocks.l
-abs_0_00010252:
+discard_saved_music_loop_and_deselect_disk:
 	move.l (a7)+,d1
 	move.w #DMAF_SETCLR|DMAF_SPRITE,_custom+dmacon.l
 	bra.w deselect_disk_backend
@@ -19565,140 +19576,142 @@ load_and_stream_music:
 	bne.b abs_0_00010248
 	move.b #$3,disk_service_state_retry_reload.l
 	move.l #disk_load_music_title,disk_service_state_operation_title_pointer.l
-	moveq.l #6,d1
+	moveq.l #SG2_MUSIC_RING_SLOT_DBF_LAST,d1
 	lea.l shared_workspace_prefix.l,a0
 	lea.l audio_ring_buffer_pointers(pc),a1
 initialize_audio_ring_slot_pointers:
 	move.l a0,(a1)+
-	lea.l $1600(a0),a0
+	lea.l SG2_MUSIC_BLOCK_BYTES(a0),a0
 	dbf.w d1,initialize_audio_ring_slot_pointers
 	move.w #$6,disk_service_state_expected_sector_count.l
 	move.w #$F5,disk_service_state_first_sector_id.l
 	tst.b music_cache_flags_cache_loaded.l
-	bne.b abs_0_000102C4
+	bne.b select_music_stream_platform_backend
 	move.l #$7E000,disk_service_state_transfer_buffer_pointer.l
 	bsr.w initialize_crc16_1021_tables
 	bsr.w select_disk_surface_b
 	bsr.w seek_disk_backend_cylinder_zero
 	bsr.w read_disk_backend_blocks
 	bne.b abs_0_00010244
-abs_0_000102C4:
+select_music_stream_platform_backend:
 	tst.w platform_entry_flags.l
 	bpl.w abs_0_0001141E
 	move.l #$C00000,disk_service_state_memory_transfer_source_cursor.l
 	tst.b music_cache_flags.l
-	bne.w abs_0_0001033A
+	bne.w initialize_amiga_music_ring_cursors
 	move.l #$C00000,disk_service_state_transfer_buffer_pointer.l
 	lea.l _custom.l,a5
 	move.w #ADKF_CLRALL,adkcon(a5)
 	move.w #ADKF_SETCLR|ADKF_MFMPREC|ADKF_WORDSYNC|ADKF_FAST,adkcon(a5)
 	tst.b music_cache_flags_cache_loaded.l
-	bne.w abs_0_0001033A
+	bne.w initialize_amiga_music_ring_cursors
 	moveq.l #79,d1
-abs_0_0001030A:
+cache_next_music_track:
 	move.l d1,-(a7)
 	bsr.w poll_disk_operation_cancel
-	bne.w abs_0_00010252
+	bne.w discard_saved_music_loop_and_deselect_disk
 	bsr.w abs_0_000109A0
-	bne.w abs_0_000104AE
+	bne.w discard_saved_music_counter_after_read_failure
 	bsr.w advance_disk_backend_cylinder
-	addi.l #5632,disk_service_state_transfer_buffer_pointer.l
+	addi.l #SG2_MUSIC_BLOCK_BYTES,disk_service_state_transfer_buffer_pointer.l
 	move.l (a7)+,d1
-	dbf.w d1,abs_0_0001030A
+	dbf.w d1,cache_next_music_track
 	st.b music_cache_flags_cache_loaded.l
 	bsr.w deselect_disk_backend
-abs_0_0001033A:
+    ; Consumer starts at 0 and producer at 24; four prefill iterations select offsets 0, 4, 8, 12. Later reads advance producer before computing its two-slot look-ahead.
+initialize_amiga_music_ring_cursors:
 	clr.w audio_ring_control.l
-	move.w #$18,audio_ring_control_producer_slot_byte_offset.l
-	moveq.l #3,d1
-abs_0_0001034A:
+	move.w #SG2_MUSIC_RING_LAST_BYTE_OFFSET,audio_ring_control_producer_slot_byte_offset.l
+	moveq.l #SG2_MUSIC_PREFILL_DBF_LAST,d1
+prefill_next_amiga_music_ring_slot:
 	move.l d1,-(a7)
-	addq.w #4,audio_ring_control_producer_slot_byte_offset.l
-	cmpi.w #28,audio_ring_control_producer_slot_byte_offset.l
-	bne.b abs_0_00010362
+	addq.w #SG2_MUSIC_RING_POINTER_BYTES,audio_ring_control_producer_slot_byte_offset.l
+	cmpi.w #SG2_MUSIC_RING_WRAP_BYTE_OFFSET,audio_ring_control_producer_slot_byte_offset.l
+	bne.b select_amiga_music_prefill_destination
 	clr.w audio_ring_control_producer_slot_byte_offset.l
-abs_0_00010362:
+select_amiga_music_prefill_destination:
 	move.w audio_ring_control_producer_slot_byte_offset.l,d0
 	lea.l audio_ring_buffer_pointers.l,a0
 	move.l $0(a0,d0.w),disk_service_state_transfer_buffer_pointer.l
 	tst.b music_cache_flags.l
-	beq.b abs_0_00010394
+	beq.b copy_cached_music_prefill_block
 	bsr.w poll_disk_operation_cancel
-	bne.w abs_0_00010252
+	bne.w discard_saved_music_loop_and_deselect_disk
 	bsr.w abs_0_000109A0
-	bne.w abs_0_000104AE
+	bne.w discard_saved_music_counter_after_read_failure
 	bsr.w advance_disk_backend_cylinder
-	bra.b abs_0_00010398
-abs_0_00010394:
+	bra.b poll_after_music_prefill_read
+copy_cached_music_prefill_block:
 	bsr.w copy_cached_music_block
-abs_0_00010398:
+poll_after_music_prefill_read:
 	bsr.w poll_disk_operation_cancel
-	bne.w abs_0_00010252
+	bne.w discard_saved_music_loop_and_deselect_disk
 	move.l (a7)+,d1
-	dbf.w d1,abs_0_0001034A
+	dbf.w d1,prefill_next_amiga_music_ring_slot
 	move.b #$0,audio_ring_control_block_advanced.l
-	move.w #$50,audio_ring_control_remaining_blocks.l
+	move.w #SG2_MUSIC_AMIGA_INITIAL_BLOCK_COUNT,audio_ring_control_remaining_blocks.l
 	move.w #$40,_custom+aud2+ac_vol.l	; audio volume 64
-	move.w #$166,_custom+aud2+ac_per.l	; audio period 358
-	move.w #$B00,_custom+aud2+ac_len.l	; sound sample length 5632 bytes
+	move.w #SG2_MUSIC_AMIGA_PERIOD,_custom+aud2+ac_per.l	; audio period 358
+	move.w #SG2_MUSIC_BLOCK_WORDS,_custom+aud2+ac_len.l	; sound sample length 5632 bytes
 	move.l #shared_workspace_prefix,_custom+aud2+ac_ptr.l	; sound_sample pointer
 	move.w #$40,_custom+aud0+ac_vol.l	; audio volume 64
-	move.w #$166,_custom+aud0+ac_per.l	; audio period 358
-	move.w #$B00,_custom+aud0+ac_len.l	; sound sample length 5632 bytes
+	move.w #SG2_MUSIC_AMIGA_PERIOD,_custom+aud0+ac_per.l	; audio period 358
+	move.w #SG2_MUSIC_BLOCK_WORDS,_custom+aud0+ac_len.l	; sound sample length 5632 bytes
 	move.l #shared_workspace_prefix,_custom+aud0+ac_ptr.l	; sound_sample pointer
 	move.w #DMAF_SPRITE,_custom+dmacon.l
 	move.w #DMAF_SETCLR|DMAF_MASTER|DMAF_AUD2|DMAF_AUD0,_custom+dmacon.l
 	move.w #INTF_SETCLR|INTF_INTEN|INTF_AUD2,_custom+intena.l
 	move.w #$0,audio_ring_control.l
-	moveq.l #75,d1
-abs_0_0001041C:
+	moveq.l #SG2_MUSIC_REMAINING_READ_DBF_LAST,d1
+queue_next_amiga_music_track:
 	move.l d1,-(a7)
-	addq.w #4,audio_ring_control_producer_slot_byte_offset.l
-	cmpi.w #28,audio_ring_control_producer_slot_byte_offset.l
-	bne.b abs_0_00010434
+	addq.w #SG2_MUSIC_RING_POINTER_BYTES,audio_ring_control_producer_slot_byte_offset.l
+	cmpi.w #SG2_MUSIC_RING_WRAP_BYTE_OFFSET,audio_ring_control_producer_slot_byte_offset.l
+	bne.b advance_amiga_music_producer_lookahead
 	clr.w audio_ring_control_producer_slot_byte_offset.l
-abs_0_00010434:
+    ; Compute two slots ahead of the advanced producer, waiting only while that WORD equals consumer. Equality-only wrap at 28 is not a clamp for arbitrary cursor values.
+advance_amiga_music_producer_lookahead:
 	move.w audio_ring_control_producer_slot_byte_offset.l,d0
-	addq.w #4,d0
-	cmp.w #$1C,d0
-	bne.b abs_0_00010444
+	addq.w #SG2_MUSIC_RING_POINTER_BYTES,d0
+	cmp.w #SG2_MUSIC_RING_WRAP_BYTE_OFFSET,d0
+	bne.b advance_amiga_music_second_lookahead
 	clr.w d0
-abs_0_00010444:
-	addq.w #4,d0
-	cmp.w #$1C,d0
-	bne.b abs_0_0001044E
+advance_amiga_music_second_lookahead:
+	addq.w #SG2_MUSIC_RING_POINTER_BYTES,d0
+	cmp.w #SG2_MUSIC_RING_WRAP_BYTE_OFFSET,d0
+	bne.b wait_until_amiga_music_lookahead_differs_from_consumer
 	clr.w d0
-abs_0_0001044E:
+wait_until_amiga_music_lookahead_differs_from_consumer:
 	cmp.w audio_ring_control.l,d0
-	beq.b abs_0_0001044E
+	beq.b wait_until_amiga_music_lookahead_differs_from_consumer
 	move.w audio_ring_control_producer_slot_byte_offset.l,d0
 	lea.l audio_ring_buffer_pointers.l,a0
 	move.l $0(a0,d0.w),disk_service_state_transfer_buffer_pointer.l
 	bsr.w poll_disk_operation_cancel
-	bne.w abs_0_0001024A
+	bne.w request_music_stop_after_cancel
 	tst.b music_cache_flags.l
-	beq.b abs_0_00010488
+	beq.b copy_cached_music_stream_block
 	bsr.w abs_0_000109A0
-	bne.w abs_0_000104AE
+	bne.w discard_saved_music_counter_after_read_failure
 	bsr.w advance_disk_backend_cylinder
-	bra.b abs_0_0001048C
-abs_0_00010488:
+	bra.b restore_amiga_music_stream_loop_counter
+copy_cached_music_stream_block:
 	bsr.w copy_cached_music_block
-abs_0_0001048C:
+restore_amiga_music_stream_loop_counter:
 	move.l (a7)+,d1
-	dbf.w d1,abs_0_0001041C
+	dbf.w d1,queue_next_amiga_music_track
 	bsr.w deselect_disk_backend
-abs_0_00010496:
+wait_for_amiga_music_completion_or_cancel:
 	bsr.w poll_disk_operation_cancel
-	bne.b abs_0_000104B4
+	bne.b request_amiga_music_stop
 	tst.w audio_ring_control_remaining_blocks.l
-	bne.b abs_0_00010496
+	bne.b wait_for_amiga_music_completion_or_cancel
 	move.w #DMAF_SETCLR|DMAF_SPRITE,_custom+dmacon.l
 	rts
-abs_0_000104AE:
+discard_saved_music_counter_after_read_failure:
 	move.l (a7)+,d1
 	bsr.w deselect_disk_backend
-abs_0_000104B4:
+request_amiga_music_stop:
 	move.w #$1,audio_ring_control_remaining_blocks.l
 	move.w #DMAF_SETCLR|DMAF_SPRITE,_custom+dmacon.l
 	rts
@@ -19715,31 +19728,33 @@ service_audio_ring_interrupt:
 	lea.l _custom.l,a5
 	move.w intreqr(a5),d0	; interrupt request state
 	btst #9,d0
-	beq.b abs_0_00010546
+	beq.b acknowledge_music_audio_interrupt_and_restore
 	subq.w #1,audio_ring_control_remaining_blocks.l
-	beq.w abs_0_00010564
-	addq.w #4,audio_ring_control.l
-	cmpi.w #28,audio_ring_control.l
-	bne.b abs_0_00010516
+	beq.w stop_amiga_music_audio_channels
+    ; Increment WORD cursor by 4 and clear only on exact 28. Supplied 28 becomes 32; 65532 wraps to 0. This local code does not establish a global seven-slot invariant.
+	addq.w #SG2_MUSIC_RING_POINTER_BYTES,audio_ring_control.l
+	cmpi.w #SG2_MUSIC_RING_WRAP_BYTE_OFFSET,audio_ring_control.l
+	bne.b load_next_amiga_music_interrupt_buffer
 	clr.w audio_ring_control.l
-abs_0_00010516:
+load_next_amiga_music_interrupt_buffer:
 	lea.l audio_ring_buffer_pointers(pc),a0
 	moveq.l #-1,d0
-abs_0_0001051C:
-	dbf.w d0,abs_0_0001051C
+    ; MOVEQ -1 followed by DBF.W executes 65536 loop tests before pointer reload. CPU tests count them; no interrupt duration or audio timing equivalence is asserted.
+delay_before_amiga_music_pointer_reload:
+	dbf.w d0,delay_before_amiga_music_pointer_reload
 	move.w audio_ring_control.l,d0
-	move.w #$B00,aud2+ac_len(a5)	; sound sample length 5632 bytes
+	move.w #SG2_MUSIC_BLOCK_WORDS,aud2+ac_len(a5)	; sound sample length 5632 bytes
 	move.l $0(a0,d0.w),aud2+ac_ptr(a5)	; sound_sample pointer
-	move.w #$B00,aud0+ac_len(a5)	; sound sample length 5632 bytes
+	move.w #SG2_MUSIC_BLOCK_WORDS,aud0+ac_len(a5)	; sound sample length 5632 bytes
 	move.l $0(a0,d0.w),aud0+ac_ptr(a5)	; sound_sample pointer
 	move.b #$FF,audio_ring_control_block_advanced.l
-abs_0_00010546:
+acknowledge_music_audio_interrupt_and_restore:
 	move.w #INTF_AUD2|INTF_AUD1|INTF_AUD0,intreq(a5)
 	move.w #$0,color(a5)
 	movem.l (a7)+,d0/a0/a5
 	rte
 	dc.b $13,$FC,$00,$00,$00,$01,$05,$98,$60,$00,$FF,$E4
-abs_0_00010564:
+stop_amiga_music_audio_channels:
 	move.w #$1,aud2+ac_per(a5)	; audio period 1
 	move.w #$1,aud2+ac_len(a5)	; sound sample length 2 bytes
 	move.w #$1,aud0+ac_per(a5)	; audio period 1
@@ -19747,7 +19762,7 @@ abs_0_00010564:
 	move.w #INTF_AUD2|INTF_AUD1|INTF_AUD0,intena(a5)
 	move.w #DMAF_AUD2|DMAF_AUD0,dmacon(a5)
 	move.w #$0,aud2+ac_vol(a5)	; audio volume 0
-	bra.b abs_0_00010546
+	bra.b acknowledge_music_audio_interrupt_and_restore
 audio_ring_control:
 	dc.w $0000	; read_pointer_byte_offset
 audio_ring_control_producer_slot_byte_offset:
@@ -20886,14 +20901,14 @@ abs_0_0001141E:
 	bsr.w select_disk_surface_b
 	bsr.w seek_disk_backend_cylinder_zero
 	tst.b music_cache_flags.l
-	bne.w abs_0_000114BE
+	bne.w initialize_alternate_music_ring_cursors
 	moveq.l #79,d1
 abs_0_00011446:
 	move.l d1,-(a7)
 	bsr.w poll_disk_operation_cancel
 	bne.w abs_0_000114A6
 	bsr.w abs_0_000109A0
-	bne.w abs_0_000115BE
+	bne.w discard_saved_alternate_music_counter_after_read_failure
 	bsr.w advance_disk_backend_cylinder
 	addi.l #5632,disk_service_state_transfer_buffer_pointer.l
 	move.l (a7)+,d1
@@ -20902,7 +20917,7 @@ abs_0_0001146C:
 	st.b music_cache_flags_cache_loaded.l
 	bsr.w deselect_disk_backend
 	move.l #$6CA00,alternate_sample_bytes_remaining.l
-	move.l #$80000,abs_0_00011682+2.l
+	move.l #$80000,read_next_alternate_buffered_sample_byte+2.l
 	move.w #$0,audio_ring_control_remaining_blocks.l
 	bsr.w install_alternate_sample_timer
 abs_0_00011496:
@@ -20917,86 +20932,86 @@ abs_0_000114A8:
 	move.w #$1,audio_ring_control_remaining_blocks.l
 	move.l #$1,alternate_sample_bytes_remaining.l
 	bra.w deselect_disk_backend
-abs_0_000114BE:
+initialize_alternate_music_ring_cursors:
 	clr.w audio_ring_control.l
-	move.w #$18,audio_ring_control_producer_slot_byte_offset.l
-	moveq.l #3,d1
-abs_0_000114CE:
+	move.w #SG2_MUSIC_RING_LAST_BYTE_OFFSET,audio_ring_control_producer_slot_byte_offset.l
+	moveq.l #SG2_MUSIC_PREFILL_DBF_LAST,d1
+prefill_next_alternate_music_ring_slot:
 	move.l d1,-(a7)
 	bsr.w poll_disk_operation_cancel
 	bne.w abs_0_000114A6
-	addq.w #4,audio_ring_control_producer_slot_byte_offset.l
-	cmpi.w #28,audio_ring_control_producer_slot_byte_offset.l
-	bne.b abs_0_000114EE
+	addq.w #SG2_MUSIC_RING_POINTER_BYTES,audio_ring_control_producer_slot_byte_offset.l
+	cmpi.w #SG2_MUSIC_RING_WRAP_BYTE_OFFSET,audio_ring_control_producer_slot_byte_offset.l
+	bne.b select_alternate_music_prefill_destination
 	clr.w audio_ring_control_producer_slot_byte_offset.l
-abs_0_000114EE:
+select_alternate_music_prefill_destination:
 	move.w audio_ring_control_producer_slot_byte_offset.l,d0
 	lea.l audio_ring_buffer_pointers.l,a0
 	move.l $0(a0,d0.w),disk_service_state_transfer_buffer_pointer.l
 	bsr.w poll_disk_operation_cancel
 	bne.w abs_0_000114A6
 	bsr.w abs_0_000109A0
-	bne.w abs_0_000115BE
+	bne.w discard_saved_alternate_music_counter_after_read_failure
 	bsr.w advance_disk_backend_cylinder
 	nop
 	move.l (a7)+,d1
-	dbf.w d1,abs_0_000114CE
+	dbf.w d1,prefill_next_alternate_music_ring_slot
 	move.b #$0,audio_ring_control_block_advanced.l
-	move.w #$4F,audio_ring_control_remaining_blocks.l
+	move.w #SG2_MUSIC_ALTERNATE_INITIAL_BLOCK_COUNT,audio_ring_control_remaining_blocks.l
 	move.w #$0,audio_ring_control.l
 	bsr.w start_alternate_buffered_sample_playback
-	moveq.l #75,d1
-abs_0_0001153C:
+	moveq.l #SG2_MUSIC_REMAINING_READ_DBF_LAST,d1
+queue_next_alternate_music_track:
 	move.l d1,-(a7)
 	bsr.w poll_disk_operation_cancel
 	bne.w abs_0_000114A6
-	addq.w #4,audio_ring_control_producer_slot_byte_offset.l
-	cmpi.w #28,audio_ring_control_producer_slot_byte_offset.l
-	bne.b abs_0_0001155C
+	addq.w #SG2_MUSIC_RING_POINTER_BYTES,audio_ring_control_producer_slot_byte_offset.l
+	cmpi.w #SG2_MUSIC_RING_WRAP_BYTE_OFFSET,audio_ring_control_producer_slot_byte_offset.l
+	bne.b advance_alternate_music_producer_lookahead
 	clr.w audio_ring_control_producer_slot_byte_offset.l
-abs_0_0001155C:
+advance_alternate_music_producer_lookahead:
 	move.w audio_ring_control_producer_slot_byte_offset.l,d0
-	addq.w #4,d0
-	cmp.w #$1C,d0
-	bne.b abs_0_0001156C
+	addq.w #SG2_MUSIC_RING_POINTER_BYTES,d0
+	cmp.w #SG2_MUSIC_RING_WRAP_BYTE_OFFSET,d0
+	bne.b advance_alternate_music_second_lookahead
 	clr.w d0
-abs_0_0001156C:
-	addq.w #4,d0
-	cmp.w #$1C,d0
-	bne.b abs_0_00011576
+advance_alternate_music_second_lookahead:
+	addq.w #SG2_MUSIC_RING_POINTER_BYTES,d0
+	cmp.w #SG2_MUSIC_RING_WRAP_BYTE_OFFSET,d0
+	bne.b wait_until_alternate_music_lookahead_differs_from_consumer
 	clr.w d0
-abs_0_00011576:
+wait_until_alternate_music_lookahead_differs_from_consumer:
 	cmp.w audio_ring_control.l,d0
-	beq.b abs_0_00011576
+	beq.b wait_until_alternate_music_lookahead_differs_from_consumer
 	move.w audio_ring_control_producer_slot_byte_offset.l,d0
 	lea.l audio_ring_buffer_pointers.l,a0
 	move.l $0(a0,d0.w),disk_service_state_transfer_buffer_pointer.l
 	bsr.w poll_disk_operation_cancel
 	bne.w abs_0_000114A6
 	bsr.w abs_0_000109A0
-	bne.b abs_0_000115BE
+	bne.b discard_saved_alternate_music_counter_after_read_failure
 	bsr.w advance_disk_backend_cylinder
 	move.l (a7)+,d1
-	dbf.w d1,abs_0_0001153C
+	dbf.w d1,queue_next_alternate_music_track
 	bsr.w deselect_disk_backend
-abs_0_000115AE:
+wait_for_alternate_music_completion_or_cancel:
 	bsr.w poll_disk_operation_cancel
-	bne.b abs_0_000115C4
+	bne.b request_alternate_music_stop
 	tst.w audio_ring_control_remaining_blocks.l
-	bne.b abs_0_000115AE
+	bne.b wait_for_alternate_music_completion_or_cancel
 	rts
-abs_0_000115BE:
+discard_saved_alternate_music_counter_after_read_failure:
 	move.l (a7)+,d1
 	bsr.w deselect_disk_backend
-abs_0_000115C4:
+request_alternate_music_stop:
 	move.w #$1,audio_ring_control_remaining_blocks.l
 	rts
     ; Normal setup patches absolute operand11684 with ring buffer pointer and initializes byte count before timer installation. Literal12345 is a startup placeholder, not established live source me
 start_alternate_buffered_sample_playback:
-	move.l #$1600,disk_service_state_alternate_audio_block_bytes.l
+	move.l #SG2_MUSIC_BLOCK_BYTES,disk_service_state_alternate_audio_block_bytes.l
 	lea.l audio_ring_buffer_pointers(pc),a0
 	move.w audio_ring_control.l,d0
-	move.l $0(a0,d0.w),abs_0_00011682+2.l
+	move.l $0(a0,d0.w),read_next_alternate_buffered_sample_byte+2.l
 	move.l disk_service_state_alternate_audio_block_bytes.l,alternate_sample_bytes_remaining.l
     ; Install original sample interrupt at vector134 and configure alternate hardware timer. Entry preserves original exception frame; no actual alternate-platform run is claimed.
 install_alternate_sample_timer:
@@ -21028,9 +21043,9 @@ install_alternate_sample_timer:
 alternate_buffered_sample_interrupt:
 	movem.l d0-d1/a0,-(a7)
 	clr.w d0
-abs_0_00011682:
+read_next_alternate_buffered_sample_byte:
 	move.b abs_0_00012345.l,d0
-	addq.l #1,abs_0_00011682+2.l
+	addq.l #1,read_next_alternate_buffered_sample_byte+2.l
 	addi.b #128,d0
 	lsl.w #3,d0
 	lea.l alternate_sample_volume_conversion_rows(pc,d0.w),a0
@@ -21042,7 +21057,7 @@ abs_0_00011682:
 	move.b #$DF,$FFFFFA0F.w
 	subq.l #1,alternate_sample_bytes_remaining.l
 	beq.w advance_alternate_audio_ring_interrupt_continuation
-abs_0_000116BA:
+restore_alternate_sample_interrupt_frame:
 	movem.l (a7)+,d0-d1/a0
 	move.w #$0,$FFFF8240.w
 	rte
@@ -22841,21 +22856,22 @@ alternate_sample_volume_conversion_rows:
 	dc.w $0000	; opaque_unread_suffix
 alternate_sample_bytes_remaining:
 	dc.l $00000000
+    ; After decrement, alternate stops on zero or N; Amiga stops only on zero. Input 0 becomes FFFF and stops here but continues there. Preserve the backend distinction.
 advance_alternate_audio_ring_interrupt_continuation:
 	subq.w #1,audio_ring_control_remaining_blocks.l
-	beq.b abs_0_00011F0A
-	bmi.b abs_0_00011F0A
-	addq.w #4,audio_ring_control.l
-	cmpi.w #28,audio_ring_control.l
-	bne.b abs_0_00011EEA
+	beq.b stop_alternate_music_timer_and_restore
+	bmi.b stop_alternate_music_timer_and_restore
+	addq.w #SG2_MUSIC_RING_POINTER_BYTES,audio_ring_control.l
+	cmpi.w #SG2_MUSIC_RING_WRAP_BYTE_OFFSET,audio_ring_control.l
+	bne.b patch_next_alternate_music_buffer
 	clr.w audio_ring_control.l
-abs_0_00011EEA:
+patch_next_alternate_music_buffer:
 	lea.l audio_ring_buffer_pointers(pc),a0
 	move.w audio_ring_control.l,d0
-	move.l $0(a0,d0.w),abs_0_00011682+2.l
+	move.l $0(a0,d0.w),read_next_alternate_buffered_sample_byte+2.l
 	move.l disk_service_state_alternate_audio_block_bytes.l,alternate_sample_bytes_remaining.l
-	bra.w abs_0_000116BA
-abs_0_00011F0A:
+	bra.w restore_alternate_sample_interrupt_frame
+stop_alternate_music_timer_and_restore:
 	move.b #$0,$FFFFFA19.w
 	movem.l (a7)+,d0-d1/a0
 	rte

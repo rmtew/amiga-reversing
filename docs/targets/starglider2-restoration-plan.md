@@ -28,6 +28,23 @@ and strengthened 38 app-base attributions.
 Conditional skips mean104 outer iterations are not104 observed memory reads.
 Loaded pointer values remain subject to separate alias/target validation.
 
+Music ring setup, producer and interrupt consumers now have 36 named
+continuations, 11 constants, 38 operand bindings and five focused comments.
+129 new original CPU cases (503 related tests total) qualify seven strided
+pointers, exact WORD wrap, producer two-slot look-ahead and equality wait,
+Amiga saved-register restoration up to RTE, its 65536-test DBF delay, and
+alternate pointer/count handoff. Alternate stops on zero or N after decrement;
+Amiga tests only zero. Thus supplied zero counts behave differently. Cursor 28
+advances to 32, not 0: equality-only wrap does not bound arbitrary input. These
+are RAM-backed CPU cases, not disk/PCM, interrupt timing or complete alternate
+startup. All native access/CFG facts and original bytes are retained.
+The eight indexed audio reads remain unresolved: startup and exact wrap explain
+the intended seven states, but admission still needs a producer/consumer entry
+and alias/write invariant across calls and interrupt entries. A direct-reference audit finds all 35 references to the two WORD cursor cells
+inside this service. The next bounded experiment is alias/write exclusion
+and call-effect preservation across its entry contexts; table length alone
+is not proof. Continue independent source reconstruction while that invariant is absent.
+
 Common object-header normalization adds 33 typed accesses without losing any
 previous typed site or changing app/CFG facts. Generic readers and constructor
 writes establish BYTE 03 vertex selection and BYTE 1D model shifting; both now

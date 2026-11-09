@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
   "kind": "committed_native_rendered_original_export",
-  "canonical_source_commit": "80cd99675878c9e5133a7f4a89e4bf957d741f74",
-  "publication_base_commit": "80cd99675878c9e5133a7f4a89e4bf957d741f74",
+  "canonical_source_commit": "4f5d431e639ad0ab3c88930e502098901d7b01c2",
+  "publication_base_commit": "4f5d431e639ad0ab3c88930e502098901d7b01c2",
   "native_export": "CListingArtifact.source_package_payload(64)",
-  "main_source_sha256": "986a7df02c687be38a63261b4cd7fb0267e55fdf4672e36821862821d29561fb",
+  "main_source_sha256": "e418dde1b85cff5a69c138c67d470d410feeb049605ea6337e0a3e45621be6d9",
   "asset_count": 57,
   "asset_bytes": 93633,
   "game_assembly_hand_edits": false,
@@ -24,13 +24,13 @@
     "assembler executable",
     "paused Pandora work"
   ],
-  "canonical_source_commit_role": "Canonical publication base; common object BYTE 03 vertex selector and BYTE 1D model shift now inherit from ObjectCore, with three compatibility aliases. The 17000-byte world pool exposes only its first 68-byte common prefix through existing inline-instance semantics. 33 typed accesses added; 11 old gaps resolved and 3 player rotation gaps exposed, leaving 158. No old typed site or app/CFG fact lost. 658 relevant regression/CPU cases pass. No homogeneous array, runtime tag invariant, selector bound or lifetime claim.",
-  "canonical_source_subject_revision": "1adc5be6428cadc000abf19d98ff894fc6c2b4f469ea4da239e5f8501f262e80",
+  "canonical_source_commit_role": "Canonical publication base; music ring setup/producer/interrupt consumers reconstructed with 36 continuations, 11 constants, 38 operand bindings and five comments. 129 new original CPU cases and 503 related cases qualify exact WORD wrap, two-slot look-ahead, backend stop differences, Amiga register restore up to RTE and alternate pointer handoff. All native access/CFG facts retained. No disk/PCM/interrupt timing, concurrency, global cursor bound, complete alternate startup or buffer lifetime claim.",
+  "canonical_source_subject_revision": "3dc9d81bf9326d6a220f4a24f036c213182b3c2da0148bc9b15cd5c176dd6c91",
   "canonical_fact_sha256": {
     "source_binary.json": "42d4a5758b3e8236af7f912aee85e9ee5323bcd0961faa338c4f864080a0a7d9",
     "target_metadata.json": "e7540b68c118c56aba8815b6722eefa067517cc865fe9841d6c01ce96551389c",
-    "manual_actions.jsonl": "bfc5aff98a5d2f1da9e79240d0709cb6942b609fa529a8bbd0156c52a63b2b1e",
-    "decision_journal.jsonl": "3e5537296580c7cd3c4aff368790f324a4b4054d510c4e8f5c3c1bbd8f2a2371"
+    "manual_actions.jsonl": "0fe837a0fadb606f64fd26e65355ac013696981ac9d57f7b7cc1d6e70bcaa820",
+    "decision_journal.jsonl": "81cd0eca2c4a68624da33cce8dd4b86f96a5854601dfd878518be40c8093f186"
   },
   "headers": "14 unmodified required include files collected by source_package.collect_package_includes from ext/amiga_includes/ndk_2.0/include; header notices retained",
   "decoded_protection_view": {
@@ -46,7 +46,7 @@
     },
     "runtime_scope": "Seven CPU write-site windows match this reversible view; no whole runtime-view identity or parent plaintext promotion."
   },
-  "verification_receipt_id": "0899a4edbb1225047b5fa0fdb72db9e3bdb264a48c31401dffcfabb69302f932",
+  "verification_receipt_id": "9d1049e198d6f6d0d41e2a1b932c87a70a169dece2f01963b9eb869a09bf5d21",
   "render_native_sha256": "27610fd0e1139b1c2c42639e136f248aafb2acf128eceae11afa8e8243eea881",
   "final_assembler_native_sha256": "27610fd0e1139b1c2c42639e136f248aafb2acf128eceae11afa8e8243eea881"
 }
