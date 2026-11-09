@@ -1782,6 +1782,14 @@ SG2_SPRITE_CONTROL_PREFIX_BYTES	EQU	4
 SG2_STARDRIVE_ADDEND_FALL_STEP	EQU	300
 SG2_STARDRIVE_ADDEND_LIMIT	EQU	16000
 SG2_STARDRIVE_ADDEND_RISE_STEP	EQU	100
+SG2_STAR_COLOUR_CHOICE_MASK	EQU	7
+SG2_STAR_MAGNITUDE_BASE	EQU	20480
+SG2_STAR_MAGNITUDE_LOW_MASK	EQU	4095
+SG2_STAR_PITCH_CENTER	EQU	256
+SG2_STAR_PITCH_RANDOM_MASK	EQU	511
+SG2_STAR_POSITION_FRACTION_SHIFT	EQU	13
+SG2_STAR_WORLD_ORIGIN_XZ	EQU	20000000
+SG2_STAR_WORLD_ORIGIN_Y	EQU	-20000000
 SG2_STORED_HEADING_RATIO_BYTE_LIMIT	EQU	255
 SG2_STORED_TARGET_Y_SMOOTH_SHIFT	EQU	5
 SG2_SURFACE_ENTRY_DEPTH_ORIGIN	EQU	305
@@ -25340,6 +25348,7 @@ initialize_celestial_body_radius_and_y:
 	bset.b #7,SG2ObjectCore_durability_or_negative(a0)
 	move usp,a2
 	rts
+    ; Type 147: copy base/working radius, derive position and choose primary colour. Four PRNG advances; supplied RAM tests do not prove global caller or startup state.
     ; KNOWN: type A0=Target code-entry register seed:SG2StarObject
 initialize_star_radius_position_and_colour:
 	move.w (a0),d0	; operand 1: SG2ObjectCore_object_type at (a0)
@@ -25351,38 +25360,47 @@ initialize_star_radius_position_and_colour:
 	move.l SG2RadialObject_base_radius(a0),SG2RadialObject_radius_work_value(a0)
 	movem.l d3-d6/a1/a3,-(a7)
 	bsr.w advance_shared_random_state_bridge_017968
-	andi.w #511,d0
-	subi.w #256,d0
-	andi.w #4095,d0
+choose_star_initial_pitch:
+	andi.w #SG2_STAR_PITCH_RANDOM_MASK,d0
+	subi.w #SG2_STAR_PITCH_CENTER,d0
+	andi.w #SG2_MOTION_VECTOR_PHASE_MASK,d0
 	move.w d0,d4
 	bsr.w advance_shared_random_state_bridge_017968
-	andi.w #4095,d0
+choose_star_initial_heading:
+	andi.w #SG2_MOTION_VECTOR_PHASE_MASK,d0
 	move.w d0,d5
 	clr.w d6
+    ; Third PRNG advance: its D0 result is unused here. Magnitude is (incoming D3.W AND 4095)+20480; retain the D3 dependency.
 	bsr.w advance_shared_random_state_bridge_017968
-	andi.w #4095,d3
-	addi.w #20480,d3
+derive_star_magnitude_from_incoming_d3:
+	andi.w #SG2_STAR_MAGNITUDE_LOW_MASK,d3
+	addi.w #SG2_STAR_MAGNITUDE_BASE,d3
 	bsr.w build_motion_vector_from_angles_bridge_01796e
+    ; Sign-extend vector low WORDs, shift LONGs by 13, then add (+20000000,-20000000,+20000000). Preserve staged rounding and wrap; no physical units inferred.
+publish_star_initial_world_position:
 	ext.l d4
 	ext.l d5
 	ext.l d6
-	moveq.l #13,d1
+	moveq.l #SG2_STAR_POSITION_FRACTION_SHIFT,d1
 	asl.l d1,d4
 	asl.l d1,d5
 	asl.l d1,d6
-	addi.l #20000000,d4
-	addi.l #4274967296,d5
-	addi.l #20000000,d6
+	addi.l #SG2_STAR_WORLD_ORIGIN_XZ,d4
+	addi.l #SG2_STAR_WORLD_ORIGIN_Y,d5
+	addi.l #SG2_STAR_WORLD_ORIGIN_XZ,d6
 	move.l d4,SG2ObjectCore_world_x(a0)
 	move.l d5,SG2ObjectCore_world_y(a0)
 	move.l d6,SG2ObjectCore_world_z(a0)
 	bsr.w advance_shared_random_state_bridge_017968
-	lea.l abs_0_00018940.l,a1
-	andi.w #7,d0
+	lea.l star_initial_primary_colour_choices.l,a1
+choose_star_initial_primary_colour:
+	andi.w #SG2_STAR_COLOUR_CHOICE_MASK,d0
 	move.b $0(a1,d0.w),d0
 	andi.w #255,d0
 	move.w d0,SG2StarObject_primary_colour_index(a0)
 	bset.b #7,SG2ObjectCore_durability_or_negative(a0)
+    ; Restore A2 through USP and D3-D6/A1/A3 from the saved frame. The intervening PRNG and vector helpers retain their original state effects.
+restore_star_initializer_saved_registers:
 	move usp,a2
 	movem.l (a7)+,d3-d6/a1/a3
 	rts
@@ -25431,7 +25449,7 @@ tug_placement_parameter_cursor:
 	dc.l $00000000	; Original tug initialization source-backed state/parameter prefix
 tug_placement_group_world_y:
 	dc.l $00000000	; Original tug initialization source-backed state/parameter prefix
-abs_0_00018940:
+star_initial_primary_colour_choices:
 	dc.b $00,$03,$00,$03,$00,$01,$00,$01	; lookup_table
 	dc.b $00,$01,$00,$06,$00,$06,$00,$05
 mini_sentinel_initialization_attempt_count:

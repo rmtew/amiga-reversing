@@ -36,7 +36,11 @@ join, partial-write, signed/LONG-index and ownership refusals. Existing
 access/CFG/reference records remain identical; one additional residual interval
 reflects splitting a gap. Exact C/vasm and standalone; no capacity/lifetime or
 gameplay proof. PC, An-index and extended/encoded-scale discovery are not
-expanded by this slice. Next inspect the two other recovered BYTE consumers.
+expanded by this slice. The recovered star-colour prefix now has its source role.
+43 original CPU cases cover star/celestial/shared radial initialization: radius
+copies, four PRNG advances, incoming D3 magnitude, staged position arithmetic,
+colour selection and saved-register restoration. No random-magnitude or global
+caller-bound claim is made; existing access/CFG/reference facts remain unchanged.
 
 Known string facts now contribute pointer-pool context, recovering the 23-byte
 leading-space line at $38FB4. Nine fixtures include opaque/unreferenced/numeric
