@@ -373,6 +373,8 @@ const char *m68k_analysis_table_entry_count_proof_name(uint8_t proof_id) {
       return "index_compare_domain";
     case M68K_ANALYSIS_TABLE_ENTRY_COUNT_PROOF_LOOP_LIMIT:
       return "loop_limit";
+    case M68K_ANALYSIS_TABLE_ENTRY_COUNT_PROOF_INDEX_VALUE_BITS:
+      return "index_value_bits";
     default:
       return NULL;
   }
@@ -394,6 +396,8 @@ const char *m68k_analysis_table_stop_reason_name(uint8_t stop_reason_id) {
       return "index_compare_branch_bound";
     case M68K_ANALYSIS_TABLE_STOP_REASON_LOOP_LIMIT_BOUND:
       return "loop_limit_bound";
+    case M68K_ANALYSIS_TABLE_STOP_REASON_INDEX_VALUE_BOUND:
+      return "index_value_bound";
     default:
       return NULL;
   }
@@ -939,6 +943,8 @@ uint8_t m68k_analysis_table_stop_reason_for_entry_count_proof(uint8_t proof_id) 
       return M68K_ANALYSIS_TABLE_STOP_REASON_INDEX_COMPARE_BRANCH_BOUND;
     case M68K_ANALYSIS_TABLE_ENTRY_COUNT_PROOF_LOOP_LIMIT:
       return M68K_ANALYSIS_TABLE_STOP_REASON_LOOP_LIMIT_BOUND;
+    case M68K_ANALYSIS_TABLE_ENTRY_COUNT_PROOF_INDEX_VALUE_BITS:
+      return M68K_ANALYSIS_TABLE_STOP_REASON_INDEX_VALUE_BOUND;
     default:
       return M68K_ANALYSIS_TABLE_STOP_REASON_UNKNOWN;
   }

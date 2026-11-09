@@ -4751,8 +4751,11 @@ static int source_analysis_to_json_impl(const M68kSourceAnalysisIR *source_analy
               (unsigned)consumer->platform_input_id) != 0) goto oom;
       } else if (json_builder_append(&builder, "null") != 0) goto oom;
       if (json_builder_append(&builder, ",\"function_summary_id\":") != 0 ||
-          json_builder_append_json_string(&builder, consumer->function_summary_id) != 0 ||
-          json_builder_append(&builder, "}") != 0) goto oom;
+          json_builder_append_json_string(&builder, consumer->function_summary_id) != 0) goto oom;
+      if (consumer->kind == M68K_ADDRESS_VALUE_CONSUMER_INDEXED_BASE && consumer->index_word_known_mask &&
+          json_builder_appendf(&builder, ",\"index_word_known_bits\":{\"mask\":%u,\"value\":%u}",
+            (unsigned)consumer->index_word_known_mask, (unsigned)consumer->index_word_known_value) != 0) goto oom;
+      if (json_builder_append(&builder, "}") != 0) goto oom;
     }
     if (json_builder_appendf(&builder, "],\"function_summary_count\":%u,\"function_summaries\":[",
           (unsigned)section->function_summary_count) != 0) goto oom;

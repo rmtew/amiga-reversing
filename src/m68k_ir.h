@@ -428,7 +428,8 @@ typedef enum M68kAnalysisTableEntryCountProof {
   M68K_ANALYSIS_TABLE_ENTRY_COUNT_PROOF_PLATFORM_RECORD = 4,
   M68K_ANALYSIS_TABLE_ENTRY_COUNT_PROOF_INDEX_MASK_DOMAIN = 5,
   M68K_ANALYSIS_TABLE_ENTRY_COUNT_PROOF_INDEX_COMPARE_DOMAIN = 6,
-  M68K_ANALYSIS_TABLE_ENTRY_COUNT_PROOF_LOOP_LIMIT = 7
+  M68K_ANALYSIS_TABLE_ENTRY_COUNT_PROOF_LOOP_LIMIT = 7,
+  M68K_ANALYSIS_TABLE_ENTRY_COUNT_PROOF_INDEX_VALUE_BITS = 8
 } M68kAnalysisTableEntryCountProof;
 
 typedef enum M68kAnalysisTableStopReason {
@@ -439,7 +440,8 @@ typedef enum M68kAnalysisTableStopReason {
   M68K_ANALYSIS_TABLE_STOP_REASON_PLATFORM_RECORD_END = 4,
   M68K_ANALYSIS_TABLE_STOP_REASON_INDEX_MASK_BOUND = 5,
   M68K_ANALYSIS_TABLE_STOP_REASON_INDEX_COMPARE_BRANCH_BOUND = 6,
-  M68K_ANALYSIS_TABLE_STOP_REASON_LOOP_LIMIT_BOUND = 7
+  M68K_ANALYSIS_TABLE_STOP_REASON_LOOP_LIMIT_BOUND = 7,
+  M68K_ANALYSIS_TABLE_STOP_REASON_INDEX_VALUE_BOUND = 8
 } M68kAnalysisTableStopReason;
 
 typedef enum M68kAnalysisStructuredDataTextField {
@@ -1948,6 +1950,10 @@ typedef struct M68kAddressValueConsumerIR {
   uint32_t address_value_id;
   uint32_t contract_section_index;
   uint32_t contract_offset;
+  /* Converged, unconditional low-WORD bits of a Dn.W index before this read.
+   * Zero mask means unknown; these are not a table-capacity/lifetime claim. */
+  uint16_t index_word_known_mask;
+  uint16_t index_word_known_value;
   uint8_t operand_index;
   uint8_t kind;
   uint8_t register_kind;

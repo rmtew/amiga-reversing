@@ -52,7 +52,7 @@ ADF, full input `binary.bin`, captures or assembler executable is committed here
 
 This is the reviewed original absolute-address restoration with explicit
 unknowns: 106154 code bytes are accepted; native accepted-range accounting
-leaves 10033 bytes in 278 intervals unclassified. It is not full semantic/all-path restoration or a completed
+leaves 10009 bytes in 279 intervals unclassified. It is not full semantic/all-path restoration or a completed
 walkthrough. The source and assets preserve every original output byte.
 
 The native control-value analysis now recovers eight signed-WORD dispatch

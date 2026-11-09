@@ -12806,7 +12806,7 @@ abs_0_0000A004:
 	movea.l -(a1),a2
 	move.l a1,free_object_stack_cursor(a6)
 	subq.w #1,free_object_count(a6)
-	lea.l abs_0_0000B43A.l,a1
+	lea.l airborne_spawn_model_type_choices.l,a1
 	bsr.w advance_shared_random_state
 	andi.w #7,d0
 	move.b $0(a1,d0.w),d0
@@ -12973,7 +12973,7 @@ abs_0_0000A2CE:
 	movea.l -(a1),a2
 	move.l a1,free_object_stack_cursor(a6)
 	subq.w #1,free_object_count(a6)
-	lea.l abs_0_0000B442.l,a1
+	lea.l ground_spawn_model_type_choices.l,a1
 	bsr.w advance_shared_random_state
 	andi.w #3,d0
 	clr.w d3
@@ -13377,7 +13377,7 @@ abs_0_0000A8F2:
 	movea.l -(a1),a2
 	move.l a1,free_object_stack_cursor(a6)
 	subq.w #1,free_object_count(a6)
-	lea.l abs_0_0000B43A.l,a1
+	lea.l airborne_spawn_model_type_choices.l,a1
 	bsr.w advance_shared_random_state_bridge_00d9b4
 	andi.w #7,d0
 	move.b $0(a1,d0.w),d0
@@ -13455,7 +13455,7 @@ abs_0_0000AA3A:
 	movea.l -(a1),a2
 	move.l a1,free_object_stack_cursor(a6)
 	subq.w #1,free_object_count(a6)
-	lea.l abs_0_0000B442.l,a1
+	lea.l ground_spawn_model_type_choices.l,a1
 	bsr.w advance_shared_random_state_bridge_00d9b4
 	andi.w #3,d0
 	clr.w d3
@@ -14110,12 +14110,13 @@ format_and_print_rating_label:
 abs_0_0000B41C:
 	dcb.b $1C,$20
 	dc.b $00,$00
-abs_0_0000B43A:
-	dc.b $0D,$12,$15,$1F,$20,$21,$22,$2D
-abs_0_0000B442:
-	dc.b $01,$09,$0F,$27
+airborne_spawn_model_type_choices:
+	dc.b $0D,$12,$15,$1F,$20,$21,$22,$2D	; lookup_table
+ground_spawn_model_type_choices:
+	dc.b $01,$09,$0F,$27	; lookup_table
 fragment_model_type_tags:
-	dc.b $64,$65,$66,$53,$00,$00
+	dc.b $64,$65,$66,$53	; lookup_table
+	dc.w $0000
 abs_0_0000B44C:
 	jmp update_nearby_neutron_bomb.l
 abs_0_0000B452:
@@ -25431,7 +25432,8 @@ tug_placement_parameter_cursor:
 tug_placement_group_world_y:
 	dc.l $00000000	; Original tug initialization source-backed state/parameter prefix
 abs_0_00018940:
-	dc.b $00,$03,$00,$03,$00,$01,$00,$01,$00,$01,$00,$06,$00,$06,$00,$05
+	dc.b $00,$03,$00,$03,$00,$01,$00,$01	; lookup_table
+	dc.b $00,$01,$00,$06,$00,$06,$00,$05
 mini_sentinel_initialization_attempt_count:
 	dc.w $0000
 mini_sentinel_initial_orbit_byte_offset:

@@ -8,8 +8,8 @@ that further analysis is exhausted. Current source remains byte exact: all
 with all 106154 accepted code bytes retained. No generated assembly was edited
 by hand and no interim archive was produced.
 
-The current ownership union leaves 10033 bytes in
-278 intervals unclassified. This is classification accounting,
+The current ownership union leaves 10009 bytes in
+279 intervals unclassified. This is classification accounting,
 not a semantic completion percentage. Earlier interval/site counts below belong
 to their recorded closeout revision. See the current
 [native memory-span receipt](../../runtime/observations/starglider2-app-memory-spans.json),
@@ -17,8 +17,8 @@ to their recorded closeout revision. See the current
 
 ## Current refinement and next evidence
 
-Current native totals: **3514 app /2749 typed /158 unresolved**, with **10033
-unclassified bytes /278 intervals**. The earlier counter-indexed source-array recovery reused
+Current native totals: **3514 app /2749 typed /158 unresolved**, with **10009
+unclassified bytes /279 intervals**. The earlier counter-indexed source-array recovery reused
 the shared loop induction and interned linear entry values. Original inventory
 readers at source `$DD6` and `$339B4` expose the existing name-reference `text`
 field over the possible104-entry prefix of the148-record owner. That batch retained existing
@@ -27,6 +27,16 @@ Its startup caller proof added five header reads and six app accesses,
 and strengthened 38 app-base attributions.
 Conditional skips mean104 outer iterations are not104 observed memory reads.
 Loaded pointer values remain subject to separate alias/target validation.
+
+Converged, unconditional Dn.W index bits now recover numeric BYTE prefixes
+without a local mask recognizer or manual extent. Four SGII prefixes recover
+24 bytes; both readers of each 8/4-entry spawn-choice array are retained.
+69 Python, 48 original CPU and 838 C cases pass, including unknown-call/base,
+join, partial-write, signed/LONG-index and ownership refusals. Existing
+access/CFG/reference records remain identical; one additional residual interval
+reflects splitting a gap. Exact C/vasm and standalone; no capacity/lifetime or
+gameplay proof. PC, An-index and extended/encoded-scale discovery are not
+expanded by this slice. Next inspect the two other recovered BYTE consumers.
 
 Known string facts now contribute pointer-pool context, recovering the 23-byte
 leading-space line at $38FB4. Nine fixtures include opaque/unreferenced/numeric

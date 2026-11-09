@@ -6078,6 +6078,12 @@ static int render_lookup_add_typed_address_consumer(M68kRenderLookup *lookup, si
         existing->fact.operand_index != fact->operand_index || existing->fact.kind != fact->kind ||
         existing->fact.register_kind != fact->register_kind || existing->fact.register_index != fact->register_index)
       continue;
+    if (fact->kind == M68K_ADDRESS_VALUE_CONSUMER_INDEXED_BASE) {
+      uint16_t mask = (uint16_t)(existing->fact.index_word_known_mask & fact->index_word_known_mask &
+        (uint16_t)~(existing->fact.index_word_known_value ^ fact->index_word_known_value));
+      existing->fact.index_word_known_mask = mask;
+      existing->fact.index_word_known_value &= mask;
+    }
     /* The fixed-point state may become more precise or merge distinct static
      * values. Preserve the complete bounded candidate set on the one shared
      * consumer observation; a storage write has no private value copy. */
@@ -6283,12 +6289,14 @@ static int render_lookup_record_typed_table_load(M68kRenderLookup *lookup, size_
   return render_lookup_add_typed_address_consumer(lookup, section_index, &fact, value, NULL);
 }
 
-/* Record the base held before an indexed address-valued read. The existing
+static void hardware_word_known_bits(const M68kHardwareWordSet *set, uint16_t *mask, uint16_t *value);
+
+/* Record the base held before an indexed memory read. The existing
  * converged CFG value carries alternatives and conservative unknown joins;
- * this is neither a claim about loaded entries nor a caller index bound. */
-static int render_lookup_record_indexed_pointer_base(M68kRenderLookup *lookup, size_t section_index,
+ * index bits describe this read, not stored values, capacity or lifetime. */
+static int render_lookup_record_indexed_read_base(M68kRenderLookup *lookup, size_t section_index,
     uint32_t offset, size_t operand_index, const M68kOperandIR *operand,
-    const M68kRenderTypedState *state) {
+    const M68kRenderTypedState *state, const M68kRenderPlatformState *platform_state) {
   M68kAddressValueConsumerIR fact = {0};
   M68kRenderTypedStoredValue value;
   if (operand->kind != M68K_ASM_OPERAND_EA || operand->value.ea_mode != 6U ||
@@ -6300,7 +6308,12 @@ static int render_lookup_record_indexed_pointer_base(M68kRenderLookup *lookup, s
   fact.operand_index = (uint8_t)operand_index;
   fact.register_kind = AMIGA_OS_REGISTER_ADDRESS;
   fact.register_index = operand->value.ea_reg;
-  snprintf(fact.contract_name, sizeof(fact.contract_name), "indexed_pointer_read_base");
+  if (platform_state && !operand->value.index_is_address && !operand->value.index_long &&
+      operand->value.index_reg < 8U &&
+      !platform_state->word_values[operand->value.index_reg].requires_input_contract)
+    hardware_word_known_bits(&platform_state->word_values[operand->value.index_reg],
+      &fact.index_word_known_mask, &fact.index_word_known_value);
+  snprintf(fact.contract_name, sizeof(fact.contract_name), "indexed_read_base");
   return render_lookup_add_typed_address_consumer(lookup, section_index, &fact, &value, NULL);
 }
 
@@ -8690,13 +8703,14 @@ static void typed_state_update_after_instruction(M68kRenderTypedState *state, M6
       source_byte_cursor = stored_value.byte_cursor;
       source_provenance = stored_value.provenance;
     }
+    if (record_table_load_consumers &&
+        platform_operand_memory_access(instruction, source_index) == M68K_SIM_ACCESS_MEMORY_READ)
+      (void)render_lookup_record_indexed_read_base(lookup, section_index, offset, source_index,
+        source_operand, state, platform_state);
     /* A slot binding or saved-value reload already produced the value's
      * identity. Only an EA's read-address identity is dereferenced here. */
     if (!source_memory_base_is_value && instruction->size_suffix == 'l' &&
         platform_operand_memory_access(instruction, source_index) == M68K_SIM_ACCESS_MEMORY_READ) {
-      if (record_table_load_consumers && dest_operand->kind == M68K_ASM_OPERAND_AN)
-        (void)render_lookup_record_indexed_pointer_base(lookup, section_index, offset, source_index,
-          source_operand, state);
       /* A table base is retained as memory-base bookkeeping. That bookkeeping
        * is useful, but is not the pointee type of the long read from the
        * table, so it must not suppress pointer-table propagation. */
