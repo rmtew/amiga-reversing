@@ -1514,6 +1514,7 @@ SG2_CORNER_SLOPE_SHIFT	EQU	6
 SG2_DEPOT_COUNT_NEGATIVE_RESULT_CLAMP	EQU	127
 SG2_DEPOT_MESSAGE_TICK_MASK	EQU	31
 SG2_DEPOT_SERVICE_INVENTORY	EQU	10
+SG2_DEPOT_SERVICE_PROFESSOR_STATUS	EQU	2
 SG2_DEPOT_TRADE_COUNT_GATE	EQU	3
 SG2_DEPOT_TRADE_SERVICE_INDEX_BIAS	EQU	3
 SG2_DEPOT_WEAPON_COUNTER_FALLBACK	EQU	4
@@ -45560,7 +45561,7 @@ build_depot_exchange_message_pointer_list:
     ; With bomb order active, depot1 transfers aboard Taymar to delivered state. Eight nonzero ingredient counts determine completion and four-state dialogue; no automatic playthrough claim.
 advance_taymar_depot_dialogue_continuation:
 	cmpi.w #1,current_structure_service_id(a6)
-	bne.w abs_0_000346F2
+	bne.w service_depot_professor_status_dialogue
 	move.b #$57,diagnostic_step_byte.l
 	tst.b neutron_bomb_order_requested_flag(a6)
 	bpl.w abs_0_000345F2
@@ -45824,40 +45825,45 @@ abs_0_000346D0:
 	bne.w advance_projector_station_cycle_continuation
 	move.w #$7,depot_dialogue_pause_countdown.l
 	bra.w advance_projector_station_cycle_continuation
-abs_0_000346F2:
-	cmpi.w #2,current_structure_service_id(a6)
+    ; Service 2: negative aboard wins, then negative delivered, then negative order status. Positive nonzero flag bytes do not select their pages.
+service_depot_professor_status_dialogue:
+	cmpi.w #SG2_DEPOT_SERVICE_PROFESSOR_STATUS,current_structure_service_id(a6)
 	bne.b service_depot_inventory_or_help_page
+    ; Increment WORD tick then AND with 31; select only at zero. This is service-call cadence, not a proven physical timer.
 	addq.w #1,depot_dialogue_tick.l
-	andi.w #31,depot_dialogue_tick.l
+	andi.w #SG2_DEPOT_MESSAGE_TICK_MASK,depot_dialogue_tick.l
 	bne.w advance_projector_station_cycle_continuation
 	tst.b professor_taymar_aboard_flag(a6)
-	bpl.b abs_0_0003471A
-	lea.l abs_0_00038E94.l,a1
-	bra.b abs_0_0003473C
-abs_0_0003471A:
+	bpl.b select_depot_delivered_or_order_status_page
+select_depot_professor_aboard_status_page:
+	lea.l depot_professor_aboard_status_line_pointers.l,a1
+	bra.b read_selected_depot_status_line
+select_depot_delivered_or_order_status_page:
 	tst.b professor_taymar_delivered_flag(a6)
-	bmi.b abs_0_00034736
+	bmi.b select_depot_professor_delivered_status_page
 	tst.b neutron_bomb_order_requested_flag(a6)
-	bmi.b abs_0_0003472E
-	lea.l abs_0_00038E6C.l,a1
-	bra.b abs_0_0003473C
-abs_0_0003472E:
-	lea.l abs_0_00038E50.l,a1
-	bra.b abs_0_0003473C
-abs_0_00034736:
-	lea.l abs_0_00038E38.l,a1
-abs_0_0003473C:
+	bmi.b select_depot_order_requested_status_page
+select_depot_research_status_page:
+	lea.l depot_research_status_line_pointers.l,a1
+	bra.b read_selected_depot_status_line
+select_depot_order_requested_status_page:
+	lea.l depot_order_requested_status_line_pointers.l,a1
+	bra.b read_selected_depot_status_line
+select_depot_professor_delivered_status_page:
+	lea.l depot_professor_delivered_status_line_pointers.l,a1
+    ; Signed WORD byte offset, without an entry-bound check. FFFFFFFF selects blank/reset; other values are passed to display. Supplied odd/negative cursor cases do not prove reachability.
+read_selected_depot_status_line:
 	move.w depot_line_pointer_offset(a6),d0
 	movea.l $0(a1,d0.w),a1
 	cmpa.l #$FFFFFFFF,a1
-	bne.b abs_0_00034758
+	bne.b display_selected_depot_status_line
 	move.w #$0,depot_line_pointer_offset(a6)
 	bsr.w display_blank_event_message_line
-	bra.b abs_0_00034760
-abs_0_00034758:
+	bra.b finish_depot_status_dialogue
+display_selected_depot_status_line:
 	bsr.w display_event_message_line
 	addq.w #4,depot_line_pointer_offset(a6)
-abs_0_00034760:
+finish_depot_status_dialogue:
 	bra.w advance_projector_station_cycle_continuation
 service_depot_inventory_or_help_page:
 	cmpi.w #SG2_DEPOT_SERVICE_INVENTORY,current_structure_service_id(a6)
@@ -50191,14 +50197,14 @@ depot_text_thankyou_for_the:
 	dc.b "Thankyou for the...",$00
 depot_text_you_now_have_a:
 	dc.b "You now have a...",$00
-abs_0_00038E38:
+depot_professor_delivered_status_line_pointers:
 	dc.l abs_0_00038EC8	; pointer_table
 	dc.l depot_text_jaysan_katra_and_agro
 	dc.l abs_0_00038EDF
 	dc.l abs_0_00038EF9
 	dc.l abs_0_00038F15
 	dc.b $FF,$FF,$FF,$FF
-abs_0_00038E50:
+depot_order_requested_status_line_pointers:
 	dc.l abs_0_00038EC8	; pointer_table
 	dc.l depot_text_jaysan_katra_and_agro
 	dc.l abs_0_00038EDF
@@ -50206,7 +50212,7 @@ abs_0_00038E50:
 	dc.l abs_0_00038F30
 	dc.l abs_0_00038F4C
 	dc.b $FF,$FF,$FF,$FF
-abs_0_00038E6C:
+depot_research_status_line_pointers:
 	dc.l abs_0_00038EC8	; pointer_table
 	dc.l depot_text_jaysan_katra_and_agro
 	dc.l abs_0_00038F67
@@ -50217,7 +50223,7 @@ abs_0_00038E6C:
 	dc.l abs_0_00038FCB
 	dc.l abs_0_00038FE4
 	dc.b $FF,$FF,$FF,$FF
-abs_0_00038E94:
+depot_professor_aboard_status_line_pointers:
 	dc.l abs_0_00038EC8	; pointer_table
 	dc.l depot_text_jaysan_katra_and_agro
 	dc.l abs_0_00038FFD

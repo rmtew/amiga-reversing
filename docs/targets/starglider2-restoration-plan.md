@@ -32,7 +32,11 @@ Known string facts now contribute pointer-pool context, recovering the 23-byte
 leading-space line at $38FB4. Nine fixtures include opaque/unreferenced/numeric
 refusals and 70-target growth; 56 Python and 838 C cases pass with exact C/vasm
 and standalone output. Access/CFG facts and accepted-range totals (10033/278)
-are unchanged. Next reconstruct dialogue-selector priority and cursor behavior.
+are unchanged. Depot status now has nine named continuations and four page
+roles. 184 original CPU cases (543 linked) cover negative-flag priority,
+WORD tick/cursor and sentinel/reset behavior before display/handoff; no caller
+bound, complete UI or physical-cadence proof is inferred. Access/CFG/reference
+records and original bytes are unchanged.
 
 Pointer-table address mapping rejects numeric source-offset coincidences and
 ambiguous mappings. Indexed pointer reads now expose the existing converged CFG
