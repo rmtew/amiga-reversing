@@ -8433,6 +8433,7 @@ static void typed_read_note_writes(M68kRenderLookup *, M68kRenderTypedState *, c
 static uint16_t typed_read_capture(M68kRenderLookup *, M68kRenderTypedState *,
     const M68kInstructionIR *, uint8_t, size_t, uint32_t);
 static void typed_read_predicate_after(M68kRenderTypedState *, const M68kInstructionIR *, uint16_t);
+static void typed_read_clear_predicate(M68kRenderTypedState *);
 
 static void typed_state_update_after_instruction(M68kRenderTypedState *state, M68kRenderLookup *lookup,
     const M68kRenderPlatformState *platform_state, size_t section_index, const M68kInstructionIR *instruction,
@@ -8477,6 +8478,13 @@ static void typed_state_update_after_instruction(M68kRenderTypedState *state, M6
       test_meta->source_operand_index < instruction->operand_count &&
       test_meta->operand_access_kinds[test_meta->source_operand_index] == M68K_SIM_ACCESS_MEMORY_READ)
     direct_test_relation = typed_read_capture(lookup, state, instruction, test_meta->source_operand_index,
+      section_index, offset);
+  else if (lookup && test_meta && test_meta->operation_type == M68K_SIM_OP_COMPARE &&
+      test_meta->source_operand_index < instruction->operand_count &&
+      test_meta->dest_operand_index < instruction->operand_count &&
+      m68k_ir_operand_immediate_value(&instruction->operands[test_meta->source_operand_index], &immediate_value) &&
+      test_meta->operand_access_kinds[test_meta->dest_operand_index] == M68K_SIM_ACCESS_MEMORY_READ)
+    direct_test_relation = typed_read_capture(lookup, state, instruction, test_meta->dest_operand_index,
       section_index, offset);
   if (lookup != NULL && lookup->affine_entry_context != NULL) for (uint8_t reg = 0U; reg < 8U; ++reg) {
     entry_values_before[reg] = state->data_regs[reg].entry_value_id;
@@ -9340,6 +9348,7 @@ static int typed_state_equal(const M68kRenderTypedState *left, const M68kRenderT
       left->base_slot_count != right->base_slot_count || left->field_slot_count != right->field_slot_count ||
       left->memory_write_barriers != right->memory_write_barriers ||
       left->zero_read_relation != right->zero_read_relation ||
+      left->zero_read_compare_value != right->zero_read_compare_value ||
       left->source_snapshot_entry != right->source_snapshot_entry) {
     return 0;
   }
@@ -9834,8 +9843,9 @@ static int typed_state_merge_into(M68kRenderTypedState *dest,
   if ((dest->source_snapshot_entry & source->source_snapshot_entry) != dest->source_snapshot_entry) {
     dest->source_snapshot_entry &= source->source_snapshot_entry; changed = 1;
   }
-  if (dest->zero_read_relation != source->zero_read_relation && dest->zero_read_relation) {
-    dest->zero_read_relation = 0U; changed = 1;
+  if ((dest->zero_read_relation != source->zero_read_relation ||
+       dest->zero_read_compare_value != source->zero_read_compare_value) && dest->zero_read_relation) {
+    typed_read_clear_predicate(dest); changed = 1;
   }
   for (index = 0U; index < 8U; ++index) {
     M68kRenderTypedAppAddressValue old_data_app = dest->data_app_addr_regs[index];

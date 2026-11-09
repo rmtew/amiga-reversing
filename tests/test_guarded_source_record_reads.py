@@ -232,6 +232,55 @@ def test_direct_memory_test_and_flag_preserving_gap(tmp_path):
         assert len(extra_reads(section)) == 1
 
 
+@pytest.mark.parametrize('value', [0, 12, 65535])
+@pytest.mark.parametrize('load,test', [
+    ('', 'cmpi.w #{value},(a0)'),
+    ('move.w (a0),d0', 'cmp.w #{value},d0'),
+    ('move.w (a0),d0\n move.w d0,d1\n moveq.l #7,d0', 'cmp.w #{value},d1'),
+])
+def test_immediate_equality_selects_the_matching_record(tmp_path, value, load, test):
+    # WORD equality also covers signed encodings; the other arm has a distinct
+    # tag. This is a closed source domain, not a writable tagged-layout promise.
+    body = f'{load}\n {test.format(value=value)}\n bne.w done\n move.l 4(a0),d2\ndone:\n'
+    with records(tmp_path, body, base_count=1 if value == 0 else 0, child_count=value) as (section, inline):
+        assert len(extra_reads(section)) == 1
+        assert 'ExtendedHeader_extra' in inline
+
+
+@pytest.mark.parametrize('between,test,options', [
+    ('move.w #12,(a0)', 'cmpi.w #12,(a0)', {}),
+    ('move.b #12,(a0)', 'cmpi.w #12,(a0)', {}),
+    ('move.w #12,(a3)', 'cmpi.w #12,(a0)', {}),
+    ('jsr (a3)', 'cmpi.w #12,(a0)', {}),
+    ('', 'cmpi.b #12,(a0)', {}),
+    ('', 'cmpi.l #12,(a0)', {}),
+    ('', 'cmpi.w #12,(a0)', dict(base_count=12)),
+    ('move.w (a0),d0\n move.b #12,d0', 'cmp.w #12,d0', {}),
+    ('move.w (a0),d0\n lea.l base(pc),a0', 'cmp.w #12,d0', {}),
+])
+def test_immediate_predicates_keep_mutation_width_call_and_root_refusals(tmp_path, between, test, options):
+    body = f'{between}\n {test}\n bne.w done\n move.l 4(a0),d2\ndone:\n'
+    with records(tmp_path, body, child_count=12, **options) as (section, _):
+        assert not extra_reads(section)
+
+
+def test_join_of_distinct_immediate_comparisons_loses_predicate(tmp_path):
+    body = '''move.w (a0),d0
+ tst.w d6
+ beq.w other_comparison
+ cmp.w #12,d0
+ bra.w comparison_join
+other_comparison:
+ cmp.w #0,d0
+comparison_join:
+ bne.w done
+ move.l 4(a0),d2
+done:
+'''
+    with records(tmp_path, body, child_count=12) as (section, _):
+        assert not extra_reads(section)
+
+
 def test_join_keeps_a_scalar_relation_only_when_both_paths_copy_it(tmp_path):
     body = '''move.w (a0),d0
  tst.w d6

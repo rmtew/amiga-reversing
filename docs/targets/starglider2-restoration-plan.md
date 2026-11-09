@@ -28,6 +28,23 @@ and strengthened 38 app-base attributions.
 Conditional skips mean104 outer iterations are not104 observed memory reads.
 Loaded pointer values remain subject to separate alias/target validation.
 
+The shared conditional-record analysis now handles immediate WORD equality,
+including direct memory comparisons, transported reads and nonzero directory
+partitions. Equal discriminator values merge their declared types before any
+refinement; duplicate parent/child tags remain ambiguous. Validation: 99 focused
+cases, 92 domain/startup regressions and 835 C unit cases. The original SGII
+access/CFG facts and rendered assembly remain identical; no target resolution
+gain is claimed. C/vasm is freshly byte exact, and the unchanged executable build
+inputs retain the checked clean standalone result. The additional predicate
+WORD costs eight aligned bytes per state, sixteen per flow node (about 0.45 MiB
+per 29,698-node graph), with no new dense slot arrays or raised value/visit caps.
+The live contact reader at $B6F8 still lacks a writable tagged-layout contract;
+BYTE+34 has distinct meanings for steered and velocity projectiles. Supporting
+that inference needs a discriminator/layout contract plus write-aware weakening
+when the tag changes, rather than trusting initial bytes or adding reader seeds.
+Next: trace the existing constructor/contact/update contracts by subtype, while
+continuing independent reader-connected source reconstruction.
+
 The viewer command/variant batch qualifies 196 CPU cases over original
 instructions and actual bounds records, including a descending second range.
 It restores 29 continuations, six constants, 21 scalar operand names and 23 local

@@ -2,6 +2,11 @@
  * existing value packets and CFG must joins, not a second transfer engine.
  * Original bytes are usable only before the existing absolute-write barrier.
  * No source discriminator invariant is inferred for abstract writable inputs. */
+static void typed_read_clear_predicate(M68kRenderTypedState *state) {
+  state->zero_read_relation = 0U;
+  state->zero_read_compare_value = 0U;
+}
+
 static size_t typed_read_hash(const M68kRenderScalarReadRelation *read, size_t capacity) {
   const unsigned char *bytes = (const unsigned char *)read;
   uint32_t hash = UINT32_C(2166136261);
@@ -113,7 +118,7 @@ static void typed_read_note_writes(M68kRenderLookup *lookup, M68kRenderTypedStat
     const M68kRenderScalarReadRelation *read = &lookup->scalar_read_relations[id - 1U]; \
     int kill = !known || typed_read_overlaps_write(lookup, read, address, span); \
     if (kill) { \
-      if (state->zero_read_relation / 2U == id) state->zero_read_relation = 0U; \
+      if (state->zero_read_relation / 2U == id) typed_read_clear_predicate(state); \
       (value)->read_relation = 0U; \
     } \
   } \
@@ -141,7 +146,7 @@ static uint32_t typed_read_source_domain(const M68kRenderLookup *lookup,
 }
 
 static int typed_read_domain_partition(const M68kRenderLookup *lookup, const M68kRenderSourceDomain *domain,
-    int32_t cursor, uint16_t *zero_type, uint16_t *nonzero_type) {
+    int32_t cursor, uint16_t compare_value, uint16_t *zero_type, uint16_t *nonzero_type) {
   int have_zero = 0, have_nonzero = 0;
   *zero_type = *nonzero_type = AMIGA_OS_STRUCT_ID_NONE;
   for (size_t i = 0U; i < domain->member_count; ++i) {
@@ -150,7 +155,7 @@ static int typed_read_domain_partition(const M68kRenderLookup *lookup, const M68
     if (cursor < 0 || (uint64_t)cursor + 2U > member->size || !source->data ||
         member->offset > source->size || (uint64_t)cursor + 2U > source->size - member->offset) return 0;
     const uint8_t *bytes = source->data + member->offset + cursor;
-    if (!bytes[0] && !bytes[1]) {
+    if ((((uint16_t)bytes[0] << 8U) | bytes[1]) == compare_value) {
       *zero_type = have_zero ? typed_struct_id_common_merge(lookup->policy, *zero_type, member->struct_id) : member->struct_id;
       have_zero = 1;
     } else {
@@ -213,7 +218,7 @@ static uint16_t typed_read_capture(M68kRenderLookup *lookup, M68kRenderTypedStat
     read.source_domain_id = typed_read_source_domain(lookup, base);
     if (!read.source_domain_id) { typed_read_defer_source_domain(lookup, base, (int32_t)field_cursor); return 0U; }
     if (!typed_read_domain_partition(lookup, &lookup->source_domains[read.source_domain_id - 1U],
-        (int32_t)field_cursor, &read.zero_type, &read.nonzero_type)) return 0U;
+        (int32_t)field_cursor, 0U, &read.zero_type, &read.nonzero_type)) return 0U;
   } else {
     if (base->pointer_candidate_count > 4U) return 0U;
     read.count = base->pointer_candidate_count;
@@ -250,7 +255,7 @@ static uint16_t typed_read_capture(M68kRenderLookup *lookup, M68kRenderTypedStat
 #define KILL_READ(value) do { if (((value)->read_relation & ~1U) == handle) (value)->read_relation = 0U; } while (0)
   TYPED_READ_VISIT_VALUES(state, KILL_READ);
 #undef KILL_READ
-  if ((state->zero_read_relation & ~1U) == handle) state->zero_read_relation = 0U;
+  if ((state->zero_read_relation & ~1U) == handle) typed_read_clear_predicate(state);
   uint8_t root_alias = typed_register_alias_root(state, (uint8_t)(base_reg + 8U));
   for (uint8_t r = 0U; r < 8U; ++r) {
     if (typed_register_alias_root(state, r) == root_alias) state->data_regs[r].read_relation = handle;
@@ -262,8 +267,8 @@ static uint16_t typed_read_capture(M68kRenderLookup *lookup, M68kRenderTypedStat
 static void typed_read_predicate_after(M68kRenderTypedState *state, const M68kInstructionIR *instruction,
     uint16_t direct_test_relation) {
   const M68kSimFormMetadata *meta = m68k_sim_metadata_for_instruction(instruction);
-  uint8_t reg = 0U; uint16_t relation = 0U;
-  if (!meta || meta->flow_kind == M68K_SIM_FLOW_CALL) { state->zero_read_relation = 0U; return; }
+  uint8_t reg = 0U; uint16_t relation = 0U, compare_value = 0U;
+  if (!meta || meta->flow_kind == M68K_SIM_FLOW_CALL) { typed_read_clear_predicate(state); return; }
   if (meta->operation_type == M68K_SIM_OP_TEST && meta->source_operand_index < instruction->operand_count &&
       m68k_sim_operand_width_bytes(instruction, meta->source_operand_index) == 2U) {
     relation = direct_test_relation;
@@ -286,9 +291,12 @@ static void typed_read_predicate_after(M68kRenderTypedState *state, const M68kIn
       meta->dest_operand_index < instruction->operand_count &&
       m68k_sim_operand_width_bytes(instruction, meta->dest_operand_index) == 2U) {
     uint32_t value;
-    if (m68k_ir_operand_immediate_value(&instruction->operands[meta->source_operand_index], &value) && !value &&
-        operand_is_data_register_local(&instruction->operands[meta->dest_operand_index], &reg))
-      relation = state->data_regs[reg].read_relation;
+    if (m68k_ir_operand_immediate_value(&instruction->operands[meta->source_operand_index], &value)) {
+      compare_value = (uint16_t)value;
+      relation = direct_test_relation;
+      if (operand_is_data_register_local(&instruction->operands[meta->dest_operand_index], &reg))
+        relation = state->data_regs[reg].read_relation;
+    }
   } else if (meta->ccr_formula == M68K_SIM_CCR_FORMULA_NONE &&
       (meta->operation_type == M68K_SIM_OP_NOP || meta->operation_type == M68K_SIM_OP_MOVE_MULTIPLE ||
        meta->operation_class == M68K_SIM_CLASS_LOAD_EFFECTIVE_ADDRESS || meta->flow_kind == M68K_SIM_FLOW_BRANCH ||
@@ -296,6 +304,7 @@ static void typed_read_predicate_after(M68kRenderTypedState *state, const M68kIn
        (meta->operation_type == M68K_SIM_OP_MOVE && meta->dest_operand_index < instruction->operand_count &&
         operand_address_register_index_local(&instruction->operands[meta->dest_operand_index], &reg)))) return;
   state->zero_read_relation = (relation & 1U) ? relation : 0U;
+  state->zero_read_compare_value = state->zero_read_relation ? compare_value : 0U;
 }
 
 static void typed_read_refine_edge(const M68kRenderLookup *lookup, const M68kRenderTypedFlowNode *predecessor,
@@ -308,11 +317,17 @@ static void typed_read_refine_edge(const M68kRenderLookup *lookup, const M68kRen
   taken = successor->candidate->offset != predecessor->candidate->offset + predecessor->candidate->byte_count;
   if (!m68k_sim_branch_zero_requirement(&branch, taken, &zero)) return;
   const M68kRenderScalarReadRelation *read = &lookup->scalar_read_relations[handle / 2U - 1U];
-  for (uint8_t i = 0U; i < read->count; ++i) if ((read->values[i] == 0U) == zero) {
+  for (uint8_t i = 0U; i < read->count; ++i) if ((read->values[i] == state->zero_read_compare_value) == zero) {
     roots[count++] = read->roots[i];
     type = count == 1U ? read->types[i] : typed_struct_id_common_merge(lookup->policy, type, read->types[i]);
   }
-  if (read->source_domain_id) type = zero ? read->zero_type : read->nonzero_type;
+  if (read->source_domain_id) {
+    uint16_t equal_type = read->zero_type, unequal_type = read->nonzero_type;
+    if (state->zero_read_compare_value && !typed_read_domain_partition(lookup,
+        &lookup->source_domains[read->source_domain_id - 1U], read->field_cursor,
+        state->zero_read_compare_value, &equal_type, &unequal_type)) return;
+    type = zero ? equal_type : unequal_type;
+  }
   /* Impossible edges remain conservatively unrefined; no reachability claim. */
   if ((!read->source_domain_id && (!count || count == read->count)) || type == AMIGA_OS_STRUCT_ID_NONE) return;
 #define REFINE_READ(value) do { \

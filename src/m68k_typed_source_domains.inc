@@ -29,6 +29,41 @@ static int typed_source_domain_matches(const M68kRenderSourceDomain *domain,
     domain->origin.table_start_offset == request->origin.table_start_offset;
 }
 
+typedef struct M68kSourceDomainValueType {
+  uint16_t value, type;
+} M68kSourceDomainValueType;
+
+static int typed_source_domain_value_compare(const void *left, const void *right) {
+  uint16_t a = ((const M68kSourceDomainValueType *)left)->value;
+  uint16_t b = ((const M68kSourceDomainValueType *)right)->value;
+  return (a > b) - (a < b);
+}
+
+/* Zero/nonzero is only one possible equality partition. Keep a validated
+ * domain when another WORD value selects a stronger type too. Group equal
+ * values before merging their types; an equal-looking base record must absorb
+ * the child. This is O(N log N), not one full member scan per candidate value.
+ * The caller has already validated every field span with the shared partition. */
+static int typed_source_domain_has_refining_value(M68kRenderLookup *lookup,
+    const M68kRenderSourceDomain *domain, int32_t cursor, uint16_t prefix) {
+  M68kSourceDomainValueType *items = arena_calloc(lookup->arena, domain->member_count, sizeof(*items));
+  if (!items) return -1;
+  for (size_t i = 0U; i < domain->member_count; ++i) {
+    const M68kRenderSourceDomainMember *member = &domain->members[i];
+    const uint8_t *bytes = lookup->object->sections[member->section_index].data + member->offset + cursor;
+    items[i].value = ((uint16_t)bytes[0] << 8U) | bytes[1];
+    items[i].type = member->struct_id;
+  }
+  qsort(items, domain->member_count, sizeof(*items), typed_source_domain_value_compare);
+  for (size_t i = 0U; i < domain->member_count;) {
+    uint16_t value = items[i].value, type = items[i++].type;
+    while (i < domain->member_count && items[i].value == value)
+      type = typed_struct_id_common_merge(lookup->policy, type, items[i++].type);
+    if (type != AMIGA_OS_STRUCT_ID_NONE && type != prefix) return 1;
+  }
+  return 0;
+}
+
 static int typed_source_domain_add(M68kRenderLookup *lookup, M68kSourceAnalysisIR *analysis,
     const M68kRenderSourceReadRequest *request, const M68kAddressValueIR *value) {
   M68kRenderSourceDomain domain;
@@ -64,9 +99,12 @@ static int typed_source_domain_add(M68kRenderLookup *lookup, M68kSourceAnalysisI
     if (end > domain.address_end) domain.address_end = end;
   }
   uint16_t zero, nonzero;
-  if (!typed_read_domain_partition(lookup, &domain, request->field_cursor, &zero, &nonzero) ||
-      ((zero == AMIGA_OS_STRUCT_ID_NONE || zero == request->struct_id) &&
-       (nonzero == AMIGA_OS_STRUCT_ID_NONE || nonzero == request->struct_id))) return 0;
+  if (!typed_read_domain_partition(lookup, &domain, request->field_cursor, 0U, &zero, &nonzero)) return 0;
+  if ((zero == AMIGA_OS_STRUCT_ID_NONE || zero == request->struct_id) &&
+      (nonzero == AMIGA_OS_STRUCT_ID_NONE || nonzero == request->struct_id)) {
+    int useful = typed_source_domain_has_refining_value(lookup, &domain, request->field_cursor, request->struct_id);
+    if (useful <= 0) return useful;
+  }
   if (lookup->source_domain_count >= UINT32_MAX) return -1;
   if (lookup->source_domain_count == lookup->source_domain_capacity) {
     size_t capacity = lookup->source_domain_capacity ? lookup->source_domain_capacity * 2U : 8U;

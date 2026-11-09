@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
   "kind": "committed_native_rendered_original_export",
-  "canonical_source_commit": "fd07b5548af9a68064ded66f93dbc895b2259d52",
-  "publication_base_commit": "fd07b5548af9a68064ded66f93dbc895b2259d52",
+  "canonical_source_commit": "8a73b2fb0b07e7bfadc45dc0a61e16e7136249ed",
+  "publication_base_commit": "8a73b2fb0b07e7bfadc45dc0a61e16e7136249ed",
   "native_export": "CListingArtifact.source_package_payload(64)",
   "main_source_sha256": "cffbe2b5cf24661bbe5dab4e5b1c71a71f403a1db5e5bbba1a03c554b87c352e",
   "asset_count": 57,
@@ -24,8 +24,8 @@
     "assembler executable",
     "paused Pandora work"
   ],
-  "canonical_source_commit_role": "Canonical publication base; viewer command/variant consumers qualified through 196 original CPU cases, including actual two-range records and descending second range. 29 continuations, 6 constants, 21 scalar operand names, 23 local field references and the clear-inhibit BYTE expose exact old-value rotation tests, wrap, paused stepping, control return frames and viewport latch ownership. Native access/CFG facts are unchanged. Original zero-toFFFF selector path remains; no universal selector bound, homogeneous world pool, lifetime, full viewer or hardware proof.",
-  "canonical_source_subject_revision": "debe8ea2a3a7ffeae357ce07dca3deb5e654eb1cdddea13469185bc68a4fecdb",
+  "canonical_source_commit_role": "Canonical publication base; shared immediate-WORD equality predicates qualified by 99 focused cases, 92 source-domain/startup regressions and 835 C unit cases. Includes direct memory compares, transported reads, distinct-value joins and nonzero directory partitions with duplicate-tag refusal. Actual SGII access/CFG facts and generated assembly are identical to the publication base. Source and assets are unchanged from the clean standalone build; fresh C/vasm verification is bound by verification_receipt_id. This does not infer a writable runtime tagged layout.",
+  "canonical_source_subject_revision": "250118e4e20690287d63cddb962ce0e769332394fb0729bb599abf15a20a9d59",
   "canonical_fact_sha256": {
     "source_binary.json": "42d4a5758b3e8236af7f912aee85e9ee5323bcd0961faa338c4f864080a0a7d9",
     "target_metadata.json": "e7540b68c118c56aba8815b6722eefa067517cc865fe9841d6c01ce96551389c",
@@ -46,7 +46,7 @@
     },
     "runtime_scope": "Seven CPU write-site windows match this reversible view; no whole runtime-view identity or parent plaintext promotion."
   },
-  "verification_receipt_id": "1612f6184f377ab432186c9f5820403d829b4126358f5ccdddc237fb3ad652dd",
-  "render_native_sha256": "588976b74f2ac565c4db02cfee114a61da66cb8ca9b36fd86a96eed3942e75be",
-  "final_assembler_native_sha256": "588976b74f2ac565c4db02cfee114a61da66cb8ca9b36fd86a96eed3942e75be"
+  "verification_receipt_id": "0dc03303bd193235477707d18bec5e8b2f06638c08976ba46e6cc16c8d865c2e",
+  "render_native_sha256": "27610fd0e1139b1c2c42639e136f248aafb2acf128eceae11afa8e8243eea881",
+  "final_assembler_native_sha256": "27610fd0e1139b1c2c42639e136f248aafb2acf128eceae11afa8e8243eea881"
 }

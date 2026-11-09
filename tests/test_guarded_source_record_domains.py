@@ -82,3 +82,24 @@ def test_directory_relation_survives_known_write_to_another_field(tmp_path, stor
               'lea.l header_0(pc),a1\n' + store + '\n' + GUARD)
     section, _ = check_directory(tmp_path, count=104, loop=False, record_access=access)
     assert any(r['field_name'] == 'extra' for r in section['recovered_platform_typed_accesses']) == expected
+
+
+@pytest.mark.parametrize('count,expected', [(8, True), (64, True), (104, False)])
+@pytest.mark.parametrize('test', ['cmp.w #99,d0', 'cmpi.w #99,-2(a0)'])
+def test_nonzero_tag_partition_admits_only_distinguishable_directory_types(tmp_path, count, expected, test):
+    # Every tag is nonzero: zero/nonzero cannot distinguish these formats.
+    # At104 entries an ordinary Header also has tag99, so equality no longer
+    # identifies the child. Table length is never used as a type-tag invariant.
+    body = f' {test}\n bne.w skip_extra\n move.l 2(a0),d2\nskip_extra:\n'
+    artifact, original = header_table_artifact(tmp_path, count=count, derived=True,
+        zero_counts=False, after_count=body)
+    try:
+        payload = artifact.analysis_payload()[0]
+        assert not payload['incomplete_analysis']
+        section = payload['sections'][0]
+        refs = [r for r in section['recovered_platform_typed_accesses'] if r['field_name'] == 'extra']
+        assert bool(refs) is expected
+        inline = artifact.inline_source_text_with_profile()[0]
+        assert c_backend.assemble_platform_source_text_with_c_backend('amiga-raw', inline)[0] == original
+    finally:
+        artifact.close()

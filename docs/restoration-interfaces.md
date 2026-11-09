@@ -913,6 +913,23 @@ does not prove its contents or a loaded pointer. Source-pointee domains still
 require the separate alias/code-stability and canonical target checks; neither
 the exact-candidate cap nor the eight-value WORD set cap is raised.
 
+Closed source-record predicates also retain the compared WORD for immediate
+equality tests, including direct memory comparisons and transported register
+reads. CCR joins must agree on both the read identity and the comparison value;
+mutation, stale roots, partial widths and unknown calls retain refusal. A
+validated directory can contribute even when every discriminator is nonzero.
+Equal values are grouped before merging their declared types, so a base record
+with the same value absorbs a child rather than proving its extension. Admission
+uses an O(N log N) grouping pass when zero/nonzero alone cannot refine a type;
+it does not enumerate an expanded register-value set. Only branch edges whose
+condition establishes equality or inequality consume this predicate.
+
+This still requires the existing unchanged source snapshot and canonical owner
+domain. An abstract writable object tagged 12 is not thereby a known steered
+projectile layout. Runtime tagged-layout inference would separately need an
+evidenced discriminator-to-layout contract and invalidation when writes or calls
+can change that discriminator. Initial bytes and a table's length supply neither.
+
 A bounded record cursor may retain its one-past-end value after reading the
 last field. A later predecrement can reenter that same record and resolve its
 fields, including after the cursor is stored as an address. Reads or writes at

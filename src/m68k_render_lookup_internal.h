@@ -538,7 +538,8 @@ typedef struct M68kRenderTypedState {
    * Exact local reaching stores may still supply their own value. */
   uint8_t memory_write_barriers;
   uint8_t source_snapshot_entry; /* Must-context flags above; INITIAL_PREFIX ends at calls/hardware. */
-  uint16_t zero_read_relation; /* CCR.Z describes the scalar projection of this read. */
+  uint16_t zero_read_relation; /* CCR.Z tests this scalar projection against the WORD below. */
+  uint16_t zero_read_compare_value;
   M68kRenderTypedStackSlot stack_slots[M68K_RENDER_TYPED_STACK_SLOT_LIMIT];
   size_t stack_slot_count;
   M68kRenderTypedBaseSlot base_slots[M68K_RENDER_TYPED_BASE_SLOT_LIMIT];
