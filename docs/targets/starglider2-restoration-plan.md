@@ -28,6 +28,12 @@ and strengthened 38 app-base attributions.
 Conditional skips mean104 outer iterations are not104 observed memory reads.
 Loaded pointer values remain subject to separate alias/target validation.
 
+Known string facts now contribute pointer-pool context, recovering the 23-byte
+leading-space line at $38FB4. Nine fixtures include opaque/unreferenced/numeric
+refusals and 70-target growth; 56 Python and 838 C cases pass with exact C/vasm
+and standalone output. Access/CFG facts and accepted-range totals (10033/278)
+are unchanged. Next reconstruct dialogue-selector priority and cursor behavior.
+
 Pointer-table address mapping rejects numeric source-offset coincidences and
 ambiguous mappings. Indexed pointer reads now expose the existing converged CFG
 base candidates to discovery, preserving unknown, partial-write, call and overflow

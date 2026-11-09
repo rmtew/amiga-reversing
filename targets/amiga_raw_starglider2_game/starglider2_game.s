@@ -50251,8 +50251,7 @@ abs_0_00038F80:
 abs_0_00038F9B:
 	dc.b "..designing new weapons.",$00
 abs_0_00038FB4:
-	dc.b $20,$49,$66,$20,$79,$6F,$75,$20,$73,$68,$6F,$75,$6C,$64,$20,$66
-	dc.b $69,$6E,$64,$2E,$2E,$2E,$00
+	dc.b " If you should find...",$00
 abs_0_00038FCB:
 	dc.b "..he said that he had...",$00
 abs_0_00038FE4:

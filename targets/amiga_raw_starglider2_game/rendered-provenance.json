@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
   "kind": "committed_native_rendered_original_export",
-  "canonical_source_commit": "3d9526c17e7fb13cb2c5cdc9cfcec5f195f824ce",
-  "publication_base_commit": "3d9526c17e7fb13cb2c5cdc9cfcec5f195f824ce",
+  "canonical_source_commit": "9342e94bd6f75e79236c645c3defebd6a124c4c6",
+  "publication_base_commit": "9342e94bd6f75e79236c645c3defebd6a124c4c6",
   "native_export": "CListingArtifact.source_package_payload(64)",
-  "main_source_sha256": "65ef826dbcd620a5b127840e74893f186c849caf2b0bcf658c51468621890d68",
+  "main_source_sha256": "ec716f59e32a8effa438dc0eec67d6060b71799de24200ab6978ffb4372a1f9d",
   "asset_count": 57,
   "asset_bytes": 93633,
   "game_assembly_hand_edits": false,
@@ -24,8 +24,8 @@
     "assembler executable",
     "paused Pandora work"
   ],
-  "canonical_source_commit_role": "Canonical publication base; indexed pointer-read bases now project existing converged CFG candidates into table discovery, including explicit unknown coverage without a fabricated null value. SGII automatically gains three dialogue directories and 19 symbolic LONG fields over 76 bytes; ten encoded-reference identities are newly exposed, none withdrawn. Four shared-reader bases remain alternatives, not one exact expression or an index bound. App/typed/unresolved/CFG records unchanged; unclassified union 10033 bytes/278 intervals. Also fixes same-view d16-PC addresses into accepted instruction extensions using enclosing-label addends, without code promotion. 113 focused Python and 838 C cases pass; original C/vasm and clean standalone bytes exact. Source-only workflows retain existing discovery, and mixed mapped/raw joins remain conservative. No gameplay or timing claim.",
-  "canonical_source_subject_revision": "27defa6bf9be0b9bd71212abb5db1094f00d529fa44c796888ffb2360be8fc49",
+  "canonical_source_commit_role": "Canonical publication base; known-string context recovers the 23-byte referenced line at $38FB4. App/typed/CFG records and accepted-range totals (10033/278) are unchanged. Original bytes remain exact through C/vasm and standalone rebuilding.",
+  "canonical_source_subject_revision": "84b7e3915ef326ad23f8142174cb6aec8be460ae95c2d0ad3c3d8530614017f4",
   "canonical_fact_sha256": {
     "source_binary.json": "42d4a5758b3e8236af7f912aee85e9ee5323bcd0961faa338c4f864080a0a7d9",
     "target_metadata.json": "e7540b68c118c56aba8815b6722eefa067517cc865fe9841d6c01ce96551389c",
@@ -46,7 +46,7 @@
     },
     "runtime_scope": "Seven CPU write-site windows match this reversible view; no whole runtime-view identity or parent plaintext promotion."
   },
-  "verification_receipt_id": "9bc4955d78b234b6b775ff141f6611a8a9089140c73d9351a41ee7839cedb179",
-  "render_native_sha256": "6da9c994aaf6ecf4b75f7b2e695c3b6edbde2e9c8c637f7a22d0bc6bbc9df0ac",
-  "final_assembler_native_sha256": "6da9c994aaf6ecf4b75f7b2e695c3b6edbde2e9c8c637f7a22d0bc6bbc9df0ac"
+  "verification_receipt_id": "74846f527d3f508fd574e720958de7d2a100dc10d55c94e4686b9a91859c2729",
+  "render_native_sha256": "d9bbb58637e2fe70a4b814c03286655e9bae7cdc75b4161ebd33c89f8f26b0ef",
+  "final_assembler_native_sha256": "d9bbb58637e2fe70a4b814c03286655e9bae7cdc75b4161ebd33c89f8f26b0ef"
 }

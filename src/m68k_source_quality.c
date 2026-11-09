@@ -6679,6 +6679,7 @@ static int source_quality_pointer_table_value_to_pointer_string_target(
 
 static int append_pointer_table_target_strings_for_item(M68kSourceAnalysisIR *source_analysis,
     const M68kDecodeIR *decode, uint8_t *const *accepted_bytes, const M68kAnalysisStructuredDataItem *item) {
+  M68kAnalysisStructuredDataItem item_copy;
   const M68kDecodeSectionIR *section;
   M68kSectionAnalysisIR *section_analysis;
   size_t decode_index = 0U;
@@ -6695,6 +6696,8 @@ static int append_pointer_table_target_strings_for_item(M68kSourceAnalysisIR *so
         M68K_ANALYSIS_STRUCTURED_DATA_ROLE_LOOKUP_TABLE)) == 0U) {
     return 0;
   }
+  /* Appending discovered strings can grow the containing item array. */
+  item_copy = *item; item = &item_copy;
   explicit_pointer_string_table =
     item->source_pattern_id == M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_POINTER_STRING_TABLE;
   allow_single_dense_target =
@@ -6714,6 +6717,12 @@ static int append_pointer_table_target_strings_for_item(M68kSourceAnalysisIR *so
       uint32_t span;
       if (!source_quality_pointer_table_value_to_source_offset(source_analysis, section_analysis, section->size, value,
           item->pointer_address_domain, &target_offset)) {
+        continue;
+      }
+      /* Ownership blocks rescanning known text, not reuse of its canonical
+       * classification as evidence for this directory's adjacent text pool. */
+      if (source_quality_existing_string_item_starts_at(source_analysis, section_index, target_offset)) {
+        ++dense_string_count;
         continue;
       }
       span = source_quality_pointer_table_target_c_string_span(section, accepted_bytes[decode_index],
