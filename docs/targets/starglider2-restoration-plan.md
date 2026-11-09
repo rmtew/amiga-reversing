@@ -1,7 +1,7 @@
 # Starglider 2: original source restoration
 
-Status: **paused after the current admission/backface batch on 2026-10-31, at
-the user's request**. Do not start another batch without resumption. The earlier
+Status: **resumed on 2026-11-09 at the user's request**. The retirement-face
+producer batch below continues the original absolute-source restoration. The earlier
 original-layout reviewed closeout and ZIP are historical milestones, not a claim
 that further analysis is exhausted. Current source remains byte exact: all
 412736 original bytes rebuild through C/vasm and a clean standalone export,
@@ -28,6 +28,22 @@ and strengthened 38 app-base attributions.
 Conditional skips mean104 outer iterations are not104 observed memory reads.
 Loaded pointer values remain subject to separate alias/target validation.
 
+The retirement-face batch qualifies 104 original CPU cases and restores 26
+continuations, five constants and 12 operand representations, including five
+instruction-local field bindings. Actual variant/cache transforms retain record
+tail bytes; inclusive axis-flag clearing precedes the zero-last-index exit.
+Wrapped cross terms truncate before phase multiplication. Surface Y bias changes
+only the low WORD before LONG shifting. N-only clamps subtract once per clamped
+axis, including maximum equality; packets retain the last projected depth rather
+than an average. Rejection skips unread offsets, withdraws the early reference
+and count, and lets the next face reuse the packet position. Entry/post-face
+signed count >145 guards remain distinct from other producers. Native access and
+CFG facts, classification totals and all original bytes are unchanged. These are
+finite supplied CPU frames, not universal model/phase domains, workspace capacity,
+lifetime, normal-game reachability or scanout proof. Next: inspect actual
+retirement caller/phase producers and high-reference generic-field candidates,
+checking existing parent/field projection before claiming missing semantics.
+
 The admission/backface closeout qualifies 415 CPU cases and restores 16
 continuations, five constants and twelve instruction-local field bindings.
 **Correction:** the old `model_force_face_admission_word` name and bypass claim
@@ -41,7 +57,7 @@ all faces. Actual cache misses, model47 RNG and admission-to-packet handoff are
 qualified; positive view tags and negative bulk-transform tags retain distinct
 roles. No new model/index bound, lifetime, capacity, final visibility, normal-game
 or hardware claim is added. Remaining unresolved accesses, caller/domain and
-phase obligations are deferred while paused; no follow-on batch has begun.
+phase obligations remain separate from the retirement producer reconstruction below.
 
 The ground-face batch qualifies 215 CPU cases with actual encoded-coordinate
 cache transforms and built-matrix calls, variant selection and ground drop.

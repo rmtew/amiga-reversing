@@ -1715,6 +1715,11 @@ SG2_PSG_PROJECTILE_VOLUME_REGISTER	EQU	8
 SG2_PSG_TYPES1_15_DECAY_PHASE_MASK	EQU	7
 SG2_RADIAL_FIRST_SHIFT_THRESHOLD	EQU	524288
 SG2_RADIAL_SHIFT_DBF_LAST	EQU	9
+SG2_RETIREMENT_FACE_COUNT_MASK	EQU	7
+SG2_RETIREMENT_FALLBACK_HEADER_OFFSET	EQU	$BC
+SG2_RETIREMENT_FAR_DIVIDE_DEPTH	EQU	12000
+SG2_RETIREMENT_FILL_STYLE_MASK	EQU	15
+SG2_RETIREMENT_SKIPPED_VERTEX_COUNT	EQU	2
 SG2_ROTATION2_DAMAGE_JITTER_BIAS	EQU	32
 SG2_ROTATION2_DAMAGE_JITTER_MASK	EQU	62
 SG2_ROTATION2_SPIN_PHASE_STEP	EQU	64
@@ -6924,28 +6929,29 @@ prepare_retirement_model_faces:
 	move.l (a0)+,active_model_coordinate_pool(a6)
 	clr.l active_model_vertex_variant_data(a6)
 	move.l (a0),d0
-	beq.b abs_0_0000539A
+	beq.b build_retirement_rotation_and_emit_faces
 	moveq.l #0,d1
 	move.b $0003(a4),d1
-	beq.b abs_0_0000539A
+	beq.b build_retirement_rotation_and_emit_faces
 	subq.w #1,d1
 	movea.l d0,a1
 	add.w d1,d1
 	add.w d1,d1
 	move.l $0(a1,d1.w),active_model_vertex_variant_data(a6)
-abs_0_0000539A:
+build_retirement_rotation_and_emit_faces:
 	bsr.w build_model_view_rotation_matrix
 	move.l a4,-(a7)
 	bsr.w transform_retirement_vertices_and_faces
 	movea.l (a7)+,a4
 	move.b #$22,diagnostic_step_byte.l
+    ; BYTE phase subtraction uses N only. If it passes and the skip latch is zero, scale increments and model47 is rendered with variants cleared; no universal selector or phase bound follows.
 	cmpi.b #3,active_model_retirement_phase_byte(a6)
 	bmi.w return_without_more_model_polygons
 	tst.b retirement_model_skip_fallback_flag.l
 	bne.w return_without_more_model_polygons
 	addq.w #1,active_model_scale_shift(a6)
 	lea.l model_header_pointers.l,a0
-	movea.l $00BC(a0),a0
+	movea.l SG2_RETIREMENT_FALLBACK_HEADER_OFFSET(a0),a0
 	move.w (a0)+,model_last_vertex_index(a6)	; operand 1: SG2ModelHeader_last_vertex_index at (a0)+
 	move.l (a0)+,active_model_header_counts(a6)	; operand 1: SG2ModelHeader_face_count at (a0)+
 	move.l (a0)+,active_model_face_commands(a6)	; operand 1: SG2ModelHeader_face_commands at (a0)+
@@ -6958,64 +6964,68 @@ transform_retirement_vertices_and_faces:
 	moveq.l #0,d0
 	lea.l model_cache_x_negative_terms.l,a0
 	move.w active_model_header_counts+SG2ModelHeaderCounts_coordinate_word_count(a6),d1
-abs_0_00005400:
+    ; Clear three axis-cache flags for coordinate_count+1 entries by DBF. Last vertex index0 then returns without transforming a vertex or reading a face.
+clear_retirement_coordinate_cache_flags:
 	move.w d0,(a0)
 	move.w d0,$12C0(a0)
 	move.w d0,$2580(a0)
 	addq.l #8,a0
-	dbf.w d1,abs_0_00005400
+	dbf.w d1,clear_retirement_coordinate_cache_flags
 	move.w model_last_vertex_index(a6),d7
-	beq.w abs_0_0000565C
+	beq.w return_from_retirement_face_transform
 	lea.l model_view_vertex_scratch_prefix(a6),a3
 	movea.l active_model_vertex_reference_records(a6),a5
-abs_0_00005420:
-	move.w $0006(a5),d1
-	bmi.b abs_0_00005436
+read_retirement_vertex_coordinate_references:
+	move.w SG2VertexReferences_variant_offset_or_negative(a5),d1
+	bmi.b load_default_retirement_vertex_references
 	move.l active_model_vertex_variant_data(a6),d0
-	beq.b abs_0_00005436
+	beq.b load_default_retirement_vertex_references
 	movea.l d0,a0
 	movem.w $0(a0,d1.w),d1-d3
-	bra.b abs_0_0000543A
-abs_0_00005436:
+	bra.b transform_and_store_retirement_view_vertex
+load_default_retirement_vertex_references:
 	movem.w (a5),d1-d3
-abs_0_0000543A:
+    ; Transform selected encoded coordinates and write XYZ only; stride8 preserves record tail bytes. Indirect (An) forms retain their original encoding without a zero-displacement extension.
+transform_and_store_retirement_view_vertex:
 	bsr.w transform_encoded_vertex_coordinates
 	movem.w d1-d3,(a3)
 	addq.w #8,a5
 	addq.w #8,a3
-	dbf.w d7,abs_0_00005420
+	dbf.w d7,read_retirement_vertex_coordinate_references
 	move.b #$23,diagnostic_step_byte.l
 	movea.l active_model_face_commands(a6),a4
 	move.w active_model_header_counts(a6),d0
-	beq.w abs_0_0000565C
+	beq.w return_from_retirement_face_transform
 	subq.w #1,d0
-abs_0_00005460:
+    ; Header bits8..10 count vertices; count2 skips offsets before geometry. Low-nibble style makes the following negative-style fallback unreachable on this path. Zero count is unguarded.
+read_next_retirement_face_command:
 	move.w d0,saved_model_face_loop_index(a6)
 	move.w (a4)+,d1
 	move.w d1,d2
-	andi.w #15,d1
+	andi.w #SG2_RETIREMENT_FILL_STYLE_MASK,d1
 	move.w d1,drawing_fill_style_word(a6)
 	lsr.w #8,d2
-	andi.w #7,d2
+	andi.w #SG2_RETIREMENT_FACE_COUNT_MASK,d2
 	move.w d2,model_face_vertex_count_scratch(a6)
-	cmp.w #$2,d2
-	beq.w abs_0_0000565E
+	cmp.w #SG2_RETIREMENT_SKIPPED_VERTEX_COUNT,d2
+	beq.w skip_retirement_face_vertex_offsets
 	tst.w drawing_fill_style_word(a6)
-	bpl.b abs_0_00005492
+	bpl.b derive_retirement_face_displacement
 	move.w d0,drawing_fill_style_word(a6)
-	andi.w #15,drawing_fill_style_word(a6)
-abs_0_00005492:
+	andi.w #SG2_RETIREMENT_FILL_STYLE_MASK,drawing_fill_style_word(a6)
+    ; WORD edges feed wrapped LONG cross products, shifted5 for X/Z or6 for Y. Terms truncate to signed WORD before phase multiplication, then shift3. Displacement writes preserve slot tail WORDs.
+derive_retirement_face_displacement:
 	lea.l model_view_vertex_scratch_prefix(a6),a3
 	move.w (a4),d4
-	movem.w $0(a3,d4.w),d5-d7
+	movem.w SG2ViewVertex_view_x(a3,d4.w),d5-d7
 	move.w $0002(a4),d4
-	movem.w $0(a3,d4.w),d1-d3
+	movem.w SG2ViewVertex_view_x(a3,d4.w),d1-d3
 	sub.w d5,d1
 	sub.w d6,d2
 	sub.w d7,d3
 	movem.w d1-d3,retirement_face_edge_delta(a6)
 	move.w $0004(a4),d4
-	movem.w $0(a3,d4.w),d1-d3
+	movem.w SG2ViewVertex_view_x(a3,d4.w),d1-d3
 	sub.w d5,d1
 	sub.w d6,d2
 	sub.w d7,d3
@@ -7036,23 +7046,25 @@ abs_0_00005492:
 	asr.l #6,d5
 	muls.w active_model_retirement_phase_word(a6),d5
 	tst.b space_environment_flag(a6)
-	bmi.b abs_0_00005508
+	bmi.b shift_retirement_y_displacement
 	move.w active_model_retirement_phase_word(a6),d6
 	lea.l retirement_face_y_bias_prefix(pc),a5
 	andi.w #65534,d6
 	add.w $0(a5,d6.w),d5
-abs_0_00005508:
+    ; Surface bias changes only the low WORD of the Y product before LONG shift; upper product bits survive. Even-indexed bias prefix is not a runtime phase bound.
+shift_retirement_y_displacement:
 	asr.l #3,d5
 	move.w d5,retirement_face_displacement_y(a6)
 	tst.b space_environment_flag(a6)
-	bmi.b abs_0_0000552E
+	bmi.b derive_retirement_z_displacement_and_open_packet
 	tst.b player_ejection_active_flag.l
-	bmi.b abs_0_0000552E
+	bmi.b derive_retirement_z_displacement_and_open_packet
 	btst.b #5,abs_0_000049AC.l
-	bne.b abs_0_0000552E
+	bne.b derive_retirement_z_displacement_and_open_packet
 	sub.w model_origin_delta_y(a6),d5
-	bpl.w abs_0_0000565E
-abs_0_0000552E:
+	bpl.w skip_retirement_face_vertex_offsets
+    ; Surface Y rejection uses the N bit of displacement minus origin, unless space, ejection or object bit5 bypasses it. Z displacement and packet opening occur only after that gate.
+derive_retirement_z_displacement_and_open_packet:
 	move.w d2,d5
 	muls.w retirement_face_edge_delta(a6),d5
 	move.w d1,d6
@@ -7077,24 +7089,25 @@ abs_0_0000552E:
 	move.w #$7FFF,d6
 	move.w #$8000,d5
 	move.w d7,d4
-abs_0_0000558A:
+    ; Publish reference/count before projection. Signed depth<=128 rejects; depth>=12000 divides, otherwise even-masked depth indexes the reciprocal table. No capacity or selector bound is added.
+project_next_displaced_retirement_vertex:
 	move.w (a4)+,d0
-	movem.w $0(a3,d0.w),d1-d3
+	movem.w SG2ViewVertex_view_x(a3,d0.w),d1-d3
 	add.w retirement_face_displacement_x(a6),d1
 	add.w retirement_face_displacement_y(a6),d2
 	add.w retirement_face_displacement_z(a6),d3
-	cmp.w #$80,d3
-	ble.w abs_0_00005668
-	cmp.w #$2EE0,d3
-	blt.b abs_0_000055BA
+	cmp.w #SG2_CLIP_NEAR_DEPTH,d3
+	ble.w skip_unread_retirement_depth_rejection_offsets
+	cmp.w #SG2_RETIREMENT_FAR_DIVIDE_DEPTH,d3
+	blt.b project_retirement_vertex_using_reciprocal
 	ext.l d1
 	ext.l d2
 	asl.l #7,d1
 	asl.l #7,d2
 	divs.w d3,d1
 	divs.w d3,d2
-	bra.b abs_0_000055CE
-abs_0_000055BA:
+	bra.b offset_and_score_retirement_vertex_clamps
+project_retirement_vertex_using_reciprocal:
 	andi.w #65534,d3
 	muls.w $0(a5,d3.w),d1
 	muls.w $0(a5,d3.w),d2
@@ -7102,79 +7115,82 @@ abs_0_000055BA:
 	add.l d2,d2
 	swap.w d1
 	swap.w d2
-abs_0_000055CE:
+    ; N-only clamps decrement a vertex-count score for EACH clamped axis, including equality at either maximum. Nonpositive final score rejects; these are not overflow-aware signed comparisons.
+offset_and_score_retirement_vertex_clamps:
 	add.w projection_screen_origin_x(a6),d1
 	add.w projection_screen_origin_y(a6),d2
 	cmp.w view_clip_min_x(a6),d1
-	bpl.b abs_0_000055E2
+	bpl.b score_retirement_maximum_x_clamp
 	move.w view_clip_min_x(a6),d1
 	subq.w #1,d4
-abs_0_000055E2:
+score_retirement_maximum_x_clamp:
 	cmp.w view_clip_max_x(a6),d1
-	bmi.b abs_0_000055EE
+	bmi.b score_retirement_minimum_y_clamp
 	move.w view_clip_max_x(a6),d1
 	subq.w #1,d4
-abs_0_000055EE:
+score_retirement_minimum_y_clamp:
 	cmp.w view_clip_min_y(a6),d2
-	bpl.b abs_0_000055FA
+	bpl.b score_retirement_maximum_y_clamp
 	move.w view_clip_min_y(a6),d2
 	subq.w #1,d4
-abs_0_000055FA:
+score_retirement_maximum_y_clamp:
 	cmp.w view_clip_max_y(a6),d2
-	bmi.b abs_0_00005606
+	bmi.b accumulate_retirement_screen_x_extent
 	move.w view_clip_max_y(a6),d2
 	subq.w #1,d4
-abs_0_00005606:
+accumulate_retirement_screen_x_extent:
 	cmp.w d1,d6
-	ble.b abs_0_0000560C
+	ble.b accumulate_retirement_maximum_screen_x
 	move.w d1,d6
-abs_0_0000560C:
+accumulate_retirement_maximum_screen_x:
 	cmp.w d1,d5
-	bge.b abs_0_00005612
+	bge.b append_retirement_screen_vertex
 	move.w d1,d5
-abs_0_00005612:
+append_retirement_screen_vertex:
 	move.w d1,(a1)+
 	move.w d2,(a1)+
 	subq.w #1,d7
-	bne.w abs_0_0000558A
+	bne.w project_next_displaced_retirement_vertex
 	tst.w d4
-	ble.w abs_0_0000566E
+	ble.w withdraw_retirement_face_reference
 	andi.w #65520,d6
 	andi.w #65520,d5
 	sub.w d6,d5
-	beq.b abs_0_0000563A
+	beq.b negate_retirement_single_group_style
 	addq.w #1,d5
-	beq.b abs_0_00005636
+	beq.b extend_retirement_boundary_style
 	subq.w #2,d5
-	bne.b abs_0_0000563C
-abs_0_00005636:
+	bne.b publish_retirement_packet_and_last_depth
+extend_retirement_boundary_style:
 	addi.w #16,(a2)
-abs_0_0000563A:
+negate_retirement_single_group_style:
 	neg.w (a2)
-abs_0_0000563C:
+    ; Append FFFF, publish packet cursor and store the LAST projected depth, not an average. Reciprocal projection may have even-masked that depth. Post-face count rejects only signed values>145.
+publish_retirement_packet_and_last_depth:
 	move.w #$FFFF,(a1)+
 	move.l a1,scene_polygon_write_cursor.l
 	move.w d3,-$0002(a2)
-abs_0_0000564A:
+test_retirement_count_before_next_face:
 	cmpi.w #SG2_SCENE_PACKET_COUNT_THRESHOLD,scene_packet_count.l
-	bgt.b abs_0_0000565C
+	bgt.b return_from_retirement_face_transform
 	move.w saved_model_face_loop_index(a6),d0
-	dbf.w d0,abs_0_00005460
-abs_0_0000565C:
+	dbf.w d0,read_next_retirement_face_command
+return_from_retirement_face_transform:
 	rts
-abs_0_0000565E:
+skip_retirement_face_vertex_offsets:
 	move.w model_face_vertex_count_scratch(a6),d4
 	add.w d4,d4
 	adda.w d4,a4
-	bra.b abs_0_0000564A
-abs_0_00005668:
+	bra.b test_retirement_count_before_next_face
+    ; Skip still-unread offsets from the remaining vertex count before withdrawing the early reference/count. Earlier packet bytes remain; the next face reuses the unchanged global packet cursor.
+skip_unread_retirement_depth_rejection_offsets:
 	adda.w d7,a4
 	adda.w d7,a4
 	subq.w #2,a4
-abs_0_0000566E:
+withdraw_retirement_face_reference:
 	subq.l #4,scene_reference_write_cursor.l
 	subq.w #1,scene_packet_count.l
-	bra.b abs_0_0000564A
+	bra.b test_retirement_count_before_next_face
 retirement_face_y_bias_prefix:
 	dc.w $0000,$FFB0,$FF6A,$FF2E,$FEFC,$FED4,$FEB6,$FEA2	; Signed phase-indexed Y displacement bias, conditional original-use prefix
 	dc.w $FEA2,$FEB6,$FED4,$FEFC,$FF2E,$FF6A,$FFB0,$0000
