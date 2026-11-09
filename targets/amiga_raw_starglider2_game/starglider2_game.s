@@ -1776,6 +1776,12 @@ SG2_TYPE90_CHAIN_STRIP_FULL_WIDTH	EQU	400
 SG2_TYPE90_CHAIN_STRIP_HALF_WIDTH	EQU	200
 SG2_TYPE90_CROSS_LIMIT	EQU	600
 SG2_TYPE90_FIXED_POWER_ADD	EQU	400
+SG2_VIEWER_ANIMATE_TOWARD_END	EQU	1
+SG2_VIEWER_ANIMATE_TOWARD_START	EQU	255
+SG2_VIEWER_ANIMATION_PAUSED	EQU	128
+SG2_VIEWER_ROTATION_STEP_INCREMENT	EQU	4
+SG2_VIEWER_ROTATION_STEP_LOWER_TEST	EQU	-128
+SG2_VIEWER_ROTATION_STEP_UPPER_TEST	EQU	128
 SG2_VIEW_ANGLE_KEY_STEP	EQU	32
 SG2_VIEW_BELOW_OFFSET_WORD	EQU	64512
 SG2_VIEW_DIRECTION_INDEX_MASK	EQU	7
@@ -17816,7 +17822,7 @@ enter_model_viewer:
 	clr.b display_buffer_table_byte_offset(a6)
 	bsr.w count_and_present_frame_handoff_bridge_00ed88
 	clr.w ground_face_projection_enabled_word.l
-	clr.w abs_0_0000FD4C.l
+	clr.w model_viewer_viewport_clear_inhibit_byte.l
 	bsr.w install_sine_cosine_pointers_bridge_00ed7c
 	clr.w view_rotation_0(a6)
 	clr.w view_rotation_1(a6)
@@ -17972,7 +17978,7 @@ abs_0_0000EC46:
 	nop
 	move.w #$1E,horizon_ground_split_row.l
 	move.w #$80,horizon_clip_max_y_snapshot.l
-	tst.b abs_0_0000FD4C.l
+	tst.b model_viewer_viewport_clear_inhibit_byte.l
 	bne.b abs_0_0000EC8C
 	move.w #$0,d0
 	bsr.w clear_amiga_viewport_bridge_00ed9a
@@ -18409,10 +18415,10 @@ service_model_viewer_controls:
 	move.w d0,model_origin_delta_z(a6)
     ; Nonzero blocking-input flag waits for a translated key; zero polls. No original writer or complete incoming-state contract is established for that flag.
 	tst.b model_viewer_blocking_input_flag(a6)
-	beq.b abs_0_0000EE66
+	beq.b poll_model_viewer_command_without_waiting
 	bsr.w wait_for_translated_key
 	bra.b dispatch_model_viewer_command_key
-abs_0_0000EE66:
+poll_model_viewer_command_without_waiting:
 	bsr.w poll_translated_command_key
 dispatch_model_viewer_command_key:
 	cmp.b #$2C,d0
@@ -18422,58 +18428,60 @@ dispatch_model_viewer_command_key:
 	cmp.b #$2F,d0
 	beq.w read_model_viewer_index_selection
 	cmp.b #$51,d0
-	beq.w abs_0_0000F008
+	beq.w leave_model_viewer_through_outer_return
 	cmp.b #$1B,d0
-	beq.w abs_0_0000F008
+	beq.w leave_model_viewer_through_outer_return
 	cmp.b #$44,d0
-	beq.w abs_0_0000F046
+	beq.w toggle_model_viewer_viewport_clear_inhibit
 	cmp.b #$58,d0
-	beq.w abs_0_0000F112
+	beq.w increase_viewer_rotation_step_0
 	cmp.b #$53,d0
-	beq.w abs_0_0000F124
+	beq.w decrease_viewer_rotation_step_0
 	cmp.b #$59,d0
-	beq.w abs_0_0000F136
+	beq.w increase_viewer_rotation_step_1
 	cmp.b #$54,d0
-	beq.w abs_0_0000F148
+	beq.w decrease_viewer_rotation_step_1
 	cmp.b #$5A,d0
-	beq.w abs_0_0000F15A
+	beq.w increase_viewer_rotation_step_2
 	cmp.b #$41,d0
-	beq.w abs_0_0000F16C
+	beq.w decrease_viewer_rotation_step_2
 	cmp.b #$50,d0
 	beq.w stop_model_viewer_rotation
 	cmp.b #$52,d0
 	beq.w reset_model_viewer_rotation
 	tst.b debug_features_enabled_flag(a6)
-	beq.w abs_0_0000EEEA
+	beq.w test_model_viewer_scale_digit
 	cmp.b #$48,d0
 	beq.w toggle_model_face_culling
-abs_0_0000EEEA:
+test_model_viewer_scale_digit:
 	cmp.b #$30,d0
-	blt.w abs_0_0000EF08
+	blt.w dispatch_enabled_model_viewer_animation
 	cmp.b #$38,d0
-	bgt.w abs_0_0000EF08
+	bgt.w dispatch_enabled_model_viewer_animation
 	subi.b #48,d0
 	andi.w #15,d0
 	move.w d0,active_model_scale_shift(a6)
 	rts
-abs_0_0000EF08:
+    ; Animation0 disables the E/arrow controls too;80 pauses idle stepping. State1 steps toward end, every other active non80 state toward start. Digit0..8 scale commands return before animation.
+dispatch_enabled_model_viewer_animation:
 	move.b model_viewer_animation_state(a6),d3
-	beq.w abs_0_0000F00E
+	beq.w return_without_viewer_animation_step
 	lea.l world_object_pool(a6),a4
 	cmp.b #$45,d0
-	beq.w abs_0_0000F010
+	beq.w pause_model_viewer_animation
 	cmp.b #$8E,d0
-	beq.w abs_0_0000F022
+	beq.w single_step_model_viewer_variant_toward_start
 	cmp.b #$8D,d0
-	beq.w abs_0_0000F02C
+	beq.w animate_model_viewer_variants_toward_start
 	cmp.b #$8C,d0
-	beq.w abs_0_0000F034
+	beq.w animate_model_viewer_variants_toward_end
 	cmp.b #$8F,d0
-	beq.w abs_0_0000F018
-	cmp.b #$80,d3
-	beq.w abs_0_0000F00E
-	cmp.b #$1,d3
+	beq.w single_step_model_viewer_variant_toward_end
+	cmp.b #SG2_VIEWER_ANIMATION_PAUSED,d3
+	beq.w return_without_viewer_animation_step
+	cmp.b #SG2_VIEWER_ANIMATE_TOWARD_END,d3
 	beq.w step_model_variant_toward_end
+    ; Two BYTE endpoint pairs: reaching start wraps to a range end, reaching end to a range start. Negative second start disables that pair. BYTE updates wrap; no model/pair bound follows.
 step_model_variant_toward_start:
 	moveq.l #0,d0
 	moveq.l #0,d1
@@ -18481,29 +18489,29 @@ step_model_variant_toward_start:
 	lsl.w #2,d0
 	move.b model_viewer_bounds_pair_offset(a6),d1
 	lea.l model_viewer_animation_bounds.l,a0
-	lea.l $0(a0,d0.w),a0
-	move.b $0(a0,d1.w),d2
-	cmp.b $0003(a4),d2
-	bne.w abs_0_0000EF96
+	lea.l SG2ViewerAnimationBounds_first_start_or_disabled(a0,d0.w),a0
+	move.b SG2ViewerAnimationBounds_first_start_or_disabled(a0,d1.w),d2
+	cmp.b SG2VariantObject_vertex_variant_selector(a4),d2
+	bne.w step_viewer_variant_using_start_range_direction
 	tst.b d1
-	beq.b abs_0_0000EF80
-abs_0_0000EF74:
-	move.b $0001(a0),$0003(a4)
+	beq.b select_second_viewer_range_from_start
+wrap_viewer_variant_to_first_range_end:
+	move.b SG2ViewerAnimationBounds_first_end(a0),SG2VariantObject_vertex_variant_selector(a4)
 	clr.b model_viewer_bounds_pair_offset(a6)
 	rts
-abs_0_0000EF80:
-	tst.b $0002(a0)
-	bmi.w abs_0_0000EF74
+select_second_viewer_range_from_start:
+	tst.b SG2ViewerAnimationBounds_second_start_or_disabled(a0)
+	bmi.w wrap_viewer_variant_to_first_range_end
 	move.b #$2,model_viewer_bounds_pair_offset(a6)
-	move.b $0003(a0),$0003(a4)
+	move.b SG2ViewerAnimationBounds_second_end(a0),SG2VariantObject_vertex_variant_selector(a4)
 	rts
-abs_0_0000EF96:
-	cmp.b $1(a0,d1.w),d2
-	bcs.w abs_0_0000EFA4
-	addq.b #1,$0003(a4)
+step_viewer_variant_using_start_range_direction:
+	cmp.b SG2ViewerAnimationBounds_first_end(a0,d1.w),d2
+	bcs.w decrement_viewer_variant_toward_start
+	addq.b #1,SG2VariantObject_vertex_variant_selector(a4)
 	rts
-abs_0_0000EFA4:
-	subq.b #1,$0003(a4)
+decrement_viewer_variant_toward_start:
+	subq.b #1,SG2VariantObject_vertex_variant_selector(a4)
 	rts
 step_model_variant_toward_end:
 	moveq.l #0,d0
@@ -18512,56 +18520,58 @@ step_model_variant_toward_end:
 	lsl.w #2,d0
 	move.b model_viewer_bounds_pair_offset(a6),d1
 	lea.l model_viewer_animation_bounds.l,a0
-	lea.l $0(a0,d0.w),a0
-	move.b $1(a0,d1.w),d2
-	cmp.b $0003(a4),d2
-	bne.w abs_0_0000EFF4
+	lea.l SG2ViewerAnimationBounds_first_start_or_disabled(a0,d0.w),a0
+	move.b SG2ViewerAnimationBounds_first_end(a0,d1.w),d2
+	cmp.b SG2VariantObject_vertex_variant_selector(a4),d2
+	bne.w step_viewer_variant_using_end_range_direction
 	tst.b d1
-	beq.w abs_0_0000EFDE
-abs_0_0000EFD4:
-	move.b (a0),$0003(a4)
+	beq.w select_second_viewer_range_from_end
+wrap_viewer_variant_to_first_range_start:
+	move.b (a0),SG2VariantObject_vertex_variant_selector(a4)
 	clr.b model_viewer_bounds_pair_offset(a6)
 	rts
-abs_0_0000EFDE:
-	tst.b $0002(a0)
-	bmi.w abs_0_0000EFD4
+select_second_viewer_range_from_end:
+	tst.b SG2ViewerAnimationBounds_second_start_or_disabled(a0)
+	bmi.w wrap_viewer_variant_to_first_range_start
 	move.b #$2,model_viewer_bounds_pair_offset(a6)
-	move.b $0002(a0),$0003(a4)
+	move.b SG2ViewerAnimationBounds_second_start_or_disabled(a0),SG2VariantObject_vertex_variant_selector(a4)
 	rts
-abs_0_0000EFF4:
-	cmp.b $0(a0,d1.w),d2
-	bcs.w abs_0_0000F002
-	addq.b #1,$0003(a4)
+step_viewer_variant_using_end_range_direction:
+	cmp.b SG2ViewerAnimationBounds_first_start_or_disabled(a0,d1.w),d2
+	bcs.w decrement_viewer_variant_toward_end
+	addq.b #1,SG2VariantObject_vertex_variant_selector(a4)
 	rts
-abs_0_0000F002:
-	subq.b #1,$0003(a4)
+decrement_viewer_variant_toward_end:
+	subq.b #1,SG2VariantObject_vertex_variant_selector(a4)
 	rts
-abs_0_0000F008:
+    ; Q or Escape discards the control-service return address, then RTS leaves the outer viewer call. D0 is cleared; ordinary commands return through only their own frame.
+leave_model_viewer_through_outer_return:
 	moveq.l #0,d0
 	addq.l #4,a7
 	rts
-abs_0_0000F00E:
+return_without_viewer_animation_step:
 	rts
-abs_0_0000F010:
-	move.b #$80,model_viewer_animation_state(a6)
+pause_model_viewer_animation:
+	move.b #SG2_VIEWER_ANIMATION_PAUSED,model_viewer_animation_state(a6)
 	rts
-abs_0_0000F018:
-	move.b #$80,model_viewer_animation_state(a6)
+single_step_model_viewer_variant_toward_end:
+	move.b #SG2_VIEWER_ANIMATION_PAUSED,model_viewer_animation_state(a6)
 	bra.w step_model_variant_toward_end
-abs_0_0000F022:
-	move.b #$80,model_viewer_animation_state(a6)
+single_step_model_viewer_variant_toward_start:
+	move.b #SG2_VIEWER_ANIMATION_PAUSED,model_viewer_animation_state(a6)
 	bra.w step_model_variant_toward_start
-abs_0_0000F02C:
-	move.b #$FF,model_viewer_animation_state(a6)
+animate_model_viewer_variants_toward_start:
+	move.b #SG2_VIEWER_ANIMATE_TOWARD_START,model_viewer_animation_state(a6)
 	rts
-abs_0_0000F034:
-	move.b #$1,model_viewer_animation_state(a6)
+animate_model_viewer_variants_toward_end:
+	move.b #SG2_VIEWER_ANIMATE_TOWARD_END,model_viewer_animation_state(a6)
 	rts
-abs_0_0000F03C:
+return_from_viewer_index_command:
 	rts
 	dc.b $46,$2E,$01,$F5,$4E,$75,$4E,$75
-abs_0_0000F046:
-	not.b abs_0_0000FD4C.l
+    ; NOT.B toggles only the clear-inhibit BYTE; adjacent draw backing survives. Viewer entry instead clears a WORD here, including that adjacent BYTE. Hardware timing remains unqualified.
+toggle_model_viewer_viewport_clear_inhibit:
+	not.b model_viewer_viewport_clear_inhibit_byte.l
 	rts
 	dc.b $46,$2E,$02,$08,$4E,$75
 display_model_viewer_name:
@@ -18585,7 +18595,7 @@ store_model_viewer_decimal_selection:
 	bra.b reset_model_viewer_variant_selection
 select_previous_model_viewer_index:
 	cmpi.w #1,active_model_type_index(a6)
-	beq.w abs_0_0000F03C
+	beq.w return_from_viewer_index_command
     ; Original normal keys /0 Return , wrap index0 toFFFF (f885); the next animation read is table-4. Preserve this edge; no global 1..103 invariant.
 	subq.w #1,active_model_type_index(a6)
 reset_model_viewer_variant_selection:
@@ -18594,68 +18604,69 @@ reset_model_viewer_variant_selection:
 	clr.b model_viewer_bounds_pair_offset(a6)
 	clr.b model_viewer_animation_state(a6)
 	lea.l world_object_pool(a6),a4
-	clr.b $0003(a4)
+	clr.b SG2VariantObject_vertex_variant_selector(a4)
 	lsl.w #2,d0
 	lea.l model_viewer_animation_bounds.l,a0
 	tst.b $0(a0,d0.w)
-	bmi.w abs_0_0000F0CC
-	move.b #$1,model_viewer_animation_state(a6)
-abs_0_0000F0CC:
+	bmi.w display_viewer_name_after_previous_or_decimal_selection
+	move.b #SG2_VIEWER_ANIMATE_TOWARD_END,model_viewer_animation_state(a6)
+display_viewer_name_after_previous_or_decimal_selection:
 	bra.w display_model_viewer_name
 select_next_model_viewer_index:
 	move.w active_model_type_index(a6),d0
 	cmp.w #$67,d0
-	bpl.w abs_0_0000F03C
+	bpl.w return_from_viewer_index_command
 	addq.w #1,active_model_type_index(a6)
 	moveq.l #0,d0
 	lea.l world_object_pool(a6),a4
-	clr.b $0003(a4)
+	clr.b SG2VariantObject_vertex_variant_selector(a4)
 	move.b #$0,model_viewer_bounds_pair_offset(a6)
 	move.w active_model_type_index(a6),d0
 	clr.b model_viewer_animation_state(a6)
 	lsl.w #2,d0
 	lea.l model_viewer_animation_bounds.l,a0
 	tst.b $0(a0,d0.w)
-	bmi.w abs_0_0000F10E
-	move.b #$1,model_viewer_animation_state(a6)
-abs_0_0000F10E:
+	bmi.w display_viewer_name_after_next_selection
+	move.b #SG2_VIEWER_ANIMATE_TOWARD_END,model_viewer_animation_state(a6)
+display_viewer_name_after_next_selection:
 	bra.w display_model_viewer_name
-abs_0_0000F112:
+    ; Test the OLD signed WORD against+128 or-128 before changing it by4. Equality permits another step, reaching+132 or-132. Stop preserves angles; reset clears them.
+increase_viewer_rotation_step_0:
 	move.w model_viewer_rotation_step_0(a6),d0
-	cmp.w #$80,d0
-	bgt.w abs_0_0000F17C
-	addq.w #4,model_viewer_rotation_step_0(a6)
+	cmp.w #SG2_VIEWER_ROTATION_STEP_UPPER_TEST,d0
+	bgt.w return_from_viewer_rotation_step
+	addq.w #SG2_VIEWER_ROTATION_STEP_INCREMENT,model_viewer_rotation_step_0(a6)
 	rts
-abs_0_0000F124:
+decrease_viewer_rotation_step_0:
 	move.w model_viewer_rotation_step_0(a6),d0
-	cmp.w #$FF80,d0
-	blt.w abs_0_0000F17C
-	subq.w #4,model_viewer_rotation_step_0(a6)
+	cmp.w #SG2_VIEWER_ROTATION_STEP_LOWER_TEST,d0
+	blt.w return_from_viewer_rotation_step
+	subq.w #SG2_VIEWER_ROTATION_STEP_INCREMENT,model_viewer_rotation_step_0(a6)
 	rts
-abs_0_0000F136:
+increase_viewer_rotation_step_1:
 	move.w model_viewer_rotation_step_1(a6),d0
-	cmp.w #$80,d0
-	bgt.w abs_0_0000F17C
-	addq.w #4,model_viewer_rotation_step_1(a6)
+	cmp.w #SG2_VIEWER_ROTATION_STEP_UPPER_TEST,d0
+	bgt.w return_from_viewer_rotation_step
+	addq.w #SG2_VIEWER_ROTATION_STEP_INCREMENT,model_viewer_rotation_step_1(a6)
 	rts
-abs_0_0000F148:
+decrease_viewer_rotation_step_1:
 	move.w model_viewer_rotation_step_1(a6),d0
-	cmp.w #$FF80,d0
-	blt.w abs_0_0000F17C
-	subq.w #4,model_viewer_rotation_step_1(a6)
+	cmp.w #SG2_VIEWER_ROTATION_STEP_LOWER_TEST,d0
+	blt.w return_from_viewer_rotation_step
+	subq.w #SG2_VIEWER_ROTATION_STEP_INCREMENT,model_viewer_rotation_step_1(a6)
 	rts
-abs_0_0000F15A:
+increase_viewer_rotation_step_2:
 	move.w model_viewer_rotation_step_2(a6),d0
-	cmp.w #$80,d0
-	bgt.w abs_0_0000F17C
-	addq.w #4,model_viewer_rotation_step_2(a6)
+	cmp.w #SG2_VIEWER_ROTATION_STEP_UPPER_TEST,d0
+	bgt.w return_from_viewer_rotation_step
+	addq.w #SG2_VIEWER_ROTATION_STEP_INCREMENT,model_viewer_rotation_step_2(a6)
 	rts
-abs_0_0000F16C:
+decrease_viewer_rotation_step_2:
 	move.w model_viewer_rotation_step_2(a6),d0
-	cmp.w #$FF80,d0
-	blt.w abs_0_0000F17C
-	subq.w #4,model_viewer_rotation_step_2(a6)
-abs_0_0000F17C:
+	cmp.w #SG2_VIEWER_ROTATION_STEP_LOWER_TEST,d0
+	blt.w return_from_viewer_rotation_step
+	subq.w #SG2_VIEWER_ROTATION_STEP_INCREMENT,model_viewer_rotation_step_2(a6)
+return_from_viewer_rotation_step:
 	rts
 	dc.b $30,$2E,$01,$36,$B0,$7C,$1F,$40,$6E,$06,$06,$6E,$00,$28,$01,$36
 	dc.b $4E,$75,$30,$2E,$01,$36,$B0,$7C,$00,$00,$6D,$F4,$04,$6E,$00,$28
@@ -19145,7 +19156,7 @@ model_viewer_digit_tail_backing:
 model_viewer_index_prompt_text:
 	dc.b "Enter shape number:",$00
 	dc.b "Face number too High!",$00
-abs_0_0000FD4C:
+model_viewer_viewport_clear_inhibit_byte:
 	dc.b $00
 model_viewer_keyline_draw_buffer:
 	dcb.b $10,$20

@@ -1,7 +1,7 @@
 # Starglider 2: original source restoration
 
-Status: **resumed on 2026-11-09 at the user's request**. The retirement-face
-producer batch below continues the original absolute-source restoration. The earlier
+Status: **resumed on 2026-11-09 at the user's request**. The retirement-face and model-viewer
+batches below continue the original absolute-source restoration. The earlier
 original-layout reviewed closeout and ZIP are historical milestones, not a claim
 that further analysis is exhausted. Current source remains byte exact: all
 412736 original bytes rebuild through C/vasm and a clean standalone export,
@@ -27,6 +27,22 @@ Its startup caller proof added five header reads and six app accesses,
 and strengthened 38 app-base attributions.
 Conditional skips mean104 outer iterations are not104 observed memory reads.
 Loaded pointer values remain subject to separate alias/target validation.
+
+The viewer command/variant batch qualifies 196 CPU cases over original
+instructions and actual bounds records, including a descending second range.
+It restores 29 continuations, six constants, 21 scalar operand names and 23 local
+field references. Range-end wrapping, paused single steps, disabled controls,
+BYTE wrap, scale digits 0..8, debug culling and the nonlocal quit frame are explicit.
+Signed rotation tests inspect the old value, so equality permits reaching +132
+or -132; stop and reset have different angle effects. The named clear-inhibit
+BYTE at $FD4C is distinct from adjacent keyline backing at $FD4D; D toggles one BYTE
+while entry clears a WORD. The original zero-toFFFF selection remains. These
+local references do not assert a model/pair domain or homogeneous world pool.
+Native access/CFG facts, classification totals and all original bytes remain
+unchanged. No full viewer loop, input-device, normal-game or hardware proof is
+added. Next: inspect reader-connected unclassified spans and remaining format
+boundaries, preserving deliberate subtype-specific fields rather than lifting
+them into a guessed global object contract.
 
 The retirement-face batch qualifies 104 original CPU cases and restores 26
 continuations, five constants and 12 operand representations, including five
