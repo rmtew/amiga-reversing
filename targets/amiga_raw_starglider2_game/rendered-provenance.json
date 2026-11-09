@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
   "kind": "committed_native_rendered_original_export",
-  "canonical_source_commit": "4f5d431e639ad0ab3c88930e502098901d7b01c2",
-  "publication_base_commit": "4f5d431e639ad0ab3c88930e502098901d7b01c2",
+  "canonical_source_commit": "8ad3112047fd9616ac167c49e9f2173ac1757847",
+  "publication_base_commit": "8ad3112047fd9616ac167c49e9f2173ac1757847",
   "native_export": "CListingArtifact.source_package_payload(64)",
-  "main_source_sha256": "e418dde1b85cff5a69c138c67d470d410feeb049605ea6337e0a3e45621be6d9",
+  "main_source_sha256": "e7476f54dd0877a0f4833bd6207b93eb00406808aadef4c93b6e8287fdfb4315",
   "asset_count": 57,
   "asset_bytes": 93633,
   "game_assembly_hand_edits": false,
@@ -24,13 +24,13 @@
     "assembler executable",
     "paused Pandora work"
   ],
-  "canonical_source_commit_role": "Canonical publication base; music ring setup/producer/interrupt consumers reconstructed with 36 continuations, 11 constants, 38 operand bindings and five comments. 129 new original CPU cases and 503 related cases qualify exact WORD wrap, two-slot look-ahead, backend stop differences, Amiga register restore up to RTE and alternate pointer handoff. All native access/CFG facts retained. No disk/PCM/interrupt timing, concurrency, global cursor bound, complete alternate startup or buffer lifetime claim.",
-  "canonical_source_subject_revision": "3dc9d81bf9326d6a220f4a24f036c213182b3c2da0148bc9b15cd5c176dd6c91",
+  "canonical_source_commit_role": "Canonical publication base; depot exchange reconstructed with 12 continuations, two nine-byte model-type table names, five constants, nine operands and four comments. 154 new original CPU cases and 199 linked tests qualify structural recipe slots, population gate/debit/reward, six-LONG messages and direct weapon/HUD overflow subpaths. Original rewards do not select weapon branches; upstream service 10 normally uses inventory. No universal service bound, complete dialogue/gameplay or lifetime proof. Native access/CFG facts retained and all original bytes exact.",
+  "canonical_source_subject_revision": "f83df59f9850c83bdb1a2b253e45b822613e0cf05a4b17f6078087af26334cd1",
   "canonical_fact_sha256": {
     "source_binary.json": "42d4a5758b3e8236af7f912aee85e9ee5323bcd0961faa338c4f864080a0a7d9",
     "target_metadata.json": "e7540b68c118c56aba8815b6722eefa067517cc865fe9841d6c01ce96551389c",
-    "manual_actions.jsonl": "0fe837a0fadb606f64fd26e65355ac013696981ac9d57f7b7cc1d6e70bcaa820",
-    "decision_journal.jsonl": "81cd0eca2c4a68624da33cce8dd4b86f96a5854601dfd878518be40c8093f186"
+    "manual_actions.jsonl": "543e7415330dfe4ad135c1d93befc7623ac000bd43dbb2191b52caf33acd8cf9",
+    "decision_journal.jsonl": "4facfe37d68e14ecca9aa7f1e9b881b6b73ed3faaf10c3757346e9b9c8fd0495"
   },
   "headers": "14 unmodified required include files collected by source_package.collect_package_includes from ext/amiga_includes/ndk_2.0/include; header notices retained",
   "decoded_protection_view": {
@@ -46,7 +46,7 @@
     },
     "runtime_scope": "Seven CPU write-site windows match this reversible view; no whole runtime-view identity or parent plaintext promotion."
   },
-  "verification_receipt_id": "9d1049e198d6f6d0d41e2a1b932c87a70a169dece2f01963b9eb869a09bf5d21",
+  "verification_receipt_id": "1466857b2673848e23261ec205e26504eb2c07ad602e1b14cdbcad4708f8e27a",
   "render_native_sha256": "27610fd0e1139b1c2c42639e136f248aafb2acf128eceae11afa8e8243eea881",
   "final_assembler_native_sha256": "27610fd0e1139b1c2c42639e136f248aafb2acf128eceae11afa8e8243eea881"
 }

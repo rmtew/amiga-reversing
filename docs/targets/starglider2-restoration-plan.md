@@ -28,6 +28,18 @@ and strengthened 38 app-base attributions.
 Conditional skips mean104 outer iterations are not104 observed memory reads.
 Loaded pointer values remain subject to separate alias/target validation.
 
+Depot exchange now exposes required/reward model-type tables, twelve
+continuations, five constants and nine local operands. 154 new original CPU
+cases (199 linked cases total) qualify all nine structural recipe slots,
+below-three counted-population gating, one-unit exchange and six-LONG message
+construction: three template pointers interleaved with two name pointers,
+followed by FFFFFFFF (24 bytes written, A1 advances 20). Direct subpath cases
+preserve ordinary BYTE wrap and weapon N-only comparison/HUD calls. The original
+nine reward bytes do not select either weapon branch. These are continuation
+fixtures: upstream service 10 normally takes inventory rather than this entry.
+Table extent is not a universal service/index bound. Native access/CFG counts
+are unchanged; C/vasm and clean standalone rebuilding preserve every byte.
+
 Music ring setup, producer and interrupt consumers now have 36 named
 continuations, 11 constants, 38 operand bindings and five focused comments.
 129 new original CPU cases (503 related tests total) qualify seven strided

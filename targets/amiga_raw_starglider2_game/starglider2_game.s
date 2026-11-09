@@ -1511,6 +1511,11 @@ SG2_CONTACT_RELATIVE_UPPER_BOUND	EQU	8192
 SG2_CONTACT_SKIP_FLAG_BIT	EQU	4
 SG2_CORNER_APPROACH_OFFSET	EQU	3120
 SG2_CORNER_SLOPE_SHIFT	EQU	6
+SG2_DEPOT_COUNT_NEGATIVE_RESULT_CLAMP	EQU	127
+SG2_DEPOT_TRADE_COUNT_GATE	EQU	3
+SG2_DEPOT_TRADE_SERVICE_INDEX_BIAS	EQU	3
+SG2_DEPOT_WEAPON_COUNTER_FALLBACK	EQU	4
+SG2_DEPOT_WEAPON_INCREMENT_COMPARE	EQU	5
 SG2_DISC_COLOUR_LOW_MASK	EQU	15
 SG2_DISC_COORDINATE_SCALE_SHIFT	EQU	7
 SG2_DISC_MAX_X	EQU	303
@@ -45451,7 +45456,7 @@ abs_0_00034218:
 	bra.w advance_taymar_depot_dialogue_continuation
 abs_0_00034230:
 	cmpi.w #10,current_structure_service_id(a6)
-	bne.b abs_0_0003425A
+	bne.b process_depot_exchange_offer_or_trade
 	move.b #$55,diagnostic_step_byte.l
 	sf.b depot_inventory_mode_flag.l
 	bsr.w reset_shared_inventory_scratch_prefixes
@@ -45459,72 +45464,78 @@ abs_0_00034230:
 	clr.w depot_line_pointer_offset(a6)
 	clr.w inventory_list_item_index(a6)
 	bra.w advance_taymar_depot_dialogue_continuation
-abs_0_0003425A:
+    ; Index is service minus 3 here; upstream service 10 instead selects inventory. Counted population at least 3 offers without debit. No universal service/index range is asserted.
+process_depot_exchange_offer_or_trade:
 	move.b #$56,diagnostic_step_byte.l
 	move.w current_structure_service_id(a6),d0
-	subq.w #3,d0
+	subq.w #SG2_DEPOT_TRADE_SERVICE_INDEX_BIAS,d0
 	lea.l shared_inventory_depot_message_pointers(a6),a1
-	lea.l abs_0_000390DC.l,a2
-	lea.l abs_0_000390E5.l,a3
+	lea.l depot_trade_required_model_types.l,a2
+	lea.l depot_trade_reward_model_types.l,a3
 	lea.l object_name_pointers.l,a4
 	lea.l model_type_population_counts(a6),a0
 	bsr.w recompute_counted_model_population
-	cmp.w #$3,d7
-	bpl.w abs_0_00034316
+	cmp.w #SG2_DEPOT_TRADE_COUNT_GATE,d7
+	bpl.w build_depot_exchange_offer_message
+read_required_depot_trade_model_type:
 	move.b $0(a2,d0.w),d1
 	andi.w #255,d1
 	tst.b $0(a0,d1.w)
-	beq.w abs_0_00034316
+	beq.w build_depot_exchange_offer_message
+consume_one_required_depot_inventory_unit:
 	subq.b #1,$0(a0,d1.w)
-	bpl.b abs_0_000342A8
+	bpl.b select_depot_exchange_reward_model_type
 	clr.b $0(a0,d1.w)
-abs_0_000342A8:
+    ; Ordinary reward increments a BYTE, replacing negative results with 127; 255 wraps to 0. The nine original reward bytes do not select the weapon branches below.
+select_depot_exchange_reward_model_type:
 	move.b $0(a3,d0.w),d1
 	andi.w #255,d1
-	cmp.w #$C,d1
-	beq.b abs_0_000342CA
-	cmp.w #$5B,d1
-	beq.b abs_0_000342F0
+	cmp.w #SG2_OBJECT_TYPE_HOMING_MISSILE,d1
+	beq.b increment_depot_homing_inventory_with_hud
+	cmp.w #SG2_OBJECT_TYPE_BOUNCING_BOMB,d1
+	beq.b increment_depot_bouncing_inventory_with_hud
 	addq.b #1,$0(a0,d1.w)
-	bpl.b abs_0_000342C8
-	move.b #$7F,$0(a0,d1.w)
-abs_0_000342C8:
-	bra.b abs_0_00034322
-abs_0_000342CA:
+	bpl.b finish_ordinary_depot_inventory_increment
+	move.b #SG2_DEPOT_COUNT_NEGATIVE_RESULT_CLAMP,$0(a0,d1.w)
+finish_ordinary_depot_inventory_increment:
+	bra.b build_depot_exchange_completion_message
+    ; Weapon increment compares BYTE result with 5 using N only. Rejected results store 4; accepted results call the actual HUD helper. Direct CPU cases include overflow, not gameplay reachability.
+increment_depot_homing_inventory_with_hud:
 	move.b $0(a0,d1.w),d7
 	addq.b #1,d7
-	cmp.b #$5,d7
-	bmi.b abs_0_000342DE
-	move.b #$4,$0(a0,d1.w)
-	bra.b abs_0_00034316
-abs_0_000342DE:
+	cmp.b #SG2_DEPOT_WEAPON_INCREMENT_COMPARE,d7
+	bmi.b draw_homing_icon_after_accepted_depot_increment
+	move.b #SG2_DEPOT_WEAPON_COUNTER_FALLBACK,$0(a0,d1.w)
+	bra.b build_depot_exchange_offer_message
+draw_homing_icon_after_accepted_depot_increment:
 	move.b d7,$0(a0,d1.w)
 	movem.l d0-d7/a0-a6,-(a7)
 	bsr.w add_homing_missile_hud_icon_bridge_038d5c
 	movem.l (a7)+,d0-d7/a0-a6
-	bra.b abs_0_00034322
-abs_0_000342F0:
+	bra.b build_depot_exchange_completion_message
+increment_depot_bouncing_inventory_with_hud:
 	move.b $0(a0,d1.w),d7
 	addq.b #1,d7
-	cmp.b #$5,d7
-	bmi.b abs_0_00034304
-	move.b #$4,$0(a0,d1.w)
-	bra.b abs_0_00034316
-abs_0_00034304:
+	cmp.b #SG2_DEPOT_WEAPON_INCREMENT_COMPARE,d7
+	bmi.b draw_bouncing_icon_after_accepted_depot_increment
+	move.b #SG2_DEPOT_WEAPON_COUNTER_FALLBACK,$0(a0,d1.w)
+	bra.b build_depot_exchange_offer_message
+draw_bouncing_icon_after_accepted_depot_increment:
 	move.b d7,$0(a0,d1.w)
 	movem.l d0-d7/a0-a6,-(a7)
 	bsr.w add_bouncing_bomb_hud_icon_bridge_038d62
 	movem.l (a7)+,d0-d7/a0-a6
-	bra.b abs_0_00034322
-abs_0_00034316:
+	bra.b build_depot_exchange_completion_message
+build_depot_exchange_offer_message:
 	lea.l depot_trade_offer_template.l,a0
-	bsr.w abs_0_0003432E
+	bsr.w build_depot_exchange_message_pointer_list
 	bra.b advance_taymar_depot_dialogue_continuation
-abs_0_00034322:
+build_depot_exchange_completion_message:
 	lea.l depot_trade_completion_template.l,a0
-	bsr.w abs_0_0003432E
+	bsr.w build_depot_exchange_message_pointer_list
 	bra.b advance_taymar_depot_dialogue_continuation
-abs_0_0003432E:
+    ; Interleave three template pointers and two object-name pointers, then store FFFFFFFF: 24 bytes written, A1 advances 20. Nine structural recipes do not establish caller bounds.
+build_depot_exchange_message_pointer_list:
 	move.l (a0)+,(a1)+
 	move.l (a0)+,(a1)+
 	move.b $0(a2,d0.w),d1
@@ -50230,9 +50241,9 @@ abs_0_000390AB:
 	dc.b $56,$45,$20,$74,$6F,$20,$75,$73,$2C,$00
 abs_0_000390C5:
 	dc.b "and the E key to EXIT.",$00
-abs_0_000390DC:
+depot_trade_required_model_types:
 	dc.b $18,$37,$33,$47,$0A,$49,$0B,$03,$18
-abs_0_000390E5:
+depot_trade_reward_model_types:
 	dc.b $64,$53,$65,$66,$26,$1D,$57,$49,$64
 station_sequence_cadence_masks:
 	dc.w $01FF,$00FF,$00FF,$00FF,$007F,$007F,$007F,$007F
