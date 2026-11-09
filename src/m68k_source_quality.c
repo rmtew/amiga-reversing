@@ -5865,23 +5865,41 @@ static int source_quality_candidate_indexed_read_dest_address_reg(const M68kDeco
   return 1;
 }
 
-static int source_quality_runtime_pointer_value_to_accepted_source_offset(const M68kSectionAnalysisIR *section_analysis,
+static int source_quality_pointer_table_value_to_source_offset(const M68kSourceAnalysisIR *source_analysis,
+    const M68kSectionAnalysisIR *section_analysis, uint32_t section_size, uint32_t value,
+    uint8_t pointer_domain, uint32_t *out_source_offset) {
+  uint32_t target_section = 0U, source_offset = 0U;
+  int resolution;
+  if (out_source_offset != NULL) *out_source_offset = 0U;
+  if (source_analysis == NULL || section_analysis == NULL || value == 0U ||
+      pointer_domain == M68K_ANALYSIS_POINTER_DOMAIN_RUNTIME_ONLY) return 0;
+  /* Table contents are encoded addresses, not offsets chosen by containment.
+   * Use the same unique mapping as other source-backed pointer consumers.
+   * Bare, unmapped data sections retain their implicit zero-origin identity. */
+  resolution = m68k_analysis_policy_resolve_pointer_address(&source_analysis->policy, value,
+    &target_section, &source_offset);
+  if (resolution == 2) return 0;
+  if (resolution == 1) {
+    if (target_section != section_analysis->section_index || source_offset >= section_size) return 0;
+  } else {
+    if (pointer_domain != M68K_ANALYSIS_POINTER_DOMAIN_LEGACY ||
+        source_analysis->policy.runtime_range_count != 0U ||
+        section_analysis->runtime_view_count != 0U || value >= section_size) return 0;
+    source_offset = value;
+  }
+  if (out_source_offset != NULL) *out_source_offset = source_offset;
+  return 1;
+}
+
+static int source_quality_runtime_pointer_value_to_accepted_source_offset(
+    const M68kSourceAnalysisIR *source_analysis, const M68kSectionAnalysisIR *section_analysis,
     const uint8_t *accepted_start, uint32_t section_size, uint32_t value, uint32_t *out_source_offset) {
   uint32_t source_offset = 0U;
-  uint32_t logical_address = 0U;
   if (out_source_offset != NULL) *out_source_offset = 0U;
-  if (section_analysis == NULL || accepted_start == NULL || value == 0U) return 0;
-  if (value < section_size && accepted_start[value] != 0U) {
-    if (out_source_offset != NULL) *out_source_offset = value;
-    return 1;
-  }
-  if (!source_quality_any_runtime_address_source_offset(section_analysis, value, section_size, &source_offset))
-    return 0;
-  if (source_offset >= section_size || accepted_start[source_offset] == 0U) return 0;
-  if (!source_quality_source_logical_address(section_analysis, source_offset, &logical_address) ||
-      logical_address != value) {
-    return 0;
-  }
+  if (accepted_start == NULL ||
+      !source_quality_pointer_table_value_to_source_offset(source_analysis, section_analysis, section_size,
+        value, M68K_ANALYSIS_POINTER_DOMAIN_LEGACY, &source_offset) ||
+      accepted_start[source_offset] == 0U) return 0;
   if (out_source_offset != NULL) *out_source_offset = source_offset;
   return 1;
 }
@@ -5953,7 +5971,7 @@ static uint32_t source_quality_scan_indexed_local_pointer_table_span(
     if (source_quality_range_ownership_covers_noncode_or_conflict(table_analysis, cursor)) break;
     target = m68k_read_u32be(table_section->data + cursor);
     if ((target & 1U) != 0U ||
-        !source_quality_runtime_pointer_value_to_accepted_source_offset(table_analysis, accepted_start,
+        !source_quality_runtime_pointer_value_to_accepted_source_offset(source_analysis, table_analysis, accepted_start,
           table_section->size, target, NULL)) {
       break;
     }
@@ -6549,31 +6567,6 @@ static int append_pointer_table_target_string_item(M68kSourceAnalysisIR *source_
   return m68k_ir_source_analysis_append_structured_data_item(source_analysis, &item);
 }
 
-static int source_quality_pointer_table_value_to_source_offset(const M68kSourceAnalysisIR *source_analysis,
-    const M68kSectionAnalysisIR *section_analysis, uint32_t section_size, uint32_t value,
-    uint8_t pointer_domain, uint32_t *out_source_offset) {
-  uint32_t target_section = 0U, source_offset = 0U;
-  int resolution;
-  if (out_source_offset != NULL) *out_source_offset = 0U;
-  if (source_analysis == NULL || section_analysis == NULL || value == 0U ||
-      pointer_domain == M68K_ANALYSIS_POINTER_DOMAIN_RUNTIME_ONLY) return 0;
-  /* Table contents are encoded addresses, not offsets chosen by containment.
-   * Use the same unique mapping as other source-backed pointer consumers.
-   * Bare, unmapped data sections retain their implicit zero-origin identity. */
-  resolution = m68k_analysis_policy_resolve_pointer_address(&source_analysis->policy, value,
-    &target_section, &source_offset);
-  if (resolution == 2) return 0;
-  if (resolution == 1) {
-    if (target_section != section_analysis->section_index || source_offset >= section_size) return 0;
-  } else {
-    if (pointer_domain != M68K_ANALYSIS_POINTER_DOMAIN_LEGACY ||
-        source_analysis->policy.runtime_range_count != 0U ||
-        section_analysis->runtime_view_count != 0U || value >= section_size) return 0;
-    source_offset = value;
-  }
-  if (out_source_offset != NULL) *out_source_offset = source_offset;
-  return 1;
-}
 
 static int source_quality_pointer_table_value_to_pointer_string_target(
     const M68kSourceAnalysisIR *source_analysis, const M68kSectionAnalysisIR *section_analysis,

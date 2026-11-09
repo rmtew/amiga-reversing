@@ -28,6 +28,16 @@ and strengthened 38 app-base attributions.
 Conditional skips mean104 outer iterations are not104 observed memory reads.
 Loaded pointer values remain subject to separate alias/target validation.
 
+Code-pointer discovery now shares canonical address mapping with text-pointer
+resolution. A paired reproducer showed false table admission for small numeric
+source offsets and ambiguous mappings; both are refused. Eight independent
+C/vasm fixtures, 90 related Python tests and 838 native C cases pass. SGII source,
+assets and all protected native records remain unchanged (3514/2749/158);
+C/vasm and clean standalone bytes are exact. This is a correctness repair, not
+new target coverage. A separate two-branch fixture recovers only the final
+fallthrough directory: shared-reader base provenance needs conditional origins,
+not manual table seeds or a claim that table extent proves caller bounds.
+
 Inventory source now exposes the command/list/formatting/refill chain through
 34 named continuations, one existing help-pointer table name, seven constants,
 24 local operands and six concise notes. 205 new original CPU cases (359 with
