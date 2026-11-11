@@ -96,7 +96,7 @@ def test_real_typed_postincrement_reads_preupdate_fields_then_stops_at_root_end(
     (["move.w (a7)+,d0", "move.w (a7),d1"], "A7"),
     (["movea.l (a0)+,a0", "move.w (a0),d1"], "A0"),
     (["cmpm.w (a0)+,(a0)+", "move.w (a0),d1"], "A0"),
-    (["movem.w (a0)+,d0-d1", "move.w (a0),d2"], "A0"),
+    (["movem.w (a0)+,d0-d3", "move.w (a0),d2"], "A0"),
     (["move.w (a0)+,(a0)", "move.w (a0),d1"], "A0"),
     (["adda.l #$7FFFFFFF,a0", "adda.l #$7FFFFFFF,a0", "move.w (a0)+,d0"], "A0"),
 ])
@@ -194,3 +194,62 @@ def test_independent_untyped_destination_does_not_erase_source_cursor(tmp_path):
         fields=[f for f in artifact.query_payload('fields',limit=100)['items'] if f.get('field_name')]
         assert [f['field_name'] for f in fields]==['first','second']
         assert not any(f['operand_index']==1 for f in fields)
+
+
+@pytest.mark.parametrize(('suffix','width'), [('w',2), ('l',4)])
+def test_typed_movem_postincrement_uses_the_full_reglist_span(tmp_path, suffix, width):
+    instructions = [f'movem.{suffix} (a0)+,d0-d1', f'move.{suffix} (a0),d2']
+    _, _, artifact, original = _artifact(tmp_path, instructions, width)
+    with closing(artifact):
+        fields = artifact.query_payload('fields', limit=100)['items']
+        assert [(f['source_offset'],f['field_name'],f['field_offset']) for f in fields if f.get('field_name')] == [
+            (0,'first',0),(4,'third',2*width)]
+        source = artifact.inline_source_text_with_profile()[0]
+        assert f'movem.{suffix} (a0)+,d0-d1' in source
+        assert c_backend.assemble_platform_source_text_with_c_backend('amiga-raw', source)[0]==original
+        assert _vasm(tmp_path,'bulk-post',source)==original
+
+
+@pytest.mark.parametrize(('suffix','width'), [('w',2), ('l',4)])
+def test_typed_movem_predecrement_returns_to_the_first_field(tmp_path, suffix, width):
+    instructions = [f'adda.l #{2*width},a0', f'movem.{suffix} d0-d1,-(a0)', f'move.{suffix} (a0),d2']
+    _, _, artifact, original = _artifact(tmp_path, instructions, width)
+    with closing(artifact):
+        fields = artifact.query_payload('fields', limit=100)['items']
+        memory_fields = [f for f in fields if f.get('field_name') and f.get('access')!='address']
+        assert [f['field_offset'] for f in memory_fields]==[0,0]
+        source = artifact.inline_source_text_with_profile()[0]
+        assert f'movem.{suffix} d0-d1,-(a0)' in source
+        assert c_backend.assemble_platform_source_text_with_c_backend('amiga-raw',source)[0]==original
+        assert _vasm(tmp_path,'bulk-pre',source)==original
+
+
+@pytest.mark.parametrize('instruction', ['movem.l (a0)+,d0/a0', 'movem.l d0/a0,-(a0)'])
+def test_typed_movem_base_in_reglist_does_not_retain_an_old_cursor(tmp_path, instruction):
+    prefix = ['adda.l #8,a0'] if instruction.endswith('-(a0)') else []
+    _, _, artifact, _ = _artifact(tmp_path, prefix+[instruction, 'move.l (a0),d2'], 4)
+    with closing(artifact):
+        assert not any(f.get('field_name') for f in artifact.query_payload('fields',limit=100)['items'])
+
+
+def test_bulk_load_clears_loaded_pointer_types_without_copying_the_container(tmp_path):
+    _, _, artifact, original = _artifact(tmp_path,
+        ['movem.l (a0)+,d0/a1','move.l (a1),d2','move.l (a0),d3'],4,other_register='A1')
+    with closing(artifact):
+        fields = [f for f in artifact.query_payload('fields',limit=100)['items'] if f.get('field_name')]
+        assert [(f['source_offset'],f['field_offset']) for f in fields]==[(0,0),(6,8)]
+        assert c_backend.assemble_platform_source_text_with_c_backend('amiga-raw',artifact.inline_source_text_with_profile()[0])[0]==original
+
+
+@pytest.mark.parametrize('return_to_root', [False, True])
+def test_whole_record_movem_keeps_only_a_bounded_one_past_cursor(tmp_path, return_to_root):
+    instructions = ['movem.l (a0)+,d0-d2']
+    if return_to_root: instructions.append('movem.l d0-d2,-(a0)')
+    instructions.append('move.l (a0),d3')
+    _, _, artifact, original = _artifact(tmp_path, instructions, 4)
+    with closing(artifact):
+        fields = [f for f in artifact.query_payload('fields',limit=100)['items'] if f.get('field_name')]
+        assert [f['field_offset'] for f in fields]==([0,0,0] if return_to_root else [0])
+        source = artifact.inline_source_text_with_profile()[0]
+        assert c_backend.assemble_platform_source_text_with_c_backend('amiga-raw',source)[0]==original
+        assert _vasm(tmp_path,'bulk-record-end',source)==original

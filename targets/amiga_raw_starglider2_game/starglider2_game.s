@@ -3124,7 +3124,7 @@ initialize_startup_flags_and_subtract_novella_key:
     ; Protection phase1:871 LONGs at$12F80..$13D1C, subtract key$32597635+i. Declared end$13D1E leaves2bytes untouched. Exact observed normal boot.
 	move.w #$0,app_01DA(a6)
 	lea.l novella_decode_saved_state(a6),a3
-	movem.l (a3)+,d0-d1/a1-a2
+	movem.l (a3)+,d0-d1/a1-a2	; operand 1: SG2NovellaDecodeState_initial_subtraction_key at (a3)+
 	lea.l novella_check_encoded_payload.l,a2
 	lea.l abs_0_00013D1E.l,a1
 	suba.l a2,a1
@@ -3149,7 +3149,7 @@ restore_cockpit_picture_from_encoded_state:
 	beq.b abs_0_00001F46
 	lea.l novella_decode_saved_state(a6),a3
     ; Guarded reload of the saved four-LONG decode frame; DBF consumes only D1 low WORD. A1 retains full encoded span including the two-byte tail, not just the LONG-processed extent.
-	movem.l (a3)+,d0-d1/a1-a2
+	movem.l (a3)+,d0-d1/a1-a2	; operand 1: SG2NovellaDecodeState_initial_subtraction_key at (a3)+
     ; Phase2 per LONG:ROL.W first half twice,ROR.W second half thrice. Decoded novella check is a separate canonical view; original bytes remain encoded.
 rotate_protection_words_for_picture:
 	rol (a2)
@@ -17641,7 +17641,7 @@ handle_load_game_menu_choice:
 	tst.w cockpit_picture_palette.l
 	beq.b abs_0_0000E45C
 	lea.l novella_decode_saved_state(a6),a3
-	movem.l (a3)+,d0-d1/a1-a2
+	movem.l (a3)+,d0-d1/a1-a2	; operand 1: SG2NovellaDecodeState_initial_subtraction_key at (a3)+
 rotate_protection_words_for_load:
 	rol (a2)
 	rol (a2)+

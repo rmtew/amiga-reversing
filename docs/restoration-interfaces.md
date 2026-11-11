@@ -33,7 +33,10 @@ array bound, lifetime or valid caller contract.
 Typed memory projection and unresolved diagnostics use the shared decoded
 contiguous footprint. Fixed-width bit forms retain their BYTE width even without
 an instruction suffix; multi-register transfers use the whole register-list
-span, including predecrement. Unsupported striped spans remain unresolved rather
+span, including predecrement. A typed non-stack MOVEM cursor retains its record
+position only when the whole span fits and the base register is absent from the
+register list. Loaded registers lose their previous types; they do not inherit
+the container type. Unsupported striped spans remain unresolved rather
 than gaining a contiguous scalar interpretation. Address formation retains its
 existing symbolic-address behavior and is not a physical memory read.
 
@@ -54,9 +57,12 @@ inherited WORD field selects that layout; they do not derive an invariant from
 initial bytes. Siblings must use one selector with distinct unsigned WORD tags.
 Unknown parents, non-WORD/interior selectors and resized layouts refuse import.
 
-Typed flow transports the existing read handle through register copies and
-refines only the equality edge. Field accesses use a transient view with
-`tagged_layout_contract` provenance; the underlying pointer type never changes.
+Typed flow transports the existing read handle through register copies. An
+equality edge or an exact full-WORD MOVE of one known tag value can establish
+the transient field view. Values come from the existing raw/WORD domains;
+relocation placeholders, partial stores and unknown/conflicting values cannot
+establish it. Field accesses use `tagged_layout_contract` provenance; the
+underlying pointer type never changes.
 Different joins, tag/partial writes, possible aliases and unknown calls discard
 the view. A same-root, same-element write may retain it only when the shared
 decoded footprint proves disjointness from the tag. A moved cursor/array element

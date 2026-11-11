@@ -189,3 +189,52 @@ def test_invalid_layout_contract_refuses(tmp_path, kind):
         records.append(sibling)
     with pytest.raises(RuntimeError, match='metadata|custom'):
         check(tmp_path, 'nop', records=records)
+
+
+@pytest.mark.parametrize('body', [
+    'move.w #12,(a0)\n move.w 4(a0),d2',
+    'move.w #12,(a0)\n move.w #99,2(a0)\n move.w 4(a0),d2',
+    'movea.l a0,a2\n move.w #12,(a0)\n move.w 4(a2),d2',
+    'moveq.l #12,d0\n move.w d0,(a0)\n move.w 4(a0),d2',
+    'move.w #12,d0\n move.w d0,(a0)\n move.w 4(a0),d2',
+])
+def test_exact_tag_store_establishes_the_same_transient_field_view(tmp_path, body):
+    section, source = check(tmp_path, body)
+    assert len(extras(section)) == 1
+    assert extras(section)[0]['type_provenance_kind'] == 'tagged_layout_contract'
+    assert 'Child_extra' in source
+
+
+@pytest.mark.parametrize('between', [
+    'move.w #0,(a0)', 'move.b #12,1(a0)', 'clr.w (a1)',
+    'jsr $2000.l', 'lea.l 16(a0),a0',
+])
+def test_tag_store_still_loses_the_view_on_mutation_alias_or_unknown_call(tmp_path, between):
+    section, _ = check(tmp_path, 'move.w #12,(a0)\n'+between+'\n move.w 4(a0),d2')
+    assert not extras(section)
+
+
+@pytest.mark.parametrize('body', [
+    'move.b #12,(a0)\n move.w 4(a0),d2',
+    'move.l #$C0000,(a0)\n move.w 4(a0),d2',
+    'move.b #12,d0\n move.w d0,(a0)\n move.w 4(a0),d2',
+    'move.w d0,(a0)\n move.w 4(a0),d2',
+    'move.w #12,(a0)\n move.w 4(a1),d2',
+    'tst.w d7\n beq.w other\n move.w #12,(a0)\n bra.w joined\nother: move.w #13,(a0)\njoined: move.w 4(a0),d2',
+    'tst.w d7\n beq.w other\n moveq.l #12,d0\n bra.w joined\nother: moveq.l #13,d0\njoined: move.w d0,(a0)\n move.w 4(a0),d2',
+    'move.w #12,(a0)\nagain: move.w 4(a0),d2\n tst.w d7\n beq.w done\n move.w #0,(a0)\n bra.w again\ndone:',
+])
+def test_partial_unknown_other_root_and_conflicting_store_paths_refuse(tmp_path, body):
+    section, _ = check(tmp_path, body, seeds=[seed(), seed('A1')])
+    assert not extras(section)
+
+
+def test_each_loop_iteration_must_reestablish_the_tag_after_mutation(tmp_path):
+    section, _ = check(tmp_path, '''again: move.w #12,(a0)
+ move.w 4(a0),d2
+ tst.w d7
+ beq.w done
+ move.w #0,(a0)
+ bra.w again
+done:''')
+    assert len(extras(section))==1

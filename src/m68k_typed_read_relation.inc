@@ -1,5 +1,6 @@
 /* Correlated projections of one source-record or contracted runtime tag read. This extends the
  * existing value packets and CFG must joins, not a second transfer engine.
+ * An exact contracted tag store can establish the same transient view.
  * Original bytes are usable only before the existing absolute-write barrier.
  * Writable inputs require an explicit layout contract and retain their base
  * type; guarded field views disappear when their read correlation is killed. */
@@ -207,6 +208,20 @@ static void typed_read_defer_source_domain(M68kRenderLookup *lookup, const M68kR
   request->origin = base->table_origin; request->struct_id = base->struct_id; request->field_cursor = cursor;
 }
 
+/* A contracted selector is a field of this exact record element, not a
+ * similarly typed pointer elsewhere. Admission already validates its WORD. */
+static int typed_tag_selector_matches(const M68kRenderLookup *lookup,
+    const M68kRenderTypedRegValue *base, int32_t field_cursor) {
+  if (!lookup || !base || !base->known || base->type_conflicted || base->byte_cursor ||
+      base->address_value_candidate_overflow || field_cursor < 0) return 0;
+  for (size_t k = 0U; k < lookup->tagged_layout_count; ++k) {
+    const M68kAnalysisCustomStruct *child = &lookup->policy->custom_structs[lookup->tagged_layout_ids[k]];
+    if (child->has_tag_guard && child->tag_offset == (uint32_t)field_cursor &&
+        lookup_policy_struct_id_by_name(lookup->policy, child->base_struct) == base->struct_id) return 1;
+  }
+  return 0;
+}
+
 static uint16_t typed_read_capture(M68kRenderLookup *lookup, M68kRenderTypedState *state,
     const M68kInstructionIR *instruction, uint8_t operand_index, size_t section_index, uint32_t offset) {
   M68kRenderScalarReadRelation read;
@@ -236,15 +251,9 @@ static uint16_t typed_read_capture(M68kRenderLookup *lookup, M68kRenderTypedStat
       !lookup_policy_resolve_struct_field(lookup->policy, base->struct_id, (int16_t)field_cursor, 2U, &field) ||
       field.offset != field_cursor || field.size != 2U) return 0U;
   read.section_index = section_index; read.offset = offset; read.field_cursor = (int32_t)field_cursor;
-  if (!base->byte_cursor) for (size_t k = 0U; k < lookup->tagged_layout_count; ++k) {
-    uint16_t i = lookup->tagged_layout_ids[k];
-    const M68kAnalysisCustomStruct *child = &lookup->policy->custom_structs[i];
-    if (child->has_tag_guard && child->tag_offset == (uint32_t)field_cursor &&
-        lookup_policy_struct_id_by_name(lookup->policy, child->base_struct) == base->struct_id) {
-      read.tag_kind = 1U; read.base_type = base->struct_id;
-      read.element_index = base->array_element_index;
-      break;
-    }
+  if (typed_tag_selector_matches(lookup, base, (int32_t)field_cursor)) {
+    read.tag_kind = 1U; read.base_type = base->struct_id;
+    read.element_index = base->array_element_index;
   }
   if (read.tag_kind) goto captured;
   if (!state->source_snapshot_entry || state->memory_write_barriers & M68K_CELL_WRITTEN_ABSOLUTE) return 0U;
@@ -349,6 +358,50 @@ static void typed_read_predicate_after(M68kRenderTypedState *state, const M68kIn
   state->zero_read_compare_value = state->zero_read_relation ? compare_value : 0U;
 }
 
+static void typed_tag_refine_value(M68kRenderLookup *lookup, M68kRenderTypedState *state,
+    uint16_t handle, uint16_t tag_value) {
+  if (!handle || handle / 2U > lookup->scalar_read_relation_count) return;
+  const M68kRenderScalarReadRelation *read = &lookup->scalar_read_relations[handle / 2U - 1U];
+  if (read->tag_kind != 1U) return;
+  M68kRenderScalarReadRelation view = *read;
+  for (size_t k = 0U; k < lookup->tagged_layout_count; ++k) {
+    uint16_t i = lookup->tagged_layout_ids[k];
+    const M68kAnalysisCustomStruct *child = &lookup->policy->custom_structs[i];
+    if (child->has_tag_guard && child->tag_offset == (uint32_t)view.field_cursor &&
+        child->tag_value == tag_value &&
+        lookup_policy_struct_id_by_name(lookup->policy, child->base_struct) == view.base_type) {
+      view.tag_kind = 2U; view.view_type = (uint16_t)(M68K_ANALYSIS_CUSTOM_STRUCT_ID_BASE + i);
+      uint16_t view_handle = typed_read_intern(lookup, &view);
+      if (!view_handle) return;
+      /* Only a field view changes. The underlying value's declared type,
+       * provenance, element count and pointer targets remain unchanged. */
+#define REFINE_TAG(value) do { \
+  if ((value)->read_relation == handle && (value)->struct_id == view.base_type && \
+    !(value)->byte_cursor && (value)->array_element_index == view.element_index) \
+  (value)->read_relation = view_handle; \
+} while (0)
+      TYPED_READ_VISIT_VALUES(state, REFINE_TAG);
+#undef REFINE_TAG
+      return;
+    }
+  }
+}
+
+/* The write barrier runs first. Capture only a contracted tag destination;
+ * this lane never reads old source bytes or retains a general RAM value. */
+static void typed_tag_note_store(M68kRenderLookup *lookup, M68kRenderTypedState *state,
+    const M68kRenderPlatformState *platform_state, const M68kInstructionIR *instruction,
+    size_t section_index, uint32_t offset) {
+  size_t destination; uint8_t span, reg; int16_t displacement; uint32_t bits;
+  if (!lookup->tagged_layout_count || !typed_scalar_write_bits(lookup, state, platform_state,
+        instruction, &destination, &span, &bits) || span != 2U ||
+      !operand_is_address_memory_local(&instruction->operands[destination], &reg, &displacement) ||
+      reg >= 7U || !typed_tag_selector_matches(lookup, &state->addr_regs[reg], displacement)) return;
+  uint16_t handle = (uint16_t)(typed_read_capture(lookup, state, instruction,
+      (uint8_t)destination, section_index, offset) & ~1U);
+  typed_tag_refine_value(lookup, state, handle, (uint16_t)bits);
+}
+
 static void typed_read_refine_edge(M68kRenderLookup *lookup, const M68kRenderTypedFlowNode *predecessor,
     const M68kRenderTypedFlowNode *successor, M68kRenderTypedState *state) {
   M68kInstructionIR branch; int zero, taken;
@@ -361,28 +414,7 @@ static void typed_read_refine_edge(M68kRenderLookup *lookup, const M68kRenderTyp
   const M68kRenderScalarReadRelation *read = &lookup->scalar_read_relations[handle / 2U - 1U];
   if (read->tag_kind) {
     if (read->tag_kind != 1U || !zero) return;
-    M68kRenderScalarReadRelation view = *read;
-    for (size_t k = 0U; k < lookup->tagged_layout_count; ++k) {
-      uint16_t i = lookup->tagged_layout_ids[k];
-      const M68kAnalysisCustomStruct *child = &lookup->policy->custom_structs[i];
-      if (child->has_tag_guard && child->tag_offset == (uint32_t)view.field_cursor &&
-          child->tag_value == state->zero_read_compare_value &&
-          lookup_policy_struct_id_by_name(lookup->policy, child->base_struct) == view.base_type) {
-        view.tag_kind = 2U; view.view_type = (uint16_t)(M68K_ANALYSIS_CUSTOM_STRUCT_ID_BASE + i);
-        uint16_t view_handle = typed_read_intern(lookup, &view);
-        if (!view_handle) return;
-        /* Only a field view changes. The underlying value's declared type,
-         * provenance, element count and pointer targets remain unchanged. */
-#define REFINE_TAG(value) do { \
-  if ((value)->read_relation == handle && (value)->struct_id == view.base_type && \
-      !(value)->byte_cursor && (value)->array_element_index == view.element_index) \
-    (value)->read_relation = view_handle; \
-} while (0)
-        TYPED_READ_VISIT_VALUES(state, REFINE_TAG);
-#undef REFINE_TAG
-        return;
-      }
-    }
+    typed_tag_refine_value(lookup, state, handle, state->zero_read_compare_value);
     return;
   }
   for (uint8_t i = 0U; i < read->count; ++i) if ((read->values[i] == state->zero_read_compare_value) == zero) {

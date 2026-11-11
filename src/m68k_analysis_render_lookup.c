@@ -5148,7 +5148,7 @@ static int instruction_stores_typed_reg_to_a6_slot(const M68kRenderTypedState *s
 /* An ordinary memory operand can retain its independently updated cursor.
  * Distinct EA registers may update in the same instruction; shared register or
  * index dependencies remain ambiguous. Require a bounded field access and
- * exclude stack/multi-transfer forms. Generated metadata owns access/width. */
+ * exclude stack/shared-register forms. Generated metadata owns access/width. */
 static int typed_independent_auto_update_cursor(const M68kRenderLookup *lookup,
     const M68kRenderTypedState *state, const M68kInstructionIR *instruction, size_t operand_index,
     uint8_t *out_reg, uint8_t *out_width) {
@@ -5162,32 +5162,44 @@ static int typed_independent_auto_update_cursor(const M68kRenderLookup *lookup,
       operand_index >= 4U) return 0;
   metadata = m68k_sim_metadata_for_instruction(instruction);
   operand = &instruction->operands[operand_index];
-  if (metadata == NULL || metadata->operation_class == M68K_SIM_CLASS_MULTI_REGISTER_TRANSFER ||
-      metadata->multi_transfer_direction != M68K_SIM_MULTI_NONE || metadata->sp_effect_count != 0U ||
-      instruction_has_call_flow_local(instruction) ||
-      !((metadata->operand_access_kinds[operand_index] == M68K_SIM_ACCESS_MEMORY_READ &&
-         metadata->source_operand_index == operand_index) ||
-        (metadata->operand_access_kinds[operand_index] == M68K_SIM_ACCESS_MEMORY_WRITE &&
-         metadata->dest_operand_index == operand_index)) ||
-      (metadata->operand_width_modes[operand_index] != M68K_SIM_WIDTH_FIXED &&
-       metadata->operand_width_modes[operand_index] != M68K_SIM_WIDTH_INSTRUCTION_SIZE) ||
-      (metadata->operand_width_modes[operand_index] == M68K_SIM_WIDTH_INSTRUCTION_SIZE &&
-       instruction_size_suffix_bytes_local(instruction->size_suffix) == 0U) ||
+  if (metadata == NULL || instruction_has_call_flow_local(instruction) ||
       operand->kind != M68K_ASM_OPERAND_EA || operand->value.ea_reg >= 7U ||
       (m68k_instruction_operand_decoded_ea_shape(operand) != M68K_SIM_EA_SHAPE_POSTINCREMENT &&
        m68k_instruction_operand_decoded_ea_shape(operand) != M68K_SIM_EA_SHAPE_PREDECREMENT)) return 0;
   shape = m68k_instruction_operand_decoded_ea_shape(operand);
+  reg = operand->value.ea_reg;
+  if (metadata->multi_transfer_direction != M68K_SIM_MULTI_NONE) {
+    uint8_t list = metadata->reglist_operand_index;
+    /* The shared decoded footprint owns width, count and predecrement order.
+     * A listed EA register is not an independent cursor in either direction. */
+    if (metadata->operation_type != M68K_SIM_OP_MOVE_MULTIPLE ||
+        metadata->address_operand_index != operand_index || list >= instruction->operand_count ||
+        instruction->operands[list].kind != M68K_ASM_OPERAND_REGLIST ||
+        reglist_contains_address_register_local(&instruction->operands[list], reg) ||
+        !platform_operand_memory_span(instruction, operand_index, NULL, NULL, &width) || !width) return 0;
+  } else {
+    if (metadata->operation_class == M68K_SIM_CLASS_MULTI_REGISTER_TRANSFER || metadata->sp_effect_count != 0U ||
+        !((metadata->operand_access_kinds[operand_index] == M68K_SIM_ACCESS_MEMORY_READ &&
+           metadata->source_operand_index == operand_index) ||
+          (metadata->operand_access_kinds[operand_index] == M68K_SIM_ACCESS_MEMORY_WRITE &&
+           metadata->dest_operand_index == operand_index)) ||
+        (metadata->operand_width_modes[operand_index] != M68K_SIM_WIDTH_FIXED &&
+         metadata->operand_width_modes[operand_index] != M68K_SIM_WIDTH_INSTRUCTION_SIZE) ||
+        (metadata->operand_width_modes[operand_index] == M68K_SIM_WIDTH_INSTRUCTION_SIZE &&
+         instruction_size_suffix_bytes_local(instruction->size_suffix) == 0U)) return 0;
+    width = m68k_sim_operand_width_bytes(instruction, (uint8_t)operand_index);
+    if (width != 1U && width != 2U && width != 4U) return 0;
+  }
   if (metadata->operand_ea_register_updates[operand_index] != M68K_SIM_EA_UPDATE_NONE &&
       metadata->operand_ea_register_updates[operand_index] != (shape == M68K_SIM_EA_SHAPE_POSTINCREMENT
         ? M68K_SIM_EA_UPDATE_POSTINCREMENT : M68K_SIM_EA_UPDATE_PREDECREMENT)) return 0;
   reg = operand->value.ea_reg;
   value = &state->addr_regs[reg];
-  width = m68k_sim_operand_width_bytes(instruction, (uint8_t)operand_index);
   struct_size = lookup_policy_struct_size_by_id(lookup->policy, value->struct_id);
   /* A table entry contains a pointee pointer; the table cursor is not a
    * cursor within that pointee's fields. Keep their existing transfer lane. */
   if (state->memory_base_regs[reg].pointer_table_known) return 0;
-  if (!value->known || value->type_conflicted || (width != 1U && width != 2U && width != 4U) ||
+  if (!value->known || value->type_conflicted || !width ||
       struct_size == 0U || value->byte_cursor < 0 || value->byte_cursor > struct_size ||
       (shape == M68K_SIM_EA_SHAPE_POSTINCREMENT
         ? width > (uint32_t)struct_size - (uint32_t)value->byte_cursor
@@ -5349,8 +5361,9 @@ static int typed_record_word_index_access(M68kRenderLookup *lookup, size_t secti
 /* Project a scalar MOVE's source bits from the existing shared value state.
  * Do not retain scalar RAM, infer a field, or equate relocation placeholders
  * with loaded values. Unknown/conflicting/pointer packets remain unknown. */
-static int typed_source_zero_write_operand(const M68kRenderLookup *lookup,
-    const M68kRenderTypedState *state, const M68kInstructionIR *instruction, size_t *out_operand) {
+static int typed_scalar_write_bits(const M68kRenderLookup *lookup,
+    const M68kRenderTypedState *state, const M68kRenderPlatformState *platform_state,
+    const M68kInstructionIR *instruction, size_t *out_operand, uint8_t *out_span, uint32_t *out_bits) {
   const M68kSimFormMetadata *metadata = NULL;
   size_t source, destination;
   uint8_t span = 0U;
@@ -5367,16 +5380,29 @@ static int typed_source_zero_write_operand(const M68kRenderLookup *lookup,
         (operand_address_register_index_local(&instruction->operands[source], &reg) && state->addr_regs[reg].type_conflicted))
       return 0;
     value = typed_stored_value_for_operand(state, &instruction->operands[source]);
-    if (!value.raw_long_value_known || value.raw_long_candidate_count > 1U ||
-        value.address_value_candidate_overflow || value.pointer_value_known ||
+    if (value.address_value_candidate_overflow || value.pointer_value_known ||
         value.layout_base_id || value.app_address_known || value.struct_id != AMIGA_OS_STRUCT_ID_NONE ||
         value.output != NULL) return 0;
-    bits = value.raw_long_candidate_count ? value.raw_long_candidates[0] : value.raw_long_value;
+    if (value.raw_long_value_known && value.raw_long_candidate_count <= 1U)
+      bits = value.raw_long_candidate_count ? value.raw_long_candidates[0] : value.raw_long_value;
+    else if (span == 2U && platform_state &&
+        operand_is_data_register_local(&instruction->operands[source], &reg) &&
+        platform_state->word_values[reg].count == 1U &&
+        !platform_state->word_values[reg].requires_input_contract)
+      bits = platform_state->word_values[reg].values[0];
+    else return 0;
   }
   if (span < 4U) bits &= span == 1U ? UINT32_C(0xFF) : UINT32_C(0xFFFF);
-  if (bits != 0U) return 0;
   if (out_operand != NULL) *out_operand = destination;
+  if (out_span != NULL) *out_span = span;
+  if (out_bits != NULL) *out_bits = bits;
   return 1;
+}
+
+static int typed_source_zero_write_operand(const M68kRenderLookup *lookup,
+    const M68kRenderTypedState *state, const M68kInstructionIR *instruction, size_t *out_operand) {
+  uint32_t bits;
+  return typed_scalar_write_bits(lookup, state, NULL, instruction, out_operand, NULL, &bits) && bits == 0U;
 }
 
 /* A guarded view is local to one read occurrence and array element. It never
@@ -8495,6 +8521,8 @@ static uint16_t typed_read_capture(M68kRenderLookup *, M68kRenderTypedState *,
     const M68kInstructionIR *, uint8_t, size_t, uint32_t);
 static void typed_read_predicate_after(M68kRenderTypedState *, const M68kInstructionIR *, uint16_t);
 static void typed_read_clear_predicate(M68kRenderTypedState *);
+static void typed_tag_note_store(M68kRenderLookup *, M68kRenderTypedState *,
+    const M68kRenderPlatformState *, const M68kInstructionIR *, size_t, uint32_t);
 
 static void typed_state_update_after_instruction(M68kRenderTypedState *state, M68kRenderLookup *lookup,
     const M68kRenderPlatformState *platform_state, size_t section_index, const M68kInstructionIR *instruction,
@@ -8534,6 +8562,7 @@ static void typed_state_update_after_instruction(M68kRenderTypedState *state, M6
   if (state == NULL || instruction == NULL) return;
   typed_register_alias_roots(state, alias_roots_before);
   if (lookup) typed_read_note_writes(lookup, state, instruction);
+  if (lookup) typed_tag_note_store(lookup, state, platform_state, instruction, section_index, offset);
   const M68kSimFormMetadata *test_meta = m68k_sim_metadata_for_instruction(instruction);
   if (lookup && test_meta && test_meta->operation_type == M68K_SIM_OP_TEST &&
       test_meta->source_operand_index < instruction->operand_count &&
@@ -8633,11 +8662,13 @@ static void typed_state_update_after_instruction(M68kRenderTypedState *state, M6
     }
     typed_state_rebase_stack_slots(state, (int16_t)-displacement);
     recognized_stack_update = 1;
-  } else if (instruction->mnemonic_id == M68K_ASM_MNEMONIC_MOVEM && instruction->operand_count >= 2U &&
-      instruction->operands[1].kind == M68K_ASM_OPERAND_REGLIST) {
+  } else if (test_meta && test_meta->operation_type == M68K_SIM_OP_MOVE_MULTIPLE &&
+      test_meta->multi_transfer_direction == M68K_SIM_MULTI_MEMORY_TO_REGISTER &&
+      test_meta->reglist_operand_index < instruction->operand_count &&
+      instruction->operands[test_meta->reglist_operand_index].kind == M68K_ASM_OPERAND_REGLIST) {
     for (bit = 0U; bit < 8U; ++bit) {
-      if ((instruction->operands[1].value.value & (1UL << bit)) != 0U) typed_state_clear_reg(state, 1U, bit);
-      if ((instruction->operands[1].value.value & (1UL << (8U + bit))) != 0U) typed_state_clear_reg(state, 2U, bit);
+      if ((instruction->operands[test_meta->reglist_operand_index].value.value & (1UL << bit)) != 0U) typed_state_clear_reg(state, 1U, bit);
+      if ((instruction->operands[test_meta->reglist_operand_index].value.value & (1UL << (8U + bit))) != 0U) typed_state_clear_reg(state, 2U, bit);
     }
   } else if (instruction_move_operand_indices_from_metadata(instruction, &source_index, &dest_index,
       &move_metadata)) {
@@ -9161,8 +9192,10 @@ static void typed_state_update_after_instruction(M68kRenderTypedState *state, M6
          the simulator does. Only a bounded, independently updated access retains type. */
       if (operand->kind != M68K_ASM_OPERAND_EA || operand->value.ea_reg >= 8U ||
           (metadata->operand_ea_register_updates[operand_index] == M68K_SIM_EA_UPDATE_NONE &&
-           !((metadata->operand_access_kinds[operand_index] == M68K_SIM_ACCESS_MEMORY_READ ||
-              metadata->operand_access_kinds[operand_index] == M68K_SIM_ACCESS_MEMORY_WRITE) &&
+           !(((metadata->operand_access_kinds[operand_index] == M68K_SIM_ACCESS_MEMORY_READ ||
+               metadata->operand_access_kinds[operand_index] == M68K_SIM_ACCESS_MEMORY_WRITE) ||
+              (metadata->multi_transfer_direction != M68K_SIM_MULTI_NONE &&
+               metadata->address_operand_index == operand_index)) &&
              (ea_shape == M68K_SIM_EA_SHAPE_POSTINCREMENT || ea_shape == M68K_SIM_EA_SHAPE_PREDECREMENT)))) {
         continue;
       }

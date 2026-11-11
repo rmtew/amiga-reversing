@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "source_commit": "57ed4225877fda2e2594fb40fa2fd11109f1e5d1",
+  "source_commit": "c8e6fe1a73e63d05eda75b52a97c2cbdf3d955e6",
   "source_assembly": "starglider2_game.s",
   "assets": [
     {
@@ -878,13 +878,13 @@
     },
     {
       "path": "rendered-provenance.json",
-      "bytes": 3607,
-      "sha256": "d5ab5cd52f70d1b0bcbba5cbd5395a6165beb8e60edc6097f9612bfd76f514fe"
+      "bytes": 3176,
+      "sha256": "452d06ef406ae1722e870400fee948894a9852a2f27123a9264854e5775389c9"
     },
     {
       "path": "starglider2_game.s",
-      "bytes": 2283888,
-      "sha256": "611017461342d66a9ebc0ac3f18b5f132b4477145ad5a6edb5f644f8cd7877d1"
+      "bytes": 2284092,
+      "sha256": "944137d03f35a891207d20a570454d03dd17c9246671aafbbb520f72e40a5ecf"
     },
     {
       "path": "tools/starglider2_protection.py",
@@ -892,6 +892,6 @@
       "sha256": "81d3f66d36dbfbd5c77238b20c28e8b9abaa329777eb91f64669bbbf13703582"
     }
   ],
-  "source_commit_role": "Canonical publication base; native app-access names reuse the existing inline-member resolver. 108 names across five existing layout families now match canonical source roles; proof strength, coordinates, access/CFG/type/reference records and rendered source text remain unchanged. 64 focused Python, 119 additional app cases (one skipped) and 838 native C cases passed. C/vasm and clean standalone exact with unchanged assets. This repairs restoration/audit catalogue input, not new type inference or source discovery.",
-  "source_subject_revision": "997f43969130e170158c0f1e053cd283b70b20c9f928eff577e582f1e4c50c5b"
+  "source_commit_role": "Canonical source publication base.",
+  "source_subject_revision": "8b324389ef2d703dbe85f2ee96771e37b3538a82b5867b02cd91cfde55a3a30f"
 }
