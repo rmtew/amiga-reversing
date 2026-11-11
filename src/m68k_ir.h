@@ -1388,6 +1388,8 @@ typedef struct M68kAppSlotRefIR {
   uint32_t loop_header_offset;
   uint32_t loop_tail_offset;
   uint8_t loop_counter_register;
+  /* Name projection only; never upgrades the independently recorded base proof. */
+  uint8_t symbol_is_canonical;
 } M68kAppSlotRefIR;
 
 typedef struct M68kAffineLoopDomainIR {

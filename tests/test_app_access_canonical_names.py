@@ -69,3 +69,58 @@ def test_another_layout_at_the_same_offset_does_not_rename_app_view(tmp_path):
         refs=a.analysis_payload()[0]['sections'][0]['app_slot_refs']
         assert not refs
         assert c_backend.assemble_platform_source_text_with_c_backend('amiga-raw',a.inline_source_text_with_profile()[0])[0]==original
+
+
+@pytest.mark.parametrize('instruction,delta,field', [
+    ('move.w $104(a6),d0', 4, 'Pair_second'),
+    ('move.b $105(a6),d0', 5, 'Pair_second+1'),
+    ('lea.l $104(a6),a0', 4, 'Pair_second'),
+    ('lea.l $100(a6),a0\n move.w 4(a0),d0', 4, 'Pair_second'),
+])
+def test_inline_members_share_the_rendered_expression_in_native_access_catalogues(tmp_path, instruction, delta, field):
+    owner = region(offset=0x100, size=8, symbol='pair', storage_kind='struct_instance', struct_name='Pair')
+    extra = dict(custom_structs=[dict(name='Pair', size=8, fields=[
+        dict(name='first', type='WORD', offset=0, size=2),
+        dict(name='second', type='WORD', offset=4, size=2)])])
+    with candidate_artifact(tmp_path, instruction+'\n rts', [owner], extra) as (a, original):
+        source = a.inline_source_text_with_profile()[0]
+        expected_operand = field+'(a0)' if instruction.startswith('lea.l $100') else 'pair+'+field+'(a6)'
+        assert expected_operand in source
+        refs = [r for r in a.analysis_payload()[0]['sections'][0]['app_slot_refs'] if r['displacement']==0x100+delta]
+        assert len(refs)==1
+        assert refs[0]['symbol_name']=='pair+'+field
+        row = a.row_for_source_offset(section_index=0, offset=refs[0]['offset'])
+        assert row['app_slot_refs'][0]['symbol']=='pair+'+field
+        assert c_backend.assemble_platform_source_text_with_c_backend('amiga-raw', source)[0]==original
+
+
+@pytest.mark.parametrize('mode', ['padding', 'foreign_layout', 'short_extent', 'conflicting_views'])
+def test_member_names_do_not_escape_the_existing_inline_owner_contract(tmp_path, mode):
+    owner = region(offset=0x100, size=8, symbol='pair', storage_kind='struct_instance', struct_name='Pair')
+    regions = [owner]
+    delta = 2 if mode=='padding' else 4
+    if mode=='foreign_layout': owner.update(layout_name='service', base_symbol='service_base')
+    if mode=='short_extent': owner['size']=4
+    if mode=='conflicting_views': regions.append(dict(owner, offset=0x102, symbol='other_pair', struct_name='Other'))
+    extra = dict(custom_structs=[dict(name='Pair', size=8, fields=[
+        dict(name='first', type='WORD', offset=0, size=2),
+        dict(name='second', type='WORD', offset=4, size=2)])])
+    if mode=='conflicting_views': extra['custom_structs'].append(dict(name='Other', size=8, fields=[dict(name='alternative', type='WORD', offset=2, size=2)]))
+    with candidate_artifact(tmp_path, f'move.w ${0x100+delta:x}(a6),d0\n rts', regions, extra) as (a, original):
+        refs = a.analysis_payload()[0]['sections'][0]['app_slot_refs']
+        assert all('Pair_second' not in r['symbol_name'] for r in refs)
+        assert c_backend.assemble_platform_source_text_with_c_backend('amiga-raw', a.inline_source_text_with_profile()[0])[0]==original
+
+
+def test_exact_primary_field_catalog_name_outweighs_an_enclosing_member_expression(tmp_path):
+    owner = region(offset=0x100, size=8, symbol='pair', storage_kind='struct_instance', struct_name='Pair')
+    extra = dict(custom_structs=[dict(name='Pair', size=8, fields=[
+        dict(name='first', type='WORD', offset=0, size=2),
+        dict(name='second', type='WORD', offset=4, size=2)])])
+    with candidate_artifact(tmp_path, 'move.w $104(a6),d0\n rts',
+            [owner, region(offset=0x104, symbol='selected_member')], extra) as (a, original):
+        refs = a.analysis_payload()[0]['sections'][0]['app_slot_refs']
+        assert len(refs)==1 and refs[0]['symbol_name']=='selected_member'
+        row = a.row_for_source_offset(section_index=0, offset=refs[0]['offset'])
+        assert row['app_slot_refs'][0]['symbol']=='selected_member'
+        assert c_backend.assemble_platform_source_text_with_c_backend('amiga-raw', a.inline_source_text_with_profile()[0])[0]==original

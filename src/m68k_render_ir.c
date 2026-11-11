@@ -5984,10 +5984,6 @@ static int apply_manual_operand_representations(const M68kRenderLookup *lookup, 
   return 0;
 }
 
-static int lookup_typed_app_slot_field_symbol_name(const M68kRenderLookup *lookup, int16_t displacement,
-    char *base_symbol, size_t base_symbol_size, char *field_expr, size_t field_expr_size,
-    int32_t *out_field_offset);
-
 static int lookup_typed_app_slot_region_contains_auto_offset(const M68kRenderLookup *lookup,
     int16_t displacement) {
   /* Suppress an automatic alias only when the same unambiguous resolver can
@@ -5995,7 +5991,7 @@ static int lookup_typed_app_slot_region_contains_auto_offset(const M68kRenderLoo
   return lookup_typed_app_slot_field_symbol_name(lookup, displacement, NULL, 0U, NULL, 0U, NULL);
 }
 
-static int lookup_typed_app_slot_field_symbol_name(const M68kRenderLookup *lookup, int16_t displacement,
+int lookup_typed_app_slot_field_symbol_name(const M68kRenderLookup *lookup, int16_t displacement,
     char *base_symbol, size_t base_symbol_size, char *field_expr, size_t field_expr_size,
     int32_t *out_field_offset) {
   size_t index;

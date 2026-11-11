@@ -74,6 +74,28 @@ original bug. Field representations add no inferred pointer types or lifetime
 claim. Access/CFG/reference and classification totals remain unchanged; exact
 C/vasm and standalone preserve all bytes/assets. Disk save/load is not exercised.
 
+Native app-access catalogues now reuse the renderer's existing unambiguous
+inline-member resolver. 108 formerly generic names recover existing field
+expressions across model/header counts, model/view matrices, retirement edge
+deltas and the world pool. This fixes misleading input to the restoration gap
+audit; the rendered source was already correct and remains text-identical.
+Address/base evidence, coordinates, access kinds and all typed/CFG/reference
+facts remain unchanged. Padding, foreign/short owners, conflicting views and
+explicit primary names retain their existing rules. 64 focused Python cases,
+119 further app cases (one skipped), and 838 native C tests passed; C/vasm and
+clean standalone remain byte exact. No new semantic type or lifetime is inferred.
+
+Native app-access catalogues now reuse the renderer's existing unambiguous
+inline-member resolver. 108 formerly generic names recover existing field
+expressions across model/header counts, model/view matrices, retirement edge
+deltas and the world pool. This fixes misleading input to the restoration gap
+audit; the rendered source was already correct and remains text-identical.
+Address/base evidence, coordinates, access kinds and all typed/CFG/reference
+facts remain unchanged. Padding, foreign/short owners, conflicting views and
+explicit primary names retain their existing rules. 64 focused Python cases,
+119 further app cases (one skipped), and 838 native C tests passed; C/vasm and
+clean standalone remain byte exact. No new semantic type or lifetime is inferred.
+
 An explicit same-sized type-12 layout contract now selects the existing
 steered-projectile fields only on WORD-tag equality. Shared read handles carry a
 transient field view, not a permanent pointer subtype. Writes/possible aliases,

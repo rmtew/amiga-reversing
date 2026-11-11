@@ -6756,6 +6756,10 @@ static int append_listing_app_slot_ref_json(JsonBuilder *builder, const char *sy
 
 static const char *listing_app_slot_ref_symbol_from_row(const M68kStatementIR *stmt, const M68kAppSlotRefIR *ref) {
   const M68kOperandIR *operand;
+  /* A propagated cursor can render just Member(a0), while the catalogue names
+   * the app coordinate Owner+Member. Preserve that canonical identity. */
+  if (ref != NULL && ref->symbol_is_canonical && ref->symbol_name != NULL)
+    return ref->symbol_name;
   if (stmt != NULL && stmt->kind == M68K_STATEMENT_INSTRUCTION && ref != NULL &&
       ref->operand_index < stmt->u.instruction.operand_count) {
     operand = &stmt->u.instruction.operands[ref->operand_index];

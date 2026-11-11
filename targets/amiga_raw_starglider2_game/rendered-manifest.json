@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "source_commit": "2e62ce255c2062db4ba27006a7561e2c06d5bbb6",
+  "source_commit": "57ed4225877fda2e2594fb40fa2fd11109f1e5d1",
   "source_assembly": "starglider2_game.s",
   "assets": [
     {
@@ -878,8 +878,8 @@
     },
     {
       "path": "rendered-provenance.json",
-      "bytes": 3613,
-      "sha256": "c63929c6c794fee023c95ce24f95d2d337fafd21dc3becc05baf91d4e574bbe7"
+      "bytes": 3607,
+      "sha256": "d5ab5cd52f70d1b0bcbba5cbd5395a6165beb8e60edc6097f9612bfd76f514fe"
     },
     {
       "path": "starglider2_game.s",
@@ -892,6 +892,6 @@
       "sha256": "81d3f66d36dbfbd5c77238b20c28e8b9abaa329777eb91f64669bbbf13703582"
     }
   ],
-  "source_commit_role": "Canonical publication base; save/load workspace pointer transforms restored with 22 code labels, 5 scalar roles and 32 operand bindings. Nine original CPU cases plus assembled layout/symbol checks compare all RAM across exact list/end-slot spans, guarded object links, LONG wrap and conditional sentinel collisions at three supplied bases. Native access/CFG/reference facts unchanged; C/vasm and standalone exact. Field representations add no pointer-type or lifetime proof; disk I/O and normal-game reachability unqualified.",
-  "source_subject_revision": "b8786f2cb9ec716a02dbd9da77a5cb70b44c23763cb5e216bea6b6d1839a2f4b"
+  "source_commit_role": "Canonical publication base; native app-access names reuse the existing inline-member resolver. 108 names across five existing layout families now match canonical source roles; proof strength, coordinates, access/CFG/type/reference records and rendered source text remain unchanged. 64 focused Python, 119 additional app cases (one skipped) and 838 native C cases passed. C/vasm and clean standalone exact with unchanged assets. This repairs restoration/audit catalogue input, not new type inference or source discovery.",
+  "source_subject_revision": "997f43969130e170158c0f1e053cd283b70b20c9f928eff577e582f1e4c50c5b"
 }

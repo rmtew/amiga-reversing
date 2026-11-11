@@ -1068,6 +1068,9 @@ int lookup_base_field_slot_symbol_name(const M68kRenderLookup *lookup, const cha
     int16_t displacement, char *symbol_name, size_t symbol_name_size);
 int lookup_app_base_field_slot_symbol_name(const M68kRenderLookup *lookup, int16_t displacement,
     char *symbol_name, size_t symbol_name_size);
+int lookup_typed_app_slot_field_symbol_name(const M68kRenderLookup *lookup, int16_t displacement,
+  char *base_symbol, size_t base_symbol_size, char *field_expr, size_t field_expr_size,
+  int32_t *out_field_offset);
 const char *lookup_indexed_vector_wrapper_library(const M68kRenderLookup *lookup, size_t section_index,
     uint32_t offset);
 void render_asm_base_layout_rs(M68kRenderIRPreview *preview, const M68kRenderLookup *lookup,

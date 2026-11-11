@@ -15506,8 +15506,22 @@ static int append_render_lookup_app_slot_refs_for_section(const M68kRenderLookup
   }
   for (index = 0U; index < lookup->app_slot_ref_count; ++index) {
     const M68kRenderAppSlotRef *ref = &lookup->app_slot_refs[index];
+    M68kAppSlotRefIR named;
+    char owner[64], field[96], expression[sizeof(owner) + sizeof(field) + 1U];
     if (ref->section_index != section_analysis->section_index) continue;
-    if (m68k_ir_section_analysis_append_app_slot_ref(section_analysis, &ref->ref) != 0) return -1;
+    named = ref->ref;
+    /* Use the renderer's existing unambiguous member resolver. An interior
+     * coordinate alone cannot name padding, foreign layouts or conflicting
+     * views. Keep this independent of the cursor/base evidence strength. */
+    if (lookup_typed_app_slot_field_symbol_name(lookup, named.displacement,
+          owner, sizeof(owner), field, sizeof(field), NULL)) {
+      int length = snprintf(expression, sizeof(expression), "%s+%s", owner, field);
+      if (length > 0 && (size_t)length < sizeof(expression)) {
+        named.symbol_name = expression;
+        named.symbol_is_canonical = 1U;
+      }
+    }
+    if (m68k_ir_section_analysis_append_app_slot_ref(section_analysis, &named) != 0) return -1;
   }
   return 0;
 }
