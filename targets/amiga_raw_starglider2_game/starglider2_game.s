@@ -1600,20 +1600,36 @@ SG2_INVENTORY_TYPE_SCAN_DBF_LAST	EQU	103
 SG2_LINKED_CONTACT_AXIS_OFFSET	EQU	1800
 SG2_MASK16_SOURCE_TABLE_BYTES	EQU	32
 SG2_MASK32_SOURCE_TABLE_BYTES	EQU	128
+SG2_MASTER_MEDIA_SIGNATURE_OFFSET	EQU	30
 SG2_MESSAGE_COUNTDOWN_RELOAD	EQU	75
 SG2_MESSAGE_QUEUE_POINTER_LIMIT	EQU	10
 SG2_MESSAGE_ROWS_DBF_LAST	EQU	7
 SG2_MESSAGE_ROW_LONGS_DBF_LAST	EQU	6
 SG2_MESSAGE_ROW_SKIP_BYTES	EQU	12
+SG2_MFM_A1_SYNC_PAIR	EQU	$44894489
 SG2_MFM_A1_SYNC_WORD	EQU	$4489
+SG2_MFM_CRC_BYTES	EQU	2
 SG2_MFM_DATA_ADDRESS_MARK_WORD	EQU	$5545
+SG2_MFM_DATA_AFTER_SYNC_BYTES	EQU	515
+SG2_MFM_DATA_CRC_DBF_LAST	EQU	515
+SG2_MFM_DATA_CRC_HIGH_OFFSET	EQU	516
+SG2_MFM_DATA_CRC_LOW_OFFSET	EQU	517
+SG2_MFM_HEADER_AFTER_SYNC_BYTES	EQU	5
+SG2_MFM_HEADER_CRC_DBF_LAST	EQU	7
 SG2_MFM_ID_ADDRESS_MARK_WORD	EQU	$5554
+SG2_MFM_ID_CYLINDER_BYTE_OFFSET	EQU	4
 SG2_MFM_ID_SECTOR_BYTE_OFFSET	EQU	6
 SG2_MFM_MUSIC_SECTOR_COUNT	EQU	6
 SG2_MFM_MUSIC_TAIL_SECTOR_INDEX	EQU	5
 SG2_MFM_NIBBLE_INDEX_MASK	EQU	$7F
 SG2_MFM_PAYLOAD1024_DBF_LAST	EQU	1023
 SG2_MFM_PAYLOAD512_DBF_LAST	EQU	511
+SG2_MFM_PAYLOAD_LONGS_DBF_LAST	EQU	127
+SG2_MFM_POST_DATA_GAP_BYTES	EQU	22
+SG2_MFM_POST_ID_GAP_AND_ZERO_BYTES	EQU	34
+SG2_MFM_SYNC_MARK_BYTES	EQU	3
+SG2_MFM_SYNC_ZERO_BYTES	EQU	12
+SG2_MFM_WRITE_SECTOR_COUNT	EQU	10
 SG2_MODEL_VISIBILITY_HIDDEN_BIT	EQU	1
 SG2_MOTION_VECTOR_PHASE_MASK	EQU	4095
 SG2_MUSIC_ALTERNATE_INITIAL_BLOCK_COUNT	EQU	79
@@ -20021,41 +20037,46 @@ write_and_check_amiga_mfm_track:
 	beq.b write_and_check_amiga_mfm_track
 	moveq.l #-2,d0
 	rts
+    ; Prepare ten 512-byte sectors in descending interleave slots: 11920 encoded bytes, leaving 368 bytes of the later 12288-byte DMA window unchanged. CRC tables must already be initialized.
 encode_and_write_mfm_track:
 	lea.l absolute_slot_00078000.l,a0
-	move.w #$A,disk_service_state_sector_work_index.l
-abs_0_00010818:
+	move.w #SG2_MFM_WRITE_SECTOR_COUNT,disk_service_state_sector_work_index.l
+    ; Encode calls reset previous-data carry. Template marks remain mutable: CRC reads them, while emitted sync is hard-coded A1. Prior F5 substitutions can therefore yield a CRC mismatch.
+encode_next_interleaved_mfm_sector:
 	lea.l mfm_id_template(pc),a1
-	moveq.l #12,d1
+	moveq.l #SG2_MFM_SYNC_ZERO_BYTES,d1
 	bsr.w encode_mfm_bytes
-	move.l #$44894489,(a0)+
-	move.w #$4489,(a0)+
+	move.l #SG2_MFM_A1_SYNC_PAIR,(a0)+
+	move.w #SG2_MFM_A1_SYNC_WORD,(a0)+
 	move.l a1,-(a7)
 	move.w disk_service_state_sector_work_index.l,d0
 	lea.l disk_sector_interleave_order(pc),a3
 	move.b $0(a3,d0.w),d0
 	move.b d0,disk_service_state_current_sector_id.l
-	move.b d0,$0006(a1)
+	move.b d0,SG2_MFM_ID_SECTOR_BYTE_OFFSET(a1)
 	move.w disk_service_state_current_cylinder.l,d0
-	move.b d0,$0004(a1)
-	moveq.l #7,d2
+	move.b d0,SG2_MFM_ID_CYLINDER_BYTE_OFFSET(a1)
+calculate_mfm_id_header_crc:
+	moveq.l #SG2_MFM_HEADER_CRC_DBF_LAST,d2
 	bsr.w update_crc16_1021_bytes
 	move.b d6,disk_service_state_crc_high.l
 	move.b d7,disk_service_state_crc_low.l
 	movea.l (a7)+,a1
-	addq.l #3,a1
-	moveq.l #5,d1
+	addq.l #SG2_MFM_SYNC_MARK_BYTES,a1
+	moveq.l #SG2_MFM_HEADER_AFTER_SYNC_BYTES,d1
 	bsr.w encode_mfm_bytes
 	move.l a1,-(a7)
 	lea.l disk_service_state_crc_high(pc),a1
-	moveq.l #2,d1
+	moveq.l #SG2_MFM_CRC_BYTES,d1
 	bsr.w encode_mfm_bytes
 	movea.l (a7)+,a1
-	move.w #$22,d1
+	move.w #SG2_MFM_POST_ID_GAP_AND_ZERO_BYTES,d1
 	bsr.w encode_mfm_bytes
-	move.l #$44894489,(a0)+
-	move.w #$4489,(a0)+
+emit_mfm_data_sync_and_select_payload:
+	move.l #SG2_MFM_A1_SYNC_PAIR,(a0)+
+	move.w #SG2_MFM_A1_SYNC_WORD,(a0)+
 	move.l a1,-(a7)
+    ; Payload offset is sign-extended sector BYTE minus one, WORD-scaled by 512. The original interleave selects IDs 1..10; this does not prove arbitrary replacement-table safety.
 	lea.l runtime_code_0007E000.l,a3
 	lea.l mfm_data_crc_template_placeholder(pc),a1
 	move.b disk_service_state_current_sector_id.l,d0
@@ -20064,23 +20085,25 @@ abs_0_00010818:
 	lsl.w #8,d0
 	lsl.w #1,d0
 	lea.l $0(a3,d0.w),a3
-	moveq.l #127,d1
-abs_0_000108AC:
+	moveq.l #SG2_MFM_PAYLOAD_LONGS_DBF_LAST,d1
+copy_sector_payload_to_mfm_crc_scratch:
 	move.l (a3)+,(a1)+
-	dbf.w d1,abs_0_000108AC
+	dbf.w d1,copy_sector_payload_to_mfm_crc_scratch
+calculate_mfm_data_marker_and_payload_crc:
 	movea.l (a7),a1
-	move.w #$203,d2
+	move.w #SG2_MFM_DATA_CRC_DBF_LAST,d2
 	bsr.w update_crc16_1021_bytes
 	movea.l (a7)+,a1
-	move.b d6,$0204(a1)
-	move.b d7,$0205(a1)
-	addq.l #3,a1
-	move.w #$203,d1
+	move.b d6,SG2_MFM_DATA_CRC_HIGH_OFFSET(a1)
+	move.b d7,SG2_MFM_DATA_CRC_LOW_OFFSET(a1)
+	addq.l #SG2_MFM_SYNC_MARK_BYTES,a1
+	move.w #SG2_MFM_DATA_AFTER_SYNC_BYTES,d1
 	bsr.w encode_mfm_bytes
-	moveq.l #22,d1
+	moveq.l #SG2_MFM_POST_DATA_GAP_BYTES,d1
 	bsr.w encode_mfm_bytes
 	subq.w #1,disk_service_state_sector_work_index.l
-	bne.w abs_0_00010818
+	bne.w encode_next_interleaved_mfm_sector
+begin_prepared_mfm_track_dma_setup:
 	lea.l _custom.l,a5
 	clr.w disk_service_state_disk_dma_completed.l
 	move.w #INTF_SETCLR|INTF_INTEN|INTF_DSKBLK,intena(a5)
@@ -20215,7 +20238,7 @@ seek_mfm_data_address_mark:
 	bne.b seek_mfm_data_address_mark
 	subq.l #8,a0
 	move.w #SG2_MFM_A1_SYNC_WORD,(a0)
-    ; Advance scratch by8 before data CRC. Headers span10 bytes, so marker/CRC writes reuse the tail. Failed data keeps the scratch advance and copied payload; the seen flag stays clear.
+    ; Advance scratch by 8 before data CRC. Headers span 10 bytes, so marker/CRC writes reuse the tail. Failed data keeps the scratch advance and copied payload; the seen flag stays clear.
 advance_mfm_decoded_header_scratch_slot:
 	addq.l #8,a4
 	bsr.w decode_and_check_mfm_sector_data
@@ -20432,23 +20455,25 @@ abs_0_00010D40:
 abs_0_00010D54:
 	moveq.l #0,d0
 	rts
+    ; Compare only the 14 bytes "StarGlider II," at transfer offset 30. Return -1 on match, 0 on mismatch. This prefix test does not validate a complete disk or executable.
 matches_starglider_master_media_signature:
 	movea.l disk_service_state_transfer_buffer_pointer.l,a0
-	lea.l $001E(a0),a0
-	cmpi.l #1400136050,(a0)+
-	bne.w abs_0_00010D86
-	cmpi.l #1198287204,(a0)+
-	bne.b abs_0_00010D86
-	cmpi.l #1701978185,(a0)+
-	bne.b abs_0_00010D86
-	cmpi.w #18732,(a0)+
-	bne.b abs_0_00010D86
+	lea.l SG2_MASTER_MEDIA_SIGNATURE_OFFSET(a0),a0
+	cmpi.l #$53746172,(a0)+
+	bne.w return_master_media_signature_mismatch
+	cmpi.l #$476C6964,(a0)+
+	bne.b return_master_media_signature_mismatch
+	cmpi.l #$65722049,(a0)+
+	bne.b return_master_media_signature_mismatch
+	cmpi.w #$492C,(a0)+
+	bne.b return_master_media_signature_mismatch
+return_master_media_signature_match:
 	moveq.l #-1,d0
 	rts
-abs_0_00010D86:
+return_master_media_signature_mismatch:
 	moveq.l #0,d0
 	rts
-    ; D1.W is byte count: zero wraps to65536. D5 accumulates a WORD sum minus1, not CRC. Preserve the unused D3 polynomial load and initial previous-data bit1.
+    ; D1.W is byte count: zero wraps to 65536. D5 accumulates a WORD sum minus 1, not CRC. Preserve the unused D3 polynomial load and initial previous-data bit 1.
 encode_mfm_bytes:
 	subq.w #1,d1
 	lea.l mfm_encode_byte_words.l,a2
@@ -20489,7 +20514,7 @@ update_crc16_from_next_byte:
 	move.b SG2_CRC16_SPLIT_TABLE_STRIDE_BYTES(a5),d7
 	dbf.w d2,update_crc16_from_next_byte
 	rts
-    ; Generate256 split high/low BYTE entries for polynomial $1021. Original tables are zero seeds; CRC validation requires initialization, not merely original source bytes.
+    ; Generate 256 split high/low BYTE entries for polynomial $1021. Original tables are zero seeds; CRC validation requires initialization, not merely original source bytes.
 initialize_crc16_1021_tables:
 	lea.l crc16_1021_high_table.l,a5
 	moveq.l #0,d7
@@ -20511,7 +20536,7 @@ store_crc16_low_and_high_table_bytes:
 	addq.b #1,d7
 	bne.b generate_next_crc16_table_entry
 	rts
-    ; Caller supplies DBF last9 for10 decoded bytes. CRC seed FF/FF; Z tests the OR of residual bytes. D0 remains a nibble index. This wrapper does not validate marker, track, head or size.
+    ; Caller supplies DBF last 9 for 10 decoded bytes. CRC seed FF/FF; Z tests the OR of residual bytes. D0 remains a nibble index. This wrapper does not validate marker, track, head or size.
 decode_and_check_mfm_header:
 	moveq.l #-1,d6
 	move.b d6,d7
@@ -20521,7 +20546,7 @@ decode_and_check_mfm_header:
 	movem.l (a7)+,a2-a4
 	or.b d6,d7
 	rts
-    ; Count6 selects1024-byte payloads except index5 (512); other counts select512. Destination uses signed WORD(index*stride). Output survives bad CRC; marker/CRC scratch is separate.
+    ; Count 6 selects 1024-byte payloads except index 5 (512); other counts select 512. Destination uses signed WORD(index*stride). Output survives bad CRC; marker/CRC scratch is separate.
 decode_and_check_mfm_sector_data:
 	moveq.l #-1,d6
 	move.b d6,d7

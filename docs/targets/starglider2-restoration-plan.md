@@ -50,6 +50,18 @@ or timing. Counts remain 3514 app / 2750 typed / 157 unresolved and 9977
 unclassified bytes across 278 intervals. C/vasm and clean standalone preserve
 all original bytes and all 57 assets. No additional typed-layout claim is made.
 
+The ten-sector software MFM writer now exposes its interleave, header/data CRC
+and payload-copy stages: 8 code labels, 16 scalars and 25 operand bindings.
+21 original CPU cases and 24 independently assembled symbol bindings cover all
+11920 prepared bytes, ordered codec/CRC calls, the retained 368-byte DMA tail,
+scanner roundtrip and the exact 14-byte master-media prefix at offset 30.
+Supplied F5 template mutations remain intact and can cause CRC mismatch against
+hard-coded A1 sync; normal platform-switch reachability is not established.
+Prior A1 typed-claim withdrawals remain intact: these are scalar representations,
+not inferred pointer types. Access/CFG/reference and classification totals are
+unchanged. C/vasm and clean standalone remain exact with 57 unchanged assets;
+physical media, DMA delivery and timing are outside these RAM tests.
+
 An explicit same-sized type-12 layout contract now selects the existing
 steered-projectile fields only on WORD-tag equality. Shared read handles carry a
 transient field view, not a permanent pointer subtype. Writes/possible aliases,
