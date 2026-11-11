@@ -19,11 +19,12 @@ Original payload SHA256:
    identities are supported. Undeclared prefix bytes retain no field meaning.
    Next: the publication barrier in item 2; do not add per-reader type seeds
    or assume disjoint allocations.
-2. Player rotation writes: trace the type-30 constructor through publication
-   of `player_object_reference`. Current A6 app coordinates are fallback
-   interpretations, insufficient for a disjoint-write proof. Next experiment:
-   a real caller/entry identity, or a qualified canonical cell identity; do not
-   promote a new layout solely to reduce the unresolved count.
+2. Player rotation writes: publication through fallback A6 loses the type-30
+   tag. A minimal derived-base, disjoint-store probe also loses the guard;
+   overlap and unknown-base controls refuse. Runtime-relative address identity
+   is missing; current affine entry IDs are summary-scoped. Next experiment:
+   transport same-root LEA deltas through normal value packets and prove write
+   disjointness, without app-namespace assumptions or per-reader type seeds.
 3. Optional model-header extension: keep face-count mutation separate from
    the format discriminator. The original viewer can select outside the
    104-entry model prefix. Next: isolate an evidenced caller domain and its

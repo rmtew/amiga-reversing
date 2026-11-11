@@ -13592,7 +13592,7 @@ abs_0_0000AB74:
 	clr.b SG2SiloLauncher_child_attached_flag(a0)
 	bra.w continue_secondary_object_update_loop
 	dc.b $33,$EE,$07,$56,$00,$DF,$F1,$80,$60,$00,$D8,$0A
-    ; Fill28 spaces; copy unbounded prefix and four BCD digits from coordinate low-WORD high bytes. No NUL write. Shared buffer changes before pointer-only queue dedup.
+    ; Fill 28 spaces; copy unbounded prefix and four BCD digits from coordinate low-WORD high bytes. No NUL write. Shared buffer changes before pointer-only queue dedup.
 format_and_enqueue_object_coordinate_message:
 	lea.l coordinate_warning_text_scratch.l,a3
 	move.l #$20202020,(a3)+
@@ -38615,7 +38615,7 @@ abs_0_0002ECB6:
 	cmp.w #$240,d1
 	bcs.b abs_0_0002ECD2
 	cmp.w #$5C0,d1
-	bcs.w abs_0_0002EEEE
+	bcs.w set_horizon_split_to_clip_minimum
 	cmp.w #$A40,d1
 	bcs.b abs_0_0002ECD2
 	cmp.w #$DC0,d1
@@ -38633,8 +38633,8 @@ abs_0_0002ECD2:
 	move.w #$0,d2
 	move.w d7,d3
 	bsr.w rotate_horizon_vector_to_view
-	bsr.w abs_0_0002EF02
-	bne.w abs_0_0002EEDC
+	bsr.w project_and_clip_horizon_endpoint_pair
+	bne.w choose_horizon_split_for_rejected_line
 	move.w d4,$0138(a6)
 	move.w d5,$013C(a6)
 	move.w d6,$013A(a6)
@@ -38642,7 +38642,7 @@ abs_0_0002ECD2:
 	cmp.w d7,d5
 	bne.b abs_0_0002ED14
 	cmp.w d4,d6
-	beq.w abs_0_0002EEDC
+	beq.w choose_horizon_split_for_rejected_line
     ; Horizon packet: depth key $FFFF, encoded fill style, variable XY pairs, negative-X terminator. This producer writes LONG -1; model packets may terminate only a WORD.
 abs_0_0002ED14:
 	lea.l horizon_scene_polygon_scratch.l,a0
@@ -38671,23 +38671,23 @@ abs_0_0002ED50:
 	move.l a1,scene_reference_write_cursor.l
 	move.w d5,horizon_ground_split_row.l
 	move.w view_clip_max_y(a6),horizon_clip_max_y_snapshot.l
-	bra.w abs_0_0002EED8
+	bra.w continue_horizon_with_ground_grid
 abs_0_0002ED76:
 	move.w view_clip_max_x(a6),(a0)+
 	move.w d5,(a0)+
 	move.w d5,horizon_ground_split_row.l
 	move.w view_clip_max_y(a6),horizon_clip_max_y_snapshot.l
-	bra.w abs_0_0002EECC
+	bra.w finish_horizon_polygon_and_count
 abs_0_0002ED8E:
 	move.w view_clip_min_x(a6),(a0)+
 	move.w d7,(a0)+
 	move.w d7,horizon_ground_split_row.l
 	move.w view_clip_max_y(a6),horizon_clip_max_y_snapshot.l
-	bra.w abs_0_0002EECC
+	bra.w finish_horizon_polygon_and_count
 abs_0_0002EDA6:
 	move.w view_clip_min_x(a6),(a0)+
 	move.w view_clip_max_y(a6),(a0)+
-	bra.w abs_0_0002EECC
+	bra.w finish_horizon_polygon_and_count
 abs_0_0002EDB2:
 	cmp.w view_clip_min_y(a6),d5
 	bne.w abs_0_0002EE1A
@@ -38703,13 +38703,13 @@ abs_0_0002EDCA:
 	move.w view_clip_min_y(a6),(a0)+
 	move.w d7,horizon_ground_split_row.l
 	move.w view_clip_max_y(a6),horizon_clip_max_y_snapshot.l
-	bra.w abs_0_0002EECC
+	bra.w finish_horizon_polygon_and_count
 abs_0_0002EDEA:
 	move.w view_clip_min_x(a6),(a0)+
 	move.w view_clip_max_y(a6),(a0)+
 	move.w view_clip_min_x(a6),(a0)+
 	move.w view_clip_min_y(a6),(a0)+
-	bra.w abs_0_0002EECC
+	bra.w finish_horizon_polygon_and_count
 abs_0_0002EDFE:
 	move.w view_clip_min_x(a6),(a0)+
 	move.w view_clip_max_y(a6),(a0)+
@@ -38717,7 +38717,7 @@ abs_0_0002EDFE:
 	move.w view_clip_min_y(a6),(a0)+
 	move.w view_clip_max_x(a6),(a0)+
 	move.w view_clip_min_y(a6),(a0)+
-	bra.w abs_0_0002EECC
+	bra.w finish_horizon_polygon_and_count
 abs_0_0002EE1A:
 	cmp.w view_clip_max_x(a6),d4
 	bne.b abs_0_0002EE42
@@ -38729,7 +38729,7 @@ abs_0_0002EE1A:
 	move.w view_clip_min_y(a6),(a0)+
 	move.w view_clip_max_x(a6),(a0)+
 	move.w view_clip_min_y(a6),(a0)+
-	bra.w abs_0_0002EECC
+	bra.w finish_horizon_polygon_and_count
 abs_0_0002EE42:
 	cmp.w view_clip_max_x(a6),d6
 	beq.w abs_0_0002EEA4
@@ -38741,27 +38741,27 @@ abs_0_0002EE42:
 	move.w view_clip_min_y(a6),(a0)+
 	move.w view_clip_max_x(a6),(a0)+
 	move.w view_clip_max_y(a6),(a0)+
-	bra.w abs_0_0002EECC
+	bra.w finish_horizon_polygon_and_count
 abs_0_0002EE6C:
 	move.w view_clip_min_x(a6),(a0)+
 	move.w view_clip_min_y(a6),(a0)+
 	cmpi.w #24832,abs_0_00013C02.l
 	bne.w abs_0_0002F690
-	bra.w abs_0_0002EECC
+	bra.w finish_horizon_polygon_and_count
 abs_0_0002EE84:
 	move.w view_clip_max_x(a6),(a0)+
 	move.w view_clip_min_y(a6),(a0)+
-	bra.w abs_0_0002EECC
+	bra.w finish_horizon_polygon_and_count
 abs_0_0002EE90:
 	move.w view_clip_max_x(a6),(a0)+
 	move.w view_clip_min_y(a6),(a0)+
 	move.w view_clip_max_x(a6),(a0)+
 	move.w view_clip_max_y(a6),(a0)+
-	bra.w abs_0_0002EECC
+	bra.w finish_horizon_polygon_and_count
 abs_0_0002EEA4:
 	move.w view_clip_max_x(a6),(a0)+
 	move.w view_clip_max_y(a6),(a0)+
-	bra.w abs_0_0002EECC
+	bra.w finish_horizon_polygon_and_count
 abs_0_0002EEB0:
 	move.w view_clip_max_x(a6),(a0)+
 	move.w view_clip_min_y(a6),(a0)+
@@ -38769,23 +38769,24 @@ abs_0_0002EEB0:
 	move.w d5,(a0)+
 	move.w d5,horizon_ground_split_row.l
 	move.w view_clip_max_y(a6),horizon_clip_max_y_snapshot.l
-abs_0_0002EECC:
+finish_horizon_polygon_and_count:
 	move.l #$FFFFFFFF,(a0)
 	addq.w #1,scene_packet_count.l
-abs_0_0002EED8:
+continue_horizon_with_ground_grid:
 	bra.w build_ground_grid_if_enabled
-abs_0_0002EEDC:
+choose_horizon_split_for_rejected_line:
 	move.w view_rotation_0(a6),d0
 	andi.w #4095,d0
 	cmp.w #$800,d0
-	bcc.b abs_0_0002EEEE
+	bcc.b set_horizon_split_to_clip_minimum
 abs_0_0002EEEA:
-	bra.w abs_0_0002EED8
-abs_0_0002EEEE:
+	bra.w continue_horizon_with_ground_grid
+set_horizon_split_to_clip_minimum:
 	move.w view_clip_min_y(a6),horizon_ground_split_row.l
 	move.w view_clip_max_y(a6),horizon_clip_max_y_snapshot.l
-	bra.w abs_0_0002EED8
-abs_0_0002EF02:
+	bra.w continue_horizon_with_ground_grid
+    ; Even depth WORDs are signed lookup indices; negative values can read before the table. MULS, doubling and SWAP precede WORD origin adds. Tail-clips both endpoints.
+project_and_clip_horizon_endpoint_pair:
 	lea.l projection_scale_lookup.l,a2
 	andi.w #65534,d3
 	muls.w $0(a2,d3.w),d1
@@ -38809,7 +38810,7 @@ abs_0_0002EF02:
 	add.w projection_screen_origin_x(a6),d6
 	add.w projection_screen_origin_y(a6),d5
 	add.w projection_screen_origin_y(a6),d7
-	bra.w abs_0_0002F68A
+	bra.w clip_line_to_view_bounds_bridge_02f68a
 rotate_horizon_vector_to_view:
 	movem.l d4-d6,-(a7)
 	move.w view_rotation_0(a6),d4
@@ -38930,7 +38931,7 @@ abs_0_0002F022:
 	move.w #$3000,d3
 abs_0_0002F0AA:
 	ext.l d3
-	bsr.w abs_0_0002F644
+	bsr.w rotate_ground_grid_pair_by_inverse_view_heading
 	add.l view_origin_x(a6),d1
 	add.l view_origin_z(a6),d3
 	subi.l #8192,d1
@@ -39354,7 +39355,8 @@ ground_grid_checkerboard_phase:
 	dc.w $0000
 ground_grid_quad_vertex_offsets:	; ARRAY SG2GroundQuadVertexOffsets[25]
 	dcb.w $64,$0000
-abs_0_0002F644:
+    ; Signed products are combined before ASL.L #2 and SWAP. Only D1/D3 low WORDs are replaced: their incoming high WORDs remain, without implicit sign extension.
+rotate_ground_grid_pair_by_inverse_view_heading:
 	move.w view_rotation_1(a6),d0
 	neg.w d0
 	movea.l sine_lookup_pointer(a6),a0
@@ -39381,7 +39383,7 @@ abs_0_0002F644:
 	rts
 clip_polygon_in_view_volume_bridge_02e684:
 	jmp clip_polygon_in_view_volume.l
-abs_0_0002F68A:
+clip_line_to_view_bounds_bridge_02f68a:
 	jmp clip_line_to_view_bounds.l
 abs_0_0002F690:
 	jmp sort_and_draw_scene_packets.l
@@ -51677,43 +51679,44 @@ interleave_overlay_aligned_plane_bits:
 	adda.w a3,a1
 	dbf.w d6,draw_aligned_paired_overlay_row
 	rts
-abs_0_0003A752:
+set_mode0_background_to_all_planes:
 	move.w #$FFFF,d0
 clear_alternate_viewport_mode0:
 	move.w view_clip_min_y(a6),d3
 	move.w view_clip_max_y(a6),d4
-	bra.b abs_0_0003A7A2
+	bra.b fill_mode0_horizon_rows_backward
 fill_alternate_horizon_bands_mode0:
 	tst.w d0
-	bne.b abs_0_0003A78A
+	bne.b select_mode0_lower_horizon_band
 	tst.b space_environment_flag(a6)
-	bmi.b abs_0_0003A752
+	bmi.b set_mode0_background_to_all_planes
 	move.w horizon_upper_fill_colour.l,d0
 	move.w horizon_ground_split_row.l,d1
 	bmi.b clear_alternate_viewport_mode0
 	move.w view_clip_min_y(a6),d3
 	cmp.w d3,d1
 	subq.w #1,d1
-	blt.b abs_0_0003A788
+	blt.b return_from_mode0_horizon_band_fill
 	move.w d1,d4
-	bsr.w abs_0_0003A7A2
-abs_0_0003A788:
+	bsr.w fill_mode0_horizon_rows_backward
+return_from_mode0_horizon_band_fill:
 	rts
-abs_0_0003A78A:
+select_mode0_lower_horizon_band:
 	tst.b space_environment_flag(a6)
-	bmi.b abs_0_0003A788
+	bmi.b return_from_mode0_horizon_band_fill
 	move.w horizon_lower_fill_colour.l,d0
 	move.w horizon_ground_split_row.l,d3
-	bmi.b abs_0_0003A788
+	bmi.b return_from_mode0_horizon_band_fill
 	move.w view_clip_max_y(a6),d4
-abs_0_0003A7A2:
+    ; Row admission tests N of bottom-top.W. Inclusive backward rows write 144 bytes then skip 16. Initial (160*bottom+152).W is sign-extended; preserve address wrap.
+fill_mode0_horizon_rows_backward:
 	move.w d4,d2
 	movea.l draw_buffer_base.w(a6),a5
 	mulu.w #$A0,d4
 	addi.w #152,d4
 	adda.w d4,a5
 	sub.w d3,d2
-	bmi.w abs_0_0003A81A
+	bmi.w return_from_mode0_background_rows
 	move.w d2,-(a7)
 	moveq.l #0,d1
 	btst #0,d0
@@ -51748,45 +51751,46 @@ abs_0_0003A7EA:
 	move.w (a7)+,d0
 	move.l a6,-(a7)
 	movea.w #$10,a6
-abs_0_0003A806:
+write_mode0_background_row:
 	movem.l d1-d7/a0-a4,-(a5)
 	movem.l d1-d7/a0-a4,-(a5)
 	movem.l d1-d7/a0-a4,-(a5)
 	suba.w a6,a5
-	dbf.w d0,abs_0_0003A806
+	dbf.w d0,write_mode0_background_row
 	movea.l (a7)+,a6
-abs_0_0003A81A:
+return_from_mode0_background_rows:
 	rts
-abs_0_0003A81C:
+set_mode1_background_to_zero_patterns:
 	move.w #$0,d0
 clear_alternate_viewport_mode1:
 	move.w view_clip_min_y(a6),d3
 	move.w view_clip_max_y(a6),d4
-	bra.b abs_0_0003A868
+	bra.b fill_mode1_horizon_row_pairs_backward
 fill_alternate_horizon_bands_mode1:
 	tst.w d0
-	bne.b abs_0_0003A850
+	bne.b select_mode1_lower_horizon_band
 	tst.b space_environment_flag(a6)
-	bmi.b abs_0_0003A81C
+	bmi.b set_mode1_background_to_zero_patterns
 	moveq.l #0,d0
 	move.w horizon_ground_split_row.l,d1
 	bmi.b clear_alternate_viewport_mode1
 	move.w view_clip_min_y(a6),d3
 	cmp.w d3,d1
 	subq.w #1,d1
-	blt.b abs_0_0003A84E
+	blt.b return_from_mode1_horizon_band_fill
 	move.w d1,d4
-	bsr.w abs_0_0003A868
-abs_0_0003A84E:
+	bsr.w fill_mode1_horizon_row_pairs_backward
+return_from_mode1_horizon_band_fill:
 	rts
-abs_0_0003A850:
+select_mode1_lower_horizon_band:
 	tst.b space_environment_flag(a6)
-	bmi.b abs_0_0003A84E
+	bmi.b return_from_mode1_horizon_band_fill
 	move.w horizon_lower_fill_colour.l,d0
 	move.w horizon_ground_split_row.l,d3
-	bmi.b abs_0_0003A84E
+	bmi.b return_from_mode1_horizon_band_fill
 	move.w view_clip_max_y(a6),d4
-abs_0_0003A868:
+    ; Same WORD/N row gate. Two 72-byte passes at 160-byte stride use one LONG pattern each. Signed (160*bottom).W precedes +76; pass 2 adds 80. Caller A6 is restored.
+fill_mode1_horizon_row_pairs_backward:
 	move.w d4,d2
 	move.l a6,-(a7)
 	movea.l draw_buffer_base.w(a6),a6
@@ -51794,7 +51798,7 @@ abs_0_0003A868:
 	adda.w d4,a6
 	adda.w #$4C,a6
 	sub.w d3,d2
-	bmi.w abs_0_0003A8EC
+	bmi.w restore_workspace_after_mode1_background
 	exg d0,d2
 	lea.l alternate_span_pattern_pairs.l,a0
 	lsl.w #3,d2
@@ -51812,11 +51816,11 @@ abs_0_0003A868:
 	movea.l d1,a3
 	movea.l d1,a4
 	movea.l d1,a5
-abs_0_0003A8AC:
+write_mode1_first_pattern_rows:
 	movem.l d1-d7/a0-a5,-(a6)
 	movem.l d1-d5,-(a6)
 	suba.w #$58,a6
-	dbf.w d0,abs_0_0003A8AC
+	dbf.w d0,write_mode1_first_pattern_rows
 	movem.l (a7)+,d0-d1/a6
 	adda.w #$50,a6
 	move.l d1,d2
@@ -51831,12 +51835,12 @@ abs_0_0003A8AC:
 	movea.l d1,a3
 	movea.l d1,a4
 	movea.l d1,a5
-abs_0_0003A8DC:
+write_mode1_second_pattern_rows:
 	movem.l d1-d7/a0-a5,-(a6)
 	movem.l d1-d5,-(a6)
 	suba.w #$58,a6
-	dbf.w d0,abs_0_0003A8DC
-abs_0_0003A8EC:
+	dbf.w d0,write_mode1_second_pattern_rows
+restore_workspace_after_mode1_background:
 	movea.l (a7)+,a6
 	rts
     ; Normal offsets0/4/8 select three banks. Other even BYTE offsets read adjacent original bytes; no modulo-three guard exists. Exact wrap clears full D0 here, unlike the Amiga WORD clear.
