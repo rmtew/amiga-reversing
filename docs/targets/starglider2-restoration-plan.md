@@ -39,6 +39,17 @@ IRQ delivery. App/typed/unresolved/CFG/reference facts and classification totals
 are unchanged. C/vasm and clean standalone preserve every original byte and all
 57 assets; no full post-game display or alternate startup claim is added.
 
+The MFM codec and post-DMA RAM sector scanner now expose 23 code labels,
+11 scalar roles, 18 operand bindings and seven notes. 106 original CPU/symbol
+cases cover all byte values, CRC-table initialization, encoded/decoded payloads,
+sector filtering, duplicates, retries and scan boundaries. CRC status is returned
+in Z; decoded output remains after failure. Cold zero tables are not valid CRC
+state. WORD offsets wrap, and inner marker loops do not repeat the outer scan
+limit check. These supplied-RAM cases do not prove physical media, DMA delivery
+or timing. Counts remain 3514 app / 2750 typed / 157 unresolved and 9977
+unclassified bytes across 278 intervals. C/vasm and clean standalone preserve
+all original bytes and all 57 assets. No additional typed-layout claim is made.
+
 An explicit same-sized type-12 layout contract now selects the existing
 steered-projectile fields only on WORD-tag equality. Shared read handles carry a
 transient field view, not a permanent pointer subtype. Writes/possible aliases,

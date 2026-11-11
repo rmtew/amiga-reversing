@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "source_commit": "c0f7c769fba6553d1ac2008e89974e1cf5f31ec5",
+  "source_commit": "d0c61e8bfb4a2d299a079f9371522535b73a904a",
   "source_assembly": "starglider2_game.s",
   "assets": [
     {
@@ -878,13 +878,13 @@
     },
     {
       "path": "rendered-provenance.json",
-      "bytes": 3542,
-      "sha256": "2ac54f4f8ebb50b7b243fb62ba2e934b6d1e36e0d36c9987ab42b19ff48f4544"
+      "bytes": 3471,
+      "sha256": "dedad02cae20f6207641a2b38ce814d0605a4d9f84a1a1663fd4884d13023b82"
     },
     {
       "path": "starglider2_game.s",
-      "bytes": 2276053,
-      "sha256": "dd8ada0fff24e2d489009f90504116d2e6613b370823cc22c96403ec8b4ad7ea"
+      "bytes": 2278845,
+      "sha256": "66caea845ae8119683425b82cf75fcf356ff7671dd84bba8ae8ed2e41d610e67"
     },
     {
       "path": "tools/starglider2_protection.py",
@@ -892,6 +892,6 @@
       "sha256": "81d3f66d36dbfbd5c77238b20c28e8b9abaa329777eb91f64669bbbf13703582"
     }
   ],
-  "source_commit_role": "Canonical publication base; post-game planar smear caller and three kernels restored with 17 code labels, 10 scalars and 12 operand bindings. 130 original CPU cases cover 257 regions/1028 PRNG steps, complementary masks, WORD shifts, fixed-snapshot row repeats and a supplied-seed row-201 boundary. Native access/CFG/reference facts unchanged; C/vasm and standalone exact. No complete startup, IRQ cadence, normal-game seed reachability or scanout proof.",
-  "source_subject_revision": "a879a0bca99fdaa2fef583434a9a41c6ff7c19e43343bb14af48ae4de2000242"
+  "source_commit_role": "Canonical publication base; MFM codec and post-DMA RAM scanner restored with 23 code labels, 11 scalars and 18 operand bindings. 106 original CPU/symbol cases cover encoding, initialized CRC, retained failed output, WORD offsets and scanner retries/boundaries. Native access/CFG/reference facts unchanged; C/vasm and standalone exact. No physical media, DMA delivery or timing proof.",
+  "source_subject_revision": "79ce904aebfee29338934e24483316b7a1f90b26457ce8b62c36608c5a17b0f0"
 }
