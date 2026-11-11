@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "source_commit": "32fb2b84c21537d30637ed76bde511b65ce1b67d",
+  "source_commit": "c0f7c769fba6553d1ac2008e89974e1cf5f31ec5",
   "source_assembly": "starglider2_game.s",
   "assets": [
     {
@@ -878,13 +878,13 @@
     },
     {
       "path": "rendered-provenance.json",
-      "bytes": 3434,
-      "sha256": "33130de51f9f8f4bc6fc2a7933d4592e77c2ccdc8479626027d167bfe4a90c96"
+      "bytes": 3542,
+      "sha256": "2ac54f4f8ebb50b7b243fb62ba2e934b6d1e36e0d36c9987ab42b19ff48f4544"
     },
     {
       "path": "starglider2_game.s",
-      "bytes": 2273899,
-      "sha256": "c94707c60d40d3b5b29c8fa4e8ad96fe3602799ca67e570a42f1427d030eba6d"
+      "bytes": 2276053,
+      "sha256": "dd8ada0fff24e2d489009f90504116d2e6613b370823cc22c96403ec8b4ad7ea"
     },
     {
       "path": "tools/starglider2_protection.py",
@@ -892,6 +892,6 @@
       "sha256": "81d3f66d36dbfbd5c77238b20c28e8b9abaa329777eb91f64669bbbf13703582"
     }
   ],
-  "source_commit_role": "Canonical publication base; one evidenced type-12 layout contract uses shared write-aware guarded field views, without reader seeds or permanent subtype changes. B6F8 recovered; 301 focused Python, 7 native custom-structure, 543 original CPU and 838 C cases pass; C/vasm and standalone exact. Other shared tags/joins and lifetime remain unproven.",
-  "source_subject_revision": "4bf7cf33bdfb220f2393dc2ed698cd7df83b74214209652bc84e9aab76beb206"
+  "source_commit_role": "Canonical publication base; post-game planar smear caller and three kernels restored with 17 code labels, 10 scalars and 12 operand bindings. 130 original CPU cases cover 257 regions/1028 PRNG steps, complementary masks, WORD shifts, fixed-snapshot row repeats and a supplied-seed row-201 boundary. Native access/CFG/reference facts unchanged; C/vasm and standalone exact. No complete startup, IRQ cadence, normal-game seed reachability or scanout proof.",
+  "source_subject_revision": "a879a0bca99fdaa2fef583434a9a41c6ff7c19e43343bb14af48ae4de2000242"
 }

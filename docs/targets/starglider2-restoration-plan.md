@@ -28,6 +28,17 @@ and strengthened 38 app-base attributions.
 Conditional skips mean104 outer iterations are not104 observed memory reads.
 Loaded pointer values remain subject to separate alias/target validation.
 
+The post-game planar smear now exposes its caller and three copy/shift kernels:
+17 code labels, 10 scalar roles, 12 operand bindings and four short notes.
+130 original CPU cases cover 257 regions/1028 PRNG steps, complementary plane
+masks, WORD shift edges, overlap and fixed snapshots that revisit the preceding
+row. A supplied local-loop seed reaches destination row201; it is preserved,
+without asserting normal-game seed reachability. Caller cases cover WORD counter
+restore, key/secondary-mouse skips and supplied exact-tick polling, not physical
+IRQ delivery. App/typed/unresolved/CFG/reference facts and classification totals
+are unchanged. C/vasm and clean standalone preserve every original byte and all
+57 assets; no full post-game display or alternate startup claim is added.
+
 An explicit same-sized type-12 layout contract now selects the existing
 steered-projectile fields only on WORD-tag equality. Shared read handles carry a
 transient field view, not a permanent pointer subtype. Writes/possible aliases,

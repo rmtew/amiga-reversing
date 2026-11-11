@@ -1722,6 +1722,7 @@ SG2_POINT_TRAIL_SPEED_THRESHOLD	EQU	500
 SG2_POINT_XYZ_BYTES	EQU	6
 SG2_POINT_X_SCRATCH_WORD_OFFSET	EQU	300
 SG2_POLYGON_STYLE_X_CELL_MASK	EQU	$FFF0
+SG2_POSTGAME_SMEAR_FRAME_DBF_LAST	EQU	750
 SG2_PROJECTILE_BASE_ENERGY_COST	EQU	256
 SG2_PROJECTILE_FREE_SLOT_RESERVE	EQU	2
 SG2_PROJECTOR_RESERVED_FREE_FLOOR	EQU	1
@@ -1776,6 +1777,15 @@ SG2_SCENE_PACKET_COUNT_THRESHOLD	EQU	145
 SG2_SCENE_SCREEN_VERTEX_BYTES	EQU	4
 SG2_SCENE_TWO_SCREEN_VERTICES_BYTES	EQU	8
 SG2_SCORE_BCD_DIGITS_DBF_LAST	EQU	5
+SG2_SMEAR_AMIGA_MASK_BYTE_OFFSET_MASK	EQU	$1FE
+SG2_SMEAR_AMIGA_PLANE_STEP_BYTES	EQU	8192
+SG2_SMEAR_HEIGHT_MASK	EQU	$3
+SG2_SMEAR_INTERLEAVED_MASK_BYTE_OFFSET_MASK	EQU	$3FE
+SG2_SMEAR_INTERLEAVED_PLANE_STEP_BYTES	EQU	2
+SG2_SMEAR_REGION_DBF_LAST	EQU	256
+SG2_SMEAR_SOURCE_ROW_MODULUS	EQU	196
+SG2_SMEAR_WORD_ALIGNED_X_MASK	EQU	$FFF0
+SG2_SMEAR_X_MODULUS	EQU	320
 SG2_SPACE_EFFECT_DEFAULT_OVERRIDE_RGB	EQU	$27
 SG2_SPACE_EFFECT_OVERRIDE_RGB_BITS	EQU	$4C
 SG2_SPRITE_CONTROL_PREFIX_BYTES	EQU	4
@@ -2280,7 +2290,7 @@ abs_0_0000137E:
 	bsr.w enqueue_message_pointer_bridge
 abs_0_000013D0:
 	tst.b fatal_overheat_latched_flag.l
-	bmi.w abs_0_0000151E
+	bmi.w begin_postgame_screen_smear
 	tst.b app_07EE(a6)
 	bne.w abs_0_0000123E
 	tst.w icarus_game_over_reason(a6)
@@ -2381,26 +2391,27 @@ abs_0_00001510:
 	clr.w icarus_power_reserve(a6)
 	move.w #$1,icarus_game_over_reason(a6)
 	bra.w gameplay_frame_loop
-abs_0_0000151E:
+    ; Post-game caller allows 751 smear calls, polling for the next exact tick WORD after each. Key or secondary mouse skips to rating cleanup. Tests use RAM tick stimuli, not IRQ delivery.
+begin_postgame_screen_smear:
 	sf.b interrupted_game_available_flag(a6)
 	move.b #$80,display_and_frame_service_flags(a6)
 	clr.b display_buffer_table_byte_offset(a6)
 	bsr.w count_and_present_frame_handoff
-	move.w #$2EE,d1
-abs_0_00001534:
+	move.w #SG2_POSTGAME_SMEAR_FRAME_DBF_LAST,d1
+smear_next_postgame_screen_frame:
 	move.w d1,-(a7)
-	bsr.w abs_0_0000365C
+	bsr.w smear_random_planar_screen_regions
 	move.w (a7)+,d1
 	move.w vblank_tick_counter(a6),d0
 	addq.w #1,d0
-abs_0_00001542:
+wait_for_postgame_smear_tick_or_skip:
 	tst.b pending_key_scancode(a6)
 	bne.w abs_0_000016B0
 	tst.b mouse_secondary_button_flag(a6)
 	bne.w abs_0_000016B0
 	cmp.w vblank_tick_counter(a6),d0
-	bne.b abs_0_00001542
-	dbf.w d1,abs_0_00001534
+	bne.b wait_for_postgame_smear_tick_or_skip
+	dbf.w d1,smear_next_postgame_screen_frame
 	bra.w abs_0_000016B0
 abs_0_00001560:
 	move.b #$78,diagnostic_stage_step_word.l
@@ -4487,7 +4498,8 @@ run_picture_protection_then_clear_control:
 	movea.l (a7),a0
 	clr.w $0000(a0)
 	bra.w prepare_column_rle_picture_frame
-abs_0_0000365C:
+    ; 257 regions, four PRNG steps each: height 0..3, y below196, word-aligned x below320, then complementary copy or one-bit shift. Fixed $70000 backing; profile tables are required.
+smear_random_planar_screen_regions:
 	lea.l absolute_slot_00070000.l,a0
 	move.w #$0,d0
 	mulu.w #$28,d0
@@ -4495,8 +4507,8 @@ abs_0_0000365C:
 	add.l d0,d0
 	move.l shared_random_state_a(a6),d6
 	move.l shared_random_state_b(a6),d7
-	move.w #$100,d0
-abs_0_0000367E:
+	move.w #SG2_SMEAR_REGION_DBF_LAST,d0
+choose_next_random_smear_region:
 	move.w d0,-(a7)
 	move.l a0,-(a7)
 	lea.l raster_row_byte_offsets.l,a4
@@ -4505,36 +4517,38 @@ abs_0_0000367E:
 	subq.w #7,d7
 	eor.w d6,d7
 	move.w d7,d0
-	andi.w #3,d0
+	andi.w #SG2_SMEAR_HEIGHT_MASK,d0
 	move.w d0,d2
 	moveq.l #0,d3
 	move.w d2,d3
 	add.w d3,d3
 	move.w $0(a4,d3.w),d3
+choose_random_smear_source_row:
 	moveq.l #0,d0
 	exg d6,d7
 	rol.l #3,d7
 	subq.w #7,d7
 	eor.w d6,d7
 	move.w d7,d0
-	divu.w #$C4,d0
+	divu.w #SG2_SMEAR_SOURCE_ROW_MODULUS,d0
 	swap.w d0
 	addi.w #0,d0
 	moveq.l #0,d1
 	move.w d0,d1
 	add.w d1,d1
 	move.w $0(a4,d1.w),d1
+choose_random_smear_word_column:
 	moveq.l #0,d0
 	exg d6,d7
 	rol.l #3,d7
 	subq.w #7,d7
 	eor.w d6,d7
 	move.w d7,d0
-	divu.w #$140,d0
+	divu.w #SG2_SMEAR_X_MODULUS,d0
 	clr.w d0
 	swap.w d0
 	addi.w #0,d0
-	andi.w #65520,d0
+	andi.w #SG2_SMEAR_WORD_ALIGNED_X_MASK,d0
 	add.w d0,d0
 	lea.l screen_x_word_byte_offsets.l,a4
 	move.w $0(a4,d0.w),d0
@@ -4551,26 +4565,28 @@ abs_0_0000367E:
 	move.w d7,d0
 	move.w d0,d5
 	tst.w platform_entry_flags.l
-	bmi.b abs_0_00003722
+	bmi.b select_amiga_smear_mask_and_strides
 	lea.l generated_outside_span_masks32.l,a4
-	move.w #$2,d3
-	movea.w #$A0,a0
-	andi.w #1022,d0
+	move.w #SG2_SMEAR_INTERLEAVED_PLANE_STEP_BYTES,d3
+	movea.w #SG2_INTERLEAVED_ROW_BYTES,a0
+	andi.w #SG2_SMEAR_INTERLEAVED_MASK_BYTE_OFFSET_MASK,d0
 	move.w $0(a4,d0.w),d4
-	bra.b abs_0_0000373A
-abs_0_00003722:
+	bra.b snapshot_smear_source_and_destination_rows
+select_amiga_smear_mask_and_strides:
 	lea.l generated_outside_span_masks16.l,a4
-	move.w #$2000,d3
-	movea.w #$28,a0
-	andi.w #510,d0
+	move.w #SG2_SMEAR_AMIGA_PLANE_STEP_BYTES,d3
+	movea.w #SG2_AMIGA_PLANAR_ROW_BYTES,a0
+	andi.w #SG2_SMEAR_AMIGA_MASK_BYTE_OFFSET_MASK,d0
 	move.w $0(a4,d0.w),d4
 	not.w d4
-abs_0_0000373A:
+    ; Capture source/destination once. After the first row, each inner repeat resets to these snapshots minus one row, revisiting the preceding row rather than marching through rows.
+snapshot_smear_source_and_destination_rows:
 	movea.l a1,a3
 	movea.l a2,a4
 	tst.w d5
-	bpl.b abs_0_000037A6
-abs_0_00003742:
+	bpl.b select_smear_one_bit_shift_direction
+    ; Copy alternates mask/complement between plane words. Shift paths restart from the original mask for each plane; shifted-out WORD bits are discarded. Preserve in-place overlap.
+copy_smear_words_with_complementary_plane_masks:
 	move.w (a1),d0
 	and.w d4,d0
 	move.w (a2),d5
@@ -4590,10 +4606,10 @@ abs_0_00003742:
 	adda.w d3,a1
 	adda.w d3,a2
 	btst.b #1,alternate_graphics_mode(a6)
-	beq.b abs_0_00003776
+	beq.b copy_smear_upper_plane_words
 	adda.w #$4C,a1
 	adda.w #$4C,a2
-abs_0_00003776:
+copy_smear_upper_plane_words:
 	move.w (a1),d0
 	and.w d4,d0
 	move.w (a2),d5
@@ -4614,13 +4630,13 @@ abs_0_00003776:
 	movea.l a4,a2
 	suba.w a0,a1
 	suba.w a0,a2
-	dbf.w d2,abs_0_00003742
-	bra.w abs_0_000038A0
-abs_0_000037A6:
+	dbf.w d2,copy_smear_words_with_complementary_plane_masks
+	bra.w restore_random_smear_region_frame
+select_smear_one_bit_shift_direction:
 	move.l d4,d1
 	btst #14,d5
-	bne.b abs_0_00003828
-abs_0_000037AE:
+	bne.b shift_smear_words_right_one_bit
+shift_smear_words_left_one_bit:
 	move.l d1,d4
 	move.w (a1),d0
 	and.w d4,d0
@@ -4646,10 +4662,10 @@ abs_0_000037AE:
 	adda.w d3,a1
 	adda.w d3,a2
 	btst.b #1,alternate_graphics_mode(a6)
-	beq.b abs_0_000037EE
+	beq.b shift_smear_upper_plane_words_left
 	adda.w #$4C,a1
 	adda.w #$4C,a2
-abs_0_000037EE:
+shift_smear_upper_plane_words_left:
 	move.l d1,d4
 	move.w (a1),d0
 	and.w d4,d0
@@ -4676,9 +4692,9 @@ abs_0_000037EE:
 	movea.l a4,a2
 	suba.w a0,a1
 	suba.w a0,a2
-	dbf.w d2,abs_0_000037AE
-	bra.b abs_0_000038A0
-abs_0_00003828:
+	dbf.w d2,shift_smear_words_left_one_bit
+	bra.b restore_random_smear_region_frame
+shift_smear_words_right_one_bit:
 	move.l d1,d4
 	move.w (a1),d0
 	and.w d4,d0
@@ -4704,10 +4720,10 @@ abs_0_00003828:
 	adda.w d3,a1
 	adda.w d3,a2
 	btst.b #1,alternate_graphics_mode(a6)
-	beq.b abs_0_00003868
+	beq.b shift_smear_upper_plane_words_right
 	adda.w #$4C,a1
 	adda.w #$4C,a2
-abs_0_00003868:
+shift_smear_upper_plane_words_right:
 	move.l d1,d4
 	move.w (a1),d0
 	and.w d4,d0
@@ -4734,11 +4750,11 @@ abs_0_00003868:
 	movea.l a4,a2
 	suba.w a0,a1
 	suba.w a0,a2
-	dbf.w d2,abs_0_00003828
-abs_0_000038A0:
+	dbf.w d2,shift_smear_words_right_one_bit
+restore_random_smear_region_frame:
 	movea.l (a7)+,a0
 	move.w (a7)+,d0
-	dbf.w d0,abs_0_0000367E
+	dbf.w d0,choose_next_random_smear_region
 	move.l d6,shared_random_state_a(a6)
 	move.l d7,shared_random_state_b(a6)
 	rts

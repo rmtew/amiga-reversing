@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
   "kind": "committed_native_rendered_original_export",
-  "canonical_source_commit": "32fb2b84c21537d30637ed76bde511b65ce1b67d",
-  "publication_base_commit": "32fb2b84c21537d30637ed76bde511b65ce1b67d",
+  "canonical_source_commit": "c0f7c769fba6553d1ac2008e89974e1cf5f31ec5",
+  "publication_base_commit": "c0f7c769fba6553d1ac2008e89974e1cf5f31ec5",
   "native_export": "CListingArtifact.source_package_payload(64)",
-  "main_source_sha256": "c94707c60d40d3b5b29c8fa4e8ad96fe3602799ca67e570a42f1427d030eba6d",
+  "main_source_sha256": "dd8ada0fff24e2d489009f90504116d2e6613b370823cc22c96403ec8b4ad7ea",
   "asset_count": 57,
   "asset_bytes": 93633,
   "game_assembly_hand_edits": false,
@@ -24,13 +24,13 @@
     "assembler executable",
     "paused Pandora work"
   ],
-  "canonical_source_commit_role": "Canonical publication base; one evidenced type-12 layout contract uses shared write-aware guarded field views, without reader seeds or permanent subtype changes. B6F8 recovered; 301 focused Python, 7 native custom-structure, 543 original CPU and 838 C cases pass; C/vasm and standalone exact. Other shared tags/joins and lifetime remain unproven.",
-  "canonical_source_subject_revision": "4bf7cf33bdfb220f2393dc2ed698cd7df83b74214209652bc84e9aab76beb206",
+  "canonical_source_commit_role": "Canonical publication base; post-game planar smear caller and three kernels restored with 17 code labels, 10 scalars and 12 operand bindings. 130 original CPU cases cover 257 regions/1028 PRNG steps, complementary masks, WORD shifts, fixed-snapshot row repeats and a supplied-seed row-201 boundary. Native access/CFG/reference facts unchanged; C/vasm and standalone exact. No complete startup, IRQ cadence, normal-game seed reachability or scanout proof.",
+  "canonical_source_subject_revision": "a879a0bca99fdaa2fef583434a9a41c6ff7c19e43343bb14af48ae4de2000242",
   "canonical_fact_sha256": {
     "source_binary.json": "42d4a5758b3e8236af7f912aee85e9ee5323bcd0961faa338c4f864080a0a7d9",
     "target_metadata.json": "e7540b68c118c56aba8815b6722eefa067517cc865fe9841d6c01ce96551389c",
-    "manual_actions.jsonl": "6630d5b29a14878067ff540341ce444a4955ae5f898f20c161a9867048f63e7d",
-    "decision_journal.jsonl": "eca5849d14c94f623bf70302b0982b3c5d419b710b6665bc0bde435fb2aa42c9"
+    "manual_actions.jsonl": "cc02e97a3898771045b8565f49b493be943906856202ee8f2ab9521654ae958c",
+    "decision_journal.jsonl": "b82e0d87254fade10a4495c9d3491e3e98a158c57644a0ec1fa1d003809fdf77"
   },
   "headers": "14 unmodified required include files collected by source_package.collect_package_includes from ext/amiga_includes/ndk_2.0/include; header notices retained",
   "decoded_protection_view": {
@@ -46,7 +46,7 @@
     },
     "runtime_scope": "Seven CPU write-site windows match this reversible view; no whole runtime-view identity or parent plaintext promotion."
   },
-  "verification_receipt_id": "3f09ff94e858ad9f134d85af9f32add5123ea06bf0662f9f515b9810b490208a",
+  "verification_receipt_id": "df148e3913d118f3cf5ed234f9ac38a8d379b989005d9f06740f701eb80d825c",
   "render_native_sha256": "357ed3bda6ad7f438f8ae6d8fd52f3d462acf31597a7483ab33bfb7f2f8a8d87",
   "final_assembler_native_sha256": "357ed3bda6ad7f438f8ae6d8fd52f3d462acf31597a7483ab33bfb7f2f8a8d87"
 }
