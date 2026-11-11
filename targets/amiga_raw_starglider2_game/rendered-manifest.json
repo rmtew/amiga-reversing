@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "source_commit": "ccf762d9cb422256edac9914d40b99f8efb2566b",
+  "source_commit": "2e62ce255c2062db4ba27006a7561e2c06d5bbb6",
   "source_assembly": "starglider2_game.s",
   "assets": [
     {
@@ -878,13 +878,13 @@
     },
     {
       "path": "rendered-provenance.json",
-      "bytes": 3620,
-      "sha256": "7c58a8e174726a4751c1e7a80e430ae31e3faec3d8945bada925c44ce8ecd22d"
+      "bytes": 3613,
+      "sha256": "c63929c6c794fee023c95ce24f95d2d337fafd21dc3becc05baf91d4e574bbe7"
     },
     {
       "path": "starglider2_game.s",
-      "bytes": 2281011,
-      "sha256": "26003dbdca604585adcfbf646f572c2a985093861d036f6bac1d23ef51d7deb7"
+      "bytes": 2283888,
+      "sha256": "611017461342d66a9ebc0ac3f18b5f132b4477145ad5a6edb5f644f8cd7877d1"
     },
     {
       "path": "tools/starglider2_protection.py",
@@ -892,6 +892,6 @@
       "sha256": "81d3f66d36dbfbd5c77238b20c28e8b9abaa329777eb91f64669bbbf13703582"
     }
   ],
-  "source_commit_role": "Canonical publication base; ten-sector MFM track preparation and media-prefix test restored with 8 code labels, 16 scalars and 25 operand bindings. 21 original CPU cases plus 24 independent symbol bindings cover 11920 prepared bytes, retained 368-byte DMA tail, interleave/CRC ordering, scanner roundtrip and supplied F5-template mismatch. Native access/CFG/reference facts unchanged; C/vasm and standalone exact. Prior A1 typed-claim withdrawals retained. No physical media, DMA/timing or normal platform-switch reachability proof.",
-  "source_subject_revision": "dd1de57d19a4c409fb183b6475be9ad8e67ff4171e45ae3b147d34471a0c698b"
+  "source_commit_role": "Canonical publication base; save/load workspace pointer transforms restored with 22 code labels, 5 scalar roles and 32 operand bindings. Nine original CPU cases plus assembled layout/symbol checks compare all RAM across exact list/end-slot spans, guarded object links, LONG wrap and conditional sentinel collisions at three supplied bases. Native access/CFG/reference facts unchanged; C/vasm and standalone exact. Field representations add no pointer-type or lifetime proof; disk I/O and normal-game reachability unqualified.",
+  "source_subject_revision": "b8786f2cb9ec716a02dbd9da77a5cb70b44c23763cb5e216bea6b6d1839a2f4b"
 }

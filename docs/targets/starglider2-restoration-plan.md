@@ -62,6 +62,18 @@ not inferred pointer types. Access/CFG/reference and classification totals are
 unchanged. C/vasm and clean standalone remain exact with 57 unchanged assets;
 physical media, DMA delivery and timing are outside these RAM tests.
 
+Save/load pointer transforms now expose 22 loop/continuation names, five scalar
+roles and 32 operand bindings. Nine original CPU cases plus assembled layout
+checks compare every RAM byte at three supplied bases: 15 fixed LONGs, 250 free-
+stack slots, four 251-slot lists including end slots, 61 integrating slots, ten
+conditional released references and 250 guarded world-object records. LONG
+arithmetic wraps. Released pointers equal to A6 can serialize to zero and then
+be skipped on restore; object links equal to A6 or A6-1 can become reserved
+0/-1. These supplied values do not establish normal-game reachability or an
+original bug. Field representations add no inferred pointer types or lifetime
+claim. Access/CFG/reference and classification totals remain unchanged; exact
+C/vasm and standalone preserve all bytes/assets. Disk save/load is not exercised.
+
 An explicit same-sized type-12 layout contract now selects the existing
 steered-projectile fields only on WORD-tag equality. Shared read handles carry a
 transient field view, not a permanent pointer subtype. Writes/possible aliases,

@@ -1785,9 +1785,14 @@ SG2_SAVE_CHUNK_DBF_LAST	EQU	$4FF
 SG2_SAVE_DIRECTORY_COPY_DBF_LAST	EQU	127
 SG2_SAVE_DIRECTORY_MAGIC	EQU	$47414D45
 SG2_SAVE_DIRECTORY_SLOT_LIMIT	EQU	15
+SG2_SAVE_INTEGRATING_LIST_WITH_END_DBF_LAST	EQU	60
+SG2_SAVE_LINK_REBASE_GUARD_BYTE_OFFSET	EQU	1
 SG2_SAVE_NAME_COPY_DBF_LAST	EQU	7
 SG2_SAVE_NAME_INPUT_LIMIT	EQU	30
 SG2_SAVE_NAME_SLOT_BYTES	EQU	32
+SG2_SAVE_OBJECT_LIST_WITH_END_DBF_LAST	EQU	250
+SG2_SAVE_OBJECT_SLOT_DBF_LAST	EQU	249
+SG2_SAVE_RELEASED_REFERENCE_DBF_LAST	EQU	9
 SG2_SAVE_RESTORE_DBF_LAST	EQU	$17B8
 SG2_SAVE_TRACK_DBF_LAST	EQU	$4
 SG2_SCAN_EVEN_DEPTH_MASK	EQU	65534
@@ -19854,7 +19859,7 @@ abs_0_000105B4:
 	move.l a1,disk_service_state_memory_transfer_source_cursor.l
 	movem.l (a7)+,d0-d7/a0-a6
 	rts
-    ; Pointer encoding subtracts A6: fixed globals unconditionally; released refs skip zero; object links skip 0/-1 and retain original sign guard. No universal link-field type is claimed.
+    ; Subtract A6 from 15 fixed LONGs, 250 free-stack slots, four 251-slot lists and 61 integrating-list slots. End slots are unconditional; released references and object links have guards.
 serialize_workspace_pointers_relative:
 	move.l a6,d0
 	sub.l d0,savegame_prefix_rebased_long(a6)
@@ -19872,64 +19877,66 @@ serialize_workspace_pointers_relative:
 	sub.l d0,previous_tractor_target_reference(a6)
 	sub.l d0,growing_projector_part_reference(a6)
 	sub.l d0,nearby_space_station_reference(a6)
-	move.w #$9,d1
+	move.w #SG2_SAVE_RELEASED_REFERENCE_DBF_LAST,d1
 	lea.l released_object_tracking_references(a6),a0
-abs_0_0001060C:
+serialize_nonzero_released_tracking_pointer:
 	tst.l (a0)+
-	beq.b abs_0_00010614
+	beq.b serialize_next_released_tracking_pointer
 	sub.l d0,-$0004(a0)
-abs_0_00010614:
-	dbf.w d1,abs_0_0001060C
-	move.w #$F9,d1
+serialize_next_released_tracking_pointer:
+	dbf.w d1,serialize_nonzero_released_tracking_pointer
+	move.w #SG2_SAVE_OBJECT_SLOT_DBF_LAST,d1
 	lea.l free_object_stack_storage(a6),a0
-abs_0_00010620:
+serialize_free_stack_pointer:
 	sub.l d0,(a0)+
-	dbf.w d1,abs_0_00010620
-	move.w #$FA,d1
+	dbf.w d1,serialize_free_stack_pointer
+	move.w #SG2_SAVE_OBJECT_LIST_WITH_END_DBF_LAST,d1
 	lea.l distant_object_list_storage(a6),a0
-abs_0_0001062E:
+serialize_distant_list_pointer_and_end_slot:
 	sub.l d0,(a0)+
-	dbf.w d1,abs_0_0001062E
-	move.w #$FA,d1
+	dbf.w d1,serialize_distant_list_pointer_and_end_slot
+	move.w #SG2_SAVE_OBJECT_LIST_WITH_END_DBF_LAST,d1
 	lea.l nearby_object_list_storage(a6),a0
-abs_0_0001063C:
+serialize_nearby_list_pointer_and_end_slot:
 	sub.l d0,(a0)+
-	dbf.w d1,abs_0_0001063C
-	move.w #$FA,d1
+	dbf.w d1,serialize_nearby_list_pointer_and_end_slot
+	move.w #SG2_SAVE_OBJECT_LIST_WITH_END_DBF_LAST,d1
 	lea.l visible_object_list_storage(a6),a0
-abs_0_0001064A:
+serialize_visible_list_pointer_and_end_slot:
 	sub.l d0,(a0)+
-	dbf.w d1,abs_0_0001064A
-	move.w #$FA,d1
+	dbf.w d1,serialize_visible_list_pointer_and_end_slot
+	move.w #SG2_SAVE_OBJECT_LIST_WITH_END_DBF_LAST,d1
 	lea.l contact_object_list_storage(a6),a0
-abs_0_00010658:
+serialize_contact_list_pointer_and_end_slot:
 	sub.l d0,(a0)+
-	dbf.w d1,abs_0_00010658
-	move.w #$3C,d1
+	dbf.w d1,serialize_contact_list_pointer_and_end_slot
+	move.w #SG2_SAVE_INTEGRATING_LIST_WITH_END_DBF_LAST,d1
 	lea.l integrating_object_list_storage(a6),a0
-abs_0_00010666:
+serialize_integrating_list_pointer_and_end_slot:
 	sub.l d0,(a0)+
-	dbf.w d1,abs_0_00010666
-	move.w #$F9,d1
+	dbf.w d1,serialize_integrating_list_pointer_and_end_slot
+	move.w #SG2_SAVE_OBJECT_SLOT_DBF_LAST,d1
 	lea.l world_object_pool(a6),a0
-abs_0_00010674:
-	tst.b $0001(a0)
-	bmi.b abs_0_000106A2
-	tst.l $0038(a0)
-	beq.b abs_0_0001068E
-	cmpi.l #$FFFFFFFF,$0038(a0)
-	beq.b abs_0_0001068E
-	sub.l d0,$0038(a0)
-abs_0_0001068E:
-	tst.l $003C(a0)
-	beq.b abs_0_000106A2
-	cmpi.l #$FFFFFFFF,$003C(a0)
-	beq.b abs_0_000106A2
-	sub.l d0,$003C(a0)
-abs_0_000106A2:
-	adda.w #$44,a0
-	dbf.w d1,abs_0_00010674
+    ; BYTE 1 negative skips both link slots for this record. Otherwise keep 0/-1 unchanged and subtract A6 from each other LONG. Selected link roles do not imply all object types share one layout.
+serialize_eligible_object_links:
+	tst.b SG2_SAVE_LINK_REBASE_GUARD_BYTE_OFFSET(a0)
+	bmi.b serialize_next_world_object_record
+	tst.l SG2WorldObject_back_link_or_sentinel(a0)
+	beq.b serialize_second_object_link_if_not_reserved
+	cmpi.l #$FFFFFFFF,SG2WorldObject_back_link_or_sentinel(a0)
+	beq.b serialize_second_object_link_if_not_reserved
+	sub.l d0,SG2WorldObject_back_link_or_sentinel(a0)
+serialize_second_object_link_if_not_reserved:
+	tst.l SG2WorldObject_linked_record_or_sentinel(a0)
+	beq.b serialize_next_world_object_record
+	cmpi.l #$FFFFFFFF,SG2WorldObject_linked_record_or_sentinel(a0)
+	beq.b serialize_next_world_object_record
+	sub.l d0,SG2WorldObject_linked_record_or_sentinel(a0)
+serialize_next_world_object_record:
+	adda.w #SG2WorldObject_SIZEOF,a0
+	dbf.w d1,serialize_eligible_object_links
 	rts
+    ; Add A6 using the same spans and guards. A released pointer equal to A6 encodes zero and is then skipped; object links equal to A6 or A6-1 can encode reserved 0/-1. No universal inverse claim.
 restore_workspace_pointers_absolute:
 	move.l a6,d0
 	add.l d0,savegame_prefix_rebased_long(a6)
@@ -19947,63 +19954,63 @@ restore_workspace_pointers_absolute:
 	add.l d0,previous_tractor_target_reference(a6)
 	add.l d0,growing_projector_part_reference(a6)
 	add.l d0,nearby_space_station_reference(a6)
-	move.w #$9,d1
+	move.w #SG2_SAVE_RELEASED_REFERENCE_DBF_LAST,d1
 	lea.l released_object_tracking_references(a6),a0
-abs_0_000106F2:
+restore_nonzero_released_tracking_pointer:
 	tst.l (a0)+
-	beq.b abs_0_000106FA
+	beq.b restore_next_released_tracking_pointer
 	add.l d0,-$0004(a0)
-abs_0_000106FA:
-	dbf.w d1,abs_0_000106F2
-	move.w #$F9,d1
+restore_next_released_tracking_pointer:
+	dbf.w d1,restore_nonzero_released_tracking_pointer
+	move.w #SG2_SAVE_OBJECT_SLOT_DBF_LAST,d1
 	lea.l free_object_stack_storage(a6),a0
-abs_0_00010706:
+restore_free_stack_pointer:
 	add.l d0,(a0)+
-	dbf.w d1,abs_0_00010706
-	move.w #$FA,d1
+	dbf.w d1,restore_free_stack_pointer
+	move.w #SG2_SAVE_OBJECT_LIST_WITH_END_DBF_LAST,d1
 	lea.l distant_object_list_storage(a6),a0
-abs_0_00010714:
+restore_distant_list_pointer_and_end_slot:
 	add.l d0,(a0)+
-	dbf.w d1,abs_0_00010714
-	move.w #$FA,d1
+	dbf.w d1,restore_distant_list_pointer_and_end_slot
+	move.w #SG2_SAVE_OBJECT_LIST_WITH_END_DBF_LAST,d1
 	lea.l nearby_object_list_storage(a6),a0
-abs_0_00010722:
+restore_nearby_list_pointer_and_end_slot:
 	add.l d0,(a0)+
-	dbf.w d1,abs_0_00010722
-	move.w #$FA,d1
+	dbf.w d1,restore_nearby_list_pointer_and_end_slot
+	move.w #SG2_SAVE_OBJECT_LIST_WITH_END_DBF_LAST,d1
 	lea.l visible_object_list_storage(a6),a0
-abs_0_00010730:
+restore_visible_list_pointer_and_end_slot:
 	add.l d0,(a0)+
-	dbf.w d1,abs_0_00010730
-	move.w #$FA,d1
+	dbf.w d1,restore_visible_list_pointer_and_end_slot
+	move.w #SG2_SAVE_OBJECT_LIST_WITH_END_DBF_LAST,d1
 	lea.l contact_object_list_storage(a6),a0
-abs_0_0001073E:
+restore_contact_list_pointer_and_end_slot:
 	add.l d0,(a0)+
-	dbf.w d1,abs_0_0001073E
-	move.w #$3C,d1
+	dbf.w d1,restore_contact_list_pointer_and_end_slot
+	move.w #SG2_SAVE_INTEGRATING_LIST_WITH_END_DBF_LAST,d1
 	lea.l integrating_object_list_storage(a6),a0
-abs_0_0001074C:
+restore_integrating_list_pointer_and_end_slot:
 	add.l d0,(a0)+
-	dbf.w d1,abs_0_0001074C
-	move.w #$F9,d1
+	dbf.w d1,restore_integrating_list_pointer_and_end_slot
+	move.w #SG2_SAVE_OBJECT_SLOT_DBF_LAST,d1
 	lea.l world_object_pool(a6),a0
-abs_0_0001075A:
-	tst.b $0001(a0)
-	bmi.b abs_0_00010788
-	tst.l $0038(a0)
-	beq.b abs_0_00010774
-	cmpi.l #$FFFFFFFF,$0038(a0)
-	beq.b abs_0_00010774
-	add.l d0,$0038(a0)
-abs_0_00010774:
-	tst.l $003C(a0)
-	beq.b abs_0_00010788
-	cmpi.l #$FFFFFFFF,$003C(a0)
-	beq.b abs_0_00010788
-	add.l d0,$003C(a0)
-abs_0_00010788:
-	adda.w #$44,a0
-	dbf.w d1,abs_0_0001075A
+restore_eligible_object_links:
+	tst.b SG2_SAVE_LINK_REBASE_GUARD_BYTE_OFFSET(a0)
+	bmi.b restore_next_world_object_record
+	tst.l SG2WorldObject_back_link_or_sentinel(a0)
+	beq.b restore_second_object_link_if_not_reserved
+	cmpi.l #$FFFFFFFF,SG2WorldObject_back_link_or_sentinel(a0)
+	beq.b restore_second_object_link_if_not_reserved
+	add.l d0,SG2WorldObject_back_link_or_sentinel(a0)
+restore_second_object_link_if_not_reserved:
+	tst.l SG2WorldObject_linked_record_or_sentinel(a0)
+	beq.b restore_next_world_object_record
+	cmpi.l #$FFFFFFFF,SG2WorldObject_linked_record_or_sentinel(a0)
+	beq.b restore_next_world_object_record
+	add.l d0,SG2WorldObject_linked_record_or_sentinel(a0)
+restore_next_world_object_record:
+	adda.w #SG2WorldObject_SIZEOF,a0
+	dbf.w d1,restore_eligible_object_links
 	rts
 select_amiga_drive0_side_bit_set:
 	move.b #$4,disk_service_state_retry_reload.l
