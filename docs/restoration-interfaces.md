@@ -71,6 +71,26 @@ separation promise, indexed-field coverage, exhaustive tag domain, lifetime or
 initialization guarantee. The sparse policy/read descriptors add no flow-node
 value slots. Regression cases: `tests/test_writable_tagged_layout.py`.
 
+## WORD index guards
+
+The existing finite/known-bit WORD packet can retain modular bounds from
+consecutive immediate-compare/test edges. Signed and unsigned predicates use
+the shared compare flags and generated condition truth tables. Only a closed,
+adjacent compare/branch edge refines the packet; alternate entries, changed CCR,
+partial-width comparisons and incompatible paths do not acquire those bounds.
+Register copies retain the packet. Small intersections materialize within the
+unchanged eight-value limit. Larger ranges do not become larger index arrays.
+Different incoming bounds are discarded conservatively at joins; unknown or
+unsupported writes retain the existing invalidation rules.
+
+Scalar memory cells currently retain known bits, not these range constraints.
+Direct calls retain a register packet only when the existing valid call summary
+explicitly preserves that D-register. Unknown/clobbering calls still discard it;
+no new call summary is inferred from the range or from the routine's name.
+Extending a consumer through a memory cell still needs shared storage transport,
+not an assumption from unchanged original bytes.
+Regressions: `tests/test_signed_word_index_ranges.py`.
+
 ## Known indirect jump destinations
 
 Typed flow consumes the same accepted, source-bound, same-section indirect-JUMP

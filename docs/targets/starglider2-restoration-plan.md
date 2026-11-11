@@ -6,7 +6,7 @@ claim of complete gameplay/hardware equivalence.
 
 ## Current validated baseline
 
-Current validated export: 3514 app references, 2753 typed accesses, 154 unresolved
+Current validated export: 3514 app references, 2754 typed accesses, 153 unresolved
 accesses; 9967 unclassified bytes in 279 intervals. These are analysis counts,
 not semantic completion percentages. The 108 corrected inline-member catalogue
 names exposed existing source knowledge; they did not resolve typed accesses.
@@ -28,9 +28,12 @@ Original payload SHA256:
    the format discriminator. The original viewer can select outside the
    104-entry model prefix. Next: isolate an evidenced caller domain and its
    writes; neither initial bytes nor directory length supply that invariant.
-4. Indexed accesses: follow actual writers, guards, aliases and call effects.
-   The eight audio-ring reads still need a producer/consumer entry invariant;
-   equality-only wrapping does not bound arbitrary initial cursor values.
+4. Indexed accesses: register guards now retain signed/unsigned WORD bounds,
+   including existing direct-call preservation effects. Memory cells retain
+   bits only. The scan mask admits eight offsets for seven stored pointers;
+   its countdown needs a writer/entry bound. The eight audio-ring reads also
+   need an entry invariant: equality-only wrapping does not bound arbitrary
+   initial cursors. Do not enlarge a directory or assume original bytes persist.
 5. Residual regions: prioritize accepted data readers and incoming code edges.
    Do not decode apparent instructions or declare arrays from plausible bytes.
    Zero-fill writers and write-only app flags do not establish field purpose.

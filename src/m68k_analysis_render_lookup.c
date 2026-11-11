@@ -11680,16 +11680,16 @@ static int hardware_relative_refine_dbf_edge(const M68kRenderTypedFlowNode *pred
 
 #include "m68k_call_entry_inputs.inc"
 
-/* Refine the existing finite WORD state only on a closed adjacent compare/test-branch
- * edge. No extra per-node state, backward scanner, target rules or larger cap. */
+/* Refine the shared WORD packet only on a closed adjacent compare/test-branch
+ * edge. No backward scanner, target rules or larger finite-value cap. */
 static int hardware_relative_refine_compare_edge(const M68kRenderLookup *lookup,
     const M68kRenderTypedFlowGraph *graph, size_t branch_index, size_t successor_index,
     M68kRenderPlatformState *state) {
   const M68kRenderTypedFlowNode *branch = &graph->nodes[branch_index];
   const M68kRenderTypedFlowNode *compare;
   M68kInstructionIR ci, bi;
-  M68kHardwareWordSet result = {0};
   uint16_t lower, upper;
+  int16_t signed_lower, signed_upper;
   uint8_t reg;
   size_t begin = graph->predecessor_offsets[branch_index];
   int taken;
@@ -11702,29 +11702,11 @@ static int hardware_relative_refine_compare_edge(const M68kRenderLookup *lookup,
       m68k_decode_candidate_to_instruction(branch->candidate, &bi) != 0) return 1;
   taken = graph->nodes[successor_index].candidate->offset !=
     branch->candidate->offset + branch->candidate->byte_count;
-  if (!m68k_sim_unsigned_word_compare_bounds(&ci, &bi, taken, &reg, &lower, &upper)) return 1;
-  if (!state->word_values[reg].count || state->word_values[reg].requires_input_contract) {
-    if ((uint32_t)upper - lower + 1U > M68K_HARDWARE_VALUE_LIMIT) {
-      uint16_t unknown = (uint16_t)(lower ^ upper), mask, value, prior_mask, prior_value;
-      unknown |= unknown >> 1U; unknown |= unknown >> 2U;
-      unknown |= unknown >> 4U; unknown |= unknown >> 8U;
-      mask = (uint16_t)~unknown; value = (uint16_t)(lower & mask);
-      hardware_word_known_bits(&state->word_values[reg], &prior_mask, &prior_value);
-      if (state->word_values[reg].requires_input_contract) prior_mask = prior_value = 0U;
-      if (((value ^ prior_value) & mask & prior_mask) != 0U) return 0;
-      hardware_word_from_bits(&result, (uint16_t)(mask | prior_mask), (uint16_t)(value | prior_value));
-    } else for (uint32_t value = lower; value <= upper; ++value)
-      (void)hardware_word_set_add(&result, (uint16_t)value);
-    /* The actual edge bounds these WORDs independently of an input contract. */
-  } else {
-    for (uint8_t i = 0U; i < state->word_values[reg].count; ++i) {
-      uint16_t value = state->word_values[reg].values[i];
-      if (value >= lower && value <= upper) (void)hardware_word_set_add(&result, value);
-    }
-    if (!result.count) return 0;
+  if (!m68k_sim_unsigned_word_compare_bounds(&ci, &bi, taken, &reg, &lower, &upper)) {
+    if (!m68k_sim_signed_word_compare_bounds(&ci, &bi, taken, &reg, &signed_lower, &signed_upper)) return 1;
+    lower = (uint16_t)signed_lower; upper = (uint16_t)signed_upper;
   }
-  state->word_values[reg] = result;
-  return 1;
+  return hardware_word_refine_bounds(&state->word_values[reg], lower, upper);
 }
 
 static int typed_flow_recompute_node_input(M68kRenderTypedFlowGraph *graph, size_t node_index,
@@ -11912,8 +11894,8 @@ static int hardware_relative_analyze_graph(M68kRenderLookup *lookup, const M68kD
     scalar_word_commit(&scalar_state,&scalar);
     next = before;
     platform_state_update_after_instruction(&next, lookup, &instruction);
-    /* Relative hardware values and WORD cells remain top across calls.
-     * Nominal roles below use the same independently proved callable effects. */
+    /* Relative hardware values and scalar memory cells remain top across
+     * calls. Register values below reuse independently proved call effects. */
     hardware_relative_transfer(&next, &before, &instruction);
     const M68kSimFormMetadata *named_metadata = m68k_sim_metadata_for_instruction(&instruction);
     if (named_metadata && named_metadata->flow_kind == M68K_SIM_FLOW_CALL) {
@@ -11924,6 +11906,11 @@ static int hardware_relative_analyze_graph(M68kRenderLookup *lookup, const M68kD
         summary = lookup_configured_direct_function_summary(lookup, target_section, target_offset);
         if (!summary) summary = lookup_inferred_direct_function_summary(lookup, target_section, target_offset);
       }
+      if (summary && !summary->effects_invalid)
+        for (uint8_t reg = 0U; reg < 8U; ++reg)
+          if (function_summary_register_effect(summary, M68K_ANALYSIS_REGISTER_DATA, reg) ==
+              M68K_FUNCTION_SUMMARY_LOCATION_PRESERVED)
+            next.word_values[reg] = before.word_values[reg];
       local_base_pack(&values, &before, lookup);
       local_base_apply_call(&values, summary);
       local_base_unpack(&result, &values, lookup);

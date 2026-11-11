@@ -63,11 +63,14 @@ int main(void) {
   size_t successors[]={1};
   nodes[0].is_root=1;nodes[0].successor_count=1;nodes[0].successors=successors;
   nodes[1].platform_out.word_values[7].count=1;nodes[1].platform_out.word_values[7].values[0]=19;
+  nodes[1].platform_out.word_values[6].has_bounds=1;
+  nodes[1].platform_out.word_values[6].lower_bound=44;nodes[1].platform_out.word_values[6].upper_bound=32767;
   graph.nodes=nodes;graph.node_count=2;graph.predecessor_offsets=offsets;graph.predecessors=pred;
   lookup.arena=arena_create(65536);assert(lookup.arena);
   assert(!setenv("AMIGA_REVERSING_TYPED_FLOW_MAX_NODE_VISITS","1",1));
-  assert(!hardware_relative_analyze_graph(&lookup,&decode.sections[0],&graph,arena));
+  assert(!hardware_relative_analyze_graph(&lookup,&decode.sections[0],&graph,arena,1));
   assert(nodes[1].platform_out.word_values[7].count==0);
+  assert(!nodes[1].platform_out.word_values[6].has_bounds);
   assert(lookup.typed_flow_incomplete_count==1 && lookup.typed_flow_incomplete[0].hit_count==1);
   assert(lookup.typed_flow_incomplete[0].offset==2);
   m68k_decode_ir_destroy(&decode);m68k_object_destroy(&object);arena_destroy(lookup.arena);arena_destroy(arena);return 0;

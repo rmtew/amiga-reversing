@@ -2374,16 +2374,12 @@ int m68k_sim_known_value_branch(const M68kInstructionIR *producer,
   *out_taken = sim_condition_true(b->condition_code,sr); return 1;
 }
 
-int m68k_sim_unsigned_word_compare_bounds(const M68kInstructionIR *compare,
-    const M68kInstructionIR *branch, int taken, uint8_t *out_reg,
-    uint16_t *out_min, uint16_t *out_max) {
+static int sim_word_compare_register_immediate(const M68kInstructionIR *compare,
+    uint8_t *out_reg, uint32_t *out_immediate) {
   const M68kSimFormMetadata *cm = m68k_sim_metadata_for_instruction(compare);
-  const M68kSimFormMetadata *bm = m68k_sim_metadata_for_instruction(branch);
-  uint32_t immediate, starts[3], ends[3], lower = 0U, upper = 0U;
-  uint8_t address, reg, found = 0U;
-  if (!cm || !bm || !out_reg || !out_min || !out_max ||
-      bm->flow_kind != M68K_SIM_FLOW_BRANCH || !bm->flow_conditional ||
-      bm->operation_type == M68K_SIM_OP_DBCC || bm->condition_code >= 16U) return 0;
+  uint32_t immediate;
+  uint8_t address, reg;
+  if (!cm) return 0;
   if (cm->operation_type == M68K_SIM_OP_COMPARE) {
     if (cm->source_operand_index >= compare->operand_count || cm->dest_operand_index >= compare->operand_count ||
         m68k_sim_operand_width_bytes(compare, cm->source_operand_index) != 2U ||
@@ -2402,7 +2398,20 @@ int m68k_sim_unsigned_word_compare_bounds(const M68kInstructionIR *compare,
     immediate = 0U;
   } else return 0;
   if (address || reg >= 8U) return 0;
-  immediate &= UINT16_MAX;
+  *out_reg = reg; *out_immediate = immediate & UINT16_MAX;
+  return 1;
+}
+
+int m68k_sim_unsigned_word_compare_bounds(const M68kInstructionIR *compare,
+    const M68kInstructionIR *branch, int taken, uint8_t *out_reg,
+    uint16_t *out_min, uint16_t *out_max) {
+  const M68kSimFormMetadata *bm = m68k_sim_metadata_for_instruction(branch);
+  uint32_t immediate, starts[3], ends[3], lower = 0U, upper = 0U;
+  uint8_t reg, found = 0U;
+  if (!bm || !out_reg || !out_min || !out_max ||
+      bm->flow_kind != M68K_SIM_FLOW_BRANCH || !bm->flow_conditional ||
+      bm->operation_type == M68K_SIM_OP_DBCC || bm->condition_code >= 16U ||
+      !sim_word_compare_register_immediate(compare, &reg, &immediate)) return 0;
   starts[0] = 0U; ends[0] = immediate ? immediate - 1U : 0U;
   starts[1] = ends[1] = immediate;
   starts[2] = immediate + 1U; ends[2] = UINT16_MAX;
@@ -2428,6 +2437,47 @@ int m68k_sim_unsigned_word_compare_bounds(const M68kInstructionIR *compare,
   }
   if (!found) return 0;
   *out_reg = reg; *out_min = (uint16_t)lower; *out_max = (uint16_t)upper;
+  return 1;
+}
+
+int m68k_sim_signed_word_compare_bounds(const M68kInstructionIR *compare,
+    const M68kInstructionIR *branch, int taken, uint8_t *out_reg,
+    int16_t *out_min, int16_t *out_max) {
+  const M68kSimFormMetadata *bm = m68k_sim_metadata_for_instruction(branch);
+  uint32_t immediate;
+  int32_t bound, starts[3], ends[3], lower = 0, upper = 0;
+  uint8_t reg, found = 0U;
+  if (!bm || !out_reg || !out_min || !out_max ||
+      bm->flow_kind != M68K_SIM_FLOW_BRANCH || !bm->flow_conditional ||
+      bm->operation_type == M68K_SIM_OP_DBCC || bm->condition_code >= 16U ||
+      !sim_word_compare_register_immediate(compare, &reg, &immediate)) return 0;
+  bound = (int16_t)immediate;
+  starts[0] = INT16_MIN; ends[0] = bound - 1;
+  starts[1] = ends[1] = bound;
+  starts[2] = bound + 1; ends[2] = INT16_MAX;
+  for (uint8_t relation = 0U; relation < 3U; ++relation) {
+    uint16_t sr;
+    int allows;
+    if (starts[relation] > ends[relation]) continue;
+    if (!sim_apply_abstract_compare_test_flags(0U, immediate,
+        (uint16_t)starts[relation], 2U, 1U, &sr)) return 0;
+    allows = sim_condition_true(bm->condition_code, sr);
+    /* Signed comparison order fixes N xor V and Z. Require independence
+     * from C and from either compatible N/V assignment using the generated
+     * condition truth table, rather than another branch-name mapping. */
+    for (uint8_t choice = 0U; choice < 4U; ++choice) {
+      uint16_t other = sr;
+      if (choice & 1U) other ^= (uint16_t)(1U << g_m68k_sim_ccr_bit_c);
+      if (choice & 2U) other ^= (uint16_t)((1U << g_m68k_sim_ccr_bit_n) | (1U << g_m68k_sim_ccr_bit_v));
+      if (sim_condition_true(bm->condition_code, other) != allows) return 0;
+    }
+    if (allows != (taken != 0)) continue;
+    if (found && starts[relation] != upper + 1) return 0;
+    if (!found) lower = starts[relation];
+    upper = ends[relation]; found = 1U;
+  }
+  if (!found) return 0;
+  *out_reg = reg; *out_min = (int16_t)lower; *out_max = (int16_t)upper;
   return 1;
 }
 

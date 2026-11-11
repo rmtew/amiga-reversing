@@ -53732,7 +53732,7 @@ abs_0_0003C99A:
 	add.w d2,d2
 	lea.l hud_altitude_meter_sprite_pointers.l,a1
 	subq.w #1,d0
-	movea.l $0(a1,d2.w),a1
+	movea.l SG2SpriteControlReference_control_words(a1,d2.w),a1
 	st.b alternate_altitude_meter_skip_in_space_flag.l
 	bra.b draw_alternate_meter
 abs_0_0003C9B8:
