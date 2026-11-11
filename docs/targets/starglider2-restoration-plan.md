@@ -7,7 +7,7 @@ claim of complete gameplay/hardware equivalence.
 ## Current validated baseline
 
 Current validated export: 3514 app references, 2753 typed accesses, 154 unresolved
-accesses; 9977 unclassified bytes in 278 intervals. These are analysis counts,
+accesses; 9967 unclassified bytes in 279 intervals. These are analysis counts,
 not semantic completion percentages. The 108 corrected inline-member catalogue
 names exposed existing source knowledge; they did not resolve typed accesses.
 Original payload SHA256:
@@ -34,6 +34,9 @@ Original payload SHA256:
 5. Residual regions: prioritize accepted data readers and incoming code edges.
    Do not decode apparent instructions or declare arrays from plausible bytes.
    Zero-fill writers and write-only app flags do not establish field purpose.
+   The debug-key99 toggle has no static reader; the viewer auxiliary WORD has
+   no known producer or role. Next: targeted read/write observation during
+   debug/model-viewer input, rather than speculative names.
 
 ## Evidence and limits
 

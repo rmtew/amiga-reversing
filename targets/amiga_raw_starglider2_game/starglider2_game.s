@@ -2567,7 +2567,7 @@ game_over_icarus_destroyed_message:
 	dc.b $00
     ; The IRQ writes a handoff-window count to the sample. Amiga display path overwrites it with DIVU-derived display value; alternate path scales in D1. Not a universal FPS/tenths field.
 display_frame_rate_if_enabled:
-	tst.b abs_0_000018BA.l
+	tst.b debug_frame_rate_display_flag.l
 	beq.w abs_0_000017EA
 	move.b #$F,text_colour_plane_mask.l
 	tst.w platform_entry_flags.l
@@ -2654,7 +2654,7 @@ abs_0_000018AA:
 	bra.b abs_0_000018BC
 ground_face_projection_enabled_word:
 	dc.w $FFFF
-abs_0_000018BA:
+debug_frame_rate_display_flag:
 	dc.b $00
 abs_0_000018BB:
 	dc.b $00
@@ -2676,7 +2676,7 @@ abs_0_000018C8:
 	beq.w abs_0_00001964
 	cmp.b #$98,d0
 	bne.b abs_0_00001900
-	not.b abs_0_000018BA.l
+	not.b debug_frame_rate_display_flag.l
 abs_0_00001900:
 	cmp.b #$99,d0
 	bne.b abs_0_0000190C
@@ -5115,8 +5115,9 @@ scene_sort_high_guard_depth:
 	dc.w $FFFF
 scene_queue_zero_depth_word:
 	dc.w $0000
-abs_0_00003C38:
-	dc.b $FF,$FF,$1D,$40,$07,$EB,$4E,$75
+gathered_face_clipping_enabled_flag:
+	dc.b $FF
+	dc.b $FF,$1D,$40,$07,$EB,$4E,$75
     ; Player view selector: modes 0..7 use the relative table; larger BYTE values take the default path. Stored extra default entries are retained, not declared unused.
 select_player_view_mode:
 	movea.l player_object_reference(a6),a0
@@ -5406,7 +5407,7 @@ abs_0_00003FE0:
 abs_0_00004096:
 	clr.w active_model_retirement_phase_word(a6)
 	move.b $001E(a4),active_model_retirement_phase_byte(a6)
-	move.b $0002(a4),abs_0_000049AC.l
+	move.b $0002(a4),current_model_draw_flags.l
 	movem.l d7/a4-a5,-(a7)
 	bsr.w prepare_retirement_model_faces
 	movem.l (a7)+,d7/a4-a5
@@ -6146,14 +6147,15 @@ contact_type_plane_masks:
     ; Shared packed X/Z digit-pair cache. Cockpit continuation clears it to 0; a computed zero pair still skips coordinate drawing. This is not an invalid sentinel or per-bank repaint contract.
 hud_coordinate_bcd_pair_cache:
 	dc.w $0000
-abs_0_000049A0:
+viewer_decimal_text_scratch:
 	dc.b $20,$20,$20,$20,$00,$00,$00,$00
 scene_packet_count:
 	dc.w $0000
 abs_0_000049AA:
 	dc.w $0000
-abs_0_000049AC:
-	dc.b $00,$00,$00,$00
+current_model_draw_flags:
+	dc.b $00
+	dc.b $00,$00,$00
 draw_nearby_point_field_bridge_0039b0:
 	jmp draw_nearby_point_field.l
 draw_hud_attitude_polygon_bridge_0039b6:
@@ -6613,7 +6615,7 @@ test_face_outcode_aggregate_for_side_rejection:
 	bne.w test_model_polygon_count_before_next_candidate
 conditionally_clip_gathered_face_vertices:
 	lea.l abs_0_000052C2.l,a2
-	tst.b abs_0_00003C38.l
+	tst.b gathered_face_clipping_enabled_flag.l
 	beq.b abs_0_00004E5C
 	move.b #$10,diagnostic_step_byte.l
 	movem.l a3-a5,-(a7)
@@ -7153,7 +7155,7 @@ shift_retirement_y_displacement:
 	bmi.b derive_retirement_z_displacement_and_open_packet
 	tst.b player_ejection_active_flag.l
 	bmi.b derive_retirement_z_displacement_and_open_packet
-	btst.b #5,abs_0_000049AC.l
+	btst.b #5,current_model_draw_flags.l
 	bne.b derive_retirement_z_displacement_and_open_packet
 	sub.w model_origin_delta_y(a6),d5
 	bpl.w skip_retirement_face_vertex_offsets
@@ -15074,10 +15076,10 @@ map_interior_layout_back_to_surface_index:
 	move.l $0(a1,d0.w),horizontal_world_wrap_mask(a6)
     ; Snapshot nonnull carried-bomb presence before pool rebuild. Signed BYTE projector test then precedes signed snapshot test; tests stop at helper calls, not full rebuild or spawn proof.
 snapshot_carried_bomb_presence_before_pool_rebuild:
-	sf.b abs_0_0000C4CC.l
+	sf.b carried_bomb_presence_snapshot.l
 	tst.l carried_neutron_bomb_reference(a6)
 	beq.b rebuild_surface_objects_before_optional_spawns
-	st.b abs_0_0000C4CC.l
+	st.b carried_bomb_presence_snapshot.l
 rebuild_surface_objects_before_optional_spawns:
 	bsr.w initialize_world_object_pool_bridge_00d9c6
 select_body_projector_spawn_after_surface_rebuild:
@@ -15087,7 +15089,7 @@ select_body_projector_spawn_after_surface_rebuild:
 	bpl.w test_saved_bomb_presence_after_projector_spawn
 	bsr.w spawn_body_projectors_platform_entry
 test_saved_bomb_presence_after_projector_spawn:
-	tst.b abs_0_0000C4CC.l
+	tst.b carried_bomb_presence_snapshot.l
 	bpl.b return_after_surface_rebuild_requests
 	bsr.w handle_neutron_bomb_detonation_bridge_00b4d6
 return_after_surface_rebuild_requests:
@@ -15565,8 +15567,9 @@ narrow_structure_profile_z_offsets:
 	dc.l $00000000,$00000258
 	dc.b $FF,$FF,$F9,$E8
 	dcb.b $2C,$00
-abs_0_0000C4CC:
-	dc.b $00,$00,$00,$00
+carried_bomb_presence_snapshot:
+	dc.b $00
+	dc.b $00,$00,$00
 spawn_body_projectors_platform_entry:
 	jmp spawn_selected_body_projector_parts.l
 handle_neutron_bomb_detonation_bridge_00b4d6:
@@ -17995,21 +17998,21 @@ abs_0_0000EB28:
 	bsr.w print_positioned_text
 	move.w model_rotation_0(a6),d0
 	andi.w #4095,d0
-	lea.l abs_0_000049A0.l,a1
+	lea.l viewer_decimal_text_scratch.l,a1
 	bsr.w format_signed_word_four_decimal_positions_bridge_00ed8e
 	moveq.l #12,d1
 	moveq.l #10,d0
 	bsr.w print_positioned_text
 	move.w model_rotation_1(a6),d0
 	andi.w #4095,d0
-	lea.l abs_0_000049A0.l,a1
+	lea.l viewer_decimal_text_scratch.l,a1
 	bsr.w format_signed_word_four_decimal_positions_bridge_00ed8e
 	moveq.l #12,d1
 	moveq.l #16,d0
 	bsr.w print_positioned_text
 	move.w model_rotation_2(a6),d0
 	andi.w #4095,d0
-	lea.l abs_0_000049A0.l,a1
+	lea.l viewer_decimal_text_scratch.l,a1
 	bsr.w format_signed_word_four_decimal_positions_bridge_00ed8e
 	moveq.l #12,d1
 	moveq.l #24,d0
@@ -18017,13 +18020,13 @@ abs_0_0000EB28:
 	lea.l world_object_pool(a6),a4
 	moveq.l #0,d0
 	move.b SG2ObjectCore_vertex_variant_selector(a4),d0
-	lea.l abs_0_000049A0.l,a1
+	lea.l viewer_decimal_text_scratch.l,a1
 	bsr.w format_signed_word_four_decimal_positions_bridge_00ed8e
 	moveq.l #0,d0
 	moveq.l #0,d1
 	bsr.w print_positioned_text
 	move.w abs_0_0000FD12.l,d0
-	lea.l abs_0_000049A0.l,a1
+	lea.l viewer_decimal_text_scratch.l,a1
 	bsr.w format_signed_word_four_decimal_positions_bridge_00ed8e
 	moveq.l #0,d1
 	moveq.l #8,d0
@@ -18034,7 +18037,7 @@ abs_0_0000EB28:
 	add.w d0,d0
 	movea.l $0(a0,d0.w),a0
 	move.w $0004(a0),d0
-	lea.l abs_0_000049A0.l,a1
+	lea.l viewer_decimal_text_scratch.l,a1
 	bsr.w format_signed_word_four_decimal_positions_bridge_00ed8e
 	moveq.l #0,d1
 	moveq.l #16,d0
@@ -18058,7 +18061,7 @@ abs_0_0000EBFC:
 abs_0_0000EC46:
 	move.w drawing_fill_style_word(a6),d0
 	andi.w #4095,d0
-	lea.l abs_0_000049A0.l,a1
+	lea.l viewer_decimal_text_scratch.l,a1
 	bsr.w format_signed_word_four_decimal_positions_bridge_00ed8e
 	lea.l absolute_slot_00070000.l,a0
 	adda.w #$7D4,a0
@@ -24630,7 +24633,7 @@ abs_0_00017D88:
 initialize_world_object_pool:
 	move.l #tug_placement_parameter_prefix,tug_placement_parameter_cursor.l
 	move.l #$FFFFF830,tug_placement_group_world_y.l
-	st.b abs_0_00018964.l
+	st.b taymar_transport_candidate_pending_flag.l
 	clr.w mini_sentinel_initial_orbit_byte_offset.l
 	clr.w mini_sentinel_initialization_attempt_count.l
 	clr.b display_buffer_table_byte_offset(a6)
@@ -25007,7 +25010,7 @@ initialize_emma2_mission_dependent_motion:
 	bmi.b abs_0_000182DC
 	tst.b professor_taymar_aboard_flag(a6)
 	bmi.b abs_0_000182DC
-	tst.b abs_0_00018964.l
+	tst.b taymar_transport_candidate_pending_flag.l
 	bpl.b abs_0_000182DC
 	cmpi.w #8,selected_celestial_body_index(a6)
 	bne.b abs_0_000182DC
@@ -25015,7 +25018,7 @@ initialize_emma2_mission_dependent_motion:
 	move.w #$7FFF,SG2ScheduledActor_behavior_update_counter(a0)
 	move.w #$FF38,SG2EmmaTransport_horizontal_motion_scale(a0)
 	st.b SG2EmmaTransport_taymar_radio_enabled_flag(a0)
-	sf.b abs_0_00018964.l
+	sf.b taymar_transport_candidate_pending_flag.l
 	rts
 abs_0_000182DC:
 	bsr.w advance_shared_random_state_bridge_017968
@@ -25183,7 +25186,7 @@ initialize_pac_worm_heading_and_motion:
 initialize_flat_diamond_flags:
 	bset.b #0,SG2ObjectCore_flags(a0)
 	rts
-    ; Types40/43: two PRNG advances. Height uses the LONG after ANDI.W, retaining its upper WORD. Final WORD24/20 are random0..31/-500; WORD26=1 only on the even arm, otherwise retained.
+    ; Types 40/43: two PRNG advances. LONG height retains upper WORD bits after ANDI.W. Final offsets $24/$20 get random 0..31/-500; only the even arm writes WORD $26=1.
     ; KNOWN: type A0=Target code-entry register seed:SG2WorldObject
 initialize_pirate_or_skim_drone:
 	move.l #$FFFFB9B0,SG2ObjectCore_world_y(a0)
@@ -25204,7 +25207,7 @@ seed_pirate_or_skim_drone_motion_words:
 	move.w d0,$0024(a0)
 	move.w #$FE0C,$0020(a0)
 	rts
-    ; Types41/73: three PRNG advances for heading, height and WORD24. Height retains upper WORD bits. WORD24 is Ray action phase or Asteroid spin; only the even height arm writes WORD26=1.
+    ; Types 41/73: three PRNG advances for heading, height and WORD $24. Height retains upper WORD bits. $24 is Ray action phase or Asteroid spin; only the even arm writes WORD $26=1.
     ; KNOWN: type A0=Target code-entry register seed:SG2WorldObject
 initialize_space_ray_or_asteroid:
 	bsr.w advance_shared_random_state_bridge_017968
@@ -25530,8 +25533,9 @@ mini_sentinel_initial_orbit_byte_offset:
 	dc.w $0000
 mini_sentinel_initial_orbit_angles:
 	dc.w $0000,$0200,$0400,$0600,$0800,$0A00,$0C00,$0E00
-abs_0_00018964:
-	dc.b $00,$00,$00,$00
+taymar_transport_candidate_pending_flag:
+	dc.b $00
+	dc.b $00,$00,$00
 advance_shared_random_state_bridge_017968:
 	jmp advance_shared_random_state.l
 build_motion_vector_from_angles_bridge_01796e:
@@ -44168,7 +44172,7 @@ animate_released_objects_loop:
 abs_0_00032F82:
 	dbf.w d7,animate_released_objects_loop
 abs_0_00032F86:
-	sf.b abs_0_00039CD3.l
+	sf.b force_body_orbit_refresh_flag.l
 	tst.b space_environment_flag(a6)
 	bpl.b abs_0_00032F9E
 	bsr.w update_system_center_proximity_metric
@@ -45280,7 +45284,7 @@ compare_surface_exit_space_snapshot:
 	beq.w update_space_stardrive_and_motion
 	move.b #$85,diagnostic_step_byte.l
 	move.b #$7F,effect_colour_fade_counter.l
-	st.b abs_0_00039CD3.l
+	st.b force_body_orbit_refresh_flag.l
 	clr.w pending_message_count(a6)
 	move.w #$1,message_display_countdown(a6)
     ; BYTE flag zero selects event54 leaving planet, nonzero event75 leaving moon. Only16stored flags assigned; next38848 is depot text, not flag extension.
@@ -45511,13 +45515,13 @@ abs_0_00034172:
 	move.w current_structure_service_id(a6),d0
 	tst.w d0
 	bne.b abs_0_0003419A
-	tst.b abs_0_00039CD4.l
+	tst.b service_blank_line_pending_flag.l
 	bpl.w reset_depot_intro_and_service_entry_latches
 	bsr.w display_blank_event_message_line
-	sf.b abs_0_00039CD4.l
+	sf.b service_blank_line_pending_flag.l
 	bra.w reset_depot_intro_and_service_entry_latches
 abs_0_0003419A:
-	st.b abs_0_00039CD4.l
+	st.b service_blank_line_pending_flag.l
 	lea.l structure_service_entry_latches(a6),a1
 	tst.b $0(a1,d0.w)
 	bmi.w advance_taymar_depot_dialogue_continuation
@@ -46376,12 +46380,12 @@ abs_0_00034CFE:
 	move.w projector_rebuild_cursor(a6),d0
 	asl.w #2,d0
 	movea.l $0(a1,d0.w),a1
-	sf.b abs_0_00037B57.l
+	sf.b projector_base_report_selected_flag.l
 	cmpa.l a1,a2
 	bne.b abs_0_00034D28
-	st.b abs_0_00037B57.l
+	st.b projector_base_report_selected_flag.l
 abs_0_00034D28:
-	tst.b abs_0_00037B57.l
+	tst.b projector_base_report_selected_flag.l
 	bpl.b abs_0_00034D44
 	lea.l event_message_pointers.l,a1
 	move.w #$F,d0
@@ -46394,7 +46398,7 @@ abs_0_00034D44:
 	asl.w #2,d0
 	movea.l $0(a1,d0.w),a1
 	move.l a1,station_report_primary_message(a6)
-	tst.b abs_0_00037B57.l
+	tst.b projector_base_report_selected_flag.l
 	bpl.b abs_0_00034D64
 	bsr.w enqueue_message_if_outside_structure
 abs_0_00034D64:
@@ -46403,7 +46407,7 @@ abs_0_00034D64:
 	asl.w #2,d0
 	movea.l $0(a1,d0.w),a1
 	move.l a1,station_report_secondary_message(a6)
-	tst.b abs_0_00037B57.l
+	tst.b projector_base_report_selected_flag.l
 	bpl.b abs_0_00034D88
 	bsr.w enqueue_message_if_outside_structure
 	bsr.w enqueue_blank_event_message_line
@@ -47332,7 +47336,7 @@ abs_0_00035946:
 	move.l a1,free_object_stack_cursor(a6)
 	subq.w #1,free_object_count(a6)
     ; KNOWN: type A2=Target code-entry register seed:SG2WorldObject
-	move.w abs_0_00037894.l,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
+	move.w tractor_beam_marker_type_word.l,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
 	sf.b $0022(a2)
 	move.b $001D(a0),d3
 	move.b d3,SG2ObjectCore_model_scale_shift(a2)
@@ -47360,7 +47364,7 @@ abs_0_00035946:
 	movea.l -(a1),a2
 	move.l a1,free_object_stack_cursor(a6)
 	subq.w #1,free_object_count(a6)
-	move.w abs_0_00037894.l,d7
+	move.w tractor_beam_marker_type_word.l,d7
     ; KNOWN: type A2=Target code-entry register seed:SG2WorldObject
 	move.w d7,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
 	move.b $001D(a0),d3
@@ -47857,7 +47861,7 @@ abs_0_000360E0:
 	add.w d6,$0(a1,d0.w)
 	lea.l body_orbit_recompute_masks.l,a4
 	move.w $0(a4,d0.w),d6
-	tst.b abs_0_00039CD3.l
+	tst.b force_body_orbit_refresh_flag.l
 	bmi.b abs_0_0003610A
 	and.w d6,$0(a1,d0.w)
 	bne.w abs_0_000361DE
@@ -49432,10 +49436,10 @@ abs_0_00037586:
 	move.w #$FFFF,player_rotation2_spin_steps.l
 	clr.w player_rotation2_after_spin.l
 	move.b #$FF,effect_colour_fade_counter.l
-	sf.b abs_0_00039CD3.l
+	sf.b force_body_orbit_refresh_flag.l
 	clr.w stardrive_speed_addend(a6)
 	clr.w stardrive_enabled_word(a6)
-	sf.b abs_0_00039CD4.l
+	sf.b service_blank_line_pending_flag.l
 	move.w #$FFFF,shared_grayscale_effect_countdown.l
 	rts
 update_system_center_proximity_metric:
@@ -49613,8 +49617,8 @@ abs_0_00037842:
 abs_0_0003788E:
 	movem.l (a7)+,d0/a4
 	rts
-abs_0_00037894:
-	dc.b $00,$5F
+tractor_beam_marker_type_word:
+	dc.w $005F
 pirate_warning_cooldown_or_negative:
 	dc.w $0000
 abs_0_00037898:
@@ -49754,7 +49758,7 @@ world_projector_presence_flags:
 	dcb.b $8,$00
 	dc.b $FF,$FF,$FF,$FF,$FF,$FF,$FF,$00
 	dc.b $00
-abs_0_00037B57:
+projector_base_report_selected_flag:
 	dc.b $00
 world_atmosphere_presence_flags:
 	dc.b $FF,$FF,$FF,$FF,$00,$FF,$00,$00,$FF,$FF,$FF,$FF,$FF,$FF,$FF,$00
@@ -50826,9 +50830,9 @@ effect_colour_fade_counter:
 	dc.b $00
 skim_drone_follow_claim_flag:
 	dc.b $00
-abs_0_00039CD3:
+force_body_orbit_refresh_flag:
 	dc.b $00
-abs_0_00039CD4:
+service_blank_line_pending_flag:
 	dc.b $00
 audio_output_enable_sign_flag:
 	dc.b $00
