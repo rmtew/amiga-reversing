@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
   "kind": "committed_native_rendered_original_export",
-  "canonical_source_commit": "c8e6fe1a73e63d05eda75b52a97c2cbdf3d955e6",
-  "publication_base_commit": "c8e6fe1a73e63d05eda75b52a97c2cbdf3d955e6",
+  "canonical_source_commit": "fbe0be3c65e5a186cac12519a287b6b8a37db2c7",
+  "publication_base_commit": "fbe0be3c65e5a186cac12519a287b6b8a37db2c7",
   "native_export": "CListingArtifact.source_package_payload(64)",
-  "main_source_sha256": "944137d03f35a891207d20a570454d03dd17c9246671aafbbb520f72e40a5ecf",
+  "main_source_sha256": "1bf1caae91b9eb90ec1d739233d5b89d2488cdd06f1f1e9e464043e54354f8b7",
   "asset_count": 57,
   "asset_bytes": 93633,
   "game_assembly_hand_edits": false,
@@ -25,12 +25,12 @@
     "paused Pandora work"
   ],
   "canonical_source_commit_role": "Canonical source publication base; build and verification identities are recorded below.",
-  "canonical_source_subject_revision": "8b324389ef2d703dbe85f2ee96771e37b3538a82b5867b02cd91cfde55a3a30f",
+  "canonical_source_subject_revision": "ff685d98c6e081d3f5cf7af9544c7bad5a4ef14fca9a34673ffc1879befe039f",
   "canonical_fact_sha256": {
     "source_binary.json": "42d4a5758b3e8236af7f912aee85e9ee5323bcd0961faa338c4f864080a0a7d9",
     "target_metadata.json": "e7540b68c118c56aba8815b6722eefa067517cc865fe9841d6c01ce96551389c",
-    "manual_actions.jsonl": "8f56e4550a9b3763d960e5a264acdaa154a82dd12ba13ba48f7e4179ee139ddd",
-    "decision_journal.jsonl": "52c332903309b9035f3050aaaa739b88890b0255a520352866f6e5dcbb53cb21"
+    "manual_actions.jsonl": "1ae1bfecfe5651b059d8cb4a48d3923696688dc8f2bf278206a138385e3e96e1",
+    "decision_journal.jsonl": "49fd6f0ecb5e53bb7a808fb7db642b61d636034e4ae169b5a56bae5e327d2e3f"
   },
   "headers": "14 unmodified required include files collected by source_package.collect_package_includes from ext/amiga_includes/ndk_2.0/include; header notices retained",
   "decoded_protection_view": {
@@ -46,7 +46,7 @@
     },
     "runtime_scope": "Seven CPU write-site windows match this reversible view; no whole runtime-view identity or parent plaintext promotion."
   },
-  "verification_receipt_id": "429b84e42dd16ff382a06396d25f588a1cb9cb4c11bfd1cb4da571a20594d8ba",
+  "verification_receipt_id": "660d9982a5d385f6a559455e22d1e49b8ef4911047a4ab36cb498462e516cc55",
   "render_native_sha256": "2f1e82e65c5d437717c7043b95fc80fcd7c757c1233fa441fb9b8572e47325ff",
   "final_assembler_native_sha256": "2f1e82e65c5d437717c7043b95fc80fcd7c757c1233fa441fb9b8572e47325ff"
 }

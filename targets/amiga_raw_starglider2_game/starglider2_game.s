@@ -24794,7 +24794,7 @@ world_object_type_initializer_pointers:
 	dc.l initialize_flat_diamond_flags
 	dc.l skip_object_type_initialization
 	dc.l initialize_pirate_or_skim_drone
-	dc.l abs_0_0001856E
+	dc.l initialize_space_ray_or_asteroid
 	dc.l skip_object_type_initialization
 	dc.l initialize_pirate_or_skim_drone
 	dc.l initialize_and_link_tug_truck
@@ -24826,7 +24826,7 @@ world_object_type_initializer_pointers:
 	dc.l initialize_structure_contact_flags
 	dc.l initialize_pilot_couch_world_y_and_durability
 	dc.l skip_object_type_initialization
-	dc.l abs_0_0001856E
+	dc.l initialize_space_ray_or_asteroid
 	dc.l skip_object_type_initialization
 	dc.l skip_object_type_initialization
 	dc.l skip_object_type_initialization
@@ -25183,30 +25183,30 @@ initialize_pac_worm_heading_and_motion:
 initialize_flat_diamond_flags:
 	bset.b #0,SG2ObjectCore_flags(a0)
 	rts
-    ; Shared type40 Pirate Ship/type43 Skim Drone initializer. Keep their common position contract; drone follow/idle field meanings are bound only at its nearby updater/helper.
+    ; Types40/43: two PRNG advances. Height uses the LONG after ANDI.W, retaining its upper WORD. Final WORD24/20 are random0..31/-500; WORD26=1 only on the even arm, otherwise retained.
     ; KNOWN: type A0=Target code-entry register seed:SG2WorldObject
 initialize_pirate_or_skim_drone:
 	move.l #$FFFFB9B0,SG2ObjectCore_world_y(a0)
 	bsr.w advance_shared_random_state_bridge_017968
 	andi.w #1023,d0
 	btst #0,d0
-	beq.w abs_0_00018544
+	beq.w add_even_height_for_pirate_or_skim_drone
 	sub.l d0,SG2ObjectCore_world_y(a0)
-	bra.b abs_0_0001855A
-abs_0_00018544:
+	bra.b seed_pirate_or_skim_drone_motion_words
+add_even_height_for_pirate_or_skim_drone:
 	add.l d0,SG2ObjectCore_world_y(a0)
 	move.w #$1,$0024(a0)
 	move.w #$1,$0026(a0)
 	move.w #$3,$0020(a0)
-abs_0_0001855A:
+seed_pirate_or_skim_drone_motion_words:
 	bsr.w advance_shared_random_state_bridge_017968
 	andi.w #31,d0
 	move.w d0,$0024(a0)
 	move.w #$FE0C,$0020(a0)
 	rts
-    ; Shared Space Ray41/Asteroid73 initializer. Final WORD24 seed0..31 phases actor actions or sets asteroid spin; keep common WorldObject input, not one private field meaning.
+    ; Types41/73: three PRNG advances for heading, height and WORD24. Height retains upper WORD bits. WORD24 is Ray action phase or Asteroid spin; only the even height arm writes WORD26=1.
     ; KNOWN: type A0=Target code-entry register seed:SG2WorldObject
-abs_0_0001856E:
+initialize_space_ray_or_asteroid:
 	bsr.w advance_shared_random_state_bridge_017968
 	andi.w #4095,d0
 	move.w d0,SG2WorldObject_rotation_1(a0)
@@ -25215,15 +25215,15 @@ abs_0_0001856E:
 	bsr.w advance_shared_random_state_bridge_017968
 	andi.w #1023,d0
 	btst #0,d0
-	beq.w abs_0_0001859E
+	beq.w add_even_height_for_ray_or_asteroid
 	sub.l d0,SG2ObjectCore_world_y(a0)
-	bra.b abs_0_000185B4
-abs_0_0001859E:
+	bra.b seed_ray_or_asteroid_motion_words
+add_even_height_for_ray_or_asteroid:
 	add.l d0,SG2ObjectCore_world_y(a0)
 	move.w #$1,$0024(a0)
 	move.w #$1,$0026(a0)
 	move.w #$3,$0020(a0)
-abs_0_000185B4:
+seed_ray_or_asteroid_motion_words:
 	bsr.w advance_shared_random_state_bridge_017968
 	andi.w #31,d0
 	move.w d0,$0024(a0)
