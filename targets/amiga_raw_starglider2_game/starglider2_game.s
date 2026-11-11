@@ -19420,7 +19420,7 @@ load_game_from_disk:
 read_saved_workspace_track_loop:
 	move.l d1,-(a7)
 	bsr.w advance_disk_backend_cylinder
-	bsr.w abs_0_0001099A
+	bsr.w check_change_then_read_disk_blocks
 	bne.w abs_0_0000FFAA
 	addi.l #SG2_SAVE_CHUNK_BYTES,disk_service_state_transfer_buffer_pointer.l
 	move.l (a7)+,d1
@@ -19532,7 +19532,7 @@ stage_saved_workspace_track_chunk:
 	bsr.w seek_disk_backend_cylinder_zero
 	tst.w save_directory_initial_lookup_status.l
 	beq.b abs_0_00010122
-	bsr.w abs_0_0001099A
+	bsr.w check_change_then_read_disk_blocks
 	bne.b abs_0_00010136
 restore_staged_save_directory_image:
 	lea.l shared_workspace_prefix.l,a1
@@ -19617,7 +19617,7 @@ save_high_scores_to_disk:
 	bsr.w check_or_offer_adls_disk_format
 	bne.b abs_0_00010240
 	bsr.w seek_disk_backend_cylinder_zero
-	bsr.w abs_0_0001099A
+	bsr.w check_change_then_read_disk_blocks
 	bne.b abs_0_00010236
 	lea.l absolute_slot_0007E200.l,a0
 	lea.l pilot_ratings_disk_signature.l,a1
@@ -19683,7 +19683,7 @@ cache_next_music_track:
 	move.l d1,-(a7)
 	bsr.w poll_disk_operation_cancel
 	bne.w discard_saved_music_loop_and_deselect_disk
-	bsr.w abs_0_000109A0
+	bsr.w reload_retry_byte_and_read_disk_blocks
 	bne.w discard_saved_music_counter_after_read_failure
 	bsr.w advance_disk_backend_cylinder
 	addi.l #SG2_MUSIC_BLOCK_BYTES,disk_service_state_transfer_buffer_pointer.l
@@ -19710,7 +19710,7 @@ select_amiga_music_prefill_destination:
 	beq.b copy_cached_music_prefill_block
 	bsr.w poll_disk_operation_cancel
 	bne.w discard_saved_music_loop_and_deselect_disk
-	bsr.w abs_0_000109A0
+	bsr.w reload_retry_byte_and_read_disk_blocks
 	bne.w discard_saved_music_counter_after_read_failure
 	bsr.w advance_disk_backend_cylinder
 	bra.b poll_after_music_prefill_read
@@ -19764,7 +19764,7 @@ wait_until_amiga_music_lookahead_differs_from_consumer:
 	bne.w request_music_stop_after_cancel
 	tst.b music_cache_flags.l
 	beq.b copy_cached_music_stream_block
-	bsr.w abs_0_000109A0
+	bsr.w reload_retry_byte_and_read_disk_blocks
 	bne.w discard_saved_music_counter_after_read_failure
 	bsr.w advance_disk_backend_cylinder
 	bra.b restore_amiga_music_stream_loop_counter
@@ -20148,32 +20148,33 @@ abs_0_0001095E:
 	move.w #INTF_DSKBLK,intreq(a5)
 	move.w #DMAF_DISK,dmacon(a5)
 	bsr.w read_disk_backend_blocks
-	beq.b abs_0_00010996
+	beq.b return_disk_block_read_success
 	bsr.w attempt_disk_head_retry_cycle
 	subq.b #1,disk_service_state.l
 	bpl.w encode_and_write_mfm_track
 	moveq.l #-1,d0
 	rts
-abs_0_00010996:
+return_disk_block_read_success:
 	moveq.l #0,d0
 	rts
-abs_0_0001099A:
+check_change_then_read_disk_blocks:
 	bsr.w check_disk_backend_change
-	bne.b abs_0_000109CE
-abs_0_000109A0:
+	bne.b return_disk_block_read_failure
+reload_retry_byte_and_read_disk_blocks:
 	move.b disk_service_state_retry_reload.l,disk_service_state.l
-abs_0_000109AA:
+retry_disk_block_read_attempt:
 	bsr.w read_disk_backend_blocks
-	beq.b abs_0_00010996
+	beq.b return_disk_block_read_success
 	bsr.w attempt_disk_head_retry_cycle
 	tst.w platform_entry_flags.l
-	bpl.b abs_0_000109C6
+	bpl.b decrement_disk_read_retry_byte
 	btst.b #CIAB_DSKCHANGE,_ciaa+ciapra.l
-	beq.b abs_0_000109CE
-abs_0_000109C6:
+	beq.b return_disk_block_read_failure
+    ; Decrement only the retry BYTE; BPL tests its new sign. $80 becomes $7F and retries, while $81 becomes $80 and fails. Preserve wrapping rather than an unsigned budget model.
+decrement_disk_read_retry_byte:
 	subq.b #1,disk_service_state.l
-	bpl.b abs_0_000109AA
-abs_0_000109CE:
+	bpl.b retry_disk_block_read_attempt
+return_disk_block_read_failure:
 	moveq.l #-1,d0
 	rts
 read_and_decode_mfm_track:
@@ -20432,7 +20433,7 @@ abs_0_00010CEA:
 abs_0_00010CFE:
 	move.l d0,(a0)+
 	dbf.w d1,abs_0_00010CFE
-	bsr.w abs_0_000109AA
+	bsr.w retry_disk_block_read_attempt
 	bne.b abs_0_00010D26
 	movea.l disk_service_state_transfer_buffer_pointer.l,a0
 	lea.l adls_disk_identification_bytes(pc),a1
@@ -21004,7 +21005,7 @@ abs_0_00011446:
 	move.l d1,-(a7)
 	bsr.w poll_disk_operation_cancel
 	bne.w abs_0_000114A6
-	bsr.w abs_0_000109A0
+	bsr.w reload_retry_byte_and_read_disk_blocks
 	bne.w discard_saved_alternate_music_counter_after_read_failure
 	bsr.w advance_disk_backend_cylinder
 	addi.l #5632,disk_service_state_transfer_buffer_pointer.l
@@ -21047,7 +21048,7 @@ select_alternate_music_prefill_destination:
 	move.l $0(a0,d0.w),disk_service_state_transfer_buffer_pointer.l
 	bsr.w poll_disk_operation_cancel
 	bne.w abs_0_000114A6
-	bsr.w abs_0_000109A0
+	bsr.w reload_retry_byte_and_read_disk_blocks
 	bne.w discard_saved_alternate_music_counter_after_read_failure
 	bsr.w advance_disk_backend_cylinder
 	nop
@@ -21085,7 +21086,7 @@ wait_until_alternate_music_lookahead_differs_from_consumer:
 	move.l $0(a0,d0.w),disk_service_state_transfer_buffer_pointer.l
 	bsr.w poll_disk_operation_cancel
 	bne.w abs_0_000114A6
-	bsr.w abs_0_000109A0
+	bsr.w reload_retry_byte_and_read_disk_blocks
 	bne.b discard_saved_alternate_music_counter_after_read_failure
 	bsr.w advance_disk_backend_cylinder
 	move.l (a7)+,d1
@@ -52774,17 +52775,17 @@ abs_0_0003B3E6:
 abs_0_0003B3FE:
 	clr.l (a0)+
 	dbf.w d1,abs_0_0003B3FE
-	bsr.w abs_0_0003B57C
+	bsr.w wait_alternate_serial_status_bit1
 	move.b #$B,$FFFFFC02.l
-	bsr.w abs_0_0003B57C
+	bsr.w wait_alternate_serial_status_bit1
 	move.b #$1,$FFFFFC02.l
-	bsr.w abs_0_0003B57C
+	bsr.w wait_alternate_serial_status_bit1
 	move.b #$1,$FFFFFC02.l
 	st.b novella_expected_char_latch(a6)
 	st.b novella_answer_tail_latch(a6)
-	bsr.w abs_0_0003B57C
+	bsr.w wait_alternate_serial_status_bit1
 	move.b #$8,$FFFFFC02.l
-	bsr.w abs_0_0003B57C
+	bsr.w wait_alternate_serial_status_bit1
 	bclr.b #5,$FFFFFA09.w
 	movea.l game_workspace_base.l,a6
 	lea.l novella_check_encoded_payload.l,a2
@@ -52837,9 +52838,9 @@ install_mode1_text_and_hud_jump_targets:
 	move.l #return_disabled_alternate_service,$0038(a0)
 	move.w #$0,$FFFF8240.w
 	rts
-abs_0_0003B57C:
+wait_alternate_serial_status_bit1:
 	btst.b #1,$FFFFFC00.l
-	beq.b abs_0_0003B57C
+	beq.b wait_alternate_serial_status_bit1
 return_disabled_alternate_service:
 	rts
 abs_0_0003B588:
