@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "source_commit": "d0513739e302ffdc27f75d8ebfe793c19f7ba393",
+  "source_commit": "32fb2b84c21537d30637ed76bde511b65ce1b67d",
   "source_assembly": "starglider2_game.s",
   "assets": [
     {
@@ -878,13 +878,13 @@
     },
     {
       "path": "rendered-provenance.json",
-      "bytes": 3392,
-      "sha256": "21e2ae79c439415bf07ada0af5cf332331c5f7a7285a294f6a7819c0bf96f059"
+      "bytes": 3434,
+      "sha256": "33130de51f9f8f4bc6fc2a7933d4592e77c2ccdc8479626027d167bfe4a90c96"
     },
     {
       "path": "starglider2_game.s",
-      "bytes": 2273856,
-      "sha256": "2eeb591a3517d1e19ba3c4afeebf996c0593186625cc0690ec31d50d7be77e7b"
+      "bytes": 2273899,
+      "sha256": "c94707c60d40d3b5b29c8fa4e8ad96fe3602799ca67e570a42f1427d030eba6d"
     },
     {
       "path": "tools/starglider2_protection.py",
@@ -892,6 +892,6 @@
       "sha256": "81d3f66d36dbfbd5c77238b20c28e8b9abaa329777eb91f64669bbbf13703582"
     }
   ],
-  "source_commit_role": "canonical source publication base; face-command admission, refresh/cache and backface producers qualified through 415 original CPU cases. Sixteen continuations, five scalars and twelve instruction-local field bindings expose exact integer tests, descending modulo32 cache bits, actual RNG/coordinate transformations and a finite packet handoff. Corrects the misleading force-admission name: negative control forces geometric refresh and can reject. No new model/index domain, arena capacity, lifetime, final visibility, normal-game or hardware proof; output bound by verification_receipt_id",
-  "source_subject_revision": "f3e26bf038747a5f57dc8d6dda27f09802808b1b800706154f6b13ac21a9b9f9"
+  "source_commit_role": "Canonical publication base; one evidenced type-12 layout contract uses shared write-aware guarded field views, without reader seeds or permanent subtype changes. B6F8 recovered; 301 focused Python, 7 native custom-structure, 543 original CPU and 838 C cases pass; C/vasm and standalone exact. Other shared tags/joins and lifetime remain unproven.",
+  "source_subject_revision": "4bf7cf33bdfb220f2393dc2ed698cd7df83b74214209652bc84e9aab76beb206"
 }

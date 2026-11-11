@@ -2716,6 +2716,13 @@ def _custom_struct_payload(params: Mapping[str, object]) -> dict[str, object]:
     base_offset = _optional_int(params.get("base_offset"))
     if base_offset is not None:
         struct["base_offset"] = base_offset
+    tag_offset, tag_value = params.get("tag_offset"), params.get("tag_value")
+    if tag_offset is not None or tag_value is not None:
+        if (type(tag_offset) is not int or type(tag_value) is not int or
+                not 0 <= tag_offset <= size - 2 or not 0 <= tag_value <= 65535 or
+                not params.get("base_struct")):
+            raise ValueError("tag guard requires inherited WORD offset and unsigned WORD value")
+        struct.update(tag_offset=tag_offset, tag_value=tag_value)
     for field_name in ("base_struct", "available_since"):
         value = params.get(field_name)
         if isinstance(value, str) and value.strip():
@@ -3891,6 +3898,8 @@ def _custom_struct_parameter_schema() -> dict[str, object]:
             },
             "base_offset": {"type": "integer", "default": 0},
             "base_struct": {"type": "string"},
+            "tag_offset": {"type": "integer", "minimum": 0},
+            "tag_value": {"type": "integer", "minimum": 0, "maximum": 65535},
             "available_since": {"type": "string", "default": "1.0"},
         },
         "required": ["name", "size"],

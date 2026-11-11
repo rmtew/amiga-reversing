@@ -14364,7 +14364,7 @@ apply_outer_cube_launcher_contact:
 	beq.w choose_outer_tracking_retirement_or_award
 	cmpi.w #12,(a0)	; operand 2: SG2ObjectCore_object_type at (a0)
 	bne.b decrement_outer_cube_contact_durability
-	tst.b $0022(a0)
+	tst.b SG2SteeredProjectile_stored_target_tracking_byte(a0)
 	beq.b decrement_outer_cube_contact_durability
 	clr.b SG2ObjectCore_durability_or_negative(a0)
 	bra.w award_outer_contact_and_optional_mini_sentinel

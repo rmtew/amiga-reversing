@@ -7115,6 +7115,17 @@ int m68k_render_lookup_build(M68kRenderLookup *lookup, const M68kObject *object,
   lookup->object = object;
   lookup->policy = policy;
   lookup->control_facts = facts;
+  if (policy) {
+    for (uint16_t i = 0U; i < policy->custom_struct_count; ++i)
+      if (policy->custom_structs[i].has_tag_guard) ++lookup->tagged_layout_count;
+    if (lookup->tagged_layout_count) {
+      lookup->tagged_layout_ids = render_lookup_calloc(lookup, lookup->tagged_layout_count, sizeof(uint16_t));
+      if (!lookup->tagged_layout_ids) return -1;
+      size_t at = 0U;
+      for (uint16_t i = 0U; i < policy->custom_struct_count; ++i)
+        if (policy->custom_structs[i].has_tag_guard) lookup->tagged_layout_ids[at++] = i;
+    }
+  }
   lookup->labels = (uint8_t **)render_lookup_calloc(lookup, decode->section_count, sizeof(*lookup->labels));
   lookup->label_target_refs =
     (uint8_t **)render_lookup_calloc(lookup, decode->section_count, sizeof(*lookup->label_target_refs));

@@ -1,7 +1,8 @@
-/* Correlated projections of one closed source-record read. This extends the
+/* Correlated projections of one source-record or contracted runtime tag read. This extends the
  * existing value packets and CFG must joins, not a second transfer engine.
  * Original bytes are usable only before the existing absolute-write barrier.
- * No source discriminator invariant is inferred for abstract writable inputs. */
+ * Writable inputs require an explicit layout contract and retain their base
+ * type; guarded field views disappear when their read correlation is killed. */
 static void typed_read_clear_predicate(M68kRenderTypedState *state) {
   state->zero_read_relation = 0U;
   state->zero_read_compare_value = 0U;
@@ -66,6 +67,9 @@ static uint16_t typed_read_intern(M68kRenderLookup *lookup, const M68kRenderScal
 static int typed_read_overlaps_write(const M68kRenderLookup *lookup,
     const M68kRenderScalarReadRelation *read, uint32_t address, uint8_t span) {
   uint64_t end = (uint64_t)address + span;
+  /* A runtime input has no closed address set: a numeric source address does
+   * not prove disjointness from it. */
+  if (read->tag_kind) return 1;
   if (read->source_domain_id) {
     const M68kRenderSourceDomain *domain = &lookup->source_domains[read->source_domain_id - 1U];
     if ((uint64_t)address >= domain->address_end || end <= domain->address_min) return 0;
@@ -95,6 +99,7 @@ static void typed_read_note_writes(M68kRenderLookup *lookup, M68kRenderTypedStat
   for (size_t op = 0U; opaque || (meta && op < instruction->operand_count && op < 4U); ++op) {
     uint32_t address = 0U; uint8_t span = 0U, reg; int16_t displacement;
     int known = 0;
+    const M68kRenderTypedRegValue *relative = NULL;
     if (!opaque) {
       const M68kOperandIR *operand = &instruction->operands[op];
       M68kRenderTypedMemoryBaseValue location;
@@ -102,6 +107,8 @@ static void typed_read_note_writes(M68kRenderLookup *lookup, M68kRenderTypedStat
       if (meta->operand_access_kinds[op] != M68K_SIM_ACCESS_MEMORY_WRITE ||
           m68k_instruction_operand_decoded_ea_shape(operand) == M68K_SIM_EA_SHAPE_NONE) continue;
       if (platform_operand_memory_span(instruction, op, NULL, NULL, &span)) {
+        if (operand_is_address_memory_local(operand, &reg, &displacement))
+          relative = &state->addr_regs[reg];
         if (operand_is_address_memory_local(operand, &reg, &displacement) &&
             typed_memory_base_with_displacement(&state->memory_base_regs[reg], displacement, &location))
           known = lookup_source_unique_runtime_span(lookup, location.section_index, location.offset, span, &address);
@@ -117,6 +124,20 @@ static void typed_read_note_writes(M68kRenderLookup *lookup, M68kRenderTypedStat
   if (id && id <= lookup->scalar_read_relation_count) { \
     const M68kRenderScalarReadRelation *read = &lookup->scalar_read_relations[id - 1U]; \
     int kill = !known || typed_read_overlaps_write(lookup, read, address, span); \
+    if (read->tag_kind && relative && relative->known && !relative->type_conflicted && \
+        !relative->byte_cursor && relative->array_element_index == read->element_index && \
+        relative->struct_id == read->base_type && relative->read_relation && \
+        !(relative->read_relation & 1U)) { \
+      uint16_t other_id = relative->read_relation / 2U; \
+      if (other_id <= lookup->scalar_read_relation_count) { \
+        const M68kRenderScalarReadRelation *other = &lookup->scalar_read_relations[other_id - 1U]; \
+        if (other->tag_kind && other->base_type == read->base_type && other->element_index == read->element_index && \
+            other->section_index == read->section_index && other->offset == read->offset && \
+            displacement >= 0 && (uint32_t)displacement + span <= \
+              lookup_policy_struct_size_by_id(lookup->policy, read->base_type) && \
+            ((int32_t)displacement + span <= read->field_cursor || displacement >= read->field_cursor + 2)) kill = 0; \
+      } \
+    } \
     if (kill) { \
       if (state->zero_read_relation / 2U == id) typed_read_clear_predicate(state); \
       (value)->read_relation = 0U; \
@@ -194,10 +215,11 @@ static uint16_t typed_read_capture(M68kRenderLookup *lookup, M68kRenderTypedStat
   uint8_t base_reg; int16_t displacement; int64_t field_cursor;
   M68kRenderTypedRegValue *base;
   uint16_t handle;
-  if (!lookup || !state || !state->source_snapshot_entry ||
-      state->memory_write_barriers & M68K_CELL_WRITTEN_ABSOLUTE || lookup->affine_entry_context ||
+  if (!lookup || !state || lookup->affine_entry_context ||
       operand_index >= instruction->operand_count || m68k_sim_operand_width_bytes(instruction, operand_index) != 2U ||
       operand_index >= 4U) return 0U;
+  if (!lookup->tagged_layout_count && (!state->source_snapshot_entry ||
+      state->memory_write_barriers & M68K_CELL_WRITTEN_ABSOLUTE)) return 0U;
   if (!operand_is_address_memory_local(&instruction->operands[operand_index], &base_reg, &displacement)) {
     uint8_t update_width;
     if (m68k_instruction_operand_decoded_ea_shape(&instruction->operands[operand_index]) !=
@@ -214,6 +236,18 @@ static uint16_t typed_read_capture(M68kRenderLookup *lookup, M68kRenderTypedStat
       !lookup_policy_resolve_struct_field(lookup->policy, base->struct_id, (int16_t)field_cursor, 2U, &field) ||
       field.offset != field_cursor || field.size != 2U) return 0U;
   read.section_index = section_index; read.offset = offset; read.field_cursor = (int32_t)field_cursor;
+  if (!base->byte_cursor) for (size_t k = 0U; k < lookup->tagged_layout_count; ++k) {
+    uint16_t i = lookup->tagged_layout_ids[k];
+    const M68kAnalysisCustomStruct *child = &lookup->policy->custom_structs[i];
+    if (child->has_tag_guard && child->tag_offset == (uint32_t)field_cursor &&
+        lookup_policy_struct_id_by_name(lookup->policy, child->base_struct) == base->struct_id) {
+      read.tag_kind = 1U; read.base_type = base->struct_id;
+      read.element_index = base->array_element_index;
+      break;
+    }
+  }
+  if (read.tag_kind) goto captured;
+  if (!state->source_snapshot_entry || state->memory_write_barriers & M68K_CELL_WRITTEN_ABSOLUTE) return 0U;
   if (!base->pointer_value_known || !base->pointer_candidate_count) {
     read.source_domain_id = typed_read_source_domain(lookup, base);
     if (!read.source_domain_id) { typed_read_defer_source_domain(lookup, base, (int32_t)field_cursor); return 0U; }
@@ -248,11 +282,19 @@ static uint16_t typed_read_capture(M68kRenderLookup *lookup, M68kRenderTypedStat
     const uint8_t *bytes = source->data + source_offset + (uint32_t)field_cursor;
     read.values[i] = ((uint16_t)bytes[0] << 8U) | bytes[1];
   }
+captured:
   handle = typed_read_intern(lookup, &read);
   if (!handle) return 0U;
   /* A descriptor denotes this read occurrence, not a value from an earlier
    * loop iteration. Kill both old projections before binding the new pair. */
-#define KILL_READ(value) do { if (((value)->read_relation & ~1U) == handle) (value)->read_relation = 0U; } while (0)
+#define KILL_READ(value) do { \
+  uint16_t old_id = (value)->read_relation / 2U; \
+  if (old_id && old_id <= lookup->scalar_read_relation_count) { \
+    const M68kRenderScalarReadRelation *old = &lookup->scalar_read_relations[old_id - 1U]; \
+    if (((value)->read_relation & ~1U) == handle || (read.tag_kind && old->tag_kind && \
+        old->section_index == read.section_index && old->offset == read.offset)) (value)->read_relation = 0U; \
+  } \
+} while (0)
   TYPED_READ_VISIT_VALUES(state, KILL_READ);
 #undef KILL_READ
   if ((state->zero_read_relation & ~1U) == handle) typed_read_clear_predicate(state);
@@ -307,7 +349,7 @@ static void typed_read_predicate_after(M68kRenderTypedState *state, const M68kIn
   state->zero_read_compare_value = state->zero_read_relation ? compare_value : 0U;
 }
 
-static void typed_read_refine_edge(const M68kRenderLookup *lookup, const M68kRenderTypedFlowNode *predecessor,
+static void typed_read_refine_edge(M68kRenderLookup *lookup, const M68kRenderTypedFlowNode *predecessor,
     const M68kRenderTypedFlowNode *successor, M68kRenderTypedState *state) {
   M68kInstructionIR branch; int zero, taken;
   uint16_t handle = (uint16_t)(state->zero_read_relation & ~1U);
@@ -317,6 +359,32 @@ static void typed_read_refine_edge(const M68kRenderLookup *lookup, const M68kRen
   taken = successor->candidate->offset != predecessor->candidate->offset + predecessor->candidate->byte_count;
   if (!m68k_sim_branch_zero_requirement(&branch, taken, &zero)) return;
   const M68kRenderScalarReadRelation *read = &lookup->scalar_read_relations[handle / 2U - 1U];
+  if (read->tag_kind) {
+    if (read->tag_kind != 1U || !zero) return;
+    M68kRenderScalarReadRelation view = *read;
+    for (size_t k = 0U; k < lookup->tagged_layout_count; ++k) {
+      uint16_t i = lookup->tagged_layout_ids[k];
+      const M68kAnalysisCustomStruct *child = &lookup->policy->custom_structs[i];
+      if (child->has_tag_guard && child->tag_offset == (uint32_t)view.field_cursor &&
+          child->tag_value == state->zero_read_compare_value &&
+          lookup_policy_struct_id_by_name(lookup->policy, child->base_struct) == view.base_type) {
+        view.tag_kind = 2U; view.view_type = (uint16_t)(M68K_ANALYSIS_CUSTOM_STRUCT_ID_BASE + i);
+        uint16_t view_handle = typed_read_intern(lookup, &view);
+        if (!view_handle) return;
+        /* Only a field view changes. The underlying value's declared type,
+         * provenance, element count and pointer targets remain unchanged. */
+#define REFINE_TAG(value) do { \
+  if ((value)->read_relation == handle && (value)->struct_id == view.base_type && \
+      !(value)->byte_cursor && (value)->array_element_index == view.element_index) \
+    (value)->read_relation = view_handle; \
+} while (0)
+        TYPED_READ_VISIT_VALUES(state, REFINE_TAG);
+#undef REFINE_TAG
+        return;
+      }
+    }
+    return;
+  }
   for (uint8_t i = 0U; i < read->count; ++i) if ((read->values[i] == state->zero_read_compare_value) == zero) {
     roots[count++] = read->roots[i];
     type = count == 1U ? read->types[i] : typed_struct_id_common_merge(lookup->policy, type, read->types[i]);

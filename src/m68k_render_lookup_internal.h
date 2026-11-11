@@ -786,6 +786,11 @@ typedef struct M68kRenderScalarReadRelation {
   uint32_t roots[4], values[4];
   uint16_t types[4];
   uint8_t count;
+  /* 0 = source domain, 1 = writable tag read, 2 = guarded field view.
+   * Views retain the base type; dropping the handle drops every refinement. */
+  uint8_t tag_kind;
+  uint16_t base_type, view_type;
+  uint32_t element_index;
 } M68kRenderScalarReadRelation;
 
 /* Transient projections of the canonical binder's accepted source domain.
@@ -834,6 +839,8 @@ struct M68kRenderLookup {
   M68kRenderSourceDomain *source_domains;
   size_t source_domain_count, source_domain_capacity;
   uint8_t source_domain_pass_done, source_domain_error;
+  uint16_t *tagged_layout_ids; /* Sparse policy index, shared by every flow state. */
+  size_t tagged_layout_count;
   M68kRenderScalarReadRelation *scalar_read_relations;
   size_t scalar_read_relation_count, scalar_read_relation_capacity;
   size_t *scalar_read_index;

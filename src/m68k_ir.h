@@ -764,6 +764,11 @@ typedef struct M68kAnalysisCustomStruct {
    * base_offset is the declaration's own-field start, not a pointer adjustment. */
   char base_struct[64];
   uint32_t base_offset;
+  /* Explicit writable-record contract: equality of the inherited WORD tag
+   * selects this same-sized layout. This is not inferred from source bytes. */
+  uint8_t has_tag_guard;
+  uint16_t tag_value;
+  uint32_t tag_offset;
 } M68kAnalysisCustomStruct;
 
 typedef struct M68kAnalysisManualRuntimeAddressRef {
@@ -1481,7 +1486,8 @@ typedef enum M68kPlatformTypeProvenanceKind {
    * promoted to an address only after it reaches a typed destination. */
   M68K_PLATFORM_TYPE_PROVENANCE_IMMEDIATE = 13,
   /* Exact folded bits, without claiming a renderable producer expression. */
-  M68K_PLATFORM_TYPE_PROVENANCE_CONSTANT_VALUE = 14
+  M68K_PLATFORM_TYPE_PROVENANCE_CONSTANT_VALUE = 14,
+  M68K_PLATFORM_TYPE_PROVENANCE_TAGGED_LAYOUT = 15
 } M68kPlatformTypeProvenanceKind;
 
 typedef struct M68kRecoveredPlatformUnresolvedTypedAccessIR {

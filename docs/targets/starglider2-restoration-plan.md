@@ -17,7 +17,7 @@ to their recorded closeout revision. See the current
 
 ## Current refinement and next evidence
 
-Current native totals: **3514 app /2749 typed /158 unresolved**, with **9977
+Current native totals: **3514 app /2750 typed /157 unresolved**, with **9977
 unclassified bytes /278 intervals**. The earlier counter-indexed source-array recovery reused
 the shared loop induction and interned linear entry values. Original inventory
 readers at source `$DD6` and `$339B4` expose the existing name-reference `text`
@@ -27,6 +27,26 @@ Its startup caller proof added five header reads and six app accesses,
 and strengthened 38 app-base attributions.
 Conditional skips mean104 outer iterations are not104 observed memory reads.
 Loaded pointer values remain subject to separate alias/target validation.
+
+An explicit same-sized type-12 layout contract now selects the existing
+steered-projectile fields only on WORD-tag equality. Shared read handles carry a
+transient field view, not a permanent pointer subtype. Writes/possible aliases,
+partial mutations, calls, conflicting joins, different elements and global
+storage cannot revive a stale view. The guarded $B6F8 read now renders
+`SG2SteeredProjectile_stored_target_tracking_byte(a0)`; other contact paths have
+shared tags/incoming states and are not inferred by symmetry. Typed accesses
+rise 2749 to 2750; unresolved falls 158 to 157. App/CFG/reference identities and
+9977 unclassified bytes/278 intervals are unchanged. 301 focused Python cases,
+7 native custom-structure cases, 543 original CPU cases and 838 C cases pass;
+C/vasm and clean standalone reproduce all 412736 bytes with 57 unchanged assets.
+This is conditional layout evidence, not initialization, bounds or lifetime proof.
+
+A broader HUNK check still fails:
+`test_real_dll_data_block_custom_struct_unaligned_repeated_field_reassembles`.
+The identical failure was reproduced using native code built from published
+32fb2b84: numeric non-relocated HUNK pointers acquire symbolic references. It is
+outside this raw-image guard change. Next experiment: require relocation/address-
+domain evidence on that HUNK render path; do not weaken the test expectation.
 
 The same index-bit mechanism now recovers aligned WORD prefixes, after
 established relative/dispatch-table owners have priority. Two 8-entry volcano
@@ -170,12 +190,11 @@ gain is claimed. C/vasm is freshly byte exact, and the unchanged executable buil
 inputs retain the checked clean standalone result. The additional predicate
 WORD costs eight aligned bytes per state, sixteen per flow node (about 0.45 MiB
 per 29,698-node graph), with no new dense slot arrays or raised value/visit caps.
-The live contact reader at $B6F8 still lacks a writable tagged-layout contract;
-BYTE+34 has distinct meanings for steered and velocity projectiles. Supporting
-that inference needs a discriminator/layout contract plus write-aware weakening
-when the tag changes, rather than trusting initial bytes or adding reader seeds.
-Next: trace the existing constructor/contact/update contracts by subtype, while
-continuing independent reader-connected source reconstruction.
+That source-only slice did not cover writable contact records: BYTE+34 has
+distinct steered and velocity-projectile meanings. The current type-12 contract
+and write-aware field view above now cover $B6F8. Other tags and shared incoming
+paths still require their own producer/consumer evidence; initial bytes and
+reader-specific seeds are not substitutes.
 
 The viewer command/variant batch qualifies 196 CPU cases over original
 instructions and actual bounds records, including a descending second range.

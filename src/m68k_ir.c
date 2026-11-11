@@ -1762,6 +1762,20 @@ int m68k_analysis_policy_custom_structs_valid(const M68kAnalysisPolicy *policy) 
   for (uint16_t i = 0U; i < policy->custom_struct_count; ++i) {
     const M68kAnalysisCustomStruct *child = &policy->custom_structs[i], *current = child;
     uint16_t depth = 0U;
+    if (child->has_tag_guard) {
+      const M68kAnalysisCustomStruct *parent = m68k_analysis_policy_custom_struct_parent(policy, child);
+      const M68kAnalysisCustomStructField *tag = parent ?
+        m68k_analysis_policy_custom_struct_field_at(policy, parent, child->tag_offset, 2U, NULL) : NULL;
+      if (!parent || child->size < 2U || child->size != parent->size || child->tag_offset > child->size - 2U ||
+          !tag || tag->offset != child->tag_offset ||
+          tag->size != 2U || (_stricmp(tag->type_name, "WORD") && _stricmp(tag->type_name, "UWORD")) ||
+          tag->value_kind) return 0;
+      for (uint16_t j = 0U; j < i; ++j) {
+        const M68kAnalysisCustomStruct *other = &policy->custom_structs[j];
+        if (other->has_tag_guard && !strcmp(other->base_struct, child->base_struct) &&
+            (other->tag_offset != child->tag_offset || other->tag_value == child->tag_value)) return 0;
+      }
+    }
     if (!child->base_struct[0]) continue; /* Existing flat schemas are unchanged. */
     if (!child->size || child->base_offset > child->size ||
         child->field_count > M68K_ANALYSIS_CUSTOM_STRUCT_FIELD_LIMIT) return 0;

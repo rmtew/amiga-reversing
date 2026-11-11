@@ -46,6 +46,25 @@ not count rendered symbols. `operand_facts.width_bytes` is per-element for bulk
 transfers; use its register list/bulk role or the shared footprint helper for the
 total span. Unresolved `access_size` records that contiguous span when supported.
 
+## Guarded writable-record fields
+
+`target.custom_struct.add/edit` accepts optional `tag_offset` and `tag_value`
+on a same-sized custom child. Together they declare that equality of the
+inherited WORD field selects that layout; they do not derive an invariant from
+initial bytes. Siblings must use one selector with distinct unsigned WORD tags.
+Unknown parents, non-WORD/interior selectors and resized layouts refuse import.
+
+Typed flow transports the existing read handle through register copies and
+refines only the equality edge. Field accesses use a transient view with
+`tagged_layout_contract` provenance; the underlying pointer type never changes.
+Different joins, tag/partial writes, possible aliases and unknown calls discard
+the view. A same-root, same-element write may retain it only when the shared
+decoded footprint proves disjointness from the tag. A moved cursor/array element
+cannot reuse the view. Unknown stack writes also refuse; this adds no stack/input
+separation promise, indexed-field coverage, exhaustive tag domain, lifetime or
+initialization guarantee. The sparse policy/read descriptors add no flow-node
+value slots. Regression cases: `tests/test_writable_tagged_layout.py`.
+
 ## Known indirect jump destinations
 
 Typed flow consumes the same accepted, source-bound, same-section indirect-JUMP

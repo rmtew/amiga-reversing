@@ -2032,6 +2032,7 @@ static uint8_t typed_provenance_rank(uint8_t kind) {
   case M68K_PLATFORM_TYPE_PROVENANCE_STACK_SLOT:
     return 40U;
   case M68K_PLATFORM_TYPE_PROVENANCE_PREFIX_REFINEMENT:
+  case M68K_PLATFORM_TYPE_PROVENANCE_TAGGED_LAYOUT:
     return 30U;
   case M68K_PLATFORM_TYPE_PROVENANCE_REGISTER_COPY:
     return 10U;
@@ -5378,6 +5379,23 @@ static int typed_source_zero_write_operand(const M68kRenderLookup *lookup,
   return 1;
 }
 
+/* A guarded view is local to one read occurrence and array element. It never
+ * changes the value's type, so joins/calls cannot leak a temporary subtype. */
+static int typed_read_guarded_field(const M68kRenderLookup *lookup, const M68kRenderTypedRegValue *base,
+    int16_t displacement, uint8_t width, M68kRenderResolvedStructField *field,
+    M68kRenderTypedProvenance *provenance) {
+  uint16_t id = base->read_relation / 2U;
+  if (!id || base->read_relation & 1U || id > lookup->scalar_read_relation_count ||
+      !base->known || base->type_conflicted || base->byte_cursor || base->address_value_candidate_overflow) return 0;
+  const M68kRenderScalarReadRelation *view = &lookup->scalar_read_relations[id - 1U];
+  if (view->tag_kind != 2U || base->struct_id != view->base_type ||
+      base->array_element_index != view->element_index || displacement < 0 ||
+      (uint32_t)displacement + width > lookup_policy_struct_size_by_id(lookup->policy, view->view_type) ||
+      !lookup_policy_resolve_struct_field(lookup->policy, view->view_type, displacement, width, field)) return 0;
+  *provenance = typed_provenance_make(M68K_PLATFORM_TYPE_PROVENANCE_TAGGED_LAYOUT, view->section_index, view->offset);
+  return 1;
+}
+
 static int render_lookup_record_typed_struct_accesses(M68kRenderLookup *lookup, size_t section_index,
     M68kRenderTypedState *state, const M68kRenderPlatformState *platform_state, const M68kInstructionIR *instruction, uint32_t offset, int record_accesses,
     int *io_changed, int indexed_only) {
@@ -5541,6 +5559,15 @@ static int render_lookup_record_typed_struct_accesses(M68kRenderLookup *lookup, 
     if (!memory_span_known ||
         !lookup_policy_resolve_struct_field(lookup->policy, struct_id, field_displacement, access_size, &field)) {
       int refined_exact_field_access_recorded = 0;
+      M68kRenderTypedProvenance guarded_provenance;
+      if (memory_span_known && !array_element_addend &&
+          typed_read_guarded_field(lookup, &state->addr_regs[base_reg], field_displacement,
+            access_size, &field, &guarded_provenance)) {
+        if (record_accesses && render_lookup_add_typed_access_by_names(lookup, section_index, offset,
+            (uint8_t)operand_index, base_reg, (int16_t)displacement, struct_size, 0, base_cursor,
+            (uint16_t)(field_displacement - field.offset), &field, &guarded_provenance, NULL, NULL)) return -1;
+        continue;
+      }
       if (memory_span_known && amiga_os_name(M68K_PLATFORM_NAME_STRUCT, struct_id) != NULL) {
         classify_unresolved_typed_access(struct_id, field_displacement, struct_size, access_size,
           &classification, &container_candidate_count,

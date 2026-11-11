@@ -3371,7 +3371,20 @@ static int append_metadata_custom_struct_local(const char *object_start, const c
   }
   if (name[0] == '\0' || fields_start == NULL) return 0;
   if (fields_end == NULL) return 0;
-  return policy_add_custom_struct_local(policy, name, size, fields_start, fields_end, base_struct, base_offset);
+  if (!policy_add_custom_struct_local(policy, name, size, fields_start, fields_end, base_struct, base_offset)) return 0;
+  const char *tag_offset = json_find_key_local(object_start, object_end, "tag_offset");
+  const char *tag_value = json_find_key_local(object_start, object_end, "tag_value");
+  int have_offset = tag_offset && strncmp(json_skip_ws_local(tag_offset, object_end), "null", 4U);
+  int have_value = tag_value && strncmp(json_skip_ws_local(tag_value, object_end), "null", 4U);
+  if (have_offset != have_value) return 0;
+  if (have_offset) {
+    uint32_t at, value;
+    if (!layout_required_u32_local(object_start, object_end, "tag_offset", &at) ||
+        !layout_required_u32_local(object_start, object_end, "tag_value", &value) || value > UINT16_MAX) return 0;
+    M68kAnalysisCustomStruct *record = &policy->custom_structs[policy->custom_struct_count - 1U];
+    record->has_tag_guard = 1U; record->tag_offset = at; record->tag_value = (uint16_t)value;
+  }
+  return 1;
 }
 
 static int policy_add_entry_point_local(M68kAnalysisPolicy *policy, uint32_t section_index, uint32_t offset) {
@@ -10899,9 +10912,12 @@ static int append_effective_analysis_policy_json_local(JsonBuilder *builder, con
         json_builder_append_json_string(builder, custom_struct->name) != 0 ||
         json_builder_appendf(builder, ",\"size\":%u,\"base_offset\":%u,\"base_struct\":",
           (unsigned)custom_struct->size, (unsigned)custom_struct->base_offset) != 0 ||
-        json_builder_append_json_string(builder, custom_struct->base_struct) != 0 ||
-        json_builder_append(builder, ",\"fields\":[") != 0)
+        json_builder_append_json_string(builder, custom_struct->base_struct) != 0)
       return -1;
+    if (custom_struct->has_tag_guard && json_builder_appendf(builder,
+        ",\"tag_offset\":%u,\"tag_value\":%u", (unsigned)custom_struct->tag_offset,
+        (unsigned)custom_struct->tag_value) != 0) return -1;
+    if (json_builder_append(builder, ",\"fields\":[") != 0) return -1;
     for (field_index = 0U; field_index < custom_struct->field_count &&
          field_index < M68K_ANALYSIS_CUSTOM_STRUCT_FIELD_LIMIT; ++field_index) {
       const M68kAnalysisCustomStructField *field = &custom_struct->fields[field_index];

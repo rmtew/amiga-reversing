@@ -627,6 +627,8 @@ def _manual_custom_struct_to_metadata(struct: dict[str, object]) -> CustomStruct
         source="manual_action_log",
         base_offset=base_offset if base_offset is not None else 0,
         base_struct=_manual_seed_text(struct, "base_struct"),
+        tag_offset=_manual_seed_int(struct, "tag_offset"),
+        tag_value=_manual_seed_int(struct, "tag_value"),
         available_since=_manual_seed_text(struct, "available_since") or "1.0",
     )
 
