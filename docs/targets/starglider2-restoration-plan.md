@@ -6,8 +6,8 @@ claim of complete gameplay/hardware equivalence.
 
 ## Current validated baseline
 
-Current validated export: 3514 app references, 2754 typed accesses, 153 unresolved
-accesses; 9967 unclassified bytes in 279 intervals. These are analysis counts,
+Current validated export: 3514 app references, 2760 typed accesses, 153 unresolved
+accesses; 9951 unclassified bytes in 279 intervals. These are analysis counts,
 not semantic completion percentages. The 108 corrected inline-member catalogue
 names exposed existing source knowledge; they did not resolve typed accesses.
 Original payload SHA256:
@@ -15,10 +15,10 @@ Original payload SHA256:
 
 ## Active queue
 
-1. Exact tag stores and bounded MOVEM cursors are supported. MOVEM recovers
-   three original state-frame accesses, with no old typed access lost. Known
-   tag-store gains are fixture-only so far. Next: the publication barrier in
-   item 2; do not add per-reader type seeds or assume disjoint allocations.
+1. Exact tag stores, bounded MOVEM cursors and opaque leading-record address
+   identities are supported. Undeclared prefix bytes retain no field meaning.
+   Next: the publication barrier in item 2; do not add per-reader type seeds
+   or assume disjoint allocations.
 2. Player rotation writes: trace the type-30 constructor through publication
    of `player_object_reference`. Current A6 app coordinates are fallback
    interpretations, insufficient for a disjoint-write proof. Next experiment:

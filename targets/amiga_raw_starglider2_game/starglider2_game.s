@@ -1432,6 +1432,12 @@ SG2SceneSpanReference_SIZEOF EQU __RS
 SG2EncounterChoiceReference_choices RS.L 1
 SG2EncounterChoiceReference_SIZEOF EQU __RS
 
+; STRUCT SG2FrameSamplePrefix
+    RSRESET
+    RS.B 14
+SG2FrameSamplePrefix_sample_or_delta RS.W 1
+SG2FrameSamplePrefix_SIZEOF EQU __RS
+
 ADKF_CLRALL	EQU	$7FFF
 BPLCON2_PF2P2	EQU	$20
 BPLCON2_PF2PRI	EQU	$40
@@ -2163,7 +2169,7 @@ clear_game_workspace_loop:
 	movea.l game_workspace_base.l,a6
 	lea.l initial_game_stack_top.l,a7
 	bsr.w fade_out_amiga_palette_bridge_0024aa
-	jsr abs_0_0000261A.l
+	jsr initialize_shared_prng_and_auxiliary_bytes.l
 	move.w #$0,title_page_cycle_counter(a6)
 	clr.b pending_key_scancode(a6)
 	move.b #$5,diagnostic_step_byte.l
@@ -2171,7 +2177,7 @@ clear_game_workspace_loop:
 	bsr.w count_and_present_frame_handoff
 	jsr clear_text_framebuffer_and_cursor.l
 	move.b #$6,diagnostic_step_byte.l
-	jsr abs_0_000038C8.l
+	jsr wait_for_two_tick_target_with_mouse_mix.l
 	move.b #$A,diagnostic_step_byte.l
 	jsr deselect_disk_backend.l
 abs_0_00001158:
@@ -2280,28 +2286,28 @@ abs_0_00001300:
 	clr.b diagnostic_step_byte.l
 	movem.l d0/a0,-(a7)
 	tst.w platform_entry_flags.l
-	bpl.b abs_0_00001344
+	bpl.b store_main_frame_sample_delta
 	move.b _ciab+ciatodhi.l,d0
 	move.b _ciab+ciatodmid.l,d0
 	lsl.w #8,d0
 	move.b _ciab+ciatodlow.l,d0
-abs_0_00001344:
-	lea.l abs_0_000027AC.l,a0
-	sub.w $000E(a0),d0
-	move.w d0,$000E(a0)
+store_main_frame_sample_delta:
+	lea.l frame_sample_scratch.l,a0
+	sub.w SG2FrameSamplePrefix_sample_or_delta(a0),d0
+	move.w d0,SG2FrameSamplePrefix_sample_or_delta(a0)
 	movem.l (a7)+,d0/a0
 	bsr.w display_frame_rate_if_enabled
 	bsr.w update_panel_animations_bridge_00237a
 	movem.l d0/a0,-(a7)
 	tst.w platform_entry_flags.l
-	bpl.b abs_0_0000137E
+	bpl.b store_main_frame_baseline_sample
 	move.b _ciab+ciatodhi.l,d0
 	move.b _ciab+ciatodmid.l,d0
 	lsl.w #8,d0
 	move.b _ciab+ciatodlow.l,d0
-abs_0_0000137E:
-	lea.l abs_0_000027AC.l,a0
-	move.w d0,$000E(a0)
+store_main_frame_baseline_sample:
+	lea.l frame_sample_scratch.l,a0
+	move.w d0,SG2FrameSamplePrefix_sample_or_delta(a0)
 	movem.l (a7)+,d0/a0
 	bsr.w count_and_present_frame_handoff
 	bset.b #7,display_and_frame_service_flags(a6)
@@ -2573,7 +2579,7 @@ display_frame_rate_if_enabled:
 	tst.w platform_entry_flags.l
 	bpl.b abs_0_000017AA
 	move.l #$2625A,d1
-	divu.w abs_0_000027BA.l,d1
+	divu.w frame_sample_scratch_sample_or_delta.l,d1
 	move.w d1,frame_rate_display_sample(a6)
 	bra.b abs_0_000017B2
 abs_0_000017AA:
@@ -2868,7 +2874,7 @@ abs_0_00001B68:
 	cmp.b #$4A,d0
 	beq.w jettison_inventory_selection
 	cmp.b #$56,d0
-	beq.w abs_0_00001E76
+	beq.w reset_message_queue_and_enqueue_version
 	bra.w abs_0_00001DEA
     ; Internal inventory-line continuation. Copies name, optional plural and decimal quantity into text-start scratch; complete output capacity remains unproved.
 cycle_inventory_status_line:
@@ -3082,7 +3088,7 @@ abs_0_00001E2A:
 	beq.b abs_0_00001E50
 	tst.w negative_speed_control_accumulator(a6)
 	bne.b abs_0_00001E50
-	bsr.w abs_0_00001E76
+	bsr.w reset_message_queue_and_enqueue_version
 	moveq.l #-1,d0
 	move.w d0,icarus_power_reserve(a6)
 	move.w d0,icarus_shield_strength(a6)
@@ -3099,8 +3105,8 @@ abs_0_00001E68:
 	not.b fixed_sight_mode_flag(a6)
 	rts
 	dc.b $3D,$7C,$50,$00,$00,$5C,$4E,$75
-abs_0_00001E76:
-	lea.l abs_0_0000278C(pc),a1
+reset_message_queue_and_enqueue_version:
+	lea.l runtime_version_banner_text(pc),a1
 	clr.w pending_message_count(a6)
 	move.w #$1,message_display_countdown(a6)
 	bra.w enqueue_message_pointer_bridge
@@ -3509,7 +3515,8 @@ abs_0_000025FE:
 	move.l a1,decimal_text_end_cursor(a6)
 	movem.l (a7)+,d0-d7/a0-a1
 	rts
-abs_0_0000261A:
+    ; Reset active PRNG LONGs. Auxiliary BYTEs $34..$39 depend on WORD $1B0 and entry X; $3A/$3B stay untouched, and LONG $3C gets $00314159. The auxiliary purpose remains unknown.
+initialize_shared_prng_and_auxiliary_bytes:
 	move.l #$95901143,shared_random_state_a(a6)
 	move.l #$28731549,shared_random_state_b(a6)
 	move.b app_01B0(a6),app_0034(a6)
@@ -3604,15 +3611,16 @@ protection_text_palette_continuation:
 	dc.b $00
 	dc.b "For Release",$00
 	dc.b $00
-abs_0_0000278C:
+runtime_version_banner_text:
 	dc.b "SG2 - Version 1.03 USA.",$00
 	dc.b $00,$00,$00,$01
 game_workspace_base:
 	dc.l $00003300	; Workspace pointer. Original fixed Amiga path assigns$69668 ($70000-$6998); clear loop initial...
-abs_0_000027AC:
-	dcb.b $E,$00
-abs_0_000027BA:
-	dcb.b $28,$00
+frame_sample_scratch:
+	dcb.b $E,$00	; typed data block gap
+frame_sample_scratch_sample_or_delta:
+	dc.w $0000	; sample_or_delta
+	dcb.b $26,$00
     ; Three row dot-products of signed WORD matrix/vector values; ASL.L #2 and SWAP retain the original Q14 extraction, truncation and wrap behavior.
 transform_vector_by_view_matrix:
 	movem.l d4-d5/a5,-(a7)
@@ -4802,10 +4810,11 @@ advance_rng_until_vblank_counter_differs:
 	rts
 wait_for_vblank_counter_change_bridge_0038c6:
 	bra.b wait_for_vblank_counter_change_with_rng
-abs_0_000038C8:
+    ; Target is entry tick WORD+2 modulo 65536, tested by equality. Every poll mixes sampled mouse bytes into PRNG LONGs. A skipped target can require waiting for WORD wrap.
+wait_for_two_tick_target_with_mouse_mix:
 	move.w vblank_tick_counter(a6),d0
 	addq.w #2,d0
-abs_0_000038CE:
+mix_mouse_counters_until_tick_target:
 	move.b amiga_mouse_previous_x_counter(a6),d1
 	add.b d1,shared_random_state_a+2(a6)
 	move.b amiga_mouse_previous_y_counter(a6),d1
@@ -4813,7 +4822,7 @@ abs_0_000038CE:
 	subq.l #7,shared_random_state_a(a6)
 	addq.l #5,shared_random_state_b(a6)
 	cmp.w vblank_tick_counter(a6),d0
-	bne.b abs_0_000038CE
+	bne.b mix_mouse_counters_until_tick_target
 	rts
     ; Read BYTE offset, mask D0.W, then fetch copper/display/draw entries. Wrap only when next offset equals12; other offsets are not clamped. Amiga wrap clears D0.W, retaining its upper WORD.
 rotate_amiga_display_buffers:
@@ -11541,10 +11550,10 @@ abs_0_00008E2A:
 	addq.l #1,icarus_hits_received(a6)
 	bra.b abs_0_00008DF8
 abs_0_00008E34:
-	lea.l abs_0_00008E40(pc),a1
-	bsr.w abs_0_0000AB94
+	lea.l mine_detected_message_prefix(pc),a1
+	bsr.w format_and_enqueue_object_coordinate_message
 	bra.w abs_0_00008DF8
-abs_0_00008E40:
+mine_detected_message_prefix:
 	dc.b " Danger! Mine Detected:",$00
 	dc.b $13,$FC,$00,$0E,$00,$00,$E1,$03,$06,$68,$00,$20,$00,$12,$53,$68
 	dc.b $00,$24,$66,$00,$F3,$66,$31,$7C,$00,$64,$00,$24,$60,$00,$10,$8C
@@ -13583,8 +13592,9 @@ abs_0_0000AB74:
 	clr.b SG2SiloLauncher_child_attached_flag(a0)
 	bra.w continue_secondary_object_update_loop
 	dc.b $33,$EE,$07,$56,$00,$DF,$F1,$80,$60,$00,$D8,$0A
-abs_0_0000AB94:
-	lea.l abs_0_0000B41C.l,a3
+    ; Fill28 spaces; copy unbounded prefix and four BCD digits from coordinate low-WORD high bytes. No NUL write. Shared buffer changes before pointer-only queue dedup.
+format_and_enqueue_object_coordinate_message:
+	lea.l coordinate_warning_text_scratch.l,a3
 	move.l #$20202020,(a3)+
 	move.l #$20202020,(a3)+
 	move.l #$20202020,(a3)+
@@ -13592,13 +13602,13 @@ abs_0_0000AB94:
 	move.l #$20202020,(a3)+
 	move.l #$20202020,(a3)+
 	move.l #$20202020,(a3)+
-	lea.l abs_0_0000B41C.l,a3
-abs_0_0000ABCA:
+	lea.l coordinate_warning_text_scratch.l,a3
+copy_coordinate_message_prefix:
 	move.b (a1)+,d0
-	beq.b abs_0_0000ABD2
+	beq.b append_object_xz_bcd_digits
 	move.b d0,(a3)+
-	bra.b abs_0_0000ABCA
-abs_0_0000ABD2:
+	bra.b copy_coordinate_message_prefix
+append_object_xz_bcd_digits:
 	moveq.l #0,d1
 	moveq.l #0,d2
 	move.l SG2ObjectCore_world_x(a0),d2
@@ -13624,7 +13634,7 @@ abs_0_0000ABD2:
 	andi.b #15,d3
 	ori.b #48,d3
 	move.b d3,(a3)+
-	lea.l abs_0_0000B41C.l,a1
+	lea.l coordinate_warning_text_scratch.l,a1
 	bsr.w enqueue_message_unless_previous_pointer
 	rts
     ; KNOWN: type A0=Target code-entry register seed:SG2HorizontalMotionView
@@ -14165,7 +14175,7 @@ format_and_print_rating_label:
 	bsr.w format_signed_long_nine_decimal_places_bridge_00a4a0
 	movea.l (a7)+,a1
 	bra.w print_cursor_text
-abs_0_0000B41C:
+coordinate_warning_text_scratch:
 	dcb.b $1C,$20
 	dc.b $00,$00
 airborne_spawn_model_type_choices:
@@ -17957,36 +17967,37 @@ abs_0_0000EA9C:
 	move.w model_viewer_rotation_step_2(a6),d0
 	add.w d0,model_rotation_2(a6)
 	bsr.w service_model_viewer_controls
-	bsr.w abs_0_0000EACC
+	bsr.w build_and_draw_model_viewer_iteration
 	bsr.w count_and_present_frame_handoff_bridge_00ed88
 	bra.b abs_0_0000EA9C
 abs_0_0000EAC2:
 	dc.b $20,$20,$20,$20,$20,$20,$00,$00,$00,$00
-abs_0_0000EACC:
+    ; Scratch WORD holds sample-minus-prior during frame-rate service, then a fresh sample. Amiga reads TOD low16; alternate uses inherited D0.W. Zero and wrapping deltas are retained.
+build_and_draw_model_viewer_iteration:
 	clr.w scene_packet_count.l
 	movem.l d0/a0,-(a7)
 	tst.w platform_entry_flags.l
-	bpl.b abs_0_0000EAF2
+	bpl.b store_viewer_frame_sample_delta
 	move.b _ciab+ciatodhi.l,d0
 	move.b _ciab+ciatodmid.l,d0
 	lsl.w #8,d0
 	move.b _ciab+ciatodlow.l,d0
-abs_0_0000EAF2:
-	lea.l abs_0_000027AC.l,a0
-	sub.w $000E(a0),d0
-	move.w d0,$000E(a0)
+store_viewer_frame_sample_delta:
+	lea.l frame_sample_scratch.l,a0
+	sub.w SG2FrameSamplePrefix_sample_or_delta(a0),d0
+	move.w d0,SG2FrameSamplePrefix_sample_or_delta(a0)
 	movem.l (a7)+,d0/a0
 	bsr.w display_frame_rate_if_enabled_bridge_00ed94
 	movem.l d0/a0,-(a7)
 	tst.w platform_entry_flags.l
-	bpl.b abs_0_0000EB28
+	bpl.b store_viewer_frame_baseline_sample
 	move.b _ciab+ciatodhi.l,d0
 	move.b _ciab+ciatodmid.l,d0
 	lsl.w #8,d0
 	move.b _ciab+ciatodlow.l,d0
-abs_0_0000EB28:
-	lea.l abs_0_000027AC.l,a0
-	move.w d0,$000E(a0)
+store_viewer_frame_baseline_sample:
+	lea.l frame_sample_scratch.l,a0
+	move.w d0,SG2FrameSamplePrefix_sample_or_delta(a0)
 	movem.l (a7)+,d0/a0
 	tst.b debug_features_enabled_flag(a6)
 	beq.w abs_0_0000EBFC

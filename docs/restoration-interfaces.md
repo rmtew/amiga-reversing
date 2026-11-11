@@ -30,6 +30,11 @@ Compact aggregate macros retain their existing inherited-schema refusal.
 This is field/ownership projection, not automatic proof of a target subtype,
 array bound, lifetime or valid caller contract.
 
+An opaque leading gap in a bound custom record retains that record's address
+identity and its original leaf extent. Its bytes acquire no field name or
+meaning. Later gaps do not become new record origins; existing cursor, conflict
+and unknown-write/call checks still govern accesses through the retained root.
+
 Typed memory projection and unresolved diagnostics use the shared decoded
 contiguous footprint. Fixed-width bit forms retain their BYTE width even without
 an instruction suffix; multi-register transfers use the whole register-list

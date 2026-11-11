@@ -1408,6 +1408,13 @@ def _data_block_bound_struct_entities(
                 )
                 if gap is None:
                     return ()
+                # An opaque prefix is still at the declared record origin.
+                # Preserve that address identity for LEA/interior cursors;
+                # leave its bytes unnamed and do not widen the render leaf.
+                # Later gaps cannot use this root-relative identity: their
+                # start is already displaced within the record.
+                if cursor == 0:
+                    gap = replace(gap, struct_name=struct.name)
                 entities.append(gap)
             nested = custom_structs.get(field.struct) if field.type.upper() == "STRUCT" else None
             nested_entities = ()

@@ -140,7 +140,6 @@ def test_static_field_seed_postincrement_advances_to_next_field_cursor(tmp_path)
     "205832104e75",  # MOVEA.L (A0)+,A0 also writes the updated base.
     "b14832104e75",  # CMPM.W (A0)+,(A0)+ has ambiguous same-base phases.
     "309832104e75",  # MOVE.W (A0)+,(A0) also uses the updated base.
-    "32d832104e75",  # MOVE.W (A0)+,(A1)+ has multiple EA updates.
 ])
 def test_static_field_seed_unmodelled_update_cannot_resolve_or_reuse_cursor(tmp_path, instruction_tail):
     fields = _fields(
@@ -154,6 +153,23 @@ def test_static_field_seed_unmodelled_update_cannot_resolve_or_reuse_cursor(tmp_
     assert fields
     assert all(field.get("status") == "unresolved" for field in fields)
     assert all(field["field_offset"] is None for field in fields)
+
+
+def test_static_field_seed_independent_destination_update_preserves_source_cursor(tmp_path):
+    # Distinct EA registers are supported by the shared decoded-update path.
+    # An unknown destination does not acquire the source record's identity.
+    fields = _fields(
+        tmp_path, [_seed(end=42, field_name="world_x", unit="word")],
+        instruction_tail="32d832104e75",  # MOVE.W (A0)+,(A1)+; MOVE.W (A0),D1.
+        root_fields=[
+            {"name": "world_x", "type": "word", "offset": 8, "size": 2},
+            {"name": "world_y", "type": "word", "offset": 10, "size": 2},
+        ],
+    )
+    assert [(field["source_offset"], field["operand_index"], field["field_offset"],
+             field["field_name"]) for field in fields] == [
+        (4, 0, 8, "world_x"), (6, 0, 10, "world_y"),
+    ]
 
 
 def test_static_field_seed_postincrement_leaves_one_past_root_read_unresolved(tmp_path):
