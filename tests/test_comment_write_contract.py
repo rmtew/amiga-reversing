@@ -75,6 +75,19 @@ def test_invalid_batch_does_not_create_history(target):
     assert not (target[0] / "manual_actions.jsonl").exists()
 
 
+def test_mixed_label_batch_reports_comment_capacity_atomically(target):
+    capacity = _capacity("platform_file_entry_comment_text_capacity")
+    label = Kind.CREATE_MANUAL_LABEL, {"label": {
+        "label_id": "entry", "name": "entry", "scope": "global",
+        "address_domain": "source", "hunk": 0, "addr": 0,
+    }}
+    with pytest.raises(ValueError, match="comment exceeds native metadata capacity"):
+        _append(target, label, _comment("a" * (capacity + 1)))
+    assert not (target[0] / "manual_actions.jsonl").exists()
+    assert not (target[0] / "decision_journal.jsonl").exists()
+    _append(target, label, _comment("a" * capacity))
+
+
 def test_native_comment_count_representation_limit():
     capacity = _capacity("platform_file_entry_comment_count_capacity")
     assert capacity == 65535  # native uint16 count, not a fixed inline array

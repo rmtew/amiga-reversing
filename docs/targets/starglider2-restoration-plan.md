@@ -92,6 +92,10 @@ Original payload SHA256:
    This supplies the disk encoder's even 0..510 lookup, not directory contents.
    Ingredient loops retain 0..7, but their loaded IDs still need a specific
    writer/entry domain for the 104-entry inventory; preserve alias and call refusals.
+   Pirate theft doubles that selector before a BYTE read: offsets 8..14 cross
+   into the following WORD table. Original-image zero selections test inventory
+   slot0 and can allocate a zero-tag child under supplied nonzero slot0 state.
+   Do not widen the eight-byte owner or infer normal-play reachability.
    Do not enlarge a directory or assume original bytes persist: the shared
    heat/pressure notice WORD overwrites secondary spheroid colour bytes30/31.
    Indexed field display now transports explicit scalar EQU identities; missing

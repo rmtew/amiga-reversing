@@ -367,9 +367,12 @@ def append_manual_actions(
             projection = replay()
             additions.append(action)
         if additions:
+            # Diagnose invalid changed text before parsing the combined policy.
+            # Otherwise a label/comment batch hides a precise codec/capacity
+            # refusal behind the native parser's generic entry-comment error.
+            _validate_changed_native_comments(initial_projection, projection)
             _validate_candidate_equate_capacity(target_dir, additions, binary_source=binary_source)
             _validate_candidate_policy_capacity(target_dir, additions, binary_source=binary_source)
-            _validate_changed_native_comments(initial_projection, projection)
             suffix = additions if records else [header, *additions]
             atomic_append_history(path, "".join(json.dumps(record, sort_keys=True) + "\n" for record in suffix).encode("utf-8"))
         return additions

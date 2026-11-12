@@ -49035,7 +49035,7 @@ retire_distant_type47:
     ; KNOWN: type A0=Target code-entry register seed:SG2PirateShip
 update_nearby_pirate_ship:
 	cmpi.b #2,SG2ObjectCore_durability_or_negative(a0)
-	ble.w abs_0_0003704C
+	ble.w select_pirate_destruction_drop
 	move.w SG2WorldObject_velocity_x(a0),d3
 	ext.l d3
 	add.l d3,SG2ObjectCore_world_x(a0)
@@ -49060,55 +49060,62 @@ update_nearby_pirate_ship:
 	andi.w #4095,SG2WorldObject_rotation_2(a0)
 	ori.w #1,SG2WorldObject_rotation_0(a0)
 	subq.w #1,SG2PirateShip_raid_approach_updates_or_negative(a0)
-	bpl.b abs_0_00036E34
+	bpl.b pirate_raid_measure_player_x_delta
 	move.w #$FFFF,SG2PirateShip_raid_approach_updates_or_negative(a0)
 	bsr.w move_object_away_from_player_fraction
 	bra.w abs_0_00039D56
-abs_0_00036E34:
+pirate_raid_measure_player_x_delta:
 	move.l SG2ObjectCore_world_x(a0),d0
 	sub.l player_world_x(a6),d0
-	bpl.b abs_0_00036E40
+	bpl.b pirate_raid_measure_player_y_delta
 	neg.l d0
-abs_0_00036E40:
+pirate_raid_measure_player_y_delta:
 	move.l SG2ObjectCore_world_y(a0),d1
 	sub.l player_world_y(a6),d1
-	bpl.b abs_0_00036E4C
+	bpl.b pirate_raid_measure_player_z_delta
 	neg.l d1
-abs_0_00036E4C:
+pirate_raid_measure_player_z_delta:
 	move.l SG2ObjectCore_world_z(a0),d2
 	sub.l player_world_z(a6),d2
-	bpl.b abs_0_00036E58
+	bpl.b gate_pirate_raid_by_subtraction_result_signs
 	neg.l d2
-abs_0_00036E58:
+gate_pirate_raid_by_subtraction_result_signs:
 	move.l #$3E8,d3
 	cmp.l d3,d0
-	bmi.w abs_0_00037042
+	bmi.w move_pirate_toward_player_after_distance_gate
 	cmp.l d3,d1
-	bpl.w abs_0_00037042
+	bpl.w move_pirate_toward_player_after_distance_gate
 	cmp.l d3,d2
-	bpl.w abs_0_00037042
+	bpl.w move_pirate_toward_player_after_distance_gate
+advance_pirate_raid_mod8_gate:
 	addq.w #1,SG2PirateShip_raid_attempt_mod8_index(a0)
 	andi.w #7,SG2PirateShip_raid_attempt_mod8_index(a0)
-	bne.w abs_0_0003703E
+	bne.w rejoin_primary_update_after_pirate_raid
 	bsr.w advance_shared_random_state_bridge_038d20
+gate_pirate_theft_on_random_low_three_bits:
 	andi.b #7,d0
-	bne.w abs_0_00036F84
+	bne.w fall_back_to_pirate_laser_allocation
+gate_pirate_theft_on_unsigned_free_count:
 	cmpi.w #20,free_object_count(a6)
-	bls.w abs_0_00036F84
+	bls.w fall_back_to_pirate_laser_allocation
 	lea.l model_type_population_counts(a6),a1
 	lea.l object_name_pointers.l,a4
 	bsr.w advance_shared_random_state_bridge_038d20
+select_pirate_theft_byte_with_doubled_index:
 	andi.w #7,d0
+    ; Doubled 0..7 selects BYTEs: 8/10/12/14 read the next WORD table (initial high bytes zero). Inventory slot0 is tested, not rejected. Ingredient owner stays eight bytes.
 	add.w d0,d0
 	lea.l neutron_bomb_ingredient_model_types.l,a2
 	move.b $0(a2,d0.w),d0
 	andi.w #255,d0
+test_pirate_selected_type_inventory_byte:
 	tst.b $0(a1,d0.w)
-	beq.w abs_0_00036F84
+	beq.w fall_back_to_pirate_laser_allocation
 	movea.l free_object_stack_cursor(a6),a3
 	movea.l -(a3),a2
 	move.l a3,free_object_stack_cursor(a6)
 	subq.w #1,free_object_count(a6)
+publish_pirate_theft_child_type_word:
 	move.w d0,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
 	move.l player_world_x(a6),SG2ObjectCore_world_x(a2)
 	move.l player_world_y(a6),SG2ObjectCore_world_y(a2)
@@ -49135,9 +49142,9 @@ abs_0_00036E58:
 	lea.l event_message_pointers.l,a3
 	lea.l model_type_population_counts(a6),a1
 	subq.b #1,$0(a1,d0.w)
-	bpl.b abs_0_00036F48
+	bpl.b queue_pirate_theft_notices_after_inventory_update
 	clr.b $0(a1,d0.w)
-abs_0_00036F48:
+queue_pirate_theft_notices_after_inventory_update:
 	asl.w #2,d0
 	move.w #$25,d1
 	asl.w #2,d1
@@ -49155,9 +49162,9 @@ abs_0_00036F48:
 	bsr.w enqueue_message_if_outside_structure
 	bsr.w enqueue_blank_event_message_line
 	bra.w abs_0_00039D56
-abs_0_00036F84:
+fall_back_to_pirate_laser_allocation:
 	cmpi.w #20,free_object_count(a6)
-	bls.w abs_0_0003703E
+	bls.w rejoin_primary_update_after_pirate_raid
 	movea.l free_object_stack_cursor(a6),a3
 	movea.l -(a3),a4
 	move.l a3,free_object_stack_cursor(a6)
@@ -49172,12 +49179,12 @@ abs_0_00036F84:
 	move.w SG2WorldObject_rotation_0(a0),SG2WorldObject_rotation_0(a4)
 	move.w SG2WorldObject_rotation_1(a0),d7
 	tst.w SG2PirateShip_paired_heading_rotation_step(a0)
-	bmi.b abs_0_00036FD2
+	bmi.b subtract_pirate_laser_negative_heading_turn
 	addi.w #1280,d7
-	bra.b abs_0_00036FD6
-abs_0_00036FD2:
+	bra.b finalize_pirate_laser_heading_and_motion
+subtract_pirate_laser_negative_heading_turn:
 	subi.w #1280,d7
-abs_0_00036FD6:
+finalize_pirate_laser_heading_and_motion:
 	andi.w #4095,d7
 	move.w d7,SG2WorldObject_rotation_1(a4)
 	move.w SG2WorldObject_rotation_2(a0),SG2WorldObject_rotation_2(a4)
@@ -49202,20 +49209,20 @@ abs_0_00036FD6:
 	move.b #$3,SG2ObjectCore_model_scale_shift(a4)
 	move.b #SG2_OBJECT_TYPE_LASER_BOLT,SG2TargetingObject_collision_ignored_object_type(a0)
 	move.b #SG2_OBJECT_TYPE_PIRATE_SHIP,SG2TargetingObject_collision_ignored_object_type(a4)
-abs_0_0003703E:
+rejoin_primary_update_after_pirate_raid:
 	bra.w abs_0_00039D56
-abs_0_00037042:
+move_pirate_toward_player_after_distance_gate:
 	moveq.l #5,d7
 	bsr.w move_object_toward_player_fraction
 	bra.w abs_0_00039D56
-abs_0_0003704C:
+select_pirate_destruction_drop:
 	lea.l pirate_destruction_drop_choices.l,a1
 	bsr.w advance_shared_random_state_bridge_038d20
 	andi.w #15,d0
 	move.b SG2StoredObjectTypeByte_object_type(a1,d0.w),d0
-	beq.w abs_0_00037114
+	beq.w rejoin_primary_update_after_pirate_drop_attempt
 	cmpi.w #20,free_object_count(a6)
-	bls.w abs_0_00037114
+	bls.w rejoin_primary_update_after_pirate_drop_attempt
 	movea.l free_object_stack_cursor(a6),a3
 	movea.l -(a3),a4
 	move.l a3,free_object_stack_cursor(a6)
@@ -49233,6 +49240,7 @@ abs_0_0003704C:
 	asr.w #2,d0
 	asr.w #2,d1
 	asr.w #2,d2
+    ; All three shifted parent velocities overwrite child velocity_x; final X is parent Z>>2. Child Y/Z stay unchanged at this prefix. Preserve the repeated destinations.
 	move.w d0,SG2WorldObject_velocity_x(a4)
 	move.w d1,SG2WorldObject_velocity_x(a4)
 	move.w d2,SG2WorldObject_velocity_x(a4)
@@ -49257,7 +49265,7 @@ abs_0_0003704C:
 	movea.l SG2SourceTextReference_text(a1,d0.w),a1
 	bsr.w enqueue_message_if_outside_structure
 	bsr.w enqueue_blank_event_message_line
-abs_0_00037114:
+rejoin_primary_update_after_pirate_drop_attempt:
 	bra.w abs_0_00039D56
 	dc.b $61,$00,$2C,$06,$32,$00,$02,$00,$00,$0F,$66,$12,$7E,$05,$61,$00
 	dc.b $00,$12,$02,$40,$03,$FF,$06,$40,$00,$40,$31,$40,$00,$24,$60,$00
