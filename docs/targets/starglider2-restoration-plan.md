@@ -36,6 +36,9 @@ Pilot-rating thresholds and verdict selection are reconstructed. The actual
 reader now has an automatically inferred aligned 16-entry prefix; CPU cases
 qualify the tighter local rank clamp to 0..10. The known-bit abstraction is
 conservative; physical pointer ownership and arbitrary-entry limits remain.
+Options preserve loaded BYTEs, distinct toggle encodings and partial status
+updates. Ratings retain signed tie handling, fifteen visible entries plus
+sixteenth-slot shift scratch, and unvalidated six-nibble formatting.
 Original payload SHA256:
 `662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9`.
 
@@ -151,6 +154,9 @@ checkpoints. Run focused fixtures while iterating; broaden tests for changed
 shared behavior. `python targets/amiga_raw_starglider2_game/build.py --vasm <vasm>`
 rebuilds the exported source independently. Keep checksums/backend/receipt
 identities in export provenance, not duplicated progress narratives.
+`AMIGA_REVERSING_PROFILE_SOURCE_QUALITY=1` traces classifier and finalization
+costs, including validated source-domain refinement, to stderr. Keep derived
+timing traces local.
 
 Normal-input flight and finite CPU fixtures cover their observed paths only.
 Physical disk/DMA/audio delivery, full alternate-platform startup, arbitrary

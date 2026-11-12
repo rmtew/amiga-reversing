@@ -17620,6 +17620,7 @@ write_word_as_hex_text_platform_entry:
     ; First4 ratings-tail bytes are saved autocentre/fixed-sight/one-hand/joystick controls. E6B6 writes same4 back; remaining180 copied tail bytes remain opaque.
 show_options_and_load_control_settings:
 	bsr.w fade_out_amiga_palette_bridge_011f6e
+restore_options_control_settings_bytes:
 	lea.l pilot_rating_saved_control_settings.l,a0
 	move.b (a0)+,crosshair_autocentre_mode(a6)	; operand 1: SG2SavedControlSettings_autocentre_mode at (a0)+
 	move.b (a0)+,fixed_sight_mode_flag(a6)	; operand 1: SG2SavedControlSettings_fixed_sight_flag at (a0)+
@@ -17628,79 +17629,81 @@ show_options_and_load_control_settings:
 	bsr.w clear_text_framebuffer_and_cursor
 	clr.b display_buffer_table_byte_offset(a6)
 	bsr.w count_and_present_frame_handoff_bridge_00ed88
+format_loaded_options_control_statuses:
 	lea.l options_joystick_status_text(pc),a1
 	tst.b joystick_control_enabled_flag(a6)
-	beq.b abs_0_0000E170
+	beq.b format_disabled_joystick_status
 	move.b #$4E,$0001(a1)
 	move.b #$20,$0002(a1)
 	move.b #$89,-$0001(a1)
-	bra.b abs_0_0000E182
-abs_0_0000E170:
+	bra.b format_loaded_one_hand_status
+format_disabled_joystick_status:
 	move.b #$46,$0001(a1)
 	move.b #$46,$0002(a1)
 	move.b #$8C,-$0001(a1)
-abs_0_0000E182:
+format_loaded_one_hand_status:
 	lea.l options_one_hand_status_text(pc),a1
 	tst.b one_hand_control_flag(a6)
-	beq.b abs_0_0000E1A0
+	beq.b format_disabled_one_hand_status
 	move.b #$4E,$0001(a1)
 	move.b #$20,$0002(a1)
 	move.b #$89,-$0001(a1)
-	bra.b abs_0_0000E1B2
-abs_0_0000E1A0:
+	bra.b format_loaded_fixed_sight_status
+format_disabled_one_hand_status:
 	move.b #$46,$0001(a1)
 	move.b #$46,$0002(a1)
 	move.b #$8C,-$0001(a1)
-abs_0_0000E1B2:
+format_loaded_fixed_sight_status:
 	lea.l options_fixed_sight_status_text(pc),a1
 	tst.b fixed_sight_mode_flag(a6)
-	beq.b abs_0_0000E1D0
+	beq.b format_disabled_fixed_sight_status
 	move.b #$4E,$0001(a1)
 	move.b #$20,$0002(a1)
 	move.b #$89,-$0001(a1)
-	bra.b abs_0_0000E1E2
-abs_0_0000E1D0:
+	bra.b format_loaded_autocentre_status
+format_disabled_fixed_sight_status:
 	move.b #$46,$0001(a1)
 	move.b #$46,$0002(a1)
 	move.b #$8C,-$0001(a1)
-abs_0_0000E1E2:
+    ; Loaded mode0 prints OFF,1 prints X,2 prints Y; every other BYTE prints X,Y. Display does not normalize saved mode bytes.
+format_loaded_autocentre_status:
 	lea.l options_autocentre_status_text(pc),a1
 	move.b crosshair_autocentre_mode(a6),d0
-	bne.b abs_0_0000E204
+	bne.b format_enabled_autocentre_status
 	move.b #$4F,(a1)
 	move.b #$46,$0001(a1)
 	move.b #$46,$0002(a1)
 	move.b #$8C,-$0001(a1)
-	bra.b abs_0_0000E256
-abs_0_0000E204:
+	bra.b present_options_menu_heading_and_palette
+format_enabled_autocentre_status:
 	cmp.b #$1,d0
-	bne.b abs_0_0000E222
+	bne.b format_y_or_both_autocentre_status
 	move.b #$58,(a1)
 	move.b #$20,$0001(a1)
 	move.b #$20,$0002(a1)
 	move.b #$89,-$0001(a1)
-	bra.b abs_0_0000E256
-abs_0_0000E222:
+	bra.b present_options_menu_heading_and_palette
+format_y_or_both_autocentre_status:
 	cmp.b #$2,d0
-	bne.b abs_0_0000E240
+	bne.b format_both_autocentre_status
 	move.b #$59,(a1)
 	move.b #$20,$0001(a1)
 	move.b #$20,$0002(a1)
 	move.b #$89,-$0001(a1)
-	bra.b abs_0_0000E256
-abs_0_0000E240:
+	bra.b present_options_menu_heading_and_palette
+format_both_autocentre_status:
 	move.b #$58,(a1)
 	move.b #$2C,$0001(a1)
 	move.b #$59,$0002(a1)
 	move.b #$89,-$0001(a1)
-abs_0_0000E256:
+present_options_menu_heading_and_palette:
 	move.b #$10,diagnostic_step_byte.l
 	lea.l options_menu_heading(pc),a1
 	bsr.w print_cursor_text
 	move.b #$11,diagnostic_step_byte.l
 	lea.l options_menu_palette(pc),a1
 	bsr.w fade_in_amiga_palette_bridge_0024a4_bridge_00d9cc
-abs_0_0000E276:
+delay_and_redraw_options_menu:
 	move.w #$FFFF,d1
 abs_0_0000E27A:
 	dbf.w d1,abs_0_0000E27A
@@ -17740,7 +17743,7 @@ poll_options_menu_choice:
 	cmp.b #$20,d0
 	beq.w store_control_settings_and_leave_options
 	move.b #$15,diagnostic_step_byte.l
-	bra.w abs_0_0000E276
+	bra.w delay_and_redraw_options_menu
 handle_painting_menu_choice:
 	move.b #$1,options_painting_choice.l
 	bsr.w redraw_options_text_at_origin
@@ -17752,7 +17755,7 @@ handle_painting_menu_choice:
 	bsr.w enter_model_viewer
 	bsr.w disable_midframe_copper_blocks_continuation_bridge_011f7a
 	bsr.w clear_text_framebuffer_and_cursor
-	bra.w abs_0_0000E256
+	bra.w present_options_menu_heading_and_palette
     ; Normal input limit1 accepts ASCII0..7. Decimal backing initially00000 plusNUL; formatter suppresses leading zeroes, so this is not fixed-width padded output or arbitrary-input capacity proof.
 handle_mouse_scaling_menu_choice:
 	move.b #$1,options_mouse_scale_choice.l
@@ -17776,15 +17779,15 @@ handle_mouse_scaling_menu_choice:
 	bsr.w clear_text_framebuffer_and_cursor
 	lea.l mouse_scale_input_prefix(pc),a0
 	tst.b (a0)
-	beq.w abs_0_0000E256
+	beq.w present_options_menu_heading_and_palette
 	move.b (a0),d0
 	subi.b #48,d0
-	bmi.w abs_0_0000E256
+	bmi.w present_options_menu_heading_and_palette
 	cmp.b #$7,d0
-	bgt.w abs_0_0000E256
+	bgt.w present_options_menu_heading_and_palette
 	andi.w #7,d0
 	move.w d0,mouse_input_scale_shift(a6)
-	bra.w abs_0_0000E256
+	bra.w present_options_menu_heading_and_palette
     ; Restart choice takes a nonlocal continuation when original interrupted-game flag is set: pop one LONG return frame then branch through12F74. Do not treat this label as a standalone routine AB
 handle_restart_menu_choice:
 	move.b #$1,options_resume_game_choice.l
@@ -17792,10 +17795,10 @@ handle_restart_menu_choice:
 	move.b #$2,options_resume_game_choice.l
 	bsr.w fade_out_amiga_palette_bridge_011f6e
 	tst.b interrupted_game_available_flag(a6)
-	beq.b abs_0_0000E3F2
+	beq.b show_no_interrupted_game_message
 	move.l (a7)+,d1
 	bra.w resume_game_after_nonlocal_menu_exit_bridge
-abs_0_0000E3F2:
+show_no_interrupted_game_message:
 	bsr.w clear_text_framebuffer_and_cursor
 	lea.l options_no_interrupted_game_message(pc),a1
 	bsr.w print_cursor_text
@@ -17804,7 +17807,7 @@ abs_0_0000E3F2:
 	bsr.w wait_for_translated_key
 	bsr.w fade_out_amiga_palette_bridge_011f6e
 	bsr.w clear_text_framebuffer_and_cursor
-	bra.w abs_0_0000E256
+	bra.w present_options_menu_heading_and_palette
     ; Load-game choice retains first cockpit-palette WORD as a protection gate and original rotate/call13BFC path. Static entry condition known; actual execution/provider380 remains unqualified.
 handle_load_game_menu_choice:
 	clr.b display_and_frame_service_flags(a6)
@@ -17813,7 +17816,7 @@ handle_load_game_menu_choice:
 	move.b #$2,options_load_game_choice.l
 	bsr.w fade_out_amiga_palette_bridge_011f6e
 	tst.w cockpit_picture_palette.l
-	beq.b abs_0_0000E45C
+	beq.b initialize_before_options_load_game
 	lea.l novella_decode_saved_state(a6),a3
 	movem.l (a3)+,d0-d1/a1-a2	; operand 1: SG2NovellaDecodeState_initial_subtraction_key at (a3)+
 rotate_protection_words_for_load:
@@ -17825,7 +17828,7 @@ rotate_protection_words_for_load:
 	dbf.w d1,rotate_protection_words_for_load
 	bsr.w novella_check_transformed_entry_storage
 	clr.w cockpit_picture_palette.l
-abs_0_0000E45C:
+initialize_before_options_load_game:
 	bsr.w fade_out_amiga_palette_bridge_011f6e
 	clr.b display_buffer_table_byte_offset(a6)
 	bsr.w count_and_present_frame_handoff_bridge_00ed88
@@ -17837,7 +17840,7 @@ abs_0_0000E45C:
 	bsr.w load_game_from_disk
 	bsr.w fade_out_amiga_palette_bridge_011f6e
 	bsr.w clear_text_framebuffer_and_cursor
-	bra.w abs_0_0000E256
+	bra.w present_options_menu_heading_and_palette
 handle_load_ratings_menu_choice:
 	move.b #$1,options_load_ratings_choice.l
 	bsr.w redraw_options_text_at_origin
@@ -17846,7 +17849,7 @@ handle_load_ratings_menu_choice:
 	bsr.w load_high_scores_from_disk
 	bsr.w fade_out_amiga_palette_bridge_011f6e
 	bsr.w clear_text_framebuffer_and_cursor
-	bra.w abs_0_0000E256
+	bra.w present_options_menu_heading_and_palette
 handle_show_ratings_menu_choice:
 	move.b #$1,options_show_ratings_choice.l
 	bsr.w redraw_options_text_at_origin
@@ -17856,23 +17859,24 @@ handle_show_ratings_menu_choice:
 	bsr.w display_pilot_ratings
 	bsr.w fade_out_amiga_palette_bridge_011f6e
 	bsr.w clear_text_framebuffer_and_cursor
-	bra.w abs_0_0000E256
+	bra.w present_options_menu_heading_and_palette
 toggle_joystick_menu_choice:
 	move.b #$1,options_joystick_line_prefix.l
 	bsr.w redraw_options_text_at_origin
+apply_joystick_menu_toggle:
 	move.b #$2,options_joystick_line_prefix.l
 	lea.l options_joystick_status_text+1(pc),a1
 	tst.b joystick_control_enabled_flag(a6)
-	bne.b abs_0_0000E52A
+	bne.b disable_joystick_then_one_hand_menu_control
 	move.b #$4E,(a1)
 	move.b #$20,$0001(a1)
 	move.b #$89,-$0002(a1)
 	move.b #$1,joystick_control_enabled_flag(a6)
 	tst.w platform_entry_flags.l
-	bmi.w abs_0_0000E276
+	bmi.w delay_and_redraw_options_menu
 	move.b #$14,$FFFFFC02.w
-	bra.w abs_0_0000E276
-abs_0_0000E52A:
+	bra.w delay_and_redraw_options_menu
+disable_joystick_then_one_hand_menu_control:
 	move.b #$46,(a1)
 	move.b #$46,$0001(a1)
 	move.b #$8C,-$0002(a1)
@@ -17884,75 +17888,80 @@ abs_0_0000E52A:
 toggle_one_hand_menu_choice:
 	move.b #$1,options_one_hand_line_prefix.l
 	bsr.w redraw_options_text_at_origin
+apply_one_hand_menu_toggle:
 	move.b #$2,options_one_hand_line_prefix.l
 	tst.b one_hand_control_flag(a6)
 	bne.b disable_one_hand_control_continuation
-	move.b #$4E,abs_0_0000E7A9.l
-	move.b #$20,abs_0_0000E7AA.l
+	move.b #$4E,options_one_hand_status_second_char.l
+	move.b #$20,options_one_hand_status_third_char.l
 	move.b #$89,options_one_hand_status_colour.l
 	move.b #$1,one_hand_control_flag(a6)
-	bra.w abs_0_0000E276
+	bra.w delay_and_redraw_options_menu
     ; Shared one-hand disable continuation also reached when joystick is disabled. Keep original fallthrough coupling, nonzero tests and loaded-byte behavior.
 disable_one_hand_control_continuation:
-	move.b #$46,abs_0_0000E7A9.l
-	move.b #$46,abs_0_0000E7AA.l
+	move.b #$46,options_one_hand_status_second_char.l
+	move.b #$46,options_one_hand_status_third_char.l
 	move.b #$8C,options_one_hand_status_colour.l
 	clr.b one_hand_control_flag(a6)
-	bra.w abs_0_0000E276
+	bra.w delay_and_redraw_options_menu
 toggle_fixed_sight_menu_choice:
 	move.b #$1,options_fixed_sight_line_prefix.l
 	bsr.w redraw_options_text_at_origin
+apply_fixed_sight_menu_toggle:
 	move.b #$2,options_fixed_sight_line_prefix.l
 	tst.b fixed_sight_mode_flag(a6)
-	bne.b abs_0_0000E5EA
-	move.b #$4E,abs_0_0000E7CE.l
-	move.b #$20,abs_0_0000E7CF.l
+	bne.b disable_fixed_sight_menu_control
+	move.b #$4E,options_fixed_sight_status_second_char.l
+	move.b #$20,options_fixed_sight_status_third_char.l
 	move.b #$89,options_fixed_sight_status_colour.l
 	move.b #$FF,fixed_sight_mode_flag(a6)
-	bra.w abs_0_0000E276
-abs_0_0000E5EA:
-	move.b #$46,abs_0_0000E7CE.l
-	move.b #$46,abs_0_0000E7CF.l
+	bra.w delay_and_redraw_options_menu
+disable_fixed_sight_menu_control:
+	move.b #$46,options_fixed_sight_status_second_char.l
+	move.b #$46,options_fixed_sight_status_third_char.l
 	move.b #$8C,options_fixed_sight_status_colour.l
 	clr.b fixed_sight_mode_flag(a6)
-	bra.w abs_0_0000E276
+	bra.w delay_and_redraw_options_menu
 cycle_autocentre_menu_choice:
 	move.b #$1,options_autocentre_line_prefix.l
 	bsr.w redraw_options_text_at_origin
+    ; Cycle0->1->2->3->0; every input above2 resets to0. The1->2 path retains the last two text bytes and colour;2->3 retains colour. Preserve partial writes.
+apply_autocentre_menu_cycle:
 	move.b #$2,options_autocentre_line_prefix.l
 	move.b crosshair_autocentre_mode(a6),d0
-	bne.b abs_0_0000E64E
+	bne.b cycle_enabled_autocentre_menu_mode
 	move.b #$58,options_autocentre_status_text.l
-	move.b #$20,abs_0_0000E7F3.l
-	move.b #$20,abs_0_0000E7F4.l
+	move.b #$20,options_autocentre_status_second_char.l
+	move.b #$20,options_autocentre_status_third_char.l
 	move.b #$89,options_autocentre_status_colour.l
 	move.b #$1,crosshair_autocentre_mode(a6)
-	bra.w abs_0_0000E276
-abs_0_0000E64E:
+	bra.w delay_and_redraw_options_menu
+cycle_enabled_autocentre_menu_mode:
 	cmp.b #$1,d0
-	bne.b abs_0_0000E666
+	bne.b cycle_y_or_reset_other_autocentre_mode
 	move.b #$59,options_autocentre_status_text.l
 	move.b #$2,crosshair_autocentre_mode(a6)
-	bra.w abs_0_0000E276
-abs_0_0000E666:
+	bra.w delay_and_redraw_options_menu
+cycle_y_or_reset_other_autocentre_mode:
 	cmp.b #$2,d0
-	bne.b abs_0_0000E68E
+	bne.b disable_autocentre_menu_control
 	move.b #$58,options_autocentre_status_text.l
-	move.b #$2C,abs_0_0000E7F3.l
-	move.b #$59,abs_0_0000E7F4.l
+	move.b #$2C,options_autocentre_status_second_char.l
+	move.b #$59,options_autocentre_status_third_char.l
 	move.b #$3,crosshair_autocentre_mode(a6)
-	bra.w abs_0_0000E276
-abs_0_0000E68E:
+	bra.w delay_and_redraw_options_menu
+disable_autocentre_menu_control:
 	move.b #$4F,options_autocentre_status_text.l
-	move.b #$46,abs_0_0000E7F3.l
-	move.b #$46,abs_0_0000E7F4.l
+	move.b #$46,options_autocentre_status_second_char.l
+	move.b #$46,options_autocentre_status_third_char.l
 	move.b #$8C,options_autocentre_status_colour.l
 	clr.b crosshair_autocentre_mode(a6)
-	bra.w abs_0_0000E276
+	bra.w delay_and_redraw_options_menu
 store_control_settings_and_leave_options:
 	move.b #$1,options_start_game_choice.l
 	bsr.w redraw_options_text_at_origin
 	move.b #$2,options_start_game_choice.l
+persist_options_control_settings_bytes:
 	lea.l pilot_rating_saved_control_settings.l,a0
 	move.b crosshair_autocentre_mode(a6),(a0)+	; operand 2: SG2SavedControlSettings_autocentre_mode at (a0)+
 	move.b fixed_sight_mode_flag(a6),(a0)+	; operand 2: SG2SavedControlSettings_fixed_sight_flag at (a0)+
@@ -17980,7 +17989,7 @@ options_joystick_status_colour:
 	dc.b $89
 options_joystick_status_text:
 	dc.b $4F
-abs_0_0000E784:
+options_joystick_status_tail:
 	dc.b $4E,$20
 options_joystick_line_suffix:
 	dc.b $8A,$02,$0D,$0A
@@ -17991,9 +18000,9 @@ options_one_hand_status_colour:
 	dc.b $89
 options_one_hand_status_text:
 	dc.b $4F
-abs_0_0000E7A9:
+options_one_hand_status_second_char:
 	dc.b $4E
-abs_0_0000E7AA:
+options_one_hand_status_third_char:
 	dc.b $20
 options_one_hand_line_suffix:
 	dc.b $8A,$02,$0D,$0A
@@ -18004,9 +18013,9 @@ options_fixed_sight_status_colour:
 	dc.b $89
 options_fixed_sight_status_text:
 	dc.b $4F
-abs_0_0000E7CE:
+options_fixed_sight_status_second_char:
 	dc.b $4E
-abs_0_0000E7CF:
+options_fixed_sight_status_third_char:
 	dc.b $20
 options_fixed_sight_line_suffix:
 	dc.b $8A,$02,$0D,$0A
@@ -18017,9 +18026,9 @@ options_autocentre_status_colour:
 	dc.b $89
 options_autocentre_status_text:
 	dc.b $20
-abs_0_0000E7F3:
+options_autocentre_status_second_char:
 	dc.b $20
-abs_0_0000E7F4:
+options_autocentre_status_third_char:
 	dc.b $20
 options_autocentre_line_suffix:
 	dc.b $8A,$02,$0D,$0A,$0A
@@ -19467,34 +19476,36 @@ insert_qualifying_pilot_rating:
 	lea.l pilot_rating_score_slots(pc),a3
 	moveq.l #14,d0
 	move.l player_score_bcd(a6),d1
-abs_0_0000FDE4:
+    ; Strict signed LONG comparison: ties continue to later scores. Only15 visible entries are compared; slot16 is shift scratch. Loaded packed-BCD values are not validated here.
+scan_next_visible_rating_score:
 	cmp.l (a3)+,d1
-	bgt.b abs_0_0000FDEE
-	dbf.w d0,abs_0_0000FDE4
+	bgt.b prepare_qualifying_rating_insertion
+	dbf.w d0,scan_next_visible_rating_score
 	rts
-abs_0_0000FDEE:
+prepare_qualifying_rating_insertion:
 	move.w d0,-(a7)
 	bsr.w fade_out_amiga_palette_bridge_011f6e
 	bsr.w clear_text_framebuffer_and_cursor
 	lea.l pilot_rating_name_entry_prompt(pc),a1
 	bsr.w print_cursor_text
-	lea.l pilot_rating_score_slots_packed_bcd_score_14(pc),a1
+	lea.l pilot_rating_last_visible_score(pc),a1
 	move.w (a7)+,d0
 	move.l d0,d2
-abs_0_0000FE08:
+shift_rating_scores_toward_scratch_slot:
 	move.l (a1),$0004(a1)
 	subq.l #4,a1
-	dbf.w d2,abs_0_0000FE08
+	dbf.w d2,shift_rating_scores_toward_scratch_slot
 	move.l player_score_bcd(a6),-(a3)
 	lea.l pilot_rating_name_14(pc),a1
 	move.l d0,d2
-abs_0_0000FE1C:
+shift_rating_names_toward_scratch_slot:
 	move.l (a1),$0010(a1)
 	move.l $0004(a1),$0014(a1)
 	move.l $0008(a1),$0018(a1)
 	move.l $000C(a1),$001C(a1)
 	suba.l #$10,a1
-	dbf.w d2,abs_0_0000FE1C
+	dbf.w d2,shift_rating_names_toward_scratch_slot
+select_rating_name_slot_for_input:
 	adda.l #$10,a1
 	move.l a1,-(a7)
 	lea.l options_menu_palette.l,a1
@@ -19512,7 +19523,7 @@ display_pilot_ratings:
 	lea.l pilot_rating_score_slots(pc),a3
 	lea.l pilot_rating_name_slots(pc),a4
 	moveq.l #14,d3
-abs_0_0000FE78:
+print_next_visible_rating_pair:
 	lea.l pilot_ratings_score_line_prefix(pc),a1
 	bsr.w print_cursor_text
 	movea.l a3,a0
@@ -19523,7 +19534,7 @@ abs_0_0000FE78:
 	movea.l a4,a1
 	bsr.w print_cursor_text
 	adda.l #$10,a4
-	dbf.w d3,abs_0_0000FE78
+	dbf.w d3,print_next_visible_rating_pair
 	lea.l options_menu_palette.l,a1
 	bsr.w fade_in_amiga_palette_bridge_0024a4_bridge_00d9cc
 	bsr.w wait_for_translated_key
@@ -23404,8 +23415,9 @@ pilot_rating_score_slots:
 	dc.l $00001000	; packed_bcd_score
 	dc.l $00001000	; packed_bcd_score
 	dc.l $00001000	; packed_bcd_score
-pilot_rating_score_slots_packed_bcd_score_14:
+pilot_rating_last_visible_score:
 	dc.l $00001000	; packed_bcd_score
+pilot_rating_score_insertion_scratch:
 	dc.l $00000000	; packed_bcd_score
 pilot_ratings_opaque_score_name_gap:
 	dc.b $00,$00,$00,$00

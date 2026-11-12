@@ -31,3 +31,6 @@ def test_source_quality_stage_trace_preserves_analysis(tmp_path, monkeypatch, ca
     assert observed == original
     assert 'source_quality_stage append_generic_string_items ' in trace
     assert 'source_quality_total ' in trace
+    assert 'source_finalize_stage source_quality ' in trace
+    assert 'source_finalize_stage table_contracts ' in trace
+    assert 'source_finalize_stage source_domain_refinement_stable ' in trace

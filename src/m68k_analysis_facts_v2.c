@@ -730,6 +730,12 @@ static double elapsed_seconds_local(clock_t start, clock_t end) {
   return ((double)(end - start)) / (double)CLOCKS_PER_SEC;
 }
 
+static void trace_source_finalize_stage_local(const char *stage, clock_t start) {
+  const char *trace = getenv("AMIGA_REVERSING_PROFILE_SOURCE_QUALITY");
+  if (trace && strcmp(trace, "1") == 0)
+    fprintf(stderr, "source_finalize_stage %s %.6f\n", stage, elapsed_seconds_local(start, clock()));
+}
+
 static void add_elapsed_seconds_local(double *total, clock_t start, clock_t end) {
   if (total != NULL) *total += elapsed_seconds_local(start, end);
 }
@@ -11172,6 +11178,7 @@ source_analysis_projection:
   }
   add_elapsed_seconds_local(&out_profile->source_analysis_build_seconds, start, clock());
   start = clock();
+  clock_t finalize_part_start = start;
   if (source_analysis != NULL &&
       append_symbol_facts_from_label_lookup(&decode, &label_lookup, &render_lookup, source_analysis) != 0) {
     m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_RENDER_FAILED,
@@ -11207,12 +11214,16 @@ source_analysis_projection:
         "facts_v2 platform media transfer append failed");
       goto fail;
     }
+    trace_source_finalize_stage_local("annotations", finalize_part_start);
+    finalize_part_start = clock();
     if (m68k_source_quality_analyze_with_policy(source_analysis, &decode, &facts,
         accepted_start, accepted_bytes, policy) != 0) {
       m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_RENDER_FAILED,
         "facts_v2 source quality analysis failed");
       goto fail;
     }
+    trace_source_finalize_stage_local("source_quality", finalize_part_start);
+    finalize_part_start = clock();
     facts_v2_record_source_quality_diagnostics_from_analysis(out_profile, source_analysis);
     if (out_profile->source_quality_blockers != 0U &&
         out_profile->asm_source_first_failure_kind == M68K_SOURCE_EXPORT_FAILURE_NONE) {
@@ -11235,8 +11246,13 @@ source_analysis_projection:
      * typed graph once; refinement cannot introduce new declarations or code.
      * Rebuild the derived projection, not decode/reachability or policy replay.
      * The second binding must independently retain every consumed domain. */
+    trace_source_finalize_stage_local("table_contracts", finalize_part_start);
+    finalize_part_start = clock();
     int refined = m68k_analysis_render_lookup_refine_source_domains(&render_lookup, &decode,
       accepted_start, source_analysis);
+    trace_source_finalize_stage_local(refined > 0 ? "source_domain_refinement_changed" :
+      "source_domain_refinement_stable", finalize_part_start);
+    finalize_part_start = clock();
     if (refined < 0) {
       m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_RENDER_FAILED,
         "facts_v2 validated source-domain refinement failed");
@@ -11262,6 +11278,7 @@ source_analysis_projection:
     }
     m68k_analysis_render_lookup_reconcile_typed_table_contracts(&render_lookup, source_analysis);
     if (render_asm_source) m68k_render_lookup_materialize_relocation_target_labels(&render_lookup);
+    trace_source_finalize_stage_local("structured_import", finalize_part_start);
   }
   if ((render_asm_source || mark_source_blockers) && facts_v2_has_source_blockers(out_profile)) {
     out_profile->asm_source_enabled = render_asm_source ? 1U : 0U;

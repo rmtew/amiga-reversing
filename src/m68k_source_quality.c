@@ -2070,6 +2070,18 @@ static int source_quality_any_runtime_address_source_offset(const M68kSectionAna
     uint32_t runtime_address, uint32_t section_size, uint32_t *out_source_offset);
 static const M68kAnalysisStructuredDataItem *source_quality_structured_data_item_covering_offset(
     const M68kSourceAnalysisIR *source_analysis, uint32_t section_index, uint32_t offset);
+/* A scan-local owner result is valid only until the next higher-priority
+ * declaration starts or the current owner ends. Invalidate after mutations;
+ * overlapping declarations retain the ordinary first-owner rule. */
+typedef struct SourceQualityOwnerCursor {
+  uint64_t end;
+  uint32_t start, section_index;
+  size_t item_index, scanned_items, cache_hits;
+  uint8_t valid;
+} SourceQualityOwnerCursor;
+static const M68kAnalysisStructuredDataItem *source_quality_covering_item_at_cursor(
+    const M68kSourceAnalysisIR *source_analysis, uint32_t section_index, uint32_t offset,
+    SourceQualityOwnerCursor *cursor);
 static int source_quality_candidate_data_target_for_operand(const M68kDecodeCandidate *candidate,
     uint32_t operand_index, uint32_t *out_section_index, uint32_t *out_offset);
 static int source_quality_candidate_is_accepted_start(const M68kDecodeSectionIR *section,
@@ -7333,12 +7345,16 @@ static int source_quality_auto_string_interior_clear(const M68kSourceAnalysisIR 
     !source_quality_range_ownership_kind_at(section_analysis, offset, NULL);
 }
 
-static int source_quality_auto_string_start_blocked(const M68kSourceAnalysisIR *source_analysis,
-    uint32_t section_index, uint32_t offset) {
-  const M68kAnalysisStructuredDataItem *item =
-    source_quality_structured_data_item_covering_offset(source_analysis, section_index, offset);
+static int source_quality_auto_string_item_blocks_start(const M68kAnalysisStructuredDataItem *item,
+    uint32_t offset) {
   return item != NULL &&
     !(item->offset == offset && source_quality_structured_data_item_is_untyped_bytes_placeholder(item));
+}
+
+static int source_quality_auto_string_start_blocked(const M68kSourceAnalysisIR *source_analysis,
+    uint32_t section_index, uint32_t offset) {
+  return source_quality_auto_string_item_blocks_start(
+    source_quality_structured_data_item_covering_offset(source_analysis, section_index, offset), offset);
 }
 
 static int source_quality_auto_string_looks_length_prefixed(const M68kSectionAnalysisIR *section_analysis,
@@ -7651,6 +7667,7 @@ static int append_generic_string_items_for_section(M68kSourceAnalysisIR *source_
     const M68kDecodeSectionIR *section, M68kSectionAnalysisIR *section_analysis, const M68kFactIR *facts,
     const uint8_t *accepted_bytes) {
   uint32_t offset = 0U;
+  SourceQualityOwnerCursor owners = {0};
   if (source_analysis == NULL || section == NULL || section_analysis == NULL || section->data == NULL) return 0;
   while (offset < section->size) {
     uint32_t span;
@@ -7663,7 +7680,8 @@ static int append_generic_string_items_for_section(M68kSourceAnalysisIR *source_
        source_quality_section_has_label_at(section_analysis, offset));
     if (!candidate_start ||
         source_quality_auto_string_range_has_code_byte(section, accepted_bytes, offset, 1U) ||
-        source_quality_auto_string_start_blocked(source_analysis, (uint32_t)section->section_index, offset)) {
+        source_quality_auto_string_item_blocks_start(source_quality_covering_item_at_cursor(source_analysis,
+          (uint32_t)section->section_index, offset, &owners), offset)) {
       ++offset;
       continue;
     }
@@ -7687,6 +7705,7 @@ static int append_generic_string_items_for_section(M68kSourceAnalysisIR *source_
           source_quality_source_pattern_for_string_record_context(record_context_kind, source_pattern_id)) != 0) {
         return -1;
       }
+      owners.valid = 0U;
       offset += span;
       continue;
     }
@@ -8189,6 +8208,7 @@ static int append_multiline_string_items_for_section(M68kSourceAnalysisIR *sourc
     const uint8_t *accepted_bytes) {
   uint32_t offset = 0U;
   size_t visited = 0U, rejected_starts = 0U, owner_lookups = 0U, promoted = 0U;
+  SourceQualityOwnerCursor owners = {0};
   const char *trace = getenv("AMIGA_REVERSING_PROFILE_SOURCE_QUALITY");
   if (source_analysis == NULL || section == NULL || section_analysis == NULL || section->data == NULL)
     return 0;
@@ -8206,8 +8226,8 @@ static int append_multiline_string_items_for_section(M68kSourceAnalysisIR *sourc
     }
     ++owner_lookups;
     const M68kAnalysisStructuredDataItem *covering_item =
-      source_quality_structured_data_item_covering_offset(source_analysis, (uint32_t)section->section_index,
-        offset);
+      source_quality_covering_item_at_cursor(source_analysis, (uint32_t)section->section_index,
+        offset, &owners);
     if (covering_item != NULL &&
         !source_quality_structured_data_item_is_weak_generic_text(covering_item) &&
         !(covering_item->offset == offset &&
@@ -8223,15 +8243,16 @@ static int append_multiline_string_items_for_section(M68kSourceAnalysisIR *sourc
         return -1;
       }
       ++promoted;
+      owners.valid = 0U;
       offset += span;
       continue;
     }
     ++offset;
   }
   if (trace != NULL && strcmp(trace, "1") == 0)
-    fprintf(stderr, "source_quality_multiline section=%zu visited=%zu rejected_starts=%zu owner_lookups=%zu promoted=%zu items=%zu\n",
+    fprintf(stderr, "source_quality_multiline section=%zu visited=%zu rejected_starts=%zu owner_lookups=%zu promoted=%zu items=%zu owner_scans=%zu cache_hits=%zu\n",
       section->section_index, visited, rejected_starts, owner_lookups, promoted,
-      source_analysis->structured_data_item_count);
+      source_analysis->structured_data_item_count, owners.scanned_items, owners.cache_hits);
   return 0;
 }
 
@@ -13504,6 +13525,36 @@ static const M68kAnalysisStructuredDataItem *source_quality_structured_data_item
     if (offset < item->offset + item->size) return item;
   }
   return NULL;
+}
+
+static const M68kAnalysisStructuredDataItem *source_quality_covering_item_at_cursor(
+    const M68kSourceAnalysisIR *source_analysis, uint32_t section_index, uint32_t offset,
+    SourceQualityOwnerCursor *cursor) {
+  if (!source_analysis || !cursor) return NULL;
+  if (cursor->valid && cursor->section_index == section_index &&
+      offset >= cursor->start && (uint64_t)offset < cursor->end) {
+    ++cursor->cache_hits;
+    return cursor->item_index == SIZE_MAX ? NULL : &source_analysis->structured_data_items[cursor->item_index];
+  }
+  const M68kAnalysisStructuredDataItem *item =
+    source_quality_structured_data_item_covering_offset(source_analysis, section_index, offset);
+  size_t limit = item ? (size_t)(item - source_analysis->structured_data_items) :
+    source_analysis->structured_data_item_count;
+  cursor->scanned_items += limit + (item != NULL);
+  cursor->start = offset; cursor->section_index = section_index;
+  cursor->item_index = item ? limit : SIZE_MAX;
+  cursor->end = item ? (uint64_t)item->offset + item->size : (uint64_t)UINT32_MAX + 1U;
+  /* Only earlier declarations can supersede this owner before its end.
+   * Resolving the owner above still uses the unchanged canonical lookup. */
+  for (size_t i = 0U; i < limit; ++i) {
+    const M68kAnalysisStructuredDataItem *earlier = &source_analysis->structured_data_items[i];
+    ++cursor->scanned_items;
+    if (earlier->has_section_index && earlier->section_index == section_index && earlier->size &&
+        earlier->offset <= UINT32_MAX - earlier->size && earlier->offset > offset &&
+        earlier->offset < cursor->end) cursor->end = earlier->offset;
+  }
+  cursor->valid = 1U;
+  return item;
 }
 
 static int append_structured_data_reference_for_table_entry(M68kSourceAnalysisIR *source_analysis,
