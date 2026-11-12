@@ -45496,15 +45496,15 @@ wrap_player_horizontal_world_coordinates:
 	move.l horizontal_world_wrap_mask(a6),d2
 	and.l d2,player_world_x(a6)
 	and.l d2,player_world_z(a6)
-    ; Timer expiry sets ready even if location gates skip creating type98. Preserve that distinction: ready is not a guaranteed live bomb object; original delay is not seconds.
+    ; Negative delivered flag and nonnegative ready flag enable WORD decrement. Only negative result expires; old $8000 becomes $7FFF and skips. Reset precedes location/allocation gates.
 advance_taymar_bomb_ready_timer_continuation:
 	move.b #$6,diagnostic_step_byte.l
 	tst.b professor_taymar_delivered_flag(a6)
-	bpl.w abs_0_00034172
+	bpl.w dispatch_inside_structure_service
 	tst.b neutron_bomb_ready_flag(a6)
-	bmi.w abs_0_00034172
+	bmi.w dispatch_inside_structure_service
 	subq.w #1,neutron_bomb_spawn_countdown(a6)
-	bpl.w abs_0_00034172
+	bpl.w dispatch_inside_structure_service
 	clr.w neutron_bomb_spawn_countdown(a6)
 	lea.l station_sequence_bomb_spawn_countdowns.l,a1
 	move.w station_sequence_index(a6),d0
@@ -45512,23 +45512,24 @@ advance_taymar_bomb_ready_timer_continuation:
 	move.w $0(a1,d0.w),neutron_bomb_spawn_countdown(a6)
 	move.b #$50,diagnostic_step_byte.l
 	tst.b inside_structure_flag(a6)
-	bpl.w abs_0_00034166
+	bpl.w mark_neutron_bomb_ready_after_location_gate
 	cmpi.w #3,selected_celestial_body_index(a6)
-	bne.b abs_0_00034166
+	bne.b mark_neutron_bomb_ready_after_location_gate
 	cmpi.w #1,free_object_count(a6)
-	bls.w abs_0_00034114
+	bls.w borrow_first_distant_record_for_ready_bomb
 	movea.l free_object_stack_cursor(a6),a3
 	movea.l -(a3),a4
 	move.l a3,free_object_stack_cursor(a6)
 	subq.w #1,free_object_count(a6)
-	bra.b abs_0_00034122
-abs_0_00034114:
+	bra.b initialize_ready_neutron_bomb_record
+    ; Free count <=1 borrows the first distant pointer without advancing its stored cursor/count. Empty distant list skips ready marking; no lifetime or capacity proof follows.
+borrow_first_distant_record_for_ready_bomb:
 	move.w distant_object_count(a6),d0
-	beq.w abs_0_00034172
+	beq.w dispatch_inside_structure_service
 	movea.l distant_objects_cursor(a6),a0
 	movea.l (a0)+,a4
     ; KNOWN: type A4=Target code-entry register seed:SG2WorldObject
-abs_0_00034122:
+initialize_ready_neutron_bomb_record:
 	move.w #$62,(a4)	; operand 2: SG2ObjectCore_object_type at (a4)
 	move.l #$A71E,SG2ObjectCore_world_x(a4)
 	move.l #$14D12,SG2ObjectCore_world_z(a4)
@@ -45541,21 +45542,22 @@ abs_0_00034122:
 	clr.b SG2ObjectCore_vertex_variant_selector(a4)
 	move.b #$5,SG2ObjectCore_model_scale_shift(a4)
 	bset.b #7,SG2ObjectCore_flags(a4)
-abs_0_00034166:
+    ; Ready is set even outside body3 interior, where no object is initialized. Spawn writes selected fields only, retaining other record bytes; ready is not proof of a live bomb.
+mark_neutron_bomb_ready_after_location_gate:
 	st.b neutron_bomb_ready_flag(a6)
 	move.b #$51,diagnostic_step_byte.l
-abs_0_00034172:
+dispatch_inside_structure_service:
 	tst.b inside_structure_flag(a6)
 	bpl.w advance_projector_station_cycle_continuation
 	move.w current_structure_service_id(a6),d0
 	tst.w d0
-	bne.b abs_0_0003419A
+	bne.b latch_structure_service_visit
 	tst.b service_blank_line_pending_flag.l
 	bpl.w reset_depot_intro_and_service_entry_latches
 	bsr.w display_blank_event_message_line
 	sf.b service_blank_line_pending_flag.l
 	bra.w reset_depot_intro_and_service_entry_latches
-abs_0_0003419A:
+latch_structure_service_visit:
 	st.b service_blank_line_pending_flag.l
 	lea.l structure_service_entry_latches(a6),a1
 	tst.b $0(a1,d0.w)
@@ -45566,35 +45568,36 @@ abs_0_0003419A:
 	clr.w depot_line_pointer_offset(a6)
 	move.b #$52,diagnostic_step_byte.l
 	cmpi.w #1,current_structure_service_id(a6)
-	bne.b abs_0_00034218
+	bne.b select_professor_status_or_other_service
 	move.b #$53,diagnostic_step_byte.l
 	st.b taymar_dialogue_list_sign.l
 	lea.l model_type_population_counts(a6),a0
 	lea.l taymar_delivered_model_counts_prefix(a6),a1
 	lea.l neutron_bomb_ingredient_model_types.l,a2
 	move.w #$7,d0
-abs_0_000341EC:
+    ; Transfer one per available ingredient, in reverse directory order. BYTE decrement/increment clamp on result sign, retaining $80->$7F source and $FF->0 delivered aliases.
+transfer_next_depot_ingredient_count:
 	move.b $0(a2,d0.w),d1
 	andi.w #255,d1
 	tst.b $0(a0,d1.w)
-	beq.b abs_0_00034210
+	beq.b advance_depot_ingredient_transfer_loop
 	subq.b #1,$0(a0,d1.w)
-	bpl.b abs_0_00034204
+	bpl.b increment_delivered_ingredient_count
 	clr.b $0(a0,d1.w)
-abs_0_00034204:
+increment_delivered_ingredient_count:
 	addq.b #1,$0(a1,d1.w)
-	bpl.b abs_0_00034210
+	bpl.b advance_depot_ingredient_transfer_loop
 	move.b #$7F,$0(a1,d1.w)
-abs_0_00034210:
-	dbf.w d0,abs_0_000341EC
+advance_depot_ingredient_transfer_loop:
+	dbf.w d0,transfer_next_depot_ingredient_count
 	bra.w advance_taymar_depot_dialogue_continuation
-abs_0_00034218:
+select_professor_status_or_other_service:
 	cmpi.w #2,current_structure_service_id(a6)
-	bne.b abs_0_00034230
+	bne.b select_inventory_or_exchange_service
 	move.b #$54,diagnostic_step_byte.l
 	clr.w depot_line_pointer_offset(a6)
 	bra.w advance_taymar_depot_dialogue_continuation
-abs_0_00034230:
+select_inventory_or_exchange_service:
 	cmpi.w #10,current_structure_service_id(a6)
 	bne.b process_depot_exchange_offer_or_trade
 	move.b #$55,diagnostic_step_byte.l
@@ -45695,12 +45698,13 @@ advance_taymar_depot_dialogue_continuation:
 	bne.w service_depot_professor_status_dialogue
 	move.b #$57,diagnostic_step_byte.l
 	tst.b neutron_bomb_order_requested_flag(a6)
-	bpl.w abs_0_000345F2
+	bpl.w poll_or_advance_taymar_bomb_offer
 	tst.b professor_taymar_aboard_flag(a6)
-	bpl.b abs_0_00034380
+	bpl.b build_missing_bomb_ingredient_message_list
 	sf.b professor_taymar_aboard_flag(a6)
 	st.b professor_taymar_delivered_flag(a6)
-abs_0_00034380:
+    ; Eight nonzero counts select completion. Missing list: heading, reverse-directory names, -1. Counts are retained. Zero items without delivered Taymar returns to offer.
+build_missing_bomb_ingredient_message_list:
 	lea.l model_type_population_counts(a6),a0
 	lea.l taymar_delivered_model_counts_prefix(a6),a1
 	lea.l neutron_bomb_ingredient_model_types.l,a2
@@ -45708,60 +45712,60 @@ abs_0_00034380:
 	lea.l neutron_bomb_ingredient_name_pointers.l,a4
 	move.l #depot_text_we_still_require_these,(a3)+
 	move.w #$7,d0
-abs_0_000343A2:
+append_next_missing_bomb_ingredient:
 	move.b $0(a2,d0.w),d2
 	andi.w #255,d2
 	tst.b $0(a1,d2.w)
-	bne.b abs_0_000343B8
+	bne.b advance_missing_bomb_ingredient_loop
 	move.w d0,d4
 	asl.w #2,d4
 	move.l $0(a4,d4.w),(a3)+
-abs_0_000343B8:
-	dbf.w d0,abs_0_000343A2
+advance_missing_bomb_ingredient_loop:
+	dbf.w d0,append_next_missing_bomb_ingredient
 	move.l #$FFFFFFFF,(a3)
 	moveq.l #0,d1
 	move.w #$7,d0
-abs_0_000343C8:
+count_next_delivered_bomb_ingredient:
 	move.b $0(a2,d0.w),d2
 	andi.w #255,d2
 	tst.b $0(a1,d2.w)
-	beq.b abs_0_000343D8
+	beq.b advance_delivered_bomb_ingredient_count_loop
 	addq.w #1,d1
-abs_0_000343D8:
-	dbf.w d0,abs_0_000343C8
+advance_delivered_bomb_ingredient_count_loop:
+	dbf.w d0,count_next_delivered_bomb_ingredient
 	tst.w d1
-	beq.b abs_0_000343EC
+	beq.b clear_incomplete_bomb_ingredient_set
 	cmp.w #$8,d1
-	bmi.b abs_0_000343EC
+	bmi.b clear_incomplete_bomb_ingredient_set
 	st.b bomb_ingredient_set_complete_flag(a6)
-	bra.b abs_0_000343FC
-abs_0_000343EC:
+	bra.b tick_taymar_ingredient_dialogue
+clear_incomplete_bomb_ingredient_set:
 	sf.b bomb_ingredient_set_complete_flag(a6)
 	tst.w d1
-	bne.b abs_0_000343FC
+	bne.b tick_taymar_ingredient_dialogue
 	tst.b professor_taymar_delivered_flag(a6)
-	bpl.w abs_0_000345F2
-abs_0_000343FC:
+	bpl.w poll_or_advance_taymar_bomb_offer
+tick_taymar_ingredient_dialogue:
 	addq.w #1,depot_dialogue_tick.l
 	andi.w #31,depot_dialogue_tick.l
 	bne.w advance_projector_station_cycle_continuation
 	tst.b professor_taymar_delivered_flag(a6)
-	bmi.b abs_0_0003442E
+	bmi.b select_delivered_ingredient_dialogue_state
 	tst.b bomb_ingredient_set_complete_flag(a6)
-	bmi.b abs_0_00034424
+	bmi.b select_undelivered_complete_ingredient_dialogue
 	move.w #$0,taymar_dialogue_state.l
-	bra.b abs_0_00034446
-abs_0_00034424:
+	bra.b dispatch_taymar_ingredient_dialogue_state
+select_undelivered_complete_ingredient_dialogue:
 	move.w #$1,taymar_dialogue_state.l
-	bra.b abs_0_00034446
-abs_0_0003442E:
+	bra.b dispatch_taymar_ingredient_dialogue_state
+select_delivered_ingredient_dialogue_state:
 	tst.b bomb_ingredient_set_complete_flag(a6)
-	bmi.b abs_0_0003443E
+	bmi.b select_delivered_complete_ingredient_dialogue_state
 	move.w #$2,taymar_dialogue_state.l
-	bra.b abs_0_00034446
-abs_0_0003443E:
+	bra.b dispatch_taymar_ingredient_dialogue_state
+select_delivered_complete_ingredient_dialogue_state:
 	move.w #$3,taymar_dialogue_state.l
-abs_0_00034446:
+dispatch_taymar_ingredient_dialogue_state:
 	lea.l taymar_dialogue_state_handlers.l,a0
 	move.w taymar_dialogue_state.l,d0
 	asl.w #2,d0
@@ -45774,108 +45778,108 @@ taymar_dialogue_state_handlers:
 	dc.l taymar_delivered_complete_dialogue_continuation
 taymar_partial_ingredients_dialogue_continuation:
 	tst.b taymar_dialogue_list_sign.l
-	bpl.b abs_0_000344AA
+	bpl.b read_partial_ingredient_missing_item_line
 	lea.l taymar_partial_ingredients_dialogue.l,a1
 	move.w depot_line_pointer_offset(a6),d0
 	movea.l $0(a1,d0.w),a1
 	cmpa.l #$FFFFFFFF,a1
-	bne.b abs_0_0003449E
+	bne.b display_partial_ingredient_status_line
 	move.w #$0,depot_line_pointer_offset(a6)
 	bsr.w display_blank_event_message_line
 	neg.b taymar_dialogue_list_sign.l
 	clr.w depot_line_pointer_offset(a6)
-	bra.b abs_0_000344A6
-abs_0_0003449E:
+	bra.b finish_partial_ingredient_status_line
+display_partial_ingredient_status_line:
 	bsr.w display_event_message_line
 	addq.w #4,depot_line_pointer_offset(a6)
-abs_0_000344A6:
+finish_partial_ingredient_status_line:
 	bra.w advance_projector_station_cycle_continuation
-abs_0_000344AA:
+read_partial_ingredient_missing_item_line:
 	lea.l shared_inventory_depot_message_pointers(a6),a1
 	move.w depot_line_pointer_offset(a6),d0
 	movea.l $0(a1,d0.w),a1
 	cmpa.l #$FFFFFFFF,a1
-	bne.b abs_0_000344D4
+	bne.b display_partial_ingredient_missing_item_line
 	move.w #$0,depot_line_pointer_offset(a6)
 	bsr.w display_blank_event_message_line
 	neg.b taymar_dialogue_list_sign.l
 	clr.w depot_line_pointer_offset(a6)
-	bra.b abs_0_000344DC
-abs_0_000344D4:
+	bra.b finish_partial_ingredient_missing_item_line
+display_partial_ingredient_missing_item_line:
 	bsr.w display_event_message_line
 	addq.w #4,depot_line_pointer_offset(a6)
-abs_0_000344DC:
+finish_partial_ingredient_missing_item_line:
 	bra.w advance_projector_station_cycle_continuation
 taymar_complete_ingredients_dialogue_continuation:
 	lea.l taymar_complete_ingredients_dialogue.l,a1
 	move.w depot_line_pointer_offset(a6),d0
 	movea.l $0(a1,d0.w),a1
 	cmpa.l #$FFFFFFFF,a1
-	bne.b abs_0_00034502
+	bne.b display_complete_ingredient_status_line
 	move.w #$0,depot_line_pointer_offset(a6)
 	bsr.w display_blank_event_message_line
-	bra.b abs_0_0003450A
-abs_0_00034502:
+	bra.b finish_complete_ingredient_status_line
+display_complete_ingredient_status_line:
 	bsr.w display_event_message_line
 	addq.w #4,depot_line_pointer_offset(a6)
-abs_0_0003450A:
+finish_complete_ingredient_status_line:
 	bra.w advance_projector_station_cycle_continuation
 taymar_delivered_partial_dialogue_continuation:
 	tst.b taymar_dialogue_list_sign.l
-	bpl.b abs_0_00034556
+	bpl.b read_delivered_partial_missing_item_line
 	lea.l taymar_delivered_partial_ingredients_dialogue.l,a1
 	tst.b neutron_bomb_ready_flag(a6)
-	bpl.b abs_0_00034528
+	bpl.b read_delivered_partial_ingredient_status_line
 	lea.l taymar_bomb_ready_missing_ingredients_dialogue.l,a1
-abs_0_00034528:
+read_delivered_partial_ingredient_status_line:
 	move.w depot_line_pointer_offset(a6),d0
 	movea.l $0(a1,d0.w),a1
 	cmpa.l #$FFFFFFFF,a1
-	bne.b abs_0_0003454A
+	bne.b display_delivered_partial_ingredient_status_line
 	move.w #$0,depot_line_pointer_offset(a6)
 	neg.b taymar_dialogue_list_sign.l
 	bsr.w display_blank_event_message_line
-	bra.b abs_0_00034552
-abs_0_0003454A:
+	bra.b finish_delivered_partial_ingredient_status_line
+display_delivered_partial_ingredient_status_line:
 	bsr.w display_event_message_line
 	addq.w #4,depot_line_pointer_offset(a6)
-abs_0_00034552:
+finish_delivered_partial_ingredient_status_line:
 	bra.w advance_projector_station_cycle_continuation
-abs_0_00034556:
+read_delivered_partial_missing_item_line:
 	lea.l shared_inventory_depot_message_pointers(a6),a1
 	move.w depot_line_pointer_offset(a6),d0
 	movea.l $0(a1,d0.w),a1
 	cmpa.l #$FFFFFFFF,a1
-	bne.b abs_0_00034580
+	bne.b display_delivered_partial_missing_item_line
 	move.w #$0,depot_line_pointer_offset(a6)
 	bsr.w display_blank_event_message_line
 	neg.b taymar_dialogue_list_sign.l
 	clr.w depot_line_pointer_offset(a6)
-	bra.b abs_0_00034588
-abs_0_00034580:
+	bra.b finish_delivered_partial_missing_item_line
+display_delivered_partial_missing_item_line:
 	bsr.w display_event_message_line
 	addq.w #4,depot_line_pointer_offset(a6)
-abs_0_00034588:
+finish_delivered_partial_missing_item_line:
 	bra.w advance_projector_station_cycle_continuation
     ; Delivered Taymar plus all ingredients enables collection. Ready chooses dialogue, not a fabricated successful object spawn. Preserve original signed flags and message cadence.
 taymar_delivered_complete_dialogue_continuation:
 	st.b neutron_bomb_collection_enabled_flag(a6)
 	lea.l taymar_delivered_complete_ingredients_dialogue.l,a1
 	tst.b neutron_bomb_ready_flag(a6)
-	bpl.b abs_0_000345A2
+	bpl.b read_delivered_complete_ingredient_status_line
 	lea.l taymar_bomb_ready_dialogue.l,a1
-abs_0_000345A2:
+read_delivered_complete_ingredient_status_line:
 	move.w depot_line_pointer_offset(a6),d0
 	movea.l $0(a1,d0.w),a1
 	cmpa.l #$FFFFFFFF,a1
-	bne.b abs_0_000345BE
+	bne.b display_delivered_complete_ingredient_status_line
 	move.w #$0,depot_line_pointer_offset(a6)
 	bsr.w display_blank_event_message_line
-	bra.b abs_0_000345C6
-abs_0_000345BE:
+	bra.b finish_delivered_complete_ingredient_status_line
+display_delivered_complete_ingredient_status_line:
 	bsr.w display_event_message_line
 	addq.w #4,depot_line_pointer_offset(a6)
-abs_0_000345C6:
+finish_delivered_complete_ingredient_status_line:
 	bra.w advance_projector_station_cycle_continuation
 display_blank_event_message_line:
 	lea.l event_message_pointers.l,a1
@@ -45890,31 +45894,32 @@ enqueue_blank_event_message_line:
 	movea.l SG2SourceTextReference_text(a1,d0.w),a1
 	bsr.w enqueue_event_message
 	rts
-abs_0_000345F2:
+poll_or_advance_taymar_bomb_offer:
 	tst.b neutron_bomb_order_requested_flag(a6)
-	bmi.b abs_0_0003466C
+	bmi.b tick_taymar_offer_or_order_dialogue
 	tst.b player_ejection_active_flag.l
-	bmi.b abs_0_0003460E
+	bmi.b test_taymar_offer_command_token
 	lea.l model_type_population_counts(a6),a4
 	tst.b $0062(a4)
-	bne.b abs_0_0003466C
+	bne.b tick_taymar_offer_or_order_dialogue
 	bsr.w poll_translated_command_key_bridge_038d44
-abs_0_0003460E:
+    ; Low BYTE A0 takes saved-frame tail-save; Y/N reset intro/tick/pause and select masks31/15. Other tokens retain state. This entry follows the original poll/ejection gate.
+test_taymar_offer_command_token:
 	cmp.b #$A0,d0
 	beq.w restore_mission_event_frame_and_tail_save
 	cmp.b #$59,d0
-	bne.b abs_0_0003462E
+	bne.b test_taymar_offer_decline_token
 	st.b neutron_bomb_order_requested_flag(a6)
 	move.w #$21,d0
 	move.w #$1F,taymar_intro_message_index_mask.l
-	bra.b abs_0_00034644
-abs_0_0003462E:
+	bra.b reset_taymar_intro_after_order_choice
+test_taymar_offer_decline_token:
 	cmp.b #$4E,d0
-	bne.b abs_0_0003466C
+	bne.b tick_taymar_offer_or_order_dialogue
 	sf.b neutron_bomb_order_requested_flag(a6)
 	move.w #$22,d0
 	move.w #$F,taymar_intro_message_index_mask.l
-abs_0_00034644:
+reset_taymar_intro_after_order_choice:
 	move.w #$0,taymar_intro_message_index.l
 	move.w #$2,depot_dialogue_pause_countdown.l
 	move.w #$0,depot_dialogue_tick.l
@@ -45922,34 +45927,34 @@ abs_0_00034644:
 	asl.w #2,d0
 	movea.l SG2SourceTextReference_text(a1,d0.w),a1
 	bsr.w display_event_message_line
-abs_0_0003466C:
+tick_taymar_offer_or_order_dialogue:
 	addq.w #1,depot_dialogue_tick.l
 	andi.w #31,depot_dialogue_tick.l
 	bne.w advance_projector_station_cycle_continuation
 	subq.w #1,depot_dialogue_pause_countdown.l
 	bpl.w abs_0_00034A30
 	tst.b neutron_bomb_order_requested_flag(a6)
-	bmi.b abs_0_000346B0
+	bmi.b read_taymar_order_intro_line
 	lea.l taymar_offer_dialogue_pointers.l,a1
 	lea.l model_type_population_counts(a6),a4
 	move.w taymar_intro_message_index.l,d0
 	asl.w #2,d0
 	movea.l $0(a1,d0.w),a1
 	tst.b $0062(a4)
-	bne.b abs_0_000346AE
+	bne.b finish_taymar_offer_line
 	bsr.w display_event_message_line
-abs_0_000346AE:
-	bra.b abs_0_000346D0
-abs_0_000346B0:
+finish_taymar_offer_line:
+	bra.b advance_taymar_intro_line_and_pause_on_wrap
+read_taymar_order_intro_line:
 	lea.l taymar_order_dialogue_pointers.l,a1
 	lea.l model_type_population_counts(a6),a4
 	move.w taymar_intro_message_index.l,d0
 	asl.w #2,d0
 	movea.l $0(a1,d0.w),a1
 	tst.b $0062(a4)
-	bne.b abs_0_000346D0
+	bne.b advance_taymar_intro_line_and_pause_on_wrap
 	bsr.w display_event_message_line
-abs_0_000346D0:
+advance_taymar_intro_line_and_pause_on_wrap:
 	addq.w #1,taymar_intro_message_index.l
 	move.w taymar_intro_message_index_mask.l,d0
 	and.w d0,taymar_intro_message_index.l

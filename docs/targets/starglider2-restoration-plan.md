@@ -22,15 +22,20 @@ Original payload SHA256:
 2. Player rotation stores use a three-field type-30 format contract and decoded
    LEA/write-disjointness proof. The slot already declares SG2WorldObject;
    adding another pointee annotation would duplicate existing semantic input.
-   Most reader bases are A6 fallback; the three stronger-base load sites also
-   need downstream live-slot tracing. Local probes reproduce mutation/call
-   refusals, but their actual loss points remain to be identified. Reaching-cell
-   transport works.
+   Final caller-flow tracing identifies the APP write barrier at all three
+   stronger-base readers (3C40, BA96, BE1A), despite retained workspace identity.
+   Structural upstream paths include barrier transitions at the initial
+   diagnostic write at 1064 and bus/address-error hex-writer calls at C62E/C66C;
+   this is not a normal-game reachability witness. Those handlers can resume
+   gameplay. The helper preserves A6 but has unknown memory/escape effects;
+   register preservation does not establish live-slot preservation. A6 fallback
+   alone does not reproduce the loss; the same straight-line reader works.
    Copy/rebase accepts other record tags from supplied saved state without format
    validation; this neither disproves the conditional role declaration nor proves
-   a permanent subtype. Next: close a bounded actual caller/base and live-slot
-   path, including stack separation, callee writes and rebasing; no reader seed
-   or unconditional type follows from initialization alone.
+   a permanent subtype. Next: test call-site write footprints with proved
+   workspace/buffer/stack separation and constructor slot postconditions,
+   retaining unknown-alias and exception-resume refusals. Current summaries
+   cannot supply that separation; no reader seed or unconditional type follows.
 3. Optional model-header extension: keep face-count mutation separate from
    the format discriminator. The original viewer can select outside the
    104-entry model prefix. Next: isolate an evidenced caller domain and its
