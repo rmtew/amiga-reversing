@@ -7321,6 +7321,22 @@ static uint8_t typed_flow_entry_origin_ordinal(uint8_t origin) {
   return kind == M68K_ANALYSIS_REGISTER_DATA ? (uint8_t)(8U + index) : index;
 }
 
+/* Effects carry encoded entry origins until the complete ABI input set is
+ * known. Register index alone aliases An with Dn and cannot decode Dn origins. */
+static uint8_t typed_flow_input_index_for_origin(
+    const M68kAnalysisFunctionSummary *summary, uint8_t origin) {
+  uint8_t kind, index;
+  if (!typed_flow_entry_origin_decode(origin, &kind, &index)) return 0xffU;
+  for (uint8_t input = 0U; input < summary->input_count; ++input) {
+    const M68kFunctionSummaryAbiLocation *location = &summary->inputs[input].location;
+    if (location->kind == M68K_FUNCTION_SUMMARY_ABI_LOCATION_REGISTER &&
+        location->register_count == 1U && location->width == 4U &&
+        location->registers[0].register_kind == kind &&
+        location->registers[0].register_index == index) return input;
+  }
+  return 0xffU;
+}
+
 static const M68kRenderClosedDispatch *lookup_closed_dispatch(const M68kRenderLookup *lookup,
     size_t section, uint32_t offset) {
   for (size_t i = 0U; lookup && i < lookup->closed_dispatch_count; ++i) {
@@ -7916,10 +7932,8 @@ static int typed_flow_local_callee_effect_summary(const M68kRenderLookup *lookup
   for (uint8_t effect_index = 0U; effect_index < static_write_count; ++effect_index) {
     M68kFunctionSummaryEffectSubjectIR *subject = &static_writes[effect_index].subject;
     if (subject->kind == M68K_FUNCTION_SUMMARY_EFFECT_SUBJECT_INPUT) {
-      uint8_t compact = 0U;
-      while (compact < out_summary->input_count &&
-             out_summary->inputs[compact].location.registers[0].register_index != subject->input_index) ++compact;
-      if (compact == out_summary->input_count) { memory_effects_unknown = 1U; break; }
+      uint8_t compact = typed_flow_input_index_for_origin(out_summary, subject->input_index);
+      if (compact == 0xffU) { memory_effects_unknown = 1U; break; }
       subject->input_index = compact;
     }
   }
@@ -7932,10 +7946,8 @@ static int typed_flow_local_callee_effect_summary(const M68kRenderLookup *lookup
     if (compact == out_summary->input_count) { escape_effects_unknown = 1U; break; }
     if (escape->sink_subject.kind == M68K_FUNCTION_SUMMARY_EFFECT_SUBJECT_INPUT) {
       uint8_t sink_origin = escape->sink_subject.input_index;
-      compact = 0U;
-      while (compact < out_summary->input_count &&
-             out_summary->inputs[compact].location.registers[0].register_index != sink_origin) ++compact;
-      if (compact == out_summary->input_count) { escape_effects_unknown = 1U; break; }
+      compact = typed_flow_input_index_for_origin(out_summary, sink_origin);
+      if (compact == 0xffU) { escape_effects_unknown = 1U; break; }
       escape->sink_subject.input_index = compact;
     }
   }

@@ -48,7 +48,9 @@ Original payload SHA256:
    diagnostic write at 1064 and bus/address-error hex-writer calls at C62E/C66C;
    this is not a normal-game reachability witness. Those handlers can resume
    gameplay. The helper preserves A6 but has unknown memory/escape effects;
-   register preservation does not establish live-slot preservation. A6 fallback
+   register preservation does not establish live-slot preservation. Callable
+   write subjects retain complete An/Dn entry identities after lossless copies;
+   this supplies no allocation-separation or stored-pointer lifetime proof. A6 fallback
    alone does not reproduce the loss; the same straight-line reader works.
    Copy/rebase accepts other record tags from supplied saved state without format
    validation; this neither disproves the conditional role declaration nor proves
