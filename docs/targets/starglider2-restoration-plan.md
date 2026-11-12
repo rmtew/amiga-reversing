@@ -7,7 +7,7 @@ claim of complete gameplay/hardware equivalence.
 ## Current validated baseline
 
 Current validated export: 3517 app references, 2829 typed accesses, 183 unresolved
-accesses; 9738 unclassified bytes in 274 intervals. These are analysis counts,
+accesses; 9736 unclassified bytes in 273 intervals. These are analysis counts,
 not semantic completion percentages. The phrase-counter
 references retain declared-layout A6 fallback; the role declaration adds no
 stronger base proof. The projector report arrays expose three additional
@@ -122,6 +122,9 @@ Original payload SHA256:
    gated selector shim at $380: return $13C06 selects record 145, other callers
    forward to the shared PRNG. This is conditional installed-media behavior,
    not a guarantee for arbitrary low-memory state or complete boot execution.
+   Dante type47 spawning retains velocity/rotation/link fields in the free slot.
+   Next: trace common update and free-slot producers before assigning a normal
+   velocity domain or a visual identity; original name entry47 is empty.
    The world-pool rebuild gate at app+$7EE has a reader and a zeroing finalizer.
    Bulk save restoration covers it; a positive normal-game producer is still
    unknown. Its consumer name supplies no activation or lifetime invariant.

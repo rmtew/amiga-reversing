@@ -19,6 +19,7 @@ from amiga_reversing.disasm.binary_source import (
 )
 from amiga_reversing.disasm.decision_journal import decision_journal_report
 from amiga_reversing.disasm.manual_actions import (
+    ManualActionLogProjection,
     ManualLabelScope,
     ManualSeedKind,
     ManualSeedMode,
@@ -74,11 +75,32 @@ def effective_target_metadata(
     pending_actions: Sequence[dict[str, object]] = (),
     binary_source: BinarySource | None = None,
 ) -> TargetMetadata | None:
+    metadata, _projection = _effective_metadata_with_manual_projection(
+        target_dir, include_decision_journal=include_decision_journal,
+        pending_actions=pending_actions, binary_source=binary_source,
+    )
+    return metadata
+
+
+def _effective_metadata_with_manual_projection(
+    target_dir: Path, *, include_decision_journal: bool,
+    pending_actions: Sequence[dict[str, object]], binary_source: BinarySource | None,
+) -> tuple[TargetMetadata | None, ManualActionLogProjection]:
+    """Share one fresh replay between metadata and its auxiliary wire facts.
+
+    Stronger metadata contributes conflict diagnostics, not different auxiliary
+    views/layouts. Keep that checked projection for both consumers, without a
+    cache that could outlive this call or hide a later edit/pending action.
+    """
     metadata = load_target_metadata(target_dir)
-    metadata = _apply_manual_seed_projection(target_dir, metadata, pending_actions=pending_actions, binary_source=binary_source)
+    projection = load_manual_projection(
+        target_dir, binary_source=binary_source or resolve_target_binary_source(target_dir),
+        stronger_metadata=metadata, pending_actions=pending_actions,
+    )
+    metadata = _apply_manual_seed_projection(target_dir, metadata, projection=projection)
     if include_decision_journal:
         metadata = _apply_decision_journal_projection(target_dir, metadata)
-    return metadata
+    return metadata, projection
 
 
 def _manual_seed_int(seed: Mapping[str, object], field_name: str) -> int | None:
@@ -2079,15 +2101,8 @@ def _manual_execution_view_key(view: dict[str, object]) -> tuple[int, int, int] 
 
 def _apply_manual_seed_projection(
     target_dir: Path, metadata: TargetMetadata | None, *,
-    pending_actions: Sequence[dict[str, object]] = (),
-    binary_source: BinarySource | None = None,
+    projection: ManualActionLogProjection,
 ) -> TargetMetadata | None:
-    projection = load_manual_projection(
-        target_dir,
-        binary_source=binary_source or resolve_target_binary_source(target_dir),
-        stronger_metadata=metadata,
-        pending_actions=pending_actions,
-    )
     conflicted_seed_ids: set[str] = set()
     conflicted_label_ids: set[str] = set()
     for item in projection.review_items:
@@ -2802,18 +2817,13 @@ def effective_metadata_text(
     target_dir: Path, *, include_decision_journal: bool = True,
     pending_actions: Sequence[dict[str, object]] = (), binary_source: BinarySource | None = None,
 ) -> str:
-    metadata = effective_target_metadata(
+    metadata, projection = _effective_metadata_with_manual_projection(
         target_dir, include_decision_journal=include_decision_journal,
         pending_actions=pending_actions, binary_source=binary_source,
     )
     if metadata is None:
         return ""
     payload = target_metadata_json_payload(metadata)
-    projection = load_manual_projection(
-        target_dir,
-        binary_source=binary_source or resolve_target_binary_source(target_dir),
-        pending_actions=pending_actions,
-    )
     if projection.runtime_observation_views:
         observations = [dict(view) for view in projection.runtime_observation_views]
         # A runtime observation is valid pointer-address evidence, but is not

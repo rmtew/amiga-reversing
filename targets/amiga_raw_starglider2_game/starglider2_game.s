@@ -1554,9 +1554,12 @@ SG2_BOUNCE_MOTION_SCALE_LOSS	EQU	20
 SG2_BOUNCE_REFLECTION_BIAS	EQU	10
 SG2_BOUNCE_SURFACE_Y	EQU	-25
 SG2_BOUNCE_VERTEX_RELOAD	EQU	11
+SG2_BROADWAY_INVERTOR_RANDOM_MASK	EQU	2047
 SG2_BUFFER_ROTATION_END_OFFSET	EQU	12
 SG2_BUFFER_ROTATION_ENTRY_BYTES	EQU	4
 SG2_BUFFER_ROTATION_INPUT_MASK	EQU	255
+SG2_CELESTIAL_BROADWAY_INDEX	EQU	8
+SG2_CELESTIAL_DANTE_INDEX	EQU	1
 SG2_CELESTIAL_TYPE_BASE	EQU	128
 SG2_CLIPPED_POLYGON_X_MULTIPLIER	EQU	288
 SG2_CLIPPED_POLYGON_Y_MULTIPLIER	EQU	98
@@ -1581,6 +1584,14 @@ SG2_CONTACT_SKIP_FLAG_BIT	EQU	4
 SG2_CORNER_APPROACH_OFFSET	EQU	3120
 SG2_CORNER_SLOPE_SHIFT	EQU	6
 SG2_CRC16_SPLIT_TABLE_STRIDE_BYTES	EQU	256
+SG2_DANTE_REWARD_DISTANCE_BIAS	EQU	8192
+SG2_DANTE_REWARD_MIN_PLAYER_Y	EQU	-500
+SG2_DANTE_REWARD_SOUND_MIN	EQU	32
+SG2_DANTE_SPAWN_FREE_RESERVE	EQU	10
+SG2_DANTE_SPAWN_PHASE_MASK	EQU	3
+SG2_DANTE_SPAWN_POSITION_BIAS	EQU	4096
+SG2_DANTE_SPAWN_POSITION_MASK	EQU	8191
+SG2_DANTE_SPAWN_WORLD_Y	EQU	-20
 SG2_DEPOT_COUNT_NEGATIVE_RESULT_CLAMP	EQU	127
 SG2_DEPOT_MESSAGE_TICK_MASK	EQU	31
 SG2_DEPOT_SERVICE_INVENTORY	EQU	10
@@ -45067,7 +45078,7 @@ snapshot_world_transition_space_state:
 	move.b #$1,diagnostic_step_byte.l
 	move.b space_environment_flag(a6),world_transition_space_snapshot(a6)
 	tst.b space_environment_flag(a6)
-	beq.w abs_0_00033C4C
+	beq.w gate_broadway_invertor_bomb_event
 	move.b #$2,diagnostic_step_byte.l
 	move.w nearby_object_count(a6),d0
 	beq.w test_selected_body_surface_entry
@@ -45326,19 +45337,21 @@ abs_0_00033C26:
 	bsr.w enqueue_event_message
 	bsr.w enqueue_blank_event_message_line
 	bra.w advance_taymar_bomb_ready_timer_continuation
-abs_0_00033C4C:
+    ; Only a negative inside BYTE skips the Broadway event. A PRNG call precedes the contact-20 fallback. Empty-queue insertion resets the timer and adds a spacer before the explicit message35.
+gate_broadway_invertor_bomb_event:
 	tst.b inside_structure_flag(a6)
-	bmi.b abs_0_00033C9A
-	cmpi.w #8,selected_celestial_body_index(a6)
-	bne.b abs_0_00033C9A
+	bmi.b gate_dante_type47_spawn
+	cmpi.w #SG2_CELESTIAL_BROADWAY_INDEX,selected_celestial_body_index(a6)
+	bne.b gate_dante_type47_spawn
+sample_broadway_invertor_random_trigger:
 	bsr.w advance_shared_random_state_bridge_038d20
-	andi.w #2047,d0
-	bne.b abs_0_00033C66
-	bra.b abs_0_00033C6E
-abs_0_00033C66:
-	cmpi.w #20,last_player_contact_type(a6)
-	bne.b abs_0_00033C9A
-abs_0_00033C6E:
+	andi.w #SG2_BROADWAY_INVERTOR_RANDOM_MASK,d0
+	bne.b test_tunnel_sentinel_contact_for_invertor_event
+	bra.b announce_invertor_bomb_and_start_roll_spin
+test_tunnel_sentinel_contact_for_invertor_event:
+	cmpi.w #SG2_OBJECT_TYPE_TUNNEL_SENTINEL,last_player_contact_type(a6)
+	bne.b gate_dante_type47_spawn
+announce_invertor_bomb_and_start_roll_spin:
 	st.b pending_transient_event_sound(a6)
 	clr.w pending_message_count(a6)
 	move.w #$1,message_display_countdown(a6)
@@ -45348,75 +45361,86 @@ abs_0_00033C6E:
 	movea.l SG2SourceTextReference_text(a1,d0.w),a1
 	bsr.w enqueue_event_message
 	bsr.w enqueue_blank_event_message_line
-abs_0_00033C9A:
-	cmpi.w #1,selected_celestial_body_index(a6)
+    ; Only body1 with unsigned free count >10 increments and masks the phase. Phase zero then samples the PRNG low two bits; allocation consumes two further values for X/Z offsets.
+gate_dante_type47_spawn:
+	cmpi.w #SG2_CELESTIAL_DANTE_INDEX,selected_celestial_body_index(a6)
 	bne.w update_point_field_flag_from_world_y
-	cmpi.w #10,free_object_count(a6)
+	cmpi.w #SG2_DANTE_SPAWN_FREE_RESERVE,free_object_count(a6)
 	bls.w update_point_field_flag_from_world_y
-	addq.w #1,abs_0_00037898.l
-	andi.w #3,abs_0_00037898.l
+advance_dante_spawn_phase_mod4:
+	addq.w #1,dante_type47_spawn_phase_mod4.l
+	andi.w #SG2_DANTE_SPAWN_PHASE_MASK,dante_type47_spawn_phase_mod4.l
 	bne.w update_point_field_flag_from_world_y
+sample_dante_spawn_random_gate:
 	bsr.w advance_shared_random_state_bridge_038d20
 	andi.w #3,d0
 	bne.w update_point_field_flag_from_world_y
+choose_dante_spawn_offsets_from_two_prng_steps:
 	bsr.w advance_shared_random_state_bridge_038d20
 	move.w d0,d1
 	bsr.w advance_shared_random_state_bridge_038d20
-	move.w #$1FFF,d2
+	move.w #SG2_DANTE_SPAWN_POSITION_MASK,d2
 	and.w d2,d0
 	and.w d2,d1
-	subi.w #4096,d0
-	subi.w #4096,d1
+	subi.w #SG2_DANTE_SPAWN_POSITION_BIAS,d0
+	subi.w #SG2_DANTE_SPAWN_POSITION_BIAS,d1
 	ext.l d0
 	ext.l d1
 	add.l player_world_x(a6),d0
 	add.l player_world_z(a6),d1
+pop_dante_type47_free_slot:
 	movea.l free_object_stack_cursor(a6),a3
 	movea.l -(a3),a4
 	move.l a3,free_object_stack_cursor(a6)
 	subq.w #1,free_object_count(a6)
+    ; Type47 setup writes position/header bytes but retains velocity, rotation and link words. Name entry47 is empty; no visual identity or allocation separation is inferred.
     ; KNOWN: type A4=Target code-entry register seed:SG2WorldObject
+initialize_dante_type47_partial_record:
 	move.w #$2F,(a4)	; operand 2: SG2ObjectCore_object_type at (a4)
 	move.l d0,SG2ObjectCore_world_x(a4)
 	move.l d1,SG2ObjectCore_world_z(a4)
-	move.l #$FFFFFFEC,SG2ObjectCore_world_y(a4)
+	move.l #SG2_DANTE_SPAWN_WORLD_Y,SG2ObjectCore_world_y(a4)
 	move.b #$2,SG2ObjectCore_retirement_phase_or_negative(a4)
 	move.b #$0,SG2ObjectCore_vertex_variant_selector(a4)
 	move.b #$0,SG2ObjectCore_durability_or_negative(a4)
 	move.b #$5,SG2ObjectCore_model_scale_shift(a4)
-	cmpi.l #4294966796,player_world_y(a6)
+gate_dante_spawn_reserve_reward_by_y:
+	cmpi.l #SG2_DANTE_REWARD_MIN_PLAYER_Y,player_world_y(a6)
 	bmi.w update_point_field_flag_from_world_y
+measure_dante_spawn_horizontal_separation:
 	move.l SG2ObjectCore_world_x(a4),d0
 	move.l player_world_x(a6),d2
 	move.l SG2ObjectCore_world_z(a4),d1
 	move.l player_world_z(a6),d3
 	sub.l d0,d2
-	bpl.b abs_0_00033D4E
+	bpl.b take_dante_z_separation_magnitude
 	neg.l d2
-abs_0_00033D4E:
+take_dante_z_separation_magnitude:
 	sub.l d1,d3
-	bpl.b abs_0_00033D54
+	bpl.b combine_dante_spawn_distance_words
 	neg.l d3
-abs_0_00033D54:
+combine_dante_spawn_distance_words:
 	move.l d2,d0
 	add.l d3,d0
 	cmp.l d2,d3
-	bpl.b abs_0_00033D62
+	bpl.b double_larger_dante_z_separation
 	add.l d2,d2
 	move.l d2,d3
-	bra.b abs_0_00033D64
-abs_0_00033D62:
+	bra.b convert_dante_spawn_distance_to_reserve_addend
+double_larger_dante_z_separation:
 	add.l d3,d3
-abs_0_00033D64:
+    ; Local offsets give 3*max(abs X,abs Z)+min, then LSR.W, NEG.W, ADDI.W8192 and LSR.W5. Y/sound gates retain original result-sign behavior; reserve additions saturate independently.
+convert_dante_spawn_distance_to_reserve_addend:
 	add.l d0,d3
 	lsr.w #1,d3
 	neg.w d3
-	addi.w #8192,d3
+	addi.w #SG2_DANTE_REWARD_DISTANCE_BIAS,d3
 	lsr.w #5,d3
-	cmp.w #$20,d3
-	bmi.b abs_0_00033D7A
+gate_dante_spawn_reward_sound:
+	cmp.w #SG2_DANTE_REWARD_SOUND_MIN,d3
+	bmi.b refill_reserves_after_dante_spawn
 	st.b pending_transient_event_sound(a6)
-abs_0_00033D7A:
+refill_reserves_after_dante_spawn:
 	bsr.w add_word_to_icarus_reserves_with_saturation
 	bra.b update_point_field_flag_from_world_y
     ; Add unsigned low WORD D3 independently to power, weapon energy and shield. FFFF skips; carry saturates FFFF. GIVE supplies 2048. Physical units remain unestablished.
@@ -49036,19 +49060,22 @@ update_nearby_falling_type47:
 	ext.l d0
 	add.l d0,SG2ObjectCore_world_y(a0)
 	cmpi.l #4294967176,SG2ObjectCore_world_y(a0)
-	bpl.b abs_0_00036DA6
+	bpl.b clear_type47_retirement_phase_after_y_gate
+integrate_falling_type47_horizontal_motion:
 	move.w SG2WorldObject_velocity_x(a0),d0
 	ext.l d0
 	add.l d0,SG2ObjectCore_world_x(a0)
 	move.w SG2WorldObject_velocity_z(a0),d0
 	ext.l d0
 	add.l d0,SG2ObjectCore_world_z(a0)
+wrap_falling_type47_horizontal_position:
 	move.l horizontal_world_wrap_mask(a6),d0
 	and.l d0,SG2ObjectCore_world_x(a0)
 	and.l d0,SG2ObjectCore_world_z(a0)
+advance_falling_type47_vertical_velocity:
 	addq.w #8,SG2WorldObject_velocity_y(a0)
 	bra.w abs_0_00039D56
-abs_0_00036DA6:
+clear_type47_retirement_phase_after_y_gate:
 	move.b #$0,SG2ObjectCore_retirement_phase_or_negative(a0)
 	bra.w abs_0_00039D56
     ; KNOWN: type A0=Target code-entry register seed:SG2WorldObject
@@ -49867,7 +49894,7 @@ tractor_beam_marker_type_word:
 	dc.w $005F
 pirate_warning_cooldown_or_negative:
 	dc.w $0000
-abs_0_00037898:
+dante_type47_spawn_phase_mod4:
 	dc.w $0000
 body_orbit_recompute_counters:
 	dc.w $0000,$001F,$003F,$007F,$03FF,$03FF,$0000,$003F
