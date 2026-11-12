@@ -11,7 +11,7 @@ from tests.test_typed_index_symbol_compensation import exact
 
 @pytest.mark.parametrize('width',[1,2,4])
 @pytest.mark.parametrize('grouped',[False,True])
-@pytest.mark.parametrize('count,mask,wanted',[(16,7,True),(7,7,False),(16,16,False)])
+@pytest.mark.parametrize('count,mask,wanted',[(16,7,True),(16,15,True),(32,31,True),(7,7,False),(16,16,False)])
 def test_array_extent_is_independent_of_scalar_group(tmp_path,width,grouped,count,mask,wanted):
     suffix={1:'b',2:'w',4:'l'}[width]
     scale='' if width==1 else 'add.w d0,d0\n'*(1 if width==2 else 2)

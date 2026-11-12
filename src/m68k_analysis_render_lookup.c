@@ -5284,6 +5284,37 @@ static int typed_word_index_values(const M68kRenderTypedState *state,
   return evidence->value_count != 0U;
 }
 
+static void hardware_word_known_bits(const M68kHardwareWordSet *set, uint16_t *mask, uint16_t *value);
+
+/* Project existing CFG bits/bounds only at a memory access. The finite domain
+ * and all register/call/join transfers remain shared and unchanged. */
+static int typed_word_index_mask_domain(const M68kRenderPlatformState *platform,
+    const M68kInstructionIR *instruction, uint8_t operand_index, M68kWordIndexAccessIR *out) {
+  const M68kOperandIR *operand = &instruction->operands[operand_index];
+  uint32_t unit;
+  uint16_t mask, value;
+  if (!platform || operand->value.index_is_address || operand->value.index_reg >= 8U ||
+      !m68k_sim_operand_word_index_value(instruction, operand_index, 1U, &unit) || unit != 1U) return 0;
+  const M68kHardwareWordSet *words = &platform->word_values[operand->value.index_reg];
+  if (words->requires_input_contract) return 0;
+  hardware_word_known_bits(words, &mask, &value);
+  value &= mask;
+  uint16_t lower = value, upper = (uint16_t)(value | (uint16_t)~mask);
+  if (words->has_bounds) {
+    if (words->lower_bound > words->upper_bound) return 0; /* Modular union needs another domain. */
+    if (lower < words->lower_bound) lower = words->lower_bound;
+    if (upper > words->upper_bound) upper = words->upper_bound;
+  }
+  if (lower > upper || upper > INT16_MAX) return 0;
+  memset(out, 0, sizeof(*out));
+  out->reg_kind = M68K_ANALYSIS_REGISTER_DATA;
+  out->reg_index = operand->value.index_reg;
+  out->has_mask_domain = 1U;
+  out->known_bits_mask = mask; out->known_bits_value = value;
+  out->index_lower = lower; out->index_upper = upper;
+  return 1;
+}
+
 static int typed_resolve_word_index_field(const M68kRenderLookup *lookup,
     const M68kRenderTypedState *state, const M68kRenderPlatformState *platform_state,
     const M68kInstructionIR *instruction, uint8_t operand_index, uint8_t base_reg,
@@ -5313,7 +5344,8 @@ static int typed_resolve_word_index_field(const M68kRenderLookup *lookup,
           (shape == M68K_SIM_EA_SHAPE_POSTINCREMENT || shape == M68K_SIM_EA_SHAPE_PREDECREMENT)) return 0;
     }
   }
-  if (!typed_word_index_values(state, platform_state, instruction, operand_index, &evidence)) return 0;
+  if (!typed_word_index_values(state, platform_state, instruction, operand_index, &evidence) &&
+      !typed_word_index_mask_domain(platform_state, instruction, operand_index, &evidence)) return 0;
   evidence.access_width = width;
   evidence.record_count = base->known && base->array_element_count ? base->array_element_count : 1U;
   evidence.base_record_index = base->known && base->array_element_count ? base->array_element_index : 0U;
@@ -5324,6 +5356,19 @@ static int typed_resolve_word_index_field(const M68kRenderLookup *lookup,
    * displacement. The same live register index must remain in the instruction. */
   array_addend = (int32_t)(((int64_t)base_cursor + displacement) / struct_size);
   if (array_addend < INT16_MIN || array_addend > INT16_MAX) return 0;
+  if (evidence.has_mask_domain) {
+    /* A power-of-two stride with fixed low bits proves one field residue for
+     * every member, without pretending the interval is an exact value set. */
+    uint16_t residue_mask = (uint16_t)(struct_size - 1U);
+    int64_t first = encoded + evidence.index_lower, last = encoded + evidence.index_upper;
+    uint16_t residue = (uint16_t)((encoded + evidence.known_bits_value) & residue_mask);
+    if ((struct_size & residue_mask) || (evidence.known_bits_mask & residue_mask) != residue_mask ||
+        first < 0 || last + width > total || first > last ||
+        !lookup_policy_resolve_struct_field(lookup->policy, struct_id,
+          (int16_t)residue, width, &selected_field) || !selected_field.field_expr[0] ||
+        width > struct_size - residue || residue < selected_field.offset ||
+        (uint32_t)residue - selected_field.offset + width > selected_field.size) return 0;
+  }
   for (index = 0U; index < evidence.value_count; ++index) {
     int64_t effective = encoded + evidence.byte_offsets[index];
     M68kRenderResolvedStructField actual;

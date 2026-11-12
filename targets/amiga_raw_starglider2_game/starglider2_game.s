@@ -49158,7 +49158,7 @@ abs_0_0003704C:
 	lea.l pirate_destruction_drop_choices.l,a1
 	bsr.w advance_shared_random_state_bridge_038d20
 	andi.w #15,d0
-	move.b $0(a1,d0.w),d0
+	move.b SG2StoredObjectTypeByte_object_type(a1,d0.w),d0
 	beq.w abs_0_00037114
 	cmpi.w #20,free_object_count(a6)
 	bls.w abs_0_00037114

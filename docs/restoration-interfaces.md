@@ -98,11 +98,11 @@ bound data leaves use the unique encodable constant in that group. Inherited
 fields retain their declaring owner's group. Ambiguous encoded aliases, runtime
 addresses, expression equates, arithmetic operands and partial-field accesses
 remain numeric; manual representations take precedence. This is source
-presentation, not a runtime value bound or a pointer/type inference. Uniform single-field grouped arrays retain one typed range and its declared
+presentation, not a runtime value bound or a pointer/type inference. Uniform
+single-field grouped arrays retain one typed range and its declared
 count/stride while C formats each scalar at its original width. Mixed schemas
 and explicit per-value presentations retain the existing leaf projection.
-Single-field grouped records state their role once per visible
-run; labels, authored comments and format changes restart it. Their directive
+Single-field grouped records state their role once per visible run; labels, authored comments and format changes restart it. Their directive
 already names the value, so generated comments do not repeat that expression.
 Regressions: `tests/test_scalar_field_equates.py`.
 
@@ -125,6 +125,18 @@ no new call summary is inferred from the range or from the routine's name.
 Extending a consumer through a memory cell still needs shared storage transport,
 not an assumption from unchanged original bytes.
 Regressions: `tests/test_signed_word_index_ranges.py`.
+
+Typed field accesses can project the existing register known bits and
+non-wrapping bounds without enumerating a larger finite set. This lane accepts
+nonnegative, unscaled Dn.W indexes and power-of-two record strides whose low
+bits fix one field residue. Every possible address must fit the declared owner
+and the complete scalar access must fit that field. `bounded_cfg_mask` evidence
+retains the bit constraints and bounding interval; `indexed_mask_range` is an
+explicit overapproximation, not a claim that every intervening byte is read.
+It adds no register state or value cap, loaded-pointer identity, immutable-byte
+promise or caller bound. Negative/modular domains and varying residues keep
+the existing finite/loop paths or remain unresolved. Regressions:
+`tests/test_masked_word_index_fields.py`.
 
 Indexed-field rendering retains a scalar EQU identity only from an explicitly
 represented immediate assignment or equality guard. WORD/LONG register copies

@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
   "kind": "committed_native_rendered_original_export",
-  "canonical_source_commit": "596375028f5497a7b2dae0cd1dabb042c3800406",
-  "publication_base_commit": "596375028f5497a7b2dae0cd1dabb042c3800406",
+  "canonical_source_commit": "ada0f152a086886987957e7cf3afdc9741e6e345",
+  "publication_base_commit": "ada0f152a086886987957e7cf3afdc9741e6e345",
   "native_export": "CListingArtifact.source_package_payload(64)",
-  "main_source_sha256": "d939133ce27eafd47085caa6f8550d7a0af180f0b9bf90e48c904829ce762a30",
+  "main_source_sha256": "1a174470793dddaa17943ae70d2653553b28353e6de63da337b39437c5ce0922",
   "asset_count": 57,
   "asset_bytes": 93633,
   "game_assembly_hand_edits": false,
@@ -25,7 +25,7 @@
     "paused Pandora work"
   ],
   "canonical_source_commit_role": "Canonical source publication base; build and verification identities are recorded below.",
-  "canonical_source_subject_revision": "d63e25dff0eedc949738c5f045e28881a4ef41c8ffa9697d1bfa18721693064f",
+  "canonical_source_subject_revision": "3aa83f0233f3ed8510e2d90d2a86063b21a86e809a0211846bf190806db69050",
   "canonical_fact_sha256": {
     "source_binary.json": "42d4a5758b3e8236af7f912aee85e9ee5323bcd0961faa338c4f864080a0a7d9",
     "target_metadata.json": "e7540b68c118c56aba8815b6722eefa067517cc865fe9841d6c01ce96551389c",
@@ -46,7 +46,7 @@
     },
     "runtime_scope": "Seven CPU write-site windows match this reversible view; no whole runtime-view identity or parent plaintext promotion."
   },
-  "verification_receipt_id": "4e63d387534727b34026b7f6c4cb406d08263fe38dfcf97bad9a346e6ee56bfc",
-  "render_native_sha256": "a6b5aed318da53062c969ea12da27b6fee665b90277c4b5d3cfeaabd2faaf8b8",
-  "final_assembler_native_sha256": "a6b5aed318da53062c969ea12da27b6fee665b90277c4b5d3cfeaabd2faaf8b8"
+  "verification_receipt_id": "7b36c2103df291eb2d69369a63ef8c4038681ac88a24337e867bd9b33326c6ac",
+  "render_native_sha256": "325ec647a5846e210456ae6335284a239f3ff5f8b98a20e6c1578443357178a7",
+  "final_assembler_native_sha256": "325ec647a5846e210456ae6335284a239f3ff5f8b98a20e6c1578443357178a7"
 }

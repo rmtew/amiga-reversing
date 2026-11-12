@@ -1420,10 +1420,14 @@ typedef struct M68kWordIndexAccessIR {
   int32_t byte_offsets[M68K_WORD_INDEX_VALUE_LIMIT];
   M68kAffineLoopDomainIR loop_domain;
   int32_t loop_index_first;
+  /* A conservative nonnegative WORD domain, not enumerated offsets. */
+  uint8_t has_mask_domain;
+  uint16_t known_bits_mask, known_bits_value;
+  uint16_t index_lower, index_upper;
 } M68kWordIndexAccessIR;
 
 static inline int m68k_word_index_access_has_domain(const M68kWordIndexAccessIR *index) {
-  return index && (index->value_count || index->loop_domain.state);
+  return index && (index->value_count || index->loop_domain.state || index->has_mask_domain);
 }
 
 typedef struct M68kRecoveredPlatformTypedAccessIR {

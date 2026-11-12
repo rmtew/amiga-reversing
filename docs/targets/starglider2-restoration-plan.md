@@ -6,7 +6,7 @@ claim of complete gameplay/hardware equivalence.
 
 ## Current validated baseline
 
-Current validated export: 3517 app references, 2802 typed accesses, 180 unresolved
+Current validated export: 3517 app references, 2803 typed accesses, 179 unresolved
 accesses; 9857 unclassified bytes in 277 intervals. These are analysis counts,
 not semantic completion percentages. The phrase-counter
 references retain declared-layout A6 fallback; the role declaration adds no
@@ -17,8 +17,8 @@ eleven stored choice/cycle/drop tables (192 IDs). Grouped tables retain native
 count/stride; their symbols and one role per visible run remain readable.
 This is semantic presentation, not a value/lifetime bound. Directory placeholders
 and unsupported IDs remain numeric; zero is named only as an absence marker.
-The two newly exposed table reads explain the unresolved increase; no old app
-or typed proof is lost.
+The bounded pirate-drop read is recovered automatically; the retirement-table
+read still needs a cursor invariant. All prior app and field attributions remain.
 Original payload SHA256:
 `662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9`.
 
@@ -54,12 +54,13 @@ Original payload SHA256:
    bits only. The scan mask admits eight offsets for seven stored pointers;
    its countdown needs a writer/entry bound. The eight audio-ring reads also
    need an entry invariant: equality-only wrapping does not bound arbitrary
-   initial cursors. The pirate-drop address is bounded by AND15 within its
-   16-record BYTE array; its unresolved field projection is the eight-value
-   WORD-index representation limit, not a missing table extent. Next: represent
-   known-bit bounds/stride without enumerating offsets, retaining out-of-owner
-   and partial-field refusals. Retirement still reads its cursor before wrapping;
-   naming its 32 stored IDs adds no caller bound. Literal/copy/equality index probes already resolve fields.
+   initial cursors. The pirate-drop read now uses `bounded_cfg_mask`: AND15
+   stays within its 16-record BYTE array, without enumerating a larger finite
+   set. The shared proof checks fixed record residues and complete field/owner
+   coverage; arbitrary residues and negative/modular domains remain outside this
+   lane. Retirement still reads its cursor before wrapping; naming its 32 stored
+   IDs adds no caller bound. Next: establish a specific validated-state entry
+   invariant rather than treating post-read masking as a precondition. Literal/copy/equality index probes already resolve fields.
    The ingredient loops retain their 0..7 index; loaded BYTE values are absent
    from the scalar WORD packet. The 104-byte count backing supplies no value
    bound. Next: a write-aware scalar BYTE-load/zero-extension fixture, retaining

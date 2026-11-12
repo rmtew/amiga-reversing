@@ -81,9 +81,15 @@ def test_unmaterialized_range_survives_a_word_register_copy(tmp_path):
     assert len(refs)==1 and refs[0]['word_index']['byte_offsets']==[0,4,8,12]
 
 
-def test_large_range_does_not_expand_the_finite_value_cap(tmp_path):
-    refs=inspect(tmp_path,'cmp.w #0,d0\n blt.w done\n cmp.w #15,d0\n bgt.w done\n lsl.w #2,d0\n move.l 0(a0,d0.w),d3\ndone: rts\n',array_count=16)
-    assert not refs
+@pytest.mark.parametrize('array_count',[15,16])
+def test_large_range_does_not_expand_the_finite_value_cap(tmp_path,array_count):
+    refs=inspect(tmp_path,'cmp.w #0,d0\n blt.w done\n cmp.w #15,d0\n bgt.w done\n lsl.w #2,d0\n move.l 0(a0,d0.w),d3\ndone: rts\n',array_count=array_count)
+    assert bool(refs)==(array_count==16)
+    if refs:
+        index=refs[0]['word_index']
+        assert index['evidence']=='bounded_cfg_mask'and 'byte_offsets'not in index
+        assert index['index_domain']['lower_bound']==0 and index['index_domain']['upper_bound']==60
+        assert index['record_count']==16
 
 
 def test_modular_intersections_and_joins_cover_the_mathematical_word_sets(tmp_path):

@@ -27,6 +27,17 @@ static int append_unresolved_operand_evidence_json(JsonBuilder *builder,
 static int append_word_index_access_json(JsonBuilder *builder, const M68kWordIndexAccessIR *index) {
   size_t value;
   if (!m68k_word_index_access_has_domain(index)) return 0;
+  if (index->has_mask_domain) {
+    return json_builder_appendf(builder,
+      ",\"word_index\":{\"register\":\"D%u\",\"index_width\":2,\"scale\":1,"
+      "\"access_width\":%u,\"record_count\":%u,\"base_record_index\":%u,\"encoded_symbol_correction\":%d,"
+      "\"evidence\":\"bounded_cfg_mask\",\"index_domain\":{\"lower_bound\":%u,\"upper_bound\":%u,"
+      "\"known_bits_mask\":%u,\"known_bits_value\":%u}}",
+      (unsigned)index->reg_index, (unsigned)index->access_width, (unsigned)index->record_count,
+      (unsigned)index->base_record_index, index->encoded_symbol_correction,
+      (unsigned)index->index_lower, (unsigned)index->index_upper,
+      (unsigned)index->known_bits_mask, (unsigned)index->known_bits_value);
+  }
   if (index->loop_domain.state) {
     const M68kAffineLoopDomainIR *loop = &index->loop_domain;
     return json_builder_appendf(builder,
@@ -3490,6 +3501,13 @@ static int append_source_analysis_memory_layout_records_json(JsonBuilder *builde
                 access->word_index.access_width) != 0 || json_builder_append(builder, "}") != 0) return -1;
         }
         if (json_builder_append(builder, "]") != 0) return -1;
+      } else if (access->word_index.has_mask_domain) {
+        const M68kWordIndexAccessIR *domain = &access->word_index;
+        if (json_builder_append(builder, ",\"indexed_mask_range\":{\"indexed\":true,\"overapproximation\":true") != 0 ||
+            append_memory_layout_range_json(builder, MEMORY_LAYOUT_RANGE_SPACE_BASE_RELATIVE,
+              (int64_t)access->displacement + domain->index_lower,
+              (uint32_t)domain->index_upper - domain->index_lower + domain->access_width) != 0 ||
+            json_builder_append(builder, "}") != 0) return -1;
       } else if (access->word_index.loop_domain.state) {
         const M68kAffineLoopDomainIR *loop = &access->word_index.loop_domain;
         int64_t first = (int64_t)access->displacement + access->word_index.loop_index_first;

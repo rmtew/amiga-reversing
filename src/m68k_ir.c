@@ -3429,6 +3429,9 @@ static int word_index_access_equal(const M68kWordIndexAccessIR *left, const M68k
     left->reg_index == right->reg_index && left->access_width == right->access_width &&
     left->record_count == right->record_count && left->base_record_index == right->base_record_index &&
     left->encoded_symbol_correction == right->encoded_symbol_correction &&
+    left->has_mask_domain == right->has_mask_domain &&
+    left->known_bits_mask == right->known_bits_mask && left->known_bits_value == right->known_bits_value &&
+    left->index_lower == right->index_lower && left->index_upper == right->index_upper &&
     left->loop_index_first == right->loop_index_first &&
     !memcmp(&left->loop_domain, &right->loop_domain, sizeof(left->loop_domain)) &&
     !memcmp(left->byte_offsets, right->byte_offsets, left->value_count * sizeof(*left->byte_offsets));
@@ -3463,6 +3466,11 @@ int m68k_ir_section_analysis_append_recovered_platform_typed_access(M68kSectionA
        (word_index->reg_kind != M68K_ANALYSIS_REGISTER_DATA && word_index->reg_kind != M68K_ANALYSIS_REGISTER_ADDRESS) ||
        (word_index->access_width != 1U && word_index->access_width != 2U && word_index->access_width != 4U) ||
        !word_index->record_count || word_index->base_record_index >= word_index->record_count)) return -1;
+  if (word_index && word_index->has_mask_domain &&
+      (word_index->has_mask_domain != 1U || word_index->value_count || word_index->loop_domain.state ||
+       word_index->reg_kind != M68K_ANALYSIS_REGISTER_DATA || word_index->index_lower > word_index->index_upper ||
+       word_index->index_upper > INT16_MAX ||
+       (word_index->known_bits_value & (uint16_t)~word_index->known_bits_mask))) return -1;
   if (word_index && word_index->loop_domain.state) {
     const M68kAffineLoopDomainIR *loop = &word_index->loop_domain;
     int64_t last;
