@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import heapq
 import json
 import uuid
 from collections.abc import Mapping, Sequence
@@ -939,42 +940,55 @@ def _manual_label_conflict_items(
 
 
 def _manual_seed_conflict_items(seeds: dict[str, dict[str, object]]) -> list[dict[str, object]]:
-    items: list[dict[str, object]] = []
-    values = list(seeds.values())
-    for left_index, left in enumerate(values):
-        left_id = left.get("seed_id")
-        left_kind = left.get("kind")
-        left_range = _manual_seed_range(left)
-        if not isinstance(left_id, str) or not isinstance(left_kind, ManualSeedKind) or left_range is None:
+    # Parse once, then compare only simultaneously live opposite-kind ranges.
+    # Keep insertion coordinates so review output retains the original pair order.
+    by_hunk: dict[int, list[tuple[int, str, ManualSeedKind, int, int]]] = {}
+    for index, seed in enumerate(seeds.values()):
+        identity, kind = seed.get("seed_id"), seed.get("kind")
+        extent = _manual_seed_range(seed)
+        if not isinstance(identity, str) or not isinstance(kind, ManualSeedKind) or extent is None:
             continue
-        if not _manual_seed_required(left):
+        if not _manual_seed_required(seed):
             continue
-        for right in values[left_index + 1:]:
-            right_id = right.get("seed_id")
-            right_kind = right.get("kind")
-            right_range = _manual_seed_range(right)
-            if not isinstance(right_id, str) or not isinstance(right_kind, ManualSeedKind) or right_range is None:
-                continue
-            if not _manual_seed_required(right) or right_kind == left_kind:
-                continue
-            if left_range[0] != right_range[0] or left_range[1] >= right_range[2] or right_range[1] >= left_range[2]:
-                continue
-            item_id = f"manual_seed_conflict:{min(left_id, right_id)}:{max(left_id, right_id)}"
-            items.append(
-                {
-                    "kind": ReviewItemKind.MANUAL_SEED_CONFLICT,
-                    "item_id": item_id,
-                    "scope": ReviewItemScope.RANGE,
-                    "state": ReviewItemState.OPEN,
-                    "review_blocker": True,
-                    "seed_ids": [left_id, right_id],
-                    "hunk": left_range[0],
-                    "start": max(left_range[1], right_range[1]),
-                    "end": min(left_range[2], right_range[2]),
-                    "message": f"Required manual seeds {left_id} and {right_id} conflict",
-                }
-            )
-    return items
+        hunk, start, end = extent
+        by_hunk.setdefault(hunk, []).append((index, identity, kind, start, end))
+
+    conflicts: list[tuple[int, int, str, str, int, int, int]] = []
+    for hunk, ranges in by_hunk.items():
+        active: dict[ManualSeedKind, dict[int, tuple[int, str, ManualSeedKind, int, int]]] = {
+            kind: {} for kind in ManualSeedKind
+        }
+        ends: list[tuple[int, int, ManualSeedKind]] = []
+        for entry in sorted(ranges, key=lambda value: (value[3], value[0])):
+            index, identity, kind, start, end = entry
+            while ends and ends[0][0] <= start:
+                _, expired_index, expired_kind = heapq.heappop(ends)
+                del active[expired_kind][expired_index]
+            for other_kind, candidates in active.items():
+                if other_kind is kind:
+                    continue
+                for other in candidates.values():
+                    left, right = (other, entry) if other[0] < index else (entry, other)
+                    conflicts.append((left[0], right[0], left[1], right[1], hunk,
+                                      max(start, other[3]), min(end, other[4])))
+            active[kind][index] = entry
+            heapq.heappush(ends, (end, index, kind))
+
+    return [
+        {
+            "kind": ReviewItemKind.MANUAL_SEED_CONFLICT,
+            "item_id": f"manual_seed_conflict:{min(left_id, right_id)}:{max(left_id, right_id)}",
+            "scope": ReviewItemScope.RANGE,
+            "state": ReviewItemState.OPEN,
+            "review_blocker": True,
+            "seed_ids": [left_id, right_id],
+            "hunk": hunk,
+            "start": start,
+            "end": end,
+            "message": f"Required manual seeds {left_id} and {right_id} conflict",
+        }
+        for _, _, left_id, right_id, hunk, start, end in sorted(conflicts)
+    ]
 
 
 def _manual_seed_metadata_conflict_items(

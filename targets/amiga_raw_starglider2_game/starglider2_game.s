@@ -4429,7 +4429,7 @@ initial_stack_zero_seed_bytes:
 initial_game_stack_top:
 	dc.b $00,$00,$00,$00
 abs_0_00003374:
-	jmp abs_0_00036372.l
+	jmp enqueue_current_location_and_mission_status.l
 update_panel_animations_bridge_00237a:
 	jmp update_panel_animations.l
 initialize_model_type_target_tags_bridge_002380:
@@ -46398,7 +46398,7 @@ clear_next_depot_service_entry_latch:
 advance_projector_station_cycle_continuation:
 	move.b #$58,diagnostic_step_byte.l
 	tst.b station_cycle_enabled_flag(a6)
-	bpl.w abs_0_000376F8
+	bpl.w tick_novenia_report_repeat_delay
 	move.b #$59,diagnostic_step_byte.l
 	tst.b space_environment_flag(a6)
 	bmi.b abs_0_00034AC4
@@ -48259,7 +48259,8 @@ abs_0_0003635A:
 	bra.w abs_0_00039D56
 	dc.b $06,$A8,$00,$00,$01,$90,$00,$0C,$53,$68,$00,$10,$6A,$02,$42,$50
 	dc.b $60,$00,$39,$CE
-abs_0_00036372:
+    ; Location uses sign tests for space/structure; optional station/order lines require inside byte exactly zero. Queue resets first; pointer validity and capacity remain conditional.
+enqueue_current_location_and_mission_status:
 	movem.l d0-d1/a1,-(a7)
 	clr.w pending_message_count(a6)
 	move.w #$1,message_display_countdown(a6)
@@ -48274,29 +48275,29 @@ abs_0_00036372:
 	movea.l SG2SourceTextReference_text(a1,d0.w),a1
 	bsr.w enqueue_event_message
 	tst.b space_environment_flag(a6)
-	bmi.b abs_0_000363CE
+	bmi.b queue_space_location_for_status_report
 	tst.b inside_structure_flag(a6)
-	bmi.b abs_0_000363E4
+	bmi.b queue_structure_location_for_status_report
 	lea.l object_name_pointers.l,a1
 	move.w selected_celestial_body_index(a6),d0
 	addi.w #128,d0
 	asl.w #2,d0
 	movea.l $0(a1,d0.w),a1
 	bsr.w enqueue_event_message
-	bra.b abs_0_000363F6
-abs_0_000363CE:
+	bra.b append_station_intelligence_to_status_report
+queue_space_location_for_status_report:
 	lea.l event_message_pointers.l,a1
 	move.w #$29,d0
 	asl.w #2,d0
 	movea.l SG2SourceTextReference_text(a1,d0.w),a1
 	bsr.w enqueue_event_message
-	bra.b abs_0_000363F6
-abs_0_000363E4:
+	bra.b append_station_intelligence_to_status_report
+queue_structure_location_for_status_report:
 	lea.l event_message_pointers.l,a1
 	move.w #$14C,d0
 	movea.l SG2SourceTextReference_text(a1,d0.w),a1
 	bsr.w enqueue_event_message
-abs_0_000363F6:
+append_station_intelligence_to_status_report:
 	lea.l event_message_pointers.l,a1
 	move.w #$F,d0
 	asl.w #2,d0
@@ -48304,12 +48305,12 @@ abs_0_000363F6:
 	bsr.w enqueue_message_if_outside_structure
 	movea.l station_report_primary_message(a6),a1
 	cmpa.l #$0,a1
-	beq.w abs_0_000364A8
+	beq.w append_no_station_information_status
 	bsr.w enqueue_message_if_outside_structure
 	movea.l station_report_secondary_message(a6),a1
 	bsr.w enqueue_message_if_outside_structure
 	tst.b professor_taymar_aboard_flag(a6)
-	bpl.b abs_0_0003645A
+	bpl.b test_neutron_order_for_status_report
 	lea.l event_message_pointers.l,a1
 	move.w #$134,d0
 	movea.l SG2SourceTextReference_text(a1,d0.w),a1
@@ -48321,35 +48322,35 @@ abs_0_000363F6:
 	lea.l event_message_pointers.l,a1
 	movea.l SG2SourceTextReference_text(a1,d0.w),a1
 	bsr.w enqueue_event_message
-	bra.b abs_0_0003649E
-abs_0_0003645A:
+	bra.b finish_current_location_and_mission_status
+test_neutron_order_for_status_report:
 	tst.b neutron_bomb_order_requested_flag(a6)
-	bmi.b abs_0_00036462
-	bra.b abs_0_0003649E
-abs_0_00036462:
+	bmi.b append_neutron_order_progress_to_status_report
+	bra.b finish_current_location_and_mission_status
+append_neutron_order_progress_to_status_report:
 	lea.l event_message_pointers.l,a1
 	move.w #$148,d0
 	movea.l SG2SourceTextReference_text(a1,d0.w),a1
 	bsr.w enqueue_message_if_outside_structure
 	tst.b professor_taymar_delivered_flag(a6)
-	bmi.b abs_0_00036486
+	bmi.b select_neutron_bomb_readiness_status_text
 	lea.l depot_text_we_need_professor_taymar.l,a1
 	bsr.w enqueue_message_if_outside_structure
-	bra.b abs_0_0003649E
-abs_0_00036486:
+	bra.b finish_current_location_and_mission_status
+select_neutron_bomb_readiness_status_text:
 	tst.b neutron_bomb_ready_flag(a6)
-	bmi.b abs_0_00036494
+	bmi.b select_completed_neutron_bomb_status_text
 	lea.l depot_text_bomb_under_construction.l,a1
-	bra.b abs_0_0003649A
-abs_0_00036494:
+	bra.b queue_selected_neutron_bomb_status_text
+select_completed_neutron_bomb_status_text:
 	lea.l depot_text_bomb_constructed.l,a1
-abs_0_0003649A:
+queue_selected_neutron_bomb_status_text:
 	bsr.w enqueue_message_if_outside_structure
-abs_0_0003649E:
+finish_current_location_and_mission_status:
 	bsr.w enqueue_blank_event_message_line
 	movem.l (a7)+,d0-d1/a1
 	rts
-abs_0_000364A8:
+append_no_station_information_status:
 	lea.l event_message_pointers.l,a1
 	move.w #$13,d0
 	asl.w #2,d0
@@ -49527,15 +49528,16 @@ advance_saved_frame_scan_visible_list:
 restore_saved_frame_scan_address_registers:
 	movem.l (a7)+,a0-a5
 	rts
+    ; Campaign reset retains player X/Z and free-object count. Clears campaign arrays and station state, zeroes model99 face count and copies17 cached bodies. Pool initialization is separate.
 initialize_mission_and_flight_state:
 	sf.b modal_command_input_flag(a6)
 	move.w #$3,type128_disc_outer_layer_index(a6)
 	move.w #$8,station_mini_sentinel_count(a6)
 	lea.l released_object_tracking_references(a6),a0
 	move.w #$9,d0
-abs_0_00037428:
+clear_released_tracking_slots_for_new_mission:
 	clr.l (a0)+
-	dbf.w d0,abs_0_00037428
+	dbf.w d0,clear_released_tracking_slots_for_new_mission
 	move.l #$14,carried_neutron_bomb_y_offset.l
 	clr.w nearby_effect_or_override_present_word.l
 	clr.w surface_brake_hold_countdown.l
@@ -49553,19 +49555,19 @@ abs_0_00037428:
 	lea.l model_type_population_counts(a6),a0
 	lea.l taymar_delivered_model_counts_prefix(a6),a1
 	move.w #$67,d0
-abs_0_0003748A:
+clear_model_and_delivered_counts_for_new_mission:
 	clr.b (a0)+
 	clr.b (a1)+
-	dbf.w d0,abs_0_0003748A
+	dbf.w d0,clear_model_and_delivered_counts_for_new_mission
 	lea.l structure_service_entry_counts(a6),a0
 	lea.l structure_service_entry_latches(a6),a1
 	clr.w depot_line_pointer_offset(a6)
 	clr.w inventory_list_item_index(a6)
 	move.w #$B,d0
-abs_0_000374A6:
+clear_structure_service_counts_and_latches:
 	sf.b $0(a0,d0.w)
 	sf.b $0(a1,d0.w)
-	dbf.w d0,abs_0_000374A6
+	dbf.w d0,clear_structure_service_counts_and_latches
 	move.w #$F,taymar_intro_message_index_mask.l
 	lea.l station_sequence_bomb_spawn_countdowns.l,a1
 	move.w (a1),neutron_bomb_spawn_countdown(a6)
@@ -49580,9 +49582,9 @@ abs_0_000374A6:
 	clr.l carried_neutron_bomb_reference(a6)
 	lea.l projector_part_presence_flags(a6),a0
 	move.w #$37,d0
-abs_0_000374F0:
+clear_projector_part_presence_for_new_mission:
 	sf.b (a0)+
-	dbf.w d0,abs_0_000374F0
+	dbf.w d0,clear_projector_part_presence_for_new_mission
 	clr.w station_sequence_index(a6)
 	lea.l station_sequence_cadence_masks.l,a0
 	move.w (a0),station_event_cadence_mask(a6)
@@ -49611,15 +49613,15 @@ abs_0_000374F0:
 	lea.l initial_cached_body_states.l,a1
 	moveq.l #67,d0
     ; Copy68 LONGs:17 sixteen-byte cached-body states. Then copy17 orbit-angle WORDs. These exact seed extents do not establish all later high-type index bounds.
-abs_0_00037574:
+copy_initial_cached_celestial_body_states:
 	move.l (a1)+,(a0)+
-	dbf.w d0,abs_0_00037574
+	dbf.w d0,copy_initial_cached_celestial_body_states
 	lea.l body_orbit_angle_words(a6),a0
 	lea.l initial_body_orbit_angles.l,a1
 	moveq.l #16,d0
-abs_0_00037586:
+copy_initial_celestial_orbit_angles:
 	move.w (a1)+,(a0)+
-	dbf.w d0,abs_0_00037586
+	dbf.w d0,copy_initial_celestial_orbit_angles
 	move.l #$1AB3F00,apogee_orbit_parent_x(a6)
 	move.l #$1312D00,apogee_orbit_parent_z(a6)
 	move.l #$1E84800,millway_orbit_parent_x(a6)
@@ -49662,29 +49664,30 @@ abs_0_00037586:
 	sf.b service_blank_line_pending_flag.l
 	move.w #$FFFF,shared_grayscale_effect_countdown.l
 	rts
+    ; Both proximity helpers use N-based negation and CMP/BPL without V. Stored LONG is x+z+2*chosen with wrap; overflow cases differ from ordinary maximum/distance arithmetic.
 update_system_center_proximity_metric:
 	move.l #$1312D00,d0
 	move.l player_world_x(a6),d2
 	move.l d0,d1
 	move.l player_world_z(a6),d3
 	sub.l d0,d2
-	bpl.b abs_0_000376A6
+	bpl.b take_system_center_z_separation_magnitude
 	neg.l d2
-abs_0_000376A6:
+take_system_center_z_separation_magnitude:
 	sub.l d1,d3
-	bpl.b abs_0_000376AC
+	bpl.b select_system_center_dominant_separation
 	neg.l d3
-abs_0_000376AC:
+select_system_center_dominant_separation:
 	move.l d2,d0
 	add.l d3,d0
 	cmp.l d2,d3
-	bpl.b abs_0_000376BA
+	bpl.b double_system_center_z_separation
 	add.l d2,d2
 	move.l d2,d3
-	bra.b abs_0_000376BC
-abs_0_000376BA:
+	bra.b store_system_center_proximity_metric
+double_system_center_z_separation:
 	add.l d3,d3
-abs_0_000376BC:
+store_system_center_proximity_metric:
 	add.l d0,d3
 	move.l d3,system_center_proximity_metric(a6)
 	rts
@@ -49694,34 +49697,34 @@ update_millway_proximity_metric:
 	move.l millway_orbit_parent_z(a6),d1
 	move.l player_world_z(a6),d3
 	sub.l d0,d2
-	bpl.b abs_0_000376DA
+	bpl.b take_millway_z_separation_magnitude
 	neg.l d2
-abs_0_000376DA:
+take_millway_z_separation_magnitude:
 	sub.l d1,d3
-	bpl.b abs_0_000376E0
+	bpl.b select_millway_dominant_separation
 	neg.l d3
-abs_0_000376E0:
+select_millway_dominant_separation:
 	move.l d2,d0
 	add.l d3,d0
 	cmp.l d2,d3
-	bpl.b abs_0_000376EE
+	bpl.b double_millway_z_separation
 	add.l d2,d2
 	move.l d2,d3
-	bra.b abs_0_000376F0
-abs_0_000376EE:
+	bra.b store_millway_proximity_metric
+double_millway_z_separation:
 	add.l d3,d3
-abs_0_000376F0:
+store_millway_proximity_metric:
 	add.l d0,d3
 	move.l d3,millway_proximity_metric(a6)
 	rts
-abs_0_000376F8:
+tick_novenia_report_repeat_delay:
 	subq.w #1,novenia_report_repeat_delay.l
-	bpl.b abs_0_00037778
+	bpl.b gate_projector_presence_loss_on_random_low_seven_bits
 	move.w #$100,novenia_report_repeat_delay.l
 	subq.w #1,novenia_report_repeats_remaining.l
 	bpl.b report_novenia_destruction_continuation
 	move.w #$FFFF,novenia_report_repeats_remaining.l
-	bra.b abs_0_00037778
+	bra.b gate_projector_presence_loss_on_random_low_seven_bits
     ; Queue scout report that Novenia was destroyed by a massive beam weapon, and retain its two status-message pointers. Do not infer a victory/ending condition from report text.
 report_novenia_destruction_continuation:
 	clr.w pending_message_count(a6)
@@ -49745,20 +49748,21 @@ report_novenia_destruction_continuation:
 	movea.l SG2SourceTextReference_text(a1,d0.w),a1
 	bsr.w enqueue_event_message
 	bsr.w enqueue_blank_event_message_line
-abs_0_00037778:
+gate_projector_presence_loss_on_random_low_seven_bits:
 	bsr.w advance_shared_random_state_bridge_038d20
 	andi.w #127,d0
-	bne.b abs_0_000377A0
+	bne.b resume_projector_part_reconciliation
+    ; Random low7=0 decrements cursor before the presence read; negative WORD resets to55. Only negative flags clear. Nonnegative oversized cursors retain their out-of-prefix access.
 	subq.w #1,projector_rebuild_cursor(a6)
-	bpl.b abs_0_0003778E
+	bpl.b test_selected_projector_presence_for_removal
 	move.w #$37,projector_rebuild_cursor(a6)
-abs_0_0003778E:
+test_selected_projector_presence_for_removal:
 	move.w projector_rebuild_cursor(a6),d0
 	lea.l projector_part_presence_flags(a6),a0
 	tst.b $0(a0,d0.w)
-	bpl.b abs_0_000377A0
+	bpl.b resume_projector_part_reconciliation
 	sf.b $0(a0,d0.w)
-abs_0_000377A0:
+resume_projector_part_reconciliation:
 	bra.w reconcile_nearby_projector_parts_continuation
     ; Sum104 unsigned per-model count BYTEs except12/91/98/84. Store WORD total and LSL.W5 copy; preserve wrap and valid app-base assumptions. Not all-live or threat count.
 recompute_counted_model_population:
@@ -49767,20 +49771,20 @@ recompute_counted_model_population:
 	move.w #$67,d1
 	lea.l model_type_population_counts(a6),a1
 	clr.w counted_model_population.l
-abs_0_000377B8:
+accumulate_nonexcluded_model_population:
 	move.b $0(a1,d1.w),d6
 	cmp.b #$C,d1
-	beq.b abs_0_000377DA
+	beq.b advance_model_population_count_selector
 	cmp.b #$5B,d1
-	beq.b abs_0_000377DA
+	beq.b advance_model_population_count_selector
 	cmp.b #$62,d1
-	beq.b abs_0_000377DA
+	beq.b advance_model_population_count_selector
 	cmp.b #$54,d1
-	beq.b abs_0_000377DA
+	beq.b advance_model_population_count_selector
 	andi.w #255,d6
 	add.w d6,d7
-abs_0_000377DA:
-	dbf.w d1,abs_0_000377B8
+advance_model_population_count_selector:
+	dbf.w d1,accumulate_nonexcluded_model_population
 	move.w d7,d6
 	move.w d7,counted_model_population.l
 	asl.w #5,d6
@@ -49789,33 +49793,33 @@ abs_0_000377DA:
 	rts
 clear_stardrive_below_speed_threshold:
 	cmpi.w #64,player_speed_smoothed(a6)
-	bpl.b abs_0_0003781C
+	bpl.b return_after_stardrive_speed_gate
 	tst.w stardrive_enabled_word(a6)
-	bpl.b abs_0_00037818
+	bpl.b clear_stardrive_enabled_state_after_speed_gate
 	lea.l event_message_pointers.l,a1
 	move.w #$4,d0
 	movea.l SG2SourceTextReference_text(a1,d0.w),a1
 	bsr.w enqueue_event_message
 	bsr.w enqueue_blank_event_message_line
-abs_0_00037818:
+clear_stardrive_enabled_state_after_speed_gate:
 	clr.w stardrive_enabled_word(a6)
-abs_0_0003781C:
+return_after_stardrive_speed_gate:
 	rts
     ; On nearby-record type match, queue heading + selected object name + suffix. Saves D0/A4 only; original selector bounds and other register effects remain conditional.
 enqueue_nearby_sound_analysis:
 	movem.l d0/a4,-(a7)
 	move.w selected_object_sound_type.l,d2
 	move.w nearby_object_count(a6),d0
-	beq.b abs_0_0003788E
+	beq.b restore_sound_analysis_caller_registers
 	subq.w #1,d0
 	movea.l nearby_objects_cursor(a6),a0
-abs_0_00037834:
+find_nearby_record_matching_sound_analysis_type:
 	movea.l (a0)+,a1
 	cmp.w SG2ObjectCore_object_type.w(a1),d2
-	beq.b abs_0_00037842
-	dbf.w d0,abs_0_00037834
-	bra.b abs_0_0003788E
-abs_0_00037842:
+	beq.b replace_queue_with_matched_object_sound_analysis
+	dbf.w d0,find_nearby_record_matching_sound_analysis_type
+	bra.b restore_sound_analysis_caller_registers
+replace_queue_with_matched_object_sound_analysis:
 	clr.w pending_message_count(a6)
 	move.w #$1,message_display_countdown(a6)
 	lea.l nearby_sound_analysis_text_pointers.l,a4
@@ -49834,7 +49838,7 @@ abs_0_00037842:
 	movea.l $0(a4,d0.w),a1
 	bsr.w enqueue_event_message
 	bsr.w enqueue_blank_event_message_line
-abs_0_0003788E:
+restore_sound_analysis_caller_registers:
 	movem.l (a7)+,d0/a4
 	rts
 tractor_beam_marker_type_word:
