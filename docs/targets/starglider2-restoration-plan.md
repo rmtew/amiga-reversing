@@ -6,19 +6,23 @@ claim of complete gameplay/hardware equivalence.
 
 ## Current validated baseline
 
-Current validated export: 3517 app references, 2803 typed accesses, 179 unresolved
-accesses; 9857 unclassified bytes in 277 intervals. These are analysis counts,
+Current validated export: 3517 app references, 2806 typed accesses, 185 unresolved
+accesses; 9839 unclassified bytes in 276 intervals. These are analysis counts,
 not semantic completion percentages. The phrase-counter
 references retain declared-layout A6 fallback; the role declaration adds no
 stronger base proof. The projector report arrays expose three additional
 dynamic-index reads; all prior typed/unresolved facts are retained.
 The scalar object-type domain exposes constructors, collision exclusions and
-eleven stored choice/cycle/drop tables (192 IDs). Grouped tables retain native
+fifteen choice/cycle/drop/trade/ingredient/projector tables (274 stored IDs).
+Grouped tables retain native
 count/stride; their symbols and one role per visible run remain readable.
 This is semantic presentation, not a value/lifetime bound. Directory placeholders
 and unsupported IDs remain numeric; zero is named only as an absence marker.
 The bounded pirate-drop read is recovered automatically; the retirement-table
 read still needs a cursor invariant. All prior app and field attributions remain.
+Four trade/ingredient/projector directories expose another 82 stored object IDs;
+three bounded ingredient reads resolve. Six newly exposed trade/projector/read
+sites remain unresolved; none of the prior 179 unresolved records were lost.
 Original payload SHA256:
 `662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9`.
 
@@ -59,8 +63,12 @@ Original payload SHA256:
    set. The shared proof checks fixed record residues and complete field/owner
    coverage; arbitrary residues and negative/modular domains remain outside this
    lane. Retirement still reads its cursor before wrapping; naming its 32 stored
-   IDs adds no caller bound. Next: establish a specific validated-state entry
-   invariant rather than treating post-read masking as a precondition. Literal/copy/equality index probes already resolve fields.
+   IDs adds no caller bound. Its direct references show only the increment and
+   mask writers; the original image seeds zero and the inspected game resets do
+   not reset it. This absolute cell is outside the saved app prefix. Next: prove
+   separation from indirect writes across the caller loop before promoting the
+   candidate 0..31 invariant; post-read masking alone is insufficient.
+   Literal/copy/equality index probes already resolve fields.
    The ingredient loops retain their 0..7 index; loaded BYTE values are absent
    from the scalar WORD packet. The 104-byte count backing supplies no value
    bound. Next: a write-aware scalar BYTE-load/zero-extension fixture, retaining
