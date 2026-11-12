@@ -27,6 +27,9 @@ Five bounded spawn/drop readers resolve; primary/secondary update references
 now name 38 accepted dispatch tails and 38 JMP bridges to already known bodies.
 These names add no code, target-set completeness or lifetime proof; original
 diagnostic stores and register/stack effects remain intact.
+Five remaining generated-name entry candidates now have local roles, backed by
+37 CPU cases. Their ambiguous CFG ownership remains unchanged; numeric record
+operands remain where native pointer context does not establish a field view.
 Original payload SHA256:
 `662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9`.
 
@@ -93,9 +96,10 @@ Original payload SHA256:
    that value. Next: establish a specific validated-state caller context; ordinary
    initialization/decrement/wrap and table extent alone cannot supply the bound.
 5. Residual regions: prioritize accepted data readers and incoming code edges.
-   Investigate mapped global/scratch read footprints missing from source
-   ownership, keeping explicit runtime namespaces, code and overlapping views
-   protected. A reference alone does not supply a complete backing extent.
+   Incoming-reference review separates address formation from actual memory
+   effects. Some named globals lack backing declarations; investigate connected
+   record roles/extents while protecting runtime namespaces, code and views.
+   Nominal address-formation width or scalar formatting supplies no owner.
    Do not decode apparent instructions or declare arrays from plausible bytes.
    Zero-fill writers and write-only app flags do not establish field purpose.
    The debug-key99 toggle has no static reader; the viewer auxiliary WORD has

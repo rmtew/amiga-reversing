@@ -10526,10 +10526,10 @@ primary_object_update_offsets:
 	dc.w continue_primary_object_update_loop-primary_object_update_offsets
 	dc.w update_tunnel_indicator_rotation-primary_object_update_offsets
 	dc.w update_tunnel_indicator_rotation-primary_object_update_offsets
-	dc.w abs_0_000083D8-primary_object_update_offsets
+	dc.w spin_junk_two_axes_in_space-primary_object_update_offsets
 	dc.w update_nearby_skim_missile_dispatch_0073fe-primary_object_update_offsets
-	dc.w abs_0_000083D8-primary_object_update_offsets
-	dc.w abs_0_000083D8-primary_object_update_offsets
+	dc.w spin_junk_two_axes_in_space-primary_object_update_offsets
+	dc.w spin_junk_two_axes_in_space-primary_object_update_offsets
 	dc.w update_blast_door_variant-primary_object_update_offsets
 	dc.w update_blowhole_diamond_emission-primary_object_update_offsets
 	dc.w update_energy_gate_vertex_variant-primary_object_update_offsets
@@ -10556,7 +10556,7 @@ primary_object_update_offsets:
 	dc.w step_ground_laser_fire_phase-primary_object_update_offsets
 	dc.w continue_primary_object_update_loop-primary_object_update_offsets
 	dc.w update_nearby_volcano_dispatch_00749c-primary_object_update_offsets
-	dc.w abs_0_00009318-primary_object_update_offsets
+	dc.w advance_columbus_variant_then_integrate-primary_object_update_offsets
 	dc.w update_energy_tower_variant_and_alternate_form-primary_object_update_offsets
 	dc.w update_nearby_bouncing_bomb_dispatch_0075e8-primary_object_update_offsets
 	dc.w continue_primary_object_update_loop-primary_object_update_offsets
@@ -10704,7 +10704,7 @@ secondary_object_update_offsets:
 	dc.w update_distant_linked_ground_actor_motion-secondary_object_update_offsets
 	dc.w integrate_distant_actor_and_tick_behavior_counter-secondary_object_update_offsets
 	dc.w integrate_distant_actor_and_tick_behavior_counter-secondary_object_update_offsets
-	dc.w abs_0_0000A8CE-secondary_object_update_offsets
+	dc.w clear_distant_object_type_and_rejoin-secondary_object_update_offsets
 	dc.w update_secondary_actor_motion_and_counter-secondary_object_update_offsets
 	dc.w continue_secondary_object_update_loop-secondary_object_update_offsets
 	dc.w update_distant_linked_ground_actor_motion-secondary_object_update_offsets
@@ -10717,7 +10717,7 @@ secondary_object_update_offsets:
 	dc.w integrate_distant_actor_velocity-secondary_object_update_offsets
 	dc.w continue_secondary_object_update_loop-secondary_object_update_offsets
 	dc.w continue_secondary_object_update_loop-secondary_object_update_offsets
-	dc.w abs_0_0000A8CE-secondary_object_update_offsets
+	dc.w clear_distant_object_type_and_rejoin-secondary_object_update_offsets
 	dc.w integrate_distant_actor_and_tick_behavior_counter-secondary_object_update_offsets
 	dc.w update_secondary_actor_motion_and_counter-secondary_object_update_offsets
 	dc.w update_secondary_actor_motion_and_counter-secondary_object_update_offsets
@@ -10764,9 +10764,9 @@ secondary_object_update_offsets:
 	dc.w continue_secondary_object_update_loop-secondary_object_update_offsets
 	dc.w continue_secondary_object_update_loop-secondary_object_update_offsets
 	dc.w continue_secondary_object_update_loop-secondary_object_update_offsets
-	dc.w abs_0_0000A8CE-secondary_object_update_offsets
-	dc.w abs_0_0000A8CE-secondary_object_update_offsets
-	dc.w abs_0_0000A8CE-secondary_object_update_offsets
+	dc.w clear_distant_object_type_and_rejoin-secondary_object_update_offsets
+	dc.w clear_distant_object_type_and_rejoin-secondary_object_update_offsets
+	dc.w clear_distant_object_type_and_rejoin-secondary_object_update_offsets
 	dc.w continue_secondary_object_update_loop-secondary_object_update_offsets
 	dc.w continue_secondary_object_update_loop-secondary_object_update_offsets
 	dc.w continue_secondary_object_update_loop-secondary_object_update_offsets
@@ -10795,7 +10795,7 @@ secondary_object_update_offsets:
 	dc.w continue_secondary_object_update_loop-secondary_object_update_offsets
 	dc.w continue_secondary_object_update_loop-secondary_object_update_offsets
 	dc.w continue_secondary_object_update_loop-secondary_object_update_offsets
-	dc.w abs_0_0000A8CE-secondary_object_update_offsets
+	dc.w clear_distant_object_type_and_rejoin-secondary_object_update_offsets
 	dc.w continue_secondary_object_update_loop-secondary_object_update_offsets
 	dc.w continue_secondary_object_update_loop-secondary_object_update_offsets
 	dc.w continue_secondary_object_update_loop-secondary_object_update_offsets
@@ -10889,14 +10889,15 @@ abs_0_000083A8:
 	dc.b $36,$28,$00,$2C,$48,$C3,$D7,$A8,$00,$04,$36,$28,$00,$2E,$48,$C3
 	dc.b $D7,$A8,$00,$08,$36,$28,$00,$30,$48,$C3,$D7,$A8,$00,$0C,$26,$2E
 	dc.b $06,$FC,$C7,$A8,$00,$04,$C7,$A8,$00,$0C,$60,$00,$FD,$FC
-abs_0_000083D8:
+    ; Negative space-flag BYTE spins record WORD16/20 by16 and masks4095; other flag values bypass. Local stores do not establish initial angles, pool membership or all-path dispatch.
+spin_junk_two_axes_in_space:
 	tst.b space_environment_flag(a6)
-	bpl.b abs_0_000083F6
+	bpl.b finish_junk_spin_and_rejoin
 	addi.w #16,$0010(a0)
 	andi.w #4095,$0010(a0)
 	addi.w #16,$0014(a0)
 	andi.w #4095,$0014(a0)
-abs_0_000083F6:
+finish_junk_spin_and_rejoin:
 	bra.w continue_primary_object_update_loop
 update_nearby_asteroid_dispatch_0073fa:
 	bra.w update_nearby_asteroid_bridge_00a45e
@@ -12007,7 +12008,8 @@ abs_0_000092F4:
 	bra.w integrate_and_steer_horizontal_actor
 	dc.b $52,$28,$00,$03,$0C,$28,$00,$13,$00,$03,$66,$00,$01,$F2,$42,$28
 	dc.b $00,$03,$60,$00,$01,$EA
-abs_0_00009318:
+    ; Increment vertex-selector BYTE3; reset only when the incremented BYTE equals20, then tail to shared motion. Supplied values above19 are not clamped.
+advance_columbus_variant_then_integrate:
 	addq.b #1,$0003(a0)
 	cmpi.b #20,$0003(a0)
 	bne.w integrate_and_steer_horizontal_actor
@@ -13545,7 +13547,8 @@ abs_0_0000A8AA:
 	sf.b $0028(a4)
 	movea.l a4,a1
 	bra.b abs_0_0000A8AA
-abs_0_0000A8CE:
+    ; Clear record WORD0, set diagnostic BYTE4B and tail to the secondary continuation. There is no free-stack push or count-update instruction here; malformed pointer aliasing remains possible.
+clear_distant_object_type_and_rejoin:
 	move.b #$4B,diagnostic_step_byte.l
 	clr.w (a0)
 	bra.w continue_secondary_object_update_loop
@@ -16095,7 +16098,8 @@ abs_0_0000C9B4:
 	dc.b $00,$28,$10,$39,$00,$00,$E1,$02,$61,$00,$00,$28,$10,$39,$00,$00
 	dc.b $E1,$03,$61,$00,$00,$1E,$61,$00,$00,$06,$60,$00,$FE,$26,$13,$FC
 	dc.b $00,$00,$00,$BF,$E3,$01,$4E,$75
-abs_0_0000CB80:
+    ; Write FF to CIAA port-B direction register, without a port-data write, then RTS. CPU tests observe a flat-RAM register store, not physical pin or interrupt behavior.
+set_ciaa_port_b_all_outputs:
 	move.b #$FF,_ciaa+ciaddrb.l
 	rts
 	dc.b $13,$C0,$00,$BF,$E1,$01,$3F,$00,$30,$3C,$03,$00,$08,$39,$00,$04
@@ -16258,7 +16262,7 @@ abs_0_0000CDE4:
 	move.w #DMAF_SETCLR|DMAF_MASTER|DMAF_RASTER,_custom+dmacon.l
 	move.b #$77,_ciaa+ciaicr.l
 	move.b #$7F,$00BFDD01.l
-	bsr.w abs_0_0000CB80
+	bsr.w set_ciaa_port_b_all_outputs
 	move.l #$FC0000,$00000004.l
 	move.w #$FFF,_custom+color.l
 	rts
@@ -18070,7 +18074,7 @@ enter_model_viewer:
 	clr.w player_rotation_0(a6)
 	clr.w player_rotation_1(a6)
 	clr.w player_rotation_2(a6)
-	bsr.w abs_0_0000FD70
+	bsr.w build_and_store_view_rotation_matrix_bridge_00ed70
 	clr.w model_rotation_0(a6)
 	clr.w model_rotation_1(a6)
 	clr.w model_rotation_2(a6)
@@ -19404,7 +19408,7 @@ model_viewer_keyline_draw_buffer:
 	dcb.b $F,$20
 	dc.b $00
 	dc.b $00,$00,$00
-abs_0_0000FD70:
+build_and_store_view_rotation_matrix_bridge_00ed70:
 	jmp build_and_store_view_rotation_matrix.l
 project_model_to_draw_records_bridge_00ed76:
 	jmp project_model_to_draw_records.l
