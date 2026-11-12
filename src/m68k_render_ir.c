@@ -1888,10 +1888,11 @@ void platform_state_apply_policy_register_seeds(M68kRenderPlatformState *state,
   }
 }
 
-static void render_asm_policy_entry_comments(M68kRenderIRPreview *preview, const M68kAnalysisPolicy *policy,
+static int render_asm_policy_entry_comments(M68kRenderIRPreview *preview, const M68kAnalysisPolicy *policy,
     size_t section_index, uint32_t offset) {
   uint16_t index;
-  if (preview == NULL || policy == NULL) return;
+  int emitted = 0;
+  if (preview == NULL || policy == NULL) return 0;
   for (index = 0U; index < policy->entry_comment_count && index < M68K_ANALYSIS_ENTRY_COMMENT_LIMIT; ++index) {
     const M68kAnalysisEntryComment *comment = &policy->entry_comments[index];
     char line[256];
@@ -1900,7 +1901,9 @@ static void render_asm_policy_entry_comments(M68kRenderIRPreview *preview, const
     snprintf(line, sizeof(line), "    ; %s\n", comment->comment);
     hash_asm_text(preview, line);
     ++preview->asm_source_lines;
+    emitted = 1;
   }
+  return emitted;
 }
 
 static void render_asm_comment_line(M68kRenderIRPreview *preview, const char *comment) {
@@ -4285,9 +4288,38 @@ static void render_asm_dc_b_string_with_labels(M68kRenderIRPreview *preview, con
   }
 }
 
+/* Repeated one-pointer records need their field role once per visible run.
+ * Keep the policy/row field identity intact; this is only generated assembly
+ * commentary. Labels, authored comments and different record formats restart
+ * the annotation. Multi-field records still identify each member separately. */
+static int repeats_single_pointer_field_comment(const M68kRenderIRPreview *preview,
+    const M68kRenderLookup *lookup, size_t section_index,
+    const M68kAnalysisStructuredDataItem *item, const char *comment, uint32_t last_authored_comment_offset) {
+  const M68kAnalysisCustomStruct *record;
+  const M68kAnalysisStructuredDataItem *previous;
+  if (!preview || !lookup || !item || !item->is_pointer || item->size != 4U ||
+      item->offset < item->size || !item->field_name[0] || item->comment[0] ||
+      !comment || strcmp(comment, item->field_name) ||
+      lookup_instruction_comment(lookup, section_index, item->offset) ||
+      m68k_render_plan_find_label(&preview->asm_source_plan, (uint32_t)section_index, item->offset)) return 0;
+  record = policy_custom_struct_named(preview->analysis_policy, item->struct_name);
+  if (!record || record->size != item->size || record->field_count != 1U || record->base_struct[0]) return 0;
+  /* The walk already emits authored policy comments. Carry its last source
+   * coordinate through retained and streaming output alike; no second policy
+   * scan, emitted-row retention or textual comment recognition is needed. */
+  if (last_authored_comment_offset != UINT32_MAX && last_authored_comment_offset <= item->offset &&
+      last_authored_comment_offset >= item->offset - item->size) return 0;
+  previous = lookup_structured_data_item_at_offset(lookup, section_index, item->offset - item->size);
+  return previous && previous->offset + previous->size == item->offset &&
+    previous->size == item->size && previous->is_pointer && !previous->comment[0] &&
+    !lookup_instruction_comment(lookup, section_index, previous->offset) &&
+    !strcmp(previous->struct_name, item->struct_name) && !strcmp(previous->field_name, item->field_name);
+}
+
 static void render_asm_structured_data_item(M68kRenderIRPreview *preview, const M68kDecodeSectionIR *section,
     const uint8_t *accepted_start, M68kRenderLookup *lookup, const M68kSourceAnalysisIR *source_analysis,
-    const M68kAnalysisStructuredDataItem *item, uint32_t *io_logical_pc, int *out_updated_logical_pc) {
+    const M68kAnalysisStructuredDataItem *item, uint32_t *io_logical_pc, int *out_updated_logical_pc,
+    uint32_t last_authored_comment_offset) {
   char comment[128];
   char expr[96];
   const char *comment_text;
@@ -4297,6 +4329,9 @@ static void render_asm_structured_data_item(M68kRenderIRPreview *preview, const 
   if (!render_asm_includes_for_structured_data_item(preview, item)) return;
   comment[0] = '\0';
   comment_text = structured_data_item_render_comment(section, item, comment, sizeof(comment)) ? comment : NULL;
+  if (repeats_single_pointer_field_comment(preview, lookup, section->section_index, item, comment_text,
+      last_authored_comment_offset))
+    comment_text = NULL;
   if (item->offset >= section->size || section->data == NULL) {
     render_asm_ds_b(preview, item->size, comment_text);
     return;
@@ -12326,6 +12361,7 @@ int m68k_render_ir_preview_emit_prepared(const M68kObject *object, const M68kDec
     uint32_t asm_logical_pc = 0U;
     uint32_t render_extent = render_section_extent(section);
     size_t render_candidate_index = 0U;
+    uint32_t last_authored_comment_offset = UINT32_MAX;
     out_preview->structural_hash = hash_step(out_preview->structural_hash, section_index);
     out_preview->structural_hash = hash_step(out_preview->structural_hash, render_extent);
     if (render_asm_source) {
@@ -12336,7 +12372,8 @@ int m68k_render_ir_preview_emit_prepared(const M68kObject *object, const M68kDec
     while (offset < render_extent) {
       if (render_asm_source) {
         begin_asm_source_plan_row(out_preview, M68K_RENDER_PLAN_ROW_DIAGNOSTIC, (uint32_t)section_index);
-        render_asm_policy_entry_comments(out_preview, policy, section->section_index, offset);
+        if (render_asm_policy_entry_comments(out_preview, policy, section->section_index, offset))
+          last_authored_comment_offset = offset;
         render_asm_policy_register_seed_comment(out_preview, policy, section->section_index, offset);
         finish_asm_source_plan_row(out_preview, section->section_index, offset, 0U, 1);
       }
@@ -12480,7 +12517,8 @@ int m68k_render_ir_preview_emit_prepared(const M68kObject *object, const M68kDec
               render_asm_comment_line(out_preview,
                 lookup_instruction_comment(lookup, section->section_index, offset));
               render_asm_structured_data_item(out_preview, section, accepted_start[section_index], lookup,
-                source_analysis, structured_item, &asm_logical_pc, &structured_item_updated_pc);
+                source_analysis, structured_item, &asm_logical_pc, &structured_item_updated_pc,
+                last_authored_comment_offset);
               row = finish_asm_source_plan_row(out_preview, section->section_index, offset, structured_item->size,
                 1);
               set_asm_source_plan_row_statement_from_section(row, M68K_STATEMENT_DATA, NULL, section, offset,

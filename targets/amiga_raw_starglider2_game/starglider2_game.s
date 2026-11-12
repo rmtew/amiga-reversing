@@ -4888,8 +4888,8 @@ store_next_amiga_buffer_table_byte_offset:
 	rts
 amiga_rotating_copper_lists:
 	dc.l amiga_rotating_copper_list_c	; copper_list
-	dc.l amiga_rotating_copper_list_a	; copper_list
-	dc.l amiga_rotating_copper_list_b	; copper_list
+	dc.l amiga_rotating_copper_list_a
+	dc.l amiga_rotating_copper_list_b
 amiga_display_buffer_bases:
 	dc.l $00070000,$00077B50,$00078B50
 amiga_draw_buffer_bases:
@@ -9398,99 +9398,99 @@ disc_command_records:
 	dcb.b $14,$00
 disc_command_references:
 	dc.l $00000000	; record
-	dc.l $00000000	; record
-	dc.l $00000000	; record
-	dc.l $00000000	; record
-	dc.l $00000000	; record
-	dc.l $00000000	; record
-	dc.l $00000000	; record
-	dc.l $00000000	; record
-	dc.l $00000000	; record
-	dc.l $00000000	; record
-	dc.l $00000000	; record
-	dc.l $00000000	; record
-	dc.l $00000000	; record
-	dc.l $00000000	; record
-	dc.l $00000000	; record
-	dc.l $00000000	; record
-	dc.l $00000000	; record
-	dc.l $00000000	; record
-	dc.l $00000000	; record
-	dc.l $00000000	; record
-	dc.l $00000000	; record
-	dc.l $00000000	; record
-	dc.l $00000000	; record
-	dc.l $00000000	; record
-	dc.l $00000000	; record
-	dc.l $00000000	; record
-	dc.l $00000000	; record
-	dc.l $00000000	; record
-	dc.l $00000000	; record
-	dc.l $00000000	; record
-	dc.l $00000000	; record
-	dc.l $00000000	; record
-	dc.l $00000000	; record
-	dc.l $00000000	; record
-	dc.l $00000000	; record
-	dc.l $00000000	; record
-	dc.l $00000000	; record
-	dc.l $00000000	; record
-	dc.l $00000000	; record
-	dc.l $00000000	; record
-	dc.l $00000000	; record
-	dc.l $00000000	; record
-	dc.l $00000000	; record
-	dc.l $00000000	; record
-	dc.l $00000000	; record
-	dc.l $00000000	; record
-	dc.l $00000000	; record
-	dc.l $00000000	; record
-	dc.l $00000000	; record
-	dc.l $00000000	; record
-	dc.l $00000000	; record
-	dc.l $00000000	; record
-	dc.l $00000000	; record
-	dc.l $00000000	; record
-	dc.l $00000000	; record
-	dc.l $00000000	; record
-	dc.l $00000000	; record
-	dc.l $00000000	; record
-	dc.l $00000000	; record
-	dc.l $00000000	; record
-	dc.l $00000000	; record
-	dc.l $00000000	; record
-	dc.l $00000000	; record
-	dc.l $00000000	; record
-	dc.l $00000000	; record
-	dc.l $00000000	; record
-	dc.l $00000000	; record
-	dc.l $00000000	; record
-	dc.l $00000000	; record
-	dc.l $00000000	; record
-	dc.l $00000000	; record
-	dc.l $00000000	; record
-	dc.l $00000000	; record
-	dc.l $00000000	; record
-	dc.l $00000000	; record
-	dc.l $00000000	; record
-	dc.l $00000000	; record
-	dc.l $00000000	; record
-	dc.l $00000000	; record
-	dc.l $00000000	; record
-	dc.l $00000000	; record
-	dc.l $00000000	; record
-	dc.l $00000000	; record
-	dc.l $00000000	; record
-	dc.l $00000000	; record
-	dc.l $00000000	; record
-	dc.l $00000000	; record
-	dc.l $00000000	; record
-	dc.l $00000000	; record
-	dc.l $00000000	; record
-	dc.l $00000000	; record
-	dc.l $00000000	; record
-	dc.l $00000000	; record
-	dc.l $00000000	; record
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
+	dc.l $00000000
 	dcb.b $8,$00
 disc_offset_direction_flag:
 	dc.b $00
@@ -18923,153 +18923,153 @@ terminate_and_draw_viewer_keyline:
 	dc.b $4E,$75
 object_name_pointers:
 	dc.l object_name_text_pool	; text
-	dc.l str_walker_s0_0000E595	; text
-	dc.l str_proximity_mine_s0_0000E59C	; text
-	dc.l str_egron_spire_building_s0_0000E5AB	; text
-	dc.l str_solar_energy_converter_s0_0000E5C0	; text
-	dc.l str_egron_silo_s0_0000E5D7	; text
-	dc.l str_buzz_bomb_s0_0000E5E2	; text
-	dc.l str_large_bird_s0_0000E5EC	; text
-	dc.l str_emma_2_s0_0000E5F7	; text
-	dc.l str_egron_land_tank_s0_0000E5FE	; text
-	dc.l str_egron_mechanical_whale_s0_0000E60E	; text
-	dc.l str_egron_duck_s0_0000E625	; text
-	dc.l str_homing_missile_s0_0000E630	; text
-	dc.l str_armed_transport_s0_0000E63F	; text
-	dc.l str_escape_capsule_s0_0000E64F	; text
-	dc.l str_stomper_s0_0000E65E	; text
-	dc.l str_small_fighter_s0_0000E666	; text
-	dc.l str_horatio_s0_0000E674	; text
-	dc.l str_large_egron_transport_s0_0000E67C	; text
-	dc.l str_pulsing_pyramids_s0_0000E692	; text
-	dc.l str_tunnel_sentinel_s0_0000E6A3	; text
-	dc.l str_vampire_type_fighter_s0_0000E6B3	; text
-	dc.l str_egron_space_tug_s0_0000E6C8	; text
-	dc.l str_gbml_s0_0000E6D8	; text
-	dc.l str_petrified_tree_s0_0000E6DD	; text
-	dc.l str_missile_s0_0000E6EC	; text
-	dc.l str_tripuss_s0_0000E6F4	; text
-	dc.l str_starglider_s0_0000E6FC	; text
-	dc.l str_egron_square_rocket_s0_0000E707	; text
-	dc.l str_egron_mini_rocket_s0_0000E71B	; text
-	dc.l str_the_icarus_s0_0000E72D	; text
-	dc.l str_space_fighter_s0_0000E738	; text
-	dc.l str_personnel_shuttle_s0_0000E746	; text
-	dc.l str_egron_buzz_bomber_s0_0000E758	; text
-	dc.l str_flying_saucer_s0_0000E76A	; text
-	dc.l str_egron_bird_fighter_s0_0000E778	; text
-	dc.l str_pac_worm_s0_0000E78B	; text
-	dc.l str_egron_mini_sentinel_s0_0000E794	; text
-	dc.l str_flat_diamond_s0_0000E7A8	; text
-	dc.l str_hover_car_s0_0000E7B5	; text
-	dc.l str_pirate_ship_s0_0000E7BF	; text
-	dc.l str_space_ray_s0_0000E7CB	; text
-	dc.l str_satellite_dish_s0_0000E7D5	; text
-	dc.l str_skim_launcher_drone_s0_0000E7E4	; text
-	dc.l str_tug_truck_s0_0000E7F8	; text
-	dc.l str_fighter_escort_s0_0000E802	; text
-	dc.l str_egron_dome_silo_s0_0000E811	; text
-	dc.l object_name_text_pool	; text
-	dc.l str_tunnel_entrance_exit_s0_0000E821	; text
-	dc.l str_bt_tower_s0_0000E836	; text
-	dc.l str_gbml_with_cannon_s0_0000E83F	; text
-	dc.l str_pyramid_s0_0000E850	; text
-	dc.l str_tower_block_s0_0000E858	; text
-	dc.l str_tapering_tower_block_s0_0000E864	; text
-	dc.l str_energy_transmitter_s0_0000E879	; text
-	dc.l str_bouncing_ball_s0_0000E88C	; text
-	dc.l str_cobweb_s0_0000E89A	; text
-	dc.l str_tunnel_exit_indicators_s0_0000E8A1	; text
-	dc.l str_tunnel_exit_indicators_s0_0000E8B8	; text
-	dc.l str_old_heap_of_junk_s0_0000E8CF	; text
-	dc.l str_skim_missile_s0_0000E8E0	; text
-	dc.l str_scrap_metal_s0_0000E8ED	; text
-	dc.l str_scrap_metal_s0_0000E8F9	; text
-	dc.l str_blast_doors_s0_0000E905	; text
-	dc.l str_blowhole_s0_0000E911	; text
-	dc.l str_energy_gate_s0_0000E91A	; text
-	dc.l object_name_text_pool	; text
-	dc.l object_name_text_pool	; text
-	dc.l object_name_text_pool	; text
-	dc.l object_name_text_pool	; text
-	dc.l object_name_text_pool	; text
-	dc.l str_icarus_pilot_couch_s0_0000E926	; text
-	dc.l str_laser_bolt_s0_0000E939	; text
-	dc.l str_asteroid_s0_0000E944	; text
-	dc.l str_small_asteroid_s0_0000E94D	; text
-	dc.l str_egron_projector_base_s0_0000E95C	; text
-	dc.l str_egron_projector_mount_s0_0000E971	; text
-	dc.l str_egron_projector_cover_s0_0000E987	; text
-	dc.l str_egron_projector_turret_s0_0000E99D	; text
-	dc.l str_projector_fuel_crystals_s0_0000E9B4	; text
-	dc.l str_projector_control_tower_s0_0000E9CC	; text
-	dc.l str_projector_crew_quarters_s0_0000E9E4	; text
-	dc.l str_egron_projector_sentinel_s0_0000E9FC	; text
-	dc.l str_cask_of_vistan_wine_s0_0000EA15	; text
-	dc.l str_energy_cube_launcher_s0_0000EA29	; text
-	dc.l object_name_text_pool	; text
-	dc.l str_ground_based_laser_canno_s0_0000EA3E	; text
-	dc.l str_cluster_of_nodules_s0_0000EA58	; text
-	dc.l str_volcano_s0_0000EA6B	; text
-	dc.l str_columbus_s0_0000EA73	; text
-	dc.l str_energy_tower_s0_0000EA7C	; text
-	dc.l str_bouncing_bomb_s0_0000EA89	; text
-	dc.l object_name_text_pool	; text
-	dc.l str_energy_tower_s0_0000EAA4	; text
-	dc.l str_tunnel_depot_s0_0000EAB1	; text
-	dc.l object_name_text_pool	; text
-	dc.l object_name_text_pool	; text
-	dc.l object_name_text_pool	; text
-	dc.l str_neutron_bomb_s0_0000EABE	; text
-	dc.l str_egron_space_station_s0_0000EACB	; text
-	dc.l str_crate_of_castrobars_s0_0000EADF	; text
-	dc.l str_lump_of_mineral_rock_s0_0000EAF3	; text
-	dc.l str_case_of_nuclear_fuel_s0_0000EB08	; text
-	dc.l str_icarus_gas_laser_bolt_s0_0000EB1D	; text
-	dc.l object_name_text_pool	; text
-	dc.l object_name_text_pool	; text
-	dc.l object_name_text_pool	; text
-	dc.l object_name_text_pool	; text
-	dc.l object_name_text_pool	; text
-	dc.l object_name_text_pool	; text
-	dc.l object_name_text_pool	; text
-	dc.l object_name_text_pool	; text
-	dc.l object_name_text_pool	; text
-	dc.l object_name_text_pool	; text
-	dc.l object_name_text_pool	; text
-	dc.l object_name_text_pool	; text
-	dc.l object_name_text_pool	; text
-	dc.l object_name_text_pool	; text
-	dc.l object_name_text_pool	; text
-	dc.l object_name_text_pool	; text
-	dc.l object_name_text_pool	; text
-	dc.l object_name_text_pool	; text
-	dc.l object_name_text_pool	; text
-	dc.l object_name_text_pool	; text
-	dc.l object_name_text_pool	; text
-	dc.l object_name_text_pool	; text
-	dc.l object_name_text_pool	; text
-	dc.l object_name_text_pool	; text
-	dc.l str_solice_star_of_the_syste_s0_0000EB48	; text
-	dc.l str_dante_1st_planet_of_syst_s0_0000EB63	; text
-	dc.l str_vista_2nd_planet_of_syst_s0_0000EB7F	; text
-	dc.l str_apogee_3rd_planet_of_sys_s0_0000EB9B	; text
-	dc.l str_millway_4th_planet_of_sy_s0_0000EBB8	; text
-	dc.l str_aldos_5th_planet_of_syst_s0_0000EBD5	; text
-	dc.l str_enos_1st_moon_of_apogee_s0_0000EBF1	; text
-	dc.l str_castron_2nd_moon_of_apog_s0_0000EC0A	; text
-	dc.l str_broadway_1st_moon_of_mil_s0_0000EC26	; text
-	dc.l str_apex_2nd_moon_of_millway_s0_0000EC43	; text
-	dc.l str_esprit_3rd_moon_of_millw_s0_0000EC5D	; text
-	dc.l str_questa_4th_moon_of_millw_s0_0000EC79	; text
-	dc.l str_westmere_5th_moon_of_mil_s0_0000EC95	; text
-	dc.l str_synapse_6th_moon_of_mill_s0_0000ECB2	; text
-	dc.l str_wackfunk_7th_moon_of_mil_s0_0000ECCF	; text
-	dc.l str_q_beta_lone_moon_of_aldo_s0_0000ECEC	; text
-	dc.l object_name_text_pool	; text
-	dc.l str_solice_star_of_the_syste_s0_0000EB48	; text
-	dc.l str_energy_spheroid_s0_0000EB33	; text
-	dc.l str_star_s0_0000EB43	; text
+	dc.l str_walker_s0_0000E595
+	dc.l str_proximity_mine_s0_0000E59C
+	dc.l str_egron_spire_building_s0_0000E5AB
+	dc.l str_solar_energy_converter_s0_0000E5C0
+	dc.l str_egron_silo_s0_0000E5D7
+	dc.l str_buzz_bomb_s0_0000E5E2
+	dc.l str_large_bird_s0_0000E5EC
+	dc.l str_emma_2_s0_0000E5F7
+	dc.l str_egron_land_tank_s0_0000E5FE
+	dc.l str_egron_mechanical_whale_s0_0000E60E
+	dc.l str_egron_duck_s0_0000E625
+	dc.l str_homing_missile_s0_0000E630
+	dc.l str_armed_transport_s0_0000E63F
+	dc.l str_escape_capsule_s0_0000E64F
+	dc.l str_stomper_s0_0000E65E
+	dc.l str_small_fighter_s0_0000E666
+	dc.l str_horatio_s0_0000E674
+	dc.l str_large_egron_transport_s0_0000E67C
+	dc.l str_pulsing_pyramids_s0_0000E692
+	dc.l str_tunnel_sentinel_s0_0000E6A3
+	dc.l str_vampire_type_fighter_s0_0000E6B3
+	dc.l str_egron_space_tug_s0_0000E6C8
+	dc.l str_gbml_s0_0000E6D8
+	dc.l str_petrified_tree_s0_0000E6DD
+	dc.l str_missile_s0_0000E6EC
+	dc.l str_tripuss_s0_0000E6F4
+	dc.l str_starglider_s0_0000E6FC
+	dc.l str_egron_square_rocket_s0_0000E707
+	dc.l str_egron_mini_rocket_s0_0000E71B
+	dc.l str_the_icarus_s0_0000E72D
+	dc.l str_space_fighter_s0_0000E738
+	dc.l str_personnel_shuttle_s0_0000E746
+	dc.l str_egron_buzz_bomber_s0_0000E758
+	dc.l str_flying_saucer_s0_0000E76A
+	dc.l str_egron_bird_fighter_s0_0000E778
+	dc.l str_pac_worm_s0_0000E78B
+	dc.l str_egron_mini_sentinel_s0_0000E794
+	dc.l str_flat_diamond_s0_0000E7A8
+	dc.l str_hover_car_s0_0000E7B5
+	dc.l str_pirate_ship_s0_0000E7BF
+	dc.l str_space_ray_s0_0000E7CB
+	dc.l str_satellite_dish_s0_0000E7D5
+	dc.l str_skim_launcher_drone_s0_0000E7E4
+	dc.l str_tug_truck_s0_0000E7F8
+	dc.l str_fighter_escort_s0_0000E802
+	dc.l str_egron_dome_silo_s0_0000E811
+	dc.l object_name_text_pool
+	dc.l str_tunnel_entrance_exit_s0_0000E821
+	dc.l str_bt_tower_s0_0000E836
+	dc.l str_gbml_with_cannon_s0_0000E83F
+	dc.l str_pyramid_s0_0000E850
+	dc.l str_tower_block_s0_0000E858
+	dc.l str_tapering_tower_block_s0_0000E864
+	dc.l str_energy_transmitter_s0_0000E879
+	dc.l str_bouncing_ball_s0_0000E88C
+	dc.l str_cobweb_s0_0000E89A
+	dc.l str_tunnel_exit_indicators_s0_0000E8A1
+	dc.l str_tunnel_exit_indicators_s0_0000E8B8
+	dc.l str_old_heap_of_junk_s0_0000E8CF
+	dc.l str_skim_missile_s0_0000E8E0
+	dc.l str_scrap_metal_s0_0000E8ED
+	dc.l str_scrap_metal_s0_0000E8F9
+	dc.l str_blast_doors_s0_0000E905
+	dc.l str_blowhole_s0_0000E911
+	dc.l str_energy_gate_s0_0000E91A
+	dc.l object_name_text_pool
+	dc.l object_name_text_pool
+	dc.l object_name_text_pool
+	dc.l object_name_text_pool
+	dc.l object_name_text_pool
+	dc.l str_icarus_pilot_couch_s0_0000E926
+	dc.l str_laser_bolt_s0_0000E939
+	dc.l str_asteroid_s0_0000E944
+	dc.l str_small_asteroid_s0_0000E94D
+	dc.l str_egron_projector_base_s0_0000E95C
+	dc.l str_egron_projector_mount_s0_0000E971
+	dc.l str_egron_projector_cover_s0_0000E987
+	dc.l str_egron_projector_turret_s0_0000E99D
+	dc.l str_projector_fuel_crystals_s0_0000E9B4
+	dc.l str_projector_control_tower_s0_0000E9CC
+	dc.l str_projector_crew_quarters_s0_0000E9E4
+	dc.l str_egron_projector_sentinel_s0_0000E9FC
+	dc.l str_cask_of_vistan_wine_s0_0000EA15
+	dc.l str_energy_cube_launcher_s0_0000EA29
+	dc.l object_name_text_pool
+	dc.l str_ground_based_laser_canno_s0_0000EA3E
+	dc.l str_cluster_of_nodules_s0_0000EA58
+	dc.l str_volcano_s0_0000EA6B
+	dc.l str_columbus_s0_0000EA73
+	dc.l str_energy_tower_s0_0000EA7C
+	dc.l str_bouncing_bomb_s0_0000EA89
+	dc.l object_name_text_pool
+	dc.l str_energy_tower_s0_0000EAA4
+	dc.l str_tunnel_depot_s0_0000EAB1
+	dc.l object_name_text_pool
+	dc.l object_name_text_pool
+	dc.l object_name_text_pool
+	dc.l str_neutron_bomb_s0_0000EABE
+	dc.l str_egron_space_station_s0_0000EACB
+	dc.l str_crate_of_castrobars_s0_0000EADF
+	dc.l str_lump_of_mineral_rock_s0_0000EAF3
+	dc.l str_case_of_nuclear_fuel_s0_0000EB08
+	dc.l str_icarus_gas_laser_bolt_s0_0000EB1D
+	dc.l object_name_text_pool
+	dc.l object_name_text_pool
+	dc.l object_name_text_pool
+	dc.l object_name_text_pool
+	dc.l object_name_text_pool
+	dc.l object_name_text_pool
+	dc.l object_name_text_pool
+	dc.l object_name_text_pool
+	dc.l object_name_text_pool
+	dc.l object_name_text_pool
+	dc.l object_name_text_pool
+	dc.l object_name_text_pool
+	dc.l object_name_text_pool
+	dc.l object_name_text_pool
+	dc.l object_name_text_pool
+	dc.l object_name_text_pool
+	dc.l object_name_text_pool
+	dc.l object_name_text_pool
+	dc.l object_name_text_pool
+	dc.l object_name_text_pool
+	dc.l object_name_text_pool
+	dc.l object_name_text_pool
+	dc.l object_name_text_pool
+	dc.l object_name_text_pool
+	dc.l str_solice_star_of_the_syste_s0_0000EB48
+	dc.l str_dante_1st_planet_of_syst_s0_0000EB63
+	dc.l str_vista_2nd_planet_of_syst_s0_0000EB7F
+	dc.l str_apogee_3rd_planet_of_sys_s0_0000EB9B
+	dc.l str_millway_4th_planet_of_sy_s0_0000EBB8
+	dc.l str_aldos_5th_planet_of_syst_s0_0000EBD5
+	dc.l str_enos_1st_moon_of_apogee_s0_0000EBF1
+	dc.l str_castron_2nd_moon_of_apog_s0_0000EC0A
+	dc.l str_broadway_1st_moon_of_mil_s0_0000EC26
+	dc.l str_apex_2nd_moon_of_millway_s0_0000EC43
+	dc.l str_esprit_3rd_moon_of_millw_s0_0000EC5D
+	dc.l str_questa_4th_moon_of_millw_s0_0000EC79
+	dc.l str_westmere_5th_moon_of_mil_s0_0000EC95
+	dc.l str_synapse_6th_moon_of_mill_s0_0000ECB2
+	dc.l str_wackfunk_7th_moon_of_mil_s0_0000ECCF
+	dc.l str_q_beta_lone_moon_of_aldo_s0_0000ECEC
+	dc.l object_name_text_pool
+	dc.l str_solice_star_of_the_syste_s0_0000EB48
+	dc.l str_energy_spheroid_s0_0000EB33
+	dc.l str_star_s0_0000EB43
 object_name_text_pool:
 	dc.b "No records found",$00
 str_walker_s0_0000E595:
@@ -19858,12 +19858,12 @@ request_amiga_music_stop:
 	rts
 audio_ring_buffer_pointers:
 	dc.l shared_workspace_prefix	; buffer
-	dc.l shared_workspace_prefix	; buffer
-	dc.l shared_workspace_prefix	; buffer
-	dc.l shared_workspace_prefix	; buffer
-	dc.l shared_workspace_prefix	; buffer
-	dc.l shared_workspace_prefix	; buffer
-	dc.l shared_workspace_prefix	; buffer
+	dc.l shared_workspace_prefix
+	dc.l shared_workspace_prefix
+	dc.l shared_workspace_prefix
+	dc.l shared_workspace_prefix
+	dc.l shared_workspace_prefix
+	dc.l shared_workspace_prefix
 service_audio_ring_interrupt:
 	movem.l d0/a0/a5,-(a7)
 	lea.l _custom.l,a5
@@ -38435,53 +38435,53 @@ projection_scale_lookup:
 	dc.w $014F,$014F,$014F,$014F
 hud_sprite_conversion_directory:
 	dc.l hud_meter_full_sprite_00	; control_words
-	dc.l hud_meter_full_sprite_01	; control_words
-	dc.l hud_meter_full_sprite_02	; control_words
-	dc.l hud_meter_full_sprite_03	; control_words
-	dc.l hud_meter_full_sprite_04	; control_words
-	dc.l hud_meter_full_sprite_05	; control_words
-	dc.l hud_meter_full_sprite_06	; control_words
-	dc.l hud_meter_full_sprite_07	; control_words
-	dc.l hud_altitude_indicator_sprite	; control_words
+	dc.l hud_meter_full_sprite_01
+	dc.l hud_meter_full_sprite_02
+	dc.l hud_meter_full_sprite_03
+	dc.l hud_meter_full_sprite_04
+	dc.l hud_meter_full_sprite_05
+	dc.l hud_meter_full_sprite_06
+	dc.l hud_meter_full_sprite_07
+	dc.l hud_altitude_indicator_sprite
 hud_sprite_conversion_directory_control_words_9:
 	dc.l hud_conversion_sprite_09	; control_words
 hud_resource_meter_0_sprite_pointers:
 	dc.l hud_conversion_sprite_10	; control_words
-	dc.l hud_conversion_sprite_11	; control_words
-	dc.l hud_conversion_sprite_12	; control_words
-	dc.l hud_conversion_sprite_13	; control_words
-	dc.l hud_conversion_sprite_14	; control_words
-	dc.l hud_conversion_sprite_15	; control_words
+	dc.l hud_conversion_sprite_11
+	dc.l hud_conversion_sprite_12
+	dc.l hud_conversion_sprite_13
+	dc.l hud_conversion_sprite_14
+	dc.l hud_conversion_sprite_15
 hud_resource_meter_1_sprite_pointers:
 	dc.l hud_conversion_sprite_16	; control_words
-	dc.l hud_conversion_sprite_17	; control_words
-	dc.l hud_conversion_sprite_18	; control_words
-	dc.l hud_conversion_sprite_19	; control_words
-	dc.l hud_conversion_sprite_20	; control_words
-	dc.l hud_conversion_sprite_21	; control_words
+	dc.l hud_conversion_sprite_17
+	dc.l hud_conversion_sprite_18
+	dc.l hud_conversion_sprite_19
+	dc.l hud_conversion_sprite_20
+	dc.l hud_conversion_sprite_21
 hud_resource_meter_2_sprite_pointers:
 	dc.l hud_conversion_sprite_22	; control_words
-	dc.l hud_conversion_sprite_23	; control_words
-	dc.l hud_conversion_sprite_24	; control_words
-	dc.l hud_conversion_sprite_25	; control_words
-	dc.l hud_conversion_sprite_26	; control_words
-	dc.l hud_conversion_sprite_27	; control_words
+	dc.l hud_conversion_sprite_23
+	dc.l hud_conversion_sprite_24
+	dc.l hud_conversion_sprite_25
+	dc.l hud_conversion_sprite_26
+	dc.l hud_conversion_sprite_27
 hud_speed_meter_sprite_pointers:
 	dc.l hud_conversion_sprite_28	; control_words
-	dc.l hud_conversion_sprite_29	; control_words
-	dc.l hud_conversion_sprite_30	; control_words
-	dc.l hud_conversion_sprite_31	; control_words
-	dc.l hud_conversion_sprite_32	; control_words
-	dc.l hud_conversion_sprite_33	; control_words
+	dc.l hud_conversion_sprite_29
+	dc.l hud_conversion_sprite_30
+	dc.l hud_conversion_sprite_31
+	dc.l hud_conversion_sprite_32
+	dc.l hud_conversion_sprite_33
 hud_sprite_conversion_directory_control_words_34:
 	dc.l hud_conversion_sprite_34	; control_words
 hud_altitude_meter_sprite_pointers:
 	dc.l hud_conversion_sprite_35	; control_words
-	dc.l hud_conversion_sprite_36	; control_words
-	dc.l hud_conversion_sprite_37	; control_words
-	dc.l hud_conversion_sprite_38	; control_words
-	dc.l hud_conversion_sprite_39	; control_words
-	dc.l hud_default_reticle_sprite	; control_words
+	dc.l hud_conversion_sprite_36
+	dc.l hud_conversion_sprite_37
+	dc.l hud_conversion_sprite_38
+	dc.l hud_conversion_sprite_39
+	dc.l hud_default_reticle_sprite
 hud_sprite_conversion_end_marker:
 	dc.l $FFFFFFFF	; Original source-backed sprite control pointers; prefix-only pointee contract
 alternate_sprite_colour_modes:
@@ -38490,12 +38490,12 @@ alternate_sprite_colour_modes:
 	dc.b $00,$00,$00,$FF,$FF,$FF,$FF,$FF
 object_scan_sprite_pointers:
 	dc.l object_scan_sprite_frame_0	; control_words
-	dc.l object_scan_sprite_frame_1	; control_words
-	dc.l object_scan_sprite_frame_2	; control_words
-	dc.l object_scan_sprite_frame_3	; control_words
-	dc.l object_scan_sprite_frame_4	; control_words
-	dc.l object_scan_sprite_frame_5	; control_words
-	dc.l object_scan_sprite_frame_6	; control_words
+	dc.l object_scan_sprite_frame_1
+	dc.l object_scan_sprite_frame_2
+	dc.l object_scan_sprite_frame_3
+	dc.l object_scan_sprite_frame_4
+	dc.l object_scan_sprite_frame_5
+	dc.l object_scan_sprite_frame_6
 hud_meter_full_sprite_00:
 	INCBIN "assets/hud_meter_full_sprite_00.bin"
 ; bitmap
@@ -39747,36 +39747,36 @@ enqueue_unique_message_pointer_bridge_02e9ee:
 world_placement_pointers:
 	dc.l space_world_placements	; first_tag
 	dc.l dante_surface_placements	; first_tag
-	dc.l vista_surface_placements	; first_tag
-	dc.l apogee_surface_placements	; first_tag
-	dc.l millway_surface_placements_end_tag	; first_tag
-	dc.l aldos_surface_placements	; first_tag
-	dc.l enos_surface_placements	; first_tag
-	dc.l castron_surface_placements	; first_tag
-	dc.l shared_moon_surface_placements	; first_tag
-	dc.l shared_moon_surface_placements	; first_tag
-	dc.l shared_moon_surface_placements	; first_tag
-	dc.l shared_moon_surface_placements	; first_tag
-	dc.l shared_moon_surface_placements	; first_tag
-	dc.l shared_moon_surface_placements	; first_tag
-	dc.l shared_moon_surface_placements	; first_tag
-	dc.l q_beta_surface_placements	; first_tag
-	dc.l empty_interior_placements_end_tag	; first_tag
-	dc.l empty_interior_placements_end_tag	; first_tag
-	dc.l empty_interior_placements_end_tag	; first_tag
-	dc.l apogee_interior_placements	; first_tag
-	dc.l empty_interior_placements_end_tag	; first_tag
-	dc.l empty_interior_placements_end_tag	; first_tag
-	dc.l empty_interior_placements_end_tag	; first_tag
-	dc.l castron_interior_placements	; first_tag
-	dc.l shared_moon_interior_placements	; first_tag
-	dc.l shared_moon_interior_placements	; first_tag
-	dc.l shared_moon_interior_placements	; first_tag
-	dc.l shared_moon_interior_placements	; first_tag
-	dc.l shared_moon_interior_placements	; first_tag
-	dc.l shared_moon_interior_placements	; first_tag
-	dc.l shared_moon_interior_placements	; first_tag
-	dc.l empty_interior_placements_end_tag	; first_tag
+	dc.l vista_surface_placements
+	dc.l apogee_surface_placements
+	dc.l millway_surface_placements_end_tag
+	dc.l aldos_surface_placements
+	dc.l enos_surface_placements
+	dc.l castron_surface_placements
+	dc.l shared_moon_surface_placements
+	dc.l shared_moon_surface_placements
+	dc.l shared_moon_surface_placements
+	dc.l shared_moon_surface_placements
+	dc.l shared_moon_surface_placements
+	dc.l shared_moon_surface_placements
+	dc.l shared_moon_surface_placements
+	dc.l q_beta_surface_placements
+	dc.l empty_interior_placements_end_tag
+	dc.l empty_interior_placements_end_tag
+	dc.l empty_interior_placements_end_tag
+	dc.l apogee_interior_placements
+	dc.l empty_interior_placements_end_tag
+	dc.l empty_interior_placements_end_tag
+	dc.l empty_interior_placements_end_tag
+	dc.l castron_interior_placements
+	dc.l shared_moon_interior_placements
+	dc.l shared_moon_interior_placements
+	dc.l shared_moon_interior_placements
+	dc.l shared_moon_interior_placements
+	dc.l shared_moon_interior_placements
+	dc.l shared_moon_interior_placements
+	dc.l shared_moon_interior_placements
+	dc.l empty_interior_placements_end_tag
 empty_interior_placements_end_tag:
 	dc.w $0000	; 0 original interior placements, stride 16, plus zero tag; aliases 16,17,18,20,21,22,31
 space_world_placements:
@@ -46454,19 +46454,19 @@ abs_0_00034C8C:
 	lea.l projector_part_presence_flags(a6),a0
 	move.w projector_rebuild_cursor(a6),d0
 	tst.b $0(a0,d0.w)
-	beq.b abs_0_00034CFE
+	beq.b claim_projector_slot_and_select_part_report
 	move.w #$3,d7
-abs_0_00034CE0:
+retreat_projector_rebuild_cursor_with_wrap:
 	subq.w #1,projector_rebuild_cursor(a6)
-	bpl.b abs_0_00034CEC
+	bpl.b test_projector_rebuild_slot_presence
 	move.w #$37,projector_rebuild_cursor(a6)
-abs_0_00034CEC:
+test_projector_rebuild_slot_presence:
 	move.w projector_rebuild_cursor(a6),d0
 	tst.b $0(a0,d0.w)
-	beq.b abs_0_00034CFE
-	dbf.w d7,abs_0_00034CE0
+	beq.b claim_projector_slot_and_select_part_report
+	dbf.w d7,retreat_projector_rebuild_cursor_with_wrap
 	bra.w abs_0_00034E78
-abs_0_00034CFE:
+claim_projector_slot_and_select_part_report:
 	st.b $0(a0,d0.w)
 	lea.l projector_part_message_pointers.l,a1
 	lea.l projector_message_egron_projector_base.l,a2
@@ -46475,36 +46475,36 @@ abs_0_00034CFE:
 	movea.l $0(a1,d0.w),a1
 	sf.b projector_base_report_selected_flag.l
 	cmpa.l a1,a2
-	bne.b abs_0_00034D28
+	bne.b gate_projector_base_event_message
 	st.b projector_base_report_selected_flag.l
-abs_0_00034D28:
+gate_projector_base_event_message:
 	tst.b projector_base_report_selected_flag.l
-	bpl.b abs_0_00034D44
+	bpl.b publish_projector_part_report
 	lea.l event_message_pointers.l,a1
 	move.w #$F,d0
 	asl.w #2,d0
 	movea.l SG2SourceTextReference_text(a1,d0.w),a1
 	bsr.w enqueue_message_if_outside_structure
-abs_0_00034D44:
+publish_projector_part_report:
 	lea.l projector_part_message_pointers.l,a1
 	move.w projector_rebuild_cursor(a6),d0
 	asl.w #2,d0
 	movea.l $0(a1,d0.w),a1
 	move.l a1,station_report_primary_message(a6)
 	tst.b projector_base_report_selected_flag.l
-	bpl.b abs_0_00034D64
+	bpl.b publish_projector_body_report
 	bsr.w enqueue_message_if_outside_structure
-abs_0_00034D64:
+publish_projector_body_report:
 	lea.l projector_body_message_pointers.l,a1
 	move.w projector_rebuild_cursor(a6),d0
 	asl.w #2,d0
 	movea.l $0(a1,d0.w),a1
 	move.l a1,station_report_secondary_message(a6)
 	tst.b projector_base_report_selected_flag.l
-	bpl.b abs_0_00034D88
+	bpl.b gate_local_projector_part_respawn
 	bsr.w enqueue_message_if_outside_structure
 	bsr.w enqueue_blank_event_message_line
-abs_0_00034D88:
+gate_local_projector_part_respawn:
 	tst.b space_environment_flag(a6)
 	bmi.w abs_0_00034E78
 	tst.b inside_structure_flag(a6)
@@ -49870,91 +49870,91 @@ world_atmosphere_presence_flags:
 event_message_pointers:
 	dc.l event_message_stardrive_activated	; text
 	dc.l event_message_stardrive_deactivated	; text
-	dc.l event_message_tractor_beam_locked	; text
-	dc.l event_message_tractor_beam_lock_failed	; text
-	dc.l event_message_found_no_object	; text
-	dc.l event_message_computer_visual_analysis	; text
-	dc.l event_message_object_is_moveable	; text
-	dc.l event_message_object_mass_too_large	; text
-	dc.l event_message_no_object_in_range	; text
-	dc.l event_message_lost_tractor_beam_object	; text
-	dc.l event_message_no_atmosphere_detected	; text
-	dc.l event_message_atmosphere_detected	; text
-	dc.l event_message_object_collected	; text
-	dc.l event_message_you_cannot_collect_this	; text
-	dc.l event_message_object_too_far_from_ship	; text
-	dc.l event_message_intelligence_report	; text
-	dc.l event_message_all_projectors_activated	; text
-	dc.l event_message_egron_space_station	; text
-	dc.l event_message_under_construction	; text
-	dc.l event_message_currently_no_information	; text
-	dc.l event_message_egron_construction_crew	; text
-	dc.l event_message_currently_out_to_lunch	; text
-	dc.l event_message_conducting_pay_negotiations	; text
-	dc.l event_message_in_management_dispute	; text
-	dc.l event_message_in_union_dispute	; text
-	dc.l event_message_taking_legal_aid	; text
-	dc.l event_message_currently_on_strike	; text
-	dc.l event_message_currently_on_holiday	; text
-	dc.l event_message_all_rehired	; text
-	dc.l event_message_firing_main_guns	; text
-	dc.l event_message_charging_main_guns	; text
-	dc.l event_message_radio_message_from_emma_2	; text
-	dc.l event_message_professor_taymar_aboard	; text
-	dc.l event_message_yes_make_us_the_bomb	; text
-	dc.l event_message_no_do_not_make_the_bomb	; text
-	dc.l event_message_blank_line	; text
-	dc.l event_message_warning_space_pirates	; text
-	dc.l event_message_warning_pirates_raiding	; text
-	dc.l event_message_pirate_ship_cargo_dropped	; text
-	dc.l event_message_they_have_stolen_a	; text
-	dc.l event_message_icarus_current_location	; text
-	dc.l event_message_in_space	; text
-	dc.l event_message_icarus_inventory_full	; text
-	dc.l event_message_status_report	; text
-	dc.l event_message_warning_fatal_overheating	; text
-	dc.l event_message_alert_temperature_rising	; text
-	dc.l event_message_long_range_scout_ships	; text
-	dc.l event_message_report_novenia_destroyed	; text
-	dc.l event_message_by_massive_beam_weapon	; text
-	dc.l event_message_message_from_apogee_depot	; text
-	dc.l event_message_please_get_us_castrobars	; text
-	dc.l event_message_he_has_given_you	; text
-	dc.l event_message_icarus_inventory_empty	; text
-	dc.l event_message_stardrive_not_available	; text
-	dc.l event_message_leaving_planet	; text
-	dc.l event_message_i_inventory_j_jettison	; text
-	dc.l event_message_invertor_bomb	; text
-	dc.l event_message_congratulations_icarus	; text
-	dc.l event_message_space_station_destroyed	; text
-	dc.l event_message_novenia_is_safe	; text
-	dc.l event_message_for_now	; text
-	dc.l event_message_mid_space_collision	; text
-	dc.l event_message_tractor_beam_lock_off	; text
-	dc.l event_message_velocity_too_high	; text
-	dc.l event_message_shields_damaged	; text
-	dc.l event_message_high_pressure_fatal	; text
-	dc.l event_message_alert_high_pressure	; text
-	dc.l event_message_you_have_no_laser_energy	; text
-	dc.l event_message_you_have_no_energy_cubes	; text
-	dc.l event_message_you_have_no_homing_missiles	; text
-	dc.l event_message_you_have_no_bouncing_bombs	; text
-	dc.l event_message_you_have_no_neutron_bomb	; text
-	dc.l event_message_unfortunately_though	; text
-	dc.l event_message_novenia_has_been_vapourised	; text
-	dc.l event_message_tractor_beam_object_exploded	; text
-	dc.l event_message_leaving_moon	; text
-	dc.l event_message_an_energy_cube_launcher	; text
-	dc.l event_message_professor_taymar_says	; text
-	dc.l event_message_i_am_enjoying_the_ride	; text
-	dc.l event_message_watch_out_for_pirates	; text
-	dc.l event_message_icarus_is_a_fine_craft	; text
-	dc.l event_message_i_like_the_in_flight_movie	; text
-	dc.l event_message_message_from_apogee_depot_1	; text
-	dc.l event_message_in_a_tunnel	; text
-	dc.l event_message_construction_halted	; text
-	dc.l event_message_neutron_bomb_detonated	; text
-	dc.l event_message_yum_yum_castrobars	; text
+	dc.l event_message_tractor_beam_locked
+	dc.l event_message_tractor_beam_lock_failed
+	dc.l event_message_found_no_object
+	dc.l event_message_computer_visual_analysis
+	dc.l event_message_object_is_moveable
+	dc.l event_message_object_mass_too_large
+	dc.l event_message_no_object_in_range
+	dc.l event_message_lost_tractor_beam_object
+	dc.l event_message_no_atmosphere_detected
+	dc.l event_message_atmosphere_detected
+	dc.l event_message_object_collected
+	dc.l event_message_you_cannot_collect_this
+	dc.l event_message_object_too_far_from_ship
+	dc.l event_message_intelligence_report
+	dc.l event_message_all_projectors_activated
+	dc.l event_message_egron_space_station
+	dc.l event_message_under_construction
+	dc.l event_message_currently_no_information
+	dc.l event_message_egron_construction_crew
+	dc.l event_message_currently_out_to_lunch
+	dc.l event_message_conducting_pay_negotiations
+	dc.l event_message_in_management_dispute
+	dc.l event_message_in_union_dispute
+	dc.l event_message_taking_legal_aid
+	dc.l event_message_currently_on_strike
+	dc.l event_message_currently_on_holiday
+	dc.l event_message_all_rehired
+	dc.l event_message_firing_main_guns
+	dc.l event_message_charging_main_guns
+	dc.l event_message_radio_message_from_emma_2
+	dc.l event_message_professor_taymar_aboard
+	dc.l event_message_yes_make_us_the_bomb
+	dc.l event_message_no_do_not_make_the_bomb
+	dc.l event_message_blank_line
+	dc.l event_message_warning_space_pirates
+	dc.l event_message_warning_pirates_raiding
+	dc.l event_message_pirate_ship_cargo_dropped
+	dc.l event_message_they_have_stolen_a
+	dc.l event_message_icarus_current_location
+	dc.l event_message_in_space
+	dc.l event_message_icarus_inventory_full
+	dc.l event_message_status_report
+	dc.l event_message_warning_fatal_overheating
+	dc.l event_message_alert_temperature_rising
+	dc.l event_message_long_range_scout_ships
+	dc.l event_message_report_novenia_destroyed
+	dc.l event_message_by_massive_beam_weapon
+	dc.l event_message_message_from_apogee_depot
+	dc.l event_message_please_get_us_castrobars
+	dc.l event_message_he_has_given_you
+	dc.l event_message_icarus_inventory_empty
+	dc.l event_message_stardrive_not_available
+	dc.l event_message_leaving_planet
+	dc.l event_message_i_inventory_j_jettison
+	dc.l event_message_invertor_bomb
+	dc.l event_message_congratulations_icarus
+	dc.l event_message_space_station_destroyed
+	dc.l event_message_novenia_is_safe
+	dc.l event_message_for_now
+	dc.l event_message_mid_space_collision
+	dc.l event_message_tractor_beam_lock_off
+	dc.l event_message_velocity_too_high
+	dc.l event_message_shields_damaged
+	dc.l event_message_high_pressure_fatal
+	dc.l event_message_alert_high_pressure
+	dc.l event_message_you_have_no_laser_energy
+	dc.l event_message_you_have_no_energy_cubes
+	dc.l event_message_you_have_no_homing_missiles
+	dc.l event_message_you_have_no_bouncing_bombs
+	dc.l event_message_you_have_no_neutron_bomb
+	dc.l event_message_unfortunately_though
+	dc.l event_message_novenia_has_been_vapourised
+	dc.l event_message_tractor_beam_object_exploded
+	dc.l event_message_leaving_moon
+	dc.l event_message_an_energy_cube_launcher
+	dc.l event_message_professor_taymar_says
+	dc.l event_message_i_am_enjoying_the_ride
+	dc.l event_message_watch_out_for_pirates
+	dc.l event_message_icarus_is_a_fine_craft
+	dc.l event_message_i_like_the_in_flight_movie
+	dc.l event_message_message_from_apogee_depot_1
+	dc.l event_message_in_a_tunnel
+	dc.l event_message_construction_halted
+	dc.l event_message_neutron_bomb_detonated
+	dc.l event_message_yum_yum_castrobars
 event_message_stardrive_activated:
 	dc.b " -: Stardrive Activated :-",$00
 event_message_stardrive_deactivated:
@@ -50132,21 +50132,21 @@ event_message_yum_yum_castrobars:
 	dc.b $00
 planetfall_message_pointers:
 	dc.l planetfall_message_empty	; text
-	dc.l planetfall_message_dante	; text
-	dc.l planetfall_message_vista	; text
-	dc.l planetfall_message_apogee	; text
-	dc.l planetfall_message_millway	; text
-	dc.l planetfall_message_aldos	; text
-	dc.l planetfall_message_enos	; text
-	dc.l planetfall_message_castron	; text
-	dc.l planetfall_message_broadway	; text
-	dc.l planetfall_message_apex	; text
-	dc.l planetfall_message_esprit	; text
-	dc.l planetfall_message_questa	; text
-	dc.l planetfall_message_westmere	; text
-	dc.l planetfall_message_synapse	; text
-	dc.l planetfall_message_wackfunk	; text
-	dc.l planetfall_message_q_beta	; text
+	dc.l planetfall_message_dante
+	dc.l planetfall_message_vista
+	dc.l planetfall_message_apogee
+	dc.l planetfall_message_millway
+	dc.l planetfall_message_aldos
+	dc.l planetfall_message_enos
+	dc.l planetfall_message_castron
+	dc.l planetfall_message_broadway
+	dc.l planetfall_message_apex
+	dc.l planetfall_message_esprit
+	dc.l planetfall_message_questa
+	dc.l planetfall_message_westmere
+	dc.l planetfall_message_synapse
+	dc.l planetfall_message_wackfunk
+	dc.l planetfall_message_q_beta
 taymar_offer_dialogue_pointers:
 	dc.l depot_text_welcome_to_apogee
 	dc.l depot_text_jaysan_katra_and_agro
@@ -50530,35 +50530,119 @@ projector_rebuild_body_indices:
 	dc.w $0009,$0009,$0009,$0009,$0009,$0009,$0009,$0009
 	dc.w $0008,$0008,$0008,$0008,$0008,$0008,$0008,$0008
 projector_part_message_pointers:
-	dc.l $000393CE,$000393E4,$000393FB,$00039412
-	dc.l $0003942A,$00039443,$0003945C,$00039475
-	dc.l $000393CE,$000393E4,$000393FB,$00039412
-	dc.l $0003942A,$00039443,$0003945C,$00039475
-	dc.l $000393CE,$000393E4,$000393FB,$00039412
-	dc.l $0003942A,$00039443,$0003945C,$00039475
-	dc.l $000393CE,$000393E4,$000393FB,$00039412
-	dc.l $0003942A,$00039443,$0003945C,$00039475
-	dc.l $000393CE,$000393E4,$000393FB,$00039412
-	dc.l $0003942A,$00039443,$0003945C,$00039475
-	dc.l $000393CE,$000393E4,$000393FB,$00039412
-	dc.l $0003942A,$00039443,$0003945C,$00039475
-	dc.l $000393CE,$000393E4,$000393FB,$00039412
-	dc.l $0003942A,$00039443,$0003945C,$00039475
+	dc.l projector_message_egron_projector_base	; text
+	dc.l projector_message_egron_projector_mount
+	dc.l projector_message_egron_projector_cover
+	dc.l projector_message_egron_projector_turret
+	dc.l projector_message_projector_fuel_crystals
+	dc.l projector_message_projector_control_tower
+	dc.l projector_message_projector_crew_quarters
+	dc.l projector_message_egron_projector_sentinel
+	dc.l projector_message_egron_projector_base
+	dc.l projector_message_egron_projector_mount
+	dc.l projector_message_egron_projector_cover
+	dc.l projector_message_egron_projector_turret
+	dc.l projector_message_projector_fuel_crystals
+	dc.l projector_message_projector_control_tower
+	dc.l projector_message_projector_crew_quarters
+	dc.l projector_message_egron_projector_sentinel
+	dc.l projector_message_egron_projector_base
+	dc.l projector_message_egron_projector_mount
+	dc.l projector_message_egron_projector_cover
+	dc.l projector_message_egron_projector_turret
+	dc.l projector_message_projector_fuel_crystals
+	dc.l projector_message_projector_control_tower
+	dc.l projector_message_projector_crew_quarters
+	dc.l projector_message_egron_projector_sentinel
+	dc.l projector_message_egron_projector_base
+	dc.l projector_message_egron_projector_mount
+	dc.l projector_message_egron_projector_cover
+	dc.l projector_message_egron_projector_turret
+	dc.l projector_message_projector_fuel_crystals
+	dc.l projector_message_projector_control_tower
+	dc.l projector_message_projector_crew_quarters
+	dc.l projector_message_egron_projector_sentinel
+	dc.l projector_message_egron_projector_base
+	dc.l projector_message_egron_projector_mount
+	dc.l projector_message_egron_projector_cover
+	dc.l projector_message_egron_projector_turret
+	dc.l projector_message_projector_fuel_crystals
+	dc.l projector_message_projector_control_tower
+	dc.l projector_message_projector_crew_quarters
+	dc.l projector_message_egron_projector_sentinel
+	dc.l projector_message_egron_projector_base
+	dc.l projector_message_egron_projector_mount
+	dc.l projector_message_egron_projector_cover
+	dc.l projector_message_egron_projector_turret
+	dc.l projector_message_projector_fuel_crystals
+	dc.l projector_message_projector_control_tower
+	dc.l projector_message_projector_crew_quarters
+	dc.l projector_message_egron_projector_sentinel
+	dc.l projector_message_egron_projector_base
+	dc.l projector_message_egron_projector_mount
+	dc.l projector_message_egron_projector_cover
+	dc.l projector_message_egron_projector_turret
+	dc.l projector_message_projector_fuel_crystals
+	dc.l projector_message_projector_control_tower
+	dc.l projector_message_projector_crew_quarters
+	dc.l projector_message_egron_projector_sentinel
 projector_body_message_pointers:
-	dc.l $0003948F,$0003948F,$0003948F,$0003948F
-	dc.l $0003948F,$0003948F,$0003948F,$0003948F
-	dc.l $000394A8,$000394A8,$000394A8,$000394A8
-	dc.l $000394A8,$000394A8,$000394A8,$000394A8
-	dc.l $000394C0,$000394C0,$000394C0,$000394C0
-	dc.l $000394C0,$000394C0,$000394C0,$000394C0
-	dc.l $000394D9,$000394D9,$000394D9,$000394D9
-	dc.l $000394D9,$000394D9,$000394D9,$000394D9
-	dc.l $000394F0,$000394F0,$000394F0,$000394F0
-	dc.l $000394F0,$000394F0,$000394F0,$000394F0
-	dc.l $00039507,$00039507,$00039507,$00039507
-	dc.l $00039507,$00039507,$00039507,$00039507
-	dc.l $0003951C,$0003951C,$0003951C,$0003951C
-	dc.l $0003951C,$0003951C,$0003951C,$0003951C
+	dc.l projector_message_constructed_on_wackfunk	; text
+	dc.l projector_message_constructed_on_wackfunk
+	dc.l projector_message_constructed_on_wackfunk
+	dc.l projector_message_constructed_on_wackfunk
+	dc.l projector_message_constructed_on_wackfunk
+	dc.l projector_message_constructed_on_wackfunk
+	dc.l projector_message_constructed_on_wackfunk
+	dc.l projector_message_constructed_on_wackfunk
+	dc.l projector_message_constructed_on_synapse
+	dc.l projector_message_constructed_on_synapse
+	dc.l projector_message_constructed_on_synapse
+	dc.l projector_message_constructed_on_synapse
+	dc.l projector_message_constructed_on_synapse
+	dc.l projector_message_constructed_on_synapse
+	dc.l projector_message_constructed_on_synapse
+	dc.l projector_message_constructed_on_synapse
+	dc.l projector_message_constructed_on_westmere
+	dc.l projector_message_constructed_on_westmere
+	dc.l projector_message_constructed_on_westmere
+	dc.l projector_message_constructed_on_westmere
+	dc.l projector_message_constructed_on_westmere
+	dc.l projector_message_constructed_on_westmere
+	dc.l projector_message_constructed_on_westmere
+	dc.l projector_message_constructed_on_westmere
+	dc.l projector_message_constructed_on_questa
+	dc.l projector_message_constructed_on_questa
+	dc.l projector_message_constructed_on_questa
+	dc.l projector_message_constructed_on_questa
+	dc.l projector_message_constructed_on_questa
+	dc.l projector_message_constructed_on_questa
+	dc.l projector_message_constructed_on_questa
+	dc.l projector_message_constructed_on_questa
+	dc.l projector_message_constructed_on_esprit
+	dc.l projector_message_constructed_on_esprit
+	dc.l projector_message_constructed_on_esprit
+	dc.l projector_message_constructed_on_esprit
+	dc.l projector_message_constructed_on_esprit
+	dc.l projector_message_constructed_on_esprit
+	dc.l projector_message_constructed_on_esprit
+	dc.l projector_message_constructed_on_esprit
+	dc.l projector_message_constructed_on_apex
+	dc.l projector_message_constructed_on_apex
+	dc.l projector_message_constructed_on_apex
+	dc.l projector_message_constructed_on_apex
+	dc.l projector_message_constructed_on_apex
+	dc.l projector_message_constructed_on_apex
+	dc.l projector_message_constructed_on_apex
+	dc.l projector_message_constructed_on_apex
+	dc.l projector_message_constructed_on_broadway
+	dc.l projector_message_constructed_on_broadway
+	dc.l projector_message_constructed_on_broadway
+	dc.l projector_message_constructed_on_broadway
+	dc.l projector_message_constructed_on_broadway
+	dc.l projector_message_constructed_on_broadway
+	dc.l projector_message_constructed_on_broadway
+	dc.l projector_message_constructed_on_broadway
 projector_message_egron_projector_base:
 	dc.b "Egron Projector Base.",$00
 projector_message_egron_projector_mount:
@@ -50753,23 +50837,23 @@ encounter_burst_countdown_or_negative:
 	dc.w $0000
 encounter_choice_directory_prefix:
 	dc.l encounter_choices_columbus_horatio	; choices
-	dc.l encounter_choices_pirate_heavy	; choices
-	dc.l encounter_choices_pirate_heavy	; choices
-	dc.l encounter_choices_pirate_heavy	; choices
-	dc.l encounter_choices_whales_ducks	; choices
-	dc.l encounter_choices_mine_heavy	; choices
-	dc.l encounter_choices_pirate_heavy	; choices
-	dc.l encounter_choices_mine_heavy	; choices
-	dc.l encounter_choices_pirate_heavy	; choices
-	dc.l encounter_choices_pirate_heavy	; choices
-	dc.l encounter_choices_pirate_heavy	; choices
-	dc.l encounter_choices_pirate_heavy	; choices
-	dc.l encounter_choices_pirate_heavy	; choices
-	dc.l encounter_choices_pirate_heavy	; choices
-	dc.l encounter_choices_columbus_whales	; choices
-	dc.l encounter_choices_pirates_stargliders	; choices
-	dc.l encounter_choices_mine_heavy	; choices
-	dc.l encounter_choices_whales_ducks	; choices
+	dc.l encounter_choices_pirate_heavy
+	dc.l encounter_choices_pirate_heavy
+	dc.l encounter_choices_pirate_heavy
+	dc.l encounter_choices_whales_ducks
+	dc.l encounter_choices_mine_heavy
+	dc.l encounter_choices_pirate_heavy
+	dc.l encounter_choices_mine_heavy
+	dc.l encounter_choices_pirate_heavy
+	dc.l encounter_choices_pirate_heavy
+	dc.l encounter_choices_pirate_heavy
+	dc.l encounter_choices_pirate_heavy
+	dc.l encounter_choices_pirate_heavy
+	dc.l encounter_choices_pirate_heavy
+	dc.l encounter_choices_columbus_whales
+	dc.l encounter_choices_pirates_stargliders
+	dc.l encounter_choices_mine_heavy
+	dc.l encounter_choices_whales_ducks
 encounter_choices_columbus_horatio:
 	dc.w $0059,$0011,$0059,$0011,$0059,$001A,$0011,$0010
 	dc.w $0023,$0007,$0059,$0023,$0007,$0029,$0059,$0059
@@ -63417,74 +63501,74 @@ panel_animation_records_amiga_destination_byte_offset_6:
 	dc.w $0004	; frame_count
 panel_frame_references:
 	dc.l panel_animation_frame_00	; image
-	dc.l panel_animation_frame_01	; image
-	dc.l panel_animation_frame_02	; image
-	dc.l panel_animation_frame_03	; image
-	dc.l panel_animation_frame_04	; image
-	dc.l panel_animation_frame_05	; image
-	dc.l panel_animation_frame_06	; image
-	dc.l panel_animation_frame_07	; image
-	dc.l panel_animation_frame_06	; image
-	dc.l panel_animation_frame_05	; image
-	dc.l panel_animation_frame_08	; image
-	dc.l panel_animation_frame_09	; image
-	dc.l panel_animation_frame_10	; image
-	dc.l panel_animation_frame_11	; image
-	dc.l panel_animation_frame_12	; image
-	dc.l panel_animation_frame_13	; image
-	dc.l panel_animation_frame_14	; image
-	dc.l panel_animation_frame_15	; image
-	dc.l panel_animation_frame_16	; image
-	dc.l panel_animation_frame_17	; image
-	dc.l panel_animation_frame_22	; image
-	dc.l panel_animation_frame_23	; image
-	dc.l panel_animation_frame_24	; image
-	dc.l panel_animation_frame_25	; image
-	dc.l panel_animation_frame_18	; image
-	dc.l panel_animation_frame_19	; image
-	dc.l panel_animation_frame_20	; image
-	dc.l panel_animation_frame_21	; image
-	dc.l panel_animation_frame_20	; image
-	dc.l panel_animation_frame_19	; image
-	dc.l panel_animation_frame_18	; image
-	dc.l panel_animation_frame_25	; image
-	dc.l panel_animation_frame_24	; image
-	dc.l panel_animation_frame_23	; image
+	dc.l panel_animation_frame_01
+	dc.l panel_animation_frame_02
+	dc.l panel_animation_frame_03
+	dc.l panel_animation_frame_04
+	dc.l panel_animation_frame_05
+	dc.l panel_animation_frame_06
+	dc.l panel_animation_frame_07
+	dc.l panel_animation_frame_06
+	dc.l panel_animation_frame_05
+	dc.l panel_animation_frame_08
+	dc.l panel_animation_frame_09
+	dc.l panel_animation_frame_10
+	dc.l panel_animation_frame_11
+	dc.l panel_animation_frame_12
+	dc.l panel_animation_frame_13
+	dc.l panel_animation_frame_14
+	dc.l panel_animation_frame_15
+	dc.l panel_animation_frame_16
+	dc.l panel_animation_frame_17
+	dc.l panel_animation_frame_22
+	dc.l panel_animation_frame_23
+	dc.l panel_animation_frame_24
+	dc.l panel_animation_frame_25
+	dc.l panel_animation_frame_18
+	dc.l panel_animation_frame_19
+	dc.l panel_animation_frame_20
+	dc.l panel_animation_frame_21
+	dc.l panel_animation_frame_20
+	dc.l panel_animation_frame_19
+	dc.l panel_animation_frame_18
+	dc.l panel_animation_frame_25
+	dc.l panel_animation_frame_24
+	dc.l panel_animation_frame_23
 panel_frame_references_image_34:
 	dc.l panel_animation_frame_34	; image
-	dc.l panel_animation_frame_35	; image
-	dc.l panel_animation_frame_36	; image
-	dc.l panel_animation_frame_37	; image
-	dc.l panel_animation_frame_38	; image
-	dc.l panel_animation_frame_39	; image
-	dc.l panel_animation_frame_40	; image
-	dc.l panel_animation_frame_41	; image
+	dc.l panel_animation_frame_35
+	dc.l panel_animation_frame_36
+	dc.l panel_animation_frame_37
+	dc.l panel_animation_frame_38
+	dc.l panel_animation_frame_39
+	dc.l panel_animation_frame_40
+	dc.l panel_animation_frame_41
 panel_frame_references_image_42:
 	dc.l panel_animation_frame_26	; image
-	dc.l panel_animation_frame_27	; image
-	dc.l panel_animation_frame_28	; image
-	dc.l panel_animation_frame_29	; image
+	dc.l panel_animation_frame_27
+	dc.l panel_animation_frame_28
+	dc.l panel_animation_frame_29
 panel_frame_references_image_46:
 	dc.l panel_animation_frame_30	; image
-	dc.l panel_animation_frame_31	; image
-	dc.l panel_animation_frame_32	; image
-	dc.l panel_animation_frame_33	; image
-	dc.l panel_animation_frame_32	; image
-	dc.l panel_animation_frame_31	; image
+	dc.l panel_animation_frame_31
+	dc.l panel_animation_frame_32
+	dc.l panel_animation_frame_33
+	dc.l panel_animation_frame_32
+	dc.l panel_animation_frame_31
 panel_frame_references_image_52:
 	dc.l panel_animation_frame_42	; image
-	dc.l panel_animation_frame_43	; image
-	dc.l panel_animation_frame_44	; image
-	dc.l panel_animation_frame_45	; image
+	dc.l panel_animation_frame_43
+	dc.l panel_animation_frame_44
+	dc.l panel_animation_frame_45
 panel_frame_references_image_56:
 	dc.l panel_animation_frame_46	; image
-	dc.l panel_animation_frame_47	; image
-	dc.l panel_animation_frame_48	; image
-	dc.l panel_animation_frame_49	; image
-	dc.l panel_animation_frame_50	; image
-	dc.l panel_animation_frame_51	; image
-	dc.l panel_animation_frame_52	; image
-	dc.l panel_animation_frame_53	; image
+	dc.l panel_animation_frame_47
+	dc.l panel_animation_frame_48
+	dc.l panel_animation_frame_49
+	dc.l panel_animation_frame_50
+	dc.l panel_animation_frame_51
+	dc.l panel_animation_frame_52
+	dc.l panel_animation_frame_53
     ; Original four-plane panel-image bank. Alternate graphics-mode converter$3A466 rewrites it in place; do not treat as immutable across all platform paths.
 panel_animation_frame_00:
 	dc.b $9D,$F2,$00,$00,$80,$06,$04,$80,$7B,$53,$00,$00,$50,$03,$20,$00	; bitmap
