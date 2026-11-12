@@ -14,7 +14,9 @@
 ;   evidence: no recovered OS calls
 
     RSSET 0
-    RS.B 104
+    RS.B 88
+decimal_text_end_cursor RS.L 1
+    RS.B 12
 selected_novella_record_pointer RS.L 1
     RS.B 372
 novella_attempts_remaining RS.W 1
@@ -781,54 +783,56 @@ protection_word_number_text:
 	dc.b $20,$20,$20,$20,$20,$0D,$0D,$0A,$0A,$0A,$8F,$3A,$8A,$00,$00
 request_novella_word:
 	move.w #$3,novella_attempts_remaining(a6)
-abs_0_00013C02:
-	bsr.w abs_0_00013D38
+    ; Imported boot shim at $380 returns 145 for return $13C06; other callers go to PRNG $2662. Here low WORD must be <147; ANDI.L #255 then selects a 16-byte record.
+request_novella_selector_candidate:
+	bsr.w call_external_novella_selector
 abs_0_00013C06:
 	cmp.w #$93,d0
-	bcc.w abs_0_00013C02
+	bcc.w request_novella_selector_candidate
 	andi.l #255,d0
 	lsl.l #4,d0
 	lea.l abs_0_00012F80(pc),a0
 	adda.l d0,a0
 remember_selected_novella_record:
 	move.l a0,selected_novella_record_pointer(a6)
-	bsr.w abs_0_00013D44
-abs_0_00013C24:
+	bsr.w fade_novella_screen_via_parent_palette_service
+    ; Parent decimal formatter restores A0/A1 and publishes cursor after NUL at app+$58. Replace that NUL by a space before formatting the next component.
+format_selected_novella_page:
 	movea.l selected_novella_record_pointer(a6),a0
 	moveq.l #0,d0
 	move.b (a0)+,d0
-	lea.l abs_0_00012F80+3154(pc),a1
-	bsr.w abs_0_00013D3E
-abs_0_00013C34:
-	movea.l $0058(a6),a1
+	lea.l protection_page_number_text(pc),a1
+	bsr.w format_novella_number_via_parent_decimal_service
+replace_page_terminator_and_format_paragraph:
+	movea.l decimal_text_end_cursor(a6),a1
 	move.b #$20,-(a1)
 	moveq.l #0,d0
 	move.b (a0)+,d0
-	lea.l abs_0_00012F80+3170(pc),a1
-	bsr.w abs_0_00013D3E
-abs_0_00013C48:
-	movea.l $0058(a6),a1
+	lea.l protection_paragraph_number_text(pc),a1
+	bsr.w format_novella_number_via_parent_decimal_service
+replace_paragraph_terminator_and_format_word:
+	movea.l decimal_text_end_cursor(a6),a1
 	move.b #$20,-(a1)
 	clr.l d0
 	move.b (a0)+,d0
-	lea.l abs_0_00012F80+3181(pc),a1
-	bsr.w abs_0_00013D3E
-abs_0_00013C5C:
-	movea.l $0058(a6),a1
+	lea.l protection_word_number_text(pc),a1
+	bsr.w format_novella_number_via_parent_decimal_service
+replace_word_terminator_and_print_prompt:
+	movea.l decimal_text_end_cursor(a6),a1
 	move.b #$20,-(a1)
 	movem.l a0-a1,-(a7)
-	lea.l abs_0_00012F80+2776(pc),a1
-	bsr.w abs_0_00013D2C
-abs_0_00013C70:
+	lea.l protection_instructions_text(pc),a1
+	bsr.w print_novella_prompt_via_parent_text_service
+read_selected_novella_answer:
 	movem.l (a7)+,a0-a1
 	movea.l a0,a1
 	movea.l protection_input_limit_pointer(pc),a0
 	move.w #$10,(a0)
 	lea.l protection_answer_buffer(pc),a0
-	bsr.w abs_0_00013D32
-abs_0_00013C86:
+	bsr.w read_novella_answer_via_parent_editor
+restore_selected_answer_after_fade:
 	movem.l a0-a1,-(a7)
-	bsr.w abs_0_00013D44
+	bsr.w fade_novella_screen_via_parent_palette_service
 abs_0_00013C8E:
 	lea.l novella_answer_tail_latch(a6),a3
 	movem.l (a7)+,a0-a1
@@ -836,49 +840,51 @@ abs_0_00013C8E:
 compare_novella_answer:
 	move.b (a1)+,d0
 	move.b d0,(a2)
-	beq.w abs_0_00013CA8
+	beq.w check_typed_answer_has_no_suffix
 	cmp.b (a0)+,d0
 	beq.b compare_novella_answer
 	bra.b retry_novella_answer
-abs_0_00013CA8:
+    ; Expected NUL is accepted only if the typed answer also ends here. Attempts fall to zero before the exhausted-message hold; no further retry is entered.
+check_typed_answer_has_no_suffix:
 	move.b (a0),(a3)
 	bne.b retry_novella_answer
-	bsr.w abs_0_00013D26
-abs_0_00013CB0:
+	bsr.w present_frame_after_correct_novella_answer
+return_after_exact_novella_answer:
 	rts
 retry_novella_answer:
 	subq.w #1,novella_attempts_remaining(a6)
 	beq.b protection_attempts_exhausted
-	lea.l abs_0_00012F80+2608(pc),a1
-	bsr.w abs_0_00013D2C
-abs_0_00013CC0:
-	bsr.w abs_0_00013D4A
-abs_0_00013CC4:
-	bsr.w abs_0_00013D44
+	lea.l protection_incorrect_text(pc),a1
+	bsr.w print_novella_prompt_via_parent_text_service
+wait_before_repeating_novella_prompt:
+	bsr.w wait_for_novella_retry_key_via_parent_input
+fade_before_repeating_novella_prompt:
+	bsr.w fade_novella_screen_via_parent_palette_service
 abs_0_00013CC8:
-	bra.w abs_0_00013C24
+	bra.w format_selected_novella_page
 protection_attempts_exhausted:
-	lea.l abs_0_00012F80+2705(pc),a1
-	bsr.w abs_0_00013D2C
-abs_0_00013CD4:
-	bra.b abs_0_00013CD4
+	lea.l protection_exhausted_text(pc),a1
+	bsr.w print_novella_prompt_via_parent_text_service
+hold_after_exhausted_novella_attempts:
+	bra.b hold_after_exhausted_novella_attempts
 protection_answer_buffer:
 	dcb.b $3E,$00
 	dc.b $36,$9B,$D0,$CC,$36,$9B,$B0,$CC
 	dcb.b $A,$00
-abs_0_00013D26:
+present_frame_after_correct_novella_answer:
 	jmp $000034DC.l
-abs_0_00013D2C:
+print_novella_prompt_via_parent_text_service:
 	jmp $00002734.l
-abs_0_00013D32:
+read_novella_answer_via_parent_editor:
 	jmp $0000D7D8.l
-abs_0_00013D38:
+    ; Imported disk bootblock copies 20 bytes from source $38 to $380. The installed shim compares its stacked return address; record 145 is conditional on return $13C06, not a global RNG rule.
+call_external_novella_selector:
 	jmp $00000380.l
-abs_0_00013D3E:
+format_novella_number_via_parent_decimal_service:
 	jmp $00002558.l
-abs_0_00013D44:
+fade_novella_screen_via_parent_palette_service:
 	jmp $000034AA.l
-abs_0_00013D4A:
+wait_for_novella_retry_key_via_parent_input:
 	jmp $0000D7AA.l
 protection_input_limit_pointer:
 	dc.l $0000D904	; Input-limit pointer and unentered bridge-shaped bytes; raw suffix has no execution claim

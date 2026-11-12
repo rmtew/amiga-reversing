@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
   "kind": "committed_native_rendered_original_export",
-  "canonical_source_commit": "82625916b20faf9dd98af4168204840ef513af23",
-  "publication_base_commit": "82625916b20faf9dd98af4168204840ef513af23",
+  "canonical_source_commit": "5969a8d5d7443a836b2a4bca5661f794e036b148",
+  "publication_base_commit": "5969a8d5d7443a836b2a4bca5661f794e036b148",
   "native_export": "CListingArtifact.source_package_payload(64)",
-  "main_source_sha256": "b787d00e0e1fa71c6f484d066fddfe0f3f8b1f986672e0aa7066c74be73e3cfb",
+  "main_source_sha256": "966481e7ed31308f05bda5cb90fe507fe95e6926af9a18b07a3adca9b3e4969d",
   "asset_count": 57,
   "asset_bytes": 93633,
   "game_assembly_hand_edits": false,
@@ -25,7 +25,7 @@
     "paused Pandora work"
   ],
   "canonical_source_commit_role": "Canonical source publication base; build and verification identities are recorded below.",
-  "canonical_source_subject_revision": "77479110b9c8250f4e80499b98ac3aa45ac974fd1194ffa53b014fcdcd7e853b",
+  "canonical_source_subject_revision": "dbd6bc47f577bb158fa042d1e141ac9502e28c589611efe27dbe31c55bed5fb2",
   "canonical_fact_sha256": {
     "source_binary.json": "42d4a5758b3e8236af7f912aee85e9ee5323bcd0961faa338c4f864080a0a7d9",
     "target_metadata.json": "e7540b68c118c56aba8815b6722eefa067517cc865fe9841d6c01ce96551389c",
@@ -36,17 +36,17 @@
   "decoded_protection_view": {
     "target_id": "amiga_raw_starglider2_protection_view",
     "native_export": "CListingArtifact.inline_source_text_with_profile",
-    "source_sha256": "fd2c4a504b812c4f8574626da42c42317f140d24d3500311ef32d31ecd57fbc3",
-    "source_subject_revision": "bc7efc11787e27369f86931b85b554826a65d1eabce05b4810e09706052d1091",
+    "source_sha256": "763bf7a3e702f88c66666b3c72db45075951a7bb91b948029268fb467ef8a5fe",
+    "source_subject_revision": "7722ee1d96b34aee0ae58b3c21fa5bdc550bb612b12943cfa890affd7718d125",
     "canonical_fact_sha256": {
       "source_binary.json": "68dbcc18ce1cd4cfa775786a355b9b44a8cc2ba8ea464ff217f2af0a38fe027a",
       "target_metadata.json": "e7540b68c118c56aba8815b6722eefa067517cc865fe9841d6c01ce96551389c",
-      "manual_actions.jsonl": "51840d7d15e4507677c6a390652cdbd0036021eac31bc3b31d4612980530ef45",
-      "decision_journal.jsonl": "4bf93a0f60f39792719d845ce0f44d1553f8ba7d99f2d610fe3012dc3429b88e"
+      "manual_actions.jsonl": "af7c2e9d5b14de4b329539827cb355bef4571d84d77741a2e58acd01411897c8",
+      "decision_journal.jsonl": "10416b4ec4996ef90022c3d8ee60daa23e7d505ce0baa8db465ce1034c165f60"
     },
     "runtime_scope": "Seven CPU write-site windows match this reversible view; no whole runtime-view identity or parent plaintext promotion."
   },
-  "verification_receipt_id": "d25f22ccb7099b41fb2543a1142bb886f3745e94debb708e203d53eb49ccb947",
-  "render_native_sha256": "e26e5503e638143935d082c38bd73335d17496ff3d32b10c7df9da23f54f42f7",
-  "final_assembler_native_sha256": "e26e5503e638143935d082c38bd73335d17496ff3d32b10c7df9da23f54f42f7"
+  "verification_receipt_id": "05055e6eb46382412e3679e8ac7d2af2f54079a977b121cb536177918298ec19",
+  "render_native_sha256": "10f431831986464dddc70d7b407e31a1e94ca6084a35000441b54472905a2a18",
+  "final_assembler_native_sha256": "10f431831986464dddc70d7b407e31a1e94ca6084a35000441b54472905a2a18"
 }

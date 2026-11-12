@@ -17353,16 +17353,16 @@ draw_positioned_text_glyph:
 	bsr.w draw_planar_glyph_rows
 	bra.b read_next_positioned_text_byte
 blank_positioned_text_plane_three:
-	lea.l keyboard_translation_seed+118(pc),a5
+	lea.l blank_glyph_rows(pc),a5
 	bra.b select_positioned_text_plane_two
 blank_positioned_text_plane_two:
-	lea.l keyboard_translation_seed+118(pc),a4
+	lea.l blank_glyph_rows(pc),a4
 	bra.b select_positioned_text_plane_one
 blank_positioned_text_plane_one:
-	lea.l keyboard_translation_seed+118(pc),a3
+	lea.l blank_glyph_rows(pc),a3
 	bra.b select_positioned_text_plane_zero
 blank_positioned_text_plane_zero:
-	lea.l keyboard_translation_seed+118(pc),a2
+	lea.l blank_glyph_rows(pc),a2
 	bra.b draw_positioned_text_glyph
 return_from_positioned_text:
 	movem.l (a7)+,d0-d7/a0-a6
@@ -17434,16 +17434,16 @@ advance_text_cursor_after_glyph:
 	move.b d0,text_cursor_column.l
 	bra.w read_next_cursor_text_byte
 blank_cursor_text_plane_three:
-	lea.l keyboard_translation_seed+118(pc),a5
+	lea.l blank_glyph_rows(pc),a5
 	bra.b select_cursor_text_plane_two
 blank_cursor_text_plane_two:
-	lea.l keyboard_translation_seed+118(pc),a4
+	lea.l blank_glyph_rows(pc),a4
 	bra.b select_cursor_text_plane_one
 blank_cursor_text_plane_one:
-	lea.l keyboard_translation_seed+118(pc),a3
+	lea.l blank_glyph_rows(pc),a3
 	bra.b select_cursor_text_plane_zero
 blank_cursor_text_plane_zero:
-	lea.l keyboard_translation_seed+118(pc),a2
+	lea.l blank_glyph_rows(pc),a2
 	bra.b draw_cursor_glyph_and_restore_font
 commit_text_cursor_pointer_and_return:
 	move.l a0,text_cursor_destination_pointer.l
@@ -17872,7 +17872,7 @@ toggle_joystick_menu_choice:
 	bsr.w redraw_options_text_at_origin
 apply_joystick_menu_toggle:
 	move.b #$2,options_joystick_line_prefix.l
-	lea.l options_joystick_status_text+1(pc),a1
+	lea.l options_joystick_status_tail(pc),a1
 	tst.b joystick_control_enabled_flag(a6)
 	bne.b disable_joystick_then_one_hand_menu_control
 	move.b #$4E,(a1)

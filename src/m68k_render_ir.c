@@ -11665,6 +11665,21 @@ static void attach_source_analysis_static_interior_expression_symbols(const M68k
     resolved_target = (int64_t)expression->base_offset + (int64_t)expression->signed_addend;
     if (target == NULL || !target->has_section || target->section_index != section->section_index ||
         resolved_target < 0 || resolved_target > UINT32_MAX || target->offset != (uint32_t)resolved_target) continue;
+    /* Ownership establishes the address, not the preferred spelling. An
+     * authored, emitted boundary in the same runtime view is more precise
+     * than its enclosing owner's inferred addend. Keep generated and storage
+     * aliases on the established fallback path. */
+    if (lookup_source_offsets_share_runtime_view(lookup, section->section_index,
+          candidate->offset, target->offset) &&
+        lookup_has_renderable_label(lookup, target->section_index, target->offset)) {
+      char name[256];
+      if (!format_rendered_asm_label_with_generation(lookup, name, sizeof(name),
+            target->section_index, target->offset)) {
+        attach_operand_label_symbol(lookup, instruction, expression->operand_index,
+          section->section_index, candidate->offset, target->section_index, target->offset);
+        continue;
+      }
+    }
     attach_operand_label_addend_symbol(lookup, instruction, expression->operand_index,
       expression->base_section_index, expression->base_offset, expression->signed_addend);
   }

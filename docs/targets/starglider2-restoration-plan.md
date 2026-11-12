@@ -117,6 +117,11 @@ Original payload SHA256:
    that value. Next: establish a specific validated-state caller context; ordinary
    initialization/decrement/wrap and table extent alone cannot supply the bound.
 5. Residual regions: prioritize accepted data readers and incoming code edges.
+   The decoded protection view now uses its parent formatter cursor and named
+   text targets. The imported cracked-disk bootblock installs a return-address
+   gated selector shim at $380: return $13C06 selects record 145, other callers
+   forward to the shared PRNG. This is conditional installed-media behavior,
+   not a guarantee for arbitrary low-memory state or complete boot execution.
    The world-pool rebuild gate at app+$7EE has a reader and a zeroing finalizer.
    Bulk save restoration covers it; a positive normal-game producer is still
    unknown. Its consumer name supplies no activation or lifetime invariant.
