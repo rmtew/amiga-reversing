@@ -25,7 +25,8 @@ MAX_MATCHES = 4096
 
 
 def validate_bus_trace(spec):
-    if (not isinstance(spec, dict) or set(spec) != {'frames', 'wait_seconds', 'ranges'}
+    if (not isinstance(spec, dict) or set(spec) - {'retired_coverage'} != {'frames', 'wait_seconds', 'ranges'}
+            or type(spec.get('retired_coverage', False)) is not bool
             or type(spec['frames']) is not int or not 1 <= spec['frames'] <= 4
             or type(spec['wait_seconds']) is not int or not 1 <= spec['wait_seconds'] <= 30
             or not isinstance(spec['ranges'], list) or not 1 <= len(spec['ranges']) <= 4):
@@ -156,7 +157,7 @@ def read_bus_partitions(directory, partitions, max_frames, *, max_total=8192):
                         for (n,e,a),c in sorted(counts.items())])
 
 
-def capture_bus_trace(client, spec, start_event, directory):
+def capture_bus_trace(client, spec, start_event, directory, *, coverage_view=None, payload_path=None):
     validate_bus_trace(spec)
     if not isinstance(start_event, dict) or type(start_event.get('frame')) is not int:
         raise ValueError('Chip-bus trace requires a canonical anchor frame event')
@@ -173,6 +174,12 @@ def capture_bus_trace(client, spec, start_event, directory):
     output = Path(tempfile.mkdtemp(prefix='chip-bus-', dir=directory)).resolve()
     request = dict(path=str(output), frames=spec['frames'], slots=True, memory=False,
                    screenshots='none', pc_samples=True)
+    coverage = None
+    if spec.get('retired_coverage', False):
+        from .copperline_coverage import before_coverage
+        coverage = before_coverage(client, payload_path, coverage_view, ranges)
+        binding, _ = coverage
+        request.update(coverage=True, code_ranges=[dict(base=binding['base'], size=binding['size'])])
     result = dict(requested_trace=spec, ranges=ranges, start_event=start_event,
                   profile_request=request, status='unavailable')
     try:
@@ -193,6 +200,10 @@ def capture_bus_trace(client, spec, start_event, directory):
         result['profile_stop'] = client.request('profile.stop')
     try:
         result['profile'] = read_bus_profile(output, ranges, spec['frames'])
+        if coverage is not None:
+            from .copperline_coverage import finish_coverage
+            result['retired_coverage'] = finish_coverage(
+                client, output, payload_path, *coverage, result['profile'])
     except (OSError, ValueError, CopperlineError) as exc:
         result.update(status='unavailable', error=str(exc))
     return result

@@ -231,6 +231,21 @@ first 4096 records are retained, with an explicit omission count. Owner-only,
 missing, repositioned and unsupported instantaneous-transfer records fail closed.
 The profile is stopped on every outcome; cleanup failure aborts the session.
 
+The optional strict boolean `"retired_coverage": true` adds Copperline's
+documented retired-instruction counters to the same bounded profile. It requires
+the phase's verified canonical file view (one aligned range, at most 1 MiB),
+validates the exact CLCV sidecar and totals, and retains its hash and compact
+counts rather than embedding the histogram. Requested bus windows must lie in
+that view and the configured 512 KiB Chip RAM. Each window records original-byte
+comparison before and after capture and all observed writes. Only matching,
+unwritten windows establish source-byte identity during the capture; other
+retired PCs are discovery candidates. CPU-only memory, code outside the view,
+and execution outside the bounded capture are not qualified. No guest memory/register state is
+injected or reversed. Full counters remain available in ignored local storage
+for comparison with canonical instruction starts.
+`runtime/scenarios/starglider2-flight-code-coverage.json` reproduces the bounded
+SGII flight/control and two unclaimed-region check with the normal-media prefix.
+
 Raw slot sidecars stay in ignored owned runtime storage because they can contain
 unrelated guest/ROM bus values. Publish only filtered target observations and
 hashes. Native frame labels and the first frame's `partial` flag are preserved;

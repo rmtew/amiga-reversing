@@ -710,7 +710,11 @@ def _run_scenario_phase(
         )
     if item.get('status') == 'hit' and 'chip_bus_trace' in phase:
         from .copperline_bus_trace import capture_bus_trace
-        trace = capture_bus_trace(client, phase['chip_bus_trace'], item.get('stop_event'), trace_directory)
+        coverage_args = {}
+        if phase['chip_bus_trace'].get('retired_coverage', False):
+            coverage_args = dict(coverage_view=phase.get('runtime_view'), payload_path=payload_path)
+        trace = capture_bus_trace(client, phase['chip_bus_trace'], item.get('stop_event'),
+                                  trace_directory, **coverage_args)
         item['chip_bus_trace'] = trace
         trace['registers'] = client.registers()
         trace['payload_at_stop'] = payload_at_pc(client, payload_path, trace['registers']['pc'])

@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "identifier": "sgii-retired-code-discovery",
+  "target_id": "amiga_raw_starglider2_game",
+  "original_media_prefix": "starglider2",
+  "phases": [
+    {
+      "name": "normal_media",
+      "observable": "original_media_handoff"
+    },
+    {
+      "name": "flight_coverage",
+      "breakpoint_stable_key": "s0:00000288:instruction",
+      "occurrences": 32,
+      "wait_seconds": 30,
+      "chip_bus_trace": {
+        "frames": 4,
+        "wait_seconds": 30,
+        "retired_coverage": true,
+        "ranges": [
+          {
+            "name": "flight_control",
+            "address": 4744,
+            "length": 64
+          },
+          {
+            "name": "unclaimed_helpers",
+            "address": 25918,
+            "length": 694
+          },
+          {
+            "name": "unclaimed_hardware",
+            "address": 51640,
+            "length": 456
+          }
+        ]
+      }
+    }
+  ],
+  "input_events": []
+}

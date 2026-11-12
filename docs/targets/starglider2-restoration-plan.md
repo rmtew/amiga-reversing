@@ -110,6 +110,10 @@ Original payload SHA256:
    Nominal address-formation width or scalar formatting supplies no owner.
    Do not decode apparent instructions or declare arrays from plausible bytes.
    Zero-fill writers and write-only app flags do not establish field purpose.
+   The four-frame normal-flight coverage probe retired 40,053 instructions at
+   3,474 canonical starts; no missing start was observed. Raw $553E..$57F4 and
+   $B9B8..$BB80 matched original bytes, had no writes and did not execute in
+   this window. This does not establish dead code or qualify other paths.
    The debug-key99 toggle has no static reader; the viewer auxiliary WORD has
    no known producer or role. Normal Painting entry was reached with debug
    cleared; a 120-frame CPU watch saw no auxiliary read with key8 held through
