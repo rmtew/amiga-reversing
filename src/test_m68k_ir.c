@@ -2228,6 +2228,29 @@ static int test_facts_v2_closed_word_index_fields(void) {
   return 0;
 }
 
+/* The decoder retains the encoded BYTE; consumers use the same generated
+ * signed-immediate normalization as concrete/abstract CPU simulation. */
+static int test_logical_immediate_uses_generated_signedness(void) {
+  M68kInstructionIR instruction = m68k_plain_parse_instruction_to_ir(
+    "moveq #0,d0", M68K_ASM_CPU_68000, m68k_diag_sink(NULL));
+  uint32_t logical;
+  for (unsigned byte = 0U; byte < 256U; ++byte) {
+    instruction.operands[0].value.value = byte;
+    M68K_C_ASSERT(m68k_sim_operand_immediate_value(&instruction, 0U, &logical));
+    M68K_C_ASSERT_U32((uint32_t)(int32_t)(int8_t)byte, logical);
+    M68K_C_ASSERT_U32(byte, instruction.operands[0].value.value);
+  }
+  M68K_C_ASSERT(!m68k_sim_operand_immediate_value(&instruction, 1U, &logical));
+  M68K_C_ASSERT(!m68k_sim_operand_immediate_value(&instruction, 4U, &logical));
+  M68K_C_ASSERT(!m68k_sim_operand_immediate_value(NULL, 0U, &logical));
+  M68K_C_ASSERT(!m68k_sim_operand_immediate_value(&instruction, 0U, NULL));
+  instruction = m68k_plain_parse_instruction_to_ir(
+    "move.l #128,d0", M68K_ASM_CPU_68000, m68k_diag_sink(NULL));
+  M68K_C_ASSERT(m68k_sim_operand_immediate_value(&instruction, 0U, &logical));
+  M68K_C_ASSERT_U32(128U, logical);
+  return 0;
+}
+
 /* Independently assembled: MOVEA.L rows(PC,D0.W),A1; the An-indexed
  * equivalent to A3; RTS; three initially null pointer records. */
 static int test_facts_v2_pc_pointer_collection_consumers(void) {
@@ -40332,6 +40355,7 @@ int m68k_c_ir_tests(void) {
       test_source_dcb_preserves_large_repeat_without_expanding_items},
     {"facts_v2_typed_foreign_a6_overrides_weak_app_fallback", test_facts_v2_typed_foreign_a6_overrides_weak_app_fallback},
     {"facts_v2_closed_word_index_fields", test_facts_v2_closed_word_index_fields},
+    {"logical_immediate_uses_generated_signedness", test_logical_immediate_uses_generated_signedness},
     {"facts_v2_pc_pointer_collection_consumers", test_facts_v2_pc_pointer_collection_consumers},
     {"source_long_base_relative_constant_expression", test_source_long_base_relative_constant_expression},
     {"source_symbolic_absolute_after_dcb_does_not_leak_to_register_move",

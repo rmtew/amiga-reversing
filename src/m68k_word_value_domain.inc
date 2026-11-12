@@ -27,6 +27,8 @@ static void hardware_word_from_bits(M68kHardwareWordSet *set, uint16_t mask, uin
 
 static void hardware_word_set_merge(M68kHardwareWordSet *dest, const M68kHardwareWordSet *source) {
   uint8_t contract = dest->requires_input_contract | source->requires_input_contract;
+  uint16_t symbol = dest->scalar_symbol_equate == source->scalar_symbol_equate ?
+    dest->scalar_symbol_equate : 0U;
   int same_bounds = dest->has_bounds && source->has_bounds &&
     dest->lower_bound == source->lower_bound && dest->upper_bound == source->upper_bound;
   uint16_t lower = dest->lower_bound, upper = dest->upper_bound;
@@ -35,7 +37,7 @@ static void hardware_word_set_merge(M68kHardwareWordSet *dest, const M68kHardwar
     uint8_t i;
     for (i = 0U; i < source->count; ++i)
       if (!hardware_word_set_add(&finite, source->values[i])) break;
-    if (i == source->count) { finite.requires_input_contract = contract; *dest = finite; return; }
+    if (i == source->count) { finite.requires_input_contract = contract; finite.scalar_symbol_equate = finite.count == 1U ? symbol : 0U; *dest = finite; return; }
   }
   uint16_t am, av, bm, bv;
   hardware_word_known_bits(dest, &am, &av); hardware_word_known_bits(source, &bm, &bv);
@@ -72,13 +74,15 @@ static int hardware_word_refine_bounds(M68kHardwareWordSet *set, uint16_t lower,
   HardwareWordInterval incoming[2], predicate[2], intersections[4], parts[4];
   unsigned ni, np, n = 0U, count = 0U;
   uint16_t prior_mask = 0U, prior_value = 0U;
-  if (set->requires_input_contract) memset(set, 0, sizeof(*set));
+  uint16_t symbol = set->scalar_symbol_equate;
+  if (set->requires_input_contract) { memset(set, 0, sizeof(*set)); symbol = 0U; }
   np = hardware_word_split_bounds(lower, upper, predicate);
   if (set->count) {
     for (uint8_t i = 0U; i < set->count; ++i)
       if (hardware_word_in_parts(set->values[i], predicate, np))
         (void)hardware_word_set_add(&result, set->values[i]);
     if (!result.count) return 0;
+    result.scalar_symbol_equate = result.count == 1U ? symbol : 0U;
     *set = result; return 1;
   }
   hardware_word_known_bits(set, &prior_mask, &prior_value);

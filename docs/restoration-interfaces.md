@@ -110,6 +110,22 @@ Extending a consumer through a memory cell still needs shared storage transport,
 not an assumption from unchanged original bytes.
 Regressions: `tests/test_signed_word_index_ranges.py`.
 
+Indexed-field rendering retains a scalar EQU identity only from an explicitly
+represented immediate assignment or equality guard. WORD/LONG register copies
+carry it; joins require the same identity, and mutation, partial writes and
+unknown calls discard it. The signed WORD contribution must exactly match the
+symbol before it can compensate a field displacement. Equal-valued unrelated
+EQUs never supply a name. Without a usable identity (including An indices,
+multiple values or compound array terms), the original displacement remains in
+the operand and the resolved field is a comment-only reference. Neither display
+form strengthens the access proof or removes the live index.
+Logical immediate values reuse the simulator's generated signedness metadata;
+raw encoded literals remain separate. This includes negative MOVEQ values in
+both WORD indexing and full-register scalar transport, without a mnemonic-based
+sign-extension rule in analysis.
+Regressions: `tests/test_typed_index_symbol_compensation.py` and native
+`logical_immediate_uses_generated_signedness`.
+
 ## Known indirect jump destinations
 
 Typed flow consumes the same accepted, source-bound, same-section indirect-JUMP

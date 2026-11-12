@@ -44509,24 +44509,25 @@ load_selected_body_mesh_material_index:
 	move.w selected_celestial_body_index(a6),d0
 	add.w d0,d0
 	move.w $0(a0,d0.w),special_mesh_material_index.l
+    ; Only negative space enters hazards. Metric and absolute-height gates use N-only branches, including overflow aliases; bypass retains prior colours. These are not universal index bounds.
 gate_space_proximity_damage_or_surface_service:
 	move.b #$78,diagnostic_step_byte.l
 	tst.b space_environment_flag(a6)
-	bpl.w abs_0_00033528
+	bpl.w gate_space_asteroid_and_retirement_service
 	move.l system_center_proximity_metric(a6),d0
 	cmp.l #$5B8D80,d0
-	bpl.w abs_0_00033440
+	bpl.w gate_millway_pressure_service
 	move.l player_world_y(a6),d1
 	subi.l #4274967296,d1
-	bpl.b abs_0_0003333C
+	bpl.b test_star_heat_plane_distance
 	neg.l d1
-abs_0_0003333C:
+test_star_heat_plane_distance:
 	cmp.l #$1E8480,d1
-	bpl.w abs_0_00033440
+	bpl.w gate_millway_pressure_service
 	swap.w d0
 	move.w d0,d4
 	lsr.w #2,d0
-    ; 24 stored BYTE prefix supplies value<<4 for base RGB, then OR4C for override RGB. The Millway producer uses its own prefix. Original proximity/index guards are outside these CPU fixtures.
+    ; Metric highWORD>>2 indexes the stored BYTE prefix, then signed doubled WORD layer lookup. Reads may alias outside declared prefixes; base RGB is BYTE<<4, override ORs $4C.
 	lea.l system_center_space_colour_bytes.l,a1
 	move.b $0(a1,d0.w),d2
 	andi.w #255,d2
@@ -44545,9 +44546,10 @@ abs_0_0003333C:
 	add.w d2,d2
 	add.w d2,d2
 	sub.w d2,icarus_shield_strength(a6)
-	bcs.b abs_0_00033392
-	bra.b abs_0_000333F2
-abs_0_00033392:
+	bcs.b handle_fatal_star_heat_borrow
+	bra.b recharge_power_after_absorbed_star_heat
+    ; Unsigned shield borrow is fatal; exact zero is not. Every fatal pass requests message44. Only a nonnegative latch clears nonplayer phase/durability and flags2/3; type tags remain.
+handle_fatal_star_heat_borrow:
 	clr.w icarus_shield_strength(a6)
 	clr.w pending_message_count(a6)
 	move.w #$1,message_display_countdown(a6)
@@ -44557,35 +44559,37 @@ abs_0_00033392:
 	bsr.w enqueue_event_message
 	bsr.w enqueue_blank_event_message_line
 	tst.b fatal_overheat_latched_flag.l
-	bmi.b abs_0_00033434
+	bmi.b continue_after_star_heat_service
 	st.b fatal_overheat_latched_flag.l
 	move.w nearby_object_count(a6),d0
-	beq.b abs_0_00033434
+	beq.b continue_after_star_heat_service
 	subq.w #1,d0
 	movea.l nearby_objects_cursor(a6),a0
-abs_0_000333D0:
+clear_next_nonplayer_phase_after_fatal_heat:
 	movea.l (a0)+,a2
 	cmpi.w #30,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
-	beq.b abs_0_000333EC
+	beq.b advance_fatal_heat_nearby_scan
 	clr.b SG2ObjectCore_retirement_phase_or_negative(a2)
 	bclr.b #2,SG2ObjectCore_flags(a2)
 	bclr.b #3,SG2ObjectCore_flags(a2)
 	clr.b SG2ObjectCore_durability_or_negative(a2)
-abs_0_000333EC:
-	dbf.w d0,abs_0_000333D0
-	bra.b abs_0_00033434
-abs_0_000333F2:
+advance_fatal_heat_nearby_scan:
+	dbf.w d0,clear_next_nonplayer_phase_after_fatal_heat
+	bra.b continue_after_star_heat_service
+    ; Absorbed heat adds92-4*index moduloWORD to power, saturating on unsigned carry. Fatal heat skips recharge and the shared notice countdown.
+recharge_power_after_absorbed_star_heat:
 	move.w #$5C,d2
 	sub.w d3,d2
 	add.w d2,icarus_power_reserve(a6)
-	bcs.b abs_0_00033400
-	bra.b abs_0_00033406
-abs_0_00033400:
+	bcs.b saturate_star_heat_power_recharge
+	bra.b age_star_heat_warning_countdown
+saturate_star_heat_power_recharge:
 	move.w #$FFFF,icarus_power_reserve(a6)
-abs_0_00033406:
-	subq.w #1,abs_0_00039652.l
-	bpl.b abs_0_00033434
-	move.w d4,abs_0_00039652.l
+    ; Negative decremented WORD requests message45 and reloads metric highWORD. The same countdown is shared with Millway and aliases secondary spheroid colour bytes30/31.
+age_star_heat_warning_countdown:
+	subq.w #1,space_hazard_notice_countdown.l
+	bpl.b continue_after_star_heat_service
+	move.w d4,space_hazard_notice_countdown.l
 	clr.w pending_message_count(a6)
 	move.w #$1,message_display_countdown(a6)
 	lea.l event_message_pointers.l,a1
@@ -44593,20 +44597,21 @@ abs_0_00033406:
 	movea.l SG2SourceTextReference_text(a1,d0.w),a1
 	bsr.w enqueue_event_message
 	bsr.w enqueue_blank_event_message_line
-abs_0_00033434:
-	bra.w abs_0_00033528
+continue_after_star_heat_service:
+	bra.w gate_space_asteroid_and_retirement_service
 	dc.b $13,$FC,$00,$45,$00,$00,$E1,$03
-abs_0_00033440:
+    ; Pressure uses N-only metric/height gates, then512 or2048 shield loss. Unsigned borrow requests fatal message65; it does not recharge power or change the fatal-heat retirement latch.
+gate_millway_pressure_service:
 	move.l millway_proximity_metric(a6),d0
 	cmp.l #$124F80,d0
-	bpl.w abs_0_0003350C
+	bpl.w reset_inactive_space_hazard_colours
 	move.l player_world_y(a6),d1
 	subi.l #4274967296,d1
-	bpl.b abs_0_0003345C
+	bpl.b test_millway_pressure_plane_distance
 	neg.l d1
-abs_0_0003345C:
+test_millway_pressure_plane_distance:
 	cmp.l #$61A80,d1
-	bpl.w abs_0_0003350C
+	bpl.w reset_inactive_space_hazard_colours
 	swap.w d0
 	lea.l millway_space_colour_bytes.l,a1
 	move.b $0(a1,d0.w),d2
@@ -44619,15 +44624,15 @@ abs_0_0003345C:
 	lea.l type128_disc_layers_by_proximity.l,a1
 	move.w $0(a1,d0.w),type128_disc_outer_layer_index(a6)
 	cmpi.l #900000,millway_proximity_metric(a6)
-	bpl.w abs_0_000334AA
+	bpl.w apply_outer_millway_pressure_shield_loss
 	subi.w #2048,icarus_shield_strength(a6)
-	bra.b abs_0_000334B0
-abs_0_000334AA:
+	bra.b test_millway_pressure_shield_borrow
+apply_outer_millway_pressure_shield_loss:
 	subi.w #512,icarus_shield_strength(a6)
-abs_0_000334B0:
-	bcs.b abs_0_000334B4
-	bra.b abs_0_000334DA
-abs_0_000334B4:
+test_millway_pressure_shield_borrow:
+	bcs.b handle_fatal_millway_pressure_borrow
+	bra.b age_millway_pressure_warning_countdown
+handle_fatal_millway_pressure_borrow:
 	clr.w icarus_shield_strength(a6)
 	clr.w pending_message_count(a6)
 	move.w #$1,message_display_countdown(a6)
@@ -44636,11 +44641,12 @@ abs_0_000334B4:
 	movea.l SG2SourceTextReference_text(a1,d0.w),a1
 	bsr.w enqueue_event_message
 	bsr.w enqueue_blank_event_message_line
-	bra.b abs_0_0003350A
-abs_0_000334DA:
-	subq.w #1,abs_0_00039652.l
-	bpl.b abs_0_0003350A
-	move.w #$1E,abs_0_00039652.l
+	bra.b finish_millway_pressure_service
+    ; Negative decremented shared WORD requests message66 and reloads30. Timer1 becomes0 without notice; 8000 becomes7FFF. Accepted pressure snapshots directly, bypassing the asteroid gate.
+age_millway_pressure_warning_countdown:
+	subq.w #1,space_hazard_notice_countdown.l
+	bpl.b finish_millway_pressure_service
+	move.w #$1E,space_hazard_notice_countdown.l
 	clr.w pending_message_count(a6)
 	move.w #$1,message_display_countdown(a6)
 	lea.l event_message_pointers.l,a1
@@ -44648,16 +44654,16 @@ abs_0_000334DA:
 	movea.l SG2SourceTextReference_text(a1,d0.w),a1
 	bsr.w enqueue_event_message
 	bsr.w enqueue_blank_event_message_line
-abs_0_0003350A:
-	bra.b abs_0_00033524
-abs_0_0003350C:
+finish_millway_pressure_service:
+	bra.b snapshot_after_millway_pressure_service
+reset_inactive_space_hazard_colours:
 	move.w #$0,space_effect_base_rgb_word.l
 	move.w #SG2_SPACE_EFFECT_DEFAULT_OVERRIDE_RGB,space_effect_override_rgb_word.l
 	move.w #$3,type128_disc_outer_layer_index(a6)
-	bra.b abs_0_00033528
-abs_0_00033524:
+	bra.b gate_space_asteroid_and_retirement_service
+snapshot_after_millway_pressure_service:
 	bra.w snapshot_world_transition_space_state
-abs_0_00033528:
+gate_space_asteroid_and_retirement_service:
 	tst.b space_environment_flag(a6)
 	bpl.w snapshot_world_transition_space_state
 	move.l system_center_proximity_metric(a6),d3
@@ -45681,27 +45687,27 @@ finish_ordinary_depot_inventory_increment:
 	bra.b build_depot_exchange_completion_message
     ; Weapon increment compares BYTE result with 5 using N only. Rejected results store 4; accepted results call the actual HUD helper. Direct CPU cases include overflow, not gameplay reachability.
 increment_depot_homing_inventory_with_hud:
-	move.b SG2ModelInventoryCounts_homing_missile_count-12(a0,d1.w),d7
+	move.b SG2ModelInventoryCounts_homing_missile_count-SG2_OBJECT_TYPE_HOMING_MISSILE(a0,d1.w),d7
 	addq.b #1,d7
 	cmp.b #SG2_DEPOT_WEAPON_INCREMENT_COMPARE,d7
 	bmi.b draw_homing_icon_after_accepted_depot_increment
-	move.b #SG2_DEPOT_WEAPON_COUNTER_FALLBACK,SG2ModelInventoryCounts_homing_missile_count-12(a0,d1.w)
+	move.b #SG2_DEPOT_WEAPON_COUNTER_FALLBACK,SG2ModelInventoryCounts_homing_missile_count-SG2_OBJECT_TYPE_HOMING_MISSILE(a0,d1.w)
 	bra.b build_depot_exchange_offer_message
 draw_homing_icon_after_accepted_depot_increment:
-	move.b d7,SG2ModelInventoryCounts_homing_missile_count-12(a0,d1.w)
+	move.b d7,SG2ModelInventoryCounts_homing_missile_count-SG2_OBJECT_TYPE_HOMING_MISSILE(a0,d1.w)
 	movem.l d0-d7/a0-a6,-(a7)
 	bsr.w add_homing_missile_hud_icon_bridge_038d5c
 	movem.l (a7)+,d0-d7/a0-a6
 	bra.b build_depot_exchange_completion_message
 increment_depot_bouncing_inventory_with_hud:
-	move.b SG2ModelInventoryCounts_bouncing_bomb_count-91(a0,d1.w),d7
+	move.b SG2ModelInventoryCounts_bouncing_bomb_count-SG2_OBJECT_TYPE_BOUNCING_BOMB(a0,d1.w),d7
 	addq.b #1,d7
 	cmp.b #SG2_DEPOT_WEAPON_INCREMENT_COMPARE,d7
 	bmi.b draw_bouncing_icon_after_accepted_depot_increment
-	move.b #SG2_DEPOT_WEAPON_COUNTER_FALLBACK,SG2ModelInventoryCounts_bouncing_bomb_count-91(a0,d1.w)
+	move.b #SG2_DEPOT_WEAPON_COUNTER_FALLBACK,SG2ModelInventoryCounts_bouncing_bomb_count-SG2_OBJECT_TYPE_BOUNCING_BOMB(a0,d1.w)
 	bra.b build_depot_exchange_offer_message
 draw_bouncing_icon_after_accepted_depot_increment:
-	move.b d7,SG2ModelInventoryCounts_bouncing_bomb_count-91(a0,d1.w)
+	move.b d7,SG2ModelInventoryCounts_bouncing_bomb_count-SG2_OBJECT_TYPE_BOUNCING_BOMB(a0,d1.w)
 	movem.l d0-d7/a0-a6,-(a7)
 	bsr.w add_bouncing_bomb_hud_icon_bridge_038d62
 	movem.l (a7)+,d0-d7/a0-a6
@@ -47213,9 +47219,9 @@ test_taymar_transport_collection:
 count_collected_object_type:
 	lea.l model_type_population_counts(a6),a1
 	move.w (a0),d0
-	cmp.w #$C,d0
+	cmp.w #SG2_OBJECT_TYPE_HOMING_MISSILE,d0
 	beq.b test_homing_pickup_signed_byte_count
-	cmp.w #$5B,d0
+	cmp.w #SG2_OBJECT_TYPE_BOUNCING_BOMB,d0
 	beq.b test_bouncing_pickup_signed_byte_count
 	addq.b #1,$0(a1,d0.w)
 	bpl.b shrink_markers_and_retire_collected_target
@@ -47223,11 +47229,11 @@ count_collected_object_type:
 	bra.b select_collection_refused_message
     ; Pickup limit compares the incremented signed BYTE with4. Values127/128/255 retain overflow/wrap behavior; they do not establish a universal0..4 inventory bound.
 test_homing_pickup_signed_byte_count:
-	move.b SG2ModelInventoryCounts_homing_missile_count-12(a1,d0.w),d1
+	move.b SG2ModelInventoryCounts_homing_missile_count-SG2_OBJECT_TYPE_HOMING_MISSILE(a1,d0.w),d1
 	addq.b #1,d1
 	cmp.b #$4,d1
 	bgt.b abs_0_0003572A
-	move.b d1,SG2ModelInventoryCounts_homing_missile_count-12(a1,d0.w)
+	move.b d1,SG2ModelInventoryCounts_homing_missile_count-SG2_OBJECT_TYPE_HOMING_MISSILE(a1,d0.w)
 	movem.l d0-d7/a0-a6,-(a7)
 	bsr.w add_homing_missile_hud_icon_bridge_038d5c
 	movem.l (a7)+,d0-d7/a0-a6
@@ -47236,11 +47242,11 @@ abs_0_00035728:
 abs_0_0003572A:
 	bra.b select_collection_refused_message
 test_bouncing_pickup_signed_byte_count:
-	move.b SG2ModelInventoryCounts_bouncing_bomb_count-91(a1,d0.w),d1
+	move.b SG2ModelInventoryCounts_bouncing_bomb_count-SG2_OBJECT_TYPE_BOUNCING_BOMB(a1,d0.w),d1
 	addq.b #1,d1
 	cmp.b #$4,d1
 	bgt.b abs_0_0003574A
-	move.b d1,SG2ModelInventoryCounts_bouncing_bomb_count-91(a1,d0.w)
+	move.b d1,SG2ModelInventoryCounts_bouncing_bomb_count-SG2_OBJECT_TYPE_BOUNCING_BOMB(a1,d0.w)
 	movem.l d0-d7/a0-a6,-(a7)
 	bsr.w add_bouncing_bomb_hud_icon_bridge_038d62
 	movem.l (a7)+,d0-d7/a0-a6
@@ -48123,7 +48129,7 @@ abs_0_00036318:
 abs_0_00036326:
 	move.w #$FFFF,SG2EnergySpheroid_expansion_delay_countdown(a0)
 	addi.l #100,SG2RadialObject_radius_work_value(a0)
-    ; Primary index30/31 aliases secondary bytes0/1. Secondary sequence includes the adjacent zeroWORD for its final two entries; preserve all original bytes and conditional initial index.
+    ; Primary index30/31 aliases secondary bytes0/1. Secondary bytes30/31 alias the writable space_hazard_notice_countdown, not constant zeros. Preserve original32-byte owner and conditional index.
 	move.w SG2EnergySpheroid_colour_sequence_index(a0),d0
 	lea.l energy_spheroid_primary_colour_sequence.l,a1
 	move.b $0(a1,d0.w),SG2EnergySpheroid_primary_colour_index(a0)
@@ -49511,7 +49517,7 @@ abs_0_00037586:
 	clr.l nearby_space_station_reference(a6)
 	sf.b player_ejection_active_flag.l
 	move.w #$C8,game_over_sequence_countdown.l
-	clr.w abs_0_00039652.l
+	clr.w space_hazard_notice_countdown.l
 	st.b station_cycle_enabled_flag(a6)
 	clr.b station_spawn_message_phase_mod2.l
 	move.w #$FFFF,novenia_flash_countdown.l
@@ -50600,7 +50606,8 @@ energy_spheroid_primary_colour_sequence:
 energy_spheroid_secondary_colour_sequence:
 	dc.b $00,$04,$01,$04,$04,$04,$05,$06,$01,$04,$01,$06,$01,$06,$05,$02
 	dc.b $05,$04,$0B,$0C,$0D,$0E,$0D,$0E,$0D,$0E,$0D,$0E,$0D,$02
-abs_0_00039652:
+    ; Writable heat/pressure warning WORD also occupies secondary spheroid colour bytes30/31. Initial zero is not a runtime constant; startup clears it and both hazards age/reload it.
+space_hazard_notice_countdown:
 	dc.w $0000
 space_effect_base_rgb_word:
 	dc.w $0000

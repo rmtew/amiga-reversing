@@ -742,6 +742,15 @@ static int sim_immediate_by_metadata(const M68kSimFormMetadata *metadata, uint8_
   return 1;
 }
 
+int m68k_sim_operand_immediate_value(const M68kInstructionIR *instruction,
+    uint8_t operand_index, uint32_t *out_value) {
+  if (!instruction || !out_value || operand_index >= instruction->operand_count || operand_index >= 4U)
+    return 0;
+  const M68kSimFormMetadata *metadata = m68k_sim_metadata_for_instruction(instruction);
+  return metadata && sim_immediate_by_metadata(metadata, operand_index,
+    &instruction->operands[operand_index], out_value);
+}
+
 static int sim_apply_unary(uint8_t op, const M68kInstructionIR *instruction, const M68kSimFormMetadata *metadata,
     const M68kSimValue *input, M68kSimValue *out_value) {
   uint8_t width;

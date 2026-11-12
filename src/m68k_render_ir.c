@@ -6274,6 +6274,20 @@ static const M68kRenderTypedAccess *lookup_typed_access_for_operand(
   return NULL;
 }
 
+/* The live WORD index stays in the EA. Only a converged explicit scalar
+ * identity, whose signed contribution exactly cancels the correction, may
+ * replace that numeric compensation. Never choose an EQU by number alone. */
+static const M68kAnalysisTargetEquate *typed_index_compensation_symbol(
+    const M68kRenderLookup *lookup, const M68kRenderTypedAccess *access) {
+  if (!lookup || !lookup->policy || !access || !access->index_symbol_equate ||
+      access->index_symbol_equate > lookup->policy->target_equate_count ||
+      access->word_index.value_count != 1U || access->array_element_addend || access->field_byte_offset)
+    return NULL;
+  const M68kAnalysisTargetEquate *e = &lookup->policy->target_equates[access->index_symbol_equate - 1U];
+  return !e->address_domain && e->name[0] && e->value == access->word_index.byte_offsets[0] &&
+    -(int64_t)e->value == access->word_index.encoded_symbol_correction ? e : NULL;
+}
+
 static int attach_amiga_typed_struct_field_symbols(const M68kRenderLookup *lookup, size_t section_index,
     uint32_t offset, M68kInstructionIR *instruction) {
   size_t operand_index;
@@ -6285,6 +6299,10 @@ static int attach_amiga_typed_struct_field_symbols(const M68kRenderLookup *looku
     if (operand->symbol_ref.has_name != 0U) continue;
     access = lookup_typed_access_for_operand(lookup, section_index, offset, (uint8_t)operand_index);
     if (access == NULL || access->field_expr[0] == '\0') continue;
+    const M68kAnalysisTargetEquate *index_symbol = typed_index_compensation_symbol(lookup, access);
+    /* Without semantic index provenance keep the original displacement and
+     * expose the resolved field separately in the plan's operand comment. */
+    if (access->word_index.encoded_symbol_correction && !index_symbol) continue;
     m68k_ir_symbol_ref_init(&operand->symbol_ref);
     operand->symbol_ref.has_name = 1U;
     operand->symbol_ref.name_is_generated = 0U;
@@ -6293,7 +6311,14 @@ static int attach_amiga_typed_struct_field_symbols(const M68kRenderLookup *looku
     snprintf(operand->symbol_ref.name, sizeof(operand->symbol_ref.name), "%s", access->field_expr);
     operand->symbol_ref.addend = (int32_t)(-(int64_t)access->base_cursor +
       access->word_index.encoded_symbol_correction);
-    if (access->array_element_addend != 0 || access->field_byte_offset != 0U) {
+    if (index_symbol && access->word_index.encoded_symbol_correction) {
+      operand->symbol_ref.addend = -access->base_cursor;
+      operand->symbol_ref.has_symbolic_addend = 1U;
+      operand->symbol_ref.symbolic_addend_provenance = M68K_IR_SYMBOL_PROVENANCE_NONE;
+      operand->symbol_ref.symbolic_addend_value = -1;
+      snprintf(operand->symbol_ref.symbolic_addend_name, sizeof(operand->symbol_ref.symbolic_addend_name),
+        "%s", index_symbol->name);
+    } else if (access->array_element_addend != 0 || access->field_byte_offset != 0U) {
       operand->symbol_ref.has_symbolic_addend = 1U;
       operand->symbol_ref.symbolic_addend_provenance = M68K_IR_SYMBOL_PROVENANCE_PLATFORM_AMIGA;
       operand->symbol_ref.symbolic_addend_value = 1;
@@ -11964,13 +11989,32 @@ static int plan_rendered_instruction_symbol_accesses(M68kRenderIRPreview *previe
     const M68kFact *relocation;
     const M68kFact *runtime_ref;
     M68kRenderedSymbolAccessIR access;
-    if (!operand->symbol_ref.has_name || operand->symbol_ref.name[0] == '\0') continue;
+    const M68kRenderTypedAccess *indexed_comment = NULL;
+    if (!operand->symbol_ref.has_name || operand->symbol_ref.name[0] == '\0') {
+      const M68kRenderTypedAccess *typed = lookup_typed_access_for_operand(lookup,
+        section_index, candidate->offset, (uint8_t)operand_index);
+      if (!typed || !typed->word_index.encoded_symbol_correction || !typed->field_expr[0]) continue;
+      indexed_comment = typed;
+    }
     memset(&access, 0, sizeof(access));
-    access.symbol_name = (char *)operand->symbol_ref.name;
+    access.symbol_name = (char *)(indexed_comment ? indexed_comment->field_expr : operand->symbol_ref.name);
     access.offset = candidate->offset;
     access.operand_index = (uint32_t)operand_index;
     access.access_kind = M68K_RENDERED_SYMBOL_ACCESS_OPERAND;
-    if ((operand->kind == M68K_ASM_OPERAND_EA || operand->kind == M68K_ASM_OPERAND_BF_EA) &&
+    if (indexed_comment) {
+      access.comment_only = 1U;
+      access.access_kind = M68K_RENDERED_SYMBOL_ACCESS_EQUATE;
+      if (out_planned_instruction) {
+        char field_comment[256];
+        snprintf(field_comment, sizeof(field_comment),
+          "operand %u: %s; live %c%u index, original displacement %d",
+          (unsigned)operand_index + 1U, indexed_comment->field_expr,
+          indexed_comment->word_index.reg_kind == M68K_ANALYSIS_REGISTER_ADDRESS ? 'a' : 'd',
+          (unsigned)indexed_comment->word_index.reg_index, (int)indexed_comment->displacement);
+        if (!append_comment_part_local(out_planned_instruction->comment,
+            sizeof(out_planned_instruction->comment), field_comment)) return -1;
+      }
+    } else if ((operand->kind == M68K_ASM_OPERAND_EA || operand->kind == M68K_ASM_OPERAND_BF_EA) &&
         (operand->value.ea_mode == 2U ||
          m68k_instruction_operand_decoded_ea_shape(operand) == M68K_SIM_EA_SHAPE_POSTINCREMENT ||
          m68k_instruction_operand_decoded_ea_shape(operand) == M68K_SIM_EA_SHAPE_PREDECREMENT)) {

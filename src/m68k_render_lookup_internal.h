@@ -109,6 +109,9 @@ typedef struct M68kHardwareWordSet {
   uint16_t known_bits_mask, known_bits_value;
   uint16_t lower_bound, upper_bound;
   uint8_t has_bounds;
+  /* Presentation only: one-based explicit scalar EQU identity. No new value,
+   * address or type proof. Joins keep it only when every path agrees. */
+  uint16_t scalar_symbol_equate;
 } M68kHardwareWordSet;
 
 typedef struct M68kHardwareRelativeBase {
@@ -569,6 +572,7 @@ typedef struct M68kRenderTypedFlowNode {
 
 typedef struct M68kRenderTypedAccess {
   M68kWordIndexAccessIR word_index;
+  uint16_t index_symbol_equate;
   size_t section_index;
   uint32_t offset;
   uint8_t operand_index;

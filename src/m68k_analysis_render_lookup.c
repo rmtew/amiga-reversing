@@ -5354,10 +5354,17 @@ static int typed_record_word_index_access(M68kRenderLookup *lookup, size_t secti
   int32_t array_addend;
   if (!typed_resolve_word_index_field(lookup, state, platform_state, instruction, operand_index, base_reg,
       struct_id, struct_size, displacement, base_cursor, &evidence, &selected_field, &array_addend)) return 0;
+  size_t before_count = lookup->typed_access_count;
   if (render_lookup_add_typed_access_by_names(lookup, section_index, offset, operand_index, base_reg,
       (int16_t)displacement, struct_size, (int16_t)array_addend, base_cursor,
       0U, &selected_field, provenance, table_origin, &evidence) != 0)
     return -1;
+  if (lookup->typed_access_count > before_count && platform_state &&
+      evidence.reg_kind == M68K_ANALYSIS_REGISTER_DATA && evidence.value_count == 1U) {
+    const M68kHardwareWordSet *words = &platform_state->word_values[evidence.reg_index];
+    if (words->count == 1U && !words->requires_input_contract)
+      lookup->typed_accesses[before_count].index_symbol_equate = words->scalar_symbol_equate;
+  }
   return 1;
 }
 
@@ -6524,7 +6531,7 @@ static int render_lookup_record_typed_storage_store(M68kRenderLookup *lookup, M6
     M68kRenderTypedStoredValue value = typed_stored_value_for_operand(state, source_operand);
   {
     uint32_t immediate_value = 0U;
-    if (instruction->size_suffix == 'l' && m68k_ir_operand_immediate_value(source_operand, &immediate_value)) {
+    if (instruction->size_suffix == 'l' && m68k_sim_operand_immediate_value(instruction, (uint8_t)source_index, &immediate_value)) {
       typed_stored_value_set_raw_long(&value, immediate_value);
       value.provenance = typed_provenance_make(M68K_PLATFORM_TYPE_PROVENANCE_IMMEDIATE,
         section_index, offset);
@@ -6534,7 +6541,7 @@ static int render_lookup_record_typed_storage_store(M68kRenderLookup *lookup, M6
       dest_operand);
     if (destination_requires_address && instruction->size_suffix == 'l') {
       typed_stored_value_activate_address(&value);
-      if (instruction->size_suffix == 'l' && m68k_ir_operand_immediate_value(source_operand, &immediate_value)) {
+      if (instruction->size_suffix == 'l' && m68k_sim_operand_immediate_value(instruction, (uint8_t)source_index, &immediate_value)) {
         if (candidate != NULL) {
           const M68kFact *relocation = analysis_operand_relocation_ref(lookup, section_index, candidate, source_index);
           uint32_t target_runtime_address = 0U;
@@ -8681,7 +8688,7 @@ static void typed_state_update_after_instruction(M68kRenderTypedState *state, M6
     const M68kOperandIR *dest_operand = &instruction->operands[dest_index];
     typed_stored_value_clear(&stored_value);
     typed_stored_value_clear(&table_value);
-    if (instruction->size_suffix == 'l' && m68k_ir_operand_immediate_value(source_operand, &immediate_value)) {
+    if (instruction->size_suffix == 'l' && m68k_sim_operand_immediate_value(instruction, (uint8_t)source_index, &immediate_value)) {
       typed_stored_value_set_raw_long(&stored_value, immediate_value);
       stored_value.provenance = typed_provenance_make(M68K_PLATFORM_TYPE_PROVENANCE_IMMEDIATE,
         section_index, offset);
@@ -10089,10 +10096,24 @@ static int hardware_word_set_add(M68kHardwareWordSet *set, uint16_t value) {
   for (j = set->count; j > i; --j) set->values[j] = set->values[j - 1U];
   set->values[i] = value;
   ++set->count;
+  set->scalar_symbol_equate = 0U;
   return 1;
 }
 
 #include "m68k_word_value_domain.inc"
+
+/* Only an explicitly represented scalar immediate supplies a display name.
+ * Equal numbers elsewhere in the policy do not establish that identity. */
+static uint16_t hardware_operand_symbol_equate(const M68kRenderLookup *lookup,
+    size_t section_index, uint32_t offset, uint8_t operand_index, uint16_t value) {
+  const M68kAnalysisManualRepresentation *r =
+    lookup_manual_operand_representation(lookup, section_index, offset, operand_index);
+  if (!lookup || !lookup->policy || !r || r->style_id != M68K_ANALYSIS_REPRESENTATION_STYLE_SYMBOL ||
+      r->has_source_symbol || r->symbol_id || r->layout_struct_index || !r->target_equate_index ||
+      r->target_equate_index > lookup->policy->target_equate_count) return 0U;
+  const M68kAnalysisTargetEquate *e = &lookup->policy->target_equates[r->target_equate_index - 1U];
+  return !e->address_domain && (uint16_t)e->value == value ? r->target_equate_index : 0U;
+}
 
 static M68kHardwareWordSet hardware_operand_word_values(const M68kRenderPlatformState *state,
     const M68kOperandIR *operand) {
@@ -10190,6 +10211,9 @@ static void hardware_relative_transfer(M68kRenderPlatformState *state, const M68
     }
   }
   source = hardware_operand_word_values(before, &instruction->operands[0]);
+  uint32_t logical_immediate;
+  if (m68k_sim_operand_immediate_value(instruction, 0U, &logical_immediate))
+    source.values[0] = (uint16_t)logical_immediate;
   if (instruction->mnemonic_id == M68K_ASM_MNEMONIC_ADDA && instruction->size_suffix == 'w' &&
       operand_address_register_index_local(&instruction->operands[1], &dest)) {
     M68kHardwareRelativeBase base = hardware_relative_register(before, dest), result;
@@ -11688,7 +11712,7 @@ static int hardware_relative_refine_dbf_edge(const M68kRenderTypedFlowNode *pred
 /* Refine the shared WORD packet only on a closed adjacent compare/test-branch
  * edge. No backward scanner, target rules or larger finite-value cap. */
 static int hardware_relative_refine_compare_edge(const M68kRenderLookup *lookup,
-    const M68kRenderTypedFlowGraph *graph, size_t branch_index, size_t successor_index,
+    const M68kRenderTypedFlowGraph *graph, size_t section_index, size_t branch_index, size_t successor_index,
     M68kRenderPlatformState *state) {
   const M68kRenderTypedFlowNode *branch = &graph->nodes[branch_index];
   const M68kRenderTypedFlowNode *compare;
@@ -11711,7 +11735,15 @@ static int hardware_relative_refine_compare_edge(const M68kRenderLookup *lookup,
     if (!m68k_sim_signed_word_compare_bounds(&ci, &bi, taken, &reg, &signed_lower, &signed_upper)) return 1;
     lower = (uint16_t)signed_lower; upper = (uint16_t)signed_upper;
   }
-  return hardware_word_refine_bounds(&state->word_values[reg], lower, upper);
+  if (!hardware_word_refine_bounds(&state->word_values[reg], lower, upper)) return 0;
+  uint32_t immediate;
+  if (lower == upper && state->word_values[reg].count == 1U &&
+      m68k_ir_operand_immediate_value(&ci.operands[0], &immediate)) {
+    uint16_t symbol = hardware_operand_symbol_equate(lookup, section_index,
+      compare->candidate->offset, 0U, state->word_values[reg].values[0]);
+    if (symbol) state->word_values[reg].scalar_symbol_equate = symbol;
+  }
+  return 1;
 }
 
 static int typed_flow_recompute_node_input(M68kRenderTypedFlowGraph *graph, size_t node_index,
@@ -11902,6 +11934,18 @@ static int hardware_relative_analyze_graph(M68kRenderLookup *lookup, const M68kD
     /* Relative hardware values and scalar memory cells remain top across
      * calls. Register values below reuse independently proved call effects. */
     hardware_relative_transfer(&next, &before, &instruction);
+    /* Transfers above already copy/kill the shared WORD packet. Attach an
+     * immediate display identity only after a supported full-WORD assignment. */
+    uint8_t symbol_dest; uint32_t symbol_immediate;
+    if (instruction.operand_count == 2U &&
+        (instruction.mnemonic_id == M68K_ASM_MNEMONIC_MOVEQ ||
+         (instruction.mnemonic_id == M68K_ASM_MNEMONIC_MOVE &&
+          (instruction.size_suffix == 'w' || instruction.size_suffix == 'l'))) &&
+        operand_is_data_register_local(&instruction.operands[1], &symbol_dest) &&
+        m68k_ir_operand_immediate_value(&instruction.operands[0], &symbol_immediate) &&
+        next.word_values[symbol_dest].count == 1U)
+      next.word_values[symbol_dest].scalar_symbol_equate = hardware_operand_symbol_equate(lookup,
+        section->section_index, node->candidate->offset, 0U, next.word_values[symbol_dest].values[0]);
     const M68kSimFormMetadata *named_metadata = m68k_sim_metadata_for_instruction(&instruction);
     if (named_metadata && named_metadata->flow_kind == M68K_SIM_FLOW_CALL) {
       size_t target_section; uint32_t target_offset;
@@ -11961,7 +12005,7 @@ static int hardware_relative_analyze_graph(M68kRenderLookup *lookup, const M68kD
         if (!has_out[predecessor]) continue;
         edge = outputs[predecessor];
         if (!hardware_relative_refine_dbf_edge(&graph->nodes[predecessor], &graph->nodes[successor], &edge)) continue;
-        if (!hardware_relative_refine_compare_edge(lookup, graph, predecessor, successor, &edge)) continue;
+        if (!hardware_relative_refine_compare_edge(lookup, graph, section->section_index, predecessor, successor, &edge)) continue;
         M68kRenderTypedState scalar_edge={0};
         scalar_word_packet_unpack(&scalar_edge,cell_outputs[predecessor]);
         if (!found) {input = edge;scalar_input=scalar_edge;}

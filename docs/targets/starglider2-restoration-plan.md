@@ -50,7 +50,10 @@ Original payload SHA256:
    Counter readers lose BYTE-directory values before AND #255; the 104-byte
    backing supplies no value bound. Next: a bounded BYTE-value transfer probe
    with mutation/unknown-call refusals, then actual directory-write preservation.
-   Do not enlarge a directory or assume original bytes persist.
+   Do not enlarge a directory or assume original bytes persist: the shared
+   heat/pressure notice WORD overwrites secondary spheroid colour bytes30/31.
+   Indexed field display now transports explicit scalar EQU identities; missing
+   identity retains the raw displacement with a resolved-field annotation.
 5. Residual regions: prioritize accepted data readers and incoming code edges.
    Do not decode apparent instructions or declare arrays from plausible bytes.
    Zero-fill writers and write-only app flags do not establish field purpose.
