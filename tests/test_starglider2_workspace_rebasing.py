@@ -35,7 +35,9 @@ def layout(tmp_path_factory, original_image):
         'SG2WorldObject_linked_record_or_sentinel', 'serialize_workspace_pointers_relative',
         'restore_workspace_pointers_absolute', 'shared_workspace_prefix',
         'copy_saved_workspace_prefix_loop', 'deselect_disk_backend',
-        'interrupted_game_available_flag', 'SG2_SAVE_RESTORE_DBF_LAST']+list(additions)
+        'interrupted_game_available_flag', 'SG2_SAVE_RESTORE_DBF_LAST',
+        'free_object_count', 'system_center_proximity_metric',
+        'distant_retirement_type_cursor', 'encounter_choices_scrap_bombs']+list(additions)
     folder = tmp_path_factory.mktemp('workspace-rebase-symbols'); source, output = folder/'map.s', folder/'map.raw'
     source.write_text((target/'starglider2_game.s').read_text()+'\n dc.l '+','.join(names)+'\n')
     result = subprocess.run([str(target.parents[1]/'tools/vasmm68k_mot.exe'), '-quiet', '-Fbin', '-m68000',
@@ -130,6 +132,42 @@ def test_load_copy_and_rebase_do_not_validate_player_record_format(original_imag
     assert bytes(memory[base+prefix-4:base+prefix])==b'\xA5'*4
     assert bytes(memory[base+layout['app_SIZEOF']:base+layout['app_SIZEOF']+4])==b'\xCC'*4
     assert cpu.a[7]==STACK and get(memory,STACK)==RETURN
+
+
+def test_supplied_saved_free_slot_can_alias_the_absolute_retirement_cursor(original_image,layout):
+    """Two original phases, entered after disk loading and encounter admission.
+
+    Serialized input is deliberately outside the pool. No disk acceptance,
+    ordinary-save reachability or universal cursor invariant follows.
+    """
+    base=0x90000
+    memory=(ctypes.c_uint8*0x180000)()
+    ctypes.memmove(ctypes.addressof(memory)+0x1000,original_image[0],len(original_image[0]))
+    prefix=layout['savegame_prefix_rebased_long'];size=0x5EE4
+    source=layout['shared_workspace_prefix'];slot=layout['free_object_stack_storage']
+    cursor=layout['distant_retirement_type_cursor']
+    memory[source:source+size]=bytes(size)
+    put(memory,source+layout['free_object_stack_cursor']-prefix,slot+4)
+    put(memory,source+slot-prefix,(cursor-base)&0xFFFFFFFF)
+    put(memory,source+layout['free_object_count']-prefix,151,2)
+    put(memory,source+layout['system_center_proximity_metric']-prefix,300000000)
+    cpu=state(memory,layout['copy_saved_workspace_prefix_loop']);cpu.a[6]=base
+    cpu.a[0]=base+prefix;cpu.a[1]=source;cpu.d[1]=layout['SG2_SAVE_RESTORE_DBF_LAST']
+    run(original_image,memory,cpu,{layout['deselect_disk_backend']})
+    assert get(memory,base+slot)==cursor
+    assert int.from_bytes(bytes(memory[cursor:cursor+2]),'big')==0
+    # Enter at the accepted free-stack pop, then follow motion, real RNG and
+    # metric-based choice instructions without changing registers or RAM.
+    cpu.pc=0x3375A;seen=[]
+    def observe(pc):
+        if pc==0x33830:seen.append((cpu.a[0],cpu.d[0]&0xFFFF))
+    run(original_image,memory,cpu,{0x33836},observe)
+    assert cpu.a[4]==cursor and get(memory,base+layout['free_object_stack_cursor'])==base+slot
+    assert int.from_bytes(bytes(memory[base+layout['free_object_count']:base+layout['free_object_count']+2]),'big')==150
+    assert len(seen)==1 and seen[0][0]==layout['encounter_choices_scrap_bombs']
+    table,index=seen[0];chosen=int.from_bytes(bytes(memory[table+index:table+index+2]),'big')
+    assert int.from_bytes(bytes(memory[cursor:cursor+2]),'big')==chosen
+    assert chosen>31,chosen
 
 
 def test_save_command_tail_entry_adds_no_return_frame(original_image):

@@ -1755,6 +1755,7 @@ SG2_OBJECT_TYPE_FLAT_DIAMOND	EQU	$26
 SG2_OBJECT_TYPE_FLYING_SAUCER	EQU	$22
 SG2_OBJECT_TYPE_HOMING_MISSILE	EQU	12
 SG2_OBJECT_TYPE_HORATIO	EQU	$11
+SG2_OBJECT_TYPE_HOVER_CAR	EQU	$27
 SG2_OBJECT_TYPE_ICARUS	EQU	30
 SG2_OBJECT_TYPE_ICARUS_GAS_LASER_BOLT	EQU	$67
 SG2_OBJECT_TYPE_ICARUS_PILOT_COUCH	EQU	$47
@@ -1766,6 +1767,7 @@ SG2_OBJECT_TYPE_MISSILE	EQU	$19
 SG2_OBJECT_TYPE_NEUTRON_BOMB	EQU	98
 SG2_OBJECT_TYPE_NONE	EQU	$0
 SG2_OBJECT_TYPE_OLD_HEAP_OF_JUNK	EQU	$3B
+SG2_OBJECT_TYPE_PERSONNEL_SHUTTLE	EQU	$20
 SG2_OBJECT_TYPE_PETRIFIED_TREE	EQU	$18
 SG2_OBJECT_TYPE_PIRATE_SHIP	EQU	$28
 SG2_OBJECT_TYPE_PROJECTOR_CONTROL_TOWER	EQU	$50
@@ -1779,12 +1781,15 @@ SG2_OBJECT_TYPE_SKIM_DRONE	EQU	43
 SG2_OBJECT_TYPE_SKIM_MISSILE	EQU	60
 SG2_OBJECT_TYPE_SMALL_ASTEROID	EQU	$4A
 SG2_OBJECT_TYPE_SMALL_FIGHTER	EQU	$10
+SG2_OBJECT_TYPE_SPACE_FIGHTER	EQU	$1F
 SG2_OBJECT_TYPE_SPACE_RAY	EQU	$29
 SG2_OBJECT_TYPE_STARGLIDER	EQU	$1B
+SG2_OBJECT_TYPE_STOMPER	EQU	$F
 SG2_OBJECT_TYPE_TRIPUSS	EQU	$1A
 SG2_OBJECT_TYPE_TUNNEL_ENTRANCE_EXIT	EQU	$30
 SG2_OBJECT_TYPE_TUNNEL_SENTINEL	EQU	$14
 SG2_OBJECT_TYPE_VAMPIRE_TYPE_FIGHTER	EQU	$15
+SG2_OBJECT_TYPE_WALKER	EQU	$1
 SG2_OVERLAY_MAX_LEFT	EQU	288
 SG2_OVERLAY_MAX_TOP	EQU	112
 SG2_OVERLAY_MIN_LEFT	EQU	16
@@ -10499,17 +10504,17 @@ primary_object_update_offsets:
 	dc.w update_saucer_motion_evasion_and_capsule-primary_object_update_offsets
 	dc.w advance_egron_bird_fighter_frame_then_update-primary_object_update_offsets
 	dc.w advance_pac_worm_vertex_and_motion_phase-primary_object_update_offsets
-	dc.w abs_0_00008484-primary_object_update_offsets
+	dc.w update_nearby_mini_sentinel_dispatch_007484-primary_object_update_offsets
 	dc.w update_flat_diamond_ballistic_motion-primary_object_update_offsets
 	dc.w release_hover_car_link_then_steer-primary_object_update_offsets
-	dc.w abs_0_00008618-primary_object_update_offsets
+	dc.w update_nearby_pirate_ship_dispatch_007618-primary_object_update_offsets
 	dc.w advance_space_ray_frame_then_update-primary_object_update_offsets
 	dc.w step_satellite_dish_heading-primary_object_update_offsets
-	dc.w abs_0_00008416-primary_object_update_offsets
+	dc.w update_nearby_skim_launcher_drone_dispatch_007416-primary_object_update_offsets
 	dc.w update_linked_tug_motion_and_retirement-primary_object_update_offsets
 	dc.w update_shared_flying_actor-primary_object_update_offsets
 	dc.w update_dome_silo_launch_cycle-primary_object_update_offsets
-	dc.w abs_0_000084A8-primary_object_update_offsets
+	dc.w update_nearby_falling_type47_dispatch_0074a8-primary_object_update_offsets
 	dc.w try_tunnel_sentinel_emission-primary_object_update_offsets
 	dc.w advance_bt_tower_vertex_cycle-primary_object_update_offsets
 	dc.w update_gbml_cannon_heading_and_attack-primary_object_update_offsets
@@ -10522,7 +10527,7 @@ primary_object_update_offsets:
 	dc.w update_tunnel_indicator_rotation-primary_object_update_offsets
 	dc.w update_tunnel_indicator_rotation-primary_object_update_offsets
 	dc.w abs_0_000083D8-primary_object_update_offsets
-	dc.w abs_0_000083FE-primary_object_update_offsets
+	dc.w update_nearby_skim_missile_dispatch_0073fe-primary_object_update_offsets
 	dc.w abs_0_000083D8-primary_object_update_offsets
 	dc.w abs_0_000083D8-primary_object_update_offsets
 	dc.w update_blast_door_variant-primary_object_update_offsets
@@ -10535,33 +10540,33 @@ primary_object_update_offsets:
 	dc.w continue_primary_object_update_loop-primary_object_update_offsets
 	dc.w update_pilot_couch_bounce_and_spin-primary_object_update_offsets
 	dc.w update_nearby_type72_or_type103_projectile-primary_object_update_offsets
-	dc.w abs_0_000083FA-primary_object_update_offsets
-	dc.w abs_0_000083FA-primary_object_update_offsets
-	dc.w abs_0_00008540-primary_object_update_offsets
-	dc.w abs_0_0000854C-primary_object_update_offsets
-	dc.w abs_0_00008558-primary_object_update_offsets
-	dc.w abs_0_00008564-primary_object_update_offsets
-	dc.w abs_0_00008570-primary_object_update_offsets
-	dc.w abs_0_0000857C-primary_object_update_offsets
-	dc.w abs_0_00008588-primary_object_update_offsets
-	dc.w abs_0_00008594-primary_object_update_offsets
+	dc.w update_nearby_asteroid_dispatch_0073fa-primary_object_update_offsets
+	dc.w update_nearby_asteroid_dispatch_0073fa-primary_object_update_offsets
+	dc.w update_nearby_projector_base_dispatch_007540-primary_object_update_offsets
+	dc.w update_nearby_projector_mount_dispatch_00754c-primary_object_update_offsets
+	dc.w update_nearby_projector_cover_dispatch_007558-primary_object_update_offsets
+	dc.w update_nearby_projector_turret_dispatch_007564-primary_object_update_offsets
+	dc.w update_nearby_projector_fuel_crystals_dispatch_007570-primary_object_update_offsets
+	dc.w update_nearby_projector_control_tower_dispatch_00757c-primary_object_update_offsets
+	dc.w update_nearby_projector_crew_quarters_dispatch_007588-primary_object_update_offsets
+	dc.w update_nearby_projector_sentinel_dispatch_007594-primary_object_update_offsets
 	dc.w update_link_following_or_free_motion_object-primary_object_update_offsets
 	dc.w update_nearby_bouncing_projectile-primary_object_update_offsets
 	dc.w update_tunnel_indicator_rotation-primary_object_update_offsets
 	dc.w step_ground_laser_fire_phase-primary_object_update_offsets
 	dc.w continue_primary_object_update_loop-primary_object_update_offsets
-	dc.w abs_0_0000849C-primary_object_update_offsets
+	dc.w update_nearby_volcano_dispatch_00749c-primary_object_update_offsets
 	dc.w abs_0_00009318-primary_object_update_offsets
 	dc.w update_energy_tower_variant_and_alternate_form-primary_object_update_offsets
-	dc.w abs_0_000085E8-primary_object_update_offsets
+	dc.w update_nearby_bouncing_bomb_dispatch_0075e8-primary_object_update_offsets
 	dc.w continue_primary_object_update_loop-primary_object_update_offsets
 	dc.w restore_energy_tower_primary_form-primary_object_update_offsets
 	dc.w continue_primary_object_update_loop-primary_object_update_offsets
-	dc.w abs_0_000084C0-primary_object_update_offsets
+	dc.w update_nearby_tractor_beam_marker_dispatch_0074c0-primary_object_update_offsets
 	dc.w continue_primary_object_update_loop-primary_object_update_offsets
 	dc.w continue_primary_object_update_loop-primary_object_update_offsets
-	dc.w abs_0_00008600-primary_object_update_offsets
-	dc.w abs_0_000085B8-primary_object_update_offsets
+	dc.w update_nearby_neutron_bomb_dispatch_007600-primary_object_update_offsets
+	dc.w update_nearby_space_station_dispatch_0075b8-primary_object_update_offsets
 	dc.w update_link_following_or_free_motion_object-primary_object_update_offsets
 	dc.w update_link_following_or_free_motion_object-primary_object_update_offsets
 	dc.w update_link_following_or_free_motion_object-primary_object_update_offsets
@@ -10591,24 +10596,24 @@ primary_object_update_offsets:
 	dc.w continue_primary_object_update_loop-primary_object_update_offsets
 	dc.w continue_primary_object_update_loop-primary_object_update_offsets
 	dc.w continue_primary_object_update_loop-primary_object_update_offsets
-	dc.w abs_0_000084C8-primary_object_update_offsets
-	dc.w abs_0_000084C8-primary_object_update_offsets
-	dc.w abs_0_000084C8-primary_object_update_offsets
-	dc.w abs_0_000084C8-primary_object_update_offsets
-	dc.w abs_0_000084C8-primary_object_update_offsets
-	dc.w abs_0_000084D4-primary_object_update_offsets
-	dc.w abs_0_000084D4-primary_object_update_offsets
-	dc.w abs_0_000084E0-primary_object_update_offsets
-	dc.w abs_0_000084E0-primary_object_update_offsets
-	dc.w abs_0_000084E0-primary_object_update_offsets
-	dc.w abs_0_000084E0-primary_object_update_offsets
-	dc.w abs_0_000084E0-primary_object_update_offsets
-	dc.w abs_0_000084E0-primary_object_update_offsets
-	dc.w abs_0_000084E0-primary_object_update_offsets
-	dc.w abs_0_000084EC-primary_object_update_offsets
+	dc.w update_nearby_planetary_bodies_dispatch_0074c8-primary_object_update_offsets
+	dc.w update_nearby_planetary_bodies_dispatch_0074c8-primary_object_update_offsets
+	dc.w update_nearby_planetary_bodies_dispatch_0074c8-primary_object_update_offsets
+	dc.w update_nearby_planetary_bodies_dispatch_0074c8-primary_object_update_offsets
+	dc.w update_nearby_planetary_bodies_dispatch_0074c8-primary_object_update_offsets
+	dc.w update_nearby_apogee_moons_dispatch_0074d4-primary_object_update_offsets
+	dc.w update_nearby_apogee_moons_dispatch_0074d4-primary_object_update_offsets
+	dc.w update_nearby_millway_moons_dispatch_0074e0-primary_object_update_offsets
+	dc.w update_nearby_millway_moons_dispatch_0074e0-primary_object_update_offsets
+	dc.w update_nearby_millway_moons_dispatch_0074e0-primary_object_update_offsets
+	dc.w update_nearby_millway_moons_dispatch_0074e0-primary_object_update_offsets
+	dc.w update_nearby_millway_moons_dispatch_0074e0-primary_object_update_offsets
+	dc.w update_nearby_millway_moons_dispatch_0074e0-primary_object_update_offsets
+	dc.w update_nearby_millway_moons_dispatch_0074e0-primary_object_update_offsets
+	dc.w update_nearby_q_beta_dispatch_0074ec-primary_object_update_offsets
 	dc.w continue_primary_object_update_loop-primary_object_update_offsets
-	dc.w abs_0_00008528-primary_object_update_offsets
-	dc.w abs_0_000085D0-primary_object_update_offsets
+	dc.w update_nearby_solice_display_dispatch_007528-primary_object_update_offsets
+	dc.w update_nearby_energy_spheroid_dispatch_0075d0-primary_object_update_offsets
 	dc.w continue_primary_object_update_loop-primary_object_update_offsets
 abs_0_00008152:
 	subi.l #18,SG2ObjectCore_world_y(a0)
@@ -10724,17 +10729,17 @@ secondary_object_update_offsets:
 	dc.w update_distant_saucer_motion_and_heading-secondary_object_update_offsets
 	dc.w update_secondary_actor_motion_and_counter-secondary_object_update_offsets
 	dc.w integrate_distant_actor_and_tick_behavior_counter-secondary_object_update_offsets
-	dc.w abs_0_00008490-secondary_object_update_offsets
+	dc.w advance_distant_mini_sentinel_orbit_angle_dispatch_007490-secondary_object_update_offsets
 	dc.w continue_secondary_object_update_loop-secondary_object_update_offsets
 	dc.w update_distant_linked_ground_actor_motion-secondary_object_update_offsets
 	dc.w continue_secondary_object_update_loop-secondary_object_update_offsets
 	dc.w update_secondary_actor_motion_and_counter-secondary_object_update_offsets
 	dc.w continue_secondary_object_update_loop-secondary_object_update_offsets
-	dc.w abs_0_00008422-secondary_object_update_offsets
+	dc.w finish_distant_skim_launcher_drone_update_dispatch_007422-secondary_object_update_offsets
 	dc.w integrate_distant_actor_velocity-secondary_object_update_offsets
 	dc.w update_secondary_actor_motion_and_counter-secondary_object_update_offsets
 	dc.w update_distant_dome_silo_launch_cycle-secondary_object_update_offsets
-	dc.w abs_0_000084B4-secondary_object_update_offsets
+	dc.w retire_distant_type47_dispatch_0074b4-secondary_object_update_offsets
 	dc.w continue_secondary_object_update_loop-secondary_object_update_offsets
 	dc.w continue_secondary_object_update_loop-secondary_object_update_offsets
 	dc.w continue_secondary_object_update_loop-secondary_object_update_offsets
@@ -10747,7 +10752,7 @@ secondary_object_update_offsets:
 	dc.w continue_secondary_object_update_loop-secondary_object_update_offsets
 	dc.w continue_secondary_object_update_loop-secondary_object_update_offsets
 	dc.w continue_secondary_object_update_loop-secondary_object_update_offsets
-	dc.w abs_0_0000840A-secondary_object_update_offsets
+	dc.w update_distant_skim_missile_dispatch_00740a-secondary_object_update_offsets
 	dc.w continue_secondary_object_update_loop-secondary_object_update_offsets
 	dc.w continue_secondary_object_update_loop-secondary_object_update_offsets
 	dc.w continue_secondary_object_update_loop-secondary_object_update_offsets
@@ -10778,15 +10783,15 @@ secondary_object_update_offsets:
 	dc.w continue_secondary_object_update_loop-secondary_object_update_offsets
 	dc.w continue_secondary_object_update_loop-secondary_object_update_offsets
 	dc.w continue_secondary_object_update_loop-secondary_object_update_offsets
-	dc.w abs_0_000085F4-secondary_object_update_offsets
+	dc.w update_distant_bouncing_bomb_dispatch_0075f4-secondary_object_update_offsets
 	dc.w continue_secondary_object_update_loop-secondary_object_update_offsets
 	dc.w continue_secondary_object_update_loop-secondary_object_update_offsets
 	dc.w continue_secondary_object_update_loop-secondary_object_update_offsets
-	dc.w abs_0_000084C4-secondary_object_update_offsets
+	dc.w remove_distant_tractor_beam_marker_dispatch_0074c4-secondary_object_update_offsets
 	dc.w continue_secondary_object_update_loop-secondary_object_update_offsets
 	dc.w continue_secondary_object_update_loop-secondary_object_update_offsets
-	dc.w abs_0_0000860C-secondary_object_update_offsets
-	dc.w abs_0_000085C4-secondary_object_update_offsets
+	dc.w update_distant_neutron_bomb_dispatch_00760c-secondary_object_update_offsets
+	dc.w update_distant_space_station_dispatch_0075c4-secondary_object_update_offsets
 	dc.w continue_secondary_object_update_loop-secondary_object_update_offsets
 	dc.w continue_secondary_object_update_loop-secondary_object_update_offsets
 	dc.w continue_secondary_object_update_loop-secondary_object_update_offsets
@@ -10816,23 +10821,23 @@ secondary_object_update_offsets:
 	dc.w continue_secondary_object_update_loop-secondary_object_update_offsets
 	dc.w continue_secondary_object_update_loop-secondary_object_update_offsets
 	dc.w continue_secondary_object_update_loop-secondary_object_update_offsets
-	dc.w abs_0_000084F8-secondary_object_update_offsets
-	dc.w abs_0_000084F8-secondary_object_update_offsets
-	dc.w abs_0_000084F8-secondary_object_update_offsets
-	dc.w abs_0_000084F8-secondary_object_update_offsets
-	dc.w abs_0_000084F8-secondary_object_update_offsets
-	dc.w abs_0_00008504-secondary_object_update_offsets
-	dc.w abs_0_00008504-secondary_object_update_offsets
-	dc.w abs_0_00008510-secondary_object_update_offsets
-	dc.w abs_0_00008510-secondary_object_update_offsets
-	dc.w abs_0_00008510-secondary_object_update_offsets
-	dc.w abs_0_00008510-secondary_object_update_offsets
-	dc.w abs_0_00008510-secondary_object_update_offsets
-	dc.w abs_0_00008510-secondary_object_update_offsets
-	dc.w abs_0_00008510-secondary_object_update_offsets
-	dc.w abs_0_0000851C-secondary_object_update_offsets
+	dc.w update_distant_planetary_bodies_dispatch_0074f8-secondary_object_update_offsets
+	dc.w update_distant_planetary_bodies_dispatch_0074f8-secondary_object_update_offsets
+	dc.w update_distant_planetary_bodies_dispatch_0074f8-secondary_object_update_offsets
+	dc.w update_distant_planetary_bodies_dispatch_0074f8-secondary_object_update_offsets
+	dc.w update_distant_planetary_bodies_dispatch_0074f8-secondary_object_update_offsets
+	dc.w update_distant_apogee_moons_dispatch_007504-secondary_object_update_offsets
+	dc.w update_distant_apogee_moons_dispatch_007504-secondary_object_update_offsets
+	dc.w update_distant_millway_moons_dispatch_007510-secondary_object_update_offsets
+	dc.w update_distant_millway_moons_dispatch_007510-secondary_object_update_offsets
+	dc.w update_distant_millway_moons_dispatch_007510-secondary_object_update_offsets
+	dc.w update_distant_millway_moons_dispatch_007510-secondary_object_update_offsets
+	dc.w update_distant_millway_moons_dispatch_007510-secondary_object_update_offsets
+	dc.w update_distant_millway_moons_dispatch_007510-secondary_object_update_offsets
+	dc.w update_distant_millway_moons_dispatch_007510-secondary_object_update_offsets
+	dc.w update_distant_q_beta_dispatch_00751c-secondary_object_update_offsets
 	dc.w continue_secondary_object_update_loop-secondary_object_update_offsets
-	dc.w abs_0_00008534-secondary_object_update_offsets
+	dc.w finish_distant_solice_update_dispatch_007534-secondary_object_update_offsets
 	dc.w continue_secondary_object_update_loop-secondary_object_update_offsets
 	dc.w continue_secondary_object_update_loop-secondary_object_update_offsets
     ; Distant retirement uses the same equality/increment rule, but its release ordering differs: FF phase is written before clearing and does not survive.
@@ -10893,20 +10898,20 @@ abs_0_000083D8:
 	andi.w #4095,$0014(a0)
 abs_0_000083F6:
 	bra.w continue_primary_object_update_loop
-abs_0_000083FA:
-	bra.w abs_0_0000B45E
-abs_0_000083FE:
+update_nearby_asteroid_dispatch_0073fa:
+	bra.w update_nearby_asteroid_bridge_00a45e
+update_nearby_skim_missile_dispatch_0073fe:
 	move.b #$C0,diagnostic_step_byte.l
-	bra.w abs_0_0000B554
-abs_0_0000840A:
+	bra.w update_nearby_skim_missile_bridge_00a554
+update_distant_skim_missile_dispatch_00740a:
 	move.b #$C1,diagnostic_step_byte.l
-	bra.w abs_0_0000B4BE
-abs_0_00008416:
+	bra.w update_distant_skim_missile_bridge_00a4be
+update_nearby_skim_launcher_drone_dispatch_007416:
 	move.b #$C2,diagnostic_step_byte.l
-	bra.w abs_0_0000B54E
-abs_0_00008422:
+	bra.w update_nearby_skim_launcher_drone_bridge_00a54e
+finish_distant_skim_launcher_drone_update_dispatch_007422:
 	move.b #$C3,diagnostic_step_byte.l
-	bra.w abs_0_0000B49A
+	bra.w finish_distant_skim_launcher_drone_update_bridge_00a49a
     ; KNOWN: type A0=Target code-entry register seed:SG2WorldObject
 update_pilot_couch_bounce_and_spin:
 	cmpi.w #20,game_over_sequence_countdown.l
@@ -10935,110 +10940,110 @@ abs_0_00008474:
 	andi.w #4095,SG2WorldObject_rotation_1(a0)
 abs_0_00008480:
 	bra.w continue_primary_object_update_loop
-abs_0_00008484:
+update_nearby_mini_sentinel_dispatch_007484:
 	move.b #$C4,diagnostic_step_byte.l
-	bra.w abs_0_0000B4E2
-abs_0_00008490:
+	bra.w update_nearby_mini_sentinel_bridge_00a4e2
+advance_distant_mini_sentinel_orbit_angle_dispatch_007490:
 	move.b #$C5,diagnostic_step_byte.l
-	bra.w abs_0_0000B476
+	bra.w advance_distant_mini_sentinel_orbit_angle_bridge_00a476
     ; KNOWN: type A0=Target code-entry register seed:SG2Volcano
-abs_0_0000849C:
+update_nearby_volcano_dispatch_00749c:
 	move.b #$C6,diagnostic_step_byte.l
-	bra.w abs_0_0000B536
-abs_0_000084A8:
+	bra.w update_nearby_volcano_bridge_00a536
+update_nearby_falling_type47_dispatch_0074a8:
 	move.b #$C7,diagnostic_step_byte.l
-	bra.w abs_0_0000B4A6
-abs_0_000084B4:
+	bra.w update_nearby_falling_type47_bridge_00a4a6
+retire_distant_type47_dispatch_0074b4:
 	move.b #$C8,diagnostic_step_byte.l
-	bra.w abs_0_0000B48E
-abs_0_000084C0:
-	bra.w abs_0_0000B542
-abs_0_000084C4:
-	bra.w abs_0_0000B52A
-abs_0_000084C8:
+	bra.w retire_distant_type47_bridge_00a48e
+update_nearby_tractor_beam_marker_dispatch_0074c0:
+	bra.w update_nearby_tractor_beam_marker_bridge_00a542
+remove_distant_tractor_beam_marker_dispatch_0074c4:
+	bra.w remove_distant_tractor_beam_marker_bridge_00a52a
+update_nearby_planetary_bodies_dispatch_0074c8:
 	move.b #$C9,diagnostic_step_byte.l
-	bra.w abs_0_0000B51E
-abs_0_000084D4:
+	bra.w update_nearby_planetary_bodies_bridge_00a51e
+update_nearby_apogee_moons_dispatch_0074d4:
 	move.b #$CA,diagnostic_step_byte.l
-	bra.w abs_0_0000B4B2
-abs_0_000084E0:
+	bra.w update_nearby_apogee_moons_bridge_00a4b2
+update_nearby_millway_moons_dispatch_0074e0:
 	move.b #$CB,diagnostic_step_byte.l
-	bra.w abs_0_0000B4B8
-abs_0_000084EC:
+	bra.w update_nearby_millway_moons_bridge_00a4b8
+update_nearby_q_beta_dispatch_0074ec:
 	move.b #$CC,diagnostic_step_byte.l
-	bra.w abs_0_0000B4C4
-abs_0_000084F8:
+	bra.w update_nearby_q_beta_bridge_00a4c4
+update_distant_planetary_bodies_dispatch_0074f8:
 	move.b #$CD,diagnostic_step_byte.l
-	bra.w abs_0_0000B548
-abs_0_00008504:
+	bra.w update_distant_planetary_bodies_bridge_00a548
+update_distant_apogee_moons_dispatch_007504:
 	move.b #$CE,diagnostic_step_byte.l
-	bra.w abs_0_0000B512
-abs_0_00008510:
+	bra.w update_distant_apogee_moons_bridge_00a512
+update_distant_millway_moons_dispatch_007510:
 	move.b #$CF,diagnostic_step_byte.l
-	bra.w abs_0_0000B46A
-abs_0_0000851C:
+	bra.w update_distant_millway_moons_bridge_00a46a
+update_distant_q_beta_dispatch_00751c:
 	move.b #$D0,diagnostic_step_byte.l
-	bra.w abs_0_0000B4FA
-abs_0_00008528:
+	bra.w update_distant_q_beta_bridge_00a4fa
+update_nearby_solice_display_dispatch_007528:
 	move.b #$D1,diagnostic_step_byte.l
-	bra.w abs_0_0000B458
-abs_0_00008534:
+	bra.w update_nearby_solice_display_bridge_00a458
+finish_distant_solice_update_dispatch_007534:
 	move.b #$D2,diagnostic_step_byte.l
-	bra.w abs_0_0000B4E8
-abs_0_00008540:
+	bra.w finish_distant_solice_update_bridge_00a4e8
+update_nearby_projector_base_dispatch_007540:
 	move.b #$D3,diagnostic_step_byte.l
-	bra.w abs_0_0000B4F4
-abs_0_0000854C:
+	bra.w update_nearby_projector_base_bridge_00a4f4
+update_nearby_projector_mount_dispatch_00754c:
 	move.b #$D4,diagnostic_step_byte.l
-	bra.w abs_0_0000B50C
-abs_0_00008558:
+	bra.w update_nearby_projector_mount_bridge_00a50c
+update_nearby_projector_cover_dispatch_007558:
 	move.b #$D5,diagnostic_step_byte.l
-	bra.w abs_0_0000B47C
-abs_0_00008564:
+	bra.w update_nearby_projector_cover_bridge_00a47c
+update_nearby_projector_turret_dispatch_007564:
 	move.b #$D6,diagnostic_step_byte.l
-	bra.w abs_0_0000B4CA
-abs_0_00008570:
+	bra.w update_nearby_projector_turret_bridge_00a4ca
+update_nearby_projector_fuel_crystals_dispatch_007570:
 	move.b #$D7,diagnostic_step_byte.l
-	bra.w abs_0_0000B488
-abs_0_0000857C:
+	bra.w update_nearby_projector_fuel_crystals_bridge_00a488
+update_nearby_projector_control_tower_dispatch_00757c:
 	move.b #$D8,diagnostic_step_byte.l
-	bra.w abs_0_0000B4AC
-abs_0_00008588:
+	bra.w update_nearby_projector_control_tower_bridge_00a4ac
+update_nearby_projector_crew_quarters_dispatch_007588:
 	move.b #$D9,diagnostic_step_byte.l
-	bra.w abs_0_0000B500
-abs_0_00008594:
+	bra.w update_nearby_projector_crew_quarters_bridge_00a500
+update_nearby_projector_sentinel_dispatch_007594:
 	move.b #$DA,diagnostic_step_byte.l
-	bra.w abs_0_0000B482
+	bra.w update_nearby_projector_sentinel_bridge_00a482
 	dc.b $13,$FC,$00,$DB,$00,$00,$E1,$03,$60,$00,$2F,$86,$13,$FC,$00,$DC
 	dc.b $00,$00,$E1,$03,$60,$00,$2F,$20
-abs_0_000085B8:
+update_nearby_space_station_dispatch_0075b8:
 	move.b #$DD,diagnostic_step_byte.l
-	bra.w abs_0_0000B464
-abs_0_000085C4:
+	bra.w update_nearby_space_station_bridge_00a464
+update_distant_space_station_dispatch_0075c4:
 	move.b #$DE,diagnostic_step_byte.l
-	bra.w abs_0_0000B506
-abs_0_000085D0:
+	bra.w update_distant_space_station_bridge_00a506
+update_nearby_energy_spheroid_dispatch_0075d0:
 	move.b #$DF,diagnostic_step_byte.l
-	bra.w abs_0_0000B452
+	bra.w update_nearby_energy_spheroid_bridge_00a452
 	dc.b $13,$FC,$00,$E0,$00,$00,$E1,$03,$60,$00,$2E,$F6
     ; KNOWN: type A0=Target code-entry register seed:SG2BouncingBomb
-abs_0_000085E8:
+update_nearby_bouncing_bomb_dispatch_0075e8:
 	move.b #$E1,diagnostic_step_byte.l
-	bra.w abs_0_0000B524
-abs_0_000085F4:
+	bra.w update_nearby_bouncing_bomb_bridge_00a524
+update_distant_bouncing_bomb_dispatch_0075f4:
 	move.b #$E2,diagnostic_step_byte.l
-	bra.w abs_0_0000B4D0
+	bra.w update_distant_bouncing_bomb_bridge_00a4d0
     ; KNOWN: type A0=Target code-entry register seed:SG2NeutronBomb
-abs_0_00008600:
+update_nearby_neutron_bomb_dispatch_007600:
 	move.b #$E3,diagnostic_step_byte.l
-	bra.w abs_0_0000B44C
-abs_0_0000860C:
+	bra.w update_nearby_neutron_bomb_bridge_00a44c
+update_distant_neutron_bomb_dispatch_00760c:
 	move.b #$E4,diagnostic_step_byte.l
-	bra.w abs_0_0000B470
+	bra.w update_distant_neutron_bomb_bridge_00a470
     ; KNOWN: type A0=Target code-entry register seed:SG2PirateShip
-abs_0_00008618:
+update_nearby_pirate_ship_dispatch_007618:
 	move.b #$E5,diagnostic_step_byte.l
-	bra.w abs_0_0000B494
+	bra.w update_nearby_pirate_ship_bridge_00a494
 	dc.b $13,$FC,$00,$E6,$00,$00,$E1,$03,$60,$00,$2E,$C0,$33,$EE,$07,$56
 	dc.b $00,$DF,$F1,$80,$60,$00,$FB,$98
     ; KNOWN: type A0=Target code-entry register seed:SG2LinkedTug
@@ -11110,7 +11115,7 @@ abs_0_000086D6:
 	bsr.w advance_shared_random_state
 	andi.w #3,d0
 	clr.w d3
-	move.b $0(a1,d0.w),d3
+	move.b SG2StoredObjectTypeByte_object_type(a1,d0.w),d3
 	move.w d3,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
 retire_tug_and_detach_reciprocal_links:
 	clr.b SG2ObjectCore_retirement_phase_or_negative(a0)
@@ -12994,7 +12999,7 @@ abs_0_0000A004:
 	lea.l airborne_spawn_model_type_choices.l,a1
 	bsr.w advance_shared_random_state
 	andi.w #7,d0
-	move.b $0(a1,d0.w),d0
+	move.b SG2StoredObjectTypeByte_object_type(a1,d0.w),d0
     ; KNOWN: type A2=Target code-entry register seed:SG2AirborneLaunchState
 	move.w d0,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
 	move.b #SG2_OBJECT_TYPE_EGRON_SILO,SG2TargetingObject_collision_ignored_object_type(a2)
@@ -13162,7 +13167,7 @@ abs_0_0000A2CE:
 	bsr.w advance_shared_random_state
 	andi.w #3,d0
 	clr.w d3
-	move.b $0(a1,d0.w),d3
+	move.b SG2StoredObjectTypeByte_object_type(a1,d0.w),d3
     ; KNOWN: type A2=Target code-entry register seed:SG2GroundLaunchState
 	move.w d3,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
 	move.b #SG2_OBJECT_TYPE_EGRON_DOME_SILO,SG2TargetingObject_collision_ignored_object_type(a2)
@@ -13565,7 +13570,7 @@ abs_0_0000A8F2:
 	lea.l airborne_spawn_model_type_choices.l,a1
 	bsr.w advance_shared_random_state_bridge_00d9b4
 	andi.w #7,d0
-	move.b $0(a1,d0.w),d0
+	move.b SG2StoredObjectTypeByte_object_type(a1,d0.w),d0
     ; KNOWN: type A2=Target code-entry register seed:SG2AirborneLaunchState
 	move.w d0,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
 	move.b #SG2_OBJECT_TYPE_EGRON_SILO,SG2TargetingObject_collision_ignored_object_type(a2)
@@ -13644,7 +13649,7 @@ abs_0_0000AA3A:
 	bsr.w advance_shared_random_state_bridge_00d9b4
 	andi.w #3,d0
 	clr.w d3
-	move.b $0(a1,d0.w),d3
+	move.b SG2StoredObjectTypeByte_object_type(a1,d0.w),d3
     ; KNOWN: type A2=Target code-entry register seed:SG2GroundLaunchState
 	move.w d3,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
 	move.b #SG2_OBJECT_TYPE_EGRON_DOME_SILO,SG2TargetingObject_collision_ignored_object_type(a2)
@@ -14296,96 +14301,109 @@ format_and_print_rating_label:
 coordinate_warning_text_scratch:
 	dcb.b $1C,$20
 	dc.b $00,$00
-airborne_spawn_model_type_choices:
-	dc.b $0D,$12,$15,$1F,$20,$21,$22,$2D	; lookup_table
-ground_spawn_model_type_choices:
-	dc.b $01,$09,$0F,$27	; lookup_table
-fragment_model_type_tags:
-	dc.b $64,$65,$66,$53	; lookup_table
+airborne_spawn_model_type_choices:	; ARRAY SG2StoredObjectTypeByte[8]
+	dc.b SG2_OBJECT_TYPE_ARMED_TRANSPORT	; object_type
+	dc.b SG2_OBJECT_TYPE_LARGE_EGRON_TRANSPORT
+	dc.b SG2_OBJECT_TYPE_VAMPIRE_TYPE_FIGHTER
+	dc.b SG2_OBJECT_TYPE_SPACE_FIGHTER
+	dc.b SG2_OBJECT_TYPE_PERSONNEL_SHUTTLE
+	dc.b SG2_OBJECT_TYPE_EGRON_BUZZ_BOMBER
+	dc.b SG2_OBJECT_TYPE_FLYING_SAUCER
+	dc.b SG2_OBJECT_TYPE_FIGHTER_ESCORT
+ground_spawn_model_type_choices:	; ARRAY SG2StoredObjectTypeByte[4]
+	dc.b SG2_OBJECT_TYPE_WALKER	; object_type
+	dc.b SG2_OBJECT_TYPE_EGRON_LAND_TANK
+	dc.b SG2_OBJECT_TYPE_STOMPER
+	dc.b SG2_OBJECT_TYPE_HOVER_CAR
+fragment_model_type_tags:	; ARRAY SG2StoredObjectTypeByte[4]
+	dc.b SG2_OBJECT_TYPE_CRATE_OF_CASTROBARS	; object_type
+	dc.b SG2_OBJECT_TYPE_LUMP_OF_MINERAL_ROCK
+	dc.b SG2_OBJECT_TYPE_CASE_OF_NUCLEAR_FUEL
+	dc.b SG2_OBJECT_TYPE_CASK_OF_VISTAN_WINE
 	dc.w $0000
-abs_0_0000B44C:
+update_nearby_neutron_bomb_bridge_00a44c:
 	jmp update_nearby_neutron_bomb.l
-abs_0_0000B452:
+update_nearby_energy_spheroid_bridge_00a452:
 	jmp update_nearby_energy_spheroid.l
-abs_0_0000B458:
+update_nearby_solice_display_bridge_00a458:
 	jmp update_nearby_solice_display.l
-abs_0_0000B45E:
+update_nearby_asteroid_bridge_00a45e:
 	jmp update_nearby_asteroid.l
-abs_0_0000B464:
+update_nearby_space_station_bridge_00a464:
 	jmp update_nearby_space_station.l
-abs_0_0000B46A:
+update_distant_millway_moons_bridge_00a46a:
 	jmp update_distant_millway_moons.l
-abs_0_0000B470:
+update_distant_neutron_bomb_bridge_00a470:
 	jmp update_distant_neutron_bomb.l
-abs_0_0000B476:
+advance_distant_mini_sentinel_orbit_angle_bridge_00a476:
 	jmp advance_distant_mini_sentinel_orbit_angle.l
-abs_0_0000B47C:
+update_nearby_projector_cover_bridge_00a47c:
 	jmp update_nearby_projector_cover.l
-abs_0_0000B482:
+update_nearby_projector_sentinel_bridge_00a482:
 	jmp update_nearby_projector_sentinel.l
-abs_0_0000B488:
+update_nearby_projector_fuel_crystals_bridge_00a488:
 	jmp update_nearby_projector_fuel_crystals.l
-abs_0_0000B48E:
+retire_distant_type47_bridge_00a48e:
 	jmp retire_distant_type47.l
-abs_0_0000B494:
+update_nearby_pirate_ship_bridge_00a494:
 	jmp update_nearby_pirate_ship.l
-abs_0_0000B49A:
+finish_distant_skim_launcher_drone_update_bridge_00a49a:
 	jmp finish_distant_skim_launcher_drone_update.l
 format_signed_long_nine_decimal_places_bridge_00a4a0:
 	jmp format_signed_long_nine_decimal_places.l
-abs_0_0000B4A6:
+update_nearby_falling_type47_bridge_00a4a6:
 	jmp update_nearby_falling_type47.l
-abs_0_0000B4AC:
+update_nearby_projector_control_tower_bridge_00a4ac:
 	jmp update_nearby_projector_control_tower.l
-abs_0_0000B4B2:
+update_nearby_apogee_moons_bridge_00a4b2:
 	jmp update_nearby_apogee_moons.l
-abs_0_0000B4B8:
+update_nearby_millway_moons_bridge_00a4b8:
 	jmp update_nearby_millway_moons.l
-abs_0_0000B4BE:
+update_distant_skim_missile_bridge_00a4be:
 	jmp update_distant_skim_missile.l
-abs_0_0000B4C4:
+update_nearby_q_beta_bridge_00a4c4:
 	jmp update_nearby_q_beta.l
-abs_0_0000B4CA:
+update_nearby_projector_turret_bridge_00a4ca:
 	jmp update_nearby_projector_turret.l
-abs_0_0000B4D0:
+update_distant_bouncing_bomb_bridge_00a4d0:
 	jmp update_distant_bouncing_bomb.l
 	dc.b $4E,$F9,$00,$03,$60,$8E,$4E,$F9,$00,$03,$63,$5E
-abs_0_0000B4E2:
+update_nearby_mini_sentinel_bridge_00a4e2:
 	jmp update_nearby_mini_sentinel.l
-abs_0_0000B4E8:
+finish_distant_solice_update_bridge_00a4e8:
 	jmp finish_distant_solice_update.l
 	dc.b $4E,$F9,$00,$03,$71,$18
-abs_0_0000B4F4:
+update_nearby_projector_base_bridge_00a4f4:
 	jmp update_nearby_projector_base.l
-abs_0_0000B4FA:
+update_distant_q_beta_bridge_00a4fa:
 	jmp update_distant_q_beta.l
-abs_0_0000B500:
+update_nearby_projector_crew_quarters_bridge_00a500:
 	jmp update_nearby_projector_crew_quarters.l
-abs_0_0000B506:
+update_distant_space_station_bridge_00a506:
 	jmp update_distant_space_station.l
-abs_0_0000B50C:
+update_nearby_projector_mount_bridge_00a50c:
 	jmp update_nearby_projector_mount.l
-abs_0_0000B512:
+update_distant_apogee_moons_bridge_00a512:
 	jmp update_distant_apogee_moons.l
 wait_for_input_or_tick_deadline_bridge_00a518:
 	jmp wait_for_input_or_tick_deadline.l
-abs_0_0000B51E:
+update_nearby_planetary_bodies_bridge_00a51e:
 	jmp update_nearby_planetary_bodies.l
-abs_0_0000B524:
+update_nearby_bouncing_bomb_bridge_00a524:
 	jmp update_nearby_bouncing_bomb.l
-abs_0_0000B52A:
+remove_distant_tractor_beam_marker_bridge_00a52a:
 	jmp remove_distant_tractor_beam_marker.l
 	dc.b $4E,$F9,$00,$03,$60,$8A
-abs_0_0000B536:
+update_nearby_volcano_bridge_00a536:
 	jmp update_nearby_volcano.l
 	dc.b $00,$00,$00,$00,$00,$00
-abs_0_0000B542:
+update_nearby_tractor_beam_marker_bridge_00a542:
 	jmp update_nearby_tractor_beam_marker.l
-abs_0_0000B548:
+update_distant_planetary_bodies_bridge_00a548:
 	jmp update_distant_planetary_bodies.l
-abs_0_0000B54E:
+update_nearby_skim_launcher_drone_bridge_00a54e:
 	jmp update_nearby_skim_launcher_drone.l
-abs_0_0000B554:
+update_nearby_skim_missile_bridge_00a554:
 	jmp update_nearby_skim_missile.l
 	dc.w $0000
     ; Pairwise contact service. A6 is borrowed as positive-Y extent table after app state reads; do not interpret all following A6 displacements as workspace fields.
@@ -44892,6 +44910,7 @@ mask_encounter_attempt_phase:
 	bne.w snapshot_world_transition_space_state
 	cmpi.w #150,free_object_count(a6)
 	bls.w snapshot_world_transition_space_state
+    ; Rebased slots lack a pool-range check. Supplied saved state can alias the retirement cursor; this pop and type store then write above31. Ordinary-save reachability is unproven.
 	movea.l free_object_stack_cursor(a6),a3
 	movea.l -(a3),a4
 	move.l a3,free_object_stack_cursor(a6)

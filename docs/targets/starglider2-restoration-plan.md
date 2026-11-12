@@ -6,14 +6,14 @@ claim of complete gameplay/hardware equivalence.
 
 ## Current validated baseline
 
-Current validated export: 3517 app references, 2806 typed accesses, 185 unresolved
+Current validated export: 3517 app references, 2811 typed accesses, 185 unresolved
 accesses; 9839 unclassified bytes in 276 intervals. These are analysis counts,
 not semantic completion percentages. The phrase-counter
 references retain declared-layout A6 fallback; the role declaration adds no
 stronger base proof. The projector report arrays expose three additional
 dynamic-index reads; all prior typed/unresolved facts are retained.
 The scalar object-type domain exposes constructors, collision exclusions and
-fifteen choice/cycle/drop/trade/ingredient/projector tables (274 stored IDs).
+eighteen choice/cycle/drop/trade/ingredient/projector/spawn tables (290 stored IDs).
 Grouped tables retain native
 count/stride; their symbols and one role per visible run remain readable.
 This is semantic presentation, not a value/lifetime bound. Directory placeholders
@@ -23,6 +23,10 @@ read still needs a cursor invariant. All prior app and field attributions remain
 Four trade/ingredient/projector directories expose another 82 stored object IDs;
 three bounded ingredient reads resolve. Six newly exposed trade/projector/read
 sites remain unresolved; none of the prior 179 unresolved records were lost.
+Five bounded spawn/drop readers resolve; primary/secondary update references
+now name 38 accepted dispatch tails and 38 JMP bridges to already known bodies.
+These names add no code, target-set completeness or lifetime proof; original
+diagnostic stores and register/stack effects remain intact.
 Original payload SHA256:
 `662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9`.
 
@@ -65,9 +69,12 @@ Original payload SHA256:
    lane. Retirement still reads its cursor before wrapping; naming its 32 stored
    IDs adds no caller bound. Its direct references show only the increment and
    mask writers; the original image seeds zero and the inspected game resets do
-   not reset it. This absolute cell is outside the saved app prefix. Next: prove
-   separation from indirect writes across the caller loop before promoting the
-   candidate 0..31 invariant; post-read masking alone is insufficient.
+   not reset it. This absolute cell is outside the saved app prefix, but a
+   supplied serialized free slot rebases to it without a pool-range check.
+   Original encounter pop/type-store instructions then write above 31. Thus no
+   arbitrary-restored-state bound holds. Next: a validated-pool caller context
+   (or a context excluding unvalidated load) is required; ordinary-save
+   reachability is not established by the local counterexample.
    Literal/copy/equality index probes already resolve fields.
    The ingredient loops retain their 0..7 index; loaded BYTE values are absent
    from the scalar WORD packet. The 104-byte count backing supplies no value
@@ -86,6 +93,9 @@ Original payload SHA256:
    that value. Next: establish a specific validated-state caller context; ordinary
    initialization/decrement/wrap and table extent alone cannot supply the bound.
 5. Residual regions: prioritize accepted data readers and incoming code edges.
+   Investigate mapped global/scratch read footprints missing from source
+   ownership, keeping explicit runtime namespaces, code and overlapping views
+   protected. A reference alone does not supply a complete backing extent.
    Do not decode apparent instructions or declare arrays from plausible bytes.
    Zero-fill writers and write-only app flags do not establish field purpose.
    The debug-key99 toggle has no static reader; the viewer auxiliary WORD has
