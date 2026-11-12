@@ -48,9 +48,9 @@ Original payload SHA256:
    identities are supported. Undeclared prefix bytes retain no field meaning.
    Next: stored-pointer lifetime in item 2; do not add per-reader type seeds
    or assume disjoint allocations.
-   Of 60 Core gaps, 33 are LONG zeroing stores spanning multiple fields in
-   three 68-byte clears. Other Core bytes are polymorphic: rotations overlap
-   spheroid colour/delay state. Do not widen Core to WorldObject; obtain a
+   Of 60 Core gaps, 33 are LONG zeroing stores starting in unnamed portions
+   of three 68-byte clears. Known starting-field operands already resolve.
+   Other Core bytes are polymorphic: rotations overlap spheroid colour/delay state. Do not widen Core to WorldObject; obtain a
    specific tagged or caller context for the remaining role interpretations.
 2. Player rotation stores use a three-field type-30 format contract and decoded
    LEA/write-disjointness proof. The slot already declares SG2WorldObject;
@@ -67,8 +67,10 @@ Original payload SHA256:
    alone does not reproduce the loss; the same straight-line reader works.
    Copy/rebase accepts other record tags from supplied saved state without format
    validation; this neither disproves the conditional role declaration nor proves
-   a permanent subtype. Next: test call-site write footprints with proved
-   workspace/buffer/stack separation and constructor slot postconditions,
+   a permanent subtype. A supplied free-stack/player alias at countdown 180
+   changes that same record to couch tag 71; this does not establish normal-save
+   reachability or invalidate the conditional type-30 view. Next: test call-site
+   write footprints with proved workspace/buffer/stack separation and constructor slot postconditions,
    retaining unknown-alias and exception-resume refusals. Current summaries
    cannot supply that separation; no reader seed or unconditional type follows.
 3. Optional model-header extension: keep face-count mutation separate from
@@ -115,6 +117,9 @@ Original payload SHA256:
    that value. Next: establish a specific validated-state caller context; ordinary
    initialization/decrement/wrap and table extent alone cannot supply the bound.
 5. Residual regions: prioritize accepted data readers and incoming code edges.
+   The world-pool rebuild gate at app+$7EE has a reader and a zeroing finalizer.
+   Bulk save restoration covers it; a positive normal-game producer is still
+   unknown. Its consumer name supplies no activation or lifetime invariant.
    Incoming-reference review separates address formation from actual memory
    effects. Some named globals lack backing declarations; investigate connected
    record roles/extents while protecting runtime namespaces, code and views.

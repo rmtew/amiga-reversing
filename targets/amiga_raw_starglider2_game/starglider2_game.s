@@ -447,7 +447,7 @@ weapon_selection_and_status RS.B 1
 view_mode RS.B 1
 docking_control_override_flag RS.B 1
 ai_type12_projectile_request RS.B 1
-app_07EE RS.B 1
+world_pool_reinitialization_gate RS.B 1
 joystick_control_enabled_flag RS.B 1
 crosshair_autocentre_mode RS.B 1
 one_hand_control_flag RS.B 1
@@ -1615,6 +1615,8 @@ SG2_ENERGY_GATE_PLAYER_SKIP_VARIANT	EQU	6
 SG2_FACE_CACHE_REFRESH_PHASE_MASK	EQU	3
 SG2_FACE_HEADER_VERTEX_COUNT_MASK	EQU	7
 SG2_FACE_RANDOM_STYLE_BYTE_OFFSET_MASK	EQU	14
+SG2_GAME_OVER_POWER_DRAINAGE	EQU	1
+SG2_GAME_OVER_SHIELD_DEPLETED	EQU	2
 SG2_GATE_CONTACT_RESPONSE_PASSES	EQU	3
 SG2_GROUND_FACE_DEPTH_SORT_KEY	EQU	$7FE0
 SG2_GROUND_FACE_FAR_DIVIDE_DEPTH	EQU	12000
@@ -2347,7 +2349,7 @@ resume_gameplay_with_cockpit_refresh:
 	bsr.w restore_cockpit_and_weapon_hud_state
 	clr.l d0
 	jsr add_bcd_and_draw_digits.l
-	bra.b abs_0_00001256
+	bra.b initialize_point_field_after_world_pool
 wait_for_title_mouse_and_fire_release:
 	bsr.w advance_shared_random_state
 	tst.b mouse_primary_button_flag(a6)
@@ -2367,12 +2369,12 @@ reset_gameplay_and_initialize_new_flight:
 	moveq.l #0,d0
 	jsr add_bcd_and_draw_digits.l
 	move.w #$A,landscape_ground_colour_index(a6)
-abs_0_0000123E:
+reinitialize_model_tags_and_world_pool:
 	move.b #$4,diagnostic_step_byte.l
 	bsr.w initialize_model_type_target_tags_bridge_002380
 	move.b #$5,diagnostic_step_byte.l
 	bsr.w initialize_world_object_pool_bridge_002398
-abs_0_00001256:
+initialize_point_field_after_world_pool:
 	bsr.w initialize_nearby_point_field_bridge_00239e
 	move.b #$8,diagnostic_step_byte.l
 	bsr.w initialize_paula_sample_channels_bridge_0024d4
@@ -2440,7 +2442,7 @@ store_main_frame_baseline_sample:
 	bsr.w count_and_present_frame_handoff
 	bset.b #7,display_and_frame_service_flags(a6)
 	tst.w initial_resource_charge_steps(a6)
-	beq.b abs_0_000013D0
+	beq.b check_gameplay_end_and_world_rebuild_gates
 	move.w icarus_shield_strength(a6),d0
 	addi.w #4000,d0
 	move.w d0,icarus_shield_strength(a6)
@@ -2451,69 +2453,70 @@ store_main_frame_baseline_sample:
 	addi.w #4000,d0
 	move.w d0,weapon_energy_reserve(a6)
 	subq.w #1,initial_resource_charge_steps(a6)
-	bne.b abs_0_000013D0
+	bne.b check_gameplay_end_and_world_rebuild_gates
 	lea.l planetfall_message_apogee.l,a1
 	bsr.w enqueue_message_pointer_bridge
-abs_0_000013D0:
+    ; Rebuild gate follows the fatal-overheat sign test and precedes other game-over flags. Pool initialization clears it; no positive producer is established.
+check_gameplay_end_and_world_rebuild_gates:
 	tst.b fatal_overheat_latched_flag.l
 	bmi.w begin_postgame_screen_smear
-	tst.b app_07EE(a6)
-	bne.w abs_0_0000123E
+	tst.b world_pool_reinitialization_gate(a6)
+	bne.w reinitialize_model_tags_and_world_pool
 	tst.w icarus_game_over_reason(a6)
-	bne.w abs_0_00001560
+	bne.w advance_game_over_sequence
 	tst.b novella_answer_tail_latch(a6)
-	bne.w abs_0_00001560
+	bne.w advance_game_over_sequence
 	cmpi.w #12000,icarus_shield_strength(a6)
-	bcc.b abs_0_0000140C
+	bcc.b sample_low_power_frame_counter
 	move.w frame_handoff_counter(a6),d1
 	andi.w #127,d1
-	bne.b abs_0_0000140C
+	bne.b sample_low_power_frame_counter
 	tst.b novella_expected_char_latch(a6)
-	bne.w abs_0_00001560
-abs_0_0000140C:
+	bne.w advance_game_over_sequence
+sample_low_power_frame_counter:
 	cmpi.w #12000,icarus_power_reserve(a6)
-	bcc.b abs_0_0000141E
+	bcc.b check_shield_and_contact_before_resource_service
 	move.w frame_handoff_counter(a6),d1
 	andi.w #127,d1
 	nop
-abs_0_0000141E:
+check_shield_and_contact_before_resource_service:
 	tst.w icarus_shield_strength(a6)
-	beq.w abs_0_00001502
+	beq.w mark_shield_depleted_game_over
 	tst.w docking_service_phase(a6)
-	bne.b abs_0_00001434
+	bne.b apply_optional_debug_resource_refill
 	tst.w last_player_contact_type(a6)
-	bne.w abs_0_000014B6
-abs_0_00001434:
+	bne.w apply_last_contact_award_and_damage
+apply_optional_debug_resource_refill:
 	tst.b debug_features_enabled_flag(a6)
-	beq.b abs_0_0000144C
+	beq.b debit_player_power_for_speed
 	move.w #$55F0,icarus_power_reserve(a6)
 	move.w #$9C40,icarus_shield_strength(a6)
 	move.w #$7530,weapon_energy_reserve(a6)
     ; Power drain uses original WORD subtraction and carry tests; boost adds a second debit. Underflow selects reason1 and the original power-drainage text, not an inferred fuel label.
-abs_0_0000144C:
+debit_player_power_for_speed:
 	move.w icarus_power_reserve(a6),d0
 	move.w player_speed_target(a6),d1
 	lsr.w #6,d1
 	sub.w d1,d0
-	bcs.w abs_0_00001510
+	bcs.w mark_power_depleted_game_over
 	tst.w stardrive_enabled_word(a6)
-	beq.b abs_0_00001466
+	beq.b check_stardrive_power_borrow
 	add.w d1,d1
 	sub.w d1,d0
-abs_0_00001466:
-	bcs.w abs_0_00001510
+check_stardrive_power_borrow:
+	bcs.w mark_power_depleted_game_over
 	move.w d0,icarus_power_reserve(a6)
 	tst.b inside_structure_flag(a6)
-	bne.b abs_0_000014B2
+	bne.b continue_gameplay_after_resource_service
 	tst.w player_speed_target(a6)
-	beq.b abs_0_000014B2
+	beq.b continue_gameplay_after_resource_service
 	tst.b model_viewer_animation_state(a6)
-	bne.b abs_0_000014B2
+	bne.b continue_gameplay_after_resource_service
 	move.w icarus_shield_strength(a6),d0
 	cmpi.l #4294967176,player_world_y(a6)
-	blt.b abs_0_000014B2
+	blt.b continue_gameplay_after_resource_service
 	subi.w #300,d0
-	bcs.w abs_0_00001502
+	bcs.w mark_shield_depleted_game_over
 	move.w d0,icarus_shield_strength(a6)
 	movem.l d0-d7/a0-a5,-(a7)
 	bsr.w advance_shared_random_state
@@ -2523,11 +2526,11 @@ add_environment_rotation2_jitter:
 	subi.w #SG2_ROTATION2_DAMAGE_JITTER_BIAS,d0
 	add.w d0,player_rotation2_damage_impulse(a6)
 	movem.l (a7)+,d0-d7/a0-a5
-abs_0_000014B2:
+continue_gameplay_after_resource_service:
 	bra.w gameplay_frame_loop
-abs_0_000014B6:
+apply_last_contact_award_and_damage:
 	tst.b novella_answer_tail_latch(a6)
-	bne.w abs_0_00001560
+	bne.w advance_game_over_sequence
 	move.w last_player_contact_type(a6),d0
 	add.w d0,d0
 	lea.l object_contact_bcd_awards.l,a1
@@ -2535,7 +2538,7 @@ abs_0_000014B6:
 	add.w d1,pending_bcd_score_addend(a6)
 	addq.l #1,icarus_hits_received(a6)
 	tst.b inside_structure_flag(a6)
-	bne.b abs_0_000014F0
+	bne.b debit_shield_for_last_contact_type
 	move.l d0,-(a7)
 	bsr.w advance_shared_random_state
 add_contact_rotation2_jitter:
@@ -2543,19 +2546,19 @@ add_contact_rotation2_jitter:
 	subi.w #SG2_ROTATION2_DAMAGE_JITTER_BIAS,d0
 	add.w d0,player_rotation2_damage_impulse(a6)
 	move.l (a7)+,d0
-abs_0_000014F0:
+debit_shield_for_last_contact_type:
 	lea.l object_collision_damage_values.l,a1
 	move.w $0(a1,d0.w),d0
 	sub.w d0,icarus_shield_strength(a6)
-	bcc.w abs_0_00001434
+	bcc.w apply_optional_debug_resource_refill
     ; Shield depletion selects reason2. The original environment-damage path also debits this WORD and queues Shields Damaged; preserve original zero/carry behavior.
-abs_0_00001502:
+mark_shield_depleted_game_over:
 	clr.w icarus_shield_strength(a6)
-	move.w #$2,icarus_game_over_reason(a6)
+	move.w #SG2_GAME_OVER_SHIELD_DEPLETED,icarus_game_over_reason(a6)
 	bra.w gameplay_frame_loop
-abs_0_00001510:
+mark_power_depleted_game_over:
 	clr.w icarus_power_reserve(a6)
-	move.w #$1,icarus_game_over_reason(a6)
+	move.w #SG2_GAME_OVER_POWER_DRAINAGE,icarus_game_over_reason(a6)
 	bra.w gameplay_frame_loop
     ; Post-game caller allows 751 smear calls, polling for the next exact tick WORD after each. Key or secondary mouse skips to rating cleanup. Tests use RAM tick stimuli, not IRQ delivery.
 begin_postgame_screen_smear:
@@ -2572,32 +2575,36 @@ smear_next_postgame_screen_frame:
 	addq.w #1,d0
 wait_for_postgame_smear_tick_or_skip:
 	tst.b pending_key_scancode(a6)
-	bne.w abs_0_000016B0
+	bne.w finish_postgame_and_record_pilot_rating
 	tst.b mouse_secondary_button_flag(a6)
-	bne.w abs_0_000016B0
+	bne.w finish_postgame_and_record_pilot_rating
 	cmp.w vblank_tick_counter(a6),d0
 	bne.b wait_for_postgame_smear_tick_or_skip
 	dbf.w d1,smear_next_postgame_screen_frame
-	bra.w abs_0_000016B0
-abs_0_00001560:
+	bra.w finish_postgame_and_record_pilot_rating
+advance_game_over_sequence:
 	move.b #$78,diagnostic_stage_step_word.l
 	clr.b diagnostic_step_byte.l
 	bsr.w enqueue_game_over_reason_message
 	sf.b interrupted_game_available_flag(a6)
 	movea.l player_object_reference(a6),a0
+    ; Countdown 200 captures view 7 when BYTE subtraction by 4 has N set, including inputs 132..255. Each call then adds 32 to angle and 30 to distance with WORD wrap.
+check_game_over_orbit_capture_countdown:
 	cmpi.w #200,game_over_sequence_countdown.l
-	bne.b abs_0_000015AA
+	bne.b check_game_over_couch_ejection_countdown
 	cmpi.b #4,view_mode(a6)
-	bpl.w abs_0_0000164C
+	bpl.w advance_game_over_orbit_and_player_pose
+capture_game_over_orbit_view:
 	move.b #$7,view_mode(a6)
 	move.w #$1F4,view_offset_distance(a6)
 	clr.w view_rotation_offset_0(a6)
 	bsr.w advance_shared_random_state
 	andi.w #4095,d0
 	move.w d0,view_rotation_offset_1(a6)
-abs_0_000015AA:
+    ; Countdown 180 marks ejection before testing free count >1. Couch setup retains X/Z velocities. Supplied player/free-slot aliases are not rejected, so reciprocal type writes can overlap.
+check_game_over_couch_ejection_countdown:
 	cmpi.w #180,game_over_sequence_countdown.l
-	bne.w abs_0_0000164C
+	bne.w advance_game_over_orbit_and_player_pose
 	st.b player_ejection_active_flag.l
 	clr.b $001E(a0)
 	bclr.b #2,$0002(a0)
@@ -2608,7 +2615,7 @@ abs_0_000015AA:
 	clr.w player_motion_y(a6)
 	clr.w player_motion_z(a6)
 	cmpi.w #1,free_object_count(a6)
-	bls.w abs_0_0000164C
+	bls.w advance_game_over_orbit_and_player_pose
 	movea.l free_object_stack_cursor(a6),a3
 	movea.l -(a3),a4
 	move.l a3,free_object_stack_cursor(a6)
@@ -2624,14 +2631,14 @@ abs_0_000015AA:
 	clr.b SG2ObjectCore_vertex_variant_selector(a4)
 	move.b #$6,SG2ObjectCore_model_scale_shift(a4)
 	move.b #SG2_OBJECT_TYPE_ICARUS,SG2TargetingObject_collision_ignored_object_type(a4)
-	move.b #$47,$002A(a0)
+	move.b #SG2_OBJECT_TYPE_ICARUS_PILOT_COUCH,$002A(a0)
 	clr.w SG2WorldObject_rotation_0(a4)
 	move.w player_rotation_1(a6),d0
 	addi.w #2048,d0
 	andi.w #4095,d0
 	move.w d0,SG2WorldObject_rotation_1(a4)
 	clr.w SG2WorldObject_rotation_2(a4)
-abs_0_0000164C:
+advance_game_over_orbit_and_player_pose:
 	addi.w #32,view_rotation_offset_1(a6)
 	andi.w #4095,view_rotation_offset_1(a6)
 	addi.w #30,view_offset_distance(a6)
@@ -2642,17 +2649,17 @@ abs_0_0000164C:
 	move.w player_rotation_1(a6),$0012(a0)
 	move.w player_rotation_2(a6),$0014(a0)
 	tst.b player_ejection_active_flag.l
-	bpl.b abs_0_00001698
+	bpl.b decrement_game_over_sequence_countdown
 	bsr.w advance_shared_random_state
 	andi.w #7,d0
-	bne.b abs_0_00001698
+	bne.b decrement_game_over_sequence_countdown
 	st.b pending_transient_event_sound(a6)
-abs_0_00001698:
+decrement_game_over_sequence_countdown:
 	subq.w #1,game_over_sequence_countdown.l
 	bpl.w gameplay_frame_loop
 	move.b #$8,diagnostic_stage_step_word.l
 	clr.b diagnostic_step_byte.l
-abs_0_000016B0:
+finish_postgame_and_record_pilot_rating:
 	sf.b fatal_overheat_latched_flag.l
 	move.b #$0,display_and_frame_service_flags(a6)
 	sf.b interrupted_game_available_flag(a6)
@@ -2670,13 +2677,13 @@ abs_0_000016B0:
 	clr.l d0
 	move.b fire_key_scancode(a6),d0
 	cmp.b pending_key_scancode(a6),d0
-	beq.w abs_0_0000171C
+	beq.w restart_flight_after_postgame_input
 	tst.b mouse_primary_button_flag(a6)
-	bne.w abs_0_0000171C
+	bne.w restart_flight_after_postgame_input
 	tst.b primary_fire_flag(a6)
-	bne.w abs_0_0000171C
+	bne.w restart_flight_after_postgame_input
 	bra.w reset_title_cycle_and_pending_key
-abs_0_0000171C:
+restart_flight_after_postgame_input:
 	clr.w title_page_cycle_counter(a6)
 	bra.w reset_gameplay_and_initialize_new_flight
 wait_for_input_or_tick_deadline:
@@ -3243,11 +3250,11 @@ reset_message_queue_and_enqueue_version:
 	dc.b $46,$2E,$01,$55,$10,$2E,$01,$F4,$02,$00,$00,$FE,$1D,$40,$01,$F4
 	dc.b $4E,$75,$00,$2E,$00,$01,$01,$F4,$4E,$75,$46,$2E,$02,$04,$4E,$75
 enqueue_game_over_reason_message:
-	cmpi.w #1,icarus_game_over_reason(a6)
-	bne.w abs_0_00001EBA
+	cmpi.w #SG2_GAME_OVER_POWER_DRAINAGE,icarus_game_over_reason(a6)
+	bne.w select_destroyed_game_over_message
 	lea.l game_over_power_drainage_message(pc),a1
 	bra.w enqueue_message_pointer_bridge
-abs_0_00001EBA:
+select_destroyed_game_over_message:
 	lea.l game_over_icarus_destroyed_message(pc),a1
 	bra.w enqueue_message_pointer_bridge
 initialize_startup_flags_and_subtract_novella_key:
@@ -24944,7 +24951,7 @@ advance_next_one_based_free_record:
 finalize_world_slot_count_after_free_fill:
 	move.l a1,free_object_stack_cursor(a6)
 	move.w d7,world_object_slot_count(a6)
-	sf.b app_07EE(a6)
+	sf.b world_pool_reinitialization_gate(a6)
 	rts
 world_object_type_initializer_pointers:
 	dc.l skip_object_type_initialization	; pointer_table
