@@ -1491,6 +1491,16 @@ SG2StoredObjectTypeWord_SIZEOF EQU __RS
 SG2StoredObjectTypeByte_object_type RS.B 1
 SG2StoredObjectTypeByte_SIZEOF EQU __RS
 
+; STRUCT SG2AlternatePalettePacket
+    RSRESET
+SG2AlternatePalettePacket_colours_0_1 RS.L 1
+SG2AlternatePalettePacket_colours_3_4 RS.L 1
+SG2AlternatePalettePacket_colours_5_6 RS.L 1
+SG2AlternatePalettePacket_colours_11_12 RS.L 1
+SG2AlternatePalettePacket_colours_13_14 RS.L 1
+SG2AlternatePalettePacket_colour_15 RS.W 1
+SG2AlternatePalettePacket_SIZEOF EQU __RS
+
 ADKF_CLRALL	EQU	$7FFF
 BPLCON2_PF2P2	EQU	$20
 BPLCON2_PF2PRI	EQU	$40
@@ -3252,7 +3262,7 @@ initialize_startup_flags_and_subtract_novella_key:
 	lea.l novella_decode_saved_state(a6),a3
 	movem.l (a3)+,d0-d1/a1-a2	; operand 1: SG2NovellaDecodeState_initial_subtraction_key at (a3)+
 	lea.l novella_check_encoded_payload.l,a2
-	lea.l abs_0_00013D1E.l,a1
+	lea.l novella_check_decode_limit_address.l,a1
 	suba.l a2,a1
 	move.l a1,d1
 	lsr.w #2,d1
@@ -16169,7 +16179,7 @@ abs_0_0000CC48:
 	move.w d0,dmacon(a5)
 	move.w #DMAF_BLITTER,dmacon(a5)
 	lea.l novella_check_encoded_payload.l,a2
-	lea.l abs_0_00013D1E.l,a1
+	lea.l novella_check_decode_limit_address.l,a1
 	suba.l a2,a1
 	move.l a1,d1
 	lsr.w #2,d1
@@ -23669,7 +23679,7 @@ abs_0_00013C9A:
 	dc.b $79,$93,$32,$59,$79,$94,$32,$59,$79,$95,$32,$59,$79,$96,$32,$59
 	dc.b $79,$97,$32,$59,$79,$98,$32,$59,$79,$99
 	dcb.b $A,$00
-abs_0_00013D1E:
+novella_check_decode_limit_address:
 	dcb.b $8,$00
 protection_frame_handoff_bridge:
 	jmp count_and_present_frame_handoff.l
@@ -53319,7 +53329,7 @@ abs_0_0003B3FE:
 	bclr.b #5,$FFFFFA09.w
 	movea.l game_workspace_base.l,a6
 	lea.l novella_check_encoded_payload.l,a2
-	lea.l abs_0_00013D1E.l,a1
+	lea.l novella_check_decode_limit_address.l,a1
 	suba.l a2,a1
 	move.l a1,d1
 	lsr.w #2,d1
@@ -53943,14 +53953,14 @@ alternate_timer_b_palette_interrupt:
 	bne.w write_cockpit_palette_and_disable_timer_b
 	move.b #$1,alternate_palette_second_phase_flag.l
 	lea.l alternate_interrupt_palette_word_buffer.l,a1
-	move.l (a1)+,(a0)+
+	move.l (a1)+,(a0)+	; operand 1: SG2AlternatePalettePacket_colours_0_1 at (a1)+
 	addq.w #2,a0
-	move.l (a1)+,(a0)+
-	move.l (a1)+,(a0)+
+	move.l (a1)+,(a0)+	; operand 1: SG2AlternatePalettePacket_colours_3_4 at (a1)+
+	move.l (a1)+,(a0)+	; operand 1: SG2AlternatePalettePacket_colours_5_6 at (a1)+
 	addq.l #8,a0
-	move.l (a1)+,(a0)+
-	move.l (a1)+,(a0)+
-	move.w (a1)+,(a0)+
+	move.l (a1)+,(a0)+	; operand 1: SG2AlternatePalettePacket_colours_11_12 at (a1)+
+	move.l (a1)+,(a0)+	; operand 1: SG2AlternatePalettePacket_colours_13_14 at (a1)+
+	move.w (a1)+,(a0)+	; operand 1: SG2AlternatePalettePacket_colour_15 at (a1)+
 	move.b #$C8,$FFFFFA21.w
 	move.b #$8,$FFFFFA1B.w
 	bra.b acknowledge_timer_b_before_exception_return
@@ -53976,8 +53986,13 @@ restore_palette_interrupt_address_registers:
 alternate_palette_second_phase_flag:
 	dc.w $0000
 alternate_interrupt_palette_word_buffer:
-	dc.b $00,$00,$07,$01,$07,$60,$03,$00,$04,$01,$06,$01,$00,$24,$00,$35
-	dc.b $00,$36,$00,$47,$00,$00,$00,$00,$00,$00
+	dc.l $00000701	; colours_0_1
+	dc.l $07600300	; colours_3_4
+	dc.l $04010601	; colours_5_6
+	dc.l $00240035	; colours_11_12
+	dc.l $00360047	; colours_13_14
+	dc.w $0000	; colour_15
+	dc.b $00,$00,$00,$00
 invalidate_alternate_power_meter_cache:
 	move.w #$FFFF,alternate_power_meter_cached_level.l
 	rts
@@ -62754,7 +62769,7 @@ pack_alternate_world_colour_to_palette_word:
 	or.w d1,d2
 	lsr.w #1,d2
 	andi.w #SG2_ALTERNATE_PALETTE_RGB_MASK,d2
-	move.w d2,(a4)
+	move.w d2,(a4)	; operand 2: SG2AlternatePalettePacket_colour_15 at (a4)
 	bra.w restore_sound_palette_service_saved_frame
     ; Surface and world shading subtract low WORD of shifted negative Y per nibble; signed N selects zero before nibble masking. Preserve wrap and selector accesses outside known prefixes.
 shade_alternate_surface_colour_by_altitude:
@@ -62796,7 +62811,7 @@ pack_alternate_surface_colour_to_palette_word:
 	or.w d1,d2
 	lsr.w #1,d2
 	andi.w #SG2_ALTERNATE_PALETTE_RGB_MASK,d2
-	move.w d2,(a4)
+	move.w d2,(a4)	; operand 2: SG2AlternatePalettePacket_colour_15 at (a4)
 	bra.w restore_sound_palette_service_saved_frame
 select_alternate_space_colour_by_nearby_event:
 	tst.w alternate_nearby_event_active_word.l
@@ -62804,21 +62819,21 @@ select_alternate_space_colour_by_nearby_event:
 	move.w space_effect_base_rgb_word.l,d0
 	lsr.w #1,d0
 	andi.w #SG2_ALTERNATE_PALETTE_RGB_MASK,d0
-	move.w d0,(a4)
+	move.w d0,(a4)	; operand 2: SG2AlternatePalettePacket_colour_15 at (a4)
 	bra.w restore_sound_palette_service_saved_frame
 write_alternate_space_override_colour:
 	move.w space_effect_override_rgb_word.l,d0
 	lsr.w #1,d0
 	andi.w #SG2_ALTERNATE_PALETTE_RGB_MASK,d0
-	move.w d0,(a4)
+	move.w d0,(a4)	; operand 2: SG2AlternatePalettePacket_colour_15 at (a4)
 	bra.w restore_sound_palette_service_saved_frame
 select_alternate_inside_colour_by_nearby_event:
 	tst.w alternate_nearby_event_active_word.l
 	bne.b write_alternate_inside_event_colour
-	move.w #$112,(a4)
+	move.w #$112,(a4)	; operand 2: SG2AlternatePalettePacket_colour_15 at (a4)
 	bra.w restore_sound_palette_service_saved_frame
 write_alternate_inside_event_colour:
-	move.w #$335,(a4)
+	move.w #$335,(a4)	; operand 2: SG2AlternatePalettePacket_colour_15 at (a4)
 	bra.w restore_sound_palette_service_saved_frame
     ; Flash decrements before parity test. Odd (including expiry $FFFF) uses space colours even outside space; even selects white/pink/red. Convert to $777 only after selection.
 decrement_alternate_flash_before_parity_selection:
@@ -62844,14 +62859,14 @@ derive_alternate_flash_red_from_count:
 convert_and_store_alternate_flash_colour:
 	lsr.w #1,d0
 	andi.w #SG2_ALTERNATE_PALETTE_RGB_MASK,d0
-	move.w d0,(a4)
+	move.w d0,(a4)	; operand 2: SG2AlternatePalettePacket_colour_15 at (a4)
 	bra.w restore_sound_palette_service_saved_frame
 advance_rng_and_store_alternate_random_colour:
 	bsr.w advance_shared_random_state_effects_bridge
 	andi.w #4095,d0
 	lsr.w #1,d0
 	andi.w #SG2_ALTERNATE_PALETTE_RGB_MASK,d0
-	move.w d0,(a4)
+	move.w d0,(a4)	; operand 2: SG2AlternatePalettePacket_colour_15 at (a4)
 	bra.b restore_sound_palette_service_saved_frame
     ; Fade expiry exits without grayscale update. Otherwise fade write falls through to grayscale decrement; supplied gray $8000 becomes $7FFF and indexes -2 after WORD doubling, overwriting fade.
 decrement_alternate_fade_before_expiry_test:
@@ -62864,7 +62879,7 @@ write_alternate_fade_then_fall_through_grayscale:
 	asr.w #3,d0
 	lsr.w #1,d0
 	andi.w #SG2_ALTERNATE_PALETTE_RGB_MASK,d0
-	move.w d0,(a4)
+	move.w d0,(a4)	; operand 2: SG2AlternatePalettePacket_colour_15 at (a4)
 decrement_alternate_grayscale_before_lookup:
 	subq.w #1,shared_grayscale_effect_countdown.l
 	bpl.b write_alternate_grayscale_effect_step
@@ -62878,7 +62893,7 @@ write_alternate_grayscale_effect_step:
 	move.w $0(a0,d0.w),d0
 	lsr.w #1,d0
 	andi.w #SG2_ALTERNATE_PALETTE_RGB_MASK,d0
-	move.w d0,(a4)
+	move.w d0,(a4)	; operand 2: SG2AlternatePalettePacket_colour_15 at (a4)
     ; This continuation restores the caller saved register frame. Palette CPU tests stop before restore; they prove RAM preparation only, not the original caller, interrupt delivery or scanout.
 restore_sound_palette_service_saved_frame:
 	movem.l (a7)+,d0-d7/a0-a6

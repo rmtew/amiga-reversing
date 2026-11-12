@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "source_commit": "7af46324cd64990f2ce77383e3cdd73178f28711",
+  "source_commit": "36e5e4d912417a6d5b3ba80f8c8089035100b61a",
   "source_assembly": "starglider2_game.s",
   "assets": [
     {
@@ -879,12 +879,12 @@
     {
       "path": "rendered-provenance.json",
       "bytes": 3176,
-      "sha256": "cae21de952e8307ebdedf4ea528baea6ac1385a1d71d93f1504d209b1d835496"
+      "sha256": "e23d9236f6d9de8e451eab43ce7e0b8d65e8690a6740c751bca802e273bc771c"
     },
     {
       "path": "starglider2_game.s",
-      "bytes": 2338090,
-      "sha256": "b36035fe69f38a700426d0496f463503cc5ad5d9ee1d061e68b1e3a717096c59"
+      "bytes": 2339548,
+      "sha256": "c104c838f8cf2043a71019364a2c4dcb64dd2e85cf9b14fce554a21adc2366a4"
     },
     {
       "path": "tools/starglider2_protection.py",
@@ -893,5 +893,5 @@
     }
   ],
   "source_commit_role": "Canonical source publication base.",
-  "source_subject_revision": "1e3fbff5b124edec7a74c1e8a203437af0ab4f2268b8c640adea6dfe20711046"
+  "source_subject_revision": "9a3c4af5eca0693583262be7524ceb14b39a6e6a34cfe649622efb160aa93b38"
 }

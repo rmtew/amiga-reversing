@@ -6,8 +6,8 @@ claim of complete gameplay/hardware equivalence.
 
 ## Current validated baseline
 
-Current validated export: 3517 app references, 2813 typed accesses, 183 unresolved
-accesses; 9800 unclassified bytes in 274 intervals. These are analysis counts,
+Current validated export: 3517 app references, 2829 typed accesses, 183 unresolved
+accesses; 9738 unclassified bytes in 274 intervals. These are analysis counts,
 not semantic completion percentages. The phrase-counter
 references retain declared-layout A6 fallback; the role declaration adds no
 stronger base proof. The projector report arrays expose three additional
@@ -109,6 +109,9 @@ Original payload SHA256:
    record roles/extents while protecting runtime namespaces, code and views.
    Twenty named scalars now own their witnessed 39 BYTE/WORD storage bytes;
    neighboring padding and unproven bounds/lifetimes remain unknown.
+   The 22-byte alternate palette packet supplies six sparse transfer fields and
+   16 typed accesses. Its 40-byte text-column companion has a stored extent, not
+   a proven runtime index bound; supplied out-of-prefix reads remain unchanged.
    Nominal address-formation width or scalar formatting supplies no owner.
    Do not decode apparent instructions or declare arrays from plausible bytes.
    Zero-fill writers and write-only app flags do not establish field purpose.
