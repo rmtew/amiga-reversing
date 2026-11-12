@@ -64,12 +64,10 @@ def test_scalar_origin_compensation_and_conservative_display(tmp_path,case,prefi
     with candidate_artifact(tmp_path, code, [], metadata(code,origins,address=case=='address_equate')) as (a, original):
         p = a.analysis_payload()[0]; assert not p['incomplete_analysis']
         refs = p['sections'][0]['recovered_platform_typed_accesses']
-        # Partial writes stay conservative; a render origin never supplies values.
-        if case == 'byte_assignment':
-            assert not refs
-        else:
-            assert len(refs) == 1 and refs[0]['word_index']['byte_offsets'] == [4]
-            assert refs[0]['word_index']['encoded_symbol_correction'] == -4
+        # A BYTE literal preserves the proven zero upper byte, but replaces
+        # scalar display provenance. The numeric proof does not revive FIELD_INDEX.
+        assert len(refs) == 1 and refs[0]['word_index']['byte_offsets'] == [4]
+        assert refs[0]['word_index']['encoded_symbol_correction'] == -4
         source = exact(a,original,tmp_path)
         assert ('IndexedCounts_count-FIELD_INDEX(a0,'+index+'.w)' in source) == symbolic
         if not symbolic and refs:

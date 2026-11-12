@@ -10194,6 +10194,22 @@ static M68kHardwareRelativeBase hardware_relative_register(const M68kRenderPlatf
   return result;
 }
 
+/* A BYTE destination preserves the upper half of the tracked WORD. The
+ * loaded byte may be entirely unknown: its width alone still preserves an
+ * earlier zero extension. Never infer contents from a writable source image. */
+static M68kHardwareWordSet hardware_word_replace_low_byte(
+    const M68kHardwareWordSet *before, const M68kHardwareWordSet *source) {
+  M68kHardwareWordSet result;
+  uint16_t before_mask, before_value, source_mask, source_value;
+  hardware_word_known_bits(before, &before_mask, &before_value);
+  hardware_word_known_bits(source, &source_mask, &source_value);
+  hardware_word_from_bits(&result,
+    (uint16_t)((before_mask & 0xff00U) | (source_mask & 0x00ffU)),
+    (uint16_t)((before_value & 0xff00U) | (source_value & 0x00ffU)));
+  result.requires_input_contract = before->requires_input_contract | source->requires_input_contract;
+  return result;
+}
+
 /* This domain tracks low WORDs only. It cannot manufacture full data-register
  * addresses. Unmodelled writes, memory loads, overflow and opaque calls are top. */
 static void hardware_relative_transfer(M68kRenderPlatformState *state, const M68kRenderPlatformState *before,
@@ -10247,6 +10263,16 @@ static void hardware_relative_transfer(M68kRenderPlatformState *state, const M68
     state->word_values[reg] = result;
     return;
   }
+  if (meta->operation_type == M68K_SIM_OP_CLEAR && instruction->operand_count == 1U &&
+      operand_is_data_register_local(&instruction->operands[0], &dest)) {
+    uint8_t width = m68k_sim_operand_width_bytes(instruction, 0U);
+    M68kHardwareWordSet zero = {0};
+    (void)hardware_word_set_add(&zero, 0U);
+    if (width == 1U)
+      state->word_values[dest] = hardware_word_replace_low_byte(&before->word_values[dest], &zero);
+    else if (width == 2U || width == 4U) state->word_values[dest] = zero;
+    return;
+  }
   if (instruction->operand_count < 2U) return;
   /* Full address construction is distinct from reading a hardware register.
    * Retain an interior hardware address as base+offset, never as base zero. */
@@ -10296,6 +10322,12 @@ static void hardware_relative_transfer(M68kRenderPlatformState *state, const M68
         (instruction->mnemonic_id == M68K_ASM_MNEMONIC_MOVE &&
          (instruction->size_suffix == 'w' || instruction->size_suffix == 'l'))) {
       state->word_values[dest] = source;
+    } else if (instruction->mnemonic_id == M68K_ASM_MNEMONIC_MOVE &&
+        m68k_sim_operand_width_bytes(instruction, 1U) == 1U) {
+      uint8_t source_reg;
+      state->word_values[dest] =
+        operand_is_data_register_local(&instruction->operands[0], &source_reg) && source_reg == dest ?
+          before->word_values[dest] : hardware_word_replace_low_byte(&before->word_values[dest], &source);
     } else if (meta->operation_type == M68K_SIM_OP_LOGIC_AND && source.count == 1U &&
         (m68k_sim_operand_width_bytes(instruction, 1U) == 2U ||
          m68k_sim_operand_width_bytes(instruction, 1U) == 4U)) {

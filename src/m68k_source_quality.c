@@ -6214,6 +6214,38 @@ static int append_indexed_local_pointer_table_items(M68kSourceAnalysisIR *source
   return 0;
 }
 
+/* An explicitly owned WORD block already declares its scalar element width.
+ * A proven whole-block indexed read may add a table view, without replacing
+ * that owner, its labels or policy. Raw BYTE owners and composite/pointer
+ * layouts do not supply this scalar contract. Policy names remain authoritative
+ * when their numeric type IDs have not yet been bound at this phase. */
+static int source_quality_owned_word_table_view_allowed(const M68kSourceAnalysisIR *source,
+    const M68kSectionAnalysisIR *section, uint32_t section_index, uint32_t offset, uint32_t size) {
+  unsigned int owners = 0U, ranges = 0U;
+  for (size_t i = 0U; i < source->policy.structured_data_item_count; ++i) {
+    const M68kAnalysisStructuredDataItem *item = &source->policy.structured_data_items[i];
+    if (!item->has_section_index || item->section_index != section_index || !item->size ||
+        (uint64_t)item->offset >= (uint64_t)offset + size ||
+        (uint64_t)offset >= (uint64_t)item->offset + item->size) continue;
+    if (item->offset != offset || item->size != size ||
+        item->kind != M68K_ANALYSIS_STRUCTURED_DATA_WORDS || item->struct_id || item->struct_name[0] ||
+        item->pointer_struct_id || item->pointer_struct[0] || item->platform_kind_id ||
+        item->semantic_role_flags || item->has_target ||
+        item->table_kind_id != M68K_ANALYSIS_TABLE_KIND_UNKNOWN || ++owners != 1U) return 0;
+  }
+  if (owners != 1U) return 0;
+  for (size_t i = 0U; i < section->range_ownership_count; ++i) {
+    const M68kRangeOwnershipIR *range = &section->range_ownerships[i];
+    if (range->start_offset >= offset + size || offset >= range->end_offset) continue;
+    if (range->start_offset != offset || range->end_offset != offset + size ||
+        range->kind != M68K_RANGE_OWNERSHIP_STRUCTURED_DATA ||
+        range->status != M68K_RANGE_OWNERSHIP_STATUS_ACCEPTED || range->conflict_state ||
+        range->negative_evidence_flags || range->data_kind != M68K_ANALYSIS_STRUCTURED_DATA_WORDS ||
+        ++ranges != 1U) return 0;
+  }
+  return ranges == 1U && !source_quality_section_has_interior_label(section, offset, size);
+}
+
 /* A bounded scalar read establishes an aligned element prefix, independently of the
  * stored values. The existing CFG domain supplies the sign and upper bits;
  * no lexical mask window, guessed capacity, or assumed immutable data is used.
@@ -6276,6 +6308,21 @@ static int append_bounded_indexed_scalar_tables(M68kSourceAnalysisIR *source_ana
         if (consumers_only) {
           const M68kTableDescriptorIR *table = source_quality_clean_table_descriptor(owner, target,
             accepted_bytes[bases[b]], offset, M68K_ANALYSIS_TABLE_KIND_SCALAR, (uint8_t)item_size);
+          if (!table && item_size == 2U &&
+              source_quality_owned_word_table_view_allowed(source_analysis, owner, bases[b], offset, size)) {
+            M68kTableDescriptorIR view = {0};
+            view.start_offset = offset; view.end_offset = offset + size;
+            view.entry_size = item_size; view.entry_count = size / item_size;
+            view.table_kind_id = M68K_ANALYSIS_TABLE_KIND_SCALAR;
+            view.status = M68K_RANGE_OWNERSHIP_STATUS_ACCEPTED;
+            view.role_flags = M68K_ANALYSIS_STRUCTURED_DATA_ROLE_LOOKUP_TABLE;
+            view.source_pattern_id = M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_INDEXED_LOCAL_SCALAR_READ;
+            view.entry_count_proof_id = M68K_ANALYSIS_TABLE_ENTRY_COUNT_PROOF_INDEX_VALUE_BITS;
+            view.table_stop_reason_id = m68k_analysis_table_stop_reason_for_entry_count_proof(view.entry_count_proof_id);
+            if (m68k_ir_section_analysis_append_table_descriptor(owner, &view) != 0) return -1;
+            table = source_quality_clean_table_descriptor(owner, target, accepted_bytes[bases[b]],
+              offset, M68K_ANALYSIS_TABLE_KIND_SCALAR, (uint8_t)item_size);
+          }
           if (table && size <= table->end_offset - offset &&
               append_known_table_consumer(analysis, owner, table, candidate->offset,
                 index_kind, index_reg, has_dest, dest_kind, dest_reg, &domain,

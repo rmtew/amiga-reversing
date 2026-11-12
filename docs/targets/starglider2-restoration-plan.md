@@ -41,6 +41,10 @@ Original payload SHA256:
    identities are supported. Undeclared prefix bytes retain no field meaning.
    Next: stored-pointer lifetime in item 2; do not add per-reader type seeds
    or assume disjoint allocations.
+   Of 60 Core gaps, 33 are LONG zeroing stores spanning multiple fields in
+   three 68-byte clears. Other Core bytes are polymorphic: rotations overlap
+   spheroid colour/delay state. Do not widen Core to WorldObject; obtain a
+   specific tagged or caller context for the remaining role interpretations.
 2. Player rotation stores use a three-field type-30 format contract and decoded
    LEA/write-disjointness proof. The slot already declares SG2WorldObject;
    adding another pointee annotation would duplicate existing semantic input.
@@ -83,11 +87,11 @@ Original payload SHA256:
    (or a context excluding unvalidated load) is required; ordinary-save
    reachability is not established by the local counterexample.
    Literal/copy/equality index probes already resolve fields.
-   The ingredient loops retain their 0..7 index; loaded BYTE values are absent
-   from the scalar WORD packet. The 104-byte count backing supplies no value
-   bound. Next: a write-aware scalar BYTE-load/zero-extension fixture, retaining
-   source-image call barriers and mutation/unknown-call refusals before applying
-   directory contents to later indexes.
+   Zero-extended BYTE loads now retain intrinsic 0..255 WORD bounds; complete
+   plain-WORD owners can expose scalar table consumers without losing ownership.
+   This supplies the disk encoder's even 0..510 lookup, not directory contents.
+   Ingredient loops retain 0..7, but their loaded IDs still need a specific
+   writer/entry domain for the 104-entry inventory; preserve alias and call refusals.
    Do not enlarge a directory or assume original bytes persist: the shared
    heat/pressure notice WORD overwrites secondary spheroid colour bytes30/31.
    Indexed field display now transports explicit scalar EQU identities; missing
