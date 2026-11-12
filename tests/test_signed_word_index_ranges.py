@@ -197,3 +197,84 @@ def test_finite_fallback_retry_clamp_converges(tmp_path):
     code='moveq.l #3,d7\nagain:\n cmp.w #11,d0\n bmi.s floor_test\n move.w #10,d0\nfloor_test:\n tst.w d0\n bpl.s bounded\n clr.w d0\nbounded:\n dbf.w d7,again\n add.w d0,d0\n add.w d0,d0\n move.l 0(a0,d0.w),d3\n rts\n'
     refs=inspect(tmp_path,code,array_count=16)
     assert len(refs)==1 and refs[0]['word_index']['evidence']=='bounded_cfg_mask'
+
+
+@pytest.mark.parametrize('producer,branch',[
+    ('subq.w #1,d0','beq'),('addq.w #1,d0','beq'),
+    ('subi.w #7,d0','beq'),('add.w d1,d0','beq'),
+    ('sub.w d1,d0','bne'),
+])
+def test_word_result_zero_path_joins_the_clamped_index(tmp_path,producer,branch):
+    # A result-Z path bypasses the upper compare. It needs the result value,
+    # not an inverse input subtraction or an assumed caller range.
+    edge=('beq.s floor\n' if branch=='beq' else 'bne.s upper\n bra.s floor\n')
+    code=producer+'\n '+edge+'''upper:
+ cmp.w #11,d0
+ bmi.s floor
+ move.w #10,d0
+floor:
+ tst.w d0
+ bpl.s ready
+ clr.w d0
+ready:
+ add.w d0,d0
+ add.w d0,d0
+ move.l 0(a0,d0.w),d3
+ rts
+'''
+    refs=inspect(tmp_path,code,array_count=16)
+    assert len(refs)==1
+    assert refs[0]['word_index']['index_domain']['lower_bound']==0
+    assert refs[0]['word_index']['index_domain']['upper_bound']<=60
+
+
+@pytest.mark.parametrize('producer,middle,prefix',[
+    ('subq.b #1,d0','',''),('subq.l #1,d0','',''),
+    ('subx.w d1,d0','',''),('addx.w d1,d0','',''),
+    ('subq.w #1,d1','',''),('subq.w #1,a1','',''),
+    ('subq.w #1,d0','tst.w d1',''),
+    ('subq.w #1,d0','jsr $2000.l',''),
+    ('subq.w #1,d0','','lea.l bypass(pc),a1\n'),
+])
+def test_result_zero_refuses_other_widths_sticky_flags_stale_and_alternate_entries(tmp_path,producer,middle,prefix):
+    code=prefix+producer+'\n '+middle+'''\n beq.s bypass
+ cmp.w #11,d0
+ bmi.s floor
+ move.w #10,d0
+floor:
+ tst.w d0
+ bpl.s ready
+ clr.w d0
+ready:
+ lsl.w #2,d0
+ move.l 0(a0,d0.w),d3
+ rts
+bypass:
+ bra.s floor
+'''
+    assert not inspect(tmp_path,code,array_count=16)
+
+
+@pytest.mark.parametrize('branch,clobber',[
+    ('bne',''),('bcs',''),('bgt',''),('beq','move.b d7,d0'),
+    ('beq','move.w d7,d0'),('beq','jsr $2000.l'),
+])
+def test_only_fresh_zero_result_can_bypass_the_upper_guard(tmp_path,branch,clobber):
+    code=f'''subq.w #1,d0
+ {branch}.s bypass
+ cmp.w #11,d0
+ bmi.s floor
+ move.w #10,d0
+ bra.s floor
+bypass:
+ {clobber or 'nop'}
+floor:
+ tst.w d0
+ bpl.s ready
+ clr.w d0
+ready:
+ lsl.w #2,d0
+ move.l 0(a0,d0.w),d3
+ rts
+'''
+    assert not inspect(tmp_path,code,array_count=16)

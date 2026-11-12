@@ -11798,7 +11798,7 @@ static int hardware_relative_refine_dbf_edge(const M68kRenderTypedFlowNode *pred
 
 #include "m68k_call_entry_inputs.inc"
 
-/* Refine the shared WORD packet only on a closed adjacent compare/test-branch
+/* Refine the shared WORD packet only on a closed adjacent flag-producer/branch
  * edge. No backward scanner, target rules or larger finite-value cap. */
 static int hardware_relative_refine_compare_edge(const M68kRenderLookup *lookup,
     const M68kRenderTypedFlowGraph *graph, size_t section_index, size_t branch_index, size_t successor_index,
@@ -11823,7 +11823,14 @@ static int hardware_relative_refine_compare_edge(const M68kRenderLookup *lookup,
   if (!m68k_sim_unsigned_word_compare_bounds(&ci, &bi, taken, &reg, &lower, &upper)) {
     if (m68k_sim_signed_word_compare_bounds(&ci, &bi, taken, &reg, &signed_lower, &signed_upper)) {
       lower = (uint16_t)signed_lower; upper = (uint16_t)signed_upper;
-    } else if (!m68k_sim_word_subtraction_sign_bounds(&ci, &bi, taken, &reg, &lower, &upper)) return 1;
+    } else if (!m68k_sim_word_subtraction_sign_bounds(&ci, &bi, taken, &reg, &lower, &upper)) {
+      int zero;
+      if (!m68k_sim_word_result_zero_requirement(&ci, &bi, taken, &reg, &zero) || !zero) return 1;
+      /* Only the zero result supplies a singleton. Removing zero from the
+       * other edge would create disconnected ranges at a later cyclic sign
+       * guard, which this one-interval domain conservatively hulls. */
+      lower = upper = 0U;
+    }
   }
   if (!hardware_word_refine_bounds(&state->word_values[reg], lower, upper)) return 0;
   uint32_t immediate;

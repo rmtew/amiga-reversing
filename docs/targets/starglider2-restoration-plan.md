@@ -32,6 +32,10 @@ Five remaining generated-name entry candidates now have local roles, backed by
 operands remain where native pointer context does not establish a field view.
 Airborne launch names its WORD+$26 proximity-response countdown. BYTE+$29
 remains unknown; ground $AA64 at +$28 is separate from Tank WORD+$26.
+Pilot-rating thresholds and verdict selection are reconstructed. The actual
+reader now has an automatically inferred aligned 16-entry prefix; CPU cases
+qualify the tighter local rank clamp to 0..10. The known-bit abstraction is
+conservative; physical pointer ownership and arbitrary-entry limits remain.
 Original payload SHA256:
 `662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9`.
 
@@ -129,12 +133,6 @@ Original payload SHA256:
    that window. Next: identify a real writer or a normal debug-enabled viewer
    context before another probe; the default Painting reset clears the guard.
 
-6. Pilot-rating stages, thresholds and verdict pointers are reconstructed with
-   1310 original CPU cases. N-only WORD compare edges and contained finite
-   fallback joins now preserve bounds in shared fixtures. The actual table
-   consumer still has alignment-only evidence: early SUBQ/BEQ zero-result
-   paths bypass the upper clamp. Next: carry generated result-Z semantics
-   through those branch edges, with stale-flag and alternate-entry refusals.
 
 ## Evidence and limits
 

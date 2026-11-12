@@ -2405,6 +2405,21 @@ int m68k_sim_branch_zero_requirement(const M68kInstructionIR *branch, int taken,
   return 1;
 }
 
+int m68k_sim_word_result_zero_requirement(const M68kInstructionIR *producer,
+    const M68kInstructionIR *branch, int taken, uint8_t *out_reg, int *out_zero) {
+  const M68kSimFormMetadata *meta = m68k_sim_metadata_for_instruction(producer);
+  uint8_t address, reg;
+  if (!meta || !out_reg || !out_zero ||
+      !((meta->operation_type == M68K_SIM_OP_ADD && meta->ccr_formula == M68K_SIM_CCR_FORMULA_ADD_FLAGS) ||
+        (meta->operation_type == M68K_SIM_OP_SUB && meta->ccr_formula == M68K_SIM_CCR_FORMULA_SUB_FLAGS)) ||
+      meta->dest_operand_index >= producer->operand_count ||
+      m68k_sim_operand_width_bytes(producer, meta->dest_operand_index) != 2U ||
+      !m68k_instruction_operand_direct_register(&producer->operands[meta->dest_operand_index], &address, &reg) ||
+      address || reg >= 8U || !m68k_sim_branch_zero_requirement(branch, taken, out_zero)) return 0;
+  *out_reg = reg;
+  return 1;
+}
+
 int m68k_sim_known_value_branch(const M68kInstructionIR *producer,
     const M68kInstructionIR *branch, uint32_t value, uint32_t known_mask, int *out_taken) {
   const M68kSimFormMetadata *p = m68k_sim_metadata_for_instruction(producer);

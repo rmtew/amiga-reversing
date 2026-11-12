@@ -631,6 +631,11 @@ int m68k_sim_word_subtraction_sign_bounds(const M68kInstructionIR *compare,
 /* A conditional branch whose truth depends only on Z, from generated masks.
  * Returns the required zero/nonzero outcome; DBcc and other flags refuse. */
 int m68k_sim_branch_zero_requirement(const M68kInstructionIR *branch, int taken, int *out_zero);
+/* WORD arithmetic writes a fresh Z from its data-register result. Sticky-Z,
+ * address arithmetic and other widths refuse; this identifies the result,
+ * not an inferred pre-instruction operand. */
+int m68k_sim_word_result_zero_requirement(const M68kInstructionIR *producer,
+    const M68kInstructionIR *branch, int taken, uint8_t *out_reg, int *out_zero);
 /* Evaluate only flags established by a known MOVE/TEST value or immediate
  * bit test, using generated forms/truth tables. Unknown required bits refuse. */
 int m68k_sim_known_value_branch(const M68kInstructionIR *producer,
