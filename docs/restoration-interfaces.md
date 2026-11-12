@@ -68,13 +68,27 @@ the transient field view. Values come from the existing raw/WORD domains;
 relocation placeholders, partial stores and unknown/conflicting values cannot
 establish it. Field accesses use `tagged_layout_contract` provenance; the
 underlying pointer type never changes.
+Register value relations retain decoded constant LEA differences modulo 2^32,
+full-width copies and exchanges. Equality consumers still require zero
+difference. Joins keep only agreed pairwise differences; partial writes,
+unmodelled control-register effects and traps discard the affected knowledge.
+Existing generated stack effects supply frame-register writes to the shared
+decoded-write mask.
+This extends the existing register relation by sixteen 32-bit deltas, not a
+second address classifier or a new memory-cell array. Auto-updated registers
+remain conservative rather than acquiring guessed cursor deltas.
 Different joins, tag/partial writes, possible aliases and unknown calls discard
 the view. A same-root, same-element write may retain it only when the shared
-decoded footprint proves disjointness from the tag. A moved cursor/array element
+decoded footprint proves disjointness from the tag. A live captured-record
+register may also establish that proof through a decoded relative EA, without
+an app/source-base assumption. Circular span comparison includes 24-bit bus
+aliases and whole MOVEM/predecrement footprints. A moved cursor/array element
 cannot reuse the view. Unknown stack writes also refuse; this adds no stack/input
 separation promise, indexed-field coverage, exhaustive tag domain, lifetime or
 initialization guarantee. The sparse policy/read descriptors add no flow-node
-value slots. Regression cases: `tests/test_writable_tagged_layout.py`.
+value slots. This adds no interrupt or supervisor/user stack-mode model.
+Regression cases: `tests/test_writable_tagged_layout.py` and
+`tests/test_runtime_relative_tag_alias.py`.
 
 ## WORD index guards
 

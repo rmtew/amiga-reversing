@@ -6,7 +6,7 @@ claim of complete gameplay/hardware equivalence.
 
 ## Current validated baseline
 
-Current validated export: 3514 app references, 2760 typed accesses, 153 unresolved
+Current validated export: 3514 app references, 2763 typed accesses, 150 unresolved
 accesses; 9951 unclassified bytes in 279 intervals. These are analysis counts,
 not semantic completion percentages. The 108 corrected inline-member catalogue
 names exposed existing source knowledge; they did not resolve typed accesses.
@@ -17,14 +17,14 @@ Original payload SHA256:
 
 1. Exact tag stores, bounded MOVEM cursors and opaque leading-record address
    identities are supported. Undeclared prefix bytes retain no field meaning.
-   Next: the publication barrier in item 2; do not add per-reader type seeds
+   Next: stored-pointer lifetime in item 2; do not add per-reader type seeds
    or assume disjoint allocations.
-2. Player rotation writes: publication through fallback A6 loses the type-30
-   tag. A minimal derived-base, disjoint-store probe also loses the guard;
-   overlap and unknown-base controls refuse. Runtime-relative address identity
-   is missing; current affine entry IDs are summary-scoped. Next experiment:
-   transport same-root LEA deltas through normal value packets and prove write
-   disjointness, without app-namespace assumptions or per-reader type seeds.
+2. Player rotation stores use a three-field type-30 format contract and decoded
+   LEA/write-disjointness proof. The contract is semantic input, not automatic
+   format discovery. Published-pointer readers remain Core; no transient view
+   is exported as a permanent pointee type. Next: test a local reaching-cell/
+   mutation chain, then assess intervening initializer calls and save/restore
+   relocation before any lifetime claim.
 3. Optional model-header extension: keep face-count mutation separate from
    the format discriminator. The original viewer can select outside the
    104-entry model prefix. Next: isolate an evidenced caller domain and its

@@ -218,6 +218,12 @@ uint16_t platform_operand_register_write_mask(const M68kInstructionIR *instructi
       operand_index == metadata->source_operand_index &&
       m68k_instruction_operand_direct_register(operand, &address, &reg) && !address && reg < 8U)
     mask |= (uint16_t)(1U << reg);
+  if (metadata != NULL && metadata->sp_effect_count) {
+    uint16_t bound_writes = m68k_sim_sp_effect_bound_register_write_mask(instruction);
+    if (bound_writes == UINT16_MAX) mask = UINT16_MAX;
+    else if (m68k_instruction_operand_direct_register(operand, &address, &reg) && reg < 8U)
+      mask |= bound_writes & (uint16_t)(1U << (reg + (address ? 8U : 0U)));
+  }
   if (platform_operand_updates_address_register(instruction, operand_index) && operand->value.ea_reg < 8U)
     mask |= (uint16_t)(1U << (8U + operand->value.ea_reg));
   return mask;

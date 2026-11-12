@@ -85,6 +85,32 @@ static int typed_read_overlaps_write(const M68kRenderLookup *lookup,
   return 0;
 }
 
+/* A decoded register relation can prove this write misses a captured tag
+ * without naming either register as an app/source base. Translate both spans
+ * by the live record address on the 24-bit bus; the relative circular distance
+ * is invariant even when the unknown absolute base straddles bus wrap. */
+static int typed_tag_relative_write_disjoint(const M68kRenderLookup *lookup,
+    const M68kRenderTypedState *state, const M68kRenderScalarReadRelation *read,
+    uint8_t write_reg, int16_t displacement, uint8_t span) {
+  if (!read->tag_kind || write_reg >= 7U || !span) return 0;
+  for (uint8_t r = 0U; r < 16U; ++r) {
+    const M68kRenderTypedRegValue *anchor = r < 8U ? &state->data_regs[r] : &state->addr_regs[r - 8U];
+    uint16_t id = anchor->read_relation / 2U;
+    uint32_t delta, start;
+    if (!id || anchor->read_relation & 1U || id > lookup->scalar_read_relation_count ||
+        !anchor->known || anchor->type_conflicted || anchor->byte_cursor ||
+        anchor->struct_id != read->base_type || anchor->array_element_index != read->element_index) continue;
+    const M68kRenderScalarReadRelation *held = &lookup->scalar_read_relations[id - 1U];
+    if (!held->tag_kind || held->section_index != read->section_index || held->offset != read->offset ||
+        held->base_type != read->base_type || held->element_index != read->element_index ||
+        held->field_cursor != read->field_cursor ||
+        !typed_register_relative_difference(state, write_reg + 8U, r, &delta)) continue;
+    start = (delta + (uint32_t)(int32_t)displacement - (uint32_t)read->field_cursor) & UINT32_C(0xFFFFFF);
+    if (start >= 2U && span <= UINT32_C(0x1000000) - start) return 1;
+  }
+  return 0;
+}
+
 /* Ordinary writes kill correlations unless a canonical source-mapped footprint
  * proves disjointness from every contributing predicate field. Unknown SP is not a
  * non-alias promise. Shared stack normalization owns predecrement width/order. */
@@ -92,7 +118,7 @@ static void typed_read_note_writes(M68kRenderLookup *lookup, M68kRenderTypedStat
     const M68kInstructionIR *instruction) {
   const M68kSimFormMetadata *meta = m68k_sim_metadata_for_instruction(instruction);
   M68kStackRegisterTransfer normalized_stack;
-  int opaque = !meta || instruction_has_call_flow_local(instruction) ||
+  int opaque = typed_register_relation_opaque_effect(instruction, meta) || instruction_has_call_flow_local(instruction) ||
     (meta->sp_effect_count && meta->flow_kind != M68K_SIM_FLOW_RETURN &&
       !platform_instruction_stack_register_transfer(instruction, &normalized_stack)) ||
     meta->flow_kind == M68K_SIM_FLOW_TRAP;
@@ -100,6 +126,8 @@ static void typed_read_note_writes(M68kRenderLookup *lookup, M68kRenderTypedStat
   for (size_t op = 0U; opaque || (meta && op < instruction->operand_count && op < 4U); ++op) {
     uint32_t address = 0U; uint8_t span = 0U, reg; int16_t displacement;
     int known = 0;
+    uint8_t write_reg = UINT8_MAX, write_access, write_span, element_width, write_count;
+    int16_t write_displacement = 0;
     const M68kRenderTypedRegValue *relative = NULL;
     if (!opaque) {
       const M68kOperandIR *operand = &instruction->operands[op];
@@ -107,6 +135,9 @@ static void typed_read_note_writes(M68kRenderLookup *lookup, M68kRenderTypedStat
       M68kStackRegisterTransfer stack;
       if (meta->operand_access_kinds[op] != M68K_SIM_ACCESS_MEMORY_WRITE ||
           m68k_instruction_operand_decoded_ea_shape(operand) == M68K_SIM_EA_SHAPE_NONE) continue;
+      if (typed_register_memory_span(instruction, op, &write_reg, &write_displacement,
+          &write_access, &write_span, &element_width, &write_count)) span = write_span;
+      else write_reg = UINT8_MAX;
       if (platform_operand_memory_span(instruction, op, NULL, NULL, &span)) {
         if (operand_is_address_memory_local(operand, &reg, &displacement))
           relative = &state->addr_regs[reg];
@@ -125,6 +156,7 @@ static void typed_read_note_writes(M68kRenderLookup *lookup, M68kRenderTypedStat
   if (id && id <= lookup->scalar_read_relation_count) { \
     const M68kRenderScalarReadRelation *read = &lookup->scalar_read_relations[id - 1U]; \
     int kill = !known || typed_read_overlaps_write(lookup, read, address, span); \
+    if (kill && typed_tag_relative_write_disjoint(lookup, state, read, write_reg, write_displacement, span)) kill = 0; \
     if (read->tag_kind && relative && relative->known && !relative->type_conflicted && \
         !relative->byte_cursor && relative->array_element_index == read->element_index && \
         relative->struct_id == read->base_type && relative->read_relation && \

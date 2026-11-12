@@ -106,7 +106,99 @@ int main(void) {
  assert(a.register_alias_known==b.register_alias_known && !memcmp(a.register_alias_sources,b.register_alias_sources,8));
  assert(typed_register_alias_root(&a,0)==typed_register_alias_root(&a,1));
  assert(typed_register_alias_root(&a,0)!=typed_register_alias_root(&a,8));
- assert(sizeof(M68kRenderTypedState)==32616);
+ /* Constant differences extend the same register relation, not pointee types. */
+ uint32_t delta;
+ right=(M68kRenderTypedState){0};step(&right,"lea.l -32(a0),a6");
+ assert(typed_register_relative_difference(&right,14,8,&delta) && delta==(uint32_t)-32);
+ assert(!typed_state_addr_alias_equal(&right,0,6));
+ step(&right,"move.l a6,d3");step(&right,"lea.l 8(a6),a1");
+ assert(typed_register_relative_difference(&right,9,8,&delta) && delta==(uint32_t)-24);
+ step(&right,"movea.l (a4),a6");
+ assert(typed_register_relative_difference(&right,9,3,&delta) && delta==8);
+ step(&right,"move.b #1,d3");
+ assert(!typed_register_relative_difference(&right,9,3,&delta));
+ assert(typed_register_relative_difference(&right,9,8,&delta) && delta==(uint32_t)-24);
+ right=(M68kRenderTypedState){0};step(&right,"lea.l -1(a0),a1");step(&right,"lea.l 1(a1),a2");
+ assert(typed_state_addr_alias_equal(&right,0,2));
+ left=(M68kRenderTypedState){0};right=(M68kRenderTypedState){0};
+ step(&left,"lea.l 8(a0),a1");step(&left,"lea.l 16(a0),a2");
+ step(&right,"lea.l 24(a3),a1");step(&right,"lea.l 32(a3),a2");
+ a=left;b=right;typed_state_merge_into(&a,&right,NULL);typed_state_merge_into(&b,&left,NULL);
+ assert(typed_register_relative_difference(&a,10,9,&delta) && delta==8);
+ assert(!typed_register_relative_difference(&a,9,8,&delta));
+ assert(a.register_alias_known==b.register_alias_known && !memcmp(a.register_alias_sources,b.register_alias_sources,8));
+ assert(!memcmp(a.register_alias_offsets,b.register_alias_offsets,sizeof(a.register_alias_offsets)));
+ step(&right,"lea.l 36(a3),a2");typed_state_merge_into(&a,&right,NULL);
+ assert(!typed_register_relative_difference(&a,10,9,&delta));
+ /* A counter update conflicts with its entry relation; it cannot create a must invariant. */
+ right=(M68kRenderTypedState){0};step(&right,"movea.l a0,a1");a=right;
+ step(&right,"lea.l 1(a1),a1");typed_state_merge_into(&a,&right,NULL);
+ assert(!typed_register_relative_difference(&a,9,8,&delta));
+ /* An opaque trap cannot leave held-value relations for a later fresh tag. */
+ right=(M68kRenderTypedState){0};step(&right,"lea.l -32(a0),a6");
+ step(&right,"trap #0");assert(!typed_register_relative_difference(&right,14,8,&delta));
+ /* Unmodelled named-register writes must not retain a potentially switched SP. */
+ right=(M68kRenderTypedState){0};step(&right,"movea.l a7,a0");
+ step(&right,"move.w #0,sr");assert(!typed_state_addr_alias_equal(&right,0,7));
+ /* Frame instructions own both their explicit frame register and implicit SP. */
+ right=(M68kRenderTypedState){0};step(&right,"lea.l -32(a0),a6");
+ step(&right,"link.w a6,#0");assert(!typed_register_relative_difference(&right,14,8,&delta));
+ right=(M68kRenderTypedState){0};step(&right,"lea.l -32(a0),a6");
+ step(&right,"unlk a6");assert(!typed_register_relative_difference(&right,14,8,&delta));
+ for(unsigned reg=0;reg<8;++reg)for(unsigned unlink=0;unlink<2;++unlink) {
+  char text[32];snprintf(text,sizeof(text),unlink?"unlk a%u":"link.w a%u,#0",reg);
+  M68kInstructionIR ins=m68k_plain_parse_instruction_to_ir(text,M68K_ASM_CPU_68000,m68k_diag_sink(NULL));
+  assert(m68k_sim_sp_effect_bound_register_write_mask(&ins)==(uint16_t)(1U<<(reg+8U)));
+  assert(platform_operand_register_write_mask(&ins,0)&(1U<<(reg+8U)));
+ }
+ /* Pairwise mathematical relation intersection, independent of representatives. */
+ uint32_t random=0x13579BDF;
+ for(unsigned trial=0;trial<128;++trial) {
+  M68kRegisterAliasSnapshot x,y;M68kRenderTypedState l={0},r={0},lr,rl;
+  for(unsigned i=0;i<16;++i) {
+   random=random*1664525U+1013904223U;x.roots[i]=(random>>16)%4;
+   random=random*1664525U+1013904223U;x.offsets[i]=((random>>16)%5)*8U-16U;
+   random=random*1664525U+1013904223U;y.roots[i]=(random>>16)%4;
+   random=random*1664525U+1013904223U;y.offsets[i]=((random>>16)%5)*8U-16U;
+  }
+  typed_register_alias_store(&l,&x);typed_register_alias_store(&r,&y);lr=l;rl=r;
+  typed_register_alias_meet(&lr,&r);typed_register_alias_meet(&rl,&l);
+  assert(lr.register_alias_known==rl.register_alias_known);
+  assert(!memcmp(lr.register_alias_sources,rl.register_alias_sources,8));
+  assert(!memcmp(lr.register_alias_offsets,rl.register_alias_offsets,sizeof(lr.register_alias_offsets)));
+  for(unsigned i=0;i<16;++i)for(unsigned j=0;j<16;++j) {
+   int expected=x.roots[i]==x.roots[j] && y.roots[i]==y.roots[j] &&
+    x.offsets[i]-x.offsets[j]==y.offsets[i]-y.offsets[j];
+   assert(typed_register_relative_difference(&lr,i,j,&delta)==expected);
+   if(expected)assert(delta==x.offsets[i]-x.offsets[j]);
+   assert((typed_register_alias_root(&l,i)==typed_register_alias_root(&l,j))==
+    (x.roots[i]==x.roots[j] && x.offsets[i]==x.offsets[j]));
+  }
+  rl=lr;assert(!typed_register_alias_meet(&rl,&lr));
+ }
+ /* Relative circular spans conservatively include 24-bit bus aliases. */
+ M68kRenderScalarReadRelation tag={0};M68kRenderLookup tags={0};
+ tag.tag_kind=2;tag.base_type=1;tags.scalar_read_relations=&tag;tags.scalar_read_relation_count=1;
+ right=(M68kRenderTypedState){0};step(&right,"lea.l (a0),a6");
+ right.addr_regs[0].known=1;right.addr_regs[0].struct_id=1;right.addr_regs[0].read_relation=2;
+ const uint32_t distances[]={0,1,2,0xFFFFFF,0xFFFFFF,0x1000000,0x1000002,0xFFFFFFFC,0xFFFFFFF8};
+ const uint8_t spans[]={2,1,2,2,1,2,2,8,8},disjoint[]={0,0,1,0,1,0,1,0,1};
+ for(size_t k=0;k<sizeof(distances)/sizeof(distances[0]);++k) {
+  right.register_alias_offsets[14]=distances[k];
+  assert(typed_tag_relative_write_disjoint(&tags,&right,&tag,6,0,spans[k])==disjoint[k]);
+ }
+ right.register_alias_offsets[14]=2;
+ assert(!typed_tag_relative_write_disjoint(&tags,&right,&tag,6,-2,2));
+ tag.field_cursor=2;right.register_alias_offsets[14]=3;
+ assert(!typed_tag_relative_write_disjoint(&tags,&right,&tag,6,0,1));
+ right.register_alias_offsets[14]=4;assert(typed_tag_relative_write_disjoint(&tags,&right,&tag,6,0,1));
+ right.register_alias_offsets[14]=1;assert(typed_tag_relative_write_disjoint(&tags,&right,&tag,6,0,1));
+ typed_state_clear_addr_alias_for_reg(&right,6);
+ assert(!typed_tag_relative_write_disjoint(&tags,&right,&tag,6,0,2));
+ /* Only sixteen modular deltas were added to the existing state. */
+ fprintf(stderr,"typed_state_bytes=%zu alias_delta_bytes=%zu\n",sizeof(M68kRenderTypedState),sizeof(a.register_alias_offsets));
+ assert(sizeof(a.register_alias_offsets)==16*sizeof(uint32_t));
+ assert(sizeof(M68kRegisterAliasSnapshot)==16*(sizeof(uint32_t)+sizeof(uint8_t)));
  return 0;
 }''')
     exe=tmp_path/'value-alias'

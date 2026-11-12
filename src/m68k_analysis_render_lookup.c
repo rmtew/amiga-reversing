@@ -1767,13 +1767,16 @@ static void typed_state_invalidate_memory_derived_reg(M68kRenderTypedState *stat
     state->data_app_addr_regs[reg] : state->app_addr_regs[reg];
   uint32_t aliases = state->register_alias_known;
   uint8_t alias_sources[8];
+  uint32_t alias_offsets[16];
   memcpy(alias_sources, state->register_alias_sources, sizeof(alias_sources));
+  memcpy(alias_offsets, state->register_alias_offsets, sizeof(alias_offsets));
   typed_reg_forget_interpretation(&before);
   typed_state_clear_reg(state, kind, reg);
   *value = before;
   /* A memory effect cannot change equality of already held CPU values. */
   state->register_alias_known = aliases;
   memcpy(state->register_alias_sources, alias_sources, sizeof(alias_sources));
+  memcpy(state->register_alias_offsets, alias_offsets, sizeof(alias_offsets));
   if (app.known) value->provenance = provenance;
   if (kind == M68K_ANALYSIS_REGISTER_DATA) state->data_app_addr_regs[reg] = app;
   else state->app_addr_regs[reg] = app;
@@ -8558,9 +8561,9 @@ static void typed_state_update_after_instruction(M68kRenderTypedState *state, M6
   int has_stack_transfer;
   uint32_t entry_values_before[16] = {0};
   uint16_t direct_test_relation = 0U;
-  uint8_t alias_roots_before[16];
+  M68kRegisterAliasSnapshot alias_roots_before;
   if (state == NULL || instruction == NULL) return;
-  typed_register_alias_roots(state, alias_roots_before);
+  typed_register_alias_snapshot(state, &alias_roots_before);
   if (lookup) typed_read_note_writes(lookup, state, instruction);
   if (lookup) typed_tag_note_store(lookup, state, platform_state, instruction, section_index, offset);
   const M68kSimFormMetadata *test_meta = m68k_sim_metadata_for_instruction(instruction);
@@ -9287,7 +9290,7 @@ static void typed_state_update_after_instruction(M68kRenderTypedState *state, M6
       typed_state_rebase_stack_slots(state, (int16_t)adjustment);
     } else typed_state_clear_stack_slots(state);
   }
-  typed_register_alias_transfer(state, instruction, alias_roots_before);
+  typed_register_alias_transfer(state, instruction, &alias_roots_before);
   affine_entry_transfer_after(state, lookup, instruction, entry_values_before, &stack_transfer,
     has_stack_transfer);
   typed_read_predicate_after(state, instruction, direct_test_relation);
@@ -9463,7 +9466,9 @@ static int typed_state_equal(const M68kRenderTypedState *left, const M68kRenderT
   }
   if (left->register_alias_known != right->register_alias_known ||
       memcmp(left->register_alias_sources, right->register_alias_sources,
-        sizeof(left->register_alias_sources)) != 0) return 0;
+        sizeof(left->register_alias_sources)) != 0 ||
+      memcmp(left->register_alias_offsets, right->register_alias_offsets,
+        sizeof(left->register_alias_offsets)) != 0) return 0;
   for (index = 0U; index < left->stack_slot_count; ++index) {
     if (!typed_stack_slots_equal(&left->stack_slots[index], &right->stack_slots[index])) return 0;
   }

@@ -1438,6 +1438,15 @@ SG2EncounterChoiceReference_SIZEOF EQU __RS
 SG2FrameSamplePrefix_sample_or_delta RS.W 1
 SG2FrameSamplePrefix_SIZEOF EQU __RS
 
+; STRUCT SG2PlayerOrientationView
+    RSRESET
+    RS.B 16
+SG2PlayerOrientationView_rotation_0 RS.W 1
+SG2PlayerOrientationView_rotation_1 RS.W 1
+SG2PlayerOrientationView_rotation_2 RS.W 1
+    RS.B 46
+SG2PlayerOrientationView_SIZEOF EQU __RS
+
 ADKF_CLRALL	EQU	$7FFF
 BPLCON2_PF2P2	EQU	$20
 BPLCON2_PF2PRI	EQU	$40
@@ -24697,9 +24706,9 @@ seed_player_record_before_world_placements:
 	bset.b #1,SG2ObjectCore_flags(a0)
 	bset.b #4,SG2ObjectCore_flags(a0)
 	move.b #$FF,SG2ObjectCore_durability_or_negative(a0)
-	move.w player_rotation_0(a6),$0010(a0)
-	move.w player_rotation_1(a6),$0012(a0)
-	move.w player_rotation_2(a6),$0014(a0)
+	move.w player_rotation_0(a6),SG2PlayerOrientationView_rotation_0(a0)
+	move.w player_rotation_1(a6),SG2PlayerOrientationView_rotation_1(a0)
+	move.w player_rotation_2(a6),SG2PlayerOrientationView_rotation_2(a0)
 	bra.b set_world_placement_scale_phase_and_variant
     ; Type WORD zero ends stream. Nonzero: copy LONG X/Z. Surface records: 10 bytes; interior records: 16 bytes. Original map high-byte flags may be split later.
     ; KNOWN: type A0=Target code-entry register seed:SG2ObjectCore

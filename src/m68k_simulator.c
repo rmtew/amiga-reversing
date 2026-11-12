@@ -674,6 +674,33 @@ int m68k_sim_fixed_sp_delta(const M68kSimFormMetadata *metadata, int32_t *out_de
   return 1;
 }
 
+uint16_t m68k_sim_sp_effect_bound_register_write_mask(const M68kInstructionIR *instruction) {
+  const M68kSimFormMetadata *metadata = m68k_sim_metadata_for_instruction(instruction);
+  uint16_t mask = 0U;
+  if (!metadata || (size_t)metadata->sp_effect_start + metadata->sp_effect_count >
+      sizeof(g_m68k_sim_sp_effects) / sizeof(g_m68k_sim_sp_effects[0])) return UINT16_MAX;
+  for (size_t i = 0U; i < metadata->sp_effect_count; ++i) {
+    const M68kSimSpEffectDef *effect = &g_m68k_sim_sp_effects[metadata->sp_effect_start + i];
+    uint8_t expected; int matched = 0;
+    if (effect->action != M68K_SIM_SP_SAVE_TO_REG &&
+        effect->action != M68K_SIM_SP_LOAD_FROM_STACK_TO_REG) continue;
+    /* Bind the existing KB operand-template tokens, not instruction names. */
+    if (effect->reg && !strcmp(effect->reg, "An")) expected = M68K_SIM_EXPECT_AN;
+    else if (effect->reg && !strcmp(effect->reg, "Dn")) expected = M68K_SIM_EXPECT_DN;
+    else if (effect->reg && !strcmp(effect->reg, "Rn")) expected = M68K_SIM_EXPECT_RN;
+    else return UINT16_MAX;
+    for (size_t operand = 0U; operand < instruction->operand_count && operand < 4U; ++operand) {
+      uint8_t address, reg;
+      if (metadata->operand_expected_kinds[operand] != expected ||
+          !m68k_instruction_operand_direct_register(&instruction->operands[operand], &address, &reg) || reg >= 8U ||
+          (expected == M68K_SIM_EXPECT_AN && !address) || (expected == M68K_SIM_EXPECT_DN && address)) continue;
+      mask |= (uint16_t)(1U << (reg + (address ? 8U : 0U))); matched = 1;
+    }
+    if (!matched) return UINT16_MAX;
+  }
+  return mask;
+}
+
 static uint32_t sim_sign_extend_value(uint32_t value, uint8_t src_bits) {
   uint32_t mask;
   uint32_t sign_bit;

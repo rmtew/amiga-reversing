@@ -626,6 +626,9 @@ int m68k_sim_branch_zero_requirement(const M68kInstructionIR *branch, int taken,
 int m68k_sim_known_value_branch(const M68kInstructionIR *producer,
     const M68kInstructionIR *branch, uint32_t value, uint32_t known_mask, int *out_taken);
 int m68k_sim_fixed_sp_delta(const M68kSimFormMetadata *metadata, int32_t *out_delta);
+/* Explicit register destinations bound by generated stack effects. Unknown
+ * bindings return UINT16_MAX, never an invented preserved-register promise. */
+uint16_t m68k_sim_sp_effect_bound_register_write_mask(const M68kInstructionIR *instruction);
 M68kSimMetadataStatus m68k_sim_metadata_for_canonical_form_id(M68kFormId form_id,
   const M68kSimFormMetadata **out_metadata);
 int m68k_simulate_step(const M68kObject *object, size_t section_index, const M68kSection *section, uint32_t offset,
