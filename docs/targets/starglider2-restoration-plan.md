@@ -6,10 +6,11 @@ claim of complete gameplay/hardware equivalence.
 
 ## Current validated baseline
 
-Current validated export: 3514 app references, 2763 typed accesses, 150 unresolved
+Current validated export: 3514 app references, 2802 typed accesses, 175 unresolved
 accesses; 9951 unclassified bytes in 279 intervals. These are analysis counts,
-not semantic completion percentages. The 108 corrected inline-member catalogue
-names exposed existing source knowledge; they did not resolve typed accesses.
+not semantic completion percentages. Sparse inventory/ingredient layouts project
+39 additional accesses. The 25 new diagnostics expose dynamic counter indexes;
+all 150 prior unresolved accesses and prior typed facts are retained.
 Original payload SHA256:
 `662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9`.
 
@@ -45,7 +46,9 @@ Original payload SHA256:
    bits only. The scan mask admits eight offsets for seven stored pointers;
    its countdown needs a writer/entry bound. The eight audio-ring reads also
    need an entry invariant: equality-only wrapping does not bound arbitrary
-   initial cursors. Do not enlarge a directory or assume original bytes persist.
+   initial cursors. Counter readers need runtime BYTE-selector value provenance
+   through directory reads and AND #255; the 104-byte backing supplies no index
+   bound. Do not enlarge a directory or assume original bytes persist.
 5. Residual regions: prioritize accepted data readers and incoming code edges.
    Do not decode apparent instructions or declare arrays from plausible bytes.
    Zero-fill writers and write-only app flags do not establish field purpose.

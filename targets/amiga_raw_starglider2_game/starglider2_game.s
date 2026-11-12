@@ -1447,6 +1447,38 @@ SG2PlayerOrientationView_rotation_2 RS.W 1
     RS.B 46
 SG2PlayerOrientationView_SIZEOF EQU __RS
 
+; STRUCT SG2IngredientCounts
+    RSRESET
+    RS.B 29
+SG2IngredientCounts_mini_rocket_count RS.B 1
+    RS.B 8
+SG2IngredientCounts_flat_diamond_count RS.B 1
+    RS.B 34
+SG2IngredientCounts_asteroid_count RS.B 1
+    RS.B 9
+SG2IngredientCounts_vistan_wine_count RS.B 1
+    RS.B 3
+SG2IngredientCounts_nodules_count RS.B 1
+    RS.B 12
+SG2IngredientCounts_castrobars_count RS.B 1
+SG2IngredientCounts_mineral_rock_count RS.B 1
+SG2IngredientCounts_nuclear_fuel_count RS.B 1
+    RS.B 1
+SG2IngredientCounts_SIZEOF EQU __RS
+
+; STRUCT SG2ModelInventoryCounts
+    RSRESET
+    RS.B 12
+SG2ModelInventoryCounts_homing_missile_count RS.B 1
+    RS.B 71
+SG2ModelInventoryCounts_energy_cube_launcher_available RS.B 1
+    RS.B 6
+SG2ModelInventoryCounts_bouncing_bomb_count RS.B 1
+    RS.B 6
+SG2ModelInventoryCounts_neutron_bomb_count RS.B 1
+    RS.B 5
+SG2ModelInventoryCounts_SIZEOF EQU __RS
+
 ADKF_CLRALL	EQU	$7FFF
 BPLCON2_PF2P2	EQU	$20
 BPLCON2_PF2PRI	EQU	$40
@@ -2700,10 +2732,10 @@ abs_0_0000190C:
 	cmp.b #$4B,d0
 	bne.b abs_0_00001964
 	lea.l model_type_population_counts(a6),a0
-	move.b #$1,$0054(a0)
-	move.b #$1,$0062(a0)
-	move.b #$4,$000C(a0)
-	move.b #$4,$005B(a0)
+	move.b #$1,SG2ModelInventoryCounts_energy_cube_launcher_available(a0)
+	move.b #$1,SG2ModelInventoryCounts_neutron_bomb_count(a0)
+	move.b #$4,SG2ModelInventoryCounts_homing_missile_count(a0)
+	move.b #$4,SG2ModelInventoryCounts_bouncing_bomb_count(a0)
 	bsr.w add_bouncing_bomb_hud_icon
 	bsr.w add_bouncing_bomb_hud_icon
 	bsr.w add_bouncing_bomb_hud_icon
@@ -2824,7 +2856,7 @@ abs_0_00001A88:
 	cmp.w #$10,d0
 	bne.b abs_0_00001AAC
 	lea.l model_type_population_counts(a6),a1
-	tst.b $0062(a1)
+	tst.b SG2ModelInventoryCounts_neutron_bomb_count(a1)
 	beq.b abs_0_00001AAC
 	tst.l carried_neutron_bomb_reference(a6)
 	bne.b abs_0_00001AA6
@@ -9509,7 +9541,7 @@ load_projectile_profile_and_try_spawn:
 	tst.b d0
 	beq.b check_energy_before_projectile_attempt
 	lea.l model_type_population_counts(a6),a1
-	tst.b $0054(a1)
+	tst.b SG2ModelInventoryCounts_energy_cube_launcher_available(a1)
 	beq.w abs_0_000073DA
     ; Reticle coordinates are sampled before resource/object-allocation checks finish. A changed snapshot is not proof a projectile was spawned, nor proof its trajectory follows that screen point.
 check_energy_before_projectile_attempt:
@@ -9822,10 +9854,10 @@ restore_homing_hud_before_type_counter_check:
     ; HUD is already restored. Decrement type-12 BYTE and test N: negative result clamps to zero and reports error 114; this is not just unsigned-underflow detection.
 decrement_type12_counter_before_homing_allocation:
 	lea.l model_type_population_counts(a6),a0
-	subq.b #1,$000C(a0)
+	subq.b #1,SG2ModelInventoryCounts_homing_missile_count(a0)
 	bpl.b take_homing_record_from_free_stack
 clamp_negative_type12_counter_and_report_error:
-	clr.b $000C(a0)
+	clr.b SG2ModelInventoryCounts_homing_missile_count(a0)
 	move.w #$114,d0
 	bra.w abs_0_00007B22
     ; Successful allocation initializes only selected record bytes and copies the target without validation. Dirty supplied-record and null/sentinel cases are not normal-game lifetime proofs.
@@ -10106,14 +10138,14 @@ try_launch_bouncing_bomb:
 	cmpi.w #2,free_object_count(a6)
 	bls.w abs_0_0000799E
 	lea.l model_type_population_counts(a6),a0
-	tst.b $005B(a0)
+	tst.b SG2ModelInventoryCounts_bouncing_bomb_count(a0)
 	beq.w abs_0_000079A0
 	move.w bouncing_bomb_hud_icon_count(a6),d0
 	beq.w abs_0_0000799E
 	subq.w #1,bouncing_bomb_hud_icon_count(a6)
-	subq.b #1,$005B(a0)
+	subq.b #1,SG2ModelInventoryCounts_bouncing_bomb_count(a0)
 	bpl.b abs_0_00007954
-	clr.b $005B(a0)
+	clr.b SG2ModelInventoryCounts_bouncing_bomb_count(a0)
 abs_0_00007954:
 	lea.l bouncing_bomb_hud_saved_backgrounds.l,a0
 	movea.l bouncing_bomb_hud_screen_origin.l,a1
@@ -10139,7 +10171,7 @@ abs_0_000079A0:
     ; Inventory clears before the carried-pointer null guard. Open-space guards use any nonzero projector/minis. Offset CMP70 uses N only, retaining overflow aliases; nonnull is not ownership.
 try_launch_carried_neutron_bomb:
 	lea.l model_type_population_counts(a6),a0
-	tst.b $0062(a0)
+	tst.b SG2ModelInventoryCounts_neutron_bomb_count(a0)
 	beq.b handle_missing_neutron_inventory
 	tst.b space_environment_flag(a6)
 	bpl.b test_neutron_launch_offset_comparison_sign
@@ -10153,7 +10185,7 @@ test_neutron_launch_offset_comparison_sign:
 	cmpi.l #SG2_NEUTRON_LAUNCH_OFFSET_GATE,carried_neutron_bomb_y_offset.l
 	bmi.b return_from_neutron_launch_attempt
 clear_neutron_inventory_before_pointer_guard:
-	clr.b $0062(a0)
+	clr.b SG2ModelInventoryCounts_neutron_bomb_count(a0)
 	movea.l carried_neutron_bomb_reference(a6),a2
 	cmpa.l #$0,a2
 	beq.b return_from_neutron_launch_attempt
@@ -10167,7 +10199,7 @@ set_neutron_released_flag_before_request_cleanup:
 	clr.l carried_neutron_bomb_reference(a6)
 	move.l #SG2_NEUTRON_CARRIED_MIN_OFFSET,carried_neutron_bomb_y_offset.l
 	move.w #SG2_NEUTRON_ACTION_COOLDOWN,weapon_action_cooldown(a6)
-	tst.b $0062(a0)
+	tst.b SG2ModelInventoryCounts_neutron_bomb_count(a0)
 	beq.b clear_spawn_and_request_retraction_after_neutron_release
 	bra.b return_from_neutron_launch_attempt
 handle_missing_neutron_inventory:
@@ -44146,11 +44178,11 @@ update_world_and_mission_events:
 	andi.w #511,taymar_aboard_notice_phase.l
 	bne.b abs_0_00032F12
 	lea.l model_type_population_counts(a6),a0
-	tst.b $0064(a0)
+	tst.b SG2IngredientCounts_castrobars_count(a0)
 	beq.b abs_0_00032EE0
-	subq.b #1,$0064(a0)
+	subq.b #1,SG2IngredientCounts_castrobars_count(a0)
 	bpl.b abs_0_00032EB0
-	clr.b $0064(a0)
+	clr.b SG2IngredientCounts_castrobars_count(a0)
 abs_0_00032EB0:
 	clr.w pending_message_count(a6)
 	move.w #$1,message_display_countdown(a6)
@@ -45084,7 +45116,7 @@ abs_0_00033B52:
 	clr.l (a0)+
 	dbf.w d0,abs_0_00033B52
 	lea.l model_type_population_counts(a6),a0
-	tst.b $0062(a0)
+	tst.b SG2ModelInventoryCounts_neutron_bomb_count(a0)
 	beq.b abs_0_00033B7C
 	cmpi.b #16,weapon_selection_and_status(a6)
 	bne.b abs_0_00033B7C
@@ -45412,7 +45444,7 @@ abs_0_00033FAE:
 	clr.l (a0)+
 	dbf.w d0,abs_0_00033FAE
 	lea.l model_type_population_counts(a6),a0
-	tst.b $0062(a0)
+	tst.b SG2ModelInventoryCounts_neutron_bomb_count(a0)
 	beq.b abs_0_00033FD8
 	cmpi.b #16,weapon_selection_and_status(a6)
 	bne.b abs_0_00033FD8
@@ -45644,27 +45676,27 @@ finish_ordinary_depot_inventory_increment:
 	bra.b build_depot_exchange_completion_message
     ; Weapon increment compares BYTE result with 5 using N only. Rejected results store 4; accepted results call the actual HUD helper. Direct CPU cases include overflow, not gameplay reachability.
 increment_depot_homing_inventory_with_hud:
-	move.b $0(a0,d1.w),d7
+	move.b SG2ModelInventoryCounts_homing_missile_count-12(a0,d1.w),d7
 	addq.b #1,d7
 	cmp.b #SG2_DEPOT_WEAPON_INCREMENT_COMPARE,d7
 	bmi.b draw_homing_icon_after_accepted_depot_increment
-	move.b #SG2_DEPOT_WEAPON_COUNTER_FALLBACK,$0(a0,d1.w)
+	move.b #SG2_DEPOT_WEAPON_COUNTER_FALLBACK,SG2ModelInventoryCounts_homing_missile_count-12(a0,d1.w)
 	bra.b build_depot_exchange_offer_message
 draw_homing_icon_after_accepted_depot_increment:
-	move.b d7,$0(a0,d1.w)
+	move.b d7,SG2ModelInventoryCounts_homing_missile_count-12(a0,d1.w)
 	movem.l d0-d7/a0-a6,-(a7)
 	bsr.w add_homing_missile_hud_icon_bridge_038d5c
 	movem.l (a7)+,d0-d7/a0-a6
 	bra.b build_depot_exchange_completion_message
 increment_depot_bouncing_inventory_with_hud:
-	move.b $0(a0,d1.w),d7
+	move.b SG2ModelInventoryCounts_bouncing_bomb_count-91(a0,d1.w),d7
 	addq.b #1,d7
 	cmp.b #SG2_DEPOT_WEAPON_INCREMENT_COMPARE,d7
 	bmi.b draw_bouncing_icon_after_accepted_depot_increment
-	move.b #SG2_DEPOT_WEAPON_COUNTER_FALLBACK,$0(a0,d1.w)
+	move.b #SG2_DEPOT_WEAPON_COUNTER_FALLBACK,SG2ModelInventoryCounts_bouncing_bomb_count-91(a0,d1.w)
 	bra.b build_depot_exchange_offer_message
 draw_bouncing_icon_after_accepted_depot_increment:
-	move.b d7,$0(a0,d1.w)
+	move.b d7,SG2ModelInventoryCounts_bouncing_bomb_count-91(a0,d1.w)
 	movem.l d0-d7/a0-a6,-(a7)
 	bsr.w add_bouncing_bomb_hud_icon_bridge_038d62
 	movem.l (a7)+,d0-d7/a0-a6
@@ -45900,7 +45932,7 @@ poll_or_advance_taymar_bomb_offer:
 	tst.b player_ejection_active_flag.l
 	bmi.b test_taymar_offer_command_token
 	lea.l model_type_population_counts(a6),a4
-	tst.b $0062(a4)
+	tst.b SG2ModelInventoryCounts_neutron_bomb_count(a4)
 	bne.b tick_taymar_offer_or_order_dialogue
 	bsr.w poll_translated_command_key_bridge_038d44
     ; Low BYTE A0 takes saved-frame tail-save; Y/N reset intro/tick/pause and select masks31/15. Other tokens retain state. This entry follows the original poll/ejection gate.
@@ -45940,7 +45972,7 @@ tick_taymar_offer_or_order_dialogue:
 	move.w taymar_intro_message_index.l,d0
 	asl.w #2,d0
 	movea.l $0(a1,d0.w),a1
-	tst.b $0062(a4)
+	tst.b SG2ModelInventoryCounts_neutron_bomb_count(a4)
 	bne.b finish_taymar_offer_line
 	bsr.w display_event_message_line
 finish_taymar_offer_line:
@@ -45951,7 +45983,7 @@ read_taymar_order_intro_line:
 	move.w taymar_intro_message_index.l,d0
 	asl.w #2,d0
 	movea.l $0(a1,d0.w),a1
-	tst.b $0062(a4)
+	tst.b SG2ModelInventoryCounts_neutron_bomb_count(a4)
 	bne.b advance_taymar_intro_line_and_pause_on_wrap
 	bsr.w display_event_message_line
 advance_taymar_intro_line_and_pause_on_wrap:
@@ -46859,6 +46891,7 @@ update_tractor_target_continuation:
 	btst.b #3,$0002(a0)
 	bne.b service_tractor_transport_radio
 	bra.w announce_ineligible_tractor_object
+    ; Negative Emma radio enable advances phase modulo16. On wrap, absent launcher permission becomes1 and queues the Taymar gift lines. Firing tests nonzero permission without consuming it.
 service_tractor_transport_radio:
 	cmpi.w #8,(a0)
 	bne.b measure_tractor_target_axis_distances
@@ -46879,9 +46912,9 @@ service_tractor_transport_radio:
 	movea.l SG2SourceTextReference_text(a1,d0.w),a1
 	bsr.w enqueue_event_message
 	lea.l model_type_population_counts(a6),a1
-	tst.b $0054(a1)
+	tst.b SG2ModelInventoryCounts_energy_cube_launcher_available(a1)
 	bne.b finish_tractor_transport_radio_messages
-	move.b #$1,$0054(a1)
+	move.b #$1,SG2ModelInventoryCounts_energy_cube_launcher_available(a1)
 	lea.l event_message_pointers.l,a1
 	move.w #$33,d0
 	asl.w #2,d0
@@ -47147,7 +47180,7 @@ test_tractor_collection_table_exclusion:
 	tst.b inside_structure_flag(a6)
 	bpl.b write_type98_collection_phase_byte
 	lea.l model_type_population_counts(a6),a1
-	tst.b $0062(a1)
+	tst.b SG2ModelInventoryCounts_neutron_bomb_count(a1)
 	bne.w select_collection_refused_message
 	tst.b neutron_bomb_collection_enabled_flag(a6)
 	bpl.w select_collection_refused_message
@@ -47185,11 +47218,11 @@ count_collected_object_type:
 	bra.b select_collection_refused_message
     ; Pickup limit compares the incremented signed BYTE with4. Values127/128/255 retain overflow/wrap behavior; they do not establish a universal0..4 inventory bound.
 test_homing_pickup_signed_byte_count:
-	move.b $0(a1,d0.w),d1
+	move.b SG2ModelInventoryCounts_homing_missile_count-12(a1,d0.w),d1
 	addq.b #1,d1
 	cmp.b #$4,d1
 	bgt.b abs_0_0003572A
-	move.b d1,$0(a1,d0.w)
+	move.b d1,SG2ModelInventoryCounts_homing_missile_count-12(a1,d0.w)
 	movem.l d0-d7/a0-a6,-(a7)
 	bsr.w add_homing_missile_hud_icon_bridge_038d5c
 	movem.l (a7)+,d0-d7/a0-a6
@@ -47198,11 +47231,11 @@ abs_0_00035728:
 abs_0_0003572A:
 	bra.b select_collection_refused_message
 test_bouncing_pickup_signed_byte_count:
-	move.b $0(a1,d0.w),d1
+	move.b SG2ModelInventoryCounts_bouncing_bomb_count-91(a1,d0.w),d1
 	addq.b #1,d1
 	cmp.b #$4,d1
 	bgt.b abs_0_0003574A
-	move.b d1,$0(a1,d0.w)
+	move.b d1,SG2ModelInventoryCounts_bouncing_bomb_count-91(a1,d0.w)
 	movem.l d0-d7/a0-a6,-(a7)
 	bsr.w add_bouncing_bomb_hud_icon_bridge_038d62
 	movem.l (a7)+,d0-d7/a0-a6
@@ -48474,7 +48507,7 @@ reset_grounded_carried_neutron_offset_and_requests:
 	clr.b SG2ObjectCore_retirement_phase_or_negative(a0)
 	clr.l carried_neutron_bomb_reference(a6)
 	lea.l model_type_population_counts(a6),a1
-	clr.b $0062(a1)
+	clr.b SG2ModelInventoryCounts_neutron_bomb_count(a1)
 	st.b neutron_bomb_retract_request(a6)
 	sf.b neutron_bomb_spawn_request(a6)
 	move.w #SG2_NEUTRON_ACTION_COOLDOWN,weapon_action_cooldown(a6)
