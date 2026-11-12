@@ -22,9 +22,12 @@ Original payload SHA256:
 2. Player rotation stores use a three-field type-30 format contract and decoded
    LEA/write-disjointness proof. The contract is semantic input, not automatic
    format discovery. Published-pointer readers remain Core; no transient view
-   is exported as a permanent pointee type. Next: test a local reaching-cell/
-   mutation chain, then assess intervening initializer calls and save/restore
-   relocation before any lifetime claim.
+   is exported as a permanent pointee type. Local reaching-cell transport works;
+   mutation and calls discard the view. Even a read-only callee does not prove
+   the call's return-PC stack write misses a runtime record. Next: establish actual
+   caller stack/record separation, callee memory effects and rebasing phases
+   before propagating a view to later readers; do not duplicate working cell
+   transport or assert a global lifetime contract.
 3. Optional model-header extension: keep face-count mutation separate from
    the format discriminator. The original viewer can select outside the
    104-entry model prefix. Next: isolate an evidenced caller domain and its

@@ -2,6 +2,7 @@
 
 #include "m68k_instruction_spec.h"
 #include "m68k_ir_codec.h"
+#include "m68k_assembler.h"
 #include "platform_common.h"
 
 #include <stdio.h>
@@ -573,6 +574,26 @@ const M68kSimFormMetadata *m68k_sim_metadata_for_instruction(const M68kInstructi
   return metadata;
 }
 
+/* The PC EA is based at its extension word, which may follow generated bound
+ * words or another operand's extension. Reuse the generated encoding layout
+ * already used by decode targets; an opcode-relative default loses that prefix.
+ * No mnemonic or instruction-specific displacement rule belongs here. */
+static uint8_t sim_operand_pc_base_bias(const M68kInstructionIR *instruction,
+    const M68kSimFormMetadata *metadata, uint8_t operand_index) {
+  M68kAsmOperandValue operands[4];
+  uint8_t shape;
+  if (!instruction || !metadata || operand_index >= instruction->operand_count || operand_index >= 4U)
+    return 0U;
+  shape = m68k_instruction_operand_decoded_ea_shape(&instruction->operands[operand_index]);
+  if ((shape != M68K_SIM_EA_SHAPE_PC_DISPLACEMENT && shape != M68K_SIM_EA_SHAPE_PC_INDEX) ||
+      instruction->asm_form_index >= M68K_ASM_FORM_COUNT || instruction->operand_count > 4U)
+    return metadata->operand_ea_pc_base_bias_bytes[operand_index];
+  for (uint8_t i = 0U; i < instruction->operand_count; ++i)
+    m68k_instruction_operand_to_asm_value(&instruction->operands[i], &operands[i]);
+  return (uint8_t)m68k_asm_operand_relative_base_offset(instruction->asm_form_index, operands,
+    instruction->operand_count, instruction->size_suffix, operand_index, 0);
+}
+
 static int sim_concrete_compute_ea_address(const M68kOperandIR *operand, uint8_t ea_formula, uint8_t ea_shape,
     uint8_t ea_base_kind, uint8_t displacement_source, uint8_t uses_displacement,
     uint8_t uses_index, uint8_t pc_base_bias_bytes, uint8_t address_literal_width_bytes,
@@ -1051,7 +1072,7 @@ static int sim_write_operand_by_metadata(const M68kSection *section, const M68kI
           metadata->operand_ea_address_shapes[operand_index], metadata->operand_ea_base_kinds[operand_index],
           metadata->operand_ea_displacement_sources[operand_index],
           metadata->operand_ea_uses_displacement[operand_index], metadata->operand_ea_uses_index[operand_index],
-          metadata->operand_ea_pc_base_bias_bytes[operand_index],
+          sim_operand_pc_base_bias(instruction, metadata, operand_index),
           metadata->operand_ea_address_literal_width_bytes[operand_index],
           metadata->operand_ea_index_extension_formats[operand_index],
           metadata->operand_ea_index_register_classes[operand_index],
@@ -1435,7 +1456,7 @@ static int sim_eval_operand_by_metadata(const M68kObject *object, size_t section
       metadata->operand_ea_address_shapes[operand_index], metadata->operand_ea_base_kinds[operand_index],
       metadata->operand_ea_displacement_sources[operand_index],
       metadata->operand_ea_uses_displacement[operand_index], metadata->operand_ea_uses_index[operand_index],
-      metadata->operand_ea_pc_base_bias_bytes[operand_index],
+      sim_operand_pc_base_bias(instruction, metadata, operand_index),
       metadata->operand_ea_address_literal_width_bytes[operand_index],
       metadata->operand_ea_index_extension_formats[operand_index],
       metadata->operand_ea_index_register_classes[operand_index],
@@ -2697,7 +2718,7 @@ static int sim_concrete_write_operand_by_metadata(const M68kInstructionIR *instr
           metadata->operand_ea_address_shapes[operand_index], metadata->operand_ea_base_kinds[operand_index],
           metadata->operand_ea_displacement_sources[operand_index],
           metadata->operand_ea_uses_displacement[operand_index], metadata->operand_ea_uses_index[operand_index],
-          metadata->operand_ea_pc_base_bias_bytes[operand_index],
+          sim_operand_pc_base_bias(instruction, metadata, operand_index),
           metadata->operand_ea_address_literal_width_bytes[operand_index],
           metadata->operand_ea_index_extension_formats[operand_index],
           metadata->operand_ea_index_register_classes[operand_index],
@@ -2893,7 +2914,7 @@ static int sim_concrete_eval_value_operand_by_metadata(const M68kInstructionIR *
           metadata->operand_ea_address_shapes[operand_index], metadata->operand_ea_base_kinds[operand_index],
           metadata->operand_ea_displacement_sources[operand_index],
           metadata->operand_ea_uses_displacement[operand_index], metadata->operand_ea_uses_index[operand_index],
-          metadata->operand_ea_pc_base_bias_bytes[operand_index],
+          sim_operand_pc_base_bias(instruction, metadata, operand_index),
           metadata->operand_ea_address_literal_width_bytes[operand_index],
           metadata->operand_ea_index_extension_formats[operand_index],
           metadata->operand_ea_index_register_classes[operand_index],
@@ -2911,7 +2932,7 @@ static int sim_concrete_eval_value_operand_by_metadata(const M68kInstructionIR *
       metadata->operand_ea_address_shapes[operand_index], metadata->operand_ea_base_kinds[operand_index],
       metadata->operand_ea_displacement_sources[operand_index],
       metadata->operand_ea_uses_displacement[operand_index], metadata->operand_ea_uses_index[operand_index],
-      metadata->operand_ea_pc_base_bias_bytes[operand_index],
+      sim_operand_pc_base_bias(instruction, metadata, operand_index),
       metadata->operand_ea_address_literal_width_bytes[operand_index],
       metadata->operand_ea_index_extension_formats[operand_index],
       metadata->operand_ea_index_register_classes[operand_index],
@@ -3267,7 +3288,7 @@ int m68k_simulate_step_with_memory(const M68kObject *object, size_t section_inde
         metadata->operand_ea_displacement_sources[metadata->source_operand_index],
         metadata->operand_ea_uses_displacement[metadata->source_operand_index],
         metadata->operand_ea_uses_index[metadata->source_operand_index],
-        metadata->operand_ea_pc_base_bias_bytes[metadata->source_operand_index],
+        sim_operand_pc_base_bias(instruction, metadata, metadata->source_operand_index),
         metadata->operand_ea_address_literal_width_bytes[metadata->source_operand_index],
         metadata->operand_ea_index_extension_formats[metadata->source_operand_index],
         metadata->operand_ea_index_register_classes[metadata->source_operand_index],
@@ -3328,7 +3349,7 @@ int m68k_simulate_step_with_memory(const M68kObject *object, size_t section_inde
           metadata->operand_ea_address_shapes[address_index], metadata->operand_ea_base_kinds[address_index],
           metadata->operand_ea_displacement_sources[address_index],
           metadata->operand_ea_uses_displacement[address_index], metadata->operand_ea_uses_index[address_index],
-          metadata->operand_ea_pc_base_bias_bytes[address_index],
+          sim_operand_pc_base_bias(instruction, metadata, address_index),
           metadata->operand_ea_address_literal_width_bytes[address_index],
           metadata->operand_ea_index_extension_formats[address_index],
           metadata->operand_ea_index_register_classes[address_index],
@@ -3617,7 +3638,7 @@ int m68k_simulate_step_with_memory(const M68kObject *object, size_t section_inde
           metadata->operand_ea_displacement_sources[metadata->source_operand_index],
           metadata->operand_ea_uses_displacement[metadata->source_operand_index],
           metadata->operand_ea_uses_index[metadata->source_operand_index],
-          metadata->operand_ea_pc_base_bias_bytes[metadata->source_operand_index],
+          sim_operand_pc_base_bias(instruction, metadata, metadata->source_operand_index),
           metadata->operand_ea_address_literal_width_bytes[metadata->source_operand_index],
           metadata->operand_ea_index_extension_formats[metadata->source_operand_index],
           metadata->operand_ea_index_register_classes[metadata->source_operand_index],
@@ -3791,8 +3812,8 @@ int m68k_simulate_step_with_memory(const M68kObject *object, size_t section_inde
               ? metadata->dest_operand_index : metadata->source_operand_index],
             metadata->operand_ea_uses_index[metadata->operation_type == M68K_SIM_OP_BITFIELD_INSERT
               ? metadata->dest_operand_index : metadata->source_operand_index],
-            metadata->operand_ea_pc_base_bias_bytes[metadata->operation_type == M68K_SIM_OP_BITFIELD_INSERT
-              ? metadata->dest_operand_index : metadata->source_operand_index],
+            sim_operand_pc_base_bias(instruction, metadata, metadata->operation_type == M68K_SIM_OP_BITFIELD_INSERT
+              ? metadata->dest_operand_index : metadata->source_operand_index),
             metadata->operand_ea_address_literal_width_bytes[metadata->operation_type == M68K_SIM_OP_BITFIELD_INSERT
               ? metadata->dest_operand_index : metadata->source_operand_index],
             metadata->operand_ea_index_extension_formats[metadata->operation_type == M68K_SIM_OP_BITFIELD_INSERT
@@ -3927,7 +3948,7 @@ int m68k_simulate_step_with_memory(const M68kObject *object, size_t section_inde
           metadata->operand_ea_address_shapes[address_index], metadata->operand_ea_base_kinds[address_index],
           metadata->operand_ea_displacement_sources[address_index],
           metadata->operand_ea_uses_displacement[address_index], metadata->operand_ea_uses_index[address_index],
-          metadata->operand_ea_pc_base_bias_bytes[address_index],
+          sim_operand_pc_base_bias(instruction, metadata, address_index),
           metadata->operand_ea_address_literal_width_bytes[address_index],
           metadata->operand_ea_index_extension_formats[address_index],
           metadata->operand_ea_index_register_classes[address_index],
@@ -4009,17 +4030,18 @@ int m68k_simulate_step_with_memory(const M68kObject *object, size_t section_inde
         M68kSimValue address;
         uint32_t cursor;
         uint16_t mask = (uint16_t)instruction->operands[reglist_index].value.value;
-        uint8_t address_reg;
+        uint8_t address_reg = 0U;
         uint8_t address_shape = sim_effective_ea_shape(metadata->operand_ea_address_shapes[address_index], address_operand);
         int is_predecrement = sim_multi_transfer_uses_predecrement(metadata->multi_transfer_address_update,
           metadata->operand_ea_register_updates[address_index], address_shape);
-        if (!sim_ea_address_register(address_shape, address_operand, &address_reg)) return 0;
+        if (is_predecrement && !sim_ea_address_register(address_shape, address_operand, &address_reg)) return 0;
+        if (is_predecrement) out_result->next_state.a[address_reg] = g_m68k_sim_unknown_value;
         if (sim_compute_ea_address(section, instruction, offset, address_operand,
               metadata->operand_ea_address_formulas[address_index],
               metadata->operand_ea_address_shapes[address_index], metadata->operand_ea_base_kinds[address_index],
             metadata->operand_ea_displacement_sources[address_index],
             metadata->operand_ea_uses_displacement[address_index], metadata->operand_ea_uses_index[address_index],
-            metadata->operand_ea_pc_base_bias_bytes[address_index],
+            sim_operand_pc_base_bias(instruction, metadata, address_index),
             metadata->operand_ea_address_literal_width_bytes[address_index],
             metadata->operand_ea_index_extension_formats[address_index],
             metadata->operand_ea_index_register_classes[address_index],
@@ -4053,17 +4075,27 @@ int m68k_simulate_step_with_memory(const M68kObject *object, size_t section_inde
         M68kSimValue address;
         uint32_t cursor;
         uint16_t mask = (uint16_t)instruction->operands[reglist_index].value.value;
-        uint8_t address_reg;
+        uint8_t address_reg = 0U;
         uint8_t address_shape = sim_effective_ea_shape(metadata->operand_ea_address_shapes[address_index], address_operand);
         int is_postincrement = sim_multi_transfer_uses_postincrement(metadata->multi_transfer_address_update,
           metadata->operand_ea_register_updates[address_index], address_shape);
-        if (!sim_ea_address_register(address_shape, address_operand, &address_reg)) return 0;
+        /* Every selected destination is written even when its source EA or
+         * bytes are unknown. Resolve against the untouched input state below;
+         * retaining an old destination would manufacture a must-value. */
+        for (lhs_reg = 0U; lhs_reg < 16U; ++lhs_reg) {
+          uint8_t reg_is_address, reg_index;
+          if (sim_multi_transfer_includes_slot(metadata->multi_transfer_reg_iteration, mask, lhs_reg) &&
+              sim_reglist_slot(lhs_reg, &reg_is_address, &reg_index))
+            sim_write_register_slot(&out_result->next_state, reg_is_address, reg_index, &g_m68k_sim_unknown_value);
+        }
+        if (is_postincrement && !sim_ea_address_register(address_shape, address_operand, &address_reg)) return 0;
+        if (is_postincrement) out_result->next_state.a[address_reg] = g_m68k_sim_unknown_value;
         if (sim_compute_ea_address(section, instruction, offset, address_operand,
               metadata->operand_ea_address_formulas[address_index],
               metadata->operand_ea_address_shapes[address_index], metadata->operand_ea_base_kinds[address_index],
             metadata->operand_ea_displacement_sources[address_index],
             metadata->operand_ea_uses_displacement[address_index], metadata->operand_ea_uses_index[address_index],
-            metadata->operand_ea_pc_base_bias_bytes[address_index],
+            sim_operand_pc_base_bias(instruction, metadata, address_index),
             metadata->operand_ea_address_literal_width_bytes[address_index],
             metadata->operand_ea_index_extension_formats[address_index],
             metadata->operand_ea_index_register_classes[address_index],
@@ -4106,7 +4138,7 @@ int m68k_simulate_step_with_memory(const M68kObject *object, size_t section_inde
         metadata->operand_ea_displacement_sources[metadata->source_operand_index],
         metadata->operand_ea_uses_displacement[metadata->source_operand_index],
         metadata->operand_ea_uses_index[metadata->source_operand_index],
-        metadata->operand_ea_pc_base_bias_bytes[metadata->source_operand_index],
+        sim_operand_pc_base_bias(instruction, metadata, metadata->source_operand_index),
         metadata->operand_ea_address_literal_width_bytes[metadata->source_operand_index],
         metadata->operand_ea_index_extension_formats[metadata->source_operand_index],
         metadata->operand_ea_index_register_classes[metadata->source_operand_index],
@@ -4230,7 +4262,7 @@ int m68k_simulate_step_with_memory(const M68kObject *object, size_t section_inde
           metadata->operand_ea_displacement_sources[metadata->target_operand_index],
           metadata->operand_ea_uses_displacement[metadata->target_operand_index],
           metadata->operand_ea_uses_index[metadata->target_operand_index],
-          metadata->operand_ea_pc_base_bias_bytes[metadata->target_operand_index],
+          sim_operand_pc_base_bias(instruction, metadata, metadata->target_operand_index),
           metadata->operand_ea_address_literal_width_bytes[metadata->target_operand_index],
           metadata->operand_ea_index_extension_formats[metadata->target_operand_index],
           metadata->operand_ea_index_register_classes[metadata->target_operand_index],
@@ -4603,7 +4635,7 @@ int m68k_simulate_step_concrete(const M68kInstructionIR *instruction, uint8_t ta
             metadata->operand_ea_displacement_sources[metadata->source_operand_index],
             metadata->operand_ea_uses_displacement[metadata->source_operand_index],
             metadata->operand_ea_uses_index[metadata->source_operand_index],
-            metadata->operand_ea_pc_base_bias_bytes[metadata->source_operand_index],
+            sim_operand_pc_base_bias(instruction, metadata, metadata->source_operand_index),
             metadata->operand_ea_address_literal_width_bytes[metadata->source_operand_index],
             metadata->operand_ea_index_extension_formats[metadata->source_operand_index],
             metadata->operand_ea_index_register_classes[metadata->source_operand_index],
@@ -4707,7 +4739,7 @@ int m68k_simulate_step_concrete(const M68kInstructionIR *instruction, uint8_t ta
           metadata->operand_ea_displacement_sources[metadata->dest_operand_index],
           metadata->operand_ea_uses_displacement[metadata->dest_operand_index],
           metadata->operand_ea_uses_index[metadata->dest_operand_index],
-          metadata->operand_ea_pc_base_bias_bytes[metadata->dest_operand_index],
+          sim_operand_pc_base_bias(instruction, metadata, metadata->dest_operand_index),
           metadata->operand_ea_address_literal_width_bytes[metadata->dest_operand_index],
           metadata->operand_ea_index_extension_formats[metadata->dest_operand_index],
           metadata->operand_ea_index_register_classes[metadata->dest_operand_index],
@@ -4812,8 +4844,8 @@ int m68k_simulate_step_concrete(const M68kInstructionIR *instruction, uint8_t ta
             ? metadata->dest_operand_index : metadata->source_operand_index],
           metadata->operand_ea_uses_index[metadata->operation_type == M68K_SIM_OP_BITFIELD_INSERT
             ? metadata->dest_operand_index : metadata->source_operand_index],
-          metadata->operand_ea_pc_base_bias_bytes[metadata->operation_type == M68K_SIM_OP_BITFIELD_INSERT
-            ? metadata->dest_operand_index : metadata->source_operand_index],
+          sim_operand_pc_base_bias(instruction, metadata, metadata->operation_type == M68K_SIM_OP_BITFIELD_INSERT
+            ? metadata->dest_operand_index : metadata->source_operand_index),
           metadata->operand_ea_address_literal_width_bytes[metadata->operation_type == M68K_SIM_OP_BITFIELD_INSERT
             ? metadata->dest_operand_index : metadata->source_operand_index],
           metadata->operand_ea_index_extension_formats[metadata->operation_type == M68K_SIM_OP_BITFIELD_INSERT
@@ -4937,7 +4969,7 @@ int m68k_simulate_step_concrete(const M68kInstructionIR *instruction, uint8_t ta
           metadata->operand_ea_address_shapes[address_index], metadata->operand_ea_base_kinds[address_index],
           metadata->operand_ea_displacement_sources[address_index],
           metadata->operand_ea_uses_displacement[address_index], metadata->operand_ea_uses_index[address_index],
-          metadata->operand_ea_pc_base_bias_bytes[address_index],
+          sim_operand_pc_base_bias(instruction, metadata, address_index),
           metadata->operand_ea_address_literal_width_bytes[address_index],
           metadata->operand_ea_index_extension_formats[address_index],
           metadata->operand_ea_index_register_classes[address_index],
@@ -5033,14 +5065,14 @@ int m68k_simulate_step_concrete(const M68kInstructionIR *instruction, uint8_t ta
       uint32_t address;
         uint32_t cursor;
         uint16_t mask = (uint16_t)instruction->operands[reglist_index].value.value;
-        uint8_t address_reg;
+        uint8_t address_reg = 0U;
         uint8_t address_shape = sim_effective_ea_shape(metadata->operand_ea_address_shapes[address_index], address_operand);
         int is_predecrement = sim_multi_transfer_uses_predecrement(metadata->multi_transfer_address_update,
           metadata->operand_ea_register_updates[address_index], address_shape);
         M68kSimConcreteState source_state = *io_state;
         const M68kSimConcreteState *read_state = sim_multi_transfer_source_state(
           metadata->multi_transfer_source_snapshot, io_state, &source_state);
-        if (!sim_ea_address_register(address_shape, address_operand, &address_reg)) {
+        if (is_predecrement && !sim_ea_address_register(address_shape, address_operand, &address_reg)) {
           sim_diag_error(diagnostics, "unsupported concrete movem address register");
           return -1;
         }
@@ -5049,7 +5081,7 @@ int m68k_simulate_step_concrete(const M68kInstructionIR *instruction, uint8_t ta
               metadata->operand_ea_address_shapes[address_index], metadata->operand_ea_base_kinds[address_index],
             metadata->operand_ea_displacement_sources[address_index],
             metadata->operand_ea_uses_displacement[address_index], metadata->operand_ea_uses_index[address_index],
-            metadata->operand_ea_pc_base_bias_bytes[address_index],
+            sim_operand_pc_base_bias(instruction, metadata, address_index),
             metadata->operand_ea_address_literal_width_bytes[address_index],
             metadata->operand_ea_index_extension_formats[address_index],
             metadata->operand_ea_index_register_classes[address_index],
@@ -5082,11 +5114,11 @@ int m68k_simulate_step_concrete(const M68kInstructionIR *instruction, uint8_t ta
         uint32_t address;
         uint32_t cursor;
         uint16_t mask = (uint16_t)instruction->operands[reglist_index].value.value;
-        uint8_t address_reg;
+        uint8_t address_reg = 0U;
         uint8_t address_shape = sim_effective_ea_shape(metadata->operand_ea_address_shapes[address_index], address_operand);
         int is_postincrement = sim_multi_transfer_uses_postincrement(metadata->multi_transfer_address_update,
           metadata->operand_ea_register_updates[address_index], address_shape);
-        if (!sim_ea_address_register(address_shape, address_operand, &address_reg)) {
+        if (is_postincrement && !sim_ea_address_register(address_shape, address_operand, &address_reg)) {
           sim_diag_error(diagnostics, "unsupported concrete movem address register");
           return -1;
         }
@@ -5095,7 +5127,7 @@ int m68k_simulate_step_concrete(const M68kInstructionIR *instruction, uint8_t ta
               metadata->operand_ea_address_shapes[address_index], metadata->operand_ea_base_kinds[address_index],
             metadata->operand_ea_displacement_sources[address_index],
             metadata->operand_ea_uses_displacement[address_index], metadata->operand_ea_uses_index[address_index],
-            metadata->operand_ea_pc_base_bias_bytes[address_index],
+            sim_operand_pc_base_bias(instruction, metadata, address_index),
             metadata->operand_ea_address_literal_width_bytes[address_index],
             metadata->operand_ea_index_extension_formats[address_index],
             metadata->operand_ea_index_register_classes[address_index],
@@ -5205,7 +5237,7 @@ int m68k_simulate_step_concrete(const M68kInstructionIR *instruction, uint8_t ta
           metadata->operand_ea_displacement_sources[metadata->source_operand_index],
           metadata->operand_ea_uses_displacement[metadata->source_operand_index],
           metadata->operand_ea_uses_index[metadata->source_operand_index],
-          metadata->operand_ea_pc_base_bias_bytes[metadata->source_operand_index],
+          sim_operand_pc_base_bias(instruction, metadata, metadata->source_operand_index),
           metadata->operand_ea_address_literal_width_bytes[metadata->source_operand_index],
           metadata->operand_ea_index_extension_formats[metadata->source_operand_index],
           metadata->operand_ea_index_register_classes[metadata->source_operand_index],
@@ -5246,7 +5278,7 @@ int m68k_simulate_step_concrete(const M68kInstructionIR *instruction, uint8_t ta
           metadata->operand_ea_displacement_sources[metadata->dest_operand_index],
           metadata->operand_ea_uses_displacement[metadata->dest_operand_index],
           metadata->operand_ea_uses_index[metadata->dest_operand_index],
-          metadata->operand_ea_pc_base_bias_bytes[metadata->dest_operand_index],
+          sim_operand_pc_base_bias(instruction, metadata, metadata->dest_operand_index),
           metadata->operand_ea_address_literal_width_bytes[metadata->dest_operand_index],
           metadata->operand_ea_index_extension_formats[metadata->dest_operand_index],
           metadata->operand_ea_index_register_classes[metadata->dest_operand_index],

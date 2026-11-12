@@ -38894,13 +38894,14 @@ horizon_lower_fill_colour:
 	dc.w $0000	; Lower band indexed fill colour, copied from current landscape colour. The lower fill uses vie...
 build_ground_grid_if_enabled:
 	btst.b #1,landscape_background_draw_flags(a6)
-	bne.b abs_0_0002F022
-abs_0_0002F020:
+	bne.b test_ground_grid_view_height
+return_from_ground_grid_admission:
 	rts
-abs_0_0002F022:
+    ; Height admission tests N of viewY-(-8000).L, not signed-less-than. Overflow retains the original acceptance behavior; disabled grid returns before this test.
+test_ground_grid_view_height:
 	move.l view_origin_y(a6),d0
 	cmp.l #$FFFFE0C0,d0
-	bmi.b abs_0_0002F020
+	bmi.b return_from_ground_grid_admission
 	move.w #$19,polygon_candidates_remaining.l
 	move.w #$4000,d0
 	move.w d0,d1
@@ -38936,9 +38937,9 @@ abs_0_0002F022:
 	asl.l #2,d3
 	swap.w d3
 	cmp.w #$3000,d3
-	blt.b abs_0_0002F0AA
+	blt.b rotate_ground_grid_center_offset
 	move.w #$3000,d3
-abs_0_0002F0AA:
+rotate_ground_grid_center_offset:
 	ext.l d3
 	bsr.w rotate_ground_grid_pair_by_inverse_view_heading
 	add.l view_origin_x(a6),d1
@@ -38994,19 +38995,20 @@ abs_0_0002F0AA:
 	movem.w ground_grid_view_origin_delta.l,d1-d3
 	movem.w ground_grid_view_x_step.l,d4-d6
 	moveq.l #5,d0
-abs_0_0002F17A:
+    ; Six rows of six XYZ WORD triples at 8-byte stride. Only outer rows/columns receive edge offsets; WORD arithmetic wraps. Each record tail WORD stays untouched.
+build_next_ground_grid_vertex_row:
 	movem.w d0-d3,-(a7)
 	cmp.w #$5,d0
-	bne.b abs_0_0002F19C
+	bne.b test_last_ground_grid_row_adjustment
 	move.w ground_grid_view_z_edge_offset.l,d7
 	add.w d7,d1
 	move.w ground_grid_view_z_edge_offset_y_delta.l,d7
 	add.w d7,d2
 	move.w ground_grid_view_z_edge_offset_z_delta.l,d7
 	add.w d7,d3
-abs_0_0002F19C:
+test_last_ground_grid_row_adjustment:
 	tst.w d0
-	bne.b abs_0_0002F1CA
+	bne.b begin_ground_grid_row_columns
 	move.w ground_grid_view_z_edge_offset.l,d7
 	sub.w ground_grid_view_z_step.l,d7
 	add.w d7,d1
@@ -39016,21 +39018,21 @@ abs_0_0002F19C:
 	move.w ground_grid_view_z_edge_offset_z_delta.l,d7
 	sub.w ground_grid_view_z_step_z_delta.l,d7
 	add.w d7,d3
-abs_0_0002F1CA:
+begin_ground_grid_row_columns:
 	moveq.l #5,d7
-abs_0_0002F1CC:
+write_next_ground_grid_view_vertex:
 	movem.w d1-d3,(a0)
 	cmp.w #$5,d7
-	bne.b abs_0_0002F1F2
+	bne.b test_last_ground_grid_column_adjustment
 	move.w ground_grid_view_x_edge_offset.l,d0
 	add.w d0,(a0)
 	move.w ground_grid_view_x_edge_offset_y_delta.l,d0
 	add.w d0,$0002(a0)
 	move.w ground_grid_view_x_edge_offset_z_delta.l,d0
 	add.w d0,$0004(a0)
-abs_0_0002F1F2:
+test_last_ground_grid_column_adjustment:
 	tst.w d7
-	bne.b abs_0_0002F218
+	bne.b advance_ground_grid_vertex_column
 	move.w ground_grid_view_x_edge_offset.l,d0
 	sub.w d4,d0
 	add.w d0,(a0)
@@ -39040,17 +39042,17 @@ abs_0_0002F1F2:
 	move.w ground_grid_view_x_edge_offset_z_delta.l,d0
 	sub.w d6,d0
 	add.w d0,$0004(a0)
-abs_0_0002F218:
+advance_ground_grid_vertex_column:
 	addq.w #8,a0
 	add.w d4,d1
 	add.w d5,d2
 	add.w d6,d3
-	dbf.w d7,abs_0_0002F1CC
+	dbf.w d7,write_next_ground_grid_view_vertex
 	movem.w (a7)+,d0-d3
 	add.w ground_grid_view_z_step.l,d1
 	add.w ground_grid_view_z_step_y_delta.l,d2
 	add.w ground_grid_view_z_step_z_delta.l,d3
-	dbf.w d0,abs_0_0002F17A
+	dbf.w d0,build_next_ground_grid_vertex_row
 	move.w #$23,d0
 	lea.l model_view_vertex_scratch_prefix(a6),a3
 	lea.l projected_vertex_scratch_prefix.l,a4
@@ -39061,12 +39063,13 @@ abs_0_0002F218:
 	move.w view_clip_max_y(a6),d7
 	movea.w projection_screen_origin_x(a6),a1
 	movea.w projection_screen_origin_y(a6),a5
+    ; Depth <=128 marks BYTE6=$80 without refreshing projected XYZ. Depth129..8223 uses an even lookup index; larger positive depths use signed division. BYTE7 stays untouched.
 project_special_mesh_screen_loop:
 	movem.w (a3),d1-d3
 	cmp.w #$80,d3
-	ble.w abs_0_0002F2C2
+	ble.w mark_special_mesh_near_vertex
 	cmp.w #$2020,d3
-	bge.w abs_0_0002F2C8
+	bge.w project_special_mesh_far_vertex_by_division
 	andi.w #65534,d3
 	muls.w $0(a0,d3.w),d1
 	muls.w $0(a0,d3.w),d2
@@ -39074,92 +39077,94 @@ project_special_mesh_screen_loop:
 	add.l d2,d2
 	swap.w d1
 	swap.w d2
-abs_0_0002F292:
+offset_special_mesh_projection_to_screen:
 	add.w a1,d1
 	add.w a5,d2
 	movem.w d1-d3,(a4)
 	clr.b d3
 	cmp.w d4,d1
-	bge.b abs_0_0002F2A2
+	bge.b test_special_mesh_right_clip_bound
 	addq.b #1,d3
-abs_0_0002F2A2:
+test_special_mesh_right_clip_bound:
 	cmp.w d5,d1
-	ble.b abs_0_0002F2A8
+	ble.b test_special_mesh_top_clip_bound
 	addq.b #2,d3
-abs_0_0002F2A8:
+test_special_mesh_top_clip_bound:
 	cmp.w d6,d2
-	bge.b abs_0_0002F2AE
+	bge.b test_special_mesh_bottom_clip_bound
 	addq.b #4,d3
-abs_0_0002F2AE:
+test_special_mesh_bottom_clip_bound:
 	cmp.w d7,d2
-	ble.b abs_0_0002F2B4
+	ble.b store_special_mesh_clip_byte_and_advance
 	addq.b #8,d3
     ; Special36-vertex writer puts clipping BYTE at destination+6; some readers test WORD+6, retaining original untouched-byte7 seed dependence. Do not merge with source-array clipBYTE7.
-abs_0_0002F2B4:
+store_special_mesh_clip_byte_and_advance:
 	move.b d3,$0006(a4)
 	addq.w #8,a4
 	addq.w #8,a3
 	dbf.w d0,project_special_mesh_screen_loop
 	bra.b emit_special_mesh_quads_continuation
-abs_0_0002F2C2:
+mark_special_mesh_near_vertex:
 	move.b #$80,d3
-	bra.b abs_0_0002F2B4
-abs_0_0002F2C8:
+	bra.b store_special_mesh_clip_byte_and_advance
+project_special_mesh_far_vertex_by_division:
 	asl.l #7,d1
 	asl.l #7,d2
 	tst.w d3
-	bmi.b abs_0_0002F292
-	beq.b abs_0_0002F292
+	bmi.b offset_special_mesh_projection_to_screen
+	beq.b offset_special_mesh_projection_to_screen
 	divs.w d3,d1
 	divs.w d3,d2
-	bra.b abs_0_0002F292
+	bra.b offset_special_mesh_projection_to_screen
 emit_special_mesh_quads_continuation:
 	lea.l ground_grid_quad_vertex_offsets(pc),a5
 	movea.l scene_reference_write_cursor.l,a3
 	movea.l scene_polygon_write_cursor.l,a4
-abs_0_0002F2E8:
+    ; 25 candidates toggle checkerboard phase. Skips rewind the cursor but retain the speculative $7FF0 store. Accepted quads append a reference/count; no arena bound is proved.
+emit_next_ground_grid_quad_candidate:
 	movem.l a4-a5,-(a7)
 	move.w #$7FF0,(a4)+
 	movea.l a4,a1
 	not.w ground_grid_checkerboard_phase.l
-	beq.w abs_0_0002F364
+	beq.w skip_checkerboard_ground_grid_quad
 	move.w special_mesh_material_index.l,(a4)+
 	lea.l projected_vertex_scratch_prefix.l,a0
 	move.w (a5)+,d0
 	lea.l $0(a0,d0.w),a2
 	tst.w $0006(a2)
-	bne.w abs_0_0002F370
+	bne.w prepare_ground_grid_quad_clipping_input
 	move.l (a2)+,(a4)+
 	move.w (a2)+,d1
 	move.w (a5)+,d0
 	lea.l $0(a0,d0.w),a2
 	tst.w $0006(a2)
-	bne.w abs_0_0002F370
+	bne.w prepare_ground_grid_quad_clipping_input
 	move.l (a2)+,(a4)+
 	move.w (a2)+,d1
 	move.w (a5)+,d0
 	lea.l $0(a0,d0.w),a2
 	tst.b $0006(a2)
-	bne.w abs_0_0002F370
+	bne.w prepare_ground_grid_quad_clipping_input
 	move.l (a2)+,(a4)+
 	move.w (a2)+,d1
 	move.w (a5)+,d0
 	lea.l $0(a0,d0.w),a2
 	tst.b $0006(a2)
-	bne.w abs_0_0002F370
+	bne.w prepare_ground_grid_quad_clipping_input
 	move.l (a2)+,(a4)+
 	move.w (a2)+,d1
 	move.w #$FFFF,(a4)+
 	movem.l (a7)+,a0/a2
 	move.l a0,(a3)+
 	addq.w #1,scene_packet_count.l
-	bra.w abs_0_0002F4D4
-abs_0_0002F364:
+	bra.w consume_ground_grid_quad_candidate
+skip_checkerboard_ground_grid_quad:
 	addq.w #8,a5
 	movem.l (a7)+,a0/a2
 	subq.w #2,a4
-	bra.w abs_0_0002F4D4
-abs_0_0002F370:
+	bra.w consume_ground_grid_quad_candidate
+    ; First two fast tests read WORD6, including retained BYTE7; last two read BYTE6. Slow path copies four XYZ triples, rejects common side outcodes, otherwise enters the clipper.
+prepare_ground_grid_quad_clipping_input:
 	movem.l (a7)+,a4-a5
 	lea.l polygon_clip_input_workspace.l,a1
 	moveq.l #4,d7
@@ -39173,69 +39178,69 @@ abs_0_0002F370:
 	move.w (a5)+,d0
 	lea.l $0(a0,d0.w),a2
 	move.b $6(a3,d0.w),d3
-	beq.b abs_0_0002F3AA
-	bpl.b abs_0_0002F3A4
+	beq.b copy_first_ground_grid_corner_xyz
+	bpl.b accumulate_first_ground_grid_corner_outcode
 	moveq.l #-1,d4
-	bra.b abs_0_0002F3AA
-abs_0_0002F3A4:
+	bra.b copy_first_ground_grid_corner_xyz
+accumulate_first_ground_grid_corner_outcode:
 	addq.w #1,d2
 	and.b d3,d1
 	or.b d3,d4
-abs_0_0002F3AA:
+copy_first_ground_grid_corner_xyz:
 	move.l (a2)+,(a1)+
 	move.w (a2)+,(a1)+
 	move.w (a5)+,d0
 	lea.l $0(a0,d0.w),a2
 	move.b $6(a3,d0.w),d3
-	beq.b abs_0_0002F3C6
-	bpl.b abs_0_0002F3C0
+	beq.b copy_second_ground_grid_corner_xyz
+	bpl.b accumulate_second_ground_grid_corner_outcode
 	moveq.l #-1,d4
-	bra.b abs_0_0002F3C6
-abs_0_0002F3C0:
+	bra.b copy_second_ground_grid_corner_xyz
+accumulate_second_ground_grid_corner_outcode:
 	addq.w #1,d2
 	and.b d3,d1
 	or.b d3,d4
-abs_0_0002F3C6:
+copy_second_ground_grid_corner_xyz:
 	move.l (a2)+,(a1)+
 	move.w (a2)+,(a1)+
 	move.w (a5)+,d0
 	lea.l $0(a0,d0.w),a2
 	move.b $6(a3,d0.w),d3
-	beq.b abs_0_0002F3E2
-	bpl.b abs_0_0002F3DC
+	beq.b copy_third_ground_grid_corner_xyz
+	bpl.b accumulate_third_ground_grid_corner_outcode
 	moveq.l #-1,d4
-	bra.b abs_0_0002F3E2
-abs_0_0002F3DC:
+	bra.b copy_third_ground_grid_corner_xyz
+accumulate_third_ground_grid_corner_outcode:
 	addq.w #1,d2
 	and.b d3,d1
 	or.b d3,d4
-abs_0_0002F3E2:
+copy_third_ground_grid_corner_xyz:
 	move.l (a2)+,(a1)+
 	move.w (a2)+,(a1)+
 	move.w (a5)+,d0
 	lea.l $0(a0,d0.w),a2
 	move.b $6(a3,d0.w),d3
-	beq.b abs_0_0002F3FE
-	bpl.b abs_0_0002F3F8
+	beq.b copy_fourth_ground_grid_corner_xyz
+	bpl.b accumulate_fourth_ground_grid_corner_outcode
 	moveq.l #-1,d4
-	bra.b abs_0_0002F3FE
-abs_0_0002F3F8:
+	bra.b copy_fourth_ground_grid_corner_xyz
+accumulate_fourth_ground_grid_corner_outcode:
 	addq.w #1,d2
 	and.b d3,d1
 	or.b d3,d4
-abs_0_0002F3FE:
+copy_fourth_ground_grid_corner_xyz:
 	move.l (a2)+,(a1)+
 	move.w (a2)+,(a1)+
 	movea.l (a7)+,a3
 	tst.w d7
-	beq.w abs_0_0002F4D4
+	beq.w consume_ground_grid_quad_candidate
 	tst.w d4
-	bmi.w abs_0_0002F41A
+	bmi.w clip_ground_grid_quad_in_view_space
 	cmp.b d7,d2
-	bne.b abs_0_0002F41A
+	bne.b clip_ground_grid_quad_in_view_space
 	tst.w d1
-	bne.w abs_0_0002F4D4
-abs_0_0002F41A:
+	bne.w consume_ground_grid_quad_candidate
+clip_ground_grid_quad_in_view_space:
 	lea.l polygon_clip_input_workspace.l,a2
 	addq.w #2,a2
 	move.b #$10,diagnostic_step_byte.l
@@ -39249,69 +39254,70 @@ abs_0_0002F41A:
 	add.w d4,d4
 	movem.w -$6(a2,d4.w),d1-d3
 	cmp.w (a2),d1
-	bne.b abs_0_0002F462
+	bne.b publish_clipped_ground_grid_quad_if_nonempty
 	cmp.w $0002(a2),d2
-	bne.b abs_0_0002F462
+	bne.b publish_clipped_ground_grid_quad_if_nonempty
 	cmp.w $0004(a2),d3
-	bne.b abs_0_0002F462
+	bne.b publish_clipped_ground_grid_quad_if_nonempty
 	subq.w #1,d7
-	bmi.w abs_0_0002F4D4
-abs_0_0002F462:
+	bmi.w consume_ground_grid_quad_candidate
+publish_clipped_ground_grid_quad_if_nonempty:
 	subq.w #1,d7
-	bmi.w abs_0_0002F4D4
+	bmi.w consume_ground_grid_quad_candidate
 	move.l a4,(a3)+
 	addq.w #1,scene_packet_count.l
 	move.w #$7FF0,(a4)+
 	movea.l a4,a1
 	move.w polygon_clip_input_workspace.l,(a4)+
 	lea.l projection_scale_lookup.l,a0
-abs_0_0002F482:
+project_next_clipped_ground_grid_vertex:
 	movem.w (a2)+,d1-d3
 	muls.w #$120,d1
 	muls.w #$62,d2
 	add.w d3,d3
-	ble.w abs_0_0002F4EC
+	ble.w rollback_ground_grid_quad_reference
 	divs.w d3,d1
 	divs.w d3,d2
 	add.w projection_screen_origin_x(a6),d1
 	add.w projection_screen_origin_y(a6),d2
 	cmp.w view_clip_min_x(a6),d1
-	bpl.b abs_0_0002F4AA
+	bpl.b clamp_ground_grid_vertex_to_right_bound
 	move.w view_clip_min_x(a6),d1
-abs_0_0002F4AA:
+clamp_ground_grid_vertex_to_right_bound:
 	cmp.w view_clip_max_x(a6),d1
-	bmi.b abs_0_0002F4B4
+	bmi.b clamp_ground_grid_vertex_to_top_bound
 	move.w view_clip_max_x(a6),d1
-abs_0_0002F4B4:
+clamp_ground_grid_vertex_to_top_bound:
 	cmp.w view_clip_min_y(a6),d2
-	bpl.b abs_0_0002F4BE
+	bpl.b clamp_ground_grid_vertex_to_bottom_bound
 	move.w view_clip_min_y(a6),d2
-abs_0_0002F4BE:
+clamp_ground_grid_vertex_to_bottom_bound:
 	cmp.w view_clip_max_y(a6),d2
-	bmi.b abs_0_0002F4C8
+	bmi.b append_clipped_ground_grid_screen_vertex
 	move.w view_clip_max_y(a6),d2
-abs_0_0002F4C8:
+append_clipped_ground_grid_screen_vertex:
 	move.w d1,(a4)+
 	move.w d2,(a4)+
-	dbf.w d7,abs_0_0002F482
+	dbf.w d7,project_next_clipped_ground_grid_vertex
 	move.w #$FFFF,(a4)+
-abs_0_0002F4D4:
+consume_ground_grid_quad_candidate:
 	subq.w #1,polygon_candidates_remaining.l
-	bne.w abs_0_0002F2E8
+	bne.w emit_next_ground_grid_quad_candidate
 	move.l a4,scene_polygon_write_cursor.l
 	move.l a3,scene_reference_write_cursor.l
 	rts
-abs_0_0002F4EC:
+    ; BLE uses ADD.W overflow, not a fresh doubled-depth test. Positive depths can wrap to negative divisors. Rejection retracts reference/count and cursor, retaining speculative bytes.
+rollback_ground_grid_quad_reference:
 	movea.l -(a3),a4
 	subq.w #1,scene_packet_count.l
-	bra.w abs_0_0002F4D4
+	bra.w consume_ground_grid_quad_candidate
 initialize_ground_grid_quad_vertex_offsets:
 	lea.l ground_grid_quad_vertex_offsets(pc),a0
 	moveq.l #0,d0
 	moveq.l #4,d7
-abs_0_0002F500:
+initialize_next_ground_grid_quad_row:
 	moveq.l #4,d6
-abs_0_0002F502:
+write_ground_grid_quad_corner_offsets:
 	move.w d0,(a0)+
 	addq.w #8,d0
 	move.w d0,(a0)+
@@ -39320,9 +39326,9 @@ abs_0_0002F502:
 	subq.w #8,d0
 	move.w d0,(a0)+
 	subi.w #40,d0
-	dbf.w d6,abs_0_0002F502
+	dbf.w d6,write_ground_grid_quad_corner_offsets
 	addq.w #8,d0
-	dbf.w d7,abs_0_0002F500
+	dbf.w d7,initialize_next_ground_grid_quad_row
 	rts
 special_mesh_material_index:
 	dc.w $0009
