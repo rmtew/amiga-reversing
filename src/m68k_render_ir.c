@@ -1241,6 +1241,24 @@ static const M68kAnalysisTargetEquate *scalar_group_equate(const M68kAnalysisPol
   return found;
 }
 
+/* A custom scalar group is an explicit field binding, separate from generated
+ * platform value domains even when the domain strings happen to coincide. */
+static const char *structured_scalar_equate_group(const M68kAnalysisPolicy *policy,
+    const M68kAnalysisStructuredDataItem *item) {
+  if (!item) return NULL;
+  const M68kAnalysisCustomStruct *record = policy_custom_struct_named(policy, item->struct_name);
+  for (uint16_t i = 0U; record && i < record->field_count; ++i) {
+    const M68kAnalysisCustomStructField *field = &record->fields[i];
+    if (!field->equate_group[0] || strcmp(field->equate_group, item->value_domain)) continue;
+    if ((!strcmp(field->name, item->field_name) && field->size == item->size) ||
+        (!item->field_name[0] && record->field_count == 1U && !record->base_struct[0] &&
+         field->offset == 0U && field->size == record->size && field->size &&
+         item->size >= field->size && item->size % field->size == 0U))
+      return field->equate_group;
+  }
+  return NULL;
+}
+
 /* Data-block expansion gives internal array fields generated labels such as
  * table_flags_3.  They are not symbols in the original program: the sole
  * table/instance label plus its RS layout is sufficient. */
@@ -3116,14 +3134,34 @@ static void render_asm_structured_raw_data_with_labels(M68kRenderIRPreview *prev
     const M68kDecodeSectionIR *section, const uint8_t *accepted_start, const M68kRenderLookup *lookup,
     const M68kAnalysisStructuredDataItem *item, uint32_t offset, uint32_t size, uint32_t width,
     const char *comment, uint32_t *io_logical_pc) {
-  uint32_t cursor = 0U;
+  uint32_t cursor = 0U, last_authored = UINT32_MAX;
+  const char *group = NULL;
   if (preview == NULL || section == NULL || lookup == NULL || item == NULL || section->data == NULL || size == 0U)
     return;
+  const M68kAnalysisCustomStruct *record = policy_custom_struct_named(lookup->policy, item->struct_name);
+  if (!item->field_name[0] && record && record->size == width &&
+      (width == 1U || width == 2U || width == 4U))
+    group = structured_scalar_equate_group(lookup->policy, item);
+  /* Explicit presentations keep the ordinary walker for the whole range. */
+  for (uint16_t i = 0U; group && i < lookup->policy->manual_representation_count; ++i) {
+    const M68kAnalysisManualRepresentation *rep = &lookup->policy->manual_representations[i];
+    if (rep->has_section_index && rep->section_index == section->section_index && !rep->has_operand_index &&
+        rep->offset < (uint64_t)offset + size && offset < (uint64_t)rep->offset + rep->size) group = NULL;
+  }
   while (cursor < size) {
     uint32_t current = offset + cursor;
     uint32_t chunk_size = size - cursor;
     uint32_t probe;
-    if (cursor != 0U && render_plan_should_emit_data_label_statement(preview, section, current)) {
+    /* Scalar formatting advances one physical unit. Bound the existing label
+     * scan before visiting boundaries, rather than rescan the remaining array
+     * for every value. Split units still remain raw bytes. */
+    if (group) {
+      uint32_t cell_bytes = width - (current - item->offset) % width;
+      if (chunk_size > cell_bytes) chunk_size = cell_bytes;
+    }
+    int has_label = cursor != 0U && render_plan_should_emit_data_label_statement(preview, section, current);
+    int authored_here = lookup_instruction_comment(lookup, section->section_index, current) != NULL;
+    if (has_label) {
       render_asm_label(preview, lookup, section->section_index, current, io_logical_pc);
     }
     if (cursor != 0U) {
@@ -3134,11 +3172,15 @@ static void render_asm_structured_raw_data_with_labels(M68kRenderIRPreview *prev
       uint16_t index;
       for (index = 0U; index < lookup->policy->entry_comment_count && index < M68K_ANALYSIS_ENTRY_COMMENT_LIMIT; ++index) {
         const M68kAnalysisEntryComment *entry = &lookup->policy->entry_comments[index];
-        if ((!entry->has_section_index || entry->section_index == section->section_index) &&
-            entry->comment[0] != '\0' && entry->offset > current && entry->offset - current < chunk_size)
-          chunk_size = entry->offset - current;
+        if ((!entry->has_section_index || entry->section_index == section->section_index) && entry->comment[0]) {
+          if (entry->offset == current) authored_here = 1;
+          if (entry->offset > current && entry->offset - current < chunk_size) chunk_size = entry->offset - current;
+        }
       }
     }
+    const char *row_comment = cursor == 0U || (group && (has_label || authored_here ||
+      (last_authored != UINT32_MAX && (uint64_t)last_authored + width == current))) ? comment : NULL;
+    if (authored_here) last_authored = current;
     for (probe = 1U; probe < chunk_size; ++probe) {
       if (render_plan_should_emit_data_label_statement(preview, section, current + probe) ||
           lookup_instruction_comment(lookup, section->section_index, current + probe) != NULL) {
@@ -3151,7 +3193,7 @@ static void render_asm_structured_raw_data_with_labels(M68kRenderIRPreview *prev
         lookup, section->section_index, current);
       if (representation != NULL && representation->size <= chunk_size &&
           render_asm_manual_symbol_representation(preview, lookup, section->section_index, current,
-            representation->size, cursor == 0U ? comment : NULL)) {
+            representation->size, row_comment)) {
         if (io_logical_pc != NULL) *io_logical_pc += representation->size;
         cursor += representation->size;
         continue;
@@ -3165,7 +3207,7 @@ static void render_asm_structured_raw_data_with_labels(M68kRenderIRPreview *prev
         &preview->asm_source_plan, (uint32_t)section->section_index, current, UINT32_MAX,
         M68K_RENDER_PLANNED_EXPRESSION_RELATIVE);
       if (expression != NULL && expression->outcome == M68K_RENDER_PLANNED_EXPRESSION_SYMBOLIC && chunk_size >= 2U) {
-        render_asm_dc_symbol_expr(preview, 2U, expression->expression, cursor == 0U ? comment : NULL);
+        render_asm_dc_symbol_expr(preview, 2U, expression->expression, row_comment);
         if (record_planned_expression_target_access(preview, section->section_index, expression, 0) != 0 ||
             record_planned_expression_target_access(preview, section->section_index, expression, 1) != 0)
           preview->asm_source_allocation_failed = 1U;
@@ -3182,16 +3224,29 @@ static void render_asm_structured_raw_data_with_labels(M68kRenderIRPreview *prev
         }
       }
     }
-    if (render_asm_uniform_literal_array(preview, section, lookup, item, current, chunk_size, width,
-        cursor == 0U ? comment : NULL)) {
+    const M68kAnalysisTargetEquate *scalar_symbol = NULL;
+    if (group) {
+      uint32_t within = (current - item->offset) % width;
+      uint32_t cell_bytes = width - within;
+      if (chunk_size > cell_bytes) chunk_size = cell_bytes;
+      if (!within && chunk_size == width) {
+        uint32_t value = width == 1U ? section->data[current] :
+          width == 2U ? m68k_read_u16be(section->data + current) : m68k_read_u32be(section->data + current);
+        scalar_symbol = scalar_group_equate(lookup->policy, group, value, width);
+      }
+    }
+    if (scalar_symbol) {
+      render_asm_dc_symbol_expr(preview, width, scalar_symbol->name, row_comment);
+    } else if (render_asm_uniform_literal_array(preview, section, lookup, item, current, chunk_size, width,
+        row_comment)) {
       /* The shared logical-PC update below accounts for every repeated unit. */
     } else if (width == 4U && chunk_size >= 4U && (chunk_size & 3U) == 0U) {
-      render_asm_dc_l_values(preview, section->data, current, chunk_size, cursor == 0U ? comment : NULL);
+      render_asm_dc_l_values(preview, section->data, current, chunk_size, row_comment);
     } else if (width >= 2U && chunk_size >= 2U && (chunk_size & 1U) == 0U) {
-      render_asm_dc_w_values(preview, section->data, current, chunk_size, cursor == 0U ? comment : NULL);
+      render_asm_dc_w_values(preview, section->data, current, chunk_size, row_comment);
     } else {
       render_asm_dc_b_with_policy(preview, section, accepted_start, lookup, current, chunk_size,
-        cursor == 0U ? comment : NULL);
+        row_comment);
     }
     if (io_logical_pc != NULL) *io_logical_pc += chunk_size;
     cursor += chunk_size;
@@ -4308,22 +4363,23 @@ static void render_asm_dc_b_string_with_labels(M68kRenderIRPreview *preview, con
   }
 }
 
-/* Repeated one-pointer records need their field role once per visible run.
+/* Repeated one-pointer or grouped-scalar records need their role once per visible run.
  * Keep the policy/row field identity intact; this is only generated assembly
  * commentary. Labels, authored comments and different record formats restart
  * the annotation. Multi-field records still identify each member separately. */
-static int repeats_single_pointer_field_comment(const M68kRenderIRPreview *preview,
+static int repeats_single_field_comment(const M68kRenderIRPreview *preview,
     const M68kRenderLookup *lookup, size_t section_index,
     const M68kAnalysisStructuredDataItem *item, const char *comment, uint32_t last_authored_comment_offset) {
   const M68kAnalysisCustomStruct *record;
   const M68kAnalysisStructuredDataItem *previous;
-  if (!preview || !lookup || !item || !item->is_pointer || item->size != 4U ||
+  if (!preview || !lookup || !item ||
       item->offset < item->size || !item->field_name[0] || item->comment[0] ||
       !comment || strcmp(comment, item->field_name) ||
       lookup_instruction_comment(lookup, section_index, item->offset) ||
       m68k_render_plan_find_label(&preview->asm_source_plan, (uint32_t)section_index, item->offset)) return 0;
   record = policy_custom_struct_named(preview->analysis_policy, item->struct_name);
-  if (!record || record->size != item->size || record->field_count != 1U || record->base_struct[0]) return 0;
+  if (!record || record->size != item->size || record->field_count != 1U || record->base_struct[0] ||
+      (!(item->is_pointer && item->size == 4U) && !structured_scalar_equate_group(lookup->policy, item))) return 0;
   /* The walk already emits authored policy comments. Carry its last source
    * coordinate through retained and streaming output alike; no second policy
    * scan, emitted-row retention or textual comment recognition is needed. */
@@ -4331,7 +4387,8 @@ static int repeats_single_pointer_field_comment(const M68kRenderIRPreview *previ
       last_authored_comment_offset >= item->offset - item->size) return 0;
   previous = lookup_structured_data_item_at_offset(lookup, section_index, item->offset - item->size);
   return previous && previous->offset + previous->size == item->offset &&
-    previous->size == item->size && previous->is_pointer && !previous->comment[0] &&
+    previous->size == item->size && previous->is_pointer == item->is_pointer && !previous->comment[0] &&
+    !strcmp(previous->value_domain, item->value_domain) &&
     !lookup_instruction_comment(lookup, section_index, previous->offset) &&
     !strcmp(previous->struct_name, item->struct_name) && !strcmp(previous->field_name, item->field_name);
 }
@@ -4349,7 +4406,7 @@ static void render_asm_structured_data_item(M68kRenderIRPreview *preview, const 
   if (!render_asm_includes_for_structured_data_item(preview, item)) return;
   comment[0] = '\0';
   comment_text = structured_data_item_render_comment(preview->analysis_policy, section, item, comment, sizeof(comment)) ? comment : NULL;
-  if (repeats_single_pointer_field_comment(preview, lookup, section->section_index, item, comment_text,
+  if (repeats_single_field_comment(preview, lookup, section->section_index, item, comment_text,
       last_authored_comment_offset))
     comment_text = NULL;
   if (item->offset >= section->size || section->data == NULL) {
@@ -5231,7 +5288,9 @@ static int structured_data_item_is_render_candidate(const M68kRenderLookup *look
         ((probe - item->offset) % 2U) == 0U;
       int internal_palette_label = structured_data_item_is_palette(item) &&
         ((probe - item->offset) % 2U) == 0U;
-      if (!internal_copper_label && !internal_palette_label) return 0;
+      int internal_scalar_label = !item->field_name[0] &&
+        structured_scalar_equate_group(lookup->policy, item) != NULL;
+      if (!internal_copper_label && !internal_palette_label && !internal_scalar_label) return 0;
     }
   }
   return 1;
@@ -7013,12 +7072,9 @@ static int structured_data_item_value_domain_expr(const M68kAnalysisPolicy *poli
   if (expr == NULL || expr_size == 0U || item == NULL) return 0;
   expr[0] = '\0';
   if (item->value_domain[0] == '\0' || !structured_data_item_raw_value(section, item, &value)) return 0;
-  const M68kAnalysisCustomStruct *record = policy_custom_struct_named(policy, item->struct_name);
-  for (uint16_t i = 0U; record && i < record->field_count; ++i) {
-    const M68kAnalysisCustomStructField *field = &record->fields[i];
-    if (!field->equate_group[0] || strcmp(field->name, item->field_name) ||
-        strcmp(field->equate_group, item->value_domain) || field->size != item->size) continue;
-    const M68kAnalysisTargetEquate *equate = scalar_group_equate(policy, field->equate_group, value, item->size);
+  const char *group = structured_scalar_equate_group(policy, item);
+  if (group) {
+    const M68kAnalysisTargetEquate *equate = scalar_group_equate(policy, group, value, item->size);
     if (!equate) return 0;
     snprintf(expr, expr_size, "%s", equate->name);
     return 1;
@@ -7062,7 +7118,17 @@ int structured_data_item_render_comment(const M68kAnalysisPolicy *policy, const 
     const M68kAnalysisStructuredDataItem *item, char *comment, size_t comment_size) {
   char expr[96];
   size_t used;
-  if (!structured_data_item_comment(item, comment, comment_size)) return 0;
+  int has_comment = structured_data_item_comment(item, comment, comment_size);
+  /* The directive already contains this scalar symbol. Retain the field role
+   * without duplicating its changing value in each generated comment. */
+  if (structured_scalar_equate_group(policy, item)) {
+    if (!item->field_name[0] && !item->comment[0]) {
+      const M68kAnalysisCustomStruct *record = policy_custom_struct_named(policy, item->struct_name);
+      snprintf(comment, comment_size, "%s", record->fields[0].name);
+    }
+    return comment[0] != '\0';
+  }
+  if (!has_comment) return 0;
   if (structured_data_item_constant_matches_bytes(section, item)) {
     snprintf(expr, sizeof(expr), "%s", item->constant_name);
   } else if (!structured_data_item_value_domain_expr(policy, section, item, expr, sizeof(expr))) {
@@ -8905,7 +8971,9 @@ static int lookup_structured_item_probe_has_blocking_boundary(const M68kRenderLo
     int internal_palette_label =
       structured_data_item_is_palette(structured_item) &&
       ((probe - structured_item->offset) % 2U) == 0U;
-    return !internal_copper_label && !internal_palette_label;
+    int internal_scalar_label = !structured_item->field_name[0] &&
+      structured_scalar_equate_group(lookup->policy, structured_item) != NULL;
+    return !internal_copper_label && !internal_palette_label && !internal_scalar_label;
   }
   return 0;
 }

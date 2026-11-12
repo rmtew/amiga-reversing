@@ -66,3 +66,21 @@ def test_retirement_tick_type_only_clear_and_post_read_cursor_mask(original_imag
             if typ==wanted:put(expected,RECORD+68*i,0,2)
         put(expected,0x3999A,(cursor+1)&31,2)
     run(original_image,m,cpu,{0x336C4});assert bytes(m)==expected
+
+
+@pytest.mark.parametrize('index',[0,16,17,18,0x4000,0xFFFF])
+def test_supplied_body_index_word_wrap_is_not_a_directory_bound(original_image,memory,index):
+    """Exercise the selector arithmetic only; stop before a possibly invalid read.
+
+    The earlier caller excludes index16 by equality, not by a range test.
+    This local entry test makes no claim that every supplied index occurs in play.
+    """
+    word(memory,0x830,index)
+    cpu=state(memory,0x3381E)
+    cpu.d[0]=0
+    byte_index=signed((index*4)&0xFFFF)
+    expected=get(memory,DIRECTORY+byte_index)
+    run(original_image,memory,cpu,{0x33830})
+    assert cpu.a[0]==expected
+    assert cpu.d[1]&0xFFFF==(index*4)&0xFFFF
+    if index==18:assert expected==0x00590011  # the first two choice WORDs, not a pointer

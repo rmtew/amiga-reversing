@@ -6,15 +6,19 @@ claim of complete gameplay/hardware equivalence.
 
 ## Current validated baseline
 
-Current validated export: 3517 app references, 2802 typed accesses, 178 unresolved
+Current validated export: 3517 app references, 2802 typed accesses, 180 unresolved
 accesses; 9857 unclassified bytes in 277 intervals. These are analysis counts,
 not semantic completion percentages. The phrase-counter
 references retain declared-layout A6 fallback; the role declaration adds no
 stronger base proof. The projector report arrays expose three additional
 dynamic-index reads; all prior typed/unresolved facts are retained.
-The scalar object-type display domain supplies 22 additional directory-backed
-constants and 66 more named immediate uses (26 to 92); this changes no access
-proof. Placeholder names and IDs outside the directory remain numeric.
+The scalar object-type domain exposes constructors, collision exclusions and
+eleven stored choice/cycle/drop tables (192 IDs). Grouped tables retain native
+count/stride; their symbols and one role per visible run remain readable.
+This is semantic presentation, not a value/lifetime bound. Directory placeholders
+and unsupported IDs remain numeric; zero is named only as an absence marker.
+The two newly exposed table reads explain the unresolved increase; no old app
+or typed proof is lost.
 Original payload SHA256:
 `662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9`.
 
@@ -50,7 +54,12 @@ Original payload SHA256:
    bits only. The scan mask admits eight offsets for seven stored pointers;
    its countdown needs a writer/entry bound. The eight audio-ring reads also
    need an entry invariant: equality-only wrapping does not bound arbitrary
-   initial cursors. Literal/copy/equality index probes already resolve fields.
+   initial cursors. The pirate-drop address is bounded by AND15 within its
+   16-record BYTE array; its unresolved field projection is the eight-value
+   WORD-index representation limit, not a missing table extent. Next: represent
+   known-bit bounds/stride without enumerating offsets, retaining out-of-owner
+   and partial-field refusals. Retirement still reads its cursor before wrapping;
+   naming its 32 stored IDs adds no caller bound. Literal/copy/equality index probes already resolve fields.
    The ingredient loops retain their 0..7 index; loaded BYTE values are absent
    from the scalar WORD packet. The 104-byte count backing supplies no value
    bound. Next: a write-aware scalar BYTE-load/zero-extension fixture, retaining

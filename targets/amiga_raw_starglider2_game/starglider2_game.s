@@ -1480,6 +1480,16 @@ SG2ModelInventoryCounts_neutron_bomb_count RS.B 1
     RS.B 5
 SG2ModelInventoryCounts_SIZEOF EQU __RS
 
+; STRUCT SG2StoredObjectTypeWord
+    RSRESET
+SG2StoredObjectTypeWord_object_type RS.W 1
+SG2StoredObjectTypeWord_SIZEOF EQU __RS
+
+; STRUCT SG2StoredObjectTypeByte
+    RSRESET
+SG2StoredObjectTypeByte_object_type RS.B 1
+SG2StoredObjectTypeByte_SIZEOF EQU __RS
+
 ADKF_CLRALL	EQU	$7FFF
 BPLCON2_PF2P2	EQU	$20
 BPLCON2_PF2PRI	EQU	$40
@@ -1710,34 +1720,56 @@ SG2_OBJECT_PROFILE_EDGE_THRESHOLD	EQU	551
 SG2_OBJECT_PROFILE_HALF_WIDTH	EQU	550
 SG2_OBJECT_TYPE_ARMED_TRANSPORT	EQU	$D
 SG2_OBJECT_TYPE_ASTEROID	EQU	$49
+SG2_OBJECT_TYPE_BLOWHOLE	EQU	$40
 SG2_OBJECT_TYPE_BOUNCING_BOMB	EQU	91
 SG2_OBJECT_TYPE_BUZZ_BOMB	EQU	$6
+SG2_OBJECT_TYPE_CASK_OF_VISTAN_WINE	EQU	$53
+SG2_OBJECT_TYPE_COLUMBUS	EQU	$59
+SG2_OBJECT_TYPE_CRATE_OF_CASTROBARS	EQU	$64
+SG2_OBJECT_TYPE_EGRON_BIRD_FIGHTER	EQU	$23
 SG2_OBJECT_TYPE_EGRON_BUZZ_BOMBER	EQU	$21
+SG2_OBJECT_TYPE_EGRON_DOME_SILO	EQU	$2E
+SG2_OBJECT_TYPE_EGRON_DUCK	EQU	$B
 SG2_OBJECT_TYPE_EGRON_LAND_TANK	EQU	$9
 SG2_OBJECT_TYPE_EGRON_MECHANICAL_WHALE	EQU	$A
 SG2_OBJECT_TYPE_EGRON_MINI_SENTINEL	EQU	$25
+SG2_OBJECT_TYPE_EGRON_SILO	EQU	$5
 SG2_OBJECT_TYPE_EGRON_SPACE_STATION	EQU	$63
 SG2_OBJECT_TYPE_EGRON_SPACE_TUG	EQU	$16
 SG2_OBJECT_TYPE_ENERGY_CUBE_LAUNCHER	EQU	84
 SG2_OBJECT_TYPE_ENERGY_TOWER_90	EQU	$5A
 SG2_OBJECT_TYPE_ENERGY_TOWER_93	EQU	$5D
 SG2_OBJECT_TYPE_ESCAPE_CAPSULE	EQU	$E
+SG2_OBJECT_TYPE_FIGHTER_ESCORT	EQU	$2D
 SG2_OBJECT_TYPE_FLAT_DIAMOND	EQU	$26
+SG2_OBJECT_TYPE_FLYING_SAUCER	EQU	$22
 SG2_OBJECT_TYPE_HOMING_MISSILE	EQU	12
+SG2_OBJECT_TYPE_HORATIO	EQU	$11
 SG2_OBJECT_TYPE_ICARUS	EQU	30
 SG2_OBJECT_TYPE_ICARUS_GAS_LASER_BOLT	EQU	$67
 SG2_OBJECT_TYPE_ICARUS_PILOT_COUCH	EQU	$47
+SG2_OBJECT_TYPE_LARGE_BIRD	EQU	$7
 SG2_OBJECT_TYPE_LARGE_EGRON_TRANSPORT	EQU	$12
 SG2_OBJECT_TYPE_LASER_BOLT	EQU	$48
+SG2_OBJECT_TYPE_LUMP_OF_MINERAL_ROCK	EQU	$65
 SG2_OBJECT_TYPE_MISSILE	EQU	$19
 SG2_OBJECT_TYPE_NEUTRON_BOMB	EQU	98
+SG2_OBJECT_TYPE_NONE	EQU	$0
+SG2_OBJECT_TYPE_OLD_HEAP_OF_JUNK	EQU	$3B
 SG2_OBJECT_TYPE_PIRATE_SHIP	EQU	$28
 SG2_OBJECT_TYPE_PROXIMITY_MINE	EQU	$2
+SG2_OBJECT_TYPE_SCRAP_METAL_61	EQU	$3D
+SG2_OBJECT_TYPE_SCRAP_METAL_62	EQU	$3E
 SG2_OBJECT_TYPE_SKIM_DRONE	EQU	43
 SG2_OBJECT_TYPE_SKIM_MISSILE	EQU	60
 SG2_OBJECT_TYPE_SMALL_ASTEROID	EQU	$4A
 SG2_OBJECT_TYPE_SMALL_FIGHTER	EQU	$10
+SG2_OBJECT_TYPE_SPACE_RAY	EQU	$29
+SG2_OBJECT_TYPE_STARGLIDER	EQU	$1B
+SG2_OBJECT_TYPE_TRIPUSS	EQU	$1A
+SG2_OBJECT_TYPE_TUNNEL_ENTRANCE_EXIT	EQU	$30
 SG2_OBJECT_TYPE_TUNNEL_SENTINEL	EQU	$14
+SG2_OBJECT_TYPE_VAMPIRE_TYPE_FIGHTER	EQU	$15
 SG2_OVERLAY_MAX_LEFT	EQU	288
 SG2_OVERLAY_MAX_TOP	EQU	112
 SG2_OVERLAY_MIN_LEFT	EQU	16
@@ -2560,7 +2592,7 @@ abs_0_000015AA:
 	bset.b #7,SG2ObjectCore_durability_or_negative(a4)
 	clr.b SG2ObjectCore_vertex_variant_selector(a4)
 	move.b #$6,SG2ObjectCore_model_scale_shift(a4)
-	move.b #$1E,SG2TargetingObject_collision_ignored_object_type(a4)
+	move.b #SG2_OBJECT_TYPE_ICARUS,SG2TargetingObject_collision_ignored_object_type(a4)
 	move.b #$47,$002A(a0)
 	clr.w SG2WorldObject_rotation_0(a4)
 	move.w player_rotation_1(a6),d0
@@ -10189,7 +10221,7 @@ abs_0_00007954:
 	bsr.w initialize_launched_bomb_header
 	move.w #$1E,SG2WorldObject_velocity_y(a2)
 	addi.l #20,SG2ObjectCore_world_y(a2)
-	move.b #$5B,SG2TargetingObject_collision_ignored_object_type(a2)
+	move.b #SG2_OBJECT_TYPE_BOUNCING_BOMB,SG2TargetingObject_collision_ignored_object_type(a2)
 	movea.l player_object_reference(a6),a0
 	move.b #$5B,$002A(a0)
 	move.w #$96,weapon_action_cooldown(a6)
@@ -11890,8 +11922,8 @@ try_buzz_bomber_type6_spawn:
 	move.b #$6,SG2ObjectCore_model_scale_shift(a2)
     ; KNOWN: type A2=Target code-entry register seed:SG2WorldObject
 	move.w #SG2_OBJECT_TYPE_BUZZ_BOMB,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
-	move.b #$6,SG2TargetingObject_collision_ignored_object_type(a0)
-	move.b #$21,SG2TargetingObject_collision_ignored_object_type(a2)
+	move.b #SG2_OBJECT_TYPE_BUZZ_BOMB,SG2TargetingObject_collision_ignored_object_type(a0)
+	move.b #SG2_OBJECT_TYPE_EGRON_BUZZ_BOMBER,SG2TargetingObject_collision_ignored_object_type(a2)
 	move.l #$FFFFFFFF,SG2WorldObject_linked_record_or_sentinel(a2)
 	bra.w continue_primary_object_update_loop
 abs_0_00009248:
@@ -11973,7 +12005,7 @@ update_flat_diamond_ballistic_motion:
 	move.l horizontal_world_wrap_mask(a6),d3
 	and.l d3,SG2ObjectCore_world_x(a0)
 	and.l d3,SG2ObjectCore_world_z(a0)
-	move.b #$40,SG2TargetingObject_collision_ignored_object_type(a0)
+	move.b #SG2_OBJECT_TYPE_BLOWHOLE,SG2TargetingObject_collision_ignored_object_type(a0)
 	move.w SG2WorldObject_velocity_y(a0),d0
 	ext.l d0
 	add.l d0,SG2ObjectCore_world_y(a0)
@@ -12010,7 +12042,7 @@ abs_0_000093C4:
     ; KNOWN: type A0=Target code-entry register seed:SG2ScheduledActor
 update_tunnel_sentinel_bounce_and_fire_gate:
 	addi.w #16,SG2WorldObject_rotation_1(a0)
-	move.b #$30,SG2TargetingObject_collision_ignored_object_type(a0)
+	move.b #SG2_OBJECT_TYPE_TUNNEL_ENTRANCE_EXIT,SG2TargetingObject_collision_ignored_object_type(a0)
 	move.w SG2WorldObject_velocity_y(a0),d0
 	ext.l d0
 	add.l d0,SG2ObjectCore_world_y(a0)
@@ -12341,13 +12373,13 @@ spawn_ai_projectile_continuation:
     ; KNOWN: type A2=Target code-entry register seed:SG2SteeredProjectile
 	move.w #SG2_OBJECT_TYPE_HOMING_MISSILE,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
 	move.b SG2ObjectCore_object_type+1(a0),SG2TargetingObject_collision_ignored_object_type(a2)
-	move.b #$C,SG2TargetingObject_collision_ignored_object_type(a0)
+	move.b #SG2_OBJECT_TYPE_HOMING_MISSILE,SG2TargetingObject_collision_ignored_object_type(a0)
 	bra.b initialize_ai_projectile_pose_and_motion
     ; KNOWN: type A2=Target code-entry register seed:SG2SteeredProjectile
 initialize_ai_projectile_type25_tag:
 	move.w #SG2_OBJECT_TYPE_MISSILE,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
 	move.b SG2ObjectCore_object_type+1(a0),SG2TargetingObject_collision_ignored_object_type(a2)
-	move.b #$19,SG2TargetingObject_collision_ignored_object_type(a0)
+	move.b #SG2_OBJECT_TYPE_MISSILE,SG2TargetingObject_collision_ignored_object_type(a0)
     ; Both tag stores produce12/25 before this join. BYTE22 was cleared: this constructor is untracked. Preserve duplicate lifetime100 stores and separate creator/child table selectors.
     ; KNOWN: type A2=Target code-entry register seed:SG2SteeredProjectile
 initialize_ai_projectile_pose_and_motion:
@@ -12415,7 +12447,7 @@ abs_0_000098C4:
     ; KNOWN: type A2=Target code-entry register seed:SG2WorldObject
 	move.w #SG2_OBJECT_TYPE_PROXIMITY_MINE,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
 	move.b SG2ObjectCore_object_type+1(a0),SG2TargetingObject_collision_ignored_object_type(a2)
-	move.b #$2,SG2TargetingObject_collision_ignored_object_type(a0)
+	move.b #SG2_OBJECT_TYPE_PROXIMITY_MINE,SG2TargetingObject_collision_ignored_object_type(a0)
 	move.b #$4,SG2ObjectCore_durability_or_negative(a2)
 	bclr.b #7,SG2ObjectCore_flags(a2)
 	move.b #$4,SG2ObjectCore_model_scale_shift(a2)
@@ -12442,7 +12474,7 @@ try_spawn_escape_capsule_for_carrier:
 	move.w #SG2_OBJECT_TYPE_ESCAPE_CAPSULE,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
 	move.b #$7,SG2ObjectCore_model_scale_shift(a2)
 	move.b SG2ObjectCore_object_type+1(a0),SG2TargetingObject_collision_ignored_object_type(a2)
-	move.b #$E,SG2TargetingObject_collision_ignored_object_type(a0)
+	move.b #SG2_OBJECT_TYPE_ESCAPE_CAPSULE,SG2TargetingObject_collision_ignored_object_type(a0)
 	move.b #$2,SG2ObjectCore_durability_or_negative(a2)
 	move.l SG2ObjectCore_world_x(a0),SG2ObjectCore_world_x(a2)
 	move.l SG2ObjectCore_world_z(a0),SG2ObjectCore_world_z(a2)
@@ -12891,7 +12923,7 @@ abs_0_00009F02:
     ; KNOWN: type A2=Target code-entry register seed:SG2VelocityProjectile
 	move.w #SG2_OBJECT_TYPE_LASER_BOLT,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
 	move.b SG2ObjectCore_object_type+1(a0),SG2TargetingObject_collision_ignored_object_type(a2)
-	move.b #$48,SG2TargetingObject_collision_ignored_object_type(a0)
+	move.b #SG2_OBJECT_TYPE_LASER_BOLT,SG2TargetingObject_collision_ignored_object_type(a0)
 	move.l SG2ObjectCore_world_x(a0),SG2ObjectCore_world_x(a2)
 	add.l SG2ObjectCore_world_y(a0),d2
 	move.l d2,SG2ObjectCore_world_y(a2)
@@ -12950,7 +12982,7 @@ abs_0_0000A004:
 	move.b $0(a1,d0.w),d0
     ; KNOWN: type A2=Target code-entry register seed:SG2AirborneLaunchState
 	move.w d0,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
-	move.b #$5,SG2TargetingObject_collision_ignored_object_type(a2)
+	move.b #SG2_OBJECT_TYPE_EGRON_SILO,SG2TargetingObject_collision_ignored_object_type(a2)
 	move.b d0,SG2TargetingObject_collision_ignored_object_type(a0)
 	clr.b SG2ObjectCore_vertex_variant_selector(a2)
 	lea.l model_default_scale_shifts.l,a1
@@ -13016,8 +13048,8 @@ try_tunnel_sentinel_emission:
 	subq.w #1,free_object_count(a6)
     ; KNOWN: type A2=Target code-entry register seed:SG2ScheduledActor
 	move.w #SG2_OBJECT_TYPE_TUNNEL_SENTINEL,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
-	move.b #$30,SG2TargetingObject_collision_ignored_object_type(a2)
-	move.b #$14,SG2TargetingObject_collision_ignored_object_type(a0)
+	move.b #SG2_OBJECT_TYPE_TUNNEL_ENTRANCE_EXIT,SG2TargetingObject_collision_ignored_object_type(a2)
+	move.b #SG2_OBJECT_TYPE_TUNNEL_SENTINEL,SG2TargetingObject_collision_ignored_object_type(a0)
 	clr.b SG2ObjectCore_vertex_variant_selector(a2)
 	move.b #$4,SG2ObjectCore_model_scale_shift(a2)
 	move.l SG2ObjectCore_world_x(a0),SG2ObjectCore_world_x(a2)
@@ -13061,8 +13093,8 @@ abs_0_0000A1DE:
 	move.w #SG2_OBJECT_TYPE_FLAT_DIAMOND,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
 	lea.l object_default_motion_words.l,a1
 	move.w $004C(a1),$0020(a2)
-	move.b #$26,SG2TargetingObject_collision_ignored_object_type(a2)
-	move.b #$26,SG2TargetingObject_collision_ignored_object_type(a0)
+	move.b #SG2_OBJECT_TYPE_FLAT_DIAMOND,SG2TargetingObject_collision_ignored_object_type(a2)
+	move.b #SG2_OBJECT_TYPE_FLAT_DIAMOND,SG2TargetingObject_collision_ignored_object_type(a0)
 	move.b #$4,SG2ObjectCore_model_scale_shift(a2)
 	clr.b SG2ObjectCore_vertex_variant_selector(a2)
 	move.l SG2ObjectCore_world_x(a0),SG2ObjectCore_world_x(a2)
@@ -13118,7 +13150,7 @@ abs_0_0000A2CE:
 	move.b $0(a1,d0.w),d3
     ; KNOWN: type A2=Target code-entry register seed:SG2GroundLaunchState
 	move.w d3,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
-	move.b #$2E,SG2TargetingObject_collision_ignored_object_type(a2)
+	move.b #SG2_OBJECT_TYPE_EGRON_DOME_SILO,SG2TargetingObject_collision_ignored_object_type(a2)
 	move.b d3,SG2TargetingObject_collision_ignored_object_type(a0)
 	move.b #$3,SG2ObjectCore_model_scale_shift(a2)
 	clr.b SG2ObjectCore_vertex_variant_selector(a2)
@@ -13300,7 +13332,7 @@ abs_0_0000A54A:
     ; KNOWN: type A2=Target code-entry register seed:SG2SteeredProjectile
 	move.w #SG2_OBJECT_TYPE_MISSILE,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
 	move.b SG2ObjectCore_object_type+1(a0),SG2TargetingObject_collision_ignored_object_type(a2)
-	move.b #$19,SG2TargetingObject_collision_ignored_object_type(a0)
+	move.b #SG2_OBJECT_TYPE_MISSILE,SG2TargetingObject_collision_ignored_object_type(a0)
 	move.l SG2ObjectCore_world_x(a0),SG2ObjectCore_world_x(a2)
 	add.l SG2ObjectCore_world_y(a0),d2
 	move.l d2,SG2ObjectCore_world_y(a2)
@@ -13521,7 +13553,7 @@ abs_0_0000A8F2:
 	move.b $0(a1,d0.w),d0
     ; KNOWN: type A2=Target code-entry register seed:SG2AirborneLaunchState
 	move.w d0,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
-	move.b #$5,SG2TargetingObject_collision_ignored_object_type(a2)
+	move.b #SG2_OBJECT_TYPE_EGRON_SILO,SG2TargetingObject_collision_ignored_object_type(a2)
 	move.b d0,SG2TargetingObject_collision_ignored_object_type(a0)
 	clr.b SG2ObjectCore_vertex_variant_selector(a2)
 	lea.l model_default_scale_shifts.l,a1
@@ -13600,7 +13632,7 @@ abs_0_0000AA3A:
 	move.b $0(a1,d0.w),d3
     ; KNOWN: type A2=Target code-entry register seed:SG2GroundLaunchState
 	move.w d3,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
-	move.b #$2E,SG2TargetingObject_collision_ignored_object_type(a2)
+	move.b #SG2_OBJECT_TYPE_EGRON_DOME_SILO,SG2TargetingObject_collision_ignored_object_type(a2)
 	move.b d3,SG2TargetingObject_collision_ignored_object_type(a0)
 	move.b #$3,SG2ObjectCore_model_scale_shift(a2)
 	clr.b SG2ObjectCore_vertex_variant_selector(a2)
@@ -44781,7 +44813,7 @@ abs_0_0003359E:
 	andi.b #3,d1
 	addq.b #5,d1
 	move.b d1,SG2ObjectCore_model_scale_shift(a4)
-	move.b #$49,SG2TargetingObject_collision_ignored_object_type(a4)
+	move.b #SG2_OBJECT_TYPE_ASTEROID,SG2TargetingObject_collision_ignored_object_type(a4)
 	bra.w snapshot_world_transition_space_state
 advance_distant_retirement_tick:
 	addq.w #1,distant_retirement_tick_mod256.l
@@ -47591,7 +47623,7 @@ animate_tractor_marker_variant_and_angles:
 	addi.w #128,SG2WorldObject_rotation_2(a0)
 	bra.w abs_0_00039D56
 clear_expired_or_targetless_tractor_marker:
-	move.w #$0,(a0)	; operand 2: SG2ObjectCore_object_type at (a0)
+	move.w #SG2_OBJECT_TYPE_NONE,(a0)	; operand 2: SG2ObjectCore_object_type at (a0)
 	bra.w abs_0_00039D56
 	dc.b $11,$7C,$00,$04,$00,$1D,$11,$7C,$00,$00,$00,$1E,$60,$00,$41,$DE
     ; KNOWN: type A0=Target code-entry register seed:SG2WorldObject
@@ -47673,8 +47705,8 @@ prepare_small_asteroid_fragment_pair:
 	move.b d0,SG2ObjectCore_model_scale_shift(a2)
 	move.b d0,SG2ObjectCore_model_scale_shift(a3)
     ; Both type74 fragments ignore contact TYPE73, not a unique parent instance or each other. Both receive the same spin step10..73 and opposite velocity WORDs.
-	move.b #$49,SG2TargetingObject_collision_ignored_object_type(a2)
-	move.b #$49,SG2TargetingObject_collision_ignored_object_type(a3)
+	move.b #SG2_OBJECT_TYPE_ASTEROID,SG2TargetingObject_collision_ignored_object_type(a2)
+	move.b #SG2_OBJECT_TYPE_ASTEROID,SG2TargetingObject_collision_ignored_object_type(a3)
 	bsr.w advance_shared_random_state_bridge_038d20
 	move.w d0,d1
 	andi.w #63,d0
@@ -49114,8 +49146,8 @@ abs_0_00036FD6:
 	move.b #$1,SG2ObjectCore_durability_or_negative(a4)
 	clr.b SG2ObjectCore_vertex_variant_selector(a4)
 	move.b #$3,SG2ObjectCore_model_scale_shift(a4)
-	move.b #$48,SG2TargetingObject_collision_ignored_object_type(a0)
-	move.b #$28,SG2TargetingObject_collision_ignored_object_type(a4)
+	move.b #SG2_OBJECT_TYPE_LASER_BOLT,SG2TargetingObject_collision_ignored_object_type(a0)
+	move.b #SG2_OBJECT_TYPE_PIRATE_SHIP,SG2TargetingObject_collision_ignored_object_type(a4)
 abs_0_0003703E:
 	bra.w abs_0_00039D56
 abs_0_00037042:
@@ -50876,40 +50908,209 @@ encounter_choice_directory_prefix:
 	dc.l encounter_choices_pirates_stargliders
 	dc.l encounter_choices_mine_heavy
 	dc.l encounter_choices_whales_ducks
-encounter_choices_columbus_horatio:
-	dc.w $0059,$0011,$0059,$0011,$0059,$001A,$0011,$0010
-	dc.w $0023,$0007,$0059,$0023,$0007,$0029,$0059,$0059
-encounter_choices_pirate_heavy:
-	dc.w $0028,$0028,$0028,$0028,$0028,$0028,$0028,$0015
-	dc.w $0028,$002D,$0028,$0022,$0028,$0010,$0028,$0010
-encounter_choices_whales_ducks:
-	dc.w $000A,$000B,$000A,$000A,$000A,$000B,$0028,$000A
-	dc.w $000A,$000B,$000A,$000A,$0028,$000B,$000A,$000A
-encounter_choices_columbus_whales:
-	dc.w $000A,$0059,$0028,$0059,$000A,$0059,$000A,$0059
-	dc.w $0028,$0059,$0059,$000A,$0028,$0059,$0059,$0059
-encounter_choices_pirates_stargliders:
-	dc.w $001B,$0028,$0028,$0028,$001B,$0028,$001B,$0015
-	dc.w $0028,$002D,$0028,$0022,$0028,$0010,$0028,$001B
-encounter_choices_mine_heavy:
-	dc.w $0002,$000A,$0002,$001B,$0002,$000A,$0002,$0002
-	dc.w $0010,$0002,$0023,$0002,$002D,$0002,$000B,$0059
-distant_retirement_type_cycle:
-	dc.w $0059,$0028,$0002,$002D,$0029,$0015,$001B,$0028
-	dc.w $0028,$0002,$000A,$0011,$0007,$000A,$0022,$0010
-	dc.w $0028,$0002,$0029,$001A,$0059,$003B,$001B,$0028
-	dc.w $0028,$0028,$000A,$003D,$003E,$000B,$0028,$0023
-encounter_choices_metric_mine_mix:
-	dc.w $000A,$0002,$0002,$000A,$0002,$0028,$0002,$0059
-	dc.w $0002,$0002,$000B,$000A,$0010,$0002,$0002,$0002
-encounter_choices_scrap_and_mines:
-	dc.w $003B,$003D,$003E,$0002,$003B,$003D,$003E,$0002
-	dc.w $003B,$003D,$003E,$0002,$003B,$003D,$003E,$0002
-encounter_choices_scrap_bombs:
-	dc.w $001B,$003B,$003D,$003E,$005B,$003B,$003D,$003E
-	dc.w $005B,$0010,$001B,$003B,$003D,$003E,$003B,$003D
-pirate_destruction_drop_choices:
-	dc.b $00,$00,$64,$00,$00,$00,$00,$65,$00,$00,$53,$00,$00,$00,$00,$00
+encounter_choices_columbus_horatio:	; ARRAY SG2StoredObjectTypeWord[16]
+	dc.w SG2_OBJECT_TYPE_COLUMBUS	; object_type
+	dc.w SG2_OBJECT_TYPE_HORATIO
+	dc.w SG2_OBJECT_TYPE_COLUMBUS
+	dc.w SG2_OBJECT_TYPE_HORATIO
+	dc.w SG2_OBJECT_TYPE_COLUMBUS
+	dc.w SG2_OBJECT_TYPE_TRIPUSS
+	dc.w SG2_OBJECT_TYPE_HORATIO
+	dc.w SG2_OBJECT_TYPE_SMALL_FIGHTER
+	dc.w SG2_OBJECT_TYPE_EGRON_BIRD_FIGHTER
+	dc.w SG2_OBJECT_TYPE_LARGE_BIRD
+	dc.w SG2_OBJECT_TYPE_COLUMBUS
+	dc.w SG2_OBJECT_TYPE_EGRON_BIRD_FIGHTER
+	dc.w SG2_OBJECT_TYPE_LARGE_BIRD
+	dc.w SG2_OBJECT_TYPE_SPACE_RAY
+	dc.w SG2_OBJECT_TYPE_COLUMBUS
+	dc.w SG2_OBJECT_TYPE_COLUMBUS
+encounter_choices_pirate_heavy:	; ARRAY SG2StoredObjectTypeWord[16]
+	dc.w SG2_OBJECT_TYPE_PIRATE_SHIP	; object_type
+	dc.w SG2_OBJECT_TYPE_PIRATE_SHIP
+	dc.w SG2_OBJECT_TYPE_PIRATE_SHIP
+	dc.w SG2_OBJECT_TYPE_PIRATE_SHIP
+	dc.w SG2_OBJECT_TYPE_PIRATE_SHIP
+	dc.w SG2_OBJECT_TYPE_PIRATE_SHIP
+	dc.w SG2_OBJECT_TYPE_PIRATE_SHIP
+	dc.w SG2_OBJECT_TYPE_VAMPIRE_TYPE_FIGHTER
+	dc.w SG2_OBJECT_TYPE_PIRATE_SHIP
+	dc.w SG2_OBJECT_TYPE_FIGHTER_ESCORT
+	dc.w SG2_OBJECT_TYPE_PIRATE_SHIP
+	dc.w SG2_OBJECT_TYPE_FLYING_SAUCER
+	dc.w SG2_OBJECT_TYPE_PIRATE_SHIP
+	dc.w SG2_OBJECT_TYPE_SMALL_FIGHTER
+	dc.w SG2_OBJECT_TYPE_PIRATE_SHIP
+	dc.w SG2_OBJECT_TYPE_SMALL_FIGHTER
+encounter_choices_whales_ducks:	; ARRAY SG2StoredObjectTypeWord[16]
+	dc.w SG2_OBJECT_TYPE_EGRON_MECHANICAL_WHALE	; object_type
+	dc.w SG2_OBJECT_TYPE_EGRON_DUCK
+	dc.w SG2_OBJECT_TYPE_EGRON_MECHANICAL_WHALE
+	dc.w SG2_OBJECT_TYPE_EGRON_MECHANICAL_WHALE
+	dc.w SG2_OBJECT_TYPE_EGRON_MECHANICAL_WHALE
+	dc.w SG2_OBJECT_TYPE_EGRON_DUCK
+	dc.w SG2_OBJECT_TYPE_PIRATE_SHIP
+	dc.w SG2_OBJECT_TYPE_EGRON_MECHANICAL_WHALE
+	dc.w SG2_OBJECT_TYPE_EGRON_MECHANICAL_WHALE
+	dc.w SG2_OBJECT_TYPE_EGRON_DUCK
+	dc.w SG2_OBJECT_TYPE_EGRON_MECHANICAL_WHALE
+	dc.w SG2_OBJECT_TYPE_EGRON_MECHANICAL_WHALE
+	dc.w SG2_OBJECT_TYPE_PIRATE_SHIP
+	dc.w SG2_OBJECT_TYPE_EGRON_DUCK
+	dc.w SG2_OBJECT_TYPE_EGRON_MECHANICAL_WHALE
+	dc.w SG2_OBJECT_TYPE_EGRON_MECHANICAL_WHALE
+encounter_choices_columbus_whales:	; ARRAY SG2StoredObjectTypeWord[16]
+	dc.w SG2_OBJECT_TYPE_EGRON_MECHANICAL_WHALE	; object_type
+	dc.w SG2_OBJECT_TYPE_COLUMBUS
+	dc.w SG2_OBJECT_TYPE_PIRATE_SHIP
+	dc.w SG2_OBJECT_TYPE_COLUMBUS
+	dc.w SG2_OBJECT_TYPE_EGRON_MECHANICAL_WHALE
+	dc.w SG2_OBJECT_TYPE_COLUMBUS
+	dc.w SG2_OBJECT_TYPE_EGRON_MECHANICAL_WHALE
+	dc.w SG2_OBJECT_TYPE_COLUMBUS
+	dc.w SG2_OBJECT_TYPE_PIRATE_SHIP
+	dc.w SG2_OBJECT_TYPE_COLUMBUS
+	dc.w SG2_OBJECT_TYPE_COLUMBUS
+	dc.w SG2_OBJECT_TYPE_EGRON_MECHANICAL_WHALE
+	dc.w SG2_OBJECT_TYPE_PIRATE_SHIP
+	dc.w SG2_OBJECT_TYPE_COLUMBUS
+	dc.w SG2_OBJECT_TYPE_COLUMBUS
+	dc.w SG2_OBJECT_TYPE_COLUMBUS
+encounter_choices_pirates_stargliders:	; ARRAY SG2StoredObjectTypeWord[16]
+	dc.w SG2_OBJECT_TYPE_STARGLIDER	; object_type
+	dc.w SG2_OBJECT_TYPE_PIRATE_SHIP
+	dc.w SG2_OBJECT_TYPE_PIRATE_SHIP
+	dc.w SG2_OBJECT_TYPE_PIRATE_SHIP
+	dc.w SG2_OBJECT_TYPE_STARGLIDER
+	dc.w SG2_OBJECT_TYPE_PIRATE_SHIP
+	dc.w SG2_OBJECT_TYPE_STARGLIDER
+	dc.w SG2_OBJECT_TYPE_VAMPIRE_TYPE_FIGHTER
+	dc.w SG2_OBJECT_TYPE_PIRATE_SHIP
+	dc.w SG2_OBJECT_TYPE_FIGHTER_ESCORT
+	dc.w SG2_OBJECT_TYPE_PIRATE_SHIP
+	dc.w SG2_OBJECT_TYPE_FLYING_SAUCER
+	dc.w SG2_OBJECT_TYPE_PIRATE_SHIP
+	dc.w SG2_OBJECT_TYPE_SMALL_FIGHTER
+	dc.w SG2_OBJECT_TYPE_PIRATE_SHIP
+	dc.w SG2_OBJECT_TYPE_STARGLIDER
+encounter_choices_mine_heavy:	; ARRAY SG2StoredObjectTypeWord[16]
+	dc.w SG2_OBJECT_TYPE_PROXIMITY_MINE	; object_type
+	dc.w SG2_OBJECT_TYPE_EGRON_MECHANICAL_WHALE
+	dc.w SG2_OBJECT_TYPE_PROXIMITY_MINE
+	dc.w SG2_OBJECT_TYPE_STARGLIDER
+	dc.w SG2_OBJECT_TYPE_PROXIMITY_MINE
+	dc.w SG2_OBJECT_TYPE_EGRON_MECHANICAL_WHALE
+	dc.w SG2_OBJECT_TYPE_PROXIMITY_MINE
+	dc.w SG2_OBJECT_TYPE_PROXIMITY_MINE
+	dc.w SG2_OBJECT_TYPE_SMALL_FIGHTER
+	dc.w SG2_OBJECT_TYPE_PROXIMITY_MINE
+	dc.w SG2_OBJECT_TYPE_EGRON_BIRD_FIGHTER
+	dc.w SG2_OBJECT_TYPE_PROXIMITY_MINE
+	dc.w SG2_OBJECT_TYPE_FIGHTER_ESCORT
+	dc.w SG2_OBJECT_TYPE_PROXIMITY_MINE
+	dc.w SG2_OBJECT_TYPE_EGRON_DUCK
+	dc.w SG2_OBJECT_TYPE_COLUMBUS
+distant_retirement_type_cycle:	; ARRAY SG2StoredObjectTypeWord[32]
+	dc.w SG2_OBJECT_TYPE_COLUMBUS	; object_type
+	dc.w SG2_OBJECT_TYPE_PIRATE_SHIP
+	dc.w SG2_OBJECT_TYPE_PROXIMITY_MINE
+	dc.w SG2_OBJECT_TYPE_FIGHTER_ESCORT
+	dc.w SG2_OBJECT_TYPE_SPACE_RAY
+	dc.w SG2_OBJECT_TYPE_VAMPIRE_TYPE_FIGHTER
+	dc.w SG2_OBJECT_TYPE_STARGLIDER
+	dc.w SG2_OBJECT_TYPE_PIRATE_SHIP
+	dc.w SG2_OBJECT_TYPE_PIRATE_SHIP
+	dc.w SG2_OBJECT_TYPE_PROXIMITY_MINE
+	dc.w SG2_OBJECT_TYPE_EGRON_MECHANICAL_WHALE
+	dc.w SG2_OBJECT_TYPE_HORATIO
+	dc.w SG2_OBJECT_TYPE_LARGE_BIRD
+	dc.w SG2_OBJECT_TYPE_EGRON_MECHANICAL_WHALE
+	dc.w SG2_OBJECT_TYPE_FLYING_SAUCER
+	dc.w SG2_OBJECT_TYPE_SMALL_FIGHTER
+	dc.w SG2_OBJECT_TYPE_PIRATE_SHIP
+	dc.w SG2_OBJECT_TYPE_PROXIMITY_MINE
+	dc.w SG2_OBJECT_TYPE_SPACE_RAY
+	dc.w SG2_OBJECT_TYPE_TRIPUSS
+	dc.w SG2_OBJECT_TYPE_COLUMBUS
+	dc.w SG2_OBJECT_TYPE_OLD_HEAP_OF_JUNK
+	dc.w SG2_OBJECT_TYPE_STARGLIDER
+	dc.w SG2_OBJECT_TYPE_PIRATE_SHIP
+	dc.w SG2_OBJECT_TYPE_PIRATE_SHIP
+	dc.w SG2_OBJECT_TYPE_PIRATE_SHIP
+	dc.w SG2_OBJECT_TYPE_EGRON_MECHANICAL_WHALE
+	dc.w SG2_OBJECT_TYPE_SCRAP_METAL_61
+	dc.w SG2_OBJECT_TYPE_SCRAP_METAL_62
+	dc.w SG2_OBJECT_TYPE_EGRON_DUCK
+	dc.w SG2_OBJECT_TYPE_PIRATE_SHIP
+	dc.w SG2_OBJECT_TYPE_EGRON_BIRD_FIGHTER
+encounter_choices_metric_mine_mix:	; ARRAY SG2StoredObjectTypeWord[16]
+	dc.w SG2_OBJECT_TYPE_EGRON_MECHANICAL_WHALE	; object_type
+	dc.w SG2_OBJECT_TYPE_PROXIMITY_MINE
+	dc.w SG2_OBJECT_TYPE_PROXIMITY_MINE
+	dc.w SG2_OBJECT_TYPE_EGRON_MECHANICAL_WHALE
+	dc.w SG2_OBJECT_TYPE_PROXIMITY_MINE
+	dc.w SG2_OBJECT_TYPE_PIRATE_SHIP
+	dc.w SG2_OBJECT_TYPE_PROXIMITY_MINE
+	dc.w SG2_OBJECT_TYPE_COLUMBUS
+	dc.w SG2_OBJECT_TYPE_PROXIMITY_MINE
+	dc.w SG2_OBJECT_TYPE_PROXIMITY_MINE
+	dc.w SG2_OBJECT_TYPE_EGRON_DUCK
+	dc.w SG2_OBJECT_TYPE_EGRON_MECHANICAL_WHALE
+	dc.w SG2_OBJECT_TYPE_SMALL_FIGHTER
+	dc.w SG2_OBJECT_TYPE_PROXIMITY_MINE
+	dc.w SG2_OBJECT_TYPE_PROXIMITY_MINE
+	dc.w SG2_OBJECT_TYPE_PROXIMITY_MINE
+encounter_choices_scrap_and_mines:	; ARRAY SG2StoredObjectTypeWord[16]
+	dc.w SG2_OBJECT_TYPE_OLD_HEAP_OF_JUNK	; object_type
+	dc.w SG2_OBJECT_TYPE_SCRAP_METAL_61
+	dc.w SG2_OBJECT_TYPE_SCRAP_METAL_62
+	dc.w SG2_OBJECT_TYPE_PROXIMITY_MINE
+	dc.w SG2_OBJECT_TYPE_OLD_HEAP_OF_JUNK
+	dc.w SG2_OBJECT_TYPE_SCRAP_METAL_61
+	dc.w SG2_OBJECT_TYPE_SCRAP_METAL_62
+	dc.w SG2_OBJECT_TYPE_PROXIMITY_MINE
+	dc.w SG2_OBJECT_TYPE_OLD_HEAP_OF_JUNK
+	dc.w SG2_OBJECT_TYPE_SCRAP_METAL_61
+	dc.w SG2_OBJECT_TYPE_SCRAP_METAL_62
+	dc.w SG2_OBJECT_TYPE_PROXIMITY_MINE
+	dc.w SG2_OBJECT_TYPE_OLD_HEAP_OF_JUNK
+	dc.w SG2_OBJECT_TYPE_SCRAP_METAL_61
+	dc.w SG2_OBJECT_TYPE_SCRAP_METAL_62
+	dc.w SG2_OBJECT_TYPE_PROXIMITY_MINE
+encounter_choices_scrap_bombs:	; ARRAY SG2StoredObjectTypeWord[16]
+	dc.w SG2_OBJECT_TYPE_STARGLIDER	; object_type
+	dc.w SG2_OBJECT_TYPE_OLD_HEAP_OF_JUNK
+	dc.w SG2_OBJECT_TYPE_SCRAP_METAL_61
+	dc.w SG2_OBJECT_TYPE_SCRAP_METAL_62
+	dc.w SG2_OBJECT_TYPE_BOUNCING_BOMB
+	dc.w SG2_OBJECT_TYPE_OLD_HEAP_OF_JUNK
+	dc.w SG2_OBJECT_TYPE_SCRAP_METAL_61
+	dc.w SG2_OBJECT_TYPE_SCRAP_METAL_62
+	dc.w SG2_OBJECT_TYPE_BOUNCING_BOMB
+	dc.w SG2_OBJECT_TYPE_SMALL_FIGHTER
+	dc.w SG2_OBJECT_TYPE_STARGLIDER
+	dc.w SG2_OBJECT_TYPE_OLD_HEAP_OF_JUNK
+	dc.w SG2_OBJECT_TYPE_SCRAP_METAL_61
+	dc.w SG2_OBJECT_TYPE_SCRAP_METAL_62
+	dc.w SG2_OBJECT_TYPE_OLD_HEAP_OF_JUNK
+	dc.w SG2_OBJECT_TYPE_SCRAP_METAL_61
+pirate_destruction_drop_choices:	; ARRAY SG2StoredObjectTypeByte[16]
+	dc.b SG2_OBJECT_TYPE_NONE	; object_type
+	dc.b SG2_OBJECT_TYPE_NONE
+	dc.b SG2_OBJECT_TYPE_CRATE_OF_CASTROBARS
+	dc.b SG2_OBJECT_TYPE_NONE
+	dc.b SG2_OBJECT_TYPE_NONE
+	dc.b SG2_OBJECT_TYPE_NONE
+	dc.b SG2_OBJECT_TYPE_NONE
+	dc.b SG2_OBJECT_TYPE_LUMP_OF_MINERAL_ROCK
+	dc.b SG2_OBJECT_TYPE_NONE
+	dc.b SG2_OBJECT_TYPE_NONE
+	dc.b SG2_OBJECT_TYPE_CASK_OF_VISTAN_WINE
+	dc.b SG2_OBJECT_TYPE_NONE
+	dc.b SG2_OBJECT_TYPE_NONE
+	dc.b SG2_OBJECT_TYPE_NONE
+	dc.b SG2_OBJECT_TYPE_NONE
+	dc.b SG2_OBJECT_TYPE_NONE
 icarus_speed_colour_max_step:
 	dc.w $0000
 icarus_speed_colour_step:

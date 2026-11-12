@@ -1536,6 +1536,14 @@ def _data_block_compact_struct_array_entity(
             or element.representation not in {None, ManualRepresentationStyle.HEX}):
         return None
     scalar = _packed_struct_scalar_prototype(struct, custom_structs)
+    # A single grouped scalar still has one complete record stride. Keep the
+    # array range for native typing; its values are formatted individually by C.
+    if (scalar is None and len(struct.fields) == 1 and not struct.base_struct):
+        field = struct.fields[0]
+        if (field.offset == 0 and field.size == struct.size and field.size in {1, 2, 4}
+                and field.equate_group and not field.struct and not field.pointer_struct
+                and field.value_kind == "scalar"):
+            scalar = field
     if scalar is None:
         return None
     width = scalar.size

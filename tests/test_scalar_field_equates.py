@@ -109,6 +109,8 @@ def test_canonical_bound_scalar_arrays_use_group_without_pointer_intent(tmp_path
     try:
         text=exact(a,raw,tmp_path)
         assert text.count('dc.w MODE_ACTIVE')==(0 if ambiguous else 1 if manual else 2),text
+        assert text.count('\t; mode\n') == 1,text
+        assert 'mode = MODE_ACTIVE' not in text
         assert 'dc.l MODE_ACTIVE' not in text
         assert 'pointer_resolution' not in a.row_for_source_offset(section_index=0,offset=2)
     finally:a.close()
@@ -119,3 +121,44 @@ def test_negative_byte_equate_does_not_change_unused_immediate_extension(tmp_pat
     with candidate_artifact(tmp_path,'move.b #255,(a0)\n rts',[],metadata) as (a,original):
         source=exact(a,original,tmp_path)
         assert '#NEGATIVE_ONE' not in source
+
+
+@pytest.mark.parametrize('boundary',['none','label','split_word','authored','two_formats','two_fields'])
+def test_scalar_role_comments_restart_only_at_visible_boundaries(tmp_path,boundary):
+    from amiga_reversing.disasm.effective_metadata import effective_metadata_file
+    from amiga_reversing.disasm.binary_source import BinarySourceKind,RawAddressModel,RawBinarySource
+    from amiga_reversing.disasm.manual_action_catalog import target_catalog_manual_payload
+    from amiga_reversing.disasm.manual_actions import ManualActionKind as Kind,append_manual_actions
+    from amiga_reversing.disasm.target_metadata import TargetMetadata,write_target_metadata
+    width=4 if boundary=='two_fields'else 2
+    raw=bytes.fromhex('4e75')+(bytes.fromhex('000c000d')if width==4 else bytes.fromhex('000c'))*3
+    path=tmp_path/'input.bin';path.write_bytes(raw)
+    source=RawBinarySource(kind=BinarySourceKind.RAW_BINARY,path=path,address_model=RawAddressModel.LOCAL_OFFSET,
+        load_address=0,entrypoint=0,code_start_offset=0,display_path=str(path),analysis_cache_path=tmp_path/'analysis')
+    write_target_metadata(tmp_path,TargetMetadata(target_type='program',entry_register_seeds=()))
+    actions=[]
+    def add(command,**parameters):
+        kind,payload=target_catalog_manual_payload(command,parameters);actions.append((Kind(kind),payload));return payload
+    fields=[dict(name='mode',type='WORD',offset=0,size=2,equate_group='modes')]
+    if width==4:fields.append(dict(name='other',type='WORD',offset=2,size=2,equate_group='modes'))
+    add('target.custom_struct.add',name='Cell',size=width,fields=fields)
+    add('target.equate.add',name='MODE_ACTIVE',value=12,group='modes')
+    if boundary=='two_formats':add('target.custom_struct.add',name='Other',size=width,fields=fields)
+    def owner(start,end,name,fmt='Cell'):
+        layout=add('target.data_block.layout.create',hunk=0,source_start=start,source_end=end,name=name,default_unit='word')['data_block_layout']['layout_id']
+        add('target.data_block.element.set',layout_id=layout,offset=0,width=end-start,kind='array',name=name,array_count=(end-start)//width,array_stride=width,binding_kind='custom_struct',type_id=fmt)
+    if boundary=='two_formats':owner(2,4,'first');owner(4,len(raw),'second','Other')
+    else:owner(2,len(raw),'cells')
+    if boundary in ['label','split_word']:add('target.data.name',hunk=0,addr=3 if boundary=='split_word'else 4,name='selected_cell')
+    if boundary=='authored':actions.append((Kind.CREATE_MANUAL_COMMENT,{'comment':dict(comment_id='authored',hunk=0,addr=4,text='Keep "quoted; reasoning".')}))
+    append_manual_actions(tmp_path,binary_source=source,actions=actions)
+    with effective_metadata_file(tmp_path)as metadata:a=cb.build_listing_artifact_profile_from_binary_source(source,metadata_path=metadata)[2]
+    try:
+        text=exact(a,raw,tmp_path)
+        assert 'mode = MODE_ACTIVE'not in text
+        assert text.count('\t; mode\n')==(3 if boundary in['authored','two_fields']else 2 if boundary in['label','split_word','two_formats']else 1),text
+        if boundary=='split_word':assert text.count('dc.w MODE_ACTIVE')==2
+        if boundary=='authored':assert 'Keep "quoted; reasoning".'in text
+        if boundary=='two_fields':assert text.count('\t; other\n')==3
+        assert a.source_package_payload(64)['source_text']==text
+    finally:a.close()

@@ -98,9 +98,13 @@ bound data leaves use the unique encodable constant in that group. Inherited
 fields retain their declaring owner's group. Ambiguous encoded aliases, runtime
 addresses, expression equates, arithmetic operands and partial-field accesses
 remain numeric; manual representations take precedence. This is source
-presentation, not a runtime value bound or a pointer/type inference. Grouped
-array fields keep leaf presentation rather than losing their domain in scalar
-compaction. Regressions: `tests/test_scalar_field_equates.py`.
+presentation, not a runtime value bound or a pointer/type inference. Uniform single-field grouped arrays retain one typed range and its declared
+count/stride while C formats each scalar at its original width. Mixed schemas
+and explicit per-value presentations retain the existing leaf projection.
+Single-field grouped records state their role once per visible
+run; labels, authored comments and format changes restart it. Their directive
+already names the value, so generated comments do not repeat that expression.
+Regressions: `tests/test_scalar_field_equates.py`.
 
 ## WORD index guards
 
