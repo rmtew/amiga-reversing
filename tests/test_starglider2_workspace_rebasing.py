@@ -33,7 +33,9 @@ def layout(tmp_path_factory, original_image):
     names = FIXED+[name for name, _ in ARRAYS]+['released_object_tracking_references', 'world_object_pool',
         'app_SIZEOF', 'SG2WorldObject_SIZEOF', 'SG2WorldObject_back_link_or_sentinel',
         'SG2WorldObject_linked_record_or_sentinel', 'serialize_workspace_pointers_relative',
-        'restore_workspace_pointers_absolute']+list(additions)
+        'restore_workspace_pointers_absolute', 'shared_workspace_prefix',
+        'copy_saved_workspace_prefix_loop', 'deselect_disk_backend',
+        'interrupted_game_available_flag', 'SG2_SAVE_RESTORE_DBF_LAST']+list(additions)
     folder = tmp_path_factory.mktemp('workspace-rebase-symbols'); source, output = folder/'map.s', folder/'map.raw'
     source.write_text((target/'starglider2_game.s').read_text()+'\n dc.l '+','.join(names)+'\n')
     result = subprocess.run([str(target.parents[1]/'tools/vasmm68k_mot.exe'), '-quiet', '-Fbin', '-m68000',
@@ -91,6 +93,89 @@ def model_transform(before, layout, base, absolute):
             address = record+offset
             if get(expected, address) not in [0, 0xFFFFFFFF]: transform(address)
     return expected
+
+
+@pytest.mark.parametrize('record_index',[0,1,249])
+@pytest.mark.parametrize('record_tag',[0,1,12,30,128,0xFFFF])
+def test_load_copy_and_rebase_do_not_validate_player_record_format(original_image,layout,record_index,record_tag):
+    """Supplied serialized RAM, not a disk acceptance or normal-save claim.
+
+    Even an in-pool reference can designate a non-player tag. The copy/rebase
+    continuation does not promote it to the player orientation layout.
+    """
+    base=0x90000
+    memory=(ctypes.c_uint8*0x180000)()
+    ctypes.memmove(ctypes.addressof(memory)+0x1000,original_image[0],len(original_image[0]))
+    prefix=layout['savegame_prefix_rebased_long'];size=layout['app_SIZEOF']-prefix
+    assert size==0x5EE4 and 4*(layout['SG2_SAVE_RESTORE_DBF_LAST']+1)==size
+    source=layout['shared_workspace_prefix']
+    memory[source:source+size]=bytes(size)
+    pool=layout['world_object_pool'];record=pool+68*record_index
+    put(memory,source+layout['player_object_reference']-prefix,record)
+    put(memory,source+record-prefix,record_tag<<16)
+    rotations=bytes.fromhex('01230abc0fff')
+    memory[source+record-prefix+16:source+record-prefix+22]=rotations
+    # Avoid sentinel links to unrelated scratch while preserving a real format tag.
+    before_source=bytes(memory[source:source+size])
+    memory[base+prefix-4:base+prefix]=b'\xA5'*4
+    memory[base+layout['app_SIZEOF']:base+layout['app_SIZEOF']+4]=b'\xCC'*4
+    cpu=state(memory,layout['copy_saved_workspace_prefix_loop']);cpu.a[6]=base
+    cpu.a[0]=base+prefix;cpu.a[1]=source;cpu.d[1]=layout['SG2_SAVE_RESTORE_DBF_LAST']
+    run(original_image,memory,cpu,{layout['deselect_disk_backend']},limit=30000)
+    assert get(memory,base+layout['player_object_reference'])==base+record
+    assert get(memory,base+record)>>16==record_tag
+    assert bytes(memory[base+record+16:base+record+22])==rotations
+    assert memory[base+layout['interrupted_game_available_flag']]==255
+    assert bytes(memory[source:source+size])==before_source
+    assert bytes(memory[base+prefix-4:base+prefix])==b'\xA5'*4
+    assert bytes(memory[base+layout['app_SIZEOF']:base+layout['app_SIZEOF']+4])==b'\xCC'*4
+    assert cpu.a[7]==STACK and get(memory,STACK)==RETURN
+
+
+def test_save_command_tail_entry_adds_no_return_frame(original_image):
+    """Post-key-translation command token, not physical keyboard delivery."""
+    memory=(ctypes.c_uint8*0x180000)()
+    ctypes.memmove(ctypes.addressof(memory)+0x1000,original_image[0],len(original_image[0]))
+    put(memory,STACK,RETURN)
+    cpu=state(memory,0x18C8);cpu.d[0]=0x123400A0
+    run(original_image,memory,cpu,{0xFFEC})
+    assert cpu.a[7]==STACK and get(memory,STACK)==RETURN
+
+
+@pytest.mark.parametrize('discarded_return',[0x12EC,0x12345678,0xFFFFFF00])
+def test_save_success_discards_one_return_long_then_jumps_to_game_resume(original_image,discarded_return):
+    """After successful disk/fade helpers, whose device behavior is not tested."""
+    memory=(ctypes.c_uint8*0x180000)()
+    ctypes.memmove(ctypes.addressof(memory)+0x1000,original_image[0],len(original_image[0]))
+    cpu=state(memory,0x1012E);before_d,before_a=list(cpu.d),list(cpu.a)
+    put(memory,STACK,discarded_return);put(memory,STACK+4,0xA55AF00D)
+    run(original_image,memory,cpu,{0x11E0})
+    before_d[2]=discarded_return;before_a[7]=STACK+4
+    assert list(cpu.d)==before_d and list(cpu.a)==before_a
+    assert get(memory,STACK+4)==0xA55AF00D
+
+
+def test_save_abort_discards_return_before_disk_cleanup_call(original_image,layout):
+    memory=(ctypes.c_uint8*0x180000)()
+    ctypes.memmove(ctypes.addressof(memory)+0x1000,original_image[0],len(original_image[0]))
+    cpu=state(memory,0x1014C)
+    put(memory,STACK,0x12345678);put(memory,STACK+4,0xA55AF00D)
+    run(original_image,memory,cpu,{layout['deselect_disk_backend']})
+    assert cpu.d[1]==0x12345678 and cpu.a[7]==STACK
+    assert get(memory,STACK)==0x10152 and get(memory,STACK+4)==0xA55AF00D
+
+
+def test_tractor_save_tail_restores_its_15_long_saved_frame_before_entering_save(original_image):
+    """Explicit internal saved-frame precondition, not whole mission execution."""
+    memory=(ctypes.c_uint8*0x180000)()
+    ctypes.memmove(ctypes.addressof(memory)+0x1000,original_image[0],len(original_image[0]))
+    saved=[0xA5500000+i for i in range(15)]
+    for i,v in enumerate(saved):put(memory,STACK-60+4*i,v)
+    put(memory,STACK,RETURN)
+    cpu=state(memory,0x354DA);cpu.a[7]=STACK-60
+    run(original_image,memory,cpu,{0xFFEC})
+    assert list(cpu.d)==saved[:8] and list(cpu.a)[:7]==saved[8:]
+    assert cpu.a[7]==STACK and get(memory,STACK)==RETURN
 
 
 @pytest.mark.parametrize('base', [0x90000, 0x90004, 0xB0000])

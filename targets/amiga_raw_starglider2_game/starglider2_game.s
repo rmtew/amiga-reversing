@@ -2224,7 +2224,7 @@ abs_0_000011C6:
 	clr.b pending_key_scancode(a6)
 	jsr show_options_and_load_control_settings.l
 	bra.b abs_0_00001202
-abs_0_000011E0:
+resume_gameplay_with_cockpit_refresh:
 	bsr.w restore_cockpit_and_weapon_hud_state
 	clr.l d0
 	jsr add_bcd_and_draw_digits.l
@@ -2681,7 +2681,7 @@ abs_0_000018C8:
 	cmp.b #$1B,d0
 	beq.w abs_0_000024CC
 	cmp.b #$A0,d0
-	beq.w abs_0_000033E6
+	beq.w save_game_from_frame_command_bridge
 	cmp.b #$A1,d0
 	beq.w cycle_selected_weapon
 	andi.w #223,d0
@@ -4344,7 +4344,7 @@ update_world_and_mission_events_bridge_0023da:
 	jmp update_world_and_mission_events.l
 clear_text_framebuffer_and_cursor_bridge_0023e0:
 	jmp clear_text_framebuffer_and_cursor.l
-abs_0_000033E6:
+save_game_from_frame_command_bridge:
 	jmp save_game_to_disk.l
 poll_translated_command_key_bridge_0023ec:
 	jmp poll_translated_command_key.l
@@ -17642,7 +17642,7 @@ handle_restart_menu_choice:
 	tst.b interrupted_game_available_flag(a6)
 	beq.b abs_0_0000E3F2
 	move.l (a7)+,d1
-	bra.w abs_0_00012F74
+	bra.w resume_game_after_nonlocal_menu_exit_bridge
 abs_0_0000E3F2:
 	bsr.w clear_text_framebuffer_and_cursor
 	lea.l options_no_interrupted_game_message(pc),a1
@@ -19430,9 +19430,9 @@ load_game_from_disk:
 	move.l #$7E000,disk_service_state_transfer_buffer_pointer.l
 	move.l #disk_load_game_title,disk_service_state_operation_title_pointer.l
 	bsr.w check_adls_disk_identification
-	bne.w abs_0_0000FFDE
+	bne.w prompt_workspace_load_identification_retry
 	bsr.w select_save_name_from_directory
-	bne.w abs_0_0000FFBC
+	bne.w handle_workspace_load_name_failure
 	bsr.w advance_disk_cylinders_in_five_step_groups
 	moveq.l #SG2_SAVE_TRACK_DBF_LAST,d1
 	lea.l shared_workspace_prefix.l,a0
@@ -19441,10 +19441,12 @@ read_saved_workspace_track_loop:
 	move.l d1,-(a7)
 	bsr.w advance_disk_backend_cylinder
 	bsr.w check_change_then_read_disk_blocks
-	bne.w abs_0_0000FFAA
+	bne.w handle_workspace_load_track_failure
 	addi.l #SG2_SAVE_CHUNK_BYTES,disk_service_state_transfer_buffer_pointer.l
 	move.l (a7)+,d1
 	dbf.w d1,read_saved_workspace_track_loop
+    ; Copy/rebase accepts the supplied player reference and record tag without validating a type30 player layout. Available flag is set before pointer rebasing; no disk-format validity claim.
+restore_loaded_workspace_prefix:
 	lea.l shared_workspace_prefix.l,a1
 	lea.l savegame_prefix_rebased_long(a6),a0
 	move.w #SG2_SAVE_RESTORE_DBF_LAST,d1
@@ -19454,48 +19456,48 @@ copy_saved_workspace_prefix_loop:
 	st.b interrupted_game_available_flag(a6)
 	bsr.w restore_workspace_pointers_absolute
 	bra.w deselect_disk_backend
-abs_0_0000FFAA:
+handle_workspace_load_track_failure:
 	move.l (a7)+,d1
 	lea.l disk_error_retry_prompt(pc),a1
 	bsr.w prompt_disk_retry_or_abort
 	beq.w load_game_from_disk
 	bra.w deselect_disk_backend
-abs_0_0000FFBC:
+handle_workspace_load_name_failure:
 	cmp.w #$FFFE,d0
 	beq.w deselect_disk_backend
 	tst.w d2
-	beq.b abs_0_0000FFD8
+	beq.b prompt_workspace_load_empty_directory_retry
 	lea.l disk_filename_not_found_retry_prompt(pc),a1
-abs_0_0000FFCC:
+prompt_workspace_load_name_retry:
 	bsr.w prompt_disk_retry_or_abort
 	beq.w load_game_from_disk
 	bra.w deselect_disk_backend
-abs_0_0000FFD8:
+prompt_workspace_load_empty_directory_retry:
 	lea.l disk_no_files_retry_prompt(pc),a1
-	bra.b abs_0_0000FFCC
-abs_0_0000FFDE:
+	bra.b prompt_workspace_load_name_retry
+prompt_workspace_load_identification_retry:
 	cmp.w #$FFFE,d0
 	beq.w deselect_disk_backend
 	lea.l disk_insert_adls_retry_prompt(pc),a1
-	bra.b abs_0_0000FFCC
+	bra.b prompt_workspace_load_name_retry
     ; Write five $1400-byte chunks from app+$6B4 after pointer rebasing. Only $5EE4 bytes are restored. In the original fixed layout the extra $51C includes $11C display bytes.
 save_game_to_disk:
 	bsr.w disable_midframe_copper_blocks_continuation_bridge_011f7a
 	bsr.w serialize_workspace_pointers_relative
 	move.l #disk_save_game_title,disk_service_state_operation_title_pointer.l
-abs_0_0000FFFE:
+retry_save_with_relative_workspace:
 	move.w #$A,disk_service_state_expected_sector_count.l
 	move.w #$1,disk_service_state_first_sector_id.l
 	move.l #$7E000,disk_service_state_transfer_buffer_pointer.l
 	bsr.w check_or_offer_adls_disk_format
-	bne.w abs_0_00010122
+	bne.w restore_workspace_after_completed_save
 	bsr.w check_adls_disk_identification
-	bne.w abs_0_00010136
+	bne.w handle_save_write_or_directory_failure
 	bsr.w select_save_name_from_directory
 	move.w d0,save_directory_initial_lookup_status.l
-	beq.b abs_0_0001008E
+	beq.b prepare_selected_save_slot_tracks
 	cmp.w #$FFFE,d0
-	beq.w abs_0_00010148
+	beq.w restore_workspace_after_aborted_save
 	tst.w d2
 	bne.b copy_entered_name_then_stage_directory
 	lea.l disk_directory_empty_prompt_text(pc),a1
@@ -19527,7 +19529,7 @@ stage_save_directory_image_longs:
 	move.l (a0)+,(a1)+
 	dbf.w d1,stage_save_directory_image_longs
 	subq.l #1,d2
-abs_0_0001008E:
+prepare_selected_save_slot_tracks:
 	bsr.w advance_disk_cylinders_in_five_step_groups
 	lea.l disk_directory_empty_prompt_text(pc),a1
 	bsr.w display_disk_operation_prompt
@@ -19544,16 +19546,16 @@ stage_saved_workspace_track_chunk:
 	move.l (a0)+,(a1)+
 	dbf.w d1,stage_saved_workspace_track_chunk
 	bsr.w write_disk_backend_track
-	bne.w abs_0_00010136
+	bne.w handle_save_write_or_directory_failure
 	addi.l #5120,disk_service_state_memory_transfer_source_cursor.l
 	move.l (a7)+,d1
 	dbf.w d1,write_saved_workspace_track_loop
 	move.l #$7E000,disk_service_state_transfer_buffer_pointer.l
 	bsr.w seek_disk_backend_cylinder_zero
 	tst.w save_directory_initial_lookup_status.l
-	beq.b abs_0_00010122
+	beq.b restore_workspace_after_completed_save
 	bsr.w check_change_then_read_disk_blocks
-	bne.b abs_0_00010136
+	bne.b handle_save_write_or_directory_failure
 restore_staged_save_directory_image:
 	lea.l shared_workspace_prefix.l,a1
 	lea.l save_directory_work_header.l,a0
@@ -19564,35 +19566,39 @@ restore_save_directory_image_longs:
 	lea.l adls_disk_identification_bytes(pc),a1
 	lea.l runtime_code_0007E000.l,a0
 	moveq.l #85,d1
-abs_0_00010116:
+copy_adls_identification_to_directory_track:
 	move.b (a1)+,(a0)+
-	dbf.w d1,abs_0_00010116
+	dbf.w d1,copy_adls_identification_to_directory_track
 	bsr.w write_disk_backend_track
-	bne.b abs_0_00010136
-abs_0_00010122:
+	bne.b handle_save_write_or_directory_failure
+restore_workspace_after_completed_save:
 	bsr.w restore_workspace_pointers_absolute
 	bsr.w deselect_disk_backend
 	bsr.w fade_out_amiga_palette_bridge_011f6e
+    ; Success pops one return LONG into D2 before tail-resume. Abort pops into D1 before disk cleanup. These continuations do not RTS to the original caller.
+discard_save_return_before_gameplay_resume:
 	move.l (a7)+,d2
-	bra.w abs_0_00012F74
+	bra.w resume_game_after_nonlocal_menu_exit_bridge
 	dc.b $22,$1F
-abs_0_00010136:
+handle_save_write_or_directory_failure:
 	cmp.w #$FFFE,d0
-	beq.b abs_0_00010148
+	beq.b restore_workspace_after_aborted_save
 	lea.l disk_error_retry_prompt(pc),a1
 	bsr.w prompt_disk_retry_or_abort
-	beq.w abs_0_0000FFFE
-abs_0_00010148:
+	beq.w retry_save_with_relative_workspace
+restore_workspace_after_aborted_save:
 	bsr.w restore_workspace_pointers_absolute
+discard_aborted_save_return_before_cleanup:
 	move.l (a7)+,d1
 	bsr.w deselect_disk_backend
-	bra.w abs_0_00012F74
+resume_gameplay_after_save_abort_cleanup:
+	bra.w resume_game_after_nonlocal_menu_exit_bridge
     ; Index15 was already copied before this prompt: eight bytes lie beyond the512-byte directory image in track backing. This prefix does not stage/write that rejected update.
 prompt_after_save_directory_slot_limit:
 	lea.l disk_full_retry_prompt(pc),a1
 	bsr.w prompt_disk_retry_or_abort
-	beq.w abs_0_0000FFFE
-	bra.b abs_0_00010148
+	beq.w retry_save_with_relative_workspace
+	bra.b restore_workspace_after_aborted_save
 load_high_scores_from_disk:
 	move.w #$A,disk_service_state_expected_sector_count.l
 	move.w #$1,disk_service_state_first_sector_id.l
@@ -23294,8 +23300,8 @@ format_signed_word_decimal_text_bridge_011f68:
 	jmp format_signed_word_decimal_text.l
 fade_out_amiga_palette_bridge_011f6e:
 	jmp fade_out_amiga_palette_bridge_0024aa.l
-abs_0_00012F74:
-	jmp abs_0_000011E0.l
+resume_game_after_nonlocal_menu_exit_bridge:
+	jmp resume_gameplay_with_cockpit_refresh.l
 disable_midframe_copper_blocks_continuation_bridge_011f7a:
 	jmp disable_midframe_copper_blocks_continuation.l
     ; Original encoded3484-byte storage, not instructions. Separate protection-view source restores decoded code/records and reverses exactly; bootstrap subtraction/conditional rotations remain unc
@@ -45895,7 +45901,7 @@ abs_0_000345F2:
 	bsr.w poll_translated_command_key_bridge_038d44
 abs_0_0003460E:
 	cmp.b #$A0,d0
-	beq.w abs_0_000354DA
+	beq.w restore_mission_event_frame_and_tail_save
 	cmp.b #$59,d0
 	bne.b abs_0_0003462E
 	st.b neutron_bomb_order_requested_flag(a6)
@@ -46114,7 +46120,7 @@ dispatch_depot_help_mode_commands:
 	bsr.w poll_translated_command_key_bridge_038d44
 abs_0_000348F6:
 	cmp.b #$A0,d0
-	beq.w abs_0_000354DA
+	beq.w restore_mission_event_frame_and_tail_save
 	cmp.b #$8,d0
 	bne.b abs_0_00034908
 	bsr.w modal_inventory_command_loop_bridge_038d50
@@ -46838,25 +46844,25 @@ update_tractor_target_continuation:
 	move.b #$65,diagnostic_step_byte.l
 	movea.l tractor_target_reference(a6),a0
 	cmpa.l #$0,a0
-	beq.w abs_0_000354CC
+	beq.w clear_tractor_reference_and_scan_type
 	move.w (a0),d0
-	beq.w abs_0_000354CC
+	beq.w clear_tractor_reference_and_scan_type
 	tst.b $001E(a0)
-	bmi.b abs_0_00035320
+	bmi.b service_tractor_transport_radio
 	btst.b #2,$0002(a0)
-	bne.b abs_0_00035320
+	bne.b service_tractor_transport_radio
 	btst.b #3,$0002(a0)
-	bne.b abs_0_00035320
-	bra.w abs_0_000354B0
-abs_0_00035320:
+	bne.b service_tractor_transport_radio
+	bra.w announce_ineligible_tractor_object
+service_tractor_transport_radio:
 	cmpi.w #8,(a0)
-	bne.b abs_0_0003539C
+	bne.b measure_tractor_target_axis_distances
     ; KNOWN: type A0=Target code-entry register seed:SG2EmmaTransport
 	tst.b SG2EmmaTransport_taymar_radio_enabled_flag(a0)
-	bpl.b abs_0_0003539C
+	bpl.b measure_tractor_target_axis_distances
 	addq.b #1,SG2EmmaTransport_taymar_radio_phase_mod16(a0)
 	andi.b #15,SG2EmmaTransport_taymar_radio_phase_mod16(a0)
-	bne.b abs_0_0003539C
+	bne.b measure_tractor_target_axis_distances
 	lea.l event_message_pointers.l,a1
 	move.w #$1F,d0
 	asl.w #2,d0
@@ -46869,7 +46875,7 @@ abs_0_00035320:
 	bsr.w enqueue_event_message
 	lea.l model_type_population_counts(a6),a1
 	tst.b $0054(a1)
-	bne.b abs_0_00035398
+	bne.b finish_tractor_transport_radio_messages
 	move.b #$1,$0054(a1)
 	lea.l event_message_pointers.l,a1
 	move.w #$33,d0
@@ -46881,9 +46887,10 @@ abs_0_00035320:
 	asl.w #2,d0
 	movea.l SG2SourceTextReference_text(a1,d0.w),a1
 	bsr.w enqueue_event_message
-abs_0_00035398:
+finish_tractor_transport_radio_messages:
 	bsr.w enqueue_blank_event_message_line
-abs_0_0003539C:
+    ; Per-axis N-bit distance tests reject at10000. Rejection clears lock/type but leaves the override BYTE unchanged. This is not a radial-distance or pointer-validity guarantee.
+measure_tractor_target_axis_distances:
 	move.l $0004(a0),d0
 	move.l $0008(a0),d1
 	move.l $000C(a0),d2
@@ -46896,24 +46903,25 @@ abs_0_000353B0:
 	neg.l d1
 abs_0_000353B8:
 	sub.l player_world_z(a6),d2
-	bpl.b abs_0_000353C0
+	bpl.b test_tractor_target_axis_limits
 	neg.l d2
-abs_0_000353C0:
+test_tractor_target_axis_limits:
 	cmp.l #$2710,d0
-	bpl.w abs_0_000353E0
+	bpl.w announce_and_drop_distant_tractor_target
 	cmp.l #$2710,d1
-	bpl.w abs_0_000353E0
+	bpl.w announce_and_drop_distant_tractor_target
 	cmp.l #$2710,d2
-	bpl.w abs_0_000353E0
-	bra.b abs_0_000353F8
-abs_0_000353E0:
+	bpl.w announce_and_drop_distant_tractor_target
+	bra.b apply_tractor_rotation_and_attraction
+announce_and_drop_distant_tractor_target:
 	lea.l event_message_pointers.l,a1
 	move.w #$9,d0
 	asl.w #2,d0
 	movea.l SG2SourceTextReference_text(a1,d0.w),a1
 	bsr.w enqueue_message_if_outside_structure
-	bra.w abs_0_000354CC
-abs_0_000353F8:
+	bra.w clear_tractor_reference_and_scan_type
+    ; Negative collect flag moves the player; other flags move the object. Player-motion path skips object damping/Y limit. ASR uses the low6 bits of the shift WORD.
+apply_tractor_rotation_and_attraction:
 	st.b tractor_input_override_flag(a6)
 	move.w tractor_target_rotation_step(a6),d0
 	add.w d0,$0012(a0)
@@ -46932,27 +46940,27 @@ abs_0_000353F8:
 	move.w (a0),d4
 	move.b $0(a1,d4.w),d4
 	tst.b d4
-	bmi.b abs_0_0003544A
+	bmi.b pull_player_toward_tractor_excluded_object
 	add.l d0,$0004(a0)
 	add.l d1,$0008(a0)
 	add.l d2,$000C(a0)
-	bra.b abs_0_00035458
-abs_0_0003544A:
+	bra.b damp_tractor_rotation_step
+pull_player_toward_tractor_excluded_object:
 	sub.l d0,player_world_x(a6)
 	sub.l d1,player_world_y(a6)
 	sub.l d2,player_world_z(a6)
-	bra.b abs_0_000354D4
+	bra.b restore_mission_event_saved_frame
     ; Original rotation-step damping is not saturating: zero becomes-4, then returns to zero. The velocity-halving phase advances only on the nonnegative branch; preserve that cadence.
-abs_0_00035458:
+damp_tractor_rotation_step:
 	tst.w tractor_target_rotation_step(a6)
-	bpl.b abs_0_00035464
+	bpl.b step_tractor_velocity_decay_phase
 	addq.w #4,tractor_target_rotation_step(a6)
-	bra.b abs_0_0003549C
-abs_0_00035464:
+	bra.b limit_tractor_object_world_y
+step_tractor_velocity_decay_phase:
 	subq.w #4,tractor_target_rotation_step(a6)
 	addq.w #1,tractor_velocity_decay_phase(a6)
 	andi.w #15,tractor_velocity_decay_phase(a6)
-	bne.b abs_0_0003549C
+	bne.b limit_tractor_object_world_y
 	move.w $002C(a0),d0
 	move.w $002E(a0),d1
 	move.w $0030(a0),d2
@@ -46965,34 +46973,36 @@ abs_0_00035464:
 	move.w d1,$002E(a0)
 	move.w d2,$0030(a0)
 	move.w d3,$0020(a0)
-abs_0_0003549C:
+limit_tractor_object_world_y:
 	cmpi.l #4294967176,$0008(a0)
 	bmi.b abs_0_000354AE
 	move.l #$FFFFFF88,$0008(a0)
 abs_0_000354AE:
-	bra.b abs_0_000354D4
-abs_0_000354B0:
+	bra.b restore_mission_event_saved_frame
+announce_ineligible_tractor_object:
 	move.w #$128,d0
 	lea.l event_message_pointers.l,a1
 	movea.l SG2SourceTextReference_text(a1,d0.w),a1
 	clr.w pending_message_count(a6)
 	move.w #$1,message_display_countdown(a6)
 	bsr.w enqueue_event_message
-abs_0_000354CC:
+clear_tractor_reference_and_scan_type:
 	clr.l tractor_target_reference(a6)
 	clr.w scan_target_type(a6)
-abs_0_000354D4:
+restore_mission_event_saved_frame:
 	movem.l (a7)+,d0-d7/a0-a6
 	rts
-abs_0_000354DA:
+    ; Restore15 saved LONGs before tail-saving. Save completion discards one outer return LONG and resumes gameplay, rather than returning normally to this mission-event caller.
+restore_mission_event_frame_and_tail_save:
 	movem.l (a7)+,d0-d7/a0-a6
-	bra.w abs_0_00039D38
+	bra.w save_game_from_mission_event_bridge
+    ; MOVEA.L preserves CCR, so BEQ uses incoming Z. Known callers enter after a negative override-BYTE test; they do not separately reject a null target here.
 process_tractor_target_keys:
 	movea.l tractor_target_reference(a6),a0
-	beq.w abs_0_00035782
+	beq.w finish_tractor_key_message_group
 	move.w d0,d7
 	cmpi.w #73,(a0)
-	bne.w abs_0_0003557C
+	bne.w apply_tractor_control_tokens
 	bsr.w advance_shared_random_state_bridge_038d20
 	andi.w #127,d0
 	bne.b apply_asteroid_tractor_resource_pulse
@@ -47003,7 +47013,7 @@ process_tractor_target_keys:
 	clr.l tractor_target_reference(a6)
 	clr.w scan_target_type(a6)
 	sf.b tractor_input_override_flag(a6)
-	bra.w abs_0_00035782
+	bra.w finish_tractor_key_message_group
     ; Type73 only: asteroid spin WORD24 also supplies wrapping WORD x4 recharge. ADD carry saturates each reserve to $FFFF; zero PRNG low7 takes the separate target-release path.
     ; KNOWN: type A0=Target code-entry register seed:SG2Asteroid
 apply_asteroid_tractor_resource_pulse:
@@ -47013,69 +47023,70 @@ apply_asteroid_tractor_resource_pulse:
 	add.w d1,d1
 	move.w icarus_power_reserve(a6),d0
 	cmp.w #$FFFF,d0
-	beq.b abs_0_00035548
+	beq.b test_tractor_recharged_weapon_reserve
 	add.w d1,d0
-	bcs.b abs_0_00035542
+	bcs.b saturate_tractor_recharged_power_reserve
 	move.w d0,icarus_power_reserve(a6)
-	bra.b abs_0_00035548
-abs_0_00035542:
+	bra.b test_tractor_recharged_weapon_reserve
+saturate_tractor_recharged_power_reserve:
 	move.w #$FFFF,icarus_power_reserve(a6)
-abs_0_00035548:
+test_tractor_recharged_weapon_reserve:
 	move.w weapon_energy_reserve(a6),d0
 	cmp.w #$FFFF,d0
-	beq.b abs_0_00035562
+	beq.b test_tractor_recharged_shield_reserve
 	add.w d1,d0
-	bcs.b abs_0_0003555C
+	bcs.b saturate_tractor_recharged_weapon_reserve
 	move.w d0,weapon_energy_reserve(a6)
-	bra.b abs_0_00035562
-abs_0_0003555C:
+	bra.b test_tractor_recharged_shield_reserve
+saturate_tractor_recharged_weapon_reserve:
 	move.w #$FFFF,weapon_energy_reserve(a6)
-abs_0_00035562:
+test_tractor_recharged_shield_reserve:
 	move.w icarus_shield_strength(a6),d0
 	cmp.w #$FFFF,d0
-	beq.b abs_0_0003557C
+	beq.b apply_tractor_control_tokens
 	add.w d1,d0
-	bcs.b abs_0_00035576
+	bcs.b saturate_tractor_recharged_shield_reserve
 	move.w d0,icarus_shield_strength(a6)
-	bra.b abs_0_0003557C
-abs_0_00035576:
+	bra.b apply_tractor_control_tokens
+saturate_tractor_recharged_shield_reserve:
 	move.w #$FFFF,icarus_shield_strength(a6)
-abs_0_0003557C:
+    ; Rotation keys are collect-flag gated. Attraction decrement/comparison uses N-only branches and retains WORD overflow edges; arbitrary restored shifts need not lie in0..10.
+apply_tractor_control_tokens:
 	move.w d7,d0
 	lea.l object_collect_exclusion_flags.l,a1
 	move.w (a0),d4
 	tst.b $0(a1,d4.w)
-	bmi.b abs_0_000355A4
+	bmi.b test_stronger_tractor_attraction_key
 	cmp.b #$2E,d0
 	bne.b abs_0_00035598
 	addi.w #16,tractor_target_rotation_step(a6)
 abs_0_00035598:
 	cmp.b #$2C,d0
-	bne.b abs_0_000355A4
+	bne.b test_stronger_tractor_attraction_key
 	subi.w #16,tractor_target_rotation_step(a6)
-abs_0_000355A4:
+test_stronger_tractor_attraction_key:
 	cmp.b #$4D,d0
-	bne.b abs_0_000355B8
+	bne.b test_weaker_tractor_attraction_key
 	subq.w #1,tractor_attraction_shift(a6)
-	bpl.b abs_0_000355B8
+	bpl.b test_weaker_tractor_attraction_key
 	move.w #$0,tractor_attraction_shift(a6)
-	bra.b abs_0_000355D2
-abs_0_000355B8:
+	bra.b test_tractor_collect_key
+test_weaker_tractor_attraction_key:
 	cmp.b #$9E,d0
-	bne.b abs_0_000355D2
+	bne.b test_tractor_collect_key
 	move.w tractor_attraction_shift(a6),d1
 	addq.w #1,d1
 	cmp.w #$A,d1
-	bmi.b abs_0_000355CE
+	bmi.b store_tractor_attraction_shift
 	move.w #$A,d1
-abs_0_000355CE:
+store_tractor_attraction_shift:
 	move.w d1,tractor_attraction_shift(a6)
-abs_0_000355D2:
+test_tractor_collect_key:
 	cmp.b #$43,d0
-	bne.w abs_0_00035782
+	bne.w finish_tractor_key_message_group
 	movea.l tractor_target_reference(a6),a0
 	cmpa.l #$0,a0
-	beq.w abs_0_00035782
+	beq.w finish_tractor_key_message_group
 	move.l $0004(a0),d0
 	move.l $0008(a0),d1
 	move.l $000C(a0),d2
@@ -47088,17 +47099,17 @@ abs_0_000355FC:
 	neg.l d1
 abs_0_00035604:
 	sub.l player_world_z(a6),d2
-	bpl.b abs_0_0003560C
+	bpl.b test_tractor_collect_axis_limits
 	neg.l d2
-abs_0_0003560C:
+test_tractor_collect_axis_limits:
 	cmp.l #$BB8,d0
-	bpl.w abs_0_0003562C
+	bpl.w announce_tractor_collection_out_of_reach
 	cmp.l #$BB8,d1
-	bpl.w abs_0_0003562C
+	bpl.w announce_tractor_collection_out_of_reach
 	cmp.l #$BB8,d2
-	bpl.w abs_0_0003562C
-	bra.b abs_0_0003564E
-abs_0_0003562C:
+	bpl.w announce_tractor_collection_out_of_reach
+	bra.b test_tractor_collection_population_eligibility
+announce_tractor_collection_out_of_reach:
 	lea.l event_message_pointers.l,a1
 	move.w #$E,d0
 	asl.w #2,d0
@@ -47106,67 +47117,69 @@ abs_0_0003562C:
 	clr.w pending_message_count(a6)
 	move.w #$1,message_display_countdown(a6)
 	bsr.w enqueue_event_message
-	bra.w abs_0_0003576E
-abs_0_0003564E:
+	bra.w select_collection_refused_message
+test_tractor_collection_population_eligibility:
 	cmpi.w #12,(a0)
-	beq.b abs_0_0003567A
+	beq.b test_tractor_collection_table_exclusion
 	cmpi.w #91,(a0)
-	beq.b abs_0_0003567A
+	beq.b test_tractor_collection_table_exclusion
 	cmpi.w #98,(a0)
-	beq.b abs_0_0003567A
+	beq.b test_tractor_collection_table_exclusion
 	bsr.w recompute_counted_model_population
 	cmp.w #$2,d7
-	bls.w abs_0_0003567A
+	bls.w test_tractor_collection_table_exclusion
 	lea.l event_message_pointers.l,a1
 	move.w #$2A,d0
-	bra.w abs_0_00035778
-abs_0_0003567A:
+	bra.w enqueue_collection_result_message
+    ; Type98 A1+$62 has phase-specific bases: source collect flags outside; after clearing104 delivered BYTEs, the advanced app pointer inside. It is not a uniform population field.
+test_tractor_collection_table_exclusion:
 	lea.l object_collect_exclusion_flags.l,a1
 	move.w (a0),d0
 	tst.b $0(a1,d0.w)
-	bmi.w abs_0_0003576E
+	bmi.w select_collection_refused_message
 	cmpi.w #98,(a0)
-	bne.b abs_0_000356DE
+	bne.b test_taymar_transport_collection
 	tst.b inside_structure_flag(a6)
-	bpl.b abs_0_000356C8
+	bpl.b write_type98_collection_phase_byte
 	lea.l model_type_population_counts(a6),a1
 	tst.b $0062(a1)
-	bne.w abs_0_0003576E
+	bne.w select_collection_refused_message
 	tst.b neutron_bomb_collection_enabled_flag(a6)
-	bpl.w abs_0_0003576E
+	bpl.w select_collection_refused_message
 	sf.b neutron_bomb_ready_flag(a6)
 	sf.b neutron_bomb_order_requested_flag(a6)
 	sf.b bomb_ingredient_set_complete_flag(a6)
 	sf.b neutron_bomb_collection_enabled_flag(a6)
 	lea.l taymar_delivered_model_counts_prefix(a6),a1
 	move.w #$67,d7
-abs_0_000356C2:
+clear_delivered_model_counts_for_bomb_collection:
 	clr.b (a1)+
-	dbf.w d7,abs_0_000356C2
-abs_0_000356C8:
+	dbf.w d7,clear_delivered_model_counts_for_bomb_collection
+write_type98_collection_phase_byte:
 	move.b #$1,$0062(a1)
 	cmpi.b #16,weapon_selection_and_status(a6)
-	bne.b abs_0_000356DE
+	bne.b test_taymar_transport_collection
 	st.b neutron_bomb_spawn_request(a6)
 	sf.b neutron_bomb_retract_request(a6)
-abs_0_000356DE:
+test_taymar_transport_collection:
 	cmpi.w #8,(a0)
-	bne.b abs_0_000356EC
+	bne.b count_collected_object_type
     ; KNOWN: type A0=Target code-entry register seed:SG2EmmaTransport
 	st.b professor_taymar_aboard_flag(a6)
 	sf.b SG2EmmaTransport_taymar_radio_enabled_flag(a0)
-abs_0_000356EC:
+count_collected_object_type:
 	lea.l model_type_population_counts(a6),a1
 	move.w (a0),d0
 	cmp.w #$C,d0
-	beq.b abs_0_0003570C
+	beq.b test_homing_pickup_signed_byte_count
 	cmp.w #$5B,d0
-	beq.b abs_0_0003572C
+	beq.b test_bouncing_pickup_signed_byte_count
 	addq.b #1,$0(a1,d0.w)
-	bpl.b abs_0_0003574C
+	bpl.b shrink_markers_and_retire_collected_target
 	move.b #$7F,$0(a1,d0.w)
-	bra.b abs_0_0003576E
-abs_0_0003570C:
+	bra.b select_collection_refused_message
+    ; Pickup limit compares the incremented signed BYTE with4. Values127/128/255 retain overflow/wrap behavior; they do not establish a universal0..4 inventory bound.
+test_homing_pickup_signed_byte_count:
 	move.b $0(a1,d0.w),d1
 	addq.b #1,d1
 	cmp.b #$4,d1
@@ -47176,10 +47189,10 @@ abs_0_0003570C:
 	bsr.w add_homing_missile_hud_icon_bridge_038d5c
 	movem.l (a7)+,d0-d7/a0-a6
 abs_0_00035728:
-	bra.b abs_0_0003574C
+	bra.b shrink_markers_and_retire_collected_target
 abs_0_0003572A:
-	bra.b abs_0_0003576E
-abs_0_0003572C:
+	bra.b select_collection_refused_message
+test_bouncing_pickup_signed_byte_count:
 	move.b $0(a1,d0.w),d1
 	addq.b #1,d1
 	cmp.b #$4,d1
@@ -47189,10 +47202,10 @@ abs_0_0003572C:
 	bsr.w add_bouncing_bomb_hud_icon_bridge_038d62
 	movem.l (a7)+,d0-d7/a0-a6
 abs_0_00035748:
-	bra.b abs_0_0003574C
+	bra.b shrink_markers_and_retire_collected_target
 abs_0_0003574A:
-	bra.b abs_0_0003576E
-abs_0_0003574C:
+	bra.b select_collection_refused_message
+shrink_markers_and_retire_collected_target:
 	st.b tractor_markers_shrinking_flag(a6)
 	move.b #$A,tractor_marker_shrink_countdown(a6)
 	clr.w (a0)
@@ -47200,15 +47213,15 @@ abs_0_0003574C:
 	move.w #$C,d0
 	clr.w pending_message_count(a6)
 	move.w #$1,message_display_countdown(a6)
-	bra.b abs_0_00035778
-abs_0_0003576E:
+	bra.b enqueue_collection_result_message
+select_collection_refused_message:
 	lea.l event_message_pointers.l,a1
 	move.w #$D,d0
-abs_0_00035778:
+enqueue_collection_result_message:
 	asl.w #2,d0
 	movea.l SG2SourceTextReference_text(a1,d0.w),a1
 	bsr.w enqueue_event_message
-abs_0_00035782:
+finish_tractor_key_message_group:
 	bsr.w enqueue_blank_event_message_line
 	rts
 handle_tractor_toggle_command:
@@ -47217,34 +47230,35 @@ handle_tractor_toggle_command:
 	move.w #$1,message_display_countdown(a6)
 	neg.w tractor_command_toggle_word(a6)
 	tst.w tractor_command_toggle_word(a6)
-	bpl.b abs_0_000357A8
+	bpl.b return_from_tractor_toggle_command
 	bsr.w toggle_tractor_target_lock
-abs_0_000357A8:
+return_from_tractor_toggle_command:
 	rts
+    ; Nonnull entry releases without updating the previous reference. Null entry searches tracking for zero, then snapshots its null target before scan. Ordinary returns restore14 LONGs.
 toggle_tractor_target_lock:
 	movem.l d0-d7/a0-a5,-(a7)
 	movea.l tractor_target_reference(a6),a0
 	cmpa.l #$0,a0
-	bne.b abs_0_000357F0
+	bne.b release_nonnull_tractor_target
 	lea.l released_object_tracking_references(a6),a1
 	move.w #$9,d7
-abs_0_000357C2:
+search_released_tracking_for_null_tractor_reference:
 	movea.l (a1)+,a2
 	cmpa.l a0,a2
-	beq.b abs_0_000357CE
-	dbf.w d7,abs_0_000357C2
-	bra.b abs_0_000357D2
-abs_0_000357CE:
+	beq.b clear_matching_released_tracking_slot
+	dbf.w d7,search_released_tracking_for_null_tractor_reference
+	bra.b reset_null_tractor_reference_snapshot_and_motion
+clear_matching_released_tracking_slot:
 	clr.l -$0004(a1)
-abs_0_000357D2:
+reset_null_tractor_reference_snapshot_and_motion:
 	move.l tractor_target_reference(a6),previous_tractor_target_reference(a6)
 	clr.l tractor_target_reference(a6)
 	clr.w scan_target_type(a6)
 	clr.w tractor_target_rotation_step(a6)
 	move.w #$A,tractor_attraction_shift(a6)
 	sf.b tractor_input_override_flag(a6)
-	bra.b abs_0_00035816
-abs_0_000357F0:
+	bra.b retire_nearby_old_tractor_markers
+release_nonnull_tractor_target:
 	sf.b tractor_input_override_flag(a6)
 	clr.l tractor_target_reference(a6)
 	clr.w scan_target_type(a6)
@@ -47253,54 +47267,55 @@ abs_0_000357F0:
 	move.w #$F8,d0
 	movea.l SG2SourceTextReference_text(a1,d0.w),a1
 	bsr.w enqueue_event_message
-	bra.w abs_0_00035A94
-abs_0_00035816:
+	bra.w finish_tractor_lock_failure_messages
+retire_nearby_old_tractor_markers:
 	move.w nearby_object_count(a6),d0
-	beq.b abs_0_0003583C
+	beq.b acquire_tractor_target_from_visible_scan
 	subq.w #1,d0
 	movea.l nearby_objects_cursor(a6),a0
-abs_0_00035822:
+test_next_nearby_tractor_marker:
 	movea.l (a0)+,a1
 	cmpi.w #95,(a1)	; operand 2: SG2ObjectCore_object_type at (a1)
-	bne.b abs_0_00035838
+	bne.b advance_nearby_tractor_marker_scan
 	clr.w (a1)	; operand 1: SG2ObjectCore_object_type at (a1)
 	bclr.b #2,SG2ObjectCore_flags(a1)
 	bclr.b #3,SG2ObjectCore_flags(a1)
-abs_0_00035838:
-	dbf.w d0,abs_0_00035822
-abs_0_0003583C:
+advance_nearby_tractor_marker_scan:
+	dbf.w d0,test_next_nearby_tractor_marker
+    ; Saved-frame scan may retain REF on miss. This caller copies REF before testing type. A selected lock also survives the free-count failure path.
+acquire_tractor_target_from_visible_scan:
 	move.w visible_object_count(a6),d7
-	beq.w abs_0_00035A6C
+	beq.w announce_tractor_lock_setup_failure
 	clr.w scan_target_type(a6)
 	clr.l tractor_target_reference(a6)
 	bsr.w select_visible_scan_target
 	move.l scan_target_reference(a6),tractor_target_reference(a6)
 	neg.w tractor_command_toggle_word(a6)
 	move.w scan_target_type(a6),d0
-	beq.w abs_0_00035A6C
+	beq.w announce_tractor_lock_setup_failure
 	cmp.w #$1E,d0
-	beq.w abs_0_00035A6C
+	beq.w announce_tractor_lock_setup_failure
 	sf.b reuse_tractor_markers_flag(a6)
 	movea.l tractor_target_reference(a6),a0
 	movea.l previous_tractor_target_reference(a6),a1
 	cmpa.l a0,a1
-	bne.b abs_0_0003589A
+	bne.b test_tractor_target_flags_and_axis_distance
 	move.w nearby_object_count(a6),d0
-	beq.b abs_0_0003589A
+	beq.b test_tractor_target_flags_and_axis_distance
 	subq.w #1,d0
 	movea.l nearby_objects_cursor(a6),a2
 	move.w #$5F,d2
-abs_0_0003588A:
+find_nearby_tractor_marker_for_reuse:
 	movea.l (a2)+,a1
 	cmp.w (a1),d2	; operand 1: SG2ObjectCore_object_type at (a1)
-	beq.b abs_0_00035896
-	dbf.w d0,abs_0_0003588A
-	bra.b abs_0_0003589A
-abs_0_00035896:
+	beq.b mark_tractor_marker_reuse
+	dbf.w d0,find_nearby_tractor_marker_for_reuse
+	bra.b test_tractor_target_flags_and_axis_distance
+mark_tractor_marker_reuse:
 	st.b reuse_tractor_markers_flag(a6)
-abs_0_0003589A:
+test_tractor_target_flags_and_axis_distance:
 	btst.b #6,$0002(a0)
-	bne.b abs_0_000358E0
+	bne.b reject_tractor_lock_by_flags_or_distance
 	move.l $0004(a0),d0
 	move.l $0008(a0),d1
 	move.l $000C(a0),d2
@@ -47317,13 +47332,13 @@ abs_0_000358BE:
 	neg.l d2
 abs_0_000358C6:
 	cmp.l #$2710,d0
-	bpl.b abs_0_000358E0
+	bpl.b reject_tractor_lock_by_flags_or_distance
 	cmp.l #$2710,d1
-	bpl.b abs_0_000358E0
+	bpl.b reject_tractor_lock_by_flags_or_distance
 	cmp.l #$2710,d2
-	bpl.b abs_0_000358E0
-	bra.b abs_0_00035914
-abs_0_000358E0:
+	bpl.b reject_tractor_lock_by_flags_or_distance
+	bra.b announce_tractor_attraction_direction
+reject_tractor_lock_by_flags_or_distance:
 	lea.l event_message_pointers.l,a1
 	move.w #$3,d0
 	asl.w #2,d0
@@ -47336,28 +47351,29 @@ abs_0_000358E0:
 	bsr.w enqueue_event_message
 	clr.l tractor_target_reference(a6)
 	clr.w scan_target_type(a6)
-	bra.w abs_0_00035A94
-abs_0_00035914:
+	bra.w finish_tractor_lock_failure_messages
+announce_tractor_attraction_direction:
 	lea.l event_message_pointers.l,a1
 	move.w (a0),d0
 	lea.l object_collect_exclusion_flags.l,a2
 	tst.b $0(a2,d0.w)
-	bmi.b abs_0_00035938
+	bmi.b announce_player_pull_tractor_target
 	move.w #$6,d0
 	asl.w #2,d0
 	movea.l SG2SourceTextReference_text(a1,d0.w),a1
 	bsr.w enqueue_event_message
-	bra.b abs_0_00035946
-abs_0_00035938:
+	bra.b test_tractor_marker_reuse_and_free_count
+announce_player_pull_tractor_target:
 	move.w #$7,d0
 	asl.w #2,d0
 	movea.l SG2SourceTextReference_text(a1,d0.w),a1
 	bsr.w enqueue_event_message
-abs_0_00035946:
+    ; Unsigned free count>10 admits two pops. Marker1 clears BYTE22; marker2 keeps it. Other unwritten bytes stay stale; no pool-capacity or lifetime guarantee follows.
+test_tractor_marker_reuse_and_free_count:
 	tst.b reuse_tractor_markers_flag(a6)
-	bmi.w abs_0_00035A68
+	bmi.w finish_tractor_marker_pair_setup
 	cmpi.w #10,free_object_count(a6)
-	bls.w abs_0_00035A6C
+	bls.w announce_tractor_lock_setup_failure
 	sf.b tractor_markers_shrinking_flag(a6)
 	move.b #$FF,tractor_marker_shrink_countdown(a6)
 	movea.l free_object_stack_cursor(a6),a1
@@ -47418,9 +47434,9 @@ abs_0_00035946:
 	move.w #$0,SG2WorldObject_rotation_0(a2)
 	move.w #$400,SG2WorldObject_rotation_1(a2)
 	move.w #$0,SG2WorldObject_rotation_2(a2)
-abs_0_00035A68:
-	bra.w abs_0_00035A9E
-abs_0_00035A6C:
+finish_tractor_marker_pair_setup:
+	bra.w announce_tractor_lock_and_object_name
+announce_tractor_lock_setup_failure:
 	lea.l event_message_pointers.l,a0
 	move.w #$3,d0
 	asl.w #2,d0
@@ -47431,11 +47447,11 @@ abs_0_00035A6C:
 	asl.w #2,d0
 	movea.l SG2SourceTextReference_text(a0,d0.w),a1
 	bsr.w enqueue_event_message
-abs_0_00035A94:
+finish_tractor_lock_failure_messages:
 	bsr.w enqueue_blank_event_message_line
 	movem.l (a7)+,d0-d7/a0-a5
 	rts
-abs_0_00035A9E:
+announce_tractor_lock_and_object_name:
 	lea.l event_message_pointers.l,a0
 	move.w #$2,d0
 	asl.w #2,d0
@@ -47455,26 +47471,26 @@ abs_0_00035A9E:
 	bsr.w enqueue_blank_event_message_line
 	movem.l (a7)+,d0-d7/a0-a5
 	rts
-    ; Type95 is constructed after Tractor Beam Locked. It follows the target or shrinks after collection using a shared countdown. Catalogue95 is No records found; role is not visual recognition.
+    ; Nonzero shrink flag uses a shared BYTE countdown, advanced per marker body. Following tests the space-flag sign for Y offset. Rotation WORDs add without masking here.
     ; KNOWN: type A0=Target code-entry register seed:SG2WorldObject
 update_nearby_tractor_beam_marker:
 	tst.b tractor_markers_shrinking_flag(a6)
-	beq.b abs_0_00035AFA
+	beq.b follow_active_tractor_marker_target
 	subq.b #1,tractor_marker_shrink_countdown(a6)
-	bmi.w abs_0_00035B62
+	bmi.w clear_expired_or_targetless_tractor_marker
 	addq.b #1,SG2ObjectCore_model_scale_shift(a0)
-	bra.b abs_0_00035B40
-abs_0_00035AFA:
+	bra.b animate_tractor_marker_variant_and_angles
+follow_active_tractor_marker_target:
 	movea.l tractor_target_reference(a6),a3
 	cmpa.l #$0,a3
-	beq.b abs_0_00035B62
+	beq.b clear_expired_or_targetless_tractor_marker
 	move.l $0004(a3),d0
 	move.l $0008(a3),d1
 	tst.b space_environment_flag(a6)
-	bmi.b abs_0_00035B1A
+	bmi.b apply_tractor_marker_position_deltas
 	move.l tractor_marker_lower_y_offset(a6),d2
 	sub.l d2,d1
-abs_0_00035B1A:
+apply_tractor_marker_position_deltas:
 	move.l $000C(a3),d2
 	sub.l SG2ObjectCore_world_x(a0),d0
 	sub.l SG2ObjectCore_world_y(a0),d1
@@ -47486,14 +47502,14 @@ abs_0_00035B1A:
 	add.l d0,SG2ObjectCore_world_x(a0)
 	add.l d1,SG2ObjectCore_world_y(a0)
 	add.l d2,SG2ObjectCore_world_z(a0)
-abs_0_00035B40:
+animate_tractor_marker_variant_and_angles:
 	addi.b #1,SG2ObjectCore_vertex_variant_selector(a0)
 	andi.b #15,SG2ObjectCore_vertex_variant_selector(a0)
 	addi.w #2048,SG2WorldObject_rotation_1(a0)
 	addi.w #128,SG2WorldObject_rotation_0(a0)
 	addi.w #128,SG2WorldObject_rotation_2(a0)
 	bra.w abs_0_00039D56
-abs_0_00035B62:
+clear_expired_or_targetless_tractor_marker:
 	move.w #$0,(a0)	; operand 2: SG2ObjectCore_object_type at (a0)
 	bra.w abs_0_00039D56
 	dc.b $11,$7C,$00,$04,$00,$1D,$11,$7C,$00,$00,$00,$1E,$60,$00,$41,$DE
@@ -50892,7 +50908,7 @@ invalidate_alternate_power_meter_cache_bridge_038d2c:
 	jmp invalidate_alternate_power_meter_cache.l
 display_event_message_line:
 	jmp display_timed_message_line.l
-abs_0_00039D38:
+save_game_from_mission_event_bridge:
 	jmp save_game_to_disk.l
 abs_0_00039D3E:
 	jmp continue_secondary_object_update_loop.l

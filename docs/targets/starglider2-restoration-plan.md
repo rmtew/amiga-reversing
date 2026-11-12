@@ -20,14 +20,17 @@ Original payload SHA256:
    Next: stored-pointer lifetime in item 2; do not add per-reader type seeds
    or assume disjoint allocations.
 2. Player rotation stores use a three-field type-30 format contract and decoded
-   LEA/write-disjointness proof. The contract is semantic input, not automatic
-   format discovery. Published-pointer readers remain Core; no transient view
-   is exported as a permanent pointee type. Local reaching-cell transport works;
-   mutation and calls discard the view. Even a read-only callee does not prove
-   the call's return-PC stack write misses a runtime record. Next: establish actual
-   caller stack/record separation, callee memory effects and rebasing phases
-   before propagating a view to later readers; do not duplicate working cell
-   transport or assert a global lifetime contract.
+   LEA/write-disjointness proof. The slot already declares SG2WorldObject;
+   adding another pointee annotation would duplicate existing semantic input.
+   Most reader bases are A6 fallback; the three stronger-base load sites also
+   need downstream live-slot tracing. Local probes reproduce mutation/call
+   refusals, but their actual loss points remain to be identified. Reaching-cell
+   transport works.
+   Copy/rebase accepts other record tags from supplied saved state without format
+   validation; this neither disproves the conditional role declaration nor proves
+   a permanent subtype. Next: close a bounded actual caller/base and live-slot
+   path, including stack separation, callee writes and rebasing; no reader seed
+   or unconditional type follows from initialization alone.
 3. Optional model-header extension: keep face-count mutation separate from
    the format discriminator. The original viewer can select outside the
    104-entry model prefix. Next: isolate an evidenced caller domain and its
