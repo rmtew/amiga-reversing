@@ -1221,6 +1221,26 @@ static int policy_has_custom_struct_named(const M68kAnalysisPolicy *policy, cons
   return policy_custom_struct_named(policy, struct_name) != NULL;
 }
 
+/* An explicitly bound scalar domain supplies meaning. Equal values in other
+ * groups, runtime addresses and expression aliases do not. Encoding aliases
+ * inside one group are ambiguous and remain numeric. */
+static const M68kAnalysisTargetEquate *scalar_group_equate(const M68kAnalysisPolicy *policy,
+    const char *group, uint32_t value, uint32_t width) {
+  const M68kAnalysisTargetEquate *found = NULL;
+  if (!policy || !group || !group[0] || (width != 1U && width != 2U && width != 4U)) return NULL;
+  uint32_t mask = width == 4U ? UINT32_MAX : (UINT32_C(1) << (width * 8U)) - 1U;
+  for (uint16_t i = 0U; i < policy->target_equate_count; ++i) {
+    const M68kAnalysisTargetEquate *e = &policy->target_equates[i];
+    if (e->address_domain || e->value_expr[0] || strcmp(e->group, group) || !e->name[0]) continue;
+    if (width < 4U && ((int64_t)e->value < -(INT64_C(1) << (width * 8U - 1U)) ||
+        (int64_t)e->value > mask)) continue;
+    if (((uint32_t)e->value & mask) != (value & mask)) continue;
+    if (found) return NULL;
+    found = e;
+  }
+  return found;
+}
+
 /* Data-block expansion gives internal array fields generated labels such as
  * table_flags_3.  They are not symbols in the original program: the sole
  * table/instance label plus its RS layout is sufficient. */
@@ -4328,7 +4348,7 @@ static void render_asm_structured_data_item(M68kRenderIRPreview *preview, const 
   if (preview == NULL || section == NULL || item == NULL || item->size == 0U) return;
   if (!render_asm_includes_for_structured_data_item(preview, item)) return;
   comment[0] = '\0';
-  comment_text = structured_data_item_render_comment(section, item, comment, sizeof(comment)) ? comment : NULL;
+  comment_text = structured_data_item_render_comment(preview->analysis_policy, section, item, comment, sizeof(comment)) ? comment : NULL;
   if (repeats_single_pointer_field_comment(preview, lookup, section->section_index, item, comment_text,
       last_authored_comment_offset))
     comment_text = NULL;
@@ -4448,8 +4468,8 @@ static void render_asm_structured_data_item(M68kRenderIRPreview *preview, const 
         comment_text)) {
     return;
   }
-  if (available == item->size &&
-      structured_data_item_symbolic_operand_expr(section, item, expr, sizeof(expr))) {
+  if (available == item->size && !lookup_manual_representation_at(lookup, section->section_index, item->offset) &&
+      structured_data_item_symbolic_operand_expr(preview->analysis_policy, section, item, expr, sizeof(expr))) {
     if (!render_asm_include_for_symbol_expr(preview, expr)) {
       ++preview->asm_source_instruction_render_failures;
       record_source_export_failure(preview, M68K_SOURCE_EXPORT_FAILURE_RENDER,
@@ -5668,7 +5688,7 @@ static int plan_rendered_structured_pointer_expressions(M68kRenderLookup *lookup
                 accepted_byte_at(section, accepted_bytes[section_index], ref->source_offset) ||
                 accepted_byte_at(section, accepted_bytes[section_index], ref->source_offset + 1U) ||
                 lookup_has_renderable_label(lookup, section->section_index, ref->source_offset + 1U) ||
-                structured_data_item_symbolic_operand_expr(section, item, operand_expr, sizeof(operand_expr))) continue;
+                structured_data_item_symbolic_operand_expr(lookup->policy, section, item, operand_expr, sizeof(operand_expr))) continue;
             if (resolve_rendered_manual_base_displacement(lookup, decode, accepted_start, section, ref, &expression) ==
                 M68K_RENDER_PLANNED_EXPRESSION_INVALID) return -1;
             if (m68k_render_plan_append_expression(plan, &expression) != 0) return -1;
@@ -6323,6 +6343,40 @@ static const M68kAnalysisTargetEquate *typed_index_compensation_symbol(
     -(int64_t)e->value == access->word_index.encoded_symbol_correction ? e : NULL;
 }
 
+static void attach_typed_field_equate_symbols(const M68kRenderLookup *lookup, size_t section_index,
+    uint32_t offset, M68kInstructionIR *instruction) {
+  const M68kSimFormMetadata *meta = m68k_sim_metadata_for_instruction(instruction);
+  uint32_t value;
+  uint8_t width, count;
+  if (!lookup || !meta || instruction->operand_count != 2U ||
+      (meta->operation_type != M68K_SIM_OP_MOVE && meta->operation_type != M68K_SIM_OP_COMPARE) ||
+      meta->source_operand_index >= instruction->operand_count || meta->dest_operand_index >= instruction->operand_count)
+    return;
+  uint8_t source = meta->source_operand_index, dest = meta->dest_operand_index;
+  M68kOperandIR *literal = &instruction->operands[source];
+  if (literal->symbol_ref.has_name || !m68k_ir_operand_immediate_value(literal, &value) ||
+      lookup_manual_operand_representation(lookup, section_index, offset, source) ||
+      !platform_operand_memory_span(instruction, dest, &width, &count, NULL) || count != 1U) return;
+  const M68kRenderTypedAccess *access = lookup_typed_access_for_operand(lookup, section_index, offset, dest);
+  if (!access || access->field_size != width || access->field_byte_offset) return;
+  const M68kAnalysisCustomStruct *owner = policy_custom_struct_named(lookup->policy, access->owner_struct_name);
+  if (!owner) return;
+  for (uint16_t i = 0U; i < owner->field_count; ++i) {
+    const M68kAnalysisCustomStructField *field = &owner->fields[i];
+    if (strcmp(field->name, access->field_name) || field->size != width ||
+        field->value_kind != M68K_ANALYSIS_STRUCT_FIELD_VALUE_SCALAR || !field->equate_group[0]) continue;
+    const M68kAnalysisTargetEquate *equate = scalar_group_equate(lookup->policy, field->equate_group, value, width);
+    /* BYTE immediates retain a WORD extension. A negative equate would
+     * sign-extend that unused high byte during assembly; matching the low
+     * scalar byte alone cannot justify changing its original encoding. */
+    if (!equate || (width == 1U && equate->value < 0)) return;
+    m68k_ir_symbol_ref_init(&literal->symbol_ref);
+    literal->symbol_ref.has_name = 1U;
+    snprintf(literal->symbol_ref.name, sizeof(literal->symbol_ref.name), "%s", equate->name);
+    return;
+  }
+}
+
 static int attach_amiga_typed_struct_field_symbols(const M68kRenderLookup *lookup, size_t section_index,
     uint32_t offset, M68kInstructionIR *instruction) {
   size_t operand_index;
@@ -6953,16 +7007,26 @@ static int structured_data_item_raw_value(const M68kDecodeSectionIR *section,
   return 0;
 }
 
-static int structured_data_item_value_domain_expr(const M68kDecodeSectionIR *section,
+static int structured_data_item_value_domain_expr(const M68kAnalysisPolicy *policy, const M68kDecodeSectionIR *section,
     const M68kAnalysisStructuredDataItem *item, char *expr, size_t expr_size) {
   uint32_t value;
   if (expr == NULL || expr_size == 0U || item == NULL) return 0;
   expr[0] = '\0';
   if (item->value_domain[0] == '\0' || !structured_data_item_raw_value(section, item, &value)) return 0;
+  const M68kAnalysisCustomStruct *record = policy_custom_struct_named(policy, item->struct_name);
+  for (uint16_t i = 0U; record && i < record->field_count; ++i) {
+    const M68kAnalysisCustomStructField *field = &record->fields[i];
+    if (!field->equate_group[0] || strcmp(field->name, item->field_name) ||
+        strcmp(field->equate_group, item->value_domain) || field->size != item->size) continue;
+    const M68kAnalysisTargetEquate *equate = scalar_group_equate(policy, field->equate_group, value, item->size);
+    if (!equate) return 0;
+    snprintf(expr, expr_size, "%s", equate->name);
+    return 1;
+  }
   return amiga_value_domain_symbolic_expr(item->value_domain, value, expr, expr_size);
 }
 
-int structured_data_item_symbolic_operand_expr(const M68kDecodeSectionIR *section,
+int structured_data_item_symbolic_operand_expr(const M68kAnalysisPolicy *policy, const M68kDecodeSectionIR *section,
     const M68kAnalysisStructuredDataItem *item, char *expr, size_t expr_size) {
   int32_t lib_size = 0;
   if (expr == NULL || expr_size == 0U || item == NULL) return 0;
@@ -6990,18 +7054,18 @@ int structured_data_item_symbolic_operand_expr(const M68kDecodeSectionIR *sectio
     snprintf(expr, expr_size, "%s", item->constant_name);
     return 1;
   }
-  if (!structured_data_item_value_domain_expr(section, item, expr, expr_size)) return 0;
+  if (!structured_data_item_value_domain_expr(policy, section, item, expr, expr_size)) return 0;
   return render_asm_include_for_symbol_expr(NULL, expr);
 }
 
-int structured_data_item_render_comment(const M68kDecodeSectionIR *section,
+int structured_data_item_render_comment(const M68kAnalysisPolicy *policy, const M68kDecodeSectionIR *section,
     const M68kAnalysisStructuredDataItem *item, char *comment, size_t comment_size) {
   char expr[96];
   size_t used;
   if (!structured_data_item_comment(item, comment, comment_size)) return 0;
   if (structured_data_item_constant_matches_bytes(section, item)) {
     snprintf(expr, sizeof(expr), "%s", item->constant_name);
-  } else if (!structured_data_item_value_domain_expr(section, item, expr, sizeof(expr))) {
+  } else if (!structured_data_item_value_domain_expr(policy, section, item, expr, sizeof(expr))) {
     return 1;
   }
   used = strlen(comment);
@@ -11392,6 +11456,7 @@ static int plan_rendered_instruction_expressions(M68kRenderIRPreview *preview, M
       (void)attach_amiga_app_base_slot_symbols(lookup, &platform_state, section->section_index, candidate->offset,
         &instruction);
       (void)attach_amiga_typed_struct_field_symbols(lookup, section->section_index, candidate->offset, &instruction);
+      attach_typed_field_equate_symbols(lookup, section->section_index, candidate->offset, &instruction);
       if (apply_manual_operand_representations(lookup, section->section_index, candidate->offset, &instruction) != 0) return -1;
       if (!render_asm_include_for_instruction_platform_symbols(preview, &instruction)) return -1;
       apply_exact_byte_immediate_render_values(&instruction, section->data + candidate->offset, candidate->byte_count);

@@ -597,7 +597,9 @@ def _manual_custom_struct_field_to_metadata(field: dict[str, object]) -> CustomS
         value_kind=("struct_pointer" if _manual_seed_text(field, "pointer_struct") is not None
                     else (_manual_seed_text(field, "value_kind") or "scalar")),
         pointer_address_domain=_manual_seed_text(field, "pointer_address_domain"),
-        pointer_symbol_group=_manual_seed_text(field, "pointer_symbol_group"),    )
+        pointer_symbol_group=_manual_seed_text(field, "pointer_symbol_group"),
+        equate_group=_manual_seed_text(field, "equate_group"),
+    )
 
 
 def _manual_custom_struct_to_metadata(struct: dict[str, object]) -> CustomStructMetadata | None:
@@ -1295,6 +1297,7 @@ def _data_block_custom_struct_field_entity(
         value_kind=field.value_kind,
         pointer_address_domain=field.pointer_address_domain,
         pointer_symbol_group=field.pointer_symbol_group,
+        value_domain=field.equate_group,
         seed_origin=TargetMetadataSeedOrigin.MANUAL_ANALYSIS,
         review_status=TargetMetadataReviewStatus.SEEDED,
         citation=element.citation,
@@ -1484,7 +1487,7 @@ def _packed_struct_scalar_prototype(
     prototype = None
     for field in sorted(struct.fields, key=lambda item: item.offset):
         if (field.offset != cursor or field.size <= 0
-                or field.pointer_struct or field.value_kind != "scalar"
+                or field.pointer_struct or field.value_kind != "scalar" or field.equate_group
                 or field.pointer_address_domain or field.pointer_symbol_group):
             return None
         if field.type.upper() == "STRUCT":

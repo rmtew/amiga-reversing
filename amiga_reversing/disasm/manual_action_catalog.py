@@ -2671,7 +2671,7 @@ def _custom_struct_field_payload(field: Mapping[str, object]) -> dict[str, objec
         "offset": offset,
         "size": size,
     }
-    for field_name in ("available_since", "struct", "pointer_struct", "named_base", "value_kind", "pointer_address_domain", "pointer_symbol_group"):
+    for field_name in ("available_since", "struct", "pointer_struct", "named_base", "value_kind", "pointer_address_domain", "pointer_symbol_group", "equate_group"):
         value = field.get(field_name)
         if isinstance(value, str) and value.strip():
             payload[field_name] = value.strip()
@@ -2686,6 +2686,11 @@ def _custom_struct_field_payload(field: Mapping[str, object]) -> dict[str, objec
     from .pointer_domains import validate_pointer_domain
     validate_pointer_domain(value_kind=value_kind, size=size,
         address_domain=payload.get("pointer_address_domain"), symbol_group=payload.get("pointer_symbol_group"))
+    if "equate_group" in field:
+        from .target_metadata import CustomStructFieldMetadata
+        CustomStructFieldMetadata(name=name, type=field_type, offset=offset, size=size,
+            value_kind=value_kind, struct=payload.get("struct"), named_base=payload.get("named_base"),
+            pointer_struct=pointer_struct, equate_group=field["equate_group"])
     return payload
 
 
@@ -3888,6 +3893,7 @@ def _custom_struct_parameter_schema() -> dict[str, object]:
                         "available_since": {"type": "string", "default": "1.0"},
                         "struct": {"type": "string"},
                         "pointer_struct": {"type": "string"},
+                        "equate_group": {"type": "string", "minLength": 1, "maxLength": 63},
                         "named_base": {"type": "string"},
                         "value_kind": {"type": "string", "enum": ["scalar", "target_pointer", "struct_pointer"]},
                         "pointer_address_domain": {"type": "string", "enum": ["legacy", "mapped_source", "runtime_only"]},
@@ -3945,6 +3951,7 @@ def _custom_struct_field_parameter_schema() -> dict[str, object]:
             "named_base": {"type": "string"},
             "pointer_address_domain": {"type": "string", "enum": ["legacy", "mapped_source", "runtime_only"]},
             "pointer_symbol_group": {"type": "string"},
+            "equate_group": {"type": "string", "minLength": 1, "maxLength": 63},
             "parent_evidence_ids": {"type": "array", "items": {"type": "string"}},
         },
         "required": ["struct_name", "name", "type", "offset", "size"],

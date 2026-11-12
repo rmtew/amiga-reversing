@@ -752,6 +752,8 @@ typedef struct M68kAnalysisCustomStructField {
   uint8_t reserved[3];
   uint8_t pointer_address_domain;
   char pointer_symbol_group[64];
+  /* Presentation domain, not a restriction on runtime values or a pointer. */
+  char equate_group[64];
 } M68kAnalysisCustomStructField;
 
 typedef struct M68kAnalysisCustomStruct {

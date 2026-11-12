@@ -711,8 +711,14 @@ class CustomStructFieldMetadata:
     value_kind: str = "scalar"
     pointer_address_domain: str | None = None
     pointer_symbol_group: str | None = None
+    equate_group: str | None = None
 
     def __post_init__(self) -> None:
+        if self.equate_group is not None:
+            if (not isinstance(self.equate_group, str) or not self.equate_group.strip()
+                    or len(self.equate_group.encode()) >= 64 or self.value_kind != "scalar"
+                    or self.struct or self.named_base or self.size not in {1, 2, 4}):
+                raise ValueError("equate_group requires a scalar byte, word or long field and a bounded group name")
         validate_pointer_domain(value_kind=self.value_kind, size=self.size,
             address_domain=self.pointer_address_domain, symbol_group=self.pointer_symbol_group)
         if self.value_kind not in {"scalar", "target_pointer", "struct_pointer"}:
@@ -765,6 +771,7 @@ class CustomStructFieldMetadata:
             value_kind=value_kind,
             pointer_address_domain=cast(str | None, payload.get("pointer_address_domain")),
             pointer_symbol_group=cast(str | None, payload.get("pointer_symbol_group")),
+            equate_group=cast(str | None, payload.get("equate_group")),
         )
 
 @dataclass(frozen=True, slots=True, kw_only=True)
@@ -2243,7 +2250,7 @@ def target_metadata_json_payload(metadata: TargetMetadata) -> dict[str, object]:
             if struct.get(key) is None:
                 struct.pop(key, None)
         for field in struct.get("fields", ()):
-            for key in ("pointer_address_domain", "pointer_symbol_group"):
+            for key in ("pointer_address_domain", "pointer_symbol_group", "equate_group"):
                 if field.get(key) is None:
                     field.pop(key, None)
     for equate in payload.get("target_equates", ()):

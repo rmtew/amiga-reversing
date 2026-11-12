@@ -3078,6 +3078,7 @@ static int append_custom_struct_field_local(M68kAnalysisCustomStruct *custom_str
   char value_kind[32];
   char pointer_domain[24] = "";
   char pointer_group[64] = "";
+  char equate_group[64] = "";
   if (custom_struct == NULL || custom_struct->field_count >= M68K_ANALYSIS_CUSTOM_STRUCT_FIELD_LIMIT)
     return 0;
   name[0] = '\0';
@@ -3096,7 +3097,8 @@ static int append_custom_struct_field_local(M68kAnalysisCustomStruct *custom_str
       !json_optional_string_field_local(object_start, object_end, "named_base", named_base, sizeof(named_base)) ||
       !json_optional_string_field_local(object_start, object_end, "value_kind", value_kind, sizeof(value_kind)) ||
       !json_optional_string_field_local(object_start, object_end, "pointer_address_domain", pointer_domain, sizeof(pointer_domain)) ||
-      !json_optional_string_field_local(object_start, object_end, "pointer_symbol_group", pointer_group, sizeof(pointer_group))) {
+      !json_optional_string_field_local(object_start, object_end, "pointer_symbol_group", pointer_group, sizeof(pointer_group)) ||
+      !json_optional_string_field_local(object_start, object_end, "equate_group", equate_group, sizeof(equate_group))) {
     return 0;
   }
   if (name[0] == '\0' || !has_offset || !has_size || size == 0U || size > UINT16_MAX) return 0;
@@ -3120,6 +3122,9 @@ static int append_custom_struct_field_local(M68kAnalysisCustomStruct *custom_str
   field->value_kind = pointer_struct[0] != '\0' ? M68K_ANALYSIS_STRUCT_FIELD_VALUE_STRUCT_POINTER :
     (strcmp(value_kind, "target_pointer") == 0 ? M68K_ANALYSIS_STRUCT_FIELD_VALUE_TARGET_POINTER :
       M68K_ANALYSIS_STRUCT_FIELD_VALUE_SCALAR);
+  if (equate_group[0] && (field->value_kind != M68K_ANALYSIS_STRUCT_FIELD_VALUE_SCALAR ||
+      struct_name[0] || named_base[0] || (size != 1U && size != 2U && size != 4U))) return 0;
+  if (!copy_policy_text(field->equate_group, sizeof(field->equate_group), equate_group)) return 0;
   if (!pointer_domain_from_text_local(pointer_domain, pointer_group, size,
       field->value_kind != M68K_ANALYSIS_STRUCT_FIELD_VALUE_SCALAR, &field->pointer_address_domain) ||
       !copy_policy_text(field->pointer_symbol_group, sizeof(field->pointer_symbol_group), pointer_group)) return 0;
@@ -10936,9 +10941,11 @@ static int append_effective_analysis_policy_json_local(JsonBuilder *builder, con
           json_builder_append(builder, ",\"value_kind\":") != 0 ||
           json_builder_append_json_string(builder,
             field->value_kind == M68K_ANALYSIS_STRUCT_FIELD_VALUE_STRUCT_POINTER ? "struct_pointer" :
-            (field->value_kind == M68K_ANALYSIS_STRUCT_FIELD_VALUE_TARGET_POINTER ? "target_pointer" : "scalar")) != 0 ||
-          json_builder_append(builder, "}") != 0)
+            (field->value_kind == M68K_ANALYSIS_STRUCT_FIELD_VALUE_TARGET_POINTER ? "target_pointer" : "scalar")) != 0)
         return -1;
+      if (field->equate_group[0] && (json_builder_append(builder, ",\"equate_group\":") != 0 ||
+          json_builder_append_json_string(builder, field->equate_group) != 0)) return -1;
+      if (json_builder_append(builder, "}") != 0) return -1;
     }
     if (json_builder_append(builder, "]}") != 0) return -1;
   }

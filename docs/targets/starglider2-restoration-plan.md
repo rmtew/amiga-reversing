@@ -12,6 +12,9 @@ not semantic completion percentages. The phrase-counter
 references retain declared-layout A6 fallback; the role declaration adds no
 stronger base proof. The projector report arrays expose three additional
 dynamic-index reads; all prior typed/unresolved facts are retained.
+The scalar object-type display domain supplies 22 additional directory-backed
+constants and 66 more named immediate uses (26 to 92); this changes no access
+proof. Placeholder names and IDs outside the directory remain numeric.
 Original payload SHA256:
 `662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9`.
 
@@ -59,8 +62,11 @@ Original payload SHA256:
    identity retains the raw displacement with a resolved-field annotation.
    Projector report selection uses two stored 56-pointer arrays. Local supplied
    cases cover all slots and the four-attempt retreat/wrap; the first candidate
-   is read before that retreat. Next: carry initialization and cursor-write
-   preservation through caller/save-state contexts before inferring a bound.
+   is read before that retreat. Supplied cursor56 reads past both tables;
+   $4000 wraps the WORD index to zero and $FFFF indexes four bytes before them.
+   Save/restore copies app+$6B4..+$6598, including cursor+$858, without validating
+   that value. Next: establish a specific validated-state caller context; ordinary
+   initialization/decrement/wrap and table extent alone cannot supply the bound.
 5. Residual regions: prioritize accepted data readers and incoming code edges.
    Do not decode apparent instructions or declare arrays from plausible bytes.
    Zero-fill writers and write-only app flags do not establish field purpose.

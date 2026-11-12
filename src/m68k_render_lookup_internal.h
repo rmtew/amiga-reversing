@@ -1028,9 +1028,9 @@ int render_lookup_add_range_ownership_for_structured_item(M68kRenderLookup *look
     uint8_t structured_item_source, size_t structured_item_index, const M68kAnalysisStructuredDataItem *item);
 int structured_data_item_comment(const M68kAnalysisStructuredDataItem *item, char *comment,
     size_t comment_size);
-int structured_data_item_render_comment(const M68kDecodeSectionIR *section,
+int structured_data_item_render_comment(const M68kAnalysisPolicy *policy, const M68kDecodeSectionIR *section,
     const M68kAnalysisStructuredDataItem *item, char *comment, size_t comment_size);
-int structured_data_item_symbolic_operand_expr(const M68kDecodeSectionIR *section,
+int structured_data_item_symbolic_operand_expr(const M68kAnalysisPolicy *policy, const M68kDecodeSectionIR *section,
     const M68kAnalysisStructuredDataItem *item, char *expr, size_t expr_size);
 void record_source_export_failure(M68kRenderIRPreview *preview, M68kSourceExportFailureKind kind, size_t section_index,
     uint32_t offset, uint32_t aux_offset);

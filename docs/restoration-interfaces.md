@@ -90,6 +90,18 @@ value slots. This adds no interrupt or supervisor/user stack-mode model.
 Regression cases: `tests/test_writable_tagged_layout.py` and
 `tests/test_runtime_relative_tag_alias.py`.
 
+## Scalar field constants
+
+Custom scalar BYTE/WORD/LONG fields accept optional `equate_group`, naming an
+explicit target-equate group. Whole-field immediate assignments/comparisons and
+bound data leaves use the unique encodable constant in that group. Inherited
+fields retain their declaring owner's group. Ambiguous encoded aliases, runtime
+addresses, expression equates, arithmetic operands and partial-field accesses
+remain numeric; manual representations take precedence. This is source
+presentation, not a runtime value bound or a pointer/type inference. Grouped
+array fields keep leaf presentation rather than losing their domain in scalar
+compaction. Regressions: `tests/test_scalar_field_equates.py`.
+
 ## WORD index guards
 
 The existing finite/known-bit WORD packet can retain modular bounds from

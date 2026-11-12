@@ -99,3 +99,17 @@ def test_negative_flag_calls_enqueue_after_primary_before_secondary(original_ima
     assert get(memory, fields['station_report_primary_message']) == table(memory, fields, 'projector_part_message_pointers', 9)
     assert get(memory, fields['station_report_secondary_message']) == 0x12345678
     assert cpu.a[7] == old_sp
+
+
+@pytest.mark.parametrize('cursor,byte_index', [(56,224), (0x4000,0), (0xFFFF,-4)])
+def test_supplied_cursor_is_indexed_before_any_global_range_check(original_image,memory,fields,cursor,byte_index):
+    """Table length/ordinary initialization does not prove loaded-state safety."""
+    put(memory,fields['projector_rebuild_cursor'],cursor,2)
+    memory[fields['projector_base_report_selected_flag']]=0
+    primary=get(memory,fields['projector_part_message_pointers']+byte_index)
+    secondary=get(memory,fields['projector_body_message_pointers']+byte_index)
+    cpu=state(memory,0x34D44)
+    run(original_image,memory,cpu,{0x34D88})
+    assert get(memory,fields['station_report_primary_message'])==primary
+    assert get(memory,fields['station_report_secondary_message'])==secondary
+    assert get(memory,fields['projector_rebuild_cursor'],2)==cursor

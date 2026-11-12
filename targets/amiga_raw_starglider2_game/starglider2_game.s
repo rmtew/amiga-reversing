@@ -1708,14 +1708,36 @@ SG2_OBJECT_DEPOT_APPROACH_LIMIT	EQU	455
 SG2_OBJECT_DEPOT_Z_SNAP_OFFSET	EQU	450
 SG2_OBJECT_PROFILE_EDGE_THRESHOLD	EQU	551
 SG2_OBJECT_PROFILE_HALF_WIDTH	EQU	550
+SG2_OBJECT_TYPE_ARMED_TRANSPORT	EQU	$D
+SG2_OBJECT_TYPE_ASTEROID	EQU	$49
 SG2_OBJECT_TYPE_BOUNCING_BOMB	EQU	91
-SG2_OBJECT_TYPE_EGRON_MINI_SENTINEL	EQU	37
+SG2_OBJECT_TYPE_BUZZ_BOMB	EQU	$6
+SG2_OBJECT_TYPE_EGRON_BUZZ_BOMBER	EQU	$21
+SG2_OBJECT_TYPE_EGRON_LAND_TANK	EQU	$9
+SG2_OBJECT_TYPE_EGRON_MECHANICAL_WHALE	EQU	$A
+SG2_OBJECT_TYPE_EGRON_MINI_SENTINEL	EQU	$25
+SG2_OBJECT_TYPE_EGRON_SPACE_STATION	EQU	$63
+SG2_OBJECT_TYPE_EGRON_SPACE_TUG	EQU	$16
 SG2_OBJECT_TYPE_ENERGY_CUBE_LAUNCHER	EQU	84
+SG2_OBJECT_TYPE_ENERGY_TOWER_90	EQU	$5A
+SG2_OBJECT_TYPE_ENERGY_TOWER_93	EQU	$5D
+SG2_OBJECT_TYPE_ESCAPE_CAPSULE	EQU	$E
+SG2_OBJECT_TYPE_FLAT_DIAMOND	EQU	$26
 SG2_OBJECT_TYPE_HOMING_MISSILE	EQU	12
 SG2_OBJECT_TYPE_ICARUS	EQU	30
+SG2_OBJECT_TYPE_ICARUS_GAS_LASER_BOLT	EQU	$67
+SG2_OBJECT_TYPE_ICARUS_PILOT_COUCH	EQU	$47
+SG2_OBJECT_TYPE_LARGE_EGRON_TRANSPORT	EQU	$12
+SG2_OBJECT_TYPE_LASER_BOLT	EQU	$48
+SG2_OBJECT_TYPE_MISSILE	EQU	$19
 SG2_OBJECT_TYPE_NEUTRON_BOMB	EQU	98
+SG2_OBJECT_TYPE_PIRATE_SHIP	EQU	$28
+SG2_OBJECT_TYPE_PROXIMITY_MINE	EQU	$2
 SG2_OBJECT_TYPE_SKIM_DRONE	EQU	43
 SG2_OBJECT_TYPE_SKIM_MISSILE	EQU	60
+SG2_OBJECT_TYPE_SMALL_ASTEROID	EQU	$4A
+SG2_OBJECT_TYPE_SMALL_FIGHTER	EQU	$10
+SG2_OBJECT_TYPE_TUNNEL_SENTINEL	EQU	$14
 SG2_OVERLAY_MAX_LEFT	EQU	288
 SG2_OVERLAY_MAX_TOP	EQU	112
 SG2_OVERLAY_MIN_LEFT	EQU	16
@@ -2529,7 +2551,7 @@ abs_0_000015AA:
 	move.l a3,free_object_stack_cursor(a6)
 	subq.w #1,free_object_count(a6)
     ; KNOWN: type A4=Target code-entry register seed:SG2WorldObject
-	move.w #$47,(a4)	; operand 2: SG2ObjectCore_object_type at (a4)
+	move.w #SG2_OBJECT_TYPE_ICARUS_PILOT_COUCH,(a4)	; operand 2: SG2ObjectCore_object_type at (a4)
 	move.l $0004(a0),SG2ObjectCore_world_x(a4)
 	move.l $0008(a0),SG2ObjectCore_world_y(a4)
 	move.l $000C(a0),SG2ObjectCore_world_z(a4)
@@ -9680,17 +9702,17 @@ test_next_identity_scan_record:
 	tst.b SG2ObjectCore_retirement_phase_or_negative(a4)
 	bpl.w advance_identity_scan_visible_list
 filter_identity_scan_object_types:
-	cmpi.w #30,(a4)	; operand 2: SG2ObjectCore_object_type at (a4)
+	cmpi.w #SG2_OBJECT_TYPE_ICARUS,(a4)	; operand 2: SG2ObjectCore_object_type at (a4)
 	beq.w advance_identity_scan_visible_list
-	cmpi.w #12,(a4)	; operand 2: SG2ObjectCore_object_type at (a4)
+	cmpi.w #SG2_OBJECT_TYPE_HOMING_MISSILE,(a4)	; operand 2: SG2ObjectCore_object_type at (a4)
 	beq.w advance_identity_scan_visible_list
-	cmpi.w #84,(a4)	; operand 2: SG2ObjectCore_object_type at (a4)
+	cmpi.w #SG2_OBJECT_TYPE_ENERGY_CUBE_LAUNCHER,(a4)	; operand 2: SG2ObjectCore_object_type at (a4)
 	beq.w advance_identity_scan_visible_list
-	cmpi.w #72,(a4)	; operand 2: SG2ObjectCore_object_type at (a4)
+	cmpi.w #SG2_OBJECT_TYPE_LASER_BOLT,(a4)	; operand 2: SG2ObjectCore_object_type at (a4)
 	beq.w advance_identity_scan_visible_list
-	cmpi.w #103,(a4)	; operand 2: SG2ObjectCore_object_type at (a4)
+	cmpi.w #SG2_OBJECT_TYPE_ICARUS_GAS_LASER_BOLT,(a4)	; operand 2: SG2ObjectCore_object_type at (a4)
 	beq.w advance_identity_scan_visible_list
-	cmpi.w #25,(a4)	; operand 2: SG2ObjectCore_object_type at (a4)
+	cmpi.w #SG2_OBJECT_TYPE_MISSILE,(a4)	; operand 2: SG2ObjectCore_object_type at (a4)
 	beq.w advance_identity_scan_visible_list
 load_identity_scan_type_and_relative_xyz:
 	move.w (a4),d0	; operand 1: SG2ObjectCore_object_type at (a4)
@@ -10163,7 +10185,7 @@ abs_0_00007954:
 	move.l a1,free_object_stack_cursor(a6)
 	subq.w #1,free_object_count(a6)
     ; KNOWN: type A2=Target code-entry register seed:SG2BouncingBomb
-	move.w #$5B,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
+	move.w #SG2_OBJECT_TYPE_BOUNCING_BOMB,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
 	bsr.w initialize_launched_bomb_header
 	move.w #$1E,SG2WorldObject_velocity_y(a2)
 	addi.l #20,SG2ObjectCore_world_y(a2)
@@ -11017,7 +11039,7 @@ abs_0_000086BA:
 	movea.l a4,a1
 	bra.b abs_0_000086BA
 abs_0_000086CE:
-	cmpi.w #22,(a0)	; operand 2: SG2ObjectCore_object_type at (a0)
+	cmpi.w #SG2_OBJECT_TYPE_EGRON_SPACE_TUG,(a0)	; operand 2: SG2ObjectCore_object_type at (a0)
 	beq.w retire_tug_and_detach_reciprocal_links
 abs_0_000086D6:
 	cmpi.w #50,free_object_count(a6)
@@ -11262,7 +11284,7 @@ update_energy_tower_variant_and_alternate_form:
 	move.b d0,SG2ObjectCore_vertex_variant_selector(a0)
 	tst.b SG2EnergyTower_alternate_form_request(a0)
 	beq.w continue_primary_object_update_loop
-	move.w #$5D,(a0)	; operand 2: SG2ObjectCore_object_type at (a0)
+	move.w #SG2_OBJECT_TYPE_ENERGY_TOWER_93,(a0)	; operand 2: SG2ObjectCore_object_type at (a0)
 	sf.b SG2ObjectCore_vertex_variant_selector(a0)
 	subi.l #4000,SG2ObjectCore_world_z(a0)
 	bra.w continue_primary_object_update_loop
@@ -11272,7 +11294,7 @@ restore_energy_tower_primary_form:
 	bne.w continue_primary_object_update_loop
 	tst.b SG2EnergyTower_alternate_form_request(a0)
 	bne.w continue_primary_object_update_loop
-	move.w #$5A,(a0)	; operand 2: SG2ObjectCore_object_type at (a0)
+	move.w #SG2_OBJECT_TYPE_ENERGY_TOWER_90,(a0)	; operand 2: SG2ObjectCore_object_type at (a0)
 	addi.l #4000,SG2ObjectCore_world_z(a0)
 	bra.w continue_primary_object_update_loop
     ; KNOWN: type A0=Target code-entry register seed:SG2FlyingActor
@@ -11830,9 +11852,9 @@ abs_0_00009182:
 	bne.w try_spawn_escape_capsule_for_carrier
 	tst.b space_environment_flag(a6)
 	bne.w abs_0_000086D6
-	cmpi.w #13,(a0)	; operand 2: SG2ObjectCore_object_type at (a0)
+	cmpi.w #SG2_OBJECT_TYPE_ARMED_TRANSPORT,(a0)	; operand 2: SG2ObjectCore_object_type at (a0)
 	beq.w abs_0_000086D6
-	cmpi.w #18,(a0)	; operand 2: SG2ObjectCore_object_type at (a0)
+	cmpi.w #SG2_OBJECT_TYPE_LARGE_EGRON_TRANSPORT,(a0)	; operand 2: SG2ObjectCore_object_type at (a0)
 	beq.w abs_0_000086D6
 	cmpi.l #4294967271,SG2ObjectCore_world_y(a0)
 	blt.b abs_0_000091B4
@@ -11847,7 +11869,7 @@ abs_0_000091B4:
 try_buzz_bomber_type6_spawn:
 	tst.b space_environment_flag(a6)
 	bne.w abs_0_00009106
-	cmpi.w #33,(a0)	; operand 2: SG2ObjectCore_object_type at (a0)
+	cmpi.w #SG2_OBJECT_TYPE_EGRON_BUZZ_BOMBER,(a0)	; operand 2: SG2ObjectCore_object_type at (a0)
 	bne.w abs_0_00009106
 	cmpi.w #50,free_object_count(a6)
 	bls.w abs_0_00009106
@@ -11867,7 +11889,7 @@ try_buzz_bomber_type6_spawn:
 	st.b SG2ObjectCore_retirement_phase_or_negative(a2)
 	move.b #$6,SG2ObjectCore_model_scale_shift(a2)
     ; KNOWN: type A2=Target code-entry register seed:SG2WorldObject
-	move.w #$6,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
+	move.w #SG2_OBJECT_TYPE_BUZZ_BOMB,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
 	move.b #$6,SG2TargetingObject_collision_ignored_object_type(a0)
 	move.b #$21,SG2TargetingObject_collision_ignored_object_type(a2)
 	move.l #$FFFFFFFF,SG2WorldObject_linked_record_or_sentinel(a2)
@@ -12317,13 +12339,13 @@ spawn_ai_projectile_continuation:
 	tst.b ai_type12_projectile_request(a6)
 	beq.b initialize_ai_projectile_type25_tag
     ; KNOWN: type A2=Target code-entry register seed:SG2SteeredProjectile
-	move.w #$C,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
+	move.w #SG2_OBJECT_TYPE_HOMING_MISSILE,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
 	move.b SG2ObjectCore_object_type+1(a0),SG2TargetingObject_collision_ignored_object_type(a2)
 	move.b #$C,SG2TargetingObject_collision_ignored_object_type(a0)
 	bra.b initialize_ai_projectile_pose_and_motion
     ; KNOWN: type A2=Target code-entry register seed:SG2SteeredProjectile
 initialize_ai_projectile_type25_tag:
-	move.w #$19,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
+	move.w #SG2_OBJECT_TYPE_MISSILE,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
 	move.b SG2ObjectCore_object_type+1(a0),SG2TargetingObject_collision_ignored_object_type(a2)
 	move.b #$19,SG2TargetingObject_collision_ignored_object_type(a0)
     ; Both tag stores produce12/25 before this join. BYTE22 was cleared: this constructor is untracked. Preserve duplicate lifetime100 stores and separate creator/child table selectors.
@@ -12391,7 +12413,7 @@ abs_0_000098C4:
 	move.l a1,free_object_stack_cursor(a6)
 	subq.w #1,free_object_count(a6)
     ; KNOWN: type A2=Target code-entry register seed:SG2WorldObject
-	move.w #$2,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
+	move.w #SG2_OBJECT_TYPE_PROXIMITY_MINE,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
 	move.b SG2ObjectCore_object_type+1(a0),SG2TargetingObject_collision_ignored_object_type(a2)
 	move.b #$2,SG2TargetingObject_collision_ignored_object_type(a0)
 	move.b #$4,SG2ObjectCore_durability_or_negative(a2)
@@ -12417,7 +12439,7 @@ try_spawn_escape_capsule_for_carrier:
 	move.l a1,free_object_stack_cursor(a6)
 	subq.w #1,free_object_count(a6)
     ; KNOWN: type A2=Target code-entry register seed:SG2EscapeCapsule
-	move.w #$E,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
+	move.w #SG2_OBJECT_TYPE_ESCAPE_CAPSULE,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
 	move.b #$7,SG2ObjectCore_model_scale_shift(a2)
 	move.b SG2ObjectCore_object_type+1(a0),SG2TargetingObject_collision_ignored_object_type(a2)
 	move.b #$E,SG2TargetingObject_collision_ignored_object_type(a0)
@@ -12867,7 +12889,7 @@ abs_0_00009F02:
 	move.b SG2ObjectCore_model_scale_shift(a0),d0
 	asr.l d0,d2
     ; KNOWN: type A2=Target code-entry register seed:SG2VelocityProjectile
-	move.w #$48,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
+	move.w #SG2_OBJECT_TYPE_LASER_BOLT,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
 	move.b SG2ObjectCore_object_type+1(a0),SG2TargetingObject_collision_ignored_object_type(a2)
 	move.b #$48,SG2TargetingObject_collision_ignored_object_type(a0)
 	move.l SG2ObjectCore_world_x(a0),SG2ObjectCore_world_x(a2)
@@ -12993,7 +13015,7 @@ try_tunnel_sentinel_emission:
 	move.l a1,free_object_stack_cursor(a6)
 	subq.w #1,free_object_count(a6)
     ; KNOWN: type A2=Target code-entry register seed:SG2ScheduledActor
-	move.w #$14,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
+	move.w #SG2_OBJECT_TYPE_TUNNEL_SENTINEL,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
 	move.b #$30,SG2TargetingObject_collision_ignored_object_type(a2)
 	move.b #$14,SG2TargetingObject_collision_ignored_object_type(a0)
 	clr.b SG2ObjectCore_vertex_variant_selector(a2)
@@ -13036,7 +13058,7 @@ abs_0_0000A1DE:
 	subq.w #1,free_object_count(a6)
 	bset.b #7,SG2ObjectCore_durability_or_negative(a0)
     ; KNOWN: type A2=Target code-entry register seed:SG2WorldObject
-	move.w #$26,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
+	move.w #SG2_OBJECT_TYPE_FLAT_DIAMOND,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
 	lea.l object_default_motion_words.l,a1
 	move.w $004C(a1),$0020(a2)
 	move.b #$26,SG2TargetingObject_collision_ignored_object_type(a2)
@@ -13124,7 +13146,7 @@ abs_0_0000A2CE:
 	bclr.b #4,SG2ObjectCore_flags(a2)
 	move.b #$64,$0029(a2)
 	move.b #$AA,SG2GroundLaunchState_link_release_countdown(a2)
-	cmpi.w #9,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
+	cmpi.w #SG2_OBJECT_TYPE_EGRON_LAND_TANK,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
 	bne.b abs_0_0000A3B2
     ; KNOWN: type A2=Target code-entry register seed:SG2LandTank
 	move.w #$64,SG2EvasiveActor_proximity_evasion_countdown(a2)
@@ -13276,7 +13298,7 @@ abs_0_0000A54A:
 	move.w $0(a1,d0.w),d2
 	ext.l d2
     ; KNOWN: type A2=Target code-entry register seed:SG2SteeredProjectile
-	move.w #$19,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
+	move.w #SG2_OBJECT_TYPE_MISSILE,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
 	move.b SG2ObjectCore_object_type+1(a0),SG2TargetingObject_collision_ignored_object_type(a2)
 	move.b #$19,SG2TargetingObject_collision_ignored_object_type(a0)
 	move.l SG2ObjectCore_world_x(a0),SG2ObjectCore_world_x(a2)
@@ -13607,7 +13629,7 @@ abs_0_0000AA3A:
 	bclr.b #4,SG2ObjectCore_flags(a2)
 	move.b #$64,$0029(a2)
 	move.b #$AA,SG2GroundLaunchState_link_release_countdown(a2)
-	cmpi.w #9,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
+	cmpi.w #SG2_OBJECT_TYPE_EGRON_LAND_TANK,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
 	bne.b abs_0_0000AB1C
     ; KNOWN: type A2=Target code-entry register seed:SG2LandTank
 	move.w #$64,SG2EvasiveActor_proximity_evasion_countdown(a2)
@@ -14436,17 +14458,17 @@ reject_inner_nonmodel_tag_after_extent_reads:
 	bmi.w continue_inner_contact_pair_loop
     ; KNOWN: type A2=Target code-entry register seed:SG2WorldObject
 dispatch_model_pair_contact_response:
-	cmpi.w #30,(a0)	; operand 2: SG2ObjectCore_object_type at (a0)
+	cmpi.w #SG2_OBJECT_TYPE_ICARUS,(a0)	; operand 2: SG2ObjectCore_object_type at (a0)
 	beq.w enter_special_contact_with_saved_context
-	cmpi.w #30,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
+	cmpi.w #SG2_OBJECT_TYPE_ICARUS,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
 	beq.w enter_swapped_special_contact_with_saved_context
-	cmpi.w #90,(a0)	; operand 2: SG2ObjectCore_object_type at (a0)
+	cmpi.w #SG2_OBJECT_TYPE_ENERGY_TOWER_90,(a0)	; operand 2: SG2ObjectCore_object_type at (a0)
 	beq.w enter_swapped_special_contact_with_saved_context
-	cmpi.w #93,(a0)	; operand 2: SG2ObjectCore_object_type at (a0)
+	cmpi.w #SG2_OBJECT_TYPE_ENERGY_TOWER_93,(a0)	; operand 2: SG2ObjectCore_object_type at (a0)
 	beq.w enter_swapped_special_contact_with_saved_context
-	cmpi.w #90,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
+	cmpi.w #SG2_OBJECT_TYPE_ENERGY_TOWER_90,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
 	beq.w enter_special_contact_with_saved_context
-	cmpi.w #93,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
+	cmpi.w #SG2_OBJECT_TYPE_ENERGY_TOWER_93,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
 	beq.w enter_special_contact_with_saved_context
 filter_contact_by_ignored_object_type:
 	move.b SG2TargetingObject_collision_ignored_object_type(a0),d0
@@ -14456,22 +14478,22 @@ filter_contact_by_ignored_object_type:
 	bne.w enter_swapped_special_contact_with_saved_context
 	btst.b #6,SG2ObjectCore_flags(a2)
 	bne.w enter_special_contact_with_saved_context
-	cmpi.w #91,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
+	cmpi.w #SG2_OBJECT_TYPE_BOUNCING_BOMB,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
 	beq.w filter_outer_tracking_award_special_types
-	cmpi.w #98,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
+	cmpi.w #SG2_OBJECT_TYPE_NEUTRON_BOMB,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
 	beq.w award_outer_contact_and_optional_mini_sentinel
-	cmpi.w #84,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
+	cmpi.w #SG2_OBJECT_TYPE_ENERGY_CUBE_LAUNCHER,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
 	beq.b apply_outer_cube_launcher_contact
-	cmpi.w #103,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
+	cmpi.w #SG2_OBJECT_TYPE_ICARUS_GAS_LASER_BOLT,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
 	beq.b test_outer_laser_contact_durability
-	cmpi.w #12,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
+	cmpi.w #SG2_OBJECT_TYPE_HOMING_MISSILE,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
 	beq.b test_outer_type12_contact_retirement
 	bra.w test_outer_generic_contact_durability
 apply_outer_cube_launcher_contact:
 	tst.b SG2ObjectCore_durability_or_negative(a0)
 	bmi.w dispatch_reciprocal_inner_contact_response
 	beq.w choose_outer_tracking_retirement_or_award
-	cmpi.w #12,(a0)	; operand 2: SG2ObjectCore_object_type at (a0)
+	cmpi.w #SG2_OBJECT_TYPE_HOMING_MISSILE,(a0)	; operand 2: SG2ObjectCore_object_type at (a0)
 	bne.b decrement_outer_cube_contact_durability
 	tst.b SG2SteeredProjectile_stored_target_tracking_byte(a0)
 	beq.b decrement_outer_cube_contact_durability
@@ -14517,11 +14539,11 @@ choose_outer_tracking_retirement_or_award:
 	cmpi.w #SG2_OBJECT_TYPE_EGRON_MINI_SENTINEL,(a0)	; operand 2: SG2ObjectCore_object_type at (a0)
 	beq.b award_outer_contact_and_optional_mini_sentinel
 filter_outer_tracking_award_special_types:
-	cmpi.w #99,(a0)	; operand 2: SG2ObjectCore_object_type at (a0)
+	cmpi.w #SG2_OBJECT_TYPE_EGRON_SPACE_STATION,(a0)	; operand 2: SG2ObjectCore_object_type at (a0)
 	beq.b dispatch_reciprocal_inner_contact_response
 	cmpi.w #SG2_OBJECT_TYPE_EGRON_MINI_SENTINEL,(a0)	; operand 2: SG2ObjectCore_object_type at (a0)
 	beq.b dispatch_reciprocal_inner_contact_response
-	cmpi.w #98,(a0)	; operand 2: SG2ObjectCore_object_type at (a0)
+	cmpi.w #SG2_OBJECT_TYPE_NEUTRON_BOMB,(a0)	; operand 2: SG2ObjectCore_object_type at (a0)
 	beq.b dispatch_reciprocal_inner_contact_response
     ; Add the stored award with ordinary WORD ADD to the pending BCD word, then increment LONG hits. Mini counter uses post-decrement N-only clamp, preserving overflow; no decimal normalization.
 award_outer_contact_and_optional_mini_sentinel:
@@ -14558,19 +14580,19 @@ dispatch_reciprocal_inner_contact_response:
 	bne.w enter_special_contact_with_saved_context
 	btst.b #6,SG2ObjectCore_flags(a0)
 	bne.w enter_swapped_special_contact_with_saved_context
-	cmpi.w #30,(a0)	; operand 2: SG2ObjectCore_object_type at (a0)
+	cmpi.w #SG2_OBJECT_TYPE_ICARUS,(a0)	; operand 2: SG2ObjectCore_object_type at (a0)
 	beq.w enter_special_contact_with_saved_context
-	cmpi.w #30,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
+	cmpi.w #SG2_OBJECT_TYPE_ICARUS,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
 	beq.w enter_swapped_special_contact_with_saved_context
-	cmpi.w #91,(a0)	; operand 2: SG2ObjectCore_object_type at (a0)
+	cmpi.w #SG2_OBJECT_TYPE_BOUNCING_BOMB,(a0)	; operand 2: SG2ObjectCore_object_type at (a0)
 	beq.w filter_inner_tracking_award_special_types
-	cmpi.w #98,(a0)	; operand 2: SG2ObjectCore_object_type at (a0)
+	cmpi.w #SG2_OBJECT_TYPE_NEUTRON_BOMB,(a0)	; operand 2: SG2ObjectCore_object_type at (a0)
 	beq.w award_inner_contact_and_optional_mini_sentinel
-	cmpi.w #84,(a0)	; operand 2: SG2ObjectCore_object_type at (a0)
+	cmpi.w #SG2_OBJECT_TYPE_ENERGY_CUBE_LAUNCHER,(a0)	; operand 2: SG2ObjectCore_object_type at (a0)
 	beq.b apply_inner_cube_launcher_contact
-	cmpi.w #103,(a0)	; operand 2: SG2ObjectCore_object_type at (a0)
+	cmpi.w #SG2_OBJECT_TYPE_ICARUS_GAS_LASER_BOLT,(a0)	; operand 2: SG2ObjectCore_object_type at (a0)
 	beq.b test_inner_laser_contact_durability
-	cmpi.w #12,(a0)	; operand 2: SG2ObjectCore_object_type at (a0)
+	cmpi.w #SG2_OBJECT_TYPE_HOMING_MISSILE,(a0)	; operand 2: SG2ObjectCore_object_type at (a0)
 	beq.b test_inner_type12_contact_retirement
 	bra.w test_inner_generic_contact_durability
 apply_inner_cube_launcher_contact:
@@ -14613,11 +14635,11 @@ choose_inner_tracking_retirement_or_award:
 	cmpi.w #SG2_OBJECT_TYPE_EGRON_MINI_SENTINEL,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
 	beq.b award_inner_contact_and_optional_mini_sentinel
 filter_inner_tracking_award_special_types:
-	cmpi.w #99,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
+	cmpi.w #SG2_OBJECT_TYPE_EGRON_SPACE_STATION,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
 	beq.b continue_inner_contact_pair_loop
 	cmpi.w #SG2_OBJECT_TYPE_EGRON_MINI_SENTINEL,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
 	beq.b continue_inner_contact_pair_loop
-	cmpi.w #98,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
+	cmpi.w #SG2_OBJECT_TYPE_NEUTRON_BOMB,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
 	beq.b continue_inner_contact_pair_loop
     ; Reciprocal award uses the same WORD add/LONG hit wrap and type-12/type-37 station-counter special case. Response fixtures do not qualify contact geometry or player/hardware handlers.
 award_inner_contact_and_optional_mini_sentinel:
@@ -24748,7 +24770,7 @@ reset_initializer_chain_before_world_placements:
 seed_one_based_player_slot_index:
 	move.w #$1,d7
 seed_player_record_before_world_placements:
-	move.w #$1E,(a0)	; operand 2: SG2ObjectCore_object_type at (a0)
+	move.w #SG2_OBJECT_TYPE_ICARUS,(a0)	; operand 2: SG2ObjectCore_object_type at (a0)
 	moveq.l #30,d0
 	move.l a0,player_object_reference(a6)
 	bset.b #1,SG2ObjectCore_flags(a0)
@@ -44338,7 +44360,7 @@ reuse_first_nearby_record_for_carried_neutron:
 	movea.l (a0)+,a2
     ; KNOWN: type A2=Target code-entry register seed:SG2NeutronBomb
 initialize_and_bind_carried_neutron_record:
-	move.w #$62,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
+	move.w #SG2_OBJECT_TYPE_NEUTRON_BOMB,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
 	bsr.w initialize_launched_bomb_header_bridge_038d4a
 	move.l carried_neutron_bomb_y_offset.l,d0
 	add.l d0,SG2ObjectCore_world_y(a2)
@@ -44577,7 +44599,7 @@ handle_fatal_star_heat_borrow:
 	movea.l nearby_objects_cursor(a6),a0
 clear_next_nonplayer_phase_after_fatal_heat:
 	movea.l (a0)+,a2
-	cmpi.w #30,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
+	cmpi.w #SG2_OBJECT_TYPE_ICARUS,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
 	beq.b advance_fatal_heat_nearby_scan
 	clr.b SG2ObjectCore_retirement_phase_or_negative(a2)
 	bclr.b #2,SG2ObjectCore_flags(a2)
@@ -44748,7 +44770,7 @@ abs_0_0003359E:
 	asr.w #6,d0
 	move.w d0,SG2WorldObject_velocity_z(a4)
     ; KNOWN: type A4=Target code-entry register seed:SG2Asteroid
-	move.w #$49,(a4)	; operand 2: SG2ObjectCore_object_type at (a4)
+	move.w #SG2_OBJECT_TYPE_ASTEROID,(a4)	; operand 2: SG2ObjectCore_object_type at (a4)
 	move.b #$3,SG2ObjectCore_durability_or_negative(a4)
 	move.b #$FF,SG2ObjectCore_retirement_phase_or_negative(a4)
 	bsr.w advance_shared_random_state_bridge_038d20
@@ -44899,15 +44921,15 @@ initialize_encounter_choice_type_defaults:
 	clr.w $002C(a4)
 	clr.w $0010(a4)
 	ori.w #1,$0010(a4)
-	cmpi.w #91,(a4)	; operand 2: SG2ObjectCore_object_type at (a4)
+	cmpi.w #SG2_OBJECT_TYPE_BOUNCING_BOMB,(a4)	; operand 2: SG2ObjectCore_object_type at (a4)
 	bne.b abs_0_0003388A
 	bset.b #7,SG2ObjectCore_flags(a4)
 abs_0_0003388A:
-	cmpi.w #10,(a4)	; operand 2: SG2ObjectCore_object_type at (a4)
+	cmpi.w #SG2_OBJECT_TYPE_EGRON_MECHANICAL_WHALE,(a4)	; operand 2: SG2ObjectCore_object_type at (a4)
 	bne.b abs_0_00033896
 	move.w #$3E8,$0024(a4)
 abs_0_00033896:
-	cmpi.w #40,(a4)	; operand 2: SG2ObjectCore_object_type at (a4)
+	cmpi.w #SG2_OBJECT_TYPE_PIRATE_SHIP,(a4)	; operand 2: SG2ObjectCore_object_type at (a4)
 	bne.b snapshot_world_transition_space_state
     ; KNOWN: type A4=Target code-entry register seed:SG2PirateShip
 	tst.w pirate_warning_cooldown_or_negative.l
@@ -45583,7 +45605,7 @@ borrow_first_distant_record_for_ready_bomb:
 	movea.l (a0)+,a4
     ; KNOWN: type A4=Target code-entry register seed:SG2WorldObject
 initialize_ready_neutron_bomb_record:
-	move.w #$62,(a4)	; operand 2: SG2ObjectCore_object_type at (a4)
+	move.w #SG2_OBJECT_TYPE_NEUTRON_BOMB,(a4)	; operand 2: SG2ObjectCore_object_type at (a4)
 	move.l #$A71E,SG2ObjectCore_world_x(a4)
 	move.l #$14D12,SG2ObjectCore_world_z(a4)
 	move.l #$FFFFFEA2,SG2ObjectCore_world_y(a4)
@@ -46872,7 +46894,7 @@ abs_0_00035280:
 	bmi.b abs_0_000352A8
 	tst.b SG2ObjectCore_retirement_phase_or_negative(a1)
 	bpl.b abs_0_000352A8
-	cmpi.w #30,(a1)	; operand 2: SG2ObjectCore_object_type at (a1)
+	cmpi.w #SG2_OBJECT_TYPE_ICARUS,(a1)	; operand 2: SG2ObjectCore_object_type at (a1)
 	beq.b abs_0_000352A8
 	clr.b SG2ObjectCore_retirement_phase_or_negative(a1)
 	bclr.b #2,SG2ObjectCore_flags(a1)
@@ -47605,9 +47627,9 @@ prepare_small_asteroid_fragment_pair:
 	move.l a1,free_object_stack_cursor(a6)
 	subq.w #1,free_object_count(a6)
     ; KNOWN: type A2=Target code-entry register seed:SG2Asteroid
-	move.w #$4A,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
+	move.w #SG2_OBJECT_TYPE_SMALL_ASTEROID,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
     ; KNOWN: type A3=Target code-entry register seed:SG2Asteroid
-	move.w #$4A,(a3)	; operand 2: SG2ObjectCore_object_type at (a3)
+	move.w #SG2_OBJECT_TYPE_SMALL_ASTEROID,(a3)	; operand 2: SG2ObjectCore_object_type at (a3)
     ; KNOWN: type A2=Target code-entry register seed:SG2Asteroid; type A3=Target code-entry register seed:SG2Asteroid
 	move.l SG2ObjectCore_world_x(a0),SG2ObjectCore_world_x(a2)
 	move.l SG2ObjectCore_world_y(a0),SG2ObjectCore_world_y(a2)
@@ -49055,7 +49077,7 @@ abs_0_00036F84:
 	move.l a3,free_object_stack_cursor(a6)
 	subq.w #1,free_object_count(a6)
     ; KNOWN: type A4=Target code-entry register seed:SG2VelocityProjectile
-	move.w #$48,(a4)	; operand 2: SG2ObjectCore_object_type at (a4)
+	move.w #SG2_OBJECT_TYPE_LASER_BOLT,(a4)	; operand 2: SG2ObjectCore_object_type at (a4)
 	sf.b SG2VelocityProjectile_integration_service_byte(a4)
 	move.w #$C8,SG2TimedMotionActor_remaining_updates(a4)
 	move.l SG2ObjectCore_world_x(a0),SG2ObjectCore_world_x(a4)
@@ -49331,15 +49353,15 @@ test_next_saved_frame_scan_record:
 	tst.b SG2ObjectCore_object_type+1(a4)
 	bmi.w advance_saved_frame_scan_visible_list
 filter_saved_frame_scan_object_types:
-	cmpi.w #30,(a4)	; operand 2: SG2ObjectCore_object_type at (a4)
+	cmpi.w #SG2_OBJECT_TYPE_ICARUS,(a4)	; operand 2: SG2ObjectCore_object_type at (a4)
 	beq.w advance_saved_frame_scan_visible_list
-	cmpi.w #12,(a4)	; operand 2: SG2ObjectCore_object_type at (a4)
+	cmpi.w #SG2_OBJECT_TYPE_HOMING_MISSILE,(a4)	; operand 2: SG2ObjectCore_object_type at (a4)
 	beq.w require_flag7_for_type12_scan_candidate
-	cmpi.w #84,(a4)	; operand 2: SG2ObjectCore_object_type at (a4)
+	cmpi.w #SG2_OBJECT_TYPE_ENERGY_CUBE_LAUNCHER,(a4)	; operand 2: SG2ObjectCore_object_type at (a4)
 	beq.w advance_saved_frame_scan_visible_list
-	cmpi.w #72,(a4)	; operand 2: SG2ObjectCore_object_type at (a4)
+	cmpi.w #SG2_OBJECT_TYPE_LASER_BOLT,(a4)	; operand 2: SG2ObjectCore_object_type at (a4)
 	beq.w advance_saved_frame_scan_visible_list
-	cmpi.w #103,(a4)	; operand 2: SG2ObjectCore_object_type at (a4)
+	cmpi.w #SG2_OBJECT_TYPE_ICARUS_GAS_LASER_BOLT,(a4)	; operand 2: SG2ObjectCore_object_type at (a4)
 	beq.w advance_saved_frame_scan_visible_list
 	bra.b test_alternate_model_scan_extent
 require_flag7_for_type12_scan_candidate:
@@ -60170,7 +60192,7 @@ scan_next_paula_sound_candidate:
 	btst.b #3,SG2ObjectCore_flags(a1)
 	bne.b filter_paula_sound_type_before_wrapped_metric
 allow_paula_type16_without_negative_phase:
-	cmpi.w #16,(a1)	; operand 2: SG2ObjectCore_object_type at (a1)
+	cmpi.w #SG2_OBJECT_TYPE_SMALL_FIGHTER,(a1)	; operand 2: SG2ObjectCore_object_type at (a1)
 	beq.b filter_paula_sound_type_before_wrapped_metric
 require_negative_phase_without_forced_flags_or_type16:
 	tst.b SG2ObjectCore_retirement_phase_or_negative(a1)
