@@ -7,7 +7,7 @@ claim of complete gameplay/hardware equivalence.
 ## Current validated baseline
 
 Current validated export: 3514 app references, 2802 typed accesses, 175 unresolved
-accesses; 9951 unclassified bytes in 279 intervals. These are analysis counts,
+accesses; 9857 unclassified bytes in 277 intervals. These are analysis counts,
 not semantic completion percentages. Sparse inventory/ingredient layouts project
 39 additional accesses. The 25 new diagnostics expose dynamic counter indexes;
 all 150 prior unresolved accesses and prior typed facts are retained.

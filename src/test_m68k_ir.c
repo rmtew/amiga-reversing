@@ -4054,7 +4054,7 @@ static int test_facts_v2_referenced_character_pool_subentities(void) {
   return 0;
 }
 
-static int test_facts_v2_pointer_table_targets_promote_short_strings(void) {
+static int check_pointer_table_targets_short_strings(int numeric_owner) {
   M68kObject object;
   M68kSection section;
   M68kObjectAddResult added;
@@ -4093,12 +4093,20 @@ static int test_facts_v2_pointer_table_targets_promote_short_strings(void) {
     M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_POINTER_STRING_TABLE;
   m68k_analysis_structured_data_item_set_semantic_role_flags(&policy.structured_data_items[0],
     M68K_ANALYSIS_STRUCTURED_DATA_ROLE_POINTER_TABLE);
+  if (numeric_owner) {
+    policy.structured_data_item_count = 2U;
+    policy.structured_data_items[1].has_section_index = 1U;
+    policy.structured_data_items[1].section_index = 0U;
+    policy.structured_data_items[1].offset = 16U;
+    policy.structured_data_items[1].size = 10U;
+    policy.structured_data_items[1].kind = M68K_ANALYSIS_STRUCTURED_DATA_WORDS;
+  }
   M68K_C_ASSERT_INT(0, m68k_facts_v2_render_asm_source_analysis_profile_alloc(&object, &policy, &source,
     &profile, &source_analysis, 1U, m68k_diag_sink(NULL)));
   M68K_C_ASSERT(source != NULL);
-  M68K_C_ASSERT(strstr(source, "\tdc.b \"OK\",$00\n") != NULL);
-  M68K_C_ASSERT(strstr(source, "\tdc.b \"NO\",$00\n") != NULL);
-  M68K_C_ASSERT(strstr(source, "\tdc.b \"YES\",$00\n") != NULL);
+  M68K_C_ASSERT((strstr(source, "\tdc.b \"OK\",$00\n") != NULL) == !numeric_owner);
+  M68K_C_ASSERT((strstr(source, "\tdc.b \"NO\",$00\n") != NULL) == !numeric_owner);
+  M68K_C_ASSERT((strstr(source, "\tdc.b \"YES\",$00\n") != NULL) == !numeric_owner);
   for (index = 0U; index < source_analysis.structured_data_item_count; ++index) {
     const M68kAnalysisStructuredDataItem *item = &source_analysis.structured_data_items[index];
     if (item->has_section_index && item->section_index == 0U &&
@@ -4106,6 +4114,16 @@ static int test_facts_v2_pointer_table_targets_promote_short_strings(void) {
         item->source_pattern_id == M68K_ANALYSIS_STRUCTURED_DATA_SOURCE_PATTERN_POINTER_STRING_TABLE &&
         strcmp(item->source_pattern, "pointer_string_table") == 0) {
       ++pointer_string_items;
+      /* Late discovery must project a canonical owner as well as rendering
+       * text and STRING_TARGET references. Preserve the exact NUL span. */
+      unsigned owners = 0U;
+      for (size_t k = 0U; k < source_analysis.sections[0].range_ownership_count; ++k) {
+        const M68kRangeOwnershipIR *range = &source_analysis.sections[0].range_ownerships[k];
+        if (range->kind == M68K_RANGE_OWNERSHIP_TEXT && range->start_offset == item->offset &&
+            range->end_offset == item->offset + item->size &&
+            range->status == M68K_RANGE_OWNERSHIP_STATUS_ACCEPTED) ++owners;
+      }
+      M68K_C_ASSERT_U32(1U, owners);
     }
   }
   for (index = 0U; index < source_analysis.sections[0].data_reference_count; ++index) {
@@ -4119,14 +4137,19 @@ static int test_facts_v2_pointer_table_targets_promote_short_strings(void) {
       ++pointer_string_refs;
     }
   }
-  M68K_C_ASSERT_U32(3U, pointer_string_items);
-  M68K_C_ASSERT_U32(3U, pointer_string_refs);
+  M68K_C_ASSERT_U32(numeric_owner ? 0U : 3U, pointer_string_items);
+  M68K_C_ASSERT_U32(numeric_owner ? 0U : 3U, pointer_string_refs);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
   M68K_C_ASSERT_U32(0U, profile.asm_source_instruction_byte_mismatches);
   m68k_facts_v2_free_text(source);
   m68k_ir_source_analysis_destroy(&source_analysis);
   m68k_object_destroy(&object);
   return 0;
+}
+
+static int test_facts_v2_pointer_table_targets_promote_short_strings(void) {
+  int result = check_pointer_table_targets_short_strings(0);
+  return result ? result : check_pointer_table_targets_short_strings(1);
 }
 
 static int check_pointer_table_dense_short_strings(uint8_t domain, uint8_t mapped, uint32_t expected) {

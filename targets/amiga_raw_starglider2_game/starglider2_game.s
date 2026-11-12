@@ -5364,9 +5364,11 @@ abs_0_00003EDE:
 abs_0_00003EFA:
 	move.b #$8,diagnostic_step_byte.l
 	move.b #$9,diagnostic_step_byte.l
-	st.b abs_0_000049AA.l
+inhibit_frame_object_motion_for_list_partition:
+	st.b object_list_partition_in_progress_flag.l
 	bsr.w partition_world_object_lists
-	sf.b abs_0_000049AA.l
+clear_partition_motion_inhibit_after_return:
+	sf.b object_list_partition_in_progress_flag.l
 	move.b #$A,diagnostic_step_byte.l
 	bsr.w prepare_visible_and_contact_objects
 	move.b #$B,diagnostic_step_byte.l
@@ -6201,7 +6203,8 @@ viewer_decimal_text_scratch:
 	dc.b $20,$20,$20,$20,$00,$00,$00,$00
 scene_packet_count:
 	dc.w $0000
-abs_0_000049AA:
+    ; Main-loop ST/SF brackets partition_world_object_lists. Both frame-service variants bypass queued-object motion on any nonzero BYTE; modal input is an independent gate.
+object_list_partition_in_progress_flag:
 	dc.w $0000
 current_model_draw_flags:
 	dc.b $00
@@ -15625,7 +15628,8 @@ spawn_body_projectors_platform_entry:
 	jmp spawn_selected_body_projector_parts.l
 handle_neutron_bomb_detonation_bridge_00b4d6:
 	jmp handle_neutron_bomb_detonation.l
-abs_0_0000C4DC:
+    ; Retained BPLCON0 setting: the initializer stores$4200, then copies this WORD into the hardware register. This declaration does not promote the separately preserved raw toggle routine.
+amiga_bitplane_control0_setting_word:
 	dc.w $0000
 raster_probe_reload_countdown:
 	dc.w $0000
@@ -15766,30 +15770,30 @@ amiga_vertical_blank_game_service:
 	addq.w #1,frame_service_ticks_in_window(a6)
 	addq.w #1,vblank_tick_counter(a6)
 	subq.w #1,weapon_action_cooldown(a6)
-	bpl.b abs_0_0000C712
+	bpl.b poll_amiga_controls_after_weapon_cooldown_update
 	move.w #$0,weapon_action_cooldown(a6)
-abs_0_0000C712:
+poll_amiga_controls_after_weapon_cooldown_update:
 	bsr.w poll_amiga_mouse_and_joystick_controls
 	bsr.w update_amiga_hud_sprites
 	move.w frame_service_ticks_in_window(a6),d0
 	cmp.w frame_rate_sample_window_tick_limit.l,d0
-	bcs.b abs_0_0000C738
+	bcs.b gate_amiga_frame_game_services
 	subq.w #1,title_idle_rate_windows_remaining(a6)
 	move.w frame_handoffs_in_window(a6),frame_rate_display_sample(a6)
 	clr.w frame_handoffs_in_window(a6)
 	clr.w frame_service_ticks_in_window(a6)
     ; Service flags bit 7 gates this IRQ branch; modal input gates selected counters and motion separately. Zero/nonzero tests elsewhere have different scope. Not a global pause Boolean.
-abs_0_0000C738:
+gate_amiga_frame_game_services:
 	tst.b display_and_frame_service_flags(a6)
-	bpl.w abs_0_0000C876
+	bpl.w acknowledge_amiga_vblank_and_restore_frame
 	tst.b modal_command_input_flag(a6)
-	bne.b abs_0_0000C754
+	bne.b service_amiga_audio_before_message_tick
 	addq.w #1,panel_animation_service_ticks(a6)
     ; Sign/modal gates precede this WORD decrement. Only old countdown 1 calls the updater with zero. Old zero wraps to $FFFF without a call. Preserve BNE, not a negative-expiry clamp.
 	subq.w #1,periodic_display_update_countdown(a6)
-	bne.b abs_0_0000C754
+	bne.b service_amiga_audio_before_message_tick
 	bsr.w increment_and_draw_periodic_bcd_amiga
-abs_0_0000C754:
+service_amiga_audio_before_message_tick:
 	bsr.w advance_paula_sample_transition_continuation_bridge_00d114
     ; Amiga expiration requires a positive signed queue count. Alternate countdown and polling are separate; its poll rejects zero only. These CPU gates do not certify IRQ timing.
 tick_and_service_amiga_message_countdown:
@@ -15804,13 +15808,13 @@ advance_expired_positive_message_queue:
 	bsr.w advance_message_queue
 continue_amiga_modal_service_after_messages:
 	tst.b modal_command_input_flag(a6)
-	bne.w abs_0_0000C814
+	bne.w age_amiga_raster_probe_countdown
 	tst.b space_environment_flag(a6)
-	bmi.w abs_0_0000C814
+	bmi.w age_amiga_raster_probe_countdown
 	tst.b player_collision_response_flag(a6)
-	beq.b abs_0_0000C7C6
+	beq.b gate_amiga_player_motion_outside_structure
 	tst.b inside_structure_flag(a6)
-	bne.b abs_0_0000C7AE
+	bne.b finish_amiga_collision_braking_if_last_step
 	st.b pending_transient_event_sound(a6)
 	movem.w player_motion_x(a6),d0-d2
 	sub.l d0,player_world_x(a6)
@@ -15819,16 +15823,16 @@ continue_amiga_modal_service_after_messages:
 	move.l horizontal_world_wrap_mask(a6),d2
 	and.l d2,player_world_x(a6)
 	and.l d2,player_world_z(a6)
-abs_0_0000C7AE:
+finish_amiga_collision_braking_if_last_step:
 	cmpi.b #1,player_collision_response_steps(a6)
-	bne.b abs_0_0000C814
+	bne.b age_amiga_raster_probe_countdown
 	clr.w negative_speed_control_accumulator(a6)
 	clr.w player_speed_target(a6)
 	clr.w player_speed_smoothed(a6)
-	bra.w abs_0_0000C814
-abs_0_0000C7C6:
+	bra.w age_amiga_raster_probe_countdown
+gate_amiga_player_motion_outside_structure:
 	tst.b inside_structure_flag(a6)
-	bne.w abs_0_0000C814
+	bne.w age_amiga_raster_probe_countdown
 	movem.w player_motion_x(a6),d0-d2
 	add.l d0,player_world_x(a6)
 	add.l d1,player_world_y(a6)
@@ -15837,29 +15841,30 @@ abs_0_0000C7C6:
 	and.l d2,player_world_x(a6)
 	and.l d2,player_world_z(a6)
 	tst.b space_environment_flag(a6)
-	bmi.b abs_0_0000C814
+	bmi.b age_amiga_raster_probe_countdown
 	move.l player_world_y(a6),d1
 	cmp.l #$FFFFFF88,d1
-	bmi.b abs_0_0000C808
+	bmi.b test_lower_amiga_player_y_limit
 	move.l #$FFFFFF88,player_world_y(a6)
-	bra.b abs_0_0000C814
-abs_0_0000C808:
+	bra.b age_amiga_raster_probe_countdown
+test_lower_amiga_player_y_limit:
 	cmp.l player_world_y_lower_limit(a6),d1
-	bpl.b abs_0_0000C814
+	bpl.b age_amiga_raster_probe_countdown
 	move.l player_world_y_lower_limit(a6),player_world_y(a6)
-abs_0_0000C814:
+age_amiga_raster_probe_countdown:
 	tst.b raster_probe_countdown_inhibit_flag.l
-	bne.b abs_0_0000C82C
+	bne.b gate_amiga_queued_object_motion
 	subq.w #1,raster_probe_reload_countdown.l
-	bpl.b abs_0_0000C82C
+	bpl.b gate_amiga_queued_object_motion
 	move.w #$5,raster_probe_reload_countdown.l
-abs_0_0000C82C:
+    ; Both queued-object phases add sign-extended velocity WORDs once, then mask X/Z only. Nonzero modal or partition BYTE skips the phase; prior player-motion gates remain separate.
+gate_amiga_queued_object_motion:
 	tst.b modal_command_input_flag(a6)
-	bne.b abs_0_0000C876
-	tst.b abs_0_000049AA.l
-	bne.b abs_0_0000C876
+	bne.b acknowledge_amiga_vblank_and_restore_frame
+	tst.b object_list_partition_in_progress_flag.l
+	bne.b acknowledge_amiga_vblank_and_restore_frame
 	move.w integrating_object_count(a6),d0
-	beq.b abs_0_0000C876
+	beq.b acknowledge_amiga_vblank_and_restore_frame
 	subq.w #1,d0
 	movea.l integrating_objects_cursor(a6),a1
 integrate_selected_object_velocities:
@@ -15878,7 +15883,7 @@ integrate_selected_object_velocities:
 	and.l d3,SG2ObjectCore_world_x(a0)
 	and.l d3,SG2ObjectCore_world_z(a0)
 	dbf.w d0,integrate_selected_object_velocities
-abs_0_0000C876:
+acknowledge_amiga_vblank_and_restore_frame:
 	move.w intreqr(a5),d0	; interrupt request state
 	andi.w #32767,d0
 	move.w #INTF_VERTB,intreq(a5)
@@ -16076,7 +16081,7 @@ abs_0_0000CC48:
 abs_0_0000CCE4:
 	clr.w (a1)+
 	dbf.w d0,abs_0_0000CCE4
-	move.w #$4200,abs_0_0000C4DC.l
+	move.w #$4200,amiga_bitplane_control0_setting_word.l
 	lea.l _custom.l,a5
 	move.l #$78000,draw_buffer_base.w(a6)
 	move.w #$2C81,diwstrt(a5)	; display window start v=$2C h=$81
@@ -16087,7 +16092,7 @@ abs_0_0000CCE4:
 	move.w #BPLCON2_PF2PRI|BPLCON2_PF2P2,bplcon2(a5)
 	move.w #$0,bpl1mod(a5)	; bitplane modulo 0 bytes
 	move.w #$0,bpl2mod(a5)	; bitplane modulo 0 bytes
-	move.w abs_0_0000C4DC.l,d0
+	move.w amiga_bitplane_control0_setting_word.l,d0
 	move.w d0,bplcon0(a5)
     ; Original initializer copies16 palette WORDs only, D120..D140. Following48 bytes are not part of this demonstrated read extent.
 	lea.l amiga_boot_palette_words.l,a0
@@ -52691,17 +52696,17 @@ abs_0_0003B17C:
 	addq.w #1,vblank_tick_counter(a6)
 	addq.w #1,frame_service_ticks_in_window(a6)
 	subq.w #1,weapon_action_cooldown(a6)
-	bpl.b abs_0_0003B190
+	bpl.b sample_alternate_frame_handoff_rate
 	move.w #$0,weapon_action_cooldown(a6)
-abs_0_0003B190:
+sample_alternate_frame_handoff_rate:
 	move.w frame_service_ticks_in_window(a6),d0
 	cmp.w #$32,d0
-	bcs.b abs_0_0003B1AC
+	bcs.b gate_alternate_periodic_and_message_services
 	subq.w #1,title_idle_rate_windows_remaining(a6)
 	move.w frame_handoffs_in_window(a6),frame_rate_display_sample(a6)
 	clr.w frame_handoffs_in_window(a6)
 	clr.w frame_service_ticks_in_window(a6)
-abs_0_0003B1AC:
+gate_alternate_periodic_and_message_services:
 	tst.b display_and_frame_service_flags(a6)
 	bpl.w install_alternate_timer_b_palette_interrupt
 	tst.b modal_command_input_flag(a6)
@@ -52779,15 +52784,16 @@ install_alternate_timer_b_palette_interrupt:
 	move.b #$64,$FFFFFA21.w
 	clr.b alternate_palette_second_phase_flag.l
 	move.l #alternate_timer_b_palette_interrupt,$00000120.l
+gate_alternate_queued_object_motion:
 	tst.b modal_command_input_flag(a6)
-	bne.b abs_0_0003B30C
-	tst.b abs_0_000049AA.l
-	bne.b abs_0_0003B30C
+	bne.b continue_alternate_frame_after_object_motion
+	tst.b object_list_partition_in_progress_flag.l
+	bne.b continue_alternate_frame_after_object_motion
 	move.w integrating_object_count(a6),d0
-	beq.b abs_0_0003B30C
+	beq.b continue_alternate_frame_after_object_motion
 	subq.w #1,d0
 	movea.l integrating_objects_cursor(a6),a1
-abs_0_0003B2DC:
+integrate_alternate_selected_object_velocities:
 	movea.l (a1)+,a0
 	move.w SG2WorldObject_velocity_x(a0),d3
 	ext.l d3
@@ -52801,8 +52807,8 @@ abs_0_0003B2DC:
 	move.l horizontal_world_wrap_mask(a6),d3
 	and.l d3,SG2ObjectCore_world_x(a0)
 	and.l d3,SG2ObjectCore_world_z(a0)
-	dbf.w d0,abs_0_0003B2DC
-abs_0_0003B30C:
+	dbf.w d0,integrate_alternate_selected_object_velocities
+continue_alternate_frame_after_object_motion:
 	move.l player_world_y(a6),d1
 	neg.l d1
 	cmp.l #$6E,d1

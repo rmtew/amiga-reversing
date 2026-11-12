@@ -1618,10 +1618,10 @@ static const M68kSymbolOriginIR *source_quality_symbol_origin_at(const M68kSecti
   return NULL;
 }
 
-static int append_structured_data_range_ownerships(M68kSourceAnalysisIR *source_analysis) {
+static int append_structured_data_range_ownerships(M68kSourceAnalysisIR *source_analysis, size_t first_item) {
   size_t index;
   if (source_analysis == NULL) return -1;
-  for (index = 0U; index < source_analysis->structured_data_item_count; ++index) {
+  for (index = first_item; index < source_analysis->structured_data_item_count; ++index) {
     const M68kAnalysisStructuredDataItem *item = &source_analysis->structured_data_items[index];
     M68kSectionAnalysisIR *section;
     M68kRangeOwnershipIR range;
@@ -13913,9 +13913,14 @@ int m68k_source_quality_analyze_with_policy_and_hardware_base_seeds(M68kSourceAn
   SOURCE_QUALITY_CHECK_OK(append_multiline_string_items(source_analysis, decode, facts, accepted_bytes));
   SOURCE_QUALITY_CHECK_OK(append_string_table_sequence_items(source_analysis, decode, accepted_bytes));
   m68k_ir_source_analysis_finalize_table_conflicts(source_analysis);
-  SOURCE_QUALITY_CHECK_OK(append_structured_data_range_ownerships(source_analysis));
+  size_t owned_structured_count = source_analysis->structured_data_item_count;
+  SOURCE_QUALITY_CHECK_OK(append_structured_data_range_ownerships(source_analysis, 0U));
   SOURCE_QUALITY_CHECK_OK(append_pointer_table_target_strings(source_analysis, decode, accepted_bytes, policy));
   SOURCE_QUALITY_CHECK_OK(append_referenced_character_pool_strings(source_analysis, decode, accepted_bytes));
+  /* Keep the initial owners available to string-discovery conflict checks.
+   * Project only the newly appended text entities afterward: do not duplicate
+   * the old ranges or drop this late classifier's facts from the catalogue. */
+  SOURCE_QUALITY_CHECK_OK(append_structured_data_range_ownerships(source_analysis, owned_structured_count));
   SOURCE_QUALITY_CHECK_OK(append_manual_mid_instruction_diagnostics(source_analysis));
   SOURCE_QUALITY_CHECK_OK(append_manual_noncode_overlap_diagnostics(source_analysis));
   SOURCE_QUALITY_CHECK_OK(append_accepted_run_noncode_fallthrough_diagnostics(source_analysis));
