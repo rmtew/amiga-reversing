@@ -46,9 +46,11 @@ Original payload SHA256:
    bits only. The scan mask admits eight offsets for seven stored pointers;
    its countdown needs a writer/entry bound. The eight audio-ring reads also
    need an entry invariant: equality-only wrapping does not bound arbitrary
-   initial cursors. Counter readers need runtime BYTE-selector value provenance
-   through directory reads and AND #255; the 104-byte backing supplies no index
-   bound. Do not enlarge a directory or assume original bytes persist.
+   initial cursors. Literal/copy/equality index probes already resolve fields.
+   Counter readers lose BYTE-directory values before AND #255; the 104-byte
+   backing supplies no value bound. Next: a bounded BYTE-value transfer probe
+   with mutation/unknown-call refusals, then actual directory-write preservation.
+   Do not enlarge a directory or assume original bytes persist.
 5. Residual regions: prioritize accepted data readers and incoming code edges.
    Do not decode apparent instructions or declare arrays from plausible bytes.
    Zero-fill writers and write-only app flags do not establish field purpose.

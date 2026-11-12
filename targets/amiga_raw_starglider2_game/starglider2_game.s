@@ -44170,20 +44170,20 @@ update_world_and_mission_events:
 	movem.l d0-d7/a0-a6,-(a7)
 	move.b #$77,diagnostic_step_byte.l
 	tst.b professor_taymar_aboard_flag(a6)
-	bpl.w abs_0_00032F12
+	bpl.w gate_released_object_surface_motion
 	tst.w current_structure_service_id(a6)
-	bne.w abs_0_00032F12
-    ; Gated professor-aboard notice phase increments modulo512. This counts original qualifying updates, not guaranteed frames or seconds; population/message guards remain intact.
+	bne.w gate_released_object_surface_motion
+    ; Only negative aboard and service0 advance phase modulo512. A wrapped update consumes one nonzero Castrobar BYTE with the original signed-result clamp; empty cargo requests a random notice.
 	addq.w #1,taymar_aboard_notice_phase.l
 	andi.w #511,taymar_aboard_notice_phase.l
-	bne.b abs_0_00032F12
+	bne.b gate_released_object_surface_motion
 	lea.l model_type_population_counts(a6),a0
 	tst.b SG2IngredientCounts_castrobars_count(a0)
-	beq.b abs_0_00032EE0
+	beq.b enqueue_taymar_random_aboard_notice
 	subq.b #1,SG2IngredientCounts_castrobars_count(a0)
-	bpl.b abs_0_00032EB0
+	bpl.b enqueue_taymar_castrobar_consumption_notice
 	clr.b SG2IngredientCounts_castrobars_count(a0)
-abs_0_00032EB0:
+enqueue_taymar_castrobar_consumption_notice:
 	clr.w pending_message_count(a6)
 	move.w #$1,message_display_countdown(a6)
 	move.w #$134,d0
@@ -44194,8 +44194,8 @@ abs_0_00032EB0:
 	lea.l event_message_pointers.l,a1
 	movea.l SG2SourceTextReference_text(a1,d0.w),a1
 	bsr.w enqueue_event_message
-	bra.b abs_0_00032F12
-abs_0_00032EE0:
+	bra.b gate_released_object_surface_motion
+enqueue_taymar_random_aboard_notice:
 	move.w #$134,d0
 	lea.l event_message_pointers.l,a1
 	movea.l SG2SourceTextReference_text(a1,d0.w),a1
@@ -44208,48 +44208,50 @@ abs_0_00032EE0:
 	movea.l SG2SourceTextReference_text(a1,d0.w),a1
 	bsr.w enqueue_event_message
 	bsr.w enqueue_blank_event_message_line
-abs_0_00032F12:
+    ; Ground Y=-120 reloads20 before decrement. Other eligible surface calls age the WORD; negative result animates ten tracking slots. Only null pointers are skipped; no lifetime proof follows.
+gate_released_object_surface_motion:
 	tst.b space_environment_flag(a6)
-	bne.b abs_0_00032F86
+	bne.b service_space_proximity_and_contact_warning
 	tst.b inside_structure_flag(a6)
-	bne.b abs_0_00032F86
+	bne.b service_space_proximity_and_contact_warning
 	move.l player_world_y(a6),d0
 	cmp.l #$FFFFFF88,d0
-	bne.b abs_0_00032F32
+	bne.b advance_released_object_surface_holdoff
 	move.w #$14,surface_brake_hold_countdown.l
-abs_0_00032F32:
+advance_released_object_surface_holdoff:
 	subq.w #1,surface_brake_hold_countdown.l
-	bpl.b abs_0_00032F86
+	bpl.b service_space_proximity_and_contact_warning
 	clr.w surface_brake_hold_countdown.l
 	tst.b space_environment_flag(a6)
-	bmi.b abs_0_00032F86
+	bmi.b service_space_proximity_and_contact_warning
 	lea.l released_object_tracking_references(a6),a0
 	move.w #$9,d7
 animate_released_objects_loop:
 	movea.l (a0)+,a2
 	cmpa.l #$0,a2
-	beq.b abs_0_00032F82
+	beq.b advance_released_object_tracking_scan
 	addi.w #16,$0012(a2)
 	andi.w #4095,$0012(a2)
 	addi.l #30,$0008(a2)
 	cmpi.l #4294967176,$0008(a2)
-	bmi.b abs_0_00032F82
+	bmi.b advance_released_object_tracking_scan
 	move.l #$FFFFFF88,$0008(a2)
 	clr.l -$0004(a0)
-abs_0_00032F82:
+advance_released_object_tracking_scan:
 	dbf.w d7,animate_released_objects_loop
-abs_0_00032F86:
+service_space_proximity_and_contact_warning:
 	sf.b force_body_orbit_refresh_flag.l
 	tst.b space_environment_flag(a6)
-	bpl.b abs_0_00032F9E
+	bpl.b test_contact_before_stardrive_shutdown
 	bsr.w update_system_center_proximity_metric
 	bsr.w update_millway_proximity_metric
 	bsr.w clear_stardrive_below_speed_threshold
-abs_0_00032F9E:
+    ; Any nonzero contact clears stardrive. Only a negative prior WORD requests collision/deactivation messages. First queue insertion clears countdown despite the preceding store1.
+test_contact_before_stardrive_shutdown:
 	tst.w last_player_contact_type(a6)
 	beq.b service_carried_neutron_reference_before_requests
 	tst.w stardrive_enabled_word(a6)
-	bpl.b abs_0_00032FDC
+	bpl.b clear_stardrive_after_player_contact
 	clr.w pending_message_count(a6)
 	move.w #$1,message_display_countdown(a6)
 	lea.l event_message_pointers.l,a1
@@ -44261,7 +44263,7 @@ abs_0_00032F9E:
 	movea.l SG2SourceTextReference_text(a1,d0.w),a1
 	bsr.w enqueue_event_message
 	bsr.w enqueue_blank_event_message_line
-abs_0_00032FDC:
+clear_stardrive_after_player_contact:
 	clr.w stardrive_enabled_word(a6)
 service_carried_neutron_reference_before_requests:
 	tst.l carried_neutron_bomb_reference(a6)
@@ -44334,43 +44336,43 @@ initialize_and_bind_carried_neutron_record:
 	move.l a2,carried_neutron_bomb_reference(a6)
 gate_exact_lower_offset_carried_neutron_removal:
 	tst.b neutron_bomb_retract_request(a6)
-	bpl.b abs_0_000330C6
+	bpl.b gate_space_station_spawn_request
 	cmpi.l #SG2_NEUTRON_CARRIED_MIN_OFFSET,carried_neutron_bomb_y_offset.l
-	bne.b abs_0_000330C6
+	bne.b gate_space_station_spawn_request
 clear_retract_request_before_nullable_record_removal:
 	sf.b neutron_bomb_retract_request(a6)
 	movea.l carried_neutron_bomb_reference(a6),a2
 	cmpa.l #$0,a2
-	beq.b abs_0_000330C6
+	beq.b gate_space_station_spawn_request
 clear_carried_neutron_type_without_free_stack_release:
 	clr.w (a2)
 	clr.l carried_neutron_bomb_reference(a6)
-    ; Spawn-request scan checks all250 records for type99; create station only if absent. Original fallback reuse/retry remains; not new exclusive lifetime/allocation proof.
-abs_0_000330C6:
+    ; Request uses sign. Any type99 tag in250 records suppresses spawn, including phase0. No backing record requeues the request; creation retains unwritten bytes and edits model99 face count.
+gate_space_station_spawn_request:
 	tst.b space_station_spawn_request(a6)
-	bpl.w abs_0_0003318E
+	bpl.w age_pirate_warning_cooldown
 	lea.l world_object_pool(a6),a0
 	move.w #$F9,d0
-abs_0_000330D6:
+search_pool_for_existing_space_station:
 	cmpi.w #99,(a0)
-	beq.w abs_0_0003318A
+	beq.w acknowledge_existing_space_station_record
 	adda.l #$44,a0
-	dbf.w d0,abs_0_000330D6
+	dbf.w d0,search_pool_for_existing_space_station
 	sf.b space_station_spawn_request(a6)
 	cmpi.w #1,free_object_count(a6)
-	bls.w abs_0_00033106
+	bls.w borrow_first_distant_record_for_station
 	movea.l free_object_stack_cursor(a6),a3
 	movea.l -(a3),a4
 	move.l a3,free_object_stack_cursor(a6)
 	subq.w #1,free_object_count(a6)
-	bra.b abs_0_00033112
-abs_0_00033106:
+	bra.b initialize_spawned_space_station_record
+borrow_first_distant_record_for_station:
 	move.w distant_object_count(a6),d0
-	beq.b abs_0_00033184
+	beq.b retry_station_spawn_without_backing_record
 	movea.l distant_objects_cursor(a6),a0
 	movea.l (a0),a4
     ; KNOWN: type A4=Target code-entry register seed:SG2SpaceStation
-abs_0_00033112:
+initialize_spawned_space_station_record:
 	lea.l model_default_scale_shifts.l,a0
 	move.w #$63,d0
 	move.b $0(a0,d0.w),SG2ObjectCore_model_scale_shift(a4)
@@ -44386,9 +44388,10 @@ abs_0_00033112:
 	clr.w SG2WorldObject_rotation_2(a4)
 	move.w #$C8,$0024(a4)
 	move.w station_construction_steps_remaining(a6),d0
-	bpl.b abs_0_00033168
+	bpl.b write_station_model_construction_face_count
 	clr.w d0
-abs_0_00033168:
+    ; Model99 WORD2 becomes52-max(0,signed construction steps), moduloWORD; positive steps above52 wrap. WORD4 is retained. Record WORD36 is written200 but its purpose remains unknown.
+write_station_model_construction_face_count:
 	move.w #$34,d2
 	sub.w d0,d2
 	move.w #$63,d1
@@ -44396,71 +44399,73 @@ abs_0_00033168:
 	lea.l model_header_pointers.l,a0
 	movea.l $0(a0,d1.w),a0
 	move.w d2,$0002(a0)
-	bra.b abs_0_0003318E
-abs_0_00033184:
+	bra.b age_pirate_warning_cooldown
+retry_station_spawn_without_backing_record:
 	st.b space_station_spawn_request(a6)
-	bra.b abs_0_0003318E
-abs_0_0003318A:
+	bra.b age_pirate_warning_cooldown
+acknowledge_existing_space_station_record:
 	sf.b space_station_spawn_request(a6)
-abs_0_0003318E:
+age_pirate_warning_cooldown:
 	subq.w #1,pirate_warning_cooldown_or_negative.l
-	bpl.b abs_0_0003319E
+	bpl.b advance_station_proximity_colour_service
 	move.w #$FFFF,pirate_warning_cooldown_or_negative.l
-abs_0_0003319E:
+    ; Only negative space uses the ramp; other values store colour3. Near sign increments/clamps; other signs decrement/floor. Wrapped WORD arithmetic can retain indexes outside0..5.
+advance_station_proximity_colour_service:
 	tst.b space_environment_flag(a6)
-	bpl.w abs_0_000331DE
+	bpl.w set_surface_station_disc_colour
 	lea.l station_proximity_disc_colour_ramp.l,a0
 	tst.b space_station_nearby_flag(a6)
-	bpl.b abs_0_000331C6
+	bpl.b fade_station_proximity_colour_step
 	addq.w #1,station_proximity_colour_ramp_step(a6)
 	cmpi.w #6,station_proximity_colour_ramp_step(a6)
-	bmi.b abs_0_000331D0
+	bmi.b load_station_proximity_disc_colour
 	move.w #$5,station_proximity_colour_ramp_step(a6)
-	bra.b abs_0_000331D0
-abs_0_000331C6:
+	bra.b load_station_proximity_disc_colour
+fade_station_proximity_colour_step:
 	subq.w #1,station_proximity_colour_ramp_step(a6)
-	bpl.b abs_0_000331D0
+	bpl.b load_station_proximity_disc_colour
 	clr.w station_proximity_colour_ramp_step(a6)
-abs_0_000331D0:
+load_station_proximity_disc_colour:
 	move.w station_proximity_colour_ramp_step(a6),d0
 	add.w d0,d0
 	move.w $0(a0,d0.w),station_proximity_disc_colour_index(a6)
-	bra.b abs_0_000331E4
-abs_0_000331DE:
+	bra.b select_speed_face_colour_limit
+set_surface_station_disc_colour:
 	move.w #$3,station_proximity_disc_colour_index(a6)
-abs_0_000331E4:
+select_speed_face_colour_limit:
 	move.w player_speed_target(a6),d0
 	tst.w d0
-	bne.b abs_0_000331FE
+	bne.b select_speed_colour_limit_by_stardrive_sign
 	move.w #$0,icarus_speed_colour_max_step.l
 	move.w #$0,icarus_speed_colour_step.l
-	bra.b abs_0_0003326A
-abs_0_000331FE:
+	bra.b apply_and_step_icarus_speed_face_colours
+select_speed_colour_limit_by_stardrive_sign:
 	tst.w stardrive_enabled_word(a6)
-	bmi.b abs_0_00033238
+	bmi.b select_stardrive_speed_face_colour_limit
 	move.w #$1,icarus_speed_colour_max_step.l
 	cmp.w #$C8,d0
-	bmi.b abs_0_0003326A
+	bmi.b apply_and_step_icarus_speed_face_colours
 	move.w #$2,icarus_speed_colour_max_step.l
 	cmp.w #$190,d0
-	bmi.b abs_0_0003326A
+	bmi.b apply_and_step_icarus_speed_face_colours
 	move.w #$3,icarus_speed_colour_max_step.l
 	cmp.w #$1C2,d0
-	bmi.b abs_0_0003326A
+	bmi.b apply_and_step_icarus_speed_face_colours
 	move.w #$4,icarus_speed_colour_max_step.l
-	bra.b abs_0_0003326A
-abs_0_00033238:
+	bra.b apply_and_step_icarus_speed_face_colours
+select_stardrive_speed_face_colour_limit:
 	move.w #$2,icarus_speed_colour_max_step.l
 	cmp.w #$C8,d0
-	bmi.b abs_0_0003326A
+	bmi.b apply_and_step_icarus_speed_face_colours
 	move.w #$3,icarus_speed_colour_max_step.l
 	cmp.w #$190,d0
-	bmi.b abs_0_0003326A
+	bmi.b apply_and_step_icarus_speed_face_colours
 	move.w #$4,icarus_speed_colour_max_step.l
 	cmp.w #$1C2,d0
-	bmi.b abs_0_0003326A
+	bmi.b apply_and_step_icarus_speed_face_colours
 	move.w #$5,icarus_speed_colour_max_step.l
-abs_0_0003326A:
+    ; All four face-command BYTE1 stores use the old step. Rejected next steps keep that index and negate direction; invalid incoming steps can read outside the declared colour prefix.
+apply_and_step_icarus_speed_face_colours:
 	lea.l icarus_speed_animated_face_0.l,a1
 	lea.l icarus_speed_animated_face_1.l,a2
 	lea.l icarus_speed_animated_face_2.l,a3
@@ -44474,37 +44479,37 @@ abs_0_0003326A:
 	move.b $0(a0,d0.w),$0001(a3)
 	move.b $0(a0,d0.w),$0001(a4)
 	add.w d1,d0
-	bmi.b abs_0_000332C2
+	bmi.b reverse_retained_speed_colour_step_direction
 	cmp.w d2,d0
-	bgt.b abs_0_000332C2
+	bgt.b reverse_retained_speed_colour_step_direction
 	move.w d0,icarus_speed_colour_step.l
-	bra.b abs_0_000332C8
-abs_0_000332C2:
+	bra.b select_altitude_mesh_material_profile
+reverse_retained_speed_colour_step_direction:
 	neg.w icarus_speed_colour_step_direction.l
-abs_0_000332C8:
+select_altitude_mesh_material_profile:
 	tst.b space_environment_flag(a6)
-	bmi.b abs_0_00033310
+	bmi.b gate_space_proximity_damage_or_surface_service
 	move.l player_world_y(a6),d0
 	neg.l d0
 	cmp.l #$1F40,d0
-	bpl.b abs_0_00033310
+	bpl.b gate_space_proximity_damage_or_surface_service
 	cmp.l #$7D0,d0
-	bpl.b abs_0_000332EC
+	bpl.b select_middle_or_high_altitude_material_profile
 	lea.l world_low_altitude_mesh_material_indices.l,a0
-	bra.b abs_0_00033302
-abs_0_000332EC:
+	bra.b load_selected_body_mesh_material_index
+select_middle_or_high_altitude_material_profile:
 	cmp.l #$FA0,d0
-	bpl.b abs_0_000332FC
+	bpl.b select_high_altitude_material_profile
 	lea.l world_middle_altitude_mesh_material_indices.l,a0
-	bra.b abs_0_00033302
-abs_0_000332FC:
+	bra.b load_selected_body_mesh_material_index
+select_high_altitude_material_profile:
 	lea.l world_high_altitude_mesh_material_indices.l,a0
-    ; Write selected17-WORD profile into special mesh material index. These0..15 values are polygon material indices, not RGB palette words; keep altitude thresholds and signed comparisons.
-abs_0_00033302:
+    ; NEG.L Y and N-only thresholds2000/4000/8000 select three17-WORD material-index profiles. Body index remains unchecked, including signed-WORD aliases; these are not RGB words.
+load_selected_body_mesh_material_index:
 	move.w selected_celestial_body_index(a6),d0
 	add.w d0,d0
 	move.w $0(a0,d0.w),special_mesh_material_index.l
-abs_0_00033310:
+gate_space_proximity_damage_or_surface_service:
 	move.b #$78,diagnostic_step_byte.l
 	tst.b space_environment_flag(a6)
 	bpl.w abs_0_00033528
