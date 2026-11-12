@@ -1346,7 +1346,8 @@ SG2SpaceStation_SIZEOF EQU __RS
     RSRESET
     RS.B 36
 SG2AirborneLaunchState_behavior_update_counter RS.W 1
-    RS.B 5
+SG2AirborneLaunchState_proximity_response_countdown RS.W 1
+    RS.B 3
 SG2AirborneLaunchState_escape_capsule_pending_flag RS.B 1
     RS.B 24
 SG2AirborneLaunchState_SIZEOF EQU __RS
@@ -10889,7 +10890,7 @@ abs_0_000083A8:
 	dc.b $36,$28,$00,$2C,$48,$C3,$D7,$A8,$00,$04,$36,$28,$00,$2E,$48,$C3
 	dc.b $D7,$A8,$00,$08,$36,$28,$00,$30,$48,$C3,$D7,$A8,$00,$0C,$26,$2E
 	dc.b $06,$FC,$C7,$A8,$00,$04,$C7,$A8,$00,$0C,$60,$00,$FD,$FC
-    ; Negative space-flag BYTE spins record WORD16/20 by16 and masks4095; other flag values bypass. Local stores do not establish initial angles, pool membership or all-path dispatch.
+    ; Negative space-flag BYTE spins record WORDs at +$10/+$14 by 16 and masks 4095; other flag values bypass. No initial-angle, pool or all-path claim.
 spin_junk_two_axes_in_space:
 	tst.b space_environment_flag(a6)
 	bpl.b finish_junk_spin_and_rejoin
@@ -12008,7 +12009,7 @@ abs_0_000092F4:
 	bra.w integrate_and_steer_horizontal_actor
 	dc.b $52,$28,$00,$03,$0C,$28,$00,$13,$00,$03,$66,$00,$01,$F2,$42,$28
 	dc.b $00,$03,$60,$00,$01,$EA
-    ; Increment vertex-selector BYTE3; reset only when the incremented BYTE equals20, then tail to shared motion. Supplied values above19 are not clamped.
+    ; Increment vertex-selector BYTE at +$03; reset only when the incremented BYTE equals 20, then tail to shared motion. Supplied values above 19 are not clamped.
 advance_columbus_variant_then_integrate:
 	addq.b #1,$0003(a0)
 	cmpi.b #20,$0003(a0)
@@ -12984,10 +12985,10 @@ abs_0_00009F02:
 update_egron_silo_launch_cycle:
 	move.b #$2B,diagnostic_step_byte.l
 	tst.w SG2SiloLauncher_spawn_cooldown(a0)
-	beq.b abs_0_0000A004
+	beq.b try_launch_nearby_silo_airborne_child
 	subq.w #1,SG2SiloLauncher_spawn_cooldown(a0)
 	bra.w continue_primary_object_update_loop
-abs_0_0000A004:
+try_launch_nearby_silo_airborne_child:
 	tst.b SG2SiloLauncher_child_attached_flag(a0)
 	bne.w abs_0_0000A0F0
 	tst.b SG2ObjectCore_vertex_variant_selector(a0)
@@ -13015,7 +13016,8 @@ abs_0_0000A004:
 	lea.l object_default_motion_words.l,a1
 	move.w $0(a1,d0.w),SG2HorizontalMotionView_horizontal_motion_scale(a2)
 	move.w #$3FE,SG2AirborneLaunchState_behavior_update_counter(a2)
-	clr.w $0026(a2)
+    ; Reset common proximity countdown (+$26). The later BYTE+$29 write leaves BYTE+$28 intact. Flying and saucer handlers consume the countdown differently.
+	clr.w SG2AirborneLaunchState_proximity_response_countdown(a2)
 	move.l SG2ObjectCore_world_x(a0),SG2ObjectCore_world_x(a2)
 	move.l SG2ObjectCore_world_z(a0),SG2ObjectCore_world_z(a2)
 	move.w #$FFFB,SG2WorldObject_velocity_y(a2)
@@ -13151,10 +13153,10 @@ abs_0_0000A2B6:
     ; KNOWN: type A0=Target code-entry register seed:SG2SiloLauncher
 update_dome_silo_launch_cycle:
 	tst.w SG2SiloLauncher_spawn_cooldown(a0)
-	beq.b abs_0_0000A2CE
+	beq.b try_launch_nearby_dome_ground_child
 	subq.w #1,SG2SiloLauncher_spawn_cooldown(a0)
 	bra.w continue_primary_object_update_loop
-abs_0_0000A2CE:
+try_launch_nearby_dome_ground_child:
 	tst.b SG2SiloLauncher_child_attached_flag(a0)
 	bne.w abs_0_0000A3D6
 	tst.b SG2ObjectCore_vertex_variant_selector(a0)
@@ -13198,6 +13200,7 @@ abs_0_0000A2CE:
 	move.b #$1,$002B(a2)
 	move.l a0,SG2WorldObject_linked_record_or_sentinel(a2)
 	bclr.b #4,SG2ObjectCore_flags(a2)
+    ; BYTE+$29 becomes 100 and BYTE+$28 becomes $AA. Type9 later resets the separate WORD+$26, not WORD+$28. Preserve untouched record bytes and phase aliases.
 	move.b #$64,$0029(a2)
 	move.b #$AA,SG2GroundLaunchState_link_release_countdown(a2)
 	cmpi.w #SG2_OBJECT_TYPE_EGRON_LAND_TANK,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
@@ -13547,7 +13550,7 @@ abs_0_0000A8AA:
 	sf.b $0028(a4)
 	movea.l a4,a1
 	bra.b abs_0_0000A8AA
-    ; Clear record WORD0, set diagnostic BYTE4B and tail to the secondary continuation. There is no free-stack push or count-update instruction here; malformed pointer aliasing remains possible.
+    ; Clear record WORD at +$00, set diagnostic BYTE to $4B and tail to the secondary continuation. There is no free-stack push or count update here; pointer aliases remain possible.
 clear_distant_object_type_and_rejoin:
 	move.b #$4B,diagnostic_step_byte.l
 	clr.w (a0)
@@ -13556,10 +13559,10 @@ clear_distant_object_type_and_rejoin:
 update_distant_egron_silo_launch_cycle:
 	move.b #$4C,diagnostic_step_byte.l
 	tst.w SG2SiloLauncher_spawn_cooldown(a0)
-	beq.b abs_0_0000A8F2
+	beq.b try_launch_distant_silo_airborne_child
 	subq.w #1,SG2SiloLauncher_spawn_cooldown(a0)
 	bra.w continue_secondary_object_update_loop
-abs_0_0000A8F2:
+try_launch_distant_silo_airborne_child:
 	tst.b SG2SiloLauncher_child_attached_flag(a0)
 	bne.w abs_0_0000A9DE
 	tst.b SG2ObjectCore_vertex_variant_selector(a0)
@@ -13587,7 +13590,8 @@ abs_0_0000A8F2:
 	lea.l object_default_motion_words.l,a1
 	move.w $0(a1,d0.w),SG2HorizontalMotionView_horizontal_motion_scale(a2)
 	move.w #$3FE,SG2AirborneLaunchState_behavior_update_counter(a2)
-	clr.w $0026(a2)
+    ; Reset common proximity countdown (+$26). The later BYTE+$29 write leaves BYTE+$28 intact. Flying and saucer handlers consume the countdown differently.
+	clr.w SG2AirborneLaunchState_proximity_response_countdown(a2)
 	move.l SG2ObjectCore_world_x(a0),SG2ObjectCore_world_x(a2)
 	move.l SG2ObjectCore_world_z(a0),SG2ObjectCore_world_z(a2)
 	move.w #$FFFB,SG2WorldObject_velocity_y(a2)
@@ -13634,10 +13638,10 @@ abs_0_0000AA16:
 update_distant_dome_silo_launch_cycle:
 	move.b #$4D,diagnostic_step_byte.l
 	tst.w SG2SiloLauncher_spawn_cooldown(a0)
-	beq.b abs_0_0000AA3A
+	beq.b try_launch_distant_dome_ground_child
 	subq.w #1,SG2SiloLauncher_spawn_cooldown(a0)
 	bra.w continue_secondary_object_update_loop
-abs_0_0000AA3A:
+try_launch_distant_dome_ground_child:
 	tst.b SG2SiloLauncher_child_attached_flag(a0)
 	bne.w abs_0_0000AB54
 	tst.b SG2ObjectCore_vertex_variant_selector(a0)
@@ -13682,6 +13686,7 @@ abs_0_0000AA3A:
 	move.b #$1,$002B(a2)
 	move.l a0,SG2WorldObject_linked_record_or_sentinel(a2)
 	bclr.b #4,SG2ObjectCore_flags(a2)
+    ; BYTE+$29 becomes 100 and BYTE+$28 becomes $AA. Type9 later resets the separate WORD+$26, not WORD+$28. Preserve untouched record bytes and phase aliases.
 	move.b #$64,$0029(a2)
 	move.b #$AA,SG2GroundLaunchState_link_release_countdown(a2)
 	cmpi.w #SG2_OBJECT_TYPE_EGRON_LAND_TANK,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
@@ -16098,7 +16103,7 @@ abs_0_0000C9B4:
 	dc.b $00,$28,$10,$39,$00,$00,$E1,$02,$61,$00,$00,$28,$10,$39,$00,$00
 	dc.b $E1,$03,$61,$00,$00,$1E,$61,$00,$00,$06,$60,$00,$FE,$26,$13,$FC
 	dc.b $00,$00,$00,$BF,$E3,$01,$4E,$75
-    ; Write FF to CIAA port-B direction register, without a port-data write, then RTS. CPU tests observe a flat-RAM register store, not physical pin or interrupt behavior.
+    ; Write $FF to CIAA port-B direction register, without a port-data write, then RTS. CPU tests observe a flat-RAM register store, not physical pin or interrupt behavior.
 set_ciaa_port_b_all_outputs:
 	move.b #$FF,_ciaa+ciaddrb.l
 	rts

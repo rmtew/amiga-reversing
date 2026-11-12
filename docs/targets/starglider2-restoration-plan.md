@@ -6,7 +6,7 @@ claim of complete gameplay/hardware equivalence.
 
 ## Current validated baseline
 
-Current validated export: 3517 app references, 2811 typed accesses, 185 unresolved
+Current validated export: 3517 app references, 2813 typed accesses, 183 unresolved
 accesses; 9839 unclassified bytes in 276 intervals. These are analysis counts,
 not semantic completion percentages. The phrase-counter
 references retain declared-layout A6 fallback; the role declaration adds no
@@ -30,6 +30,8 @@ diagnostic stores and register/stack effects remain intact.
 Five remaining generated-name entry candidates now have local roles, backed by
 37 CPU cases. Their ambiguous CFG ownership remains unchanged; numeric record
 operands remain where native pointer context does not establish a field view.
+Airborne launch names its WORD+$26 proximity-response countdown. BYTE+$29
+remains unknown; ground $AA64 at +$28 is separate from Tank WORD+$26.
 Original payload SHA256:
 `662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9`.
 
