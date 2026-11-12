@@ -323,7 +323,7 @@ def observe_contact_lists(client, flight_entry, workspace_base, original, stage,
             return
 
 
-def main(argv=None):
+def main(argv=None, *, canonical_scenario=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--inputs', type=Path, required=True)
     parser.add_argument('--rom', type=Path, required=True)
@@ -343,6 +343,14 @@ def main(argv=None):
     parser.add_argument('--observe-startup-flags', action='store_true',
                         help='Observe first CPU clears of app0205/0206 through the normal startup/input prefix')
     args = parser.parse_args(argv)
+    if canonical_scenario is not None:
+        from .original_media_prefix import validate_prefix_target
+        validate_prefix_target(canonical_scenario.get('original_media_prefix'), canonical_scenario.get('target_id'))
+        phases = canonical_scenario.get('phases')
+        if (canonical_scenario.get('start_observable') != 'original_media_handoff' or
+                not isinstance(phases, list) or not phases or any(not isinstance(p, dict) for p in phases) or
+                any(p.get('transition', 'continue') != 'continue' for p in phases)):
+            raise ValueError('Canonical original-media scenarios require normal execution after the handoff')
     if sum([args.observe_model_paths, args.observe_modal_inventory, args.observe_reticle_target,
             args.observe_startup_flags, args.observe_contact_lists, args.observe_contact_pair_read]) > 1:
         parser.error('Choose only one bounded observation route')
@@ -370,11 +378,18 @@ def main(argv=None):
     try:
         with CopperlineProcess(str(args.copperline), rom=str(args.rom), floppy=str(p / 'original.adf')) as process, ExitStack() as observers:
             c = process.client
+            observers.callback(c.joystick, port=1)
+            observers.callback(c.joystick, port=2)
+            loaded_payloads = []
             for n, pc, addr, f in [('intro', 0x24000, 0x23FF8, 'first-read.bin'), ('main', 0x1000, 0x1000, 'main-copy.bin')]:
                 w = wait_for_pc(c, pc, 60)
                 stage(n, w)
-                assert w['status'] == 'hit'
-                assert c.read_memory(addr, len((p / f).read_bytes())) == (p / f).read_bytes()
+                if w['status'] != 'hit':
+                    raise ValueError('Original-media entry not observed: ' + n)
+                if c.read_memory(addr, len((p / f).read_bytes())) != (p / f).read_bytes():
+                    raise ValueError('Original-media loaded payload differs: ' + n)
+                loaded_payloads.append(dict(name=n, load_address=addr,
+                    size=(p / f).stat().st_size, sha256=IDENTITIES[f], byte_exact=True))
                 c.joystick(port=1, blue=n == 'intro')
                 r['inputs'].append(dict(frame=w['stop_event']['frame'], port=1, blue=n == 'intro'))
             flag_observer = None
@@ -393,7 +408,8 @@ def main(argv=None):
                 c = flag_observer
             w = wait_for_pc(c, 0x118A, 60)
             stage('title', w)
-            assert w['status'] == 'hit'
+            if w['status'] != 'hit':
+                raise ValueError('Original title entry not observed')
             frame = w['stop_event']['frame']
             c.joystick(port=2, red=True)
             r['inputs'].append(dict(frame=frame, port=2, red=True))
@@ -402,23 +418,28 @@ def main(argv=None):
             r['inputs'].append(dict(frame=w['frame'], port=2, red=False))
             w = wait_for_pc(c, 0xD7BE, 45, frame_limit=w['frame'] + 1200)
             stage('protection_input', w)
-            assert w['status'] == 'hit'
+            if w['status'] != 'hit':
+                raise ValueError('Original protection input not observed')
             regs = c.registers()
             base = regs['a6']
             selected = int.from_bytes(c.read_memory(base + 0x68, 4), 'big')
-            assert 0x12F80 <= selected < 0x12F80 + 147 * 16 and (selected - 0x12F80) % 16 == 0
+            if not (0x12F80 <= selected < 0x12F80 + 147 * 16 and (selected - 0x12F80) % 16 == 0):
+                raise ValueError('Selected protection record is outside the reviewed directory')
             record = c.read_memory(selected, 16)
             answer = record[3:].split(b'\x00', 1)[0]
-            assert answer and len(answer) <= 12 and all((32 <= x < 127 for x in answer))
+            if not (answer and len(answer) <= 12 and all((32 <= x < 127 for x in answer))):
+                raise ValueError('Selected protection answer has an unsupported shape')
             translation = (p / 'main-copy.bin').read_bytes()[0xDF0C - 0x1000:0xDF0C - 0x1000 + 126]
             keys = []
             for char in answer:
                 candidates = [i for i, x in enumerate(translation) if x == char]
-                assert candidates, hex(char)
+                if not candidates:
+                    raise ValueError('Selected character has no normal keyboard mapping')
                 keys.append(candidates[0])
             stage('selected_record', dict(address=selected, coordinates=list(record[:3]), sha256=hashlib.sha256(record).hexdigest(), answer_length=len(answer), registers=regs))
             frame = w['stop_event']['frame']
             for key in keys + [0x44]:
+                observers.callback(c.key, key, pressed=False)
                 c.key(key, pressed=True)
                 r['inputs'].append(dict(frame=frame, rawkey=key, pressed=True))
                 w = c.run_until({'frame': frame + 3}, timeout=10)
@@ -435,6 +456,33 @@ def main(argv=None):
                 regs = c.registers()
                 base = regs['a6']
                 stage('flight_state', dict(registers=regs, player_pointer=c.read_memory(base + 0x700, 4).hex(), resources=c.read_memory(base + 0x774, 34).hex()))
+                if canonical_scenario is not None:
+                    from .copperline_runtime import run_scenario, payload_at_pc
+                    identity = payload_at_pc(c, p / 'main-copy.bin', regs['pc'])
+                    if (regs['pc'] != 0x1288 or identity['status'] != 'pc_matched' or
+                            int(identity['runtime_base'], 0) != 0x1000 or
+                            int(identity['payload_offset'], 0) != 0x288):
+                        raise ValueError('Flight handoff does not match the original source coordinates')
+                    boundary = dict(kind='normal_media_prefix', memory_write=None,
+                                    register_write=None, reverse_anchor=None, replay_across_prefix=False)
+                    scenario_result = run_scenario(c, canonical_scenario, p / 'main-copy.bin',
+                        lambda: boundary, trace_directory=out)
+                    final_regs = c.registers()
+                    detection = payload_at_pc(c, p / 'main-copy.bin', final_regs['pc'])
+                    phases = scenario_result['phases']
+                    complete = (len(phases) == len(canonical_scenario['phases']) and
+                                all(v['status'] == 'hit' for v in phases) and
+                                detection['status'] == 'pc_matched')
+                    status = 'ok' if complete else 'incomplete'
+                    r['canonical_observation'] = dict(status=status, backend='copperline', observation=dict(
+                        status=status, pc=hex(final_regs['pc']), sp=hex(final_regs['sp']),
+                        memory_pc=c.read_memory(final_regs['pc'], 16).hex(), scenario=scenario_result,
+                        original_media_handoff=dict(kind='normal_input', loaded_payloads=loaded_payloads,
+                            flight_identity=identity, input_transitions=len(r['inputs'])),
+                        active_execution=dict(payload=detection), reverse_boundary=boundary))
+                    r['status'] = 'canonical_scenario_' + status
+                    save()
+                    return r
                 if args.observe_startup_flags:
                     assert flag_observer is not None
                     stage('startup_flag_source_bindings', bind_startup_flag_source_views(

@@ -1,0 +1,77 @@
+{
+  "schema_version": 1,
+  "identifier": "starglider2-painting-viewer-entry",
+  "target_id": "amiga_raw_starglider2_game",
+  "original_media_prefix": "starglider2",
+  "phases": [
+    {
+      "name": "normal_media",
+      "observable": "original_media_handoff"
+    },
+    {
+      "name": "flight",
+      "breakpoint_stable_key": "s0:00000288:instruction",
+      "wait_seconds": 30,
+      "capture": {
+        "registers": [
+          "a6"
+        ],
+        "memory_reads": [
+          {
+            "address": 64786,
+            "size": 2
+          }
+        ]
+      },
+      "occurrences": 32
+    },
+    {
+      "name": "title_again",
+      "breakpoint_stable_key": "s0:0000018A:instruction",
+      "wait_seconds": 30,
+      "max_frames": 600
+    },
+    {
+      "name": "options",
+      "breakpoint_stable_key": "s0:0000D292:instruction",
+      "wait_seconds": 15,
+      "max_frames": 300
+    },
+    {
+      "name": "viewer",
+      "breakpoint_stable_key": "s0:0000D9E0:instruction",
+      "wait_seconds": 15,
+      "max_frames": 300,
+      "capture": {
+        "registers": [
+          "a6"
+        ],
+        "memory_reads": [
+          {
+            "base_register": "a6",
+            "offset": 502,
+            "size": 1,
+            "expect_hex": "00"
+          }
+        ]
+      }
+    }
+  ],
+  "input_events": [
+    {
+      "after_phase": "flight",
+      "release_after_phase": "title_again",
+      "control": "key 69"
+    },
+    {
+      "after_phase": "title_again",
+      "release_after_phase": "options",
+      "control": "key 64"
+    },
+    {
+      "after_phase": "options",
+      "release_after_phase": "viewer",
+      "control": "key 8"
+    }
+  ]
+}

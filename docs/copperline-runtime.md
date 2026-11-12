@@ -10,7 +10,7 @@ no new public debugger endpoint or browser emulator console.
 
 ```sh
 cd /workspace/amiga-reversing
-export COPPERLINE_BINARY=/workspace/copperline-assessment/squashfs-root/usr/bin/copperline
+export COPPERLINE_BINARY=/workspace/scratch/sgii-resume/copperline-1.0.0/squashfs-root/usr/bin/copperline
 export COPPERLINE_ROM=/workspace/attachments/30c1a24c-f353-4e4e-9dc0-36ce5cee8932/kick13.rom
 TARGET=amiga_disk_pandora-1988-firebird__amiga_raw_pandora_3e1ee0f1_bk_00_000000e8
 .venv/bin/python -m amiga_reversing.tools.copperline_session \
@@ -32,6 +32,33 @@ isolated temporary configuration, dynamic loopback endpoint and token; it exits
 on completion or exception. No fixed port, shared config, Wine or GUI is used.
 Canonical target analysis can take around a minute before/after a run; each
 emulator run phase has its own wall deadline.
+
+### Reviewed original-media prefixes
+
+Starglider II can enter the canonical runner through its original, write-protected
+disk. `--original-media-prefix starglider2` reuses the existing reviewed intro,
+title and selected protection-record keyboard workflow. It verifies the extracted
+intro and complete game copy before accepting the natural flight handoff. The
+recipe's expected source mapping is checked again at each canonical stop; it is
+not treated as an already-observed mapping during planning.
+
+```sh
+.venv/bin/python -m amiga_reversing.tools.copperline_session \
+  --target amiga_raw_starglider2_game --rom "$COPPERLINE_ROM" \
+  --copperline "$COPPERLINE_BINARY" \
+  --floppy0 'bin/Starglider 2 (1988)(Rainbird)[cr UA - WOW].adf' \
+  --original-media-prefix starglider2 \
+  --scenario runtime/scenarios/starglider2-painting-viewer-entry.json \
+  --state-directory .runtime-state/sgii-viewer-fresh --run
+```
+
+The authored route uses Escape to return to title, a title key to open options,
+then Painting. It finishes at viewer entry and checks the cleared debug BYTE.
+It does not qualify the later debug overlay, auxiliary-word producer, complete
+viewer operation, or hardware output. Original-media mode permits normal execution
+only: no injected function entry, direct/derived payload, host mount or checkpoint.
+The closed recipe registry does not expose arbitrary bootstrap controls. New games
+need a reviewed loading/input recipe. Keep generated inputs and runtime captures private.
 
 Source-row phases may specify `occurrences` from 1 to 64. One `wait_seconds`
 budget covers all visits. A single instruction executes when departure from the

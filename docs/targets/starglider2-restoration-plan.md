@@ -6,11 +6,11 @@ claim of complete gameplay/hardware equivalence.
 
 ## Current validated baseline
 
-Current validated export: 3514 app references, 2802 typed accesses, 175 unresolved
+Current validated export: 3517 app references, 2802 typed accesses, 175 unresolved
 accesses; 9857 unclassified bytes in 277 intervals. These are analysis counts,
-not semantic completion percentages. Sparse inventory/ingredient layouts project
-39 additional accesses. The 25 new diagnostics expose dynamic counter indexes;
-all 150 prior unresolved accesses and prior typed facts are retained.
+not semantic completion percentages. The three newly named phrase-counter
+references retain declared-layout A6 fallback; the role declaration adds no
+stronger base proof. All prior typed/unresolved facts are retained.
 Original payload SHA256:
 `662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9`.
 
@@ -58,8 +58,10 @@ Original payload SHA256:
    Do not decode apparent instructions or declare arrays from plausible bytes.
    Zero-fill writers and write-only app flags do not establish field purpose.
    The debug-key99 toggle has no static reader; the viewer auxiliary WORD has
-   no known producer or role. Next: targeted read/write observation during
-   debug/model-viewer input, rather than speculative names.
+   no known producer or role. Normal Painting entry was reached with debug
+   cleared; a 120-frame CPU watch saw no auxiliary read with key8 held through
+   that window. Next: identify a real writer or a normal debug-enabled viewer
+   context before another probe; the default Painting reset clears the guard.
 
 ## Evidence and limits
 
@@ -68,6 +70,8 @@ Canonical inputs and decisions remain in `target_metadata.json`,
 live in `tests/test_starglider2_*.py` and the shared analysis tests. Retain
 [normal-input flight evidence](../../runtime/observations/starglider2-flight-input-evidence.json)
 and [memory-span evidence](../../runtime/observations/starglider2-app-memory-spans.json).
+The [Painting entry scenario](../../runtime/scenarios/starglider2-painting-viewer-entry.json)
+reproduces the normal-media title/options handoff through the canonical runner.
 Detailed prior investigations remain in Git history through `c8e6fe1a`; this
 file is the current queue, not an append-only batch log.
 

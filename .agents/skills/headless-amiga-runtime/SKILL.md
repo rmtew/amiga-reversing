@@ -55,6 +55,12 @@ shared builder creates an isolated boot ADF; the runtime verifies loaded bytes
 before releasing the marker. The debugger memory write is followed by a new
 reverse-history anchor; replay across that injected write is not evidence.
 
+For the reviewed SGII disk, `--original-media-prefix starglider2` instead reuses
+the normal intro/title/protection-answer keyboard workflow and verifies both
+loaded payloads before canonical phases. It performs no guest memory/register
+writes and refuses injected function entry, checkpoints and mixed launch modes.
+See `docs/copperline-runtime.md` for the Painting entry scenario and its limits.
+
 ```sh
 python -m amiga_reversing.tools.copperline_session \
   --target <target-id> --rom <legal-rom> --copperline <binary> \

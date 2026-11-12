@@ -292,7 +292,8 @@ model_face_vertex_count_scratch RS.W 1
     RS.B 16
 visibility_type_before_projection RS.W 1
 visibility_depth_before_projection RS.W 1
-    RS.B 10
+    RS.B 8
+debug_phrase_match_gate_counter RS.W 1
 title_page_cycle_counter RS.W 1
 app_01DA RS.W 1
     RS.B 4
@@ -2221,54 +2222,55 @@ clear_game_workspace_loop:
 	jsr wait_for_two_tick_target_with_mouse_mix.l
 	move.b #$A,diagnostic_step_byte.l
 	jsr deselect_disk_backend.l
-abs_0_00001158:
+reset_title_cycle_and_pending_key:
 	move.b #$B,diagnostic_step_byte.l
 	move.w #$0,title_page_cycle_counter(a6)
 	clr.b pending_key_scancode(a6)
-abs_0_0000116A:
+show_title_splash_before_idle_cycle:
 	move.b #$C,diagnostic_step_byte.l
 	bsr.w disable_midframe_copper_blocks_continuation
 	bsr.w show_argonaut_splash_page
-abs_0_0000117A:
+advance_title_page_counter_and_start_music:
 	addq.w #1,title_page_cycle_counter(a6)
 	move.w #$14,title_idle_rate_windows_remaining(a6)
 	jsr load_and_stream_music.l
-abs_0_0000118A:
+    ; Keyboard wins over mouse/fire and idle expiry. With no input, negative idle WORD selects splash/credits by page-counter bit0; fire waits for release before flight initialization.
+wait_for_title_key_fire_or_idle_expiry:
 	bsr.w advance_shared_random_state
 	move.b pending_key_scancode(a6),d0
-	bne.b abs_0_000011C6
+	bne.b open_options_from_title_keyboard_event
 	tst.b mouse_primary_button_flag(a6)
-	bne.b abs_0_000011EE
+	bne.b wait_for_title_mouse_and_fire_release
 	tst.b primary_fire_flag(a6)
-	bne.b abs_0_000011EE
+	bne.b wait_for_title_mouse_and_fire_release
 	tst.w title_idle_rate_windows_remaining(a6)
-	bpl.b abs_0_0000118A
+	bpl.b wait_for_title_key_fire_or_idle_expiry
 	move.w title_page_cycle_counter(a6),d6
 	andi.w #1,d6
-	beq.b abs_0_0000116A
+	beq.b show_title_splash_before_idle_cycle
 	move.b #$D,diagnostic_step_byte.l
 	bsr.w fade_out_amiga_palette_bridge_0024aa
 	jsr show_title_credits_page.l
-	bra.w abs_0_0000117A
-abs_0_000011C6:
+	bra.w advance_title_page_counter_and_start_music
+open_options_from_title_keyboard_event:
 	move.b #$B,diagnostic_stage_step_word.l
 	clr.b diagnostic_step_byte.l
 	clr.b pending_key_scancode(a6)
 	jsr show_options_and_load_control_settings.l
-	bra.b abs_0_00001202
+	bra.b reset_gameplay_and_initialize_new_flight
 resume_gameplay_with_cockpit_refresh:
 	bsr.w restore_cockpit_and_weapon_hud_state
 	clr.l d0
 	jsr add_bcd_and_draw_digits.l
 	bra.b abs_0_00001256
-abs_0_000011EE:
+wait_for_title_mouse_and_fire_release:
 	bsr.w advance_shared_random_state
 	tst.b mouse_primary_button_flag(a6)
-	bne.b abs_0_000011EE
+	bne.b wait_for_title_mouse_and_fire_release
 	tst.b primary_fire_flag(a6)
-	bne.b abs_0_000011EE
+	bne.b wait_for_title_mouse_and_fire_release
 	bsr.w fade_out_amiga_palette_bridge_0024aa
-abs_0_00001202:
+reset_gameplay_and_initialize_new_flight:
 	move.b #$14,diagnostic_stage_step_word.l
 	clr.b diagnostic_step_byte.l
 	sf.b app_0204(a6)
@@ -2588,10 +2590,10 @@ abs_0_000016B0:
 	bne.w abs_0_0000171C
 	tst.b primary_fire_flag(a6)
 	bne.w abs_0_0000171C
-	bra.w abs_0_00001158
+	bra.w reset_title_cycle_and_pending_key
 abs_0_0000171C:
 	clr.w title_page_cycle_counter(a6)
-	bra.w abs_0_00001202
+	bra.w reset_gameplay_and_initialize_new_flight
 wait_for_input_or_tick_deadline:
 	move.w vblank_tick_counter(a6),d7
 	addi.w #300,d7
@@ -2711,7 +2713,7 @@ abs_0_000018BC:
 	bchg.b #1,landscape_background_draw_flags(a6)
 abs_0_000018C8:
 	cmp.b #$1B,d0
-	beq.w abs_0_000024CC
+	beq.w discard_frame_command_return_and_reset_title
 	cmp.b #$A0,d0
 	beq.w save_game_from_frame_command_bridge
 	cmp.b #$A1,d0
@@ -2901,14 +2903,14 @@ modal_inventory_command_loop:
 abs_0_00001B42:
 	bsr.w wait_for_translated_key_bridge_0023bc
 	cmp.b #$57,d0
-	beq.w abs_0_00001E06
+	beq.w match_debug_phrase_tail_after_modal_w
 	tst.w current_structure_service_id(a6)
 	beq.b abs_0_00001B68
 	cmpi.w #1,current_structure_service_id(a6)
 	beq.b abs_0_00001B68
 	cmpi.w #2,current_structure_service_id(a6)
 	beq.b abs_0_00001B68
-	bra.w abs_0_00001DEA
+	bra.w clear_modal_item_selection_and_return
 abs_0_00001B68:
 	cmp.b #$49,d0
 	beq.w cycle_inventory_status_line
@@ -2916,7 +2918,7 @@ abs_0_00001B68:
 	beq.w jettison_inventory_selection
 	cmp.b #$56,d0
 	beq.w reset_message_queue_and_enqueue_version
-	bra.w abs_0_00001DEA
+	bra.w clear_modal_item_selection_and_return
     ; Internal inventory-line continuation. Copies name, optional plural and decimal quantity into text-start scratch; complete output capacity remains unproved.
 cycle_inventory_status_line:
 	move.b #$71,diagnostic_step_byte.l
@@ -3100,42 +3102,44 @@ abs_0_00001DDA:
 	move.b #$FF,(a2)
 	move.l #$FFFFFFFF,(a0)
 	rts
-abs_0_00001DEA:
+clear_modal_item_selection_and_return:
 	bsr.w display_blank_event_message_line_bridge_002404
 	clr.w depot_line_pointer_offset(a6)
 	clr.w inventory_list_item_index(a6)
 	sf.b modal_command_input_flag(a6)
 	rts
-abs_0_00001DFC:
+drain_debug_phrase_keys_with_retained_dbf_counter:
 	bsr.w wait_for_translated_key_bridge_0023bc
-	dbf.w d7,abs_0_00001DFC
-	bra.b abs_0_00001DEA
-abs_0_00001E06:
-	lea.l abs_0_000024B1(pc),a0
+	dbf.w d7,drain_debug_phrase_keys_with_retained_dbf_counter
+	bra.b clear_modal_item_selection_and_return
+    ; Modal W is consumed before this26-key tail. Failed comparisons retain D7 for the drain DBF: tested failures request27 keys total, while a match requests26. Escape is not cancellation here.
+match_debug_phrase_tail_after_modal_w:
+	lea.l debug_phrase_tail_after_modal_w(pc),a0
 	moveq.l #25,d7
-abs_0_00001E0C:
+read_next_debug_phrase_tail_key:
 	bsr.w wait_for_translated_key_bridge_0023bc
 	cmp.b (a0)+,d0
-	bne.b abs_0_00001DFC
-	dbf.w d7,abs_0_00001E0C
+	bne.b drain_debug_phrase_keys_with_retained_dbf_counter
+	dbf.w d7,read_next_debug_phrase_tail_key
+    ; With debug off, increment WORD and accept only result1. Clear the gate before fixed-sight/zero-speed checks; later effects fill three reserves and complement the entire debug BYTE.
 	tst.b debug_features_enabled_flag(a6)
-	bne.b abs_0_00001E2A
-	addq.w #1,$01D6(a6)
-	cmpi.w #1,$01D6(a6)
-	bne.b abs_0_00001E50
-abs_0_00001E2A:
-	clr.w $01D6(a6)
+	bne.b reset_phrase_gate_before_toggle_conditions
+	addq.w #1,debug_phrase_match_gate_counter(a6)
+	cmpi.w #1,debug_phrase_match_gate_counter(a6)
+	bne.b finish_matched_debug_phrase_modal_command
+reset_phrase_gate_before_toggle_conditions:
+	clr.w debug_phrase_match_gate_counter(a6)
 	tst.b fixed_sight_mode_flag(a6)
-	beq.b abs_0_00001E50
+	beq.b finish_matched_debug_phrase_modal_command
 	tst.w negative_speed_control_accumulator(a6)
-	bne.b abs_0_00001E50
+	bne.b finish_matched_debug_phrase_modal_command
 	bsr.w reset_message_queue_and_enqueue_version
 	moveq.l #-1,d0
 	move.w d0,icarus_power_reserve(a6)
 	move.w d0,icarus_shield_strength(a6)
 	move.w d0,weapon_energy_reserve(a6)
 	not.b debug_features_enabled_flag(a6)
-abs_0_00001E50:
+finish_matched_debug_phrase_modal_command:
 	bsr.w display_blank_event_message_line_bridge_002404
 	clr.w depot_line_pointer_offset(a6)
 	clr.w inventory_list_item_index(a6)
@@ -3443,11 +3447,12 @@ title_credits_text:
 	dc.b "Piracy is a crime!  Please don't copy!",$0D,$0A
 	dc.b $00
 	dc.b $00,$57
-abs_0_000024B1:
+debug_phrase_tail_after_modal_w:
 	dc.b "ERE ON A MISSION FROM GOD1",$00
-abs_0_000024CC:
+    ; Discards the frame-command return LONG and enters title reset. A later title keyboard event opens options; the current Escape is already consumed.
+discard_frame_command_return_and_reset_title:
 	move.l (a7)+,d1
-	bra.w abs_0_00001158
+	bra.w reset_title_cycle_and_pending_key
 	dc.b $48,$E7,$7C,$40,$70,$00,$72,$00,$78,$00,$43,$FA,$00,$52,$12,$18
 	dc.b $B2,$3C,$00,$2D,$57,$C5,$67,$06,$B2,$3C,$00,$2B,$66,$02,$12,$18
 	dc.b $B2,$3C,$00,$30,$6D,$0A,$B2,$3C,$00,$39,$6E,$04,$52,$44,$60,$EE
@@ -17499,7 +17504,7 @@ advance_paula_sample_transition_continuation_bridge_00d114:
 abs_0_0000E11A:
 	jmp abs_0_0003B356.l
 abs_0_0000E120:
-	jmp abs_0_00001202.l
+	jmp reset_gameplay_and_initialize_new_flight.l
 write_word_as_hex_text_platform_entry:
 	jmp write_word_as_four_hex_digits.l
     ; First4 ratings-tail bytes are saved autocentre/fixed-sight/one-hand/joystick controls. E6B6 writes same4 back; remaining180 copied tail bytes remain opaque.

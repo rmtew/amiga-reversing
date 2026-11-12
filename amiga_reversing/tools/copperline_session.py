@@ -54,6 +54,7 @@ class HeadlessCopperlineSession:
     scenario_path: Path | None = None
     checkpoint_save: Path | None = None
     checkpoint_load: Path | None = None
+    original_media_prefix: str | None = None
 
     def plan(self) -> dict[str, object]:
         return {
@@ -69,6 +70,7 @@ class HeadlessCopperlineSession:
             if self.derived_artifact_manifest
             else None,
             "direct_payload_contract": self.direct_payload_contract,
+            "original_media_prefix": self.original_media_prefix,
             "checkpoint_save": str(self.checkpoint_save) if self.checkpoint_save else None,
             "checkpoint_load": str(self.checkpoint_load) if self.checkpoint_load else None,
         }
@@ -230,14 +232,19 @@ def compile_scenario(
                 raise ValueError(
                     "Occurrence capture requires a canonical source-row phase."
                 )
-            if phase.get("observable") not in {"direct_payload_handoff", "verified_checkpoint"}:
+            if phase.get("observable") not in {"direct_payload_handoff", "verified_checkpoint", "original_media_handoff"}:
                 raise ValueError(
-                    "The first scenario phase must be direct_payload_handoff or verified_checkpoint."
+                    "The first scenario phase must be a supported verified handoff or checkpoint."
                 )
+            if phase.get("observable") == "original_media_handoff":
+                from .original_media_prefix import validate_prefix_target
+                validate_prefix_target(scenario.get("original_media_prefix"), target_id)
             continue
         stable_key = phase.get("breakpoint_stable_key")
         wait_seconds = phase.get("wait_seconds")
         transition = phase.get("transition", "continue")
+        if phases[0].get('observable') == 'original_media_handoff' and transition != 'continue':
+            raise ValueError('Original-media scenarios permit normal execution only, not function injection')
         capture = phase.get("capture", {})
         occurrences = phase.get("occurrences", 1)
         capture_first = phase.get("capture_first", False)
@@ -380,9 +387,19 @@ def compile_scenario(
                     read["address"] = placement[0] + read.get("offset", 0)
                     del read["region_id"]
                     read.pop("offset", None)
-            row = _resolve_breakpoint_stable_key_from_artifact(
-                artifact, str(phase["stable_key"])
-            )
+            row = _resolve_breakpoint_stable_key_from_artifact(artifact, str(phase["stable_key"]))
+            if phases[0]['observable'] == 'original_media_handoff':
+                from .original_media_prefix import prefix_source_view
+                view = prefix_source_view(scenario['original_media_prefix'], target_id)
+                offset = row['start_offset']
+                if (row['section_index'] != view['section_index'] or
+                        not view['source_start'] <= offset < view['source_end']):
+                    raise ValueError('Scenario anchor is outside the original-media payload')
+                expected = view['base_addr'] + offset - view['source_start']
+                if (row.get('runtime_breakpoint_address', expected) != expected or
+                        row.get('runtime_address', expected) != expected):
+                    raise ValueError('Original-media recipe conflicts with the canonical runtime view')
+                row = dict(row, runtime_breakpoint_address=expected, runtime_observation_view=view)
             if any(start <= row['start_offset'] < end for start, end in excluded_ranges):
                 raise ValueError('Scenario anchor lies inside an optional patch; original instruction mapping is invalid')
             address = row.get("runtime_breakpoint_address")
@@ -398,7 +415,7 @@ def compile_scenario(
                 target_id, symbol_directory, artifact=artifact,
                 **({'excluded_ranges': excluded_ranges} if excluded_ranges else {}),
             )
-            if symbol_directory is not None
+            if symbol_directory is not None and phases[0]['observable'] != 'original_media_handoff'
             else None
         )
     finally:
@@ -408,6 +425,7 @@ def compile_scenario(
         "identifier": identifier,
         "target_id": target_id,
         "direct_payload_contract": scenario.get("direct_payload_contract"),
+        "original_media_prefix": scenario.get("original_media_prefix"),
         "start_observable": phases[0]["observable"],
         "phases": compiled_phases,
         "input_events": compiled_events,
@@ -549,7 +567,9 @@ def resolve_paused_pc(
 
 def run_session(session: HeadlessCopperlineSession) -> dict[str, object]:
     """Run the headless runner and return its JSON report without mutation."""
-
+    if session.original_media_prefix is not None:
+        from .original_media_prefix import run_original_media_session
+        return run_original_media_session(session)
     return observe(session)
 
 
@@ -641,6 +661,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--target", required=True)
     parser.add_argument("--rom", required=True, type=Path)
     parser.add_argument("--floppy0", type=Path)
+    parser.add_argument("--original-media-prefix", choices=["starglider2"],
+                        help="Reviewed normal-media prefix; SGII reads/types its selected protection answer using normal keys, then runs canonical phases")
     parser.add_argument(
         "--host-directory", type=Path, help="read-only host directory mounted as DH0:"
     )
@@ -734,7 +756,23 @@ def _main(argv: list[str] | None = None) -> int:
         raise ValueError("LoadSeg watching requires a standalone observation.")
     if args.scenario and args.breakpoint_stable_key:
         raise ValueError("Choose a scenario or a single breakpoint, not both.")
-    if args.scenario and not args.direct_payload_contract:
+    if args.original_media_prefix:
+        from .original_media_prefix import validate_prefix_target
+        validate_prefix_target(args.original_media_prefix, args.target)
+        if (not args.scenario or not args.floppy0 or not args.state_directory or
+                args.direct_payload_contract or args.host_directory or args.derived_artifact or
+                args.checkpoint_load or args.checkpoint_save or args.loadseg_watch_seconds or
+                args.breakpoint_stable_key or args.observation_memory_address is not None or
+                args.observation_memory_equals is not None or args.observation_memory_write_watch):
+            raise ValueError("Original-media prefix requires its floppy, canonical scenario and private state directory; no direct/derived payload, host mount, checkpoint or standalone observation")
+        declaration = json.loads(args.scenario.read_text())
+        declared_phases = declaration.get('phases')
+        if (declaration.get('original_media_prefix') != args.original_media_prefix or
+                not isinstance(declared_phases, list) or not declared_phases or
+                not isinstance(declared_phases[0], dict) or
+                declared_phases[0].get('observable') != 'original_media_handoff'):
+            raise ValueError("Scenario original-media handoff does not match the selected prefix")
+    if args.scenario and not (args.direct_payload_contract or args.original_media_prefix):
         raise ValueError(
             "--scenario requires --direct-payload-contract so input cannot run before a verified handoff."
         )
@@ -787,6 +825,11 @@ def _main(argv: list[str] | None = None) -> int:
         raise ValueError(
             "Scenario direct_payload_contract does not match selected contract."
         )
+    if compiled_scenario and (
+        (compiled_scenario['start_observable'] == 'original_media_handoff') != bool(args.original_media_prefix)
+        or compiled_scenario.get('original_media_prefix') != args.original_media_prefix
+    ):
+        raise ValueError('Scenario handoff kind does not match the selected launch mode')
     if (args.checkpoint_save and compiled_scenario
             and any(k in compiled_scenario['phases'][-1]
                     for k in ['memory_access_watch', 'chip_bus_trace'])):
@@ -828,6 +871,7 @@ def _main(argv: list[str] | None = None) -> int:
         scenario_path=scenario_output,
         checkpoint_save=args.checkpoint_save,
         checkpoint_load=args.checkpoint_load,
+        original_media_prefix=args.original_media_prefix,
     )
     if not args.run:
         print(
