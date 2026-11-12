@@ -53540,120 +53540,120 @@ print_alternate_positioned_text_mode1:
 	andi.l #32766,d1
 	add.l d0,d1
 	lea.l $0(a0,d1.w),a0
-abs_0_0003B79A:
+alternate_mode1_positioned_next_byte:
 	lea.l font_printable_ascii_rows.l,a2
 	clr.l d0
 	move.b (a1)+,d0
-	beq.w abs_0_0003B7C8
-	bmi.b abs_0_0003B79A
+	beq.w alternate_mode1_positioned_restore_and_return
+	bmi.b alternate_mode1_positioned_next_byte
 	andi.w #127,d0
 	cmp.b #$D,d0
-	beq.b abs_0_0003B79A
+	beq.b alternate_mode1_positioned_next_byte
 	cmp.b #$A,d0
-	beq.b abs_0_0003B7CE
+	beq.b alternate_mode1_positioned_line_feed
 	subi.w #32,d0
 	rol.l #3,d0
 	adda.l d0,a2
 	bsr.w draw_double_pixel_glyph_mode1
-	bra.b abs_0_0003B79A
-abs_0_0003B7C8:
+	bra.b alternate_mode1_positioned_next_byte
+alternate_mode1_positioned_restore_and_return:
 	movem.l (a7)+,a0/a2
 	rts
-abs_0_0003B7CE:
+alternate_mode1_positioned_line_feed:
 	adda.l #$500,a0
-	bra.b abs_0_0003B79A
+	bra.b alternate_mode1_positioned_next_byte
     ; 40x25 logical cursor. Inverse temporarily NOTs16bytes at8byte glyph stride, restores on normal return; last stored glyph also touches8 following model-table bytes. Original footprint retained
 print_alternate_cursor_text_mode1:
 	movem.l d0/a0/a2,-(a7)
 	movea.l text_cursor_destination_pointer.l,a0
-abs_0_0003B7E0:
+alternate_mode1_cursor_next_byte:
 	lea.l font_printable_ascii_rows.l,a2
 	clr.l d0
 	move.b (a1)+,d0
-	beq.w abs_0_0003B86E
-	bmi.b abs_0_0003B7E0
+	beq.w alternate_mode1_cursor_publish_and_return
+	bmi.b alternate_mode1_cursor_next_byte
 	andi.w #127,d0
 	cmp.b #$D,d0
-	beq.w abs_0_0003B87A
+	beq.w alternate_mode1_cursor_carriage_return
 	cmp.b #$A,d0
-	beq.w abs_0_0003B88E
+	beq.w alternate_mode1_cursor_line_feed
 	cmp.b #$1,d0
-	beq.w abs_0_0003B8F6
+	beq.w alternate_mode1_cursor_enable_inverse
 	cmp.b #$2,d0
-	beq.w abs_0_0003B902
+	beq.w alternate_mode1_cursor_disable_inverse
 	cmp.b #$9,d0
-	beq.w abs_0_0003B90C
+	beq.w alternate_mode1_cursor_tab_by_six
 	subi.w #32,d0
 	rol.l #3,d0
 	adda.l d0,a2
 	tst.b text_inverse_flag.l
-	beq.b abs_0_0003B83A
+	beq.b alternate_mode1_cursor_draw_after_optional_inverse
 	not.l (a2)
 	not.l $0004(a2)
 	not.l $0008(a2)
 	not.l $000C(a2)
-abs_0_0003B83A:
+alternate_mode1_cursor_draw_after_optional_inverse:
 	bsr.w draw_double_pixel_glyph_mode1
 	tst.b text_inverse_flag.l
-	beq.b abs_0_0003B854
+	beq.b alternate_mode1_cursor_advance_column
 	not.l (a2)
 	not.l $0004(a2)
 	not.l $0008(a2)
 	not.l $000C(a2)
-abs_0_0003B854:
+alternate_mode1_cursor_advance_column:
 	move.b text_cursor_column.l,d0
 	addq.b #1,d0
 	cmp.b #$28,d0
-	beq.w abs_0_0003B8C4
+	beq.w alternate_mode1_cursor_column_wrap_at_40
 	move.b d0,text_cursor_column.l
-	bra.w abs_0_0003B7E0
-abs_0_0003B86E:
+	bra.w alternate_mode1_cursor_next_byte
+alternate_mode1_cursor_publish_and_return:
 	move.l a0,text_cursor_destination_pointer.l
 	movem.l (a7)+,d0/a0/a2
 	rts
-abs_0_0003B87A:
+alternate_mode1_cursor_carriage_return:
 	move.b text_cursor_column.l,d0
 	add.b d0,d0
 	suba.l d0,a0
 	clr.b text_cursor_column.l
-	bra.w abs_0_0003B7E0
-abs_0_0003B88E:
+	bra.w alternate_mode1_cursor_next_byte
+alternate_mode1_cursor_line_feed:
 	move.b text_cursor_row.l,d0
 	addq.b #1,d0
 	cmp.b #$19,d0
-	beq.b abs_0_0003B8AC
+	beq.b alternate_mode1_cursor_line_wrap_to_absolute_long4
 	move.b d0,text_cursor_row.l
 	adda.l #$500,a0
-	bra.w abs_0_0003B7E0
+	bra.w alternate_mode1_cursor_next_byte
     ; Original row-wrap loads absolute LONG address4 into A0, not4(A6). Retain exact operand; selected-platform pointer validity is not established here.
-abs_0_0003B8AC:
+alternate_mode1_cursor_line_wrap_to_absolute_long4:
 	move.b #$0,text_cursor_row.l
 	clr.b text_cursor_column.l
 	movea.l $00000004.l,a0
-	bra.w abs_0_0003B7E0
-abs_0_0003B8C4:
+	bra.w alternate_mode1_cursor_next_byte
+alternate_mode1_cursor_column_wrap_at_40:
 	adda.l #$4B0,a0
 	clr.b text_cursor_column.l
 	move.b text_cursor_row.l,d0
 	addq.b #1,d0
 	cmp.b #$19,d0
-	beq.b abs_0_0003B8E8
+	beq.b alternate_mode1_cursor_row_wrap_to_draw_buffer
 	move.b d0,text_cursor_row.l
-	bra.w abs_0_0003B7E0
-abs_0_0003B8E8:
+	bra.w alternate_mode1_cursor_next_byte
+alternate_mode1_cursor_row_wrap_to_draw_buffer:
 	movea.l draw_buffer_base.w(a6),a0
 	clr.b text_cursor_row.l
-	bra.w abs_0_0003B7E0
-abs_0_0003B8F6:
+	bra.w alternate_mode1_cursor_next_byte
+alternate_mode1_cursor_enable_inverse:
 	move.b #$FF,text_inverse_flag.l
-	bra.w abs_0_0003B7E0
-abs_0_0003B902:
+	bra.w alternate_mode1_cursor_next_byte
+alternate_mode1_cursor_disable_inverse:
 	clr.b text_inverse_flag.l
-	bra.w abs_0_0003B7E0
-abs_0_0003B90C:
+	bra.w alternate_mode1_cursor_next_byte
+alternate_mode1_cursor_tab_by_six:
 	addq.b #6,text_cursor_column.l
 	adda.l #$C,a0
-	bra.w abs_0_0003B7E0
+	bra.w alternate_mode1_cursor_next_byte
 print_alternate_positioned_text_mode0:
 	movem.l d0-d7/a0-a6,-(a7)
 	movea.l game_workspace_base.l,a6
@@ -53665,186 +53665,186 @@ print_alternate_positioned_text_mode0:
 	andi.l #32766,d1
 	add.l d0,d1
 	lea.l $0(a0,d1.w),a0
-abs_0_0003B94A:
+alternate_mode0_positioned_next_byte:
 	lea.l font_printable_ascii_rows.l,a2
 	clr.l d0
 	move.b (a1)+,d0
-	beq.b abs_0_0003B9C2
-	bpl.b abs_0_0003B964
+	beq.b alternate_mode0_positioned_restore_and_return
+	bpl.b alternate_mode0_positioned_dispatch_cr_lf_or_glyph
 	andi.w #127,d0
 	move.b d0,text_colour_plane_mask.l
-	bra.b abs_0_0003B94A
-abs_0_0003B964:
+	bra.b alternate_mode0_positioned_next_byte
+alternate_mode0_positioned_dispatch_cr_lf_or_glyph:
 	cmp.b #$D,d0
-	beq.b abs_0_0003B94A
+	beq.b alternate_mode0_positioned_next_byte
 	cmp.b #$A,d0
-	beq.b abs_0_0003B9C8
+	beq.b alternate_mode0_positioned_line_feed
 	subi.b #32,d0
 	rol.l #3,d0
 	adda.l d0,a2
 	move.b text_colour_plane_mask.l,d1
 	btst #3,d1
-	beq.b abs_0_0003B9A2
+	beq.b alternate_mode0_positioned_blank_plane3
 	movea.l a2,a5
-abs_0_0003B986:
+alternate_mode0_positioned_select_plane2:
 	btst #2,d1
-	beq.b abs_0_0003B9AA
+	beq.b alternate_mode0_positioned_blank_plane2
 	movea.l a2,a4
-abs_0_0003B98E:
+alternate_mode0_positioned_select_plane1:
 	btst #1,d1
-	beq.b abs_0_0003B9B2
+	beq.b alternate_mode0_positioned_blank_plane1
 	movea.l a2,a3
-abs_0_0003B996:
+alternate_mode0_positioned_select_plane0:
 	btst #0,d1
-	beq.b abs_0_0003B9BA
-abs_0_0003B99C:
+	beq.b alternate_mode0_positioned_blank_plane0
+alternate_mode0_positioned_draw_selected_planes:
 	bsr.w draw_alternate_glyph_planes_mode0
-	bra.b abs_0_0003B94A
-abs_0_0003B9A2:
+	bra.b alternate_mode0_positioned_next_byte
+alternate_mode0_positioned_blank_plane3:
 	lea.l blank_glyph_rows.l,a5
-	bra.b abs_0_0003B986
-abs_0_0003B9AA:
+	bra.b alternate_mode0_positioned_select_plane2
+alternate_mode0_positioned_blank_plane2:
 	lea.l blank_glyph_rows.l,a4
-	bra.b abs_0_0003B98E
-abs_0_0003B9B2:
+	bra.b alternate_mode0_positioned_select_plane1
+alternate_mode0_positioned_blank_plane1:
 	lea.l blank_glyph_rows.l,a3
-	bra.b abs_0_0003B996
-abs_0_0003B9BA:
+	bra.b alternate_mode0_positioned_select_plane0
+alternate_mode0_positioned_blank_plane0:
 	lea.l blank_glyph_rows.l,a2
-	bra.b abs_0_0003B99C
-abs_0_0003B9C2:
+	bra.b alternate_mode0_positioned_draw_selected_planes
+alternate_mode0_positioned_restore_and_return:
 	movem.l (a7)+,d0-d7/a0-a6
 	rts
-abs_0_0003B9C8:
+alternate_mode0_positioned_line_feed:
 	adda.l #$500,a0
-	bra.w abs_0_0003B94A
+	bra.w alternate_mode0_positioned_next_byte
 print_alternate_cursor_text_mode0:
 	movem.l d0-d7/a0-a6,-(a7)
 	movea.l text_cursor_destination_pointer.l,a0
-abs_0_0003B9DC:
+alternate_mode0_cursor_next_byte:
 	lea.l font_printable_ascii_rows.l,a2
 	clr.l d0
 	move.b (a1)+,d0
-	beq.w abs_0_0003BAB4
-	bpl.b abs_0_0003B9F8
+	beq.w alternate_mode0_cursor_publish_and_return
+	bpl.b alternate_mode0_cursor_dispatch_control_or_glyph
 	andi.w #127,d0
 	move.b d0,text_colour_plane_mask.l
-	bra.b abs_0_0003B9DC
-abs_0_0003B9F8:
+	bra.b alternate_mode0_cursor_next_byte
+alternate_mode0_cursor_dispatch_control_or_glyph:
 	cmp.b #$D,d0
-	beq.w abs_0_0003BAC0
+	beq.w alternate_mode0_cursor_carriage_return_parity_test
 	cmp.b #$A,d0
-	beq.w abs_0_0003BAE0
+	beq.w alternate_mode0_cursor_line_feed
 	cmp.b #$9,d0
-	beq.w abs_0_0003BB5C
+	beq.w alternate_mode0_cursor_tab_by_six
 	cmp.b #$1,d0
-	beq.w abs_0_0003BB46
+	beq.w alternate_mode0_cursor_enable_inverse
 	cmp.b #$2,d0
-	beq.w abs_0_0003BB52
+	beq.w alternate_mode0_cursor_disable_inverse
 	subi.l #32,d0
 	rol.l #3,d0
 	adda.l d0,a2
 	tst.b text_inverse_flag.l
-	beq.b abs_0_0003BA3A
+	beq.b alternate_mode0_cursor_select_plane3
 	not.l (a2)
 	not.l $0004(a2)
 	move.l a2,-(a7)
-abs_0_0003BA3A:
+alternate_mode0_cursor_select_plane3:
 	move.b text_colour_plane_mask.l,d1
 	btst #3,d1
-	beq.b abs_0_0003BA8C
+	beq.b alternate_mode0_cursor_blank_plane3
 	movea.l a2,a5
-abs_0_0003BA48:
+alternate_mode0_cursor_select_plane2:
 	btst #2,d1
-	beq.b abs_0_0003BA94
+	beq.b alternate_mode0_cursor_blank_plane2
 	movea.l a2,a4
-abs_0_0003BA50:
+alternate_mode0_cursor_select_plane1:
 	btst #1,d1
-	beq.b abs_0_0003BA9C
+	beq.b alternate_mode0_cursor_blank_plane1
 	movea.l a2,a3
-abs_0_0003BA58:
+alternate_mode0_cursor_select_plane0:
 	btst #0,d1
-	beq.b abs_0_0003BAA4
-abs_0_0003BA5E:
+	beq.b alternate_mode0_cursor_blank_plane0
+alternate_mode0_cursor_draw_selected_planes:
 	bsr.w draw_alternate_glyph_planes_mode0
 	tst.b text_inverse_flag.l
-	beq.b abs_0_0003BA72
+	beq.b alternate_mode0_cursor_advance_column
 	movea.l (a7)+,a2
 	not.l (a2)
 	not.l $0004(a2)
-abs_0_0003BA72:
+alternate_mode0_cursor_advance_column:
 	move.b text_cursor_column.l,d0
 	addq.b #1,d0
 	cmp.b #$28,d0
-	beq.w abs_0_0003BB14
+	beq.w alternate_mode0_cursor_column_wrap_at_40
 	move.b d0,text_cursor_column.l
-	bra.w abs_0_0003B9DC
-abs_0_0003BA8C:
+	bra.w alternate_mode0_cursor_next_byte
+alternate_mode0_cursor_blank_plane3:
 	lea.l blank_glyph_rows.l,a5
-	bra.b abs_0_0003BA48
-abs_0_0003BA94:
+	bra.b alternate_mode0_cursor_select_plane2
+alternate_mode0_cursor_blank_plane2:
 	lea.l blank_glyph_rows.l,a4
-	bra.b abs_0_0003BA50
-abs_0_0003BA9C:
+	bra.b alternate_mode0_cursor_select_plane1
+alternate_mode0_cursor_blank_plane1:
 	lea.l blank_glyph_rows.l,a3
-	bra.b abs_0_0003BA58
-abs_0_0003BAA4:
+	bra.b alternate_mode0_cursor_select_plane0
+alternate_mode0_cursor_blank_plane0:
 	lea.l blank_glyph_rows.l,a2
-	bra.b abs_0_0003BA5E
+	bra.b alternate_mode0_cursor_draw_selected_planes
 	dcb.b $8,$FF
-abs_0_0003BAB4:
+alternate_mode0_cursor_publish_and_return:
 	move.l a0,text_cursor_destination_pointer.l
 	movem.l (a7)+,d0-d7/a0-a6
 	rts
-abs_0_0003BAC0:
+alternate_mode0_cursor_carriage_return_parity_test:
 	move.b text_cursor_column.l,d0
 	move.l a0,d7
 	btst #0,d7
-	bne.b abs_0_0003BADC
-abs_0_0003BACE:
+	bne.b alternate_mode0_cursor_adjust_odd_carriage_return
+alternate_mode0_cursor_rewind_column_bytes:
 	lsl.b #2,d0
 	suba.l d0,a0
 	clr.b text_cursor_column.l
-	bra.w abs_0_0003B9DC
-abs_0_0003BADC:
+	bra.w alternate_mode0_cursor_next_byte
+alternate_mode0_cursor_adjust_odd_carriage_return:
 	addq.l #3,a0
-	bra.b abs_0_0003BACE
-abs_0_0003BAE0:
+	bra.b alternate_mode0_cursor_rewind_column_bytes
+alternate_mode0_cursor_line_feed:
 	move.b text_cursor_row.l,d0
 	addq.b #1,d0
 	cmp.b #$19,d0
-	beq.w abs_0_0003BB00
+	beq.w alternate_mode0_cursor_line_wrap_to_display_buffer
 	move.b d0,text_cursor_row.l
 	adda.l #$500,a0
-	bra.w abs_0_0003B9DC
-abs_0_0003BB00:
+	bra.w alternate_mode0_cursor_next_byte
+alternate_mode0_cursor_line_wrap_to_display_buffer:
 	clr.b text_cursor_row.l
 	clr.b text_cursor_column.l
 	movea.l display_buffer_base(a6),a0
-	bra.w abs_0_0003B9DC
-abs_0_0003BB14:
+	bra.w alternate_mode0_cursor_next_byte
+alternate_mode0_cursor_column_wrap_at_40:
 	adda.l #$460,a0
 	clr.b text_cursor_column.l
 	move.b text_cursor_row.l,d0
 	addq.b #1,d0
 	cmp.b #$19,d0
-	beq.b abs_0_0003BB38
+	beq.b alternate_mode0_cursor_row_wrap_to_display_buffer
 	move.b d0,text_cursor_row.l
-	bra.w abs_0_0003B9DC
-abs_0_0003BB38:
+	bra.w alternate_mode0_cursor_next_byte
+alternate_mode0_cursor_row_wrap_to_display_buffer:
 	movea.l display_buffer_base(a6),a0
 	clr.b text_cursor_row.l
-	bra.w abs_0_0003B9DC
-abs_0_0003BB46:
+	bra.w alternate_mode0_cursor_next_byte
+alternate_mode0_cursor_enable_inverse:
 	move.b #$FF,text_inverse_flag.l
-	bra.w abs_0_0003B9DC
-abs_0_0003BB52:
+	bra.w alternate_mode0_cursor_next_byte
+alternate_mode0_cursor_disable_inverse:
 	clr.b text_inverse_flag.l
-	bra.w abs_0_0003B9DC
-abs_0_0003BB5C:
+	bra.w alternate_mode0_cursor_next_byte
+alternate_mode0_cursor_tab_by_six:
 	addq.b #6,text_cursor_column.l
 	adda.l #$18,a0
-	bra.w abs_0_0003B9DC
+	bra.w alternate_mode0_cursor_next_byte
 draw_alternate_glyph_planes_mode0:
 	move.b (a2)+,(a0)
 	move.b (a3)+,$0002(a0)
@@ -53880,11 +53880,11 @@ draw_alternate_glyph_planes_mode0:
 	move.b (a5)+,$0466(a0)
 	move.l a0,d7
 	btst #0,d7
-	beq.b abs_0_0003BC00
+	beq.b alternate_mode0_glyph_advance_even_destination_by_one
 	addq.l #7,a0
 	move.l #$7,last_glyph_destination_byte_step.l
 	rts
-abs_0_0003BC00:
+alternate_mode0_glyph_advance_even_destination_by_one:
 	addq.l #1,a0
 	move.l #$1,last_glyph_destination_byte_step.l
 	rts
