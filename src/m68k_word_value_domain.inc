@@ -1,6 +1,6 @@
-/* One shared low-WORD domain. Larger joins retain agreeing bits and identical
- * bounds instead of enlarging finite candidate arrays. Different ranges lose
- * their bounds at joins; no numeric widening/convergence cap is added. */
+/* One shared low-WORD domain. Larger joins retain agreeing bits and an existing
+ * containing bound instead of enlarging finite candidate arrays. Incompatible
+ * ranges lose their bounds at joins; no numeric widening/convergence cap is added. */
 static void hardware_word_known_bits(const M68kHardwareWordSet *set, uint16_t *mask, uint16_t *value) {
   if (!set->count) { *mask = set->known_bits_mask; *value = set->known_bits_value; return; }
   uint16_t all = UINT16_MAX, any = 0U;
@@ -25,32 +25,6 @@ static void hardware_word_from_bits(M68kHardwareWordSet *set, uint16_t mask, uin
   } else { set->known_bits_mask = mask; set->known_bits_value = value; }
 }
 
-static void hardware_word_set_merge(M68kHardwareWordSet *dest, const M68kHardwareWordSet *source) {
-  uint8_t contract = dest->requires_input_contract | source->requires_input_contract;
-  uint16_t symbol = dest->scalar_symbol_equate == source->scalar_symbol_equate ?
-    dest->scalar_symbol_equate : 0U;
-  int same_bounds = dest->has_bounds && source->has_bounds &&
-    dest->lower_bound == source->lower_bound && dest->upper_bound == source->upper_bound;
-  uint16_t lower = dest->lower_bound, upper = dest->upper_bound;
-  if (dest->count && source->count) {
-    M68kHardwareWordSet finite = *dest;
-    uint8_t i;
-    for (i = 0U; i < source->count; ++i)
-      if (!hardware_word_set_add(&finite, source->values[i])) break;
-    if (i == source->count) { finite.requires_input_contract = contract; finite.scalar_symbol_equate = finite.count == 1U ? symbol : 0U; *dest = finite; return; }
-  }
-  uint16_t am, av, bm, bv;
-  hardware_word_known_bits(dest, &am, &av); hardware_word_known_bits(source, &bm, &bv);
-  uint16_t mask = (uint16_t)(am & bm & (uint16_t)~(av ^ bv));
-  hardware_word_from_bits(dest, mask, (uint16_t)(av & mask));
-  /* Unequal incoming ranges lose their bounds, not an incoming path. Finite
-   * joins retain the existing cap; no interval widening loop is introduced. */
-  if (same_bounds && !dest->count) {
-    dest->has_bounds = 1U; dest->lower_bound = lower; dest->upper_bound = upper;
-  }
-  dest->requires_input_contract = (dest->count || dest->known_bits_mask || dest->has_bounds) ? contract : 0U;
-}
-
 typedef struct HardwareWordInterval { uint32_t lower, upper; } HardwareWordInterval;
 
 static unsigned hardware_word_split_bounds(uint16_t lower, uint16_t upper, HardwareWordInterval *parts) {
@@ -64,6 +38,50 @@ static int hardware_word_in_parts(uint16_t value, const HardwareWordInterval *pa
   for (unsigned i = 0U; i < count; ++i)
     if (value >= parts[i].lower && value <= parts[i].upper) return 1;
   return 0;
+}
+
+/* Retain an existing bound when the other incoming packet is a finite
+ * subset of it. This does not synthesize a larger interval at a join. */
+static int hardware_word_finite_within_bounds(const M68kHardwareWordSet *finite,
+    const M68kHardwareWordSet *bounded) {
+  HardwareWordInterval parts[2];
+  if (!bounded->has_bounds || !finite->count) return 0;
+  unsigned count = hardware_word_split_bounds(bounded->lower_bound, bounded->upper_bound, parts);
+  for (uint8_t i = 0U; i < finite->count; ++i)
+    if (!hardware_word_in_parts(finite->values[i], parts, count)) return 0;
+  return 1;
+}
+
+static void hardware_word_set_merge(M68kHardwareWordSet *dest, const M68kHardwareWordSet *source) {
+  uint8_t contract = dest->requires_input_contract | source->requires_input_contract;
+  uint16_t symbol = dest->scalar_symbol_equate == source->scalar_symbol_equate ?
+    dest->scalar_symbol_equate : 0U;
+  int keep_bounds = dest->has_bounds && source->has_bounds &&
+    dest->lower_bound == source->lower_bound && dest->upper_bound == source->upper_bound;
+  uint16_t lower = dest->lower_bound, upper = dest->upper_bound;
+  if (!keep_bounds) {
+    if (hardware_word_finite_within_bounds(source, dest)) keep_bounds = 1;
+    else if (hardware_word_finite_within_bounds(dest, source)) {
+      keep_bounds = 1; lower = source->lower_bound; upper = source->upper_bound;
+    }
+  }
+  if (dest->count && source->count) {
+    M68kHardwareWordSet finite = *dest;
+    uint8_t i;
+    for (i = 0U; i < source->count; ++i)
+      if (!hardware_word_set_add(&finite, source->values[i])) break;
+    if (i == source->count) { finite.requires_input_contract = contract; finite.scalar_symbol_equate = finite.count == 1U ? symbol : 0U; *dest = finite; return; }
+  }
+  uint16_t am, av, bm, bv;
+  hardware_word_known_bits(dest, &am, &av); hardware_word_known_bits(source, &bm, &bv);
+  uint16_t mask = (uint16_t)(am & bm & (uint16_t)~(av ^ bv));
+  hardware_word_from_bits(dest, mask, (uint16_t)(av & mask));
+  /* Incompatible ranges lose their bounds, not an incoming path. A finite
+   * fallback already inside one incoming range retains its endpoints. */
+  if (keep_bounds && !dest->count) {
+    dest->has_bounds = 1U; dest->lower_bound = lower; dest->upper_bound = upper;
+  }
+  dest->requires_input_contract = (dest->count || dest->known_bits_mask || dest->has_bounds) ? contract : 0U;
 }
 
 /* Intersect actual compare edges before turning a small domain into values.

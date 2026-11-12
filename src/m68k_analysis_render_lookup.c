@@ -11821,8 +11821,9 @@ static int hardware_relative_refine_compare_edge(const M68kRenderLookup *lookup,
   taken = graph->nodes[successor_index].candidate->offset !=
     branch->candidate->offset + branch->candidate->byte_count;
   if (!m68k_sim_unsigned_word_compare_bounds(&ci, &bi, taken, &reg, &lower, &upper)) {
-    if (!m68k_sim_signed_word_compare_bounds(&ci, &bi, taken, &reg, &signed_lower, &signed_upper)) return 1;
-    lower = (uint16_t)signed_lower; upper = (uint16_t)signed_upper;
+    if (m68k_sim_signed_word_compare_bounds(&ci, &bi, taken, &reg, &signed_lower, &signed_upper)) {
+      lower = (uint16_t)signed_lower; upper = (uint16_t)signed_upper;
+    } else if (!m68k_sim_word_subtraction_sign_bounds(&ci, &bi, taken, &reg, &lower, &upper)) return 1;
   }
   if (!hardware_word_refine_bounds(&state->word_values[reg], lower, upper)) return 0;
   uint32_t immediate;

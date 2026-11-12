@@ -14162,15 +14162,16 @@ display_pilot_rating_results:
 	bsr.w format_and_print_rating_label
 	move.l pilot_shots_fired(a6),d1
 	move.l pilot_hits_scored(a6),d0
-	lea.l abs_0_0000B292(pc),a1
+	lea.l pilot_rating_accuracy_section_break(pc),a1
 	bsr.w print_cursor_text
+    ; MULS/DIVS use signed low WORDs. A zero shot WORD selects the hint even if the LONG is nonzero. Divide overflow retains the dividend before the low-BYTE mask; preserve original arithmetic.
 	muls.w #$64,d0
 	tst.w d1
-	bne.b abs_0_0000B11E
+	bne.b divide_nonzero_low_word_pilot_accuracy
 	lea.l pilot_rating_no_shots_hint(pc),a1
 	bsr.w print_cursor_text
-	bra.w abs_0_0000B1CE
-abs_0_0000B11E:
+	bra.w fade_and_wait_after_pilot_rating
+divide_nonzero_low_word_pilot_accuracy:
 	divs.w d1,d0
 	andi.l #255,d0
 	move.w d0,pilot_hit_accuracy_word(a6)
@@ -14180,59 +14181,61 @@ abs_0_0000B11E:
 	bsr.w print_cursor_text
 	move.w pilot_hit_accuracy_word(a6),d0
 	divs.w #$A,d0
-	bpl.w abs_0_0000B14A
+	bpl.w cap_high_pilot_accuracy_base_rank
 	clr.w d0
-	beq.b abs_0_0000B1B6
-abs_0_0000B14A:
+	beq.b floor_negative_pilot_rating_verdict_rank
+cap_high_pilot_accuracy_base_rank:
 	cmp.w #$7,d0
-	bmi.b abs_0_0000B154
+	bmi.b apply_pilot_energy_overflow_rank_bonuses
 	move.w #$8,d0
-abs_0_0000B154:
+    ; Normalized accuracy uses decade buckets, with buckets7+ replaced by8. Bonus tiers are1/2/7/17; damage tiers600/1400/2400. Threshold branches retain subtraction-sign wrap behavior.
+apply_pilot_energy_overflow_rank_bonuses:
 	move.l weapon_energy_overflow_bonus_count(a6),d1
 	subi.l #1,d1
-	bmi.b abs_0_0000B180
+	bmi.b apply_pilot_damage_rank_penalties
 	addq.w #1,d0
 	subi.l #1,d1
-	bmi.b abs_0_0000B180
+	bmi.b apply_pilot_damage_rank_penalties
 	addq.w #1,d0
 	subi.l #5,d1
-	bmi.b abs_0_0000B180
+	bmi.b apply_pilot_damage_rank_penalties
 	addq.w #1,d0
 	subi.l #10,d1
-	bmi.b abs_0_0000B180
+	bmi.b apply_pilot_damage_rank_penalties
 	addq.w #1,d0
-abs_0_0000B180:
+apply_pilot_damage_rank_penalties:
 	move.l icarus_hits_received(a6),d1
 	subi.l #600,d1
-	bmi.b abs_0_0000B1AC
+	bmi.b cap_upper_pilot_rating_verdict_rank
 	subq.w #1,d0
-	beq.b abs_0_0000B1B6
-	bmi.b abs_0_0000B1AC
+	beq.b floor_negative_pilot_rating_verdict_rank
+	bmi.b cap_upper_pilot_rating_verdict_rank
 	subi.l #800,d1
-	bmi.b abs_0_0000B1AC
+	bmi.b cap_upper_pilot_rating_verdict_rank
 	subq.w #1,d0
-	beq.b abs_0_0000B1B6
-	bmi.b abs_0_0000B1AC
+	beq.b floor_negative_pilot_rating_verdict_rank
+	bmi.b cap_upper_pilot_rating_verdict_rank
 	subi.l #1000,d1
-	bmi.b abs_0_0000B1AC
+	bmi.b cap_upper_pilot_rating_verdict_rank
 	subq.w #1,d0
-	beq.b abs_0_0000B1B6
-abs_0_0000B1AC:
+	beq.b floor_negative_pilot_rating_verdict_rank
+    ; CMP/BMI followed by TST/CLR clamps the low WORD to0..10, including subtraction-overflow aliases. Direct entry after those checks does not inherit that selector contract.
+cap_upper_pilot_rating_verdict_rank:
 	cmp.w #$B,d0
-	bmi.b abs_0_0000B1B6
+	bmi.b floor_negative_pilot_rating_verdict_rank
 	move.w #$A,d0
-abs_0_0000B1B6:
+floor_negative_pilot_rating_verdict_rank:
 	tst.w d0
-	bpl.b abs_0_0000B1BC
+	bpl.b load_and_print_pilot_rating_verdict
 	clr.w d0
     ; Sixteen stored LONG text pointers; ordinary clamped selector0..10 uses eleven distinct verdicts. Entries10..15 share final text, not six additional strings.
-abs_0_0000B1BC:
+load_and_print_pilot_rating_verdict:
 	add.w d0,d0
 	add.w d0,d0
-	lea.l abs_0_0000B3CC.l,a0
+	lea.l pilot_rating_verdict_pointers.l,a0
 	movea.l $0(a0,d0.w),a1
 	bsr.w print_cursor_text
-abs_0_0000B1CE:
+fade_and_wait_after_pilot_rating:
 	lea.l cockpit_picture_palette.l,a1
 	bsr.w fade_in_amiga_palette_bridge_0024a4
 	clr.b pending_key_scancode(a6)
@@ -14255,7 +14258,7 @@ pilot_rating_icarus_hits_label:
 	dc.b $0D,$0A,$0A
 	dc.b "     NUMBER OF HITS ON ICARUS            ",$00
 	dc.b $00
-abs_0_0000B292:
+pilot_rating_accuracy_section_break:
 	dc.b $0D,$0A,$00,$00
 pilot_rating_hit_accuracy_label:
 	dc.b $0D,$0A,$0A
@@ -14294,7 +14297,7 @@ pilot_rating_smug_but_still_dead:
 pilot_rating_no_shots_hint:
 	dc.b $0D,$0A
 	dc.b "     HINT: TRY SHOOTING EGRONS!",$00
-abs_0_0000B3CC:
+pilot_rating_verdict_pointers:
 	dc.l pilot_rating_dead_so_soon	; pointer_table
 	dc.l pilot_rating_try_the_fire_button
 	dc.l pilot_rating_souvenir_hunter

@@ -128,6 +128,16 @@ int main(void) {
     original.requires_input_contract=0;joined=original;hardware_word_set_merge(&joined,&other);
     for(uint32_t v=0;v<=UINT16_MAX;++v)
       if(contains(&original,(uint16_t)v)||contains(&other,(uint16_t)v))assert(contains(&joined,(uint16_t)v));
+    M68kHardwareWordSet finite={0},reverse;
+    hardware_word_set_add(&finite,p[2]);hardware_word_set_add(&finite,p[3]);
+    joined=original;hardware_word_set_merge(&joined,&finite);
+    reverse=finite;hardware_word_set_merge(&reverse,&original);
+    for(uint32_t v=0;v<=UINT16_MAX;++v) {
+      if(contains(&original,(uint16_t)v)||contains(&finite,(uint16_t)v)) {
+        assert(contains(&joined,(uint16_t)v));assert(contains(&reverse,(uint16_t)v));
+      }
+      assert(contains(&joined,(uint16_t)v)==contains(&reverse,(uint16_t)v));
+    }
   }
   return 0;
 }
@@ -138,3 +148,52 @@ int main(void) {
     assert built.returncode==0,built.stderr
     result=subprocess.run([str(exe)],text=True,capture_output=True,timeout=10)
     assert result.returncode==0,result.stderr
+
+
+@pytest.mark.parametrize('guards',[
+    'cmp.w #4,d0\n bmi.s maybe_small\n moveq.l #3,d0\n bra.s bounded\nmaybe_small:\n tst.w d0\n bpl.s bounded\n moveq.l #0,d0\n',
+    'cmp.w #4,d0\n bpl.s saturated\n tst.w d0\n bpl.s bounded\n moveq.l #0,d0\n bra.s bounded\nsaturated:\n moveq.l #3,d0\n',
+])
+def test_subtraction_sign_then_test_clamp_retains_modular_word_domain(tmp_path,guards):
+    refs=inspect(tmp_path,guards+'bounded:\n lsl.w #2,d0\n move.l 0(a0,d0.w),d3\n rts\n')
+    assert len(refs)==1
+    assert refs[0]['word_index']['byte_offsets']==[0,4,8,12]
+
+
+def test_positive_subtraction_sign_clamp_retains_negative_interval(tmp_path):
+    refs=inspect(tmp_path,'cmp.w #-4,d0\n bpl.s maybe_negative\n moveq.l #-1,d0\n bra.s bounded\nmaybe_negative:\n tst.w d0\n bmi.s bounded\n moveq.l #-1,d0\nbounded:\n addq.w #4,d0\n lsl.w #2,d0\n move.l 0(a0,d0.w),d3\n rts\n')
+    assert len(refs)==1 and refs[0]['word_index']['byte_offsets']==[0,4,8,12]
+
+
+@pytest.mark.parametrize('prefix,middle,compare',[
+    ('','move.b d7,d0','cmp.w #4,d0'),
+    ('','jsr $2000.l','cmp.w #4,d0'),
+    ('','', 'cmp.w #4,d0\n tst.w d7'),
+    ('','', 'cmp.b #4,d0'),
+    ('','', 'cmp.l #4,d0'),
+    ('lea.l bounded(pc),a1\n','', 'cmp.w #4,d0'),
+])
+def test_subtraction_sign_clamp_rejects_clobbers_widths_and_alternate_entries(tmp_path,prefix,middle,compare):
+    code=prefix+compare+'\n bmi.s maybe_small\n moveq.l #3,d0\n bra.s bounded\nmaybe_small:\n tst.w d0\n bpl.s bounded\n moveq.l #0,d0\nbounded:\n '+middle+'\n lsl.w #2,d0\n move.l 0(a0,d0.w),d3\n rts\n'
+    assert not inspect(tmp_path,code)
+
+
+@pytest.mark.parametrize('scale',['lsl.w #2,d0','add.w d0,d0\n add.w d0,d0'])
+def test_word_move_clear_clamp_above_finite_cap(tmp_path,scale):
+    refs=inspect(tmp_path,'cmp.w #11,d0\n bmi.s floor_test\n move.w #10,d0\nfloor_test:\n tst.w d0\n bpl.s bounded\n clr.w d0\nbounded:\n '+scale+'\n move.l 0(a0,d0.w),d3\n rts\n',array_count=16)
+    assert len(refs)==1
+    assert refs[0]['word_index']['evidence']=='bounded_cfg_mask'
+
+
+@pytest.mark.parametrize('prefix,fallback',[
+    ('','100'),('lea.l floor_test(pc),a1\n','10'),
+])
+def test_fallback_join_rejects_outliers_and_unknown_entries(tmp_path,prefix,fallback):
+    code=prefix+'cmp.w #11,d0\n bmi.s floor_test\n move.w #'+fallback+',d0\nfloor_test:\n tst.w d0\n bpl.s bounded\n clr.w d0\nbounded:\n lsl.w #2,d0\n move.l 0(a0,d0.w),d3\n rts\n'
+    assert not inspect(tmp_path,code,array_count=16)
+
+
+def test_finite_fallback_retry_clamp_converges(tmp_path):
+    code='moveq.l #3,d7\nagain:\n cmp.w #11,d0\n bmi.s floor_test\n move.w #10,d0\nfloor_test:\n tst.w d0\n bpl.s bounded\n clr.w d0\nbounded:\n dbf.w d7,again\n add.w d0,d0\n add.w d0,d0\n move.l 0(a0,d0.w),d3\n rts\n'
+    refs=inspect(tmp_path,code,array_count=16)
+    assert len(refs)==1 and refs[0]['word_index']['evidence']=='bounded_cfg_mask'

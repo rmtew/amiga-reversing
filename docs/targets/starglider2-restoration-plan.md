@@ -129,6 +129,13 @@ Original payload SHA256:
    that window. Next: identify a real writer or a normal debug-enabled viewer
    context before another probe; the default Painting reset clears the guard.
 
+6. Pilot-rating stages, thresholds and verdict pointers are reconstructed with
+   1310 original CPU cases. N-only WORD compare edges and contained finite
+   fallback joins now preserve bounds in shared fixtures. The actual table
+   consumer still has alignment-only evidence: early SUBQ/BEQ zero-result
+   paths bypass the upper clamp. Next: carry generated result-Z semantics
+   through those branch edges, with stale-flag and alternate-entry refusals.
+
 ## Evidence and limits
 
 Canonical inputs and decisions remain in `target_metadata.json`,

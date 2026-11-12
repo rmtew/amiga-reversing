@@ -2538,6 +2538,37 @@ int m68k_sim_signed_word_compare_bounds(const M68kInstructionIR *compare,
   return 1;
 }
 
+int m68k_sim_word_subtraction_sign_bounds(const M68kInstructionIR *compare,
+    const M68kInstructionIR *branch, int taken, uint8_t *out_reg,
+    uint16_t *out_min, uint16_t *out_max) {
+  const M68kSimFormMetadata *bm = m68k_sim_metadata_for_instruction(branch);
+  uint32_t immediate;
+  uint8_t reg;
+  int allows[2] = {-1, -1};
+  if (!bm || !out_reg || !out_min || !out_max ||
+      bm->flow_kind != M68K_SIM_FLOW_BRANCH || !bm->flow_conditional ||
+      bm->operation_type == M68K_SIM_OP_DBCC || bm->condition_code >= 16U ||
+      !sim_word_compare_register_immediate(compare, &reg, &immediate)) return 0;
+  /* Derive flag dependence from the generated condition truth table, not
+   * branch spellings. N-only subtraction is a modular half-WORD interval;
+   * interpreting it as N xor V would lose overflow aliases. */
+  for (uint8_t bits = 0U; bits < 16U; ++bits) {
+    uint16_t sr = (uint16_t)(((bits & 1U) != 0U) << g_m68k_sim_ccr_bit_c |
+        ((bits & 2U) != 0U) << g_m68k_sim_ccr_bit_v |
+        ((bits & 4U) != 0U) << g_m68k_sim_ccr_bit_z |
+        ((bits & 8U) != 0U) << g_m68k_sim_ccr_bit_n);
+    unsigned n = (bits & 8U) != 0U;
+    int outcome = sim_condition_true(bm->condition_code, sr);
+    if (allows[n] >= 0 && allows[n] != outcome) return 0;
+    allows[n] = outcome;
+  }
+  if (allows[0] == allows[1]) return 0;
+  uint16_t lower = (uint16_t)(immediate +
+      (allows[1] == (taken != 0) ? 0x8000U : 0U));
+  *out_reg = reg; *out_min = lower; *out_max = (uint16_t)(lower + 0x7FFFU);
+  return 1;
+}
+
 static int sim_concrete_read_register(const M68kSimConcreteState *state, uint8_t is_address, uint8_t reg,
     uint32_t *out_value) {
   if (state == NULL || out_value == NULL || reg >= 8U) return 0;

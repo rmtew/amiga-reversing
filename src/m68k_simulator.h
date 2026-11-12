@@ -622,6 +622,12 @@ int m68k_sim_unsigned_word_compare_bounds(const M68kInstructionIR *compare,
 int m68k_sim_signed_word_compare_bounds(const M68kInstructionIR *compare,
     const M68kInstructionIR *branch, int taken, uint8_t *out_reg,
     int16_t *out_min, int16_t *out_max);
+/* Cyclic low-WORD bounds for a predicate depending only on subtraction N.
+ * The generated truth table must reject dependence on Z/V/C. Lower > upper
+ * denotes wrapping through zero; this is not signed comparison order. */
+int m68k_sim_word_subtraction_sign_bounds(const M68kInstructionIR *compare,
+    const M68kInstructionIR *branch, int taken, uint8_t *out_reg,
+    uint16_t *out_min, uint16_t *out_max);
 /* A conditional branch whose truth depends only on Z, from generated masks.
  * Returns the required zero/nonzero outcome; DBcc and other flags refuse. */
 int m68k_sim_branch_zero_requirement(const M68kInstructionIR *branch, int taken, int *out_zero);
