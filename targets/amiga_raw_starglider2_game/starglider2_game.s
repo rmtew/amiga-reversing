@@ -6285,7 +6285,8 @@ scene_packet_count:
 	dc.w $0000
     ; Main-loop ST/SF brackets partition_world_object_lists. Both frame-service variants bypass queued-object motion on any nonzero BYTE; modal input is an independent gate.
 object_list_partition_in_progress_flag:
-	dc.w $0000
+	dc.b $00
+	dc.b $00
 current_model_draw_flags:
 	dc.b $00
 	dc.b $00,$00,$00
@@ -61994,7 +61995,7 @@ paula_projectile_effect_volume:
 paula_projectile_effect_period:
 	dc.w $0514
 paula_projectile_volume_decay_toggle:
-	dc.b $00,$01
+	dc.w $0001
 paula_speed_sound_volume:
 	dc.w $0010
 paula_speed_sound_base_period:
@@ -62096,7 +62097,8 @@ object_sound_special_distance_flag:
 	dc.w $0000
 	dc.b $00,$01,$00,$00
 paula_projectile_period_bias_sign:
-	dc.b $00,$01,$00,$00,$00,$00,$00,$00
+	dc.w $0001
+	dc.b $00,$00,$00,$00,$00,$00
 object_type3_period_phase_sign:
 	dc.w $0001
 object_type3_rising_period_offset:
@@ -62104,31 +62106,32 @@ object_type3_rising_period_offset:
 object_type3_falling_period_offset:
 	dc.w $0000
 paula_speed_period_offset_select_sign:
-	dc.b $00,$01
+	dc.w $0001
 paula_speed_rising_period_offset:
 	dc.w $0000
 paula_speed_falling_period_offset:
 	dc.w $0000
 paula_speed_offset_update_outer_sign:
-	dc.b $00,$01
+	dc.w $0001
 paula_speed_offset_update_inner_sign:
-	dc.b $00,$01
+	dc.w $0001
 paula_stardrive_period_offset_select_sign:
-	dc.b $00,$01
+	dc.w $0001
 paula_stardrive_rising_period_offset:
 	dc.w $0000
 paula_stardrive_falling_period_offset:
-	dc.b $00,$00,$00,$00,$00,$00,$02,$80,$02,$80,$02,$80,$02,$80,$02,$80
-	dc.b $02,$80,$02,$80,$02,$80,$02,$80,$02,$80,$02,$80,$02,$80,$02,$1A
-	dc.b $02,$3A,$02,$3A,$02,$80,$02,$80,$02,$A6,$02,$80,$01,$40,$01,$68
-	dc.b $01,$94,$01,$AC,$01,$AC,$01,$40,$01,$68,$01,$94,$01,$AC,$01,$AC
-	dc.b $02,$80,$02,$80,$02,$80,$02,$80,$02,$1A,$02,$3A,$02,$3A,$02,$80
-	dc.b $02,$80,$02,$A6,$02,$80,$00,$00,$00,$28,$00,$1E,$00,$0A,$00,$50
-	dc.b $00,$28,$00,$1E,$00,$0A,$00,$50,$00,$28,$00,$1E,$00,$0A,$00,$28
-	dc.b $00,$1E,$00,$0A,$00,$1E,$00,$0A,$00,$1E,$00,$0A,$00,$3C,$00,$1E
-	dc.b $00,$0A,$00,$1E,$00,$0A,$00,$50,$00,$1E,$00,$0A,$00,$1E,$00,$0A
-	dc.b $00,$50,$00,$28,$00,$1E,$00,$0A,$00,$28,$00,$1E,$00,$0A,$00,$1E
-	dc.b $00,$0A,$00,$1E,$00,$0A,$00,$5A
+	dc.w $0000
+	dc.b $00,$00,$00,$00,$02,$80,$02,$80,$02,$80,$02,$80,$02,$80,$02,$80
+	dc.b $02,$80,$02,$80,$02,$80,$02,$80,$02,$80,$02,$80,$02,$1A,$02,$3A
+	dc.b $02,$3A,$02,$80,$02,$80,$02,$A6,$02,$80,$01,$40,$01,$68,$01,$94
+	dc.b $01,$AC,$01,$AC,$01,$40,$01,$68,$01,$94,$01,$AC,$01,$AC,$02,$80
+	dc.b $02,$80,$02,$80,$02,$80,$02,$1A,$02,$3A,$02,$3A,$02,$80,$02,$80
+	dc.b $02,$A6,$02,$80,$00,$00,$00,$28,$00,$1E,$00,$0A,$00,$50,$00,$28
+	dc.b $00,$1E,$00,$0A,$00,$50,$00,$28,$00,$1E,$00,$0A,$00,$28,$00,$1E
+	dc.b $00,$0A,$00,$1E,$00,$0A,$00,$1E,$00,$0A,$00,$3C,$00,$1E,$00,$0A
+	dc.b $00,$1E,$00,$0A,$00,$50,$00,$1E,$00,$0A,$00,$1E,$00,$0A,$00,$50
+	dc.b $00,$28,$00,$1E,$00,$0A,$00,$28,$00,$1E,$00,$0A,$00,$1E,$00,$0A
+	dc.b $00,$1E,$00,$0A,$00,$5A
 paula_sample_transition_volume_shifts:
 	dc.w $0001,$0002,$0003,$0004,$0005,$0006,$0005,$0004
 	dc.w $0003,$0002,$0001
