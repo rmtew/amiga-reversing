@@ -2,6 +2,7 @@
 #include "json_builder.h"
 #include "platform_amiga_disk.h"
 #include "platform_atari_st_disk.h"
+#include "platform_atari_stx.h"
 #include "platform_common.h"
 #include "platform_disk_lib.h"
 #include "platform_file_lib.h"
@@ -673,6 +674,10 @@ static int extract_atari_entry_from_buffer(const unsigned char *image, size_t im
     unsigned char *data = NULL;
     size_t pos = 0;
     size_t i;
+    if (atari_stx_is_image(image, image_size)) {
+        platform_disk_add_error(diagnostics.list, "STX filesystem not analyzed; use physical sector access");
+        return -1;
+    }
     if (atari_st_disk_analyze_buffer(image, image_size, &analysis, diagnostics) != 0) return -1;
     if (find_atari_entry(&analysis, entry_path, &entry) != 0 || entry == NULL) {
         atari_st_disk_analysis_destroy(&analysis);
@@ -1367,21 +1372,100 @@ done:
     return result;
 }
 
+static long long stx_offset(uint32_t offset) {
+    return offset == ATARI_STX_NO_OFFSET ? -1 : (long long)offset;
+}
+
+static int stx_range_hash(JsonBuilder *b, const AtariStxAnalysis *a, const char *name,
+    uint32_t offset, uint32_t size) {
+    char hash[65];
+    if (offset == ATARI_STX_NO_OFFSET) return 0;
+    if (m68k_platform_sha256_hex(a->data + offset, size, hash) != 0) return -1;
+    return json_builder_appendf(b, ",\"%s_sha256\":\"%s\"", name, hash);
+}
+
+static int inspect_stx_json(const AtariStxAnalysis *a, char **out_json) {
+    JsonBuilder b = {0};
+    size_t ti, si;
+    char hash[65];
+    if (json_builder_create(&b) != 0) goto fail;
+    if (m68k_platform_sha256_hex(a->data, a->size, hash) != 0) goto fail;
+    /* No filesystem is inferred from physical sectors. This manifest is an
+     * original-file inventory; consumers must keep these source coordinates. */
+    if (json_builder_appendf(&b, "{\"platform\":\"atari-st-disk\",\"format_kind\":\"stx\","
+            "\"filesystem_status\":\"not_analyzed\",\"entries\":[],\"entry_count\":0,"
+            "\"image_size\":%zu,\"image_sha256\":\"%s\",\"version\":%u,\"revision\":%u,"
+            "\"imaging_tool\":%u,\"reserved1\":%u,\"reserved2\":%u,\"tracks\":[",
+            a->size, hash, a->version, a->revision, a->imaging_tool, a->reserved1, a->reserved2) != 0) goto fail;
+    for (ti = 0; ti < a->track_count; ++ti) {
+        const AtariStxTrack *t = &a->tracks[ti];
+        if (json_builder_appendf(&b, "%s{\"index\":%zu,\"offset\":%u,\"size\":%u,\"track\":%u,\"side\":%u,"
+                "\"flags\":%u,\"fuzzy_size\":%u,\"fuzzy_offset\":%u,\"data_offset\":%u,\"mfm_size\":%u,"
+                "\"record_type\":%u,\"image_offset\":%lld,\"image_size\":%u,\"sync\":%u,"
+                "\"timing_offset\":%lld,\"timing_size\":%u,\"timing_flags\":%u,\"tail_offset\":%u,\"tail_size\":%u",
+                ti ? "," : "", ti, t->offset, t->size, t->track, t->side, t->flags, t->fuzzy_size, t->fuzzy_offset,
+                t->data_offset, t->mfm_size, t->record_type, stx_offset(t->image_offset), t->image_size, t->sync,
+                stx_offset(t->timing_offset), t->timing_size, t->timing_flags, t->tail_offset, t->tail_size) != 0) goto fail;
+        if (stx_range_hash(&b, a, "image_offset", t->image_offset, t->image_size) != 0 ||
+            stx_range_hash(&b, a, "fuzzy_offset", t->fuzzy_offset, t->fuzzy_size) != 0 ||
+            stx_range_hash(&b, a, "tail_offset", t->tail_offset, t->tail_size) != 0 ||
+            stx_range_hash(&b, a, "timing_offset", t->timing_offset, t->timing_size) != 0 ||
+            json_builder_append(&b, ",\"sectors\":[") != 0) goto fail;
+        for (si = 0; si < t->sector_count; ++si) {
+            const AtariStxSector *v = &t->sectors[si];
+            if (json_builder_appendf(&b, "%s{\"index\":%zu,\"header_offset\":%lld,\"data_relative_offset\":%u,"
+                    "\"id_track\":%u,\"id_head\":%u,\"id_sector\":%u,\"id_size\":%u,\"id_crc\":%u,"
+                    "\"status\":%u,\"reserved\":%u,\"bit_position\":%u,\"read_time\":%u,"
+                    "\"offset\":%lld,\"size\":%u,\"fuzzy_offset\":%lld,\"timing_offset\":%lld,"
+                    "\"timing_bytes\":%u,\"implicit_timing\":%u,\"read_result\":%u",
+                    si ? "," : "", si, stx_offset(v->header_offset), v->data_relative_offset,
+                    v->id_track, v->id_head, v->id_sector, v->id_size, v->id_crc, v->status, v->reserved,
+                    v->bit_position, v->read_time, stx_offset(v->offset), v->size, stx_offset(v->fuzzy_offset),
+                    stx_offset(v->timing_offset), v->timing_bytes, v->implicit_timing,
+                    (unsigned)atari_stx_read_instance(a, ti, si, NULL, NULL)) != 0) goto fail;
+            if (stx_range_hash(&b, a, "offset", v->offset, v->size) != 0 ||
+                stx_range_hash(&b, a, "fuzzy_offset", v->fuzzy_offset, v->size) != 0 ||
+                stx_range_hash(&b, a, "timing_offset", v->timing_offset, v->timing_bytes) != 0 ||
+                json_builder_append(&b, "}") != 0) goto fail;
+        }
+        if (json_builder_append(&b, "]}") != 0) goto fail;
+    }
+    if (json_builder_append(&b, "]}") != 0) goto fail;
+    *out_json = json_builder_build(&b);
+    if (*out_json == NULL) goto fail;
+    json_builder_destroy(&b);
+    return 0;
+fail:
+    json_builder_destroy(&b);
+    return -1;
+}
+
 static int atari_st_disk_inspect(const char *path, const unsigned char *data, size_t size,
     char **out_json, M68kDiagSink diagnostics) {
-    AtariStDiskAnalysis analysis;
-    if ((path != NULL ? atari_st_disk_analyze_image(path, &analysis, diagnostics)
-                      : atari_st_disk_analyze_buffer(data, size, &analysis, diagnostics)) != 0) {
-        atari_st_disk_analysis_destroy(&analysis);
-        return -1;
+    AtariStDiskAnalysis analysis = {0};
+    AtariStxAnalysis stx = {0};
+    Arena *arena = NULL;
+    unsigned char *owned_data = NULL;
+    int result = -1;
+    if (path != NULL) {
+        arena = arena_create(PLATFORM_DISK_WORKFLOW_ARENA_SIZE);
+        if (arena == NULL) { platform_disk_add_error(diagnostics.list, "out of memory"); return -1; }
+        if (read_file_to_arena(path, arena, &owned_data, &size, diagnostics) != 0) goto done;
+        data = owned_data;
     }
-    if (inspect_atari_st_disk_json(&analysis, out_json) != 0) {
-        platform_disk_add_error(diagnostics.list, "failed building inspect json");
-        atari_st_disk_analysis_destroy(&analysis);
-        return -1;
+    if (atari_stx_is_image(data, size)) {
+        if (atari_stx_analyze(data, size, &stx, diagnostics) != 0) goto done;
+        result = inspect_stx_json(&stx, out_json);
+    } else {
+        if (atari_st_disk_analyze_buffer(data, size, &analysis, diagnostics) != 0) goto done;
+        result = inspect_atari_st_disk_json(&analysis, out_json);
     }
+    if (result != 0) platform_disk_add_error(diagnostics.list, "failed building inspect json");
+done:
+    atari_stx_destroy(&stx);
     atari_st_disk_analysis_destroy(&analysis);
-    return 0;
+    arena_destroy(arena);
+    return result;
 }
 
 static int disk_inspect(const char *platform_name, const char *path, const unsigned char *data, size_t size,
@@ -1477,4 +1561,31 @@ PLATFORM_DISK_API void platform_disk_free_text(char *text) {
 
 PLATFORM_DISK_API void platform_disk_free_bytes(unsigned char *data) {
     free(data);
+}
+
+PLATFORM_DISK_API PlatformDiskBufferResult platform_disk_extract_stx_sector_path(const char *path,
+    size_t track_index, size_t sector_index) {
+    PlatformDiskBufferResult result = {0};
+    Arena *arena = arena_create(PLATFORM_DISK_WORKFLOW_ARENA_SIZE);
+    AtariStxAnalysis a = {0};
+    unsigned char *image = NULL;
+    const unsigned char *bytes = NULL;
+    size_t size = 0, length = 0;
+    AtariStxReadResult read_result;
+    M68kDiagSink diagnostics = m68k_diag_sink(&result.diagnostics);
+    if (arena == NULL) { platform_disk_add_error(&result.diagnostics, "out of memory"); return result; }
+    if (read_file_to_arena(path, arena, &image, &size, diagnostics) != 0 ||
+        atari_stx_analyze(image, size, &a, diagnostics) != 0) goto done;
+    read_result = atari_stx_read_instance(&a, track_index, sector_index, &bytes, &length);
+    if (read_result != ATARI_STX_READ_OK) {
+        m68k_diag_addf(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_PLATFORM_DISK_FAILED,
+            "STX stable sector read refused (result %u); inspect original ranges and flags", (unsigned)read_result);
+        goto done;
+    }
+    result.data = malloc(length ? length : 1);
+    if (result.data == NULL) { platform_disk_add_error(&result.diagnostics, "out of memory"); goto done; }
+    memcpy(result.data, bytes, length); result.size = length;
+done:
+    atari_stx_destroy(&a); arena_destroy(arena);
+    return result;
 }

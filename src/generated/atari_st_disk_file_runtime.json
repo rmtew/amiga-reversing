@@ -16,6 +16,12 @@
         "note": "Supplementary repo-local GEMDOS reference retained alongside GEMDOS.TXT.",
         "path": "resources/platform_atari_st/GEM_0042.pdf",
         "type": "repo_local_document"
+      },
+      {
+        "note": "Jean Louis-Gu\u00e9rin, Pasti File Documentation v0.5 (2014); reverse-engineered format description, checked against pinned Hatari reader. No implementation copied.",
+        "section": "2.1\u20132.2.5",
+        "type": "external_document",
+        "url": "https://info-coach.fr/atari/documents/_mydoc/Pasti-documentation.pdf"
       }
     ]
   },

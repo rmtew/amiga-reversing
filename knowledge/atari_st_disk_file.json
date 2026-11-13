@@ -15,6 +15,12 @@
         "type": "repo_local_document",
         "path": "resources/platform_atari_st/GEM_0042.pdf",
         "note": "Supplementary repo-local GEMDOS reference retained alongside GEMDOS.TXT."
+      },
+      {
+        "type": "external_document",
+        "url": "https://info-coach.fr/atari/documents/_mydoc/Pasti-documentation.pdf",
+        "section": "2.1–2.2.5",
+        "note": "Jean Louis-Guérin, Pasti File Documentation v0.5 (2014); reverse-engineered format description, checked against pinned Hatari reader. No implementation copied."
       }
     ]
   },
@@ -60,7 +66,10 @@
     },
     "fat_type": {
       "FAT12": 12
-    }
+    },
+    "stx_track_flags": {"SECTOR_DESCRIPTORS": 1, "LEGACY_MARKER": 32, "IMAGE": 64, "IMAGE_SYNC": 128},
+    "stx_sector_flags": {"VARIABLE_TIME": 1, "CRC_ERROR": 8, "NO_DATA": 16, "DELETED": 32, "FUZZY": 128},
+    "stx_limits": {"VERSION": 3, "HEADER_BYTES": 16, "TRACK_HEADER_BYTES": 16, "SECTOR_HEADER_BYTES": 16, "SIMPLE_SECTOR_BYTES": 512, "SIZE_CODE_MASK": 3, "TIMING_HEADER_BYTES": 4, "TIMING_CHUNK_BYTES": 16, "TIMING_ENTRY_BYTES": 2}
   },
   "bitfields": {
     "dir_attr_word": {
@@ -137,6 +146,56 @@
         { "name": "date_word", "primitive": "u16" },
         { "name": "first_cluster", "primitive": "u16", "source": { "path": "resources/platform_atari_st/GEMDOS.TXT", "section": "~/text/gemdos/diskstruct", "topic": "WORD starting cluster#" } },
         { "name": "file_size", "primitive": "u32", "source": { "path": "resources/platform_atari_st/GEMDOS.TXT", "section": "~/text/gemdos/diskstruct", "topic": "LONG file length" } }
+      ]
+    },
+    "STX_HEADER": {
+      "role": "container_aux",
+      "source": {"url": "https://info-coach.fr/atari/documents/_mydoc/Pasti-documentation.pdf", "section": "2.1–2.2.5"},
+      "fields": [
+        {"name": "signature", "type": "byte_blob", "length_expr": "4"},
+        {"name": "version", "primitive": "u16"},
+        {"name": "tool", "primitive": "u16"},
+        {"name": "reserved1", "primitive": "u16"},
+        {"name": "track_count", "primitive": "u8"},
+        {"name": "revision", "primitive": "u8"},
+        {"name": "reserved2", "primitive": "u32"}
+      ]
+    },
+    "STX_TRACK": {
+      "role": "container_aux",
+      "source": {"url": "https://info-coach.fr/atari/documents/_mydoc/Pasti-documentation.pdf", "section": "2.1–2.2.5"},
+      "fields": [
+        {"name": "record_size", "primitive": "u32"},
+        {"name": "fuzzy_size", "primitive": "u32"},
+        {"name": "sector_count", "primitive": "u16"},
+        {"name": "flags", "primitive": "u16"},
+        {"name": "mfm_size", "primitive": "u16"},
+        {"name": "number", "primitive": "u8"},
+        {"name": "record_type", "primitive": "u8"}
+      ]
+    },
+    "STX_SECTOR": {
+      "role": "container_aux",
+      "source": {"url": "https://info-coach.fr/atari/documents/_mydoc/Pasti-documentation.pdf", "section": "2.1–2.2.5"},
+      "fields": [
+        {"name": "data_offset", "primitive": "u32"},
+        {"name": "bit_position", "primitive": "u16"},
+        {"name": "read_time", "primitive": "u16"},
+        {"name": "id_track", "primitive": "u8"},
+        {"name": "id_head", "primitive": "u8"},
+        {"name": "id_sector", "primitive": "u8"},
+        {"name": "id_size", "primitive": "u8"},
+        {"name": "id_crc_be", "type": "byte_blob", "length_expr": "2"},
+        {"name": "status", "primitive": "u8"},
+        {"name": "reserved", "primitive": "u8"}
+      ]
+    },
+    "STX_TIMING": {
+      "role": "container_aux",
+      "source": {"url": "https://info-coach.fr/atari/documents/_mydoc/Pasti-documentation.pdf", "section": "2.1–2.2.5"},
+      "fields": [
+        {"name": "flags", "primitive": "u16"},
+        {"name": "size", "primitive": "u16"}
       ]
     }
   },

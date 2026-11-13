@@ -1,8 +1,9 @@
 # Proposal 047: STX import and linked game restoration
 
-Status: input access and pinned-reference parsing proved. Native parser and ST
-import have not started; the replacement-test strategy gate remains open. See
-[reference proof](../validation/sgii-stx-reference-proof.md).
+Status: input access, pinned-reference comparison, native STX inspection and
+physical-sector access are implemented and tested. ST loader/payload recovery
+and the linked-release schema remain next. See
+[validation and limits](../validation/sgii-stx-reference-proof.md).
 
 ## Goal and order
 
@@ -35,8 +36,9 @@ maintaining parallel legacy schemas or compatibility shims is not a goal.
   contain no STX reference; a dedicated upstream STX suite was **not found** after the bounded audit. The
   parser itself has now read the supplied image with sanitizers; this is not an
   upstream test-suite pass.
-  If there is no relevant suite, raise that gap and agree the replacement
-  validation before implementing our reader.
+  Replacement validation is authorized: synthetic branch fixtures, malformed
+  input and sanitizer mutation checks, plus pinned-reference comparisons on
+  synthetic cases and the supplied SGII image.
 - Hatari's STX source declares GPL version 2 or later. Default design: use a
   pinned external reference and write our own implementation from documented
   format facts. Copying/adapting upstream implementation or tests requires an
@@ -165,8 +167,9 @@ exactness alone or require every unknown to be solved before a useful comparison
 
 ## Execution discipline
 
-The reference proof is delivered; native implementation remains gated on the
-replacement-test strategy above; raise new problems before proceeding. Keep changes
+The native reader milestone is delivered with the replacement validation above.
+Next follow the ST loader using the physical sector/source coordinates; raise
+requirements for new runtime or FDC capabilities before implementing them. Keep changes
 in substantial tested batches on the established master branch, with concise
 current status and no repeated observation bundles. Reuse persistent analysis
 processes and regenerate only at necessary validation checkpoints. No migration

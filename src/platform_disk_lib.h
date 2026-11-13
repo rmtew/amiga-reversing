@@ -31,6 +31,9 @@ PLATFORM_DISK_API int platform_disk_inspect_path_json_alloc(const char *platform
     char **out_json);
 PLATFORM_DISK_API int platform_disk_extract_entry_path_bytes_alloc(const char *platform_name, const char *path,
     const char *entry_path, unsigned char **out_data, size_t *out_size, char **out_error);
+/* Physical STX indexes from inspect-disk; refuses unreliable stored data. */
+PLATFORM_DISK_API PlatformDiskBufferResult platform_disk_extract_stx_sector_path(const char *path,
+    size_t track_index, size_t sector_index);
 PLATFORM_DISK_API void platform_disk_free_text(char *text);
 PLATFORM_DISK_API void platform_disk_free_bytes(unsigned char *data);
 

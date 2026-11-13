@@ -124,7 +124,7 @@ def _run_inspect(platform_name: str, image_name: str, image_bytes: bytes) -> dic
 def _iter_atari_sources() -> list[dict[str, Any]]:
     results: list[dict[str, Any]] = []
     directory = RESOURCES / "platform_atari_st"
-    for path in sorted(directory.glob("*.st")):
+    for path in sorted(path for path in directory.glob("*") if path.is_file() and path.suffix.lower() in {".st", ".stx"}):
         data = path.read_bytes()
         results.append(
             {
@@ -141,7 +141,7 @@ def _iter_atari_sources() -> list[dict[str, Any]]:
         with zipfile.ZipFile(zip_path) as archive:
             for member in sorted(archive.infolist(), key=lambda item: item.filename.lower()):
                 lower = member.filename.lower()
-                if not lower.endswith(".st"):
+                if not lower.endswith((".st", ".stx")):
                     continue
                 data = _decode_zip_member(zip_path, member)
                 image_name = Path(member.filename).name

@@ -2901,7 +2901,7 @@ def _platform_file_name_for_path(path: Path) -> str:
 
 
 def _platform_file_name_for_disk_path(path: Path) -> str:
-    if path.suffix.lower() in {".st", ".msa"}:
+    if path.suffix.lower() in {".st", ".msa", ".stx"}:
         return "atari-st"
     return "amiga-hunk"
 
@@ -2916,7 +2916,7 @@ def _disk_image_path_for_c_backend(path: Path) -> Iterator[Path]:
             members = [
                 member
                 for member in archive.infolist()
-                if not member.is_dir() and Path(member.filename).suffix.lower() in {".adf", ".st", ".msa"}
+                if not member.is_dir() and Path(member.filename).suffix.lower() in {".adf", ".st", ".msa", ".stx"}
             ]
             if len(members) != 1:
                 raise ValueError(f"Disk archive must contain exactly one disk image: {path}")
@@ -2930,6 +2930,6 @@ def _disk_image_path_for_c_backend(path: Path) -> Iterator[Path]:
 
 
 def _platform_disk_name_for_path(path: Path) -> str:
-    if path.suffix.lower() in {".st", ".msa"}:
+    if path.suffix.lower() in {".st", ".msa", ".stx"}:
         return "atari-st-disk"
     return "amiga-disk"

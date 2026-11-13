@@ -59,7 +59,7 @@ This is successful original-container parsing. It is not successful boot,
 recovered main payloads, release authentication or protection/timing equivalence.
 No protection, CRC, fuzzy data or original sectors were changed.
 
-## Test gap and next gate
+## Reference test gap
 
 The pinned tree has STX code only in `src/floppies/stx.c` and its header. Searches
 of the complete test tree, test registrations, tools and CI found no dedicated
@@ -74,14 +74,88 @@ HATARI_STX_REFERENCE=/private/hatari-pinned ASAN_OPTIONS=detect_leaks=0 \
   python -m unittest discover -s tests -p test_stx_reference_probe.py
 ```
 
-Proposal 047 requires agreement on replacement validation before implementing
-our reader when a relevant reference suite is absent. Recommended replacement:
-synthetic redistributable fixtures for each format branch; malformed bounds and
-length tests under sanitizers; independent raw expected offsets/bytes; differential
-comparison of native descriptors against pinned Hatari on this supplied input.
-Include simple tracks, track-image-only records, duplicate IDs, CRC/RNF/deleted
-status, fuzzy masks, revision-specific timing, sync offsets and unsupported flags.
-Do not treat original-media parsing as that missing synthetic suite.
+## Native reader and import API
 
-Native reader implementation, target import/schema migration and unrelated Amiga
-restoration have not started. All supplied media remains private.
+`src/platform_atari_stx.c` is our C implementation. Its format offsets and flags
+come from `knowledge/atari_st_disk_file.json` through the existing generator.
+The format source is [Pasti File Documentation v0.5, sections 2.1–2.2.5](https://info-coach.fr/atari/documents/_mydoc/Pasti-documentation.pdf),
+checked against the pinned Hatari parser. No upstream implementation is vendored.
+
+The disk library detects STX by signature. Python's existing
+`inspect_disk_with_c_backend` accepts the STX directly or as the sole disk in a
+ZIP. Corpus input discovery also accepts `.stx`. The native CLI is:
+
+```sh
+src/build/platform_disk_cli.exe inspect-disk atari-st-disk /private/input.stx
+src/build/platform_disk_cli.exe extract-stx-sector /private/input.stx 0 0 \
+  > /private/boot-sector.bin
+```
+
+The two numbers are physical track-instance and sector-instance indexes from
+inspection, not cylinder/head/sector IDs. Original source ranges remain the
+basis for all extracted data. The SGII boot-sector extraction is 512 bytes and
+matches the reference identity above. Inventories stay private and reproducible.
+
+The C model retains original record order, duplicate identities, all header
+values, sector-data offsets, track images, fuzzy masks, timing ranges and opaque
+tails. CRC bytes are big-endian. Revision-2 timing sizes include their four-byte
+header; timing values remain in their stored big-endian form. Revision-0 variable
+timing is marked as an implicit Speedlock/Macrodos policy, not a nonexistent file
+range. No fuzzy values are generated. Raw stored ranges remain available even
+when normal reads are refused.
+
+`atari_stx_read_chrn` requires both physical cylinder/side and the exact sector
+ID bytes. It refuses ambiguous matches, including duplicate track instances.
+`atari_stx_read_instance` uses an explicit physical identity. Both refuse absent
+or fuzzy data, nonzero sector status and unsupported flags/record types. Failure
+clears the output pointer and length. They provide stored stable bytes; they do
+not implement WD1772 timing or disk rotation.
+
+Limits: version 3, revisions 0 and 2. Invalid bounds, mismatched fuzzy/timing
+lengths, impossible simple-track layouts and extra whole-file bytes are errors.
+Unknown header/flag values and bounded track tails are retained for analysis.
+Simple-track CRC and bit-position defaults are not stored in STX, so our reader
+does not fabricate the values Hatari needs for FDC emulation. This is the sole
+intentional descriptor difference in synthetic reference comparisons.
+
+STX inspection reports `filesystem_status: not_analyzed` and no filesystem
+entries. This does **not** mean the disk has no files. The existing FAT reader
+still consumes flat images; it must not be fed an arbitrary flattened STX.
+Stable-sector access is ready for loader reads or a future mapped FAT adapter.
+No full-disk flattening, STX writing, FDC emulation, game boot or main-payload
+recovery is claimed. Amiga target source, assets and restoration state are not
+changed by this reader milestone.
+
+## Replacement validation
+
+The reference suite gap was reported and the replacement tests were authorized.
+Run the complete affected suite on Linux with a built backend:
+
+```sh
+make -j4 all
+STX_SANITIZERS=1 ASAN_OPTIONS=detect_leaks=0 \
+HATARI_STX_REFERENCE=/private/hatari-pinned \
+SGII_STX_IMAGE='/private/Starglider 2 (1988)(Rainbird).zip' \
+AMIGA_INCLUDE_EXPLICIT_TESTS=1 AMIGA_INCLUDE_HEAVY_UNIT_TESTS=1 \
+python -m unittest src.tests.test_platform_atari_stx \
+  src.tests.test_platform_atari_st_disk src.tests.test_platform_disk_lib \
+  src.tests.test_platform_disk_cli src.tests.test_platform_format_codegen \
+  tests.test_stx_reference_probe -v
+```
+
+Result: 58 tests run; 57 pass and one existing Ice-ADF test is skipped because
+its private fixture is absent. This includes generated-file identity/style
+checks, flat Atari FAT and Amiga disk regressions, CLI extraction and ZIP
+inspection. The native parser passes ASan/UBSan for every truncation and every
+single-bit mutation of six synthetic fixtures. A separate seeded mutation test
+checks 1,000 compound changes and failure cleanup.
+
+Independent comparison covers simple tracks, empty/track-image-only tracks,
+embedded sector data, duplicate IDs, missing data, fuzzy masks and revision-0/2
+timing. On the actual SGII input, all 164 track and 943 sector descriptors and
+all returned data/track/fuzzy hashes match pinned Hatari. No sanitizers report
+bounds or undefined-behaviour errors. Original media is not committed or changed.
+The host build is tested on Linux; the Windows build inputs/exports are updated
+but were not executed here. No game-source regeneration was needed for this
+container-reader change; exact-build gates remain required when recovered target
+bytes or rendered assembly change.

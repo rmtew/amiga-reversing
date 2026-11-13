@@ -67,7 +67,7 @@ def read_image(path: Path, member: str | None) -> tuple[bytes, str]:
 DRIVER = r'''
 static void Str_Dump_Hex_Ascii(char *p, int n, int w, const char *s, FILE *f)
 { (void)p;(void)n;(void)w;(void)s;(void)f; abort(); }
-static long pos(uint8_t *p, uint8_t *b) { return p ? (long)(p-b) : -1; }
+static long pos(uint8_t *p, uint8_t *b) { return p ? (long)((uintptr_t)p-(uintptr_t)b) : -1; }
 int main(int argc, char **argv) {
  if (argc != 2) return 2;
  FILE *f=fopen(argv[1],"rb"); if (!f) return 3;
@@ -83,7 +83,7 @@ int main(int argc, char **argv) {
   printf("%s{\"offset\":%ld,\"size\":%u,\"track\":%u,\"side\":%u,\"flags\":%u,\"fuzzy_size\":%u,\"mfm_size\":%u,\"record_type\":%u,\"image_offset\":%ld,\"image_size\":%u,\"sync\":%u,\"timing_size\":%u,\"timing_flags\":%u,\"sectors\":[",i?",":"",off,t->BlockSize,t->TrackNumber&127,t->TrackNumber>>7,t->Flags,t->FuzzySize,t->MFMSize,t->RecordType,pos(t->pTrackImageData,b),t->TrackImageSize,t->TrackImageSyncPosition,t->TimingSize,t->TimingFlags);
   for(unsigned j=0;j<t->SectorsCount;j++) {
    STX_SECTOR_STRUCT *s=&t->pSectorsStruct[j];
-   printf("%s{\"index\":%u,\"id_track\":%u,\"id_head\":%u,\"id_sector\":%u,\"id_size\":%u,\"id_crc\":%u,\"status\":%u,\"reserved\":%u,\"bit_position\":%u,\"read_time\":%u,\"offset\":%ld,\"size\":%u,\"fuzzy_offset\":%ld,\"timing_offset\":%ld}",j?",":"",j,s->ID_Track,s->ID_Head,s->ID_Sector,s->ID_Size,s->ID_CRC,s->FDC_Status,s->Reserved,s->BitPosition,s->ReadTime,pos(s->pData,b),s->SectorSize,pos(s->pFuzzyData,b),pos(s->pTimingData,b));
+   printf("%s{\"index\":%u,\"id_track\":%u,\"id_head\":%u,\"id_sector\":%u,\"id_size\":%u,\"id_crc\":%u,\"status\":%u,\"reserved\":%u,\"bit_position\":%u,\"read_time\":%u,\"offset\":%ld,\"size\":%u,\"fuzzy_offset\":%ld,\"timing_offset\":%ld}",j?",":"",j,s->ID_Track,s->ID_Head,s->ID_Sector,s->ID_Size,s->ID_CRC,s->FDC_Status,s->Reserved,s->BitPosition,s->ReadTime,pos(s->pData,b),s->SectorSize,pos(s->pFuzzyData,b),(m->Revision == 0 ? -1 : pos(s->pTimingData,b)));
   }
   printf("]}");off+=t->BlockSize;
  }
