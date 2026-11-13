@@ -391,6 +391,7 @@ SOURCE_BINARY_RENDERERS: dict[BinarySourceKind, BinarySourceExportRenderer] = {
     BinarySourceKind.HUNK_FILE: _c_backend_binary_source_export,
     BinarySourceKind.DISK_ENTRY: _c_backend_binary_source_export,
     BinarySourceKind.RAW_BINARY: _c_backend_binary_source_export,
+    BinarySourceKind.ARTIFACT: _c_backend_binary_source_export,
     BinarySourceKind.MACOS_CODE_RESOURCE: _c_backend_binary_source_export,
 }
 

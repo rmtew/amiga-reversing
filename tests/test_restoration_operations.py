@@ -69,6 +69,10 @@ def target(tmp_path, monkeypatch):
                 else None
             )
 
+        def row_for_source_identity(self, *, section_index, offset, kind):
+            row = self.row_for_source_offset(section_index=section_index,offset=offset)
+            return row if row is not None and row['stable_key'].endswith(':'+kind) else None
+
     artifact = Artifact()
     backend = SimpleNamespace(
         PROJECT_ROOT=tmp_path,

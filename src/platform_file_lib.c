@@ -14049,8 +14049,8 @@ cleanup:
   return text_result_to_alloc(&result, out_text);
 }
 
-int platform_file_facts_v2_listing_artifact_source_offset_row_json_alloc(PlatformFileListingArtifact *artifact,
-    int has_section, uint32_t section_index, uint32_t offset, char **out_text) {
+static int listing_artifact_source_row_json_alloc(PlatformFileListingArtifact *artifact,
+    int has_section, uint32_t section_index, uint32_t offset, const char *kind, char **out_text) {
   PlatformFileTextResult result;
   JsonBuilder builder = {0};
   char *json = NULL;
@@ -14066,9 +14066,12 @@ int platform_file_facts_v2_listing_artifact_source_offset_row_json_alloc(Platfor
     return text_result_to_alloc(&result, out_text);
   }
   lookup_start = clock();
-  if (source_file_listing_source_offset_row_from_render_plan_with_index(&artifact->source_plan,
+  if ((kind != NULL ? source_file_listing_source_identity_row_from_render_plan_with_index(
+      &artifact->source_plan, &artifact->listing_row_index, section_index, offset, kind, &row_index,
+      &found, m68k_diag_sink(&result.diagnostics)) :
+      source_file_listing_source_offset_row_from_render_plan_with_index(&artifact->source_plan,
       &artifact->listing_row_index, section_index, offset, &row_index, &found,
-      m68k_diag_sink(&result.diagnostics)) != 0) {
+      m68k_diag_sink(&result.diagnostics))) != 0) {
     if (!m68k_diag_has_errors(&result.diagnostics))
       platform_file_add_error(&result.diagnostics, "facts_v2 listing source-offset lookup failed");
     goto cleanup;
@@ -14145,6 +14148,16 @@ oom:
 cleanup:
   json_builder_destroy(&builder);
   return text_result_to_alloc(&result, out_text);
+}
+
+int platform_file_facts_v2_listing_artifact_source_offset_row_json_alloc(PlatformFileListingArtifact *artifact,
+    int has_section, uint32_t section_index, uint32_t offset, char **out_text) {
+  return listing_artifact_source_row_json_alloc(artifact, has_section, section_index, offset, NULL, out_text);
+}
+
+int platform_file_facts_v2_listing_artifact_source_identity_row_json_alloc(PlatformFileListingArtifact *artifact,
+    uint32_t section_index, uint32_t offset, const char *kind, char **out_text) {
+  return listing_artifact_source_row_json_alloc(artifact, 1, section_index, offset, kind, out_text);
 }
 
 int platform_file_facts_v2_listing_artifact_runtime_address_row_json_alloc(PlatformFileListingArtifact *artifact,

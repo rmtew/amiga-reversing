@@ -2151,7 +2151,7 @@ def require_target_metadata(
     source_kind: BinarySourceKind,
     parent_disk_id: str | None,
 ) -> TargetMetadata | None:
-    if source_kind is BinarySourceKind.RAW_BINARY and metadata is None:
+    if source_kind.is_raw and metadata is None:
         raise ValueError(f"Missing target_metadata.json for raw binary target: {target_dir}")
     if parent_disk_id is not None and metadata is None:
         raise ValueError(f"Missing target_metadata.json for internal target: {target_dir}")

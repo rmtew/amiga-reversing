@@ -14,6 +14,7 @@ from typing import cast
 from amiga_reversing.disasm.assembler_profiles import VASM_PROFILE, AssemblerProfile
 from amiga_reversing.disasm.binary_source import (
     BinarySource,
+    ArtifactBinarySource,
     DiskEntryBinarySource,
     HunkFileBinarySource,
     RawBinarySource,
@@ -475,6 +476,9 @@ def build_target_identity(binary_source: BinarySource) -> dict[str, object]:
                 "parent_disk_id": binary_source.parent_disk_id,
             }
         )
+    if isinstance(binary_source, ArtifactBinarySource):
+        identity.update(game_family=binary_source.family_id,artifact_id=binary_source.artifact_id,
+                        platform=binary_source.platform,binding_revision=binary_source.binding_revision)
     return identity
 
 
@@ -2175,7 +2179,7 @@ def _project_actions(
             # runtime-view resizing. The pinned identity also supports offline
             # replay; append checks it against the actual source before writing.
             size = pinned_target_identity.get("original_size")
-            if (pinned_target_identity.get("source_kind") != "raw_binary"
+            if (pinned_target_identity.get("source_kind") not in {"raw_binary", "artifact"}
                     or existing.get("hunk") != 0
                     or any(existing.get(key) is not None for key in
                            ("runtime_start", "runtime_end", "runtime_execution_view_id"))):

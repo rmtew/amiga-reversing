@@ -4,7 +4,10 @@ Status: input access, pinned-reference comparison, native STX inspection and
 physical-sector access are implemented and tested. The source-mapped ST main
 load and its native decoder witness are recovered; see
 [loader recovery](../targets/starglider2-st-loader-recovery.md). Linked-release
-artifact/target integration and normal-media boot qualification remain next. See
+artifact/target integration, a bounded ST startup witness and two qualified
+code/data matches are implemented; see [linked startup](../targets/starglider2-linked-startup.md).
+Full legacy source-schema migration, wider correspondence/shared export and
+normal-media boot qualification remain open. See
 [validation and limits](../validation/sgii-stx-reference-proof.md).
 
 ## Goal and order
@@ -171,8 +174,9 @@ exactness alone or require every unknown to be solved before a useful comparison
 
 The native reader milestone is delivered with the replacement validation above.
 The ST loader recovery is delivered as a repeatable source-bound recipe; it is
-not a normal-media boot. Next integrate the artifacts through the shared model;
-raise requirements for new runtime or FDC capabilities before implementing them. Keep changes
+not a normal-media boot. The linked catalog now binds the recovered ST artifacts
+and references the existing Amiga source history. Next expand proven ST startup
+and qualified matches before shared export; raise requirements for new runtime or FDC capabilities before implementing them. Keep changes
 in substantial tested batches on the established master branch, with concise
 current status and no repeated observation bundles. Reuse persistent analysis
 processes and regenerate only at necessary validation checkpoints. No migration

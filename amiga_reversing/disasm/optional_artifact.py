@@ -21,7 +21,7 @@ def validate(manifest: dict, directory: Path, target_id: str):
         if not isinstance(manifest[field], str) or not re.fullmatch('[0-9a-f]{64}', manifest[field]):
             raise ValueError('Invalid optional artifact identity')
     source = resolve_project_paths(target_id).binary_source
-    if source.kind != BinarySourceKind.RAW_BINARY:
+    if not source.kind.is_raw:
         raise ValueError('Optional artifacts require a raw target')
     original = source.read_bytes()
     expected, selected = apply_patches(original, manifest, manifest['enabled'])

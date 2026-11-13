@@ -643,7 +643,7 @@ def _selected_capability_path(capability: Mapping[str, object], key: str) -> str
 def _vasm_format_for_source_kind(source_kind: BinarySourceKind) -> str:
     if source_kind is BinarySourceKind.HUNK_FILE:
         return "-Fhunkexe"
-    if source_kind is BinarySourceKind.RAW_BINARY:
+    if source_kind.is_raw:
         return "-Fbin"
     raise ValueError(f"vasm oracle target must be file-backed, got {source_kind!r}")
 

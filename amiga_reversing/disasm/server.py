@@ -1400,7 +1400,7 @@ def _compute_project_listing_cache_key(project_name: str) -> str:
     if isinstance(adf_path, Path):
         parts.append(_file_cache_stamp(adf_path))
         parts.append(str(getattr(source, "entry_path", "")))
-    for attr in ("address_model", "load_address", "entrypoint", "code_start_offset"):
+    for attr in ("address_model", "load_address", "entrypoint", "code_start_offset", "backend_name", "binding_revision"):
         if hasattr(source, attr):
             parts.append(f"{attr}={getattr(source, attr)}")
     parts.append(_file_cache_stamp(paths.target_dir / "source_binary.json"))

@@ -5189,12 +5189,14 @@ void platform_state_note_call_result_after_instruction(M68kRenderPlatformState *
     platform_state_set_data_library(state, 0U, state->address_base_library[1U]);
 }
 
-const AmigaOsLibraryVectorInfo *attach_amiga_lvo_symbol_if_known(const M68kRenderPlatformState *state,
+const AmigaOsLibraryVectorInfo *attach_amiga_lvo_symbol_if_known(const M68kRenderLookup *lookup, const M68kRenderPlatformState *state,
     M68kInstructionIR *instruction) {
   M68kOperandIR *operand;
   const AmigaOsLibraryVectorInfo *vector;
   const char *symbol_name;
   int16_t displacement;
+  if (lookup == NULL || lookup->object == NULL ||
+      lookup->object->platform_backend_kind != M68K_PLATFORM_BACKEND_AMIGA_HUNK) return NULL;
   if (state == NULL || instruction == NULL) return NULL;
   if (!instruction_has_call_or_jump_flow(instruction)) return NULL;
   if (instruction->operand_count != 1U) return NULL;
@@ -6652,6 +6654,8 @@ const AmigaOsLibraryVectorInfo *attach_amiga_lvo_immediate_if_known(const M68kRe
   const char *symbol_name;
   M68kOperandIR *operand;
   if (lookup == NULL || section == NULL || accepted_start == NULL || candidate == NULL || instruction == NULL)
+    return NULL;
+  if (lookup->object == NULL || lookup->object->platform_backend_kind != M68K_PLATFORM_BACKEND_AMIGA_HUNK)
     return NULL;
   if (!instruction_loads_data_immediate(instruction, &reg, &lvo)) return NULL;
   if (lvo >= 0) return NULL;

@@ -327,9 +327,7 @@ def _inspect(target_id, body, current):
     if row is None:
         raise ValueError("source location not found")
     if body.get("row_kind") == "label":
-        window, _ = _artifact(target_id).window_payload(start=max(0, row.get("row_index", 0) - 2), count=5)
-        row = next((candidate for candidate in window["rows"] if candidate.get("kind") == "label"
-                    and candidate.get("section_index") == section and candidate.get("start_offset") == offset), None)
+        row = _artifact(target_id).row_for_source_identity(section_index=section, offset=offset, kind="label")
         if row is None:
             raise ValueError("no canonical label at source location")
     locator = _server()._LISTING_PROJECTION_SERVICE.locator_for_row(
@@ -366,7 +364,10 @@ def _interpretation_body(target_id, body, current, artifact):
         match = re.fullmatch(r"s(\d+):([0-9A-Fa-f]{8}):[a-z_]+", str(ref))
         if not match:
             raise ValueError("evidence must use canonical source row keys")
-        row = artifact.row_for_source_offset(section_index=int(match[1]), offset=int(match[2], 16))
+        section, offset = int(match[1]), int(match[2], 16)
+        row = artifact.row_for_source_offset(section_index=section, offset=offset)
+        if row is None or (row.get("stable_key") or row.get("row_key")) != ref:
+            row = artifact.row_for_source_identity(section_index=section, offset=offset, kind=str(ref).rsplit(":", 1)[1])
         if row is None or (row.get("stable_key") or row.get("row_key")) != ref:
             raise ValueError("evidence reference is not a current canonical row")
     metadata = {**evidence, "evidence_refs": refs, "subject_revision": current["subject_revision"]}

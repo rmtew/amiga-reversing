@@ -15,8 +15,13 @@ class BinarySourceKind(StrEnum):
     HUNK_FILE = "hunk_file"
     DISK_ENTRY = "disk_entry"
     RAW_BINARY = "raw_binary"
+    ARTIFACT = "artifact"
     ASSET_DATA = "asset_data"
     MACOS_CODE_RESOURCE = "macos_code_resource"
+
+    @property
+    def is_raw(self) -> bool:
+        return self in {BinarySourceKind.RAW_BINARY, BinarySourceKind.ARTIFACT}
 
 
 class RawAddressModel(StrEnum):
@@ -118,6 +123,14 @@ class RawBinarySource:
         return self.path.read_bytes()
 
     @property
+    def backend_name(self) -> str:
+        return "amiga-raw"
+
+    @property
+    def materialized_path(self) -> Path:
+        return self.path
+
+    @property
     def code_start_address(self) -> int:
         return self.load_address + self.code_start_offset
 
@@ -136,6 +149,37 @@ class RawBinarySource:
     @property
     def local_entrypoint(self) -> int:
         return self.entrypoint - self.load_address
+
+
+@dataclass(frozen=True, slots=True)
+class ArtifactBinarySource(RawBinarySource):
+    family_id: str = ""
+    target_id: str = ""
+    artifact_id: str = ""
+    platform: str = ""
+    binding_revision: str = ""
+    project_root: Path = PROJECT_ROOT
+
+    def __post_init__(self) -> None:
+        if self.kind is not BinarySourceKind.ARTIFACT or self.platform not in ("amiga", "atari-st"):
+            raise ValueError("Invalid artifact binary source platform/kind")
+
+    @property
+    def backend_name(self) -> str:
+        return self.platform + "-raw"
+
+    @property
+    def available(self) -> bool:
+        from .game_catalog import available
+        return available(self.project_root,self.family_id,self.artifact_id)
+
+    @property
+    def materialized_path(self) -> Path:
+        from .game_catalog import materialize
+        return materialize(self.project_root,self.family_id,self.artifact_id)
+
+    def read_bytes(self) -> bytes:
+        return self.materialized_path.read_bytes()
 
 
 @dataclass(frozen=True, slots=True)
@@ -422,6 +466,25 @@ def resolve_target_binary_source(target_dir: Path, project_root: Path = PROJECT_
         kind_id = BinarySourceKind(kind)
     except ValueError:
         raise ValueError(f"Unsupported source_binary kind for target {target_dir.name}: {kind}") from None
+    if kind_id is BinarySourceKind.ARTIFACT:
+        from .game_catalog import load_family, object_keys, binding_revision
+        object_keys(descriptor,"kind family target")
+        family=load_family(project_root,descriptor["family"])
+        target_id=descriptor["target"]
+        if target_id != target_dir.name or target_id not in family["targets"]:
+            raise ValueError("Artifact source target binding mismatch")
+        binding=family["targets"][target_id]
+        context=binding["context"]
+        if context["kind"] != "raw": raise ValueError("Artifact target requires a raw load context")
+        return ArtifactBinarySource(kind=BinarySourceKind.ARTIFACT,
+            path=project_root/".amiga_reversing"/"artifacts"/binding["artifact"],
+            address_model=RawAddressModel(context["address_model"]),
+            load_address=context["load_address"],entrypoint=context["entrypoint"],
+            code_start_offset=context["code_start_offset"],
+            display_path=f"artifact:{family['id']}/{target_id}",
+            analysis_cache_path=target_dir/"analysis.json",family_id=family["id"],target_id=target_id,
+            artifact_id=binding["artifact"],platform=family["releases"][binding["release"]]["platform"],
+            binding_revision=binding_revision(family,target_id),project_root=project_root)
     if kind_id is BinarySourceKind.HUNK_FILE:
         return _load_hunk_file_source(descriptor, target_dir, project_root)
     if kind_id is BinarySourceKind.DISK_ENTRY:

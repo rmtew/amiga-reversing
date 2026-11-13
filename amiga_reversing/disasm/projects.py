@@ -100,6 +100,10 @@ class ProjectRecord:
     review_items: tuple[dict[str, object], ...] = ()
     manual_state: dict[str, object] | None = None
     origin: dict[str, object] = field(default_factory=lambda: {"kind": "project_record"})
+    game_family: str | None = None
+    release_id: str | None = None
+    artifact_id: str | None = None
+    artifact_phase: str | None = None
 
     def __post_init__(self) -> None:
         if not isinstance(self.kind, ProjectKind):
@@ -254,13 +258,16 @@ def _binary_project_record(
     project_root: Path,
     metadata: ProjectMetadata | None = None,
 ) -> ProjectRecord:
+    from .game_catalog import target_link
+    linked = target_link(project_root,project_id)
     metadata = metadata or _load_project_metadata(target_dir)
     target_metadata = load_target_metadata(target_dir)
     output_candidates = sorted(target_dir.glob("*.s"))
     binary_source = resolve_target_binary_source(target_dir, project_root=project_root)
+    source_available = binary_source is not None and getattr(binary_source,"available",True)
     manual_projection = load_manual_projection(
         target_dir,
-        binary_source=binary_source,
+        binary_source=binary_source if source_available else None,
         stronger_metadata=target_metadata,
     )
     reproduction_review_items = _reproduction_review_items(target_dir)
@@ -279,7 +286,7 @@ def _binary_project_record(
         target_dir=str(target_dir),
         output_path=str(output_candidates[0]) if len(output_candidates) == 1 else None,
         binary_path=None if binary_source is None else binary_source.display_path,
-        ready=binary_source is not None,
+        ready=source_available,
         last_opened=state.recent_projects.get(project_id),
         manifest_path=None,
         target_count=None,
@@ -294,6 +301,7 @@ def _binary_project_record(
         review_items=review_items,
         manual_state=manual_projection.to_dict(),
         origin=metadata.origin,
+        **linked,
     )
 
 

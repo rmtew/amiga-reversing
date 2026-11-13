@@ -1,0 +1,160 @@
+{
+  "schema_version": 1,
+  "id": "starglider2",
+  "name": "Starglider II",
+  "releases": {
+    "atari_st_1_05_supplied": {
+      "platform": "atari-st",
+      "edition": "Supplied STX; recovered header version 1.05, 1 September 1988; release authenticity unverified",
+      "media": [
+        "6a25ccb01084c666241556e5f98fdfec260415bd9ca259ac688fddcaf99a2d22"
+      ]
+    },
+    "amiga_ua_wow": {
+      "platform": "amiga",
+      "edition": "Existing UA/WOW disk import; original restored absolute game image",
+      "media": [
+        "77c633a9270f85361a30ba19175f5940155631ceb6c84b47b1efbb0bf2150ee3"
+      ]
+    }
+  },
+  "artifacts": {
+    "6a25ccb01084c666241556e5f98fdfec260415bd9ca259ac688fddcaf99a2d22": {
+      "size": 1942718,
+      "role": "supplied STX media"
+    },
+    "77c633a9270f85361a30ba19175f5940155631ceb6c84b47b1efbb0bf2150ee3": {
+      "size": 901120,
+      "role": "existing Amiga disk media"
+    },
+    "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9": {
+      "size": 412736,
+      "role": "existing restored original Amiga game image"
+    },
+    "0a1a4417a5de74def579272d4923495dc89c2081eee2a3d63b5aecca1ff8a781": {
+      "size": 424,
+      "role": "boot_loader_known_prefix"
+    },
+    "3c8c515e3a696c1bc18caf1facf694d5e9d7eab98cf66b656760f86a438e3014": {
+      "size": 5632,
+      "role": "initial_loader_dma_decoded"
+    },
+    "7d2a7f8f3c1a842e4a65b3f6873cbb4cc425961dfef24ea96d8b1d6d46f0fde3": {
+      "size": 512,
+      "role": "main_loader_helper"
+    },
+    "aca0db39a5657c952c5365e0201ac589cfdb53ea005c88d20a096d5891fae4ff": {
+      "size": 419308,
+      "role": "main_decoded"
+    },
+    "20c19400180d7e846b78aa615b68446293f8ca54015c4f4a42a77f03b24e8260": {
+      "size": 419308,
+      "role": "main_at_st_handoff"
+    },
+    "4d07f199725f1d37b08a4a16432df6c7f708046444669a24fa26cfba87b600ae": {
+      "size": 422400,
+      "role": "main_dma_buffer_at_handoff"
+    }
+  },
+  "sources": {
+    "6a25ccb01084c666241556e5f98fdfec260415bd9ca259ac688fddcaf99a2d22": {
+      "kind": "private_media",
+      "format": "stx"
+    },
+    "77c633a9270f85361a30ba19175f5940155631ceb6c84b47b1efbb0bf2150ee3": {
+      "kind": "private_media",
+      "format": "bytes"
+    },
+    "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9": {
+      "kind": "existing_target",
+      "target": "amiga_raw_starglider2_game"
+    }
+  },
+  "derivations": {
+    "st_loader_recovery": {
+      "kind": "stx_cpu_recovery",
+      "input": "6a25ccb01084c666241556e5f98fdfec260415bd9ca259ac688fddcaf99a2d22",
+      "recipe": "targets/atari_st_starglider2_stx/recovery_plan.json",
+      "recipe_sha256": "db5f4abab4eb7b5749476abae82347ef2854ef58348d77e49eec37451667377d",
+      "outputs": {
+        "boot_loader_known_prefix.bin": "0a1a4417a5de74def579272d4923495dc89c2081eee2a3d63b5aecca1ff8a781",
+        "initial_loader_dma_decoded.bin": "3c8c515e3a696c1bc18caf1facf694d5e9d7eab98cf66b656760f86a438e3014",
+        "main_loader_helper.bin": "7d2a7f8f3c1a842e4a65b3f6873cbb4cc425961dfef24ea96d8b1d6d46f0fde3",
+        "main_decoded.bin": "aca0db39a5657c952c5365e0201ac589cfdb53ea005c88d20a096d5891fae4ff",
+        "main_at_st_handoff.bin": "20c19400180d7e846b78aa615b68446293f8ca54015c4f4a42a77f03b24e8260",
+        "main_dma_buffer_at_handoff.bin": "4d07f199725f1d37b08a4a16432df6c7f708046444669a24fa26cfba87b600ae"
+      }
+    }
+  },
+  "targets": {
+    "amiga_raw_starglider2_game": {
+      "release": "amiga_ua_wow",
+      "artifact": "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9",
+      "context": {
+        "kind": "existing_target"
+      }
+    },
+    "atari_st_starglider2_main": {
+      "release": "atari_st_1_05_supplied",
+      "artifact": "20c19400180d7e846b78aa615b68446293f8ca54015c4f4a42a77f03b24e8260",
+      "context": {
+        "kind": "raw",
+        "address_model": "runtime_absolute",
+        "load_address": 4096,
+        "entrypoint": 4096,
+        "code_start_offset": 0,
+        "phase": "handoff"
+      }
+    },
+    "atari_st_starglider2_main_pre_handoff": {
+      "release": "atari_st_1_05_supplied",
+      "artifact": "aca0db39a5657c952c5365e0201ac589cfdb53ea005c88d20a096d5891fae4ff",
+      "context": {
+        "kind": "raw",
+        "address_model": "runtime_absolute",
+        "load_address": 4096,
+        "entrypoint": 4096,
+        "code_start_offset": 0,
+        "phase": "pre_handoff"
+      }
+    }
+  },
+  "correspondences": [
+    {
+      "id": "shared_prng_step",
+      "kind": "identical_bytes",
+      "role": "code",
+      "left": {
+        "target": "amiga_raw_starglider2_game",
+        "offset": 5730,
+        "size": 28,
+        "sha256": "a41a6bb204f75616518dd575132281cec389a2fc2d2c2c2447c16f2ec7a8dbb5"
+      },
+      "right": {
+        "target": "atari_st_starglider2_main",
+        "offset": 5750,
+        "size": 28,
+        "sha256": "a41a6bb204f75616518dd575132281cec389a2fc2d2c2c2447c16f2ec7a8dbb5"
+      },
+      "evidence": "docs/targets/starglider2-linked-startup.md"
+    },
+    {
+      "id": "game_over_message_pair",
+      "kind": "identical_bytes",
+      "role": "data",
+      "left": {
+        "target": "amiga_raw_starglider2_game",
+        "offset": 1866,
+        "size": 52,
+        "sha256": "14a2a48df6b3eba3bbe5d2157c785811b0bf6879819da1384a8cf3a3aba7cb83"
+      },
+      "right": {
+        "target": "atari_st_starglider2_main",
+        "offset": 1894,
+        "size": 52,
+        "sha256": "14a2a48df6b3eba3bbe5d2157c785811b0bf6879819da1384a8cf3a3aba7cb83"
+      },
+      "evidence": "docs/targets/starglider2-linked-startup.md"
+    }
+  ]
+}

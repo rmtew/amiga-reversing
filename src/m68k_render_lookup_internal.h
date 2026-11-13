@@ -1212,7 +1212,7 @@ int ascii_contains_case_local(const char *text, const char *needle);
 int amiga_unknown_base_register_owner_name(uint8_t base_reg, char *buf, size_t buf_size);
 int amiga_vector_call_input_by_register(const AmigaOsLibraryVectorInfo *vector,
   uint8_t reg_kind, uint8_t reg_index, PlatformFactsV2CallInput *out_input);
-const AmigaOsLibraryVectorInfo *attach_amiga_lvo_symbol_if_known(const M68kRenderPlatformState *state,
+const AmigaOsLibraryVectorInfo *attach_amiga_lvo_symbol_if_known(const M68kRenderLookup *lookup, const M68kRenderPlatformState *state,
   M68kInstructionIR *instruction);
 const AmigaOsLibraryVectorInfo *attach_amiga_lvo_immediate_if_known(const M68kRenderLookup *lookup,
   const M68kDecodeSectionIR *section, const uint8_t *accepted_start, const M68kDecodeCandidate *candidate,

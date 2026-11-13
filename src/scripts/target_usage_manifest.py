@@ -20,6 +20,7 @@ from typing import Any, Callable, Iterable, Iterator, Sequence, cast
 from amiga_reversing.disasm import c_backend
 from amiga_reversing.disasm.binary_source import (
     BinarySourceKind,
+    ArtifactBinarySource,
     DiskEntryBinarySource,
     HunkFileBinarySource,
     RawBinarySource,
@@ -1858,6 +1859,8 @@ def _base_row(source_manifest: str, entry: dict[str, Any], bag: FeatureBag) -> d
         "status": status,
         "origin": _origin_summary(entry),
     }
+    for key in ("game_family","release_id","artifact_id","artifact_phase","source_available"):
+        if key in entry: row[key]=entry[key]
     _finalize_row_features(row, bag)
     return row
 
@@ -2389,7 +2392,7 @@ def collect_project_usage_catalog_entry(
     stream_xrefs: list[dict[str, object]] | _XrefShard = []
     snippets: list[dict[str, object]] | _SnippetShard = []
     analysis_error: str | None = None
-    if _status(entry) == "ok" and isinstance(source, (DiskEntryBinarySource, HunkFileBinarySource, RawBinarySource)):
+    if _status(entry) == "ok" and entry.get("source_available",True) and isinstance(source, (DiskEntryBinarySource, HunkFileBinarySource, RawBinarySource)):
         try:
             with effective_metadata_file(target_dir) as metadata_path:
                 stream_snippet_path = snippet_path or (tmp_dir / "stream-snippets.jsonl")
@@ -2415,7 +2418,7 @@ def collect_project_usage_catalog_entry(
         source_kind=_safe_part(source.kind) if source is not None else "unknown",
         analysis=analysis,
         analysis_error=analysis_error,
-        reason=("unsupported_source" if source is not None else "missing_source") if analysis is None and analysis_error is None else None,
+        reason=("private_source_unavailable" if entry.get("source_available") is False else ("unsupported_source" if source is not None else "missing_source")) if analysis is None and analysis_error is None else None,
     )
     xrefs = [
         _xref(row, "project_target:any", "project_target", text=str(row.get("source_id") or "")),
@@ -2447,7 +2450,7 @@ def _project_target_manifest_entry(target_dir: Path, *, root: Path = ROOT) -> tu
     except Exception as exc:
         source = None
         source_error = str(exc)
-    platform = _string_value(project_origin.get("platform"))
+    platform = source.backend_name if isinstance(source,ArtifactBinarySource) else _string_value(project_origin.get("platform"))
     if platform is None:
         if isinstance(source, (HunkFileBinarySource, DiskEntryBinarySource)):
             platform = "amiga-hunk"
@@ -2468,6 +2471,12 @@ def _project_target_manifest_entry(target_dir: Path, *, root: Path = ROOT) -> tu
         "status": status,
         "origin": origin,
     }
+    from amiga_reversing.disasm.game_catalog import target_link,load_family
+    linked=target_link(root,target_dir.name)
+    entry.update(linked)
+    if isinstance(source,ArtifactBinarySource):
+        family=load_family(root,source.family_id)
+        entry.update(sha256=source.artifact_id,size=family['artifacts'][source.artifact_id]['size'],source_available=source.available)
     for source_key, entry_key in (
         ("kind", "project_origin_kind"),
         ("target_role", "target_role"),
@@ -2835,6 +2844,9 @@ def _project_target_metadata_classifiers(entry: dict[str, Any]) -> tuple[str | N
 
 
 def _add_project_target_metadata_features(entry: dict[str, Any], bag: FeatureBag) -> None:
+    for key in ("game_family","release_id","artifact_phase"):
+        if isinstance(entry.get(key),str): bag.add(f"{key}:{_safe_part(entry[key])}")
+    if entry.get("source_available") is False: bag.add("source:private_unavailable")
     origin_kind, target_role, payload_role, payload_role_confidence, parent_remains_active = (
         _project_target_metadata_classifiers(entry)
     )

@@ -170,6 +170,10 @@ PLATFORM_FILE_API int platform_file_facts_v2_listing_artifact_addr_window_json_a
 PLATFORM_FILE_API int platform_file_facts_v2_listing_artifact_source_offset_row_json_alloc(
     PlatformFileListingArtifact *artifact, int has_section, uint32_t section_index, uint32_t offset,
     char **out_text);
+/* Exact durable row identity, distinct from a preferred containing row. */
+PLATFORM_FILE_API int platform_file_facts_v2_listing_artifact_source_identity_row_json_alloc(
+    PlatformFileListingArtifact *artifact, uint32_t section_index, uint32_t offset, const char *kind,
+    char **out_text);
 PLATFORM_FILE_API int platform_file_facts_v2_listing_artifact_runtime_address_row_json_alloc(
     PlatformFileListingArtifact *artifact, uint32_t address, char **out_text);
 /* Resolve only current materialized native views; ambiguous source identities are refused. */

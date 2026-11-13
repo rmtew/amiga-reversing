@@ -24429,6 +24429,7 @@ static int test_facts_v2_render_asm_source_applies_entry_register_seed_without_s
   uint8_t bytes[8] = {0x4eu, 0x71u, 0x4eu, 0xaeu, 0xffu, 0x94u, 0x4eu, 0x75u};
   memset(&section, 0, sizeof(section));
   M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  object.platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
   section.kind = M68K_SECTION_CODE;
   section.size = sizeof(bytes);
   section.data_size = sizeof(bytes);
@@ -24556,6 +24557,7 @@ static int test_facts_v2_render_asm_source_preserves_base_across_movem_save(void
   uint8_t bytes[10] = {0x48u, 0xe7u, 0x00u, 0xc0u, 0x4eu, 0xaeu, 0xffu, 0x94u, 0x4eu, 0x75u};
   memset(&section, 0, sizeof(section));
   M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  object.platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
   section.kind = M68K_SECTION_CODE;
   section.size = sizeof(bytes);
   section.data_size = sizeof(bytes);
@@ -24843,6 +24845,7 @@ static int test_facts_v2_render_asm_source_infers_lvo_from_object_base_symbol(vo
   memset(&fixup, 0, sizeof(fixup));
   memset(&symbol, 0, sizeof(symbol));
   M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  object.platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
   section.kind = M68K_SECTION_CODE;
   section.size = sizeof(bytes);
   section.data_size = sizeof(bytes);
@@ -25517,13 +25520,14 @@ static int test_facts_v2_render_asm_source_infers_lvo_from_base_field_slot(void)
   uint8_t bytes[20] = {
     0x24u, 0x40u,
     0x25u, 0x4eu, 0x00u, 0x22u,
-    0x2cu, 0x6fu, 0x00u, 0x08u,
+    0x2cu, 0x4au, 0x4eu, 0x71u, /* Recover the known app base from A2, not an unproven stack value. */
     0x2cu, 0x6eu, 0x00u, 0x22u,
     0x4eu, 0xaeu, 0xfeu, 0xdau,
     0x4eu, 0x75u
   };
   memset(&section, 0, sizeof(section));
   M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  object.platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
   section.kind = M68K_SECTION_CODE;
   section.size = sizeof(bytes);
   section.data_size = sizeof(bytes);
@@ -25554,7 +25558,7 @@ static int test_facts_v2_render_asm_source_infers_lvo_from_base_field_slot(void)
   M68K_C_ASSERT(strstr(source, "\tmovea.l d0,a2\n") != NULL);
   M68K_C_ASSERT(strstr(source, "app_ExecBase RS.L 1\n") != NULL);
   M68K_C_ASSERT(strstr(source, "\tmove.l a6,app_ExecBase(a2)\n") != NULL);
-  M68K_C_ASSERT(strstr(source, "\tmovea.l $0008(a7),a6\n") != NULL);
+  M68K_C_ASSERT(strstr(source, "\tmovea.l a2,a6\n") != NULL);
   M68K_C_ASSERT(strstr(source, "\tmovea.l app_ExecBase(a6),a6\n") != NULL);
   M68K_C_ASSERT(strstr(source, "\tjsr _LVOFindTask(a6)\n") != NULL);
   M68K_C_ASSERT_U32(0U, profile.asm_source_refused);
@@ -25590,6 +25594,7 @@ static int test_facts_v2_render_asm_source_infers_openlibrary_base_field_slot(vo
   };
   memset(&section, 0, sizeof(section));
   M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  object.platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
   section.kind = M68K_SECTION_CODE;
   section.size = sizeof(bytes);
   section.data_size = sizeof(bytes);
@@ -34684,6 +34689,7 @@ static int test_facts_v2_render_asm_source_infers_lvo_immediate_for_indexed_wrap
   };
   memset(&section, 0, sizeof(section));
   M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  object.platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
   section.kind = M68K_SECTION_CODE;
   section.size = sizeof(bytes);
   section.data_size = sizeof(bytes);
@@ -34814,6 +34820,7 @@ static int test_facts_v2_render_asm_source_ignores_ambiguous_wrapper_stack_arg(v
   };
   memset(&section, 0, sizeof(section));
   M68K_C_ASSERT_INT(0, m68k_object_create(&object));
+  object.platform_backend_kind = M68K_PLATFORM_BACKEND_AMIGA_HUNK;
   section.kind = M68K_SECTION_CODE;
   section.size = sizeof(bytes);
   section.data_size = sizeof(bytes);

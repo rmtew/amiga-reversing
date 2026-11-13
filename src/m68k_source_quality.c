@@ -13145,6 +13145,10 @@ static int append_expected_hardware_register_value_domain_symbol_accesses(M68kSo
     const M68kDecodeIR *decode, uint8_t *const *accepted_start) {
   size_t section_index;
   if (source_analysis == NULL) return -1;
+  /* These value domains are defined by the Amiga custom-chip register set.
+   * Shared executables can contain dormant code for another machine; its
+   * numeric operands must not acquire unbound platform symbols here. */
+  if (source_analysis->platform_backend_kind != M68K_PLATFORM_BACKEND_AMIGA_HUNK) return 0;
   if (decode == NULL || accepted_start == NULL) return 0;
   for (section_index = 0U; section_index < source_analysis->section_count; ++section_index) {
     M68kSectionAnalysisIR *section_analysis = &source_analysis->sections[section_index];
@@ -13236,6 +13240,10 @@ static int append_expected_register_derived_hardware_value_domain_symbol_accesse
     size_t hardware_base_seed_count) {
   size_t section_index;
   if (source_analysis == NULL) return -1;
+  /* These value domains are defined by the Amiga custom-chip register set.
+   * Shared executables can contain dormant code for another machine; its
+   * numeric operands must not acquire unbound platform symbols here. */
+  if (source_analysis->platform_backend_kind != M68K_PLATFORM_BACKEND_AMIGA_HUNK) return 0;
   if (decode == NULL || accepted_start == NULL) return 0;
   for (section_index = 0U; section_index < source_analysis->section_count; ++section_index) {
     M68kSectionAnalysisIR *section_analysis = &source_analysis->sections[section_index];

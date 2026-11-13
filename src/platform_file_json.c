@@ -12192,6 +12192,50 @@ int source_file_listing_source_offset_row_from_render_plan_with_index(const M68k
   return 0;
 }
 
+/* A source coordinate can own both a label and bytes. Resolve the full durable
+ * (section, offset, kind) identity through the same subline metadata used by the
+ * canonical serializer; do not replace it with a preferred containing row. */
+int source_file_listing_source_identity_row_from_render_plan_with_index(const M68kRenderPlan *plan,
+    const PlatformListingRowIndex *index, uint32_t section, uint32_t offset, const char *kind,
+    size_t *out_row, int *out_found, M68kDiagSink diagnostics) {
+  size_t i;
+  if (out_row) *out_row = 0U;
+  if (out_found) *out_found = 0;
+  if (!plan || !index || !index->entries || !kind || !out_row || !out_found ||
+      (strcmp(kind, "label") && strcmp(kind, "instruction") && strcmp(kind, "data"))) {
+    m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_PLATFORM_FILE_FAILED,
+      "invalid canonical source identity");
+    return -1;
+  }
+  for (i = 0; i < index->row_count; ++i) {
+    const PlatformListingRowIndexEntry *entry = &index->entries[i];
+    const M68kRenderPlanRow *row;
+    uint32_t source_offset, source_size = 0U;
+    uint8_t row_kind;
+    if (!entry->has_plan_row || entry->plan_row_index >= plan->row_count) continue;
+    row = &plan->rows[entry->plan_row_index];
+    if (row->source_section_index != section) continue;
+    row_kind = listing_row_kind_id_for_plan_row(row);
+    source_offset = row->source_offset;
+    if (listing_plan_subline_is_directive(row, entry->subline)) continue;
+    if (listing_plan_subline_is_label(row, entry->subline, &source_offset, NULL, NULL)) {
+      row_kind = LISTING_ROW_KIND_LABEL;
+    } else if (!m68k_render_plan_row_source_line_range(row, entry->subline, &source_offset, &source_size)) {
+      if (!row->has_source_range && row_kind != LISTING_ROW_KIND_LABEL) continue;
+      source_offset = row->source_offset;
+    }
+    if (source_offset != offset || strcmp(listing_row_kind_name(row_kind), kind)) continue;
+    if (*out_found) {
+      *out_found = 0;
+      m68k_diag_add(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_PLATFORM_FILE_FAILED,
+        "ambiguous canonical source identity");
+      return -1;
+    }
+    *out_found = 1; *out_row = i;
+  }
+  return 0;
+}
+
 int source_file_listing_runtime_address_row_from_render_plan_with_index(const M68kRenderPlan *render_plan,
     const PlatformListingRowIndex *row_index, uint32_t address, size_t *out_row, int *out_found,
     M68kDiagSink diagnostics) {

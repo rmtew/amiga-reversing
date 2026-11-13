@@ -434,6 +434,16 @@ class _RowsCListingArtifact:
                 return serialized
         return None
 
+    def row_for_source_identity(self, *, section_index: int, offset: int, kind: str):
+        matches = []
+        for index, row in enumerate(self.rows):
+            start = row.start_offset if row.start_offset is not None else row.addr
+            if row.section_index == section_index and start == offset and row.kind == kind:
+                serialized = dict(serialize_row(row))
+                serialized["row_index"] = index
+                matches.append(serialized)
+        return matches[0] if len(matches) == 1 else None
+
     def anchor_window_payload(self, *, anchor_code: str, count: int):
         start = _test_listing_anchor_code_start(self.rows, anchor_code)
         return _test_listing_index_window_payload(self.rows, start, count, self.api_calls_by_row_id), {}

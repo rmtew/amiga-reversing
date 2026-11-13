@@ -123,7 +123,7 @@ class ReproductionRelocationRecord(StrEnum):
     SHORT = "short"
 
 
-REPRODUCTION_BACKENDS = {"auto", "amiga-hunk", "atari-st", "amiga-raw"}
+REPRODUCTION_BACKENDS = {"auto", "amiga-hunk", "atari-st", "amiga-raw", "atari-st-raw"}
 REPRODUCTION_ANALYSIS_STAMP = "facts_v2"
 REPRODUCTION_ASSEMBLERS = {"our"}
 REPRODUCTION_ORACLE_MODES = {"vasm", "devpac"}
@@ -515,7 +515,7 @@ class RoundTripVerificationWorkflow:
             use_facts_v2_native_reproduction = source_text is None
             use_facts_v2_direct_rebuild = (
                 use_facts_v2_native_reproduction
-                and backend != "amiga-raw"
+                and not paths.binary_source.kind.is_raw
                 and not source_assembly_debug
             )
             use_facts_v2_direct_compare = use_facts_v2_direct_rebuild
@@ -1066,7 +1066,7 @@ class RoundTripVerificationWorkflow:
                 )
                 layout_started_at = time.perf_counter()
                 file_layout = _comparison_profile_file_layout(c_compare_profile, "reproduction_compare")
-                if not file_layout and backend == "amiga-raw":
+                if not file_layout and paths.binary_source.kind.is_raw:
                     file_layout = file_layout_for_binary_source(paths.binary_source, backend=backend, data=original)
                 _record_profile_timing(round_trip_profile, "file_layout_seconds", layout_started_at)
                 if c_compare_profile is not None:
@@ -1415,7 +1415,7 @@ def _input_reproduction_policy(input_stamp: dict[str, object]) -> dict[str, obje
 
 def backend_for_binary_source(binary_source: BinarySource) -> str:
     if isinstance(binary_source, RawBinarySource):
-        return "amiga-raw"
+        return binary_source.backend_name
     if isinstance(binary_source, HunkFileBinarySource):
         if binary_source.path.suffix.lower() in {".prg", ".tos", ".ttp"}:
             return "atari-st"
@@ -1756,7 +1756,7 @@ def _comparison_for_rebuilt_bytes(
     canonical_diff_ranges: list[dict[str, object]],
     file_layout: list[dict[str, object]],
 ) -> tuple[dict[str, object], dict[str, object] | None]:
-    if backend != "amiga-raw":
+    if not binary_source.kind.is_raw:
         direct_profile = reproduction_compare_rebuilt_bytes_with_c_backend_profile(
             binary_source,
             rebuilt,
@@ -2198,7 +2198,7 @@ def _platform_file_lib_path(project_root: Path) -> Path:
 def _include_dir_for_backend(backend: str, project_root: Path) -> Path | None:
     if backend in {"amiga-hunk", "amiga-raw"}:
         return project_root / "ext" / "amiga_includes" / "ndk_2.0" / "include"
-    if backend == "atari-st":
+    if backend in {"atari-st", "atari-st-raw"}:
         return project_root / "ext" / "atarist_includes" / "devpac_3_10" / "include"
     return None
 

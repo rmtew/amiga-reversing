@@ -1595,7 +1595,7 @@ static int render_lookup_collect_recovered_function_args_from_wrapper(M68kRender
     platform_state_apply_policy_register_seeds(&state, lookup->policy, section->section_index, cursor);
     if (m68k_decode_candidate_to_instruction(candidate, &instruction) != 0) break;
     attach_known_instruction_relocations(lookup, section->section_index, candidate, &instruction);
-    vector = attach_amiga_lvo_symbol_if_known(&state, &instruction);
+    vector = attach_amiga_lvo_symbol_if_known(lookup, &state, &instruction);
     if (vector == NULL) {
       vector = attach_amiga_lvo_immediate_if_known(lookup, section, accepted_start[wrapper_section_index],
         candidate, &instruction);
@@ -8137,7 +8137,7 @@ static const AmigaOsLibraryVectorInfo *discover_direct_platform_thunk_at(const M
       cursor += candidate->byte_count;
       continue;
     }
-    vector = attach_amiga_lvo_symbol_if_known(&state, &instruction);
+    vector = attach_amiga_lvo_symbol_if_known(lookup, &state, &instruction);
     if (vector == NULL) vector = attach_amiga_lvo_immediate_if_known(lookup, section, accepted_start[section_index],
       candidate, &instruction);
     if (vector == NULL && instruction_has_call_flow_local(&instruction)) {
@@ -10668,7 +10668,7 @@ static int typed_flow_infer_local_helper_output_reg_at(M68kRenderLookup *lookup,
       return typed_flow_choose_helper_output_reg(&typed_state, &expected_vector->output,
         out_reg_kind, out_reg_index);
     }
-    platform_vector = attach_amiga_lvo_symbol_if_known(&platform_state, &instruction);
+    platform_vector = attach_amiga_lvo_symbol_if_known(lookup, &platform_state, &instruction);
     immediate_vector = attach_amiga_lvo_immediate_if_known(lookup, section, accepted_start[section_index],
       candidate, &instruction);
     wrapper_vector = resolve_amiga_indexed_wrapper_call_vector(lookup, &platform_state, section, candidate);
@@ -10732,7 +10732,7 @@ static const AmigaOsLibraryVectorInfo *typed_flow_resolve_vector(M68kRenderLooku
       platform_state == NULL || instruction == NULL) {
     return NULL;
   }
-  platform_vector = attach_amiga_lvo_symbol_if_known(platform_state, instruction);
+  platform_vector = attach_amiga_lvo_symbol_if_known(lookup, platform_state, instruction);
   immediate_vector = attach_amiga_lvo_immediate_if_known(lookup, section, accepted_start[section->section_index],
     candidate, instruction);
   wrapper_call_vector = resolve_amiga_indexed_wrapper_call_vector(lookup, platform_state, section, candidate);
@@ -10779,7 +10779,7 @@ void m68k_analysis_render_lookup_resolve_amiga_instruction_platform_vectors(cons
       candidate == NULL || instruction == NULL) {
     return;
   }
-  resolution->platform_vector = attach_amiga_lvo_symbol_if_known(platform_state, instruction);
+  resolution->platform_vector = attach_amiga_lvo_symbol_if_known(lookup, platform_state, instruction);
   resolution->immediate_vector = attach_amiga_lvo_immediate_if_known(lookup, section, accepted_start, candidate,
     instruction);
   resolution->wrapper_call_vector = resolve_amiga_indexed_wrapper_call_vector(lookup, platform_state, section,
@@ -18110,7 +18110,7 @@ const AmigaOsLibraryVectorInfo *resolve_amiga_direct_wrapper_vector_at(const M68
       cursor += candidate->byte_count;
       continue;
     }
-    vector = attach_amiga_lvo_symbol_if_known(&state, &instruction);
+    vector = attach_amiga_lvo_symbol_if_known(lookup, &state, &instruction);
     if (vector != NULL) {
       if (instruction.mnemonic_id == M68K_ASM_MNEMONIC_JMP) return vector;
       pending_vector = vector;
@@ -18190,7 +18190,7 @@ static const AmigaOsLibraryVectorInfo *resolve_amiga_local_helper_primary_vector
     platform_state_apply_policy_register_seeds(&state, lookup->policy, section->section_index, cursor);
     if (m68k_decode_candidate_to_instruction(candidate, &instruction) != 0) break;
     attach_known_instruction_relocations(lookup, section->section_index, candidate, &instruction);
-    vector = attach_amiga_lvo_symbol_if_known(&state, &instruction);
+    vector = attach_amiga_lvo_symbol_if_known(lookup, &state, &instruction);
     if (vector != NULL) return vector;
     vector = attach_amiga_lvo_immediate_if_known(lookup, section, accepted_start[section_index], candidate,
       &instruction);

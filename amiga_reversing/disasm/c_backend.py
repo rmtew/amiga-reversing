@@ -1781,6 +1781,9 @@ def _cached_platform_file_dll(project_root: Path) -> CDLL:
         POINTER(c_void_p),
     ]
     dll.platform_file_facts_v2_listing_artifact_addr_window_json_alloc.restype = c_int
+    dll.platform_file_facts_v2_listing_artifact_source_identity_row_json_alloc.argtypes = [
+        c_void_p, c_uint32, c_uint32, c_char_p, POINTER(c_void_p)]
+    dll.platform_file_facts_v2_listing_artifact_source_identity_row_json_alloc.restype = c_int
     dll.platform_file_facts_v2_listing_artifact_source_offset_row_json_alloc.argtypes = [
         c_void_p,
         c_int,
@@ -2475,6 +2478,21 @@ class CListingArtifact:
             row["row_index"] = row_index
         return row
 
+    def row_for_source_identity(self, *, section_index: int, offset: int, kind: str) -> dict[str, object] | None:
+        if kind not in {"label", "instruction", "data"}:
+            return None
+        if any(type(v) is not int or not 0 <= v <= 0xFFFFFFFF for v in (section_index, offset)):
+            raise ValueError("Invalid canonical source coordinates")
+        combined = json.loads(self._text_from_artifact_call(
+            self._dll.platform_file_facts_v2_listing_artifact_source_identity_row_json_alloc,
+            section_index, offset, kind))
+        if combined.get("found") is not True:
+            return None
+        rows = _c_listing_row_dicts(combined.get("listing", {}).get("rows", []))
+        if len(rows) != 1:
+            raise ValueError("Native source identity did not resolve one canonical row")
+        return {**rows[0], "row_index": combined["row_index"]}
+
     def source_for_runtime_address(self, *, address: int) -> dict[str, object]:
         """Resolve canonical source identity through current materialized native views."""
         if type(address) is not int or not 0 <= address <= 0xFFFFFFFF:
@@ -2796,8 +2814,8 @@ def _source_file_for_c_backend(
             staging_profile.update({"kind": "direct_path", "source_read_bytes": 0, "source_staging_bytes": 0,
                                     "source_read_seconds": 0.0, "source_staging_seconds": 0.0})
         yield _CBackendSourceFile(
-            binary_source.path,
-            "amiga-raw",
+            binary_source.materialized_path,
+            binary_source.backend_name,
             binary_source.analysis_entrypoint,
             binary_source.load_address if binary_source.address_model is RawAddressModel.RUNTIME_ABSOLUTE else None,
         )
@@ -2806,7 +2824,7 @@ def _source_file_for_c_backend(
 
 
 def _platform_include_dir_for_listing(platform_name: str, project_root: Path) -> Path:
-    if platform_name == "atari-st":
+    if platform_name in {"atari-st", "atari-st-raw"}:
         return project_root / "ext" / "atarist_includes" / "devpac_3_10" / "include"
     return project_root / "ext" / "amiga_includes" / "ndk_2.0" / "include"
 

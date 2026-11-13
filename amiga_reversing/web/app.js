@@ -597,6 +597,10 @@ function formatProjectDetails(projectData) {
   }
   const details = [];
   details.push(projectData.project.id);
+  if (projectData.project.game_family) {
+    details.push(`${projectData.project.game_family} / ${projectData.project.release_id}`);
+    if (projectData.project.artifact_phase) details.push(projectData.project.artifact_phase.replaceAll("_", " "));
+  }
   if (projectData.project.binary_path) {
     details.push(projectData.project.binary_path);
   }
@@ -643,6 +647,10 @@ function buildProjectBadges(project, projectData = null) {
   const filesystem = analysis && analysis.filesystem ? analysis.filesystem : null;
   const diskInfo = analysis && analysis.disk_info ? analysis.disk_info : null;
   const badges = [];
+  if (project.game_family && project.release_id) {
+    badges.push({label: project.release_id.replaceAll("_", " "),
+      title: `${project.game_family}${project.artifact_phase ? ` / ${project.artifact_phase.replaceAll("_", " ")}` : ""}`});
+  }
   if (project.kind === "binary") {
     const targetType = project.target_type || "executable";
     badges.push({

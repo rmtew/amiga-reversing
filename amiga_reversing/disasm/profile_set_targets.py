@@ -220,7 +220,7 @@ def _copy_existing_binary_targets(project_root: Path, *, repo_root: Path, limit:
         if limit is not None and len(target_names) >= limit:
             break
         source_payload = cast(dict[str, object], json.loads(source_path.read_text(encoding="utf-8")))
-        if _source_payload_kind(source_payload) is BinarySourceKind.RAW_BINARY:
+        if _source_payload_kind(source_payload).is_raw:
             continue
         source_payload = _absolute_source_payload(source_payload, repo_root=repo_root)
         target_name = _integration_target_name("existing", f"{index}-{source_path.parent}")
@@ -348,7 +348,7 @@ def _import_amiga_disk_targets(
     return [
         target_name
         for target_name in target_names
-        if _target_source_kind(project_root, target_name) is not BinarySourceKind.RAW_BINARY
+        if not _target_source_kind(project_root, target_name).is_raw
     ]
 
 

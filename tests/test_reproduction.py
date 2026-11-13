@@ -316,7 +316,7 @@ def test_reproduction_named_phases_delegate_to_owned_operations(monkeypatch: pyt
 
 
 def test_reproduction_comparison_phase_returns_comparison_profile(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
-    source = SimpleNamespace(read_bytes=lambda: b"\x4e\x75")
+    source = SimpleNamespace(kind=BinarySourceKind.HUNK_FILE, read_bytes=lambda: b"\x4e\x75")
     compare_profile = _mock_c_compare_profile(b"\x4e\x75", b"\x4e\x75")
     monkeypatch.setattr(
         reproduction,
