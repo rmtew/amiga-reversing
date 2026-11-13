@@ -1,7 +1,8 @@
 # Proposal 047: STX import and linked game restoration
 
-Status: planned; first input gate blocked. No parser implementation, ST import,
-annotation transfer or shared-source export has started.
+Status: input access and pinned-reference parsing proved. Native parser and ST
+import have not started; the replacement-test strategy gate remains open. See
+[reference proof](../validation/sgii-stx-reference-proof.md).
 
 ## Goal and order
 
@@ -17,13 +18,11 @@ maintaining parallel legacy schemas or compatibility shims is not a goal.
 
 ## Current evidence and issues to discuss before implementation
 
-- User supplied `Starglider 2 (1988)(Rainbird).zip` as a Sediment chat attachment.
-  The attachment-specific `download_file` tool is not exposed in this executor.
-  Library lookup did not resolve it; Library visibility does not establish
-  attachment accessibility. Archive contents, format, image count, sizes and
-  hashes are **not inspected**. Enable supported attachment retrieval or stage
-  the exact archive in this workspace before the reference-parser proof. Do not
-  substitute a cracked disk or the existing Amiga ADF. Keep all game bytes private.
+- The exact supplied ZIP is readable directly in the new task. It contains one
+  STX version-3/revision-2 image. Pinned Hatari parsing reports 164 track/side
+  instances, 943 sectors, eight fuzzy/CRC-error sectors and six track-image-only
+  instances. Input identities and commands are in the reference proof above.
+  No game bytes are committed. Do not flatten away the exceptional records.
 - Our current Atari ST reader, `src/platform_atari_st_disk.c`, consumes a flat
   sector image and boot-sector/FAT metadata. It has no STX decoder.
 - Reference candidate: Hatari, inspected commit
@@ -33,8 +32,9 @@ maintaining parallel legacy schemas or compatibility shims is not a goal.
   [test registration](https://github.com/hatari/hatari/blob/b18511507bcf48dcf11f32b555774ea2f5e93fd0/tests/CMakeLists.txt),
   [unit-test registration](https://github.com/hatari/hatari/blob/b18511507bcf48dcf11f32b555774ea2f5e93fd0/tests/unit/CMakeLists.txt).
   The parser source was retrieved for inspection. Those two test registrations
-  contain no STX reference; a dedicated upstream STX suite has **not been found
-  or run**. Complete the bounded test audit before selecting this reference.
+  contain no STX reference; a dedicated upstream STX suite was **not found** after the bounded audit. The
+  parser itself has now read the supplied image with sanitizers; this is not an
+  upstream test-suite pass.
   If there is no relevant suite, raise that gap and agree the replacement
   validation before implementing our reader.
 - Hatari's STX source declares GPL version 2 or later. Default design: use a
@@ -165,8 +165,8 @@ exactness alone or require every unknown to be solved before a useful comparison
 
 ## Execution discipline
 
-Only this plan is delivered now. Resolve the input and reference-test issues
-above before implementation; raise new problems before proceeding. Keep changes
+The reference proof is delivered; native implementation remains gated on the
+replacement-test strategy above; raise new problems before proceeding. Keep changes
 in substantial tested batches on the established master branch, with concise
 current status and no repeated observation bundles. Reuse persistent analysis
 processes and regenerate only at necessary validation checkpoints. No migration
