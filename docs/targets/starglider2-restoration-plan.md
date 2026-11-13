@@ -44,11 +44,13 @@ Original payload SHA256:
 
 ## Active queue
 
-Silo/dome launchers retain nearby/distant allocation, partial initialization and
-countdown-order differences. A supplied distant-to-near switch can retain a
-zero-count parent link until distant service runs again; normal proximity
-scheduling is not established. Seven displacement bindings are presentation,
-not stronger pointer proof; the nearby dome's null-link/stale-A2 access stays raw.
+Linked/free motion, mini-rocket delay/fall, square-rocket partial Y initialization
+and Buzz Bomb construction have 279 focused checks. Preserve phase-sign pursuit,
+WORD/LONG wrapping, differing space guards, dirty record bytes and phase-only
+retirement. Supplied constructor/update sequences do not prove normal admission,
+peer lifetime or frame cadence. Next: connected surface-response consumers where
+caller evidence supports meaningful reconstruction. Silo near/distant countdown
+ordering and the nearby dome's null-link/stale-A2 access remain distinct.
 World placements retain 919 named tags, 40 packed headers and 180 placeholders.
 The earlier bomb phase-byte implication for ordinary hit credit remains withdrawn.
 

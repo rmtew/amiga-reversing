@@ -1592,6 +1592,10 @@ SG2_BROADWAY_INVERTOR_RANDOM_MASK	EQU	2047
 SG2_BUFFER_ROTATION_END_OFFSET	EQU	12
 SG2_BUFFER_ROTATION_ENTRY_BYTES	EQU	4
 SG2_BUFFER_ROTATION_INPUT_MASK	EQU	255
+SG2_BUZZ_BOMB_FREE_RESERVE	EQU	50
+SG2_BUZZ_BOMB_INITIAL_DURABILITY	EQU	2
+SG2_BUZZ_BOMB_MODEL_SCALE_SHIFT	EQU	6
+SG2_BUZZ_BOMB_SPAWN_Y_OFFSET	EQU	20
 SG2_CAPSULE_PLACEMENT_RANDOM_MASK	EQU	63
 SG2_CAPSULE_PLACEMENT_SPIN_STEP	EQU	-20
 SG2_CAPSULE_PLACEMENT_Y	EQU	-400
@@ -1690,6 +1694,8 @@ SG2_FLYING_VERTICAL_SOFT_RESET	EQU	4
 SG2_FLYING_VERTICAL_SOFT_THRESHOLD	EQU	5
 SG2_FLYING_Y_NEGATIVE_GATE	EQU	-40
 SG2_FLYING_Y_POSITIVE_GATE	EQU	40
+SG2_FREE_ACTOR_GRAVITY_STEP	EQU	2
+SG2_FREE_ACTOR_SURFACE_RETIRE_Y	EQU	-50
 SG2_GAME_OVER_POWER_DRAINAGE	EQU	1
 SG2_GAME_OVER_SHIELD_DEPLETED	EQU	2
 SG2_GATE_CONTACT_RESPONSE_PASSES	EQU	3
@@ -1753,6 +1759,7 @@ SG2_INVENTORY_GIVE_RESERVE_INCREMENT	EQU	2048
 SG2_INVENTORY_SCRATCH_PREFIX_DBF_LAST	EQU	9
 SG2_INVENTORY_TYPE_SCAN_DBF_LAST	EQU	103
 SG2_LINKED_CONTACT_AXIS_OFFSET	EQU	1800
+SG2_LINK_FOLLOW_ROTATION_STEP	EQU	32
 SG2_MASK16_SOURCE_TABLE_BYTES	EQU	32
 SG2_MASK32_SOURCE_TABLE_BYTES	EQU	128
 SG2_MASTER_MEDIA_SIGNATURE_OFFSET	EQU	30
@@ -1789,6 +1796,9 @@ SG2_MINE_HEADING_STEP	EQU	64
 SG2_MINE_SHIELD_DAMAGE	EQU	1500
 SG2_MINE_WARNING_RAW_Z_THRESHOLD	EQU	768
 SG2_MINE_Z_MAGNITUDE_WINDOW	EQU	1536
+SG2_MINI_ROCKET_FALL_STEP	EQU	2
+SG2_MINI_ROCKET_INITIAL_DELAY_MASK	EQU	31
+SG2_MINI_ROCKET_YAW_STEP	EQU	16
 SG2_MODEL_VISIBILITY_HIDDEN_BIT	EQU	1
 SG2_MOTION_VECTOR_PHASE_MASK	EQU	4095
 SG2_MUSIC_ALTERNATE_INITIAL_BLOCK_COUNT	EQU	79
@@ -2096,6 +2106,7 @@ SG2_SMEAR_X_MODULUS	EQU	320
 SG2_SPACE_EFFECT_DEFAULT_OVERRIDE_RGB	EQU	$27
 SG2_SPACE_EFFECT_OVERRIDE_RGB_BITS	EQU	$4C
 SG2_SPRITE_CONTROL_PREFIX_BYTES	EQU	4
+SG2_SQUARE_ROCKET_WORLD_Y_HIGH_WORD	EQU	65336
 SG2_STARDRIVE_ADDEND_FALL_STEP	EQU	300
 SG2_STARDRIVE_ADDEND_LIMIT	EQU	16000
 SG2_STARDRIVE_ADDEND_RISE_STEP	EQU	100
@@ -12077,7 +12088,7 @@ schedule_flying_actor_phase_actions:
 	beq.w try_transport_or_buzz_bomber_type2_spawn
 	andi.w #255,d0
 	beq.w try_buzz_bomber_type6_spawn
-abs_0_00009106:
+continue_flying_phase_mask_tests_after_spawn_attempt:
 	andi.b #63,d0
 	beq.w abs_0_00009248
 	andi.b #31,d0
@@ -12135,13 +12146,14 @@ abs_0_000091B4:
 	addi.w #200,d1
 	andi.w #4095,d1
 	bra.w blend_actor_heading_and_secondary_rotation
+    ; Space flag must be zero, type 33 and unsigned free count >50. Rejects resume phase tests. Accepted spawn copies XYZ/velocities, adds Y20 and retains unwritten child bytes; no PRNG call.
 try_buzz_bomber_type6_spawn:
 	tst.b space_environment_flag(a6)
-	bne.w abs_0_00009106
+	bne.w continue_flying_phase_mask_tests_after_spawn_attempt
 	cmpi.w #SG2_OBJECT_TYPE_EGRON_BUZZ_BOMBER,(a0)	; operand 2: SG2ObjectCore_object_type at (a0)
-	bne.w abs_0_00009106
-	cmpi.w #50,free_object_count(a6)
-	bls.w abs_0_00009106
+	bne.w continue_flying_phase_mask_tests_after_spawn_attempt
+	cmpi.w #SG2_BUZZ_BOMB_FREE_RESERVE,free_object_count(a6)
+	bls.w continue_flying_phase_mask_tests_after_spawn_attempt
 	movea.l free_object_stack_cursor(a6),a1
 	movea.l -(a1),a2
 	move.l a1,free_object_stack_cursor(a6)
@@ -12153,12 +12165,13 @@ try_buzz_bomber_type6_spawn:
 	move.l SG2ObjectCore_world_x(a0),SG2ObjectCore_world_x(a2)
 	move.l SG2ObjectCore_world_y(a0),SG2ObjectCore_world_y(a2)
 	move.l SG2ObjectCore_world_z(a0),SG2ObjectCore_world_z(a2)
-	addi.l #20,SG2ObjectCore_world_y(a2)
-	move.b #$2,SG2ObjectCore_durability_or_negative(a2)
+	addi.l #SG2_BUZZ_BOMB_SPAWN_Y_OFFSET,SG2ObjectCore_world_y(a2)
+	move.b #SG2_BUZZ_BOMB_INITIAL_DURABILITY,SG2ObjectCore_durability_or_negative(a2)
 	st.b SG2ObjectCore_retirement_phase_or_negative(a2)
-	move.b #$6,SG2ObjectCore_model_scale_shift(a2)
+	move.b #SG2_BUZZ_BOMB_MODEL_SCALE_SHIFT,SG2ObjectCore_model_scale_shift(a2)
     ; KNOWN: type A2=Target code-entry register seed:SG2WorldObject
 	move.w #SG2_OBJECT_TYPE_BUZZ_BOMB,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
+    ; Parent ignores type 6; child ignores type 33 and stores link -1. Old flags/rotations/counters remain. A supplied child reaches phase zero without this body returning its free-list slot.
 	move.b #SG2_OBJECT_TYPE_BUZZ_BOMB,SG2TargetingObject_collision_ignored_object_type(a0)
 	move.b #SG2_OBJECT_TYPE_EGRON_BUZZ_BOMBER,SG2TargetingObject_collision_ignored_object_type(a2)
 	move.l #$FFFFFFFF,SG2WorldObject_linked_record_or_sentinel(a2)
@@ -12809,7 +12822,7 @@ finish_capsule_spin_step_before_translation_stop:
 latch_capsule_translation_stopped:
 	st.b SG2EscapeCapsule_translation_stopped_flag(a0)
 	bra.w continue_primary_object_update_loop
-    ; Buzz Bomb/cargo: only signed-positive 3C dereferences a linked record. Inactive link sets -1 and clears velocities. Zero/negative links use free motion; valid lifetime remains assumed.
+    ; Only signed-positive link dereferences. Peer phase sign, not peer tag, chooses following. Inactive peer sets link -1 and clears all velocities before free motion; lifetime assumed.
     ; KNOWN: type A0=Target code-entry register seed:SG2WorldObject
 update_link_following_or_free_motion_object:
 	tst.l SG2WorldObject_linked_record_or_sentinel(a0)
@@ -12824,10 +12837,11 @@ update_link_following_or_free_motion_object:
 	clr.w SG2WorldObject_velocity_y(a0)
 	clr.w SG2WorldObject_velocity_z(a0)
 	bra.b integrate_free_motion_and_surface_retirement
+    ; Wrapped LONG deltas shift arithmetically by 4 before subtraction: +1..15 stalls, -1..-15 moves +1. Follow ignores velocity, space/inside gates and X/Z wrapping; angles 0/2 mask with 4095.
 approach_active_linked_record:
-	addi.w #32,SG2WorldObject_rotation_0(a0)
+	addi.w #SG2_LINK_FOLLOW_ROTATION_STEP,SG2WorldObject_rotation_0(a0)
 	andi.w #4095,SG2WorldObject_rotation_0(a0)
-	addi.w #32,SG2WorldObject_rotation_2(a0)
+	addi.w #SG2_LINK_FOLLOW_ROTATION_STEP,SG2WorldObject_rotation_2(a0)
 	andi.w #4095,SG2WorldObject_rotation_2(a0)
 	move.l SG2ObjectCore_world_x(a0),d0
 	move.l SG2ObjectCore_world_y(a0),d1
@@ -12845,6 +12859,7 @@ approach_active_linked_record:
 	sub.l d1,SG2ObjectCore_world_y(a0)
 	sub.l d2,SG2ObjectCore_world_z(a0)
 	bra.w continue_primary_object_update_loop
+    ; Integrate signed WORD velocities, wrap X/Z, then test any nonzero space/inside BYTE. Surface Y >= -50 marks phase only; below it halves X/Z velocities and adds 2 to VY with WORD wrap.
 integrate_free_motion_and_surface_retirement:
 	move.w SG2WorldObject_velocity_x(a0),d3
 	ext.l d3
@@ -12862,16 +12877,16 @@ integrate_free_motion_and_surface_retirement:
 	bne.w continue_primary_object_update_loop
 	tst.b inside_structure_flag(a6)
 	bne.w continue_primary_object_update_loop
-	cmpi.l #4294967246,SG2ObjectCore_world_y(a0)
-	bge.b abs_0_00009B0E
+	cmpi.l #SG2_FREE_ACTOR_SURFACE_RETIRE_Y,SG2ObjectCore_world_y(a0)
+	bge.b mark_free_actor_retirement_phase_without_unlinking
 	asr SG2WorldObject_velocity_x(a0)
-	addq.w #2,SG2WorldObject_velocity_y(a0)
+	addq.w #SG2_FREE_ACTOR_GRAVITY_STEP,SG2WorldObject_velocity_y(a0)
 	asr SG2WorldObject_velocity_z(a0)
 	bra.w continue_primary_object_update_loop
-abs_0_00009B0E:
+mark_free_actor_retirement_phase_without_unlinking:
 	sf.b SG2ObjectCore_retirement_phase_or_negative(a0)
 	bra.w continue_primary_object_update_loop
-    ; Type29: negative space flag uses shared link/free-motion path; otherwise WORD24 delays downward acceleration. Distinct from flying-actor phase and asteroid spin counters.
+    ; Negative space BYTE delegates link/free motion; positive nonzero still takes delay/fall. Any nonzero WORD delay decrements and clears VY. Inside flag is ignored; no generic retirement check.
     ; KNOWN: type A0=Target code-entry register seed:SG2MiniRocket
 update_mini_rocket_delay_then_fall:
 	tst.b space_environment_flag(a6)
@@ -12881,9 +12896,10 @@ update_mini_rocket_delay_then_fall:
 	subq.w #1,SG2MiniRocket_fall_acceleration_delay_updates(a0)
 	clr.w SG2WorldObject_velocity_y(a0)
 	bra.w continue_primary_object_update_loop
+    ; Delay zero: unmasked yaw WORD +16, VY WORD -2, then Y LONG plus new signed VY. Other coordinates/link stay unchanged. Initial delay zero retains constructor input VY before this step.
 accelerate_mini_rocket_after_delay:
-	addi.w #16,SG2WorldObject_rotation_1(a0)
-	subq.w #2,SG2WorldObject_velocity_y(a0)
+	addi.w #SG2_MINI_ROCKET_YAW_STEP,SG2WorldObject_rotation_1(a0)
+	subq.w #SG2_MINI_ROCKET_FALL_STEP,SG2WorldObject_velocity_y(a0)
 	move.w SG2WorldObject_velocity_y(a0),d0
 	ext.l d0
 	add.l SG2ObjectCore_world_y(a0),d0
@@ -25929,14 +25945,15 @@ append_object_initializer_chain_link:
     ; Type28 initializes pitch1024, then writes only the high WORD of LONG world Y. Preserve that partial write; this is not a LONG assignment of -200.
     ; KNOWN: type A0=Target code-entry register seed:SG2FlyingActor
 initialize_square_rocket_attitude_and_y_high_word:
-	move.w #$400,SG2WorldObject_rotation_0(a0)
-	move.w #$FF38,SG2ObjectCore_world_y(a0)
+	move.w #SG2_ANGLE_QUARTER_TURN,SG2WorldObject_rotation_0(a0)
+	move.w #SG2_SQUARE_ROCKET_WORLD_Y_HIGH_WORD,SG2ObjectCore_world_y(a0)
 	bset.b #7,SG2ObjectCore_durability_or_negative(a0)
 	rts
+    ; One real PRNG advance supplies delay low 5 bits; link becomes -1. Other record bytes, including VY, remain. Delay counts service calls, not a proven normal-frame interval.
     ; KNOWN: type A0=Target code-entry register seed:SG2MiniRocket
 initialize_mini_rocket_delay_and_link:
 	bsr.w advance_shared_random_state_bridge_017968
-	andi.w #31,d0
+	andi.w #SG2_MINI_ROCKET_INITIAL_DELAY_MASK,d0
 	move.w d0,SG2MiniRocket_fall_acceleration_delay_updates(a0)
 	move.l #$FFFFFFFF,SG2WorldObject_linked_record_or_sentinel(a0)
 	rts
