@@ -6,7 +6,7 @@ claim of complete gameplay/hardware equivalence.
 
 ## Current validated baseline
 
-Current validated export: 3517 app references, 2843 typed accesses, 181 unresolved
+Current validated export: 3517 app references, 2844 typed accesses, 180 unresolved
 accesses; 9681 unclassified bytes in 271 intervals. These are analysis counts,
 not semantic completion percentages. The phrase-counter
 references retain declared-layout A6 fallback; the role declaration adds no
@@ -44,13 +44,16 @@ Original payload SHA256:
 
 ## Active queue
 
-The blowhole's type38 producer uses the established horizontal-motion view at
-WORD +$20. Its initialized WORDs +$24/+$26 remain unexplained. The 315 CPU cases
-cover emission gates, stored animation turns, partial records and ballistic
-updates; a closed initializer/update witness emits three children, retaining
-their backlinks as the parent selects the latest. This is not normal-play
-timing or unique ownership. The tunnel reader remains explicit presentation,
-not new A2 typing. Junk/launcher/capsule aliases retain their separate unknowns.
+Whale/duck placement, whale/Pac Worm animation, duck turn frames and shared
+horizontal steering are reconstructed with 780 original-CPU cases. The steering
+BYTE mask retains the counter's high byte; its heading bias is not universally
+-16..15. The type24 constructor's fixed rotation is consumed by the regular
+model-pose reader, supporting its specific WorldObject input view. Two cached
+player-coordinate displacements and the tunnel reader remain presentation,
+not stronger pointer/lifetime proof. The shared animal BYTE +31 has a proven
+step role only in the duck update. Blowhole WORDs +$24/+$26 and
+junk/launcher/capsule aliases retain their separate unknowns. These supplied
+contexts do not establish normal-play reachability, ownership or hardware timing.
 
 1. Exact tag stores, bounded MOVEM cursors and opaque leading-record address
    identities are supported. Undeclared prefix bytes retain no field meaning.

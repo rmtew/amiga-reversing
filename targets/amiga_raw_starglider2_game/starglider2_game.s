@@ -1545,6 +1545,16 @@ SG2_ANGLE_FULL_TURN	EQU	4096
 SG2_ANGLE_HALF_TURN	EQU	2048
 SG2_ANGLE_QUARTER_TURN	EQU	1024
 SG2_ANGLE_THREE_QUARTER_TURN	EQU	3072
+SG2_ANIMAL_COUNTER_HEADING_BIAS	EQU	16
+SG2_ANIMAL_COUNTER_LOW_BYTE_MASK	EQU	31
+SG2_ANIMAL_EVASION_RELOAD	EQU	50
+SG2_ANIMAL_HEIGHT_ABOVE_REFERENCE	EQU	1024
+SG2_ANIMAL_INITIAL_HORIZONTAL_SCALE	EQU	-130
+SG2_ANIMAL_PLAYER_X_WINDOW	EQU	800
+SG2_ANIMAL_PLAYER_Z_WINDOW	EQU	700
+SG2_ANIMAL_RANDOM_BEHAVIOR_MASK	EQU	7
+SG2_ANIMAL_RANDOM_EVASION_MASK	EQU	1023
+SG2_ANIMAL_RANDOM_HEIGHT_MASK	EQU	8191
 SG2_BACKFACE_CROSS_RIGHT_SHIFT	EQU	6
 SG2_BACKFACE_POSITION_RIGHT_SHIFT	EQU	5
 SG2_BLAST_DOOR_OBJECT_VARIANT_THRESHOLD	EQU	3
@@ -1641,6 +1651,7 @@ SG2_DISC_SORT_DEPTH_SHIFT	EQU	14
 SG2_DISK_CRC16_POLYNOMIAL	EQU	$1021
 SG2_DISTANT_RETIREMENT_CURSOR_MASK	EQU	31
 SG2_DISTANT_RETIREMENT_TICK_MASK	EQU	255
+SG2_DUCK_UPPER_TURN_VARIANT	EQU	7
 SG2_EFFECT_FADE_BYTE_SHIFT	EQU	3
 SG2_EFFECT_RANDOM_RGB_MASK	EQU	$FFF
 SG2_ENCOUNTER_CHOICE_INDEX_MASK	EQU	15
@@ -1856,6 +1867,8 @@ SG2_OVERLAY_MIN_LEFT	EQU	16
 SG2_OVERLAY_MIN_TOP	EQU	30
 SG2_OVERLAY_ROWS_DBF_LAST	EQU	15
 SG2_OVERLAY_ROW_BYTE_STEP	EQU	160
+SG2_PAC_WORM_STATIONARY_VARIANT_MAX	EQU	14
+SG2_PAC_WORM_VARIANT_WRAP_VALUE	EQU	24
 SG2_PANEL_INTERLEAVE_GROUP_BYTE_SHIFT	EQU	$3
 SG2_PANEL_WORD_PAIR_BITS_DBF_LAST	EQU	$F
 SG2_PAULA_CHANNEL0_INITIAL_SKIP_BYTES	EQU	8
@@ -2077,6 +2090,7 @@ SG2_VOLCANO_REFILL_XZ_WINDOW	EQU	200
 SG2_WEAPON_HUD_ICON_ROWS_DBF_LAST	EQU	13
 SG2_WEAPON_HUD_ICON_SAVED_BYTES	EQU	112
 SG2_WEAPON_HUD_ICON_SLOT_MASK	EQU	7
+SG2_WHALE_VARIANT_WRAP_VALUE	EQU	22
 SG2_WORKSPACE_BELOW_DISPLAY_BYTES	EQU	$6998
 SG2_WORKSPACE_CLEAR_WORDS	EQU	$32CC
 SG2_WORLD_ENTRY_PITCH_PHASE	EQU	$F0A
@@ -11448,16 +11462,18 @@ advance_space_ray_frame_then_update:
 	bne.w update_shared_flying_actor
 	move.b #$0,SG2ObjectCore_vertex_variant_selector(a0)
 	bra.w update_shared_flying_actor
+    ; Increment BYTE first: values 0..14 skip motion; 24 resets to zero and moves. Other values move. Loaded out-of-range values wrap as BYTEs, without clamping.
     ; KNOWN: type A0=Target code-entry register seed:SG2EvasiveActor
 advance_pac_worm_vertex_and_motion_phase:
 	addi.b #1,SG2ObjectCore_vertex_variant_selector(a0)
+test_pac_worm_motion_variant_window:
 	move.b SG2ObjectCore_vertex_variant_selector(a0),d2
-	cmp.b #$18,d2
-	beq.b abs_0_00008A6A
-	cmp.b #$E,d2
+	cmp.b #SG2_PAC_WORM_VARIANT_WRAP_VALUE,d2
+	beq.b wrap_pac_worm_variant_and_integrate
+	cmp.b #SG2_PAC_WORM_STATIONARY_VARIANT_MAX,d2
 	bls.w continue_primary_object_update_loop
 	bra.w integrate_and_steer_horizontal_actor
-abs_0_00008A6A:
+wrap_pac_worm_variant_and_integrate:
 	move.b #$0,SG2ObjectCore_vertex_variant_selector(a0)
 	bra.w integrate_and_steer_horizontal_actor
     ; KNOWN: type A0=Target code-entry register seed:SG2WalkingActor
@@ -12139,23 +12155,25 @@ accelerate_diamond_before_exact_turn_test:
 restart_diamond_vertical_velocity:
 	move.w #SG2_FLAT_DIAMOND_RESET_Y_VELOCITY,SG2WorldObject_velocity_y(a0)
 	bra.w continue_primary_object_update_loop
+    ; Zero step skips motion. A sum of zero reverses the step and skips motion; seven reverses and still moves. Both turns retain the prior variant rather than storing the sum.
     ; KNOWN: type A0=Target code-entry register seed:SG2VertexOscillator
 oscillate_duck_vertex_variant:
 	move.b #$17,diagnostic_step_byte.l
+load_duck_animation_step:
 	move.b SG2VertexOscillator_vertex_variant_step(a0),d3
 	beq.w continue_primary_object_update_loop
 	move.b SG2ObjectCore_vertex_variant_selector(a0),d0
 	add.b d3,d0
 	cmp.b #$0,d0
-	beq.b abs_0_000093BA
-	cmp.b #$7,d0
-	beq.b abs_0_000093C4
+	beq.b reverse_duck_at_zero_without_motion
+	cmp.b #SG2_DUCK_UPPER_TURN_VARIANT,d0
+	beq.b reverse_duck_at_seven_and_integrate
 	move.b d0,SG2ObjectCore_vertex_variant_selector(a0)
 	bra.w integrate_and_steer_horizontal_actor
-abs_0_000093BA:
+reverse_duck_at_zero_without_motion:
 	move.b #$1,SG2VertexOscillator_vertex_variant_step(a0)
 	bra.w continue_primary_object_update_loop
-abs_0_000093C4:
+reverse_duck_at_seven_and_integrate:
 	move.b #$FF,SG2VertexOscillator_vertex_variant_step(a0)
 	bra.w integrate_and_steer_horizontal_actor
     ; Yaw adds 16 without masking. Y advances by the old signed velocity before the -40 test; reset paths restore Y velocity to -124 and bypass counter aging.
@@ -12251,15 +12269,17 @@ release_hover_car_link_then_steer:
     ; KNOWN: type A0=Target code-entry register seed:SG2WorldObject
 advance_mechanical_whale_vertex_cycle:
 	move.b #$19,diagnostic_step_byte.l
+advance_whale_variant_before_exact_wrap:
 	addq.b #1,SG2ObjectCore_vertex_variant_selector(a0)
 	move.b SG2ObjectCore_vertex_variant_selector(a0),d0
-	cmp.b #$16,d0
+	cmp.b #SG2_WHALE_VARIANT_WRAP_VALUE,d0
 	bne.b integrate_and_steer_horizontal_actor
 	clr.b SG2ObjectCore_vertex_variant_selector(a0)
     ; KNOWN: type A0=Target code-entry register seed:SG2EvasiveActor
 integrate_and_steer_horizontal_actor:
 	move.b #$AF,diagnostic_step_byte.l
 	movea.l player_object_reference(a6),a4
+integrate_horizontal_actor_x_and_z:
 	move.w SG2WorldObject_velocity_x(a0),d3
 	ext.l d3
 	add.l d3,SG2ObjectCore_world_x(a0)
@@ -12269,43 +12289,50 @@ integrate_and_steer_horizontal_actor:
 	move.l horizontal_world_wrap_mask(a6),d3
 	and.l d3,SG2ObjectCore_world_x(a0)
 	and.l d3,SG2ObjectCore_world_z(a0)
+    ; Active evasion bypasses distance tests. Otherwise either cached-coordinate window triggers reload 50 and a quarter turn. WORD subtraction/NEG preserve the original signed boundary behavior.
+age_actor_proximity_evasion_countdown:
 	tst.w SG2EvasiveActor_proximity_evasion_countdown(a0)
-	beq.b abs_0_0000953A
+	beq.b test_actor_cached_player_x_window
 	subq.w #1,SG2EvasiveActor_proximity_evasion_countdown(a0)
-	bne.w abs_0_00009590
-abs_0_0000953A:
+	bne.w quarter_turn_actor_heading_from_player
+test_actor_cached_player_x_window:
 	move.w SG2TargetingObject_pre_view_relative_x(a0),d2
-	sub.w $0032(a4),d2
+	sub.w SG2TargetingObject_pre_view_relative_x(a4),d2
 	bpl.b abs_0_00009546
 	neg.w d2
 abs_0_00009546:
-	cmp.w #$320,d2
-	ble.b abs_0_0000958A
+	cmp.w #SG2_ANIMAL_PLAYER_X_WINDOW,d2
+	ble.b reload_actor_near_player_evasion
+test_actor_cached_player_z_window:
 	move.w SG2TargetingObject_pre_view_relative_z(a0),d2
-	sub.w $0036(a4),d2
+	sub.w SG2TargetingObject_pre_view_relative_z(a4),d2
 	bpl.b abs_0_00009558
 	neg.w d2
 abs_0_00009558:
-	cmp.w #$2BC,d2
-	ble.b abs_0_0000958A
+	cmp.w #SG2_ANIMAL_PLAYER_Z_WINDOW,d2
+	ble.b reload_actor_near_player_evasion
+age_actor_periodic_heading_counter:
 	subq.w #1,SG2ScheduledActor_behavior_update_counter(a0)
 	move.w SG2ScheduledActor_behavior_update_counter(a0),d0
-	andi.b #31,d0
-	beq.b abs_0_00009570
+	andi.b #SG2_ANIMAL_COUNTER_LOW_BYTE_MASK,d0
+	beq.b compute_periodic_actor_player_heading
 	bra.w continue_primary_object_update_loop
-abs_0_00009570:
+compute_periodic_actor_player_heading:
 	bsr.w heading_with_player_as_reference
+    ; Periodic steering decrements the WORD twice. ANDI.B preserves its high byte before subtracting 16, so the heading bias is not universally -16..15.
+decrement_counter_again_for_heading_bias:
 	subq.w #1,SG2ScheduledActor_behavior_update_counter(a0)
 	move.w SG2ScheduledActor_behavior_update_counter(a0),d0
-	andi.b #31,d0
-	subi.w #16,d0
+mask_counter_low_byte_for_heading_bias:
+	andi.b #SG2_ANIMAL_COUNTER_LOW_BYTE_MASK,d0
+	subi.w #SG2_ANIMAL_COUNTER_HEADING_BIAS,d0
 	add.w d0,d1
 	bra.w blend_actor_heading_and_clear_other_rotations
-abs_0_0000958A:
-	move.w #$32,SG2EvasiveActor_proximity_evasion_countdown(a0)
-abs_0_00009590:
+reload_actor_near_player_evasion:
+	move.w #SG2_ANIMAL_EVASION_RELOAD,SG2EvasiveActor_proximity_evasion_countdown(a0)
+quarter_turn_actor_heading_from_player:
 	bsr.w heading_with_player_as_reference
-	addi.w #1024,d1
+	addi.w #SG2_ANGLE_QUARTER_TURN,d1
 	bra.w blend_actor_heading_and_clear_other_rotations
     ; Types72/103: IRQ list accepts nonzero BYTE22; this handler skips local integration only for negative BYTE22. Preserve this distinction and signed life test; no boolean normalization.
     ; KNOWN: type A0=Target code-entry register seed:SG2VelocityProjectile
@@ -25372,27 +25399,33 @@ abs_0_000182DC:
 	move.w #$FE0C,SG2EmmaTransport_horizontal_motion_scale(a0)
 	sf.b SG2EmmaTransport_taymar_radio_enabled_flag(a0)
 	rts
+    ; Three PRNG calls: masked yaw, LONG-masked height, then one shared value for evasion and its low-three-bit behavior counter. A1 is saved and restored.
     ; KNOWN: type A0=Target code-entry register seed:SG2EvasiveActor
 initialize_whale_and_duck_height_and_motion:
 	bsr.w advance_shared_random_state_bridge_017968
-	andi.w #4095,d0
+	andi.w #SG2_HEADING_ANGLE_MASK,d0
 	move.w d0,SG2WorldObject_rotation_1(a0)
-	move.w #$FF7E,SG2EvasiveActor_horizontal_motion_scale(a0)
+	move.w #SG2_ANIMAL_INITIAL_HORIZONTAL_SCALE,SG2EvasiveActor_horizontal_motion_scale(a0)
 	move.l a1,-(a7)
+load_animal_world_reference_height:
 	lea.l world_reference_y_coordinates.l,a1
 	move.w selected_celestial_body_index(a6),d1
 	asl.w #2,d1
 	move.l $0(a1,d1.w),d1
-	addi.l #1024,d1
+	addi.l #SG2_ANIMAL_HEIGHT_ABOVE_REFERENCE,d1
+randomize_animal_height_above_world_reference:
 	bsr.w advance_shared_random_state_bridge_017968
-	andi.l #8191,d0
+	andi.l #SG2_ANIMAL_RANDOM_HEIGHT_MASK,d0
 	add.l d0,d1
 	move.l d1,SG2ObjectCore_world_y(a0)
+derive_correlated_animal_evasion_and_behavior_counters:
 	bsr.w advance_shared_random_state_bridge_017968
-	andi.w #1023,d0
+	andi.w #SG2_ANIMAL_RANDOM_EVASION_MASK,d0
 	move.w d0,SG2EvasiveActor_proximity_evasion_countdown(a0)
-	andi.w #7,d0
+	andi.w #SG2_ANIMAL_RANDOM_BEHAVIOR_MASK,d0
 	move.w d0,SG2ScheduledActor_behavior_update_counter(a0)
+    ; BYTE +31 is set to 1 for whale and duck. The duck consumes it as animation step; this whale update does not, so no common step field is asserted.
+initialize_shared_animal_byte31:
 	move.b #$1,$001F(a0)
 	bset.b #5,SG2ObjectCore_flags(a0)
 	movea.l (a7)+,a1
@@ -25470,25 +25503,28 @@ initialize_gbml_and_junk_shared_state:
 	bset.b #0,SG2ObjectCore_flags(a0)
 	move.w #$2,$0024(a0)
 	rts
-    ; KNOWN: type A0=Target code-entry register seed:SG2TargetingObject
+    ; Always sets rotation_0 to 1024 and flag 7. Random nibbles 0,8,4/12 choose height/scale; others retain both. The regular model-pose reader consumes this rotation.
+    ; KNOWN: type A0=Target code-entry register seed:SG2WorldObject
 initialize_petrified_tree_height_and_scale:
-	move.w #$400,$0010(a0)
+	move.w #SG2_ANGLE_QUARTER_TURN,SG2WorldObject_rotation_0(a0)
 	bset.b #7,SG2ObjectCore_flags(a0)
 	bsr.w advance_shared_random_state_bridge_017968
 	andi.b #15,d0
-	beq.b abs_0_00018472
+select_tree_height_and_scale_from_random_nibble:
+	beq.b set_tree_medium_height_and_scale
 	andi.b #7,d0
-	beq.b abs_0_00018482
+	beq.b set_tree_large_height_and_scale
 	andi.b #3,d0
 	bne.w skip_object_type_initialization
+set_tree_small_height_and_scale:
 	move.l #$FFFFFFFB,SG2ObjectCore_world_y(a0)
 	move.b #$5,SG2ObjectCore_model_scale_shift(a0)
 	rts
-abs_0_00018472:
+set_tree_medium_height_and_scale:
 	move.b #$3,SG2ObjectCore_model_scale_shift(a0)
 	move.l #$FFFFFFF6,SG2ObjectCore_world_y(a0)
 	rts
-abs_0_00018482:
+set_tree_large_height_and_scale:
 	move.b #$2,SG2ObjectCore_model_scale_shift(a0)
 	move.l #$FFFFFFEC,SG2ObjectCore_world_y(a0)
 	rts
