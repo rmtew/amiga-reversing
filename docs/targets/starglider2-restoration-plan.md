@@ -44,11 +44,11 @@ Original payload SHA256:
 
 ## Active queue
 
-The guarded type10 encounter counter now resolves through an explicit inherited
-selector namespace, without widening Core or adding a reader seed. Existing
-contracts retain immediate-parent matching; incompatible inputs, overlapping
-matches and tag/write/call invalidations remain conservative. The earlier bomb
-phase-byte implication for ordinary hit credit remains withdrawn.
+World placements expose 69 named IDs across 919 stored tags. Forty packed
+headers and 180 placeholder-name entries remain numeric. Names come from the
+148-entry UI directory; duplicate display names retain distinct IDs. Original
+high-tag table aliases are preserved, without certifying initializer targets.
+The earlier bomb phase-byte implication for ordinary hit credit remains withdrawn.
 
 1. Exact tag stores, bounded MOVEM cursors and opaque leading-record address
    identities are supported. Undeclared prefix bytes retain no field meaning.

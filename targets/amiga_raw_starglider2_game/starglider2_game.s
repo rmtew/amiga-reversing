@@ -1815,17 +1815,24 @@ SG2_OBJECT_DEPOT_APPROACH_LIMIT	EQU	455
 SG2_OBJECT_DEPOT_Z_SNAP_OFFSET	EQU	450
 SG2_OBJECT_PROFILE_EDGE_THRESHOLD	EQU	551
 SG2_OBJECT_PROFILE_HALF_WIDTH	EQU	550
+SG2_OBJECT_TYPE_ALDOS	EQU	$85
+SG2_OBJECT_TYPE_APEX	EQU	$89
+SG2_OBJECT_TYPE_APOGEE	EQU	$83
 SG2_OBJECT_TYPE_ARMED_TRANSPORT	EQU	$D
 SG2_OBJECT_TYPE_ASTEROID	EQU	$49
 SG2_OBJECT_TYPE_BLOWHOLE	EQU	$40
 SG2_OBJECT_TYPE_BOUNCING_BALL	EQU	$37
 SG2_OBJECT_TYPE_BOUNCING_BOMB	EQU	91
+SG2_OBJECT_TYPE_BROADWAY	EQU	$88
+SG2_OBJECT_TYPE_BT_TOWER	EQU	$31
 SG2_OBJECT_TYPE_BUZZ_BOMB	EQU	$6
 SG2_OBJECT_TYPE_CASE_OF_NUCLEAR_FUEL	EQU	$66
 SG2_OBJECT_TYPE_CASK_OF_VISTAN_WINE	EQU	$53
+SG2_OBJECT_TYPE_CASTRON	EQU	$87
 SG2_OBJECT_TYPE_CLUSTER_OF_NODULES	EQU	$57
 SG2_OBJECT_TYPE_COLUMBUS	EQU	$59
 SG2_OBJECT_TYPE_CRATE_OF_CASTROBARS	EQU	$64
+SG2_OBJECT_TYPE_DANTE	EQU	$81
 SG2_OBJECT_TYPE_EGRON_BIRD_FIGHTER	EQU	$23
 SG2_OBJECT_TYPE_EGRON_BUZZ_BOMBER	EQU	$21
 SG2_OBJECT_TYPE_EGRON_DOME_SILO	EQU	$2E
@@ -1843,13 +1850,21 @@ SG2_OBJECT_TYPE_EGRON_SILO	EQU	$5
 SG2_OBJECT_TYPE_EGRON_SPACE_STATION	EQU	$63
 SG2_OBJECT_TYPE_EGRON_SPACE_TUG	EQU	$16
 SG2_OBJECT_TYPE_EGRON_SPIRE_BUILDING	EQU	$3
+SG2_OBJECT_TYPE_EGRON_SQUARE_ROCKET	EQU	$1C
+SG2_OBJECT_TYPE_EMMA_2	EQU	$8
 SG2_OBJECT_TYPE_ENERGY_CUBE_LAUNCHER	EQU	84
 SG2_OBJECT_TYPE_ENERGY_TOWER_90	EQU	$5A
 SG2_OBJECT_TYPE_ENERGY_TOWER_93	EQU	$5D
+SG2_OBJECT_TYPE_ENERGY_TRANSMITTER	EQU	$36
+SG2_OBJECT_TYPE_ENOS	EQU	$86
 SG2_OBJECT_TYPE_ESCAPE_CAPSULE	EQU	$E
+SG2_OBJECT_TYPE_ESPRIT	EQU	$8A
 SG2_OBJECT_TYPE_FIGHTER_ESCORT	EQU	$2D
 SG2_OBJECT_TYPE_FLAT_DIAMOND	EQU	$26
 SG2_OBJECT_TYPE_FLYING_SAUCER	EQU	$22
+SG2_OBJECT_TYPE_GBML	EQU	$17
+SG2_OBJECT_TYPE_GBML_WITH_CANNON	EQU	$32
+SG2_OBJECT_TYPE_GROUND_BASED_LASER_CANNON	EQU	$56
 SG2_OBJECT_TYPE_HOMING_MISSILE	EQU	12
 SG2_OBJECT_TYPE_HORATIO	EQU	$11
 SG2_OBJECT_TYPE_HOVER_CAR	EQU	$27
@@ -1860,10 +1875,12 @@ SG2_OBJECT_TYPE_LARGE_BIRD	EQU	$7
 SG2_OBJECT_TYPE_LARGE_EGRON_TRANSPORT	EQU	$12
 SG2_OBJECT_TYPE_LASER_BOLT	EQU	$48
 SG2_OBJECT_TYPE_LUMP_OF_MINERAL_ROCK	EQU	$65
+SG2_OBJECT_TYPE_MILLWAY	EQU	$84
 SG2_OBJECT_TYPE_MISSILE	EQU	$19
 SG2_OBJECT_TYPE_NEUTRON_BOMB	EQU	98
 SG2_OBJECT_TYPE_NONE	EQU	$0
 SG2_OBJECT_TYPE_OLD_HEAP_OF_JUNK	EQU	$3B
+SG2_OBJECT_TYPE_PAC_WORM	EQU	$24
 SG2_OBJECT_TYPE_PERSONNEL_SHUTTLE	EQU	$20
 SG2_OBJECT_TYPE_PETRIFIED_TREE	EQU	$18
 SG2_OBJECT_TYPE_PIRATE_SHIP	EQU	$28
@@ -1871,22 +1888,40 @@ SG2_OBJECT_TYPE_PROJECTOR_CONTROL_TOWER	EQU	$50
 SG2_OBJECT_TYPE_PROJECTOR_CREW_QUARTERS	EQU	$51
 SG2_OBJECT_TYPE_PROJECTOR_FUEL_CRYSTALS	EQU	$4F
 SG2_OBJECT_TYPE_PROXIMITY_MINE	EQU	$2
+SG2_OBJECT_TYPE_PULSING_PYRAMIDS	EQU	$13
 SG2_OBJECT_TYPE_PYRAMID	EQU	$33
+SG2_OBJECT_TYPE_QUESTA	EQU	$8B
+SG2_OBJECT_TYPE_Q_BETA	EQU	$8F
+SG2_OBJECT_TYPE_SATELLITE_DISH	EQU	$2A
 SG2_OBJECT_TYPE_SCRAP_METAL_61	EQU	$3D
 SG2_OBJECT_TYPE_SCRAP_METAL_62	EQU	$3E
 SG2_OBJECT_TYPE_SKIM_DRONE	EQU	43
 SG2_OBJECT_TYPE_SKIM_MISSILE	EQU	60
 SG2_OBJECT_TYPE_SMALL_ASTEROID	EQU	$4A
 SG2_OBJECT_TYPE_SMALL_FIGHTER	EQU	$10
+SG2_OBJECT_TYPE_SOLAR_ENERGY_CONVERTER	EQU	$4
+SG2_OBJECT_TYPE_SOLICE_128	EQU	$80
+SG2_OBJECT_TYPE_SOLICE_145	EQU	$91
 SG2_OBJECT_TYPE_SPACE_FIGHTER	EQU	$1F
 SG2_OBJECT_TYPE_SPACE_RAY	EQU	$29
 SG2_OBJECT_TYPE_STARGLIDER	EQU	$1B
 SG2_OBJECT_TYPE_STOMPER	EQU	$F
+SG2_OBJECT_TYPE_SYNAPSE	EQU	$8D
+SG2_OBJECT_TYPE_TAPERING_TOWER_BLOCK	EQU	$35
+SG2_OBJECT_TYPE_TOWER_BLOCK	EQU	$34
 SG2_OBJECT_TYPE_TRIPUSS	EQU	$1A
+SG2_OBJECT_TYPE_TUG_TRUCK	EQU	$2C
+SG2_OBJECT_TYPE_TUNNEL_DEPOT	EQU	$5E
 SG2_OBJECT_TYPE_TUNNEL_ENTRANCE_EXIT	EQU	$30
+SG2_OBJECT_TYPE_TUNNEL_EXIT_INDICATORS_57	EQU	$39
+SG2_OBJECT_TYPE_TUNNEL_EXIT_INDICATORS_58	EQU	$3A
 SG2_OBJECT_TYPE_TUNNEL_SENTINEL	EQU	$14
 SG2_OBJECT_TYPE_VAMPIRE_TYPE_FIGHTER	EQU	$15
+SG2_OBJECT_TYPE_VISTA	EQU	$82
+SG2_OBJECT_TYPE_VOLCANO	EQU	$58
+SG2_OBJECT_TYPE_WACKFUNK	EQU	$8E
 SG2_OBJECT_TYPE_WALKER	EQU	$1
+SG2_OBJECT_TYPE_WESTMERE	EQU	$8C
 SG2_OVERLAY_MAX_LEFT	EQU	288
 SG2_OVERLAY_MAX_TOP	EQU	112
 SG2_OVERLAY_MIN_LEFT	EQU	16
@@ -5923,7 +5958,7 @@ prepare_radial_object_projection_scale:
 	move.l SG2RadialObject_radius_work_value(a4),SG2RadialObject_base_radius(a4)
 	bsr.w choose_radial_projection_right_shift
 	move.w d6,SG2RadialObject_projection_radius_shift(a4)
-	cmpi.w #145,SG2ObjectCore_object_type.w(a4)
+	cmpi.w #SG2_OBJECT_TYPE_SOLICE_145,SG2ObjectCore_object_type.w(a4)
 	bne.b load_regular_radial_base_radius
 	move.l solice_display_radius(a6),d4
 	bra.b scale_radial_world_delta_and_radius
@@ -8745,7 +8780,7 @@ draw_disc_span_packet_bridge_005538:
 queue_nonmodel_disc_object:
 	move.b #$98,diagnostic_step_byte.l
 	movem.l d0-d7/a0-a6,-(a7)
-	cmpi.w #128,(a4)	; operand 2: SG2ObjectCore_object_type at (a4)
+	cmpi.w #SG2_OBJECT_TYPE_SOLICE_128,(a4)	; operand 2: SG2ObjectCore_object_type at (a4)
 	beq.w select_same_primary_disc_colours
 	move.l #SG2_DISC_METRIC_ORIGIN,d0
 	move.l d0,d1
@@ -8893,7 +8928,7 @@ append_primary_disc_and_choose_layers:
 	bsr.w append_disc_queue_reference
 	tst.b space_environment_flag(a6)
 	bmi.b select_radial_disc_layer_family
-	cmpi.w #145,(a4)	; operand 2: SG2ObjectCore_object_type at (a4)
+	cmpi.w #SG2_OBJECT_TYPE_SOLICE_145,(a4)	; operand 2: SG2ObjectCore_object_type at (a4)
 	bne.b select_radial_disc_layer_family
 	tst.w station_proximity_colour_ramp_step(a6)
 	bne.w mark_radial_projection_accepted
@@ -8904,7 +8939,7 @@ append_primary_disc_and_choose_layers:
 select_radial_disc_layer_family:
 	cmpi.w #147,(a4)	; operand 2: SG2ObjectCore_object_type at (a4)
 	beq.w mark_radial_projection_accepted
-	cmpi.w #128,(a4)	; operand 2: SG2ObjectCore_object_type at (a4)
+	cmpi.w #SG2_OBJECT_TYPE_SOLICE_128,(a4)	; operand 2: SG2ObjectCore_object_type at (a4)
 	bne.b build_offset_secondary_radial_disc
 	move.w (a1),d0
 	move.w type128_disc_outer_layer_index(a6),d7
@@ -40178,1177 +40213,1177 @@ world_placement_pointers:
 empty_interior_placements_end_tag:
 	dc.w $0000	; 0 original interior placements, stride 16, plus zero tag; aliases 16,17,18,20,21,22,31
 space_world_placements:
-	dc.w $0080	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_SOLICE_128	; type_and_map_flags
 	dc.l $01312D00	; world_x
 	dc.l $01312D00	; world_z
-	dc.w $0081	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_DANTE	; type_and_map_flags
 	dc.l $015EF3C0	; world_x
 	dc.l $01312D00	; world_z
-	dc.w $0082	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_VISTA	; type_and_map_flags
 	dc.l $016E3600	; world_x
 	dc.l $01312D00	; world_z
-	dc.w $0083	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_APOGEE	; type_and_map_flags
 	dc.l $01AB3F00	; world_x
 	dc.l $01312D00	; world_z
-	dc.w $0084	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_MILLWAY	; type_and_map_flags
 	dc.l $01E84800	; world_x
 	dc.l $01312D00	; world_z
-	dc.w $0085	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_ALDOS	; type_and_map_flags
 	dc.l $02255100	; world_x
 	dc.l $01312D00	; world_z
-	dc.w $0086	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_ENOS	; type_and_map_flags
 	dc.l $01AB3F00	; world_x
 	dc.l $0138CE20	; world_z
-	dc.w $0087	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_CASTRON	; type_and_map_flags
 	dc.l $01AB3F00	; world_x
 	dc.l $01280540	; world_z
-	dc.w $0088	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_BROADWAY	; type_and_map_flags
 	dc.l $01DD99A0	; world_x
 	dc.l $01312D00	; world_z
-	dc.w $0089	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_APEX	; type_and_map_flags
 	dc.l $01E19F25	; world_x
 	dc.l $0128D32E	; world_z
-	dc.w $008A	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_ESPRIT	; type_and_map_flags
 	dc.l $01EAA875	; world_x
 	dc.l $0126C32F	; world_z
-	dc.w $008B	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_QUESTA	; type_and_map_flags
 	dc.l $01F1E796	; world_x
 	dc.l $012C8A99	; world_z
-	dc.w $008C	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_WESTMERE	; type_and_map_flags
 	dc.l $01F1E796	; world_x
 	dc.l $0135CF67	; world_z
-	dc.w $008D	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_SYNAPSE	; type_and_map_flags
 	dc.l $01EAA875	; world_x
 	dc.l $013B96D1	; world_z
-	dc.w $008E	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_WACKFUNK	; type_and_map_flags
 	dc.l $01E19F25	; world_x
 	dc.l $013986D2	; world_z
-	dc.w $008F	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_Q_BETA	; type_and_map_flags
 	dc.l $02255100	; world_x
 	dc.l $0135C0E0	; world_z
 	dc.w $0090	; type_and_map_flags
 	dc.l $02255100	; world_x
 	dc.l $01374780	; world_z
-	dc.w $0025	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_EGRON_MINI_SENTINEL	; type_and_map_flags
 	dc.l $00000000	; world_x
 	dc.l $00000000	; world_z
-	dc.w $0025	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_EGRON_MINI_SENTINEL	; type_and_map_flags
 	dc.l $00000000	; world_x
 	dc.l $00000000	; world_z
-	dc.w $0025	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_EGRON_MINI_SENTINEL	; type_and_map_flags
 	dc.l $00000000	; world_x
 	dc.l $00000000	; world_z
-	dc.w $0025	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_EGRON_MINI_SENTINEL	; type_and_map_flags
 	dc.l $00000000	; world_x
 	dc.l $00000000	; world_z
-	dc.w $0025	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_EGRON_MINI_SENTINEL	; type_and_map_flags
 	dc.l $00000000	; world_x
 	dc.l $00000000	; world_z
-	dc.w $0025	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_EGRON_MINI_SENTINEL	; type_and_map_flags
 	dc.l $00000000	; world_x
 	dc.l $00000000	; world_z
-	dc.w $0025	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_EGRON_MINI_SENTINEL	; type_and_map_flags
 	dc.l $00000000	; world_x
 	dc.l $00000000	; world_z
-	dc.w $0025	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_EGRON_MINI_SENTINEL	; type_and_map_flags
 	dc.l $00000000	; world_x
 	dc.l $00000000	; world_z
 space_world_placements_end_tag:
 	dc.w $0000	; 25 original surface placements, stride 10, plus zero tag; aliases 0
 dante_surface_placements:
-	dc.w $0091	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_SOLICE_145	; type_and_map_flags
 	dc.l $00008000	; world_x
 	dc.l $00008000	; world_z
-	dc.w $0011	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_HORATIO	; type_and_map_flags
 	dc.l $00006D60	; world_x
 	dc.l $0001E460	; world_z
-	dc.w $0011	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_HORATIO	; type_and_map_flags
 	dc.l $00001F40	; world_x
 	dc.l $0001D4C0	; world_z
-	dc.w $0011	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_HORATIO	; type_and_map_flags
 	dc.l $0000DAC0	; world_x
 	dc.l $0001D4C0	; world_z
-	dc.w $0059	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_COLUMBUS	; type_and_map_flags
 	dc.l $000157C0	; world_x
 	dc.l $0001D4C0	; world_z
-	dc.w $0013	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PULSING_PYRAMIDS	; type_and_map_flags
 	dc.l $00019640	; world_x
 	dc.l $0001D4C0	; world_z
-	dc.w $0002	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PROXIMITY_MINE	; type_and_map_flags
 	dc.l $00007D00	; world_x
 	dc.l $0001C520	; world_z
-	dc.w $0013	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PULSING_PYRAMIDS	; type_and_map_flags
 	dc.l $00001F40	; world_x
 	dc.l $0001B580	; world_z
-	dc.w $0002	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PROXIMITY_MINE	; type_and_map_flags
 	dc.l $00005DC0	; world_x
 	dc.l $0001B580	; world_z
-	dc.w $0002	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PROXIMITY_MINE	; type_and_map_flags
 	dc.l $0000ABE0	; world_x
 	dc.l $0001B580	; world_z
-	dc.w $0059	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_COLUMBUS	; type_and_map_flags
 	dc.l $00011940	; world_x
 	dc.l $0001B580	; world_z
-	dc.w $0011	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_HORATIO	; type_and_map_flags
 	dc.l $00017700	; world_x
 	dc.l $0001B580	; world_z
-	dc.w $0005	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_EGRON_SILO	; type_and_map_flags
 	dc.l $0001B580	; world_x
 	dc.l $0001B580	; world_z
-	dc.w $0002	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PROXIMITY_MINE	; type_and_map_flags
 	dc.l $00003E80	; world_x
 	dc.l $00019640	; world_z
-	dc.w $0057	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_CLUSTER_OF_NODULES	; type_and_map_flags
 	dc.l $00007D00	; world_x
 	dc.l $00019640	; world_z
-	dc.w $0011	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_HORATIO	; type_and_map_flags
 	dc.l $0000FA00	; world_x
 	dc.l $00019640	; world_z
-	dc.w $0013	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PULSING_PYRAMIDS	; type_and_map_flags
 	dc.l $00013880	; world_x
 	dc.l $00019640	; world_z
-	dc.w $0058	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_VOLCANO	; type_and_map_flags
 	dc.l $000157C0	; world_x
 	dc.l $00019640	; world_z
-	dc.w $0002	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PROXIMITY_MINE	; type_and_map_flags
 	dc.l $00001F40	; world_x
 	dc.l $00017700	; world_z
-	dc.w $0057	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_CLUSTER_OF_NODULES	; type_and_map_flags
 	dc.l $0000ABE0	; world_x
 	dc.l $00017700	; world_z
-	dc.w $0002	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PROXIMITY_MINE	; type_and_map_flags
 	dc.l $000157C0	; world_x
 	dc.l $00017700	; world_z
-	dc.w $0002	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PROXIMITY_MINE	; type_and_map_flags
 	dc.l $0001C520	; world_x
 	dc.l $00017700	; world_z
-	dc.w $0057	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_CLUSTER_OF_NODULES	; type_and_map_flags
 	dc.l $00004E20	; world_x
 	dc.l $00016760	; world_z
-	dc.w $0057	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_CLUSTER_OF_NODULES	; type_and_map_flags
 	dc.l $00007D00	; world_x
 	dc.l $00016760	; world_z
-	dc.w $0057	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_CLUSTER_OF_NODULES	; type_and_map_flags
 	dc.l $00019640	; world_x
 	dc.l $00016760	; world_z
-	dc.w $0057	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_CLUSTER_OF_NODULES	; type_and_map_flags
 	dc.l $00004E20	; world_x
 	dc.l $000157C0	; world_z
-	dc.w $0058	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_VOLCANO	; type_and_map_flags
 	dc.l $00005DC0	; world_x
 	dc.l $000157C0	; world_z
-	dc.w $0058	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_VOLCANO	; type_and_map_flags
 	dc.l $00009C40	; world_x
 	dc.l $000157C0	; world_z
-	dc.w $0057	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_CLUSTER_OF_NODULES	; type_and_map_flags
 	dc.l $0000BB80	; world_x
 	dc.l $000157C0	; world_z
-	dc.w $0013	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PULSING_PYRAMIDS	; type_and_map_flags
 	dc.l $0000FA00	; world_x
 	dc.l $000157C0	; world_z
-	dc.w $0057	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_CLUSTER_OF_NODULES	; type_and_map_flags
 	dc.l $000157C0	; world_x
 	dc.l $000157C0	; world_z
-	dc.w $0057	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_CLUSTER_OF_NODULES	; type_and_map_flags
 	dc.l $00017700	; world_x
 	dc.l $000157C0	; world_z
-	dc.w $0002	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PROXIMITY_MINE	; type_and_map_flags
 	dc.l $0001D4C0	; world_x
 	dc.l $000157C0	; world_z
-	dc.w $0057	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_CLUSTER_OF_NODULES	; type_and_map_flags
 	dc.l $00007D00	; world_x
 	dc.l $00014820	; world_z
-	dc.w $0057	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_CLUSTER_OF_NODULES	; type_and_map_flags
 	dc.l $00014820	; world_x
 	dc.l $00014820	; world_z
-	dc.w $0057	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_CLUSTER_OF_NODULES	; type_and_map_flags
 	dc.l $0001A5E0	; world_x
 	dc.l $00014820	; world_z
-	dc.w $0002	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PROXIMITY_MINE	; type_and_map_flags
 	dc.l $00001F40	; world_x
 	dc.l $00013880	; world_z
-	dc.w $0057	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_CLUSTER_OF_NODULES	; type_and_map_flags
 	dc.l $00005DC0	; world_x
 	dc.l $00013880	; world_z
-	dc.w $0057	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_CLUSTER_OF_NODULES	; type_and_map_flags
 	dc.l $000084D0	; world_x
 	dc.l $00013880	; world_z
-	dc.w $0057	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_CLUSTER_OF_NODULES	; type_and_map_flags
 	dc.l $0000BB80	; world_x
 	dc.l $00013880	; world_z
-	dc.w $0002	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PROXIMITY_MINE	; type_and_map_flags
 	dc.l $0000DAC0	; world_x
 	dc.l $00013880	; world_z
-	dc.w $0057	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_CLUSTER_OF_NODULES	; type_and_map_flags
 	dc.l $000157C0	; world_x
 	dc.l $00013880	; world_z
-	dc.w $0058	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_VOLCANO	; type_and_map_flags
 	dc.l $00017700	; world_x
 	dc.l $00013880	; world_z
-	dc.w $0002	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PROXIMITY_MINE	; type_and_map_flags
 	dc.l $0001D4C0	; world_x
 	dc.l $00013880	; world_z
-	dc.w $0057	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_CLUSTER_OF_NODULES	; type_and_map_flags
 	dc.l $00014820	; world_x
 	dc.l $000128E0	; world_z
-	dc.w $0057	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_CLUSTER_OF_NODULES	; type_and_map_flags
 	dc.l $00019640	; world_x
 	dc.l $000128E0	; world_z
-	dc.w $0057	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_CLUSTER_OF_NODULES	; type_and_map_flags
 	dc.l $00003E80	; world_x
 	dc.l $00011940	; world_z
-	dc.w $0058	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_VOLCANO	; type_and_map_flags
 	dc.l $00006D60	; world_x
 	dc.l $00011940	; world_z
-	dc.w $0057	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_CLUSTER_OF_NODULES	; type_and_map_flags
 	dc.l $00009C40	; world_x
 	dc.l $00011940	; world_z
-	dc.w $0057	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_CLUSTER_OF_NODULES	; type_and_map_flags
 	dc.l $00017700	; world_x
 	dc.l $00011940	; world_z
-	dc.w $0002	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PROXIMITY_MINE	; type_and_map_flags
 	dc.l $0001B580	; world_x
 	dc.l $00011940	; world_z
-	dc.w $0057	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_CLUSTER_OF_NODULES	; type_and_map_flags
 	dc.l $000157C0	; world_x
 	dc.l $000109A0	; world_z
-	dc.w $0002	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PROXIMITY_MINE	; type_and_map_flags
 	dc.l $00001F40	; world_x
 	dc.l $0000FA00	; world_z
-	dc.w $0057	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_CLUSTER_OF_NODULES	; type_and_map_flags
 	dc.l $00004E20	; world_x
 	dc.l $0000FA00	; world_z
-	dc.w $0057	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_CLUSTER_OF_NODULES	; type_and_map_flags
 	dc.l $00008CA0	; world_x
 	dc.l $0000FA00	; world_z
-	dc.w $0059	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_COLUMBUS	; type_and_map_flags
 	dc.l $0000BB80	; world_x
 	dc.l $0000FA00	; world_z
-	dc.w $002E	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_EGRON_DOME_SILO	; type_and_map_flags
 	dc.l $0000FA00	; world_x
 	dc.l $0000FA00	; world_z
-	dc.w $0002	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PROXIMITY_MINE	; type_and_map_flags
 	dc.l $0001A5E0	; world_x
 	dc.l $0000FA00	; world_z
-	dc.w $0058	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_VOLCANO	; type_and_map_flags
 	dc.l $0001D4C0	; world_x
 	dc.l $0000FA00	; world_z
-	dc.w $0059	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_COLUMBUS	; type_and_map_flags
 	dc.l $00003E80	; world_x
 	dc.l $0000DAC0	; world_z
-	dc.w $0002	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PROXIMITY_MINE	; type_and_map_flags
 	dc.l $000186A0	; world_x
 	dc.l $0000DAC0	; world_z
-	dc.w $0059	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_COLUMBUS	; type_and_map_flags
 	dc.l $0001D4C0	; world_x
 	dc.l $0000DAC0	; world_z
-	dc.w $0059	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_COLUMBUS	; type_and_map_flags
 	dc.l $00011940	; world_x
 	dc.l $0000CB20	; world_z
-	dc.w $0002	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PROXIMITY_MINE	; type_and_map_flags
 	dc.l $000157C0	; world_x
 	dc.l $0000CB20	; world_z
-	dc.w $0059	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_COLUMBUS	; type_and_map_flags
 	dc.l $00008CA0	; world_x
 	dc.l $0000BB80	; world_z
-	dc.w $0011	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_HORATIO	; type_and_map_flags
 	dc.l $0000DAC0	; world_x
 	dc.l $0000BB80	; world_z
-	dc.w $0011	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_HORATIO	; type_and_map_flags
 	dc.l $00019640	; world_x
 	dc.l $0000BB80	; world_z
-	dc.w $0013	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PULSING_PYRAMIDS	; type_and_map_flags
 	dc.l $00001F40	; world_x
 	dc.l $00009C40	; world_z
-	dc.w $0011	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_HORATIO	; type_and_map_flags
 	dc.l $00005DC0	; world_x
 	dc.l $00009C40	; world_z
-	dc.w $0059	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_COLUMBUS	; type_and_map_flags
 	dc.l $0000BB80	; world_x
 	dc.l $00009C40	; world_z
-	dc.w $0013	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PULSING_PYRAMIDS	; type_and_map_flags
 	dc.l $0000FA00	; world_x
 	dc.l $00009C40	; world_z
-	dc.w $0011	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_HORATIO	; type_and_map_flags
 	dc.l $00011940	; world_x
 	dc.l $00009C40	; world_z
-	dc.w $0057	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_CLUSTER_OF_NODULES	; type_and_map_flags
 	dc.l $00019640	; world_x
 	dc.l $00009C40	; world_z
-	dc.w $0013	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PULSING_PYRAMIDS	; type_and_map_flags
 	dc.l $0001D4C0	; world_x
 	dc.l $00009C40	; world_z
-	dc.w $0057	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_CLUSTER_OF_NODULES	; type_and_map_flags
 	dc.l $00005DC0	; world_x
 	dc.l $00007D00	; world_z
-	dc.w $0057	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_CLUSTER_OF_NODULES	; type_and_map_flags
 	dc.l $00008CA0	; world_x
 	dc.l $00007D00	; world_z
-	dc.w $0058	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_VOLCANO	; type_and_map_flags
 	dc.l $0000FA00	; world_x
 	dc.l $00007D00	; world_z
-	dc.w $0011	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_HORATIO	; type_and_map_flags
 	dc.l $00013880	; world_x
 	dc.l $00007D00	; world_z
-	dc.w $0013	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PULSING_PYRAMIDS	; type_and_map_flags
 	dc.l $00017700	; world_x
 	dc.l $00007D00	; world_z
-	dc.w $0058	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_VOLCANO	; type_and_map_flags
 	dc.l $0001B580	; world_x
 	dc.l $00007D00	; world_z
-	dc.w $0002	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PROXIMITY_MINE	; type_and_map_flags
 	dc.l $00001F40	; world_x
 	dc.l $00006D60	; world_z
-	dc.w $0057	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_CLUSTER_OF_NODULES	; type_and_map_flags
 	dc.l $00009C40	; world_x
 	dc.l $00006D60	; world_z
-	dc.w $0057	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_CLUSTER_OF_NODULES	; type_and_map_flags
 	dc.l $00004E20	; world_x
 	dc.l $00005DC0	; world_z
-	dc.w $0058	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_VOLCANO	; type_and_map_flags
 	dc.l $00007D00	; world_x
 	dc.l $00005DC0	; world_z
-	dc.w $0057	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_CLUSTER_OF_NODULES	; type_and_map_flags
 	dc.l $0000BB80	; world_x
 	dc.l $00005DC0	; world_z
-	dc.w $0059	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_COLUMBUS	; type_and_map_flags
 	dc.l $00011940	; world_x
 	dc.l $00005DC0	; world_z
-	dc.w $0059	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_COLUMBUS	; type_and_map_flags
 	dc.l $0001B580	; world_x
 	dc.l $00005DC0	; world_z
-	dc.w $0057	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_CLUSTER_OF_NODULES	; type_and_map_flags
 	dc.l $00006D60	; world_x
 	dc.l $00004E20	; world_z
-	dc.w $0057	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_CLUSTER_OF_NODULES	; type_and_map_flags
 	dc.l $00009C40	; world_x
 	dc.l $00004E20	; world_z
-	dc.w $0002	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PROXIMITY_MINE	; type_and_map_flags
 	dc.l $00002EE0	; world_x
 	dc.l $00003E80	; world_z
-	dc.w $0002	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PROXIMITY_MINE	; type_and_map_flags
 	dc.l $0000DAC0	; world_x
 	dc.l $00003E80	; world_z
-	dc.w $0013	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PULSING_PYRAMIDS	; type_and_map_flags
 	dc.l $000157C0	; world_x
 	dc.l $00003E80	; world_z
-	dc.w $0002	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PROXIMITY_MINE	; type_and_map_flags
 	dc.l $00019640	; world_x
 	dc.l $00003E80	; world_z
-	dc.w $0057	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_CLUSTER_OF_NODULES	; type_and_map_flags
 	dc.l $0001D4C0	; world_x
 	dc.l $00003E80	; world_z
-	dc.w $0002	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PROXIMITY_MINE	; type_and_map_flags
 	dc.l $00005DC0	; world_x
 	dc.l $00002EE0	; world_z
-	dc.w $0002	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PROXIMITY_MINE	; type_and_map_flags
 	dc.l $0000ABE0	; world_x
 	dc.l $00002EE0	; world_z
-	dc.w $0013	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PULSING_PYRAMIDS	; type_and_map_flags
 	dc.l $00001F40	; world_x
 	dc.l $00001F40	; world_z
-	dc.w $0002	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PROXIMITY_MINE	; type_and_map_flags
 	dc.l $00007D00	; world_x
 	dc.l $00001F40	; world_z
-	dc.w $0013	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PULSING_PYRAMIDS	; type_and_map_flags
 	dc.l $0000FA00	; world_x
 	dc.l $00001F40	; world_z
-	dc.w $0002	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PROXIMITY_MINE	; type_and_map_flags
 	dc.l $000128E0	; world_x
 	dc.l $00001F40	; world_z
-	dc.w $0011	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_HORATIO	; type_and_map_flags
 	dc.l $000157C0	; world_x
 	dc.l $00001F40	; world_z
-	dc.w $0011	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_HORATIO	; type_and_map_flags
 	dc.l $0001B580	; world_x
 	dc.l $00001F40	; world_z
-	dc.w $0059	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_COLUMBUS	; type_and_map_flags
 	dc.l $00003E80	; world_x
 	dc.l $000003E8	; world_z
-	dc.w $0013	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PULSING_PYRAMIDS	; type_and_map_flags
 	dc.l $0000BB80	; world_x
 	dc.l $000003E8	; world_z
-	dc.w $0013	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PULSING_PYRAMIDS	; type_and_map_flags
 	dc.l $00019640	; world_x
 	dc.l $000003E8	; world_z
 dante_surface_placements_end_tag:
 	dc.w $0000	; 105 original surface placements, stride 10, plus zero tag; aliases 1
 vista_surface_placements:
-	dc.w $0091	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_SOLICE_145	; type_and_map_flags
 	dc.l $00008000	; world_x
 	dc.l $00008000	; world_z
-	dc.w $0004	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_SOLAR_ENERGY_CONVERTER	; type_and_map_flags
 	dc.l $000088B8	; world_x
 	dc.l $00000000	; world_z
 	dc.w $0060	; type_and_map_flags
 	dc.l $000088B8	; world_x
 	dc.l $00000514	; world_z
-	dc.w $005A	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_ENERGY_TOWER_90	; type_and_map_flags
 	dc.l $000088B8	; world_x
 	dc.l $00001004	; world_z
-	dc.w $005A	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_ENERGY_TOWER_90	; type_and_map_flags
 	dc.l $000088B8	; world_x
 	dc.l $00001FA4	; world_z
-	dc.w $005A	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_ENERGY_TOWER_90	; type_and_map_flags
 	dc.l $000088B8	; world_x
 	dc.l $00002F44	; world_z
-	dc.w $005A	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_ENERGY_TOWER_90	; type_and_map_flags
 	dc.l $000088B8	; world_x
 	dc.l $00003EE4	; world_z
-	dc.w $005A	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_ENERGY_TOWER_90	; type_and_map_flags
 	dc.l $000088B8	; world_x
 	dc.l $00004E84	; world_z
-	dc.w $005A	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_ENERGY_TOWER_90	; type_and_map_flags
 	dc.l $000088B8	; world_x
 	dc.l $00005E24	; world_z
-	dc.w $005A	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_ENERGY_TOWER_90	; type_and_map_flags
 	dc.l $000088B8	; world_x
 	dc.l $00006DC4	; world_z
-	dc.w $005A	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_ENERGY_TOWER_90	; type_and_map_flags
 	dc.l $000088B8	; world_x
 	dc.l $00007D64	; world_z
-	dc.w $005A	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_ENERGY_TOWER_90	; type_and_map_flags
 	dc.l $000088B8	; world_x
 	dc.l $00008D04	; world_z
-	dc.w $005A	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_ENERGY_TOWER_90	; type_and_map_flags
 	dc.l $000088B8	; world_x
 	dc.l $00009CA4	; world_z
-	dc.w $005A	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_ENERGY_TOWER_90	; type_and_map_flags
 	dc.l $000088B8	; world_x
 	dc.l $0000AC44	; world_z
-	dc.w $005A	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_ENERGY_TOWER_90	; type_and_map_flags
 	dc.l $000088B8	; world_x
 	dc.l $0000BBE4	; world_z
-	dc.w $005A	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_ENERGY_TOWER_90	; type_and_map_flags
 	dc.l $000088B8	; world_x
 	dc.l $0000CB84	; world_z
-	dc.w $005A	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_ENERGY_TOWER_90	; type_and_map_flags
 	dc.l $000088B8	; world_x
 	dc.l $0000DB24	; world_z
-	dc.w $005D	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_ENERGY_TOWER_93	; type_and_map_flags
 	dc.l $000088B8	; world_x
 	dc.l $0000DB24	; world_z
 	dc.w $0061	; type_and_map_flags
 	dc.l $000088B8	; world_x
 	dc.l $0000E614	; world_z
-	dc.w $0024	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PAC_WORM	; type_and_map_flags
 	dc.l $00001F40	; world_x
 	dc.l $0001D4C0	; world_z
-	dc.w $0029	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_SPACE_RAY	; type_and_map_flags
 	dc.l $00005DC0	; world_x
 	dc.l $0001D4C0	; world_z
-	dc.w $0037	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_BOUNCING_BALL	; type_and_map_flags
 	dc.l $00007D00	; world_x
 	dc.l $0001D4C0	; world_z
-	dc.w $0024	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PAC_WORM	; type_and_map_flags
 	dc.l $0000BB80	; world_x
 	dc.l $0001D4C0	; world_z
-	dc.w $0037	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_BOUNCING_BALL	; type_and_map_flags
 	dc.l $0000DAC0	; world_x
 	dc.l $0001D4C0	; world_z
-	dc.w $001A	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_TRIPUSS	; type_and_map_flags
 	dc.l $00013880	; world_x
 	dc.l $0001D4C0	; world_z
-	dc.w $0035	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_TAPERING_TOWER_BLOCK	; type_and_map_flags
 	dc.l $00017700	; world_x
 	dc.l $0001D4C0	; world_z
-	dc.w $001D	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_EGRON_MINI_ROCKET	; type_and_map_flags
 	dc.l $0001B580	; world_x
 	dc.l $0001D4C0	; world_z
-	dc.w $0037	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_BOUNCING_BALL	; type_and_map_flags
 	dc.l $00001F40	; world_x
 	dc.l $0001B580	; world_z
-	dc.w $001A	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_TRIPUSS	; type_and_map_flags
 	dc.l $00003E80	; world_x
 	dc.l $0001B580	; world_z
-	dc.w $0024	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PAC_WORM	; type_and_map_flags
 	dc.l $00007D00	; world_x
 	dc.l $0001B580	; world_z
-	dc.w $0029	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_SPACE_RAY	; type_and_map_flags
 	dc.l $0000BB80	; world_x
 	dc.l $0001B580	; world_z
-	dc.w $0037	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_BOUNCING_BALL	; type_and_map_flags
 	dc.l $0000FA00	; world_x
 	dc.l $0001B580	; world_z
-	dc.w $0024	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PAC_WORM	; type_and_map_flags
 	dc.l $000157C0	; world_x
 	dc.l $0001B580	; world_z
-	dc.w $0037	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_BOUNCING_BALL	; type_and_map_flags
 	dc.l $00017700	; world_x
 	dc.l $0001B580	; world_z
-	dc.w $001A	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_TRIPUSS	; type_and_map_flags
 	dc.l $0001B580	; world_x
 	dc.l $0001B580	; world_z
-	dc.w $0034	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_TOWER_BLOCK	; type_and_map_flags
 	dc.l $00001F40	; world_x
 	dc.l $00019640	; world_z
-	dc.w $0007	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_LARGE_BIRD	; type_and_map_flags
 	dc.l $00005DC0	; world_x
 	dc.l $00019640	; world_z
-	dc.w $0037	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_BOUNCING_BALL	; type_and_map_flags
 	dc.l $00009C40	; world_x
 	dc.l $00019640	; world_z
-	dc.w $001B	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_STARGLIDER	; type_and_map_flags
 	dc.l $0000DAC0	; world_x
 	dc.l $00019640	; world_z
-	dc.w $001A	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_TRIPUSS	; type_and_map_flags
 	dc.l $00011940	; world_x
 	dc.l $00019640	; world_z
-	dc.w $0033	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PYRAMID	; type_and_map_flags
 	dc.l $00013880	; world_x
 	dc.l $00019640	; world_z
-	dc.w $0002	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PROXIMITY_MINE	; type_and_map_flags
 	dc.l $000157C0	; world_x
 	dc.l $00019640	; world_z
-	dc.w $0024	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PAC_WORM	; type_and_map_flags
 	dc.l $00019640	; world_x
 	dc.l $00019640	; world_z
-	dc.w $0037	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_BOUNCING_BALL	; type_and_map_flags
 	dc.l $00006D60	; world_x
 	dc.l $00017700	; world_z
-	dc.w $0005	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_EGRON_SILO	; type_and_map_flags
 	dc.l $00003E80	; world_x
 	dc.l $00017700	; world_z
-	dc.w $001A	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_TRIPUSS	; type_and_map_flags
 	dc.l $0000BB80	; world_x
 	dc.l $00017700	; world_z
-	dc.w $0053	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_CASK_OF_VISTAN_WINE	; type_and_map_flags
 	dc.l $0000DAC0	; world_x
 	dc.l $00017700	; world_z
-	dc.w $0029	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_SPACE_RAY	; type_and_map_flags
 	dc.l $0000FA00	; world_x
 	dc.l $00017700	; world_z
-	dc.w $0002	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PROXIMITY_MINE	; type_and_map_flags
 	dc.l $00013880	; world_x
 	dc.l $00017700	; world_z
-	dc.w $002E	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_EGRON_DOME_SILO	; type_and_map_flags
 	dc.l $000157C0	; world_x
 	dc.l $00017700	; world_z
-	dc.w $001A	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_TRIPUSS	; type_and_map_flags
 	dc.l $0001B580	; world_x
 	dc.l $00017700	; world_z
-	dc.w $001A	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_TRIPUSS	; type_and_map_flags
 	dc.l $00001F40	; world_x
 	dc.l $000157C0	; world_z
-	dc.w $0029	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_SPACE_RAY	; type_and_map_flags
 	dc.l $00005DC0	; world_x
 	dc.l $000157C0	; world_z
-	dc.w $0024	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PAC_WORM	; type_and_map_flags
 	dc.l $00009C40	; world_x
 	dc.l $000157C0	; world_z
-	dc.w $0033	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PYRAMID	; type_and_map_flags
 	dc.l $0000BB80	; world_x
 	dc.l $000157C0	; world_z
-	dc.w $0007	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_LARGE_BIRD	; type_and_map_flags
 	dc.l $0000DAC0	; world_x
 	dc.l $000157C0	; world_z
-	dc.w $0053	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_CASK_OF_VISTAN_WINE	; type_and_map_flags
 	dc.l $00011940	; world_x
 	dc.l $000157C0	; world_z
-	dc.w $0015	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_VAMPIRE_TYPE_FIGHTER	; type_and_map_flags
 	dc.l $00013880	; world_x
 	dc.l $000157C0	; world_z
-	dc.w $0029	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_SPACE_RAY	; type_and_map_flags
 	dc.l $000157C0	; world_x
 	dc.l $000157C0	; world_z
-	dc.w $0024	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PAC_WORM	; type_and_map_flags
 	dc.l $00019640	; world_x
 	dc.l $000157C0	; world_z
-	dc.w $001B	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_STARGLIDER	; type_and_map_flags
 	dc.l $00003E80	; world_x
 	dc.l $00013880	; world_z
-	dc.w $001A	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_TRIPUSS	; type_and_map_flags
 	dc.l $00007D00	; world_x
 	dc.l $00013880	; world_z
-	dc.w $001A	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_TRIPUSS	; type_and_map_flags
 	dc.l $0000BB80	; world_x
 	dc.l $00013880	; world_z
-	dc.w $0002	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PROXIMITY_MINE	; type_and_map_flags
 	dc.l $0000FA00	; world_x
 	dc.l $00013880	; world_z
-	dc.w $0053	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_CASK_OF_VISTAN_WINE	; type_and_map_flags
 	dc.l $000109A0	; world_x
 	dc.l $00013880	; world_z
-	dc.w $0002	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PROXIMITY_MINE	; type_and_map_flags
 	dc.l $00011940	; world_x
 	dc.l $00013880	; world_z
-	dc.w $001A	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_TRIPUSS	; type_and_map_flags
 	dc.l $000128E0	; world_x
 	dc.l $00013880	; world_z
-	dc.w $0034	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_TOWER_BLOCK	; type_and_map_flags
 	dc.l $0001B580	; world_x
 	dc.l $00013880	; world_z
-	dc.w $0024	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PAC_WORM	; type_and_map_flags
 	dc.l $0001D4C0	; world_x
 	dc.l $00013880	; world_z
-	dc.w $0053	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_CASK_OF_VISTAN_WINE	; type_and_map_flags
 	dc.l $0000FA00	; world_x
 	dc.l $000130B0	; world_z
-	dc.w $0002	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PROXIMITY_MINE	; type_and_map_flags
 	dc.l $000128E0	; world_x
 	dc.l $000128E0	; world_z
-	dc.w $0002	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PROXIMITY_MINE	; type_and_map_flags
 	dc.l $00001F40	; world_x
 	dc.l $00011940	; world_z
-	dc.w $0053	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_CASK_OF_VISTAN_WINE	; type_and_map_flags
 	dc.l $00002EE0	; world_x
 	dc.l $00011940	; world_z
-	dc.w $0002	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PROXIMITY_MINE	; type_and_map_flags
 	dc.l $00003E80	; world_x
 	dc.l $00011940	; world_z
-	dc.w $0007	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_LARGE_BIRD	; type_and_map_flags
 	dc.l $00009C40	; world_x
 	dc.l $00011940	; world_z
-	dc.w $0002	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PROXIMITY_MINE	; type_and_map_flags
 	dc.l $0000FA00	; world_x
 	dc.l $00011940	; world_z
-	dc.w $0040	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_BLOWHOLE	; type_and_map_flags
 	dc.l $00011940	; world_x
 	dc.l $00011940	; world_z
-	dc.w $001B	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_STARGLIDER	; type_and_map_flags
 	dc.l $000157C0	; world_x
 	dc.l $00011940	; world_z
-	dc.w $0007	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_LARGE_BIRD	; type_and_map_flags
 	dc.l $00017700	; world_x
 	dc.l $00011940	; world_z
-	dc.w $0037	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_BOUNCING_BALL	; type_and_map_flags
 	dc.l $0001B580	; world_x
 	dc.l $00011940	; world_z
-	dc.w $0002	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PROXIMITY_MINE	; type_and_map_flags
 	dc.l $00004E20	; world_x
 	dc.l $000109A0	; world_z
-	dc.w $0053	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_CASK_OF_VISTAN_WINE	; type_and_map_flags
 	dc.l $0000C350	; world_x
 	dc.l $000109A0	; world_z
-	dc.w $0002	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PROXIMITY_MINE	; type_and_map_flags
 	dc.l $000128E0	; world_x
 	dc.l $000109A0	; world_z
-	dc.w $0040	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_BLOWHOLE	; type_and_map_flags
 	dc.l $00003E80	; world_x
 	dc.l $0000FA00	; world_z
-	dc.w $0002	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PROXIMITY_MINE	; type_and_map_flags
 	dc.l $00005DC0	; world_x
 	dc.l $0000FA00	; world_z
-	dc.w $0029	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_SPACE_RAY	; type_and_map_flags
 	dc.l $00009C40	; world_x
 	dc.l $0000FA00	; world_z
-	dc.w $0032	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_GBML_WITH_CANNON	; type_and_map_flags
 	dc.l $0000BB80	; world_x
 	dc.l $0000FA00	; world_z
-	dc.w $0007	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_LARGE_BIRD	; type_and_map_flags
 	dc.l $0000DAC0	; world_x
 	dc.l $0000FA00	; world_z
-	dc.w $0002	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PROXIMITY_MINE	; type_and_map_flags
 	dc.l $0000FA00	; world_x
 	dc.l $0000FA00	; world_z
-	dc.w $0024	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PAC_WORM	; type_and_map_flags
 	dc.l $000157C0	; world_x
 	dc.l $0000FA00	; world_z
-	dc.w $0007	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_LARGE_BIRD	; type_and_map_flags
 	dc.l $00019640	; world_x
 	dc.l $0000FA00	; world_z
-	dc.w $0034	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_TOWER_BLOCK	; type_and_map_flags
 	dc.l $0001B580	; world_x
 	dc.l $0000FA00	; world_z
-	dc.w $0034	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_TOWER_BLOCK	; type_and_map_flags
 	dc.l $0001D4C0	; world_x
 	dc.l $0000FA00	; world_z
-	dc.w $0002	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PROXIMITY_MINE	; type_and_map_flags
 	dc.l $00004E20	; world_x
 	dc.l $0000EA60	; world_z
-	dc.w $0002	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PROXIMITY_MINE	; type_and_map_flags
 	dc.l $00001F40	; world_x
 	dc.l $0000DAC0	; world_z
-	dc.w $0053	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_CASK_OF_VISTAN_WINE	; type_and_map_flags
 	dc.l $00002EE0	; world_x
 	dc.l $0000DAC0	; world_z
-	dc.w $0002	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PROXIMITY_MINE	; type_and_map_flags
 	dc.l $00003E80	; world_x
 	dc.l $0000DAC0	; world_z
-	dc.w $0024	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PAC_WORM	; type_and_map_flags
 	dc.l $00007D00	; world_x
 	dc.l $0000DAC0	; world_z
-	dc.w $001A	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_TRIPUSS	; type_and_map_flags
 	dc.l $0000BB80	; world_x
 	dc.l $0000DAC0	; world_z
-	dc.w $001A	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_TRIPUSS	; type_and_map_flags
 	dc.l $0000FA00	; world_x
 	dc.l $0000DAC0	; world_z
-	dc.w $0033	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PYRAMID	; type_and_map_flags
 	dc.l $00011940	; world_x
 	dc.l $0000DAC0	; world_z
-	dc.w $0007	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_LARGE_BIRD	; type_and_map_flags
 	dc.l $00013880	; world_x
 	dc.l $0000DAC0	; world_z
-	dc.w $0036	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_ENERGY_TRANSMITTER	; type_and_map_flags
 	dc.l $000128E0	; world_x
 	dc.l $0000DAC0	; world_z
-	dc.w $0029	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_SPACE_RAY	; type_and_map_flags
 	dc.l $00019640	; world_x
 	dc.l $0000DAC0	; world_z
-	dc.w $001A	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_TRIPUSS	; type_and_map_flags
 	dc.l $0001D4C0	; world_x
 	dc.l $0000DAC0	; world_z
-	dc.w $0033	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PYRAMID	; type_and_map_flags
 	dc.l $00003E80	; world_x
 	dc.l $0000BB80	; world_z
-	dc.w $0029	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_SPACE_RAY	; type_and_map_flags
 	dc.l $00005DC0	; world_x
 	dc.l $0000BB80	; world_z
-	dc.w $001B	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_STARGLIDER	; type_and_map_flags
 	dc.l $00009C40	; world_x
 	dc.l $0000BB80	; world_z
-	dc.w $0032	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_GBML_WITH_CANNON	; type_and_map_flags
 	dc.l $0000DAC0	; world_x
 	dc.l $0000BB80	; world_z
-	dc.w $0029	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_SPACE_RAY	; type_and_map_flags
 	dc.l $0000FA00	; world_x
 	dc.l $0000BB80	; world_z
-	dc.w $0053	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_CASK_OF_VISTAN_WINE	; type_and_map_flags
 	dc.l $00011170	; world_x
 	dc.l $0000BB80	; world_z
-	dc.w $0053	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_CASK_OF_VISTAN_WINE	; type_and_map_flags
 	dc.l $00013880	; world_x
 	dc.l $0000BB80	; world_z
-	dc.w $001A	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_TRIPUSS	; type_and_map_flags
 	dc.l $00019640	; world_x
 	dc.l $0000BB80	; world_z
-	dc.w $001A	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_TRIPUSS	; type_and_map_flags
 	dc.l $00001F40	; world_x
 	dc.l $00009C40	; world_z
-	dc.w $0002	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PROXIMITY_MINE	; type_and_map_flags
 	dc.l $00005DC0	; world_x
 	dc.l $00009C40	; world_z
-	dc.w $002E	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_EGRON_DOME_SILO	; type_and_map_flags
 	dc.l $00007D00	; world_x
 	dc.l $00009C40	; world_z
-	dc.w $0002	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PROXIMITY_MINE	; type_and_map_flags
 	dc.l $00009C40	; world_x
 	dc.l $00009C40	; world_z
-	dc.w $0024	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PAC_WORM	; type_and_map_flags
 	dc.l $0000BB80	; world_x
 	dc.l $00009C40	; world_z
-	dc.w $0037	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_BOUNCING_BALL	; type_and_map_flags
 	dc.l $0000FA00	; world_x
 	dc.l $00009C40	; world_z
-	dc.w $0005	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_EGRON_SILO	; type_and_map_flags
 	dc.l $000157C0	; world_x
 	dc.l $00009C40	; world_z
-	dc.w $0034	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_TOWER_BLOCK	; type_and_map_flags
 	dc.l $00019640	; world_x
 	dc.l $00009C40	; world_z
-	dc.w $0056	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_GROUND_BASED_LASER_CANNON	; type_and_map_flags
 	dc.l $0001D4C0	; world_x
 	dc.l $00009C40	; world_z
-	dc.w $0024	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PAC_WORM	; type_and_map_flags
 	dc.l $00001F40	; world_x
 	dc.l $00007D00	; world_z
-	dc.w $0029	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_SPACE_RAY	; type_and_map_flags
 	dc.l $00005DC0	; world_x
 	dc.l $00007D00	; world_z
-	dc.w $0002	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PROXIMITY_MINE	; type_and_map_flags
 	dc.l $00007D00	; world_x
 	dc.l $00007D00	; world_z
-	dc.w $0053	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_CASK_OF_VISTAN_WINE	; type_and_map_flags
 	dc.l $00008CA0	; world_x
 	dc.l $00007D00	; world_z
-	dc.w $0024	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PAC_WORM	; type_and_map_flags
 	dc.l $00009C40	; world_x
 	dc.l $00007D00	; world_z
-	dc.w $0034	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_TOWER_BLOCK	; type_and_map_flags
 	dc.l $0000DAC0	; world_x
 	dc.l $00007D00	; world_z
-	dc.w $001C	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_EGRON_SQUARE_ROCKET	; type_and_map_flags
 	dc.l $0000FA00	; world_x
 	dc.l $00007D00	; world_z
-	dc.w $0037	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_BOUNCING_BALL	; type_and_map_flags
 	dc.l $00013880	; world_x
 	dc.l $00007D00	; world_z
-	dc.w $0002	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PROXIMITY_MINE	; type_and_map_flags
 	dc.l $00019640	; world_x
 	dc.l $00007D00	; world_z
-	dc.w $0053	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_CASK_OF_VISTAN_WINE	; type_and_map_flags
 	dc.l $000186A0	; world_x
 	dc.l $00006D60	; world_z
-	dc.w $0002	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PROXIMITY_MINE	; type_and_map_flags
 	dc.l $0001A5E0	; world_x
 	dc.l $00006D60	; world_z
-	dc.w $001B	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_STARGLIDER	; type_and_map_flags
 	dc.l $00003E80	; world_x
 	dc.l $00005DC0	; world_z
-	dc.w $0037	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_BOUNCING_BALL	; type_and_map_flags
 	dc.l $00009C40	; world_x
 	dc.l $00005DC0	; world_z
-	dc.w $0007	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_LARGE_BIRD	; type_and_map_flags
 	dc.l $0000DAC0	; world_x
 	dc.l $00005DC0	; world_z
-	dc.w $001B	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_STARGLIDER	; type_and_map_flags
 	dc.l $00011940	; world_x
 	dc.l $00005DC0	; world_z
-	dc.w $0021	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_EGRON_BUZZ_BOMBER	; type_and_map_flags
 	dc.l $000157C0	; world_x
 	dc.l $00005DC0	; world_z
-	dc.w $0002	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PROXIMITY_MINE	; type_and_map_flags
 	dc.l $00017700	; world_x
 	dc.l $00005DC0	; world_z
-	dc.w $0040	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_BLOWHOLE	; type_and_map_flags
 	dc.l $00019640	; world_x
 	dc.l $00005DC0	; world_z
-	dc.w $0002	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PROXIMITY_MINE	; type_and_map_flags
 	dc.l $0001B580	; world_x
 	dc.l $00005DC0	; world_z
-	dc.w $0024	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PAC_WORM	; type_and_map_flags
 	dc.l $0001D4C0	; world_x
 	dc.l $00005DC0	; world_z
-	dc.w $0002	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PROXIMITY_MINE	; type_and_map_flags
 	dc.l $000186A0	; world_x
 	dc.l $00004E20	; world_z
-	dc.w $0002	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PROXIMITY_MINE	; type_and_map_flags
 	dc.l $0001A5E0	; world_x
 	dc.l $00004E20	; world_z
-	dc.w $0037	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_BOUNCING_BALL	; type_and_map_flags
 	dc.l $00001F40	; world_x
 	dc.l $00003E80	; world_z
-	dc.w $001A	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_TRIPUSS	; type_and_map_flags
 	dc.l $00005DC0	; world_x
 	dc.l $00003E80	; world_z
-	dc.w $0029	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_SPACE_RAY	; type_and_map_flags
 	dc.l $00013880	; world_x
 	dc.l $00003E80	; world_z
-	dc.w $001A	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_TRIPUSS	; type_and_map_flags
 	dc.l $00017700	; world_x
 	dc.l $00003E80	; world_z
-	dc.w $0002	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PROXIMITY_MINE	; type_and_map_flags
 	dc.l $00019640	; world_x
 	dc.l $00003E80	; world_z
-	dc.w $0037	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_BOUNCING_BALL	; type_and_map_flags
 	dc.l $0001B580	; world_x
 	dc.l $00003E80	; world_z
-	dc.w $0035	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_TAPERING_TOWER_BLOCK	; type_and_map_flags
 	dc.l $00007D00	; world_x
 	dc.l $00001F40	; world_z
-	dc.w $001A	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_TRIPUSS	; type_and_map_flags
 	dc.l $0000BB80	; world_x
 	dc.l $00001F40	; world_z
-	dc.w $001B	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_STARGLIDER	; type_and_map_flags
 	dc.l $0000FA00	; world_x
 	dc.l $00001F40	; world_z
-	dc.w $001B	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_STARGLIDER	; type_and_map_flags
 	dc.l $00013880	; world_x
 	dc.l $00001F40	; world_z
-	dc.w $0053	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_CASK_OF_VISTAN_WINE	; type_and_map_flags
 	dc.l $00009C40	; world_x
 	dc.l $000007D0	; world_z
 vista_surface_placements_end_tag:
 	dc.w $0000	; 155 original surface placements, stride 10, plus zero tag; aliases 2
 apogee_surface_placements:
-	dc.w $0091	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_SOLICE_145	; type_and_map_flags
 	dc.l $00008000	; world_x
 	dc.l $00008000	; world_z
-	dc.w $0004	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_SOLAR_ENERGY_CONVERTER	; type_and_map_flags
 	dc.l $000088B8	; world_x
 	dc.l $00000000	; world_z
 	dc.w $0060	; type_and_map_flags
 	dc.l $000088B8	; world_x
 	dc.l $00000514	; world_z
-	dc.w $005A	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_ENERGY_TOWER_90	; type_and_map_flags
 	dc.l $000088B8	; world_x
 	dc.l $00001004	; world_z
-	dc.w $005A	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_ENERGY_TOWER_90	; type_and_map_flags
 	dc.l $000088B8	; world_x
 	dc.l $00001FA4	; world_z
-	dc.w $005A	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_ENERGY_TOWER_90	; type_and_map_flags
 	dc.l $000088B8	; world_x
 	dc.l $00002F44	; world_z
-	dc.w $005A	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_ENERGY_TOWER_90	; type_and_map_flags
 	dc.l $000088B8	; world_x
 	dc.l $00003EE4	; world_z
-	dc.w $005A	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_ENERGY_TOWER_90	; type_and_map_flags
 	dc.l $000088B8	; world_x
 	dc.l $00004E84	; world_z
-	dc.w $005A	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_ENERGY_TOWER_90	; type_and_map_flags
 	dc.l $000088B8	; world_x
 	dc.l $00005E24	; world_z
-	dc.w $005A	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_ENERGY_TOWER_90	; type_and_map_flags
 	dc.l $000088B8	; world_x
 	dc.l $00006DC4	; world_z
-	dc.w $005A	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_ENERGY_TOWER_90	; type_and_map_flags
 	dc.l $000088B8	; world_x
 	dc.l $00007D64	; world_z
-	dc.w $005A	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_ENERGY_TOWER_90	; type_and_map_flags
 	dc.l $000088B8	; world_x
 	dc.l $00008D04	; world_z
-	dc.w $005A	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_ENERGY_TOWER_90	; type_and_map_flags
 	dc.l $000088B8	; world_x
 	dc.l $00009CA4	; world_z
-	dc.w $005A	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_ENERGY_TOWER_90	; type_and_map_flags
 	dc.l $000088B8	; world_x
 	dc.l $0000AC44	; world_z
-	dc.w $005A	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_ENERGY_TOWER_90	; type_and_map_flags
 	dc.l $000088B8	; world_x
 	dc.l $0000BBE4	; world_z
-	dc.w $005A	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_ENERGY_TOWER_90	; type_and_map_flags
 	dc.l $000088B8	; world_x
 	dc.l $0000CB84	; world_z
-	dc.w $005A	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_ENERGY_TOWER_90	; type_and_map_flags
 	dc.l $000088B8	; world_x
 	dc.l $0000DB24	; world_z
-	dc.w $005D	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_ENERGY_TOWER_93	; type_and_map_flags
 	dc.l $000088B8	; world_x
 	dc.l $0000DB24	; world_z
 	dc.w $0061	; type_and_map_flags
 	dc.l $000088B8	; world_x
 	dc.l $0000E614	; world_z
-	dc.w $0002	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PROXIMITY_MINE	; type_and_map_flags
 	dc.l $00008CA0	; world_x
 	dc.l $00006DC4	; world_z
-	dc.w $0002	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PROXIMITY_MINE	; type_and_map_flags
 	dc.l $000084D0	; world_x
 	dc.l $0000BBE4	; world_z
-	dc.w $0005	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_EGRON_SILO	; type_and_map_flags
 	dc.l $00008000	; world_x
 	dc.l $00008000	; world_z
-	dc.w $0005	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_EGRON_SILO	; type_and_map_flags
 	dc.l $00012000	; world_x
 	dc.l $00008000	; world_z
-	dc.w $0005	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_EGRON_SILO	; type_and_map_flags
 	dc.l $00018000	; world_x
 	dc.l $00010000	; world_z
-	dc.w $0005	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_EGRON_SILO	; type_and_map_flags
 	dc.l $0000E000	; world_x
 	dc.l $00014000	; world_z
-	dc.w $0005	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_EGRON_SILO	; type_and_map_flags
 	dc.l $00006000	; world_x
 	dc.l $00010000	; world_z
-	dc.w $0005	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_EGRON_SILO	; type_and_map_flags
 	dc.l $00006000	; world_x
 	dc.l $0001A000	; world_z
-	dc.w $002E	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_EGRON_DOME_SILO	; type_and_map_flags
 	dc.l $00018000	; world_x
 	dc.l $00008000	; world_z
-	dc.w $002E	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_EGRON_DOME_SILO	; type_and_map_flags
 	dc.l $00018000	; world_x
 	dc.l $00018000	; world_z
-	dc.w $002E	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_EGRON_DOME_SILO	; type_and_map_flags
 	dc.l $00004000	; world_x
 	dc.l $00016000	; world_z
-	dc.w $002E	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_EGRON_DOME_SILO	; type_and_map_flags
 	dc.l $0000E000	; world_x
 	dc.l $0000C000	; world_z
-	dc.w $0002	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PROXIMITY_MINE	; type_and_map_flags
 	dc.l $00012000	; world_x
 	dc.l $0000E000	; world_z
-	dc.w $0002	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PROXIMITY_MINE	; type_and_map_flags
 	dc.l $0001A000	; world_x
 	dc.l $0000A000	; world_z
-	dc.w $0002	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PROXIMITY_MINE	; type_and_map_flags
 	dc.l $0000C000	; world_x
 	dc.l $00006000	; world_z
-	dc.w $0002	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PROXIMITY_MINE	; type_and_map_flags
 	dc.l $00008000	; world_x
 	dc.l $00016000	; world_z
-	dc.w $0004	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_SOLAR_ENERGY_CONVERTER	; type_and_map_flags
 	dc.l $00014000	; world_x
 	dc.l $00018000	; world_z
-	dc.w $0004	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_SOLAR_ENERGY_CONVERTER	; type_and_map_flags
 	dc.l $0000C000	; world_x
 	dc.l $00018000	; world_z
-	dc.w $002B	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_SKIM_DRONE	; type_and_map_flags
 	dc.l $00004000	; world_x
 	dc.l $0000A000	; world_z
-	dc.w $0004	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_SOLAR_ENERGY_CONVERTER	; type_and_map_flags
 	dc.l $00004000	; world_x
 	dc.l $0000A000	; world_z
-	dc.w $0004	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_SOLAR_ENERGY_CONVERTER	; type_and_map_flags
 	dc.l $00014000	; world_x
 	dc.l $00006000	; world_z
-	dc.w $0004	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_SOLAR_ENERGY_CONVERTER	; type_and_map_flags
 	dc.l $0001A000	; world_x
 	dc.l $00004000	; world_z
-	dc.w $0008	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_EMMA_2	; type_and_map_flags
 	dc.l $00016000	; world_x
 	dc.l $00014000	; world_z
-	dc.w $0008	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_EMMA_2	; type_and_map_flags
 	dc.l $00008000	; world_x
 	dc.l $0000C000	; world_z
-	dc.w $0008	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_EMMA_2	; type_and_map_flags
 	dc.l $00004000	; world_x
 	dc.l $00006000	; world_z
-	dc.w $0008	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_EMMA_2	; type_and_map_flags
 	dc.l $00010000	; world_x
 	dc.l $00004000	; world_z
-	dc.w $0008	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_EMMA_2	; type_and_map_flags
 	dc.l $0001A000	; world_x
 	dc.l $0000E000	; world_z
-	dc.w $0008	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_EMMA_2	; type_and_map_flags
 	dc.l $0000A000	; world_x
 	dc.l $0001A000	; world_z
-	dc.w $0004	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_SOLAR_ENERGY_CONVERTER	; type_and_map_flags
 	dc.l $00014000	; world_x
 	dc.l $0000A000	; world_z
-	dc.w $0034	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_TOWER_BLOCK	; type_and_map_flags
 	dc.l $00004000	; world_x
 	dc.l $0001A000	; world_z
-	dc.w $0034	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_TOWER_BLOCK	; type_and_map_flags
 	dc.l $00008000	; world_x
 	dc.l $0001A000	; world_z
-	dc.w $0034	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_TOWER_BLOCK	; type_and_map_flags
 	dc.l $00016000	; world_x
 	dc.l $0001A000	; world_z
-	dc.w $0034	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_TOWER_BLOCK	; type_and_map_flags
 	dc.l $00006000	; world_x
 	dc.l $00002000	; world_z
-	dc.w $0034	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_TOWER_BLOCK	; type_and_map_flags
 	dc.l $0001C000	; world_x
 	dc.l $00006000	; world_z
-	dc.w $0034	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_TOWER_BLOCK	; type_and_map_flags
 	dc.l $00004000	; world_x
 	dc.l $0000E000	; world_z
-	dc.w $0034	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_TOWER_BLOCK	; type_and_map_flags
 	dc.l $00010000	; world_x
 	dc.l $00018000	; world_z
-	dc.w $0034	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_TOWER_BLOCK	; type_and_map_flags
 	dc.l $00006000	; world_x
 	dc.l $00006000	; world_z
-	dc.w $002B	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_SKIM_DRONE	; type_and_map_flags
 	dc.l $00010000	; world_x
 	dc.l $00006000	; world_z
-	dc.w $0034	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_TOWER_BLOCK	; type_and_map_flags
 	dc.l $00010000	; world_x
 	dc.l $00006000	; world_z
-	dc.w $0034	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_TOWER_BLOCK	; type_and_map_flags
 	dc.l $0001A000	; world_x
 	dc.l $00014000	; world_z
-	dc.w $002B	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_SKIM_DRONE	; type_and_map_flags
 	dc.l $0001C000	; world_x
 	dc.l $00010000	; world_z
-	dc.w $0035	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_TAPERING_TOWER_BLOCK	; type_and_map_flags
 	dc.l $0001C000	; world_x
 	dc.l $00010000	; world_z
-	dc.w $0035	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_TAPERING_TOWER_BLOCK	; type_and_map_flags
 	dc.l $00002000	; world_x
 	dc.l $00012000	; world_z
-	dc.w $0035	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_TAPERING_TOWER_BLOCK	; type_and_map_flags
 	dc.l $0000A000	; world_x
 	dc.l $00002000	; world_z
-	dc.w $0035	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_TAPERING_TOWER_BLOCK	; type_and_map_flags
 	dc.l $00016000	; world_x
 	dc.l $00002000	; world_z
-	dc.w $0035	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_TAPERING_TOWER_BLOCK	; type_and_map_flags
 	dc.l $0001A000	; world_x
 	dc.l $00016000	; world_z
-	dc.w $0033	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PYRAMID	; type_and_map_flags
 	dc.l $0000E000	; world_x
 	dc.l $0001A000	; world_z
-	dc.w $0033	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PYRAMID	; type_and_map_flags
 	dc.l $00010000	; world_x
 	dc.l $0000A000	; world_z
-	dc.w $0033	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PYRAMID	; type_and_map_flags
 	dc.l $0000C000	; world_x
 	dc.l $00002000	; world_z
-	dc.w $0033	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PYRAMID	; type_and_map_flags
 	dc.l $00014000	; world_x
 	dc.l $0000C000	; world_z
-	dc.w $0032	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_GBML_WITH_CANNON	; type_and_map_flags
 	dc.l $0000E000	; world_x
 	dc.l $00016000	; world_z
-	dc.w $0032	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_GBML_WITH_CANNON	; type_and_map_flags
 	dc.l $00016000	; world_x
 	dc.l $00006000	; world_z
-	dc.w $0032	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_GBML_WITH_CANNON	; type_and_map_flags
 	dc.l $00008000	; world_x
 	dc.l $00006000	; world_z
-	dc.w $0032	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_GBML_WITH_CANNON	; type_and_map_flags
 	dc.l $00012000	; world_x
 	dc.l $00010000	; world_z
-	dc.w $0032	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_GBML_WITH_CANNON	; type_and_map_flags
 	dc.l $0000A000	; world_x
 	dc.l $00010000	; world_z
-	dc.w $0032	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_GBML_WITH_CANNON	; type_and_map_flags
 	dc.l $0000C000	; world_x
 	dc.l $00008000	; world_z
-	dc.w $0032	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_GBML_WITH_CANNON	; type_and_map_flags
 	dc.l $0001A000	; world_x
 	dc.l $00008000	; world_z
-	dc.w $0032	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_GBML_WITH_CANNON	; type_and_map_flags
 	dc.l $0001A000	; world_x
 	dc.l $00012000	; world_z
-	dc.w $0032	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_GBML_WITH_CANNON	; type_and_map_flags
 	dc.l $00018000	; world_x
 	dc.l $0001A000	; world_z
-	dc.w $0032	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_GBML_WITH_CANNON	; type_and_map_flags
 	dc.l $00004000	; world_x
 	dc.l $00004000	; world_z
-	dc.w $0032	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_GBML_WITH_CANNON	; type_and_map_flags
 	dc.l $00018000	; world_x
 	dc.l $00002000	; world_z
-	dc.w $0031	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_BT_TOWER	; type_and_map_flags
 	dc.l $00002000	; world_x
 	dc.l $00014000	; world_z
-	dc.w $0031	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_BT_TOWER	; type_and_map_flags
 	dc.l $00008000	; world_x
 	dc.l $0001C000	; world_z
-	dc.w $0031	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_BT_TOWER	; type_and_map_flags
 	dc.l $0000C000	; world_x
 	dc.l $00010000	; world_z
-	dc.w $0031	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_BT_TOWER	; type_and_map_flags
 	dc.l $0000A000	; world_x
 	dc.l $0000A000	; world_z
-	dc.w $0031	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_BT_TOWER	; type_and_map_flags
 	dc.l $00012000	; world_x
 	dc.l $00006000	; world_z
-	dc.w $0031	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_BT_TOWER	; type_and_map_flags
 	dc.l $00016000	; world_x
 	dc.l $00004000	; world_z
-	dc.w $0031	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_BT_TOWER	; type_and_map_flags
 	dc.l $0001A000	; world_x
 	dc.l $00010000	; world_z
-	dc.w $0031	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_BT_TOWER	; type_and_map_flags
 	dc.l $0001A000	; world_x
 	dc.l $0001A000	; world_z
-	dc.w $0031	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_BT_TOWER	; type_and_map_flags
 	dc.l $00002000	; world_x
 	dc.l $0000C000	; world_z
-	dc.w $0031	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_BT_TOWER	; type_and_map_flags
 	dc.l $00004000	; world_x
 	dc.l $00002000	; world_z
-	dc.w $0031	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_BT_TOWER	; type_and_map_flags
 	dc.l $00012000	; world_x
 	dc.l $0001A000	; world_z
-	dc.w $0031	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_BT_TOWER	; type_and_map_flags
 	dc.l $00012000	; world_x
 	dc.l $00014000	; world_z
-	dc.w $0031	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_BT_TOWER	; type_and_map_flags
 	dc.l $00016000	; world_x
 	dc.l $0000E000	; world_z
-	dc.w $0003	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_EGRON_SPIRE_BUILDING	; type_and_map_flags
 	dc.l $00018000	; world_x
 	dc.l $00004000	; world_z
-	dc.w $0003	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_EGRON_SPIRE_BUILDING	; type_and_map_flags
 	dc.l $0001A000	; world_x
 	dc.l $0000C000	; world_z
-	dc.w $0003	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_EGRON_SPIRE_BUILDING	; type_and_map_flags
 	dc.l $00014000	; world_x
 	dc.l $00012000	; world_z
-	dc.w $0003	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_EGRON_SPIRE_BUILDING	; type_and_map_flags
 	dc.l $0000E000	; world_x
 	dc.l $00012000	; world_z
-	dc.w $0003	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_EGRON_SPIRE_BUILDING	; type_and_map_flags
 	dc.l $00008000	; world_x
 	dc.l $00012000	; world_z
-	dc.w $0003	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_EGRON_SPIRE_BUILDING	; type_and_map_flags
 	dc.l $00004000	; world_x
 	dc.l $00008000	; world_z
-	dc.w $0003	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_EGRON_SPIRE_BUILDING	; type_and_map_flags
 	dc.l $0000C000	; world_x
 	dc.l $0001A000	; world_z
-	dc.w $0003	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_EGRON_SPIRE_BUILDING	; type_and_map_flags
 	dc.l $00014000	; world_x
 	dc.l $0001A000	; world_z
-	dc.w $0003	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_EGRON_SPIRE_BUILDING	; type_and_map_flags
 	dc.l $00018000	; world_x
 	dc.l $00006000	; world_z
-	dc.w $0030	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_TUNNEL_ENTRANCE_EXIT	; type_and_map_flags
 	dc.l $0000CFB2	; world_x
 	dc.l $00005744	; world_z
 	dc.w $0130	; type_and_map_flags
@@ -41359,1543 +41394,1543 @@ apogee_surface_placements_end_tag:
 millway_surface_placements_end_tag:
 	dc.w $0000	; 0 original surface placements, stride 10, plus zero tag; aliases 4
 aldos_surface_placements:
-	dc.w $0091	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_SOLICE_145	; type_and_map_flags
 	dc.l $00008000	; world_x
 	dc.l $00008000	; world_z
-	dc.w $001D	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_EGRON_MINI_ROCKET	; type_and_map_flags
 	dc.l $00001F40	; world_x
 	dc.l $0001D4C0	; world_z
-	dc.w $0032	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_GBML_WITH_CANNON	; type_and_map_flags
 	dc.l $0000BB80	; world_x
 	dc.l $0001D4C0	; world_z
-	dc.w $003D	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_SCRAP_METAL_61	; type_and_map_flags
 	dc.l $0000DAC0	; world_x
 	dc.l $0001D4C0	; world_z
-	dc.w $0066	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_CASE_OF_NUCLEAR_FUEL	; type_and_map_flags
 	dc.l $00009C40	; world_x
 	dc.l $0001D4C0	; world_z
-	dc.w $0005	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_EGRON_SILO	; type_and_map_flags
 	dc.l $0000A410	; world_x
 	dc.l $0001D4C0	; world_z
-	dc.w $0066	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_CASE_OF_NUCLEAR_FUEL	; type_and_map_flags
 	dc.l $00011940	; world_x
 	dc.l $0001D4C0	; world_z
-	dc.w $0002	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PROXIMITY_MINE	; type_and_map_flags
 	dc.l $00011940	; world_x
 	dc.l $0001D4C0	; world_z
-	dc.w $0033	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PYRAMID	; type_and_map_flags
 	dc.l $00017700	; world_x
 	dc.l $0001D4C0	; world_z
-	dc.w $0066	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_CASE_OF_NUCLEAR_FUEL	; type_and_map_flags
 	dc.l $00003E80	; world_x
 	dc.l $0001B580	; world_z
-	dc.w $0036	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_ENERGY_TRANSMITTER	; type_and_map_flags
 	dc.l $00007D00	; world_x
 	dc.l $0001B580	; world_z
-	dc.w $0033	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PYRAMID	; type_and_map_flags
 	dc.l $0000DAC0	; world_x
 	dc.l $0001B580	; world_z
-	dc.w $0025	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_EGRON_MINI_SENTINEL	; type_and_map_flags
 	dc.l $00011940	; world_x
 	dc.l $0001B580	; world_z
-	dc.w $0005	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_EGRON_SILO	; type_and_map_flags
 	dc.l $0001B580	; world_x
 	dc.l $0001B580	; world_z
-	dc.w $003D	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_SCRAP_METAL_61	; type_and_map_flags
 	dc.l $00005DC0	; world_x
 	dc.l $00019640	; world_z
-	dc.w $0032	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_GBML_WITH_CANNON	; type_and_map_flags
 	dc.l $0001B580	; world_x
 	dc.l $00019640	; world_z
-	dc.w $003B	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_OLD_HEAP_OF_JUNK	; type_and_map_flags
 	dc.l $0000BB80	; world_x
 	dc.l $00005DC0	; world_z
-	dc.w $003B	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_OLD_HEAP_OF_JUNK	; type_and_map_flags
 	dc.l $0001D4C0	; world_x
 	dc.l $0001D4C0	; world_z
-	dc.w $003E	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_SCRAP_METAL_62	; type_and_map_flags
 	dc.l $0000DAC0	; world_x
 	dc.l $0000BB80	; world_z
-	dc.w $003E	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_SCRAP_METAL_62	; type_and_map_flags
 	dc.l $000157C0	; world_x
 	dc.l $0001B580	; world_z
-	dc.w $002A	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_SATELLITE_DISH	; type_and_map_flags
 	dc.l $00009C40	; world_x
 	dc.l $00019640	; world_z
-	dc.w $0025	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_EGRON_MINI_SENTINEL	; type_and_map_flags
 	dc.l $0000BB80	; world_x
 	dc.l $00019640	; world_z
-	dc.w $001D	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_EGRON_MINI_ROCKET	; type_and_map_flags
 	dc.l $0000FA00	; world_x
 	dc.l $00019640	; world_z
-	dc.w $002B	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_SKIM_DRONE	; type_and_map_flags
 	dc.l $00013880	; world_x
 	dc.l $00019640	; world_z
-	dc.w $0066	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_CASE_OF_NUCLEAR_FUEL	; type_and_map_flags
 	dc.l $00017700	; world_x
 	dc.l $00019640	; world_z
-	dc.w $002B	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_SKIM_DRONE	; type_and_map_flags
 	dc.l $0001D4C0	; world_x
 	dc.l $00019640	; world_z
-	dc.w $0066	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_CASE_OF_NUCLEAR_FUEL	; type_and_map_flags
 	dc.l $00001F40	; world_x
 	dc.l $00017700	; world_z
-	dc.w $0036	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_ENERGY_TRANSMITTER	; type_and_map_flags
 	dc.l $00005DC0	; world_x
 	dc.l $00017700	; world_z
-	dc.w $0005	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_EGRON_SILO	; type_and_map_flags
 	dc.l $00007D00	; world_x
 	dc.l $00017700	; world_z
-	dc.w $0066	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_CASE_OF_NUCLEAR_FUEL	; type_and_map_flags
 	dc.l $0000DAC0	; world_x
 	dc.l $00017700	; world_z
-	dc.w $0036	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_ENERGY_TRANSMITTER	; type_and_map_flags
 	dc.l $00011940	; world_x
 	dc.l $00017700	; world_z
-	dc.w $0005	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_EGRON_SILO	; type_and_map_flags
 	dc.l $000157C0	; world_x
 	dc.l $00017700	; world_z
-	dc.w $0033	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PYRAMID	; type_and_map_flags
 	dc.l $00019640	; world_x
 	dc.l $00017700	; world_z
-	dc.w $0002	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PROXIMITY_MINE	; type_and_map_flags
 	dc.l $00007D00	; world_x
 	dc.l $000157C0	; world_z
-	dc.w $0028	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PIRATE_SHIP	; type_and_map_flags
 	dc.l $0000BB80	; world_x
 	dc.l $000157C0	; world_z
-	dc.w $002E	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_EGRON_DOME_SILO	; type_and_map_flags
 	dc.l $0000FA00	; world_x
 	dc.l $000157C0	; world_z
-	dc.w $005D	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_ENERGY_TOWER_93	; type_and_map_flags
 	dc.l $00011940	; world_x
 	dc.l $000157C0	; world_z
-	dc.w $0028	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PIRATE_SHIP	; type_and_map_flags
 	dc.l $00013880	; world_x
 	dc.l $000157C0	; world_z
-	dc.w $0025	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_EGRON_MINI_SENTINEL	; type_and_map_flags
 	dc.l $00017700	; world_x
 	dc.l $000157C0	; world_z
-	dc.w $002E	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_EGRON_DOME_SILO	; type_and_map_flags
 	dc.l $0001B580	; world_x
 	dc.l $000157C0	; world_z
-	dc.w $003D	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_SCRAP_METAL_61	; type_and_map_flags
 	dc.l $00001F40	; world_x
 	dc.l $00013880	; world_z
-	dc.w $0032	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_GBML_WITH_CANNON	; type_and_map_flags
 	dc.l $00005DC0	; world_x
 	dc.l $00013880	; world_z
-	dc.w $0025	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_EGRON_MINI_SENTINEL	; type_and_map_flags
 	dc.l $0000BB80	; world_x
 	dc.l $00013880	; world_z
-	dc.w $002B	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_SKIM_DRONE	; type_and_map_flags
 	dc.l $0000FA00	; world_x
 	dc.l $00013880	; world_z
-	dc.w $0066	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_CASE_OF_NUCLEAR_FUEL	; type_and_map_flags
 	dc.l $000157C0	; world_x
 	dc.l $00013880	; world_z
-	dc.w $0005	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_EGRON_SILO	; type_and_map_flags
 	dc.l $00015BA8	; world_x
 	dc.l $00013880	; world_z
-	dc.w $0025	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_EGRON_MINI_SENTINEL	; type_and_map_flags
 	dc.l $00019640	; world_x
 	dc.l $00013880	; world_z
-	dc.w $0028	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PIRATE_SHIP	; type_and_map_flags
 	dc.l $0001D4C0	; world_x
 	dc.l $00013880	; world_z
-	dc.w $0066	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_CASE_OF_NUCLEAR_FUEL	; type_and_map_flags
 	dc.l $00003E80	; world_x
 	dc.l $00011940	; world_z
-	dc.w $002E	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_EGRON_DOME_SILO	; type_and_map_flags
 	dc.l $00007D00	; world_x
 	dc.l $00011940	; world_z
-	dc.w $005D	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_ENERGY_TOWER_93	; type_and_map_flags
 	dc.l $00009C40	; world_x
 	dc.l $00011940	; world_z
-	dc.w $0066	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_CASE_OF_NUCLEAR_FUEL	; type_and_map_flags
 	dc.l $0000BB80	; world_x
 	dc.l $00011940	; world_z
-	dc.w $003E	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_SCRAP_METAL_62	; type_and_map_flags
 	dc.l $0000DAC0	; world_x
 	dc.l $00011940	; world_z
-	dc.w $0032	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_GBML_WITH_CANNON	; type_and_map_flags
 	dc.l $0000FA00	; world_x
 	dc.l $00011940	; world_z
-	dc.w $0025	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_EGRON_MINI_SENTINEL	; type_and_map_flags
 	dc.l $00011940	; world_x
 	dc.l $00011940	; world_z
-	dc.w $001D	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_EGRON_MINI_ROCKET	; type_and_map_flags
 	dc.l $00013880	; world_x
 	dc.l $00011940	; world_z
-	dc.w $002B	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_SKIM_DRONE	; type_and_map_flags
 	dc.l $000157C0	; world_x
 	dc.l $00011940	; world_z
-	dc.w $005D	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_ENERGY_TOWER_93	; type_and_map_flags
 	dc.l $0001B580	; world_x
 	dc.l $00011940	; world_z
-	dc.w $0005	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_EGRON_SILO	; type_and_map_flags
 	dc.l $00019640	; world_x
 	dc.l $00011940	; world_z
-	dc.w $0036	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_ENERGY_TRANSMITTER	; type_and_map_flags
 	dc.l $00001F40	; world_x
 	dc.l $0000FA00	; world_z
-	dc.w $0017	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_GBML	; type_and_map_flags
 	dc.l $00005DC0	; world_x
 	dc.l $0000FA00	; world_z
-	dc.w $002B	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_SKIM_DRONE	; type_and_map_flags
 	dc.l $00009C40	; world_x
 	dc.l $0000FA00	; world_z
-	dc.w $0025	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_EGRON_MINI_SENTINEL	; type_and_map_flags
 	dc.l $0000DAC0	; world_x
 	dc.l $0000FA00	; world_z
-	dc.w $0025	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_EGRON_MINI_SENTINEL	; type_and_map_flags
 	dc.l $00011940	; world_x
 	dc.l $0000FA00	; world_z
-	dc.w $0032	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_GBML_WITH_CANNON	; type_and_map_flags
 	dc.l $00017700	; world_x
 	dc.l $0000FA00	; world_z
-	dc.w $0002	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PROXIMITY_MINE	; type_and_map_flags
 	dc.l $00018E70	; world_x
 	dc.l $0000FA00	; world_z
-	dc.w $0017	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_GBML	; type_and_map_flags
 	dc.l $0001D4C0	; world_x
 	dc.l $0000DAC0	; world_z
-	dc.w $0025	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_EGRON_MINI_SENTINEL	; type_and_map_flags
 	dc.l $00003E80	; world_x
 	dc.l $0000DAC0	; world_z
-	dc.w $0033	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PYRAMID	; type_and_map_flags
 	dc.l $00007D00	; world_x
 	dc.l $0000DAC0	; world_z
-	dc.w $0056	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_GROUND_BASED_LASER_CANNON	; type_and_map_flags
 	dc.l $00009C40	; world_x
 	dc.l $0000DAC0	; world_z
-	dc.w $0066	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_CASE_OF_NUCLEAR_FUEL	; type_and_map_flags
 	dc.l $0000BB80	; world_x
 	dc.l $0000DAC0	; world_z
-	dc.w $003D	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_SCRAP_METAL_61	; type_and_map_flags
 	dc.l $0000FA00	; world_x
 	dc.l $0000DAC0	; world_z
-	dc.w $0066	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_CASE_OF_NUCLEAR_FUEL	; type_and_map_flags
 	dc.l $00011940	; world_x
 	dc.l $0000DAC0	; world_z
-	dc.w $003E	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_SCRAP_METAL_62	; type_and_map_flags
 	dc.l $00013880	; world_x
 	dc.l $0000DAC0	; world_z
-	dc.w $0025	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_EGRON_MINI_SENTINEL	; type_and_map_flags
 	dc.l $000157C0	; world_x
 	dc.l $0000DAC0	; world_z
-	dc.w $003D	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_SCRAP_METAL_61	; type_and_map_flags
 	dc.l $00017700	; world_x
 	dc.l $0000DAC0	; world_z
-	dc.w $0033	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PYRAMID	; type_and_map_flags
 	dc.l $00019640	; world_x
 	dc.l $0000DAC0	; world_z
-	dc.w $0066	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_CASE_OF_NUCLEAR_FUEL	; type_and_map_flags
 	dc.l $00005DC0	; world_x
 	dc.l $0000BB80	; world_z
-	dc.w $0005	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_EGRON_SILO	; type_and_map_flags
 	dc.l $000061A8	; world_x
 	dc.l $0000BB80	; world_z
-	dc.w $0002	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PROXIMITY_MINE	; type_and_map_flags
 	dc.l $00009C40	; world_x
 	dc.l $0000BB80	; world_z
-	dc.w $0032	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_GBML_WITH_CANNON	; type_and_map_flags
 	dc.l $0000FA00	; world_x
 	dc.l $0000BB80	; world_z
-	dc.w $003D	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_SCRAP_METAL_61	; type_and_map_flags
 	dc.l $00013880	; world_x
 	dc.l $0000BB80	; world_z
-	dc.w $002A	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_SATELLITE_DISH	; type_and_map_flags
 	dc.l $000157C0	; world_x
 	dc.l $0000BB80	; world_z
-	dc.w $0066	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_CASE_OF_NUCLEAR_FUEL	; type_and_map_flags
 	dc.l $00017700	; world_x
 	dc.l $0000BB80	; world_z
-	dc.w $0066	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_CASE_OF_NUCLEAR_FUEL	; type_and_map_flags
 	dc.l $0001B580	; world_x
 	dc.l $0000BB80	; world_z
-	dc.w $002B	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_SKIM_DRONE	; type_and_map_flags
 	dc.l $00001F40	; world_x
 	dc.l $00009C40	; world_z
-	dc.w $0033	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PYRAMID	; type_and_map_flags
 	dc.l $00003E80	; world_x
 	dc.l $00009C40	; world_z
-	dc.w $002A	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_SATELLITE_DISH	; type_and_map_flags
 	dc.l $00007D00	; world_x
 	dc.l $00009C40	; world_z
-	dc.w $002B	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_SKIM_DRONE	; type_and_map_flags
 	dc.l $0000BB80	; world_x
 	dc.l $00009C40	; world_z
-	dc.w $0002	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PROXIMITY_MINE	; type_and_map_flags
 	dc.l $00011940	; world_x
 	dc.l $00009C40	; world_z
-	dc.w $0025	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_EGRON_MINI_SENTINEL	; type_and_map_flags
 	dc.l $00013880	; world_x
 	dc.l $00009C40	; world_z
-	dc.w $003D	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_SCRAP_METAL_61	; type_and_map_flags
 	dc.l $000157C0	; world_x
 	dc.l $00009C40	; world_z
-	dc.w $0036	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_ENERGY_TRANSMITTER	; type_and_map_flags
 	dc.l $00017700	; world_x
 	dc.l $00009C40	; world_z
-	dc.w $002B	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_SKIM_DRONE	; type_and_map_flags
 	dc.l $00019640	; world_x
 	dc.l $00009C40	; world_z
-	dc.w $0025	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_EGRON_MINI_SENTINEL	; type_and_map_flags
 	dc.l $0001D4C0	; world_x
 	dc.l $00009C40	; world_z
-	dc.w $0066	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_CASE_OF_NUCLEAR_FUEL	; type_and_map_flags
 	dc.l $00001F40	; world_x
 	dc.l $00007D00	; world_z
-	dc.w $0025	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_EGRON_MINI_SENTINEL	; type_and_map_flags
 	dc.l $00005DC0	; world_x
 	dc.l $00007D00	; world_z
-	dc.w $0032	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_GBML_WITH_CANNON	; type_and_map_flags
 	dc.l $00009C40	; world_x
 	dc.l $00007D00	; world_z
-	dc.w $0066	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_CASE_OF_NUCLEAR_FUEL	; type_and_map_flags
 	dc.l $0000DAC0	; world_x
 	dc.l $00007D00	; world_z
-	dc.w $003D	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_SCRAP_METAL_61	; type_and_map_flags
 	dc.l $0000FA00	; world_x
 	dc.l $00007D00	; world_z
-	dc.w $0025	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_EGRON_MINI_SENTINEL	; type_and_map_flags
 	dc.l $00011940	; world_x
 	dc.l $00007D00	; world_z
-	dc.w $003E	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_SCRAP_METAL_62	; type_and_map_flags
 	dc.l $000157C0	; world_x
 	dc.l $00007D00	; world_z
-	dc.w $0005	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_EGRON_SILO	; type_and_map_flags
 	dc.l $00017700	; world_x
 	dc.l $00007D00	; world_z
-	dc.w $0033	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PYRAMID	; type_and_map_flags
 	dc.l $00019640	; world_x
 	dc.l $00007D00	; world_z
-	dc.w $0005	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_EGRON_SILO	; type_and_map_flags
 	dc.l $0001B580	; world_x
 	dc.l $00007D00	; world_z
-	dc.w $0036	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_ENERGY_TRANSMITTER	; type_and_map_flags
 	dc.l $00003E80	; world_x
 	dc.l $00005DC0	; world_z
-	dc.w $0002	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PROXIMITY_MINE	; type_and_map_flags
 	dc.l $00005DC0	; world_x
 	dc.l $00005DC0	; world_z
-	dc.w $0066	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_CASE_OF_NUCLEAR_FUEL	; type_and_map_flags
 	dc.l $00005DC0	; world_x
 	dc.l $00005DC0	; world_z
-	dc.w $0002	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PROXIMITY_MINE	; type_and_map_flags
 	dc.l $0000FA00	; world_x
 	dc.l $00005DC0	; world_z
-	dc.w $0032	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_GBML_WITH_CANNON	; type_and_map_flags
 	dc.l $00013880	; world_x
 	dc.l $00005DC0	; world_z
-	dc.w $003E	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_SCRAP_METAL_62	; type_and_map_flags
 	dc.l $000157C0	; world_x
 	dc.l $00005DC0	; world_z
-	dc.w $0034	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_TOWER_BLOCK	; type_and_map_flags
 	dc.l $00017700	; world_x
 	dc.l $00005DC0	; world_z
-	dc.w $0036	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_ENERGY_TRANSMITTER	; type_and_map_flags
 	dc.l $00019640	; world_x
 	dc.l $00005DC0	; world_z
-	dc.w $001D	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_EGRON_MINI_ROCKET	; type_and_map_flags
 	dc.l $00007D00	; world_x
 	dc.l $00003E80	; world_z
-	dc.w $0032	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_GBML_WITH_CANNON	; type_and_map_flags
 	dc.l $00009C40	; world_x
 	dc.l $00003E80	; world_z
-	dc.w $0036	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_ENERGY_TRANSMITTER	; type_and_map_flags
 	dc.l $0000FA00	; world_x
 	dc.l $00003E80	; world_z
-	dc.w $0005	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_EGRON_SILO	; type_and_map_flags
 	dc.l $00011940	; world_x
 	dc.l $00003E80	; world_z
-	dc.w $0036	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_ENERGY_TRANSMITTER	; type_and_map_flags
 	dc.l $000157C0	; world_x
 	dc.l $00003E80	; world_z
-	dc.w $0002	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PROXIMITY_MINE	; type_and_map_flags
 	dc.l $00019640	; world_x
 	dc.l $00003E80	; world_z
-	dc.w $0036	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_ENERGY_TRANSMITTER	; type_and_map_flags
 	dc.l $0001B580	; world_x
 	dc.l $00003E80	; world_z
-	dc.w $0025	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_EGRON_MINI_SENTINEL	; type_and_map_flags
 	dc.l $00003E80	; world_x
 	dc.l $00001F40	; world_z
-	dc.w $002B	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_SKIM_DRONE	; type_and_map_flags
 	dc.l $0000DAC0	; world_x
 	dc.l $00001F40	; world_z
-	dc.w $0036	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_ENERGY_TRANSMITTER	; type_and_map_flags
 	dc.l $000124F8	; world_x
 	dc.l $00001F40	; world_z
-	dc.w $0025	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_EGRON_MINI_SENTINEL	; type_and_map_flags
 	dc.l $000157C0	; world_x
 	dc.l $00001F40	; world_z
-	dc.w $0028	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PIRATE_SHIP	; type_and_map_flags
 	dc.l $0001D4C0	; world_x
 	dc.l $00001F40	; world_z
-	dc.w $0033	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PYRAMID	; type_and_map_flags
 	dc.l $00003E80	; world_x
 	dc.l $00000000	; world_z
-	dc.w $0005	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_EGRON_SILO	; type_and_map_flags
 	dc.l $000059D8	; world_x
 	dc.l $00000000	; world_z
-	dc.w $005D	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_ENERGY_TOWER_93	; type_and_map_flags
 	dc.l $00009C40	; world_x
 	dc.l $00000000	; world_z
-	dc.w $003D	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_SCRAP_METAL_61	; type_and_map_flags
 	dc.l $0000DAC0	; world_x
 	dc.l $00000000	; world_z
-	dc.w $003D	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_SCRAP_METAL_61	; type_and_map_flags
 	dc.l $00011940	; world_x
 	dc.l $00000000	; world_z
-	dc.w $0033	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PYRAMID	; type_and_map_flags
 	dc.l $000157C0	; world_x
 	dc.l $00000000	; world_z
-	dc.w $0033	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PYRAMID	; type_and_map_flags
 	dc.l $00019640	; world_x
 	dc.l $00000000	; world_z
-	dc.w $0005	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_EGRON_SILO	; type_and_map_flags
 	dc.l $0001D4C0	; world_x
 	dc.l $00000000	; world_z
 aldos_surface_placements_end_tag:
 	dc.w $0000	; 133 original surface placements, stride 10, plus zero tag; aliases 5
 enos_surface_placements:
-	dc.w $0091	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_SOLICE_145	; type_and_map_flags
 	dc.l $00008000	; world_x
 	dc.l $00008000	; world_z
-	dc.w $0018	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PETRIFIED_TREE	; type_and_map_flags
 	dc.l $00001F40	; world_x
 	dc.l $0000EA60	; world_z
-	dc.w $0056	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_GROUND_BASED_LASER_CANNON	; type_and_map_flags
 	dc.l $00005DC0	; world_x
 	dc.l $0000EA60	; world_z
-	dc.w $0018	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PETRIFIED_TREE	; type_and_map_flags
 	dc.l $00000FA0	; world_x
 	dc.l $0000DAC0	; world_z
-	dc.w $0018	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PETRIFIED_TREE	; type_and_map_flags
 	dc.l $00002710	; world_x
 	dc.l $0000DAC0	; world_z
-	dc.w $0018	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PETRIFIED_TREE	; type_and_map_flags
 	dc.l $00003E80	; world_x
 	dc.l $0000DAC0	; world_z
-	dc.w $0056	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_GROUND_BASED_LASER_CANNON	; type_and_map_flags
 	dc.l $0000ABE0	; world_x
 	dc.l $0000DAC0	; world_z
-	dc.w $0018	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PETRIFIED_TREE	; type_and_map_flags
 	dc.l $00001F40	; world_x
 	dc.l $0000CB20	; world_z
-	dc.w $0018	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PETRIFIED_TREE	; type_and_map_flags
 	dc.l $00004E20	; world_x
 	dc.l $0000CB20	; world_z
-	dc.w $0004	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_SOLAR_ENERGY_CONVERTER	; type_and_map_flags
 	dc.l $00006D60	; world_x
 	dc.l $0000CB20	; world_z
-	dc.w $0018	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PETRIFIED_TREE	; type_and_map_flags
 	dc.l $00008CA0	; world_x
 	dc.l $0000CB20	; world_z
-	dc.w $0018	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PETRIFIED_TREE	; type_and_map_flags
 	dc.l $0000CB20	; world_x
 	dc.l $0000CB20	; world_z
-	dc.w $0056	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_GROUND_BASED_LASER_CANNON	; type_and_map_flags
 	dc.l $0000EA60	; world_x
 	dc.l $0000CB20	; world_z
-	dc.w $0018	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PETRIFIED_TREE	; type_and_map_flags
 	dc.l $0000ABE0	; world_x
 	dc.l $0000BB80	; world_z
-	dc.w $0018	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PETRIFIED_TREE	; type_and_map_flags
 	dc.l $0000C350	; world_x
 	dc.l $0000BB80	; world_z
-	dc.w $002A	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_SATELLITE_DISH	; type_and_map_flags
 	dc.l $00002EE0	; world_x
 	dc.l $0000B3B0	; world_z
-	dc.w $0004	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_SOLAR_ENERGY_CONVERTER	; type_and_map_flags
 	dc.l $000036B0	; world_x
 	dc.l $0000B3B0	; world_z
-	dc.w $002A	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_SATELLITE_DISH	; type_and_map_flags
 	dc.l $0000A410	; world_x
 	dc.l $0000B3B0	; world_z
-	dc.w $0004	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_SOLAR_ENERGY_CONVERTER	; type_and_map_flags
 	dc.l $0000B3B0	; world_x
 	dc.l $0000B3B0	; world_z
-	dc.w $0018	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PETRIFIED_TREE	; type_and_map_flags
 	dc.l $0000DAC0	; world_x
 	dc.l $0000B3B0	; world_z
-	dc.w $0033	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PYRAMID	; type_and_map_flags
 	dc.l $00002EE0	; world_x
 	dc.l $0000ABE0	; world_z
-	dc.w $0002	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PROXIMITY_MINE	; type_and_map_flags
 	dc.l $00006590	; world_x
 	dc.l $0000ABE0	; world_z
-	dc.w $0056	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_GROUND_BASED_LASER_CANNON	; type_and_map_flags
 	dc.l $00007D00	; world_x
 	dc.l $0000ABE0	; world_z
-	dc.w $0033	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PYRAMID	; type_and_map_flags
 	dc.l $0000ABE0	; world_x
 	dc.l $0000ABE0	; world_z
-	dc.w $0018	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PETRIFIED_TREE	; type_and_map_flags
 	dc.l $00000FA0	; world_x
 	dc.l $0000ABE0	; world_z
-	dc.w $0018	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PETRIFIED_TREE	; type_and_map_flags
 	dc.l $0000BB80	; world_x
 	dc.l $0000A410	; world_z
-	dc.w $0018	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PETRIFIED_TREE	; type_and_map_flags
 	dc.l $0000CB20	; world_x
 	dc.l $0000A410	; world_z
-	dc.w $0002	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PROXIMITY_MINE	; type_and_map_flags
 	dc.l $00000BB8	; world_x
 	dc.l $0000A028	; world_z
-	dc.w $0018	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PETRIFIED_TREE	; type_and_map_flags
 	dc.l $00001F40	; world_x
 	dc.l $00009C40	; world_z
-	dc.w $0002	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PROXIMITY_MINE	; type_and_map_flags
 	dc.l $000084D0	; world_x
 	dc.l $00009C40	; world_z
-	dc.w $0018	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PETRIFIED_TREE	; type_and_map_flags
 	dc.l $00008CA0	; world_x
 	dc.l $00009C40	; world_z
-	dc.w $0018	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PETRIFIED_TREE	; type_and_map_flags
 	dc.l $0000DAC0	; world_x
 	dc.l $00009C40	; world_z
-	dc.w $0018	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PETRIFIED_TREE	; type_and_map_flags
 	dc.l $00001388	; world_x
 	dc.l $00009858	; world_z
-	dc.w $0018	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PETRIFIED_TREE	; type_and_map_flags
 	dc.l $00008CA0	; world_x
 	dc.l $0000EA60	; world_z
-	dc.w $0002	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PROXIMITY_MINE	; type_and_map_flags
 	dc.l $0000BB80	; world_x
 	dc.l $00009470	; world_z
-	dc.w $0002	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PROXIMITY_MINE	; type_and_map_flags
 	dc.l $00002710	; world_x
 	dc.l $00008CA0	; world_z
-	dc.w $0018	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PETRIFIED_TREE	; type_and_map_flags
 	dc.l $00002EE0	; world_x
 	dc.l $00008CA0	; world_z
-	dc.w $0002	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PROXIMITY_MINE	; type_and_map_flags
 	dc.l $00004E20	; world_x
 	dc.l $00008CA0	; world_z
-	dc.w $0056	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_GROUND_BASED_LASER_CANNON	; type_and_map_flags
 	dc.l $0000ABE0	; world_x
 	dc.l $00008CA0	; world_z
-	dc.w $0056	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_GROUND_BASED_LASER_CANNON	; type_and_map_flags
 	dc.l $0000FA00	; world_x
 	dc.l $00008CA0	; world_z
-	dc.w $0002	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PROXIMITY_MINE	; type_and_map_flags
 	dc.l $00001388	; world_x
 	dc.l $000088B8	; world_z
-	dc.w $0018	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PETRIFIED_TREE	; type_and_map_flags
 	dc.l $00001F40	; world_x
 	dc.l $000084D0	; world_z
-	dc.w $0018	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PETRIFIED_TREE	; type_and_map_flags
 	dc.l $00002EE0	; world_x
 	dc.l $000084D0	; world_z
-	dc.w $0018	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PETRIFIED_TREE	; type_and_map_flags
 	dc.l $00000FA0	; world_x
 	dc.l $000080E8	; world_z
-	dc.w $0005	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_EGRON_SILO	; type_and_map_flags
 	dc.l $00007D00	; world_x
 	dc.l $00007D00	; world_z
-	dc.w $0002	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PROXIMITY_MINE	; type_and_map_flags
 	dc.l $0000B3B0	; world_x
 	dc.l $00007D00	; world_z
-	dc.w $0033	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PYRAMID	; type_and_map_flags
 	dc.l $0000CB20	; world_x
 	dc.l $00007D00	; world_z
-	dc.w $0018	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PETRIFIED_TREE	; type_and_map_flags
 	dc.l $0000EA60	; world_x
 	dc.l $00007D00	; world_z
-	dc.w $0018	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PETRIFIED_TREE	; type_and_map_flags
 	dc.l $00000FA0	; world_x
 	dc.l $00006D60	; world_z
-	dc.w $0004	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_SOLAR_ENERGY_CONVERTER	; type_and_map_flags
 	dc.l $00001F40	; world_x
 	dc.l $00006D60	; world_z
-	dc.w $0018	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PETRIFIED_TREE	; type_and_map_flags
 	dc.l $00003E80	; world_x
 	dc.l $00006D60	; world_z
-	dc.w $0056	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_GROUND_BASED_LASER_CANNON	; type_and_map_flags
 	dc.l $00004E20	; world_x
 	dc.l $00006D60	; world_z
-	dc.w $0002	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PROXIMITY_MINE	; type_and_map_flags
 	dc.l $0000ABE0	; world_x
 	dc.l $00006D60	; world_z
-	dc.w $0004	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_SOLAR_ENERGY_CONVERTER	; type_and_map_flags
 	dc.l $0000CB20	; world_x
 	dc.l $00006D60	; world_z
-	dc.w $0056	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_GROUND_BASED_LASER_CANNON	; type_and_map_flags
 	dc.l $0000A410	; world_x
 	dc.l $00006590	; world_z
-	dc.w $0018	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PETRIFIED_TREE	; type_and_map_flags
 	dc.l $00001F40	; world_x
 	dc.l $00005DC0	; world_z
-	dc.w $0002	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PROXIMITY_MINE	; type_and_map_flags
 	dc.l $00006D60	; world_x
 	dc.l $00005DC0	; world_z
-	dc.w $0002	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PROXIMITY_MINE	; type_and_map_flags
 	dc.l $00007D00	; world_x
 	dc.l $00005DC0	; world_z
-	dc.w $0002	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PROXIMITY_MINE	; type_and_map_flags
 	dc.l $00008CA0	; world_x
 	dc.l $00005DC0	; world_z
-	dc.w $0002	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PROXIMITY_MINE	; type_and_map_flags
 	dc.l $00009C40	; world_x
 	dc.l $00005DC0	; world_z
-	dc.w $0018	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PETRIFIED_TREE	; type_and_map_flags
 	dc.l $0000E678	; world_x
 	dc.l $000059D8	; world_z
-	dc.w $0002	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PROXIMITY_MINE	; type_and_map_flags
 	dc.l $000036B0	; world_x
 	dc.l $000055F0	; world_z
-	dc.w $0002	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PROXIMITY_MINE	; type_and_map_flags
 	dc.l $0000BB80	; world_x
 	dc.l $000055F0	; world_z
-	dc.w $0002	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PROXIMITY_MINE	; type_and_map_flags
 	dc.l $0000DAC0	; world_x
 	dc.l $000055F0	; world_z
-	dc.w $0018	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PETRIFIED_TREE	; type_and_map_flags
 	dc.l $0000F230	; world_x
 	dc.l $00005208	; world_z
-	dc.w $0018	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PETRIFIED_TREE	; type_and_map_flags
 	dc.l $00000FA0	; world_x
 	dc.l $00004E20	; world_z
-	dc.w $0018	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PETRIFIED_TREE	; type_and_map_flags
 	dc.l $00004E20	; world_x
 	dc.l $00004E20	; world_z
-	dc.w $0002	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PROXIMITY_MINE	; type_and_map_flags
 	dc.l $0000CB20	; world_x
 	dc.l $00004E20	; world_z
-	dc.w $0018	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PETRIFIED_TREE	; type_and_map_flags
 	dc.l $0000DAC0	; world_x
 	dc.l $00004E20	; world_z
-	dc.w $0018	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PETRIFIED_TREE	; type_and_map_flags
 	dc.l $000080E8	; world_x
 	dc.l $00004A38	; world_z
-	dc.w $0002	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PROXIMITY_MINE	; type_and_map_flags
 	dc.l $0000E678	; world_x
 	dc.l $00004A38	; world_z
-	dc.w $0018	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PETRIFIED_TREE	; type_and_map_flags
 	dc.l $00009088	; world_x
 	dc.l $00004268	; world_z
-	dc.w $0018	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PETRIFIED_TREE	; type_and_map_flags
 	dc.l $00002EE0	; world_x
 	dc.l $00003E80	; world_z
-	dc.w $0002	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PROXIMITY_MINE	; type_and_map_flags
 	dc.l $00003E80	; world_x
 	dc.l $00003E80	; world_z
-	dc.w $0018	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PETRIFIED_TREE	; type_and_map_flags
 	dc.l $00006590	; world_x
 	dc.l $00003E80	; world_z
-	dc.w $0004	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_SOLAR_ENERGY_CONVERTER	; type_and_map_flags
 	dc.l $0000ABE0	; world_x
 	dc.l $00003E80	; world_z
-	dc.w $002A	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_SATELLITE_DISH	; type_and_map_flags
 	dc.l $0000BB80	; world_x
 	dc.l $00003E80	; world_z
-	dc.w $0018	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PETRIFIED_TREE	; type_and_map_flags
 	dc.l $0000DAC0	; world_x
 	dc.l $00003E80	; world_z
-	dc.w $0018	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PETRIFIED_TREE	; type_and_map_flags
 	dc.l $00007D00	; world_x
 	dc.l $00003A98	; world_z
-	dc.w $0018	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PETRIFIED_TREE	; type_and_map_flags
 	dc.l $00008CA0	; world_x
 	dc.l $000036B0	; world_z
-	dc.w $0033	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PYRAMID	; type_and_map_flags
 	dc.l $0000B3B0	; world_x
 	dc.l $000036B0	; world_z
-	dc.w $0018	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PETRIFIED_TREE	; type_and_map_flags
 	dc.l $0000E290	; world_x
 	dc.l $000036B0	; world_z
-	dc.w $0056	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_GROUND_BASED_LASER_CANNON	; type_and_map_flags
 	dc.l $000003E8	; world_x
 	dc.l $00002EE0	; world_z
-	dc.w $0018	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PETRIFIED_TREE	; type_and_map_flags
 	dc.l $00001F40	; world_x
 	dc.l $00002EE0	; world_z
-	dc.w $0018	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PETRIFIED_TREE	; type_and_map_flags
 	dc.l $00003E80	; world_x
 	dc.l $00002EE0	; world_z
-	dc.w $0018	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PETRIFIED_TREE	; type_and_map_flags
 	dc.l $00009C40	; world_x
 	dc.l $00002EE0	; world_z
-	dc.w $0018	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PETRIFIED_TREE	; type_and_map_flags
 	dc.l $0000D2F0	; world_x
 	dc.l $00002EE0	; world_z
-	dc.w $0002	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PROXIMITY_MINE	; type_and_map_flags
 	dc.l $0000EA60	; world_x
 	dc.l $00002EE0	; world_z
-	dc.w $0018	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PETRIFIED_TREE	; type_and_map_flags
 	dc.l $000084D0	; world_x
 	dc.l $00002710	; world_z
-	dc.w $0018	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PETRIFIED_TREE	; type_and_map_flags
 	dc.l $0000C350	; world_x
 	dc.l $00002AF8	; world_z
-	dc.w $0002	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PROXIMITY_MINE	; type_and_map_flags
 	dc.l $0000D6D8	; world_x
 	dc.l $00002AF8	; world_z
-	dc.w $0018	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PETRIFIED_TREE	; type_and_map_flags
 	dc.l $0000E290	; world_x
 	dc.l $00002710	; world_z
-	dc.w $0004	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_SOLAR_ENERGY_CONVERTER	; type_and_map_flags
 	dc.l $00004650	; world_x
 	dc.l $00002710	; world_z
-	dc.w $0018	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PETRIFIED_TREE	; type_and_map_flags
 	dc.l $00002EE0	; world_x
 	dc.l $00001F40	; world_z
-	dc.w $0033	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PYRAMID	; type_and_map_flags
 	dc.l $00003E80	; world_x
 	dc.l $00001F40	; world_z
-	dc.w $002A	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_SATELLITE_DISH	; type_and_map_flags
 	dc.l $00004650	; world_x
 	dc.l $00001F40	; world_z
-	dc.w $0018	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PETRIFIED_TREE	; type_and_map_flags
 	dc.l $000055F0	; world_x
 	dc.l $00001F40	; world_z
-	dc.w $0018	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PETRIFIED_TREE	; type_and_map_flags
 	dc.l $00006D60	; world_x
 	dc.l $00001F40	; world_z
-	dc.w $0018	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PETRIFIED_TREE	; type_and_map_flags
 	dc.l $0000A410	; world_x
 	dc.l $00001F40	; world_z
-	dc.w $0018	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PETRIFIED_TREE	; type_and_map_flags
 	dc.l $0000C350	; world_x
 	dc.l $0000EA60	; world_z
-	dc.w $0018	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PETRIFIED_TREE	; type_and_map_flags
 	dc.l $00009470	; world_x
 	dc.l $00001770	; world_z
-	dc.w $0018	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PETRIFIED_TREE	; type_and_map_flags
 	dc.l $0000ABE0	; world_x
 	dc.l $00001770	; world_z
-	dc.w $0018	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PETRIFIED_TREE	; type_and_map_flags
 	dc.l $0000C350	; world_x
 	dc.l $00001770	; world_z
-	dc.w $0002	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PROXIMITY_MINE	; type_and_map_flags
 	dc.l $0000DAC0	; world_x
 	dc.l $00001770	; world_z
-	dc.w $0018	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PETRIFIED_TREE	; type_and_map_flags
 	dc.l $00002EE0	; world_x
 	dc.l $00000FA0	; world_z
-	dc.w $0018	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PETRIFIED_TREE	; type_and_map_flags
 	dc.l $00000FA0	; world_x
 	dc.l $00000FA0	; world_z
-	dc.w $0018	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PETRIFIED_TREE	; type_and_map_flags
 	dc.l $00004E20	; world_x
 	dc.l $00000FA0	; world_z
-	dc.w $0002	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PROXIMITY_MINE	; type_and_map_flags
 	dc.l $0000ABE0	; world_x
 	dc.l $00000FA0	; world_z
-	dc.w $0018	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PETRIFIED_TREE	; type_and_map_flags
 	dc.l $0000EA60	; world_x
 	dc.l $00000FA0	; world_z
-	dc.w $0056	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_GROUND_BASED_LASER_CANNON	; type_and_map_flags
 	dc.l $00007D00	; world_x
 	dc.l $000007D0	; world_z
-	dc.w $0018	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PETRIFIED_TREE	; type_and_map_flags
 	dc.l $000003E8	; world_x
 	dc.l $000003E8	; world_z
 enos_surface_placements_end_tag:
 	dc.w $0000	; 111 original surface placements, stride 10, plus zero tag; aliases 6
 castron_surface_placements:
-	dc.w $0091	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_SOLICE_145	; type_and_map_flags
 	dc.l $00008000	; world_x
 	dc.l $00008000	; world_z
-	dc.w $0036	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_ENERGY_TRANSMITTER	; type_and_map_flags
 	dc.l $00009C40	; world_x
 	dc.l $0000F230	; world_z
-	dc.w $0033	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PYRAMID	; type_and_map_flags
 	dc.l $00001F40	; world_x
 	dc.l $0000EA60	; world_z
-	dc.w $0034	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_TOWER_BLOCK	; type_and_map_flags
 	dc.l $00003E80	; world_x
 	dc.l $0000F230	; world_z
-	dc.w $0035	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_TAPERING_TOWER_BLOCK	; type_and_map_flags
 	dc.l $00004E20	; world_x
 	dc.l $0000EA60	; world_z
-	dc.w $0034	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_TOWER_BLOCK	; type_and_map_flags
 	dc.l $00006D60	; world_x
 	dc.l $0000EA60	; world_z
-	dc.w $0036	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_ENERGY_TRANSMITTER	; type_and_map_flags
 	dc.l $00008CA0	; world_x
 	dc.l $0000F230	; world_z
-	dc.w $0034	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_TOWER_BLOCK	; type_and_map_flags
 	dc.l $00009C40	; world_x
 	dc.l $0000EA60	; world_z
-	dc.w $0002	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PROXIMITY_MINE	; type_and_map_flags
 	dc.l $0000ABE0	; world_x
 	dc.l $0000F230	; world_z
-	dc.w $0035	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_TAPERING_TOWER_BLOCK	; type_and_map_flags
 	dc.l $0000CB20	; world_x
 	dc.l $0000EA60	; world_z
-	dc.w $0034	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_TOWER_BLOCK	; type_and_map_flags
 	dc.l $00001F40	; world_x
 	dc.l $0000DAC0	; world_z
-	dc.w $0033	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PYRAMID	; type_and_map_flags
 	dc.l $00003E80	; world_x
 	dc.l $0000DAC0	; world_z
-	dc.w $0007	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_LARGE_BIRD	; type_and_map_flags
 	dc.l $00007D00	; world_x
 	dc.l $0000DAC0	; world_z
-	dc.w $0004	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_SOLAR_ENERGY_CONVERTER	; type_and_map_flags
 	dc.l $0000CB20	; world_x
 	dc.l $0000DAC0	; world_z
-	dc.w $0034	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_TOWER_BLOCK	; type_and_map_flags
 	dc.l $0000DAC0	; world_x
 	dc.l $0000DAC0	; world_z
-	dc.w $0003	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_EGRON_SPIRE_BUILDING	; type_and_map_flags
 	dc.l $00009C40	; world_x
 	dc.l $0000C350	; world_z
-	dc.w $0029	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_SPACE_RAY	; type_and_map_flags
 	dc.l $00004E20	; world_x
 	dc.l $0000C350	; world_z
-	dc.w $002A	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_SATELLITE_DISH	; type_and_map_flags
 	dc.l $00008CA0	; world_x
 	dc.l $0000C350	; world_z
-	dc.w $0035	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_TAPERING_TOWER_BLOCK	; type_and_map_flags
 	dc.l $00009C40	; world_x
 	dc.l $0000C350	; world_z
-	dc.w $0002	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PROXIMITY_MINE	; type_and_map_flags
 	dc.l $0000B3B0	; world_x
 	dc.l $0000B3B0	; world_z
-	dc.w $0002	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PROXIMITY_MINE	; type_and_map_flags
 	dc.l $00007D00	; world_x
 	dc.l $0000B3B0	; world_z
-	dc.w $0002	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PROXIMITY_MINE	; type_and_map_flags
 	dc.l $0000CB20	; world_x
 	dc.l $0000B3B0	; world_z
-	dc.w $0034	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_TOWER_BLOCK	; type_and_map_flags
 	dc.l $00001F40	; world_x
 	dc.l $00009470	; world_z
-	dc.w $0008	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_EMMA_2	; type_and_map_flags
 	dc.l $00002EE0	; world_x
 	dc.l $00009470	; world_z
 	dc.w $0130	; type_and_map_flags
 	dc.l $0000CB1C	; world_x
 	dc.l $0000B07C	; world_z
-	dc.w $0034	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_TOWER_BLOCK	; type_and_map_flags
 	dc.l $0000EA60	; world_x
 	dc.l $00009470	; world_z
-	dc.w $0002	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PROXIMITY_MINE	; type_and_map_flags
 	dc.l $0000ABE0	; world_x
 	dc.l $00007D00	; world_z
-	dc.w $0033	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PYRAMID	; type_and_map_flags
 	dc.l $00001F40	; world_x
 	dc.l $00007D00	; world_z
-	dc.w $0025	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_EGRON_MINI_SENTINEL	; type_and_map_flags
 	dc.l $00003E80	; world_x
 	dc.l $00007D00	; world_z
-	dc.w $0002	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PROXIMITY_MINE	; type_and_map_flags
 	dc.l $00007D00	; world_x
 	dc.l $00007D00	; world_z
-	dc.w $0034	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_TOWER_BLOCK	; type_and_map_flags
 	dc.l $00009C40	; world_x
 	dc.l $00007D00	; world_z
-	dc.w $0035	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_TAPERING_TOWER_BLOCK	; type_and_map_flags
 	dc.l $0000BB80	; world_x
 	dc.l $00007D00	; world_z
-	dc.w $001D	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_EGRON_MINI_ROCKET	; type_and_map_flags
 	dc.l $0000DAC0	; world_x
 	dc.l $00007D00	; world_z
-	dc.w $0033	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PYRAMID	; type_and_map_flags
 	dc.l $00000FA0	; world_x
 	dc.l $00006590	; world_z
-	dc.w $0035	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_TAPERING_TOWER_BLOCK	; type_and_map_flags
 	dc.l $00002EE0	; world_x
 	dc.l $00006590	; world_z
-	dc.w $0002	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PROXIMITY_MINE	; type_and_map_flags
 	dc.l $00001F40	; world_x
 	dc.l $00006590	; world_z
-	dc.w $0032	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_GBML_WITH_CANNON	; type_and_map_flags
 	dc.l $00007D00	; world_x
 	dc.l $00006590	; world_z
-	dc.w $0004	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_SOLAR_ENERGY_CONVERTER	; type_and_map_flags
 	dc.l $00009C40	; world_x
 	dc.l $00006590	; world_z
-	dc.w $0036	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_ENERGY_TRANSMITTER	; type_and_map_flags
 	dc.l $0000ABE0	; world_x
 	dc.l $00006590	; world_z
-	dc.w $0034	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_TOWER_BLOCK	; type_and_map_flags
 	dc.l $0000CB20	; world_x
 	dc.l $00006590	; world_z
-	dc.w $0034	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_TOWER_BLOCK	; type_and_map_flags
 	dc.l $0000EA60	; world_x
 	dc.l $00006590	; world_z
-	dc.w $0002	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PROXIMITY_MINE	; type_and_map_flags
 	dc.l $0000BB80	; world_x
 	dc.l $00004E20	; world_z
-	dc.w $0008	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_EMMA_2	; type_and_map_flags
 	dc.l $00009C40	; world_x
 	dc.l $00004E20	; world_z
-	dc.w $0033	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PYRAMID	; type_and_map_flags
 	dc.l $0000DAC0	; world_x
 	dc.l $00004E20	; world_z
-	dc.w $0035	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_TAPERING_TOWER_BLOCK	; type_and_map_flags
 	dc.l $0000EA60	; world_x
 	dc.l $00004E20	; world_z
-	dc.w $0005	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_EGRON_SILO	; type_and_map_flags
 	dc.l $00007D00	; world_x
 	dc.l $000036B0	; world_z
-	dc.w $0029	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_SPACE_RAY	; type_and_map_flags
 	dc.l $00008CA0	; world_x
 	dc.l $000036B0	; world_z
-	dc.w $0002	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PROXIMITY_MINE	; type_and_map_flags
 	dc.l $0000ABE0	; world_x
 	dc.l $000036B0	; world_z
-	dc.w $002E	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_EGRON_DOME_SILO	; type_and_map_flags
 	dc.l $0000BB80	; world_x
 	dc.l $000036B0	; world_z
-	dc.w $001C	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_EGRON_SQUARE_ROCKET	; type_and_map_flags
 	dc.l $0000CB20	; world_x
 	dc.l $000036B0	; world_z
-	dc.w $0032	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_GBML_WITH_CANNON	; type_and_map_flags
 	dc.l $0000DAC0	; world_x
 	dc.l $000036B0	; world_z
-	dc.w $0005	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_EGRON_SILO	; type_and_map_flags
 	dc.l $00009C40	; world_x
 	dc.l $00001F40	; world_z
-	dc.w $0034	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_TOWER_BLOCK	; type_and_map_flags
 	dc.l $0000EA60	; world_x
 	dc.l $00001F40	; world_z
-	dc.w $0034	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_TOWER_BLOCK	; type_and_map_flags
 	dc.l $00001F40	; world_x
 	dc.l $000007D0	; world_z
-	dc.w $0032	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_GBML_WITH_CANNON	; type_and_map_flags
 	dc.l $00007D00	; world_x
 	dc.l $000007D0	; world_z
-	dc.w $0025	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_EGRON_MINI_SENTINEL	; type_and_map_flags
 	dc.l $0000ABE0	; world_x
 	dc.l $000007D0	; world_z
-	dc.w $0002	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PROXIMITY_MINE	; type_and_map_flags
 	dc.l $0000BB80	; world_x
 	dc.l $000007D0	; world_z
-	dc.w $0033	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PYRAMID	; type_and_map_flags
 	dc.l $0000CB20	; world_x
 	dc.l $000007D0	; world_z
-	dc.w $0033	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PYRAMID	; type_and_map_flags
 	dc.l $0000DAC0	; world_x
 	dc.l $000007D0	; world_z
-	dc.w $002A	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_SATELLITE_DISH	; type_and_map_flags
 	dc.l $0000EA60	; world_x
 	dc.l $000007D0	; world_z
-	dc.w $0004	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_SOLAR_ENERGY_CONVERTER	; type_and_map_flags
 	dc.l $00005DC0	; world_x
 	dc.l $00003E1C	; world_z
 	dc.w $0060	; type_and_map_flags
 	dc.l $00005DC0	; world_x
 	dc.l $00004330	; world_z
-	dc.w $005A	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_ENERGY_TOWER_90	; type_and_map_flags
 	dc.l $00005DC0	; world_x
 	dc.l $00004E20	; world_z
-	dc.w $005A	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_ENERGY_TOWER_90	; type_and_map_flags
 	dc.l $00005DC0	; world_x
 	dc.l $00005DC0	; world_z
-	dc.w $005A	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_ENERGY_TOWER_90	; type_and_map_flags
 	dc.l $00005DC0	; world_x
 	dc.l $00006D60	; world_z
-	dc.w $005A	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_ENERGY_TOWER_90	; type_and_map_flags
 	dc.l $00005DC0	; world_x
 	dc.l $00007D00	; world_z
-	dc.w $005A	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_ENERGY_TOWER_90	; type_and_map_flags
 	dc.l $00005DC0	; world_x
 	dc.l $00008CA0	; world_z
-	dc.w $005A	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_ENERGY_TOWER_90	; type_and_map_flags
 	dc.l $00005DC0	; world_x
 	dc.l $00009C40	; world_z
-	dc.w $005A	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_ENERGY_TOWER_90	; type_and_map_flags
 	dc.l $00005DC0	; world_x
 	dc.l $0000ABE0	; world_z
-	dc.w $005A	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_ENERGY_TOWER_90	; type_and_map_flags
 	dc.l $00005DC0	; world_x
 	dc.l $0000BB80	; world_z
-	dc.w $005A	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_ENERGY_TOWER_90	; type_and_map_flags
 	dc.l $00005DC0	; world_x
 	dc.l $0000CB20	; world_z
-	dc.w $005A	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_ENERGY_TOWER_90	; type_and_map_flags
 	dc.l $00005DC0	; world_x
 	dc.l $0000DAC0	; world_z
-	dc.w $005D	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_ENERGY_TOWER_93	; type_and_map_flags
 	dc.l $00005DC0	; world_x
 	dc.l $0000DAC0	; world_z
 	dc.w $0061	; type_and_map_flags
 	dc.l $00005DC0	; world_x
 	dc.l $0000E5B0	; world_z
-	dc.w $0030	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_TUNNEL_ENTRANCE_EXIT	; type_and_map_flags
 	dc.l $0000BB80	; world_x
 	dc.l $00004E20	; world_z
 castron_surface_placements_end_tag:
 	dc.w $0000	; 75 original surface placements, stride 10, plus zero tag; aliases 7
 shared_moon_surface_placements:
-	dc.w $0091	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_SOLICE_145	; type_and_map_flags
 	dc.l $00008000	; world_x
 	dc.l $00008000	; world_z
-	dc.w $0016	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_EGRON_SPACE_TUG	; type_and_map_flags
 	dc.l $00007148	; world_x
 	dc.l $0000C350	; world_z
-	dc.w $002C	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_TUG_TRUCK	; type_and_map_flags
 	dc.l $00007148	; world_x
 	dc.l $0000C5A8	; world_z
-	dc.w $002C	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_TUG_TRUCK	; type_and_map_flags
 	dc.l $00007148	; world_x
 	dc.l $0000C800	; world_z
-	dc.w $002C	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_TUG_TRUCK	; type_and_map_flags
 	dc.l $00007148	; world_x
 	dc.l $0000CA58	; world_z
-	dc.w $002C	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_TUG_TRUCK	; type_and_map_flags
 	dc.l $00007148	; world_x
 	dc.l $0000CCB0	; world_z
-	dc.w $002C	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_TUG_TRUCK	; type_and_map_flags
 	dc.l $00007148	; world_x
 	dc.l $0000CF08	; world_z
-	dc.w $0016	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_EGRON_SPACE_TUG	; type_and_map_flags
 	dc.l $00004E20	; world_x
 	dc.l $0000C350	; world_z
-	dc.w $002C	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_TUG_TRUCK	; type_and_map_flags
 	dc.l $00004E20	; world_x
 	dc.l $0000C5A8	; world_z
-	dc.w $002C	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_TUG_TRUCK	; type_and_map_flags
 	dc.l $00004E20	; world_x
 	dc.l $0000C800	; world_z
-	dc.w $002C	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_TUG_TRUCK	; type_and_map_flags
 	dc.l $00004E20	; world_x
 	dc.l $0000CA58	; world_z
-	dc.w $002C	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_TUG_TRUCK	; type_and_map_flags
 	dc.l $00004E20	; world_x
 	dc.l $0000CCB0	; world_z
-	dc.w $002C	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_TUG_TRUCK	; type_and_map_flags
 	dc.l $00004E20	; world_x
 	dc.l $0000CF08	; world_z
-	dc.w $0016	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_EGRON_SPACE_TUG	; type_and_map_flags
 	dc.l $00008CA0	; world_x
 	dc.l $0000C350	; world_z
-	dc.w $002C	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_TUG_TRUCK	; type_and_map_flags
 	dc.l $00008CA0	; world_x
 	dc.l $0000C5A8	; world_z
-	dc.w $002C	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_TUG_TRUCK	; type_and_map_flags
 	dc.l $00008CA0	; world_x
 	dc.l $0000C800	; world_z
-	dc.w $002C	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_TUG_TRUCK	; type_and_map_flags
 	dc.l $00008CA0	; world_x
 	dc.l $0000CA58	; world_z
-	dc.w $002C	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_TUG_TRUCK	; type_and_map_flags
 	dc.l $00008CA0	; world_x
 	dc.l $0000CCB0	; world_z
-	dc.w $002C	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_TUG_TRUCK	; type_and_map_flags
 	dc.l $00008CA0	; world_x
 	dc.l $0000CF08	; world_z
-	dc.w $0016	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_EGRON_SPACE_TUG	; type_and_map_flags
 	dc.l $0000B3B0	; world_x
 	dc.l $0000C350	; world_z
-	dc.w $002C	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_TUG_TRUCK	; type_and_map_flags
 	dc.l $0000B3B0	; world_x
 	dc.l $0000C5A8	; world_z
-	dc.w $002C	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_TUG_TRUCK	; type_and_map_flags
 	dc.l $0000B3B0	; world_x
 	dc.l $0000C800	; world_z
-	dc.w $002C	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_TUG_TRUCK	; type_and_map_flags
 	dc.l $0000B3B0	; world_x
 	dc.l $0000CA58	; world_z
-	dc.w $002C	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_TUG_TRUCK	; type_and_map_flags
 	dc.l $0000B3B0	; world_x
 	dc.l $0000CCB0	; world_z
-	dc.w $002C	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_TUG_TRUCK	; type_and_map_flags
 	dc.l $0000B3B0	; world_x
 	dc.l $0000CF08	; world_z
-	dc.w $0016	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_EGRON_SPACE_TUG	; type_and_map_flags
 	dc.l $00003A98	; world_x
 	dc.l $00002710	; world_z
-	dc.w $002C	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_TUG_TRUCK	; type_and_map_flags
 	dc.l $00003A98	; world_x
 	dc.l $000024B8	; world_z
-	dc.w $002C	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_TUG_TRUCK	; type_and_map_flags
 	dc.l $00003A98	; world_x
 	dc.l $00002260	; world_z
-	dc.w $002C	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_TUG_TRUCK	; type_and_map_flags
 	dc.l $00003A98	; world_x
 	dc.l $00002008	; world_z
-	dc.w $002C	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_TUG_TRUCK	; type_and_map_flags
 	dc.l $00003A98	; world_x
 	dc.l $00001DB0	; world_z
-	dc.w $002C	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_TUG_TRUCK	; type_and_map_flags
 	dc.l $00003A98	; world_x
 	dc.l $00001B58	; world_z
-	dc.w $0016	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_EGRON_SPACE_TUG	; type_and_map_flags
 	dc.l $00004650	; world_x
 	dc.l $00002710	; world_z
-	dc.w $002C	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_TUG_TRUCK	; type_and_map_flags
 	dc.l $00004650	; world_x
 	dc.l $000024B8	; world_z
-	dc.w $002C	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_TUG_TRUCK	; type_and_map_flags
 	dc.l $00004650	; world_x
 	dc.l $00002260	; world_z
-	dc.w $002C	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_TUG_TRUCK	; type_and_map_flags
 	dc.l $00004650	; world_x
 	dc.l $00002008	; world_z
-	dc.w $002C	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_TUG_TRUCK	; type_and_map_flags
 	dc.l $00004650	; world_x
 	dc.l $00001DB0	; world_z
-	dc.w $002C	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_TUG_TRUCK	; type_and_map_flags
 	dc.l $00004650	; world_x
 	dc.l $00001B58	; world_z
-	dc.w $0016	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_EGRON_SPACE_TUG	; type_and_map_flags
 	dc.l $0000A410	; world_x
 	dc.l $00002710	; world_z
-	dc.w $002C	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_TUG_TRUCK	; type_and_map_flags
 	dc.l $0000A410	; world_x
 	dc.l $000024B8	; world_z
-	dc.w $002C	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_TUG_TRUCK	; type_and_map_flags
 	dc.l $0000A410	; world_x
 	dc.l $00002260	; world_z
-	dc.w $002C	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_TUG_TRUCK	; type_and_map_flags
 	dc.l $0000A410	; world_x
 	dc.l $00002008	; world_z
-	dc.w $002C	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_TUG_TRUCK	; type_and_map_flags
 	dc.l $0000A410	; world_x
 	dc.l $00001DB0	; world_z
-	dc.w $002C	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_TUG_TRUCK	; type_and_map_flags
 	dc.l $0000A410	; world_x
 	dc.l $00001B58	; world_z
-	dc.w $0016	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_EGRON_SPACE_TUG	; type_and_map_flags
 	dc.l $00009470	; world_x
 	dc.l $00002710	; world_z
-	dc.w $002C	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_TUG_TRUCK	; type_and_map_flags
 	dc.l $00009470	; world_x
 	dc.l $000024B8	; world_z
-	dc.w $002C	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_TUG_TRUCK	; type_and_map_flags
 	dc.l $00009470	; world_x
 	dc.l $00002260	; world_z
-	dc.w $002C	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_TUG_TRUCK	; type_and_map_flags
 	dc.l $00009470	; world_x
 	dc.l $00002008	; world_z
-	dc.w $002C	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_TUG_TRUCK	; type_and_map_flags
 	dc.l $00009470	; world_x
 	dc.l $00001DB0	; world_z
-	dc.w $002C	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_TUG_TRUCK	; type_and_map_flags
 	dc.l $00009470	; world_x
 	dc.l $00001B58	; world_z
-	dc.w $0016	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_EGRON_SPACE_TUG	; type_and_map_flags
 	dc.l $00000FA0	; world_x
 	dc.l $00002710	; world_z
-	dc.w $002C	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_TUG_TRUCK	; type_and_map_flags
 	dc.l $00000D48	; world_x
 	dc.l $00002710	; world_z
-	dc.w $002C	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_TUG_TRUCK	; type_and_map_flags
 	dc.l $00000AF0	; world_x
 	dc.l $00002710	; world_z
-	dc.w $002C	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_TUG_TRUCK	; type_and_map_flags
 	dc.l $00000898	; world_x
 	dc.l $00002710	; world_z
-	dc.w $002C	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_TUG_TRUCK	; type_and_map_flags
 	dc.l $00000640	; world_x
 	dc.l $00002710	; world_z
-	dc.w $002C	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_TUG_TRUCK	; type_and_map_flags
 	dc.l $000003E8	; world_x
 	dc.l $00002710	; world_z
-	dc.w $0016	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_EGRON_SPACE_TUG	; type_and_map_flags
 	dc.l $00000FA0	; world_x
 	dc.l $00004E20	; world_z
-	dc.w $002C	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_TUG_TRUCK	; type_and_map_flags
 	dc.l $00000D48	; world_x
 	dc.l $00004E20	; world_z
-	dc.w $002C	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_TUG_TRUCK	; type_and_map_flags
 	dc.l $00000AF0	; world_x
 	dc.l $00004E20	; world_z
-	dc.w $002C	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_TUG_TRUCK	; type_and_map_flags
 	dc.l $00000898	; world_x
 	dc.l $00004E20	; world_z
-	dc.w $002C	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_TUG_TRUCK	; type_and_map_flags
 	dc.l $00000640	; world_x
 	dc.l $00004E20	; world_z
-	dc.w $002C	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_TUG_TRUCK	; type_and_map_flags
 	dc.l $000003E8	; world_x
 	dc.l $00004E20	; world_z
-	dc.w $0016	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_EGRON_SPACE_TUG	; type_and_map_flags
 	dc.l $00000FA0	; world_x
 	dc.l $000080E8	; world_z
-	dc.w $002C	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_TUG_TRUCK	; type_and_map_flags
 	dc.l $00000D48	; world_x
 	dc.l $000080E8	; world_z
-	dc.w $002C	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_TUG_TRUCK	; type_and_map_flags
 	dc.l $00000AF0	; world_x
 	dc.l $000080E8	; world_z
-	dc.w $002C	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_TUG_TRUCK	; type_and_map_flags
 	dc.l $00000898	; world_x
 	dc.l $000080E8	; world_z
-	dc.w $002C	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_TUG_TRUCK	; type_and_map_flags
 	dc.l $00000640	; world_x
 	dc.l $000080E8	; world_z
-	dc.w $002C	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_TUG_TRUCK	; type_and_map_flags
 	dc.l $000003E8	; world_x
 	dc.l $000080E8	; world_z
-	dc.w $0016	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_EGRON_SPACE_TUG	; type_and_map_flags
 	dc.l $00000FA0	; world_x
 	dc.l $0000C350	; world_z
-	dc.w $002C	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_TUG_TRUCK	; type_and_map_flags
 	dc.l $00000D48	; world_x
 	dc.l $0000C350	; world_z
-	dc.w $002C	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_TUG_TRUCK	; type_and_map_flags
 	dc.l $00000AF0	; world_x
 	dc.l $0000C350	; world_z
-	dc.w $002C	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_TUG_TRUCK	; type_and_map_flags
 	dc.l $00000898	; world_x
 	dc.l $0000C350	; world_z
-	dc.w $002C	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_TUG_TRUCK	; type_and_map_flags
 	dc.l $00000640	; world_x
 	dc.l $0000C350	; world_z
-	dc.w $002C	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_TUG_TRUCK	; type_and_map_flags
 	dc.l $000003E8	; world_x
 	dc.l $0000C350	; world_z
-	dc.w $0030	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_TUNNEL_ENTRANCE_EXIT	; type_and_map_flags
 	dc.l $0000EA60	; world_x
 	dc.l $00000BB8	; world_z
 	dc.w $0130	; type_and_map_flags
 	dc.l $0000E73F	; world_x
 	dc.l $000092FB	; world_z
-	dc.w $0030	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_TUNNEL_ENTRANCE_EXIT	; type_and_map_flags
 	dc.l $0000AF19	; world_x
 	dc.l $0000EC6A	; world_z
-	dc.w $0005	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_EGRON_SILO	; type_and_map_flags
 	dc.l $0000EA60	; world_x
 	dc.l $00004E20	; world_z
-	dc.w $0034	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_TOWER_BLOCK	; type_and_map_flags
 	dc.l $000061A8	; world_x
 	dc.l $00009088	; world_z
-	dc.w $0034	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_TOWER_BLOCK	; type_and_map_flags
 	dc.l $00007918	; world_x
 	dc.l $00009088	; world_z
-	dc.w $0034	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_TOWER_BLOCK	; type_and_map_flags
 	dc.l $00007918	; world_x
 	dc.l $00004A38	; world_z
-	dc.w $0034	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_TOWER_BLOCK	; type_and_map_flags
 	dc.l $000061A8	; world_x
 	dc.l $00004A38	; world_z
-	dc.w $0032	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_GBML_WITH_CANNON	; type_and_map_flags
 	dc.l $00000FA0	; world_x
 	dc.l $0000EE48	; world_z
-	dc.w $0032	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_GBML_WITH_CANNON	; type_and_map_flags
 	dc.l $00001F40	; world_x
 	dc.l $0000EE48	; world_z
-	dc.w $0032	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_GBML_WITH_CANNON	; type_and_map_flags
 	dc.l $00003E80	; world_x
 	dc.l $000061A8	; world_z
-	dc.w $0032	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_GBML_WITH_CANNON	; type_and_map_flags
 	dc.l $000003E8	; world_x
 	dc.l $0000C350	; world_z
-	dc.w $0032	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_GBML_WITH_CANNON	; type_and_map_flags
 	dc.l $00004650	; world_x
 	dc.l $00009470	; world_z
-	dc.w $0032	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_GBML_WITH_CANNON	; type_and_map_flags
 	dc.l $00009470	; world_x
 	dc.l $00009470	; world_z
-	dc.w $0032	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_GBML_WITH_CANNON	; type_and_map_flags
 	dc.l $00009470	; world_x
 	dc.l $00004650	; world_z
-	dc.w $0032	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_GBML_WITH_CANNON	; type_and_map_flags
 	dc.l $00004650	; world_x
 	dc.l $00004650	; world_z
-	dc.w $0004	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_SOLAR_ENERGY_CONVERTER	; type_and_map_flags
 	dc.l $00001F40	; world_x
 	dc.l $00007D00	; world_z
-	dc.w $0004	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_SOLAR_ENERGY_CONVERTER	; type_and_map_flags
 	dc.l $00001F40	; world_x
 	dc.l $00006590	; world_z
-	dc.w $0004	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_SOLAR_ENERGY_CONVERTER	; type_and_map_flags
 	dc.l $0000BB80	; world_x
 	dc.l $00007D00	; world_z
-	dc.w $0004	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_SOLAR_ENERGY_CONVERTER	; type_and_map_flags
 	dc.l $0000BB80	; world_x
 	dc.l $00006590	; world_z
-	dc.w $0008	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_EMMA_2	; type_and_map_flags
 	dc.l $0000C350	; world_x
 	dc.l $0000C350	; world_z
-	dc.w $0008	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_EMMA_2	; type_and_map_flags
 	dc.l $0000C350	; world_x
 	dc.l $00009C40	; world_z
-	dc.w $0008	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_EMMA_2	; type_and_map_flags
 	dc.l $0000C350	; world_x
 	dc.l $00002710	; world_z
-	dc.w $0008	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_EMMA_2	; type_and_map_flags
 	dc.l $0000C350	; world_x
 	dc.l $00001388	; world_z
-	dc.w $0008	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_EMMA_2	; type_and_map_flags
 	dc.l $00002710	; world_x
 	dc.l $0000C350	; world_z
-	dc.w $0008	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_EMMA_2	; type_and_map_flags
 	dc.l $00004E20	; world_x
 	dc.l $0000C350	; world_z
-	dc.w $0008	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_EMMA_2	; type_and_map_flags
 	dc.l $00009C40	; world_x
 	dc.l $0000C350	; world_z
 shared_moon_surface_placements_end_tag:
 	dc.w $0000	; 100 original surface placements, stride 10, plus zero tag; aliases 8,9,10,11,12,13,14
 q_beta_surface_placements:
-	dc.w $0091	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_SOLICE_145	; type_and_map_flags
 	dc.l $00008000	; world_x
 	dc.l $00008000	; world_z
-	dc.w $0005	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_EGRON_SILO	; type_and_map_flags
 	dc.l $00007D00	; world_x
 	dc.l $00017700	; world_z
-	dc.w $0005	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_EGRON_SILO	; type_and_map_flags
 	dc.l $00017700	; world_x
 	dc.l $00007D00	; world_z
-	dc.w $002E	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_EGRON_DOME_SILO	; type_and_map_flags
 	dc.l $0001B580	; world_x
 	dc.l $000157C0	; world_z
-	dc.w $002E	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_EGRON_DOME_SILO	; type_and_map_flags
 	dc.l $000157C0	; world_x
 	dc.l $0001B580	; world_z
-	dc.w $0065	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_LUMP_OF_MINERAL_ROCK	; type_and_map_flags
 	dc.l $00009C40	; world_x
 	dc.l $0000F230	; world_z
-	dc.w $0065	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_LUMP_OF_MINERAL_ROCK	; type_and_map_flags
 	dc.l $00001F40	; world_x
 	dc.l $0000EA60	; world_z
-	dc.w $0002	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PROXIMITY_MINE	; type_and_map_flags
 	dc.l $00001F40	; world_x
 	dc.l $0000EA60	; world_z
-	dc.w $0065	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_LUMP_OF_MINERAL_ROCK	; type_and_map_flags
 	dc.l $00003E80	; world_x
 	dc.l $0000F230	; world_z
-	dc.w $0065	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_LUMP_OF_MINERAL_ROCK	; type_and_map_flags
 	dc.l $00004E20	; world_x
 	dc.l $0000EA60	; world_z
-	dc.w $0002	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PROXIMITY_MINE	; type_and_map_flags
 	dc.l $00006D60	; world_x
 	dc.l $0000EA60	; world_z
-	dc.w $0065	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_LUMP_OF_MINERAL_ROCK	; type_and_map_flags
 	dc.l $00006D60	; world_x
 	dc.l $0000EA60	; world_z
-	dc.w $0002	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PROXIMITY_MINE	; type_and_map_flags
 	dc.l $00008CA0	; world_x
 	dc.l $0000F230	; world_z
-	dc.w $0065	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_LUMP_OF_MINERAL_ROCK	; type_and_map_flags
 	dc.l $00008CA0	; world_x
 	dc.l $0000F230	; world_z
-	dc.w $0065	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_LUMP_OF_MINERAL_ROCK	; type_and_map_flags
 	dc.l $00009C40	; world_x
 	dc.l $0000EA60	; world_z
-	dc.w $0002	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PROXIMITY_MINE	; type_and_map_flags
 	dc.l $0000ABE0	; world_x
 	dc.l $0000F230	; world_z
-	dc.w $0065	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_LUMP_OF_MINERAL_ROCK	; type_and_map_flags
 	dc.l $0000ABE0	; world_x
 	dc.l $0000F230	; world_z
-	dc.w $0065	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_LUMP_OF_MINERAL_ROCK	; type_and_map_flags
 	dc.l $0000CB20	; world_x
 	dc.l $0000EA60	; world_z
-	dc.w $0002	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PROXIMITY_MINE	; type_and_map_flags
 	dc.l $00001F40	; world_x
 	dc.l $0000DAC0	; world_z
-	dc.w $0065	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_LUMP_OF_MINERAL_ROCK	; type_and_map_flags
 	dc.l $00001F40	; world_x
 	dc.l $0000DAC0	; world_z
-	dc.w $0065	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_LUMP_OF_MINERAL_ROCK	; type_and_map_flags
 	dc.l $00003E80	; world_x
 	dc.l $0000DAC0	; world_z
-	dc.w $0002	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PROXIMITY_MINE	; type_and_map_flags
 	dc.l $00007D00	; world_x
 	dc.l $0000DAC0	; world_z
-	dc.w $0065	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_LUMP_OF_MINERAL_ROCK	; type_and_map_flags
 	dc.l $00007D00	; world_x
 	dc.l $0000DAC0	; world_z
-	dc.w $0008	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_EMMA_2	; type_and_map_flags
 	dc.l $0000CB20	; world_x
 	dc.l $0000DAC0	; world_z
-	dc.w $0065	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_LUMP_OF_MINERAL_ROCK	; type_and_map_flags
 	dc.l $0000DAC0	; world_x
 	dc.l $0000DAC0	; world_z
-	dc.w $0065	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_LUMP_OF_MINERAL_ROCK	; type_and_map_flags
 	dc.l $00009C40	; world_x
 	dc.l $0000C350	; world_z
-	dc.w $0002	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PROXIMITY_MINE	; type_and_map_flags
 	dc.l $00004E20	; world_x
 	dc.l $0000C350	; world_z
-	dc.w $0065	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_LUMP_OF_MINERAL_ROCK	; type_and_map_flags
 	dc.l $00004E20	; world_x
 	dc.l $0000C350	; world_z
-	dc.w $0065	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_LUMP_OF_MINERAL_ROCK	; type_and_map_flags
 	dc.l $00008CA0	; world_x
 	dc.l $0000C350	; world_z
-	dc.w $0008	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_EMMA_2	; type_and_map_flags
 	dc.l $00009C40	; world_x
 	dc.l $0000C350	; world_z
-	dc.w $0065	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_LUMP_OF_MINERAL_ROCK	; type_and_map_flags
 	dc.l $0000B3B0	; world_x
 	dc.l $0000B3B0	; world_z
-	dc.w $0065	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_LUMP_OF_MINERAL_ROCK	; type_and_map_flags
 	dc.l $00007D00	; world_x
 	dc.l $0000B3B0	; world_z
-	dc.w $0002	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PROXIMITY_MINE	; type_and_map_flags
 	dc.l $0000CB20	; world_x
 	dc.l $0000B3B0	; world_z
-	dc.w $0065	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_LUMP_OF_MINERAL_ROCK	; type_and_map_flags
 	dc.l $0000CB20	; world_x
 	dc.l $0000B3B0	; world_z
-	dc.w $0065	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_LUMP_OF_MINERAL_ROCK	; type_and_map_flags
 	dc.l $00001F40	; world_x
 	dc.l $00009470	; world_z
-	dc.w $0065	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_LUMP_OF_MINERAL_ROCK	; type_and_map_flags
 	dc.l $00004E1C	; world_x
 	dc.l $0000AD5C	; world_z
-	dc.w $0008	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_EMMA_2	; type_and_map_flags
 	dc.l $00002EE0	; world_x
 	dc.l $00009470	; world_z
-	dc.w $0065	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_LUMP_OF_MINERAL_ROCK	; type_and_map_flags
 	dc.l $0000CB1C	; world_x
 	dc.l $0000AD5C	; world_z
-	dc.w $0002	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PROXIMITY_MINE	; type_and_map_flags
 	dc.l $0000EA60	; world_x
 	dc.l $00009470	; world_z
-	dc.w $0065	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_LUMP_OF_MINERAL_ROCK	; type_and_map_flags
 	dc.l $0000EA60	; world_x
 	dc.l $00009470	; world_z
-	dc.w $0002	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PROXIMITY_MINE	; type_and_map_flags
 	dc.l $0000ABE0	; world_x
 	dc.l $00007D00	; world_z
-	dc.w $0065	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_LUMP_OF_MINERAL_ROCK	; type_and_map_flags
 	dc.l $00001F40	; world_x
 	dc.l $00007D00	; world_z
-	dc.w $0065	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_LUMP_OF_MINERAL_ROCK	; type_and_map_flags
 	dc.l $00003E80	; world_x
 	dc.l $00007D00	; world_z
-	dc.w $0002	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PROXIMITY_MINE	; type_and_map_flags
 	dc.l $00007D00	; world_x
 	dc.l $00007D00	; world_z
-	dc.w $0065	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_LUMP_OF_MINERAL_ROCK	; type_and_map_flags
 	dc.l $00009C40	; world_x
 	dc.l $00007D00	; world_z
-	dc.w $0002	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PROXIMITY_MINE	; type_and_map_flags
 	dc.l $0000BB80	; world_x
 	dc.l $00007D00	; world_z
-	dc.w $0065	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_LUMP_OF_MINERAL_ROCK	; type_and_map_flags
 	dc.l $0000BB80	; world_x
 	dc.l $00007D00	; world_z
-	dc.w $0008	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_EMMA_2	; type_and_map_flags
 	dc.l $0000DAC0	; world_x
 	dc.l $00007D00	; world_z
-	dc.w $0065	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_LUMP_OF_MINERAL_ROCK	; type_and_map_flags
 	dc.l $00000FA0	; world_x
 	dc.l $00006590	; world_z
-	dc.w $0065	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_LUMP_OF_MINERAL_ROCK	; type_and_map_flags
 	dc.l $00002EE0	; world_x
 	dc.l $00006590	; world_z
-	dc.w $0002	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PROXIMITY_MINE	; type_and_map_flags
 	dc.l $00001F40	; world_x
 	dc.l $00006590	; world_z
-	dc.w $0065	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_LUMP_OF_MINERAL_ROCK	; type_and_map_flags
 	dc.l $00001F40	; world_x
 	dc.l $00006590	; world_z
-	dc.w $0065	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_LUMP_OF_MINERAL_ROCK	; type_and_map_flags
 	dc.l $00007D00	; world_x
 	dc.l $00006590	; world_z
-	dc.w $0002	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PROXIMITY_MINE	; type_and_map_flags
 	dc.l $00009C40	; world_x
 	dc.l $00006590	; world_z
-	dc.w $0065	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_LUMP_OF_MINERAL_ROCK	; type_and_map_flags
 	dc.l $00009C40	; world_x
 	dc.l $00006590	; world_z
-	dc.w $0002	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PROXIMITY_MINE	; type_and_map_flags
 	dc.l $0000ABE0	; world_x
 	dc.l $00006590	; world_z
-	dc.w $0065	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_LUMP_OF_MINERAL_ROCK	; type_and_map_flags
 	dc.l $0000ABE0	; world_x
 	dc.l $00006590	; world_z
-	dc.w $0005	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_EGRON_SILO	; type_and_map_flags
 	dc.l $0000BB80	; world_x
 	dc.l $00005DC0	; world_z
-	dc.w $0065	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_LUMP_OF_MINERAL_ROCK	; type_and_map_flags
 	dc.l $0000CB20	; world_x
 	dc.l $00006590	; world_z
-	dc.w $0002	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PROXIMITY_MINE	; type_and_map_flags
 	dc.l $0000EA60	; world_x
 	dc.l $00006590	; world_z
-	dc.w $0065	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_LUMP_OF_MINERAL_ROCK	; type_and_map_flags
 	dc.l $0000EA60	; world_x
 	dc.l $00006590	; world_z
-	dc.w $0002	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PROXIMITY_MINE	; type_and_map_flags
 	dc.l $0000BB80	; world_x
 	dc.l $00004E20	; world_z
-	dc.w $0008	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_EMMA_2	; type_and_map_flags
 	dc.l $00009C40	; world_x
 	dc.l $00004E20	; world_z
-	dc.w $0033	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PYRAMID	; type_and_map_flags
 	dc.l $0000DAC0	; world_x
 	dc.l $00004E20	; world_z
-	dc.w $0035	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_TAPERING_TOWER_BLOCK	; type_and_map_flags
 	dc.l $0000EA60	; world_x
 	dc.l $00004E20	; world_z
-	dc.w $0005	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_EGRON_SILO	; type_and_map_flags
 	dc.l $0000B3B0	; world_x
 	dc.l $00004650	; world_z
-	dc.w $0004	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_SOLAR_ENERGY_CONVERTER	; type_and_map_flags
 	dc.l $00001770	; world_x
 	dc.l $000036B0	; world_z
-	dc.w $0005	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_EGRON_SILO	; type_and_map_flags
 	dc.l $00007D00	; world_x
 	dc.l $000036B0	; world_z
-	dc.w $0065	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_LUMP_OF_MINERAL_ROCK	; type_and_map_flags
 	dc.l $00008CA0	; world_x
 	dc.l $000036B0	; world_z
-	dc.w $0004	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_SOLAR_ENERGY_CONVERTER	; type_and_map_flags
 	dc.l $00009C40	; world_x
 	dc.l $000036B0	; world_z
-	dc.w $0002	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PROXIMITY_MINE	; type_and_map_flags
 	dc.l $0000ABE0	; world_x
 	dc.l $000036B0	; world_z
-	dc.w $0065	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_LUMP_OF_MINERAL_ROCK	; type_and_map_flags
 	dc.l $0000BB80	; world_x
 	dc.l $000036B0	; world_z
-	dc.w $001D	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_EGRON_MINI_ROCKET	; type_and_map_flags
 	dc.l $0000CB20	; world_x
 	dc.l $000036B0	; world_z
-	dc.w $0032	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_GBML_WITH_CANNON	; type_and_map_flags
 	dc.l $0000DAC0	; world_x
 	dc.l $000036B0	; world_z
-	dc.w $0004	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_SOLAR_ENERGY_CONVERTER	; type_and_map_flags
 	dc.l $0000EA60	; world_x
 	dc.l $000036B0	; world_z
-	dc.w $0005	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_EGRON_SILO	; type_and_map_flags
 	dc.l $0000ABE0	; world_x
 	dc.l $00002EE0	; world_z
-	dc.w $0002	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PROXIMITY_MINE	; type_and_map_flags
 	dc.l $00009C40	; world_x
 	dc.l $00001F40	; world_z
-	dc.w $0065	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_LUMP_OF_MINERAL_ROCK	; type_and_map_flags
 	dc.l $00009C40	; world_x
 	dc.l $00001F40	; world_z
-	dc.w $0065	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_LUMP_OF_MINERAL_ROCK	; type_and_map_flags
 	dc.l $0000CB20	; world_x
 	dc.l $00001F40	; world_z
-	dc.w $0034	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_TOWER_BLOCK	; type_and_map_flags
 	dc.l $0000EA60	; world_x
 	dc.l $00001F40	; world_z
-	dc.w $0005	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_EGRON_SILO	; type_and_map_flags
 	dc.l $0000BB80	; world_x
 	dc.l $00000FA0	; world_z
-	dc.w $0034	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_TOWER_BLOCK	; type_and_map_flags
 	dc.l $00001F40	; world_x
 	dc.l $000007D0	; world_z
-	dc.w $0032	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_GBML_WITH_CANNON	; type_and_map_flags
 	dc.l $00007D00	; world_x
 	dc.l $000007D0	; world_z
-	dc.w $0025	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_EGRON_MINI_SENTINEL	; type_and_map_flags
 	dc.l $0000ABE0	; world_x
 	dc.l $000007D0	; world_z
-	dc.w $0002	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PROXIMITY_MINE	; type_and_map_flags
 	dc.l $0000BB80	; world_x
 	dc.l $000007D0	; world_z
-	dc.w $0033	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PYRAMID	; type_and_map_flags
 	dc.l $0000CB20	; world_x
 	dc.l $000007D0	; world_z
-	dc.w $0033	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PYRAMID	; type_and_map_flags
 	dc.l $0000DAC0	; world_x
 	dc.l $000007D0	; world_z
-	dc.w $0002	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_PROXIMITY_MINE	; type_and_map_flags
 	dc.l $0000EA60	; world_x
 	dc.l $000007D0	; world_z
-	dc.w $0065	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_LUMP_OF_MINERAL_ROCK	; type_and_map_flags
 	dc.l $0000EA60	; world_x
 	dc.l $000007D0	; world_z
-	dc.w $0005	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_EGRON_SILO	; type_and_map_flags
 	dc.l $0000D2F0	; world_x
 	dc.l $00000000	; world_z
 q_beta_surface_placements_end_tag:
@@ -43119,13 +43154,13 @@ tug_placement_parameter_prefix:
 	dc.w $0400	; rotation_1
 	dc.w $0000
 apogee_interior_placements:
-	dc.w $0030	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_TUNNEL_ENTRANCE_EXIT	; type_and_map_flags
 	dc.l $0000CFB2	; world_x
 	dc.l $00005744	; world_z
 	dc.w $0002	; opaque_object_parameter_24
 	dc.w $0000	; opaque_object_parameter_28
 	dc.w $0800	; orientation_or_type_parameter_12
-	dc.w $003A	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_TUNNEL_EXIT_INDICATORS_58	; type_and_map_flags
 	dc.l $0000CFB2	; world_x
 	dc.l $00005B2C	; world_z
 	dc.w $0002	; opaque_object_parameter_24
@@ -43245,7 +43280,7 @@ apogee_interior_placements:
 	dc.w $0005	; opaque_object_parameter_24
 	dc.w $0000	; opaque_object_parameter_28
 	dc.w $0000	; orientation_or_type_parameter_12
-	dc.w $005E	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_TUNNEL_DEPOT	; type_and_map_flags
 	dc.l $0000C976	; world_x
 	dc.l $00012A20	; world_z
 	dc.w $0005	; opaque_object_parameter_24
@@ -43401,7 +43436,7 @@ apogee_interior_placements:
 	dc.w $0005	; opaque_object_parameter_24
 	dc.w $0000	; opaque_object_parameter_28
 	dc.w $0000	; orientation_or_type_parameter_12
-	dc.w $0062	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_NEUTRON_BOMB	; type_and_map_flags
 	dc.l $0000A71E	; world_x
 	dc.l $00014D12	; world_z
 	dc.w $0005	; opaque_object_parameter_24
@@ -43443,7 +43478,7 @@ apogee_interior_placements:
 	dc.w $0003	; opaque_object_parameter_24
 	dc.w $0001	; opaque_object_parameter_28
 	dc.w $06AA	; orientation_or_type_parameter_12
-	dc.w $005E	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_TUNNEL_DEPOT	; type_and_map_flags
 	dc.l $0000588E	; world_x
 	dc.l $00009A54	; world_z
 	dc.w $0003	; opaque_object_parameter_24
@@ -43605,13 +43640,13 @@ apogee_interior_placements:
 	dc.w $0001	; opaque_object_parameter_24
 	dc.w $0000	; opaque_object_parameter_28
 	dc.w $0000	; orientation_or_type_parameter_12
-	dc.w $003A	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_TUNNEL_EXIT_INDICATORS_58	; type_and_map_flags
 	dc.l $0000D5EE	; world_x
 	dc.l $000184D9	; world_z
 	dc.w $0001	; opaque_object_parameter_24
 	dc.w $0000	; opaque_object_parameter_28
 	dc.w $0000	; orientation_or_type_parameter_12
-	dc.w $0030	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_TUNNEL_ENTRANCE_EXIT	; type_and_map_flags
 	dc.l $0000D5EE	; world_x
 	dc.l $000186A0	; world_z
 	dc.w $0001	; opaque_object_parameter_24
@@ -43620,13 +43655,13 @@ apogee_interior_placements:
 apogee_interior_placements_end_tag:
 	dc.w $0000	; 83 original interior placements, stride 16, plus zero tag; aliases 19
 castron_interior_placements:
-	dc.w $0030	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_TUNNEL_ENTRANCE_EXIT	; type_and_map_flags
 	dc.l $0000BB80	; world_x
 	dc.l $00004E20	; world_z
 	dc.w $0001	; opaque_object_parameter_24
 	dc.w $0000	; opaque_object_parameter_28
 	dc.w $0800	; orientation_or_type_parameter_12
-	dc.w $0039	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_TUNNEL_EXIT_INDICATORS_57	; type_and_map_flags
 	dc.l $0000BB80	; world_x
 	dc.l $00005DC0	; world_z
 	dc.w $0001	; opaque_object_parameter_24
@@ -43680,13 +43715,13 @@ castron_interior_placements:
 	dc.w $0001	; opaque_object_parameter_24
 	dc.w $0000	; opaque_object_parameter_28
 	dc.w $0000	; orientation_or_type_parameter_12
-	dc.w $0030	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_TUNNEL_ENTRANCE_EXIT	; type_and_map_flags
 	dc.l $0000CB1C	; world_x
 	dc.l $0000B34C	; world_z
 	dc.w $0001	; opaque_object_parameter_24
 	dc.w $0000	; opaque_object_parameter_28
 	dc.w $0000	; orientation_or_type_parameter_12
-	dc.w $0039	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_TUNNEL_EXIT_INDICATORS_57	; type_and_map_flags
 	dc.l $0000CB1C	; world_x
 	dc.l $0000B07C	; world_z
 	dc.w $0001	; opaque_object_parameter_24
@@ -43788,7 +43823,7 @@ castron_interior_placements:
 	dc.w $0001	; opaque_object_parameter_24
 	dc.w $0001	; opaque_object_parameter_28
 	dc.w $0EAA	; orientation_or_type_parameter_12
-	dc.w $005E	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_TUNNEL_DEPOT	; type_and_map_flags
 	dc.l $00004A9E	; world_x
 	dc.l $0000BFDF	; world_z
 	dc.w $0001	; opaque_object_parameter_24
@@ -43884,25 +43919,25 @@ castron_interior_placements:
 	dc.w $0001	; opaque_object_parameter_24
 	dc.w $0001	; opaque_object_parameter_28
 	dc.w $0800	; orientation_or_type_parameter_12
-	dc.w $005B	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_BOUNCING_BOMB	; type_and_map_flags
 	dc.l $00000C6D	; world_x
 	dc.l $0000FAAD	; world_z
 	dc.w $0001	; opaque_object_parameter_24
 	dc.w $0001	; opaque_object_parameter_28
 	dc.w $0800	; orientation_or_type_parameter_12
-	dc.w $005B	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_BOUNCING_BOMB	; type_and_map_flags
 	dc.l $00000CF9	; world_x
 	dc.l $0000FAAD	; world_z
 	dc.w $0001	; opaque_object_parameter_24
 	dc.w $0001	; opaque_object_parameter_28
 	dc.w $0800	; orientation_or_type_parameter_12
-	dc.w $005B	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_BOUNCING_BOMB	; type_and_map_flags
 	dc.l $00000D85	; world_x
 	dc.l $0000FAAD	; world_z
 	dc.w $0001	; opaque_object_parameter_24
 	dc.w $0001	; opaque_object_parameter_28
 	dc.w $0800	; orientation_or_type_parameter_12
-	dc.w $005B	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_BOUNCING_BOMB	; type_and_map_flags
 	dc.l $00000E11	; world_x
 	dc.l $0000FAAD	; world_z
 	dc.w $0001	; opaque_object_parameter_24
@@ -43980,25 +44015,25 @@ castron_interior_placements:
 	dc.w $0003	; opaque_object_parameter_24
 	dc.w $0001	; opaque_object_parameter_28
 	dc.w $0800	; orientation_or_type_parameter_12
-	dc.w $005B	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_BOUNCING_BOMB	; type_and_map_flags
 	dc.l $0000A4D2	; world_x
 	dc.l $0000FAA9	; world_z
 	dc.w $0003	; opaque_object_parameter_24
 	dc.w $0001	; opaque_object_parameter_28
 	dc.w $0800	; orientation_or_type_parameter_12
-	dc.w $005B	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_BOUNCING_BOMB	; type_and_map_flags
 	dc.l $0000A55E	; world_x
 	dc.l $0000FAA9	; world_z
 	dc.w $0003	; opaque_object_parameter_24
 	dc.w $0001	; opaque_object_parameter_28
 	dc.w $0800	; orientation_or_type_parameter_12
-	dc.w $005B	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_BOUNCING_BOMB	; type_and_map_flags
 	dc.l $0000A5EA	; world_x
 	dc.l $0000FAA9	; world_z
 	dc.w $0003	; opaque_object_parameter_24
 	dc.w $0001	; opaque_object_parameter_28
 	dc.w $0800	; orientation_or_type_parameter_12
-	dc.w $005B	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_BOUNCING_BOMB	; type_and_map_flags
 	dc.l $0000A676	; world_x
 	dc.l $0000FAA9	; world_z
 	dc.w $0003	; opaque_object_parameter_24
@@ -44007,13 +44042,13 @@ castron_interior_placements:
 castron_interior_placements_end_tag:
 	dc.w $0000	; 64 original interior placements, stride 16, plus zero tag; aliases 23
 shared_moon_interior_placements:
-	dc.w $0030	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_TUNNEL_ENTRANCE_EXIT	; type_and_map_flags
 	dc.l $0000EA60	; world_x
 	dc.l $00000AF0	; world_z
 	dc.w $0001	; opaque_object_parameter_24
 	dc.w $0000	; opaque_object_parameter_28
 	dc.w $0800	; orientation_or_type_parameter_12
-	dc.w $0039	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_TUNNEL_EXIT_INDICATORS_57	; type_and_map_flags
 	dc.l $0000EA60	; world_x
 	dc.l $00000FA0	; world_z
 	dc.w $0001	; opaque_object_parameter_24
@@ -44085,13 +44120,13 @@ shared_moon_interior_placements:
 	dc.w $0001	; opaque_object_parameter_24
 	dc.w $0000	; opaque_object_parameter_28
 	dc.w $0000	; orientation_or_type_parameter_12
-	dc.w $0039	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_TUNNEL_EXIT_INDICATORS_57	; type_and_map_flags
 	dc.l $0000E73F	; world_x
 	dc.l $00009134	; world_z
 	dc.w $0001	; opaque_object_parameter_24
 	dc.w $0000	; opaque_object_parameter_28
 	dc.w $0000	; orientation_or_type_parameter_12
-	dc.w $0030	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_TUNNEL_ENTRANCE_EXIT	; type_and_map_flags
 	dc.l $0000E73F	; world_x
 	dc.l $000092FB	; world_z
 	dc.w $0001	; opaque_object_parameter_24
@@ -44181,7 +44216,7 @@ shared_moon_interior_placements:
 	dc.w $0005	; opaque_object_parameter_24
 	dc.w $0000	; opaque_object_parameter_28
 	dc.w $0000	; orientation_or_type_parameter_12
-	dc.w $005E	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_TUNNEL_DEPOT	; type_and_map_flags
 	dc.l $0000D168	; world_x
 	dc.l $0000FDC6	; world_z
 	dc.w $0005	; opaque_object_parameter_24
@@ -44355,7 +44390,7 @@ shared_moon_interior_placements:
 	dc.w $0007	; opaque_object_parameter_24
 	dc.w $0000	; opaque_object_parameter_28
 	dc.w $0000	; orientation_or_type_parameter_12
-	dc.w $0039	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_TUNNEL_EXIT_INDICATORS_57	; type_and_map_flags
 	dc.l $0000AF19	; world_x
 	dc.l $0000EEC2	; world_z
 	dc.w $0007	; opaque_object_parameter_24
@@ -44367,7 +44402,7 @@ shared_moon_interior_placements:
 	dc.w $0007	; opaque_object_parameter_24
 	dc.w $0000	; opaque_object_parameter_28
 	dc.w $0000	; orientation_or_type_parameter_12
-	dc.w $0030	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_TUNNEL_ENTRANCE_EXIT	; type_and_map_flags
 	dc.l $0000AF19	; world_x
 	dc.l $0000EC6A	; world_z
 	dc.w $0007	; opaque_object_parameter_24
@@ -44547,25 +44582,25 @@ shared_moon_interior_placements:
 	dc.w $0003	; opaque_object_parameter_24
 	dc.w $0001	; opaque_object_parameter_28
 	dc.w $0800	; orientation_or_type_parameter_12
-	dc.w $000C	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_HOMING_MISSILE	; type_and_map_flags
 	dc.l $00008B65	; world_x
 	dc.l $0000035F	; world_z
 	dc.w $0003	; opaque_object_parameter_24
 	dc.w $0001	; opaque_object_parameter_28
 	dc.w $0800	; orientation_or_type_parameter_12
-	dc.w $000C	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_HOMING_MISSILE	; type_and_map_flags
 	dc.l $00008BDD	; world_x
 	dc.l $0000035F	; world_z
 	dc.w $0003	; opaque_object_parameter_24
 	dc.w $0001	; opaque_object_parameter_28
 	dc.w $0800	; orientation_or_type_parameter_12
-	dc.w $000C	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_HOMING_MISSILE	; type_and_map_flags
 	dc.l $00008C55	; world_x
 	dc.l $0000035F	; world_z
 	dc.w $0003	; opaque_object_parameter_24
 	dc.w $0001	; opaque_object_parameter_28
 	dc.w $0800	; orientation_or_type_parameter_12
-	dc.w $000C	; type_and_map_flags
+	dc.w SG2_OBJECT_TYPE_HOMING_MISSILE	; type_and_map_flags
 	dc.l $00008CCD	; world_x
 	dc.l $0000035F	; world_z
 	dc.w $0003	; opaque_object_parameter_24
@@ -48450,17 +48485,17 @@ abs_0_000361DE:
 	rts
     ; KNOWN: type A0=Target code-entry register seed:SG2CelestialObject
 add_celestial_orbit_parent_offset:
-	cmpi.w #134,(a0)	; operand 2: SG2ObjectCore_object_type at (a0)
+	cmpi.w #SG2_OBJECT_TYPE_ENOS,(a0)	; operand 2: SG2ObjectCore_object_type at (a0)
 	bpl.b abs_0_000361F4
 	addi.l #20000000,d3
 	addi.l #20000000,d4
 	bra.b abs_0_00036214
 abs_0_000361F4:
-	cmpi.w #134,(a0)	; operand 2: SG2ObjectCore_object_type at (a0)
+	cmpi.w #SG2_OBJECT_TYPE_ENOS,(a0)	; operand 2: SG2ObjectCore_object_type at (a0)
 	bne.b abs_0_000361FC
 	bra.b abs_0_00036202
 abs_0_000361FC:
-	cmpi.w #135,(a0)	; operand 2: SG2ObjectCore_object_type at (a0)
+	cmpi.w #SG2_OBJECT_TYPE_CASTRON,(a0)	; operand 2: SG2ObjectCore_object_type at (a0)
 	bne.b abs_0_0003620C
 abs_0_00036202:
 	add.l apogee_orbit_parent_x(a6),d3
