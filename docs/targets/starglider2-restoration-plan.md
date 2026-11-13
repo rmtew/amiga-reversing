@@ -44,17 +44,18 @@ Original payload SHA256:
 
 ## Active queue
 
-Flying height control, distinct flying/evasive roll wraps, both yaw/roll blends
-and Horatio's shared motion consumer have 2922 original-CPU cases. Six include
-the original type17 primary dispatch: its routine-relative offset remains in
-D1 at Horatio's exact 9/10 variant reset. The A2 helper masks that difference
-before shifting, yielding a nonnegative fraction; it is not shortest turning.
-The flying roll can wrap to zero where the evasive body forces 1. Height tails
-retain WORD wrap and the 4->5->4 / -4->-5->-4 local cycles. These are supplied
-CPU windows, not normal-play reachability, complete frames or lifetime proofs.
-Player-cache displacements retain presentation-only status. Shared animal
-BYTE +31, blowhole WORDs +$24/+$26 and junk/launcher/capsule aliases retain their
-separate limits; the duck step role does not apply globally.
+Shared bomb initialization, complete bouncing launch and guarded contact routing
+have 516 new original-CPU cases. Type91 overlays BYTE+$22 with its phase WORD
+high byte; WORD+$26 is the animation mask. Non-resting phase logic clears the
+high byte with the initial mask0/first-bounce mask3; resting returns preserve it.
+This does NOT select ordinary bomb hit credit: peer91 enters the special-target
+filter and peer98 goes directly to award, bypassing the BYTE tests. The earlier
+isolated-branch implication is withdrawn. Types12/84/103 take separate response
+paths. Type98 shares initialization without the same animation role, so no
+common tracking layout is asserted. Bouncing launch clamps a negative inventory
+BYTE but still allocates; guard/HUD/partial-record ordering remains explicit.
+These are supplied CPU windows, not geometry, final awards, normal-play
+reachability or ownership proofs. Native access counts/proofs are unchanged.
 
 1. Exact tag stores, bounded MOVEM cursors and opaque leading-record address
    identities are supported. Undeclared prefix bytes retain no field meaning.

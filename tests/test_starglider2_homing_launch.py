@@ -26,8 +26,8 @@ def prepare(memory,mode=0,icons=2,free=3,counter=2):
     put(memory,APP+0x6FC,0xFFFF,4)
 
 
-def expected_hud(memory,mode,icons):
-    result=bytearray(memory[FB:FB+0x18000]);source=BACKUP+((icons-1)&7)*112
+def expected_hud(memory,mode,icons,backup=BACKUP):
+    result=bytearray(memory[FB:FB+0x18000]);source=backup+((icons-1)&7)*112
     destination=FB+0x4800-signed16(icons*(480 if mode==0 else 1920))
     for row in range(14):
         data=bytes(memory[source+8*row:source+8*row+8]);base=destination+(40 if mode==0 else 160)*row

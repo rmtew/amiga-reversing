@@ -1580,6 +1580,9 @@ SG2_BOUNCE_MOTION_SCALE_LOSS	EQU	20
 SG2_BOUNCE_REFLECTION_BIAS	EQU	10
 SG2_BOUNCE_SURFACE_Y	EQU	-25
 SG2_BOUNCE_VERTEX_RELOAD	EQU	11
+SG2_BOUNCING_LAUNCH_COOLDOWN	EQU	150
+SG2_BOUNCING_LAUNCH_EXTRA_Y	EQU	20
+SG2_BOUNCING_LAUNCH_Y_VELOCITY	EQU	30
 SG2_BROADWAY_INVERTOR_RANDOM_MASK	EQU	2047
 SG2_BUFFER_ROTATION_END_OFFSET	EQU	12
 SG2_BUFFER_ROTATION_ENTRY_BYTES	EQU	4
@@ -2021,6 +2024,9 @@ SG2_SCENE_PACKET_COUNT_THRESHOLD	EQU	145
 SG2_SCENE_SCREEN_VERTEX_BYTES	EQU	4
 SG2_SCENE_TWO_SCREEN_VERTICES_BYTES	EQU	8
 SG2_SCORE_BCD_DIGITS_DBF_LAST	EQU	5
+SG2_SHARED_BOMB_HEADER_SCALE_SHIFT	EQU	5
+SG2_SHARED_BOMB_INITIAL_UPDATE_BUDGET	EQU	1000
+SG2_SHARED_BOMB_SPEED_ADDEND	EQU	200
 SG2_SMEAR_AMIGA_MASK_BYTE_OFFSET_MASK	EQU	$1FE
 SG2_SMEAR_AMIGA_PLANE_STEP_BYTES	EQU	8192
 SG2_SMEAR_HEIGHT_MASK	EQU	$3
@@ -10337,22 +10343,28 @@ homing_missile_hud_screen_origin:
 	dc.l $00071BFE
 bouncing_bomb_hud_screen_origin:
 	dc.l $00071BFC
+    ; Unsigned free count>2 precedes inventory and icon tests. Both decrement before HUD restore/allocation; negative BYTE inventory result clamps to zero but still launches.
 try_launch_bouncing_bomb:
-	cmpi.w #2,free_object_count(a6)
-	bls.w abs_0_0000799E
+	cmpi.w #SG2_PROJECTILE_FREE_SLOT_RESERVE,free_object_count(a6)
+	bls.w return_from_bouncing_launch_attempt
+test_bouncing_inventory_before_hud_icon_count:
 	lea.l model_type_population_counts(a6),a0
 	tst.b SG2ModelInventoryCounts_bouncing_bomb_count(a0)
-	beq.w abs_0_000079A0
+	beq.w report_missing_bouncing_inventory
+test_bouncing_hud_icon_count_before_consumption:
 	move.w bouncing_bomb_hud_icon_count(a6),d0
-	beq.w abs_0_0000799E
+	beq.w return_from_bouncing_launch_attempt
+consume_bouncing_icon_before_inventory_and_hud_restore:
 	subq.w #1,bouncing_bomb_hud_icon_count(a6)
+decrement_bouncing_inventory_and_clamp_negative_result:
 	subq.b #1,SG2ModelInventoryCounts_bouncing_bomb_count(a0)
-	bpl.b abs_0_00007954
+	bpl.b restore_bouncing_hud_before_pool_pop
 	clr.b SG2ModelInventoryCounts_bouncing_bomb_count(a0)
-abs_0_00007954:
+restore_bouncing_hud_before_pool_pop:
 	lea.l bouncing_bomb_hud_saved_backgrounds.l,a0
 	movea.l bouncing_bomb_hud_screen_origin.l,a1
 	bsr.w restore_weapon_hud_icon_background
+pop_bouncing_record_after_hud_restore:
 	movea.l free_object_stack_cursor(a6),a1
 	movea.l -(a1),a2
 	move.l a1,free_object_stack_cursor(a6)
@@ -10360,15 +10372,17 @@ abs_0_00007954:
     ; KNOWN: type A2=Target code-entry register seed:SG2BouncingBomb
 	move.w #SG2_OBJECT_TYPE_BOUNCING_BOMB,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
 	bsr.w initialize_launched_bomb_header
-	move.w #$1E,SG2WorldObject_velocity_y(a2)
-	addi.l #20,SG2ObjectCore_world_y(a2)
+replace_bouncing_vertical_velocity_after_shared_motion:
+	move.w #SG2_BOUNCING_LAUNCH_Y_VELOCITY,SG2WorldObject_velocity_y(a2)
+	addi.l #SG2_BOUNCING_LAUNCH_EXTRA_Y,SG2ObjectCore_world_y(a2)
+set_bouncing_type_collision_exclusions:
 	move.b #SG2_OBJECT_TYPE_BOUNCING_BOMB,SG2TargetingObject_collision_ignored_object_type(a2)
 	movea.l player_object_reference(a6),a0
-	move.b #$5B,$002A(a0)
-	move.w #$96,weapon_action_cooldown(a6)
-abs_0_0000799E:
+	move.b #SG2_OBJECT_TYPE_BOUNCING_BOMB,SG2TargetingObject_collision_ignored_object_type(a0)
+	move.w #SG2_BOUNCING_LAUNCH_COOLDOWN,weapon_action_cooldown(a6)
+return_from_bouncing_launch_attempt:
 	rts
-abs_0_000079A0:
+report_missing_bouncing_inventory:
 	move.w #$118,d0
 	bra.w abs_0_00007B22
     ; Inventory clears before the carried-pointer null guard. Open-space guards use any nonzero projector/minis. Offset CMP70 uses N only, retaining overflow aliases; nonnull is not ownership.
@@ -10439,37 +10453,48 @@ queue_neutron_launch_sentinel_guard_messages:
 	bsr.w enqueue_message_unless_previous_pointer
 	bsr.w enqueue_blank_event_message_line_bridge_006fb4
 	rts
+    ; Only BYTE+$22 is set; neighbor+$23 survives. Type91 overlays this with its animation-phase WORD high byte, not a persistent tracking flag. Header falls through to common motion.
     ; KNOWN: type A2=Target code-entry register seed:SG2TimedMotionActor
 initialize_launched_bomb_header:
 	st.b $0022(a2)
-	move.b #$5,SG2ObjectCore_model_scale_shift(a2)
+	move.b #SG2_SHARED_BOMB_HEADER_SCALE_SHIFT,SG2ObjectCore_model_scale_shift(a2)
 	clr.b SG2ObjectCore_vertex_variant_selector(a2)
 	move.b #$FF,SG2ObjectCore_retirement_phase_or_negative(a2)
 	move.b #$1,SG2ObjectCore_durability_or_negative(a2)
+    ; Shared motion also serves carried-neutron setup/release. It preserves type, flags and unassigned record bytes; no pool, link or ownership validation occurs here.
     ; KNOWN: type A2=Target code-entry register seed:SG2TimedMotionActor
 initialize_player_launched_bomb_motion:
-	move.w #$3E8,SG2TimedMotionActor_remaining_updates(a2)
+	move.w #SG2_SHARED_BOMB_INITIAL_UPDATE_BUDGET,SG2TimedMotionActor_remaining_updates(a2)
+    ; Type91: WORD+$26 is the cycle mask. A no-bounce mask0 update clears phase; first surface bounce changes mask to3. Resting early return leaves BYTE+$22 untouched. Type98 differs.
+clear_shared_bomb_word26_before_pose_copy:
 	move.w #$0,$0026(a2)
+copy_player_position_to_shared_bomb_record:
 	move.l player_world_x(a6),SG2ObjectCore_world_x(a2)
 	move.l player_world_z(a6),SG2ObjectCore_world_z(a2)
 	move.l player_world_y(a6),SG2ObjectCore_world_y(a2)
+copy_player_angles_to_shared_bomb_record:
 	move.w player_rotation_0(a6),SG2WorldObject_rotation_0(a2)
 	move.w player_rotation_1(a6),SG2WorldObject_rotation_1(a2)
 	move.w player_rotation_2(a6),SG2WorldObject_rotation_2(a2)
+derive_wrapped_shared_bomb_motion_scale:
 	move.w player_speed_smoothed(a6),d4
-	addi.w #200,d4
+	addi.w #SG2_SHARED_BOMB_SPEED_ADDEND,d4
 	move.w d4,SG2MotionVectorActor_motion_vector_scale(a2)
 	move.w SG2MotionVectorActor_motion_vector_scale(a2),d3
 	bsr.w build_player_motion_vector_bridge_006fc0
+store_shared_bomb_velocity_low_words:
 	move.w d4,SG2WorldObject_velocity_x(a2)
 	move.w d5,SG2WorldObject_velocity_y(a2)
 	move.w d6,SG2WorldObject_velocity_z(a2)
+    ; Add each sign-extended velocity once to copied player position; wrap X/Z only. The bouncing caller later replaces VY with30 and adds20 to already displaced Y.
+sign_extend_shared_bomb_velocity_for_initial_displacement:
 	ext.l d4
 	ext.l d5
 	ext.l d6
 	add.l d4,SG2ObjectCore_world_x(a2)
 	add.l d5,SG2ObjectCore_world_y(a2)
 	add.l d6,SG2ObjectCore_world_z(a2)
+wrap_shared_bomb_initial_horizontal_position:
 	move.l horizontal_world_wrap_mask(a6),d0
 	and.l d0,SG2ObjectCore_world_x(a2)
 	and.l d0,SG2ObjectCore_world_z(a2)
@@ -14782,8 +14807,10 @@ filter_contact_by_ignored_object_type:
 	bne.w enter_swapped_special_contact_with_saved_context
 	btst.b #6,SG2ObjectCore_flags(a2)
 	bne.w enter_special_contact_with_saved_context
+    ; Peers91/98 bypass BYTE+$22:91 enters the special-target filter;98 goes directly to award. Types12/84/103 take separate durability paths. This dispatch does not assert a shared field layout.
+route_outer_bomb_peer_contact_by_type:
 	cmpi.w #SG2_OBJECT_TYPE_BOUNCING_BOMB,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
-	beq.w filter_outer_tracking_award_special_types
+	beq.w filter_outer_hit_credit_exempt_types
 	cmpi.w #SG2_OBJECT_TYPE_NEUTRON_BOMB,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
 	beq.w award_outer_contact_and_optional_mini_sentinel
 	cmpi.w #SG2_OBJECT_TYPE_ENERGY_CUBE_LAUNCHER,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
@@ -14796,7 +14823,7 @@ filter_contact_by_ignored_object_type:
 apply_outer_cube_launcher_contact:
 	tst.b SG2ObjectCore_durability_or_negative(a0)
 	bmi.w dispatch_reciprocal_inner_contact_response
-	beq.w choose_outer_tracking_retirement_or_award
+	beq.w choose_outer_contact_retirement_or_hit_credit
 	cmpi.w #SG2_OBJECT_TYPE_HOMING_MISSILE,(a0)	; operand 2: SG2ObjectCore_object_type at (a0)
 	bne.b decrement_outer_cube_contact_durability
 	tst.b SG2SteeredProjectile_stored_target_tracking_byte(a0)
@@ -14812,19 +14839,21 @@ decrement_outer_cube_contact_durability:
     ; Post-filter type-12 response: type 37 bypasses the durability-sign gate. Tracking controls award versus direct retirement; 98/99 exceptions and original ordered reciprocal handling remain.
 test_outer_type12_contact_retirement:
 	cmpi.w #SG2_OBJECT_TYPE_EGRON_MINI_SENTINEL,(a0)	; operand 2: SG2ObjectCore_object_type at (a0)
-	beq.b choose_outer_tracking_retirement_or_award
+	beq.b choose_outer_contact_retirement_or_hit_credit
 	tst.b SG2ObjectCore_durability_or_negative(a0)
 	bmi.w dispatch_reciprocal_inner_contact_response
-	bra.b choose_outer_tracking_retirement_or_award
+	bra.b choose_outer_contact_retirement_or_hit_credit
 test_outer_laser_contact_durability:
 	tst.b SG2ObjectCore_durability_or_negative(a0)
-	beq.b choose_outer_tracking_retirement_or_award
+	beq.b choose_outer_contact_retirement_or_hit_credit
 	bmi.w dispatch_reciprocal_inner_contact_response
 decrement_outer_contact_durability:
 	subq.b #1,SG2ObjectCore_durability_or_negative(a0)
-	beq.b choose_outer_tracking_retirement_or_award
-	bmi.b choose_outer_tracking_retirement_or_award
+	beq.b choose_outer_contact_retirement_or_hit_credit
+	bmi.b choose_outer_contact_retirement_or_hit_credit
 	bset.b #2,SG2ObjectCore_flags(a0)
+    ; Surviving cube/laser responses test peer BYTE+$22 for hit credit. Peers91/98 already branched around this read; their phase-byte transition is not an ordinary credit gate.
+test_outer_peer_byte34_for_hit_credit:
 	tst.b $0022(a2)
 	beq.w clear_outer_retirement_phase_byte
 	movem.l d0/a1/a6,-(a7)
@@ -14837,12 +14866,13 @@ increment_outer_hit_tag_skipping_zero:
 	beq.b increment_outer_hit_tag_skipping_zero
 	movem.l (a7)+,d0/a1/a6
 	bra.w dispatch_reciprocal_inner_contact_response
-choose_outer_tracking_retirement_or_award:
+    ; Type12 and depleted cube/laser paths test peer BYTE+$22:zero starts retirement;nonzero selects award/filter by target type. Peer91/98 branches bypass this switch.
+choose_outer_contact_retirement_or_hit_credit:
 	tst.b $0022(a2)
 	beq.b start_outer_contact_retirement
 	cmpi.w #SG2_OBJECT_TYPE_EGRON_MINI_SENTINEL,(a0)	; operand 2: SG2ObjectCore_object_type at (a0)
 	beq.b award_outer_contact_and_optional_mini_sentinel
-filter_outer_tracking_award_special_types:
+filter_outer_hit_credit_exempt_types:
 	cmpi.w #SG2_OBJECT_TYPE_EGRON_SPACE_STATION,(a0)	; operand 2: SG2ObjectCore_object_type at (a0)
 	beq.b dispatch_reciprocal_inner_contact_response
 	cmpi.w #SG2_OBJECT_TYPE_EGRON_MINI_SENTINEL,(a0)	; operand 2: SG2ObjectCore_object_type at (a0)
@@ -14888,8 +14918,10 @@ dispatch_reciprocal_inner_contact_response:
 	beq.w enter_special_contact_with_saved_context
 	cmpi.w #SG2_OBJECT_TYPE_ICARUS,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
 	beq.w enter_swapped_special_contact_with_saved_context
+    ; Reciprocal peer91/98 routing also bypasses BYTE+$22:91 enters the target filter and98 goes directly to award. Bomb phase state is not the selector for these branches.
+route_inner_bomb_peer_contact_by_type:
 	cmpi.w #SG2_OBJECT_TYPE_BOUNCING_BOMB,(a0)	; operand 2: SG2ObjectCore_object_type at (a0)
-	beq.w filter_inner_tracking_award_special_types
+	beq.w filter_inner_hit_credit_exempt_types
 	cmpi.w #SG2_OBJECT_TYPE_NEUTRON_BOMB,(a0)	; operand 2: SG2ObjectCore_object_type at (a0)
 	beq.w award_inner_contact_and_optional_mini_sentinel
 	cmpi.w #SG2_OBJECT_TYPE_ENERGY_CUBE_LAUNCHER,(a0)	; operand 2: SG2ObjectCore_object_type at (a0)
@@ -14908,19 +14940,21 @@ apply_inner_cube_launcher_contact:
 	bra.b decrement_inner_contact_durability
 test_inner_type12_contact_retirement:
 	cmpi.w #SG2_OBJECT_TYPE_EGRON_MINI_SENTINEL,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
-	beq.b choose_inner_tracking_retirement_or_award
+	beq.b choose_inner_contact_retirement_or_hit_credit
 	tst.b SG2ObjectCore_durability_or_negative(a2)
 	bmi.w continue_inner_contact_pair_loop
-	bra.b choose_inner_tracking_retirement_or_award
+	bra.b choose_inner_contact_retirement_or_hit_credit
 test_inner_laser_contact_durability:
 	tst.b SG2ObjectCore_durability_or_negative(a2)
-	beq.w choose_inner_tracking_retirement_or_award
+	beq.w choose_inner_contact_retirement_or_hit_credit
 	bmi.w continue_inner_contact_pair_loop
 decrement_inner_contact_durability:
 	subq.b #1,SG2ObjectCore_durability_or_negative(a2)
-	beq.b choose_inner_tracking_retirement_or_award
-	bmi.b choose_inner_tracking_retirement_or_award
+	beq.b choose_inner_contact_retirement_or_hit_credit
+	bmi.b choose_inner_contact_retirement_or_hit_credit
 	bset.b #2,SG2ObjectCore_flags(a2)
+    ; Reciprocal surviving cube/laser response tests peer BYTE+$22. Earlier bomb-type branches bypass this read. Geometry, eligibility and complete award processing remain separate.
+test_inner_peer_byte34_for_hit_credit:
 	tst.b $0022(a0)
 	beq.w clear_inner_retirement_phase_byte
 	movem.l d0/a1/a6,-(a7)
@@ -14933,12 +14967,12 @@ increment_inner_hit_tag_skipping_zero:
 	beq.b increment_inner_hit_tag_skipping_zero
 	movem.l (a7)+,d0/a1/a6
 	bra.b continue_inner_contact_pair_loop
-choose_inner_tracking_retirement_or_award:
+choose_inner_contact_retirement_or_hit_credit:
 	tst.b $0022(a0)
 	beq.b start_inner_contact_retirement
 	cmpi.w #SG2_OBJECT_TYPE_EGRON_MINI_SENTINEL,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
 	beq.b award_inner_contact_and_optional_mini_sentinel
-filter_inner_tracking_award_special_types:
+filter_inner_hit_credit_exempt_types:
 	cmpi.w #SG2_OBJECT_TYPE_EGRON_SPACE_STATION,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
 	beq.b continue_inner_contact_pair_loop
 	cmpi.w #SG2_OBJECT_TYPE_EGRON_MINI_SENTINEL,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
