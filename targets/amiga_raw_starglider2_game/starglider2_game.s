@@ -1644,6 +1644,11 @@ SG2_FACE_RANDOM_STYLE_BYTE_OFFSET_MASK	EQU	14
 SG2_GAME_OVER_POWER_DRAINAGE	EQU	1
 SG2_GAME_OVER_SHIELD_DEPLETED	EQU	2
 SG2_GATE_CONTACT_RESPONSE_PASSES	EQU	3
+SG2_GBML_CANNON_COUNTER_RELOAD	EQU	15
+SG2_GBML_HEADING_BLEND_SHIFT	EQU	4
+SG2_GBML_LOW_ALTITUDE_ATTACK_MASK	EQU	15
+SG2_GBML_LOW_ALTITUDE_PLAYER_Y_LIMIT	EQU	-250
+SG2_GBML_TARGET_SCAN_COUNTER_MASK	EQU	511
 SG2_GROUND_FACE_DEPTH_SORT_KEY	EQU	$7FE0
 SG2_GROUND_FACE_FAR_DIVIDE_DEPTH	EQU	12000
 SG2_GROUND_FACE_NEAR_DEPTH_WORD	EQU	128
@@ -1998,6 +2003,9 @@ SG2_STAR_POSITION_FRACTION_SHIFT	EQU	13
 SG2_STAR_WORLD_ORIGIN_XZ	EQU	20000000
 SG2_STAR_WORLD_ORIGIN_Y	EQU	-20000000
 SG2_STORED_HEADING_RATIO_BYTE_LIMIT	EQU	255
+SG2_STORED_TARGET_INITIAL_UPDATES	EQU	100
+SG2_STORED_TARGET_LAUNCH_ALIGNMENT_WINDOW	EQU	100
+SG2_STORED_TARGET_LAUNCH_FREE_RESERVE	EQU	24
 SG2_STORED_TARGET_Y_SMOOTH_SHIFT	EQU	5
 SG2_SURFACE_ENTRY_DEPTH_ORIGIN	EQU	305
 SG2_SURFACE_ENTRY_X_BASE_LIMIT	EQU	144
@@ -2006,6 +2014,7 @@ SG2_SURFACE_EXIT_PHASE_FOLD_MASK	EQU	2047
 SG2_SURFACE_EXIT_PHASE_MIDPOINT	EQU	2048
 SG2_SURFACE_EXIT_ROTATION0_BASE	EQU	239
 SG2_SURFACE_EXIT_SPEED_THRESHOLD	EQU	460
+SG2_TARGET_TAG_COMPLEMENT_MASK	EQU	255
 SG2_TEXT_CURSOR_COLUMNS	EQU	40
 SG2_TEXT_CURSOR_ROWS	EQU	25
 SG2_TEXT_DELETE_ROW_REWIND_BYTES	EQU	322
@@ -11936,7 +11945,7 @@ abs_0_00009106:
 	eori.b #255,d0
 	move.b #$83,diagnostic_step_byte.l
 	bsr.w select_visible_object_by_type_tag
-	bra.w abs_0_0000A52A
+	bra.w try_launch_missile_at_selected_visible_target
     ; Only residual phase paths decrement nonzero proximity countdown. At zero, nearby X/Z separation<=1200 reloads65 before turning; other phase actions can bypass this step.
 abs_0_0000913A:
 	move.b #$84,diagnostic_step_byte.l
@@ -12802,35 +12811,37 @@ start_land_tank_evasion_turn:
 abs_0_00009C78:
 	bsr.w heading_with_player_as_reference
 	bra.w blend_actor_heading_and_clear_other_rotations
-    ; Type50 GBML with Cannon: add2048 to heading in4096 units; variant uses wrapping Y-difference bits8..10. WORD24 reloads15 only at zero before an attack attempt, not guaranteed fire.
+    ; Cannon aims at player heading + 2048. The WORD counter reloads 15 only when decrement reaches zero; altitude variant uses wrapped difference bits 8..10. Attack remains gated.
     ; KNOWN: type A0=Target code-entry register seed:SG2ScheduledActor
 update_gbml_cannon_heading_and_attack:
 	move.b #$24,diagnostic_step_byte.l
 	bsr.w heading_with_player_as_reference
-	addi.w #2048,d1
-	andi.w #4095,d1
+	addi.w #SG2_ANGLE_HALF_TURN,d1
+	andi.w #SG2_HEADING_ANGLE_MASK,d1
+measure_gbml_cannon_raw_heading_gap:
 	move.w SG2WorldObject_rotation_1(a0),d0
-	andi.w #4095,d0
+	andi.w #SG2_HEADING_ANGLE_MASK,d0
 	sub.w d1,d0
-	bpl.b abs_0_00009CA2
+	bpl.b choose_gbml_cannon_heading_step_direction
 	neg.w d0
-abs_0_00009CA2:
-	cmp.w #$800,d0
-	ble.b abs_0_00009CBE
+choose_gbml_cannon_heading_step_direction:
+	cmp.w #SG2_ANGLE_HALF_TURN,d0
+	ble.b add_gbml_cannon_near_heading_step
+subtract_gbml_cannon_far_heading_step:
 	move.w d1,d2
 	move.w SG2WorldObject_rotation_1(a0),d0
-	andi.w #4095,d0
+	andi.w #SG2_HEADING_ANGLE_MASK,d0
 	sub.w d0,d2
-	asr.w #4,d2
+	asr.w #SG2_GBML_HEADING_BLEND_SHIFT,d2
 	sub.w d2,d0
 	move.w d0,SG2WorldObject_rotation_1(a0)
 	bra.b set_gbml_cannon_altitude_variant
-abs_0_00009CBE:
+add_gbml_cannon_near_heading_step:
 	move.w d1,d2
 	move.w SG2WorldObject_rotation_1(a0),d0
-	andi.w #4095,d0
+	andi.w #SG2_HEADING_ANGLE_MASK,d0
 	sub.w d0,d2
-	asr.w #4,d2
+	asr.w #SG2_GBML_HEADING_BLEND_SHIFT,d2
 	add.w d2,d0
 	move.w d0,SG2WorldObject_rotation_1(a0)
 set_gbml_cannon_altitude_variant:
@@ -12840,55 +12851,63 @@ set_gbml_cannon_altitude_variant:
 	lsr.l #8,d0
 	andi.b #7,d0
 	move.b d0,SG2ObjectCore_vertex_variant_selector(a0)
+decrement_gbml_cannon_attack_counter:
 	subq.w #1,SG2ScheduledActor_behavior_update_counter(a0)
 	bne.w continue_primary_object_update_loop
-	move.w #$F,SG2ScheduledActor_behavior_update_counter(a0)
+reload_gbml_cannon_counter_and_request_attack:
+	move.w #SG2_GBML_CANNON_COUNTER_RELOAD,SG2ScheduledActor_behavior_update_counter(a0)
 	sf.b ai_type12_projectile_request(a6)
 	bra.w try_ai_projectile_attack_if_aligned
+    ; Both GBML blends store an unmasked WORD after the 1/16 step. Counter masks select tag scan or low-altitude attack; an incoming zero wraps to FFFF rather than reloading.
     ; KNOWN: type A0=Target code-entry register seed:SG2ScheduledActor
 update_gbml_heading_and_target_scan:
 	move.b #$25,diagnostic_step_byte.l
 	bsr.w heading_with_player_as_reference
-	andi.w #4095,d1
+	andi.w #SG2_HEADING_ANGLE_MASK,d1
+measure_gbml_raw_heading_gap:
 	move.w SG2WorldObject_rotation_1(a0),d0
-	andi.w #4095,d0
+	andi.w #SG2_HEADING_ANGLE_MASK,d0
 	sub.w d1,d0
-	bpl.b abs_0_00009D1A
+	bpl.b choose_gbml_heading_step_direction
 	neg.w d0
-abs_0_00009D1A:
-	cmp.w #$800,d0
-	ble.b abs_0_00009D36
+choose_gbml_heading_step_direction:
+	cmp.w #SG2_ANGLE_HALF_TURN,d0
+	ble.b add_gbml_near_heading_step
+subtract_gbml_far_heading_step:
 	move.w d1,d2
 	move.w SG2WorldObject_rotation_1(a0),d0
-	andi.w #4095,d0
+	andi.w #SG2_HEADING_ANGLE_MASK,d0
 	sub.w d0,d2
-	asr.w #4,d2
+	asr.w #SG2_GBML_HEADING_BLEND_SHIFT,d2
 	sub.w d2,d0
 	move.w d0,SG2WorldObject_rotation_1(a0)
-	bra.b abs_0_00009D4A
-abs_0_00009D36:
+	bra.b decrement_gbml_counter_before_scan_masks
+add_gbml_near_heading_step:
 	move.w d1,d2
 	move.w SG2WorldObject_rotation_1(a0),d0
-	andi.w #4095,d0
+	andi.w #SG2_HEADING_ANGLE_MASK,d0
 	sub.w d0,d2
-	asr.w #4,d2
+	asr.w #SG2_GBML_HEADING_BLEND_SHIFT,d2
 	add.w d2,d0
 	move.w d0,SG2WorldObject_rotation_1(a0)
-abs_0_00009D4A:
+decrement_gbml_counter_before_scan_masks:
 	subq.w #1,SG2ScheduledActor_behavior_update_counter(a0)
 	move.w SG2ScheduledActor_behavior_update_counter(a0),d0
-	andi.w #511,d0
-	bne.w abs_0_00009D70
+	andi.w #SG2_GBML_TARGET_SCAN_COUNTER_MASK,d0
+	bne.w test_gbml_low_altitude_attack_cadence
+    ; Complement the creator's mutable BYTE tag, then select the first different matching visible record. Selection does not replace D1 with a heading toward that record.
+select_complementary_tag_for_gbml_target:
 	lea.l model_type_target_selection_tags_prefix(a6),a1
 	move.w (a0),d0	; operand 1: SG2ObjectCore_object_type at (a0)
 	move.b $0(a1,d0.w),d0
-	eori.b #255,d0
+	eori.b #SG2_TARGET_TAG_COMPLEMENT_MASK,d0
 	bsr.w select_visible_object_by_type_tag
-	bra.w abs_0_0000A52A
-abs_0_00009D70:
-	andi.b #15,d0
+	bra.w try_launch_missile_at_selected_visible_target
+test_gbml_low_altitude_attack_cadence:
+	andi.b #SG2_GBML_LOW_ALTITUDE_ATTACK_MASK,d0
 	bne.w continue_primary_object_update_loop
-	cmpi.l #4294967046,player_world_y(a6)
+test_player_altitude_before_gbml_attack:
+	cmpi.l #SG2_GBML_LOW_ALTITUDE_PLAYER_Y_LIMIT,player_world_y(a6)
 	bge.w continue_primary_object_update_loop
 	bra.w abs_0_00009F02
     ; Type26 Tripuss: zero BYTE1F step skips later timer/motion. Sums0/9 change step without storing boundary variant; preserve asymmetric X/Z comparisons, not a radius/AABB test.
@@ -12964,7 +12983,7 @@ abs_0_00009E6E:
 	move.b $0(a1,d0.w),d0
 	eori.b #255,d0
 	bsr.w select_visible_object_by_type_tag
-	bra.w abs_0_0000A52A
+	bra.w try_launch_missile_at_selected_visible_target
 abs_0_00009EA4:
 	andi.b #7,d3
 	beq.w abs_0_00009F02
@@ -13384,77 +13403,87 @@ abs_0_0000A4EE:
 	bsr.w heading_with_player_as_reference
 	addi.w #2048,d1
 	bra.w recompute_actor_horizontal_motion_from_angle
-    ; D0 desired type tag; return first different visible object in A4, or player on no match. Callers complement own mutable tag; no nearest-target or universal faction claim.
+    ; Scan compares BYTE tags in list order and skips only self. It does not test candidate phase/distance or change D1. Empty/no-match returns the saved player pointer.
 select_visible_object_by_type_tag:
 	move.b #$2D,diagnostic_step_byte.l
 	move.w visible_object_count(a6),d7
-	beq.b abs_0_0000A524
+	beq.b use_player_reference_on_visible_scan_miss
 	movea.l visible_objects_cursor(a6),a1
 	lea.l model_type_target_selection_tags_prefix(a6),a3
 	subq.w #1,d7
-abs_0_0000A512:
+inspect_next_visible_target_tag:
 	movea.l (a1)+,a4
 	move.w (a4),d3	; operand 1: SG2ObjectCore_object_type at (a4)
 	cmp.b $0(a3,d3.w),d0
-	bne.b abs_0_0000A520
+	bne.b advance_visible_target_scan
 	cmpa.l a0,a4
-	bne.b abs_0_0000A528
-abs_0_0000A520:
-	dbf.w d7,abs_0_0000A512
-abs_0_0000A524:
+	bne.b return_selected_visible_target_reference
+advance_visible_target_scan:
+	dbf.w d7,inspect_next_visible_target_tag
+use_player_reference_on_visible_scan_miss:
 	movea.l player_object_reference(a6),a4
-abs_0_0000A528:
+return_selected_visible_target_reference:
 	rts
-abs_0_0000A52A:
+    ; Free count > 24 precedes the raw WORD heading-difference test against 100 using N. No circular normalization. A4 is stored without a local active/type/lifetime guard.
+try_launch_missile_at_selected_visible_target:
 	move.b #$2E,diagnostic_step_byte.l
-	cmpi.w #24,free_object_count(a6)
+	cmpi.w #SG2_STORED_TARGET_LAUNCH_FREE_RESERVE,free_object_count(a6)
 	bls.w continue_primary_object_update_loop
+measure_stored_target_launch_raw_heading_gap:
 	move.w SG2WorldObject_rotation_1(a0),d0
-	andi.w #4095,d0
+	andi.w #SG2_HEADING_ANGLE_MASK,d0
 	sub.w d0,d1
-	bpl.b abs_0_0000A54A
+	bpl.b test_stored_target_launch_heading_window
 	neg.w d1
-abs_0_0000A54A:
-	cmp.w #$64,d1
+test_stored_target_launch_heading_window:
+	cmp.w #SG2_STORED_TARGET_LAUNCH_ALIGNMENT_WINDOW,d1
 	bpl.w continue_primary_object_update_loop
+pop_stored_target_missile_slot:
 	movea.l free_object_stack_cursor(a6),a1
 	movea.l -(a1),a2
 	move.l a1,free_object_stack_cursor(a6)
 	subq.w #1,free_object_count(a6)
+load_creator_type_for_missile_spawn_parameters:
 	move.w (a0),d0	; operand 1: SG2ObjectCore_object_type at (a0)
 	add.w d0,d0
 	lea.l object_projectile_spawn_y_offsets.l,a1
 	move.w $0(a1,d0.w),d2
 	ext.l d2
     ; KNOWN: type A2=Target code-entry register seed:SG2SteeredProjectile
+initialize_selected_target_missile_type_and_exclusions:
 	move.w #SG2_OBJECT_TYPE_MISSILE,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
 	move.b SG2ObjectCore_object_type+1(a0),SG2TargetingObject_collision_ignored_object_type(a2)
 	move.b #SG2_OBJECT_TYPE_MISSILE,SG2TargetingObject_collision_ignored_object_type(a0)
+copy_creator_position_with_projectile_y_offset:
 	move.l SG2ObjectCore_world_x(a0),SG2ObjectCore_world_x(a2)
 	add.l SG2ObjectCore_world_y(a0),d2
 	move.l d2,SG2ObjectCore_world_y(a2)
 	move.l SG2ObjectCore_world_z(a0),SG2ObjectCore_world_z(a2)
 	clr.w SG2WorldObject_rotation_0(a2)
 	move.b #$FF,SG2ObjectCore_retirement_phase_or_negative(a2)
+choose_selected_target_missile_heading_from_creator:
 	move.w SG2WorldObject_rotation_1(a0),d1
 	move.b #$0,SG2ObjectCore_vertex_variant_selector(a2)
 	move.b #$4,SG2ObjectCore_model_scale_shift(a2)
+    ; Nonzero creator-indexed WORD reverses creator yaw by 2048. Initial heading comes from the creator, not selected A4; future tracked updates use the stored target.
 	lea.l heading_policy_word_storage(pc),a1
 	tst.w $0(a1,d0.w)
-	beq.b abs_0_0000A5BC
-	subi.w #2048,d1
-abs_0_0000A5BC:
-	andi.w #4095,d1
+	beq.b mask_selected_target_missile_heading
+	subi.w #SG2_ANGLE_HALF_TURN,d1
+mask_selected_target_missile_heading:
+	andi.w #SG2_HEADING_ANGLE_MASK,d1
 	move.w d1,SG2WorldObject_rotation_1(a2)
 	clr.w SG2WorldObject_rotation_2(a2)
+load_selected_target_missile_motion_scale:
 	move.w (a2),d1	; operand 1: SG2ObjectCore_object_type at (a2)
 	add.w d1,d1
 	lea.l object_default_motion_words.l,a1
 	move.w $0(a1,d1.w),SG2SteeredProjectile_horizontal_motion_scale(a2)
-	move.w #$64,SG2SteeredProjectile_remaining_updates(a2)
+	move.w #SG2_STORED_TARGET_INITIAL_UPDATES,SG2SteeredProjectile_remaining_updates(a2)
 	move.b #$2,SG2ObjectCore_durability_or_negative(a2)
+build_selected_target_missile_horizontal_velocity:
 	move.w SG2WorldObject_rotation_1(a2),d1
-	andi.w #4095,d1
+	andi.w #SG2_HEADING_ANGLE_MASK,d1
 	asl.w #1,d1
 	movea.l sine_lookup_pointer(a6),a1
 	move.w $0(a1,d1.w),trig_sine_scratch_1(a6)
@@ -13472,6 +13501,8 @@ abs_0_0000A5BC:
 	swap.w d4
 	move.w d4,SG2WorldObject_velocity_z(a2)
 	clr.w SG2WorldObject_velocity_y(a2)
+    ; Tracking byte +$22 is set; byte +$23 and WORD +$26 cadence survive reused contents. Flags and other unwritten record bytes are retained; no zeroed-slot premise.
+enable_tracking_and_store_selected_target_reference:
 	st.b SG2SteeredProjectile_stored_target_tracking_byte(a2)
 	move.l a4,SG2WorldObject_linked_record_or_sentinel(a2)
 	bra.w continue_primary_object_update_loop
@@ -25031,7 +25062,7 @@ world_object_type_initializer_pointers:
 	dc.l initialize_tunnel_sentinel_world_y
 	dc.l skip_object_type_initialization
 	dc.l initialize_space_tug_parameter_group
-	dc.l initialize_ground_mover_phase_and_flags
+	dc.l initialize_gbml_and_junk_shared_state
 	dc.l initialize_petrified_tree_height_and_scale
 	dc.l skip_object_type_initialization
 	dc.l initialize_tripuss_pose_and_variant_step
@@ -25058,7 +25089,7 @@ world_object_type_initializer_pointers:
 	dc.l initialize_durability_negative
 	dc.l initialize_tunnel_emitter_from_packed_header
 	dc.l skip_object_type_initialization
-	dc.l initialize_ground_mover_phase_and_flags
+	dc.l initialize_gbml_and_junk_shared_state
 	dc.l initialize_static_structure_flag
 	dc.l initialize_static_structure_flag
 	dc.l initialize_static_structure_flag
@@ -25067,7 +25098,7 @@ world_object_type_initializer_pointers:
 	dc.l initialize_contact_structure_flags
 	dc.l initialize_contact_structure_flags
 	dc.l initialize_contact_structure_flags
-	dc.l initialize_ground_mover_phase_and_flags
+	dc.l initialize_gbml_and_junk_shared_state
 	dc.l initialize_contact_structure_flags
 	dc.l skip_object_type_initialization
 	dc.l skip_object_type_initialization
@@ -25370,8 +25401,9 @@ initialize_and_link_tug_truck:
 	move.l a0,tug_initializer_tail_reference(a6)
 	move usp,a4
 	rts
+    ; Types 23/50 start the GBML counter at 2. Type 59 Junk shares these stores, but no counter consumer is established there; keep WORD +$24 without a common field name.
     ; KNOWN: type A0=Target code-entry register seed:SG2ObjectCore
-initialize_ground_mover_phase_and_flags:
+initialize_gbml_and_junk_shared_state:
 	bset.b #0,SG2ObjectCore_flags(a0)
 	move.w #$2,$0024(a0)
 	rts

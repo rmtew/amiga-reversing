@@ -55,11 +55,12 @@ unknowns: 106154 code bytes are accepted; native accepted-range accounting
 leaves 9681 bytes in 271 intervals unclassified. It is not full semantic/all-path restoration or a completed
 walkthrough. The source and assets preserve every original output byte.
 
-The capsule constructor/update and mine response paths have bounded original-CPU
-coverage. Capsule setup leaves the translation-stop byte unchanged; logical velocity
-halving and the second spin decrement remain explicit. Mine warning and damage
-use different signed/unsigned gates. These fixtures do not prove normal-play
-reachability, record lifetime, message display or hardware behavior.
+Bounded original-CPU fixtures cover capsule construction/update, mine responses,
+GBML scheduling and selected-target missile construction. Partial records,
+logical shifts, wrapping counters and heading arithmetic remain explicit.
+Visible-tag selection preserves D1; missile construction uses creator yaw and
+retains the cadence WORD. These checks do not prove normal-play reachability,
+record lifetime, message display or hardware behavior.
 
 The native control-value analysis now recovers eight signed-WORD dispatch
 contracts automatically, including separated load/LEA/JMP sequences and

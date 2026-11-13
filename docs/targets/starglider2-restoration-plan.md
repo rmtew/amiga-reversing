@@ -44,12 +44,13 @@ Original payload SHA256:
 
 ## Active queue
 
-Capsule spawn/update and mine gates now have 309 original-CPU cases, including
-retained child stop bytes, logical velocity decay, repeated odd spin residues,
-placement randomness and shield-borrow boundaries. Access totals are unchanged.
-Launcher BYTE+$29/+$2B writes and capsule WORD+$20/+$24 initial values remain
-unnamed where no role-bearing consumer is established; celestial projection
-WORDs at the same offsets belong to another phase/type and do not resolve them.
+GBML/cannon scheduling, tag selection and selected-target missile construction
+have 318 original-CPU cases plus 91 connected tracked-update cases. Selection
+preserves D1; construction uses creator yaw and retains the cadence WORD. The
+shared GBML/Junk initializer does not justify a common counter field for Junk.
+Access totals are unchanged. Launcher BYTE+$29/+$2B writes and capsule
+WORD+$20/+$24 initial values remain unnamed without a role-bearing consumer;
+celestial projection aliases belong to a separate phase/type.
 
 1. Exact tag stores, bounded MOVEM cursors and opaque leading-record address
    identities are supported. Undeclared prefix bytes retain no field meaning.
