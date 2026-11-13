@@ -1549,6 +1549,12 @@ SG2_BACKFACE_CROSS_RIGHT_SHIFT	EQU	6
 SG2_BACKFACE_POSITION_RIGHT_SHIFT	EQU	5
 SG2_BLAST_DOOR_OBJECT_VARIANT_THRESHOLD	EQU	3
 SG2_BLAST_DOOR_PLAYER_SKIP_VARIANT	EQU	9
+SG2_BLOWHOLE_ANIMATION_TURN_VALUE	EQU	9
+SG2_BLOWHOLE_EMISSION_COUNTER_RELOAD	EQU	100
+SG2_BLOWHOLE_EMISSION_FREE_RESERVE	EQU	34
+SG2_BLOWHOLE_EMISSION_VERTEX_GATE	EQU	9
+SG2_BLOWHOLE_INITIAL_EMISSIONS	EQU	3
+SG2_BLOWHOLE_REARM_COUNTER_VALUE	EQU	-2304
 SG2_BODY_CACHE_RECORD_SHIFT	EQU	4
 SG2_BODY_CACHE_RESTORE_DBF_LAST	EQU	20
 SG2_BODY_CACHE_SKIPPED_TYPE	EQU	147
@@ -1643,6 +1649,10 @@ SG2_ENERGY_GATE_PLAYER_SKIP_VARIANT	EQU	6
 SG2_FACE_CACHE_REFRESH_PHASE_MASK	EQU	3
 SG2_FACE_HEADER_VERTEX_COUNT_MASK	EQU	7
 SG2_FACE_RANDOM_STYLE_BYTE_OFFSET_MASK	EQU	14
+SG2_FLAT_DIAMOND_RESET_Y	EQU	-60
+SG2_FLAT_DIAMOND_RESET_Y_VELOCITY	EQU	-62
+SG2_FLAT_DIAMOND_TURNAROUND_VELOCITY	EQU	66
+SG2_FLAT_DIAMOND_Y_GATE	EQU	-40
 SG2_GAME_OVER_POWER_DRAINAGE	EQU	1
 SG2_GAME_OVER_SHIELD_DEPLETED	EQU	2
 SG2_GATE_CONTACT_RESPONSE_PASSES	EQU	3
@@ -12097,9 +12107,11 @@ advance_columbus_variant_then_integrate:
 	bne.w integrate_and_steer_horizontal_actor
 	clr.b $0003(a0)
 	bra.w integrate_and_steer_horizontal_actor
+    ; Integrate old signed velocity and wrap X/Z. Y gate -40 or post-add velocity exactly 66 restarts VY at -62. This body does not age the two initialized WORDs or retirement phase.
     ; KNOWN: type A0=Target code-entry register seed:SG2WorldObject
 update_flat_diamond_ballistic_motion:
 	addi.w #16,SG2WorldObject_rotation_1(a0)
+integrate_diamond_horizontal_velocity:
 	move.w SG2WorldObject_velocity_x(a0),d3
 	ext.l d3
 	add.l d3,SG2ObjectCore_world_x(a0)
@@ -12109,20 +12121,23 @@ update_flat_diamond_ballistic_motion:
 	move.l horizontal_world_wrap_mask(a6),d3
 	and.l d3,SG2ObjectCore_world_x(a0)
 	and.l d3,SG2ObjectCore_world_z(a0)
+replace_diamond_self_type_exclusion_with_blowhole_type:
 	move.b #SG2_OBJECT_TYPE_BLOWHOLE,SG2TargetingObject_collision_ignored_object_type(a0)
+integrate_diamond_y_before_bounce_gates:
 	move.w SG2WorldObject_velocity_y(a0),d0
 	ext.l d0
 	add.l d0,SG2ObjectCore_world_y(a0)
-	cmpi.l #4294967256,SG2ObjectCore_world_y(a0)
-	blt.b abs_0_00009378
-	move.l #$FFFFFFC4,SG2ObjectCore_world_y(a0)
-	bra.b abs_0_00009386
-abs_0_00009378:
+	cmpi.l #SG2_FLAT_DIAMOND_Y_GATE,SG2ObjectCore_world_y(a0)
+	blt.b accelerate_diamond_before_exact_turn_test
+reset_diamond_y_before_velocity_restart:
+	move.l #SG2_FLAT_DIAMOND_RESET_Y,SG2ObjectCore_world_y(a0)
+	bra.b restart_diamond_vertical_velocity
+accelerate_diamond_before_exact_turn_test:
 	addq.w #4,SG2WorldObject_velocity_y(a0)
-	cmpi.w #66,SG2WorldObject_velocity_y(a0)
+	cmpi.w #SG2_FLAT_DIAMOND_TURNAROUND_VELOCITY,SG2WorldObject_velocity_y(a0)
 	bne.w continue_primary_object_update_loop
-abs_0_00009386:
-	move.w #$FFC2,SG2WorldObject_velocity_y(a0)
+restart_diamond_vertical_velocity:
+	move.w #SG2_FLAT_DIAMOND_RESET_Y_VELOCITY,SG2WorldObject_velocity_y(a0)
 	bra.w continue_primary_object_update_loop
     ; KNOWN: type A0=Target code-entry register seed:SG2VertexOscillator
 oscillate_duck_vertex_variant:
@@ -13213,30 +13228,41 @@ initialize_tunnel_sentinel_vertical_launch_motion:
 	move.w #SG2_TUNNEL_SENTINEL_LAUNCH_Y_VELOCITY,SG2WorldObject_velocity_y(a2)
 	clr.w SG2WorldObject_velocity_z(a2)
 	bra.w continue_primary_object_update_loop
+    ; Zero counter tries emission immediately. Otherwise decrement first: only exact F700 rearms three emissions. Reaching zero takes the animation path before the next call can emit.
     ; KNOWN: type A0=Target code-entry register seed:SG2BlowholeEmitter
 update_blowhole_diamond_emission:
 	tst.w SG2BlowholeEmitter_emission_phase_counter(a0)
-	beq.b abs_0_0000A1DE
+	beq.b test_blowhole_remaining_emissions
+decrement_blowhole_nonzero_phase_counter:
 	subq.w #1,SG2BlowholeEmitter_emission_phase_counter(a0)
-	cmpi.w #63232,SG2BlowholeEmitter_emission_phase_counter(a0)
-	bne.w abs_0_0000A298
-	move.b #$3,SG2BlowholeEmitter_remaining_diamond_emissions(a0)
-abs_0_0000A1DE:
+	cmpi.w #SG2_BLOWHOLE_REARM_COUNTER_VALUE,SG2BlowholeEmitter_emission_phase_counter(a0)
+	bne.w advance_blowhole_variant_in_memory
+rearm_blowhole_diamond_emission_byte:
+	move.b #SG2_BLOWHOLE_INITIAL_EMISSIONS,SG2BlowholeEmitter_remaining_diamond_emissions(a0)
+test_blowhole_remaining_emissions:
 	tst.b SG2BlowholeEmitter_remaining_diamond_emissions(a0)
-	beq.w abs_0_0000A298
-	cmpi.w #34,free_object_count(a6)
-	bls.w abs_0_0000A298
-	cmpi.b #9,SG2ObjectCore_vertex_variant_selector(a0)
-	bne.w abs_0_0000A298
+	beq.w advance_blowhole_variant_in_memory
+test_blowhole_unsigned_free_reserve:
+	cmpi.w #SG2_BLOWHOLE_EMISSION_FREE_RESERVE,free_object_count(a6)
+	bls.w advance_blowhole_variant_in_memory
+require_blowhole_variant_nine_before_allocation:
+	cmpi.b #SG2_BLOWHOLE_EMISSION_VERTEX_GATE,SG2ObjectCore_vertex_variant_selector(a0)
+	bne.w advance_blowhole_variant_in_memory
+pop_blowhole_diamond_slot:
 	movea.l free_object_stack_cursor(a6),a1
 	movea.l -(a1),a2
 	move.l a1,free_object_stack_cursor(a6)
 	subq.w #1,free_object_count(a6)
+mark_blowhole_durability_before_child_setup:
 	bset.b #7,SG2ObjectCore_durability_or_negative(a0)
-    ; KNOWN: type A2=Target code-entry register seed:SG2WorldObject
+    ; Type 38 passes horizontal scale at +$20 to the existing velocity helper. WORDs +$24/+$26 are set to 1, but this ballistic body supplies no consumer role for them.
+    ; KNOWN: type A2=Target code-entry register seed:SG2HorizontalMotionView
+initialize_blowhole_flat_diamond_record:
 	move.w #SG2_OBJECT_TYPE_FLAT_DIAMOND,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
+load_flat_diamond_default_horizontal_scale:
 	lea.l object_default_motion_words.l,a1
-	move.w $004C(a1),$0020(a2)
+	move.w $004C(a1),SG2HorizontalMotionView_horizontal_motion_scale(a2)
+    ; Constructor excludes contact TYPE 38 on both records; the child ballistic update changes its exclusion to TYPE 64. These are type-wide exclusions, not unique parent identities.
 	move.b #SG2_OBJECT_TYPE_FLAT_DIAMOND,SG2TargetingObject_collision_ignored_object_type(a2)
 	move.b #SG2_OBJECT_TYPE_FLAT_DIAMOND,SG2TargetingObject_collision_ignored_object_type(a0)
 	move.b #$4,SG2ObjectCore_model_scale_shift(a2)
@@ -13244,30 +13270,37 @@ abs_0_0000A1DE:
 	move.l SG2ObjectCore_world_x(a0),SG2ObjectCore_world_x(a2)
 	move.l SG2ObjectCore_world_z(a0),SG2ObjectCore_world_z(a2)
 	move.w SG2WorldObject_rotation_1(a0),SG2WorldObject_rotation_1(a2)
-	move.l #$FFFFFFC4,SG2ObjectCore_world_y(a2)
+	move.l #SG2_FLAT_DIAMOND_RESET_Y,SG2ObjectCore_world_y(a2)
 	move.b #$FF,SG2ObjectCore_retirement_phase_or_negative(a2)
+    ; Each pop replaces the parent linked-record pointer. Earlier children retain their backlink; there is no unlink or ownership validation here.
+link_blowhole_to_latest_diamond:
 	move.l a0,SG2WorldObject_linked_record_or_sentinel(a2)
 	move.l a2,SG2WorldObject_linked_record_or_sentinel(a0)
 	bclr.b #4,SG2ObjectCore_flags(a2)
+consume_blowhole_diamond_emission_byte:
 	subq.b #1,SG2BlowholeEmitter_remaining_diamond_emissions(a0)
 	move.b #$2,SG2ObjectCore_durability_or_negative(a2)
-	move.w #$FFC2,SG2WorldObject_velocity_y(a2)
+	move.w #SG2_FLAT_DIAMOND_RESET_Y_VELOCITY,SG2WorldObject_velocity_y(a2)
 	move.b #$FF,SG2VertexOscillator_vertex_variant_step(a0)
 	bset.b #7,SG2ObjectCore_durability_or_negative(a2)
 	move.w #$1,$0024(a2)
 	move.w #$1,$0026(a2)
-	move.w #$64,SG2BlowholeEmitter_emission_phase_counter(a0)
+reload_blowhole_counter_after_emission:
+	move.w #SG2_BLOWHOLE_EMISSION_COUNTER_RELOAD,SG2BlowholeEmitter_emission_phase_counter(a0)
+compute_emitted_diamond_horizontal_velocity:
 	bsr.w recompute_a2_horizontal_motion_from_heading
 	bra.w continue_primary_object_update_loop
-abs_0_0000A298:
+    ; ADD.B writes the variant before testing 0/9 and reversing the step. Emission tests variant 9 before animation, so reaching 9 enables a later call; outside values are not clamped.
+advance_blowhole_variant_in_memory:
 	move.b SG2VertexOscillator_vertex_variant_step(a0),d1
 	add.b d1,SG2ObjectCore_vertex_variant_selector(a0)
-	beq.b abs_0_0000A2B6
-	cmpi.b #9,SG2ObjectCore_vertex_variant_selector(a0)
+	beq.b restore_blowhole_positive_animation_step_at_zero
+	cmpi.b #SG2_BLOWHOLE_ANIMATION_TURN_VALUE,SG2ObjectCore_vertex_variant_selector(a0)
 	bne.w continue_primary_object_update_loop
+reverse_blowhole_animation_step_at_nine:
 	move.b #$FF,SG2VertexOscillator_vertex_variant_step(a0)
 	bra.w continue_primary_object_update_loop
-abs_0_0000A2B6:
+restore_blowhole_positive_animation_step_at_zero:
 	move.b #$1,SG2VertexOscillator_vertex_variant_step(a0)
 	bra.w continue_primary_object_update_loop
     ; KNOWN: type A0=Target code-entry register seed:SG2SiloLauncher
@@ -25579,12 +25612,15 @@ initialize_blast_door_flags:
 	move.b #$1,$001F(a0)
 	bset.b #6,SG2ObjectCore_flags(a0)
 	rts
+    ; Yaw uses PRNG & 4095; emissions 3, animation step 1 and counter 1 are independent. Ordinary placement supplies variant 0; this initializer does not clear it.
     ; KNOWN: type A0=Target code-entry register seed:SG2BlowholeEmitter
 initialize_blowhole_emission_phase:
 	bsr.w advance_shared_random_state_bridge_017968
+mask_blowhole_initial_heading:
 	andi.w #4095,d0
 	move.w d0,SG2WorldObject_rotation_1(a0)
-	move.b #$3,SG2BlowholeEmitter_remaining_diamond_emissions(a0)
+initialize_blowhole_emission_and_animation_state:
+	move.b #SG2_BLOWHOLE_INITIAL_EMISSIONS,SG2BlowholeEmitter_remaining_diamond_emissions(a0)
 	move.b #$1,SG2VertexOscillator_vertex_variant_step(a0)
 	move.w #$1,SG2BlowholeEmitter_emission_phase_counter(a0)
 	rts

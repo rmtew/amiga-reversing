@@ -6,7 +6,7 @@ claim of complete gameplay/hardware equivalence.
 
 ## Current validated baseline
 
-Current validated export: 3517 app references, 2842 typed accesses, 182 unresolved
+Current validated export: 3517 app references, 2843 typed accesses, 181 unresolved
 accesses; 9681 unclassified bytes in 271 intervals. These are analysis counts,
 not semantic completion percentages. The phrase-counter
 references retain declared-layout A6 fallback; the role declaration adds no
@@ -44,13 +44,13 @@ Original payload SHA256:
 
 ## Active queue
 
-Tunnel BYTE +$24 names the packed-header entry-side selector. Its constructor,
-entry consumer, 32 original placement streams and linked sentinel paths have
-287 CPU cases. Reader spelling is explicit presentation, not a new A2 pointee
-proof. The child schedule is a separate WORD at +$24, retained by construction.
-GBML/Junk's shared initializer still supplies no common Junk counter role.
-Launcher BYTE+$29/+$2B and capsule WORD+$20/+$24 remain unnamed without a
-role-bearing consumer; celestial projection aliases are a separate phase/type.
+The blowhole's type38 producer uses the established horizontal-motion view at
+WORD +$20. Its initialized WORDs +$24/+$26 remain unexplained. The 315 CPU cases
+cover emission gates, stored animation turns, partial records and ballistic
+updates; a closed initializer/update witness emits three children, retaining
+their backlinks as the parent selects the latest. This is not normal-play
+timing or unique ownership. The tunnel reader remains explicit presentation,
+not new A2 typing. Junk/launcher/capsule aliases retain their separate unknowns.
 
 1. Exact tag stores, bounded MOVEM cursors and opaque leading-record address
    identities are supported. Undeclared prefix bytes retain no field meaning.
