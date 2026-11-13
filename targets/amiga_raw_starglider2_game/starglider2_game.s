@@ -1563,6 +1563,16 @@ SG2_BROADWAY_INVERTOR_RANDOM_MASK	EQU	2047
 SG2_BUFFER_ROTATION_END_OFFSET	EQU	12
 SG2_BUFFER_ROTATION_ENTRY_BYTES	EQU	4
 SG2_BUFFER_ROTATION_INPUT_MASK	EQU	255
+SG2_CAPSULE_PLACEMENT_RANDOM_MASK	EQU	63
+SG2_CAPSULE_PLACEMENT_SPIN_STEP	EQU	-20
+SG2_CAPSULE_PLACEMENT_Y	EQU	-400
+SG2_CAPSULE_SPAWN_FREE_RESERVE	EQU	10
+SG2_CAPSULE_SPAWN_NONNEGATIVE_Y	EQU	-10
+SG2_CAPSULE_SPAWN_SPIN_STEP	EQU	144
+SG2_CAPSULE_SPAWN_Y_ADDEND	EQU	90
+SG2_CAPSULE_SPIN_DECREMENT	EQU	2
+SG2_CAPSULE_SURFACE_STOP_Y	EQU	-45
+SG2_CAPSULE_SURFACE_Y_STEP	EQU	8
 SG2_CELESTIAL_BROADWAY_INDEX	EQU	8
 SG2_CELESTIAL_DANTE_INDEX	EQU	1
 SG2_CELESTIAL_TYPE_BASE	EQU	128
@@ -1717,6 +1727,10 @@ SG2_MFM_POST_ID_GAP_AND_ZERO_BYTES	EQU	34
 SG2_MFM_SYNC_MARK_BYTES	EQU	3
 SG2_MFM_SYNC_ZERO_BYTES	EQU	12
 SG2_MFM_WRITE_SECTOR_COUNT	EQU	10
+SG2_MINE_HEADING_STEP	EQU	64
+SG2_MINE_SHIELD_DAMAGE	EQU	1500
+SG2_MINE_WARNING_RAW_Z_THRESHOLD	EQU	768
+SG2_MINE_Z_MAGNITUDE_WINDOW	EQU	1536
 SG2_MODEL_VISIBILITY_HIDDEN_BIT	EQU	1
 SG2_MOTION_VECTOR_PHASE_MASK	EQU	4095
 SG2_MUSIC_ALTERNATE_INITIAL_BLOCK_COUNT	EQU	79
@@ -11688,40 +11702,42 @@ abs_0_00008DDA:
 	bra.w abs_0_00008C9C
 abs_0_00008DDE:
 	bra.w abs_0_00008C9C
-    ; Original mine tests use WORD relative Z and signed/unsigned branches; retain their asymmetry. Damage subtracts 1500 shields with borrow saturation and increments the received-hit count.
+    ; Unsigned abs-WORD Z <= 1536 admits a raw-Z N-only test against 768. Negative admitted Z damages; 768..1536 warns. NEG.W minimum remains outside the unsigned window.
     ; KNOWN: type A0=Target code-entry register seed:SG2WorldObject
 update_proximity_mine_warning_and_damage:
 	move.b #$D,diagnostic_step_byte.l
 	move.w SG2ObjectCore_relative_z(a0),d0
-	bpl.b abs_0_00008DF2
+	bpl.b test_mine_unsigned_relative_z_magnitude
 	neg.w d0
-abs_0_00008DF2:
-	cmp.w #$600,d0
-	bls.b abs_0_00008E02
-abs_0_00008DF8:
-	addi.w #64,SG2WorldObject_rotation_1(a0)
+test_mine_unsigned_relative_z_magnitude:
+	cmp.w #SG2_MINE_Z_MAGNITUDE_WINDOW,d0
+	bls.b select_mine_damage_or_warning_from_raw_z
+advance_mine_unmasked_heading_and_rejoin:
+	addi.w #SG2_MINE_HEADING_STEP,SG2WorldObject_rotation_1(a0)
 	bra.w continue_primary_object_update_loop
-abs_0_00008E02:
-	cmpi.w #768,SG2ObjectCore_relative_z(a0)
-	bpl.b abs_0_00008E34
+select_mine_damage_or_warning_from_raw_z:
+	cmpi.w #SG2_MINE_WARNING_RAW_Z_THRESHOLD,SG2ObjectCore_relative_z(a0)
+	bpl.b enqueue_mine_coordinate_warning
+retire_mine_before_player_damage:
 	clr.b SG2ObjectCore_retirement_phase_or_negative(a0)
 	bsr.w advance_shared_random_state
 add_mine_rotation2_jitter:
 	andi.w #SG2_ROTATION2_DAMAGE_JITTER_MASK,d0
 	subi.w #SG2_ROTATION2_DAMAGE_JITTER_BIAS,d0
 	add.w d0,player_rotation2_damage_impulse(a6)
+subtract_mine_shield_damage_with_borrow_clamp:
 	move.w icarus_shield_strength(a6),d0
-	subi.w #1500,d0
-	bcc.b abs_0_00008E2A
+	subi.w #SG2_MINE_SHIELD_DAMAGE,d0
+	bcc.b publish_mine_shield_and_received_hit
 	clr.w d0
-abs_0_00008E2A:
+publish_mine_shield_and_received_hit:
 	move.w d0,icarus_shield_strength(a6)
 	addq.l #1,icarus_hits_received(a6)
-	bra.b abs_0_00008DF8
-abs_0_00008E34:
+	bra.b advance_mine_unmasked_heading_and_rejoin
+enqueue_mine_coordinate_warning:
 	lea.l mine_detected_message_prefix(pc),a1
 	bsr.w format_and_enqueue_object_coordinate_message
-	bra.w abs_0_00008DF8
+	bra.w advance_mine_unmasked_heading_and_rejoin
 mine_detected_message_prefix:
 	dc.b " Danger! Mine Detected:",$00
 	dc.b $13,$FC,$00,$0E,$00,$00,$E1,$03,$06,$68,$00,$20,$00,$12,$53,$68
@@ -12527,11 +12543,14 @@ abs_0_000098C4:
 	move.w SG2WorldObject_rotation_2(a0),SG2WorldObject_rotation_2(a2)
 	move.b #$FF,SG2ObjectCore_retirement_phase_or_negative(a2)
 	bra.w continue_primary_object_update_loop
+    ; Free count > 10 clears the carrier request before popping a slot. Child BYTE 40, yaw and other unwritten bytes survive; the slot need not be fresh or zeroed.
     ; KNOWN: type A0=Target code-entry register seed:SG2CapsuleCarrier
 try_spawn_escape_capsule_for_carrier:
 	move.b #$20,diagnostic_step_byte.l
-	cmpi.w #10,free_object_count(a6)
+test_capsule_spawn_unsigned_free_reserve:
+	cmpi.w #SG2_CAPSULE_SPAWN_FREE_RESERVE,free_object_count(a6)
 	bls.w continue_primary_object_update_loop
+clear_carrier_capsule_request_before_stack_pop:
 	sf.b SG2CapsuleCarrier_escape_capsule_pending_flag(a0)
 	movea.l free_object_stack_cursor(a6),a1
 	movea.l -(a1),a2
@@ -12545,36 +12564,42 @@ try_spawn_escape_capsule_for_carrier:
 	move.b #$2,SG2ObjectCore_durability_or_negative(a2)
 	move.l SG2ObjectCore_world_x(a0),SG2ObjectCore_world_x(a2)
 	move.l SG2ObjectCore_world_z(a0),SG2ObjectCore_world_z(a2)
+form_spawned_capsule_raised_height:
 	move.l SG2ObjectCore_world_y(a0),d3
-	addi.l #90,d3
-	bmi.b abs_0_0000998C
-	move.l #$FFFFFFF6,d3
-abs_0_0000998C:
+	addi.l #SG2_CAPSULE_SPAWN_Y_ADDEND,d3
+	bmi.b copy_capsule_pose_and_horizontal_velocity
+clamp_nonnegative_spawned_capsule_height:
+	move.l #SG2_CAPSULE_SPAWN_NONNEGATIVE_Y,d3
+copy_capsule_pose_and_horizontal_velocity:
 	move.l d3,SG2ObjectCore_world_y(a2)
 	move.w SG2WorldObject_rotation_0(a0),SG2WorldObject_rotation_0(a2)
 	move.w SG2WorldObject_rotation_2(a0),SG2WorldObject_rotation_2(a2)
 	move.w SG2WorldObject_velocity_x(a0),SG2WorldObject_velocity_x(a2)
 	move.w SG2WorldObject_velocity_z(a0),SG2WorldObject_velocity_z(a2)
-	move.w #$90,SG2EscapeCapsule_spin_step(a2)
+	move.w #SG2_CAPSULE_SPAWN_SPIN_STEP,SG2EscapeCapsule_spin_step(a2)
 	move.b #$FF,SG2ObjectCore_retirement_phase_or_negative(a2)
 	sf.b SG2ObjectCore_vertex_variant_selector(a2)
 	bra.w continue_primary_object_update_loop
+    ; Spin subtracts 2 before adding to yaw. A stopped capsule may subtract 2 again. Odd WORD residues persist in bounded repeated cases; there is no parity normalization.
     ; KNOWN: type A0=Target code-entry register seed:SG2EscapeCapsule
 update_escape_capsule_spin_and_motion:
 	move.b #$21,diagnostic_step_byte.l
+decrement_capsule_spin_before_yaw:
 	move.w SG2EscapeCapsule_spin_step(a0),d0
-	beq.b abs_0_000099D4
-	subq.w #2,d0
+	beq.b test_capsule_retained_translation_stop_byte
+	subq.w #SG2_CAPSULE_SPIN_DECREMENT,d0
 	move.w d0,SG2EscapeCapsule_spin_step(a0)
 	add.w d0,SG2WorldObject_rotation_1(a0)
-abs_0_000099D4:
+test_capsule_retained_translation_stop_byte:
 	tst.b SG2EscapeCapsule_translation_stopped_flag(a0)
-	beq.b abs_0_000099EA
+	beq.b halve_capsule_horizontal_velocity_logically
+apply_second_spin_decrement_to_stopped_capsule:
 	tst.w SG2EscapeCapsule_spin_step(a0)
 	beq.w continue_primary_object_update_loop
-	subq.w #2,SG2EscapeCapsule_spin_step(a0)
+	subq.w #SG2_CAPSULE_SPIN_DECREMENT,SG2EscapeCapsule_spin_step(a0)
 	bra.w continue_primary_object_update_loop
-abs_0_000099EA:
+    ; LSR.W halves X/Z velocities: negative encodings become positive. Translation uses the world mask. Any nonzero space byte bypasses the surface rise.
+halve_capsule_horizontal_velocity_logically:
 	lsr SG2WorldObject_velocity_x(a0)
 	lsr SG2WorldObject_velocity_z(a0)
 	move.w SG2WorldObject_velocity_x(a0),d3
@@ -12586,18 +12611,21 @@ abs_0_000099EA:
 	move.l horizontal_world_wrap_mask(a6),d3
 	and.l d3,SG2ObjectCore_world_x(a0)
 	and.l d3,SG2ObjectCore_world_z(a0)
+    ; Surface Y < -45 adds 8 and returns without stopping. Otherwise spin may subtract 2 again and BYTE 40 becomes FF. A retained nonzero stop byte skips translation.
+test_capsule_space_or_surface_stop_height:
 	tst.b space_environment_flag(a6)
-	bne.b abs_0_00009A30
+	bne.b finish_capsule_spin_step_before_translation_stop
 	move.l SG2ObjectCore_world_y(a0),d0
-	cmpi.l #4294967251,d0
-	bge.b abs_0_00009A30
-	addi.l #8,SG2ObjectCore_world_y(a0)
+	cmpi.l #SG2_CAPSULE_SURFACE_STOP_Y,d0
+	bge.b finish_capsule_spin_step_before_translation_stop
+raise_translating_capsule_by_eight:
+	addi.l #SG2_CAPSULE_SURFACE_Y_STEP,SG2ObjectCore_world_y(a0)
 	bra.w continue_primary_object_update_loop
-abs_0_00009A30:
+finish_capsule_spin_step_before_translation_stop:
 	tst.w SG2EscapeCapsule_spin_step(a0)
-	beq.b abs_0_00009A3A
-	subq.w #2,SG2EscapeCapsule_spin_step(a0)
-abs_0_00009A3A:
+	beq.b latch_capsule_translation_stopped
+	subq.w #SG2_CAPSULE_SPIN_DECREMENT,SG2EscapeCapsule_spin_step(a0)
+latch_capsule_translation_stopped:
 	st.b SG2EscapeCapsule_translation_stopped_flag(a0)
 	bra.w continue_primary_object_update_loop
     ; Buzz Bomb/cargo: only signed-positive 3C dereferences a linked record. Inactive link sets -1 and clears velocities. Zero/negative links use free motion; valid lifetime remains assumed.
@@ -25275,13 +25303,14 @@ initialize_whale_and_duck_height_and_motion:
 	bset.b #5,SG2ObjectCore_flags(a0)
 	movea.l (a7)+,a1
 	rts
+    ; Placement sets spin -20 and a random 0..63 stop byte. Spawn sets spin 144 and retains the stop byte. The roles of WORD 32 = 200 and WORD 36 = random remain unresolved.
     ; KNOWN: type A0=Target code-entry register seed:SG2EscapeCapsule
 initialize_escape_capsule_spin_and_translation_state:
-	move.l #$FFFFFE70,SG2ObjectCore_world_y(a0)
-	move.w #$FFEC,SG2EscapeCapsule_spin_step(a0)
+	move.l #SG2_CAPSULE_PLACEMENT_Y,SG2ObjectCore_world_y(a0)
+	move.w #SG2_CAPSULE_PLACEMENT_SPIN_STEP,SG2EscapeCapsule_spin_step(a0)
 	move.w #$C8,$0020(a0)
 	bsr.w advance_shared_random_state_bridge_017968
-	andi.w #63,d0
+	andi.w #SG2_CAPSULE_PLACEMENT_RANDOM_MASK,d0
 	move.w d0,$0024(a0)
 	move.b d0,SG2EscapeCapsule_translation_stopped_flag(a0)
 	rts
