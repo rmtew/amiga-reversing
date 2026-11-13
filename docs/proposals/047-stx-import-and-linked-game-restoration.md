@@ -5,7 +5,8 @@ physical-sector access are implemented and tested. The source-mapped ST main
 load and its native decoder witness are recovered; see
 [loader recovery](../targets/starglider2-st-loader-recovery.md). Linked-release
 artifact/target integration, a bounded ST startup witness, the source-derived
-novella-protection view and three qualified code/data matches are implemented; see [linked startup](../targets/starglider2-linked-startup.md).
+novella-protection view, ST vector/dispatch startup slice and six qualified
+code/data matches are implemented; see [linked startup](../targets/starglider2-linked-startup.md).
 Full legacy source-schema migration, wider correspondence/shared export and
 normal-media boot qualification remain open. See
 [validation and limits](../validation/sgii-stx-reference-proof.md).

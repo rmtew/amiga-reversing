@@ -213,6 +213,60 @@
         "sha256": "7737104c955b4d9956a0052880711354eb6ec6b084e29a1876280b00071ed846"
       },
       "evidence": "docs/targets/starglider2-linked-startup.md"
+    },
+    {
+      "id": "shared_prng_initialization",
+      "kind": "identical_bytes",
+      "role": "code",
+      "left": {
+        "target": "amiga_raw_starglider2_game",
+        "offset": 5658,
+        "size": 72,
+        "sha256": "abd67d23047daa83cbca2545a8c41a68a3354bba5f1792c025e2acd5f1eb45fd"
+      },
+      "right": {
+        "target": "atari_st_starglider2_main",
+        "offset": 5678,
+        "size": 72,
+        "sha256": "abd67d23047daa83cbca2545a8c41a68a3354bba5f1792c025e2acd5f1eb45fd"
+      },
+      "evidence": "docs/targets/starglider2-linked-startup.md"
+    },
+    {
+      "id": "shared_model_extent_scan",
+      "kind": "identical_bytes",
+      "role": "code",
+      "left": {
+        "target": "amiga_raw_starglider2_game",
+        "offset": 14832,
+        "size": 56,
+        "sha256": "9775e970787000df7275112ffc7a88c22a49f5696d46750f40e3f16831dba353"
+      },
+      "right": {
+        "target": "atari_st_starglider2_main",
+        "offset": 14856,
+        "size": 56,
+        "sha256": "9775e970787000df7275112ffc7a88c22a49f5696d46750f40e3f16831dba353"
+      },
+      "evidence": "docs/targets/starglider2-linked-startup.md"
+    },
+    {
+      "id": "shared_ground_grid_initialization",
+      "kind": "identical_bytes",
+      "role": "code",
+      "left": {
+        "target": "amiga_raw_starglider2_game",
+        "offset": 189688,
+        "size": 42,
+        "sha256": "43c3d74c96829c075ed0cdbbfaec67ca757f62bab7cfaa7f8b143473247f91ec"
+      },
+      "right": {
+        "target": "atari_st_starglider2_main",
+        "offset": 196036,
+        "size": 42,
+        "sha256": "43c3d74c96829c075ed0cdbbfaec67ca757f62bab7cfaa7f8b143473247f91ec"
+      },
+      "evidence": "docs/targets/starglider2-linked-startup.md"
     }
   ]
 }

@@ -62,6 +62,67 @@ The normal restoration command batch names the entry flags, initializer, clear
 loop and workspace pointer from this evidence. These names describe observed
 purpose. They do not claim that the whole workspace layout has been recovered.
 
+## ST initialization and conditional dispatch
+
+The extended witness in `tests/test_starglider2_st_startup.py` follows the actual
+`$0001` handoff flags through the ST initializer at `$3CCC0`. With an explicit
+1 MiB RAM model it reaches `$3CD42` after 26,250 instructions, before the first
+ACIA data read. It installs the default vector return, probes `$90000`, restores
+the bus/address-error handlers, installs the illegal-instruction handler and
+sets the VBL vector to `$3CA8E`. The test permits only the observed RAM writes.
+Different unrelated register seeds give the same result.
+
+With 512K RAM, a second witness stops at `$3CD00`, before the probe write. The
+native RAM-only simulator refuses that access; it does not deliver a bus-error
+exception. This does not qualify the game's 512K recovery path. Neither witness
+models keyboard I/O, interrupt delivery, disk timing or complete ST boot.
+
+The later RAM-only initializer suffix stores the novella decode descriptor at
+workspace+`$9C` and replaces nine disk JMP operands at `$FDEC`. It also installs
+ten rendering JMP operands at `$C4F0`, choosing colour or monochrome from shifter
+resolution bit 1. The register meaning is documented in *Anatomy of the Atari
+ST*, page 65 (`ext/docs_atari_st/AnatomyOfTheAtariSt.md`).
+
+The tests execute each suffix separately, conditional on preceding I/O having
+completed. They stop before further hardware access or return, validate complete
+before/after JMP encodings with the native 68000 assembler, and restrict writes
+to the descriptor and operand fields. The 23 distinct dispatch destinations and
+seven vector destinations become conditional code-entry facts through normal
+catalog commands. Public frontend names remain separate from ST implementations;
+colour/monochrome alternatives are retained. No original JMP bytes are changed.
+
+This batch adds 1,650 accepted instructions and 531 native references. One
+pointer-table classification derives all 104 model-header references. The 15
+public frontend names clarify 122 existing references. These are static source
+measurements, not runtime coverage percentages or a completeness claim. The
+committed `targets/atari_st_starglider2_main/atari_st_starglider2_main.s` is the
+identical canonical rendering used by successful strict verification; it is not
+hand-edited. It includes the original data inline and needs no binary companions:
+
+```sh
+vasmm68k_mot -m68000 -no-opt -Fbin -quiet \
+  -o /tmp/starglider2-st-main.raw \
+  targets/atari_st_starglider2_main/atari_st_starglider2_main.s
+```
+
+The result is the original raw handoff image, not a TOS executable or disk image.
+
+### Period sources and later boot checks
+
+The [Argonaut Amiga/Atari ST key guide, page 1](https://www.retro-commodore.eu/files/downloads/Game%20Manuals/Amiga/Starglider%202%20%281988%29%28Argus%20Software%29/Starglider%202%20-%20Key%20Guide%20%281988%29%28Argus%20Software%29%5B600dpi%5D%5Bocr%5D.pdf)
+states a 512K minimum. Later boot qualification should record the machine, RAM
+and drive configuration, then check distinct milestones: the title picture,
+soundtrack loading/playback with a double-sided drive, Space skipping the music,
+and soundtrack retention when sufficient extra internal RAM is present. These
+are expected behaviors from the guide, not observations made by our CPU witness.
+The current 512K simulator boundary does not establish a game incompatibility.
+
+In the [May 1988 ST-Magazin interview](https://stcarchiv.de/st-magazin/1988/05/interview-jez-san),
+Jez San describes one dual-platform program that selects machine-specific
+routines at runtime. That supports this investigation's direction. His roughly
+90% shared-routine figure is a historical estimate; it does not measure these
+particular release artifacts or our restoration coverage.
+
 ## Accepted cross-platform matches
 
 Offsets below are payload file offsets. Both payloads are mapped at `$1000`.
@@ -73,6 +134,9 @@ still requires interpretation of the code or data and its references.
 | --- | --- | --- | --- | --- |
 | `shared_prng_step` | `$1662` | `$1676` | 28 bytes | Identical instructions; 15 native ST references; isolated state-contract test |
 | `game_over_message_pair` | `$074A` | `$0766` | 52 bytes | Two adjacent terminated game-over strings; one native ST reference to each |
+| `shared_prng_initialization` | `$161A` | `$162E` | 72 bytes | Original code tested with varied seed WORDs and both incoming X states |
+| `shared_model_extent_scan` | `$39F0` | `$3A08` | 56 bytes | Common loop; ST initializer checked against all 104 source-backed model headers |
+| `shared_ground_grid_initialization` | `$2E4F8` | `$2FDC4` | 42 bytes | Both original routines generate the same 25 quad-offset records |
 
 The random step reads two LONGs at A6+`$60` and A6+`$64`. It rotates the first
 LONG left by three bits, subtracts seven from its low WORD, and XORs that WORD
@@ -81,6 +145,20 @@ slot, writes the result to the second slot and D0, and preserves D1. The witness
 runs the original instructions from both payloads with boundary and ordinary
 state values and compares them with that arithmetic contract. It supplies the
 same isolated A6 layout; it does not establish every live caller's A6 value.
+
+The shared initialization helper sets the two PRNG LONGs, derives auxiliary
+BYTEs from the seed WORD at A6+`$1B0` and the incoming X flag, and writes
+`$00314159` at A6+`$3C`. Bytes `$3A/$3B` remain untouched. The auxiliary purpose
+is still unknown. Tests retain the incoming-X dependency rather than resetting
+it silently.
+
+The model scan starts from signed `$8000` and finds the maximum signed coordinate
+WORD in each original pool. The directory and output LEAs keep their ST-local
+bindings; only the 56-byte common loop is claimed identical. Original execution
+produces all 104 maxima in 14,530 instructions, matching an independent read of
+every original header and coordinate span. This is not an absolute radius.
+The ground-grid helper generates 25 four-WORD records with vertex offsets
+`row*48 + column*8 + (0,8,56,48)` on both platforms.
 
 The strings are `POWER DRAINAGE TOO GREAT!` and `ICARUS DESTROYED!`, including
 the original spacing and terminators. Their unique correspondence supports the
@@ -179,7 +257,15 @@ including unrelated upper register bits. The supplied media and recovered binari
 not committed.
 
 This slice does not resume unrelated Amiga reconstruction. Remaining milestones
-include wider ST startup analysis, normal ST hardware boot, more qualified
+include the remaining IKBD packet-handler phases, normal ST hardware boot, more qualified
 correspondences, the broader source-schema migration and a generated shared-source
-package that builds both original payloads. There is no hand-maintained common
+package that builds both original payloads. Native analysis still describes the
+stored dispatch image; the new conditional destinations are reviewed facts backed
+by the original-write witnesses. A general automatic patch-slot analysis needs
+to preserve stored and post-write alternatives across branches and unknown calls.
+A focused next experiment is a synthetic two-path JMP-operand update that yields
+two conditional targets without replacing the stored CFG. It is deferred from
+this target batch because that phase/ownership contract needs explicit native
+facts; guessing one globally active target would lose the colour/mono distinction.
+There is no hand-maintained common
 assembly tree and no claim that either restoration is complete from byte equality.
