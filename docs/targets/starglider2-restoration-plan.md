@@ -44,13 +44,14 @@ Original payload SHA256:
 
 ## Active queue
 
-Linked/free motion, mini-rocket delay/fall, square-rocket partial Y initialization
-and Buzz Bomb construction have 279 focused checks. Preserve phase-sign pursuit,
-WORD/LONG wrapping, differing space guards, dirty record bytes and phase-only
-retirement. Supplied constructor/update sequences do not prove normal admission,
-peer lifetime or frame cadence. Next: connected surface-response consumers where
-caller evidence supports meaningful reconstruction. Silo near/distant countdown
-ordering and the nearby dome's null-link/stale-A2 access remain distinct.
+Ground Walker/Stomper/Tank phase routing and shared laser construction have
+501 focused checks, plus 318 existing GBML checks. Preserve distinct direct/
+aligned attack paths, signed axis/variant tests and partial child records. Two
+supplied ground-spawn chains reach laser phase zero after 100 local body calls;
+this does not free the slot or establish normal-frame timing. Linked/rocket
+motion retains its 279 checks. Next, when resumed: caller/phase evidence for
+remaining ground-state accesses. Silo countdown order and null-link/stale-A2
+behavior remain distinct; no global pointer lifetime is inferred.
 World placements retain 919 named tags, 40 packed headers and 180 placeholders.
 The earlier bomb phase-byte implication for ordinary hit credit remains withdrawn.
 

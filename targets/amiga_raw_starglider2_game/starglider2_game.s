@@ -1524,6 +1524,7 @@ SG2_ACTOR_HEADING_BLEND_SHIFT	EQU	5
 SG2_ACTOR_ROLL_ADD_THRESHOLD	EQU	1025
 SG2_ACTOR_ROLL_ADJUST_STEP	EQU	15
 SG2_AIM_CONTROL_PHASE_MASK	EQU	4095
+SG2_AI_RAW_YAW_ATTACK_THRESHOLD	EQU	45
 SG2_ALTERNATE_COMPLETION_SAMPLE_OFFSET	EQU	28684
 SG2_ALTERNATE_EFFECT_PALETTE_BYTE_OFFSET	EQU	20
 SG2_ALTERNATE_GENERIC_EVENT_ARGUMENT	EQU	500
@@ -1711,6 +1712,10 @@ SG2_GROUND_FACE_SCREEN_CACHE_MARKER	EQU	$FEDC
 SG2_GROUND_FACE_VERTEX_COUNT_MASK	EQU	15
 SG2_GROUND_FACE_VIEW_READY_BYTE	EQU	1
 SG2_GROUND_FACE_WORLD_Y_CUTOFF_WORD	EQU	$D120
+SG2_GROUND_PHASE_MOD16_MASK	EQU	15
+SG2_GROUND_PHASE_MOD32_MASK	EQU	31
+SG2_GROUND_PHASE_MOD64_MASK	EQU	63
+SG2_GROUND_PHASE_MOD8_MASK	EQU	7
 SG2_HEADING_ANGLE_MASK	EQU	4095
 SG2_HEADING_COARSE_BYTE_MASK	EQU	254
 SG2_HEADING_DIVISOR	EQU	365
@@ -1758,6 +1763,11 @@ SG2_INTERLEAVED_ROW_BYTES	EQU	160
 SG2_INVENTORY_GIVE_RESERVE_INCREMENT	EQU	2048
 SG2_INVENTORY_SCRATCH_PREFIX_DBF_LAST	EQU	9
 SG2_INVENTORY_TYPE_SCAN_DBF_LAST	EQU	103
+SG2_LASER_BOLT_FREE_RESERVE	EQU	25
+SG2_LASER_BOLT_INITIAL_DURABILITY	EQU	1
+SG2_LASER_BOLT_INITIAL_UPDATES	EQU	100
+SG2_LASER_BOLT_MODEL_SCALE_SHIFT	EQU	4
+SG2_LASER_BOLT_MOTION_SCALE	EQU	-100
 SG2_LINKED_CONTACT_AXIS_OFFSET	EQU	1800
 SG2_LINK_FOLLOW_ROTATION_STEP	EQU	32
 SG2_MASK16_SOURCE_TABLE_BYTES	EQU	32
@@ -2118,6 +2128,10 @@ SG2_STAR_PITCH_RANDOM_MASK	EQU	511
 SG2_STAR_POSITION_FRACTION_SHIFT	EQU	13
 SG2_STAR_WORLD_ORIGIN_XZ	EQU	20000000
 SG2_STAR_WORLD_ORIGIN_Y	EQU	-20000000
+SG2_STOMPER_EVASION_AXIS_WINDOW	EQU	570
+SG2_STOMPER_EVASION_HEADING_OFFSET	EQU	600
+SG2_STOMPER_EVASION_RELOAD	EQU	60
+SG2_STOMPER_VARIANT_RESET_THRESHOLD	EQU	20
 SG2_STORED_HEADING_RATIO_BYTE_LIMIT	EQU	255
 SG2_STORED_TARGET_INITIAL_UPDATES	EQU	100
 SG2_STORED_TARGET_LAUNCH_ALIGNMENT_WINDOW	EQU	100
@@ -2178,6 +2192,9 @@ SG2_VOLCANO_REFILL_PLAYER_Y_STEP	EQU	5
 SG2_VOLCANO_REFILL_POWER_STEP	EQU	128
 SG2_VOLCANO_REFILL_RANDOM_MASK	EQU	15
 SG2_VOLCANO_REFILL_XZ_WINDOW	EQU	200
+SG2_WALKER_TANK_EVASION_AXIS_WINDOW	EQU	600
+SG2_WALKER_TANK_EVASION_RELOAD	EQU	50
+SG2_WALKER_VARIANT_RESET_THRESHOLD	EQU	22
 SG2_WEAPON_HUD_ICON_ROWS_DBF_LAST	EQU	13
 SG2_WEAPON_HUD_ICON_SAVED_BYTES	EQU	112
 SG2_WEAPON_HUD_ICON_SLOT_MASK	EQU	7
@@ -11372,7 +11389,7 @@ step_ground_laser_fire_phase:
 	subq.b #1,SG2GroundLaser_fire_phase_counter(a0)
 	move.b SG2GroundLaser_fire_phase_counter(a0),d0
 	andi.b #7,d0
-	beq.w abs_0_00009F02
+	beq.w try_spawn_laser_bolt_with_opposite_player_heading
 	bra.w continue_primary_object_update_loop
     ; KNOWN: type A0=Target code-entry register seed:SG2HeadingRotor
 step_satellite_dish_heading:
@@ -11418,11 +11435,12 @@ step_energy_transmitter_heading_phase:
 abs_0_00008846:
 	addi.w #112,SG2HeadingRotor_rotation_1(a0)
 	bra.w continue_primary_object_update_loop
+    ; Decrement WORD36 first. Durability !=6 adds an extra motion/variant step and sets turn countdown -1. Variant reset uses signed BYTE >22; negative loaded variants are not clamped.
     ; KNOWN: type A0=Target code-entry register seed:SG2WalkingActor
 update_walker_motion_and_attack_cadence:
 	subq.w #1,SG2ScheduledActor_behavior_update_counter(a0)
 	cmpi.b #6,SG2ObjectCore_durability_or_negative(a0)
-	beq.w abs_0_00008888
+	beq.w advance_walker_variant_before_link_service
 	addq.b #1,SG2ObjectCore_vertex_variant_selector(a0)
 	move.w #$FFFF,SG2WalkingActor_heading_change_countdown_or_negative(a0)
 	move.w SG2WorldObject_velocity_x(a0),d3
@@ -11434,23 +11452,24 @@ update_walker_motion_and_attack_cadence:
 	move.l horizontal_world_wrap_mask(a6),d3
 	and.l d3,SG2ObjectCore_world_x(a0)
 	and.l d3,SG2ObjectCore_world_z(a0)
-abs_0_00008888:
+advance_walker_variant_before_link_service:
 	movea.l player_object_reference(a6),a4
 	addq.b #1,SG2ObjectCore_vertex_variant_selector(a0)
-	cmpi.b #22,SG2ObjectCore_vertex_variant_selector(a0)
-	ble.w abs_0_0000889E
+	cmpi.b #SG2_WALKER_VARIANT_RESET_THRESHOLD,SG2ObjectCore_vertex_variant_selector(a0)
+	ble.w service_walker_link_release_countdown
 	sf.b SG2ObjectCore_vertex_variant_selector(a0)
-abs_0_0000889E:
+service_walker_link_release_countdown:
 	tst.b SG2WalkingActor_link_release_countdown(a0)
-	beq.b abs_0_00008908
+	beq.b move_walker_without_link_delay
 	subq.b #1,SG2WalkingActor_link_release_countdown(a0)
-	bne.b abs_0_000088BC
+	bne.b move_walker_during_link_delay
 	tst.l SG2WorldObject_linked_record_or_sentinel(a0)
-	beq.b abs_0_000088BC
+	beq.b move_walker_during_link_delay
 	movea.l SG2WorldObject_linked_record_or_sentinel(a0),a2
 	clr.l SG2WorldObject_linked_record_or_sentinel(a0)
 	clr.b $0028(a2)
-abs_0_000088BC:
+    ; During link delay, low5/4/3 phase tests select aligned type12, aligned type25, or laser. Expiring link clears own pointer and peer BYTE40 before this motion; lifetime remains assumed.
+move_walker_during_link_delay:
 	move.w SG2WorldObject_velocity_x(a0),d3
 	ext.l d3
 	add.l d3,SG2ObjectCore_world_x(a0)
@@ -11463,15 +11482,15 @@ abs_0_000088BC:
 	bsr.w heading_with_player_as_reference
 	move.w SG2ScheduledActor_behavior_update_counter(a0),d0
 	st.b ai_type12_projectile_request(a6)
-	andi.b #31,d0
+	andi.b #SG2_GROUND_PHASE_MOD32_MASK,d0
 	beq.w try_ai_projectile_attack_if_aligned
 	sf.b ai_type12_projectile_request(a6)
-	andi.b #15,d0
+	andi.b #SG2_GROUND_PHASE_MOD16_MASK,d0
 	beq.w try_ai_projectile_attack_if_aligned
-	andi.b #7,d0
-	beq.w abs_0_00009F02
+	andi.b #SG2_GROUND_PHASE_MOD8_MASK,d0
+	beq.w try_spawn_laser_bolt_with_opposite_player_heading
 	bra.w continue_primary_object_update_loop
-abs_0_00008908:
+move_walker_without_link_delay:
 	move.w SG2WorldObject_velocity_x(a0),d3
 	ext.l d3
 	add.l d3,SG2ObjectCore_world_x(a0)
@@ -11483,40 +11502,41 @@ abs_0_00008908:
 	and.l d3,SG2ObjectCore_world_z(a0)
 	move.w SG2ScheduledActor_behavior_update_counter(a0),d0
 	st.b ai_type12_projectile_request(a6)
-	andi.b #63,d0
-	beq.w abs_0_00009248
+	andi.b #SG2_GROUND_PHASE_MOD64_MASK,d0
+	beq.w try_ai_attack_at_opposite_player_heading
 	sf.b ai_type12_projectile_request(a6)
-	andi.b #31,d0
-	beq.w abs_0_00009248
-	andi.b #15,d0
-	beq.w abs_0_00009F02
+	andi.b #SG2_GROUND_PHASE_MOD32_MASK,d0
+	beq.w try_ai_attack_at_opposite_player_heading
+	andi.b #SG2_GROUND_PHASE_MOD16_MASK,d0
+	beq.w try_spawn_laser_bolt_with_opposite_player_heading
 	tst.w SG2WalkingActor_heading_change_countdown_or_negative(a0)
 	bmi.w blend_actor_toward_opposite_player_heading
-	beq.b abs_0_0000895C
+	beq.b test_walker_evasion_axis_windows
 	subq.w #1,SG2WalkingActor_heading_change_countdown_or_negative(a0)
-	bne.b abs_0_00008996
-abs_0_0000895C:
+	bne.b steer_walker_during_positive_turn_countdown
+    ; Proximity is X OR Z. Wrapped WORD SUB/NEG and signed BLE admit $8000 magnitude. A matching axis at zero/expired count reloads50; positive remainder tracks heading.
+test_walker_evasion_axis_windows:
 	move.w SG2TargetingObject_pre_view_relative_x(a0),d2
 	sub.w $0032(a4),d2
 	bpl.b abs_0_00008968
 	neg.w d2
 abs_0_00008968:
-	cmp.w #$258,d2
-	ble.b abs_0_00008984
+	cmp.w #SG2_WALKER_TANK_EVASION_AXIS_WINDOW,d2
+	ble.b reload_walker_turn_countdown_and_offset_heading
 	move.w SG2TargetingObject_pre_view_relative_z(a0),d2
 	sub.w $0036(a4),d2
 	bpl.b abs_0_0000897A
 	neg.w d2
 abs_0_0000897A:
-	cmp.w #$258,d2
-	ble.b abs_0_00008984
+	cmp.w #SG2_WALKER_TANK_EVASION_AXIS_WINDOW,d2
+	ble.b reload_walker_turn_countdown_and_offset_heading
 	bra.w blend_actor_toward_opposite_player_heading
-abs_0_00008984:
-	move.w #$32,SG2WalkingActor_heading_change_countdown_or_negative(a0)
+reload_walker_turn_countdown_and_offset_heading:
+	move.w #SG2_WALKER_TANK_EVASION_RELOAD,SG2WalkingActor_heading_change_countdown_or_negative(a0)
 	bsr.w heading_with_player_as_reference
-	addi.w #1024,d1
+	addi.w #SG2_ANGLE_QUARTER_TURN,d1
 	bra.w blend_actor_heading_and_clear_other_rotations
-abs_0_00008996:
+steer_walker_during_positive_turn_countdown:
 	bsr.w heading_with_player_as_reference
 	bra.w blend_actor_heading_and_clear_other_rotations
     ; KNOWN: type A0=Target code-entry register seed:SG2VariantObject
@@ -11591,7 +11611,7 @@ update_stomper_motion_and_attack_cadence:
 	subq.w #1,SG2ScheduledActor_behavior_update_counter(a0)
 	movea.l player_object_reference(a6),a4
 	cmpi.b #6,SG2ObjectCore_durability_or_negative(a0)
-	beq.w abs_0_00008AB0
+	beq.w advance_stomper_variant_before_link_service
 	addq.b #1,SG2ObjectCore_vertex_variant_selector(a0)
 	move.w SG2WorldObject_velocity_x(a0),d3
 	ext.l d3
@@ -11603,24 +11623,25 @@ update_stomper_motion_and_attack_cadence:
 	and.l d3,SG2ObjectCore_world_x(a0)
 	and.l d3,SG2ObjectCore_world_z(a0)
 	move.w #$FFFF,SG2WalkingActor_heading_change_countdown_or_negative(a0)
-abs_0_00008AB0:
+advance_stomper_variant_before_link_service:
 	addq.b #1,SG2ObjectCore_vertex_variant_selector(a0)
 	move.b SG2ObjectCore_vertex_variant_selector(a0),d0
-	cmp.b #$14,d0
-	ble.w abs_0_00008ACA
+	cmp.b #SG2_STOMPER_VARIANT_RESET_THRESHOLD,d0
+	ble.w service_stomper_link_release_countdown
 	move.b #$0,SG2ObjectCore_vertex_variant_selector(a0)
-	bra.w abs_0_00008ACA
-abs_0_00008ACA:
+	bra.w service_stomper_link_release_countdown
+service_stomper_link_release_countdown:
 	tst.b SG2WalkingActor_link_release_countdown(a0)
-	beq.b abs_0_00008B2C
+	beq.b move_stomper_without_link_delay
 	subq.b #1,SG2WalkingActor_link_release_countdown(a0)
-	bne.b abs_0_00008AE8
+	bne.b move_stomper_during_link_delay
 	tst.l SG2WorldObject_linked_record_or_sentinel(a0)
-	beq.b abs_0_00008AE8
+	beq.b move_stomper_during_link_delay
 	movea.l SG2WorldObject_linked_record_or_sentinel(a0),a2
 	clr.l SG2WorldObject_linked_record_or_sentinel(a0)
 	clr.b $0028(a2)
-abs_0_00008AE8:
+    ; Delayed Stomper: low4 zero requests type12 through the direct spawn entry, bypassing alignment. Otherwise low3 zero requests aligned type25; remaining phases return.
+move_stomper_during_link_delay:
 	move.w SG2WorldObject_velocity_x(a0),d3
 	ext.l d3
 	add.l d3,SG2ObjectCore_world_x(a0)
@@ -11633,13 +11654,14 @@ abs_0_00008AE8:
 	bsr.w heading_with_player_as_reference
 	move.w SG2ScheduledActor_behavior_update_counter(a0),d0
 	st.b ai_type12_projectile_request(a6)
-	andi.b #15,d0
+	andi.b #SG2_GROUND_PHASE_MOD16_MASK,d0
 	beq.w spawn_ai_projectile_continuation
 	sf.b ai_type12_projectile_request(a6)
-	andi.b #7,d0
+	andi.b #SG2_GROUND_PHASE_MOD8_MASK,d0
 	beq.w try_ai_projectile_attack_if_aligned
 	bra.w continue_primary_object_update_loop
-abs_0_00008B2C:
+    ; Without link delay, Stomper low5/4 masks choose reverse-heading attack; unlike Walker/Tank this branch has no separate laser mask. Turn countdown applies only on residual phases.
+move_stomper_without_link_delay:
 	move.w SG2WorldObject_velocity_x(a0),d3
 	ext.l d3
 	add.l d3,SG2ObjectCore_world_x(a0)
@@ -11651,38 +11673,39 @@ abs_0_00008B2C:
 	and.l d3,SG2ObjectCore_world_z(a0)
 	move.w SG2ScheduledActor_behavior_update_counter(a0),d0
 	st.b ai_type12_projectile_request(a6)
-	andi.b #31,d0
-	beq.w abs_0_00009248
+	andi.b #SG2_GROUND_PHASE_MOD32_MASK,d0
+	beq.w try_ai_attack_at_opposite_player_heading
 	sf.b ai_type12_projectile_request(a6)
-	andi.b #15,d0
-	beq.w abs_0_00009248
+	andi.b #SG2_GROUND_PHASE_MOD16_MASK,d0
+	beq.w try_ai_attack_at_opposite_player_heading
 	tst.w SG2WalkingActor_heading_change_countdown_or_negative(a0)
 	bmi.w blend_actor_toward_opposite_player_heading
-	beq.b abs_0_00008B78
+	beq.b test_stomper_evasion_axis_windows
 	subq.w #1,SG2WalkingActor_heading_change_countdown_or_negative(a0)
-	bne.b abs_0_00008BB2
-abs_0_00008B78:
+	bne.b steer_stomper_during_positive_turn_countdown
+    ; Stomper uses axis window570, reload60 and heading offset600. Walker/Tank use600,50,1024. WORD subtraction/NEG can wrap; neither family proves a global distance or countdown bound.
+test_stomper_evasion_axis_windows:
 	move.w SG2TargetingObject_pre_view_relative_x(a0),d2
 	sub.w $0032(a4),d2
 	bpl.b abs_0_00008B84
 	neg.w d2
 abs_0_00008B84:
-	cmp.w #$23A,d2
-	ble.b abs_0_00008BA0
+	cmp.w #SG2_STOMPER_EVASION_AXIS_WINDOW,d2
+	ble.b reload_stomper_turn_countdown_and_offset_heading
 	move.w SG2TargetingObject_pre_view_relative_z(a0),d2
 	sub.w $0036(a4),d2
 	bpl.b abs_0_00008B96
 	neg.w d2
 abs_0_00008B96:
-	cmp.w #$23A,d2
-	ble.b abs_0_00008BA0
+	cmp.w #SG2_STOMPER_EVASION_AXIS_WINDOW,d2
+	ble.b reload_stomper_turn_countdown_and_offset_heading
 	bra.w blend_actor_toward_opposite_player_heading
-abs_0_00008BA0:
-	move.w #$3C,SG2WalkingActor_heading_change_countdown_or_negative(a0)
+reload_stomper_turn_countdown_and_offset_heading:
+	move.w #SG2_STOMPER_EVASION_RELOAD,SG2WalkingActor_heading_change_countdown_or_negative(a0)
 	bsr.w heading_with_player_as_reference
-	addi.w #600,d1
+	addi.w #SG2_STOMPER_EVASION_HEADING_OFFSET,d1
 	bra.w blend_actor_heading_and_clear_other_rotations
-abs_0_00008BB2:
+steer_stomper_during_positive_turn_countdown:
 	bsr.w heading_with_player_as_reference
 	bra.w blend_actor_heading_and_clear_other_rotations
     ; KNOWN: type A0=Target code-entry register seed:SG2FlyingActor
@@ -12090,9 +12113,9 @@ schedule_flying_actor_phase_actions:
 	beq.w try_buzz_bomber_type6_spawn
 continue_flying_phase_mask_tests_after_spawn_attempt:
 	andi.b #63,d0
-	beq.w abs_0_00009248
+	beq.w try_ai_attack_at_opposite_player_heading
 	andi.b #31,d0
-	beq.w abs_0_00009F02
+	beq.w try_spawn_laser_bolt_with_opposite_player_heading
 	andi.b #7,d0
 	bne.b age_flying_proximity_countdown_on_residual_phase
 	lea.l model_type_target_selection_tags_prefix(a6),a1
@@ -12176,11 +12199,11 @@ try_buzz_bomber_type6_spawn:
 	move.b #SG2_OBJECT_TYPE_EGRON_BUZZ_BOMBER,SG2TargetingObject_collision_ignored_object_type(a2)
 	move.l #$FFFFFFFF,SG2WorldObject_linked_record_or_sentinel(a2)
 	bra.w continue_primary_object_update_loop
-abs_0_00009248:
+try_ai_attack_at_opposite_player_heading:
 	move.b #$15,diagnostic_step_byte.l
 	bsr.w heading_with_player_as_reference
-	addi.w #2048,d1
-	andi.w #4095,d1
+	addi.w #SG2_ANGLE_HALF_TURN,d1
+	andi.w #SG2_HEADING_ANGLE_MASK,d1
 	bra.w try_ai_projectile_attack_if_aligned
 increase_flying_vertical_velocity_with_ten_limit:
 	addq.w #1,SG2WorldObject_velocity_y(a0)
@@ -12335,7 +12358,7 @@ test_tunnel_sentinel_attack_speed_window:
 	bpl.w continue_primary_object_update_loop
 test_tunnel_sentinel_attack_counter_cadence:
 	andi.b #SG2_TUNNEL_SENTINEL_ATTACK_COUNTER_MASK,d2
-	beq.w abs_0_00009F02
+	beq.w try_spawn_laser_bolt_with_opposite_player_heading
 	bra.w continue_primary_object_update_loop
     ; KNOWN: type A0=Target code-entry register seed:SG2BouncingActor
 update_bouncing_ball_motion_and_vertex_phase:
@@ -12619,10 +12642,10 @@ try_ai_projectile_attack_if_aligned:
 	move.w SG2WorldObject_rotation_1(a0),d0
 	andi.w #4095,d0
 	sub.w d0,d1
-	bpl.b abs_0_0000977C
+	bpl.b test_ai_projectile_raw_yaw_magnitude
 	neg.w d1
-abs_0_0000977C:
-	cmp.w #$2D,d1
+test_ai_projectile_raw_yaw_magnitude:
+	cmp.w #SG2_AI_RAW_YAW_ATTACK_THRESHOLD,d1
 	bpl.w continue_primary_object_update_loop
     ; A0 is creator, not allocated child. Nonzero tag and unsigned freeCount>26 gate allocation; transient request selects12/25. Both paths set reciprocal collision-ignore type bytes.
     ; KNOWN: type A0=Target code-entry register seed:SG2WorldObject
@@ -12948,10 +12971,10 @@ move_land_tank_during_link_delay:
 	bsr.w heading_with_player_as_reference
 	move.w SG2ScheduledActor_behavior_update_counter(a0),d0
 	sf.b ai_type12_projectile_request(a6)
-	andi.b #15,d0
+	andi.b #SG2_GROUND_PHASE_MOD16_MASK,d0
 	beq.w try_ai_projectile_attack_if_aligned
-	andi.b #7,d0
-	beq.w abs_0_00009F02
+	andi.b #SG2_GROUND_PHASE_MOD8_MASK,d0
+	beq.w try_spawn_laser_bolt_with_opposite_player_heading
 	bra.w continue_primary_object_update_loop
     ; Zero skips this release path even with a stored link. The supplied distant-to-near witness retains parent linkage; this is not a global release or lifetime bound.
 move_land_tank_without_link_delay:
@@ -12966,40 +12989,40 @@ move_land_tank_without_link_delay:
 	and.l d3,SG2ObjectCore_world_z(a0)
 	move.w SG2ScheduledActor_behavior_update_counter(a0),d0
 	st.b ai_type12_projectile_request(a6)
-	andi.b #31,d0
-	beq.w abs_0_00009248
+	andi.b #SG2_GROUND_PHASE_MOD32_MASK,d0
+	beq.w try_ai_attack_at_opposite_player_heading
 	sf.b ai_type12_projectile_request(a6)
-	andi.b #15,d0
-	beq.w abs_0_00009248
-	andi.b #7,d0
-	beq.w abs_0_00009F02
+	andi.b #SG2_GROUND_PHASE_MOD16_MASK,d0
+	beq.w try_ai_attack_at_opposite_player_heading
+	andi.b #SG2_GROUND_PHASE_MOD8_MASK,d0
+	beq.w try_spawn_laser_bolt_with_opposite_player_heading
 	tst.w SG2EvasiveActor_proximity_evasion_countdown(a0)
 	bmi.w blend_actor_toward_opposite_player_heading
 	beq.b test_land_tank_proximity_evasion
 	subq.w #1,SG2EvasiveActor_proximity_evasion_countdown(a0)
-	bne.b abs_0_00009C78
+	bne.b steer_land_tank_during_positive_turn_countdown
 test_land_tank_proximity_evasion:
 	move.w SG2TargetingObject_pre_view_relative_x(a0),d2
 	sub.w $0032(a4),d2
 	bpl.b abs_0_00009C4A
 	neg.w d2
 abs_0_00009C4A:
-	cmp.w #$258,d2
+	cmp.w #SG2_WALKER_TANK_EVASION_AXIS_WINDOW,d2
 	ble.b start_land_tank_evasion_turn
 	move.w SG2TargetingObject_pre_view_relative_z(a0),d2
 	sub.w $0036(a4),d2
 	bpl.b abs_0_00009C5C
 	neg.w d2
 abs_0_00009C5C:
-	cmp.w #$258,d2
+	cmp.w #SG2_WALKER_TANK_EVASION_AXIS_WINDOW,d2
 	ble.b start_land_tank_evasion_turn
 	bra.w blend_actor_toward_opposite_player_heading
 start_land_tank_evasion_turn:
-	move.w #$32,SG2EvasiveActor_proximity_evasion_countdown(a0)
+	move.w #SG2_WALKER_TANK_EVASION_RELOAD,SG2EvasiveActor_proximity_evasion_countdown(a0)
 	bsr.w heading_with_player_as_reference
-	addi.w #1024,d1
+	addi.w #SG2_ANGLE_QUARTER_TURN,d1
 	bra.w blend_actor_heading_and_clear_other_rotations
-abs_0_00009C78:
+steer_land_tank_during_positive_turn_countdown:
 	bsr.w heading_with_player_as_reference
 	bra.w blend_actor_heading_and_clear_other_rotations
     ; Cannon aims at player heading + 2048. The WORD counter reloads 15 only when decrement reaches zero; altitude variant uses wrapped difference bits 8..10. Attack remains gated.
@@ -13100,7 +13123,7 @@ test_gbml_low_altitude_attack_cadence:
 test_player_altitude_before_gbml_attack:
 	cmpi.l #SG2_GBML_LOW_ALTITUDE_PLAYER_Y_LIMIT,player_world_y(a6)
 	bge.w continue_primary_object_update_loop
-	bra.w abs_0_00009F02
+	bra.w try_spawn_laser_bolt_with_opposite_player_heading
     ; Type26 Tripuss: zero BYTE1F step skips later timer/motion. Sums0/9 change step without storing boundary variant; preserve asymmetric X/Z comparisons, not a radius/AABB test.
     ; KNOWN: type A0=Target code-entry register seed:SG2Tripuss
 update_nearby_tripuss:
@@ -13166,7 +13189,7 @@ abs_0_00009E6E:
 	andi.b #63,d3
 	beq.w blend_actor_toward_player_heading
 	andi.b #31,d3
-	beq.w abs_0_00009248
+	beq.w try_ai_attack_at_opposite_player_heading
 	andi.b #15,d3
 	bne.b abs_0_00009EA4
 	lea.l model_type_target_selection_tags_prefix(a6),a1
@@ -13177,14 +13200,14 @@ abs_0_00009E6E:
 	bra.w try_launch_missile_at_selected_visible_target
 abs_0_00009EA4:
 	andi.b #7,d3
-	beq.w abs_0_00009F02
+	beq.w try_spawn_laser_bolt_with_opposite_player_heading
 	bra.w continue_primary_object_update_loop
 abs_0_00009EB0:
 	move.w SG2ScheduledActor_behavior_update_counter(a0),d3
 	andi.b #31,d3
 	beq.w blend_actor_toward_player_heading
 	andi.b #7,d3
-	beq.w abs_0_00009248
+	beq.w try_ai_attack_at_opposite_player_heading
 	bra.w continue_primary_object_update_loop
     ; KNOWN: type A0=Target code-entry register seed:SG2VertexOscillator
 oscillate_pyramid_vertex_variant:
@@ -13204,21 +13227,26 @@ abs_0_00009EEE:
 abs_0_00009EF8:
 	move.b #$FF,SG2VertexOscillator_vertex_variant_step(a0)
 	bra.w continue_primary_object_update_loop
-abs_0_00009F02:
+    ; Recompute cached-player heading before tag/free gates, add2048 and mask4095. Nonzero creator-table tag and unsigned free count >25 allocate. This entry does not test creator-yaw alignment.
+try_spawn_laser_bolt_with_opposite_player_heading:
 	move.b #$28,diagnostic_step_byte.l
 	bsr.w heading_with_player_as_reference
-	addi.w #2048,d1
-	andi.w #4095,d1
+	addi.w #SG2_ANGLE_HALF_TURN,d1
+	andi.w #SG2_HEADING_ANGLE_MASK,d1
 	move.w (a0),d3	; operand 1: SG2ObjectCore_object_type at (a0)
 	lea.l model_type_target_selection_tags_prefix(a6),a1
 	tst.b $0(a1,d3.w)
 	beq.w continue_primary_object_update_loop
-	cmpi.w #25,free_object_count(a6)
+test_laser_bolt_unsigned_free_reserve:
+	cmpi.w #SG2_LASER_BOLT_FREE_RESERVE,free_object_count(a6)
 	bls.w continue_primary_object_update_loop
+pop_laser_bolt_record_before_initialization:
 	movea.l free_object_stack_cursor(a6),a1
 	movea.l -(a1),a2
 	move.l a1,free_object_stack_cursor(a6)
 	subq.w #1,free_object_count(a6)
+    ; Creator Y-offset WORD is sign-extended then shifted by scale BYTE low6 bits. Count64 aliases0; large counts retain arithmetic sign. Add to creator Y with LONG wrapping.
+scale_laser_bolt_creator_y_offset:
 	add.w d3,d3
 	lea.l object_projectile_spawn_y_offsets.l,a1
 	move.w $0(a1,d3.w),d2
@@ -13226,6 +13254,7 @@ abs_0_00009F02:
 	move.b SG2ObjectCore_model_scale_shift(a0),d0
 	asr.l d0,d2
     ; KNOWN: type A2=Target code-entry register seed:SG2VelocityProjectile
+initialize_laser_bolt_tag_and_collision_exclusions:
 	move.w #SG2_OBJECT_TYPE_LASER_BOLT,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
 	move.b SG2ObjectCore_object_type+1(a0),SG2TargetingObject_collision_ignored_object_type(a2)
 	move.b #SG2_OBJECT_TYPE_LASER_BOLT,SG2TargetingObject_collision_ignored_object_type(a0)
@@ -13233,17 +13262,20 @@ abs_0_00009F02:
 	add.l SG2ObjectCore_world_y(a0),d2
 	move.l d2,SG2ObjectCore_world_y(a2)
 	move.l SG2ObjectCore_world_z(a0),SG2ObjectCore_world_z(a2)
+    ; Laser sets type72, motion scale -100 and budget100; flags, link and other unwritten bytes remain. It does not set inside-context object bit6 as the separate missile constructor can.
+initialize_laser_bolt_pose_and_update_budget:
 	clr.w SG2WorldObject_rotation_0(a2)
 	move.b #$FF,SG2ObjectCore_retirement_phase_or_negative(a2)
 	clr.b SG2ObjectCore_vertex_variant_selector(a2)
-	move.b #$4,SG2ObjectCore_model_scale_shift(a2)
+	move.b #SG2_LASER_BOLT_MODEL_SCALE_SHIFT,SG2ObjectCore_model_scale_shift(a2)
 	move.w d1,SG2WorldObject_rotation_1(a2)
 	clr.w SG2WorldObject_rotation_2(a2)
-	move.w #$FF9C,SG2MotionVectorActor_motion_vector_scale(a2)
-	move.w #$64,SG2TimedMotionActor_remaining_updates(a2)
-	move.b #$1,SG2ObjectCore_durability_or_negative(a2)
+	move.w #SG2_LASER_BOLT_MOTION_SCALE,SG2MotionVectorActor_motion_vector_scale(a2)
+	move.w #SG2_LASER_BOLT_INITIAL_UPDATES,SG2TimedMotionActor_remaining_updates(a2)
+	move.b #SG2_LASER_BOLT_INITIAL_DURABILITY,SG2ObjectCore_durability_or_negative(a2)
+rebuild_laser_bolt_horizontal_velocity:
 	move.w SG2WorldObject_rotation_1(a2),d1
-	andi.w #4095,d1
+	andi.w #SG2_HEADING_ANGLE_MASK,d1
 	asl.w #1,d1
 	movea.l sine_lookup_pointer(a6),a1
 	move.w $0(a1,d1.w),trig_sine_scratch_1(a6)
@@ -13261,6 +13293,8 @@ abs_0_00009F02:
 	swap.w d4
 	move.w d4,SG2WorldObject_velocity_z(a2)
 	clr.w SG2WorldObject_velocity_y(a2)
+    ; Cleared BYTE34 enables local integration. Two supplied ground-spawn witnesses reach phase zero on the 100th negative-Y body call; tag/free count remain. Not a normal-frame/lifetime proof.
+clear_laser_bolt_local_integration_service_byte:
 	clr.b SG2VelocityProjectile_integration_service_byte(a2)
 	bra.w continue_primary_object_update_loop
     ; Parent-only witness with unchanged child: 19 open calls, 28 Y steps, release, 19 close calls. These are service calls, not frames. Rearm stores 300 here, 900 in the distant path.
@@ -13568,7 +13602,7 @@ update_saucer_motion_evasion_and_capsule:
 	subq.w #1,SG2ScheduledActor_behavior_update_counter(a0)
 	move.w SG2ScheduledActor_behavior_update_counter(a0),d0
 	andi.b #15,d0
-	beq.w abs_0_00009F02
+	beq.w try_spawn_laser_bolt_with_opposite_player_heading
 	movea.l player_object_reference(a6),a4
 	move.l $0008(a4),d0
 	sub.l SG2ObjectCore_world_y(a0),d0
