@@ -7,7 +7,7 @@ claim of complete gameplay/hardware equivalence.
 ## Current validated baseline
 
 Current validated export: 3517 app references, 2841 typed accesses, 183 unresolved
-accesses; 9735 unclassified bytes in 273 intervals. These are analysis counts,
+accesses; 9681 unclassified bytes in 271 intervals. These are analysis counts,
 not semantic completion percentages. The phrase-counter
 references retain declared-layout A6 fallback; the role declaration adds no
 stronger base proof. The projector report arrays expose three additional
@@ -136,8 +136,10 @@ Original payload SHA256:
    Incoming-reference review separates address formation from actual memory
    effects. Some named globals lack backing declarations; investigate connected
    record roles/extents while protecting runtime namespaces, code and views.
-   Twenty named scalars now own their witnessed 39 BYTE/WORD storage bytes;
-   neighboring padding and unproven bounds/lifetimes remain unknown.
+   Source-backed scalars and prefixes own only witnessed bytes. The two stored
+   24-BYTE space-colour ramps are numeric RG values, including Millway's printable
+   bytes; their unchecked reader aliases remain. Coordinate formatting owns its
+   exact28-BYTE clear prefix, not the adjacent zeros or an output-capacity bound.
    The 22-byte alternate palette packet supplies six sparse transfer fields and
    16 typed accesses. Its 40-byte text-column companion has a stored extent, not
    a proven runtime index bound; supplied out-of-prefix reads remain unchanged.

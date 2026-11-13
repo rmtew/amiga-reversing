@@ -14355,7 +14355,7 @@ format_and_print_rating_label:
 	bra.w print_cursor_text
 coordinate_warning_text_scratch:
 	dcb.b $1C,$20
-	dc.b $00,$00
+	dc.w $0000
 airborne_spawn_model_type_choices:	; ARRAY SG2StoredObjectTypeByte[8]
 	dc.b SG2_OBJECT_TYPE_ARMED_TRANSPORT	; object_type
 	dc.b SG2_OBJECT_TYPE_LARGE_EGRON_TRANSPORT
@@ -50979,11 +50979,12 @@ space_effect_base_rgb_word:
 space_effect_override_rgb_word:
 	dc.w $0000
 system_center_space_colour_bytes:
-	dcb.b $9,$F0
-	dc.b $E0,$D0,$C0,$B0,$A0,$90,$80,$70,$60,$50,$40,$30,$20,$10,$00
+	dcb.b $9,$F0	; Stored numeric colour BYTE prefix; reader shifts BYTE into RGB WORD
+	dc.b $E0,$D0,$C0,$B0,$A0,$90,$80
+	dc.b $70,$60,$50,$40,$30,$20,$10,$00
 millway_space_colour_bytes:
-	dc.b "ppppppppppppppppp`P@0 "
-	dc.b $10,$00
+	dcb.b $10,$70	; Stored numeric colour BYTE prefix; reader shifts BYTE into RGB WORD
+	dc.b $70,$60,$50,$40,$30,$20,$10,$00
 type128_disc_layers_by_proximity:
 	dc.w $FFFF,$FFFF,$FFFF,$FFFF,$FFFF,$FFFF,$FFFF,$FFFF	; Original indexed WORD data, conditional original-use domain
 	dc.w $FFFF,$0000,$0000,$0001,$0001,$0001,$0001,$0002
