@@ -1515,6 +1515,9 @@ INTF_CLRALL	EQU	$7FFF
 SG2TargetingObject_model_scale_shift	EQU	SG2ObjectCore_model_scale_shift
 SG2VariantObject_vertex_variant_selector	EQU	SG2ObjectCore_vertex_variant_selector
 SG2WorldObject_vertex_variant_selector	EQU	SG2ObjectCore_vertex_variant_selector
+SG2_ACTOR_HEADING_BLEND_SHIFT	EQU	5
+SG2_ACTOR_ROLL_ADD_THRESHOLD	EQU	1025
+SG2_ACTOR_ROLL_ADJUST_STEP	EQU	15
 SG2_AIM_CONTROL_PHASE_MASK	EQU	4095
 SG2_ALTERNATE_COMPLETION_SAMPLE_OFFSET	EQU	28684
 SG2_ALTERNATE_EFFECT_PALETTE_BYTE_OFFSET	EQU	20
@@ -1664,6 +1667,16 @@ SG2_FLAT_DIAMOND_RESET_Y	EQU	-60
 SG2_FLAT_DIAMOND_RESET_Y_VELOCITY	EQU	-62
 SG2_FLAT_DIAMOND_TURNAROUND_VELOCITY	EQU	66
 SG2_FLAT_DIAMOND_Y_GATE	EQU	-40
+SG2_FLYING_PLAYER_COORDINATE_WINDOW	EQU	1200
+SG2_FLYING_PROXIMITY_RELOAD	EQU	65
+SG2_FLYING_VERTICAL_LIMIT	EQU	10
+SG2_FLYING_VERTICAL_NEGATIVE_LIMIT	EQU	-10
+SG2_FLYING_VERTICAL_NEGATIVE_SOFT_RESET	EQU	-4
+SG2_FLYING_VERTICAL_NEGATIVE_SOFT_THRESHOLD	EQU	-5
+SG2_FLYING_VERTICAL_SOFT_RESET	EQU	4
+SG2_FLYING_VERTICAL_SOFT_THRESHOLD	EQU	5
+SG2_FLYING_Y_NEGATIVE_GATE	EQU	-40
+SG2_FLYING_Y_POSITIVE_GATE	EQU	40
 SG2_GAME_OVER_POWER_DRAINAGE	EQU	1
 SG2_GAME_OVER_SHIELD_DEPLETED	EQU	2
 SG2_GATE_CONTACT_RESPONSE_PASSES	EQU	3
@@ -1691,6 +1704,10 @@ SG2_HOMING_HEADING_CADENCE_MASK	EQU	7
 SG2_HOMING_INITIAL_UPDATES	EQU	400
 SG2_HOMING_LAUNCH_COOLDOWN	EQU	100
 SG2_HOMING_LAUNCH_SPEED_BIAS	EQU	500
+SG2_HORATIO_FIRST_VARIANT_RESET	EQU	9
+SG2_HORATIO_HEADING_FRACTION_SHIFT	EQU	4
+SG2_HORATIO_HORIZONTAL_SCALE	EQU	-350
+SG2_HORATIO_SECOND_VARIANT_RESET	EQU	10
 SG2_HUD_ATTITUDE_ALTERNATE_X_ADD	EQU	$B4
 SG2_HUD_ATTITUDE_ALTERNATE_Y_ADD	EQU	$79
 SG2_HUD_ATTITUDE_AMIGA_X_ADD	EQU	$4
@@ -11651,27 +11668,28 @@ abs_0_00008C8A:
 abs_0_00008C94:
 	clr.w SG2WorldObject_velocity_y(a0)
 	clr.w SG2WorldObject_rotation_0(a0)
-abs_0_00008C9C:
+    ; Masked-zero input increments the raw WORD. Unlike the flying body, an upper-arm add/mask result of zero falls through to increment 1. The subtract-arm negative test follows AND4095.
+advance_evasive_roll_with_nonzero_wrap:
 	move.b #$98,diagnostic_step_byte.l
 	move.w SG2WorldObject_rotation_2(a0),d0
 	andi.w #4095,d0
-	beq.b abs_0_00008CDC
-	cmp.w #$401,d0
-	bpl.b abs_0_00008CCE
-	subi.w #15,d0
+	beq.b increment_raw_evasive_roll_at_masked_zero
+	cmp.w #SG2_ACTOR_ROLL_ADD_THRESHOLD,d0
+	bpl.b add_evasive_roll_step_before_mask
+	subi.w #SG2_ACTOR_ROLL_ADJUST_STEP,d0
 	andi.w #4095,d0
-	bpl.b abs_0_00008CC0
+	bpl.b store_evasive_roll_after_subtract_and_mask
 	clr.w d0
-abs_0_00008CC0:
+store_evasive_roll_after_subtract_and_mask:
 	move.b #$99,diagnostic_step_byte.l
 	move.w d0,SG2WorldObject_rotation_2(a0)
 	bra.b update_proximity_evasion_countdown
-abs_0_00008CCE:
-	addi.w #15,d0
+add_evasive_roll_step_before_mask:
+	addi.w #SG2_ACTOR_ROLL_ADJUST_STEP,d0
 	andi.w #4095,d0
 	move.w d0,SG2WorldObject_rotation_2(a0)
 	bne.b update_proximity_evasion_countdown
-abs_0_00008CDC:
+increment_raw_evasive_roll_at_masked_zero:
 	move.b #$9A,diagnostic_step_byte.l
 	addq.w #1,SG2WorldObject_rotation_2(a0)
     ; Nonzero evasion countdown decrements; if still nonzero, steer at player heading +2000, not exact +2048 reverse. Zero tests cached X/Z separation against 1500 and may reload 65.
@@ -11719,36 +11737,36 @@ increase_object_y_velocity_continuation:
 	ble.b abs_0_00008D8C
 	move.w #$A,SG2WorldObject_velocity_y(a0)
 abs_0_00008D88:
-	bra.w abs_0_00008C9C
+	bra.w advance_evasive_roll_with_nonzero_wrap
 abs_0_00008D8C:
-	bra.w abs_0_00008C9C
+	bra.w advance_evasive_roll_with_nonzero_wrap
 decrease_object_y_velocity_continuation:
 	subq.w #1,SG2WorldObject_velocity_y(a0)
 	cmpi.w #65526,SG2WorldObject_velocity_y(a0)
 	bge.w abs_0_00008DA8
 	move.w #$FFF6,SG2WorldObject_velocity_y(a0)
 abs_0_00008DA4:
-	bra.w abs_0_00008C9C
+	bra.w advance_evasive_roll_with_nonzero_wrap
 abs_0_00008DA8:
-	bra.w abs_0_00008C9C
+	bra.w advance_evasive_roll_with_nonzero_wrap
 abs_0_00008DAC:
 	addq.w #1,SG2WorldObject_velocity_y(a0)
 	cmpi.w #5,SG2WorldObject_velocity_y(a0)
 	ble.b abs_0_00008DC2
 	move.w #$4,SG2WorldObject_velocity_y(a0)
 abs_0_00008DBE:
-	bra.w abs_0_00008C9C
+	bra.w advance_evasive_roll_with_nonzero_wrap
 abs_0_00008DC2:
-	bra.w abs_0_00008C9C
+	bra.w advance_evasive_roll_with_nonzero_wrap
 abs_0_00008DC6:
 	subq.w #1,SG2WorldObject_velocity_y(a0)
 	cmpi.w #65531,SG2WorldObject_velocity_y(a0)
 	bge.w abs_0_00008DDE
 	move.w #$FFFC,SG2WorldObject_velocity_y(a0)
 abs_0_00008DDA:
-	bra.w abs_0_00008C9C
+	bra.w advance_evasive_roll_with_nonzero_wrap
 abs_0_00008DDE:
-	bra.w abs_0_00008C9C
+	bra.w advance_evasive_roll_with_nonzero_wrap
     ; Unsigned abs-WORD Z <= 1536 admits a raw-Z N-only test against 768. Negative admitted Z damages; 768..1536 warns. NEG.W minimum remains outside the unsigned window.
     ; KNOWN: type A0=Target code-entry register seed:SG2WorldObject
 update_proximity_mine_warning_and_damage:
@@ -11899,6 +11917,7 @@ abs_0_00008FAC:
 update_shared_flying_actor:
 	move.b #$14,diagnostic_step_byte.l
 	subq.w #1,SG2ScheduledActor_behavior_update_counter(a0)
+integrate_flying_actor_before_height_control:
 	move.w SG2WorldObject_velocity_x(a0),d3
 	ext.l d3
 	add.l d3,SG2ObjectCore_world_x(a0)
@@ -11914,6 +11933,8 @@ update_shared_flying_actor:
 	cmpi.b #3,SG2ObjectCore_durability_or_negative(a0)
 	bmi.w abs_0_00009182
 	move.b #$80,diagnostic_step_byte.l
+    ; Integrate old velocity first. Type height gates and a nonzero maneuver counter select +/-10 control. The player-height difference contributes only its wrapped LONG sign to the inner branches.
+load_flying_actor_type_height_increase_gate:
 	lea.l object_ai_y_increase_thresholds.l,a1
 	move.w (a0),d3	; operand 1: SG2ObjectCore_object_type at (a0)
 	add.w d3,d3
@@ -11921,45 +11942,49 @@ update_shared_flying_actor:
 	ext.l d2
 	move.l SG2ObjectCore_world_y(a0),d4
 	cmp.l d2,d4
-	ble.w abs_0_00009260
+	ble.w increase_flying_vertical_velocity_with_ten_limit
+select_flying_descent_for_active_maneuver:
 	tst.w SG2FlyingActor_proximity_maneuver_countdown(a0)
-	bne.w abs_0_0000927A
+	bne.w decrease_flying_vertical_velocity_with_minus_ten_limit
+load_flying_actor_type_height_decrease_gate:
 	lea.l object_ai_y_decrease_thresholds.l,a1
 	move.w $0(a1,d3.w),d2
 	ext.l d2
 	cmp.l d2,d4
-	bge.w abs_0_0000927A
+	bge.w decrease_flying_vertical_velocity_with_minus_ten_limit
+test_player_height_delta_sign_for_flying_control:
 	move.l player_world_y(a6),d5
 	sub.l d4,d5
-	bpl.b abs_0_000090A0
-	cmp.l #$FFFFFFD8,d4
-	ble.w abs_0_000092B0
-	bra.b abs_0_000090AA
-abs_0_000090A0:
-	cmp.l #$28,d4
-	bge.w abs_0_00009296
-abs_0_000090AA:
+	bpl.b test_positive_flying_height_gate
+	cmp.l #SG2_FLYING_Y_NEGATIVE_GATE,d4
+	ble.w decrease_flying_vertical_velocity_with_minus_five_to_four_reset
+	bra.b clear_flying_vertical_velocity_and_pitch
+test_positive_flying_height_gate:
+	cmp.l #SG2_FLYING_Y_POSITIVE_GATE,d4
+	bge.w increase_flying_vertical_velocity_with_five_to_four_reset
+clear_flying_vertical_velocity_and_pitch:
 	clr.w SG2WorldObject_velocity_y(a0)
 	clr.w SG2WorldObject_rotation_0(a0)
-abs_0_000090B2:
+    ; Masked zero increments the raw stored WORD. Subtract-15 then AND4095 makes the later BPL always taken: small angles wrap. Unlike the evasive body, an upper-arm zero stays zero.
+advance_flying_roll_with_masked_wrap:
 	move.w SG2WorldObject_rotation_2(a0),d0
 	andi.w #4095,d0
-	beq.b abs_0_000090E2
-	cmp.w #$401,d0
-	bpl.b abs_0_000090D4
-	subi.w #15,d0
+	beq.b increment_raw_flying_roll_at_masked_zero
+	cmp.w #SG2_ACTOR_ROLL_ADD_THRESHOLD,d0
+	bpl.b add_flying_roll_step_before_mask
+	subi.w #SG2_ACTOR_ROLL_ADJUST_STEP,d0
 	andi.w #4095,d0
-	bpl.b abs_0_000090CE
+	bpl.b store_flying_roll_after_subtract_and_mask
 	clr.w d0
-abs_0_000090CE:
+store_flying_roll_after_subtract_and_mask:
 	move.w d0,SG2WorldObject_rotation_2(a0)
 	bra.b schedule_flying_actor_phase_actions
-abs_0_000090D4:
-	addi.w #15,d0
+add_flying_roll_step_before_mask:
+	addi.w #SG2_ACTOR_ROLL_ADJUST_STEP,d0
 	andi.w #4095,d0
 	move.w d0,SG2WorldObject_rotation_2(a0)
 	bra.b schedule_flying_actor_phase_actions
-abs_0_000090E2:
+increment_raw_flying_roll_at_masked_zero:
 	addq.w #1,SG2WorldObject_rotation_2(a0)
     ; Decremented phase: low9=0 tries type2 only for18/33; low8=0 may spawn type6 for33; low6/5/3 select other AI branches. Conditions/free-list gates still apply.
 schedule_flying_actor_phase_actions:
@@ -11976,7 +12001,7 @@ abs_0_00009106:
 	andi.b #31,d0
 	beq.w abs_0_00009F02
 	andi.b #7,d0
-	bne.b abs_0_0000913A
+	bne.b age_flying_proximity_countdown_on_residual_phase
 	lea.l model_type_target_selection_tags_prefix(a6),a1
 	move.w (a0),d0	; operand 1: SG2ObjectCore_object_type at (a0)
 	move.b $0(a1,d0.w),d0
@@ -11985,28 +12010,29 @@ abs_0_00009106:
 	bsr.w select_visible_object_by_type_tag
 	bra.w try_launch_missile_at_selected_visible_target
     ; Only residual phase paths decrement nonzero proximity countdown. At zero, nearby X/Z separation<=1200 reloads65 before turning; other phase actions can bypass this step.
-abs_0_0000913A:
+age_flying_proximity_countdown_on_residual_phase:
 	move.b #$84,diagnostic_step_byte.l
 	tst.w SG2FlyingActor_proximity_maneuver_countdown(a0)
-	beq.b abs_0_00009150
+	beq.b test_flying_cached_player_x_window
 	subq.w #1,SG2FlyingActor_proximity_maneuver_countdown(a0)
 	bne.w continue_primary_object_update_loop
-abs_0_00009150:
+test_flying_cached_player_x_window:
 	move.w SG2TargetingObject_pre_view_relative_x(a0),d2
-	sub.w $0032(a4),d2
+	sub.w SG2TargetingObject_pre_view_relative_x(a4),d2
 	bpl.b abs_0_0000915C
 	neg.w d2
 abs_0_0000915C:
-	cmp.w #$4B0,d2
+	cmp.w #SG2_FLYING_PLAYER_COORDINATE_WINDOW,d2
 	bgt.w blend_actor_toward_player_heading
+test_flying_cached_player_z_window:
 	move.w SG2TargetingObject_pre_view_relative_z(a0),d2
-	sub.w $0036(a4),d2
+	sub.w SG2TargetingObject_pre_view_relative_z(a4),d2
 	bpl.b abs_0_00009170
 	neg.w d2
 abs_0_00009170:
-	cmp.w #$4B0,d2
+	cmp.w #SG2_FLYING_PLAYER_COORDINATE_WINDOW,d2
 	bgt.w blend_actor_toward_player_heading
-	move.w #$41,SG2FlyingActor_proximity_maneuver_countdown(a0)
+	move.w #SG2_FLYING_PROXIMITY_RELOAD,SG2FlyingActor_proximity_maneuver_countdown(a0)
 	bra.w blend_actor_toward_player_heading
 abs_0_00009182:
 	tst.b SG2FlyingActor_escape_capsule_pending_flag(a0)
@@ -12061,58 +12087,61 @@ abs_0_00009248:
 	addi.w #2048,d1
 	andi.w #4095,d1
 	bra.w try_ai_projectile_attack_if_aligned
-abs_0_00009260:
+increase_flying_vertical_velocity_with_ten_limit:
 	addq.w #1,SG2WorldObject_velocity_y(a0)
-	cmpi.w #10,SG2WorldObject_velocity_y(a0)
+	cmpi.w #SG2_FLYING_VERTICAL_LIMIT,SG2WorldObject_velocity_y(a0)
 	ble.b abs_0_00009276
-	move.w #$A,SG2WorldObject_velocity_y(a0)
+	move.w #SG2_FLYING_VERTICAL_LIMIT,SG2WorldObject_velocity_y(a0)
 abs_0_00009272:
-	bra.w abs_0_000090B2
+	bra.w advance_flying_roll_with_masked_wrap
 abs_0_00009276:
-	bra.w abs_0_000090B2
-abs_0_0000927A:
+	bra.w advance_flying_roll_with_masked_wrap
+decrease_flying_vertical_velocity_with_minus_ten_limit:
 	subq.w #1,SG2WorldObject_velocity_y(a0)
-	cmpi.w #65526,SG2WorldObject_velocity_y(a0)
+	cmpi.w #SG2_FLYING_VERTICAL_NEGATIVE_LIMIT,SG2WorldObject_velocity_y(a0)
 	bge.w abs_0_00009292
-	move.w #$FFF6,SG2WorldObject_velocity_y(a0)
+	move.w #SG2_FLYING_VERTICAL_NEGATIVE_LIMIT,SG2WorldObject_velocity_y(a0)
 abs_0_0000928E:
-	bra.w abs_0_000090B2
+	bra.w advance_flying_roll_with_masked_wrap
 abs_0_00009292:
-	bra.w abs_0_000090B2
-abs_0_00009296:
+	bra.w advance_flying_roll_with_masked_wrap
+    ; WORD increment allows 4->5, then 5->6 resets to 4. The negative companion allows -4->-5, then resets -6 to -4. These local tails alone do not establish normal-game reachability.
+increase_flying_vertical_velocity_with_five_to_four_reset:
 	addq.w #1,SG2WorldObject_velocity_y(a0)
-	cmpi.w #5,SG2WorldObject_velocity_y(a0)
+	cmpi.w #SG2_FLYING_VERTICAL_SOFT_THRESHOLD,SG2WorldObject_velocity_y(a0)
 	ble.b abs_0_000092AC
-	move.w #$4,SG2WorldObject_velocity_y(a0)
+	move.w #SG2_FLYING_VERTICAL_SOFT_RESET,SG2WorldObject_velocity_y(a0)
 abs_0_000092A8:
-	bra.w abs_0_000090B2
+	bra.w advance_flying_roll_with_masked_wrap
 abs_0_000092AC:
-	bra.w abs_0_000090B2
-abs_0_000092B0:
+	bra.w advance_flying_roll_with_masked_wrap
+decrease_flying_vertical_velocity_with_minus_five_to_four_reset:
 	subq.w #1,SG2WorldObject_velocity_y(a0)
-	cmpi.w #65531,SG2WorldObject_velocity_y(a0)
+	cmpi.w #SG2_FLYING_VERTICAL_NEGATIVE_SOFT_THRESHOLD,SG2WorldObject_velocity_y(a0)
 	bge.w abs_0_000092C8
-	move.w #$FFFC,SG2WorldObject_velocity_y(a0)
+	move.w #SG2_FLYING_VERTICAL_NEGATIVE_SOFT_RESET,SG2WorldObject_velocity_y(a0)
 abs_0_000092C4:
-	bra.w abs_0_000090B2
+	bra.w advance_flying_roll_with_masked_wrap
 abs_0_000092C8:
-	bra.w abs_0_000090B2
+	bra.w advance_flying_roll_with_masked_wrap
+    ; Increment variant BYTE. Exact results 9/10 reset and call the A2 helper with inherited D1; other values halve X/Z velocity before integration. Dispatch leaves its routine offset in D1.
     ; KNOWN: type A0=Target code-entry register seed:SG2WorldObject
 update_horatio_vertex_cycle_and_drag:
 	move.b #$16,diagnostic_step_byte.l
 	addq.b #1,SG2ObjectCore_vertex_variant_selector(a0)
 	move.b SG2ObjectCore_vertex_variant_selector(a0),d0
-	cmp.b #$9,d0
-	beq.b abs_0_000092F4
-	cmp.b #$A,d0
-	beq.b abs_0_000092F4
+	cmp.b #SG2_HORATIO_FIRST_VARIANT_RESET,d0
+	beq.b reset_horatio_variant_and_use_caller_heading
+	cmp.b #SG2_HORATIO_SECOND_VARIANT_RESET,d0
+	beq.b reset_horatio_variant_and_use_caller_heading
+halve_horatio_horizontal_velocity_before_integration:
 	asr SG2WorldObject_velocity_z(a0)
 	asr SG2WorldObject_velocity_x(a0)
 	bra.w integrate_and_steer_horizontal_actor
-abs_0_000092F4:
+reset_horatio_variant_and_use_caller_heading:
 	clr.b SG2ObjectCore_vertex_variant_selector(a0)
 	movea.l a0,a2
-	bsr.w steer_a2_heading_then_recompute_horizontal_motion
+	bsr.w advance_a2_heading_by_masked_delta_then_recompute_motion
 	bra.w integrate_and_steer_horizontal_actor
 	dc.b $52,$28,$00,$03,$0C,$28,$00,$13,$00,$03,$66,$00,$01,$F2,$42,$28
 	dc.b $00,$03,$60,$00,$01,$EA
@@ -14000,6 +14029,7 @@ build_a0_horizontal_motion_from_d1_heading:
 blend_actor_toward_opposite_player_heading:
 	bsr.w heading_with_player_as_reference
 	addi.w #2048,d1
+    ; Clear pitch/roll, mask current and target yaw, then add/subtract ASR5 of their difference using the half-turn gate. Stored yaw is not remasked here; the trig reader masks it later.
     ; KNOWN: type A0=Target code-entry register seed:SG2HorizontalMotionView
 blend_actor_heading_and_clear_other_rotations:
 	andi.w #4095,d1
@@ -14008,44 +14038,47 @@ blend_actor_heading_and_clear_other_rotations:
 	move.w SG2WorldObject_rotation_1(a0),d0
 	andi.w #4095,d0
 	sub.w d1,d0
-	bpl.b abs_0_0000ACCA
+	bpl.b choose_heading_blend_at_half_turn_distance
 	neg.w d0
-abs_0_0000ACCA:
-	cmp.w #$800,d0
-	ble.b abs_0_0000ACE6
+choose_heading_blend_at_half_turn_distance:
+	cmp.w #SG2_ANGLE_HALF_TURN,d0
+	ble.b add_heading_fraction_within_half_turn
+subtract_heading_fraction_across_half_turn:
 	move.w SG2WorldObject_rotation_1(a0),d0
 	andi.w #4095,d0
 	sub.w d0,d1
-	asr.w #5,d1
+	asr.w #SG2_ACTOR_HEADING_BLEND_SHIFT,d1
 	sub.w d1,d0
 	move.w d0,SG2WorldObject_rotation_1(a0)
 	bra.w recompute_actor_horizontal_motion_from_heading
-abs_0_0000ACE6:
+add_heading_fraction_within_half_turn:
 	move.w SG2WorldObject_rotation_1(a0),d0
 	andi.w #4095,d0
 	sub.w d0,d1
-	asr.w #5,d1
+	asr.w #SG2_ACTOR_HEADING_BLEND_SHIFT,d1
 	add.w d1,d0
 	move.w d0,SG2WorldObject_rotation_1(a0)
 	bra.w recompute_actor_horizontal_motion_from_heading
     ; KNOWN: type A0=Target code-entry register seed:SG2HorizontalMotionView
 blend_actor_toward_player_heading:
 	bsr.w heading_with_player_as_reference
+    ; Blend yaw and roll by the same signed fraction. Roll is masked and zero becomes 1; yaw can remain above 4095. This entry preserves pitch, unlike the clear-rotation entry.
     ; KNOWN: type A0=Target code-entry register seed:SG2HorizontalMotionView
 blend_actor_heading_and_secondary_rotation:
 	andi.w #4095,d1
 	move.w SG2WorldObject_rotation_1(a0),d0
 	andi.w #4095,d0
 	sub.w d1,d0
-	bpl.b abs_0_0000AD12
+	bpl.b choose_heading_and_roll_blend_at_half_turn_distance
 	neg.w d0
-abs_0_0000AD12:
-	cmp.w #$800,d0
-	ble.b abs_0_0000AD44
+choose_heading_and_roll_blend_at_half_turn_distance:
+	cmp.w #SG2_ANGLE_HALF_TURN,d0
+	ble.b add_heading_fraction_to_yaw_and_roll
+subtract_heading_fraction_from_yaw_and_roll:
 	move.w SG2WorldObject_rotation_1(a0),d0
 	andi.w #4095,d0
 	sub.w d0,d1
-	asr.w #5,d1
+	asr.w #SG2_ACTOR_HEADING_BLEND_SHIFT,d1
 	sub.w d1,d0
 	move.w d0,SG2WorldObject_rotation_1(a0)
 	move.w SG2WorldObject_rotation_2(a0),d2
@@ -14054,13 +14087,14 @@ abs_0_0000AD12:
 	andi.w #4095,d2
 	move.w d2,SG2WorldObject_rotation_2(a0)
 	bne.b recompute_actor_horizontal_motion_from_heading
+force_nonzero_roll_after_subtracted_fraction:
 	addq.w #1,SG2WorldObject_rotation_2(a0)
 	bra.b recompute_actor_horizontal_motion_from_heading
-abs_0_0000AD44:
+add_heading_fraction_to_yaw_and_roll:
 	move.w SG2WorldObject_rotation_1(a0),d0
 	andi.w #4095,d0
 	sub.w d0,d1
-	asr.w #5,d1
+	asr.w #SG2_ACTOR_HEADING_BLEND_SHIFT,d1
 	add.w d1,d0
 	move.w d0,SG2WorldObject_rotation_1(a0)
 	move.w SG2WorldObject_rotation_2(a0),d2
@@ -14069,6 +14103,7 @@ abs_0_0000AD44:
 	andi.w #4095,d2
 	move.w d2,SG2WorldObject_rotation_2(a0)
 	bne.b recompute_actor_horizontal_motion_from_heading
+force_nonzero_roll_after_added_fraction:
 	addq.w #1,SG2WorldObject_rotation_2(a0)
     ; KNOWN: type A0=Target code-entry register seed:SG2HorizontalMotionView
 recompute_actor_horizontal_motion_from_heading:
@@ -14118,14 +14153,15 @@ recompute_tracked_projectile_horizontal_motion:
 	swap.w d4
 	move.w d4,SG2WorldObject_velocity_z(a0)
 	bra.w continue_primary_object_update_loop
+    ; D1 minus masked yaw is AND4095 before ASR4, so this step is nonnegative, not shortest signed turning. Horatio reset inherits the ordinary dispatch offset; supplied direct callers can differ.
     ; KNOWN: type A2=Target code-entry register seed:SG2HorizontalMotionView
-steer_a2_heading_then_recompute_horizontal_motion:
+advance_a2_heading_by_masked_delta_then_recompute_motion:
 	move.w SG2WorldObject_rotation_1(a2),d0
 	andi.w #4095,d0
 	move.w d0,SG2WorldObject_rotation_1(a2)
 	sub.w d0,d1
 	andi.w #4095,d1
-	asr.w #4,d1
+	asr.w #SG2_HORATIO_HEADING_FRACTION_SHIFT,d1
 	add.w d1,SG2WorldObject_rotation_1(a2)
     ; KNOWN: type A2=Target code-entry register seed:SG2HorizontalMotionView
 recompute_a2_horizontal_motion_from_heading:
@@ -25452,7 +25488,7 @@ initialize_horatio_heading_and_motion:
 	bsr.w advance_shared_random_state_bridge_017968
 	andi.w #4095,d0
 	move.w d0,SG2WorldObject_rotation_1(a0)
-	move.w #$FEA2,SG2EvasiveActor_horizontal_motion_scale(a0)
+	move.w #SG2_HORATIO_HORIZONTAL_SCALE,SG2EvasiveActor_horizontal_motion_scale(a0)
 	move.w #$2,SG2ScheduledActor_behavior_update_counter(a0)
 	rts
     ; KNOWN: type A0=Target code-entry register seed:SG2VertexOscillator
