@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "source_commit": "d4d25856b3dcf1852bf1cd74b2527505f270dd87",
+  "source_commit": "7575416abf9af13f6c4481fddc3561950532c81d",
   "source_assembly": "starglider2_game.s",
   "assets": [
     {
@@ -499,7 +499,7 @@
     {
       "path": "README.md",
       "bytes": 6578,
-      "sha256": "3f718747d5a4c2651edf138df1fa19cd0765d32abc6aaefa76041c46994efa50"
+      "sha256": "e02312cb078faf8e7565256909cfb05631ce92a2dc4f7f15e93d784c2670307f"
     },
     {
       "path": "analysis_views/boot-selector-installer-context.s",
@@ -879,12 +879,12 @@
     {
       "path": "rendered-provenance.json",
       "bytes": 3176,
-      "sha256": "d8aa49c6bee1c25d654284ce3e58752caa1c1c93566c578323df313300ea0302"
+      "sha256": "07e5f129c5bfd460e030e027a98db29e05bcdf16ce61e61f35947a24024d45ec"
     },
     {
       "path": "starglider2_game.s",
-      "bytes": 2355022,
-      "sha256": "85532a64174a4d74e3e80b2162302aecc0c0fe76ef4c42a0dae4d0534ed5979f"
+      "bytes": 2358103,
+      "sha256": "b76c2213bc9117afbb819f2da8f0562d2b51ed60b3fbbfda74d03c1bda853dc5"
     },
     {
       "path": "tools/starglider2_protection.py",
@@ -893,5 +893,5 @@
     }
   ],
   "source_commit_role": "Canonical source publication base.",
-  "source_subject_revision": "ca2d73105c1622d1c182a0aa5b99f11b3518386c00716a79458a04ffa10d512d"
+  "source_subject_revision": "43793994dcae6c52f838db0d33b1d9a4acf5979aca7f6f29c7a5c096159b3801"
 }

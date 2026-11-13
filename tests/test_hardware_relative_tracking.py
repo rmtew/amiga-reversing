@@ -164,9 +164,14 @@ joined:
         assert not uses
 
 
-@pytest.mark.parametrize("write", ["move.b #3,d0", "move.w (a0),d0", "swap d0"])
-def test_partial_and_unmodelled_scalar_writes_do_not_supply_a_channel(tmp_path, write):
-    source, _ = fixture(tmp_path, f""" moveq #0,d0
+@pytest.mark.parametrize("write,expected", [
+    ("move.b #3,d0", [48]), ("move.b d3,d0", []),
+    ("move.w (a0),d0", []), ("swap d0", []),
+])
+def test_partial_writes_require_a_complete_bounded_word(tmp_path, write, expected):
+    # MOVEQ zeroes the upper WORD bits. A known BYTE replacement retains a
+    # complete channel3 value; an unknown BYTE still spans too many channels.
+    source, original = fixture(tmp_path, f""" moveq #0,d0
  {write}
  lea.l $DFF000.l,a6
  lsl.w #4,d0
@@ -174,7 +179,9 @@ def test_partial_and_unmodelled_scalar_writes_do_not_supply_a_channel(tmp_path, 
  move.w d1,$A6(a6)
  rts
 """)
-    assert not analyze(source)
+    uses = analyze(source)
+    assert [u['relative_base_offsets'] for u in uses] == ([expected] if expected else [])
+    exact(source, c_backend.render_project_source_with_c_backend(source), original)
 
 
 @pytest.mark.parametrize("base", ["_custom", "unknown_hardware_profile"])

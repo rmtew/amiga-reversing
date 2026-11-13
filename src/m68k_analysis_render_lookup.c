@@ -12021,6 +12021,11 @@ static int hardware_relative_analyze_graph(M68kRenderLookup *lookup, const M68kD
     hardware_relative_apply_policy_inputs(&before, lookup->policy, section->section_index, node->candidate->offset);
     if (m68k_decode_candidate_to_instruction(node->candidate, &instruction) != 0) goto done;
     M68kRenderTypedState scalar_state={0};
+    /* Borrow the current shared must-type context. Sparse WORD packets retain
+     * only numeric cells; they never synthesize record owners or pointer roots. */
+    M68kRenderPlatformState record_context;
+    typed_flow_instruction_input(lookup,section,node,&scalar_state,&record_context);
+    scalar_state.base_slot_count=0U;
     scalar_word_packet_unpack(&scalar_state,cell_inputs[index]);
     M68kScalarWordTransfer scalar=scalar_word_prepare(lookup,&scalar_state,&before,
       section->section_index,&instruction,1,NULL);

@@ -4,9 +4,31 @@
 typedef struct M68kScalarWordTransfer {
   uint32_t storage_id;
   uint16_t value, mask;
+  int16_t displacement;
+  uint8_t base_reg; /* Existing register-relative cell key when storage_id==0. */
   uint8_t read_register, has_read;
   M68kHardwareWordSet read_values;
 } M68kScalarWordTransfer;
+
+/* A local must value can be relative to the current record An without claiming
+ * its numeric address. Reuse the typed state's existing relative cell key;
+ * register writes and possibly aliasing stores below own its lifetime. An
+ * app fallback must not bypass the stronger canonical-app admission rule. */
+static int scalar_word_relative_key(const M68kRenderLookup *lookup,
+    const M68kRenderTypedState *state,const M68kRenderPlatformState *platform,size_t section,
+    const M68kOperandIR *operand,uint8_t *reg,int16_t *displacement) {
+  uint8_t kind;size_t owner;int32_t delta;uint32_t address;
+  if(!operand_is_address_memory_local(operand,reg,displacement) || *reg>=7U ||
+      typed_storage_write_is_hardware(lookup,platform,operand,2U))return 0;
+  const M68kRenderTypedRegValue *base=&state->addr_regs[*reg];
+  uint16_t size=render_lookup_struct_size(lookup,base->struct_id);
+  int64_t offset=(int64_t)base->byte_cursor+*displacement;
+  if(!base->known || base->type_conflicted || !size || offset<0 || offset+2>size)return 0;
+  if(typed_storage_key_for_lookup_memory_operand(lookup,state,platform,section,operand,
+      M68K_SIM_ACCESS_MEMORY_READ,&kind,&owner,&delta,&address) &&
+      kind==M68K_RENDER_TYPED_STORAGE_APP_SLOT)return 0;
+  return 1;
+}
 
 static uint32_t scalar_word_cell_id(M68kRenderLookup *lookup,const M68kRenderTypedState *state,
     const M68kRenderPlatformState *platform,size_t section,const M68kOperandIR *operand,int create,int *changed) {
@@ -46,13 +68,16 @@ static M68kHardwareWordSet scalar_word_operand(M68kRenderLookup *lookup,const M6
   if(result.count || result.known_bits_mask)return result;
   uint32_t id=scalar_word_cell_id(lookup,state,platform,section,operand,0,NULL);
   const M68kRenderTypedBaseSlot *cell=typed_state_memory_cell(state,id);
+  uint8_t reg;int16_t displacement;
+  if(!id && scalar_word_relative_key(lookup,state,platform,section,operand,&reg,&displacement))
+    cell=typed_state_base_slot_entry(state,reg,displacement);
   return cell && cell->scalar_word_mask ? scalar_word_values(cell->scalar_word_value,cell->scalar_word_mask) : result;
 }
 
 static M68kScalarWordTransfer scalar_word_prepare(M68kRenderLookup *lookup,
     const M68kRenderTypedState *state,const M68kRenderPlatformState *platform,size_t section,
     const M68kInstructionIR *instruction,int discover,int *changed) {
-  M68kScalarWordTransfer result={0};
+  M68kScalarWordTransfer result={0};result.base_reg=UINT8_MAX;
   const M68kSimFormMetadata *meta=m68k_sim_metadata_for_instruction(instruction);
   uint8_t width,count,reg,address;
   if(!meta)return result;
@@ -73,9 +98,13 @@ static M68kScalarWordTransfer scalar_word_prepare(M68kRenderLookup *lookup,
       m68k_ir_operand_immediate_value(&instruction->operands[source],&immediate) && (uint16_t)~immediate;
   result.storage_id=scalar_word_cell_id(lookup,state,platform,section,&instruction->operands[dest],
     masked && discover,changed);
-  if(!result.storage_id)return result;
+  if(!result.storage_id && !scalar_word_relative_key(lookup,state,platform,section,
+      &instruction->operands[dest],&result.base_reg,&result.displacement))return result;
+  if(!result.storage_id && !masked &&
+      !typed_state_base_slot_entry(state,result.base_reg,result.displacement))return result;
   if(masked) {
-    const M68kRenderTypedBaseSlot *old=typed_state_memory_cell(state,result.storage_id);
+    const M68kRenderTypedBaseSlot *old=result.storage_id ? typed_state_memory_cell(state,result.storage_id) :
+      typed_state_base_slot_entry(state,result.base_reg,result.displacement);
     result.mask=(uint16_t)~immediate;
     if(old) {result.mask|=old->scalar_word_mask;result.value=old->scalar_word_value&(uint16_t)immediate;}
   } else if(meta->operation_type==M68K_SIM_OP_CLEAR)result.mask=UINT16_MAX;
@@ -89,14 +118,21 @@ static M68kScalarWordTransfer scalar_word_prepare(M68kRenderLookup *lookup,
 }
 
 static void scalar_word_commit(M68kRenderTypedState *state,const M68kScalarWordTransfer *transfer) {
-  if(!transfer->storage_id || !transfer->mask)return;
+  if((!transfer->storage_id && transfer->base_reg>=7U) || !transfer->mask)return;
   size_t i=0U;
-  while(i<state->base_slot_count && state->base_slots[i].storage_id!=transfer->storage_id)++i;
+  while(i<state->base_slot_count) {
+    const M68kRenderTypedBaseSlot *cell=&state->base_slots[i];
+    if(transfer->storage_id ? cell->storage_id==transfer->storage_id :
+        !cell->storage_id && cell->base_reg==transfer->base_reg &&
+        cell->displacement==transfer->displacement)break;
+    ++i;
+  }
   if(i==state->base_slot_count) {
     if(i==M68K_RENDER_TYPED_BASE_SLOT_LIMIT)return;
     ++state->base_slot_count;memset(&state->base_slots[i],0,sizeof(state->base_slots[i]));
-    state->base_slots[i].known=1U;state->base_slots[i].base_reg=UINT8_MAX;
+    state->base_slots[i].known=1U;state->base_slots[i].base_reg=transfer->base_reg;
     state->base_slots[i].storage_id=transfer->storage_id;
+    state->base_slots[i].displacement=transfer->displacement;
   }
   state->base_slots[i].scalar_word_mask=transfer->mask;
   state->base_slots[i].scalar_word_value=transfer->value;
@@ -106,14 +142,15 @@ static void scalar_word_commit(M68kRenderTypedState *state,const M68kScalarWordT
  * allocate entries; no second retained per-node slot/state array is added. */
 typedef struct M68kScalarWordPacket {
   size_t count;
-  struct {uint32_t id;uint16_t value,mask;} cells[];
+  struct {uint32_t id;uint16_t value,mask;int16_t displacement;uint8_t base_reg;} cells[];
 } M68kScalarWordPacket;
 
 static void scalar_word_packet_unpack(M68kRenderTypedState *state,const M68kScalarWordPacket *packet) {
   if(!packet)return;
   for(size_t i=0U;i<packet->count && i<M68K_RENDER_TYPED_BASE_SLOT_LIMIT;++i) {
     M68kRenderTypedBaseSlot *slot=&state->base_slots[state->base_slot_count++];
-    slot->known=1U;slot->base_reg=UINT8_MAX;slot->storage_id=packet->cells[i].id;
+    slot->known=1U;slot->base_reg=packet->cells[i].base_reg;slot->storage_id=packet->cells[i].id;
+    slot->displacement=packet->cells[i].displacement;
     slot->scalar_word_value=packet->cells[i].value;slot->scalar_word_mask=packet->cells[i].mask;
   }
 }
@@ -122,10 +159,12 @@ static int scalar_word_packet_equal(const M68kScalarWordPacket *packet,const M68
   size_t count=0U;
   for(size_t i=0U;i<state->base_slot_count;++i) {
     const M68kRenderTypedBaseSlot *slot=&state->base_slots[i];
-    if(!slot->known || !slot->storage_id || !slot->scalar_word_mask)continue;
+    if(!slot->known || !slot->scalar_word_mask)continue;
     if(!packet || count>=packet->count)return 0;
     size_t j=0U;
-    while(j<packet->count && packet->cells[j].id!=slot->storage_id)++j;
+    while(j<packet->count && !(slot->storage_id ? packet->cells[j].id==slot->storage_id :
+        !packet->cells[j].id && packet->cells[j].base_reg==slot->base_reg &&
+        packet->cells[j].displacement==slot->displacement))++j;
     if(j==packet->count || packet->cells[j].value!=slot->scalar_word_value ||
         packet->cells[j].mask!=slot->scalar_word_mask)return 0;
     ++count;
@@ -136,15 +175,16 @@ static int scalar_word_packet_equal(const M68kScalarWordPacket *packet,const M68
 static int scalar_word_packet_store(Arena *arena,M68kScalarWordPacket **output,const M68kRenderTypedState *state) {
   size_t count=0U;
   for(size_t i=0U;i<state->base_slot_count;++i)
-    count+=state->base_slots[i].known && state->base_slots[i].storage_id && state->base_slots[i].scalar_word_mask;
+    count+=state->base_slots[i].known && state->base_slots[i].scalar_word_mask;
   if(!count) {*output=NULL;return 1;}
   M68kScalarWordPacket *packet=arena_alloc(arena,sizeof(*packet)+count*sizeof(packet->cells[0]));
   if(!packet)return 0;
   packet->count=count;count=0U;
   for(size_t i=0U;i<state->base_slot_count;++i) {
     const M68kRenderTypedBaseSlot *slot=&state->base_slots[i];
-    if(!slot->known || !slot->storage_id || !slot->scalar_word_mask)continue;
+    if(!slot->known || !slot->scalar_word_mask)continue;
     packet->cells[count].id=slot->storage_id;packet->cells[count].value=slot->scalar_word_value;
+    packet->cells[count].base_reg=slot->base_reg;packet->cells[count].displacement=slot->displacement;
     packet->cells[count++].mask=slot->scalar_word_mask;
   }
   *output=packet;return 1;
@@ -154,12 +194,34 @@ static void scalar_word_note_writes(M68kRenderTypedState *state,const M68kRender
     const M68kRenderPlatformState *platform,size_t section,const M68kInstructionIR *instruction) {
   const M68kSimFormMetadata *meta=m68k_sim_metadata_for_instruction(instruction);
   if(!meta || meta->flow_kind==M68K_SIM_FLOW_CALL || meta->flow_kind==M68K_SIM_FLOW_TRAP || meta->sp_effect_count) {
-    typed_state_forget_memory_cells(state);return;
+    state->base_slot_count=0U;return;
+  }
+  uint16_t writes=m68k_sim_sp_effect_bound_register_write_mask(instruction);
+  for(size_t i=0U;i<instruction->operand_count && i<4U;++i)
+    writes|=platform_operand_register_write_mask(instruction,i);
+  for(size_t i=0U;i<state->base_slot_count;) {
+    const M68kRenderTypedBaseSlot *cell=&state->base_slots[i];
+    if(!cell->storage_id && (writes & (1U<<(8U+cell->base_reg))))
+      state->base_slots[i]=state->base_slots[--state->base_slot_count];
+    else ++i;
   }
   for(size_t i=0U;i<instruction->operand_count && i<4U;++i) {
     if(platform_operand_memory_access(instruction,i)!=M68K_SIM_ACCESS_MEMORY_WRITE)continue;
     uint8_t span=0U;
     (void)platform_operand_memory_span(instruction,i,NULL,NULL,&span);
+    uint8_t reg;int16_t displacement;
+    int relative=scalar_word_relative_key(lookup,state,platform,section,
+      &instruction->operands[i],&reg,&displacement);
+    for(size_t j=0U;j<state->base_slot_count;) {
+      const M68kRenderTypedBaseSlot *cell=&state->base_slots[j];
+      /* Different bases may alias. Only a plain same-An, decoded disjoint
+       * footprint preserves a relative WORD. No type-based separation. */
+      if(!cell->storage_id && (!relative || !span || cell->base_reg!=reg ||
+          ((int64_t)displacement+span>cell->displacement &&
+           (int64_t)cell->displacement+2>displacement)))
+        state->base_slots[j]=state->base_slots[--state->base_slot_count];
+      else ++j;
+    }
     typed_state_note_storage_write(state,lookup,platform,section,instruction,i,span);
   }
 }

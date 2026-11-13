@@ -119,6 +119,15 @@ Different incoming bounds are discarded conservatively at joins; unknown or
 unsupported writes retain the existing invalidation rules.
 
 Scalar memory cells currently retain known bits, not these range constraints.
+Masked WORD definitions also use the existing register-relative cells within a
+known record. The independent WORD solve borrows shared instruction-entry type
+context and keeps sparse numeric packets, not another per-node record state.
+Joins retain only agreed bits. Base-register writes, possible aliases, overlapping
+decoded footprints (including MOVEM), unknown calls and traps discard the cell;
+plain same-An disjoint writes can preserve it. Unknown records and app-base
+fallbacks supply no numeric invariant. No allocation separation or cross-call
+lifetime follows. Regressions: `tests/test_scalar_word_cells.py` and
+`tests/test_colour_pair_source_binding.py`.
 Direct calls retain a register packet only when the existing valid call summary
 explicitly preserves that D-register. Unknown/clobbering calls still discard it;
 no new call summary is inferred from the range or from the routine's name.

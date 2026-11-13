@@ -1501,6 +1501,11 @@ SG2AlternatePalettePacket_colours_13_14 RS.L 1
 SG2AlternatePalettePacket_colour_15 RS.W 1
 SG2AlternatePalettePacket_SIZEOF EQU __RS
 
+; STRUCT SG2VolcanoFaceColourPair
+    RSRESET
+SG2VolcanoFaceColourPair_phase_colours RS.W 1
+SG2VolcanoFaceColourPair_SIZEOF EQU __RS
+
 ADKF_CLRALL	EQU	$7FFF
 BPLCON2_PF2P2	EQU	$20
 BPLCON2_PF2PRI	EQU	$40
@@ -2014,6 +2019,16 @@ SG2_VIEW_DISTANCE_KEY_STEP	EQU	64
 SG2_VIEW_DISTANCE_SOFT_MAXIMUM	EQU	10000
 SG2_VIEW_DISTANCE_SOFT_MINIMUM	EQU	800
 SG2_VIEW_DOT_EXTRACTION_LEFT_SHIFT	EQU	2
+SG2_VOLCANO_ERUPTION_COLOUR_UPDATES	EQU	3
+SG2_VOLCANO_ERUPTION_RANDOM_MASK	EQU	7
+SG2_VOLCANO_ERUPTION_SCALE_BASE	EQU	6
+SG2_VOLCANO_ERUPTION_START_Y	EQU	-17000
+SG2_VOLCANO_REFILL_ENERGY_STEP	EQU	64
+SG2_VOLCANO_REFILL_HEIGHT_SHIFT	EQU	10
+SG2_VOLCANO_REFILL_PLAYER_Y_STEP	EQU	5
+SG2_VOLCANO_REFILL_POWER_STEP	EQU	128
+SG2_VOLCANO_REFILL_RANDOM_MASK	EQU	15
+SG2_VOLCANO_REFILL_XZ_WINDOW	EQU	200
 SG2_WEAPON_HUD_ICON_ROWS_DBF_LAST	EQU	13
 SG2_WEAPON_HUD_ICON_SAVED_BYTES	EQU	112
 SG2_WEAPON_HUD_ICON_SLOT_MASK	EQU	7
@@ -45393,7 +45408,7 @@ pop_dante_type47_free_slot:
 	movea.l -(a3),a4
 	move.l a3,free_object_stack_cursor(a6)
 	subq.w #1,free_object_count(a6)
-    ; Type47 setup writes position/header bytes but retains velocity, rotation and link words. Name entry47 is empty; no visual identity or allocation separation is inferred.
+    ; Dante phase2 reaches common retirement before motion. With one list and unchanged type47 limit10, eight increments precede release on call9; retained flags/velocity are not read.
     ; KNOWN: type A4=Target code-entry register seed:SG2WorldObject
 initialize_dante_type47_partial_record:
 	move.w #$2F,(a4)	; operand 2: SG2ObjectCore_object_type at (a4)
@@ -48899,113 +48914,125 @@ update_nearby_volcano:
 	andi.w #1,SG2Volcano_face_colour_pair_index(a0)
 	move.w SG2Volcano_face_colour_pair_index(a0),d0
 	subi.b #1,SG2Volcano_eruption_colour_countdown_or_negative(a0)
-	bpl.b abs_0_00036B74
+	bpl.b select_volcano_eruption_face_colours
+    ; Six two-BYTE pairs per bank feed six face-command low colour bytes. A masked0/1 phase indexes each pair; countdown subtraction-result sign chooses the bank.
+select_volcano_idle_face_colours:
 	move.b #$FF,SG2Volcano_eruption_colour_countdown_or_negative(a0)
 	lea.l abs_0_00028342.l,a1
 	lea.l volcano_face_colour_pairs_bank0.l,a3
-	move.b $0(a3,d0.w),$0001(a1)
+	move.b SG2VolcanoFaceColourPair_phase_colours(a3,d0.w),$0001(a1)
 	lea.l abs_0_0002834C.l,a1
 	lea.l abs_0_00039980.l,a3
-	move.b $0(a3,d0.w),$0001(a1)
+	move.b SG2VolcanoFaceColourPair_phase_colours(a3,d0.w),$0001(a1)
 	lea.l abs_0_00028356.l,a1
 	lea.l abs_0_00039982.l,a3
-	move.b $0(a3,d0.w),$0001(a1)
+	move.b SG2VolcanoFaceColourPair_phase_colours(a3,d0.w),$0001(a1)
 	lea.l abs_0_00028360.l,a1
 	lea.l abs_0_00039984.l,a3
-	move.b $0(a3,d0.w),$0001(a1)
+	move.b SG2VolcanoFaceColourPair_phase_colours(a3,d0.w),$0001(a1)
 	lea.l abs_0_0002836A.l,a1
 	lea.l abs_0_00039986.l,a3
-	move.b $0(a3,d0.w),$0001(a1)
+	move.b SG2VolcanoFaceColourPair_phase_colours(a3,d0.w),$0001(a1)
 	lea.l abs_0_00028374.l,a1
 	lea.l abs_0_00039988.l,a3
-	move.b $0(a3,d0.w),$0001(a1)
-	bra.b abs_0_00036BE0
-abs_0_00036B74:
+	move.b SG2VolcanoFaceColourPair_phase_colours(a3,d0.w),$0001(a1)
+	bra.b advance_volcano_refill_byte_countdown
+select_volcano_eruption_face_colours:
 	lea.l abs_0_00028342.l,a1
 	lea.l volcano_face_colour_pairs_bank1.l,a3
-	move.b $0(a3,d0.w),$0001(a1)
+	move.b SG2VolcanoFaceColourPair_phase_colours(a3,d0.w),$0001(a1)
 	lea.l abs_0_0002834C.l,a1
 	lea.l abs_0_0003998C.l,a3
-	move.b $0(a3,d0.w),$0001(a1)
+	move.b SG2VolcanoFaceColourPair_phase_colours(a3,d0.w),$0001(a1)
 	lea.l abs_0_00028356.l,a1
 	lea.l abs_0_0003998E.l,a3
-	move.b $0(a3,d0.w),$0001(a1)
+	move.b SG2VolcanoFaceColourPair_phase_colours(a3,d0.w),$0001(a1)
 	lea.l abs_0_00028360.l,a1
 	lea.l abs_0_00039990.l,a3
-	move.b $0(a3,d0.w),$0001(a1)
+	move.b SG2VolcanoFaceColourPair_phase_colours(a3,d0.w),$0001(a1)
 	lea.l abs_0_0002836A.l,a1
 	lea.l abs_0_00039992.l,a3
-	move.b $0(a3,d0.w),$0001(a1)
+	move.b SG2VolcanoFaceColourPair_phase_colours(a3,d0.w),$0001(a1)
 	lea.l abs_0_00028374.l,a1
 	lea.l abs_0_00039994.l,a3
-	move.b $0(a3,d0.w),$0001(a1)
-abs_0_00036BE0:
+	move.b SG2VolcanoFaceColourPair_phase_colours(a3,d0.w),$0001(a1)
+    ; BYTE countdown subtracts before testing N. A negative result writes FF; otherwise power adds128, weapon/shield64 with independent unsigned saturation, and player Y subtracts5.
+advance_volcano_refill_byte_countdown:
 	subi.b #1,volcano_refill_updates_or_negative.l
-	bpl.b abs_0_00036BF4
+	bpl.b lift_player_and_refill_power_near_volcano
 	move.b #$FF,volcano_refill_updates_or_negative.l
-	bra.b abs_0_00036C54
-abs_0_00036BF4:
+	bra.b advance_volcano_eruption_attempt_mod4
+lift_player_and_refill_power_near_volcano:
 	st.b panel_fast_animation_request(a6)
-	subi.l #5,player_world_y(a6)
+	subi.l #SG2_VOLCANO_REFILL_PLAYER_Y_STEP,player_world_y(a6)
 	move.w icarus_power_reserve(a6),d0
 	cmp.w #$FFFF,d0
-	beq.b abs_0_00036C1C
-	addi.w #128,d0
-	bcs.b abs_0_00036C16
+	beq.b refill_weapon_energy_near_volcano
+	addi.w #SG2_VOLCANO_REFILL_POWER_STEP,d0
+	bcs.b saturate_volcano_power_refill
 	move.w d0,icarus_power_reserve(a6)
-	bra.b abs_0_00036C1C
-abs_0_00036C16:
+	bra.b refill_weapon_energy_near_volcano
+saturate_volcano_power_refill:
 	move.w #$FFFF,icarus_power_reserve(a6)
-abs_0_00036C1C:
+refill_weapon_energy_near_volcano:
 	move.w weapon_energy_reserve(a6),d0
 	cmp.w #$FFFF,d0
-	beq.b abs_0_00036C38
-	addi.w #64,d0
-	bcs.b abs_0_00036C32
+	beq.b refill_shield_near_volcano
+	addi.w #SG2_VOLCANO_REFILL_ENERGY_STEP,d0
+	bcs.b saturate_volcano_weapon_refill
 	move.w d0,weapon_energy_reserve(a6)
-	bra.b abs_0_00036C38
-abs_0_00036C32:
+	bra.b refill_shield_near_volcano
+saturate_volcano_weapon_refill:
 	move.w #$FFFF,weapon_energy_reserve(a6)
-abs_0_00036C38:
+refill_shield_near_volcano:
 	move.w icarus_shield_strength(a6),d0
 	cmp.w #$FFFF,d0
-	beq.b abs_0_00036C54
-	addi.w #64,d0
-	bcs.b abs_0_00036C4E
+	beq.b advance_volcano_eruption_attempt_mod4
+	addi.w #SG2_VOLCANO_REFILL_ENERGY_STEP,d0
+	bcs.b saturate_volcano_shield_refill
 	move.w d0,icarus_shield_strength(a6)
-	bra.b abs_0_00036C54
-abs_0_00036C4E:
+	bra.b advance_volcano_eruption_attempt_mod4
+saturate_volcano_shield_refill:
 	move.w #$FFFF,icarus_shield_strength(a6)
-abs_0_00036C54:
+advance_volcano_eruption_attempt_mod4:
 	addq.w #1,SG2Volcano_eruption_attempt_mod4_index(a0)
 	andi.w #3,SG2Volcano_eruption_attempt_mod4_index(a0)
-	bne.w abs_0_00036D14
+	bne.w measure_volcano_refill_proximity
+sample_volcano_eruption_random_gate:
 	bsr.w advance_shared_random_state_bridge_038d20
-	andi.w #7,d0
-	bne.w abs_0_00036D14
+	andi.w #SG2_VOLCANO_ERUPTION_RANDOM_MASK,d0
+	bne.w measure_volcano_refill_proximity
+test_volcano_eruption_free_reserve:
 	cmpi.w #10,free_object_count(a6)
-	bls.w abs_0_00036D14
-	move.b #$3,SG2Volcano_eruption_colour_countdown_or_negative(a0)
+	bls.w measure_volcano_refill_proximity
+start_volcano_eruption_colour_countdown:
+	move.b #SG2_VOLCANO_ERUPTION_COLOUR_UPDATES,SG2Volcano_eruption_colour_countdown_or_negative(a0)
+pop_volcano_eruption_free_slot:
 	movea.l free_object_stack_cursor(a6),a3
 	movea.l -(a3),a4
 	move.l a3,free_object_stack_cursor(a6)
 	subq.w #1,free_object_count(a6)
+set_volcano_eruption_collision_exclusions:
 	move.b #$58,$002A(a4)
 	move.b #$2F,SG2TargetingObject_collision_ignored_object_type(a0)
+    ; Unlike Dante phase2, eruption phaseFF reaches ordinary updates if retained flags permit. Constructor retains flag/rotation/link bytes; five PRNG calls include the gate.
     ; KNOWN: type A4=Target code-entry register seed:SG2WorldObject
+initialize_volcano_type47_partial_record:
 	move.w #$2F,(a4)	; operand 2: SG2ObjectCore_object_type at (a4)
 	move.l SG2ObjectCore_world_x(a0),SG2ObjectCore_world_x(a4)
 	move.l SG2ObjectCore_world_z(a0),SG2ObjectCore_world_z(a4)
-	move.l #$FFFFBD98,d0
+scale_volcano_eruption_start_height:
+	move.l #SG2_VOLCANO_ERUPTION_START_Y,d0
 	move.b SG2ObjectCore_model_scale_shift(a0),d1
 	asr.l d1,d0
 	move.l d0,SG2ObjectCore_world_y(a4)
 	bset.b #7,SG2ObjectCore_durability_or_negative(a4)
 	move.b #$FF,SG2ObjectCore_retirement_phase_or_negative(a4)
 	move.b #$0,SG2ObjectCore_vertex_variant_selector(a4)
+choose_volcano_eruption_model_scale:
 	bsr.w advance_shared_random_state_bridge_038d20
 	andi.b #1,d0
-	addi.b #6,d0
+	addi.b #SG2_VOLCANO_ERUPTION_SCALE_BASE,d0
 	move.b d0,SG2ObjectCore_model_scale_shift(a4)
 	bsr.w advance_shared_random_state_bridge_038d20
     ; Mask 14 selects eight aligned velocity WORDs at byte offsets 0,2,...,14. X and Z use separate PRNG calls.
@@ -49024,35 +49051,38 @@ choose_volcano_eruption_velocity_y:
 	bsr.w advance_shared_random_state_bridge_038d20
 	andi.w #31,d0
 	sub.w d0,SG2WorldObject_velocity_y(a4)
-abs_0_00036D14:
-	move.l #$C8,d2
+measure_volcano_refill_proximity:
+	move.l #SG2_VOLCANO_REFILL_XZ_WINDOW,d2
 	move.l player_world_x(a6),d0
 	move.l player_world_z(a6),d1
 	sub.l SG2ObjectCore_world_x(a0),d0
-	bpl.b abs_0_00036D2A
+	bpl.b take_volcano_refill_z_separation_magnitude
 	neg.l d0
-abs_0_00036D2A:
+take_volcano_refill_z_separation_magnitude:
 	sub.l SG2ObjectCore_world_z(a0),d1
-	bpl.b abs_0_00036D32
+	bpl.b test_volcano_refill_horizontal_window
 	neg.l d1
-abs_0_00036D32:
+test_volcano_refill_horizontal_window:
 	cmp.l d2,d0
-	bpl.b abs_0_00036D66
+	bpl.b finish_volcano_update
 	cmp.l d2,d1
-	bpl.b abs_0_00036D66
+	bpl.b finish_volcano_update
+sample_volcano_refill_random_reload:
 	bsr.w advance_shared_random_state_bridge_038d20
-	andi.w #15,d0
-	bne.b abs_0_00036D66
+	andi.w #SG2_VOLCANO_REFILL_RANDOM_MASK,d0
+	bne.b finish_volcano_update
+    ; Only the low BYTE of wrapped (player Y-reference Y)>>10 reloads the counter. X/Z gates use subtraction-result N, not overflow-corrected signed comparison.
+reload_volcano_refill_byte_from_relative_height:
 	move.l player_world_y(a6),d1
 	lea.l world_reference_y_coordinates.l,a1
 	move.l $0004(a1),d2
 	neg.l d2
 	add.l d2,d1
-	move.b #$A,d3
+	move.b #SG2_VOLCANO_REFILL_HEIGHT_SHIFT,d3
 	lsr.l d3,d1
 	st.b pending_transient_event_sound(a6)
 	move.b d1,volcano_refill_updates_or_negative.l
-abs_0_00036D66:
+finish_volcano_update:
 	bra.w abs_0_00039D56
     ; KNOWN: type A0=Target code-entry register seed:SG2WorldObject
 update_nearby_falling_type47:
@@ -51042,7 +51072,7 @@ world_atmosphere_base_rgb_words:
 	dc.w $0FAA,$0FAA,$0FAA,$0FAA,$0FAA,$0FAA,$0FAA,$0720
 world_atmosphere_altitude_shifts:
 	dc.b $0D,$0A,$0A,$0B,$0C,$09,$09,$08,$0A,$0A,$0A,$0A,$0A,$0A,$0A,$08
-volcano_face_colour_pairs_bank0:
+volcano_face_colour_pairs_bank0:	; ARRAY SG2VolcanoFaceColourPair[6]
 	dc.b $05,$06
 abs_0_00039980:
 	dc.b $06,$01
@@ -51054,7 +51084,7 @@ abs_0_00039986:
 	dc.b $04,$05
 abs_0_00039988:
 	dc.b $01,$06
-volcano_face_colour_pairs_bank1:
+volcano_face_colour_pairs_bank1:	; ARRAY SG2VolcanoFaceColourPair[6]
 	dc.b $01,$03
 abs_0_0003998C:
 	dc.b $01,$03
@@ -51313,7 +51343,8 @@ asteroid_spawn_random_masks_stardrive:
 asteroid_spawn_region_phase_mod2:
 	dc.b $00
 volcano_refill_updates_or_negative:
-	dc.b $FF,$00
+	dc.b $FF
+	dc.b $00
 player_ejection_active_flag:
 	dc.b $00
 	dc.b $00

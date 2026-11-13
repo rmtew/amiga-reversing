@@ -6,8 +6,8 @@ claim of complete gameplay/hardware equivalence.
 
 ## Current validated baseline
 
-Current validated export: 3517 app references, 2829 typed accesses, 183 unresolved
-accesses; 9736 unclassified bytes in 273 intervals. These are analysis counts,
+Current validated export: 3517 app references, 2841 typed accesses, 183 unresolved
+accesses; 9735 unclassified bytes in 273 intervals. These are analysis counts,
 not semantic completion percentages. The phrase-counter
 references retain declared-layout A6 fallback; the role declaration adds no
 stronger base proof. The projector report arrays expose three additional
@@ -122,9 +122,14 @@ Original payload SHA256:
    gated selector shim at $380: return $13C06 selects record 145, other callers
    forward to the shared PRNG. This is conditional installed-media behavior,
    not a guarantee for arbitrary low-memory state or complete boot execution.
-   Dante type47 spawning retains velocity/rotation/link fields in the free slot.
-   Next: trace common update and free-slot producers before assigning a normal
-   velocity domain or a visual identity; original name entry47 is empty.
+   Dante type47 phase2 enters retirement before motion; with one list and the
+   unchanged limit10, eight increments precede release on call9. Volcano phaseFF
+   records supply velocities but retain flags that can alter/suppress motion.
+   A supplied duplicate-list pointer is released twice; normal list uniqueness
+   and free-slot flag producers remain separate obligations. Name entry47 is empty.
+   Six two-BYTE pairs per volcano colour bank now have twelve automatically
+   bounded readers via shared masked-record WORD transport. Refill storage is
+   one BYTE; its neighbor remains unknown. No visual identity or scanout claim.
    The world-pool rebuild gate at app+$7EE has a reader and a zeroing finalizer.
    Bulk save restoration covers it; a positive normal-game producer is still
    unknown. Its consumer name supplies no activation or lifetime invariant.
