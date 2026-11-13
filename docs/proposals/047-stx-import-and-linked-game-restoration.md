@@ -1,8 +1,10 @@
 # Proposal 047: STX import and linked game restoration
 
 Status: input access, pinned-reference comparison, native STX inspection and
-physical-sector access are implemented and tested. ST loader/payload recovery
-and the linked-release schema remain next. See
+physical-sector access are implemented and tested. The source-mapped ST main
+load and its native decoder witness are recovered; see
+[loader recovery](../targets/starglider2-st-loader-recovery.md). Linked-release
+artifact/target integration and normal-media boot qualification remain next. See
 [validation and limits](../validation/sgii-stx-reference-proof.md).
 
 ## Goal and order
@@ -168,8 +170,9 @@ exactness alone or require every unknown to be solved before a useful comparison
 ## Execution discipline
 
 The native reader milestone is delivered with the replacement validation above.
-Next follow the ST loader using the physical sector/source coordinates; raise
-requirements for new runtime or FDC capabilities before implementing them. Keep changes
+The ST loader recovery is delivered as a repeatable source-bound recipe; it is
+not a normal-media boot. Next integrate the artifacts through the shared model;
+raise requirements for new runtime or FDC capabilities before implementing them. Keep changes
 in substantial tested batches on the established master branch, with concise
 current status and no repeated observation bundles. Reuse persistent analysis
 processes and regenerate only at necessary validation checkpoints. No migration

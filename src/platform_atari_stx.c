@@ -179,7 +179,9 @@ static AtariStxReadResult read_sector(const AtariStxAnalysis *a, const AtariStxT
     if (s->status & SF(FUZZY)) return ATARI_STX_READ_FUZZY;
     /* Bit 5 is a preserved legacy track marker, used by the supplied image. */
     if ((t->flags & ~(TF(SECTOR_DESCRIPTORS) | TF(IMAGE) | TF(IMAGE_SYNC) | TF(LEGACY_MARKER))) ||
-        (t->record_type != 0 && t->record_type != 0xcc) || s->reserved || (s->id_size & ~LIMIT(SIZE_CODE_MASK))) return ATARI_STX_READ_UNSUPPORTED;
+        (t->record_type != 0 && t->record_type != 0xcc) || s->reserved) return ATARI_STX_READ_UNSUPPORTED;
+    /* Upper size-ID bits are intentional on some media. Storage uses the
+     * documented low two bits; exact CHRN matching still retains all bits. */
     if (s->status) return ATARI_STX_READ_STATUS;
     if (out_data) *out_data = a->data + s->offset;
     if (out_size) *out_size = s->size;

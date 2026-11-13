@@ -4,6 +4,7 @@
 #include "m68k_diagnostics.h"
 
 #include <stddef.h>
+#include <stdint.h>
 
 #ifdef _WIN32
 #define PLATFORM_DISK_API __declspec(dllexport)
@@ -34,6 +35,12 @@ PLATFORM_DISK_API int platform_disk_extract_entry_path_bytes_alloc(const char *p
 /* Physical STX indexes from inspect-disk; refuses unreliable stored data. */
 PLATFORM_DISK_API PlatformDiskBufferResult platform_disk_extract_stx_sector_path(const char *path,
     size_t track_index, size_t sector_index);
+/* Ordered explicit physical identities (track index, sector index). No FDC or
+ * implicit duplicate selection. All reads must be stable; output is all-or-none.
+ * The caller supplies a size bound to constrain repeated-sector recipes. */
+PLATFORM_DISK_API PlatformDiskBufferResult platform_disk_extract_stx_sectors_buffer(
+    const unsigned char *data, size_t size, const uint32_t *index_pairs,
+    size_t pair_count, size_t max_output_size);
 PLATFORM_DISK_API void platform_disk_free_text(char *text);
 PLATFORM_DISK_API void platform_disk_free_bytes(unsigned char *data);
 

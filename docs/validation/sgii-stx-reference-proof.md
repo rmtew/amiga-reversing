@@ -107,7 +107,9 @@ when normal reads are refused.
 `atari_stx_read_chrn` requires both physical cylinder/side and the exact sector
 ID bytes. It refuses ambiguous matches, including duplicate track instances.
 `atari_stx_read_instance` uses an explicit physical identity. Both refuse absent
-or fuzzy data, nonzero sector status and unsupported flags/record types. Failure
+or fuzzy data, nonzero sector status and unsupported flags/record types. Upper size-ID bits
+are preserved; the documented low-two-bit storage rule still permits a stable
+read. Failure
 clears the output pointer and length. They provide stored stable bytes; they do
 not implement WD1772 timing or disk rotation.
 
@@ -123,7 +125,9 @@ entries. This does **not** mean the disk has no files. The existing FAT reader
 still consumes flat images; it must not be fed an arbitrary flattened STX.
 Stable-sector access is ready for loader reads or a future mapped FAT adapter.
 No full-disk flattening, STX writing, FDC emulation, game boot or main-payload
-recovery is claimed. Amiga target source, assets and restoration state are not
+recovery is claimed by this reader proof. Subsequent source-mapped payload
+recovery is documented in [the loader result](../targets/starglider2-st-loader-recovery.md).
+Amiga target source, assets and restoration state are not
 changed by this reader milestone.
 
 ## Replacement validation

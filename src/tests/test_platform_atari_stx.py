@@ -181,7 +181,7 @@ class StxTests(PlatformDiskTestCaseMixin, unittest.TestCase):
             s=self.inspect_disk_buffer('atari-st-disk',data)['tracks'][0]['sectors'][0]
             self.assertEqual(s['id_size'],n)
             self.assertEqual(s['size'],128<<(n&3))
-            self.assertEqual(s['read_result'],6 if n>3 else 0)
+            self.assertEqual(s['read_result'],0)
 
     def test_variable_timing_revision_two_and_zero(self):
         for rev in [0,2]:

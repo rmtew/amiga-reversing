@@ -8,6 +8,12 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#ifdef _WIN32
+#define M68K_SIM_API __declspec(dllexport)
+#else
+#define M68K_SIM_API
+#endif
+
 #define M68K_SIM_TARGET_LIMIT 32U
 #define M68K_SIM_MEMORY_CELL_LIMIT 32U
 #define M68K_SIM_MEMORY_WRITE_LIMIT 8U
@@ -661,7 +667,7 @@ int m68k_simulate_run_concrete(uint8_t target_cpu, uint8_t *memory, size_t memor
 /* Bounded 68000 ordinary execution; memory_policy must be NULL.
  * Exceptions/traps and non-PC-only returns
  * are unsupported in observed mode. Existing unobserved ABI is unchanged. */
-int m68k_simulate_run_concrete_observed(uint8_t target_cpu, uint8_t *memory, size_t memory_size,
+M68K_SIM_API int m68k_simulate_run_concrete_observed(uint8_t target_cpu, uint8_t *memory, size_t memory_size,
     M68kSimConcreteState *io_state, size_t max_steps, uint32_t stop_pc_start, uint32_t stop_pc_end,
     const M68kSimConcreteMemoryPolicy *memory_policy, const M68kSimConcreteObserver *observer,
     M68kSimConcreteRunTraceResult *out_result);

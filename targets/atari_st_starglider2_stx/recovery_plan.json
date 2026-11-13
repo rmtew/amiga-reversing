@@ -1,0 +1,214 @@
+{
+  "schema_version": 1,
+  "kind": "stx_cpu_recovery",
+  "image_sha256": "6a25ccb01084c666241556e5f98fdfec260415bd9ca259ac688fddcaf99a2d22",
+  "memory_size": 524288,
+  "evidence": "docs/targets/starglider2-st-loader-recovery.md",
+  "inputs": [
+    {
+      "id": "boot_sector",
+      "track_start": 0,
+      "track_count": 1,
+      "side": 0,
+      "sector_ids": [
+        1
+      ],
+      "id_track": 0,
+      "id_head": 0,
+      "id_sizes": [
+        2
+      ]
+    },
+    {
+      "id": "initial_loader_dma",
+      "track_start": 2,
+      "track_count": 1,
+      "side": 0,
+      "sector_ids": [
+        245,
+        246,
+        247,
+        248,
+        249,
+        250
+      ],
+      "id_track": 247,
+      "id_head": 247,
+      "id_sizes": [
+        247,
+        247,
+        247,
+        247,
+        247,
+        246
+      ]
+    },
+    {
+      "id": "main_dma",
+      "track_start": 3,
+      "track_count": 75,
+      "side": 0,
+      "sector_ids": [
+        245,
+        246,
+        247,
+        248,
+        249,
+        250
+      ],
+      "id_track": 247,
+      "id_head": 247,
+      "id_sizes": [
+        247,
+        247,
+        247,
+        247,
+        247,
+        246
+      ]
+    }
+  ],
+  "actions": [
+    {
+      "op": "load",
+      "input": "boot_sector",
+      "address": 458752
+    },
+    {
+      "op": "run",
+      "purpose": "Boot copy/XOR: only the 424 source-backed bytes; stop before the uncaptured 88-byte source tail",
+      "start": 458802,
+      "stop": 0,
+      "max_steps": 429,
+      "expected_stop": "limit",
+      "writes": [
+        [
+          489472,
+          512
+        ]
+      ]
+    },
+    {
+      "op": "capture",
+      "file": "boot_loader_known_prefix.bin",
+      "address": 489472,
+      "size": 424,
+      "sha256": "0a1a4417a5de74def579272d4923495dc89c2081eee2a3d63b5aecca1ff8a781"
+    },
+    {
+      "op": "load",
+      "input": "initial_loader_dma",
+      "address": 4096
+    },
+    {
+      "op": "run",
+      "purpose": "Decode initial loader DMA block; stop before the palette write",
+      "start": 489760,
+      "stop": 489788,
+      "max_steps": 10000,
+      "expected_stop": "pc",
+      "writes": [
+        [
+          4096,
+          5124
+        ]
+      ]
+    },
+    {
+      "op": "capture",
+      "file": "initial_loader_dma_decoded.bin",
+      "address": 4096,
+      "size": 5632,
+      "sha256": "3c8c515e3a696c1bc18caf1facf694d5e9d7eab98cf66b656760f86a438e3014"
+    },
+    {
+      "op": "run",
+      "purpose": "Copy the protected helper and execute its subtract, XOR and rotate decoder passes",
+      "start": 4096,
+      "stop": 490546,
+      "max_steps": 10000,
+      "expected_stop": "pc",
+      "writes": [
+        [
+          490496,
+          512
+        ]
+      ]
+    },
+    {
+      "op": "run",
+      "purpose": "Execute helper NOT pass after its palette/PSG setup; these hardware writes are outside this CPU proof",
+      "start": 490576,
+      "stop": 490592,
+      "max_steps": 3000,
+      "expected_stop": "pc",
+      "writes": [
+        [
+          490592,
+          404
+        ]
+      ]
+    },
+    {
+      "op": "capture",
+      "file": "main_loader_helper.bin",
+      "address": 490496,
+      "size": 512,
+      "sha256": "7d2a7f8f3c1a842e4a65b3f6873cbb4cc425961dfef24ea96d8b1d6d46f0fde3"
+    },
+    {
+      "op": "load",
+      "input": "main_dma",
+      "address": 4096
+    },
+    {
+      "op": "run",
+      "purpose": "Decode main payload from mapped disk reads; stop before the original platform-selector store",
+      "start": 490892,
+      "stop": 490920,
+      "max_steps": 800000,
+      "expected_stop": "pc",
+      "writes": [
+        [
+          4096,
+          419308
+        ]
+      ]
+    },
+    {
+      "op": "capture",
+      "file": "main_decoded.bin",
+      "address": 4096,
+      "size": 419308,
+      "sha256": "aca0db39a5657c952c5365e0201ac589cfdb53ea005c88d20a096d5891fae4ff"
+    },
+    {
+      "op": "run",
+      "purpose": "Execute original loader platform-selector store and final jump",
+      "start": 490920,
+      "stop": 4096,
+      "max_steps": 4,
+      "expected_stop": "pc",
+      "writes": [
+        [
+          4098,
+          2
+        ]
+      ]
+    },
+    {
+      "op": "capture",
+      "file": "main_at_st_handoff.bin",
+      "address": 4096,
+      "size": 419308,
+      "sha256": "20c19400180d7e846b78aa615b68446293f8ca54015c4f4a42a77f03b24e8260"
+    },
+    {
+      "op": "capture",
+      "file": "main_dma_buffer_at_handoff.bin",
+      "address": 4096,
+      "size": 422400,
+      "sha256": "4d07f199725f1d37b08a4a16432df6c7f708046444669a24fa26cfba87b600ae"
+    }
+  ]
+}

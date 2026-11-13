@@ -1589,3 +1589,42 @@ done:
     atari_stx_destroy(&a); arena_destroy(arena);
     return result;
 }
+
+PLATFORM_DISK_API PlatformDiskBufferResult platform_disk_extract_stx_sectors_buffer(
+    const unsigned char *data, size_t size, const uint32_t *index_pairs,
+    size_t pair_count, size_t max_output_size) {
+    PlatformDiskBufferResult result = {0};
+    AtariStxAnalysis a = {0};
+    size_t i, total = 0, pos = 0;
+    M68kDiagSink diagnostics = m68k_diag_sink(&result.diagnostics);
+    if (index_pairs == NULL || pair_count == 0 || pair_count > 65536 || max_output_size == 0) {
+        platform_disk_add_error(&result.diagnostics, "invalid STX sector assembly request");
+        return result;
+    }
+    if (atari_stx_analyze(data, size, &a, diagnostics) != 0) return result;
+    for (i = 0; i < pair_count; ++i) {
+        size_t length = 0;
+        AtariStxReadResult status = atari_stx_read_instance(&a, index_pairs[2*i], index_pairs[2*i+1], NULL, &length);
+        if (status != ATARI_STX_READ_OK) {
+            m68k_diag_addf(diagnostics, M68K_DIAG_SEVERITY_ERROR, M68K_DIAG_CODE_PLATFORM_DISK_FAILED,
+                "STX assembly read %zu refused (result %u)", i, (unsigned)status);
+            goto done;
+        }
+        if (length > max_output_size - total) {
+            platform_disk_add_error(&result.diagnostics, "STX assembly exceeds output size bound");
+            goto done;
+        }
+        total += length;
+    }
+    result.data = malloc(total ? total : 1);
+    if (result.data == NULL) { platform_disk_add_error(&result.diagnostics, "out of memory"); goto done; }
+    for (i = 0; i < pair_count; ++i) {
+        const AtariStxSector *s = &a.tracks[index_pairs[2*i]].sectors[index_pairs[2*i+1]];
+        memcpy(result.data + pos, a.data + s->offset, s->size);
+        pos += s->size;
+    }
+    result.size = total;
+done:
+    atari_stx_destroy(&a);
+    return result;
+}
