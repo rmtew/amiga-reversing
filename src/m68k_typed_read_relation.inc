@@ -242,6 +242,18 @@ static void typed_read_defer_source_domain(M68kRenderLookup *lookup, const M68kR
 
 /* A contracted selector is a field of this exact record element, not a
  * similarly typed pointer elsewhere. Admission already validates its WORD. */
+static int typed_tag_layout_accepts_base(const M68kRenderLookup *lookup,
+    const M68kAnalysisCustomStruct *child, uint16_t base_type) {
+  uint16_t parent_type = lookup_policy_struct_id_by_name(lookup->policy, child->base_struct);
+  if (!child->tag_root_struct[0]) return parent_type == base_type;
+  const M68kAnalysisCustomStruct *root = m68k_analysis_policy_custom_struct_tag_root(lookup->policy, child);
+  if (!root) return 0;
+  uint16_t root_type = lookup_policy_struct_id_by_name(lookup->policy, root->name);
+  uint16_t view_type = (uint16_t)(M68K_ANALYSIS_CUSTOM_STRUCT_ID_BASE + (child - lookup->policy->custom_structs));
+  return typed_struct_id_common_merge(lookup->policy, root_type, base_type) == root_type &&
+    typed_struct_id_common_merge(lookup->policy, view_type, base_type) == base_type;
+}
+
 static int typed_tag_selector_matches(const M68kRenderLookup *lookup,
     const M68kRenderTypedRegValue *base, int32_t field_cursor) {
   if (!lookup || !base || !base->known || base->type_conflicted || base->byte_cursor ||
@@ -249,7 +261,7 @@ static int typed_tag_selector_matches(const M68kRenderLookup *lookup,
   for (size_t k = 0U; k < lookup->tagged_layout_count; ++k) {
     const M68kAnalysisCustomStruct *child = &lookup->policy->custom_structs[lookup->tagged_layout_ids[k]];
     if (child->has_tag_guard && child->tag_offset == (uint32_t)field_cursor &&
-        lookup_policy_struct_id_by_name(lookup->policy, child->base_struct) == base->struct_id) return 1;
+        typed_tag_layout_accepts_base(lookup, child, base->struct_id)) return 1;
   }
   return 0;
 }
@@ -396,13 +408,19 @@ static void typed_tag_refine_value(M68kRenderLookup *lookup, M68kRenderTypedStat
   const M68kRenderScalarReadRelation *read = &lookup->scalar_read_relations[handle / 2U - 1U];
   if (read->tag_kind != 1U) return;
   M68kRenderScalarReadRelation view = *read;
+  uint16_t selected = UINT16_MAX;
   for (size_t k = 0U; k < lookup->tagged_layout_count; ++k) {
     uint16_t i = lookup->tagged_layout_ids[k];
     const M68kAnalysisCustomStruct *child = &lookup->policy->custom_structs[i];
     if (child->has_tag_guard && child->tag_offset == (uint32_t)view.field_cursor &&
         child->tag_value == tag_value &&
-        lookup_policy_struct_id_by_name(lookup->policy, child->base_struct) == view.base_type) {
-      view.tag_kind = 2U; view.view_type = (uint16_t)(M68K_ANALYSIS_CUSTOM_STRUCT_ID_BASE + i);
+        typed_tag_layout_accepts_base(lookup, child, view.base_type)) {
+      if (selected != UINT16_MAX) return; /* Overlapping namespaces are ambiguous. */
+      selected = i;
+    }
+  }
+  if (selected != UINT16_MAX) {
+      view.tag_kind = 2U; view.view_type = (uint16_t)(M68K_ANALYSIS_CUSTOM_STRUCT_ID_BASE + selected);
       uint16_t view_handle = typed_read_intern(lookup, &view);
       if (!view_handle) return;
       /* Only a field view changes. The underlying value's declared type,
@@ -415,7 +433,6 @@ static void typed_tag_refine_value(M68kRenderLookup *lookup, M68kRenderTypedStat
       TYPED_READ_VISIT_VALUES(state, REFINE_TAG);
 #undef REFINE_TAG
       return;
-    }
   }
 }
 

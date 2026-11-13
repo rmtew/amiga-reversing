@@ -1668,6 +1668,20 @@ const M68kAnalysisCustomStruct *m68k_analysis_policy_custom_struct_parent(
   return NULL;
 }
 
+/* An explicit selector namespace must be an inherited, equally backed prefix.
+ * Omission retains the historical immediate-parent contract. */
+const M68kAnalysisCustomStruct *m68k_analysis_policy_custom_struct_tag_root(
+    const M68kAnalysisPolicy *policy, const M68kAnalysisCustomStruct *record) {
+  const M68kAnalysisCustomStruct *parent = m68k_analysis_policy_custom_struct_parent(policy, record);
+  if (!record || !record->tag_root_struct[0]) return parent;
+  for (uint16_t depth = 0U; parent && depth <= policy->custom_struct_count; ++depth) {
+    if (!strcmp(parent->name, record->tag_root_struct))
+      return parent->size == record->size ? parent : NULL;
+    parent = m68k_analysis_policy_custom_struct_parent(policy, parent);
+  }
+  return NULL;
+}
+
 const M68kAnalysisCustomStructField *m68k_analysis_policy_custom_struct_field_at(
     const M68kAnalysisPolicy *policy, const M68kAnalysisCustomStruct *record,
     uint32_t offset, uint32_t width, const M68kAnalysisCustomStruct **out_owner) {
@@ -1762,8 +1776,9 @@ int m68k_analysis_policy_custom_structs_valid(const M68kAnalysisPolicy *policy) 
   for (uint16_t i = 0U; i < policy->custom_struct_count; ++i) {
     const M68kAnalysisCustomStruct *child = &policy->custom_structs[i], *current = child;
     uint16_t depth = 0U;
+    if (child->tag_root_struct[0] && !child->has_tag_guard) return 0;
     if (child->has_tag_guard) {
-      const M68kAnalysisCustomStruct *parent = m68k_analysis_policy_custom_struct_parent(policy, child);
+      const M68kAnalysisCustomStruct *parent = m68k_analysis_policy_custom_struct_tag_root(policy, child);
       const M68kAnalysisCustomStructField *tag = parent ?
         m68k_analysis_policy_custom_struct_field_at(policy, parent, child->tag_offset, 2U, NULL) : NULL;
       if (!parent || child->size < 2U || child->size != parent->size || child->tag_offset > child->size - 2U ||
@@ -1772,7 +1787,7 @@ int m68k_analysis_policy_custom_structs_valid(const M68kAnalysisPolicy *policy) 
           tag->value_kind) return 0;
       for (uint16_t j = 0U; j < i; ++j) {
         const M68kAnalysisCustomStruct *other = &policy->custom_structs[j];
-        if (other->has_tag_guard && !strcmp(other->base_struct, child->base_struct) &&
+        if (other->has_tag_guard && m68k_analysis_policy_custom_struct_tag_root(policy, other) == parent &&
             (other->tag_offset != child->tag_offset || other->tag_value == child->tag_value)) return 0;
       }
     }

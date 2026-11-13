@@ -771,6 +771,9 @@ typedef struct M68kAnalysisCustomStruct {
   uint8_t has_tag_guard;
   uint16_t tag_value;
   uint32_t tag_offset;
+  /* Optional explicit discriminator namespace, separate from layout ancestry.
+   * Empty preserves the legacy immediate-parent selector contract. */
+  char tag_root_struct[64];
 } M68kAnalysisCustomStruct;
 
 typedef struct M68kAnalysisManualRuntimeAddressRef {
@@ -3084,6 +3087,8 @@ int m68k_analysis_policy_layout_constant(const M68kAnalysisPolicy *policy,
 /* 1 unique emitted declaration, 0 absent, -1 ambiguous. */
 int m68k_analysis_policy_find_layout_constant(const M68kAnalysisPolicy *policy,
     const char *name, uint16_t *struct_index, uint16_t *field_index, uint32_t *value);
+const M68kAnalysisCustomStruct *m68k_analysis_policy_custom_struct_tag_root(
+    const M68kAnalysisPolicy *policy, const M68kAnalysisCustomStruct *record);
 const M68kAnalysisCustomStruct *m68k_analysis_policy_custom_struct_parent(
     const M68kAnalysisPolicy *policy, const M68kAnalysisCustomStruct *record);
 const M68kAnalysisCustomStructField *m68k_analysis_policy_custom_struct_field_at(

@@ -1554,6 +1554,7 @@ class _M68kAnalysisCustomStruct(ctypes.Structure):
         ("has_tag_guard", ctypes.c_uint8),
         ("tag_value", ctypes.c_uint16),
         ("tag_offset", ctypes.c_uint32),
+        ("tag_root_struct", ctypes.c_char * 64),
     ]
 
 

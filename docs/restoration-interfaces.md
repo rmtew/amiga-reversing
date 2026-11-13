@@ -61,6 +61,12 @@ on a same-sized custom child. Together they declare that equality of the
 inherited WORD field selects that layout; they do not derive an invariant from
 initial bytes. Siblings must use one selector with distinct unsigned WORD tags.
 Unknown parents, non-WORD/interior selectors and resized layouts refuse import.
+An optional `tag_root_struct` explicitly places the discriminator in a same-sized
+inherited ancestor namespace, allowing compatible intermediate input views to
+select a leaf layout without duplicating inherited fields. Omission retains the
+immediate-parent namespace. Unrelated roots, incompatible input views and
+ambiguous overlapping matches refuse refinement; all existing invalidation
+rules still apply.
 
 Typed flow transports the existing read handle through register copies. An
 equality edge or an exact full-WORD MOVE of one known tag value can establish

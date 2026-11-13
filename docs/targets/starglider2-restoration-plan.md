@@ -6,7 +6,7 @@ claim of complete gameplay/hardware equivalence.
 
 ## Current validated baseline
 
-Current validated export: 3517 app references, 2844 typed accesses, 180 unresolved
+Current validated export: 3517 app references, 2845 typed accesses, 179 unresolved
 accesses; 9681 unclassified bytes in 271 intervals. These are analysis counts,
 not semantic completion percentages. The phrase-counter
 references retain declared-layout A6 fallback; the role declaration adds no
@@ -44,24 +44,17 @@ Original payload SHA256:
 
 ## Active queue
 
-Shared bomb initialization, complete bouncing launch and guarded contact routing
-have 516 new original-CPU cases. Type91 overlays BYTE+$22 with its phase WORD
-high byte; WORD+$26 is the animation mask. Non-resting phase logic clears the
-high byte with the initial mask0/first-bounce mask3; resting returns preserve it.
-This does NOT select ordinary bomb hit credit: peer91 enters the special-target
-filter and peer98 goes directly to award, bypassing the BYTE tests. The earlier
-isolated-branch implication is withdrawn. Types12/84/103 take separate response
-paths. Type98 shares initialization without the same animation role, so no
-common tracking layout is asserted. Bouncing launch clamps a negative inventory
-BYTE but still allocates; guard/HUD/partial-record ordering remains explicit.
-These are supplied CPU windows, not geometry, final awards, normal-play
-reachability or ownership proofs. Native access counts/proofs are unchanged.
+The guarded type10 encounter counter now resolves through an explicit inherited
+selector namespace, without widening Core or adding a reader seed. Existing
+contracts retain immediate-parent matching; incompatible inputs, overlapping
+matches and tag/write/call invalidations remain conservative. The earlier bomb
+phase-byte implication for ordinary hit credit remains withdrawn.
 
 1. Exact tag stores, bounded MOVEM cursors and opaque leading-record address
    identities are supported. Undeclared prefix bytes retain no field meaning.
    Next: stored-pointer lifetime in item 2; do not add per-reader type seeds
    or assume disjoint allocations.
-   Of 60 Core gaps, 33 are LONG zeroing stores starting in unnamed portions
+   Of 59 Core gaps, 33 are LONG zeroing stores starting in unnamed portions
    of three 68-byte clears. Known starting-field operands already resolve.
    Other Core bytes are polymorphic: rotations overlap spheroid colour/delay state. Do not widen Core to WorldObject; obtain a
    specific tagged or caller context for the remaining role interpretations.

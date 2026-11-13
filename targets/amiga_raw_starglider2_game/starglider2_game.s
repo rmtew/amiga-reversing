@@ -1508,6 +1508,11 @@ SG2AlternatePalettePacket_SIZEOF EQU __RS
 SG2VolcanoFaceColourPair_phase_colours RS.W 1
 SG2VolcanoFaceColourPair_SIZEOF EQU __RS
 
+; STRUCT SG2MechanicalWhale
+    RSRESET
+    RS.B 68
+SG2MechanicalWhale_SIZEOF EQU __RS
+
 ADKF_CLRALL	EQU	$7FFF
 BPLCON2_PF2P2	EQU	$20
 BPLCON2_PF2PRI	EQU	$40
@@ -1661,6 +1666,7 @@ SG2_DUCK_UPPER_TURN_VARIANT	EQU	7
 SG2_EFFECT_FADE_BYTE_SHIFT	EQU	3
 SG2_EFFECT_RANDOM_RGB_MASK	EQU	$FFF
 SG2_ENCOUNTER_CHOICE_INDEX_MASK	EQU	15
+SG2_ENCOUNTER_WHALE_INITIAL_BEHAVIOR_COUNTER	EQU	1000
 SG2_ENERGY_GATE_OBJECT_SKIP_VARIANT	EQU	6
 SG2_ENERGY_GATE_PLAYER_SKIP_VARIANT	EQU	6
 SG2_FACE_CACHE_REFRESH_PHASE_MASK	EQU	3
@@ -45293,12 +45299,13 @@ initialize_encounter_choice_type_defaults:
 	clr.w $0010(a4)
 	ori.w #1,$0010(a4)
 	cmpi.w #SG2_OBJECT_TYPE_BOUNCING_BOMB,(a4)	; operand 2: SG2ObjectCore_object_type at (a4)
-	bne.b abs_0_0003388A
+	bne.b test_encounter_mechanical_whale_initialization
 	bset.b #7,SG2ObjectCore_flags(a4)
-abs_0_0003388A:
+test_encounter_mechanical_whale_initialization:
 	cmpi.w #SG2_OBJECT_TYPE_EGRON_MECHANICAL_WHALE,(a4)	; operand 2: SG2ObjectCore_object_type at (a4)
 	bne.b abs_0_00033896
-	move.w #$3E8,$0024(a4)
+initialize_encounter_whale_behavior_counter:
+	move.w #SG2_ENCOUNTER_WHALE_INITIAL_BEHAVIOR_COUNTER,SG2ScheduledActor_behavior_update_counter(a4)
 abs_0_00033896:
 	cmpi.w #SG2_OBJECT_TYPE_PIRATE_SHIP,(a4)	; operand 2: SG2ObjectCore_object_type at (a4)
 	bne.b snapshot_world_transition_space_state

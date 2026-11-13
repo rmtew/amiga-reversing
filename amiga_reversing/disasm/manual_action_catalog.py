@@ -2722,12 +2722,17 @@ def _custom_struct_payload(params: Mapping[str, object]) -> dict[str, object]:
     if base_offset is not None:
         struct["base_offset"] = base_offset
     tag_offset, tag_value = params.get("tag_offset"), params.get("tag_value")
-    if tag_offset is not None or tag_value is not None:
+    tag_root = params.get("tag_root_struct")
+    if tag_offset is not None or tag_value is not None or tag_root is not None:
         if (type(tag_offset) is not int or type(tag_value) is not int or
                 not 0 <= tag_offset <= size - 2 or not 0 <= tag_value <= 65535 or
                 not params.get("base_struct")):
             raise ValueError("tag guard requires inherited WORD offset and unsigned WORD value")
         struct.update(tag_offset=tag_offset, tag_value=tag_value)
+        if tag_root is not None:
+            if not isinstance(tag_root, str) or not tag_root.strip() or len(tag_root.strip().encode("utf-8")) > 63:
+                raise ValueError("tag_root_struct requires a nonempty native struct name of at most 63 bytes")
+            struct["tag_root_struct"] = tag_root.strip()
     for field_name in ("base_struct", "available_since"):
         value = params.get(field_name)
         if isinstance(value, str) and value.strip():
@@ -3906,6 +3911,7 @@ def _custom_struct_parameter_schema() -> dict[str, object]:
             "base_struct": {"type": "string"},
             "tag_offset": {"type": "integer", "minimum": 0},
             "tag_value": {"type": "integer", "minimum": 0, "maximum": 65535},
+            "tag_root_struct": {"type": "string"},
             "available_since": {"type": "string", "default": "1.0"},
         },
         "required": ["name", "size"],

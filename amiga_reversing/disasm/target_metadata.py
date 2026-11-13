@@ -787,15 +787,21 @@ class CustomStructMetadata:
     base_struct: str | None = None
     tag_offset: int | None = None
     tag_value: int | None = None
+    tag_root_struct: str | None = None
     available_since: str = "1.0"
 
     def __post_init__(self) -> None:
         _assert_target_metadata_review_fields(self.seed_origin, self.review_status)
-        if self.tag_offset is not None or self.tag_value is not None:
+        if self.tag_offset is not None or self.tag_value is not None or self.tag_root_struct is not None:
             if (type(self.tag_offset) is not int or type(self.tag_value) is not int or
                     not self.base_struct or not 0 <= self.tag_offset <= self.size - 2 or
                     not 0 <= self.tag_value <= 65535):
                 raise ValueError("tag guard requires inherited WORD offset and unsigned WORD value")
+            if self.tag_root_struct is not None and (
+                not isinstance(self.tag_root_struct, str) or not self.tag_root_struct.strip()
+                or len(self.tag_root_struct.encode("utf-8")) > 63
+            ):
+                raise ValueError("tag_root_struct requires a nonempty native struct name of at most 63 bytes")
 
     @classmethod
     def from_dict(cls, payload: dict[str, object]) -> CustomStructMetadata:
@@ -833,6 +839,7 @@ class CustomStructMetadata:
             base_struct=base_struct,
             tag_offset=payload.get("tag_offset"),
             tag_value=payload.get("tag_value"),
+            tag_root_struct=payload.get("tag_root_struct"),
             available_since=available_since,
         )
 
@@ -2246,7 +2253,7 @@ def target_metadata_json_payload(metadata: TargetMetadata) -> dict[str, object]:
             if entity.get(key) is None:
                 entity.pop(key, None)
     for struct in payload.get("custom_structs", ()):
-        for key in ("tag_offset", "tag_value"):
+        for key in ("tag_offset", "tag_value", "tag_root_struct"):
             if struct.get(key) is None:
                 struct.pop(key, None)
         for field in struct.get("fields", ()):
