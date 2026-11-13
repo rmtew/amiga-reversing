@@ -1,0 +1,10 @@
+{
+  "created_at": "2026-11-13T22:01:35.241860+00:00",
+  "origin": {
+    "family": "starglider2",
+    "kind": "artifact_target",
+    "target": "atari_st_starglider2_protection_view"
+  },
+  "schema_version": 2,
+  "updated_at": "2026-11-13T22:10:19.288924+00:00"
+}

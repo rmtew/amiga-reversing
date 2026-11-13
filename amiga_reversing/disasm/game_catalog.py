@@ -71,13 +71,14 @@ def validate(payload, root):
     producers={}
     for name,d in payload['derivations'].items():
         identity(name);object_keys(d,'kind input recipe recipe_sha256 outputs')
-        if d['kind'] != 'stx_cpu_recovery' or d['input'] not in artifacts or not isinstance(d['outputs'],dict):
+        if d['kind'] not in ('stx_cpu_recovery', 'mapped_cpu_recovery') or d['input'] not in artifacts or not isinstance(d['outputs'],dict):
             raise ValueError('unsupported artifact derivation')
         recipe=relative(root,d['recipe'])
         if digest(recipe.read_bytes()) != sha(d['recipe_sha256']): raise ValueError('stale recovery recipe identity')
         plan=json.loads(recipe.read_text())
         expected={a['file']:a['sha256'] for a in plan['actions'] if a.get('op')=='capture'}
-        if plan['image_sha256'] != d['input'] or expected != d['outputs']:
+        input_key = 'image_sha256' if d['kind'] == 'stx_cpu_recovery' else 'source_sha256'
+        if plan['kind'] != d['kind'] or plan[input_key] != d['input'] or expected != d['outputs']:
             raise ValueError('derivation differs from bound recovery recipe')
         for filename,artifact in d['outputs'].items():
             if artifact not in artifacts: raise ValueError('unknown derived artifact')
@@ -101,7 +102,7 @@ def validate(payload, root):
                 raise ValueError('existing target binding lacks its authoritative source')
         else:
             object_keys(context,'kind address_model load_address entrypoint code_start_offset phase')
-            if context['phase'] not in ('pre_handoff','handoff'): raise ValueError('invalid target phase')
+            if context['phase'] not in ('pre_handoff','handoff','decoded_snapshot'): raise ValueError('invalid target phase')
             if context['kind'] != 'raw' or context['address_model'] not in ('runtime_absolute','local_offset'):
                 raise ValueError('invalid raw target context')
             for key in ('load_address','entrypoint','code_start_offset'):
@@ -248,6 +249,9 @@ def materialize(root, family_id, artifact, _stack=frozenset()):
         d,filename=choices[0]
         parent=materialize(root,family_id,d['input'],_stack|{artifact})
         from .stx_recovery import recover
+        if d['kind'] == 'mapped_cpu_recovery':
+            from .mapped_recipe import recover_mapped
+            recover = recover_mapped
         _,outputs=recover(parent.read_bytes(),json.loads(relative(root,d['recipe']).read_text()),project_root=root)
         data=checked(outputs[filename])
         # Cache all proven outputs once, never keep re-running the same decoder

@@ -105,8 +105,9 @@ jump take two more. Native execution matches an independently calculated private
 recovery of the same bytes. The boot sector and fully decoded helper each
 reassemble exactly through the native Atari raw-source API and independent
 vasm (`-m68000 -no-opt -Fbin`). The instruction-only `assemble-file` CLI is not
-the platform-source assembler. No full main-source restoration or exact build
-of a restored main-source package is claimed yet.
+the platform-source assembler. The subsequent [linked ST analysis](starglider2-linked-startup.md)
+now reproduces the full main source exactly with C and 68000 vasm. This is not
+a claim of complete semantic restoration or a normal ST boot.
 
 ## Tests and next work
 
@@ -119,10 +120,11 @@ checks remain applicable. The complete affected run has 68 tests: 67 pass; one
 existing Ice-ADF test is skipped because its private fixture is absent. The
 Windows export declarations are present; execution was tested on Linux.
 
-Next import the source-bound artifacts as ST release targets through the shared
-artifact/release model in proposal 047. Use load `$1000`, with pre-store and
-handoff states kept distinct. Then analyze the ST startup and loader/runtime
-reads before claiming that all required media or runtime initialization is
-recovered. Do not resume unrelated Amiga naming or reconstruction work. A normal
-media boot needs an ST-capable machine/FDC path; Copperline is an Amiga emulator
-and is not evidence of that boot.
+The source-bound artifacts are now linked ST release targets through the shared
+catalog in proposal 047. Pre-store and handoff states remain distinct at load
+`$1000`; a separate source-derived view holds the decoded novella check. See
+[linked startup and protection analysis](starglider2-linked-startup.md).
+Next qualify wider ST initialization and runtime reads before claiming that all
+required media or runtime state is recovered. Unrelated Amiga reconstruction
+remains paused. A normal media boot needs an ST-capable machine/FDC path;
+Copperline is an Amiga emulator and is not evidence of that boot.

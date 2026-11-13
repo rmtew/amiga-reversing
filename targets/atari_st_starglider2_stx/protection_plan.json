@@ -1,0 +1,65 @@
+{
+  "schema_version": 1,
+  "kind": "mapped_cpu_recovery",
+  "source_sha256": "20c19400180d7e846b78aa615b68446293f8ca54015c4f4a42a77f03b24e8260",
+  "memory_size": 524288,
+  "evidence": "docs/targets/starglider2-linked-startup.md",
+  "inputs": [
+    {
+      "id": "handoff",
+      "offset": 0,
+      "size": 419308
+    }
+  ],
+  "actions": [
+    {
+      "op": "load",
+      "input": "handoff",
+      "address": 4096
+    },
+    {
+      "op": "run",
+      "purpose": "Original subtraction loop: fixed range and incrementing key",
+      "start": 7950,
+      "stop": 7984,
+      "max_steps": 7000,
+      "expected_stop": "pc",
+      "writes": [
+        [
+          78304,
+          9192
+        ]
+      ]
+    },
+    {
+      "op": "run",
+      "purpose": "Replay original LEA/count setup without repeating subtraction; no invented register state",
+      "start": 7950,
+      "stop": 7970,
+      "max_steps": 8,
+      "expected_stop": "pc",
+      "writes": []
+    },
+    {
+      "op": "run",
+      "purpose": "Original high-WORD left-two and low-WORD right-three rotation loop under the reconstructed count",
+      "start": 8032,
+      "stop": 8046,
+      "max_steps": 14000,
+      "expected_stop": "pc",
+      "writes": [
+        [
+          78304,
+          9192
+        ]
+      ]
+    },
+    {
+      "op": "capture",
+      "file": "novella_protection_view.bin",
+      "address": 78304,
+      "size": 9768,
+      "sha256": "9be0a7243fce8c7202abb71271994f4f3ef654c15c559f9e1868c86f9c67082d"
+    }
+  ]
+}

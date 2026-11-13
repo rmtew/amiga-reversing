@@ -54,6 +54,14 @@
     "4d07f199725f1d37b08a4a16432df6c7f708046444669a24fa26cfba87b600ae": {
       "size": 422400,
       "role": "main_dma_buffer_at_handoff"
+    },
+    "9be0a7243fce8c7202abb71271994f4f3ef654c15c559f9e1868c86f9c67082d": {
+      "size": 9768,
+      "role": "ST novella-protection decoded analysis view and unchanged helper context"
+    },
+    "de8358853dd9ed9b006a23569bf393aa217ed3be3301a169465d80bfaf839922": {
+      "size": 3548,
+      "role": "existing reviewed Amiga novella-protection analysis view"
     }
   },
   "sources": {
@@ -68,6 +76,10 @@
     "662976920689c38fd47271ed7e656a92caf20aa20ce0b8801db2bdc77ba864d9": {
       "kind": "existing_target",
       "target": "amiga_raw_starglider2_game"
+    },
+    "de8358853dd9ed9b006a23569bf393aa217ed3be3301a169465d80bfaf839922": {
+      "kind": "existing_target",
+      "target": "amiga_raw_starglider2_protection_view"
     }
   },
   "derivations": {
@@ -83,6 +95,15 @@
         "main_decoded.bin": "aca0db39a5657c952c5365e0201ac589cfdb53ea005c88d20a096d5891fae4ff",
         "main_at_st_handoff.bin": "20c19400180d7e846b78aa615b68446293f8ca54015c4f4a42a77f03b24e8260",
         "main_dma_buffer_at_handoff.bin": "4d07f199725f1d37b08a4a16432df6c7f708046444669a24fa26cfba87b600ae"
+      }
+    },
+    "st_novella_protection_decode": {
+      "kind": "mapped_cpu_recovery",
+      "input": "20c19400180d7e846b78aa615b68446293f8ca54015c4f4a42a77f03b24e8260",
+      "recipe": "targets/atari_st_starglider2_stx/protection_plan.json",
+      "recipe_sha256": "d63530061f828f298045b99d11cfb3fc137400cad3c9640ae6657c6c50d3a1cf",
+      "outputs": {
+        "novella_protection_view.bin": "9be0a7243fce8c7202abb71271994f4f3ef654c15c559f9e1868c86f9c67082d"
       }
     }
   },
@@ -116,6 +137,25 @@
         "entrypoint": 4096,
         "code_start_offset": 0,
         "phase": "pre_handoff"
+      }
+    },
+    "atari_st_starglider2_protection_view": {
+      "release": "atari_st_1_05_supplied",
+      "artifact": "9be0a7243fce8c7202abb71271994f4f3ef654c15c559f9e1868c86f9c67082d",
+      "context": {
+        "kind": "raw",
+        "address_model": "runtime_absolute",
+        "load_address": 78304,
+        "entrypoint": 86770,
+        "code_start_offset": 0,
+        "phase": "decoded_snapshot"
+      }
+    },
+    "amiga_raw_starglider2_protection_view": {
+      "release": "amiga_ua_wow",
+      "artifact": "de8358853dd9ed9b006a23569bf393aa217ed3be3301a169465d80bfaf839922",
+      "context": {
+        "kind": "existing_target"
       }
     }
   },
@@ -153,6 +193,24 @@
         "offset": 1894,
         "size": 52,
         "sha256": "14a2a48df6b3eba3bbe5d2157c785811b0bf6879819da1384a8cf3a3aba7cb83"
+      },
+      "evidence": "docs/targets/starglider2-linked-startup.md"
+    },
+    {
+      "id": "novella_english_instructions",
+      "kind": "identical_bytes",
+      "role": "data",
+      "left": {
+        "target": "amiga_raw_starglider2_protection_view",
+        "offset": 2777,
+        "size": 273,
+        "sha256": "7737104c955b4d9956a0052880711354eb6ec6b084e29a1876280b00071ed846"
+      },
+      "right": {
+        "target": "atari_st_starglider2_protection_view",
+        "offset": 7541,
+        "size": 273,
+        "sha256": "7737104c955b4d9956a0052880711354eb6ec6b084e29a1876280b00071ed846"
       },
       "evidence": "docs/targets/starglider2-linked-startup.md"
     }
