@@ -44,10 +44,12 @@ Original payload SHA256:
 
 ## Active queue
 
-World placements expose 69 named IDs across 919 stored tags. Forty packed
-headers and 180 placeholder-name entries remain numeric. Names come from the
-148-entry UI directory; duplicate display names retain distinct IDs. Original
-high-tag table aliases are preserved, without certifying initializer targets.
+Silo/dome launchers retain nearby/distant allocation, partial initialization and
+countdown-order differences. A supplied distant-to-near switch can retain a
+zero-count parent link until distant service runs again; normal proximity
+scheduling is not established. Seven displacement bindings are presentation,
+not stronger pointer proof; the nearby dome's null-link/stale-A2 access stays raw.
+World placements retain 919 named tags, 40 packed headers and 180 placeholders.
 The earlier bomb phase-byte implication for ordinary hit credit remains withdrawn.
 
 1. Exact tag stores, bounded MOVEM cursors and opaque leading-record address

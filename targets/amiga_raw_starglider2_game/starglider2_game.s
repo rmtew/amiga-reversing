@@ -1662,6 +1662,10 @@ SG2_DISC_SORT_DEPTH_SHIFT	EQU	14
 SG2_DISK_CRC16_POLYNOMIAL	EQU	$1021
 SG2_DISTANT_RETIREMENT_CURSOR_MASK	EQU	31
 SG2_DISTANT_RETIREMENT_TICK_MASK	EQU	255
+SG2_DOME_CHILD_CHOICE_MASK	EQU	3
+SG2_DOME_CHILD_INITIAL_LINK_COUNTDOWN	EQU	170
+SG2_DOME_CHILD_START_Y	EQU	-5
+SG2_DOME_RELEASE_VARIANT	EQU	7
 SG2_DUCK_UPPER_TURN_VARIANT	EQU	7
 SG2_EFFECT_FADE_BYTE_SHIFT	EQU	3
 SG2_EFFECT_RANDOM_RGB_MASK	EQU	$FFF
@@ -1798,6 +1802,7 @@ SG2_MUSIC_RING_LAST_BYTE_OFFSET	EQU	24
 SG2_MUSIC_RING_POINTER_BYTES	EQU	4
 SG2_MUSIC_RING_SLOT_DBF_LAST	EQU	6
 SG2_MUSIC_RING_WRAP_BYTE_OFFSET	EQU	28
+SG2_NEAR_DOME_TANK_START_Y	EQU	-4
 SG2_NEUTRON_ACTION_COOLDOWN	EQU	200
 SG2_NEUTRON_CARRIED_MAX_OFFSET	EQU	120
 SG2_NEUTRON_CARRIED_MIN_OFFSET	EQU	20
@@ -2068,6 +2073,17 @@ SG2_SCORE_BCD_DIGITS_DBF_LAST	EQU	5
 SG2_SHARED_BOMB_HEADER_SCALE_SHIFT	EQU	5
 SG2_SHARED_BOMB_INITIAL_UPDATE_BUDGET	EQU	1000
 SG2_SHARED_BOMB_SPEED_ADDEND	EQU	200
+SG2_SILO_AIR_CHILD_CHOICE_MASK	EQU	7
+SG2_SILO_AIR_CHILD_INITIAL_BEHAVIOR_COUNTER	EQU	1022
+SG2_SILO_AIR_CHILD_START_Y	EQU	-20
+SG2_SILO_AIR_CHILD_VERTICAL_VELOCITY	EQU	-5
+SG2_SILO_AIR_RELEASE_VARIANT	EQU	19
+SG2_SILO_CHILD_RELEASE_Y	EQU	-1140
+SG2_SILO_CHILD_Y_STEP	EQU	40
+SG2_SILO_DISTANT_AIR_FREE_RESERVE	EQU	40
+SG2_SILO_DISTANT_AIR_REARM_COUNTER	EQU	900
+SG2_SILO_STANDARD_FREE_RESERVE	EQU	70
+SG2_SILO_STANDARD_REARM_COUNTER	EQU	300
 SG2_SMEAR_AMIGA_MASK_BYTE_OFFSET_MASK	EQU	$1FE
 SG2_SMEAR_AMIGA_PLANE_STEP_BYTES	EQU	8192
 SG2_SMEAR_HEIGHT_MASK	EQU	$3
@@ -12899,6 +12915,8 @@ update_land_tank_pair_link_delay:
 	tst.l SG2WorldObject_linked_record_or_sentinel(a0)
 	beq.b move_land_tank_during_link_delay
 	movea.l SG2WorldObject_linked_record_or_sentinel(a0),a2
+    ; Nearby type 9 decrements before testing zero; distant service tests first. The dome-spawn witness releases after 170 nearby calls. Own link/peer BYTE40 clear; peer link is retained.
+clear_tank_pair_link_before_peer_byte40:
 	clr.l SG2WorldObject_linked_record_or_sentinel(a0)
 	clr.b $0028(a2)
 move_land_tank_during_link_delay:
@@ -12919,6 +12937,7 @@ move_land_tank_during_link_delay:
 	andi.b #7,d0
 	beq.w abs_0_00009F02
 	bra.w continue_primary_object_update_loop
+    ; Zero skips this release path even with a stored link. The supplied distant-to-near witness retains parent linkage; this is not a global release or lifetime bound.
 move_land_tank_without_link_delay:
 	move.w SG2WorldObject_velocity_x(a0),d3
 	ext.l d3
@@ -13228,6 +13247,7 @@ abs_0_00009F02:
 	clr.w SG2WorldObject_velocity_y(a2)
 	clr.b SG2VelocityProjectile_integration_service_byte(a2)
 	bra.w continue_primary_object_update_loop
+    ; Parent-only witness with unchanged child: 19 open calls, 28 Y steps, release, 19 close calls. These are service calls, not frames. Rearm stores 300 here, 900 in the distant path.
     ; KNOWN: type A0=Target code-entry register seed:SG2SiloLauncher
 update_egron_silo_launch_cycle:
 	move.b #$2B,diagnostic_step_byte.l
@@ -13237,10 +13257,10 @@ update_egron_silo_launch_cycle:
 	bra.w continue_primary_object_update_loop
 try_launch_nearby_silo_airborne_child:
 	tst.b SG2SiloLauncher_child_attached_flag(a0)
-	bne.w abs_0_0000A0F0
+	bne.w service_near_silo_attached_child
 	tst.b SG2ObjectCore_vertex_variant_selector(a0)
-	bne.w abs_0_0000A0D8
-	cmpi.w #70,free_object_count(a6)
+	bne.w close_near_silo_vertex_variant
+	cmpi.w #SG2_SILO_STANDARD_FREE_RESERVE,free_object_count(a6)
 	bls.w continue_primary_object_update_loop
 	movea.l free_object_stack_cursor(a6),a1
 	movea.l -(a1),a2
@@ -13248,7 +13268,7 @@ try_launch_nearby_silo_airborne_child:
 	subq.w #1,free_object_count(a6)
 	lea.l airborne_spawn_model_type_choices.l,a1
 	bsr.w advance_shared_random_state
-	andi.w #7,d0
+	andi.w #SG2_SILO_AIR_CHILD_CHOICE_MASK,d0
 	move.b SG2StoredObjectTypeByte_object_type(a1,d0.w),d0
     ; KNOWN: type A2=Target code-entry register seed:SG2AirborneLaunchState
 	move.w d0,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
@@ -13262,18 +13282,18 @@ try_launch_nearby_silo_airborne_child:
 	add.w d0,d0
 	lea.l object_default_motion_words.l,a1
 	move.w $0(a1,d0.w),SG2HorizontalMotionView_horizontal_motion_scale(a2)
-	move.w #$3FE,SG2AirborneLaunchState_behavior_update_counter(a2)
+	move.w #SG2_SILO_AIR_CHILD_INITIAL_BEHAVIOR_COUNTER,SG2AirborneLaunchState_behavior_update_counter(a2)
     ; Reset common proximity countdown (+$26). The later BYTE+$29 write leaves BYTE+$28 intact. Flying and saucer handlers consume the countdown differently.
 	clr.w SG2AirborneLaunchState_proximity_response_countdown(a2)
 	move.l SG2ObjectCore_world_x(a0),SG2ObjectCore_world_x(a2)
 	move.l SG2ObjectCore_world_z(a0),SG2ObjectCore_world_z(a2)
-	move.w #$FFFB,SG2WorldObject_velocity_y(a2)
+	move.w #SG2_SILO_AIR_CHILD_VERTICAL_VELOCITY,SG2WorldObject_velocity_y(a2)
 	move.b #$1,SG2AirborneLaunchState_escape_capsule_pending_flag(a2)
 	move.w #$1,SG2WorldObject_rotation_2(a2)
 	move.b #$64,$0029(a2)
 	bsr.w heading_with_player_as_reference
 	move.w d1,SG2WorldObject_rotation_1(a2)
-	move.l #$FFFFFFEC,SG2ObjectCore_world_y(a2)
+	move.l #SG2_SILO_AIR_CHILD_START_Y,SG2ObjectCore_world_y(a2)
 	move.b #$FF,SG2ObjectCore_retirement_phase_or_negative(a2)
 	move.l a0,SG2WorldObject_linked_record_or_sentinel(a2)
 	move.l a2,SG2WorldObject_linked_record_or_sentinel(a0)
@@ -13281,30 +13301,32 @@ try_launch_nearby_silo_airborne_child:
 	bset.b #5,SG2ObjectCore_flags(a2)
 	st.b SG2SiloLauncher_child_attached_flag(a0)
 	bra.w continue_primary_object_update_loop
-abs_0_0000A0D4:
+clear_near_silo_child_attachment_and_close:
 	clr.b SG2SiloLauncher_child_attached_flag(a0)
-abs_0_0000A0D8:
+    ; Dead-child handling enters here even at variant 0: BYTE decrement wraps to 255. Only result zero rearms; there is no general variant clamp.
+close_near_silo_vertex_variant:
 	subq.b #1,SG2ObjectCore_vertex_variant_selector(a0)
 	bne.w continue_primary_object_update_loop
-	move.w #$12C,SG2SiloLauncher_spawn_cooldown(a0)
+	move.w #SG2_SILO_STANDARD_REARM_COUNTER,SG2SiloLauncher_spawn_cooldown(a0)
 	bset.b #7,SG2ObjectCore_durability_or_negative(a0)
 	bra.w continue_primary_object_update_loop
-abs_0_0000A0F0:
+service_near_silo_attached_child:
 	movea.l SG2WorldObject_linked_record_or_sentinel(a0),a2
 	tst.w (a2)
-	beq.w abs_0_0000A0D4
-	cmpi.b #19,SG2ObjectCore_vertex_variant_selector(a0)
-	beq.b abs_0_0000A110
+	beq.w clear_near_silo_child_attachment_and_close
+	cmpi.b #SG2_SILO_AIR_RELEASE_VARIANT,SG2ObjectCore_vertex_variant_selector(a0)
+	beq.b test_near_silo_child_release_y
 	addq.b #1,SG2ObjectCore_vertex_variant_selector(a0)
 	lea.l model_default_durability_bytes.l,a1
 	bra.w continue_primary_object_update_loop
-abs_0_0000A110:
-	cmpi.l #4294966156,$0008(a2)
-	bls.w abs_0_0000A128
-	subi.l #40,$0008(a2)
+    ; Unsigned BLS compares Y with -1140 bits before stepping by -40. Positive and other supplied aliases can release immediately. Release leaves both stored links intact.
+test_near_silo_child_release_y:
+	cmpi.l #SG2_SILO_CHILD_RELEASE_Y,SG2ObjectCore_world_y(a2)
+	bls.w release_near_silo_airborne_child
+	subi.l #SG2_SILO_CHILD_Y_STEP,SG2ObjectCore_world_y(a2)
 	bra.w continue_primary_object_update_loop
-abs_0_0000A128:
-	bclr.b #7,$0002(a2)
+release_near_silo_airborne_child:
+	bclr.b #7,SG2ObjectCore_flags(a2)
 	clr.b SG2SiloLauncher_child_attached_flag(a0)
 	bra.w continue_primary_object_update_loop
     ; Nonzero emission BYTE and unsigned free count > 50 pop a slot. Direction is unchanged; the child retains its schedule WORD, flags except bit 4 and other unwritten bytes.
@@ -13425,18 +13447,20 @@ reverse_blowhole_animation_step_at_nine:
 restore_blowhole_positive_animation_step_at_zero:
 	move.b #$1,SG2VertexOscillator_vertex_variant_step(a0)
 	bra.w continue_primary_object_update_loop
+    ; Variant 7 clears child hold but keeps attachment. A dome-spawned type 9 can clear parent BYTE40 after 170 nearby child updates; no arbitrary peer type or lifetime is inferred.
     ; KNOWN: type A0=Target code-entry register seed:SG2SiloLauncher
 update_dome_silo_launch_cycle:
 	tst.w SG2SiloLauncher_spawn_cooldown(a0)
 	beq.b try_launch_nearby_dome_ground_child
 	subq.w #1,SG2SiloLauncher_spawn_cooldown(a0)
 	bra.w continue_primary_object_update_loop
+    ; Ground construction writes X/Z velocity only; VY is retained. WORD36/38 stay old except type 9 counters 3/100. Nearby type 9 also overrides Y to -4; distant leaves -5.
 try_launch_nearby_dome_ground_child:
 	tst.b SG2SiloLauncher_child_attached_flag(a0)
-	bne.w abs_0_0000A3D6
+	bne.w service_near_dome_attached_child
 	tst.b SG2ObjectCore_vertex_variant_selector(a0)
-	bne.w abs_0_0000A3BE
-	cmpi.w #70,free_object_count(a6)
+	bne.w close_near_dome_vertex_variant
+	cmpi.w #SG2_SILO_STANDARD_FREE_RESERVE,free_object_count(a6)
 	bls.w continue_primary_object_update_loop
 	movea.l free_object_stack_cursor(a6),a1
 	movea.l -(a1),a2
@@ -13444,7 +13468,7 @@ try_launch_nearby_dome_ground_child:
 	subq.w #1,free_object_count(a6)
 	lea.l ground_spawn_model_type_choices.l,a1
 	bsr.w advance_shared_random_state
-	andi.w #3,d0
+	andi.w #SG2_DOME_CHILD_CHOICE_MASK,d0
 	clr.w d3
 	move.b SG2StoredObjectTypeByte_object_type(a1,d0.w),d3
     ; KNOWN: type A2=Target code-entry register seed:SG2GroundLaunchState
@@ -13455,11 +13479,11 @@ try_launch_nearby_dome_ground_child:
 	clr.b SG2ObjectCore_vertex_variant_selector(a2)
 	move.l SG2ObjectCore_world_x(a0),SG2ObjectCore_world_x(a2)
 	move.l SG2ObjectCore_world_z(a0),SG2ObjectCore_world_z(a2)
-	move.l #$FFFFFFFB,SG2ObjectCore_world_y(a2)
+	move.l #SG2_DOME_CHILD_START_Y,SG2ObjectCore_world_y(a2)
 	move.b #$FF,SG2ObjectCore_retirement_phase_or_negative(a2)
 	move.w SG2WorldObject_rotation_0(a0),SG2WorldObject_rotation_0(a2)
 	move.w SG2WorldObject_rotation_1(a0),d3
-	addi.w #1024,d3
+	addi.w #SG2_ANGLE_QUARTER_TURN,d3
 	move.w d3,SG2WorldObject_rotation_1(a2)
 	move.w SG2WorldObject_rotation_2(a0),SG2WorldObject_rotation_2(a2)
 	move.l a0,SG2WorldObject_linked_record_or_sentinel(a2)
@@ -13477,36 +13501,37 @@ try_launch_nearby_dome_ground_child:
 	bclr.b #4,SG2ObjectCore_flags(a2)
     ; BYTE+$29 becomes 100 and BYTE+$28 becomes $AA. Type9 later resets the separate WORD+$26, not WORD+$28. Preserve untouched record bytes and phase aliases.
 	move.b #$64,$0029(a2)
-	move.b #$AA,SG2GroundLaunchState_link_release_countdown(a2)
+	move.b #SG2_DOME_CHILD_INITIAL_LINK_COUNTDOWN,SG2GroundLaunchState_link_release_countdown(a2)
 	cmpi.w #SG2_OBJECT_TYPE_EGRON_LAND_TANK,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
-	bne.b abs_0_0000A3B2
+	bne.b finish_near_dome_ground_child_motion
     ; KNOWN: type A2=Target code-entry register seed:SG2LandTank
 	move.w #$64,SG2EvasiveActor_proximity_evasion_countdown(a2)
-	move.l #$FFFFFFFC,SG2ObjectCore_world_y(a2)
+	move.l #SG2_NEAR_DOME_TANK_START_Y,SG2ObjectCore_world_y(a2)
 	move.w #$3,SG2ScheduledActor_behavior_update_counter(a2)
-abs_0_0000A3B2:
+finish_near_dome_ground_child_motion:
 	bsr.w recompute_a2_horizontal_motion_from_heading
 	bra.w continue_primary_object_update_loop
-abs_0_0000A3BA:
+clear_near_dome_attachment_and_close:
 	clr.b SG2SiloLauncher_child_attached_flag(a0)
-abs_0_0000A3BE:
+close_near_dome_vertex_variant:
 	subq.b #1,SG2ObjectCore_vertex_variant_selector(a0)
 	bne.w continue_primary_object_update_loop
-	move.w #$12C,SG2SiloLauncher_spawn_cooldown(a0)
+	move.w #SG2_SILO_STANDARD_REARM_COUNTER,SG2SiloLauncher_spawn_cooldown(a0)
 	bset.b #7,SG2ObjectCore_durability_or_negative(a0)
 	bra.w continue_primary_object_update_loop
-abs_0_0000A3D6:
+    ; Zero link skips loading A2, not the variant test. At variant 7 the original writes BYTE2 through incoming A2. Supplied null-link witness only; normal-play reachability is unknown.
+service_near_dome_attached_child:
 	tst.l SG2WorldObject_linked_record_or_sentinel(a0)
-	beq.b abs_0_0000A3E6
+	beq.b advance_near_dome_variant_with_selected_a2
 	movea.l SG2WorldObject_linked_record_or_sentinel(a0),a2
 	tst.w (a2)
-	beq.w abs_0_0000A3BA
-abs_0_0000A3E6:
-	cmpi.b #7,SG2ObjectCore_vertex_variant_selector(a0)
-	beq.b abs_0_0000A3F6
+	beq.w clear_near_dome_attachment_and_close
+advance_near_dome_variant_with_selected_a2:
+	cmpi.b #SG2_DOME_RELEASE_VARIANT,SG2ObjectCore_vertex_variant_selector(a0)
+	beq.b clear_near_dome_selected_a2_hold_bit
 	addq.b #1,SG2ObjectCore_vertex_variant_selector(a0)
 	bra.w continue_primary_object_update_loop
-abs_0_0000A3F6:
+clear_near_dome_selected_a2_hold_bit:
 	bclr.b #7,$0002(a2)
 	bra.w continue_primary_object_update_loop
     ; KNOWN: type A0=Target code-entry register seed:SG2SaucerActor
@@ -13757,6 +13782,7 @@ abs_0_0000A718:
 	dc.b $26,$3C,$00,$08,$00,$00,$28,$28,$00,$08,$B8,$83,$6F,$E8,$43,$F9
 	dc.b $00,$01,$7B,$5E,$36,$10,$D6,$43,$36,$31,$30,$00,$48,$C3,$B8,$83
 	dc.b $6C,$CA,$60,$00,$FF,$82
+    ; Known directory entries 1/9/39 share this body. It tests BYTE40 before decrement; nearby type 9 tests after. Link validity and normal phase scheduling remain unproved.
     ; KNOWN: type A0=Target code-entry register seed:SG2GroundLaunchState
 update_distant_linked_ground_actor_motion:
 	move.b #$46,diagnostic_step_byte.l
@@ -13770,14 +13796,15 @@ update_distant_linked_ground_actor_motion:
 	and.l d3,SG2ObjectCore_world_x(a0)
 	and.l d3,SG2ObjectCore_world_z(a0)
 	tst.b SG2GroundLaunchState_link_release_countdown(a0)
-	bne.b abs_0_0000A78C
+	bne.b tick_distant_ground_link_counter_and_integrate_again
 	tst.l SG2WorldObject_linked_record_or_sentinel(a0)
-	beq.b abs_0_0000A78C
+	beq.b tick_distant_ground_link_counter_and_integrate_again
 	movea.l SG2WorldObject_linked_record_or_sentinel(a0),a2
 	clr.l SG2WorldObject_linked_record_or_sentinel(a0)
 	clr.b $0028(a2)
 	bra.w continue_secondary_object_update_loop
-abs_0_0000A78C:
+    ; Waiting/null-link calls integrate X/Z twice. Zero counter with a link unlinks after one step. Zero without a link wraps to 255 here; preserve the test-before-decrement order.
+tick_distant_ground_link_counter_and_integrate_again:
 	subq.b #1,SG2GroundLaunchState_link_release_countdown(a0)
 	move.w SG2WorldObject_velocity_x(a0),d3
 	ext.l d3
@@ -13851,10 +13878,10 @@ update_distant_egron_silo_launch_cycle:
 	bra.w continue_secondary_object_update_loop
 try_launch_distant_silo_airborne_child:
 	tst.b SG2SiloLauncher_child_attached_flag(a0)
-	bne.w abs_0_0000A9DE
+	bne.w service_distant_silo_attached_child
 	tst.b SG2ObjectCore_vertex_variant_selector(a0)
-	bne.w abs_0_0000A9C6
-	cmpi.w #40,free_object_count(a6)
+	bne.w close_distant_silo_vertex_variant
+	cmpi.w #SG2_SILO_DISTANT_AIR_FREE_RESERVE,free_object_count(a6)
 	bls.w continue_secondary_object_update_loop
 	movea.l free_object_stack_cursor(a6),a1
 	movea.l -(a1),a2
@@ -13862,7 +13889,7 @@ try_launch_distant_silo_airborne_child:
 	subq.w #1,free_object_count(a6)
 	lea.l airborne_spawn_model_type_choices.l,a1
 	bsr.w advance_shared_random_state_bridge_00d9b4
-	andi.w #7,d0
+	andi.w #SG2_SILO_AIR_CHILD_CHOICE_MASK,d0
 	move.b SG2StoredObjectTypeByte_object_type(a1,d0.w),d0
     ; KNOWN: type A2=Target code-entry register seed:SG2AirborneLaunchState
 	move.w d0,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
@@ -13876,18 +13903,18 @@ try_launch_distant_silo_airborne_child:
 	add.w d0,d0
 	lea.l object_default_motion_words.l,a1
 	move.w $0(a1,d0.w),SG2HorizontalMotionView_horizontal_motion_scale(a2)
-	move.w #$3FE,SG2AirborneLaunchState_behavior_update_counter(a2)
+	move.w #SG2_SILO_AIR_CHILD_INITIAL_BEHAVIOR_COUNTER,SG2AirborneLaunchState_behavior_update_counter(a2)
     ; Reset common proximity countdown (+$26). The later BYTE+$29 write leaves BYTE+$28 intact. Flying and saucer handlers consume the countdown differently.
 	clr.w SG2AirborneLaunchState_proximity_response_countdown(a2)
 	move.l SG2ObjectCore_world_x(a0),SG2ObjectCore_world_x(a2)
 	move.l SG2ObjectCore_world_z(a0),SG2ObjectCore_world_z(a2)
-	move.w #$FFFB,SG2WorldObject_velocity_y(a2)
+	move.w #SG2_SILO_AIR_CHILD_VERTICAL_VELOCITY,SG2WorldObject_velocity_y(a2)
 	move.b #$1,SG2AirborneLaunchState_escape_capsule_pending_flag(a2)
 	move.w #$1,SG2WorldObject_rotation_2(a2)
 	move.b #$64,$0029(a2)
 	bsr.w heading_from_world_xz_to_player
 	move.w d1,SG2WorldObject_rotation_1(a2)
-	move.l #$FFFFFFEC,SG2ObjectCore_world_y(a2)
+	move.l #SG2_SILO_AIR_CHILD_START_Y,SG2ObjectCore_world_y(a2)
 	move.b #$FF,SG2ObjectCore_retirement_phase_or_negative(a2)
 	move.l a0,SG2WorldObject_linked_record_or_sentinel(a2)
 	move.l a2,SG2WorldObject_linked_record_or_sentinel(a0)
@@ -13895,30 +13922,30 @@ try_launch_distant_silo_airborne_child:
 	bset.b #5,SG2ObjectCore_flags(a2)
 	st.b SG2SiloLauncher_child_attached_flag(a0)
 	bra.w continue_secondary_object_update_loop
-abs_0_0000A9C2:
+clear_distant_silo_attachment_and_close:
 	clr.b SG2SiloLauncher_child_attached_flag(a0)
-abs_0_0000A9C6:
+close_distant_silo_vertex_variant:
 	subq.b #1,SG2ObjectCore_vertex_variant_selector(a0)
 	bne.w continue_secondary_object_update_loop
-	move.w #$384,SG2SiloLauncher_spawn_cooldown(a0)
+	move.w #SG2_SILO_DISTANT_AIR_REARM_COUNTER,SG2SiloLauncher_spawn_cooldown(a0)
 	bset.b #7,SG2ObjectCore_durability_or_negative(a0)
 	bra.w continue_secondary_object_update_loop
-abs_0_0000A9DE:
+service_distant_silo_attached_child:
 	movea.l SG2WorldObject_linked_record_or_sentinel(a0),a2
 	tst.w (a2)
-	beq.w abs_0_0000A9C2
-	cmpi.b #19,SG2ObjectCore_vertex_variant_selector(a0)
-	beq.b abs_0_0000A9FE
+	beq.w clear_distant_silo_attachment_and_close
+	cmpi.b #SG2_SILO_AIR_RELEASE_VARIANT,SG2ObjectCore_vertex_variant_selector(a0)
+	beq.b test_distant_silo_child_release_y
 	addq.b #1,SG2ObjectCore_vertex_variant_selector(a0)
 	lea.l model_default_durability_bytes.l,a1
 	bra.w continue_secondary_object_update_loop
-abs_0_0000A9FE:
-	cmpi.l #4294966156,$0008(a2)
-	bls.w abs_0_0000AA16
-	subi.l #40,$0008(a2)
+test_distant_silo_child_release_y:
+	cmpi.l #SG2_SILO_CHILD_RELEASE_Y,SG2ObjectCore_world_y(a2)
+	bls.w release_distant_silo_airborne_child
+	subi.l #SG2_SILO_CHILD_Y_STEP,SG2ObjectCore_world_y(a2)
 	bra.w continue_secondary_object_update_loop
-abs_0_0000AA16:
-	bclr.b #7,$0002(a2)
+release_distant_silo_airborne_child:
+	bclr.b #7,SG2ObjectCore_flags(a2)
 	clr.b SG2SiloLauncher_child_attached_flag(a0)
 	bra.w continue_secondary_object_update_loop
     ; KNOWN: type A0=Target code-entry register seed:SG2SiloLauncher
@@ -13930,10 +13957,10 @@ update_distant_dome_silo_launch_cycle:
 	bra.w continue_secondary_object_update_loop
 try_launch_distant_dome_ground_child:
 	tst.b SG2SiloLauncher_child_attached_flag(a0)
-	bne.w abs_0_0000AB54
+	bne.w service_distant_dome_attached_child
 	tst.b SG2ObjectCore_vertex_variant_selector(a0)
-	bne.w abs_0_0000AB3C
-	cmpi.w #70,free_object_count(a6)
+	bne.w close_distant_dome_vertex_variant
+	cmpi.w #SG2_SILO_STANDARD_FREE_RESERVE,free_object_count(a6)
 	bls.w continue_secondary_object_update_loop
 	movea.l free_object_stack_cursor(a6),a1
 	movea.l -(a1),a2
@@ -13941,7 +13968,7 @@ try_launch_distant_dome_ground_child:
 	subq.w #1,free_object_count(a6)
 	lea.l ground_spawn_model_type_choices.l,a1
 	bsr.w advance_shared_random_state_bridge_00d9b4
-	andi.w #3,d0
+	andi.w #SG2_DOME_CHILD_CHOICE_MASK,d0
 	clr.w d3
 	move.b SG2StoredObjectTypeByte_object_type(a1,d0.w),d3
     ; KNOWN: type A2=Target code-entry register seed:SG2GroundLaunchState
@@ -13952,11 +13979,11 @@ try_launch_distant_dome_ground_child:
 	clr.b SG2ObjectCore_vertex_variant_selector(a2)
 	move.l SG2ObjectCore_world_x(a0),SG2ObjectCore_world_x(a2)
 	move.l SG2ObjectCore_world_z(a0),SG2ObjectCore_world_z(a2)
-	move.l #$FFFFFFFB,SG2ObjectCore_world_y(a2)
+	move.l #SG2_DOME_CHILD_START_Y,SG2ObjectCore_world_y(a2)
 	move.b #$FF,SG2ObjectCore_retirement_phase_or_negative(a2)
 	move.w SG2WorldObject_rotation_0(a0),SG2WorldObject_rotation_0(a2)
 	move.w SG2WorldObject_rotation_1(a0),d3
-	addi.w #1024,d3
+	addi.w #SG2_ANGLE_QUARTER_TURN,d3
 	move.w d3,SG2WorldObject_rotation_1(a2)
 	move.w SG2WorldObject_rotation_2(a0),SG2WorldObject_rotation_2(a2)
 	move.l a0,SG2WorldObject_linked_record_or_sentinel(a2)
@@ -13975,36 +14002,37 @@ try_launch_distant_dome_ground_child:
 	bclr.b #4,SG2ObjectCore_flags(a2)
     ; BYTE+$29 becomes 100 and BYTE+$28 becomes $AA. Type9 later resets the separate WORD+$26, not WORD+$28. Preserve untouched record bytes and phase aliases.
 	move.b #$64,$0029(a2)
-	move.b #$AA,SG2GroundLaunchState_link_release_countdown(a2)
+	move.b #SG2_DOME_CHILD_INITIAL_LINK_COUNTDOWN,SG2GroundLaunchState_link_release_countdown(a2)
 	cmpi.w #SG2_OBJECT_TYPE_EGRON_LAND_TANK,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
-	bne.b abs_0_0000AB1C
+	bne.b finish_distant_dome_ground_child_motion
     ; KNOWN: type A2=Target code-entry register seed:SG2LandTank
 	move.w #$64,SG2EvasiveActor_proximity_evasion_countdown(a2)
 	move.w #$3,SG2ScheduledActor_behavior_update_counter(a2)
-abs_0_0000AB1C:
+finish_distant_dome_ground_child_motion:
 	bsr.w recompute_a2_horizontal_motion_from_heading
 	bra.w continue_secondary_object_update_loop
 	dc.b $0C,$52,$00,$27,$66,$00,$D8,$72,$25,$7C,$FF,$FF,$FF,$88,$00,$08
 	dc.b $60,$00,$D8,$66
-abs_0_0000AB38:
+clear_distant_dome_attachment_and_close:
 	clr.b SG2SiloLauncher_child_attached_flag(a0)
-abs_0_0000AB3C:
+close_distant_dome_vertex_variant:
 	subq.b #1,SG2ObjectCore_vertex_variant_selector(a0)
 	bne.w continue_secondary_object_update_loop
-	move.w #$12C,SG2SiloLauncher_spawn_cooldown(a0)
+	move.w #SG2_SILO_STANDARD_REARM_COUNTER,SG2SiloLauncher_spawn_cooldown(a0)
 	bset.b #7,SG2ObjectCore_durability_or_negative(a0)
 	bra.w continue_secondary_object_update_loop
-abs_0_0000AB54:
+service_distant_dome_attached_child:
 	movea.l SG2WorldObject_linked_record_or_sentinel(a0),a2
 	tst.w (a2)
-	beq.w abs_0_0000AB38
-	cmpi.b #7,SG2ObjectCore_vertex_variant_selector(a0)
-	beq.b abs_0_0000AB74
+	beq.w clear_distant_dome_attachment_and_close
+	cmpi.b #SG2_DOME_RELEASE_VARIANT,SG2ObjectCore_vertex_variant_selector(a0)
+	beq.b release_distant_dome_held_child_and_recheck_type
 	addq.b #1,SG2ObjectCore_vertex_variant_selector(a0)
 	lea.l model_default_durability_bytes.l,a1
 	bra.w continue_secondary_object_update_loop
-abs_0_0000AB74:
-	bclr.b #7,$0002(a2)
+    ; Child type is tested again after clearing hold. A stationary nonzero tag stays open; these CPU windows do not model asynchronous tag writers or validate the link.
+release_distant_dome_held_child_and_recheck_type:
+	bclr.b #7,SG2ObjectCore_flags(a2)
 	tst.w (a2)
 	bne.w continue_secondary_object_update_loop
 	clr.b SG2SiloLauncher_child_attached_flag(a0)
