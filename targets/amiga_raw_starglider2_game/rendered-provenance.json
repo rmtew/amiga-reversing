@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
   "kind": "committed_native_rendered_original_export",
-  "canonical_source_commit": "9fc3a44642bc9a1265f784c9367bdb8a794d3489",
-  "publication_base_commit": "9fc3a44642bc9a1265f784c9367bdb8a794d3489",
+  "canonical_source_commit": "5dec28f494485f63f4f569cdfa10af8552ce5a39",
+  "publication_base_commit": "5dec28f494485f63f4f569cdfa10af8552ce5a39",
   "native_export": "CListingArtifact.source_package_payload(64)",
   "main_source_sha256": "76ee1f17e49834ff0c5a94128caedbb7639c02f4947592d65477e1be8eaee8eb",
   "asset_count": 57,
@@ -25,7 +25,7 @@
     "paused Pandora work"
   ],
   "canonical_source_commit_role": "Canonical source publication base; build and verification identities are recorded below.",
-  "canonical_source_subject_revision": "97279dc5c8f593c7337e61c8f72ad4db0a6732009e29b8325905d2f91af9fc91",
+  "canonical_source_subject_revision": "ecfbc50b9885c37d1eead5701e5ab6c052c76f3e537dbd63959b35f51e3c0d5a",
   "canonical_fact_sha256": {
     "source_binary.json": "42d4a5758b3e8236af7f912aee85e9ee5323bcd0961faa338c4f864080a0a7d9",
     "target_metadata.json": "e7540b68c118c56aba8815b6722eefa067517cc865fe9841d6c01ce96551389c",
@@ -46,7 +46,7 @@
     },
     "runtime_scope": "Seven CPU write-site windows match this reversible view; no whole runtime-view identity or parent plaintext promotion."
   },
-  "verification_receipt_id": "1bb9fd080f35c44d04c133fee5921eedcbba4dec0f0a89d1bd1c5f857438de3b",
-  "render_native_sha256": "50abf6afa49606fdf1092982922f45fe35cee9e738af0ff4bb9ed3d7be757039",
-  "final_assembler_native_sha256": "50abf6afa49606fdf1092982922f45fe35cee9e738af0ff4bb9ed3d7be757039"
+  "verification_receipt_id": "fcf005a1e96c29ee73f6f1dba9185f792a55c91b2776ae7969787ebe1642febe",
+  "render_native_sha256": "6a061f7318612f8f9f21d0d9f845059534fc76988c6ca937a0ee3c06d2d8b6e8",
+  "final_assembler_native_sha256": "6a061f7318612f8f9f21d0d9f845059534fc76988c6ca937a0ee3c06d2d8b6e8"
 }

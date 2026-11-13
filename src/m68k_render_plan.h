@@ -222,10 +222,10 @@ typedef struct M68kRenderPlan {
   size_t builder_peak_bytes;
   size_t final_plan_bytes;
   size_t finalization_overlap_bytes;
-  /* Source-order appends permit logarithmic instruction lookup.  The public
-   * append API preserves correctness for unordered clients by falling back to
-   * a linear lookup after the first out-of-order append. */
+  /* Source-order appends permit logarithmic instruction/label lookup. The
+   * append APIs retain a linear fallback after an out-of-order append. */
   uint8_t instructions_source_ordered;
+  uint8_t labels_source_ordered;
   uint8_t finalized;
 } M68kRenderPlan;
 

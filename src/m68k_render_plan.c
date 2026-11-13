@@ -222,6 +222,7 @@ void m68k_render_plan_init(M68kRenderPlan *plan) {
   memset(plan, 0, sizeof(*plan));
   plan->next_row_id = 1U;
   plan->instructions_source_ordered = 1U;
+  plan->labels_source_ordered = 1U;
 }
 
 void m68k_render_plan_destroy(M68kRenderPlan *plan) {
@@ -431,6 +432,12 @@ int m68k_render_plan_append_label(M68kRenderPlan *plan, const M68kRenderPlannedL
   if (plan == NULL || label == NULL || label->name[0] == '\0') return -1;
   if (m68k_render_plan_find_label(plan, label->source_section_index, label->source_offset) != NULL) return -1;
   if (render_plan_reserve_labels(plan, plan->label_count + 1U) != 0) return -1;
+  if (plan->label_count) {
+    const M68kRenderPlannedLabel *previous = &plan->labels[plan->label_count - 1U];
+    if (previous->source_section_index > label->source_section_index ||
+        (previous->source_section_index == label->source_section_index &&
+         previous->source_offset > label->source_offset)) plan->labels_source_ordered = 0U;
+  }
   plan->labels[plan->label_count++] = *label;
   return 0;
 }
@@ -439,6 +446,20 @@ const M68kRenderPlannedLabel *m68k_render_plan_find_label(const M68kRenderPlan *
     uint32_t source_section_index, uint32_t source_offset) {
   size_t index;
   if (plan == NULL) return NULL;
+  if (plan->labels_source_ordered) {
+    size_t lo = 0U, hi = plan->label_count;
+    while (lo < hi) {
+      size_t mid = lo + (hi - lo) / 2U;
+      const M68kRenderPlannedLabel *label = &plan->labels[mid];
+      if (label->source_section_index < source_section_index ||
+          (label->source_section_index == source_section_index && label->source_offset < source_offset))
+        lo = mid + 1U;
+      else hi = mid;
+    }
+    if (lo < plan->label_count && plan->labels[lo].source_section_index == source_section_index &&
+        plan->labels[lo].source_offset == source_offset) return &plan->labels[lo];
+    return NULL;
+  }
   for (index = 0U; index < plan->label_count; ++index) {
     const M68kRenderPlannedLabel *label = &plan->labels[index];
     if (label->source_section_index == source_section_index && label->source_offset == source_offset) return label;

@@ -5400,17 +5400,45 @@ static int derive_rendered_pointer_declarations(M68kRenderIRPreview *preview, M6
   return 0;
 }
 
-static int render_plan_has_source_label_declaration(const M68kRenderPlan *plan,
-    size_t section_index, uint32_t offset) {
-  size_t declaration_index;
-  if (plan == NULL || section_index > UINT32_MAX) return 0;
-  for (declaration_index = 0U; declaration_index < plan->declaration_count; ++declaration_index) {
-    const M68kRenderPlannedDeclaration *declaration = &plan->declarations[declaration_index];
-    if (declaration->kind == M68K_RENDER_PLANNED_DECLARATION_LABEL &&
-        declaration->has_source_target != 0U && declaration->section_index == (uint32_t)section_index &&
-        declaration->offset == offset) return 1;
+static int compare_source_label_obligation(const void *left, const void *right) {
+  uint64_t a = *(const uint64_t *)left, b = *(const uint64_t *)right;
+  return (a > b) - (a < b);
+}
+
+/* Snapshot only source-coordinate obligations, never runtime address aliases.
+ * The forward label walk adds declarations for its current position only;
+ * the original declaration-closure walk below still validates every target. */
+static int source_label_obligations_build(const M68kRenderPlan *plan,
+    uint64_t **out_items, size_t *out_count) {
+  size_t count = 0U;
+  if (!plan || !out_items || !out_count) return -1;
+  *out_items = NULL; *out_count = 0U;
+  for (size_t i = 0U; i < plan->declaration_count; ++i)
+    count += plan->declarations[i].kind == M68K_RENDER_PLANNED_DECLARATION_LABEL &&
+      plan->declarations[i].has_source_target;
+  if (!count) return 0;
+  if (count > SIZE_MAX / sizeof(uint64_t)) return -1;
+  uint64_t *items = malloc(count * sizeof(*items));
+  if (!items) return -1;
+  size_t next = 0U;
+  for (size_t i = 0U; i < plan->declaration_count; ++i) {
+    const M68kRenderPlannedDeclaration *d = &plan->declarations[i];
+    if (d->kind == M68K_RENDER_PLANNED_DECLARATION_LABEL && d->has_source_target)
+      items[next++] = ((uint64_t)d->section_index << 32U) | d->offset;
   }
+  qsort(items, count, sizeof(*items), compare_source_label_obligation);
+  *out_items = items; *out_count = count;
   return 0;
+}
+
+static size_t source_label_obligations_lower_bound(const uint64_t *items, size_t count, uint64_t key) {
+  size_t lo = 0U, hi = count;
+  while (lo < hi) {
+    size_t mid = lo + (hi - lo) / 2U;
+    if (items[mid] < key) lo = mid + 1U;
+    else hi = mid;
+  }
+  return lo;
 }
 
 static int append_planned_label_statement(M68kRenderIRPreview *preview, const M68kRenderLookup *lookup,
@@ -5449,20 +5477,38 @@ static int append_planned_label_statement(M68kRenderIRPreview *preview, const M6
 static int plan_rendered_label_statements(M68kRenderIRPreview *preview, const M68kRenderLookup *lookup,
     const M68kDecodeIR *decode, uint8_t **accepted_start, M68kRenderPlan *plan) {
   size_t section_index;
+  uint64_t *obligations = NULL;
+  size_t obligation_count = 0U;
+  int result = -1;
+  const char *trace = getenv("AMIGA_REVERSING_PROFILE_RENDER_IR");
+  int tracing = trace && strcmp(trace, "1") == 0;
+  clock_t started = tracing ? clock() : 0;
+  uint64_t misses_avoided = 0U;
+  size_t queries = 0U;
   if (preview == NULL || lookup == NULL || decode == NULL || accepted_start == NULL || plan == NULL) return -1;
+  if (source_label_obligations_build(plan, &obligations, &obligation_count)) return -1;
   for (section_index = 0U; section_index < decode->section_count; ++section_index) {
     const M68kDecodeSectionIR *section = &decode->sections[section_index];
     size_t source_section_index = section->section_index;
     uint32_t offset;
-    if (source_section_index > UINT32_MAX) return -1;
+    if (source_section_index > UINT32_MAX) goto cleanup;
+    size_t cursor = source_label_obligations_lower_bound(obligations, obligation_count,
+      (uint64_t)source_section_index << 32U);
     for (offset = 0U; offset < render_section_extent(section); ++offset) {
+      uint64_t key = ((uint64_t)source_section_index << 32U) | offset;
+      while (cursor < obligation_count && obligations[cursor] < key) ++cursor;
+      int declared = cursor < obligation_count && obligations[cursor] == key;
       if (!render_asm_should_emit_label_statement(NULL, lookup, section, accepted_start[section_index],
-            source_section_index, offset) &&
-          !render_plan_has_source_label_declaration(plan, source_section_index, offset)) {
-        continue;
+            source_section_index, offset)) {
+        if (tracing) {
+          ++queries;
+          if (!declared) misses_avoided = UINT64_MAX - misses_avoided < plan->declaration_count
+            ? UINT64_MAX : misses_avoided + plan->declaration_count;
+        }
+        if (!declared) continue;
       }
       if (append_planned_label_statement(preview, lookup, section, source_section_index, offset, plan) != 0)
-        return -1;
+        goto cleanup;
     }
   }
   /* A symbolic source expression makes a declaration obligation.  Close it
@@ -5481,9 +5527,16 @@ static int plan_rendered_label_statements(M68kRenderIRPreview *preview, const M6
       }
     }
     if (target_section == NULL || append_planned_label_statement(preview, lookup, target_section,
-          declaration->section_index, declaration->offset, plan) != 0) return -1;
+          declaration->section_index, declaration->offset, plan) != 0) goto cleanup;
   }
-  return 0;
+  result = 0;
+cleanup:
+  if (tracing) fprintf(stderr,
+    "render_label_plan declarations=%zu queries=%zu miss_linear_comparisons_avoided=%llu seconds=%.6f\n",
+    obligation_count, queries, (unsigned long long)misses_avoided,
+    (double)(clock() - started) / CLOCKS_PER_SEC);
+  free(obligations);
+  return result;
 }
 
 static int plan_rendered_runtime_aliases(M68kRenderIRPreview *preview, const M68kRenderLookup *lookup,
