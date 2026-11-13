@@ -55,12 +55,11 @@ unknowns: 106154 code bytes are accepted; native accepted-range accounting
 leaves 9681 bytes in 271 intervals unclassified. It is not full semantic/all-path restoration or a completed
 walkthrough. The source and assets preserve every original output byte.
 
-Bounded original-CPU fixtures cover capsule construction/update, mine responses,
-GBML scheduling and selected-target missile construction. Partial records,
-logical shifts, wrapping counters and heading arithmetic remain explicit.
-Visible-tag selection preserves D1; missile construction uses creator yaw and
-retains the cadence WORD. These checks do not prove normal-play reachability,
-record lifetime, message display or hardware behavior.
+Bounded original-CPU fixtures cover capsule, mine, GBML and tunnel/sentinel paths.
+The tunnel entry-side selector is a BYTE; child scheduling uses a separate WORD
+at the same offset. Partial construction, heading/counter arithmetic and the
+reset/aging order remain explicit. These checks do not prove normal-play
+reachability, record lifetime, message display or hardware behavior.
 
 The native control-value analysis now recovers eight signed-WORD dispatch
 contracts automatically, including separated load/LEA/JMP sequences and

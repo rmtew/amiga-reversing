@@ -16,9 +16,11 @@ def test_original_placement_streams_rebuild_player_and_free_suffix(original_imag
     for off,v in [(0x704,12345),(0x708,0xFFFFFA98),(0x70C,54321)]:put(memory,APP+off,v)
     for off,v in zip([0x744,0x746,0x748],[1023,2047,4095]):put(memory,APP+off,v,2)
     # Read the original, already classified stream. Surface stride10/interior16.
-    cursor=get(memory,0x2F9FC+4*layout);placed=0
+    cursor=get(memory,0x2F9FC+4*layout);placed=0;tunnels=[]
     while get(memory,cursor,2):
-        placed+=1;cursor+=10 if layout<16 else 16
+        header=get(memory,cursor,2);placed+=1
+        if header&255==48:tunnels.append((placed,header>>8))
+        cursor+=10 if layout<16 else 16
         assert placed<250
     memory[POOL-4:POOL+17004]=b'\xCC'*17008
     cpu=state(memory,0x17D90);run(original_image,memory,cpu,{RETURN},limit=150000)
@@ -32,6 +34,12 @@ def test_original_placement_streams_rebuild_player_and_free_suffix(original_imag
     assert [get(memory,FREE+4*i)for i in range(count)]==[POOL+68*(placed+1+i)for i in range(count)]
     assert bytes(memory[POOL+68*(placed+1):POOL+17000])==b'\0'*(68*count)
     assert bytes(memory[POOL-4:POOL])==bytes(memory[POOL+17000:POOL+17004])==b'\xCC'*4
+    for slot,high in tunnels:
+        record=POOL+68*slot
+        assert get(memory,record,2)==48
+        # Interior prefix extraction already cleared the header before callback.
+        assert memory[record+36]==(high if layout<16 else 0)
+        assert memory[record+43]==1
 
 
 @pytest.mark.parametrize('body',[8,14])

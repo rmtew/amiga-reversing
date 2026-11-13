@@ -1187,7 +1187,9 @@ SG2SiloLauncher_SIZEOF EQU __RS
 
 ; STRUCT SG2TunnelEmitter
     RSRESET
-    RS.B 43
+    RS.B 36
+SG2TunnelEmitter_interior_entry_negative_z_selector RS.B 1
+    RS.B 6
 SG2TunnelEmitter_remaining_sentinel_emissions RS.B 1
     RS.B 24
 SG2TunnelEmitter_SIZEOF EQU __RS
@@ -2024,6 +2026,16 @@ SG2_TEXT_TAB_ADVANCE	EQU	6
 SG2_TUNNEL_ENTRY_CROSS_LIMIT	EQU	710
 SG2_TUNNEL_ENTRY_HEADING_GATE	EQU	200
 SG2_TUNNEL_EXIT_APPROACH_LIMIT	EQU	575
+SG2_TUNNEL_INITIAL_SENTINEL_EMISSIONS	EQU	1
+SG2_TUNNEL_SENTINEL_ATTACK_COUNTER_MASK	EQU	7
+SG2_TUNNEL_SENTINEL_ATTACK_SPEED_WINDOW	EQU	88
+SG2_TUNNEL_SENTINEL_FREE_RESERVE	EQU	50
+SG2_TUNNEL_SENTINEL_HEADING_STEP	EQU	16
+SG2_TUNNEL_SENTINEL_LAUNCH_Y_VELOCITY	EQU	-124
+SG2_TUNNEL_SENTINEL_RESET_Y	EQU	-60
+SG2_TUNNEL_SENTINEL_TURNAROUND_VELOCITY	EQU	128
+SG2_TUNNEL_SENTINEL_Y_ACCELERATION	EQU	4
+SG2_TUNNEL_SENTINEL_Y_GATE	EQU	-40
 SG2_TYPE90_CHAIN_STRIP_FULL_WIDTH	EQU	400
 SG2_TYPE90_CHAIN_STRIP_HALF_WIDTH	EQU	200
 SG2_TYPE90_CROSS_LIMIT	EQU	600
@@ -12131,34 +12143,41 @@ abs_0_000093BA:
 abs_0_000093C4:
 	move.b #$FF,SG2VertexOscillator_vertex_variant_step(a0)
 	bra.w integrate_and_steer_horizontal_actor
+    ; Yaw adds 16 without masking. Y advances by the old signed velocity before the -40 test; reset paths restore Y velocity to -124 and bypass counter aging.
     ; KNOWN: type A0=Target code-entry register seed:SG2ScheduledActor
 update_tunnel_sentinel_bounce_and_fire_gate:
-	addi.w #16,SG2WorldObject_rotation_1(a0)
+	addi.w #SG2_TUNNEL_SENTINEL_HEADING_STEP,SG2WorldObject_rotation_1(a0)
 	move.b #SG2_OBJECT_TYPE_TUNNEL_ENTRANCE_EXIT,SG2TargetingObject_collision_ignored_object_type(a0)
+integrate_tunnel_sentinel_y_with_old_velocity:
 	move.w SG2WorldObject_velocity_y(a0),d0
 	ext.l d0
 	add.l d0,SG2ObjectCore_world_y(a0)
-	cmpi.l #4294967256,SG2ObjectCore_world_y(a0)
-	blt.b abs_0_000093F8
-	move.l #$FFFFFFC4,SG2ObjectCore_world_y(a0)
-	bra.b abs_0_00009406
-abs_0_000093F8:
-	addq.w #4,SG2WorldObject_velocity_y(a0)
-	cmpi.w #128,SG2WorldObject_velocity_y(a0)
-	bne.w abs_0_00009410
-abs_0_00009406:
-	move.w #$FF84,SG2WorldObject_velocity_y(a0)
+	cmpi.l #SG2_TUNNEL_SENTINEL_Y_GATE,SG2ObjectCore_world_y(a0)
+	blt.b accelerate_tunnel_sentinel_before_turnaround_test
+reset_tunnel_sentinel_y_to_launch_height:
+	move.l #SG2_TUNNEL_SENTINEL_RESET_Y,SG2ObjectCore_world_y(a0)
+	bra.b restart_tunnel_sentinel_vertical_launch_velocity
+    ; Below the Y gate, velocity adds 4 with WORD wrap. Exact 128 restarts at -124 without aging the schedule; other values proceed to counter and attack-window gates.
+accelerate_tunnel_sentinel_before_turnaround_test:
+	addq.w #SG2_TUNNEL_SENTINEL_Y_ACCELERATION,SG2WorldObject_velocity_y(a0)
+	cmpi.w #SG2_TUNNEL_SENTINEL_TURNAROUND_VELOCITY,SG2WorldObject_velocity_y(a0)
+	bne.w age_tunnel_sentinel_before_attack_gate
+restart_tunnel_sentinel_vertical_launch_velocity:
+	move.w #SG2_TUNNEL_SENTINEL_LAUNCH_Y_VELOCITY,SG2WorldObject_velocity_y(a0)
 	bra.w continue_primary_object_update_loop
-abs_0_00009410:
+    ; Decrement the retained WORD before testing absolute post-acceleration velocity against 88 using N, then low three counter bits. The handoff attempts an attack; allocation remains gated.
+age_tunnel_sentinel_before_attack_gate:
 	subq.w #1,SG2ScheduledActor_behavior_update_counter(a0)
 	move.w SG2ScheduledActor_behavior_update_counter(a0),d2
+measure_tunnel_sentinel_post_acceleration_speed:
 	move.w SG2WorldObject_velocity_y(a0),d1
-	bpl.w abs_0_00009422
+	bpl.w test_tunnel_sentinel_attack_speed_window
 	neg.w d1
-abs_0_00009422:
-	cmp.w #$58,d1
+test_tunnel_sentinel_attack_speed_window:
+	cmp.w #SG2_TUNNEL_SENTINEL_ATTACK_SPEED_WINDOW,d1
 	bpl.w continue_primary_object_update_loop
-	andi.b #7,d2
+test_tunnel_sentinel_attack_counter_cadence:
+	andi.b #SG2_TUNNEL_SENTINEL_ATTACK_COUNTER_MASK,d2
 	beq.w abs_0_00009F02
 	bra.w continue_primary_object_update_loop
     ; KNOWN: type A0=Target code-entry register seed:SG2BouncingActor
@@ -13151,37 +13170,47 @@ abs_0_0000A128:
 	bclr.b #7,$0002(a2)
 	clr.b SG2SiloLauncher_child_attached_flag(a0)
 	bra.w continue_primary_object_update_loop
+    ; Nonzero emission BYTE and unsigned free count > 50 pop a slot. Direction is unchanged; the child retains its schedule WORD, flags except bit 4 and other unwritten bytes.
     ; KNOWN: type A0=Target code-entry register seed:SG2TunnelEmitter
 try_tunnel_sentinel_emission:
 	tst.b SG2TunnelEmitter_remaining_sentinel_emissions(a0)
 	beq.w continue_primary_object_update_loop
-	cmpi.w #50,free_object_count(a6)
+test_tunnel_sentinel_unsigned_free_reserve:
+	cmpi.w #SG2_TUNNEL_SENTINEL_FREE_RESERVE,free_object_count(a6)
 	bls.w continue_primary_object_update_loop
+pop_tunnel_sentinel_free_slot:
 	movea.l free_object_stack_cursor(a6),a1
 	movea.l -(a1),a2
 	move.l a1,free_object_stack_cursor(a6)
 	subq.w #1,free_object_count(a6)
     ; KNOWN: type A2=Target code-entry register seed:SG2ScheduledActor
+initialize_tunnel_sentinel_type_and_exclusions:
 	move.w #SG2_OBJECT_TYPE_TUNNEL_SENTINEL,(a2)	; operand 2: SG2ObjectCore_object_type at (a2)
 	move.b #SG2_OBJECT_TYPE_TUNNEL_ENTRANCE_EXIT,SG2TargetingObject_collision_ignored_object_type(a2)
 	move.b #SG2_OBJECT_TYPE_TUNNEL_SENTINEL,SG2TargetingObject_collision_ignored_object_type(a0)
 	clr.b SG2ObjectCore_vertex_variant_selector(a2)
 	move.b #$4,SG2ObjectCore_model_scale_shift(a2)
+copy_tunnel_position_to_sentinel:
 	move.l SG2ObjectCore_world_x(a0),SG2ObjectCore_world_x(a2)
 	move.l SG2ObjectCore_world_z(a0),SG2ObjectCore_world_z(a2)
-	move.l #$FFFFFFC4,SG2ObjectCore_world_y(a2)
+	move.l #SG2_TUNNEL_SENTINEL_RESET_Y,SG2ObjectCore_world_y(a2)
 	move.b #$FF,SG2ObjectCore_retirement_phase_or_negative(a2)
 	clr.w SG2WorldObject_rotation_0(a2)
+aim_tunnel_sentinel_at_player_cached_heading:
 	bsr.w heading_with_player_as_reference
 	move.w d1,SG2WorldObject_rotation_1(a2)
 	clr.w SG2WorldObject_rotation_2(a2)
+    ; Both links are written before decrementing the emission BYTE. These are stored references, not unique ownership or a later release invariant.
+link_tunnel_and_sentinel_before_emission_decrement:
 	move.l a0,SG2WorldObject_linked_record_or_sentinel(a2)
 	move.l a2,SG2WorldObject_linked_record_or_sentinel(a0)
 	bclr.b #4,SG2ObjectCore_flags(a2)
+consume_tunnel_sentinel_emission_byte:
 	subq.b #1,SG2TunnelEmitter_remaining_sentinel_emissions(a0)
 	move.b #$2,SG2ObjectCore_durability_or_negative(a2)
+initialize_tunnel_sentinel_vertical_launch_motion:
 	clr.w SG2WorldObject_velocity_x(a2)
-	move.w #$FF84,SG2WorldObject_velocity_y(a2)
+	move.w #SG2_TUNNEL_SENTINEL_LAUNCH_Y_VELOCITY,SG2WorldObject_velocity_y(a2)
 	clr.w SG2WorldObject_velocity_z(a2)
 	bra.w continue_primary_object_update_loop
     ; KNOWN: type A0=Target code-entry register seed:SG2BlowholeEmitter
@@ -15397,8 +15426,9 @@ set_interior_workspace_position:
 	move.l $0004(a2),player_world_x(a6)
 	move.l $000C(a2),player_world_z(a6)
 	move.l #$FFFFFA98,player_world_y(a6)
-select_interior_entry_z_offset_from_byte24:
-	tst.b $0024(a2)
+    ; Type-48 contact: zero selects entry Z+1600/mode FF; any nonzero BYTE selects Z-500/mode FE. This is distinct from the exit orientation WORD at +$12.
+select_interior_entry_z_side_from_tunnel_selector:
+	tst.b SG2TunnelEmitter_interior_entry_negative_z_selector(a2)
 	bne.b place_interior_player_on_negative_z_side
 place_interior_player_on_positive_z_side:
 	move.b #$FF,structure_contact_pose_mode(a6)
@@ -25522,14 +25552,18 @@ seed_ray_or_asteroid_motion_words:
 initialize_static_structure_flag:
 	bset.b #7,SG2ObjectCore_flags(a0)
 	rts
+    ; Copy the packed type high byte to the entry-side BYTE before clearing it. Nonnegative D4 also forces scale 2 and flag bits 6/1; adjacent BYTE +$25 is retained.
     ; KNOWN: type A0=Target code-entry register seed:SG2TunnelEmitter
 initialize_tunnel_emitter_from_packed_header:
-	move.b (a0),$0024(a0)	; operand 1: SG2ObjectCore_object_type at (a0)
+	move.b (a0),SG2TunnelEmitter_interior_entry_negative_z_selector(a0)	; operand 1: SG2ObjectCore_object_type at (a0)
+clear_tunnel_packed_header_high_byte:
 	clr.b (a0)	; operand 1: SG2ObjectCore_object_type at (a0)
-	move.b #$1,SG2TunnelEmitter_remaining_sentinel_emissions(a0)
+	move.b #SG2_TUNNEL_INITIAL_SENTINEL_EMISSIONS,SG2TunnelEmitter_remaining_sentinel_emissions(a0)
 	bset.b #7,SG2ObjectCore_durability_or_negative(a0)
+select_tunnel_surface_or_interior_flags:
 	tst.w d4
 	bmi.w skip_object_type_initialization
+initialize_interior_tunnel_scale_and_flags:
 	move.b #$2,SG2ObjectCore_model_scale_shift(a0)
 	bset.b #6,SG2ObjectCore_flags(a0)
 	bset.b #1,SG2ObjectCore_flags(a0)
